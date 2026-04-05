@@ -407,6 +407,69 @@ class TestWalkSessionsIndexChain:
         assert len(result.entries) == 1
         assert result.entries[0].first_user_message == "I am not a compact session"
 
+    def test_extract_first_user_message_string_content(
+        self, mock_projects_dir: Path
+    ) -> None:
+        """Modern .jsonl format uses string content, not list-of-blocks."""
+        p = mock_projects_dir / "test_string_content.jsonl"
+        p.write_text(
+            json.dumps(
+                {
+                    "type": "user",
+                    "message": {
+                        "content": "Hello, this is a direct string message"
+                    },
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        result = _extract_first_user_message(p)
+        assert result == "Hello, this is a direct string message"
+
+    def test_extract_first_user_message_list_content(
+        self, mock_projects_dir: Path
+    ) -> None:
+        """Legacy .jsonl format uses content as list of text blocks."""
+        p = mock_projects_dir / "test_list_content.jsonl"
+        p.write_text(
+            json.dumps(
+                {
+                    "type": "user",
+                    "message": {
+                        "content": [{"type": "text", "text": "Legacy block format"}]
+                    },
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        result = _extract_first_user_message(p)
+        assert result == "Legacy block format"
+
+    def test_extract_first_user_message_command_format(
+        self, mock_projects_dir: Path
+    ) -> None:
+        """Slash command messages use string content with XML-like tags."""
+        p = mock_projects_dir / "test_command.jsonl"
+        p.write_text(
+            json.dumps(
+                {
+                    "type": "user",
+                    "message": {
+                        "content": "<command-name>/compact</command-name>\n"
+                        "<command-message>compact</command-message>\n"
+                        "<command-args></command-args>"
+                    },
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        result = _extract_first_user_message(p)
+        assert result is not None
+        assert "/compact" in result
+
 
 # ---------------------------------------------------------------------------
 # walk_session_chain (unified entry point)
