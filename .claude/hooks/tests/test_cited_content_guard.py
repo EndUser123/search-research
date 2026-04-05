@@ -231,7 +231,20 @@ class TestCheckFileNotRead:
 class TestCheckFileReadButContentFabricated:
     """File was Read, but fabricated identifiers absent from excerpt → WARN."""
 
-    def _read_event(self, output: str = "# actual file content\ndef something_real(): pass") -> dict:
+    def _read_event(self, output: str = (
+        "# actual file content\n"
+        "def something_real(): pass\n"
+        "def another_function(arg1, arg2):\n"
+        "    '''A real function that does real things.'''\n"
+        "    result = arg1 + arg2\n"
+        "    return result\n"
+        "\n"
+        "class RealClass:\n"
+        "    def __init__(self):\n"
+        "        self.value = 0\n"
+        "    def compute(self, input_data):\n"
+        "        return self.value + input_data\n"
+    )) -> dict:
         return {
             "name": "Read",
             "command": "references/adversarial-agents.md",
