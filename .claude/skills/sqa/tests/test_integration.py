@@ -82,6 +82,7 @@ class TestSaveReport:
         ]
         report = SQAReport(findings=findings, target="/test/path")
         report.health_score = 90
+        report.timestamp = "2026-04-04T12:00:00+00:00"
         save_report(report, Path("/ignored.json"))
 
         tid = "test_sqa_terminal2"
