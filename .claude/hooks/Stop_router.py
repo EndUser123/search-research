@@ -378,6 +378,7 @@ ACTIVE_RUNTIME_HOOKS = frozenset(
         "Stop_optimality_check.py",
         "Stop_symptom_map.py",
         "Stop_negative_existence_guard.py",
+        "Stop_comparative_claim_guard.py",
         "StopHook_step_header_verifier.py",
         "stop/Stop_verification_gate.py",
         "principle_monitor.py",
