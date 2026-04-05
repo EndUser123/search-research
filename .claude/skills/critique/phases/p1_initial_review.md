@@ -52,6 +52,9 @@ Based on the target type and content, select the 2-4 most relevant specialists:
 - `adversarial-critic` — reasoning quality, bias
 - `adversarial-compliance` — YAML frontmatter, parameter validation
 
+**For failure / RCA:**
+- All 7 specialists run in parallel (adversarial-compliance, adversarial-logic, adversarial-performance, adversarial-security, adversarial-testing, adversarial-quality, adversarial-qa)
+
 ## Step 3: Check for Prior Output (Idempotent Dispatch)
 
 Before dispatching specialists, check whether their output files already exist at the canonical path.
