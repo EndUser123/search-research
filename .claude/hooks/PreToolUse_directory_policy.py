@@ -771,6 +771,7 @@ def run(data: dict, verbose: bool = False) -> dict | None:
             ".claude/hooks/",
             ".claude/skills/planning/",
             ".claude/skills/code/",
+            ".claude/skills/sqa/",  # SQA skill tests (self-referential quality audit)
             ".claude/.evidence/",  # Session evidence directories (critique, gto, pre-mortem, adversarial)
             ".claude/plans/adversarial/",  # Adversarial review findings and workflow artifacts
         )
