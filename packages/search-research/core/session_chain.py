@@ -3,9 +3,10 @@
 Provides a unified interface for finding all session transcript files in a
 session chain, given any session ID.
 
-Two strategies, tried in order:
+Three strategies, tried in order:
   1. Handoff-file chain   — reliable when handoff files exist
   2. sessions-index scan  — fallback using mtime ordering
+  3. Semantic similarity  — fallback using embedding similarity
 
 Limitations
 -----------
@@ -20,8 +21,10 @@ from __future__ import annotations
 
 import json
 import logging
+
+import numpy as np
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -229,7 +232,12 @@ def _extract_first_user_message(jsonl_path: Path) -> str | None:
                     continue
                 if entry.get("type") == "user":
                     msg = entry.get("message", {})
-                    content = msg.get("content", [])
+                    if isinstance(msg, dict):
+                        content = msg.get("content", [])
+                    else:
+                        content = []
+                    if isinstance(content, str):
+                        return content[:200]
                     if isinstance(content, list):
                         for block in content:
                             if isinstance(block, dict) and block.get("type") == "text":
@@ -247,7 +255,7 @@ def walk_sessions_index_chain(
     """Walk session chain using sessions-index.json mtime ordering.
 
     This is a best-effort fallback for recent sessions that have no handoff files.
-    Heuristic: sessions whose first user message starts with "/compact" are continuations.
+    Heuristic: sessions whose first user message contains "/compact" are continuations.
     The chain is inferred by sorting sessions by mtime and linking /compact sessions
     to the nearest prior session.
 
@@ -305,7 +313,7 @@ def walk_sessions_index_chain(
 
     # Determine if the target session is a /compact session
     target_msg = compact_sessions.get(session_id, "")
-    target_is_compact = target_msg.startswith("/compact")
+    target_is_compact = target_msg.startswith("/compact") or "/compact" in target_msg
 
     if not target_is_compact:
         # Non-compact session — no recorded prior, cannot chain
@@ -345,7 +353,7 @@ def walk_sessions_index_chain(
             if pred_id in visited:
                 continue
             pred_msg = compact_sessions.get(pred_id, "")
-            if pred_msg.startswith("/compact"):
+            if pred_msg.startswith("/compact") or "/compact" in pred_msg:
                 predecessor_id = pred_id
                 break
 
@@ -381,6 +389,156 @@ def walk_sessions_index_chain(
 
 
 # ---------------------------------------------------------------------------
+# Strategy 3: Semantic similarity fallback (for sessions without handoffs)
+# ---------------------------------------------------------------------------
+
+
+def _session_text(info: dict) -> str:
+    """Extract searchable text from sessions-index entry."""
+    parts = []
+    if info.get("goal"):
+        parts.append(info["goal"])
+    lp = info.get("lastPrompt", "")
+    if lp:
+        parts.append(lp[:500])
+    af = info.get("active_files", [])
+    if af:
+        parts.append(" ".join(af[:10]))
+    return " | ".join(parts) if parts else ""
+
+
+def _cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
+    """Compute cosine similarity between two vectors."""
+    norm_a = np.linalg.norm(a)
+    norm_b = np.linalg.norm(b)
+    if norm_a == 0 or norm_b == 0:
+        return 0.0
+    return float(np.dot(a, b) / (norm_a * norm_b))
+
+
+def walk_semantic_chain(
+    session_id: str,
+    project_path: Path | None = None,
+    threshold: float = 0.7,
+    window_days: int = 7,
+) -> SessionChainResult:
+    """Walk session chain via semantic similarity fallback.
+
+    Uses EmbedClient to embed session text from sessions-index and finds
+    prior sessions by cosine similarity. This is a best-effort fallback when
+    both handoff files and mtime heuristic fail.
+
+    Args:
+        session_id: Session UUID to walk backward from.
+        project_path: Project directory. Defaults to P--.
+        threshold: Minimum cosine similarity to consider a match (default 0.7).
+        window_days: Number of days to search around target's createdAt (default 7).
+
+    Returns:
+        SessionChainResult with semantic matches sorted by similarity.
+    """
+    if project_path is None:
+        project_path = _projects_dir() / "P--"
+
+    sessions_index = load_sessions_index(project_path)
+    if session_id not in sessions_index:
+        return SessionChainResult()
+
+    target_info = sessions_index[session_id]
+    target_text = _session_text(target_info)
+    if not target_text:
+        return SessionChainResult()
+
+    target_created_ms = target_info.get("createdAt")
+    if not target_created_ms:
+        return SessionChainResult()
+
+    try:
+        target_created = datetime.fromtimestamp(target_created_ms / 1000)
+    except (ValueError, OSError):
+        return SessionChainResult()
+
+    window_start = target_created - timedelta(days=window_days)
+    window_end = target_created + timedelta(days=window_days)
+
+    # Build candidate list
+    candidates: list[tuple[str, dict, str]] = []
+    for sid, info in sessions_index.items():
+        if sid == session_id:
+            continue
+        created_ms = info.get("createdAt")
+        if not created_ms:
+            continue
+        try:
+            created = datetime.fromtimestamp(created_ms / 1000)
+        except (ValueError, OSError):
+            continue
+        if window_start <= created <= window_end:
+            text = _session_text(info)
+            if text:
+                candidates.append((sid, info, text))
+
+    if not candidates:
+        return SessionChainResult()
+
+    # Batch embed all texts
+    all_texts = [target_text] + [c[2] for c in candidates]
+
+    try:
+        from search_research.core.chs.embeddings import get_embed_client
+
+        client = get_embed_client()
+        embeddings = client.embed_texts(all_texts)
+
+        target_emb = np.frombuffer(embeddings[0], dtype=np.float32)
+        candidate_embs = [np.frombuffer(e, dtype=np.float32) for e in embeddings[1:]]
+    except Exception:
+        # Daemon unavailable or import failure — graceful degradation
+        return SessionChainResult()
+
+    # Compute similarities
+    matches: list[tuple[str, Path, datetime, float]] = []
+    for i, (sid, info, _) in enumerate(candidates):
+        sim = _cosine_sim(target_emb, candidate_embs[i])
+        if sim >= threshold:
+            full_path = info.get("fullPath")
+            if full_path:
+                p = Path(full_path)
+            else:
+                p = Path(project_path) / f"{sid}.jsonl"
+            if p.exists():
+                created_ms = info.get("createdAt")
+                try:
+                    created = datetime.fromtimestamp(created_ms / 1000)
+                except (ValueError, OSError):
+                    created = datetime.min
+                matches.append((sid, p, created, sim))
+
+    if not matches:
+        return SessionChainResult()
+
+    # Sort by similarity descending
+    matches.sort(key=lambda x: x[3], reverse=True)
+
+    entries = [
+        SessionChainEntry(
+            session_id=sid,
+            transcript_path=path,
+            parent_transcript_path=None,
+            created=created,
+            first_user_message=None,
+        )
+        for sid, path, created, _ in matches
+    ]
+
+    return SessionChainResult(
+        entries=entries,
+        depth=len(entries),
+        origin_session_id=entries[0].session_id if entries else None,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Unified entry point
 # ---------------------------------------------------------------------------
 
@@ -402,23 +560,29 @@ def walk_session_chain(
 
     Strategy selection:
       - If handoff files exist linking to prior sessions → handoff chain
-      - Otherwise → sessions-index mtime heuristic (approximate for /compact sessions only)
+      - If sessions-index mtime heuristic finds priors → mtime chain
+      - If semantic similarity finds matches → semantic chain
+      - Otherwise → origin only (graceful degradation)
     """
     if project_path is None:
         project_path = _projects_dir() / "P--"
 
-    # Try handoff-file chain first (reliable for sessions with handoff files)
+    # Strategy 1: Try handoff-file chain first (reliable for sessions with handoff files)
     handoff_result = walk_handoff_chain(session_id, max_depth)
-    # Use entries[0].session_id != session_id (not depth > 1) to detect "found a prior":
-    #   - No prior found: entries[0].session_id == session_id (returned self as origin)
-    #   - Prior(s) found: entries[0].session_id != session_id (first entry is the prior)
-    # depth==1 means "1 prior found"; depth>1 means "multiple priors found"
-    # Both should use the handoff chain, not fall back to sessions-index
     if handoff_result.entries and handoff_result.entries[0].session_id != session_id:
         return handoff_result
 
-    # Fall back to sessions-index mtime heuristic
-    return walk_sessions_index_chain(session_id, project_path)
+    # Strategy 2: Fall back to sessions-index mtime heuristic
+    mtime_result = walk_sessions_index_chain(session_id, project_path)
+    if mtime_result.entries and mtime_result.entries[0].session_id != session_id:
+        return mtime_result  # mtime found prior(s)
+
+    # Strategy 3: Fall back to semantic similarity
+    semantic_result = walk_semantic_chain(session_id, project_path)
+    if semantic_result.entries:
+        return semantic_result
+
+    return mtime_result  # all fallbacks exhausted — origin only
 
 
 def get_all_chain_files(
