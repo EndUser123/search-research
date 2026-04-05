@@ -570,3 +570,6 @@ client_secrets.json
 # arch is now a symlink -> packages/arch/skill/ (like rca, all)
 # No gitignore needed - symlink itself is tracked, target is in packages/
 ai-api/proxy/litellm_venv/
+
+# Prevent large data files from being committed
+__csf/data/
