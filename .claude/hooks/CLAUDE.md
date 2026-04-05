@@ -1200,150 +1200,39 @@ Command: npm install @scope/package
 
 **Architecture**: All scanners extend `BaseScanner` with a `scan(text, context)` method returning `ScanResult`.
 
-| Scanner                             | Purpose                              | Integration        |
-| ----------------------------------- | ------------------------------------ | ------------------ |
-| `scanners/strawberry_validator.py`  | Hallucination detection (two-stage)  | Stop hooks         |
-| `scanners/base_scanner.py`          | Abstract base class for all scanners | —                  |
+| Scanner                                  | Purpose                              | Integration        |
+| ---------------------------------------- | ------------------------------------ | ------------------ |
+| `scanners/hallucination_scanner.py`       | Hallucination detection (rule-based) | Stop hooks         |
+| `scanners/agreement_consistency_scanner.py` | Response consistency checks        | Stop hooks         |
+| `scanners/base_scanner.py`                | Abstract base class for all scanners | —                  |
 
-**Strawberry Validator** (Hallucination Detection):
-- **Stage 1**: Fast rule-based check (<10ms) for known invalid patterns
-- **Stage 2**: LLM verification (100-500ms) for uncertain patterns
-- **Backend**: Z.AI API (glm-4-plus model)
-- **Detection**:
-  - Invalid slash commands
-  - Sycophantic apologies
-  - Unverified claims (NEW in v2.1):
-    - **Absence claims**: "no hook for X", "lacks feature Y", "doesn't exist"
-    - **Template/SKILL content claims**: "/arch template has no X", "SKILL.md says Y"
-    - **Process/workflow claims**: "already searched", "just verified", "checked and found"
-    - **Skill existence claims** (NEW in v2.2):
-      - `/library is not a real skill` → Requires Bash `ls skills/` or Grep evidence
-      - `no skill called /xyz` → Blocks without tool verification
-      - `skill /abc doesn't exist` → Must verify with Read/Grep before claiming
-      - Suggests similar skills: "library" → "Did you mean /library-first?"
-- **Configuration**: `ZAI_API_KEY` environment variable
+### Strawberry Validator — DECOMMISSIONED
 
-**Usage example**:
-```python
-from scanners.strawberry_validator import StrawberryValidator
+**Status**: `scanners/strawberry_validator.py` was **deleted** (policy violation: external Z.AI API call via httpx).
 
-validator = StrawberryValidator(enabled=True, api_key="your-key")
-result = validator.scan(response_text, context=tool_context)
+**What was removed**:
+- Stage 2 LLM verification call to Z.AI API (glm-4-plus model)
+- `ZAI_API_KEY` environment variable dependency
+- All Stage 2 claim patterns (uncertain patterns that required LLM verification)
 
-if result.status == ScanStatus.FAIL:
-    print(f"Blocked: {result.reason}")
-```
+**Why**: Hooks must not make external API calls. The Z.AI httpx call violated the [Hook External Dependency Policy](#hook-external-dependency-policy).
 
-**Warning Signs to Monitor**:
-- Responses blocked with "hallucination detected" when claims are valid
-- Legitimate slash commands rejected as invalid
-- API error messages in stderr indicating Z.AI backend failures
-- Increased latency (>500ms) on Stop hook execution
+**Current in-process replacements** (all rule-based, no external calls):
 
-**How to Disable**:
-```bash
-# Method 1: Advisory mode (warn but don't block)
-export STRAWBERRY_VALIDATOR_VERBOSE=true
+| Replacement Hook                         | Coverage                                         |
+| ---------------------------------------- | ------------------------------------------------ |
+| `Stop_unverified_existence_gate.py`      | Absence/existence claims (e.g., "no hook for X") |
+| `StopHook_unverified_stance.py`          | Sycophantic doubt, empty hedges without evidence |
+| `empirical_claims_gate.py`               | Completion/fix claims without runtime evidence   |
+| `unified_claim_verifier.py`              | General claim verification (in-process patterns)  |
+| `verification/engine.py`                  | Shared verification engine for structured checks  |
 
-# Method 2: Complete disable via bypass
-export CONSTITUTIONAL_HOOKS_BYPASS=1
+**Key invariant preserved**: Claim types that previously required Stage 2 LLM verification are now handled by rule-based gates or blocking hooks with tool-based evidence requirements — no external calls.
 
-# Method 3: Remove from settings.json
-# Edit P:/.claude/settings.json, remove "strawberry_validator" from Stop hooks
-```
-
-**Advisory Mode Configuration** (Verbose-Mode-First Approach):
-When `STRAWBERRY_VALIDATOR_VERBOSE=true`, the validator warns but allows responses:
-- Warnings appear in response with ⚠️ prefix
-- Shows matched text and suggestions
-- Sets `decision: allow_with_warning` instead of `block`
-
-**Recommended workflow**:
-1. Start with verbose mode enabled to tune patterns based on real usage
-2. Monitor logs at `state/logs/strawberry_validator.log` for claim type distribution
-3. After tuning patterns (false positive rate < 10%), disable verbose mode for blocking
-
-**Skill Existence Claims** (NEW in v2.2):
-
-The validator now detects and blocks unverified claims about skill existence/names. This prevents hallucinations like claiming "/library is not a real skill" when the actual skill is "/library-first".
-
-**Patterns detected:**
-- `/X is not a real skill`
-- `/X does not exist`
-- `no skill called /X`
-- `skill /X is not real`
-- `there is no skill /X`
-
-**Evidence requirements:**
-To claim a skill doesn't exist, provide tool evidence:
-- **Bash**: `ls P:/.claude/skills/` output
-- **Grep**: Pattern matches in skill directories
-- **Read**: Reading SKILL.md files
-
-**Similar skill suggestions:**
-When claiming "/library is not a real skill", the validator suggests:
-```
-Unverified skill existence claim: "/library is not a real skill".
-Provide tool evidence (Bash ls skills/, Grep, or Read SKILL.md)
-before claiming skill doesn't exist. Did you mean /library-first?
-```
-
-**Negative test cases (NOT blocked):**
-- Conversational: "no problem", "not surprisingly"
-- Unix paths: "/usr/bin/lib directory"
-- URLs with slashes: "https://api.example.com/v1"
-
-**Example detections** (new in v2.1):
-- ❌ "ARC template has no adversarial self-review" → Requires verification against arch/SKILL.md
-- ❌ "There's no hook for validating JSON" → Requires evidence search (Grep/Read)
-- ❌ "I already searched for that pattern" → Requires Grep evidence in tool results
-- ❌ "/library is not a real skill" → Requires Bash `ls skills/` evidence (v2.2)
-- ❌ "no skill called /xyz exists" → Blocks without verification (v2.2)
-- ✅ "No problem, let's continue" → NOT flagged (conversational, not a claim)
-- ✅ "Not surprisingly, it worked" → NOT flagged (idiom, not a claim)
-
-**Weekly Pattern Review**:
-
-To monitor for false positives and tune the validation system:
-
-```bash
-# Analyze blocked claims from last 7 days
-python P:/.claude/hooks/analyze_blocked_claims.py
-
-# Show week-over-week trends
-python P:/.claude/hooks/analyze_blocked_claims.py --weekly
-
-# Show common patterns
-python P:/.claude/hooks/analyze_blocked_claims.py --patterns
-
-# Export to JSON for further analysis
-python P:/.claude/hooks/analyze_blocked_claims.py --days 30 --format json --output blocked_claims.json
-```
-
-**What the analysis shows**:
-- Total blocked claims and unique skills mentioned
-- Evidence distribution (0 tools vs. 1+ tools)
-- Top 5 most blocked skills
-- Top 5 suggested alternatives
-- Pattern analysis (claim types, false positive rate)
-- Weekly trends (blocks per week)
-
-**Monitoring Recommendations**:
-- **Weekly review**: Check `skill_claim_blocks.log` for patterns
-- **False positive rate**: Target <5% (adjust exclusion patterns if higher)
-- **Pattern tuning**: Add exclusion regex for common false positives
-- **Log rotation**: Logs are kept indefinitely (manual cleanup as needed)
-
-**Configuration**:
-- **Logging enabled**: `SKILL_CLAIM_LOGGING=true` (default)
-- **Opt-out**: Set `SKILL_CLAIM_LOGGING=false` to disable logging
-- **Log location**: `P:/.claude/state/logs/skill_claim_blocks.log`
-
-**Integration**: Use this workflow to identify:
-- Conversational phrases incorrectly blocked
-- Unix paths mistaken for skill claims
-- New exclusion patterns needed
-- Performance degradation (sudden spike in blocks)
+**Decommission test coverage**: `tests/test_strawberry_decommission.py` validates:
+- Scanner file is deleted
+- Not in `ACTIVE_RUNTIME_HOOKS` or `HOOK_SEQUENCE`
+- Policy violation documented in `hook_external_llm_policy.md`
 
 ### Cleanup Verifier
 
