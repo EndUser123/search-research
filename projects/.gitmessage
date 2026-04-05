@@ -1,0 +1,25 @@
+# <type>: <description>
+#
+# <body>
+#
+# <footer>
+
+# Type must be one of:
+# feat:     New feature
+# fix:      Bug fix
+# docs:     Documentation only changes
+# style:    Changes that do not affect meaning (white-space, formatting, etc)
+# refactor: Code change that neither fixes a bug nor adds a feature
+# perf:     Performance improvement
+# test:     Adding missing tests or correcting existing tests
+# chore:    Changes to build process or auxiliary tools
+# ci:       Changes to CI configuration files and scripts
+# build:    Changes that affect the build system or external dependencies
+
+# Examples:
+# feat: add user authentication module
+# fix: resolve memory leak in data processor
+# docs: update API documentation for new endpoints
+# refactor: simplify error handling in main workflow
+# test: add unit tests for authentication module
+# chore: update dependencies to latest versions

@@ -1,0 +1,120 @@
+# Claude Code Directory Exclusion Patterns
+# This file specifies directories and files that Claude should avoid during normal searches
+# Similar to .gitignore, but for Claude's search and analysis operations
+
+# Development directories - only search for research purposes
+__dev/
+*/__dev/
+**/__dev/**
+
+# Archive directories
+__archive/
+*/__archive/
+**/__archive/**
+
+# Version control
+.git/
+**/.git/**
+
+# Node.js
+node_modules/
+**/node_modules/**
+
+# Python virtual environments
+venv/
+.venv/
+**/venv/**
+**/.venv/**
+
+# Python cache and build artifacts
+__pycache__/
+**/__pycache__/**
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+**/build/**
+develop-eggs/
+dist/
+**/dist/**
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing and coverage
+.pytest_cache/
+**/.pytest_cache/**
+.coverage
+.coverage.*
+.cache
+htmlcov/
+.tox/
+.nox/
+.coverage/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+**/logs/**
+
+# Temporary files
+tmp/
+temp/
+**/tmp/**
+**/temp/**
+*.tmp
+*.temp
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment files (may contain secrets)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Package manager files
+package-lock.json
+yarn.lock
+Pipfile.lock
+poetry.lock
+
+# Documentation build outputs
+_build/
+_site/
+site/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/**

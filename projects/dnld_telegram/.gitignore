@@ -1,0 +1,27 @@
+# Sensitive credentials
+.env
+*.session
+__pycache__/
+*.pyc
+*.pyd
+*.so
+
+# Environments
+.venv/
+env/
+venv/
+
+# Testing
+.pytest_cache/
+.coverage
+.mypy_cache/
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# dnld_telegram specific
+dnld_telegram.pid
+debug_output.txt
+telegram_data.db*
+LARGE_DATABASE_STRATEGY.md

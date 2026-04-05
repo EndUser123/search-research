@@ -1,0 +1,368 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cognitive-knowledge-system"
+version = "2025.1.0"
+description = "Cognitive Knowledge System (CKS) - SQLite-based knowledge ingestion and retrieval with 2025 Python standards"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    {name = "CSF Development Team", email = "dev@csf.org"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Text Processing :: Indexing",
+]
+keywords = ["knowledge", "sqlite", "search", "cognitive", "2025-standards"]
+
+# Core dependencies with uv compatibility
+dependencies = [
+    "pydantic>=2.5.0",                    # 2025 standard for data validation
+    "pydantic-settings>=2.1.0",           # 2025 standard for configuration
+    "structlog>=24.1.0",                  # Structured logging (2025 standard)
+    "click>=8.1.0",                       # CLI framework
+    "rich>=13.7.0",                       # Rich terminal output
+    "python-dotenv>=1.0.0",               # Environment configuration
+    "aiofiles>=23.2.0",                   # Async file operations
+    "asyncio-throttle>=1.0.2",            # Rate limiting for async operations
+]
+
+# Optional dependencies for enhanced functionality
+[project.optional-dependencies]
+dev = [
+    # 2025 development standards
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "pytest-timeout>=2.2.0",
+    "pytest-xdist>=3.5.0",
+
+    # Modern tooling
+    "ruff>=0.1.8",                        # Replaces black, isort, flake8
+    "mypy>=1.8.0",                        # Strict type checking
+    "bandit>=1.7.5",                      # Security linting
+    "coverage>=7.4.0",                    # Coverage reporting
+    "pre-commit>=3.6.0",                  # Git hooks
+
+    # Documentation
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.4.0",
+    "mkdocstrings[python]>=0.24.0",
+    "pyvis>=0.3.2",                       # Graph visualization
+    "psutil>=5.9.0",                      # System resource monitoring
+    "click>=8.1.0",                       # CLI framework (Dream Journal)
+]
+
+# GPU acceleration dependencies (Note: faiss-gpu deprecated, use conda for GPU)
+gpu = [
+    "numpy>=1.24.0",                      # GPU array operations
+    "cupy-cuda11x>=12.0.0",               # GPU acceleration (CUDA 11.x)
+    "faiss-cpu>=1.7.4",                   # Vector search (use conda for GPU: faiss-gpu)
+    "rapids-cudf>=23.10.0",               # GPU DataFrame operations
+    "rapids-cuml>=23.10.0",               # GPU ML operations
+]
+
+# Vector search and embedding dependencies
+vectors = [
+    "numpy>=1.24.0",                      # Vector operations
+    "fastembed>=0.2.0",                   # Fast local embeddings
+    "sentence-transformers>=2.2.0",       # High-quality embeddings (Fallback)
+    "instructor>=1.0.0",                  # Structured LLM output (Validation)
+    "yake>=0.4.8",                        # Keyword extraction
+    "networkx>=3.2.1",                    # Graph operations
+    "faiss-cpu>=1.7.4",                   # CPU vector search (Legacy support)
+    "scikit-learn>=1.3.0",                # ML utilities
+    "openai>=1.3.0",                      # OpenAI embeddings
+    "anthropic>=0.20.0",                  # Claude API client
+    "google-genai>=0.2.0",                # Gemini API client
+    "python-dotenv>=1.0.0",               # Environment variable loading
+]
+
+# All optional dependencies
+all = [
+    "cognitive-knowledge-system[dev,gpu,vectors]"
+]
+
+# CPU-only alternative
+cpu = [
+    "cognitive-knowledge-system[dev,vectors]"
+]
+
+[project.urls]
+Homepage = "https://github.com/csf/cognitive-knowledge-system"
+Documentation = "https://csf.github.io/cognitive-knowledge-system"
+Repository = "https://github.com/csf/cognitive-knowledge-system.git"
+Issues = "https://github.com/csf/cognitive-knowledge-system/issues"
+
+[project.scripts]
+cks = "cks.cli:main"
+cks-learn = "cks.commands.learn:main"
+cks-query = "cks.commands.query:main"
+cks-stats = "cks.commands.stats:main"
+cks-migrate = "cks.migrations:main"
+
+# CKS-specific package configuration
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cks"]
+
+[tool.hatch.envs.default]
+dependencies = [
+    "coverage[toml]>=6",
+    "pytest",
+]
+[tool.hatch.envs.default.scripts]
+test = "pytest {args:tests}"
+test-cov = "coverage run -m pytest {args:tests}"
+cov-report = [
+    "- coverage combine",
+    "coverage report",
+    "coverage html",
+]
+
+[tool.hatch.envs.lint]
+dependencies = [
+    "ruff>=0.1.8",
+    "mypy>=1.8.0",
+    "bandit>=1.7.5",
+]
+[tool.hatch.envs.lint.scripts]
+lint = [
+    "ruff check {args:.}",
+    "ruff format --check {args:.}",
+    "mypy {args:src/cks}",
+    "bandit -r {args:src/cks}",
+]
+format = [
+    "ruff format {args:.}",
+    "ruff check --fix {args:.}",
+]
+
+# 2025 Ruff configuration for CKS
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+required-version = ">=0.1.8"
+extend-exclude = [
+    "__pycache__",
+    "build",
+    "dist",
+    ".git",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    "migrations",
+]
+
+[tool.ruff.lint]
+# 2025 Python standards with CKS-specific rules
+select = [
+    # Core Python
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort (import sorting)
+
+    # Code quality
+    "C4",    # flake8-comprehensions
+    "C90",   # mccabe complexity
+    "B",     # flake8-bugbear
+    "SIM",   # flake8-simplify
+
+    # 2025 standards
+    "UP",    # pyupgrade (modern Python)
+    "RUF",   # ruff-specific
+    "PERF",  # performance linting
+    "ASYNC", # async best practices
+
+    # Type safety
+    "ANN",   # type annotations
+    "TCH",   # type checking
+
+    # Security
+    "S",     # flake8-bandit
+
+    # Style and consistency
+    "N",     # pep8-naming
+    "COM",   # flake8-commas
+    "Q",     # flake8-quotes
+    "PTH",   # flake8-use-pathlib
+
+    # Documentation and best practices
+    "D",     # pydocstyle
+    "PIE",   # flake8-pie
+    "RET",   # flake8-return
+    "TID",   # flake8-tidy-imports
+
+    # Error handling
+    "BLE",   # flake8-blind-except
+    "TRY",   # tryceratops
+
+    # Modern practices
+    "FA",    # flake8-future-annotations
+    "SLOT",  # flake8-slots
+    "FLY",   # flynt (f-string conversion)
+]
+
+ignore = [
+    "E501",     # Line too long (handled by formatter)
+    "ANN101",   # Missing type annotation for self
+    "ANN102",   # Missing type annotation for cls
+    "ANN401",   # Any types
+    "D203",     # One blank line before class
+    "D213",     # Multi-line docstring summary
+    "TRY003",   # Long exception messages
+    "T201",     # print statements (allowed in CLI)
+]
+
+[tool.ruff.format]
+docstring-code-format = true
+indent-style = "space"
+line-ending = "auto"
+quote-style = "double"
+
+[tool.ruff.lint.mccabe]
+max-complexity = 8  # Slightly higher for complex knowledge operations
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*" = [
+    "S101",      # Use of assert
+    "ANN",       # Missing annotations in tests
+    "D",         # Missing docstrings in tests
+    "S603",      # subprocess calls
+]
+
+"src/cks/migrations/*" = [
+    "ANN",       # Migration scripts may lack annotations
+    "D",         # Migration scripts may lack docstrings
+]
+
+"src/cks/cli.py" = [
+    "T201",      # print statements in CLI
+]
+
+# 2025 mypy configuration
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+ignore_missing_imports = false
+
+# 2025 error codes
+enable_error_code = [
+    "ignore-without-code",
+    "redundant-expr",
+    "truthy-bool",
+    "unused-ignore",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "tests.*",
+    "pytest.*",
+    "structlog.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "cupy.*",
+    "faiss.*",
+    "rapids.*",
+]
+ignore_missing_imports = true
+
+# 2025 pytest configuration
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*", "CKSTest*"]
+python_functions = ["test_*", "cks_test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "-ra",
+    "--timeout=300",
+    "--timeout-method=thread",
+    "--cov=src/cks",
+    "--cov-report=term-missing",
+    "--cov-report=xml",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "performance: Performance tests",
+    "gpu: GPU-specific tests (requires CUDA)",
+    "vectors: Vector search tests",
+    "slow: Slow-running tests",
+    "database: Database-specific tests",
+    "cli: CLI interface tests",
+]
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["src/cks"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/conftest.py",
+    "*/__pycache__/*",
+    "*/migrations/*",
+]
+branch = true
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "def __str__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+fail_under = 85
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+# Bandit security configuration
+[tool.bandit]
+exclude_dirs = ["tests", "migrations"]
+skips = ["B101", "B601"]  # Skip assert and shell injection warnings for CLI tests

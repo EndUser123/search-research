@@ -1,0 +1,30 @@
+# Configuration for the Hook-Based TDD Escalation Pipeline
+
+mutation:
+  enabled: true
+  tool: mutmut  # or 'crytic', 'pymut'
+  kill_rate_threshold: 0.80
+  timeout_seconds_per_mutant: 5
+  max_mutants: 1000
+
+property_testing:
+  enabled: true
+  async_execution: true
+  num_examples: 10000
+  max_shrink_steps: 100
+
+bdd:
+  enabled: true
+  coverage_threshold: 0.95
+
+integration_tests:
+  enabled: true
+  run_on_refactor_complete: true
+
+logging:
+  level: INFO
+  output: console
+
+database:
+  path: .csf_nip_tdd_evidence.db
+  pool_size: 5

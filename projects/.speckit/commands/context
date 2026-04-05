@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""
+Context management command for SessionContextManager
+Provides CLI interface for project context validation and management
+"""
+
+import sys
+from pathlib import Path
+
+# Add session context manager to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from session_context_manager import SessionContextManager
+
+
+def main():
+    """Context command CLI interface"""
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Manage session project context')
+    parser.add_argument('action', choices=['show', 'set', 'clear', 'validate', 'detect'],
+                       help='Action to perform')
+    parser.add_argument('tsk_id', nargs='?', help='TSK ID for set action')
+    parser.add_argument('--operation', '-o', help='Operation description for validate action')
+    parser.add_argument('--force', '-f', action='store_true', help='Force context change without confirmation')
+
+    args = parser.parse_args()
+
+    try:
+        manager = SessionContextManager()
+
+        if args.action == 'show':
+            print(manager.get_context_summary())
+
+        elif args.action == 'set':
+            if not args.tsk_id:
+                print("❌ TSK ID required for set action")
+                sys.exit(1)
+
+            # Detect available projects first
+            active_projects = manager.detect_active_tsk_projects()
+            if not active_projects:
+                print("❌ No active TSK projects found")
+                sys.exit(1)
+
+            print(f"🔍 Found {len(active_projects)} active projects:")
+            for project in active_projects:
+                print(f"   {project['tsk_id']} - {project['name']}")
+
+            manager.set_active_context(args.tsk_id, force=args.force)
+
+        elif args.action == 'clear':
+            manager.clear_context()
+
+        elif args.action == 'validate':
+            operation = args.operation or input("Enter operation description: ")
+            if manager.pre_operation_check(operation):
+                print("✅ Operation validated - context is correct")
+            else:
+                print("❌ Operation blocked - context mismatch")
+                sys.exit(1)
+
+        elif args.action == 'detect':
+            worktree_context = manager.get_worktree_context()
+            if worktree_context:
+                print(f"🎯 Detected worktree context: {worktree_context}")
+            else:
+                print("❓ No specific worktree context detected")
+
+            active_projects = manager.detect_active_tsk_projects()
+            print(f"📊 Found {len(active_projects)} active TSK projects")
+            for project in active_projects:
+                print(f"   {project['tsk_id']} - {project['name']} ({project['source']})")
+
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

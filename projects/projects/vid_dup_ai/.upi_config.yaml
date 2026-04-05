@@ -1,0 +1,131 @@
+context_generation:
+  smart_selection: true
+  target_tokens: 45000
+  max_tokens: 65000
+  output_dir: docs/llm_context
+  guaranteed_files:
+    project_docs:
+    - README.md
+    - docs/PRD.md
+    - docs/ARD.md
+    - project_status.json
+    - docs/project_status.json
+    manifest_patterns:
+    - requirements.txt
+    - pyproject.toml
+    - setup.py
+    - package.json
+    - config.yaml
+    - .upi_config.yaml
+    - Pipfile
+    - yarn.lock
+    - package-lock.json
+  exclude_patterns:
+  - __pycache__
+  - '*.pyc'
+  - '*.pyo'
+  - .git
+  - .svn
+  - node_modules
+  - .venv
+  - venv
+  - env
+  - .env
+  - '*.egg-info'
+  - dist
+  - build
+  - .pytest_cache
+  - .mypy_cache
+  - .coverage
+  - '*.log'
+  - .DS_Store
+  - Thumbs.db
+handoff_management:
+  storage_location: docs/handoffs
+  filename_pattern: handoff_{timestamp}.md
+  include_in_context: true
+  summary_max_tokens: 500
+automated_checks:
+  dead_code: true
+  circular_imports: true
+  test_coverage: true
+  complexity_hotspots: true
+  todo_scanning: true
+file_categories:
+  documentation:
+    patterns:
+    - '*.md'
+    - '*.rst'
+    - '*.txt'
+    - docs/**/*
+    - README*
+    - CHANGELOG*
+    - LICENSE*
+    - CONTRIBUTING*
+    - '*.adoc'
+    priority_boost: 50
+  source_code:
+    patterns:
+    - '*.py'
+    - '*.js'
+    - '*.ts'
+    - '*.java'
+    - '*.cpp'
+    - '*.c'
+    - '*.h'
+    - '*.cs'
+    - '*.go'
+    - '*.rs'
+    - '*.rb'
+    - '*.php'
+    - '*.scala'
+    - '*.kt'
+    priority_boost: 30
+  tests:
+    patterns:
+    - test_*.py
+    - '*_test.py'
+    - tests/**/*
+    - test/**/*
+    - '*.test.js'
+    - '*.spec.js'
+    - '*.test.ts'
+    - '*.spec.ts'
+    priority_boost: 25
+  config:
+    patterns:
+    - '*.yaml'
+    - '*.yml'
+    - '*.json'
+    - '*.toml'
+    - '*.ini'
+    - '*.cfg'
+    - '*.conf'
+    - .env*
+    - Dockerfile*
+    - '*.dockerfile'
+    priority_boost: 40
+  build:
+    patterns:
+    - requirements*.txt
+    - pyproject.toml
+    - setup.py
+    - setup.cfg
+    - package.json
+    - package-lock.json
+    - yarn.lock
+    - Pipfile*
+    - Makefile
+    - '*.mk'
+    - CMakeLists.txt
+    - build.gradle
+    - pom.xml
+    priority_boost: 35
+relevance_scoring:
+  recent_modification_days:
+    high_boost: 7
+    medium_boost: 30
+  size_penalties:
+    large_file_bytes: 100000
+    huge_file_bytes: 500000
+  essential_file_boost: 200

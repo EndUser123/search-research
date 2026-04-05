@@ -1,0 +1,8 @@
+[submodule "__csf.nip/external-tools/ThoughtMcp"]
+	path = __csf.nip/external-tools/ThoughtMcp
+	url = https://github.com/modelcontextprotocol/servers.git
+	branch = main
+
+[submodule "projects/multi-agent-coordination"]
+	path = projects/multi-agent-coordination
+	url = https://github.com/EndUser123/multi-agent-coordination.git

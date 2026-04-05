@@ -1,0 +1,1 @@
+Hook optimization recommendations: (1) Lazy static initialization for regex patterns, (2) Hard timeout 200ms budget on all hooks, (3) matcher filters in settings.json, (4) SQLite WAL for handoff state, (5) QueueHandler for hook I/O. Priority order: 1-Lazy init, 2-Timeout, 3-matcher, 4-SQLite WAL, 5-QueueHandler.

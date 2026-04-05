@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+"""
+Pre-commit hook: Multi-stage validation
+
+1. Commit scope guard - prevents off-target modifications
+2. Instant check - import shadowing detection on Python files
+
+Usage: Automatically called by git on commit
+To bypass: git commit --no-verify
+"""
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+# Get the git root and project root
+GIT_ROOT = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip())
+PROJECT_ROOT = GIT_ROOT / "__csf.nip"
+INSTANT_CHECK = PROJECT_ROOT / "scripts" / "instant_check.py"
+HOOKS_DIR = GIT_ROOT / ".claude" / "hooks"
+
+# Add hooks directory to path for commit_scope_guard
+if str(HOOKS_DIR) not in sys.path:
+    sys.path.insert(0, str(HOOKS_DIR))
+
+
+def check_commit_scope() -> int:
+    """Validate commit scope to prevent off-target modifications."""
+    try:
+        from commit_scope_guard import CommitScopeGuard
+
+        guard = CommitScopeGuard()
+        is_valid, violations = guard.check_pre_commit()
+
+        if not is_valid:
+            print("\n" + "="*60)
+            print("⚠️  COMMIT SCOPE VALIDATION FAILED")
+            print("="*60)
+            print("\nOff-target changes detected:\n")
+            for v in violations:
+                print(f"  ❌ {v}")
+
+            print("\n⚠️  These changes don't match your commit message intent.")
+            print("\nOptions:")
+            print("  1. Update commit message to mention these files explicitly")
+            print("  2. Unstage off-target files: git restore --staged <file>")
+            print("  3. Bypass (use with caution): git commit --no-verify")
+            print("\n" + "="*60 + "\n")
+            return 1
+    except Exception as e:
+        # Don't block commit on guard errors
+        print(f"Warning: Commit scope guard error: {e}", file=sys.stderr)
+
+    return 0
+
+
+def get_staged_python_files() -> list[Path]:
+    """Get list of staged Python files."""
+    result = subprocess.run(
+        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return []
+
+    files = []
+    for line in result.stdout.strip().splitlines():
+        path = GIT_ROOT / line
+        # Only check Python files within __csf.nip
+        if path.suffix == ".py" and "__csf.nip" in path.parts:
+            files.append(path)
+    return files
+
+
+def run_instant_check() -> int:
+    """Run instant check on staged Python files."""
+    if not INSTANT_CHECK.exists():
+        # Hook exists but instant_check.py doesn't - allow commit (don't block)
+        return 0
+
+    staged_files = get_staged_python_files()
+    if not staged_files:
+        return 0
+
+    # Import instant_check once
+    if not str(PROJECT_ROOT) in sys.path:
+        sys.path.insert(0, str(PROJECT_ROOT))
+
+    from scripts import instant_check
+
+    issues_found = False
+    for filepath in staged_files:
+        result = instant_check.check_file(str(filepath))
+
+        if result["exit_code"] != 0:
+            issues_found = True
+            rel_path = filepath.relative_to(GIT_ROOT)
+            print(f"\n❌ Instant check failed: {rel_path}")
+            for issue in result["issues"]:
+                print(f"   • {issue}")
+
+    if issues_found:
+        print("\n⚠️  Commit blocked by instant check.")
+        print("   Fix the import shadowing issues above, or use --no-verify to bypass.")
+        return 1
+
+    return 0
+
+
+def main() -> int:
+    """Run all pre-commit checks."""
+    # Check 1: Commit scope validation
+    scope_result = check_commit_scope()
+    if scope_result != 0:
+        return scope_result
+
+    # Check 2: Instant check on Python files
+    instant_result = run_instant_check()
+    if instant_result != 0:
+        return instant_result
+
+    # Success - output for hook protocol
+    print("{}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

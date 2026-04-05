@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+"""
+StopHook_drift_sentinel.py - TF-IDF Drift Detection for LLM Output
+===================================================================
+
+Phase 2 of LLM Behavioral Integrity system.
+
+Detects when generated output semantic similarity drops below 0.75 vs source
+documents using TF-IDF cosine similarity (no external APIs, no GPU).
+"""
+from __future__ import annotations
+
+import json
+import logging
+import os
+import sys
+from pathlib import Path
+from typing import Any
+
+import structlog
+
+HOOKS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(HOOKS_DIR))
+
+from __lib__.drift_sentinel import detect_drift
+from cc_diagnostic_logger import log_hook_invocation
+from evidence_store import load_tool_events, resolve_session_id
+
+LOG_DIR = HOOKS_DIR / "state" / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+log_file = LOG_DIR / "drift_sentinel.log"
+file_handler = logging.FileHandler(log_file)
+file_handler.setLevel(logging.INFO)
+
+structlog.configure(
+    processors=[
+        structlog.stdlib.add_log_level,
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.JSONRenderer(),
+    ],
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    wrapper_class=structlog.stdlib.BoundLogger,
+    cache_logger_on_first_use=True,
+)
+
+logging.getLogger("drift_sentinel").addHandler(file_handler)
+logging.getLogger("drift_sentinel").setLevel(logging.INFO)
+
+logger = structlog.get_logger("drift_sentinel")
+
+DRIFT_SENTINEL_ENABLED = (
+    os.environ.get("DRIFT_SENTINEL_ENABLED", "false").lower() == "true"
+)
+DRIFT_SENTINEL_MODE = os.environ.get("DRIFT_SENTINEL_MODE", "warn").lower()
+
+_MAX_SOURCE_CHARS = 10240  # 10KB per file
+
+
+def _load_source_texts(session_id: str) -> list[str]:
+    """Load source file content from Read tool events.
+
+    Extracts content from the `command` field of each Read event,
+    truncating each file to _MAX_SOURCE_CHARS.
+    """
+    texts: list[str] = []
+    try:
+        events = load_tool_events(session_id, limit=200)
+    except Exception as e:
+        logger.warning("evidence_load_failed", error=str(e))
+        return texts
+
+    for event in events:
+        name = str(event.get("name", ""))
+        if name != "Read":
+            continue
+        command = str(event.get("command", "") or "")
+        if command and len(command) > 0:
+            texts.append(command[:_MAX_SOURCE_CHARS])
+
+    return texts
+
+
+def run(input_data: dict[str, Any]) -> dict[str, Any]:
+    """Main entry point for the drift sentinel hook.
+
+    Args:
+        input_data: Hook input data with response and session info
+
+    Returns:
+        {"allow": bool, "reason": str | None}
+    """
+    if not DRIFT_SENTINEL_ENABLED:
+        return {"allow": True}
+
+    response = str(input_data.get("response", "") or "")
+
+    # No response → nothing to check
+    if not response:
+        return {"allow": True}
+
+    session_id = resolve_session_id(input_data.get("session_id", ""))
+    if not session_id:
+        return {"allow": True}
+
+    source_texts = _load_source_texts(session_id)
+    if not source_texts:
+        # No Read events → nothing to compare against → fail open
+        return {"allow": True}
+
+    result = detect_drift(response, source_texts)
+
+    if not result.get("drift_detected", False):
+        return {"allow": True}
+
+    # Drift detected
+    min_sim = result.get("min_similarity", 0.0)
+    reason = (
+        f"TF-IDF drift detected: similarity {min_sim:.3f} < 0.75 threshold. "
+        f"Response may not be grounded in source documents. "
+        f"Re-read documents and ensure claims cite specific content."
+    )
+
+    if DRIFT_SENTINEL_MODE == "warn":
+        print(f"\n⚠️ DRIFT SENTINEL WARNING\n{reason}\n")
+        try:
+            log_hook_invocation(
+                hook_name="drift_sentinel",
+                event_type="drift_check",
+                action="warn",
+                reason=reason,
+            )
+        except Exception:
+            pass
+        return {"allow": True}
+
+    # strict mode
+    try:
+        log_hook_invocation(
+            hook_name="drift_sentinel",
+            event_type="drift_check",
+            action="block",
+            reason=reason,
+        )
+    except Exception:
+        pass
+    return {
+        "allow": False,
+        "reason": reason,
+        "blocking_hook": "StopHook_drift_sentinel.py",
+    }
+
+
+if __name__ == "__main__":
+    input_text = sys.stdin.read()
+    try:
+        input_data = json.loads(input_text) if input_text else {}
+    except json.JSONDecodeError:
+        input_data = {}
+
+    result = run(input_data)
+    print(json.dumps(result))

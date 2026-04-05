@@ -1,0 +1,28 @@
+contracts:
+  - type: variable_semantics
+    name: batch_progress_counters
+    file_path: batch_downloader.py
+    description: |
+      Batch processing progress tracking for multi-channel downloads.
+      Protects against swapping counters which causes [0/N] display bug.
+    variables:
+      - name: completed_count
+        semantic: "ALL channels processed (success + failure + no-videos + quota-exceeded)"
+        line: 419
+      - name: successful_downloads
+        semantic: "ONLY channels with actual video downloads"
+        line: 420
+    confusable_pairs:
+      - [completed_count, successful_downloads]
+    usage_rules:
+      - context: progress_bar
+        must_use: completed_count
+        reason: "Progress display [X of N] must show ALL channels processed, not just downloads"
+        anti_pattern: "progress_bar.update(successful_downloads)"
+      - context: summary_stats
+        must_use: successful_downloads
+        reason: "Summary stats should show only channels with actual content"
+      - context: results_dict
+        must_use: completed_count
+        reason: "Results dict completed_count must track all processed channels"
+        # Note: Line 764 has a bug where successful_downloads key uses completed_count value

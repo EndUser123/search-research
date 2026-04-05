@@ -1,0 +1,48 @@
+# .ichs.toml - Configuration for the Intelligent Code Health System
+
+[project]
+name = "MyAwesomeProject"
+
+[thresholds]
+# Fail the run if any of these are breached.
+radon_max_complexity = "C"
+pytest_min_coverage = 80
+
+# --- Pillar 5: Dynamic Configuration ---
+# An array of tables, where each table defines a check to run.
+# The `command` string can use placeholders from the [thresholds] section.
+[[checks]]
+name = "Linting (Ruff)"
+command = "python -m ruff check . --format json" # Use JSON format for parsing
+enabled = true
+
+[[checks]]
+name = "Type Checking (Mypy)"
+command = "python -m mypy . --ignore-missing-imports --exclude '(.*/)?(venv|logs)/.*'"
+enabled = true
+
+[[checks]]
+name = "Security Scan (Semgrep)"
+command = "semgrep --config=auto --quiet ."
+enabled = true
+
+[[checks]]
+name = "Test Suite (Pytest)"
+command = "python -m pytest --cov --cov-fail-under={thresholds.pytest_min_coverage} -v" # Use -v for better tracebacks
+enabled = true
+
+[[checks]]
+name = "Code Complexity (Radon)"
+command = "python -m radon cc . -n {thresholds.radon_max_complexity} -j" # Use -j for JSON output
+enabled = true
+
+
+# --- Pillar 4: Safe Automated Remediation ---
+[autofixer]
+enabled = true
+fix_command = "python -m ruff check . --fix --exit-zero"
+test_command = "python -m pytest"
+
+# --- Pillar 3: AI-Assisted Diagnostics ---
+[ai_diagnostics]
+enabled = true # Requires GOOGLE_API_KEY environment variable

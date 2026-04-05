@@ -1,0 +1,94 @@
+# Semgrep rules for BatchDownloader refactor verification
+# These rules track migration progress from old to new API
+
+# Rule: Find old-style BatchDownloader calls (29 parameters)
+- id: batch-downloader-old-style-remaining
+  languages: [python]
+  message: Old-style BatchDownloader call with individual parameters instead of config objects
+  severity: WARNING
+  patterns:
+    # Old-style call: has individual params like jobs, language, etc.
+    - pattern-inside: |
+        BatchDownloader(
+          channels=$channels,
+          jobs=$jobs,
+          ...
+        )
+    # But NOT new-style: with config objects
+    - pattern-not-inside: |
+        BatchDownloader(
+          ...,
+          execution_config=$exec,
+          ...
+        )
+    - pattern-not-inside: |
+        BatchDownloader(
+          ...,
+          limits_config=$limits,
+          ...
+        )
+    - pattern-not-inside: |
+        from yt_fts.download.batch_config import ExecutionConfig
+        ...
+        ExecutionConfig(...)
+
+# Rule: Verify new-style config usage (should match 7 sites)
+- id: batch-downloader-new-style-usage
+  languages: [python]
+  message: New-style BatchDownloader call using config objects
+  severity: INFO
+  patterns:
+    - pattern-inside: |
+        from yt_fts.download.batch_config import $CONFIG
+        ...
+        BatchDownloader(
+          ...,
+          ${CONFIG}_config=$cfg,
+          ...
+        )
+    metavarables:
+      CONFIG: ExecutionConfig|LimitsConfig|UIConfig|ContentConfig|TranscriptConfig
+
+# Rule: Find ExecutionConfig usage (Layer 1 verification)
+- id: batch-downloader-execution-config-exists
+  languages: [python]
+  message: ExecutionConfig class definition found
+  severity: INFO
+  patterns:
+    - pattern: |
+        class ExecutionConfig:
+          ...
+
+# Rule: Verify config dataclasses are frozen
+- id: batch-downloader-config-frozen
+  languages: [python]
+  message: Config dataclass should be frozen (immutable)
+  severity: ERROR
+  patterns:
+    - pattern: |
+        @dataclass(frozen=True)
+        class $CONFIG:
+          ...
+    metavarables:
+      CONFIG: ExecutionConfig|LimitsConfig|UIConfig|ContentConfig|TranscriptConfig
+
+# Rule: Find all BatchDownloader instantiations (inventory)
+- id: batch-downloader-all-instantiations
+  languages: [python]
+  message: Found BatchDownloader instantiation
+  severity: INFO
+  patterns:
+    - pattern: BatchDownloader(...)
+
+# Rule: Check for deprecation warnings (Layer 2 verification)
+- id: batch-downloader-deprecation-warning
+  languages: [python]
+  message: Should emit DeprecationWarning for old signature
+  severity: WARNING
+  patterns:
+    - pattern-inside: |
+        def __init__(self, ...):
+            ...
+            warnings.warn(..., DeprecationWarning, ...)
+    - pattern-not: |
+        import warnings

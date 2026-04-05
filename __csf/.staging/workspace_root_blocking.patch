@@ -1,0 +1,47 @@
+# Patch to add workspace_root blocked pattern enforcement to path_validator.py
+
+# Location: Insert after line 528 (after _is_blocked_pattern method returns False)
+
+    def _is_workspace_blocked_pattern(self, path: str) -> bool:
+        """Check if path matches a workspace_root blocked pattern at P:/ root.
+
+        Enforces blocked_root_patterns from workspace_root section for
+        files/directories at the P:/ root level.
+
+        Args:
+            path: Normalized path to check (e.g., "p:/test_foo.py")
+
+        Returns:
+            True if path is blocked, False otherwise
+        """
+        # Only check P:/ root level files/directories
+        if not path.startswith("p:/"):
+            return False
+
+        # Extract path after "p:/"
+        remainder = path[3:]
+
+        # Only check root-level items (no subdirectories)
+        if "/" in remainder:
+            return False
+
+        # Get workspace_root blocked patterns
+        blocked_patterns = self._config.get("workspace_root", {}).get("blocked_root_patterns", [])
+
+        # Check against blocked patterns
+        for pattern_info in blocked_patterns:
+            pattern = pattern_info["pattern"]
+            # Remove trailing slash from pattern for matching
+            pattern = pattern.rstrip('/')
+
+            # Match using fnmatch (case-insensitive)
+            if fnmatch.fnmatch(remainder.lower(), pattern.lower()):
+                return True
+
+        return False
+
+# Location: Insert after line 354 (after _is_blocked_pattern check in is_path_safe)
+
+        # WORKSPACE ROOT BLOCKED PATTERNS CHECK
+        if self._is_workspace_blocked_pattern(abs_path_str):
+            return False, "BLOCKED_ROOT_PATTERN"

@@ -1,0 +1,6 @@
+tmpclaude-*
+# Ignore __csf.nip directory (migrated to __csf)
+__csf.nip/
+# Runtime state for unified semantic daemon
+data/semantic_daemon.pid
+.claude/

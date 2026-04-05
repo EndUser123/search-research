@@ -1,0 +1,458 @@
+#!/usr/bin/env python3
+"""
+Task CLI - CKS Hyper-Graph Version
+
+Command-line interface for task management using CKS hyper-graph entities.
+
+Commands:
+  show - Show current task context with checkpoint
+  list - List all tasks
+  create <name> - Create new task
+  resume <name> - Resume existing task
+  progress <name> <pct> - Update task progress
+  status <name> <status> - Update task status
+  checkpoint <name> - Create manual checkpoint
+  decisions <name> - Show recent decisions
+  blockers <name> - Show current blockers
+"""
+
+from __future__ import annotations
+
+import sys
+from datetime import datetime
+from pathlib import Path
+
+# Add project root to path
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root / "__csf.nip" / "src"))
+
+from cks.integration.adapters.project_context.cks_client import (
+    CKSHyperGraphClient,
+    create_checkpoint_entity,
+    create_task_entity,
+)
+from cks.integration.adapters.project_context.task_identity_manager import (
+    TaskIdentityManager,
+)
+
+
+class TaskCLI:
+    """CLI for task management using CKS hyper-graph."""
+
+    def __init__(self):
+        self.task_manager = TaskIdentityManager()
+        self.cks = CKSHyperGraphClient("P:/.cks/storage/cks.db")
+
+    def cmd_show(self, args):
+        """Show current task context with checkpoint."""
+        task_name = self.task_manager.get_current_task()
+
+        if not task_name:
+            print("No active task. Use 'resume' or 'create' to start working.")
+            return 1
+
+        # Get task entity
+        tasks = self.cks.hyper_graph_query(
+            entity_type="Task",
+            filter={"name": task_name},
+            limit=1,
+        )
+
+        if not tasks:
+            print(f"Task not found: {task_name}")
+            return 1
+
+        task = tasks[0]
+        attrs = task["attributes"]
+
+        # Get latest checkpoint
+        checkpoints = self.cks.hyper_graph_query(
+            entity_type="SessionCheckpoint",
+            filter={"task": task_name},
+            limit=1,
+        )
+
+        # Print task context
+        print("=" * 60)
+        print(f"TASK: {attrs.get('name', task_name)}")
+        print("=" * 60)
+        print(f"Status: {attrs.get('status', 'unknown')}")
+        print(f"Progress: {attrs.get('progress_pct', 0)}%")
+        print(f"Priority: {attrs.get('priority', 'unknown')}")
+        print(f"Description: {attrs.get('description', 'No description')}")
+
+        # Strategic context
+        strategic = attrs.get("strategic_context", {})
+        if strategic:
+            print("\n--- STRATEGIC CONTEXT ---")
+            if strategic.get("goal"):
+                print(f"Goal: {strategic['goal']}")
+            if strategic.get("success_criteria"):
+                print("Success Criteria:")
+                for criterion in strategic["success_criteria"]:
+                    print(f"  - {criterion}")
+            if strategic.get("approach"):
+                print(f"Approach: {strategic['approach']}")
+
+        # Latest checkpoint
+        if checkpoints:
+            checkpoint = checkpoints[0]
+            cp_attrs = checkpoint["attributes"]
+            print("\n--- LATEST CHECKPOINT ---")
+            print(f"Saved: {cp_attrs.get('timestamp', 'unknown')}")
+
+            if cp_attrs.get("blocker"):
+                blocker = cp_attrs["blocker"]
+                print(f"Blocker: {blocker.get('description', 'None')}")
+                print(f"Severity: {blocker.get('severity', 'unknown')}")
+
+            if cp_attrs.get("next_steps"):
+                print("\nNext Steps:")
+                for i, step in enumerate(cp_attrs["next_steps"][:5], 1):
+                    print(f"  {i}. {step}")
+
+        return 0
+
+    def cmd_list(self, args):
+        """List all tasks."""
+        tasks = self.cks.hyper_graph_query(entity_type="Task", limit=100)
+
+        if not tasks:
+            print("No tasks found.")
+            return 0
+
+        print(f"Tasks ({len(tasks)}):")
+        for task in tasks:
+            attrs = task["attributes"]
+            name = attrs.get("name", "Unknown")
+            status = attrs.get("status", "unknown")
+            progress = attrs.get("progress_pct", 0)
+
+            # Status emoji
+            emoji = {
+                "pending": "⏳",
+                "in_progress": "🔄",
+                "blocked": "🚫",
+                "completed": "✅",
+            }.get(status, "❓")
+
+            print(f"  {emoji} {name}")
+            print(f"     Status: {status} | Progress: {progress}%")
+
+        return 0
+
+    def cmd_create(self, args):
+        """Create new task."""
+        if len(args) < 2:
+            print("Usage: task_cli create <name>")
+            return 1
+
+        name = args[1].upper()
+        goal = " ".join(args[2:]) if len(args) > 2 else ""
+
+        # Check if task exists
+        existing = self.cks.hyper_graph_query(
+            entity_type="Task",
+            filter={"name": name},
+            limit=1,
+        )
+
+        if existing:
+            print(f"Task already exists: {name}")
+            return 1
+
+        # Create task entity
+        task = create_task_entity(
+            name=name,
+            status="pending",
+            progress_pct=0,
+            description=f"Task: {name}",
+            priority="medium",
+            strategic_context={
+                "goal": goal if goal else f"Complete {name}",
+                "success_criteria": [],
+                "approach": "To be determined",
+            },
+        )
+
+        success = self.cks.add_entity(task)
+
+        if success:
+            print(f"✅ Task created: {name}")
+            print(f"   ID: {task.entity_id}")
+            self.task_manager.set_current_task(name)
+            return 0
+        else:
+            print(f"❌ Failed to create task: {name}")
+            return 1
+
+    def cmd_resume(self, args):
+        """Resume existing task."""
+        if len(args) < 2:
+            print("Usage: task_cli resume <name>")
+            return 1
+
+        name = args[1].upper()
+
+        # Check if task exists
+        tasks = self.cks.hyper_graph_query(
+            entity_type="Task",
+            filter={"name": name},
+            limit=1,
+        )
+
+        if not tasks:
+            print(f"Task not found: {name}")
+            return 1
+
+        task = tasks[0]
+        attrs = task["attributes"]
+
+        # Set as current task
+        self.task_manager.set_current_task(name)
+
+        # Get latest checkpoint
+        checkpoints = self.cks.hyper_graph_query(
+            entity_type="SessionCheckpoint",
+            filter={"task": name},
+            limit=1,
+        )
+
+        print(f"✅ Task {name} resumed ({attrs.get('status', 'unknown')})")
+
+        if checkpoints:
+            checkpoint = checkpoints[0]
+            cp_attrs = checkpoint["attributes"]
+            print(f"\n📍 Latest Checkpoint ({cp_attrs.get('timestamp', 'unknown')}):")
+            print(f"   Progress: {cp_attrs.get('progress_pct', 0)}%")
+
+            if cp_attrs.get("blocker"):
+                blocker = cp_attrs["blocker"]
+                print(f"   Blocker: {blocker.get('description', 'None')}")
+
+            if cp_attrs.get("next_steps"):
+                print("\n📋 Next Steps:")
+                for i, step in enumerate(cp_attrs["next_steps"][:3], 1):
+                    print(f"     {i}. {step}")
+        else:
+            print("\n📍 No checkpoints found. Starting fresh.")
+
+        return 0
+
+    def cmd_progress(self, args):
+        """Update task progress."""
+        if len(args) < 3:
+            print("Usage: task_cli progress <name> <percentage>")
+            return 1
+
+        name = args[1].upper()
+        try:
+            progress = int(args[2])
+        except ValueError:
+            print("Progress must be a number (0-100)")
+            return 1
+
+        # Update task entity
+        tasks = self.cks.hyper_graph_query(
+            entity_type="Task",
+            filter={"name": name},
+            limit=1,
+        )
+
+        if not tasks:
+            print(f"Task not found: {name}")
+            return 1
+
+        task_id = tasks[0]["entity_id"]
+        success = self.cks.update_entity_attributes(
+            entity_type="Task",
+            entity_id=task_id,
+            attributes={"progress_pct": progress},
+        )
+
+        if success:
+            print(f"✅ Progress updated: {name} → {progress}%")
+            return 0
+        else:
+            print("❌ Failed to update progress")
+            return 1
+
+    def cmd_status(self, args):
+        """Update task status."""
+        if len(args) < 3:
+            print("Usage: task_cli status <name> <pending|in_progress|blocked|completed>")
+            return 1
+
+        name = args[1].upper()
+        status = args[2].lower()
+
+        valid_statuses = ["pending", "in_progress", "blocked", "completed"]
+        if status not in valid_statuses:
+            print(f"Invalid status. Valid options: {', '.join(valid_statuses)}")
+            return 1
+
+        # Update task entity
+        tasks = self.cks.hyper_graph_query(
+            entity_type="Task",
+            filter={"name": name},
+            limit=1,
+        )
+
+        if not tasks:
+            print(f"Task not found: {name}")
+            return 1
+
+        task_id = tasks[0]["entity_id"]
+        success = self.cks.update_entity_attributes(
+            entity_type="Task",
+            entity_id=task_id,
+            attributes={"status": status},
+        )
+
+        if success:
+            print(f"✅ Status updated: {name} → {status}")
+            return 0
+        else:
+            print("❌ Failed to update status")
+            return 1
+
+    def cmd_checkpoint(self, args):
+        """Create manual checkpoint."""
+        if len(args) < 2:
+            print("Usage: task_cli checkpoint <name>")
+            return 1
+
+        name = args[1].upper()
+
+        # Get current progress
+        tasks = self.cks.hyper_graph_query(
+            entity_type="Task",
+            filter={"name": name},
+            limit=1,
+        )
+
+        if not tasks:
+            print(f"Task not found: {name}")
+            return 1
+
+        attrs = tasks[0]["attributes"]
+        progress = attrs.get("progress_pct", 0)
+
+        # Create checkpoint
+        checkpoint = create_checkpoint_entity(
+            task_name=name,
+            session_id=f"manual_{int(datetime.now().timestamp())}",
+            progress_pct=progress,
+            next_steps=["Continue work"],
+            session_summary="Manual checkpoint",
+        )
+
+        success = self.cks.add_entity(checkpoint)
+
+        if success:
+            print(f"✅ Checkpoint created: {name} ({progress}%)")
+            return 0
+        else:
+            print("❌ Failed to create checkpoint")
+            return 1
+
+    def cmd_decisions(self, args):
+        """Show recent decisions for task."""
+        if len(args) < 2:
+            print("Usage: task_cli decisions <name>")
+            return 1
+
+        name = args[1].upper()
+
+        decisions = self.cks.hyper_graph_query(
+            entity_type="Decision",
+            filter={"task": name},
+            limit=10,
+        )
+
+        if not decisions:
+            print(f"No decisions found for: {name}")
+            return 0
+
+        print(f"Decisions for {name} ({len(decisions)}):")
+        for i, decision in enumerate(decisions, 1):
+            attrs = decision["attributes"]
+            print(f"\n{i}. {attrs.get('what', 'Unknown')}")
+            print(f"   Answer: {attrs.get('answer', 'Unknown')}")
+            print(f"   Date: {attrs.get('date', 'Unknown')}")
+
+        return 0
+
+    def cmd_blockers(self, args):
+        """Show current blockers for task."""
+        if len(args) < 2:
+            print("Usage: task_cli blockers <name>")
+            return 1
+
+        name = args[1].upper()
+
+        blockers = self.cks.hyper_graph_query(
+            entity_type="Blocker",
+            filter={"task": name},
+            limit=10,
+        )
+
+        if not blockers:
+            print(f"No blockers found for: {name}")
+            return 0
+
+        print(f"Blockers for {name} ({len(blockers)}):")
+        for i, blocker in enumerate(blockers, 1):
+            attrs = blocker["attributes"]
+            severity = attrs.get("severity", "unknown").upper()
+            print(f"\n{i}. {attrs.get('description', 'Unknown')}")
+            print(f"   Severity: {severity}")
+            print(f"   Status: {attrs.get('status', 'unknown')}")
+            if attrs.get("workaround"):
+                print(f"   Workaround: {attrs['workaround']}")
+
+        return 0
+
+
+def main():
+    """Main entry point."""
+    if len(sys.argv) < 2:
+        print("Usage: task_cli <command> [args]")
+        print("\nCommands:")
+        print("  show - Show current task")
+        print("  list - List all tasks")
+        print("  create <name> [goal] - Create new task")
+        print("  resume <name> - Resume task")
+        print("  progress <name> <pct> - Update progress")
+        print("  status <name> <status> - Update status")
+        print("  checkpoint <name> - Create checkpoint")
+        print("  decisions <name> - Show decisions")
+        print("  blockers <name> - Show blockers")
+        return 1
+
+    cli = TaskCLI()
+    command = sys.argv[1].lower()
+    args = sys.argv[1:]  # Exclude script name from args
+
+    # Map commands to methods
+    commands = {
+        "show": cli.cmd_show,
+        "list": cli.cmd_list,
+        "create": cli.cmd_create,
+        "resume": cli.cmd_resume,
+        "progress": cli.cmd_progress,
+        "status": cli.cmd_status,
+        "checkpoint": cli.cmd_checkpoint,
+        "decisions": cli.cmd_decisions,
+        "blockers": cli.cmd_blockers,
+    }
+
+    if command not in commands:
+        print(f"Unknown command: {command}")
+        return 1
+
+    return commands[command](args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

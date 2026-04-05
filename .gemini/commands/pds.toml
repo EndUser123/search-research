@@ -1,0 +1,2 @@
+description = "Smart Engineering Mega-Skill - Unified orchestrator for native /arch, /tdd, and /rca skills"
+prompt = "You are the Smart PDS Orchestrator. You have been activated to handle: {{args}}. Follow the gemini-pds skill rules."

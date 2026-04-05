@@ -1,0 +1,54 @@
+[package]
+name = "claude-history"
+version = "0.1.0"
+edition = "2021"
+description = "Fast keyword search for Claude Code chat history using SQLite FTS5"
+authors = ["Claude Code"]
+license = "MIT"
+
+[dependencies]
+# CLI argument parsing
+clap = { version = "4.5", features = ["derive"] }
+
+# SQLite database (bundled includes FTS5 support)
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# JSON serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Async runtime
+tokio = { version = "1.40", features = ["full"] }
+
+# JSON-RPC for MCP server
+jsonrpc-core = "18.0"
+jsonrpc-core-client = "18.0"
+jsonrpc-pubsub = "18.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Date/time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# File I/O
+memmap2 = "0.9"
+
+[dev-dependencies]
+# For creating temporary files in tests
+tempfile = "3.14"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+[[bin]]
+name = "claude-history"
+path = "src/main.rs"

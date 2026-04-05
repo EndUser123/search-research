@@ -1,0 +1,220 @@
+---
+name: adversarial-review
+description: Parallel adversarial code review with 8 specialized analysis perspectives
+model: inherit
+permissionMode: plan
+---
+
+# Adversarial Code Review
+
+Run parallel adversarial code review with 8 specialized perspectives running simultaneously.
+
+## Subagents (Parallel + Sequential Execution)
+
+**7 Parallel Agents** (run simultaneously):
+- **adversarial-security** - Finds data leaks, access control gaps, injection vectors
+- **adversarial-performance** - Identifies timeouts, bottlenecks, N+1 patterns
+- **adversarial-compliance** - Validates specification and schema compliance
+- **adversarial-quality** - Detects maintainability risks and technical debt
+- **adversarial-testing** - Finds missing test scenarios, brittle tests, coverage gaps
+- **code-critic** - Root cause analysis with multi-agent reasoning
+- **qa-engineer** - Test generation and execution verification
+
+**1 Sequential Agent** (runs AFTER parallel agents complete):
+- **adversarial-critic** - Meta-analysis: consensus, blind spots, bias, contradictions, quality calibration
+
+## Usage
+
+```
+/adversarial-review [files] --mode [security|performance|compliance|quality|testing|rca|qa|all] --depth [light|standard|deep]
+```
+
+If `files` is omitted, automatically reviews modified files from git diff or recent chat context.
+
+## Parameters
+
+- `files`: Target files or directories (optional - auto-detected from git diff/chat context if not specified)
+- `--mode`: Which agents to run (default: all)
+- `--depth`: Analysis depth (light/standard/deep, default: standard)
+
+## Examples
+
+### Context-Aware Review (Auto-detect from git diff)
+```
+/adversarial-review
+```
+
+### Full Adversarial Review
+```
+/adversarial-review src/migrations/
+```
+
+### Security Deep Dive
+```
+/adversarial-review src/auth.py --mode security --depth deep
+```
+
+## Your Workflow
+
+### Step 1: Parse Input & Detect Context
+
+Extract from user message:
+- `files`: First argument after command (optional)
+- `--mode`: Comma-separated list of perspectives (default: all)
+- `--depth`: Analysis depth (default: standard)
+
+**If no files provided:** Execute context detection from Step 0
+
+### Step 2: Select Perspectives
+
+Map mode to execution:
+- `security`, `performance`, `compliance`, `quality`, `testing` → adversarial-* skills
+- `rca` → code-critic subagent
+- `qa` → qa-engineer subagent
+- `all` or none → Use all 7
+
+
+### Step 0: Context Detection (AUTO - If No Files Specified)
+
+When no `files` argument is provided, automatically detect review targets from:
+
+**Priority Order:**
+1. **Git diff changes** - Run `git diff --name-only HEAD` to get modified files
+2. **Recent file operations** - Scan conversation for Read/Write/Edit tool usage on code files
+3. **Current working directory** - If in a known project directory, target relevant source paths
+
+**Detection Commands:**
+```bash
+# Get git diff files
+git diff --name-only HEAD
+
+# Or if in worktree, diff from main
+git diff --name-only main
+
+# Filter to code files only (exclude docs, tests, configs if needed)
+git diff --name-only HEAD | grep -E '\.(py|ts|js|go|rs)$'
+```
+
+**Output:**
+- If files detected: Display "Reviewing N files from context: [list]" and proceed
+- If no context: Ask user to specify files explicitly
+
+### Step 3: Parallel Execution (CRITICAL)
+
+**Launch all selected perspectives in a SINGLE message with multiple Task calls:**
+
+**Adversarial agents (read skill files):**
+```
+Task(subagent_type="general-purpose",
+     description="Read .claude/skills/adversarial-security/SKILL.md and follow its instructions to review: [files].
+                  Write your JSON findings to: P:/.claude/plans/adversarial/security-findings.json
+                  Use datetime format: YYYYMMDD-HHMMSS (current time)
+                  CRITICAL: After writing findings to the JSON file, your response must contain ONLY the file path.
+                  Do NOT include the full findings in your response text.")
+```
+
+**Existing agents (explicit JSON format required):**
+
+CRITICAL: These agents must output valid JSON to a file. Include full schema in description:
+
+```
+Task(subagent_type="code-critic",
+     description="You are performing adversarial code review. Review these files: [files]
+                  CRITICAL OUTPUT FORMAT: You must save findings as JSON to: P:/.claude/plans/adversarial/code-critic-findings.json
+                  Use datetime format: YYYYMMDD-HHMMSS
+                  CRITICAL: After writing findings to the JSON file, your response must contain ONLY the file path.
+                  Do NOT include the full findings in your response text.
+
+                  JSON schema required: findings array with id, severity, triage, title, description, evidence, impact, recommendation, confidence
+                  - severity: CRITICAL|HIGH|MEDIUM|LOW
+                  - triage: nit|fix_before_merge|pre-existing (categorize issue handling priority)
+                    * nit: minor issues, style problems, can defer
+                    * fix_before_merge: critical bugs requiring immediate fix before merge
+                    * pre-existing: issues that existed before current change (false positives)
+
+                  Focus on: root cause analysis, causal chains, multi-agent reasoning.")
+
+Task(subagent_type="qa-engineer",
+     description="You are performing adversarial code review. Review these files: [files]
+                  CRITICAL OUTPUT FORMAT: You must save findings as JSON to: P:/.claude/plans/adversarial/qa-findings.json
+                  Use datetime format: YYYYMMDD-HHMMSS
+
+                  JSON schema required: findings array with id, severity, triage, title, description, evidence, impact, recommendation, confidence
+                  - severity: CRITICAL|HIGH|MEDIUM|LOW
+                  - triage: nit|fix_before_merge|pre-existing (categorize issue handling priority)
+                    * nit: minor issues, style problems, can defer
+                    * fix_before_merge: critical bugs requiring immediate fix before merge
+                    * pre-existing: issues that existed before current change (false positives)
+
+                  Focus on: test coverage gaps, missing test scenarios, brittle tests.")
+
+# IMPORTANT: Wait for above 7 agents to complete, then launch adversarial-critic sequentially
+
+Task(subagent_type="adversarial-critic",
+     description="You are performing meta-analysis of adversarial review results.
+                  Read all 7 agent JSON files from .claude/state/ (most recent by timestamp).
+                  Perform 5 meta-analysis functions: consensus detection, blind spot detection, bias detection, contradiction detection, quality calibration.
+                  CRITICAL OUTPUT FORMAT: You must save meta-findings as JSON to: P:/.claude/plans/adversarial/critic-findings.json
+                  Use datetime format: YYYYMMDD-HHMMSS (current time)
+
+                  JSON schema required: meta_findings array with meta_type, location, agreement_count (for consensus), severity/triage/title/description/evidence/impact/recommendation/location/why_missed (for blind spots), etc.
+                  - severity: CRITICAL|HIGH|MEDIUM|LOW
+                  - triage: nit|fix_before_merge|pre-existing (categorize issue handling priority)
+                    * nit: minor issues, style problems, can defer
+                    * fix_before_merge: critical bugs requiring immediate fix before merge
+                    * pre-existing: issues that existed before current change (false positives)
+
+                  Focus on: identifying high-confidence consensus issues, critical blind spots, systematic biases, contradictions, and calibration mismatches.")
+```
+
+### Step 4: Aggregate & Display
+
+PostToolUse hook automatically:
+1. Discovers all adversarial JSON files in .claude/state/
+2. Reads JSON from each file
+3. Groups by file:line location
+4. Counts agreement level
+5. Displays summary with consensus breakdown
+6. Identifies blocking issues (5+ agree on CRITICAL)
+7. Saves aggregated results to adversarial-review-latest.json
+
+### Step 5: Results
+
+Results automatically saved to P:/.claude/plans/adversarial/review-latest.json by PostToolUse hook.
+
+## Architecture Notes
+
+File naming pattern:
+P:/.claude/plans/adversarial/security-findings.json
+P:/.claude/plans/adversarial/performance-findings.json
+P:/.claude/plans/adversarial/compliance-findings.json
+P:/.claude/plans/adversarial/quality-findings.json
+P:/.claude/plans/adversarial/testing-findings.json
+P:/.claude/plans/adversarial/code-critic-findings.json
+P:/.claude/plans/adversarial/qa-findings.json
+P:/.claude/plans/adversarial/critic-findings.json (meta-analysis, sequential)
+
+Examples: adversarial-security-20260119-213045.json
+
+## SoloDevConstitutionalFilter
+
+Before presenting any finding, filter out prohibited patterns:
+- Continuous monitoring, always-on tracking (without idle timeout)
+- Self-healing, auto-correction without approval
+- Enterprise-grade, scalability requirements
+- Abstract factories, DI containers (>3 layers)
+
+## Response Format
+
+Present results as:
+
+## ADVERSARIAL REVIEW RESULTS
+
+### Findings Summary
+- Total findings: N
+- CRITICAL: N
+- HIGH: N
+- MEDIUM: N
+
+### Detailed Findings by Perspective
+[Group findings by perspective with file:line references]

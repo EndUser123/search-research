@@ -1,0 +1,165 @@
+# TSK-006 Persistent Learning Agent Ecosystem - Staging Environment Configuration
+
+# Environment Settings
+environment:
+  name: "staging"
+  debug: false
+  log_level: "INFO"
+
+# System Configuration
+system:
+  environment: "staging"
+  debug: false
+  log_level: "INFO"
+
+# Agent Factory Configuration
+agent_factory:
+  roles_directory: "/opt/tsk-006/roles"
+  enable_cks_integration: true
+  enable_performance_tracking: true
+  max_concurrent_agents: 25
+  session_timeout: 3600  # 1 hour
+  cleanup_interval: 300  # 5 minutes
+
+# Performance Router Configuration
+performance_router:
+  database_path: "/var/lib/tsk-006/staging_routing_performance.db"
+  learning_rate: 0.15
+  min_samples_for_routing: 5
+  routing_strategy: "performance_based"
+  max_history_days: 30
+
+# Critic System Configuration
+critic_system:
+  evaluation_criteria:
+    completeness: 0.25
+    accuracy: 0.25
+    best_practices: 0.20
+    efficiency: 0.15
+    maintainability: 0.15
+  feedback_threshold: 0.7
+  enable_learning: true
+  cache_size: 200
+
+# CKS Integration Configuration
+cks_integration:
+  enabled: true
+  endpoint: "${STAGING_CKS_ENDPOINT:http://cks-staging.csf-nip.local:8080}"
+  api_key: "${STAGING_CKS_API_KEY}"
+  timeout: 30
+  retry_attempts: 3
+  cache_ttl: 3600  # 1 hour
+
+# Database Configuration
+database:
+  type: "postgresql"
+  sqlite:
+    path: "/var/lib/tsk-006/staging_agent_ecosystem.db"
+    connection_pool_size: 10
+  postgresql:
+    host: "${STAGING_DB_HOST:localhost}"
+    port: "${STAGING_DB_PORT:5432}"
+    database: "tsk006_staging"
+    username: "${STAGING_DB_USER:staging_user}"
+    password: "${STAGING_DB_PASSWORD}"
+    connection_pool_size: 15
+    max_overflow: 25
+
+# Performance Configuration
+performance:
+  enable_caching: true
+  cache_size: 500
+  cache_ttl: 3600  # 1 hour
+  enable_connection_pooling: true
+  max_connections: 50
+  memory_limit_mb: 2048  # 2GB
+
+# Security Configuration
+security:
+  enable_authentication: true
+  api_key_required: true
+  allowed_origins: ["https://staging.yourdomain.com", "https://internal.yourdomain.com"]
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 200
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "/var/log/tsk-006/staging_agent_ecosystem.log"
+  max_size_mb: 100
+  backup_count: 5
+  console_output: true
+
+# Monitoring Configuration
+monitoring:
+  enable_metrics: true
+  metrics_port: 9090
+  health_check_interval: 30
+  enable_performance_profiling: false
+
+# Staging-specific Settings
+staging:
+  pre_deployment_validation: true
+  performance_baseline_testing: true
+  security_scanning: true
+  integration_testing: true
+  load_testing_enabled: true
+
+# Testing Configuration
+testing:
+  enable_test_agents: false
+  test_data_directory: "/opt/tsk-006/tests/data"
+  mock_cks_responses: false
+  performance_testing_enabled: true
+  load_testing:
+    enabled: true
+    concurrent_users: 25
+    test_duration: 300  # 5 minutes
+
+# External Service Integration
+external_services:
+  cks_integration:
+    endpoint: "${STAGING_CKS_ENDPOINT}"
+    timeout: 30
+    retry_attempts: 3
+  monitoring:
+    prometheus:
+      enabled: true
+      endpoint: "http://prometheus-staging:9090"
+  logging:
+    elk_stack:
+      enabled: true
+      endpoint: "http://elk-staging:9200"
+
+# Feature Flags
+features:
+  experimental_routing: false
+  advanced_analytics: true
+  beta_features: false
+  debug_endpoints: false
+
+# Validation Requirements
+validation:
+  health_check_required: true
+  performance_tests_required: true
+  security_scan_required: true
+  integration_tests_required: true
+
+# Deployment Settings
+deployment:
+  strategy: "rolling"
+  max_unavailable: 1
+  max_surge: 1
+  health_check_grace_period: 60
+  readiness_probe:
+    path: "/ready"
+    port: 8080
+    initial_delay: 30
+    period: 10
+  liveness_probe:
+    path: "/health"
+    port: 8080
+    initial_delay: 60
+    period: 30

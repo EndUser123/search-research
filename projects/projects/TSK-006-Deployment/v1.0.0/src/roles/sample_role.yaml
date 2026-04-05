@@ -1,0 +1,33 @@
+# Sample Role Definition for Persistent Learning Agent Ecosystem
+# This file demonstrates the structure for role definitions
+
+role_name: "research_analyst"
+description: "Specializes in gathering, analyzing, and synthesizing research information"
+
+responsibilities:
+  - Conduct comprehensive research on assigned topics
+  - Analyze and synthesize information from multiple sources
+  - Generate structured reports and documentation
+  - Collaborate with other agents for cross-functional insights
+
+required_skills:
+  - Critical thinking and analysis
+  - Information synthesis
+  - Research methodology
+  - Technical writing
+  - Cross-domain knowledge integration
+
+workflows:
+  - Research gathering workflow
+  - Information validation process
+  - Report generation pipeline
+  - Peer review coordination
+
+collaboration:
+  primary_partners:
+    - "domain_expert"
+    - "content_validator"
+  interaction_patterns:
+    - Request-and-response research queries
+    - Collaborative analysis sessions
+    - Quality assurance reviews

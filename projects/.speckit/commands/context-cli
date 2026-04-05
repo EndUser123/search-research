@@ -1,0 +1,149 @@
+#!/usr/bin/env python3
+"""
+Context CLI - CKS-Integrated Project Context Management
+Commands for managing project contexts to prevent task switching confusion
+"""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+# Add paths for imports
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root / "__csf.nip" / "src" / "cks" / "integration" / "adapters" / "project_context"))
+sys.path.insert(0, str(Path(__file__).parent))
+
+from context_manager_cks import SessionContextManagerCKS
+
+
+class ContextCLI:
+    """CLI for project context management using CKS"""
+
+    def __init__(self):
+        self.manager = SessionContextManagerCKS()
+
+    def cmd_show(self, args):
+        """Show current context"""
+        print(self.manager.get_context_summary())
+        return 0
+
+    def cmd_set(self, args):
+        """Set active context"""
+        if len(args) < 2:
+            print("Usage: context-cli set <TSK_ID> [--force]")
+            return 1
+
+        tsk_id = args[1]
+        force = "--force" in args or "-f" in args
+
+        try:
+            self.manager.set_active_context(tsk_id, force=force)
+            return 0
+        except ValueError as e:
+            print(f"❌ {e}")
+            return 1
+
+    def cmd_clear(self, args):
+        """Clear active context"""
+        self.manager.clear_context()
+        return 0
+
+    def cmd_validate(self, args):
+        """Validate an operation"""
+        if len(args) < 2:
+            print("Usage: context-cli validate \"<operation description>\"")
+            return 1
+
+        operation = " ".join(args[1:])
+        should_proceed = self.manager.pre_operation_check(operation)
+
+        if should_proceed:
+            print("✅ Operation validated")
+        else:
+            print("❌ Operation blocked")
+
+        return 0 if should_proceed else 1
+
+    def cmd_detect(self, args):
+        """Detect available projects"""
+        projects = self.manager.detect_active_tsk_projects()
+
+        if not projects:
+            print("No active TSK projects found")
+            return 0
+
+        print(f"Found {len(projects)} active project(s):")
+        for p in projects:
+            active_marker = "✅" if p.get('source') == 'project.json' else "📁"
+            print(f"  {active_marker} {p['tsk_id']}")
+            print(f"     Name: {p['name']}")
+            print(f"     Path: {p['path']}")
+            print(f"     Source: {p['source']}")
+
+        return 0
+
+    def cmd_status(self, args):
+        """Show validation status"""
+        worktree = self.manager.get_worktree_context()
+        active = self.manager.current_context
+
+        print("🔍 Context Validation Status")
+        print()
+
+        if worktree:
+            print(f"Worktree Context: {worktree}")
+        else:
+            print("Worktree Context: Unknown")
+
+        if active:
+            print(f"Active Context: {active.tsk_id}")
+            print(f"Session: {active.session_id}")
+        else:
+            print("Active Context: None")
+
+        if worktree and active:
+            if worktree == active.tsk_id:
+                print("Status: ✅ Match")
+            else:
+                print("Status: ⚠️  Mismatch")
+        elif not active:
+            print("Status: ℹ️  No context set (auto-set will occur on next operation)")
+
+        return 0
+
+def main():
+    """Main entry point"""
+    if len(sys.argv) < 2:
+        print("Usage: context-cli <command> [args]")
+        print("\nCommands:")
+        print("  show              - Show current context")
+        print("  set <TSK_ID>      - Set active context")
+        print("  clear             - Clear active context")
+        print("  validate <op>     - Validate an operation")
+        print("  detect            - Detect available projects")
+        print("  status            - Show validation status")
+        return 1
+
+    cli = ContextCLI()
+    command = sys.argv[1].lower()
+    args = sys.argv[1:]  # Include command in args
+
+    # Map commands to methods
+    commands = {
+        "show": cli.cmd_show,
+        "set": cli.cmd_set,
+        "clear": cli.cmd_clear,
+        "validate": cli.cmd_validate,
+        "detect": cli.cmd_detect,
+        "status": cli.cmd_status,
+    }
+
+    if command not in commands:
+        print(f"Unknown command: {command}")
+        return 1
+
+    return commands[command](args)
+
+if __name__ == "__main__":
+    sys.exit(main())

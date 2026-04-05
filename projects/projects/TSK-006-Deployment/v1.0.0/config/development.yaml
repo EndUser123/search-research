@@ -1,0 +1,129 @@
+# TSK-006 Persistent Learning Agent Ecosystem - Development Environment Configuration
+
+# Environment Settings
+environment:
+  name: "development"
+  debug: true
+  log_level: "DEBUG"
+
+# System Configuration
+system:
+  environment: "development"
+  debug: true
+  log_level: "DEBUG"
+
+# Agent Factory Configuration
+agent_factory:
+  roles_directory: "./src/agent_factory/roles"
+  enable_cks_integration: true
+  enable_performance_tracking: true
+  max_concurrent_agents: 10
+  session_timeout: 1800  # 30 minutes for development
+  cleanup_interval: 60   # 1 minute for development
+
+# Performance Router Configuration
+performance_router:
+  database_path: "./data/dev_routing_performance.db"
+  learning_rate: 0.2     # Higher learning rate for development
+  min_samples_for_routing: 3
+  routing_strategy: "hybrid"
+  max_history_days: 7     # Shorter history for development
+
+# Critic System Configuration
+critic_system:
+  evaluation_criteria:
+    completeness: 0.25
+    accuracy: 0.25
+    best_practices: 0.20
+    efficiency: 0.15
+    maintainability: 0.15
+  feedback_threshold: 0.6   # Lower threshold for development
+  enable_learning: true
+  cache_size: 50           # Smaller cache for development
+
+# CKS Integration Configuration
+cks_integration:
+  enabled: true
+  endpoint: "http://localhost:8080"  # Local CKS instance
+  api_key: "${DEV_CKS_API_KEY:development_key}"
+  timeout: 30
+  retry_attempts: 2
+  cache_ttl: 1800         # 30 minutes cache for development
+
+# Database Configuration
+database:
+  type: "sqlite"
+  sqlite:
+    path: "./data/dev_agent_ecosystem.db"
+    connection_pool_size: 5
+  postgresql:
+    host: "${DB_HOST:localhost}"
+    port: "${DB_PORT:5432}"
+    database: "tsk006_dev"
+    username: "${DB_USER:dev_user}"
+    password: "${DB_PASSWORD:dev_password}"
+    connection_pool_size: 10
+    max_overflow: 15
+
+# Performance Configuration
+performance:
+  enable_caching: true
+  cache_size: 100        # Smaller cache for development
+  cache_ttl: 1800        # 30 minutes
+  enable_connection_pooling: true
+  max_connections: 20    # Lower limit for development
+  memory_limit_mb: 1024  # 1GB limit for development
+
+# Security Configuration (relaxed for development)
+security:
+  enable_authentication: false
+  api_key_required: false
+  allowed_origins: ["*"]
+  rate_limiting:
+    enabled: false
+    requests_per_minute: 1000
+
+# Logging Configuration
+logging:
+  level: "DEBUG"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "./logs/dev_agent_ecosystem.log"
+  max_size_mb: 50        # Smaller log files for development
+  backup_count: 3        # Fewer backups for development
+  console_output: true
+
+# Monitoring Configuration
+monitoring:
+  enable_metrics: true
+  metrics_port: 9091     # Different port for development
+  health_check_interval: 10  # More frequent checks for development
+  enable_performance_profiling: true  # Enable profiling in development
+
+# Development-specific Settings
+development:
+  auto_reload: true
+  debug_mode: true
+  enable_test_endpoints: true
+  mock_external_services: false
+  verbose_logging: true
+  enable_debug_toolbar: true
+
+# Testing Configuration
+testing:
+  enable_test_agents: true
+  test_data_directory: "./tests/data"
+  mock_cks_responses: false
+  performance_testing_enabled: true
+
+# Hot Reload Configuration
+hot_reload:
+  enabled: true
+  watch_directories: ["./src/agent_factory", "./config"]
+  exclude_patterns: ["*.pyc", "__pycache__", "*.log"]
+
+# Feature Flags
+features:
+  experimental_routing: true
+  advanced_analytics: true
+  beta_features: true
+  debug_endpoints: true

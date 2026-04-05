@@ -1,0 +1,164 @@
+---
+# Universal Command Integration Framework
+# Enables command-agnostic workflow with bidirectional context sharing
+
+version: "1.0.0"
+standard: "CSF-NIP-STD-2025-001"
+
+# Universal evidence standards for all commands
+evidence_standards:
+  storage_path: ".speckit/evidence/shared/"
+  metadata_format: "cwo12_compatible"
+  truth_validation: "always_required"
+  quality_tracking: "unified"
+  cross_command_compatible: true
+
+# Global project state accessible to all commands
+project_state_structure:
+  project_context:
+    project_id: "TSK-UNIQUE-ID"
+    current_phase: "analysis|planning|execution|validation|completion"
+    completed_phases: []
+    active_commands: []
+    quality_scores: {}
+    evidence_summary: {}
+
+  command_evidence:
+    command_name: "string"
+    execution_time: "ISO8601 timestamp"
+    results_summary: "text"
+    quality_metrics: "object"
+    evidence_paths: "array"
+    handoff_ready: "boolean"
+
+  integration_context:
+    can_continue_with: "array of command names"
+    next_recommended_steps: "array"
+    prerequisites_satisfied: "boolean"
+    transition_validity: "object"
+
+# Command capability definitions
+command_capabilities:
+  "/ask":
+    can_inherit_from: ["/research", "/learn", "/truth", "/explore", "/nse"]
+    can_handoff_to: ["/cwo12", "/speckit.plan", "/exec", "/research"]
+    primary_strength: "truth-validated analysis"
+    integration_points: ["step1", "step2", "quality_gates"]
+
+  "/cwo12":
+    can_inherit_from: ["any_command"]
+    can_handoff_to: ["any_command"]
+    primary_strength: "complete workflow orchestration"
+    integration_points: ["all_steps", "project_management"]
+
+  "/research":
+    can_inherit_from: ["/ask", "/learn", "/explore", "/truth"]
+    can_handoff_to: ["/cwo12", "/speckit.plan", "/ask", "/exec"]
+    primary_strength: "comprehensive evidence gathering"
+    integration_points: ["analysis", "validation", "knowledge_integration"]
+
+  "/exec":
+    can_inherit_from: ["/cwo12", "/speckit.plan", "/ask", "/task"]
+    can_handoff_to: ["/cwo12", "/gw.code-review", "/test-fix"]
+    primary_strength: "enhanced implementation execution"
+    integration_points: ["step6", "implementation", "version_control"]
+
+  "/speckit.plan":
+    can_inherit_from: ["/ask", "/research", "/arch", "/specify"]
+    can_handoff_to: ["/cwo12", "/exec", "/ask"]
+    primary_strength: "architect-led strategic planning"
+    integration_points: ["step3", "architecture", "design"]
+
+  "/gw.code-review":
+    can_inherit_from: ["/exec", "/cwo12", "/ask", "/test-fix"]
+    can_handoff_to: ["/cwo12", "/exec", "/security-validator"]
+    primary_strength: "multi-tool specialist validation"
+    integration_points: ["step7", "quality_assurance", "validation"]
+
+  "/qual-gate":
+    can_inherit_from: ["any_command"]
+    can_handoff_to: ["any_command"]
+    primary_strength: "intelligent quality orchestration"
+    integration_points: ["all_steps", "quality_validation"]
+
+# Smart handoff logic rules
+handoff_rules:
+  validation_required:
+    - Always validate transition compatibility
+    - Check for evidence completeness
+    - Verify quality thresholds met
+
+  context_preservation:
+    - Maintain evidence chain integrity
+    - Preserve quality scores
+    - Keep command-specific insights
+
+  optimization_rules:
+    - Skip redundant work when possible
+    - Enhance existing work rather than replace
+    - Coordinate parallel execution when beneficial
+
+# Adaptive execution patterns
+adaptive_patterns:
+  entry_point_detection:
+    # Any command can be entry point
+    # System adapts based on current project state
+    algorithm: |
+      1. Detect existing project evidence
+      2. Identify current project phase
+      3. Determine optimal workflow position
+      4. Adapt execution accordingly
+
+  context_inheritance:
+    # Commands inherit relevant context from previous work
+    algorithm: |
+      1. Scan project evidence directory
+      2. Identify compatible command evidence
+      3. Extract relevant context and insights
+      4. Adapt current execution to build upon existing work
+
+  gap_analysis:
+    # Identify what's missing and needs to be done
+    algorithm: |
+      1. Compare current state to CWO12 requirements
+      2. Identify evidence gaps
+      3. Determine missing quality gates
+      4. Generate targeted execution plan
+
+# Quality standards for cross-command integration
+quality_standards:
+  evidence_threshold: 0.85
+  truth_validation_required: true
+  quality_gate_compatibility: true
+  constitutional_alignment: mandatory
+
+# Integration error handling
+error_handling:
+  transition_failures:
+    - Provide alternative pathways
+    - Suggest prerequisite commands
+    - Offer manual override options
+
+  evidence_corruption:
+    - Automatic evidence reconstruction
+    - Fallback to command-specific evidence
+    - User notification and guidance
+
+  quality_failures:
+    - Automatic quality gate re-execution
+    - Enhanced validation procedures
+    - Progressive quality improvement
+
+# Performance optimization
+performance_optimization:
+  evidence_caching: true
+  context_sharing_optimization: true
+  parallel_execution_coordination: true
+  redundant_work_prevention: true
+
+# Monitoring and analytics
+integration_monitoring:
+  track_command_transitions: true
+  measure_context_inheritance_efficiency: true
+  monitor_quality_consistency: true
+  analyze_user_workflow_patterns: true

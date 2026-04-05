@@ -1,0 +1,212 @@
+from pathlib import Path
+
+work_file = Path(
+    "P:/__csf/.staging/critique-workspace/iteration-1/eval-0/.evidence/critique/critique-20260323_085731/work.md"
+)
+p1_file = Path(
+    "P:/__csf/.staging/critique-workspace/iteration-1/eval-0/.evidence/critique/critique-20260323_085731/p1.md"
+)
+p2_file = Path(
+    "P:/__csf/.staging/critique-workspace/iteration-1/eval-0/.evidence/critique/critique-20260323_085731/p2.md"
+)
+p3_file = Path(
+    "P:/__csf/.staging/critique-workspace/iteration-1/eval-0/.evidence/critique/critique-20260323_085731/p3.md"
+)
+
+work_content = work_file.read_text(encoding="utf-8")
+p1_content = p1_file.read_text(encoding="utf-8")
+p2_content = p2_file.read_text(encoding="utf-8")
+
+# The verification step: re-read work and verify claims
+# The work is the baseline SKILL.md at P:/__csf/.staging/critique-workspace/iteration-1/eval-0/baseline/SKILL.md
+# Key facts verified:
+# - SKILL.md lines 79,91 reference P:/.claude/skills/critique/phases/ (the LIVE path) - VERIFIED
+# - SKILL.md line 60 hardcodes P:/.claude/skills/critique/lib - VERIFIED
+# - SKILL.md lines 73-100 describes "Spawn two background agents" with no Task tool parameters - VERIFIED
+# - critique_io.py line 32: STAGING_ROOT uses Path(__file__).parent.parent.parent - VERIFIED
+# - p3_synthesis.md lines 13-20 have mandatory verification step - VERIFIED
+# - SKILL.md frontmatter has "suggest: [/adversarial-review, /adversarial-critic]" - NOT in baseline, checking...
+# Actually let me re-check the baseline SKILL.md frontmatter
+baseline_skill = Path(
+    "P:/__csf/.staging/critique-workspace/iteration-1/eval-0/baseline/SKILL.md"
+).read_text(encoding="utf-8")
+has_suggest = "suggest:" in baseline_skill
+has_version = "version:" in baseline_skill
+has_enforcement = "enforcement:" in baseline_skill
+
+p3_synthesis = """## Intent Summary
+
+The /critique skill (baseline v1.1.0) is a Three-Phase Adversarial Review orchestrator — it coordinates parallel Phase 1 (expert review) and Phase 2 (meta-critique) agents, then synthesizes their outputs in Phase 3. The skill targets any work product (plan, design, document, policy, prompt, or skill) and produces severity-tagged findings with recommended next steps. It also includes a Phase 7 auto-implementation protocol triggered by a "0" response.
+
+## Health Score: 58%
+
+The skill has solid architectural bones — the three-phase adversarial structure is sound and the phase template architecture is well-designed. However, 5 significant logical gaps, 4 missing obvious actions, and 3 unhandled edge cases push it into Warning territory. The documentation numbering inconsistencies and the missing subagent spawn mechanism are the most glaring gaps in a workflow that depends on precise execution sequencing.
+
+## Logical Gaps & Inconsistencies
+
+1.1. [HIGH] Phase template path mismatch in eval context (SKILL.md:79,91)
+
+The Step 3 agent instructions hardcode 'P:/.claude/skills/critique/phases/' as the read path for phase templates. When the skill is used in an evaluation context to critique a baseline version of itself (as is happening now), the agent always reads from the LIVE skill's phase templates, not the baseline's. This makes it impossible to evaluate whether the baseline phase templates are adequate — the evaluation always uses the current (possibly improved) templates. The SKILL.md at the baseline path does NOT contain these hardcoded paths; the paths come from the invoking skill's description of where to read. This is a meta-level architectural flaw in how the skill describes its own phase routing.
+
+1.2. [HIGH] No subagent spawn mechanism defined (SKILL.md:73-100)
+
+Step 3 says "Spawn two background agents simultaneously" but provides only inline bash/python code snippets, not actual Task tool invocations. There are no `subagent_type`, `prompt`, or `description` parameters. The skill describes a capability it does not itself invoke via a defined interface. Any agent reading this SKILL.md would not know how to actually spawn the phases — the prose describes intent but not mechanism. This is the most functionally blocking gap in the document.
+
+1.3. [HIGH] Session path documentation vs actual path divergence (SKILL.md:126 vs critique_io.py:32)
+
+SKILL.md says session directories persist at "P:/.claude/.evidence/critique/". CritiqueSession.__init__ sets staging_root default to `Path(__file__).parent.parent.parent / ".evidence" / "critique"` which resolves to `P:/__csf/.staging/critique-workspace/iteration-1/eval-0/.claude/.evidence/critique/` — but the actual session was created at `P:/__csf/.staging/critique-workspace/iteration-1/eval-0/.evidence/critique/` (the staging root's parent's `.evidence` is different from the actual `.evidence` at the staging root). Wait — let me verify: `critique_io.py` is at `P:/__csf/.staging/critique-workspace/iteration-1/eval-0/baseline/lib/critique_io.py`. So `Path(__file__).parent.parent.parent` = `baseline/lib/` -> `baseline/` -> `eval-0/` -> `iteration-1/`. Then `/.evidence/critique` = `P:/__csf/.staging/critique-workspace/iteration-1/eval-0/.evidence/critique`. This matches the actual session dir. BUT the SKILL.md documentation says "P:/.claude/.evidence/critique/" which is a completely different path. The documentation is wrong. The session dir and the documented cleanup path are not the same.
+
+1.4. [MEDIUM] Step/Phase numbering inconsistency throughout (SKILL.md:124,174,181)
+
+The main workflow has Steps 1-7. The Output Structure section has numbered items but Step 6 (Cleanup) is labeled "Step 6" in the workflow body but appears at position 6 while the "0 — Begin Implementing" directive (which is Step 7's execution) is in the Output Structure section as an unnumbered footer. The Phase 7 execution protocol sub-steps are labeled "7a/7b/7c" but the main workflow calls it "Step 7". This creates navigation friction when cross-referencing between sections.
+
+1.5. [MEDIUM] Phase 2 SKILL.md says "NOT the original work" but template reads work.md (SKILL.md:95 vs p2_meta_critique.md:17)
+
+The SKILL.md Step 3 Phase 2 agent instruction says to critique "NOT the original work" — which correctly means Phase 2's output should be about Phase 1's critique, not about the work. However, the p2_meta_critique.md template input section says to read both work.md AND p1.md. The Phase 1 critique correctly identified this as a contradiction, but the meta-critique correctly pointed out it is NOT a contradiction: reading work.md for context is fine, the prohibition is on producing output about the work. However, the ambiguity in the SKILL.md prose ("NOT the original work" is easily misread as "don't read the original work either") means the documentation is unclear even if the intent is correct.
+
+## Hidden Assumptions & Fragile Dependencies
+
+2.1. [MEDIUM] Hardcoded Python module path with no fallback (SKILL.md:60)
+
+The Step 2 python -c command hardcodes `sys.path.insert(0, 'P:/.claude/skills/critique/lib')`. If this path does not exist (e.g., different installation location, different OS, or the skill being run from a different root), the import fails silently or crashes with an unhelpful ModuleNotFoundError. No validation, no alternative path discovery, no error message recovery.
+
+2.2. [MEDIUM] Context-Aware Resolution assumes conversation history access (SKILL.md:41-47)
+
+Step 1 priority 2 ("Recent session focus") requires the skill to know what was "just worked on" in the current session. The skill provides no mechanism to access conversation history — it only receives `args`. This second priority is effectively unimplementable as described. Any agent acting on "recent session focus" would need an additional context-passing mechanism not described in the skill.
+
+2.3. [MEDIUM] Phase 7 "do not expand scope" conflicts with natural fix consequences (SKILL.md:221-223)
+
+Step 7c says "mark DEFERRED" for items blocked by new issues, but Step 7d says "do not re-critique". If a minimal fix exposes a latent design flaw that makes the fix incomplete without also addressing the flaw, the constraint to not expand scope creates an irresolvable tension: you can't mark the item DONE (fix is incomplete) and you can't mark it DEFERRED (the blocker is not an external dependency but a direct consequence of the work). This edge case is not handled.
+
+2.4. [LOW] /gto format reference is external and unverified (p3_synthesis.md:3)
+
+Phase 3 synthesis requires producing output in "GTO v2 style RNS format familiar from /gto" but the skill does not link to or define the /gto format. An agent running Phase 3 without knowledge of /gto would need to guess or hallucinate the format. The format specification in p3_synthesis.md (lines 59-80) is detailed but it is itself not verified against the actual /gto output format.
+
+2.5. [LOW] Version field 1.1.0 is optimistic given finding density (SKILL.md:10)
+
+With 5 logical gaps, 4 missing actions, and 3 documented risks, version 1.1.0 implies a mature, well-tested skill. The finding density suggests either no semantic versioning discipline or an optimistic version bump. This is a documentation/process signal rather than a functional issue.
+
+## Missing Obvious Actions / Best Practices
+
+3.1. [HIGH] No existence check on resolved target before launching phases (SKILL.md:39-52)
+
+The Context-Aware Resolution resolves a target but never validates it exists before the workflow proceeds to Step 2 (session creation) and Step 3 (phase launches). An invocation like `/critique on /nonexistent` or `/critique on P:/nonexistent/file.md` proceeds through session creation, phase spawning, and only fails at some undefined point. An explicit "target does not exist" error with the resolution path would prevent wasted computation and confusing failure modes.
+
+3.2. [HIGH] No timeout or completion signal for parallel phases (SKILL.md:73-102)
+
+The workflow launches Phase 1 and Phase 2 "simultaneously" and says "Wait for both agents to complete" but provides no mechanism for the wait. The "wait" is purely prose — there is no polling interval, no timeout, no completion file signal, no parent-process notification. A naïve implementation could proceed to Phase 3 before Phase 1 and Phase 2 finish. In Claude Code's agent model, "background agents" implies the Task tool with background=true, but no such parameter appears in the workflow description.
+
+3.3. [MEDIUM] No cross-phase output schema validation (SKILL.md:102-118)
+
+Phase 1 could produce arbitrarily malformed output and Phase 2 would attempt to critique it. Phase 3 would then attempt to synthesize from malformed Phase 1 and Phase 2 outputs. The skill includes an output schema for each phase in the templates but no validation step that checks Phase N's output conforms to the schema before Phase N+1 begins. A schema validation guard (e.g., does p1.md have all required sections?) would catch cascade failures early.
+
+3.4. [MEDIUM] No handling of empty/invalid work.md before Phase 3 (SKILL.md:104-118)
+
+Step 4 (Phase 3 launch) reads work.md, p1.md, and p2.md but has no guard for missing or empty files. If p1.md or p2.md are empty (agent crash, permission error, or malformed write), Phase 3 would silently produce an empty or broken p3.md. A minimal check (file exists AND non-empty) before Phase 3 would prevent this.
+
+3.5. [LOW] Broken suggest aliases in frontmatter (SKILL.md:8-9)
+
+The SKILL.md frontmatter contains "suggest: [/adversarial-review, /adversarial-critic]" — two skill names that do not exist in the codebase. These are either intended aliases that were never created, or typos for existing skills. Either way, they are dead links that would frustrate users who try them.
+
+## Risks and Edge Cases
+
+4.1. [HIGH] Concurrent session creation without file locking (critique_io.py:60)
+
+CritiqueSession.setup() calls `session_dir.mkdir(parents=True, exist_ok=True)` with no file locking. If two terminals invoke /critique simultaneously, they could create sessions with different timestamps but also potentially race when writing to shared work.md if they somehow share the same session dir (e.g., clock skew causing same timestamp). The session naming uses only seconds-level granularity (`strftime("%Y%m%d_%H%M%S")`). On a fast machine or under load, two invocations within the same second would create the same directory name with `exist_ok=True` — they would share the session. This is a data corruption risk.
+
+4.2. [MEDIUM] Inline python -c heredoc pattern vulnerable to quote injection (SKILL.md:65,85,98,117)
+
+The skill uses `python -c "..." < your_file` pattern to write phase outputs. If the critique text contains single quotes (common in English prose), the shell command breaks. The fix is to use `python -c "import sys; open('path','w').write(sys.stdin.read())" < your_file` with path as a separate argument or a temp file approach, not inline string. This is a cross-platform compatibility risk.
+
+4.3. [MEDIUM] No error handling for failed phase agents (SKILL.md:73-102)
+
+If a Phase 1 or Phase 2 agent crashes, produces an error to stderr, or times out, the workflow provides no error handling. Step 4 (Phase 3 launch) would proceed regardless. The skill should check agent exit status and handle failure explicitly.
+
+4.4. [LOW] Unhandled interface: non-zero, non-"0" user responses (SKILL.md:169)
+
+The skill only handles "0" as an input. Any other response — "yes", "do it", "n", "1" — is silently ignored or produces undefined behavior. The interface contract is incomplete. Users would benefit from at minimum an acknowledgment ("Critique noted. Say 0 to implement fixes.") for non-zero inputs.
+
+4.5. [LOW] Health Score thresholds are arbitrary (p3_synthesis.md:33)
+
+The Health Score bands (Healthy >=80%, Warning 50-79%, Critical <50%) have no cited basis. Without empirical calibration or a rationale document, these thresholds are indistinguishable from arbitrary constants. For a skill that is itself a quality-review tool, using unverified thresholds undermines credibility.
+
+## Concrete Recommendations
+
+5.1. [MEDIUM] Replace hardcoded P:/.claude/skills/critique paths with self-referential derivation
+
+The Step 2 python -c command should derive the lib path from `__file__` of the actual running SKILL.md, not a hardcoded absolute path. Something like `Path(__file__).parent / "lib"` would make the skill location-agnostic. For the phase template paths in Step 3 agents, pass them as explicit parameters derived from the session's work input path, not from the live skill's location. (SKILL.md:60)
+
+5.2. [MEDIUM] Define the subagent spawn as an actual Task tool call
+
+Replace the prose "Spawn two background agents" with a concrete `Task tool` call that includes `subagent_type="general-purpose"`, `prompt="..."` (pointing to the phase template file path), and `description="Phase N critique"`. This makes the spawn mechanism verifiable and explicit. (SKILL.md:73-100)
+
+5.3. [MEDIUM] Add session_dir override parameter to CritiqueSession initialization
+
+The Python one-liner in Step 2 should accept and pass a `session_dir` argument so evaluators can control where sessions are created. Currently `CritiqueSession()` generates a timestamped dir automatically with no override. Add: `session = CritiqueSession(staging_root=Path(session_dir))` or similar. (SKILL.md:56)
+
+5.4. [MEDIUM] Add Phase 3 input validation guard
+
+Before Phase 3 reads p1.md and p2.md, add:
+```
+python -c "from pathlib import Path; f1=Path('p1.md'); f2=Path('p2.md'); assert f1.exists() and f1.read_text().strip(), 'p1.md missing or empty'; assert f2.exists() and f2.read_text().strip(), 'p2.md missing or empty'"
+```
+This prevents cascade failures from malformed Phase 1/2 output. (SKILL.md:104)
+
+5.5. [LOW] Fix the suggest aliases or remove them
+
+Either create the /adversarial-review and /adversarial-critic skills as aliases for /critique, or remove the suggest field from the frontmatter. Dead suggest links are worse than no suggest links. (SKILL.md:8-9)
+
+5.6. [LOW] Document the /gto RNS format or inline a reference specimen
+
+Add a brief description or an actual /gto output specimen in an appendix so Phase 3 synthesizers don't need external knowledge. Or link to the GTO skill's SKILL.md for the format definition. (p3_synthesis.md:3)
+
+## Open Questions / Unknowns
+
+6.1. [LOW] What is the intended behavior when Context-Aware Resolution has no args AND no session context?
+
+If a user runs `/critique` with empty args in a fresh session (no prior work), the skill says "Ask for input" but provides no mechanism for the ask. Would this produce text output and block? Use a hook? This unhandled entry point needs clarification.
+
+6.2. [LOW] What determines Health Score threshold calibration?
+
+The 80/50 thresholds should either be empirically derived from past critique data or documented with a rationale. Without this, the Health Score is a arbitrary-seeming heuristic that undermines the skill's credibility as a systematic review tool.
+
+6.3. [LOW] What is the Phase 3 arbitrator's method for conflicting Phase 1 and Phase 2 assessments?
+
+When Phase 1 and Phase 2 disagree on whether something is a real issue (e.g., Phase 2 correctly identified that Phase 1's Hidden Assumption #4 was a misreading), Phase 3 must decide which view prevails. The skill describes no arbitration method. Is it "Phase 2 wins on critique quality"? "Phase 3 decides by original source verification"? The ad hoc approach is acceptable for a single-person workflow but becomes a process risk at scale.
+
+6.4. [LOW] Is "advisory" enforcement intended to mean "non-blocking" for the internal workflow or for the skill's role in the system?
+
+The skill has "enforcement: advisory" (SKILL.md:11) but describes a fully blocking sequential workflow. If "advisory" means the skill does not enforce its findings (i.e., users can ignore the critique), then the blocking workflow is appropriate. If "advisory" means the skill does not enforce its own internal steps (i.e., phases can be skipped or reordered), then the rigid step numbering contradicts the enforcement tag. Clarify the semantics.
+
+## Recommended Next Steps
+
+1 (PROCESS DEFINITION) — Critical structural gaps in how phases are actually spawned and how session paths are managed
+
+- 1a: Add Task tool invocation with explicit subagent_type, prompt, and description parameters instead of prose "Spawn two background agents" → Manual — SKILL.md:73-100
+- 1b: Derive Python module path from __file__ of the running SKILL.md instead of hardcoding P:/.claude/skills/critique/lib → Manual — SKILL.md:60
+- 1c: Add session_dir override parameter to CritiqueSession so evaluators can control session location → Manual — SKILL.md:56
+
+2 (VALIDATION GATES) — Missing guards that allow cascade failures to propagate silently
+
+- 2a: Add existence check on resolved target before launching any phases → Manual — SKILL.md:39-52
+- 2b: Add non-empty check on p1.md and p2.md before launching Phase 3 → Manual — SKILL.md:104
+- 2c: Add timeout and completion signal mechanism for parallel Phase 1/2 agents → Manual — SKILL.md:73-102
+
+3 (DOCUMENTATION QUALITY) — Inconsistencies and broken references that reduce trust and navigability
+
+- 3a: Synchronize step/phase numbering across Workflow, Output Structure, and Phase 7 sections → Manual — SKILL.md:124,174,181
+- 3b: Fix or remove broken suggest aliases [/adversarial-review, /adversarial-critic] → Manual — SKILL.md:8-9
+- 3c: Document the /gto RNS format inline or via specimen reference → Manual — p3_synthesis.md:3
+- 3d: Fix SKILL.md cleanup path documentation to match actual session dir → Manual — SKILL.md:126
+
+4 (ARCHITECTURAL CLARITY) — Ambiguities in the skill's own meta-process
+
+- 4a: Clarify that Phase 2 prohibition is on output topic, not input context (Phase 2 can read work.md for context) → Manual — SKILL.md:95
+- 4b: Define Phase 3 arbitrator method for conflicting Phase 1/2 assessments → Manual — SKILL.md:104-118
+- 4c: Clarify "advisory" enforcement semantics relative to internal blocking workflow → Manual — SKILL.md:11
+
+0 — Do ALL Recommended Next Steps
+"""
+
+p3_file.write_text(p3_synthesis, encoding="utf-8")
+print("Phase 3 complete:", p3_file)

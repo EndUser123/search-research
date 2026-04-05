@@ -1,0 +1,11 @@
+[channels]
+my_test_channel = 1234567890
+
+[paths]
+# Base directory for all channel data (databases, media, temp files)
+# If not specified, uses "channels" directory in project root
+# Examples:
+#   channels_base = "D:\\telegram_data"      # Windows - another drive
+#   channels_base = "/mnt/external/telegram" # Linux - external drive
+#   channels_base = "channels"               # Default - current directory
+channels_base = "E:/dnld_media/telegram/channels"

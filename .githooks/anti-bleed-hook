@@ -1,0 +1,28 @@
+#!/bin/bash
+# Anti-Bleed Git Hook - Block wildcard staging
+
+# Get list of staged files
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+
+if [ -z "$staged" ]; then
+    exit 0
+fi
+
+# Count files
+file_count=$(echo "$staged" | wc -l | tr -d ' ')
+
+# Count unique top-level directories  
+top_dirs=$(echo "$staged" | sed 's#[\/].*##' | sort -u | wc -l | tr -d ' ')
+
+# Block if: >=5 files OR >=3 top-level directories (wildcard patterns)
+if [ "$file_count" -ge 5 ] || [ "$top_dirs" -ge 3 ]; then
+    echo "⚠️  ANTI-BLEED: $file_count files across $top_dirs directories"
+    echo ""
+    echo "Please stage fewer files with explicit paths:"
+    echo "  git add path/to/file1.py path/to/file2.md"
+    echo ""
+    echo "To override: ANTI_BLEED_OVERRIDE=1 git commit --no-verify"
+    exit 1
+fi
+
+exit 0

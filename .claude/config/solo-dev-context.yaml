@@ -1,0 +1,49 @@
+# Solo-Dev Context Configuration
+# This file defines project context that filters enterprise-style findings
+# Skills (/q, /r, /s) use this to avoid generating findings that don't apply
+
+version: "1.0"
+
+context:
+  development_model: "director"  # Director Model: User directs, AI implements
+  team_size: 1
+  deployment_target: "local"
+  quality_priority: "thoroughness_over_speed"
+
+constraints:
+  # Patterns to NEVER suggest in this codebase
+  # Note: Patterns match substrings (case-insensitive), so specific variants catch broader cases
+  forbidden:
+    - "background autonomous execution"
+    - "self-healing"  # Catches "self-healing system", "self-healing mechanism", etc.
+    - "real-time monitoring"  # Catches "dashboard", "dashboards", "system", etc.
+    - "team approval"  # Catches "gates", "process", "workflow", etc.
+    - "team consensus"  # Catches "process", "processes", etc.
+    - "lock-free multi-terminal coordination"
+    - "enterprise concurrency patterns"
+    - "enterprise patterns when simple solutions suffice"
+
+  # Patterns that ARE appropriate
+  allowed:
+    - "llm-generated code under user direction"
+    - "quality-first tooling"
+    - "local-first development"
+    - "functional verification"
+    - "testing and integration flows"
+    - "risk-aware testing"
+    - "performance baselines"
+
+# Examples of filtered findings (for documentation)
+filtering_examples:
+  - original: "Add team approval gates for production deployment"
+    filtered: true
+    reason: "Team approval gates not applicable for solo developer"
+  - original: "Implement real-time metrics dashboard for monitoring"
+    filtered: true
+    reason: "Real-time monitoring dashboards are enterprise anti-patterns"
+  - original: "Add self-healing mechanism for automatic recovery"
+    filtered: true
+    reason: "Self-healing systems require autonomous execution (prohibited)"
+  - original: "Implement comprehensive test coverage"
+    filtered: false
+    reason: "Quality-first testing is appropriate for solo dev"

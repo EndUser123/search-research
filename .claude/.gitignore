@@ -1,0 +1,28 @@
+# Hook state files contain high-entropy runtime data
+hooks/state/*.json.1
+
+# Session state lock files
+session_data/*.json.lock
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,10 @@
+[importlinter]
+root_packages =
+    src
+
+[importlinter:contract:no-circular-imports]
+type = forbidden
+source_modules =
+    src
+forbidden_modules =
+    src

@@ -1,0 +1,302 @@
+#!/usr/bin/env python3
+"""
+CKS Project Context Management Command
+
+CLI interface for CKS-based project context management.
+Provides commands for viewing, setting, and managing project contexts.
+
+Usage:
+    ./context show                    # Show active project context
+    ./context set TSK-ALT-PLATFORM    # Set active project context
+    ./context list                    # List all project contexts
+    ./context create <tsk_id> <path>  # Create new project context
+    ./context validate <operation>    # Validate operation against context
+    ./context checkpoint <name>       # Create checkpoint
+    ./context detect                  # Detect context from current directory
+
+Constitutional Requirements:
+- Solo developer optimization (simple, direct CLI interface)
+- Evidence-based implementation (proven patterns from MCP Memory Keeper)
+- Force multiplier (prevents task switching across worktrees)
+- No enterprise bloat (direct Python, minimal overhead)
+"""
+
+import os
+import sys
+from pathlib import Path
+
+# Add paths for CKS integration
+workspace_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(workspace_root / "__csf.nip" / "src" / "core" / "session_memory"))
+
+
+def get_bridge():
+    """Get or initialize CKS session bridge."""
+    try:
+        from solo_session_bridge_cks_extension import SoloSessionBridgeCKS
+        return SoloSessionBridgeCKS(workspace_root=str(workspace_root))
+    except ImportError as e:
+        print(f"❌ Failed to import CKS bridge: {e}")
+        print(f"   Workspace root: {workspace_root}")
+        return None
+
+
+def cmd_show(args):
+    """Show active project context."""
+    bridge = get_bridge()
+    if not bridge:
+        sys.exit(1)
+
+    context = bridge.get_active_project_context()
+    if context:
+        print("📁 Active Project Context:")
+        print(f"   TSK ID: {context['tsk_id']}")
+        print(f"   Path: {context['worktree_path']}")
+        if context['description']:
+            print(f"   Description: {context['description']}")
+        print(f"   Created: {context['created_at']}")
+    else:
+        print("⚠️  No active project context")
+        print("   Use './context set <tsk_id>' to set a context")
+
+
+def cmd_set(args):
+    """Set active project context."""
+    if not args.tsk_id:
+        print("❌ TSK ID required")
+        print("   Usage: ./context set <tsk_id>")
+        sys.exit(1)
+
+    bridge = get_bridge()
+    if not bridge:
+        sys.exit(1)
+
+    # Check if context exists
+    contexts = bridge.list_project_contexts()
+    context_ids = [ctx['tsk_id'] for ctx in contexts]
+
+    if args.tsk_id not in context_ids:
+        print(f"❌ Context '{args.tsk_id}' not found")
+        print("\nAvailable contexts:")
+        for ctx in contexts:
+            print(f"   {ctx['tsk_id']} - {ctx.get('description', 'No description')}")
+        sys.exit(1)
+
+    # Set active context
+    if bridge.set_active_project_context(args.tsk_id):
+        print(f"✅ Active context set: {args.tsk_id}")
+
+        # Show context details
+        context = bridge.get_active_project_context()
+        if context:
+            print(f"   Path: {context['worktree_path']}")
+    else:
+        print(f"❌ Failed to set active context: {args.tsk_id}")
+        sys.exit(1)
+
+
+def cmd_list(args):
+    """List all project contexts."""
+    bridge = get_bridge()
+    if not bridge:
+        sys.exit(1)
+
+    contexts = bridge.list_project_contexts()
+    if not contexts:
+        print("No project contexts found")
+        print("   Use './context create <tsk_id> <path>' to create one")
+        return
+
+    print(f"📋 Project Contexts ({len(contexts)}):")
+    for ctx in contexts:
+        active_marker = "🟢 " if ctx['is_active'] else "  "
+        print(f"{active_marker}{ctx['tsk_id']}")
+        print(f"     Path: {ctx['worktree_path']}")
+        if ctx['description']:
+            print(f"     Description: {ctx['description']}")
+
+
+def cmd_create(args):
+    """Create new project context."""
+    if not args.tsk_id:
+        print("❌ TSK ID required")
+        print("   Usage: ./context create <tsk_id> <worktree_path> [description]")
+        sys.exit(1)
+
+    if not args.worktree_path:
+        print("❌ Worktree path required")
+        print("   Usage: ./context create <tsk_id> <worktree_path> [description]")
+        sys.exit(1)
+
+    bridge = get_bridge()
+    if not bridge:
+        sys.exit(1)
+
+    description = args.description or f"Project context for {args.tsk_id}"
+
+    if bridge.create_project_context(args.tsk_id, args.worktree_path, description):
+        print(f"✅ Project context created: {args.tsk_id}")
+        print(f"   Path: {args.worktree_path}")
+        print(f"   Description: {description}")
+    else:
+        print(f"❌ Failed to create project context: {args.tsk_id}")
+        sys.exit(1)
+
+
+def cmd_validate(args):
+    """Validate operation against active context."""
+    operation = args.operation or input("Enter operation description: ")
+
+    bridge = get_bridge()
+    if not bridge:
+        sys.exit(1)
+
+    allowed, message = bridge.validate_operation_with_cks(
+        operation_type="user",
+        operation_description=operation
+    )
+
+    if allowed:
+        print(f"✅ Operation allowed: {message}")
+    else:
+        print(f"❌ Operation blocked: {message}")
+        sys.exit(1)
+
+
+def cmd_checkpoint(args):
+    """Create context checkpoint."""
+    checkpoint_name = args.checkpoint_name or "checkpoint"
+    description = args.description or ""
+
+    bridge = get_bridge()
+    if not bridge:
+        sys.exit(1)
+
+    if bridge.create_checkpoint(checkpoint_name, description):
+        print(f"✅ Checkpoint created: {checkpoint_name}")
+    else:
+        print(f"❌ Failed to create checkpoint: {checkpoint_name}")
+        sys.exit(1)
+
+
+def cmd_detect(args):
+    """Detect context from current directory."""
+    bridge = get_bridge()
+    if not bridge:
+        sys.exit(1)
+
+    # Get current directory
+    current_dir = os.getcwd()
+    print(f"🔍 Current directory: {current_dir}")
+
+    # Try to detect context from path
+    try:
+        from cks_context_validator import get_cks_adapter
+        cks = get_cks_adapter()
+        if cks:
+            detected = cks.detect_context_from_path(current_dir)
+            if detected:
+                print(f"🎯 Detected context: {detected}")
+            else:
+                print("❓ No specific context detected from path")
+    except Exception as e:
+        print(f"⚠️  Context detection failed: {e}")
+
+    # Show active context
+    context = bridge.get_active_project_context()
+    if context:
+        print(f"\n📁 Active context: {context['tsk_id']}")
+        print(f"   Path: {context['worktree_path']}")
+
+        if context['worktree_path'].lower() in current_dir.lower():
+            print("   ✅ Active context matches current directory")
+        else:
+            print("   ⚠️  Active context differs from current directory")
+            print(f"   Consider switching: ./context set {context['tsk_id']}")
+
+
+def cmd_auto(args):
+    """Auto-detect and switch context."""
+    bridge = get_bridge()
+    if not bridge:
+        sys.exit(1)
+
+    # Show current state
+    current_context = bridge.get_active_project_context()
+    if current_context:
+        print(f"📁 Current context: {current_context['tsk_id']}")
+
+    # Suggest context
+    suggested = bridge.suggest_context()
+    if suggested:
+        print(f"🎯 Suggested context: {suggested}")
+
+        if args.switch:
+            if bridge.set_active_project_context(suggested):
+                print(f"✅ Auto-switched to: {suggested}")
+            else:
+                print(f"❌ Failed to switch to: {suggested}")
+    else:
+        print("✅ No context switch needed - current directory matches active context")
+
+def main():
+    """Main CLI entry point."""
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description='CKS Project Context Management',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+    ./context show                    # Show active project context
+    ./context set TSK-ALT-PLATFORM    # Set active project context
+    ./context list                    # List all project contexts
+    ./context create TSK-NEW P:/path  # Create new project context
+    ./context validate "edit file"    # Validate operation
+    ./context checkpoint v1.0         # Create checkpoint
+    ./context detect                  # Detect context from directory
+    ./context auto                    # Auto-detect context
+    ./context auto --switch           # Auto-detect and switch
+        """
+    )
+
+    parser.add_argument('action', choices=[
+        'show', 'set', 'list', 'create', 'validate', 'checkpoint', 'detect', 'auto'
+    ], help='Action to perform')
+
+    # Auto-detect arguments
+    parser.add_argument('--switch', '-s', action='store_true',
+                        help='Auto-switch to detected context')
+
+    # Common arguments
+    parser.add_argument('tsk_id', nargs='?', help='TSK ID (for set/create actions)')
+    parser.add_argument('worktree_path', nargs='?', help='Worktree path (for create action)')
+    parser.add_argument('description', nargs='?', help='Description (for create/validate/checkpoint)')
+    parser.add_argument('--operation', '-o', help='Operation description (for validate)')
+    parser.add_argument('--checkpoint-name', '-n', help='Checkpoint name (for checkpoint)')
+
+    args = parser.parse_args()
+
+    # Dispatch to command
+    if args.action == 'show':
+        cmd_show(args)
+    elif args.action == 'set':
+        cmd_set(args)
+    elif args.action == 'list':
+        cmd_list(args)
+    elif args.action == 'create':
+        cmd_create(args)
+    elif args.action == 'validate':
+        cmd_validate(args)
+    elif args.action == 'checkpoint':
+        args.checkpoint_name = args.checkpoint_name or args.tsk_id  # Support both syntaxes
+        args.description = args.description or args.worktree_path  # Support both syntaxes
+        cmd_checkpoint(args)
+    elif args.action == 'detect':
+        cmd_detect(args)
+    elif args.action == 'auto':
+        cmd_auto(args)
+
+
+if __name__ == "__main__":
+    main()

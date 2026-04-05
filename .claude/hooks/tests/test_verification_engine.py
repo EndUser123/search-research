@@ -1,0 +1,405 @@
+#!/usr/bin/env python3
+"""Test suite for verification/engine.py - TASK-008 GREEN phase"""
+
+from dataclasses import dataclass
+from typing import List
+
+import pytest
+
+# Import actual implementation from verification.engine
+from verification.engine import (
+    ToolEventView,
+    VerificationStatus,
+    build_verdicts,
+    match_claim_to_events,
+)
+
+
+class TestToolEventView:
+    """Test ToolEventView wrapper over evidence_store events."""
+
+    def test_tool_event_view_has_tool_name(self):
+        """ToolEventView must have tool_name field."""
+        view = ToolEventView(
+            tool_name="Read",
+            target="packages/handoff/SKILL.md",
+            facts=["skill directory exists"],
+            timestamp="2026-03-15T10:00:00Z",
+            output_excerpt="# Skill content"
+        )
+        assert view.tool_name == "Read"
+        assert isinstance(view.tool_name, str)
+
+    def test_tool_event_view_has_normalized_target(self):
+        """ToolEventView must have normalized target field."""
+        view = ToolEventView(
+            tool_name="Glob",
+            target="packages/handoff/skill/",  # Normalized path
+            facts=["found skill directory"],
+            timestamp="2026-03-15T10:00:00Z",
+            output_excerpt="packages/handoff/skill/"
+        )
+        assert view.target == "packages/handoff/skill/"
+        assert isinstance(view.target, str)
+
+    def test_tool_event_view_has_facts_list(self):
+        """ToolEventView must have facts field (list of strings)."""
+        view = ToolEventView(
+            tool_name="Read",
+            target="packages/handoff/SKILL.md",
+            facts=["file exists", "file readable"],
+            timestamp="2026-03-15T10:00:00Z",
+            output_excerpt="# Content"
+        )
+        assert view.facts == ["file exists", "file readable"]
+        assert isinstance(view.facts, list)
+        assert all(isinstance(f, str) for f in view.facts)
+
+    def test_tool_event_view_has_timestamp(self):
+        """ToolEventView must have timestamp field."""
+        view = ToolEventView(
+            tool_name="Bash",
+            target="test command",
+            facts=["command executed"],
+            timestamp="2026-03-15T10:05:00Z",
+            output_excerpt="exit code 0"
+        )
+        assert view.timestamp == "2026-03-15T10:05:00Z"
+        assert isinstance(view.timestamp, str)
+
+    def test_tool_event_view_has_output_excerpt(self):
+        """ToolEventView must have output_excerpt field."""
+        view = ToolEventView(
+            tool_name="Grep",
+            target="pattern",
+            facts=["pattern found"],
+            timestamp="2026-03-15T10:10:00Z",
+            output_excerpt="match: line 42"
+        )
+        assert view.output_excerpt == "match: line 42"
+        assert isinstance(view.output_excerpt, str)
+
+
+class TestBuildVerdicts:
+    """Test build_verdicts function."""
+
+    def test_build_verdicts_returns_list(self):
+        """build_verdicts must return list of VerificationVerdict."""
+        claims = []  # Stub claim objects
+        events = []  # Stub event dicts
+        result = build_verdicts(claims, events)
+        assert isinstance(result, list)
+
+    def test_build_verdicts_supported_absence_claim(self):
+        """build_verdicts must return SUPPORTED for absence claims with matching ls/Glob."""
+
+        @dataclass
+        class StubClaim:
+            id: str
+            text: str
+            targets: List[str]
+            type: str
+            confidence: float
+
+        claims = [
+            StubClaim(
+                id="claim-001",
+                text="Package has no skill/ directory",
+                targets=["packages/handoff/skill/"],
+                type="ABSENCE",
+                confidence=0.9
+            )
+        ]
+
+        events = [
+            {
+                "name": "Glob",
+                "command": "packages/handoff/skill/*",
+                "output": "No matches found",
+                "timestamp": "2026-03-15T10:00:00Z"
+            }
+        ]
+
+        result = build_verdicts(claims, events)
+        assert len(result) > 0
+        assert result[0].status == VerificationStatus.SUPPORTED
+
+    def test_build_verdicts_refuted_absence_claim(self):
+        """build_verdicts must return REFUTED when tool output shows entity exists."""
+
+        @dataclass
+        class StubClaim:
+            id: str
+            text: str
+            targets: List[str]
+            type: str
+            confidence: float
+
+        claims = [
+            StubClaim(
+                id="claim-002",
+                text="Package has no skill/ directory",
+                targets=["packages/handoff/skill/"],
+                type="ABSENCE",
+                confidence=0.9
+            )
+        ]
+
+        events = [
+            {
+                "name": "Glob",
+                "command": "packages/handoff/skill/*",
+                "output": "packages/handoff/skill/SKILL.md",
+                "timestamp": "2026-03-15T10:00:00Z"
+            }
+        ]
+
+        result = build_verdicts(claims, events)
+        assert len(result) > 0
+        assert result[0].status == VerificationStatus.REFUTED
+
+    def test_build_verdicts_silent_unrelated_paths(self):
+        """build_verdicts must return SILENT for unrelated paths."""
+
+        @dataclass
+        class StubClaim:
+            id: str
+            text: str
+            targets: List[str]
+            type: str
+            confidence: float
+
+        claims = [
+            StubClaim(
+                id="claim-003",
+                text="packages/other/file.txt does not exist",
+                targets=["packages/other/file.txt"],
+                type="ABSENCE",
+                confidence=0.8
+            )
+        ]
+
+        events = [
+            {
+                "name": "Glob",
+                "command": "packages/handoff/*",
+                "output": "packages/handoff/skill/",
+                "timestamp": "2026-03-15T10:00:00Z"
+            }
+        ]
+
+        result = build_verdicts(claims, events)
+        assert len(result) > 0
+        assert result[0].status == VerificationStatus.SILENT
+
+
+class TestMatchClaimToEvents:
+    """Test match_claim_to_events function."""
+
+    def test_match_supported_with_ls_output(self):
+        """match_claim_to_events must return SUPPORTED when ls shows empty."""
+
+        @dataclass
+        class StubClaim:
+            id: str
+            text: str
+            targets: List[str]
+            type: str
+            confidence: float
+
+        claim = StubClaim(
+            id="claim-004",
+            text="Directory is empty",
+            targets=["packages/test/"],
+            type="ABSENCE",
+            confidence=0.9
+        )
+
+        events = [
+            {
+                "name": "Bash",
+                "command": "ls packages/test/",
+                "output": "",  # Empty output
+                "timestamp": "2026-03-15T10:00:00Z"
+            }
+        ]
+
+        result = match_claim_to_events(claim, events)
+        assert result == VerificationStatus.SUPPORTED
+
+    def test_match_supported_with_glob_no_matches(self):
+        """match_claim_to_events must return SUPPORTED when Glob finds nothing."""
+
+        @dataclass
+        class StubClaim:
+            id: str
+            text: str
+            targets: List[str]
+            type: str
+            confidence: float
+
+        claim = StubClaim(
+            id="claim-005",
+            text="No skill files found",
+            targets=["packages/handoff/skill/"],
+            type="ABSENCE",
+            confidence=0.9
+        )
+
+        events = [
+            {
+                "name": "Glob",
+                "command": "packages/handoff/skill/*",
+                "output": "No matches found",
+                "timestamp": "2026-03-15T10:00:00Z"
+            }
+        ]
+
+        result = match_claim_to_events(claim, events)
+        assert result == VerificationStatus.SUPPORTED
+
+    def test_match_refuted_with_read_output(self):
+        """match_claim_to_events must return REFUTED when Read shows file exists."""
+
+        @dataclass
+        class StubClaim:
+            id: str
+            text: str
+            targets: List[str]
+            type: str
+            confidence: float
+
+        claim = StubClaim(
+            id="claim-006",
+            text="File does not exist",
+            targets=["packages/handoff/SKILL.md"],
+            type="ABSENCE",
+            confidence=0.9
+        )
+
+        events = [
+            {
+                "name": "Read",
+                "command": "packages/handoff/SKILL.md",
+                "output": "# Skill Content",
+                "timestamp": "2026-03-15T10:00:00Z"
+            }
+        ]
+
+        result = match_claim_to_events(claim, events)
+        assert result == VerificationStatus.REFUTED
+
+    def test_match_silent_no_relevant_tools(self):
+        """match_claim_to_events must return SILENT when no relevant tools used."""
+
+        @dataclass
+        class StubClaim:
+            id: str
+            text: str
+            targets: List[str]
+            type: str
+            confidence: float
+
+        claim = StubClaim(
+            id="claim-007",
+            text="File does not exist",
+            targets=["packages/test/file.txt"],
+            type="ABSENCE",
+            confidence=0.8
+        )
+
+        events = [
+            {
+                "name": "Bash",
+                "command": "echo test",
+                "output": "test",
+                "timestamp": "2026-03-15T10:00:00Z"
+            }
+        ]
+
+        result = match_claim_to_events(claim, events)
+        assert result == VerificationStatus.SILENT
+
+
+class TestRuleClaims:
+    """Test rule claim verification requirements."""
+
+    def test_rule_claim_requires_read_or_glob(self):
+        """Rule claims require Read or Glob of relevant file."""
+
+        @dataclass
+        class StubClaim:
+            id: str
+            text: str
+            targets: List[str]
+            type: str
+            confidence: float
+
+        claim = StubClaim(
+            id="claim-008",
+            text="Documentation states X requires Y",
+            targets=["packages/handoff/README.md"],
+            type="RULE",
+            confidence=0.85
+        )
+
+        # Scenario 1: Read tool used - should be SUPPORTED or REFUTED based on content
+        events_with_read = [
+            {
+                "name": "Read",
+                "command": "packages/handoff/README.md",
+                "output": "Content",
+                "timestamp": "2026-03-15T10:00:00Z"
+            }
+        ]
+
+        result = match_claim_to_events(claim, events_with_read)
+        assert result in [VerificationStatus.SUPPORTED, VerificationStatus.REFUTED]
+
+        # Scenario 2: Glob tool used - should be SUPPORTED or REFUTED
+        events_with_glob = [
+            {
+                "name": "Glob",
+                "command": "packages/handoff/README.md",
+                "output": "packages/handoff/README.md",
+                "timestamp": "2026-03-15T10:00:00Z"
+            }
+        ]
+
+        result = match_claim_to_events(claim, events_with_glob)
+        assert result in [VerificationStatus.SUPPORTED, VerificationStatus.REFUTED]
+
+    def test_rule_claim_silent_without_verification_tools(self):
+        """Rule claims are SILENT without Read or Glob."""
+
+        @dataclass
+        class StubClaim:
+            id: str
+            text: str
+            targets: List[str]
+            type: str
+            confidence: float
+
+        claim = StubClaim(
+            id="claim-009",
+            text="Documentation states X",
+            targets=["packages/test/README.md"],
+            type="RULE",
+            confidence=0.75
+        )
+
+        events = [
+            {
+                "name": "Bash",
+                "command": "echo test",
+                "output": "test",
+                "timestamp": "2026-03-15T10:00:00Z"
+            }
+        ]
+
+        result = match_claim_to_events(claim, events)
+        assert result == VerificationStatus.SILENT
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

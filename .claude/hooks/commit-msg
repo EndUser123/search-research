@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+"""
+Git commit-msg hook
+
+Validates commit messages against staged changes to prevent misleading commits.
+Integrates with sapling (/sap) workflow.
+"""
+
+import sys
+from pathlib import Path
+
+# Hook file location
+HOOKS_DIR = Path(__file__).parent
+VALIDATOR = HOOKS_DIR / "commit_msg_validator.py"
+
+# Run the validator
+if VALIDATOR.exists():
+    import subprocess
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR)] + sys.argv[1:],
+        capture_output=False
+    )
+    sys.exit(result.returncode)
+else:
+    # Fallback: allow commit if validator not found
+    print("[WARNING] commit_msg_validator.py not found, skipping validation")
+    sys.exit(0)

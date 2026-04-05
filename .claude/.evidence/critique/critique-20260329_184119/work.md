@@ -1,0 +1,1 @@
+C:\Users\brsth\.claude\plans\plan-adr-20260329-cleanup-prevention-enhancement.md

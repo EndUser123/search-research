@@ -1,0 +1,22 @@
+<type>(<scope>): <subject>
+
+## WHY
+Problem we're solving:
+Root cause:
+User impact:
+
+## WHAT
+Changed: X → Y
+Added:
+Removed: (reason: )
+Side effects:
+
+## VERIFICATION
+Test:
+Before:
+After:
+
+## DEPENDENCIES
+Requires: (other branch / commit)
+Conflicts-with:
+Related-to: #issue

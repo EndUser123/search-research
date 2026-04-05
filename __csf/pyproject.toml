@@ -1,0 +1,27 @@
+[tool.pytest.ini_options]
+# Exclude temporary, staging, and task-specific directories from test discovery
+testpaths = ["src", ".claude/hooks/tests"]
+pythonpath = ["src"]
+addopts = "-p no:cacheprovider"
+norecursedirs = [
+    ".staging",
+    ".temp",
+    "__TSK",
+    ".git",
+    "__pycache__",
+    ".*",
+    "build",
+    "dist",
+    "*.egg-info",
+]
+# Add pytest markers
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+# Python warnings configuration
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]

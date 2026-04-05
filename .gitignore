@@ -1,0 +1,572 @@
+# Ignore files and folders named 'copy'
+copy/
+Copy/
+COPY/
+*copy*
+*Copy*
+*COPY*
+
+# CSF duplicate directories (from incomplete refactoring)
+__csf/_dev/csf_for_review/
+__csf_dev/
+# __csf/ removed - contains active library code
+
+# Development submodule directories with independent changes
+__dev/github/Archon
+__dev/github/telegram-files
+# Python virtual environments
+.venv/
+venv/
+__pycache__/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# RCA temporary workspace
+.temp-rca/
+tmp_*.py
+temp_*.py
+debug_*.py
+
+# RCA walkthroughs (auto-generated evidence logs)
+projects/walkthroughs/
+walkthrough_*.md
+
+# Python bytecode and compiled files
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.dll
+
+# Jupyter and IPython
+.ipynb_checkpoints/
+
+# Node.js
+node_modules/
+
+# Models and large data
+models/
+*.pt
+*.bin
+*.pkl
+*.h5
+*.ckpt
+*.onnx
+
+# Media files
+*.mp4
+*.mov
+*.avi
+*.gif
+*.png
+*.jpg
+*.jpeg
+*.webm
+*.mkv
+*.pdf
+
+# Archives and backups
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+*.bak
+*.old
+*.tmp
+*.log
+
+# Executables and binaries
+*.exe
+*.bat
+*.ps1
+!**/scripts/**/*.ps1  # Track PowerShell scripts in scripts/
+!projects/yt-fts/deploy.ps1  # Track deploy.ps1
+!/.claude/skills/_tools/**  # Track skills tooling (all files)
+!.claude/skills/_tools/*.ps1
+!.claude/hooks/bin/git-mutex.ps1  # Track git mutex wrapper
+!**.claude/hooks/*.ps1  # Track hooks PowerShell scripts
+
+*.out
+*.o
+*.a
+*.lib
+*.pdb
+
+# Database and cache
+*.db
+*.sqlite
+*.npz
+*.npy
+
+# Project-specific
+temp/
+temp_branch.zip
+channels/*/_media/
+yt_sync/.auth_profile/
+yt_sync/yt-dlp.exe
+dnld_telegram/channels/*/_media/
+
+# Backup and bare git repos
+_backup_repo.git/
+git_remotes/
+
+# IDE/editor
+.vscode/
+.idea/
+*.code-workspace
+
+# Misc
+*.chm
+*.json
+!.claude/config/zen_suggestions.json
+!.claude/hooks/config/directory_policy.json
+!.claude/settings.local.json
+!.claude/skills/**/evals.json
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.docx
+*.doc
+*.pptx
+*.ppt
+
+# Ignore all files in .MEMORY, .crush, .archive, .serena, .MEMORY_bank, .MEMORY_backup, .MEMORY_cache
+_MEMORY/
+.crush/
+__archive/
+.serena/
+memory_bank/
+_MEMORY_backup/
+_MEMORY_cache/
+
+# Ignore all test and cache outputs
+output*/
+logs/
+
+# Ignore Python virtual environments
+qmem/.venv/
+__dev/github/deepgit_zamalali/mcp_server/.venv/
+__dev/github/deepgit_zamalali/mcp_server/.venv_backup/
+__dev/github/Claude-Code-Usage-Monitor/.venv/
+__dev/github/just-prompt/.venv/
+__dev/llm_coordination/.venv/
+dnld_telegram/.venv/
+
+# Ignore backup and large data folders
+vid_rec/models/
+qmem/
+/.state/
+
+# Ignore model and binary files
+
+# Ignore git pack files (should not be tracked manually)
+.git/objects/pack/
+# Byte-compiled / optimized / DLL files
+*.py[cod]
+*$py.class
+
+# C extensions
+
+# Distribution / packaging
+.Python
+build/
+!.claude/skills/build/
+!.claude/skills/qa/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+!__csf/lib/
+
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.benchmarks/
+channels/
+
+
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+dnld_telegram/*.mp4
+dnld_telegram/*.gif
+dnld_telegram/*.jpg
+temp_media/*.mp4
+temp_media/*.gif
+temp_media/*.jpg
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Multi-Project Workspace Ignores
+# ===============================
+
+# Project-specific application logs
+*/logs/
+*/log_chunker_debug.log
+_brain/mcp_server/brain_server.log
+_brain/mcp_server/brain_server_debug.log
+dualllm_ut_1/logs/
+dualllm_ut_2/logs/
+upi-core/logs/
+log_chunker/logs/
+_archive/
+
+# Project output directories
+*/chunks/
+*/output/
+*/reports/
+*/patterns/
+_reports/
+OnHold/
+
+# Project runtime data directories (videos, databases, caches)
+projects/*/data/
+
+# ML models and caches
+*/models/
+*/.cache/
+*.model
+*.joblib
+
+# Project-specific configuration files with secrets
+*/config.json
+*/secrets.json
+*/.secrets
+*/.env
+*/local_settings.py
+
+# Brain system files
+_brain/mcp_server/*.log
+_brain/memory_bank/search_index/
+_brain/search_cache/
+
+# Dual LLM coordination files
+dualllm_ut_*/coordination/backups/
+dualllm_ut_*/coordination/*.tmp
+dualllm_ut_*/coordination/test_*
+
+# UPI Core generated files
+upi-core/patterns/
+upi-core/docs/_context/
+upi-core/temp/
+
+# Log chunker specific
+log_chunker/chunks/         # Temporary working files
+log_chunker/reports/        # Final analysis outputs (you may want to keep these)
+log_chunker/*_plugin.py     # Generated plugin templates
+log_chunker/sample_config.json
+
+# IDE and editor files (workspace-wide)
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows system files
+System Volume Information/
+$RECYCLE.BIN/
+RECYCLER/
+desktop.ini
+Desktop.ini
+
+# Plugin development (any project)
+*_plugin.py
+*/plugins/custom/
+
+# Test files and temporary data
+test_*.log
+sample_*.log
+*/temp/
+*/tmp/
+*_test_*
+!.claude/hooks/smoke_test_hooks.py  # Diagnostic system, not a test
+
+# Generated configuration samples
+sample_config.json
+*/sample_config.json
+
+# Performance profiling
+*.prof
+*.pstats
+*/performance/
+
+# Local development files
+local_*
+
+*/local_*
+
+
+# Project management system
+_project_mgmt/reports/generated/
+_PM/temp/
+
+# Archive directories
+archive/
+*/archive/
+*/_archive/
+nul
+_temp/*.mp4
+_temp/*.jpg
+_temp/*.gif
+**/_temp/**/*.mp4
+**/_temp/**/*.jpg
+**/_temp/**/*.gif
+**/_media/
+
+# Crush directory
+.aider*
+*.aid
+"*.bak"
+"dnld_telegram/channels/koreannarchive/*.json"
+
+# Logs
+logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dev-debug.log
+# Dependency directories
+# Environment variables
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# OS specific
+
+# Task files
+# tasks.json
+# tasks/
+
+# Claude Flow generated files
+.mcp.json
+claude-flow.config.json
+# Claude session runtime data (auto-generated)
+.claude/session_data/
+.swarm/
+.hive-mind/
+.claude-flow/
+# Track TSK artifacts for CWO12 workflow history (but ignore TDD state)
+/memory/
+coordination/
+memory/claude-flow-data.json
+memory/sessions/*
+!memory/sessions/README.md
+memory/agents/*
+!memory/agents/README.md
+coordination/memory_bank/*
+coordination/subtasks/*
+coordination/orchestration/*
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+claude-flow
+# Removed Windows wrapper files per user request
+hive-mind-prompt-*.txt
+
+# Temporary files and directories
+tmp/
+_temp/
+*.temp
+*.backup
+*.orig
+
+# Large files that should never be committed
+*.html
+*.txt
+!requirements_qa.txt
+
+# Specific large file patterns from tmp/
+tmp/*.html
+tmp/*.txt
+tmp/*.log
+tmp/Virtual*
+tmp/_Projects*
+.sl/
+
+# ToolRegistry - generated indices and caches (12MB+)
+.ToolRegistry/
+.speckit/taskmaster/tasks.db
+
+# JSONL data files (runtime logs, search history, patterns)
+*.jsonl
+!.claude/registry/**/*.jsonl  # Keep registry data
+
+# Windows system directories (exact match for sapling)
+$RECYCLE.BIN
+System Volume Information
+# Note: .speckit/memory/ is ignored above via /memory/ pattern
+# Exception: __csf.nip/.speckit/memory/**/*.md is tracked (line 439)
+.claude/hooks/.state/
+
+# Git worktrees (parallel branch working directories)
+/worktrees/
+projects/*-fixes/
+tmpclaude*
+secrets/
+client_secrets.json
+
+# .claude/ ephemeral files (session state, locks, temp files)
+.claude/.locks/
+.claude/data/
+.claude/.session_start*
+.claude/sessions/
+.claude/session_data/
+.claude/session_history/
+.claude/session_archives/
+.claude/session_storage/
+.claude/session_tracking/
+.claude/session_*.json
+.claude/mutex_*.json
+.claude/current_session.json
+.claude/orchestrated_session.json
+.claude/.last-compact*
+.claude/tmpclaude*
+.claude/logs/
+.claude/state/
+.claude/events.db
+.claude/hooks/state/
+.claude/artifacts.db*
+.claude/.benchmarks/
+.claude/.daemon_state/
+.claude/.hypothesis/
+.claude/.venv/
+.claude/backups/
+.claude/cache/
+.claude/checkpoints/
+.claude/plans/
+
+# Python venvs in .claude (generated, large)
+.claude/proxy/litellm/litellm_venv/
+.beads/
+.beads/
+!.beads/redirect
+
+# HuggingFace model cache (large files, should not be tracked)
+.model_cache/
+
+# Standalone packages (have their own git repositories)
+
+# Claude plugin packages: source-of-truth is packages/*, not the junction target.
+# arch is now a symlink -> packages/arch/skill/ (like rca, all)
+# No gitignore needed - symlink itself is tracked, target is in packages/
+ai-api/proxy/litellm_venv/

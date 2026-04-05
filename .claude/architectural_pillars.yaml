@@ -1,0 +1,117 @@
+# Architectural Pillars Configuration
+# Immutable architectural decisions that subagent feedback must respect
+
+# Pillars can only be changed through formal RFC process
+# See: .claude/RFC_TEMPLATE.md
+
+pillars:
+  - name: "Pure Domain Models"
+    description: "Domain models contain no external dependencies or I/O operations"
+    severity: "STRICT"
+    applies_to:
+      - "src/domain/**"
+      - "**/models/**/*.py"
+    violates:
+      - pattern: "requests\\.(get|post|put|delete)"
+        reason: "HTTP calls in domain model"
+      - pattern: "database\\.query|\\.execute\\(|\\.executemany\\("
+        reason: "Direct database access in domain model"
+      - pattern: "logger\\."
+        reason: "Logging in domain model (use events instead)"
+    exceptions: []
+
+  - name: "Circuit Breaker Pattern"
+    description: "All external calls must be wrapped in circuit breaker"
+    severity: "STRICT"
+    applies_to:
+      - "src/external/**"
+      - "src/integrations/**"
+    requires:
+      - "from circuitbreaker import circuit"
+      - "@circuit"
+    enforcement: "pattern_match"
+    exceptions:
+      - "tests/**"
+      - "test_*.py"
+
+  - name: "Repository Pattern"
+    description: "Data access only through Repository interface"
+    severity: "MODERATE"
+    applies_to:
+      - "src/**"
+    violates:
+      - pattern: "open\\(.*\\.json"
+        reason: "Direct file I/O - use repository"
+      - pattern: "sqlite3\\.connect"
+        reason: "Direct DB access - use repository"
+    exceptions:
+      - "src/repository/**"
+      - "tests/**"
+      - "migrations/**"
+
+  - name: "Event-Driven Async Architecture"
+    description: "Long-running operations use async/events, not blocking calls"
+    severity: "MODERATE"
+    applies_to:
+      - "src/services/**"
+      - "src/api/**"
+    violates:
+      - pattern: "time\\.sleep|threading\\.Thread"
+        reason: "Blocking sleep - use asyncio"
+      - pattern: "subprocess\\.call|subprocess\\.run[^,]*check=False"
+        reason: "Blocking subprocess - use async_subprocess"
+    exceptions:
+      - "tests/**"
+      - "scripts/**"
+
+  - name: "Type Safety at Boundaries"
+    description: "All cross-module data structures use TypedDict or dataclass"
+    severity: "MODERATE"
+    applies_to:
+      - "src/**"
+    violates:
+      - pattern: "dict\\[str, Any\\]|Dict\\[str, Any\\]"
+        reason: "Untyped dict - use TypedDict"
+    exceptions:
+      - "tests/**"
+      - "**/__init__.py"
+
+  - name: "No Background Services"
+    description: "Solo-dev environment: no always-running background services"
+    severity: "STRICT"
+    applies_to:
+      - "**"
+    violates:
+      - pattern: "continuous.monitoring|self.healing|autonomous.execution"
+        reason: "Forbidden enterprise pattern"
+      - pattern: "while\\s+True:.*time\\.sleep"
+        reason: "Background loop - use event-driven or manual trigger"
+    exceptions:
+      - "tests/**"
+
+# False positive detection patterns
+false_positive_patterns:
+  speculative:
+    - "could use \\w+ pattern"
+    - "consider adding \\w+ library"
+    - "might be cleaner if"
+    - "should .* pattern"
+  context_starvation:
+    - "unused import"
+    - "parameter .* never used"
+    - "variable .* not used"
+  style_opinion:
+    - "prefer.*over"
+    - "more pythonic"
+    - "PEP 8"
+
+# RFC process for pillar changes
+rfc_process:
+  required: true
+  template: ".claude/RFC_TEMPLATE.md"
+  steps:
+    - "Create RFC in .claude/RFC_<number>.md"
+    - "Document rationale for change"
+    - "Get code review sign-off"
+    - "Update this file"
+    - "Add entry to pillar_changelog.json"

@@ -1,0 +1,152 @@
+# YouTube Batch Downloader - Environment Wrapper (PowerShell Layer)
+param(
+    [Parameter(Mandatory=$false)]
+    [Alias('h')]
+    [switch]$Help,
+    [Parameter(Mandatory=$false)]
+    [int]$Channels = $null,
+    [Parameter(Mandatory=$false)]
+    [Alias('j')]
+    [int]$Jobs = $null,
+    [Parameter(Mandatory=$false)]
+    [Alias('max-channel-scan')]
+    [int]$MaxChannelScan = $null,
+    [Parameter(Mandatory=$false)]
+    [Alias('max-channel-download')]
+    [int]$MaxChannelDownload = $null,
+    [Parameter(Mandatory=$false)]
+    [Alias('max-video-scan')]
+    [int]$MaxVideoScan = $null,
+    [Parameter(Mandatory=$false)]
+    [Alias('max-video-download')]
+    [int]$MaxVideoDownload = $null,
+    [Parameter(Mandatory=)]
+    [Alias('max-videos-download-channel')]
+    [int] = ,
+    [Parameter(Mandatory=)]
+    [Alias('max-videos-download-total')]
+    [int] = ,
+    [Parameter(Mandatory=)]
+    [Alias('max-videos-download-channel')]
+    [int] = ,
+    [Parameter(Mandatory=)]
+    [Alias('max-videos-download-total')]
+    [int] = ,
+    [Parameter(Mandatory=$false)]
+    [Alias('max-time-per-video')]
+    [int]$MaxTimePerVideo = $null,
+    [Parameter(Mandatory=$false)]
+    [Alias('max-time-per-channel')]
+    [int]$MaxTimePerChannel = $null,
+    [Parameter(Mandatory=$false)]
+    [Alias('max-time-total')]
+    [int]$MaxTimeTotal = $null,
+    [Parameter(Mandatory=$false)]
+    [switch]$NoCookies,
+    [Parameter(Mandatory=$false)]
+    [switch]$QuickTest,
+    [Parameter(Mandatory=$false)]
+    [switch]$Rich,
+    [Parameter(Mandatory=$false)]
+    [switch]$Quiet,
+    [Parameter(Mandatory=$false)]
+    [Alias('auto-backfill')]
+    [switch]$AutoBackfill,
+    [Parameter(Mandatory=$false)]
+    [Alias('d')]
+    [ValidateSet('default', 'compact', 'detailed', 'minimal', 'progress', 'table')]
+    [string]$DisplayPlugin = $null
+)
+
+if ($Help) {
+    Write-Host ""
+    Write-Host "deploy.ps1 - YouTube Full-Text Search Batch Downloader" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "USAGE:" -ForegroundColor Yellow
+    Write-Host "  .\deploy.ps1 [OPTIONS]" -ForegroundColor White
+    Write-Host ""
+    Write-Host "OPTIONS:" -ForegroundColor Yellow
+    Write-Host "  -h, -Help                 Show this help message" -ForegroundColor White
+    Write-Host "  -j, -Jobs <n>             Concurrent download jobs" -ForegroundColor White
+    Write-Host "  -max-channel-scan <n>     Limit channels to scan" -ForegroundColor White
+    Write-Host "  -max-channel-download <n> Stop after N channels" -ForegroundColor White
+    Write-Host "  -max-video-scan <n>       Max videos per channel" -ForegroundColor White
+    Write-Host "  -max-video-download <n>   Max videos to save" -ForegroundColor White
+    Write-Host "  -max-videos-download-channel <n>  Max videos per channel" -ForegroundColor White
+    Write-Host "  -max-videos-download-total <n>    Max videos across all channels" -ForegroundColor White
+    Write-Host "  -max-time-per-video <s>   Timeout per video (seconds)" -ForegroundColor White
+    Write-Host "  -max-time-per-channel <s> Timeout per channel (seconds)" -ForegroundColor White
+    Write-Host "  -max-time-total <s>       Timeout for batch (seconds)" -ForegroundColor White
+    Write-Host "  -NoCookies                Skip browser cookies" -ForegroundColor White
+    Write-Host "  -QuickTest                Quick test mode" -ForegroundColor White
+    Write-Host "  -auto-backfill            Backfill metadata" -ForegroundColor White
+    Write-Host "  -d <plugin>               Display plugin" -ForegroundColor White
+    Write-Host ""
+    Write-Host "EXAMPLES:" -ForegroundColor Yellow
+    Write-Host "  .\deploy.ps1 -max-time-per-video 30" -ForegroundColor White
+    Write-Host "  .\deploy.ps1 -max-time-per-channel 300" -ForegroundColor White
+    Write-Host "  .\deploy.ps1 -max-time-total 3600" -ForegroundColor White
+    Write-Host ""
+    exit 0
+}
+
+# Browser detection
+$availableBrowsers = @()
+if (Test-Path "$env:APPDATA\Mozilla\Firefox\Profiles") { $availableBrowsers += "firefox" }
+if (Test-Path "$env:LOCALAPPDATA\Packages\Microsoft.MicrosoftEdge_*") { $availableBrowsers += "edge" }
+if (Test-Path "$env:LOCALAPPDATA\Google\Chrome\User Data") { $availableBrowsers += "chrome" }
+
+$calculationBase = if ($MaxChannelScan) { $MaxChannelScan } elseif ($MaxChannelDownload) { $MaxChannelDownload } elseif ($Channels) { $Channels } else { 50 }
+
+$settings = @{
+    Jobs = if ($Jobs) { $Jobs } elseif ($QuickTest) { 1 } elseif ($calculationBase -le 10) { 1 } elseif ($calculationBase -le 50) { 2 } else { 1 }
+    Delay = if ($QuickTest) { 2.0 } elseif ($calculationBase -le 10) { 5.0 } elseif ($calculationBase -le 50) { 10.0 } else { 15.0 }
+    Cookies = if ($NoCookies) { "" } elseif ($QuickTest) { "" } elseif ($availableBrowsers.Count -gt 0) { $availableBrowsers[0] } else { "" }
+    InputFile = if ($QuickTest) { "test_5_channels.txt" } else { "data/channels.txt" }
+}
+
+if (-not $Quiet) {
+    Write-Host ("-" * 60) -ForegroundColor Cyan
+    Write-Host "ENVIRONMENT SETUP" -ForegroundColor Blue
+    Write-Host ("-" * 60) -ForegroundColor Cyan
+    Write-Host "* Configuration:" -ForegroundColor Cyan
+    Write-Host "  * Input: $($settings.InputFile)" -ForegroundColor White
+    Write-Host "  * Jobs: $($settings.Jobs)" -ForegroundColor White
+    Write-Host "  * Delay: $($settings.Delay)s" -ForegroundColor White
+    Write-Host "  * Cookies: $($settings.Cookies)" -ForegroundColor White
+    Write-Host ""
+    Write-Host "PYTHON EXECUTION:" -ForegroundColor Blue
+}
+
+$tempFile = $settings.InputFile
+$cmd = "python -m yt_fts batch-download `"$tempFile`" --jobs $($settings.Jobs)"
+
+if ($settings.Cookies) { $cmd += " --cookies-from-browser $($settings.Cookies)" }
+if ($Rich) { $cmd += " --rich-1" }
+if ($MaxChannelScan) { $cmd += " --max-channel-scan $MaxChannelScan" }
+if ($MaxChannelDownload) { $cmd += " --max-channel-download $MaxChannelDownload" }
+if ($MaxVideoScan) { $cmd += " --max-video-scan $MaxVideoScan" }
+if ($MaxVideoDownload) { $cmd += " --max-video-download $MaxVideoDownload" }
+if ($MaxTimePerVideo) { $cmd += " --max-time-per-video $MaxTimePerVideo" }
+if ($MaxTimePerChannel) { $cmd += " --max-time-per-channel $MaxTimePerChannel" }
+if ($MaxTimeTotal) { $cmd += " --max-time-total $MaxTimeTotal" }
+if ($DisplayPlugin) { $cmd += " --display-plugin $DisplayPlugin" }
+if ($AutoBackfill) { $cmd += " --auto-backfill" }
+$cmd += " --continue-on-error --no-fail-fast --delay $($settings.Delay)"
+
+if (-not $Quiet) {
+    Write-Host $cmd -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Clearing Python cache... done" -ForegroundColor Cyan
+}
+
+$result = Invoke-Expression $cmd
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Python execution failed with exit code $LASTEXITCODE"
+    exit 1
+}
+
+if (-not $Quiet) {
+    Write-Host ""
+    Write-Host "POWERSHELL WRAPPER COMPLETED" -ForegroundColor Green
+}

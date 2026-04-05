@@ -1,0 +1,114 @@
+# Patch file for fixing dnld_telegram errors
+
+## Fix 1: Improve connection management in enumeration.py
+
+--- src/dnld_telegram/download/plugins/enumeration.py
++++ src/dnld_telegram/download/plugins/enumeration.py
+@@ -15,30 +15,40 @@
+ async def ensure_client_connected(client, operation_name="operation"):
+     """Ensure client is connected, attempt reconnection if needed."""
+     try:
+         # Check if client has is_connected method and use it
+         if hasattr(client, "is_connected") and callable(getattr(client, "is_connected")):
+             if client.is_connected():
+                 return True
+
+             logger.warning(
+                 f"Client disconnected during {operation_name}, attempting reconnection..."
+             )
+
+             # Attempt reconnection with more robust handling
+             try:
+                 # Disconnect first to ensure clean state
+                 if hasattr(client, "disconnect"):
+                     try:
+                         await client.disconnect()
+                     except:
+                         pass  # Ignore errors during disconnect
+
+                 # Wait a moment before reconnecting
+                 await asyncio.sleep(1)
+
+                 # Reconnect
+                 await client.connect()
+
+                 if client.is_connected():
+                     logger.info(f"Successfully reconnected client for {operation_name}")
+                     return True
+                 else:
+                     logger.error(f"Failed to reconnect client for {operation_name}")
+                     return False
+             except Exception as reconnect_error:
+                 logger.error(f"Error during reconnection attempt: {reconnect_error}")
+                 return False
+         else:
+             # Fallback: assume connected if no is_connected method
+             logger.debug(
+                 f"Client connection status unknown for {operation_name}, proceeding"
+             )
+             return True
+
+     except Exception as e:
+         logger.error(
+             f"Error checking/restoring client connection for {operation_name}: {e}"
+         )
+         return False
+
+## Fix 2: Improve signal handler in __main__.py
+
+--- src/dnld_telegram/download/__main__.py
++++ src/dnld_telegram/download/__main__.py
+@@ -53,50 +53,25 @@
+ def setup_signal_handlers():
+     """Setup signal handlers for graceful shutdown."""
+     global termination_event, shutdown_in_progress
+
+     def signal_handler(_signum, _frame):
+         """Handle termination signals with graceful cleanup."""
+         global shutdown_in_progress
+         import threading
+         import time
+
+         from loguru import logger
+
+         # Use loguru logger for proper timestamp formatting
+         logger.info("🛑 Ctrl+C received. Initiating graceful cleanup...")
+
+         # Set termination event to signal all operations to stop
+         if termination_event:
+             termination_event.set()
+
+         # Set shutdown flag to indicate we're in shutdown mode
+         shutdown_in_progress = True
+         logger.info(
+             "✅ Graceful shutdown initiated - waiting for current operations to complete..."
+         )
+
+         # Don't raise KeyboardInterrupt - let asyncio loop handle shutdown naturally
+
+     # Setup signal handlers (Windows and Unix compatible)
+     import signal
+     signal.signal(signal.SIGINT, signal_handler)
+     if hasattr(signal, "SIGTERM"):
+         signal.signal(signal.SIGTERM, signal_handler)
+
+## Fix 3: Add periodic connection checks in enumeration
+
+--- src/dnld_telegram/download/plugins/enumeration.py
++++ src/dnld_telegram/download/plugins/enumeration.py
+@@ -280,6 +280,12 @@
+         # If doing incremental enumeration, only get messages newer than the last enumerated ID
+         async for message in client.iter_messages(
+             entity, reverse=False, min_id=last_enumerated_id if incremental else 0
+         ):
+             total_messages_scanned += 1
+             # Check for termination every message
+
++            # Periodic connection check every 100 messages
++            if total_messages_scanned % 100 == 0:
++                if not await ensure_client_connected(client, "periodic check"):
++                    logger.warning("Client connection lost during enumeration, attempting to continue...")
++
+             if termination_event and termination_event.is_set():
+                 logger.info(
+                     f"🛑 Termination requested during enumeration of {channel_name} after {count} messages"

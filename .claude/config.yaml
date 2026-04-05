@@ -1,0 +1,39 @@
+# CSF Observability Configuration
+
+event_batching:
+  batch_size: 10              # Number of events before flush
+  flush_interval_sec: 5       # Max wait before flush (on-demand only with Decision 3)
+  queue_dir: .claude/event_queue/
+  fallback_dir: .claude/fallback_events/
+  fallback_disk_write: true   # Always write critical events to fallback
+
+evidence_tiers:
+  tier_4: 0.95                # Execution artifacts (95% ceiling)
+  tier_3: 0.85                # Official docs, code inspection
+  tier_2: 0.75                # Static analysis, heuristics
+  tier_1: 0.50                # Comments, speculation
+
+collision_detection:
+  enabled: true
+  run_async: true
+  patterns:
+    unexecutable_goal:
+      window_seconds: 30
+      description: "Goal blocked, never validated"
+    repeated_validation_failure:
+      count_threshold: 3
+      window_seconds: 60
+      description: "3+ failures for same claim"
+    multi_article_block:
+      article_count_threshold: 2
+      window_seconds: 30
+      description: "2+ articles blocking execution"
+
+database:
+  path: .claude/events.db
+  wal_mode: true              # Write-ahead logging for concurrency
+
+session_management:
+  # session_data_dir removed - legacy config, now using hooks/session_data/ (see state_paths.py)
+  session_ttl_hours: 24       # Expire old session metadata
+  max_chain_depth: 100        # Prevent infinite causal chains

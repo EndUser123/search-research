@@ -1,0 +1,746 @@
+{
+  "env": {
+    "SENTENCE_TRANSFORMERS_HOME": "P:\\.model_cache",
+    "HF_HOME": "P:\\.model_cache",
+    "USER_PREFERENCE_MODE": "expert",
+    "CKS_INTEGRATION_ENABLED": "true",
+    "CKS_MAX_MEMORIES": "5",
+    "CKS_SIMILARITY_THRESHOLD": "0.4",
+    "CKS_CONTEXT_LENGTH_LIMIT": "1500",
+    "CKS_MODEL_NAME": "sentence-transformers/all-MiniLM-L6-v2",
+    "CLAUDE_CODE_TASK_LIST_ID": "project-main-tasks",
+    "CC_DIAGNOSTICS_DIR": "P:/.claude/hooks/logs/diagnostics",
+    "CSF_STATE_DIR": ".claude/state",
+    "CSF_SUCCESS_VALIDATOR_MODE": "block",
+    "CSF_HOOK_DEBUG": "1",
+    "PARALLEL_HOOKS_ENABLED": "1",
+    "TEST_ASSUMPTION_AUDIT_METHOD": "loose",
+    "TEST_ASSUMPTION_AUDIT_MODE": "block",
+    "CONTRACT_GUARD_ENABLED": "true",
+    "CONTRACT_STATE_DIR": "P:/.claude/state/contract_guard",
+    "CONTRACT_ENFORCER_ENABLED": "false",
+    "CONTRACT_TRACKER_ENABLED": "true",
+    "TASK_DETECTOR_ENABLED": "true",
+    "REFLEXION_VALIDATOR_ENABLED": "false",
+    "CONSTITUTIONAL_HOOKS_BYPASS": "1"
+  },
+  "includeCoAuthoredBy": true,
+  "permissions": {
+    "allow": [
+      "Bash",
+      "Skill"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(del /f /q C:\\*)",
+      "Bash(sudo rm -rf /*)",
+      "Bash(dd if=/dev/zero of=/dev/sda)",
+      "Bash(format c:)",
+      "Bash(shutdown /s /t 0)",
+      "Bash(reboot)",
+      "Bash(chmod -R 777 /)",
+      "Bash(curl | bash)",
+      "Bash(wget | bash)",
+      "Write(../*)",
+      "Write(./../**)",
+      "Write(P:/*)",
+      "Edit(../*)",
+      "Edit(./../**)",
+      "Edit(P:/*)",
+      "Write(/root/**)",
+      "Write(/etc/**)",
+      "Write(/usr/bin/**)",
+      "Write(C:/Windows/**)",
+      "Write(C:/Program Files/**)"
+    ]
+  },
+  "enabledMcpjsonServers": [],
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/UserPromptSubmit_router.py --timeout 15.0",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/post_compact_reminder.py --timeout 2.0",
+            "timeout": 2
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/UserPromptSubmit_skill_router.py --timeout 5.0",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/UserPromptSubmit/task_detector.py --timeout 5.0",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "^(Write|Edit|MultiEdit|Update)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PreToolUse_hook_protection_gate.py --timeout 5.0",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PreToolUse_file_lock.py --timeout 2.0",
+            "timeout": 2
+          }
+        ]
+      },
+      {
+        "matcher": "^(Write|Edit|MultiEdit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PreToolUse_syntax_gate.py --timeout 2.0",
+            "timeout": 2
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PreToolUse_write_router.py --timeout 8.0",
+            "timeout": 8
+          }
+        ]
+      },
+      {
+        "matcher": "^(Bash|Glob|Grep|Write|Edit|MultiEdit|Task|WebFetch|WebSearch)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/skill_enforcement_gate.py --timeout 2.0",
+            "timeout": 2
+          }
+        ]
+      },
+      {
+        "matcher": "^(Write|Edit|MultiEdit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/pretooluse_tdd_gate.py --timeout 3.0",
+            "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PreToolUse/contract_enforcer.py --timeout 5.0",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/shell_complexity_gate.py --timeout 3.0",
+            "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/unparseable_command_gate.py --timeout 2.0",
+            "timeout": 2
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/recursive_failure_detector.py --timeout 3.0",
+            "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PreToolUse_bash_router.py --timeout 5.0",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "^(Read|Glob|Grep|WebFetch)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/pre_generation_registry.py --timeout 1.0",
+            "timeout": 1
+          }
+        ]
+      },
+      {
+        "matcher": "^(Write|Edit|MultiEdit|Bash)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/path_resolution_orchestrator.py --timeout 5.0",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/semantic_file_router.py --timeout 2.0",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/evidence_tracker.py --timeout 3.0",
+            "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse/contract_tracker.py --timeout 3.0",
+            "timeout": 3
+          }
+        ]
+      },
+      {
+        "matcher": "^TaskCreate$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse/task_contract_generator.py --timeout 3.0",
+            "timeout": 3
+          }
+        ]
+      },
+      {
+        "matcher": "^(Write|Edit|MultiEdit|Update)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_file_lock.py --timeout 2.0",
+            "timeout": 2
+          }
+        ]
+      },
+      {
+        "matcher": "^(Write|Edit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_code_verification_gate.py --timeout 3.0",
+            "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_hook_protection_gate.py --timeout 5.0",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_lint_router.py --timeout 10.0",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_router.py --timeout 2.0",
+            "timeout": 2
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_system2.py --timeout 3.0",
+            "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/failure_recorder.py --timeout 3.0",
+            "timeout": 3
+          }
+        ]
+      },
+      {
+        "matcher": "^(Write|Edit|MultiEdit|Bash)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/post_tool_use_change_propagation.py --timeout 3.0",
+            "timeout": 3
+          }
+        ]
+      },
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_bash_router.py --timeout 5.0",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_outcome_validator.py --timeout 3.0",
+            "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/skills/v/hooks/PostToolUse_v_state_tracker.py --timeout 3.0",
+            "timeout": 3
+          }
+        ]
+      },
+      {
+        "matcher": "^Skill$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_v_session_marker.py --timeout 2.0",
+            "timeout": 2
+          }
+        ]
+      },
+      {
+        "matcher": "^(Write|Edit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/repositories/doc_cks_ingester.py --timeout 15.0",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "^(TaskCreate|TaskUpdate|TaskList)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_task_tracker.py --timeout 3.0",
+            "timeout": 3
+          }
+        ]
+      },
+      {
+        "matcher": "^(Read|Edit|Write|Grep|Glob|Bash)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_file_activity_tracker.py --timeout 2.0",
+            "timeout": 2
+          }
+        ]
+      },
+      {
+        "matcher": "^(Read|Grep|Glob)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_speculation_detector.py --timeout 2.0",
+            "timeout": 2
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/inherited_choice_validator.py --timeout 2.0",
+            "timeout": 2
+          }
+        ]
+      },
+      {
+        "matcher": "^(Edit|Write|MultiEdit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_write_router.py --timeout 8.0",
+            "timeout": 8
+          }
+        ]
+      },
+      {
+        "matcher": "^(Edit|Write|Bash|Read|Grep)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_falsification_assessor.py --timeout 2.0",
+            "timeout": 2
+          }
+        ]
+      },
+      {
+        "matcher": "^(Edit|Write)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/session_change_tracker.py --timeout 2.0",
+            "timeout": 2
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/auto_cks_storage.py --timeout 1.0",
+            "timeout": 1
+          }
+        ]
+      },
+      {
+        "matcher": "^(Bash|WebFetch|Read|Glob|Write|Edit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_tdd_state.py --timeout 2.0",
+            "timeout": 2
+          }
+        ]
+      },
+      {
+        "matcher": "^(Edit|Write|Bash)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_truth_validator.py --timeout 2.0",
+            "timeout": 2
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/strategy_escalation_tracker.py --timeout 2.0",
+            "timeout": 2
+          }
+        ]
+      },
+      {
+        "matcher": "^Task$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_task_router.py --timeout 5.0",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "^(Edit|Write|Bash|Task)$",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "You are a drift detector. Given this tool use: $ARGUMENTS\n\nCheck if this action aligns with the conversation's main objective. Be lenient - subtasks, exploration, and supporting work are fine. Only flag as drifted if CLEARLY off-topic.\n\nRespond with JSON: {\"decision\": \"approve\", \"reason\": \"aligned\"} or {\"decision\": \"block\", \"reason\": \"Drift: [brief explanation]\"}",
+            "timeout": 8
+          }
+        ]
+      },
+      {
+        "matcher": "^Skill$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/skill_enforcement_gate.py --timeout 1.0",
+            "timeout": 1
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/skills/v/hooks/PostToolUse_v_init.py --timeout 2.0",
+            "timeout": 2
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_next_command_suggester.py --timeout 3.0",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File .claude/hooks/voice_notifications.ps1",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/skills/v/hooks/StopHook_v_continuation.py --timeout 3.0",
+            "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/verify_claims_transcript.py --timeout 15.0",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/Stop_cks_decision_capture.py --timeout 5.0",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/speculation_gate.py --timeout 3.0",
+            "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/Stop/contract_validator.py --timeout 5.0",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/architecture_evidence_gate.py --timeout 5.0",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/StopHook_cross_validator.py --timeout 5.0",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/Stop_router.py --timeout 5.0",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/test_assumption_audit.py --timeout 10.0",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/auto_commit_hook.py --timeout 10.0",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/checkpoint/PreCompact_checkpoint_capture.py --timeout 10.0",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/SessionStart_cks_decision_load.py --timeout 2.0",
+            "timeout": 2
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/SessionStart_router.py --timeout 8.0",
+            "timeout": 8
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/SessionEnd_v_cleanup.py --timeout 2.0",
+            "timeout": 2
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "C:\\Users\\brsth\\.claude\\claude-status.exe",
+    "padding": 0
+  },
+  "enabledPlugins": {},
+  "tdd": {
+    "enforcement_mode": "enforced",
+    "level": 1,
+    "evidence_enabled": true,
+    "tiers": {
+      "TIER0": {
+        "enabled": true,
+        "action": "block",
+        "files": [
+          "**/*.py",
+          "**/*.js",
+          "**/*.ts",
+          "**/*.java",
+          "**/*.c",
+          "**/*.cpp",
+          "**/*.rs",
+          "**/*.go"
+        ],
+        "description": "Critical components - TDD mandatory"
+      },
+      "TIER1": {
+        "enabled": true,
+        "action": "block",
+        "files": [
+          "src/**",
+          "lib/**",
+          "app/**"
+        ],
+        "description": "Production code - TDD mandatory"
+      },
+      "TIER2": {
+        "enabled": true,
+        "action": "warn",
+        "files": [
+          "experimental/**",
+          "prototype/**"
+        ],
+        "description": "Experimental code - TDD advisory"
+      },
+      "TIER3": {
+        "enabled": false,
+        "files": [
+          "docs/**",
+          "tests/**",
+          "**/*.md",
+          "**/*.txt",
+          "**/*.json"
+        ],
+        "description": "Documentation and tests - No TDD enforcement"
+      }
+    },
+    "exclusions": [
+      "**/__pycache__/**",
+      "**/node_modules/**",
+      "**/.git/**",
+      "**/venv/**",
+      "**/env/**",
+      "**/build/**",
+      "**/dist/**"
+    ]
+  },
+  "session_management_system": {
+    "enabled": true,
+    "version": "2.0.0",
+    "integration_type": "comprehensive",
+    "fallback_enabled": true,
+    "primary_integration": {
+      "timeout": 10,
+      "critical": true
+    },
+    "backup_integration": {
+      "timeout": 5,
+      "critical": false
+    },
+    "storage_configuration": {
+      "session_data_directory": ".claude/session_data",
+      "archive_directory": ".claude/session_archives",
+      "current_session_file": ".claude/current_session.json",
+      "auto_cleanup": true,
+      "retention_days": 90
+    }
+  },
+  "skills": {
+    "enabled": true,
+    "autoTrigger": true,
+    "confidenceThreshold": 0.8,
+    "maxConcurrentSkills": 3,
+    "skillPaths": [
+      ".claude/skills"
+    ]
+  },
+  "pre_generation_registry": {
+    "enabled": true,
+    "max_suggestions": 5,
+    "performance_target_ms": 500,
+    "library_first_mode": "strict"
+  },
+  "cks_integration": {
+    "enabled": true,
+    "version": "1.0.0",
+    "feature_toggles": {
+      "context_injection": true,
+      "solution_storage": true,
+      "memory_search": true,
+      "session_continuity": true
+    },
+    "memory_config": {
+      "max_memories": 5,
+      "similarity_threshold": 0.7,
+      "context_length_limit": 1500,
+      "search_timeout_ms": 3000
+    },
+    "storage_config": {
+      "auto_store_tasks": true,
+      "storage_timeout_ms": 2000,
+      "async_storage": true,
+      "min_solution_length": 10
+    },
+    "error_handling": {
+      "fallback_enabled": true,
+      "graceful_degradation": true,
+      "timeout_handling": "continue",
+      "log_errors": true
+    },
+    "monitoring": {
+      "track_usage": true,
+      "performance_metrics": true,
+      "success_rates": true,
+      "log_directory": ".claude/hooks/logs/cks_integration"
+    }
+  },
+  "csf_observability": {
+    "enabled": true,
+    "version": "1.0.0",
+    "evidence_tiers": {
+      "tier_4": 0.95,
+      "tier_3": 0.85,
+      "tier_2": 0.75,
+      "tier_1": 0.5
+    },
+    "event_batching": {
+      "batch_size": 10,
+      "on_demand_flushing": true
+    },
+    "database": {
+      "path": "~/.claude/events.db",
+      "wal_mode": true
+    },
+    "collision_detection": {
+      "enabled": true,
+      "patterns": [
+        "unexecutable_goal",
+        "repeated_validation_failure",
+        "multi_article_goal_block"
+      ]
+    },
+    "hooks": {
+      "goal_anchor_obs": {
+        "type": "PostToolUse",
+        "handler": "hook_bridge.py",
+        "hook_name": "goal_anchor_obs"
+      },
+      "bloat_guard_obs": {
+        "type": "PostToolUse",
+        "handler": "hook_bridge.py",
+        "hook_name": "bloat_guard_obs"
+      },
+      "truth_validator_obs": {
+        "type": "PostToolUse",
+        "handler": "hook_bridge.py",
+        "hook_name": "truth_validator_obs"
+      }
+    }
+  }
+}

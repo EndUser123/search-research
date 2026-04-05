@@ -1,0 +1,872 @@
+{
+  "statusLine": {
+    "type": "command",
+    "command": "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -NoProfile -File P:\\.claude\\statusline\\statusline.ps1"
+  },
+  "env": {
+    "GOAL_ANCHOR_ENABLED": "true",
+    "GOAL_RESTATEMENT_ENABLED": "true",
+    "BLOAT_GUARD_ENABLED": "true",
+    "BLOAT_GUARD_EXTENDED_ENABLED": "true",
+    "AGENT_HANDOFF_VALIDATOR_ENABLED": "true",
+    "RCA_TIMEOUT_GUARD_ENABLED": "true",
+    "RCA_AGGREGATE_TIMEOUT": "60",
+    "RCA_PER_AGENT_TIMEOUT": "20",
+    "SUCCESS_VALIDATOR_ENABLED": "true",
+    "TRUTH_VALIDATOR_ENABLED": "true",
+    "ANTI_DECEPTION_ARCHITECTURE": "v2.3_constitution_primary",
+    "MONITORING_ENABLED": "true",
+    "ANTI_SYCOPHANCY_ENABLED": "true",
+    "RESPONSE_QUALITY_GATE_ENABLED": "true",
+    "RQG_SYCOPHANCY": "true",
+    "RQG_EXCUSE_PATTERNS": "true",
+    "TDD_CHECK_ENABLED": "true",
+    "DIAGNOSTIC_CLAIM_CHECK": "true",
+    "HEDGING_CHECK": "true",
+    "FIX_CLAIM_CHECK": "true",
+    "FAILURE_ACK_CHECK": "true",
+    "FILE_STATE_CHECK": "true",
+    "SLASH_COMMAND_REMINDER": "true",
+    "COMMAND_DIRECTIVE_INJECTOR_ENABLED": "true",
+    "COMMAND_EXECUTION_VALIDATOR_ENABLED": "true",
+    "CSF_OBSERVABILITY_ENABLED": "true",
+    "CSF_SESSIONID": "auto-generated",
+    "CKS_INTEGRATION_ENABLED": "true",
+    "CKS_HOOK_TIMEOUT_MS": "3000",
+    "CKS_MAX_MEMORIES": "5",
+    "CKS_SIMILARITY_THRESHOLD": "0.4",
+    "CKS_CONTEXT_LENGTH_LIMIT": "1500",
+    "STRATEGY_ESCALATION_ENABLED": "true",
+    "CONSTITUTIONAL_ENFORCER_ENABLED": "true",
+    "ENFORCER_EVIDENCE": "true",
+    "TOOL_SEQUENCE_TRACKER_ENABLED": "true",
+    "ENFORCER_FORBIDDEN": "true",
+    "ENFORCER_TRUTH": "true",
+    "ENFORCER_SUCCESS": "true",
+    "DUPLICATE_PREVENTION_ENABLED": "true",
+    "INHERITED_CHOICE_VALIDATOR_ENABLED": "true",
+    "SESSION_REVERSION_CHECK_ENABLED": "true",
+    "SESSION_CHANGE_TRACKING_ENABLED": "true",
+    "CC_DIAGNOSTICS_ENABLED": "true",
+    "CC_DIAGNOSTICS_DIR": "P:/.claude/hooks/logs/diagnostics",
+    "CHANGE_VERIFICATION_ENABLED": "false",
+    "EMPIRICAL_CLAIMS_GATE_ENABLED": "true",
+    "SAFETY_ROUTER_ENABLED": "true",
+    "FALSIFICATION_INJECTOR_ENABLED": "true",
+    "FALSIFICATION_GATE_ENABLED": "true",
+    "FALSIFICATION_ASSESSOR_ENABLED": "true",
+    "SUBAGENT_ENFORCER_ENABLED": "true",
+    "CSF_INVESTIGATION_GATE": "true",
+    "CSF_FAILURE_ESCALATION": "true",
+    "CSF_CONCERN_DETECTION": "true",
+    "CSF_CHANGE_PROPAGATION": "true",
+    "CSF_SUCCESS_VALIDATOR": "true",
+    "CSF_SUCCESS_VALIDATOR_MODE": "warn",
+    "CSF_STATE_DIR": "P:/.claude/state"
+  },
+  "includeCoAuthoredBy": true,
+  "permissions": {
+    "allow": [
+      "Bash",
+      "mcp__ruv-swarm",
+      "mcp__claude-flow@alpha",
+      "mcp__flow-nexus",
+      "Skill"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(del /f /q C:\\*)",
+      "Bash(sudo rm -rf /*)",
+      "Bash(dd if=/dev/zero of=/dev/sda)",
+      "Bash(format c:)",
+      "Bash(shutdown /s /t 0)",
+      "Bash(reboot)",
+      "Bash(chmod -R 777 /)",
+      "Bash(curl | bash)",
+      "Bash(wget | bash)",
+      "Write(../*)",
+      "Write(./../**)",
+      "Write(P:/*)",
+      "Edit(../*)",
+      "Edit(./../**)",
+      "Edit(P:/*)",
+      "Write(/root/**)",
+      "Write(/etc/**)",
+      "Write(/usr/bin/**)",
+      "Write(C:/Windows/**)",
+      "Write(C:/Program Files/**)"
+    ]
+  },
+  "tdd": {
+    "enforcement_mode": "enforced",
+    "level": 1,
+    "evidence_enabled": true,
+    "tiers": {
+      "TIER0": {
+        "enabled": true,
+        "action": "block",
+        "files": [
+          "**/*.py",
+          "**/*.js",
+          "**/*.ts",
+          "**/*.java",
+          "**/*.c",
+          "**/*.cpp",
+          "**/*.rs",
+          "**/*.go"
+        ],
+        "description": "Critical components - TDD mandatory"
+      },
+      "TIER1": {
+        "enabled": true,
+        "action": "block",
+        "files": [
+          "src/**",
+          "lib/**",
+          "app/**"
+        ],
+        "description": "Production code - TDD mandatory"
+      },
+      "TIER2": {
+        "enabled": true,
+        "action": "warn",
+        "files": [
+          "experimental/**",
+          "prototype/**"
+        ],
+        "description": "Experimental code - TDD advisory"
+      },
+      "TIER3": {
+        "enabled": false,
+        "files": [
+          "docs/**",
+          "tests/**",
+          "**/*.md",
+          "**/*.txt",
+          "**/*.json"
+        ],
+        "description": "Documentation and tests - No TDD enforcement"
+      }
+    },
+    "exclusions": [
+      "**/__pycache__/**",
+      "**/node_modules/**",
+      "**/.git/**",
+      "**/venv/**",
+      "**/env/**",
+      "**/build/**",
+      "**/dist/**"
+    ]
+  },
+  "enabledMcpjsonServers": [],
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/UserPromptSubmit_router.py",
+            "timeout": 10,
+            "layer": "0_router",
+            "critical": true,
+            "description": "Consolidated router v1.0: tdd_eval, concern_detection, unified_injector, subagent_enforcer, doc_staleness, periodic_reminder, retrospective, authority_check, skill_enforcement. Replaces 18 subprocess spawns with 1."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "^(Write|Edit|MultiEdit|Skill)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/PreToolUse_tdd_blocker.py",
+            "timeout": 3,
+            "layer": "0_tdd_blocker",
+            "critical": true,
+            "description": "Layer 0: TDD Blocker - enforce test-first + skill activation"
+          }
+        ]
+      },
+      {
+        "matcher": "^(Write|Edit|MultiEdit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/PreToolUse_write_router.py",
+            "timeout": 8,
+            "layer": "0_write_router",
+            "critical": true,
+            "description": "Consolidated router v1.0: investigation_gate, session_reversion_check, vague_directive_gate, inherited_choice_validator, exec_orchestrator"
+          }
+        ]
+      },
+      {
+        "matcher": "^(Bash|Glob|Grep|Write|Edit|MultiEdit|Task|WebFetch|WebSearch)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/skill_enforcement_gate.py",
+            "timeout": 2,
+            "layer": "0_skill_enforcement_block",
+            "critical": true,
+            "description": "Block non-Skill tools when slash command pending"
+          }
+        ]
+      },
+      {
+        "matcher": "^(Edit|Write|Bash)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/PreToolUse_falsification_gate.py",
+            "timeout": 2,
+            "layer": "1_falsification_gate",
+            "critical": false,
+            "description": "Falsification gate - verify assumptions before risky operations"
+          }
+        ]
+      },
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/PreToolUse_bash_router.py",
+            "timeout": 5,
+            "layer": "1_bash_router",
+            "critical": true,
+            "description": "Consolidated router v1.0: explore_gate, background_guard, anti_bleed_gate"
+          }
+        ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/subagent_constitution_injector.py",
+            "timeout": 2,
+            "layer": "2_subagent_constitution",
+            "critical": true,
+            "description": "Inject anti-sycophancy constitution into subagent prompts"
+          }
+        ]
+      },
+      {
+        "matcher": "^(Read|Glob|Grep|WebFetch)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/pre_generation_registry.py",
+            "timeout": 1,
+            "layer": "2a_registry_context",
+            "critical": false,
+            "description": "Library-First registry suggestions"
+          }
+        ]
+      },
+      {
+        "matcher": "^(Write|Edit|MultiEdit|Bash)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/path_resolution_orchestrator.py",
+            "timeout": 5,
+            "layer": "2_path_resolution",
+            "critical": true,
+            "description": "SERIAL path resolution (plan_redirector -> deny_root_write)"
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/semantic_file_router.py",
+            "timeout": 2,
+            "layer": "2c_semantic_routing",
+            "critical": false,
+            "description": "Advisory semantic routing (TSK vs /reports)"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(Write|Edit|MultiEdit|NotebookEdit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/PostToolUse_artifact_tracker.py",
+            "timeout": 2,
+            "layer": "0_artifact_file_tracker",
+            "critical": false,
+            "description": "Track file changes for artifact tracking"
+          }
+        ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/PostToolUse_all_router.py",
+            "timeout": 8,
+            "layer": "0_all_router",
+            "critical": true,
+            "description": "Consolidated router v1.0: failure_escalation, poka_yoke, tool_sequence_tracker, plan_file_relocator. Disables: cc_tool_diagnostic"
+          }
+        ]
+      },
+      {
+        "matcher": "^(Write|Edit|MultiEdit|Bash)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/post_tool_use_change_propagation.py",
+            "timeout": 3,
+            "layer": "0_change_propagation",
+            "critical": false,
+            "description": "Change Propagation - enforce cache clear after structural changes"
+          }
+        ]
+      },
+      {
+        "matcher": "^(TodoWrite|Skill)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/PostToolUse_artifact_taskmaster_sync.py",
+            "timeout": 3,
+            "layer": "0_artifact_taskmaster_sync",
+            "critical": false,
+            "description": "Sync artifact tracking from TaskMaster completions"
+          }
+        ]
+      },
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/PostToolUse_bash_router.py",
+            "timeout": 5,
+            "layer": "0_bash_router",
+            "critical": false,
+            "description": "Consolidated router v1.0: error_attribution_validator, anti_bleed_suggest"
+          }
+        ]
+      },
+      {
+        "matcher": "^(Read|Edit|Write|Grep|Glob|Bash)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/PostToolUse_file_activity_tracker.py",
+            "timeout": 2,
+            "layer": "0_file_tracking",
+            "critical": false,
+            "description": "Track file operations for session-based scoping"
+          }
+        ]
+      },
+      {
+        "matcher": "^(Read|Grep|Glob)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/inherited_choice_validator.py",
+            "timeout": 2,
+            "layer": "1_inherited_choice_read",
+            "critical": false,
+            "description": "Detect versioned patterns in read content"
+          }
+        ]
+      },
+      {
+        "matcher": "^(Edit|Write|MultiEdit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/PostToolUse_write_router.py",
+            "timeout": 8,
+            "layer": "1_write_router",
+            "critical": true,
+            "description": "Consolidated router v1.0: change_verification, file_modification_hint, fix_validator, fix_quality"
+          }
+        ]
+      },
+      {
+        "matcher": "^(Edit|Write|Bash|Read|Grep)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/PostToolUse_falsification_assessor.py",
+            "timeout": 2,
+            "layer": "1_falsification_assessment",
+            "critical": false,
+            "description": "Falsification assessment + post-action verification reminders"
+          }
+        ]
+      },
+      {
+        "matcher": "^(Edit|Write|Task)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/session_change_tracker.py",
+            "timeout": 2,
+            "layer": "0_session_tracking",
+            "critical": false,
+            "description": "Track session changes for reversion detection"
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/auto_cks_storage.py",
+            "timeout": 1,
+            "layer": "4_auto_cks_accumulate",
+            "critical": false,
+            "description": "Automatic CKS accumulation for significant work"
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/sapling_checkpoint.py",
+            "timeout": 10,
+            "layer": "1_sapling_checkpoint",
+            "critical": false,
+            "description": "Auto checkpoint commits after file edits"
+          }
+        ]
+      },
+      {
+        "matcher": "^(Bash|WebFetch|Read|Glob|Write|Edit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/PostToolUse_tdd_state.py",
+            "timeout": 2,
+            "layer": "2c_tdd_state_post",
+            "critical": false,
+            "description": "TDD state transitions on test results"
+          }
+        ]
+      },
+      {
+        "matcher": "^(Edit|Write|Bash)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/UserPromptSubmit_truth_validator.py",
+            "timeout": 5,
+            "layer": "3a_truth_validation",
+            "critical": false,
+            "description": "Minimal high-signal validation v2.3"
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/strategy_escalation_tracker.py",
+            "timeout": 2,
+            "layer": "3b_strategy_escalation",
+            "critical": false,
+            "description": "Strategy escalation - prevent perseveration"
+          }
+        ]
+      },
+      {
+        "matcher": "^Task$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/PostToolUse_task_router.py",
+            "timeout": 5,
+            "layer": "3_task_router",
+            "critical": false,
+            "description": "Consolidated router v1.0: bloat_guard_extended, agent_handoff_validator, cks_storage"
+          }
+        ]
+      },
+      {
+        "matcher": "^(Edit|Write|Bash|Task)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/PostToolUse_drift_detector.py",
+            "timeout": 15,
+            "layer": "4_drift_detector",
+            "critical": false,
+            "description": "Drift detector - check agent alignment with original goal"
+          }
+        ]
+      },
+      {
+        "matcher": "^Skill$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/skill_enforcement_gate.py",
+            "timeout": 1,
+            "layer": "0_skill_enforcement_clear",
+            "critical": false,
+            "description": "Clear pending skill state after Skill tool used"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File P:/.claude/hooks/voice_notifications.ps1",
+            "timeout": 3,
+            "layer": "notification_voice",
+            "critical": false,
+            "description": "Voice notifications for task completion"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/Stop_router.py",
+            "timeout": 10,
+            "layer": "0_stop_router",
+            "critical": true,
+            "description": "Consolidated router v1.0: artifact_gate, success_validator, empirical_claims_gate, constitutional_enforcer, command_execution_validator, inherited_choice_validator, conversation_storage"
+          }
+        ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/projects/ralph-wiggum-python/hooks/stop-hook.py",
+            "timeout": 5,
+            "layer": "6_ralph_loop",
+            "critical": false,
+            "description": "Ralph Wiggum loop - self-referential iteration"
+          }
+        ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/auto_commit_hook.py",
+            "timeout": 30,
+            "layer": "7_auto_commit",
+            "critical": false,
+            "description": "Auto-commit and push uncommitted changes on session end"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/on_precompact.py",
+            "timeout": 10,
+            "critical": false,
+            "description": "CKS hyper-graph capture before compaction (progress, blockers, next steps, files)"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/SessionStart_router.py",
+            "timeout": 15,
+            "layer": "0_session_router",
+            "critical": false,
+            "description": "Consolidated router v1.0: capture_settings, cks_restore, session_restore"
+          }
+        ]
+      }
+    ]
+  },
+  "hook_architecture_v2": {
+    "version": "2.6.0",
+    "design_philosophy": {
+      "core": "Structural enforcement beats instruction injection. Blocking bad actions beats convincing against them.",
+      "decision_framework": {
+        "PreToolUse_block": "When action is programmatically detectable BEFORE execution (e.g., wrong path, missing skill invocation)",
+        "Stop_block": "When violation is detectable in output AFTER generation (e.g., success claim without execution)",
+        "Constitutional_text": "When judgment/context required, not programmatically determinable",
+        "Prompt_injection": "Advisory only - reminders of existing capability, easily ignored"
+      },
+      "history": "v1 (2024) used 500+ token injection per prompt. v2 (2025) shifted to blocking hooks after finding injection easily ignored. Phrase 'constitution_primary_hook_minimal' retired Jan 2026 - was causing confusion about whether hooks were discouraged (they're not)."
+    },
+    "design_principles": [
+      "Minimal injection, maximal validation",
+      "Goal anchoring not context flooding",
+      "Conditional activation for bloat guard",
+      "Post-generation truth checking",
+      "Structural enforcement over instruction injection",
+      "Sequential agent chains with structured handoff",
+      "Command directive injection over advisory reminders"
+    ],
+    "token_budget": {
+      "command_directive": 200,
+      "command_directive_breakdown": "150 directive + 50 anti-pattern warnings",
+      "goal_anchor": 130,
+      "goal_anchor_breakdown": "80 solo-dev context + 50 goal anchor",
+      "cks_injection": 150,
+      "cks_injection_breakdown": "memories + worktree guidance",
+      "bloat_guard_when_active": 100,
+      "total_default": 480,
+      "total_code_gen": 580,
+      "total_with_command": 680
+    },
+    "layers": {
+      "0_subagent_enforcer": {
+        "purpose": "Enforce subagent-first execution for substantive tasks (PART H)",
+        "strategy": "Detect complexity indicators, inject execution mode directive",
+        "always_active": true,
+        "tokens": 15,
+        "version": "1.0.0",
+        "rationale": "CLAUDE.md PART H competes with training priors; structural enforcement needed"
+      },
+      "0_command_directive": {
+        "purpose": "Inject actual command directive content, not just reminder",
+        "strategy": "Read command file, extract EXECUTION DIRECTIVE, inject as critical context",
+        "always_active": true,
+        "tokens": 200,
+        "replaces": "UserPromptSubmit_command_reminder.py (advisory-only)",
+        "version": "1.0.0"
+      },
+      "1_goal_anchor": {
+        "purpose": "Anti-goal displacement + solo-dev terminology prevention",
+        "strategy": "Inject solo-dev context + Extract goal, sandwich at top+bottom",
+        "always_active": true,
+        "tokens": 130
+      },
+      "1a_bloat_guard": {
+        "purpose": "Solo-dev compliance",
+        "strategy": "Detect code gen patterns, inject constraints",
+        "always_active": false,
+        "activation_rate": "~5% of prompts",
+        "tokens": 100
+      },
+      "1_rca_timeout_pre": {
+        "purpose": "Aggregate timeout enforcement for RCA chains",
+        "strategy": "Track cumulative time, block if exceeded",
+        "always_active": true,
+        "tokens": 0
+      },
+      "3_rca_timeout_post": {
+        "purpose": "Record agent completion time",
+        "strategy": "Cumulative tracking, warn on slow agents",
+        "always_active": true,
+        "tokens": 0
+      },
+      "3a_bloat_extended": {
+        "purpose": "Catch enterprise patterns from subagent output",
+        "strategy": "Pattern match on Task output, block/warn on bloat",
+        "always_active": true,
+        "tokens": 0
+      },
+      "3b_handoff_validation": {
+        "purpose": "Enforce structured agent-to-agent communication",
+        "strategy": "Extract/validate handoff schema, check goal alignment",
+        "always_active": true,
+        "tokens": 0
+      },
+      "3a_truth_validation": {
+        "purpose": "Catch escapes from constitution",
+        "strategy": "High-precision detection only, constitution is primary defense",
+        "always_active": true,
+        "tokens": 0,
+        "version": "2.3.0",
+        "capabilities": [
+          "critical_lazy_claims (context-aware)",
+          "excuse_patterns",
+          "sycophancy"
+        ]
+      },
+      "4_command_execution": {
+        "purpose": "Validate slash command was executed, not described",
+        "strategy": "Check for description patterns, verify execution evidence, block violations",
+        "always_active": true,
+        "tokens": 0,
+        "version": "1.0.0",
+        "capabilities": [
+          "description_pattern_detection",
+          "do_not_rule_validation",
+          "command_specific_rules",
+          "execution_evidence_check"
+        ]
+      },
+      "4a_execution_evidence": {
+        "purpose": "STRUCTURAL enforcement for success claims (PART L)",
+        "strategy": "Block success signals unless Bash execution occurred after last Write/Edit",
+        "always_active": true,
+        "tokens": 0,
+        "version": "1.0.0",
+        "design": "structural_enforcement_over_semantic_detection",
+        "capabilities": [
+          "tool_sequence_tracking",
+          "execution_vs_readonly_distinction",
+          "scope_claim_detection",
+          "success_signal_detection"
+        ],
+        "rationale": "Structural check (did you execute?) is deterministic. Semantic check (did you claim success?) is brittle regex. This catches ALL phrasings by checking behavior, not words."
+      }
+    },
+    "migration_from_v1": {
+      "archived": [
+        "user_prompt_submit.py (500+ token injection)",
+        "constitutional_preprocessor.py",
+        "adaptive_task_enforcement.py",
+        "post_tool_use.py (4000-line quality gates - no evidence of value)"
+      ],
+      "preserved": [
+        "PreToolUse_deny_root_write.py (path protection)",
+        "PreToolUse_safety_gate.py (TDD enforcement)",
+        "UserPromptSubmit_truth_validator.py (excuse pattern detection)"
+      ],
+      "archive_location": "P:/.claude/hooks/_archive_v1"
+    },
+    "migration_v24_to_v25": {
+      "date": "2025-12-22",
+      "reason": "Fix slash command execution bypass - commands being described instead of executed",
+      "changes": [
+        "UserPromptSubmit_command_reminder.py \u2192 UserPromptSubmit_command_directive_injector.py (inject directive, not reminder)",
+        "Added command_execution_validator.py (Stop hook to block description-instead-of-execution)"
+      ],
+      "root_cause": "Advisory text injection easily ignored; no post-generation validation of command compliance",
+      "fix_strategy": "Pre-gen: inject actual directive content. Post-gen: validate execution evidence, block descriptions."
+    }
+  },
+  "session_management_system": {
+    "enabled": true,
+    "version": "2.0.0",
+    "integration_type": "comprehensive",
+    "fallback_enabled": true,
+    "primary_integration": {
+      "timeout": 10,
+      "critical": true
+    },
+    "backup_integration": {
+      "timeout": 5,
+      "critical": false
+    },
+    "storage_configuration": {
+      "session_data_directory": "P:/.claude/session_data",
+      "archive_directory": "P:/.claude/session_archives",
+      "current_session_file": "P:/.claude/current_session.json",
+      "auto_cleanup": true,
+      "retention_days": 90
+    }
+  },
+  "skills": {
+    "enabled": true,
+    "autoTrigger": true,
+    "confidenceThreshold": 0.8,
+    "maxConcurrentSkills": 3,
+    "skillPaths": [
+      "P:/.claude/skills",
+      ".claude/skills"
+    ]
+  },
+  "pre_generation_registry": {
+    "enabled": true,
+    "max_suggestions": 5,
+    "performance_target_ms": 500,
+    "library_first_mode": "strict"
+  },
+  "cks_integration": {
+    "enabled": true,
+    "version": "1.0.0",
+    "feature_toggles": {
+      "context_injection": true,
+      "solution_storage": true,
+      "memory_search": true,
+      "session_continuity": true
+    },
+    "memory_config": {
+      "max_memories": 5,
+      "similarity_threshold": 0.7,
+      "context_length_limit": 1500,
+      "search_timeout_ms": 3000
+    },
+    "storage_config": {
+      "auto_store_tasks": true,
+      "storage_timeout_ms": 2000,
+      "async_storage": true,
+      "min_solution_length": 10
+    },
+    "error_handling": {
+      "fallback_enabled": true,
+      "graceful_degradation": true,
+      "timeout_handling": "continue",
+      "log_errors": true
+    },
+    "monitoring": {
+      "track_usage": true,
+      "performance_metrics": true,
+      "success_rates": true,
+      "log_directory": "P:/.claude/hooks/logs/cks_integration"
+    }
+  },
+  "csf_observability": {
+    "enabled": true,
+    "version": "1.0.0",
+    "evidence_tiers": {
+      "tier_4": 0.95,
+      "tier_3": 0.85,
+      "tier_2": 0.75,
+      "tier_1": 0.5
+    },
+    "event_batching": {
+      "batch_size": 10,
+      "on_demand_flushing": true
+    },
+    "database": {
+      "path": "~/.claude/events.db",
+      "wal_mode": true
+    },
+    "collision_detection": {
+      "enabled": true,
+      "patterns": [
+        "unexecutable_goal",
+        "repeated_validation_failure",
+        "multi_article_goal_block"
+      ]
+    },
+    "hooks": {
+      "goal_anchor_obs": {
+        "type": "PostToolUse",
+        "handler": "hook_bridge.py",
+        "hook_name": "goal_anchor_obs",
+        "description": "Goal anchoring with observability"
+      },
+      "bloat_guard_obs": {
+        "type": "PostToolUse",
+        "handler": "hook_bridge.py",
+        "hook_name": "bloat_guard_obs",
+        "description": "Bloat guard with observability"
+      },
+      "truth_validator_obs": {
+        "type": "PostToolUse",
+        "handler": "hook_bridge.py",
+        "hook_name": "truth_validator_obs",
+        "description": "Truth validation with observability"
+      }
+    }
+  },
+  "ERROR_ATTRIBUTION_ENABLED": "true",
+  "_gear_test": "trigger",
+  "_test_gear": "modified"
+}

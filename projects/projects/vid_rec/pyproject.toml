@@ -1,0 +1,116 @@
+# --- METADATA ---
+# Filename: pyproject.toml
+# Version: 1.1
+#
+# --- CHANGELOG ---
+# v1.1: Removed unused SQLAlchemy dependency.
+# v1.0: Initial project setup.
+# ------------------
+[project]
+name = "vid-rec"
+version = "1.0.0"
+description = "A command-line tool for batch processing and re-encoding video files with subtitle generation."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+    { name = "Your Name", email = "you@example.com" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+# This 'dependencies' key is inside the [project] table and is a valid array.
+dependencies = [
+    "ffmpeg-python",
+    "tomlkit",
+    "tqdm",
+    "pywin32; sys_platform == 'win32'",
+    "torch",
+    "torchaudio",
+    "pydantic",
+    "pydantic-settings",
+    "ffmpeg-normalize",
+    "colorama",
+    "rich>=13.0.0",
+    "ffmpeg-quality-metrics",
+    "faster-whisper",
+    "ctranslate2",
+    "structlog",
+    "pynput",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "black",
+    "mypy",
+    "pytest",
+    "pyyaml", # For config presets in a later phase
+    "pytest-asyncio",
+    "pytest-cov",
+    "pytest-xdist",
+    "pytest-mock",
+    "pytest-randomly",
+    "pytest-benchmark",
+    "pytest-rerunfailures",
+    "hypothesis",
+    "factory-boy",
+    "faker",
+    "freezegun",
+    "testcontainers",
+    "jsonschema",
+    "mutmut",
+    "bandit",
+    "pyright",
+    "sentence-transformers", # LLM semantic similarity testing
+    "scikit-learn", # Test redundancy detection, bias metrics
+    "numpy", # Metamorphic testing, similarity calculations
+    "pytest-docker", # Declarative test environments
+
+]
+
+reports = [
+    "rich>=13.0.0",
+    "radon>=5.0.0",
+    "pytest>=7.0.0",
+    "pytest-json-report>=1.5.0",
+    "import-linter>=1.10.0",
+]
+
+[tool.pytest.ini_options]
+addopts = ["-ra", "--strict-markers", "--cov=src", "--cov-branch",
+          "--cov-fail-under=90", "--randomly-seed=42", "-n=auto", "-q"]
+markers = ["smoke: critical path", "unit: fast isolated", "integration: workflow",
+          "security: validation", "performance: regression", "flaky: unstable",
+          "slow: >100ms execution", "metamorphic: oracle-less testing",
+          "llm: AI system validation", "mutation: quality gate"]
+asyncio_mode = "auto"
+
+[tool.mutmut]
+paths_to_mutate = "src/"
+runner = "pytest -x"
+
+[tool.black]
+line-length = 88
+target-version = 'py39'
+
+[tool.ruff.lint]
+# Define which rule sets to use. A good starting point:
+select = [
+    "E",    # pycodestyle errors
+    "E501", # line too long (explicit)
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort (import sorting)
+    "UP",   # pyupgrade
+]
+# Disable line length reporting (E501)
+ignore = ["E501"]
+
+[project.scripts]
+_cb = "LLMContextForge.src.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

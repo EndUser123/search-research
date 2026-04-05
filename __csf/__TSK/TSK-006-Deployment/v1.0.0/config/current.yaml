@@ -1,0 +1,251 @@
+# TSK-006 Persistent Learning Agent Ecosystem - Production Environment Configuration
+
+# Environment Settings
+environment:
+  name: "production"
+  debug: false
+  log_level: "WARNING"
+
+# System Configuration
+system:
+  environment: "production"
+  debug: false
+  log_level: "WARNING"
+
+# Agent Factory Configuration
+agent_factory:
+  roles_directory: "/etc/tsk-006/roles"
+  enable_cks_integration: true
+  enable_performance_tracking: true
+  max_concurrent_agents: 50
+  session_timeout: 7200  # 2 hours
+  cleanup_interval: 600  # 10 minutes
+
+# Performance Router Configuration
+performance_router:
+  database_path: "/var/lib/tsk-006/routing_performance.db"
+  learning_rate: 0.1     # Conservative learning rate
+  min_samples_for_routing: 10
+  routing_strategy: "performance_based"
+  max_history_days: 90
+
+# Critic System Configuration
+critic_system:
+  evaluation_criteria:
+    completeness: 0.25
+    accuracy: 0.25
+    best_practices: 0.20
+    efficiency: 0.15
+    maintainability: 0.15
+  feedback_threshold: 0.8   # Higher threshold for production
+  enable_learning: true
+  cache_size: 1000
+
+# CKS Integration Configuration
+cks_integration:
+  enabled: true
+  endpoint: "${PROD_CKS_ENDPOINT}"
+  api_key: "${PROD_CKS_API_KEY}"
+  timeout: 45
+  retry_attempts: 5
+  cache_ttl: 7200  # 2 hours cache for production
+
+# Database Configuration
+database:
+  type: "postgresql"
+  sqlite:
+    path: "/var/lib/tsk-006/agent_ecosystem.db"
+    connection_pool_size: 10
+  postgresql:
+    host: "${PROD_DB_HOST}"
+    port: "${PROD_DB_PORT:5432}"
+    database: "tsk006"
+    username: "${PROD_DB_USER}"
+    password: "${PROD_DB_PASSWORD}"
+    connection_pool_size: 20
+    max_overflow: 30
+    ssl_mode: "require"
+    ssl_cert: "/etc/ssl/certs/postgresql.crt"
+    ssl_key: "/etc/ssl/private/postgresql.key"
+
+# Performance Configuration
+performance:
+  enable_caching: true
+  cache_size: 1000
+  cache_ttl: 7200  # 2 hours
+  enable_connection_pooling: true
+  max_connections: 100
+  memory_limit_mb: 4096  # 4GB
+
+# Security Configuration
+security:
+  enable_authentication: true
+  api_key_required: true
+  allowed_origins: ["https://yourdomain.com", "https://internal.yourdomain.com"]
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 100
+  jwt:
+    enabled: true
+    secret_key: "${JWT_SECRET_KEY}"
+    algorithm: "HS256"
+    expire_minutes: 60
+  encryption:
+    at_rest: true
+    in_transit: true
+    algorithm: "AES-256-GCM"
+
+# Logging Configuration
+logging:
+  level: "WARNING"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "/var/log/tsk-006/agent_ecosystem.log"
+  max_size_mb: 200
+  backup_count: 10
+  console_output: false
+  structured_logging: true
+  log_aggregation:
+    enabled: true
+    endpoint: "${LOG_AGGREGATION_ENDPOINT}"
+    index_prefix: "tsk-006"
+
+# Monitoring Configuration
+monitoring:
+  enable_metrics: true
+  metrics_port: 9090
+  health_check_interval: 30
+  enable_performance_profiling: false
+  prometheus:
+    enabled: true
+    push_gateway: "${PROMETHEUS_PUSH_GATEWAY}"
+    job_name: "tsk-006-agent-ecosystem"
+  grafana:
+    enabled: true
+    dashboard_url: "${GRAFANA_DASHBOARD_URL}"
+  alerting:
+    enabled: true
+    webhook_url: "${ALERT_WEBHOOK_URL}"
+
+# Production-specific Settings
+production:
+  high_availability: true
+  load_balancing: true
+  auto_scaling: false
+  disaster_recovery: true
+
+# High Availability Configuration
+high_availability:
+  enabled: true
+  replicas: 3
+  load_balancer:
+    algorithm: "round_robin"
+    health_check:
+      path: "/health"
+      interval: 30
+      timeout: 10
+      retries: 3
+  session_affinity: false
+
+# External Service Integration
+external_services:
+  cks_integration:
+    endpoint: "${PROD_CKS_ENDPOINT}"
+    timeout: 45
+    retry_attempts: 5
+    circuit_breaker:
+      enabled: true
+      failure_threshold: 5
+      timeout: 60
+  monitoring:
+    prometheus:
+      enabled: true
+      endpoint: "${PROMETHEUS_ENDPOINT}"
+      scrape_interval: 30
+  logging:
+    elk_stack:
+      enabled: true
+      endpoint: "${ELK_ENDPOINT}"
+      index_pattern: "tsk-006-%Y.%m.%d"
+  alerting:
+    pagerduty:
+      enabled: true
+      integration_key: "${PAGERDUTY_INTEGRATION_KEY}"
+    slack:
+      enabled: true
+      webhook_url: "${SLACK_WEBHOOK_URL}"
+
+# Security Hardening
+security_hardening:
+  input_validation: true
+  sql_injection_protection: true
+  xss_protection: true
+  csrf_protection: true
+  secure_headers: true
+  rate_limiting: true
+  ip_whitelist: []
+  ip_blacklist: []
+
+# Backup Configuration
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention_days: 30
+  backup_location: "${BACKUP_STORAGE_LOCATION}"
+  encryption: true
+  compression: true
+
+# Feature Flags
+features:
+  experimental_routing: false
+  advanced_analytics: false
+  beta_features: false
+  debug_endpoints: false
+  maintenance_mode: false
+
+# Disaster Recovery
+disaster_recovery:
+  enabled: true
+  backup_location: "${DR_BACKUP_LOCATION}"
+  recovery_time_objective: 3600  # 1 hour
+  recovery_point_objective: 3600  # 1 hour
+  failover: true
+  geo_redundancy: false
+
+# Resource Limits
+resource_limits:
+  cpu_limit: "2000m"
+  memory_limit: "4Gi"
+  cpu_request: "1000m"
+  memory_request: "2Gi"
+  disk_limit: "100Gi"
+
+# Deployment Settings
+deployment:
+  strategy: "rolling"
+  max_unavailable: 1
+  max_surge: 1
+  health_check_grace_period: 120
+  readiness_probe:
+    path: "/ready"
+    port: 8080
+    initial_delay: 60
+    period: 10
+    timeout: 5
+    failure_threshold: 3
+    success_threshold: 1
+  liveness_probe:
+    path: "/health"
+    port: 8080
+    initial_delay: 120
+    period: 30
+    timeout: 10
+    failure_threshold: 3
+    success_threshold: 1
+
+# Compliance and Auditing
+compliance:
+  audit_logging: true
+  data_retention_days: 365
+  gdpr_compliance: true
+  soc2_compliance: true
+  iso27001_compliance: true

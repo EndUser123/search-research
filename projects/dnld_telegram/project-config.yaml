@@ -1,0 +1,27 @@
+project:
+  name: "dnld_telegram"
+  type: "appfolder"
+  version: "0.1.0"
+  description: "Telegram Downloader application for the BMAD framework."
+
+  # SYSTEM STRUCTURE for this appfolder
+  structure:
+    docs: "docs/"
+    src: "src/"
+    tests: "tests/"
+    scripts: "scripts/"
+    src_core: "src/core/"
+    src_ui: "src/ui/"
+    src_utils: "src/utils/"
+    src_telegram: "src/telegram/"
+    src_download: "src/download/"
+    src_download_config: "src/download/config/"
+    src_download_plugins: "src/download/plugins/"
+    src_download_ui: "src/download/ui/"
+    src_download_ui_display_wrappers: "src/download/ui/display_wrappers/"
+    tests_download: "tests/download/"
+
+  # DOCUMENTATION LINKS for this appfolder
+  documentation_links:
+    readme: "docs/README.md"
+    # Add other relevant documentation links here as they are identified or created

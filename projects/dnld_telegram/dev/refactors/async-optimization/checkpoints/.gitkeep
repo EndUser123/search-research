@@ -1,0 +1,4 @@
+# Checkpoint Directory
+This directory stores coordination checkpoints for parallel LLM execution.
+
+Checkpoint files are created during task completion to signal readiness for dependent tasks.

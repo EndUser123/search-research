@@ -1,0 +1,88 @@
+# Review Bundle: /artifact-done Skill
+**Generated**: 2026-03-26T19:30:00Z
+**Scope**: P:/.claude/skills/artifact-done/
+**File Count**: 1 file (SKILL.md only)
+**Execution Mode**: single-agent
+
+---
+
+## 1. PROJECT CONTEXT
+
+### Bundle Metadata
+- **Skill Name**: artifact-done
+- **Description**: Mark an artifact as complete for a tracked item - PRD, ARD, CHANGELOG, README
+- **Category**: tracking
+- **Trigger**: /artifact-done, "mark artifact done", "complete documentation"
+- **Aliases**: /artifact-done, /artifacts-done, /mark-done
+
+### Domain & Purpose
+Marks an artifact as complete for a tracked item - PRD, ARD, CHANGELOG, README.
+
+### Environment
+- **OS**: Windows 11 Pro
+- **Shell**: Bash
+- **Primary Language**: Markdown + Python
+- **Key Integration**: artifact-add, artifact-audit, /comply, /build
+
+---
+
+## 2. EXECUTION DIRECTIVE
+
+```bash
+python P:/.claude/skills/artifact-done/resources/scripts/artifact_done.py --project-root P:/ TSK-001 changelog
+```
+
+---
+
+## 3. ARTIFACT TYPES
+
+| Type | File Patterns |
+|------|---------------|
+| changelog | CHANGELOG.md, changelog.md, HISTORY.md |
+| prd | PRD.md, prd.md, docs/PRD.md |
+| ard | ARD.md, ard.md, docs/ARD.md, docs/architecture.md |
+| readme | README.md, readme.md |
+
+---
+
+## 4. ARGUMENTS
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| item_id | Yes | Item identifier (e.g., TSK-001) |
+| artifact_type | Yes | changelog, prd, ard, or readme |
+| --project-root | No | Project directory (defaults to auto-detect) |
+| --force | No | Skip mtime verification |
+
+---
+
+## 5. VERIFICATION
+
+By default, verifies the artifact file was modified since the item was created. Prevents accidentally marking as done without actually updating.
+
+Use `--force` to skip verification (e.g., if the file was updated before tracking began).
+
+---
+
+## 6. VALIDATION RULES
+
+### Prohibited Actions
+- **NEVER mark done without verification** unless --force specified
+- **NEVER skip mtime check** - prevents accidentally marking without actual update
+
+---
+
+## 7. SQA ASSESSMENT
+
+### Quality Attributes
+| Attribute | Rating | Notes |
+|-----------|--------|-------|
+| Test Coverage | N/A | No test files |
+| Documentation | GOOD | 108-line SKILL.md |
+| Artifact Tracking | EXCELLENT | Mtime verification |
+
+### SQA Relevance
+- **MEDIUM** — Artifact verification skill
+- Mtime verification prevents false completion
+- Integrates with artifact tracking system
+- Supports /build workflow completion

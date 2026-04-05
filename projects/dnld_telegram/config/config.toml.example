@@ -1,0 +1,25 @@
+# dnld_telegram/config/config.toml.example
+
+[database]
+type = "sqlite"
+path = "./data/dnld_telegram.db"
+
+[logging]
+level = "INFO"
+file = "./logs/dnld_telegram.log"
+rotation = "10 MB"
+retention = "1 month"
+
+[telegram]
+# Your Telegram API ID and Hash are REQUIRED.
+# Get them from my.telegram.org
+api_id = 0 # REPLACE WITH YOUR API ID
+api_hash = "" # REPLACE WITH YOUR API HASH
+phone_number = "" # Optional: Your phone number (e.g., '+12345678900')
+session_name = "telegram_session"
+download_path = "./downloads"
+max_concurrent_downloads = 5
+
+[ui]
+type = "A"
+progress_bar_enabled = true

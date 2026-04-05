@@ -1,0 +1,143 @@
+# Ripgrep (.rgignore) - Search exclusion patterns
+# This supplements .gitignore for search-specific optimizations
+# Ripgrep automatically respects .gitignore, but this adds search-only exclusions
+
+# Windows system directories (slow to search, never useful)
+$RECYCLE.BIN/
+RECYCLER/
+System Volume Information/
+Desktop.ini/
+Thumbs.db
+ehthumbs.db
+
+# Cache directories (high noise, low signal)
+.cache/
+**/cache/
+**/.cache/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.node_modules-cache/
+.pip-cache/
+.npm/
+.yarn/cache/
+
+# Build and dependency directories (binaries, generated code)
+node_modules/
+venv/
+.venv/
+**/target/
+**/build/
+**/dist/
+**/out/
+**/.next/
+**/.nuxt/
+
+# Large generated files (slow to search)
+*.db
+*.sqlite
+*.db-wal
+*.db-shm
+*.db-journal
+*.sqlite-wal
+*.sqlite-journal
+*.jsonl
+
+# Binary and media files (never useful in text search)
+*.bin
+*.exe
+*.dll
+*.so
+*.dylib
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.mp4
+*.mov
+*.avi
+*.pdf
+*.zip
+*.tar
+*.tar.gz
+*.7z
+*.rar
+
+# Compiled and minified files
+*.min.js
+*.min.css
+*.map
+*.pyc
+*.pyo
+
+# Test coverage reports
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+
+# Log files (high noise)
+*.log
+logs/
+**/logs/
+
+# IDE and editor files (swaps, autosaves)
+*.swp
+*.swo
+*~
+.#*
+
+# Temporary and backup files
+*.tmp
+*.bak
+*.old
+*.orig
+*.backup
+temp/
+tmp/
+_temp/
+**/_temp/
+
+# Model and data files (large binary)
+*.pt
+*.pkl
+*.h5
+*.ckpt
+*.onnx
+*.model
+*.joblib
+*.npy
+*.npz
+
+# Archive directories (old code, not actively searched)
+archive/
+_archive/
+**/archive/
+**/_archive/
+
+# Session and state directories (runtime data)
+.claude/session_data/
+.claude/sessions/
+.claude/session_history/
+.claude/session_archives/
+.claude/session_storage/
+.claude/session_tracking/
+.claude/logs/
+.claude/state/
+.claude/tmpclaude*
+.claude/.locks/
+
+# Beads workspace
+.beads/
+
+# Output directories
+**/output/
+**/chunks/
+**/patterns/
+**/reports/
+
+# Documentation builds (generated, not source)
+docs/_build/
+site/
