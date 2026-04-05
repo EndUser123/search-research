@@ -20,10 +20,12 @@ from findings.models import EvidenceTier, Finding, Layer, Severity, SQAReport
 class TestValidateTarget:
     """Tests for _validate_target()."""
 
-    def test_validate_target_accepts_existing_directory(self, tmp_path: Path):
-        """_validate_target accepts an existing directory."""
-        result = _validate_target(str(tmp_path))
-        assert result == tmp_path.resolve()
+    def test_validate_target_accepts_sqa_skill_directory(self):
+        """_validate_target accepts an existing directory within workspace."""
+        # Use the SQA skill dir itself (always within allowed roots)
+        sqa_dir = Path(__file__).parent.parent
+        result = _validate_target(str(sqa_dir))
+        assert result == sqa_dir.resolve()
 
     def test_validate_target_rejects_nonexistent_path(self):
         """_validate_target raises AssertionError for nonexistent path."""
