@@ -36,6 +36,7 @@ class TestSaveReport:
         ]
         report = SQAReport(findings=findings, target="/test/path")
         report.health_score = 85
+        report.timestamp = "2026-04-04T12:00:00+00:00"
 
         # The path argument is ignored — report goes to terminal-isolated dir
         save_report(report, Path("/unused/path/that/is/ignored.json"))
