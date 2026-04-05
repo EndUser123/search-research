@@ -162,7 +162,7 @@ def _is_validated_line(
     # Check surrounding lines for validation context
     _lines = lines if lines is not None else [line]
     start = max(0, line_num - 4)
-    end = min(len(_lines), line_num + 2)
+    end = min(len(_lines), line_num + 3)
     context = "\n".join(_lines[start:end])
     for kw in _VALIDATION_KEYWORDS:
         if kw.lower() in context.lower():
