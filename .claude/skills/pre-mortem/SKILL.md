@@ -1,10 +1,16 @@
 ---
 name: pre-mortem
-version: 6.4
+version: 6.5
 description: Pre-mortem failure analysis. Imagine "it's 6 months later and this failed — why?" then work backward to find root causes, cascade effects, and specific mitigations. Includes adversarial validation (8-agent multi-perspective analysis), kill criteria for solo dev, AI/LLM failure modes, success theater detection, fix side effects analysis, and operational verification. Use for: failure analysis, risk assessment, project post-mortems, "what could go wrong", stress testing features, identifying second-order effects, cascade analysis, "will this work?", "what's the worst case?", or anytime the user asks about project risks. Auto-integrates with /reflect.
 status: stable
 category: analysis
 enforcement: advisory
+deprecated: true
+deprecated_reason: Absorbed into /critique --target=failure. Use /critique instead.
+source_path:
+  description: Path to the source artifact under review (file, plan, or code under analysis)
+  required: true
+  example: P:/projects/foo/src/ttl_utils.py
 hooks:
   Stop:
     - once: true
