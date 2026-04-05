@@ -57,11 +57,12 @@ Before dispatching specialists, check whether their output files already exist a
 
 **Expected output path pattern:** `P:/{session_dir}/specialists/{specialist-name}-findings.json`
 
-For each selected specialist, check if `P:/{session_dir}/specialists/{specialist-name}-findings.json` already exists and contains valid JSON. If ALL specialist output files exist and are valid, skip to Step 4 (dispatch). Context may have compacted after a prior dispatch run — re-dispatch would waste work.
+For each selected specialist, check if `P:/{session_dir}/specialists/{specialist-name}-findings.json` already exists and contains valid JSON.
 
-If any output file is missing or invalid, proceed to Step 4 to dispatch.
+- If ALL specialist output files exist and are valid, skip dispatch entirely and proceed directly to Step 5 (consolidation). Context may have compacted after a prior dispatch run — re-dispatch would waste work.
+- If ANY output file is missing or invalid, dispatch ONLY the missing or invalid specialists (not all of them). Track which specialists were dispatched in this run to avoid re-running completed ones.
 
-## Step 4: Dispatch Specialists in Parallel
+## Step 4: Dispatch Missing Specialists
 
 For each selected specialist, dispatch a Task in parallel using the Task tool with `subagent_type="general-purpose"`.
 
