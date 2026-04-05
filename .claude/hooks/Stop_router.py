@@ -305,6 +305,7 @@ HOOK_SEQUENCE = [
     ("Stop_ralph_loop.py", "RALPH_LOOP_ENABLED", True, "inprocess"),
     ("Stop_symptom_map.py", "SYMPTOM_MAP_ENABLED", True, "inprocess"),
     ("Stop_negative_existence_guard.py", "NEGATIVE_EXISTENCE_GUARD_ENABLED", True, "inprocess"),
+    ("Stop_comparative_claim_guard.py", "COMPARATIVE_CLAIM_GUARD_ENABLED", True, "inprocess"),
     ("StopHook_step_header_verifier.py", "STEP_HEADER_VERIFIER_ENABLED", True, "inprocess"),
     ("stop/Stop_verification_gate.py", "STOP_VERIFICATION_GATE_ENABLED", True, "inprocess"),
     ("stop/Stop_gto_checklist_gate.py", "GTO_CHECKLIST_GATE_ENABLED", True, "inprocess"),
