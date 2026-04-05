@@ -14,7 +14,7 @@ from pathlib import Path
 from findings.models import EvidenceTier, Finding, Layer, Severity
 
 # Contradiction detection: simplified approach
-# For will/won't, does/doesn't, can/cannot patterns: compare first word only
+# For will/won't, does/doesn't, can/cannot patterns: compare verb words
 # to catch contradictions even when objects differ (e.g., "process all" vs "process batch")
 
 
