@@ -206,6 +206,7 @@ HOOK_SEQUENCE = [
     ),
     ("StopHook_rsn_display_gate.py", "RSN_DISPLAY_GATE_ENABLED", True, "inprocess"),
     ("StopHook_arch_gap_detection.py", "ARCH_GAP_DETECTION_ENABLED", True, "inprocess"),
+    ("StopHook_cited_content_guard.py", "CITED_CONTENT_GUARD_ENABLED", True, "inprocess"),
     (
         "__lib/StopHook_consultation_loop_interrupt.py",
         "CONSULTATION_LOOP_INTERRUPT_ENABLED",
