@@ -774,6 +774,7 @@ def _build_validator_input(
     merged["observations"] = list(
         snapshot.get("observations", []) or _extract_observation_entries(merged)
     )
+    merged["transcript_entries"] = list(snapshot.get("transcript_entries", []))
     return merged
 
 
