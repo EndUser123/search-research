@@ -127,6 +127,137 @@ except Exception:  # pragma: no cover - fail-open fallback
         return ""
 
 
+# =============================================================================
+# Phase 0: depends_on_skills Gate
+# =============================================================================
+
+
+def _detect_skill_from_transcript(transcript_entries: list[dict[str, Any]]) -> str | None:
+    """Scan transcript for skill invocation patterns like /retro, /gto, etc.
+
+    Transcript entries have structure: {"type": "user", "message": {"role": "user", "content": "..."}}
+    where content contains XML-style command tags:
+    <command-name>/skillname</command-name>
+    <command-args>args</command-args>
+    """
+    command_pattern = re.compile(r"<command-name>(/[^<]+)</command-name>")
+    for entry in reversed(transcript_entries[-10:]):  # Last 10 entries
+        entry_text = ""
+        # Try "text" field first (alternative format)
+        if "text" in entry:
+            entry_text = entry["text"]
+        # Try message.content nested structure
+        elif isinstance(entry.get("message"), dict):
+            content = entry["message"].get("content", "")
+            if isinstance(content, str):
+                entry_text = content
+        match = command_pattern.search(entry_text)
+        if match:
+            # Return skill name without leading slash
+            return match.group(1).lstrip("/")
+    return None
+
+
+def _get_depends_on_skills(skill_name: str) -> list[str] | None:
+    """Read skill's SKILL.md and return depends_on_skills list or None."""
+    skills_dirs = [
+        Path("P:/.claude/skills"),
+        Path.home() / ".claude" / "skills",
+    ]
+    for skills_dir in skills_dirs:
+        skill_md = skills_dir / skill_name / "SKILL.md"
+        if skill_md.exists():
+            content = skill_md.read_text(encoding="utf-8")
+            # Parse YAML frontmatter using PyYAML (handles both inline and block styles)
+            match = re.search(r"^---\n(.*?)\n---", content, re.DOTALL)
+            if match:
+                frontmatter = match.group(1)
+                data = yaml.safe_load(frontmatter)
+                deps = data.get("depends_on_skills", [])
+                if deps:
+                    return [d.strip() for d in deps] if isinstance(deps, str) else [str(d).strip() for d in deps]
+    return None
+
+
+def _get_evidence_dir_for_skill(skill_name: str, terminal_id: str) -> Path:
+    """Resolve evidence directory for a skill+terminal pair with path sanitization."""
+    evidence_root = Path.home() / ".claude" / ".evidence"
+    # Sanitize skill name and terminal_id for path safety
+    safe_skill = re.sub(r"[^a-z0-9_-]", "", skill_name.lower())
+    safe_terminal = re.sub(r"[^a-z0-9_-]", "", terminal_id.lower())
+    return evidence_root / f"{safe_skill}-{safe_terminal}"
+
+
+def _check_step1_evidence(evidence_dir: Path, step1_name: str) -> tuple[bool, str]:
+    """Check if step-1 evidence file exists, is non-empty, and valid JSONL."""
+    step_file = evidence_dir / f"step_{step1_name}.jsonl"
+    if not step_file.exists():
+        return False, f"step-1 evidence missing: {step_file}"
+    if step_file.stat().st_size == 0:
+        return False, f"step-1 evidence empty: {step_file}"
+    # Verify it's valid JSONL (first line must be JSON)
+    try:
+        first_line = step_file.read_text(encoding="utf-8").split("\n")[0]
+        json.loads(first_line)
+        return True, "step-1 evidence valid"
+    except (json.JSONDecodeError, IndexError):
+        return False, f"step-1 evidence corrupted: {step_file}"
+
+
+def _run_phase0_depends_on_skills_gate(
+    validator_input: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Phase 0 gate: verify step-1 evidence exists for depends_on_skills skills.
+
+    Returns None (pass) if:
+      - DEPENDS_ON_SKILLS_GATE_ENABLED is false
+      - Skill has no depends_on_skills
+      - Skill name or terminal_id cannot be resolved (bypass)
+      - Evidence file exists and is valid JSONL
+
+    Returns {"decision": "block", "reason": ...} if:
+      - Skill has depends_on_skills but step-1 evidence is missing/empty/corrupt
+    """
+    if not _is_enabled("DEPENDS_ON_SKILLS_GATE_ENABLED", True):
+        return None
+
+    # Get transcript entries from validator_input
+    transcript_entries: list[dict[str, Any]] = validator_input.get("transcript_entries", [])
+    if not transcript_entries:
+        return None
+
+    # Detect skill name from transcript
+    skill_name = _detect_skill_from_transcript(transcript_entries)
+    if not skill_name:
+        # Cannot determine skill — bypass gate
+        return None
+
+    # Get depends_on_skills list
+    depends_on = _get_depends_on_skills(skill_name)
+    if not depends_on:
+        # Skill has no depends_on_skills — bypass gate
+        return None
+
+    # Get terminal_id
+    terminal_id = str(validator_input.get("terminal_id", "")).strip()
+    if not terminal_id:
+        return None
+
+    # First element of depends_on list is step-1
+    step1_name = depends_on[0]
+
+    # Check evidence
+    evidence_dir = _get_evidence_dir_for_skill(skill_name, terminal_id)
+    exists, reason = _check_step1_evidence(evidence_dir, step1_name)
+    if not exists:
+        return {
+            "decision": "block",
+            "reason": f"Phase 0: step-1 evidence required for depends_on_skills workflow. {reason}",
+            "blocking_hook": "Stop_router.py:Phase0",
+        }
+    return None
+
+
 INPROCESS_HOOK_DISPATCH_ENABLED = os.environ.get("STOP_ROUTER_INPROCESS", "true").lower() == "true"
 
 OBSERVATION_TOOL_NAMES = frozenset(
