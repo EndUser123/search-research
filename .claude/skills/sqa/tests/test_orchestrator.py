@@ -1,4 +1,4 @@
-"""Tests for orchestrator parallel layer execution (CHANGE-003)."""
+"""Tests for orchestrator utility functions."""
 
 from __future__ import annotations
 
@@ -8,78 +8,118 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
 
 from orchestrator import (
-    _run_parallel_layers,
+    _atomic_write,
+    _get_terminal_state_dir,
+    _validate_target,
     L2State,
+    save_report,
 )
-from findings.models import AuditEntry, Finding
+from findings.models import EvidenceTier, Finding, Layer, Severity, SQAReport
 
 
-class TestRunParallelLayers:
-    """Tests for _run_parallel_layers."""
+class TestValidateTarget:
+    """Tests for _validate_target()."""
 
-    def test_parallel_layers_all_complete(self, tmp_path: Path):
-        """All parallel layers return findings and audit entries."""
-        # Create a simple target dir
-        (tmp_path / "test.py").write_text("x = 1\n")
+    def test_validate_target_accepts_existing_directory(self, tmp_path: Path):
+        """_validate_target accepts an existing directory."""
+        result = _validate_target(str(tmp_path))
+        assert result == tmp_path.resolve()
 
-        results = _run_parallel_layers(
-            ["L1_SYNTACTIC", "L3_STRUCTURAL"],
-            tmp_path,
-        )
+    def test_validate_target_rejects_nonexistent_path(self):
+        """_validate_target raises AssertionError for nonexistent path."""
+        import pytest
+        with pytest.raises(AssertionError, match="does not exist"):
+            _validate_target("/nonexistent/path")
 
-        assert "L1_SYNTACTIC" in results
-        assert "L3_STRUCTURAL" in results
-        findings_l1, audit_l1 = results["L1_SYNTACTIC"]
-        findings_l3, audit_l3 = results["L3_STRUCTURAL"]
-        assert isinstance(findings_l1, list)
-        assert isinstance(findings_l3, list)
-        assert isinstance(audit_l1, AuditEntry)
-        assert isinstance(audit_l3, AuditEntry)
-        assert audit_l1.skill == "L1_SYNTACTIC"
-        assert audit_l3.skill == "L3_STRUCTURAL"
-
-    def test_parallel_layers_returns_results_dict(self, tmp_path: Path):
-        """_run_parallel_layers returns dict with correct structure."""
-        (tmp_path / "test.py").write_text("x = 1\n")
-
-        results = _run_parallel_layers(
-            ["L1_SYNTACTIC", "L3_STRUCTURAL"],
-            tmp_path,
-        )
-
-        # Verify return type: dict[str, tuple[list[Finding], AuditEntry]]
-        assert isinstance(results, dict)
-        for layer_name, result in results.items():
-            assert isinstance(layer_name, str)
-            assert isinstance(result, tuple)
-            assert len(result) == 2
-            findings, audit = result
-            assert isinstance(findings, list)
-            assert isinstance(audit, AuditEntry)
-            assert audit.skill == layer_name
-
-    def test_audit_trail_order_preserved(self, tmp_path: Path):
-        """Audit entries are in insertion order regardless of completion order."""
-        (tmp_path / "test.py").write_text("x = 1\n")
-
-        results = _run_parallel_layers(
-            ["L1_SYNTACTIC", "L3_STRUCTURAL", "L5_SECURITY", "L6_PERFORMANCE"],
-            tmp_path,
-        )
-
-        # Verify all four layers returned results
-        assert len(results) == 4
-        for layer in ["L1_SYNTACTIC", "L3_STRUCTURAL", "L5_SECURITY", "L6_PERFORMANCE"]:
-            assert layer in results
-            _, audit = results[layer]
-            assert audit.skill == layer
+    def test_validate_target_rejects_symlink(self, tmp_path: Path):
+        """_validate_target raises AssertionError for symlink."""
+        import pytest
+        link_path = tmp_path / "link"
+        link_path.symlink_to(tmp_path)
+        with pytest.raises(AssertionError, match="symlink"):
+            _validate_target(str(link_path))
 
 
-class TestL2StateCheckpoint:
-    """Tests for L2 checkpoint persistence."""
+class TestAtomicWrite:
+    """Tests for _atomic_write()."""
 
-    def test_l2_state_dataclass(self):
-        """L2State dataclass serializes correctly."""
+    def test_atomic_write_creates_file(self, tmp_path: Path):
+        """_atomic_write creates the file."""
+        p = tmp_path / "test.txt"
+        _atomic_write(p, "hello world")
+        assert p.exists()
+        assert p.read_text() == "hello world"
+
+    def test_atomic_write_overwrites(self, tmp_path: Path):
+        """_atomic_write overwrites existing content."""
+        p = tmp_path / "test.txt"
+        _atomic_write(p, "first")
+        _atomic_write(p, "second")
+        assert p.read_text() == "second"
+
+
+class TestGetTerminalStateDir:
+    """Tests for _get_terminal_state_dir()."""
+
+    def test_returns_path_object(self):
+        """_get_terminal_state_dir returns a Path."""
+        result = _get_terminal_state_dir()
+        assert isinstance(result, Path)
+
+    def test_path_contains_terminal_id(self, monkeypatch):
+        """Path includes sanitized terminal ID."""
+        monkeypatch.setenv("CLAUDE_TERMINAL_ID", "test-term-123")
+        result = _get_terminal_state_dir()
+        assert "test-term-123" in str(result)
+
+
+class TestL2State:
+    """Tests for L2State dataclass."""
+
+    def test_l2_state_fields(self):
+        """L2State stores layer2 state correctly."""
         state = L2State(layer2_had_failures=True, target="/test/path")
         assert state.layer2_had_failures is True
         assert state.target == "/test/path"
+
+
+class TestSaveReport:
+    """Tests for save_report()."""
+
+    def test_save_report_writes_json(self, monkeypatch, tmp_path: Path):
+        """save_report writes a JSON file to terminal-isolated path."""
+        import hashlib
+        import shutil
+
+        monkeypatch.setenv("TERMINAL_ID", "test_orch_terminal")
+        findings = [
+            Finding(
+                finding_id="TEST-001",
+                severity=Severity.MEDIUM,
+                layer=Layer.L4_REQUIREMENTS,
+                title="Test finding",
+                description="Testing save_report",
+                evidence_tier=EvidenceTier.T3,
+                category="quality",
+            )
+        ]
+        report = SQAReport(findings=findings, target=str(tmp_path))
+        report.health_score = 95
+        report.timestamp = "2026-04-04T12:00:00+00:00"
+
+        save_report(report, tmp_path / "ignored.json")
+
+        tid = "test_orch_terminal"
+        target_hash = hashlib.sha256(report.target.encode()).hexdigest()[:16]
+        report_dir = Path.home() / ".claude" / "sqa_reports" / f"terminal_{tid}"
+        terminal_path = report_dir / f"{target_hash}.json"
+
+        try:
+            assert terminal_path.exists()
+            import json
+            data = json.loads(terminal_path.read_text())
+            assert data["target"] == str(tmp_path)
+            assert data["health_score"] == 95
+            assert len(data["findings"]) == 1
+        finally:
+            shutil.rmtree(report_dir, ignore_errors=True)
