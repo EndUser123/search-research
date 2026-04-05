@@ -98,9 +98,9 @@ def _collect_verb_contradictions(
     neg_matches = re.findall(neg_pattern, content, re.IGNORECASE)
     if not pos_matches or not neg_matches:
         return
-    # Normalize to set of first words (the core verb)
-    pos_verbs = {m[0].lower() for m in pos_matches} if isinstance(pos_matches[0], str) else {m.lower() for m in pos_matches}
-    neg_verbs = {m[0].lower() for m in neg_matches} if isinstance(neg_matches[0], str) else {m.lower() for m in neg_matches}
+    # Normalize to set of verbs for overlap detection
+    pos_verbs = {m.lower() for m in pos_matches}
+    neg_verbs = {m.lower() for m in neg_matches}
     overlap = pos_verbs & neg_verbs
     for verb in overlap:
         out.append(f"'{verb}' — will/can/does vs won't/can't/doesn't")
