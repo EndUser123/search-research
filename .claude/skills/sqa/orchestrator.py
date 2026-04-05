@@ -53,6 +53,8 @@ ALLOWED_COMMANDS = [
     "hook-audit",
     "hook-inventory",
     "diagnose",
+    "adversarial-security",
+    "adversarial-performance",
 ]
 
 
