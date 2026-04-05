@@ -130,8 +130,8 @@ class TestHealthScoreComputation:
         ]
         report = SQAReport(findings=findings, target="/test")
         report.health_score = report.compute_health_score()
-        # 100 - 20 (1 CRITICAL deduplicated) - 2 (1 LOW deduplicated) = 78
-        assert report.health_score == 78
+        # 100 - 20 (1 CRITICAL T3 × 0.5) - 2 (1 LOW T3 × 0.5) = 89
+        assert report.health_score == 89
 
     def test_empty_findings_produces_healthy_score(self):
         """Empty findings list produces health score of 100."""
