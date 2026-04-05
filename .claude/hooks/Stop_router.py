@@ -17,6 +17,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -24,6 +25,8 @@ import time
 from pathlib import Path
 from types import ModuleType
 from typing import Any
+
+import yaml
 
 HOOKS_DIR = Path(__file__).resolve().parent
 # Stop_router.py is at P:/.claude/hooks/Stop_router.py (NOT in __lib/)
