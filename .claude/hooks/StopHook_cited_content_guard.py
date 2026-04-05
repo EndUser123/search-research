@@ -203,8 +203,12 @@ def check(data: dict[str, Any]) -> dict[str, Any] | None:
     if not citations:
         return None
 
+    # Without a session_id we cannot look up evidence — fail open
+    if not session_id:
+        return None
+
     # Load Read events once (fail-open if unavailable)
-    read_events = _load_read_events(session_id, terminal_id) if session_id else []
+    read_events = _load_read_events(session_id, terminal_id)
 
     violations: list[str] = []
     not_read: list[str] = []
