@@ -28,17 +28,17 @@ class TestValidateTarget:
         assert result == sqa_dir.resolve()
 
     def test_validate_target_rejects_nonexistent_path(self):
-        """_validate_target raises AssertionError for nonexistent path."""
+        """_validate_target raises AssertionError for nonexistent path outside allowed roots."""
         import pytest
-        with pytest.raises(AssertionError, match="does not exist"):
+        with pytest.raises(AssertionError, match="outside allowed roots"):
             _validate_target("/nonexistent/path")
 
     def test_validate_target_rejects_symlink(self, tmp_path: Path):
-        """_validate_target raises AssertionError for symlink."""
+        """_validate_target raises AssertionError for symlink outside allowed roots."""
         import pytest
         link_path = tmp_path / "link"
         link_path.symlink_to(tmp_path)
-        with pytest.raises(AssertionError, match="symlink"):
+        with pytest.raises(AssertionError, match="outside allowed roots"):
             _validate_target(str(link_path))
 
 
