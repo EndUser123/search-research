@@ -843,6 +843,26 @@ def route_stop(input_data: dict[str, Any]) -> dict[str, Any]:
 
     validator_input = _build_validator_input(input_data, snapshot)
 
+    # Phase 0 gate: check depends_on_skills evidence before Phase 2 hooks
+    phase0_result = _run_phase0_depends_on_skills_gate(validator_input)
+    if phase0_result is not None and phase0_result.get("decision") == "block":
+        if terminal_id and turn_id:
+            close_turn(
+                terminal_id,
+                turn_id,
+                {
+                    "status": "blocked",
+                    "blocking_hook": str(phase0_result.get("blocking_hook", "Stop_router.py:Phase0")),
+                    "reason": str(phase0_result.get("reason", "")),
+                    "warnings": [],
+                },
+            )
+        return {
+            "decision": "block",
+            "reason": str(phase0_result.get("reason", "")),
+            "blocking_hook": str(phase0_result.get("blocking_hook", "Stop_router.py:Phase0")),
+        }
+
     # Derive RCA turn info from skill_state for hook policy
     skill_state = validator_input.get("skill_state")
     rca_turn, rca_skill = _is_rca_turn(skill_state)
