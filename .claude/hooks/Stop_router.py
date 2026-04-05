@@ -257,6 +257,7 @@ ACTIVE_RUNTIME_HOOKS = frozenset(
         "Stop_task_completion_gate.py",
         "StopHook_rsn_display_gate.py",
         "StopHook_arch_gap_detection.py",
+        "StopHook_cited_content_guard.py",
         "StopHook_drift_sentinel.py",
         "StopHook_correction_acknowledgment.py",
         "__lib/StopHook_consultation_loop_interrupt.py",
