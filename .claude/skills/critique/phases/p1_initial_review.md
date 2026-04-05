@@ -14,6 +14,7 @@ Read the work (`{WORK_FILE}`) and classify it into one of:
 - **document** — A markdown doc, README, policy
 - **hook** — A hook script (PreToolUse, PostToolUse, Stop)
 - **agent** — An agent definition file
+- **failure / RCA** — A failure mode or root-cause analysis (uses full 7-specialist parallel dispatch)
 
 ## Step 2: Select Relevant Specialists
 
