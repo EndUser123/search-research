@@ -56,8 +56,8 @@ DECISION_CLAIM_PATTERNS = [
 
 # Patterns that indicate user rejection of an option
 REJECTION_PATTERNS = [
-    re.compile(r"(Option\s+[A-Z])\s+(?:doesn't\s+make\s+sense|doesnt\s+make\s+sense)", re.IGNORECASE),
-    re.compile(r"(Option\s+[A-Z])\s+is?\s+rejected?", re.IGNORECASE),
+    re.compile(r"(Option\s+[A-Z])\s+(?:doesn['\u2019]?t\s+make\s+sense|doesnt\s+make\s+sense)", re.IGNORECASE),
+    re.compile(r"(Option\s+[A-Z])\s+(?:is|was|were)?\s*rejected?", re.IGNORECASE),
     re.compile(r"(Option\s+[A-Z])\s+shouldn?['\s]t\s+be\s+used", re.IGNORECASE),
     re.compile(r"don['\s]t\s+rebuild", re.IGNORECASE),
     re.compile(r"remove[d]?\s+(?:the\s+)?(?:session'?s?\s+)?index", re.IGNORECASE),

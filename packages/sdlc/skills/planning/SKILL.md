@@ -330,6 +330,22 @@ Steps 1-3 cover draft generation, auto_verify checks, and auto_fix scope.
 
 See `references/verification-workflow.md` for full details on each check and what auto_fix does/does not do.
 
+### Graduated Validation Modes
+
+Not every plan edit requires a full verification pass. `/planning` uses three graduated modes:
+
+| Mode | Trigger | What Runs |
+|------|---------|-----------|
+| **Light** | Normal prose/task edit (no status change) | Structural checks only: malformed frontmatter, missing required sections, unresolved `[TODO]`/`[TBD]` markers |
+| **Readiness** | Status set to `implementation-ready`, or explicit `/planning review` | Full `auto_verify.py`: placeholders, contradictions, dispositions, plan-purity, explicit file/line evidence, execution semantics |
+| **Contract** | Plan contains CAP or contract boundary matrix markers | All Readiness checks + per-row packet refs, test bindings, authority drift detection |
+
+**Rules:**
+- Light mode never produces a `READY` verdict — it may flag structural issues but cannot advance status.
+- Readiness mode is the minimum gate for advancing to `implementation-ready`.
+- Contract mode activates **automatically** when the plan references any `Contract Authority Packet` or contains a contract boundary matrix. It is not opt-in.
+- `/planning review` always runs at Readiness mode at minimum, regardless of plan content.
+
 `auto_verify.py` also treats stale sibling review artifacts as non-authoritative. If an existing `.review.summary.md` contradicts the latest verification result, `/planning` must treat it as stale and regenerate it rather than debating which artifact is true.
 
 ### Nested `/arch` Resume Contract

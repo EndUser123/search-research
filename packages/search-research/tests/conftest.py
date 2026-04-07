@@ -68,7 +68,6 @@ def temp_cache_dir(tmp_path):
 
 
 @pytest.fixture
-def no_api_keys(monkeypatch):
-    """Ensure no API keys are set for testing graceful degradation."""
-    for key in ["TAVILY_API_KEY", "SERPER_API_KEY", "EXA_API_KEY"]:
-        monkeypatch.delenv(key, raising=False)
+def mock_projects_dir(tmp_path):
+    """Mock projects directory for testing session chain code."""
+    return tmp_path
