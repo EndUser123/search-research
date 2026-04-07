@@ -252,6 +252,10 @@ Before implementation begins, verify that every downstream consumer expected to 
 
 If the work is contract-sensitive, load the latest `Contract Authority Packet` from `/arch` first and treat it as authoritative for boundary semantics during implementation.
 
+**Principle: Enforcement lives with the consumer, not the producer.**
+
+`/code` (and `/tdd`) must refuse to consume a plan artifact that fails its contract, rather than relying on a global hook to catch all bad writes. Write-time validation (what `/planning` does) prevents bad artifacts from being created; consume-time validation (what `/code` does here) ensures that contract drift between creation and consumption is caught at the point of use. Both sides are required — one without the other leaves a gap.
+
 For each relevant boundary, name:
 
 - producer

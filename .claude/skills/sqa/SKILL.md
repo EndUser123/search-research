@@ -273,6 +273,16 @@ Layer 7 must also verify:
 - compact/resume path does not proceed on partial state
 - producer success is not mistaken for consumer success
 
+**Two-Sided Enforcement Principle:**
+
+Both write-time (producer) AND consume-time (consumer) validation are required for durable correctness:
+- **Write-time without consume-time**: Stale artifacts survive contract changes. A hook validated at creation time may still be consumed after the contract drifted.
+- **Consume-time without write-time**: Bad artifacts accumulate upstream. Consumers keep rejecting the same malformed inputs that were never caught at the source.
+
+Layer 7 must verify that **both** sides exist at every critical boundary — not only that the producer ran successfully.
+
+**Implementation note:** The verification check for both-sided enforcement is not yet implemented in the SQA orchestrator. Until then, flag "one-sided enforcement at boundary {name}" as a HIGH finding in Layer 7 reviews.
+
 ### Meta-Synthesis
 Consensus detection (2+ layers agree on same file:line:category).
 Blind-spot detection (no coverage for a quality category when layer WAS available but found nothing — NOT when layer was skipped via D5).
