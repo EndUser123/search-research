@@ -447,7 +447,7 @@ def walk_sessions_index_chain(
 
         # Semantic verification: prior's last-goals vs current's first-user-message
         prior_goals = _extract_last_goals(current_path)  # prior's ending goals
-        current_first_msg = compact_sessions.get(current, "") or _extract_first_user_message(current_path)
+        current_first_msg = first_user_messages.get(current, "") or _extract_first_user_message(current_path)
 
         if prior_goals and current_first_msg:
             sim = _semantic_sim(prior_goals, current_first_msg)
@@ -465,7 +465,7 @@ def walk_sessions_index_chain(
         parent_path: Path | None = None
         if i > 0:
             parent_path = sessions[chain[i - 1]][0]
-        first_msg = compact_sessions.get(sid, "")
+        first_msg = first_user_messages.get(sid, "")
         if not first_msg:
             first_msg = _extract_first_user_message(path) or ""
         entries.append(
