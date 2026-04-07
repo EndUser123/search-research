@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import subprocess
 from pathlib import Path
 
 from findings.models import EvidenceTier, Finding, Layer, Severity
@@ -108,50 +107,23 @@ def _is_command_available(cmd: str) -> bool:
 
 
 def _run_adversarial_performance(target: Path) -> list[Finding]:
-    """Run adversarial-performance agent. Requires Agent tool dispatch from skill context.
+    """Run adversarial-performance agent analysis.
 
-    adversarial-performance is an LLM subagent — not a CLI tool.
-    This module cannot invoke it via subprocess.
+    adversarial-performance is an LLM subagent dispatched via the Agent tool from skill context.
+    This Python module cannot invoke it — it returns empty findings with a clear message.
+
+    To run adversarial performance analysis, use from skill context:
+        Agent('adversarial-performance').analyze(target=target, findings=[...])
+
+    Returns:
+        Empty list — Agent dispatch is required at skill level.
     """
     import logging
     logger = logging.getLogger(__name__)
 
-    findings: list[Finding] = []
-
-    if not _is_command_available("adversarial-performance"):
-        logger.warning(
-            "adversarial-performance is an LLM subagent (Agent tool), not a CLI tool. "
-            "It cannot be invoked via subprocess. "
-            "From skill context, use: Agent('adversarial-performance').analyze(target, findings=[...])"
-        )
-        return findings
-
-    counter = 0
-    try:
-        result = subprocess.run(
-            ["adversarial-performance", str(target)],
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-        if result.returncode != 0 and result.stdout:
-            for line in result.stdout.splitlines():
-                if line.strip():
-                    counter += 1
-                    findings.append(
-                        Finding(
-                            finding_id=f"L6-ADV-PERF-{counter}",
-                            severity=Severity.HIGH,
-                            layer=Layer.L6_PERFORMANCE,
-                            title="Adversarial performance bottleneck",
-                            description=line.strip(),
-                            evidence_tier=EvidenceTier.T3,
-                            category="performance",
-                        )
-                    )
-    except subprocess.TimeoutExpired:
-        logger.warning("adversarial-performance timed out after 60s")
-    except FileNotFoundError:
-        # Already checked above, but catch as fallback
-        logger.warning("adversarial-performance command not found in PATH")
-    return findings
+    logger.info(
+        "L6_PERFORMANCE: adversarial-performance requires Agent tool dispatch at skill level. "
+        "Python layer returns empty findings. "
+        "Use: Agent('adversarial-performance') from skill execution context."
+    )
+    return []

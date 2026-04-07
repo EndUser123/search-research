@@ -1,8 +1,9 @@
 ---
 name: uci
-description: Unified Code Inspection with intelligent auto-detection. Automatically selects appropriate review depth based on context signals. Override with --lite or --full flags.
+description: "Unified Code Inspection with intelligent auto-detection. Override with --lite or --full flags."
 version: "1.0.0"
 status: stable
+enforcement: advisory
 category: quality
 triggers:
   - "/uci"
@@ -27,15 +28,15 @@ parameters:
     description: Git scope (branch, commit, PR, files)
     required: false
   - name: format
-    description: Output format: json|markdown|summary
+    description: "Output format: json, markdown, or summary"
     required: false
     default: "markdown"
   - name: assessment
-    description: Assessment mode: Analyze without making changes
+    description: "Assessment mode: Analyze without making changes"
     required: false
     type: boolean
   - name: dry-run
-    description: Dry-run mode: Preview agents and scope without execution
+    description: "Dry-run mode: Preview agents and scope without execution"
     required: false
     type: boolean
 ---

@@ -163,25 +163,24 @@ def _get_session_id(provided_session: str | None) -> str:
         return provided_session
 
     # Try to get from active workflow state
-    if STATE_FILE.exists():
+    try:
+        state = json.loads(STATE_FILE.read_text())
+        if session_id := state.get("session_id", ""):
+            return session_id
+    except json.JSONDecodeError as e:
+        # State file is corrupted - warn user and continue
+        print("⚠️  Warning: State file is corrupted (invalid JSON). Using fallback session ID.", file=sys.stderr)
+        print(f"   Error: {e}", file=sys.stderr)
+        print(f"   File: {STATE_FILE}", file=sys.stderr)
+        # Rename corrupted file for recovery
+        backup_path = STATE_FILE.with_suffix(".json.corrupted")
         try:
-            state = json.loads(STATE_FILE.read_text())
-            if session_id := state.get("session_id", ""):
-                return session_id
-        except json.JSONDecodeError as e:
-            # State file is corrupted - warn user and continue
-            print("⚠️  Warning: State file is corrupted (invalid JSON). Using fallback session ID.", file=sys.stderr)
-            print(f"   Error: {e}", file=sys.stderr)
-            print(f"   File: {STATE_FILE}", file=sys.stderr)
-            # Rename corrupted file for recovery
-            backup_path = STATE_FILE.with_suffix(".json.corrupted")
-            try:
-                STATE_FILE.rename(backup_path)
-                print(f"   Corrupted file backed up to: {backup_path}", file=sys.stderr)
-            except Exception:
-                pass  # Best-effort backup
-        except OSError as e:
-            print(f"⚠️  Warning: Could not read state file: {e}", file=sys.stderr)
+            STATE_FILE.rename(backup_path)
+            print(f"   Corrupted file backed up to: {backup_path}", file=sys.stderr)
+        except Exception:
+            pass  # Best-effort backup
+    except OSError as e:
+        print(f"⚠️  Warning: Could not read state file: {e}", file=sys.stderr)
 
     # Generate new session ID
     return f"rca_{int(datetime.now().timestamp())}"

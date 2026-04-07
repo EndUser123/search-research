@@ -4,7 +4,8 @@ description: Systematic analysis of chat history to identify problems, errors, f
 version: 1.0.0
 status: stable
 category: analysis
-
+enforcement: advisory
+---
 # Skill: Chat Friction Analysis
 
 Systematic analysis of chat history to identify problems, errors, friction points, and user corrections. Use whenever the user asks to analyze recent conversations, find LLM mistakes, identify why corrections were needed, or diagnose repeated issues in chat history.

@@ -52,9 +52,6 @@ class FixRegistry:
 
     def _load_registry(self) -> dict[str, dict[str, Any]]:
         """Load registry from disk."""
-        if not self.registry_file.exists():
-            return {"fingerprints": {}, "metadata": {"version": "1.0"}}
-
         try:
             data = json.loads(self.registry_file.read_text(encoding="utf-8"))
             return data
@@ -415,7 +412,7 @@ def _test() -> None:
 
     # Use temp directory for testing
     temp_dir = tempfile.mkdtemp()
-    registry = FixRegistry(cache_dir=temp_dir, max_age_hours=24)
+    registry = FixRegistry(cache_dir=temp_dir)
 
     print("Fix Registry Tests")
     print("=" * 60)

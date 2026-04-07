@@ -3,8 +3,9 @@ name: compose-npm-pip
 description: Generate production-ready, tested, validated code from natural language prompts.
 version: 1.0.0
 status: stable
+enforcement: advisory
 category: development
-
+---
 # Complete Code Generation
 
 ## Purpose

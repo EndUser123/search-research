@@ -10,6 +10,10 @@ Generate a concrete draft -- NOT placeholder scaffolding:
 - Solution from actual analysis
 - Implementation tasks with concrete scope
 
+For ADR-sourced work, Step 1 also means translating ADR or `Planning Handoff Packet` content into the canonical v2 plan shape before verification. Do not verify a shallow ADR transcription and then route formatting fallout to `/arch`.
+
+For non-ADR source artifacts, Step 1 also means translating a `Planning Source Packet` or an explicit extraction map into the canonical v2 plan shape before verification. Do not verify a shallow source transcription and then route normalization fallout to `/arch`.
+
 If the input cannot be converted to concrete content, the result stays `draft`. Do NOT use auto_fix to fill in `*Describe the problem*` or `path/to/file1.py`.
 
 ## Step 2: auto_verify.py (Deterministic Checks)
@@ -40,7 +44,13 @@ python P:/.claude/skills/planning/__lib/auto_verify.py <plan_path>
 
 **Remediation rule:** if `auto_verify.py` returns architecture-class blockers (`contract_ambiguity`, `state_model`, `schema_consistency`, `identity_boundary`, `contract_test_coherence`, `mechanism_triggerability`, or core state-model `open_questions`), `/planning` should auto-invoke `/arch`, consume the returned decision packet, rewrite the plan itself, and then re-run verification.
 
+**Nested-resume rule:** this `/arch` call is a nested substep of the same `/planning` run. It is not a separate user action. When `next_action.type == invoke_arch_then_rewrite_plan`, `/planning` must resume automatically after `/arch` returns unless the architecture is still incomplete or clarification is genuinely required.
+
 **Control rule:** `/planning` must treat the latest `auto_verify.py` result as authoritative. Plan notes claiming a blocker is a “false positive” do not override `next_action`. If `next_action.type` is `invoke_arch_then_rewrite_plan`, invoke `/arch` first and defer non-architectural cleanup until after the rewritten plan is re-verified.
+
+If `next_action.resume_policy == automatic_return_to_caller`, do not ask the user to rerun `/planning` or to confirm that `/planning` should continue. Continue the same workflow.
+
+**Important boundary rule:** missing frontmatter, non-canonical section names, unsupported task syntax, and reduced contract-matrix columns in an ADR-derived or source-derived draft are local `/planning` rewrite problems first. Fix the draft shape before treating any remaining architecture findings as `/arch` work.
 
 ## Step 3: auto_fix.py (Non-Semantic Only)
 

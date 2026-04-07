@@ -28,26 +28,27 @@ DAEMON_DISCOVERY_FILE = "data/semantic_daemon_discovery.json"
 
 
 def get_project_root() -> Path:
-    """Find project root by searching for marker files."""
+    """Find project root by searching for marker files.
+
+    For the semantic daemon, we specifically look for search-research projects.
+    Uses hardcoded paths since this hook is specifically for the search-research daemon.
+    """
+
+    # For this specific daemon, we know it's for search-research package
+    # The daemon discovery file is at P:/__csf/data/semantic_daemon_discovery.json
+    # So we look for the project that has src/daemons/unified_semantic_daemon.py
+    possible_roots = [
+        Path("P:/packages/search-research"),
+        Path("P:/__csf"),
+    ]
+
+    for candidate in possible_roots:
+        src_daemon = candidate / "src" / "daemons" / "unified_semantic_daemon.py"
+        if src_daemon.exists():
+            return candidate
+
+    # Fallback: use script's parent.parent.parent (hook -> .claude -> project)
     script_path = Path(__file__).resolve()
-    current = script_path.parent
-
-    # Search upward for project root markers
-    for _ in range(10):  # Max 10 levels up
-        markers = [
-            current / ".claude",
-            current / "CLAUDE.md",
-            current / "src",
-            current / "pyproject.toml",
-        ]
-        if any(m.exists() for m in markers):
-            return current
-        parent = current.parent
-        if parent == current:  # Reached filesystem root
-            break
-        current = parent
-
-    # Fallback: use script's parent.parent.parent (hook → .claude → project)
     return script_path.parent.parent.parent
 
 
@@ -154,6 +155,7 @@ def start_daemon(project_root: Path) -> int | None:
         proc = subprocess.Popen(
             [python_exe, "-m", "src.daemons.unified_semantic_daemon"],
             cwd=project_root,
+            stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,

@@ -1,18 +1,25 @@
-# Two-Daemon Architecture
+# Daemon Architecture
 
-**Last Updated**: 2026-03-08
-**Status**: Production Ready
+**Last Updated**: 2026-04-06
+**Status**: Production (2 active daemons)
 **Implementation Plan**: `plan-20260308-two-daemon-architecture.md`
 
 ---
 
 ## Overview
 
-The two-daemon architecture enables multiple specialized background services to run concurrently without interference. Each daemon type has exclusive system resources (Windows named mutex) and maintains separate state files to prevent conflicts.
+The daemon architecture enables multiple specialized background services to run concurrently without interference.
+
+**Active Daemons:**
+1. **Dreaming daemon** — Analyzes principle-events.jsonl to generate insights
+2. **Semantic daemon** — Provides fast semantic search for CKS and CHS via Windows named pipes
+
+**Inactive:**
+- **Search daemon** — Configured but never implemented. The `--daemon-type search` option runs identical code to `--daemon-type dreaming` with no differentiation. Hook disabled in SessionStart.py.
 
 **Why This Matters:**
-- **Dreaming daemon** analyzes principle-events.jsonl to generate insights
-- **Search daemon** (future) will manage search operations and indexing
+- Dreaming daemon analyzes behavioral patterns from principle-events
+- Semantic daemon provides vector search for knowledge retrieval
 - Both can run simultaneously without WinError 32 file corruption or mutex conflicts
 
 **Key Features:**
@@ -54,7 +61,7 @@ P:/.claude/state/dreaming-insights.md (human-readable)
 
 ### Search Daemon
 
-**Purpose**: (Planned) Manages search operations and indexing for semantic search.
+**Purpose**: (INACTIVE) Was planned to manage search operations and indexing for semantic search.
 
 **Resources:**
 - **Mutex**: `Global\ClaudeSearchDaemon`
@@ -62,7 +69,29 @@ P:/.claude/state/dreaming-insights.md (human-readable)
 - **State File**: `state/search-daemon-state.json`
 - **Log File**: `logs/search-daemon.log`
 
-**Status**: Configuration complete, implementation pending
+**Status**: Configuration exists but daemon never built. The `--daemon-type search` option runs identical code to `--daemon-type dreaming` with no behavioral differentiation. Hook disabled in SessionStart.py.
+
+### Semantic Daemon
+
+**Purpose**: Provides fast semantic search for CKS and CHS via Windows named pipes.
+
+**Resources:**
+- **Mutex**: `Global\CSF_Semantic_Daemon_Startup`
+- **Discovery File**: `data/semantic_daemon_discovery.json`
+- **Named Pipe**: `\\.\pipe\csf_nip_semantic_{PID}_{timestamp}`
+
+**Architecture:**
+- Named pipe server (`unified_semantic_daemon.py`) avoids Windows stale handles
+- Clients auto-start daemon if not running via `DaemonClient`
+- Fallback to direct SentenceTransformer (`all-MiniLM-L6-v2`) when daemon unavailable
+- 5-minute idle timeout unloads model to free memory
+
+**Startup Integration:**
+- `SessionStart_semantic_daemon.py` auto-starts daemon on session begin
+- Multi-terminal coordination via Windows mutex with randomized backoff
+- Health check verifies daemon responds before declaring ready
+
+**Key Fix (2026-04-06)**: Added `stdin=subprocess.DEVNULL` to daemon startup to prevent Windows subprocess hang.
 
 ---
 
@@ -139,18 +168,22 @@ python dreaming-daemon.py --daemon-type search
 
 ### SessionStart Hook Integration
 
-The `SessionStart_dreaming_daemon.py` hook automatically starts the dreaming daemon when a Claude Code session begins.
+The `SessionStart_dreaming_daemon.py` and `SessionStart_semantic_daemon.py` hooks automatically start their respective daemons when a Claude Code session begins.
 
 **Health Checks:**
-- Heartbeat-based (90s threshold)
+- Heartbeat-based (90s threshold) for dreaming daemon
+- Named pipe connectivity + health query for semantic daemon
 - Auto-start if daemon is unhealthy or missing
-- Multi-terminal coordination via Windows mutex
+- Multi-terminal coordination via Windows mutex with randomized backoff
 - Latency monitoring and instrumentation
 
 **Manual hook invocation:**
 ```bash
-# Test the hook directly
+# Test the dreaming daemon hook
 python SessionStart_dreaming_daemon.py
+
+# Test the semantic daemon hook
+python SessionStart_semantic_daemon.py
 ```
 
 ### Manual Testing
@@ -181,19 +214,26 @@ python dreaming-daemon.py --daemon-type dreaming
 All daemon files are located under `P:\.claude\hooks\`:
 
 ```
-P:\.claude\hooks/
-├── dreaming_daemon.py              # Main daemon script
-├── SessionStart_dreaming_daemon.py # Auto-start hook
+P:\.claude\hooks\
+├── dreaming_daemon.py                  # Dreaming daemon script (handles dreaming/search types)
+├── SessionStart_dreaming_daemon.py    # Dreaming daemon auto-start hook
+├── SessionStart_semantic_daemon.py    # Semantic daemon auto-start hook
 ├── config/
-│   └── daemon_config.py            # DAEMON_TYPES configuration
+│   └── daemon_config.py                # DAEMON_TYPES configuration (dreaming + search)
 ├── state/
-│   ├── dreaming-daemon.pid         # Dreaming daemon PID
-│   ├── dreaming-daemon-state.json  # Dreaming daemon state
-│   ├── search-daemon.pid           # Search daemon PID (future)
-│   └── search-daemon-state.json    # Search daemon state (future)
+│   ├── dreaming-daemon.pid             # Dreaming daemon PID
+│   ├── dreaming-daemon-state.json      # Dreaming daemon state
+│   ├── search-daemon.pid               # Search daemon PID (inactive)
+│   └── search-daemon-state.json        # Search daemon state (inactive)
 └── logs/
-    ├── dreaming-daemon.log         # Dreaming daemon logs
-    └── search-daemon.log           # Search daemon logs (future)
+    ├── dreaming-daemon.log             # Dreaming daemon logs
+    └── search-daemon.log               # Search daemon logs (inactive)
+
+Semantic daemon lives in the search-research package:
+P:\packages\search-research\
+├── src\daemons\unified_semantic_daemon.py  # Named pipe server
+├── data\semantic_daemon_discovery.json     # Daemon discovery file
+└── core\chs\embeddings.py                  # Embedding client with fallback
 ```
 
 ### State File Structure
@@ -492,6 +532,20 @@ All changes are backward compatible:
 ---
 
 ## Changelog
+
+### 2026-04-06 - Daemon Architecture Cleanup
+
+**Changed:**
+- Renamed from "Two-Daemon Architecture" to "Daemon Architecture" (reflects actual state)
+- Documented semantic daemon as active (third daemon, separate from dreaming)
+- Marked search daemon as INACTIVE (configured but never built, code identical to dreaming)
+- Updated file path documentation to include search-research package location
+- Added semantic daemon resources (mutex, discovery file, named pipe)
+- Added `stdin=subprocess.DEVNULL` fix documentation (prevents Windows subprocess hang)
+
+**Fixed:**
+- Search daemon entry: was "configuration complete, implementation pending" → "configured but never built"
+- Added missing semantic daemon startup integration documentation
 
 ### 2026-03-08 - Two-Daemon Architecture
 

@@ -9,6 +9,12 @@ triggers:
 entry_type: skill
 requires_target: false
 enforcement: none
+# Extensions to SKILL_SCHEMA (not enumerated in schema):
+#   version: skill version string
+#   status: stable|experimental|deprecated
+#   entry_type: skill|agent|hook
+#   requires_target: true|false (auto-detect behavior)
+#   enforcement: strict|advisory|none
 ---
 
 # /sqa — Unified SQA Orchestrator
@@ -20,9 +26,40 @@ For workflow infrastructure, SQA must certify contract integrity, resume integri
 ## Usage
 
 ```
-/sqa <target-path>   # explicit target
-/sqa                 # auto-detect target via semantic intent resolution
+/sqa <target-path>               # explicit target
+/sqa                             # auto-detect target via semantic intent resolution
+/sqa --layer=N                   # run specific layer only (0-7, META)
+/sqa --focus <lens>              # apply focus lens (see Focus Lenses below)
+/sqa --halt-on <severity>        # halt after layer if findings exceed threshold (default: HIGH)
+/sqa --fix                       # auto-fix safe issues in L1/L2 (formatting, imports, lint)
+/sqa --dry-run                   # detection-only: report what would run without executing
+/sqa --evidence                  # write structured JSON results to terminal-isolated path
+/sqa --quick                     # only analyze files from current session context
 ```
+
+**`--halt-on` severity threshold:**
+| Value | Behavior |
+|-------|----------|
+| `HIGH` | **(default)** Halt after a layer if any HIGH or CRITICAL findings exist |
+| `CRITICAL` | Halt only on CRITICAL findings |
+| `MEDIUM` | Halt on MEDIUM, HIGH, or CRITICAL |
+| `NONE` | Run all layers regardless — collect all findings |
+
+**Focus lenses** (same as `/p` `--focus`):
+| Lens | Effect |
+|------|--------|
+| `risk` | Pre-mortem failure mode analysis |
+| `gaps` | Completeness check — missing items, unhandled cases |
+| `opportunities` | Optimization and value identification |
+| `security` | Prioritize adversarial-security and path traversal |
+| `complexity` | Flag high-cyclomatic-complexity functions |
+| `duplicates` | Run duplicate detection |
+| `quality` | Emphasize code smells and conventions |
+| `performance` | Run with profiling awareness |
+| `architecture` | Architectural perspective and cross-module deps |
+| `test` | Focus on test quality and coverage gaps |
+| `library` | Dependency analysis and CVE checks |
+| `comprehensive` | ALL lenses elevated to blocking |
 
 ### Auto-Detect Target (if no argument provided)
 
@@ -36,17 +73,29 @@ Resolve target via semantic intent, not archaeology:
 
 State assumption: "Certifying [X] — assumption based on [signal]. Correct?" Only prompt for confirmation if intent is unclear.
 
+**Phase/State Detection** (optional smart routing — implement if needed):
+
+| Signal | Layer |
+|--------|-------|
+| No tests or tests failing | L1 SYNTACTIC + L2 SEMANTIC |
+| Tests pass, never reviewed | L3 STRUCTURAL |
+| Reviewed, files changed since | L3 STRUCTURAL (re-review) |
+| Reviewed, never validated | L7 OPERATIONAL |
+| All complete, no changes | Report "Ready" |
+
+**Focus lenses** propagate to Agent-based layers (L0, L5, L6) adjusting agent priority and confidence thresholds.
+
 ## Layers
 
 | Layer | Name | Tool | Dispatch | Hard Dependency |
 |-------|------|------|---------|----------------|
-| 0 | PREDICTIVE | adversarial-logic, adversarial-quality, adversarial-io-validation, adversarial-security, adversarial-performance, adversarial-testing, adversarial-state-machine | **Agent** | — |
+| 0 | PREDICTIVE | adversarial-logic, adversarial-quality, adversarial-io-validation, adversarial-security, adversarial-performance, adversarial-testing, adversarial-state-machine | **Agent** (skill-level dispatch only — Python layer returns empty list) | — |
 | 1 | SYNTACTIC | ruff, mypy, AI Distiller | Python/CLI | — |
 | 2 | SEMANTIC | verify (pytest), diagnose | Python/CLI | — |
 | 3 | STRUCTURAL | meta-review, harden, apply_safety_patterns | Python/CLI | — |
 | 4 | REQUIREMENTS | gto, spec-compliance | Python/CLI | Layer 2 |
-| 5 | SECURITY | adversarial-security, path traversal check, data-safety-vcs | **Agent** + Python/CLI | — |
-| 6 | PERFORMANCE | perf, adversarial-performance | **Agent** + CLI | — |
+| 5 | SECURITY | adversarial-security, path traversal check, data-safety-vcs | **Agent** + Python/CLI (dispatch via Agent tool, not subprocess) | — |
+| 6 | PERFORMANCE | perf, adversarial-performance | **Agent** + CLI (dispatch via Agent tool, not subprocess) | — |
 | 7 | OPERATIONAL | verify (hook chain), hook-audit, hook-inventory, recursive_failure_detector | Python/CLI | — |
 | META | META-SYNTHESIS | consensus detection, blind-spot detection, evidence quality | Python | All |
 
@@ -56,9 +105,9 @@ State assumption: "Certifying [X] — assumption based on [signal]. Correct?" On
 
 1. **Validate target** via `_validate_target()` utility
 2. **Dispatch Agent-based layers** via `Agent` tool:
-   - L0 (PREDICTIVE): Dispatch `adversarial-logic`, `adversarial-quality`, `adversarial-io-validation`, `adversarial-security`, `adversarial-performance`, `adversarial-testing`, `adversarial-state-machine` agents in parallel
-   - L5 (SECURITY): Dispatch `adversarial-security` agent; run path traversal check via Python utility
-   - L6 (PERFORMANCE): Dispatch `adversarial-performance` agent; run perf checks via Python utility
+   - L0 (PREDICTIVE): Dispatch via `Agent('adversarial-logic')`, `Agent('adversarial-quality')`, etc. from conversation context — NOT via Python subprocess. The Python `layer0_predictive.py` module is a coordination stub that returns empty list; actual agent dispatch happens at skill level.
+   - L5 (SECURITY): Dispatch `Agent('adversarial-security')` from skill context; run path traversal check via Python utility
+   - L6 (PERFORMANCE): Dispatch `Agent('adversarial-performance')` from skill context; run perf checks via Python utility
 3. **Run Python/CLI layers** via Bash subprocess:
    - L1 (SYNTACTIC): `ruff check`, `mypy`
    - L2 (SEMANTIC): `verify` (pytest), `diagnose`
@@ -102,8 +151,13 @@ Every finding includes:
 ## Health Score
 
 ```
-health_score = max(-100, 100 - unique_CRITICAL*20 - unique_HIGH*10 - unique_MEDIUM*5 - unique_LOW*2)
+health_score = max(-100, 100 - Σ(severity_weight × evidence_tier_factor))
 ```
+
+Where:
+- **Severity weights**: CRITICAL=20, HIGH=10, MEDIUM=5, LOW=2
+- **Evidence tier factors**: T1=1.0x, T2=0.75x, T3=0.5x, T4=0.25x
+- **Deduplication key**: (file, line, category, title) — keeping highest severity per key before scoring
 
 Uses **deduplicated** severity counts (D4 deduplication removes consensus duplicates before scoring). Negative scores preserved for catastrophic severity differentiation.
 
@@ -122,9 +176,35 @@ Reports are saved with `chmod 600` (owner-read-write only). Findings do NOT incl
 
 **Layer 2 → Layer 4**: If Layer 2 (SEMANTIC) reports failures, Layer 4 (REQUIREMENTS) **MUST NOT** execute. Skip with warning.
 
-## Graceful Degradation
+## Halt-on-Impact
+
+Severity-based layer halting stops execution after a layer when findings at or above the threshold make continuing pointless.
+
+**How it works:**
+- After each layer completes, the conductor checks: "do raw (non-deduplicated) findings at or above `--halt-on` threshold make continuing pointless?"
+- **HIGH** (default): Halt on any HIGH or CRITICAL findings
+- **CRITICAL**: Halt only on CRITICAL findings
+- **MEDIUM**: Halt on MEDIUM, HIGH, or CRITICAL
+- **NONE**: Run all layers — collect all findings regardless
+
+**Key distinction from health score:**
+- Health score uses **deduplicated** counts (D4 consensus removes duplicates before scoring)
+- Halt-on-impact uses **raw** counts (any CRITICAL/HIGH finding triggers halt, even if another layer also found it)
+
+**Halt behavior:**
+1. Surface all findings from current layer with file:line locations
+2. Emit `[HALT] Layer N completed with X finding(s) exceeding --halt-on threshold`
+3. Report health score based on deduplicated counts
+4. Offer: `/sqa --halt-on NONE` to continue remaining layers
+
+**When halting is NOT triggered:**
+- `--halt-on HIGH`: MEDIUM and LOW findings alone do not halt
+- L4 (REQUIREMENTS) still skips if L2 had pytest failures (hard dependency, no flag override)
+- L7 findings at any severity do not halt (OPERATIONAL is the final actionable layer)
 
 If a layer's tool is unavailable and it is NOT a hard dependency for a subsequent layer, skip with warning and continue.
+
+## Graceful Degradation
 
 **ALL-tools-unavailable behavior**: If ALL tools for a layer are unavailable, log `ERROR: All tools unavailable for Layer N — cannot proceed` and skip all remaining layers.
 
@@ -198,6 +278,32 @@ Consensus detection (2+ layers agree on same file:line:category).
 Blind-spot detection (no coverage for a quality category when layer WAS available but found nothing — NOT when layer was skipped via D5).
 Evidence quality check per `evidence-tiers`.
 Flag when a packet exists but is ignored, when prose and packet disagree, or when a packet is too underspecified to certify.
+
+## Auto-Fix Mode
+
+**`--fix`**: Auto-fix safe issues in L1/L2:
+- Formatting (`ruff format`)
+- Unused imports (`ruff --fix`)
+- Lint violations (`ruff --fix`)
+
+**Excluded from auto-fix**: logic errors, security issues, type mismatches, architectural changes.
+
+**`--fix-all`** (iterative fix loop):
+```
+WHILE MEDIUM+ findings exist (max 5 iterations):
+  1. /sqa runs detection (layers)
+  2. /sqa parses findings by severity
+  3. IF MEDIUM+ findings exist:
+     - /sqa invokes /code with SPECIFIC issues to fix
+     - /code fixes ONLY those specific issues
+     - Record fixes applied
+  4. ELSE: EXIT LOOP — quality threshold met
+  5. SAFETY: Max 5 iterations
+```
+
+**Convergence criteria**: 0 CRITICAL, 0 HIGH, 0 MEDIUM findings (LOW ignored).
+
+**Division of labor**: `/sqa` does detection; `/code` does fixing.
 
 ## Routing Behavior
 

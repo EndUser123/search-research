@@ -1,6 +1,6 @@
 ---
 name: retro
-description: SELF-CONTRAST orchestrator — retrospective → analysis → validation → action
+description: Identify what went wrong, what went right, and what to do differently next time. Chains 5 skills: recap → gap analysis → opportunities → adversarial review → actions.
 version: 1.0.0
 triggers:
   - "retro"
@@ -91,6 +91,23 @@ When SCORES reveals weakness:
 2. Incorporate critique findings into GAPS
 3. Re-score with critique data
 4. Proceed to ACTIONS only after gaps are addressed or deferred
+
+## Retrospective-Integrity Prompts
+
+Before finalizing the retrospective, `/retro` should run a short internal retrospective-integrity check:
+
+- What did we treat as a process win even though the outcome was suboptimal?
+- What gap or opportunity is duplicated across `/recap`, `/gto`, `/ideas`, `/pre-mortem`, and `/rns` rather than being synthesized once?
+- What score is being inflated or deflated without strong evidence from the chained skills?
+- What action list would mis-sequence work by treating symptoms as the primary problem?
+- What recommendation becomes misleading if the adversarial review surfaced a deeper failure mode?
+- What positive takeaway is actually a workaround that should not be repeated?
+- What would a weaker model smooth over instead of preserving as a real tradeoff or unresolved tension?
+- What step in the chain returned weak or partial evidence, and did I compensate for that explicitly?
+- What ownership boundary is still unclear between architecture, planning, verification, and implementation?
+- What would make this retro feel complete while still teaching the wrong lesson?
+
+These are internal self-check prompts. They are not default user-facing questions and should only surface to the user when `/retro` is genuinely blocked and cannot proceed safely without clarification.
 
 ## Constraints
 

@@ -33,6 +33,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -40,48 +41,16 @@ from typing import Any
 from posttooluse.base import PostToolUseHook
 
 
+@dataclass
+class DeferredEdit:
+    """A single Edit queued for batch verification."""
+    file_path: str
+    old_string: str
+    tool_input: dict[str, Any]
+    queued_at: datetime
+
+
 class ReflexionVerifier(PostToolUseHook):
-    """
-    Zero-friction write verification with Reflexion-style auto-healing.
-
-    Philosophy:
-    - NEVER block for fixable issues (inject self-healing prompt instead)
-    - ONLY block on critical unfixable errors (syntax that prevents execution)
-    - ALWAYS read from disk (never trust Write/Edit input)
-    - RECORD evidence for Stop hooks (post_edit_readbacks)
-    - SKIP binary files (prevent silent corruption)
-    - RESPECT size limits (prevent OOM)
-    """
-
-    env_var = "REFLEXION_VERIFIER_ENABLED"
-    default_enabled = True
-
-    # Only verify code files
-    tool_matcher = {"Write", "Edit", "MultiEdit"}
-
-    # Code file extensions
-    CODE_EXTENSIONS = {".py", ".js", ".ts", ".tsx", ".jsx", ".java", ".go", ".rs"}
-
-    # Binary file extensions (skip verification to prevent corruption)
-    BINARY_EXTENSIONS = {
-        # Images
-        ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".webp", ".svg",
-        # Audio/Video
-        ".mp3", ".mp4", ".wav", ".avi", ".mov", ".flv", ".mkv", ".webm",
-        # Archives/Compressed
-        ".zip", ".tar", ".gz", ".rar", ".7z", ".bz2", ".xz", ".tar.gz",
-        # Compiled/Executables
-        ".exe", ".dll", ".so", ".dylib", ".a", ".lib", ".o", ".obj",
-        ".pyc", ".pyo", ".pyd",
-        # Data formats
-        ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
-        # Database
-        ".db", ".sqlite", ".sqlite3",
-        # Fonts
-        ".ttf", ".otf", ".woff", ".woff2", ".eot",
-    }
-
-    # Structured data files (require semantic validation)
     STRUCTURED_DATA_EXTENSIONS = {".json", ".yaml", ".yml"}
 
     # Max retry iterations for self-healing
@@ -92,6 +61,21 @@ class ReflexionVerifier(PostToolUseHook):
 
     # Maximum file size to verify (10 MB) - prevents OOM
     MAX_FILE_SIZE = 10 * 1024 * 1024
+
+    # Flush triggers
+    _IDLE_FLUSH_SECONDS = 5.0
+
+    # Binary file extensions to skip
+    BINARY_EXTENSIONS = {
+        ".exe", ".dll", ".so", ".dylib", ".bin", ".obj",
+        ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".webp",
+        ".pdf", ".zip", ".gz", ".tar", ".rar", ".7z",
+        ".mp3", ".mp4", ".avi", ".mov", ".mkv", ".webm",
+        ".woff", ".woff2", ".ttf", ".eot", ".otf",
+    }
+
+    # Code file extensions to verify
+    CODE_EXTENSIONS = {".py", ".js", ".ts", ".tsx", ".jsx", ".java", ".go", ".rs"}
 
     def __init__(self):
         super().__init__()
@@ -119,6 +103,26 @@ class ReflexionVerifier(PostToolUseHook):
             "injection": None,
             "post_edit_readbacks": [],
         }
+
+        # FLUSH SENTINEL: tool_name "" signals end of task — flush all deferred
+        if not tool_name:
+            if hasattr(self, "_deferred_verifies"):
+                for key in list(self._deferred_verifies.keys()):
+                    self._flush_deferred_verifies(key)
+            return result
+
+        # P0: Check for idle timeout flush on previously-seen files
+        import time as _time
+        if hasattr(self, "_idle_timestamps"):
+            for key, last_ts in list(self._idle_timestamps.items()):
+                if last_ts > 0 and (_time.time() - last_ts) > self._IDLE_FLUSH_SECONDS:
+                    # Resolve path from key to get file_path
+                    p = Path(key)
+                    issues = self._flush_deferred_verifies(str(p))
+                    if issues:
+                        # Inject the failure as a warning (non-blocking)
+                        result["status"] = "FAIL"
+                        result["injection"] = self._format_injection(key, issues)
 
         file_path = tool_input.get("file_path", "")
         if not file_path:
@@ -592,50 +596,80 @@ class ReflexionVerifier(PostToolUseHook):
         if not old_string:
             return None
 
-        # SECURITY CHECK: old_string must be removed
-        # This catches "edit claimed but old content remains" bugs
-        if old_string in actual_content:
-            # EXCEPTION: Check if ruff/auto-formatter likely reverted the edit
-            # Pattern: Adding an import that ruff removes as "unused"
-            # This happens when:
-            # 1. Edit adds "import X" to imports section
-            # 2. Ruff runs and removes "import X" because it's not used yet in the code
-            # 3. Verification fails because old_string still present
+        key = str(Path(file_path).resolve())
 
-            # Detect if old_string looks like an import addition that ruff would remove
-            import_patterns = [
-                "import ",  # Matches "import json", "import re", etc.
-                "from ",    # Matches "from module import", etc.
-            ]
+        # Initialize deferred buffer and idle tracker on first Edit to this file
+        if not hasattr(self, "_deferred_verifies"):
+            self._deferred_verifies: dict[str, list[DeferredEdit]] = {}
+        if not hasattr(self, "_idle_timestamps"):
+            self._idle_timestamps: dict[str, float] = {}
 
-            # Check if old_string is adding an import line
-            is_import_addition = any(
-                pattern in old_string.lower()
-                for pattern in import_patterns
+        # Check if we should flush due to idle timeout (same file, > 5s since last Edit)
+        import time as _time
+        last_ts = self._idle_timestamps.get(key, 0)
+        if last_ts > 0 and (_time.time() - last_ts) > self._IDLE_FLUSH_SECONDS:
+            # Idle timeout — flush pending verifications for this file
+            self._flush_deferred_verifies(file_path)
+
+        # Buffer this Edit for deferred verification
+        deferred = DeferredEdit(
+            file_path=file_path,
+            old_string=old_string,
+            tool_input=tool_input,
+            queued_at=datetime.now(UTC),
+        )
+        self._deferred_verifies.setdefault(key, []).append(deferred)
+        self._idle_timestamps[key] = _time.time()
+
+        # Returning None = skip immediate verification, defer to flush
+        return None
+
+    def _flush_deferred_verifies(self, file_path: str) -> list[dict[str, Any]]:
+        """
+        Flush all deferred verifications for file_path, newest-to-oldest.
+
+        Returns list of issue dicts (same shape as _verify_edit_operation returns).
+        """
+        key = str(Path(file_path).resolve())
+        deferred_list = self._deferred_verifies.get(key, [])
+        if not deferred_list:
+            return []
+
+        # Clear buffer immediately — prevent double-flush on recursive call
+        del self._deferred_verifies[key]
+
+        # Remove idle tracker
+        self._idle_timestamps.pop(key, None)
+
+        # Sort newest-first: most recent old_string verified first
+        deferred_list.sort(key=lambda d: d.queued_at, reverse=True)
+
+        issues: list[dict[str, Any]] = []
+        # Read file ONCE for all verifications
+        actual_content = self._read_file_from_disk(file_path) or ""
+
+        for deferred in deferred_list:
+            old_string = deferred.old_string
+            if old_string not in actual_content:
+                # old_string correctly absent — pass
+                continue
+
+            # Exception: ruff removed a standalone import addition
+            is_import_addition = (
+                len(old_string.strip().split("\n")) == 1
+                and ("import " in old_string.lower() or old_string.strip().startswith("from "))
             )
+            if is_import_addition:
+                continue
 
-            # Check if old_string is a standalone import line (not part of larger code)
-            is_standalone_import = (
-                is_import_addition and
-                len(old_string.strip().split("\n")) == 1  # Single line
-            )
-
-            if is_standalone_import:
-                # This is likely a ruff false positive - skip verification
-                # Ruff removes "unused" imports automatically, which is correct behavior
-                # We should not block on this - the import will be added when actually used
-                return None
-
-            # Real verification failure - old_string should have been removed
-            return {
+            issues.append({
                 "type": "EDIT_VERIFICATION_FAILED",
                 "severity": "HIGH",
-                "message": "Edit verification failed: old_string still present in file after Edit operation",
-                "details": "The claimed edit may not have been applied correctly",
-            }
+                "message": "Deferred edit verification failed: old_string still present after batch of edits",
+                "details": f"old_string: {old_string[:100]!r}",
+            })
 
-        # Skip new_string verification - Edit tool itself verifies file writes
-        return None
+        return issues
 
     def _record_evidence(self, file_path: str, content: str, tool_name: str) -> None:
         """

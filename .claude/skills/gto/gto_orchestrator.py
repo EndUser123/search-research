@@ -38,6 +38,7 @@ try:
         get_state_manager,
         track_gap_resolutions,
     )
+    from .lib.session_memoizer import SessionMemoizer, _build_chain_signature
 except ImportError:
     # When imported directly (e.g., in tests), import from lib
     from lib import (
@@ -61,6 +62,7 @@ except ImportError:
         get_state_manager,
         track_gap_resolutions,
     )
+    from lib.session_memoizer import SessionMemoizer, _build_chain_signature
 
 # Import skill coverage detector - handle both package and direct import
 try:
@@ -152,8 +154,9 @@ def _get_default_terminal_id() -> str:
     try:
         import sys
 
+        # P:/packages/search-research — resolved relative to this file's location
         search_research_root = (
-            Path(__file__).parent.parent.parent / "packages" / "search-research" / "src"
+            Path(__file__).parent.parent.parent.parent / "packages" / "search-research"
         )
         if str(search_research_root) not in sys.path:
             sys.path.insert(0, str(search_research_root))
@@ -555,32 +558,43 @@ class GTOOrchestrator:
         # Collect Python files for targeted analysis (avoid broad directory scans)
         python_files = self._collect_python_files_for_analysis()
 
-        # Write file contents to a temp directory (avoids Windows command-line limits)
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_path = Path(tmp_dir)
+        # Write files to a temp subdirectory WITHIN project_root so claude -p
+        # subprocess can access them (Read tool restricted to project dir)
+        import uuid
+        tmp_subdir = f".claude/gto-temp-{uuid.uuid4().hex[:8]}"
+        tmp_path = self.project_root / tmp_subdir
+
+        try:
+            tmp_path.mkdir(parents=True, exist_ok=True)
 
             # Write each file to temp directory preserving structure
+            written_files: list[Path] = []
             for pf in python_files:
                 try:
                     content = pf.read_text(encoding="utf-8", errors="replace")
-                    # Create relative path structure
-                    rel_path = pf.as_posix().replace(":", "_").replace("/", "_").replace("\\", "_")
+                    # Create relative path structure preserving directory hierarchy
+                    # e.g. "P:/.claude/skills/gto/lib/session_memoizer.py" -> ".claude/skills/gto/lib/session_memoizer.py"
+                    posix = pf.as_posix()  # e.g. "P:/ .claude/skills/gto/lib/session_memoizer.py"
+                    rest = posix[3:].replace(":", "")  # strip "P:/" -> ".claude/skills/gto/lib/session_memoizer.py"
+                    rel_path = Path(rest)
                     out_file = tmp_path / rel_path
                     out_file.parent.mkdir(parents=True, exist_ok=True)
                     out_file.write_text(content, encoding="utf-8")
+                    written_files.append(out_file)
                 except OSError as e:
                     logger.warning("Failed to write temp file for %s: %s", pf, e)
 
-            # Build file list for prompt
-            file_list = "\n".join(f"  - {f.as_posix()}" for f in python_files)
+            # Build file list from actual written paths (mangled to match on-disk names)
+            file_list = "\n".join(f"  - {f.as_posix()}" for f in written_files)
 
             # Dispatch each agent via claude -p --agent
             for agent_key, agent_name in agents:
                 logger.info("Dispatching %s adversarial agent...", agent_name)
 
                 # Build prompt with file paths
+                output_path = (tmp_path / "findings.json").as_posix()
                 prompt = self._build_correctness_prompt(
-                    agent_name, agent_key, tmp_path.as_posix(), file_list
+                    agent_name, agent_key, tmp_path.as_posix(), file_list, output_path
                 )
 
                 try:
@@ -612,9 +626,13 @@ class GTOOrchestrator:
 
                     stdout, stderr = proc.communicate(timeout=300)  # 5 minute timeout per agent
 
-                    if proc.returncode != 0:
+                    stdout_text = stdout.decode("utf-8", errors="replace")
+
+                    # Correctness agents return exit code 1 when they find issues,
+                    # 0 when no issues found. Exit code 1 is NOT a failure.
+                    if proc.returncode not in (0, 1):
                         logger.warning(
-                            "Agent %s exited with code %d: %s",
+                            "Agent %s exited with unexpected code %d: %s",
                             agent_name,
                             proc.returncode,
                             stderr.decode("utf-8", errors="replace")[:200],
@@ -622,8 +640,7 @@ class GTOOrchestrator:
                         results[agent_key] = []
                         continue
 
-                    # Parse JSON from stdout
-                    stdout_text = stdout.decode("utf-8", errors="replace")
+                    # Parse JSON from stdout (pipe mode outputs text, not files)
                     gaps = self._parse_json_from_stdout(stdout_text, agent_key)
                     results[agent_key] = gaps
                     logger.info("Loaded %d correctness gaps from %s", len(gaps), agent_name)
@@ -635,6 +652,14 @@ class GTOOrchestrator:
                 except Exception as e:
                     logger.warning("Failed to dispatch %s agent: %s", agent_name, e)
                     results[agent_key] = []
+
+        finally:
+            # Clean up temp directory
+            import shutil
+            try:
+                shutil.rmtree(tmp_path)
+            except OSError:
+                pass
 
         return results
 
@@ -667,6 +692,7 @@ class GTOOrchestrator:
         agent_key: str,
         base_dir: str,
         file_list: str,
+        output_path: str,
     ) -> str:
         """Build targeted prompt for correctness agent.
 
@@ -695,9 +721,11 @@ Files to analyze:
 Focus areas:
   - {agent_name}: {focus}
 
-IMPORTANT: Read each file using the Read tool, analyze it, then output your findings as JSON directly (do not write to a file).
+IMPORTANT: Read each file using the Read tool, analyze it.
 
-Output your findings as JSON with this exact structure:
+Output your findings as COMPLETE VALID JSON directly to stdout (which will be captured). Write NO prose before or after the JSON — only the JSON object.
+
+JSON format:
 {{
   "findings": [
     {{
@@ -771,6 +799,19 @@ If you find no issues, output: {{"findings": []}}
 """
 
         return prompt
+
+    def _parse_json_from_file(self, file_path: Path, agent_key: str) -> list[Gap]:
+        """Parse JSON findings from agent output file."""
+        try:
+            text = file_path.read_text(encoding="utf-8", errors="replace")
+            return self._parse_json_from_stdout(text, agent_key)
+        except FileNotFoundError:
+            logger.warning("Agent output file not found: %s", file_path)
+            return []
+        except Exception as e:
+            logger.warning("Failed to read agent output file %s: %s", file_path, e)
+            return []
+
 
     def _parse_json_from_stdout(self, stdout_text: str, agent_key: str) -> list[Gap]:
         """Parse JSON findings from agent stdout text.
@@ -953,9 +994,8 @@ If you find no issues, output: {{"findings": []}}
         # Uses parentUuid chain in history.jsonl instead of fragile .jsonl transcript_path links
         chain_result = None
         try:
-            # The pyproject.toml package-dir mapping routes 'search_research' -> 'core/',
-            # so 'search_research.session_chain' resolves to 'core/session_chain.py'.
-            from search_research.session_chain import walk_session_chain
+            # Directly from core/ since search_research.session_chain doesn't exist as a module.
+            from core.session_chain import walk_session_chain
 
             # Resolve session_id from transcript_path for walk_chain_simple
             session_id_for_chain: str | None = None
@@ -1001,7 +1041,27 @@ If you find no issues, output: {{"findings": []}}
                 logger.warning("Single-transcript fallback analysis failed: %s", e)
                 return None
 
-        # Invoke SessionChainAnalyzer with critique loop (max 2 reruns)
+        # Session memoization: check cache before running expensive LLM analysis
+        memoizer = SessionMemoizer()
+        chain_signature = _build_chain_signature(chain_result.entries) if chain_result.entries else ""
+
+        cached_result, missed_sessions = memoizer.get_cached_chain_result(chain_result.entries)
+        if cached_result is not None:
+            logger.info(
+                "Session chain analysis cache HIT — skipping LLM call for chain %s",
+                chain_signature[:40] if chain_signature else "?",
+            )
+            # Reconstruct ChainAnalysisResult from cached dict
+            return ChainAnalysisResult(
+                focus=cached_result.get("focus", ""),
+                phase=cached_result.get("phase", ""),
+                next_steps=cached_result.get("next_steps", []),
+                confidence=float(cached_result.get("confidence", 0.0)),
+                error=cached_result.get("error"),
+                transcripts_processed=cached_result.get("transcripts_processed", 0),
+            )
+
+        # Cache miss — run the full analysis with critique loop (max 2 reruns)
         analyzer = SessionChainAnalyzer(self.project_root)
         max_reruns = 2
         analysis: ChainAnalysisResult | None = None
@@ -1026,6 +1086,39 @@ If you find no issues, output: {{"findings": []}}
                 analysis = self._rerun_chain_analysis(
                     analyzer, chain_result, recent_query, feedback
                 )
+
+        # Cache the successful result keyed to the current session
+        if analysis is not None and chain_result.entries:
+            current_entry = chain_result.entries[-1]
+            current_session_id = getattr(current_entry, "session_id", None) or (
+                current_entry.get("sessionId") if isinstance(current_entry, dict) else None
+            )
+            current_transcript_path = (
+                getattr(current_entry, "transcript_path", None)
+                or (current_entry.get("transcriptPath") if isinstance(current_entry, dict) else None)
+            )
+            if current_session_id and current_transcript_path:
+                try:
+                    memoizer.cache_session_result(
+                        session_id=current_session_id,
+                        transcript_path=(
+                            current_transcript_path
+                            if isinstance(current_transcript_path, Path)
+                            else Path(current_transcript_path)
+                        ),
+                        chain_depth=chain_result.depth,
+                        chain_signature=chain_signature,
+                        result={
+                            "focus": analysis.focus,
+                            "phase": analysis.phase,
+                            "next_steps": analysis.next_steps,
+                            "confidence": analysis.confidence,
+                            "error": analysis.error,
+                            "transcripts_processed": analysis.transcripts_processed,
+                        },
+                    )
+                except Exception as e:
+                    logger.warning("Session chain analysis cache write failed: %s", e)
 
         return analysis
 

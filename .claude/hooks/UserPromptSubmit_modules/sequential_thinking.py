@@ -3,7 +3,7 @@
 Detects complex/analytical intent in user prompts and creates state files for
 sequential thinking sessions. Provides multi-terminal safety via terminal_id field.
 
-Trigger patterns (intent-based — match naturally typed requests):
+Trigger patterns (intent-based - match naturally typed requests):
 - Analysis & evaluation: analyze, evaluate, assess, examine, investigate, review, explain, understand
 - Problem-solving: debug, diagnose, troubleshoot, identify issue/bug/cause
 - Design decisions: should I/we..., compare/contrast, which approach/option
@@ -18,8 +18,8 @@ Guards:
 
 Semantic Detection (RAM Optimization):
 - Uses unified_semantic_daemon for shared sentence-transformer model across terminals
-- RAM: ~90MB per terminal → ~100MB shared total
-- Fallback chain: daemon IPC → direct SentenceTransformer → regex-only
+- RAM: ~90MB per terminal -> ~100MB shared total
+- Fallback chain: daemon IPC -> direct SentenceTransformer -> regex-only
 - Threshold: >0.70 strong match (trigger), 0.50-0.70 partial (secondary signal)
 """
 
@@ -40,7 +40,7 @@ if str(_HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(_HOOKS_DIR))
 
 from __lib.sequential_state import create_state  # noqa: E402
-from UserPromptSubmit_modules.sequential_thinking_semantic_client import (
+from UserPromptSubmit_modules.sequential_thinking_semantic_client import (  # noqa: E402
     compute_similarity,
 )
 from UserPromptSubmit_modules.tag_emission import emit_tag  # noqa: E402
@@ -95,22 +95,6 @@ def _should_trigger_semantic(prompt: str) -> tuple[bool | None, Optional[str]]:
 
 
 # Thresholds for multi-signal gating
-#
-# Hard floor (15 chars): Minimum length for any analytical phrase.
-#   - "debug the code" = 14 chars (too short)
-#   - "analyze code AB" = 15 chars (exactly at floor, blocked)
-#   - Rationale: Below 15 chars, even analytical keywords are likely casual or
-#     incomplete thoughts that don't warrant a multi-step thinking process.
-#
-# Soft floor (40 chars): Threshold for requiring 2+ signals (pattern + technical depth).
-#   - "why does the connection timing out" = 36 chars (needs technical depth)
-#   - "analyze this architecture for scalability" = 42 chars (single pattern sufficient)
-#   - Rationale: Prompts between 15-40 chars are ambiguous - they might be genuine
-#     analytical queries or casual questions. Requiring a technical indicator
-#     (e.g., "error", "issue", "architecture") as a second signal filters false positives.
-#
-# These thresholds were calibrated against test cases in test_sequential_thinking_hooks.py
-# and represent a balance between catching genuine analytical intent and avoiding noise.
 _HARD_FLOOR = 15  # Never trigger below this
 _SOFT_FLOOR = 30  # Require 2+ signals below this (lowered from 40 for question patterns)
 
@@ -120,7 +104,6 @@ assert _HARD_FLOOR < _SOFT_FLOOR, (
 )
 
 # Negative patterns that prevent triggering even if positive pattern matches
-# These catch config values, trivial questions, and false positives
 _NEGATIVE_PATTERNS = [
     r"debug\s*(?:mode|flag|level)\s*[:=]",  # "debug mode: true", "debug flag = 1"
     r"debug\s*(?:enabled|disabled|on|off)",  # "debug enabled", "debug off"
@@ -130,95 +113,17 @@ _NEGATIVE_PATTERNS = [
 ]
 
 # Technical depth indicators that signal genuine analytical intent
-#
-# OVER-MATCHING RISK: Some indicators are broad (e.g., "code", "load", "out")
-# and may match non-analytical prompts like "show me the code" or "help me out".
-# These are kept because:
-#   1. They're used as a SECONDARY signal (pattern match is required first)
-#   2. The negative patterns filter common false positives
-#   3. Short prompts (<40 chars) require 2+ signals, reducing false triggers
-#
-# If false positives increase, consider:
-#   - Removing overly generic terms ("out", "best", "works")
-#   - Adding context requirements (e.g., require "code" + "analyze" together)
-#   - Monitoring trigger logs for patterns to add to _NEGATIVE_PATTERNS
 _TECHNICAL_INDICATORS = [
-    "because",
-    "issue",
-    "problem",
-    "error",
-    "fails",
-    "bug",
-    "unexpected",
-    "broken",
-    "crash",
-    "exception",
-    "traceback",
-    "incorrect",
-    "wrong",
-    "difference",
-    "compare",
-    "versus",
-    "vs",
-    "tradeoff",
-    "alternative",
-    "better",
-    "optimize",
-    "improve",
-    "refactor",
-    "architecture",
-    "design",
-    "pattern",
-    # Additional indicators for short prompts that are genuinely analytical
-    "code",
-    "function",
-    "module",
-    "service",
-    "api",
-    "root",
-    "cause",
-    "risk",
-    "security",
-    "performance",
-    "detail",
-    "option",
-    "approach",
-    "method",
-    # Strategy and efficiency indicators
-    "strategy",
-    "way",
-    "efficient",
-    "coupling",
-    "scale",
-    "scalable",
-    "best",
-    "works",
-    "handles",
-    "reduces",
-    "edge case",
-    "mechanism",
-    # System and infrastructure indicators
-    "load",
-    "connection",
-    "timing",
-    "out",
-    "timeout",
-    "distributed",
-    "database",
-    "migration",
-    "deadlock",
-    "consistency",
-    "flow",
-    "leak",
-    "memory",
-    "intermittent",
-    "limit",
-    "rate",
-    "safely",
-    "profile",
-    "concern",
-    "inject",
-    "dependency",
+    "because", "issue", "problem", "error", "fails", "bug", "unexpected", "broken",
+    "crash", "exception", "traceback", "incorrect", "wrong", "difference", "compare",
+    "versus", "vs", "tradeoff", "alternative", "better", "optimize", "improve",
+    "refactor", "architecture", "design", "pattern", "code", "function", "module",
+    "service", "api", "root", "cause", "risk", "security", "performance", "detail",
+    "option", "approach", "method", "strategy", "way", "efficient", "coupling",
+    "scale", "scalable", "best", "works", "handles", "reduces", "edge case", "mechanism",
+    "load", "connection", "timing", "out", "timeout", "distributed", "database",
+    "migration", "deadlock", "consistency", "flow", "leak", "memory", "intermittent",
+    "limit", "rate", "safely", "profile", "concern", "inject", "dependency",
 ]
 
 SEQUENTIAL_THINKING_PATTERNS = [
@@ -235,7 +140,7 @@ SEQUENTIAL_THINKING_PATTERNS = [
     r"\b(?:design|architect|refactor|restructure)\b.{0,40}\b(?:system|service|module|api|schema)\b",
     # Complex explanation of mechanisms (added: negations, "how come", contractions)
     r"\b(?:why\s+(?:does|is|do|are|doesn't|isn't|don't|aren't|won't|can't)|how\s+(?:does|do|would|should|come))\b.{10,}",
-    # Interrogative patterns — questions are the natural trigger for "think before answering"
+    # Interrogative patterns
     r"\bwhat\s+(?:is|are|does|do|can|should|would|could|will)\b",
     r"\bhow\s+(?:does|do|can|should|would|could|to|come)\b",
     r"\bwhy\s+(?:does|is|do|are|was|were|has|have|should)\b",
@@ -246,6 +151,34 @@ SEQUENTIAL_THINKING_PATTERNS = [
     # Whether questions (meta-analytical: whether X should/does/could)
     r"\bwhether\s+(?:this|that|it|we|I|they)\s+(?:should|would|could|might)\b",
 ]
+
+# Hypothesis mode trigger patterns
+HYPOTHESIS_MODE_PATTERNS = [
+    r"\bmaintain\s+multiple\s+hypotheses\b",
+    r"\bcompeting\s+hypotheses\b",
+    r"\bparallel\s+explanations\b",
+    r"\bwhat\s+(?:are|could\s+be)\s+(?:the\s+)?(?:possible|alternative)\s+explanations\b",
+]
+
+# Investigation intent pattern for Layer 2 "Investigation Mode"
+_INVESTIGATION_RE = re.compile(
+    r"\b(debug|investigate|diagnose|analyze|explain\s+why|root\s+cause|"
+    r"figure\s+out|what's\s+wrong|what\s+caused|troubleshoot|"
+    r"why\s+does|why\s+is|why\s+did|how\s+does|what\s+happens|"
+    r"characterize|classify|problem\s+domain|investigation)\b",
+    re.IGNORECASE,
+)
+
+# Proactive Investigation Mode Instructions (Layer 2)
+_INVESTIGATION_INSTRUCTIONS = (
+    "I'll follow the proactive 'Hypotheses → Testing → Conclusion' workflow:\n\n"
+    "1. **Hypotheses** (iteration 0): Generate 3+ alternative hypotheses. For each, state:\n"
+    "   - → [Hypothesis Name]\n"
+    "   - What evidence would CONFIRM (✓) or FALSIFY (✗) it\n"
+    "2. **Testing** (iteration 1): Systematically test each hypothesis using tools.\n"
+    "3. **Conclusion** (iteration 2): Declare root cause only after ≥2 hypotheses are tested.\n\n"
+    "**STATUS KEY**: → Untested | ✓ Confirmed | ✗ Falsified"
+)
 
 
 def _extract_trigger_phrase(prompt: str, pattern: str) -> str:
@@ -270,20 +203,30 @@ def _has_technical_depth(prompt: str) -> bool:
 
 @register_hook("sequential_thinking", priority=8.5)
 def sequential_thinking_hook(context: HookContext) -> HookResult:
-    """Detect sequential thinking triggers and inject session context.
-
-    Uses hybrid detection:
-    1. Regex patterns (primary signal)
-    2. Semantic similarity (secondary signal - boosts confidence for partial regex matches)
-    3. Technical depth indicators (additional signal for short prompts)
-    """
-    # Skip skill invocations — they have their own explicit path
+    """Detect sequential thinking triggers and inject session context."""
+    # Skip skill invocations
     if context.prompt.strip().startswith("/"):
         return HookResult.empty()
 
     prompt = context.prompt
     prompt_lower = prompt.lower()
     terminal_id = context.terminal_id or ""
+
+    # Detect investigation mode (Layer 2)
+    is_investigation = bool(_INVESTIGATION_RE.search(prompt_lower))
+
+    # Detect hypothesis mode
+    is_hypothesis_mode = False
+    for pattern in HYPOTHESIS_MODE_PATTERNS:
+        if re.search(pattern, prompt_lower):
+            is_hypothesis_mode = True
+            break
+
+    # Hypothesis mode supersedes investigation — both should never be true.
+    # ARCH-001: Modes serve different purposes; hypothesis mode prevents overfitting,
+    # investigation mode provides structured RCA/debugging workflow.
+    if is_hypothesis_mode:
+        is_investigation = False
 
     # Check for positive pattern match first
     matched_pattern = None
@@ -300,37 +243,48 @@ def sequential_thinking_hook(context: HookContext) -> HookResult:
         semantic_triggered = sem_result is True
         semantic_phrase = sem_phrase
     except Exception:
-        # If semantic detection fails, fall back to regex-only behavior
         semantic_triggered = False
         semantic_phrase = None
 
     # If neither regex nor semantic triggered, don't trigger
-    if not matched_pattern and not semantic_triggered:
+    if not matched_pattern and not semantic_triggered and not is_hypothesis_mode:
         return HookResult.empty()
 
-    # Apply gating logic with combined signals
-    # - Regex strong signal: pattern matched + gating passed
-    # - Semantic boost: pattern matched + semantic partial match + gating passed
-    # - Direct semantic: semantic strong match (bypasses gating for short prompts)
+    # Apply gating logic
     prompt_len = len(prompt.strip())
 
-    # Check negative patterns first (applies to all lengths)
     if _matches_negative_pattern(prompt):
         return HookResult.empty()
 
-    # Hard floor: never trigger at 15 chars or below
     if prompt_len <= _HARD_FLOOR:
         return HookResult.empty()
 
-    # Strong semantic match (>0.70) triggers directly - BUT still must pass hard floor
-    # (hard floor already checked above at line 408-410)
-    if semantic_triggered and not matched_pattern:
-        # Direct semantic trigger - use semantic phrase
-        # Hard floor already verified (line 408-410 runs before this branch)
-        session_id = uuid.uuid4()
-        trigger_phrase = semantic_phrase or "semantic similarity match"
-        create_state(session_id, trigger_phrase, terminal_id)
+    # Injection formatting helper
+    def _get_injection(session_id: uuid.UUID, trigger_phrase: str, is_investigation: bool, is_hypothesis_mode: bool) -> HookResult:
+        metadata = {"is_investigation": is_investigation}
+        if is_hypothesis_mode:
+            metadata["hypothesis_mode"] = True
+            metadata["max_iterations"] = 2
+
+        create_state(session_id, trigger_phrase, terminal_id, metadata)
         seq_tag = emit_tag("SEQ")
+
+        if is_hypothesis_mode:
+            mode_text = "multi_hypothesis"
+            instructions = (
+                "I'll maintain 2-3 competing explanations throughout this investigation, "
+                "evaluating each against evidence before synthesizing the best answer."
+            )
+        elif is_investigation:
+            mode_text = "investigation"
+            instructions = _INVESTIGATION_INSTRUCTIONS
+        else:
+            mode_text = "initial"
+            instructions = (
+                "I'll approach this step-by-step, then critically analyze my answer, "
+                "and finally improve my reasoning based on the critique."
+            )
+
         tag_header = (
             f"{seq_tag}\n"
             f"**TAG EMISSION REQUIRED**: Begin your response with the [SEQ] tag above "
@@ -341,104 +295,49 @@ def sequential_thinking_hook(context: HookContext) -> HookResult:
             f"<sequential_thinking>\n"
             f"Session ID: {session_id}\n"
             f"Trigger: {trigger_phrase}\n"
-            f"Mode: initial (iteration 0 of 2)\n"
+            f"Mode: {mode_text} (iteration 0 of 2)\n"
             f"</sequential_thinking>\n\n"
-            f"I'll approach this step-by-step, then critically analyze my answer, "
-            f"and finally improve my reasoning based on the critique.\n"
+            f"{instructions}\n"
         )
         return HookResult(context=injection, tokens=200)
 
-    # Above soft floor: single signal sufficient (regex OR semantic strong)
+    # Hypothesis mode trigger (highest priority)
+    if is_hypothesis_mode:
+        return _get_injection(uuid.uuid4(), "hypothesis mode trigger", False, True)
+
+    # Strong semantic match (>0.70)
+    if semantic_triggered and not matched_pattern:
+        return _get_injection(uuid.uuid4(), semantic_phrase or "semantic similarity match", is_investigation, False)
+
+    # Above soft floor
     if prompt_len >= _SOFT_FLOOR:
         if matched_pattern or semantic_triggered:
-            session_id = uuid.uuid4()
             trigger_phrase = (
                 _extract_trigger_phrase(prompt, matched_pattern)
                 if matched_pattern
                 else (semantic_phrase or "semantic similarity match")
             )
-            create_state(session_id, trigger_phrase, terminal_id)
-            seq_tag = emit_tag("SEQ")
-            tag_header = (
-                f"{seq_tag}\n"
-                f"**TAG EMISSION REQUIRED**: Begin your response with the [SEQ] tag above "
-                f"to indicate active sequential reasoning mode.\n\n"
-            )
-            injection = (
-                f"{tag_header}"
-                f"<sequential_thinking>\n"
-                f"Session ID: {session_id}\n"
-                f"Trigger: {trigger_phrase}\n"
-                f"Mode: initial (iteration 0 of 2)\n"
-                f"</sequential_thinking>\n\n"
-                f"I'll approach this step-by-step, then critically analyze my answer, "
-                f"and finally improve my reasoning based on the critique.\n"
-            )
-            return HookResult(context=injection, tokens=200)
+            return _get_injection(uuid.uuid4(), trigger_phrase, is_investigation, False)
 
-    # Soft floor zone (15-30 chars): require 2+ signals
-    # BUT semantic partial match does NOT help interrogatives - they need technical depth
-    # Interrogatives (what/how/when/where/can/could/would/should) are casual questions
-    # that shouldn't trigger just because they're semantically similar to an analytical question
-    _INTERROGATIVE_KEYWORDS = [
-        "should",
-        "can",
-        "could",
-        "would",
-        "what",
-        "how",
-        "why",
-        "when",
-        "where",
-        "whether",
-    ]
+    # Soft floor zone (15-30 chars)
+    _INTERROGATIVE_KEYWORDS = ["should", "can", "could", "would", "what", "how", "why", "when", "where", "whether"]
 
     def _is_interrogative_match() -> bool:
-        """Check if matched pattern is an interrogative question pattern.
-
-        Uses substring matching on the pattern string since we can't reliably use
-        regex matching (pattern strings start with \\b which fails at string start).
-        """
-        if not matched_pattern:
-            return False
-        # Check if pattern string contains interrogative keywords as substrings
+        if not matched_pattern: return False
         pattern_lower = matched_pattern.lower()
         return any(kw in pattern_lower for kw in _INTERROGATIVE_KEYWORDS)
 
     signals = 0
-    if matched_pattern:
-        signals += 1
-    if semantic_phrase and not _is_interrogative_match():
-        # Semantic partial match only helps non-interrogatives
-        # (interrogatives need technical depth to confirm analytical intent)
-        signals += 1
-    if _has_technical_depth(prompt):
-        signals += 1
+    if matched_pattern: signals += 1
+    if semantic_phrase and not _is_interrogative_match(): signals += 1
+    if _has_technical_depth(prompt): signals += 1
 
     if signals >= 2:
-        session_id = uuid.uuid4()
         trigger_phrase = (
             _extract_trigger_phrase(prompt, matched_pattern)
             if matched_pattern
             else (semantic_phrase or "combined signals")
         )
-        create_state(session_id, trigger_phrase, terminal_id)
-        seq_tag = emit_tag("SEQ")
-        tag_header = (
-            f"{seq_tag}\n"
-            f"**TAG EMISSION REQUIRED**: Begin your response with the [SEQ] tag above "
-            f"to indicate active sequential reasoning mode.\n\n"
-        )
-        injection = (
-            f"{tag_header}"
-            f"<sequential_thinking>\n"
-            f"Session ID: {session_id}\n"
-            f"Trigger: {trigger_phrase}\n"
-            f"Mode: initial (iteration 0 of 2)\n"
-            f"</sequential_thinking>\n\n"
-            f"I'll approach this step-by-step, then critically analyze my answer, "
-            f"and finally improve my reasoning based on the critique.\n"
-        )
-        return HookResult(context=injection, tokens=200)
+        return _get_injection(uuid.uuid4(), trigger_phrase, is_investigation, False)
 
     return HookResult.empty()

@@ -145,7 +145,7 @@ class SQAReport:
             Severity.LOW: 2,
         }
 
-        deductions = 0
+        deductions = 0.0
         for f in unique:
             tier_factor = tier_weights.get(f.evidence_tier, 0.5)
             severity_weight = severity_weights.get(f.severity, 0)
@@ -214,7 +214,7 @@ def _compute_layer_weights(findings: list[Finding]) -> dict[Layer, float]:
     # Determine which layers have findings
     active_layers = {f.layer for f in findings if f.layer in base}
     if not active_layers:
-        return {layer: 0.0 for layer in base}
+        return dict.fromkeys(base, 0.0)
 
     # Redistribute inactive layer weights proportionally to active layers
     inactive_weight = sum(base[layer] for layer in base if layer not in active_layers)

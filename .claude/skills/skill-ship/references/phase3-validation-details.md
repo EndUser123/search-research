@@ -60,6 +60,7 @@ Each sub-phase spawns a FRESH subagent with minimal context to prevent state con
 | Check | Status | Severity | Fix |
 |-------|--------|----------|-----|
 | YAML frontmatter completeness | - | critical/warning/info | - |
+| Required frontmatter fields (`suggest`, `workflow_steps`, etc.) | - | critical/warning/info | - |
 | Enforcement tier field (required) | - | critical/warning/info | - |
 | Trigger accuracy (third person) | - | critical/warning/info | - |
 | Description length (<1024 chars) | - | critical/warning/info | - |
@@ -78,6 +79,8 @@ Before claiming a component is missing, verify absence with tool evidence:
 4. Document negative findings with explicit search terms used
 
 **Gate:** Block Phase 3c until critical issues resolved
+
+For new skills and orchestrators, Phase 3b must verify the local SKILL.md schema rather than assuming Phase 2 created a valid frontmatter block. Missing required fields are readiness blockers, not cosmetic issues.
 
 **GTO Skill Coverage Check (if applicable):**
 When a skill emits GTO-trackable findings (verification, critique, gap analysis), the reviewer checks:
@@ -116,6 +119,8 @@ See `references/gto-skill-coverage.md` for full API documentation.
 | Absence claims verified before asserting | - | - | - |
 
 **Gate:** Block Phase 4 until integration passes
+
+Do not describe the artifact as "shipped" or "ready" until the required Phase 3 path has completed. Phase 2 creation alone only proves that a draft artifact exists.
 
 **Skip:** Never - integration verification is mandatory
 

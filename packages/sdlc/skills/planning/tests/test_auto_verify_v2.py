@@ -1777,6 +1777,821 @@ None.
         assert "STALE REVIEW ARTIFACT" in adversarial_text
 
 
+class TestAdrIngestionRouting:
+    """ADR-derived drafts should be canonicalized locally before /arch routing."""
+
+    def test_shallow_adr_transcription_stays_local_to_planning(self, tmp_path: Path) -> None:
+        adr = tmp_path / "arch_decisions" / "003-example.md"
+        adr.parent.mkdir()
+        adr.write_text(
+            """# ADR-003: Example
+
+## Context
+
+Example context.
+
+## Design
+
+Example design.
+
+## Contract Boundaries
+
+| Boundary | Producer | Consumer |
+|----------|----------|----------|
+| cache | A | B |
+
+## Implementation Sequence
+
+| Order | Component |
+|-------|-----------|
+| 1 | Do the thing |
+""",
+            encoding="utf-8",
+        )
+
+        plan = f"""# Plan: Example
+
+**Source ADR:** `{adr}`
+**Status:** draft
+**Unresolved blockers:** 0 (pre-verification)
+
+## Context
+
+Copied ADR context.
+
+## Design
+
+Copied ADR design.
+
+## Implementation Tasks
+
+## Contract Boundary Matrix
+
+| Boundary | Producer | Consumer | Required Fields |
+|----------|----------|----------|-----------------|
+| cache | A | B | key |
+"""
+        plan_file = tmp_path / "plan-example.md"
+        plan_file.write_text(plan, encoding="utf-8")
+
+        result = auto_verify.verify_plan(str(plan_file))
+        finding_ids = {finding["id"] for finding in result["action_items"]}
+        categories = {finding["category"] for finding in result["action_items"]}
+
+        assert result["status"] == "BLOCKED"
+        assert result["next_action"]["type"] == "fix_issues"
+        assert "ADR-INGEST-001" in finding_ids
+        assert "state_model" not in categories
+        assert "contract_ambiguity" not in categories
+
+
+class TestSourceIngestionRouting:
+    """Non-ADR source artifacts should normalize locally before other routing."""
+
+    def test_solution_notes_with_source_packet_stay_local_to_planning(
+        self, tmp_path: Path
+    ) -> None:
+        source = tmp_path / "solution-notes.md"
+        source.write_text(
+            """# Solution Notes
+
+```yaml
+planning_source_packet:
+  packet_version: "1"
+  source_path: "notes/solution-notes.md"
+  source_kind: "solution-notes"
+  plan_title: "Normalize Notes"
+  goal: "Turn solution notes into a canonical implementation plan."
+  implementation_changes:
+    - task_id: "TASK-001"
+```
+
+## Background
+
+Source context.
+
+## Proposed Flow
+
+Implementation sketch.
+""",
+            encoding="utf-8",
+        )
+
+        plan = f"""# Plan: Normalize Notes
+
+**Source:** `{source}`
+**Status:** draft
+**Unresolved blockers:** 0 (pre-verification)
+
+## Background
+
+Copied notes.
+
+## Proposed Flow
+
+Copied source structure.
+"""
+        plan_file = tmp_path / "plan-notes.md"
+        plan_file.write_text(plan, encoding="utf-8")
+
+        result = auto_verify.verify_plan(str(plan_file))
+        finding_ids = {finding["id"] for finding in result["action_items"]}
+        categories = {finding["category"] for finding in result["action_items"]}
+
+        assert result["status"] == "BLOCKED"
+        assert result["next_action"]["type"] == "fix_issues"
+        assert "SOURCE-INGEST-001" in finding_ids
+        assert "state_model" not in categories
+        assert "contract_ambiguity" not in categories
+
+
+class TestExecutionSemanticsAndEvidence:
+    """Execution-policy and evidence-reference checks."""
+
+    def test_explicit_file_reference_must_exist(self, tmp_path: Path) -> None:
+        plan = """---
+status: draft
+source: null
+unresolved_blockers: 0
+---
+
+# Plan: Evidence Check
+
+## Goal
+
+Tighten a hook.
+
+## Current State with Evidence
+
+**File:** `missing_module.py`
+**Lines:** 10-20
+
+The current implementation needs refinement.
+
+## Design Decisions and Invariants
+
+Keep behavior unchanged.
+
+## Implementation Changes
+
+**TASK-001**: Update evidence-driven code path
+- Action: Edit the existing implementation.
+**Acceptance Criteria:**
+- Existing code path updated safely
+
+## Test Matrix
+
+| Task | Test | Owner |
+|------|------|-------|
+| TASK-001 | Manual | Dev |
+
+## Assumptions/Defaults
+
+None.
+
+## Open Questions
+
+None.
+"""
+        plan_file = tmp_path / "evidence-plan.md"
+        plan_file.write_text(plan, encoding="utf-8")
+
+        result = auto_verify.verify_plan(str(plan_file))
+        ids = {finding["id"] for finding in result["action_items"]}
+
+        assert result["status"] == "BLOCKED"
+        assert "EVIDENCE-001" in ids
+
+    def test_explicit_line_reference_must_be_in_range(self, tmp_path: Path) -> None:
+        source_file = tmp_path / "existing_module.py"
+        source_file.write_text("one\ntwo\nthree\n", encoding="utf-8")
+        plan = f"""---
+status: draft
+source: null
+unresolved_blockers: 0
+---
+
+# Plan: Stale Lines
+
+## Goal
+
+Tighten a hook.
+
+## Current State with Evidence
+
+**File:** `{source_file}`
+**Lines:** 9-12
+
+Current behavior is described here.
+
+## Design Decisions and Invariants
+
+Keep behavior unchanged.
+
+## Implementation Changes
+
+**TASK-001**: Update evidence-driven code path
+- Action: Edit the existing implementation.
+**Acceptance Criteria:**
+- Existing code path updated safely
+
+## Test Matrix
+
+| Task | Test | Owner |
+|------|------|-------|
+| TASK-001 | Manual | Dev |
+
+## Assumptions/Defaults
+
+None.
+
+## Open Questions
+
+None.
+"""
+        plan_file = tmp_path / "stale-lines-plan.md"
+        plan_file.write_text(plan, encoding="utf-8")
+
+        result = auto_verify.verify_plan(str(plan_file))
+        ids = {finding["id"] for finding in result["action_items"]}
+
+        assert result["status"] == "BLOCKED"
+        assert "EVIDENCE-002" in ids
+
+    def test_layered_plan_requires_explicit_execution_semantics(self, tmp_path: Path) -> None:
+        plan = """---
+status: draft
+source: null
+unresolved_blockers: 0
+---
+
+# Plan: Layer Semantics
+
+## Goal
+
+Improve navigator safety.
+
+## Current State with Evidence
+
+Current behavior is manual.
+
+## Design Decisions and Invariants
+
+Layer 1 performs lexical routing.
+
+Layer 2 uses sequential thinking for deeper analysis.
+
+## Implementation Changes
+
+**TASK-001**: Implement layered navigation
+- Action: Wire the layered flow.
+**Acceptance Criteria:**
+- Layers run in the intended order
+
+## Test Matrix
+
+| Task | Test | Owner |
+|------|------|-------|
+| TASK-001 | Manual | Dev |
+
+## Assumptions/Defaults
+
+None.
+
+## Open Questions
+
+None.
+"""
+        plan_file = tmp_path / "layer-plan.md"
+        plan_file.write_text(plan, encoding="utf-8")
+
+        result = auto_verify.verify_plan(str(plan_file))
+        ids = {finding["id"] for finding in result["action_items"]}
+
+        assert result["status"] == "BLOCKED"
+        assert result["next_action"]["type"] == "invoke_arch_then_rewrite_plan"
+        assert result["next_action"]["nested_subworkflow"] is True
+        assert result["next_action"]["resume_skill"] == "/planning"
+        assert result["next_action"]["resume_policy"] == "automatic_return_to_caller"
+        assert result["next_action"]["user_reentry_required"] is False
+        assert "EXECUTION-001" in ids
+
+    def test_vague_conditional_layer_requires_trigger_signal(self, tmp_path: Path) -> None:
+        plan = """---
+status: draft
+source: null
+unresolved_blockers: 0
+---
+
+# Plan: Conditional Layer
+
+## Goal
+
+Improve navigator safety.
+
+## Current State with Evidence
+
+Current behavior is manual.
+
+## Design Decisions and Invariants
+
+Layer 3 runs only if needed after Layers 1 and 2.
+
+## Implementation Changes
+
+**TASK-001**: Implement conditional escalation
+- Action: Wire the escalation path.
+**Acceptance Criteria:**
+- Escalation occurs only under the intended signal
+
+## Test Matrix
+
+| Task | Test | Owner |
+|------|------|-------|
+| TASK-001 | Manual | Dev |
+
+## Assumptions/Defaults
+
+None.
+
+## Open Questions
+
+None.
+"""
+        plan_file = tmp_path / "conditional-layer-plan.md"
+        plan_file.write_text(plan, encoding="utf-8")
+
+        result = auto_verify.verify_plan(str(plan_file))
+        ids = {finding["id"] for finding in result["action_items"]}
+
+        assert result["status"] == "BLOCKED"
+        assert result["next_action"]["type"] == "invoke_arch_then_rewrite_plan"
+        assert "EXECUTION-002" in ids
+
+    def test_defined_trigger_signal_passes_execution_checks(self, tmp_path: Path) -> None:
+        plan = """---
+status: draft
+source: null
+unresolved_blockers: 0
+---
+
+# Plan: Conditional Layer
+
+## Goal
+
+Improve navigator safety.
+
+## Current State with Evidence
+
+Current behavior is manual.
+
+## Design Decisions and Invariants
+
+Layer 2 is advisory and runs after Layer 1.
+
+Layer 3 is optional fallback-only. Trigger: run Layer 3 only when both Layer 1 and Layer 2 fail to classify the request within one pass.
+
+## Implementation Changes
+
+**TASK-001**: Implement conditional escalation
+- Action: Wire the escalation path.
+**Acceptance Criteria:**
+- Escalation occurs only under the stated trigger
+
+## Test Matrix
+
+| Task | Test | Owner |
+|------|------|-------|
+| TASK-001 | Manual | Dev |
+
+## Assumptions/Defaults
+
+None.
+
+## Open Questions
+
+None.
+"""
+        plan_file = tmp_path / "well-specified-layer-plan.md"
+        plan_file.write_text(plan, encoding="utf-8")
+
+        result = auto_verify.verify_plan(str(plan_file))
+        ids = {finding["id"] for finding in result["action_items"]}
+
+        assert "EXECUTION-001" not in ids
+        assert "EXECUTION-002" not in ids
+
+    def test_existing_mode_system_overlap_requires_explicit_coexistence_or_replacement(
+        self, tmp_path: Path
+    ) -> None:
+        hook_file = tmp_path / "StopHook_sequential_thinking.py"
+        hook_file.write_text(
+            '_INVESTIGATION_PHASES = ("hypotheses", "testing", "conclusion")\n'
+            'if mode == "investigation":\n'
+            "    return None\n",
+            encoding="utf-8",
+        )
+        plan = f"""---
+status: draft
+source: null
+unresolved_blockers: 0
+---
+
+# Plan: Multi Hypothesis Tracking
+
+## Goal
+
+Add a multi-hypothesis workflow to the existing sequential thinking flow.
+
+## Current State with Evidence
+
+**File:** `{hook_file}`
+
+The current stop hook already supports a separate alternate flow.
+
+## Design Decisions and Invariants
+
+Route `current_iteration == 0` to multi_hypothesis mode, `current_iteration == 1` to critique mode, and `current_iteration == 2` to resolution mode.
+
+## Implementation Changes
+
+**TASK-001**: Extend iteration mapping
+- Action: Add the new mode transitions.
+**Acceptance Criteria:**
+- The new mapping is active
+
+## Test Matrix
+
+| Task | Test | Owner |
+|------|------|-------|
+| TASK-001 | Happy path only | Dev |
+
+## Assumptions/Defaults
+
+None.
+
+## Open Questions
+
+None.
+"""
+        findings = auto_verify.check_existing_flow_overlap(plan)
+        assert any(f["id"] == "STATE-010" for f in findings), findings
+
+    def test_hook_visible_field_requires_provenance_contract(self, tmp_path: Path) -> None:
+        plan = """---
+status: draft
+source: null
+unresolved_blockers: 0
+---
+
+# Plan: Hook Visible Fields
+
+## Goal
+
+Extend the sequential thinking state safely.
+
+## Current State with Evidence
+
+The workflow already stores session_id and current_iteration across turns.
+
+## Design Decisions and Invariants
+
+Add `hypothesis_mode`: false to session state.
+Add `hypotheses`: [] to session state.
+StopHook reads `hypothesis_details` during resolution.
+current_iteration == 0 enters multi_hypothesis mode.
+
+## Implementation Changes
+
+**TASK-001**: Extend state handling
+- Action: Update hook reads and writes.
+**Acceptance Criteria:**
+- New fields are available during the hypothesis flow
+
+## Test Matrix
+
+| Task | Test | Owner |
+|------|------|-------|
+| TASK-001 | Happy path only | Dev |
+
+## Assumptions/Defaults
+
+None.
+
+## Open Questions
+
+None.
+"""
+        findings = auto_verify.check_state_extension_contracts(plan)
+        ids = {finding["id"] for finding in findings}
+        assert "STATE-011" in ids
+        assert "STATE-012" in ids
+        assert "STATE-013" in ids
+
+    def test_stateful_extension_requires_failure_mode_tests(self, tmp_path: Path) -> None:
+        plan = """---
+status: draft
+source: null
+unresolved_blockers: 0
+---
+
+# Plan: Stateful Failure Modes
+
+## Goal
+
+Add a hypothesis workflow to the stateful sequential thinking loop.
+
+## Current State with Evidence
+
+The loop stores session_id and intermediate_answers between turns.
+
+## Design Decisions and Invariants
+
+Add `hypothesis_mode`: false to session state.
+When `hypothesis_mode` is true, current_iteration selects the hypothesis flow.
+
+## Implementation Changes
+
+**TASK-001**: Extend state handling
+- Action: Update hook reads and writes.
+**Acceptance Criteria:**
+- New fields are available during the hypothesis flow
+
+## Test Matrix
+
+| Task | Test | Owner |
+|------|------|-------|
+| TASK-001 | Happy path only | Dev |
+
+## Assumptions/Defaults
+
+None.
+
+## Open Questions
+
+None.
+"""
+        findings = auto_verify.check_stateful_failure_mode_tests(plan)
+        assert any(f["id"] == "TEST-STATE-002" for f in findings), findings
+
+    def test_well_specified_state_extension_avoids_new_state_extension_findings(
+        self, tmp_path: Path
+    ) -> None:
+        hook_file = tmp_path / "StopHook_sequential_thinking.py"
+        hook_file.write_text(
+            '_INVESTIGATION_PHASES = ("hypotheses", "testing", "conclusion")\n'
+            'if mode == "investigation":\n'
+            "    return None\n",
+            encoding="utf-8",
+        )
+        plan = f"""---
+status: draft
+source: null
+unresolved_blockers: 0
+---
+
+# Plan: Well Specified Hypothesis Flow
+
+## Goal
+
+Add a hypothesis workflow without breaking the existing investigation flow.
+
+## Current State with Evidence
+
+**File:** `{hook_file}`
+
+The current hook already exposes an investigation flow that remains available.
+
+## Design Decisions and Invariants
+
+The existing investigation mode remains unchanged. The new hypothesis flow coexists with it and is selected only when `hypothesis_mode` is true; otherwise the standard investigation flow remains unchanged.
+Add `hypothesis_mode`: false to session state. Producer: UserPromptSubmit writes the boolean selector. Consumer: PreToolUse reads it before mode selection. Format: boolean. When `hypothesis_mode` is absent or false, stay in the standard investigation flow.
+Add `hypotheses`: [] to session state. Producer: StopHook writes a structured object list parsed from the LLM response. Consumer: PreToolUse reads the list to render critique prompts. Format: structured object list. When `hypotheses` is absent, default to an empty list.
+StopHook reads `hypothesis_details`. Source: parsed by StopHook from the LLM response and stored in state before hypothesis_resolution.
+When `hypothesis_mode` is true, current_iteration routes 0 -> multi_hypothesis, 1 -> hypothesis_critique, 2 -> hypothesis_resolution.
+
+## Implementation Changes
+
+**TASK-001**: Extend state handling
+- Action: Update hook reads and writes.
+**Acceptance Criteria:**
+- New fields are available during the hypothesis flow
+
+## Test Matrix
+
+| Task | Test | Owner |
+|------|------|-------|
+| TASK-001 | Backward compatibility with old state files | Dev |
+| TASK-001 | Interruption and resume during critique phase | Dev |
+| TASK-001 | TTL expiry on inactive hypothesis sessions | Dev |
+| TASK-001 | Malformed hypotheses payload is rejected safely | Dev |
+
+## Assumptions/Defaults
+
+None.
+
+## Open Questions
+
+None.
+"""
+        overlap_ids = {finding["id"] for finding in auto_verify.check_existing_flow_overlap(plan)}
+        extension_ids = {finding["id"] for finding in auto_verify.check_state_extension_contracts(plan)}
+        failure_ids = {
+            finding["id"] for finding in auto_verify.check_stateful_failure_mode_tests(plan)
+        }
+
+        assert "STATE-010" not in overlap_ids
+        assert "STATE-011" not in extension_ids
+        assert "STATE-012" not in extension_ids
+        assert "STATE-013" not in extension_ids
+        assert "TEST-STATE-002" not in failure_ids
+
+    def test_change_block_component_mismatch_is_flagged(self, tmp_path: Path) -> None:
+        plan = """---
+status: draft
+source: null
+unresolved_blockers: 0
+---
+
+# Plan: Component Alignment
+
+## Goal
+
+Extend the hypothesis workflow safely.
+
+## Current State with Evidence
+
+Current hooks already split PreToolUse and StopHook responsibilities.
+
+## Design Decisions and Invariants
+
+Keep mode selection in PreToolUse and extraction in StopHook.
+
+## Implementation Changes
+
+**CHANGE-002**: Update StopHook extraction
+- Action: Add extraction for hypotheses.
+
+**CHANGE-004**: Update StopHook transitions
+- Action: Add the `is_hypothesis_mode` branch in `pre_tool_use()` so `current_iteration` selects the right mode messages.
+**Acceptance Criteria:**
+- Mode selection works
+
+## Test Matrix
+
+| Task | Test | Owner |
+|------|------|-------|
+| CHANGE-004 | Manual | Dev |
+
+## Assumptions/Defaults
+
+None.
+
+## Open Questions
+
+None.
+"""
+        findings = auto_verify.check_change_component_alignment(plan)
+        assert any(f["id"] == "CHANGE-ALIGN-001" for f in findings), findings
+
+    def test_parser_dependent_state_requires_failure_policy(self, tmp_path: Path) -> None:
+        plan = """---
+status: draft
+source: null
+unresolved_blockers: 0
+---
+
+# Plan: Parser Robustness
+
+## Goal
+
+Track multiple hypotheses in state.
+
+## Current State with Evidence
+
+The workflow stores session_id and intermediate_answers between turns.
+
+## Design Decisions and Invariants
+
+Add `hypotheses`: [] to session state.
+Extract hypotheses from the LLM response by pattern-matching H1:, H2:, and H3: prefixes.
+
+## Implementation Changes
+
+**TASK-001**: Parse hypotheses
+- Action: Add regex extraction from the response.
+**Acceptance Criteria:**
+- Hypotheses are captured
+
+## Test Matrix
+
+| Task | Test | Owner |
+|------|------|-------|
+| TASK-001 | Happy path only | Dev |
+
+## Assumptions/Defaults
+
+None.
+
+## Open Questions
+
+None.
+"""
+        findings = auto_verify.check_parser_failure_policy(plan)
+        assert any(f["id"] == "STATE-014" for f in findings), findings
+
+    def test_undefined_helper_reference_is_flagged(self, tmp_path: Path) -> None:
+        plan = """---
+status: draft
+source: null
+unresolved_blockers: 0
+---
+
+# Plan: Helper Clarity
+
+## Goal
+
+Render hypothesis context.
+
+## Current State with Evidence
+
+Current implementation renders investigation feedback.
+
+## Design Decisions and Invariants
+
+The new `_format_hypothesis_context(hypotheses)` helper will be used in prompt assembly.
+
+## Implementation Changes
+
+**TASK-001**: Update prompts
+- Action: Use the helper in mode messages.
+**Acceptance Criteria:**
+- Prompts include the hypothesis context
+
+## Test Matrix
+
+| Task | Test | Owner |
+|------|------|-------|
+| TASK-001 | Manual | Dev |
+
+## Assumptions/Defaults
+
+None.
+
+## Open Questions
+
+None.
+"""
+        findings = auto_verify.check_helper_reference_clarity(plan)
+        assert any(f["id"] == "HELPER-001" for f in findings), findings
+
+    def test_assumption_schema_contradiction_is_flagged(self, tmp_path: Path) -> None:
+        plan = """---
+status: draft
+source: null
+unresolved_blockers: 0
+---
+
+# Plan: Assumption Drift
+
+## Goal
+
+Track structured hypotheses.
+
+## Current State with Evidence
+
+The workflow stores session state between turns.
+
+## Design Decisions and Invariants
+
+Add `hypotheses`: [] to session state.
+`hypotheses` stores structured objects like {"id": "H1", "claim": "...", "status": "active"}.
+
+## Implementation Changes
+
+**TASK-001**: Store structured hypotheses
+- Action: Persist structured objects.
+**Acceptance Criteria:**
+- Structured hypotheses are persisted
+
+## Test Matrix
+
+| Task | Test | Owner |
+|------|------|-------|
+| TASK-001 | Manual | Dev |
+
+## Assumptions/Defaults
+
+- `hypotheses` stores plain text only.
+
+## Open Questions
+
+None.
+"""
+        findings = auto_verify.check_assumption_schema_contradictions(plan)
+        assert any(f["id"] == "ASSUMPTION-001" for f in findings), findings
+
+
 # =============================================================================
 # Run Tests
 # =============================================================================

@@ -1,7 +1,12 @@
 ---
 name: p
 version: 2.5.0
-status: stable
+status: deprecated
+deprecated_by: sqa
+enforcement: none
+deprecated_reason: "/sqa absorbed all /p phases (P1-P6) as layers (L1-L6) in 2026-04. Use /sqa instead."
+suggest:
+  - /sqa
 agent: general-purpose
 user-invocable: true
 description: "Code Maturation Pipeline with ToT enhancement - auto-detects state and runs appropriate quality gates with branching scenario analysis. v2.5.0: Added model selection guidance for subagent phases (P2/P4/P5 require sonnet for reasoning). Added debug logging for fast-path activation detection (aids troubleshooting). v2.4.0: CRITICAL FIX - Added session-local state tracking to prevent trusting stale chat context (pre-tests RISK:9 failure mode)."
@@ -14,9 +19,7 @@ aliases:
   - /p
 
 suggest:
-  - /p --quick
-  - /p --publish
-  - /p --dry-run
+  - /sqa
 
 execution_hint: "Run inline as orchestrator. Dispatch each phase as an Agent subagent. Show phase start marker before dispatch, completion marker after. Never summarize or fabricate — every result must come from actual tool output. NOTE: Skill-first gate is OPTIONAL (SKILL_FIRST_MODE=off by default - no need to call Skill('p') first unless gate is enabled)."
 

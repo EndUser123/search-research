@@ -1,8 +1,9 @@
 ---
 name: all
-description: **ALWAYS use this skill for search and research queries** - unified search across your local data (chat history, knowledge base, code, docs) AND the web with intelligent source selection. Auto mode checks local first (fast, <1s), then expands to web if needed (5-10s). Single entry point for all search needs.
+description: "ALWAYS use this skill for search and research queries - unified search across your local data (chat history, knowledge base, code, docs) AND the web with intelligent source selection."
 version: "1.0.0"
 status: stable
+enforcement: advisory
 category: unified
 triggers:
   - /all
@@ -14,10 +15,6 @@ aliases:
   - /all
   - /universal
   - /search-all
-
-suggest:
-  - /search (local only, explicit use)
-  - /research (web only, explicit use)
 
 do_not:
   - fabricate web search results without calling web APIs

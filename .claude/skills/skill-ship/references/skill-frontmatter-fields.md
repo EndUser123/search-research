@@ -95,6 +95,50 @@ enforcement: none
 | `depends_on_skills` | list | ✅ | Skills this skill depends on |
 | `workflow_steps` | list | ✅ | Required workflow steps for this skill |
 | `enforcement` | string | ✅ | `strict`, `advisory`, or `none` |
+| `effort` | string | No | Optional reasoning depth override: `low`, `medium`, `high`, or `max` |
+| `status` | string | No | Optional metadata only; do not add unless local tooling or repo conventions actually use it |
+
+## Effort (OPTIONAL)
+
+**Valid values:** `low`, `medium`, `high`, `max`
+
+**Purpose:** Overrides the session `/effort` default while this skill is active.
+
+```yaml
+effort: high
+```
+
+### Selection Criteria
+
+**Use `low` when:**
+- The skill mostly performs rote deterministic edits or formatting
+- Speed and low overhead matter more than deep reasoning
+
+**Use `medium` when:**
+- The skill does normal implementation, repair, or bounded analysis
+- The work benefits from some reasoning depth but is not primarily architectural
+
+**Use `high` when:**
+- The skill does RCA, architecture, policy, routing, safety, or cross-boundary reasoning
+- Missed nuance would create expensive downstream mistakes
+
+**Use `max` when:**
+- The work is unusually ambiguous and high-stakes
+- The extra reasoning cost is justified by risk reduction
+
+**Guidance:**
+- Configure `effort` deliberately; do not raise it by default for every skill
+- Prefer matching reasoning depth to the skill's primary job
+
+## Status (OPTIONAL)
+
+`status:` is not part of the required frontmatter contract here.
+
+Use it only when:
+- local tooling reads it
+- the repo has a documented convention that depends on it
+
+Do not invent `status: draft` as a placeholder just because a skill is newly created. Readiness should be conveyed by the workflow result and the completed validation phases, not by ad hoc metadata.
 
 ## Validation
 

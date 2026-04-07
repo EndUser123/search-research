@@ -36,13 +36,33 @@ from .evidence_tier import (
     get_lowest_tier,
     store_rca_finding,  # CKS integration convenience function
 )
+from .error_signature import (
+    ErrorSignature,
+    ErrorSignatureExtractor,
+    extract_signature,
+    match_to_pattern,
+)
 from .flow_visualizer import (
     FlowVisualizer,
     VisualizationConfig,
     create_visualizer,
     render_flow_from_session,
 )
+from .hypothesis_generator import (
+    DEFAULT_WEIGHTS,
+    Hypothesis,
+    HypothesisCategory,
+    HypothesisSet,
+    calculate_hypothesis_confidence,
+    generate_hypotheses,
+    generate_hypotheses_from_evidence,
+)
 from .hypothesis_scorer import HypothesisScorer
+from .stack_trace_fingerprint import (
+    FixRecord,
+    StackTraceFingerprint,
+    fingerprint_from_error,
+)
 
 # Metrics tracking
 from .metrics_tracker import (
@@ -186,4 +206,21 @@ __all__ = [
     "LogFinding",
     "LogPattern",
     "discover_logs_for_problem",
+    # Hypothesis Generation
+    "Hypothesis",
+    "HypothesisCategory",
+    "HypothesisSet",
+    "DEFAULT_WEIGHTS",
+    "generate_hypotheses",
+    "generate_hypotheses_from_evidence",
+    "calculate_hypothesis_confidence",
+    # Error Signature
+    "ErrorSignature",
+    "ErrorSignatureExtractor",
+    "extract_signature",
+    "match_to_pattern",
+    # Stack Trace Fingerprinting
+    "StackTraceFingerprint",
+    "FixRecord",
+    "fingerprint_from_error",
 ]

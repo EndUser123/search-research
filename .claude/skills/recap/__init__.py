@@ -4,14 +4,17 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from pathlib import Path
 from typing import Any
 
+logger = logging.getLogger(__name__)
+
 # AIR Gap state file path
 _AIR_GAPS_KEY = "air_gap_context"
-_STATE_DIR = Path("P:/") / ".claude" / "state"
+_STATE_DIR = Path.home() / ".claude" / "state"
 
 
 def _get_session_id_from_env() -> str:
@@ -180,7 +183,8 @@ def load_sessions_index(index_path: Path) -> list[dict[str, Any]]:
     try:
         with open(index_path, encoding="utf-8") as f:
             data = json.load(f)
-    except (json.JSONDecodeError, OSError):
+    except (json.JSONDecodeError, OSError) as exc:
+        logger.warning("Failed to load sessions index %s: %s", index_path, exc)
         return []
 
     # Handle both schemas: dict-keyed (actual) and array-based (legacy)
@@ -548,7 +552,8 @@ def load_transcript_entries(transcript_path: str | None) -> list[dict[str, Any]]
                     entry = json.loads(line)
                     entries.append(entry)
         return entries
-    except (json.JSONDecodeError, OSError):
+    except (json.JSONDecodeError, OSError) as exc:
+        logger.warning("Failed to load transcript %s: %s", path, exc)
         return []
 
 
@@ -959,8 +964,6 @@ def format_recap(
             # from this text to answer the Macro-Audit question.
             if session.get("transcript"):
                 transcript_preview = session["transcript"]
-                if len(transcript_preview) > 800:
-                    transcript_preview = transcript_preview[:800] + "[…]"
                 lines.append("")
                 lines.append("### Raw Context")
                 lines.append(transcript_preview)
@@ -1067,14 +1070,14 @@ def _load_all_sessions_via_history_index(
         return []
 
     # Import chain modules lazily to avoid circular imports
+    pkg_root = Path(__file__).resolve().parents[3] / "packages" / "search-research"
     try:
         import sys
 
-        sys.path.insert(
-            0, str(Path(__file__).resolve().parents[3] / "packages" / "search-research")
-        )
+        sys.path.insert(0, str(pkg_root))
         from core.session_chain import SessionChainEntry, walk_session_chain
-    except (ImportError, ValueError):
+    except (ImportError, ValueError, OSError) as exc:
+        logger.warning("Failed to import session_chain from %s: %s — falling back to direct transcript", pkg_root, exc)
         return []
 
     # Walk the session chain using the unified session_chain module
@@ -1167,39 +1170,6 @@ def _get_current_session_id(project_root: Path | None) -> str | None:
     return None
 
 
-def _chain_entry_to_session_summary(entry: Any) -> dict[str, Any] | None:
-    """Convert a SessionChainEntry to a session summary dict.
-
-    Args:
-        entry: SessionChainEntry from core.session_chain
-
-    Returns:
-        Session summary dict matching extract_sessions_from_transcript format
-    """
-    from core.session_chain import SessionChainEntry as SCE
-
-    if not isinstance(entry, SCE):
-        return None
-
-    # Build metadata
-    metadata: dict[str, Any] = {
-        "session_id": entry.session_id,
-        "created": entry.created.isoformat() if entry.created else None,
-    }
-
-    # Extract summary text from first_user_message
-    summary_text = entry.first_user_message or ""
-
-    return {
-        "session_id": entry.session_id,
-        "metadata": metadata,
-        "summary": summary_text,
-        "entry_count": 1,
-        "user_message_count": 1,
-        "assistant_message_count": 0,
-    }
-
-
 def _find_transcript_dir(project_root: Path | None) -> Path | None:
     """Find the directory containing transcript files for this project.
 
@@ -1244,8 +1214,8 @@ def main() -> None:
     terminal_id = resolve_terminal_key(None)
     project_root = get_project_root()
 
-    # Primary: load sessions from sessions-index.json, parse their transcripts
-    sessions = build_session_chain(project_root)
+    # Primary: load sessions via handoff-chain (session-scoped, not all-terminals)
+    sessions = _load_all_sessions_via_history_index(project_root)
 
     # Fallback: if no sessions found, try single-file approach (current terminal transcript only)
     if not sessions:

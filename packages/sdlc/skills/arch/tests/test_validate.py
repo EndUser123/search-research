@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 
 
-from arch.skill.validate import (
+from validate import (
     DUPLICATE_OVERLAP_THRESHOLD,
     HIGH_OVERLAP_THRESHOLD,
     DUPLICATE_CHECK_SECTIONS,

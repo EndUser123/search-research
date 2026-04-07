@@ -41,6 +41,30 @@ Be specific and constructive. Focus on improving the quality of reasoning, not o
 4. **Synthesizes insights**: Combine the best of both the original and critique
 
 This is your final answer - make it comprehensive and well-reasoned.""",
+    # CHANGE-002: Multi-hypothesis tracking modes
+    "multi_hypothesis": """You are in MULTI-HYPOTHESIS mode. Generate 2-3 competing explanations for the problem.
+
+For each hypothesis:
+1. State the explanation clearly
+2. Identify what evidence would support it
+3. Identify what evidence would refute it
+
+Maintain all hypotheses as equally plausible until evidence discriminates between them.""",
+    "hypothesis_critique": """You are in HYPOTHESIS CRITIQUE mode. Evaluate each competing hypothesis against the evidence.
+
+For each hypothesis:
+1. Compare predictions to actual observations
+2. Identify inconsistencies or contradictions
+3. Rank hypotheses by explanatory power
+
+Do NOT eliminate a hypothesis until you have strong evidence against it.""",
+    "hypothesis_resolution": """You are in HYPOTHESIS RESOLUTION mode. Synthesize the best explanation from competing hypotheses.
+
+1. Select the hypothesis best supported by evidence
+2. Explain why other hypotheses were weaker
+3. Identify what additional evidence would strengthen confidence
+
+This is your final answer - make it comprehensive and well-reasoned.""",
 }
 
 
@@ -64,6 +88,40 @@ def pre_tool_use(data: dict) -> dict:
     session_id = active_session["session_id"]
     current_iteration = active_session.get("current_iteration", 0)
     current_mode = active_session.get("mode", "initial")
+
+    # CHANGE-002: Check hypothesis_mode flag first
+    is_hypothesis_mode = active_session.get("hypothesis_mode", False)
+
+    if is_hypothesis_mode:
+        # Hypothesis mode uses iteration-based mode mapping
+        # NOTE: Use current_iteration (pre-increment) to match existing investigation mode pattern
+        # Investigation mode at StopHook uses next_iteration (post-increment), so we use current_iteration here
+        phase_order = ["multi_hypothesis", "hypothesis_critique", "hypothesis_resolution"]
+        mode_key = phase_order[min(current_iteration, len(phase_order) - 1)]
+        mode_message = MODE_MESSAGES[mode_key]
+
+        # Inject hypotheses context if available
+        hypotheses = active_session.get("hypotheses", [])
+        if hypotheses:
+            hypothesis_context = _format_hypothesis_context(hypotheses)
+            mode_message = f"{mode_message}\n\n{hypothesis_context}"
+
+        # Inject verdict if available (hypothesis_resolution phase)
+        verdict = active_session.get("verdict")
+        if verdict:
+            mode_message = f"{mode_message}\n\nWinning hypothesis: {verdict}"
+
+        return {
+            "additionalContext": (
+                f"<sequential_thinking_mode>\n"
+                f"Session: {session_id}\n"
+                f"Iteration: {current_iteration} of 2\n"
+                f"Mode: {mode_key.upper()}\n"
+                f"</sequential_thinking_mode>\n\n"
+                f"{mode_message}\n"
+            ),
+            "tokens": 250,
+        }
 
     # Determine mode based on iteration
     if current_iteration == 0:
@@ -101,6 +159,26 @@ def pre_tool_use(data: dict) -> dict:
 
 
 _SESSION_TTL_SECONDS = 7200  # 2 hours — prevents stale sessions from poisoning context
+
+
+def _format_hypothesis_context(hypotheses: list) -> str:
+    """Format hypotheses for injection into mode messages.
+
+    Args:
+        hypotheses: List of {"id": "H1", "claim": "...", "status": "active"} objects
+
+    Returns:
+        Formatted string listing current hypotheses
+    """
+    if not hypotheses:
+        return "No hypotheses tracked yet."
+
+    lines = ["Current hypotheses under consideration:"]
+    for h in hypotheses:
+        status_emoji = "✓" if h.get("status") == "active" else "?"
+        lines.append(f"  {status_emoji} {h['id']}: {h['claim']}")
+
+    return "\n".join(lines)
 
 
 def _find_active_session(terminal_id: str) -> dict | None:

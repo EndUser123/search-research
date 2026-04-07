@@ -17,7 +17,7 @@ You are analyzing Python code files for the GTO (Gap/Task/Opportunity) analysis 
 
 ## Output Format
 
-Write valid JSON to the output path with this structure:
+Write your findings as JSON to the output file with this structure:
 ```json
 {
   "findings": [
@@ -48,5 +48,6 @@ Write valid JSON to the output path with this structure:
 1. Read each target file
 2. Check for code smell patterns
 3. Measure complexity indicators
-4. Write JSON findings to output path
-5. Exit cleanly when done
+4. Write JSON findings to the output file
+5. Write findings JSON to the output file
+6. Exit cleanly when done

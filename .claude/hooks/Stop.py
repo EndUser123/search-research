@@ -1220,6 +1220,17 @@ def _run_deletion_verification_guard(data: dict) -> dict | None:
     return None
 
 
+def _run_git_diff_reground(data: dict) -> dict | None:
+    """Git-diff regrounding - warns when investigation files have changed from git HEAD."""
+    try:
+        from Stop_git_diff_reground import check_git_diff_reground
+        return check_git_diff_reground(data)
+    except Exception as e:
+        # Fails open
+        print(f"[Stop] git_diff_reground error: {e}", file=sys.stderr)
+        return None
+
+
 IN_PROCESS_GATES = [
     ("safety_gate", _run_safety_gate),
     (
@@ -1247,6 +1258,7 @@ IN_PROCESS_GATES = [
         "deletion_verification_guard",
         _run_deletion_verification_guard,
     ),  # NEW 2026-03-24: Deletion verification - checks actual file system state
+    ("git_diff_reground", _run_git_diff_reground),
 ]
 
 # Non-Blocking Side Effects (still subprocess for isolation)

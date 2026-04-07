@@ -1,13 +1,9 @@
 """Auto-scaffolded test for task_projection."""
 
 import pytest
-from task_projection import task_projection
 
 
+@pytest.mark.skip(reason="Scaffold test - no corresponding task_projection module exists")
 def test_task_projection_exists():
     """Smoke test: task_projection can be imported."""
-    assert task_projection is not None
-
-
-# TODO: Add more tests based on actual functionality
-# Run: pytest tests/test_task_projection.py -v
+    assert False, "task_projection module does not exist"

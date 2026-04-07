@@ -213,6 +213,35 @@ class TestPreToolUseSkillFirstGate:
         assert "research" in result["reason"]
         assert intent_file.exists()
 
+    def test_terminal_scoped_intent_blocks_even_without_session_id(self, temp_state_dir):
+        """Terminal-scoped intent must still block when hook payload lacks session_id."""
+        ctx = temp_state_dir
+        fallback_state = ctx["tmp_path"] / "claude_hooks" / "state" / "terminals" / "console_default"
+        fallback_state.mkdir(parents=True, exist_ok=True)
+        intent_file = fallback_state / "pending_command_intent.json"
+        intent_file.write_text(
+            json.dumps(
+                {
+                    "skill": "planning",
+                    "prompt": "/planning",
+                    "terminal_id": "console_default",
+                    "created_at": int(datetime.now().timestamp()),
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        from PreToolUse import _check_skill_first_gate
+
+        with patch.dict(os.environ, {"CLAUDE_TERMINAL_ID": "console_default"}, clear=False):
+            result = _check_skill_first_gate({"tool_name": "Write", "tool_input": {"file_path": "P:/.claude/plans/test.md"}})
+
+        assert result is not None
+        assert result["decision"] == "block"
+        assert "planning" in result["reason"]
+        assert "intentional workflow block" in result["reason"].lower()
+        assert intent_file.exists()
+
 
 # =============================================================================
 # PostToolUse Tests

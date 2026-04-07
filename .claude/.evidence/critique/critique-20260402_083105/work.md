@@ -1,1 +1,0 @@
-P:/.claude/hooks/PreToolUse_directory_policy.py

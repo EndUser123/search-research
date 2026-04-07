@@ -17,13 +17,6 @@ Cognitive Enhancers - UserPromptSubmit Hook Module
 11. comparative_analysis   - Search → Evaluate → Implement before committing
 
 All configurable via cognitive_enhancers_config.json.
-To disable any enhancer, set its key to false in the config file.
-To disable ALL enhancers, set "enabled" to false.
-
-Skills (slash commands) get cognitive enhancement by default.
-Operational skills like /commit, /push, /search are blacklisted
-via "skip_skills" in the config. New skills automatically benefit
-unless explicitly added to the skip list.
 """
 
 from __future__ import annotations
@@ -62,8 +55,7 @@ class Enhancer:
 
     name: str
     injection: str
-    topics: list[str]
-
+    topics: tuple[str, ...]
 
 _DEFAULT_CONFIG = {
     "enabled": True,
@@ -73,6 +65,7 @@ _DEFAULT_CONFIG = {
         "meta_rca": True,
         "decomposition": True,
         "implementation_diagnostic": True,
+        "escape_hatch": True,
     },
     "enhancers": {
         "assumption_surfacing": True,
@@ -86,42 +79,25 @@ _DEFAULT_CONFIG = {
         "hanlons_razor": True,
         "devils_advocate": True,
         "comparative_analysis": True,
+        "escape_hatch_gate": True,
     },
-    "max_enhancers_per_prompt": 3,  # Fallback for topics without specific limits
+    "max_enhancers_per_prompt": 3,
     "max_enhancers_by_topic": {
         "implementation": 3,
-        "diagnostic": 5,  # All 4 diagnostic enhancers: calibrated_confidence, named_artifact_discovery, cynefin_classification, hanlons_razor
+        "diagnostic": 5,
         "meta_rca": 2,
         "decomposition": 4,
         "implementation_diagnostic": 5,
+        "escape_hatch": 1,
     },
     "socratic_min_length": 200,
     "min_prompt_length": 30,
     "enhance_skills": True,
     "skip_skills": [
-        "commit",
-        "push",
-        "search",
-        "search-more",
-        "obs",
-        "timeline",
-        "quota",
-        "bgkill",
-        "clear-notifications",
-        "clear_restore",
-        "checkpoint-list",
-        "checkpoint-diff",
-        "checkpoint-delete",
-        "checkpoint-restore",
-        "context-status",
-        "llm-health",
-        "llm-performance",
-        "llm-models",
-        "recent",
-        "catchup",
-        "session",
-        "restore",
-        "help",
+        "commit", "push", "search", "search-more", "obs", "timeline", "quota", "bgkill",
+        "clear-notifications", "clear_restore", "checkpoint-list", "checkpoint-diff",
+        "checkpoint-delete", "checkpoint-restore", "context-status", "llm-health",
+        "llm-performance", "llm-models", "recent", "catchup", "session", "restore", "help",
     ],
     "modes": {
         "rca": {"topic": "meta_rca"},
@@ -137,37 +113,25 @@ def _load_config() -> dict:
     try:
         if CONFIG_PATH.exists():
             user_config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-
-            # Validate config schema before merging
             _validate_config(user_config)
-
-            # Shallow merge - preserve nested structure
             for key, value in user_config.items():
                 if isinstance(value, dict) and key in config and isinstance(config[key], dict):
                     config[key].update(value)
                 else:
                     config[key] = value
-    except json.JSONDecodeError as e:
-        print(
-            f"[cognitive_enhancers] Config error: Invalid JSON in {CONFIG_PATH}: {e}",
-            file=sys.stdout,
-        )
     except Exception:
-        pass  # Fail open - swallow all other errors
+        pass
     return config
 
 
 def _validate_config(config: dict) -> None:
     """Validate config schema. Emits warnings to stdout, never raises."""
     if "enabled" not in config:
-        print(
-            "[cognitive_enhancers] Config warning: Missing 'enabled' key - defaulting to true",
-            file=sys.stdout,
-        )
+        print("[cognitive_enhancers] Config warning: Missing 'enabled' key - defaulting to true", file=sys.stdout)
 
 
 # ---------------------------------------------------------------------------
-# Intent detection patterns (regex only, no embeddings)
+# Intent detection patterns
 # ---------------------------------------------------------------------------
 
 _IMPL_RE = re.compile(
@@ -223,10 +187,10 @@ _DECOMPOSITION_RE = re.compile(
 )
 
 _SPECIFIC_REF_RE = re.compile(
-    r"(?:[a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z]+|"  # file.ext pattern
-    r"[a-zA-Z_][a-zA-Z0-9_]*::\w+|"  # Class::method
-    r"def\s+\w+|class\s+\w+|"  # explicit def/class
-    r"line\s+\d+|L\d+)",  # line references
+    r"(?:[a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z]+|"
+    r"[a-zA-Z_][a-zA-Z0-9_]*::\w+|"
+    r"def\s+\w+|class\s+\w+|"
+    r"line\s+\d+|L\d+)",
     re.IGNORECASE,
 )
 
@@ -234,19 +198,29 @@ _QUESTION_ONLY_RE = re.compile(r"^[^.!]*\?\s*$", re.MULTILINE)
 _SLASH_RE = re.compile(r"^\s*/[a-z]", re.IGNORECASE)
 _MODE_RE = re.compile(r"#(\w+)")
 
-# Negation pattern scoped to implementation verbs only
-# This prevents blocking quality guidance like "don't forget to test"
 _NEGATION_IMPL_RE = re.compile(
     r"\b(don't|do not|never|no|not)\s+(implement|create|build|write|add|make)\b", re.IGNORECASE
 )
 
-# Multi-intent rescue: if negation appears but is followed by a new
-# implementation verb after a conjunction/comma/period, the user is giving
-# scoped instructions (e.g., "don't implement X, but do build Y").
 _MULTI_INTENT_RESCUE_RE = re.compile(
     r"[,;.]\s*(?:but|however|instead|rather)\s+.*\b(implement|create|build|write|add|make)\b",
     re.IGNORECASE,
 )
+
+# Investigation trigger patterns for Layer 1
+INVESTIGATION_TRIGGERS = [
+    r"investigat(?:e|ing)",
+    r"diagnos(?:e|is|ing)",
+    r"debug(?:ging|ger)?",
+    r"root cause",
+    r"why (?:does|is|did|won't|can't|doesn't)",
+    r"not working",
+    r"stopped working",
+    r"keeps? (?:happening|failing|crashing|breaking)",
+]
+
+# Escape hatch pattern for Phase 2.1
+_SINGLE_RC_ESCAPE_RE = re.compile(r"\[SINGLE ROOT CAUSE CONFIRMED\]", re.IGNORECASE)
 
 
 # ---------------------------------------------------------------------------
@@ -367,6 +341,16 @@ _ENHANCERS: list[Enhancer] = [
         ),
         topics=["implementation"],
     ),
+    Enhancer(
+        name="escape_hatch_gate",
+        injection=(
+            "**Escape Hatch Check**: You are using the [SINGLE ROOT CAUSE CONFIRMED] escape hatch. "
+            "Before you submit, perform one final Inversion Check: "
+            "Name one way this 'confirmed' cause could still be a red herring. "
+            "What evidence would absolutely disprove it?"
+        ),
+        topics=["escape_hatch"],
+    ),
 ]
 
 
@@ -376,61 +360,31 @@ _ENHANCERS: list[Enhancer] = [
 
 
 def _extract_skill_name(prompt: str) -> str | None:
-    """Extract skill name from a slash command, or None if not a slash command."""
     if not _SLASH_RE.match(prompt.strip()):
         return None
     return prompt.strip().lstrip("/").split()[0] if prompt.strip() else None
 
 
 def _is_actionable_prompt(prompt: str, config: dict) -> bool:
-    """Check if prompt is substantial enough to warrant cognitive injection.
-
-    Slash commands bypass min_prompt_length and pass through UNLESS the skill
-    is blacklisted or enhance_skills is disabled.
-    """
-    if not prompt:
-        return False
+    if not prompt: return False
     stripped = prompt.strip()
-
-    # Slash commands bypass the length gate entirely
     skill = _extract_skill_name(stripped)
     if skill is not None:
-        if not config.get("enhance_skills", True):
-            return False
-        skip_list = config.get("skip_skills", [])
-        if skill in skip_list:
-            return False
-        # Non-blacklisted skill — actionable
+        if not config.get("enhance_skills", True): return False
+        if skill in config.get("skip_skills", []): return False
         return True
-
-    # Non-slash prompts must meet minimum length
-    if len(stripped) < config.get("min_prompt_length", 30):
-        return False
-
+    if len(stripped) < config.get("min_prompt_length", 30): return False
     if _QUESTION_ONLY_RE.match(stripped) and not (
-        _IMPL_RE.search(stripped)
-        or _PLAN_RE.search(stripped)
-        or _OUTCOME_RE.search(stripped)
-        or _DIAGNOSTIC_RE.search(stripped)
-        or _DECOMPOSITION_RE.search(stripped)
+        _IMPL_RE.search(stripped) or _PLAN_RE.search(stripped) or 
+        _OUTCOME_RE.search(stripped) or _DIAGNOSTIC_RE.search(stripped) or 
+        _DECOMPOSITION_RE.search(stripped)
     ):
         return False
     return True
 
 
 def _detect_intent(prompt: str) -> dict[str, bool]:
-    """Detect intent topics using regex and heuristics (no embeddings).
-
-    Returns a dict mapping topic names to boolean flags.
-    """
-    # Check for implementation negation BEFORE intent detection
-    # Only skip implementation intent if user explicitly says "don't implement"
-    # This allows quality guidance like "don't forget to test" to still trigger implementation
-    # Multi-intent rescue: "don't implement X, but do build Y" should NOT block
     if _NEGATION_IMPL_RE.search(prompt) and not _MULTI_INTENT_RESCUE_RE.search(prompt):
-        # Implementation negated, but other intents (diagnostic, etc.) still allowed
-        # Example: "don't implement this, but diagnose why it fails"
-        # → diagnostic intent allowed, implementation intent blocked
         impl_blocked = True
     else:
         impl_blocked = False
@@ -439,26 +393,22 @@ def _detect_intent(prompt: str) -> dict[str, bool]:
     planning_implementation = bool(_PLAN_RE.search(prompt))
 
     intent = {
-        "implementation": bool(explicit_implementation or planning_implementation)
-        and not impl_blocked,
-        "diagnostic": bool(_DIAGNOSTIC_RE.search(prompt)),
-        "meta_rca": False,  # Handled by FAP gate in separate module
+        "implementation": bool(explicit_implementation or planning_implementation) and not impl_blocked,
+        "diagnostic": bool(_DIAGNOSTIC_RE.search(prompt)) or any(re.search(p, prompt, re.IGNORECASE) for p in INVESTIGATION_TRIGGERS),
+        "meta_rca": False,
+        "escape_hatch": bool(_SINGLE_RC_ESCAPE_RE.search(prompt)),
         "decomposition": False,
         "implementation_diagnostic": False,
     }
 
-    # Multi-topic combos
     if intent["implementation"] and intent["diagnostic"]:
         intent["implementation_diagnostic"] = True
 
-    # Decomposition: explicit decomposition language, or long vague prompts
     if _DECOMPOSITION_RE.search(prompt):
         intent["decomposition"] = True
     elif len(prompt.strip()) >= 200 and not _SPECIFIC_REF_RE.search(prompt):
         intent["decomposition"] = True
 
-    # Long vague prompts should prefer decomposition over generic planning
-    # language unless the user also made an explicit implementation request.
     if intent["decomposition"] and not explicit_implementation and not intent["diagnostic"]:
         intent["implementation"] = False
 
@@ -466,149 +416,53 @@ def _detect_intent(prompt: str) -> dict[str, bool]:
 
 
 def _select_enhancers(intent: dict[str, bool], config: dict) -> list[Enhancer]:
-    """Select appropriate enhancers based on detected intent and config.
-
-    Uses topic-based routing with config-driven enable/disable.
-    Supports multi-topic combos (e.g., implementation_diagnostic).
-    """
     selected = []
-
-    # Get enabled topics and enhancers from config
     enabled_topics = config.get("topics", {})
     enabled_enhancers = config.get("enhancers", {})
 
     for enhancer in _ENHANCERS:
-        # Skip if enhancer is disabled in config
-        if not enabled_enhancers.get(enhancer.name, True):
-            continue
-
-        # Check if any of this enhancer's topics are enabled and detected
-        if any(
-            enabled_topics.get(topic, True) and intent.get(topic, False)
-            for topic in enhancer.topics
-        ):
+        if not enabled_enhancers.get(enhancer.name, True): continue
+        if any(enabled_topics.get(topic, True) and intent.get(topic, False) for topic in enhancer.topics):
             selected.append(enhancer)
 
-    # Limit number of enhancers (per-topic or global fallback)
     max_by_topic = config.get("max_enhancers_by_topic", {})
-    detected_topics = [
-        topic for topic, active in intent.items() if active and topic in max_by_topic
-    ]
+    detected_topics = [t for t, active in intent.items() if active and t in max_by_topic]
 
     if detected_topics:
-        # Multi-topic: use max of all detected topic limits so combined topics
-        # don't artificially truncate enhancer selection
-        topic_limits = [
-            max_by_topic.get(t, config.get("max_enhancers_per_prompt", 3)) for t in detected_topics
-        ]
+        topic_limits = [max_by_topic.get(t, config.get("max_enhancers_per_prompt", 3)) for t in detected_topics]
         max_enhancers = max(topic_limits)
     else:
-        # Use global fallback
         max_enhancers = config.get("max_enhancers_per_prompt", 3)
 
     return selected[:max_enhancers]
 
 
-def _get_rationale(
-    intent: dict[str, bool], enhancers: list[Enhancer], prompt_length: int = 0
-) -> str:
-    """Generate one-line rationale for framework selection.
-
-    Returns a human-readable explanation of why frameworks were selected.
-    """
-    # Map intent combinations to rationales
-    if intent.get("meta_rca"):
-        return "meta_rca topic detected (root cause analysis mode)"
-
-    if intent.get("implementation_diagnostic"):
-        return "implementation + diagnostic intent detected"
-
-    if intent.get("diagnostic"):
-        return "diagnostic intent detected (investigate to find cause)"
-
-    if intent.get("decomposition"):
-        return f"long vague prompt detected (length: {prompt_length} chars)"
-
-    if intent.get("implementation"):
-        return "implementation intent detected"
-
-    # Fallback
-    framework_names = [e.name.replace("_", " ") for e in enhancers]
-    return f"matched {len(framework_names)} intent topics"
+def _get_rationale(intent: dict[str, bool], enhancers: list[Enhancer], prompt_length: int = 0) -> str:
+    if intent.get("meta_rca"): return "meta_rca topic detected (root cause analysis mode)"
+    if intent.get("implementation_diagnostic"): return "implementation + diagnostic intent detected"
+    if intent.get("diagnostic"): return "diagnostic intent detected (investigate to find cause)"
+    if intent.get("decomposition"): return f"long vague prompt detected (length: {prompt_length} chars)"
+    if intent.get("implementation"): return "implementation intent detected"
+    return f"matched {len(enhancers)} intent topics"
 
 
-def _build_injection(
-    enhancers: list[Enhancer], intent: dict[str, bool] | None = None, prompt_length: int = 0
-) -> str:
-    """Build injection text from selected enhancers.
-
-    Uses soft scaffolds with "if appropriate" language.
-
-    Emits framework-specific tags (e.g., [ASUM], [ANCH], [SOC], [CAL]) for visibility,
-    matching reasoning package tag system where [SEQ], [MAS], [2ST] tags
-    indicate active reasoning modes.
-
-    Tags are validated against the canonical tag registry to prevent LLM hallucination
-    of non-existent tags and deprecation warnings for legacy [COG] tag.
-
-    CRITICAL: Model must prepend tags to response - this is enforced via instruction.
-    """
-    if not enhancers:
-        return ""
-
-    # Build framework-specific tags using registry
+def _build_injection(enhancers: list[Enhancer], intent: dict[str, bool] | None = None, prompt_length: int = 0) -> str:
+    if not enhancers: return ""
     framework_tags = []
-    deprecation_warnings = []
-
     for enhancer in enhancers:
-        # Get tag from registry (prevents hallucination)
         tags = get_framework_tags_for_enhancer(enhancer.name)
         if tags:
             framework_tags.extend(tags)
-            # Validate each tag
             for tag in tags:
                 is_valid, warning = validate_tag_emission(tag)
+                log_tag_emission(tag_type=tag, tag_category="framework", is_valid=is_valid, has_warning=warning is not None, warning_message=warning, source="cognitive_enhancers")
 
-                # Log tag emission telemetry
-                tag_category = "deprecated" if tag == DEPRECATED_TAG_COG else "framework"
-                log_tag_emission(
-                    tag_type=tag,
-                    tag_category=tag_category,
-                    is_valid=is_valid,
-                    has_warning=warning is not None,
-                    warning_message=warning,
-                    source="cognitive_enhancers",
-                )
-
-                if warning:
-                    deprecation_warnings.append(warning)
-                elif not is_valid:
-                    # This shouldn't happen if registry is correct
-                    print(
-                        f"[cognitive_enhancers] WARNING: Invalid tag {tag} for enhancer {enhancer.name}",
-                        file=sys.stdout,
-                    )
-
-    # Build tag string
-    tags = " ".join(f"[{tag}]" for tag in framework_tags)
-
-    # Add rationale
+    tags_str = " ".join(f"[{tag}]" for tag in framework_tags)
     rationale = _get_rationale(intent, enhancers, prompt_length) if intent else "unknown reason"
-    tag_header = f"{tags}\nWhy: {rationale}\n\n"
+    tag_header = f"{tags_str}\nWhy: {rationale}\n\n"
 
-    # Add deprecation warning if [COG] tag was used (legacy behavior)
-    if DEPRECATED_TAG_COG in framework_tags:
-        deprecation_warning = (
-            f"[{DEPRECATED_TAG_COG}] tag is deprecated - use framework-specific tags "
-            f"({', '.join(list(FRAMEWORK_TAGS.keys())[:3])}, ...)"
-        )
-        tag_header += f"DEPRECATION NOTICE: {deprecation_warning}\n\n"
-
-    # Build framework injections
     injections = [e.injection for e in enhancers]
     frameworks_text = "\n\n".join(injections)
-
-    # Explicit instruction to prepend tags to response
     framework_names = [e.name.replace("_", " ").title() for e in enhancers]
     tag_instruction = (
         f"**TAG EMISSION REQUIRED**: Begin your response with the framework tags above. "
@@ -619,50 +473,13 @@ def _build_injection(
     return tag_header + tag_instruction + frameworks_text
 
 
-# ---------------------------------------------------------------------------
-# Unified cognitive enhancers hook (priority 11.0)
-# ---------------------------------------------------------------------------
-
-
 @register_hook("cognitive_enhancers", priority=11.0)
 def cognitive_enhancers(context: HookContext) -> HookResult:
-    """Unified cognitive enhancers hook with config-driven routing.
-
-    Replaces 9 separate hooks (assumption_surfacing, outcome_anchoring,
-    inversion_prompting, chestertons_fence, calibrated_confidence,
-    socratic_decomposition, cynefin_classification, hanlons_razor,
-    devils_advocate) with a single config-driven router.
-
-    Topic-based routing:
-    - implementation: assumption_surfacing, outcome_anchoring, inversion_prompting, chestertons_fence, devils_advocate
-    - diagnostic: calibrated_confidence, named_artifact_discovery, cynefin_classification (max=3, raised from 2)
-    - meta_rca: cynefin_classification
-    - implementation_diagnostic: assumption_surfacing + calibrated_confidence
-    - decomposition: socratic_decomposition (long vague prompts)
-
-    User modes (via #mode in prompt):
-    - #rca: Force meta_rca topic
-    - #deep: Force implementation topic
-    - #fast: Disable all enhancers
-
-    Config-driven enable/disable:
-    - topics.{topic_name}: true/false
-    - enhancers.{enhancer_name}: true/false
-    - max_enhancers_per_prompt: 3
-    """
     config = _load_config()
-
-    # Master enable/disable
-    if not config.get("enabled", True):
-        return HookResult.empty()
-
+    if not config.get("enabled", True): return HookResult.empty()
     prompt = context.prompt or ""
+    if not _is_actionable_prompt(prompt, config): return HookResult.empty()
 
-    # Check if prompt is actionable
-    if not _is_actionable_prompt(prompt, config):
-        return HookResult.empty()
-
-    # Check for user mode overrides (#rca, #deep, #fast)
     mode: str | None = None
     mode_match = _MODE_RE.search(prompt)
     forced_topic: str | None = None
@@ -670,65 +487,27 @@ def cognitive_enhancers(context: HookContext) -> HookResult:
         mode = mode_match.group(1)
         mode_config = config.get("modes", {}).get(mode, {})
         forced_topic = mode_config.get("topic")
-
-        # Check for disable_all flag (e.g., #fast mode)
-        if mode_config.get("disable_all", False):
-            return HookResult.empty()
+        if mode_config.get("disable_all", False): return HookResult.empty()
 
     if forced_topic:
-        # Override intent detection with forced topic (e.g. #rca -> meta_rca)
-        intent = dict.fromkeys(
-            [
-                "implementation",
-                "diagnostic",
-                "meta_rca",
-                "decomposition",
-                "implementation_diagnostic",
-            ],
-            False,
-        )
+        intent = dict.fromkeys(["implementation", "diagnostic", "meta_rca", "decomposition", "implementation_diagnostic", "escape_hatch"], False)
         intent[forced_topic] = True
     else:
         intent = _detect_intent(prompt)
 
-    # Select enhancers based on intent and config
     selected = _select_enhancers(intent, config)
+    if not selected: return HookResult.empty()
 
-    if not selected:
-        return HookResult.empty()
-
-    # Conflict arbitration: fast mode gating via prompt_mode, token budget
-    arbiter_result: ArbiterResult = resolve_conflict(
-        enhancers=selected,
-        mode_selection=None,  # Will be populated when shared state available
-        reasoning_confidence=0,
-        prompt_mode=mode,
-        token_limit=500,  # Configurable token budget
-    )
-
-    # Use adjusted enhancer list from arbiter
+    arbiter_result: ArbiterResult = resolve_conflict(enhancers=selected, mode_selection=None, reasoning_confidence=0, prompt_mode=mode, token_limit=500)
     selected = arbiter_result.enhancers
+    if not selected: return HookResult.empty()
 
-    if not selected:
-        return HookResult.empty()
-
-    # Build injection text (pass intent and prompt length for rationale generation)
     prompt_length = len(prompt.strip())
     injection = _build_injection(selected, intent, prompt_length)
+    if not injection: return HookResult.empty()
 
-    if not injection:
-        return HookResult.empty()
-
-    # Estimate tokens using character-to-token ratio
     token_count = len(injection) // CHARS_PER_TOKEN
-
-    # Log selection for observability (fail-safe - errors never break hook)
     rationale = _get_rationale(intent, selected, prompt_length)
-    log_cognitive_selection(
-        enhancers=selected,
-        intent=intent,
-        tokens=token_count,
-        rationale=rationale,
-    )
+    log_cognitive_selection(enhancers=selected, intent=intent, tokens=token_count, rationale=rationale)
 
     return HookResult(context=injection, tokens=token_count, priority=11.0)

@@ -125,6 +125,7 @@ FAISS_MAX_AGE = 86400.0  # Force full rebuild if FAISS index is older than 24 ho
 FAISS_INDEX_PATH = _csf_root / "data" / "chat_history_faiss_424k"
 FAISS_STATE_PATH = _csf_root / "data" / "chs_index_state.json"
 FAISS_LOCK_PATH = _csf_root / ".data" / "daemon" / "faiss_update.lock"
+STATE_LOCK_PATH = _csf_root / ".data" / "daemon" / "index_state.lock"
 # Time-based idle timeout: Disabled until 9pm local time, then 30 minutes (1800 seconds)
 IDLE_SHUTDOWN_TIMEOUT = None  # Will be set dynamically based on time of day
 REQUEST_TIMEOUT = 5.0
@@ -2503,13 +2504,7 @@ class UnifiedSemanticDaemon:
 
         Database located at __csf/data/chat_history.db.
         """
-        # Use __csf location
-        new_path = _csf_root / "data" / "chat_history.db"
-        if new_path.exists():
-            return new_path
-
-        # Use __csf location only
-        return new_path
+        return _csf_root / "data" / "chat_history.db"
 
     def _load_chs_messages(self, limit: int | None = None) -> list[dict[str, Any]]:
         """Load chat messages from SQLite database.
@@ -2526,11 +2521,28 @@ class UnifiedSemanticDaemon:
             return []
 
         try:
-            with sqlite3.connect(str(db_path)) as conn:
+            with sqlite3.connect(str(db_path), timeout=1.0) as conn:
                 conn.row_factory = sqlite3.Row
-                query = """
-                    SELECT id, session_id, role, content, timestamp, metadata
-                    FROM chat_messages
+                cursor = conn.cursor()
+
+                # Detect schema version
+                cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='messages'"
+                )
+                is_v2_schema = cursor.fetchone() is not None
+
+                if is_v2_schema:
+                    # V2 schema: messages table with raw_json column
+                    metadata_expr = "COALESCE(raw_json, '{}')"
+                    messages_table = "messages"
+                else:
+                    # Legacy schema: chat_messages table with metadata column
+                    metadata_expr = "metadata"
+                    messages_table = "chat_messages"
+
+                query = f"""
+                    SELECT id, session_id, role, content, timestamp, {metadata_expr} as metadata
+                    FROM {messages_table}
                     ORDER BY timestamp DESC
                 """
                 if limit:
@@ -3754,6 +3766,25 @@ class UnifiedSemanticDaemon:
         """Get path to CHS index state file."""
         return _csf_root / "data" / "chs_index_state.json"
 
+    def _acquire_state_lock(self) -> tuple[bool, Any]:
+        """Acquire exclusive lock on state file. Returns (acquired, lock_file)."""
+        STATE_LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            lock_file = open(STATE_LOCK_PATH, "xb")
+            lock_file.write(str(os.getpid()).encode())
+            return True, lock_file
+        except FileExistsError:
+            return False, None
+
+    def _release_state_lock(self, lock_file: Any) -> None:
+        """Release exclusive state lock."""
+        if lock_file:
+            try:
+                lock_file.close()
+                STATE_LOCK_PATH.unlink()
+            except (OSError, FileNotFoundError):
+                pass
+
     def _get_last_indexed_id(self) -> int:
         """Get the last indexed message ID from state file."""
         state_path = self._get_index_state_path()
@@ -3768,23 +3799,44 @@ class UnifiedSemanticDaemon:
         return 0
 
     def _save_last_indexed_id(self, last_id: int) -> None:
-        """Save the last indexed message ID to state file."""
-        state_path = self._get_index_state_path()
+        """Save the last indexed message ID to state file (idempotent, monotonic)."""
+        acquired, lock_file = self._acquire_state_lock()
+        if not acquired:
+            # Another process holds the lock — skip write to avoid state corruption
+            logger.debug("State file locked by another process, skipping write")
+            return
         try:
+            state_path = self._get_index_state_path()
             import json
             from datetime import datetime
 
-            state = {
-                "last_id": last_id,
-                "updated": datetime.now().isoformat(),
-            }
-            state_path.write_text(json.dumps(state, indent=2))
+            # Read current state to ensure monotonic update
+            current_id = 0
+            if state_path.exists():
+                try:
+                    current_state = json.loads(state_path.read_text())
+                    current_id = current_state.get("last_id", 0)
+                except Exception:
+                    pass
+
+            # Only advance — never overwrite with a lower value
+            if last_id > current_id:
+                state = {
+                    "last_id": last_id,
+                    "updated": datetime.now().isoformat(),
+                }
+                state_path.write_text(json.dumps(state, indent=2))
         except Exception as e:
             logger.warning(f"Failed to save index state: {e}")
+        finally:
+            self._release_state_lock(lock_file)
 
     def _load_chs_messages_incremental(self, batch_size: int = 500) -> list[dict[str, Any]]:
         """
         Load only new messages since last index.
+
+        Supports both V2 schema (messages + raw_json) and
+        legacy schema (chat_messages + metadata).
 
         Args:
             batch_size: Maximum messages to load per batch
@@ -3799,12 +3851,29 @@ class UnifiedSemanticDaemon:
             return []
 
         try:
-            with sqlite3.connect(str(db_path)) as conn:
+            with sqlite3.connect(str(db_path), timeout=1.0) as conn:
                 conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+
+                # Detect schema version
+                cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='messages'"
+                )
+                is_v2_schema = cursor.fetchone() is not None
+
+                if is_v2_schema:
+                    # V2 schema: messages table with raw_json column
+                    metadata_expr = "COALESCE(raw_json, '{}')"
+                    messages_table = "messages"
+                else:
+                    # Legacy schema: chat_messages table with metadata column
+                    metadata_expr = "metadata"
+                    messages_table = "chat_messages"
+
                 cursor = conn.execute(
-                    """
-                    SELECT id, session_id, role, content, timestamp, metadata
-                    FROM chat_messages
+                    f"""
+                    SELECT id, session_id, role, content, timestamp, {metadata_expr} as metadata
+                    FROM {messages_table}
                     WHERE id > ?
                     ORDER BY id ASC
                     LIMIT ?
@@ -3835,6 +3904,10 @@ class UnifiedSemanticDaemon:
                     logger.info(f"Found {len(messages)} new messages since ID {last_id}")
                 return messages
 
+        except sqlite3.OperationalError as e:
+            # Database locked — fail fast rather than blocking
+            logger.debug(f"CHS database locked, skipping incremental load: {e}")
+            return []
         except Exception as e:
             logger.error(f"Failed to load incremental messages: {e}")
             return []

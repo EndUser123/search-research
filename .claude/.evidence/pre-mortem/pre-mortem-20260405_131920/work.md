@@ -1,0 +1,1 @@
+PreToolUse_task_self_doc_gate.py fix - validation after auto-correction was skipped for TaskCreate

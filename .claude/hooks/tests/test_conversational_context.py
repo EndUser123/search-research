@@ -14,6 +14,7 @@ sys.path.insert(0, str(HOOKS_DIR))
 sys.path.insert(0, str(HOOKS_DIR / "UserPromptSubmit_modules"))
 
 from UserPromptSubmit_modules.context_followup_detector import (
+    _is_followup_query,
     _inject_conversational_context,
     get_conversational_context,
 )
@@ -248,3 +249,25 @@ class TestInjectConversationalContext:
         assert "Confidence: 0.6" in result
         assert "[/CONVERSATIONAL CONTEXT]" in result
         assert "Proceed." in result
+
+
+class TestFollowupQueryDetection:
+    """Tests for follow-up optimization/recommendation prompts."""
+
+    def test_short_optimization_query_inherits_recent_prior_context(self):
+        """Short recommendation prompts with recent prior context are follow-ups."""
+        result = _is_followup_query(
+            "what's the optimal solution?",
+            {
+                "topic": "multi-hypothesis tracking implementation gaps",
+                "summary": "pretooluse mode messages and stophook workflow mismatch",
+                "timestamp": 4102444800.0,  # future-stable synthetic timestamp
+            },
+        )
+        assert result[0] is True
+        assert result[1].startswith("optimization_followup:")
+
+    def test_short_optimization_query_without_prior_context_is_not_followup(self):
+        """Without prior context, short optimization prompts remain standalone."""
+        result = _is_followup_query("what's the optimal solution?", None)
+        assert result == (False, "")

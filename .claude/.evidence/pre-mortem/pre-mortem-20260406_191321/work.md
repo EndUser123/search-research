@@ -1,0 +1,1 @@
+On-error stale bytecode cleanup in hook_importer.py: _clear_hook_bytecode method + retry logic on ImportError/SyntaxError at lines 160-245

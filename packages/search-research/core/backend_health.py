@@ -9,8 +9,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal
 
-# Define project root - adjusted for package structure
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+from .terminal_id import canonical_terminal_id
 
 HealthStatus = Literal["ready", "degraded", "down"]
 
@@ -54,29 +53,39 @@ class BackendHealth:
 
 
 class BackendHealthRegistry:
-    """Registry for tracking backend health with thread-safe operations."""
+    """Registry for tracking backend health with thread-safe operations.
 
-    _instance: BackendHealthRegistry | None = None
+    Uses a class-level registry keyed by terminal_id so all instances with
+    the same terminal_id share health state. Different terminals get isolated
+    state. No singleton — every BackendHealthRegistry() is a proper instance.
+    """
+
     _lock = threading.Lock()
-
-    def __new__(cls) -> BackendHealthRegistry:
-        with cls._lock:
-            if cls._instance is None:
-                cls._instance = super().__new__(cls)
-                cls._instance._initialized = False
-            return cls._instance
+    # Class-level registry: terminal_id -> {"health": dict, "lock": Lock, "storage_path": Path}
+    _registry: dict[str, dict] = {}
 
     def __init__(self):
-        if self._initialized:
-            return
+        self._terminal_id = canonical_terminal_id()
 
-        self._health: dict[str, BackendHealth] = {}
-        self._lock = threading.Lock()
-        # Storage path - uses user's home directory for package installations
-        self._storage_path = Path.home() / ".search-research" / "backend_health.json"
-        self._storage_path.parent.mkdir(parents=True, exist_ok=True)
+        with BackendHealthRegistry._lock:
+            if self._terminal_id not in BackendHealthRegistry._registry:
+                storage_path = (
+                    Path.home()
+                    / ".search-research"
+                    / f"backend_health_{self._terminal_id}.json"
+                )
+                storage_path.parent.mkdir(parents=True, exist_ok=True)
+                BackendHealthRegistry._registry[self._terminal_id] = {
+                    "health": {},
+                    "lock": threading.Lock(),
+                    "storage_path": storage_path,
+                }
+            reg = BackendHealthRegistry._registry[self._terminal_id]
+            self._health: dict[str, BackendHealth] = reg["health"]
+            self._lock = reg["lock"]
+            self._storage_path: Path = reg["storage_path"]
+
         self._load_state()
-        self._initialized = True
 
     def get_status(self, backend: str) -> BackendHealth | None:
         """Get health status for a specific backend."""
@@ -150,8 +159,12 @@ class BackendHealthRegistry:
         """Reset all state. For testing only."""
         with self._lock:
             self._health.clear()
-            if self._storage_path.exists():
-                try:
-                    self._storage_path.unlink()
-                except Exception:
-                    pass
+        tid = self._terminal_id
+        if self._storage_path.exists():
+            try:
+                self._storage_path.unlink()
+            except Exception:
+                pass
+        with BackendHealthRegistry._lock:
+            if tid in BackendHealthRegistry._registry:
+                del BackendHealthRegistry._registry[tid]

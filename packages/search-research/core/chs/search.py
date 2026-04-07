@@ -618,7 +618,7 @@ def _select_backends(intent: str, _query: str) -> tuple[list[str], str]:
             "Code-first query prioritizes source code search",
         ),
         "knowledge-first": (
-            ["CKS", "DOCS", "CHS"],
+            ["CKS", "notebooklm", "DOCS", "CHS"],
             "Knowledge-focused query prioritizes knowledge bases",
         ),
         "conversation-first": (
@@ -630,9 +630,9 @@ def _select_backends(intent: str, _query: str) -> tuple[list[str], str]:
             "URL query triggers web reader and documentation search",
         ),
         "github": (["zread", "github"], "GitHub pattern triggers repository search tools"),
-        "error": (["Code/Grep", "CKS", "CHS"], "Error query prioritizes source code and knowledge"),
-        "howto": (["DOCS", "CKS", "Code"], "How-to query prioritizes documentation and knowledge"),
-        "general": (["CHS", "CKS", "Code/Grep"], "General query searches across all main backends"),
+        "error": (["Code/Grep", "CKS", "notebooklm", "CHS"], "Error query prioritizes source code and knowledge"),
+        "howto": (["DOCS", "CKS", "notebooklm", "Code"], "How-to query prioritizes documentation and knowledge"),
+        "general": (["CHS", "CKS", "notebooklm", "Code/Grep"], "General query searches across all main backends"),
     }
     backends, reasoning = backend_map.get(intent, backend_map["general"])
     return (backends, reasoning)

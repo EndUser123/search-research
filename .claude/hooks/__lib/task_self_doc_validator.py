@@ -191,7 +191,8 @@ if __name__ == "__main__":
     assert not result.missing_categories
 
     # Test 2: Vague task (has Problem indicator "bug" but missing Situation and Symptom)
-    # Note: "Bug in tests" has "in" which is a situation indicator, so only Symptom is missing
+    # "Bug in tests" - "in" is a situation indicator word, so Situation passes.
+    # Only Symptom is missing because no symptom description is present.
     result = self_documentation_check(
         subject="Fix bug",
         description="Bug in tests",

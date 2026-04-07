@@ -17,7 +17,7 @@ You are analyzing Python code files for the GTO (Gap/Task/Opportunity) analysis 
 
 ## Output Format
 
-Write valid JSON to the output path with this structure:
+Write your findings as JSON to the output file with this structure:
 ```json
 {
   "findings": [
@@ -41,10 +41,16 @@ Write valid JSON to the output path with this structure:
 - Missing boundary checks
 - Logic that always/never executes
 
+## Critical Verification Rules
+
+- Function call arguments: Check POSITION, not names.  calling  is CORRECT even if variable names differ.
+- Brace/bracket counting: Count ALL opening and closing tokens including nested structures before claiming a syntax error.
+- Before claiming any finding, verify by reading the actual file content with the Read tool.
+
 ## Process
 
-1. Read each target file
+1. Read each target file using the Read tool
 2. Identify functions with conditional logic
 3. Check boundary conditions carefully
-4. Write JSON findings to output path
+4. Write JSON findings to the output file
 5. Exit cleanly when done

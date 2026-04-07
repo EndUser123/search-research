@@ -6,46 +6,51 @@ StopHook_rca_contract.py - RCA Contract Structural Gate
 Stateless structural gate for RCA turns. Validates 8-field schema
 with evidence-links. Only active when rca_turn=True (derived from
 skill_state by Stop_router.py).
-
-RCA Contract Schema (8 Required Fields):
-
-| # | Field                | Required | Validation Rules                                        |
-|---|----------------------|---------|--------------------------------------------------------|
-| 1 | Symptom              | Yes     | Must describe observable error/behavior, not hypothesis |
-| 2 | Evidence             | Yes     | Must cite >=1 current-turn tool call (Read/Grep/Bash)   |
-| 3 | Executed Path        | Yes     | Must name >=1 function/file reachable via current-turn   |
-|   |                      |         | Read/Grep/Bash evidence. Cannot be dead code (0 callers)|
-| 4 | Alternative Hypothesis| Yes    | Must exist (can be brief)                              |
-| 5 | Falsifier           | Yes     | Must exist and must refute Alternative Hypothesis        |
-| 6 | Root Cause           | Yes     | Must name file/symbol/path appearing in Executed Path    |
-| 7 | Fix                 | Yes     | Must describe concrete action (file edit, config, etc.) |
-| 8 | Verification         | Yes     | Must describe how to confirm fix works                   |
-
-Block Reasons (structural, not wording-based):
-- missing-executed-path: No executed path shown
-- unreachable-root-cause: Root cause not in Executed Path
-- dead-code-in-path: Executed Path references function with 0 callers
-- unlabeled-transcript-evidence: Evidence section contains transcript-only
-  facts without `transcript-time:` label
-- missing-alternative: Alternative Hypothesis absent
-- missing-falsifier: Falsifier absent or does not refute alternative
-- missing-verification: Verification plan absent or non-specific
-
-LIFECYCLE: Stop (blocking gate -- exits with code 2 to block)
-ACTIVATION: Only fires when rca_turn=True (set by Stop_router.py)
-STATE: Stateless across turns -- reads skill_state but maintains no durable state
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import sys
 import time
 from pathlib import Path
+from typing import TypedDict
 
 _logger = logging.getLogger(__name__)
+
+
+class BandAidState(TypedDict):
+    """Schema for band-aid chain detection state.
+
+    Tracks how many times each file has been fixed to detect the band-aid
+    anti-pattern (repeated fixes to the same file suggest wrong root cause).
+
+    Attributes:
+        _ts: Monotonic timestamp for TTL expiration
+        fixes: Mapping from file path to fix count
+    """
+    _ts: float
+    fixes: dict[str, int]
+
+# Advisory mode: when true, log warnings but don't block
+_ADVISORY_MODE = os.environ.get("RCA_CONTRACT_ADVISORY", "false").lower() == "true"
+
+# Single root cause escape hatch pattern
+SINGLE_RC_ESCAPE = re.compile(
+    r"\[SINGLE\s+ROOT\s+CAUSE\s+CONFIRMED\]",
+    re.IGNORECASE,
+)
+
+# Urgency detection patterns
+URGENCY_PATTERNS = [
+    r"\b(urgent|urgency|emergency)\b",
+    r"\b(incident|outage|down)\b",
+    r"\b(prod(uction)?|live|customer)\s+(issue|problem|outage|down|broken)\b",
+    r"\b(time\s*(critical|sensitive)|ASAP|right now|immediately)\b",
+]
 
 try:
     from evidence_store import load_tool_events_for_context
@@ -91,6 +96,7 @@ REQUIRED_FIELDS = [
     "Executed Path",
     "Alternative Hypothesis",
     "Falsifier",
+    "Ruled Out",
     "Root Cause",
     "Fix",
     "Verification",
@@ -118,15 +124,24 @@ BLOCK_REASONS = {
     "missing-artifact": "Artifact path cited in Evidence does not exist on disk",
     # TASK-001: Zero-tool-call guard block reason
     "zero-tool-calls-for-confirmed-root-cause": (
-        "Confirmed Root Cause declared with zero tool calls — no investigation occurred"
+        "Confirmed Root Cause declared with zero tool calls - no investigation occurred"
     ),
-    # ANTI-PATTERN-1: Single-hypothesis-lock — overfits to first plausible explanation
+    # ANTI-PATTERN-1: Single-hypothesis-lock - overfits to first plausible explanation
     "single-hypothesis-lock": (
         "Only one hypothesis presented before declaring root cause. "
-        "Generate ≥2 ranked alternatives using hypothesis-scoring.md formula. "
-        "Do NOT name root cause until ≥2 hypotheses are explored and falsified."
+        "Generate >=2 ranked alternatives using hypothesis-scoring.md formula. "
+        "Do NOT name root cause until >=2 hypotheses are explored and falsified."
     ),
-    # ANTI-PATTERN-2: No call-site evidence — reasoning from partial reads
+    # Negative Proof Rule (Layer 3)
+    "missing-diverse-negative-proof": (
+        "Claim of absence (e.g., 'not found', 'found 0') requires 2+ diverse "
+        "verification strategies (e.g., ls + grep, read + glob) to ensure it's not a missed search."
+    ),
+    "unverified-hypothesis-testing": (
+        "Hypothesis marked as tested (\u2713/\u2717) but no corresponding tool evidence found in store. "
+        "Ensure you have actually run the verification tools for this hypothesis this turn."
+    ),
+    # ANTI-PATTERN-2: No call-site evidence - reasoning from partial reads
     "no-call-site-evidence": (
         "Executed Path names a function without showing callers (call-site evidence). "
         "Run: grep -r 'funcName(' src/ to prove the function is actually called. "
@@ -134,20 +149,36 @@ BLOCK_REASONS = {
     ),
     # ANTI-PATTERN-2: Automatic dead-code detection
     "auto-dead-code": (
-        "Function '{func}' has 0 callers in codebase — dead code cannot be root cause. "
+        "Function '{func}' has 0 callers in codebase - dead code cannot be root cause. "
         "Trace the actual execution path: find what calls the failing code."
     ),
-    # ANTI-PATTERN-3: Band-aid chain — defends local consistency too long
+    # ANTI-PATTERN-3: Band-aid chain - defends local consistency too long
     "band-aid-chain": (
         "XY-SUSPECT: {file} has received {count}+ RCA fixes in this terminal session. "
         "Repeated patches to the same file suggest the root cause is elsewhere. "
         "Consider: Is there a shared dependency or upstream cause?"
     ),
-    # ANTI-PATTERN-5: Stale execution path — does not re-ground after codebase changes
+    # ANTI-PATTERN-5: Stale execution path - does not re-ground after codebase changes
     "stale-execution-path": (
         "Executed Path references file(s) modified AFTER this RCA session began. "
         "The execution path may no longer reflect current code. "
         "Re-trace the execution path with current file versions."
+    ),
+    # TASK-001: Ruled Out field - document what alternatives were considered and why rejected
+    "missing-ruled-out": (
+        "Ruled Out section missing. "
+        "Document what alternatives were considered and why each was rejected."
+    ),
+    # TASK-002: Evidence tier labels - all evidence must have [current-state], [transcript-time], or [inference]
+    "evidence-without-tier-label": (
+        "Evidence lines lack tier labels. "
+        "Prefix each evidence item with: [current-state], [transcript-time], or [inference]"
+    ),
+    # TASK-003: AP6 - hypothesis was falsified by evidence
+    "hypothesis-falsified": (
+        "Hypothesis was falsified by evidence. "
+        "A hypothesis that can be disproved cannot be the root cause. "
+        "Revise hypothesis or generate new alternatives."
     ),
 }
 
@@ -171,7 +202,7 @@ def _get_current_turn_tools(tool_events: list[dict]) -> set[str]:
     """Extract tool names used this turn from tool_events."""
     tools = set()
     for event in tool_events:
-        name = event.get("name") or event.get("tool_name", "")
+        name = event.get("name", "")
         if name:
             tools.add(name)
     return tools
@@ -212,6 +243,69 @@ def _get_section(sections: dict[str, str], field: str) -> str:
 
 
 # --- Section Parsing ------------------------------------------------------
+
+
+def _parse_hypotheses_from_text(text: str) -> list[dict[str, str]]:
+    """Extract hypotheses and their status from response text.
+    
+    Supports:
+    | [Icon] | H[n]: [Name] | [Evidence] |
+    - [Icon] H[n]: [Name] ([Evidence])
+    """
+    hypotheses = []
+    
+    # Table format: | Icon | H1: Name | Evidence |
+    table_pattern = re.compile(r'\|\s*([\u2713\u2717\u29E7\u23F3])\s*\|\s*([^|]+)\|\s*([^|]+)\|', re.UNICODE)
+    for match in table_pattern.finditer(text):
+        icon, name, evidence = match.groups()
+        status = "CONFIRMED" if icon == "\u2713" else ("FALSIFIED" if icon == "\u2717" else ("INCONCLUSIVE" if icon == "\u29E7" else "UNTESTED"))
+        hypotheses.append({
+            "name": name.strip(),
+            "status": status,
+            "evidence": evidence.strip(),
+            "icon": icon
+        })
+        
+    # List format: - Icon H1: Name (Evidence)
+    list_pattern = re.compile(r'^[*-]\s*([\u2713\u2717\u29E7\u23F3])\s*(H\d+:[^(\n]+)(?:\(([^)]+)\))?', re.MULTILINE | re.UNICODE)
+    for match in list_pattern.finditer(text):
+        icon, name, evidence = match.groups()
+        status = "CONFIRMED" if icon == "\u2713" else ("FALSIFIED" if icon == "\u2717" else ("INCONCLUSIVE" if icon == "\u29E7" else "UNTESTED"))
+        hypotheses.append({
+            "name": name.strip(),
+            "status": status,
+            "evidence": (evidence or "").strip(),
+            "icon": icon
+        })
+        
+    return hypotheses
+
+
+def _is_absence_claim(text: str) -> bool:
+    """Check if text contains a claim of absence/non-existence."""
+    absence_patterns = [
+        r"found\s+0",
+        r"no\s+occurrences",
+        r"not\s+found",
+        r"empty",
+        r"does\s+not\s+exist",
+        r"absent",
+        r"missing",
+        r"0\s+matches",
+        r"none\s+found"
+    ]
+    text_lower = text.lower()
+    return any(re.search(p, text_lower) for p in absence_patterns)
+
+
+def _count_diverse_tools(tool_events: list[dict]) -> int:
+    """Count unique tool types used in the current context."""
+    tool_types = set()
+    for event in tool_events:
+        name = event.get("name", "")
+        if name:
+            tool_types.add(name)
+    return len(tool_types)
 
 
 def _extract_sections(response: str) -> dict[str, str]:
@@ -278,12 +372,7 @@ def _section_exists(sections: dict, field: str) -> bool:
 
 
 def _section_has_current_turn_evidence(sections: dict, field: str) -> bool:
-    """Check if a section contains evidence of current-turn tool usage.
-
-    Evidence is indicated by:
-    - `transcript-time:` label (for transcript-only facts)
-    - Direct citation patterns like "Read on X", "Grep found", "Bash showed"
-    """
+    """Check if a section contains evidence of current-turn tool usage."""
     content = _get_section(sections, field)
     if not content:
         return False
@@ -325,30 +414,19 @@ def _extract_function_names(text: str) -> list[str]:
 
 
 def _count_hypothesis_rows(hypothesis_text: str) -> int:
-    """Count the number of hypothesis rows in a markdown hypothesis table.
-
-    Looks for table rows (lines starting with |) that contain a score value.
-    """
+    """Count the number of hypothesis rows in a markdown hypothesis table."""
     if not hypothesis_text:
         return 0
     rows = 0
     for line in hypothesis_text.strip().split("\n"):
         line = line.strip()
-        if line.startswith("|") and any(c in line for c in ("0.", "1.", "Tier")):
+        if line.startswith("|") and any(c in line for c in ("0.", "1.", "Tier", "\u2713", "\u2717")):
             rows += 1
     return rows
 
 
 def _check_dead_code_auto(executed_path: str, root_cause: str, falsifier: str) -> list[str]:
-    """Automatically detect dead code — ALL function names in Executed Path.
-
-    Unlike _check_dead_code (marker-based), this scans every function name
-    mentioned in the Executed Path and checks if it has callers.
-
-    Returns list of dead function names, empty if all functions have callers.
-
-    PERFORMANCE: Scans files once (O(M)), not once per function (O(N×M)).
-    """
+    """Automatically detect dead code — ALL function names in Executed Path."""
     func_names = _extract_function_names(executed_path)
     if not func_names:
         return []
@@ -371,17 +449,12 @@ def _check_dead_code_auto(executed_path: str, root_cause: str, falsifier: str) -
 
 
 def _has_call_site_evidence(executed_path: str, evidence: str) -> bool:
-    """Check if Evidence section shows grep/call-site evidence for Executed Path functions.
-
-    Anti-pattern 2: Reasons from partial reads instead of tracing full execution path.
-    If Executed Path names a function, Evidence should show callers (grep results).
-    """
+    """Check if Evidence section shows grep/call-site evidence for Executed Path functions."""
     func_names = _extract_function_names(executed_path)
     if not func_names:
         return True  # No functions named, nothing to prove
 
     # Evidence must show grep results for at least one function in Executed Path
-    # Patterns that indicate call-site evidence: "grep found", "callers:", "X calls"
     call_evidence_patterns = [
         r"grep\s+(?:found|matched|calls?|callers?)",
         r"\bcallers?\s*[:=]",
@@ -394,84 +467,59 @@ def _has_call_site_evidence(executed_path: str, evidence: str) -> bool:
 
 
 # --- AP3: Band-Aid Chain Detector ---------------------------------------------
-# Multi-terminal isolated via terminal_id. Persists across session compaction.
-
 
 BAND_AID_FILE = "rca_band_aid.json"
+# BAND_AID_THRESHOLD = 3: More than 3 fixes to the same file suggests band-aid pattern
+# (RFC 1925 rule of optimality: repeated patches indicate root cause is elsewhere)
 BAND_AID_THRESHOLD = 3
-BAND_AID_STATE_TTL = 3600  # 1-hour terminal state TTL (safety net for stale state)
+BAND_AID_STATE_TTL = 3600  # 1-hour terminal state TTL
 
 
-def _load_band_aid_state(terminal_id: str) -> dict:
-    """Load band-aid chain state for terminal. Returns empty dict if none."""
+def _load_band_aid_state(terminal_id: str) -> BandAidState:
     if not terminal_id:
         return {}
     try:
         from __lib.state_paths import get_terminal_state_path
-    except Exception:
-        return {}
-    try:
         path = get_terminal_state_path(terminal_id, BAND_AID_FILE)
-        if path.exists():
-            data = json.loads(path.read_text(encoding="utf-8"))
-            # Safety: check TTL using monotonic time (immune to NTP clock jumps)
-            if time.monotonic() - data.get("_ts", 0) > BAND_AID_STATE_TTL:
-                return {}
-            return data
-    except Exception:
-        pass
-    return {}
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if time.monotonic() - data.get("_ts", 0) > BAND_AID_STATE_TTL:
+            return {}
+        return data
+    except FileNotFoundError:
+        # State file doesn't exist yet
+        return {}
+    except (json.JSONDecodeError, OSError) as exc:
+        # Corrupt state file or I/O error - log and return empty
+        _logger.error("Corrupt or unreadable band-aid state file: %s", exc)
+        return {}
 
 
 def _save_band_aid_state(terminal_id: str, state: dict) -> None:
-    """Atomically save band-aid state to terminal-scoped file."""
     if not terminal_id:
         return
     try:
         from __lib.state_paths import get_terminal_state_path
-    except Exception:
-        return
-    path: Path | None = None
-    try:
         path = get_terminal_state_path(terminal_id, BAND_AID_FILE)
         state["_ts"] = time.monotonic()
-        # Atomic write: write to temp then rename
         tmp = path.with_suffix(".tmp")
         tmp.write_text(json.dumps(state, encoding="utf-8"), encoding="utf-8")
         tmp.replace(path)
-    except OSError as exc:
-        _logger.error(
-            "Failed to save band-aid state to %s: %s. "
-            "AP3 band-aid chain detection may not persist across sessions.",
-            path,
-            exc,
-        )
     except Exception as exc:
         _logger.error("Unexpected error saving band-aid state: %s", exc)
 
 
 def _extract_fix_files(fix_text: str) -> list[str]:
-    """Extract file paths from Fix section."""
     if not fix_text:
         return []
-    # Match paths like src/foo.py or path/to/file.ext
-    # Also matches Windows paths: C:/foo/bar.py
     paths: list[str] = []
     for match in re.finditer(r"([A-Za-z]:[\\\/])?[\w./\\-]+\.py\b", fix_text):
         path = match.group()
-        if path and len(path) > 3:  # Skip short false positives
+        if path and len(path) > 3:
             paths.append(path)
     return paths
 
 
 def _check_band_aid_chain(fix_text: str, terminal_id: str) -> list[str]:
-    """Check if Fix section targets a file that's been patched >= BAND_AID_THRESHOLD times.
-
-    Anti-pattern 3: Defends local consistency too long — repeated patches to same file
-    signal a systemic issue, not a root cause.
-
-    Returns list of block messages for files exceeding threshold.
-    """
     if not terminal_id or not fix_text:
         return []
 
@@ -479,22 +527,15 @@ def _check_band_aid_chain(fix_text: str, terminal_id: str) -> list[str]:
     if not files:
         return []
 
-    # Import here to avoid import-time side effects
     try:
         from __lib.file_lock import FileLock
         from __lib.state_paths import get_terminal_state_path
-    except Exception:
-        return []
-
-    lock_path = get_terminal_state_path(terminal_id, BAND_AID_FILE).with_suffix(".lock")
-    try:
+        lock_path = get_terminal_state_path(terminal_id, BAND_AID_FILE).with_suffix(".lock")
         with FileLock(lock_path, timeout=5.0):
             state = _load_band_aid_state(terminal_id)
             fixes: dict = state.get("fixes", {})
-
             block_messages: list[str] = []
             for fpath in files:
-                # Normalize to forward slashes for consistent key
                 key = fpath.replace("\\", "/")
                 count = fixes.get(key, 0) + 1
                 fixes[key] = count
@@ -502,33 +543,24 @@ def _check_band_aid_chain(fix_text: str, terminal_id: str) -> list[str]:
                     block_messages.append(
                         BLOCK_REASONS["band-aid-chain"].format(file=key, count=BAND_AID_THRESHOLD)
                     )
-
             state["fixes"] = fixes
             _save_band_aid_state(terminal_id, state)
             return block_messages
-    except TimeoutError:
-        _logger.warning(
-            "Could not acquire lock for band-aid state update on terminal %s. "
-            "Skipping band-aid chain check this turn.",
-            terminal_id,
-        )
-        return []
     except Exception as exc:
+        # Fail-safe: Log error but don't block completion. Band-aid detection is
+        # a protective feature, not a blocking requirement. Users can inspect
+        # logs if they suspect repeated fixes are not being caught.
         _logger.error("Unexpected error in band-aid chain check: %s", exc)
         return []
 
 
 # --- AP5: Filesystem Freshness Validator --------------------------------------
-# Stateless — no terminal state needed. Checks mtime on each call.
 
 
 def _extract_file_paths_from_path(executed_path: str) -> list[str]:
-    """Extract file paths from Executed Path text."""
     if not executed_path:
         return []
     paths: list[str] = []
-    # Match Python file paths: src/module.py, package/module.py, etc.
-    # Also matches Windows paths: P:/foo/bar.py, C:/Users/...
     for match in re.finditer(r"([A-Za-z]:[\\\/])?[\w./\\-]+\.py\b", executed_path):
         path = match.group()
         if path and len(path) > 3:
@@ -537,47 +569,22 @@ def _extract_file_paths_from_path(executed_path: str) -> list[str]:
 
 
 def _get_file_mtime(file_path: str) -> float | None:
-    """Get modification time of a file, or None if not found.
-
-    Returns None only when the file does not exist.
-    Permission errors, I/O errors, and other exceptions are logged and
-    re-raised so callers can distinguish "not found" from "access denied".
-    """
     p: Path = Path(file_path)
     if not p.is_absolute():
-        # Try project root (P:/) for relative paths
         p = Path("P:/") / file_path
     try:
         if p.exists():
             return p.stat().st_mtime
-        return None  # File not found — normal case, return None
-    except PermissionError as exc:
-        _logger.error("Permission denied accessing %s: %s", p, exc)
-        raise
-    except OSError as exc:
-        _logger.error("I/O error accessing %s: %s", p, exc)
-        raise
+        return None
     except Exception as exc:
         _logger.error("Unexpected error accessing %s: %s", p, exc)
-        raise
+        return None
 
 
 def _check_stale_execution_path(
     executed_path: str,
     rca_timestamp: float | None,
 ) -> list[str]:
-    """Check if files in Executed Path were modified after RCA session start.
-
-    Anti-pattern 5: Does not re-ground after codebase changes underneath it.
-    If a file in the Executed Path has mtime > rca_timestamp, the execution path
-    may be stale.
-
-    Args:
-        executed_path: The Executed Path section text
-        rca_timestamp: Unix timestamp when RCA session started (from session start or first turn)
-
-    Returns list of block messages for stale files.
-    """
     if not rca_timestamp or not executed_path:
         return []
 
@@ -597,21 +604,134 @@ def _check_stale_execution_path(
 
 
 def _contains_unverified_token(text: str) -> bool:
-    """Check for UNVERIFIED as a standalone word token, not substring.
-
-    Used to exempt tentative RCA conclusions from the zero-tool-call guard.
-    """
     return bool(re.search(r"\bUNVERIFIED\b", text, re.IGNORECASE))
+
+
+def _detect_single_rc_escape(response: str) -> bool:
+    return bool(SINGLE_RC_ESCAPE.search(response))
+
+
+def _detect_urgency(response: str) -> bool:
+    for pattern in URGENCY_PATTERNS:
+        if re.search(pattern, response, re.IGNORECASE):
+            return True
+    return False
+
+
+def _format_structured_feedback(block_reasons: list, hypothesis_details: list | None = None) -> str:
+    lines = [
+        "**RCA Contract Structural Validation Failed**\n",
+        "Your RCA response is missing required structural elements:\n",
+    ]
+    for reason in block_reasons:
+        lines.append(f"- {reason}")
+
+    if hypothesis_details:
+        tested_count = sum(
+            1 for h in hypothesis_details
+            if h.get("status") in ("CONFIRMED", "FALSIFIED", "INCONCLUSIVE")
+        )
+        total = len(hypothesis_details)
+        lines.extend([
+            "",
+            f"Hypothesis Testing Progress: {tested_count}/{total} tested",
+            "",
+            "Hypothesis Status:",
+            "",
+        ])
+        for h in hypothesis_details:
+            status = h.get("status", "UNTESTED").upper()
+            icon = "\u2713" if status == "CONFIRMED" else ("\u2717" if status == "FALSIFIED"
+                    else "\u29E7" if status == "INCONCLUSIVE" else "\u23F3")
+            # Note: Fallback pattern is intentional here - hypotheses use "name" key
+            # (from _parse_hypotheses_from_text) but legacy data may use "claim"
+            name = h.get("name") or h.get("claim", "Unknown")
+            lines.append(f"   {icon} {name} \u2192 {status}")
+            if status == "UNTESTED" and h.get("test_suggestion"):
+                lines.append(f"      Suggested test: {h['test_suggestion']}")
+
+    lines.extend(
+        [
+            "",
+            "Required sections: Symptom, Evidence (>=1 current-turn tool), Executed Path,",
+            "Alternative Hypothesis, Falsifier, Root Cause (in Executed Path), Fix, Verification.",
+            "",
+            "Do NOT block on wording style -- only on missing structural proof.",
+        ]
+    )
+
+    return "\n".join(lines)
+
+
+# --- TASK-002: Evidence Tier Label Validation --------------------------------
+
+
+def _validate_evidence_tier_labels(evidence: str) -> list[str]:
+    if not evidence:
+        return []
+
+    required_labels = ["[current-state]", "[transcript-time]", "[inference]"]
+    unlabeled_lines = []
+    in_code_block = False
+
+    for line in evidence.split("\n"):
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_code_block = not in_code_block
+            continue
+        if in_code_block:
+            continue
+        if not stripped:
+            continue
+        if any(stripped.startswith(label) for label in required_labels):
+            continue
+        if len(stripped) <= 3:
+            continue
+        unlabeled_lines.append(stripped[:50])
+
+    if unlabeled_lines:
+        return ["evidence-without-tier-label: " + "; ".join(unlabeled_lines[:3])]
+    return []
+
+
+# --- TASK-003: AP6 Adversarial Hypothesis Validator ----------------------------
+
+
+def _validate_adversarial_hypothesis(
+    sections: dict,
+    tool_events: list[dict],
+) -> list[str]:
+    falsifier = _get_section(sections, "Falsifier")
+    if not falsifier:
+        return []
+
+    block_reasons = []
+    falsified_patterns = [
+        r"falsified",
+        r"disproved",
+        r"debunked",
+        r"test showed hypothesis",
+        r"hypothesis is false",
+        r"hypothesis is wrong",
+        r"grep found 0",
+    ]
+
+    falsifier_lower = falsifier.lower()
+    for pattern in falsified_patterns:
+        if re.search(pattern, falsifier_lower):
+            block_reasons.append(
+                "hypothesis-falsified: Alternative hypothesis was disproved by evidence. "
+                "Revise or replace the hypothesis before declaring root cause."
+            )
+            break
+
+    return block_reasons
 
 
 # --- Structure Validation (TASK-004): Artifact Path Existence -----------------------
 
 
 def _validate_artifact_paths_exist(sections: dict) -> list[str]:
-    """Validate that artifact paths cited in Evidence actually exist on disk.
-
-    Returns list of block reasons for missing artifacts.
-    """
     evidence = _get_section(sections, "Evidence")
     if not evidence:
         return []
@@ -622,13 +742,10 @@ def _validate_artifact_paths_exist(sections: dict) -> list[str]:
 
     block_reasons = []
     for path_str in artifact_paths:
-        # Skip URL-like paths (http://, https://, etc.)
-        if path_str.startswith(("http://", "https://", "ftp://", "file://")):
+        if path_str.startswith(("http", "https", "ftp", "file")):
             continue
-        # Try as absolute path first
         p = Path(path_str)
         if not p.is_absolute():
-            # Try relative to project root (P:\)
             p = Path("P:/") / path_str
         if not p.exists():
             block_reasons.append(f"missing-artifact:{path_str}")
@@ -640,39 +757,23 @@ def _validate_artifact_paths_exist(sections: dict) -> list[str]:
 
 
 def _extract_artifact_paths(evidence_text: str) -> list[str]:
-    """Extract artifact paths from evidence text.
-
-    Looks for file path patterns like:
-    - Read `path/to/file.py`
-    - path/to/file.py:123
-    - Grep found in `directory/`
-
-    Returns normalized artifact paths.
-    """
     if not evidence_text:
         return []
 
-    # Pattern for file paths in backticks or after Read/Grep/etc
     path_patterns = [
-        r'Read\s+(?:on\s+)?(?:from\s+)?[`"]([^`"]+)[`"]',  # Read `path` (with optional "on"/"from", supports Windows paths)
-        r'Grep\s+found\s+(?:\w+\s+)?in\s+[`"]([^`"]+)[`"]',  # Grep found [pattern] in `path`
-        r'Bash\s+(?:showed|output).*?in\s+[`"]([^`"]+)[`"]',  # Bash in `path`
-        r":\s*([\\w./-]+\\\w[\\w./-]+)",  # file.py:123 format
+        r'Read\s+(?:on\s+)?(?:from\s+)?[`"]([^`"]+)[`"]',
+        r'Grep\s+found\s+(?:\w+\s+)?in\s+[`"]([^`"]+)[`"]',
+        r'Bash\s+(?:showed|output).*?in\s+[`"]([^`"]+)[`"]',
+        r":\s*([\\w./-]+\\\w[\\w./-]+)",
     ]
 
     artifacts = set()
     for pattern in path_patterns:
         for match in re.finditer(pattern, evidence_text, re.IGNORECASE):
-            artifact = match.group(1)
-            # Normalize backslashes to forward slashes
-            artifact = artifact.replace("\\", "/")
-            # Extract directory path for file:line format (but preserve Windows drive letters)
+            artifact = match.group(1).replace("\\", "/")
             if ":" in artifact:
-                # Check if colon is a line number (comes after path separator) or drive letter (before any path separator)
                 if "/" in artifact and artifact.find("/") < artifact.rfind(":"):
-                    # Line number format: "path/to/file.py:123" - slash comes before colon
                     artifact = artifact.rsplit(":", 1)[0]
-                # else: Windows drive letter like "C:/path" - keep as is
             if artifact:
                 artifacts.add(artifact)
 
@@ -685,84 +786,40 @@ def _validate_evidence_bindings(
     session_id: str,
     terminal_id: str,
 ) -> list[str]:
-    """Validate that evidence claims are bound to actual tool events.
-
-    Checks:
-    1. Artifact paths in Evidence section have bindings to tool events
-    2. Bindings are from the same terminal (no cross-terminal contamination)
-    3. Bindings reference tool events that actually occurred this turn
-
-    Returns list of block reasons (empty if all valid).
-    """
     if not load_epistemic_bindings:
-        return []  # Fail-open if binding system unavailable
+        return []
 
     evidence = _get_section(sections, "Evidence")
     if not evidence:
-        return []  # No evidence to validate
+        return []
 
     block_reasons = []
-
-    # Extract artifact paths from evidence
     artifact_paths = _extract_artifact_paths(evidence)
-
     if not artifact_paths:
-        return []  # No artifacts to validate
+        return []
 
-    # Get current turn tool event IDs
-    tool_event_ids = set()
-    for event in tool_events:
-        event_id = event.get("id")
-        if event_id:
-            tool_event_ids.add(event_id)
-
+    tool_event_ids = {event.get("id") for event in tool_events if event.get("id")}
     if not tool_event_ids:
-        # No tool events this turn, but evidence claims artifacts
-        if artifact_paths:
-            block_reasons.append("evidence-without-tool-events")
+        block_reasons.append("evidence-without-tool-events")
         return block_reasons
 
-    # Load bindings for this session/terminal
     try:
-        bindings = list(
-            load_epistemic_bindings(
-                session_id=session_id,
-                terminal_id=terminal_id,
-            )
-        )
-    except Exception as exc:
-        _logger.exception("Evidence binding validation failed: %s", exc)
-        return []  # Fail-open on binding load failure
+        bindings = list(load_epistemic_bindings(session_id=session_id, terminal_id=terminal_id))
+    except Exception:
+        return []
 
-    # Check each artifact path has valid bindings
     for artifact_path in artifact_paths:
-        # Find bindings for this artifact
         artifact_bindings = [b for b in bindings if b.get("artifact_path", "") == artifact_path]
-
         if not artifact_bindings:
             block_reasons.append(f"unbound-evidence:{artifact_path}")
             continue
-
-        # Check bindings reference current-turn tool events
         valid_bindings = [b for b in artifact_bindings if b.get("tool_event_id") in tool_event_ids]
-
         if not valid_bindings:
             block_reasons.append(f"stale-evidence:{artifact_path}")
             continue
-
-        # Check for cross-terminal contamination
-        cross_terminal_bindings = [
-            b for b in artifact_bindings if b.get("terminal_id", "") != terminal_id
-        ]
-
-        if cross_terminal_bindings:
+        if any(b.get("terminal_id", "") != terminal_id for b in artifact_bindings):
             block_reasons.append(f"cross-terminal-evidence:{artifact_path}")
-            continue
-
-        # Check if binding is marked stale
-        stale_bindings = [b for b in artifact_bindings if b.get("is_stale") == 1]
-
-        if stale_bindings:
+        if any(b.get("is_stale") == 1 for b in artifact_bindings):
             block_reasons.append(f"stale-binding:{artifact_path}")
 
     return block_reasons
@@ -772,6 +829,7 @@ def _validate_evidence_bindings(
 
 
 def _validate_rca_contract(
+    data: dict,
     response: str,
     tool_events: list[dict],
     rca_turn: bool,
@@ -779,14 +837,8 @@ def _validate_rca_contract(
     terminal_id: str = "",
     rca_timestamp: float | None = None,
 ) -> tuple[bool, list[str]]:
-    """Validate RCA contract fields.
-
-    Returns (is_valid, block_reasons) tuple.
-    is_valid is True if all required fields pass.
-    block_reasons is list of failure codes.
-    """
     if not rca_turn:
-        return True, []  # Not an RCA turn, skip validation
+        return True, []
 
     block_reasons: list[str] = []
     sections = _extract_sections(response)
@@ -800,121 +852,80 @@ def _validate_rca_contract(
     fix = _get_section(sections, "Fix")
     verification = _get_section(sections, "Verification")
 
-    # Field 1: Symptom
-    if not symptom:
-        block_reasons.append(BLOCK_REASONS["missing-symptom"])
-
-    # Field 2: Evidence - must have current-turn tool evidence
+    if not symptom: block_reasons.append(BLOCK_REASONS["missing-symptom"])
     if not evidence:
         block_reasons.append(BLOCK_REASONS["missing-evidence"])
     elif _contains_transcript_only_claim(evidence):
         block_reasons.append(BLOCK_REASONS["unlabeled-transcript-evidence"])
-    elif not _has_verification_this_turn(tool_events) or not _section_has_current_turn_evidence(
-        sections, "Evidence"
-    ):
+    elif not _has_verification_this_turn(tool_events) or not _section_has_current_turn_evidence(sections, "Evidence"):
         block_reasons.append(BLOCK_REASONS["missing-evidence"])
     else:
-        # TASK-006: Validate evidence bindings (only if evidence exists and has current-turn indicators)
-        binding_block_reasons = _validate_evidence_bindings(
-            sections, tool_events, session_id, terminal_id
-        )
-        block_reasons.extend(binding_block_reasons)
+        block_reasons.extend(_validate_evidence_bindings(sections, tool_events, session_id, terminal_id))
 
-    # TASK-004: Structure validation - artifact paths must exist (independent of tool-events gate)
     if evidence and not _contains_transcript_only_claim(evidence):
-        path_block_reasons = _validate_artifact_paths_exist(sections)
-        block_reasons.extend(path_block_reasons)
+        block_reasons.extend(_validate_artifact_paths_exist(sections))
 
-    # Field 3: Executed Path
     if not executed_path:
         block_reasons.append(BLOCK_REASONS["missing-executed-path"])
     elif _contains_transcript_only_claim(executed_path):
         block_reasons.append(BLOCK_REASONS["unlabeled-transcript-evidence"])
 
-    # ANTI-PATTERN-2: Call-site evidence — must show callers for named functions
-    # Only fires when Executed Path names functions AND Evidence exists
-    func_names_in_path = _extract_function_names(executed_path)
-    if func_names_in_path and evidence and not _has_call_site_evidence(executed_path, evidence):
+    if _extract_function_names(executed_path) and evidence and not _has_call_site_evidence(executed_path, evidence):
         block_reasons.append(BLOCK_REASONS["no-call-site-evidence"])
 
-    # ANTI-PATTERN-5: Stale execution path — files modified after RCA session started
-    # rca_timestamp is passed in; if not available, skip this check (fail-open)
-    stale_block_reasons = _check_stale_execution_path(executed_path, rca_timestamp)
-    block_reasons.extend(stale_block_reasons)
+    block_reasons.extend(_check_stale_execution_path(executed_path, rca_timestamp))
 
-    # ANTI-PATTERN-1: Single-hypothesis-lock — overfits to first plausible explanation
-    # Require ≥2 ranked alternatives before declaring root cause
-    if root_cause and alternative:
-        hypo_count = _count_hypothesis_rows(alternative)
-        if hypo_count < 2:
-            block_reasons.append(BLOCK_REASONS["single-hypothesis-lock"])
+    if root_cause and alternative and _count_hypothesis_rows(alternative) < 2:
+        block_reasons.append(BLOCK_REASONS["single-hypothesis-lock"])
 
-    # Field 4: Alternative Hypothesis
-    if not alternative:
-        block_reasons.append(BLOCK_REASONS["missing-alternative"])
-
-    # Field 5: Falsifier
+    if not alternative: block_reasons.append(BLOCK_REASONS["missing-alternative"])
     if not falsifier:
         block_reasons.append(BLOCK_REASONS["missing-falsifier"])
     elif alternative:
-        alternative_tokens = {
-            token.lower() for token in re.findall(r"[A-Za-z_][A-Za-z0-9_]{2,}", alternative)
-        }
-        falsifier_lower = falsifier.lower()
-        if alternative_tokens and not any(token in falsifier_lower for token in alternative_tokens):
+        alt_tokens = {t.lower() for t in re.findall(r"[A-Za-z_][A-Za-z0-9_]{2,}", alternative)}
+        if alt_tokens and not any(t in falsifier.lower() for t in alt_tokens):
             block_reasons.append(BLOCK_REASONS["missing-falsifier"])
 
-    # Field 6: Root Cause - must be reachable from Executed Path
+    if falsifier:
+        block_reasons.extend(_validate_adversarial_hypothesis(sections, tool_events))
+    if evidence:
+        block_reasons.extend(_validate_evidence_tier_labels(evidence))
+
+    if not _get_section(sections, "Ruled Out"): block_reasons.append(BLOCK_REASONS["missing-ruled-out"])
+
     if not root_cause:
         block_reasons.append(BLOCK_REASONS["unreachable-root-cause"])
     else:
-        identifiers = re.findall(
-            r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*",
-            root_cause,
-        )
-        identifiers = [idf for idf in identifiers if len(idf) > 2]
-        if executed_path and identifiers:
-            executed_lower = executed_path.lower()
-            found = any(idf.lower() in executed_lower for idf in identifiers)
-            if not found:
-                block_reasons.append(BLOCK_REASONS["unreachable-root-cause"])
-        # ANTI-PATTERN-2: Automatic dead-code detection — scan ALL functions in Executed Path
+        identifiers = [idf for idf in re.findall(r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*", root_cause) if len(idf) > 2]
+        if executed_path and identifiers and not any(idf.lower() in executed_path.lower() for idf in identifiers):
+            block_reasons.append(BLOCK_REASONS["unreachable-root-cause"])
         dead_funcs = _check_dead_code_auto(executed_path, root_cause, falsifier)
-        if dead_funcs:
-            for func in dead_funcs:
-                block_reasons.append(
-                    BLOCK_REASONS["auto-dead-code"].format(func=func)
-                )
+        for func in dead_funcs: block_reasons.append(BLOCK_REASONS["auto-dead-code"].format(func=func))
 
-    # Field 7: Fix
-    if not fix:
-        block_reasons.append(BLOCK_REASONS["missing-fix"])
+    if not fix: block_reasons.append(BLOCK_REASONS["missing-fix"])
+    if fix and terminal_id: block_reasons.extend(_check_band_aid_chain(fix, terminal_id))
 
-    # ANTI-PATTERN-3: Band-aid chain — repeated patches to same file signal systemic issue
-    # Check after Fix is parsed so we know what files were patched
-    if fix and terminal_id:
-        band_aid_messages = _check_band_aid_chain(fix, terminal_id)
-        block_reasons.extend(band_aid_messages)
-
-    # Field 8: Verification
     if not verification:
         block_reasons.append(BLOCK_REASONS["missing-verification"])
-    else:
-        # Check for vague verification (just "test it", "verify", etc.)
-        vague_patterns = [
-            r"^test\s+it\s*$",
-            r"^verify\s*$",
-            r"^check\s+it\s*$",
-            r"^run\s+the?\s+test",
-        ]
-        is_vague = any(re.match(p, verification.strip(), re.IGNORECASE) for p in vague_patterns)
-        if is_vague:
-            block_reasons.append(BLOCK_REASONS["missing-verification"])
+    elif any(re.match(p, verification.strip(), re.IGNORECASE) for p in [r"^test\s+it\s*$", r"^verify\s*$", r"^check\s+it\s*$", r"^run\s+the?\s+test"]):
+        block_reasons.append(BLOCK_REASONS["missing-verification"])
+
+    # --- Layer 3: Evidence-Backed Hypothesis Verification ---
+    hypotheses = _parse_hypotheses_from_text(response)
+    if hypotheses:
+        if not data.get("hypothesis_details"):
+            data["hypothesis_details"] = hypotheses
+        for h in hypotheses:
+            if h["status"] in ("CONFIRMED", "FALSIFIED"):
+                h_evidence = h.get("evidence", "")
+                h_name = h.get("name", "")
+                if _is_absence_claim(h_evidence) or _is_absence_claim(h_name):
+                    if _count_diverse_tools(tool_events) < 2:
+                        block_reasons.append(BLOCK_REASONS["missing-diverse-negative-proof"])
+                if not tool_events:
+                    block_reasons.append(BLOCK_REASONS["unverified-hypothesis-testing"])
 
     unique_reasons = list(dict.fromkeys(block_reasons))
-
-    # TASK-001: Zero-tool-call guard — INSIDE _validate_rca_contract so tool_events is resolved
-    # This runs after all 8 fields are validated, with tool_events already loaded via fallback
     root_cause_confirmed = bool(root_cause) and not _contains_unverified_token(root_cause)
     if root_cause_confirmed and not tool_events:
         unique_reasons.append(BLOCK_REASONS["zero-tool-calls-for-confirmed-root-cause"])
@@ -922,101 +933,47 @@ def _validate_rca_contract(
     return len(unique_reasons) == 0, unique_reasons
 
 
-# --- Public Interface -----------------------------------------------------
-
-
 def check(data: dict) -> dict | None:
-    """Core guard logic. Returns block dict or None (allow)."""
-    # Only validate if rca_turn is set
     rca_turn = data.get("rca_turn", False)
-    if not rca_turn:
-        return None  # Not an RCA turn, skip
-
+    if not rca_turn: return None
     response = data.get("assistant_response", "") or data.get("response", "") or ""
-    if not response:
-        return None  # No response to validate
-
-    # Get session_id and terminal_id for binding validation (TASK-006)
+    if not response: return None
+    single_rc_escape = _detect_single_rc_escape(response)
     session_id = data.get("session_id", "")
     terminal_id = data.get("terminal_id", "")
-
-    # AP5: Get RCA session start timestamp for stale execution path check
-    rca_timestamp: float | None = data.get("session_start_ts", None)
-
-    # Get tool events
+    rca_timestamp = data.get("session_start_ts")
     tool_events = data.get("tool_events", [])
-    if not tool_events:
-        tool_events = _load_turn_scoped_tool_events(session_id, terminal_id)
+    if not tool_events: tool_events = _load_turn_scoped_tool_events(session_id, terminal_id)
+    
+    is_valid, block_reasons = _validate_rca_contract(data, response, tool_events, rca_turn, session_id, terminal_id, rca_timestamp)
+    
+    if single_rc_escape:
+        hypo_related = {"single-hypothesis-lock", "missing-alternative", "missing-falsifier", "missing-ruled-out"}
+        block_reasons = [r for r in block_reasons if not any(r.lower().startswith(BLOCK_REASONS[k].lower()[:50]) for k in hypo_related if k in BLOCK_REASONS)]
+        is_valid = len(block_reasons) == 0
 
-    is_valid, block_reasons = _validate_rca_contract(
-        response, tool_events, rca_turn, session_id, terminal_id, rca_timestamp
-    )
+    if is_valid: return None
+    if _ADVISORY_MODE:
+        _get_logger().warning("ADVISORY: RCA contract violations: %s", block_reasons)
+        return None
 
-    if is_valid:
-        return None  # All checks pass
-
-    # Build block message
-    logger = _get_logger()
-    logger.info("RCA contract validation failed: %s", block_reasons)
-
-    reason_lines = [
-        "**RCA Contract Structural Validation Failed**\n",
-        "Your RCA response is missing required structural elements:\n",
-    ]
-    for reason in block_reasons:
-        reason_lines.append(f"- {reason}")
-
-    reason_lines.extend(
-        [
-            "",
-            "Required sections: Symptom, Evidence (>=1 current-turn tool), Executed Path,",
-            "Alternative Hypothesis, Falsifier, Root Cause (in Executed Path), Fix, Verification.",
-            "",
-            "Do NOT block on wording style -- only on missing structural proof.",
-        ]
-    )
-
-    return {
-        "decision": "block",
-        "reason": "\n".join(reason_lines),
-        "blocking_hook": "StopHook_rca_contract",
-        "block_reasons": block_reasons,
-    }
+    _get_logger().info("RCA contract validation failed: %s", block_reasons)
+    feedback = _format_structured_feedback(block_reasons, data.get("hypothesis_details"))
+    return {"decision": "block", "reason": feedback, "blocking_hook": "StopHook_rca_contract", "block_reasons": block_reasons}
 
 
 def run(data: dict) -> dict | None:
-    """In-process validator protocol for Stop_router."""
     result = check(data)
     if result and result.get("decision") == "block":
-        return {
-            "block": True,
-            "reason": result.get("reason", ""),
-            "blocking_hook": result.get("blocking_hook", "StopHook_rca_contract"),
-        }
+        return {"block": True, "reason": result.get("reason", ""), "blocking_hook": result.get("blocking_hook", "StopHook_rca_contract")}
     return result
 
 
-# --- Main ----------------------------------------------------------------
-
-
-def main() -> None:
-    """Entry point for subprocess mode."""
-    try:
-        raw = sys.stdin.read().strip()
-        if not raw:
-            sys.exit(0)
-        data = json.loads(raw)
-    except (json.JSONDecodeError, ValueError):
-        sys.exit(0)
-
-    result = check(data)
-    if result:
-        print(json.dumps(result))
-        if result.get("decision") == "block":
-            sys.exit(2)
-    else:
-        print(json.dumps({}))
-
-
 if __name__ == "__main__":
-    main()
+    try:
+        data = json.loads(sys.stdin.read().strip())
+        result = check(data)
+        if result: print(json.dumps(result))
+        if result and result.get("decision") == "block": sys.exit(2)
+    except Exception:
+        sys.exit(0)

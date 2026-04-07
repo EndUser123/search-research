@@ -19,5 +19,5 @@ class TestLayer7Run:
 
     def test_run_with_no_hooks_dir(self, tmp_path):
         """When .claude/hooks does not exist, dead hook check returns empty."""
-        findings = layer7_operational.run(tmp_path)
+        layer7_operational.run(tmp_path)
         # Should not raise; returns list (possibly empty or with FileNotFoundError-ignored findings)

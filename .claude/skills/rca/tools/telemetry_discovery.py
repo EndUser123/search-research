@@ -87,6 +87,13 @@ TELEMETRY_SOURCES: list[dict[str, Any]] = [
         "description": "Pending command intent files",
         "format": "json",
     },
+    {
+        "name": "hook_events_db",
+        "path": "P:/.claude/hooks/events.db",
+        "pattern": None,
+        "description": "Hook observability SQLite database (constitutional_events, BloatAnalysis, TruthValidation)",
+        "format": "sqlite",
+    },
 ]
 
 
@@ -225,6 +232,78 @@ def print_telemetry_summary(results: dict[str, Any]) -> None:
     print("\n=== End Telemetry Discovery ===\n")
 
 
+def query_events_db(keyword: str, since_days: int | None = None, limit: int = 100) -> list[dict[str, Any]]:
+    """
+    Query the hook events database for matching constitutional events.
+
+    Args:
+        keyword: Search term (case-insensitive, searches event_type, layer, payload)
+        since_days: If set, only return events from last N days. None = all.
+        limit: Maximum number of results to return.
+
+    Returns:
+        List of matching event records with id, sessionid, event_type, timestamp, layer, payload
+    """
+    import sqlite3
+    from datetime import datetime
+
+    db_path = Path("P:/.claude/hooks/events.db")
+    if not db_path.exists():
+        return []
+
+    keyword_lower = keyword.lower()
+    cutoff_ts = None
+    if since_days is not None:
+        cutoff_ts = int((datetime.now() - timedelta(days=since_days)).timestamp())
+
+    matches: list[dict[str, Any]] = []
+
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+    except Exception as e:
+        # DB not accessible — return error marker so caller knows it's unavailable
+        return [{"error": f"db_connect_failed", "detail": str(e), "db_path": str(db_path)}]
+
+    try:
+        if cutoff_ts:
+            cur.execute(
+                "SELECT id, sessionid, event_type, timestamp, layer, payload, created_at "
+                "FROM constitutional_events WHERE timestamp >= ? ORDER BY id DESC LIMIT ?",
+                (cutoff_ts, limit),
+            )
+        else:
+            cur.execute(
+                "SELECT id, sessionid, event_type, timestamp, layer, payload, created_at "
+                "FROM constitutional_events ORDER BY id DESC LIMIT ?",
+                (limit,),
+            )
+
+        for row in cur.fetchall():
+            payload_str = row["payload"] or ""
+            if keyword_lower in row["event_type"].lower() or \
+               keyword_lower in (row["layer"] or "").lower() or \
+               keyword_lower in payload_str.lower():
+                matches.append({
+                    "id": row["id"],
+                    "sessionid": row["sessionid"],
+                    "event_type": row["event_type"],
+                    "timestamp": row["timestamp"],
+                    "layer": row["layer"],
+                    "payload": payload_str[:300],
+                    "created_at": row["created_at"],
+                })
+                if len(matches) >= limit:
+                    break
+
+        conn.close()
+    except Exception:
+        pass
+
+    return matches
+
+
 def find_relevant_logs(results: dict[str, Any], keyword: str) -> list[dict[str, Any]]:
     """
     Find log entries matching a keyword across all available telemetry sources.
@@ -293,7 +372,19 @@ def main() -> None:
     parser.add_argument("--match", "-m", type=str, help="Search for keyword across logs")
     parser.add_argument("--since", "-s", type=int, default=None, help="Only show sources modified in last N days")
     parser.add_argument("--json", "-j", action="store_true", help="Output raw JSON")
+    parser.add_argument("--events-db", "-e", type=str, help="Query hook events DB for keyword (instead of sweeping all sources)")
+    parser.add_argument("--events-since", type=int, default=None, help="Days back for events DB query")
     args = parser.parse_args()
+
+    if args.events_db:
+        matches = query_events_db(args.events_db, since_days=args.events_since)
+        print(f"\n=== Hook Events DB: '{args.events_db}' (since={args.events_since or 'all'}) ===\n")
+        print(f"Found {len(matches)} matches:\n")
+        for m in matches:
+            print(f"  [{m['event_type']}] session={m['sessionid']} layer={m['layer']}")
+            print(f"    ts={m['timestamp']} id={m['id']} payload={m['payload'][:100]}...")
+        print()
+        return
 
     results = discover_telemetry(since_days=args.since)
 

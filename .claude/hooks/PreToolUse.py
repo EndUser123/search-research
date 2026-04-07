@@ -419,19 +419,21 @@ def _check_skill_first_gate(data: dict) -> dict | None:
             # Allow SKILL.md edits even when slash command is pending
             return None
 
-    # Need session ID for scoped file lookup — no session = no gate
+    # Session id is helpful for stale-intent cleanup, but the current source of
+    # truth is the terminal-scoped pending intent file. Do not disable the gate
+    # just because session_id is absent from the payload.
     session_id = _resolve_session_id(data)
-    if not session_id:
-        return None
-
-    safe_session = _safe_id(session_id)
-
-    # Resolve terminal_id for multi-terminal safety
     terminal_id = str(
         data.get("terminal_id")
         or data.get("terminalId")
         or os.environ.get("CLAUDE_TERMINAL_ID", "")
     ).strip()
+    if not session_id and not terminal_id:
+        return None
+
+    safe_session = _safe_id(session_id or "unknown")
+
+    # Resolve terminal_id for multi-terminal safety
     safe_terminal = _safe_id(terminal_id or "unknown")
 
     # Check if there's a pending command intent for THIS session
@@ -528,9 +530,14 @@ def _check_skill_first_gate(data: dict) -> dict | None:
     # linger after the originating session is gone. Ignore old mismatched-session
     # intents so they do not block unrelated later work in the same terminal.
     terminal_scoped_name = f"pending_command_intent_{safe_terminal}.json"
+    is_new_terminal_scoped_intent = (
+        intent_file.name == "pending_command_intent.json"
+        and intent_file.parent.name == (terminal_id or intent_file.parent.name)
+        and intent_file.parent.parent.name == "terminals"
+    )
     intent_session_id = str(intent.get("session_id", "")).strip()
     intent_terminal_id = str(intent.get("terminal_id", "")).strip()
-    if intent_file.name == terminal_scoped_name:
+    if intent_file.name == terminal_scoped_name or is_new_terminal_scoped_intent:
         if intent_terminal_id and _safe_id(intent_terminal_id) != safe_terminal:
             intent_file.unlink(missing_ok=True)
             return None
@@ -542,6 +549,13 @@ def _check_skill_first_gate(data: dict) -> dict | None:
             intent_file.unlink(missing_ok=True)
             return None
 
+    def _skill_first_reason(body: str) -> str:
+        return (
+            "[WORKFLOW_BLOCK_NOT_HOOK_CRASH]\n"
+            "This is an intentional workflow block from the skill-first gate, not a broken hook.\n\n"
+            f"{body}"
+        )
+
     # Explicit MCP handling: always require Skill() first for slash intents.
     # This avoids opaque downstream failures for MCP tool names.
     if _is_mcp_tool(tool_name):
@@ -550,7 +564,7 @@ def _check_skill_first_gate(data: dict) -> dict | None:
             return None
         return {
             "decision": "block",
-            "reason": (
+            "reason": _skill_first_reason(
                 f"[E_SKILL_FIRST_PENDING_INTENT]\n"
                 f"⛔ SKILL-FIRST GATE: You typed /{skill_name} and attempted MCP tool "
                 f"'{tool_name}' before loading the skill.\n\n"
@@ -592,7 +606,7 @@ def _check_skill_first_gate(data: dict) -> dict | None:
         return None
     return {
         "decision": "block",
-        "reason": (
+        "reason": _skill_first_reason(
             f"[E_SKILL_FIRST_PENDING_INTENT]\n"
             f'⛔ SKILL-FIRST GATE: You typed /{skill_name} but haven\'t called Skill("{skill_name}") yet.\n\n'
             f'Your FIRST action must be:  Skill(skill="{skill_name}")\n\n'
@@ -650,6 +664,7 @@ TOOL_HOOKS = {
     "Edit": [
         "PreToolUse_directory_policy.py",
         "PreToolUse_type_validator.py",  # Blocks .py files at workspace root (type mismatch prevention)
+        "PreToolUse_syntax_gate.py",  # Validates Python syntax before Edit operations
         "PreToolUse_python_import_gate.py",
         "recursive_failure_detector.py",
         "PreToolUse_git_safety.py",

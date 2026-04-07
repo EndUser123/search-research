@@ -150,7 +150,10 @@ OBVIOUS_ALLOWLIST = re.compile(
     # Content-change contexts — "removed the X" where X is NOT a file/directory
     # These are config/entry/line changes, not filesystem deletions
     r"|\bremoved?\s+(?:the\s+)?(?:duplicate|entry|alias|line|item|value|setting|parameter|option|argument|flag)\b"
-    r"|\bremoved?\s+.*(?:from\s+[\w-]+|in\s+[\w-]+|config|file|section|document)\b",
+    r"|\bremoved?\s+.*(?:from\s+[\w-]+|in\s+[\w-]+|config|file|section|document)\b"
+    # Code-refactoring contexts — "removed unused/dead/obsolete code" (not file deletion)
+    # Requires explicit code-related term to avoid false positives
+    r"|\bremoved?\s+(?:the\s+)?(?:unused|dead|obsolete|deprecated|redundant)\s+(?:code|branch|logic|function|import|statement|class|method)\b",
     re.IGNORECASE,
 )
 

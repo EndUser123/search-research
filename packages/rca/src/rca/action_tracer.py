@@ -11,6 +11,7 @@ Task: #986
 from __future__ import annotations
 
 import json
+import os
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -18,8 +19,10 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-# State directory
-STATE_DIR = Path.home() / ".claude" / "state" / "rca"
+# State directory - use env var if set, matching session.py pattern
+_CLAUDE_HOME = Path(os.environ.get("CLAUDE_HOME", Path.home() / ".claude"))
+DEBUG_RCA_STATE_DIR = os.environ.get("DEBUG_RCA_STATE_DIR")
+STATE_DIR = Path(DEBUG_RCA_STATE_DIR) if DEBUG_RCA_STATE_DIR else _CLAUDE_HOME / "state" / "rca"
 ACTIONS_FILE = STATE_DIR / "rca_actions.json"
 
 

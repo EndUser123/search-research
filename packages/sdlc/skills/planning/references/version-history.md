@@ -1,5 +1,16 @@
 # Version History
 
+**v5.5.2** (2026-04-06): Generic source intake contract for `/planning`
+- Added `Planning Source Packet` as an authoritative extraction surface for non-ADR source artifacts
+- Clarified that transcripts, solution notes, and other unstructured sources must be normalized into canonical v2 plan sections before readiness routing
+- Documented that shallow source-to-plan transcription errors stay local to `/planning`
+
+**v5.5.1** (2026-04-05): Explicit `/arch` -> `/planning` handoff contract for ADR ingestion
+- Added Planning Handoff Packet requirement for `/arch` outputs intended to feed `/planning`
+- Clarified that ADR headings are source material, not valid plan section names
+- Added ADR ingestion rule: `/planning` must canonicalize ADR-derived drafts before routing remaining blockers to `/arch`
+- Documented that shallow ADR transcription errors stay local to `/planning`
+
 **v5.0.6** (2026-03-28): Rate limit retry protocol for adversarial agents
 - Added Step 4b-retry: Automatic retry when adversarial agents hit 429 rate limits
 - Maximum 3 total attempts (initial + 2 retries) per agent before giving up

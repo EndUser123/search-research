@@ -17,6 +17,8 @@ This document contains the detailed phase-by-phase instructions for the skill-sh
 1. Were there user corrections or broken-windows signals in this session related to skills?
 2. Are there any active hooks or state that would affect skill execution?
 3. Did recent conversation show any recurring patterns about skill quality?
+4. Is there terminal-scoped or session-scoped prior state that is safe to reuse, or should this run start fresh to avoid stale data?
+5. What reasoning depth is justified for this run: low, medium, high, or max?
 
 **Actions**:
 1. **Scan recent conversation turns** (last 5-10 turns) for correction signals:
@@ -29,11 +31,22 @@ This document contains the detailed phase-by-phase instructions for the skill-sh
      - Contains: `target_skill`, `current_phase`, `quality_dimensions`, `workflow_started`
      - Only use if last_updated < 24 hours (stale state is worse than no state)
      - If interrupted workflow detected → surface as "resuming workflow for {target_skill}" before Phase 1
+   - Prefer terminal/session-scoped evidence over shared global state; stale or cross-terminal state is worse than no state
 3. **Extract signals** — Map detected patterns to specific skill quality concerns:
    - User corrected trigger accuracy → increase trigger validation rigor in Phase 3b
    - User flagged a missing feature → note as design requirement in Phase 2
    - User corrected output format → enforce template in Phase 4
    - User reported failure mode → add to Phase 3d artifact validation checks
+4. **Operational resilience stance**:
+   - If the target skill is stateful or hook-heavy, record whether it must be multi-terminal isolated, stale-data-immune, and compact-resilient
+   - If the target skill appears stateless/read-only, record that explicitly so later phases do not add unnecessary state machinery
+5. **Reasoning-depth stance**:
+   - Choose the minimum reasoning depth that still protects quality:
+     - `low` for rote deterministic edits
+     - `medium` for normal implementation and repair
+     - `high` for integration, operational resilience, contract-sensitive work, or evaluator/judge preparation
+     - `max` only for unusually ambiguous implementation problems that still belong to shipping
+   - For shipped skills, add or adjust `effort:` frontmatter when a stable reasoning-depth default will improve consistency
 
 **Output Format**: Embedded in Phase 1 output
 
@@ -104,6 +117,14 @@ Read the `## EXECUTE` section of `SKILL.md`. If it lists two scripts (a primary 
 **Actions**:
 1. **Extract intent** from conversation if available
 2. **CRITICAL**: Before assuming new creation, check for possessive repair phrases (see above)
+3. **Boundary check before build**:
+   - If the unresolved question is strategic, stop shipping and route to `/skill-audit`
+   - Strategic questions include:
+     - should this skill exist in this form?
+     - should it be split, merged, or replaced?
+     - is the trigger/scope boundary wrong?
+     - is the enforcement model in the wrong place?
+     - is the desired outcome model wrong?
 3. **AUTOMATED CONFLICT DETECTION** (enforced):
    - Invoke `/similarity` skill automatically with skill description/intent
    - If similarity score ≥ 80%:
@@ -227,6 +248,28 @@ Phase 2 reads this block as context instead of re-parsing the conversation. Do N
    - Read relevant topic files based on keywords
    - Priority files: working_principles.md, discovery_patterns.md, skill_optimization_patterns.md
 
+5. **Run dynamic agent ecosystem scan** (NEW — for agent creation opportunities):
+   - Execute: `python scripts/list_agents.py --json` to discover all available agents at runtime
+   - Use `--filter <domain>` to probe specific categories for white space
+   - Compare discovered agents against the target skill's needed capabilities
+   - **Gap analysis dimensions** (check each with `--filter`):
+     - Token efficiency: agents that reduce context overhead (none found = opportunity)
+     - Skill/workflow selection: agents that route/classify/match tasks to skills (none = opportunity)
+     - Documentation: agents for README, API docs, code-to-doc sync (none = opportunity)
+     - Onboarding: agents for new-developer orientation, codebase tour (none = opportunity)
+     - API/database patterns: agents for REST design, schema, migrations (none = opportunity)
+   - **Output a "Suggested New Agent Types" subsection** in the Knowledge Retrieval Summary identifying the highest-value agent gaps for this specific skill
+
+6. **Query external discovery skills** (NEW):
+   a. **Invoke `/search`** for CKS/NotebookLM patterns relevant to the target skill domain:
+      - `/search "Claude Code subagent patterns skill automation"` — find related agent patterns
+      - `/search "hooks best practices multi-agent orchestration"` — find hook/agent coordination patterns
+   b. **Invoke `/usm`** for ecosystem discovery:
+      - Use `/usm` to search SkillsMP, ClawHub, SkillHub, and skills.sh for skills matching the target domain
+      - Also use `/usm` to discover plugins from marketplace and GitHub that have agent-type capabilities
+      - Scan installed plugin agents via: `python scripts/list_agents.py --source plugin --json`
+      - Report any found agent-type skills/plugins as "External Agent Opportunities"
+
 **Output Format**: Use Template 2 (Executive Summary Format)
 
 ```markdown
@@ -260,6 +303,21 @@ Phase 2 reads this block as context instead of re-parsing the conversation. Do N
 ### Memory.md Results
 [Relevant topic files and lessons]
 
+### Agent Ecosystem Scan
+**Total agents discovered:** [from list_agents.py --json count]
+**By source:** [user_p_drive, user_home, plugin_p_drive, plugin_home, builtin counts]
+
+| Capability Area | Agents Found | White Space? | Opportunity |
+|-----------------|-------------|--------------|-------------|
+| [e.g. Token Efficiency] | [existing agents or "none"] | yes/no | [description if gap] |
+
+**Suggested New Agent Types:** [Bullet list of specific agent types that would add most value for this skill — name, focus, and why it would help]
+
+### External Discovery (Search + USM)
+**`/search` findings:** [relevant agent/skill patterns from CKS/NotebookLM via /search]
+
+**`/usm` findings:** [relevant skills or plugins discovered from SkillsMP/ClawHub/SkillHub/skills.sh and GitHub]
+
 ### Recommendations
 [What patterns/lessons should be incorporated into the skill — include agents/sub-agents recommendations here]
 ```
@@ -282,7 +340,39 @@ CRITICAL: skip_reason MUST be set if Phase 1.5 was not executed. Phase 2 gate ch
 
 ---
 
-## Phase 2: Creation & Structuring
+## Phase 1.7: Policy Routing
+
+**Goal**: Classify artifact type and blast radius, emit explicit required_phases from policy config
+
+**Input**: artifact metadata, user intent classification, skill type
+
+**Action**:
+1. Read `config/policy.json`
+2. Match artifact type to `artifact_types` keys:
+   - `prompt_skill`: user is tweaking trigger phrasing, output format, or description — minimal validation
+   - `new_skill`: user is creating a net-new skill — full pipeline recommended
+   - `orchestrator`: skill delegates to subagents, dispatches tasks, or coordinates other skills — high risk, adversarial review warranted
+   - `contract_change`: skill changes a protocol, contract primitive, or hook interface — highest risk
+   - `distribution_update`: user is only updating docs, metadata, or sharing config — lightweight
+3. **If key found**: emit `required_phases` and `risk_level` from that entry
+4. **If key NOT found**: emit `default.phases` and `default.risk_level` (no error — unknown types use default gracefully)
+
+**Output**:
+```json
+{
+  "required_phases": ["3a", "3b", "3c", "3e", "3f"],
+  "risk_level": "medium",
+  "matched_artifact_type": "new_skill"
+}
+```
+
+**Note**: Phase 1.7 output is stored in workflow state and read by subsequent phases to determine which validation gates to enforce. The evaluator (3e) and judge (3f) phases are **subagent-only** — no Python implementations exist. Classification is performed by the orchestrator reading `config/policy.json` and routing accordingly.
+
+**Provenance requirement**: Every finding or claim in Phase 1.7 output must be tagged with `provenance: "this_run" | "prior_premortem" | "prior_manual_review"`. Do not assert "not documented" or "does not exist" without fresh tool verification this session. See `references/evaluator-judge-prompts.md` for provenance field specification.
+
+**Policy tuning**: To tune artifact type mappings over time, log per-run: artifact type, risk_level, phases run, final decision, and any override rationale. Periodic sampling (e.g., monthly) lets you tighten high-risk mappings for frequently-seen patterns or relax low-risk mappings that never fail. See `references/policy-tuning.md` for the lightweight tuning workflow.
+
+**Skip this phase when**: Artifact type is trivially determined (e.g., user says "just fix a typo in my skill" — skip routing, use `prompt_skill` defaults directly).
 
 **Goal**: Create or update the skill structure
 
@@ -356,11 +446,34 @@ Before beginning Phase 2, verify ONE of the following:
 | [e.g., Token Efficiency] | [e.g., File-passing IPC instead of content passing] | Phase 3b checks for IPC patterns |
 ```
 
+**Design Adequacy Check** (before finalizing Phase 2 output):
+
+Before passing to Phase 3a, apply these reflective questions to the drafted skill:
+1. **"Is this the best design for the stated goal, or the first design that seemed to work?"** — If the answer is "first plausible," iterate on the structure before proceeding
+2. **"Would a user find this genuinely useful, or just technically functional?"** — Technically functional is the floor, not the target
+3. **"What would I cut if this had to be half as long?"** — If nothing, the skill is too thin. If everything, the skill is too broad
+
+If the draft fails any of these checks: revise before Phase 3a. Do not pass inadequate designs to validation — fix them at creation.
+
+**ACEF Command Discipline Check** (before leaving Phase 2):
+
+- if inputs can be vague, define the quality gate
+- if the skill branches or routes, enumerate the execution and failure paths
+- if block/error paths exist, standardize their wording
+- if the skill appears to span multiple responsibilities, either narrow it or document the scope guard
+- if the draft adds new hooks, validators, controllers, layers, or helper systems, justify the added complexity with:
+  - a concrete failure/prevention case
+  - a simpler-alternative check
+  - an explicit complexity cost
+  - a reversibility check
+
 ---
 
 ## Phase 3: Quality & Validation
 
 **Goal**: Ensure skill meets quality standards
+
+**Boundary rule**: Phase 3 evaluates implementation correctness and readiness. If any finding concludes the strategy, trigger/scope, enforcement placement, or outcome model is wrong, emit that as a strategic defect and route to `/skill-audit` instead of continuing redesign inside `/skill-ship`.
 
 **Skill Coordination**:
 - Invoke **testing-skills** for trigger and execution path validation
@@ -422,10 +535,12 @@ Before beginning Phase 2, verify ONE of the following:
    - Require Tier 1 or Tier 2 evidence before accepting
    - Flag unverified claims for user correction
 
-4. **Test trigger phrases** (if complex triggering):
-   - Manually test trigger phrases
-   - Verify skill activates with intended phrases
-   - Optimize description if triggering fails
+4. **Test trigger phrases** (MANDATORY — no caveats):
+   - For each trigger in the target's `triggers:` field, verify it matches at least one positive example from user utterances
+   - Run `/similarity` with the trigger phrase to confirm it is semantically reachable by users
+   - Also test negative cases: verify known non-matching phrases do NOT activate the skill
+   - If triggering fails: optimize description and re-test before declaring Phase 3c complete
+   - This step is NOT conditional — all skills have triggers, all triggers must be tested
 
 5. **Check progressive disclosure** (if SKILL.md >300 lines):
    - Verify main content in SKILL.md, details in references/
@@ -441,6 +556,13 @@ Before beginning Phase 2, verify ONE of the following:
    - Invoke **av** for hook generation
    - Apply StopHook for multi-phase workflows
    - Apply PreToolUse hooks for execution requirements
+
+8. **Suggest/refer integrity check** (MANDATORY):
+   - Check all skills in `suggest:` and `depends_on_skills:` fields exist in the skills registry
+   - For each skill found in any `suggest:` field, verify the reciprocal: does that skill also list the current skill in ITS `suggest:`? If not, add it
+   - Grep all skills: `grep -r "^\s*- /{skill_name}:" skills/*/SKILL.md` to find candidates for reciprocation
+   - This prevents orphaned skills where Skill A mentions Skill B but Skill B doesn't mention Skill A
+   - Document gaps: list skills with missing reciprocations as integration findings
 
 **Output Format**: Use Template 3 (Hypothesis Testing Format)
 
@@ -600,6 +722,111 @@ Before beginning Phase 2, verify ONE of the following:
 
 ---
 
+## Phase 3e: Evaluator
+
+**Role**: Structured evaluation against rubric lenses — NO final judgment, NO decision field
+
+**Lenses**: 8 lenses total. Lens 8: Implementation Contract audits SKILL.md promises vs implementation/enforcement realization (file promises, stage enforcement, template system, process tracing). Strategic rightness remains `/skill-audit` territory.
+
+**Separation from Phase 3f**: The evaluator produces findings; the judge applies policy. The evaluator never returns a `decision` field — that is the judge's exclusive responsibility. This separation prevents conflation of "what was found" with "what should be done about it."
+
+**Default stance**: For `new_skill`, `orchestrator`, and `contract_change` routes, Phase 3e is the required critique pass unless policy routing explicitly bypasses it. Do not skip it just because the main model believes the artifact is already good enough.
+
+**Input**: artifact + context + policy routing decision (required_phases, risk_level, matched_artifact_type)
+
+**Output**: JSON array of structured findings per lens:
+```json
+[
+  {
+    "lens": "adaptability",
+    "finding": "hard-coded path assumption in phase 3b",
+    "evidence": ["workflow-phases.md:47", "builtins.json:12"],
+    "proposed_score": 2,
+    "severity": "critical",
+    "provenance": "this_run",
+    "assumptions": []
+  }
+]
+```
+
+**Provenance field** (required on every finding): `"provenance": "this_run" | "prior_premortem" | "prior_manual_review"`. Tag each finding with its source. Do not assert "not documented" or "does not exist" without fresh tool verification this session — use `"provenance": "this_run"` for new findings, `"prior_premortem"` for findings from a pre-mortem session, or `"prior_manual_review"` for findings from human review.
+
+**Assumptions field** (required): Every evaluator output MUST include an `assumptions` array (empty if none found). Categorize under:
+| Category | Examples |
+|----------|----------|
+| `repo_topology` | "assumes single-repo layout", "assumes P: drive is root" |
+| `tools` | "assumes /sqa is available", "assumes /arch is responsive" |
+| `config` | "assumes config files at path Y; no fallback" |
+| `paths` | "assumes Windows paths", "assumes relative to project root" |
+| `behavior` | "fails hard if tool discovery fails; no degraded mode" |
+| `non_goals` | "does not handle multi-repo setups" |
+
+For `risk_level == "high"` artifacts, dangerous assumptions (no fallback, hard-coded path, missing tool dependency) bias findings toward lower scores on adaptability or failure_tolerance.
+
+**Lenses** (score ALL 7 — do not skip any):
+| Lens | Measures | Score threshold |
+|------|----------|----------------|
+| implementation_fit | Correctly realizes the intended skill behavior | ≥3 |
+| adaptability | Tolerates ecosystem change (no hard-coded paths/tools/thresholds) | ≥3 |
+| composability | Reuses `/sqa`, `/arch`, `/rca`, `/sdlc` vs cloning logic | ≥3 |
+| context_efficiency | Token footprint justified by value delivered | ≥3 |
+| observability | Sufficient diagnostic hooks and trace points | ≥3 |
+| failure_tolerance | Degrades safely with fallback behavior | ≥3 |
+| maintainability_6m | Future changes are low-risk and understandable | ≥3 |
+
+**Scoring**: `proposed_score` is integer 1-5 (1=critical failure, 5=excellent). `severity` is one of: `critical`, `major`, `minor`, `info`.
+
+**Evidence requirement**: Every finding must cite specific file:line or config key. Speculative findings are flagged and excluded.
+
+**SKILL.md Integration**: The evaluator uses the same rubric dimensions already defined in SKILL.md:159-174 (Completeness, Clarity, Usability, Testability, Robustness), mapped to evaluator lenses per the Rubric Dimension Mapping table in the plan.
+
+**Quality Gate Protocol exception**: Phase 3e spawns a FRESH subagent with the evaluator prompt. Its output (structured JSON) is passed to Phase 3f — this is the only exception to the "Previous verdicts are NOT shared" rule, and it is specific to the evaluator/judge separation design.
+
+---
+
+## Phase 3f: Judge
+
+**Role**: Apply policy to evaluator findings — returns pass/conditional_pass/fail decision
+
+**Separation from Phase 3e**: The judge applies policy rules to the evaluator's findings. It does NOT re-analyze the artifact or produce new findings. If the evaluator's output is malformed, the judge returns `fail` with a specific error — it does not attempt to repair or interpret incomplete data.
+
+**Default stance**: For the same medium/high-risk routes, Phase 3f is the required decision pass. A new skill should not be called shipped or ready without this pass unless policy routing documents a legitimate bypass.
+
+**Input**: evaluator findings JSON + rubric dimensions + policy.json risk_level + matched_artifact_type
+
+**Output**:
+```json
+{
+  "decision": "pass | conditional_pass | fail",
+  "required_follow_ups": ["Add assumptions register", "Fix hard-coded path"],
+  "scores": {"implementation_fit": 4, "adaptability": 2, ...},
+  "provenance": "this_run"
+}
+```
+
+**Provenance field** (required): `"provenance": "this_run"` — the judge runs fresh in this session and applies policy to the evaluator's output.
+
+**Decision policy** (apply in order):
+1. Any `critical` severity finding → `fail`
+2. Any finding owned by `skill-audit` → `fail` with required follow-up: invoke `/skill-audit`
+3. `implementation_fit` OR `adaptability` OR `failure_tolerance` < 3 → `fail`
+4. `risk_level == "high"` AND no findings above `minor` severity → `conditional_pass`
+5. Otherwise → `pass`
+
+**Assumptions handling**: Read the `assumptions` array from the evaluator's payload. For `risk_level == "high"` artifacts, dangerous assumptions (no fallback, hard-coded path, missing tool dependency) bias toward `conditional_pass` with strong `required_follow_ups` even if no critical findings exist. Do NOT invent new findings — only apply policy to what the evaluator reported.
+
+**Input validation**:
+- Invalid severity → treat as `info`
+- Out-of-range score → clamp (<1→1, >5→5)
+- Missing lens field → discard that finding
+- Unparseable JSON or empty array → return `{"decision": "fail", "required_follow_ups": ["Evaluator output malformed"], "scores": {}}`
+
+**Conditional pass**: Judge must list specific required follow-ups. Phase 4 is blocked until conditional items are resolved.
+
+**Fail**: Distribution (Phase 5) is blocked until Judge re-runs and returns pass/conditional_pass.
+
+---
+
 ## Phase 4: Optimization & Enhancement
 
 **Goal**: Improve skill performance and reliability
@@ -607,7 +834,9 @@ Before beginning Phase 2, verify ONE of the following:
 **Skill Coordination**:
 - Invoke **av2** for mechanical continuation enforcement (if multi-phase workflow)
 - Invoke **output-style-extractor** to ensure consistent formatting
+- Reuse existing cognitive/reasoning hooks when they solve a proven gap; do not add new hook-based cognition by default
 - Review display_templates.md for format improvements
+- **Route to /simplify + /refactor** (see Routing Checks below)
 
 **Actions**:
 1. Analyze workflow for phase enforcement needs
@@ -615,13 +844,18 @@ Before beginning Phase 2, verify ONE of the following:
 3. Optimize description for triggering accuracy (if Phase 3.5 showed issues)
 4. Ensure output format matches chosen template
 5. Add progressive disclosure if skill > 300 lines
-6. **Consistency verification** (flaky test detection):
+6. Confirm operational resilience remains explicit after optimization:
+   - terminal/session scope or explicit statelessness
+   - stale-data invalidation / freshness authority
+   - compact / interrupted-workflow recovery
+   - cognitive/reasoning hook fit
+7. **Consistency verification** (flaky test detection):
    - Run skill 3x with identical prompts
    - Measure output variance across runs
    - Flag non-deterministic behavior
    - High variance = requires fixing before deployment
 
-7. **IMPL Pattern Extraction** (do this properly — thoroughness pass):
+8. **IMPL Pattern Extraction** (do this properly — thoroughness pass):
    - Read `P:/memory/skill_optimization_patterns.md`
    - Read `P:/.claude/.evidence/critique/IMPROVEMENTS.md`
    - If IMPROVEMENTS.md has entries not yet generalized into skill_optimization_patterns.md:
@@ -632,6 +866,41 @@ Before beginning Phase 2, verify ONE of the following:
    - If no unimplemented IMPL entries exist: note "IMPL entries fully generalized" in output
 
 **Output Format**: Use Template 6 (Error Analysis Format)
+
+### Routing Checks: /simplify and /refactor
+
+After all validation phases complete, run these checks before rendering RNS. Each is a separate conditional block — evaluate all that apply.
+
+**A. Complexity Check** (gates `/refactor`)
+Try to run `lizard -f json <target_dir>` (or fall back to `radon cc -a <target_dir>`). Thresholds:
+
+| Signal | Threshold | Action |
+|--------|-----------|--------|
+| `max_cc > 15` | Max cyclomatic complexity | **STRONG** `/refactor` candidate |
+| `avg_cc > 8` | Average CC | `/refactor` candidate |
+| `SKILL.md > 500 lines` | Skill length | `/refactor` candidate (structure burden) |
+
+If neither `lizard` nor `radon` is available: use `SKILL.md > 500 lines` as sole heuristic.
+
+**B. Implementation Check** (gates `/simplify`)
+```bash
+has_python=$(find <target_dir> -name "*.py" -not -name "__pycache__" | wc -l)
+```
+- `has_python >= 1` → `/simplify` candidate (any Python implementation benefit from code review)
+- `has_python >= 3` → **STRONG** `/simplify` candidate (multiple files = compounding complexity)
+
+**C. RNS Emission**
+Append results to RNS output before the "Recommended Next Steps" section renders:
+
+```
+🔄 QUALITY ROUTING
+  [recover/medium] SIMPLIFY-001 — Run /simplify on {target} ({reason})
+  [recover/high] REFACTOR-001 — Run /refactor on {target} ({reason})
+```
+
+Only emit items with satisfied conditions. If no conditions satisfied for a skill, emit neither. If both are satisfied, emit both — do not deduplicate.
+
+**Threshold sourcing**: Cite the actual measured value (e.g., `max_cc=23`) in the reason, not just the threshold name.
 
 ```markdown
 ## Optimization Analysis

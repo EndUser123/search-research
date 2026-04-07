@@ -1,6 +1,6 @@
 ---
 name: tdd
-version: 2.25.0
+version: 2.26.0
 description: Test-Driven Development with PARALLEL subagent delegation + Core Plan v1 evidence tracking. RED-GREEN-REFACTOR cycle with timestamped artifacts and 7-day cleanup.
 status: stable
 depends_on:
@@ -17,41 +17,25 @@ workflow_steps:
   - confirm_tests_fail
   - implement_minimal_code
   - confirm_tests_pass
+  - behavior_smoke_proof
   - refactor_code
   - confirm_tests_still_pass
-suggest:
-  - /search (integrated - test pattern discovery)
-  - /test
-  - /qa
-  - /analyze
-  - /breakdown-task
-hooks:
-  PreToolUse:
-    - matcher: "Edit|Write|MultiEdit"
-      hooks:
-        - type: command
-          command: "python \"$CLAUDE_PROJECT_DIR\"/.claude/skills/tdd/hooks/PreToolUse_plan_consumer_gate.py"
-  PostToolUse:
-    - matcher: "Write|Edit|Bash"
-      hooks:
-        - type: command
-          command: "python \"$CLAUDE_PROJECT_DIR\"/.claude/skills/tdd/hooks/PostToolUse_tdd_state.py"
-          timeout: 5
-  SessionEnd:
-    - matcher: ".*"
-      hooks:
-        - type: command
-          command: "python \"$CLAUDE_PROJECT_DIR\"/.claude/skills/tdd/hooks/SessionEnd_tdd_cleanup.py"
-          timeout: 3
+suggest: []
 changelog:
+  - version: 2.26.0 (2026-04-06)
+    changes:
+      - "MIGRATION: TDD hooks migrated from skill subprocess to in-process native hooks"
+      - "PERFORMANCE: Eliminated subprocess overhead on every tool execution"
+      - "RELIABILITY: Fixed __lib import path resolution for hook_base module"
+      - "ARCHITECTURE: Hooks now registered in settings.json instead of SKILL.md"
   - version: 2.25.0 (2026-03-15)
-    - NEW: Core Plan v1 evidence tracking integration
-    - NEW: Timestamped evidence artifacts in .evidence/ directory
-    - NEW: 7-day automatic cleanup policy for evidence artifacts
-    - NEW: Integration with /code pre-execution checklist and task detection
-    - DOCUMENTATION: Updated evidence collection documentation with Core Plan v1 API
+    changes:
+      - "NEW: Core Plan v1 evidence tracking integration"
+      - "NEW: Timestamped evidence artifacts in .evidence/ directory"
+      - "NEW: 7-day automatic cleanup policy for evidence artifacts"
+      - "NEW: Integration with /code pre-execution checklist and task detection"
+      - "DOCUMENTATION: Updated evidence collection documentation with Core Plan v1 API"
 ---
-
 # TDD - Test-Driven Development with PARALLEL Delegation
 
 **MANDATORY WORKFLOW:** Write tests BEFORE changing code.
@@ -177,6 +161,54 @@ Before writing framework-specific tests, invoke `/context7` to verify current sy
 | Django | "Django test client assert methods for status codes and JSON responses" |
 | vitest | "vitest mocking modules with vi.mock and vi.fn() examples" |
 | jest | "jest.spyOn and mock functions for async API testing" |
+
+---
+
+## Test-Truth Prompts
+
+Before locking in tests or claiming coverage, `/tdd` should run a short internal test-truth check:
+
+- What contract or behavior is this test actually proving?
+- Could this test pass while the real bug still exists?
+- Am I testing the mechanism, the user-visible behavior, or both?
+- What stale-data, multi-terminal, or interruption case would make this test incomplete?
+- What assumption about ordering, identity, or invalidation is this test silently making?
+- What behavior must fail, not just succeed?
+- What would a naive implementation do that this test should reject?
+- Am I writing a test for a workaround instead of the real contract?
+- What evidence would show this test matrix contradicts the stated design?
+- If the implementation changed but the contract stayed the same, would this test still be valid?
+
+These are internal self-check prompts. They are not default user-facing questions and should only surface to the user when `/tdd` is genuinely blocked and cannot proceed safely without clarification.
+
+## Behavior Smoke Proof
+
+`/tdd` should run a minimal real execution that proves the tests are attached to actual behavior, not just mocks or overly narrow assertions.
+
+Required for:
+- hooks, routers, or activation logic
+- stateful or resumable workflows
+- contract-sensitive producer/consumer boundaries
+- bug fixes where the original failure mode involved integration or runtime state
+
+The smoke proof should answer:
+- does the targeted behavior execute in the real environment?
+- would a naive or partially mocked implementation still be rejected?
+- is there a minimal end-to-end proof that the contract under test is real?
+
+`/tdd` may keep this lightweight, but it must not skip it on high-risk behavioral changes.
+
+## Critique-Agent Triggers
+
+`/tdd` should use a critique/review agent when test design is likely to miss the real contract or bless a workaround.
+
+Escalate to a critique agent when:
+- a new test matrix is defining a boundary contract or state-machine behavior
+- ordering, invalidation, stale-data, or resume semantics are part of the bug or feature
+- the tests are passing, but there is still a credible path where the real defect survives
+- a second perspective is needed to challenge whether the tests prove the intended behavior instead of the chosen mechanism
+
+The critique agent should focus on false confidence, missing failure paths, and tests that would pass while the real bug remains.
 
 ---
 

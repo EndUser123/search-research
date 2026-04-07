@@ -1,0 +1,1 @@
+Pre-mortem of /rca skill: P:/.claude/skills/rca/

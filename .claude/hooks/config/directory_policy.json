@@ -370,7 +370,9 @@
       "statusline.py",
       "UNIFIED_INDEX.md",
       "architectural_pillars.yaml",
-      "ai-cli-recipe.json"
+      "ai-cli-recipe.json",
+      "installed_plugins.json",
+      "known_marketplaces.json"
     ],
     "sensitive_patterns": [],
     "blocked_root_patterns": {
@@ -1206,7 +1208,8 @@
       "C:/Program Files",
       "/etc",
       "/usr/bin",
-      "/root"
+      "/root",
+      "nonexistent/path"
     ]
   },
   "allowed_external_paths": {
@@ -1231,6 +1234,10 @@
       "C:/Users/brsth/.gemini/antigravity/brain/",
       "C:/Users/brsth/.claude/skills/",
       "C:/Users/brsth/.claude/CLAUDE.md",
+      "C:/Users/brsth/.claude/plugins/installed_plugins.json",
+      "C:/Users/brsth/.claude/plugins/known_marketplaces.json",
+      "C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.7/hooks/hooks.json",
+      "C:/Users/brsth/.claude/plugins/marketplaces/claude-plugins-official/plugins/security-guidance/hooks/hooks.json",
       "P:/.staging/"
     ]
   },

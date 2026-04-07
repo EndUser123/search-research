@@ -344,14 +344,14 @@ class TestParamAutoCorrect:
         """Should preserve other parameters like description and metadata."""
         base_data["tool_input"] = {
             "name": "Fix file not found error",
-            "description": "When running pytest, it crashes with FileNotFoundError at line 42.",
+            "description": "When running pytest, it crashes with error at line 42. The error shows that test_file.txt is missing.",
             "metadata": {"priority": "high"},
         }
         result = gate_run(base_data)
         assert result is not None
         assert result["decision"] == "modify"
         assert result["tool_input"]["subject"] == "Fix file not found error"
-        assert result["tool_input"]["description"] == "When running pytest, it crashes with FileNotFoundError at line 42."
+        assert result["tool_input"]["description"] == "When running pytest, it crashes with error at line 42. The error shows that test_file.txt is missing."
         assert result["tool_input"]["metadata"] == {"priority": "high"}
 
     def test_auto_corrects_task_id_for_task_update(self, base_data):
@@ -414,4 +414,168 @@ class TestParamAutoCorrect:
         assert result["decision"] == "modify"
         assert "task_id" in result["tool_input"]
         assert "taskId" not in result["tool_input"]
+
+
+# --- TEST-GATE Coverage Tests -----------------------------------------------
+
+
+class TestTaskDeleteBypass:
+    """TEST-GATE-001: TaskDelete should bypass gate (not handled)."""
+
+    def test_taskdelete_passes_through(self, base_data):
+        """TaskDelete is not in eligibility check, should pass through."""
+        base_data["tool_name"] = "TaskDelete"
+        base_data["tool_input"] = {
+            "task_id": "123",
+        }
+        result = gate_run(base_data)
+        # TaskDelete is not in ("TaskCreate", "TaskUpdate"), so gate returns None
+        assert result is None
+
+
+class TestInvalidTaskIdTypes:
+    """TEST-GATE-002: Invalid taskId types should be handled gracefully."""
+
+    def test_taskupdate_integer_taskid_blocks(self, base_data):
+        """TaskUpdate with integer taskId should trigger blocking."""
+        base_data["tool_name"] = "TaskUpdate"
+        base_data["tool_input"] = {
+            "taskId": 123,  # Integer instead of string
+            "status": "completed",
+        }
+        result = gate_run(base_data)
+        # Integer taskId is not string, should not auto-correct properly
+        assert result is not None
+
+    def test_taskupdate_none_taskid_auto_corrects(self, base_data):
+        """TaskUpdate with None taskId should be auto-corrected to task_id=None."""
+        base_data["tool_name"] = "TaskUpdate"
+        base_data["tool_input"] = {
+            "taskId": None,
+            "status": "in_progress",
+        }
+        result = gate_run(base_data)
+        # Gate auto-corrects taskId -> task_id even for None
+        assert result is not None
+        assert result["decision"] == "modify"
+        assert "task_id" in result["tool_input"]
+
+    def test_taskupdate_empty_string_taskid_auto_corrects(self, base_data):
+        """TaskUpdate with empty string taskId should be auto-corrected."""
+        base_data["tool_name"] = "TaskUpdate"
+        base_data["tool_input"] = {
+            "taskId": "",
+            "status": "in_progress",
+        }
+        result = gate_run(base_data)
+        # Gate auto-corrects even empty string
+        assert result is not None
+        assert result["decision"] == "modify"
+        assert "task_id" in result["tool_input"]
+
+
+class TestEmptyToolInput:
+    """TEST-GATE-003: Empty tool_input should not crash."""
+
+    def test_taskcreate_empty_input_blocks(self, base_data):
+        """TaskCreate with empty tool_input should block properly."""
+        base_data["tool_name"] = "TaskCreate"
+        base_data["tool_input"] = {}
+        result = gate_run(base_data)
+        assert result is not None
+        assert result["decision"] == "block"
+
+
+class TestBrittleDescription:
+    """TEST-GATE-004: Description wording should be explicit."""
+
+    def test_description_with_problem_situation_symptom_is_valid(self, base_data):
+        """Description with Problem + Situation + Symptom should pass."""
+        base_data["tool_input"] = {
+            "subject": "Fix file not found error when running test suite",
+            "description": "When running pytest, it crashes with FileNotFoundError at line 42. The error shows test_file.txt doesn't exist.",
+        }
+        result = gate_run(base_data)
+        # Full self-documentation: Problem (crashes), Situation (When running pytest),
+        # Symptom (FileNotFoundError) - should pass
+        assert result is None
+
+
+class TestCharCountAssertions:
+    """TEST-GATE-005: Block message should verify actual char counts."""
+
+    def test_block_message_verifies_char_counts_1_of_10(self, base_data):
+        """Block message should show 1/10 for subject."""
+        base_data["tool_input"] = {
+            "subject": "X",  # 1 char
+            "description": "When running pytest it crashes with error",  # >10 chars, has Problem
+        }
+        result = gate_run(base_data)
+        assert result is not None
+        reason = result["reason"]
+        # Should contain explicit count like "1/10" not just "chars"
+        assert "/10" in reason, f"Expected '/10' in reason, got: {reason}"
+
+    def test_block_message_verifies_char_counts_1_of_50(self, base_data):
+        """Block message should show 1/50 for description."""
+        base_data["tool_input"] = {
+            "subject": "Fix file not found error when running test suite",  # >10 chars
+            "description": "X",  # 1 char, should be 1/50
+        }
+        result = gate_run(base_data)
+        assert result is not None
+        reason = result["reason"]
+        # Should contain explicit count like "1/50" not just "chars"
+        assert "/50" in reason, f"Expected '/50' in reason, got: {reason}"
+
+
+class TestTitleValuePreservation:
+    """TEST-GATE-006: Title value should be preserved when both name and title present."""
+
+    def test_name_and_title_both_present_preserves_title_value(self, base_data):
+        """When both 'name' and 'title' present, title VALUE should be preserved, not just key existence."""
+        base_data["tool_input"] = {
+            "name": "Correct subject",
+            "title": "MyCustomTitle",  # Different value to verify preservation
+            "description": "When running pytest, it crashes with FileNotFoundError at line 42. The error shows test_file.txt doesn't exist.",
+        }
+        result = gate_run(base_data)
+        assert result is not None
+        assert result["decision"] == "modify"
+        # Verify TITLE VALUE is preserved, not just key existence
+        assert result["tool_input"].get("title") == "MyCustomTitle", \
+            f"title value should be 'MyCustomTitle', got: {result['tool_input'].get('title')}"
+
+
+class TestAutoCorrectBlockCombo:
+    """TEST-GATE-008: Combined auto-correct + block scenario."""
+
+    def test_taskupdate_taskid_wrong_and_completion_no_desc(self, base_data):
+        """TaskUpdate with wrong taskId and status=completed without description should block."""
+        base_data["tool_name"] = "TaskUpdate"
+        base_data["tool_input"] = {
+            "taskId": "wrong_id",  # Wrong param name
+            "status": "completed",  # Completion without description
+        }
+        result = gate_run(base_data)
+        # Should block because: 1) taskId wrong, 2) status=completed without description
+        assert result is not None
+        assert result["decision"] == "block"
+
+
+class TestCollisionDetection:
+    """TEST-GATE-009: Collision when both taskId and task_id present."""
+
+    def test_taskupdate_both_taskid_and_task_id(self, base_data):
+        """TaskUpdate with both taskId and task_id should use task_id, remove taskId."""
+        base_data["tool_name"] = "TaskUpdate"
+        base_data["tool_input"] = {
+            "taskId": "old_id",
+            "task_id": "new_id",
+            "description": "When running pytest, it crashes with error.",  # Valid description
+        }
+        result = gate_run(base_data)
+        # Valid TaskUpdate with correct task_id passes through
+        assert result is None, f"Expected None for valid TaskUpdate, got: {result}"
+
 

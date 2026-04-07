@@ -13,7 +13,7 @@ import re
 import logging
 from pathlib import Path
 
-from .results import ArchResult
+from results import ArchResult
 
 __all__ = [
     "TemplateValidator",

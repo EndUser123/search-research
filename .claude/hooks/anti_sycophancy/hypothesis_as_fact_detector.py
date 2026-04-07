@@ -31,6 +31,7 @@ class ClaimType(Enum):
     SYSTEM = "system"  # Claims about system behavior
     CONVENTION = "convention"  # Claims about org norms/policies (no hedge bypass)
     MECHANISM = "mechanism"  # Claims about internal code mechanism/behavior without reading code
+    ANALYSIS = "analysis"  # Value judgments and architectural opinions (no verification required)
 
 
 class RiskDomain(Enum):
@@ -132,6 +133,18 @@ class HypothesisAsFactDetector:
         r"(?:we|the team|this project)\s+(?:typically|usually|often|generally)\s+(?:don't|do not|skip|omit|leave)\s+(?:document|commit|test|write)",
     ]
 
+    # Analysis/value judgment patterns — architectural opinions that don't require tool verification
+    # These are subjective assessments about software design, not factual claims about filesystem/code
+    ANALYSIS_PATTERNS = [
+        r"(\S+(?:/\S+)*)\s+(?:is valuable for|provides value to|is useful for|has value for)\s+(\S+)",
+        r"(?:right idea|wrong contract|correct approach|appropriate for|best fit for)",
+        r"(?:should|should not)\s+(?:be used|be applied|inform|guide)\s+(?:the\s+)?(?:design|architecture|implementation)",
+        r"(?:valuable|useful|appropriate|suitable)\s+(?:for|to|in)\s+(?:this\s+)?(?:context|scenario|use case)",
+        r"(?:better|worse|preferable)\s+(?:than|to)\s+(?:alternative|option|approach)",
+        r"(?:doesn't apply|not applicable)\s+(?:to|for)\s+(?:this\s+)?(?:audit|question|scenario)",
+        r"(?:pure\s+)?(?:prose|markdown)\s+(?:framework|artifact|document)",
+    ]
+
     # Epistemic hedge words
     HEDGE_WORDS = {
         "might",
@@ -192,6 +205,9 @@ class HypothesisAsFactDetector:
         self.compiled_mechanisms = [
             re.compile(pattern, re.IGNORECASE) for pattern in self.MECHANISM_CLAIM_PATTERNS
         ]
+        self.compiled_analysis = [
+            re.compile(pattern, re.IGNORECASE) for pattern in self.ANALYSIS_PATTERNS
+        ]
 
     def detect_claims(self, response_text: str) -> list[RawClaim]:
         """
@@ -219,6 +235,7 @@ class HypothesisAsFactDetector:
             claims.extend(self._detect_rule_claims(sentence))
             claims.extend(self._detect_convention_claims(sentence))
             claims.extend(self._detect_mechanism_claims(sentence))
+            claims.extend(self._detect_analysis_claims(sentence))
 
         return claims
 
@@ -355,6 +372,36 @@ class HypothesisAsFactDetector:
                     confidence=self._calculate_confidence(sentence, pattern),
                     has_hedge=self._detect_hedge(sentence),
                     risk_domain=RiskDomain.SYSTEM.value,
+                )
+                claims.append(claim)
+                break  # Only match first pattern per sentence
+
+        return claims
+
+    def _detect_analysis_claims(self, sentence: str) -> list[RawClaim]:
+        """Detect analysis/value judgment claims.
+
+        These are subjective assessments about software design, architecture,
+        or appropriateness that don't require tool verification (unlike
+        filesystem or code behavior claims).
+
+        Examples: "X is valuable for Y", "right idea, wrong contract"
+        """
+        claims: list[RawClaim] = []
+
+        for pattern in self.compiled_analysis:
+            match = pattern.search(sentence)
+            if match:
+                # Try to extract subject entity, fall back to "analysis"
+                entity = match.group(1) if match.lastindex and match.group(1) else "analysis"
+
+                claim = RawClaim(
+                    text=sentence,
+                    subject_entity=entity,
+                    claim_type=ClaimType.ANALYSIS.value,
+                    confidence=self._calculate_confidence(sentence, pattern),
+                    has_hedge=self._detect_hedge(sentence),
+                    risk_domain=RiskDomain.OTHER.value,  # Analysis is not a verification risk domain
                 )
                 claims.append(claim)
                 break  # Only match first pattern per sentence

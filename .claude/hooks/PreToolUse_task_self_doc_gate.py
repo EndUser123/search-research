@@ -71,7 +71,11 @@ def _validate_task_doc(tool_input: dict, tool_name: str = "TaskCreate") -> tuple
         # For TaskUpdate, only require description when completing the task
         status = tool_input.get("status", "")
         if status != "completed":
-            return True, "Valid"  # No self-doc required for non-completion updates
+            # For non-completion updates, no self-doc validation required
+            return True, "Valid"
+        # COMP-001: When status is absent, require description if any update is occurring
+        if not status and not description:
+            return False, "TaskUpdate requires description when status is not provided."
 
         # Validate description for completed tasks (subject is set at creation, not update)
         desc_result = self_documentation_check("TaskUpdate completion", description)
@@ -169,16 +173,24 @@ def run(data: dict) -> dict | None:
     # Auto-correct wrong parameter names before validation
     corrected = _auto_correct_params(tool_input, tool_name)
     if corrected is not None:
-        # For TaskUpdate with status=completed, also validate self-doc on corrected input
-        if tool_name == "TaskUpdate" and corrected.get("status") == "completed":
-            is_valid, reason = _validate_task_doc(corrected, tool_name)
-            if not is_valid:
-                blocking = os.environ.get("TASK_SELF_DOC_GATE_BLOCKING", "true").lower()
-                if blocking in ("1", "true", "yes"):
-                    return {"decision": "block", "reason": reason}
-                # Advisory mode: warn but allow
-                print(reason, file=sys.stderr)
-        # Return modify with corrected input
+        # COMP-002: For TaskUpdate without status=completed, skip validation
+        # since no self-doc requirement exists for non-completion updates
+        status = corrected.get("status", "")
+        if tool_name == "TaskUpdate" and status != "completed":
+            # Auto-correction is useful (taskId->task_id) but no validation needed
+            return {"decision": "modify", "tool_input": corrected}
+        # Validate self-doc on corrected input (not just for TaskUpdate with status=completed)
+        is_valid, reason = _validate_task_doc(corrected, tool_name)
+        if is_valid:
+            # Input is valid after correction - allow with modifications
+            return {"decision": "modify", "tool_input": corrected}
+
+        # Still invalid after correction
+        blocking = os.environ.get("TASK_SELF_DOC_GATE_BLOCKING", "true").lower()
+        if blocking in ("1", "true", "yes"):
+            return {"decision": "block", "reason": reason}
+        # Advisory mode: warn but allow
+        print(reason, file=sys.stderr)
         return {"decision": "modify", "tool_input": corrected}
 
     is_valid, reason = _validate_task_doc(tool_input, tool_name)
@@ -197,7 +209,12 @@ def run(data: dict) -> dict | None:
 
 def main() -> int:
     """Command-line entry point for standalone hook execution."""
-    data = json.load(sys.stdin)
+    # IO-001: Wrap json.load in try/except to handle malformed JSON
+    try:
+        data = json.load(sys.stdin)
+    except (json.JSONDecodeError, EOFError):
+        print("Invalid JSON input", file=sys.stderr)
+        return 2  # Block with error
     result = run(data)
 
     if result is None:

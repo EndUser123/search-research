@@ -389,54 +389,15 @@ def _clear_pending_skill_intent(data: dict[str, object]) -> None:
 
 
 def _write_error_signal(tool_name: str, tool_input: dict, tool_result: object) -> None:
-    """Write error signal for competence_injector conditional injection.
-
-    On error: create signal file. On success: clean it up.
-    """
-    success = True
-    if isinstance(tool_result, dict) and "error" in tool_result:
-        success = False
-    elif isinstance(tool_result, str) and tool_result.strip():
-        result_lower = tool_result[:500].lower()
-        if any(
-            marker in result_lower
-            for marker in (
-                "error:",
-                "traceback (most recent",
-                "exit code 1",
-                "exit code 2",
-                "command not found",
-                "no such file",
-                "permission denied",
-                "syntaxerror",
-                "importerror",
-            )
-        ):
-            success = False
-
+    """Delegate to shared writer (eliminates dual-writer conflict)."""
     try:
-        SIGNAL_DIR.mkdir(parents=True, exist_ok=True)
-        signal_file = SIGNAL_DIR / "last_tool_error.json"
-        if not success:
-            command = (
-                tool_input.get("command")
-                or tool_input.get("content")
-                or tool_input.get("path")
-                or ""
-            )
-            signal_file.write_text(
-                json.dumps(
-                    {
-                        "timestamp": time.time(),
-                        "tool_name": tool_name,
-                        "command": str(command)[:200],
-                    }
-                ),
-                encoding="utf-8",
-            )
-        elif signal_file.exists():
-            signal_file.unlink(missing_ok=True)
-    except OSError:
+        from __lib.write_tool_error_signal import write_tool_error_signal as _write
+        _write(
+            tool_name=tool_name,
+            tool_input=tool_input,
+            tool_result=tool_result,
+        )
+    except Exception:
         pass
 
 

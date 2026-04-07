@@ -27,7 +27,7 @@ class TestOrchestratorConfig:
         assert config.project_root is None
         assert config.terminal_id == "unknown"
         assert config.transcript_path is None
-        assert config.enable_subagents is True
+        assert config.enable_subagents is False  # Disabled: gap types route to dedicated skills
         assert config.verbose is False
 
 
@@ -86,6 +86,7 @@ class TestGTOOrchestrator:
             success=True,
             viability_passed=True,
             results=mock_results,
+            health_report=None,
             error=None,
         )
 
@@ -93,7 +94,7 @@ class TestGTOOrchestrator:
 
         assert isinstance(output, str)
         assert "GTO Gap Analysis Results" in output
-        assert "GAP-001" in output
+        assert "Add tests" in output  # gap message rendered
 
     def test_save_json_artifact(self, tmp_path: Path) -> None:
         """Test JSON artifact saving."""
@@ -127,6 +128,7 @@ class TestGTOOrchestrator:
             success=True,
             viability_passed=True,
             results=mock_results,
+            health_report=None,
             error=None,
         )
 

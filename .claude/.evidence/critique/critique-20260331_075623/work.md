@@ -1,1 +1,0 @@
-Apply three structural fixes to Stop_completion_verification_guard.py and Stop_negative_existence_guard.py, mirroring the fixes made to Stop_deletion_verification_guard.py: (1) tool_events is None fail-closed改为fail-warn, (2) context window symmetric 200/200扩大为 400/100, (3) OBVIOUS_ALLOWLIST missing conversational verification phrases

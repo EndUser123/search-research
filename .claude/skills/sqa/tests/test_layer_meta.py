@@ -7,6 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
 
+from findings.models import EvidenceTier, Finding, Layer, Severity
 from layers.layer_meta import (
     _check_evidence_quality,
     _detect_blind_spots,
@@ -14,8 +15,6 @@ from layers.layer_meta import (
     _enforce_evidence_citations,
     run_meta,
 )
-
-from findings.models import EvidenceTier, Finding, Layer, Severity
 
 
 class TestDetectConsensus:
@@ -111,7 +110,7 @@ class TestDetectBlindSpots:
         # We only flag when a layer RAN but found nothing in its expected categories
         # So if L5 is not in all_findings at all, we shouldn't flag it
         # (the "layer was degraded" case is handled by the orchestrator, not meta)
-        result = _detect_blind_spots([])
+        _detect_blind_spots([])
         # No findings means no blind spot detection (no layer "ran but found nothing")
 
 

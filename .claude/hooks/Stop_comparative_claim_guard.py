@@ -52,33 +52,45 @@ except ImportError as exc:
 TABLE_ROW_RE = re.compile(r"^\s*[││|].*[││|].*[││|].*$", re.MULTILINE)
 
 # Bullet-vs patterns: "item A vs item B", "A vs. B", "A versus B"
+# Items on either side of vs/versus are captured
+# No lookbehind needed - pattern is specific enough
+# File/skill path: must have extension (.py, .md, .SKILL, etc.) OR start with /
+# Bare English words (X, Y, what, implemented) are NOT file references
 VS_PHRASE_RE = re.compile(
-    r"(?<![^\s])([\w\-./]+(?:\.(?:py|md|json|yml|yaml|txt|skILL))?)\s+(?:vs\.?|versus)\s+([\w\-./]+(?:\.(?:py|md|json|yml|yaml|txt|skILL))?)",
+    r"(/[\w\-./]+|[\w\-./]+\.(?:py|md|json|yml|yaml|txt|SKILL))\s+(?:vs\.?|versus)\s+(/[\w\-./]+|[\w\-./]+\.(?:py|md|json|yml|yaml|txt|SKILL))",
     re.IGNORECASE,
 )
 
 # Prose comparison keywords
 PROSE_COMPARE_RE = re.compile(
-    r"(?i)(unlike|compared to|comparison with|in contrast to|whereas|while\s+\w+\s+is)\s+([/\w\-.]+(?:\.(?:py|md|skILL))?)",
+    r"(?i)(unlike|compared to|comparison with|in contrast to|whereas|while\s+\w+\s+is)\s+([/\w\-.]+(?:\.(?:py|md|SKILL))?)",
 )
 
 
 def _extract_file(cmd: str) -> str | None:
-    """Extract first path-like argument from a tool command string."""
+    """Extract first path-like token from a tool command string.
+
+    Handles all three tool formats:
+    - Read:   'Read /path/to/file.py'
+    - Grep:   'Grep pattern /path/to/file.py'   (path is 2nd or 3rd token)
+    - Glob:   'Glob *.py /path/to'              (path is 2nd or 3rd token)
+    - Any:    '/path/to/file.py'                (bare path as entire command)
+    """
     if not cmd:
         return None
-    # Skip tool name prefix (Read /path, Grep pattern /path, Glob pattern)
-    parts = cmd.strip().split(None, 1)
-    if len(parts) < 2:
-        return None
-    rest = parts[1].strip()
-    # Take first whitespace-delimited token that looks like a path
-    first = rest.split()[0] if rest else ""
-    if not first:
-        return None
-    # Accept paths starting with /, ./, P:/, C:/, or containing /
-    if first.startswith(("P:/", "/", "./", "C:/", "c:/", "D:/", "~")) or "/" in first:
-        return first.rstrip(",")
+    # Find any token that looks like a path (contains / and not a URL)
+    tokens = cmd.strip().split()
+    for token in tokens[1:]:  # Skip tool name
+        token = token.rstrip(",")
+        # Skip common non-path tokens
+        if token in ("-r", "-i", "-n", "-E", "-F", "-l", "-h", "--", "-w", "skill"):
+            continue
+        # Accept if it looks like a file path (contains /)
+        if "/" in token or token.startswith(("P:", "p:", "C:", "c:", "~")):
+            return token
+        # Also accept if it has a known file extension (file.py, file.md, etc.)
+        if re.match(r"[\w\-./]+\.(?:py|md|json|yml|yaml|txt|SKILL)$", token, re.IGNORECASE):
+            return token
     return None
 
 
@@ -91,54 +103,112 @@ def _build_verified_set(tool_events: list[dict]) -> set[str]:
             continue
         cmd = evt.get("command", "") or ""
         path = _extract_file(cmd)
-        if path:
-            verified.add(path)
-            # Normalize: bare filename
-            if "/" in path:
-                verified.add(path.split("/")[-1])
-            # Normalize: skill alias from /skill/SKILL.md
-            if "SKILL.md" in path:
-                skill = path.split("/SKILL.md")[0].lstrip("/")
-                if skill:
-                    verified.add(f"/{skill}")
-                    verified.add(skill)
+        if not path:
+            continue
 
-        # Grep/Glob with pattern may reference files in output -- skip output scanning
-        # as it would be fragile. The command string itself is sufficient.
+        verified.add(path)
 
-    return verified
+        # For skill SKILL.md paths like /skills/critique/SKILL.md
+        # extract bare skill name "critique"
+        if "SKILL.md" in path:
+            parts = path.split("/SKILL.md")[0].split("/")
+            if parts:
+                skill = parts[-1]
+                verified.add(skill)
+                verified.add(f"/{skill}")
+        # For other paths with / in them, add the last path component as bare name
+        elif "/" in path:
+            verified.add(path.split("/")[-1])
+
+    # Normalize skill references: for each /skill-name in verified, also add bare skill-name
+    # This handles comparisons where "critique" (bare) is found but "/critique" was verified
+    verified_normalized: set[str] = set(verified)
+    for item in verified:
+        if item.startswith("/") and "/" not in item[1:] and "." not in item:
+            # It's a /skill-name style reference - add bare version
+            verified_normalized.add(item[1:])
+    return verified_normalized
 
 
 def _find_comparisons(response: str) -> list[str]:
     """Find all file/skill references in comparative constructs."""
     found: list[str] = []
 
-    # 1. Table rows (┌─┬─┐ format)
+    # Skip standalone "skill" as it's a common word in phrases like "X skill vs Y skill"
+    skip_words = {"skill", "file", "path", "code"}
+
+    def _is_file_reference(text: str) -> bool:
+        """Check if cell looks like a file/skill path, not markdown text."""
+        # Must contain path indicators: /, file extension, or be /-prefixed
+        if text.startswith("/"):
+            return True
+        if re.search(r"\.(?:py|md|json|yml|yaml|txt|SKILL)$", text, re.IGNORECASE):
+            return True
+        if "/" in text:
+            return True
+        return False
+
+    def _is_plausible_path(text: str) -> bool:
+        """Reject unrealistically long strings that are content, not paths."""
+        # Real file paths are rarely > 150 chars
+        if len(text) > 150:
+            return False
+        return True
+
+    def _is_markdown_artifact(text: str) -> bool:
+        """Check if cell is a markdown artifact (backtick-wrapped, separator, etc.)."""
+        if text.startswith("`") and text.endswith("`"):
+            return True
+        # Table separator rows: mostly hyphens and dashes (|-------|-----|)
+        if re.match(r"^[-:\s|]+$", text):
+            return True
+        return False
+
+    # 1. Table rows (┌─┬─┐ format) - must be Claude box-drawing format
+    # Require at least one box-drawing char AND minimum 3 chars per cell
     for line in response.splitlines():
         line = line.strip()
         if not line:
             continue
-        # Must look like a table cell (contains | and some content)
+        # Must be Claude box format: contains │ or | pipe chars
         pipe_count = line.count("│") + line.count("|")
-        if pipe_count >= 2:
-            # Extract token-like fragments
-            cells = re.split(r"[││|\s]{2,}", line)
-            for cell in cells:
-                cell = cell.strip("││| \t")
-                if not cell:
-                    continue
-                # Accept path-like or /skill references
-                if "/" in cell or cell.startswith("/") or cell.endswith(".py") or cell.endswith(".md") or cell == "skILL.md":
-                    found.append(cell)
+        if pipe_count < 2:
+            continue
+        # Require at least one box-drawing char for table format
+        if "│" not in line and "┌" not in line and "└" not in line:
+            continue
+        # Extract cells - split on pipe and whitespace
+        cells = re.split(r"[││|\s]{2,}", line)
+        for cell in cells:
+            cell = cell.strip("││| \t")
+            if not cell:
+                continue
+            if _is_markdown_artifact(cell):
+                continue
+            # Skip single-char cells unless they start with / (skill references)
+            if len(cell) < 2 and not cell.startswith("/"):
+                continue
+            if cell.lower() in skip_words:
+                continue
+            if not _is_file_reference(cell):
+                continue
+            if not _is_plausible_path(cell):
+                continue
+            found.append(cell)
 
     # 2. vs/versus phrases
     for m in VS_PHRASE_RE.finditer(response):
-        found.append(m.group(1))
-        found.append(m.group(2))
+        g1, g2 = m.group(1), m.group(2)
+        if g1.lower() not in skip_words and _is_file_reference(g1) and not _is_markdown_artifact(g1) and _is_plausible_path(g1):
+            found.append(g1)
+        if g2.lower() not in skip_words and _is_file_reference(g2) and not _is_markdown_artifact(g2) and _is_plausible_path(g2):
+            found.append(g2)
 
     # 3. Prose comparison keywords
     for m in PROSE_COMPARE_RE.finditer(response):
-        found.append(m.group(2))
+        item = m.group(2)
+        if item.lower() not in skip_words and _is_file_reference(item) and _is_plausible_path(item):
+            found.append(item)
 
     return found
 
@@ -169,6 +239,22 @@ def check(data: dict) -> dict | None:
                     _logger.warning("load_tool_events failed: %s", exc)
 
     verified = _build_verified_set(tool_events)
+
+    # Also add transcript path if present — comparing transcript content
+    # (e.g., "Based on the transcript") doesn't require reading the transcript
+    # as a file, it's referencing the session's own accumulated history
+    for key in ("transcript_path", "transcript"):
+        tp = data.get(key, "")
+        if tp:
+            tp = tp.strip()
+            if tp:
+                verified.add(tp)
+                # Normalize Windows backslashes and drive letter variations
+                normalized = tp.replace("\\", "/")
+                verified.add(normalized)
+                # Also add bare filename
+                verified.add(tp.split("/")[-1])
+
     _logger.debug("Verified files this turn: %s", verified)
 
     unverified = [c for c in comparisons if c not in verified]

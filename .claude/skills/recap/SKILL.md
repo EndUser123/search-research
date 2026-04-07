@@ -4,10 +4,11 @@ description: Catch up on all sessions in this terminal via checkpoint chain trav
 version: 1.2.0
 status: stable
 category: session
+enforcement: strict
 triggers:
   - /recap
 execution:
-  directive: Run the recap CLI to show terminal session history
+  directive: Run the recap CLI script to parse transcript files and extract session history, then synthesize findings
   default_args: ""
   examples:
     - "/recap"
@@ -24,11 +25,15 @@ execution:
 
 ## How It Works
 
+**IMPORTANT — LLM Executor:** If you are the LLM with full conversation context in memory, skip the transcript search and proceed directly to synthesizing findings from context. Only search for transcript files when resuming a prior session without current context.
+
 1. **Find transcript file**: Searches terminal file registry, project-local, and user-level transcript locations
 2. **Parse transcript**: Loads JSONL transcript file directly
 3. **Detect session boundaries**: Identifies sessions by `sessionId` changes in transcript
 4. **Aggregate context**: Extracts goals, message counts from each session
 5. **Present summary**: Shows chronological session history
+
+> **⚠️ Fallback behavior**: If the session chain index is unavailable (e.g., `core.session_chain` import fails), the primary path falls back to reading only the current terminal's transcript file directly — it cannot reconstruct the full multi-session terminal history. The synthesis step will have less context to work with.
 
 ## Output Structure
 
@@ -50,7 +55,11 @@ The script extracts structured data via regex. The responding LLM then synthesiz
 - Action: {extracted action}         # from **What did we do?**
 - Decision: {decision if found}
 - Outcome: {outcome if found}
+### Raw Context                      # see note below
+{condensed text}
 ```
+> **⚠️ Note:** The `### Raw Context` section is condensed by `_condense_transcript()` with a 2000-character budget per session. Content beyond that limit is silently dropped — the structured fields (problem/fix/action/decisions/outcomes) are the primary evidence source. Full transcript access requires reading the raw transcript file directly.
+
 
 ### Response Synthesis (LLM task after script output)
 
@@ -90,6 +99,23 @@ Present synthesis as a per-session narrative in the response, not replacing the 
 - suggest `/verify` when work was discussed or implemented but not actually proven
 
 `/recap` should not implement fixes itself.
+
+## Catch-Up Integrity Prompts
+
+Before synthesizing a catch-up summary, `/recap` should run a short internal catch-up integrity check:
+
+- What part of this recap is being inferred from condensed transcript fragments rather than strong evidence?
+- What session outcome might be stale, incomplete, or contradicted by later sessions in the same terminal chain?
+- What assumption, contract gap, or resume risk is still implicit rather than explicitly surfaced?
+- What event in the session chain changed the direction of work, and have I preserved that turning point accurately?
+- What recommendation would be misleading if the transcript fallback lost important context?
+- What issue was discussed but never actually verified or completed?
+- What would a weaker model compress away that materially changes the summary?
+- What gap belongs to `/arch`, `/planning`, or `/verify` rather than being presented as a local recap observation?
+- What summary statement is too confident given the available transcript evidence?
+- What would make this recap locally coherent but globally wrong across the full session chain?
+
+These are internal self-check prompts. They are not default user-facing questions and should only surface to the user when `/recap` is genuinely blocked and cannot proceed safely without clarification.
 
 ## Implementation Notes
 

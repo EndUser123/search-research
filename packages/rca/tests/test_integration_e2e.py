@@ -12,19 +12,17 @@ class TestDebugRCAIntegration:
         """Test that rca package can be imported."""
         import rca
         assert rca is not None
-        assert rca.__version__ == "0.1.0"
+        assert rca.__version__ == "2.5.0"
 
     def test_core_classes_import(self):
         """Test that core RCA classes can be imported."""
         from rca import (
             EvidenceSaturationDetector,
-            PhaseStateManager,
             HypothesisScorer,
             EvidenceLedger,
             ActionTracer,
         )
         assert EvidenceSaturationDetector is not None
-        assert PhaseStateManager is not None
         assert HypothesisScorer is not None
         assert EvidenceLedger is not None
         assert ActionTracer is not None
@@ -33,46 +31,41 @@ class TestDebugRCAIntegration:
         """Test evidence tier classification system."""
         from rca import EvidenceTier, EvidenceSource, get_lowest_tier
         source1 = EvidenceSource(
-            type="user_report",
-            tier=EvidenceTier.TIER1_DIRECT_OBSERVATION,
-            confidence=0.95,
+            source_type="user_report",
+            description="User reported the issue",
+            tier=EvidenceTier.TIER_1,
         )
-        assert source1.tier == EvidenceTier.TIER1_DIRECT_OBSERVATION
+        assert source1.tier == EvidenceTier.TIER_1
         sources = [source1]
         lowest_tier = get_lowest_tier(sources)
-        assert lowest_tier == EvidenceTier.TIER1_DIRECT_OBSERVATION
+        assert lowest_tier == EvidenceTier.TIER_1
 
     def test_action_tracer_workflow(self):
         """Test action tracing workflow."""
         from rca import Action, ActionType, ActionTracer
         tracer = ActionTracer(session_id="test_session_001")
-        action1 = Action(
-            action_type=ActionType.READ,
-            target="src/main.py",
-            timestamp="2026-02-25T10:00:00Z",
+        action = tracer.record_action(
+            action_type=ActionType.READ_FILE,
+            tool_used="Read",
+            tool_input={"file_path": "src/main.py"},
+            tool_output="file content",
+            phase=1,
         )
-        tracer.add_action(action1)
-        actions = tracer.get_actions()
-        assert len(actions) == 1
-        assert actions[0].action_type == ActionType.READ
+        assert action is not None
+        assert action.action_type == ActionType.READ_FILE
 
     def test_evidence_ledger_workflow(self):
         """Test evidence ledger workflow."""
         from rca import EvidenceLedger, EvidenceTier, EvidenceSource
-        ledger = EvidenceLedger(session_id="test_session_002")
+        ledger = EvidenceLedger()
+        ledger.claim = "Test issue"
         source = EvidenceSource(
-            type="error_log",
-            tier=EvidenceTier.TIER1_DIRECT_OBSERVATION,
-            confidence=0.9,
+            source_type="error_log",
+            description="Error occurred",
+            tier=EvidenceTier.TIER_1,
         )
-        ledger.add_evidence(
-            evidence_id="ev_001",
-            source=source,
-            content="Error: FileNotFoundError at line 42",
-        )
-        evidence = ledger.get_evidence("ev_001")
-        assert evidence is not None
-        assert evidence.content == "Error: FileNotFoundError at line 42"
+        ledger.add_evidence(source)
+        assert len(ledger.sources) == 1
 
     def test_rca_engine_creation(self):
         """Test SimpleRCAEngine can be instantiated."""
@@ -84,55 +77,32 @@ class TestDebugRCAIntegration:
     def test_phase_state_manager(self):
         """Test phase state manager workflow."""
         from rca import PhaseStateManager
-        manager = PhaseStateManager(session_id="test_session_003")
-        manager.initialize_phase("investigation")
-        current_phase = manager.get_current_phase()
-        assert current_phase == "investigation"
-        manager.update_progress(0.5)
-        progress = manager.get_progress()
-        assert progress == 0.5
-        manager.complete_phase()
-        assert manager.is_phase_complete()
+        manager = PhaseStateManager(enabled=False)
+        state_id = manager.save("investigation", {"data": "test"}, "test_session")
+        assert state_id == ""  # disabled returns empty
 
     def test_hypothesis_scorer(self):
         """Test hypothesis scoring workflow."""
-        from rca import HypothesisScorer, EvidenceTier, EvidenceSource
+        from rca import HypothesisScorer
         scorer = HypothesisScorer()
-        hypothesis = "The error is caused by missing file permissions"
-        evidence = [
-            EvidenceSource(
-                type="error_message",
-                tier=EvidenceTier.TIER1_DIRECT_OBSERVATION,
-                confidence=0.9,
-            ),
-        ]
-        score = scorer.score_hypothesis(hypothesis, evidence)
-        assert 0 <= score <= 1
-
-    def test_metrics_tracker(self):
-        """Test metrics tracking workflow."""
-        from rca import RCAMetricsTracker, ProblemType
-        tracker = RCAMetricsTracker(session_id="test_session_004")
-        tracker.record_debug_start(
-            problem_type=ProblemType.RUNTIME_ERROR,
-            problem_description="Test error",
+        hypothesis_id = scorer.add_hypothesis(
+            "The error is caused by missing file permissions",
+            reproducibility=0.8,
+            recency=0.9,
+            impact=0.7,
         )
-        metrics = tracker.get_metrics()
-        assert metrics is not None
-        assert metrics.problem_type == ProblemType.RUNTIME_ERROR
+        assert hypothesis_id is not None
+        confidence = scorer.get_confidence(hypothesis_id)
+        assert 0 <= confidence <= 1
 
     def test_convergence_validator(self):
         """Test convergence validation."""
         from rca import ConvergeValidator
         validator = ConvergeValidator()
-        result = validator.validate(
-            hypothesis="Test hypothesis",
-            evidence=[],
-            confidence_threshold=0.7,
-        )
+        result = validator.validate(hypothesis_score=0.85)
         assert result is not None
-        assert hasattr(result, "is_converged")
-        assert hasattr(result, "confidence")
+        assert hasattr(result, "is_valid")
+        assert hasattr(result, "hypothesis_score")
 
     def test_complete_rca_workflow(self):
         """Test complete RCA workflow from start to finish."""
@@ -141,44 +111,63 @@ class TestDebugRCAIntegration:
             EvidenceLedger,
             EvidenceTier,
             EvidenceSource,
-            PhaseStateManager,
             HypothesisScorer,
             ConvergeValidator,
-            Action,
             ActionType,
         )
         session_id = "e2e_test_session"
         tracer = ActionTracer(session_id=session_id)
-        ledger = EvidenceLedger(session_id=session_id)
-        phase_manager = PhaseStateManager(session_id=session_id)
+        ledger = EvidenceLedger()
+        ledger.claim = "Test RCA"
         scorer = HypothesisScorer()
         validator = ConvergeValidator()
-        phase_manager.initialize_phase("investigation")
         evidence_source = EvidenceSource(
-            type="error_log",
-            tier=EvidenceTier.TIER1_DIRECT_OBSERVATION,
-            confidence=0.9,
+            source_type="error_log",
+            description="Test error evidence",
+            tier=EvidenceTier.TIER_1,
         )
-        ledger.add_evidence(
-            evidence_id="ev_e2e_001",
-            source=evidence_source,
-            content="Test error evidence",
+        ledger.add_evidence(evidence_source)
+        action = tracer.record_action(
+            action_type=ActionType.READ_FILE,
+            tool_used="Read",
+            tool_input={"file_path": "test.py"},
+            tool_output="file content",
+            phase=1,
         )
-        action = Action(
-            action_type=ActionType.READ,
-            target="test.py",
-            timestamp="2026-02-25T10:00:00Z",
+        assert action is not None
+        hypothesis_id = scorer.add_hypothesis(
+            "Test hypothesis",
+            reproducibility=0.8,
+            recency=0.9,
+            impact=0.7,
         )
-        tracer.add_action(action)
-        hypothesis = "Test hypothesis"
-        evidence_list = [evidence_source]
-        score = scorer.score_hypothesis(hypothesis, evidence_list)
-        assert 0 <= score <= 1
-        result = validator.validate(hypothesis, evidence_list, 0.7)
+        confidence = scorer.get_confidence(hypothesis_id)
+        assert 0 <= confidence <= 1
+        result = validator.validate(hypothesis_score=confidence)
         assert result is not None
-        actions = tracer.get_actions()
-        assert len(actions) == 1
-        all_evidence = ledger.get_all_evidence()
-        assert len(all_evidence) == 1
-        current_phase = phase_manager.get_current_phase()
-        assert current_phase == "investigation"
+        graph = tracer.get_action_graph()
+        assert len(graph.actions) == 1
+        assert len(ledger.sources) == 1
+
+    def test_simple_rca_engine_analyze_issue(self):
+        """Test that SimpleRCAEngine.analyze_issue() works end-to-end."""
+        from rca import SimpleRCAEngine
+
+        engine = SimpleRCAEngine()
+        result = engine.analyze_issue(
+            "Database connection failure in production environment",
+            {"environment": "production", "technology": "postgresql"},
+        )
+
+        # Verify the result structure is valid
+        assert result is not None
+        assert hasattr(result, "issue")
+        assert result.issue == "Database connection failure in production environment"
+        assert hasattr(result, "fishbone_result")
+        assert result.fishbone_result is not None
+        assert hasattr(result, "fault_tree_result")
+        assert result.fault_tree_result is not None
+        assert hasattr(result, "overall_confidence")
+        assert 0.0 <= result.overall_confidence <= 1.0
+        assert hasattr(result, "actionable_recommendations")
+        assert isinstance(result.actionable_recommendations, list)

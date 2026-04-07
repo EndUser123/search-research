@@ -18,6 +18,20 @@ from typing import Literal
 
 from .context_size import ValidationResult, validate_context_size
 
+_REQUIRED_FRONTMATTER_FIELDS = (
+    "name",
+    "description",
+    "version",
+    "category",
+    "triggers",
+    "aliases",
+    "suggest",
+    "depends_on_skills",
+    "workflow_steps",
+    "enforcement",
+)
+_VALID_ENFORCEMENT_VALUES = {"strict", "advisory", "none"}
+
 
 @dataclass
 class CertificationResult:
@@ -53,7 +67,7 @@ class CertificationGate:
 
     Validates skills through multiple checkers in priority order:
     1. Context size check (Phase 3b - Code Quality)
-    2. Future: YAML frontmatter check
+    2. YAML frontmatter required-field check
     3. Future: Trigger accuracy check
 
     Early return on first FAIL (fail-fast).
@@ -117,8 +131,28 @@ class CertificationGate:
                 checks_passed.append("context_size_check")
 
         # Priority 2: YAML frontmatter validation (future)
-        # if "frontmatter" not in skip_checks:
-        #     ...
+        if "frontmatter" not in skip_checks:
+            frontmatter_result = self._check_frontmatter()
+
+            if frontmatter_result.status == "fail":
+                checks_failed.append("frontmatter_check")
+                return CertificationResult(
+                    is_complete=False,
+                    status="FAIL",
+                    confidence=0.0,
+                    checks_passed=checks_passed,
+                    checks_failed=checks_failed,
+                    verified_checks=verified_checks,
+                    blocked_items=frontmatter_result.findings,
+                    reason=frontmatter_result.findings[0]
+                    if frontmatter_result.findings
+                    else "Frontmatter check failed",
+                )
+            elif frontmatter_result.status == "warn":
+                checks_passed.append("frontmatter_check")
+                blocked_items.extend(frontmatter_result.findings)
+            else:
+                checks_passed.append("frontmatter_check")
 
         # Priority 3: Trigger accuracy (future)
         # if "triggers" not in skip_checks:
@@ -148,6 +182,52 @@ class CertificationGate:
             ValidationResult from context_size validator
         """
         return validate_context_size(str(self.skill_path))
+
+    def _check_frontmatter(self) -> ValidationResult:
+        """Validate required SKILL.md frontmatter fields.
+
+        This is intentionally strict about presence of the local schema's required
+        fields. New skills should not be declared complete if they omit fields that
+        the skill-ship schema marks as mandatory.
+        """
+        skill_file = self.skill_path / "SKILL.md"
+        if not skill_file.exists():
+            return ValidationResult(status="fail", findings=[f"SKILL.md not found at {skill_file}"])
+
+        try:
+            content = skill_file.read_text(encoding="utf-8")
+        except Exception as exc:
+            return ValidationResult(status="fail", findings=[f"Error reading SKILL.md: {exc}"])
+
+        frontmatter = _extract_frontmatter(content)
+        if frontmatter is None:
+            return ValidationResult(
+                status="fail",
+                findings=["SKILL.md missing YAML frontmatter block"],
+            )
+
+        values = _extract_top_level_frontmatter_values(frontmatter)
+        missing = [field for field in _REQUIRED_FRONTMATTER_FIELDS if field not in values]
+        if missing:
+            return ValidationResult(
+                status="fail",
+                findings=[
+                    "SKILL.md frontmatter missing required field(s): "
+                    + ", ".join(missing)
+                ],
+            )
+
+        enforcement = values.get("enforcement", "").strip()
+        if enforcement not in _VALID_ENFORCEMENT_VALUES:
+            return ValidationResult(
+                status="fail",
+                findings=[
+                    "SKILL.md frontmatter has invalid enforcement value: "
+                    f"{enforcement or '<empty>'}"
+                ],
+            )
+
+        return ValidationResult(status="pass")
 
     def _calculate_confidence(self, checks_passed: list[str], checks_failed: list[str]) -> float:
         """Calculate confidence score based on checks passed.
@@ -186,3 +266,26 @@ def check_certification(
     """
     gate = CertificationGate(skill_path)
     return gate.check(skip_checks)
+
+
+def _extract_frontmatter(content: str) -> str | None:
+    lines = content.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return None
+
+    for index in range(1, len(lines)):
+        if lines[index].strip() == "---":
+            return "\n".join(lines[1:index])
+    return None
+
+
+def _extract_top_level_frontmatter_values(frontmatter: str) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for raw_line in frontmatter.splitlines():
+        if not raw_line or raw_line.startswith((" ", "\t", "-")):
+            continue
+        if ":" not in raw_line:
+            continue
+        key, value = raw_line.split(":", 1)
+        values[key.strip()] = value.strip()
+    return values

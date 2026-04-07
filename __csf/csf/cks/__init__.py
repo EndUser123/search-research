@@ -1,4 +1,4 @@
-# Stub package to redirect csf.cks imports
-from . import unified  # noqa: F401
+# Redirect csf.cks imports to actual CKS implementation
+from .unified import CKS, VALID_ENTRY_TYPES  # noqa: F401
 
-__all__ = ['unified']
+__all__ = ["CKS", "VALID_ENTRY_TYPES"]

@@ -14,7 +14,7 @@ skills_dir = test_dir.parent.parent
 sys.path.insert(0, str(skills_dir))
 
 import pytest  # noqa: E402
-from skill.routing import (  # noqa: E402
+from routing import (  # noqa: E402
     # Constants
     DOMAIN_KEYWORDS,
     DOMAIN_PRIORITY,

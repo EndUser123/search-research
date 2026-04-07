@@ -61,20 +61,20 @@ class FlowVisualizer:
     }
 
     TYPE_LABELS = {
-        ActionType.READ_FILE: "📄 Read",
-        ActionType.SEARCH_CODE: "🔍 Search",
-        ActionType.LIST_DIR: "📁 List",
-        ActionType.TRACE_SYMBOL: "🔗 Trace",
-        ActionType.INSPECT_VARIABLE: "🔬 Inspect",
-        ActionType.EXECUTE_TEST: "▶️ Test",
-        ActionType.FORM_HYPOTHESIS: "💡 Hypothesis",
-        ActionType.VERIFY_HYPOTHESIS: "✅ Verify",
-        ActionType.ELIMINATE_CAUSE: "❌ Eliminate",
-        ActionType.SEARCH_HISTORY: "📜 History",
-        ActionType.FETCH_DOCS: "📚 Docs",
-        ActionType.SYNTHESIZE: "🔄 Synthesis",
-        ActionType.RECORD_OUTCOME: "💾 Record",
-        ActionType.UNKNOWN: "❓ Unknown",
+        ActionType.READ_FILE: "[R] Read",
+        ActionType.SEARCH_CODE: "[S] Search",
+        ActionType.LIST_DIR: "[L] List",
+        ActionType.TRACE_SYMBOL: "[T] Trace",
+        ActionType.INSPECT_VARIABLE: "[I] Inspect",
+        ActionType.EXECUTE_TEST: "[X] Test",
+        ActionType.FORM_HYPOTHESIS: "[H] Hypothesis",
+        ActionType.VERIFY_HYPOTHESIS: "[V] Verify",
+        ActionType.ELIMINATE_CAUSE: "[E] Eliminate",
+        ActionType.SEARCH_HISTORY: "[H] History",
+        ActionType.FETCH_DOCS: "[D] Docs",
+        ActionType.SYNTHESIZE: "[S] Synthesis",
+        ActionType.RECORD_OUTCOME: "[O] Record",
+        ActionType.UNKNOWN: "[?] Unknown",
     }
 
     def render_mermaid(
@@ -108,7 +108,7 @@ class FlowVisualizer:
 
             # Build label
             label = self._build_node_label(action, config)
-            style = self._get_mermaid_style(action, config)
+            style = self._get_mermaid_style(node_id, action, config)
 
             lines.append(f"    {node_id}[\"{label}\"]")
             if style:
@@ -144,13 +144,13 @@ class FlowVisualizer:
 
         return " ".join(parts)
 
-    def _get_mermaid_style(self, action: Action, config: VisualizationConfig) -> str | None:
+    def _get_mermaid_style(self, node_id: str, action: Action, config: VisualizationConfig) -> str | None:
         """Get Mermaid style definition for an action."""
         if not config.highlight_divergence:
             return None
 
         color = self.TYPE_COLORS.get(action.action_type, "#D3D3D3")
-        return f'style {action.action_id} fill:{color}'
+        return f"style {node_id} fill:{color}"
 
     def render_text(
         self,

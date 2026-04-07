@@ -4,23 +4,14 @@ Stop Hook: Verification Gate Enforcement
 
 Purpose: Block responses that make claims without testing, propose solutions without verification,
 or skip systematic diagnostic protocols.
-
-Triggers: Pre-response analysis of behavioral patterns
-
-Behavioral Anti-Patterns Detected:
-- BEHAV-001: Premature solution jump without verification
-- BEHAV-002: Acceptance of first plausible explanation
-- BEHAV-003: Insufficient verification before claims
-- BEHAV-004: Jumping between diagnostic approaches
-
-Enforced Protocols (from MEMORY.md):
-- Verification First Protocol: Claim → Test → Document
-- Solution Proposal Gate: 6 checkboxes before any solution proposal
-- Structured Diagnostic Protocol: 3+ hypotheses, systematic testing
 """
 
 import json
+import os
 import re
+
+# Advisory mode: when true, log warnings but don't block
+_ADVISORY_MODE = os.environ.get("VERIFICATION_GATE_ADVISORY", "false").lower() == "true"
 
 # Patterns indicating behavioral violations
 CLAIM_PATTERNS = [
@@ -42,22 +33,134 @@ INSUFFICIENT_VERIFICATION_PATTERNS = [
     r"(?<!Tested|Verified|Confirmed)(?!.{0,50}test)(?!.{0,30}pytest)(?!.{0,30}verify)(The\s+problem|Issue\s+is|Root\s+cause)",
 ]
 
-def check_response_violations(response_text: str) -> dict:
-    """
-    Analyze response for behavioral anti-patterns.
+# Urgency detection patterns — switch to "fast mode" when incident response
+URGENCY_PATTERNS = [
+    r"\b(urgent|urgency|emergency)\b",
+    r"\b(incident|outage|down)\b",
+    r"\b(prod(uction)?|live|customer)\s+(issue|problem|outage|down|broken)\b",
+    r"\b(time\s*(critical|sensitive)|ASAP|right now|immediately)\b",
+]
 
-    Returns dict with:
-    - violations: list of violation types found
-    - confidence: float 0-1
-    - suggestions: list of corrective actions
+# Single root cause escape hatch pattern
+SINGLE_RC_ESCAPE = re.compile(
+    r"\[SINGLE\s+ROOT\s+CAUSE\s+CONFIRMED\]",
+    re.IGNORECASE,
+)
+
+
+def _parse_hypotheses_from_text(text: str) -> list[dict[str, str]]:
+    """Extract hypotheses and their status from response text.
+    
+    Supports:
+    | [Icon] | H[n]: [Name] | [Evidence] |
+    - [Icon] H[n]: [Name] ([Evidence])
     """
+    hypotheses = []
+    
+    # Icons: ✓=\u2713, ✗=\u2717, ⧧=\u29E7, ⏳=\u23F3
+    # Table format: | Icon | H1: Name | Evidence |
+    table_pattern = re.compile(r'\|\s*([\u2713\u2717\u29E7\u23F3])\s*\|\s*([^|]+)\|\s*([^|]+)\|', re.UNICODE)
+    for match in table_pattern.finditer(text):
+        icon, name, evidence = match.groups()
+        status = "CONFIRMED" if icon == "\u2713" else ("FALSIFIED" if icon == "\u2717" else ("INCONCLUSIVE" if icon == "\u29E7" else "UNTESTED"))
+        hypotheses.append({
+            "name": name.strip(),
+            "status": status,
+            "evidence": evidence.strip(),
+            "icon": icon
+        })
+        
+    # List format: - Icon H1: Name (Evidence)
+    list_pattern = re.compile(r'^[*-]\s*([\u2713\u2717\u29E7\u23F3])\s*(H\d+:[^(\n]+)(?:\(([^)]+)\))?', re.MULTILINE | re.UNICODE)
+    for match in list_pattern.finditer(text):
+        icon, name, evidence = match.groups()
+        status = "CONFIRMED" if icon == "\u2713" else ("FALSIFIED" if icon == "\u2717" else ("INCONCLUSIVE" if icon == "\u29E7" else "UNTESTED"))
+        hypotheses.append({
+            "name": name.strip(),
+            "status": status,
+            "evidence": (evidence or "").strip(),
+            "icon": icon
+        })
+        
+    return hypotheses
+
+
+def _detect_urgency(text: str) -> bool:
+    """Check if response indicates an urgent/incident scenario."""
+    for pattern in URGENCY_PATTERNS:
+        if re.search(pattern, text, re.IGNORECASE):
+            return True
+    return False
+
+
+def _format_structured_feedback(violations: list, suggestions: list, hypothesis_details: list) -> str:
+    """Format violations as structured, actionable feedback."""
+    lines = [
+        "**Verification Gate: Behavioral Investigation Failed**",
+        "",
+        f"⚠️  Violations Found: {len(violations)}",
+    ]
+
+    for i, violation in enumerate(violations, 1):
+        lines.append(f"   {i}. {violation}")
+
+    # Add hypothesis status details if available
+    if hypothesis_details:
+        tested_count = sum(
+            1 for h in hypothesis_details
+            if h.get("status") in ("CONFIRMED", "FALSIFIED", "INCONCLUSIVE")
+        )
+        total = len(hypothesis_details)
+        lines.extend([
+            "",
+            f"Hypothesis Testing Progress: {tested_count}/{total} tested",
+            "",
+            "Hypothesis Status:",
+            "",
+        ])
+        for h in hypothesis_details:
+            status = h.get("status", "UNTESTED").upper()
+            icon = "\u2713" if status == "CONFIRMED" else ("\u2717" if status == "FALSIFIED"
+                    else "\u29E7" if status == "INCONCLUSIVE" else "\u23F3")
+            name = h.get("name") or h.get("claim", "Unknown")
+            lines.append(f"   {icon} {name} \u2192 {status}")
+            # Add actionable guidance for untested hypotheses
+            if status == "UNTESTED" and h.get("test_suggestion"):
+                lines.append(f"      Suggested test: {h['test_suggestion']}")
+
+    if suggestions:
+        lines.extend([
+            "",
+            "Required Actions:",
+        ])
+        for i, suggestion in enumerate(suggestions, 1):
+            lines.append(f"   {i}. {suggestion}")
+
+    lines.extend([
+        "",
+        "See MEMORY.md protocols:",
+        "  - Verification First Protocol",
+        "  - Solution Proposal Gate",
+        "  - Structured Diagnostic Protocol",
+    ])
+
+    return "\n".join(lines)
+
+def check_response_violations(response_text: str, hypothesis_details: list | None = None,
+                              single_root_cause: bool = False) -> dict:
+    """Analyze response for behavioral anti-patterns."""
     violations = []
     suggestions = []
+    is_urgent = _detect_urgency(response_text)
+    is_single_rc_escape = single_root_cause
+
+    # Auto-parse hypotheses if not provided
+    if not hypothesis_details:
+        hypothesis_details = _parse_hypotheses_from_text(response_text)
 
     # Check for premature claims without testing
     for pattern in CLAIM_PATTERNS:
         if re.search(pattern, response_text, re.IGNORECASE):
-            # Look for test evidence in surrounding context
             has_test_evidence = bool(
                 re.search(r'(Test|Result|Output|Confirmed|Verified)', response_text, re.IGNORECASE)
             )
@@ -68,7 +171,6 @@ def check_response_violations(response_text: str) -> dict:
     # Check for solution jumps
     for pattern in SOLUTION_JUMP_PATTERNS:
         if re.search(pattern, response_text, re.IGNORECASE):
-            # Check if solution proposal gate was passed
             has_gate_check = all([
                 "root cause" in response_text.lower(),
                 ("test" in response_text.lower() or "verified" in response_text.lower()),
@@ -78,16 +180,13 @@ def check_response_violations(response_text: str) -> dict:
                 suggestions.append("Complete Solution Proposal Gate checklist first")
 
     # Check for single-hypothesis acceptance
-    hypothesis_count = len(re.findall(r'(?:Hypothesis|H\d+:)', response_text, re.IGNORECASE))
-    if hypothesis_count == 1 and "root cause" in response_text.lower():
+    hypothesis_count = len(hypothesis_details)
+    if hypothesis_count == 1 and "root cause" in response_text.lower() and not is_single_rc_escape:
         violations.append("BEHAV-002: Single hypothesis accepted")
         suggestions.append("Generate 3+ hypotheses upfront, test each systematically")
 
-    # BEHAV-002-A: Zero-hypothesis flat assertion (evasion path)
-    # Fires when a definitive implementation status claim is made with no hypothesis
-    # framing at all AND no code-level evidence — the pattern MiniMax used in the
-    # "lazy again.txt" incident (Status: Proposed → "NOT fully implemented").
-    if hypothesis_count == 0:
+    # BEHAV-002-A: Zero-hypothesis flat assertion
+    if hypothesis_count == 0 and not is_single_rc_escape:
         has_impl_claim = bool(re.search(
             r"\b(?:NOT\s+(?:fully\s+)?implemented"
             r"|not\s+yet\s+implemented"
@@ -98,21 +197,9 @@ def check_response_violations(response_text: str) -> dict:
             r"|has\s+not\s+been\s+implemented)\b",
             response_text, re.IGNORECASE,
         ))
-        has_code_evidence = bool(re.search(
-            r"(?:\.py|\.ts|\.js|\.go|\.rs)(?::\d+)?"   # file:line citation
-            r"|Read\s+\d+\s+file"                        # Read tool usage
-            r"|\bSearched\s+for\b"                       # Grep/search tool usage
-            r"|\bline\s+\d+\b"                           # line number reference
-            r"|(?:grep|glob)\s+\S",                      # direct grep/glob call
-            response_text, re.IGNORECASE,
-        ))
-        if has_impl_claim and not has_code_evidence:
-            violations.append("BEHAV-002-A: Zero-hypothesis definitive claim without code evidence")
-            suggestions.append(
-                "State 3+ hypotheses and verify via code search (Grep/Read) "
-                "before asserting implementation status. 'Status: Proposed' in an ADR "
-                "is NOT code evidence."
-            )
+        if has_impl_claim:
+            violations.append("BEHAV-002-A: Zero-hypothesis definitive claim")
+            suggestions.append("State 3+ hypotheses and verify via code search before asserting status.")
 
     # Check for diagnostic jumping
     diagnostic_approaches = len(re.findall(
@@ -127,7 +214,10 @@ def check_response_violations(response_text: str) -> dict:
     return {
         "violations": violations,
         "confidence": min(len(violations) / 4.0, 1.0),
-        "suggestions": suggestions
+        "suggestions": suggestions,
+        "hypothesis_details": hypothesis_details or [],
+        "is_urgent": is_urgent,
+        "is_single_rc_escape": is_single_rc_escape,
     }
 
 
@@ -142,58 +232,61 @@ def run(data: dict) -> dict | None:
     if not response_text or response_text.strip().startswith("#"):
         return None
 
-    result = check_response_violations(response_text)
+    hypothesis_details = data.get("hypothesis_details")
+    single_root_cause = data.get("single_root_cause", False)
+
+    result = check_response_violations(
+        response_text,
+        hypothesis_details=hypothesis_details,
+        single_root_cause=single_root_cause,
+    )
+
     if not result["violations"]:
         return None
 
-    lines = [
-        "VERIFICATION GATE VIOLATION DETECTED",
-        "",
-        f"Violations Found: {len(result['violations'])}",
-    ]
-    for i, violation in enumerate(result["violations"], 1):
-        lines.append(f"  {i}. {violation}")
-    lines.extend([
-        "",
-        f"Confidence: {result['confidence']:.0%}",
-        "",
-        "Required Actions:",
-    ])
-    for i, suggestion in enumerate(result["suggestions"], 1):
-        lines.append(f"  {i}. {suggestion}")
-    lines.extend([
-        "",
-        "See MEMORY.md protocols:",
-        "  - Verification First Protocol",
-        "  - Solution Proposal Gate",
-        "  - Structured Diagnostic Protocol",
-    ])
+    if _ADVISORY_MODE:
+        import logging
+        logger = logging.getLogger("verification_gate")
+        logger.warning("ADVISORY: Verification gate violations: %s", result["violations"])
+        return None
+
+    if result.get("is_urgent"):
+        lines = [
+            "⚠️  [URGENT MODE] Verification concerns detected (non-blocking)",
+            "",
+            f"Violations: {len(result['violations'])}",
+        ]
+        for i, violation in enumerate(result["violations"], 1):
+            lines.append(f"   {i}. {violation}")
+        return {
+            "block": False,
+            "reason": "\n".join(lines),
+            "blocking_hook": "Stop_verification_gate.py",
+        }
+
+    feedback = _format_structured_feedback(
+        result["violations"],
+        result["suggestions"],
+        result.get("hypothesis_details", []),
+    )
+
     return {
         "block": True,
-        "reason": "\n".join(lines),
+        "reason": feedback,
         "blocking_hook": "Stop_verification_gate.py",
     }
 
 def main():
-    """
-    Stop hook entry point.
-
-    Read Stop hook payload from stdin, check the response text, and emit
-    structured JSON on stdout so hook_runner can relay the decision.
-    """
     import sys
-
     raw_input = sys.stdin.read()
     response_text = raw_input
-
     if raw_input:
         try:
             parsed = json.loads(raw_input)
             if isinstance(parsed, dict):
                 response_text = str(parsed.get("response", ""))
         except json.JSONDecodeError:
-            response_text = raw_input
-
+            pass
     result = run({"response": response_text})
     if result and result.get("block"):
         print(json.dumps({
@@ -202,7 +295,6 @@ def main():
             "blocking_hook": result.get("blocking_hook", "Stop_verification_gate.py"),
         }))
         sys.exit(0)
-
     print("{}")
     sys.exit(0)
 

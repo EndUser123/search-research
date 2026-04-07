@@ -15,6 +15,53 @@ from validators.certification_gate import (
 )
 
 
+def make_skill_content(total_lines: int = 20, include_all_required_fields: bool = True) -> str:
+    frontmatter = [
+        "---",
+        "name: test-skill",
+        "description: Test skill description",
+        "version: 1.0.0",
+        "category: testing",
+        "triggers:",
+        "  - /test-skill",
+        '  - "test skill"',
+        "aliases:",
+        "  - /test-skill",
+        "  - /ts",
+    ]
+    if include_all_required_fields:
+        frontmatter.extend(
+            [
+                "suggest:",
+                "  - /related-skill",
+            ]
+        )
+    frontmatter.extend(
+        [
+            "depends_on_skills: []",
+        ]
+    )
+    if include_all_required_fields:
+        frontmatter.extend(
+            [
+                "workflow_steps:",
+                "  - step_one: First step",
+            ]
+        )
+    frontmatter.extend(
+        [
+            "enforcement: advisory",
+            "---",
+            "",
+        ]
+    )
+    prefix = "\n".join(frontmatter)
+    prefix_lines = len(prefix.splitlines())
+    body_lines = max(total_lines - prefix_lines, 1)
+    body = "\n".join([f"Line {i}" for i in range(body_lines)])
+    return prefix + body
+
+
 class TestCertificationResult:
     """Test suite for CertificationResult dataclass."""
 
@@ -59,7 +106,7 @@ class TestCertificationGate:
         """check() should return a CertificationResult."""
         # Create SKILL.md with valid content
         skill_file = tmp_path / "SKILL.md"
-        skill_file.write_text("# Test Skill\n\nValid content.")
+        skill_file.write_text(make_skill_content())
 
         gate = CertificationGate(tmp_path)
         result = gate.check()
@@ -69,7 +116,7 @@ class TestCertificationGate:
     def test_pass_within_limits(self, tmp_path):
         """SKILL.md with 200 lines should pass certification."""
         skill_file = tmp_path / "SKILL.md"
-        content = "\n".join([f"Line {i}" for i in range(200)])
+        content = make_skill_content(total_lines=200)
         skill_file.write_text(content)
 
         result = check_certification(tmp_path)
@@ -81,7 +128,7 @@ class TestCertificationGate:
     def test_warn_at_300_lines(self, tmp_path):
         """SKILL.md with exactly 300 lines should pass (not warn)."""
         skill_file = tmp_path / "SKILL.md"
-        content = "\n".join([f"Line {i}" for i in range(300)])
+        content = make_skill_content(total_lines=300)
         skill_file.write_text(content)
 
         result = check_certification(tmp_path)
@@ -92,7 +139,7 @@ class TestCertificationGate:
     def test_warn_above_300_lines(self, tmp_path):
         """SKILL.md with 350 lines should return WARN (not FAIL)."""
         skill_file = tmp_path / "SKILL.md"
-        content = "\n".join([f"Line {i}" for i in range(350)])
+        content = make_skill_content(total_lines=350)
         skill_file.write_text(content)
 
         result = check_certification(tmp_path)
@@ -105,7 +152,7 @@ class TestCertificationGate:
     def test_warn_at_500_lines(self, tmp_path):
         """SKILL.md with exactly 500 lines should warn (not fail)."""
         skill_file = tmp_path / "SKILL.md"
-        content = "\n".join([f"Line {i}" for i in range(500)])
+        content = make_skill_content(total_lines=500)
         skill_file.write_text(content)
 
         result = check_certification(tmp_path)
@@ -116,7 +163,7 @@ class TestCertificationGate:
     def test_fail_above_500_lines(self, tmp_path):
         """SKILL.md with 550 lines should FAIL certification."""
         skill_file = tmp_path / "SKILL.md"
-        content = "\n".join([f"Line {i}" for i in range(550)])
+        content = make_skill_content(total_lines=550)
         skill_file.write_text(content)
 
         result = check_certification(tmp_path)
@@ -137,17 +184,19 @@ class TestCertificationGate:
 
     def test_skip_context_size_check(self, tmp_path):
         """skip_checks parameter should skip context_size validation."""
-        # Directory without SKILL.md but skip_checks used
+        skill_file = tmp_path / "SKILL.md"
+        skill_file.write_text(make_skill_content())
+
         result = check_certification(tmp_path, skip_checks=["context_size"])
 
-        # Should not fail even without SKILL.md since check was skipped
+        # Should not fail with valid frontmatter when context_size is skipped
         assert result.status == "PASS"
         assert result.is_complete is True
 
     def test_partial_results_on_fail(self, tmp_path):
         """On FAIL, should still return partial results."""
         skill_file = tmp_path / "SKILL.md"
-        content = "\n".join([f"Line {i}" for i in range(550)])
+        content = make_skill_content(total_lines=550)
         skill_file.write_text(content)
 
         gate = CertificationGate(tmp_path)
@@ -161,7 +210,7 @@ class TestCertificationGate:
     def test_confidence_calculation(self, tmp_path):
         """Confidence should be calculated from checks_passed / total."""
         skill_file = tmp_path / "SKILL.md"
-        content = "\n".join([f"Line {i}" for i in range(200)])
+        content = make_skill_content(total_lines=200)
         skill_file.write_text(content)
 
         result = check_certification(tmp_path)
@@ -172,7 +221,7 @@ class TestCertificationGate:
     def test_blocked_items_tracks_warnings(self, tmp_path):
         """blocked_items should track warnings."""
         skill_file = tmp_path / "SKILL.md"
-        content = "\n".join([f"Line {i}" for i in range(350)])
+        content = make_skill_content(total_lines=350)
         skill_file.write_text(content)
 
         result = check_certification(tmp_path)
@@ -183,7 +232,7 @@ class TestCertificationGate:
     def test_reason_provided_on_failure(self, tmp_path):
         """reason field should be set on failure."""
         skill_file = tmp_path / "SKILL.md"
-        content = "\n".join([f"Line {i}" for i in range(550)])
+        content = make_skill_content(total_lines=550)
         skill_file.write_text(content)
 
         result = check_certification(tmp_path)
@@ -194,7 +243,7 @@ class TestCertificationGate:
     def test_convenience_function_alias(self, tmp_path):
         """check_certification should be alias for CertificationGate().check()."""
         skill_file = tmp_path / "SKILL.md"
-        skill_file.write_text("# Test\n")
+        skill_file.write_text(make_skill_content())
 
         result1 = check_certification(tmp_path)
         gate = CertificationGate(tmp_path)
@@ -202,6 +251,18 @@ class TestCertificationGate:
 
         assert result1.status == result2.status
         assert result1.is_complete == result2.is_complete
+
+    def test_fail_missing_required_frontmatter_field(self, tmp_path):
+        """Missing required frontmatter fields should block certification."""
+        skill_file = tmp_path / "SKILL.md"
+        skill_file.write_text(make_skill_content(include_all_required_fields=False))
+
+        result = check_certification(tmp_path)
+
+        assert result.status == "FAIL"
+        assert result.is_complete is False
+        assert "frontmatter" in result.reason.lower()
+        assert "suggest" in result.reason or "workflow_steps" in result.reason
 
 
 if __name__ == "__main__":

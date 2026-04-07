@@ -398,6 +398,19 @@ class PathValidator:
                     return True, "SAFE_SUBDIRECTORY"
             return False, "CLAUDE_SENSITIVE_EDIT"
 
+        # Check protected patterns first
+        # Also strip drive prefix and leading slash to handle patterns like "nonexistent/path"
+        # that should match "P:/nonexistent/path"
+        path_without_drive = abs_path_str
+        if len(abs_path_str) >= 3 and abs_path_str[1] == ":":
+            path_without_drive = abs_path_str[2:]  # Strip "X:" prefix
+        path_without_drive = path_without_drive.replace("\\", "/").lower().lstrip("/")
+
+        for pattern in self.protected_patterns:
+            # Check both full path and path without drive prefix
+            if abs_path_str.startswith(pattern) or path_without_drive.startswith(pattern):
+                return False, "PROTECTED_DIRECTORY_WRITE"
+
         # EFFICIENCY: Allow edits to existing files (user knows what they're doing)
         if abs_path.exists():
             return True, "EXISTING_FILE_EDIT"
@@ -439,11 +452,6 @@ class PathValidator:
                         return False, "ROOT_DIRECTORY_WRITE"
             except ValueError:
                 continue
-
-        # Check protected patterns
-        for pattern in self.protected_patterns:
-            if abs_path_str.startswith(pattern):
-                return False, "PROTECTED_DIRECTORY_WRITE"
 
         # SECURITY: Block unauthorized directories at P:/ root
         # Only allow: .claude, __csf, projects, and allowed_system_directories

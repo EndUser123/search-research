@@ -89,6 +89,23 @@ When a failure involved producer/consumer mismatch, reflection should record bot
 - the missing contract element
 - the skill or phase where that contract should have been enforced
 
+## Reflection-Upgrade Prompts
+
+Before proposing skill updates, `/reflect` should run a short internal reflection-upgrade check:
+
+- What correction or preference here is a one-off local preference rather than a durable skill improvement?
+- What proposal is being driven by a stale or later-overturned part of the conversation?
+- What lesson should be pushed into a validator, hook, or test instead of staying as prose?
+- What proposed update would overfit the skill to one session and make it worse in general?
+- What evidence shows that this pattern is recurring enough to justify changing a skill?
+- What ownership boundary is wrong if I change this skill instead of another one?
+- What would a weaker model promote as a rule even though it is really an exception?
+- What change here reduces one failure mode but creates strategy drift or mechanism leakage?
+- What part of the transcript is correction signal versus exploration noise?
+- What would make this reflection artifact sound smart but teach the wrong habit?
+
+These are internal self-check prompts. They are not default user-facing questions and should only surface to the user when `/reflect` is genuinely blocked and cannot proceed safely without clarification.
+
 ## Routing Behavior
 
 `/reflect` may suggest:

@@ -41,16 +41,23 @@ from typing import Any
 # DEPTH RULE: When skills/ layer is added, increment parents[N] by 1.
 # e.g. from planning/__lib__/: parents[2]→[3] (sdlc/ is 3 levels up from __lib__/)
 _ROOT = Path(__file__).resolve()
-_CONTRACT_PRIMITIVES_SRC = _ROOT.parents[3] / "contract-primitives" / "src"
-if _CONTRACT_PRIMITIVES_SRC.exists() and str(_CONTRACT_PRIMITIVES_SRC) not in sys.path:
-    sys.path.insert(0, str(_CONTRACT_PRIMITIVES_SRC))
+_CONTRACT_PRIMITIVES_CANDIDATES = [
+    _ROOT.parents[3] / "contract-primitives" / "src",
+    Path(_ROOT.anchor) / "packages" / "sdlc" / "contract-primitives" / "src",
+]
+for _candidate in _CONTRACT_PRIMITIVES_CANDIDATES:
+    if _candidate.exists() and str(_candidate) not in sys.path:
+        sys.path.insert(0, str(_candidate))
 
 from contract_primitives import (
     ACTIVE_PLAN_ARTIFACT_FAILURE_BEHAVIOR,
     PLACEHOLDER_BINDINGS,
     REQUIRED_PLAN_MATRIX_FIELDS,
+    adr_requires_planning_handoff,
     extract_markdown_table,
     find_contract_boundary_rows,
+    parse_planning_handoff_packet,
+    parse_planning_source_packet,
 )
 
 # Required plan sections (v2 canonical names, with legacy aliases accepted for compatibility)
@@ -137,6 +144,8 @@ ARCH_REMEDIATION_CATEGORIES = {
     "contract_test_coherence",
     "mechanism_triggerability",
     "authority_drift",
+    "execution_policy",
+    "conditional_trigger",
 }
 
 ARCH_REMEDIATION_IDS = {
@@ -173,6 +182,28 @@ PLAN_PURITY_VIOLATIONS = [
     r"##\s*Findings.*(?:compliance|logic|testing|security)",  # Raw findings headers
 ]
 
+ADR_SOURCE_LINE_PATTERN = re.compile(r"^\*\*Source ADR:\*\*\s*`?([^`\n]+)`?", re.MULTILINE)
+ADR_HEADING_PATTERNS = [
+    "Context",
+    "Design",
+    "Contract Boundaries",
+    "Implementation Sequence",
+    "Dependencies",
+    "Consequences",
+]
+
+CANONICAL_PLAN_SECTION_NAMES = {
+    alias.lower()
+    for aliases in SECTION_ALIASES.values()
+    for alias in aliases
+}
+
+CANONICAL_PLAN_SECTION_NAMES = {
+    alias.lower()
+    for aliases in SECTION_ALIASES.values()
+    for alias in aliases
+}
+
 STATEFUL_PLAN_PATTERNS = [
     r"\bwatermark\b",
     r"\bdedupe\b",
@@ -203,6 +234,212 @@ PROVIDER_STATEFUL_PATTERNS = [
     r"\bprovider cache\b",
     r"\bfallback chain\b",
 ]
+
+EVIDENCE_FILE_PATTERNS = (
+    "py",
+    "ts",
+    "tsx",
+    "js",
+    "jsx",
+    "json",
+    "yaml",
+    "yml",
+    "toml",
+    "md",
+    "go",
+    "rs",
+    "java",
+    "cs",
+    "cpp",
+    "c",
+    "h",
+    "ps1",
+    "sh",
+)
+
+INLINE_FILE_LINE_RE = re.compile(
+    rf"(?P<path>(?:[A-Za-z]:[\\/])?[\w./\\-]+\.(?:{'|'.join(EVIDENCE_FILE_PATTERNS)}))(?:(?:#L|:)(?P<start>\d+)(?:[-:](?P<end>\d+))?)?",
+    re.IGNORECASE,
+)
+EXPLICIT_FILE_LINE_RE = re.compile(
+    r"^\s*\*\*(?:File|Path):\*\*\s*`?(?P<path>[^`\n]+?)`?\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+EXPLICIT_LINES_RE = re.compile(
+    r"^\s*\*\*Lines?:\*\*\s*(?P<start>\d+)(?:\s*[-:]\s*(?P<end>\d+))?\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+LAYER_REFERENCE_RE = re.compile(r"\b(?:Layer|Tier)\s+\d+\b", re.IGNORECASE)
+EXECUTION_SEMANTIC_KEYWORDS = (
+    "blocking",
+    "advisory",
+    "optional",
+    "fallback",
+    "required",
+    "must run",
+    "always runs",
+    "always run",
+    "must execute",
+)
+VAGUE_CONDITIONAL_PATTERNS = (
+    r"\bonly if needed\b",
+    r"\bif needed\b",
+    r"\bonly when needed\b",
+    r"\bwhen necessary\b",
+    r"\bas necessary\b",
+    r"\bif insufficient\b",
+    r"\bonly if .* insufficient\b",
+)
+TRIGGER_SIGNAL_KEYWORDS = (
+    "trigger:",
+    "trigger signal",
+    "signal:",
+    "criteria:",
+    "condition:",
+    "defined as",
+    "measured by",
+    "threshold",
+    "when all of",
+    "when both",
+    "when either",
+)
+
+STATE_EXTENSION_FIELD_RE = re.compile(
+    r"\b(?:add|introduce|extend)\b.{0,40}?`?(?P<field>[a-z_][a-z0-9_]*)`?(?::\s*(?P<value>\[[^\]]*\]|true|false|null|[a-z0-9_]+))?",
+    re.IGNORECASE,
+)
+MODE_SYSTEM_CHANGE_PATTERNS = (
+    "mode transition",
+    "mode messages",
+    "new modes",
+    "iteration-based",
+    "current_iteration",
+)
+SELECTOR_DEFAULT_PATTERNS = (
+    "when ",
+    "otherwise",
+    "fallback",
+    "default behavior",
+    "when absent",
+    "when missing",
+    "degrade_to",
+    "standard mode",
+    "existing modes",
+    "remain unchanged",
+)
+FIELD_DATA_FLOW_PATTERNS = (
+    "producer",
+    "consumer",
+    "writes",
+    "reads",
+    "read by",
+    "written by",
+    "populate",
+    "populated by",
+    "stores",
+    "format",
+    "plain text",
+    "structured object",
+    "parsed by",
+    "comes from",
+    "from llm response",
+    "source:",
+)
+FAILURE_MODE_TEST_PATTERNS = (
+    "backward compatibility",
+    "missing field",
+    "field absent",
+    "ttl",
+    "expired",
+    "interrupt",
+    "interruption",
+    "corrupt",
+    "malformed",
+    "empty",
+    "fallback",
+    "degrade",
+    "inactive",
+)
+
+HOOK_VISIBLE_FIELD_RE = re.compile(r"`(?P<field>[a-z_][a-z0-9_]*)`")
+HOOK_FIELD_CONTEXT_PATTERNS = (
+    "stophook",
+    "pretooluse",
+    "state",
+    "session",
+    "payload",
+    "field",
+    "mode",
+    "phase",
+)
+KNOWN_STATE_FIELDS = {
+    "current_iteration",
+    "max_iterations",
+    "intermediate_answers",
+    "final_answer",
+}
+HELPER_REFERENCE_RE = re.compile(r"(?<![A-Za-z0-9])(_[a-z][a-z0-9_]+)\(")
+STRUCTURED_SCHEMA_PATTERNS = (
+    "structured object",
+    "structured objects",
+    '{"id":',
+    '"id":',
+    '"claim":',
+    "object list",
+    "json object",
+)
+PARSER_DEPENDENCY_PATTERNS = (
+    "extract",
+    "regex",
+    "pattern-match",
+    "pattern matching",
+    "llm response",
+    "response prefixes",
+    "parse the response",
+    "parse response",
+)
+PARSER_FAILURE_POLICY_PATTERNS = (
+    "retry",
+    "re-prompt",
+    "at least 2",
+    "fewer than",
+    "minimum",
+    "malformed",
+    "if extraction fails",
+    "if fewer than",
+    "fallback",
+    "abort",
+    "proceed with",
+    "too many",
+)
+COMPONENT_OWNER_PATTERNS: dict[str, tuple[str, ...]] = {
+    "pretooluse": ("pretooluse", "pre_tool_use", "pre-tool-use"),
+    "stophook": ("stophook", "stophook", "stop hook"),
+    "userpromptsubmit": ("userpromptsubmit", "user prompt submit", "userpromptsubmit"),
+}
+COMPONENT_LOGIC_PATTERNS: dict[str, tuple[str, ...]] = {
+    "pretooluse": (
+        "pre_tool_use(",
+        "pretooluse",
+        "mode message",
+        "mode messages",
+        "is_hypothesis_mode",
+        "select mode",
+        "current_iteration",
+        "branching logic",
+    ),
+    "stophook": (
+        "stophook",
+        "stophook",
+        "_extract_hypotheses",
+        "extract hypotheses",
+        "parse the response",
+        "parsed from the llm response",
+        "hypothesis_details",
+        "_format_hypothesis_context",
+        "set_final_answer",
+    ),
+}
 
 STATELESS_DECLARATION_PATTERNS = [
     r"\bthis plan is not stateful\b",
@@ -330,11 +567,11 @@ def is_stateful_plan(plan: str) -> bool:
         return False
 
     state_model_section = extract_section_content(plan, "state_model_contracts")
-    if state_model_section and _has_negative_declaration(state_model_section):
-        return any(
-            re.search(pattern, searchable_text, re.IGNORECASE)
-            for pattern in [*STATEFUL_PLAN_PATTERNS, *PROVIDER_STATEFUL_PATTERNS]
-        )
+    if _has_negative_declaration(searchable_text):
+        # Negative declarations short-circuit stateful pattern matching.
+        # Check applies to full stripped text, not just state_model section,
+        # so "source of truth" in Design Decisions doesn't trigger false stateful.
+        return False
 
     return any(
         re.search(pattern, searchable_text, re.IGNORECASE)
@@ -369,6 +606,72 @@ def _parse_int_frontmatter(frontmatter: dict[str, str], key: str) -> int | None:
     return int(value)
 
 
+def detect_source_adr_path(plan: str, frontmatter: dict[str, str]) -> str | None:
+    """Infer the source ADR path from frontmatter or legacy source line."""
+    source = frontmatter.get("source", "").strip().strip('"').strip("'")
+    if source and source.lower() != "null":
+        normalized = source.replace("\\", "/")
+        if "arch_decisions/" in normalized or re.search(r"(?:^|/)ADR[-_ ]?\d+", normalized, re.IGNORECASE):
+            return source
+
+    match = ADR_SOURCE_LINE_PATTERN.search(plan)
+    if match:
+        return match.group(1).strip()
+    return None
+
+
+def detect_source_artifact_path(plan: str, frontmatter: dict[str, str]) -> str | None:
+    """Infer any non-null source artifact path from frontmatter or legacy source line."""
+    source = frontmatter.get("source", "").strip().strip('"').strip("'")
+    if source and source.lower() != "null":
+        return source
+
+    match = re.search(r"^\*\*Source:\*\*\s*`?([^`\n]+)`?", plan, re.MULTILINE)
+    if match:
+        return match.group(1).strip()
+    return None
+
+
+def extract_source_headings(source_text: str) -> list[str]:
+    """Extract non-canonical headings from a source artifact for shallow-copy detection."""
+    headings = []
+    for raw_heading in re.findall(r"^##+\s+(.+)$", source_text, re.MULTILINE):
+        heading = raw_heading.strip().strip("#").strip()
+        lowered = heading.lower()
+        if lowered in CANONICAL_PLAN_SECTION_NAMES:
+            continue
+        if lowered.startswith("plan:"):
+            continue
+        headings.append(heading)
+    return headings
+
+
+def detect_source_artifact_path(plan: str, frontmatter: dict[str, str]) -> str | None:
+    """Infer any non-null source artifact path from frontmatter or legacy source line."""
+    source = frontmatter.get("source", "").strip().strip('"').strip("'")
+    if source and source.lower() != "null":
+        return source
+
+    match = re.search(r"^\*\*Source:\*\*\s*`?([^`\n]+)`?", plan, re.MULTILINE)
+    if match:
+        return match.group(1).strip()
+    return None
+
+
+def extract_source_headings(source_text: str) -> list[str]:
+    """Extract non-canonical headings from a source artifact for shallow-copy detection."""
+    headings = []
+    for raw_heading in re.findall(r"^##+\s+(.+)$", source_text, re.MULTILINE):
+        heading = raw_heading.strip().strip("#").strip()
+        lowered = heading.lower()
+        if lowered in CANONICAL_PLAN_SECTION_NAMES:
+            continue
+        if lowered.startswith("plan:"):
+            continue
+        headings.append(heading)
+    return headings
+
+
 def _has_negative_declaration(section_text: str) -> bool:
     lowered = section_text.lower()
     return any(
@@ -388,6 +691,107 @@ def _strip_negative_declaration_sections(plan: str) -> str:
         if section_text and _has_negative_declaration(section_text):
             searchable = searchable.replace(section_text.lower(), " ")
     return searchable
+
+
+def _resolve_file_reference(raw_path: str, plan_path: str | None) -> list[Path]:
+    normalized = raw_path.strip().strip("`").strip().strip('"').strip("'")
+    if not normalized or "://" in normalized:
+        return []
+    path = Path(normalized.replace("\\", "/"))
+    candidates: list[Path] = []
+    if path.is_absolute() or re.match(r"^[A-Za-z]:[\\/]", normalized):
+        candidates.append(Path(normalized))
+    else:
+        if plan_path:
+            candidates.append(Path(plan_path).resolve().parent / path)
+        candidates.append(Path.cwd() / path)
+    # preserve order, remove duplicates
+    seen: set[str] = set()
+    unique: list[Path] = []
+    for candidate in candidates:
+        key = str(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(candidate)
+    return unique
+
+
+def _file_line_count(path: Path) -> int:
+    try:
+        with path.open("r", encoding="utf-8", errors="ignore") as handle:
+            return sum(1 for _ in handle)
+    except OSError:
+        return 0
+
+
+def _paragraphs_with_layer_signals(plan: str) -> list[str]:
+    sections = [
+        extract_section_content(plan, "Current State with Evidence"),
+        extract_section_content(plan, "Design Decisions and Invariants"),
+        extract_section_content(plan, "Implementation Changes"),
+    ]
+    text = "\n\n".join(section for section in sections if section)
+    return [paragraph.strip() for paragraph in re.split(r"\n\s*\n", text) if paragraph.strip()]
+
+
+def _current_state_cited_files(plan: str, plan_path: str | None = None) -> list[Path]:
+    section = extract_section_content(plan, "Current State with Evidence")
+    if not section:
+        return []
+
+    paths: list[Path] = []
+    seen: set[str] = set()
+    for match in EXPLICIT_FILE_LINE_RE.finditer(section):
+        for candidate in _resolve_file_reference(match.group("path"), plan_path):
+            if candidate.exists():
+                key = str(candidate.resolve())
+                if key not in seen:
+                    seen.add(key)
+                    paths.append(candidate.resolve())
+                break
+    return paths
+
+
+def _extract_added_state_fields(plan: str) -> list[tuple[str, str | None]]:
+    fields: list[tuple[str, str | None]] = []
+    seen: set[str] = set()
+    design = extract_section_content(plan, "Design Decisions and Invariants")
+    changes = extract_section_content(plan, "Implementation Changes")
+    combined = "\n".join(section for section in [design, changes] if section)
+    for match in STATE_EXTENSION_FIELD_RE.finditer(combined):
+        field = match.group("field").lower()
+        if field in {"mode", "current_iteration", "max_iterations"}:
+            continue
+        if field not in seen:
+            seen.add(field)
+            fields.append((field, (match.group("value") or "").lower() or None))
+    return fields
+
+
+def _extract_hook_visible_fields(plan: str) -> list[str]:
+    """Return hook-visible field names referenced in design or implementation prose."""
+    relevant = "\n".join(
+        [
+            extract_section_content(plan, "Design Decisions and Invariants"),
+            extract_section_content(plan, "Implementation Changes"),
+            extract_section_content(plan, "State Model Contracts"),
+        ]
+    )
+    fields: list[str] = []
+    seen: set[str] = set()
+    for line in relevant.splitlines():
+        lowered_line = line.lower()
+        if not any(marker in lowered_line for marker in HOOK_FIELD_CONTEXT_PATTERNS):
+            continue
+        for match in HOOK_VISIBLE_FIELD_RE.finditer(line):
+            field = match.group("field").lower()
+            if field in KNOWN_STATE_FIELDS:
+                continue
+            if field not in seen:
+                seen.add(field)
+                fields.append(field)
+    return fields
 
 
 def _extract_phase_headings(plan: str) -> list[int]:
@@ -575,9 +979,9 @@ def _has_non_placeholder_acceptance_text(text: str) -> bool:
 def _extract_acceptance_body(task_block: str) -> str:
     lines = task_block.splitlines()
     for idx, line in enumerate(lines):
-        if re.search(r"\*\*Acceptance(?: Criteria)?(?::)?\*\*:?", line, re.IGNORECASE):
+        if re.search(r"\*\*Acceptance(?: Criteria)?(?:\s*\(?[^)]*\)?)?:\*\*", line, re.IGNORECASE):
             inline = re.sub(
-                r".*?\*\*Acceptance(?: Criteria)?(?::)?\*\*:?",
+                r".*?\*\*Acceptance(?: Criteria)?(?:\s*\(?[^)]*\)?)?:\*\*",
                 "",
                 line,
                 flags=re.IGNORECASE,
@@ -664,7 +1068,7 @@ def extract_tasks(plan: str) -> list[dict[str, Any]]:
         # "acceptance" in the task title does not count.
         has_acceptance_header = bool(
             re.search(
-                r"\*\*Acceptance(?: Criteria)?(?::)?\*\*:?",
+                r"\*\*Acceptance(?: Criteria)?(?:\s*\(?[^)]*\)?)?:\*\*",
                 task_block,
                 re.IGNORECASE,
             )
@@ -682,6 +1086,29 @@ def extract_tasks(plan: str) -> list[dict[str, Any]]:
             {"id": task_id, "title": title_text[:100], "has_acceptance_criteria": has_acceptance}
         )
     return tasks
+
+
+def _implementation_change_blocks(plan: str) -> list[tuple[str, str]]:
+    """Extract implementation change blocks keyed by their heading/title."""
+    section = extract_section_content(plan, "Implementation Changes")
+    if not section:
+        return []
+
+    section_stripped = _strip_code_fences(section)
+    header_pattern = re.compile(
+        r"^(?:\*\*(?:TASK|CHANGE)-(\d+)[:\*\s]+([^\n]+)|#{1,6}\s+(?:TASK|CHANGE)-(\d+)[:\s]+([^\n]+)|(?:TASK|CHANGE)-(\d+)[:\s]+([^\n]+))",
+        re.MULTILINE,
+    )
+    matches = list(header_pattern.finditer(section_stripped))
+    blocks: list[tuple[str, str]] = []
+    for idx, match in enumerate(matches):
+        groups = match.groups()
+        title = (groups[1] or groups[3] or groups[5] or "").strip()
+        if not title:
+            continue
+        next_header_start = matches[idx + 1].start() if idx + 1 < len(matches) else len(section_stripped)
+        blocks.append((title, section_stripped[match.start():next_header_start]))
+    return blocks
 
 
 def check_status_header(plan: str) -> list[dict[str, Any]]:
@@ -810,6 +1237,144 @@ def check_section_completeness(plan: str) -> list[dict[str, Any]]:
                 }
             )
 
+    return findings
+
+
+def check_adr_ingestion_contract(plan: str, plan_path: str | None = None) -> list[dict[str, Any]]:
+    """Detect ADR-derived drafts that still mirror ADR structure instead of plan shape."""
+    findings: list[dict[str, Any]] = []
+    frontmatter = parse_frontmatter(plan)
+    source_adr = detect_source_adr_path(plan, frontmatter)
+    if not source_adr:
+        return findings
+
+    mirrored_headings = [
+        heading
+        for heading in ADR_HEADING_PATTERNS
+        if re.search(rf"^##\s+{re.escape(heading)}\b", plan, re.MULTILINE)
+    ]
+    if not mirrored_headings:
+        return findings
+
+    missing_canonical = [
+        section
+        for section in ("Goal", "Implementation Changes", "Current State with Evidence")
+        if not extract_section_content(plan, section)
+    ]
+    if frontmatter and not missing_canonical:
+        return findings
+
+    handoff_hint = ""
+    source_path = Path(source_adr)
+    if source_path.exists():
+        try:
+            source_text = source_path.read_text(encoding="utf-8")
+        except OSError:
+            source_text = ""
+        if source_text:
+            handoff = parse_planning_handoff_packet(source_text)
+            if handoff.packet_version:
+                handoff_hint = (
+                    f" Source ADR already contains Planning Handoff Packet v{handoff.packet_version}; "
+                    "rewrite from that packet before rerunning verification."
+                )
+            elif adr_requires_planning_handoff(source_text):
+                handoff_hint = (
+                    " Source ADR appears planning-bound but does not contain a Planning Handoff Packet; "
+                    "rewrite locally now and treat the missing handoff as an upstream /arch closure defect."
+                )
+
+    findings.append(
+        {
+            "id": "ADR-INGEST-001",
+            "category": "adr_ingestion",
+            "priority": "HIGH",
+            "title": "ADR-derived draft still mirrors ADR structure",
+            "description": (
+                f"Draft sourced from '{source_adr}' still uses ADR headings ({', '.join(mirrored_headings)}) "
+                f"and is missing canonical plan structure ({', '.join(missing_canonical) or 'frontmatter'}). "
+                "Canonicalize the plan locally before treating remaining issues as /arch blockers."
+                + handoff_hint
+            ),
+            "source_adr": source_adr,
+            "plan_path": plan_path,
+        }
+    )
+    return findings
+
+
+def check_source_ingestion_contract(plan: str, plan_path: str | None = None) -> list[dict[str, Any]]:
+    """Detect non-ADR source drafts that still mirror source structure instead of plan shape."""
+    findings: list[dict[str, Any]] = []
+    frontmatter = parse_frontmatter(plan)
+    source_path = detect_source_artifact_path(plan, frontmatter)
+    if not source_path:
+        return findings
+    if detect_source_adr_path(plan, frontmatter):
+        return findings
+
+    missing_canonical = [
+        section
+        for section in ("Goal", "Implementation Changes", "Current State with Evidence")
+        if not extract_section_content(plan, section)
+    ]
+    needs_normalization = bool(missing_canonical or not frontmatter)
+
+    source_file = Path(source_path)
+    source_text = ""
+    if source_file.exists():
+        try:
+            source_text = source_file.read_text(encoding="utf-8")
+        except OSError:
+            source_text = ""
+
+    mirrored_headings: list[str] = []
+    source_hint = ""
+    if source_text:
+        mirrored_headings = [
+            heading
+            for heading in extract_source_headings(source_text)
+            if re.search(rf"^##\s+{re.escape(heading)}\b", plan, re.MULTILINE)
+        ]
+        source_packet = parse_planning_source_packet(source_text)
+        if source_packet.packet_version:
+            source_hint = (
+                f" Source artifact already contains Planning Source Packet v{source_packet.packet_version}; "
+                "rewrite from that packet before rerunning verification."
+            )
+        else:
+            source_hint = (
+                " Build an explicit extraction map or add a Planning Source Packet before treating "
+                "the source text as planning-ready input."
+            )
+
+    if not needs_normalization and not mirrored_headings:
+        return findings
+
+    findings.append(
+        {
+            "id": "SOURCE-INGEST-001",
+            "category": "source_ingestion",
+            "priority": "HIGH",
+            "title": "Source-derived draft still mirrors source structure",
+            "description": (
+                f"Draft sourced from '{source_path}' still requires local normalization into the canonical plan shape."
+                + (
+                    f" Mirrored source headings: {', '.join(mirrored_headings)}."
+                    if mirrored_headings
+                    else ""
+                )
+                + (
+                    f" Missing canonical plan structure: {', '.join(missing_canonical)}."
+                    if missing_canonical
+                    else ""
+                )
+                + source_hint
+            ),
+            "source_path": source_path,
+            "plan_path": plan_path,
+        }
+    )
     return findings
 
 
@@ -1135,6 +1700,312 @@ def check_contract_test_coherence(plan: str) -> list[dict[str, Any]]:
     return findings
 
 
+def check_existing_flow_overlap(plan: str, plan_path: str | None = None) -> list[dict[str, Any]]:
+    """Fail when a plan extends an existing mode/phase system without addressing overlapping live flows."""
+    findings = []
+    lowered_plan = plan.lower()
+    if not any(pattern in lowered_plan for pattern in MODE_SYSTEM_CHANGE_PATTERNS):
+        return findings
+
+    if "investigation" in lowered_plan:
+        return findings
+
+    for cited_file in _current_state_cited_files(plan, plan_path):
+        if cited_file.suffix.lower() != ".py":
+            continue
+        try:
+            content = cited_file.read_text(encoding="utf-8", errors="ignore").lower()
+        except OSError:
+            continue
+        if "_investigation_phases" in content or 'mode == "investigation"' in content:
+            findings.append(
+                {
+                    "id": "STATE-010",
+                    "category": "state_model",
+                    "priority": "HIGH",
+                    "title": "Plan extends an existing mode system without addressing overlapping live flows",
+                    "description": (
+                        "A cited implementation file already contains an investigation/alternate flow, "
+                        "but the plan does not state whether the new flow replaces it, coexists with it, "
+                        "or how trigger selection distinguishes them."
+                    ),
+                    "evidence": str(cited_file),
+                }
+            )
+            break
+    return findings
+
+
+def check_state_extension_contracts(plan: str) -> list[dict[str, Any]]:
+    """Fail when newly added state fields lack selector/default or producer/consumer semantics."""
+    findings = []
+    if not is_stateful_plan(plan):
+        return findings
+
+    added_fields = _extract_added_state_fields(plan)
+    hook_visible_fields = _extract_hook_visible_fields(plan)
+    if not added_fields and not hook_visible_fields:
+        return findings
+
+    lowered = plan.lower()
+    if any("mode" in field for field, _ in added_fields) and any(
+        pattern in lowered for pattern in MODE_SYSTEM_CHANGE_PATTERNS
+    ):
+        if not any(marker in lowered for marker in SELECTOR_DEFAULT_PATTERNS):
+            findings.append(
+                {
+                    "id": "STATE-011",
+                    "category": "schema_consistency",
+                    "priority": "HIGH",
+                    "title": "Extended mode system lacks explicit selector and default behavior",
+                    "description": (
+                        "When a plan adds new mode-discriminator fields or alternate mode flows, it must "
+                        "state how the standard and extended flows are selected and what happens when the "
+                        "new discriminator field is absent or false."
+                    ),
+                }
+            )
+
+    fields_requiring_contracts = {
+        field
+        for field in hook_visible_fields
+        if any(token in field for token in ["mode", "hypothes", "phase", "state", "detail"])
+    }
+    fields_requiring_contracts.update(
+        field
+        for field, _ in added_fields
+        if any(token in field for token in ["mode", "hypothes", "phase", "state", "detail"])
+    )
+
+    for field in fields_requiring_contracts:
+        field_context = "\n".join(line for line in plan.splitlines() if field in line.lower()).lower()
+        if not any(marker in field_context for marker in FIELD_DATA_FLOW_PATTERNS):
+            findings.append(
+                {
+                    "id": "STATE-012",
+                    "category": "consumer_validation_gap",
+                    "priority": "HIGH",
+                    "title": f"State field '{field}' lacks producer/consumer data-flow contract",
+                    "description": (
+                        "Plans that add or repurpose persistent or hook-visible fields must state who writes "
+                        "them, who reads them, where the data comes from, and the expected shape/format."
+                    ),
+                }
+            )
+            break
+
+    for field, value in added_fields:
+        if value in {"[]", "false", "true", "null"} and (
+            "absent" not in lowered
+            and "missing" not in lowered
+            and "backward compat" not in lowered
+            and "backward compatibility" not in lowered
+            and "when " + field not in lowered
+        ):
+            findings.append(
+                {
+                    "id": "STATE-013",
+                    "category": "schema_consistency",
+                    "priority": "HIGH",
+                    "title": f"New state field '{field}' lacks explicit default/absent-field behavior",
+                    "description": (
+                        "Schema-extension plans must say what happens when newly added fields are absent "
+                        "in older state files or default to their unset value."
+                    ),
+                }
+            )
+            break
+    return findings
+
+
+def check_stateful_failure_mode_tests(plan: str) -> list[dict[str, Any]]:
+    """Fail stateful extension plans that only test the happy path."""
+    findings = []
+    if not is_stateful_plan(plan):
+        return findings
+
+    lowered = plan.lower()
+    if not any(pattern in lowered for pattern in MODE_SYSTEM_CHANGE_PATTERNS) and not _extract_added_state_fields(plan):
+        return findings
+
+    tests = extract_section_content(plan, "Test Matrix").lower()
+    if not tests:
+        return findings
+
+    if not any(pattern in tests for pattern in FAILURE_MODE_TEST_PATTERNS):
+        findings.append(
+            {
+                "id": "TEST-STATE-002",
+                "category": "contract_test_coherence",
+                "priority": "HIGH",
+                "title": "Stateful extension plan lacks failure-mode test coverage",
+                "description": (
+                    "Stateful hook/workflow changes must test at least one unhappy-path scenario such as "
+                    "missing fields, corrupted state, interruption/resume, TTL expiry, or fallback behavior."
+                ),
+            }
+        )
+    return findings
+
+
+def check_change_component_alignment(plan: str) -> list[dict[str, Any]]:
+    """Fail when a change block's scoped component does not match the logic it describes."""
+    findings: list[dict[str, Any]] = []
+    for title, block in _implementation_change_blocks(plan):
+        lowered_title = title.lower()
+        lowered_block = block.lower()
+        owner: str | None = None
+        for component, markers in COMPONENT_OWNER_PATTERNS.items():
+            if any(marker in lowered_title for marker in markers):
+                owner = component
+                break
+        if owner is None:
+            continue
+
+        for other_component, logic_markers in COMPONENT_LOGIC_PATTERNS.items():
+            if other_component == owner:
+                continue
+            if any(marker in lowered_block for marker in logic_markers):
+                findings.append(
+                    {
+                        "id": "CHANGE-ALIGN-001",
+                        "category": "implementation_scope",
+                        "priority": "HIGH",
+                        "title": "Change block scopes one component but specifies another component's logic",
+                        "description": (
+                            f"The change block '{title}' is scoped to {owner}, but its body contains "
+                            f"logic markers for {other_component}. Move the logic to the owning change "
+                            "or restate the ownership boundary explicitly."
+                        ),
+                    }
+                )
+                return findings
+    return findings
+
+
+def check_parser_failure_policy(plan: str) -> list[dict[str, Any]]:
+    """Fail parser-dependent plans that do not define validation/retry/fallback behavior."""
+    findings: list[dict[str, Any]] = []
+    lowered = plan.lower()
+    relevant = "\n".join(
+        [
+            extract_section_content(plan, "Design Decisions and Invariants"),
+            extract_section_content(plan, "Implementation Changes"),
+            extract_section_content(plan, "Test Matrix"),
+        ]
+    ).lower()
+    if "hypothes" not in relevant:
+        return findings
+    if not any(pattern in relevant for pattern in PARSER_DEPENDENCY_PATTERNS):
+        return findings
+    if not any(pattern in lowered for pattern in PARSER_FAILURE_POLICY_PATTERNS):
+        findings.append(
+            {
+                "id": "STATE-014",
+                "category": "schema_consistency",
+                "priority": "HIGH",
+                "title": "Parser-dependent structured state lacks validation and failure policy",
+                "description": (
+                    "If the design parses model output into structured state, the plan must say what "
+                    "happens when extraction yields too few items, malformed data, or variant formatting, "
+                    "including retry, fallback, or abort behavior."
+                ),
+            }
+        )
+    return findings
+
+
+def check_helper_reference_clarity(plan: str, plan_path: str | None = None) -> list[dict[str, Any]]:
+    """Fail plans that reference helper functions without defining whether they exist or will be added."""
+    findings: list[dict[str, Any]] = []
+    relevant = "\n".join(
+        [
+            extract_section_content(plan, "Design Decisions and Invariants"),
+            extract_section_content(plan, "Implementation Changes"),
+        ]
+    )
+    if not relevant:
+        return findings
+
+    cited_contents: list[str] = []
+    for cited_file in _current_state_cited_files(plan, plan_path):
+        try:
+            cited_contents.append(cited_file.read_text(encoding="utf-8", errors="ignore").lower())
+        except OSError:
+            continue
+    cited_blob = "\n".join(cited_contents)
+    lowered_relevant = relevant.lower()
+    for helper in {match.group(1) for match in HELPER_REFERENCE_RE.finditer(relevant)}:
+        helper_lower = helper.lower()
+        if helper_lower in cited_blob:
+            continue
+        if re.search(
+            rf"(?:add|define|implement|create|reuse|use existing).{{0,80}}{re.escape(helper_lower)}",
+            lowered_relevant,
+            re.IGNORECASE | re.DOTALL,
+        ):
+            continue
+        findings.append(
+            {
+                "id": "HELPER-001",
+                "category": "implementation_scope",
+                "priority": "HIGH",
+                "title": "Plan references an undefined helper without ownership or implementation guidance",
+                "description": (
+                    f"The plan references `{helper}()` but does not show it in cited current-state files "
+                    "and does not explicitly say whether it will be added, reused, or replaced by an existing helper."
+                ),
+            }
+        )
+        break
+    return findings
+
+
+def check_assumption_schema_contradictions(plan: str) -> list[dict[str, Any]]:
+    """Fail when assumptions/defaults contradict the plan's stated schema or data shape."""
+    findings: list[dict[str, Any]] = []
+    assumptions = extract_section_content(plan, "Assumptions/Defaults").lower()
+    if not assumptions:
+        return findings
+    design_blob = "\n".join(
+        [
+            extract_section_content(plan, "Design Decisions and Invariants"),
+            extract_section_content(plan, "Implementation Changes"),
+            extract_section_content(plan, "State Model Contracts"),
+        ]
+    ).lower()
+    if not design_blob:
+        return findings
+
+    candidate_fields = set(_extract_hook_visible_fields(plan))
+    candidate_fields.update(field for field, _ in _extract_added_state_fields(plan))
+    if not candidate_fields:
+        candidate_fields.add("hypotheses")
+
+    for field in candidate_fields:
+        assumption_lines = [
+            line for line in assumptions.splitlines() if field in line and "plain text" in line
+        ]
+        if not assumption_lines:
+            continue
+        design_lines = [line for line in design_blob.splitlines() if field in line]
+        if any(any(pattern in line for pattern in STRUCTURED_SCHEMA_PATTERNS) for line in design_lines):
+            findings.append(
+                {
+                    "id": "ASSUMPTION-001",
+                    "category": "schema_consistency",
+                    "priority": "HIGH",
+                    "title": "Assumptions/defaults contradict the declared schema shape",
+                    "description": (
+                        f"The assumptions section describes `{field}` as plain text, but the design or "
+                        "implementation sections define it as structured data. Align the assumption with the schema."
+                    ),
+                }
+            )
+            break
+    return findings
+
+
 def check_open_question_blockers(plan: str) -> list[dict[str, Any]]:
     """Fail plans whose Open Questions still contain explicit blocker markers."""
     findings = []
@@ -1258,6 +2129,141 @@ def check_contract_boundary_matrix(plan: str) -> list[dict[str, Any]]:
                 }
             )
 
+    return findings
+
+
+def check_evidence_file_targets(plan: str, plan_path: str | None = None) -> list[dict[str, Any]]:
+    """Fail when explicit file/line evidence points at nonexistent files or stale line spans."""
+    findings: list[dict[str, Any]] = []
+    current_state = extract_section_content(plan, "Current State with Evidence")
+    design = extract_section_content(plan, "Design Decisions and Invariants")
+    implementation = extract_section_content(plan, "Implementation Changes")
+
+    sections_to_scan = [
+        ("Current State with Evidence", current_state, True),
+        ("Design Decisions and Invariants", design, True),
+        ("Implementation Changes", implementation, False),
+    ]
+
+    seen_refs: set[tuple[str, str, int | None, int | None]] = set()
+    for section_name, section_text, allow_explicit_file_only in sections_to_scan:
+        if not section_text:
+            continue
+
+        for match in EXPLICIT_FILE_LINE_RE.finditer(section_text):
+            raw_path = match.group("path").strip()
+            line_match = EXPLICIT_LINES_RE.search(section_text[match.end():])
+            start = int(line_match.group("start")) if line_match else None
+            end = int(line_match.group("end") or line_match.group("start")) if line_match else None
+            seen_refs.add((section_name, raw_path, start, end))
+
+        for match in INLINE_FILE_LINE_RE.finditer(section_text):
+            raw_path = match.group("path").strip()
+            start = int(match.group("start")) if match.group("start") else None
+            end = int(match.group("end") or match.group("start")) if match.group("start") else None
+            if allow_explicit_file_only or start is not None:
+                seen_refs.add((section_name, raw_path, start, end))
+
+    for section_name, raw_path, start, end in sorted(
+        seen_refs, key=lambda item: (item[0], item[1], item[2] or -1, item[3] or -1)
+    ):
+        candidates = _resolve_file_reference(raw_path, plan_path)
+        if not candidates:
+            continue
+        existing = next((candidate for candidate in candidates if candidate.exists()), None)
+        if existing is None:
+            findings.append(
+                {
+                    "id": "EVIDENCE-001",
+                    "category": "evidence_reference",
+                    "priority": "HIGH",
+                    "title": "Plan cites a file that does not exist in the current workspace",
+                    "description": (
+                        "Explicit file evidence must resolve against the current workspace before the "
+                        f"plan can rely on it. Missing target: {raw_path}"
+                    ),
+                    "section": section_name,
+                }
+            )
+            continue
+
+        if start is None:
+            continue
+
+        total_lines = _file_line_count(existing)
+        if total_lines <= 0 or start > total_lines or (end is not None and end > total_lines) or (
+            end is not None and end < start
+        ):
+            findings.append(
+                {
+                    "id": "EVIDENCE-002",
+                    "category": "evidence_reference",
+                    "priority": "HIGH",
+                    "title": "Plan cites stale or invalid line references",
+                    "description": (
+                        f"Referenced lines {start}-{end or start} do not exist in {existing}. "
+                        f"Current line count: {total_lines}."
+                    ),
+                }
+            )
+
+    return findings
+
+
+def check_layer_execution_semantics(plan: str) -> list[dict[str, Any]]:
+    """Fail when layered mechanisms omit whether a layer is blocking, advisory, optional, or fallback."""
+    findings: list[dict[str, Any]] = []
+    for paragraph in _paragraphs_with_layer_signals(plan):
+        if not LAYER_REFERENCE_RE.search(paragraph):
+            continue
+        lowered = paragraph.lower()
+        if any(keyword in lowered for keyword in EXECUTION_SEMANTIC_KEYWORDS):
+            continue
+        findings.append(
+            {
+                "id": "EXECUTION-001",
+                "category": "execution_policy",
+                "priority": "HIGH",
+                "title": "Layered mechanism lacks explicit execution semantics",
+                "description": (
+                    "Layered plans must say whether each layer is blocking, advisory, optional, "
+                    "fallback-only, or always-on. Do not leave layer behavior implicit."
+                ),
+                "evidence": paragraph[:220],
+            }
+        )
+        break
+    return findings
+
+
+def check_conditional_trigger_clarity(plan: str) -> list[dict[str, Any]]:
+    """Fail vague conditional execution phrases that do not define a trigger signal."""
+    findings: list[dict[str, Any]] = []
+    paragraphs = _paragraphs_with_layer_signals(plan)
+    for idx, paragraph in enumerate(paragraphs):
+        lowered = paragraph.lower()
+        if not any(re.search(pattern, lowered, re.IGNORECASE) for pattern in VAGUE_CONDITIONAL_PATTERNS):
+            continue
+        window = paragraph
+        if idx + 1 < len(paragraphs):
+            window += "\n" + paragraphs[idx + 1]
+        lowered_window = window.lower()
+        if any(keyword in lowered_window for keyword in TRIGGER_SIGNAL_KEYWORDS):
+            continue
+        findings.append(
+            {
+                "id": "EXECUTION-002",
+                "category": "conditional_trigger",
+                "priority": "HIGH",
+                "title": "Conditional execution is vague and lacks a defined trigger",
+                "description": (
+                    "Phrases like 'only if needed' or 'if 1+2 are insufficient' must define the "
+                    "signal, evaluator, and threshold that trigger the conditional layer."
+                ),
+                "evidence": paragraph[:220],
+            }
+        )
+        break
     return findings
 
 
@@ -1839,6 +2845,22 @@ def classify_next_action(status: str, findings: list[dict[str, Any]]) -> dict[st
             "authoritative_source": "latest_auto_verify",
         }
 
+    ingestion_findings = [
+        finding
+        for finding in findings
+        if finding.get("category") in {"adr_ingestion", "source_ingestion"}
+    ]
+    if ingestion_findings:
+        return {
+            "type": "fix_issues",
+            "reason": (
+                f"Canonicalize {len(ingestion_findings)} source-ingestion issue(s) "
+                "before routing any remaining blockers"
+            ),
+            "must_follow": True,
+            "authoritative_source": "latest_auto_verify",
+        }
+
     arch_findings = [
         finding
         for finding in findings
@@ -1856,9 +2878,18 @@ def classify_next_action(status: str, findings: list[dict[str, Any]]) -> dict[st
             "must_follow": True,
             "authoritative_source": "latest_auto_verify",
             "recommended_skill": "/arch",
+            "nested_subworkflow": True,
+            "resume_skill": "/planning",
+            "resume_policy": "automatic_return_to_caller",
+            "user_reentry_required": False,
             "arch_blocker_ids": [str(finding.get("id")) for finding in arch_findings],
             "blocking_categories": blocking_categories,
             "ownership": "planning_rewrites_plan",
+            "post_arch_actions": [
+                "consume_arch_packet",
+                "rewrite_plan",
+                "rerun_auto_verify",
+            ],
         }
 
     high_priority = [finding for finding in findings if finding.get("priority") == "HIGH"]
@@ -1953,19 +2984,37 @@ def verify_plan(plan_path: str | None = None, plan_content: str | None = None) -
     # 4. Section completeness
     all_findings.extend(check_section_completeness(plan))
 
-    # 5. Stateful contract readiness
-    all_findings.extend(check_stateless_contradictions(plan))
-    all_findings.extend(check_ambiguous_contracts(plan))
-    all_findings.extend(check_state_model_completeness(plan))
-    all_findings.extend(check_unresolved_core_decisions(plan))
-    all_findings.extend(check_open_question_blockers(plan))
-    all_findings.extend(check_boundary_overload(plan))
-    all_findings.extend(check_claim_schema_consistency(plan))
-    all_findings.extend(check_contract_test_coherence(plan))
-    all_findings.extend(check_mechanism_triggerability(plan))
-    all_findings.extend(check_contract_sensitivity_contradictions(plan))
-    all_findings.extend(check_contract_boundary_matrix(plan))
-    all_findings.extend(check_planning_contract_authority_drift(plan))
+    # 4.5 ADR ingestion contract — local rewrite issue before any /arch routing
+    adr_ingestion_findings = check_adr_ingestion_contract(plan, plan_path)
+    all_findings.extend(adr_ingestion_findings)
+    source_ingestion_findings = check_source_ingestion_contract(plan, plan_path)
+    all_findings.extend(source_ingestion_findings)
+    ingestion_blocked = bool(adr_ingestion_findings or source_ingestion_findings)
+
+    # 5. Stateful/contract readiness
+    if not ingestion_blocked:
+        all_findings.extend(check_evidence_file_targets(plan, plan_path))
+        all_findings.extend(check_layer_execution_semantics(plan))
+        all_findings.extend(check_conditional_trigger_clarity(plan))
+        all_findings.extend(check_change_component_alignment(plan))
+        all_findings.extend(check_helper_reference_clarity(plan, plan_path))
+        all_findings.extend(check_stateless_contradictions(plan))
+        all_findings.extend(check_ambiguous_contracts(plan))
+        all_findings.extend(check_state_model_completeness(plan))
+        all_findings.extend(check_unresolved_core_decisions(plan))
+        all_findings.extend(check_open_question_blockers(plan))
+        all_findings.extend(check_boundary_overload(plan))
+        all_findings.extend(check_existing_flow_overlap(plan, plan_path))
+        all_findings.extend(check_state_extension_contracts(plan))
+        all_findings.extend(check_parser_failure_policy(plan))
+        all_findings.extend(check_assumption_schema_contradictions(plan))
+        all_findings.extend(check_claim_schema_consistency(plan))
+        all_findings.extend(check_contract_test_coherence(plan))
+        all_findings.extend(check_stateful_failure_mode_tests(plan))
+        all_findings.extend(check_mechanism_triggerability(plan))
+        all_findings.extend(check_contract_sensitivity_contradictions(plan))
+        all_findings.extend(check_contract_boundary_matrix(plan))
+        all_findings.extend(check_planning_contract_authority_drift(plan))
 
     # 6. Solo-dev violations
     all_findings.extend(check_solo_dev_violations(plan))
@@ -1973,7 +3022,8 @@ def verify_plan(plan_path: str | None = None, plan_content: str | None = None) -
     # 7. RTM coverage
     requirements = extract_requirements(plan)
     tasks = extract_tasks(plan)
-    all_findings.extend(check_rtm_coverage(requirements, tasks))
+    if not ingestion_blocked:
+        all_findings.extend(check_rtm_coverage(requirements, tasks))
 
     # 8. Review dispositions (before claimed implementation-ready can pass)
     all_findings.extend(check_dispositions(plan_path, plan))

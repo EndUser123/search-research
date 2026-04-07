@@ -2,19 +2,20 @@
 name: gto
 version: 3.6.0
 status: "stable"
-description: Gap/Task/Opportunity analysis with self-verifying completion enforcement and first-class contract-authority gap detection
+description: Analyze what happened in this session and recommend what to do next. Detects: what skills were used, what wasn't completed, what gaps exist, what other skills should be invoked (like /pre-mortem after code changes, /critique after reviews, /git after edits).
 category: analysis
 enforcement: strict
 triggers:
   - /gto
-  - "gap analysis"
-  - "health check"
+  - "what should I do next"
+  - "what gaps do we have"
+  - "session health"
   - "analyze project state"
 ---
 
-# GTO v3.1 - Gap/Task/Opportunity Analysis
+# GTO v3.1 - Strategic Next-Step Advisor
 
-Chat-based gap detection for technical projects with self-verifying completion enforcement.
+Reads session history to understand what happened, then recommends what skills to run next.
 
 ## What It Does
 
@@ -59,6 +60,23 @@ GTO auto-detects the target from session context via semantic intent resolution:
 4. **Handoff/RESTORE_CONTEXT**: Stated target from transcript_path links
 5. **Recent evidence files**: The system described by the artifact — semantic match, not just recency
 6. **Conversation context** (last resort): What was the user working on when GTO was invoked? Weight by intent over timestamps
+
+## Next-Step Integrity Prompts
+
+Before recommending what to do next, `/gto` should run a short internal next-step integrity check:
+
+- What recommendation is being driven by stale artifacts or old session state rather than current evidence?
+- What gaps are duplicates, downstream symptoms, or different views of the same root issue?
+- What next step would be wrong if the target changed since the last skill run?
+- What recommendation is being suggested because the skill is nearby, rather than because it truly owns the gap?
+- What follow-up should happen first to prevent wasted work or mis-sequencing?
+- What gap still lacks enough evidence to justify a strong recommendation?
+- What recommendation would break under multi-terminal state, stale data, or interrupted workflow?
+- What should I explicitly not recommend because ownership belongs to `/arch`, `/planning`, `/verify`, or another lower skill?
+- What would a weaker model over-recommend here as generic cleanup instead of the highest-value next step?
+- What recommendation looks helpful locally but would move the workflow away from the real outcome?
+
+These are internal self-check prompts. They are not default user-facing questions and should only surface to the user when `/gto` is genuinely blocked and cannot proceed safely without clarification.
 
 ## EXECUTE
 
@@ -253,6 +271,25 @@ The formatter automatically groups gaps into categories based on type:
 
 🐙 GIT
   GIT-001 [~2min] [R:1.0] Commit 3 uncommitted changes in hooks/
+
+### Completeness Check
+
+After executing RNS actions, check whether documentation is stale for the gaps found:
+
+**For each gap type detected**, ask whether related docs are current:
+- `test_gap` / `missing_test` → check test coverage in relevant files
+- `missing_docs` / `outdated_docs` → update the doc file directly
+- `contract_gap` → check if ADR or schema docs need updating
+- `code_quality` → check if code comments or inline docs need refresh
+- `git_dirty` → commit first, then continue
+
+If implementation happened in a different session from documentation, emit a follow-up DOCS item:
+```
+📄 DOCS
+  [realize/low] DOC-N Update {file} with {specific change}
+```
+
+**Rule**: Documentation and implementation in the same session is preferred. If split across sessions, explicitly flag the doc gap.
 
 📦 DEPS
   DEPS-001 [~5min] [R:1.5] Install missing httpx dependency

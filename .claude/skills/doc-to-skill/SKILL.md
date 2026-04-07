@@ -13,6 +13,7 @@ suggest:
   - /skills-migrate
   - /orchestrator
   - /build
+  - /skill-ship
 ---
 
 # Documentation to Skill Converter

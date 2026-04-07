@@ -13,6 +13,7 @@ suggest:
   - /git
   - /commit
   - /push
+  - /skill-ship
 ---
 
 

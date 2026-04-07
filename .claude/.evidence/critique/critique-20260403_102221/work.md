@@ -1,2 +1,0 @@
-Target: /critique skill
-Focus: Evaluate whether the multi-terminal isolation fixes implemented in critique_io.py are complete and whether Phase 2 has an explicit guard for zero specialist files (the unaddressed kill criterion from the pre-mortem).

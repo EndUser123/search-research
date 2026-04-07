@@ -72,19 +72,53 @@ Optional parameters:
 - **team_name**: Spawn agent into specific team
 - **mode**: Permission mode (acceptEdits, bypassPermissions, etc.)
 
+## Dynamic Agent Discovery
+
+**Always discover current agents at runtime** — the static list below is incomplete (104 agents exist across 4 sources).
+
+```bash
+# Full list with descriptions
+python scripts/list_agents.py --json
+
+# Just names, one per line
+python scripts/list_agents.py --names
+
+# Filter by keyword (name or description)
+python scripts/list_agents.py --filter "tdd" --names
+python scripts/list_agents.py --filter "quality" --names
+python scripts/list_agents.py --filter "security" --names
+```
+
+**Sources scanned:**
+1. `P:/.claude/agents/` — user agents (bare name)
+2. `~/.claude/agents/` — user agents (bare name)
+3. `P:/.claude/plugins/cache/*/agents/` — plugin agents (`namespace:name`)
+4. `~/.claude/plugins/cache/*/agents/` — plugin agents (`namespace:name`)
+5. Builtins — loaded from `~/.claude/skills/skill-ship/config/builtins.json` at runtime (not hardcoded)
+
 ## Subagent Type Quick Reference
 
-Common subagent types:
-- `general-purpose`: General tasks, research, multi-step work
-- `Explore`: Fast codebase exploration and pattern discovery
-- `Plan`: Implementation planning and design
-- `feature-dev:code-architect`: Feature architecture design
-- `feature-dev:code-explorer`: Deep codebase feature analysis
-- `tdd-test-writer`: Write failing tests for TDD
-- `tdd-implementer`: Implement minimal code to pass tests
-- `tdd-refactorer`: Refactor code after tests pass
+Use `scripts/list_agents.py --filter <keyword> --names` for the authoritative current list. Key categories:
 
-See agent definitions in system-reminder for complete list.
+| Category | Agents |
+|----------|--------|
+| TDD | `tdd-test-writer`, `tdd-implementer`, `tdd-refactorer` |
+| Quality/Review | `quality-gate`, `csf-nip-quality`, `gto-quality`, `adversarial-quality`, `pr-test-analyzer`, `code-reviewer` |
+| Testing | `test-analyzer`, `qa-engineer`, `adversarial-qa`, `adversarial-testing` |
+| Code Analysis | `code-critic`, `gto-code-critic`, `Explore`, `analyzer` |
+| Security | `adversarial-security`, `csf-nip-security` |
+| Hooks/Architecture | `hook-analyzer`, `csf-nip-architect`, `csf-nip-explorer` |
+| Planning | `Plan`, `plan_reviewer`, `csf-nip-planning-command` |
+| Research/Retro | `researcher`, `retro-analyzer` |
+| Python | `python-core`, `python-modernization`, `python-simplifier`, `python-web` |
+| Skill Development | `csf-nip-development`, `skill-reviewer`, `gitbatch-worker` |
+| Adversarial | `adversarial-critic`, `adversarial-compliance`, `adversarial-logic`, `adversarial-security`, `adversarial-failure-modes`, `adversarial-qa`, `adversarial-state-machine` |
+
+**White space — agent types with no coverage:**
+- Skill/workflow **selection/routing** agent (chooses best skill for a task)
+- **Token efficiency** agent (context compression, progressive disclosure)
+- **Documentation** agent (README generation, API docs, code-to-doc sync)
+- **Onboarding** agent (codebase tour, developer orientation)
 
 ## Best Practices
 

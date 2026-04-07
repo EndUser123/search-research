@@ -98,6 +98,15 @@ class PhaseStateManager:
         self._closed = False
         self._spool_mode = False
 
+        # Validate state_dir is writable
+        try:
+            Path(self.state_dir).mkdir(parents=True, exist_ok=True)
+            test_file = Path(self.state_dir) / ".write_test"
+            test_file.write_text("test")
+            test_file.unlink()
+        except OSError as e:
+            warnings.warn(f"PhaseStateManager: state_dir is not writable: {self.state_dir} ({e})")
+
         if enabled:
             CKS = _get_cks_class()
             if CKS is not None:

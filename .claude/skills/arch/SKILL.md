@@ -1,7 +1,7 @@
 ---
 name: arch
 description: "Adaptive architecture advisor with template-based variants. Auto-routes to appropriate template based on domain and complexity. Supports: fast, deep, cli, python, data-pipeline, precedent. Configuration: .archconfig.json (project) → ~/.archconfig.json (user) → ARCH_DEFAULT_DOMAIN (env var). Override with template=<name> parameter. Enhanced with Graph-of-Thought (GoT) for architecture alternatives analysis (v2.5)."
-version: "4.9"
+version: "5.1"
 status: stable
 enforcement: advisory
 depends_on:
@@ -37,6 +37,7 @@ governance:
     - "Architecture Template"
     - "ARCHITECTURE_REVIEW"
   evidence_requirements:
+    - value_assessment: Identify UNIQUE contribution before adding guidance — if existing skills cover ~70%+ with equivalent rigor, marginal value is low
     - codebase_reading: Read relevant files before suggesting changes
     - web_research: Use WebSearch + WebFetch for current best practices
     - framework_docs: Verify framework-specific patterns via /context7 (Next.js App Router, Django 5+, etc.)
@@ -99,6 +100,8 @@ For any producer/consumer boundary, `/arch` must also close the handoff contract
 
 For any contract-sensitive design, `/arch` must emit a **Contract Authority Packet** for downstream phases instead of relying on prose alone. The packet is the authoritative closure artifact for `/planning`, `/code`, `/verify`, and `/sqa`.
 
+When `/arch` produces an ADR that is intended to feed `/planning`, it must also emit a **Planning Handoff Packet**. The ADR remains the architecture record, but the planning handoff packet is the authoritative extraction surface for `/planning` so the planner does not have to infer canonical plan sections from ADR prose headings.
+
 When `/arch` writes or revises an ADR, it must also make the packet machine-parseable enough for `arch_validate.py` and downstream validators. If the validator and prose disagree, the validator failure is authoritative until the ADR is repaired.
 
 Authority rules:
@@ -151,9 +154,65 @@ When `/arch` is invoked by `/planning` to remediate blockers, `/arch` must retur
 - unreachable mechanisms or invariant collisions, if any
 - rejected alternatives and why they were rejected
 
+When the caller is `/planning`, `/arch` must treat the call as a nested remediation substep. It must not ask the user whether `/planning` should continue, and it must not tell the user to rerun `/planning`. Its job is to return closure artifacts to the caller.
+
+If `/arch` is nested under `/planning` and architecture closure succeeds, `/arch` should assume automatic return-to-caller. Asking the user whether planning should continue is a workflow error unless `/arch` genuinely cannot close the architecture without new user input.
+
+If the resulting architecture is still intended to flow back into `/planning`, `/arch` must pair that decision packet with a Planning Handoff Packet so `/planning` can rewrite the plan without re-interpreting ADR prose.
+
 `/arch` closes the architecture. `/planning` remains the only writer of the plan artifact.
 
 See `references/constitutional-principles.md` for full evaluation criteria, red flags, and hook design constraints.
+
+## Downstream-Closure Prompts
+
+Before closing an ADR or emitting handoff packets, `/arch` should ask itself:
+
+- What downstream execution semantics must be explicit so `/planning` does not invent them?
+- What boundaries here are still named but not operationally closed?
+- What would a planner need to know that the ADR currently leaves implicit?
+- Where could rollout notes or examples be mistaken for contract authority?
+- What packet field would a downstream consumer need in order to avoid guesswork?
+- What existing mechanism already overlaps with this proposal, and does the new design replace it, coexist with it, or route around it?
+- If a new discriminator or state field is absent in older state, what exact fallback/default behavior occurs?
+- Who writes each new hook-visible field, who reads it, and what is the field's provenance and shape?
+- What unhappy-path tests prove interruption, malformed state, TTL expiry, backward compatibility, or fallback behavior?
+- What prior architecture decision, blocker, or correction most changed what this ADR now needs to close? (`trace`)
+- What is the strongest counter-argument, contradictory precedent, or simpler alternative to this design? (`challenge`)
+
+These prompts exist to improve downstream closure, not to reopen settled architecture for its own sake.
+
+These are internal self-check prompts. They are not default prompts to ask the user.
+
+## Trace And Challenge Passes
+
+For architecture-heavy work, `/arch` should treat `trace` and `challenge` as first-class internal passes:
+
+- `trace`: reconstruct the evolution of the design problem across prior plans, ADRs, blockers, and corrections so the final packet closes the actual current problem, not an older version
+- `challenge`: pressure-test the preferred design against contradictory evidence, existing mechanisms, simpler alternatives, and downstream ownership conflicts
+
+Use `trace` whenever `/arch` is inheriting unresolved planning blockers or conflicting prior guidance.
+Use `challenge` whenever the architecture introduces a new boundary, state mechanism, gate, packet, or fallback contract.
+
+Reference: `P:/.claude/skills/__lib/sdlc_internal_modes.md`
+
+## Critique-Agent Review Policy
+
+`/arch` should use a critique agent whenever the architecture closure depends on subtle contract semantics, downstream ownership, or ambiguous fallback behavior.
+
+Critique-agent review is mandatory for:
+- contract-sensitive boundaries
+- stateful, resumable, multi-terminal, or stale-data-sensitive designs
+- routers, classifiers, gates, activation layers, or phased workflows
+- ADRs that emit a Contract Authority Packet or Planning Handoff Packet
+
+The critique agent should explicitly challenge:
+- whether the packet actually closes the downstream ambiguity
+- whether overlap with existing live mechanisms is resolved cleanly
+- whether fallback/default behavior is explicit and safe
+- whether the proposed test/proof bindings would catch the dangerous failure modes
+
+The critic’s job is to find the hidden contradiction or edge case before `/planning` or `/code` inherit it.
 
 ---
 
@@ -248,19 +307,48 @@ Offer user choice: (1) Run suggested skill, or (2) Continue with /arch anyway. *
 
 ## Stage 0.5: Clarity Gate
 
-After out-of-scope check passes, assess whether the request has sufficient clarity to proceed.
+After out-of-scope check passes, call `detect_follow_up_query(query)` and `retrieve_context_hint()` from `routing.py` and apply the decision rule:
 
-**Assess clarity:**
-- **Purpose** — does the query identify what problem it solves or what it builds?
-- **Success criteria** — does the query define what "done" or "working" looks like?
+```
+follow_up = detect_follow_up_query(query)
+context_hint = retrieve_context_hint()
 
-**If both are present** → proceed directly to Stage 1.
+IF follow_up.is_follow_up OR context_hint.last_file:
+    → Rewrite: "{query}\n\n{context_hint.hint_text}\n\nPrior context: {retrieve_prior_turn_content()}"
+    → Proceed to Stage 1 with inferred subject
+ELIF recent_turn_has_clear_subject():
+    → Infer subject from most recent substantive work
+    → Phrase query as self-contained with inferred context
+    → Proceed to Stage 1
+ELIF purpose_present(query) AND success_criteria_present(query):
+    → Proceed to Stage 1
+ELSE:
+    → Ask ONE clarifying question (not multiple):
+      "I want to understand the goal before architecting:
+       what's the specific problem you're trying to solve,
+       and how will you know it's working?"
+    → WAIT for answer → Proceed to Stage 1
+```
 
-**If either is absent** → ask one targeted clarifying question, then route to Stage 1 based on the answer.
+**Where `detect_follow_up_query()` detects:**
+- `ordinal_ref`: "option N", "point N", "idea N", "these/those ideas", "that suggestion"
+- `skill_ref`: "add to /X", "does /X already have", "apply to /X"
 
-> "I want to understand the goal before architecting: what's the specific problem you're trying to solve, and how will you know it's working?"
+**Where `retrieve_context_hint()` provides:**
+- `last_file`: The most recently read or edited file path
+- `last_hook`: The most recently mentioned hook logic
+- `recent_paths`: A list of the last 5 paths seen in tool calls
 
-Do not ask multiple questions. One question. Wait for the answer before proceeding to Stage 1.
+See `routing.py` for the full implementation of these functions.
+
+**Critical constraints:**
+- **Context Inference is Mandatory**: You MUST use `context_hint` and the transcript to identify "it", "this", or "that" before asking a question.
+- **Evidence-Based Clarity**: If `context_hint` provides a path, assume that is the subject of the architecture query.
+- **Follow-up Grace**: A query referencing prior conversation content is a retrieval signal, NOT a gap.
+- **Optimization Follow-up Grace**: Short prompts like "what's the optimal solution?", "what's the best approach?", or "what should we do?" inherit the most recent substantive subject by default when the session already contains a live architecture topic, review, or file-reading context.
+- **False positive prevention**: NEVER reject a follow-up query where a preceding turn presented architectural options or read a file.
+
+If the immediately preceding substantive work clearly established the subject, asking the user to restate that subject is a workflow error. Infer the active subject, rewrite the query to be self-contained, and continue.
 
 ## Stage 1: Classify Intent
 
@@ -428,6 +516,67 @@ The packet may be rendered in YAML or JSON, but it must be machine-readable and 
 
 If the work is not contract-sensitive, `/arch` should explicitly say so and omit the packet unless the user requests a contract artifact anyway.
 
+## Stage 1.7b: Planning Handoff Packet
+
+When the output ADR is meant to feed `/planning` for implementation work, `/arch` must also emit a Planning Handoff Packet.
+
+Purpose:
+
+- bridge ADR structure to `/planning`'s canonical v2 plan shape
+- prevent `/planning` from shallow-copying ADR headings into legacy plan sections
+- make schema rewrite local to `/planning` and architecture closure local to `/arch`
+
+Minimum shape:
+
+```yaml
+planning_handoff_packet:
+  packet_version: "1"
+  source_adr: "P:/packages/example/arch_decisions/ADR-001-example.md"
+  plan_title: "Example implementation"
+  goal: "What the implementation must achieve."
+  current_state_with_evidence:
+    - "file.py: current behavior and why it must change"
+  design_decisions_and_invariants:
+    - id: "DEC-001"
+      decision: "Use per-terminal namespace keys"
+      rationale: "Prevents cross-terminal cache bleed"
+  implementation_changes:
+    - task_id: "TASK-001"
+      title: "Introduce terminal-scoped cache key"
+      scope:
+        files: ["cache.py"]
+        dependencies: []
+      acceptance:
+        - "Cache keys differ across terminals for the same query"
+  test_matrix:
+    - task_id: "TASK-001"
+      test_binding: "pytest tests/test_cache.py::test_terminal_isolation"
+  contract_authority_reference:
+    contract_sensitive: true
+    packet_ref: "contract_authority_packet.packet_version=1"
+  contract_boundary_matrix_seed:
+    source: "contract_authority_packet"
+    mode: "derive_from_packet"
+  assumptions_defaults:
+    - "Windows 11 environment"
+  open_questions: []
+```
+
+Rules:
+
+- The packet is required whenever `/arch` recommends `INSTRUCTION: Execute skill planning` for implementation work.
+- `implementation_changes` must already be mapped into planning task units; do not make `/planning` infer tasks from ADR section names.
+- If the design is not contract-sensitive, `contract_authority_reference` must explicitly say `contract_sensitive: false` rather than omitting the field.
+- If `/arch` chooses to defer questions, those questions must be emitted in `open_questions`; they must not be hidden only in ADR prose.
+- `/arch` must not leave `/planning` to infer whether `Context`, `Design`, or `Consequences` prose should become `Goal`, `Current state`, or `Implementation changes`.
+- If `/arch` was invoked by `/planning` during blocker remediation, the packet must be returned in a form the caller can consume immediately, and `/arch` must assume automatic return-to-caller behavior rather than requiring a new user command.
+- If the design extends an existing mode, phase, or workflow system, the packet must explicitly state whether the new flow replaces, coexists with, or routes around the existing flow.
+- If the design adds a selector or discriminator such as `hypothesis_mode`, the packet must name the discriminator, the selection rule, and the default behavior when the field is absent or false.
+- If the design adds or repurposes hook-visible fields, the packet must name who writes them, who reads them, the expected shape, and where the data comes from.
+- If downstream logic reads a field like `hypothesis_details`, `/arch` must close its provenance explicitly instead of leaving `/planning` to infer it from prose.
+- If the design parses LLM output or free-form text into structured state, the packet must name the minimum valid output, malformed/incomplete-output behavior, and any retry, fallback, or abort rule.
+- For stateful or hook-driven extensions, the packet and test matrix must include at least one unhappy-path proof covering interruption, malformed state, TTL expiry, backward compatibility, or fallback behavior.
+
 ## Stage 1.8: ADR Closure Consistency Check
 
 Before `/arch` presents an ADR or architecture recommendation as closed, it must run a final consistency pass over the output.
@@ -459,7 +608,7 @@ Phrases like "detects patterns" or "routes to validators" are not sufficient clo
 
 ### 3. Packet-to-Summary Consistency Gate
 
-If a `Contract Authority Packet` exists, all summary tables, boundary matrices, and prose summaries must derive from it.
+If a `Contract Authority Packet` or `Planning Handoff Packet` exists, all summary tables, boundary matrices, handoff summaries, and prose summaries must derive from the authoritative packet(s).
 
 `/arch` must reject the ADR as inconsistent if:
 
@@ -467,6 +616,8 @@ If a `Contract Authority Packet` exists, all summary tables, boundary matrices, 
 - required packet sections are emitted at the wrong nesting level
 - the packet and summary matrix name different required fields
 - the packet and summary matrix name different freshness authorities
+- the planning handoff packet and the ADR disagree on task order, named decisions, or whether the work is contract-sensitive
+- the planning handoff packet leaves `/planning` to infer canonical plan sections from ADR headings alone
 - the packet and summary matrix name different failure behavior
 - the packet and summary matrix disagree on producer, consumer, or validator owner
 - prose weakens the packet's authority or closure status
@@ -515,6 +666,7 @@ This critic is not a second architecture designer. It is a closure auditor for t
 Run `adr_critic_review` automatically when the ADR includes any of:
 
 - a `Contract Authority Packet`
+- a `Planning Handoff Packet`
 - a router, gate, hook-activation layer, classifier, or routing phase
 - multi-terminal, resume, restore, stale-data, transcript, or handoff contracts
 - downstream ownership, blocking, advisory, validator, or proof claims
@@ -541,9 +693,11 @@ The critic must check and block on concrete closure failures only:
    - required packet sections appear at the wrong nesting level
    - summary matrix drifts from the `Contract Authority Packet`
    - prose weakens packet authority
-   - packet and summary disagree on producer, consumer, schema, freshness, invalidation, failure behavior, or owner
-   - boundary_id, producer, consumer, and schema id are semantically inconsistent with each other
+    - packet and summary disagree on producer, consumer, schema, freshness, invalidation, failure behavior, or owner
+    - boundary_id, producer, consumer, and schema id are semantically inconsistent with each other
    - a single boundary merges two different handoff directions or lifecycle stages
+   - the Planning Handoff Packet does not map cleanly onto `/planning`'s canonical sections
+   - the Planning Handoff Packet forces `/planning` to infer tasks from ADR heading names instead of explicit task units
 
 4. Downstream alignment defects
    - ADR claims about `/planning`, `/code`, `/verify`, or `/sqa` contradict current skill contracts
@@ -617,6 +771,14 @@ When architecture decisions are closed, `/arch` may suggest the next owning skil
 
   Do NOT treat this as a conversational question — the INSTRUCTION format signals routing approval.
   ```
+
+When `/arch` is nested inside an active `/planning` workflow, do **not** emit the above as a user-facing next step. Instead, return the packet plus a brief caller note such as:
+
+```text
+RETURN TO CALLER: /planning
+Resume policy: automatic
+Caller action: consume packet, rewrite plan, rerun auto_verify
+```
 
 - When the user is asking whether an existing design already holds in implementation:
 
@@ -771,4 +933,4 @@ Score formula: `(reliability_score * rel_wt) * (flexibility_score * flex_wt) * G
 
 ---
 
-**Version:** 4.9 | **Architecture:** Template-based router with GoT, ADR-first output, verbose mode, one-page ADR template, graph-aware reasoning, three-path execution (REVIEW / IMPROVE / DEFAULT), Edge Case Integration, Contract Boundary Inventory, Contract Boundary Closure, Contract Authority Packet emission, Sensitivity Analysis, Decision Policy Modes
+**Version:** 5.0 | **Architecture:** Template-based router with GoT, ADR-first output, verbose mode, one-page ADR template, graph-aware reasoning, three-path execution (REVIEW / IMPROVE / DEFAULT), Edge Case Integration, Contract Boundary Inventory, Contract Boundary Closure, Contract Authority Packet emission, Planning Handoff Packet emission, Sensitivity Analysis, Decision Policy Modes

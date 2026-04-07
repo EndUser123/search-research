@@ -452,3 +452,48 @@ class TestIntegration:
         result = format_recap(sessions, "term_test", brief=False)
         # Should NOT contain '[]' as goal content
         assert "[]" not in result or "No session history" in result
+
+    def test_multi_session_full_output_not_truncated(self, transcript_dir: Path) -> None:
+        """Multi-session transcript: verify full output renders without silent truncation.
+
+        Regression test for QUAL-001: previously format_recap() applied a second
+        800-char truncation to _condense_transcript output (already capped at 2000 chars
+        by _condense_transcript). This masked session content in the Raw Context section.
+        """
+        path = make_transcript(
+            transcript_dir,
+            {
+                "type": "user",
+                "content": "Fix the first session bug",
+                "sessionId": "sess_alpha",
+            },
+            {
+                "type": "assistant",
+                "content": "**Problem:** Session 1 bug identified.",
+                "sessionId": "sess_alpha",
+            },
+            {
+                "type": "user",
+                "content": "Now fix the second session",
+                "sessionId": "sess_beta",
+            },
+            {
+                "type": "assistant",
+                "content": "**Problem:** Session 2 bug identified.",
+                "sessionId": "sess_beta",
+            },
+        )
+
+        entries = load_transcript_entries(str(path))
+        sessions = extract_sessions_from_transcript(entries)
+        assert len(sessions) == 2, "Expected two sessions separated by sessionId"
+
+        recap = format_recap(sessions, "term_multisession", brief=False)
+        assert "sess_alpha" in recap
+        assert "sess_beta" in recap
+        # Raw Context section must appear for each session (no silent truncation)
+        assert "### Raw Context" in recap
+        # Both session content lines should be present
+        assert "Fix the first session bug" in recap
+        assert "Now fix the second session" in recap
+

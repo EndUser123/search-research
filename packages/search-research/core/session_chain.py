@@ -5,16 +5,18 @@ session chain, given any session ID.
 
 Three strategies, tried in order:
   1. Handoff-file chain   — reliable when handoff files exist
-  2. sessions-index scan  — fallback using mtime ordering
+  2. sessions-index scan  — fallback using mtime gap heuristic + semantic verification
   3. Semantic similarity  — fallback using embedding similarity
 
-Limitations
------------
-Without handoff files (post-March 19 2026 sessions), chain traversal is
-best-effort: sessions that were NOT created by /compact have no recorded
-parentage and cannot be reliably chained. Only sessions that were created
-by /compact have a deterministic prior-session link (stored in the handoff
-file written at compaction time).
+Algorithm (Strategy 2):
+  For each session, compute mtime gap to nearest prior session.
+  Smallest gap < MAX_MTIME_GAP_SECS → candidate chain link.
+  Semantic verify: prior session's ending goals vs successor's first user message.
+  If similarity >= threshold → chain link confirmed.
+  Otherwise → fall through to semantic strategy.
+
+This captures ALL sessions, not just /compact continuations.
+Multi-terminal interleaving is handled by semantic verification step.
 """
 
 from __future__ import annotations
@@ -27,6 +29,41 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
+
+# Module-level cache for direct SentenceTransformer fallback (daemon unavailable)
+_st_model: Any = None
+_st_model_last_used: float = 0.0
+_ST_MODEL_TTL_SECONDS: float = 300.0  # 5 minutes
+_st_lock: Any = __import__("threading").Lock()
+
+
+def _get_st_model() -> Any:
+    """Get or create cached SentenceTransformer, unloading after 5 min idle.
+
+    Releases the model to free memory when no embeddings have been requested
+    for 5 minutes. Subsequent calls re-load from scratch (~60s cold start).
+    Thread-safe via _st_lock.
+    """
+    import time
+
+    global _st_model, _st_model_last_used
+    now = time.monotonic()
+
+    with _st_lock:
+        if _st_model is not None and (now - _st_model_last_used) > _ST_MODEL_TTL_SECONDS:
+            del _st_model
+            _st_model = None
+
+        if _st_model is None:
+            from sentence_transformers import SentenceTransformer
+
+            _st_model = SentenceTransformer("all-MiniLM-L6-v2")
+            _st_model_last_used = now
+            logger.debug("Loaded SentenceTransformer (all-MiniLM-L6-v2)")
+        else:
+            _st_model_last_used = now
+
+        return _st_model
 
 logger = logging.getLogger(__name__)
 
@@ -74,17 +111,26 @@ class SessionChainResult:
 
 
 def _get_prior_transcript_path(handoff_path: Path) -> Path | None:
-    """Extract prior session transcript path from a handoff file."""
+    """Extract prior session transcript path from a handoff file.
+
+    Handles gracefully:
+      - Missing handoff file
+      - JSON decode errors
+      - Missing/inaccessible transcript paths (archived or deleted files)
+    """
     try:
         with open(handoff_path, encoding="utf-8") as f:
             data = json.load(f)
         path_str = data.get("resume_snapshot", {}).get("transcript_path")
         if path_str:
             p = Path(path_str)
-            if p.exists():
-                return p
-    except (OSError, json.JSONDecodeError, PermissionError):
-        pass
+            try:
+                if p.exists():
+                    return p
+            except (OSError, PermissionError) as e:
+                logger.warning("Transcript path inaccessible %s: %s", p, e)
+    except (OSError, json.JSONDecodeError, PermissionError) as e:
+        logger.warning("Failed to read handoff file %s: %s", handoff_path, e)
     return None
 
 
@@ -143,41 +189,42 @@ def walk_handoff_chain(session_id: str, max_depth: int = 50) -> SessionChainResu
     entries: list[SessionChainEntry] = []
     visited: set[str] = set()
     chain_depth = 0
-    origin_session_id: str | None = None
 
     while handoff_path and chain_depth < max_depth:
-        prior_transcript = _get_prior_transcript_path(handoff_path)
-        if not prior_transcript or str(prior_transcript) in visited:
-            break
-        visited.add(str(prior_transcript))
+        try:
+            prior_transcript = _get_prior_transcript_path(handoff_path)
+            if not prior_transcript or str(prior_transcript) in visited:
+                break
+            visited.add(str(prior_transcript))
 
-        prior_session_id = prior_transcript.stem
-        prior_handoff = _find_handoff_referencing(prior_transcript)
-        if not prior_handoff:
-            origin_session_id = prior_session_id
+            prior_session_id = prior_transcript.stem
+            prior_handoff = _find_handoff_referencing(prior_transcript)
 
-        entries.append(
-            SessionChainEntry(
-                session_id=prior_session_id,
-                transcript_path=prior_transcript,
-                parent_transcript_path=None,
-                created=None,
+            entries.append(
+                SessionChainEntry(
+                    session_id=prior_session_id,
+                    transcript_path=prior_transcript,
+                    parent_transcript_path=None,
+                    created=None,
+                )
             )
-        )
 
-        handoff_path = prior_handoff
+            handoff_path = prior_handoff
+        except (OSError, PermissionError, RuntimeError) as e:
+            logger.warning("Failed to traverse chain at %s: %s", handoff_path, e)
+            break
         chain_depth += 1
 
-    # Fill in parent links (entries are oldest→newest, so next entry is the parent)
-    for i, entry in enumerate(entries):
-        if i < len(entries) - 1:
-            entry.parent_transcript_path = entries[i + 1].transcript_path
-
     entries.reverse()
+
+    # Fill in parent links (entries are oldest→newest, so previous entry is the parent)
+    for i, entry in enumerate(entries):
+        if i > 0:
+            entry.parent_transcript_path = entries[i - 1].transcript_path
     return SessionChainResult(
         entries=entries,
         depth=chain_depth + 1,
-        origin_session_id=origin_session_id or (entries[0].session_id if entries else None),
+        origin_session_id=entries[0].session_id if entries else None,
     )
 
 
@@ -369,8 +416,8 @@ def walk_sessions_index_chain(
     for i, sid in enumerate(chain):
         path, mtime = sessions[sid]
         parent_path: Path | None = None
-        if i < len(chain) - 1:
-            parent_path = sessions[chain[i + 1]][0]
+        if i > 0:
+            parent_path = sessions[chain[i - 1]][0]
         entries.append(
             SessionChainEntry(
                 session_id=sid,
@@ -394,13 +441,20 @@ def walk_sessions_index_chain(
 
 
 def _session_text(info: dict) -> str:
-    """Extract searchable text from sessions-index entry."""
+    """Extract searchable text from sessions-index entry.
+
+    Tries goal, lastPrompt, and summary (in that order) to find non-empty text.
+    Falls back to summary if goal and lastPrompt are empty.
+    """
     parts = []
     if info.get("goal"):
         parts.append(info["goal"])
     lp = info.get("lastPrompt", "")
     if lp:
         parts.append(lp[:500])
+    # Fallback to summary if both goal and lastPrompt are empty
+    elif info.get("summary"):
+        parts.append(info["summary"][:500])
     af = info.get("active_files", [])
     if af:
         parts.append(" ".join(af[:10]))
@@ -419,8 +473,9 @@ def _cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
 def walk_semantic_chain(
     session_id: str,
     project_path: Path | None = None,
-    threshold: float = 0.7,
+    threshold: float = 0.5,
     window_days: int = 7,
+    max_entries: int = 20,
 ) -> SessionChainResult:
     """Walk session chain via semantic similarity fallback.
 
@@ -431,8 +486,9 @@ def walk_semantic_chain(
     Args:
         session_id: Session UUID to walk backward from.
         project_path: Project directory. Defaults to P--.
-        threshold: Minimum cosine similarity to consider a match (default 0.7).
+        threshold: Minimum cosine similarity to consider a match (default 0.5).
         window_days: Number of days to search around target's createdAt (default 7).
+        max_entries: Maximum number of entries to return (default 20).
 
     Returns:
         SessionChainResult with semantic matches sorted by similarity.
@@ -485,16 +541,28 @@ def walk_semantic_chain(
     all_texts = [target_text] + [c[2] for c in candidates]
 
     try:
-        from search_research.core.chs.embeddings import get_embed_client
+        from core.chs.embeddings import get_embed_client
 
         client = get_embed_client()
         embeddings = client.embed_texts(all_texts)
 
         target_emb = np.frombuffer(embeddings[0], dtype=np.float32)
         candidate_embs = [np.frombuffer(e, dtype=np.float32) for e in embeddings[1:]]
-    except Exception:
-        # Daemon unavailable or import failure — graceful degradation
-        return SessionChainResult()
+
+        # Fall back to direct SentenceTransformer if daemon returned near-zero vectors
+        if np.linalg.norm(target_emb) < 0.01:
+            raise ValueError("Daemon returned near-zero embedding")
+    except (ImportError, OSError, ConnectionError, RuntimeError):
+        # Daemon unavailable, import failure, or near-zero fallback —
+        # use direct sentence-transformers
+        try:
+            model = _get_st_model()
+            vectors = model.encode(all_texts, normalize_embeddings=True)
+            target_emb = vectors[0].astype(np.float32)
+            candidate_embs = [vectors[i + 1].astype(np.float32) for i in range(len(candidates))]
+        except (ImportError, OSError, RuntimeError):
+            # Model unavailable — graceful degradation
+            return SessionChainResult()
 
     # Compute similarities
     matches: list[tuple[str, Path, datetime, float]] = []
@@ -528,7 +596,7 @@ def walk_semantic_chain(
             created=created,
             first_user_message=None,
         )
-        for sid, path, created, _ in matches
+        for sid, path, created, _ in matches[:max_entries]
     ]
 
     return SessionChainResult(
@@ -547,6 +615,7 @@ def walk_session_chain(
     session_id: str,
     project_path: Path | None = None,
     max_depth: int = 50,
+    newest_first: bool = False,
 ) -> SessionChainResult:
     """Walk session chain using the best available strategy.
 
@@ -554,9 +623,12 @@ def walk_session_chain(
         session_id: Session UUID to walk backward from.
         project_path: Project directory. Defaults to P--.
         max_depth: Maximum chain depth (handoff strategy only).
+        newest_first: If True, return entries in newest-to-oldest order (current session first).
+            Default False (oldest-to-newest).
 
     Returns:
-        SessionChainResult with entries in oldest-to-newest order.
+        SessionChainResult with entries in oldest-to-newest order by default,
+        or newest-to-oldest if newest_first=True.
 
     Strategy selection:
       - If handoff files exist linking to prior sessions → handoff chain
@@ -570,16 +642,22 @@ def walk_session_chain(
     # Strategy 1: Try handoff-file chain first (reliable for sessions with handoff files)
     handoff_result = walk_handoff_chain(session_id, max_depth)
     if handoff_result.entries and handoff_result.entries[0].session_id != session_id:
+        if newest_first:
+            handoff_result.entries.reverse()
         return handoff_result
 
     # Strategy 2: Fall back to sessions-index mtime heuristic
     mtime_result = walk_sessions_index_chain(session_id, project_path)
     if mtime_result.entries and mtime_result.entries[0].session_id != session_id:
+        if newest_first:
+            mtime_result.entries.reverse()
         return mtime_result  # mtime found prior(s)
 
     # Strategy 3: Fall back to semantic similarity
     semantic_result = walk_semantic_chain(session_id, project_path)
     if semantic_result.entries:
+        if newest_first:
+            semantic_result.entries.reverse()
         return semantic_result
 
     return mtime_result  # all fallbacks exhausted — origin only
@@ -588,10 +666,18 @@ def walk_session_chain(
 def get_all_chain_files(
     session_id: str,
     project_path: Path | None = None,
+    newest_first: bool = False,
 ) -> list[Path]:
     """Get all transcript file paths in a session chain.
 
-    Returns paths in oldest-to-newest order.
+    Args:
+        session_id: Session UUID to walk backward from.
+        project_path: Project directory. Defaults to P--.
+        newest_first: If True, return paths in newest-to-oldest order (current session first).
+            Default False (oldest-to-newest).
+
+    Returns:
+        List of transcript paths in the specified order.
     """
-    result = walk_session_chain(session_id, project_path)
+    result = walk_session_chain(session_id, project_path, newest_first=newest_first)
     return [e.transcript_path for e in result.entries]

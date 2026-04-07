@@ -100,7 +100,7 @@ def _detect_consensus(all_findings: list[Finding]) -> list[Finding]:
                     severity=max_severity,  # Use highest severity from consensus
                     layer=Layer.META,
                     title=f"Consensus: {len(layers)} layers agree on same issue",
-                    description=f"Issue at {loc} (category={cat}) found by {len(layers)} layers: {', '.join(l.value for l in layers)}",
+                    description=f"Issue at {loc} (category={cat}) found by {len(layers)} layers: {', '.join(lyr.value for lyr in layers)}",
                     location=loc,
                     evidence_tier=EvidenceTier.T3,
                     consensus=len(layers),
@@ -145,7 +145,7 @@ def _detect_blind_spots(all_findings: list[Finding]) -> list[Finding]:
             layer_found_categories[f.layer].add(f.category)
 
     # Critical categories that warrant MEDIUM severity when absent
-    CRITICAL_CATEGORIES = {"security", "safety", "logic", "correctness"}
+    _critical_categories = {"security", "safety", "logic", "correctness"}
     # Check for blind spots
     for layer, expected_cats in layer_categories.items():
         found_cats = layer_found_categories.get(layer, set())
@@ -154,7 +154,7 @@ def _detect_blind_spots(all_findings: list[Finding]) -> list[Finding]:
             # Layer ran but found nothing in these categories
             for cat in missing_cats:
                 # SECURITY/CRITICAL categories → MEDIUM, others → LOW (Change C)
-                severity = Severity.MEDIUM if cat in CRITICAL_CATEGORIES else Severity.LOW
+                severity = Severity.MEDIUM if cat in _critical_categories else Severity.LOW
                 meta_findings.append(
                     Finding(
                         finding_id=f"META-BLIND-{layer.value}-{cat}",

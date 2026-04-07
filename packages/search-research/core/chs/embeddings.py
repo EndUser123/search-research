@@ -25,13 +25,47 @@ DEFAULT_EMBEDDING_DIM = 384
 MAX_RETRIES = 2
 RETRY_DELAY = 0.5
 
+# Module-level cache for direct SentenceTransformer fallback (when daemon unavailable)
+_st_model: "SentenceTransformer | None" = None
+_st_model_last_used: float = 0.0
+_ST_MODEL_TTL_SECONDS: float = 300.0  # 5 minutes
+
+
+def _get_st_model() -> "SentenceTransformer":
+    """Get or create cached SentenceTransformer, unloading after 5 min idle.
+
+    Releases the model to free memory when no embeddings have been requested
+    for 5 minutes. Subsequent calls re-load from scratch (~60s cold start).
+    """
+    global _st_model, _st_model_last_used
+    now = time.monotonic()
+
+    if _st_model is not None and (now - _st_model_last_used) > _ST_MODEL_TTL_SECONDS:
+        del _st_model
+        _st_model = None
+
+    if _st_model is None:
+        from sentence_transformers import SentenceTransformer
+
+        _st_model = SentenceTransformer("all-MiniLM-L6-v2")
+
+    _st_model_last_used = time.monotonic()
+    return _st_model
+
+
+def _reset_st_model_cache() -> None:
+    """Reset the SentenceTransformer cache. For testing only."""
+    global _st_model, _st_model_last_used
+    _st_model = None
+    _st_model_last_used = 0.0
+
 
 class EmbedClient:
     """Wrapper class for daemon_client with retry/backoff and fallback.
 
     This class wraps the DaemonClient to provide embedding generation
-    functionality with automatic retry logic and fallback to dummy
-    embeddings when the daemon is unavailable.
+    functionality with automatic retry logic and fallback to direct
+    SentenceTransformer when the daemon is unavailable.
 
     Attributes:
         daemon_client: The underlying DaemonClient instance
@@ -50,8 +84,8 @@ class EmbedClient:
         """Generate embeddings for a list of texts.
 
         Uses the daemon_client.embed_texts() method with retry logic
-        on connection failures. Falls back to dummy embeddings if
-        all retries are exhausted.
+        on connection failures. Falls back to direct SentenceTransformer
+        (loaded on-demand with 5-minute TTL) if daemon is unavailable.
 
         Args:
             texts: List of text strings to embed
@@ -72,40 +106,37 @@ class EmbedClient:
                     return result
                 else:
                     logger.warning(
-                        "daemon_client.embed_texts not available, using dummy embeddings"
+                        "daemon_client.embed_texts not available, falling back to direct SentenceTransformer"
                     )
-                    return self._dummy_embed(texts)
+                    return self._direct_embed(texts)
             except ConnectionError as e:
                 if attempt < MAX_RETRIES:
                     logger.debug(f"Retry {attempt + 1}/{MAX_RETRIES}: {e}")
                     time.sleep(RETRY_DELAY)
                     continue
                 else:
-                    logger.warning(f"All retries exhausted, using dummy embeddings: {e}")
-                    return self._dummy_embed(texts)
+                    logger.warning(f"All retries exhausted, falling back to direct SentenceTransformer: {e}")
+                    return self._direct_embed(texts)
             except Exception as e:
-                logger.warning(f"Unexpected error: {e}, using dummy embeddings")
-                return self._dummy_embed(texts)
-        return self._dummy_embed(texts)
+                logger.warning(f"Unexpected error: {e}, falling back to direct SentenceTransformer")
+                return self._direct_embed(texts)
+        return self._direct_embed(texts)
 
-    def _dummy_embed(self, texts: list[str]) -> list[bytes]:
-        """Generate dummy embeddings for development/testing.
+    def _direct_embed(self, texts: list[str]) -> list[bytes]:
+        """Generate embeddings using direct SentenceTransformer (daemon unavailable fallback).
 
-        Creates zero-vector embeddings of the default dimension.
-        This is used as a fallback when the daemon is unavailable.
+        Loads the SentenceTransformer model on first use and keeps it cached
+        for 5 minutes of idle time before unloading to free memory.
 
         Args:
             texts: List of text strings to embed
 
         Returns:
-            List of dummy embedding vectors as bytes
+            List of embedding vectors as bytes (serialized numpy arrays)
         """
-        dummy_embeddings = []
-        for text in texts:
-            text_hash = hash(text) % 1000
-            dummy_vector = np.full(DEFAULT_EMBEDDING_DIM, text_hash / 1000.0, dtype=np.float32)
-            dummy_embeddings.append(dummy_vector.tobytes())
-        return dummy_embeddings
+        model = _get_st_model()
+        vectors = model.encode(texts, normalize_embeddings=True)
+        return [vec.astype(np.float32).tobytes() for vec in vectors]
 
 
 def validate_embedding_blob(blob: bytes, expected_dim: int) -> None:
@@ -191,7 +222,7 @@ def get_embed_client() -> EmbedClient:
     if _embed_client_singleton is None:
         from search_research.contrib.semantic_daemon.daemon_client import DaemonClient
 
-        daemon_client = DaemonClient(backend_type="chs", auto_start=False, enable_fallback=False)
+        daemon_client = DaemonClient(backend_type="chs", auto_start=True, enable_fallback=True)
         _embed_client_singleton = EmbedClient(daemon_client=daemon_client)
     return _embed_client_singleton
 

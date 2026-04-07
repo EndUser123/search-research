@@ -18,5 +18,5 @@ class TestLayer2Run:
         assert isinstance(result, list)
 
     def test_run_on_clean_target(self, tmp_target):
-        findings = layer2_semantic.run(tmp_target)
+        layer2_semantic.run(tmp_target)
         # Should not raise; returns list (possibly empty or with test-skip finding)

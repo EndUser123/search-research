@@ -1,9 +1,10 @@
 ---
 name: gitready
-version: 5.20.0
+version: 5.21.0
 status: "stable"
 description: This skill should be used when the user asks to "create a package", "scaffold a Python library", "make a GitHub-ready repo", "generate badges", "set up CI/CD", "convert to plugin", "brownfield conversion", "validate plugin standards", or mentions package scaffolding, portfolio polish, repository structure setup, badge generation, or plugin standards validation. Creates GitHub-ready Python libraries, Claude skills, and Claude Code plugins with badges, CI/CD workflows, coverage metrics, media artifacts, interactive course modules, and automatic plugin standards validation. Now includes PHASE 6: GitHub Publication and PHASE 7: Repository Finalization.
 category: scaffolding
+enforcement: advisory
 triggers:
   - /gitready
 aliases:
@@ -104,6 +105,33 @@ One command runs the full intelligent pipeline:
 **Templates** (`resources/`): `AGENTS.template.md`
 
 **Reference Docs** (`resources/`): `BADGE_GENERATION_GUIDE.md`, `STANDARDS_VALIDATION.md`, `V5.2_UPDATE_SUMMARY.md`
+
+---
+
+## PRE-CHECK: Stale Location Guard (Always Runs First)
+
+**Before any phase is selected**, detect and resolve stale install locations:
+
+```bash
+TARGET_DIR="$1"  # from gitready argument
+SKILL_NAME=$(basename "$TARGET_DIR")
+
+# Detect if pointing at old canonical install location
+if [[ "$TARGET_DIR" == "P:/.claude/skills/"* ]]; then
+    echo "WARNING: gitready was invoked on an installed skill location."
+    echo "The source of truth should be at P:/packages/$SKILL_NAME"
+    if [ -d "P:/packages/$SKILL_NAME" ]; then
+        echo "Auto-resolving to source location..."
+        TARGET_DIR="P:/packages/$SKILL_NAME"
+    else
+        echo "ERROR: No package found at P:/packages/$SKILL_NAME"
+        echo "Migration needed: cp -r $TARGET_DIR/* P:/packages/$SKILL_NAME/"
+        exit 1
+    fi
+fi
+```
+
+**Why**: gitready must always process the **packages source of truth**, never an installed junction location. Processing the stale location creates dual implementations that cause confusion and stale code.
 
 ---
 

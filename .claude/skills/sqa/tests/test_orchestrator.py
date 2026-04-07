@@ -7,14 +7,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
 
+from findings.models import EvidenceTier, Finding, Layer, Severity, SQAReport
 from orchestrator import (
+    L2State,
     _atomic_write,
     _get_terminal_state_dir,
     _validate_target,
-    L2State,
     save_report,
 )
-from findings.models import EvidenceTier, Finding, Layer, Severity, SQAReport
 
 
 class TestValidateTarget:
@@ -28,10 +28,11 @@ class TestValidateTarget:
         assert result == sqa_dir.resolve()
 
     def test_validate_target_rejects_nonexistent_path(self):
-        """_validate_target raises AssertionError for nonexistent path outside allowed roots."""
+        """_validate_target raises AssertionError for nonexistent path."""
         import pytest
-        with pytest.raises(AssertionError, match="outside allowed roots"):
-            _validate_target("/nonexistent/path")
+        # Use a path that cannot exist on Windows (reserved device names)
+        with pytest.raises(AssertionError, match="does not exist"):
+            _validate_target("NUL:$")
 
     def test_validate_target_rejects_symlink(self, tmp_path: Path):
         """_validate_target raises AssertionError for symlink outside allowed roots."""

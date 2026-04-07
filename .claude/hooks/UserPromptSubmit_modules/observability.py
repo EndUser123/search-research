@@ -222,7 +222,9 @@ def get_metrics_summary() -> dict:
             enhancer_counts = {}
             for e in cognitive_events:
                 for enhancer in e.get("enhancers", []):
-                    enhancer_counts[enhancer] = enhancer_counts.get(enhancer, 0) + 1
+                    # Use enhancer.name as key (Enhancer objects are unhashable due to list[str] topics field)
+                    enhancer_name = enhancer.name if isinstance(enhancer, object) and hasattr(enhancer, 'name') else enhancer
+                    enhancer_counts[enhancer_name] = enhancer_counts.get(enhancer_name, 0) + 1
 
             total_tokens = sum(e.get("tokens", 0) for e in cognitive_events)
             avg_tokens = total_tokens / len(cognitive_events) if cognitive_events else 0

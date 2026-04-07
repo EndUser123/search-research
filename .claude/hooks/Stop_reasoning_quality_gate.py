@@ -32,6 +32,75 @@ LOG_FILE = Path("P:/packages/reasoning/hook_usage.log")
 filter_stats = {"applied": 0, "skipped": 0, "reasoning_response": 0}
 
 
+# ============================================================================
+# WORKAROUND vs STRUCTURAL FIX DETECTION
+# Distinguishes symptom patches from root-cause fixes
+# ============================================================================
+
+# Patterns that indicate a workaround rather than a structural fix
+WORKAROUND_PATTERNS = [
+    # Blind path manipulation
+    (r"sys\.path\.insert\s*\(\s*0\s*,", "Blind sys.path.insert(0, ...) can mask import errors rather than fix them"),
+    # Swallowing errors
+    (r"except\s*:\s*pass", "Bare except:pass silently swallows errors"),
+    (r"except\s+\S+.*?:\s*pass", "Exception handler that only passes masks the error"),
+    # Incomplete fixes
+    (r"#\s*TODO(?!\s*:)", "TODO comment indicates incomplete fix"),
+    (r"#\s*FIXME", "FIXME comment indicates known incomplete fix"),
+    (r"#\s*HACK", "HACK comment indicates workaround rather than solution"),
+    # Conditional guards that don't fix root
+    (r"if\s+not\s+hasattr\s*\(", "hasattr check is a symptom guard, not a root-cause fix"),
+    (r"if\s+'[a-zA-Z0-9_.]+'\s+not\s+in\s+globals\(\)", "globals() check is a symptom guard"),
+    (r"if\s+os\.path\.exists", "path existence check doesn't fix the root cause of missing files"),
+    # Version/string-based fixes
+    (r"if\s+version\s*[><=]", "Version comparison workarounds often hide API incompatibilities"),
+    # Lazy initialization that hides timing issues
+    (r"if\s+.*\s+is\s+None\s*:\s*.*=\s*.*", "Lazy initialization may hide initialization-order bugs"),
+    # String matching instead of type checking
+    (r"isinstance\s*\([^,]+,\s*str\s*\).*==", "String-type checking is fragile; use proper type guards"),
+]
+
+# Patterns that indicate a structural fix (evidence of proper analysis)
+STRUCTURAL_FIX_INDICATORS = [
+    "root cause",
+    "because the issue was",
+    "the actual problem",
+    "invariant",
+    "boundary condition",
+    "data flow",
+    "state machine",
+    "contract",
+    "schema",
+    "initialization order",
+    "race condition",
+    "deadlock",
+]
+
+
+def detect_workaround(response: str) -> tuple[bool, str | None]:
+    """Detect if response treats a workaround as a root-cause fix.
+
+    Returns:
+        (is_workaround, warning_message) — warning_message is None if no issue found
+    """
+    for pattern, explanation in WORKAROUND_PATTERNS:
+        if re.search(pattern, response, re.IGNORECASE | re.MULTILINE):
+            return True, explanation
+
+    # Check for structural fix indicators (presence suggests proper analysis)
+    has_structural = any(indicator in response.lower() for indicator in STRUCTURAL_FIX_INDICATORS)
+    has_workaround_claim = any(word in response.lower() for word in ["fixed", "root cause", "the issue is"])
+
+    # If claiming root-cause fix but lacking structural indicators, flag as suspicious
+    if has_workaround_claim and not has_structural:
+        # Check if it's overly confident without evidence
+        confidence_claims = re.findall(r"\b(fixed|resolved|solved|corrected)\b", response, re.IGNORECASE)
+        if confidence_claims and len(confidence_claims) >= 2:
+            return True, "Claims fix without structural indicators — verify this is root-cause not symptom"
+
+    return False, None
+
+
 def should_apply_reflection(response: str) -> tuple[bool, str]:
     """Determine if self-reflection would be useful.
 
@@ -125,6 +194,10 @@ def apply_self_reflection(response: str) -> str | None:
 
         # Check if improvement was made
         if "sound" in critique_result.lower() and "no major issues" in critique_result.lower():
+            # Double-check for workaround patterns
+            is_workaround, workaround_msg = detect_workaround(response)
+            if is_workaround and workaround_msg:
+                return f"[Workaround detected: {workaround_msg}]"
             return None  # Response is good
 
         # Issues found - return as system message
@@ -174,6 +247,17 @@ def main():
 
     # Check if we should apply reflection
     should_apply, reason = should_apply_reflection(response)
+
+    # Even if reflection doesn't apply, check for workaround patterns
+    # (fix claims should be validated regardless of response length)
+    is_workaround, workaround_msg = detect_workaround(response)
+    if is_workaround and workaround_msg:
+        output = {"systemMessage": f"[Workaround detected: {workaround_msg}]"}
+        if os.environ.get("SELF_REFLECTION_DEBUG") == "true":
+            output["_debug"] = {"stats": filter_stats, "reason": "workaround_detected"}
+        print(json.dumps(output))
+        return 0
+
     if not should_apply:
         # Debug mode: include stats even when skipping
         if os.environ.get("SELF_REFLECTION_DEBUG") == "true":

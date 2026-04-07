@@ -4,18 +4,23 @@ description: "Find skills similar to a target skill based on keywords, dependenc
 version: "1.0.0"
 status: stable
 category: analysis
+enforcement: advisory
 triggers:
   - /similarity
   - "similar skills"
   - "find similar"
 aliases:
   - /similarity
+suggest:
+  - /search
+  - /skill-ship
 
 suggest:
   - /search
   - /analyze
   - /adversarial-review
   - /skill-complete
+  - /skill-ship
 
 depends_on_skills: []
 ---

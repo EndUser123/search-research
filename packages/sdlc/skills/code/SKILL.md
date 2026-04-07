@@ -44,10 +44,13 @@ workflow_steps:
   - design_solution
   - consumer_contract_precheck
   - tdd_implementation
+  - smoke_validation
   - full_test_suite
   - id: tier0_checklist_verification
     kind: verification
   - id: audit_quality_checks
+    kind: verification
+  - id: critique_agent_review
     kind: verification
   - id: trace_manual_verification
     kind: verification
@@ -184,6 +187,8 @@ Workflow override:
 
 ## Local Maximum Trap Detection (PLAN Phase)
 
+**Value Assessment Principle:** Before adding guidance, patterns, or new capabilities — identify the UNIQUE contribution. If existing skills cover ~70%+ with equivalent rigor, the marginal value is low. Greenfield proposals without a search pass are prohibited.
+
 Before committing to an implementation approach, check:
 
 | Warning Sign | What It Means |
@@ -193,6 +198,53 @@ Before committing to an implementation approach, check:
 | Implementation details discussed before approaches compared | Skipped exploration |
 
 **Required check during PLAN phase:** Generate at least 2 implementation approaches before coding. If the first approach scores significantly higher, proceed. If approaches are close, document why the chosen one wins.
+
+## Implementation-Risk Prompts
+
+Before writing or editing code, `/code` should run a short internal implementation-risk check:
+
+- What requirement or contract am I about to guess instead of read?
+- What existing behavior am I assuming without verifying in code or tests?
+- What file, API, schema, or hook boundary am I changing implicitly?
+- What part of this change could break because a plan, ADR, or test target is stale?
+- What should fail closed here if my assumption is wrong?
+- What is the smallest implementation that satisfies the current contract?
+- What regression would recur unless I add or update a test now?
+- Am I about to encode policy in code that belongs in a validator, hook, or skill contract?
+- What part of the requested behavior is still ambiguous enough that `/planning` or `/arch` should have closed it first?
+- What would make this patch locally correct but systemically wrong?
+
+These are internal self-check prompts. They are not default user-facing questions and should only surface to the user when `/code` is genuinely blocked and cannot proceed safely without clarification.
+
+## Smoke Validation
+
+Before claiming a change is safe to continue, `/code` should run the cheapest real execution that could quickly falsify the implementation.
+
+Required smoke validation for:
+- hooks, routers, and activation logic
+- CLI entrypoints or command handlers
+- stateful, resumable, multi-terminal, or stale-data-sensitive changes
+- contract-sensitive producer/consumer boundaries
+- integration changes spanning multiple files or subsystems
+
+The smoke step should prove at least one of:
+- the edited path still imports/loads
+- the primary workflow still executes end-to-end at a minimal level
+- the changed boundary still produces and consumes the expected artifact/fields
+
+Do not substitute prose confidence for smoke validation when the change touches runtime wiring.
+
+## Critique-Agent Triggers
+
+`/code` should use a critique/review agent when the implementation is high-risk, cross-boundary, or likely to be locally correct but systemically wrong.
+
+Escalate to a critique agent when:
+- the change touches hooks, routers, resume/restore flow, or state schema
+- the change crosses producer/consumer boundaries or contract packets
+- the implementation relies on subtle fallback/default behavior
+- the change is integration-heavy enough that a second perspective can find blind spots faster than more local edits
+
+The critique agent should focus on hidden regressions, contract drift, and edge cases the main implementation path may have normalized away.
 
 ## Consumer Contract Precheck (Between PLAN and TDD)
 

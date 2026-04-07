@@ -61,6 +61,7 @@ The analyzer should explicitly cluster systemic workflow failures such as:
 | `--source` | all | Filter: `evidence`, `tasks`, `git`, `all` |
 | `--status` | open | Filter: `open` (unfixed only), `all` |
 | `--ignore` | (none) | Comma-separated subsystems to exclude |
+| `--ignore-stale` | false | Skip STALE and LEGACY-UNKNOWN critique findings |
 | `--focus` | (none) | Deep scan one subsystem: `hooks`, `handoff`, `session_chain`, `search`, `skills` |
 | `--since-commit` | (none) | Scan since a git SHA instead of time-based window |
 | `--diff` | false | Compare with previous run and show trends |
@@ -84,7 +85,7 @@ Run these 6 scans in parallel:
 | # | Source | Path/Command | Extract |
 |---|--------|-------------|---------|
 | 1 | Pre-mortems | `P:/.claude/.evidence/premortem_*.md` | OPEN/DEFERRED items, risk scores |
-| 2 | Critiques | `P:/.claude/.evidence/critique/*/p1_findings.md` | CRITICAL/HIGH findings |
+| 2 | Critiques | `P:/.claude/.evidence/critique/*/p1_findings.md` + staleness gate | CRITICAL/HIGH findings with staleness badge |
 | 3 | Tasks | TaskList or `git status` | pending/in_progress, no owner |
 | 4 | Git | `git log --since="<date>" --oneline` | fix/bug/BLOCKER/revert patterns |
 | 5 | Session errors | `~/.claude/projects/P--/*.jsonl` (last 500 lines) | `"is_error":true` |
@@ -93,6 +94,21 @@ Run these 6 scans in parallel:
 ### Window Fallback
 
 If zero evidence found: double window to N*2, then N*4, cap at 30 days. Note expansion in output.
+
+### Staleness Gate (Critiques only)
+
+Before ingesting any `p1_findings.md` from a critique session directory:
+
+1. **Read `source_metadata.json`** from the same session directory if present.
+2. **Compare `git_sha` to current HEAD**: run `git rev-parse HEAD` in the project root.
+   - If SHA differs from stored → mark ALL findings from that session as `STALE`.
+   - If SHA matches → findings are `CURRENT`.
+3. **If `source_metadata.json` absent** (legacy sessions created before this gate) → mark findings as `LEGACY-UNKNOWN`.
+4. **Report staleness in output**: `STALE: {N} critique sessions | LEGACY-UNKNOWN: {N} | CURRENT: {N}`.
+5. **Score penalty**: `STALE` findings receive 0.5x cross_ref_multiplier; `LEGACY-UNKNOWN` receive 0.3x.
+6. **Exclusion option**: `--ignore-stale` flag skips STALE and LEGACY-UNKNOWN findings entirely.
+
+> Rationale: Critique findings are snapshots of code state at session creation time. Code changes after the session invalidates severity claims. The `source_metadata.json` (written by `pre-mortem`'s `setup()`) captures git SHA at critique-start for this comparison.
 
 ## Phase 2: Deduplication & Clustering
 

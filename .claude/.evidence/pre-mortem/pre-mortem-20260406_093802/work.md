@@ -1,0 +1,1 @@
+session_chain.py semantic chain: SentenceTransformer fallback, 5-min TTL cache eviction, threshold 0.5, _get_st_model() with time.monotonic() tracking

@@ -25,15 +25,11 @@ import json
 import logging
 import os
 import re
-import sys
-from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from dataclasses import dataclass
 from pathlib import Path
 
 from findings.models import (
-    AuditEntry,
     Finding,
-    Severity,
     SQAReport,
 )
 
@@ -42,6 +38,52 @@ logger = logging.getLogger(__name__)
 
 MAX_FILES = 10_000
 MAX_TOTAL_SIZE = 100 * 1024 * 1024  # 100MB
+
+# Halt severity threshold mapping
+HALT_SEVERITY_ORDER = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+
+
+@dataclass
+class SeverityHaltTracker:
+    """Tracks findings per layer and determines if execution should halt.
+
+    Uses raw (non-deduplicated) counts for halt decisions — deduplication
+    is only for health score calculation, not for halt threshold checks.
+    """
+
+    threshold: str = "HIGH"  # CRITICAL, HIGH, MEDIUM, LOW, NONE
+
+    def should_halt(self, findings: list[Finding]) -> bool:
+        """Check if findings exceed the halt threshold.
+
+        Args:
+            findings: List of Finding objects from current layer.
+
+        Returns:
+            True if execution should halt.
+        """
+        if self.threshold == "NONE":
+            return False
+
+        threshold_level = HALT_SEVERITY_ORDER.index(self.threshold)
+        for finding in findings:
+            finding_level = HALT_SEVERITY_ORDER.index(finding.severity.value.upper())
+            if finding_level <= threshold_level:
+                return True
+        return False
+
+    def get_halt_message(self, findings: list[Finding]) -> str:
+        """Generate halt message with findings summary."""
+        by_severity: dict[str, list[Finding]] = {"CRITICAL": [], "HIGH": [], "MEDIUM": [], "LOW": []}
+        for f in findings:
+            by_severity[f.severity.value.upper()].append(f)
+
+        lines = ["[HALT] Layer completed with findings exceeding threshold:\n"]
+        for sev in ["CRITICAL", "HIGH", "MEDIUM", "LOW"]:
+            if by_severity[sev]:
+                lines.append(f"  {sev}: {len(by_severity[sev])} finding(s)")
+        lines.append("\nUse /sqa --halt-on NONE to run all layers regardless.")
+        return "\n".join(lines)
 
 ALLOWED_COMMANDS = [
     "ruff",

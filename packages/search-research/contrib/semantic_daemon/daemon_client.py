@@ -1083,6 +1083,47 @@ class DaemonClient(metaclass=_DaemonClientSingleton):
             "count": 0,
         }
 
+    def embed_texts(self, texts: list[str]) -> list[bytes]:
+        """Generate embeddings for texts via daemon's compute_embedding action.
+
+        Args:
+            texts: List of text strings to embed
+
+        Returns:
+            List of embeddings as bytes (serialized numpy arrays)
+        """
+        embeddings = []
+        for text in texts:
+            for attempt in range(self.max_retries + 1):
+                try:
+                    request = {"action": "compute_embedding", "text": text}
+                    response = self._send_request(request)
+                    if "embedding" in response and response["embedding"]:
+                        # Response contains embedding as list of floats
+                        emb = response["embedding"]
+                        import numpy as np
+
+                        vec = np.array(emb, dtype=np.float32)
+                        embeddings.append(vec.tobytes())
+                        break
+                    else:
+                        # Fallback: use dummy
+                        import numpy as np
+
+                        vec = np.zeros(384, dtype=np.float32)
+                        embeddings.append(vec.tobytes())
+                        break
+                except (ConnectionError, TimeoutError) as e:
+                    if attempt < self.max_retries:
+                        time.sleep(0.5)
+                        continue
+                    # Fallback on failure
+                    import numpy as np
+
+                    vec = np.zeros(384, dtype=np.float32)
+                    embeddings.append(vec.tobytes())
+        return embeddings
+
     def is_daemon_alive(self, timeout: float = 0.5) -> bool:
         """Check if daemon is alive via quick ping request.
 

@@ -276,9 +276,8 @@ async def run_parallel_commands(
         else:
             cmd_str = cmd_args
 
-        # Commands with -p flag (vibe) embed the query directly (no stdin)
-        # All other CLIs (qwen, gemini, codex, opencode) use stdin
-        uses_prompt_arg = "-p" in cmd_str
+        # Commands with -p flag (vibe) or codex exec embed query directly (no stdin)
+        uses_prompt_arg = "-p" in cmd_str or cmd_str.startswith("codex exec")
         cmd_input = None if uses_prompt_arg else input_text
 
         if verbose:

@@ -124,6 +124,11 @@ def _should_block_claim(claim: Claim, verdict: Any) -> bool:
     Returns:
         True if claim should be blocked (ungrounded confident claim)
     """
+    # ANALYSIS claims (value judgments, architectural opinions) don't require verification
+    # These are subjective assessments like "X is valuable for Y" or "right idea, wrong contract"
+    if claim.type == "ANALYSIS":
+        return False
+
     # Hedged claims pass without evidence
     if claim.has_hedge:
         return False
@@ -299,11 +304,14 @@ COMPLETION_PATTERNS = [
 ]
 
 # Tier 3 (E2E) specific patterns - workflow/skill execution claims
+# FIX: Tightened to require explicit execution verbs, not just skill name mentions.
+# The old pattern r"/\S+\s+(?:executed|completed|invoked|skill)" matched
+# conversational mentions like "the /rns skill" — false positive.
 E2E_PATTERNS = [
-    re.compile(r"/\S+\s+(?:executed|completed|invoked|skill)", re.IGNORECASE),
-    re.compile(r"workflow\s+(?:completed|finished|passed)", re.IGNORECASE),
-    re.compile(r"all\s+(?:tiers|stages)\s+passed", re.IGNORECASE),
-    re.compile(r"skill\s+\S+\s+(?:executed|completed|invoked)", re.IGNORECASE),
+    re.compile(r"/\S+\s+(?:executed|completed|ran)\b", re.IGNORECASE),
+    re.compile(r"workflow\s+(?:completed|finished|passed)\b", re.IGNORECASE),
+    re.compile(r"all\s+(?:tiers|stages)\s+passed\b", re.IGNORECASE),
+    re.compile(r"skill\s+\S+\s+(?:executed|completed|ran)\b", re.IGNORECASE),
 ]
 
 RUNTIME_TOOLS = {"Bash", "Edit", "Read", "Grep", "Glob"}

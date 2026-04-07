@@ -19,5 +19,5 @@ class TestLayer1Run:
 
     def test_run_finds_no_findings_for_clean_code(self, tmp_target):
         # tmp_target has clean code (just a print statement)
-        findings = layer1_syntactic.run(tmp_target)
+        layer1_syntactic.run(tmp_target)
         # Should not raise; returns list of findings (possibly empty)

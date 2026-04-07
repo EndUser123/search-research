@@ -4,6 +4,7 @@ description: Constitutional Knowledge System - unified command for search, add, 
 category: knowledge
 version: 1.0.0
 status: stable
+enforcement: advisory
 triggers:
   - /cks
   - "knowledge search"
@@ -30,7 +31,7 @@ Constitutional Knowledge System — unified command for searching, adding, and s
 - **Instant results**: Pre-loaded daemon for <1s semantic search
 
 ### Technical Context
-- **CLI**: `P:/__csf/src/cks/cks_cli.py` (invoke as `python -m src.cks.cks_cli`)
+- **CLI**: `cks` (via installed package - verify with `pip show claude-cks`)
 - **Entry types**: memory, pattern, code, knowledge, correction, insight, learning
 - **Storage**: FAISS vector index for semantic search
 - **Integration**: Unified with /search (chat history + web + semantic)

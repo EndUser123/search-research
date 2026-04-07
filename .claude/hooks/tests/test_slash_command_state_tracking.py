@@ -152,7 +152,7 @@ def test_stop_hook_respects_satisfied_state():
 
 
 def test_stop_hook_blocks_when_not_satisfied():
-    """Test that Stop hook blocks when satisfied=False in state."""
+    """Test that Stop hook hard-blocks when satisfied=False in state."""
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = Path(tmpdir)
 
@@ -187,10 +187,11 @@ def test_stop_hook_blocks_when_not_satisfied():
                 # Call Stop hook
                 result = run(input_data)
 
-                # Should return advisory (not block) when satisfied=False
-                assert result is not None, "Stop hook should return advisory when satisfied=False"
-                assert result.get("block") is False
-                assert "SLASH COMMAND REMINDER" in result.get("reason", "")
+                # Should return a workflow block when satisfied=False
+                assert result is not None, "Stop hook should return block when satisfied=False"
+                assert result.get("block") is True
+                assert "WORKFLOW_BLOCK_NOT_HOOK_CRASH" in result.get("reason", "")
+                assert "SLASH COMMAND NOT EXECUTED" in result.get("reason", "")
                 print("✅ Stop hook blocks when slash command not satisfied")
 
 

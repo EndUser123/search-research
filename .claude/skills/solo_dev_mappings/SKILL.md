@@ -3,8 +3,9 @@ name: solo_dev_mappings
 description: Terminology mappings to translate enterprise patterns to solo dev equivalents.
 version: "1.0.0"
 status: beta
+enforcement: advisory
 category: strategy
-
+---
 # Solo Dev Terminology Mappings
 
 CONTEXT: Solo developer workflow. No enterprise infrastructure.

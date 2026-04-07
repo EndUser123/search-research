@@ -10,13 +10,15 @@ Routing flow: query -> domain detection -> template selection -> validation
 from __future__ import annotations
 
 import importlib
+import json
 import logging
 import re
+from collections import deque
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, TypedDict
 
-from .config import VALID_DOMAINS
+from config import VALID_DOMAINS
 
 __all__ = [
     # Public API functions
@@ -39,6 +41,12 @@ __all__ = [
     # Semantic search functions
     "cks_semantic_search",
     "cks_semantic_domain_search",
+    # Follow-up query detection
+    "detect_follow_up_query",
+    "FollowUpContext",
+    # Subject inference
+    "retrieve_context_hint",
+    "SubjectInferenceContext",
 ]
 
 # =============================================================================
@@ -216,6 +224,31 @@ class ValidationResult(TypedDict):
     template_path: Path | None
 
 
+class FollowUpContext(TypedDict):
+    """Context for follow-up query detection.
+
+    When a query references prior conversation content, this struct
+    signals to the template executor that prior context must be checked
+    before proceeding with clarity gate or gap detection.
+    """
+
+    is_follow_up: bool
+    reason: str  # "ordinal_ref" | "skill_ref" | None
+    matched_text: str | None  # The text that triggered detection
+    needs_prior_context: bool  # True → template executor must retrieve prior turns
+    suggested_subject: str | None  # Inferred subject from recent history
+
+
+class SubjectInferenceContext(TypedDict):
+    """Result of subject inference from recent transcript history."""
+
+    last_file: str | None
+    last_hook: str | None
+    last_contract: str | None
+    recent_paths: list[str]
+    hint_text: str  # Formatted text for LLM prompt injection
+
+
 # =============================================================================
 # Routing Functions
 # =============================================================================
@@ -361,6 +394,196 @@ def detect_intent_type(query: str) -> str:
 
     logger.debug("Intent type detected: DEFAULT")
     return "DEFAULT"
+
+
+# =============================================================================
+# Follow-Up Query Detection
+# =============================================================================
+
+# Patterns that indicate the query references prior conversation content
+_ORDINAL_REF_PATTERNS = [
+    re.compile(r"(?i)\boption\s+\d+\b"),
+    re.compile(r"(?i)\b(idea|point|item|number|num|no\.?)\s*\d+\b"),
+    re.compile(r"(?i)\b(idea|point|item|these|those)\s+\d+\b"),
+    re.compile(r"(?i)\b(idea|point|item)\s+(?:one|two|three|four|five)\b"),
+    re.compile(r"(?i)\b(points?|ideas?|items?|options?)\s+(?:\d+\s+and\s+\d+|\d+\s*,\s*\d+)\b"),
+    re.compile(r"(?i)\b(that|this|those|these)\s+(?:suggestion|recommendation|approach|option|idea|design)\b"),
+    re.compile(r"(?i)\b(these|those)\s+(?:ideas?|points?|options?|items?)\b"),
+]
+
+_SKILL_REF_PATTERNS = [
+    re.compile(r"(?i)(?:add|apply|extend)\s+(?:this|that|it|them)\s+to\s+/\w+"),
+    re.compile(r"(?i)(?:add|apply|extend)\s+to\s+/\w+"),
+    re.compile(r"(?i)(?:does|did|has|have|is|was)\s+/\w+\s+(?:already|have|has|already\s+have)"),
+    re.compile(r"(?i)/\w+\s+(?:already|have|has)\b"),
+]
+
+
+def detect_follow_up_query(query: str) -> FollowUpContext:
+    """
+    Detect whether a query references prior conversation content.
+
+    This is used by the Stage 0.5 clarity gate to distinguish between:
+    - A standalone query that needs full context assessment
+    - A follow-up query that references prior turns and should
+      have context retrieved before clarity gate evaluation
+
+    Given: query string
+    When: query contains ordinal references or skill references
+    Then: return FollowUpContext with is_follow_up=True
+
+    Examples:
+        "what about option 2?" -> is_follow_up=True, reason="ordinal_ref"
+        "add this to /plan" -> is_follow_up=True, reason="skill_ref"
+        "design a new API" -> is_follow_up=False, reason=None
+    """
+    query_lower = query.lower()
+
+    # Check ordinal references first (e.g., "option 2", "idea 3")
+    for pattern in _ORDINAL_REF_PATTERNS:
+        match = pattern.search(query)
+        if match:
+            logger.debug(f"Follow-up query detected (ordinal ref): {match.group()!r}")
+            return FollowUpContext(
+                is_follow_up=True,
+                reason="ordinal_ref",
+                matched_text=match.group(),
+                needs_prior_context=True,
+            )
+
+    # Check skill references (e.g., "add to /plan", "does /arch already")
+    for pattern in _SKILL_REF_PATTERNS:
+        match = pattern.search(query)
+        if match:
+            logger.debug(f"Follow-up query detected (skill ref): {match.group()!r}")
+            return FollowUpContext(
+                is_follow_up=True,
+                reason="skill_ref",
+                matched_text=match.group(),
+                needs_prior_context=True,
+            )
+
+    logger.debug("Query is standalone (no follow-up indicators)")
+    return FollowUpContext(
+        is_follow_up=False,
+        reason="",
+        matched_text=None,
+        needs_prior_context=False,
+        suggested_subject=None,
+    )
+
+
+def retrieve_context_hint(limit: int = 5) -> SubjectInferenceContext:
+    """
+    Programmatically retrieve a context hint from recent session history.
+
+    This scans recent tool calls (Read, Edit, Grep, etc.) to identify the
+    most likely subject for follow-up queries like "is it safe?" or
+    "what about this?".
+
+    Returns a SubjectInferenceContext with a formatted hint_text for LLM injection.
+    """
+    ctx: SubjectInferenceContext = {
+        "last_file": None,
+        "last_hook": None,
+        "last_contract": None,
+        "recent_paths": [],
+        "hint_text": "",
+    }
+
+    # SEC-001: Path Resolution
+    # We look for the trace file in the diagnostics directory
+    diag_dir = Path(__file__).resolve().parents[3] / ".claude" / "hooks" / "logs" / "diagnostics"
+    trace_file = diag_dir / "ups_execution_trace.jsonl"
+
+    if not trace_file.exists():
+        ctx["hint_text"] = "No recent execution trace found for context inference."
+        return ctx
+
+    try:
+        # Read the last 50 lines to find the current session's transcript path
+        # Using deque for memory-efficient tail reading
+        with open(trace_file, "r", encoding="utf-8") as f:
+            last_lines = deque(f, 50)
+
+        transcript_path: Path | None = None
+        for line in reversed(last_lines):
+            try:
+                data = json.loads(line)
+                if "transcript_path" in data:
+                    path = Path(data["transcript_path"])
+                    if path.exists():
+                        transcript_path = path
+                        break
+            except (json.JSONDecodeError, KeyError, OSError):
+                continue
+
+        if not transcript_path:
+            ctx["hint_text"] = "No active transcript path found in trace."
+            return ctx
+
+        # Read the last 20 messages from the transcript to find tool calls
+        with open(transcript_path, "r", encoding="utf-8") as f:
+            messages = deque(f, 20)
+
+        found_paths: list[str] = []
+        for msg_line in reversed(messages):
+            try:
+                msg_data = json.loads(msg_line)
+                message = msg_data.get("message", {})
+                content_list = message.get("content", [])
+
+                for item in content_list:
+                    if item.get("type") == "tool_use":
+                        name = item.get("name")
+                        args = item.get("input", {})
+
+                        # Extract paths from common tool calls
+                        path = args.get("file_path") or args.get("path") or args.get("target_path")
+                        if path and isinstance(path, str):
+                            # Clean up path (strip project root if present)
+                            clean_path = path.replace("P:/", "").replace("P:\\", "")
+                            if clean_path not in found_paths:
+                                found_paths.append(clean_path)
+
+                        # Detect specific subject types
+                        if name == "Read" or name == "Edit" or name == "replace":
+                            if not ctx["last_file"]:
+                                ctx["last_file"] = path
+
+                        if "hook" in str(path).lower():
+                            if not ctx["last_hook"]:
+                                ctx["last_hook"] = path
+
+                        if "contract" in str(path).lower() or "boundary" in str(path).lower():
+                            if not ctx["last_contract"]:
+                                ctx["last_contract"] = path
+
+            except (json.JSONDecodeError, KeyError, OSError):
+                continue
+
+        ctx["recent_paths"] = found_paths[:limit]
+
+        # Format the hint text for the LLM
+        hints = []
+        if ctx["last_file"]:
+            hints.append(f"Last accessed file: {ctx['last_file']}")
+        if ctx["last_hook"]:
+            hints.append(f"Last mentioned hook: {ctx['last_hook']}")
+        if found_paths:
+            top_paths = ", ".join(found_paths[:3])
+            hints.append(f"Recent relevant paths: {top_paths}")
+
+        if hints:
+            ctx["hint_text"] = "CONSTRUCTIVE CONTEXT HINT:\n- " + "\n- ".join(hints)
+        else:
+            ctx["hint_text"] = "No clear subject inferred from recent tool calls."
+
+    except Exception as e:
+        logger.warning(f"Failed to retrieve context hint: {e}")
+        ctx["hint_text"] = f"Context inference failed: {e}"
+
+    return ctx
 
 
 # =============================================================================

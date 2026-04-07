@@ -23,6 +23,7 @@ sys.path.insert(0, str(HOOKS_DIR))
 
 from evidence_store import append_tool_event  # noqa: E402
 from posttooluse import create_registry  # noqa: E402
+from __lib.write_tool_error_signal import write_tool_error_signal  # noqa: E402
 
 # Configure logger for PostToolUse - no stderr output (Claude Code treats stderr as hook error)
 logger = logging.getLogger(__name__)
@@ -163,29 +164,17 @@ def main():
             success=success,
         )
 
-        # Write error signal for competence_injector conditional injection.
-        # On error: create signal file. On success: clean it up.
-        # This ensures root-cause obligation is injected on the next turn
-        # only when the LLM just encountered a failure.
+        # Write error signal via shared writer (unified, eliminates dual-writer conflict)
+        # resolved=True clears the signal on success (success-path cleanup)
         try:
-            SIGNAL_DIR.mkdir(parents=True, exist_ok=True)
-            signal_file = SIGNAL_DIR / "last_tool_error.json"
-            if not success:
-                signal_file.write_text(
-                    json.dumps(
-                        {
-                            "timestamp": time.time(),
-                            "tool_name": tool_name,
-                            "command": str(command)[:200],
-                        }
-                    ),
-                    encoding="utf-8",
-                )
-            elif signal_file.exists():
-                # Success clears the error signal — the LLM recovered
-                signal_file.unlink(missing_ok=True)
-        except OSError:
-            pass  # Signal is best-effort, never block
+            write_tool_error_signal(
+                tool_name=tool_name,
+                tool_input=tool_input,
+                tool_result=tool_result,
+                resolved=success,
+            )
+        except Exception:
+            pass
 
     except Exception as e:
         logger.debug(f"PostToolUse Logging Error: {e}")

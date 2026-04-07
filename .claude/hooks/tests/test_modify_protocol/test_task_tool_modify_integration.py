@@ -164,5 +164,59 @@ class TestTaskToolModifyIntegration:
         assert "description" in corrected, "description should be preserved"
 
 
+class TestEnvVarOverride:
+    """TEST-GATE-007: Integration tests for env var override of gate behavior."""
+
+    def test_bypass_env_var_allows_without_self_doc(self):
+        """TASK_SELF_DOC_BYPASS=1 should allow tasks without self-doc."""
+        import os
+
+        test_input = {
+            "tool_name": "TaskCreate",
+            "tool_input": {
+                "subject": "X",  # Vague - would normally block
+                "description": "Y",
+            },
+            "session_id": "test-session",
+            "terminal_id": "test-terminal",
+        }
+
+        # Set bypass env var
+        old_val = os.environ.get("TASK_SELF_DOC_BYPASS", "")
+        os.environ["TASK_SELF_DOC_BYPASS"] = "1"
+        try:
+            result = gate_run(test_input)
+            # With bypass, gate returns None (allows)
+            assert result is None, f"Expected None with bypass, got: {result}"
+        finally:
+            os.environ["TASK_SELF_DOC_BYPASS"] = old_val
+
+    def test_bypass_disabled_requires_self_doc(self):
+        """Without bypass, vague task should be blocked."""
+        import os
+
+        test_input = {
+            "tool_name": "TaskCreate",
+            "tool_input": {
+                "subject": "X",  # Vague
+                "description": "Y",
+            },
+            "session_id": "test-session",
+            "terminal_id": "test-terminal",
+        }
+
+        # Ensure bypass is not set
+        old_val = os.environ.get("TASK_SELF_DOC_BYPASS", "")
+        os.environ.pop("TASK_SELF_DOC_BYPASS", None)
+        try:
+            result = gate_run(test_input)
+            # Without bypass, gate blocks
+            assert result is not None, "Expected block without bypass"
+            assert result.get("decision") == "block", f"Expected block, got: {result}"
+        finally:
+            if old_val:
+                os.environ["TASK_SELF_DOC_BYPASS"] = old_val
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

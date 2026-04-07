@@ -14,7 +14,11 @@ State file schema:
   "intermediate_answers": [],
   "final_answer": null,
   "active": true,
-  "terminal_id": "identifier"
+  "terminal_id": "identifier",
+  "is_investigation": false,
+  "hypotheses": [],
+  "hypothesis_mode": False,
+  "verdict": null
 }
 """
 
@@ -48,13 +52,19 @@ def _get_state_path(session_id: uuid.UUID, terminal_id: str = "") -> Path:
     return STATE_DIR / f"{session_id}.json"
 
 
-def create_state(session_id: uuid.UUID, trigger_phrase: str, terminal_id: str) -> dict:
+def create_state(
+    session_id: uuid.UUID,
+    trigger_phrase: str,
+    terminal_id: str,
+    metadata: dict | None = None,
+) -> dict:
     """Create a new sequential thinking state file.
 
     Args:
         session_id: Unique session identifier
         trigger_phrase: The trigger phrase that started sequential thinking
         terminal_id: Terminal identifier for multi-terminal isolation
+        metadata: Optional dictionary of additional session metadata (e.g. is_investigation)
 
     Returns:
         Created state dict
@@ -69,7 +79,13 @@ def create_state(session_id: uuid.UUID, trigger_phrase: str, terminal_id: str) -
         "final_answer": None,
         "active": True,
         "terminal_id": terminal_id,
+        # CHANGE-001: Multi-hypothesis tracking fields
+        "hypotheses": [],
+        "hypothesis_mode": False,
     }
+
+    if metadata:
+        state.update(metadata)
 
     state_path = _get_state_path(session_id, terminal_id)
     state_path.write_text(json.dumps(state, indent=2), encoding="utf-8")

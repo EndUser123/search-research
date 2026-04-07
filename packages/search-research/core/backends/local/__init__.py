@@ -33,6 +33,11 @@ from .multilang_backend import (
     MultiLangCodeBackend,
     create_multilang_backend,
 )
+from .notebooklm_backend import (
+    BACKEND_NOTEBOOKLM,
+    NotebookLMBackend,
+    create_notebooklm_backend,
+)
 from .rlm_backend import (
     BACKEND_RLM,
     RLMBackend,
@@ -53,7 +58,9 @@ __all__ = [
     "KGBackend",
     "RLMBackend",
     "ClaudeHistoryBackend",
+    "NotebookLMBackend",
     # Backend constants
+    "BACKEND_NOTEBOOKLM",
     "BACKEND_SKILLS",
     "BACKEND_CKS_METADATA",
     "BACKEND_KG",
@@ -63,6 +70,7 @@ __all__ = [
     "SOURCE_RELIABILITY_MULTILANG",
     # Factory functions
     "create_cks_metadata_backend",
+    "create_notebooklm_backend",
     "create_multilang_backend",
     "create_rlm_backend",
     "create_claude_history_backend",

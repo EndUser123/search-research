@@ -280,7 +280,7 @@ class QueryIntentDetector:
         # Backend mapping
         self._intent_to_backends = {
             QueryIntent.CODE: ["CODE", "GREP", "LSP"],
-            QueryIntent.KNOWLEDGE: ["CKS", "DOCS", "CDS"],
+            QueryIntent.KNOWLEDGE: ["CKS", "notebooklm", "DOCS", "CDS"],
             QueryIntent.CHS: ["CHS"],
             QueryIntent.GREP: ["GREP", "CODE"],
         }

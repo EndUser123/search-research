@@ -214,6 +214,11 @@ class VersionExtractor:
                 versions[pkg] = self.version_cache[pkg]
                 continue
 
+            # Validate package name matches expected pattern (alphanumeric, hyphens, underscores, dots)
+            # This prevents command injection via malformed package names
+            if not re.match(r'^[a-zA-Z0-9][a-zA-Z0-9_.-]*$', pkg):
+                continue
+
             try:
                 result = subprocess.run(
                     ['pip', 'show', pkg],

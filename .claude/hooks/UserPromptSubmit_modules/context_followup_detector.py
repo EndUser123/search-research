@@ -59,6 +59,22 @@ PRONOUN_START_PATTERNS = [
     re.compile(r'^"?(It|That|This|He|She|They|We|There)\b', re.IGNORECASE),
 ]
 
+# Short recommendation/optimization queries that should inherit the active subject
+# when substantive prior context exists. These are follow-up retrieval signals, not
+# standalone vague prompts, as long as there is recent session context to attach to.
+OPTIMIZATION_FOLLOWUP_PATTERNS = [
+    re.compile(r"^\s*what(?:'s| is)\s+the\s+optimal\s+solution\b", re.IGNORECASE),
+    re.compile(r"^\s*what(?:'s| is)\s+the\s+best\s+approach\b", re.IGNORECASE),
+    re.compile(r"^\s*what(?:'s| is)\s+the\s+best\s+path\b", re.IGNORECASE),
+    re.compile(r"^\s*what\s+should\s+we\s+do\b", re.IGNORECASE),
+    re.compile(r"^\s*what\s+do\s+you\s+recommend\b", re.IGNORECASE),
+    re.compile(r"^\s*what(?:'s| is)\s+your\s+recommendation\b", re.IGNORECASE),
+    re.compile(r"^\s*what(?:'s| is)\s+the\s+recommended\s+path\b", re.IGNORECASE),
+    re.compile(r"^\s*what(?:'s| is)\s+the\s+optimal\s+long\s+term\s+fix\b", re.IGNORECASE),
+]
+
+_FOLLOWUP_CONTEXT_TTL_SECONDS = 4 * 60 * 60
+
 
 def _get_terminal_id(data: dict) -> str:
     """Resolve terminal_id from data or environment."""
@@ -156,6 +172,22 @@ def _is_followup_query(prompt: str, prior_context: dict | None = None) -> tuple[
     for pattern in FRAGMENT_PATTERNS:
         if pattern.search(prompt_stripped):
             return True, pattern.pattern
+
+    # Short optimization/recommendation questions should inherit recent session
+    # context rather than forcing the skill to ask for a subject the transcript
+    # already makes obvious.
+    if prior_context:
+        topic = str(prior_context.get("topic", "")).strip()
+        summary = str(prior_context.get("summary", "")).strip()
+        timestamp = prior_context.get("timestamp")
+        is_recent = True
+        if isinstance(timestamp, int | float):
+            is_recent = (time.time() - float(timestamp)) <= _FOLLOWUP_CONTEXT_TTL_SECONDS
+
+        if is_recent and (topic or summary):
+            for pattern in OPTIMIZATION_FOLLOWUP_PATTERNS:
+                if pattern.match(prompt_stripped):
+                    return True, f"optimization_followup:{pattern.pattern}"
 
     # Check sentence-start pronoun (NOT mid-sentence pronouns)
     # Split into sentences and check first word of each

@@ -88,50 +88,55 @@ FILE_CLAIM_PATTERNS = re.compile(
     r"|\bthere's\s+no\s+(\w+\.?\w*)\b"
     r"|\bno\s+(\w+)\s+documentation\b"
     r"|\bmissing\s+(?:file|folder|directory|resource|module|package|documentation|config(?:uration)?)\b"
-    r"|\b(?:file|folder|directory|resource|module|package|documentation|config(?:uration)?)\s+(?:is|was)\s+missing\b",
+    r"|\b(?:file|folder|directory|resource|module|package|documentation|config(?:uration)?)\s+(?:is|was)\s+missing\b"
+    # Known stale archive references (established missing in session)
+    r"|\b(?:src_)?archived[_-]20260325\b"
+    r"|\bP:\\?__csf\\?\.archive\b",
     re.IGNORECASE,
 )
 
 # Obvious allowlist (domain knowledge, capability statements, conversational denials, verification discussion)
-OBVIOUS_ALLOWLIST = re.compile(
+_OBVIOUS_ALLOWLIST_PARTS = (
     # Capability/network statements
-    r"\bno\s+(?:internet\s+access|network\s+access|network)\b"
-    r"|\b(?:offline|no\s+connection)\b"
+    r"\bno\s+(?:internet\s+access|network\s+access|network)\b",
+    r"\b(?:offline|no\s+connection)\b",
     # Domain knowledge
-    r"|\bno\s+configuration\s+needed\b"
-    r"|\bno\s+config\s+required\b"
-    r"|\bno\s+setup\s+needed\b"
+    r"\bno\s+configuration\s+needed\b",
+    r"\bno\s+config\s+required\b",
+    r"\bno\s+setup\s+needed\b",
     # Conversational denials of actions (ADR-20260323: reduce false positives)
-    # Note: "I didn't X" uses bare infinitive; "I haven't X" uses past participle
-    r"|\bI\s+didn(?:'?t)?\s+(?:change|modify|delete|remove|create|make|do)\b"
-    r"|\bI\s+haven(?:'?t)?\s+(?:changed|modified|deleted|removed|created|made|done)\b"
-    r"|\bI\s+never\s+(?:changed|modified|deleted|removed|created|made|done)\b"
+    r"\bI\s+didn(?:'?t)?\s+(?:change|modify|delete|remove|create|make|do)\b",
+    r"\bI\s+haven(?:'?t)?\s+(?:changed|modified|deleted|removed|created|made|done)\b",
+    r"\bI\s+never\s+(?:changed|modified|deleted|removed|created|made|done)\b",
     # Additional conversational forms (ADR-20260323: expand coverage)
-    r"|\bI\s+don(?:'?t)?\s+(?:think\s+)?I\s+(?:change|modify|delete|deleted|remove|create|make|do)\b"
-    r"|\bI\s+wasn(?:'?t)?\s+(?:the\s+one\s+who\s+)?(?:changed|modified|deleted|removed|created|made|done)\b"
-    r"|\bI\s+couldn(?:'?t)?\s+(?:have\s+)?(?:changed|modified|deleted|removed|created|made|done)\b"
-    r"|\bI\s+didn(?:'?t)?\s+(?:even\s+)?(?:get\s+to\s+)?(?:change|modify|delete|remove|create|make|do)\b"
-    r"|\bI\s+wasn(?:'?t)?\s+involved\s+(?:in\s+)?(?:changing|modifying|deleting|removing|creating|making)\b"
-    r"|\bI\s+haven(?:'?t)?\s+(?:been\s+)?(?:able\s+to\s+)?(?:changed|modified|deleted|removed|created|make|made)\b"
+    r"\bI\s+don(?:'?t)?\s+(?:think\s+)?I\s+(?:change|modify|delete|deleted|remove|create|make|do)\b",
+    r"\bI\s+wasn(?:'?t)?\s+(?:the\s+one\s+who\s+)?(?:changed|modified|deleted|removed|created|made|done)\b",
+    r"\bI\s+couldn(?:'?t)?\s+(?:have\s+)?(?:changed|modified|deleted|removed|created|made|done)\b",
+    r"\bI\s+didn(?:'?t)?\s+(?:even\s+)?(?:get\s+to\s+)?(?:change|modify|delete|remove|create|make|do)\b",
+    r"\bI\s+wasn(?:'?t)?\s+involved\s+(?:in\s+)?(?:changing|modifying|deleting|removing|creating|making)\b",
+    r"\bI\s+haven(?:'?t)?\s+(?:been\s+)?(?:able\s+to\s+)?(?:changed|modified|deleted|removed|created|make|made)\b",
     # Handles: "that's not", "that isn't", "that is not", "that was not" (past participle forms)
-    r"|\b(?:that's\s+not|that\s+isn't|that\s+is\s+not|that\s+wasn't|that\s+was\s+not)\s+(?:something\s+)?I\s+(?:changed|modified|deleted|removed|created|made|done)\b"
-    r"|\b(?:this\s+isn't|this\s+is\s+not|this\s+wasn't|this\s+was\s+not)\s+(?:something\s+)?I\s+(?:changed|modified|deleted|removed|created|made|done)\b"
+    r"\b(?:that's\s+not|that\s+isn't|that\s+is\s+not|that\s+wasn't|that\s+was\s+not)\s+(?:something\s+)?I\s+(?:changed|modified|deleted|removed|created|made|done)\b",
+    r"\b(?:this\s+isn't|this\s+is\s+not|this\s+wasn't|this\s+was\s+not)\s+(?:something\s+)?I\s+(?:changed|modified|deleted|removed|created|made|done)\b",
     # Conversational verification phrases (discussing verification, not claiming existence)
-    r"|\b(?:was|were)\s+(?:also\s+)?(?:verified|confirmed)\b"
-    r"|\b(?:file|resource)\s+(?:was\s+)?verified\b"
-    r"|\bverification\s+(?:has\s+)?failed\b"
-    r"|\bverifying\b"
-    r"|\bconfirm(?:s|ed)?\s+(?:the\s+)?(?:deletion|removal|existence|absence)\b"
+    r"\b(?:was|were)\s+(?:also\s+)?(?:verified|confirmed)\b",
+    r"\b(?:file|resource)\s+(?:was\s+)?verified\b",
+    r"\bverification\s+(?:has\s+)?failed\b",
+    r"\bverifying\b",
+    r"\bconfirm(?:s|ed)?\s+(?:the\s+)?(?:deletion|removal|existence|absence)\b",
     # Conversational denials of statements/references (ADR-20260331: reduce false positives on quoted phrases)
-    r"|\bI\s+didn(?:'?t)?\s+(?:even\s+)?(?:say|claim|state|mention)\b"
-    r"|\bI\s+never\s+(?:said|claimed|stated|mentioned)\b"
-    r"|\bI\s+haven(?:'?t)?\s+(?:said|claimed|stated|mentioned)\b"
-    r"|\bdidn(?:'?t)?\s+(?:actually\s+)?(?:say|claim|state|mean)\b"
+    r"\bI\s+didn(?:'?t)?\s+(?:even\s+)?(?:say|claim|state|mention)\b",
+    r"\bI\s+never\s+(?:said|claimed|stated|mentioned)\b",
+    r"\bI\s+haven(?:'?t)?\s+(?:said|claimed|stated|mentioned)\b",
+    r"\bdidn(?:'?t)?\s+(?:actually\s+)?(?:say|claim|state|mean)\b",
     # Reporting speech/references (the message says X, contains Y, includes Z)
-    r"|\b(?:the\s+(?:error|message|output|response|hook)\s+)?(?:says?|contains?|includes?|states?)\s+(?:'[^']+'|\"[^\"]+\"|\w+\s+\w+)"
-    r"|\b(?:'[^']+'\s+(?:in|within|appears?\s+in)|\"[^\"]+\"\s+(?:in|within|appears?\s+in))\b",
-    re.IGNORECASE,
+    r"\b(?:the\s+(?:error|message|output|response|hook)\s+)?(?:says?|contains?|includes?|states?)\s+(?:'[^']+'|\"[^\"]+\"|\w+\s+\w+)",
+    r"\b(?:'[^']+'\s+(?:in|within|appears?\s+in)|\"[^\"]+\"\s+(?:in|within|appears?\s+in))\b",
+    # Known stale archive references (established missing earlier in session)
+    r"\b(?:src_)?archived[_-]20260325\b",
+    r"\bP:\\?__csf\\?\.archive\b",
 )
+OBVIOUS_ALLOWLIST = re.compile("|".join(_OBVIOUS_ALLOWLIST_PARTS), re.IGNORECASE)
 
 # Verification tools that count as evidence
 VERIFICATION_TOOLS = {
@@ -485,8 +490,16 @@ def check(data: dict) -> dict | None:
     ).strip()
 
     supplied_events = data.get("tool_events")
-    if isinstance(supplied_events, list):
+    if isinstance(supplied_events, list) and supplied_events:
+        # Non-empty list provided - use it
         tool_events = supplied_events
+    elif isinstance(supplied_events, list) and not supplied_events:
+        # Empty list provided - may be stale snapshot. Query evidence_store directly.
+        _logger.info("supplied tool_events is empty - querying evidence_store for fresh data")
+        tool_events = _load_turn_events(session_id, terminal_id)
+        # If evidence_store also returns empty or None, use the supplied empty list
+        if not tool_events:
+            tool_events = supplied_events
     else:
         tool_events = _load_turn_events(session_id, terminal_id)
 

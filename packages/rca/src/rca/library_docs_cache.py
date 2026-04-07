@@ -99,9 +99,6 @@ class LibraryDocsCache:
 
     def _load_cache(self) -> dict[str, dict[str, Any]]:
         """Load cache from disk."""
-        if not self.cache_file.exists():
-            return {"library_docs": {}, "metadata": {"version": "1.0"}}
-
         try:
             return json.loads(self.cache_file.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as e:

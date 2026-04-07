@@ -893,6 +893,8 @@ def check_write_permission(
 
     # BLOCK
     return False, (
+        f"[WORKFLOW_BLOCK_NOT_HOOK_CRASH]\n"
+        f"This is an intentional Investigation Gate block, not a broken hook.\n\n"
         f"INVESTIGATION GATE VIOLATION\n\n"
         f"Attempting to modify: {filepath}\n"
         f"Risk tier: {risk_tier}\n"

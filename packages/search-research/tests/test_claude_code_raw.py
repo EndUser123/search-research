@@ -1,13 +1,14 @@
 """Auto-scaffolded test for claude_code_raw."""
 
 import pytest
-from claude_code_raw import claude_code_raw
+
+from core.chs.providers import claude_code_raw as claude_code_raw_module
 
 
 def test_claude_code_raw_exists():
-    """Smoke test: claude_code_raw can be imported."""
-    assert claude_code_raw is not None
+    """Smoke test: claude_code_raw module can be imported."""
+    assert claude_code_raw_module is not None
 
 
 # TODO: Add more tests based on actual functionality
-# Run: pytest tests/test_claude_code_raw.py -v
+# Real tests are in: core/chs/providers/tests/test_claude_code_raw.py

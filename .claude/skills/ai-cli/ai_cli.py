@@ -956,7 +956,8 @@ def generate_parallel_bash_commands(
     if run_gemini:
         commands.append(f"echo {safe_query} | gemini")
     if run_codex:
-        commands.append(f"echo {safe_query} | codex exec")
+        # Codex exec takes query as argument (not stdin), like vibe uses -p
+        commands.append(f'codex exec "{query}"')
     if run_vibe:
         # Vibe uses -p flag with query as argument (not stdin)
         commands.append(f"vibe -p {safe_query}")

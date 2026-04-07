@@ -150,6 +150,23 @@ Score 2: "Fixed typo in config" → SKIP (one-off, low impact)
 - Reference real problems solved
 - No speculation about future issues
 
+## Lesson-Quality Prompts
+
+Before storing or skipping a lesson, `/learn` should run a short internal lesson-quality check:
+
+- What candidate here is merely an event, output, or routine operation rather than a reusable lesson?
+- What lesson sounds novel locally but is already known, obvious, or too one-off to keep?
+- What pattern would stop being true if the surrounding context or constraints changed?
+- What score am I inflating because the wording sounds important, not because the lesson is durable?
+- What causal claim is being made without enough evidence from the actual session?
+- What lesson is really a symptom of a deeper pattern that should be captured instead?
+- What would a weaker model over-store here as noisy trivia?
+- What lesson should be merged with another because they are the same underlying pattern?
+- What lesson is useful only for this repo or session and should not be promoted more broadly?
+- What would make this stored lesson teach the wrong habit next time?
+
+These are internal self-check prompts. They are not default user-facing questions and should only surface to the user when `/learn` is genuinely blocked and cannot proceed safely without clarification.
+
 ## Output Format
 
 ### When Lessons Found

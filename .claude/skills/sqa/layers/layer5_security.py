@@ -87,10 +87,6 @@ def _is_command_available(cmd: str) -> bool:
     return shutil.which(cmd) is not None
 
 
-def _check_command(cmd: str) -> None:
-    """Validate command against ALLOWED_COMMANDS (allowlist, not availability)."""
-    cmd_name = cmd.split()[0] if isinstance(cmd, str) else cmd[0]
-    assert cmd_name in ALLOWED_COMMANDS, f"Command {cmd_name} not in ALLOWED_COMMANDS"
 
 
 def _check_path_traversal(target: Path) -> list[Finding]:
@@ -180,51 +176,26 @@ def _count_invariant_violations(content: str) -> int:
 
 
 def _run_adversarial_security(target: Path) -> list[Finding]:
-    """Run adversarial-security agent. Requires Agent tool dispatch from skill context.
+    """Run adversarial-security agent analysis.
 
-    adversarial-security is an LLM subagent — not a CLI tool.
-    This module cannot invoke it via subprocess.
+    adversarial-security is an LLM subagent dispatched via the Agent tool from skill context.
+    This Python module cannot invoke it — it returns empty findings with a clear message.
+
+    To run adversarial security analysis, use from skill context:
+        Agent('adversarial-security').analyze(target=target, findings=[...])
+
+    Returns:
+        Empty list — Agent dispatch is required at skill level.
     """
     import logging
     logger = logging.getLogger(__name__)
 
-    findings: list[Finding] = []
-
-    if not _is_command_available("adversarial-security"):
-        logger.warning(
-            "adversarial-security is an LLM subagent (Agent tool), not a CLI tool. "
-            "It cannot be invoked via subprocess. "
-            "From skill context, use: Agent('adversarial-security').analyze(target, findings=[...])"
-        )
-        return findings
-
-    _check_command("adversarial-security")
-    try:
-        result = subprocess.run(
-            ["adversarial-security", str(target)],
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-        if result.returncode != 0 and result.stdout:
-            for line in result.stdout.splitlines():
-                if line.strip():
-                    findings.append(
-                        Finding(
-                            finding_id="L5-ADV-SEC-FINDING",
-                            severity=Severity.HIGH,
-                            layer=Layer.L5_SECURITY,
-                            title="Adversarial security finding",
-                            description=line.strip(),
-                            evidence_tier=EvidenceTier.T3,
-                            category="security",
-                        )
-                    )
-    except subprocess.TimeoutExpired:
-        logger.warning("adversarial-security timed out after 60s")
-    except FileNotFoundError:
-        logger.warning("adversarial-security command not found in PATH")
-    return findings
+    logger.info(
+        "L5_SECURITY: adversarial-security requires Agent tool dispatch at skill level. "
+        "Python layer returns empty findings. "
+        "Use: Agent('adversarial-security') from skill execution context."
+    )
+    return []
 
 
 def _check_anti_bleed(target: Path) -> list[Finding]:

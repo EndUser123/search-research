@@ -126,16 +126,27 @@ After defining the symptom (Step 1), enumerate telemetry sources and search for 
    - Session transcript files (`P:/.claude/transcripts/`)
    - RCA workflow state (`~/.claude/state/rca/rca_workflow.json`)
    - Pending intent files (`P:/.claude/hooks/state/pending_command_intent_*.json`)
+   - **Hook events database** (`P:/.claude/hooks/events.db`) — constitutional events, TruthValidation, BloatAnalysis, GoalExtracted
 
 3. **Search relevant logs for symptom keywords:**
    ```bash
    python P:\.claude\skills\rca\tools\telemetry_discovery.py --match "error_keyword" --since 7
    ```
 
-4. **Add telemetry findings to evidence buckets BEFORE forming hypotheses:**
+4. **Query hook events DB directly (most powerful for hook-related issues):**
+   ```bash
+   python P:\.claude\skills\rca\tools\telemetry_discovery.py --events-db "TruthValidation"
+   python P:\.claude\skills\rca\tools\telemetry_discovery.py --events-db "BloatAnalysis"
+   python P:\.claude\skills\rca\tools\telemetry_discovery.py --events-db "hook_error"   # keyword search
+   python P:\.claude\skills\rca\tools\telemetry_discovery.py --events-db "BloatAnalysis" --events-since 30
+   ```
+   The events DB contains 45,554 rows (TruthValidation, BloatAnalysis, GoalExtracted) spanning 2025-12-21 to 2026-02-01. Query by event type, layer name, or payload keyword. Without `--events-since`, returns all matching records (up to 100).
+
+5. **Add telemetry findings to evidence buckets BEFORE forming hypotheses:**
    - **Bucket 1 (Mechanism)**: Hook logs showing code path execution
    - **Bucket 2 (State)**: Session state, intent files, workflow state
    - **Bucket 3 (Outcome)**: Skill invocations, transcript events
+   - **Bucket 4 (Hook Events)**: events.db constitutional_events filtered by symptom keyword
 
 **Why this matters:**
 - Telemetry is Tier 1 evidence (highest confidence) — logs don't lie

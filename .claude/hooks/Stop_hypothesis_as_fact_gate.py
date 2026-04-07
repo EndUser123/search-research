@@ -30,6 +30,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+_log_failure_count: int = 0
+
 # Import verification engine from TASK-008
 try:
     from verification import Claim, build_verdicts, extract_claims
@@ -166,8 +168,9 @@ def _log_decision(
         with open(LOG_FILE, "a", encoding="utf-8") as f:
             f.write(json.dumps(log_entry, separators=(",", ":")) + "\n")
     except (OSError, ValueError):
-        # Fail silently - logging should never break the gate
-        pass
+        # Fail open on logging errors - gate must not break due to audit failures
+        global _log_failure_count
+        _log_failure_count += 1
 
 
 def _strip_non_assertion_contexts(text: str) -> str:
@@ -246,7 +249,7 @@ def run(data: dict[str, Any]) -> dict[str, Any]:
         claims = extract_claims(analysis_text)
 
         if not claims:
-            return {"allow": True, "reason": "No claims detected"}
+            return {"allow": True, "reason": "No claims detected", "log_failures": _log_failure_count}
 
         # Load tool events for context (terminal-scoped from TASK-001)
         tool_events = load_tool_events_for_context(
@@ -283,7 +286,7 @@ def run(data: dict[str, Any]) -> dict[str, Any]:
                     outcome="pass",
                     reason=f"Claim {verdict.status.value}: grounded in tool events or hedged",
                 )
-            return {"allow": True, "reason": "All claims grounded or hedged"}
+            return {"allow": True, "reason": "All claims grounded or hedged", "log_failures": _log_failure_count}
 
         # Build block/warn message
         claim_summary = "\n".join(
@@ -326,11 +329,11 @@ To disable enforcement: Set HYPOTHESIS_AS_FACT_GATE_ENABLED=false
         # Apply mode (warn vs block) - read dynamically
         gate_mode = _get_gate_mode()
         if gate_mode == "block":
-            return {"allow": False, "reason": reason}
+            return {"allow": False, "reason": reason, "log_failures": _log_failure_count}
         else:  # warn mode
             print(f"⚠️ {reason}", file=os.fdopen(1, "w", encoding="utf-8"))
-            return {"allow": True, "reason": "Warning issued (warn mode)"}
+            return {"allow": True, "reason": "Warning issued (warn mode)", "log_failures": _log_failure_count}
 
     except Exception:
         # Fail open on errors to prevent blocking due to system failures
-        return {"allow": True, "reason": "Gate error (fail-open)"}
+        return {"allow": True, "reason": "Gate error (fail-open)", "log_failures": _log_failure_count}

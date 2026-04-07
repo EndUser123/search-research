@@ -157,6 +157,21 @@ class HookImporter:
         }
         self._fallback_log_diag(filename_map.get(phase, "hook_importer_errors.jsonl"), payload)
 
+    def _clear_hook_bytecode(self, hook_name: str) -> None:
+        """Clear bytecode cache for a specific hook file.
+
+        Args:
+            hook_name: Name of hook file without .py extension
+        """
+        pycache_dir = self.hooks_dir / "__pycache__"
+        if not pycache_dir.exists():
+            return
+
+        version_tag = f"cpython-{sys.version_info.major}{sys.version_info.minor}"
+        for ext in (".pyc", ".pyo"):
+            pyc_file = pycache_dir / f"{hook_name}.{version_tag}{ext}"
+            pyc_file.unlink(missing_ok=True)
+
     def load_hook(self, hook_name: str, input_context: dict[str, Any] | None = None) -> Any:
         """Load hook module dynamically (cached).
 
@@ -195,14 +210,47 @@ class HookImporter:
             # Cleanup failed module
             if hook_name in sys.modules:
                 del sys.modules[hook_name]
+
+            # Capture original error for logging before retry may overwrite context
+            original_error = e
+            retry_error = None
+
+            # Retry logic for stale bytecode (ImportError/SyntaxError only)
+            if isinstance(e, (ImportError, SyntaxError)):
+                self._clear_hook_bytecode(hook_name)
+
+                # Retry import once after bytecode cleanup
+                try:
+                    spec = importlib.util.spec_from_file_location(hook_name, hook_path)
+                    if spec is None or spec.loader is None:
+                        raise ImportError(f"Failed to load spec for {hook_name}")
+
+                    module = importlib.util.module_from_spec(spec)
+                    sys.modules[hook_name] = module
+
+                    hooks_dir_str = str(self.hooks_dir.resolve())
+                    if hooks_dir_str not in sys.path:
+                        sys.path.insert(0, hooks_dir_str)
+                    spec.loader.exec_module(module)
+                    self._cache[hook_name] = module
+                    return module
+                except Exception as retry_exc:
+                    # Retry failed - capture for logging, fall through to error handling
+                    retry_error = retry_exc
+                    if hook_name in sys.modules:
+                        del sys.modules[hook_name]
+
+            error_suffix = ""
+            if retry_error is not None:
+                error_suffix = f" (retry also failed: {type(retry_error).__name__}: {retry_error})"
             self._log_anomaly(
                 phase="load",
                 hook_name=hook_name,
-                error_text=f"{type(e).__name__}: {e}",
+                error_text=f"{type(original_error).__name__}: {original_error}{error_suffix}",
                 input_context=input_context,
                 traceback_text=traceback.format_exc(),
             )
-            raise ImportError(f"Failed to execute {hook_name}: {e}")
+            raise ImportError(f"Failed to execute {hook_name}: {original_error}")
 
         self._cache[hook_name] = module
         return module

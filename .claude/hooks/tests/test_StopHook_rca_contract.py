@@ -26,6 +26,8 @@ from StopHook_rca_contract import (
     _extract_file_paths_from_path,
     _check_stale_execution_path,
     _get_file_mtime,
+    _validate_evidence_tier_labels,
+    _validate_adversarial_hypothesis,
 )
 
 
@@ -586,3 +588,301 @@ class _ErrorFileLock:
 
     def __exit__(self, *args):
         pass
+
+
+class TestAP6AdversarialHypothesis:
+    """Tests for TASK-003: AP6 Adversarial Hypothesis Validator.
+
+    _validate_adversarial_hypothesis checks that Falsifier does not contain
+    patterns indicating the hypothesis was disproved.
+    """
+
+    def test_falsified_hypothesis(self):
+        """Falsifier with 'falsified' should return block reason."""
+        sections = {
+            "Falsifier": "The hypothesis was falsified by grep showing 0 callers",
+            "Alternative Hypothesis": "func() is the root cause",
+        }
+        result = _validate_adversarial_hypothesis(sections, [])
+        assert len(result) == 1
+        assert "hypothesis-falsified" in result[0]
+
+    def test_disproved_hypothesis(self):
+        """Falsifier with 'disproved' should return block reason."""
+        sections = {
+            "Falsifier": "The alternative was disproved by the test results",
+            "Alternative Hypothesis": "func() is the root cause",
+        }
+        result = _validate_adversarial_hypothesis(sections, [])
+        assert len(result) == 1
+        assert "hypothesis-falsified" in result[0]
+
+    def test_debunked_hypothesis(self):
+        """Falsifier with 'debunked' should return block reason."""
+        sections = {
+            "Falsifier": "This hypothesis was debunked by subsequent analysis",
+            "Alternative Hypothesis": "func() is the root cause",
+        }
+        result = _validate_adversarial_hypothesis(sections, [])
+        assert len(result) == 1
+        assert "hypothesis-falsified" in result[0]
+
+    def test_hypothesis_is_false(self):
+        """Falsifier with 'hypothesis is false' should return block reason."""
+        sections = {
+            "Falsifier": "Test showed hypothesis is false — no evidence of dead code",
+            "Alternative Hypothesis": "dead code is the root cause",
+        }
+        result = _validate_adversarial_hypothesis(sections, [])
+        assert len(result) == 1
+        assert "hypothesis-falsified" in result[0]
+
+    def test_survived_hypothesis(self):
+        """Falsifier without falsification patterns should pass."""
+        sections = {
+            "Falsifier": "Alternative hypothesis cannot explain the symptom because it does not match the error pattern",
+            "Alternative Hypothesis": "func() is the root cause",
+        }
+        result = _validate_adversarial_hypothesis(sections, [])
+        assert result == []
+
+    def test_no_falsifier_section(self):
+        """No Falsifier section returns empty list (no block)."""
+        sections = {"Alternative Hypothesis": "func() is the root cause"}
+        result = _validate_adversarial_hypothesis(sections, [])
+        assert result == []
+
+
+class TestEvidenceTierLabels:
+    """Tests for TASK-002: Evidence Tier Label Validation.
+
+    _validate_evidence_tier_labels checks that all evidence lines have
+    one of: [current-state], [transcript-time], or [inference].
+    """
+
+    def test_current_state_label_passes(self):
+        """Evidence with [current-state] prefix passes."""
+        evidence = "[current-state] Read on foo.py shows bar() is called"
+        result = _validate_evidence_tier_labels(evidence)
+        assert result == []
+
+    def test_transcript_time_label_passes(self):
+        """Evidence with [transcript-time] prefix passes."""
+        evidence = "[transcript-time] From prior session: function has 3 callers"
+        result = _validate_evidence_tier_labels(evidence)
+        assert result == []
+
+    def test_inference_label_passes(self):
+        """Evidence with [inference] prefix passes."""
+        evidence = "[inference] The error must be in the main loop based on the trace"
+        result = _validate_evidence_tier_labels(evidence)
+        assert result == []
+
+    def test_multiple_valid_labels_passes(self):
+        """Evidence with multiple valid tier labels passes."""
+        evidence = """[current-state] Read on foo.py shows bar() is called
+[current-state] Grep found 3 callers in main.py
+[inference] The root cause is likely the race condition"""
+        result = _validate_evidence_tier_labels(evidence)
+        assert result == []
+
+    def test_unlabeled_line_blocked(self):
+        """Evidence without tier label on a line is blocked."""
+        evidence = """[current-state] Read on foo.py shows bar() is called
+No label here - this should be flagged"""
+        result = _validate_evidence_tier_labels(evidence)
+        assert len(result) == 1
+        assert "evidence-without-tier-label" in result[0]
+
+    def test_empty_evidence_returns_empty(self):
+        """Empty evidence returns empty list."""
+        result = _validate_evidence_tier_labels("")
+        assert result == []
+
+    def test_code_blocks_exempt(self):
+        """Code blocks (```) are exempt from tier labels."""
+        evidence = """[current-state] Read on foo.py
+```
+def bar():
+    pass
+```
+[current-state] More labeled content"""
+        result = _validate_evidence_tier_labels(evidence)
+        assert result == []
+
+    def test_short_lines_exempt(self):
+        """Lines <= 3 chars are exempt from tier labels."""
+        evidence = """[current-state] Read on foo.py
+a
+ab
+abc
+OK"""
+        result = _validate_evidence_tier_labels(evidence)
+        assert result == []
+
+
+class TestRuledOutField:
+    """Tests for TASK-001: Ruled Out field requirement.
+
+    _validate_rca_contract blocks when "Ruled Out" section is missing.
+    """
+
+    def test_ruled_out_section_exists_passes(self):
+        """RCA with Ruled Out section should pass this check."""
+        # This is a unit test for the section extraction behavior
+        from StopHook_rca_contract import _extract_sections, _get_section
+
+        response = """## Symptom
+Error occurs in main loop
+
+## Evidence
+[current-state] Read shows bar() is called
+
+## Executed Path
+main.py -> bar()
+
+## Alternative Hypothesis
+| Hypothesis | Score |
+|------------|-------|
+| bar() is the cause | 0.85 |
+| edge case | 0.72 |
+
+## Falsifier
+bar() does not appear in the error trace
+
+## Ruled Out
+- edge case: No evidence in transcript
+
+## Root Cause
+bar() in main.py
+
+## Fix
+Update the error handling
+
+## Verification
+Run the test suite
+"""
+        sections = _extract_sections(response)
+        ruled_out = _get_section(sections, "Ruled Out")
+        assert ruled_out != ""
+        assert "edge case" in ruled_out
+
+    def test_missing_ruled_out_section(self):
+        """RCA without Ruled Out section should fail."""
+        from StopHook_rca_contract import _extract_sections, _get_section
+
+        response = """## Symptom
+Error occurs in main loop
+
+## Evidence
+[current-state] Read shows bar() is called
+
+## Executed Path
+main.py -> bar()
+
+## Alternative Hypothesis
+| Hypothesis | Score |
+|------------|-------|
+| bar() is the cause | 0.85 |
+
+## Falsifier
+bar() does not appear in the error trace
+
+## Root Cause
+bar() in main.py
+
+## Fix
+Update the error handling
+
+## Verification
+Run the test suite
+"""
+        sections = _extract_sections(response)
+        ruled_out = _get_section(sections, "Ruled Out")
+        assert ruled_out == ""
+
+
+class TestFullContractAP6:
+    """Tests for full 9-field RCA contract with AP6 validation.
+
+    Tests that all 9 fields pass when valid, and that missing Ruled Out blocks.
+    """
+
+    def test_full_contract_all_9_fields_valid(self):
+        """All 9 fields valid should pass AP6 and tier label checks."""
+        from StopHook_rca_contract import _validate_rca_contract, _extract_sections
+
+        response = """## Symptom
+Error occurs in main loop
+
+## Evidence
+[current-state] Read on main.py shows bar() is called
+
+## Executed Path
+main.py -> bar()
+
+## Alternative Hypothesis
+| Hypothesis | Score |
+|------------|-------|
+| bar() is the cause | 0.85 |
+| edge case | 0.72 |
+
+## Falsifier
+bar() does not match the error pattern in the trace
+
+## Ruled Out
+- edge case: No evidence in transcript
+
+## Root Cause
+bar() in main.py
+
+## Fix
+Update the error handling in bar()
+
+## Verification
+Run pytest to confirm fix
+"""
+        sections = _extract_sections(response)
+        is_valid, reasons = _validate_rca_contract(
+            response, [{"id": "evt_1", "name": "Read"}], True, "sess_1", "term_1"
+        )
+        # Should not have hypothesis-falsified or evidence-without-tier-label
+        ap6_related = [r for r in reasons if "hypothesis-falsified" in r or "evidence-without-tier-label" in r]
+        assert ap6_related == [], f"Expected no AP6/tier blocks, got: {ap6_related}"
+
+    def test_contract_missing_ruled_out_blocked(self):
+        """Missing Ruled Out section should be blocked."""
+        from StopHook_rca_contract import _validate_rca_contract
+
+        response = """## Symptom
+Error occurs
+
+## Evidence
+[current-state] Read on main.py
+
+## Executed Path
+main.py
+
+## Alternative Hypothesis
+| Hypothesis | Score |
+|------------|-------|
+| bar() is the cause | 0.85 |
+
+## Falsifier
+bar() does not match
+
+## Root Cause
+bar()
+
+## Fix
+Update it
+
+## Verification
+Run tests
+"""
+        is_valid, reasons = _validate_rca_contract(
+            response, [{"id": "evt_1", "name": "Read"}], True, "sess_1", "term_1"
+        )
+        # Ruled Out section missing triggers block - check by looking for Ruled Out related reason
+        ruled_out_blocks = [r for r in reasons if "Ruled Out" in r]
+        assert len(ruled_out_blocks) == 1, f"Expected Ruled Out block, got: {reasons}"

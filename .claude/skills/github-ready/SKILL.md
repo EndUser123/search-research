@@ -2,7 +2,8 @@
 name: github-ready
 version: 5.13.0
 status: "stable"
-description: Creates GitHub-ready Python libraries, Claude skills, and Claude Code plugins with badges, CI/CD workflows, coverage metrics, media artifacts, and automatic plugin standards validation. Includes PHASE 6: GitHub Publication and PHASE 7: Repository Finalization.
+enforcement: advisory
+description: "Creates GitHub-ready Python libraries, Claude skills, and Claude Code plugins with badges, CI/CD workflows, coverage metrics, and automatic plugin standards validation."
 category: scaffolding
 triggers:
   - /github-ready

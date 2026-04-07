@@ -1,1 +1,1 @@
-"""Tests for pre-mortem skill."""
+"""Tests for critique skill."""

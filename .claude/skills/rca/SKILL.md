@@ -147,6 +147,36 @@ See `references/evidence-and-tiers.md` for completeness rules, gap analysis prot
 
 **Synthesis Protocol**: Dispatch in parallel, collect perspectives, identify convergence, resolve divergence, state consensus. Multi-agent reasoning boosts confidence ceiling to 90%.
 
+## Competing-Cause Prompts
+
+Before converging on a diagnosis, `/rca` should run a short internal competing-cause check:
+
+- What is the strongest competing root-cause explanation?
+- What evidence would falsify my current root-cause hypothesis?
+- Am I describing a symptom, a trigger, or the actual root cause?
+- What part of this failure depends on stale state, multi-terminal interaction, or interrupted workflow?
+- What invariant was assumed to hold, and where did it actually break?
+- What would cause this issue to recur even if the immediate bug were patched?
+- What fix layer is most durable here: code, hook, validator, workflow, or architecture?
+- What am I treating as authoritative, and could that authority be stale or wrong?
+- What would a weaker or faster model misdiagnose here?
+- What part of this explanation is still relying on prose instead of evidence?
+- What prior observation, regression, or user correction most changed the favored hypothesis over time? (`trace`)
+
+These are internal self-check prompts. They are not default user-facing questions and should only surface to the user when `/rca` is genuinely blocked and cannot proceed safely without clarification.
+
+## Trace And Challenge Passes
+
+`/rca` should treat `trace` and `challenge` as core internal passes:
+
+- `trace`: reconstruct how the symptom, evidence trail, and leading hypotheses evolved across logs, reproductions, and corrections
+- `challenge`: keep pressure on the favored diagnosis by forcing falsification, competing explanations, and recurrence analysis
+
+Use `trace` whenever the current theory depends on "what changed" or on a sequence of observations across time.
+Use `challenge` on every nontrivial RCA; it is the mechanism that prevents symptom narratives from hardening into fake root causes.
+
+Reference: `P:/.claude/skills/__lib/sdlc_internal_modes.md`
+
 ## Investigation Workflow (Summary)
 
 | Step | Name | Description |

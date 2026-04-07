@@ -515,15 +515,15 @@ class TestGetAllChainFiles:
             return_value=SessionChainResult(
                 entries=[
                     SessionChainEntry(
-                        session_id="a", transcript_path=p1, parent_transcript_path=p2, created=None
+                        session_id="a", transcript_path=p1, parent_transcript_path=None, created=None
                     ),
                     SessionChainEntry(
-                        session_id="b", transcript_path=p2, parent_transcript_path=p3, created=None
+                        session_id="b", transcript_path=p2, parent_transcript_path=p1, created=None
                     ),
                     SessionChainEntry(
                         session_id="c",
                         transcript_path=p3,
-                        parent_transcript_path=None,
+                        parent_transcript_path=p2,
                         created=None,
                     ),
                 ],
@@ -533,3 +533,109 @@ class TestGetAllChainFiles:
         ):
             result = get_all_chain_files("c")
         assert result == [p1, p2, p3]
+
+
+# ---------------------------------------------------------------------------
+# _cosine_sim — unit tests
+# ---------------------------------------------------------------------------
+
+
+class TestCosineSim:
+    def test_identical_vectors(self) -> None:
+        from core.session_chain import _cosine_sim
+        import numpy as np
+        vec = np.array([1.0, 0.0, 0.0])
+        assert _cosine_sim(vec, vec) == pytest.approx(1.0)
+
+    def test_orthogonal_vectors(self) -> None:
+        from core.session_chain import _cosine_sim
+        import numpy as np
+        a = np.array([1.0, 0.0, 0.0])
+        b = np.array([0.0, 1.0, 0.0])
+        assert _cosine_sim(a, b) == pytest.approx(0.0)
+
+    def test_opposite_vectors(self) -> None:
+        from core.session_chain import _cosine_sim
+        import numpy as np
+        a = np.array([1.0, 0.0])
+        b = np.array([-1.0, 0.0])
+        assert _cosine_sim(a, b) == pytest.approx(-1.0)
+
+    def test_zero_vector_returns_zero(self) -> None:
+        from core.session_chain import _cosine_sim
+        import numpy as np
+        a = np.array([0.0, 0.0])
+        b = np.array([1.0, 0.0])
+        assert _cosine_sim(a, b) == 0.0
+
+    def test_threshold_behavior(self) -> None:
+        """Texts with ~0.6 similarity should pass threshold=0.5 but fail threshold=0.7."""
+        from core.session_chain import _cosine_sim
+        import numpy as np
+        # a = [1,0,0], b = [0.6, 0.8, 0] -> dot=0.6, norm_a=1, norm_b=1 -> sim=0.6
+        a = np.array([1.0, 0.0, 0.0])
+        b = np.array([0.6, 0.8, 0.0])
+        sim = _cosine_sim(a, b)
+        assert sim >= 0.5, f"Expected similarity >= 0.5, got {sim}"
+        assert sim < 0.7, f"Expected similarity < 0.7, got {sim}"
+
+
+# ---------------------------------------------------------------------------
+# _session_text — edge cases
+# ---------------------------------------------------------------------------
+
+
+class TestSessionText:
+    def test_goal_takes_precedence(self) -> None:
+        from core.session_chain import _session_text
+        info = {"goal": "Implement auth", "lastPrompt": "", "summary": "", "active_files": []}
+        assert _session_text(info) == "Implement auth"
+
+    def test_lastPrompt_when_no_goal(self) -> None:
+        from core.session_chain import _session_text
+        info = {"goal": "", "lastPrompt": "Debug the login bug", "summary": "", "active_files": []}
+        assert _session_text(info) == "Debug the login bug"
+
+    def test_summary_fallback(self) -> None:
+        from core.session_chain import _session_text
+        info = {"goal": "", "lastPrompt": "", "summary": "Fixed authentication", "active_files": []}
+        assert _session_text(info) == "Fixed authentication"
+
+    def test_all_fields_empty(self) -> None:
+        from core.session_chain import _session_text
+        info = {"goal": "", "lastPrompt": "", "summary": "", "active_files": []}
+        assert _session_text(info) == ""
+
+    def test_active_files_truncation(self) -> None:
+        from core.session_chain import _session_text
+        files = [f"src/module_{i}.py" for i in range(15)]
+        info = {"goal": "work", "lastPrompt": "", "summary": "", "active_files": files}
+        text = _session_text(info)
+        for i in range(10):
+            assert f"src/module_{i}.py" in text
+        assert "src/module_10.py" not in text
+
+
+# ---------------------------------------------------------------------------
+# _get_st_model — TTL cache
+# ---------------------------------------------------------------------------
+
+
+class TestGetStModel:
+    def test_model_reloads_after_ttl(self) -> None:
+        import core.session_chain
+        from core.session_chain import _get_st_model
+
+        # Force eviction
+        core.session_chain._st_model = None
+        core.session_chain._st_model_last_used = 0.0
+
+        model = _get_st_model()
+        assert model is not None
+
+    def test_cache_returns_same_model_within_ttl(self) -> None:
+        from core.session_chain import _get_st_model
+
+        model1 = _get_st_model()
+        model2 = _get_st_model()
+        assert model1 is model2

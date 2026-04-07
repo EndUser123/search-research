@@ -18,14 +18,14 @@ aliases:
   - /planning
   - /planning-v2
 metadata:
-  version: "5.5.0"
+  version: "5.5.2"
   compatibility: "claude-code"
   status: "accepted"
 
 workflow_steps:
   - detect_topic: Infer topic from conversation history when not explicitly provided
   - draft_plan: Generate initial plan draft (NOT placeholder normalization — concrete content only)
-  - verify: Run auto_verify.py for deterministic checks (sections, placeholders, contradictions)
+  - verify: Run auto_verify.py for deterministic checks (sections, placeholders, contradictions, explicit file/line evidence, and execution semantics)
   - contract_boundary_check: Reject plans with implied producer/consumer boundaries, missing artifact schemas, missing required Contract Authority Packet consumption, or missing freshness/invalidation rules
   - remediate_blockers: Route architecture blockers to /arch for decision closure; planning keeps sole ownership of plan edits
   - auto_fix: Apply only non-semantic repairs (header normalization, metadata, and optional ordering when explicitly requested)
@@ -51,7 +51,44 @@ suggest:
 
 ## Purpose
 
-Create and verify implementation plans with strict readiness gating. A plan cannot be marked `implementation-ready` while it contains placeholders, unresolved blocker findings, raw review output, implied producer/consumer contracts, or missing required Contract Authority Packet consumption.
+Create and verify implementation plans with strict readiness gating. A plan cannot be marked `implementation-ready` while it contains placeholders, unresolved blocker findings, raw review output, implied producer/consumer contracts, missing required Contract Authority Packet consumption, stale explicit file/line evidence, or vague layered execution semantics.
+
+## Implicit-Decision Prompts
+
+Before accepting a draft as semantically complete, `/planning` should ask itself:
+
+- What decisions in this plan still materially change execution if interpreted differently?
+- What evidence claims in this plan would become stale if the workspace changed?
+- What steps or layers are conditional, and what exact signal triggers them?
+- What part of this plan would a downstream `/code` or `/tdd` consumer have to guess?
+- What file, contract, or test target is assumed to exist but not verified?
+- What existing mechanism in the cited implementation overlaps with the proposed extension, and is it replaced, preserved, or routed differently?
+- For every new state/artifact field, who writes it, who reads it, what shape does it have, and what happens when it is absent?
+- If the plan adds an alternate flow or mode, what exact selector distinguishes it from the standard flow?
+- What unhappy-path tests prove interruption, stale state, TTL expiry, malformed state, or fallback behavior?
+- Does each implementation change describe logic that belongs to the component it claims to modify?
+- If the plan parses model output into structured state, what validation, retry, or fallback rule handles malformed or incomplete output?
+- Does the plan reference any helper function or formatter without saying whether it already exists or must be added?
+- Do assumptions/defaults contradict the schema or data shape described elsewhere in the plan?
+- What prior decision packet, blocker, or correction most changed what this plan now needs to say? (`trace`)
+- What is the strongest execution-side objection to accepting this plan as implementation-ready? (`challenge`)
+- What repeated planning defect should be promoted into a validator or gate instead of rediscovered manually next time? (`graduate`)
+
+These are internal planning prompts, not user interview questions. Their job is to surface hidden execution ambiguity before `auto_verify.py` has to reject the artifact.
+
+## Trace, Challenge, And Graduate
+
+`/planning` should use three internal helper passes when the plan is nontrivial:
+
+- `trace`: reconstruct which prior architecture decisions, blockers, or user corrections materially changed the current plan
+- `challenge`: pressure-test the plan for hidden execution ambiguity, weak fallback behavior, or downstream guesswork
+- `graduate`: identify repeated planning failures that should become durable verifier rules instead of review folklore
+
+Use `trace` when the plan depends on `/arch` packets, prior blocker closure, or evolving contract decisions.
+Use `challenge` whenever the plan is layered, stateful, hook-driven, or overlap-sensitive.
+Use `graduate` when the same class of plan defect appears repeatedly across reviews or verifier failures.
+
+Reference: `P:/.claude/skills/__lib/sdlc_internal_modes.md`
 
 ## Orchestration Model
 
@@ -66,6 +103,8 @@ Claude assembles draft -> Claude calls auto_verify.py -> if architecture blocker
 - Call verification scripts when needed
 - Invoke `/arch` automatically when verification reports architecture-class blockers
 - Rewrite the plan itself after consuming `/arch` decisions; `/arch` must not directly edit the plan
+- Treat `/arch` as a nested substep of the same `/planning` invocation; after `/arch` returns a usable packet, resume `/planning` automatically without asking the user to rerun `/planning`
+- Treat any "would you like me to continue /planning?" question after a successful nested `/arch` call as a workflow violation; the default is to continue automatically until the plan is rewritten and re-verified
 - Dispatch adversarial subagents via Task tool in a single message
 - Synthesize accepted findings into a rewritten plan
 - Present only the plan path and status -- NOT raw findings
@@ -75,6 +114,24 @@ Claude assembles draft -> Claude calls auto_verify.py -> if architecture blocker
 - `auto_fix.py`: Non-semantic repairs only (header normalization, frontmatter metadata updates, and section ordering only when explicitly requested)
 - Custom subagents: Adversarial agents defined in `.claude/agents/`
 
+## Critique-Agent Review Policy
+
+`/planning` should use critique/adversarial agents whenever the draft includes ambiguity classes that are expensive to catch after implementation.
+
+Critique-agent review is mandatory for:
+- stateful, hook-driven, multi-terminal, resumable, or stale-data-sensitive plans
+- contract-sensitive producer/consumer boundaries
+- layered execution policies with selectors, fallback paths, or conditional activation
+- plans that extend an existing live workflow or mode system
+
+The critique agents should explicitly challenge:
+- overlap with existing mechanisms
+- selector/default behavior
+- producer/consumer/provenance of new state or artifact fields
+- unhappy-path test completeness
+
+Do not treat critique-agent review as optional polish on these plan classes; it is part of closing the execution design before `/code` or `/tdd` consume the plan.
+
 **Remediation boundary:**
 - `/arch` owns architecture decision closure
 - `/planning` owns the plan artifact and all plan rewrites
@@ -83,6 +140,8 @@ Claude assembles draft -> Claude calls auto_verify.py -> if architecture blocker
 **Authoritative precedence:**
 - The latest `auto_verify.py` result is authoritative for current blocker state
 - The latest `Contract Authority Packet` from `/arch` is authoritative for closed boundary semantics on contract-sensitive work
+- The latest `Planning Handoff Packet` from `/arch` is authoritative for ADR-to-plan extraction when an ADR is the source artifact
+- The latest `Planning Source Packet` from a non-ADR source artifact is authoritative for source-to-plan extraction when present
 - Current workspace files are authoritative over notes embedded in the plan
 - Older review notes, “false positive” commentary, or stale summaries are non-authoritative once verification has been rerun
 
@@ -90,9 +149,26 @@ Readiness is computed, not asserted by prose. If frontmatter, review artifacts, 
 
 If `next_action.type` is `invoke_arch_then_rewrite_plan`, `/planning` must not debate whether those architecture blockers are “real enough.” It must invoke `/arch` with the listed blocker IDs and rewrite the plan from the returned decision packet.
 
+If `next_action.type` is `invoke_arch_then_rewrite_plan`, the `/arch` call is a nested remediation subworkflow, not a user-visible handoff. `/planning` remains the active owning workflow and must continue automatically after `/arch` returns unless `/arch` explicitly leaves the architecture incomplete or requests clarification that cannot be derived locally.
+
 If `/arch` emits a `Contract Authority Packet`, `/planning` must consume it as authoritative for boundary semantics. The plan may restate or organize those semantics, but it must not weaken, replace, or contradict them.
 
+If `/arch` emits a `Planning Handoff Packet`, `/planning` must consume it as authoritative for canonical section mapping. `/planning` must not shallow-copy ADR headings like `Context`, `Design`, or `Consequences` into the plan. It must rewrite the plan into the v2 plan shape using the packet's mapped fields.
+
+If the source is not an ADR but does include a `Planning Source Packet`, `/planning` must consume that packet as authoritative for intake normalization. Unstructured notes, transcripts, solution writeups, and similar source material must be normalized into the v2 plan shape from the packet or from an explicit extraction map before readiness checks are interpreted as architecture blockers.
+
 For stateful/history/provider/multi-terminal plans, `/planning` must reject drafts that leave identity, ordering, dedupe, invalidation, event-source, or isolation-boundary decisions ambiguous. It must also reject plans whose tests contradict those contracts or whose freshness/replay/invalidation mechanics cannot actually fire under the stated invariants. Those are readiness gates, not polish issues.
+
+For extensions to existing stateful or hook-driven systems, `/planning` must also reject drafts that:
+
+- add new modes/phases/flags without stating how they coexist with or replace overlapping existing flows
+- add new persistent or hook-visible fields without naming who writes them, who reads them, and what happens when the field is absent in older state
+- change selector logic (mode/phase/iteration routing) without naming the discriminator and fallback/default behavior
+- bury logic for one component inside a different component's change block
+- reference helper functions, formatters, or parsers without stating whether they already exist or will be implemented
+- rely on parsing model output into structured state without defining validation, retry, or fallback behavior
+- let assumptions/defaults contradict the declared schema or data shape
+- cover only happy-path tests and omit interruption, malformed-state, TTL, backward-compatibility, or fallback scenarios
 
 For plans with hooks, handoff envelopes, restore artifacts, ledgers, evidence files, subagent outputs, or any other producer/consumer boundary, `/planning` must also reject drafts that leave these ambiguous:
 
@@ -108,6 +184,14 @@ For plans with hooks, handoff envelopes, restore artifacts, ledgers, evidence fi
 - contract authority source when `/arch` marked the boundary contract-sensitive
 
 Those are readiness gates, not polish issues.
+
+`/planning` must also reject drafts that:
+
+- cite explicit file or line evidence that does not exist in the current workspace
+- introduce numbered layers/tiers without stating whether each layer is blocking, advisory, optional, fallback-only, or always-on
+- use conditional phrases like `only if needed`, `if insufficient`, or `when necessary` without defining the trigger signal or threshold
+
+Those are architecture/execution-semantics blockers, not reviewer preference.
 
 ## Routing Behavior
 
@@ -171,16 +255,76 @@ When invoked without a topic argument (e.g., just `/planning`):
 When invoked with an **ADR file path** (e.g., `/planning path/to/ADR-002-chs-consolidation.md`):
 
 1. **Detect ADR format** -- filename patterns: `ADR-XXX`, `XXX-title`, `arch_decisions/` directory
-2. **Generate draft** -- extract content into canonical plan format, but mark as `draft` until concrete tasks replace scaffolding
-3. **Create separate plan file** -- `~/.claude/plans/plan-adr-XXX-title.md`
-4. **DO NOT merge findings into the plan artifact**
+2. **Load planning handoff first** -- if the ADR contains a `Planning Handoff Packet`, use it as the authoritative extraction surface
+3. **Generate draft** -- map ADR or handoff content into canonical plan format, but mark as `draft` until concrete tasks replace scaffolding
+4. **Never mirror ADR headings directly** -- `Context`, `Design`, `Consequences`, `Dependencies`, or `Implementation Sequence` are source material, not valid plan section names
+5. **Create separate plan file** -- `~/.claude/plans/plan-adr-XXX-title.md`
+6. **DO NOT merge findings into the plan artifact**
+
+## Source-Aware Behavior
+
+When invoked with a non-ADR source artifact such as solution notes, a transcript, a design memo, or an unstructured writeup:
+
+1. Detect whether the source contains a `Planning Source Packet`
+2. If present, use it as the authoritative extraction surface
+3. If absent, build an explicit extraction map first, then write the plan from that map
+4. Never mirror arbitrary source headings directly into the plan
+5. Treat malformed first-draft normalization as local `/planning` rewrite work, not as `/arch` proof
+
+### Source-to-Plan Mapping Contract
+
+For non-ADR sources, preferred input is:
+
+- `Planning Source Packet` embedded in the source artifact
+
+Fallback input when no packet exists:
+
+- build an explicit extraction map first, then write the plan from that map
+
+The extraction map must cover:
+
+- `Goal`
+- `Current state with evidence`
+- `Design decisions and invariants`
+- `Implementation changes`
+- `Test matrix`
+- `Contract authority reference`
+- `Contract boundary matrix`
+- `Assumptions/defaults`
+- `Open questions`
+
+### ADR-to-Plan Mapping Contract
+
+For ADR-sourced plans, `/planning` must produce the v2 plan shape from a stable mapping, not from heading copy-through.
+
+Preferred input:
+
+- `Planning Handoff Packet` from `/arch`
+
+Fallback input when no packet exists:
+
+- build an explicit extraction map first, then write the plan from that map
+
+The extraction map must cover:
+
+- `Goal`
+- `Current state with evidence`
+- `Design decisions and invariants`
+- `Implementation changes`
+- `Test matrix`
+- `Contract authority reference`
+- `Contract boundary matrix`
+- `Assumptions/defaults`
+- `Open questions`
+
+`/planning` must not treat a malformed first draft as an `/arch` problem merely because the source was an ADR. If the issue is that the draft does not match the canonical plan schema, `/planning` must repair the draft locally before deciding whether any remaining blockers truly belong to `/arch`.
 
 ## Verification Workflow (Steps 1-3)
 
 Steps 1-3 cover draft generation, auto_verify checks, and auto_fix scope.
 
 **Step 1**: Generate a concrete draft with actual content, NOT placeholder scaffolding.
-**Step 2**: Run `auto_verify.py` for deterministic checks (placeholders, contradictions, dispositions, plan-purity, and state-model contract closure for applicable plans).
+**Step 2**: Run `auto_verify.py` for deterministic checks (placeholders, contradictions, dispositions, plan-purity, explicit file/line evidence, execution semantics, and state-model contract closure for applicable plans).
 **Step 2.5**: Run contract boundary check for producer/consumer artifacts and handoffs.
 **Step 3**: Run `auto_fix.py` for non-semantic repairs only (headers, metadata, and ordering only when explicitly requested).
 
@@ -188,15 +332,26 @@ See `references/verification-workflow.md` for full details on each check and wha
 
 `auto_verify.py` also treats stale sibling review artifacts as non-authoritative. If an existing `.review.summary.md` contradicts the latest verification result, `/planning` must treat it as stale and regenerate it rather than debating which artifact is true.
 
+### Nested `/arch` Resume Contract
+
+When `/planning` invokes `/arch` because `next_action.type == invoke_arch_then_rewrite_plan`:
+
+1. `/planning` stays the owning workflow.
+2. `/arch` is a nested closure substep, not a terminal handoff.
+3. User re-entry is not required.
+4. `/planning` must resume automatically after `/arch` returns a usable packet.
+5. `/planning` must not ask “should I continue the planning workflow?” unless `/arch` returned an unresolved clarification need or an incomplete architecture state.
+
 ## Blocker Remediation Loop
 
 When `auto_verify.py` returns architecture-class blockers, `/planning` must:
 1. Extract the blocking findings and relevant plan excerpts
 2. Invoke `/arch` automatically to close the architecture decisions
 3. Require `/arch` to return a decision packet, not plan edits
-4. Rewrite the plan itself using that decision packet
-5. Remove any now-resolved open questions
-6. Re-run `auto_verify.py`
+4. Resume `/planning` automatically in the same workflow after `/arch` returns
+5. Rewrite the plan itself using that decision packet
+6. Remove any now-resolved open questions
+7. Re-run `auto_verify.py`
 
 **Architecture-class blockers that should route to `/arch`:**
 - `contract_ambiguity`
@@ -216,10 +371,16 @@ When `auto_verify.py` returns architecture-class blockers, `/planning` must:
 - malformed frontmatter
 - RTM/acceptance-criteria gaps
 - raw review output merged into the plan
+- shallow ADR-to-plan transcription errors
+- shallow source-to-plan transcription errors
+- legacy ADR headings copied directly into the plan
+- arbitrary source headings copied directly into the plan
+- reduced contract matrix shape caused by planner extraction instead of architecture ambiguity
 
 **Execution rules for simpler LLMs:**
 - Always rerun `auto_verify.py` before reasoning about blocker state
 - Treat `next_action` as the workflow controller, not as advisory commentary
+- If `next_action.resume_policy` is `automatic_return_to_caller`, do not ask the user to rerun `/planning`; continue the same workflow automatically
 - If the plan or sibling artifacts changed since the last verification run, discard the previous blocker model and rerun verification
 - When both architecture blockers and artifact/status blockers exist, resolve the architecture blockers first, then rerun verification, then clean up the remaining artifact/status blockers
 - Do not create workaround notes arguing a verifier finding is a false positive; either satisfy the contract or escalate to `/arch`
@@ -406,6 +567,8 @@ Each implementation change must specify:
 - **Contract boundary matrix**: Each producer/consumer boundary with schema, required fields, freshness/invalidation, and consumer validation. Structural plans that do not change boundaries may explicitly mark this section `Not applicable`.
 - **Assumptions/defaults**: What is assumed to be true; what defaults apply if unspecified
 - **Open questions**: What is unknown that could affect the plan
+
+When the source is an ADR, `/planning` must still emit the same v2 plan shape. ADR headings are never an allowed excuse for a non-canonical plan artifact.
 
 ### Contract Boundary Matrix (Required for Artifact or Handoff Work)
 

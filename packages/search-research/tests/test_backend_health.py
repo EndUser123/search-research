@@ -11,9 +11,9 @@ from typing import Any
 
 import pytest
 
-from backend_health import BackendHealthRegistry
-from core.providers.base_web import BaseWebBackend
-from core.providers.provider_health import ProviderHealthStatus
+from search_research.backend_health import BackendHealthRegistry
+from search_research.providers.base_web import BaseWebBackend
+from search_research.providers.provider_health import ProviderHealthStatus
 
 
 class MockHealthyBackend(BaseWebBackend):

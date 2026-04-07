@@ -40,12 +40,9 @@ SETUP_SEQUENCE = [
     # 4. State Restore (Session Continuity)
     "SessionStart_handoff_restore.py",
     # 4. Memory & Daemons (Long-term context)
-    # DISABLED: Moved to _archive/ due to Windows hang bug (GitHub #23576, #9542)
-    # Do not auto-start the legacy semantic daemon from SessionStart.
-    # "SessionStart_semantic_daemon.py",
-    # Daemon startup (two-daemon architecture)
+    "SessionStart_semantic_daemon.py",  # Semantic search daemon (named pipe server)
     "SessionStart_dreaming_daemon.py",  # Insight/reflection daemon
-    "SessionStart_search_daemon.py",  # Search/indexing daemon
+    # "SessionStart_search_daemon.py",  # DISABLED: spawns dreaming daemon --daemon-type search (identical to dreaming daemon, no differentiation)
     # Memory auto-ingestion (after daemons, uses CKS)
     "SessionStart_memory_cks_auto.py",  # Auto-ingest memory files when changed
     # 5. Cognitive Framing

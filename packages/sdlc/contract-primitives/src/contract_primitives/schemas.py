@@ -69,6 +69,29 @@ class ContractAuthorityPacket:
     boundaries: dict[str, BoundaryContract] = field(default_factory=dict)
 
 
+@dataclass(slots=True)
+class PlanningHandoffPacket:
+    packet_version: str = ""
+    source_adr: str = ""
+    plan_title: str = ""
+    goal: str = ""
+    implementation_task_ids: list[str] = field(default_factory=list)
+    contract_sensitive: bool | None = None
+    open_questions: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class PlanningSourcePacket:
+    packet_version: str = ""
+    source_path: str = ""
+    source_kind: str = ""
+    plan_title: str = ""
+    goal: str = ""
+    implementation_task_ids: list[str] = field(default_factory=list)
+    contract_sensitive: bool | None = None
+    open_questions: list[str] = field(default_factory=list)
+
+
 def _normalize_cell(value: str) -> str:
     return re.sub(r"\s+", " ", value.strip())
 
@@ -187,3 +210,103 @@ def parse_contract_authority_packet(markdown_text: str) -> ContractAuthorityPack
         packet.boundaries[boundary_id] = contract
 
     return packet
+
+
+def parse_planning_handoff_packet(markdown_text: str) -> PlanningHandoffPacket:
+    """Parse the markdown-rendered planning handoff packet block from an ADR."""
+    packet = PlanningHandoffPacket()
+    packet_match = re.search(
+        r"planning_handoff_packet:\s*(.*?)(?=^```|\Z)",
+        markdown_text,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    if not packet_match:
+        return packet
+
+    body = packet_match.group(1)
+    simple_fields = {
+        "packet_version": "packet_version",
+        "source_adr": "source_adr",
+        "plan_title": "plan_title",
+        "goal": "goal",
+    }
+    for field_name, attr in simple_fields.items():
+        field_match = re.search(rf"{field_name}:\s*\"([^\"]*)\"", body)
+        if not field_match:
+            field_match = re.search(rf"{field_name}:\s*([^\n]+)", body)
+        if field_match:
+            setattr(packet, attr, _normalize_cell(field_match.group(1).strip("\"' ")))
+
+    task_ids = re.findall(r"task_id:\s*\"?([^\n\"]+)\"?", body)
+    packet.implementation_task_ids = [_normalize_cell(task_id) for task_id in task_ids if task_id.strip()]
+
+    contract_sensitive_match = re.search(
+        r"contract_authority_reference:\s*.*?contract_sensitive:\s*(true|false)",
+        body,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if contract_sensitive_match:
+        packet.contract_sensitive = contract_sensitive_match.group(1).lower() == "true"
+
+    open_questions_block = re.search(r"open_questions:\s*\n((?:\s*-\s+[^\n]+\n?)*)", body, flags=re.DOTALL)
+    if open_questions_block:
+        packet.open_questions = [
+            _normalize_cell(item)
+            for item in re.findall(r"-\s+([^\n]+)", open_questions_block.group(1))
+        ]
+
+    return packet
+
+
+def parse_planning_source_packet(markdown_text: str) -> PlanningSourcePacket:
+    """Parse the markdown-rendered planning source packet block from a source artifact."""
+    packet = PlanningSourcePacket()
+    packet_match = re.search(
+        r"planning_source_packet:\s*(.*?)(?=^```|\Z)",
+        markdown_text,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    if not packet_match:
+        return packet
+
+    body = packet_match.group(1)
+    simple_fields = {
+        "packet_version": "packet_version",
+        "source_path": "source_path",
+        "source_kind": "source_kind",
+        "plan_title": "plan_title",
+        "goal": "goal",
+    }
+    for field_name, attr in simple_fields.items():
+        field_match = re.search(rf"{field_name}:\s*\"([^\"]*)\"", body)
+        if not field_match:
+            field_match = re.search(rf"{field_name}:\s*([^\n]+)", body)
+        if field_match:
+            setattr(packet, attr, _normalize_cell(field_match.group(1).strip("\"' ")))
+
+    task_ids = re.findall(r"task_id:\s*\"?([^\n\"]+)\"?", body)
+    packet.implementation_task_ids = [_normalize_cell(task_id) for task_id in task_ids if task_id.strip()]
+
+    contract_sensitive_match = re.search(
+        r"contract_sensitive:\s*(true|false)",
+        body,
+        flags=re.IGNORECASE,
+    )
+    if contract_sensitive_match:
+        packet.contract_sensitive = contract_sensitive_match.group(1).lower() == "true"
+
+    open_questions_block = re.search(r"open_questions:\s*\n((?:\s*-\s+[^\n]+\n?)*)", body, flags=re.DOTALL)
+    if open_questions_block:
+        packet.open_questions = [
+            _normalize_cell(item)
+            for item in re.findall(r"-\s+([^\n]+)", open_questions_block.group(1))
+        ]
+
+    return packet
+
+
+def adr_requires_planning_handoff(markdown_text: str) -> bool:
+    """Return True when an ADR clearly looks intended to feed planning."""
+    if re.search(r"INSTRUCTION:\s*Execute skill planning", markdown_text, re.IGNORECASE):
+        return True
+    return bool(re.search(r"^##\s+Implementation Sequence\b", markdown_text, re.MULTILINE))

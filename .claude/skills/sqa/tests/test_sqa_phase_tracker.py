@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -12,13 +11,11 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "hooks"))
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
 
-from layers import layer1_syntactic  # noqa: E402
 from posttooluse.posttooluse_sqa_phase_tracker import (  # noqa: E402
-    SQAPhaseTrackerHook,
     SQA_LAYER_TOOLS,
+    SQAPhaseTrackerHook,
     _get_layer_for_tool,
     _get_layer_marker_path,
-    _get_terminal_id,
     _is_characteristic_tool,
     _is_sqa_invocation,
     _load_invocation_state,
@@ -181,7 +178,7 @@ class TestSQAPhaseTrackerHook:
         state = {"sqa_active": True, "layers_invoked": {"L1": []}, "characteristic_invoked": ["L1"]}
         _save_invocation_state(state)
         # Send SQA invocation
-        result = hook.process("Bash", {"command": "python orchestrator.py target"}, {})
+        hook.process("Bash", {"command": "python orchestrator.py target"}, {})
         # Should reset state
         loaded = _load_invocation_state()
         assert loaded["sqa_active"] is True

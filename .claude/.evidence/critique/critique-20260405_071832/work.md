@@ -1,0 +1,1 @@
+P:/.claude/skills/pre-mortem/

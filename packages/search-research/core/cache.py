@@ -9,9 +9,20 @@ import time
 from collections import OrderedDict
 from typing import Any
 
+from .terminal_id import canonical_terminal_id
+
 
 class QueryCache:
-    """LRU cache for search queries with TTL."""
+    """LRU cache for search queries with TTL.
+
+    Uses a class-level registry so all QueryCache instances with the same
+    terminal_id share the same cache storage. This ensures that within a
+    terminal session, repeated QueryCache() instantiations hit the same cache.
+    """
+
+    # Class-level registry: terminal_id -> (cache_od, lock)
+    _registry: dict[str, tuple[OrderedDict[str, dict[str, Any]], threading.Lock]] = {}
+    _registry_lock = threading.Lock()
 
     def __init__(
         self,
@@ -26,8 +37,17 @@ class QueryCache:
         """
         self.max_size = max_size
         self.ttl_seconds = ttl_seconds
-        self._cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
-        self._lock = threading.Lock()
+        self._terminal_id = canonical_terminal_id()
+
+        # All instances with same terminal_id share cache + lock
+        with QueryCache._registry_lock:
+            if self._terminal_id not in QueryCache._registry:
+                QueryCache._registry[self._terminal_id] = (
+                    OrderedDict(),
+                    threading.Lock(),
+                )
+            self._cache, self._lock = QueryCache._registry[self._terminal_id]
+
         self._hits = 0
         self._misses = 0
 
@@ -38,7 +58,7 @@ class QueryCache:
 
         # Include options in hash
         options = sorted(kwargs.items())
-        key_data = json.dumps({"q": normalized, "opts": options}, sort_keys=True)
+        key_data = json.dumps({"q": normalized, "opts": options, "tid": self._terminal_id}, sort_keys=True)
         return hashlib.md5(key_data.encode(), usedforsecurity=False).hexdigest()
 
     def get(self, query: str, **kwargs: Any) -> list[dict[str, Any]] | None:
