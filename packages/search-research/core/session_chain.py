@@ -412,7 +412,6 @@ def walk_sessions_index_chain(
     sorted_sessions = sorted(sessions.items(), key=lambda x: x[1][1])
     sorted_ids = [sid for sid, _ in sorted_sessions]
     sid_to_idx = {sid: i for i, sid in enumerate(sorted_ids)}
-    session_mtimes = {sid: ts for sid, (_, ts) in sorted_sessions}
 
     chain: list[str] = []
     visited: set[str] = set()
@@ -446,13 +445,14 @@ def walk_sessions_index_chain(
             break
 
         # Semantic verification: prior's last-goals vs current's first-user-message
-        prior_goals = _extract_last_goals(current_path)  # prior's ending goals
+        predecessor_path = sessions[predecessor_id][0]
+        prior_goals = _extract_last_goals(predecessor_path)  # predecessor's ending goals
         current_first_msg = first_user_messages.get(current, "") or _extract_first_user_message(current_path)
 
         if prior_goals and current_first_msg:
             sim = _semantic_sim(prior_goals, current_first_msg)
             if sim < _SEMANTIC_THRESHOLD:
-                break  # Gap too large or semantics don't match — stop chaining
+                break  # Semantics don't match — stop chaining
 
         current = predecessor_id
 
