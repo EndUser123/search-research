@@ -3,71 +3,24 @@
 Provides a unified interface for finding all session transcript files in a
 session chain, given any session ID.
 
-Three strategies, tried in order:
-  1. Handoff-file chain   — reliable when handoff files exist
-  2. sessions-index scan  — fallback using mtime gap heuristic + semantic verification
-  3. Semantic similarity  — fallback using embedding similarity
+The ONLY strategy is handoff-file chaining:
+  - PreCompact hook writes handoff files at /compact time
+  - Each handoff file references the PRIOR session's transcript path
+  - Follow the chain backward through handoff files
 
-Algorithm (Strategy 2):
-  For each session, compute mtime gap to nearest prior session.
-  Smallest gap < MAX_MTIME_GAP_SECS → candidate chain link.
-  Semantic verify: prior session's ending goals vs successor's first user message.
-  If similarity >= threshold → chain link confirmed.
-  Otherwise → fall through to semantic strategy.
-
-This captures ALL sessions, not just /compact continuations.
-Multi-terminal interleaving is handled by semantic verification step.
+sessions-index.json and semantic similarity are NOT used — they are
+Claude Code internal state that can go stale. Handoff files are the
+authoritative session chain for post-compaction sessions.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-
-import numpy as np
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
 
-# Module-level cache for direct SentenceTransformer fallback (daemon unavailable)
-_st_model: Any = None
-_st_model_last_used: float = 0.0
-_ST_MODEL_TTL_SECONDS: float = 300.0  # 5 minutes
-_st_lock: Any = __import__("threading").Lock()
-
-# mtime-gap chain heuristic constants
-_MAX_MTIME_GAP_SECS: float = 120.0  # 2 minutes — close mtime gap = likely chain
-_SEMANTIC_THRESHOLD: float = 0.35  # cosine similarity threshold for chain verification
-
-
-def _get_st_model() -> Any:
-    """Get or create cached SentenceTransformer, unloading after 5 min idle.
-
-    Releases the model to free memory when no embeddings have been requested
-    for 5 minutes. Subsequent calls re-load from scratch (~60s cold start).
-    Thread-safe via _st_lock.
-    """
-    import time
-
-    global _st_model, _st_model_last_used
-    now = time.monotonic()
-
-    with _st_lock:
-        if _st_model is not None and (now - _st_model_last_used) > _ST_MODEL_TTL_SECONDS:
-            del _st_model
-            _st_model = None
-
-        if _st_model is None:
-            from sentence_transformers import SentenceTransformer
-
-            _st_model = SentenceTransformer("all-MiniLM-L6-v2")
-            _st_model_last_used = now
-            logger.debug("Loaded SentenceTransformer (all-MiniLM-L6-v2)")
-        else:
-            _st_model_last_used = now
-
-        return _st_model
+logger = logging.getLogger(__name__)
 
 logger = logging.getLogger(__name__)
 
