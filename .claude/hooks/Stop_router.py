@@ -348,6 +348,7 @@ HOOK_SEQUENCE = [
         True,
         "inprocess",
     ),
+    ("Stop_proposal_decision_scanner.py", "PROPOSAL_DECISION_SCANNER_ENABLED", True, "inprocess"),
 ]
 
 HOOK_PRIORITY = {
@@ -397,6 +398,7 @@ ACTIVE_RUNTIME_HOOKS = frozenset(
         "StopHook_drift_sentinel.py",
         "StopHook_correction_acknowledgment.py",
         "__lib/StopHook_consultation_loop_interrupt.py",
+        "Stop_proposal_decision_scanner.py",
     }
 )
 

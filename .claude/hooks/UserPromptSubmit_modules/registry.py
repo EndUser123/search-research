@@ -618,6 +618,7 @@ def _load_hooks() -> None:
         "context_summary",  # NEW 2026-03-13: Inject key facts from recent conversation to reduce context_reuse violations
         "continuation_spine",
         "declaration_reminder",  # NEW 2026-03-16: Prevent "I'll update template" declarations without execution
+        "rca_schema_injector",  # NEW 2026-04-07: Inject RCA 9-field schema before RCA generation to prevent block/regenerate cycles
         "failure_context_injector",  # NEW 2026-04-05: Inject failed Bash stderr/stdout evidence into next reasoning turn
         "ownership_colocation_nudge",  # NEW 2026-03-19: Inject colocation checklist before infra placement decisions
         "diagnostic_guard",

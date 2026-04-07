@@ -10,10 +10,14 @@ from pathlib import Path
 # Setup path for local imports BEFORE importing local modules
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-# GitHelper disabled for auto-commit - it fails in subdirectories
-# GitPython requires repo root (not subdirs like .claude/hooks/)
-# Use subprocess fallback which handles this correctly
-HAS_GIT_HELPER = False
+# GitHelper enabled for auto-commit - GitPython works when cwd is repo root
+# auto_commit_all() uses Path.cwd().parent.parent to get repo root
+# Previously disabled due to subdirectory issues, but that's resolved
+try:
+    from __lib.git_helper import GitHelper, HAS_GITPYTHON
+    HAS_GIT_HELPER = HAS_GITPYTHON
+except ImportError:
+    HAS_GIT_HELPER = False
 
 # Import auto-logging decorator
 from __lib.hook_base import hook_main

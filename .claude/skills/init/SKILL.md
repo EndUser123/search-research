@@ -3,6 +3,7 @@ name: init
 id: init
 version: "1.0.0"
 status: "stable"
+enforcement: advisory
 category: initialization
 description: Initialize CLAUDE.md at module/feature root
 triggers:
@@ -11,9 +12,8 @@ aliases:
   - '/init'
 
 suggest:
-  - /build
+  - /gitready
   - /standards
-  - /nse
 ---
 
 

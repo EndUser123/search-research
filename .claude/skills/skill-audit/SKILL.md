@@ -344,6 +344,14 @@ Common outputs after a single audit pass:
 
 If `/skill-audit` cannot tell the operator what to do next, the audit is incomplete even if the lenses are correct.
 
+When the highest-priority actionable owner is not `source skill`, `/skill-audit` must also emit:
+- `Recommended Handoff`
+- `Recommended Next Skill`
+- one-sentence `Why`
+- a short scoped handoff list containing only the actions that target skill should own next
+
+If the next owner is `/skill-ship`, make that handoff explicit instead of leaving `/skill-ship` buried in the owner column.
+
 For creation/synthesis requests that were misrouted into `/skill-audit`, do not emit a fake audit verdict. Instead emit:
 - `Request Type: Skill Synthesis / Creation`
 - `Target Skill: ...`

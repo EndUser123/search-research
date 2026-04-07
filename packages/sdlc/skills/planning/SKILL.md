@@ -390,45 +390,54 @@ When `auto_verify.py` returns architecture-class blockers, `/planning` must:
 ### Step 4a: Pre-create per-plan findings directory with terminal isolation
 
 ```bash
-# Create per-plan adversarial subdirectory: P:/.claude/plans/adversarial/{sanitized_plan_name}/{terminal_id}/
-# Terminal ID ensures findings from different terminals don't collide
-# Workflow stage file records current step so compaction resumes correctly
+# Create the per-plan adversarial workspace and emit explicit resolved paths.
+# Do NOT dispatch agents until you have a concrete findings_dir and concrete
+# findings_path values for each agent. Raw {sanitized_plan_name} placeholders are unsafe.
 python -c "
-import os, re, sys, json
+import json, sys
 from pathlib import Path
+sys.path.insert(0, str(Path(r'P:/packages/sdlc/skills/planning/__lib')))
+from adversarial_review import prepare_adversarial_review_context
 
-# Auto-detect terminal_id using same logic as hook_ledger.py
-def _detect_terminal_id():
-    wt = os.environ.get('WT_SESSION', '')
-    if wt:
-        return f'console_{wt}'
-    return 'unknown'
-
-plan_path = sys.argv[1]
-terminal_id = _detect_terminal_id()
-name = os.path.splitext(os.path.basename(plan_path))[0]
-safe = re.sub(r'[^A-Za-z0-9_.-]', '_', name)
-base = Path(f'P:/.claude/plans/adversarial/{safe}/{terminal_id}')
-base.mkdir(parents=True, exist_ok=True)
-# Write workflow stage checkpoint
-stage_file = base / 'workflow_stage.json'
-stage_file.write_text(json.dumps({'stage': 'step_4a', 'plan_path': plan_path, 'terminal_id': terminal_id}))
-print(str(base))
+context = prepare_adversarial_review_context(sys.argv[1])
+print(json.dumps(context.as_dict(), indent=2))
 " '${PLAN_PATH}'
 ```
 
+**Dispatch contract**:
+- Step 4a must produce a concrete `findings_dir` and concrete `findings_paths[agent]` values
+- Step 4b must build prompts from the canonical helper in `__lib/adversarial_review.py`, not from handwritten prompt assembly
+- If any prompt still contains `{sanitized_plan_name}`, `<findings_dir>`, or `<findings_path>`, stop and fix the prompt instead of dispatching
+
 ### Step 4b: Dispatch adversarial agents in TWO phases
 
-**CRITICAL**: Use the prompts from `references/adversarial-agent-prompts.md` VERBATIM. Do not paraphrase or modify the prompts — the idempotency checks, file paths, and field names are all specified in the reference and must match exactly for the retry protocol to work.
+**CRITICAL**: Use the canonical dispatcher helper instead of hand-built prompts:
 
-**Phase 1 — Parallel dispatch (6 agents)**:
-Dispatch all 6 non-critic agents in ONE message using the Agent tool:
+```python
+from adversarial_review import build_dispatch_specs
+
+phase1_specs = build_dispatch_specs(context, phase="phase1")
+critic_spec = build_dispatch_specs(context, phase="critic")[0]
+```
+
+`build_dispatch_specs(...)` is the only supported path because it:
+- loads the prompts from `references/adversarial-agent-prompts.md`
+- applies only the allowed substitutions (`<plan_path>`, `<findings_dir>`, `<findings_path>`)
+- rejects unresolved tokens before dispatch
+- binds each agent to the exact per-plan, per-terminal findings path expected for retry/resume
+
+Do not paraphrase or improvise the prompts. The idempotency checks, explicit paths, and field names must stay intact for the retry protocol to work.
+
+**Phase 1 — Parallel dispatch (5 agents)**:
+Dispatch all 5 non-critic agents in ONE message using the canonical specs from `build_dispatch_specs(context, phase="phase1")`.
 
 Each agent writes findings to file and returns ONLY the path. Each agent checks: if output file exists, skip and return path immediately.
 
-The 6 parallel agents are: adversarial-compliance, adversarial-logic, adversarial-testing, adversarial-quality, adversarial-performance, adversarial-security.
+The 5 phase-1 agents are: `adversarial-compliance`, `adversarial-logic`, `adversarial-testing`, `adversarial-security`, `adversarial-failure-modes`.
 
 **IMPORTANT — File naming**: The reference prompts write to `{agent}-findings.json` (e.g., `compliance-findings.json`, `logic-findings.json`). Do NOT use `adversarial-{agent}.json` naming.
+**IMPORTANT — Path safety**: Never dispatch a prompt that still contains `{sanitized_plan_name}`. That means Step 4a output was not consumed, and agents may write into the shared root or stale plan directory.
+**IMPORTANT — Return-path safety**: If an agent returns any path other than its exact `findings_paths[agent]` value from Step 4a, reject it as invalid. Do not accept root-level `P:/.claude/plans/adversarial/*.json` outputs as valid idempotent results.
 
 **After Phase 1 completes**: Record stage checkpoint:
 ```python
@@ -437,9 +446,9 @@ base / 'workflow_stage.json' → {"stage": "step_4b_phase1_done", "agents": [...
 ```
 
 **Phase 2 — Series dispatch (critic agent)**:
-After Phase 1 agents complete and their findings are available, dispatch the critic agent using the prompt from `references/adversarial-agent-prompts.md`.
+After Phase 1 agents complete and their findings are available, dispatch the critic agent using `build_dispatch_specs(context, phase="critic")`.
 
-The critic's role is to evaluate the consensus from the 6 parallel agents. Running the critic in series (after the others) allows it to review all findings and identify blind spots, consensus gaps, and contradictions.
+The critic's role is to evaluate the consensus from the 5 phase-1 agents. Running the critic in series (after the others) allows it to review all findings and identify blind spots, consensus gaps, and contradictions.
 
 **After critic completes**: Record stage checkpoint:
 ```python
@@ -448,7 +457,7 @@ base / 'workflow_stage.json' → {"stage": "step_4b_critic_done"}
 
 **Stage checkpoint on compaction**: If session compacts during dispatch, read `workflow_stage.json` to determine where to resume:
 - `step_4a`: re-run step 4a, then dispatch agents
-- `step_4b_phase1_done`: re-run Phase 1 (idempotency ensures completed agents skip)
+- `step_4b_phase1_done`: validate canonical findings files under `findings_dir`, then re-run Phase 1 only for missing/invalid agents
 - `step_4b_critic_done`: skip to synthesize
 
 ### Step 4c: Synthesize

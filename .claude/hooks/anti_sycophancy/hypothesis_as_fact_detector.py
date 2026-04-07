@@ -145,6 +145,19 @@ class HypothesisAsFactDetector:
         r"(?:pure\s+)?(?:prose|markdown)\s+(?:framework|artifact|document)",
     ]
 
+    # Skip patterns — markdown structural elements that are conventional format, not verification claims
+    SKIP_PATTERNS = [
+        re.compile(r"^\s*##\s+\w"),  # Markdown headers: ## Header
+        re.compile(r"^\s*\*\s+"),  # Bullet lists: * item
+        re.compile(r"^\s*-\s+"),  # Bullet lists: - item
+        re.compile(r"^\s*\d+\.\s+"),  # Numbered lists: 1. item
+        re.compile(r"^\s*>\s+"),  # Block quotes: > quote
+        re.compile(r"^\s*```"),  # Code blocks: ```code
+        re.compile(r"^\s*\|"),  # Tables: | col |
+        re.compile(r"^\s*\*\*.*:.*\*\*\s*$"),  # Bold labels: **Summary:** (markdown label lines)
+        re.compile(r"^\s*---+\s*$"),  # Horizontal rules: ---
+    ]
+
     # Epistemic hedge words
     HEDGE_WORDS = {
         "might",
@@ -208,6 +221,18 @@ class HypothesisAsFactDetector:
         self.compiled_analysis = [
             re.compile(pattern, re.IGNORECASE) for pattern in self.ANALYSIS_PATTERNS
         ]
+        self.compiled_skip = [re.compile(pattern) for pattern in self.SKIP_PATTERNS]
+
+    def _is_structural_format(self, sentence: str) -> bool:
+        """Check if sentence is a markdown structural element to skip.
+
+        Structural elements like ## Headers, - bullets, and **bold** labels
+        are conventional format markers, not verification claims.
+        """
+        for pattern in self.compiled_skip:
+            if pattern.search(sentence):
+                return True
+        return False
 
     def detect_claims(self, response_text: str) -> list[RawClaim]:
         """
@@ -227,6 +252,10 @@ class HypothesisAsFactDetector:
         for sentence in sentences:
             # Skip very short sentences
             if len(sentence.strip()) < 10:
+                continue
+
+            # Skip markdown structural elements (headers, bullets, etc.)
+            if self._is_structural_format(sentence):
                 continue
 
             # Detect different claim types

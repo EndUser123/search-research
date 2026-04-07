@@ -10,6 +10,7 @@ from audit import (
     discover_transfer_targets,
     _semantic_transfer_bonus_map,
     _operational_reference_text,
+    _derive_handoff_offer,
     _derive_outcomes,
     _derive_verdict,
     _lens_command_discipline,
@@ -937,6 +938,37 @@ class TestOutcomeSummary:
         assert outcomes[0][1] == "source skill"
         assert any("smoke proof" in action for action, _, _ in outcomes)
         assert len(outcomes) == 2
+
+    def test_handoff_offer_prefers_skill_ship_when_it_owns_blocking_work(self):
+        findings = [
+            Finding("REFERENCE_INTEGRITY", "missing ref", "x", "HIGH", "source skill"),
+            Finding("ASSURANCE_STRATEGY", "missing smoke proof", "y", "HIGH", "skill-ship"),
+            Finding("TEMPLATE_SYSTEM", "template drift", "z", "MEDIUM", "skill-ship"),
+        ]
+        handoff = _derive_handoff_offer(findings)
+        assert handoff is not None
+        owner, rationale, actions = handoff
+        assert owner == "skill-ship"
+        assert "implementation or correctness" in rationale
+        assert len(actions) == 2
+
+    def test_handoff_offer_is_none_when_source_skill_owns_all_actions(self):
+        findings = [
+            Finding("REFERENCE_INTEGRITY", "missing ref", "x", "HIGH", "source skill"),
+            Finding("NON_GOALS_CLARITY", "missing non-goals", "y", "LOW", "source skill"),
+        ]
+        assert _derive_handoff_offer(findings) is None
+
+    def test_outcome_summary_prints_explicit_skill_ship_handoff(self, capsys):
+        findings = [
+            Finding("ASSURANCE_STRATEGY", "missing smoke proof", "y", "HIGH", "skill-ship"),
+            Finding("REFERENCE_INTEGRITY", "missing ref", "x", "MEDIUM", "source skill"),
+        ]
+        audit_module.print_outcome_summary(findings)
+        output = capsys.readouterr().out
+        assert "## Recommended Handoff" in output
+        assert "- Recommended next skill: `/skill-ship`" in output
+        assert "- Offer this handoff with scope:" in output
 
 
 class TestTransferReuseDiscovery:

@@ -3,23 +3,66 @@
 Provides a unified interface for finding all session transcript files in a
 session chain, given any session ID.
 
-The ONLY strategy is handoff-file chaining:
-  - PreCompact hook writes handoff files at /compact time
-  - Each handoff file references the PRIOR session's transcript path
-  - Follow the chain backward through handoff files
+Three strategies, tried in order:
+  1. Handoff-file chain   — reliable when handoff files exist
+  2. sessions-index scan  — fallback using mtime gap heuristic + semantic verification
+  3. Semantic similarity  — fallback using embedding similarity
 
-sessions-index.json and semantic similarity are NOT used — they are
-Claude Code internal state that can go stale. Handoff files are the
-authoritative session chain for post-compaction sessions.
+Algorithm (Strategy 2):
+  For each session, compute mtime gap to nearest prior session.
+  Smallest gap < MAX_MTIME_GAP_SECS → candidate chain link.
+  Semantic verify: prior session's ending goals vs successor's first user message.
+  If similarity >= threshold → chain link confirmed.
+  Otherwise → fall through to semantic strategy.
+
+This captures ALL sessions, not just /compact continuations.
+Multi-terminal interleaving is handled by semantic verification step.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-from typing import Optional
+import time
+
+import numpy as np
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
+
+# Module-level cache for direct SentenceTransformer fallback (daemon unavailable)
+_st_model: Any = None
+_st_model_last_used: float = 0.0
+_ST_MODEL_TTL_SECONDS: float = 300.0  # 5 minutes
+_st_lock: Any = __import__("threading").Lock()
+
+# mtime-gap chain heuristic constants
+_MAX_MTIME_GAP_SECS: float = 120.0  # 2 minutes — close mtime gap = likely chain
+_SEMANTIC_THRESHOLD: float = 0.35  # cosine similarity threshold for chain verification
+
+
+def _get_st_model() -> Any:
+    """Get or create cached SentenceTransformer, unloading after 5 min idle."""
+    global _st_model, _st_model_last_used
+    now = time.monotonic()
+
+    with _st_lock:
+        if _st_model is not None and (now - _st_model_last_used) > _ST_MODEL_TTL_SECONDS:
+            del _st_model
+            _st_model = None
+
+        if _st_model is None:
+            from sentence_transformers import SentenceTransformer
+
+            _st_model = SentenceTransformer("all-MiniLM-L6-v2")
+            _st_model_last_used = now
+            logger.debug("Loaded SentenceTransformer (all-MiniLM-L6-v2)")
+        else:
+            _st_model_last_used = now
+
+        return _st_model
+
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +93,7 @@ class SessionChainEntry:
     session_id: str
     transcript_path: Path
     parent_transcript_path: Path | None  # older → newer link
-    created: Optional[datetime] = None
+    created: datetime | None = None
     first_user_message: str | None = None
 
 
@@ -62,18 +105,12 @@ class SessionChainResult:
 
 
 # ---------------------------------------------------------------------------
-# Handoff-file chain
+# Strategy 1: Handoff-file chain
 # ---------------------------------------------------------------------------
 
 
 def _get_prior_transcript_path(handoff_path: Path) -> Path | None:
-    """Extract prior session transcript path from a handoff file.
-
-    Handles gracefully:
-      - Missing handoff file
-      - JSON decode errors
-      - Missing/inaccessible transcript paths (archived or deleted files)
-    """
+    """Extract prior session transcript path from a handoff file."""
     try:
         with open(handoff_path, encoding="utf-8") as f:
             data = json.load(f)
@@ -128,7 +165,6 @@ def walk_handoff_chain(session_id: str, max_depth: int = 50) -> SessionChainResu
 
     handoff_path = _find_handoff_referencing(current_transcript)
     if not handoff_path:
-        # No prior handoff found — this is the origin session
         return SessionChainResult(
             entries=[
                 SessionChainEntry(
@@ -144,48 +180,555 @@ def walk_handoff_chain(session_id: str, max_depth: int = 50) -> SessionChainResu
 
     entries: list[SessionChainEntry] = []
     visited: set[str] = set()
-    chain_depth = 0
 
-    while handoff_path and chain_depth < max_depth:
+    while handoff_path and len(entries) < max_depth:
+        prior_transcript = None
+        prior_session_id: str | None = None
+
+        # TOCTOU-fix: read handoff within try/except to handle concurrent deletion
         try:
             prior_transcript = _get_prior_transcript_path(handoff_path)
-            if not prior_transcript or str(prior_transcript) in visited:
+        except (OSError, PermissionError, RuntimeError) as e:
+            logger.warning("Failed to read handoff %s: %s", handoff_path, e)
+
+        if prior_transcript:
+            prior_session_id = prior_transcript.stem
+            if str(prior_transcript) in visited:
                 break
             visited.add(str(prior_transcript))
+        else:
+            prior_session_id = handoff_path.stem.replace("_handoff", "")
 
-            prior_session_id = prior_transcript.stem
-            prior_handoff = _find_handoff_referencing(prior_transcript)
-
-            entries.append(
-                SessionChainEntry(
-                    session_id=prior_session_id,
-                    transcript_path=prior_transcript,
-                    parent_transcript_path=None,
-                    created=None,
-                )
+        entries.append(
+            SessionChainEntry(
+                session_id=prior_session_id or "unknown",
+                transcript_path=prior_transcript or Path("."),
+                parent_transcript_path=None,
+                created=None,
             )
+        )
 
-            handoff_path = prior_handoff
-        except (OSError, PermissionError, RuntimeError) as e:
-            logger.warning("Failed to traverse chain at %s: %s", handoff_path, e)
+        # TOCTOU-fix: find prior handoff within try/except
+        if prior_transcript:
+            try:
+                handoff_path = _find_handoff_referencing(prior_transcript)
+            except (OSError, PermissionError, RuntimeError) as e:
+                logger.warning("Failed to find handoff referencing %s: %s", prior_transcript, e)
+                handoff_path = None
+        else:
+            handoff_path = None
+
+        if handoff_path is None:
             break
-        chain_depth += 1
 
     entries.reverse()
 
-    # Fill in parent links (entries are oldest→newest, so previous entry is the parent)
     for i, entry in enumerate(entries):
         if i > 0:
             entry.parent_transcript_path = entries[i - 1].transcript_path
+
+    # FIX: Use len(entries) instead of chain_depth+1 to avoid off-by-one on early break
     return SessionChainResult(
         entries=entries,
-        depth=chain_depth + 1,
+        depth=len(entries),
         origin_session_id=entries[0].session_id if entries else None,
     )
 
 
 # ---------------------------------------------------------------------------
-# Public API — delegates to handoff-only chain
+# Strategy 2: sessions-index scan (mtime-gap + semantic verification)
+# ---------------------------------------------------------------------------
+
+
+def load_sessions_index(project_path: str | Path | None = None) -> dict[str, dict[str, Any]]:
+    """Load sessions-index.json as a dict keyed by sessionId."""
+    if project_path is None:
+        project_path = _projects_dir() / "P--"
+    idx_path = Path(project_path) / "sessions-index.json"
+    if not idx_path.exists():
+        return {}
+    try:
+        with open(idx_path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if isinstance(data, list):
+        return {entry["sessionId"]: entry for entry in data}
+    if isinstance(data, dict):
+        if "entries" in data:
+            return {e["sessionId"]: e for e in data["entries"]}
+        if "sessions" in data:
+            return {e["sessionId"]: e for e in data["sessions"]}
+        return data
+    return {}
+
+
+def _extract_first_user_message(jsonl_path: Path) -> str | None:
+    """Read first user message text from a session transcript."""
+    try:
+        with open(jsonl_path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if entry.get("type") == "user":
+                    msg = entry.get("message", {})
+                    if isinstance(msg, dict):
+                        content = msg.get("content", [])
+                    else:
+                        content = []
+                    if isinstance(content, str):
+                        return content[:200]
+                    if isinstance(content, list):
+                        for block in content:
+                            if isinstance(block, dict) and block.get("type") == "text":
+                                return block.get("text", "")[:200]
+                    return None
+    except (OSError, PermissionError):
+        pass
+    return None
+
+
+def _extract_last_goals(jsonl_path: Path, max_chars: int = 300) -> str | None:
+    """Extract last assistant goal statements from a session transcript.
+
+    Looks for assistant messages with goal-related content near the end of the session.
+    Used for semantic chain verification: prior session's ending goals should match
+    successor session's opening actions.
+    """
+    try:
+        lines = []
+        with open(jsonl_path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    lines.append(line)
+        goal_parts = []
+        for line in reversed(lines[-50:]):  # last 50 lines
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if entry.get("type") == "assistant":
+                msg = entry.get("message", {})
+                content = msg.get("content", [])
+                if isinstance(content, str) and content:
+                    goal_parts.append(content[:max_chars])
+                elif isinstance(content, list):
+                    for block in content:
+                        if isinstance(block, dict) and block.get("type") == "text":
+                            text = block.get("text", "")
+                            if text:
+                                goal_parts.append(text[:max_chars])
+                if goal_parts:
+                    break
+        return " ".join(reversed(goal_parts))[:max_chars] if goal_parts else None
+    except (OSError, PermissionError):
+        pass
+    return None
+
+
+def _scan_jsonl_sessions(project_path: Path) -> dict[str, dict[str, Any]]:
+    """Scan JSONL files directly to build an in-memory sessions index.
+
+    Returns dict: {session_id: {"sessionId": str, "createdAt": float, "fullPath": Path}}
+    Reads first entry of each .jsonl for sessionId and createdAt.
+    Cached for the lifetime of the process on that project_path.
+    """
+    if not hasattr(_scan_jsonl_sessions, "_cache"):
+        _scan_jsonl_sessions._cache: dict[str, dict[str, dict[str, Any]]] = {}
+
+    cache = _scan_jsonl_sessions._cache
+    key = str(project_path)
+    if key in cache:
+        return cache[key]
+
+    sessions: dict[str, dict[str, Any]] = {}
+    try:
+        for jsonl_path in Path(project_path).rglob("*.jsonl"):
+            try:
+                with open(jsonl_path, encoding="utf-8") as f:
+                    first_line = f.readline()
+                if not first_line.strip():
+                    continue
+                entry = json.loads(first_line)
+                sid = entry.get("sessionId") or entry.get("session_id")
+                if not sid:
+                    continue
+                ts_val = entry.get("timestamp") or entry.get("createdAt")
+                # Handle both integer milliseconds (correct) and ISO 8601 strings (incorrect)
+                if isinstance(ts_val, str):
+                    try:
+                        dt = datetime.fromisoformat(ts_val.replace("Z", "+00:00"))
+                        ts_val = int(dt.timestamp() * 1000)  # convert to milliseconds
+                    except (ValueError, TypeError):
+                        ts_val = None
+                sessions[sid] = {
+                    "sessionId": sid,
+                    "createdAt": ts_val,
+                    "fullPath": str(jsonl_path),
+                }
+            except (OSError, json.JSONDecodeError):
+                continue
+    except OSError:
+        pass
+
+    cache[key] = sessions
+    return sessions
+
+
+def _cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
+    """Compute cosine similarity between two vectors."""
+    norm_a = np.linalg.norm(a)
+    norm_b = np.linalg.norm(b)
+    if norm_a == 0 or norm_b == 0:
+        return 0.0
+    return float(np.dot(a, b) / (norm_a * norm_b))
+
+
+def _semantic_sim(text_a: str, text_b: str) -> float:
+    """Compute cosine similarity between two text strings using SentenceTransformer."""
+    if not text_a or not text_b:
+        return 0.0
+    try:
+        model = _get_st_model()
+        vectors = model.encode([text_a, text_b], normalize_embeddings=True)
+        return _cosine_sim(vectors[0].astype(np.float32), vectors[1].astype(np.float32))
+    except (ImportError, OSError, RuntimeError) as e:
+        logger.warning("Semantic similarity computation failed: %s", e)
+        return 0.0
+
+
+def walk_sessions_index_chain(
+    session_id: str,
+    project_path: Path | None = None,
+    max_depth: int = 50,
+) -> SessionChainResult:
+    """Walk session chain using sessions-index.json mtime ordering + semantic verification.
+
+    For each session, finds predecessor with smallest mtime gap (< MAX_MTIME_GAP_SECS).
+    Semantic verification: predecessor's last-goals vs successor's first-user-message.
+    If cosine sim >= threshold → chain link confirmed.
+    Otherwise → try next-best mtime candidate (not: stop entire chain).
+
+    This captures ALL sessions, not just /compact continuations.
+    """
+    if project_path is None:
+        project_path = _projects_dir() / "P--"
+
+    sessions_index = load_sessions_index(project_path)
+    # Fallback: if sessions-index is stale, scan JSONL files directly
+    if session_id not in sessions_index:
+        sessions_index = _scan_jsonl_sessions(project_path)
+
+    sessions: dict[str, tuple[Path, datetime]] = {}
+    project = Path(project_path)
+    for sid, info in sessions_index.items():
+        full_path = info.get("fullPath")
+        if full_path:
+            p = Path(full_path)
+        else:
+            p = project / f"{sid}.jsonl"
+        if not p.exists():
+            logger.warning("Transcript file missing for session %s: %s", sid, p)
+            continue
+        created_at_ms = info.get("createdAt")
+        if created_at_ms:
+            try:
+                created = datetime.fromtimestamp(created_at_ms / 1000)
+            except (ValueError, OSError):
+                created = datetime.min
+        else:
+            try:
+                stat_result = p.stat()
+                if hasattr(stat_result, "st_birthtime"):
+                    created = datetime.fromtimestamp(stat_result.st_birthtime)
+                else:
+                    created = datetime.fromtimestamp(stat_result.st_ctime)
+            except OSError:
+                created = datetime.min
+        sessions[sid] = (p, created)
+
+    if session_id not in sessions:
+        return SessionChainResult()
+
+    # Pre-compute first user messages for all sessions
+    first_user_messages: dict[str, str] = {}
+    for sid, (path, _) in sessions.items():
+        msg = _extract_first_user_message(path)
+        if msg:
+            first_user_messages[sid] = msg
+
+    # Build sorted list by created timestamp
+    sorted_sessions = sorted(sessions.items(), key=lambda x: x[1][1])
+    sorted_ids = [sid for sid, _ in sorted_sessions]
+    sid_to_idx = {sid: i for i, sid in enumerate(sorted_ids)}
+
+    chain: list[str] = []
+    visited: set[str] = set()
+    current = session_id
+
+    while current and current not in visited and len(chain) < max_depth:
+        visited.add(current)
+        chain.append(current)
+
+        current_idx = sid_to_idx.get(current, -1)
+        if current_idx <= 0:
+            break  # No prior sessions
+
+        current_path, current_mtime = sessions[current]
+
+        # Find predecessor with smallest mtime gap
+        predecessor_id: str | None = None
+        smallest_gap = _MAX_MTIME_GAP_SECS
+
+        for i in range(current_idx - 1, -1, -1):
+            pred_id = sorted_ids[i]
+            if pred_id in visited:
+                continue
+            pred_path, pred_mtime = sessions[pred_id]
+            gap = (current_mtime - pred_mtime).total_seconds()
+            if gap <= 0 or gap >= smallest_gap:
+                continue
+            smallest_gap = gap
+            predecessor_id = pred_id
+
+        if predecessor_id is None:
+            break
+
+        # Semantic verification: predecessor's last-goals vs current's first-message
+        predecessor_path = sessions[predecessor_id][0]
+        prior_goals = _extract_last_goals(predecessor_path)
+        current_first_msg = first_user_messages.get(current, "") or _extract_first_user_message(current_path)
+
+        if prior_goals and current_first_msg:
+            sim = _semantic_sim(prior_goals, current_first_msg)
+            if sim < _SEMANTIC_THRESHOLD:
+                # FIX: Instead of breaking entirely, try next-best mtime candidate
+                # Don't break — try to find an alternative predecessor with same gap constraint
+                # Clear predecessor and loop to find next-best
+                alt_found = False
+                alt_gap = _MAX_MTIME_GAP_SECS
+                alt_pred: str | None = None
+                for i in range(current_idx - 1, -1, -1):
+                    pid = sorted_ids[i]
+                    if pid in visited:
+                        continue
+                    pp, pt = sessions[pid]
+                    g = (current_mtime - pt).total_seconds()
+                    if g <= 0 or g >= alt_gap:
+                        continue
+                    alt_gap = g
+                    alt_pred = pid
+
+                if alt_pred is not None and alt_pred != predecessor_id:
+                    predecessor_id = alt_pred
+                    predecessor_path = sessions[predecessor_id][0]
+                    prior_goals_alt = _extract_last_goals(predecessor_path)
+                    current_first_alt = first_user_messages.get(current, "") or _extract_first_user_message(current_path)
+                    if prior_goals_alt and current_first_alt:
+                        sim_alt = _semantic_sim(prior_goals_alt, current_first_alt)
+                        if sim_alt >= _SEMANTIC_THRESHOLD:
+                            alt_found = True
+                        # else: no verified alternative, stop
+
+                if not alt_found:
+                    break  # No verified alternative — stop chaining
+
+        current = predecessor_id
+
+    chain.reverse()
+
+    entries: list[SessionChainEntry] = []
+    for i, sid in enumerate(chain):
+        path, mtime = sessions[sid]
+        parent_path: Path | None = None
+        if i > 0:
+            parent_path = sessions[chain[i - 1]][0]
+        first_msg = first_user_messages.get(sid, "")
+        if not first_msg:
+            first_msg = _extract_first_user_message(path) or ""
+        entries.append(
+            SessionChainEntry(
+                session_id=sid,
+                transcript_path=path,
+                parent_transcript_path=parent_path,
+                created=mtime,
+                first_user_message=first_msg or None,
+            )
+        )
+
+    return SessionChainResult(
+        entries=entries,
+        depth=len(entries),
+        origin_session_id=chain[0] if chain else None,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Strategy 3: Semantic similarity fallback
+# ---------------------------------------------------------------------------
+
+
+def _session_text(info: dict) -> str:
+    """Extract searchable text from sessions-index entry."""
+    parts = []
+    if info.get("goal"):
+        parts.append(info["goal"])
+    lp = info.get("lastPrompt", "")
+    if lp:
+        parts.append(lp[:500])
+    elif info.get("summary"):
+        parts.append(info["summary"][:500])
+    af = info.get("active_files", [])
+    if af:
+        parts.append(" ".join(af[:10])[:500])  # cap at 500 chars
+    return " | ".join(parts) if parts else ""
+
+
+def walk_semantic_chain(
+    session_id: str,
+    project_path: Path | None = None,
+    threshold: float = 0.5,
+    window_days: int = 7,
+    max_entries: int = 20,
+) -> SessionChainResult:
+    """Walk session chain via semantic similarity fallback.
+
+    Uses EmbedClient to embed session text from sessions-index and finds
+    prior sessions by cosine similarity. This is a best-effort fallback when
+    both handoff files and mtime heuristic fail.
+    """
+    if project_path is None:
+        project_path = _projects_dir() / "P--"
+
+    sessions_index = load_sessions_index(project_path)
+    # Fallback: if sessions-index is stale, scan JSONL files directly
+    if session_id not in sessions_index:
+        sessions_index = _scan_jsonl_sessions(project_path)
+    if session_id not in sessions_index:
+        return SessionChainResult()
+
+    target_info = sessions_index[session_id]
+    target_text = _session_text(target_info)
+    if not target_text:
+        # Fallback: extract text directly from JSONL transcript
+        full_path = target_info.get("fullPath")
+        if full_path:
+            p = Path(full_path)
+            first_msg = _extract_first_user_message(p) or ""
+            goals_text = _extract_last_goals(p) or ""
+            target_text = f"{goals_text} | {first_msg}".strip()
+    if not target_text:
+        return SessionChainResult()
+
+    target_created_ms = target_info.get("createdAt")
+    if not target_created_ms:
+        return SessionChainResult()
+
+    try:
+        target_created = datetime.fromtimestamp(target_created_ms / 1000)
+    except (ValueError, OSError):
+        return SessionChainResult()
+
+    window_start = target_created - timedelta(days=window_days)
+    window_end = target_created + timedelta(days=window_days)
+
+    candidates: list[tuple[str, dict, str]] = []
+    for sid, info in sessions_index.items():
+        if sid == session_id:
+            continue
+        created_ms = info.get("createdAt")
+        if not created_ms:
+            continue
+        try:
+            created = datetime.fromtimestamp(created_ms / 1000)
+        except (ValueError, OSError):
+            continue
+        if window_start <= created <= window_end:
+            text = _session_text(info)
+            if not text:
+                # Fallback: extract text directly from JSONL transcript
+                full_path = info.get("fullPath")
+                if full_path:
+                    p = Path(full_path)
+                    first_msg = _extract_first_user_message(p) or ""
+                    goals_text = _extract_last_goals(p) or ""
+                    text = f"{goals_text} | {first_msg}".strip()
+            if text:
+                candidates.append((sid, info, text))
+
+    if not candidates:
+        return SessionChainResult()
+
+    all_texts = [target_text] + [c[2] for c in candidates]
+
+    try:
+        from core.chs.embeddings import get_embed_client
+
+        client = get_embed_client()
+        embeddings = client.embed_texts(all_texts)
+
+        target_emb = np.frombuffer(embeddings[0], dtype=np.float32)
+        candidate_embs = [np.frombuffer(e, dtype=np.float32) for e in embeddings[1:]]
+
+        if np.linalg.norm(target_emb) < 0.01:
+            raise ValueError("Daemon returned near-zero embedding")
+    except (ImportError, OSError, ConnectionError, RuntimeError):
+        try:
+            model = _get_st_model()
+            vectors = model.encode(all_texts, normalize_embeddings=True)
+            target_emb = vectors[0].astype(np.float32)
+            candidate_embs = [vectors[i + 1].astype(np.float32) for i in range(len(candidates))]
+        except (ImportError, OSError, RuntimeError):
+            return SessionChainResult()
+
+    matches: list[tuple[str, Path, datetime, float]] = []
+    for i, (sid, info, _) in enumerate(candidates):
+        sim = _cosine_sim(target_emb, candidate_embs[i])
+        if sim >= threshold:
+            full_path = info.get("fullPath")
+            if full_path:
+                p = Path(full_path)
+            else:
+                p = Path(project_path) / f"{sid}.jsonl"
+            if p.exists():
+                created_ms = info.get("createdAt")
+                try:
+                    created = datetime.fromtimestamp(created_ms / 1000)
+                except (ValueError, OSError):
+                    created = datetime.min
+                matches.append((sid, p, created, sim))
+
+    if not matches:
+        return SessionChainResult()
+
+    matches.sort(key=lambda x: x[3], reverse=True)
+
+    entries = [
+        SessionChainEntry(
+            session_id=sid,
+            transcript_path=path,
+            parent_transcript_path=None,
+            created=created,
+            first_user_message=None,
+        )
+        for sid, path, created, _ in matches[:max_entries]
+    ]
+
+    return SessionChainResult(
+        entries=entries,
+        depth=len(entries),
+        origin_session_id=entries[0].session_id if entries else None,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Unified entry point
 # ---------------------------------------------------------------------------
 
 
@@ -195,21 +738,39 @@ def walk_session_chain(
     max_depth: int = 50,
     newest_first: bool = False,
 ) -> SessionChainResult:
-    """Walk session chain via handoff files (the only strategy).
+    """Walk session chain using the best available strategy.
 
-    Args:
-        session_id: Session UUID to walk backward from.
-        project_path: Unused — kept for API compatibility.
-        max_depth: Maximum chain depth.
-        newest_first: If True, return entries in newest-to-oldest order.
-
-    Returns:
-        SessionChainResult with entries ordered oldest-to-newest by default.
+    Strategy selection:
+      - If handoff files exist linking to prior sessions → handoff chain
+      - If sessions-index mtime heuristic finds priors → mtime chain
+      - If semantic similarity finds matches → semantic chain
+      - Otherwise → origin only (graceful degradation)
     """
-    result = walk_handoff_chain(session_id, max_depth)
-    if newest_first and result.entries:
-        result.entries.reverse()
-    return result
+    if project_path is None:
+        project_path = _projects_dir() / "P--"
+
+    # Strategy 1: Handoff-file chain
+    handoff_result = walk_handoff_chain(session_id, max_depth)
+    if handoff_result.entries and handoff_result.entries[0].session_id != session_id:
+        if newest_first:
+            handoff_result.entries.reverse()
+        return handoff_result
+
+    # Strategy 2: sessions-index mtime-gap + semantic
+    mtime_result = walk_sessions_index_chain(session_id, project_path, max_depth)
+    if mtime_result.entries and mtime_result.entries[0].session_id != session_id:
+        if newest_first:
+            mtime_result.entries.reverse()
+        return mtime_result
+
+    # Strategy 3: Semantic similarity fallback
+    semantic_result = walk_semantic_chain(session_id, project_path)
+    if semantic_result.entries:
+        if newest_first:
+            semantic_result.entries.reverse()
+        return semantic_result
+
+    return mtime_result
 
 
 def get_all_chain_files(

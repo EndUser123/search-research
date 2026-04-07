@@ -80,6 +80,16 @@ python_functions = ["test_*"]
 addopts = [
     "-q",
     "--tb=short",
+    "--timeout=30",
+]
+asyncio_mode = "auto"
+norecursedirs = [
+    ".venv",
+    ".claude",
+    "node_modules",
+    "__pycache__",
+    ".git",
+    "*.jsonl",
 ]
 
 [tool.ruff]

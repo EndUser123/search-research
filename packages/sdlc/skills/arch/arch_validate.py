@@ -32,10 +32,10 @@ for _candidate in _CONTRACT_PRIMITIVES_CANDIDATES:
 from contract_primitives import (  # noqa: E402
     ACTIVE_PLAN_ARTIFACT_FAILURE_BEHAVIOR,
     REQUIRED_BOUNDARY_FIELDS,
-    adr_requires_planning_handoff,
     parse_contract_authority_packet,
     parse_planning_handoff_packet,
 )
+from planning_handoff_validation import validate_planning_handoff_contract
 
 
 # =============================================================================
@@ -391,60 +391,7 @@ def validate_adr(
             }
         )
 
-    if adr_requires_planning_handoff(text):
-        if not handoff.packet_version:
-            findings.append(
-                {
-                    "id": "ADR-003",
-                    "priority": "HIGH",
-                    "title": "Missing Planning Handoff Packet",
-                    "description": (
-                        "Implementation-oriented ADRs that feed /planning must emit a "
-                        "parseable planning_handoff_packet."
-                    ),
-                }
-            )
-        else:
-            if not handoff.plan_title:
-                findings.append(
-                    {
-                        "id": "ADR-HANDOFF-001",
-                        "priority": "HIGH",
-                        "title": "Planning Handoff Packet is missing plan_title",
-                    }
-                )
-            if not handoff.goal:
-                findings.append(
-                    {
-                        "id": "ADR-HANDOFF-002",
-                        "priority": "HIGH",
-                        "title": "Planning Handoff Packet is missing goal",
-                    }
-                )
-            if not handoff.implementation_task_ids:
-                findings.append(
-                    {
-                        "id": "ADR-HANDOFF-003",
-                        "priority": "HIGH",
-                        "title": "Planning Handoff Packet is missing implementation task units",
-                        "description": (
-                            "implementation_changes must already be mapped into task_id entries "
-                            "before /planning consumes the ADR."
-                        ),
-                    }
-                )
-            if packet.boundaries and handoff.contract_sensitive is not True:
-                findings.append(
-                    {
-                        "id": "ADR-HANDOFF-004",
-                        "priority": "HIGH",
-                        "title": "Planning Handoff Packet contradicts contract-sensitive ADR state",
-                        "description": (
-                            "When a Contract Authority Packet exists, the planning handoff "
-                            "must declare contract_sensitive: true."
-                        ),
-                    }
-                )
+    findings.extend(validate_planning_handoff_contract(text, packet, handoff))
 
     for boundary_id, boundary in packet.boundaries.items():
         missing = []

@@ -16,6 +16,9 @@ from posttooluse.cleanup_tracker_hook import CleanupTrackerHook
 # Auto-lint - absorbed from archived PostToolUse_lint_router.py
 from posttooluse.completion_validator import CompletionValidator
 
+# Edit verifier - verifies Write/Edit operations actually persisted to disk
+from posttooluse.edit_verifier import EditVerifier
+
 # E2E tracker - for end-to-end workflow tracking
 from posttooluse.e2e_tracker_hook import E2ETrackerHook
 
@@ -174,6 +177,8 @@ def create_registry() -> HookRegistry:
     registry.register("sqa_phase_tracker", SQAPhaseTrackerHook())
     # Agent contract validator - validates adversarial agent .md files on Write/Edit
     registry.register("agent_contract_validator", AgentContractValidator())
+    # Edit verifier - verifies Write/Edit operations actually persisted to disk
+    registry.register("edit_verifier", EditVerifier())
 
     # --- Discovered skill hooks from SKILL.md frontmatter ---
     # Auto-discover hooks declared in skill SKILL.md files and register them

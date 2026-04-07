@@ -38,6 +38,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from arch_handoff_state import find_pending_arch_handoff_receipt, mark_arch_handoff_consumed
+
 # DEPTH RULE: When skills/ layer is added, increment parents[N] by 1.
 # e.g. from planning/__lib__/: parents[2]→[3] (sdlc/ is 3 levels up from __lib__/)
 _ROOT = Path(__file__).resolve()
@@ -606,7 +608,36 @@ def _parse_int_frontmatter(frontmatter: dict[str, str], key: str) -> int | None:
     return int(value)
 
 
-def detect_source_adr_path(plan: str, frontmatter: dict[str, str]) -> str | None:
+def _looks_like_adr_artifact(
+    plan: str,
+    frontmatter: dict[str, str],
+    plan_path: str | None = None,
+) -> bool:
+    """Heuristically detect when the current artifact under verification is itself an ADR."""
+    if frontmatter:
+        return False
+
+    heading_looks_adr = bool(re.search(r"^\s*#\s+ADR(?:\b|:|-)", plan, re.MULTILINE | re.IGNORECASE))
+    if not heading_looks_adr:
+        return False
+
+    if not plan_path:
+        return True
+
+    normalized = plan_path.replace("\\", "/")
+    file_name = Path(plan_path).name
+    return (
+        "arch_decisions/" in normalized.lower()
+        or bool(re.search(r"(?:^|[/\\])ADR[-_ ]?\d+", normalized, re.IGNORECASE))
+        or file_name.upper().startswith("ADR-")
+    )
+
+
+def detect_source_adr_path(
+    plan: str,
+    frontmatter: dict[str, str],
+    plan_path: str | None = None,
+) -> str | None:
     """Infer the source ADR path from frontmatter or legacy source line."""
     source = frontmatter.get("source", "").strip().strip('"').strip("'")
     if source and source.lower() != "null":
@@ -617,6 +648,9 @@ def detect_source_adr_path(plan: str, frontmatter: dict[str, str]) -> str | None
     match = ADR_SOURCE_LINE_PATTERN.search(plan)
     if match:
         return match.group(1).strip()
+
+    if plan_path and _looks_like_adr_artifact(plan, frontmatter, plan_path):
+        return plan_path
     return None
 
 
@@ -1244,16 +1278,19 @@ def check_adr_ingestion_contract(plan: str, plan_path: str | None = None) -> lis
     """Detect ADR-derived drafts that still mirror ADR structure instead of plan shape."""
     findings: list[dict[str, Any]] = []
     frontmatter = parse_frontmatter(plan)
-    source_adr = detect_source_adr_path(plan, frontmatter)
+    source_adr = detect_source_adr_path(plan, frontmatter, plan_path)
     if not source_adr:
         return findings
+    normalized_plan_path = plan_path.replace("\\", "/") if plan_path else ""
+    normalized_source_adr = source_adr.replace("\\", "/")
+    self_sourced_adr = bool(normalized_plan_path and normalized_source_adr == normalized_plan_path)
 
     mirrored_headings = [
         heading
         for heading in ADR_HEADING_PATTERNS
         if re.search(rf"^##\s+{re.escape(heading)}\b", plan, re.MULTILINE)
     ]
-    if not mirrored_headings:
+    if not mirrored_headings and not self_sourced_adr:
         return findings
 
     missing_canonical = [
@@ -1261,7 +1298,7 @@ def check_adr_ingestion_contract(plan: str, plan_path: str | None = None) -> lis
         for section in ("Goal", "Implementation Changes", "Current State with Evidence")
         if not extract_section_content(plan, section)
     ]
-    if frontmatter and not missing_canonical:
+    if frontmatter and not missing_canonical and not self_sourced_adr:
         return findings
 
     handoff_hint = ""
@@ -1289,11 +1326,19 @@ def check_adr_ingestion_contract(plan: str, plan_path: str | None = None) -> lis
             "id": "ADR-INGEST-001",
             "category": "adr_ingestion",
             "priority": "HIGH",
-            "title": "ADR-derived draft still mirrors ADR structure",
+            "title": "ADR-derived draft still requires local planning normalization",
             "description": (
-                f"Draft sourced from '{source_adr}' still uses ADR headings ({', '.join(mirrored_headings)}) "
-                f"and is missing canonical plan structure ({', '.join(missing_canonical) or 'frontmatter'}). "
-                "Canonicalize the plan locally before treating remaining issues as /arch blockers."
+                (
+                    f"Current verification target '{source_adr}' is still an ADR artifact. "
+                    if self_sourced_adr
+                    else f"Draft sourced from '{source_adr}' still uses ADR headings ({', '.join(mirrored_headings)}). "
+                )
+                + (
+                    f"Missing canonical plan structure: {', '.join(missing_canonical) or 'frontmatter'}."
+                    if missing_canonical or not frontmatter
+                    else "The draft must still be rewritten into the canonical planning artifact shape."
+                )
+                + " Canonicalize the plan locally before treating remaining issues as /arch blockers."
                 + handoff_hint
             ),
             "source_adr": source_adr,
@@ -2901,12 +2946,137 @@ def classify_next_action(status: str, findings: list[dict[str, Any]]) -> dict[st
     }
 
 
-def verify_plan(plan_path: str | None = None, plan_content: str | None = None) -> dict[str, Any]:
+def _current_arch_finding_ids(findings: list[dict[str, Any]]) -> list[str]:
+    return sorted(
+        {
+            str(finding.get("id"))
+            for finding in findings
+            if finding.get("category") in ARCH_REMEDIATION_CATEGORIES
+            or finding.get("id") in ARCH_REMEDIATION_IDS
+        }
+    )
+
+
+VALIDATION_MODES = {"light", "readiness", "contract"}
+
+
+def _mode_checks_light() -> list:
+    """Checks that run in light mode."""
+    return [
+        check_status_header,
+        check_placeholders,
+        check_plan_purity,
+        check_section_completeness,
+    ]
+
+
+def _mode_checks_readiness() -> list:
+    """Checks that run in readiness mode (light + full verification)."""
+    return _mode_checks_light() + [
+        check_adr_ingestion_contract,
+        check_source_ingestion_contract,
+        check_evidence_file_targets,
+        check_layer_execution_semantics,
+        check_conditional_trigger_clarity,
+        check_change_component_alignment,
+        check_helper_reference_clarity,
+        check_stateless_contradictions,
+        check_ambiguous_contracts,
+        check_state_model_completeness,
+        check_unresolved_core_decisions,
+        check_open_question_blockers,
+        check_boundary_overload,
+        check_existing_flow_overlap,
+        check_state_extension_contracts,
+        check_parser_failure_policy,
+        check_assumption_schema_contradictions,
+        check_claim_schema_consistency,
+        check_contract_test_coherence,
+        check_stateful_failure_mode_tests,
+        check_mechanism_triggerability,
+        check_contract_sensitivity_contradictions,
+        check_contract_boundary_matrix,
+        check_planning_contract_authority_drift,
+        check_solo_dev_violations,
+        check_rtm_coverage,
+        check_dispositions,
+        validate_adversarial_agents,
+        check_status_readiness,
+    ]
+
+
+def _mode_checks_contract() -> list:
+    """Checks that run in contract mode (readiness + CAP/boundary checks)."""
+    return _mode_checks_readiness() + [
+        check_contract_authority_refs,
+        check_boundary_matrix_rows,
+    ]
+
+
+def _get_checks_for_mode(mode: str) -> list:
+    """Return the list of check functions for the given mode."""
+    normalized = mode.lower().strip()
+    if normalized == "light":
+        return _mode_checks_light()
+    if normalized == "contract":
+        return _mode_checks_contract()
+    return _mode_checks_readiness()  # default: readiness
+
+
+def check_contract_authority_refs(plan: str) -> list[dict[str, Any]]:
+    """Contract mode only: verify CAP references point to existing files."""
+    findings = []
+    cap_refs = re.findall(r'`([^`]*\.contract-authority-packet\.json)`', plan)
+    for ref in cap_refs:
+        path = Path(ref)
+        if not path.exists():
+            findings.append({
+                "id": "CAP-001",
+                "category": "contract_authority",
+                "priority": "HIGH",
+                "title": f"Contract Authority Packet not found: {ref}",
+                "description": "Referenced CAP file does not exist.",
+                "evidence": ref,
+            })
+    return findings
+
+
+def check_boundary_matrix_rows(plan: str) -> list[dict[str, Any]]:
+    """Contract mode only: verify each matrix row has all required fields."""
+    findings = []
+    frontmatter = parse_frontmatter(plan)
+    if not _is_contract_sensitive(plan, frontmatter):
+        return findings
+
+    headers, rows = find_contract_boundary_rows(plan)
+    if not headers:
+        return findings  # already caught by check_contract_boundary_matrix
+
+    required_cols = {"Boundary", "Contract authority packet", "Producer", "Consumer"}
+    for row in rows:
+        for col in required_cols:
+            if not row.get(col, "").strip():
+                findings.append({
+                    "id": "MATRIX-ROW-001",
+                    "category": "contract_boundary",
+                    "priority": "HIGH",
+                    "title": f"Boundary row missing required field: {col}",
+                    "description": f"Row '{row.get('Boundary', 'UNKNOWN')}' has no value for '{col}'.",
+                    "evidence": str(row),
+                })
+    return findings
+
+
+def verify_plan(plan_path: str | None = None, plan_content: str | None = None, mode: str = "readiness") -> dict[str, Any]:
     """Verify plan structure with strict readiness gating.
 
     Args:
         plan_path: Path to plan file
         plan_content: Plan content string (alternative to path)
+        mode: Validation mode — "light", "readiness", or "contract".
+              Light = structural only (frontmatter, sections, placeholders).
+              Readiness = full verification (default).
+              Contract = readiness + CAP references + boundary matrix row checks.
 
     Returns:
         Verification result dict with status, action_items, and next_action.
@@ -2969,80 +3139,60 @@ def verify_plan(plan_path: str | None = None, plan_content: str | None = None) -
             "next_action": {"type": "fix_issues", "reason": f"Error reading plan: {e}"},
         }
 
-    # Run all checks
+    # Run checks for the selected mode
     all_findings = []
+    checks = _get_checks_for_mode(mode)
+    ingestion_blocked = False
+    agent_validation = {"valid": True, "missing": []}
 
-    # 1. Status header
-    all_findings.extend(check_status_header(plan))
-
-    # 2. Placeholder detection (blocks READY)
-    all_findings.extend(check_placeholders(plan))
-
-    # 3. Plan purity (blocks READY)
-    all_findings.extend(check_plan_purity(plan))
-
-    # 4. Section completeness
-    all_findings.extend(check_section_completeness(plan))
-
-    # 4.5 ADR ingestion contract — local rewrite issue before any /arch routing
-    adr_ingestion_findings = check_adr_ingestion_contract(plan, plan_path)
-    all_findings.extend(adr_ingestion_findings)
-    source_ingestion_findings = check_source_ingestion_contract(plan, plan_path)
-    all_findings.extend(source_ingestion_findings)
-    ingestion_blocked = bool(adr_ingestion_findings or source_ingestion_findings)
-
-    # 5. Stateful/contract readiness
-    if not ingestion_blocked:
-        all_findings.extend(check_evidence_file_targets(plan, plan_path))
-        all_findings.extend(check_layer_execution_semantics(plan))
-        all_findings.extend(check_conditional_trigger_clarity(plan))
-        all_findings.extend(check_change_component_alignment(plan))
-        all_findings.extend(check_helper_reference_clarity(plan, plan_path))
-        all_findings.extend(check_stateless_contradictions(plan))
-        all_findings.extend(check_ambiguous_contracts(plan))
-        all_findings.extend(check_state_model_completeness(plan))
-        all_findings.extend(check_unresolved_core_decisions(plan))
-        all_findings.extend(check_open_question_blockers(plan))
-        all_findings.extend(check_boundary_overload(plan))
-        all_findings.extend(check_existing_flow_overlap(plan, plan_path))
-        all_findings.extend(check_state_extension_contracts(plan))
-        all_findings.extend(check_parser_failure_policy(plan))
-        all_findings.extend(check_assumption_schema_contradictions(plan))
-        all_findings.extend(check_claim_schema_consistency(plan))
-        all_findings.extend(check_contract_test_coherence(plan))
-        all_findings.extend(check_stateful_failure_mode_tests(plan))
-        all_findings.extend(check_mechanism_triggerability(plan))
-        all_findings.extend(check_contract_sensitivity_contradictions(plan))
-        all_findings.extend(check_contract_boundary_matrix(plan))
-        all_findings.extend(check_planning_contract_authority_drift(plan))
-
-    # 6. Solo-dev violations
-    all_findings.extend(check_solo_dev_violations(plan))
-
-    # 7. RTM coverage
-    requirements = extract_requirements(plan)
-    tasks = extract_tasks(plan)
-    if not ingestion_blocked:
-        all_findings.extend(check_rtm_coverage(requirements, tasks))
-
-    # 8. Review dispositions (before claimed implementation-ready can pass)
-    all_findings.extend(check_dispositions(plan_path, plan))
-
-    # 9. Adversarial agent availability
-    agent_validation = validate_adversarial_agents()
-    if not agent_validation["valid"]:
-        all_findings.append(
-            {
-                "id": "AGENT-001",
-                "category": "agent_availability",
-                "priority": "HIGH",
-                "title": "Missing adversarial agents",
-                "description": f"Cannot launch adversarial review. Missing: {', '.join(agent_validation['missing'])}",
-            }
-        )
-
-    # 10. Contradiction check (after findings so we can check against HIGH findings)
-    all_findings.extend(check_status_readiness(plan, all_findings))
+    for check in checks:
+        # ADR/source ingestion checks set a flag that short-circuits subsequent checks
+        if check in (check_adr_ingestion_contract, check_source_ingestion_contract):
+            findings = check(plan, plan_path) if check.__code__.co_argcount >= 2 else check(plan)
+            all_findings.extend(findings)
+            if findings:
+                ingestion_blocked = True
+        elif check == validate_adversarial_agents:
+            # validate_adversarial_agents takes no plan arg
+            result = check()
+            if not result["valid"]:
+                all_findings.append({
+                    "id": "AGENT-001",
+                    "category": "agent_availability",
+                    "priority": "HIGH",
+                    "title": "Missing adversarial agents",
+                    "description": f"Cannot launch adversarial review. Missing: {', '.join(result['missing'])}",
+                })
+        elif check == check_status_readiness:
+            # check_status_readiness takes (plan, findings)
+            all_findings.extend(check(plan, all_findings))
+        elif check == check_rtm_coverage:
+            # check_rtm_coverage takes (requirements, tasks)
+            requirements = extract_requirements(plan)
+            tasks = extract_tasks(plan)
+            all_findings.extend(check(requirements, tasks))
+        elif check == check_dispositions:
+            all_findings.extend(check(plan_path, plan))
+        elif ingestion_blocked:
+            continue  # skip all stateful checks when ADR/source ingestion blocked
+        elif check in (check_contract_boundary_matrix, check_planning_contract_authority_drift,
+                       check_contract_sensitivity_contradictions, check_state_model_completeness,
+                       check_ambiguous_contracts, check_unresolved_core_decisions,
+                       check_open_question_blockers, check_boundary_overload,
+                       check_existing_flow_overlap, check_state_extension_contracts,
+                       check_parser_failure_policy, check_assumption_schema_contradictions,
+                       check_claim_schema_consistency, check_contract_test_coherence,
+                       check_stateful_failure_mode_tests, check_mechanism_triggerability,
+                       check_evidence_file_targets, check_layer_execution_semantics,
+                       check_conditional_trigger_clarity, check_change_component_alignment,
+                       check_helper_reference_clarity, check_stateless_contradictions,
+                       check_solo_dev_violations):
+            # These take (plan) or (plan, plan_path)
+            all_findings.extend(check(plan, plan_path) if check.__code__.co_argcount >= 2 else check(plan))
+        elif check == check_contract_authority_refs or check == check_boundary_matrix_rows:
+            all_findings.extend(check(plan))
+        else:
+            all_findings.extend(check(plan) if check.__code__.co_argcount == 1 else check(plan, plan_path))
 
     # Determine overall status
     high_priority = [f for f in all_findings if f.get("priority") == "HIGH"]
@@ -3054,11 +3204,47 @@ def verify_plan(plan_path: str | None = None, plan_content: str | None = None) -
     frontmatter = parse_frontmatter(plan)
     inferred_phase_ready_through = infer_phase_ready_through(plan, frontmatter)
 
+    plan_sha256 = hashlib.sha256(plan.encode("utf-8")).hexdigest()
+    next_action = classify_next_action(status, all_findings)
+    active_arch_receipt = None
+    current_arch_finding_ids = _current_arch_finding_ids(all_findings)
+
+    if plan_path and not ingestion_blocked:
+        if current_arch_finding_ids:
+            active_arch_receipt = find_pending_arch_handoff_receipt(
+                plan_path,
+                arch_blocker_ids=current_arch_finding_ids,
+                current_plan_sha256=plan_sha256,
+            )
+            if active_arch_receipt and next_action.get("type") == "invoke_arch_then_rewrite_plan":
+                next_action = {
+                    "type": "fix_issues",
+                    "reason": (
+                        "A pending /arch handoff receipt already exists for these architecture blockers. "
+                        "Consume the receipt, rewrite the plan locally, and rerun verification."
+                    ),
+                    "must_follow": True,
+                    "authoritative_source": "arch_handoff_receipt",
+                    "ownership": "planning_rewrites_plan",
+                    "post_arch_actions": [
+                        "consume_arch_packet",
+                        "rewrite_plan",
+                        "rerun_auto_verify",
+                    ],
+                }
+        else:
+            active_arch_receipt = find_pending_arch_handoff_receipt(plan_path)
+            if active_arch_receipt:
+                active_arch_receipt = mark_arch_handoff_consumed(
+                    plan_path,
+                    rewritten_plan_sha256=plan_sha256,
+                )
+
     result = {
         "status": status,
         "claimed_status": claimed_status,
         "plan_path": plan_path,
-        "plan_sha256": hashlib.sha256(plan.encode("utf-8")).hexdigest(),
+        "plan_sha256": plan_sha256,
         "readiness": {
             "phase_ready_through": inferred_phase_ready_through,
             "unresolved_blockers": _parse_int_frontmatter(frontmatter, "unresolved_blockers"),
@@ -3071,7 +3257,7 @@ def verify_plan(plan_path: str | None = None, plan_content: str | None = None) -
             "requirements_found": len(requirements),
             "tasks_found": len(tasks),
         },
-        "next_action": classify_next_action(status, all_findings),
+        "next_action": next_action,
         "artifact_freshness": {
             "verified_at": int(time.time()),
             "plan_mtime": int(Path(plan_path).stat().st_mtime) if plan_path else None,
@@ -3081,6 +3267,15 @@ def verify_plan(plan_path: str | None = None, plan_content: str | None = None) -
             ),
         },
     }
+
+    if active_arch_receipt:
+        result["arch_handoff_receipt"] = {
+            "status": active_arch_receipt.get("status"),
+            "receipt_path": active_arch_receipt.get("receipt_path"),
+            "source_adr": active_arch_receipt.get("source_adr"),
+            "arch_blocker_ids": active_arch_receipt.get("arch_blocker_ids", []),
+            "resume_policy": active_arch_receipt.get("resume_policy"),
+        }
 
     if plan_path:
         result["artifact_consistency"] = annotate_stale_review_artifacts(plan_path, result)

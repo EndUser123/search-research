@@ -1848,6 +1848,65 @@ Copied ADR design.
 class TestSourceIngestionRouting:
     """Non-ADR source artifacts should normalize locally before other routing."""
 
+    def test_current_adr_artifact_is_treated_as_local_normalization_issue(
+        self, tmp_path: Path
+    ) -> None:
+        source_dir = tmp_path / "arch_decisions"
+        source_dir.mkdir()
+        plan_file = source_dir / "ADR-20260407-example.md"
+        plan_file.write_text(
+            """# ADR: Example implementation
+
+## Goal
+
+Deliver a stateful workflow improvement.
+
+## Current State with Evidence
+
+Current implementation has no explicit source-of-truth contract.
+
+## Design Decisions and Invariants
+
+The workflow uses replay and handoff semantics across runs.
+
+## Implementation Changes
+
+**TASK-001**: Add the new workflow
+- Action: Implement it
+- Acceptance:
+  - Workflow runs
+
+## Contract Boundary Matrix
+
+| Boundary | Producer | Consumer | Required Fields |
+|----------|----------|----------|-----------------|
+| state | /plan | /code | task_id |
+
+## Test Matrix
+
+pytest tests/test_example.py
+
+## Assumptions/Defaults
+
+None.
+
+## Open Questions
+
+None.
+""",
+            encoding="utf-8",
+        )
+
+        result = auto_verify.verify_plan(str(plan_file))
+        finding_ids = {finding["id"] for finding in result["action_items"]}
+        categories = {finding["category"] for finding in result["action_items"]}
+
+        assert result["status"] == "BLOCKED"
+        assert result["next_action"]["type"] == "fix_issues"
+        assert "ADR-INGEST-001" in finding_ids
+        assert "state_model" not in categories
+        assert "schema_consistency" not in categories
+
     def test_solution_notes_with_source_packet_stay_local_to_planning(
         self, tmp_path: Path
     ) -> None:

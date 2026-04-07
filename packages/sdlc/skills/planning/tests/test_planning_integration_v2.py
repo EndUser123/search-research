@@ -17,6 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "__lib"))
 
 import auto_verify
+import arch_handoff_state
 import pytest
 
 # Alias for convenience
@@ -200,7 +201,9 @@ Need clarification.
 
     def test_concrete_plan_reaches_ready(self, tmp_path: Path) -> None:
         """Plan with concrete content and no findings reaches READY."""
-        plan = """---
+        source_file = tmp_path / "search_index.py"
+        source_file.write_text("def write_index():\n    pass\n", encoding="utf-8")
+        plan = f"""---
 status: implementation-ready
 source: some/adr.md
 unresolved_blockers: 0
@@ -214,7 +217,10 @@ The search index race condition causes data corruption under concurrent writes.
 
 ## Current State with Evidence
 
-search_index.py line 42 has unprotected write shared across terminals.
+**File:** `{source_file}`
+**Lines:** 1-2
+
+write_index currently performs an unprotected write shared across terminals.
 
 ## Design Decisions and Invariants
 
@@ -301,6 +307,329 @@ None.
         # draft with concrete content is READY (no blockers)
         assert result["status"] == "READY"
         assert result["claimed_status"] == "draft"
+
+
+class TestArchHandoffResumePersistence:
+    """Test durable /planning -> /arch -> /planning handoff behavior."""
+
+    INITIAL_PLAN = """---
+status: draft
+source: P:/__csf/arch_decisions/ADR-20260407-example.md
+unresolved_blockers: 0
+---
+
+# Plan: Pending Arch Rewrite
+
+## Goal
+
+Close the planning workflow without bouncing back into /arch after a packet has already been returned.
+
+## Current State with Evidence
+
+The workflow still relies on replay across planning handoffs and has no explicit state-model contracts.
+
+## Design Decisions and Invariants
+
+The plan currently assumes replay and handoff semantics but does not close identity or invalidation rules.
+
+## Implementation Changes
+
+**TASK-001**: Rewrite the planning artifact
+- Action: Consume the /arch packet and rewrite the draft.
+**Acceptance Criteria:**
+- Rewritten plan includes closed contracts
+
+## Test Matrix
+
+pytest P:/packages/sdlc/skills/planning/tests/test_planning_integration_v2.py
+
+## Contract Authority Reference
+
+**Contract-sensitive:** YES
+
+## Contract Boundary Matrix
+
+| Boundary | Producer | Consumer | Required Fields |
+|----------|----------|----------|-----------------|
+| arch-to-planning | /arch | /planning | packet_version |
+
+## Assumptions/Defaults
+
+The architecture packet exists and is usable.
+
+## Open Questions
+
+None.
+"""
+
+    ARCH_OUTPUT = """contract_authority_packet:
+  packet_version: "2"
+  contract_sensitive: true
+  authority:
+    closure_source: "contract_authority_packet"
+    prose_role: "explanatory_only"
+  boundaries:
+    - boundary_id: "arch-to-planning"
+      producer: "/arch"
+      consumer: "/planning"
+      schema:
+        id: "planning-handoff"
+        version: "2"
+      required_fields: ["packet_version", "plan_title", "goal"]
+      optional_fields: []
+      freshness_authority: "/arch decision packet"
+      invalidation_trigger: "new /arch closure for the same draft"
+      precedence_rule: "latest closed packet wins"
+      failure_behavior: "Planning blocks local rewrite until the packet is consumed"
+      validator_owner: "/planning"
+      proof_owner: "/verify"
+      downstream_consumers: ["/planning"]
+
+planning_handoff_packet:
+  packet_version: "2"
+  source_adr: "P:/__csf/arch_decisions/ADR-20260407-example.md"
+  plan_title: "Pending Arch Rewrite"
+  goal: "Close the planning workflow without bouncing back into /arch after a packet has already been returned."
+  implementation_changes:
+    - task_id: "TASK-001"
+      title: "Rewrite the planning artifact"
+  contract_authority_reference:
+    contract_sensitive: true
+
+RETURN TO CALLER: /planning
+Resume policy: automatic
+Caller action: consume packet, rewrite plan, rerun auto_verify
+"""
+
+    REWRITTEN_PLAN = """---
+status: draft
+source: P:/__csf/arch_decisions/ADR-20260407-example.md
+unresolved_blockers: 0
+---
+
+# Plan: Pending Arch Rewrite
+
+## Goal
+
+Restructure the planning artifact flow so the local rewrite path is deterministic.
+
+## Current State with Evidence
+
+Current planning artifacts mix structural responsibilities that should stay in one local rewrite path.
+
+## Design Decisions and Invariants
+
+Keep artifact rewriting in one local planning path and keep behavior unchanged.
+
+## Implementation Changes
+
+### TASK-001: Normalize planning artifact helpers
+
+- Action: Move the supporting helpers under one planning-local path.
+**Acceptance Criteria:**
+- Helpers exist in the new location
+
+### TASK-002: Update the local rewrite flow
+
+- Action: Route the local rewrite through the normalized helper path.
+**Acceptance Criteria:**
+- The rewrite path is deterministic
+
+## Test Matrix
+
+pytest P:/packages/sdlc/skills/planning/tests/test_planning_integration_v2.py::TestArchHandoffResumePersistence::test_pending_arch_receipt_prevents_reinvocation_and_marks_consumed_after_rewrite
+
+## Contract Authority Reference
+
+**Contract-sensitive:** NO — this is a structural/organizational rewrite only.
+
+## Contract Boundary Matrix
+
+**Not applicable** — this plan does not create, change, or remove producer/consumer boundary semantics.
+
+## State-Model Contracts
+
+**Not applicable** — this plan does not touch persistence, history, stale-data immunity, or event-source boundaries.
+
+## Assumptions/Defaults
+
+Existing architecture authority remains unchanged while the artifact layout is normalized locally.
+
+## Open Questions
+
+None.
+"""
+
+    def test_pending_arch_receipt_prevents_reinvocation_and_marks_consumed_after_rewrite(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        state_dir = tmp_path / "state" / "arch_handoff"
+        monkeypatch.setenv("PLANNING_ARCH_HANDOFF_STATE_DIR", str(state_dir))
+        monkeypatch.setenv("CLAUDE_TERMINAL_ID", "test-terminal")
+        monkeypatch.setenv("CLAUDE_SESSION_ID", "test-session")
+        plan_file = tmp_path / "plan.md"
+        plan_file.write_text(self.INITIAL_PLAN, encoding="utf-8")
+
+        initial_result = AV.verify_plan(str(plan_file))
+        assert initial_result["next_action"]["type"] == "invoke_arch_then_rewrite_plan"
+        assert initial_result["status"] == "BLOCKED"
+        receipt = arch_handoff_state.record_arch_handoff_receipt(
+            str(plan_file),
+            self.ARCH_OUTPUT,
+            blocker_ids=initial_result["next_action"]["arch_blocker_ids"],
+        )
+        assert receipt["status"] == "pending_consumption"
+        assert Path(receipt["receipt_path"]).exists()
+        assert Path(receipt["receipt_path"]).parent.name == "test-terminal"
+
+        resumed_result = AV.verify_plan(str(plan_file))
+        assert resumed_result["status"] == "BLOCKED"
+        assert resumed_result["next_action"]["type"] == "fix_issues"
+        assert resumed_result["next_action"]["authoritative_source"] == "arch_handoff_receipt"
+        assert resumed_result["arch_handoff_receipt"]["status"] == "pending_consumption"
+        plan_file.write_text(self.REWRITTEN_PLAN, encoding="utf-8")
+
+        final_result = AV.verify_plan(str(plan_file))
+        assert final_result["status"] == "READY", final_result["action_items"]
+        assert final_result["arch_handoff_receipt"]["status"] == "consumed"
+
+        consumed_receipt = arch_handoff_state.load_arch_handoff_receipt(str(plan_file))
+        assert consumed_receipt is not None
+        assert consumed_receipt["status"] == "consumed"
+        assert consumed_receipt["consumed_by_plan_sha256"] == final_result["plan_sha256"]
+
+    def test_stale_plan_sha_does_not_suppress_new_arch_invocation(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        state_dir = tmp_path / "state" / "arch_handoff"
+        monkeypatch.setenv("PLANNING_ARCH_HANDOFF_STATE_DIR", str(state_dir))
+        monkeypatch.setenv("CLAUDE_TERMINAL_ID", "test-terminal")
+        monkeypatch.setenv("CLAUDE_SESSION_ID", "test-session")
+
+        plan_file = tmp_path / "plan.md"
+        plan_file.write_text(self.INITIAL_PLAN, encoding="utf-8")
+        initial_result = AV.verify_plan(str(plan_file))
+        arch_handoff_state.record_arch_handoff_receipt(
+            str(plan_file),
+            self.ARCH_OUTPUT,
+            blocker_ids=initial_result["next_action"]["arch_blocker_ids"],
+        )
+
+        stale_rewrite = self.INITIAL_PLAN.replace(
+            "The workflow still relies on replay across planning handoffs and has no explicit state-model contracts.",
+            "The workflow still relies on replay across planning handoffs and has no explicit state-model contracts.\n\nAdditional evidence: terminal replay mutated the draft after the prior /arch packet.",
+        )
+        plan_file.write_text(stale_rewrite, encoding="utf-8")
+
+        resumed_result = AV.verify_plan(str(plan_file))
+        assert resumed_result["status"] == "BLOCKED"
+        assert resumed_result["next_action"]["type"] == "invoke_arch_then_rewrite_plan"
+        assert "arch_handoff_receipt" not in resumed_result
+
+    def test_expired_receipt_does_not_suppress_new_arch_invocation(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        state_dir = tmp_path / "state" / "arch_handoff"
+        monkeypatch.setenv("PLANNING_ARCH_HANDOFF_STATE_DIR", str(state_dir))
+        monkeypatch.setenv("PLANNING_ARCH_HANDOFF_TTL_SECONDS", "0")
+        monkeypatch.setenv("CLAUDE_TERMINAL_ID", "test-terminal")
+        monkeypatch.setenv("CLAUDE_SESSION_ID", "test-session")
+
+        plan_file = tmp_path / "plan.md"
+        plan_file.write_text(self.INITIAL_PLAN, encoding="utf-8")
+        initial_result = AV.verify_plan(str(plan_file))
+        arch_handoff_state.record_arch_handoff_receipt(
+            str(plan_file),
+            self.ARCH_OUTPUT,
+            blocker_ids=initial_result["next_action"]["arch_blocker_ids"],
+        )
+
+        resumed_result = AV.verify_plan(str(plan_file))
+        assert resumed_result["status"] == "BLOCKED"
+        assert resumed_result["next_action"]["type"] == "invoke_arch_then_rewrite_plan"
+        assert "arch_handoff_receipt" not in resumed_result
+
+    def test_receipts_are_terminal_scoped(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        state_dir = tmp_path / "state" / "arch_handoff"
+        monkeypatch.setenv("PLANNING_ARCH_HANDOFF_STATE_DIR", str(state_dir))
+        monkeypatch.setenv("CLAUDE_TERMINAL_ID", "terminal-a")
+        monkeypatch.setenv("CLAUDE_SESSION_ID", "session-a")
+
+        plan_file = tmp_path / "plan.md"
+        plan_file.write_text(self.INITIAL_PLAN, encoding="utf-8")
+        initial_result = AV.verify_plan(str(plan_file))
+        arch_handoff_state.record_arch_handoff_receipt(
+            str(plan_file),
+            self.ARCH_OUTPUT,
+            blocker_ids=initial_result["next_action"]["arch_blocker_ids"],
+        )
+
+        monkeypatch.setenv("CLAUDE_TERMINAL_ID", "terminal-b")
+        monkeypatch.setenv("CLAUDE_SESSION_ID", "session-b")
+        resumed_result = AV.verify_plan(str(plan_file))
+        assert resumed_result["status"] == "BLOCKED"
+        assert resumed_result["next_action"]["type"] == "invoke_arch_then_rewrite_plan"
+        assert "arch_handoff_receipt" not in resumed_result
+
+    def test_receipt_survives_same_terminal_session_change(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        state_dir = tmp_path / "state" / "arch_handoff"
+        monkeypatch.setenv("PLANNING_ARCH_HANDOFF_STATE_DIR", str(state_dir))
+        monkeypatch.setenv("CLAUDE_TERMINAL_ID", "test-terminal")
+        monkeypatch.setenv("CLAUDE_SESSION_ID", "session-a")
+
+        plan_file = tmp_path / "plan.md"
+        plan_file.write_text(self.INITIAL_PLAN, encoding="utf-8")
+        initial_result = AV.verify_plan(str(plan_file))
+        arch_handoff_state.record_arch_handoff_receipt(
+            str(plan_file),
+            self.ARCH_OUTPUT,
+            blocker_ids=initial_result["next_action"]["arch_blocker_ids"],
+        )
+
+        monkeypatch.setenv("CLAUDE_SESSION_ID", "session-b")
+        resumed_result = AV.verify_plan(str(plan_file))
+        assert resumed_result["status"] == "BLOCKED"
+        assert resumed_result["next_action"]["type"] == "fix_issues"
+        assert resumed_result["next_action"]["authoritative_source"] == "arch_handoff_receipt"
+
+    def test_corrupt_receipt_is_ignored_instead_of_crashing(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        state_dir = tmp_path / "state" / "arch_handoff"
+        monkeypatch.setenv("PLANNING_ARCH_HANDOFF_STATE_DIR", str(state_dir))
+        monkeypatch.setenv("CLAUDE_TERMINAL_ID", "test-terminal")
+        monkeypatch.setenv("CLAUDE_SESSION_ID", "test-session")
+
+        plan_file = tmp_path / "plan.md"
+        plan_file.write_text(self.INITIAL_PLAN, encoding="utf-8")
+        initial_result = AV.verify_plan(str(plan_file))
+        receipt = arch_handoff_state.record_arch_handoff_receipt(
+            str(plan_file),
+            self.ARCH_OUTPUT,
+            blocker_ids=initial_result["next_action"]["arch_blocker_ids"],
+        )
+        Path(receipt["receipt_path"]).write_text("{broken json", encoding="utf-8")
+
+        resumed_result = AV.verify_plan(str(plan_file))
+        assert resumed_result["status"] == "BLOCKED"
+        assert resumed_result["next_action"]["type"] == "invoke_arch_then_rewrite_plan"
+        assert "arch_handoff_receipt" not in resumed_result
 
     def test_draft_with_placeholder_stays_draft(self, tmp_path: Path) -> None:
         """draft plan with placeholder is BLOCKED (can't advance)."""

@@ -323,7 +323,7 @@ def generate_commit_message(diff_data: Dict[str, Any], include_body: bool = Fals
     # Add body if requested
     if include_body:
         body = generate_commit_body(diff_data)
-        return f'{header}{body}' if body else header
+        return f'{header}\n\n{body}' if body else header
 
     return header
 

@@ -268,7 +268,21 @@ Runs code-review plugin (security, performance, maintainability) and meta-review
 
 > See `references/advanced-phases.md` for details.
 
-**Trigger**: `--publish` flag. Extracts from monorepo, creates GitHub repo via `gh` CLI.
+**Trigger**: `--publish` flag. Extracts from monorepo, creates GitHub repo via GitHub API.
+
+**GitHub API Creation**: Uses `resources/create_github_repo_api.py` which:
+- Auto-detects GitHub token from git remote URL or `GITHUB_TOKEN` env var
+- Creates public repositories by default (use `--private` for private)
+- Validates token has `repo` scope before attempting creation
+- Checks for existing repos to avoid conflicts
+
+**Usage:**
+```bash
+/gitready my-package --publish
+
+# Or manually
+python resources/create_github_repo_api.py my-package "Description here"
+```
 
 ---
 

@@ -226,6 +226,38 @@ def _derive_outcomes(findings: list[Finding]) -> list[tuple[str, str, str]]:
     return outcomes
 
 
+def _derive_handoff_offer(findings: list[Finding]) -> tuple[str, str, list[tuple[str, str]]] | None:
+    """Return an explicit next-skill handoff when the next owner is not the source skill."""
+    outcomes = _derive_outcomes(findings)
+    owned_outcomes = [outcome for outcome in outcomes if outcome[1] != "source skill"]
+    if not owned_outcomes:
+        return None
+
+    owner_scores: dict[str, tuple[int, int]] = {}
+    for action, owner, priority in owned_outcomes:
+        priority_score = _PRIORITY_RANK.get(priority, 0)
+        current = owner_scores.get(owner, (0, 0))
+        owner_scores[owner] = (
+            max(current[0], priority_score),
+            current[1] + 1,
+        )
+
+    owner = sorted(
+        owner_scores.items(),
+        key=lambda item: (item[1][0], item[1][1], item[0]),
+        reverse=True,
+    )[0][0]
+    owner_actions = [(priority, action) for action, action_owner, priority in owned_outcomes if action_owner == owner]
+
+    if owner == "skill-ship":
+        rationale = "The blocking work is implementation or correctness hardening, so `/skill-ship` should own the next pass."
+    elif owner == "skill-audit":
+        rationale = "The blocking work is still strategic or audit-owned, so `/skill-audit` should keep control for the next pass."
+    else:
+        rationale = f"The blocking work is owned by `{owner}`, so hand off there instead of leaving ownership implicit."
+    return owner, rationale, owner_actions
+
+
 def _resolve_skill(target: str) -> Path | None:
     """Resolve a skill name to its directory path."""
     name = target.lstrip("/")
@@ -490,11 +522,6 @@ def discover_transfer_targets(target: str) -> tuple[ParsedSkill, set[str], list[
         operational_text = _operational_reference_text(candidate)
         candidate_category = candidate.frontmatter.get("category", "").lower()
         candidate_families = _principle_families_for_text(candidate.raw_text)
-
-        # Pre-read candidate SKILL.md to populate verified set for comparative claims.
-        # Without this, any "direct consumer" or "shared principle" claim is ungrounded
-        # since the Stop comparative-claim guard only recognizes files that were Read.
-        _read_skill_md(candidate_dir)
 
         score = 0
         reasons: list[str] = []
@@ -1617,6 +1644,7 @@ def print_outcome_summary(findings: list[Finding]) -> None:
     """Print a short decision-oriented summary before the detailed tables."""
     verdict, rationale = _derive_verdict(findings)
     outcomes = _derive_outcomes(findings)
+    handoff = _derive_handoff_offer(findings)
 
     print("\n## Outcome Summary\n")
     print(f"- Verdict: **{verdict}**")
@@ -1628,6 +1656,15 @@ def print_outcome_summary(findings: list[Finding]) -> None:
     print("- Next moves (priority-ordered, deduplicated):")
     for action, owner, priority in outcomes:
         print(f"  - {priority}: {action} (owner: {owner})")
+
+    if handoff:
+        owner, handoff_rationale, owner_actions = handoff
+        print("\n## Recommended Handoff\n")
+        print(f"- Recommended next skill: `/{owner}`")
+        print(f"- Why: {handoff_rationale}")
+        print("- Offer this handoff with scope:")
+        for priority, action in owner_actions:
+            print(f"  - {priority}: {action}")
 
 
 def print_improvement_plan(findings: list[Finding]) -> None:

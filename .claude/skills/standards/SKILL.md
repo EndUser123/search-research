@@ -3,6 +3,7 @@ name: standards
 description: Read and enforce CSF NIP standards
 version: "1.0.0"
 status: stable
+enforcement: strict
 category: standards
 triggers:
   - /standards
@@ -10,9 +11,8 @@ aliases:
   - /standards
 
 suggest:
-  - /comply
+  - /init
   - /csf-nip-dev
-  - /test
 ---
 
 # CSF NIP Standards

@@ -25,10 +25,8 @@ from core.session_chain import (
     SessionChainEntry,
     SessionChainResult,
     get_all_chain_files,
-    load_sessions_index,
     walk_handoff_chain,
     walk_session_chain,
-    walk_sessions_index_chain,
 )
 
 # Core components
