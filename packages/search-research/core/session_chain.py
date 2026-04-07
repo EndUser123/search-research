@@ -295,6 +295,46 @@ def _extract_first_user_message(jsonl_path: Path) -> str | None:
     return None
 
 
+def _extract_last_goals(jsonl_path: Path, max_chars: int = 300) -> str | None:
+    """Extract last assistant goal statements from a session transcript.
+
+    Looks for assistant messages with goal-related content near the end of the session.
+    Used for semantic chain verification: prior session's ending goals should match
+    successor session's opening actions.
+    """
+    try:
+        lines = []
+        with open(jsonl_path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    lines.append(line)
+        # Scan backwards for assistant messages with goal/task content
+        goal_parts = []
+        for line in reversed(lines[-50:]):  # last 50 lines
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if entry.get("type") == "assistant":
+                msg = entry.get("message", {})
+                content = msg.get("content", [])
+                if isinstance(content, str) and content:
+                    goal_parts.append(content[:max_chars])
+                elif isinstance(content, list):
+                    for block in content:
+                        if isinstance(block, dict) and block.get("type") == "text":
+                            text = block.get("text", "")
+                            if text:
+                                goal_parts.append(text[:max_chars])
+                if goal_parts:
+                    break
+        return " ".join(reversed(goal_parts))[:max_chars] if goal_parts else None
+    except (OSError, PermissionError):
+        pass
+    return None
+
+
 def walk_sessions_index_chain(
     session_id: str,
     project_path: Path | None = None,
