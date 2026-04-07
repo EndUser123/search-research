@@ -395,14 +395,14 @@ def walk_sessions_index_chain(
     if session_id not in sessions:
         return SessionChainResult()
 
-    # Pre-compute first user messages for compact-marked sessions
-    compact_sessions: dict[str, str] = {}
+    # Pre-compute first user messages for all sessions
+    first_user_messages: dict[str, str] = {}
     for sid, (path, _) in sessions.items():
         msg = _extract_first_user_message(path)
         if msg:
-            compact_sessions[sid] = msg
+            first_user_messages[sid] = msg
 
-    # Pre-compute first user messages for all sessions
+    # ---- mtime-gap + semantic verification for ALL sessions ----
     # Algorithm: for each session, predecessor = closest prior session by mtime gap
     #            semantic verify prior's last-goals vs successor's first-user-message
     #            if cosine sim >= threshold → chain confirmed
