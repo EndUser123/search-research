@@ -687,6 +687,15 @@ def _load_hooks() -> None:
         # Module self-registers via @register_hook decorator
     )
 
+    # Load skill_forced_eval from skill-guard package
+    # Package structure: P:/packages/skill-guard/src/skill_guard/skill_forced_eval.py
+    # Module adds P:/.claude/hooks to sys.path for UserPromptSubmit_modules imports
+    _try_import_hook(
+        module_name="skill_forced_eval",
+        module_path="skill_guard.skill_forced_eval",
+        # Module self-registers via @register_hook decorator
+    )
+
 
 # Auto-load on module import
 _load_hooks()
