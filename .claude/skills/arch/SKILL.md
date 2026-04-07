@@ -125,6 +125,24 @@ The packet must contain, per boundary:
 - proof owner
 - downstream consumers
 
+### Schema-First Authority
+
+Structured artifacts (Contract Authority Packets, `.cap.json`,
+`.contract-authority-packet.json`, packet sidecar files, explicit schemas) carry
+authority. Prose in plans, ADRs, or SKILL.md files is **explanatory and rendered
+output only**.
+
+**Rule:** When a structured artifact exists for a boundary, it is the source of
+truth. Prose may restate or organize the semantics, but it must not weaken,
+replace, or contradict the structured artifact.
+
+**Drift detection:** If prose and a structured artifact disagree, the structured
+artifact wins. Update the prose to match, never the artifact.
+
+**Rationale:** Prose can diverge silently across sessions and LLM context resets.
+Structured artifacts have machine-checkable schemas. Placing authority in prose
+creates invisible drift that `/planning` cannot detect automatically.
+
 `/arch` must also close conflict semantics explicitly before handoff:
 - what wins if transcript and artifact disagree
 - what happens if freshness is unknown
