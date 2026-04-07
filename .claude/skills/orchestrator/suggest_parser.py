@@ -91,7 +91,7 @@ class SuggestFieldParser:
             return []
         raw = match.group(1).strip()
         if raw.startswith('['):
-            items = re.findall(r'/?([a-z][a-z0-9_-]*)', raw, re.IGNORECASE)
+            items = re.findall(r'/([a-z][a-z0-9_-]*)', raw, re.IGNORECASE)
             return ['/' + i.lstrip('/') for i in items]
         else:
             return ['/' + raw.lstrip('/')]

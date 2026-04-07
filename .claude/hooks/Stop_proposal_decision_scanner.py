@@ -47,6 +47,7 @@ DEBUG = os.environ.get("PROPOSAL_DECISION_SCANNER_DEBUG", "false").lower() == "t
 # Patterns that claim an option is correct/valid/selected
 DECISION_CLAIM_PATTERNS = [
     re.compile(r"(Option\s+[A-Z])\s+is\s+correct", re.IGNORECASE),
+    re.compile(r"(Option\s+[A-Z])\s+is\s+(?:also\s+)?correct", re.IGNORECASE),
     re.compile(r"(Option\s+[A-Z])\s+is\s+right", re.IGNORECASE),
     re.compile(r"(Option\s+[A-Z])\s+should\s+be\s+used", re.IGNORECASE),
     re.compile(r"go\s+with\s+(Option\s+[A-Z])", re.IGNORECASE),
@@ -76,7 +77,8 @@ def _extract_decision_claims(text: str) -> list[str]:
             option = match.group(1) if match.groups() else None
             if option:
                 found.append(option)
-    return found
+    # Deduplicate while preserving order (patterns may overlap)
+    return list(dict.fromkeys(found))
 
 
 def _extract_rejections(text: str) -> list[str]:
