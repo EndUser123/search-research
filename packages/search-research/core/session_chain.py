@@ -402,11 +402,7 @@ def walk_sessions_index_chain(
         if msg:
             compact_sessions[sid] = msg
 
-    # Determine if the target session is a /compact session
-    target_msg = compact_sessions.get(session_id, "")
-    target_is_compact = target_msg.startswith("/compact") or "/compact" in target_msg
-
-    # ---- mtime-gap + semantic verification for ALL sessions ----
+    # Pre-compute first user messages for all sessions
     # Algorithm: for each session, predecessor = closest prior session by mtime gap
     #            semantic verify prior's last-goals vs successor's first-user-message
     #            if cosine sim >= threshold → chain confirmed
