@@ -18,6 +18,7 @@ class VerificationStatus(Enum):
     SUPPORTED = "SUPPORTED"
     REFUTED = "REFUTED"
     SILENT = "SILENT"
+    SELF_VERIFIED = "SELF_VERIFIED"  # Inline evidence in claim text
 
 
 @dataclass
