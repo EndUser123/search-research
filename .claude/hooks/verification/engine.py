@@ -105,22 +105,27 @@ def match_claim_to_events(
 ) -> VerificationStatus:
     """Match claim to tool events and return verification status.
 
-    Determines if a claim is SUPPORTED, REFUTED, or SILENT based on
-    matching tool event evidence.
+    Determines if a claim is SUPPORTED, REFUTED, SILENT, or SELF_VERIFIED based on
+    matching tool event evidence or inline self-verification.
 
     Args:
         claim: Claim object to verify
         events: List of tool event dictionaries
 
     Returns:
-        VerificationStatus: SUPPORTED, REFUTED, or SILENT
+        VerificationStatus: SUPPORTED, REFUTED, SILENT, or SELF_VERIFIED
 
     Matching Rules:
+    - SELF_VERIFIED: claim text contains inline evidence (this session, ls|, grep|, verified)
     - ABSENCE claims + ls/Glob showing no matches → SUPPORTED
     - ABSENCE claims + Read/Glob showing entity exists → REFUTED
     - RULE claims + Read of relevant file → check content (SUPPORTED/REFUTED)
     - No relevant tools used → SILENT
     """
+    # Check for self-verification in claim text first (cross-turn evidence)
+    if _is_self_verified_claim(claim):
+        return VerificationStatus.SELF_VERIFIED
+
     if not events:
         return VerificationStatus.SILENT
 
@@ -141,6 +146,41 @@ def match_claim_to_events(
 
     # Default: SILENT for unsupported claim types
     return VerificationStatus.SILENT
+
+
+# Patterns that indicate self-verification (inline evidence in claim text)
+_SELF_VERIFICATION_PATTERNS = [
+    re.compile(r"\bthis\s+session\b", re.IGNORECASE),
+    re.compile(r"\bverified\s+(?:this|in)\s+(?:the\s+)?(?:session|earlier|before)\b", re.IGNORECASE),
+    re.compile(r"\bls\s+\|\s*grep\b", re.IGNORECASE),
+    re.compile(r"\bls\s+(?:showed|confirmed|revealed)\b", re.IGNORECASE),
+    re.compile(r"\bgrep\s+(?:-[nri]?\s+\S+\s+)?(?:\S+\s+)?(?:showed|confirmed|empty|no\s+match)\b", re.IGNORECASE),
+    re.compile(r"\bread\s+(?:tool\s+)?(?:\w+\.)?(?:\w+\.)?\w+\.py:\d+\b", re.IGNORECASE),  # file.py:line
+    re.compile(r"\bconfirmed\s+(?:absent|present|exists?|missing|empty)\b", re.IGNORECASE),
+    re.compile(r"\bempty\s+result(?:s)?\b", re.IGNORECASE),
+    re.compile(r"\bno\s+(?:matches?|files?|results?)\b", re.IGNORECASE),
+]
+
+
+def _is_self_verified_claim(claim: Any) -> bool:
+    """Check if claim text contains inline evidence of prior verification.
+
+    This enables cross-turn evidence: if a claim was verified in an earlier
+    turn, the LLM can include the verification act in the claim text itself,
+    signaling the hook that this was already verified without requiring
+    current-turn tool output.
+
+    Args:
+        claim: Claim object with text attribute
+
+    Returns:
+        True if claim text contains self-verification patterns
+    """
+    claim_text = claim.text
+    for pattern in _SELF_VERIFICATION_PATTERNS:
+        if pattern.search(claim_text):
+            return True
+    return False
 
 
 def _verify_absence_claim(claim: Any, events: List[Dict[str, Any]]) -> VerificationStatus:
