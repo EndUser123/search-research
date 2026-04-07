@@ -140,12 +140,16 @@ def _should_block_claim(claim: Claim, verdict: Any) -> bool:
     # Check verification status
     # SUPPORTED: Evidence found → pass
     # REFUTED: Evidence contradicts → may still pass (not blocked here)
+    # SELF_VERIFIED: Inline evidence in claim text (cross-turn) → pass
     # SILENT: No relevant evidence → block if confident
     if verdict.status == VerificationStatus.SUPPORTED:
         return False  # Grounded in tool events
 
     if verdict.status == VerificationStatus.REFUTED:
         return False  # Has some evidence, even if contradictory
+
+    if verdict.status == VerificationStatus.SELF_VERIFIED:
+        return False  # Grounded via inline evidence citation in claim text
 
     # SILENT status + confident claim = ungrounded
     return True
