@@ -524,6 +524,18 @@ def _cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.dot(a, b) / (norm_a * norm_b))
 
 
+def _semantic_sim(text_a: str, text_b: str) -> float:
+    """Compute cosine similarity between two text strings using SentenceTransformer."""
+    if not text_a or not text_b:
+        return 0.0
+    try:
+        model = _get_st_model()
+        vectors = model.encode([text_a, text_b], normalize_embeddings=True)
+        return _cosine_sim(vectors[0].astype(np.float32), vectors[1].astype(np.float32))
+    except (ImportError, OSError, RuntimeError):
+        return 0.0
+
+
 def walk_semantic_chain(
     session_id: str,
     project_path: Path | None = None,
