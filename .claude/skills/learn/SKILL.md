@@ -167,6 +167,18 @@ Before storing or skipping a lesson, `/learn` should run a short internal lesson
 
 These are internal self-check prompts. They are not default user-facing questions and should only surface to the user when `/learn` is genuinely blocked and cannot proceed safely without clarification.
 
+## Emerge And Graduate Passes
+
+`/learn` should use two internal helper passes when extracting lessons:
+
+- `emerge`: identify latent repeated patterns across candidate lessons when the underlying theme has not yet been named explicitly
+- `graduate`: decide when a repeated lesson is strong enough to promote into a durable artifact, broader pattern, or stronger enforcement recommendation
+
+Use `emerge` when several candidates look related but the shared lesson is still unclear.
+Use `graduate` when the same underlying lesson keeps reappearing and should stop living as isolated session trivia.
+
+Reference: `P:/.claude/skills/__lib/sdlc_internal_modes.md`
+
 ## Output Format
 
 ### When Lessons Found

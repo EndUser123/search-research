@@ -1220,6 +1220,62 @@ def _expected_question_prompt_contract(parsed: ParsedSkill) -> tuple[str, str, l
     return None
 
 
+def _expected_internal_mode_contracts(parsed: ParsedSkill) -> list[tuple[str, str, list[str], list[str]]]:
+    """Return expected internal reasoning-mode contracts by role.
+
+    These are concept-level checks for shared SDLC helper modes (`trace`,
+    `challenge`, `emerge`, `graduate`), not literal slash-command parity checks.
+    """
+    skill_name = (parsed.frontmatter.get("name", "") or parsed.skill_path.name).lower()
+    category = parsed.frontmatter.get("category", "").lower()
+    role_text = " ".join([
+        skill_name,
+        parsed.frontmatter.get("description", "").lower(),
+        category,
+        parsed.body.lower(),
+    ])
+
+    # Only apply these expectations to fuller skill contracts. Minimal unit-test stubs
+    # that only contain an isolated prompt section should not be forced to include the
+    # whole internal-mode contract as well.
+    if "Purpose" not in parsed.sections:
+        return []
+
+    expectations: list[tuple[str, str, list[str], list[str]]] = []
+
+    def add_modes(skill_label: str, modes: list[str]) -> None:
+        markers: list[str] = [rf"\b{mode}\b" for mode in modes]
+        examples: list[str] = [
+            f"use `{mode}` as an internal helper mode when it materially improves the skill's judgment"
+            for mode in modes
+        ]
+        expectations.append((
+            "Internal Discovery Modes",
+            f"{skill_label} lacks appropriate internal-mode support ({', '.join(modes)})",
+            markers,
+            examples,
+        ))
+
+    if skill_name == "skill-audit":
+        add_modes("Audit skill", ["trace", "challenge", "emerge", "graduate"])
+    elif skill_name == "skill-ship":
+        add_modes("Ship skill", ["challenge", "graduate"])
+    elif skill_name == "arch" or category == "architecture":
+        add_modes("Architecture skill", ["trace", "challenge"])
+    elif skill_name == "planning" or category == "planning":
+        add_modes("Planning skill", ["trace", "challenge", "graduate"])
+    elif skill_name == "rca" or (category == "analysis" and any(token in role_text for token in ["root cause", "diagnosis", "hypothesis"])):
+        add_modes("RCA-heavy skill", ["trace", "challenge"])
+    elif skill_name == "learn" or "lesson capture" in role_text or "novelty detection" in role_text:
+        add_modes("Lesson-capture skill", ["emerge", "graduate"])
+    elif skill_name == "retro" or "self-contrast" in role_text or "retrospective" in role_text:
+        add_modes("Retrospective skill", ["trace", "emerge", "graduate"])
+    elif skill_name == "reflect" or "self-improving skills" in role_text or "conversation transcripts" in role_text:
+        add_modes("Reflection skill", ["emerge", "graduate", "trace"])
+
+    return expectations
+
+
 def _lens_question_strategy(parsed: ParsedSkill) -> list[Finding]:
     """Check whether open-ended questions align with the skill's role."""
     findings: list[Finding] = []
@@ -1299,6 +1355,28 @@ def _lens_question_strategy(parsed: ParsedSkill) -> list[Finding]:
                     "LOW",
                     "source skill",
                 ))
+
+    for section_name, gap, required_patterns, examples in _expected_internal_mode_contracts(parsed):
+        section_body = parsed.sections.get(section_name, "")
+        body_lower = parsed.body.lower()
+        haystack = " ".join(filter(None, [section_body.lower(), body_lower]))
+        if not section_body and "sdlc_internal_modes.md" not in body_lower:
+            findings.append(Finding(
+                "QUESTION_STRATEGY",
+                gap,
+                f"Expected internal-mode guidance such as: {'; '.join(examples)}",
+                "LOW",
+                "source skill",
+            ))
+            continue
+        if not all(re.search(pattern, haystack, re.IGNORECASE) for pattern in required_patterns):
+            findings.append(Finding(
+                "QUESTION_STRATEGY",
+                gap,
+                f"Expected internal-mode guidance such as: {'; '.join(examples)}",
+                "LOW",
+                "source skill",
+            ))
 
     return findings
 

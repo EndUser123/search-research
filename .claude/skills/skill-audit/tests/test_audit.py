@@ -696,6 +696,64 @@ category: learning
         findings = _lens_question_strategy(parsed)
         assert findings == []
 
+    def test_arch_missing_trace_and_challenge_modes_is_flagged(self):
+        md = """---
+name: arch
+description: "Architecture advisor"
+category: architecture
+---
+
+# Arch
+
+## Purpose
+Close architecture decisions and emit handoff packets.
+"""
+        parsed = _parse_skill(Path("."), md)
+        findings = _lens_question_strategy(parsed)
+        assert any("Architecture skill lacks appropriate internal-mode support" in f.gap for f in findings)
+
+    def test_learn_missing_emerge_and_graduate_modes_is_flagged(self):
+        md = """---
+name: learn
+description: "Intelligent lesson capture with novelty detection"
+category: learning
+---
+
+# Learn
+
+## Purpose
+Store reusable lessons from sessions.
+
+## Lesson-Quality Prompts
+- What lesson sounds novel locally but is already known or too one-off to keep?
+"""
+        parsed = _parse_skill(Path("."), md)
+        findings = _lens_question_strategy(parsed)
+        assert any("Lesson-capture skill lacks appropriate internal-mode support" in f.gap for f in findings)
+
+    def test_shared_internal_modes_reference_satisfies_mode_expectation(self):
+        md = """---
+name: planning
+description: "Implementation planning workflow"
+category: planning
+---
+
+# Planning
+
+## Purpose
+Create implementation plans with strict readiness gating.
+
+## Internal Discovery Modes
+- `trace`: reconstruct prior decisions
+- `challenge`: pressure-test the plan
+- `graduate`: promote repeated planning defects into validators
+
+Reference: `P:/.claude/skills/__lib/sdlc_internal_modes.md`
+"""
+        parsed = _parse_skill(Path("."), md)
+        findings = _lens_question_strategy(parsed)
+        assert not any("internal-mode support" in f.gap for f in findings)
+
 
 class TestLensOperationalResilience:
     def test_stateful_hook_skill_missing_resilience_contract_is_flagged(self):

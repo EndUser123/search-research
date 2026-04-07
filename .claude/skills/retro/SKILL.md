@@ -109,6 +109,20 @@ Before finalizing the retrospective, `/retro` should run a short internal retros
 
 These are internal self-check prompts. They are not default user-facing questions and should only surface to the user when `/retro` is genuinely blocked and cannot proceed safely without clarification.
 
+## Trace, Emerge, And Graduate
+
+`/retro` should use three internal helper passes:
+
+- `trace`: reconstruct how the session or project path evolved, including the moments that most changed the outcome
+- `emerge`: identify latent patterns across recap, gap analysis, pre-mortem, and action extraction that no single sub-skill named explicitly
+- `graduate`: promote repeated retrospective findings into durable process changes, validators, hooks, or workflow rules when warranted
+
+Use `trace` when the retrospective depends on a sequence of decisions or turning points.
+Use `emerge` when multiple chained skills are pointing at the same hidden theme.
+Use `graduate` when the same class of retro lesson keeps recurring and should become durable enforcement or policy.
+
+Reference: `P:/.claude/skills/__lib/sdlc_internal_modes.md`
+
 ## Constraints
 
 - Do NOT fabricate scores — derive from evidence in each step

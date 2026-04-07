@@ -106,6 +106,20 @@ Before proposing skill updates, `/reflect` should run a short internal reflectio
 
 These are internal self-check prompts. They are not default user-facing questions and should only surface to the user when `/reflect` is genuinely blocked and cannot proceed safely without clarification.
 
+## Emerge, Graduate, And Trace
+
+`/reflect` should use three internal helper passes:
+
+- `emerge`: identify latent patterns across corrections, approvals, and repeated failures that have not yet been articulated clearly
+- `graduate`: promote repeated reflection lessons into durable updates such as validator, hook, test, or workflow changes
+- `trace`: reconstruct how a correction or preference evolved across the conversation when the final lesson depends on sequence, reversal, or context shift
+
+Use `emerge` when several signals look related but the underlying lesson is still fuzzy.
+Use `graduate` when a lesson has enough recurrence and evidence to justify promotion into durable enforcement.
+Use `trace` when a proposed change depends on what changed over time rather than on a single isolated correction.
+
+Reference: `P:/.claude/skills/__lib/sdlc_internal_modes.md`
+
 ## Routing Behavior
 
 `/reflect` may suggest:
