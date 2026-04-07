@@ -50,7 +50,7 @@ class SessionChainEntry:
     session_id: str
     transcript_path: Path
     parent_transcript_path: Path | None  # older → newer link
-    created: datetime | None = None
+    created: Optional[datetime] = None
     first_user_message: str | None = None
 
 
