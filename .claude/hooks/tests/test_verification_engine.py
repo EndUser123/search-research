@@ -401,5 +401,101 @@ class TestRuleClaims:
         assert result == VerificationStatus.SILENT
 
 
+class TestSelfVerifiedClaims:
+    """Test self-verified claim detection (cross-turn inline evidence)."""
+
+    def test_match_self_verified_with_this_session(self):
+        """match_claim_to_events must return SELF_VERIFIED when claim contains 'this session'."""
+
+        @dataclass
+        class StubClaim:
+            id: str
+            text: str
+            targets: List[str]
+            type: str
+            confidence: float
+
+        claim = StubClaim(
+            id="claim-010",
+            text="P:/packages/search-research/core/backends/local/: absent (verified this session: ls → 21 files, NO qmd_wiki_backend.py)",
+            targets=["P:/packages/search-research/core/backends/local/"],
+            type="ABSENCE",
+            confidence=0.9
+        )
+
+        events = []  # No events needed - self-verified takes precedence
+        result = match_claim_to_events(claim, events)
+        assert result == VerificationStatus.SELF_VERIFIED
+
+    def test_match_self_verified_with_ls_grep(self):
+        """match_claim_to_events must return SELF_VERIFIED when claim contains 'ls | grep'."""
+
+        @dataclass
+        class StubClaim:
+            id: str
+            text: str
+            targets: List[str]
+            type: str
+            confidence: float
+
+        claim = StubClaim(
+            id="claim-011",
+            text="P:/.claude/skills/: NO qmd-wiki or obsidian-persistent-knowledge skill (this session: ls | grep qmd/obsidian → empty)",
+            targets=["P:/.claude/skills/"],
+            type="ABSENCE",
+            confidence=0.9
+        )
+
+        events = []
+        result = match_claim_to_events(claim, events)
+        assert result == VerificationStatus.SELF_VERIFIED
+
+    def test_match_self_verified_with_verified_this_session(self):
+        """match_claim_to_events must return SELF_VERIFIED for 'verified this session' pattern."""
+
+        @dataclass
+        class StubClaim:
+            id: str
+            text: str
+            targets: List[str]
+            type: str
+            confidence: float
+
+        claim = StubClaim(
+            id="claim-012",
+            text="Package has no skill/ directory (verified in this session)",
+            targets=["packages/handoff/skill/"],
+            type="ABSENCE",
+            confidence=0.8
+        )
+
+        events = []
+        result = match_claim_to_events(claim, events)
+        assert result == VerificationStatus.SELF_VERIFIED
+
+    def test_match_not_self_verified_plain_claim(self):
+        """Plain claims without inline evidence must NOT return SELF_VERIFIED."""
+
+        @dataclass
+        class StubClaim:
+            id: str
+            text: str
+            targets: List[str]
+            type: str
+            confidence: float
+
+        claim = StubClaim(
+            id="claim-013",
+            text="Package has no skill/ directory",
+            targets=["packages/handoff/skill/"],
+            type="ABSENCE",
+            confidence=0.9
+        )
+
+        events = []  # No events, but also no self-verification pattern
+        result = match_claim_to_events(claim, events)
+        assert result == VerificationStatus.SILENT  # Not SELF_VERIFIED
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
