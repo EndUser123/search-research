@@ -36,6 +36,10 @@ _st_model_last_used: float = 0.0
 _ST_MODEL_TTL_SECONDS: float = 300.0  # 5 minutes
 _st_lock: Any = __import__("threading").Lock()
 
+# mtime-gap chain heuristic constants
+_MAX_MTIME_GAP_SECS: float = 120.0  # 2 minutes — close mtime gap = likely chain
+_SEMANTIC_THRESHOLD: float = 0.35  # cosine similarity threshold for chain verification
+
 
 def _get_st_model() -> Any:
     """Get or create cached SentenceTransformer, unloading after 5 min idle.
