@@ -406,27 +406,17 @@ def walk_sessions_index_chain(
     target_msg = compact_sessions.get(session_id, "")
     target_is_compact = target_msg.startswith("/compact") or "/compact" in target_msg
 
-    if not target_is_compact:
-        # Non-compact session — no recorded prior, cannot chain
-        path, mtime = sessions[session_id]
-        return SessionChainResult(
-            entries=[
-                SessionChainEntry(
-                    session_id=session_id,
-                    transcript_path=path,
-                    parent_transcript_path=None,
-                    created=mtime,
-                    first_user_message=target_msg or None,
-                )
-            ],
-            depth=1,
-            origin_session_id=session_id,
-        )
+    # ---- mtime-gap + semantic verification for ALL sessions ----
+    # Algorithm: for each session, predecessor = closest prior session by mtime gap
+    #            semantic verify prior's last-goals vs successor's first-user-message
+    #            if cosine sim >= threshold → chain confirmed
+    # This captures non-compact sessions too (new terminal starts, etc.)
 
-    # Walk backward through /compact sessions by createdAt ordering
-    # Build ordered list once (sessions.items is already sorted by createdAt)
-    sorted_ids = [sid for sid, _ in sorted(sessions.items(), key=lambda x: x[1][1])]
+    # Build sorted list by created timestamp
+    sorted_sessions = sorted(sessions.items(), key=lambda x: x[1][1])
+    sorted_ids = [sid for sid, _ in sorted_sessions]
     sid_to_idx = {sid: i for i, sid in enumerate(sorted_ids)}
+    session_mtimes = {sid: ts for sid, (_, ts) in sorted_sessions}
 
     chain: list[str] = []
     visited: set[str] = set()
@@ -436,39 +426,59 @@ def walk_sessions_index_chain(
         visited.add(current)
         chain.append(current)
 
-        # Find predecessor: nearest older /compact session
-        predecessor_id: str | None = None
         current_idx = sid_to_idx.get(current, -1)
+        if current_idx <= 0:
+            break  # No prior sessions
+
+        # Find predecessor with smallest mtime gap
+        current_path, current_mtime = sessions[current]
+        predecessor_id: str | None = None
+        smallest_gap = _MAX_MTIME_GAP_SECS
+
         for i in range(current_idx - 1, -1, -1):
             pred_id = sorted_ids[i]
             if pred_id in visited:
                 continue
-            pred_msg = compact_sessions.get(pred_id, "")
-            if pred_msg.startswith("/compact") or "/compact" in pred_msg:
-                predecessor_id = pred_id
-                break
+            pred_path, pred_mtime = sessions[pred_id]
+            gap = (current_mtime - pred_mtime).total_seconds()
+            if gap <= 0 or gap >= smallest_gap:
+                continue
+            smallest_gap = gap
+            predecessor_id = pred_id
 
         if predecessor_id is None:
             break
+
+        # Semantic verification: prior's last-goals vs current's first-user-message
+        prior_goals = _extract_last_goals(current_path)  # prior's ending goals
+        current_first_msg = compact_sessions.get(current, "") or _extract_first_user_message(current_path)
+
+        if prior_goals and current_first_msg:
+            sim = _semantic_sim(prior_goals, current_first_msg)
+            if sim < _SEMANTIC_THRESHOLD:
+                break  # Gap too large or semantics don't match — stop chaining
 
         current = predecessor_id
 
     chain.reverse()
 
-    # Build entries
+    # Build entries with parent links
     entries: list[SessionChainEntry] = []
     for i, sid in enumerate(chain):
         path, mtime = sessions[sid]
         parent_path: Path | None = None
         if i > 0:
             parent_path = sessions[chain[i - 1]][0]
+        first_msg = compact_sessions.get(sid, "")
+        if not first_msg:
+            first_msg = _extract_first_user_message(path) or ""
         entries.append(
             SessionChainEntry(
                 session_id=sid,
                 transcript_path=path,
                 parent_transcript_path=parent_path,
                 created=mtime,
-                first_user_message=compact_sessions.get(sid, "") or None,
+                first_user_message=first_msg or None,
             )
         )
 
