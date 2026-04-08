@@ -32,6 +32,12 @@ verify_skill_dir = skills_dir / "verify"
 sys.path.insert(0, str(hooks_dir))
 sys.path.insert(0, str(verify_skill_dir))
 
+from evidence_scope import SCOPE_SESSION_FRESH, load_scoped_tool_events
+
+
+def _load_session_events(session_id: str, limit: int) -> list[dict]:
+    return load_scoped_tool_events(session_id=session_id, scope=SCOPE_SESSION_FRESH, limit=limit)
+
 
 class TestVerifySkillTier1:
     """Test Tier 1 (Component Tests) execution."""
@@ -133,9 +139,7 @@ class TestVerifySkillTier2:
             assert result.returncode == 0
 
         # Verify evidence was collected
-        from evidence_store import load_tool_events
-
-        events = load_tool_events(session_id, limit=10)
+        events = _load_session_events(session_id, limit=10)
         assert len(events) >= 0  # May be empty if hook didn't track
 
     def test_router_integration_check(self):
@@ -228,32 +232,31 @@ class TestVerifySkillTier3:
         session_id = "tier3-e2e-session"
 
         # Track workflow execution
-        from posttooluse.e2e_tracker_hook import E2ETrackerHook
+        from PostToolUse_e2e_tracker import track_workflow
 
-        tracker = E2ETrackerHook(state_dir=tmp_path / "state")
-
-        # Simulate workflow stages
-        tracker.process(
-            tool_name="Read",
-            tool_input={"file_path": "SKILL.md"},
-            tool_response={"success": True},
+        state_dir = tmp_path / "state"
+        track_workflow(
+            workflow_type="tool_chain",
+            target="tier3-read",
             session_id=session_id,
             terminal_id="test-terminal",
+            stages=[{"stage": "Read", "status": "passed", "duration_ms": 1}],
+            overall="success",
+            state_dir=state_dir,
         )
-
-        tracker.process(
-            tool_name="Skill",
-            tool_input={"skill": "test"},
-            tool_response={"success": True, "output": "Skill executed"},
+        track_workflow(
+            workflow_type="skill_invocation",
+            target="test",
             session_id=session_id,
             terminal_id="test-terminal",
+            stages=[{"stage": "Skill", "status": "passed", "duration_ms": 1}],
+            overall="success",
+            state_dir=state_dir,
         )
 
-        # Verify workflow tracked
-        from evidence_store import load_tool_events
-
-        events = load_tool_events(session_id, limit=10)
-        assert len(events) >= 2
+        log_file = state_dir / f"e2e_executions_{session_id}.jsonl"
+        assert log_file.exists()
+        assert len(log_file.read_text(encoding="utf-8").splitlines()) == 2
 
     def test_e2e_execution_evidence_collection(self, tmp_path):
         """
@@ -264,21 +267,21 @@ class TestVerifySkillTier3:
         # Execute workflow and collect evidence
         session_id = "tier3-evidence-session"
 
-        from posttooluse.e2e_tracker_hook import E2ETrackerHook
+        from PostToolUse_e2e_tracker import track_workflow
 
-        tracker = E2ETrackerHook(state_dir=tmp_path / "state")
-        tracker.process(
-            tool_name="Bash",
-            tool_input={"command": "echo test"},
-            tool_response={"success": True, "output": "test"},
+        state_dir = tmp_path / "state"
+        track_workflow(
+            workflow_type="tool_chain",
+            target="echo test",
             session_id=session_id,
             terminal_id="test-terminal",
+            stages=[{"stage": "Bash", "status": "passed", "duration_ms": 1}],
+            overall="success",
+            state_dir=state_dir,
         )
 
-        # Collect evidence
-        from evidence_store import load_tool_events
-
-        events = load_tool_events(session_id, limit=10)
+        log_file = state_dir / f"e2e_executions_{session_id}.jsonl"
+        events = [json.loads(line) for line in log_file.read_text(encoding="utf-8").splitlines()]
 
         evidence = {
             "tier": "e2e",

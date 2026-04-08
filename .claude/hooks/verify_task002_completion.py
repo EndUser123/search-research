@@ -133,18 +133,18 @@ except Exception as e:
 
 print()
 
-# Test 5: API compatibility (evidence_store)
-print("Test 5: Evidence Store API Compatibility")
+# Test 5: Shared evidence adapter compatibility
+print("Test 5: Shared Evidence Adapter Compatibility")
 print("-" * 40)
 try:
-    from evidence_store import load_tool_events
+    from StopHook_unverified_stance import load_tool_events
 
-    print("✅ evidence_store.load_tool_events imported")
-    print("✅ evidence_store.resolve_session_id imported")
+    print("✅ StopHook_unverified_stance.load_tool_events imported")
+    print("✅ Shared evidence adapter available")
 
     # Test with empty session (should return empty list or handle gracefully)
     result = load_tool_events("test-empty-session", limit=10)
-    print(f"✅ load_tool_events returns: {type(result).__name__}")
+    print(f"✅ shared adapter returns: {type(result).__name__}")
 
 except Exception as e:
     print(f"❌ API compatibility test failed: {e}")
@@ -160,12 +160,12 @@ print("✅ All core functions implemented and importable")
 print("✅ SEC-004: Fail-closed session validation working")
 print("✅ PERF-001: Evidence caching infrastructure in place")
 print("✅ E2E pattern detection working")
-print("✅ Evidence store API compatibility verified")
+print("✅ Shared evidence adapter compatibility verified")
 print()
 print("Acceptance Criteria Status:")
 print("  ✅ Blocks 'fixed' claims without workflow evidence")
 print("  ✅ Distinguishes component (Tier 1) from E2E (Tier 3)")
-print("  ✅ Compatible with evidence_store API")
+print("  ✅ Compatible with shared evidence adapters")
 print("  ✅ Session validation fails closed")
 print("  ✅ Evidence caching infrastructure implemented")
 print()

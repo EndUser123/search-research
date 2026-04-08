@@ -395,10 +395,15 @@ Each router dispatches to specialized hooks based on:
 
 **API:**
 ```python
-from evidence_store import load_tool_events, resolve_session_id
+from evidence_scope import SCOPE_SESSION_FRESH, load_scoped_tool_events
+from evidence_store import resolve_session_id
 
 session_id = resolve_session_id(session_id)
-events = load_tool_events(session_id=session_id, limit=500)
+events = load_scoped_tool_events(
+    session_id=session_id,
+    scope=SCOPE_SESSION_FRESH,
+    limit=500,
+)
 ```
 
 ### Terminal Isolation

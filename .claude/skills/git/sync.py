@@ -92,6 +92,7 @@ parser.add_argument("--fix", action="store_true")
 parser.add_argument("--worktree", action="store_true")
 parser.add_argument("--no-resolve", action="store_true")
 parser.add_argument("--repos", default="all")  # all, packages, .claude, mcp
+parser.add_argument("--select", default=None)  # comma-separated indices (e.g., "1,3" or "all")
 parser.add_argument("worktree_action", nargs="?", default="list")
 parser.add_argument("worktree_name", nargs="?", default=None)
 args = parser.parse_args()
@@ -104,6 +105,7 @@ WORKTREE_ACTION = args.worktree_action
 WORKTREE_NAME = args.worktree_name
 AUTO_RESOLVE = not args.no_resolve
 REPOS_FILTER = args.repos
+SELECT_REPOS = args.select
 
 # ============================================================
 # UTILITIES
@@ -763,8 +765,14 @@ if repos_with_pushes:
         repos_with_pushes = filter_repos(repos_with_pushes, REPOS_FILTER)
 
     if repos_with_pushes:
-        # Present interactive selection
-        selected_repos = interactive_select_repos(repos_with_pushes)
+        # Use --select flag if provided, otherwise interactive
+        if SELECT_REPOS is not None:
+            # Parse --select argument
+            selected_indices = parse_selection(SELECT_REPOS, len(repos_with_pushes))
+            selected_repos = [repos_with_pushes[i - 1] for i in selected_indices]
+        else:
+            # Present interactive selection
+            selected_repos = interactive_select_repos(repos_with_pushes)
 
         if selected_repos:
             header("PUSHING SELECTED REPOS")

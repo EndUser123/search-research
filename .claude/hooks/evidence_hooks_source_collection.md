@@ -1216,12 +1216,17 @@ def load_tool_sequence_for_evidence() -> list[dict]:
     if not re.fullmatch(r"[a-f0-9\-]{36}", session_id):
         session_id = ""
 
-    # Preferred path: durable session-scoped evidence store
+    # Preferred path: shared session-scoped evidence adapter
     try:
-        from evidence_store import load_tool_events, resolve_session_id
+        from evidence_scope import SCOPE_SESSION_FRESH, load_scoped_tool_events
+        from evidence_store import resolve_session_id
         session_id = resolve_session_id(session_id)
         if session_id:
-            events = load_tool_events(session_id=session_id, limit=500)
+            events = load_scoped_tool_events(
+                session_id=session_id,
+                scope=SCOPE_SESSION_FRESH,
+                limit=500,
+            )
             if events:
                 return events
     except Exception:
@@ -1854,10 +1859,15 @@ def extract_response_and_tools(input_data: dict) -> tuple[str, list[str]]:
 
     if not tools_used:
         try:
-            from evidence_store import resolve_session_id, load_tool_events
+            from evidence_scope import SCOPE_SESSION_FRESH, load_scoped_tool_events
+            from evidence_store import resolve_session_id
             session_id = resolve_session_id(os.environ.get("CLAUDE_SESSION_ID", ""))
             if session_id:
-                for tool in load_tool_events(session_id, limit=200):
+                for tool in load_scoped_tool_events(
+                    session_id=session_id,
+                    scope=SCOPE_SESSION_FRESH,
+                    limit=200,
+                ):
                     name = tool.get("name", "") if isinstance(tool, dict) else str(tool)
                     if name and name not in tools_used:
                         tools_used.append(name)

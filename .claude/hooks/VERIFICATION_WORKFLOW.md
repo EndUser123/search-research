@@ -425,10 +425,10 @@ Verify the hook works in actual workflows:
 
 # Check evidence store
 python -c "
-from evidence_store import load_tool_events
-events = load_tool_events(session_id='', limit=10)
+from evidence_scope import SCOPE_SESSION_FRESH, load_scoped_tool_events
+events = load_scoped_tool_events(session_id='', scope=SCOPE_SESSION_FRESH, limit=10)
 for e in events:
-    print(e['tool_name'], e.get('success'))
+    print(e['name'], e.get('success'))
 "
 ```
 
@@ -475,9 +475,9 @@ export CLAUDE_SESSION_ID=session-2
 
 # Verify isolation
 python -c "
-from evidence_store import load_tool_events
-events_1 = load_tool_events('session-1')
-events_2 = load_tool_events('session-2')
+from evidence_scope import SCOPE_SESSION_FRESH, load_scoped_tool_events
+events_1 = load_scoped_tool_events(session_id='session-1', scope=SCOPE_SESSION_FRESH, limit=20)
+events_2 = load_scoped_tool_events(session_id='session-2', scope=SCOPE_SESSION_FRESH, limit=20)
 assert len(events_1) > 0, 'Session 1 has no events'
 assert len(events_2) > 0, 'Session 2 has no events'
 print('✅ Sessions isolated')
@@ -539,8 +539,8 @@ expected_tools = ["Glob", "Read", "Edit", "Bash"]
 
 # Check evidence store
 python -c "
-from evidence_store import load_tool_events
-events = load_tool_events(session_id='', limit=10)
+from evidence_scope import SCOPE_SESSION_FRESH, load_scoped_tool_events
+events = load_scoped_tool_events(session_id='', scope=SCOPE_SESSION_FRESH, limit=10)
 actual_tools = [e['name'] for e in events]
 expected = ['Glob', 'Read', 'Edit', 'Bash']
 assert actual_tools == expected, f'Tool mismatch: {actual_tools}'
@@ -691,10 +691,10 @@ When developing a new hook:
 
    # Check evidence store
    python -c "
-   from evidence_store import load_tool_events
-   events = load_tool_events(session_id='', limit=10)
-   print([e['name'] for e in events])
-   "
+from evidence_scope import SCOPE_SESSION_FRESH, load_scoped_tool_events
+events = load_scoped_tool_events(session_id='', scope=SCOPE_SESSION_FRESH, limit=10)
+print([e['name'] for e in events])
+"
    ```
 
 **Evidence required**:
@@ -756,8 +756,8 @@ cat .claude/state/e2e_executions_*.jsonl | tail -10
 
 # Check evidence store
 python -c "
-from evidence_store import load_tool_events
-events = load_tool_events(session_id='', limit=10)
+from evidence_scope import SCOPE_SESSION_FRESH, load_scoped_tool_events
+events = load_scoped_tool_events(session_id='', scope=SCOPE_SESSION_FRESH, limit=10)
 print(f'Events: {len(events)}')
 for e in events:
     print(f'  {e[\"name\"]}: {e.get(\"success\")}')
@@ -823,8 +823,8 @@ echo $CLAUDE_TERMINAL_ID
 
 # View evidence store
 python -c "
-from evidence_store import load_tool_events
-events = load_tool_events(session_id='', limit=20)
+from evidence_scope import SCOPE_SESSION_FRESH, load_scoped_tool_events
+events = load_scoped_tool_events(session_id='', scope=SCOPE_SESSION_FRESH, limit=20)
 for e in events:
     print(f'{e[\"session_id\"]}/{e[\"terminal_id\"]}: {e[\"name\"]}')
 "
@@ -882,8 +882,8 @@ print(cursor.fetchall())
 
 # Check recent events
 python -c "
-from evidence_store import load_tool_events
-events = load_tool_events(session_id='', limit=5)
+from evidence_scope import SCOPE_SESSION_FRESH, load_scoped_tool_events
+events = load_scoped_tool_events(session_id='', scope=SCOPE_SESSION_FRESH, limit=5)
 for e in events:
     print(f'{e[\"name\"]}: {e.get(\"command\", \"\")[:50]}')
 "
@@ -927,7 +927,7 @@ Reference: `.claude/skills/evidence-tiers/SKILL.md`
 **TASK-000: Evidence Store**
 - File: `.claude/hooks/evidence_store.py`
 - Purpose: Session-scoped evidence storage
-- API: `load_tool_events()`, `resolve_session_id()`
+- API: `load_scoped_tool_events()`, `load_turn_scoped_events()`, `resolve_session_id()`
 
 **TASK-002: Completion Claim Verification**
 - File: `.claude/hooks/StopHook_unverified_stance.py`
@@ -1047,7 +1047,7 @@ export HOOK_VERBOSE=true
 
 1. **Check logs**: `python .claude/hooks/shared_utils.py logs --limit 50`
 2. **Test in isolation**: `echo '{"test":"data"}' | python hook.py`
-3. **Verify evidence**: `python -c "from evidence_store import load_tool_events; print(load_tool_events())"`
+3. **Verify evidence**: `python -c "from evidence_scope import SCOPE_SESSION_FRESH, load_scoped_tool_events; print(load_scoped_tool_events(session_id='', scope=SCOPE_SESSION_FRESH, limit=5))"`
 4. **Check E2E**: `python .claude/hooks/PostToolUse_e2e_tracker.py --check`
 5. **Enable verbose**: `export HOOK_VERBOSE=true`
 

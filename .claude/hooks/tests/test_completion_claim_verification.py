@@ -118,8 +118,8 @@ class TestCompletionClaimVerification:
 
             # In test environment without actual evidence, this will correctly fail
             # To properly test this, we'd need to:
-            # 1. Run a Bash tool first to populate evidence_store
-            # 2. Mock load_tool_events() to return fake tool events
+            # 1. Run a Bash tool first to populate the shared evidence layer
+            # 2. Mock the module-level load_tool_events() adapter to return fake tool events
             # For now, we verify the logic works correctly (no evidence = invalid claim)
             if not claim_valid:
                 # Expected behavior in test environment without evidence
@@ -228,16 +228,16 @@ class TestCompletionClaimVerification:
             pytest.skip(f"RUNTIME_COMMAND_PATTERNS not yet implemented: {e}")
 
 
-class TestEvidenceStoreIntegration:
-    """Test evidence_store API integration for completion claim verification."""
+class TestEvidenceAdapterIntegration:
+    """Test shared evidence adapter integration for completion claim verification."""
 
-    def test_load_tool_events_api_exists(self):
-        """Verify load_tool_events() function exists in evidence_store.py."""
+    def test_load_tool_events_adapter_exists(self):
+        """Verify the module-level shared evidence adapter exists."""
         try:
-            from evidence_store import load_tool_events
+            from StopHook_unverified_stance import load_tool_events
             assert callable(load_tool_events), "load_tool_events should be callable"
         except ImportError as e:
-            pytest.fail(f"evidence_store.load_tool_events should exist: {e}")
+            pytest.fail(f"shared load_tool_events adapter should exist: {e}")
 
     def test_resolve_session_id_api_exists(self):
         """Verify resolve_session_id() function exists in evidence_store.py."""
@@ -248,11 +248,11 @@ class TestEvidenceStoreIntegration:
             pytest.fail(f"evidence_store.resolve_session_id should exist: {e}")
 
     def test_load_tool_events_returns_list(self):
-        """Verify load_tool_events() returns list of event dicts."""
+        """Verify the shared evidence adapter returns a list of event dicts."""
         test_session_id = "test-session-api-check-12345"
 
         try:
-            from evidence_store import load_tool_events
+            from StopHook_unverified_stance import load_tool_events
 
             # Call with empty session_id (should return empty list or handle gracefully)
             result = load_tool_events(test_session_id, limit=10)
@@ -267,7 +267,7 @@ class TestEvidenceStoreIntegration:
                 assert "command" in event, "Event should have 'command' key"
 
         except Exception as e:
-            pytest.skip(f"load_tool_events call failed (may need actual evidence store): {e}")
+            pytest.skip(f"shared adapter call failed (may need actual evidence): {e}")
 
     def test_event_dict_structure_matches_plan(self):
         """Verify event dict structure matches plan specification.

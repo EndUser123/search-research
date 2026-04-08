@@ -93,13 +93,14 @@ Implemented end-to-end workflow tracking via PostToolUse hook with security fixe
 **File Pattern**: `e2e_executions_{session_id}.jsonl`
 **Archived**: `e2e_executions_{session_id}.jsonl.old`
 
-## Integration with Evidence Store
+## Integration with Shared Evidence Adapters
 
-The tracker uses the validated API from `evidence_store.py` (TASK-000):
-- `load_tool_events(session_id: str, limit: int = 500, terminal_id: str = "") -> list[dict]`
-- `resolve_session_id(explicit: str = "") -> str`
+The tracker feeds the shared evidence layer used by the Stop hooks and tests:
+- `load_scoped_tool_events(...)` from `evidence_scope.py` for session-fresh and mutation-safe reads
+- `load_turn_scoped_events(...)` from `turn_scoped_evidence.py` for turn-strict reads
+- Module-level adapters in individual hooks for stable test seams
 
-Event dict keys: `name`, `command`, `cwd`, `output_excerpt`, `session_id`, `terminal_id`
+Event dict keys remain: `name`, `command`, `cwd`, `output_excerpt`, `session_id`, `terminal_id`
 
 ## Usage Example
 

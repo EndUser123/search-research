@@ -13,16 +13,19 @@ args:
   - --health: Check configuration only (don't sync)
   - --fix: Auto-fix issues before syncing
   - --repos: Filter repos by type (all, packages, .claude, mcp, non-main)
+  - --select: Select repos to push by index (e.g., "1,3" or "all")
   - --worktree: Worktree management mode (list, add, remove, prune)
   - --no-resolve: Skip automatic conflict resolution (manual mode)
 execution:
-  directive: "If --worktree: manage worktrees. Otherwise: discover all git repos, auto-sync main repo (commit + push), present interactive selection for non-main repos. Non-interactive mode skips selection."
+  directive: "If --worktree: manage worktrees. Otherwise: discover all git repos, auto-sync main repo (commit + push), use --select for non-interactive push or present interactive selection. Non-interactive mode skips selection."
   default_args: ""
   examples:
     - "/git"
     - "/git --verbose"
     - "/git --health"
     - "/git --repos packages"
+    - "/git --select 1,3"
+    - "/git --select all"
     - "/git --worktree"
     - "/git --worktree add feature-name"
     - "/git --worktree remove feature-name"
@@ -51,6 +54,10 @@ do_not:
 # Filter to specific repo types
 /git --repos packages        # Only package repos
 /git --repos .claude         # Only .claude internal repos
+
+# Push specific repos by index (use with /git --health to see indices)
+/git --select 1,3            # Push repos 1 and 3
+/git --select all            # Push all repos with unpushed commits
 
 # Worktree management
 /git --worktree                # List all worktrees

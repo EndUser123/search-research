@@ -1165,9 +1165,11 @@ Command: npm install @scope/package
 - **Command Patterns**: subprocess, pytest, python, node, npm test
 - **Session Isolation**: Evidence scoped to session_id (multi-terminal safe)
 
-**Allowed APIs** (from evidence_store.py):
-- `load_tool_events(session_id: str, limit: int = 500, terminal_id: str = "") -> list[dict]`
-- `resolve_session_id(explicit: str = "") -> str`
+**Preferred Evidence Interfaces**:
+- Shared scope loader: `load_scoped_tool_events(...)` from `evidence_scope.py`
+- Shared turn-scoped helper: `load_turn_scoped_events(...)` from `turn_scoped_evidence.py`
+- Module-level adapters such as `StopHook_unverified_stance.load_tool_events(...)`
+- `resolve_session_id(explicit: str = "") -> str` when a hook needs session normalization
 - Event dict keys: `name`, `command`, `cwd`, `output_excerpt`, `session_id`, `terminal_id`
 
 **Anti-patterns** (common mistakes to avoid):
