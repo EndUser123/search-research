@@ -77,6 +77,10 @@ Before synthesizing a critique, `/pre-mortem` should run a short internal failur
 - What would a faster or more literal model fail to challenge in this critique?
 - What change here reduces one failure mode but creates a new one elsewhere?
 - Do we have any predictable issues in primary and related code, or dependent or supporting code/files?
+- Does this target's dependency chain extend beyond what was reviewed?
+- What could break if recommendations are applied at the wrong scope?
+- Is the target in a valid critiqueable state (not mid-edit, not stale)?
+- Is this the right priority — are we optimizing something unimportant?
 
 These are internal self-check prompts. They are not default user-facing questions and should only surface to the user when `/pre-mortem` is genuinely blocked and cannot proceed safely without clarification.
 

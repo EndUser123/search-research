@@ -36,7 +36,7 @@ GIT_DIFF_REGROUND_ENABLED = os.environ.get("GIT_DIFF_REGROUND_ENABLED", "true").
 GIT_DIFF_REGROUND_MIN_FILES = int(os.environ.get("GIT_DIFF_REGROUND_MIN_FILES", "3"))
 
 
-def load_tool_events(*, session_id: str, limit: int = 50) -> list[dict[str, Any]]:
+def load_tool_events(session_id: str, limit: int = 50) -> list[dict[str, Any]]:
     """Compatibility wrapper for recent session evidence."""
     if load_scoped_tool_events is None:
         raise ImportError("evidence_scope unavailable")

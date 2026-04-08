@@ -102,8 +102,8 @@ class TestFabricationDetectionIntegration:
             }
         ]
 
-        with patch("evidence_store.resolve_session_id", return_value=test_session_id):
-            with patch("evidence_store.load_tool_events", return_value=mock_events):
+        with patch("StopHook_cross_validator.resolve_session_id", return_value=test_session_id):
+            with patch("StopHook_cross_validator.load_tool_events", return_value=mock_events):
                 # Verify action claim should ALLOW (real error)
                 result = verify_action_claim({"response": response})
 
@@ -132,8 +132,8 @@ class TestFabricationDetectionIntegration:
         )
 
         # Even with no tool events, should allow
-        with patch("evidence_store.resolve_session_id", return_value=test_session_id):
-            with patch("evidence_store.load_tool_events", return_value=[]):
+        with patch("StopHook_cross_validator.resolve_session_id", return_value=test_session_id):
+            with patch("StopHook_cross_validator.load_tool_events", return_value=[]):
                 result = verify_action_claim({"response": response})
 
                 # Should allow because no fabrication claim detected
@@ -254,8 +254,8 @@ class TestMultiTerminalStateIsolation:
             # Only return events for Terminal A (not Terminal B)
             return mock_events_a
 
-        with patch("evidence_store.resolve_session_id", return_value=shared_session_id):
-            with patch("evidence_store.load_tool_events", side_effect=mock_load_events):
+        with patch("StopHook_cross_validator.resolve_session_id", return_value=shared_session_id):
+            with patch("StopHook_cross_validator.load_tool_events", side_effect=mock_load_events):
                 # Terminal B's claim should STILL be blocked
                 # even though Terminal A has the tool execution
                 result = verify_action_claim({"response": response_b, "terminal_id": terminal_b_id})
@@ -340,8 +340,8 @@ class TestEvidenceStoreIntegration:
                 }
             ]
 
-            with patch("evidence_store.resolve_session_id", return_value=test_session_id):
-                with patch("evidence_store.load_tool_events", return_value=mock_events):
+            with patch("StopHook_cross_validator.resolve_session_id", return_value=test_session_id):
+                with patch("StopHook_cross_validator.load_tool_events", return_value=mock_events):
                     response = "I ran pytest and tests passed"
                     result = verify_action_claim({"response": response})
 
@@ -419,6 +419,7 @@ class TestHookChainIntegration:
 
         # Test 2: Hook enabled (need to reload module to pick up env var)
         os.environ["STOP_CROSS_VALIDATOR_ENABLED"] = "true"
+        os.environ["STOP_CROSS_VALIDATOR_MODE"] = "block"
 
         # Reload the module to pick up new env var
         import importlib
@@ -445,6 +446,7 @@ class TestHookChainIntegration:
                 os.environ["STOP_CROSS_VALIDATOR_ENABLED"] = old_enabled
             else:
                 os.environ.pop("STOP_CROSS_VALIDATOR_ENABLED", None)
+            os.environ.pop("STOP_CROSS_VALIDATOR_MODE", None)
 
             # Reload again to reset
             importlib.reload(StopHook_cross_validator)
@@ -516,9 +518,9 @@ class TestHookChainIntegration:
 
         test_session_id = "test-fail-open-44444"
 
-        with patch("evidence_store.resolve_session_id", return_value=test_session_id):
+        with patch("StopHook_cross_validator.resolve_session_id", return_value=test_session_id):
             # Mock load_tool_events to raise exception
-            with patch("evidence_store.load_tool_events", side_effect=Exception("DB error")):
+            with patch("StopHook_cross_validator.load_tool_events", side_effect=Exception("DB error")):
                 result = verify_action_claim({"response": "I tried WebSearch but got 429 error"})
 
                 # Should ALLOW (fail open) on evidence store error
@@ -563,8 +565,8 @@ class TestRegressionPrevention:
         assert not has_action_claim(response), "Should not detect claim in normal response"
 
         # Should allow without any evidence lookup
-        with patch("evidence_store.resolve_session_id", return_value=test_session_id):
-            with patch("evidence_store.load_tool_events") as mock_load:
+        with patch("StopHook_cross_validator.resolve_session_id", return_value=test_session_id):
+            with patch("StopHook_cross_validator.load_tool_events") as mock_load:
                 result = verify_action_claim({"response": response})
 
                 assert result["allow"], "Should allow normal responses"
