@@ -153,3 +153,33 @@ def test_real_claim_still_detected_after_stripping() -> None:
     assert len(claims) >= 1, f"Real claim not detected after stripping: {claims}"
     # The header and HR should be gone, but the body claim should remain
     assert not any(c.startswith("#") for c in claims), "Header leaked through"
+
+
+def test_evaluate_claims_uses_shared_evidence_scope_loader(monkeypatch) -> None:
+    scopes: list[str] = []
+
+    def fake_load_scoped_tool_events(
+        *,
+        session_id: str,
+        terminal_id: str = "",
+        scope: str,
+        limit: int = 500,
+        ttl_seconds: int | None = None,
+        current_turn_events: list[dict] | None = None,
+    ) -> list[dict]:
+        scopes.append(scope)
+        if scope == ucv.SCOPE_SESSION_FRESH_MUTATION_SAFE:
+            return [{"name": "Read", "command": "module.py", "output": "module exists", "cwd": ""}]
+        return []
+
+    monkeypatch.setattr(ucv, "load_scoped_tool_events", fake_load_scoped_tool_events)
+
+    result = ucv.evaluate_claims(
+        response_text="The file module exists.",
+        session_id="88888888-8888-8888-8888-888888888888",
+        terminal_id="term-scope",
+    )
+
+    assert result["decision"] in {"allow", "block"}
+    assert ucv.SCOPE_SESSION_FRESH_MUTATION_SAFE in scopes
+    assert ucv.SCOPE_TURN_STRICT in scopes

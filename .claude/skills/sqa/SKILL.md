@@ -273,15 +273,82 @@ If findings at or above `--halt-on` threshold (default: HIGH):
 3. If still failing: **BLOCKED** — must use `/sqa --halt-on NONE` to override
 4. If no `--fix`: **BLOCKED** — must use `/sqa --fix` or `/sqa --halt-on NONE`
 
-### Step 3: SEMANTIC
-Run via Bash subprocess:
-- `verify <target>` (pytest)
-- `diagnose` (if failures detected)
+### Step 3: SEMANTIC (TDD BUILD)
+
+**Phase 3a: Test Gap Analysis**
+Run `/test` to discover coverage gaps:
+```bash
+/test <target>
+```
+Produces:
+- Coverage report (pytest-cov)
+- Test classification (unit, integration, edge case, error path)
+- `.test_gaps.json` with prioritized missing tests
+
+**Phase 3b: Test Quality Check**
+Check for high-severity test quality issues:
+- `empty_test`: Test function appears empty (≤2 lines)
+- `no_assertions`: Test has no assert/raise statements
+- `over_mocked`: Test has >5 mocks (may be brittle)
+
+If high-severity issues found: fix them FIRST before RED phase.
+
+**Phase 3c: TDD RED Phase**
+For each gap from Phase 3a, invoke `/tdd` to write failing tests:
+```bash
+/tdd <target> --phase=red
+```
+Parallel `tdd-test-writer` subagents write failing tests (RED phase).
+
+**Phase 3d: TDD GREEN Phase**
+Implement minimal code to pass:
+```bash
+/tdd <target> --phase=green
+```
+Parallel `tdd-implementer` subagents write minimal code.
+
+**Phase 3e: TDD VERIFY Phase**
+Run actual pytest to verify:
+```bash
+verify <target>
+```
+Tests must actually run, not dry-run.
+
+**Phase 3f: TDD REGRESSION Phase**
+Auto-run related tests to catch cascading breaks:
+```bash
+verify --regression <target>
+```
+
+**Phase 3g: TDD REFACTOR Phase**
+Clean up while tests pass:
+```bash
+/tdd <target> --phase=refactor
+```
+Parallel `tdd-refactorer` subagents simplify code.
+
+**Phase 3h: Bug Fixing (if bugs found)**
+For each identified bug, invoke `/fix`:
+```bash
+/fix <bug description>
+```
+
+**Phase 3i: Code Simplification (Python-only)**
+After tests pass, run `code-simplifier`:
+```bash
+Task: code-simplifier
+```
+
+**Exit Criteria:**
+- All tests pass
+- No high-severity test quality issues
+- Known bugs fixed with regression tests
+- Integration verified
 
 Record completion: `record_layer_complete("L2", findings=N)`
 
 ### [HALT CHECK] After Step 3
-If any findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`, run `record_halt("L2")`, and stop. Otherwise continue.
+If findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`, run `record_halt("L2")`, and stop. Otherwise continue.
 
 ### Step 4: STRUCTURAL
 Run via Bash subprocess:

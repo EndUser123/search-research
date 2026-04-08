@@ -43,11 +43,26 @@ except ImportError:
     Claim = None  # type: ignore
     VerificationStatus = None  # type: ignore
 
-# Import evidence store from TASK-001
+# Shared evidence-scope loader
 try:
-    from evidence_store import load_tool_events_for_context
+    from evidence_scope import SCOPE_SESSION_FRESH, load_scoped_tool_events
 except ImportError:
-    load_tool_events_for_context = None  # type: ignore
+    SCOPE_SESSION_FRESH = ""
+    load_scoped_tool_events = None  # type: ignore
+
+
+def load_tool_events_for_context(
+    *, session_id: str, terminal_id: str, limit: int = 500
+) -> list[dict[str, Any]] | None:
+    """Compatibility wrapper that delegates to the shared evidence-scope layer."""
+    if load_scoped_tool_events is None:
+        return None
+    return load_scoped_tool_events(
+        session_id=session_id,
+        terminal_id=terminal_id,
+        scope=SCOPE_SESSION_FRESH,
+        limit=limit,
+    )
 
 
 def _get_gate_enabled() -> bool:

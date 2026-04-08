@@ -26,6 +26,7 @@ from StopHook_cited_content_guard import (
     _CITATION_RE,
     _extract_following_code,
     _extract_identifiers,
+    _load_read_events,
     _find_read_events_for_basename,
     _identifiers_in_excerpt,
     check,
@@ -334,3 +335,19 @@ class TestRunProtocol:
         monkeypatch.setenv("CITED_CONTENT_GUARD_ENABLED", "false")
         result = run(_data(FABRICATED_RESPONSE))
         assert result is None  # disabled → None
+
+
+class TestEvidenceScope:
+    def test_load_read_events_uses_turn_strict_scope(self):
+        with patch("StopHook_cited_content_guard.load_scoped_tool_events") as mock_load:
+            mock_load.return_value = [{"name": "Read", "command": "foo.py", "output": "x"}]
+
+            result = _load_read_events("session-1", "terminal-1")
+
+        assert result == [{"name": "Read", "command": "foo.py", "output": "x"}]
+        mock_load.assert_called_once_with(
+            session_id="session-1",
+            terminal_id="terminal-1",
+            scope="turn_strict",
+            limit=500,
+        )

@@ -28,7 +28,7 @@ from audit import (
     _lens_non_goals_clarity,
     Finding,
 )
-from validate import validate_shape
+from validate import validate_shape, validate_frontmatter
 
 
 class TestValidateShape:
@@ -67,6 +67,86 @@ Does things.
         valid, msg = validate_shape(skill)
         assert valid
         assert msg == "OK"
+
+
+class TestValidateFrontmatter:
+    def test_complete_frontmatter_no_warnings(self, tmp_path):
+        skill = tmp_path / "test-complete"
+        skill.mkdir()
+        (skill / "SKILL.md").write_text("""---
+name: test-complete
+description: "A complete skill"
+version: "1.0.0"
+enforcement: strict
+---
+
+# Test Skill
+""")
+        warnings = validate_frontmatter("test-complete", skills_dir=tmp_path)
+        assert warnings == [], f"Expected no warnings, got: {warnings}"
+
+    def test_missing_enforcement_warns(self, tmp_path):
+        skill = tmp_path / "test-missing-enforcement"
+        skill.mkdir()
+        (skill / "SKILL.md").write_text("""---
+name: test-missing-enforcement
+description: "Missing enforcement"
+version: "1.0.0"
+---
+
+# Test Skill
+""")
+        warnings = validate_frontmatter("test-missing-enforcement", skills_dir=tmp_path)
+        enforcement_warnings = [w for w in warnings if "enforcement" in w]
+        assert len(enforcement_warnings) == 1, f"Expected 1 enforcement warning, got: {warnings}"
+
+    def test_missing_version_warns(self, tmp_path):
+        skill = tmp_path / "test-missing-version"
+        skill.mkdir()
+        (skill / "SKILL.md").write_text("""---
+name: test-missing-version
+description: "Missing version"
+enforcement: strict
+---
+
+# Test Skill
+""")
+        warnings = validate_frontmatter("test-missing-version", skills_dir=tmp_path)
+        version_warnings = [w for w in warnings if "version" in w]
+        assert len(version_warnings) == 1, f"Expected 1 version warning, got: {warnings}"
+
+    def test_missing_multiple_fields_warns(self, tmp_path):
+        skill = tmp_path / "test-missing-multiple"
+        skill.mkdir()
+        (skill / "SKILL.md").write_text("""---
+name: test-missing-multiple
+description: "Has name and desc only"
+---
+
+# Test Skill
+""")
+        warnings = validate_frontmatter("test-missing-multiple", skills_dir=tmp_path)
+        assert len(warnings) >= 2, f"Expected >=2 warnings (version, enforcement), got: {warnings}"
+
+    def test_invalid_enforcement_value_warns(self, tmp_path):
+        skill = tmp_path / "test-invalid-enforcement"
+        skill.mkdir()
+        (skill / "SKILL.md").write_text("""---
+name: test-invalid-enforcement
+description: "Invalid enforcement value"
+version: "1.0.0"
+enforcement: invalid_value
+---
+
+# Test Skill
+""")
+        warnings = validate_frontmatter("test-invalid-enforcement", skills_dir=tmp_path)
+        enforcement_warnings = [w for w in warnings if "enforcement" in w]
+        assert len(enforcement_warnings) == 1, f"Expected 1 enforcement warning, got: {warnings}"
+
+    def test_nonexistent_skill_returns_empty(self, tmp_path):
+        warnings = validate_frontmatter("nonexistent-skill-xyz", skills_dir=tmp_path)
+        assert warnings == [], f"Expected no warnings for nonexistent skill, got: {warnings}"
 
 
 class TestLensReferenceIntegrity:

@@ -45,6 +45,12 @@ from typing import Any
 HOOKS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(HOOKS_DIR))
 
+try:
+    from evidence_scope import SCOPE_TURN_STRICT, load_scoped_tool_events
+except ImportError:
+    SCOPE_TURN_STRICT = ""
+    load_scoped_tool_events = None  # type: ignore
+
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
@@ -131,19 +137,15 @@ def _load_read_events(
     session_id: str, terminal_id: str
 ) -> list[dict[str, Any]]:
     """Load all Read tool events for this turn (fall-open on error)."""
+    if load_scoped_tool_events is None:
+        return []
     try:
-        from evidence_store import load_tool_events_for_context
-        events = load_tool_events_for_context(
+        events = load_scoped_tool_events(
             session_id=session_id,
             terminal_id=terminal_id,
+            scope=SCOPE_TURN_STRICT,
             limit=500,
         )
-        return [e for e in events if e.get("name") == "Read"]
-    except Exception:
-        pass
-    try:
-        from evidence_store import load_tool_events
-        events = load_tool_events(session_id=session_id, limit=500)
         return [e for e in events if e.get("name") == "Read"]
     except Exception:
         return []

@@ -309,10 +309,20 @@ def main():
                 suppress_echo = bool(res.context.get("suppressEcho", False))
                 # Also include any additionalContext from the same result
                 if "additionalContext" in res.context:
-                    injections.append(res.context["additionalContext"])
+                    _ctx = res.context["additionalContext"]
+                    if isinstance(_ctx, dict):
+                        _ctx = json.dumps(_ctx)
+                    elif not isinstance(_ctx, str):
+                        _ctx = str(_ctx)
+                    injections.append(_ctx)
             elif isinstance(res.context, dict) and "additionalContext" in res.context:
                 # Dict with additionalContext but no replacePrompt (e.g. operating_rules)
-                injections.append(res.context["additionalContext"])
+                _ctx = res.context["additionalContext"]
+                if isinstance(_ctx, dict):
+                    _ctx = json.dumps(_ctx)
+                elif not isinstance(_ctx, str):
+                    _ctx = str(_ctx)
+                injections.append(_ctx)
             else:
                 injections.append(res.context)
 

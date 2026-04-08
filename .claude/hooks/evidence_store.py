@@ -551,6 +551,7 @@ def load_tool_events_for_context(
     terminal_id: str,
     limit: int = 500,
     within_seconds: int | None = None,
+    use_turn_scoping: bool | None = None,
 ) -> list[dict[str, Any]]:
     """
     Load tool events filtered by BOTH session_id AND terminal_id.
@@ -558,14 +559,16 @@ def load_tool_events_for_context(
     This is a terminal-aware variant of load_tool_events() for multi-terminal safety.
     Returns empty list if terminal_id is empty (no terminal context available).
 
-    When VERIFICATION_USE_TURN_SCOPING is enabled, only returns events from the
-    current turn (events with id > turn_start_event_id from turn marker file).
+    When use_turn_scoping=True, only returns events from the current turn
+    (events with id > turn_start_event_id from turn marker file).
+    When use_turn_scoping is None, falls back to VERIFICATION_USE_TURN_SCOPING.
 
     Args:
         session_id: Session identifier to filter by
         terminal_id: Terminal identifier to filter by (required)
         limit: Maximum number of events to return (default 500)
         within_seconds: Only return events within this many seconds (optional)
+        use_turn_scoping: Explicit turn-scoping override. None = env-controlled.
 
     Returns:
         List of tool event dictionaries with keys:
@@ -593,7 +596,10 @@ def load_tool_events_for_context(
     params: list[Any] = [session_id, terminal_id]
 
     # Check for turn-scoped filtering
-    use_turn_scoping = os.environ.get("VERIFICATION_USE_TURN_SCOPING", "false").lower() == "true"
+    if use_turn_scoping is None:
+        use_turn_scoping = (
+            os.environ.get("VERIFICATION_USE_TURN_SCOPING", "false").lower() == "true"
+        )
     if use_turn_scoping:
         turn_start_id = _load_turn_start_event_id(session_id, terminal_id)
         if turn_start_id and turn_start_id > 0:

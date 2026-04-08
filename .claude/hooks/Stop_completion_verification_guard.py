@@ -67,8 +67,7 @@ _logger.setLevel(logging.DEBUG)
 
 
 try:
-    from evidence_store import load_tool_events
-
+    from evidence_scope import SCOPE_TURN_STRICT, load_scoped_tool_events
     EVIDENCE_AVAILABLE = True
 except ImportError as exc:
     EVIDENCE_AVAILABLE = False
@@ -128,18 +127,17 @@ def _load_turn_events(session_id: str, terminal_id: str) -> list[dict] | None:
         return _load_spool_files(session_id, terminal_id)
 
     try:
-        all_events = load_tool_events(session_id=session_id, limit=500, terminal_id=terminal_id)
+        all_events = load_scoped_tool_events(
+            session_id=session_id,
+            terminal_id=terminal_id,
+            scope=SCOPE_TURN_STRICT,
+            limit=500,
+        )
     except Exception as exc:
         _logger.warning("FAIL-WARN: load_tool_events raised: %s", exc)
         return None
-
     _logger.debug("loaded %d events for session=%s", len(all_events), session_id[:16])
-
-    min_id = _read_turn_marker(session_id, terminal_id)
-    if min_id is None:
-        return all_events  # Fallback: full session (safe but may miss stale)
-
-    return [e for e in all_events if int(e.get("id", 0)) > min_id]
+    return all_events
 
 
 def _load_spool_files(session_id: str, terminal_id: str) -> list[dict] | None:
@@ -246,9 +244,9 @@ FOLDER_CREATE_PATTERNS = re.compile(
 FOLDER_DELETE_PATTERNS = re.compile(
     r"\b(?:deleted|removed|cleaned\s+up)\s+(?:the\s+)?(?:directory|folder|dir)\s+[\w\-\\/]+"
     r"|\b(?:deleted|removed)\s+[./\\][^\s]+"
-    r"|\b(?:deleted|removed)\s+[\w\-\\-/.]+(?:\s+directory|\s+folder)?"
+    r"|\b(?:deleted|removed)\s+[\w./\\-]+(?:\s+directory|\s+folder)?"
     r"|\b(?:cleaned\s+up)\s+[./\\][^\s]+"
-    r"|\b(?:cleaned\s+up)\s+[\w\-\\-/.]+",
+    r"|\b(?:cleaned\s+up)\s+[\w./\\-]+",
     re.IGNORECASE,
 )
 

@@ -26,6 +26,7 @@ from StopHook_rca_contract import (
     _extract_file_paths_from_path,
     _check_stale_execution_path,
     _get_file_mtime,
+    _load_turn_scoped_tool_events,
     _validate_evidence_tier_labels,
     _validate_adversarial_hypothesis,
 )
@@ -133,6 +134,30 @@ class TestCheckDeadCodeAuto:
         )
         # _check_dead_code_auto scans ALL functions in executed_path; if no function names, empty list
         assert result == [], f"Without function names in path, should return empty list, got: {result}"
+
+
+class TestEvidenceScopeAdapter:
+    def test_load_turn_scoped_tool_events_uses_turn_strict_scope(self, monkeypatch):
+        captured = {}
+
+        def fake_load_scoped_tool_events(**kwargs):
+            captured.update(kwargs)
+            return [{"id": 1, "name": "Read", "command": "foo.py"}]
+
+        monkeypatch.setattr(
+            "StopHook_rca_contract.load_scoped_tool_events",
+            fake_load_scoped_tool_events,
+        )
+
+        result = _load_turn_scoped_tool_events("session-1", "terminal-1")
+
+        assert result == [{"id": 1, "name": "Read", "command": "foo.py"}]
+        assert captured == {
+            "session_id": "session-1",
+            "terminal_id": "terminal-1",
+            "scope": "turn_strict",
+            "limit": 200,
+        }
 
 
 class TestBareExceptBinding:
@@ -844,7 +869,12 @@ Run pytest to confirm fix
 """
         sections = _extract_sections(response)
         is_valid, reasons = _validate_rca_contract(
-            response, [{"id": "evt_1", "name": "Read"}], True, "sess_1", "term_1"
+            {},
+            response,
+            [{"id": "evt_1", "name": "Read"}],
+            True,
+            "sess_1",
+            "term_1",
         )
         # Should not have hypothesis-falsified or evidence-without-tier-label
         ap6_related = [r for r in reasons if "hypothesis-falsified" in r or "evidence-without-tier-label" in r]
@@ -881,7 +911,12 @@ Update it
 Run tests
 """
         is_valid, reasons = _validate_rca_contract(
-            response, [{"id": "evt_1", "name": "Read"}], True, "sess_1", "term_1"
+            {},
+            response,
+            [{"id": "evt_1", "name": "Read"}],
+            True,
+            "sess_1",
+            "term_1",
         )
         # Ruled Out section missing triggers block - check by looking for Ruled Out related reason
         ruled_out_blocks = [r for r in reasons if "Ruled Out" in r]

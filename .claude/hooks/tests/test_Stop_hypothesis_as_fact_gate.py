@@ -38,7 +38,11 @@ except ImportError:
     # Phase 2 refactored gate: _entity_in_tool_events and _normalize_path removed.
     # Import only the functions that still exist.
     try:
-        from Stop_hypothesis_as_fact_gate import _should_block_claim, run  # type: ignore
+        from Stop_hypothesis_as_fact_gate import (
+            _should_block_claim,
+            load_tool_events_for_context,
+            run,
+        )  # type: ignore
     except ImportError:
         skip = True  # type: ignore
 
@@ -530,6 +534,26 @@ class TestGateIntegration(unittest.TestCase):
 
         result = run(data)
         assert result.get("allow") is True, "Hedged claims should allow stop"
+
+
+class TestEvidenceScopeAdapter(unittest.TestCase):
+    @patch("Stop_hypothesis_as_fact_gate.load_scoped_tool_events")
+    def test_load_tool_events_for_context_uses_session_fresh_scope(self, mock_load_scoped):
+        mock_load_scoped.return_value = [{"id": 1, "name": "Read", "command": "foo.py"}]
+
+        result = load_tool_events_for_context(
+            session_id="test-session-id",
+            terminal_id="test-terminal-id",
+            limit=123,
+        )
+
+        self.assertEqual(result, [{"id": 1, "name": "Read", "command": "foo.py"}])
+        mock_load_scoped.assert_called_once_with(
+            session_id="test-session-id",
+            terminal_id="test-terminal-id",
+            scope="session_fresh",
+            limit=123,
+        )
 
     @patch("Stop_hypothesis_as_fact_gate.extract_claims")
     @patch("Stop_hypothesis_as_fact_gate.load_tool_events_for_context")

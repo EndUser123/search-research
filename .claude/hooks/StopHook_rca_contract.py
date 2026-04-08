@@ -53,9 +53,10 @@ URGENCY_PATTERNS = [
 ]
 
 try:
-    from evidence_store import load_tool_events_for_context
+    from evidence_scope import SCOPE_TURN_STRICT, load_scoped_tool_events
 except Exception:
-    load_tool_events_for_context = None
+    SCOPE_TURN_STRICT = ""
+    load_scoped_tool_events = None
 
 # Import evidence_store functions for binding validation (TASK-006)
 try:
@@ -210,10 +211,17 @@ def _get_current_turn_tools(tool_events: list[dict]) -> set[str]:
 
 def _load_turn_scoped_tool_events(session_id: str, terminal_id: str) -> list[dict]:
     """Load turn-safe tool events scoped to both session and terminal."""
-    if not session_id or not terminal_id or load_tool_events_for_context is None:
+    if not session_id or not terminal_id or load_scoped_tool_events is None:
         return []
     try:
-        return list(load_tool_events_for_context(session_id, terminal_id, limit=200))
+        return list(
+            load_scoped_tool_events(
+                session_id=session_id,
+                terminal_id=terminal_id,
+                scope=SCOPE_TURN_STRICT,
+                limit=200,
+            )
+        )
     except Exception as exc:
         _logger.exception("load_turn_scoped_tool_events failed: %s", exc)
         return []

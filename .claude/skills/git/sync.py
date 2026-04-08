@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """
-Smart Git Sync with Health Check, Worktree Management, and Conflict Resolution
-- Detects context (main vs worktree)
-- Checks Tasks configuration
-- Auto-fixes missing configs
-- Syncs bidirectionally
-- Manages worktrees (list, add, remove, prune)
+Smart Git Sync with Multi-Repo Discovery, Health Check, Worktree Management, and Conflict Resolution
+
+Behavior:
+- Main repo (P:/.git): auto-commit and auto-push (no interaction)
+- Non-main repos: present numbered list for user to select which to push
+
+Features:
+- Detects all .git directories across the workspace
 - Auto-resolves conflicts based on file type
+- Dynamic push (detects remote name and branch automatically)
 - Post-merge diff validation
 - Context-aware output
 """
@@ -18,7 +21,7 @@ import time
 import argparse
 import re
 from pathlib import Path
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Dict, NamedTuple
 
 # Import commit message parser
 try:
@@ -35,6 +38,10 @@ except ImportError:
     def generate_subject(data): return "update files"
     def generate_commit_body(data): return ""
 
+# Import sync utilities for commit message generation
+sys.path.insert(0, str(Path(__file__).parent))
+from sync_utils import generate_commit_message as generate_scoped_commit_message
+
 # ============================================================
 # CONFIGURATION
 # ============================================================
@@ -42,6 +49,16 @@ except ImportError:
 MAIN_ROOT = Path("P:/")
 CLAUDE_DIR = MAIN_ROOT / ".claude"
 WORKTREES_DIR = MAIN_ROOT / "worktrees"
+MAIN_REPO_PATH = MAIN_ROOT / ".git"
+
+# Repo classification
+class RepoType:
+    MAIN = "main"           # P:/.git - auto-push
+    PACKAGE = "package"      # packages/*/.git
+    MCP = "mcp"             # packages/.mcp/*/.git
+    INTERNAL = "internal"   # .claude/hooks/.git, .claude/skills/*/.git
+    NESTED = "nested"       # repos within other repos
+    WORKTREE = "worktree"   # worktrees/*/.git
 
 # Conflict resolution strategies
 CONFLICT_STRATEGIES = {
@@ -74,6 +91,7 @@ parser.add_argument("--health", action="store_true")
 parser.add_argument("--fix", action="store_true")
 parser.add_argument("--worktree", action="store_true")
 parser.add_argument("--no-resolve", action="store_true")
+parser.add_argument("--repos", default="all")  # all, packages, .claude, mcp
 parser.add_argument("worktree_action", nargs="?", default="list")
 parser.add_argument("worktree_name", nargs="?", default=None)
 args = parser.parse_args()
@@ -85,6 +103,7 @@ WORKTREE_MODE = args.worktree
 WORKTREE_ACTION = args.worktree_action
 WORKTREE_NAME = args.worktree_name
 AUTO_RESOLVE = not args.no_resolve
+REPOS_FILTER = args.repos
 
 # ============================================================
 # UTILITIES
@@ -111,6 +130,7 @@ def color(text, status):
         "error": "\033[91m",    # Red
         "warning": "\033[93m",  # Yellow
         "info": "\033[94m",     # Blue
+        "repo": "\033[96m",     # Cyan - for repo names
         "reset": "\033[0m",
     }
     return f"{colors.get(status, '')}{text}{colors['reset']}"
@@ -133,15 +153,116 @@ def item(text, status, detail=""):
     colored_text = color(f"{icons[status]} {text}", status)
     print(f"{colored_text}" + (f" ({detail})" if detail else ""))
 
-def generate_commit_message() -> str:
-    """
-    Generate semantic commit message based on changed files.
+# ============================================================
+# MULTI-REPO DISCOVERY
+# ============================================================
 
-    Returns:
-        Semantic commit message in format: type(scope): subject
+class RepoInfo(NamedTuple):
+    path: Path
+    git_dir: Path
+    repo_type: str
+    relative_path: str
+    name: str
+
+def find_all_git_repos() -> List[RepoInfo]:
+    """Find all git repos under P:/"""
+    repos = []
+    seen_git_dirs = set()
+
+    # Scan for all .git directories
+    for git_dir in MAIN_ROOT.rglob(".git"):
+        if git_dir in seen_git_dirs:
+            continue
+        seen_git_dirs.add(git_dir)
+
+        repo_path = git_dir.parent
+
+        # Determine repo type based on path
+        rel_path = str(repo_path.relative_to(MAIN_ROOT))
+
+        if git_dir == MAIN_REPO_PATH:
+            repo_type = RepoType.MAIN
+            name = "main"
+        elif ".claude/hooks" in rel_path:
+            repo_type = RepoType.INTERNAL
+            name = ".claude/hooks"
+        elif ".claude/skills" in rel_path:
+            repo_type = RepoType.INTERNAL
+            name = rel_path.replace(".claude/skills/", "").split("/")[0] if "/" in rel_path else "skill"
+        elif "packages/.mcp" in rel_path:
+            repo_type = RepoType.MCP
+            name = rel_path.replace("packages/.mcp/", "").split("/")[0]
+        elif "packages/" in rel_path:
+            repo_type = RepoType.PACKAGE
+            name = rel_path.replace("packages/", "").split("/")[0]
+        elif "worktrees/" in rel_path:
+            repo_type = RepoType.WORKTREE
+            name = rel_path.replace("worktrees/", "").split("/")[0]
+        else:
+            repo_type = RepoType.NESTED
+            name = rel_path.split("/")[-1]
+
+        repos.append(RepoInfo(
+            path=repo_path,
+            git_dir=git_dir,
+            repo_type=repo_type,
+            relative_path=rel_path,
+            name=name
+        ))
+
+    return repos
+
+def filter_repos(repos: List[RepoInfo], filter_type: str) -> List[RepoInfo]:
+    """Filter repos by type"""
+    if filter_type == "all":
+        return repos
+    elif filter_type == "packages":
+        return [r for r in repos if r.repo_type == RepoType.PACKAGE]
+    elif filter_type == ".claude":
+        return [r for r in repos if r.repo_type == RepoType.INTERNAL]
+    elif filter_type == "mcp":
+        return [r for r in repos if r.repo_type == RepoType.MCP]
+    elif filter_type == "non-main":
+        return [r for r in repos if r.repo_type != RepoType.MAIN]
+    return repos
+
+def get_repo_status(repo: RepoInfo) -> Tuple[bool, int]:
+    """Check if repo has unpushed commits. Returns (has_remote, commits_ahead)"""
+    # Check if repo has a remote
+    remote_result = run(["git", "remote"], cwd=repo.path, silent=True)
+    has_remote = remote_result.returncode == 0 and bool(remote_result.stdout.strip())
+
+    if not has_remote:
+        return False, 0
+
+    # Get current branch
+    branch_result = run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo.path, silent=True)
+    branch = branch_result.stdout.strip() if branch_result.returncode == 0 else "HEAD"
+
+    # Check commits ahead of remote/branch
+    remote_name = remote_result.stdout.strip().split("\n")[0]  # Use first remote
+    ahead_result = run(
+        ["git", "rev-list", "--count", f"origin/{branch}..HEAD"],
+        cwd=repo.path,
+        silent=True
+    )
+
+    if ahead_result.returncode == 0:
+        commits_ahead = int(ahead_result.stdout.strip())
+        return True, commits_ahead
+    return True, 0
+
+# ============================================================
+# COMMIT MESSAGE GENERATION
+# ============================================================
+
+def generate_commit_message_for_repo(repo: RepoInfo) -> str:
+    """
+    Generate semantic commit message based on changed files in a specific repo.
+    Uses path-based scope detection.
     """
     # Get list of changed files
-    result = run(["git", "diff", "--name-only", "HEAD"], cwd=Path.cwd(), silent=True)
+    result = run(["git", "diff", "--name-only", "HEAD"], cwd=repo.path, silent=True)
 
     if result.returncode != 0 or not result.stdout.strip():
         return "chore: update files"
@@ -161,9 +282,21 @@ def generate_commit_message() -> str:
     commit_type = detect_commit_type({"files": files_data})
     scopes = detect_scope([f["path"] for f in files_data])
 
+    # Use repo-relative path as scope if no scope detected
+    if not scopes:
+        # Extract meaningful scope from repo path
+        if repo.repo_type == RepoType.PACKAGE:
+            scopes = [repo.name]
+        elif repo.repo_type == RepoType.MCP:
+            scopes = [f"mcp/{repo.name}"]
+        elif repo.repo_type == RepoType.INTERNAL:
+            scopes = [f".claude/{repo.name}"]
+        else:
+            scopes = [repo.name]
+
     # Generate subject
     if scopes:
-        primary_scope = scopes[0]
+        primary_scope = scopes[0] if len(scopes) == 1 else ",".join(scopes[:2])
         subject = f"update {primary_scope}"
     else:
         subject = "update files"
@@ -173,6 +306,145 @@ def generate_commit_message() -> str:
         return f"{commit_type}({scopes[0]}): {subject}"
     else:
         return f"{commit_type}: {subject}"
+
+# ============================================================
+# PUSH FUNCTIONS
+# ============================================================
+
+def get_push_target(repo_path: Path) -> Tuple[Optional[str], Optional[str], str]:
+    """
+    Get the remote and branch to push to.
+    Returns: (remote, branch, error_msg)
+    """
+    # Get remote name
+    remote_result = run(["git", "remote"], cwd=repo_path, silent=True)
+    if remote_result.returncode != 0 or not remote_result.stdout.strip():
+        return None, None, "No remote configured"
+    remote = remote_result.stdout.strip().split("\n")[0]
+
+    # Get current branch
+    branch_result = run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_path, silent=True)
+    if branch_result.returncode != 0:
+        return None, None, "Cannot determine current branch"
+    branch = branch_result.stdout.strip()
+
+    # Get remote URL for error messages
+    url_result = run(["git", "remote", "get-url", remote], cwd=repo_path, silent=True)
+    remote_url = url_result.stdout.strip() if url_result.returncode == 0 else "unknown"
+
+    return remote, branch, remote_url
+
+def push_repo(repo: RepoInfo, silent: bool = False) -> Tuple[bool, str]:
+    """
+    Push a repo to its remote.
+    Returns: (success, message)
+    """
+    remote, branch, remote_url = get_push_target(repo.path)
+
+    if not remote or not branch:
+        return False, f"{remote_url}"
+
+    # Check if we have commits to push
+    check_result = run(
+        ["git", "rev-list", "--count", f"{remote}/{branch}..HEAD"],
+        cwd=repo.path,
+        silent=True
+    )
+
+    if check_result.returncode != 0:
+        return False, f"Cannot determine commits ahead"
+
+    commits_ahead = int(check_result.stdout.strip())
+    if commits_ahead == 0:
+        return True, "Already up-to-date"
+
+    # Perform push
+    push_result = run(
+        ["git", "push", remote, branch],
+        cwd=repo.path,
+        silent=silent
+    )
+
+    if push_result.returncode == 0:
+        return True, f"Pushed {commits_ahead} commit(s) to {remote}/{branch}"
+    else:
+        error = push_result.stderr.strip()
+        # Provide actionable error messages
+        if "authentication" in error.lower() or "credential" in error.lower():
+            action = f"Run 'git push' manually in {repo.path} to authenticate"
+        elif "rejected" in error.lower():
+            action = f"Push rejected - remote has commits that local doesn't. Pull first in {repo.path}"
+        elif "not found" in error.lower():
+            action = f"Remote branch {branch} not found. Create it with 'git push {remote} {branch}'"
+        else:
+            action = f"Run 'git push' manually in {repo.path} to diagnose"
+        return False, f"{error}. {action}"
+
+# ============================================================
+# INTERACTIVE SELECTION (like /rns)
+# ============================================================
+
+def parse_selection(selection: str, max_idx: int) -> List[int]:
+    """Parse user selection string like '1,3', '1-3', 'all', '*'"""
+    selection = selection.strip().lower()
+
+    if selection in ("all", "*"):
+        return list(range(1, max_idx + 1))
+
+    indices = set()
+
+    # Handle comma-separated
+    for part in selection.split(","):
+        part = part.strip()
+        if not part:
+            continue
+
+        # Handle ranges
+        if "-" in part:
+            start_end = part.split("-")
+            if len(start_end) == 2:
+                try:
+                    start = int(start_end[0])
+                    end = int(start_end[1])
+                    indices.update(range(start, end + 1))
+                except ValueError:
+                    pass
+        else:
+            # Single number
+            try:
+                indices.add(int(part))
+            except ValueError:
+                pass
+
+    # Filter valid indices
+    return sorted([i for i in indices if 1 <= i <= max_idx])
+
+def interactive_select_repos(repos: List[RepoInfo]) -> List[RepoInfo]:
+    """Present numbered list and let user select which repos to push."""
+    if not repos:
+        return []
+
+    print(f"\n{color('Non-main repos with unpushed commits:', 'info')}\n")
+
+    for i, repo in enumerate(repos, 1):
+        has_remote, commits_ahead = get_repo_status(repo)
+        status = f"{commits_ahead} commit(s) ahead" if has_remote and commits_ahead > 0 else "up-to-date"
+        if not has_remote:
+            status = color("no remote", "warning")
+        print(f"  [{i}] {color(repo.relative_path, 'repo')} - {status}")
+
+    print(f"\nSelect repos to push (e.g., 1,3 or 1-3 or all): ", end="")
+
+    try:
+        selection = input().strip()
+    except EOFError:
+        selection = ""
+
+    if not selection:
+        return []
+
+    selected_indices = parse_selection(selection, len(repos))
+    return [repos[i - 1] for i in selected_indices]
 
 # ============================================================
 # WORKTREE MANAGEMENT
@@ -350,73 +622,44 @@ def ensure_diff3_config() -> None:
     else:
         run(["git", "config", "merge.conflictstyle", "diff3"], silent=not VERBOSE)
 
-def extract_conflict_context(repo: Path, ref: str) -> None:
+# ============================================================
+# SYNC FUNCTIONS
+# ============================================================
+
+def sync_single_repo(repo: RepoInfo, is_main: bool = False) -> bool:
     """
-    Extract context for conflicts: recent commits + what changed.
-    Helps understand intent behind conflicting changes.
+    Sync a single repo: commit if needed, optionally push.
+    Returns True if sync succeeded.
     """
-    print(f"\n{'=' * 60}")
-    print(f"  CONFLICT CONTEXT: {ref}")
-    print(f"{'=' * 60}")
+    worktree = repo.path
 
-    # Recent commits from incoming branch
-    print("\nRecent commits (incoming):")
-    log_result = run(["git", "log", "--oneline", "-n", "5", ref], cwd=repo, silent=False)
-    if log_result.returncode == 0:
-        for line in log_result.stdout.strip().split("\n")[:5]:
-            print(f"  {line}")
+    # Check for uncommitted changes
+    status = run(
+        "git status --short",
+        cwd=worktree,
+        silent=not VERBOSE,
+    ).stdout.strip()
 
-    # What changed in this merge
-    print("\nChanges in this merge:")
-    diff_result = run(["git", "diff", "--stat", f"HEAD@{1}..HEAD"], cwd=repo, silent=False)
-    if diff_result.returncode == 0 and diff_result.stdout.strip():
-        print(f"  {diff_result.stdout.strip()}")
+    if status:
+        run("git add -A", cwd=worktree, silent=not VERBOSE)
 
-    print(f"{'=' * 60}\n")
+        # Generate scoped commit message
+        commit_msg = generate_commit_message_for_repo(repo)
 
-def post_merge_validation(repo: Path, ref: str) -> bool:
-    """
-    Validate merge by checking for unexpected changes.
-    Returns True if validation passes, False otherwise.
-    """
-    # Get list of changed files
-    result = run(["git", "diff", "--name-only", "HEAD~1..HEAD"], cwd=repo, silent=True)
-    if result.returncode != 0:
-        return True  # Can't validate, assume ok
+        run([
+            "git", "commit", "-m", commit_msg
+        ], cwd=worktree, silent=not VERBOSE)
 
-    changed_files = result.stdout.strip().split("\n") if result.stdout.strip() else []
+        if VERBOSE:
+            print(f"  Committed: {commit_msg}")
 
-    # Check for sensitive patterns that shouldn't be in code
-    sensitive_patterns = [
-        "password",
-        "secret",
-        "api_key",
-        "apikey",
-        "private_key",
-        "token",
-    ]
-
-    warnings = []
-    for file_path in changed_files:
-        if not file_path:
-            continue
-
-        # Skip binary files and common non-sensitive
-        if any(file_path.endswith(ext) for ext in ['.pyc', '.so', '.dll', '.exe']):
-            continue
-
-        # Check file content for sensitive patterns
-        file_result = run(["git", "show", f"HEAD:{file_path}"], cwd=repo, silent=True)
-        if file_result.returncode == 0:
-            content = file_result.stdout.lower()
-            for pattern in sensitive_patterns:
-                if pattern in content:
-                    warnings.append(f"{file_path}: contains '{pattern}'")
-
-    if warnings and VERBOSE:
-        print("\n~ Post-merge validation warnings:")
-        for warning in warnings[:5]:  # Limit to 5 warnings
-            print(f"  ~ {warning}")
+    # Push if main repo (auto-push)
+    if is_main:
+        success, msg = push_repo(repo, silent=not VERBOSE)
+        if success:
+            item(f"Push to origin", "ok", msg)
+        else:
+            item(f"Push to origin", "warning", msg)
 
     return True
 
@@ -439,482 +682,111 @@ if WORKTREE_MODE:
         sys.exit(1)
 
 # ============================================================
-# PHASE 1: DETECTION
+# PHASE 1: MULTI-REPO DISCOVERY
 # ============================================================
 
-current_dir = Path.cwd()
+all_repos = find_all_git_repos()
+non_main_repos = [r for r in all_repos if r.repo_type != RepoType.MAIN]
+main_repo = next((r for r in all_repos if r.repo_type == RepoType.MAIN), None)
 
-# Check if we're in a worktree first
-git_common = run(
-    ["git", "rev-parse", "--git-common-dir"],
-    cwd=current_dir,
-    silent=True,
-)
-
-is_worktree = False
-worktree_name = None
-in_main = False
-
-if git_common.returncode == 0:
-    common_dir = Path(git_common.stdout.strip())
-    if "worktrees" in str(common_dir):
-        # We're in a worktree
-        is_worktree = True
-        worktree_name = current_dir.name
-    else:
-        # We're in the main repository (anywhere inside it)
-        git_toplevel = run(
-            ["git", "rev-parse", "--show-toplevel"],
-            cwd=current_dir,
-            silent=True,
-        )
-        if git_toplevel.returncode == 0:
-            toplevel = Path(git_toplevel.stdout.strip())
-            in_main = (toplevel == MAIN_ROOT)
+if VERBOSE:
+    print(f"Discovered {len(all_repos)} git repos:")
+    for repo in all_repos:
+        print(f"  [{repo.repo_type}] {repo.relative_path}")
 
 # ============================================================
-# PHASE 2: ENVIRONMENT CHECK
-# ============================================================
-
-if HEALTH_ONLY or AUTO_FIX:
-    header("ENVIRONMENT")
-
-    if in_main:
-        # Show relative path from main root for clarity
-        if current_dir == MAIN_ROOT:
-            item("Location", "ok", "In main repo (P:/)")
-        else:
-            relative = current_dir.relative_to(MAIN_ROOT)
-            item("Location", "ok", f"In main repo (P:/{relative})")
-    elif is_worktree:
-        item("Location", "ok", f"In worktree: {worktree_name}")
-    else:
-        item("Location", "warning", "Not in main repository")
-
-# ============================================================
-# PHASE 3: TASKS CHECK
-# ============================================================
-
-tasks_health = True
-if HEALTH_ONLY or AUTO_FIX:
-    header("CLAUDE CODE TASKS")
-
-    settings_path = CLAUDE_DIR / "settings.json"
-    task_list_id = None
-
-    if settings_path.exists():
-        try:
-            with open(settings_path) as f:
-                settings = json.load(f)
-            task_list_id = settings.get("env", {}).get("CLAUDE_CODE_TASK_LIST_ID")
-            if task_list_id:
-                item(".claude/settings.json", "ok", f"Task ID: {task_list_id}")
-            else:
-                item(".claude/settings.json", "error", "No CLAUDE_CODE_TASK_LIST_ID")
-                tasks_health = False
-        except json.JSONDecodeError:
-            item(".claude/settings.json", "error", "Invalid JSON")
-            tasks_health = False
-    else:
-        item(".claude/settings.json", "error", "Not found")
-        tasks_health = False
-
-        if AUTO_FIX:
-            try:
-                CLAUDE_DIR.mkdir(exist_ok=True)
-                config = {
-                    "env": {"CLAUDE_CODE_TASK_LIST_ID": "project-main-tasks"}
-                }
-                with open(settings_path, 'w') as f:
-                    json.dump(config, f, indent=2)
-                item("Action", "ok", f"Created {settings_path.name}")
-                tasks_health = True
-                task_list_id = "project-main-tasks"
-            except Exception as e:
-                item("Action", "error", f"Could not create: {e}")
-
-# ============================================================
-# PHASE 4: SUMMARY
+# PHASE 2: HEALTH CHECK
 # ============================================================
 
 if HEALTH_ONLY:
-    if tasks_health:
-        header("STATUS")
-        item("Health check", "ok", "All systems operational!")
-    else:
-        header("STATUS")
-        item("Health check", "warning", "Some issues found")
-        print("\nUse '/git --fix' to auto-fix, or manually address above items.")
+    header("GIT REPOS HEALTH")
+
+    for repo in all_repos:
+        has_remote, commits_ahead = get_repo_status(repo)
+        status = "ok" if has_remote else "warning"
+        detail = f"{commits_ahead} ahead" if has_remote and commits_ahead > 0 else ("no remote" if not has_remote else "ok")
+        item(repo.relative_path, status, detail)
+
     sys.exit(0)
 
-if AUTO_FIX and tasks_health:
-    header("STATUS")
-    item("Health check", "ok", "Fixed issues, ready to sync")
-
 # ============================================================
-# PHASE 5: SYNC (if not --health-only)
+# PHASE 3: AUTO-FIX
 # ============================================================
 
-header("SYNC")
-
-# Ensure git is configured for three-way merge conflicts (shows BASE marker)
-ensure_diff3_config()
-
-# Import file lock manager for sync
-try:
-    sys.path.insert(0, str(Path("P:/__csf/.staging")))
-    from file_lock_manager_v3 import acquire_lock, release_lock
-except ImportError:
-    print("~ Warning: file_lock_manager not found, syncing without lock")
-    def acquire_lock(key):
-        return True, "mock"
-    def release_lock(key):
-        pass
-
-def cleanup_stale_locks(worktree: Path, worktree_name: str) -> None:
-    """Remove stale git lock files."""
-    lock_files = [
-        worktree / ".git" / "index.lock",
-        Path("P:/") / ".git" / "worktrees" / worktree_name / "index.lock",
-    ]
-    for lock_file in lock_files:
-        try:
-            if lock_file.exists():
-                lock_file.unlink()
-                print(f"Cleaned stale lock: {lock_file.name}")
-        except Exception:
-            pass
-
-def is_up_to_date(repo: Path, ref: str) -> bool:
-    """Check if repo HEAD is at specified ref."""
-    try:
-        target = run([
-            "git", "rev-parse", ref
-        ], cwd=repo, silent=True).stdout.strip()
-        current = run([
-            "git", "rev-parse", "HEAD"
-        ], cwd=repo, silent=True).stdout.strip()
-        return current == target
-    except Exception:
-        return False
-
-def is_checked_out_elsewhere(error_message: str) -> Tuple[bool, Optional[str]]:
-    """
-    Check if error indicates branch is checked out in another worktree.
-    Returns: (is_checked_out, worktree_path)
-    """
-    pattern = r"fatal: cannot switch branch .*? is checked out in another worktree at (.+)"
-    match = re.search(pattern, error_message)
-    if match:
-        return True, match.group(1).strip()
-    return False, None
-
-def print_worktree_conflict_advice(worktree_path: str, ref: str) -> None:
-    """
-    Print clear advice when branch is checked out in another worktree.
-    """
-    print(f"\n{color('=' * 60, 'error')}")
-    item("Merge blocked", "error", f"Branch '{ref}' is checked out elsewhere")
-    print(f"\n{color('CONFLICTING WORKTREE:', 'warning')} {worktree_path}")
-    print(f"\n{color('Options to resolve:', 'info')}")
-    print("  1. Switch the conflicting worktree to a different branch:")
-    print(f"     cd {worktree_path}")
-    print("     git checkout -b temp-branch")
-    print("\n  2. Remove the worktree if no longer needed:")
-    print(f"     git worktree remove {worktree_path}")
-    print("\n  3. List all worktrees to see status:")
-    print("     /git --worktree list")
-    print(f"{color('=' * 60, 'error')}\n")
-
-def safe_merge(repo: Path, ref: str, merge_name: str) -> bool:
-    """
-    Perform merge with automatic conflict resolution.
-    Returns True if merge succeeded (or conflicts were resolved).
-    """
-    # Attempt merge
-    result = run(["git", "merge", ref, "--no-edit"], cwd=repo, silent=not VERBOSE)
-
-    if result.returncode == 0:
-        # Clean merge
-        if VERBOSE:
-            print(f"-> Merged {ref} cleanly")
-        return True
-
-    # Check if branch is checked out elsewhere
-    is_checked_out, worktree_path = is_checked_out_elsewhere(result.stderr)
-    if is_checked_out:
-        print_worktree_conflict_advice(worktree_path, ref)
-        return False
-
-    # Check for conflicts
-    conflicts = detect_conflicts(repo)
-
-    if not conflicts:
-        # Merge failed for other reason (no conflicts)
-        item(f"Merge failed: {ref}", "error", result.stderr.strip())
-        return False
-
-    # Conflicts detected
-    header(f"CONFLICTS ({len(conflicts)} files)")
-
-    # Extract context for understanding the conflicts
-    extract_conflict_context(repo, ref)
-
-    if AUTO_RESOLVE:
-        resolved, manual_count, unresolved = resolve_conflicts(repo, conflicts)
-
-        if unresolved:
-            # Some files need manual resolution
-            item("Manual resolution required", "warning", f"{len(unresolved)} files")
-            print("\nUnresolved files:")
-            for f in unresolved:
-                print(f"  ~ {f}")
-            print("\nCommands to resolve manually:")
-            print(f"  cd {repo}")
-            print("  git status  # See conflicts")
-            print("  git checkout --ours <file>   # Keep your version")
-            print("  git checkout --theirs <file>  # Use incoming version")
-            print("  git add <file>                  # Mark as resolved")
-            print("  git commit                      # Complete merge")
-
-            # Abort the merge to leave repo in clean state
-            run(["git", "merge", "--abort"], cwd=repo, silent=True)
-            return False
-        else:
-            # All conflicts resolved
-            item("All conflicts resolved", "ok", f"{resolved} files auto-resolved")
-
-            # Complete the merge
-            result = run(["git", "commit", "--no-edit"], cwd=repo, silent=not VERBOSE)
-            if result.returncode == 0:
-                item("Merge completed", "ok", f"Merged {ref} with auto-resolution")
-
-                # Post-merge validation
-                if not post_merge_validation(repo, ref):
-                    item("Post-merge validation", "warning", "Check changes")
-
-                return True
-            else:
-                item("Merge completion failed", "error", result.stderr.strip())
-                return False
-    else:
-        # Manual mode - don't resolve
-        item("Conflicts detected", "info", "Manual resolution mode (--no-resolve)")
-        print("\nConflicting files:")
-        for f in conflicts:
-            print(f"  ~ {f}")
-        print("\nCommands to resolve manually:")
-        print(f"  cd {repo}")
-        print("  git status  # See conflicts")
-        print("  git checkout --ours <file>   # Keep your version")
-        print("  git checkout --theirs <file>  # Use incoming version")
-        print("  git add <file>                  # Mark as resolved")
-        print("  git commit                      # Complete merge")
-
-        # Abort the merge
-        run(["git", "merge", "--abort"], cwd=repo, silent=True)
-        return False
-
-worktree = Path.cwd()
-main_root = Path("P:/")
-worktree_name = worktree.name
-in_main = worktree == main_root
-
-# Cleanup stale locks
-cleanup_stale_locks(worktree, worktree_name)
-cleanup_stale_locks(main_root, "main")
-
-current = run(
-    "git branch --show-current",
-    cwd=worktree,
-    silent=True,
-).stdout.strip()
-status = run(
-    "git status --short",
-    cwd=worktree,
-    silent=not VERBOSE,
-).stdout.strip()
-
-if status:
-    run("git add -A", cwd=worktree, silent=not VERBOSE)
-
-    # Generate semantic commit message based on staged changes
-    try:
-        staged_result = run("git diff --staged --name-only", cwd=worktree, silent=True)
-        if staged_result.returncode == 0 and staged_result.stdout.strip():
-            changed_files = [f.strip() for f in staged_result.stdout.strip().split('\n') if f.strip()]
-            files_data = []
-            for f in changed_files:
-                ftype = detect_file_type(f)
-                files_data.append({"path": f, "type": ftype})
-
-            scopes = detect_scope(files_data)
-            commit_type = detect_commit_type({"files": files_data})
-            subject = generate_subject({"files": files_data})
-
-            # Generate header
-            if scopes:
-                scope_str = scopes[0] if len(scopes) == 1 else f"({','.join(scopes[:2])})"
-                header = f"{commit_type}{scope_str}: {subject}"
-            else:
-                header = f"{commit_type}: {subject}"
-
-            # Generate body sections (WHY, WHAT, VERIFICATION)
-            body = generate_commit_body({"files": files_data, "commit_type": commit_type})
-
-            # Combine header and body
-            commit_msg = f"{header}{body}" if body else header
-        else:
-            commit_msg = "chore: sync changes"
-    except Exception:
-        commit_msg = "chore: sync changes"
-
-    run([
-        "git", "commit", "-m", commit_msg
-    ], cwd=worktree, silent=not VERBOSE)
-
-# Sync with lock
-SYNC_LOCK_KEY = "git-sync-main"
-lock_acquired = False
-max_retries = 5
-
-for attempt in range(max_retries):
-    ok, msg = acquire_lock(SYNC_LOCK_KEY)
-    if ok:
-        lock_acquired = True
-        break
-    if VERBOSE:
-        print(f"-> Sync locked (retry {attempt + 1}/{max_retries}): {msg}")
-    if attempt < max_retries - 1:
-        time.sleep(1)
-
-if not lock_acquired:
-    print("Sync failed: Could not acquire lock")
-    print("  Another terminal may be syncing. Wait and retry.")
-    sys.exit(1)
-
-sync_success = False
-try:
-    # Pull from main
-    if is_up_to_date(worktree, "main"):
-        if VERBOSE:
-            print("-> Already up-to-date with main")
-    else:
-        if not safe_merge(worktree, "main", "main"):
-            item("Sync failed", "error", "Could not merge main into worktree")
-            sys.exit(1)
-
-    # Push to main
-    if is_up_to_date(main_root, current):
-        if VERBOSE:
-            print(f"-> Already up-to-date with {current}")
-    else:
-        if not safe_merge(main_root, current, f"worktree branch {current}"):
-            item("Sync failed", "error", f"Could not merge {current} into main")
-            sys.exit(1)
-
-    item("Sync complete", "ok", "All merges successful")
-    sync_success = True
-finally:
-    release_lock(SYNC_LOCK_KEY)
-
+if AUTO_FIX:
+    header("AUTO-FIX")
+    # Placeholder for future auto-fix logic
+    pass
 
 # ============================================================
-# PHASE 5.5: PUSH TO ORIGIN
+# PHASE 4: SYNC MAIN REPO (AUTO)
 # ============================================================
 
-if sync_success:
-    try:
-        # Check if we have commits to push
-        check_result = run("git rev-list --count origin/main..HEAD", cwd=main_root, silent=True)
-        if check_result.returncode == 0:
-            commits_ahead = check_result.stdout.strip()
-            if commits_ahead and commits_ahead != "0":
-                push_result = run("git push", cwd=main_root, silent=not VERBOSE)
-                if push_result.returncode == 0:
-                    item("Push to origin", "ok", f"Pushed {commits_ahead} commit(s) to origin/main")
+header("SYNC MAIN REPO")
+
+if main_repo:
+    print(f"  Auto-pushing {color('main', 'repo')}...")
+
+    # Ensure git is configured for three-way merge conflicts
+    ensure_diff3_config()
+
+    sync_single_repo(main_repo, is_main=True)
+else:
+    item("Main repo", "error", "Not found at P:/.git")
+
+# ============================================================
+# PHASE 5: SYNC NON-MAIN REPOS (INTERACTIVE)
+# ============================================================
+
+# Find non-main repos that have remotes and commits to push
+repos_with_pushes = []
+for repo in non_main_repos:
+    has_remote, commits_ahead = get_repo_status(repo)
+    if has_remote and commits_ahead > 0:
+        repos_with_pushes.append(repo)
+
+if repos_with_pushes:
+    # Filter if requested
+    if REPOS_FILTER != "all":
+        repos_with_pushes = filter_repos(repos_with_pushes, REPOS_FILTER)
+
+    if repos_with_pushes:
+        # Present interactive selection
+        selected_repos = interactive_select_repos(repos_with_pushes)
+
+        if selected_repos:
+            header("PUSHING SELECTED REPOS")
+            for repo in selected_repos:
+                print(f"  Pushing {color(repo.relative_path, 'repo')}...")
+                success, msg = push_repo(repo, silent=False)
+                if success:
+                    item("Push", "ok", msg)
                 else:
-                    item("Push to origin", "warning", "Push failed - will retry on next sync")
-                    if VERBOSE:
-                        print(f"  Error: {push_result.stderr.strip()}")
-            elif VERBOSE:
-                print("-> No commits to push (already up-to-date with origin)")
-    except Exception as e:
-        item("Push to origin", "warning", f"Push failed: {e}")
-        if VERBOSE:
-            print(f"  Error: {str(e)}")
+                    item("Push", "warning", msg)
+        else:
+            print("\nNo repos selected - skipping non-main pushes.")
+elif VERBOSE:
+    print("\nNo non-main repos have unpushed commits.")
 
 # ============================================================
-# PHASE 6: DIFF VERIFICATION
+# PHASE 6: CONTEXT-AWARE OUTPUT
 # ============================================================
 
-if sync_success:
-    # Check if worktree and main have identical content
-    diff_result = run(["git", "diff", "main", "--", ".claude/skills/git/SKILL.md",
-                       ".claude/hooks/PreToolUse_background_guard.py"],
-                      cwd=worktree, silent=True)
-
-    if diff_result.stdout.strip():
-        item("Diff verification", "error", "FAILED - worktree and main differ")
-        if VERBOSE:
-            print("\nDifferences found:")
-            print(diff_result.stdout.strip())
-    else:
-        item("Diff verification", "ok", "PASSED - worktree and main identical")
-
-# ============================================================
-# PHASE 7: POST-SYNC VALIDATION
-# ============================================================
-
-if sync_success and VERBOSE:
-    header("POST-SYNC VALIDATION")
-
-    # Show diff of what changed
-    worktree_diff = run(["git", "diff", "--stat", "HEAD~1"], cwd=worktree, silent=True)
-    if worktree_diff.returncode == 0 and worktree_diff.stdout.strip():
-        print("Worktree changes:")
-        print(f"  {worktree_diff.stdout.strip()}")
-
-    if not in_main:
-        main_diff = run(["git", "diff", "--stat", "HEAD~1"], cwd=main_root, silent=True)
-        if main_diff.returncode == 0 and main_diff.stdout.strip():
-            print("Main changes:")
-            print(f"  {main_diff.stdout.strip()}")
-
-# ============================================================
-# PHASE 8: CONTEXT-AWARE OUTPUT
-# ============================================================
-
+print(f"\n{color('=' * 60, 'info')}")
 print(f"\n{color('Context-Aware Commands:', 'info')}")
 
-if in_main:
-    print("""
-  YOU ARE IN: Main branch (P:/)
-
+print("""
   Sync:
-    /git                        # Sync whenever you commit
+    /git                        # Sync all repos
     /git --verbose              # Show detailed sync output
-    /git --health --fix         # Verify/fix Tasks setup
-    /git --no-resolve           # Manual conflict resolution
+    /git --health               # Check all repos health
+    /git --repos packages       # Only sync package repos
 
   Worktrees:
     /git --worktree             # List all worktrees
     /git --worktree add name    # Create new worktree
     /git --worktree remove name # Remove worktree
     /git --worktree prune       # Clean up stale worktrees
-    """)
-elif is_worktree:
-    print(f"""
-  YOU ARE IN: Worktree '{worktree_name}'
-
-  Sync:
-    /git                        # Sync before switching worktrees
-    /git --verbose              # Show detailed sync output
-    /git --no-resolve           # Manual conflict resolution
-
-  Worktrees:
-    /git --worktree             # List all worktrees
-    cd ../../                   # Go to main to manage worktrees
-    """)
+""")
 
 print(f"{color('=' * 60, 'info')}\n")

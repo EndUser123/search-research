@@ -19,7 +19,12 @@ from pathlib import Path
 from typing import Any
 
 from __lib.shared_helpers import is_question, strip_non_claim_lines
-from evidence_store import load_tool_events, resolve_session_id
+from evidence_scope import (
+    SCOPE_SESSION_FRESH_MUTATION_SAFE,
+    SCOPE_TURN_STRICT,
+    load_scoped_tool_events,
+)
+from evidence_store import resolve_session_id
 
 _HOOKS_DIR = Path(__file__).resolve().parent
 _TURN_MARKER_DIR = _HOOKS_DIR / "state" / "turn_markers"
@@ -648,7 +653,13 @@ def evaluate_claims(response_text: str, tools_used: list[str] | None = None, ses
     claims = extracted_claims if extracted_claims is not None else detect_claims(response_text)
     no_strategy_a_claims = not claims
 
-    # Use provided tool_sequence if available (for testing), otherwise load from database
+    terminal_id_resolved = (
+        terminal_id
+        or os.environ.get("CLAUDE_TERMINAL_ID", "")
+        or ""
+    ).strip()
+
+    # Use provided tool_sequence if available (for testing), otherwise load from shared scope API.
     # (Evidence loading needed for all strategies, not just A)
     if tool_sequence is not None:
         # Convert tool_sequence format to event format for _build_evidence_entities
@@ -663,7 +674,16 @@ def evaluate_claims(response_text: str, tools_used: list[str] | None = None, ses
         window = events
     else:
         sid = resolve_session_id(session_id)
-        events = load_tool_events(sid, limit=500) if sid else []
+        events = (
+            load_scoped_tool_events(
+                session_id=sid,
+                terminal_id=terminal_id_resolved,
+                scope=SCOPE_SESSION_FRESH_MUTATION_SAFE,
+                limit=500,
+            )
+            if sid
+            else []
+        )
         window = _evidence_window(events)
 
     evidence_entities = _build_evidence_entities(window)
@@ -748,17 +768,20 @@ def evaluate_claims(response_text: str, tools_used: list[str] | None = None, ses
     # Strategy B + C: Turn-scoped verification (external existence + action claims)
     # =========================================================================
 
-    terminal_id_resolved = (
-        terminal_id
-        or os.environ.get("CLAUDE_TERMINAL_ID", "")
-        or ""
-    ).strip()
-
-    # Slice to turn scope -- reuse already-loaded events
+    # Slice to turn scope using the shared scope API.
     if tool_sequence is not None:
         turn_events = events  # Synthetic test path
     else:
-        turn_events = _slice_turn_events(events, sid if sid else session_id, terminal_id_resolved)
+        turn_events = (
+            load_scoped_tool_events(
+                session_id=sid if sid else session_id,
+                terminal_id=terminal_id_resolved,
+                scope=SCOPE_TURN_STRICT,
+                limit=500,
+            )
+            if (sid if sid else session_id)
+            else None
+        )
 
     # Strategy B: negative external existence claims
     existence_failures: list[dict[str, Any]] = []

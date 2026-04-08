@@ -43,11 +43,12 @@ except ImportError:
     Claim = None  # type: ignore
     VerificationStatus = None  # type: ignore
 
-# Import evidence store from TASK-001
+# Shared evidence-scope loader
 try:
-    from evidence_store import load_tool_events_for_context
+    from evidence_scope import SCOPE_SESSION_FRESH, load_scoped_tool_events
 except ImportError:
-    load_tool_events_for_context = None  # type: ignore
+    SCOPE_SESSION_FRESH = ""
+    load_scoped_tool_events = None  # type: ignore
 
 # Import unique patterns for this hook
 from anti_sycophancy.lazy_closure_detector import detect_lazy_closure
@@ -112,6 +113,31 @@ def _get_gate_mode() -> str:
 # Logging configuration for verification engine decisions
 LOG_DIR = HOOKS_DIR / "state" / "logs"
 LOG_FILE = LOG_DIR / "unverified_stance.jsonl"
+
+
+def load_tool_events_for_context(
+    *, session_id: str, terminal_id: str, limit: int = 500
+) -> list[dict[str, Any]] | None:
+    """Compatibility wrapper for terminal-scoped/session-fresh evidence."""
+    if load_scoped_tool_events is None:
+        return None
+    return load_scoped_tool_events(
+        session_id=session_id,
+        terminal_id=terminal_id,
+        scope=SCOPE_SESSION_FRESH,
+        limit=limit,
+    )
+
+
+def load_tool_events(session_id: str, limit: int = 100) -> list[dict[str, Any]]:
+    """Module-level loader used by completion/E2E checks and patchable in tests."""
+    if load_scoped_tool_events is None:
+        raise ImportError("evidence_scope unavailable")
+    return load_scoped_tool_events(
+        session_id=session_id,
+        scope=SCOPE_SESSION_FRESH,
+        limit=limit,
+    )
 
 
 def _should_block_claim(claim: Claim, verdict: Any) -> bool:
@@ -313,6 +339,8 @@ COMPLETION_PATTERNS = [
 # conversational mentions like "the /rns skill" — false positive.
 E2E_PATTERNS = [
     re.compile(r"/\S+\s+(?:executed|completed|ran)\b", re.IGNORECASE),
+    re.compile(r"/\S+\s+skill\s+(?:executed|completed|ran)\b", re.IGNORECASE),
+    re.compile(r"/\S+\s+skill\s+(?:is\s+)?(?:fully\s+)?(?:functional|working)\b", re.IGNORECASE),
     re.compile(r"workflow\s+(?:completed|finished|passed)\b", re.IGNORECASE),
     re.compile(r"all\s+(?:tiers|stages)\s+passed\b", re.IGNORECASE),
     re.compile(r"skill\s+\S+\s+(?:executed|completed|ran)\b", re.IGNORECASE),
@@ -412,10 +440,6 @@ def _check_e2e_workflow_evidence_in_events(tool_events: list[dict[str, Any]]) ->
             return True
         if command.startswith("/"):
             return True
-        if tool_name in RUNTIME_TOOLS:
-            workflow_indicators = ["verify", "test", "diagnostic", "check", "validate"]
-            if any(indicator in command.lower() for indicator in workflow_indicators):
-                return True
     return False
 
 
@@ -538,13 +562,10 @@ def _check_for_runtime_tools(session_id: str) -> bool:
         True if runtime tools found, False otherwise
     """
     try:
-        from evidence_store import load_tool_events
-
         # Check cache first (PERF-001)
         if session_id in _EVIDENCE_CACHE:
             tool_events = _EVIDENCE_CACHE[session_id]
         else:
-            # PR-001 fix: Function takes session_id parameter
             tool_events = load_tool_events(session_id, limit=100)
             _EVIDENCE_CACHE[session_id] = tool_events  # Cache for subsequent calls
 
@@ -582,8 +603,6 @@ def _check_e2e_workflow_evidence(session_id: str) -> bool:
         True if E2E workflow evidence found, False otherwise
     """
     try:
-        from evidence_store import load_tool_events
-
         # Check cache first (PERF-001)
         if session_id in _EVIDENCE_CACHE:
             tool_events = _EVIDENCE_CACHE[session_id]
@@ -603,18 +622,6 @@ def _check_e2e_workflow_evidence(session_id: str) -> bool:
             # Skill invocation in command (e.g., "/arch", "/verify")
             if command.startswith("/"):
                 return True
-
-            # Multi-step workflow patterns (sequential tool use)
-            # This is a heuristic - real workflow tracking would need PostToolUse_e2e_tracker.py
-            # For now, we detect sequences that look like workflows
-            if tool_name in RUNTIME_TOOLS:
-                # Check if this looks like a workflow step
-                # (e.g., "pytest", then "hook_diagnostics", then "Skill")
-                workflow_indicators = ["verify", "test", "diagnostic", "check", "validate"]
-                if any(indicator in command.lower() for indicator in workflow_indicators):
-                    # Found potential workflow step
-                    # In production, TASK-003 (PostToolUse_e2e_tracker.py) would provide definitive tracking
-                    return True
 
         return False
 

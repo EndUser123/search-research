@@ -4,8 +4,11 @@ Stop_comparative_claim_guard.py - Comparative Claim Detector
 ===========================================================
 
 Blocks responses that compare files, skills, or systems WITHOUT
-evidence that all compared items were Read/Grep'd/Glob'd in the
-current turn.
+evidence that all compared items were verified in the configured scope.
+
+Default scope is `fresh_session`: allow recently verified session+terminal
+evidence for synthesis-style comparisons. `turn` mode keeps the original
+strict "current turn only" behavior.
 
 FAILURE MODE CAUGHT:
   "Pre-mortem reads my analysis; critique reads actual source code"
@@ -22,6 +25,7 @@ import logging
 import os
 import re
 import sys
+from functools import lru_cache
 from pathlib import Path
 
 HOOKS_DIR = Path(__file__).resolve().parent
@@ -38,12 +42,41 @@ _logger.addHandler(_handler)
 _logger.setLevel(logging.DEBUG)
 
 try:
-    from evidence_store import load_tool_events
+    from evidence_scope import (
+        SCOPE_SESSION_FRESH,
+        SCOPE_TURN_STRICT,
+        load_scoped_tool_events,
+    )
 
     EVIDENCE_AVAILABLE = True
 except ImportError as exc:
     EVIDENCE_AVAILABLE = False
     _logger.warning("evidence_store import failed: %s", exc)
+
+
+COMPARATIVE_SCOPE_MODES = {"turn", "fresh_session"}
+
+
+def _scope_mode() -> str:
+    mode = os.environ.get("COMPARATIVE_CLAIM_GUARD_SCOPE", "fresh_session").strip().lower()
+    if mode not in COMPARATIVE_SCOPE_MODES:
+        return "fresh_session"
+    return mode
+
+
+def _scope_key() -> str:
+    return SCOPE_TURN_STRICT if _scope_mode() == "turn" else SCOPE_SESSION_FRESH
+
+
+def _ttl_seconds() -> int | None:
+    raw = os.environ.get("COMPARATIVE_CLAIM_GUARD_TTL_SECONDS", "7200").strip()
+    try:
+        ttl = int(raw)
+    except ValueError:
+        return 7200
+    if ttl <= 0:
+        return None
+    return ttl
 
 
 # --- Patterns: Comparison constructs ----------------------------------------
@@ -80,7 +113,8 @@ def _extract_file(cmd: str) -> str | None:
         return None
     # Find any token that looks like a path (contains / and not a URL)
     tokens = cmd.strip().split()
-    for token in tokens[1:]:  # Skip tool name
+    candidates = tokens[1:] if len(tokens) > 1 else tokens
+    for token in candidates:
         token = token.rstrip(",")
         # Skip common non-path tokens
         if token in ("-r", "-i", "-n", "-E", "-F", "-l", "-h", "--", "-w", "skill"):
@@ -94,8 +128,85 @@ def _extract_file(cmd: str) -> str | None:
     return None
 
 
+@lru_cache(maxsize=256)
+def _skill_aliases_for_path(path: str) -> tuple[str, ...]:
+    """Best-effort alias extraction from a SKILL front matter block."""
+    file_path = Path(path)
+    if file_path.name.lower() != "skill.md":
+        return ()
+
+    try:
+        text = file_path.read_text(encoding="utf-8")
+    except OSError:
+        return ()
+
+    if not text.startswith("---"):
+        return ()
+
+    aliases: set[str] = set()
+    in_frontmatter = False
+    in_aliases_block = False
+
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped == "---":
+            if not in_frontmatter:
+                in_frontmatter = True
+                continue
+            break
+        if not in_frontmatter:
+            continue
+
+        if stripped.startswith("name:"):
+            name = stripped.split(":", 1)[1].strip().strip("\"'")
+            if name:
+                aliases.add(name)
+                aliases.add(f"/{name}")
+            continue
+
+        if stripped.startswith("aliases:"):
+            in_aliases_block = True
+            continue
+
+        if in_aliases_block:
+            if stripped.startswith("- "):
+                alias = stripped[2:].strip().strip("\"'")
+                if alias:
+                    aliases.add(alias)
+                    aliases.add(alias[1:] if alias.startswith("/") else f"/{alias}")
+                continue
+            if stripped and not stripped.startswith("#"):
+                in_aliases_block = False
+
+    return tuple(sorted(aliases))
+
+
+def _add_verified_aliases(verified: set[str], path: str) -> None:
+    """Add path-derived aliases for files and skills."""
+    if not path:
+        return
+
+    normalized = path.replace("\\", "/")
+    verified.add(path)
+    verified.add(normalized)
+    verified.add(Path(normalized).name)
+
+    if "SKILL.md" in normalized or "skill.md" in normalized:
+        parts = normalized.replace("\\", "/").split("/")
+        if len(parts) >= 2:
+            skill_dir = parts[-2]
+            verified.add(skill_dir)
+            verified.add(f"/{skill_dir}")
+        for alias in _skill_aliases_for_path(path):
+            verified.add(alias)
+            if alias.startswith("/"):
+                verified.add(alias[1:])
+            else:
+                verified.add(f"/{alias}")
+
+
 def _build_verified_set(tool_events: list[dict]) -> set[str]:
-    """Build set of files/aliases verified by tool calls this turn."""
+    """Build set of files/aliases verified by tool calls."""
     verified = set()
     for evt in tool_events:
         name = evt.get("name", "")
@@ -105,20 +216,7 @@ def _build_verified_set(tool_events: list[dict]) -> set[str]:
         path = _extract_file(cmd)
         if not path:
             continue
-
-        verified.add(path)
-
-        # For skill SKILL.md paths like /skills/critique/SKILL.md
-        # extract bare skill name "critique"
-        if "SKILL.md" in path:
-            parts = path.split("/SKILL.md")[0].split("/")
-            if parts:
-                skill = parts[-1]
-                verified.add(skill)
-                verified.add(f"/{skill}")
-        # For other paths with / in them, add the last path component as bare name
-        elif "/" in path:
-            verified.add(path.split("/")[-1])
+        _add_verified_aliases(verified, path)
 
     # Normalize skill references: for each /skill-name in verified, also add bare skill-name
     # This handles comparisons where "critique" (bare) is found but "/critique" was verified
@@ -213,6 +311,32 @@ def _find_comparisons(response: str) -> list[str]:
     return found
 
 
+def _load_scoped_tool_events(data: dict) -> list[dict]:
+    """Load evidence according to configured comparative scope."""
+    current_events = data.get("tool_events", []) or []
+    if not isinstance(current_events, list):
+        current_events = []
+
+    session_id = _resolve_session_id(data)
+    terminal_id = _get_terminal_id(data)
+    ttl = _ttl_seconds()
+    if not EVIDENCE_AVAILABLE or not session_id:
+        return current_events
+
+    try:
+        return load_scoped_tool_events(
+            session_id=session_id,
+            terminal_id=terminal_id,
+            scope=_scope_key(),
+            limit=500,
+            ttl_seconds=ttl,
+            current_turn_events=current_events,
+        )
+    except Exception as exc:
+        _logger.warning("load_scoped_tool_events failed: %s", exc)
+        return current_events
+
+
 def check(data: dict) -> dict | None:
     """Core gate logic. Returns block dict or None (allow)."""
     response = data.get("assistant_response", "")
@@ -225,37 +349,14 @@ def check(data: dict) -> dict | None:
 
     _logger.debug("Found %d comparison references: %s", len(comparisons), comparisons)
 
-    # Build verified set from tool_events in input data
-    tool_events = data.get("tool_events", [])
-    if not tool_events:
-        # Fallback: try via evidence_store
-        if EVIDENCE_AVAILABLE:
-            session_id = _resolve_session_id(data)
-            terminal_id = _get_terminal_id(data)
-            if session_id:
-                try:
-                    tool_events = load_tool_events(session_id=session_id, limit=200)
-                except Exception as exc:
-                    _logger.warning("load_tool_events failed: %s", exc)
-
+    tool_events = _load_scoped_tool_events(data)
     verified = _build_verified_set(tool_events)
 
-    # Also add transcript path if present — comparing transcript content
-    # (e.g., "Based on the transcript") doesn't require reading the transcript
-    # as a file, it's referencing the session's own accumulated history
-    for key in ("transcript_path", "transcript"):
-        tp = data.get(key, "")
-        if tp:
-            tp = tp.strip()
-            if tp:
-                verified.add(tp)
-                # Normalize Windows backslashes and drive letter variations
-                normalized = tp.replace("\\", "/")
-                verified.add(normalized)
-                # Also add bare filename
-                verified.add(tp.split("/")[-1])
+    transcript_path = data.get("transcript_path", "")
+    if isinstance(transcript_path, str) and transcript_path.strip():
+        _add_verified_aliases(verified, transcript_path.strip())
 
-    _logger.debug("Verified files this turn: %s", verified)
+    _logger.debug("Comparative scope=%s verified=%s", _scope_key(), verified)
 
     unverified = [c for c in comparisons if c not in verified]
     if not unverified:
@@ -267,7 +368,7 @@ def check(data: dict) -> dict | None:
     lines = ["**Comparative Claim Without Verification Detected**\n"]
     lines.append(
         f"The response compares {len(unverified)} item(s) without evidence "
-        "that all were read this turn:\n"
+        f"that all were verified in scope `{_scope_key()}`:\n"
     )
     for item in sorted(unverified):
         lines.append(f"  - `{item}`")

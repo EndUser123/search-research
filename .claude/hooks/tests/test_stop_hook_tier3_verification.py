@@ -42,7 +42,7 @@ class TestTier3WorkflowEvidence:
         response_text = "✅ /arch skill is fully functional after testing"
 
         try:
-            from StopHook_unverified_stance import _check_completion_claim
+            from StopHook_unverified_stance import _check_completion_claim, _invalidate_evidence_cache
 
             # Mock evidence_store to return only pytest events (no skill execution)
             with patch('StopHook_unverified_stance.load_tool_events') as mock_load:
@@ -70,6 +70,7 @@ class TestTier3WorkflowEvidence:
                 if "skill" in response_text.lower() or "workflow" in response_text.lower():
                     # Skill/workflow claims need Tier 3 evidence
                     assert not claim_valid or "workflow" in claim_msg.lower() or "skill" in claim_msg.lower()
+                _invalidate_evidence_cache(test_session_id)
 
         except (ImportError, AttributeError) as e:
             pytest.skip(f"Tier 3 verification not yet implemented: {e}")
@@ -133,7 +134,10 @@ class TestTier3WorkflowEvidence:
         test_session_id = "test-session-tier-distinction-12345"
 
         try:
-            from StopHook_unverified_stance import _check_e2e_workflow_evidence
+            from StopHook_unverified_stance import (
+                _check_e2e_workflow_evidence,
+                _invalidate_evidence_cache,
+            )
 
             # Test component-only evidence (pytest)
             with patch('StopHook_unverified_stance.load_tool_events') as mock_load:
@@ -150,6 +154,7 @@ class TestTier3WorkflowEvidence:
 
                 has_e2e = _check_e2e_workflow_evidence(test_session_id)
                 assert not has_e2e, "Component tests alone should not count as E2E"
+                _invalidate_evidence_cache(test_session_id)
 
             # Test E2E evidence (skill invocation)
             with patch('StopHook_unverified_stance.load_tool_events') as mock_load:
@@ -166,6 +171,7 @@ class TestTier3WorkflowEvidence:
 
                 has_e2e = _check_e2e_workflow_evidence(test_session_id)
                 assert has_e2e, "Skill invocation should count as E2E evidence"
+                _invalidate_evidence_cache(test_session_id)
 
         except (ImportError, AttributeError) as e:
             pytest.skip(f"_check_e2e_workflow_evidence not yet implemented: {e}")

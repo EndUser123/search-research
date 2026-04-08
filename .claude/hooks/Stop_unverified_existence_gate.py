@@ -66,7 +66,7 @@ _logger.setLevel(logging.DEBUG)
 
 
 try:
-    from evidence_store import load_tool_events
+    from evidence_scope import SCOPE_TURN_STRICT, load_scoped_tool_events
     EVIDENCE_AVAILABLE = True
 except ImportError as exc:
     EVIDENCE_AVAILABLE = False
@@ -200,18 +200,18 @@ def _load_turn_events(session_id: str, terminal_id: str) -> list[dict] | None:
         return None
 
     try:
-        all_events = load_tool_events(session_id=session_id, limit=200)
+        all_events = load_scoped_tool_events(
+            session_id=session_id,
+            terminal_id=terminal_id,
+            scope=SCOPE_TURN_STRICT,
+            limit=200,
+        )
     except Exception as exc:
         _logger.warning("FAIL-WARN: load_tool_events raised: %s", exc)
         return None
 
     _logger.debug("loaded %d events for session=%s", len(all_events), session_id[:16])
-
-    min_id = _read_turn_marker(session_id, terminal_id)
-    if min_id is None:
-        return all_events  # Fallback: full session (safe but may miss stale)
-
-    return [e for e in all_events if int(e.get("id", 0)) > min_id]
+    return all_events
 
 
 def _resource_was_fetched(resource: str, tool_events: list[dict]) -> bool:
