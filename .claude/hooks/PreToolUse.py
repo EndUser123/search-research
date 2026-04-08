@@ -73,19 +73,22 @@ except ImportError:
                 return value.strip()
         return os.environ.get("CLAUDE_SESSION_ID", "").strip()
 
+try:
+    from evidence_store import get_active_turn as get_active_evidence_turn
+except ImportError:
+
+    def get_active_evidence_turn(session_id: str, terminal_id: str) -> str | None:
+        return None
+
 
 LEDGER_AVAILABLE = _ledger_available()
 
 try:
     from __lib.hook_ledger import append_event as append_ledger_event
-    from __lib.hook_ledger import get_active_turn
 except ImportError:
 
     def append_ledger_event(*args, **kwargs) -> bool:  # type: ignore[misc]
         return False
-
-    def get_active_turn(terminal_id: str) -> str | None:  # type: ignore[misc]
-        return None
 
 
 # Hooks that must never fail open.
@@ -1035,7 +1038,8 @@ def main():
         or data.get("terminalId")
         or os.environ.get("CLAUDE_TERMINAL_ID", "")
     ).strip()
-    active_turn_id = get_active_turn(terminal_id) if LEDGER_AVAILABLE and terminal_id else None
+    session_id = _resolve_session_id_from_utils(data)
+    active_turn_id = get_active_evidence_turn(session_id, terminal_id) if terminal_id else None
     tool_input_payload = (
         data.get("tool_input", {}) if isinstance(data.get("tool_input"), dict) else {}
     )

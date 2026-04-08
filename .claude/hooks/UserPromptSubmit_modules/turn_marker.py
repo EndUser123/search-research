@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""turn_marker.py - Compatibility shim for starting a terminal-scoped turn."""
+"""turn_marker.py - Ensure UserPromptSubmit has an active DB-backed turn."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from UserPromptSubmit_modules.registry import register_hook
 
 @register_hook("turn_marker", priority=0.5)
 def write_turn_marker(context: HookContext) -> HookResult:
-    """Ensure a turn exists for hooks that still expect turn_marker registration."""
+    """Ensure a DB-backed turn exists for downstream hooks."""
     terminal_id = str(context.terminal_id or "").strip()
     session_id = str(context.session_id or "").strip()
     if not terminal_id:

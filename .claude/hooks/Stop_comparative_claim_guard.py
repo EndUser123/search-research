@@ -29,7 +29,6 @@ from functools import lru_cache
 from pathlib import Path
 
 HOOKS_DIR = Path(__file__).resolve().parent
-STATE_DIR = HOOKS_DIR / "state" / "turn_markers"
 LOG_DIR = HOOKS_DIR / "state" / "logs"
 sys.path.insert(0, str(HOOKS_DIR))
 

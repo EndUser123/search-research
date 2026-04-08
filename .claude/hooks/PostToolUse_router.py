@@ -98,6 +98,7 @@ except (ImportError, AttributeError):
 try:
     from evidence_store import (
         append_tool_event,
+        get_active_turn as get_active_evidence_turn,
         resolve_session_id,
     )
 
@@ -107,6 +108,9 @@ except ImportError:
 
     def append_tool_event(*args, **kwargs) -> bool:
         return False
+
+    def get_active_evidence_turn(session_id: str, terminal_id: str) -> str | None:
+        return None
 
     def resolve_session_id(explicit: str = "") -> str:
         return ""
@@ -547,7 +551,7 @@ def main() -> None:
             session_id = session_id or os.environ.get("CLAUDE_SESSION_ID", "")
 
             active_turn_id = (
-                get_active_turn(terminal_id) if LEDGER_AVAILABLE and terminal_id else None
+                get_active_evidence_turn(session_id, terminal_id) if terminal_id else None
             )
 
             if active_turn_id and LEDGER_AVAILABLE:

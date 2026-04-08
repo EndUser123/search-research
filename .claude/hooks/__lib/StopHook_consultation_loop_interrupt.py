@@ -26,6 +26,10 @@ _ENABLED: Final = os.environ.get("CONSULTATION_LOOP_INTERRUPT_ENABLED", "").lowe
     "true",
     "yes",
 )
+_SYNC_CKS_INGEST: Final = os.environ.get(
+    "CONSULTATION_LOOP_INTERRUPT_SYNC_CKS",
+    "",
+).lower() in ("1", "true", "yes")
 
 # Detection patterns
 DIRECTIVE_PATTERNS: Final[list[re.Pattern]] = [
@@ -44,6 +48,11 @@ CKS_CLI_PATH: Final = "P:/__csf/src/cks/cks_cli.py"
 
 # State file for per-session counter (terminal_id + session_id scoped)
 _STATE_DIR: Final = Path(__file__).resolve().parent.parent / "state"
+
+
+def _get_cks_queue_dir() -> Path:
+    """Return the queue directory used for deferred CKS ingestion."""
+    return Path(__file__).resolve().parent.parent / "state" / "cks_queue"
 
 
 def _get_state_file(terminal_id: str, session_id: str) -> Path:
@@ -180,21 +189,26 @@ def _get_last_directive_and_questions(transcript: list[dict]) -> tuple[str | Non
 def _write_cks_queue(pattern_entry: dict) -> None:
     """Write pattern entry to CKS queue for async ingestion.
 
-    CKS ingestion happens via subprocess CLI - NOT via MCP from Stop hook.
+    Default behavior is queue-only to avoid spawning extra Python processes
+    during Stop. Synchronous CLI ingestion is opt-in via
+    CONSULTATION_LOOP_INTERRUPT_SYNC_CKS=true.
     """
-    queue_dir = Path(__file__).resolve().parent.parent / "state" / "cks_queue"
+    queue_dir = _get_cks_queue_dir()
     try:
         queue_dir.mkdir(parents=True, exist_ok=True)
         queue_file = queue_dir / f"consultation_loop_{int(time.time() * 1000)}.json"
         queue_file.write_text(json.dumps(pattern_entry, ensure_ascii=False), encoding="utf-8")
 
-        # Trigger CKS ingestion via subprocess CLI
+        if not _SYNC_CKS_INGEST:
+            return
+
+        # Trigger CKS ingestion via subprocess CLI only when explicitly enabled.
         command = [sys.executable, CKS_CLI_PATH, "add", "--file", str(queue_file)]
         subprocess.run(
             command,
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=3,
         )
     except Exception:
         # Fail open - CKS errors don't block stop

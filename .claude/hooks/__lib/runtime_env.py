@@ -10,20 +10,17 @@ or active turn ID inline. Inline definitions of these patterns are prohibited
 """
 from __future__ import annotations
 
+import os
 from typing import Any, Optional
 
 
 def ledger_available() -> bool:
-    """Return True if hook_ledger can be imported successfully."""
+    """Return True if shared turn-state dependencies are importable."""
     try:
-        from __lib import hook_ledger
+        from evidence_store import get_active_turn  # noqa: F401
         return True
     except ImportError:
-        try:
-            import hook_ledger
-            return True
-        except ImportError:
-            return False
+        return False
 
 
 def get_terminal_id(input_data: Optional[dict[str, Any]] = None) -> str:
@@ -32,14 +29,16 @@ def get_terminal_id(input_data: Optional[dict[str, Any]] = None) -> str:
     Returns empty string if not resolvable. Never raises.
     """
     try:
-        from __lib import hook_ledger
-        return hook_ledger.detect_terminal_id_from_payload(input_data or {})
+        from __lib.terminal_detection import detect_terminal_id_from_payload
+
+        return detect_terminal_id_from_payload(input_data or {})
     except ImportError:
         try:
-            import hook_ledger
-            return hook_ledger.detect_terminal_id_from_payload(input_data or {})
+            from terminal_detection import detect_terminal_id_from_payload  # type: ignore
+
+            return detect_terminal_id_from_payload(input_data or {})
         except ImportError:
-            return ""
+            return str(os.environ.get("CLAUDE_TERMINAL_ID", "")).strip()
 
 
 def get_active_turn_id(terminal_id: str) -> Optional[str]:
@@ -51,11 +50,11 @@ def get_active_turn_id(terminal_id: str) -> Optional[str]:
         return None
 
     try:
-        from __lib import hook_ledger
-        return hook_ledger.get_active_turn(terminal_id)
-    except ImportError:
-        try:
-            import hook_ledger
-            return hook_ledger.get_active_turn(terminal_id)
-        except ImportError:
+        from evidence_store import get_active_turn
+
+        session_id = str(os.environ.get("CLAUDE_SESSION_ID", "")).strip()
+        if not session_id:
             return None
+        return get_active_turn(session_id, terminal_id)
+    except ImportError:
+        return None

@@ -43,11 +43,10 @@ def isolate_notifications(tmp_path):
 
     # Ensure clean state at test start
     test_file.unlink(missing_ok=True)
-
-    yield
-
-    # Restore original
-    notification_queue.NOTIFICATION_FILE = original_file
+    try:
+        yield
+    finally:
+        notification_queue.NOTIFICATION_FILE = original_file
 
 
 @pytest.fixture(autouse=True)
@@ -72,19 +71,11 @@ def clean_test_state():
     """Clean up test state before each test to prevent cross-test pollution.
 
     This fixture runs automatically before every test to ensure:
-    1. All turn markers are removed
-    2. All spool files are removed
-    3. State files are reset
+    1. All spool files are removed
+    2. State files are reset
 
     This prevents tests from polluting each other when run in the same process.
     """
-    # Clean turn markers (before test)
-    turn_marker_dir = Path("P:/.claude/hooks/state/turn_markers")
-    if turn_marker_dir.exists():
-        # Remove ALL test-specific turn markers (test-*.json)
-        for marker_file in turn_marker_dir.glob("turn_start_test-*.json"):
-            marker_file.unlink(missing_ok=True)
-
     # Clean evidence spool (before test)
     spool_dir = Path("P:/.claude/hooks/session_data/evidence_spool")
     if spool_dir.exists():
@@ -100,22 +91,19 @@ def clean_test_state():
         for state_file in state_dir.glob("dependency_verification_test-*.json"):
             state_file.unlink(missing_ok=True)
 
-    yield  # Test runs here
+    try:
+        yield  # Test runs here
+    finally:
+        # Cleanup after test (same as before)
+        if spool_dir.exists():
+            for spool_file in spool_dir.glob("*.json"):
+                spool_file.unlink(missing_ok=True)
 
-    # Cleanup after test (same as before)
-    if turn_marker_dir.exists():
-        for marker_file in turn_marker_dir.glob("turn_start_test-*.json"):
-            marker_file.unlink(missing_ok=True)
-
-    if spool_dir.exists():
-        for spool_file in spool_dir.glob("*.json"):
-            spool_file.unlink(missing_ok=True)
-
-    if state_dir.exists():
-        for state_file in state_dir.glob("file_existence_decision_test-*.json"):
-            state_file.unlink(missing_ok=True)
-        for state_file in state_dir.glob("dependency_verification_test-*.json"):
-            state_file.unlink(missing_ok=True)
+        if state_dir.exists():
+            for state_file in state_dir.glob("file_existence_decision_test-*.json"):
+                state_file.unlink(missing_ok=True)
+            for state_file in state_dir.glob("dependency_verification_test-*.json"):
+                state_file.unlink(missing_ok=True)
 
 
 def real_claim_from_text(text: str, index: int = 0):

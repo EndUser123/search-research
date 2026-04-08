@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import logging
 import os
 import re
 import subprocess
@@ -34,6 +35,8 @@ HOOKS_DIR = Path(__file__).resolve().parent
 # to resolve against P:/.claude/hooks/__lib/ (where circuit_breaker.py lives)
 HOOKS_LIB_DIR = HOOKS_DIR  # HOOKS_DIR is P:/.claude/hooks/
 HOOKS_ROOT_DIR = HOOKS_DIR.parent  # P:/.claude/
+LOG_DIR = HOOKS_DIR / "state" / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 # CRITICAL: Ensure hooks/ is at front of sys.path BEFORE any __lib imports
 # to resolve __lib.circuit_breaker against P:/.claude/hooks/__lib/
@@ -71,9 +74,9 @@ try:  # noqa: E402
         build_response_snapshot,
         close_turn,
         detect_terminal_id_from_payload,
-        get_active_turn,
         ingest_stop_payload,
     )
+    from evidence_store import get_active_turn as get_active_evidence_turn
     from shared_utils import resolve_session_id as _resolve_session_id_from_utils
 except ImportError:  # pragma: no cover - import-path compatibility
     from hook_base import (  # type: ignore
@@ -88,9 +91,9 @@ except ImportError:  # pragma: no cover - import-path compatibility
         build_response_snapshot,
         close_turn,
         detect_terminal_id_from_payload,
-        get_active_turn,
         ingest_stop_payload,
     )
+    from evidence_store import get_active_turn as get_active_evidence_turn  # type: ignore
 
     try:
         from shared_utils import resolve_session_id as _resolve_session_id_from_utils
@@ -125,6 +128,14 @@ except Exception:  # pragma: no cover - fail-open fallback
 
     def detect_terminal_id() -> str:
         return ""
+
+
+_router_logger = logging.getLogger("stop_router")
+if not _router_logger.handlers:
+    _router_handler = logging.FileHandler(LOG_DIR / "stop_router_timing.log", encoding="utf-8")
+    _router_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    _router_logger.addHandler(_router_handler)
+_router_logger.setLevel(logging.INFO)
 
 
 # =============================================================================
@@ -796,7 +807,7 @@ def _materialize_snapshot(input_data: dict[str, Any]) -> dict[str, Any]:
 
     turn_id = str(input_data.get("turn_id") or "").strip()
     if not turn_id and terminal_id:
-        turn_id = str(get_active_turn(terminal_id) or "").strip()
+        turn_id = str(get_active_evidence_turn(_resolve_session_id(input_data), terminal_id) or "").strip()
 
     if terminal_id and turn_id:
         snapshot = ingest_stop_payload(terminal_id, turn_id, input_data)
@@ -827,6 +838,7 @@ def _materialize_snapshot(input_data: dict[str, Any]) -> dict[str, Any]:
 
 
 def route_stop(input_data: dict[str, Any]) -> dict[str, Any]:
+    route_started = time.perf_counter()
     if input_data.get("hook_event_name") not in (None, "", "Stop"):
         return {}
 
@@ -900,6 +912,7 @@ def route_stop(input_data: dict[str, Any]) -> dict[str, Any]:
 
         raw_result: dict[str, Any] | None
         used_dispatch = dispatch_mode
+        hook_started = time.perf_counter()
         try:
             _timeout = _HOOK_TIMEOUTS.get(hook_name, _DEFAULT_TIMEOUT)
             if (
@@ -921,6 +934,14 @@ def route_stop(input_data: dict[str, Any]) -> dict[str, Any]:
                 "systemMessage": f"{hook_path.name} failed and was skipped: {exc}",
                 "blocking_hook": hook_path.name,
             }
+        elapsed_ms = (time.perf_counter() - hook_started) * 1000.0
+        _router_logger.info(
+            "hook=%s dispatch=%s elapsed_ms=%.1f timeout_s=%.1f",
+            hook_name,
+            used_dispatch,
+            elapsed_ms,
+            _HOOK_TIMEOUTS.get(hook_name, _DEFAULT_TIMEOUT),
+        )
 
         result = _normalize_result(hook_name, raw_result)
         _append_validator_result(terminal_id, turn_id, hook_name, used_dispatch, result)
@@ -956,6 +977,13 @@ def route_stop(input_data: dict[str, Any]) -> dict[str, Any]:
                 "warnings": warning_messages,
             },
         )
+    _router_logger.info(
+        "route_stop total_elapsed_ms=%.1f terminal_id=%s turn_id=%s warnings=%d",
+        (time.perf_counter() - route_started) * 1000.0,
+        terminal_id,
+        turn_id,
+        len(warning_messages),
+    )
 
     if warning_messages:
         return {

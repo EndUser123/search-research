@@ -13,21 +13,15 @@ Usage in hooks:
 
 from __future__ import annotations
 
-import json
 import logging
-import re
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
+from turn_scoped_evidence import load_turn_scoped_events as _load_turn_scoped_events
 from verification.claims import Claim
 
 # Import from verification engine
 from verification.engine import VerificationStatus, match_claim_to_events
-
-# Setup paths
-HOOKS_DIR = Path(__file__).resolve().parent.parent
-STATE_DIR = HOOKS_DIR / "state" / "turn_markers"
 
 _logger = logging.getLogger("verification.adapter")
 
@@ -100,61 +94,30 @@ def verify_claims_batch(
     return results
 
 
-# --- Turn Scoping Utilities ---
-
-
-def _safe_scope_key(session_id: str, terminal_id: str) -> str:
-    """Create safe filename key from session and terminal IDs."""
-
-    def _safe(s: str) -> str:
-        return re.sub(r"[^a-zA-Z0-9_.-]", "_", (s or "unknown").strip())
-
-    return f"{_safe(session_id)}__{_safe(terminal_id)}"
-
-
-def read_turn_marker(session_id: str, terminal_id: str) -> int | None:
-    """Read turn_start_event_id from marker file.
-
-    Args:
-        session_id: Session ID
-        terminal_id: Terminal ID for multi-terminal isolation
-
-    Returns:
-        Turn start event ID, or None if marker not found
-    """
-    path = STATE_DIR / f"turn_start_{_safe_scope_key(session_id, terminal_id)}.json"
-    if not path.exists():
-        return None
-    try:
-        data = json.loads(path.read_text())
-        val = data.get("turn_start_event_id")
-        if val is not None:
-            return int(val)
-    except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
-        _logger.warning("turn marker read failed: %s: %s", path, exc)
-    return None
-
-
 def load_turn_scoped_events(
     session_id: str,
     terminal_id: str,
     all_events: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Filter events to only those from the current turn.
+    """Return events from the current turn.
 
     Args:
         session_id: Session ID
         terminal_id: Terminal ID for multi-terminal isolation
-        all_events: All tool events from the session
+        all_events: Legacy fallback for call sites that already loaded events
 
     Returns:
         Filtered list of events from current turn only
     """
-    min_id = read_turn_marker(session_id, terminal_id)
-    if min_id is None:
-        return all_events  # Fallback: no marker, return all
-
-    return [e for e in all_events if int(e.get("id", 0)) > min_id]
+    scoped = _load_turn_scoped_events(
+        session_id=session_id,
+        terminal_id=terminal_id,
+        limit=max(len(all_events), 500),
+    )
+    if scoped is None:
+        _logger.warning("turn-scoped event load failed for %s/%s", session_id, terminal_id)
+        return all_events
+    return scoped
 
 
 # --- Convenience Functions for Hook Migration ---

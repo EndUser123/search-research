@@ -861,8 +861,7 @@ def read_events_for_file(
 
 
 def _load_turn_start_event_id(session_id: str, terminal_id: str) -> int | None:
-    """Load turn_start_event_id from active turn record, with marker fallback."""
-    import json
+    """Load turn_start_event_id from the active DB-backed turn record."""
 
     try:
         normalized = normalize_session_id(session_id)
@@ -882,28 +881,8 @@ def _load_turn_start_event_id(session_id: str, terminal_id: str) -> int | None:
             if row is not None:
                 return int(row["start_event_id"] or 0)
     except (sqlite3.DatabaseError, OSError, ValueError, TypeError):
-        pass
-
-    try:
-        safe_terminal = "".join(
-            ch if ch.isalnum() or ch in "._-" else "_" for ch in (terminal_id or "unknown")
-        )[:96]
-        safe_session = "".join(
-            ch if ch.isalnum() or ch in "._-" else "_" for ch in (session_id or "unknown")
-        )[:96]
-        marker_path = (
-            STATE_DIR / "turn_markers" / f"turn_start_{safe_session}__{safe_terminal}.json"
-        )
-        if not marker_path.exists():
-            return None
-        with marker_path.open("r", encoding="utf-8") as fh:
-            data = json.load(fh)
-        event_id = data.get("turn_start_event_id")
-        if isinstance(event_id, int):
-            return event_id
         return None
-    except (OSError, json.JSONDecodeError, TypeError):
-        return None
+    return None
 
 
 def import_spool_events(

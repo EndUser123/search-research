@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -22,6 +23,7 @@ from StopHook_consultation_loop_interrupt import (
     _extract_terminal_id,
     _extract_session_id,
     _extract_transcript,
+    _write_cks_queue,
     _STATE_DIR,
 )
 
@@ -258,3 +260,29 @@ class TestStateManagement:
         # Path that cannot be written to (directory)
         _save_state(str(tmp_path), str(tmp_path), {"consecutive_question_responses": 0})
         # Should not raise
+
+
+class TestCksQueue:
+    """Tests for queue-only consultation loop behavior."""
+
+    def test_write_cks_queue_does_not_spawn_subprocess_by_default(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(
+            "StopHook_consultation_loop_interrupt._SYNC_CKS_INGEST",
+            False,
+        )
+        monkeypatch.setattr(
+            "StopHook_consultation_loop_interrupt._get_cks_queue_dir",
+            lambda: tmp_path / "cks_queue",
+        )
+        called = False
+
+        def fake_run(*args, **kwargs):
+            nonlocal called
+            called = True
+            raise AssertionError("subprocess.run should not be called in queue-only mode")
+
+        with patch("StopHook_consultation_loop_interrupt.subprocess.run", side_effect=fake_run):
+            _write_cks_queue({"type": "pattern", "title": "x"})
+
+        assert called is False
+        assert list((tmp_path / "cks_queue").glob("consultation_loop_*.json"))

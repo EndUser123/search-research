@@ -6,16 +6,16 @@ Tests cover:
 - Allow conditions (no negative patterns, obvious allowlist)
 - Block conditions (negative claims without verification)
 - Verification conditions (with/without tools this turn)
-- Turn scoping (turn_marker integration)
+- Turn scoping (DB-backed turn boundaries)
 - PreToolUse coordination (state file check)
 - Edge cases (empty response, invalid JSON, missing session)
 
 Performance target: All tests should complete in <3 seconds total
 """
 
-import atexit
 import json
 import subprocess
+import uuid
 from pathlib import Path
 
 import pytest
@@ -24,7 +24,7 @@ import pytest
 def run_guard(
     response: str,
     tool_events: list = None,
-    session_id: str = "test-session",
+    session_id: str | None = None,
     terminal_id: str = "test-terminal",
     pretooluse_state: dict = None,
 ) -> tuple[dict, int]:
@@ -40,39 +40,20 @@ def run_guard(
     Returns:
         (output_dict, exit_code) tuple
     """
+    if session_id is None:
+        session_id = str(uuid.uuid4())
+
     # Create PreToolUse state file if provided
+    state_file = None
     if pretooluse_state:
         state_dir = Path("P:/.claude/hooks/state")
         state_dir.mkdir(parents=True, exist_ok=True)
         state_file = state_dir / f"file_existence_decision_{session_id}.json"
         state_file.write_text(json.dumps(pretooluse_state), encoding="utf-8")
 
-        # Clean up state file after test
-        def cleanup():
-            if state_file.exists():
-                state_file.unlink()
-
-        atexit.register(cleanup)
-
-    # Create turn marker if tool_events provided
+    # Create evidence spool if tool_events provided
+    evidence_spool_dir = None
     if tool_events is not None:
-        turn_marker_dir = Path("P:/.claude/hooks/state/turn_markers")
-        turn_marker_dir.mkdir(parents=True, exist_ok=True)
-
-        # Safe scope key
-        safe_key = f"{session_id}__{terminal_id}"
-        safe_key = safe_key.replace("/", "_").replace("\\", "_")
-
-        turn_marker_file = turn_marker_dir / f"turn_start_{safe_key}.json"
-
-        # Clean up old turn marker from previous test (prevents state pollution)
-        if turn_marker_file.exists():
-            turn_marker_file.unlink()
-
-        turn_marker_data = {"turn_start_event_id": 0}  # Start from 0
-        turn_marker_file.write_text(json.dumps(turn_marker_data), encoding="utf-8")
-
-        # Create evidence spool with tool events
         evidence_spool_dir = Path("P:/.claude/hooks/session_data/evidence_spool")
         evidence_spool_dir.mkdir(parents=True, exist_ok=True)
 
@@ -93,43 +74,41 @@ def run_guard(
             }
             event_file.write_text(json.dumps(event_data), encoding="utf-8")
 
-        # Clean up turn marker and spool files
-        def cleanup_turn():
-            if turn_marker_file.exists():
-                turn_marker_file.unlink()
+    try:
+        data = {
+            "response": response,
+            "session_id": session_id,
+            "terminal_id": terminal_id,
+        }
+
+        # Include tool_events if explicitly provided (even if empty list).
+        # Omitting it causes the guard to call _load_turn_events() which returns
+        # None when no evidence exists, triggering the "evidence unavailable" block.
+        if tool_events is not None:
+            data["tool_events"] = tool_events
+
+        input_data = json.dumps(data)
+
+        result = subprocess.run(
+            ["python", "P:/.claude/hooks/Stop_negative_existence_guard.py"],
+            input=input_data,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+
+        try:
+            output = json.loads(result.stdout) if result.stdout.strip() else {}
+        except json.JSONDecodeError:
+            output = {}
+
+        return output, result.returncode
+    finally:
+        if state_file and state_file.exists():
+            state_file.unlink()
+        if evidence_spool_dir and evidence_spool_dir.exists():
             for f in evidence_spool_dir.glob(f"{session_id}_*.json"):
                 f.unlink()
-
-        atexit.register(cleanup_turn)
-
-    # Build input data
-    data = {
-        "response": response,
-        "session_id": session_id,
-        "terminal_id": terminal_id,
-    }
-
-    # Include tool_events if explicitly provided (even if empty list).
-    # Omitting it causes the guard to call _load_turn_events() which returns
-    # None when no spool files exist, triggering the "evidence unavailable" block.
-    if tool_events is not None:
-        data["tool_events"] = tool_events
-
-    input_data = json.dumps(data)
-
-    result = subprocess.run(
-        ["python", "P:/.claude/hooks/Stop_negative_existence_guard.py"],
-        input=input_data,
-        capture_output=True,
-        text=True,
-    )
-
-    try:
-        output = json.loads(result.stdout) if result.stdout.strip() else {}
-    except json.JSONDecodeError:
-        output = {}
-
-    return output, result.returncode
 
 
 def test_no_negative_patterns_allowed():
@@ -189,35 +168,19 @@ def test_file_specific_pattern_detected():
 
 
 def test_this_turn_scoping_works():
-    """Turn marker should scope verification to current turn."""
-    # This test manually creates state to verify "this turn" scoping
-    # We don't use run_guard() helper because it would clean up our turn marker
-
-    session_id = "test-session"
+    """DB-backed turn boundaries should scope verification to current turn."""
+    session_id = str(uuid.uuid4())
     terminal_id = "test-terminal"
     response = "The file doesn't exist."
+    from evidence_store import append_tool_event, start_turn
 
-    # Create turn marker with ID 5 (simulating that we're in a turn that started at event 5)
-    turn_marker_dir = Path("P:/.claude/hooks/state/turn_markers")
-    turn_marker_dir.mkdir(parents=True, exist_ok=True)
-    safe_key = f"{session_id}__{terminal_id}".replace("/", "_").replace("\\", "_")
-    turn_marker_file = turn_marker_dir / f"turn_start_{safe_key}.json"
-    turn_marker_file.write_text(json.dumps({"turn_start_event_id": 5}), encoding="utf-8")
-
-    # Create a spool file with an event that happened BEFORE this turn (ID 1)
-    # This simulates an old verification that shouldn't count for "this turn"
-    evidence_spool_dir = Path("P:/.claude/hooks/session_data/evidence_spool")
-    evidence_spool_dir.mkdir(parents=True, exist_ok=True)
-    event_file = evidence_spool_dir / f"{session_id}_00001.json"
-    event_data = {
-        "session_id": session_id,
-        "terminal_id": terminal_id,
-        "tool_name": "Read",
-        "command": "file.txt",
-        "ts": "2026-03-07T11:00:00Z",
-        "id": 1,  # ID < turn_start_event_id (5), so it's from BEFORE this turn
-    }
-    event_file.write_text(json.dumps(event_data), encoding="utf-8")
+    append_tool_event(
+        session_id=session_id,
+        terminal_id=terminal_id,
+        tool_name="Read",
+        command="file.txt",
+    )
+    start_turn(session_id=session_id, terminal_id=terminal_id, prompt="scope test")
 
     # Run the guard
     data = {
@@ -232,16 +195,13 @@ def test_this_turn_scoping_works():
         input=input_data,
         capture_output=True,
         text=True,
+        timeout=15,
     )
 
     output = json.loads(result.stdout) if result.stdout.strip() else {}
     exit_code = result.returncode
 
-    # Clean up
-    turn_marker_file.unlink(missing_ok=True)
-    event_file.unlink(missing_ok=True)
-
-    # Should block because the verification (ID 1) was before this turn (ID 5)
+    # Should block because the verification happened before the current turn boundary
     assert exit_code == 2, f"Expected block but got exit code {exit_code}, output: {output}"
     assert output.get("decision") == "block"
 

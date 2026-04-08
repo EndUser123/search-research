@@ -13,12 +13,11 @@ Configuration:
 
 State Management:
   Uses session_id for session isolation
-  State directories:
+    State directories:
     - dependency_verification_{terminal_id}.json
     - file_existence_decision_{session_id}.json
     - observe_before_act/observe_gate_console_{console}_{session}.json
     - anti_sycophancy_injector/{session}_{terminal/env}_{id}.json
-    - turn_markers/turn_start_{session}__{terminal/env}_{id}.json
 
 Plan File Cleanup:
   Removes stale plan files from ~/.claude/plans/ that exceed the age threshold.
@@ -281,35 +280,6 @@ def cleanup_old_pending_obligations(max_age_minutes: int = 5) -> int:
     return removed_count
 
 
-def cleanup_old_turn_markers(max_age_hours: int = 24) -> int:
-    """Remove old turn_markers state files.
-
-    Args:
-        max_age_hours: Maximum age in hours before removing state file
-
-    Returns:
-        Number of files removed
-    """
-    state_dir = STATE_DIR / "turn_markers"
-    if not state_dir.exists():
-        return 0
-
-    removed_count = 0
-    cutoff_time = time.time() - (max_age_hours * 3600)
-
-    for state_file in state_dir.glob("*.json"):
-        try:
-            mtime = state_file.stat().st_mtime
-            if mtime < cutoff_time:
-                state_file.unlink()
-                removed_count += 1
-                logger.info(f"Removed old turn_markers state: {state_file.name}")
-        except OSError:
-            continue
-
-    return removed_count
-
-
 def cleanup_old_plan_files(max_age_days: int = 7, plan_dir: Path | None = None) -> int:
     """Remove stale plan files from ~/.claude/plans/.
 
@@ -446,7 +416,6 @@ def main() -> None:
     existence_removed = cleanup_old_file_existence_decisions(MAX_AGE_HOURS)
     observe_removed = cleanup_old_observe_before_act(MAX_AGE_HOURS)
     anti_sycophancy_removed = cleanup_old_anti_sycophancy_injector(MAX_AGE_HOURS)
-    turn_markers_removed = cleanup_old_turn_markers(MAX_AGE_HOURS)
     obligations_removed = cleanup_old_pending_obligations(max_age_minutes=5)
     grounded_artifacts_removed = cleanup_old_grounded_artifacts(MAX_AGE_HOURS)
     pretool_degraded_removed = cleanup_old_pretool_degraded(MAX_AGE_HOURS)
@@ -458,7 +427,6 @@ def main() -> None:
         + existence_removed
         + observe_removed
         + anti_sycophancy_removed
-        + turn_markers_removed
         + obligations_removed
         + grounded_artifacts_removed
         + pretool_degraded_removed
@@ -471,8 +439,8 @@ def main() -> None:
             f"Cleaned up {total_removed} old state file(s) "
             f"(verification: {verification_removed}, existence: {existence_removed}, "
             f"observe: {observe_removed}, anti_sycophancy: {anti_sycophancy_removed}, "
-            f"turn_markers: {turn_markers_removed}, obligations: {obligations_removed}, "
-            f"grounded_artifacts: {grounded_artifacts_removed}, pretool_degraded: {pretool_degraded_removed}, "
+            f"obligations: {obligations_removed}, grounded_artifacts: {grounded_artifacts_removed}, "
+            f"pretool_degraded: {pretool_degraded_removed}, "
             f"plan_files: {plan_files_removed}, tdd_contracts: {tdd_contracts_removed})"
         )
 

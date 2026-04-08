@@ -350,7 +350,7 @@ The `UserPromptSubmit_modules/` directory contains **47 Python modules** that pr
 | `task_detector.py` | Task detector | No |
 | `workflow_tier_tagging.py` | Workflow tier tagging | No |
 | `memory_size.py` | MEMORY.md enforcement | No |
-| `turn_marker.py` | Terminal-scoped turn marker | No |
+| `turn_marker.py` | Ensure a DB-backed active turn exists | No |
 
 #### Domain 8: Cognitive Frameworks (7 modules)
 

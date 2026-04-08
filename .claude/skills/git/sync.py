@@ -429,17 +429,19 @@ def interactive_select_repos(repos: List[RepoInfo]) -> List[RepoInfo]:
     if not repos:
         return []
 
-    print(f"\n{color('Non-main repos with unpushed commits:', 'info')}\n")
+    print(f"\nNon-main repos with unpushed commits:\n")
 
     for i, repo in enumerate(repos, 1):
         has_remote, commits_ahead = get_repo_status(repo)
         status = f"{commits_ahead} commit(s) ahead" if has_remote and commits_ahead > 0 else "up-to-date"
         if not has_remote:
             status = color("no remote", "warning")
-        print(f"  [{i}] {color(repo.relative_path, 'repo')} - {status}")
+        full_path = str(repo.path)
+        print(f"  {i} {full_path} - {status}")
 
-    print(f"\n{color('Use /git --select <numbers> to push selected repos', 'info')}")
-    print(f"{color('Example: /git --select 1,3 or /git --select all', 'info')}")
+    print(f"\n0 — Push all ({len(repos)} repos)")
+    print(f"\nUse /git --select <numbers> to push selected repos")
+    print(f"Example: /git --select 1,3 or /git --select all")
 
     return []
 
