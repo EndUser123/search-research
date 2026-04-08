@@ -10,6 +10,7 @@ Combines /trace + /testing-skills into unified 4-tier workflow:
 """
 
 import os
+import re
 import sys
 import uuid
 from pathlib import Path
@@ -33,6 +34,56 @@ from .state_manager import VerifyStateManager
 _hooks_lib = Path("P:/.claude/hooks/__lib")
 if str(_hooks_lib) not in sys.path:
     sys.path.insert(0, str(_hooks_lib))
+
+
+def _get_session_transcript_text() -> str:
+    """Read session transcript text. Copied from RNS lib.chain to avoid extra dep."""
+    transcript_path = os.environ.get("CLAUDE_TRANSCRIPT_PATH") or os.environ.get(
+        "TRANSCRIPT_PATH"
+    )
+    if transcript_path:
+        p = Path(transcript_path)
+        if p.exists():
+            return p.read_text(encoding="utf-8")
+    return ""
+
+
+def _infer_target_from_session() -> str | None:
+    """
+    Infer verification target from session transcript.
+
+    Returns a target string (e.g. 'skill:arch') or None if inference fails.
+    Priority: slash-command skill references > skill name mentions > hook mentions.
+    """
+    text = _get_session_transcript_text()
+    if not text:
+        return None
+
+    # Match /skill-name slash commands
+    skill_refs = re.findall(r"/(\w{3,20})(?:\s|$|[\,\.\:\]\"\'])", text)
+    valid_skills = {
+        "arch": "skill:arch",
+        "code": "skill:code",
+        "planning": "skill:planning",
+        "verify": "skill:verify",
+        "tdd": "skill:tdd",
+        "sqa": "skill:sqa",
+        "rns": "skill:rns",
+        "search": "skill:search",
+        "gitready": "skill:gitready",
+        "hook": "skill:hook",
+    }
+    for skill in reversed(skill_refs):
+        if skill in valid_skills:
+            return valid_skills[skill]
+
+    # Match bare skill references: 'skill:arch', '/arch'
+    for match in re.finditer(r"(?:skill:|/\b)(\w{3,20})(?:\s|$|[\,\.\:\]\"\'])", text):
+        name = match.group(1)
+        if name in valid_skills:
+            return valid_skills[name]
+
+    return None
 
 
 class Verifier:
@@ -142,15 +193,28 @@ class Verifier:
 
         Args:
             target_input: User input string (e.g., "skill:arch", "hook:init", "src/file.py")
+                         If empty, falls back to session context inference.
 
         Returns:
             Dict with 'type' and 'name' keys
 
         Raises:
-            ValueError: If target format is invalid
+            ValueError: If target format is invalid and session inference also fails
         """
         if not target_input or not isinstance(target_input, str):
-            raise ValueError("Invalid target format: empty or not a string")
+            target_input = target_input.strip() if isinstance(target_input, str) else ""
+
+        if not target_input:
+            # Try session context inference before declaring invalid
+            inferred = _infer_target_from_session()
+            if inferred:
+                target_input = inferred
+
+        if not target_input or not isinstance(target_input, str) or not target_input.strip():
+            raise ValueError(
+                "Invalid target format: empty and no target could be inferred from session context. "
+                "Provide a target (e.g., 'skill:arch', 'hook:init', 'src/file.py')."
+            )
 
         target_input = target_input.strip()
 
