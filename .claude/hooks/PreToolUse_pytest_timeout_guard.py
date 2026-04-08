@@ -108,7 +108,7 @@ Recommended: pytest --timeout=30 [other_args]"""
 @hook_main
 def run(data: dict) -> dict:
     """Main hook entry point."""
-    if not ENABLED:
+    if not _is_enabled():
         return {"continue": True, "reason": "Hook disabled"}
 
     command = data.get("command", "")
