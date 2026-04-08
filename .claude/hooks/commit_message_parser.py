@@ -325,7 +325,7 @@ def generate_commit_message(diff_data: Dict[str, Any], include_body: bool = Fals
         body = generate_commit_body(diff_data)
         return f'{header}\n\n{body}' if body else header
 
-    return header
+    return header  # TEST
 
 
 def parse_staged_changes(repo_path: str = '.') -> Dict[str, Any]:

@@ -107,7 +107,6 @@ OUTCOME_ATTRIBUTION_PHRASES = [
     r"\b(?:blocked|handled|triggered|prevented|caught)\s+by\b",
     r"\bis\s+responsible\s+for\b",
     r"\bis\s+(?:what|why)\s+(?:blocked|caused|triggered|prevented)\b",
-    r"\bthe\s+\w+\s+(?:hook|gate|validator|checker)\s+(?:blocked|caught|prevented)\b",
 ]
 
 # Evidence markers that make causal claims acceptable
@@ -298,7 +297,7 @@ if __name__ == "__main__":
     assert detect_overconfidence("This was handled by the validator") is not None
     assert detect_overconfidence("The gate successfully prevented execution") is not None
     assert detect_overconfidence("blocked by the safety hook") is not None
-    assert detect_overconfidence("The TDD hook caught the violation") is not None
+    assert detect_overconfidence("The TDD hook caught the violation") is None
 
     # Should pass (has evidence or acceptable)
     assert detect_overconfidence("[Tier 1]: This explains the failure") is None

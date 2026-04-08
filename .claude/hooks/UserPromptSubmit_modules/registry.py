@@ -613,6 +613,7 @@ def _load_hooks() -> None:
         "anti_sycophancy_injector",
         # "breadcrumb_init",  # DEPRECATED 2026-03-11: Superseded by workflow_tier_tagging
         "coach_note_reader",
+        "cognitive_guardrails",  # NEW 2026-04-07: Inject discovery mandate and generalization check before design/implementation
         "cognitive_enhancers",
         "competence_injector",
         "context_summary",  # NEW 2026-03-13: Inject key facts from recent conversation to reduce context_reuse violations
@@ -639,6 +640,7 @@ def _load_hooks() -> None:
         "synergy_detector",  # NEW 2026-03-22: Detect framework+mode synergies
         "context_followup_detector",  # NEW 2026-03-25: Detect follow-up queries and inject prior context
         "consultation_awareness",  # NEW 2026-03-30: Detect directive repeat with prior LLM question
+        "tdd_contract_auto_gate",  # NEW 2026-04-08: Auto-create TDD contract for /code, /tdd skills
         "think_trigger",
         "truthfulness_gate",  # NEW 2026-03-13: Enforce proactive honesty on completion queries
         "turn_marker",

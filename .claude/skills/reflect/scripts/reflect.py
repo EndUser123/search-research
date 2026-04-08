@@ -22,7 +22,7 @@ from show_queue import format_queue_table
 from update_skill import update_skill
 
 
-def check_pending_premortems(memory_dir: str | None = None, days_threshold: int = 30) -> list[str]:
+def check_pending_premortems(memory_dir: str | None = None, days_threshold: int = 30) -> tuple[list[str], list[dict]]:
     """Check for pending pre-mortem validations that need attention.
 
     Integrates with PreMortemFeedbackLoop to check for kill criteria thresholds.
@@ -33,9 +33,12 @@ def check_pending_premortems(memory_dir: str | None = None, days_threshold: int 
         days_threshold: Days after which to prompt for validation (default: 30)
 
     Returns:
-        List of pending validation messages
+        Tuple of (pending_messages, critique_lessons)
+        - pending_messages: Human-readable warnings for display
+        - critique_lessons: Extracted HIGH/MEDIUM items from p3.md files
     """
     pending_messages = []
+    critique_lessons = []
 
     try:
         # Import pre-mortem feedback loop
@@ -43,34 +46,35 @@ def check_pending_premortems(memory_dir: str | None = None, days_threshold: int 
         from pathlib import Path
 
         # Add pre-mortem lib to path
-        pre_mortem_lib = Path("C:/Users/brsth/.claude/skills/pre-mortem/__lib")
-        if pre_mortem_lib.exists():
+        pre_mortem_lib = Path(__file__).parent.parent / "pre-mortem" / "lib"
+        if str(pre_mortem_lib) not in sys.path:
             sys.path.insert(0, str(pre_mortem_lib))
 
-        from feedback_loop import PreMortemFeedbackLoop
+        from feedback_loop import PreMortemFeedbackLoop, extract_critique_lessons
 
         # Initialize feedback loop
         feedback = PreMortemFeedbackLoop(memory_dir=Path(memory_dir) if memory_dir else None)
 
         # Get pending validations
-        pending_files = feedback.get_pending_validations(days_threshold=days_threshold)
+        pending_dirs = feedback.get_pending_validations(days_threshold=days_threshold)
 
-        for filepath in pending_files:
-            # Extract project name from filename
-            stem = filepath.stem
-            # Format: premortem_{project}_{timestamp}
-            parts = stem.split("_")
-            project_name = parts[1] if len(parts) > 1 else "unknown"
-
+        for session_dir in pending_dirs:
             # Get file age
             import os
 
-            file_age_days = (os.path.getmtime(filepath) - os.path.getmtime(os.getcwd())) / 86400
+            try:
+                file_age_days = (os.path.getmtime(session_dir) - os.path.getmtime(os.getcwd())) / 86400
+            except OSError:
+                file_age_days = 0
 
             pending_messages.append(
-                f"⚠️  Pre-mortem pending validation: '{project_name}' "
+                f"⚠️  Pre-mortem pending validation: '{session_dir.name}' "
                 f"({file_age_days:.0f} days old)"
             )
+
+        # Extract critique lessons from all pending sessions
+        if pending_dirs:
+            critique_lessons = extract_critique_lessons(pending_dirs)
 
     except ImportError:
         # Pre-mortem skill not available - skip this check
@@ -79,14 +83,15 @@ def check_pending_premortems(memory_dir: str | None = None, days_threshold: int 
         # Don't block reflect if check fails
         pending_messages.append(f"Note: Pre-mortem check skipped: {e}")
 
-    return pending_messages
+    return pending_messages, critique_lessons
 
 
-def store_lessons_to_cks(changes):
-    """Extract and store key lessons from approved changes to CKS.
+def store_lessons_to_cks(changes, critique_lessons: list[dict] | None = None):
+    """Extract and store key lessons from approved changes and critique lessons to CKS.
 
     Args:
         changes: List of approved change dictionaries from reflection
+        critique_lessons: List of dicts from extract_critique_lessons()
 
     Returns:
         Number of lessons successfully stored
@@ -160,6 +165,38 @@ def store_lessons_to_cks(changes):
                 except Exception as e:
                     print(f"  Warning: Failed to store lesson: {e}")
                     continue
+
+    # Store critique lessons from pre-mortem sessions
+    if critique_lessons:
+        for lesson in critique_lessons:
+            content = lesson.get("content", "")
+            if not content or len(content) < 20:
+                continue
+
+            entry = f"{content}\n\nContext: pre-mortem critique (Domain 7a)"
+
+            try:
+                with CKS() as cks:
+                    cks.ingest_pattern(
+                        title=f"Critique: {lesson.get('session_dir', 'unknown')}",
+                        content=entry,
+                        metadata={
+                            "category": "CRITIQUE",
+                            "severity": lesson.get("severity", "important"),
+                            "source": "reflect_system",
+                            "skill_name": "pre-mortem",
+                            "signal_type": lesson.get("type", "critique_lesson"),
+                            "confidence": lesson.get("confidence_score", 0.7),
+                            "health_score": lesson.get("health_score"),
+                            "session_dir": lesson.get("session_dir"),
+                            "timestamp": datetime.now().isoformat(),
+                        },
+                    )
+                    stored_count += 1
+                    print(f"  → Stored critique: {content[:50]}...")
+            except Exception as e:
+                print(f"  Warning: Failed to store critique lesson: {e}")
+                continue
 
     return stored_count
 
@@ -243,8 +280,9 @@ def main():
             print(f"Note: Queue check skipped: {e}")
 
     # 1.7. Check for pending pre-mortem validations (kill criteria enforcement)
+    critique_lessons = []
     try:
-        pending_premortems = check_pending_premortems(days_threshold=30)
+        pending_premortems, critique_lessons = check_pending_premortems(days_threshold=30)
 
         if pending_premortems:
             print(
@@ -278,6 +316,7 @@ def main():
     if not signals_by_skill:
         if output_mode == "verbose":
             print("✓ No improvement suggestions found")
+            print("  (No transcript available — pending learnings shown above)")
         return 0
 
     if output_mode == "verbose":
@@ -324,8 +363,6 @@ def main():
 
     # 7. Cleanup stale learnings
     try:
-        from learning_ledger import LearningLedger
-
         ledger = LearningLedger()
         result = ledger.cleanup_stale_learnings(days_threshold=180)
         if result["removed_count"] > 0:
@@ -338,7 +375,7 @@ def main():
     # 8. Store lessons to CKS
     stored_lessons = 0
     try:
-        stored_lessons = store_lessons_to_cks(approved_changes)
+        stored_lessons = store_lessons_to_cks(approved_changes, critique_lessons)
         if stored_lessons > 0 and output_mode == "verbose":
             print(f"\n✓ Stored {stored_lessons} lesson(s) to CKS")
     except Exception as e:

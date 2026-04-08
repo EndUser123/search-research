@@ -994,8 +994,7 @@ If you find no issues, output: {{"findings": []}}
         # Uses parentUuid chain in history.jsonl instead of fragile .jsonl transcript_path links
         chain_result = None
         try:
-            # Directly from core/ since search_research.session_chain doesn't exist as a module.
-            from core.session_chain import walk_session_chain
+            from search_research.session_chain import walk_session_chain
 
             # Resolve session_id from transcript_path for walk_chain_simple
             session_id_for_chain: str | None = None

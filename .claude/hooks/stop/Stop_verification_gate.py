@@ -9,9 +9,18 @@ or skip systematic diagnostic protocols.
 import json
 import os
 import re
+import sys
+from pathlib import Path
 
 # Advisory mode: when true, log warnings but don't block
 _ADVISORY_MODE = os.environ.get("VERIFICATION_GATE_ADVISORY", "false").lower() == "true"
+
+# Turn-scoped tool event awareness
+_HOOKS_DIR = Path(__file__).resolve().parent.parent  # stop/ -> hooks/
+_STATE_DIR = _HOOKS_DIR / "state" / "turn_markers"
+
+# Tools that constitute verification evidence
+_VERIFICATION_TOOLS = frozenset({"Read", "Grep", "Glob", "WebSearch", "WebFetch", "Bash"})
 
 # Patterns indicating behavioral violations
 CLAIM_PATTERNS = [
@@ -56,7 +65,7 @@ def _parse_hypotheses_from_text(text: str) -> list[dict[str, str]]:
     - [Icon] H[n]: [Name] ([Evidence])
     """
     hypotheses = []
-    
+
     # Icons: ✓=\u2713, ✗=\u2717, ⧧=\u29E7, ⏳=\u23F3
     # Table format: | Icon | H1: Name | Evidence |
     table_pattern = re.compile(r'\|\s*([\u2713\u2717\u29E7\u23F3])\s*\|\s*([^|]+)\|\s*([^|]+)\|', re.UNICODE)
@@ -69,7 +78,7 @@ def _parse_hypotheses_from_text(text: str) -> list[dict[str, str]]:
             "evidence": evidence.strip(),
             "icon": icon
         })
-        
+
     # List format: - Icon H1: Name (Evidence)
     list_pattern = re.compile(r'^[*-]\s*([\u2713\u2717\u29E7\u23F3])\s*(H\d+:[^(\n]+)(?:\(([^)]+)\))?', re.MULTILINE | re.UNICODE)
     for match in list_pattern.finditer(text):
@@ -81,7 +90,7 @@ def _parse_hypotheses_from_text(text: str) -> list[dict[str, str]]:
             "evidence": (evidence or "").strip(),
             "icon": icon
         })
-        
+
     return hypotheses
 
 
@@ -146,8 +155,51 @@ def _format_structured_feedback(violations: list, suggestions: list, hypothesis_
 
     return "\n".join(lines)
 
+
+def _safe_scope_key(session_id: str, terminal_id: str) -> str:
+    """Generate a safe scope key from session_id and terminal_id."""
+    def _safe(v: str) -> str:
+        return "".join(c if c.isalnum() or c in "._-" else "_" for c in v)[:48]
+    return f"{_safe(session_id)}__{_safe(terminal_id)}"
+
+
+def _has_verification_tools_this_turn(session_id: str, terminal_id: str) -> bool:
+    """Return True if Grep/Read/Glob/etc. were called this turn.
+
+    Uses the turn marker (written by UserPromptSubmit turn_marker.py) to
+    scope tool events to the current turn only. Fails open: returns False
+    (don't suppress the check) if evidence system is unavailable.
+    """
+    if not session_id:
+        return False
+    try:
+        # Read turn marker to get the sentinel event id
+        marker_path = _STATE_DIR / f"turn_start_{_safe_scope_key(session_id, terminal_id)}.json"
+        min_id: int | None = None
+        if marker_path.exists():
+            import json as _json
+            data = _json.loads(marker_path.read_text())
+            val = data.get("turn_start_event_id")
+            if val is not None:
+                min_id = int(val)
+
+        # Load tool events from evidence store
+        sys.path.insert(0, str(_HOOKS_DIR))
+        from evidence_store import load_tool_events  # type: ignore
+        events = load_tool_events(session_id=session_id, limit=200)
+
+        # Filter to this turn only
+        if min_id is not None:
+            events = [e for e in events if int(e.get("id", 0)) > min_id]
+
+        return any(e.get("name") in _VERIFICATION_TOOLS for e in events)
+    except Exception:
+        return False  # fail open — don't suppress the check
+
+
 def check_response_violations(response_text: str, hypothesis_details: list | None = None,
-                              single_root_cause: bool = False) -> dict:
+                              single_root_cause: bool = False,
+                              session_id: str = "", terminal_id: str = "") -> dict:
     """Analyze response for behavioral anti-patterns."""
     violations = []
     suggestions = []
@@ -186,7 +238,9 @@ def check_response_violations(response_text: str, hypothesis_details: list | Non
         suggestions.append("Generate 3+ hypotheses upfront, test each systematically")
 
     # BEHAV-002-A: Zero-hypothesis flat assertion
-    if hypothesis_count == 0 and not is_single_rc_escape:
+    # Skip if verification tools were used this turn — claim is grounded in tool output
+    _verified_this_turn = _has_verification_tools_this_turn(session_id, terminal_id)
+    if hypothesis_count == 0 and not is_single_rc_escape and not _verified_this_turn:
         has_impl_claim = bool(re.search(
             r"\b(?:NOT\s+(?:fully\s+)?implemented"
             r"|not\s+yet\s+implemented"
@@ -232,6 +286,15 @@ def run(data: dict) -> dict | None:
     if not response_text or response_text.strip().startswith("#"):
         return None
 
+    session_id = str(
+        data.get("session_id") or data.get("sessionId")
+        or os.environ.get("CLAUDE_SESSION_ID", "")
+    )
+    terminal_id = str(
+        data.get("terminal_id") or data.get("terminalId")
+        or os.environ.get("CLAUDE_TERMINAL_ID", "")
+    )
+
     hypothesis_details = data.get("hypothesis_details")
     single_root_cause = data.get("single_root_cause", False)
 
@@ -239,6 +302,8 @@ def run(data: dict) -> dict | None:
         response_text,
         hypothesis_details=hypothesis_details,
         single_root_cause=single_root_cause,
+        session_id=session_id,
+        terminal_id=terminal_id,
     )
 
     if not result["violations"]:
@@ -277,7 +342,6 @@ def run(data: dict) -> dict | None:
     }
 
 def main():
-    import sys
     raw_input = sys.stdin.read()
     response_text = raw_input
     if raw_input:

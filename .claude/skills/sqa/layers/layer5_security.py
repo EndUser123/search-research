@@ -87,6 +87,15 @@ def _is_command_available(cmd: str) -> bool:
     return shutil.which(cmd) is not None
 
 
+def _check_command(cmd: str) -> None:
+    """Validate command is in ALLOWED_COMMANDS.
+
+    Raises AssertionError if command is not allowed.
+    """
+    base_cmd = cmd.split()[0] if " " in cmd else cmd
+    assert base_cmd in ALLOWED_COMMANDS, f"Command not allowed: {base_cmd}"
+
+
 
 
 def _check_path_traversal(target: Path) -> list[Finding]:

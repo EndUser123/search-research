@@ -419,3 +419,120 @@ class TestWalkSemanticChainJsonlFallback:
         assert result.entries == []
         assert result.depth == 0
 
+
+class TestExtractLastGoals:
+    """Tests for _extract_last_goals function."""
+
+    def test_extracts_last_assistant_message(self, tmp_path: Path) -> None:
+        """Should extract content from the last assistant message."""
+        session_file = tmp_path / "test_session.jsonl"
+        session_file.write_text(
+            json.dumps(
+                {
+                    "type": "user",
+                    "message": {"content": [{"type": "text", "text": "Hello"}]},
+                }
+            )
+            + "\n"
+            + json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {"content": [{"type": "text", "text": "First response"}]},
+                }
+            )
+            + "\n"
+            + json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {"content": [{"type": "text", "text": "Last goal: fix the bug"}]},
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        from core.session_chain import _extract_last_goals
+
+        result = _extract_last_goals(session_file)
+        assert result is not None
+        assert "Last goal: fix the bug" in result
+
+    def test_returns_none_for_empty_file(self, tmp_path: Path) -> None:
+        """Should return None when no assistant messages exist."""
+        session_file = tmp_path / "user_only.jsonl"
+        session_file.write_text(
+            json.dumps(
+                {
+                    "type": "user",
+                    "message": {"content": [{"type": "text", "text": "Hello"}]},
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        from core.session_chain import _extract_last_goals
+
+        result = _extract_last_goals(session_file)
+        assert result is None
+
+    def test_handles_content_as_string(self, tmp_path: Path) -> None:
+        """Should handle assistant message with content as string (not list)."""
+        session_file = tmp_path / "string_content.jsonl"
+        session_file.write_text(
+            json.dumps(
+                {
+                    "type": "user",
+                    "message": {"content": "Hello"},
+                }
+            )
+            + "\n"
+            + json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {"content": "Goal text as string"},
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        from core.session_chain import _extract_last_goals
+
+        result = _extract_last_goals(session_file)
+        assert result is not None
+        assert "Goal text as string" in result
+
+
+class TestWalkSessionsIndexChainBoundary:
+    """Boundary tests for walk_sessions_index_chain — MAX_MTIME_GAP and max_depth limits."""
+
+    def test_max_depth_limits_chain_length(self, mock_projects_dir: Path) -> None:
+        """Should stop building chain when len(chain) >= max_depth."""
+        project = mock_projects_dir / "P--"
+        project.mkdir(parents=True)
+
+        # Create 5 sessions with close mtimes (10 seconds apart)
+        from datetime import datetime, timedelta
+
+        base_time = datetime(2024, 1, 1, 12, 0, 0)
+        for i in range(5):
+            session_file = project / f"session_{i}.jsonl"
+            session_file.write_text(
+                json.dumps(
+                    {
+                        "type": "user",
+                        "sessionId": f"session_{i}",
+                        "message": {"content": [{"type": "text", "text": f"Session {i}"}]},
+                        "timestamp": int((base_time + timedelta(seconds=i * 10)).timestamp() * 1000),
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+        # sessions-index empty — uses JSONL scan
+        from unittest.mock import patch
+
+        with patch("core.session_chain.load_sessions_index", return_value={}):
+            result = walk_sessions_index_chain("session_4", project_path=project, max_depth=3)
+
+        # Should stop at max_depth=3 entries (origin + 2 predecessors)
+        assert result.depth <= 3

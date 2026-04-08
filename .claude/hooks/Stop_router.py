@@ -880,6 +880,11 @@ def route_stop(input_data: dict[str, Any]) -> dict[str, Any]:
 
     warning_messages: list[str] = []
 
+    _HOOK_TIMEOUTS: dict[str, float] = {
+        "StopHook_drift_sentinel.py": 15.0,  # TF-IDF computation is expensive
+    }
+    _DEFAULT_TIMEOUT = 5.0
+
     for hook_name, env_var, default_enabled, dispatch_mode in HOOK_SEQUENCE:
         if hook_name not in ACTIVE_RUNTIME_HOOKS:
             continue
@@ -896,15 +901,16 @@ def route_stop(input_data: dict[str, Any]) -> dict[str, Any]:
         raw_result: dict[str, Any] | None
         used_dispatch = dispatch_mode
         try:
+            _timeout = _HOOK_TIMEOUTS.get(hook_name, _DEFAULT_TIMEOUT)
             if (
                 dispatch_mode == "inprocess"
                 and INPROCESS_HOOK_DISPATCH_ENABLED
                 and _supports_inprocess(hook_name)
             ):
-                raw_result = run_hook_inprocess(hook_name, validator_input, timeout_seconds=5.0)
+                raw_result = run_hook_inprocess(hook_name, validator_input, timeout_seconds=_timeout)
             else:
                 used_dispatch = "subprocess"
-                raw_result = run_hook_subprocess(hook_name, validator_input, timeout_seconds=5.0)
+                raw_result = run_hook_subprocess(hook_name, validator_input, timeout_seconds=_timeout)
         except HookTimeoutError as exc:
             raw_result = {
                 "systemMessage": f"{hook_path.name} timed out and was skipped: {exc}",

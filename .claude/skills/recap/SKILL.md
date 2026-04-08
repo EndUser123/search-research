@@ -119,7 +119,7 @@ These are internal self-check prompts. They are not default user-facing question
 
 ## Implementation Notes
 
-- Finds transcript files via terminal file registry (`/term` skill) or common locations
+- Finds transcript files via `~/.claude/terminals/` registry file (deprecated — prefer env vars)
 - Parses JSONL transcript files directly (no handoff package dependency)
 - Detects session boundaries via `sessionId` field changes
 - Independent of handoff hooks and task tracker files

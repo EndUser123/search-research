@@ -118,6 +118,113 @@ State assumption: "Certifying [X] — assumption based on [signal]. Correct?" On
 
 **Orchestrator.py** is a **pure utilities module** — it provides `_validate_target`, `_atomic_write`, `L2State`, `SQAReport`, `save_report`. It contains **no orchestration logic**. Do not run `orchestrator.py` directly.
 
+## Your Workflow
+
+When /sqa is invoked:
+
+### Step 0: Validate Target
+Run `_validate_target()` utility to ensure path exists, is not symlink, within allowed roots.
+Initialize state: `from sqa_state_tracker import init_state; state = init_state(target, halt_on="HIGH")`
+
+### Step 1: PREDICTIVE (Optional - skip for fast-path)
+Dispatch 7 adversarial agents in parallel via `Agent` tool:
+- `Agent('adversarial-logic')`
+- `Agent('adversarial-quality')`
+- `Agent('adversarial-io-validation')`
+- `Agent('adversarial-security')`
+- `Agent('adversarial-performance')`
+- `Agent('adversarial-testing')`
+- `Agent('adversarial-state-machine')`
+
+Synthesize findings into L0 base layer.
+
+Record completion: `from sqa_state_tracker import record_layer_complete; record_layer_complete("L0", findings=N)` (or `skipped=True` if fast-path)
+
+### [HALT CHECK] After Step 1
+If any findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`, run `record_halt("L0")`, and stop. Otherwise continue.
+
+### Step 2: SYNTACTIC
+Run via Bash subprocess:
+- `ruff check <target>`
+- `mypy <target>` (if Python)
+
+Record completion: `record_layer_complete("L1", findings=N)`
+
+### [HALT CHECK] After Step 2
+If any findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`, run `record_halt("L1")`, and stop. Otherwise continue.
+
+### Step 3: SEMANTIC
+Run via Bash subprocess:
+- `verify <target>` (pytest)
+- `diagnose` (if failures detected)
+
+Record completion: `record_layer_complete("L2", findings=N)`
+
+### [HALT CHECK] After Step 3
+If any findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`, run `record_halt("L2")`, and stop. Otherwise continue.
+
+### Step 4: STRUCTURAL
+Run via Bash subprocess:
+- `meta-review --analyze=imports <target>` (circular deps)
+- `harden --check=guards <target>` (assertion guards)
+- `apply_safety_patterns --verify <target>` (safety patterns)
+
+Record completion: `record_layer_complete("L3", findings=N)`
+
+### [HALT CHECK] After Step 4
+If any findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`, run `record_halt("L3")`, and stop. Otherwise continue.
+
+### Step 5: REQUIREMENTS (skip if L2 had failures)
+Run via Bash subprocess:
+- `gto <target>`
+- `spec-compliance <target>`
+
+Record completion: `record_layer_complete("L4", findings=N)` (or `skipped=True, reason="L2 had failures"` if skipped)
+
+### [HALT CHECK] After Step 5
+If any findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`, run `record_halt("L4")`, and stop. Otherwise continue.
+
+### Step 6: SECURITY
+1. Dispatch `Agent('adversarial-security')` via Agent tool
+2. Run path traversal check via Python utility
+3. Run `data-safety-vcs` for anti-bleed gates
+
+Record completion: `record_layer_complete("L5", findings=N)`
+
+### [HALT CHECK] After Step 6
+If any findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`, run `record_halt("L5")`, and stop. Otherwise continue.
+
+### Step 7: PERFORMANCE
+1. Dispatch `Agent('adversarial-performance')` via Agent tool
+2. Run `perf` for ThreadPoolExecutor tracing
+
+Record completion: `record_layer_complete("L6", findings=N)`
+
+### [HALT CHECK] After Step 7
+If any findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`, run `record_halt("L6")`, and stop. Otherwise continue.
+
+### Step 8: OPERATIONAL
+Run via Bash subprocess:
+- `verify --tier=2 <target>` (hook chain + router)
+- `hook-audit <target>`
+- `hook-inventory <target>`
+- `recursive_failure_detector.py <target>`
+
+Record completion: `record_layer_complete("L7", findings=N)`
+
+### [HALT CHECK] After Step 8
+If any findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`, run `record_halt("L7")`, and stop. Otherwise continue.
+
+### Step 9: META-SYNTHESIS
+- Consensus detection (2+ layers agree on same file:line:category)
+- Blind-spot detection
+- Evidence quality check per `evidence-tiers`
+
+Record completion: `record_layer_complete("META", findings=N)`
+
+### FINAL [HALT CHECK] After Step 9
+Report final health score and layers completed.
+
 ## Target Validation (SEC-001)
 
 Before any subprocess call, the target path is validated:

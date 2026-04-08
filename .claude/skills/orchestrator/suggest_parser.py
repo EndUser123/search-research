@@ -86,15 +86,12 @@ class SuggestFieldParser:
         if end_marker == -1:
             return []
         frontmatter = content[3:end_marker]
-        match = re.search(r'(?mi)^suggest\s*:\s*(.+)$', frontmatter)
+        match = re.search(r'(?mis)^suggest\s*:\s*(.+)$', frontmatter)
         if not match:
             return []
         raw = match.group(1).strip()
-        if raw.startswith('['):
-            items = re.findall(r'/([a-z][a-z0-9_-]*)', raw, re.IGNORECASE)
-            return ['/' + i.lstrip('/') for i in items]
-        else:
-            return ['/' + raw.lstrip('/')]
+        items = re.findall(r'/([a-z][a-z0-9_-]*)', raw, re.IGNORECASE)
+        return ['/' + i.lstrip('/') for i in items]
 
     def get_suggestions(self, skill_name: str) -> List[str]:
         if not self.loaded:

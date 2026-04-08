@@ -630,7 +630,7 @@ UNIVERSAL = [
     "PreToolUse_session_id_capture.py",  # Session ID capture for git integration (AIR Auditor CHANGE-001)
     "PreToolUse_context_sufficiency_gate.py",  # Skill autonomy classification (ADR-20260329 CHANGE-002)
     "PreToolUse_skill_question_gate.py",  # One-question-max enforcement (ADR-20260329 CHANGE-003)
-    "PreToolUse/PreToolUse_skill_metadata_advisory.py",  # Advisory: warn when skills missing workflow_steps/enforcement
+    # NOTE: skill_metadata_advisory moved to UserPromptSubmit_modules/cognitive_guardrails.py (2026-04-07)
 ]
 
 # Legacy top-level PreToolUse entries are routed here now so Claude only has to
@@ -871,6 +871,10 @@ def run_hook(hook_name: str, data: dict) -> dict | None:
                 payload = json.loads(out)
                 # Check for both "decision": "block" and "block": True formats
                 is_block = payload.get("decision") == "block" or payload.get("block") is True
+
+                # FIXED: Preserve hookSpecificOutput for non-blocking hooks (e.g., advisories)
+                has_advisory = "hookSpecificOutput" in payload and "advisory" in payload["hookSpecificOutput"]
+
                 if is_block:
                     # Extract blocking_hook if provided by child hook, otherwise use hook_name
                     if "blocking_hook" not in payload:
@@ -887,6 +891,10 @@ def run_hook(hook_name: str, data: dict) -> dict | None:
                         if result.stderr
                         else "",
                     )
+                    return payload
+
+                # NEW: Return non-blocking results with hookSpecificOutput preserved
+                if has_advisory or payload.get("decision") == "modify":
                     return payload
             except Exception:
                 pass
@@ -1197,6 +1205,15 @@ def main():
                     )
                 )
                 sys.exit(0)
+
+        # NEW: Handle hookSpecificOutput.advisory - display to user
+        if "hookSpecificOutput" in res and "advisory" in res["hookSpecificOutput"]:
+            advisory = res["hookSpecificOutput"]["advisory"]
+            # Print advisory to stdout for Claude Code to display
+            # Format: JSON with hookSpecificOutput wrapper
+            print(json.dumps({"hookSpecificOutput": {"advisory": advisory, "source_hook": hook}}))
+            sys.stdout.flush()  # Ensure advisory is visible immediately
+            # Continue processing other hooks (don't break loop)
 
         # Check for both "decision": "block" and "block": True formats
         is_block = res.get("decision") == "block" or res.get("block") is True

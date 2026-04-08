@@ -84,8 +84,7 @@ def resolve_terminal_key(terminal_id: str | None = None) -> str:
     1. Explicit terminal_id parameter
     2. CLAUDE_TERMINAL_ID env var (set by SessionStart hook)
     3. WT_SESSION env var (Windows Terminal session UUID)
-    4. Terminal registry active entry
-    5. Empty string if no detection succeeds
+    4. Empty string if no detection succeeds
 
     Args:
         terminal_id: Optional terminal ID override
@@ -102,31 +101,12 @@ def resolve_terminal_key(terminal_id: str | None = None) -> str:
         return env_terminal
 
     # Priority 2: WT_SESSION env var (Windows Terminal session UUID)
-    # This is the canonical source for console_* IDs in hook_base.py's
-    # detect_console_host_terminal() — more reliable than registry fallback
-    # because the registry can be stale across terminal sessions.
     wt_session = os.environ.get("WT_SESSION")
     if wt_session:
         # Normalize to console_* format (same as hook_base.py)
         return f"console_{wt_session}"
 
-    # Priority 3: Terminal registry for active terminal
-    registry_path = Path.home() / ".claude" / "terminals" / "registry.json"
-    if registry_path.exists():
-        try:
-            with open(registry_path, encoding="utf-8") as f:
-                data = json.load(f)
-            terminals = data.get("terminals", [])
-            for term in terminals:
-                if term.get("active"):
-                    return term.get("terminal_id", "")
-            # Fallback: return first terminal if no active flag
-            if terminals:
-                return terminals[0].get("terminal_id", "")
-        except (json.JSONDecodeError, OSError):
-            pass
-
-    # Priority 4: No detection succeeded — return empty string
+    # Priority 3: No detection succeeded — return empty string
     # (PID fallback was removed: it changed every restart and caused
     # 10,700 empty directories in task #2275)
     return ""
@@ -228,22 +208,6 @@ def load_sessions_index(index_path: Path) -> list[dict[str, Any]]:
     raw_entries.sort(key=lambda e: e.get("created", ""))
     return raw_entries
 
-
-def _get_project_from_terminal(terminal_id: str) -> Path | None:
-    """Get the project path from the terminal's registry file.
-
-    The terminal file at ~/.claude/terminals/{terminal_id}.json contains
-    the authoritative project path for this terminal session.
-
-    Args:
-        terminal_id: Terminal identifier
-
-    Returns:
-        Project root path or None if not found
-    """
-    term_file = Path.home() / ".claude" / "terminals" / f"{terminal_id}.json"
-    if not term_file.exists():
-        return None
     try:
         with open(term_file, encoding="utf-8") as f:
             term_data = json.load(f)
@@ -274,12 +238,8 @@ def build_session_chain(cwd: Path | None = None) -> list[dict[str, Any]]:
     if cwd is None:
         cwd = Path.cwd()
 
-    # Try to get project path from terminal registry (authoritative)
-    terminal_id = resolve_terminal_key(None)
-    project_root = _get_project_from_terminal(terminal_id)
-    if not project_root:
-        # Fallback: derive from cwd traversal
-        project_root = get_project_root()
+    # Derive project root from cwd traversal
+    project_root = get_project_root()
 
     index_path = _get_sessions_index_path(project_root)
     if not index_path:
@@ -342,21 +302,7 @@ def find_transcript_file(terminal_id: str) -> Path | None:
     Returns:
         Path to transcript file or None if not found
     """
-    # Strategy 1: Check terminal file registry from /term skill
-    term_file = Path.home() / ".claude" / "terminals" / f"{terminal_id}.json"
-    if term_file.exists():
-        try:
-            with open(term_file, encoding="utf-8") as f:
-                term_data = json.load(f)
-            transcript_path = term_data.get("transcript_path")
-            if transcript_path:
-                path = Path(transcript_path)
-                if path.exists():
-                    return path
-        except (json.JSONDecodeError, OSError):
-            pass
-
-    # Strategy 2: Check common transcript locations
+    # Strategy 1: Check common transcript locations
     cwd = Path.cwd()
     candidates = [
         # Project-local .claude directory
@@ -1069,15 +1015,11 @@ def _load_all_sessions_via_history_index(
     if not current_session_id:
         return []
 
-    # Import chain modules lazily to avoid circular imports
-    pkg_root = Path(__file__).resolve().parents[3] / "packages" / "search-research"
+    # Import chain modules from installed search_research package
     try:
-        import sys
-
-        sys.path.insert(0, str(pkg_root))
-        from core.session_chain import SessionChainEntry, walk_session_chain
+        from search_research.session_chain import SessionChainEntry, walk_session_chain
     except (ImportError, ValueError, OSError) as exc:
-        logger.warning("Failed to import session_chain from %s: %s — falling back to direct transcript", pkg_root, exc)
+        logger.warning("Failed to import session_chain: %s — falling back to direct transcript", exc)
         return []
 
     # Walk the session chain using the unified session_chain module

@@ -241,5 +241,53 @@ class TestGitHashExceptionHandling:
                 get_git_head_hash()
 
 
+class TestTerminalIdSanitization:
+    """Test terminal ID sanitization for multi-terminal isolation."""
+
+    def test_sanitization_removes_dangerous_chars(self):
+        """Dangerous characters should be removed from terminal ID."""
+        from utils.phase_state import _sanitize_terminal_id
+
+        # Path traversal attempts
+        assert _sanitize_terminal_id("../../etc/passwd") == "etcpasswd"
+        assert _sanitize_terminal_id("terminal_1/../../secret") == "terminal_1secret"
+
+        # Special characters
+        assert _sanitize_terminal_id("terminal@1#") == "terminal1"
+        assert _sanitize_terminal_id("term.inal") == "terminal"
+
+    def test_sanitization_preserves_safe_chars(self):
+        """Safe characters (alphanumeric, underscore, hyphen) should be preserved."""
+        from utils.phase_state import _sanitize_terminal_id
+
+        assert _sanitize_terminal_id("terminal_123") == "terminal_123"
+        assert _sanitize_terminal_id("term-456") == "term-456"
+        assert _sanitize_terminal_id("Term_123-ABC") == "Term_123-ABC"
+
+    def test_sanitization_fallback_to_default(self):
+        """Empty or None input should fallback to 'default'."""
+        from utils.phase_state import _sanitize_terminal_id
+
+        assert _sanitize_terminal_id("") == "default"
+        assert _sanitize_terminal_id(None) == "default"
+        # After stripping all special chars, empty string falls back to default
+        assert _sanitize_terminal_id("@#$") == "default"
+
+    def test_terminal_scoped_state_paths(self):
+        """State file paths should include sanitized terminal ID."""
+        from utils.phase_state import PhaseStateManager
+
+        mgr1 = PhaseStateManager("terminal_1")
+        mgr2 = PhaseStateManager("terminal_2")
+
+        # Each terminal should have different state files
+        assert mgr1.global_state_file != mgr2.global_state_file
+        assert mgr1.build_state_file != mgr2.build_state_file
+
+        # Paths should contain terminal ID
+        assert "terminal_1" in str(mgr1.global_state_file)
+        assert "terminal_2" in str(mgr2.global_state_file)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

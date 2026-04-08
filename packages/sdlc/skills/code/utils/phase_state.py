@@ -7,12 +7,33 @@ ownership, and phase order enforcement.
 """
 
 import json
+import os
+import re
 import subprocess
 from datetime import datetime
 from pathlib import Path
 
 # Home-directory state path for /code skill
 _HOME_CLAUDE_STATE = Path.home() / ".claude" / ".state" / "code"
+
+
+def _sanitize_terminal_id(raw_id: str | None) -> str:
+    """Sanitize terminal ID to prevent path traversal.
+
+    Strips any character not in [a-zA-Z0-9_-] to prevent path traversal.
+    Fallback chain: CLAUDE_TERMINAL_ID -> TERMINAL_ID -> "default"
+
+    Args:
+        raw_id: Raw terminal ID from environment or parameter
+
+    Returns:
+        Sanitized terminal identifier string
+    """
+    if not raw_id:
+        raw_id = os.environ.get("CLAUDE_TERMINAL_ID", os.environ.get("TERMINAL_ID", "default"))
+    # Sanitize: keep only alphanumeric, underscore, hyphen
+    sanitized = re.sub(r"[^a-zA-Z0-9_-]", "", raw_id)
+    return sanitized or "default"
 
 
 def get_git_head_hash() -> str | None:
@@ -33,9 +54,10 @@ class PhaseStateManager:
 
     def __init__(self, terminal_id: str):
         """Initialize phase state manager for terminal."""
-        self.terminal_id = terminal_id
-        self.global_state_file = _HOME_CLAUDE_STATE / "phase_state.json"
-        self.build_state_file = _HOME_CLAUDE_STATE / f"build_state_{terminal_id}.json"
+        self.terminal_id = _sanitize_terminal_id(terminal_id)
+        # Terminal-scoped state files for multi-terminal isolation
+        self.global_state_file = _HOME_CLAUDE_STATE / f"phase_state_{self.terminal_id}.json"
+        self.build_state_file = _HOME_CLAUDE_STATE / f"build_state_{self.terminal_id}.json"
         self._ensure_state_exists()
 
     def _ensure_state_exists(self):

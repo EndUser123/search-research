@@ -60,6 +60,10 @@ Priority order for finding worth-saving information:
 2. **Recent session transcript** — Look for corrections, learnings, new patterns
 3. **Existing memories that may have drifted** — Re-read topic files you've visited recently
 4. **Grep for contradictions** — Search for patterns like "but actually", "correction", "wait —"
+5. **Dreaming daemon insights** — Read `P:/.claude/state/dreaming-insights.json` (or `.md`)
+   - Check `principle_stats` for high-count violations (context_reuse, grounded_changes, etc.)
+   - Check `patterns` for `high_violation_principle` entries
+   - Treat high-count principles as lesson candidates for Phase 3
 
 **Key guidance:** Don't exhaustively read transcripts. Look only for things you already suspect matter. Bias toward action over completeness.
 
@@ -84,6 +88,11 @@ From `memory_management.md`:
 **Delete contradicted facts:**
 - If MEMORY.md says X but you learned Y, remove X entirely
 - Don't keep contradicting entries side-by-side
+
+**Daemon-derived insights:**
+- High-count principle violations from `dreaming-insights.json` are lesson candidates
+- Example: `context_reuse` with count=10 → write/update `context_reuse.md` in memory/ with violation pattern, examples, and corrective action
+- Use the `graduate` pass: if a daemon insight appears repeatedly, promote it to a hook rule or validator
 
 ### Phase 4 — Prune and Index
 

@@ -4,9 +4,9 @@ Provides a unified interface for finding all session transcript files in a
 session chain, given any session ID.
 
 Three strategies, tried in order:
-  1. Handoff-file chain   — reliable when handoff files exist
-  2. sessions-index scan  — fallback using mtime gap heuristic + semantic verification
-  3. Semantic similarity  — fallback using embedding similarity
+  1. Handoff-file chain   - reliable when handoff files exist
+  2. sessions-index scan  - fallback using mtime gap heuristic + semantic verification
+  3. Semantic similarity  - fallback using embedding similarity
 
 Algorithm (Strategy 2):
   For each session, compute mtime gap to nearest prior session.
@@ -36,10 +36,15 @@ _st_model: Any = None
 _st_model_last_used: float = 0.0
 _ST_MODEL_TTL_SECONDS: float = 300.0  # 5 minutes
 _st_lock: Any = __import__("threading").Lock()
+_cache_lock: Any = __import__("threading").Lock()
 
 # mtime-gap chain heuristic constants
-_MAX_MTIME_GAP_SECS: float = 120.0  # 2 minutes — close mtime gap = likely chain
+_MAX_MTIME_GAP_SECS: float = 120.0  # 2 minutes - close mtime gap = likely chain
 _SEMANTIC_THRESHOLD: float = 0.35  # cosine similarity threshold for chain verification
+_SEMANTIC_TIMEOUT_SECONDS: float = 30.0  # max time for embedding call before returning 0.0
+_MAX_TRANSCRIPT_READ_BYTES: int = 1024 * 1024  # 1 MB max per transcript read
+_CACHE_MAX_ENTRIES: int = 50  # max cached project sessions indexes
+_CACHE_EVICT_COUNT: int = 10  # entries to evict when cache exceeds max
 
 
 def _get_st_model() -> Any:
@@ -110,7 +115,11 @@ class SessionChainResult:
 
 
 def _get_prior_transcript_path(handoff_path: Path) -> Path | None:
-    """Extract prior session transcript path from a handoff file."""
+    """Extract prior session transcript path from a handoff file.
+
+    SECURITY: Validates that the extracted path has a .jsonl suffix before returning,
+    preventing arbitrary file return from handoff data.
+    """
     try:
         with open(handoff_path, encoding="utf-8") as f:
             data = json.load(f)
@@ -118,8 +127,11 @@ def _get_prior_transcript_path(handoff_path: Path) -> Path | None:
         if path_str:
             p = Path(path_str)
             try:
-                if p.exists():
+                # SECURITY: Verify .jsonl suffix to prevent arbitrary file return
+                if p.suffix == ".jsonl" and p.exists():
                     return p
+                elif p.suffix != ".jsonl":
+                    logger.warning("Handoff transcript_path is not .jsonl: %s", p)
             except (OSError, PermissionError) as e:
                 logger.warning("Transcript path inaccessible %s: %s", p, e)
     except (OSError, json.JSONDecodeError, PermissionError) as e:
@@ -145,7 +157,15 @@ def _find_handoff_referencing(transcript_path: Path) -> Path | None:
 
 
 def _resolve_transcript_path(session_id: str) -> Path | None:
-    """Find the .jsonl path for a session ID by scanning projects directory."""
+    """Find the .jsonl path for a session ID by scanning projects directory.
+
+    SECURITY: Rejects session_ids containing path traversal sequences before glob
+    interpolation to prevent directory traversal attacks.
+    """
+    # Reject path traversal attempts before using in glob
+    if ".." in session_id or "/" in session_id or "\\" in session_id:
+        logger.warning("Invalid session_id (path traversal attempt): %s", session_id)
+        return None
     for jsonl_file in _projects_dir().rglob(f"{session_id}.jsonl"):
         if jsonl_file.exists():
             return jsonl_file
@@ -264,10 +284,20 @@ def load_sessions_index(project_path: str | Path | None = None) -> dict[str, dic
 
 
 def _extract_first_user_message(jsonl_path: Path) -> str | None:
-    """Read first user message text from a session transcript."""
+    """Read first user message text from a session transcript.
+
+    SECURITY: Bounded read — stops after _MAX_TRANSCRIPT_READ_BYTES to prevent
+    memory pressure from large files. Finishes the current line before stopping
+    to avoid producing partial JSON objects.
+    """
     try:
+        bytes_read = 0
         with open(jsonl_path, encoding="utf-8") as f:
             for line in f:
+                line_bytes = len(line.encode("utf-8"))
+                if bytes_read + line_bytes > _MAX_TRANSCRIPT_READ_BYTES:
+                    break  # Stop at boundary; do not produce partial JSON
+                bytes_read += line_bytes
                 line = line.strip()
                 if not line:
                     continue
@@ -299,11 +329,20 @@ def _extract_last_goals(jsonl_path: Path, max_chars: int = 300) -> str | None:
     Looks for assistant messages with goal-related content near the end of the session.
     Used for semantic chain verification: prior session's ending goals should match
     successor session's opening actions.
+
+    SECURITY: Bounded read — stops after _MAX_TRANSCRIPT_READ_BYTES to prevent
+    memory pressure. Reads all lines into memory up to the limit, then processes
+    the last 50 lines of the buffered content.
     """
     try:
         lines = []
+        bytes_read = 0
         with open(jsonl_path, encoding="utf-8") as f:
             for line in f:
+                line_bytes = len(line.encode("utf-8"))
+                if bytes_read + line_bytes > _MAX_TRANSCRIPT_READ_BYTES:
+                    break  # Stop at boundary; do not produce partial JSON
+                bytes_read += line_bytes
                 line = line.strip()
                 if line:
                     lines.append(line)
@@ -338,47 +377,63 @@ def _scan_jsonl_sessions(project_path: Path) -> dict[str, dict[str, Any]]:
     Returns dict: {session_id: {"sessionId": str, "createdAt": float, "fullPath": Path}}
     Reads first entry of each .jsonl for sessionId and createdAt.
     Cached for the lifetime of the process on that project_path.
+
+    Cache is bounded to _CACHE_MAX_ENTRIES entries (LRU eviction of _CACHE_EVICT_COUNT
+    oldest entries when limit is exceeded). Access and eviction are atomic via
+    _cache_lock to prevent concurrent corruption.
     """
     if not hasattr(_scan_jsonl_sessions, "_cache"):
         _scan_jsonl_sessions._cache: dict[str, dict[str, dict[str, Any]]] = {}
 
     cache = _scan_jsonl_sessions._cache
     key = str(project_path)
-    if key in cache:
-        return cache[key]
 
-    sessions: dict[str, dict[str, Any]] = {}
-    try:
-        for jsonl_path in Path(project_path).rglob("*.jsonl"):
-            try:
-                with open(jsonl_path, encoding="utf-8") as f:
-                    first_line = f.readline()
-                if not first_line.strip():
-                    continue
-                entry = json.loads(first_line)
-                sid = entry.get("sessionId") or entry.get("session_id")
-                if not sid:
-                    continue
-                ts_val = entry.get("timestamp") or entry.get("createdAt")
-                # Handle both integer milliseconds (correct) and ISO 8601 strings (incorrect)
-                if isinstance(ts_val, str):
-                    try:
-                        dt = datetime.fromisoformat(ts_val.replace("Z", "+00:00"))
-                        ts_val = int(dt.timestamp() * 1000)  # convert to milliseconds
-                    except (ValueError, TypeError):
-                        ts_val = None
-                sessions[sid] = {
-                    "sessionId": sid,
-                    "createdAt": ts_val,
-                    "fullPath": str(jsonl_path),
-                }
-            except (OSError, json.JSONDecodeError):
-                continue
-    except OSError:
-        pass
+    with _cache_lock:
+        if key in cache:
+            return cache[key]
 
-    cache[key] = sessions
-    return sessions
+        sessions: dict[str, dict[str, Any]] = {}
+        try:
+            for jsonl_path in Path(project_path).rglob("*.jsonl"):
+                try:
+                    with open(jsonl_path, encoding="utf-8") as f:
+                        first_line = f.readline()
+                    if not first_line.strip():
+                        continue
+                    entry = json.loads(first_line)
+                    sid = entry.get("sessionId") or entry.get("session_id")
+                    if not sid:
+                        continue
+                    ts_val = entry.get("timestamp") or entry.get("createdAt")
+                    # Handle both integer milliseconds (correct) and ISO 8601 strings (incorrect)
+                    if isinstance(ts_val, str):
+                        try:
+                            dt = datetime.fromisoformat(ts_val.replace("Z", "+00:00"))
+                            ts_val = int(dt.timestamp() * 1000)  # convert to milliseconds
+                        except (ValueError, TypeError):
+                            ts_val = None
+                    sessions[sid] = {
+                        "sessionId": sid,
+                        "createdAt": ts_val,
+                        "fullPath": str(jsonl_path),
+                    }
+                except (OSError, json.JSONDecodeError):
+                    continue
+        except OSError:
+            pass
+
+        cache[key] = sessions
+
+        # LRU eviction: remove oldest entries when cache exceeds limit
+        if len(cache) > _CACHE_MAX_ENTRIES:
+            # Sort by insertion order (dict preserves insertion order in Python 3.7+)
+            # Evict the first _CACHE_EVICT_COUNT entries (oldest)
+            for _ in range(_CACHE_EVICT_COUNT):
+                if cache:
+                    oldest_key = next(iter(cache))
+                    del cache[oldest_key]
+
+        return sessions
 
 
 def _cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
@@ -391,13 +446,24 @@ def _cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def _semantic_sim(text_a: str, text_b: str) -> float:
-    """Compute cosine similarity between two text strings using SentenceTransformer."""
+    """Compute cosine similarity between two text strings using SentenceTransformer.
+
+    Uses ThreadPoolExecutor + Future.result(timeout) to bound wall-clock time.
+    Returns 0.0 if the embedding call does not complete within _SEMANTIC_TIMEOUT_SECONDS.
+    """
     if not text_a or not text_b:
         return 0.0
     try:
         model = _get_st_model()
-        vectors = model.encode([text_a, text_b], normalize_embeddings=True)
-        return _cosine_sim(vectors[0].astype(np.float32), vectors[1].astype(np.float32))
+        # ThreadPoolExecutor with timeout is the only way to bound a blocking call
+        with __import__("concurrent.futures").ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(model.encode, [text_a, text_b], normalize_embeddings=True)
+            try:
+                vectors = future.result(timeout=_SEMANTIC_TIMEOUT_SECONDS)
+                return _cosine_sim(vectors[0].astype(np.float32), vectors[1].astype(np.float32))
+            except __import__("concurrent.futures").TimeoutError:
+                logger.warning("Semantic similarity timed out after %ss", _SEMANTIC_TIMEOUT_SECONDS)
+                return 0.0
     except (ImportError, OSError, RuntimeError) as e:
         logger.warning("Semantic similarity computation failed: %s", e)
         return 0.0
@@ -505,11 +571,15 @@ def walk_sessions_index_chain(
         prior_goals = _extract_last_goals(predecessor_path)
         current_first_msg = first_user_messages.get(current, "") or _extract_first_user_message(current_path)
 
+        # prior_goals handling: if extraction failed, log warning and continue chain attempt
+        if not prior_goals:
+            logger.warning("Could not extract last goals from %s (chain verification may be impaired)", predecessor_id)
+
         if prior_goals and current_first_msg:
             sim = _semantic_sim(prior_goals, current_first_msg)
             if sim < _SEMANTIC_THRESHOLD:
                 # FIX: Instead of breaking entirely, try next-best mtime candidate
-                # Don't break — try to find an alternative predecessor with same gap constraint
+                # Don't break - try to find an alternative predecessor with same gap constraint
                 # Clear predecessor and loop to find next-best
                 alt_found = False
                 alt_gap = _MAX_MTIME_GAP_SECS
@@ -537,7 +607,16 @@ def walk_sessions_index_chain(
                         # else: no verified alternative, stop
 
                 if not alt_found:
-                    break  # No verified alternative — stop chaining
+                    # Intentional early exit: chain verification must not proceed on below-threshold
+                    # similarity. This exits before reaching max_depth — this is expected behavior
+                    # for semantic verification failure. The partial chain is returned as-is.
+                    logger.warning(
+                        "Semantic similarity below threshold for session %s — returning partial chain (depth=%d, max_depth=%d)",
+                        current,
+                        len(chain),
+                        max_depth,
+                    )
+                    break  # No verified alternative - stop chaining
 
         current = predecessor_id
 
@@ -574,8 +653,13 @@ def walk_sessions_index_chain(
 # ---------------------------------------------------------------------------
 
 
-def _session_text(info: dict) -> str:
-    """Extract searchable text from sessions-index entry."""
+def _semantic_text(info: dict) -> str:
+    """Extract searchable text from a sessions-index info dict or JSONL transcript.
+
+    Reads goal/lastPrompt/summary from info dict if present (sessions-index path).
+    Falls back to _extract_first_user_message and _extract_last_goals from JSONL.
+    """
+    # Try info dict fields first (sessions-index path)
     parts = []
     if info.get("goal"):
         parts.append(info["goal"])
@@ -586,8 +670,20 @@ def _session_text(info: dict) -> str:
         parts.append(info["summary"][:500])
     af = info.get("active_files", [])
     if af:
-        parts.append(" ".join(af[:10])[:500])  # cap at 500 chars
-    return " | ".join(parts) if parts else ""
+        parts.append(" ".join(af[:10])[:500])
+    if parts:
+        return " | ".join(parts)
+
+    # Fallback: extract from JSONL transcript directly
+    full_path = info.get("fullPath")
+    if full_path:
+        p = Path(full_path)
+        first_msg = _extract_first_user_message(p) or ""
+        goals_text = _extract_last_goals(p) or ""
+        combined = f"{goals_text} | {first_msg}".strip()
+        if combined:
+            return combined
+    return ""
 
 
 def walk_semantic_chain(
@@ -597,11 +693,11 @@ def walk_semantic_chain(
     window_days: int = 7,
     max_entries: int = 20,
 ) -> SessionChainResult:
-    """Walk session chain via semantic similarity fallback.
+    """Walk session chain via semantic similarity (no mtime constraint).
 
-    Uses EmbedClient to embed session text from sessions-index and finds
-    prior sessions by cosine similarity. This is a best-effort fallback when
-    both handoff files and mtime heuristic fail.
+    Embeds all sessions in a time window and ranks by cosine similarity.
+    Called directly when mtime-gapped chain is insufficient.
+    Kept as a standalone function for direct invocation if needed.
     """
     if project_path is None:
         project_path = _projects_dir() / "P--"
@@ -614,15 +710,7 @@ def walk_semantic_chain(
         return SessionChainResult()
 
     target_info = sessions_index[session_id]
-    target_text = _session_text(target_info)
-    if not target_text:
-        # Fallback: extract text directly from JSONL transcript
-        full_path = target_info.get("fullPath")
-        if full_path:
-            p = Path(full_path)
-            first_msg = _extract_first_user_message(p) or ""
-            goals_text = _extract_last_goals(p) or ""
-            target_text = f"{goals_text} | {first_msg}".strip()
+    target_text = _semantic_text(target_info)
     if not target_text:
         return SessionChainResult()
 
@@ -650,15 +738,7 @@ def walk_semantic_chain(
         except (ValueError, OSError):
             continue
         if window_start <= created <= window_end:
-            text = _session_text(info)
-            if not text:
-                # Fallback: extract text directly from JSONL transcript
-                full_path = info.get("fullPath")
-                if full_path:
-                    p = Path(full_path)
-                    first_msg = _extract_first_user_message(p) or ""
-                    goals_text = _extract_last_goals(p) or ""
-                    text = f"{goals_text} | {first_msg}".strip()
+            text = _semantic_text(info)
             if text:
                 candidates.append((sid, info, text))
 
@@ -668,7 +748,7 @@ def walk_semantic_chain(
     all_texts = [target_text] + [c[2] for c in candidates]
 
     try:
-        from core.chs.embeddings import get_embed_client
+        from search_research.core.chs.embeddings import get_embed_client
 
         client = get_embed_client()
         embeddings = client.embed_texts(all_texts)
@@ -740,11 +820,11 @@ def walk_session_chain(
 ) -> SessionChainResult:
     """Walk session chain using the best available strategy.
 
-    Strategy selection:
-      - If handoff files exist linking to prior sessions → handoff chain
-      - If sessions-index mtime heuristic finds priors → mtime chain
-      - If semantic similarity finds matches → semantic chain
-      - Otherwise → origin only (graceful degradation)
+    Two strategies tried in order:
+      1. Handoff-file chain    - deterministic via PreCompact hook handoff files
+      2. mtime + semantic chain - finds candidates by mtime gap, verifies with semantic similarity
+
+    Falls back gracefully: if Strategy 2 builds a partial chain, returns it as-is.
     """
     if project_path is None:
         project_path = _projects_dir() / "P--"
@@ -762,13 +842,6 @@ def walk_session_chain(
         if newest_first:
             mtime_result.entries.reverse()
         return mtime_result
-
-    # Strategy 3: Semantic similarity fallback
-    semantic_result = walk_semantic_chain(session_id, project_path)
-    if semantic_result.entries:
-        if newest_first:
-            semantic_result.entries.reverse()
-        return semantic_result
 
     return mtime_result
 

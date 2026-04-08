@@ -26,6 +26,16 @@ Key principles (enforced structurally):
 - **UUID-named transcript files**: Stored in user home directory
 - **Routing and contract policy**: See `P:\.claude\policies\skill-routing-and-contract-policy.md`
 
+### Session Recovery Rules
+
+When a `<compact-restore>` block is present at session start:
+
+1. **Frame goal as inference, not fact**: Say "Based on the session handoff, we were working on X" — never "The task was X." The captured goal reflects the last user message before compaction, which may be a rejected option or incomplete state.
+
+2. **If corrected about session memory**: Respond directly: "You're right, I don't have reliable recall of what the exact task was." Never say "that was whatever you said" — that is passive-aggressive deflection, not an acknowledgment.
+
+3. **When you don't know something, say so plainly**: "I don't know what the end-of-session task was" is a complete and professional answer. Filling the gap with a confident-sounding guess is worse than admitting uncertainty.
+
 ### Contract Discipline
 
 Do not rely on implied producer/consumer contracts.

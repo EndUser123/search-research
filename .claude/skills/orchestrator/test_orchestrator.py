@@ -40,14 +40,14 @@ class TestSuggestParser:
 
     def test_get_suggestions(self):
         """Test getting suggestions for a skill."""
-        suggestions = suggest_parser.get_suggestions("/nse")
+        suggestions = suggest_parser.get_suggestions("/adf")
         assert isinstance(suggestions, list), "Should return list"
         # NSE has suggest fields
-        assert len(suggestions) > 0, "/nse should have suggestions"
+        assert len(suggestions) > 0, "/adf should have suggestions"
 
     def test_get_skill_metadata(self):
         """Test getting skill metadata."""
-        metadata = suggest_parser.get_skill_metadata("nse")
+        metadata = suggest_parser.get_skill_metadata("adf")
         assert isinstance(metadata, dict), "Should return dict"
 
     def test_get_graph(self):
@@ -93,11 +93,11 @@ class TestWorkflowState:
         workflow_state.valid_transitions = {}
 
         workflow_state.enter_skill("/analyze")
-        workflow_state.enter_skill("/nse")
+        workflow_state.enter_skill("/adf")
 
         path = workflow_state.get_workflow_path()
         assert "/analyze" in path
-        assert "/nse" in path
+        assert "/adf" in path
 
         # Restore state
         workflow_state.current_skill = old_current
@@ -144,8 +144,8 @@ class TestSkillRouter:
 
     def test_invoke_python_skill(self):
         """Test invoking a Python skill."""
-        result = skill_router.invoke_skill("/nse", {"query": "test"})
-        assert result["skill"] == "/nse"
+        result = skill_router.invoke_skill("/adf", {"query": "test"})
+        assert result["skill"] == "/adf"
         assert "status" in result
 
     def test_invoke_cli_skill(self):
@@ -177,7 +177,7 @@ class TestMasterOrchestrator:
 
     def test_get_suggestions(self):
         """Test getting suggestions."""
-        suggestions = master_orchestrator.get_workflow_suggestions("/nse")
+        suggestions = master_orchestrator.get_workflow_suggestions("/adf")
         assert isinstance(suggestions, list)
 
     def test_get_audit_trail(self):
@@ -205,7 +205,7 @@ class TestMasterOrchestrator:
 
     def test_get_skill_info(self):
         """Test getting comprehensive skill info."""
-        info = master_orchestrator.get_skill_info("/nse")
+        info = master_orchestrator.get_skill_info("/adf")
         assert "skill" in info
         assert "metadata" in info
         assert "suggests" in info
@@ -214,14 +214,14 @@ class TestMasterOrchestrator:
     def test_validate_workflow(self):
         """Test workflow validation."""
         # Valid workflow (based on /nse -> /r suggestion)
-        validation = master_orchestrator.validate_workflow(["/nse", "/r"])
+        validation = master_orchestrator.validate_workflow(["/adf", "/arch"])
         assert "workflow" in validation
         assert "valid" in validation
         assert "issues" in validation
 
     def test_suggest_workflow(self):
         """Test workflow suggestion."""
-        workflows = master_orchestrator.suggest_workflow("/nse", max_depth=2)
+        workflows = master_orchestrator.suggest_workflow("/adf", max_depth=2)
         assert isinstance(workflows, list)
         assert len(workflows) > 0
 
@@ -327,7 +327,7 @@ class TestOrchestratorTimeoutIntegration:
         # Actual timeout behavior tested in integration
         try:
             result = master_orchestrator.invoke_skill(
-                "/nse",
+                "/adf",
                 {"query": "test"},
                 timeout=10
             )
@@ -339,7 +339,7 @@ class TestOrchestratorTimeoutIntegration:
     def test_timeout_none_disables_timeout(self):
         """Test that timeout=None disables timeout."""
         result = master_orchestrator.invoke_skill(
-            "/nse",
+            "/adf",
             {"query": "test"},
             timeout=None
         )
@@ -352,17 +352,17 @@ class TestIntegration:
     def test_full_workflow(self):
         """Test a complete workflow from suggestion to invocation."""
         # Get suggestions for /nse
-        suggestions = master_orchestrator.get_workflow_suggestions("/nse")
+        suggestions = master_orchestrator.get_workflow_suggestions("/adf")
         assert len(suggestions) > 0
 
         # Check first suggestion is valid
         first_suggestion = suggestions[0]
-        assert master_orchestrator.workflow_state.is_valid_transition("/nse", first_suggestion)
+        assert master_orchestrator.workflow_state.is_valid_transition("/adf", first_suggestion)
 
     def test_skill_relationships(self):
         """Test that skill relationships are bidirectional."""
         # Get skills that suggest /nse
-        info = master_orchestrator.get_skill_info("/nse")
+        info = master_orchestrator.get_skill_info("/adf")
         assert "suggested_by" in info
         # Should have at least some skills that suggest /nse
 

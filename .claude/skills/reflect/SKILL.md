@@ -5,9 +5,10 @@ description: >
   then proposes skill improvements. Use this skill when users provide corrections, express
   preferences about code style, or when patterns emerge from successful approaches. Can be
   triggered manually with /reflect or automatically at session end when enabled.
-version: 1.1.0
+version: 1.2.0
 status: beta
 category: learning
+enforcement: advisory
 ---
 
 # Reflect - Self-Improving Skills
@@ -25,6 +26,8 @@ a "correct once, never again" learning system.
 
 **Pre-Mortem Analysis:** Detects conversation issues (vague requirements, contradictions,
 missing error handling) before they become problems. Runs automatically during reflection.
+
+**Kill Criteria Enforcement (Task #2295):** On each run, checks `sessions.json` for pre-mortem sessions older than 30 days that lack validation timestamps. Displays pending sessions with age and emits advisory about sunk-cost risk. Critically, also extracts HIGH/MEDIUM items from those sessions' `p3.md` files as `critique_lesson` signals — Domain 7a — and stores them to CKS alongside skill-correction lessons.
 
 Reflection should also capture reusable contract-failure lessons such as:
 - implied field dependency

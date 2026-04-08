@@ -1,7 +1,7 @@
 ---
 name: arch
 description: "Adaptive architecture advisor with template-based variants. Auto-routes to appropriate template based on domain and complexity. Supports: fast, deep, cli, python, data-pipeline, precedent. Configuration: .archconfig.json (project) → ~/.archconfig.json (user) → ARCH_DEFAULT_DOMAIN (env var). Override with template=<name> parameter. Enhanced with Graph-of-Thought (GoT) for architecture alternatives analysis (v2.5)."
-version: "5.1"
+version: "5.2"
 status: stable
 enforcement: advisory
 depends_on:
@@ -280,6 +280,35 @@ Before suggesting architectural changes, verify the gap actually exists. Require
 1. **Current architecture analyzed** -- Read relevant files
 2. **Dependencies mapped** -- Grep for existing patterns
 3. **Gap confirmed** -- Evidence that X is actually missing
+4. **Data format validated** (MANDATORY when proposed solution will read/process existing data)
+
+   **Trigger condition**: This requirement applies when the proposed architectural solution involves reading, parsing, transforming, or validating ANY existing data format (JSON, YAML, database schemas, API responses, file formats, packet structures, handoff envelopes, resume/restore state, transcripts, etc.).
+
+   **Validation steps**:
+   a. **Identify the input data format** — Name the exact data format the solution will read/process.
+   b. **Find real examples** — Read at least ONE actual file/database/schema to establish ground truth.
+   c. **Map schema/structure** — Document what fields actually exist and their population rates (optional vs mandatory, null vs present).
+   d. **Validate assumptions** — Verify each assumption about the data format against real examples.
+   e. **Block on assumption mismatch** — If an assumption about the data format is contradicted by real examples, STOP and surface the mismatch explicitly:
+      ```
+      ASSUMPTION MISMATCH:
+      Assumed: {assumed format}
+      Actual: {observed format in file:line}
+      Impact: {what breaks if we proceed}
+      Recommendation: {corrected approach}
+      ```
+
+   **Evidence requirement**: At least one file must be read (Read tool or equivalent) to establish ground truth about the data format. Prose alone is insufficient — design decisions based on assumed data formats without verification are prohibited.
+
+   **Output format**: When this requirement applies, output a brief validation summary:
+   ```
+   Data format validation:
+   - Input: {format name}
+   - Sample: {file/db examined}
+   - Schema: {key fields and their optionality}
+   - Assumptions verified: {list}
+   - Mismatches found: {list or "none"}
+   ```
 
 **Follow-up Query Rewrite (conditional — only when triggered):**
 
