@@ -89,7 +89,7 @@ State assumption: "Certifying [X] — assumption based on [signal]. Correct?" On
 
 | Layer | Name | Tool | Dispatch | Hard Dependency |
 |-------|------|------|---------|----------------|
-| 0 | PREDICTIVE | adversarial-logic, adversarial-quality, adversarial-io-validation, adversarial-security, adversarial-performance, adversarial-testing, adversarial-state-machine | **Agent** (skill-level dispatch only — Python layer returns empty list) | — |
+| 0 | PREDICTIVE | 12 adversarial specialists (conditional invocation based on target characteristics) | **Agent** (skill-level dispatch only — Python layer returns empty list) | — |
 | 1 | SYNTACTIC | ruff, mypy, AI Distiller | Python/CLI | — |
 | 2 | SEMANTIC | verify (pytest), diagnose | Python/CLI | — |
 | 3 | STRUCTURAL | meta-review, harden, apply_safety_patterns | Python/CLI | — |
@@ -128,9 +128,72 @@ Initialize state: `from sqa_state_tracker import init_state; state = init_state(
 
 ### Step 1: PREDICTIVE (Optional - skip for fast-path)
 
-**Phase 1a: Parallel specialist dispatch via Task tool**
+**Phase 1a: Determine applicable specialists**
 
-Create session directory and dispatch manifest, then launch 7 specialists in parallel via `Task` tool:
+All 12 adversarial specialists are available, but only relevant ones run based on target characteristics:
+
+| Specialist | Runs When | Applicability Criteria |
+|------------|-----------|----------------------|
+| adversarial-logic | Always | Pure logic errors (off-by-one, wrong operators, inverted conditionals) |
+| adversarial-quality | Always | Code smells, technical debt, maintainability risks |
+| adversarial-io-validation | Always | File operations, path validation, external I/O assumptions |
+| adversarial-security | Always | Data leaks, access control gaps, encryption issues |
+| adversarial-performance | Always | Timeouts, bottlenecks, N+1 patterns |
+| adversarial-testing | Always | Missing scenarios, brittle tests, coverage gaps |
+| adversarial-state-machine | When stateful | State transitions, lifecycle management, status fields |
+| **adversarial-compliance** | When specs exist | Has `.adr/`, `requirements/`, `api.yaml`, `openapi.json`, formal contracts |
+| **adversarial-failure-modes** | When complex | >100 files OR state/data management OR critical infrastructure |
+| **adversarial-invariants** | When entities | Has entity-like code OR database/ORM usage OR data models |
+| **adversarial-qa** | When tested | Has `tests/` directory |
+| adversarial-review | Fallback | General adversarial review if no specific criteria apply |
+
+**Quick-path detection:**
+```python
+from pathlib import Path
+
+target_path = Path(target)
+
+# Detect characteristics
+has_specs = any(
+    (target_path / d).exists()
+    for d in [".adr", "requirements", "docs/specs", "api.yaml", "openapi.json"]
+)
+has_tests = (target_path / "tests").exists()
+has_entities = any(
+    any(f.name.endswith(".py") for f in (target_path / d).glob("*.py")[:5])
+    for d in ["core", "models", "entities", "schema"]
+) if (target_path / "core").exists() else False
+is_complex = sum(1 for _ in target_path.rglob("*.py")) > 100
+has_state = any(
+    "state" in f.name.lower() or "status" in f.name.lower()
+    for f in target_path.rglob("*.py")[:20]
+)  # sample first 20 files
+
+# Build specialist list
+specialists = [
+    "adversarial-logic",      # always
+    "adversarial-quality",    # always
+    "adversarial-io-validation",  # always
+    "adversarial-security",   # always
+    "adversarial-performance",  # always
+    "adversarial-testing",    # always
+]
+
+if has_state:
+    specialists.append("adversarial-state-machine")
+if has_specs:
+    specialists.append("adversarial-compliance")
+if is_complex or has_state:
+    specialists.append("adversarial-failure-modes")
+if has_entities:
+    specialists.append("adversarial-invariants")
+if has_tests:
+    specialists.append("adversarial-qa")
+```
+
+**Phase 1b: Parallel specialist dispatch via Agent tool**
+
+Create session directory and dispatch manifest, then launch applicable specialists in parallel:
 
 ```python
 import uuid, json
@@ -144,25 +207,15 @@ sqa_dir.mkdir(parents=True, exist_ok=True)
 # Dispatch manifest (idempotent — re-run skips already-dispatched specialists)
 manifest_path = sqa_dir / "specialists" / "dispatch_manifest.json"
 
-specialists = [
-    "adversarial-logic",
-    "adversarial-quality",
-    "adversarial-io-validation",
-    "adversarial-security",
-    "adversarial-performance",
-    "adversarial-testing",
-    "adversarial-state-machine",
-]
-
 # Load prior dispatched from any interrupted run
 dispatched = []
 if manifest_path.exists():
     dispatched = json.loads(manifest_path.read_text()).get("dispatched", [])
 
-# Dispatch specialists in parallel (sequential calls = concurrent execution)
+# Dispatch specialists in parallel (sequential Agent calls = concurrent execution)
 for specialist in specialists:
     if specialist not in dispatched:
-        Task(
+        Agent(
             subagent_type="general-purpose",
             description=f"L0 {specialist} analysis",
             prompt=f"Read P:/.claude/agents/{specialist}.md and follow its instructions to review <target>. Write JSON findings to: {sqa_dir}/specialists/{specialist}-findings.json. Return ONLY the file path."
@@ -275,69 +328,55 @@ If findings at or above `--halt-on` threshold (default: HIGH):
 
 ### Step 3: SEMANTIC (TDD BUILD)
 
-**Phase 3a: Test Gap Analysis**
-Run `/test` to discover coverage gaps:
-```bash
-/test <target>
+**Phase 3a: Test Discovery**
+Discover existing test coverage:
+```python
+import subprocess
+from pathlib import Path
+
+result = subprocess.run(
+    ["python", "-m", "pytest", "--collect-only", "-q", target],
+    capture_output=True,
+    text=True,
+    timeout=30
+)
+test_count = len([line for line in result.stdout.split('\n') if "::test_" in line])
+print(f"Found {test_count} tests")
 ```
-Produces:
-- Coverage report (pytest-cov)
-- Test classification (unit, integration, edge case, error path)
-- `.test_gaps.json` with prioritized missing tests
 
 **Phase 3b: Test Quality Check**
-Check for high-severity test quality issues:
-- `empty_test`: Test function appears empty (≤2 lines)
-- `no_assertions`: Test has no assert/raise statements
-- `over_mocked`: Test has >5 mocks (may be brittle)
+Run pytest with coverage:
+```bash
+cd <target> && python -m pytest --cov=. --cov-report=term-missing 2>&1 | head -50
+```
+Check for:
+- Coverage percentage below 80%
+- Tests with no assertions (empty asserts)
+- Tests marked as xfail/skip
 
-If high-severity issues found: fix them FIRST before RED phase.
-
-**Phase 3c: TDD RED Phase**
-For each gap from Phase 3a, invoke `/tdd` to write failing tests:
+**Phase 3c: TDD (if coverage gaps)**
+If coverage is insufficient, invoke `/tdd`:
 ```bash
 /tdd <target> --phase=red
 ```
-Parallel `tdd-test-writer` subagents write failing tests (RED phase).
 
-**Phase 3d: TDD GREEN Phase**
-Implement minimal code to pass:
+**Phase 3d: Run Tests**
+Verify tests actually pass:
 ```bash
-/tdd <target> --phase=green
-```
-Parallel `tdd-implementer` subagents write minimal code.
-
-**Phase 3e: TDD VERIFY Phase**
-Run actual pytest to verify:
-```bash
-verify <target>
-```
-Tests must actually run, not dry-run.
-
-**Phase 3f: TDD REGRESSION Phase**
-Auto-run related tests to catch cascading breaks:
-```bash
-verify --regression <target>
+cd <target> && python -m pytest -v 2>&1 | head -30
 ```
 
-**Phase 3g: TDD REFACTOR Phase**
-Clean up while tests pass:
-```bash
-/tdd <target> --phase=refactor
-```
-Parallel `tdd-refactorer` subagents simplify code.
-
-**Phase 3h: Bug Fixing (if bugs found)**
-For each identified bug, invoke `/fix`:
-```bash
-/fix <bug description>
+**Phase 3e: Code Simplification (if tests pass)**
+After tests pass, simplify code:
+```python
+Agent(
+    subagent_type="code-simplifier",
+    prompt=f"Review and simplify Python code in {target} for clarity, consistency, and maintainability. Focus on recently modified code while preserving all functionality.",
+    description="Code simplification review"
+)
 ```
 
-**Phase 3i: Code Simplification (Python-only)**
-After tests pass, run `code-simplifier`:
-```bash
-Task: code-simplifier
-```
+**Note:** `/tdd` is a skill — invoke via Skill tool. `verify` is a skill — invoke via Skill tool. `/fix` functionality is provided by `/code` skill.
 
 **Exit Criteria:**
 - All tests pass

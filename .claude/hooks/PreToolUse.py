@@ -695,6 +695,8 @@ TOOL_HOOKS = {
         "recursive_failure_detector.py",
         "PreToolUse_command_intent_gate.py",
         "PreToolUse_policy_gate.py",
+        "PreToolUse_pytest_timeout_guard.py",  # CRITICAL: Blocks pytest without --timeout (prevents computer hangs)
+        "PreToolUse_git_commit_test_gate.py",  # HIGH: Blocks commit if tests fail (prevents data loss)
     ],
     "Task": [
         "PreToolUse_task_self_doc_gate.py",
