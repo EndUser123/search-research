@@ -10,6 +10,8 @@ triggers:
   - 'search '
   - 'find '
   - 'look for'
+workflow_steps:
+  - execute_search_workflow
 aliases:
   - /search
   - /chs

@@ -22,15 +22,11 @@ try:
         ConsolidatedResults,
         Gap,
         build_initial_results,
-        calculate_health,
-        check_chain_integrity,
-        check_entry_points,
-        check_skill_health,
         check_viability,
         detect_git_context,
         detect_session_goal,
-        detect_task_list_gaps,
-        detect_unfinished_business,
+        detect_session_outcomes,
+        detect_suspicion,
         find_gaps,
         format_recommended_next_steps,
         format_rsn_from_gaps,
@@ -45,18 +41,13 @@ except ImportError:
         ConsolidatedResults,
         Gap,
         build_initial_results,
-        calculate_health,
-        check_chain_integrity,
-        check_entry_points,
-        check_skill_health,
         check_viability,
         detect_git_context,
         detect_session_goal,
         detect_session_outcomes,
         detect_suspicion,
-        detect_task_list_gaps,
-        detect_unfinished_business,
         find_gaps,
+        format_recommended_next_steps,
         format_rsn_from_gaps,
         get_gap_decay_metrics,
         get_state_manager,
@@ -406,14 +397,7 @@ class GTOOrchestrator:
                     for gap_type, m in decay_metrics.items()
                 }
 
-            # Step 5: Health check (optional)
-            health_report = None
-            if self.config.enable_health_check:
-                health = calculate_health(self.project_root)
-                health_report = health.to_dict()
-                metadata["health_report"] = health_report
-
-            # Step 6: Save state
+            # Step 5: Save state
             current_state = self.state_manager.create_state(
                 session_id=metadata["timestamp"],
                 gaps=[g.to_dict() for g in results.gaps],
@@ -421,12 +405,11 @@ class GTOOrchestrator:
             )
             self.state_manager.save(current_state)
 
-            # Step 7: Append to history
+            # Step 6: Append to history
             self.state_manager.append_history(
                 {
                     "run_summary": "GTO analysis completed",
                     "gap_count": results.total_gap_count,
-                    "health_score": health_report.get("overall_score") if health_report else None,
                 }
             )
 
@@ -434,7 +417,7 @@ class GTOOrchestrator:
                 success=True,
                 viability_passed=True,
                 results=results,
-                health_report=health_report,
+                health_report=None,
                 error=None,
                 metadata=metadata,
             )
@@ -457,24 +440,11 @@ class GTOOrchestrator:
         """
         results: dict[str, Any] = {}
 
-        # Chain integrity - pass empty list since we don't have transcript chain paths
-        # (transcript paths are for handoff chains, not project analysis)
-        results["chain_integrity"] = check_chain_integrity([])
-
         # Session goal (if transcript available)
         if self.config.transcript_path:
             results["session_goal"] = detect_session_goal(self.config.transcript_path)
         else:
             results["session_goal"] = None
-
-        # Unfinished business (from previous state)
-        if self.previous_state and self.config.transcript_path:
-            results["unfinished_business"] = detect_unfinished_business(
-                self.config.transcript_path,
-                self.project_root,
-            )
-        else:
-            results["unfinished_business"] = None
 
         # Session outcomes (if transcript available)
         if self.config.transcript_path:
@@ -493,15 +463,6 @@ class GTOOrchestrator:
             )
         else:
             results["suspicion"] = None
-
-        # Task list gaps (pending CRIT items from shared task list)
-        results["task_list"] = detect_task_list_gaps(self.project_root)
-
-        # Skill health
-        results["skill_health"] = check_skill_health(self.project_root)
-
-        # Entry point validation (check SKILL.md references exist)
-        results["entry_points"] = check_entry_points(self.project_root)
 
         return results
 

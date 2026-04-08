@@ -7,6 +7,8 @@ category: session
 enforcement: strict
 triggers:
   - /recap
+workflow_steps:
+  - execute_recap_workflow
 execution:
   directive: Run the recap CLI script to parse transcript files and extract session history, then synthesize findings
   default_args: ""

@@ -5,6 +5,8 @@ status: "stable"
 category: integration
 enforcement: advisory
 description: Ingest GitHub repos into NotebookLM — clone, slice, and upload in one pipeline.
+workflow_steps:
+  - execute_gitingest_workflow
 ---
 
 # gitingest

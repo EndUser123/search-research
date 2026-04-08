@@ -7,6 +7,8 @@ category: productivity
 enforcement: advisory
 triggers:
   - '/nlm'
+workflow_steps:
+  - execute_nlm_workflow
 ---
 
 # NotebookLM CLI Expert

@@ -296,6 +296,28 @@ def _extract_first_user_message(jsonl_path: Path) -> str | None:
             for line in f:
                 line_bytes = len(line.encode("utf-8"))
                 if bytes_read + line_bytes > _MAX_TRANSCRIPT_READ_BYTES:
+                    # SECURITY: If the very first line alone exceeds the limit, the file is
+                    # oversized. Return the content directly (truncated) rather than None,
+                    # preserving at least partial functionality for legitimate large files.
+                    if bytes_read == 0:
+                        line = line.strip()
+                        if line:
+                            try:
+                                entry = json.loads(line)
+                            except json.JSONDecodeError:
+                                return None
+                            if entry.get("type") == "user":
+                                msg = entry.get("message", {})
+                                if isinstance(msg, dict):
+                                    content = msg.get("content", [])
+                                else:
+                                    content = []
+                                if isinstance(content, str):
+                                    return content[:200]
+                                if isinstance(content, list):
+                                    for block in content:
+                                        if isinstance(block, dict) and block.get("type") == "text":
+                                            return block.get("text", "")[:200]
                     break  # Stop at boundary; do not produce partial JSON
                 bytes_read += line_bytes
                 line = line.strip()
@@ -341,6 +363,12 @@ def _extract_last_goals(jsonl_path: Path, max_chars: int = 300) -> str | None:
             for line in f:
                 line_bytes = len(line.encode("utf-8"))
                 if bytes_read + line_bytes > _MAX_TRANSCRIPT_READ_BYTES:
+                    # SECURITY: If the very first line alone exceeds the limit, include it
+                    # directly rather than skipping — preserves partial data for oversized files.
+                    if bytes_read == 0:
+                        line = line.strip()
+                        if line:
+                            lines.append(line)
                     break  # Stop at boundary; do not produce partial JSON
                 bytes_read += line_bytes
                 line = line.strip()

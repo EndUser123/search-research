@@ -13,7 +13,6 @@ Exit codes:
 
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 
@@ -51,7 +50,7 @@ def _assertions_pass(state: dict) -> tuple[bool, list[str]]:
         errors.append("A2: No final_layer_completed set - /sqa may not have completed any layer")
         return False, errors
 
-    layer_order = [f"L{i}" for i in range(9)]
+    layer_order = [f"L{i}" for i in range(8)]
     final_idx = layer_order.index(final) if final in layer_order else -1
 
     for i in range(final_idx + 1):
@@ -82,11 +81,10 @@ def _assertions_pass(state: dict) -> tuple[bool, list[str]]:
         if findings < 0:
             errors.append(f"A4: Layer {layer_name} has negative findings count: {findings}")
 
-    # A5: final_layer_completed is consistent with halt logic
-    # If halt was triggered, final should be the halt layer
+    # A5: final_layer_completed is consistent with halt_triggered_at
+    # If halt was triggered, final_layer should match halt layer (not be past it)
     if halt_at is not None and final != halt_at:
-        # This is actually A3 already caught - layers after halt ran
-        pass
+        errors.append(f"A5: final_layer_completed={final} inconsistent with halt_triggered_at={halt_at}")
 
     return len(errors) == 0, errors
 

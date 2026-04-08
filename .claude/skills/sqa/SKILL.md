@@ -8,7 +8,7 @@ triggers:
   - /sqa
 entry_type: skill
 requires_target: false
-enforcement: none
+enforcement: strict
 # Extensions to SKILL_SCHEMA (not enumerated in schema):
 #   version: skill version string
 #   status: stable|experimental|deprecated
@@ -104,10 +104,10 @@ State assumption: "Certifying [X] — assumption based on [signal]. Correct?" On
 **The LLM is the conductor.** SKILL.md is the score — I execute the workflow by:
 
 1. **Validate target** via `_validate_target()` utility
-2. **Dispatch Agent-based layers** via `Agent` tool:
-   - L0 (PREDICTIVE): Dispatch via `Agent('adversarial-logic')`, `Agent('adversarial-quality')`, etc. from conversation context — NOT via Python subprocess. The Python `layer0_predictive.py` module is a coordination stub that returns empty list; actual agent dispatch happens at skill level.
-   - L5 (SECURITY): Dispatch `Agent('adversarial-security')` from skill context; run path traversal check via Python utility
-   - L6 (PERFORMANCE): Dispatch `Agent('adversarial-performance')` from skill context; run perf checks via Python utility
+2. **Dispatch Agent-based layers** via Agent tool (file-based handoff, not inline findings):
+   - L0 (PREDICTIVE): Dispatch 7 specialists in parallel via Agent tool (run_in_background=True), each writing JSON to session file. After all complete, dispatch `adversarial-critic` for synthesis.
+   - L5 (SECURITY): Dispatch `Agent('adversarial-security')` with file output; run path traversal check via Python utility
+   - L6 (PERFORMANCE): Dispatch `Agent('adversarial-performance')` with file output; run perf checks via Python utility
 3. **Run Python/CLI layers** via Bash subprocess:
    - L1 (SYNTACTIC): `ruff check`, `mypy`
    - L2 (SEMANTIC): `verify` (pytest), `diagnose`
@@ -127,18 +127,132 @@ Run `_validate_target()` utility to ensure path exists, is not symlink, within a
 Initialize state: `from sqa_state_tracker import init_state; state = init_state(target, halt_on="HIGH")`
 
 ### Step 1: PREDICTIVE (Optional - skip for fast-path)
-Dispatch 7 adversarial agents in parallel via `Agent` tool:
-- `Agent('adversarial-logic')`
-- `Agent('adversarial-quality')`
-- `Agent('adversarial-io-validation')`
-- `Agent('adversarial-security')`
-- `Agent('adversarial-performance')`
-- `Agent('adversarial-testing')`
-- `Agent('adversarial-state-machine')`
 
-Synthesize findings into L0 base layer.
+**Phase 1a: Parallel specialist dispatch via Task tool**
 
-Record completion: `from sqa_state_tracker import record_layer_complete; record_layer_complete("L0", findings=N)` (or `skipped=True` if fast-path)
+Create session directory and dispatch manifest, then launch 7 specialists in parallel via `Task` tool:
+
+```python
+import uuid, json
+from pathlib import Path
+
+session_id = uuid.uuid4().hex[:8]
+sqa_dir = Path(f"P:/.claude/.evidence/sqa/{session_id}")
+sqa_dir.mkdir(parents=True, exist_ok=True)
+(sqa_dir / "specialists").mkdir(exist_ok=True)
+
+# Dispatch manifest (idempotent — re-run skips already-dispatched specialists)
+manifest_path = sqa_dir / "specialists" / "dispatch_manifest.json"
+
+specialists = [
+    "adversarial-logic",
+    "adversarial-quality",
+    "adversarial-io-validation",
+    "adversarial-security",
+    "adversarial-performance",
+    "adversarial-testing",
+    "adversarial-state-machine",
+]
+
+# Load prior dispatched from any interrupted run
+dispatched = []
+if manifest_path.exists():
+    dispatched = json.loads(manifest_path.read_text()).get("dispatched", [])
+
+# Dispatch specialists in parallel (sequential calls = concurrent execution)
+for specialist in specialists:
+    if specialist not in dispatched:
+        Task(
+            subagent_type="general-purpose",
+            description=f"L0 {specialist} analysis",
+            prompt=f"Read P:/.claude/agents/{specialist}.md and follow its instructions to review <target>. Write JSON findings to: {sqa_dir}/specialists/{specialist}-findings.json. Return ONLY the file path."
+        )
+        dispatched.append(specialist)
+        manifest_path.write_text(json.dumps({"dispatched": dispatched, "session_id": session_id}))
+```
+
+**Each specialist:**
+- Reads its agent definition from `P:/.claude/agents/{specialist}.md`
+- Writes JSON findings to `{sqa_dir}/specialists/{specialist}-findings.json`
+- Returns ONLY the file path (not inline findings)
+
+**Phase 1b: Idempotent completion check**
+
+After launching all specialists, check for JSON availability:
+
+```python
+available = []
+for specialist in dispatched:
+    json_path = sqa_dir / "specialists" / f"{specialist}-findings.json"
+    if json_path.exists():
+        try:
+            json.loads(json_path.read_text())
+            available.append(specialist)
+        except (json.JSONDecodeError, OSError):
+            pass  # Incomplete file, will re-dispatch on re-run
+
+if len(available) == len(dispatched) and available:
+    print("All specialist JSONs available — proceeding to synthesis.")
+else:
+    print(f"Partial: {available}. Re-run /sqa to continue — manifest skips dispatched agents.")
+```
+
+**Phase 1c: Failure-mode prompts (internal)**
+
+Before synthesizing, run this internal check against the specialist findings:
+
+```
+Internal failure-mode check:
+- What is the most plausible way this target still fails even if the happy path passes?
+- What am I treating as safe because the producer succeeds, even though the consumer could still fail?
+- What hidden assumption would most likely break under stale data, workflow interruption, or multi-terminal use?
+- What blind spot is shared across multiple specialists rather than isolated to one agent?
+- What risk am I underweighting because it is operational, temporal, or only appears on resume/handoff?
+```
+
+**Phase 1d: Explicit completion gate**
+
+Verify ALL specialist JSONs exist and are valid before proceeding:
+```python
+import json
+from pathlib import Path
+
+missing = []
+for specialist in dispatched:
+    json_path = sqa_dir / "specialists" / f"{specialist}-findings.json"
+    if not json_path.exists():
+        missing.append(specialist)
+        continue
+    try:
+        json.loads(json_path.read_text())
+    except (json.JSONDecodeError, OSError):
+        missing.append(specialist)
+
+if missing:
+    print(f"[GATE FAILED] Missing or invalid: {missing}")
+    print("Re-run /sqa — manifest skips already-dispatched agents.")
+    sys.exit(1)
+print("[GATE PASSED] All specialist JSONs available — proceeding to synthesis.")
+```
+
+**Phase 1e: Critic synthesis**
+
+After all specialist JSONs are available, dispatch `adversarial-critic` to synthesize:
+
+```python
+Agent('adversarial-critic', prompt=f"Read all 7 specialist JSONs in {sqa_dir}/specialists/. Synthesize into a unified L0 findings list: dedupe by (file, line, category), resolve severity conflicts, detect consensus (2+ specialists agree). Write synthesis to {sqa_dir}/L0_synthesis.json.")
+```
+
+**Phase 1f: Record L0 completion**
+
+Count findings from `L0_synthesis.json` and record:
+```python
+from sqa_state_tracker import record_layer_complete
+synthesis = json.loads((sqa_dir / "L0_synthesis.json").read_text())
+record_layer_complete("L0", findings=len(synthesis.get("findings", [])))
+```
+
+If fast-path: `record_layer_complete("L0", skipped=True, reason="fast-path")`
 
 ### [HALT CHECK] After Step 1
 If any findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`, run `record_halt("L0")`, and stop. Otherwise continue.
@@ -148,10 +262,16 @@ Run via Bash subprocess:
 - `ruff check <target>`
 - `mypy <target>` (if Python)
 
+**Exit validation:** Verify exit codes are 0. If not, this is a FAIL even if findings are below halt threshold.
+
 Record completion: `record_layer_complete("L1", findings=N)`
 
 ### [HALT CHECK] After Step 2
-If any findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`, run `record_halt("L1")`, and stop. Otherwise continue.
+If findings at or above `--halt-on` threshold (default: HIGH):
+1. EMIT `[HALT] Layer L1 completed with X finding(s) exceeding --halt-on threshold`
+2. If `--fix`: attempt Layer 1 fixes (ruff --fix), retry up to 3 times
+3. If still failing: **BLOCKED** — must use `/sqa --halt-on NONE` to override
+4. If no `--fix`: **BLOCKED** — must use `/sqa --fix` or `/sqa --halt-on NONE`
 
 ### Step 3: SEMANTIC
 Run via Bash subprocess:
@@ -222,8 +342,65 @@ If any findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`
 
 Record completion: `record_layer_complete("META", findings=N)`
 
-### FINAL [HALT CHECK] After Step 9
-Report final health score and layers completed.
+### Step 10: P6 SECURITY CERTIFICATION
+Run explicit security certification gate:
+
+**Security Certification Checklist:**
+- [ ] L5 adversarial-security findings: NONE at CRITICAL/HIGH
+- [ ] Path traversal check: PASS
+- [ ] Anti-bleed gates: VERIFIED
+- [ ] Data safety VCS: CLEAN
+
+```python
+security_check_pass = (
+    l5_critical_high_count == 0 and
+    path_traversal_check_passed and
+    anti_bleed_gates_verified
+)
+if not security_check_pass:
+    print("[P6 SECURITY CERTIFICATION FAILED]")
+    print("Blocking certification until security issues resolved.")
+    sys.exit(1)
+print("[P6 SECURITY CERTIFICATION PASSED]")
+```
+
+### Step 11: P5 QUALITY CERTIFICATION
+Issue final quality certification based on health score:
+
+**Certification Thresholds:**
+| Health Score | Certification |
+|--------------|---------------|
+| ≥80 | **CERTIFIED** — Excellent quality |
+| 60-79 | **CONDITIONAL** — Address HIGH items |
+| 40-59 | **UNSTABLE** — Major issues must be fixed |
+| <40 | **REJECTED** — Unsafe for production use |
+
+```python
+if health_score >= 80:
+    cert = "CERTIFIED"
+elif health_score >= 60:
+    cert = "CONDITIONAL"
+elif health_score >= 40:
+    cert = "UNSTABLE"
+else:
+    cert = "REJECTED"
+
+print(f"[P5 QUALITY CERTIFICATION: {cert}]")
+print(f"Health Score: {health_score}")
+print(f"Layers Completed: {layers_completed}")
+
+# Final verdict
+if cert == "CERTIFIED":
+    print("Package is production-ready.")
+elif cert == "CONDITIONAL":
+    print("Package is usable with known limitations.")
+else:
+    print("Package requires fixes before use.")
+    sys.exit(1)
+```
+
+### FINAL [HALT CHECK] After Step 11
+Report final certification status and layers completed.
 
 ## Target Validation (SEC-001)
 
@@ -283,6 +460,34 @@ Reports are saved with `chmod 600` (owner-read-write only). Findings do NOT incl
 
 **Layer 2 → Layer 4**: If Layer 2 (SEMANTIC) reports failures, Layer 4 (REQUIREMENTS) **MUST NOT** execute. Skip with warning.
 
+## Exit Criteria Validation (Step 4.5 Pattern)
+
+After EVERY layer, run actual verification commands BEFORE trusting self-reported results. This prevents layers from incorrectly reporting PASS when they actually failed.
+
+| Layer | What to Validate |
+|-------|------------------|
+| L0 | All 7 specialist JSONs exist and parse |
+| L1 | ruff/mypy exit codes are 0 |
+| L2 | pytest exit code is 0 |
+| L3 | All 3 tools (meta-review, harden, apply_safety_patterns) exit 0 |
+| L4 | gto, spec-compliance exit 0 |
+| L5 | adversarial-security JSON + path traversal check |
+| L6 | adversarial-performance JSON + perf output |
+| L7 | verify --tier=2, hook-audit, hook-inventory all pass |
+
+**Validation command pattern:**
+```python
+import subprocess
+result = subprocess.run(cmd, shell=True, capture_output=True)
+if result.returncode != 0:
+    print(f"[EXIT VALIDATION FAILED] {layer}: {cmd}")
+    print(f"stdout: {result.stdout.decode()[:500]}")
+    print(f"stderr: {result.stderr.decode()[:500]}")
+    # HALT - do not proceed
+```
+
+**Bypass:** If layer was run with `--dry-run`, skip validation.
+
 ## Halt-on-Impact
 
 Severity-based layer halting stops execution after a layer when findings at or above the threshold make continuing pointless.
@@ -298,11 +503,41 @@ Severity-based layer halting stops execution after a layer when findings at or a
 - Health score uses **deduplicated** counts (D4 consensus removes duplicates before scoring)
 - Halt-on-impact uses **raw** counts (any CRITICAL/HIGH finding triggers halt, even if another layer also found it)
 
-**Halt behavior:**
+**Halt behavior (enforcement: strict):**
 1. Surface all findings from current layer with file:line locations
 2. Emit `[HALT] Layer N completed with X finding(s) exceeding --halt-on threshold`
 3. Report health score based on deduplicated counts
-4. Offer: `/sqa --halt-on NONE` to continue remaining layers
+4. **BLOCKED** — cannot proceed past this layer without explicit override
+5. Override only with: `/sqa --halt-on NONE` (proceed with risk) or `/sqa --fix` (attempt auto-fix)
+
+**--fix auto-fix loop (opt-in):**
+When `/sqa --fix` halts, attempt Layer 1/2/3 fixes before retry:
+
+| Layer | Confidence | Fix Type | Examples |
+|-------|------------|----------|---------|
+| Layer 1 | HIGH | Imports, style, formatting | `ruff check --fix`, `autoflake`, `pyupgrade` |
+| Layer 2 | MEDIUM | LLM with findings + context | Generate fix patches, apply safest first |
+| Layer 3 | LOW | Final LLM attempt | Architectural refactor recommendations |
+
+**Fix loop:**
+```
+if --fix and halt_triggered:
+    for attempt in range(1, 4):
+        print(f"[FIX ATTEMPT {attempt}/3]")
+        Layer_1_fixes()  # ruff --fix, etc.
+        re-run layer
+        if passes: break
+        Layer_2_fixes()  # LLM with context
+        re-run layer
+        if passes: break
+        Layer_3_fixes()  # Final LLM attempt
+        re-run layer
+        if passes: break
+    if still failing:
+        print("[FIX FAILED] Manual intervention required")
+        print("Run `/sqa --halt-on NONE` to proceed anyway")
+        sys.exit(1)
+```
 
 **When halting is NOT triggered:**
 - `--halt-on HIGH`: MEDIUM and LOW findings alone do not halt

@@ -265,6 +265,69 @@ def _run_behavior_audit(data: dict) -> dict | None:
         }
 
 
+def _run_dependency_chain_guard(data: dict) -> dict | None:
+    """Block comparative conclusions that ignore known prerequisites."""
+    if os.environ.get("DEPENDENCY_CHAIN_GUARD_ENABLED", "true").lower() not in (
+        "1",
+        "true",
+        "yes",
+    ):
+        return None
+    try:
+        from dependency_chain_guard import run as guard_run
+
+        response = data.get("response", "")
+        if not response:
+            return None
+
+        return guard_run(
+            {
+                "response": response,
+                "assistant_response": response,
+                "prompt": data.get("prompt") or data.get("user_prompt") or "",
+                "user_prompt": data.get("user_prompt") or data.get("prompt") or "",
+                "message": data.get("message") or "",
+                "transcript": data.get("transcript", []),
+            }
+        )
+    except Exception as e:
+        print(f"[Stop] dependency_chain_guard error: {e}", file=sys.stderr)
+        return None
+
+
+def _run_comparative_claim_guard(data: dict) -> dict | None:
+    """Activate existing file/skill comparative verification guard."""
+    if os.environ.get("COMPARATIVE_CLAIM_GUARD_ENABLED", "true").lower() not in (
+        "1",
+        "true",
+        "yes",
+    ):
+        return None
+    try:
+        from Stop_comparative_claim_guard import check
+
+        result = check(
+            {
+                "assistant_response": data.get("response", ""),
+                "tool_events": data.get("tool_events", []),
+                "transcript_path": data.get("transcript_path", ""),
+                "transcript": data.get("transcript", []),
+                "session_id": data.get("session_id") or data.get("sessionId") or "",
+                "terminal_id": data.get("terminal_id") or data.get("terminalId") or "",
+            }
+        )
+        if result and not result.get("allow", True):
+            return {
+                "decision": "block",
+                "reason": result.get("reason", "Comparative claim without verification."),
+                "blocking_hook": result.get("blocking_hook", "Stop.py:comparative_claim_guard"),
+            }
+        return None
+    except Exception as e:
+        print(f"[Stop] comparative_claim_guard error: {e}", file=sys.stderr)
+        return None
+
+
 def _run_narrative_intent(data: dict) -> dict | None:
     """narrative_intent_detector.py — warn on un-hedged design-intent speculation."""
     try:
@@ -1241,6 +1304,8 @@ IN_PROCESS_GATES = [
     ("post_skill_prose_gate", _run_post_skill_prose_gate),
     ("verification_enforcement", _run_verification_enforcement),
     ("behavior_audit", _run_behavior_audit),
+    ("dependency_chain_guard", _run_dependency_chain_guard),
+    ("comparative_claim_guard", _run_comparative_claim_guard),
     ("behavior_gates_agreement", _run_behavior_gates_agreement),
     ("behavior_gates_guidance", _run_behavior_gates_guidance),
     ("behavior_gates_blacklist", _run_behavior_gates_blacklist),

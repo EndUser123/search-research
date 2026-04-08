@@ -174,7 +174,7 @@ def main():
             scoped_marker = _marker_path(data)
             scoped_marker.parent.mkdir(parents=True, exist_ok=True)
             marker_data = {
-                "timestamp": time.monotonic(),
+                "timestamp": time.time(),
                 "reason": result["reason"],
                 "missing_claims": result.get("missing_claims", []),
                 "session_id": (

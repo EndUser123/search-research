@@ -117,6 +117,40 @@ print(session.get_session_dir())
 
 This creates: `{session_dir}/work.md`
 
+### Step 2b: Idempotency Check
+
+Before dispatching, check if this session already has completed work:
+
+```python
+import json
+from pathlib import Path
+
+session_dir = Path("P:/.claude/.evidence/pre-mortem/")
+# Find most recent session for this work
+work_marker = "{WORK_INPUT}"[:50]  # match on first 50 chars
+
+existing = sorted(session_dir.glob("*/work.md"), key=lambda p: p.stat().st_mtime, reverse=True)
+for work_file in existing:
+    session = work_file.parent
+    if work_file.read_text().startswith(work_marker):
+        p1_findings = session / "p1_findings.md"
+        p2_meta = session / "p2.md"
+        p3_final = session / "p3.md"
+        if p3_final.exists():
+            print(f"Session {session.name} already complete — reading from: {p3_final}")
+            # Read and deliver existing output
+            sys.exit(0)
+        elif p1_findings.exists():
+            print(f"Session {session.name} has partial work — resuming from Step 4")
+            # Proceed to Step 4 with existing session_dir
+            break
+        else:
+            print(f"Session {session.name} exists but incomplete — re-running Phase 1")
+            break
+```
+
+**Manifest-based resume:** The dispatch manifest at `{session_dir}/specialists/dispatch_manifest.json` tracks which specialists were already dispatched. Re-running `/pre-mortem` skips already-dispatched specialists.
+
 ### Step 3: Launch Phase 1 — Triage + Specialist Dispatch
 
 Read the triage prompt, classify the work, select specialists, dispatch in parallel, consolidate findings.

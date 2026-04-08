@@ -536,3 +536,267 @@ class TestWalkSessionsIndexChainBoundary:
 
         # Should stop at max_depth=3 entries (origin + 2 predecessors)
         assert result.depth <= 3
+
+
+# ---------------------------------------------------------------------------
+# TASK-004: session_id path traversal sanitization
+# ---------------------------------------------------------------------------
+
+
+class TestSessionIdSanitization:
+    """Tests for TASK-004: session_id sanitization before glob interpolation."""
+
+    def test_session_id_rejects_dotdot(
+        self, mock_projects_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """session_id containing '..' is rejected and returns None."""
+        monkeypatch.setattr("core.session_chain._projects_dir", lambda: mock_projects_dir)
+        result = _resolve_transcript_path("../../../etc/passwd")
+        assert result is None
+
+    def test_session_id_rejects_forward_slash(
+        self, mock_projects_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """session_id containing '/' is rejected and returns None."""
+        monkeypatch.setattr("core.session_chain._projects_dir", lambda: mock_projects_dir)
+        result = _resolve_transcript_path("foo/../../../etc/passwd")
+        assert result is None
+
+    def test_session_id_rejects_backslash(
+        self, mock_projects_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """session_id containing '\\' is rejected and returns None."""
+        monkeypatch.setattr("core.session_chain._projects_dir", lambda: mock_projects_dir)
+        result = _resolve_transcript_path("foo\\..\\..\\etc\\passwd")
+        assert result is None
+
+    def test_session_id_accepts_valid(
+        self, mock_projects_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Valid session_id is accepted and glob is applied."""
+        project = mock_projects_dir / "P--"
+        project.mkdir(parents=True)
+        session_file = project / "valid_session.jsonl"
+        session_file.write_text(
+            json.dumps(
+                {
+                    "type": "user",
+                    "sessionId": "valid_session",
+                    "message": {"content": [{"type": "text", "text": "Hello"}]},
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr("core.session_chain._projects_dir", lambda: mock_projects_dir)
+        result = _resolve_transcript_path("valid_session")
+        assert result is not None
+        assert result.name == "valid_session.jsonl"
+
+
+# ---------------------------------------------------------------------------
+# TASK-007: transcript read stops at line boundary, not byte boundary
+# ---------------------------------------------------------------------------
+
+
+class TestTranscriptReadLineBoundary:
+    """Tests for TASK-007: transcript read stops at line boundary."""
+
+    def test_extract_first_user_message_stops_at_line_boundary(
+        self, tmp_path: Path
+    ) -> None:
+        """_extract_first_user_message completes the current line before stopping at byte limit.
+
+        The first line itself exceeds 1 MB. The function must not produce a JSONDecodeError
+        from partial truncation. It should extract what it can from the oversize line.
+        """
+        from core.session_chain import _extract_first_user_message
+
+        # Single line where the JSON-encoded content itself exceeds 1 MB
+        large_content = "x" * (1024 * 1024 + 100)
+        session_file = tmp_path / "large_session.jsonl"
+        session_file.write_text(
+            json.dumps(
+                {
+                    "type": "user",
+                    "sessionId": "large_session",
+                    "message": {"content": [{"type": "text", "text": large_content}]},
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        # Must not raise, must not return None (has valid first user message)
+        result = _extract_first_user_message(session_file)
+        assert result is not None
+        # Returns first 200 chars of the content
+        assert result == large_content[:200]
+
+    def test_extract_last_goals_stops_at_line_boundary(self, tmp_path: Path) -> None:
+        """_extract_last_goals skips oversize lines without JSONDecodeError.
+
+        The assistant message line itself exceeds 1 MB (JSON-encoded). The function must
+        not produce a JSONDecodeError. It should skip the unreadable line gracefully.
+        """
+        from core.session_chain import _extract_last_goals
+
+        large_content = "y" * (1024 * 1024 + 100)
+        session_file = tmp_path / "large_session.jsonl"
+        session_file.write_text(
+            json.dumps(
+                {
+                    "type": "user",
+                    "message": {"content": [{"type": "text", "text": "Hello"}]},
+                }
+            )
+            + "\n"
+            + json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {"content": [{"type": "text", "text": large_content}]},
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        # Must not raise. The assistant line is unreadable (> 1 MB JSON), so it is skipped.
+        # The user line is not an assistant message, so goal_parts is empty → returns None.
+        result = _extract_last_goals(session_file)
+        assert result is None  # no readable assistant message
+
+
+# ---------------------------------------------------------------------------
+# TASK-003: cache never exceeds 50 entries (atomic eviction)
+# ---------------------------------------------------------------------------
+
+
+class TestCacheEviction:
+    """Tests for TASK-003: cache eviction is atomic and size capped at 50."""
+
+    def test_cache_never_exceeds_50_entries(self, mock_projects_dir: Path) -> None:
+        """Cache size never exceeds 50 entries after 60 calls; eviction is atomic."""
+        from core.session_chain import _scan_jsonl_sessions
+
+        project = mock_projects_dir / "P--"
+        project.mkdir(parents=True)
+
+        # Create 60 distinct session files in different subdirs to get 60 distinct cache entries
+        for i in range(60):
+            subdir = project / f"subdir_{i}"
+            subdir.mkdir(parents=True)
+            session_file = subdir / f"session_{i}.jsonl"
+            session_file.write_text(
+                json.dumps(
+                    {
+                        "type": "user",
+                        "sessionId": f"session_{i}",
+                        "message": {"content": [{"type": "text", "text": f"Session {i}"}]},
+                        "timestamp": 1700000000000 + i,
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+        # Clear any pre-existing cache
+        if hasattr(_scan_jsonl_sessions, "_cache"):
+            _scan_jsonl_sessions._cache.clear()
+
+        # Call with 60 distinct project paths (60 cache entries)
+        results = []
+        for i in range(60):
+            subdir = project / f"subdir_{i}"
+            result = _scan_jsonl_sessions(subdir)
+            results.append(result)
+
+        # All calls should succeed
+        assert len(results) == 60
+        assert all(isinstance(r, dict) for r in results)
+
+        # Cache should be capped at _CACHE_MAX_ENTRIES (50) after LRU eviction
+        if hasattr(_scan_jsonl_sessions, "_cache"):
+            cache = _scan_jsonl_sessions._cache
+            # After 60 entries inserted, cache size should be at most 50
+            assert len(cache) <= 50, f"Cache size {len(cache)} exceeds 50"
+
+
+# ---------------------------------------------------------------------------
+# TASK-008: circuit breaker fires only on IOError
+# ---------------------------------------------------------------------------
+
+
+class TestCircuitBreaker:
+    """Tests for TASK-008: circuit breaker fires only on IOError, not on small corpus."""
+
+    def test_circuit_breaker_only_on_io_error(
+        self, mock_projects_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Circuit breaker fires only when sessions-index cannot be loaded, not on < 3 sessions."""
+        project = mock_projects_dir / "P--"
+        project.mkdir(parents=True)
+
+        # Create 2 legitimate sessions — should NOT trigger any circuit breaker
+        for i in range(2):
+            session_file = project / f"session_{i}.jsonl"
+            session_file.write_text(
+                json.dumps(
+                    {
+                        "type": "user",
+                        "sessionId": f"session_{i}",
+                        "message": {"content": [{"type": "text", "text": f"Session {i}"}]},
+                        "timestamp": 1700000000000 + i * 1000,
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+        # sessions-index is empty (simulate unavailable) — should use JSONL scan
+        with patch("core.session_chain.load_sessions_index", return_value={}):
+            result = walk_sessions_index_chain(
+                "session_1",
+                project_path=project,
+            )
+
+        # Should find the session via JSONL scan, not short-circuit to empty
+        assert result.depth >= 1
+        assert len(result.entries) >= 1
+
+
+# ---------------------------------------------------------------------------
+# TASK-005: transcript_path .jsonl validation
+# ---------------------------------------------------------------------------
+
+
+class TestTranscriptPathValidation:
+    """Tests for TASK-005: handoff transcript_path .jsonl suffix validation."""
+
+    def test_handoff_rejects_non_jsonl(
+        self, mock_handoff_dir: Path, tmp_path: Path
+    ) -> None:
+        """Handoff path with non-.jsonl suffix is rejected with a warning."""
+        fake_txt = tmp_path / "fake_session.txt"
+        fake_txt.write_text("not a jsonl", encoding="utf-8")
+        handoff_file = mock_handoff_dir / "console_test_handoff.json"
+        handoff_file.write_text(
+            json.dumps({"resume_snapshot": {"transcript_path": str(fake_txt)}}),
+            encoding="utf-8",
+        )
+        with patch("core.session_chain._handoff_dir", return_value=mock_handoff_dir):
+            result = _get_prior_transcript_path(handoff_file)
+        assert result is None
+
+    def test_handoff_accepts_jsonl(
+        self, mock_handoff_dir: Path, fake_transcript: Path
+    ) -> None:
+        """Handoff path with .jsonl suffix is accepted."""
+        handoff_file = mock_handoff_dir / "console_test_handoff.json"
+        handoff_file.write_text(
+            json.dumps({"resume_snapshot": {"transcript_path": str(fake_transcript)}}),
+            encoding="utf-8",
+        )
+        with patch("core.session_chain._handoff_dir", return_value=mock_handoff_dir):
+            result = _get_prior_transcript_path(handoff_file)
+        assert result == fake_transcript

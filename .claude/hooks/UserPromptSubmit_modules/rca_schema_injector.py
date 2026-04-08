@@ -133,7 +133,12 @@ def rca_schema_injector_hook(context: HookContext) -> HookResult:
     Returns:
         HookResult with schema injection if RCA detected, empty result otherwise
     """
-    user_message = context.data.get("userMessage", "")
+    # Fix: Use correct data keys that router actually provides (prompt/message, not userMessage)
+    user_message = (
+        context.data.get("prompt")
+        or context.data.get("message")
+        or context.data.get("userMessage", "")
+    )
 
     if not _is_rca_intent(user_message):
         return HookResult.empty()

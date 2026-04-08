@@ -1,13 +1,15 @@
-"""Verify-before-claiming reminder for existence/absence queries.
+"""Verify-before-concluding reminder for existence, ranking, and end-to-end queries.
 
-Fires when the user prompt contains signals that Claude might need to
-assert whether a file, hook, feature, or resource exists or is absent.
+Fires when the user prompt contains signals that Claude might need to:
+  - assert whether something exists or is absent
+  - rank or compare approaches
+  - make an end-to-end reliability or dependency-chain judgment
 
-The injected reminder is generic (not context-specific) to avoid
-brittleness and injection fatigue.
+The injected reminder is generic enough to avoid brittle prompt coupling,
+but specific enough to force decomposition before a confident conclusion.
 
 Conditions to fire (both must be true):
-  1. Prompt contains an existence-query pattern
+  1. Prompt contains an existence/comparative/end-to-end pattern
   2. Cooldown window has elapsed since last injection for this session
 
 Configuration:
@@ -37,7 +39,7 @@ COOLDOWN_SECS = int(os.environ.get("VERIFY_BEFORE_CLAIM_COOLDOWN_SECS", "120"))
 _STATE_DIR = Path(__file__).resolve().parent.parent / "session_data"
 
 # ---------------------------------------------------------------------------
-# Patterns: existence / absence queries in user prompts
+# Patterns: existence / absence / comparative / end-to-end queries in user prompts
 # ---------------------------------------------------------------------------
 
 # Each group covers a distinct signal that the response may involve an
@@ -72,6 +74,23 @@ _EXISTENCE_PATTERNS: list[re.Pattern[str]] = [
     # User suspects something is absent
     re.compile(r"\b(missing|absent|lacking)\b.*\?", re.IGNORECASE),
     re.compile(r"\bno\s+(hook|file|test|config|handler|module)\s+for\b", re.IGNORECASE),
+]
+
+_COMPARATIVE_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(r"\bwhich\s+(method|option|approach|path|workflow)\b", re.IGNORECASE),
+    re.compile(r"\b(compare|comparison|vs\.?|versus)\b", re.IGNORECASE),
+    re.compile(r"\b(rank|ranking|ranked|reorder this)\b", re.IGNORECASE),
+    re.compile(r"\b(best|better|worse|worst)\b", re.IGNORECASE),
+    re.compile(r"\bmost\s+(reliable|practical|robust|effective|likely)\b", re.IGNORECASE),
+    re.compile(r"\bleast\s+(reliable|practical|robust|effective|likely)\b", re.IGNORECASE),
+    re.compile(r"\bhighest[- ]throughput\b", re.IGNORECASE),
+    re.compile(r"\bbot[- ]detect(?:ed|ion)\b", re.IGNORECASE),
+    re.compile(r"\brate[- ]limit(?:ed|ing)?\b", re.IGNORECASE),
+    re.compile(r"\bbypass(?:es|ing)?\b", re.IGNORECASE),
+    re.compile(r"\bend[- ]to[- ]end\b", re.IGNORECASE),
+    re.compile(r"\bdepends?\s+on\b", re.IGNORECASE),
+    re.compile(r"\bdependency\s+chain\b", re.IGNORECASE),
+    re.compile(r"\bprerequisite\b", re.IGNORECASE),
 ]
 
 # ---------------------------------------------------------------------------
@@ -123,10 +142,12 @@ def _record_fired(session_id: str | None, terminal_id: str | None) -> None:
 # ---------------------------------------------------------------------------
 
 _REMINDER = (
-    "**VERIFY BEFORE CLAIMING** — If your response involves asserting that a "
-    "file, hook, feature, or resource *does* or *does not* exist: use Read, "
-    "Glob, Grep, or Bash (ls/find) to verify *before* making the claim. "
-    "The Stop hook will block unverified absence claims, costing an extra turn."
+    "**VERIFY BEFORE CONCLUDING** — This prompt may require an existence, ranking, or "
+    "end-to-end judgment. Before answering: "
+    "state the decision criterion explicitly; list prerequisite dependencies and "
+    "upstream bottlenecks; separate verified facts from inference; and do not rank "
+    "a downstream step above a prerequisite without explaining the dependency chain. "
+    "Use Read, Glob, Grep, or Bash to verify the critical links first."
 )
 
 # ---------------------------------------------------------------------------
@@ -135,6 +156,9 @@ _REMINDER = (
 
 def _matches_existence_query(prompt: str) -> bool:
     for pattern in _EXISTENCE_PATTERNS:
+        if pattern.search(prompt):
+            return True
+    for pattern in _COMPARATIVE_PATTERNS:
         if pattern.search(prompt):
             return True
     return False

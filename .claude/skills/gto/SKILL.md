@@ -11,6 +11,8 @@ triggers:
   - "what gaps do we have"
   - "session health"
   - "analyze project state"
+workflow_steps:
+  - execute_gto_analysis
 ---
 
 # GTO v3.1 - Strategic Next-Step Advisor
@@ -34,8 +36,8 @@ GTO analyzes your codebase to identify gaps, tasks, and opportunities across:
 
 | Layer | Criterion | Target |
 |-------|-----------|--------|
-| L1 detectors | All 7 detector types produce output | 100% |
-| L1 detectors | No false-positive spikes (>20% of lines flagged as TODO with no real TODOs) | 0 regressions |
+| L1 detectors | All 3 transcript-based detectors produce output | 100% |
+| L1 detectors | Transcript-based detectors handle missing transcript gracefully | 100% |
 | L2 subagent | GapFinderSubagent produces categorized gaps | 100% |
 | L2 subagent | No silent failures (unhandled exceptions) | 0 in last 10 runs |
 | Output | Health score 0-100% reported | 100% |
@@ -88,9 +90,9 @@ python P:/.claude/skills/gto/gto_orchestrator.py --format both
 
 **What happens:**
 - GTO auto-detects the target from session context
-- Runs all Layer 1 detectors (tests, docs, dependencies, code markers)
-- Optionally runs Layer 2 AI subagents for gap finding
-- Produces health score and categorized gap list
+- Runs transcript-based L1 detectors (session goal, outcomes, suspicion)
+- Runs L2 AI subagents for gap finding
+- Produces gap list and categorized RNS
 - Saves JSON artifact to `.evidence/gto-outputs/`
 
 **Output formats:**

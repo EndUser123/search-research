@@ -1,129 +1,78 @@
-# Agent Tool Usage Best Practices
+# Agent and Task Tool Usage
 
-This document contains detailed guidance on using the Agent/Task tool correctly when spawning subagents from skills.
+**Applies to:** All skills that dispatch subagents via the Agent/Task tool.
 
-## CRITICAL: subagent_type vs model Parameter
+## Critical: Task and Agent Are the Same Tool
 
-When using the `Agent` tool to spawn subagents from skills, understand the difference:
+The `Task` tool was **renamed to `Agent`** in Claude Code v2.1.63. They are the same invocation mechanism. `Task(...)` remains as a backward-compatible alias.
 
-**❌ WRONG:**
-```markdown
-Launch subagents (haiku model):
+> **Practical consequence:** When a skill references "Agent tool" or "Task tool", they mean the same thing. The parameter names are identical. Do not treat them as separate mechanisms.
+
+## Tool Parameters
+
+Both `Agent(...)` and `Task(...)` accept the same parameters:
+
+| Parameter | Required | Purpose |
+|-----------|----------|---------|
+| `subagent_type` | **Yes** | Which specialized agent to invoke (e.g., `general-purpose`, `Explore`, `adversarial-security`) |
+| `prompt` | **Yes** | Instructions for the subagent |
+| `description` | **Yes** | Short summary for task tracking |
+| `model` | No | Override model (`sonnet`, `opus`, `haiku`) |
+| `run_in_background` | No | If `true`, agent runs non-blocking/parallel |
+| `name` | No | Custom name for agent (team coordination) |
+| `team_name` | No | Spawn agent into specific team |
+
+**Common mistake:** Writing `subagent_type: "haiku"` — haiku is a model, not an agent type. Use `model: "haiku"` to override model.
+
+## Parallel Execution
+
+- Up to **10 subagents** can run in parallel via the Agent tool
+- Use `run_in_background=True` for fire-and-forget parallelism
+- Each subagent runs in its **own isolated context**
+- Subagents cannot see each other's work — they report summaries back to the orchestrator
+- **No inter-agent communication** in standard mode
+
+## When to Use Agent Teams (Coordination)
+
+Standard subagent isolation is fine when:
+- Each specialist works independently on separate files/domains
+- Results only need to be synthesized at the end
+- No negotiation or dynamic task distribution needed
+
+Use **Agent Teams** (with `TaskCreate`, `TaskList`, `SendMessage`) when:
+- Agents must coordinate work dynamically (divide a task, claim dependencies)
+- Agents need to communicate with each other during execution
+- Blocked tasks need to auto-unblock when dependencies complete
+
+For `/sqa` L0: 7 specialists + 1 critic — standard parallel agents are sufficient. No inter-agent coordination needed.
+
+## Dispatching Named Agents
+
+Named agents (like `adversarial-logic`, `Explore`, `Plan`) are invoked via `subagent_type`:
+
 ```
-This gets misinterpreted as `subagent_type="haiku"` → **ERROR** (haiku is not an agent type)
-
-**✅ CORRECT:**
-```markdown
-Launch subagents with model="haiku":
-```
-This correctly passes `model: "haiku"` → Works as expected
-
-## Parameter Reference
-
-| Parameter | Purpose | Valid Values | Required |
-|-----------|---------|--------------|----------|
-| `subagent_type` | Specifies which specialized agent to use | `general-purpose`, `Explore`, `Plan`, `feature-dev:code-architect`, etc. | **Yes** |
-| `model` | Override the default model for this subagent | `sonnet`, `opus`, `haiku` | No (defaults to inherited) |
-| `prompt` | What the subagent should do | Free text instructions | **Yes** |
-| `description` | Short summary for task tracking | 3-5 word summary | **Yes** |
-
-## When to Specify model Parameter
-
-Only specify `model` when you need:
-- **Speed optimization**: Use `model="haiku"` for simple tasks (bash commands, file checks, basic reporting)
-- **Quality override**: Use `model="opus"` for complex reasoning when default would be sonnet
-- **Cost optimization**: Use `model="haiku"` for high-volume, low-complexity operations
-
-## Example from /p skill (detection phase)
-
-```markdown
-Launch 2 parallel Task subagents with model="haiku":
-
-Subagent 1 — Test Detection:
-Run these commands and report all output:
-  pytest --collect-only -q 2>&1 | head -5
-  python -c "import subprocess; ..."
-
-Subagent 2 — File & Marker Detection:
-Run these commands and report all output:
-  ls README.md LICENSE 2>&1
-  ls .github/workflows/*.yml 2>&1
+Agent(
+    subagent_type="adversarial-security",
+    prompt="Analyze <target> for security issues. Write findings to <path>",
+    description="Security analysis",
+    run_in_background=True
+)
 ```
 
-This correctly uses `model="haiku"` for fast, simple command execution.
-
-## Common Mistakes
-
-1. **Using model name as subagent_type**: `subagent_type: "haiku"` → ERROR
-2. **Omitting required parameters**: Missing `description` → Silent no-op
-3. **Confusing model selection with agent type**: Model is about capability/cost, agent type is about specialization
-
-## Task Tool All Parameters
-
-The Task tool requires these parameters:
-
-- **subagent_type** (required): Which specialized agent to use
-- **prompt** (required): What the agent should do
-- **description** (required): Short summary for task tracking
-
-Optional parameters:
-- **model**: Override default model (sonnet/opus/haiku)
-- **name**: Custom name for the agent (for team coordination)
-- **team_name**: Spawn agent into specific team
-- **mode**: Permission mode (acceptEdits, bypassPermissions, etc.)
-
-## Dynamic Agent Discovery
-
-**Always discover current agents at runtime** — the static list below is incomplete (104 agents exist across 4 sources).
-
+For the current list of available agents:
 ```bash
-# Full list with descriptions
-python scripts/list_agents.py --json
-
-# Just names, one per line
 python scripts/list_agents.py --names
-
-# Filter by keyword (name or description)
-python scripts/list_agents.py --filter "tdd" --names
-python scripts/list_agents.py --filter "quality" --names
-python scripts/list_agents.py --filter "security" --names
+python scripts/list_agents.py --json  # with descriptions
 ```
 
-**Sources scanned:**
-1. `P:/.claude/agents/` — user agents (bare name)
-2. `~/.claude/agents/` — user agents (bare name)
-3. `P:/.claude/plugins/cache/*/agents/` — plugin agents (`namespace:name`)
-4. `~/.claude/plugins/cache/*/agents/` — plugin agents (`namespace:name`)
-5. Builtins — loaded from `~/.claude/skills/skill-ship/config/builtins.json` at runtime (not hardcoded)
+Sources: `~/.claude/skills/skill-ship/references/agent-tool-usage.md` (this file), `P:/.claude/agents/_README.md`
 
-## Subagent Type Quick Reference
+## Agent Tool in Skill Frontmatter
 
-Use `scripts/list_agents.py --filter <keyword> --names` for the authoritative current list. Key categories:
+Some skills declare `parallel_agents: true` in frontmatter to indicate they dispatch multiple agents simultaneously. This is advisory metadata — the actual mechanism is the `run_in_background` parameter.
 
-| Category | Agents |
-|----------|--------|
-| TDD | `tdd-test-writer`, `tdd-implementer`, `tdd-refactorer` |
-| Quality/Review | `quality-gate`, `csf-nip-quality`, `gto-quality`, `adversarial-quality`, `pr-test-analyzer`, `code-reviewer` |
-| Testing | `test-analyzer`, `qa-engineer`, `adversarial-qa`, `adversarial-testing` |
-| Code Analysis | `code-critic`, `gto-code-critic`, `Explore`, `analyzer` |
-| Security | `adversarial-security`, `csf-nip-security` |
-| Hooks/Architecture | `hook-analyzer`, `csf-nip-architect`, `csf-nip-explorer` |
-| Planning | `Plan`, `plan_reviewer`, `csf-nip-planning-command` |
-| Research/Retro | `researcher`, `retro-analyzer` |
-| Python | `python-core`, `python-modernization`, `python-simplifier`, `python-web` |
-| Skill Development | `csf-nip-development`, `skill-reviewer`, `gitbatch-worker` |
-| Adversarial | `adversarial-critic`, `adversarial-compliance`, `adversarial-logic`, `adversarial-security`, `adversarial-failure-modes`, `adversarial-qa`, `adversarial-state-machine` |
+## References
 
-**White space — agent types with no coverage:**
-- Skill/workflow **selection/routing** agent (chooses best skill for a task)
-- **Token efficiency** agent (context compression, progressive disclosure)
-- **Documentation** agent (README generation, API docs, code-to-doc sync)
-- **Onboarding** agent (codebase tour, developer orientation)
-
-## Best Practices
-
-1. **Always provide all 3 required parameters**: subagent_type, prompt, description
-2. **Use model parameter thoughtfully**: Default is usually best, override only for specific optimization needs
-3. **Choose specialized agents**: Use domain-specific agents (Explore, Plan) over general-purpose when appropriate
-4. **Clear descriptions**: Make descriptions actionable and specific for task tracking
-5. **Parallel execution**: Launch multiple agents in parallel for independent work
+- Skill invocation: `SKILL.md` frontmatter `triggers:`
+- Agent definitions: `P:/.claude/agents/*.md`
+- Teams feature: Claude Code `--agent` CLI flag, `team_name` parameter

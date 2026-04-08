@@ -138,8 +138,8 @@ def check_user_pushback(data: dict, prompt: str) -> str | None:
         if challenge_marker is None or marker_data is None:
             return None
 
-        # Check TTL (5 minutes)
-        if time.monotonic() - marker_data.get("timestamp", 0) > 300:
+        # Check TTL (5 minutes) using wall-clock timestamps shared with Stop hooks.
+        if time.time() - marker_data.get("timestamp", 0) > 300:
             challenge_marker.unlink()
             return None
 

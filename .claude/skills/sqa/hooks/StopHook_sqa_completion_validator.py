@@ -48,7 +48,7 @@ def _run_assertions() -> tuple[bool, str]:
     except subprocess.TimeoutExpired:
         return True, "Assertion timed out - skipping verification"
     except Exception as e:
-        return True, f"Assertion error: {e}"
+        return False, f"SQA assertions crashed unexpectedly: {e}"  # fail closed
 
 
 def main() -> None:
