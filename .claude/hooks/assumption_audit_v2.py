@@ -55,6 +55,17 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+try:
+    from evidence_scope import SCOPE_SESSION_FRESH, load_scoped_tool_events
+except ImportError:
+    SCOPE_SESSION_FRESH = ""
+    load_scoped_tool_events = None  # type: ignore
+
+try:
+    from evidence_store import resolve_session_id as _evidence_store_resolve_session_id
+except ImportError:
+    _evidence_store_resolve_session_id = None  # type: ignore
+
 # === META-CONVERSATION GATE IMPORT ===
 # Import shared helpers for meta/self-referential detection
 # This gate prevents claim-coverage hooks from blocking process talk
@@ -277,6 +288,27 @@ def debug_log(msg: str):
     """Log debug message if DEBUG enabled."""
     if DEBUG:
         print(f"[assumption_audit_v2] {msg}", file=sys.stderr)
+
+
+def resolve_session_id(session_id: str) -> str:
+    """Compatibility wrapper for session id normalization."""
+    if _evidence_store_resolve_session_id is None:
+        return (session_id or "").strip()
+    return _evidence_store_resolve_session_id(session_id)
+
+
+def load_tool_events(session_id: str, limit: int = 500, terminal_id: str = "") -> list[dict]:
+    """Compatibility wrapper for recent session evidence."""
+    if load_scoped_tool_events is None:
+        raise ImportError("evidence_scope unavailable")
+    kwargs = {
+        "session_id": session_id,
+        "scope": SCOPE_SESSION_FRESH,
+        "limit": limit,
+    }
+    if terminal_id:
+        kwargs["terminal_id"] = terminal_id
+    return load_scoped_tool_events(**kwargs)
 
 
 # =============================================================================
@@ -1401,8 +1433,6 @@ def load_tool_sequence_for_evidence() -> list[dict]:
 
     # Preferred path: durable session-scoped evidence store
     try:
-        from evidence_store import load_tool_events, resolve_session_id
-
         session_id = resolve_session_id(session_id)
         if session_id:
             events = load_tool_events(session_id=session_id, limit=500)
@@ -2441,8 +2471,6 @@ def extract_response_and_tools(input_data: dict) -> tuple[str, list[str]]:
 
     if not tools_used:
         try:
-            from evidence_store import load_tool_events, resolve_session_id
-
             session_id = resolve_session_id(os.environ.get("CLAUDE_SESSION_ID", ""))
             if session_id:
                 for tool in load_tool_events(session_id, limit=200):

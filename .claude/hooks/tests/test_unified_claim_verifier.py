@@ -183,3 +183,8 @@ def test_evaluate_claims_uses_shared_evidence_scope_loader(monkeypatch) -> None:
     assert result["decision"] in {"allow", "block"}
     assert ucv.SCOPE_SESSION_FRESH_MUTATION_SAFE in scopes
     assert ucv.SCOPE_TURN_STRICT in scopes
+
+
+def test_unified_claim_verifier_has_no_legacy_turn_marker_helpers() -> None:
+    assert not hasattr(ucv, "_read_turn_marker")
+    assert not hasattr(ucv, "_slice_turn_events")

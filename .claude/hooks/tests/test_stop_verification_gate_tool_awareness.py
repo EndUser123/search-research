@@ -11,6 +11,7 @@ import json
 import os
 import sys
 import tempfile
+import builtins
 from pathlib import Path
 
 # Add hooks directory to path
@@ -60,7 +61,7 @@ def test_behav_002a_suppressed_with_read_tool():
             ]
 
         # Monkey-patch the import
-        original_import = __builtins__.__import__
+        original_import = builtins.__import__
 
         def custom_import(name, *args, **kwargs):
             if name == "evidence_store":
@@ -71,7 +72,7 @@ def test_behav_002a_suppressed_with_read_tool():
                 return MockEvidenceStore()
             return original_import(name, *args, **kwargs)
 
-        __builtins__.__import__ = custom_import
+        builtins.__import__ = custom_import
 
         try:
             response = "Code analysis shows feature X is NOT implemented in the current codebase."
@@ -90,7 +91,7 @@ def test_behav_002a_suppressed_with_read_tool():
             print("✓ BEHAV-002-A suppressed when Read tool used")
 
         finally:
-            __builtins__.__import__ = original_import
+            builtins.__import__ = original_import
             gate_module._STATE_DIR = original_state_dir
 
 
@@ -106,7 +107,7 @@ def test_behav_002a_suppressed_with_grep_tool():
         original_state_dir = gate_module._STATE_DIR
         gate_module._STATE_DIR = state_dir
 
-        original_import = __builtins__.__import__
+        original_import = builtins.__import__
 
         def custom_import(name, *args, **kwargs):
             if name == "evidence_store":
@@ -117,7 +118,7 @@ def test_behav_002a_suppressed_with_grep_tool():
                 return MockEvidenceStore()
             return original_import(name, *args, **kwargs)
 
-        __builtins__.__import__ = custom_import
+        builtins.__import__ = custom_import
 
         try:
             response = "Search results indicate this is fully implemented."
@@ -135,7 +136,7 @@ def test_behav_002a_suppressed_with_grep_tool():
             print("✓ BEHAV-002-A suppressed when Grep tool used")
 
         finally:
-            __builtins__.__import__ = original_import
+            builtins.__import__ = original_import
             gate_module._STATE_DIR = original_state_dir
 
 
@@ -151,7 +152,7 @@ def test_behav_002a_fires_with_non_verification_tools():
         original_state_dir = gate_module._STATE_DIR
         gate_module._STATE_DIR = state_dir
 
-        original_import = __builtins__.__import__
+        original_import = builtins.__import__
 
         def custom_import(name, *args, **kwargs):
             if name == "evidence_store":
@@ -163,7 +164,7 @@ def test_behav_002a_fires_with_non_verification_tools():
                 return MockEvidenceStore()
             return original_import(name, *args, **kwargs)
 
-        __builtins__.__import__ = custom_import
+        builtins.__import__ = custom_import
 
         try:
             response = "This is NOT implemented."
@@ -182,7 +183,7 @@ def test_behav_002a_fires_with_non_verification_tools():
             print("✓ BEHAV-002-A fires with non-verification tools only")
 
         finally:
-            __builtins__.__import__ = original_import
+            builtins.__import__ = original_import
             gate_module._STATE_DIR = original_state_dir
 
 

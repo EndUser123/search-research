@@ -27,8 +27,9 @@ CLAIM TYPES COVERED:
   8. FOLDER_DELETE: "deleted folder X", "removed directory X"
 
 VERIFICATION METHOD:
-  Uses load_tool_events(session_id, terminal_id) from evidence_store to check
-  what tools were used THIS TURN (turn-scoped verification prevents stale data).
+  Uses the shared turn-scoped evidence helper to check what tools were used
+  THIS TURN (turn-scoped verification prevents stale data and keeps spool
+  fallback behavior consistent across guards).
 
 ALLOWLIST (obvious claims that don't need verification):
   - Conversational denials: "I didn't modify X", "I haven't created X"
@@ -67,40 +68,11 @@ _logger.setLevel(logging.DEBUG)
 
 
 try:
-    from evidence_scope import SCOPE_TURN_STRICT, load_scoped_tool_events
+    from turn_scoped_evidence import load_turn_scoped_events
     EVIDENCE_AVAILABLE = True
 except ImportError as exc:
     EVIDENCE_AVAILABLE = False
     _logger.warning("evidence_store import failed: %s", exc)
-
-
-# --- Turn marker -----------------------------------------------------------
-
-
-def _safe_scope_key(session_id: str, terminal_id: str) -> str:
-    """Create safe filename key from session and terminal IDs."""
-
-    def _safe(s: str) -> str:
-        return re.sub(r"[^a-zA-Z0-9._-]", "_", (s or "unknown").strip())
-
-    return f"{_safe(session_id)}__{_safe(terminal_id)}"
-
-
-def _read_turn_marker(session_id: str, terminal_id: str) -> int | None:
-    """Return turn_start_event_id from marker file, or None if absent."""
-    STATE_DIR_TURN_MARKERS = HOOKS_DIR / "state" / "turn_markers"
-    path = STATE_DIR_TURN_MARKERS / f"turn_start_{_safe_scope_key(session_id, terminal_id)}.json"
-    try:
-        data = json.loads(path.read_text())
-        val = data.get("turn_start_event_id")
-        if val is not None:
-            return int(val)
-    except (FileNotFoundError, OSError):
-        # Race: file deleted between glob and read — treat as absent
-        return None
-    except (json.JSONDecodeError, TypeError, ValueError) as exc:
-        _logger.warning("turn marker read failed: %s: %s", path, exc)
-    return None
 
 
 # --- Tool history verification ---------------------------------------------
@@ -120,57 +92,16 @@ def _load_turn_events(session_id: str, terminal_id: str) -> list[dict] | None:
         _logger.warning("FAIL-WARN: session_id empty/missing")
         return None
 
-    # Test mode detection: if session_id looks like a test identifier (not UUID),
-    # try loading spool files directly
-    if not re.match(r"^[a-f0-9\-]{36}$", session_id.lower()):
-        _logger.debug("test mode detected for session_id=%s", session_id[:16])
-        return _load_spool_files(session_id, terminal_id)
-
-    try:
-        all_events = load_scoped_tool_events(
-            session_id=session_id,
-            terminal_id=terminal_id,
-            scope=SCOPE_TURN_STRICT,
-            limit=500,
-        )
-    except Exception as exc:
-        _logger.warning("FAIL-WARN: load_tool_events raised: %s", exc)
+    all_events = load_turn_scoped_events(
+        session_id=session_id,
+        terminal_id=terminal_id,
+        limit=500,
+    )
+    if all_events is None:
+        _logger.warning("FAIL-WARN: load_turn_scoped_events returned unavailable")
         return None
     _logger.debug("loaded %d events for session=%s", len(all_events), session_id[:16])
     return all_events
-
-
-def _load_spool_files(session_id: str, terminal_id: str) -> list[dict] | None:
-    """Load tool events from spool files directly (test mode fallback)."""
-    try:
-        spool_dir = HOOKS_DIR / "session_data" / "evidence_spool"
-        spool_files = sorted(spool_dir.glob(f"{session_id}_*.json"))
-    except (FileNotFoundError, OSError):
-        # Race: directory deleted between path construction and glob
-        return None
-
-    if not spool_files:
-        _logger.debug("no spool files found for session=%s", session_id[:16])
-        return None
-
-    events = []
-    min_id = _read_turn_marker(session_id, terminal_id)
-
-    for spool_file in spool_files:
-        try:
-            event_data = json.loads(spool_file.read_text(encoding="utf-8"))
-            event_id = int(event_data.get("id", 0))
-
-            if min_id is not None and event_id <= min_id:
-                continue
-
-            events.append(event_data)
-        except (FileNotFoundError, OSError, json.JSONDecodeError, ValueError):
-            # Race: file deleted between glob and read, or corrupted JSON
-            continue
-
-    _logger.debug("loaded %d events from spool for session=%s", len(events), session_id[:16])
-    return events
 
 
 # --- Claim type patterns ---------------------------------------------------

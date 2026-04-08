@@ -1,9 +1,10 @@
 ---
 name: git
-version: "1.0.0"
+version: "2.0.0"
 status: "stable"
 category: vcs
-description: Git sync with health check, auto-fix, smart conflict resolution, and worktree management.
+enforcement: advisory
+description: Git sync with multi-repo discovery, auto-push for main, interactive selection for others, worktree management, and smart conflict resolution.
 triggers:
   - /git
 args:
@@ -11,17 +12,17 @@ args:
   - -v: Shorthand for --verbose
   - --health: Check configuration only (don't sync)
   - --fix: Auto-fix issues before syncing
-  - --tasks-only: Check Tasks configuration only
+  - --repos: Filter repos by type (all, packages, .claude, mcp, non-main)
   - --worktree: Worktree management mode (list, add, remove, prune)
   - --no-resolve: Skip automatic conflict resolution (manual mode)
 execution:
-  directive: "If --worktree: manage worktrees. Otherwise: run health check, auto-fix if needed, sync with smart conflict resolution, validate post-merge. Context-aware for main vs worktree."
+  directive: "If --worktree: manage worktrees. Otherwise: discover all git repos, auto-sync main repo (commit + push), present interactive selection for non-main repos. Non-interactive mode skips selection."
   default_args: ""
   examples:
     - "/git"
     - "/git --verbose"
     - "/git --health"
-    - "/git --fix"
+    - "/git --repos packages"
     - "/git --worktree"
     - "/git --worktree add feature-name"
     - "/git --worktree remove feature-name"
@@ -33,65 +34,82 @@ do_not:
   - use alternative approaches
 ---
 
-# Git: Sync + Worktree + Smart Conflict Resolution
+# Git: Multi-Repo Sync + Worktree Management
 
 ## Quick Usage
 
 ```powershell
-# Sync with health check (default)
+# Sync all repos (main auto-push, others interactive)
 /git
 
-# Health check only (no sync)
+# Health check - see all repos status
 /git --health
-
-# Auto-fix issues then sync
-/git --fix
 
 # Verbose output
 /git --verbose
 
-# Check specific layer
-/git --health --tasks-only
+# Filter to specific repo types
+/git --repos packages        # Only package repos
+/git --repos .claude         # Only .claude internal repos
 
 # Worktree management
 /git --worktree                # List all worktrees
 /git --worktree add name       # Create new worktree
 /git --worktree remove name    # Remove worktree
 /git --worktree prune          # Clean up stale worktrees
-
-# Manual conflict resolution
-/git --no-resolve              # Skip auto-resolution, handle manually
 ```
 
 ---
 
 ## ⚡ EXECUTE
 
-**MANDATORY ACTION: Run sync.py for health check + smart sync + worktree management**
+**MANDATORY ACTION: Run sync.py for multi-repo sync + worktree management**
 
 ```bash
-# From any directory, invoke:
-python .claude/skills/git/sync.py [args]
-
-# Or with full path:
 python P:/.claude/skills/git/sync.py [args]
 ```
-
-The `sync.py` script handles:
-- Environment detection (main vs worktree)
-- Auto-fix for missing configurations
-- Bidirectional sync (worktree ↔ main)
-- Worktree management (list, add, remove, prune)
-- Smart conflict resolution (file-type based)
-- Post-merge validation
-
-**Python implementation:** See `sync.py` for full source code.
 
 ---
 
 ## What It Does
 
-### Worktree Mode (--worktree)
+### Multi-Repo Discovery
+Discovers all `.git` directories under `P:/`:
+- **Main repo** (`P:/.git`) - auto-sync, auto-push
+- **Package repos** (`packages/*/.git`) - interactive selection
+- **MCP repos** (`packages/.mcp/*/.git`) - interactive selection
+- **Internal repos** (`.claude/hooks/`, `.claude/skills/*/`) - interactive selection
+
+### Main Repo (Auto-Push)
+- Auto-commits uncommitted changes with scoped commit messages
+- Auto-pushes to remote (dynamic remote/branch detection)
+- On push failure: shows actionable error with remote URL and fix advice
+
+### Non-Main Repos (Interactive Selection)
+Presents numbered list of repos with unpushed commits:
+
+```
+Non-main repos with unpushed commits:
+
+  [1] packages\claude-log - 3 commit(s) ahead
+  [2] packages\reflect-system - 8 commit(s) ahead
+  [3] .claude\hooks - 12 commit(s) ahead
+
+Select repos to push (e.g., 1,3 or 1-3 or all): _
+```
+
+- `all` or `*` = push all
+- `1-3` = range selection
+- `1,3` = specific selection
+- Empty = skip all
+
+### Health Check (`--health`)
+Shows all repos with their status:
+- Commits ahead of remote
+- No remote configured
+- Up-to-date
+
+### Worktree Mode (`--worktree`)
 | Action | Command | Description |
 |--------|---------|-------------|
 | List | `/git --worktree` | Show all worktrees with current (*) |
@@ -99,43 +117,14 @@ The `sync.py` script handles:
 | Remove | `/git --worktree remove <name>` | Remove worktree (keeps branch) |
 | Prune | `/git --worktree prune` | Clean up stale worktrees |
 
-### Health Check Phase
-- Detects location (main vs worktree)
-- Checks `.claude/settings.json` and `CLAUDE_CODE_TASK_LIST_ID`
-- Reports issues clearly
-
-### Auto-Fix Phase (--fix)
-- Creates missing `.claude/settings.json`
-
-### Sync Phase (default)
-- Cleans stale git locks
-- Auto-commits uncommitted changes
-- Merges main → worktree (pull)
-- Merges worktree → main (push)
-- **Auto-resolves conflicts** based on file type
-- Post-merge validation
-- Skips unnecessary merges (optimization)
-
-### Conflict Resolution (automatic)
-| File Pattern | Strategy | Rationale |
-|--------------|----------|-----------|
-| `.claude/sessions/*` | Ours (keep local) | Session state is local, never shared |
-| `*.py`, `*.md`, `*.json`, code | Theirs (use incoming) | Committed code in main is source of truth |
-| `.env`, config files | Manual | May need both sides |
-
-Use `/git --no-resolve` to skip auto-resolution and handle conflicts manually.
+### Push Error Handling
+Push failures show actionable messages:
+- Authentication errors: suggests manual `git push` to authenticate
+- Rejected pushes: suggests pulling first
+- Missing remote: shows which repos have no remote
 
 ---
 
-## References
-
-| File | Contents |
-|------|----------|
-| `references/post-sync-verification.md` | Post-sync verification commands and checklist |
-| `references/user-home-backup.md` | User-home backup setup, automation, and recovery |
-
----
-
-**Version:** 4.2
-**Updated:** March 7, 2026
-**Status:** Production ready - sync + worktree + smart conflict resolution + verification + user-home backup
+**Version:** 2.0
+**Updated:** April 8, 2026
+**Status:** Production ready - multi-repo sync + auto-push main + interactive selection

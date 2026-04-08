@@ -12,10 +12,8 @@ Single source of truth for Stop-time claim verification:
 Principle enforced: "Never assert the result of an action you didn't take."
 """
 
-import json
 import os
 import re
-from pathlib import Path
 from typing import Any
 
 from __lib.shared_helpers import is_question, strip_non_claim_lines
@@ -25,9 +23,6 @@ from evidence_scope import (
     load_scoped_tool_events,
 )
 from evidence_store import resolve_session_id
-
-_HOOKS_DIR = Path(__file__).resolve().parent
-_TURN_MARKER_DIR = _HOOKS_DIR / "state" / "turn_markers"
 
 OBSERVATION_TOOLS = frozenset({"Read", "Bash", "Grep", "Glob", "Search", "WebFetch"})
 STATE_CHANGING_TOOLS = frozenset({"Write", "Edit", "MultiEdit", "NotebookEdit", "Task"})
@@ -365,49 +360,6 @@ def _action_tool_was_called(
     # Target present → verify content relatedness using helper
     matching_events = [e for e in turn_events if e.get("name") == implied_tool]
     return any(_event_matches_target(e, target, {implied_tool}) for e in matching_events)
-
-
-# =============================================================================
-# Turn marker support (shared by Strategy B and C)
-# =============================================================================
-
-def _read_turn_marker(session_id: str, terminal_id: str) -> int | None:
-    """Return turn_start_event_id from marker file, or None if absent."""
-    def _safe(s: str) -> str:
-        return re.sub(r"[^a-zA-Z0-9_.-]", "_", (s or "unknown").strip())
-    key = f"{_safe(session_id)}__{_safe(terminal_id)}"
-    path = _TURN_MARKER_DIR / f"turn_start_{key}.json"
-    if not path.exists():
-        return None
-    try:
-        data = json.loads(path.read_text())
-        val = data.get("turn_start_event_id")
-        if val is not None:
-            return int(val)
-    except (OSError, json.JSONDecodeError, TypeError, ValueError):
-        pass
-    return None
-
-
-def _slice_turn_events(
-    all_events: list[dict], session_id: str, terminal_id: str
-) -> list[dict] | None:
-    """Slice session events to current turn only.
-
-    Returns None if session_id is empty OR if turn marker is absent.
-    None signals "scope unknown" → caller triggers fail-warn, not fail-open.
-
-    Rationale: a stale WebSearch from 50 turns ago must not verify a lie
-    in the current turn. If we can't determine the turn boundary, we warn
-    rather than silently accepting historical evidence as current-turn proof.
-    """
-    if not session_id:
-        return None
-    min_id = _read_turn_marker(session_id, terminal_id)
-    if min_id is None:
-        # Marker absent — turn boundary unknown. Fail-warn, not stale-pass.
-        return None
-    return [e for e in all_events if int(e.get("id", 0)) > min_id]
 
 
 def _build_existence_warn_message(warns: list[dict]) -> str:

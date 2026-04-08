@@ -17,9 +17,9 @@ FAILURE MODE CAUGHT:
   -> Guard blocks and demands verification.
 
 TURN SCOPING (stale-data-immune):
-  Uses _read_turn_marker() from Stop_unverified_existence_gate.py to check
-  only tool events from THIS turn (id > turn_start_event_id). Prevents
-  "I verified 3 hours ago" stale evidence bypass.
+  Uses the shared turn-scoped evidence helper to check only tool events from
+  THIS turn (id > turn_start_event_id). Prevents "I verified 3 hours ago"
+  stale evidence bypass and keeps spool fallback behavior consistent.
 
 ALLOWLIST (obvious claims that don't need verification):
   - "no internet access", "no network", "offline" (capability statements)
@@ -58,7 +58,7 @@ _logger.setLevel(logging.DEBUG)
 
 
 try:
-    from evidence_scope import SCOPE_TURN_STRICT, load_scoped_tool_events
+    from turn_scoped_evidence import load_turn_scoped_events
     EVIDENCE_AVAILABLE = True
 except ImportError as exc:
     EVIDENCE_AVAILABLE = False
@@ -166,82 +166,7 @@ BASH_VERIFICATION_COMMANDS = re.compile(
 PURE_NUMBER_PATTERN = re.compile(r"\bthere's\s+no\s+(\d+)\b", re.IGNORECASE)
 
 
-# --- Turn marker -----------------------------------------------------------
-
-
-def _safe_scope_key(session_id: str, terminal_id: str) -> str:
-    """Create safe filename key from session and terminal IDs."""
-
-    def _safe(s: str) -> str:
-        return re.sub(r"[^a-zA-Z0-9_.-]", "_", (s or "unknown").strip())
-
-    return f"{_safe(session_id)}__{_safe(terminal_id)}"
-
-
-def _read_turn_marker(session_id: str, terminal_id: str) -> int | None:
-    """Return turn_start_event_id from marker file, or None if absent.
-
-    Copied from Stop_unverified_existence_gate.py for "this turn" scoping.
-    """
-    STATE_DIR_TURN_MARKERS = HOOKS_DIR / "state" / "turn_markers"
-    path = STATE_DIR_TURN_MARKERS / f"turn_start_{_safe_scope_key(session_id, terminal_id)}.json"
-    if not path.exists():
-        _logger.debug("turn marker missing: %s", path)
-        return None
-    try:
-        data = json.loads(path.read_text())
-        val = data.get("turn_start_event_id")
-        if val is not None:
-            return int(val)
-    except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
-        _logger.warning("turn marker read failed: %s: %s", path, exc)
-    return None
-
-
 # --- Tool history verification ---------------------------------------------
-
-
-def _load_spool_files(session_id: str, terminal_id: str) -> list[dict] | None:
-    """Load tool events from spool files directly (test mode fallback).
-
-    Returns None when spool directory is unavailable or no spool files exist.
-    Returns [] when spool files exist but no matching events found this turn.
-    """
-    try:
-        spool_dir = HOOKS_DIR / "session_data" / "evidence_spool"
-        if not spool_dir.exists():
-            _logger.debug("spool directory not found: %s", spool_dir)
-            return None
-
-        # Find all spool files for this session
-        spool_files = sorted(spool_dir.glob(f"{session_id}_*.json"))
-        if not spool_files:
-            _logger.debug("no spool files found for session=%s", session_id[:16])
-            return None  # Changed: No spool files means evidence unavailable
-
-        events = []
-        min_id = _read_turn_marker(session_id, terminal_id)
-
-        for spool_file in spool_files:
-            try:
-                event_data = json.loads(spool_file.read_text(encoding="utf-8"))
-                event_id = int(event_data.get("id", 0))
-
-                # Filter by turn scope if marker exists
-                if min_id is not None and event_id <= min_id:
-                    continue
-
-                events.append(event_data)
-            except (OSError, json.JSONDecodeError, ValueError) as exc:
-                _logger.warning("spool file read failed: %s: %s", spool_file, exc)
-
-        _logger.debug("loaded %d events from spool for session=%s", len(events), session_id[:16])
-        return events
-
-    except Exception as exc:
-        _logger.warning("spool load failed: %s", exc)
-        return None
-
 
 def _load_turn_events(session_id: str, terminal_id: str) -> list[dict] | None:
     """Load tool events for the current turn only (id > turn_start_event_id).
@@ -257,21 +182,13 @@ def _load_turn_events(session_id: str, terminal_id: str) -> list[dict] | None:
         _logger.warning("FAIL-WARN: session_id empty/missing")
         return None
 
-    # Test mode detection: if session_id looks like a test identifier (not UUID),
-    # try loading spool files directly
-    if not re.match(r"^[a-f0-9\-]{36}$", session_id.lower()):
-        _logger.debug("test mode detected for session_id=%s", session_id[:16])
-        return _load_spool_files(session_id, terminal_id)
-
-    try:
-        all_events = load_scoped_tool_events(
-            session_id=session_id,
-            terminal_id=terminal_id,
-            scope=SCOPE_TURN_STRICT,
-            limit=200,
-        )
-    except Exception as exc:
-        _logger.warning("FAIL-WARN: load_tool_events raised: %s", exc)
+    all_events = load_turn_scoped_events(
+        session_id=session_id,
+        terminal_id=terminal_id,
+        limit=200,
+    )
+    if all_events is None:
+        _logger.warning("FAIL-WARN: load_turn_scoped_events returned unavailable")
         return None
 
     _logger.debug("loaded %d events for session=%s", len(all_events), session_id[:16])

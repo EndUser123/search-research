@@ -69,11 +69,29 @@ def test_turn_scoped_adapters_use_turn_strict_for_uuid_sessions(
     module = __import__(module_name)
     captured: dict[str, object] = {}
 
+    def fake_load_turn_scoped_events(**kwargs):
+        captured.update(kwargs)
+        return [{"id": 10, "name": "Read", "command": "foo.py"}]
+
     def fake_load_scoped_tool_events(**kwargs):
         captured.update(kwargs)
         return [{"id": 10, "name": "Read", "command": "foo.py"}]
 
-    monkeypatch.setattr(module, "load_scoped_tool_events", fake_load_scoped_tool_events)
+    if hasattr(module, "load_turn_scoped_events"):
+        monkeypatch.setattr(module, "load_turn_scoped_events", fake_load_turn_scoped_events)
+        expected = {
+            "session_id": "11111111-1111-1111-1111-111111111111",
+            "terminal_id": "terminal-3",
+            "limit": limit,
+        }
+    else:
+        monkeypatch.setattr(module, "load_scoped_tool_events", fake_load_scoped_tool_events)
+        expected = {
+            "session_id": "11111111-1111-1111-1111-111111111111",
+            "terminal_id": "terminal-3",
+            "scope": "turn_strict",
+            "limit": limit,
+        }
 
     result = module._load_turn_events(
         "11111111-1111-1111-1111-111111111111",
@@ -81,12 +99,7 @@ def test_turn_scoped_adapters_use_turn_strict_for_uuid_sessions(
     )
 
     assert result == [{"id": 10, "name": "Read", "command": "foo.py"}]
-    assert captured == {
-        "session_id": "11111111-1111-1111-1111-111111111111",
-        "terminal_id": "terminal-3",
-        "scope": "turn_strict",
-        "limit": limit,
-    }
+    assert captured == expected
 
 
 @pytest.mark.parametrize(
@@ -96,6 +109,7 @@ def test_turn_scoped_adapters_use_turn_strict_for_uuid_sessions(
         ("StopHook_cross_validator", 50),
         ("StopHook_drift_sentinel", 50),
         ("narrative_intent_detector", 500),
+        ("assumption_audit_v2", 500),
     ],
 )
 def test_session_fresh_adapters_use_shared_scope(

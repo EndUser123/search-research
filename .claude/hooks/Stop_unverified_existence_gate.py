@@ -19,14 +19,9 @@ FAILURE MODE CAUGHT:
   -> Gate blocks and demands verification.
 
 TURN SCOPING (stale-data-immune, no TTL):
-  Reads per-terminal marker from UserPromptSubmit/turn_marker.py
-  containing the max tool_event id at turn start. Only events with
-  id > that marker are "this turn". Multi-terminal: marker is keyed
-  by session_id + terminal_id.
-
-  Fallback: if marker is absent, scans all session events (may
-  produce false negatives on very long sessions but never blocks
-  incorrectly).
+  Uses the shared turn-scoped evidence helper. Real Claude sessions load
+  `turn_strict` evidence, while test-mode/non-UUID sessions use the same
+  marker-aware spool fallback shared by the other Stop guards.
 
 FAIL-WARN POLICY:
   Unlike most hooks, this gate does NOT fail-open silently.
@@ -42,7 +37,6 @@ LIFECYCLE: Stop (blocking gate -- exits with code 2 to block)
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import re
@@ -50,7 +44,6 @@ import sys
 from pathlib import Path
 
 HOOKS_DIR = Path(__file__).resolve().parent
-STATE_DIR = HOOKS_DIR / "state" / "turn_markers"
 LOG_DIR = HOOKS_DIR / "state" / "logs"
 sys.path.insert(0, str(HOOKS_DIR))
 
@@ -66,7 +59,7 @@ _logger.setLevel(logging.DEBUG)
 
 
 try:
-    from evidence_scope import SCOPE_TURN_STRICT, load_scoped_tool_events
+    from turn_scoped_evidence import load_turn_scoped_events
     EVIDENCE_AVAILABLE = True
 except ImportError as exc:
     EVIDENCE_AVAILABLE = False
@@ -158,30 +151,6 @@ def _find_suspicious_sentences(response: str) -> list[tuple[str, str]]:
     return results
 
 
-# --- Turn marker -----------------------------------------------------------
-
-def _safe_scope_key(session_id: str, terminal_id: str) -> str:
-    def _safe(s: str) -> str:
-        return re.sub(r"[^a-zA-Z0-9_.-]", "_", (s or "unknown").strip())
-    return f"{_safe(session_id)}__{_safe(terminal_id)}"
-
-
-def _read_turn_marker(session_id: str, terminal_id: str) -> int | None:
-    """Return turn_start_event_id from marker file, or None if absent."""
-    path = STATE_DIR / f"turn_start_{_safe_scope_key(session_id, terminal_id)}.json"
-    if not path.exists():
-        _logger.debug("turn marker missing: %s", path)
-        return None
-    try:
-        data = json.loads(path.read_text())
-        val = data.get("turn_start_event_id")
-        if val is not None:
-            return int(val)
-    except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
-        _logger.warning("turn marker read failed: %s: %s", path, exc)
-    return None
-
-
 # --- Tool history verification ---------------------------------------------
 
 def _load_turn_events(session_id: str, terminal_id: str) -> list[dict] | None:
@@ -199,15 +168,13 @@ def _load_turn_events(session_id: str, terminal_id: str) -> list[dict] | None:
         _logger.warning("FAIL-WARN: session_id empty/missing")
         return None
 
-    try:
-        all_events = load_scoped_tool_events(
-            session_id=session_id,
-            terminal_id=terminal_id,
-            scope=SCOPE_TURN_STRICT,
-            limit=200,
-        )
-    except Exception as exc:
-        _logger.warning("FAIL-WARN: load_tool_events raised: %s", exc)
+    all_events = load_turn_scoped_events(
+        session_id=session_id,
+        terminal_id=terminal_id,
+        limit=200,
+    )
+    if all_events is None:
+        _logger.warning("FAIL-WARN: load_turn_scoped_events returned unavailable")
         return None
 
     _logger.debug("loaded %d events for session=%s", len(all_events), session_id[:16])
