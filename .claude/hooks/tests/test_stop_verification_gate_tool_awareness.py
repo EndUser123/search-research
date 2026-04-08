@@ -7,7 +7,6 @@ Tests the fix for BEHAV-002-A infinite loop:
 - With verification tools this turn: BEHAV-002-A should NOT fire
 """
 
-import json
 import sys
 from pathlib import Path
 
