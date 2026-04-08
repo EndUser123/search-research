@@ -127,6 +127,32 @@ asyncio.run(search())
 "
 ```
 
+**Session-chain queries** (transcripts, handoffs, filepaths):
+
+```bash
+cd "P:/packages/search-research" && python -c "
+from pathlib import Path
+from datetime import datetime
+
+project = Path.home() / '.claude/projects/P--'
+handoff_dir = Path('P:/.claude/state/handoff')
+
+# Transcripts
+transcripts = sorted(project.glob('*.jsonl'), key=lambda p: p.stat().st_mtime, reverse=True)
+print(f'=== Session Transcripts ({len(transcripts)} total) ===')
+for t in transcripts[:15]:
+    mtime = datetime.fromtimestamp(t.stat().st_mtime).strftime('%Y-%m-%d %H:%M')
+    print(f'  [{mtime}] {t.name}')
+
+# Handoff files
+handoffs = sorted(handoff_dir.glob('console_*_handoff.json'), key=lambda p: p.stat().st_mtime, reverse=True)
+print(f'\n=== Handoff Files ({len(handoffs)} total) ===')
+for h in handoffs[:10]:
+    mtime = datetime.fromtimestamp(h.stat().st_mtime).strftime('%Y-%m-%d %H:%M')
+    print(f'  [{mtime}] {h.name}')
+"
+```
+
 For chat history only:
 
 ```bash
@@ -158,8 +184,10 @@ asyncio.run(search())
 /search "how does FAISS work"
 /search "python async patterns"
 
-# Everything - auto-detected from complexity
-/search "how our authentication approach evolved"
+# Session chain - list transcript and handoff files
+/search "session chain files"
+/search "filepaths for session-chain"
+/search "transcript files"
 
 # Hint overrides (when detection gets it wrong)
 /search "authentication [from chat]"

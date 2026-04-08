@@ -30,8 +30,10 @@ class TestPytestTimeoutGuard:
 
     def _run_hook(self, command: str) -> dict:
         """Run the hook with given command and return result."""
-        # Import the module
+        # Import the module - force reload to pick up env var changes
         import importlib
+        if "PreToolUse_pytest_timeout_guard" in sys.modules:
+            importlib.reload(sys.modules["PreToolUse_pytest_timeout_guard"])
         mod = importlib.import_module("PreToolUse_pytest_timeout_guard")
 
         # Create input data

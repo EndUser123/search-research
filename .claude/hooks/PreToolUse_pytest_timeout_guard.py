@@ -41,10 +41,12 @@ def _guard_mode() -> str:
 
 # Patterns that should NOT trigger the guard (exemptions)
 EXEMPT_PATTERNS = [
-    r"pytest\s+(--version|-v|--help|-h)",
-    r"pytest\s+--collect-only",
-    r"python\s+-m\s+pytest\s+(--version|-v|--help|-h)",
-    r"python\d*\s+-m\s+pytest\s+--collect-only",
+    r"pytest\s+--version",  # Version query (not -v which means verbose)
+    r"pytest\s+(--help|-h)",  # Help query
+    r"pytest\s+--collect-only",  # Collection only (no execution)
+    r"python\s+-m\s+pytest\s+--version",  # python -m pytest --version
+    r"python\d*\s+-m\s+pytest\s+(--help|-h)",  # python -m pytest --help
+    r"python\d*\s+-m\s+pytest\s+--collect-only",  # python -m pytest --collect-only
     # Allow bypass flag
     r"--allow-no-timeout",
 ]
