@@ -229,7 +229,12 @@ OBVIOUS_ALLOWLIST = re.compile(
     r"|\b(?:file\s+)?(?:operation\s+)?(?:was\s+)?verified\b"
     r"|\bverification\s+(?:has\s+)?failed\b"
     r"|\bverifying\b"
-    r"|\bconfirm(?:s|ed)?\s+(?:the\s+)?(?:deletion|removal|creation|modification)\b",
+    r"|\bconfirm(?:s|ed)?\s+(?:the\s+)?(?:deletion|removal|creation|modification)\b"
+    # Design-proximate deletion: describes state/process, not completion claims
+    # e.g. "files are deleted after Whisper transcription" — design intent, not claimed completion
+    r"|\bdeleted\s+after\s+(?:whisper|transcription|ingestion|processing|conversion|extraction)\b"
+    r"|\bdeleted\s+following\s+(?:whisper|transcription|ingestion|processing|conversion|extraction)\b"
+    r"|\bdeletes?\s+after\s+(?:whisper|transcription|ingestion|processing|conversion|extraction)\b",
     re.IGNORECASE,
 )
 
@@ -460,7 +465,7 @@ def check(data: dict) -> dict | None:
             "WARN: Evidence store unavailable - cannot verify %d file operation claim(s)",
             len(claims),
         )
-        lines = ["**⚠️ Unverified File Operation Claim (evidence system unavailable)**\n"]
+        lines = ["Unverified File Operation Claim (evidence system unavailable)\n"]
         lines.append(
             "The response claims file/folder operations occurred, "
             "but the evidence system is unavailable and cannot verify whether "
@@ -485,7 +490,7 @@ def check(data: dict) -> dict | None:
             "BLOCK: %d unverified file operation claim(s) (no tools used this turn)",
             len(claims),
         )
-        lines = ["**Unverified File Operation Claim Detected**\n"]
+        lines = ["Unverified File Operation Claim Detected\n"]
         lines.append(
             "The response claims file/folder operations occurred "
             "without evidence of verification tools used this turn.\n"
@@ -515,7 +520,7 @@ def check(data: dict) -> dict | None:
             "BLOCK: %d unverified file operation claim(s) (no matching tools)",
             len(unverified_claims),
         )
-        lines = ["**Unverified File Operation Claim Detected**\n"]
+        lines = ["Unverified File Operation Claim Detected\n"]
         lines.append(
             "The response claims file/folder operations occurred "
             "without evidence of verification tools used this turn.\n"

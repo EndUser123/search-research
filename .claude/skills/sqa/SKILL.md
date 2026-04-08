@@ -351,16 +351,33 @@ Record completion: `record_layer_complete("L2", findings=N)`
 If findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`, run `record_halt("L2")`, and stop. Otherwise continue.
 
 ### Step 4: STRUCTURAL
-**NOTE:** `meta-review`, `harden`, `apply_safety_patterns` are documented as available skills but have no executable implementation — they are stubs that describe capability without providing execution code.
+**Import analyzers directly from `lib.analysis_unit`** (NOT subprocess or Skill tool):
 
-**Behavior:** Skip L3 with warning: `"SKIP: L3 tools are documented stubs (meta-review, harden, apply_safety_patterns) — no executable implementation found"`
+```python
+from lib.analysis_unit import create_analysis_unit, load_analysis_unit
+from lib.analysis_unit.analyzers.path_traversal import PathTraversalAnalyzer
+from lib.analysis_unit.analyzers.import_graph import ImportGraphAnalyzer
+from lib.analysis_unit.analyzers.doc_consistency import DocConsistencyAnalyzer
 
-If alternative tools become available, invoke via Skill tool:
-- `Skill('meta-review', args='<target> --perspective=all')`
-- `Skill('harden', args='<target>')`
-- `Skill('apply_safety_patterns', args='<target>')`
+# Create analysis unit from target
+manifest_path = create_analysis_unit(target)
+manifest = load_analysis_unit(manifest_path.split('/')[-2])  # extract unit_id
 
-Record completion: `record_layer_complete("L3", skipped=True, reason="no executable implementation")`
+# Run analyzers
+pt = PathTraversalAnalyzer()
+pt_findings = pt.analyze(manifest)
+
+ig = ImportGraphAnalyzer()
+ig_findings = ig.analyze(manifest, layering_policy=None)
+
+dc = DocConsistencyAnalyzer()
+dc_findings = dc.analyze(manifest)
+
+# Combine findings
+findings = pt_findings['findings'] + ig_findings['findings'] + dc_findings['findings']
+```
+
+Record completion: `record_layer_complete("L3", findings=len(findings))`
 
 ### [HALT CHECK] After Step 4
 If any findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`, run `record_halt("L3")`, and stop. Otherwise continue.
@@ -540,7 +557,7 @@ After EVERY layer, run actual verification commands BEFORE trusting self-reporte
 | L0 | All 7 specialist JSONs exist and parse |
 | L1 | ruff/mypy exit codes are 0 |
 | L2 | pytest exit code is 0 |
-| L3 | SKIP — L3 tools are documented stubs (meta-review, harden, apply_safety_patterns) |
+| L3 | All 3 analyzers (PathTraversalAnalyzer, ImportGraphAnalyzer, DocConsistencyAnalyzer) return findings |
 | L4 | gto, spec-compliance exit 0 |
 | L5 | adversarial-security JSON + path traversal check |
 | L6 | adversarial-performance JSON + perf output |

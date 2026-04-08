@@ -144,48 +144,77 @@ def _get_ended_at() -> str:
     return datetime.now(UTC).isoformat()
 
 
+def _collect_session_activity_from_handoff() -> dict:
+    """Collect session activity from handoff V2 envelope.
+
+    Returns dict with keys: files_changed, accomplishments, open_items.
+    Falls back to empty results if handoff unavailable.
+    """
+    result = {"files_changed": [], "accomplishments": [], "open_items": []}
+
+    try:
+        terminal_id = _resolve_terminal_id(None)
+        safe_tid = _safe_id(terminal_id)
+
+        # Handoff files use console_ prefix, but hook_base may return env_ prefix
+        # Try both variants to find the actual handoff file
+        handoff_dir = HOOKS_DIR.parent / "state" / "handoff"
+
+        for prefix in ("console_", "env_"):
+            candidate_tid = prefix + safe_tid.split("_", 1)[-1] if "_" in safe_tid else safe_tid
+            handoff_file = handoff_dir / f"{candidate_tid}_handoff.json"
+            if handoff_file.exists():
+                break
+        else:
+            # Neither exists - no handoff data
+            return result
+
+        with open(handoff_file, encoding="utf-8") as f:
+            handoff = json.load(f)
+
+        if not isinstance(handoff, dict):
+            return result
+
+        snapshot = handoff.get("resume_snapshot", {})
+
+        # Extract goal as accomplishment
+        goal = snapshot.get("goal", "")
+        if goal:
+            result["accomplishments"].append(f"- {goal}")
+
+        # Extract active files
+        active_files = snapshot.get("active_files", [])
+        if active_files:
+            for f in active_files[:10]:
+                result["files_changed"].append(f"- {Path(f).name}")
+
+        # Extract current task as open item
+        current_task = snapshot.get("current_task", "")
+        if current_task and current_task != goal:
+            result["open_items"].append(f"- {current_task}")
+
+    except Exception as e:
+        logger.warning("SessionEnd_tldr: failed to read handoff: %s", e)
+
+    return result
+
+
 def _collect_session_activity() -> dict:
     """Collect session activity from available sources.
 
     Returns dict with keys: files_changed, accomplishments, open_items.
     Falls back to breadcrumbs/ledger if available.
     """
+    # Primary: Try handoff V2 envelope first
+    activity = _collect_session_activity_from_handoff()
+    if activity["accomplishments"] or activity["files_changed"]:
+        return activity
+
+    # Fallback: Try investigation-ledger for accomplishments (if handoff empty)
     result = {"files_changed": [], "accomplishments": [], "open_items": []}
-
-    # Try to read from breadcrumb/state files
-    state_base = HOOKS_DIR.parent / "state"
-    terminal_id = _resolve_terminal_id(None)
-    safe_tid = _safe_id(terminal_id)
-
-    # Look for recent file modifications in breadcrumb logs
     try:
-        breadcrumbs_dir = state_base / "breadcrumb"
-        if breadcrumbs_dir.exists():
-            recent_files: set[str] = set()
-            # Scan recent breadcrumb files for file operations
-            for f in sorted(
-                breadcrumbs_dir.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True
-            )[:20]:
-                if f.is_file() and safe_tid in f.name:
-                    try:
-                        content = f.read_text(encoding="utf-8", errors="ignore")
-                        # Extract file paths mentioned
-                        for line in content.splitlines():
-                            if any(op in line for op in ["Edit:", "Write:", "Bash:", "Read:"]):
-                                # Try to extract file paths
-                                parts = line.split(":", 2)
-                                if len(parts) >= 2:
-                                    path_part = parts[1].strip()
-                                    if path_part and path_part not in ("", "None"):
-                                        recent_files.add(_redact_secrets(path_part))
-                    except Exception:
-                        continue
-            result["files_changed"] = sorted(recent_files)[:10]
-    except Exception as e:
-        logger.warning("SessionEnd_tldr: failed to collect breadcrumb activity: %s", e)
-
-    # Try investigation-ledger for accomplishments
-    try:
+        state_base = HOOKS_DIR.parent / "state"
+        terminal_id = _resolve_terminal_id(None)
         ledger_path = state_base / "investigation-ledger" / "ledger.db"
         if ledger_path.exists():
             import sqlite3

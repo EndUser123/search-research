@@ -166,6 +166,48 @@ class RepoInfo(NamedTuple):
     relative_path: str
     name: str
 
+def is_nested_repo(repo: RepoInfo, all_repos: List[RepoInfo]) -> bool:
+    """
+    Check if repo is nested and should be excluded.
+    Returns True if this repo should be excluded (it's inside another repo).
+
+    A repo is nested if its path is a subdirectory of another repo's path.
+    The main repo (P:/) is the exception - packages are legitimately under it.
+    """
+    # Main repo is never nested
+    if repo.repo_type == RepoType.MAIN:
+        return False
+
+    # Normalize path for checking (replace backslashes with forward slashes)
+    normalized_path = repo.relative_path.replace("\\", "/")
+
+    # Repos inside .claude/ are always nested (should be part of main P: repo)
+    if ".claude/" in normalized_path or normalized_path.startswith(".claude/"):
+        return True
+
+    # Repos inside packages/.mcp/ are nested (should be part of parent package or main)
+    if "packages/.mcp/" in normalized_path:
+        return True
+
+    # Check if this repo is inside another package repo's working tree
+    # For example: packages/gitready/skills/gitready is inside packages/gitready
+    for other in all_repos:
+        if other.repo_type == RepoType.MAIN:
+            continue  # Main repo (P:/) contains everything legitimately
+
+        if other == repo:
+            continue  # Don't compare with self
+
+        # Normalize other repo's path
+        other_normalized = other.relative_path.replace("\\", "/")
+
+        # Check if this repo's path starts with another repo's path
+        # e.g., "packages/gitready/skills/gitready" starts with "packages/gitready"
+        if normalized_path.startswith(other_normalized + "/"):
+            return True  # This repo is nested inside another package repo
+
+    return False
+
 def find_all_git_repos() -> List[RepoInfo]:
     """Find all git repos under P:/"""
     repos = []
@@ -212,7 +254,16 @@ def find_all_git_repos() -> List[RepoInfo]:
             name=name
         ))
 
-    return repos
+    # Filter out nested repos (repos inside other repos' working trees)
+    # This catches unintended nested .git folders like .claude/hooks/.git
+    non_nested_repos = []
+    for repo in repos:
+        if is_nested_repo(repo, repos):
+            # Skip this nested repo - it's inside another repo
+            continue
+        non_nested_repos.append(repo)
+
+    return non_nested_repos
 
 def filter_repos(repos: List[RepoInfo], filter_type: str) -> List[RepoInfo]:
     """Filter repos by type"""

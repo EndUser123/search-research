@@ -389,7 +389,6 @@ ACTIVE_RUNTIME_HOOKS = frozenset(
         "StopHook_step_header_verifier.py",
         "stop/Stop_verification_gate.py",
         "principle_monitor.py",
-        "stop/StopHook_directive_obligation.py",
         "StopHook_rca_reflector.py",
         "StopHook_rca_contract.py",
         "StopHook_rca_auto_promotion.py",
