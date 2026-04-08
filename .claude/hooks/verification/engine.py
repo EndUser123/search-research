@@ -155,7 +155,9 @@ _SELF_VERIFICATION_PATTERNS = [
     re.compile(r"\bls\s+\|\s*grep\b", re.IGNORECASE),
     re.compile(r"\bls\s+(?:showed|confirmed|revealed)\b", re.IGNORECASE),
     re.compile(r"\bgrep\s+(?:-[nri]?\s+\S+\s+)?(?:\S+\s+)?(?:showed|confirmed|empty|no\s+match)\b", re.IGNORECASE),
-    re.compile(r"\bread\s+(?:tool\s+)?(?:\w+\.)?(?:\w+\.)?\w+\.py:\d+\b", re.IGNORECASE),  # file.py:line
+    re.compile(r"\bread\s+(?:tool\s+)?(?:\w+\.)?(?:\w+\.)?\w+\.py:\d+\b", re.IGNORECASE),  # read file.py:line
+    re.compile(r"\bcode\s+at\s+`?[\w./\\-]+\.\w+:\d+", re.IGNORECASE),  # "Code at file.py:51" or "Code at `file.py:51-53`"
+    re.compile(r"`[\w./\\-]+\.\w+:\d+[-–]?\d*`\s+shows?\b", re.IGNORECASE),  # "`file.py:51-53` shows"
     re.compile(r"\bconfirmed\s+(?:absent|present|exists?|missing|empty)\b", re.IGNORECASE),
     re.compile(r"\bempty\s+result(?:s)?\b", re.IGNORECASE),
     re.compile(r"\bno\s+(?:matches?|files?|results?)\b", re.IGNORECASE),

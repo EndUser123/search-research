@@ -479,6 +479,15 @@ def _resolve_hook_path(hook_name: str) -> Path:
     return candidates[0] if candidates else HOOKS_DIR / raw
 
 
+# PERF-001: Pre-resolve hook paths once at module load time to avoid repeated
+# file existence checks on every Stop call (32 hooks * N Stop calls).
+# Paths are static during runtime; changes require restart (acceptable tradeoff).
+_HOOK_PATHS: dict[str, Path] = {
+    hook_name: _resolve_hook_path(hook_name)
+    for hook_name, _env_var, _default_enabled, _dispatch_mode in HOOK_SEQUENCE
+}
+
+
 def _module_name_for_path(hook_path: Path) -> str:
     safe_stem = hook_path.stem.replace("-", "_").replace(".", "_")
     safe_hash = abs(hash(str(hook_path.resolve()))) % (10**9)
@@ -911,8 +920,10 @@ def route_stop(input_data: dict[str, Any]) -> dict[str, Any]:
         if _is_hook_skipped_for_rca(hook_name, rca_turn):
             continue
 
-        hook_path = _resolve_hook_path(hook_name)
-        if not hook_path.exists():
+        # PERF-001: Use pre-resolved path from _HOOK_PATHS instead of calling
+        # _resolve_hook_path() on every Stop call (saves 32 path resolutions)
+        hook_path = _HOOK_PATHS.get(hook_name)
+        if not hook_path or not hook_path.exists():
             continue
 
         raw_result: dict[str, Any] | None

@@ -127,27 +127,28 @@ asyncio.run(search())
 "
 ```
 
-**Session-chain queries** (transcripts, handoffs, filepaths):
+**Session-chain queries** (last 7 days):
 
 ```bash
 cd "P:/packages/search-research" && python -c "
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 
 project = Path.home() / '.claude/projects/P--'
 handoff_dir = Path('P:/.claude/state/handoff')
+cutoff = datetime.now() - timedelta(days=7)
 
-# Transcripts
-transcripts = sorted(project.glob('*.jsonl'), key=lambda p: p.stat().st_mtime, reverse=True)
-print(f'=== Session Transcripts ({len(transcripts)} total) ===')
-for t in transcripts[:15]:
+transcripts = [p for p in project.glob('*.jsonl') if datetime.fromtimestamp(p.stat().st_mtime) > cutoff]
+transcripts.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+print(f'=== Session Transcripts ({len(transcripts)} last 7 days) ===')
+for t in transcripts:
     mtime = datetime.fromtimestamp(t.stat().st_mtime).strftime('%Y-%m-%d %H:%M')
     print(f'  [{mtime}] {t.name}')
 
-# Handoff files
-handoffs = sorted(handoff_dir.glob('console_*_handoff.json'), key=lambda p: p.stat().st_mtime, reverse=True)
-print(f'\n=== Handoff Files ({len(handoffs)} total) ===')
-for h in handoffs[:10]:
+handoffs = [p for p in handoff_dir.glob('console_*_handoff.json') if datetime.fromtimestamp(p.stat().st_mtime) > cutoff]
+handoffs.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+print(f'\n=== Handoff Files ({len(handoffs)} last 7 days) ===')
+for h in handoffs:
     mtime = datetime.fromtimestamp(h.stat().st_mtime).strftime('%Y-%m-%d %H:%M')
     print(f'  [{mtime}] {h.name}')
 "
