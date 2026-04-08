@@ -351,9 +351,17 @@ Record completion: `record_layer_complete("L2", findings=N)`
 If findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`, run `record_halt("L2")`, and stop. Otherwise continue.
 
 ### Step 4: STRUCTURAL
-**Import analyzers directly from `lib.analysis_unit`** (NOT subprocess or Skill tool):
+**Import analyzers directly from `P:/.claude/lib/analysis_unit`** (NOT subprocess or Skill tool):
 
 ```python
+import sys
+from pathlib import Path
+
+# Add lib to path (analyzers live at P:/.claude/lib/)
+lib_path = Path("P:/.claude")
+if str(lib_path) not in sys.path:
+    sys.path.insert(0, str(lib_path))
+
 from lib.analysis_unit import create_analysis_unit, load_analysis_unit
 from lib.analysis_unit.analyzers.path_traversal import PathTraversalAnalyzer
 from lib.analysis_unit.analyzers.import_graph import ImportGraphAnalyzer
@@ -361,7 +369,8 @@ from lib.analysis_unit.analyzers.doc_consistency import DocConsistencyAnalyzer
 
 # Create analysis unit from target
 manifest_path = create_analysis_unit(target)
-manifest = load_analysis_unit(manifest_path.split('/')[-2])  # extract unit_id
+unit_id = Path(manifest_path).parent.name  # extract unit_id from path
+manifest = load_analysis_unit(unit_id)
 
 # Run analyzers
 pt = PathTraversalAnalyzer()
