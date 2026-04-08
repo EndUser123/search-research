@@ -628,7 +628,12 @@ def close_turn(terminal_id: str, turn_id: str, outcome: dict[str, Any]) -> None:
     if not terminal or not turn:
         return
 
-    append_event(terminal, turn, "Stop", "turn_closed", {"outcome": outcome or {}})
+    outcome = outcome or {}
+    status = str(outcome.get("status", "")).strip().lower()
+    # The final turn state is persisted in `turns`; avoid duplicating the hot-path
+    # close event for routine allow outcomes.
+    if status and status != "allowed":
+        append_event(terminal, turn, "Stop", "turn_closed", {"outcome": outcome})
     now = _utcnow()
     try:
         init_db()
@@ -639,7 +644,7 @@ def close_turn(terminal_id: str, turn_id: str, outcome: dict[str, Any]) -> None:
                 SET status = 'closed', outcome_json = ?, updated_at = ?
                 WHERE turn_id = ?
                 """,
-                (_canonical_json(outcome or {}), now, turn),
+                (_canonical_json(outcome), now, turn),
             )
             conn.execute(
                 "DELETE FROM active_turns WHERE terminal_id = ? AND turn_id = ?",

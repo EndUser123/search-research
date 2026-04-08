@@ -226,3 +226,8 @@ def check(data: dict) -> dict | None:
         }
 
     return None
+
+
+def run(data: dict) -> dict | None:
+    """In-process validator protocol for Stop_router."""
+    return check(data)

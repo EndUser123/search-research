@@ -145,6 +145,18 @@ def evaluate(payload: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def run(data: Dict[str, Any]) -> Dict[str, Any] | None:
+    """In-process validator protocol for Stop_router."""
+    decision = evaluate(data)
+    if decision.get("continue", True):
+        return None
+    return {
+        "block": True,
+        "reason": str(decision.get("reason", "")),
+        "blocking_hook": "autonomy_gate.py",
+    }
+
+
 def main() -> None:
     """
     Hook entrypoint. Reads a single JSON object from stdin, writes a single JSON object

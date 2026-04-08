@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from unittest.mock import Mock
 
 HOOKS_DIR = Path(__file__).resolve().parent.parent
 if str(HOOKS_DIR) not in sys.path:
@@ -140,3 +141,43 @@ def test_route_stop_closes_turn_before_returning_block(monkeypatch) -> None:
             },
         )
     ]
+
+
+def test_append_validator_result_skips_allow_only(monkeypatch) -> None:
+    appended: list[tuple] = []
+    monkeypatch.setattr(
+        Stop_router,
+        "append_event",
+        lambda terminal_id, turn_id, phase, event_type, payload: appended.append(
+            (terminal_id, turn_id, phase, event_type, payload)
+        ),
+    )
+
+    Stop_router._append_validator_result(
+        "term-1",
+        "turn-1",
+        "StopHook_overconfidence_detector.py",
+        "inprocess",
+        {"decision": "allow"},
+    )
+
+    assert appended == []
+
+
+def test_run_hook_inprocess_uses_cached_run_callable(monkeypatch) -> None:
+    run_mock = Mock(return_value={"allow": True})
+    monkeypatch.setattr(Stop_router, "_get_inprocess_run", lambda hook_name: run_mock)
+    monkeypatch.setattr(
+        Stop_router,
+        "_resolve_hook_path",
+        lambda hook_name: HOOKS_DIR / "StopHook_overconfidence_detector.py",
+    )
+
+    result = Stop_router.run_hook_inprocess(
+        "StopHook_overconfidence_detector.py",
+        {"response": "ok"},
+        timeout_seconds=1.0,
+    )
+
+    assert result == {"allow": True}
+    run_mock.assert_called_once()

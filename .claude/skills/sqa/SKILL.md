@@ -351,12 +351,16 @@ Record completion: `record_layer_complete("L2", findings=N)`
 If findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`, run `record_halt("L2")`, and stop. Otherwise continue.
 
 ### Step 4: STRUCTURAL
-Run via Bash subprocess:
-- `meta-review --analyze=imports <target>` (circular deps)
-- `harden --check=guards <target>` (assertion guards)
-- `apply_safety_patterns --verify <target>` (safety patterns)
+**NOTE:** `meta-review`, `harden`, `apply_safety_patterns` are documented as available skills but have no executable implementation — they are stubs that describe capability without providing execution code.
 
-Record completion: `record_layer_complete("L3", findings=N)`
+**Behavior:** Skip L3 with warning: `"SKIP: L3 tools are documented stubs (meta-review, harden, apply_safety_patterns) — no executable implementation found"`
+
+If alternative tools become available, invoke via Skill tool:
+- `Skill('meta-review', args='<target> --perspective=all')`
+- `Skill('harden', args='<target>')`
+- `Skill('apply_safety_patterns', args='<target>')`
+
+Record completion: `record_layer_complete("L3", skipped=True, reason="no executable implementation")`
 
 ### [HALT CHECK] After Step 4
 If any findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`, run `record_halt("L3")`, and stop. Otherwise continue.
@@ -536,7 +540,7 @@ After EVERY layer, run actual verification commands BEFORE trusting self-reporte
 | L0 | All 7 specialist JSONs exist and parse |
 | L1 | ruff/mypy exit codes are 0 |
 | L2 | pytest exit code is 0 |
-| L3 | All 3 tools (meta-review, harden, apply_safety_patterns) exit 0 |
+| L3 | SKIP — L3 tools are documented stubs (meta-review, harden, apply_safety_patterns) |
 | L4 | gto, spec-compliance exit 0 |
 | L5 | adversarial-security JSON + path traversal check |
 | L6 | adversarial-performance JSON + perf output |

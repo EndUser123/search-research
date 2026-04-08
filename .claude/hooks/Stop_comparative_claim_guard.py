@@ -383,6 +383,18 @@ def check(data: dict) -> dict | None:
     }
 
 
+def run(data: dict) -> dict | None:
+    """In-process validator protocol for Stop_router."""
+    result = check(data)
+    if result and not result.get("allow", True):
+        return {
+            "block": True,
+            "reason": str(result.get("reason", "")),
+            "blocking_hook": str(result.get("blocking_hook", "Stop_comparative_claim_guard.py")),
+        }
+    return result
+
+
 def _resolve_session_id(data: dict) -> str:
     for key in ("session_id", "sessionId"):
         val = data.get(key)

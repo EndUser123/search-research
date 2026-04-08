@@ -242,3 +242,8 @@ def check(data: dict) -> dict | None:
         _save_state(session_id, terminal_id, state)
 
     return None
+
+
+def run(data: dict) -> dict | None:
+    """In-process validator protocol for Stop_router."""
+    return check(data)

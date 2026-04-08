@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+import StopHook_drift_sentinel
 from __lib__.drift_sentinel import extract_paragraphs, detect_drift
 
 
@@ -69,4 +71,22 @@ def test_detect_drift_threshold_boundary() -> None:
     response = "Python is a widely used programming language that supports multiple paradigms including object-oriented programming and functional programming."
     result = detect_drift(response, source)
     # At boundary: if similarity is exactly 0.75 or higher, drift_detected should be False
+    assert result["drift_detected"] is False
+
+
+def test_stop_hook_skips_short_response() -> None:
+    assert StopHook_drift_sentinel._should_run_drift_check("short", ["source one", "source two"]) is False
+
+
+def test_stop_hook_skips_when_not_enough_sources() -> None:
+    response = "This is a sufficiently long response that would otherwise trigger drift analysis."
+    assert StopHook_drift_sentinel._should_run_drift_check(response, ["only one source"]) is False
+
+
+def test_stop_hook_lazy_imports_detector() -> None:
+    response = "This is a sufficiently long response that should be truncated before analysis." * 20
+    sources = ["source one" * 40, "source two" * 40]
+    with patch("__lib__.drift_sentinel.detect_drift") as detector:
+        detector.return_value = {"drift_detected": False, "min_similarity": 1.0}
+        result = StopHook_drift_sentinel._detect_drift(response, sources)
     assert result["drift_detected"] is False

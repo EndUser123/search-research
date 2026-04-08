@@ -22,7 +22,6 @@ import structlog
 HOOKS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(HOOKS_DIR))
 
-from __lib__.drift_sentinel import detect_drift
 from cc_diagnostic_logger import log_hook_invocation
 from evidence_store import resolve_session_id
 
@@ -61,6 +60,9 @@ DRIFT_SENTINEL_ENABLED = (
 DRIFT_SENTINEL_MODE = os.environ.get("DRIFT_SENTINEL_MODE", "warn").lower()
 
 _MAX_SOURCE_CHARS = 10240  # 10KB per file
+_MIN_RESPONSE_CHARS = max(80, int(os.environ.get("DRIFT_SENTINEL_MIN_RESPONSE_CHARS", "240")))
+_MIN_SOURCE_COUNT = max(1, int(os.environ.get("DRIFT_SENTINEL_MIN_SOURCE_COUNT", "2")))
+_MAX_RESPONSE_CHARS = max(_MIN_RESPONSE_CHARS, int(os.environ.get("DRIFT_SENTINEL_MAX_RESPONSE_CHARS", "4000")))
 
 
 def load_tool_events(session_id: str, limit: int = 50) -> list[dict[str, Any]]:
@@ -98,6 +100,23 @@ def _load_source_texts(session_id: str) -> list[str]:
     return texts
 
 
+def _should_run_drift_check(response: str, source_texts: list[str]) -> bool:
+    """Cheap gating to keep the TF-IDF path off the common Stop path."""
+    if len(response.strip()) < _MIN_RESPONSE_CHARS:
+        return False
+    if len(source_texts) < _MIN_SOURCE_COUNT:
+        return False
+    return True
+
+
+def _detect_drift(response: str, source_texts: list[str]) -> dict[str, Any]:
+    """Lazy import to avoid paying sklearn startup cost on every Stop invocation."""
+    from __lib__.drift_sentinel import detect_drift
+
+    truncated_response = response[:_MAX_RESPONSE_CHARS]
+    return detect_drift(truncated_response, source_texts)
+
+
 def run(input_data: dict[str, Any]) -> dict[str, Any]:
     """Main entry point for the drift sentinel hook.
 
@@ -125,7 +144,10 @@ def run(input_data: dict[str, Any]) -> dict[str, Any]:
         # No Read events → nothing to compare against → fail open
         return {"allow": True}
 
-    result = detect_drift(response, source_texts)
+    if not _should_run_drift_check(response, source_texts):
+        return {"allow": True}
+
+    result = _detect_drift(response, source_texts)
 
     if not result.get("drift_detected", False):
         return {"allow": True}

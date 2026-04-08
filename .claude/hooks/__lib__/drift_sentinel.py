@@ -5,13 +5,7 @@ Phase 2 of LLM Behavioral Integrity system.
 from __future__ import annotations
 
 import re
-try:
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    from sklearn.metrics.pairwise import cosine_similarity
-
-    _SKELEARN_AVAILABLE = True
-except ImportError:
-    _SKELEARN_AVAILABLE = False
+from functools import lru_cache
 
 # Threshold below which drift is considered detected
 _DRIFT_THRESHOLD = 0.75
@@ -45,9 +39,6 @@ def compute_drift(response_text: str, source_texts: list[str]) -> dict:
     Returns dict with drift_detected (bool) and min_similarity (float).
     Fails open if sklearn unavailable or on errors.
     """
-    if not _SKELEARN_AVAILABLE:
-        return {"drift_detected": False, "min_similarity": 1.0, "reason": "sklearn unavailable"}
-
     if not source_texts:
         return {"drift_detected": False, "min_similarity": 1.0, "reason": "no source texts"}
 
@@ -59,6 +50,14 @@ def compute_drift(response_text: str, source_texts: list[str]) -> dict:
     combined_source = " ".join(source_texts)
 
     try:
+        sklearn_objects = _load_sklearn_objects()
+        if sklearn_objects is None:
+            return {
+                "drift_detected": False,
+                "min_similarity": 1.0,
+                "reason": "sklearn unavailable",
+            }
+        TfidfVectorizer, cosine_similarity = sklearn_objects
         vectorizer = TfidfVectorizer()
         all_texts = [combined_source] + response_paragraphs
         tfidf_matrix = vectorizer.fit_transform(all_texts)
@@ -76,6 +75,17 @@ def compute_drift(response_text: str, source_texts: list[str]) -> dict:
     except Exception:
         # Fail open on any error
         return {"drift_detected": False, "min_similarity": 1.0, "reason": "computation error"}
+
+
+@lru_cache(maxsize=1)
+def _load_sklearn_objects():
+    """Lazy-load sklearn to avoid paying import cost on hook startup."""
+    try:
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.metrics.pairwise import cosine_similarity
+    except ImportError:
+        return None
+    return TfidfVectorizer, cosine_similarity
 
 
 def detect_drift(response_text: str, source_texts: list[str]) -> dict:

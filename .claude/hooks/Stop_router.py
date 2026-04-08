@@ -23,6 +23,7 @@ import subprocess
 import sys
 import threading
 import time
+from functools import lru_cache
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -66,9 +67,6 @@ try:  # noqa: E402
         HookTimeoutError,
         hook_main,
     )
-    from __lib.hook_base import (
-        run_hook_inprocess as _base_run_hook_inprocess,
-    )
     from __lib.hook_ledger import (
         append_event,
         build_response_snapshot,
@@ -82,9 +80,6 @@ except ImportError:  # pragma: no cover - import-path compatibility
     from hook_base import (  # type: ignore
         HookTimeoutError,
         hook_main,
-    )
-    from hook_base import (
-        run_hook_inprocess as _base_run_hook_inprocess,
     )
     from hook_ledger import (  # type: ignore
         append_event,
@@ -507,15 +502,28 @@ def _import_hook_module(hook_path: Path) -> ModuleType | None:
         return None
 
 
-def _supports_inprocess(hook_name: str) -> bool:
+@lru_cache(maxsize=256)
+def _load_inprocess_run_for_path(path_str: str, mtime_ns: int) -> Any | None:
+    """Cache importable run() callables to avoid repeated module import on every Stop."""
+    hook_path = Path(path_str)
+    module = _import_hook_module(hook_path)
+    run_func = getattr(module, "run", None) if module else None
+    return run_func if callable(run_func) else None
+
+
+def _get_inprocess_run(hook_name: str) -> Any | None:
     hook_path = _resolve_hook_path(hook_name)
     if not hook_path.exists():
-        return False
-    if hook_path.parent == HOOKS_DIR and len(Path(hook_name).parts) == 1:
-        module = _import_hook_module(hook_path)
-        return callable(getattr(module, "run", None)) if module else False
-    module = _import_hook_module(hook_path)
-    return callable(getattr(module, "run", None)) if module else False
+        return None
+    try:
+        mtime_ns = hook_path.stat().st_mtime_ns
+    except OSError:
+        return None
+    return _load_inprocess_run_for_path(str(hook_path.resolve()), mtime_ns)
+
+
+def _supports_inprocess(hook_name: str) -> bool:
+    return callable(_get_inprocess_run(hook_name))
 
 
 def _run_callable_with_timeout(
@@ -550,18 +558,10 @@ def run_hook_inprocess(
     timeout_seconds: float = 5.0,
 ) -> dict[str, Any] | None:
     """Run a Stop validator in-process when it exposes `run(data)`."""
-    hook_path = _resolve_hook_path(hook_name)
-    if not hook_path.exists():
-        return None
-
-    relative_name = Path(hook_name)
-    if hook_path.parent == HOOKS_DIR and len(relative_name.parts) == 1:
-        return _base_run_hook_inprocess(hook_path.stem, hook_data, timeout_seconds=timeout_seconds)
-
-    module = _import_hook_module(hook_path)
-    run_func = getattr(module, "run", None) if module else None
+    run_func = _get_inprocess_run(hook_name)
     if not callable(run_func):
         return None
+    hook_path = _resolve_hook_path(hook_name)
     return _run_callable_with_timeout(hook_path.name, run_func, hook_data, timeout_seconds)
 
 
@@ -754,12 +754,18 @@ def _append_validator_result(
 ) -> None:
     if not terminal_id or not turn_id:
         return
+    decision = str(result.get("decision", "allow"))
+    reason = str(result.get("reason", ""))
+    system_message = str(result.get("systemMessage", ""))
+    # Skip high-volume allow-only writes; keep warnings/blocks for debugging.
+    if decision == "allow" and not reason and not system_message:
+        return
     payload = {
         "hook": hook_name,
         "dispatch_mode": dispatch_mode,
-        "decision": result.get("decision", "allow"),
-        "reason": str(result.get("reason", ""))[:4000],
-        "system_message": str(result.get("systemMessage", ""))[:4000],
+        "decision": decision,
+        "reason": reason[:4000],
+        "system_message": system_message[:4000],
     }
     append_event(terminal_id, turn_id, "Stop", "validator_result", payload)
 

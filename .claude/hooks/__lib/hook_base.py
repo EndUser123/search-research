@@ -305,6 +305,7 @@ def supports_inprocess(hook_name: str) -> bool:
     hook_module = _import_hook_module(hooks_dir, hook_name)
     if hook_module is None:
         return False
+    return callable(getattr(hook_module, "run", None))
 
 
 # =============================================================================
@@ -426,4 +427,3 @@ def get_terminal_id(data: Mapping[str, Any] | None = None) -> str:
     _hook_context.terminal_id = terminal_id
 
     return terminal_id
-

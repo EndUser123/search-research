@@ -194,6 +194,18 @@ def check_tdd_refactor(data: dict[str, Any]) -> dict[str, Any] | None:
     }
 
 
+def run(data: dict[str, Any]) -> dict[str, Any] | None:
+    """In-process validator protocol for Stop_router."""
+    result = check_tdd_refactor(data)
+    if result and result.get("decision") == "block":
+        return {
+            "block": True,
+            "reason": str(result.get("reason", "")),
+            "blocking_hook": "Stop_tdd_refactor_gate.py",
+        }
+    return result
+
+
 def main() -> None:
     """CLI entry point for standalone testing."""
     import sys

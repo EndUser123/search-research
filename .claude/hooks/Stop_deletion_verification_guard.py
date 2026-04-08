@@ -147,6 +147,10 @@ OBVIOUS_ALLOWLIST = re.compile(
     r"|\bremove\s+NOT\s+NULL\b"
     r"|\bremoving\s+(?:the\s+)?(?:NOT\s+NULL|constraint)\b"
     r"|\bremoved?\s+.*(?:PRIMARY\s+KEY|INDEX|UNIQUE|FOREIGN)\b"
+    # Design-proximate deletion (passive voice, process/state description)
+    # These describe WHAT IS/WILL BE deleted, not completion claims
+    r"|\bdeleted\s+after\s+(?:transcription|ingestion|processing|conversion)\b"
+    r"|\bdeleted\s+following\s+(?:transcription|ingestion|processing|conversion)\b"
     # Content-change contexts — "removed the X" where X is NOT a file/directory
     # These are config/entry/line changes, not filesystem deletions
     r"|\bremoved?\s+(?:the\s+)?(?:duplicate|entry|alias|line|item|value|setting|parameter|option|argument|flag)\b"
