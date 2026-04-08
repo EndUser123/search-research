@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 HOOKS_DIR = Path(__file__).resolve().parent
+STATE_DIR = HOOKS_DIR / "state"
 SESSION_DATA_DIR = Path(os.environ.get("FRAMEGUARD_SESSION_DATA_DIR", HOOKS_DIR / "session_data"))
 EVIDENCE_DB_PATH = Path(
     os.environ.get("FRAMEGUARD_EVIDENCE_DB_PATH", SESSION_DATA_DIR / "evidence.db")
@@ -93,6 +94,28 @@ def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_session_context_updated
                 ON session_context(updated_at);
+
+            CREATE TABLE IF NOT EXISTS turns (
+                turn_id TEXT PRIMARY KEY,
+                session_id TEXT NOT NULL,
+                terminal_id TEXT NOT NULL DEFAULT '',
+                prompt TEXT NOT NULL DEFAULT '',
+                transcript_path TEXT NOT NULL DEFAULT '',
+                started_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                start_event_id INTEGER NOT NULL DEFAULT 0,
+                status TEXT NOT NULL DEFAULT 'active'
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_turns_session_terminal_started
+                ON turns(session_id, terminal_id, started_at);
+
+            CREATE TABLE IF NOT EXISTS active_turns (
+                terminal_id TEXT PRIMARY KEY,
+                session_id TEXT NOT NULL,
+                turn_id TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
 
             CREATE TABLE IF NOT EXISTS tool_events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -193,6 +216,111 @@ def init_db() -> None:
             conn.execute("ALTER TABLE tool_events ADD COLUMN event_key TEXT NOT NULL DEFAULT ''")
         except sqlite3.OperationalError:
             pass
+
+
+def _load_current_max_event_id(
+    conn: sqlite3.Connection,
+    session_id: str,
+    terminal_id: str,
+) -> int:
+    row = conn.execute(
+        """
+        SELECT COALESCE(MAX(id), 0) AS max_id
+        FROM tool_events
+        WHERE session_id = ? AND terminal_id = ?
+        """,
+        (session_id, terminal_id),
+    ).fetchone()
+    if not row:
+        return 0
+    return int(row["max_id"] or 0)
+
+
+def start_turn(
+    session_id: str,
+    terminal_id: str,
+    prompt: str = "",
+    transcript_path: str = "",
+) -> str:
+    """Create and activate a new turn for the session/terminal."""
+    normalized = normalize_session_id(session_id)
+    terminal = sanitize_terminal_id(terminal_id)
+    if not normalized or not terminal:
+        return generate_turn_id()
+
+    turn_id = generate_turn_id()
+    now_iso = datetime.now(UTC).isoformat()
+
+    try:
+        init_db()
+        with _connect() as conn:
+            start_event_id = _load_current_max_event_id(conn, normalized, terminal)
+            conn.execute(
+                """
+                INSERT INTO turns (
+                    turn_id, session_id, terminal_id, prompt, transcript_path,
+                    started_at, updated_at, start_event_id, status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')
+                """,
+                (
+                    turn_id,
+                    normalized,
+                    terminal,
+                    str(prompt or ""),
+                    str(transcript_path or ""),
+                    now_iso,
+                    now_iso,
+                    start_event_id,
+                ),
+            )
+            conn.execute(
+                """
+                INSERT INTO active_turns (terminal_id, session_id, turn_id, updated_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(terminal_id) DO UPDATE SET
+                    session_id = excluded.session_id,
+                    turn_id = excluded.turn_id,
+                    updated_at = excluded.updated_at
+                """,
+                (terminal, normalized, turn_id, now_iso),
+            )
+            conn.execute(
+                """
+                UPDATE turns
+                SET status = CASE WHEN turn_id = ? THEN 'active' ELSE 'superseded' END,
+                    updated_at = ?
+                WHERE terminal_id = ? AND turn_id <> ? AND status = 'active'
+                """,
+                (turn_id, now_iso, terminal, turn_id),
+            )
+        return turn_id
+    except (sqlite3.DatabaseError, OSError, ValueError):
+        return turn_id
+
+
+def get_active_turn(session_id: str, terminal_id: str) -> str | None:
+    """Return active turn_id for session/terminal if present."""
+    normalized = normalize_session_id(session_id)
+    terminal = sanitize_terminal_id(terminal_id)
+    if not normalized or not terminal:
+        return None
+
+    try:
+        init_db()
+        with _connect() as conn:
+            row = conn.execute(
+                """
+                SELECT turn_id
+                FROM active_turns
+                WHERE terminal_id = ? AND session_id = ?
+                """,
+                (terminal, normalized),
+            ).fetchone()
+        if not row:
+            return None
+        return str(row["turn_id"] or "") or None
+    except (sqlite3.DatabaseError, OSError, ValueError, TypeError):
+        return None
 
 
 def write_session_context(
@@ -560,7 +688,7 @@ def load_tool_events_for_context(
     Returns empty list if terminal_id is empty (no terminal context available).
 
     When use_turn_scoping=True, only returns events from the current turn
-    (events with id > turn_start_event_id from turn marker file).
+    (events with id > turn start event id from the active turn record).
     When use_turn_scoping is None, falls back to VERIFICATION_USE_TURN_SCOPING.
 
     Args:
@@ -585,39 +713,45 @@ def load_tool_events_for_context(
     if not terminal_id:
         return []
 
-    conn = _connect()
-    cur = conn.cursor()
+    try:
+        init_db()
+        conn = _connect()
+        cur = conn.cursor()
 
-    sql = """
-        SELECT id, tool_name, ts, command, cwd, output_excerpt, session_id, terminal_id, success
-        FROM tool_events
-        WHERE session_id = ? AND terminal_id = ?
-    """
-    params: list[Any] = [session_id, terminal_id]
+        sql = """
+            SELECT id, tool_name, ts, command, cwd, output_excerpt, session_id, terminal_id, success
+            FROM tool_events
+            WHERE session_id = ? AND terminal_id = ?
+        """
+        params: list[Any] = [session_id, terminal_id]
 
-    # Check for turn-scoped filtering
-    if use_turn_scoping is None:
-        use_turn_scoping = (
-            os.environ.get("VERIFICATION_USE_TURN_SCOPING", "false").lower() == "true"
-        )
-    if use_turn_scoping:
-        turn_start_id = _load_turn_start_event_id(session_id, terminal_id)
-        if turn_start_id and turn_start_id > 0:
-            sql += " AND id > ?"
-            params.append(turn_start_id)
+        if use_turn_scoping is None:
+            use_turn_scoping = (
+                os.environ.get("VERIFICATION_USE_TURN_SCOPING", "false").lower() == "true"
+            )
+        if use_turn_scoping:
+            turn_start_id = _load_turn_start_event_id(session_id, terminal_id)
+            if turn_start_id is not None and turn_start_id >= 0:
+                sql += " AND id > ?"
+                params.append(turn_start_id)
 
-    if within_seconds is not None:
-        # Use Python datetime to compute ISO cutoff (same approach as load_tool_events)
-        # This ensures format compatibility with ts column which stores ISO strings
-        cutoff = (datetime.now(UTC) - timedelta(seconds=within_seconds)).isoformat()
-        sql += " AND ts >= ?"
-        params.append(cutoff)
+        if within_seconds is not None:
+            cutoff = (datetime.now(UTC) - timedelta(seconds=within_seconds)).isoformat()
+            sql += " AND ts >= ?"
+            params.append(cutoff)
 
-    sql += " ORDER BY id DESC LIMIT ?"
-    params.append(limit)
+        sql += " ORDER BY id DESC LIMIT ?"
+        params.append(limit)
 
-    cur.execute(sql, params)
-    rows = cur.fetchall()
+        cur.execute(sql, params)
+        rows = cur.fetchall()
+    except (sqlite3.DatabaseError, OSError, ValueError):
+        return []
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
     events = []
     for row in reversed(rows):  # Chronological order (oldest first)
@@ -727,11 +861,28 @@ def read_events_for_file(
 
 
 def _load_turn_start_event_id(session_id: str, terminal_id: str) -> int | None:
-    """Load turn_start_event_id from turn marker file.
-
-    Returns None if file doesn't exist or is invalid.
-    """
+    """Load turn_start_event_id from active turn record, with marker fallback."""
     import json
+
+    try:
+        normalized = normalize_session_id(session_id)
+        terminal = sanitize_terminal_id(terminal_id)
+        if normalized and terminal:
+            init_db()
+            with _connect() as conn:
+                row = conn.execute(
+                    """
+                    SELECT t.start_event_id
+                    FROM active_turns a
+                    JOIN turns t ON t.turn_id = a.turn_id
+                    WHERE a.session_id = ? AND a.terminal_id = ?
+                    """,
+                    (normalized, terminal),
+                ).fetchone()
+            if row is not None:
+                return int(row["start_event_id"] or 0)
+    except (sqlite3.DatabaseError, OSError, ValueError, TypeError):
+        pass
 
     try:
         safe_terminal = "".join(
@@ -748,7 +899,7 @@ def _load_turn_start_event_id(session_id: str, terminal_id: str) -> int | None:
         with marker_path.open("r", encoding="utf-8") as fh:
             data = json.load(fh)
         event_id = data.get("turn_start_event_id")
-        if isinstance(event_id, int) and event_id > 0:
+        if isinstance(event_id, int):
             return event_id
         return None
     except (OSError, json.JSONDecodeError, TypeError):
@@ -997,7 +1148,7 @@ def validate_latent_questions(questions: list) -> bool:
 def get_or_create_turn(session_id: str, terminal_id: str) -> str:
     """Get existing turn_id or generate new one.
 
-    Checks hook_ledger for existing active turn, generates new ID if none found.
+    Checks evidence_store for an existing active turn, generates new ID if none found.
 
     Args:
         session_id: Current session ID
@@ -1006,20 +1157,10 @@ def get_or_create_turn(session_id: str, terminal_id: str) -> str:
     Returns:
         A turn ID string
     """
-    terminal = sanitize_terminal_id(terminal_id)
-    if not terminal:
-        return generate_turn_id()
-
-    try:
-        from __lib.hook_ledger import get_active_turn
-
-        existing_turn = get_active_turn(terminal)
-        if existing_turn:
-            return str(existing_turn)
-    except Exception:
-        pass
-
-    return generate_turn_id()
+    existing_turn = get_active_turn(session_id, terminal_id)
+    if existing_turn:
+        return existing_turn
+    return start_turn(session_id=session_id, terminal_id=terminal_id)
 
 
 def record_frameguard_trigger(

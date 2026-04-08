@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from evidence_scope import SCOPE_TURN_STRICT, load_scoped_tool_events
+from evidence_store import _load_turn_start_event_id
 
 HOOKS_DIR = Path(__file__).resolve().parent
 TURN_MARKER_DIR = HOOKS_DIR / "state" / "turn_markers"
@@ -32,7 +33,11 @@ def safe_scope_key(session_id: str, terminal_id: str) -> str:
 
 
 def read_turn_marker(session_id: str, terminal_id: str) -> int | None:
-    """Return turn_start_event_id from marker file, or None if absent."""
+    """Return turn_start_event_id from evidence_store, with marker fallback."""
+    value = _load_turn_start_event_id(session_id, terminal_id)
+    if value is not None:
+        return value
+
     path = TURN_MARKER_DIR / f"turn_start_{safe_scope_key(session_id, terminal_id)}.json"
     try:
         data = json.loads(path.read_text())

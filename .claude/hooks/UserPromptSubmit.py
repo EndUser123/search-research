@@ -192,10 +192,15 @@ def _pin_scope_env(data: dict) -> None:
         data.setdefault("terminal_id", terminal_id)
         os.environ["CLAUDE_TERMINAL_ID"] = terminal_id
 
-    # CRITICAL: Generate turn_id BEFORE hooks run (for FrameGuard and other hooks)
-    from evidence_store import get_or_create_turn
+    # CRITICAL: Start a new DB-backed turn BEFORE hooks run.
+    from evidence_store import start_turn
 
-    turn_id = data.get("turn_id") or get_or_create_turn(session_id, terminal_id)
+    turn_id = data.get("turn_id") or start_turn(
+        session_id=session_id,
+        terminal_id=terminal_id,
+        prompt=str(data.get("prompt", "") or data.get("message", "") or ""),
+        transcript_path=str(data.get("transcript_path", "") or ""),
+    )
     data.setdefault("turn_id", turn_id)
 
 

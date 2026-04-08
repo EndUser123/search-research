@@ -135,24 +135,38 @@ def test_get_or_create_turn_existing(tmp_path: Path, monkeypatch) -> None:
     session_id = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
     terminal_id = "console_xyz"
 
-    # Create a turn via record_frameguard_trigger
-    turn_id_1 = es.generate_turn_id()
-    es.record_frameguard_trigger(
-        session_id=session_id,
-        terminal_id=terminal_id,
-        turn_id=turn_id_1,
-        needs_systemic_frame=True,
-        trigger_reason="Test trigger",
-        latent_questions=[],
-    )
+    turn_id_1 = es.start_turn(session_id=session_id, terminal_id=terminal_id)
 
     # get_or_create_turn should find the existing turn
     turn_id_2 = es.get_or_create_turn(session_id, terminal_id)
 
-    # Should return the same turn_id or a new one if none exists in hook_ledger
-    # The function checks hook_ledger first, then generates new if not found
-    assert turn_id_2 is not None
-    assert isinstance(turn_id_2, str)
+    assert turn_id_2 == turn_id_1
+
+
+def test_start_turn_persists_active_turn_and_boundary(tmp_path: Path, monkeypatch) -> None:
+    _configure_tmp_paths(tmp_path, monkeypatch)
+    es.init_db()
+
+    session_id = "abababab-abab-abab-abab-abababababab"
+    terminal_id = "console_turn"
+
+    # Existing event should become the turn boundary.
+    assert es.append_tool_event(
+        session_id=session_id,
+        terminal_id=terminal_id,
+        tool_name="Read",
+        command="before.py",
+    )
+
+    turn_id = es.start_turn(
+        session_id=session_id,
+        terminal_id=terminal_id,
+        prompt="check state",
+        transcript_path="P:/tmp/transcript.jsonl",
+    )
+
+    assert es.get_active_turn(session_id, terminal_id) == turn_id
+    assert es._load_turn_start_event_id(session_id, terminal_id) == 1
 
 
 # === record_frameguard_trigger Tests ===

@@ -422,7 +422,10 @@ def parse_selection(selection: str, max_idx: int) -> List[int]:
     return sorted([i for i in indices if 1 <= i <= max_idx])
 
 def interactive_select_repos(repos: List[RepoInfo]) -> List[RepoInfo]:
-    """Present numbered list and let user select which repos to push."""
+    """
+    Present numbered list for Claude to present to the user.
+    Returns empty list - Claude handles user selection via --select flag.
+    """
     if not repos:
         return []
 
@@ -435,30 +438,10 @@ def interactive_select_repos(repos: List[RepoInfo]) -> List[RepoInfo]:
             status = color("no remote", "warning")
         print(f"  [{i}] {color(repo.relative_path, 'repo')} - {status}")
 
-    print(f"\nSelect repos to push (e.g., 1,3 or 1-3 or all): ", end="")
+    print(f"\n{color('Use /git --select <numbers> to push selected repos', 'info')}")
+    print(f"{color('Example: /git --select 1,3 or /git --select all', 'info')}")
 
-    # Check if stdin is a tty (interactive mode)
-    try:
-        import os
-        is_interactive = os.isatty(sys.stdin.fileno())
-    except (AttributeError, ValueError):
-        is_interactive = False
-
-    if not is_interactive:
-        # Non-interactive: show prompt but don't wait for input
-        print("(non-interactive mode - skipping non-main repos)")
-        return []
-
-    try:
-        selection = input().strip()
-    except (EOFError, OSError):
-        selection = ""
-
-    if not selection:
-        return []
-
-    selected_indices = parse_selection(selection, len(repos))
-    return [repos[i - 1] for i in selected_indices]
+    return []
 
 # ============================================================
 # WORKTREE MANAGEMENT
