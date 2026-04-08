@@ -76,6 +76,7 @@ Before synthesizing a critique, `/pre-mortem` should run a short internal failur
 - What recommendation is really architecture work, not a local patch?
 - What would a faster or more literal model fail to challenge in this critique?
 - What change here reduces one failure mode but creates a new one elsewhere?
+- Do we have any predictable issues in primary and related code, or dependent or supporting code/files?
 
 These are internal self-check prompts. They are not default user-facing questions and should only surface to the user when `/pre-mortem` is genuinely blocked and cannot proceed safely without clarification.
 

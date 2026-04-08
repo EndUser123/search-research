@@ -35,7 +35,13 @@ import re
 from typing import Any
 
 from __lib.shared_helpers import is_question, strip_non_claim_lines
-from evidence_store import load_tool_events, resolve_session_id
+from evidence_store import resolve_session_id
+
+try:
+    from evidence_scope import SCOPE_SESSION_FRESH, load_scoped_tool_events
+except ImportError:
+    SCOPE_SESSION_FRESH = ""
+    load_scoped_tool_events = None  # type: ignore
 
 # ── Intent/rationale sentence patterns ──────────────────────────
 # These detect sentences where someone explains WHY code/design exists
@@ -142,6 +148,17 @@ CODE_BEHAVIOR_RE = re.compile("|".join(f"(?:{p})" for p in CODE_BEHAVIOR_PATTERN
 PATH_RE = re.compile(
     r"(?:[A-Za-z]:)?[\\/][\w./\\-]+|[\w./\\-]+\.(?:py|js|ts|md|json|yaml|yml|toml|ini|cfg|txt)"
 )
+
+
+def load_tool_events(session_id: str, limit: int = 500) -> list[dict[str, Any]]:
+    """Compatibility wrapper for recent session evidence."""
+    if load_scoped_tool_events is None:
+        raise ImportError("evidence_scope unavailable")
+    return load_scoped_tool_events(
+        session_id=session_id,
+        scope=SCOPE_SESSION_FRESH,
+        limit=limit,
+    )
 
 
 def detect_intent_narratives(response_text: str) -> list[str]:

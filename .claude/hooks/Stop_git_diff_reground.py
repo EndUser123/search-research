@@ -21,12 +21,30 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 HOOKS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(HOOKS_DIR))
 
+try:
+    from evidence_scope import SCOPE_SESSION_FRESH, load_scoped_tool_events
+except ImportError:
+    SCOPE_SESSION_FRESH = ""
+    load_scoped_tool_events = None  # type: ignore
+
 GIT_DIFF_REGROUND_ENABLED = os.environ.get("GIT_DIFF_REGROUND_ENABLED", "true").lower() == "true"
 GIT_DIFF_REGROUND_MIN_FILES = int(os.environ.get("GIT_DIFF_REGROUND_MIN_FILES", "3"))
+
+
+def load_tool_events(*, session_id: str, limit: int = 50) -> list[dict[str, Any]]:
+    """Compatibility wrapper for recent session evidence."""
+    if load_scoped_tool_events is None:
+        raise ImportError("evidence_scope unavailable")
+    return load_scoped_tool_events(
+        session_id=session_id,
+        scope=SCOPE_SESSION_FRESH,
+        limit=limit,
+    )
 
 
 def _get_git_diff_names() -> set[str]:
@@ -49,7 +67,6 @@ def _get_git_diff_names() -> set[str]:
 def _get_recent_file_touches(session_id: str, limit: int = 50) -> list[str]:
     """Get file paths from recent Read/Edit/Write tool events."""
     try:
-        from evidence_store import load_tool_events
         events = load_tool_events(session_id=session_id, limit=limit)
     except Exception:
         return []

@@ -435,9 +435,21 @@ def interactive_select_repos(repos: List[RepoInfo]) -> List[RepoInfo]:
 
     print(f"\nSelect repos to push (e.g., 1,3 or 1-3 or all): ", end="")
 
+    # Check if stdin is a tty (interactive mode)
+    try:
+        import os
+        is_interactive = os.isatty(sys.stdin.fileno())
+    except (AttributeError, ValueError):
+        is_interactive = False
+
+    if not is_interactive:
+        # Non-interactive: show prompt but don't wait for input
+        print("(non-interactive mode - skipping non-main repos)")
+        return []
+
     try:
         selection = input().strip()
-    except EOFError:
+    except (EOFError, OSError):
         selection = ""
 
     if not selection:

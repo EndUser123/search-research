@@ -87,3 +87,34 @@ def test_turn_scoped_adapters_use_turn_strict_for_uuid_sessions(
         "scope": "turn_strict",
         "limit": limit,
     }
+
+
+@pytest.mark.parametrize(
+    ("module_name", "limit"),
+    [
+        ("Stop_git_diff_reground", 77),
+        ("StopHook_cross_validator", 50),
+        ("StopHook_drift_sentinel", 50),
+        ("narrative_intent_detector", 500),
+    ],
+)
+def test_session_fresh_adapters_use_shared_scope(
+    monkeypatch, module_name: str, limit: int
+) -> None:
+    module = __import__(module_name)
+    captured: dict[str, object] = {}
+
+    def fake_load_scoped_tool_events(**kwargs):
+        captured.update(kwargs)
+        return [{"id": 20, "name": "Read"}]
+
+    monkeypatch.setattr(module, "load_scoped_tool_events", fake_load_scoped_tool_events)
+
+    result = module.load_tool_events("session-9", limit=limit)
+
+    assert result == [{"id": 20, "name": "Read"}]
+    assert captured == {
+        "session_id": "session-9",
+        "scope": "session_fresh",
+        "limit": limit,
+    }

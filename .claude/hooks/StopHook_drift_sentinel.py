@@ -24,7 +24,13 @@ sys.path.insert(0, str(HOOKS_DIR))
 
 from __lib__.drift_sentinel import detect_drift
 from cc_diagnostic_logger import log_hook_invocation
-from evidence_store import load_tool_events, resolve_session_id
+from evidence_store import resolve_session_id
+
+try:
+    from evidence_scope import SCOPE_SESSION_FRESH, load_scoped_tool_events
+except ImportError:
+    SCOPE_SESSION_FRESH = ""
+    load_scoped_tool_events = None  # type: ignore
 
 LOG_DIR = HOOKS_DIR / "state" / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -55,6 +61,17 @@ DRIFT_SENTINEL_ENABLED = (
 DRIFT_SENTINEL_MODE = os.environ.get("DRIFT_SENTINEL_MODE", "warn").lower()
 
 _MAX_SOURCE_CHARS = 10240  # 10KB per file
+
+
+def load_tool_events(session_id: str, limit: int = 50) -> list[dict[str, Any]]:
+    """Compatibility wrapper for recent session evidence."""
+    if load_scoped_tool_events is None:
+        raise ImportError("evidence_scope unavailable")
+    return load_scoped_tool_events(
+        session_id=session_id,
+        scope=SCOPE_SESSION_FRESH,
+        limit=limit,
+    )
 
 
 def _load_source_texts(session_id: str) -> list[str]:
