@@ -6,7 +6,6 @@ Purpose: Block responses that make claims without testing, propose solutions wit
 or skip systematic diagnostic protocols.
 """
 
-import json
 import os
 import re
 import sys
@@ -17,7 +16,12 @@ _ADVISORY_MODE = os.environ.get("VERIFICATION_GATE_ADVISORY", "false").lower() =
 
 # Turn-scoped tool event awareness
 _HOOKS_DIR = Path(__file__).resolve().parent.parent  # stop/ -> hooks/
-_STATE_DIR = _HOOKS_DIR / "state" / "turn_markers"
+sys.path.insert(0, str(_HOOKS_DIR))
+
+try:
+    from turn_scoped_evidence import load_turn_scoped_events
+except ImportError:
+    load_turn_scoped_events = None  # type: ignore
 
 # Tools that constitute verification evidence
 _VERIFICATION_TOOLS = frozenset({"Read", "Grep", "Glob", "WebSearch", "WebFetch", "Bash"})
@@ -156,42 +160,22 @@ def _format_structured_feedback(violations: list, suggestions: list, hypothesis_
     return "\n".join(lines)
 
 
-def _safe_scope_key(session_id: str, terminal_id: str) -> str:
-    """Generate a safe scope key from session_id and terminal_id."""
-    def _safe(v: str) -> str:
-        return "".join(c if c.isalnum() or c in "._-" else "_" for c in v)[:48]
-    return f"{_safe(session_id)}__{_safe(terminal_id)}"
-
-
 def _has_verification_tools_this_turn(session_id: str, terminal_id: str) -> bool:
     """Return True if Grep/Read/Glob/etc. were called this turn.
 
-    Uses the turn marker (written by UserPromptSubmit turn_marker.py) to
-    scope tool events to the current turn only. Fails open: returns False
-    (don't suppress the check) if evidence system is unavailable.
+    Uses the shared turn-scoped evidence helper. Fails open: returns False
+    (don't suppress the check) if evidence is unavailable.
     """
-    if not session_id:
+    if not session_id or load_turn_scoped_events is None:
         return False
     try:
-        # Read turn marker to get the sentinel event id
-        marker_path = _STATE_DIR / f"turn_start_{_safe_scope_key(session_id, terminal_id)}.json"
-        min_id: int | None = None
-        if marker_path.exists():
-            import json as _json
-            data = _json.loads(marker_path.read_text())
-            val = data.get("turn_start_event_id")
-            if val is not None:
-                min_id = int(val)
-
-        # Load tool events from evidence store
-        sys.path.insert(0, str(_HOOKS_DIR))
-        from evidence_store import load_tool_events  # type: ignore
-        events = load_tool_events(session_id=session_id, limit=200)
-
-        # Filter to this turn only
-        if min_id is not None:
-            events = [e for e in events if int(e.get("id", 0)) > min_id]
-
+        events = load_turn_scoped_events(
+            session_id=session_id,
+            terminal_id=terminal_id,
+            limit=200,
+        )
+        if events is None:
+            return False
         return any(e.get("name") in _VERIFICATION_TOOLS for e in events)
     except Exception:
         return False  # fail open — don't suppress the check
