@@ -1,0 +1,141 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "8f91b8e0-cc8a-4e37-a286-13daf7410676",
+    "terminal_id": "console_8a6bbecb-1c2c-4472-8020-70d5cb748a30",
+    "source_session_id": "6a90a141-dc85-4572-bfa9-3ab3f1eb869a",
+    "created_at": "2026-04-04T03:07:15.987823+00:00",
+    "expires_at": "2026-04-04T03:27:15.987823+00:00",
+    "status": "pending",
+    "goal": "what's the best implementation you are going to use?",
+    "current_task": "what's the best implementation you are going to use?",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "P:/packages/skill-guard/.evidence/gto-results.json",
+      "P:/packages/skill-guard/.evidence/gto-state-unknown/state.json",
+      "P:/packages/skill-guard/.evidence/gto-state-pytest_isolated/state.json",
+      "C:/Users/brsth/Downloads/this is not the gto skill output.txt",
+      "P:/packages/skill-guard/.evidence/premortem_t002_fixes_20260324.md",
+      "P:/packages/skill-guard/.evidence/gto-state-console_25684/state.json",
+      "P:/packages/skill-guard/README.md",
+      "P:/.claude/hooks/Stop_router.py",
+      "P:/.claude/skills/gto/SKILL.md",
+      "P:/.claude/hooks/PreToolUse_command_intent_gate.py"
+    ],
+    "pending_operations": [
+      {
+        "type": "skill",
+        "target": "skill: rca",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "search: skill-guard",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "search: this is not the gto skill",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: P:/packages/skill-guard/**/*",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:/packages/skill-guard/.evidence/gto-results.json",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "Resume skill on skill: rca.",
+    "decision_refs": [
+      "dec_f8bedf0454ce4a7f8306ee56806dabd7",
+      "dec_06bb14bb81654a81b28dfc2d957d7742"
+    ],
+    "evidence_refs": [
+      "ev_eb31b4ced34844a695b48cd6d2e12d02",
+      "ev_e6700df38b29487e8bb56af3cb4638ff",
+      "ev_46a196ae03bf4bd7ad32d6b3c67129a5",
+      "ev_83da16db29ff4d17b08ed594522b49e3",
+      "ev_9e663e9e4aa04978a0c3917cf1692c22",
+      "ev_39c563341614442bb461903308d01dea"
+    ],
+    "transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\6a90a141-dc85-4572-bfa9-3ab3f1eb869a.jsonl",
+    "message_intent": "question",
+    "quality_score": 0.4,
+    "tasks_snapshot": []
+  },
+  "decision_register": [
+    {
+      "id": "dec_f8bedf0454ce4a7f8306ee56806dabd7",
+      "kind": "constraint",
+      "summary": "**Phase 3: EXPLORE** The existing test `test_chs_terminal_id_scoping.py:26` explicitly asserts `\"default\"` — this is the test that codified the bug. The `\"default\"` fallback is never actually triggered in real usage (providers receive explicit `terminal_id`), but it exists and the test guards it. **Key finding**: 4 modules with terminal_id functions, not 3: - `claude_code_raw._resolve_terminal_id()` — `\"default\"` fallback (BUG) - `claude_log._resolve_terminal_id()` — identical to above (BUG) - `codex_desktop._resolve_terminal_id()` — `codex_{cwd_hash}` (better but isolated) - `critique_io._get_terminal_id()` — `fallback_{pid}_{ns%1M}_{hash}` - `gto_orchestrator._get_default_terminal_id()` — `SHA1({pid}_{timestamp})[:12]` **Phase 4: PLAN** — Minimal. The /arch output is the plan. **Phase 5: CONTRACT PRECHECK** — The canonical function has no downstream consumers beyond being a utility. No contract-sensitive boundary. **Phase 6: TDD RED** Write failing test first.",
+      "details": "**Phase 3: EXPLORE** The existing test `test_chs_terminal_id_scoping.py:26` explicitly asserts `\"default\"` — this is the test that codified the bug. The `\"default\"` fallback is never actually triggered in real usage (providers receive explicit `terminal_id`), but it exists and the test guards it. **Key finding**: 4 modules with terminal_id functions, not 3: - `claude_code_raw._resolve_terminal_id()` — `\"default\"` fallback (BUG) - `claude_log._resolve_terminal_id()` — identical to above (BUG) - `codex_desktop._resolve_terminal_id()` — `codex_{cwd_hash}` (better but isolated) - `critique_io._get_terminal_id()` — `fallback_{pid}_{ns%1M}_{hash}` - `gto_orchestrator._get_default_terminal_id()` — `SHA1({pid}_{timestamp})[:12]` **Phase 4: PLAN** — Minimal. The /arch output is the plan. **Phase 5: CONTRACT PRECHECK** — The canonical function has no downstream consumers beyond being a utility. No contract-sensitive boundary. **Phase 6: TDD RED** Write failing test first.",
+      "priority": "high",
+      "applies_when": "Continue the current task after compact.",
+      "source_refs": [
+        "ev_eb31b4ced34844a695b48cd6d2e12d02"
+      ]
+    },
+    {
+      "id": "dec_06bb14bb81654a81b28dfc2d957d7742",
+      "kind": "constraint",
+      "summary": "Now update the existing test that guards the `\"default\"` behavior — this test must change:",
+      "details": "Now update the existing test that guards the `\"default\"` behavior — this test must change:",
+      "priority": "high",
+      "applies_when": "Continue the current task after compact.",
+      "source_refs": [
+        "ev_eb31b4ced34844a695b48cd6d2e12d02"
+      ]
+    }
+  ],
+  "evidence_index": [
+    {
+      "id": "ev_eb31b4ced34844a695b48cd6d2e12d02",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\6a90a141-dc85-4572-bfa9-3ab3f1eb869a.jsonl",
+      "content_hash": "sha256:b42a412cfc824093bd5c3844f4c5317a6ab5f2384bfe704ce686d6cb4e25ef97"
+    },
+    {
+      "id": "ev_e6700df38b29487e8bb56af3cb4638ff",
+      "type": "file",
+      "label": "gto-results.json",
+      "path": "P:\\packages\\skill-guard\\.evidence\\gto-results.json",
+      "content_hash": "sha256:a6382b3a8466441b6dae2272898654586880283108306d5adf1ea61c821fd36a"
+    },
+    {
+      "id": "ev_46a196ae03bf4bd7ad32d6b3c67129a5",
+      "type": "file",
+      "label": "state.json",
+      "path": "P:\\packages\\skill-guard\\.evidence\\gto-state-unknown\\state.json",
+      "content_hash": "sha256:c54b982b1fc0794f1348c9a77536a447387ea756ef86ca32835a6b770d8a1935"
+    },
+    {
+      "id": "ev_83da16db29ff4d17b08ed594522b49e3",
+      "type": "file",
+      "label": "state.json",
+      "path": "P:\\packages\\skill-guard\\.evidence\\gto-state-pytest_isolated\\state.json",
+      "content_hash": "sha256:5afb6dbe6c0d29441f3d87cc4fce833a3910e83b7db4e3a8c8c3713696232f81"
+    },
+    {
+      "id": "ev_9e663e9e4aa04978a0c3917cf1692c22",
+      "type": "file",
+      "label": "this is not the gto skill output.txt",
+      "path": "C:\\Users\\brsth\\Downloads\\this is not the gto skill output.txt",
+      "content_hash": "sha256:1f97ddd44360360d7a4736ce7f13ca9c9b8a8547e01ed1b8392289c787bdabc5"
+    },
+    {
+      "id": "ev_39c563341614442bb461903308d01dea",
+      "type": "file",
+      "label": "premortem_t002_fixes_20260324.md",
+      "path": "P:\\packages\\skill-guard\\.evidence\\premortem_t002_fixes_20260324.md",
+      "content_hash": "sha256:7a930a19b3f4c7e846f49a74484446bd50ce44b6d2b62e3e97bae215a4b8b945"
+    }
+  ],
+  "checksum": "sha256:9c78fee1f84eb875a1feed2ff64a58cc61880948fbcb209ae68c94678d086199"
+}

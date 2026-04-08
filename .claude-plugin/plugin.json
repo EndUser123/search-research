@@ -1,0 +1,9 @@
+{
+  "name": "search-research",
+  "description": "Unified search and research system with async concurrent execution, HyDE enhancement, and 11 web providers. Replaces deprecated unified-search (EOL: 2026-09-01).",
+  "author": {
+    "name": "CSF Development Team"
+  },
+  "version": "0.1.0",
+  "license": "MIT"
+}

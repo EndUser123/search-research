@@ -1,0 +1,59 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "d34d006a-5a79-4c64-8154-c232ea12c9bc",
+    "terminal_id": "console_8e5c0763-db42-4eee-bb27-6ebd1a9884df",
+    "source_session_id": "5995af61-f079-4598-880a-c0b3fba1fea5",
+    "created_at": "2026-04-06T16:33:16.975745+00:00",
+    "expires_at": "2026-04-06T16:53:16.975745+00:00",
+    "status": "pending",
+    "goal": "Continue current task (meta-discussion filtered)",
+    "current_task": "Continue current task (meta-discussion filtered)",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "C:\\Users\\brsth\\.claude\\projects\\3c86b883-0e44-4cb9-8577-e315b03f2abc.jsonl"
+    ],
+    "pending_operations": [
+      {
+        "type": "read",
+        "target": "C:\\Users\\brsth\\.claude\\projects\\3c86b883-0e44-4cb9-8577-e315b03f2abc.jsonl",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "C:\\Users\\brsth\\.claude\\projects\\3c86b883-0e44-4cb9-8577-e315b03f2abc.jsonl",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "Resume read on C:\\Users\\brsth\\.claude\\projects\\3c86b883-0e44-4cb9-8577-e315b03f2abc.jsonl.",
+    "decision_refs": [],
+    "evidence_refs": [
+      "ev_6fd2aa74bb2c40de8c4b0565a757cdf9",
+      "ev_f8b959e8e28047e99b92098f30e8f33b"
+    ],
+    "transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--packages-search-research\\5995af61-f079-4598-880a-c0b3fba1fea5.jsonl",
+    "message_intent": "question",
+    "quality_score": 0.4,
+    "tasks_snapshot": []
+  },
+  "decision_register": [],
+  "evidence_index": [
+    {
+      "id": "ev_6fd2aa74bb2c40de8c4b0565a757cdf9",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--packages-search-research\\5995af61-f079-4598-880a-c0b3fba1fea5.jsonl",
+      "content_hash": "sha256:6cd50021cf8fca91371c4771874c5db34eaf391a6271453f8767d0fd0f30d740"
+    },
+    {
+      "id": "ev_f8b959e8e28047e99b92098f30e8f33b",
+      "type": "file",
+      "label": "3c86b883-0e44-4cb9-8577-e315b03f2abc.jsonl",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\3c86b883-0e44-4cb9-8577-e315b03f2abc.jsonl",
+      "content_hash": "sha256:0b25ad7282a9b88e354fbbb7061f3645e67f41e390e9e2f3ac07ae50968875ae"
+    }
+  ],
+  "checksum": "sha256:86d90c11e8e91acb160568fab748126a98fd6e41fe4d7409eaab2deea99b9123"
+}

@@ -1,0 +1,114 @@
+{
+  "version": "3.0.0",
+  "terminal_id": "ec1d4603cbff",
+  "timestamp": "2026-04-03T11:21:33.366923",
+  "session_id": "2026-04-03T11:18:58.264229",
+  "gaps": [
+    {
+      "id": "GAP-0000-SUSPICION",
+      "type": "suspicion_misalignment",
+      "severity": "medium",
+      "message": "[Conversational Misalignment] We need to follow our constitution tree.  How can we make sure the suba",
+      "file_path": null,
+      "line_number": null,
+      "source": "SuspicionDetector",
+      "timestamp": "2026-04-03T11:19:48.858430",
+      "metadata": {},
+      "confidence": 0.8,
+      "effort_estimate_minutes": 10,
+      "theme": null,
+      "recurrence_count": 1
+    }
+  ],
+  "metadata": {
+    "timestamp": "2026-04-03T11:18:58.264229",
+    "project_root": "P:\\packages\\search-research",
+    "terminal_id": "ec1d4603cbff",
+    "viability_check": {
+      "is_viable": true,
+      "failure_reason": null
+    },
+    "git_context": {
+      "branch": "main",
+      "branch_display": "main",
+      "is_detached": false,
+      "is_worktree": false,
+      "worktree_count": 1,
+      "error": null
+    },
+    "session_goal": {
+      "goal": null,
+      "confidence": 0.0,
+      "source_turn": null
+    },
+    "chain_analysis": {
+      "focus": "",
+      "phase": "",
+      "next_steps": [],
+      "confidence": 0.0,
+      "error": "timeout",
+      "transcripts_processed": 1
+    },
+    "subagent_results": {},
+    "resolution_result": {
+      "resolved_count": 0,
+      "new_count": 1,
+      "credited_skill": null
+    },
+    "health_report": {
+      "overall_score": 0.57,
+      "status": "warning",
+      "metrics": [
+        {
+          "name": "test_coverage",
+          "score": 0.09520434679896055,
+          "weight": 0.3,
+          "description": "Test coverage ratio",
+          "details": {
+            "source_files": 4233,
+            "test_files": 403,
+            "ratio": 0.1
+          }
+        },
+        {
+          "name": "documentation",
+          "score": 0.4008977084809828,
+          "weight": 0.2,
+          "description": "Documentation coverage",
+          "details": {
+            "source_files": 4233,
+            "documented": 1697,
+            "ratio": 0.4
+          }
+        },
+        {
+          "name": "dependencies",
+          "score": 0.8,
+          "weight": 0.2,
+          "description": "Dependency management health",
+          "details": {
+            "has_requirements": true,
+            "declared_packages": 0,
+            "installed_packages": 607
+          }
+        },
+        {
+          "name": "code_quality",
+          "score": 0.9982531055900621,
+          "weight": 0.3,
+          "description": "Code quality (fewer TODO/HACK markers)",
+          "details": {
+            "files_scanned": 5152,
+            "todo_count": 18,
+            "hack_count": 0,
+            "fixme_count": 0,
+            "xxx_count": 0,
+            "type_ignore_count": 59,
+            "total_markers": 18
+          }
+        }
+      ],
+      "timestamp": "2026-04-03T11:21:33.366769"
+    }
+  }
+}

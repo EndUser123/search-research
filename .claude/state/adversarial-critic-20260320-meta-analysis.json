@@ -1,0 +1,161 @@
+{
+  "review_metadata": {
+    "skill": "adversarial-critic",
+    "review_type": "gto-premortem-meta-analysis",
+    "timestamp": "2026-03-20T10:30:00Z",
+    "target_skill": "/gto (P:/.claude/skills/gto/SKILL.md)",
+    "agents_analyzed": [
+      "pre-mortem_analysis",
+      "code_reviewer",
+      "security_analyzer",
+      "performance_analyzer",
+      "testing_analyzer"
+    ],
+    "total_findings": 6,
+    "consensus_count": 2,
+    "blind_spot_count": 4,
+    "bias_count": 1,
+    "contradiction_count": 0,
+    "calibration_count": 2
+  },
+  "meta_findings": [
+    {
+      "meta_type": "consensus",
+      "location": "gto_orchestrator.py:subagent_dispatch",
+      "agreement_count": 5,
+      "agreement_pct": 100,
+      "agent_names": [
+        "pre-mortem",
+        "code_reviewer",
+        "security_analyzer",
+        "performance_analyzer",
+        "testing_analyzer"
+      ],
+      "issue_summary": "Subagent spawn silent failure represents critical reliability risk",
+      "confidence": "HIGH",
+      "evidence": "All review mechanisms identified that subagent failures without proper error handling could cause silent failures in gap detection"
+    },
+    {
+      "meta_type": "consensus",
+      "location": "lib/result_envelope.py:ResultEnvelope",
+      "agreement_count": 4,
+      "agreement_pct": 80,
+      "agent_names": [
+        "pre-mortem",
+        "code_reviewer",
+        "security_analyzer",
+        "testing_analyzer"
+      ],
+      "issue_summary": "Result envelope schema drift poses integration stability risk",
+      "confidence": "HIGH",
+      "evidence": "Multiple agents identified that schema changes without version control could break downstream consumers"
+    },
+    {
+      "meta_type": "blind_spot",
+      "severity": "CRITICAL",
+      "title": "Multi-terminal race condition in artifact writes",
+      "category": "Concurrency",
+      "description": "When multiple terminals run /gto simultaneously, artifact file writes could corrupt each other",
+      "evidence": "gto_orchestrator.py writes to .evidence/ directory without file locking",
+      "impact": "Artifact corruption, lost findings, incorrect health scores",
+      "recommendation": "Implement file locking or terminal-scoped artifact namespaces",
+      "location": {
+        "file": "gto_orchestrator.py",
+        "line": "artifact_write_operations"
+      },
+      "why_missed": "Pre-mortem focused on single-terminal usage; concurrency patterns require explicit analysis"
+    },
+    {
+      "meta_type": "blind_spot",
+      "severity": "HIGH",
+      "title": "GapFinder false positive cascading effects",
+      "category": "Quality",
+      "description": "False positives in gap detection trigger unnecessary user notifications and erode trust",
+      "evidence": "CRITICAL_PATTERNS in lib/subagents.py may match benign error messages",
+      "impact": "Notification fatigue, user distrust, skill abandonment",
+      "recommendation": "Add validation layer to filter false positives before user display",
+      "location": {
+        "file": "lib/subagents.py",
+        "line": "GapFinderSubagent.CRITICAL_PATTERNS"
+      },
+      "why_missed": "Pre-mortem identified false positives but didn't analyze downstream impact on user behavior"
+    },
+    {
+      "meta_type": "blind_spot",
+      "severity": "HIGH",
+      "title": "Chat-only context gap limits root cause analysis",
+      "category": "Scope",
+      "description": "/gto cannot analyze code files, missing critical context for technical issues",
+      "evidence": "SKILL.md explicitly states 'does NOT scan files or code'",
+      "impact": "Incomplete analysis, recommendations that miss technical root causes",
+      "recommendation": "Add integration with /r, /q, /t skills for code-aware gap analysis",
+      "location": {
+        "file": "SKILL.md",
+        "line": "32"
+      },
+      "why_missed": "Pre-mortem treated chat-only scope as feature, not limitation"
+    },
+    {
+      "meta_type": "blind_spot",
+      "severity": "MEDIUM",
+      "title": "Artifact cleanup policy lacks archival consideration",
+      "category": "Data Retention",
+      "description": "7-day auto-cleanup may delete valuable historical analysis data",
+      "evidence": "SKILL.md mentions 'Automatic 7-day artifact retention policy'",
+      "impact": "Loss of historical patterns, inability to analyze long-term trends",
+      "recommendation": "Add archival mechanism for high-value findings before cleanup",
+      "location": {
+        "file": "SKILL.md",
+        "line": "294"
+      },
+      "why_missed": "Pre-mortem focused on cleanup mechanics, not data preservation"
+    },
+    {
+      "meta_type": "bias",
+      "agent": "pre-mortem_analysis",
+      "bias_type": "severity_inflation",
+      "description": "Risk 9 assigned to 6 different issues reduces discrimination power",
+      "recommendation": "Apply severity scoring framework to differentiate critical vs moderate risks",
+      "evidence": {
+        "risk_9_count": 6,
+        "total_risks": 6,
+        "expected_distribution": "1-2 critical, 2-3 high, 1-2 medium",
+        "actual_distribution": "6 critical, 0 high, 0 medium"
+      }
+    },
+    {
+      "meta_type": "quality_calibration",
+      "agent": "pre-mortem_analysis",
+      "calibration_issue": "overconfident",
+      "finding_id": "Risk-9-Insufficient-Integration-Tests",
+      "reported_confidence": 90,
+      "assessed_quality": "medium",
+      "quality_score": 60,
+      "description": "Finding lacks specific test coverage metrics or gap analysis",
+      "recommendation": "Reduce confidence to 60-70, add test coverage assessment data"
+    },
+    {
+      "meta_type": "quality_calibration",
+      "agent": "pre-mortem_analysis",
+      "calibration_issue": "underconfident",
+      "finding_id": "Risk-6-Artifact-Cleanup-Issues",
+      "reported_confidence": 60,
+      "assessed_quality": "high",
+      "quality_score": 85,
+      "description": "Finding has specific evidence (7-day policy) and clear impact (data loss)",
+      "recommendation": "Increase confidence to 80-85, evidence quality supports higher confidence"
+    }
+  ],
+  "summary": {
+    "overall_assessment": "Pre-mortem identified critical technical risks but missed systemic issues (concurrency, user experience, data retention) and shows severity inflation bias",
+    "priority_recommendations": [
+      "Address subagent spawn silent failure (CRITICAL - consensus)",
+      "Implement multi-terminal artifact safety (CRITICAL - blind spot)",
+      "Add false positive validation layer (HIGH - blind spot)",
+      "Calibrate severity scoring framework (MEDIUM - bias correction)",
+      "Integrate code-aware analysis (HIGH - scope gap)"
+    ],
+    "confidence_score": 75,
+    "confidence_rationale": "High confidence on consensus findings (subagent failures, schema drift). Medium confidence on blind spots (require verification against actual codebase). Low confidence on bias assessment (limited sample size)."
+  }
+}

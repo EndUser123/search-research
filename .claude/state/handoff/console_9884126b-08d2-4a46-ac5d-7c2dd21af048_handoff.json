@@ -1,0 +1,141 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "b86efd3f-a404-4476-aa89-c7f08da65529",
+    "terminal_id": "console_9884126b-08d2-4a46-ac5d-7c2dd21af048",
+    "source_session_id": "9614bcd9-8079-4f98-af23-b094b987087c",
+    "created_at": "2026-04-08T02:04:19.332222+00:00",
+    "expires_at": "2026-04-08T02:24:19.332222+00:00",
+    "status": "pending",
+    "goal": "\"Your first action must be Skill(\"planning\"), then follow the skill workflow.\", why didn't you use planning first?",
+    "current_task": "\"Your first action must be Skill(\"planning\"), then follow the skill workflow.\", why didn't you use planning first?",
+    "progress_percent": 100,
+    "progress_state": "blocked",
+    "blockers": [
+      {
+        "type": "awaiting_approval",
+        "summary": "Plan exists but requires user approval before implementation."
+      }
+    ],
+    "active_files": [
+      "P:/packages/search-research/core/session_chain.py",
+      "C:\\Users\\brsth\\.claude\\plans\\moonlit-sauteeing-russell.md",
+      "P:/packages/sdlc/skills/planning/references/verification-workflow.md",
+      "P:/packages/sdlc/skills/planning/__lib/auto_verify.py",
+      "P:/packages/search-research/tests/test_session_chain.py"
+    ],
+    "pending_operations": [
+      {
+        "type": "investigation",
+        "target": "search: session.?chain",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: P:/packages/search-research/**/*session*",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:/packages/search-research/core/session_chain.py",
+        "state": "in_progress"
+      },
+      {
+        "type": "skill",
+        "target": "skill: planning",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:/packages/search-research/core/session_chain.py",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "Resume investigation on search: session.?chain.",
+    "decision_refs": [
+      "dec_4fdc9223adc94d568a67b71a2b454f8d",
+      "dec_e6ec6123b87647ca9c7ce63ce43072d2"
+    ],
+    "evidence_refs": [
+      "ev_f36cc2bd14104c5cb288fade188a5d4f",
+      "ev_d32ba025ce7f4fe3a0c2949fdcd75f6a",
+      "ev_911837af3d5e4f16a0ca90df0d4a1221",
+      "ev_480facd725134060a308936a959fe168",
+      "ev_6bca563de5e544a68300e4f8e321c516",
+      "ev_f3eb2d5f102748828c2f4eb351c99bb5"
+    ],
+    "transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\9614bcd9-8079-4f98-af23-b094b987087c.jsonl",
+    "message_intent": "question",
+    "quality_score": 0.9,
+    "tasks_snapshot": []
+  },
+  "decision_register": [
+    {
+      "id": "dec_4fdc9223adc94d568a67b71a2b454f8d",
+      "kind": "constraint",
+      "summary": "The bare `session_chain.py` references don't resolve because they're only searched in `cwd` (`P:\\`), not in `P:/packages/search-research/core/`. I need to replace all bare `session_chain.py` references with full paths in the plan.",
+      "details": "The bare `session_chain.py` references don't resolve because they're only searched in `cwd` (`P:\\`), not in `P:/packages/search-research/core/`. I need to replace all bare `session_chain.py` references with full paths in the plan.",
+      "priority": "high",
+      "applies_when": "Continue the current task after compact.",
+      "source_refs": [
+        "ev_f36cc2bd14104c5cb288fade188a5d4f"
+      ]
+    },
+    {
+      "id": "dec_e6ec6123b87647ca9c7ce63ce43072d2",
+      "kind": "constraint",
+      "summary": "\"Your first action must be Skill(\"planning\"), then follow the skill workflow.\", why didn't you use planning first?",
+      "details": "\"Your first action must be Skill(\"planning\"), then follow the skill workflow.\", why didn't you use planning first?",
+      "priority": "high",
+      "applies_when": "Continue the current task after compact.",
+      "source_refs": [
+        "ev_f36cc2bd14104c5cb288fade188a5d4f"
+      ]
+    }
+  ],
+  "evidence_index": [
+    {
+      "id": "ev_f36cc2bd14104c5cb288fade188a5d4f",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\9614bcd9-8079-4f98-af23-b094b987087c.jsonl",
+      "content_hash": "sha256:6ebe65728bebf00e1793f719e091ff2fb4f08c0718ef973404ba544da3c2bff8"
+    },
+    {
+      "id": "ev_d32ba025ce7f4fe3a0c2949fdcd75f6a",
+      "type": "file",
+      "label": "session_chain.py",
+      "path": "P:\\packages\\search-research\\core\\session_chain.py",
+      "content_hash": "sha256:b6ef996f94c9eaac49e74d63e22910dd68ca8a7dcdbd741f34ace4dd58072d0e"
+    },
+    {
+      "id": "ev_911837af3d5e4f16a0ca90df0d4a1221",
+      "type": "file",
+      "label": "moonlit-sauteeing-russell.md",
+      "path": "C:\\Users\\brsth\\.claude\\plans\\moonlit-sauteeing-russell.md",
+      "content_hash": "sha256:cd754c2b00ae37e41f1f27a68375089161bd6a44011ec06f6856b6c9251f66b0"
+    },
+    {
+      "id": "ev_480facd725134060a308936a959fe168",
+      "type": "file",
+      "label": "verification-workflow.md",
+      "path": "P:\\packages\\sdlc\\skills\\planning\\references\\verification-workflow.md",
+      "content_hash": "sha256:b3a20871fea4a8dcea3ebacd6d32a48fc1cfb832fb5624fb38ca81e9ac7906ae"
+    },
+    {
+      "id": "ev_6bca563de5e544a68300e4f8e321c516",
+      "type": "file",
+      "label": "auto_verify.py",
+      "path": "P:\\packages\\sdlc\\skills\\planning\\__lib\\auto_verify.py",
+      "content_hash": "sha256:a3c0cd9e4bed804af88d3c23b0c34cfd60d4e08cfdc5518fa12bd482bdcae820"
+    },
+    {
+      "id": "ev_f3eb2d5f102748828c2f4eb351c99bb5",
+      "type": "file",
+      "label": "test_session_chain.py",
+      "path": "P:\\packages\\search-research\\tests\\test_session_chain.py",
+      "content_hash": "sha256:6ae9083930389976f590de6cc8124faccc63aabe6615ca9330de7a5bbc1359ab"
+    }
+  ],
+  "checksum": "sha256:d702d89f38ffd5f543632d591c1bb7e9ad697178868e91e0b185cab9bfa78d02"
+}

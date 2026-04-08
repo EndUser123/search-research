@@ -1,0 +1,72 @@
+{
+  "handoff": {
+    "agent_name": "adversarial-state-machine",
+    "workflow": "/adversarial-review",
+    "status": "SUCCESS",
+    "timestamp": "2026-04-03T14:45:00Z",
+    "session_id": "adversarial-state-machine-001",
+    "terminal_id": "state-machine-review"
+  },
+  "summary": {
+    "overall_assessment": [
+      "CircuitBreaker.call() has a TOCTOU race condition on half_open_calls counter (lines 188-198)",
+      "BackendHealthRegistry.record_success() allows invalid state transition from 'down' to 'ready' without backoff validation",
+      "MultiModeOrchestrator never transitions ExecutionStatus to RUNNING despite enum defining that state",
+      "HealthMonitor.monitoring_active flag has unsafe read/write across threads without synchronization"
+    ],
+    "systemic_issues": true,
+    "confidence_level": "high"
+  },
+  "findings": [
+    {
+      "id": "STATE-001",
+      "severity": "high",
+      "location": "core/cks/integration/adapters/resilience_error_handler.py:188-198",
+      "problem": "TOCTOU race condition on half_open_calls counter. The check at line 189 `if self.half_open_calls >= self.half_open_max_calls` is performed OUTSIDE the lock, but the increment at line 198 `self.half_open_calls += 1` is performed INSIDE a new lock context. Two concurrent threads can both pass the check before either increments.",
+      "adversarial_scenario": "Thread A checks half_open_calls=2, sees limit not reached. Thread B checks half_open_calls=2, also sees limit not reached. Both threads proceed to call func() even though half_open_max_calls=3 and the counter should only allow 3 total calls in HALF_OPEN state. This allows more traffic through than intended during circuit breaker recovery testing.",
+      "impact": "The circuit breaker may allow more calls than intended during HALF_OPEN state, potentially overwhelming a failing service before it's fully recovered.",
+      "recommendation": "Move the half_open_calls check inside the lock at line 188-190. Use `with self._lock:` for the entire check-then-act sequence."
+    },
+    {
+      "id": "STATE-002",
+      "severity": "high",
+      "location": "core/backend_health.py:32-36",
+      "problem": "BackendHealth.record_success() unconditionally sets status='ready' without validating current state. The method is called even when the backend is in 'down' state with an active backoff period. No check is performed to verify that should_retry() returns True before transitioning out of 'down' state.",
+      "adversarial_scenario": "Backend fails 10 consecutive times, status='down', next_retry=300s in future. A success result arrives (e.g., from a stale health check) and record_success() is called. The status immediately becomes 'ready' even though the backoff period hasn't elapsed. This bypasses the exponential backoff protection.",
+      "impact": "Exponential backoff is bypassed. A failing backend can immediately be marked as ready, allowing immediate retry attempts that may continue to fail.",
+      "recommendation": "In record_success(), check if current status is 'down' and should_retry() returns False before allowing transition to 'ready'. Add validation: `if self.status == 'down' and not self.should_retry(): return`"
+    },
+    {
+      "id": "STATE-003",
+      "severity": "medium",
+      "location": "core/enhancement/multi_mode_orchestrator.py:154-186",
+      "problem": "ExecutionStatus.RUNNING state is defined (line 16) but never used. The _execute_mode_with_timeout() and _execute_mode() methods return results with status COMPLETED or FAILED, but never set status to RUNNING when execution starts. The PENDING state is also never explicitly set.",
+      "adversarial_scenario": "Code that checks `if result.status == ExecutionStatus.RUNNING` to track in-progress tasks will never find any matches. State monitoring/logging that relies on RUNNING state to track active executions will be broken.",
+      "impact": "State machine consumers cannot accurately track which modes are currently executing. The RUNNING state exists but is unreachable in the current implementation.",
+      "recommendation": "Add status transition to RUNNING at the start of _execute_mode() before awaiting the executor. e.g., `status=ExecutionStatus.RUNNING` when starting execution."
+    },
+    {
+      "id": "STATE-004",
+      "severity": "medium",
+      "location": "core/cks/integration/adapters/resilience_error_handler.py:374-378",
+      "problem": "HealthMonitor.monitoring_active flag is set without holding the lock at line 378, but checked without holding the lock at line 398 in the _monitoring_loop. This creates a race condition where stop_monitoring() may not reliably stop an active monitoring loop.",
+      "adversarial_scenario": "Thread A calls stop_monitoring(), sets monitoring_active=False at line 384. Thread B's _monitoring_loop is already past the check at line 398 but hasn't processed the stop signal. The monitoring continues for another interval before exiting.",
+      "impact": "Graceful shutdown may be delayed. In worst case, monitoring tasks continue running after stop_monitoring() returns, causing resource leaks or duplicate monitoring.",
+      "recommendation": "Use `with self._lock:` around the monitoring_active flag access in both start_monitoring() and _monitoring_loop(). Alternatively use threading.Event for clearer synchronization."
+    },
+    {
+      "id": "STATE-005",
+      "severity": "low",
+      "location": "core/backend_health.py:50-53",
+      "problem": "BackendHealth.record_failure() has fixed threshold logic for status transitions. When consecutive_failures reaches 3, status becomes 'down'. But if failures continue beyond 3, the status remains 'down' - there's no escalation or deescalation path defined for repeated failures.",
+      "adversarial_scenario": "Backend fails 10 times, status='down'. Then succeeds once (record_success called), failures reset to 0, status becomes 'ready'. A single failure immediately puts it back to 'degraded'. This creates a fragile oscillation between 'ready' and 'down' states.",
+      "impact": "System can oscillate between healthy and unhealthy states on intermittent failures. A backend that has one success amid many failures immediately gets reset, potentially masking persistent issues.",
+      "recommendation": "Consider implementing a hysteresis mechanism or minimum time in 'down' state before allowing transition to 'degraded'. Or require multiple consecutive successes before marking fully 'ready'."
+    }
+  ],
+  "open_questions": [
+    "Is the CircuitBreaker half_open_calls counter supposed to be protected by the lock at check time? The current code suggests it was intended but the lock scope is wrong.",
+    "Should BackendHealthRegistry support a 'recovering' intermediate state between 'down' and 'ready'?",
+    "Is ExecutionStatus.RUNNING intentionally unused, or was it planned for future implementation?"
+  ]
+}

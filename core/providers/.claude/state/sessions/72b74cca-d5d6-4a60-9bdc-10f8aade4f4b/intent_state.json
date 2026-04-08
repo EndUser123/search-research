@@ -1,0 +1,10 @@
+{
+  "current_intent": {
+    "work_type": "unknown",
+    "target": "t work. It requires a captcha which we don",
+    "problem": "Delete DuckDuckGo. It doesn't work. It requires a captcha which we don't have.  Unless we do?",
+    "user_prompt": "Delete DuckDuckGo. It doesn't work. It requires a captcha which we don't have.  Unless we do?",
+    "timestamp": "2026-03-18T22:05:02.385862+00:00"
+  },
+  "last_updated": "2026-03-18T22:05:02.386421+00:00"
+}

@@ -1,0 +1,129 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "ab60b98d-8749-4eec-abf4-29c46f7cc3a4",
+    "terminal_id": "console_b6744eb1-ce27-4a7d-ac79-778f0dc97030",
+    "source_session_id": "b4ea47a2-5ae4-464b-97af-a9b322d73678",
+    "created_at": "2026-04-04T18:49:38.666741+00:00",
+    "expires_at": "2026-04-04T19:09:38.666741+00:00",
+    "status": "pending",
+    "goal": "Continue current task (meta-discussion filtered)",
+    "current_task": "Continue current task (meta-discussion filtered)",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "P:\\.claude\\skills\\rca\\references\\investigation-protocol.md",
+      "P:\\.claude\\skills\\rca\\references\\search-templates.md",
+      "P:\\.claude\\skills\\rca\\tools\\inspect_runtime_state.py",
+      "P:\\.claude\\skills\\rca\\references\\verification-gates.md",
+      "P:\\.claude\\skills\\rca\\SKILL.md",
+      "P:\\.claude\\skills\\rca\\tools\\show_skill_invocations.py",
+      "P:\\.claude\\skills\\rca\\tools\\telemetry_discovery.py",
+      "P:\\.claude\\skills\\arch\\references\\scope-and-contract.md",
+      "P:\\.claude\\skills\\arch\\references\\routing-contract.md",
+      "P:\\.claude\\hooks\\pre\\PreToolUse_tool_check.py"
+    ],
+    "pending_operations": [
+      {
+        "type": "skill",
+        "target": "skill: rca",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:\\.claude\\skills\\rca\\references\\investigation-protocol.md",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:\\.claude\\skills\\rca\\references\\search-templates.md",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "search: telemetry|logging|log.*file|log.*path",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: P:\\.claude\\skills\\rca\\**\\*",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "Resume skill on skill: rca.",
+    "decision_refs": [
+      "dec_80ff7a537307436687109775b3528cb4"
+    ],
+    "evidence_refs": [
+      "ev_c21ed68af5ec43d2a24d50ef648dcd4a",
+      "ev_6439310a51d04cd4b132c41cabf0b29f",
+      "ev_a539b4a22387454fa901a7cbddc0c8c7",
+      "ev_f7ed4ff3a0ac4f96bfb72e3506e80b60",
+      "ev_72406c98e944402da3974f354dafab7d",
+      "ev_a8918ab063544191a2dc69c2af877ea6"
+    ],
+    "transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\b4ea47a2-5ae4-464b-97af-a9b322d73678.jsonl",
+    "message_intent": "question",
+    "quality_score": 0.4,
+    "tasks_snapshot": []
+  },
+  "decision_register": [
+    {
+      "id": "dec_80ff7a537307436687109775b3528cb4",
+      "kind": "constraint",
+      "summary": "can we implement that with an if statement, so that we don't check every tooluse? What's the optimal way to implement it?",
+      "details": "can we implement that with an if statement, so that we don't check every tooluse? What's the optimal way to implement it?",
+      "priority": "high",
+      "applies_when": "Continue the current task after compact.",
+      "source_refs": [
+        "ev_c21ed68af5ec43d2a24d50ef648dcd4a"
+      ]
+    }
+  ],
+  "evidence_index": [
+    {
+      "id": "ev_c21ed68af5ec43d2a24d50ef648dcd4a",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\b4ea47a2-5ae4-464b-97af-a9b322d73678.jsonl",
+      "content_hash": "sha256:6e0ece5bb8d527c068d25e90f5bd72b0b4253c3f41e0f8ed09722d63c5de4969"
+    },
+    {
+      "id": "ev_6439310a51d04cd4b132c41cabf0b29f",
+      "type": "file",
+      "label": "investigation-protocol.md",
+      "path": "P:\\packages\\rca\\skill\\references\\investigation-protocol.md",
+      "content_hash": "sha256:969dfe5ce6eeacf46744663e15671f5e4edac15b5ad6f0a1e45a439f6c152373"
+    },
+    {
+      "id": "ev_a539b4a22387454fa901a7cbddc0c8c7",
+      "type": "file",
+      "label": "search-templates.md",
+      "path": "P:\\packages\\rca\\skill\\references\\search-templates.md",
+      "content_hash": "sha256:e947994ea6407f6f3dc515326d848f06a56f3e261e9074511d2bf27272eab774"
+    },
+    {
+      "id": "ev_f7ed4ff3a0ac4f96bfb72e3506e80b60",
+      "type": "file",
+      "label": "inspect_runtime_state.py",
+      "path": "P:\\packages\\rca\\skill\\tools\\inspect_runtime_state.py",
+      "content_hash": "sha256:f4e7ce7f1838bd219152a3d30f77bcde1590aa4e9443f12ca4caf38fd293d789"
+    },
+    {
+      "id": "ev_72406c98e944402da3974f354dafab7d",
+      "type": "file",
+      "label": "verification-gates.md",
+      "path": "P:\\packages\\rca\\skill\\references\\verification-gates.md",
+      "content_hash": "sha256:d8bbd442a0651f7b62d22197198dad4cf5ef6e714b5004ad9205ec51b1778c3d"
+    },
+    {
+      "id": "ev_a8918ab063544191a2dc69c2af877ea6",
+      "type": "file",
+      "label": "SKILL.md",
+      "path": "P:\\packages\\rca\\skill\\SKILL.md",
+      "content_hash": "sha256:97ce4e864ee84aafe383c7d1fa918f955ea17998d93668498a0c7177837d0277"
+    }
+  ],
+  "checksum": "sha256:7a644e4814dc407474dfa5d69e0e1c3a7053e4f25d413f71d986b5dbadea4adb"
+}
