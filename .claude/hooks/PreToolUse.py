@@ -626,6 +626,7 @@ UNIVERSAL = [
     "PreToolUse_path_validator.py",
     "PreToolUse/PreToolUse_skill_pattern_gate.py",  # v3.2 - Parallel regex + daemon validation
     "PreToolUse_domain_tool_router.py",  # NEW 2026-03-21: Advisory domain tool suggestions
+    "PreToolUse_discovery_tracker.py",  # ADR-00X: Tracks discovery tool usage for discovery-first enforcement (2026-04-09)
     "PreToolUse_risk_tier_gate.py",
     "PreToolUse_observe_before_act_gate.py",
     "PreToolUse_arch_first_enforcer.py",  # Enforce arch-first workflow (2026-03-16)

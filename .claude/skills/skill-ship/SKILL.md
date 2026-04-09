@@ -40,7 +40,7 @@ workflow_steps:
       output: required_phases (list), risk_level (low/medium/high), matched_artifact_type (string)
   - phase_2_creation: "Create or update skill structure using skill-creator and skill-development guidance WITH constitutional filter (no enterprise patterns), plan-and-review for complex skills (>5 steps). REQUIRES: Phase 1.5 output present in workflow state or conversation — if Phase 1.5 was skipped, its skip reason must be documented before Phase 2 begins."
   - phase_3a_spec_compliance: Verify implementation follows plan with completion evidence (RED/GREEN/REGRESSION/VERIFY) - blocks 3b until SPEC_PASS
-  - phase_3b_code_quality: Validate YAML frontmatter, trigger accuracy, quality gates, context bloat prevention, and operational resilience (multi-terminal scope, stale-data immunity, compact resilience, cognitive-hook fit) - blocks 3c until critical issues resolved
+  - phase_3b_code_quality: Validate YAML frontmatter, trigger accuracy, quality gates, context bloat prevention, operational resilience, and NO interactive-completion anti-patterns (no "Re-run /X", "Which would you prefer?", or "Options:" mid-workflow) — blocks 3c until critical issues resolved
   - phase_3c_integration_verification: Test skill invocation and execution paths - blocks Phase 4 until integration passes
   - phase_3_5_evaluation: Run eval suite with skill-creator including benchmarks and variance analysis (skip for simple skills)
   - phase_3e_evaluator:
@@ -215,6 +215,7 @@ When `/skill-ship` builds or repairs a skill, it should also check four ACEF-der
 - **Single responsibility**: if the skill is trying to do strategy, implementation, and distribution at once, document the scope guard or route part of the work elsewhere
 - **Path enumeration**: for routing-, phase-, or branch-heavy skills, enumerate the meaningful execution and failure paths so validators/tests can cover them
 - **Standardized errors**: blocking/enforcement paths should use consistent, operator-readable language so users can tell workflow enforcement from accidental breakage
+- **No interactive-completion proxy**: multi-step or parallel-agent skills must NOT say "Re-run /X", "Which would you prefer?", or "Options:" to simulate a wait loop — use programmatic sleep with exponential backoff and structured JSON progress events to stderr instead. Flag as CRITICAL in Phase 3b quality gate.
 
 These are implementation duties. If satisfying them requires changing the skill's fundamental purpose or scope, stop and route to `/skill-audit`.
 
@@ -319,7 +320,7 @@ If those questions cannot be answered clearly, prefer the simpler implementation
 **Phase 3 (Quality):** Three sub-phases run sequentially with fresh subagents (no state sharing between phases). Each spawns a fresh subagent with minimal context to prevent bias. Phase 3 is about implementation correctness and readiness, not strategic redesign.
 
 - **3a Spec:** Did implementation follow the plan? Output: `SPEC_PASS`/`SPEC_FAIL`. Blocks 3c. Never skip.
-- **3b Quality:** YAML completeness, trigger accuracy, context bloat prevention, and operational resilience. Confirm the skill is terminal-isolated or explicitly stateless, stale-data-immune, compact-resilient, and deliberate about cognitive/reasoning hooks. Blocks 3c until critical issues resolved. Skip for simple skills (<100 lines) only when those concerns are truly not applicable.
+- **3b Quality:** YAML completeness, trigger accuracy, context bloat prevention, operational resilience, and NO interactive-completion anti-patterns. Multi-step workflows must implement automatic wait loops for parallel agents — completion checks that say "Re-run /X", "Which would you prefer?", or "Options:" mid-workflow are PROCESS_ENFORCEMENT violations that must be fixed before Phase 3c. Confirm the skill is terminal-isolated or explicitly stateless, stale-data-immune, compact-resilient, and deliberate about cognitive/reasoning hooks. Blocks 3c until critical issues resolved. Skip for simple skills (<100 lines) only when those concerns are truly not applicable.
 - **3c Integration:** Test skill invocation, execution paths, runtime behavior. Blocks Phase 4. Never skip.
 - **3d Artifact (conditional):** Activate when skill emits durable artifacts (plans, reports). See `references/phase3-validation-details.md` for tables, processes, gate criteria.
 

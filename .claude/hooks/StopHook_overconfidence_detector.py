@@ -103,6 +103,33 @@ def _check_scope_mismatch(response: str, tool_events: list[dict[str, Any]]) -> s
     return None
 
 
+def _get_user_prompt(data: dict[str, Any]) -> str:
+    """Get user prompt from multiple sources with fallback priority.
+
+    Priority:
+    1. Direct user_prompt field (often provided despite being undocumented)
+    2. Last user message from conversation array (documented field per PROTOCOL.md:203)
+    3. Empty string (graceful degradation)
+
+    Returns:
+        User prompt string, or empty string if unavailable
+    """
+    # Primary: direct user_prompt field
+    prompt = data.get("user_prompt")
+    if prompt:
+        return str(prompt)
+
+    # Secondary: last user message from conversation array
+    conversation = data.get("conversation", [])
+    if conversation:
+        for msg in reversed(conversation):
+            if isinstance(msg, dict) and msg.get("role") == "user":
+                return str(msg.get("content", ""))
+
+    # Tertiary: empty string
+    return ""
+
+
 def run(data: dict[str, Any]) -> dict[str, Any] | None:
     """In-process validator protocol for Stop_router."""
     if not ENABLED:
@@ -113,7 +140,8 @@ def run(data: dict[str, Any]) -> dict[str, Any] | None:
     if not response:
         return None
 
-    match = detect_overconfidence(response)
+    user_prompt = _get_user_prompt(data)
+    match = detect_overconfidence(response, user_prompt)
     if not match:
         # Solution C: even without overconfidence pattern, check scope mismatch
         tool_events: list[dict[str, Any]] = data.get("tool_events") or []

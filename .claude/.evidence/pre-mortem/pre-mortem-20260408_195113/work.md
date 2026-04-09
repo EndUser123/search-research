@@ -1,0 +1,1 @@
+Runtime halt enforcement for /sqa skill - Added HaltExceededThreshold exception to orchestrator.py, check_halt() helper function, and check_halt() calls to all 8 layers (L1-L7 + META). Each layer now raises exception when findings exceed configured threshold.

@@ -17,6 +17,10 @@ def run(target: Path) -> list[Finding]:
     adv_perf_findings = _run_adversarial_performance(target)
     findings.extend(adv_perf_findings)
 
+    # Check halt threshold before returning
+    from orchestrator import check_halt
+    check_halt("L6", findings)
+
     return findings
 
 
@@ -66,29 +70,36 @@ def _run_perf(target: Path) -> list[Finding]:
 
 
 def _has_nested_executor(content: str) -> bool:
-    """Detect ThreadPoolExecutor inside a worker function."""
+    """Detect ThreadPoolExecutor inside a worker function.
+
+    Tracks with-block depth instead of just indentation to avoid false negatives
+    when entering function definitions at the same indent level as the with statement.
+    """
     lines = content.splitlines()
-    in_executor = False
-    executor_indent = 0
+    with_depth = 0  # Track nesting depth of with blocks
     for line in lines:
         stripped = line.lstrip()
         indent = len(line) - len(stripped)
-        if "ThreadPoolExecutor(" in line:
-            if in_executor:
-                # Already inside an executor — nested executor found
+
+        if "with ThreadPoolExecutor(" in line or "ThreadPoolExecutor(" in line:
+            with_depth += 1
+            if with_depth > 1:
+                # Nested executor found (with_depth > 1 means we're inside another with)
                 return True
-            in_executor = True
-            executor_indent = indent
-        elif in_executor and stripped.startswith("def "):
-            # Entering a nested function inside the executor context
-            # Don't reset in_executor here — the function body is still
-            # inside the executor context. Only reset on dedent past the
-            # executor_indent, NOT on a function definition at the same
-            # indent level as the with statement.
+        elif stripped.startswith("with "):
+            # Track any with block (not just ThreadPoolExecutor)
+            with_depth += 1
+        elif stripped.startswith("def ") or stripped.startswith("class "):
+            # Function/class definitions don't reset with_depth - they're still inside the with block
             pass
-        elif in_executor and indent <= executor_indent and stripped:
-            # Dedented out of the executor's with block
-            in_executor = False
+        elif stripped and indent < 20:  # Dedented significantly - likely exited with block(s)
+            # Reset depth counter when we see significant dedent
+            # This is a heuristic - in complex code, proper AST parsing would be more accurate
+            if with_depth > 0:
+                # Check if we've dedented past the original with block
+                # We use a heuristic: if line is non-empty and much less indented, reset
+                with_depth = 0
+
     return False
 
 

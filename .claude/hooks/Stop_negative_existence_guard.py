@@ -157,6 +157,11 @@ BASH_VERIFICATION_COMMANDS = re.compile(
     r"|\bgit\s+ls-files\b"
     r"|\btest\b.*-f\b"
     r"|\b\[\b.*-f\b"
+    r"|\bhead\b"
+    r"|\btail\b"
+    r"|\bcat\b"
+    r"|\bfile\b"
+    r"|\bwc\b"
     r"|\bdir\b"  # Windows dir command
     r"|\bGet-ChildItem\b",  # PowerShell
     re.IGNORECASE,

@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-r"""PreToolUse hook: detect Unicode escape errors in Windows paths within -c commands.
+r"""PreToolUse hook: detect Python escape errors in Windows paths within -c commands.
 
-Detects: python -c "..." with C:\Users-style paths in non-raw strings.
-Trigger: backslash-U followed by 8 hex digits (Python unicode escape) inside a -c string.
+Detects: python -c "..." with Windows paths containing invalid escape sequences.
+Triggers:
+- backslash-U followed by non-8-hex-digits (unicode escape)
+- backslash followed by non-special character (\. \s \c etc.)
 
 Fix: Use r"..." (raw string) or forward slashes C:/Users/...
 """
@@ -27,15 +29,24 @@ _ENABLED = os.environ.get("WINDOWS_PATH_UNICODE_GATE_ENABLED", "true").lower() =
 # This catches the problematic case where \U is NOT followed by 8 hex digits
 # (e.g., \Users, \Ubuntu) - Python treats \U as start of unicode codepoint
 _UNICODE_ESCAPE = re.compile(r"\\U(?![0-9A-Fa-f]{8})")
+# Common invalid escapes in Windows paths: backslash-dot, backslash-letter (s, c, U, etc.)
+# These patterns frequently appear in Python code invoked via bash -c on Windows
+# Valid Python escapes like \n \t \\ \" are excluded from this pattern
+_INVALID_ESCAPE = re.compile(r"\\[\.sScCU]")
 # Windows drive letter + backslash
 _WINDOWS_DRIVE = re.compile(r"[A-Za-z]:\\")
 # python -c "..." or python -c '...'
 _PYTHON_C_CMD = re.compile(r"python\s+-c\s+", re.IGNORECASE)
 
 
-def _has_unicode_escape(problematic_part: str) -> bool:
-    """Check if a string segment contains a Python unicode escape sequence."""
-    return bool(_UNICODE_ESCAPE.search(problematic_part))
+def _has_escape_issue(problematic_part: str) -> bool:
+    r"""Check if a string segment contains Python escape sequence issues.
+
+    Returns True if:
+    - \U is followed by non-8-hex-digits (unicode escape)
+    - Backslash is followed by non-special character (invalid escape like \. \s \c)
+    """
+    return bool(_UNICODE_ESCAPE.search(problematic_part) or _INVALID_ESCAPE.search(problematic_part))
 
 
 def _extract_c_string_body(command: str) -> list[str]:
@@ -69,7 +80,7 @@ def _extract_c_string_body(command: str) -> list[str]:
 
 
 def _is_windows_path_unicode_issue(command: str) -> tuple[bool, str]:
-    """Detect Python -c command with Windows path causing Unicode escape error.
+    """Detect Python -c command with Windows path causing escape errors.
 
     Returns (is_problem, extracted_string_for_display).
     """
@@ -78,8 +89,9 @@ def _is_windows_path_unicode_issue(command: str) -> tuple[bool, str]:
 
     string_bodies = _extract_c_string_body(command)
     for body in string_bodies:
-        # Check for Windows drive path AND unicode escape in the same string
-        if _WINDOWS_DRIVE.search(body) and _has_unicode_escape(body):
+        # Check for invalid escape sequences in the string
+        # No longer require Windows drive pattern - any invalid escape in -c string is a problem
+        if _has_escape_issue(body):
             return True, body[:100]  # Truncate for display
 
     return False, ""

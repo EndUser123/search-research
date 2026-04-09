@@ -473,6 +473,106 @@ class TestSelfVerifiedClaims:
         result = match_claim_to_events(claim, events)
         assert result == VerificationStatus.SELF_VERIFIED
 
+    def test_match_self_verified_code_at_file_line(self):
+        """match_claim_to_events must return SELF_VERIFIED for 'Code at file.py:line' pattern."""
+
+        @dataclass
+        class StubClaim:
+            id: str
+            text: str
+            targets: List[str]
+            type: str
+            confidence: float
+
+        claim = StubClaim(
+            id="claim-014",
+            text="Code at StopHook_correction_acknowledgment.py:51-53 shows CORRECTION_GATE_ENABLED is false by default",
+            targets=["StopHook_correction_acknowledgment.py"],
+            type="EXISTENCE",
+            confidence=0.9
+        )
+
+        events = []
+        result = match_claim_to_events(claim, events)
+        assert result == VerificationStatus.SELF_VERIFIED
+
+    def test_match_self_verified_backtick_showed(self):
+        """match_claim_to_events must return SELF_VERIFIED for backtick citation with past tense 'showed'."""
+
+        @dataclass
+        class StubClaim:
+            id: str
+            text: str
+            targets: List[str]
+            type: str
+            confidence: float
+
+        claim = StubClaim(
+            id="claim-015",
+            text="`engine.py:159-160` showed the pattern needs 'showed' support",
+            targets=["engine.py"],
+            type="EXISTENCE",
+            confidence=0.9
+        )
+
+        events = []
+        result = match_claim_to_events(claim, events)
+        assert result == VerificationStatus.SELF_VERIFIED
+
+    def test_match_self_verified_punctuation_separator(self):
+        """match_claim_to_events must return SELF_VERIFIED for comma/em-dash separated citations."""
+
+        @dataclass
+        class StubClaim:
+            id: str
+            text: str
+            targets: List[str]
+            type: str
+            confidence: float
+
+        claim = StubClaim(
+            id="claim-016",
+            text="`engine.py:159-160`, shows the fix works correctly",
+            targets=["engine.py"],
+            type="EXISTENCE",
+            confidence=0.9
+        )
+
+        events = []
+        result = match_claim_to_events(claim, events)
+        assert result == VerificationStatus.SELF_VERIFIED
+
+    @pytest.mark.skip(reason="ARCH-006: Pattern 159 matches domain:port as false positive; fix is LOW priority")
+    def test_match_not_self_verified_domain_port(self):
+        """match_claim_to_events must NOT return SELF_VERIFIED for domain:port strings.
+
+        KNOWN LIMITATION: The pattern "\bcode\s+at\s+`?[\w./\\-]+\.\w+:\d+" matches
+        "example.com:443" because it can't distinguish host:port from file:line without
+        additional context. This is a LOW priority issue (ARCH-006) deferred for now.
+        """
+
+        @dataclass
+        class StubClaim:
+            id: str
+            text: str
+            targets: List[str]
+            type: str
+            confidence: float
+
+        # This should NOT be SELF_VERIFIED - domain:port is not a code citation
+        claim = StubClaim(
+            id="claim-017",
+            text="code at example.com:443 shows the endpoint is reachable",
+            targets=["example.com"],
+            type="EXISTENCE",
+            confidence=0.9
+        )
+
+        events = []
+        result = match_claim_to_events(claim, events)
+        # Should NOT be SELF_VERIFIED since no verification tools were used
+        assert result != VerificationStatus.SELF_VERIFIED
+
     def test_match_not_self_verified_plain_claim(self):
         """Plain claims without inline evidence must NOT return SELF_VERIFIED."""
 

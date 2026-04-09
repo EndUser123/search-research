@@ -32,6 +32,43 @@ def test_git_reset_soft_not_blocked():
     print("✅ Test passed: git reset --soft is allowed")
 
 
+def test_git_pull_blocked():
+    """Test that plain git pull is treated as a protected history-changing sync."""
+    result = check_bash_command("git pull origin main")
+    assert result is not None
+    assert result["operation_type"] == "git"
+    assert result["subcommand"] == "pull"
+    assert result["severity"] == "MEDIUM"
+    print("✅ Test passed: git pull is detected")
+
+
+def test_git_pull_rebase_blocked():
+    """Test that git pull --rebase is treated as a protected history rewrite."""
+    result = check_bash_command("git pull --rebase origin main")
+    assert result is not None
+    assert result["operation_type"] == "git"
+    assert result["subcommand"] == "pull"
+    assert result["severity"] == "MEDIUM"
+    print("✅ Test passed: git pull --rebase is detected")
+
+
+def test_git_fetch_not_blocked():
+    """Test that read-only remote inspection remains allowed."""
+    result = check_bash_command("git fetch origin")
+    assert result is None
+    print("✅ Test passed: git fetch is allowed")
+
+
+def test_git_rebase_blocked():
+    """Test that direct git rebase is treated as a protected history rewrite."""
+    result = check_bash_command("git rebase origin/main")
+    assert result is not None
+    assert result["operation_type"] == "git"
+    assert result["subcommand"] == "rebase"
+    assert result["severity"] == "MEDIUM"
+    print("✅ Test passed: git rebase is detected")
+
+
 def test_gh_repo_delete_blocked():
     """Test that gh repo delete is detected as destructive."""
     result = check_bash_command("gh repo delete EndUser123/portfolio-media")
@@ -178,6 +215,30 @@ def test_hook_allows_with_approval_flag():
     assert result.returncode == 0
 
     print("✅ Test passed: Hook allows gh repo delete with approval flag")
+
+
+def test_hook_blocks_git_pull_rebase_without_approval_flag():
+    """Test that the hook blocks git pull --rebase without approval flag."""
+    hook_input = {
+        "tool_name": "Bash",
+        "tool_input": {"command": "git pull --rebase origin main"},
+    }
+
+    hook_path = Path(__file__).resolve().parent.parent / "PreToolUse_destructive_git_guard.py"
+    result = subprocess.run(
+        [sys.executable, str(hook_path)],
+        input=json.dumps(hook_input),
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+
+    assert result.returncode == 2
+    output = json.loads(result.stdout)
+    assert output["decision"] == "block"
+    assert "git pull --rebase origin main --i-understand-irreversible" in output["reason"]
+
+    print("✅ Test passed: Hook blocks git pull --rebase without approval flag")
 
 
 if __name__ == "__main__":

@@ -6,9 +6,21 @@ status: stable
 category: quality
 triggers:
   - /sqa
+suggest:
+  - /q
 entry_type: skill
 requires_target: false
 enforcement: strict
+workflow_steps:
+  - L0_PREDICTIVE
+  - L1_SYNTACTIC
+  - L2_SEMANTIC
+  - L3_STRUCTURAL
+  - L4_REQUIREMENTS
+  - L5_SECURITY
+  - L6_PERFORMANCE
+  - L7_OPERATIONAL
+  - L8_META_SYNTHESIS
 # Extensions to SKILL_SCHEMA (not enumerated in schema):
 #   version: skill version string
 #   status: stable|experimental|deprecated
@@ -89,12 +101,12 @@ State assumption: "Certifying [X] — assumption based on [signal]. Correct?" On
 
 | Layer | Name | Tool | Dispatch | Hard Dependency |
 |-------|------|------|---------|----------------|
-| 0 | PREDICTIVE | 12 adversarial specialists (conditional invocation based on target characteristics) | **Agent** (skill-level dispatch only — Python layer returns empty list) | — |
+| 0 | PREDICTIVE | 16 adversarial specialists (conditional invocation based on target characteristics) | **Agent** (skill-level dispatch only — Python layer returns empty list) | — |
 | 1 | SYNTACTIC | ruff, mypy, AI Distiller | Python/CLI | — |
 | 2 | SEMANTIC | verify (pytest), diagnose | Python/CLI | — |
 | 3 | STRUCTURAL | meta-review, harden, apply_safety_patterns | Python/CLI | — |
 | 4 | REQUIREMENTS | gto, spec-compliance | Python/CLI | Layer 2 |
-| 5 | SECURITY | adversarial-security, path traversal check, data-safety-vcs | **Agent** + Python/CLI (dispatch via Agent tool, not subprocess) | — |
+| 5 | SECURITY | adversarial-security, path traversal check, data-safety-vcs, CVE/API deprecation scan | **Agent** + Python/CLI (dispatch via Agent tool, not subprocess) | — |
 | 6 | PERFORMANCE | perf, adversarial-performance | **Agent** + CLI (dispatch via Agent tool, not subprocess) | — |
 | 7 | OPERATIONAL | verify (hook chain), hook-audit, hook-inventory, recursive_failure_detector | Python/CLI | — |
 | META | META-SYNTHESIS | consensus detection, blind-spot detection, evidence quality | Python | All |
@@ -118,6 +130,20 @@ State assumption: "Certifying [X] — assumption based on [signal]. Correct?" On
 
 **Orchestrator.py** is a **pure utilities module** — it provides `_validate_target`, `_atomic_write`, `L2State`, `SQAReport`, `save_report`. It contains **no orchestration logic**. Do not run `orchestrator.py` directly.
 
+### Findings Accumulation Model
+
+**IMPORTANT:** Findings from each layer are accumulated and presented in RNS format only when a halt condition is triggered or when the skill completes. This prevents presentation noise on clean layers while ensuring no findings are lost.
+
+**Accumulation Rules:**
+1. After each layer completes, findings are added to the accumulated list via `add_findings(layer, findings)`
+2. If a layer triggers halt, ALL accumulated findings (current layer + all prior non-halted layers) are presented in RNS format
+3. If no halt occurs, findings continue accumulating
+4. On skill completion, ALL accumulated findings are presented in RNS format
+
+**RNS Presentation Triggers:**
+- `[HALT CHECK]` after any layer → Present ALL accumulated findings in RNS format, then stop
+- Final step completion (Step 11) → Present ALL accumulated findings in RNS format
+
 ## Your Workflow
 
 When /sqa is invoked:
@@ -130,12 +156,12 @@ Initialize state: `from sqa_state_tracker import init_state; state = init_state(
 
 **Phase 1a: Determine applicable specialists**
 
-All 12 adversarial specialists are available, but only relevant ones run based on target characteristics:
+All 16 adversarial specialists are available, but only relevant ones run based on target characteristics:
 
 | Specialist | Runs When | Applicability Criteria |
 |------------|-----------|----------------------|
 | adversarial-logic | Always | Pure logic errors (off-by-one, wrong operators, inverted conditionals) |
-| adversarial-quality | Always | Code smells, technical debt, maintainability risks |
+| adversarial-quality | Always | Code smells, technical debt, maintainability risks, over/under-engineering |
 | adversarial-io-validation | Always | File operations, path validation, external I/O assumptions |
 | adversarial-security | Always | Data leaks, access control gaps, encryption issues |
 | adversarial-performance | Always | Timeouts, bottlenecks, N+1 patterns |
@@ -145,6 +171,9 @@ All 12 adversarial specialists are available, but only relevant ones run based o
 | **adversarial-failure-modes** | When complex | >100 files OR state/data management OR critical infrastructure |
 | **adversarial-invariants** | When entities | Has entity-like code OR database/ORM usage OR data models |
 | **adversarial-qa** | When tested | Has `tests/` directory |
+| **adversarial-domain-patterns** | Always | Domain-specific best practices, patterns via /all (wiki+CKS+web) |
+| **adversarial-tech-fit** | When complex | Technology choice validation vs problem domain |
+| **adversarial-library-strategy** | Always | CVE detection, deprecated API detection, modern alternatives |
 | adversarial-review | Fallback | General adversarial review if no specific criteria apply |
 
 **Quick-path detection:**
@@ -172,11 +201,13 @@ has_state = any(
 # Build specialist list
 specialists = [
     "adversarial-logic",      # always
-    "adversarial-quality",    # always
+    "adversarial-quality",    # always (now includes under-engineering detection)
     "adversarial-io-validation",  # always
     "adversarial-security",   # always
     "adversarial-performance",  # always
     "adversarial-testing",    # always
+    "adversarial-domain-patterns",  # always - uses /all for wiki+CKS+web search
+    "adversarial-library-strategy",  # always - CVE and deprecated API detection
 ]
 
 if has_state:
@@ -185,11 +216,62 @@ if has_specs:
     specialists.append("adversarial-compliance")
 if is_complex or has_state:
     specialists.append("adversarial-failure-modes")
+    specialists.append("adversarial-tech-fit")  # technology fit assessment for complex systems
 if has_entities:
     specialists.append("adversarial-invariants")
 if has_tests:
     specialists.append("adversarial-qa")
 ```
+
+**New Specialist Descriptions:**
+
+| Specialist | Purpose | Implementation |
+|------------|---------|----------------|
+| **adversarial-domain-patterns** | Domain-specific best practices via unified search | Uses `/all` to search wiki, CKS, and web for industry patterns relevant to target codebase |
+| **adversarial-tech-fit** | Technology choice validation | Evaluates whether chosen technology stack fits problem domain (only runs for complex systems) |
+| **adversarial-library-strategy** | CVE and deprecated API detection | Scans dependencies for known vulnerabilities, deprecated APIs, and suggests modern alternatives |
+| **adversarial-quality (enhanced)** | Over AND under-engineering detection | Now includes detection of missing abstractions, hardcoded values, and insufficient error handling |
+
+**Domain Pattern Search Integration (/all):**
+
+The `adversarial-domain-patterns` specialist uses `/all` to query multiple sources for domain-specific best practices:
+
+```python
+# During specialist dispatch, the domain-patterns specialist receives:
+domain_query = f"Best practices and patterns for {detected_domain} architecture, anti-patterns, common pitfalls"
+
+# The specialist then uses /all to search:
+# 1. Wiki (P:/__csf/docs/, .adr/)
+# 2. CKS (Constitutional Knowledge System)
+# 3. Web (current documentation, industry standards)
+
+# Results are merged and ranked by relevance, then applied to findings
+```
+
+**Technology Fit Assessment:**
+
+The `adversarial-tech-fit` specialist (activated for complex systems) evaluates:
+- Technology choice vs problem domain match
+- Framework/library appropriateness
+- Scalability concerns given chosen stack
+- Known limitations of chosen technologies in target use case
+
+**CVE and Deprecated API Detection:**
+
+The `adversarial-library-strategy` specialist checks:
+1. **Python:** `datetime.utcnow`, `asyncio.ensure_future` without context, deprecated stdlib modules
+2. **Dependencies:** Known CVEs via pyup.io/snyk (for requirements.txt/pyproject.toml)
+3. **Node.js:** npm audit results, deprecated packages
+4. **General:** Outdated major versions with known security issues
+
+**Under-Engineering Detection:**
+
+The enhanced `adversarial-quality` specialist now detects:
+- Missing abstraction layers (copy-paste code, repetitive patterns)
+- Hardcoded configuration values (no environment variables)
+- Insufficient error handling (bare except, generic exceptions)
+- Missing input validation (user data used without sanitization)
+- Inadequate logging for production systems
 
 **Phase 1b: Parallel specialist dispatch via Agent tool**
 
@@ -229,25 +311,85 @@ for specialist in specialists:
 - Writes JSON findings to `{sqa_dir}/specialists/{specialist}-findings.json`
 - Returns ONLY the file path (not inline findings)
 
-**Phase 1b: Idempotent completion check**
+**Phase 1b: Automatic wait loop with structured progress**
 
-After launching all specialists, check for JSON availability:
+After launching all specialists, wait programmatically for completion. Emits machine-readable JSON events to stderr (captured in skill execution logs). Never prompts user to re-run.
 
 ```python
-available = []
-for specialist in dispatched:
-    json_path = sqa_dir / "specialists" / f"{specialist}-findings.json"
-    if json_path.exists():
-        try:
-            json.loads(json_path.read_text())
-            available.append(specialist)
-        except (json.JSONDecodeError, OSError):
-            pass  # Incomplete file, will re-dispatch on re-run
+import time, json, sys
+from pathlib import Path
+from lib.sqa_state_tracker import record_layer_complete
 
-if len(available) == len(dispatched) and available:
-    print("All specialist JSONs available — proceeding to synthesis.")
-else:
-    print(f"Partial: {available}. Re-run /sqa to continue — manifest skips dispatched agents.")
+SPECIALIST_TIMEOUT = 300  # 5 minutes max wait
+CHECK_INTERVAL_BASE = 10  # seconds, exponential backoff
+CHECK_INTERVAL_MAX = 60
+
+def _emit(event: dict):
+    """Emit machine-readable JSON event to stderr."""
+    print(json.dumps(event), file=sys.stderr, flush=True)
+
+def _wait_for_specialists(sqa_dir, dispatched, timeout=SPECIALIST_TIMEOUT):
+    """Programmatic wait loop — no user prompts, no "re-run" text."""
+    start = time.monotonic()
+    interval = CHECK_INTERVAL_BASE
+    completed = set()
+
+    # Load prior completions if any (idempotent resume)
+    manifest = json.loads((sqa_dir / "specialists" / "dispatch_manifest.json").read_text())
+    prior_completed = manifest.get("completed", [])
+    completed.update(prior_completed)
+
+    while time.monotonic() - start < timeout:
+        # Check which specialists have written valid JSON
+        available = []
+        for specialist in dispatched:
+            json_path = sqa_dir / "specialists" / f"{specialist}-findings.json"
+            if json_path.exists():
+                try:
+                    data = json.loads(json_path.read_text())
+                    if specialist not in completed:
+                        elapsed = int(time.monotonic() - start)
+                        _emit({
+                            "event": "specialist_complete",
+                            "name": specialist,
+                            "elapsed_s": elapsed,
+                        })
+                        completed.add(specialist)
+                    available.append(specialist)
+                except (json.JSONDecodeError, OSError):
+                    pass  # Incomplete file, wait
+
+        _emit({
+            "event": "progress",
+            "completed": len(completed),
+            "total": len(dispatched),
+            "running": [s for s in dispatched if s not in completed],
+            "elapsed_s": int(time.monotonic() - start),
+        })
+
+        if len(available) == len(dispatched) and available:
+            _emit({"event": "all_specialists_complete", "total": len(dispatched)})
+            # Update manifest with completion list
+            manifest["completed"] = list(completed)
+            (sqa_dir / "specialists" / "dispatch_manifest.json").write_text(
+                json.dumps(manifest)
+            )
+            return list(completed)
+
+        # Exponential backoff: 10, 20, 40, 60 (cap)
+        time.sleep(interval)
+        interval = min(interval * 2, CHECK_INTERVAL_MAX)
+
+    # Timeout — partial results still usable
+    _emit({
+        "event": "specialist_timeout",
+        "completed": list(completed),
+        "missing": [s for s in dispatched if s not in completed],
+    })
+    return list(completed)
+
+completed = _wait_for_specialists(sqa_dir, dispatched)
+print(f"L0 PREDICTIVE: {len(completed)}/{len(dispatched)} specialists completed.", flush=True)
 ```
 
 **Phase 1c: Failure-mode prompts (internal)**
@@ -263,52 +405,94 @@ Internal failure-mode check:
 - What risk am I underweighting because it is operational, temporal, or only appears on resume/handoff?
 ```
 
-**Phase 1d: Explicit completion gate**
+**Phase 1d: Gate handled by wait loop**
 
-Verify ALL specialist JSONs exist and are valid before proceeding:
-```python
-import json
-from pathlib import Path
-
-missing = []
-for specialist in dispatched:
-    json_path = sqa_dir / "specialists" / f"{specialist}-findings.json"
-    if not json_path.exists():
-        missing.append(specialist)
-        continue
-    try:
-        json.loads(json_path.read_text())
-    except (json.JSONDecodeError, OSError):
-        missing.append(specialist)
-
-if missing:
-    print(f"[GATE FAILED] Missing or invalid: {missing}")
-    print("Re-run /sqa — manifest skips already-dispatched agents.")
-    sys.exit(1)
-print("[GATE PASSED] All specialist JSONs available — proceeding to synthesis.")
-```
+The `_wait_for_specialists()` call in Phase 1b already validates all JSONs before returning. If it returns, all specialists completed or timeout was reached with partial results.
 
 **Phase 1e: Critic synthesis**
 
 After all specialist JSONs are available, dispatch `adversarial-critic` to synthesize:
 
 ```python
-Agent('adversarial-critic', prompt=f"Read all 7 specialist JSONs in {sqa_dir}/specialists/. Synthesize into a unified L0 findings list: dedupe by (file, line, category), resolve severity conflicts, detect consensus (2+ specialists agree). Write synthesis to {sqa_dir}/L0_synthesis.json.")
+Agent('adversarial-critic', prompt=f"Read all {len(dispatched)} dispatched specialist JSONs in {sqa_dir}/specialists/. Synthesize into a unified L0 findings list: dedupe by (file, line, category), resolve severity conflicts, detect consensus (2+ specialists agree). Write synthesis to {sqa_dir}/L0_synthesis.json.")
 ```
 
-**Phase 1f: Record L0 completion**
+**Phase 1f: Record L0 completion and accumulate findings**
 
-Count findings from `L0_synthesis.json` and record:
+Load synthesis, count findings, and add to accumulated findings:
 ```python
-from sqa_state_tracker import record_layer_complete
+from sqa_state_tracker import record_layer_complete, add_findings
 synthesis = json.loads((sqa_dir / "L0_synthesis.json").read_text())
-record_layer_complete("L0", findings=len(synthesis.get("findings", [])))
+findings_list = synthesis.get("consolidated_findings", synthesis.get("findings", []))
+record_layer_complete("L0", findings=len(findings_list))
+add_findings("L0", findings_list)
 ```
 
 If fast-path: `record_layer_complete("L0", skipped=True, reason="fast-path")`
 
 ### [HALT CHECK] After Step 1
-If any findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`, run `record_halt("L0")`, and stop. Otherwise continue.
+Check if any findings at or above `--halt-on` threshold (default: HIGH):
+```python
+from sqa_state_tracker import get_rns_summary, record_halt
+
+# Check severity threshold
+severity_order = ["CRITICAL", "BLOCKER", "HIGH", "MEDIUM", "LOW"]
+threshold_index = severity_order.index(state.halt_on)
+for f in findings_list:
+    if severity_order.index(f.get("severity", "LOW").upper()) <= threshold_index:
+        # Halt triggered - present RNS with ALL accumulated findings
+        record_halt("L0")
+        print("[HALT] L0 PREDICTIVE exceeded --halt-on threshold")
+        # Present RNS format with all accumulated findings
+        print("\n" + "="*60)
+        print("RECOMMENDED NEXT STEPS (RNS)")
+        print("="*60)
+        _present_rns(get_rns_summary())
+        sys.exit(1)
+```
+
+**Helper function for RNS presentation:**
+```python
+def _present_rns(summary: dict) -> None:
+    """Present findings in RNS format."""
+    grouped = summary["grouped"]
+    domain_mapping = summary["domain_mapping"]
+
+    # Sort domains by severity (CRITICAL/BLOCKER findings first)
+    domain_order = sorted(
+        grouped.keys(),
+        key=lambda d: any(
+            f.get("severity") in ["CRITICAL", "BLOCKER"]
+            for f in grouped[d]
+        ),
+        reverse=True
+    )
+
+    for domain in domain_order:
+        emoji = domain_mapping.get(domain, "📌")
+        findings = grouped[domain]
+        print(f"\n{emoji} {domain.upper()} ({len(findings)})")
+
+        # Sort by severity then by ID
+        sorted_findings = sorted(
+            findings,
+            key=lambda f: (
+                -severity_order.index(f.get("severity", "LOW").upper()),
+                f.get("finding_id", "")
+            )
+        )
+
+        for i, f in enumerate(sorted_findings, 1):
+            sev = f.get("severity", "LOW").upper()
+            loc = f.get("location", "unknown")
+            title = f.get("title", f.get("finding_id", ""))
+            print(f"  {i}. [{sev}] {title} @ {loc}")
+
+    print(f"\n0 — Do ALL Recommended Next Actions ({summary['total']} items)")
+    print("\nOverride with: /sqa <target> --halt-on CRITICAL")
+```
+
+Otherwise continue to next layer.
 
 ### Step 2: SYNTACTIC
 Run via Bash subprocess:
@@ -317,14 +501,32 @@ Run via Bash subprocess:
 
 **Exit validation:** Verify exit codes are 0. If not, this is a FAIL even if findings are below halt threshold.
 
-Record completion: `record_layer_complete("L1", findings=N)`
+Parse findings and accumulate:
+```python
+from sqa_state_tracker import record_layer_complete, add_findings, get_rns_summary, record_halt
+
+# Parse ruff/mypy output into structured findings
+findings_list = _parse_syntactic_findings(ruff_output, mypy_output)
+record_layer_complete("L1", findings=len(findings_list))
+add_findings("L1", findings_list)
+```
 
 ### [HALT CHECK] After Step 2
-If findings at or above `--halt-on` threshold (default: HIGH):
-1. EMIT `[HALT] Layer L1 completed with X finding(s) exceeding --halt-on threshold`
-2. If `--fix`: attempt Layer 1 fixes (ruff --fix), retry up to 3 times
-3. If still failing: **BLOCKED** — must use `/sqa --halt-on NONE` to override
-4. If no `--fix`: **BLOCKED** — must use `/sqa --fix` or `/sqa --halt-on NONE`
+Check if findings exceed threshold and present RNS with ALL accumulated findings:
+```python
+severity_order = ["CRITICAL", "BLOCKER", "HIGH", "MEDIUM", "LOW"]
+threshold_index = severity_order.index(state.halt_on)
+accumulated = get_accumulated_findings()  # L0 + L1 findings
+
+for f in accumulated:
+    if severity_order.index(f.get("severity", "LOW").upper()) <= threshold_index:
+        record_halt("L1")
+        print("[HALT] L1 SYNTACTIC exceeded --halt-on threshold")
+        _present_rns(get_rns_summary())
+        sys.exit(1)
+```
+
+If `--fix` was passed, attempt fixes and recheck. Otherwise continue to next layer.
 
 ### Step 3: SEMANTIC (TDD BUILD)
 
@@ -444,6 +646,31 @@ If any findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`
 1. Dispatch `Agent('adversarial-security')` via Agent tool
 2. Run path traversal check via Python utility
 3. Run `data-safety-vcs` for anti-bleed gates
+4. **NEW:** CVE and deprecated API scanning via `adversarial-library-strategy` specialist
+
+**CVE/API Deprecation Scan:**
+```python
+# Collect dependency files (requirements.txt, pyproject.toml, package.json, go.mod)
+import subprocess
+from pathlib import Path
+
+dep_files = []
+for pattern in ["*requirements*.txt", "pyproject.toml", "package.json", "go.mod", "Cargo.toml"]:
+    dep_files.extend(Path(target).rglob(pattern))
+
+# For Python: check for known vulnerabilities and deprecated APIs
+if dep_files:
+    Agent(
+        subagent_type="general-purpose",
+        description="CVE and deprecated API scanning",
+        prompt=f"""Analyze dependencies in {target} for:
+1. Known CVE vulnerabilities (check pyup.io, snyk, npm audit for relevant ecosystems)
+2. Deprecated API usage (e.g., datetime.utcnow, async coroutines without async/await)
+3. Modern alternatives available
+
+Write findings to: {sqa_dir}/L5_cve_api_findings.json"""
+    )
+```
 
 Record completion: `record_layer_complete("L5", findings=N)`
 
@@ -486,6 +713,8 @@ Run explicit security certification gate:
 - [ ] Path traversal check: PASS
 - [ ] Anti-bleed gates: VERIFIED
 - [ ] Data safety VCS: CLEAN
+- [ ] CVE vulnerabilities: NONE at CRITICAL/HIGH
+- [ ] Deprecated API usage: NONE or documented migration plan
 
 ```python
 security_check_pass = (
@@ -536,7 +765,23 @@ else:
 ```
 
 ### FINAL [HALT CHECK] After Step 11
-Report final certification status and layers completed.
+**Always present RNS with ALL accumulated findings at completion:**
+
+```python
+from sqa_state_tracker import get_rns_summary
+
+print("\n" + "="*60)
+print("SQA COMPLETE - FINAL RECOMMENDED NEXT STEPS")
+print("="*60)
+_present_rns(get_rns_summary())
+print("\n" + "="*60)
+print(f"Certification: {cert}")
+print(f"Health Score: {health_score}")
+print(f"Layers Completed: {layers_completed}")
+print("="*60)
+```
+
+**RNS is always presented at completion** — even if certification passed. This ensures all findings are visible for remediation planning.
 
 ## Target Validation (SEC-001)
 
@@ -546,12 +791,46 @@ Before any subprocess call, the target path is validated:
 from pathlib import Path
 import os
 
+# Exclude patterns for cache/build/docs/vendored directories
+EXCLUDE_PATTERNS = [
+    "*/.venv/*",
+    "*/__pycache__/*",
+    "*/.mypy_cache/*",
+    "*/.pytest_cache/*",
+    "*/.ruff_cache/*",
+    "*/.cache/*",
+    "*/node_modules/*",
+    "*/.tox/*",
+    "*/*.egg-info/*",
+    "*/arch_decisions/*",
+    "*/docs/*",
+]
+
+def _count_python_files(target: Path) -> int:
+    """Count Python files excluding cache/build directories."""
+    count = 0
+    for py_file in target.rglob("*.py"):
+        # Skip excluded patterns
+        rel_path = py_file.relative_to(target)
+        for pattern in EXCLUDE_PATTERNS:
+            if rel_path.match(pattern):
+                break
+        else:
+            count += 1
+    return count
+
 def _validate_target(target: str) -> Path:
     resolved = Path(os.path.realpath(target))
     assert resolved.exists() and resolved.is_dir(), f"Target {target} does not exist or is not a directory"
     assert not resolved.is_symlink(), f"Target {target} is a symlink"
     allowed_roots = [Path.cwd()]
     assert any(resolved.is_relative_to(r) for r in allowed_roots), f"Target {target} outside allowed roots"
+    
+    # Report actual file count (excluding caches)
+    file_count = _count_python_files(resolved)
+    print(f"Target: {target}")
+    print(f"Python files (excluding caches): {file_count}")
+    
     return resolved
 ```
 
@@ -602,7 +881,7 @@ After EVERY layer, run actual verification commands BEFORE trusting self-reporte
 
 | Layer | What to Validate |
 |-------|------------------|
-| L0 | All 7 specialist JSONs exist and parse |
+| L0 | All dispatched specialist JSONs exist and parse |
 | L1 | ruff/mypy exit codes are 0 |
 | L2 | pytest exit code is 0 |
 | L3 | All 3 analyzers (PathTraversalAnalyzer, ImportGraphAnalyzer, DocConsistencyAnalyzer) return findings |
@@ -688,8 +967,15 @@ If a layer's tool is unavailable and it is NOT a hard dependency for a subsequen
 
 ## Resource Bounds
 
-- `file_count <= 10_000`
-- `total_size <= 100MB`
+File counts and sizes are calculated **excluding** cache/build directories:
+- Virtual environments: `.venv/`, `__pycache__/`, `.mypy_cache/`, `.pytest_cache/`, `.ruff_cache/`, `.cache/`
+- Build artifacts: `*.egg-info/`, `node_modules/`, `.tox/`
+- Documentation: `docs/`, `arch_decisions/`
+- Backup files: `*.old`, `*.bak`
+
+**Resource limits:**
+- `file_count <= 10_000` (source files only, excluding above patterns)
+- `total_size <= 100MB` (target directory size)
 
 Reject oversized targets early with `Target exceeds resource limits`.
 

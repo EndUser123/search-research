@@ -618,7 +618,9 @@ def _load_hooks() -> None:
         "competence_injector",
         "context_summary",  # NEW 2026-03-13: Inject key facts from recent conversation to reduce context_reuse violations
         "continuation_spine",
+        "consultation_awareness",  # NEW 2026-03-30: Detect directive repeat with prior LLM question
         "declaration_reminder",  # NEW 2026-03-16: Prevent "I'll update template" declarations without execution
+        "discovery_block",  # NEW 2026-04-09: Block implementation prompts until discovery tools are used (ADR-00X)
         "rca_schema_injector",  # NEW 2026-04-07: Inject RCA 9-field schema before RCA generation to prevent block/regenerate cycles
         "failure_context_injector",  # NEW 2026-04-05: Inject failed Bash stderr/stdout evidence into next reasoning turn
         "ownership_colocation_nudge",  # NEW 2026-03-19: Inject colocation checklist before infra placement decisions
@@ -639,8 +641,9 @@ def _load_hooks() -> None:
         # "stdout_protocol_test",  # TASK-000: Prototype to verify hook stdout → Skill() emission protocol
         "synergy_detector",  # NEW 2026-03-22: Detect framework+mode synergies
         "context_followup_detector",  # NEW 2026-03-25: Detect follow-up queries and inject prior context
-        "consultation_awareness",  # NEW 2026-03-30: Detect directive repeat with prior LLM question
         "tdd_contract_auto_gate",  # NEW 2026-04-08: Auto-create TDD contract for /code, /tdd skills
+        "evidence_grounding_reminder",  # NEW 2026-04-08: Conditional epistemic priming every N turns
+        "file_immediate_read",  # NEW 2026-04-09: Read file paths in prompts immediately to prevent semantic satisficing
         "think_trigger",
         "truthfulness_gate",  # NEW 2026-03-13: Enforce proactive honesty on completion queries
         "turn_marker",

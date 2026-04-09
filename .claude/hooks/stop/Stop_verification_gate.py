@@ -6,6 +6,7 @@ Purpose: Block responses that make claims without testing, propose solutions wit
 or skip systematic diagnostic protocols.
 """
 
+import json
 import os
 import re
 import sys
@@ -20,31 +21,66 @@ sys.path.insert(0, str(_HOOKS_DIR))
 
 try:
     from turn_scoped_evidence import load_turn_scoped_events
+    from evidence_scope import SCOPE_SESSION_FRESH, load_scoped_tool_events
 except ImportError:
     load_turn_scoped_events = None  # type: ignore
+    SCOPE_SESSION_FRESH = None
+    load_scoped_tool_events = None  # type: ignore
 
 # Tools that constitute verification evidence
 _VERIFICATION_TOOLS = frozenset({"Read", "Grep", "Glob", "WebSearch", "WebFetch", "Bash"})
 
-# Patterns indicating behavioral violations
+# Declarative patterns — checked independently, ALL violations collected (not just first).
+# Regex for variable-extraction patterns; fixed phrases use \b word boundaries.
+
 CLAIM_PATTERNS = [
-    r"I think\s+\w+\s+is\s+the\s+(cause|problem|issue)",
-    r"The\s+problem\s+is\s+\w+",
-    r"This\s+should\s+fix\s+it",
-    r"Likely\s+caused\s+by",
-    r"Probably\s+(a|an)\s+",
+    (r"\blikely caused by\b", None),
+    (r"\bprobably a\b", None),
+    (r"\bprobably an\b", None),
+    (r"\bthis should fix it\b", None),
+    (r"\bI think\s+\w+\s+is\s+the\s+(cause|problem|issue)\b", r'(Test|Result|Output|Confirmed|Verified)'),
+    (r"\bthe problem is\b", r'(Test|Result|Output|Confirmed|Verified)'),
 ]
 
 SOLUTION_JUMP_PATTERNS = [
-    r"Let('?s+|us\s+)(fix|try|attempt)",
-    r"Here'?s?\s+the\s+fix",
-    r"Proposed\s+solution:",
-    r"Quick\s+fix:",
+    (r"\blet(?:'s|s)?\s+(?:fix|try|attempt)\b|\blet\s+us\s+(?:fix|try|attempt)\b", None),
+    (r"\bhere(?:'?s?|\s+is)\s+the\s+fix\b", None),
+    (r"\bproposed\s+solution:|\bquick\s+fix:", None),
 ]
 
-INSUFFICIENT_VERIFICATION_PATTERNS = [
-    r"(?<!Tested|Verified|Confirmed)(?!.{0,50}test)(?!.{0,30}pytest)(?!.{0,30}verify)(The\s+problem|Issue\s+is|Root\s+cause)",
-]
+
+def _check_claim_patterns(text: str, verified_this_turn: bool = False) -> list[str]:
+    """Check for unverified causal claims. Returns list of violations.
+
+    Skips when verification tools (Read/Grep/Glob/Bash/etc.) ran this turn —
+    the response is grounded in actual investigation, not speculation."""
+    if verified_this_turn:
+        return []
+    violations = []
+    t = text.lower()
+    for pattern, exemption in CLAIM_PATTERNS:
+        if re.search(pattern, t, re.IGNORECASE):
+            if exemption is None or not re.search(exemption, text, re.IGNORECASE):
+                violations.append("BEHAV-003: Claim without verification")
+    return violations
+
+
+def _check_solution_jump_patterns(text: str, verified_this_turn: bool = False) -> list[str]:
+    """Check for premature solution jumps. Returns list of violations.
+
+    Skips when verification tools (Read/Grep/Glob/Bash/etc.) ran this turn —
+    the response is grounded in actual investigation, not speculation."""
+    if verified_this_turn:
+        return []
+    violations = []
+    t = text.lower()
+    has_root_cause = "root cause" in t
+    has_test_or_verified = "test" in t or "verified" in t
+    for pattern, _ in SOLUTION_JUMP_PATTERNS:
+        if re.search(pattern, t, re.IGNORECASE):
+            if not (has_root_cause and has_test_or_verified):
+                violations.append("BEHAV-001: Premature solution jump")
+    return violations
 
 # Urgency detection patterns — switch to "fast mode" when incident response
 URGENCY_PATTERNS = [
@@ -163,18 +199,20 @@ def _format_structured_feedback(violations: list, suggestions: list, hypothesis_
 def _has_verification_tools_this_turn(session_id: str, terminal_id: str) -> bool:
     """Return True if Grep/Read/Glob/etc. were called this turn.
 
-    Uses the shared turn-scoped evidence helper. Fails open: returns False
-    (don't suppress the check) if evidence is unavailable.
+    Uses session-scoped evidence (not turn-scoped) because terminal_id is often
+    empty in the evidence store, making turn-scoped queries unreliable.
+    Fails open: returns False if evidence is unavailable.
     """
-    if not session_id or load_turn_scoped_events is None:
+    if not session_id or load_scoped_tool_events is None:
         return False
     try:
-        events = load_turn_scoped_events(
+        events = load_scoped_tool_events(
             session_id=session_id,
             terminal_id=terminal_id,
+            scope=SCOPE_SESSION_FRESH,
             limit=200,
         )
-        if events is None:
+        if not events:
             return False
         return any(e.get("name") in _VERIFICATION_TOOLS for e in events)
     except Exception:
@@ -194,26 +232,18 @@ def check_response_violations(response_text: str, hypothesis_details: list | Non
     if not hypothesis_details:
         hypothesis_details = _parse_hypotheses_from_text(response_text)
 
+    # Exempt BEHAV-001/003 when tools ran this turn — response is grounded in investigation
+    _verified_this_turn = _has_verification_tools_this_turn(session_id, terminal_id)
+
     # Check for premature claims without testing
-    for pattern in CLAIM_PATTERNS:
-        if re.search(pattern, response_text, re.IGNORECASE):
-            has_test_evidence = bool(
-                re.search(r'(Test|Result|Output|Confirmed|Verified)', response_text, re.IGNORECASE)
-            )
-            if not has_test_evidence:
-                violations.append("BEHAV-003: Claim without verification")
-                suggestions.append("State hypothesis, design test, show output before claiming")
+    violations.extend(_check_claim_patterns(response_text, verified_this_turn=_verified_this_turn))
+    if "BEHAV-003" in violations:
+        suggestions.append("State hypothesis, design test, show output before claiming")
 
     # Check for solution jumps
-    for pattern in SOLUTION_JUMP_PATTERNS:
-        if re.search(pattern, response_text, re.IGNORECASE):
-            has_gate_check = all([
-                "root cause" in response_text.lower(),
-                ("test" in response_text.lower() or "verified" in response_text.lower()),
-            ])
-            if not has_gate_check:
-                violations.append("BEHAV-001: Premature solution jump")
-                suggestions.append("Complete Solution Proposal Gate checklist first")
+    violations.extend(_check_solution_jump_patterns(response_text, verified_this_turn=_verified_this_turn))
+    if "BEHAV-001" in violations:
+        suggestions.append("Complete Solution Proposal Gate checklist first")
 
     # Check for single-hypothesis acceptance
     hypothesis_count = len(hypothesis_details)
@@ -223,7 +253,6 @@ def check_response_violations(response_text: str, hypothesis_details: list | Non
 
     # BEHAV-002-A: Zero-hypothesis flat assertion
     # Skip if verification tools were used this turn — claim is grounded in tool output
-    _verified_this_turn = _has_verification_tools_this_turn(session_id, terminal_id)
     if hypothesis_count == 0 and not is_single_rc_escape and not _verified_this_turn:
         has_impl_claim = bool(re.search(
             r"\b(?:NOT\s+(?:fully\s+)?implemented"
@@ -236,8 +265,12 @@ def check_response_violations(response_text: str, hypothesis_details: list | Non
             response_text, re.IGNORECASE,
         ))
         if has_impl_claim:
-            violations.append("BEHAV-002-A: Zero-hypothesis definitive claim")
-            suggestions.append("State 3+ hypotheses and verify via code search before asserting status.")
+            # Exempt pytest test output — "N passed" is unambiguous verification evidence
+            if re.search(r"\b\d+\s+passed\b", response_text, re.IGNORECASE):
+                pass  # Don't flag — pytest output IS verification evidence
+            else:
+                violations.append("BEHAV-002-A: Zero-hypothesis definitive claim")
+                suggestions.append("State 3+ hypotheses and verify via code search before asserting status.")
 
     # Check for diagnostic jumping
     diagnostic_approaches = len(re.findall(
@@ -342,7 +375,7 @@ def main():
             "reason": result["reason"],
             "blocking_hook": result.get("blocking_hook", "Stop_verification_gate.py"),
         }))
-        sys.exit(0)
+        sys.exit(1)
     print("{}")
     sys.exit(0)
 

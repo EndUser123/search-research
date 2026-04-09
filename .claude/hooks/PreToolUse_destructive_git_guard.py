@@ -41,6 +41,12 @@ def check_git_command(command: str) -> dict | None:
 
     # Destructive operations (data loss)
     DESTRUCTIVE_OPS = {
+        "pull": {
+            "danger_flags": [],
+            "description": "Sync and modify local branch state from remote history",
+            "severity": "MEDIUM",
+            "category": "destructive"
+        },
         "reset": {
             "danger_flags": ["--hard"],
             "description": "Discard all uncommitted changes in working directory",
@@ -60,7 +66,7 @@ def check_git_command(command: str) -> dict | None:
             "category": "destructive"
         },
         "rebase": {
-            "danger_flags": ["--onto"],
+            "danger_flags": [],
             "description": "Rewrite git history (potential data loss)",
             "severity": "MEDIUM",
             "category": "destructive"
@@ -111,8 +117,9 @@ def check_git_command(command: str) -> dict | None:
 
     # Check if dangerous flags are present
     if "danger_flags" in op_config:
-        has_danger_flag = any(flag in command for flag in op_config["danger_flags"])
-        if not has_danger_flag:
+        required_flags = op_config["danger_flags"]
+        has_danger_flag = any(flag in command for flag in required_flags)
+        if required_flags and not has_danger_flag:
             return None
     elif "danger_subcommands" in op_config:
         if len(parts) < 3 or parts[2].lower() not in op_config["danger_subcommands"]:

@@ -14,6 +14,12 @@ suggest:
   - /skill-ship
   - /rca
 depends_on_skills: []
+workflow_steps:
+  - step_classify: Classify audit mode (target-quality, transfer/reuse, merge/remove, implementation-readiness)
+  - step_discover: Discover skill files, references, and cross-skill links
+  - step_lenses: Apply all 13 lenses to the target skill
+  - step_mine: Mine session transcript for improvement signals (repeated failure patterns)
+  - step_output: Emit outcome summary, gap table, improvement plan, and improvement signals
 ---
 
 # /skill-audit — Skill Strategy and Outcome Auditor
@@ -115,6 +121,8 @@ Raw chat history is a discovery source, not a source of truth. `/skill-audit` sh
 - repeated stale-artifact confusion
 - repeated schema/format mismatches
 - repeated hook/cognitive-hook misuse
+- repeated CLI documentation failures (wrong flags, unverified thresholds, hallucinated error causes — skill docs present external tool interfaces as authoritative fact)
+- repeated principle/enforcement mismatches (body says mandatory behavior, frontmatter says `advisory`)
 
 over one-off complaints or stale intermediate reasoning.
 
@@ -136,6 +144,23 @@ Use them selectively:
 These are internal reasoning passes, not user-facing workflow steps.
 
 Reference: `P:/.claude/skills/__lib/sdlc_internal_modes.md`
+
+## Strategic Reasoning
+
+This skill uses strategic reasoning patterns from `P:/.claude/skills/__lib/strategic_reasoning.md`:
+
+- **Strategic Questioning**: For blind-spot detection before finalizing audit recommendations
+- **GoT+ToT**: Not primary (use for transfer/reuse analysis with multiple plausible targets)
+- **Technology Fit**: Not primary (use when auditing technology-selection skills)
+
+Internal blind-spot checks are run before final recommendations.
+
+**When activated:**
+- Strategic questioning: All nontrivial audits (prevents approval of skills with hidden contract gaps)
+- GoT+ToT: Transfer/reuse analysis, merge/remove decisions with multiple targets
+- Technology fit: Auditing skills that validate technical choices
+
+**Opt-out:** `--no-got-tot` flag to skip Graph-of-Thought and Tree-of-Thought analysis.
 
 ## How to Use
 

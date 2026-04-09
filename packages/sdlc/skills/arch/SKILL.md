@@ -1,7 +1,7 @@
 ---
 name: arch
-description: "Adaptive architecture advisor with template-based variants. Auto-routes to appropriate template based on domain and complexity. Supports: fast, deep, cli, python, data-pipeline, precedent. Configuration: .archconfig.json (project) → ~/.archconfig.json (user) → ARCH_DEFAULT_DOMAIN (env var). Override with template=<name> parameter. Enhanced with Graph-of-Thought (GoT) for architecture alternatives analysis (v2.5)."
-version: "5.2"
+description: "Adaptive architecture advisor with template-based variants. Auto-routes to appropriate template based on domain and complexity. Supports: fast, deep, cli, python, data-pipeline, precedent. Configuration: .archconfig.json (project) → ~/.archconfig.json (user) → ARCH_DEFAULT_DOMAIN (env var). Override with template=<name> parameter. Enhanced with Graph-of-Thought (GoT) for architecture alternatives analysis (v2.5), Hook Registration Consistency Checking (v5.1)."
+version: "5.3"
 status: stable
 enforcement: advisory
 depends_on:
@@ -11,6 +11,9 @@ triggers:
   - arch
   - architecture
   - architectural decision
+suggest:
+  - /q
+  - /planning
 workflow_steps:
   - preflight_checks
   - classify_intent
@@ -214,6 +217,23 @@ Use `challenge` whenever the architecture introduces a new boundary, state mecha
 
 Reference: `P:/.claude/skills/__lib/sdlc_internal_modes.md`
 
+## Strategic Reasoning
+
+This skill uses strategic reasoning patterns from `P:/.claude/skills/__lib/strategic_reasoning.md`:
+
+- **GoT+ToT**: For constraint analysis and branching scenario exploration on architecture alternatives (enabled by default v2.5)
+- **Strategic Questioning**: For blind-spot detection before emitting Contract Authority Packets or ADRs
+- **Technology Fit**: For validating technology choices against problem domain requirements
+
+Internal blind-spot checks are run before final recommendations.
+
+**When activated:**
+- GoT+ToT: All architecture work with multiple viable options or competing constraints
+- Strategic Questioning: Contract-sensitive designs, stateful systems, multi-terminal considerations
+- Technology Fit: Architecture decisions involving framework/language selection or migration
+
+**Opt-out:** `--no-got-tot` flag to skip Graph-of-Thought and Tree-of-Thought analysis.
+
 ## Critique-Agent Review Policy
 
 `/arch` should use a critique agent whenever the architecture closure depends on subtle contract semantics, downstream ownership, or ambiguous fallback behavior.
@@ -309,6 +329,60 @@ Before suggesting architectural changes, verify the gap actually exists. Require
    - Assumptions verified: {list}
    - Mismatches found: {list or "none"}
    ```
+
+5. **Hook registration consistency** (MANDATORY when query involves hooks, skills, or workflow systems)
+
+   **Trigger condition**: This requirement applies when the architectural query involves hook systems, skill integration, workflow modifications, or registration patterns.
+
+   **Validation steps**:
+   a. **Scan registration sources** — Check `settings.json`, router files (`*_router.py`, `PreToolUse.py`), and modular registries (`UserPromptSubmit_modules/registry.py`)
+   b. **Group by event type** — Categorize hooks by event (UserPromptSubmit, PreToolUse, PostToolUse, Stop, SessionStart, SessionEnd)
+   c. **Detect pattern violations** — Identify hooks using non-preferred registration patterns:
+   - UserPromptSubmit hooks in `settings.json` (should use modular `@register_hook` decorator)
+   - PreToolUse/PostToolUse/Stop hooks in `settings.json` (should use router UNIVERSAL/TOOL_HOOKS lists)
+   d. **Report inconsistencies** — Surface architectural violations with severity and remediation guidance
+
+   **Registration pattern preferences**:
+   ```
+   Event Type              | Preferred Pattern      | Allowed Alternative
+   ------------------------|-----------------------|----------------------
+   UserPromptSubmit        | Modular registry       | None (settings.json deprecated)
+   PreToolUse              | Router (UNIVERSAL)     | settings.json for legacy
+   PostToolUse             | Router                 | settings.json for legacy
+   Stop                    | Router                 | settings.json for legacy
+   SessionStart            | settings.json          | None
+   SessionEnd              | settings.json          | None
+   ```
+
+   **Output format**: When inconsistencies are detected, output a structured report:
+   ```
+   HOOK REGISTRATION INCONSISTENCY DETECTED
+
+   Event: {event_name}
+   Severity: {warning|error}
+   Issue: {description of inconsistency}
+     • {hook_file_1}
+     • {hook_file_2}
+
+   Current registration:
+   {current_registration_method}
+
+   Architectural inconsistency:
+   • {why this is a problem}
+
+   Recommendation:
+   1. {step_1}
+   2. {step_2}
+   3. {step_3}
+
+   Benefits:
+   • {benefit_1}
+   • {benefit_2}
+   ```
+
+   **Evidence requirement**: Must read actual registration files to verify inconsistencies. Prose claims about registration patterns without file evidence are prohibited.
+
+   **Reference**: See `resources/hook_registration_consistency.md` for detailed detection logic and examples.
 
 **Follow-up Query Rewrite (conditional — only when triggered):**
 
@@ -980,4 +1054,4 @@ Score formula: `(reliability_score * rel_wt) * (flexibility_score * flex_wt) * G
 
 ---
 
-**Version:** 5.0 | **Architecture:** Template-based router with GoT, ADR-first output, verbose mode, one-page ADR template, graph-aware reasoning, three-path execution (REVIEW / IMPROVE / DEFAULT), Edge Case Integration, Contract Boundary Inventory, Contract Boundary Closure, Contract Authority Packet emission, Planning Handoff Packet emission, Sensitivity Analysis, Decision Policy Modes
+**Version:** 5.1 | **Architecture:** Template-based router with GoT, ADR-first output, verbose mode, one-page ADR template, graph-aware reasoning, three-path execution (REVIEW / IMPROVE / DEFAULT), Edge Case Integration, Contract Boundary Inventory, Contract Boundary Closure, Contract Authority Packet emission, Planning Handoff Packet emission, Sensitivity Analysis, Decision Policy Modes, Hook Registration Consistency Checking

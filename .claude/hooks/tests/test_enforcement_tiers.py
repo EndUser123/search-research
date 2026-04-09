@@ -190,6 +190,8 @@ class TestEnforcementTierValidator:
         """Test valid strict tier."""
         content = """---
 name: test-skill
+workflow_steps:
+  - step_one: Description
 enforcement: strict
 ---
 # Content
@@ -203,6 +205,8 @@ enforcement: strict
         """Test valid advisory tier."""
         content = """---
 name: test-skill
+workflow_steps:
+  - step_one: Description
 enforcement: advisory
 ---
 # Content
@@ -216,6 +220,8 @@ enforcement: advisory
         """Test valid none tier."""
         content = """---
 name: test-skill
+workflow_steps:
+  - step_one: Description
 enforcement: none
 ---
 # Content
@@ -226,21 +232,38 @@ enforcement: none
         assert result["tier"] == "none"
 
     def test_missing_enforcement_field(self, validator) -> None:
-        """Test missing enforcement field."""
+        """Test missing enforcement field (but workflow_steps present)."""
         content = """---
 name: test-skill
+workflow_steps:
+  - step_one: Description
 ---
 # Content
 """
         result = validator("test/SKILL.md", content)
 
         assert result["valid"] is False
-        assert "missing" in result["warning"].lower()
+        assert "enforcement" in result["warning"].lower()
+
+    def test_missing_workflow_steps_field(self, validator) -> None:
+        """Test missing workflow_steps field (but enforcement present)."""
+        content = """---
+name: test-skill
+enforcement: strict
+---
+# Content
+"""
+        result = validator("test/SKILL.md", content)
+
+        assert result["valid"] is False
+        assert "workflow_steps" in result["warning"].lower()
 
     def test_invalid_tier_value(self, validator) -> None:
         """Test invalid tier value."""
         content = """---
 name: test-skill
+workflow_steps:
+  - step_one: Description
 enforcement: invalid
 ---
 # Content
@@ -255,6 +278,8 @@ enforcement: invalid
         """Test quoted tier values."""
         content = """---
 name: test-skill
+workflow_steps:
+  - step_one: Description
 enforcement: "advisory"
 ---
 # Content

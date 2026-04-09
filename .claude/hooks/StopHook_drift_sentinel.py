@@ -65,7 +65,7 @@ _MIN_SOURCE_COUNT = max(1, int(os.environ.get("DRIFT_SENTINEL_MIN_SOURCE_COUNT",
 _MAX_RESPONSE_CHARS = max(_MIN_RESPONSE_CHARS, int(os.environ.get("DRIFT_SENTINEL_MAX_RESPONSE_CHARS", "4000")))
 
 
-def load_tool_events(session_id: str, limit: int = 50) -> list[dict[str, Any]]:
+def load_tool_events(session_id: str, limit: int = 25) -> list[dict[str, Any]]:
     """Compatibility wrapper for recent session evidence."""
     if load_scoped_tool_events is None:
         raise ImportError("evidence_scope unavailable")

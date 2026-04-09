@@ -159,9 +159,9 @@ BACKUP_PATTERNS = re.compile(
 
 # 7. FOLDER_CREATE patterns
 FOLDER_CREATE_PATTERNS = re.compile(
-    r"\b(?:created|made|set\s+up)\s+(?:a\s+)?(?:new\s+)?(?:directory|folder|dir)\s+[\w\-\\/]+"
-    r"|\b(?:created|made)\s+[\w\-\\/]+(?:\s+directory|\s+folder)?"
-    r"|\b(?:initialized|set\s+up)\s+(?:the\s+)?[\w\-\\/]+",
+    r"\b(?:created|made)\s+[\w\-\\/]+(?:directory|folder|dir)[\w\-\\/]+"
+    r"|\b(?:created|made)\s+(?:the\s+)?[\w\-\\/]+(?:\s+(?:directory|folder|dir))"
+    r"|\b(?:created|made)\s+(?:the\s+)?(?:directory|folder|dir)\s+[\w\-\\/]+",
     re.IGNORECASE,
 )
 
@@ -173,9 +173,9 @@ FOLDER_CREATE_PATTERNS = re.compile(
 #   alt4: cleaned up PATH_CHAR ARG             (cleaned up .dir or /dir)
 # The (?:\s+directory|\s+folder)? clause handles bare "logs/.cache/__pycache__/dist".
 FOLDER_DELETE_PATTERNS = re.compile(
-    r"\b(?:deleted|removed|cleaned\s+up)\s+(?:the\s+)?(?:directory|folder|dir)\s+[\w\-\\/]+"
+    r"\b(?:deleted|removed)\s+(?:the\s+)?[\w\-\\\/]+(?:\s+(?:directory|folder|dir))"
+    r"|\b(?:deleted|removed)\s+(?:the\s+)?(?:directory|folder|dir)\s+[\w\-\\\/]+"
     r"|\b(?:deleted|removed)\s+[./\\][^\s]+"
-    r"|\b(?:deleted|removed)\s+[\w./\\-]+(?:\s+directory|\s+folder)?"
     r"|\b(?:cleaned\s+up)\s+[./\\][^\s]+"
     r"|\b(?:cleaned\s+up)\s+[\w./\\-]+",
     re.IGNORECASE,
@@ -252,7 +252,16 @@ VERIFICATION_TOOLS = frozenset(
 
 # Bash commands that indicate file system verification
 BASH_VERIFICATION_COMMANDS = re.compile(
-    r"\bls\b" r"|\bfind\b" r"|\bgit\s+ls-files\b" r"|\btest\b.*-f\b" r"|\b\[\b.*-f\b",
+    r"\bls\b"
+    r"|\bfind\b"
+    r"|\bgit\s+ls-files\b"
+    r"|\btest\b.*-f\b"
+    r"|\b\[\b.*-f\b"
+    r"|\bhead\b"
+    r"|\btail\b"
+    r"|\bcat\b"
+    r"|\bfile\b"
+    r"|\bwc\b",
     re.IGNORECASE,
 )
 

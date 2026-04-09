@@ -60,6 +60,9 @@ from __lib.hook_constants import KNOWLEDGE_SKILLS
 # Import skill auto-discovery for universal enforcement
 from skill_guard.skill_auto_discovery import get_skill_config
 
+# Import robust command extractor from skill_enforcer for stateless skill-first check
+from UserPromptSubmit_modules.skill_enforcer import extract_command_name
+
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
@@ -487,12 +490,8 @@ def handle_pre_tool_use(data: dict) -> dict:
     except Exception:
         pass
 
-    # Extract slash command from user message (e.g., "/git", "/verify")
-    slash_command = None
-    if user_message.strip().startswith("/"):
-        # Extract the command (first word after /)
-        first_word = user_message.strip().split()[0]
-        slash_command = first_word[1:]  # Remove the leading /
+    # Extract slash command from user message using robust regex (handles edge cases)
+    slash_command = extract_command_name(user_message)
 
     # Stateless skill-first check
     if slash_command:

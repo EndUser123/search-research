@@ -31,6 +31,11 @@ ENFORCEMENT_PATTERN = re.compile(
     r"^enforcement:\s*['\"]?(strict|advisory|none)['\"]?\s*$", re.MULTILINE
 )
 
+# Pattern to match workflow_steps field in YAML frontmatter
+WORKFLOW_STEPS_PATTERN = re.compile(
+    r"^workflow_steps:\s*$", re.MULTILINE
+)
+
 
 def validate_enforcement_tier(skill_path: str, content: str) -> dict:
     """
@@ -43,29 +48,38 @@ def validate_enforcement_tier(skill_path: str, content: str) -> dict:
     Returns:
         Dict with 'valid', 'tier', 'warning' fields
     """
+    warnings = []
+
     # Check if enforcement field exists
     match = ENFORCEMENT_PATTERN.search(content)
 
     if not match:
-        return {
-            "valid": False,
-            "tier": None,
-            "warning": (
-                f"SKILL.md at {skill_path} is missing 'enforcement' field in frontmatter. "
-                f"Valid values: {', '.join(VALID_TIERS)}. "
-                f"Default will be '{DEFAULT_TIER}' if not specified."
-            ),
-        }
+        warnings.append(
+            f"SKILL.md at {skill_path} is missing 'enforcement' field in frontmatter. "
+            f"Valid values: {', '.join(VALID_TIERS)}. "
+            f"Default will be '{DEFAULT_TIER}' if not specified."
+        )
 
-    tier = match.group(1)
-    if tier not in VALID_TIERS:
+    tier = match.group(1) if match else None
+    if tier and tier not in VALID_TIERS:
+        warnings.append(
+            f"SKILL.md at {skill_path} has invalid enforcement tier '{tier}'. "
+            f"Valid values: {', '.join(VALID_TIERS)}."
+        )
+
+    # Check if workflow_steps field exists (required per skill-frontmatter-fields.md)
+    workflow_match = WORKFLOW_STEPS_PATTERN.search(content)
+    if not workflow_match:
+        warnings.append(
+            f"SKILL.md at {skill_path} is missing 'workflow_steps' field in frontmatter. "
+            f"This field is required per skill-frontmatter-fields.md spec."
+        )
+
+    if warnings:
         return {
             "valid": False,
             "tier": tier,
-            "warning": (
-                f"SKILL.md at {skill_path} has invalid enforcement tier '{tier}'. "
-                f"Valid values: {', '.join(VALID_TIERS)}."
-            ),
+            "warning": "\n\n".join(warnings),
         }
 
     return {"valid": True, "tier": tier, "warning": None}

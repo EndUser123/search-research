@@ -84,6 +84,22 @@ def _projects_dir() -> Path:
     return _claude_base() / "projects"
 
 
+def _project_handoff_dir(project_root: Path | None = None) -> Path:
+    """Project-scoped handoff directory (where PreCompact actually writes).
+
+    This is the P:-scoped path: P:/.claude/state/handoff/
+    PreCompact_handoff_capture.py writes here, but session_chain.py
+    was only searching ~/.claude/state/handoff/ — causing depth=1 chains.
+
+    Note: "P--" project is at P:/ root (not under ~/.claude/projects/),
+    so we resolve it via environment or direct Path("P:/").
+    """
+    if project_root is None:
+        # P:/ is the project root for "P--"
+        project_root = Path("P:/")
+    return project_root / ".claude" / "state" / "handoff"
+
+
 def _handoff_dir() -> Path:
     return _claude_base() / "state" / "handoff"
 
@@ -140,12 +156,35 @@ def _get_prior_transcript_path(handoff_path: Path) -> Path | None:
 
 
 def _find_handoff_referencing(transcript_path: Path) -> Path | None:
-    """Find handoff file whose resume_snapshot.transcript_path == transcript_path."""
-    handoff_dir = _handoff_dir()
+    """Find handoff file whose resume_snapshot.transcript_path == transcript_path.
+
+    Searches BOTH the project-scoped path (P:/.claude/state/handoff/) and the
+    home-scoped path (~/.claude/state/handoff/) to handle path divergence.
+    PreCompact writes to the project-scoped path; session_chain was only
+    searching the home-scoped path.
+    """
+    # Try project-scoped path first (where PreCompact actually writes)
+    project_handoff_dir = _project_handoff_dir()
+    candidate = _search_handoff_dir(project_handoff_dir, transcript_path)
+    if candidate:
+        return candidate
+
+    # Fallback to home-scoped path
+    home_handoff_dir = _handoff_dir()
+    if home_handoff_dir != project_handoff_dir:
+        return _search_handoff_dir(home_handoff_dir, transcript_path)
+
+    return None
+
+
+def _search_handoff_dir(handoff_dir: Path, transcript_path: Path) -> Path | None:
+    """Search a specific handoff directory for a file referencing transcript_path."""
     if not handoff_dir.exists():
         return None
     target = str(transcript_path)
-    for hf in handoff_dir.glob("console_*_handoff.json"):
+
+    # Glob for all handoff file variants: terminal_handoff.json or terminal_timestamp_handoff.json
+    for hf in handoff_dir.glob("console_*_handoff*.json"):
         try:
             with open(hf, encoding="utf-8") as f:
                 data = json.load(f)

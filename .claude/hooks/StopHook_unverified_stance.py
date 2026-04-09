@@ -155,6 +155,11 @@ def _should_block_claim(claim: Claim, verdict: Any) -> bool:
     if claim.type == "ANALYSIS":
         return False
 
+    # MECHANISM claims (internal code behavior without reading code) are epistemic
+    # assessments about implementation internals — not verifiable factual claims
+    if claim.type == "MECHANISM":
+        return False
+
     # Hedged claims pass without evidence
     if claim.has_hedge:
         return False
@@ -852,21 +857,28 @@ def run(data: dict[str, Any]) -> dict[str, Any] | None:
 
             if claims:
                 # Load tool events for context (terminal-scoped)
-                # If tool_events provided in data, merge with terminal-scoped events
-                # FIX: Check first to avoid N+1 query pattern (PERF-001)
-                # FIX: Merge events instead of replacing (LOGIC-001)
+                # If tool_events provided in data, merge with session-scoped events
+                # FIX: Avoid self-extend bug (LOGIC-001) - was extending loaded_events with itself
+                # FIX: Add deduplication by event ID to prevent TOCTOU duplicates
                 if isinstance(tool_events, list) and tool_events:
-                    loaded_events = tool_events
+                    session_events = load_tool_events_for_context(
+                        session_id=session_id,
+                        terminal_id=terminal_id,
+                        limit=500,
+                    ) or []
+                    # Merge session + turn events, deduplicate by event ID
+                    combined = session_events + tool_events
+                    seen: set[str] = set()
+                    loaded_events = [
+                        e for e in combined
+                        if (eid := e.get("id", "")) not in seen and not seen.add(eid)
+                    ]
                 else:
                     loaded_events = load_tool_events_for_context(
                         session_id=session_id,
                         terminal_id=terminal_id,
                         limit=500,
-                    )
-
-                # Merge turn-scoped events into terminal-scoped if both exist
-                if isinstance(tool_events, list) and tool_events:
-                    loaded_events.extend(tool_events)
+                    ) or []
 
                 # Extract tool event IDs for logging
                 tool_event_ids = [event.get("id", 0) for event in loaded_events]

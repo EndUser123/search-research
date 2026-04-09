@@ -262,4 +262,8 @@ def run(target: Path) -> list[Finding]:
     bleed_findings = _check_anti_bleed(target)
     findings.extend(bleed_findings)
 
+    # Check halt threshold before returning
+    from orchestrator import check_halt
+    check_halt("L5", findings)
+
     return findings

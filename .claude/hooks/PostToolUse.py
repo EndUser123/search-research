@@ -157,7 +157,7 @@ def main():
 
         append_tool_event(
             session_id=session_id,
-            terminal_id=data.get("terminal_id", ""),
+            terminal_id=_resolve_terminal_id_for_intent(data),
             tool_name=tool_name,
             command=str(command),
             output_excerpt=str(tool_result)[:2000],

@@ -96,4 +96,8 @@ def run(target: Path) -> list[Finding]:
             "from conversation context to run predictive analysis."
         )
 
-    return []
+    findings = []
+
+    # NOTE: L0 is special — findings come from skill-level Agent dispatch
+    # The SKILL.md conductor should call check_halt() after synthesizing agent findings
+    return findings

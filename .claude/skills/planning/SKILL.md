@@ -5,6 +5,9 @@ category: planning
 enforcement: advisory
 depends_on:
   - sdlc: ">=0.1.0"
+suggest:
+  - /q
+  - /arch
 triggers:
   - /planning
   - /planning-v2
@@ -89,6 +92,23 @@ Use `challenge` whenever the plan is layered, stateful, hook-driven, or overlap-
 Use `graduate` when the same class of plan defect appears repeatedly across reviews or verifier failures.
 
 Reference: `P:/.claude/skills/__lib/sdlc_internal_modes.md`
+
+## Strategic Reasoning
+
+This skill uses strategic reasoning patterns from `P:/.claude/skills/__lib/strategic_reasoning.md`:
+
+- **GoT+ToT**: For constraint analysis and branching scenario exploration when plan has competing alternatives or unresolved blockers
+- **Strategic Questioning**: For blind-spot detection before accepting plans as implementation-ready
+- **Technology Fit**: For validating technology choices when plan involves framework/language selection
+
+Internal blind-spot checks are run before final recommendations.
+
+**When activated:**
+- GoT+ToT: Multi-alternative decisions, constraint-heavy plans, architecture blocker resolution
+- Strategic Questioning: All nontrivial plans (stateful, hook-driven, multi-terminal)
+- Technology Fit: Plans involving technology stack decisions
+
+**Opt-out:** `--no-got-tot` flag to skip Graph-of-Thought and Tree-of-Thought analysis.
 
 ## Orchestration Model
 
@@ -356,7 +376,8 @@ When `/planning` invokes `/arch` because `next_action.type == invoke_arch_then_r
 2. `/arch` is a nested closure substep, not a terminal handoff.
 3. User re-entry is not required.
 4. `/planning` must resume automatically after `/arch` returns a usable packet.
-5. `/planning` must not ask “should I continue the planning workflow?” unless `/arch` returned an unresolved clarification need or an incomplete architecture state.
+5. **DO NOT ASK the user whether to continue** — Immediately consume the packets and rewrite the plan. Only ask if `/arch` returned an unresolved clarification need or an incomplete architecture state.
+6. The transition from `/arch` back to `/planning` is automatic. Do not treat it as a user-visible handoff.
 
 ## Blocker Remediation Loop
 

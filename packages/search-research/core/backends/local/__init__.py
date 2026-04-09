@@ -38,6 +38,7 @@ from .notebooklm_backend import (
     NotebookLMBackend,
     create_notebooklm_backend,
 )
+from .qmd_wiki_backend import QMDWikiBackend
 from .rlm_backend import (
     BACKEND_RLM,
     RLMBackend,
@@ -59,6 +60,7 @@ __all__ = [
     "RLMBackend",
     "ClaudeHistoryBackend",
     "NotebookLMBackend",
+    "QMDWikiBackend",
     # Backend constants
     "BACKEND_NOTEBOOKLM",
     "BACKEND_SKILLS",

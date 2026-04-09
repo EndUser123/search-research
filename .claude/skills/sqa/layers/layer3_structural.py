@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 import subprocess
 from pathlib import Path
 
 from findings.models import EvidenceTier, Finding, Layer, Severity
+
+logger = logging.getLogger(__name__)
 
 
 def run(target: Path) -> list[Finding]:
@@ -29,6 +32,10 @@ def run(target: Path) -> list[Finding]:
     # Safety patterns via apply_safety_patterns
     safety_findings = _check_safety_patterns(target)
     findings.extend(safety_findings)
+
+    # Check halt threshold before returning
+    from orchestrator import check_halt
+    check_halt("L3", findings)
 
     return findings
 
@@ -58,9 +65,9 @@ def _check_circular_deps(target: Path) -> list[Finding]:
                         )
                     )
     except subprocess.TimeoutExpired:
-        pass
+        logger.warning("Command timed out after 60s")
     except FileNotFoundError:
-        pass
+        logger.warning("Command not found in PATH — skipping check")
     return findings
 
 
@@ -88,9 +95,9 @@ def _check_assertion_guards(target: Path) -> list[Finding]:
                         )
                     )
     except subprocess.TimeoutExpired:
-        pass
+        logger.warning("Command timed out after 60s")
     except FileNotFoundError:
-        pass
+        logger.warning("Command not found in PATH — skipping check")
     return findings
 
 
@@ -118,7 +125,7 @@ def _check_safety_patterns(target: Path) -> list[Finding]:
                         )
                     )
     except subprocess.TimeoutExpired:
-        pass
+        logger.warning("Command timed out after 60s")
     except FileNotFoundError:
-        pass
+        logger.warning("Command not found in PATH — skipping check")
     return findings

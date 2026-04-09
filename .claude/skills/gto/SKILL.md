@@ -77,6 +77,7 @@ Before recommending what to do next, `/gto` should run a short internal next-ste
 - What should I explicitly not recommend because ownership belongs to `/arch`, `/planning`, `/verify`, or another lower skill?
 - What would a weaker model over-recommend here as generic cleanup instead of the highest-value next step?
 - What recommendation looks helpful locally but would move the workflow away from the real outcome?
+- What would change our prioritization if we knew the answers?
 
 These are internal self-check prompts. They are not default user-facing questions and should only surface to the user when `/gto` is genuinely blocked and cannot proceed safely without clarification.
 

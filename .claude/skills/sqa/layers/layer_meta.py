@@ -78,6 +78,10 @@ def run_meta(all_findings: list[Finding]) -> list[Finding]:
     quality_findings = _check_evidence_quality(enforced_findings)
     meta_findings.extend(quality_findings)
 
+    # Check halt threshold before returning
+    from orchestrator import check_halt
+    check_halt("META", meta_findings)
+
     return meta_findings
 
 

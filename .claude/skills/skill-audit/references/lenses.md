@@ -33,6 +33,8 @@
 - "calls `lib.foo()`" → verify the function exists in the imported module
 - "appends to state file" → verify the write logic exists
 - routing table entries → verify each branch has code
+- **Interactive-completion anti-pattern**: Completion checks that say "Re-run /X" or "Which would you prefer?" or "Options:" followed by choices — these are proxies for "I didn't implement the wait loop, so I'm asking the user to do my job". Flag as: 
+- **Structured progress output**: Multi-step workflows (especially parallel-agent phases) should emit machine-readable events to stderr (e.g., JSON ). Absence of structured output in long-running phases is a PROCESS_ENFORCEMENT gap.
 
 **Evidence format**:
 ```json
@@ -69,6 +71,11 @@
   - an explicit complexity tradeoff
   - a durability or reversibility check
 - Keep this principle-based, not framework-branded; the issue is unjustified added structure, not failure to mention ADF by name
+- **CLI documentation check**: If the skill documents external CLI tool invocation (flags, subcommands, patterns):
+  - [ ] Has a Step 0 or equivalent verification step (e.g., `tool --help` confirmation) before usage patterns
+  - [ ] Has version evidence annotation (e.g., "verified against vX.Y on DATE") tied to actual `--help` output
+  - [ ] No verification step = Structural Justification gap: documented as fact, is actually hypothesis
+  - Flag as: `STRUCTURAL_JUSTIFICATION: CLI_DOC_UNVERIFIED`
 
 **Evidence format**:
 ```json
@@ -138,6 +145,8 @@
 
 **Checks**:
 - Frontmatter `enforcement` vs blocking/mandatory body rules
+  - **Core Principle / mandatory workflow step vs `enforcement: advisory` = CONSISTENCY FAIL**
+  - e.g., body says "TDD is mandatory" + frontmatter `enforcement: advisory` = structural contradiction, flag as `SKILL_CONTRACT_CONSISTENCY: PRINCIPLE_ENFORCEMENT_MISMATCH`
 - Frontmatter `version` vs footer `**Version:**`
 - Frontmatter status/metadata vs body behavior
 - Contradictory authority statements across sections

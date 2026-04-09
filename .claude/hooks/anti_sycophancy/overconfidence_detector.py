@@ -120,6 +120,24 @@ EVIDENCE_MARKERS = frozenset([
     "[supported]", "[verified]",
 ])
 
+# Explanatory prose detection patterns
+# Used by _is_explanatory_prose() to distinguish explanatory prose from technical assertions
+DATA_INDICATORS = [
+    r'\d+[,\d]*\s*(?:chars?|bytes?|lines?|items?|files?|results?|entries?)',  # "3,000+ chars"
+    r'\d+%',  # percentages
+    r'\d+\s*(?:seconds?|minutes?|hours?|ms)\b',  # time measurements
+    r'\b(?:roughly|approximately|about|around|~)\s*\d+',  # approximate numbers
+    r'\d+\+\s*(?:chars?|bytes?|lines?)',  # "3000+ chars"
+]
+
+EXPLANATORY_CONTEXT_PATTERNS = [
+    r'\bbased\s+on\b',
+    r'\baccording\s+to\b',
+    r'\bfrom\s+the\b',
+    r'\bin\s+the\s+(?:output|result|response)\b',
+    r'\bthe\s+(?:output|result|response)\b',
+]
+
 
 # Compile patterns for efficiency
 _CAUSAL_PATTERNS = [re.compile(p, re.IGNORECASE) for p in CAUSAL_PHRASES]
@@ -127,12 +145,63 @@ _CATASTROPHE_PATTERNS = [re.compile(p, re.IGNORECASE) for p in CATASTROPHE_PHRAS
 _ATTRIBUTION_PATTERNS = [re.compile(p, re.IGNORECASE) for p in ATTRIBUTION_PHRASES]
 _INTENSIFIER_PATTERNS = [re.compile(p, re.IGNORECASE) for p in INTENSIFIER_PHRASES]
 _OUTCOME_ATTRIBUTION_PATTERNS = [re.compile(p, re.IGNORECASE) for p in OUTCOME_ATTRIBUTION_PHRASES]
+_DATA_INDICATOR_PATTERNS = [re.compile(p, re.IGNORECASE) for p in DATA_INDICATORS]
+_EXPLANATORY_CONTEXT_PATTERNS = [re.compile(p, re.IGNORECASE) for p in EXPLANATORY_CONTEXT_PATTERNS]
 
 
 def _has_evidence_marker(text: str) -> bool:
     """Check if text contains evidence tier citation."""
     text_lower = text.lower()
     return any(marker in text_lower for marker in EVIDENCE_MARKERS)
+
+
+def _is_explanatory_prose(response: str, user_prompt: str) -> bool:
+    """
+    Detect if response is explanatory prose answering user's explanatory question.
+
+    Explanatory prose should be allowed even if it contains causal assertion phrases.
+    This reduces false positives when the AI is genuinely explaining its reasoning.
+
+    Indicators of explanatory prose:
+    1. User asked an explanatory question ("why", "explain", "clarify", "reason for")
+    2. Response contains data indicators (numbers, measurements, specific details)
+    3. Response has explanatory context words (e.g., "based on", "according to")
+
+    Returns:
+        True if response appears to be explanatory prose (allow it)
+        False if response appears to be technical causal assertion (flag it)
+    """
+    # Check 1: User asked an explanatory question
+    if not user_prompt:
+        return False
+    user_prompt_lower = user_prompt.lower()
+
+    # Detect explanatory question patterns
+    has_why_question = re.search(r'\bwhy\b', user_prompt_lower)
+
+    # Detect synonym patterns: "explain X", "clarify X", "what's the reason for X"
+    has_explain_synonym = re.search(
+        r'\b(explain|clarify|describe|detail|elaborate)\b\s+(this|the|that|what|how|why)',
+        user_prompt_lower
+    )
+    has_reason_synonym = re.search(
+        r"\bwhat'?s\s+(the\s+)?reason\s+(for|behind|that)\b",
+        user_prompt_lower
+    )
+
+    if not (has_why_question or has_explain_synonym or has_reason_synonym):
+        return False  # Not explanatory prose if user didn't ask for explanation
+
+    # Check 2: Response contains data indicators
+    # Numbers, measurements, specific details suggest explanation with evidence
+    response_lower = response.lower()
+    has_data_indicator = any(pattern.search(response_lower) for pattern in _DATA_INDICATOR_PATTERNS)
+
+    # Check 3: Response has explanatory context words
+    has_explanatory_context = any(pattern.search(response_lower) for pattern in _EXPLANATORY_CONTEXT_PATTERNS)
+
+    # Allow if response has data OR explanatory context
+    return has_data_indicator or has_explanatory_context
 
 
 def _find_pattern(text: str, patterns: List[re.Pattern]) -> Optional[re.Match]:
@@ -144,17 +213,21 @@ def _find_pattern(text: str, patterns: List[re.Pattern]) -> Optional[re.Match]:
     return None
 
 
-def detect_overconfidence(response: str) -> Optional[OverconfidenceMatch]:
+def detect_overconfidence(response: str, user_prompt: str = "") -> Optional[OverconfidenceMatch]:
     """
     Detect overconfident assertions without evidence.
-    
+
     Returns None if clean, OverconfidenceMatch if problematic.
-    
+
     Strategy:
     1. Check for causal assertion patterns
     2. Check for catastrophizing patterns
     3. Check for unverified attribution
     4. If found, check if evidence marker present (makes it acceptable)
+
+    Context-aware filtering:
+    - Explanatory prose answering user's "why" question with data is allowed
+    - Technical causal assertions without evidence are flagged
     """
     if not response:
         return None
@@ -162,23 +235,27 @@ def detect_overconfidence(response: str) -> Optional[OverconfidenceMatch]:
     # Normalize whitespace for matching
     text = ' '.join(response.split())
 
-    # 1. Check for causal assertions
-    causal_match = _find_pattern(text, _CAUSAL_PATTERNS)
-    if causal_match and not _has_evidence_marker(text):
-        return OverconfidenceMatch(
-            matched=causal_match.group(0),
-            pattern_type="causal_assertion",
-            suggestion="Add evidence tier: '[Tier X]: This explains...' or reframe as hypothesis: 'This MAY explain...'",
-            severity="flag"
-        )
-
-    # 2. Check for catastrophizing
+    # 1. Check for catastrophizing FIRST - catastrophic phrases should NEVER be allowed,
+    #    even in explanatory prose (pre-mortem finding 1.2)
     catastrophe_match = _find_pattern(text, _CATASTROPHE_PATTERNS)
     if catastrophe_match and not _has_evidence_marker(text):
         return OverconfidenceMatch(
             matched=catastrophe_match.group(0),
             pattern_type="catastrophizing",
             suggestion="Specify scope: 'X functionality is not working' instead of 'system is broken'",
+            severity="flag"
+        )
+
+    # 2. Check for causal assertions
+    causal_match = _find_pattern(text, _CAUSAL_PATTERNS)
+    if causal_match and not _has_evidence_marker(text):
+        # Context-aware filtering: Allow explanatory prose answering user's "why" question
+        if _is_explanatory_prose(text, user_prompt):
+            return None  # Allow explanatory prose even with causal assertion phrase
+        return OverconfidenceMatch(
+            matched=causal_match.group(0),
+            pattern_type="causal_assertion",
+            suggestion="Add evidence tier: '[Tier X]: This explains...' or reframe as hypothesis: 'This MAY explain...'",
             severity="flag"
         )
 

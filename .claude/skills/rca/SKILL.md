@@ -177,6 +177,22 @@ Use `challenge` on every nontrivial RCA; it is the mechanism that prevents sympt
 
 Reference: `P:/.claude/skills/__lib/sdlc_internal_modes.md`
 
+## Strategic Reasoning
+
+This skill uses strategic reasoning patterns from `P:/.claude/skills/__lib/strategic_reasoning.md`:
+
+- **GoT (Graph-of-Thought)**: For constraint analysis when competing hypotheses have conflicting dependencies or hidden contradictions
+- **Strategic Questioning**: For blind-spot detection before converging on a root cause diagnosis
+- **Technology Fit**: Not applicable (RCA focuses on existing systems, not technology selection)
+
+Internal blind-spot checks are run before final root cause convergence.
+
+**When activated:**
+- GoT constraint analysis: Multiple competing hypotheses with complex dependencies, constraint conflicts
+- Strategic questioning: All nontrivial RCA (prevents symptom narratives from hardening into fake root causes)
+
+**Opt-out:** `--no-got-tot` flag to skip Graph-of-Thought constraint analysis.
+
 ## Investigation Workflow (Summary)
 
 | Step | Name | Description |

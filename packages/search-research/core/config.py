@@ -31,6 +31,12 @@ class Config:
     # CKS (Constitutional Knowledge System) path
     CKS_DB_PATH: str = os.getenv("SEARCH_RESEARCH_CKS_DB_PATH", "P:/__csf/data/cks.db")
 
+    # Obsidian vault path for QMD Wiki backend
+    OBSIDIAN_VAULT_PATH: str = os.getenv(
+        "SEARCH_RESEARCH_OBSIDIAN_VAULT_PATH",
+        "~/.obsidian/vaults/personal-wiki"
+    )
+
     # Source code search paths
     SOURCE_ROOTS: list[str] = (
         os.getenv("SEARCH_RESEARCH_SOURCE_ROOTS", ".").split(os.pathsep)

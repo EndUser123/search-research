@@ -33,6 +33,10 @@ def run(target: Path) -> list[Finding]:
     rfd_findings = _run_recursive_failure_detector(target)
     findings.extend(rfd_findings)
 
+    # Check halt threshold before returning
+    from orchestrator import check_halt
+    check_halt("L7", findings)
+
     return findings
 
 

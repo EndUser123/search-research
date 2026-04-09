@@ -132,9 +132,18 @@ After the frontmatter, skills should follow this structure for completeness:
 
 ---
 
-## Part 4: Backward Compatibility
+## Part 4: External CLI Documentation Convention
 
-Skills without `execution` block fall back to regex extraction.
-Existing markdown content below frontmatter is preserved.
+When a skill documents how to invoke an external CLI tool (flags, subcommands, invocation patterns), it MUST:
 
-New body sections (Project Context, Validation Rules) are recommended but not required for existing skills.
+1. **Include a verification step**: Show the command that confirms the interface (e.g., `tool --help`, `tool --version`, `tool health`).
+
+2. **Annotate with version evidence**: Tag the documented patterns with the version they were verified against:
+   `Verified against <tool> v<version> on <date>`
+
+3. **Position the verification step first**: The `--help`/verification check must appear BEFORE the usage patterns, as "Step 0" or equivalent. Models that skip Step 0 are trusting documentation over the live tool.
+
+**Rationale**: External CLI tools evolve independently of this codebase. Documentation written from assumption (rather than from `--help` output) is a hypothesis, not a fact. Weaker models will treat documented patterns as authoritative. This convention forces verification before trust, regardless of model tier.
+
+**Examples of compliant skills**: `ai-groq` (has `health --sanity` verification), `cks` (has `pip show` verification).
+**Examples of non-compliant skills**: `ai-models`, `git` skill (have no interface verification step).

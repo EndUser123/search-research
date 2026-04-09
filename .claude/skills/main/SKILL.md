@@ -13,8 +13,10 @@ enforcement: advisory
 version: 1.0.0
 depends_on_skills: []
 output_format: 2
+workflow_steps:
+  - health: Run main_health.py with appropriate flags
+  - reflect: Optional /reflect invocation (skip if --quick used)
 suggest:
-  - /nse
   - /search
   - /standards
   - /dream
@@ -104,6 +106,7 @@ On invocation (no flags), `main_health.py` runs `cleanup.py --dry-run` first wit
 | **filesystem** | Filesystem violations (JSON parse of `cleanup.py --json --max 100`); default invocation runs `cleanup.py --dry-run` interactively first |
 | **spec_drift** | SKILL.md execution directives reference scripts that don't exist |
 | **skill_deps** | Skill `depends_on_skills`/`suggest` references point to missing skills |
+| **wiki** | Wiki vault health — contradictions, orphan pages, broken wikilinks, stale claims (`/wiki lint`) |
 
 ---
 

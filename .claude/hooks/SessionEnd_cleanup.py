@@ -126,6 +126,20 @@ def main() -> None:
         except Exception:
             pass  # Terminal state cleanup failure is non-critical
 
+    # 5) Cleanup discovery state file (ADR-00X discovery-first enforcement)
+    # Session-scoped state file: ~/.claude/discovery_state_{session_id}.json
+    if session_id:
+        try:
+            discovery_state_file = Path.home() / '.claude' / f'discovery_state_{safe_session}.json'
+            _delete_if_exists(discovery_state_file)
+        except PermissionError as e:
+            # Log permission errors distinctly (observable for diagnostics)
+            print(f"[SessionEnd Cleanup] Permission denied removing discovery state: {e}", file=sys.stderr)
+        except Exception as e:
+            # Log other OS errors (network filesystem issues, etc.)
+            print(f"[SessionEnd Cleanup] OS error removing discovery state: {e}", file=sys.stderr)
+        # If file doesn't exist, silently succeed (idempotent cleanup)
+
     print("{}")
     sys.exit(0)
 

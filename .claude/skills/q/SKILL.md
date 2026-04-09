@@ -4,17 +4,25 @@ description: "Strategic quality check with GoT+ToT enhancement - architectural s
 version: 1.0.0
 status: stable
 category: quality
+enforcement: advisory
 triggers:
   - /q
 aliases:
   - /q
 
 suggest:
-  - /p
-  - /r
-  - /s
+  - /sqa
+  - /arch
+  - /planning
 
 depends_on_skills: []
+workflow_steps:
+  - resolve_scope: Q1 - Determine what to analyze (session activity, conversation history, git status)
+  - strategic_collection: Q2 - Launch 4 parallel subagents (Architecture, Design Patterns, Tech Fit, Library Strategy)
+  - strategic_analysis: Q3 - Synthesize findings, normalize schema, assess health
+  - render_output: Q4 - Produce strategic assessment report (Sound/Concerning/Critical)
+  - persist_findings: Q5 - Store strategic findings to CKS
+  - meta_analysis_handoff: Q6 - Create strategic→tactical handoff packet for /p consumption
 
 parameters:
   - name: phase
@@ -85,6 +93,34 @@ do_not:
 - `/s` = Alternatives (what are our options?)
 
 **Anti-pattern:** Don't use `/q` for bug hunting, syntax errors, or test coverage. That's `/p`'s job.
+
+## Unique Value vs Strategic Reasoning Library
+
+`/q` provides a **complete strategic health check orchestration** that no other skill offers:
+
+| What | Where | Purpose |
+|------|-------|---------|
+| **Strategic reasoning patterns** | `P:/.claude/skills/__lib/strategic_reasoning.md` | Internal thinking tools (GoT, ToT, Strategic Questioning, Technology Fit) available to individual skills |
+| **`/q` workflow** | This skill | Coordinated 6-phase pipeline that synthesizes across strategic dimensions and produces a health verdict |
+
+**Strategic reasoning patterns** are tools that skills like `/planning`, `/arch`, `/rca`, `/skill-audit`, and `/sqa` use internally.
+
+**`/q`** is the orchestrator that:
+- Runs 4 parallel subagents (Architecture, Design Patterns, Tech Fit, Library Strategy)
+- Synthesizes findings into a health assessment (`Sound/Concerning/Critical`)
+- Persists strategic findings to CKS for cross-session recall
+- Creates strategic→tactical handoff packets for `/p` consumption
+
+**Analogy:** Strategic reasoning patterns are like algorithms that a calculator uses. `/q` is the complete calculator that runs those algorithms across multiple dimensions and gives you a final answer.
+
+**Relationship to other skills:**
+- `/sqa` uses strategic reasoning patterns (Domain Patterns, Library Strategy, Technology Fit) within its L0 PREDICTIVE layer
+- `/planning` uses GoT+ToT for constraint analysis and branching scenarios
+- `/arch` uses GoT+ToT for architecture alternatives and Technology Fit for validation
+- `/rca` uses GoT constraint analysis and Strategic Questioning for blind-spot detection
+- `/skill-audit` uses Strategic Questioning for blind-spot detection before finalizing audits
+
+None of these skills replace `/q`'s role as the strategic health orchestrator.
 
 ## How This Skill Works
 

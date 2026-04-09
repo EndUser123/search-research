@@ -221,6 +221,11 @@ class AsyncSearchRouter:
         except Exception as e:
             logger.debug(f"NotebookLM backend not available: {e}")
 
+        try:
+            backends["wiki"] = local.QMDWikiBackend()
+        except Exception as e:
+            logger.debug(f"QMD Wiki backend not available: {e}")
+
         self._backends = backends
         self._backends_initialized = True
 
@@ -753,20 +758,21 @@ class AsyncSearchRouter:
         """Call a web provider API.
 
         Args:
-            provider: Provider name (tavily, serper, exa, brave)
+            provider: Provider name (tavily, serper, exa, youtube)
             query: Search query
             limit: Maximum results
 
         Returns:
             List of results from provider
         """
-        from .providers import ExaBackend, SerperBackend, TavilyBackend
+        from .providers import ExaBackend, SerperBackend, TavilyBackend, YouTubeBackend
 
         # Map provider names to backend classes
         provider_map = {
             "tavily": TavilyBackend,
             "serper": SerperBackend,
             "exa": ExaBackend,
+            "youtube": YouTubeBackend,
         }
 
         backend_class = provider_map.get(provider)

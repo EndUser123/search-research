@@ -126,6 +126,10 @@ def run(target: Path) -> list[Finding]:
     artifact_findings = _check_artifact_status(target)
     findings.extend(artifact_findings)
 
+    # Check halt threshold before returning
+    from orchestrator import check_halt
+    check_halt("L4", findings)
+
     return findings
 
 

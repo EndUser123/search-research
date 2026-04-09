@@ -62,6 +62,13 @@ from contract_primitives import (
     parse_planning_source_packet,
 )
 
+# Configurable skill search paths for evidence resolution
+DEFAULT_SKILL_SEARCH_PATHS = [
+    Path.home() / ".claude" / "skills",  # User-level skills
+    Path("P:/__csf") / ".claude" / "skills",  # Project P: drive skills (if exists)
+    Path("C:/Users/brsth") / ".claude" / "skills",  # Project C: drive skills (if exists)
+]
+
 # Required plan sections (v2 canonical names, with legacy aliases accepted for compatibility)
 SECTION_ALIASES = {
     "goal": ["Goal", "Problem", "Problem Statement"],
@@ -241,9 +248,9 @@ EVIDENCE_FILE_PATTERNS = (
     "py",
     "ts",
     "tsx",
+    "json",
     "js",
     "jsx",
-    "json",
     "yaml",
     "yml",
     "toml",
@@ -260,7 +267,7 @@ EVIDENCE_FILE_PATTERNS = (
 )
 
 INLINE_FILE_LINE_RE = re.compile(
-    rf"(?P<path>(?:[A-Za-z]:[\\/])?[\w./\\-]+\.(?:{'|'.join(EVIDENCE_FILE_PATTERNS)}))(?:(?:#L|:)(?P<start>\d+)(?:[-:](?P<end>\d+))?)?",
+    rf"(?P<path>(?:[A-Za-z]:[\\/])?[\w./\\-]+\.(?:{'|'.join(EVIDENCE_FILE_PATTERNS)}))(?:(?:#L|:)(?P<start>\d+)(?:[-:](?P<end>\d+))?)",
     re.IGNORECASE,
 )
 EXPLICIT_FILE_LINE_RE = re.compile(
@@ -725,6 +732,51 @@ def _strip_negative_declaration_sections(plan: str) -> str:
         if section_text and _has_negative_declaration(section_text):
             searchable = searchable.replace(section_text.lower(), " ")
     return searchable
+
+
+def _resolve_evidence_path(raw_path: str, plan_path: str | None = None) -> Path | None:
+    """Resolve an evidence file path against known skill locations.
+
+    Searches multiple known skill directory locations to find files that
+    may be cited with absolute paths that don't resolve correctly on Windows
+    cross-drive scenarios.
+
+    Args:
+        raw_path: File path string from plan evidence citation (may be absolute or relative)
+        plan_path: Optional plan path for relative path resolution
+
+    Returns:
+        Path object if found in any search location, None otherwise
+    """
+    normalized = raw_path.strip().strip("`").strip().strip('"').strip("'")
+    if not normalized or "://" in normalized:
+        return None
+
+    path = Path(normalized.replace("\\", "/"))
+
+    # If path is already absolute, first check it directly
+    if path.is_absolute() or re.match(r"^[A-Za-z]:[\\/]", normalized):
+        if path.exists():
+            return path
+        # For absolute paths that don't exist, search in skill locations
+        filename = path.name
+        for search_base in DEFAULT_SKILL_SEARCH_PATHS:
+            if not search_base.exists():
+                continue
+            candidate = search_base / filename
+            if candidate.exists():
+                return candidate
+    else:
+        # For relative paths, use existing logic
+        if plan_path:
+            candidate = Path(plan_path).resolve().parent / path
+            if candidate.exists():
+                return candidate
+        candidate = Path.cwd() / path
+        if candidate.exists():
+            return candidate
+
+    return None
 
 
 def _resolve_file_reference(raw_path: str, plan_path: str | None) -> list[Path]:
@@ -2217,20 +2269,23 @@ def check_evidence_file_targets(plan: str, plan_path: str | None = None) -> list
             continue
         existing = next((candidate for candidate in candidates if candidate.exists()), None)
         if existing is None:
-            findings.append(
-                {
-                    "id": "EVIDENCE-001",
-                    "category": "evidence_reference",
-                    "priority": "HIGH",
-                    "title": "Plan cites a file that does not exist in the current workspace",
-                    "description": (
-                        "Explicit file evidence must resolve against the current workspace before the "
-                        f"plan can rely on it. Missing target: {raw_path}"
-                    ),
-                    "section": section_name,
-                }
-            )
-            continue
+            # Try skill path resolution as fallback for cross-drive issues
+            existing = _resolve_evidence_path(raw_path, plan_path)
+            if existing is None:
+                findings.append(
+                    {
+                        "id": "EVIDENCE-001",
+                        "category": "evidence_reference",
+                        "priority": "HIGH",
+                        "title": "Plan cites a file that does not exist in the current workspace",
+                        "description": (
+                            "Explicit file evidence must resolve against the current workspace before the "
+                            f"plan can rely on it. Missing target: {raw_path}"
+                        ),
+                        "section": section_name,
+                    }
+                )
+                continue
 
         if start is None:
             continue
