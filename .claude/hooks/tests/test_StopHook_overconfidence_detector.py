@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import statistics
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -379,3 +381,60 @@ class TestRun:
         # Should flag - no data indicators or explanatory context in response
         assert result is not None, "Should flag overconfident assertion when response lacks evidence"
         assert result.get("allow") is True or result.get("block") is True
+
+    def test_rca_mode_explanatory_prose_allowed(self):
+        """RCA mode should still allow explanatory prose but remain advisory."""
+        data = {
+            "assistant_response": "This is why: roughly 3,000+ chars based on test output",
+            "user_prompt": "Why did the test fail?",
+            "rca_turn": True,  # RCA mode active
+        }
+        result = run(data)
+        # Should allow - explanatory prose with evidence
+        assert result is None, f"Should allow explanatory prose in RCA mode, but got: {result}"
+
+    def test_rca_mode_overconfident_still_advisory(self):
+        """RCA mode should flag overconfident assertions as advisory, not blocking."""
+        data = {
+            "assistant_response": "This explains why the system crashed",
+            "user_prompt": "What's the error?",
+            "rca_turn": True,  # RCA mode active
+        }
+        result = run(data)
+        # Should flag (advisory) - no evidence in response
+        assert result is not None, "Should flag overconfident assertion in RCA mode"
+        # But should be advisory (allow=True), not blocking
+        assert result.get("allow") is True, f"RCA mode should be advisory, but got: {result}"
+        assert result.get("block") is not True, f"RCA mode should not block, but got: {result}"
+
+    def test_performance_explanatory_prose_detection_overhead(self):
+        """Verify explanatory prose detection adds acceptable overhead (< 1ms per call)."""
+        import time
+
+        data = {
+            "assistant_response": "This is why I reported roughly 3,000+ chars based on test output",
+            "user_prompt": "Why say you scrape the full page?",
+            "rca_turn": False,
+        }
+
+        # Warm-up
+        for _ in range(10):
+            run(data)
+
+        # Measure 100 iterations
+        times = []
+        for _ in range(100):
+            start = time.perf_counter()
+            run(data)
+            times.append(time.perf_counter() - start)
+
+        mean_time = statistics.mean(times)
+        median_time = statistics.median(times)
+        max_time = max(times)
+
+        # Performance assertion: should be fast (< 1ms per call)
+        assert mean_time < 0.001, f"Mean time {mean_time*1000:.2f}ms exceeds 1ms threshold"
+        assert median_time < 0.001, f"Median time {median_time*1000:.2f}ms exceeds 1ms threshold"
+
+        # Log performance for reference
+        print(f"\nPerformance: mean={mean_time*1000:.2f}ms, median={median_time*1000:.2f}ms, max={max_time*1000:.2f}ms")

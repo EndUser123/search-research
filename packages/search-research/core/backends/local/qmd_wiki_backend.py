@@ -96,7 +96,7 @@ class QMDWikiBackend(BaseLocalBackend):
         """Return collection name from qmd_scope (strips trailing slash)."""
         return self.qmd_scope.rstrip("/")
 
-    async def search_async(self, query: str, **kwargs) -> list[SearchResult]:
+    async def search_async(self, query: str, limit: int = 10, **kwargs) -> list[SearchResult]:
         query = self._sanitize_query(query)
         import time
         if (

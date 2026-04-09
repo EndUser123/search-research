@@ -1,6 +1,6 @@
 ---
 name: sqa
-description: Unified SQA Orchestrator — 8-layer sequential quality model (Predictive→Syntactic→Semantic→Structural→Requirements→Security→Performance→Operational→Meta-Synthesis) with contract-integrity, Contract Authority Packet alignment, and resume-integrity certification
+description: Unified SQA Orchestrator — 8-layer Software Quality Assurance model (Predictive→Syntactic→Semantic→Structural→Requirements→Security→Performance→Operational→Meta-Synthesis) with contract-integrity, Contract Authority Packet alignment, and resume-integrity certification
 version: 1.4.0
 status: stable
 category: quality
@@ -495,18 +495,22 @@ def _present_rns(summary: dict) -> None:
 Otherwise continue to next layer.
 
 ### Step 2: SYNTACTIC
-Run via Bash subprocess:
-- `ruff check <target>`
-- `mypy <target>` (if Python)
+Run via Bash subprocess using `layer1_syntactic.py`:
+- `ruff check <target>` (via `_run_ruff()`)
+- `mypy <target>` (via `_run_mypy()`, if Python)
+- `aid distill <target>` (via `_run_aid()`, if available)
+
+**Implementation:** `layers/layer1_syntactic.py:run()` returns structured `Finding` objects directly.
 
 **Exit validation:** Verify exit codes are 0. If not, this is a FAIL even if findings are below halt threshold.
 
-Parse findings and accumulate:
+Accumulate findings:
 ```python
-from sqa_state_tracker import record_layer_complete, add_findings, get_rns_summary, record_halt
+from layers.layer1_syntactic import run as run_l1_syntactic
+from sqa_state_tracker import record_layer_complete, add_findings
 
-# Parse ruff/mypy output into structured findings
-findings_list = _parse_syntactic_findings(ruff_output, mypy_output)
+# Run L1 and get structured findings
+findings_list = run_l1_syntactic(Path(target))
 record_layer_complete("L1", findings=len(findings_list))
 add_findings("L1", findings_list)
 ```

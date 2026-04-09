@@ -184,12 +184,6 @@ If this returns a filename or confirmed "file not found", filesystem access is w
 gemini -y -o text -p "[prompt]"
 ```
 
-**Model pinning**: Default to `gemini-3-flash` for speed. Override via `GEMINI_MODEL` env var:
-```bash
-GEMINI_MODEL=gemini-3-flash gemini -y -o text -p "[prompt]"
-```
-Use `gemini-3-flash` for coding tasks (low latency, 78% SWE-bench). Use Pro for complex reasoning tasks. Access requires Google AI Pro/Ultra or API key.
-
 - `-y` (yolo): auto-approve all tool actions — prevents interactive stall when Gemini tries to read files
 - `-o text`: clean text output, no ANSI codes, safe for Bash capture
 
@@ -277,7 +271,7 @@ Run this before first use per session:
 ## Changelog
 
 ### 1.3.3
-- Section 9: Added model pinning (`gemini-3-flash` default, override via `GEMINI_MODEL` env); added error interpretation table (exit codes 134/1/429); documented known failure modes (WriteFile bugs, sandbox blocks, headless `/directory add` disabled); added Section 9.1 verification ritual table
+- Section 9: Added error interpretation table (exit codes 134/1/429); documented known failure modes (WriteFile bugs, sandbox blocks, headless `/directory add` disabled); added Section 9.1 verification ritual table
 
 ### 1.3.2
 - Section 9: Added Stage 2 invocation test (filesystem access proof); added timeout guidance (120s threshold, retry with backoff); added empty response handling ([EMPTY_OUTPUT] flag)
