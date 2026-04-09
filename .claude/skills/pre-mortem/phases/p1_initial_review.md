@@ -85,45 +85,9 @@ If this step is absent and `specialists/` does not exist, Task agent file writes
 
 ## Step 5: Dispatch Missing Specialists
 
-**Per-dispatch manifest pattern:** Write the manifest AFTER EACH individual dispatch call succeeds. This ensures the manifest is always in a valid state — if context compacts mid-loop, the manifest will record which agents were already dispatched, and a re-run will skip them.
+**CRASH-RESILIENT DISPATCH PATTERN:** Pre-populate manifest before dispatch, use completion markers.
 
-```python
-import json
-from pathlib import Path
-
-manifest_path = Path("{session_dir}") / "specialists" / "dispatch_manifest.json"
-
-# Load prior dispatched agents from any interrupted run
-dispatched = []
-if manifest_path.exists():
-    with open(manifest_path) as f:
-        dispatched = json.load(f).get("dispatched", [])
-
-# Specialists to dispatch (skip if already dispatched or JSON exists)
-specialists_to_dispatch = [s for s in selected_specialists if s not in dispatched]
-```
-
-For each specialist in `specialists_to_dispatch`, dispatch a Task with `subagent_type="general-purpose"`:
-
-```
-Task(
-  subagent_type="general-purpose",
-  description="Read P:/.claude/agents/{specialist}.md and follow its instructions to review the work at: P:/{session_dir}/work.md. Write your JSON findings to: P:/{session_dir}/specialists/{specialist-name}-findings.json. Return ONLY the file path in your response text."
-)
-```
-
-**Immediately after each dispatch call succeeds**, append to the manifest:
-
-```python
-# After each dispatch call succeeds:
-dispatched.append("{specialist-name}")
-with open(manifest_path, "w") as f:
-    json.dump({"dispatched": dispatched, "session_dir": "{session_dir}"}, f)
-```
-
-**IMPORTANT — Skill target scope:** When the target is a skill, ensure specialists examine the full skill package — not just lib/*. This includes SKILL.md frontmatter validity, phases/ directory schema, and skill registration. Do NOT narrow focus to a single module without explicitly justifying why that module is the primary risk.
-
-After the dispatch loop completes, check whether specialist JSONs are already available. If compaction occurred mid-dispatch, specialists may have already completed and written their JSONs while the orchestrator was interrupted.
+### 5a: Pre-populate Manifest (before dispatch loop)
 
 ```python
 import json
@@ -132,38 +96,74 @@ from pathlib import Path
 manifest_path = Path("{session_dir}") / "specialists" / "dispatch_manifest.json"
 specialists_dir = Path("{session_dir}") / "specialists"
 
-# Load what we dispatched (from prior run + this run)
-dispatched = []
-if manifest_path.exists():
-    with open(manifest_path) as f:
-        dispatched = json.load(f).get("dispatched", [])
+# Pre-populate manifest with ALL specialist names BEFORE dispatch
+# This ensures if context compacts mid-loop, all specialists are recorded
+manifest = {
+    "dispatched": list(selected_specialists),  # ALL names, not incremental
+    "session_dir": "{session_dir}"
+}
+with open(manifest_path, "w") as f:
+    json.dump(manifest, f)
+```
 
-# Check which JSONs already exist
+### 5b: Idempotent Dispatch Loop (check completion markers)
+
+For each specialist in `selected_specialists`, dispatch ONLY if completion marker doesn't exist:
+
+```python
+for specialist in selected_specialists:
+    # Idempotent skip: if completion marker exists, specialist already finished
+    completion_marker = specialists_dir / f"{specialist}-complete.json"
+    if completion_marker.exists():
+        continue  # Skip already-completed specialist
+
+    # Dispatch Task agent
+    task = Task(
+        subagent_type="general-purpose",
+        description=(
+            f"Read P:/.claude/agents/{specialist}.md and follow its instructions to "
+            f"review the work at: P:/{{session_dir}}/work.md. "
+            f"Write your JSON findings to: P:/{{session_dir}}/specialists/{{specialist}}-findings.json. "
+            f"When complete, write a completion marker to: P:/{{session_dir}}/specialists/{specialist}-complete.json "
+            f"containing: {{\"specialist\": \"{specialist}\", \"complete\": true}}. "
+            f"Return ONLY the file path in your response text."
+        )
+    )
+```
+
+**Specialist writes its own completion marker** — this is the key crash-resilience mechanism. Even if the orchestrator crashes mid-dispatch, the specialist's completion marker persists. On re-run, the idempotent skip check detects it.
+
+### 5c: After Dispatch Loop
+
+```python
+# Check which JSONs and completion markers exist
 available = []
-for specialist in dispatched:
+for specialist in selected_specialists:
     json_path = specialists_dir / f"{specialist}-findings.json"
-    if json_path.exists():
+    marker = specialists_dir / f"{specialist}-complete.json"
+    if json_path.exists() and marker.exists():
         try:
             with open(json_path) as f:
                 json.load(f)
             available.append(specialist)
         except (json.JSONDecodeError, OSError):
-            pass  # Incomplete file, will be re-dispatched on re-run
+            pass
 
-print(f"Specialists dispatched: {len(dispatched)}, JSONs available: {len(available)}")
-if len(available) == len(dispatched) and available:
+print(f"Specialists: {len(selected_specialists)}, JSONs available: {len(available)}")
+if len(available) == len(selected_specialists):
     print("All specialist JSONs available — proceeding to consolidation.")
-    # Proceed directly to Step 6
 elif available:
-    print(f"Partial results: {available}. Waiting for: {set(dispatched) - set(available)}")
-    print("Re-run /pre-mortem to continue — manifest ensures skipped agents won't be re-dispatched.")
+    print(f"Partial results: {available}. Waiting for: {set(selected_specialists) - set(available)}")
+    print("Re-run /pre-mortem to continue — completion markers ensure idempotent skip.")
 else:
     print("No JSONs yet — re-run /pre-mortem after specialists complete.")
 ```
 
-If ALL dispatched specialists have valid JSONs → proceed directly to Step 6 (consolidation).
-If SOME JSONs are available → re-run `/pre-mortem` (manifest skips already-dispatched agents, they won't be re-run).
-If NO JSONs yet → re-run `/pre-mortem` after allowing time for agents to complete.
+**If ALL specialists have valid JSONs + completion markers → proceed directly to Step 6 (consolidation).**
+**If SOME available → re-run `/pre-mortem` (completion markers ensure already-finished specialists are skipped).**
+**If NONE yet → re-run `/pre-mortem` after allowing time for agents to complete.**
+
+**IMPORTANT — Skill target scope:** When the target is a skill, ensure specialists examine the full skill package — not just lib/*. This includes SKILL.md frontmatter validity, phases/ directory schema, and skill registration. Do NOT narrow focus to a single module without explicitly justifying why that module is the primary risk.
 
 ## Step 6: Consolidate Findings
 

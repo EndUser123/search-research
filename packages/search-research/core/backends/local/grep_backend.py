@@ -117,6 +117,34 @@ class GrepBackend(BaseLocalBackend):
             for idx, item in enumerate(self._index[query_lower]):
                 results.append(self._format_result(item, f"grep_{query_lower}_{idx}", 0.6))
 
+        # Multi-word AND matching: split query into words, require all words to match
+        if not results and " " in query_lower:
+            words = query_lower.split()
+            word_matches = {}
+            for word in words:
+                if word in self._index:
+                    word_matches[word] = self._index[word]
+
+            # Only return items that match ALL words
+            if word_matches and len(word_matches) == len(words):
+                # Build intersection by (file, line) key
+                matched_items = {}
+                for word, items in word_matches.items():
+                    for item in items:
+                        key = (item["file"], item["line"])
+                        if key not in matched_items:
+                            matched_items[key] = {"item": item, "match_count": 0}
+                        matched_items[key]["match_count"] += 1
+
+                # Filter to items matching all words, rank by match quality
+                for key, data in matched_items.items():
+                    if data["match_count"] == len(words):
+                        item = data["item"]
+                        score = 0.5 + (0.1 * data["match_count"])
+                        results.append(
+                            self._format_result(item, f"grep_multi_{key[0]}_{key[1]}", score)
+                        )
+
         # Partial matches
         for key, items in self._index.items():
             if query_lower in key and query_lower != key:

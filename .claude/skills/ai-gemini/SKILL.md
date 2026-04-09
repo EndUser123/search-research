@@ -1,7 +1,7 @@
 ---
 name: ai-gemini
 description: Gemini-powered research and engineering assistant using ACG workflow and soft XoT orchestration
-version: 1.3.3
+version: 1.3.4
 category: productivity
 triggers:
   - /ai-gemini
@@ -149,7 +149,7 @@ For ALL paths:
 - Not a code-generate-and-done tool — verification is mandatory
 - No hard phase gates — soft routing allows user override
 - Multi-terminal state is referenced via transcript paths, not shared blocking state
-- TDD guidance is advisory only — users may choose alternative approaches for ENGINEERING tasks
+- TDD guidance is advisory only — users may choose alternative approaches for ENGINEERING tasks, but verification (running tests/checking output) remains mandatory in all cases
 
 **Self-Check (internal failure-mode prompts)**: After routing, ask:
 - Did I route to the correct path? Check: does the query match the triage criteria?
@@ -209,9 +209,11 @@ gemini -y -o text --include-directories "P:/.claude" -p "Read P:/.claude/skills/
 
 ### Timeout and Response Handling
 
-**Timeout guidance**: If no response in 120 seconds, assume `MODEL_CAPACITY_EXHAUSTED` and retry with backoff. If retry also times out, report the raw output and flag as `[TIMEOUT]`.
+**Model Stability Guidance**: For consistent results and to prevent unexpected `ModelNotFoundError` or `MODEL_CAPACITY_EXHAUSTED` (429) errors, prefer pinning to a stable model. Set the `GEMINI_MODEL` environment variable, e.g., `GEMINI_MODEL=gemini-2.5-flash`. This skill expects `gemini-2.5-flash` for critical tasks. If `2.5-flash` is unavailable, try `gemini-2.0-flash`; if that also fails, flag as `[MODEL_UNAVAILABLE]`.
 
-**Empty response handling**: An empty Gemini output (0 bytes or whitespace only) is an error — not a valid result. Flag as `[EMPTY_OUTPUT]` and do not present it as a finding. Re-run the prompt or surface the failure.
+**Timeout guidance**: If no response in 10 minutes, assume `MODEL_CAPACITY_EXHAUSTED` and initiate a retry sequence with exponential backoff (up to 4 attempts). If all retries time out, report the raw output and flag as `[TIMEOUT]`. If `ModelNotFoundError` persists across different attempts/models, flag as `[MODEL_UNAVAILABLE]` and suggest manual model selection.
+
+**Empty response handling**: An empty Gemini output (0 bytes or whitespace only) is an error — not a valid result. Flag as `[EMPTY_OUTPUT]` and do not present it as a finding. If `[EMPTY_OUTPUT]` persists after 3 re-runs, surface the failure and flag `[EMPTY_OUTPUT_UNRESOLVED]`.
 
 ### Error Interpretation
 
@@ -219,8 +221,8 @@ gemini -y -o text --include-directories "P:/.claude" -p "Read P:/.claude/skills/
 |-----------|---------|--------|
 | 0 | Success | Read output |
 | 134 | OOM / input too large | Switch to `--include-directories` pattern |
-| 1 | General error | Check stderr for message |
-| Non-zero + "429" | Rate limit (verify first) | Run `gemini` interactively to check quota display |
+| 1 | General error, e.g., `ModelNotFoundError` | Check stderr for message. If `ModelNotFoundError`, try setting `GEMINI_MODEL` to a stable model (e.g., `gemini-2.5-flash`). |
+| Non-zero + "429" | `MODEL_CAPACITY_EXHAUSTED` or `rateLimitExceeded` | Initiate retry sequence (up to 4 attempts). If persistent, check quota or try `GEMINI_MODEL=gemini-1.5-flash-preview`. |
 | Non-zero + empty | General failure | Report raw output, flag as `[GENERAL_ERROR]` |
 
 **Known failure modes** (community reports, unverified):
@@ -266,9 +268,18 @@ Run this before first use per session:
 | Install | `gemini --version` | v0.37.0+ | Reinstall: `npm i -g @google/gemini-cli` |
 | Headless | `gemini -y -o text -p "Say hello"` | "hello" in stdout | Check quota, try `gemini` interactively |
 | FS Access | `gemini -y -o text --include-directories "P:/" -p "Read P:/README.md and return filename"` | Filename or "not found" | Flag `[FILESYSTEM_ACCESS_UNVERIFIED]`, use stdin piping |
-| Capacity Error | Run during peak load | `MODEL_CAPACITY_EXHAUSTED` | Backoff 30s x3, then report `[CAPACITY_EXHAUSTED]` |
+| Capacity Error | Run during peak load | `MODEL_CAPACITY_EXHAUSTED` | Backoff 30s with up to 4 retries, then report `[CAPACITY_EXHAUSTED]` |
 
 ## Changelog
+
+### 1.3.4
+- Fixed version mismatch: frontmatter now 1.3.4 (matching changelog)
+- Fixed TDD/verification contradiction in Non-Goals (SKILL.md:152)
+- Added explicit `## 9. Gemini CLI Invocation` heading for navigable section numbering (SKILL.md:159)
+- Section 9: Introduced Model Stability Guidance (GEMINI_MODEL pinning); refined Timeout Guidance with up to 4 retries and model unavailability fallback; updated Error Interpretation for 429s (MODEL_CAPACITY_EXHAUSTED/rateLimitExceeded) and exit code 1 (ModelNotFoundError); updated Section 9.1 Verification Ritual for capacity errors.
+- Empty response handling: added 3-retry cap with `[EMPTY_OUTPUT_UNRESOLVED]` flag (SKILL.md:216)
+- Model Stability Guidance: removed unverified `gemini-1.5-flash-preview` fallback; replaced with verified `gemini-2.0-flash` fallback path
+- Timeout guidance: changed from 120 seconds to 10 minutes (task-dependent, load-dependent)
 
 ### 1.3.3
 - Section 9: Added error interpretation table (exit codes 134/1/429); documented known failure modes (WriteFile bugs, sandbox blocks, headless `/directory add` disabled); added Section 9.1 verification ritual table

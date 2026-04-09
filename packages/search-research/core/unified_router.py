@@ -372,6 +372,7 @@ class UnifiedAsyncRouter:
         self,
         query: str,
         limit: int = 10,
+        hyde_content: str | None = None,
     ) -> list[SearchResult]:
         """Search with intelligent routing based on mode.
 
@@ -384,6 +385,7 @@ class UnifiedAsyncRouter:
         Args:
             query: Search query
             limit: Maximum number of results to return (default: 10)
+            hyde_content: Optional HyDE content for query enhancement
 
         Returns:
             List of search results ranked by relevance
@@ -396,7 +398,9 @@ class UnifiedAsyncRouter:
 
         # Phase 1: Fast local search with error handling
         try:
-            local_results = await self._local_router.search_async(query, limit=limit * 2)
+            local_results = await self._local_router.search_async(
+                query, limit=limit * 2, hyde_content=hyde_content
+            )
         except Exception as e:
             logger.debug(f"Local search failed: {e}. Returning empty results.")
             local_results = []
@@ -445,12 +449,22 @@ class UnifiedAsyncRouter:
         best_result = local_results[0]
         result_dict = self._search_result_to_dict(best_result)
         quality_result = is_satisfactory(result_dict, self.quality_config)
+
+        # Check diversity: if top results are dominated by one backend, don't skip web
+        # This ensures results from different backends (like wiki) aren't crowded out
+        top_results = local_results[:5]
+        top_sources = set(r.source for r in top_results)
+        has_diversity = len(top_sources) >= 2
+
         logger.debug(
             f"Quality check for '{best_result.title}': "
             f"score={result_dict.get('confidence', 'N/A')}, "
-            f"satisfactory={quality_result}"
+            f"satisfactory={quality_result}, "
+            f"top_sources={top_sources}, has_diversity={has_diversity}"
         )
-        return quality_result
+
+        # Skip web only if quality is satisfied AND we have diversity
+        return quality_result and has_diversity
 
     def _merge_results_with_rrf(
         self,
