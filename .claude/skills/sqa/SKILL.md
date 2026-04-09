@@ -526,7 +526,16 @@ for f in accumulated:
     if severity_order.index(f.get("severity", "LOW").upper()) <= threshold_index:
         record_halt("L1")
         print("[HALT] L1 SYNTACTIC exceeded --halt-on threshold")
-        _present_rns(get_rns_summary())
+        
+        # Present RNS
+        summary = get_rns_summary()
+        for domain, findings in summary["grouped"].items():
+            emoji = summary["domain_mapping"].get(domain, "📌")
+            print(f"\n{emoji} {domain.upper()} ({len(findings)})")
+            for i, f in enumerate(findings, 1):
+                sev = f.get("severity", "LOW").upper()
+                print(f"  {i}. [{sev}] {f.get('title', f.get('finding_id', ''))}")
+        
         sys.exit(1)
 ```
 

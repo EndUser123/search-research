@@ -68,6 +68,15 @@ TOOL_VALIDATION_RULES = {
             "error_message": "Write tool requires Read first if file exists",
             "fix": "Read existing file before Write to prevent accidental overwrite"
         }
+    },
+    "TaskUpdate": {
+        "taskId": {
+            "required": True,
+            "allowed_types": [str],
+            "error_message": "TaskUpdate requires 'taskId' (camelCase), not 'task_id' (snake_case)",
+            "prohibited_values": [],
+            "fix": "Use taskId=<number> — the numeric task ID, not a parameter name"
+        }
     }
 }
 
@@ -113,6 +122,14 @@ def validate_tool_use(tool_name: str, tool_params: dict) -> dict:
             if param_value and param_value not in param_rules.get("allowed_values", []):
                 errors.append(f"{param_name}: {param_rules['error_message']}")
                 fixes.append(param_rules['fix'])
+
+        # Type validation for TaskUpdate.taskId (must be str, not int or other)
+        if tool_name == "TaskUpdate" and param_name == "taskId":
+            allowed = param_rules.get("allowed_types", [])
+            if param_value is not None and allowed and not any(isinstance(param_value, t) for t in allowed):
+                type_names = ", ".join(t.__name__ for t in allowed)
+                errors.append(f"{param_name}: must be {type_names}, got {type(param_value).__name__}")
+                fixes.append(param_rules.get("fix", "Use taskId=<number>"))
 
         # Forbidden pattern detection for Bash
         if tool_name == "Bash" and param_name == "command":
