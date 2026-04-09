@@ -27,6 +27,7 @@ from scripts.walker import (
     walk_handoff_chain,
 )
 from scripts.exporter import export_chain as export_chain_via_chscli
+from scripts.fts import index_chain as fts_index_chain, fts_mine as fts_run_mine
 
 __version__ = "0.1.0"
 
@@ -257,6 +258,9 @@ def main() -> int:
         default=None,
         help="Start from specific session ID (default: newest session for slug)",
     )
+    parser.add_argument("--fts-index", action="store_true", help="Build FTS5 index over chain exports")
+    parser.add_argument("--fts-mine", default=None, metavar="QUERY", help="FTS5 query over indexed chain")
+    parser.add_argument("--fts-db", default=None, help="Path to FTS5 database (default: exports/fts-chain.db)")
 
     args = parser.parse_args()
 
@@ -319,6 +323,27 @@ def main() -> int:
         print(f"Exported {len(exported)} sessions:")
         for ep in exported:
             print(f"  {ep}")
+        return 0
+
+    # --fts-index
+    if args.fts_index:
+        indexed = fts_index_chain(args.slug, db_path=args.fts_db)
+        print(f"Indexed {indexed} sessions into FTS5")
+        return 0
+
+    # --fts-mine
+    if args.fts_mine:
+        results = fts_run_mine(
+            query=args.fts_mine,
+            slug=args.slug,
+            db_path=args.fts_db,
+        )
+        if not results:
+            print("No results found.")
+            return 1
+        print(f"FTS5 results for '{args.fts_mine}':")
+        for r in results:
+            print(f"  [{r['session_id']}] {r['snippet']}")
         return 0
 
     # No action specified

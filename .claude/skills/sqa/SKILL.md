@@ -443,53 +443,17 @@ for f in findings_list:
         # Halt triggered - present RNS with ALL accumulated findings
         record_halt("L0")
         print("[HALT] L0 PREDICTIVE exceeded --halt-on threshold")
-        # Present RNS format with all accumulated findings
-        print("\n" + "="*60)
-        print("RECOMMENDED NEXT STEPS (RNS)")
-        print("="*60)
-        _present_rns(get_rns_summary())
+        
+        # Present RNS format
+        summary = get_rns_summary()
+        for domain, findings in summary["grouped"].items():
+            emoji = summary["domain_mapping"].get(domain, "📌")
+            print(f"\n{emoji} {domain.upper()} ({len(findings)})")
+            for i, f in enumerate(findings, 1):
+                sev = f.get("severity", "LOW").upper()
+                print(f"  {i}. [{sev}] {f.get('title', f.get('finding_id', ''))}")
+        
         sys.exit(1)
-```
-
-**Helper function for RNS presentation:**
-```python
-def _present_rns(summary: dict) -> None:
-    """Present findings in RNS format."""
-    grouped = summary["grouped"]
-    domain_mapping = summary["domain_mapping"]
-
-    # Sort domains by severity (CRITICAL/BLOCKER findings first)
-    domain_order = sorted(
-        grouped.keys(),
-        key=lambda d: any(
-            f.get("severity") in ["CRITICAL", "BLOCKER"]
-            for f in grouped[d]
-        ),
-        reverse=True
-    )
-
-    for domain in domain_order:
-        emoji = domain_mapping.get(domain, "📌")
-        findings = grouped[domain]
-        print(f"\n{emoji} {domain.upper()} ({len(findings)})")
-
-        # Sort by severity then by ID
-        sorted_findings = sorted(
-            findings,
-            key=lambda f: (
-                -severity_order.index(f.get("severity", "LOW").upper()),
-                f.get("finding_id", "")
-            )
-        )
-
-        for i, f in enumerate(sorted_findings, 1):
-            sev = f.get("severity", "LOW").upper()
-            loc = f.get("location", "unknown")
-            title = f.get("title", f.get("finding_id", ""))
-            print(f"  {i}. [{sev}] {title} @ {loc}")
-
-    print(f"\n0 — Do ALL Recommended Next Actions ({summary['total']} items)")
-    print("\nOverride with: /sqa <target> --halt-on CRITICAL")
 ```
 
 Otherwise continue to next layer.
@@ -605,36 +569,12 @@ Record completion: `record_layer_complete("L2", findings=N)`
 If findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`, run `record_halt("L2")`, and stop. Otherwise continue.
 
 ### Step 4: STRUCTURAL
-**Import analyzers directly from `P:/.claude/lib/analysis_unit`** (NOT subprocess or Skill tool):
+Run via Bash subprocess using `layer3_structural.py`:
+- `meta-review --analyze=imports <target>` (circular deps)
+- `harden --check=guards <target>` (assertion guards)
+- `apply_safety_patterns --verify <target>` (safety patterns)
 
-```python
-import sys
-from pathlib import Path
-
-# Add lib to path (analyzers live at P:/.claude/lib/)
-lib_path = Path("P:/.claude")
-if str(lib_path) not in sys.path:
-    sys.path.insert(0, str(lib_path))
-
-from lib.analysis_unit import create_analysis_unit, load_analysis_unit
-from lib.analysis_unit.analyzers.path_traversal import PathTraversalAnalyzer
-from lib.analysis_unit.analyzers.import_graph import ImportGraphAnalyzer
-from lib.analysis_unit.analyzers.doc_consistency import DocConsistencyAnalyzer
-
-# Create analysis unit from target
-manifest_path = create_analysis_unit(target)
-unit_id = Path(manifest_path).parent.name  # extract unit_id from path
-manifest = load_analysis_unit(unit_id)
-
-# Run analyzers
-pt = PathTraversalAnalyzer()
-pt_findings = pt.analyze(manifest)
-
-ig = ImportGraphAnalyzer()
-ig_findings = ig.analyze(manifest, layering_policy=None)
-
-dc = DocConsistencyAnalyzer()
-dc_findings = dc.analyze(manifest)
+**Implementation:** `layers/layer3_structural.py:run()` returns structured `Finding` objects directly.
 
 # Combine findings
 findings = pt_findings['findings'] + ig_findings['findings'] + dc_findings['findings']
@@ -786,7 +726,16 @@ from sqa_state_tracker import get_rns_summary
 print("\n" + "="*60)
 print("SQA COMPLETE - FINAL RECOMMENDED NEXT STEPS")
 print("="*60)
-_present_rns(get_rns_summary())
+
+summary = get_rns_summary()
+for domain, findings in summary["grouped"].items():
+    emoji = summary["domain_mapping"].get(domain, "📌")
+    print(f"\n{emoji} {domain.upper()} ({len(findings)})")
+    for i, f in enumerate(findings, 1):
+        sev = f.get("severity", "LOW").upper()
+        print(f"  {i}. [{sev}] {f.get('title', f.get('finding_id', ''))}")
+
+print(f"\n0 — Do ALL Recommended Next Actions ({summary['total']} items)")
 print("\n" + "="*60)
 print(f"Certification: {cert}")
 print(f"Health Score: {health_score}")

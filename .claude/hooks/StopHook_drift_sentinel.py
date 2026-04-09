@@ -84,7 +84,7 @@ def _load_source_texts(session_id: str) -> list[str]:
     """
     texts: list[str] = []
     try:
-        events = load_tool_events(session_id, limit=50)
+        events = load_tool_events(session_id, limit=25)
     except Exception as e:
         logger.warning("evidence_load_failed", error=str(e))
         return texts
