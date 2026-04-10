@@ -23,6 +23,7 @@ class QueryCache:
     # Class-level registry: terminal_id -> (cache_od, lock, cleanup_started)
     _registry: dict[str, tuple[OrderedDict[str, dict[str, Any]], threading.Lock, bool]] = {}
     _registry_lock = threading.Lock()
+    _MAX_REGISTRY_SIZE = 16
 
     def __init__(
         self,
