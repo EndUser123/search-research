@@ -12,7 +12,7 @@ triggers:
   - architecture
   - architectural decision
 suggest:
-  - /q
+  - /qr
   - /planning
 workflow_steps:
   - preflight_checks
@@ -863,6 +863,35 @@ Output: P:/.claude/state/adr_critic.json"""
 **Model selection**: `model="haiku"` — the critic applies a fixed rubric to a known structure; Opus reasoning depth is not required and slows parallelization.
 
 **Blocking behavior**: If `adr_critic` returns `status: "blocked"`, `/arch` must repair the ADR's HIGH severity defects before saving or presenting it.
+
+---
+
+## Stage 1.10: Intelligent Quality Check
+
+After ADR passes critic review, `/arch` automatically triggers `/qr --strategic-only` to validate the architectural decision:
+
+```python
+# After ADR is saved and passes critic
+Agent(
+  subagent_type="general-purpose",
+  prompt=f"""Run /qr --strategic-only on the ADR at {adr_path}
+
+This validates the strategic quality of the architecture decision:
+- Architecture soundness
+- Design pattern appropriateness
+- Technology fit
+- Engineering balance
+
+Return /rns-formatted findings if any issues are found."""
+)
+```
+
+**Routing behavior after /qr:**
+- If `/qr` returns `Sound` → proceed to Stage 2 (Select Template)
+- If `/qr` returns `Concerning` → loop back to architecture revision
+- If `/qr` returns `Critical` → recommend `/planning` re-think
+
+**Why automatic?** Architecture decisions deserve strategic quality validation before being presented as settled. This catches issues that the critic (focused on closure) might miss.
 
 ---
 

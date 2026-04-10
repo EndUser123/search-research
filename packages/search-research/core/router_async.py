@@ -261,10 +261,10 @@ class AsyncSearchRouter:
                 "Please provide a meaningful search query."
             )
 
-        # Apply HyDE query enhancement if enabled and content provided
+        # Apply HyDE query enhancement if content provided (no LLM call needed — already generated)
         search_query = query
         hyde_applied = False
-        if self.hyde and hyde_content:
+        if hyde_content:
             search_query, hyde_applied = apply_hyde(query, hyde_content=hyde_content)
             if hyde_applied:
                 logger.debug(f"HyDE enhanced query: '{query[:50]}...' -> '{search_query[:50]}...'")
@@ -347,9 +347,9 @@ class AsyncSearchRouter:
                 "Please provide a meaningful search query."
             )
 
-        # Apply HyDE query enhancement if enabled and content provided
+        # Apply HyDE query enhancement if content provided (no LLM call needed — already generated)
         search_query = query
-        if self.hyde and hyde_content:
+        if hyde_content:
             search_query, _ = apply_hyde(query, hyde_content=hyde_content)
 
         # Determine which backends to use
@@ -433,9 +433,9 @@ class AsyncSearchRouter:
                 "Please provide a meaningful search query."
             )
 
-        # Apply HyDE query enhancement if enabled and content provided
+        # Apply HyDE query enhancement if content provided (no LLM call needed — already generated)
         search_query = query
-        if self.hyde and hyde_content:
+        if hyde_content:
             search_query, _ = apply_hyde(query, hyde_content=hyde_content)
 
         # Determine which backends to use
@@ -635,12 +635,17 @@ class AsyncSearchRouter:
         if not results:
             return []
 
-        # Group by score (round to 3 decimals for grouping)
+        # Apply score boost for specific backends to ensure diversity
+        # This counteracts score inflation in some backends (e.g., CKS at 0.9 vs wiki at 0.08)
         from collections import defaultdict
+
+        score_boost = {"WIKI": 1.0, "WIKI_BACKUP": 0.5}  # Boost wiki to be competitive
 
         score_groups = defaultdict(list)
         for r in results:
-            score_key = round(r.score, 3)
+            boost = score_boost.get(r.source.upper(), 0.0)
+            effective_score = r.score + boost
+            score_key = round(effective_score, 3)
             score_groups[score_key].append(r)
 
         # Sort scores descending

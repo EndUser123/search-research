@@ -2,7 +2,10 @@
 name: q
 description: "Strategic quality check with GoT+ToT enhancement - architectural soundness, design patterns, technology fit, over/under-engineering detection with requirement constraint analysis and branching question scenarios"
 version: 1.0.0
-status: stable
+status: deprecated
+deprecated_by: /qr
+deprecated_reason: "Combined with /r into /qr for intelligent quality orchestration. Use /qr instead."
+deprecated_date: 2026-04-09
 category: quality
 enforcement: advisory
 triggers:
@@ -11,9 +14,7 @@ aliases:
   - /q
 
 suggest:
-  - /sqa
-  - /arch
-  - /planning
+  - /qr
 
 depends_on_skills: []
 workflow_steps:

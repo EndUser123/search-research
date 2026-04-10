@@ -562,7 +562,11 @@ def test_edge_cases():
     print("\nEdge Case 4: Registry skill with empty required_tools (validation)")
 
     # This tests the RISK:9 mitigation we just added
-    sys.path.insert(0, 'PreToolUse')
+    # Use absolute path to avoid CWD-dependence (works from any directory)
+    _hook_dir = Path(__file__).resolve().parent.parent
+    _pretooluse_dir = _hook_dir / "PreToolUse"
+    if str(_pretooluse_dir) not in sys.path:
+        sys.path.insert(0, str(_pretooluse_dir))
     from PreToolUse_skill_pattern_gate import SKILL_EXECUTION_REGISTRY
 
     # Save original registry

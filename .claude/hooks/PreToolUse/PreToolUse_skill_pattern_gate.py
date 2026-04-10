@@ -57,6 +57,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from __lib.hook_base import hook_main
 from __lib.hook_constants import KNOWLEDGE_SKILLS
 
+# Add skill_guard to path before importing (matches pattern in other hook files)
+_skill_guard_path = Path("P:/packages/skill-guard/src")
+if str(_skill_guard_path) not in sys.path:
+    sys.path.insert(0, str(_skill_guard_path))
+
 # Import skill auto-discovery for universal enforcement
 from skill_guard.skill_auto_discovery import get_skill_config
 

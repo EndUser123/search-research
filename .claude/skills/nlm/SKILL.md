@@ -1,8 +1,9 @@
 ---
 name: nlm
 description: "Expert guide for the NotebookLM CLI (`nlm`) and MCP server - interfaces for Google NotebookLM. Use this skill when users want to interact with NotebookLM programmatically, including: creating/managing notebooks, adding sources (URLs, YouTube, text, Google Drive), generating content (podcasts, reports, quizzes, flashcards, mind maps, slides, infographics, videos, data tables), conducting research, chatting with sources, or automating NotebookLM workflows. Triggers on mentions of \"nlm\", \"notebooklm\", \"notebook lm\", \"podcast generation\", \"audio overview\", or any NotebookLM-related automation task."
-version: "0.8.0"
+version: "0.9.0"
 status: stable
+verified_cli_version: "0.5.9"
 category: productivity
 enforcement: advisory
 triggers:
@@ -30,6 +31,26 @@ nlm --ai                # Full AI-optimized documentation (RECOMMENDED)
 nlm --version           # Check installed version
 ```
 
+### Command Styles
+
+The CLI supports **TWO command styles**:
+
+**Noun-first (shown in this guide)**:
+```bash
+nlm notebook list
+nlm source add <nb-id> --url "https://..."
+nlm studio status <nb-id>
+```
+
+**Verb-first (alternative)**:
+```bash
+nlm list notebooks
+nlm add url <nb-id> <url>
+nlm status artifacts <nb-id>
+```
+
+Both call the same functions. Use whichever feels natural.
+
 ## Critical Rules
 
 1. **Authenticate on auth error — NEVER ask the user to run `nlm login`**: When any nlm command returns "Authentication Error" or "Cookies have expired", immediately run `nlm login` yourself (opens browser). Do NOT ask the user to do it.
@@ -40,7 +61,7 @@ nlm --version           # Check installed version
 6. **Capture IDs from output**: Create/start commands return IDs needed for subsequent operations
 7. **Use aliases**: `nlm alias set <name> <uuid>` simplifies long UUIDs
 8. **Check aliases before creating**: Run `nlm alias list` to avoid conflicts
-9. **DO NOT launch REPL**: Never use `nlm chat start`. Use `nlm notebook query` for one-shot Q&A
+9. **Prefer `nlm notebook query` for scripted use**: `nlm chat start` launches an interactive REPL — use for exploratory sessions, not scripted workflows. For one-shot Q&A, `nlm notebook query` is preferred.
 10. **Choose output format wisely**: Default = compact; `--quiet` for IDs; `--json` for parsing
 11. **Use `--help` when unsure**: `nlm <command> --help` shows all options
 
@@ -229,6 +250,12 @@ nlm config set <key> <value>   # Update setting
 | "Rate limit exceeded" | Wait 30s, retry |
 | "Research already in progress" | Use `--force` or import first |
 
+**Built-in Auto-Recovery**: The CLI has automatic recovery for common errors:
+- **Auth Recovery (3-layer)**: CSRF/session refresh → token reload from disk → headless auth (if browser profile has saved login)
+- **Server Error Retry**: Automatic retry with exponential backoff (1s, 2s, 4s) for 429, 500, 502, 503, 504 errors
+
+Most transient errors are handled automatically. Manual `nlm login` is only needed when all auto-recovery layers fail.
+
 See `references/troubleshooting.md` for detailed error handling.
 
 ## Rate Limiting
@@ -246,3 +273,11 @@ See `references/troubleshooting.md` for detailed error handling.
 | [troubleshooting.md](references/troubleshooting.md) | Detailed error handling and recovery procedures |
 | [workflows.md](references/workflows.md) | End-to-end task sequences (research pipeline, study materials, etc.) |
 | [mcp_tools.md](references/mcp_tools.md) | MCP tool signatures (for reference; CLI is preferred) |
+
+## Changelog
+
+### 0.9.0
+- Added `verified_cli_version: "0.5.9"` to frontmatter for version tracking
+- Added Command Styles section — CLI supports both noun-first and verb-first command styles
+- Reconciled `nlm chat start` guidance — clarified it launches interactive REPL, preferred for exploratory sessions, not scripted workflows
+- Added Built-in Auto-Recovery documentation — 3-layer auth recovery and server error retry with exponential backoff

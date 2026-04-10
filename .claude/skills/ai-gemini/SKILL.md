@@ -1,7 +1,7 @@
 ---
 name: ai-gemini
 description: Gemini-powered research and engineering assistant using ACG workflow and soft XoT orchestration
-version: 1.3.4
+version: 1.3.5
 category: productivity
 triggers:
   - /ai-gemini
@@ -52,7 +52,7 @@ On every invocation, classify the task type:
 
 Use these as classification anchors when unsure:
 - `"why is the auth middleware structured this way?"` → RESEARCH
-- `"how does the session chain work across terminals?"` → RESEARCH  
+- `"how does the session chain work across terminals?"` → RESEARCH
 - `"write a FileLock wrapper for the handoff store"` → ENGINEERING
 - `"add retry logic to the API client"` → ENGINEERING
 - `"propose an alternative to the current hook architecture"` → DESIGN
@@ -95,6 +95,13 @@ Are there any contradictions or conflicting data points across the sources consu
 ```
 If yes: surface explicitly before the user acts on the output.
 
+### Citation Enforcement
+Every factual claim must cite its source:
+- Format: `[source: file:line]` after each claim
+- Uncited claims: flag as `[UNVERIFIED]`
+- Invented citations (file doesn't exist): flag as `[BAD-CITATION]` and do not use the claim
+- Flag claims with single source as `[LOW-CONFIDENCE]`; multiple independent sources increase confidence
+
 ## 3. Engineering Path — TDD Lite
 
 Use when task is ENGINEERING. Soft RED-GREEN-REFACTOR guidance:
@@ -103,6 +110,12 @@ Use when task is ENGINEERING. Soft RED-GREEN-REFACTOR guidance:
 2. **GREEN**: "What is the minimal code that passes that test?"
 3. **VERIFY**: Run the test. Report actual output, not assumed success.
 
+**Binary Assertions**: For each output, define objective pass/fail checks:
+- "generated code compiles without error" → PASS/FAIL
+- "all generated tests pass" → PASS/FAIL
+- "output matches the required schema" → PASS/FAIL
+Report each assertion as PASS or FAIL — not a 1-10 score. Binary outcomes are automatable, composable, debuggable, and stable.
+
 **Verification pyramid** (same as PDS but advisory):
 - Tier 1 (Unit): Logic coverage, edge cases
 - Tier 2 (Integration): Interface contracts, cross-module
@@ -110,13 +123,16 @@ Use when task is ENGINEERING. Soft RED-GREEN-REFACTOR guidance:
 
 ## 4. Design Path — Adversarial Review
 
-Use when task is DESIGN. Three-question prompt:
+Use when task is DESIGN. Three-question prompt with rhetorical framing:
 
 ```
-1. What are 3 ways this design could fail? (Performance bottleneck, security gap, complexity bloat)
+1. Consider: How would this design fail under concurrent load?
+   Consider: Which assumption is the weakest link in this design?
+   Consider: What happens when the network is partitioned during execution?
 2. Present Approach A (recommended) and Approach B (alternative).
 3. What contracts and schemas are preserved or broken?
 ```
+Rhetorical questions produce deeper investigation than direct instructions — the implementer examines the surrounding context rather than making a mechanical patch.
 
 ## 5. RCA Path — Hypothesis Ledger
 
@@ -271,6 +287,12 @@ Run this before first use per session:
 | Capacity Error | Run during peak load | `MODEL_CAPACITY_EXHAUSTED` | Backoff 30s with up to 4 retries, then report `[CAPACITY_EXHAUSTED]` |
 
 ## Changelog
+
+### 1.3.5
+- ENGINEERING path: Added Binary Assertions — objective pass/fail checks replace subjective scoring (SKILL.md:104-106)
+- RESEARCH path: Added Citation Enforcement — every claim must cite source, uncited claims flagged `[UNVERIFIED]`, invented citations flagged `[BAD-CITATION]` (SKILL.md:98-102)
+- DESIGN path: Replaced direct questions with rhetorical "Consider:" framing for deeper analysis (SKILL.md:113-121)
+- Source Fidelity: Added confidence indicators — single source `[LOW-CONFIDENCE]`, multiple sources increase confidence (SKILL.md:98-102)
 
 ### 1.3.4
 - Fixed version mismatch: frontmatter now 1.3.4 (matching changelog)

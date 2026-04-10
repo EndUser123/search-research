@@ -6,7 +6,7 @@ enforcement: advisory
 depends_on:
   - sdlc: ">=0.1.0"
 suggest:
-  - /q
+  - /qr
   - /arch
 triggers:
   - /planning

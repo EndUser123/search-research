@@ -7,7 +7,7 @@ category: quality
 triggers:
   - /sqa
 suggest:
-  - /q
+  - /qr
 entry_type: skill
 requires_target: false
 enforcement: strict

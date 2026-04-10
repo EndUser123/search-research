@@ -2,8 +2,35 @@
 name: r
 description: Deterministic remember/refine pass with GoT+ToT enhancement - decomposed DUF checks, mode decision, context writing, memory refinement analysis, and branching reflection paths. Finds what was forgotten, validates plans, proposes predictable low-risk improvements, decides mode, and writes context for downstream skills; escalates to /s when needed.
 version: 1.0.0
-status: stable
+status: deprecated
+deprecated_by: /qr
+deprecated_reason: "Combined with /q into /qr for intelligent quality orchestration. Use /qr instead."
+deprecated_date: 2026-04-09
 category: quality
+enforcement: advisory
+workflow_steps:
+  - read_q_context: Read /q context if available
+  - build_omission_checklist: Build omission checklist from context/session activity
+  - classify_scope: Classify change scope (trivial|moderate|significant|major)
+  - run_deterministic_checks: Run DUF-derived checks appropriate for scope
+  - solo_dev_compliance: SRPI protocol checks (searched, read, planned, minimal)
+  - library_first: Existing solution registry, stdlib, codebase pattern checks
+  - investigate: Evidence verification (absence claims, git history, docs vs impl)
+  - aid_deep_analysis: Run aid_deep_file_analysis, fold high-signal items
+  - plan_validation: If plan intent present, run deterministic validation
+  - standards_audit: If command/skill metadata in scope, run standards audit
+  - tier_completeness: If verification/certification in scope, run tier audit
+  - value_completeness: Value completeness gate (list excluded items, assign levels)
+  - deterministic_improvements: Run improvement passes (aid_suggest_refactoring, aid_best_practices)
+  - audit_followups: If audit/profile/log signals present, produce follow-ups
+  - context_filtering: Filter findings against solo-dev-context.yaml
+  - generate_improvements: Generate deterministic improvements with rationale
+  - decide_escalation: Emit escalate_to_s decision and next commands
+triggers:
+  - /r
+  - "what did we forget"
+  - "remember pass"
+  - "deterministic improvements"
 triggers:
   - /r
   - "what did we forget"
@@ -12,11 +39,12 @@ triggers:
 aliases:
   - /r
 suggest:
-  - /q
-  - /s
-  - /p
+  - /qr
 
 ---
+
+# DEPRECATED: This skill has been replaced by /qr
+
 
 # /r - Remember + Refine
 

@@ -422,6 +422,35 @@ Before claiming `/code` complete:
 
 See `references/done-phase-details.md` for full Pre-Done Checklist and Build Verification details.
 
+## Quality Gate
+
+After `/code` completes (all phases done, tasks verified), automatically invoke quality checks:
+
+```python
+# After done-phase completes, run quality gate
+Agent(
+  subagent_type="general-purpose",
+  prompt=f"""Run quality gate on completed code:
+
+1. /qr --refine-only: Check for omissions, plan validation, improvements
+2. If /qr returns findings with severity HIGH or CRITICAL → present to user for decision
+3. If /qr returns Sound/Concerning with only MEDIUM/LOW → proceed to /sqa
+4. /sqa: Run 8-layer code quality pipeline on the implemented code
+
+Output: /rns-formatted findings from both /qr and /sqa."""
+)
+```
+
+**Routing behavior:**
+- If `/qr` finds HIGH/CRITICAL issues → present /rns, await user decision
+- If `/qr` is Sound/Concerning (MEDIUM/LOW only) → auto-proceed to `/sqa`
+- If `/sqa` halts → present findings in /rns format
+- If both pass → ready for shipping
+
+**Why automatic?** Code deserves quality validation before being marked "done". This catches issues that verification (correctness) might miss.
+
+---
+
 ## Success Criteria
 
 - [ ] TSK session created and active

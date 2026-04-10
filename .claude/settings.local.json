@@ -69,7 +69,9 @@
       "mcp__plugin_serena_serena__get_symbols_overview",
       "WebFetch(domain:dev.to)",
       "WebFetch(domain:www.jdhodges.com)",
-      "mcp__aid__aid_analyze"
+      "mcp__aid__aid_analyze",
+      "Bash(mkdir -p P:/.claude/plans/adversarial)",
+      "Bash(python3 /tmp/findings.py)"
     ],
     "deny": [],
     "ask": []
