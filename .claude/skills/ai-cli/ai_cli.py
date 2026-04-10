@@ -1151,13 +1151,14 @@ def _build_cli_commands(
         commands.append(("qwen", qwen_cmd))
     if run_gemini:
         # Use stable model via -m flag to avoid MODEL_CAPACITY_EXHAUSTED errors
-        # Need to embed query in -p flag (not stdin) so model selection applies
+        # Need to embed query as separate argument (not stdin) so model selection applies
         # On Windows, use bare 'gemini' command (in PATH) to avoid cd + node path issues
+        # Use list format to avoid shell quoting issues with PowerShell
         if sys.platform == "win32":
-            gemini_with_model = f"gemini -y -o text -m gemini-2.5-flash -p {shlex.quote(query)}"
+            commands.append(("gemini", ["gemini", "-y", "-o", "text", "-m", "gemini-2.5-flash", "-p", query]))
         else:
-            gemini_with_model = f"{gemini_cmd} -y -o text -m gemini-2.5-flash -p {shlex.quote(query)}"
-        commands.append(("gemini", gemini_with_model))
+            gemini_cmd_parts = ["gemini", "-y", "-o", "text", "-m", "gemini-2.5-flash", "-p", query]
+            commands.append(("gemini", " ".join(gemini_cmd_parts)))
     if run_codex:
         commands.append(("codex", codex_cmd))
     if run_vibe:

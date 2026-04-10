@@ -161,24 +161,14 @@ async def run_single_command(
 
     try:
         if sys.platform == "win32":
-            cmd_name = command.split()[0].lower()
-            needs_pwsh = cmd_name in ("codex", "gemini", "qwen", "vibe", "opencode")
-
-            if needs_pwsh:
-                pwsh_command = f'& {command}'
-                proc = await asyncio.create_subprocess_exec(
-                    "pwsh", "-Command", pwsh_command,
-                    stdin=asyncio.subprocess.PIPE if input_text else None,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                )
-            else:
-                proc = await asyncio.create_subprocess_shell(
-                    command,
-                    stdin=asyncio.subprocess.PIPE if input_text else None,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                )
+            # Use shell execution on Windows for npm global commands (in PATH)
+            # No PowerShell wrapper needed - avoids quote interpretation issues
+            proc = await asyncio.create_subprocess_shell(
+                command,
+                stdin=asyncio.subprocess.PIPE if input_text else None,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
         else:
             proc = await asyncio.create_subprocess_exec(
                 *command.split(),

@@ -16,9 +16,11 @@ depends_on_skills:
 workflow_steps:
   - prepare: Parse arguments, resolve vault path, authenticate if needed
   - list: Show available notebooks if no notebook-id given
+  - sources: Snapshot source IDs before query, compare against manifest to gate re-query
   - query: Query selected notebook(s) for structured concept content
   - parse: Parse query response into individual concept pages
   - write: Write wiki pages with provenance frontmatter
+  - manifest: Write sync manifest tracking source IDs and concept slugs
   - link: Invoke wiki skill to trigger auto-linking on written pages
 execution:
   directive: |
@@ -26,6 +28,8 @@ execution:
     - sync <notebook-id>: Sync single notebook
     - sync all: Sync all notebooks
     - sync --dry-run: Preview what would be synced
+    - sync <notebook-id> (re-sync): If sources unchanged since last sync, skip query entirely
+    - Re-sync <notebook-id>: Explicit re-sync; skips unchanged sources, overwrites changed concepts
   default_args: ""
   examples:
     - "/nlm-to-wiki sync abc123-def456"
@@ -179,6 +183,22 @@ After writing all pages, invoke the wiki skill to trigger auto-linking:
 ```
 This creates [[wikilinks]] between related concept pages. If the wiki skill is unavailable, print a warning listing the pages that need linking and instruct the user to run `/wiki ingest` manually.
 Print summary: report pages created, any slug collisions detected, and linking status.
+
+### Step 8: Write Sync Manifest
+After all pages are written and linked, write the sync manifest to the vault root:
+```bash
+<vault_path>/.nlm-sync-manifest.json
+```
+```json
+{
+  "notebook_id": "<uuid>",
+  "notebook_title": "<title>",
+  "last_synced_at": "YYYY-MM-DD",
+  "source_ids": ["<uuid>", "..."],
+  "concept_slugs": ["<slug>", "..."]
+}
+```
+Overwrite any existing manifest for this notebook. The manifest is the source-of-truth for the re-sync source comparison in Step 3.5.
 
 ## Validation Rules
 

@@ -151,9 +151,10 @@ MOVE_PATTERNS = re.compile(
 
 # 6. BACKUP patterns
 BACKUP_PATTERNS = re.compile(
-    r"\b(?:backed\s+up|saved\s+(?:a\s+)?copy|created\s+backup)\s+(?:of\s+)?(?:the\s+)?(?:file|config)"
-    r"|\b(?:backed\s+up|saved)\s+[\w\-\.]+"
-    r"|\b(?:created|made)\s+(?:a\s+)?backup\s+(?:of\s+)?[\w\-\.]+",
+    # Requires file extension or path-like suffix (actual backup targets)
+    r"\b(?:backed\s+up|saved\s+(?:a\s+)?copy|created\s+backup)\s+(?:of\s+)?(?:the\s+)?(?:file|config|[\w\-\./]+(?:\.\w+)?)"
+    r"|\b(?:backed\s+up|saved)\s+[\w\-\.]+(?:\.\w+)"  # must have extension: saved file.txt
+    r"|\b(?:created|made)\s+(?:a\s+)?backup\s+(?:of\s+)?[\w\-\.]+(?:\.\w+)?",
     re.IGNORECASE,
 )
 

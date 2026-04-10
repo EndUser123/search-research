@@ -12,7 +12,6 @@ triggers:
   - "analyze skill design"
 suggest:
   - /skill-ship
-  - /rca
 depends_on_skills: []
 workflow_steps:
   - step_classify: Classify audit mode (target-quality, transfer/reuse, merge/remove, implementation-readiness)
@@ -104,16 +103,27 @@ Do not skip critique just because the current model could theoretically reason i
 
 `/skill-audit` should make skills more correct over time by converting noisy experience into durable strategy changes.
 
-The loop is:
+The loop has three stages:
+
+**Stage 1 — Mine & Distill:**
 1. Mine recent chat/transcript history for candidate failure signals.
-2. Distill those signals into structured lesson artifacts.
+2. Distill those signals into structured lesson artifacts (schema in `references/learning-loop.md`).
 3. Audit which lessons are real, recurring, and worth codifying.
-4. Hand approved lessons to `/skill-ship` with a recommended fix layer:
-   - prompt/doc only
-   - validator
-   - hook
-   - test
-   - architecture change
+
+**Stage 2 — Verify (skill-creator loop):**
+For each approved lesson, invoke `skill-creator` to run a focused eval loop:
+1. Spawn a subagent with `skill-creator` pointing at the skill that needs the pattern hardened.
+2. The subagent runs with-skill vs baseline eval on the specific failure class.
+3. Read `feedback.json` to determine if the pattern fix improves outcomes.
+4. If improved → lesson is verified and promoted. If not → flag as "needs redesign" and route to `/skill-audit` for re-audit.
+
+**Stage 3 — Promote:**
+Hand verified lessons to `/skill-ship` with a recommended fix layer:
+- prompt/doc only
+- validator
+- hook
+- test
+- architecture change
 
 Raw chat history is a discovery source, not a source of truth. `/skill-audit` should prefer:
 - repeated user corrections
