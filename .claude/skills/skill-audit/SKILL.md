@@ -173,7 +173,7 @@ Internal blind-spot checks are run before final recommendations.
 ```
 
 **Output flags:**
-- `--gaps` — include the Gap Table (lens-by-lens findings). Off by default; use `--gaps` to show it.
+- `--gaps` — include the Gap Table. Off by default.
 - `--no-got-tot` — skip GoT+ToT reasoning passes. Useful for fast, narrow audits.
 
 ## Audit Modes

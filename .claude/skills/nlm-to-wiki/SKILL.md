@@ -52,6 +52,19 @@ Vault path from settings.json:
 OBSIDIAN_VAULT_PATH=~/.obsidian/vaults/personal-wiki  # from settings.json
 ```
 
+### Sync Manifest
+Each synced notebook has a manifest at `<vault_path>/.nlm-sync-manifest.json`:
+```json
+{
+  "notebook_id": "<uuid>",
+  "notebook_title": "<title>",
+  "last_synced_at": "YYYY-MM-DD",
+  "source_ids": ["<uuid>", "..."],
+  "concept_slugs": ["<slug>", "..."]
+}
+```
+The manifest is written after each sync and is used to detect new sources on subsequent syncs.
+
 ## Operation Modes
 
 | Mode | Description |
@@ -81,6 +94,15 @@ After running `nlm login`, verify with `nlm login --check`. If still unauthentic
 nlm notebook list --json
 ```
 Show available notebooks with IDs and titles for user selection.
+
+### Step 3.5: Source Snapshot (re-sync gate)
+Before querying, snapshot current source IDs for comparison:
+```bash
+nlm source list <notebook-id> --json
+```
+Compare returned `source_ids[]` against the sync manifest (`.nlm-sync-manifest.json` in the vault root). If the IDs match the last-synced state and the notebook has been synced before, skip the query entirely and report "No new sources since last sync."
+
+If no manifest exists for this notebook, proceed to Step 4. The manifest is created during Step 6.
 
 ### Step 4: Query Selected Notebook(s)
 For each notebook to sync, query for structured content:

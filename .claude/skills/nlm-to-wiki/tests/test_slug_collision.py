@@ -162,3 +162,55 @@ def test_parse_single():
     """Single-heading response should produce 1 concept."""
     concepts = [c.strip() for c in SINGLE_CONCEPT_RESPONSE.split("##") if c.strip()]
     assert len(concepts) == 1
+
+
+# === SYNC MANIFEST TEST CASES ===
+
+MANIFEST_SCHEMA = {
+    "notebook_id": str,
+    "notebook_title": str,
+    "last_synced_at": str,
+    "source_ids": list,
+    "concept_slugs": list,
+}
+
+def test_manifest_schema_valid():
+    """Manifest JSON must have required fields."""
+    manifest = {
+        "notebook_id": "abc12345-def6-7890",
+        "notebook_title": "AI Research Notes",
+        "last_synced_at": "2026-04-09",
+        "source_ids": ["src-001", "src-002"],
+        "concept_slugs": ["machine-learning", "deep-learning"],
+    }
+    for field, field_type in MANIFEST_SCHEMA.items():
+        assert field in manifest, f"Missing field: {field}"
+        assert isinstance(manifest[field], field_type), f"Wrong type for {field}"
+
+
+def test_manifest_source_comparison():
+    """When source_ids match manifest, skip query."""
+    prior = {
+        "notebook_id": "abc12345",
+        "source_ids": ["src-001", "src-002"],
+    }
+    current = ["src-001", "src-002"]
+    # Set comparison: identical sets means no new sources
+    assert set(prior["source_ids"]) == set(current), "Sources should match"
+
+
+def test_manifest_new_source_detected():
+    """When source_ids differ, new sources exist."""
+    prior = {
+        "notebook_id": "abc12345",
+        "source_ids": ["src-001", "src-002"],
+    }
+    current = ["src-001", "src-002", "src-003"]
+    assert len(set(current) - set(prior["source_ids"])) > 0, "New source should be detected"
+
+
+def test_manifest_source_removed():
+    """When prior has source not in current, source was removed."""
+    prior = ["src-001", "src-002"]
+    current = ["src-001"]
+    assert len(set(prior) - set(current)) > 0, "Removed source should be detected"

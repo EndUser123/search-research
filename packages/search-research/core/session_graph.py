@@ -65,7 +65,9 @@ def load_sessions_index(project_path: str | Path | None = None) -> dict[str, dic
             return {e["sessionId"]: e for e in data["entries"]}
         if "sessions" in data:
             return {e["sessionId"]: e for e in data["sessions"]}
-        return data
+        if not isinstance(data, list) and "entries" not in data:
+            # Direct-key format: {"uuid": {"sessionId": "...", ...}, ...}
+            return data
     return {}
 
 

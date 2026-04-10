@@ -1,21 +1,21 @@
 ---
-name: qr
-description: "Intelligent quality orchestration - combines strategic (/q) and deterministic (/r) checks with auto-routing to skip unnecessary work"
-version: 1.0.0
+name: sqd
+description: "Strategic + Deterministic Quality - intelligent orchestration combining strategic assessment and deterministic refinement with auto-routing"
+version: 1.2.0
 status: stable
 category: quality
 enforcement: advisory
 triggers:
-  - /qr
-  - /qr --strategic-only
-  - /qr --refine-only
+  - /sqd
+  - /sqd --strategic-only
+  - /sqd --refine-only
 aliases:
-  - /qr
+  - /sqd
 
 suggest:
   - /sqa
-  - /arch
-  - /planning
+  - /s
+  - /p
   - /rns
 
 depends_on_skills: []
@@ -53,7 +53,7 @@ hooks:
     - matcher: ".*"
       hooks:
         - type: command
-          command: python "$CLAUDE_PROJECT_DIR/.claude/skills/qr/hooks/StopHook_qr_completion_validator.py"
+          command: python "$CLAUDE_PROJECT_DIR/.claude/skills/sqd/hooks/StopHook_sqd_completion_validator.py"
           timeout: 10
 
 do_not:
@@ -61,12 +61,12 @@ do_not:
   - suggest background services or real-time metrics
   - suggest autonomous execution or self-healing
   - require team approval
-  - recommend re-running /qr as a next step (validation loops waste time)
+  - recommend re-running /sqd as a next step (validation loops waste time)
   - run all checks regardless - use intelligent routing
 
 ---
 
-# /qr - Intelligent Quality Orchestration
+# /sqd - Intelligent Quality Orchestration
 
 ## Purpose
 
@@ -79,12 +79,12 @@ do_not:
 - Outputs /rns-formatted actions
 
 **Scope boundary:**
-- `/qr` = Intelligent strategic + deterministic quality
+- `/sqd` = Intelligent strategic + deterministic quality
 - `/sqa` = Code-focused 8-layer pipeline (syntax, semantic, structural, etc.)
 - `/arch` = Architecture decisions and routing
 - `/p` = Tactical implementation quality
 
-**Anti-pattern:** Don't use `/qr` for tactical implementation bugs. That's `/p`'s job.
+**Anti-pattern:** Don't use `/sqd` for tactical implementation bugs. That's `/p`'s job.
 
 ## Auto-Routing Logic
 

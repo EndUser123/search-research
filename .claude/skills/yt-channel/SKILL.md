@@ -26,10 +26,10 @@ Check all tracked YouTube channels for new videos and manage your channel list.
 
 ```bash
 # Check all tracked channels for new videos
-yt-channel new
+yt-channel sync
 
 # Show detailed output during check
-yt-channel new --verbose
+yt-channel sync --verbose
 
 # List all tracked channels
 yt-channel list
@@ -45,16 +45,16 @@ yt-channel add https://www.youtube.com/playlist?list=PLxxxxx
 
 | Command | Description |
 |---------|-------------|
-| `new` | Check all tracked channels for new videos (RSS + gap detection) |
+| `sync` | Check all tracked channels for new videos (RSS + gap detection) |
 | `list` | List all tracked channels with metadata |
 | `add <url>` | Add a new channel or playlist to track |
 
 ## How It Works
 
-**`yt-channel new`** runs the daily check workflow on ALL tracked channels:
+**`yt-channel sync`** runs the daily check workflow on ALL tracked channels:
 
-1. **RSS Check** - Fetches ~15-20 most recent videos per channel via RSS feed
-2. **Gap Detection** - If RSS shows ≥15 non-overlapping videos AND newest batch video is >7 days old, triggers gap resolution
+1. **RSS Check** - Fetches exactly 15 most recent videos per channel via RSS feed
+2. **Gap Detection** - If RSS shows videos that don't exist in local database (no overlap), triggers gap resolution
 3. **API Gap Resolution** - Uses YouTube Data API with `publishedAfter` cursor to fill gaps
 4. **Mark Pending** - New videos are marked as pending for transcript download
 
@@ -65,7 +65,7 @@ Channels are checked in order of `last_checked` (oldest first) to ensure fair co
 ```
 channel_metadata table (SQLite)
   │
-  ├─► yt-channel new ──► RSS check ──► Gap detection ──► API resolution
+  ├─► yt-channel sync ──► RSS check ──► Gap detection ──► API resolution
   │                                                │
   │                                                ▼
   │                                       batch_status table (pending)

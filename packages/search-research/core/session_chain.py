@@ -286,7 +286,9 @@ def load_sessions_index(project_path: str | Path | None = None) -> dict[str, dic
             return {e["sessionId"]: e for e in data["entries"]}
         if "sessions" in data:
             return {e["sessionId"]: e for e in data["sessions"]}
-        return data
+        if not isinstance(data, list) and "entries" not in data:
+            # Direct-key format: {"uuid": {"sessionId": "...", ...}, ...}
+            return data
     return {}
 
 
@@ -491,7 +493,7 @@ def _semantic_sim(text_a: str, text_b: str) -> float:
     try:
         model = _get_st_model()
         # ThreadPoolExecutor with timeout is the only way to bound a blocking call
-        with __import__("concurrent.futures").ThreadPoolExecutor(max_workers=1) as executor:
+        with __import__("concurrent.futures", fromlist=["ThreadPoolExecutor"]).ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(model.encode, [text_a, text_b], normalize_embeddings=True)
             try:
                 vectors = future.result(timeout=_SEMANTIC_TIMEOUT_SECONDS)
