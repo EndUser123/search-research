@@ -104,6 +104,33 @@ class SearchResult:
         }
 
     @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> SearchResult:
+        """Reconstruct SearchResult from dictionary (e.g., from cache).
+
+        Args:
+            data: Dictionary containing result fields
+
+        Returns:
+            SearchResult instance
+        """
+        # Parse created_at from isoformat string if present
+        created_at = data.get("created_at")
+        if created_at and isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at)
+
+        # Filter to only valid dataclass fields (exclude computed 'id' property)
+        valid_fields = {
+            "title", "content", "source", "score", "url", "file_path",
+            "line_number", "backend", "fetched", "fetch_time", "created_at",
+            "cached", "metadata"
+        }
+        kwargs = {k: v for k, v in data.items() if k in valid_fields}
+        if created_at is not None:
+            kwargs["created_at"] = created_at
+
+        return cls(**kwargs)
+
+    @classmethod
     def from_web_result(
         cls,
         *,

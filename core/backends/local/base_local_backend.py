@@ -6,10 +6,13 @@ backends (CDSBackend, GrepBackend, etc.).
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 
 from ...config import config
+
+logger = logging.getLogger(__name__)
 
 SearchResult = dict[str, Any]
 
@@ -44,6 +47,10 @@ class BaseLocalBackend:
             exclude_patterns: Additional patterns to exclude
         """
         self.root_paths = [Path(p) for p in (root_paths or config.SOURCE_ROOTS)]
+        # Validate root_paths exist before use (IO-002)
+        self.root_paths = [p for p in self.root_paths if p.exists()]
+        if not self.root_paths:
+            logger.warning("No valid root_paths found — all paths are missing or inaccessible")
         self.exclude_patterns = self.DEFAULT_EXCLUDE_PATTERNS | (exclude_patterns or set())
         self._index: dict[str, list[SearchResult]] = {}
         self._indexed = False

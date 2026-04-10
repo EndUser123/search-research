@@ -264,11 +264,18 @@ class AsyncSearchRouter:
             if hyde_applied:
                 logger.debug(f"HyDE enhanced query: '{query[:50]}...' -> '{search_query[:50]}...'")
 
-        # Check cache first (use original query for cache key to preserve cache hits)
+        # Check cache first
         if self.enable_cache:
+            # If HyDE was applied, check cache with enhanced query first (more specific)
+            if hyde_applied:
+                cached = self._cache.get(search_query, limit=limit, backends=backends)
+                if cached is not None:
+                    logger.debug(f"Cache hit for HyDE-enhanced query: '{search_query[:50]}...'")
+                    return [SearchResult.from_dict(r) for r in cached]
+            # Fall back to original query cache
             cached = self._cache.get(query, limit=limit, backends=backends)
             if cached is not None:
-                return cached
+                return [SearchResult.from_dict(r) for r in cached]
 
         # Determine which backends to use
         if backends is None:
@@ -281,10 +288,26 @@ class AsyncSearchRouter:
         ]
 
         # Wait for all backends to complete (with individual timeouts)
-        backend_results = await asyncio.gather(
-            *search_tasks,
-            return_exceptions=True,  # Don't fail on individual backend errors
-        )
+        # QUAL-001: Wrap with overall timeout to prevent unbounded latency
+        overall_timeout = self.backend_timeout * 1.5
+        try:
+            backend_results = await asyncio.wait_for(
+                asyncio.gather(
+                    *search_tasks,
+                    return_exceptions=True,  # Don't fail on individual backend errors
+                ),
+                timeout=overall_timeout,
+            )
+        except asyncio.TimeoutError:
+            logger.warning(f"Backend gather timed out after {overall_timeout}s — returning partial results")
+            # Collect any results that came in before timeout
+            backend_results = []
+            for result in asyncio.as_completed(search_tasks):
+                try:
+                    r = await asyncio.wait_for(result, timeout=0.1)
+                    backend_results.append(r)
+                except (asyncio.TimeoutError, Exception):
+                    pass
 
         # Process results and filter out exceptions
         all_results = []
@@ -301,7 +324,9 @@ class AsyncSearchRouter:
         # Cache results (convert to dict for cache)
         if self.enable_cache:
             cache_results = [r.to_dict() for r in ranked_results]
-            self._cache.set(query, cache_results, limit=limit, backends=backends)
+            # Use enhanced query as cache key if HyDE was applied
+            cache_key = search_query if hyde_applied else query
+            self._cache.set(cache_key, cache_results, limit=limit, backends=backends)
 
         return ranked_results
 

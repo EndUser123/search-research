@@ -84,7 +84,9 @@ class LearningSystem:
         """Save feedback history to JSON file"""
         try:
             # Create directory if it doesn't exist
-            os.makedirs(os.path.dirname(self.feedback_file), exist_ok=True)
+            feedback_dir = os.path.dirname(self.feedback_file)
+            if feedback_dir:
+                os.makedirs(feedback_dir, exist_ok=True)
 
             data = []
             for feedback in self.feedback_history:

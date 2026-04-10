@@ -124,7 +124,8 @@ def _get_prior_transcript_path(handoff_path: Path) -> Path | None:
     try:
         with open(handoff_path, encoding="utf-8") as f:
             data = json.load(f)
-        path_str = data.get("resume_snapshot", {}).get("transcript_path")
+        resume_snapshot = data.get("resume_snapshot", {})
+        path_str = resume_snapshot.get("transcript_path") or resume_snapshot.get("prior_transcript_path")
         if path_str:
             p = Path(path_str)
             try:
@@ -140,22 +141,20 @@ def _get_prior_transcript_path(handoff_path: Path) -> Path | None:
     return None
 
 
-async def _find_handoff_referencing(transcript_path: Path) -> Path | None:
-    """Find handoff file whose resume_snapshot.transcript_path == transcript_path."""
+def _find_handoff_referencing(transcript_path: Path) -> Path | None:
+    """Find handoff file whose resume_snapshot.transcript_path == transcript_path.
+
+    Synchronous version for use in sync walk_handoff_chain.
+    """
     handoff_dir = _handoff_dir()
-    if not await asyncio.to_thread(handoff_dir.exists):
+    if not handoff_dir.exists():
         return None
     target = str(transcript_path)
-    
-    # Run glob in a separate thread
-    handoff_files = await asyncio.to_thread(handoff_dir.glob, "console_*_handoff.json")
-    for hf in handoff_files:
+
+    for hf in handoff_dir.glob("console_*_handoff.json"):
         try:
-            def _blocking_read_handoff_file():
-                with open(hf, encoding="utf-8") as f:
-                    return json.load(f)
-            # Load JSON in a separate thread
-            handoff_data = await asyncio.to_thread(_blocking_read_handoff_file)
+            with open(hf, encoding="utf-8") as f:
+                handoff_data = json.load(f)
             if handoff_data.get("resume_snapshot", {}).get("transcript_path") == target:
                 return hf
         except (OSError, json.JSONDecodeError, PermissionError):
@@ -286,7 +285,9 @@ def load_sessions_index(project_path: str | Path | None = None) -> dict[str, dic
             return {e["sessionId"]: e for e in data["entries"]}
         if "sessions" in data:
             return {e["sessionId"]: e for e in data["sessions"]}
-        return data
+        if not isinstance(data, list) and "entries" not in data:
+            # Direct-key format: {"uuid": {"sessionId": "...", ...}, ...}
+            return data
     return {}
 
 
@@ -491,7 +492,7 @@ def _semantic_sim(text_a: str, text_b: str) -> float:
     try:
         model = _get_st_model()
         # ThreadPoolExecutor with timeout is the only way to bound a blocking call
-        with __import__("concurrent.futures").ThreadPoolExecutor(max_workers=1) as executor:
+        with __import__("concurrent.futures", fromlist=["ThreadPoolExecutor"]).ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(model.encode, [text_a, text_b], normalize_embeddings=True)
             try:
                 vectors = future.result(timeout=_SEMANTIC_TIMEOUT_SECONDS)
@@ -852,12 +853,14 @@ def walk_session_chain(
     project_path: Path | None = None,
     max_depth: int = 50,
     newest_first: bool = False,
+    use_semantic_fallback: bool = True,
 ) -> SessionChainResult:
     """Walk session chain using the best available strategy.
 
-    Two strategies tried in order:
+    Three strategies tried in order:
       1. Handoff-file chain    - deterministic via PreCompact hook handoff files
       2. mtime + semantic chain - finds candidates by mtime gap, verifies with semantic similarity
+      3. Semantic similarity    - wide window search via embedding similarity (fallback only)
 
     Falls back gracefully: if Strategy 2 builds a partial chain, returns it as-is.
     """
@@ -877,6 +880,14 @@ def walk_session_chain(
         if newest_first:
             mtime_result.entries.reverse()
         return mtime_result
+
+    # Strategy 3: Wide-window semantic similarity (only when S1 and S2 produced single-entry chains)
+    if use_semantic_fallback and mtime_result.entries and len(mtime_result.entries) == 1:
+        semantic_result = walk_semantic_chain(session_id, project_path)
+        if semantic_result.entries and len(semantic_result.entries) > 1:
+            if newest_first:
+                semantic_result.entries.reverse()
+            return semantic_result
 
     return mtime_result
 

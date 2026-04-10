@@ -1,0 +1,115 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "163429b5-4711-4259-b7d0-2c1b23356a34",
+    "terminal_id": "console_4ec01ad5-3912-4966-abf5-d061e91d4d4d",
+    "source_session_id": "4a8d96db-5169-4d20-aecd-b8701772d961",
+    "created_at": "2026-04-10T02:19:26.117460+00:00",
+    "expires_at": "2026-04-10T02:39:26.117460+00:00",
+    "status": "pending",
+    "goal": "why not do both.",
+    "current_task": "why not do both.",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "P:/.claude/hooks/UserPromptSubmit_modules/rca_schema_injector.py",
+      "C:\\Users\\brsth\\.claude\\plans\\graceful-humming-puddle.md",
+      "P:/.claude/hooks/Stop_router.py",
+      "P:/.claude/hooks/__lib/hook_runner.py",
+      "P:/.claude/hooks/StopHook_overconfidence_detector.py",
+      "P:/.claude/hooks/StopHook_unverified_stance.py",
+      "P:/.claude/hooks/anti_sycophancy/overconfidence_detector.py",
+      "P:/.claude/hooks/verification/engine.py",
+      "P:/.claude/hooks/verification/claims.py",
+      "P:/.claude/hooks/evidence_scope.py"
+    ],
+    "pending_operations": [
+      {
+        "type": "read",
+        "target": "P:/.claude/hooks/UserPromptSubmit_modules/rca_schema_injector.py",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:/.claude/hooks/Stop_router.py",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:/.claude/hooks/__lib/hook_runner.py",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: P:/.claude/hooks/StopHook_overconfidence_detector.",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: P:/.claude/hooks/StopHook_unverified_stance.py",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "Resume read on P:/.claude/hooks/UserPromptSubmit_modules/rca_schema_injector.py.",
+    "decision_refs": [],
+    "evidence_refs": [
+      "ev_ac230d7e62b7416dae484075d44dc2fd",
+      "ev_c32404df1d114a5a81b362944d5e6f7c",
+      "ev_66d23c41df3045f29187bcb91782f7c2",
+      "ev_405a5f8cf38e4c19ba08ba23a948856d",
+      "ev_55a12a18cee644cc8a52b698deaf02ca",
+      "ev_ed82d8b3a192483d85f51a3af8d1622e"
+    ],
+    "transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\4a8d96db-5169-4d20-aecd-b8701772d961.jsonl",
+    "message_intent": "question",
+    "quality_score": 0.4,
+    "tasks_snapshot": []
+  },
+  "decision_register": [],
+  "evidence_index": [
+    {
+      "id": "ev_ac230d7e62b7416dae484075d44dc2fd",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\4a8d96db-5169-4d20-aecd-b8701772d961.jsonl",
+      "content_hash": "sha256:9c78e1d93168bc0d2182e1ee1278b58c2548a426373319403f695ec5f2cb3ded"
+    },
+    {
+      "id": "ev_c32404df1d114a5a81b362944d5e6f7c",
+      "type": "file",
+      "label": "rca_schema_injector.py",
+      "path": "P:\\.claude\\hooks\\UserPromptSubmit_modules\\rca_schema_injector.py",
+      "content_hash": "sha256:b1df058cc88c3d1e0800bccbfe558fd7addf617cccfb60b9ccdce03ec24d44c6"
+    },
+    {
+      "id": "ev_66d23c41df3045f29187bcb91782f7c2",
+      "type": "file",
+      "label": "graceful-humming-puddle.md",
+      "path": "C:\\Users\\brsth\\.claude\\plans\\graceful-humming-puddle.md",
+      "content_hash": "sha256:d79db1f2ddc96f86c9de9c6a46ca16579dfccfb4508c2283f1dcae7517874145"
+    },
+    {
+      "id": "ev_405a5f8cf38e4c19ba08ba23a948856d",
+      "type": "file",
+      "label": "Stop_router.py",
+      "path": "P:\\.claude\\hooks\\Stop_router.py",
+      "content_hash": "sha256:a8c75183120fe52e3fefa4aca7a62e00997997d1f4c8e75971e638d0a8098dc6"
+    },
+    {
+      "id": "ev_55a12a18cee644cc8a52b698deaf02ca",
+      "type": "file",
+      "label": "hook_runner.py",
+      "path": "P:\\.claude\\hooks\\__lib\\hook_runner.py",
+      "content_hash": "sha256:4f7771880d31889068dd7f6974986ba4a955a3df7d02df913b51366f7c5a3c5a"
+    },
+    {
+      "id": "ev_ed82d8b3a192483d85f51a3af8d1622e",
+      "type": "file",
+      "label": "StopHook_overconfidence_detector.py",
+      "path": "P:\\.claude\\hooks\\StopHook_overconfidence_detector.py",
+      "content_hash": "sha256:7d6e88b9cc22b127769b74c97338f766335c3603ad7417829f4a12506da4f278"
+    }
+  ],
+  "checksum": "sha256:6dfaa13bb1cdf5f5a8e9b04318487fd5912e68cf5b5382bd43dfd87ac319f631"
+}

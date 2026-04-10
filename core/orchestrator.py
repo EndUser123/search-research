@@ -2,8 +2,11 @@
 """Research engine orchestration."""
 
 import asyncio
+import logging
 import time
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from .config import ResearchConfig
 from .fetchers.batch import BatchURLFetcher
@@ -155,8 +158,9 @@ class ResearchEngine:
                 if hasattr(provider, "search"):
                     # Use asyncio.wait_for to enforce timeout per provider
                     return await asyncio.wait_for(provider.search(query, **kwargs), timeout=timeout)
-            except (Exception, TimeoutError):
+            except (Exception, TimeoutError) as exc:
                 # Partial failure: return empty list, continue with other providers
+                logger.warning(f"Provider {getattr(provider, 'name', 'unknown')} failed: {exc}")
                 return []
             return []
 

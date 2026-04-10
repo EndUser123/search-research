@@ -29,20 +29,26 @@ class ChatIndexer:
         self, file_path: str, project_id: int, session_key: str, start_position: int = 0
     ) -> int:
         path = Path(file_path)
-        file_size = path.stat().st_size
-        with open(path, encoding="utf-8") as f:
-            f.seek(start_position)
-            for line in f:
-                message_data = parse_jsonl_line(line)
-                if message_data:
-                    session_id = self._get_or_create_session(
-                        project_id=project_id, session_key=session_key
-                    )
-                    self._ingest_message(
-                        session_id=session_id, project_id=project_id, message_data=message_data
-                    )
-        self._save_checkpoint(str(path), file_size)
-        return file_size
+        try:
+            file_size = path.stat().st_size
+        except OSError:
+            return 0
+        try:
+            with open(path, encoding="utf-8") as f:
+                f.seek(start_position)
+                for line in f:
+                    message_data = parse_jsonl_line(line)
+                    if message_data:
+                        session_id = self._get_or_create_session(
+                            project_id=project_id, session_key=session_key
+                        )
+                        self._ingest_message(
+                            session_id=session_id, project_id=project_id, message_data=message_data
+                        )
+            self._save_checkpoint(str(path), file_size)
+            return file_size
+        except OSError:
+            return 0
 
     def _get_or_create_project(self, path: str) -> int:
         conn = self._get_connection()

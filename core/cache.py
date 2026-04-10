@@ -20,9 +20,10 @@ class QueryCache:
     terminal session, repeated QueryCache() instantiations hit the same cache.
     """
 
-    # Class-level registry: terminal_id -> (cache_od, lock)
-    _registry: dict[str, tuple[OrderedDict[str, dict[str, Any]], threading.Lock]] = {}
+    # Class-level registry: terminal_id -> (cache_od, lock, cleanup_started)
+    _registry: dict[str, tuple[OrderedDict[str, dict[str, Any]], threading.Lock, bool]] = {}
     _registry_lock = threading.Lock()
+    _MAX_REGISTRY_SIZE = 16
 
     def __init__(
         self,
@@ -41,15 +42,53 @@ class QueryCache:
 
         # All instances with same terminal_id share cache + lock
         with QueryCache._registry_lock:
+            # Evict oldest entries if registry is full
+            if len(QueryCache._registry) >= QueryCache._MAX_REGISTRY_SIZE:
+                oldest_keys = list(QueryCache._registry.keys())[:len(QueryCache._registry) - QueryCache._MAX_REGISTRY_SIZE + 1]
+                for key in oldest_keys:
+                    del QueryCache._registry[key]
             if self._terminal_id not in QueryCache._registry:
                 QueryCache._registry[self._terminal_id] = (
                     OrderedDict(),
                     threading.Lock(),
+                    False,  # cleanup_started flag
                 )
-            self._cache, self._lock = QueryCache._registry[self._terminal_id]
+            self._cache, self._lock, self._cleanup_started = QueryCache._registry[self._terminal_id]
 
         self._hits = 0
         self._misses = 0
+        self._start_cleanup_thread()
+
+    def _start_cleanup_thread(self) -> None:
+        """Start background thread to periodically remove expired entries."""
+        # Only start cleanup thread once per terminal_id
+        with QueryCache._registry_lock:
+            if self._cleanup_started:
+                return
+            QueryCache._registry[self._terminal_id] = (
+                self._cache,
+                self._lock,
+                True,  # Mark cleanup as started
+            )
+
+        def cleanup_loop() -> None:
+            while True:
+                time.sleep(60)  # Check every 60 seconds
+                self._sweep_expired()
+
+        thread = threading.Thread(target=cleanup_loop, daemon=True)
+        thread.start()
+
+    def _sweep_expired(self) -> None:
+        """Remove all expired entries."""
+        with self._lock:
+            now = time.time()
+            expired_keys = [
+                key for key, entry in self._cache.items()
+                if now - entry["timestamp"] >= self.ttl_seconds
+            ]
+            for key in expired_keys:
+                del self._cache[key]
 
     def _hash_query(self, query: str, **kwargs: Any) -> str:
         """Create hash from query string and options."""
@@ -82,7 +121,7 @@ class QueryCache:
             entry = self._cache[key]
 
             # Check TTL
-            if time.time() - entry["timestamp"] > self.ttl_seconds:
+            if time.time() - entry["timestamp"] >= self.ttl_seconds:
                 del self._cache[key]
                 self._misses += 1
                 return None
