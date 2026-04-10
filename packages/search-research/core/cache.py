@@ -68,7 +68,7 @@ class QueryCache:
             now = time.time()
             expired_keys = [
                 key for key, entry in self._cache.items()
-                if now - entry["timestamp"] > self.ttl_seconds
+                if now - entry["timestamp"] >= self.ttl_seconds
             ]
             for key in expired_keys:
                 del self._cache[key]

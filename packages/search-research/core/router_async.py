@@ -271,11 +271,11 @@ class AsyncSearchRouter:
                 cached = self._cache.get(search_query, limit=limit, backends=backends)
                 if cached is not None:
                     logger.debug(f"Cache hit for HyDE-enhanced query: '{search_query[:50]}...'")
-                    return cached
+                    return [SearchResult.from_dict(r) for r in cached]
             # Fall back to original query cache
             cached = self._cache.get(query, limit=limit, backends=backends)
             if cached is not None:
-                return cached
+                return [SearchResult.from_dict(r) for r in cached]
 
         # Determine which backends to use
         if backends is None:

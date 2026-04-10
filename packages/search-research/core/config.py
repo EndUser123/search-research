@@ -201,4 +201,47 @@ class ResearchConfig:
         Returns:
             A list of validation issue strings. Empty list indicates valid config.
         """
-        return []
+        issues: list[str] = []
+
+        # Validate provider lists are non-empty
+        if not self.default_providers:
+            issues.append("default_providers cannot be empty")
+        if not self.fallback_providers:
+            issues.append("fallback_providers cannot be empty")
+
+        # Validate hyde_mode
+        valid_hyde_modes = {"confidence", "multi-gen"}
+        if self.hyde_mode not in valid_hyde_modes:
+            issues.append(f"hyde_mode must be one of {valid_hyde_modes}, got '{self.hyde_mode}'")
+
+        # Validate numeric bounds
+        if self.budget < 0:
+            issues.append(f"budget must be >= 0, got {self.budget}")
+        if self.max_iterations <= 0:
+            issues.append(f"max_iterations must be > 0, got {self.max_iterations}")
+        if not 0 < self.novelty_threshold <= 1:
+            issues.append(f"novelty_threshold must be in (0, 1], got {self.novelty_threshold}")
+        if self.results_per_iteration <= 0:
+            issues.append(f"results_per_iteration must be > 0, got {self.results_per_iteration}")
+        if not 0 <= self.mmr_lambda <= 1:
+            issues.append(f"mmr_lambda must be in [0, 1], got {self.mmr_lambda}")
+        if self.max_urls_to_fetch < 0:
+            issues.append(f"max_urls_to_fetch must be >= 0, got {self.max_urls_to_fetch}")
+
+        # Validate enum-like fields
+        valid_detail_levels = {"low", "medium", "high"}
+        if self.chapters_detail_level not in valid_detail_levels:
+            issues.append(
+                f"chapters_detail_level must be one of {valid_detail_levels}, "
+                f"got '{self.chapters_detail_level}'"
+            )
+
+        # Validate ensemble_method
+        valid_ensemble_methods = {"reciprocal_rank_fusion", "weighted_average"}
+        if self.ensemble_method not in valid_ensemble_methods:
+            issues.append(
+                f"ensemble_method must be one of {valid_ensemble_methods}, "
+                f"got '{self.ensemble_method}'"
+            )
+
+        return issues

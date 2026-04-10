@@ -39,22 +39,14 @@ parameters:
 
 test_prompts:
   - description: "Full intelligent pipeline"
-    prompt: "/qr"
+    prompt: "/sqd"
     expected_behavior: "Auto-detects scope, runs applicable strategic+deterministic checks, outputs /rns-formatted findings"
   - description: "Strategic only"
-    prompt: "/qr --strategic-only"
+    prompt: "/sqd --strategic-only"
     expected_behavior: "Runs only /q-style strategic checks (architecture, patterns, tech fit), skips deterministic refinement"
   - description: "Refine only"
-    prompt: "/qr --refine-only"
+    prompt: "/sqd --refine-only"
     expected_behavior: "Runs only /r-style deterministic checks (omissions, plan validation), skips strategic analysis"
-
-hooks:
-  Stop:
-    - matcher: ".*"
-      hooks:
-        - type: command
-          command: python "$CLAUDE_PROJECT_DIR/.claude/skills/sqd/hooks/StopHook_sqd_completion_validator.py"
-          timeout: 10
 
 do_not:
   - use "lock ordering" or "enterprise-grade" patterns
@@ -202,9 +194,9 @@ Suggest `/sqa` when:
 ## Backward Compatibility
 
 Legacy shorthands still work:
-- `/qr` → Full intelligent pipeline
-- `/qr1` or `/qr --strategic-only` → Strategic checks only
-- `/qr2` or `/qr --refine-only` → Deterministic checks only
+- `/sqd` → Full intelligent pipeline
+- `/sqd1` or `/sqd --strategic-only` → Strategic checks only
+- `/sqd2` or `/sqd --refine-only` → Deterministic checks only
 
 ## What This Does NOT Do
 
