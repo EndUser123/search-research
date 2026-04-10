@@ -1991,28 +1991,49 @@ def determine_test_destination(
     root = Path(root_path).resolve()
     name_stem = Path(test_file).stem.lower()
 
-    # HIGH confidence: Package name match
+    # HIGH confidence: Package name match (excluding source's parent hierarchy)
+    source_path = Path(test_file).resolve()
     for test_dir in test_dirs:
         pkg_name = test_dir.get("package_name")
         if pkg_name and pkg_name in name_stem:
-            dest = str(Path(test_dir["path"]) / filename)
+            # Validate destination isn't nested within or identical to source
+            dest_path = Path(test_dir["path"]).resolve()
+            if dest_path == source_path or _is_ancestor(dest_path, source_path):
+                continue  # Skip invalid destination
+            dest = str(dest_path / filename)
             return dest, "HIGH", f"Package name match: {pkg_name}"
 
-    # HIGH confidence: Root-level tests/ exists
+    # HIGH confidence: Root-level tests/ exists (excluding source hierarchy)
     for test_dir in test_dirs:
         if test_dir["type"] == "root":
-            dest = str(Path(test_dir["path"]) / filename)
+            dest_path = Path(test_dir["path"]).resolve()
+            if dest_path == source_path or _is_ancestor(dest_path, source_path):
+                continue  # Skip invalid destination
+            dest = str(dest_path / filename)
             return dest, "HIGH", "Root tests/ directory exists"
 
-    # MEDIUM confidence: Use highest priority existing dir
+    # MEDIUM confidence: Use highest priority valid destination
     if test_dirs:
-        dest = str(Path(test_dirs[0]["path"]) / filename)
-        dir_type = test_dirs[0]["type"]
-        return dest, "MEDIUM", f"Using existing {dir_type} tests/ directory"
+        for test_dir in test_dirs:
+            dest_path = Path(test_dir["path"]).resolve()
+            if dest_path == source_path or _is_ancestor(dest_path, source_path):
+                continue  # Skip invalid destination
+            dest = str(dest_path / filename)
+            dir_type = test_dir["type"]
+            return dest, "MEDIUM", f"Using existing {dir_type} tests/ directory"
 
     # LOW confidence: Would create new tests/ at root
     dest = str(root / "tests" / filename)
     return dest, "LOW", "Would create new tests/ directory"
+
+
+def _is_ancestor(parent: Path, child: Path) -> bool:
+    """Check if parent is an ancestor of child (parent is above child in hierarchy)."""
+    try:
+        child.relative_to(parent)
+        return True
+    except ValueError:
+        return False
 
 
 def execute_move(source: str, target: str) -> bool:

@@ -1002,7 +1002,12 @@ def _lens_skill_contract_consistency(parsed: ParsedSkill) -> list[Finding]:
         r"\bblock(?:ed|ing)?\b",
         r"\breject(?:ed|ion)?\b",
     ]
-    if enforcement == "advisory" and any(re.search(pattern, parsed.body, re.IGNORECASE) for pattern in blocking_markers):
+    # Strip table cells and fenced code blocks before matching blocking markers
+    # to avoid false positives (e.g. "H rejected" in a confidence calibration table)
+    body_for_blocking_check = re.sub(r'\|[^|\n]+', '', parsed.body)  # remove table cell content
+    body_for_blocking_check = re.sub(r'```.*?```', '', body_for_blocking_check, flags=re.DOTALL)  # remove code blocks
+
+    if enforcement == "advisory" and any(re.search(pattern, body_for_blocking_check, re.IGNORECASE) for pattern in blocking_markers):
         findings.append(Finding(
             "SKILL_CONTRACT_CONSISTENCY",
             "frontmatter enforcement understates blocking body behavior",
@@ -1271,10 +1276,16 @@ def _expected_internal_mode_contracts(parsed: ParsedSkill) -> list[tuple[str, st
     expectations: list[tuple[str, str, list[str], list[str]]] = []
 
     def add_modes(skill_label: str, modes: list[str]) -> None:
-        markers: list[str] = [rf"\b{mode}\b" for mode in modes]
+        # Use contextual patterns — not bare word-boundary matches — to avoid
+        # false positives (e.g. "code trace" is a cost level, not the `trace` mode)
+        markers: list[str] = (
+            [rf"`{m}`" for m in modes] +
+            [rf"use `{m}`" for m in modes] +
+            [rf"{m}` as an internal" for m in modes]
+        )
         examples: list[str] = [
-            f"use `{mode}` as an internal helper mode when it materially improves the skill's judgment"
-            for mode in modes
+            f"use `{m}` as an internal helper mode when it materially improves the skill's judgment"
+            for m in modes
         ]
         expectations.append((
             "Internal Discovery Modes",
@@ -1523,7 +1534,14 @@ def _lens_operational_resilience(parsed: ParsedSkill) -> list[Finding]:
                 "source skill",
             ))
 
-    if hook_oriented and not any(marker in body_lower for marker in cognitive_hook_markers):
+    cognitive_hook_out_of_scope = any(marker in body_lower for marker in [
+        "cognitive hooks are intentionally out of scope",
+        "cognitive hook fit",
+        "hook fit",
+        "reasoning hooks are intentionally out of scope",
+        "hook fit guidance",
+    ])
+    if hook_oriented and not cognitive_hook_out_of_scope and not any(marker in body_lower for marker in cognitive_hook_markers):
         findings.append(Finding(
             "OPERATIONAL_RESILIENCE",
             "hook-oriented skill lacks cognitive/reasoning hook fit guidance",
