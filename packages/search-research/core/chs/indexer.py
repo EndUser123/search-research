@@ -29,10 +29,14 @@ class ChatIndexer:
         self, file_path: str, project_id: int, session_key: str, start_position: int = 0
     ) -> int:
         path = Path(file_path)
-        file_size = path.stat().st_size
-        with open(path, encoding="utf-8") as f:
-            f.seek(start_position)
-            for line in f:
+        try:
+            file_size = path.stat().st_size
+        except OSError:
+            return 0
+        try:
+            with open(path, encoding="utf-8") as f:
+                f.seek(start_position)
+                for line in f:
                 message_data = parse_jsonl_line(line)
                 if message_data:
                     session_id = self._get_or_create_session(

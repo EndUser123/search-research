@@ -84,9 +84,12 @@ def _load_or_compute_embeddings() -> dict[str, list[float]]:
         Dictionary mapping category names to embedding vectors.
     """
     # Try to load from cache
-    if _EMBEDDINGS_CACHE_FILE.exists():
+    try:
         with open(_EMBEDDINGS_CACHE_FILE, encoding="utf-8") as f:
             return json.load(f)
+    except (OSError, json.JSONDecodeError):
+        # Cache missing, corrupted, or race-deleted — recompute
+        pass
 
     # Compute embeddings (model loaded here for initial cache generation)
     from sentence_transformers import SentenceTransformer
