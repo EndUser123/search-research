@@ -42,6 +42,11 @@ class QueryCache:
 
         # All instances with same terminal_id share cache + lock
         with QueryCache._registry_lock:
+            # Evict oldest entries if registry is full
+            if len(QueryCache._registry) >= QueryCache._MAX_REGISTRY_SIZE:
+                oldest_keys = list(QueryCache._registry.keys())[:len(QueryCache._registry) - QueryCache._MAX_REGISTRY_SIZE + 1]
+                for key in oldest_keys:
+                    del QueryCache._registry[key]
             if self._terminal_id not in QueryCache._registry:
                 QueryCache._registry[self._terminal_id] = (
                     OrderedDict(),

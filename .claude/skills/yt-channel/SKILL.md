@@ -22,32 +22,29 @@ depends_on_skills: []
 
 Check all tracked YouTube channels for new videos and manage your channel list.
 
-## Usage
-
-```bash
-# Check all tracked channels for new videos
-yt-channel sync
-
-# Show detailed output during check
-yt-channel sync --verbose
-
-# List all tracked channels
-yt-channel list
-
-# Add a new channel to track
-yt-channel add https://www.youtube.com/@example
-
-# Add a playlist
-yt-channel add https://www.youtube.com/playlist?list=PLxxxxx
-```
-
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `sync` | Check all tracked channels for new videos (RSS + gap detection) |
-| `list` | List all tracked channels with metadata |
-| `add <url>` | Add a new channel or playlist to track |
+- `sync` — Check all tracked channels for new videos
+- `sync --verbose` — Show detailed output during check
+- `list` — List all tracked channels with metadata
+- `add <url>` — Add a new channel or playlist to track
+
+## Your Tracked Channels
+
+```
+Channel URL                                              Videos  Last Checked
+------------------------------------------------------------------------
+https://www.youtube.com/channel/UC9Rrud-8CaHokDtK9FszvRg     298  2026-04-10T02:41:27
+https://www.youtube.com/channel/@SpeedyFoxAi                  64  2026-04-10T02:41:27
+https://www.youtube.com/channel/@Chase-H-AI                   507  2026-04-10T02:41:26
+https://www.youtube.com/channel/@rileybrownai                 168  2026-04-10T02:41:26
+https://www.youtube.com/channel/@matthew_berman               950  2026-04-10T02:41:25
+https://www.youtube.com/channel/@LuukAlleman                   91  2026-04-10T02:41:25
+https://www.youtube.com/channel/@lev-selector                  277  2026-04-10T02:41:25
+https://www.youtube.com/channel/@UniverseofAIz                 161  2026-04-10T02:41:24
+```
+
+**Total: 2,516 videos across 8 channels**
 
 ## How It Works
 
