@@ -15,7 +15,6 @@ aliases:
 suggest:
   - /sqa
   - /s
-  - /p
   - /rns
 
 depends_on_skills: []

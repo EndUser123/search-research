@@ -275,7 +275,7 @@ If those questions cannot be answered clearly, prefer the simpler implementation
 
 | Category | Files |
 |----------|-------|
-| **Core** | `references/workflow-phases.md` (detailed phase instructions), `references/skill-frontmatter-fields.md` (frontmatter reference), `references/config-file-conventions.md` (config template pattern) |
+| **Core** | `references/workflow-phases.md` (detailed phase instructions), `references/skill-frontmatter-fields.md` (frontmatter reference), `references/skill-writing-standards.md` (plugin patterns: trigger format, imperative form, progressive disclosure), `references/config-file-conventions.md` (config template pattern) |
 | **Workflow** | `references/agent-tool-usage.md`, `references/knowledge-retrieval.md`, `references/plan-and-review.md`, `references/learning-loop.md` |
 | **Quality** | `references/phase3-validation-details.md`, `references/skill-quality-gates.md`, `references/context-bloat-prevention.md` |
 | **Evaluation** | `references/eval-guide.md`, `references/eval-complete-reference.md`, `references/description-optimization-guide.md` |
