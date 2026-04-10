@@ -557,7 +557,8 @@ def extract_section_content(plan: str, section_name: str) -> str:
             break
 
     for alias in aliases_to_check:
-        pattern = rf"^##\s+{re.escape(alias)}.*?(?=^##\s|\Z)"
+        # Match H1-H6 headings (not just H2) so ### Section works alongside ## Section
+        pattern = rf"^#{1,6}\s+{re.escape(alias)}.*?(?=^#{1,6}\s+|\Z)"
         match = re.search(pattern, plan, re.DOTALL | re.IGNORECASE | re.MULTILINE)
         if match:
             return match.group(0)
@@ -783,6 +784,10 @@ def _resolve_file_reference(raw_path: str, plan_path: str | None) -> list[Path]:
     normalized = raw_path.strip().strip("`").strip().strip('"').strip("'")
     if not normalized or "://" in normalized:
         return []
+    # Strip line-range suffixes (e.g. :1040, :1040-1044, #L1040) before path resolution.
+    # On Windows, Path("P:/foo.py:1040-1044").exists() is False because the colon
+    # makes the path invalid — we must strip the suffix first.
+    normalized = re.sub(r"[:#]L?\d+(?:[-\d]*)?$", "", normalized)
     path = Path(normalized.replace("\\", "/"))
     candidates: list[Path] = []
     if path.is_absolute() or re.match(r"^[A-Za-z]:[\\/]", normalized):
@@ -2157,7 +2162,10 @@ def check_contract_boundary_matrix(plan: str) -> list[dict[str, Any]]:
         )
         return findings
 
-    missing_columns = [field for field in REQUIRED_PLAN_MATRIX_FIELDS if field not in headers]
+    # Case-insensitive comparison: headers are normalized by extract_markdown_table but
+    # REQUIRED_PLAN_MATRIX_FIELDS uses original casing, so compare with .lower()
+    header_lower = {h.lower(): h for h in headers}
+    missing_columns = [field for field in REQUIRED_PLAN_MATRIX_FIELDS if field.lower() not in header_lower]
     if missing_columns:
         findings.append(
             {
