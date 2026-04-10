@@ -24,6 +24,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+import asyncio
 
 import numpy as np
 from dataclasses import dataclass, field
@@ -139,17 +140,23 @@ def _get_prior_transcript_path(handoff_path: Path) -> Path | None:
     return None
 
 
-def _find_handoff_referencing(transcript_path: Path) -> Path | None:
+async def _find_handoff_referencing(transcript_path: Path) -> Path | None:
     """Find handoff file whose resume_snapshot.transcript_path == transcript_path."""
     handoff_dir = _handoff_dir()
-    if not handoff_dir.exists():
+    if not await asyncio.to_thread(handoff_dir.exists):
         return None
     target = str(transcript_path)
-    for hf in handoff_dir.glob("console_*_handoff.json"):
+    
+    # Run glob in a separate thread
+    handoff_files = await asyncio.to_thread(handoff_dir.glob, "console_*_handoff.json")
+    for hf in handoff_files:
         try:
-            with open(hf, encoding="utf-8") as f:
-                data = json.load(f)
-            if data.get("resume_snapshot", {}).get("transcript_path") == target:
+            def _blocking_read_handoff_file():
+                with open(hf, encoding="utf-8") as f:
+                    return json.load(f)
+            # Load JSON in a separate thread
+            handoff_data = await asyncio.to_thread(_blocking_read_handoff_file)
+            if handoff_data.get("resume_snapshot", {}).get("transcript_path") == target:
                 return hf
         except (OSError, json.JSONDecodeError, PermissionError):
             continue

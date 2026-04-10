@@ -5,6 +5,7 @@ import sqlite3
 import statistics
 import threading
 import time
+import asyncio
 from collections import defaultdict, deque
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
@@ -1383,7 +1384,7 @@ class EvidenceBasedLearning:
             self.logger.exception(f"Failed to initialize database: {e}")
             raise
 
-    def _learning_loop(self) -> None:
+    async def _learning_loop(self) -> None:
         """Background learning loop."""
         cycle_count = 0
 
@@ -1412,11 +1413,11 @@ class EvidenceBasedLearning:
                 )
 
                 # Wait for next cycle
-                time.sleep(self.config.insight_generation_interval)
+                await asyncio.sleep(self.config.insight_generation_interval)
 
             except Exception as e:
                 self.logger.exception(f"Learning cycle {cycle_count} failed: {e}")
-                time.sleep(60)  # Wait before retry
+                await asyncio.sleep(60)  # Wait before retry
 
     def _generate_insights(self) -> list[LearningInsight]:
         """Generate new learning insights."""

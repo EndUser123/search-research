@@ -1,0 +1,115 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "f43535a7-09ef-40a9-a6d3-e41f8806226f",
+    "terminal_id": "console_f374447f-c2d0-4a09-90f1-5f624cc6cded",
+    "source_session_id": "3cb1cb3c-89cb-4e89-8470-f9004e856bfc",
+    "created_at": "2026-04-09T22:57:59.219516+00:00",
+    "expires_at": "2026-04-09T23:17:59.219516+00:00",
+    "status": "pending",
+    "goal": "Check which ones are still worth doing.",
+    "current_task": "Check which ones are still worth doing.",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "P:/.claude/hooks/stop/Stop_verification_gate.py",
+      "P:/.claude/hooks/StopHook_drift_sentinel.py",
+      "P:/.claude/hooks/Stop_router.py",
+      "P:/.claude/hooks/anti_sycophancy/overconfidence_detector.py",
+      "C:\\Users\\brsth\\.claude\\plans\\humble-foraging-narwhal.md",
+      "P:/.claude/hooks/StopHook_skill_execution_gate.py",
+      "P:/.claude/hooks/UserPromptSubmit_modules/skill_enforcer.py",
+      "P:/.claude/hooks/StopHook_tdd_continuation.py",
+      "P:/.claude/hooks/PreToolUse_tdd_contract_gate.py",
+      "P:/.claude/hooks/UserPromptSubmit_modules/tdd_contract_auto_gate.py"
+    ],
+    "pending_operations": [
+      {
+        "type": "read",
+        "target": "P:/.claude/hooks/stop/Stop_verification_gate.py",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: *.py",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: *drift_sentinel*",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: Stop_router*",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:/.claude/hooks/StopHook_drift_sentinel.py",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "Resume read on P:/.claude/hooks/stop/Stop_verification_gate.py.",
+    "decision_refs": [],
+    "evidence_refs": [
+      "ev_d057afbe7cd84428ac2cb4fe6a0996e6",
+      "ev_2603c01d19354a5eaafd0cbacf8423ad",
+      "ev_d479091acb4a48ceb98b569e314dff75",
+      "ev_ea3605b65b524710ab466544b1449029",
+      "ev_d55a1ca5902440b985199f1f565ca3c1",
+      "ev_a81d5e7f841b4ab28f29899d1c561703"
+    ],
+    "transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\3cb1cb3c-89cb-4e89-8470-f9004e856bfc.jsonl",
+    "message_intent": "instruction",
+    "quality_score": 0.4,
+    "tasks_snapshot": []
+  },
+  "decision_register": [],
+  "evidence_index": [
+    {
+      "id": "ev_d057afbe7cd84428ac2cb4fe6a0996e6",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\3cb1cb3c-89cb-4e89-8470-f9004e856bfc.jsonl",
+      "content_hash": "sha256:4c6766006a936b16d958ab9fef3ed7c9fbcc140c55149dc5a586ff3e87459aaa"
+    },
+    {
+      "id": "ev_2603c01d19354a5eaafd0cbacf8423ad",
+      "type": "file",
+      "label": "Stop_verification_gate.py",
+      "path": "P:\\.claude\\hooks\\stop\\Stop_verification_gate.py",
+      "content_hash": "sha256:9862deb2b6aaf5838f95fdfcdc335b82af5eea3679542b7d3f090f37643d9901"
+    },
+    {
+      "id": "ev_d479091acb4a48ceb98b569e314dff75",
+      "type": "file",
+      "label": "StopHook_drift_sentinel.py",
+      "path": "P:\\.claude\\hooks\\StopHook_drift_sentinel.py",
+      "content_hash": "sha256:22739abaee734a4dd76eebc02614dea387e8ed3710fb4a88e07c5869bc840250"
+    },
+    {
+      "id": "ev_ea3605b65b524710ab466544b1449029",
+      "type": "file",
+      "label": "Stop_router.py",
+      "path": "P:\\.claude\\hooks\\Stop_router.py",
+      "content_hash": "sha256:a8c75183120fe52e3fefa4aca7a62e00997997d1f4c8e75971e638d0a8098dc6"
+    },
+    {
+      "id": "ev_d55a1ca5902440b985199f1f565ca3c1",
+      "type": "file",
+      "label": "overconfidence_detector.py",
+      "path": "P:\\.claude\\hooks\\anti_sycophancy\\overconfidence_detector.py",
+      "content_hash": "sha256:a32656d8ea5de77eea3f56804db3d78f6b6b70495e2bfbcdbba766fb66fb86bb"
+    },
+    {
+      "id": "ev_a81d5e7f841b4ab28f29899d1c561703",
+      "type": "file",
+      "label": "humble-foraging-narwhal.md",
+      "path": "C:\\Users\\brsth\\.claude\\plans\\humble-foraging-narwhal.md",
+      "content_hash": "sha256:e75ff27f46ac37dfd86aaf5c44cd66aefe18b1b4484bb8c1135349bc4cccda9f"
+    }
+  ],
+  "checksum": "sha256:626e441d32748db14037d13e70f6ab6840bf8d90e82d657d9b99f5e5d3353d96"
+}

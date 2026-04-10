@@ -29,6 +29,7 @@ from __future__ import annotations
 import logging
 import math
 import re
+import functools
 from collections import Counter
 from datetime import datetime, timezone
 from typing import Any
@@ -298,6 +299,7 @@ class UnifiedAsyncRouter:
         tokens = re.findall(r"\b[a-zA-Z0-9]+\b", text.lower())
         return [t for t in tokens if t not in self._STOPWORDS and len(t) > 1]
 
+    @functools.lru_cache(maxsize=256)
     def _compute_tfidf_similarity(self, query: str, result_text: str) -> float:
         """Compute TF-IDF cosine similarity between query and result text."""
         if not result_text or not result_text.strip():

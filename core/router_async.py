@@ -256,10 +256,10 @@ class AsyncSearchRouter:
                 "Please provide a meaningful search query."
             )
 
-        # Apply HyDE query enhancement if enabled and content provided
+        # Apply HyDE query enhancement if content provided (no LLM call needed — already generated)
         search_query = query
         hyde_applied = False
-        if self.hyde and hyde_content:
+        if hyde_content:
             search_query, hyde_applied = apply_hyde(query, hyde_content=hyde_content)
             if hyde_applied:
                 logger.debug(f"HyDE enhanced query: '{query[:50]}...' -> '{search_query[:50]}...'")
@@ -342,9 +342,9 @@ class AsyncSearchRouter:
                 "Please provide a meaningful search query."
             )
 
-        # Apply HyDE query enhancement if enabled and content provided
+        # Apply HyDE query enhancement if content provided (no LLM call needed — already generated)
         search_query = query
-        if self.hyde and hyde_content:
+        if hyde_content:
             search_query, _ = apply_hyde(query, hyde_content=hyde_content)
 
         # Determine which backends to use
@@ -428,9 +428,9 @@ class AsyncSearchRouter:
                 "Please provide a meaningful search query."
             )
 
-        # Apply HyDE query enhancement if enabled and content provided
+        # Apply HyDE query enhancement if content provided (no LLM call needed — already generated)
         search_query = query
-        if self.hyde and hyde_content:
+        if hyde_content:
             search_query, _ = apply_hyde(query, hyde_content=hyde_content)
 
         # Determine which backends to use

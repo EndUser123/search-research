@@ -20,6 +20,7 @@ If HyDE content is not provided, searches with original query.
 
 import logging
 import re
+import functools
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +112,7 @@ def enhance_query(query: str, key_phrases: list[str]) -> str:
     return enhanced
 
 
+@functools.lru_cache(maxsize=128)
 def apply_hyde(query: str, hyde_content: str | None = None) -> tuple[str, bool]:
     """Apply HyDE enhancement to query using pre-generated content.
 
