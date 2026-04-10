@@ -2358,7 +2358,12 @@ def _handle_move_suggestion(
         summary: Summary dict to update
     """
     # Check if this is a test file move
-    is_test_move = "tests/" in suggestion.lower() or "{filename}" in suggestion
+    # Also check if file_path is a tests directory (robust for misclassified violations)
+    is_test_move = (
+        "tests/" in suggestion.lower()
+        or "{filename}" in suggestion
+        or Path(file_path).name in ("tests", "tests/")
+    )
 
     if is_test_move:
         smart_dest, confidence, reason = determine_test_destination(file_path, test_dirs, "P:/")

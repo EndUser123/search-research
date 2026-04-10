@@ -49,6 +49,25 @@ def sanitize_path(path: str | None) -> str:
     return re.sub(r"[\n\r\x1b\x00]", "", str(path))
 
 
+def _safe_id_str(s: str) -> str:
+    """Sanitize string for use in filenames.
+
+    Strips <>:\"//|?*, replaces spaces with _, truncates to 64 chars.
+
+    Args:
+        s: Raw terminal_id string
+
+    Returns:
+        Sanitized string safe for use in filenames
+    """
+    if not s or not s.strip():
+        return "default"
+    # Replace special chars with underscore (each char individually, not as group)
+    result = re.sub(r"[!@#<>:\"'/\\|?*]", "_", s)
+    result = result.replace(" ", "_")
+    return result[:64]
+
+
 # Add CSF to path for CKS access
 _csf_src = Path(__file__).resolve().parent.parent.parent / "__csf" / "src"
 if _csf_src.exists():
@@ -239,12 +258,20 @@ WRITE_TOOLS = {
 _RESOLVED_STATE_FILE: Path | None = None
 
 
-def _state_file_candidates() -> list[Path]:
+def _state_file_candidates(terminal_id: str = "") -> list[Path]:
+    safe_terminal = _safe_id_str(terminal_id) if terminal_id else "default"
     configured = (
-        Path(os.environ.get("CSF_STATE_DIR", "P:/.claude/state")) / "investigation_state.json"
+        Path(os.environ.get("CSF_STATE_DIR", "P:/.claude/state"))
+        / f"investigation_state_{safe_terminal}.json"
     )
-    local_fallback = hooks_dir / "session_data" / "investigation_state.json"
-    temp_fallback = Path(tempfile.gettempdir()) / "claude_hooks" / "investigation_state.json"
+    local_fallback = (
+        hooks_dir / "session_data" / f"investigation_state_{safe_terminal}.json"
+    )
+    temp_fallback = (
+        Path(tempfile.gettempdir())
+        / "claude_hooks"
+        / f"investigation_state_{safe_terminal}.json"
+    )
     return [configured, local_fallback, temp_fallback]
 
 
@@ -263,38 +290,30 @@ def _candidate_is_writable(path: Path) -> bool:
         return False
 
 
-def _resolve_state_file() -> Path:
-    global _RESOLVED_STATE_FILE
-    if _RESOLVED_STATE_FILE is not None:
-        return _RESOLVED_STATE_FILE
-    for candidate in _state_file_candidates():
+def _resolve_state_file(terminal_id: str = "") -> Path:
+    for candidate in _state_file_candidates(terminal_id):
         if _candidate_is_writable(candidate):
-            _RESOLVED_STATE_FILE = candidate
             return candidate
     raise PermissionError("No writable investigation state path available")
 
 
-def load_state() -> InvestigationState:
+def load_state(terminal_id: str = "") -> InvestigationState:
     """Load investigation state from persistent storage."""
-    state_file = _resolve_state_file()
+    state_file = _resolve_state_file(terminal_id)
     if state_file.exists():
         try:
             with open(state_file) as f:
                 state = json.load(f)
-                # Expire state older than 2 hours (new session)
-                if state.get("timestamp"):
-                    age = datetime.now().timestamp() - state["timestamp"]
-                    if age > 7200:
-                        return fresh_state()
                 return state
         except (json.JSONDecodeError, KeyError):
-            return fresh_state()
-    return fresh_state()
+            return fresh_state(terminal_id)
+    return fresh_state(terminal_id)
 
 
-def fresh_state() -> InvestigationState:
+def fresh_state(terminal_id: str = "") -> InvestigationState:
     return {
         "timestamp": datetime.now().timestamp(),
+        "terminal_id": _safe_id_str(terminal_id) if terminal_id else "default",
         "files_read": [],
         "modules_investigated": set(),
         "investigation_declared": False,
@@ -303,9 +322,9 @@ def fresh_state() -> InvestigationState:
     }
 
 
-def save_state(state: InvestigationState) -> None:
+def save_state(state: InvestigationState, terminal_id: str = "") -> None:
     """Persist investigation state."""
-    state_file = _resolve_state_file()
+    state_file = _resolve_state_file(terminal_id)
     state_file.parent.mkdir(parents=True, exist_ok=True)
     # Convert set to list for JSON
     state_copy = state.copy()
@@ -893,28 +912,26 @@ def check_write_permission(
 
     # BLOCK
     return False, (
-        f"[WORKFLOW_BLOCK_NOT_HOOK_CRASH]\n"
-        f"This is an intentional Investigation Gate block, not a broken hook.\n\n"
-        f"INVESTIGATION GATE VIOLATION\n\n"
-        f"Attempting to modify: {filepath}\n"
+        f"⛔ INVESTIGATION GATE: File not yet read\n\n"
+        f"Target: {filepath}\n"
         f"Risk tier: {risk_tier}\n"
-        f"Related files read: {related_reads} (minimum required: {required_reads})\n\n"
-        f"Before modifying this file, you must:\n"
-        f"1. Read the target file to understand current implementation\n"
-        f"2. {('Read one additional related file in the same module/directory' if required_reads > 1 else 'Confirm target-file context is sufficient for this low-risk edit')}\n"
-        f"3. Understand the data flow and existing mechanisms\n\n"
-        f"Files read so far: {[sanitize_path(p) for p in state['files_read'][:5]]}{'...' if len(state['files_read']) > 5 else ''}\n\n"
-        f"To proceed:\n"
-        f"- Read {sanitize_path(filepath)} first, OR\n"
-        f"- Declare 'Investigation complete: [summary]' if already investigated, OR\n"
-        f"- Declare 'Greenfield: [reason]' if this is new code with no existing system\n\n"
-        f"IMPORTANT: After context compaction, file read state is reset.\n"
-        f"You MUST use the Read tool to re-read files before editing.\n"
-        f"Do NOT use Bash or other workarounds to bypass this check."
+        f"Coverage: {related_reads}/{required_reads} related files read\n\n"
+        f"Required before editing:\n"
+        f"1. Read: {sanitize_path(filepath)}\n"
+        f"2. Understand the data flow\n\n"
+        f"Recent files read: {[sanitize_path(p) for p in state['files_read'][:5]]}\n\n"
+        f"This is a workflow checkpoint, not an error.\n"
+        f"Bypass: Declare 'Investigation complete: [summary]'\n"
+        f"         or 'Greenfield: [reason]'"
     )
 
 
-def process_hook(tool_name: str, tool_input: ToolDict, user_message: str = "") -> CheckResult:
+def process_hook(
+    tool_name: str,
+    tool_input: ToolDict,
+    user_message: str = "",
+    terminal_id: str = "",
+) -> CheckResult:
     """
     Main hook entry point.
 
@@ -923,7 +940,7 @@ def process_hook(tool_name: str, tool_input: ToolDict, user_message: str = "") -
     if not ENABLED:
         return True, None
 
-    state = load_state()
+    state = load_state(terminal_id)
 
     # Track message from architectural check (for warn mode)
     message_to_return: str | None = None
@@ -943,7 +960,7 @@ def process_hook(tool_name: str, tool_input: ToolDict, user_message: str = "") -
                 user_message=user_message,
                 files_read=state["files_read"],
             )
-            save_state(state)
+            save_state(state, terminal_id)
             return False, arch_msg
         # Preserve warning message from warn mode
         if arch_msg:
@@ -962,7 +979,7 @@ def process_hook(tool_name: str, tool_input: ToolDict, user_message: str = "") -
                 user_message=user_message,
                 files_read=state["files_read"],
             )
-            save_state(state)
+            save_state(state, terminal_id)
             return False, prob_msg
         # Preserve warning message from warn mode
         if prob_msg and not prob_msg.startswith("[WARN MODE]"):
@@ -971,16 +988,16 @@ def process_hook(tool_name: str, tool_input: ToolDict, user_message: str = "") -
     # Track reads
     if tool_name in READ_TOOLS or tool_name == "Bash":
         state = record_read(tool_name, tool_input, state)
-        save_state(state)
+        save_state(state, terminal_id)
         return True, message_to_return
 
     # Check writes
     if tool_name in WRITE_TOOLS:
         allowed, reason = check_write_permission(tool_name, tool_input, state)
         if not allowed:
-            save_state(state)
+            save_state(state, terminal_id)
             return False, reason
-        save_state(state)
+        save_state(state, terminal_id)
 
     return True, message_to_return
 
@@ -1048,7 +1065,14 @@ if __name__ == "__main__":
         # Extract user message for architectural recommendation check
         user_message = get_last_user_message_from_input(input_data)
 
-        allowed, message = process_hook(tool_name, tool_input, user_message)
+        # Extract terminal_id — same pattern as PreToolUse.py:1040-1044
+        terminal_id = str(
+            input_data.get("terminal_id")
+            or input_data.get("terminalId")
+            or os.environ.get("CLAUDE_TERMINAL_ID", "")
+        ).strip()
+
+        allowed, message = process_hook(tool_name, tool_input, user_message, terminal_id)
 
         if not allowed:
             # Query CKS for related patterns if triggers match (with caching)
