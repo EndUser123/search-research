@@ -221,11 +221,6 @@ class AsyncSearchRouter:
         except Exception as e:
             logger.debug(f"NotebookLM backend not available: {e}")
 
-        try:
-            backends["wiki"] = local.QMDWikiBackend()
-        except Exception as e:
-            logger.debug(f"QMD Wiki backend not available: {e}")
-
         self._backends = backends
         self._backends_initialized = True
 
@@ -269,8 +264,15 @@ class AsyncSearchRouter:
             if hyde_applied:
                 logger.debug(f"HyDE enhanced query: '{query[:50]}...' -> '{search_query[:50]}...'")
 
-        # Check cache first (use original query for cache key to preserve cache hits)
+        # Check cache first
         if self.enable_cache:
+            # If HyDE was applied, check cache with enhanced query first (more specific)
+            if hyde_applied:
+                cached = self._cache.get(search_query, limit=limit, backends=backends)
+                if cached is not None:
+                    logger.debug(f"Cache hit for HyDE-enhanced query: '{search_query[:50]}...'")
+                    return cached
+            # Fall back to original query cache
             cached = self._cache.get(query, limit=limit, backends=backends)
             if cached is not None:
                 return cached
@@ -306,7 +308,9 @@ class AsyncSearchRouter:
         # Cache results (convert to dict for cache)
         if self.enable_cache:
             cache_results = [r.to_dict() for r in ranked_results]
-            self._cache.set(query, cache_results, limit=limit, backends=backends)
+            # Use enhanced query as cache key if HyDE was applied
+            cache_key = search_query if hyde_applied else query
+            self._cache.set(cache_key, cache_results, limit=limit, backends=backends)
 
         return ranked_results
 
@@ -569,34 +573,19 @@ class AsyncSearchRouter:
 
     def _convert_to_search_result(
         self,
-        raw_result: dict[str, Any] | SearchResult,
+        raw_result: dict[str, Any],
         source: str,
     ) -> SearchResult:
         """Convert backend result to SearchResult format.
 
         Args:
-            raw_result: Raw result from backend (dict or SearchResult dataclass)
+            raw_result: Raw result from backend
             source: Backend name
 
         Returns:
             SearchResult instance
         """
-        # Handle SearchResult dataclass directly (wiki backend returns these)
-        if isinstance(raw_result, SearchResult):
-            # Update source if provided
-            return SearchResult(
-                title=raw_result.title,
-                content=raw_result.content,
-                source=source.upper(),
-                score=raw_result.score,
-                url=raw_result.url,
-                file_path=raw_result.file_path,
-                line_number=raw_result.line_number,
-                metadata=raw_result.metadata,
-                cached=raw_result.cached,
-            )
-
-        # Extract common fields from dict
+        # Extract common fields
         title = raw_result.get("title") or raw_result.get("name", "")
         content = raw_result.get("content") or raw_result.get("description", "")
         score = raw_result.get("score", 0.5)
@@ -635,17 +624,12 @@ class AsyncSearchRouter:
         if not results:
             return []
 
-        # Apply score boost for specific backends to ensure diversity
-        # This counteracts score inflation in some backends (e.g., CKS at 0.9 vs wiki at 0.08)
+        # Group by score (round to 3 decimals for grouping)
         from collections import defaultdict
-
-        score_boost = {"WIKI": 1.0, "WIKI_BACKUP": 0.5}  # Boost wiki to be competitive
 
         score_groups = defaultdict(list)
         for r in results:
-            boost = score_boost.get(r.source.upper(), 0.0)
-            effective_score = r.score + boost
-            score_key = round(effective_score, 3)
+            score_key = round(r.score, 3)
             score_groups[score_key].append(r)
 
         # Sort scores descending
@@ -778,21 +762,20 @@ class AsyncSearchRouter:
         """Call a web provider API.
 
         Args:
-            provider: Provider name (tavily, serper, exa, youtube)
+            provider: Provider name (tavily, serper, exa, brave)
             query: Search query
             limit: Maximum results
 
         Returns:
             List of results from provider
         """
-        from .providers import ExaBackend, SerperBackend, TavilyBackend, YouTubeBackend
+        from .providers import ExaBackend, SerperBackend, TavilyBackend
 
         # Map provider names to backend classes
         provider_map = {
             "tavily": TavilyBackend,
             "serper": SerperBackend,
             "exa": ExaBackend,
-            "youtube": YouTubeBackend,
         }
 
         backend_class = provider_map.get(provider)

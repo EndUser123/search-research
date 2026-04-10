@@ -4,6 +4,7 @@ Migrated from research_skill/expansion/expander.py
 """
 
 import re
+import functools
 
 from .abbreviations import get_abbreviation_mappings
 from .synonyms import get_synonym_mappings
@@ -71,6 +72,7 @@ class QueryExpander:
                 else:
                     self.synonyms[term] = syn_list
 
+    @functools.lru_cache(maxsize=128)
     def expand_query(
         self,
         query: str,

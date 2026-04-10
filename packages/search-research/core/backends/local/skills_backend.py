@@ -170,6 +170,7 @@ class SkillsBackend:
                     "file_path": str(skill_file),
                     "type": "skill",
                     "_searchable_text": searchable_text,
+                    "_searchable_text_normalized": self._normalize_search_text(searchable_text),
                 }
             ]
         except (OSError, UnicodeDecodeError):
@@ -227,6 +228,7 @@ class SkillsBackend:
                     "file_path": str(command_file),
                     "type": "command",
                     "_searchable_text": searchable_text,
+                    "_searchable_text_normalized": self._normalize_search_text(searchable_text),
                 }
             ]
         except (OSError, UnicodeDecodeError):
@@ -347,7 +349,7 @@ class SkillsBackend:
         results_with_scores = []
         for _key, entry in self._index.items():
             searchable = entry.get("_searchable_text", "")
-            searchable_normalized = self._normalize_search_text(searchable)
+            searchable_normalized = entry.get("_searchable_text_normalized", "")
 
             # Exact match gets highest score
             score = 0.0

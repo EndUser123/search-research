@@ -31,9 +31,8 @@ import sys
 from pathlib import Path
 
 # Add skill-guard to path
-skill_guard_path = Path("P:/packages/skill-guard/src")
-if str(skill_guard_path) not in sys.path:
-    sys.path.insert(0, str(skill_guard_path))
+from __lib.skill_guard_path import ensure_skill_guard_in_syspath
+ensure_skill_guard_in_syspath()
 
 # Configuration
 ENABLED = os.environ.get("BREADCRUMB_GATE_ENABLED", "true").lower() in ("1", "true", "yes")

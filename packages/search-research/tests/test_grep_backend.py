@@ -1,12 +1,12 @@
 """Auto-scaffolded test for grep_backend."""
 
 import pytest
-from grep_backend import grep_backend
+from core.backends.local.grep_backend import GrepBackend
 
 
 def test_grep_backend_exists():
-    """Smoke test: grep_backend can be imported."""
-    assert grep_backend is not None
+    """Smoke test: GrepBackend can be imported."""
+    assert GrepBackend is not None
 
 
 # TODO: Add more tests based on actual functionality

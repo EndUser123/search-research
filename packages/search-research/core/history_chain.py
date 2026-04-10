@@ -174,6 +174,9 @@ def load_sessions_index(
         return {entry["sessionId"]: entry for entry in data["entries"]}
     if isinstance(data, dict) and "sessions" in data:
         return {entry["sessionId"]: entry for entry in data["sessions"]}
+    if isinstance(data, dict) and "entries" not in data and "sessions" not in data and not isinstance(data, list):
+        # Direct-key format: {"uuid": {"sessionId": "...", ...}, ...}
+        return data
     return {}
 
 

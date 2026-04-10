@@ -49,6 +49,26 @@ def _event_timestamp_year_month(timestamp_ms: int | float | None) -> tuple[int, 
     return now.tm_year, now.tm_mon
 
 
+def _blocking_write_watermark_logic(
+    lock_path: Path, target_dir: Path, target: Path, watermark: dict[str, Any]
+) -> None:
+    with FileLock(lock_path, timeout=_LOCK_TIMEOUT):
+        staged_fd, staged_path = tempfile.mkstemp(
+            dir=str(target_dir),
+            suffix=".staged",
+        )
+        try:
+            with os.fdopen(staged_fd, "w", encoding="utf-8") as fh:
+                json.dump(watermark, fh, separators=(",", ":"))
+            os.replace(staged_path, target)
+        except OSError:
+            try:
+                os.unlink(staged_path)
+            except OSError:
+                pass
+            raise
+
+
 def append_raw_event(provider_id: str, source_id: str, event: dict[str, Any]) -> str:
     """Append event to append-only raw archive.
 
@@ -86,50 +106,39 @@ def append_raw_event(provider_id: str, source_id: str, event: dict[str, Any]) ->
     return str(target)
 
 
-def write_watermark(provider_id: str, source_id: str, terminal_id: str, watermark: dict[str, Any]) -> None:
+async def write_watermark(provider_id: str, source_id: str, terminal_id: str, watermark: dict[str, Any]) -> None:
     """Write watermark using staged atomic write + FileLock."""
     # Path: P:/__csf/data/chs_archive/watermarks/{provider_id}/{source_id}/watermark_{terminal_id}.json
     safe_tid = re.sub(r"[^a-zA-Z0-9_.-]+", "_", terminal_id)
     target_dir = _WATERMARK_DIR / provider_id / source_id
-    target_dir.mkdir(parents=True, exist_ok=True)
+    await asyncio.to_thread(target_dir.mkdir, parents=True, exist_ok=True)
 
     target = target_dir / f"watermark_{safe_tid}.json"
 
     lock_dir = target_dir / "locks"
-    lock_dir.mkdir(parents=True, exist_ok=True)
+    await asyncio.to_thread(lock_dir.mkdir, parents=True, exist_ok=True)
     lock_path = lock_dir / f"{safe_tid}.lock"
 
     # Stale lock recovery on startup
-    _stale_lock_recovery(lock_path)
+    await asyncio.to_thread(_stale_lock_recovery, lock_path)
 
-    with FileLock(lock_path, timeout=_LOCK_TIMEOUT):
-        # Atomic staging: tempfile in same parent dir, then os.replace()
-        staged_fd, staged_path = tempfile.mkstemp(
-            dir=str(target_dir),
-            suffix=".staged",
-        )
-        try:
-            with os.fdopen(staged_fd, "w", encoding="utf-8") as fh:
-                json.dump(watermark, fh, separators=(",", ":"))
-            os.replace(staged_path, target)
-        except OSError:
-            try:
-                os.unlink(staged_path)
-            except OSError:
-                pass
-            raise
+    await asyncio.to_thread(
+        _blocking_write_watermark_logic, lock_path, target_dir, target, watermark
+    )
 
 
-def read_watermark(provider_id: str, source_id: str, terminal_id: str) -> dict[str, Any] | None:
+async def read_watermark(provider_id: str, source_id: str, terminal_id: str) -> dict[str, Any] | None:
     """Read watermark. Returns None if not exists."""
     safe_tid = re.sub(r"[^a-zA-Z0-9_.-]+", "_", terminal_id)
     target = _WATERMARK_DIR / provider_id / source_id / f"watermark_{safe_tid}.json"
 
-    if not target.exists():
+    if not await asyncio.to_thread(target.exists):
         return None
 
     try:
-        with open(target, encoding="utf-8") as fh:
-            return json.load(fh)
+        def _blocking_read():
+            with open(target, encoding="utf-8") as fh:
+                return json.load(fh)
+        return await asyncio.to_thread(_blocking_read)
     except (OSError, json.JSONDecodeError):
         return None

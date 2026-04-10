@@ -1,6 +1,8 @@
 """HyDE Engine for query enhancement."""
 
 from typing import Any
+import functools
+import asyncio
 
 
 class HyDEResearchEngine:
@@ -47,6 +49,12 @@ class HyDEEngine:
         """
         return self._AVAILABLE_MODES.copy()
 
+    @functools.lru_cache(maxsize=128)
+    def _sync_enhance_query_logic(self, query: str, mode: str) -> dict[str, Any]:
+        """Synchronous part of enhance_query, decorated for caching."""
+        hyde_engine = HyDEResearchEngine()
+        return hyde_engine.enhance_query(query, mode)
+
     async def enhance_query(self, query: str) -> "EnhancedQuery":
         """Enhance a query using HyDE.
 
@@ -62,10 +70,8 @@ class HyDEEngine:
         """
         from research_skill.models import EnhancedQuery
 
-        # Create a new HyDEResearchEngine instance for each call
-        # This allows tests to patch the class and affect behavior
-        hyde_engine = HyDEResearchEngine()
-        result = hyde_engine.enhance_query(query, self.mode)
+        # Run the cached synchronous logic in a separate thread
+        result = await asyncio.to_thread(self._sync_enhance_query_logic, query, self.mode)
 
         return EnhancedQuery(
             original=query,

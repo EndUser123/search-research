@@ -4,7 +4,6 @@ This module provides web search providers that integrate with external APIs:
 - Tavily: AI-powered search with answer generation
 - Serper: Google Search API wrapper
 - Exa: Semantic search for research
-- YouTube: YouTube video transcript search (yt-dlp + intelligence-stream)
 - Brave: Privacy-focused search
 - Bing: Microsoft Search API
 - Google: Google Custom Search API
@@ -25,7 +24,6 @@ from .mojeek import MojeekBackend
 from .serper import SerperBackend
 from .tavily import TavilyBackend
 from .you import YouBackend
-from .youtube import YouTubeBackend
 
 __all__ = [
     "BaseWebBackend",
@@ -34,7 +32,6 @@ __all__ = [
     "TavilyBackend",
     "SerperBackend",
     "ExaBackend",
-    "YouTubeBackend",
     "BraveBackend",
     "BingBackend",
     "GoogleBackend",

@@ -71,7 +71,12 @@
       "WebFetch(domain:www.jdhodges.com)",
       "mcp__aid__aid_analyze",
       "Bash(mkdir -p P:/.claude/plans/adversarial)",
-      "Bash(python3 /tmp/findings.py)"
+      "Bash(python3 /tmp/findings.py)",
+      "Bash(rm \"P:\\\\.claude\\\\skills\\\\yt-channel\")",
+      "Bash(mklink /J \"P:\\\\.claude\\\\skills\\\\yt-channel\" \"P:\\\\packages\\\\intelligence-stream\\\\.claude\\\\skills\\\\yt-channel\")",
+      "Bash(rm -rf P:/.claude/skills/test-ask-deescalation P:/.claude/skills/test-ask-escalation P:/.claude/skills/test-ask-first-time P:/.claude/skills/test-auto-recommended P:/.claude/skills/test-auto-skip P:/.claude/skills/test-auto-validate P:/.claude/skills/test-complete-skill P:/.claude/skills/test-dedup-different-warnings P:/.claude/skills/test-dedup-perf-no-issues P:/.claude/skills/test-dedup-same-type-diff-severity P:/.claude/skills/test-dedup-same-warning P:/.claude/skills/test-dedup-skill-1 P:/.claude/skills/test-dedup-skill-2 P:/.claude/skills/test-frontmatter-warnings P:/.claude/skills/test-no-ask-same-mode P:/.claude/skills/test-report-findings P:/.claude/skills/test-skill P:/.claude/skills/test-skill-advisory P:/.claude/skills/test-skill-behavior P:/.claude/skills/test-skill-integration P:/.claude/skills/test-skill-none P:/.claude/skills/test-skill-strict P:/.claude/skills/test-skill-warning)",
+      "Bash(rm -rf P:/.claude/skills/data-processor-v2)",
+      "Bash(ls -d P:/.claude/skills/test-*)"
     ],
     "deny": [],
     "ask": []

@@ -57,13 +57,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from __lib.hook_base import hook_main
 from __lib.hook_constants import KNOWLEDGE_SKILLS
 
-# Add skill_guard to path before importing (matches pattern in other hook files)
-_skill_guard_path = Path("P:/packages/skill-guard/src")
-if str(_skill_guard_path) not in sys.path:
-    sys.path.insert(0, str(_skill_guard_path))
+# Add skill_guard to path before importing (shared utility ensures consistent validation)
+from __lib.skill_guard_path import ensure_skill_guard_in_syspath
+ensure_skill_guard_in_syspath()
 
-# Import skill auto-discovery for universal enforcement
-from skill_guard.skill_auto_discovery import get_skill_config
+# Import skill auto-discovery for universal enforcement (LOGIC-002: add local exception handling)
+try:
+    from skill_guard.skill_auto_discovery import get_skill_config
+except (ImportError, AttributeError):
+    get_skill_config = None
 
 # Import robust command extractor from skill_enforcer for stateless skill-first check
 from UserPromptSubmit_modules.skill_enforcer import extract_command_name
@@ -512,6 +514,9 @@ def handle_pre_tool_use(data: dict) -> dict:
 
         # Slash command was used but Skill tool wasn't called first
         # Check if the skill has workflow_steps
+        # Ensure skill_guard is in sys.path (QUAL-004: subprocess may not have module-level setup)
+        from __lib.skill_guard_path import ensure_skill_guard_in_syspath
+        ensure_skill_guard_in_syspath()
         try:
             from skill_guard.breadcrumb.tracker import _load_workflow_steps
 

@@ -1,7 +1,7 @@
 ---
 name: sqa
-description: Unified SQA Orchestrator — 8-layer Software Quality Assurance model (Predictive→Syntactic→Semantic→Structural→Requirements→Security→Performance→Operational→Meta-Synthesis) with contract-integrity, Contract Authority Packet alignment, and resume-integrity certification
-version: 1.4.0
+description: Unified SQA Orchestrator — 11-layer Software Quality Assurance model (Checklist→Predictive→Syntactic→Semantic→Structural→Requirements→Security→Performance→Operational→E2E→Meta→Contracts) with contract-integrity, Contract Authority Packet alignment, and resume-integrity certification
+version: 2.0.0
 status: stable
 category: quality
 triggers:
@@ -12,6 +12,7 @@ entry_type: skill
 requires_target: false
 enforcement: strict
 workflow_steps:
+  - L0_CHECKLIST
   - L0_PREDICTIVE
   - L1_SYNTACTIC
   - L2_SEMANTIC
@@ -20,7 +21,9 @@ workflow_steps:
   - L5_SECURITY
   - L6_PERFORMANCE
   - L7_OPERATIONAL
+  - L8_E2E
   - L8_META_SYNTHESIS
+  - L9_CONTRACTS
 # Extensions to SKILL_SCHEMA (not enumerated in schema):
 #   version: skill version string
 #   status: stable|experimental|deprecated
@@ -31,7 +34,7 @@ workflow_steps:
 
 # /sqa — Unified SQA Orchestrator
 
-Execute an 8-layer sequential quality analysis pipeline against a target codebase.
+Execute an 11-layer sequential quality analysis pipeline against a target codebase.
 
 For workflow infrastructure, SQA must certify contract integrity, resume integrity, and stale-data immunity, not just generic quality.
 
@@ -40,7 +43,7 @@ For workflow infrastructure, SQA must certify contract integrity, resume integri
 ```
 /sqa <target-path>               # explicit target
 /sqa                             # auto-detect target via semantic intent resolution
-/sqa --layer=N                   # run specific layer only (0-7, META)
+/sqa --layer=N                   # run specific layer only (0-9, META, CONTRACTS)
 /sqa --focus <lens>              # apply focus lens (see Focus Lenses below)
 /sqa --halt-on <severity>        # halt after layer if findings exceed threshold (default: HIGH)
 /sqa --fix                       # auto-fix safe issues in L1/L2 (formatting, imports, lint)
@@ -101,7 +104,8 @@ State assumption: "Certifying [X] — assumption based on [signal]. Correct?" On
 
 | Layer | Name | Tool | Dispatch | Hard Dependency |
 |-------|------|------|---------|----------------|
-| 0 | PREDICTIVE | 16 adversarial specialists (conditional invocation based on target characteristics) | **Agent** (skill-level dispatch only — Python layer returns empty list) | — |
+| 0 | CHECKLIST | Fast-fail config/structure check (from /verify Tier 0) | Python/CLI | — |
+| 0 | PREDICTIVE | 16 adversarial specialists (conditional invocation based on target characteristics) | **Agent** (skill-level dispatch only — Python layer returns empty list) | L0_CHECKLIST |
 | 1 | SYNTACTIC | ruff, mypy, AI Distiller | Python/CLI | — |
 | 2 | SEMANTIC | verify (pytest), diagnose | Python/CLI | — |
 | 3 | STRUCTURAL | meta-review, harden, apply_safety_patterns | Python/CLI | — |
@@ -109,24 +113,29 @@ State assumption: "Certifying [X] — assumption based on [signal]. Correct?" On
 | 5 | SECURITY | adversarial-security, path traversal check, data-safety-vcs, CVE/API deprecation scan | **Agent** + Python/CLI (dispatch via Agent tool, not subprocess) | — |
 | 6 | PERFORMANCE | perf, adversarial-performance | **Agent** + CLI (dispatch via Agent tool, not subprocess) | — |
 | 7 | OPERATIONAL | verify (hook chain), hook-audit, hook-inventory, recursive_failure_detector | Python/CLI | — |
+| 8 | E2E | Actual skill/workflow invocation (from /verify Tier 3) | Agent/CLI | — |
 | META | META-SYNTHESIS | consensus detection, blind-spot detection, evidence quality | Python | All |
+| 9 | CONTRACTS | Contract integrity check (from /verify Contract Check) | Python/CLI | META |
 
 ### Execution Model
 
 **The LLM is the conductor.** SKILL.md is the score — I execute the workflow by:
 
 1. **Validate target** via `_validate_target()` utility
-2. **Dispatch Agent-based layers** via Agent tool (file-based handoff, not inline findings):
+2. **Run L0_CHECKLIST** (fast-fail pre-check) — if fails, halt immediately
+3. **Dispatch Agent-based layers** via Agent tool (file-based handoff, not inline findings):
    - L0 (PREDICTIVE): Dispatch 7 specialists in parallel via Agent tool (run_in_background=True), each writing JSON to session file. After all complete, dispatch `adversarial-critic` for synthesis.
    - L5 (SECURITY): Dispatch `Agent('adversarial-security')` with file output; run path traversal check via Python utility
    - L6 (PERFORMANCE): Dispatch `Agent('adversarial-performance')` with file output; run perf checks via Python utility
-3. **Run Python/CLI layers** via Bash subprocess:
+4. **Run Python/CLI layers** via Bash subprocess:
    - L1 (SYNTACTIC): `ruff check`, `mypy`
    - L2 (SEMANTIC): `verify` (pytest), `diagnose`
    - L3 (STRUCTURAL): `meta-review`, `harden`, `apply_safety_patterns`
    - L4 (REQUIREMENTS): `gto`, `spec-compliance` — SKIP if L2 had failures
    - L7 (OPERATIONAL): `hook-audit`, `hook-inventory`, `recursive_failure_detector`
-4. **Synthesize META** — consensus detection, blind-spot detection, evidence quality
+5. **Run L8_E2E** — Actual skill/workflow invocation verification
+6. **Synthesize META** — consensus detection, blind-spot detection, evidence quality
+7. **Run L9_CONTRACTS** — Contract integrity check (producer/consumer boundary proof)
 
 **Orchestrator.py** is a **pure utilities module** — it provides `_validate_target`, `_atomic_write`, `L2State`, `SQAReport`, `save_report`. It contains **no orchestration logic**. Do not run `orchestrator.py` directly.
 
@@ -142,7 +151,7 @@ State assumption: "Certifying [X] — assumption based on [signal]. Correct?" On
 
 **RNS Presentation Triggers:**
 - `[HALT CHECK]` after any layer → Present ALL accumulated findings in RNS format, then stop
-- Final step completion (Step 11) → Present ALL accumulated findings in RNS format
+- Final step completion (Step 12) → Present ALL accumulated findings in RNS format
 
 ## Your Workflow
 
@@ -151,6 +160,32 @@ When /sqa is invoked:
 ### Step 0: Validate Target
 Run `_validate_target()` utility to ensure path exists, is not symlink, within allowed roots.
 Initialize state: `from sqa_state_tracker import init_state; state = init_state(target, halt_on="HIGH")`
+
+### Step 0a: L0_CHECKLIST (Fast-Fail Pre-Check)
+Run fast-fail structural verification to catch configuration/structure issues before expensive analysis.
+
+**Checklist verification** (from /verify Tier 0):
+- For skills: SKILL.md exists, valid frontmatter, required fields present
+- For hooks: Hook file exists, valid registration, required dependencies available
+- For features: Plan artifact exists, workflow steps defined, acceptance criteria present
+- For code: File exists, valid syntax, imports resolvable
+
+Run via Python utility or subprocess:
+```bash
+python -c "
+from pathlib import Path
+from sqa_checklist import run_checklist
+result = run_checklist(target)
+print(result.json_output())
+"
+```
+
+**Fast-fail behavior**: If L0_CHECKLIST fails, halt immediately with finding. No need to run expensive L0_PREDICTIVE or deeper layers on broken targets.
+
+Record completion: `record_layer_complete("L0_CHECKLIST", findings=N, pass_fail=result.passed)`
+
+### [HALT CHECK] After Step 0a
+If L0_CHECKLIST fails: EMIT `[HALT]`, run `record_halt("L0_CHECKLIST")`, present findings in RNS format, and stop.
 
 ### Step 1: PREDICTIVE (Optional - skip for fast-path)
 
@@ -651,6 +686,32 @@ Record completion: `record_layer_complete("L7", findings=N)`
 ### [HALT CHECK] After Step 8
 If any findings at or above `--halt-on` threshold (default: HIGH): EMIT `[HALT]`, run `record_halt("L7")`, and stop. Otherwise continue.
 
+### Step 8a: L8_E2E (End-to-End Verification)
+Run actual skill/workflow invocation verification (from /verify Tier 3).
+
+**E2E verification** ensures the target works in practice, not just in theory:
+- For skills: Invoke the skill with test input, verify expected output
+- For hooks: Trigger hook via actual workflow, verify side effects
+- For features: Execute the workflow, verify end-to-end behavior
+- For code: Run integration tests or manual execution scenarios
+
+Run via appropriate method:
+```bash
+# For skills
+/skill <test-input> --target <target>
+
+# For hooks
+bash -c "trigger workflow that exercises hook"
+
+# For code
+pytest tests/integration/test_<target>_e2e.py
+```
+
+Record completion: `record_layer_complete("L8_E2E", findings=N, pass_fail=result.passed)`
+
+### [HALT CHECK] After Step 8a
+If E2E verification fails: EMIT `[HALT]`, run `record_halt("L8_E2E")`, present findings in RNS format, and stop. Otherwise continue.
+
 ### Step 9: META-SYNTHESIS
 - Consensus detection (2+ layers agree on same file:line:category)
 - Blind-spot detection
@@ -716,6 +777,39 @@ else:
     print("Package requires fixes before use.")
     sys.exit(1)
 ```
+
+### Step 12: L9_CONTRACTS (Contract Integrity Check)
+Run contract integrity check for targets that involve producer/consumer boundaries (from /verify Contract Check).
+
+**Contract verification** ensures that producer and consumer agree on their interface:
+- **For handoff/resume targets**: Verify handoff envelope fields, consumer validation, stale rejection
+- **For skill/hook targets**: Verify contract primitives are complete and validated
+- **For evidence/artifact targets**: Verify producer fields match consumer expectations
+
+**Contract Authority Packet validation** (when present):
+- Verify schema version matches expected
+- Verify freshness authority is correct
+- Verify invalidation semantics are defined
+- Verify transcript-vs-artifact precedence is documented
+
+Run via Python utility or manual verification:
+```python
+from sqa_contracts import verify_contract_integrity
+result = verify_contract_integrity(target, contract_authority_packet)
+print(result.json_output())
+```
+
+**Required proof** (from /verify Contract Check):
+1. Producer emits the required fields
+2. Consumer explicitly validates or depends on those fields
+3. Missing required fields fail in the intended way
+4. Stale or superseded artifacts are rejected or invalidated in the intended way
+5. Transcript/workspace truth beats stale summary state where applicable
+
+Record completion: `record_layer_complete("L9_CONTRACTS", findings=N, pass_fail=result.passed)`
+
+### [FINAL HALT CHECK]
+If L9_CONTRACTS fails or any prior findings remain unaddressed: EMIT `[FINAL HALT]`, present ALL accumulated findings in RNS format, and stop. Otherwise, certification is complete.
 
 ### FINAL [HALT CHECK] After Step 11
 **Always present RNS with ALL accumulated findings at completion:**

@@ -50,6 +50,28 @@ class QueryCache:
 
         self._hits = 0
         self._misses = 0
+        self._start_cleanup_thread()
+
+    def _start_cleanup_thread(self) -> None:
+        """Start background thread to periodically remove expired entries."""
+        def cleanup_loop() -> None:
+            while True:
+                time.sleep(60)  # Check every 60 seconds
+                self._sweep_expired()
+
+        thread = threading.Thread(target=cleanup_loop, daemon=True)
+        thread.start()
+
+    def _sweep_expired(self) -> None:
+        """Remove all expired entries."""
+        with self._lock:
+            now = time.time()
+            expired_keys = [
+                key for key, entry in self._cache.items()
+                if now - entry["timestamp"] > self.ttl_seconds
+            ]
+            for key in expired_keys:
+                del self._cache[key]
 
     def _hash_query(self, query: str, **kwargs: Any) -> str:
         """Create hash from query string and options."""

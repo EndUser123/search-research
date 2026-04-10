@@ -1,7 +1,7 @@
 ---
 name: ai-gemini
 description: Gemini-powered research and engineering assistant using ACG workflow and soft XoT orchestration
-version: 1.3.5
+version: 1.3.6
 category: productivity
 triggers:
   - /ai-gemini
@@ -225,7 +225,7 @@ gemini -y -o text --include-directories "P:/.claude" -p "Read P:/.claude/skills/
 
 ### Timeout and Response Handling
 
-**Model Stability Guidance**: For consistent results and to prevent unexpected `ModelNotFoundError` or `MODEL_CAPACITY_EXHAUSTED` (429) errors, prefer pinning to a stable model. Set the `GEMINI_MODEL` environment variable, e.g., `GEMINI_MODEL=gemini-2.5-flash`. This skill expects `gemini-2.5-flash` for critical tasks. If `2.5-flash` is unavailable, try `gemini-2.0-flash`; if that also fails, flag as `[MODEL_UNAVAILABLE]`.
+**Model Stability Guidance**: For consistent results and to prevent unexpected `ModelNotFoundError` or `MODEL_CAPACITY_EXHAUSTED` (429) errors, pin to a stable model using the `-m` flag: `gemini -y -o text -m gemini-2.5-flash -p "[prompt]"`. The `-m` flag is more reliable than `GEMINI_MODEL` env var (which may not persist across shell sessions). This skill expects `gemini-2.5-flash` for critical tasks. If `2.5-flash` is unavailable, try `gemini-2.0-flash`; if that also fails, flag as `[MODEL_UNAVAILABLE]`.
 
 **Timeout guidance**: If no response in 10 minutes, assume `MODEL_CAPACITY_EXHAUSTED` and initiate a retry sequence with exponential backoff (up to 4 attempts). If all retries time out, report the raw output and flag as `[TIMEOUT]`. If `ModelNotFoundError` persists across different attempts/models, flag as `[MODEL_UNAVAILABLE]` and suggest manual model selection.
 
@@ -237,8 +237,8 @@ gemini -y -o text --include-directories "P:/.claude" -p "Read P:/.claude/skills/
 |-----------|---------|--------|
 | 0 | Success | Read output |
 | 134 | OOM / input too large | Switch to `--include-directories` pattern |
-| 1 | General error, e.g., `ModelNotFoundError` | Check stderr for message. If `ModelNotFoundError`, try setting `GEMINI_MODEL` to a stable model (e.g., `gemini-2.5-flash`). |
-| Non-zero + "429" | `MODEL_CAPACITY_EXHAUSTED` or `rateLimitExceeded` | Initiate retry sequence (up to 4 attempts). If persistent, check quota or try `GEMINI_MODEL=gemini-1.5-flash-preview`. |
+| 1 | General error, e.g., `ModelNotFoundError` | Check stderr for message. If `ModelNotFoundError`, try `-m gemini-2.5-flash` flag explicitly. |
+| Non-zero + "429" | `MODEL_CAPACITY_EXHAUSTED` or `rateLimitExceeded` | Initiate retry sequence (up to 4 attempts). If persistent, try `-m gemini-2.0-flash`. |
 | Non-zero + empty | General failure | Report raw output, flag as `[GENERAL_ERROR]` |
 
 **Known failure modes** (community reports, unverified):
@@ -287,6 +287,10 @@ Run this before first use per session:
 | Capacity Error | Run during peak load | `MODEL_CAPACITY_EXHAUSTED` | Backoff 30s with up to 4 retries, then report `[CAPACITY_EXHAUSTED]` |
 
 ## Changelog
+
+### 1.3.6
+- Model Stability Guidance: Changed from `GEMINI_MODEL` env var to `-m` flag for model pinning — flag is more reliable than env var which may not persist across shell sessions (SKILL.md:228)
+- Error Interpretation: Updated to recommend `-m gemini-2.5-flash` and `-m gemini-2.0-flash` fallback instead of env var approach (SKILL.md:240-241)
 
 ### 1.3.5
 - ENGINEERING path: Added Binary Assertions — objective pass/fail checks replace subjective scoring (SKILL.md:104-106)

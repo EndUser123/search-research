@@ -37,7 +37,6 @@ async def execute_search(
     min_score: float = 0.5,
     min_results: int = 3,
     enable_jmri: bool = True,
-    hyde_content: str | None = None,
 ) -> list:
     """Execute universal search with Layer 1 filtering.
 
@@ -49,7 +48,6 @@ async def execute_search(
         min_score: Minimum relevance score for quality floor
         min_results: Minimum result count for quality check
         enable_jmri: Enable jMRI token-efficient retrieval
-        hyde_content: Optional HyDE content for query enhancement
 
     Returns:
         List of search results (Layer 1 filtered)
@@ -68,7 +66,7 @@ async def execute_search(
     # Execute search - Layer 1 filtering happens inside UnifiedAsyncRouter
     # Error handling: wrap in try/except with fallback logic (TASK-002)
     try:
-        results = await router.search_async(query, limit=limit, hyde_content=hyde_content)
+        results = await router.search_async(query, limit=limit)
     except ConnectionError as e:
         # Web search backend failed - log and return empty list
         print(f"[Search Executor] ConnectionError: {e}")

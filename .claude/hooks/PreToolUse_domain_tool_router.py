@@ -161,21 +161,21 @@ def main() -> None:
         query = extract_query(tool_name, tool_input)
         if not query or len(query) < 3:
             # No meaningful query, allow without suggestion
-            print(json.dumps({"decision": "allow"}))
+            print(json.dumps({"decision": "approve"}))
             return
 
         # Classify query and build suggestion
         classification = classify_query(query)
         if classification:
             advisory = build_suggestion(classification, query)
-            print(json.dumps({"decision": "allow", "hookSpecificOutput": {"advisory": advisory}}))
+            print(json.dumps({"decision": "approve", "hookSpecificOutput": {"advisory": advisory}}))
         else:
             # No specific recommendation
-            print(json.dumps({"decision": "allow"}))
+            print(json.dumps({"decision": "approve"}))
 
     except Exception as e:
         # Fail open - don't block on errors
-        print(json.dumps({"decision": "allow", "error": str(e)}), file=sys.stderr)
+        print(json.dumps({"decision": "approve", "error": str(e)}), file=sys.stderr)
 
 
 if __name__ == "__main__":

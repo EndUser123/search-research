@@ -11,6 +11,7 @@ triggers:
   - arch
   - architecture
   - architectural decision
+  - adf
 suggest:
   - /qr
   - /planning
@@ -423,6 +424,27 @@ Before suggesting architectural changes, verify the gap actually exists. Require
 ### If Out-of-Scope Detected
 
 Offer user choice: (1) Run suggested skill, or (2) Continue with /arch anyway. **WAIT for user selection.**
+
+### Step 0.3: Scope Check — Is This an Architecture Decision?
+
+**Before routing to templates, determine if the proposal actually needs architectural analysis.**
+
+This is the ADF pre-flight gate — absorbed from the deprecated `/adf` skill. It prevents over-engineering by distinguishing structural extraction from capability reuse.
+
+**Key question:** Does this proposal **ADD** new boundaries/abstractions, or does it **SHARE/REUSE** existing ones?
+
+| Proposal Type | ADF Applies? | Instead |
+|---------------|--------------|---------|
+| Extract/split/separate code into new boundaries | ✅ Yes | Continue to Stage 1 |
+| Reorganize/restructure existing code | ✅ Yes | Continue to Stage 1 |
+| Share existing capabilities more broadly | ❌ No | Evaluate integration ROI directly |
+| Give module Y access to module X's tools | ❌ No | This reduces duplication — evaluate ROI directly |
+| Add abstraction layer | ✅ Yes | Continue to Stage 1 |
+| Remove/consolidate existing code | ❌ No | This reduces complexity — proceed |
+
+**If capability sharing detected:** State `Scope check: This is capability reuse, not structural extraction. Skipping architectural analysis. Proceeding with integration evaluation.` and route to a lightweight integration assessment instead of full ADR workflow.
+
+**If structural extraction detected:** Continue to Stage 1 with the scope confirmed.
 
 ---
 
@@ -1021,6 +1043,7 @@ See `references/routing-contract.md` for input-to-template routing with expected
 - **Template-based execution:** Read and execute, don't delegate
 - **ADR-first output:** Default output is concise ADR format; `--verbose` for full analysis
 - **Edge case awareness:** Every output must document edge cases
+- **Compaction resilience:** If a session is compacted mid-ADR, the draft ADR must be saved to `P:/.claude/arch_decisions/` before the compact window closes, so the next session can resume without loss. Auto-save is mandatory for any ADR longer than one exchange.
 
 ---
 
@@ -1083,4 +1106,4 @@ Score formula: `(reliability_score * rel_wt) * (flexibility_score * flex_wt) * G
 
 ---
 
-**Version:** 5.1 | **Architecture:** Template-based router with GoT, ADR-first output, verbose mode, one-page ADR template, graph-aware reasoning, three-path execution (REVIEW / IMPROVE / DEFAULT), Edge Case Integration, Contract Boundary Inventory, Contract Boundary Closure, Contract Authority Packet emission, Planning Handoff Packet emission, Sensitivity Analysis, Decision Policy Modes, Hook Registration Consistency Checking
+**Version:** 5.3 | **Architecture:** Template-based router with GoT, ADR-first output, verbose mode, one-page ADR template, graph-aware reasoning, three-path execution (REVIEW / IMPROVE / DEFAULT), Edge Case Integration, Contract Boundary Inventory, Contract Boundary Closure, Contract Authority Packet emission, Planning Handoff Packet emission, Sensitivity Analysis, Decision Policy Modes, Hook Registration Consistency Checking

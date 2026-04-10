@@ -165,10 +165,16 @@ Internal blind-spot checks are run before final recommendations.
 ## How to Use
 
 ```
-/skill-audit <target>    # Audit a skill by name
-/skill-audit /arch       # Audit /arch
-/skill-audit /rca        # Audit /rca
+/skill-audit <target>              # Audit a skill by name
+/skill-audit /arch                 # Audit /arch
+/skill-audit /rca                  # Audit /rca
+/skill-audit <target> --gaps       # Include Gap Table in output
+/skill-audit <target> --no-got-tot # Skip Graph-of-Thought/Tree-of-Thought analysis
 ```
+
+**Output flags:**
+- `--gaps` — include the Gap Table (lens-by-lens findings). Off by default; use `--gaps` to show it.
+- `--no-got-tot` — skip GoT+ToT reasoning passes. Useful for fast, narrow audits.
 
 ## Audit Modes
 
@@ -384,7 +390,7 @@ For creation/synthesis requests that were misrouted into `/skill-audit`, do not 
 - `Recommended Next Skill`
 - `Build Handoff`
 
-**Gap Table** — one row per lens finding:
+**Gap Table** — one row per lens finding. Emit only when `--gaps` is given:
 
 | Lens | Gap | Evidence | Owner | Priority |
 |------|-----|----------|-------|----------|

@@ -249,7 +249,6 @@ class CoreResearchCommand:
             "claude",  # Claude Code WebSearch - built-in web search
             "webreader_mcp",  # Enhanced WebReader with MCP support
             "notebooklm",  # NotebookLM MCP - long-form research synthesis
-            "youtube",  # YouTube video transcript search
         ]
 
     @staticmethod
@@ -605,8 +604,6 @@ class CoreResearchCommand:
             )
         elif mode == "zai":
             return await self._zai_search(query, max_results=kwargs.get("max_results", 10))
-        elif mode == "youtube":
-            return await self._youtube_search(query, max_results=kwargs.get("max_results", 5))
         elif mode in ["webreader", "fetch"]:
             return await self._webreader_search(
                 query,
@@ -1360,45 +1357,6 @@ class CoreResearchCommand:
         return await self._webreader_search(
             query, max_results, kwargs.get("timeout", 30), kwargs.get("vision", False)
         )
-
-    async def _youtube_search(self, query: str, max_results: int = 5) -> dict[str, Any]:
-        """Search YouTube videos and fetch transcripts."""
-        start_time = time.perf_counter()
-
-        try:
-            from .providers import YouTubeBackend
-
-            backend = YouTubeBackend(max_results=max_results)
-            results = await backend.search(query, max_results=max_results, timeout=30)
-
-            # Convert to research result format
-            formatted_results = []
-            for r in results:
-                formatted_results.append(
-                    {
-                        "title": r.get("title", ""),
-                        "content": r.get("content", ""),
-                        "url": r.get("url", ""),
-                        "source": "youtube",
-                        "score": r.get("score", 0.0),
-                        "metadata": r.get("metadata", {}),
-                    }
-                )
-
-            duration_ms = (time.perf_counter() - start_time) * 1000
-            return _create_timing_result(
-                {
-                    "results": formatted_results,
-                    "sources_used": ["youtube"],
-                },
-                "youtube",
-                duration_ms,
-            )
-
-        except Exception as e:
-            duration_ms = (time.perf_counter() - start_time) * 1000
-            error_result = self._error_result("youtube", str(e))
-            return _create_timing_result(error_result, "youtube", duration_ms)
 
 
 async def _main_async() -> int:

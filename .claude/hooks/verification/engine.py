@@ -222,6 +222,10 @@ def _verify_rule_claim(claim: Any, events: List[Dict[str, Any]]) -> Verification
 # Patterns that indicate self-verification (inline evidence in claim text)
 _SELF_VERIFICATION_PATTERNS = [
     re.compile(r"\bthis\s+session\b", re.IGNORECASE),
+    # Line citation patterns — "Line 393", "lines 167-177", "SKILL.md:171"
+    # These are self-verifying: the claim cites specific line numbers already in the turn's grep/Read output
+    re.compile(r"\blines?\s+\d+(?:[–-]\d+)?", re.IGNORECASE),  # "Line 393", "lines 167-177"
+    re.compile(r"\b\w[\w./\\-]+\.\w+:\d+(?:[–-]\d+)?", re.IGNORECASE),  # "file.py:171" or "file.py:171-180"
     re.compile(r"\bverified\s+(?:this|in)\s+(?:the\s+)?(?:session|earlier|before)\b", re.IGNORECASE),
     re.compile(r"\bls\s+\|\s*grep\b", re.IGNORECASE),
     re.compile(r"\bls\s+(?:showed|confirmed|revealed)\b", re.IGNORECASE),

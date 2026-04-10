@@ -29,6 +29,7 @@ from __future__ import annotations
 import logging
 import math
 import re
+import functools
 from collections import Counter
 from datetime import datetime, timezone
 from typing import Any
@@ -298,6 +299,7 @@ class UnifiedAsyncRouter:
         tokens = re.findall(r"\b[a-zA-Z0-9]+\b", text.lower())
         return [t for t in tokens if t not in self._STOPWORDS and len(t) > 1]
 
+    @functools.lru_cache(maxsize=256)
     def _compute_tfidf_similarity(self, query: str, result_text: str) -> float:
         """Compute TF-IDF cosine similarity between query and result text."""
         if not result_text or not result_text.strip():
@@ -372,7 +374,6 @@ class UnifiedAsyncRouter:
         self,
         query: str,
         limit: int = 10,
-        hyde_content: str | None = None,
     ) -> list[SearchResult]:
         """Search with intelligent routing based on mode.
 
@@ -385,7 +386,6 @@ class UnifiedAsyncRouter:
         Args:
             query: Search query
             limit: Maximum number of results to return (default: 10)
-            hyde_content: Optional HyDE content for query enhancement
 
         Returns:
             List of search results ranked by relevance
@@ -398,9 +398,7 @@ class UnifiedAsyncRouter:
 
         # Phase 1: Fast local search with error handling
         try:
-            local_results = await self._local_router.search_async(
-                query, limit=limit * 2, hyde_content=hyde_content
-            )
+            local_results = await self._local_router.search_async(query, limit=limit * 2)
         except Exception as e:
             logger.debug(f"Local search failed: {e}. Returning empty results.")
             local_results = []
@@ -449,22 +447,12 @@ class UnifiedAsyncRouter:
         best_result = local_results[0]
         result_dict = self._search_result_to_dict(best_result)
         quality_result = is_satisfactory(result_dict, self.quality_config)
-
-        # Check diversity: if top results are dominated by one backend, don't skip web
-        # This ensures results from different backends (like wiki) aren't crowded out
-        top_results = local_results[:5]
-        top_sources = set(r.source for r in top_results)
-        has_diversity = len(top_sources) >= 2
-
         logger.debug(
             f"Quality check for '{best_result.title}': "
             f"score={result_dict.get('confidence', 'N/A')}, "
-            f"satisfactory={quality_result}, "
-            f"top_sources={top_sources}, has_diversity={has_diversity}"
+            f"satisfactory={quality_result}"
         )
-
-        # Skip web only if quality is satisfied AND we have diversity
-        return quality_result and has_diversity
+        return quality_result
 
     def _merge_results_with_rrf(
         self,

@@ -14,6 +14,7 @@ import asyncio
 import concurrent.futures
 import json
 import os
+import shlex
 import shutil
 import sys
 from datetime import datetime
@@ -1149,7 +1150,14 @@ def _build_cli_commands(
     if run_qwen:
         commands.append(("qwen", qwen_cmd))
     if run_gemini:
-        commands.append(("gemini", gemini_cmd))
+        # Use stable model via -m flag to avoid MODEL_CAPACITY_EXHAUSTED errors
+        # Need to embed query in -p flag (not stdin) so model selection applies
+        # On Windows, use bare 'gemini' command (in PATH) to avoid cd + node path issues
+        if sys.platform == "win32":
+            gemini_with_model = f"gemini -y -o text -m gemini-2.5-flash -p {shlex.quote(query)}"
+        else:
+            gemini_with_model = f"{gemini_cmd} -y -o text -m gemini-2.5-flash -p {shlex.quote(query)}"
+        commands.append(("gemini", gemini_with_model))
     if run_codex:
         commands.append(("codex", codex_cmd))
     if run_vibe:
