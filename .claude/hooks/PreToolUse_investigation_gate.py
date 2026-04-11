@@ -68,6 +68,84 @@ def _safe_id_str(s: str) -> str:
     return result[:64]
 
 
+def _is_compaction_scenario(state: InvestigationState, input_data: dict) -> bool:
+    """Detect if we're in a post-compaction scenario with lost state.
+
+    Compaction indicators:
+    - State has no files_read (fresh or cleared)
+    - Transcript entries exist in input (compaction preserves transcript context)
+    - State timestamp is recent (within current session window)
+
+    Returns:
+        True if compaction detected and transcript has prior tool calls
+    """
+    if state.get("files_read"):
+        return False
+
+    transcript_entries = input_data.get("transcript_entries", [])
+    if not transcript_entries:
+        return False
+
+    # Check for tool calls that predate the state (compaction preserved them)
+    state_ts = state.get("timestamp", 0)
+    for entry in transcript_entries:
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("type") == "tool":
+            entry_ts = entry.get("timestamp", 0)
+            if entry_ts and entry_ts < state_ts:
+                return True
+
+    return False
+
+
+def _reconstruct_files_read_from_input(input_data: dict) -> list[str]:
+    """Reconstruct files_read from transcript entries in hook input.
+
+    After session compaction, the transcript preserves tool call history.
+    This function extracts Read/Grep/Glob file paths from transcript entries
+    to reconstruct investigation coverage.
+
+    Args:
+        input_data: Hook input dict with transcript_entries
+
+    Returns:
+        List of file paths that were read before compaction
+
+    Note:
+        WebFetch and WebSearch are intentionally excluded from file path extraction
+        because they produce URLs, not file paths. They remain in the broader
+        "investigation activity" concept but don't contribute to files_read.
+    """
+    READ_TOOLS = {
+        "read_file", "View", "cat", "grep", "find",
+        "search_files", "Bash", "Read", "Glob", "Grep",
+    }
+    transcript_entries = input_data.get("transcript_entries", [])
+    files: list[str] = []
+
+    for entry in transcript_entries:
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("type") != "tool":
+            continue
+        # Schema fallback: 'name' or 'tool_name', 'input' or 'args'
+        tool_name = entry.get("name") or entry.get("tool_name", "")
+        if tool_name not in READ_TOOLS:
+            continue
+
+        tool_input = entry.get("input") or entry.get("args") or {}
+        path = (
+            tool_input.get("file_path")
+            or tool_input.get("path")
+            or ""
+        )
+        if path and path not in files:
+            files.append(path)
+
+    return files
+
+
 # Add CSF to path for CKS access
 _csf_src = Path(__file__).resolve().parent.parent.parent / "__csf" / "src"
 if _csf_src.exists():
@@ -297,17 +375,48 @@ def _resolve_state_file(terminal_id: str = "") -> Path:
     raise PermissionError("No writable investigation state path available")
 
 
-def load_state(terminal_id: str = "") -> InvestigationState:
-    """Load investigation state from persistent storage."""
+def load_state(terminal_id: str = "", input_data: dict | None = None) -> InvestigationState:
+    """Load investigation state from persistent storage.
+
+    Args:
+        terminal_id: Terminal identifier for state scoping
+        input_data: Hook input dict (for compaction detection and transcript reconstruction)
+    """
     state_file = _resolve_state_file(terminal_id)
     if state_file.exists():
         try:
             with open(state_file) as f:
                 state = json.load(f)
+                # Validate required keys exist
+                if "files_read" not in state:
+                    state["files_read"] = []
+                if "timestamp" not in state:
+                    state["timestamp"] = 0
+                # Restore set type for modules_investigated after deserialization
+                if "modules_investigated" in state and isinstance(state["modules_investigated"], list):
+                    state["modules_investigated"] = set(state["modules_investigated"])
+                # Reconstruct from transcript if compaction detected
+                if input_data and _is_compaction_scenario(state, input_data):
+                    recovered_files = _reconstruct_files_read_from_input(input_data)
+                    if recovered_files:
+                        state["files_read"] = recovered_files
+                        state["_reconstructed_from_transcript"] = True
                 return state
         except (json.JSONDecodeError, KeyError):
-            return fresh_state(terminal_id)
-    return fresh_state(terminal_id)
+            state = fresh_state(terminal_id)
+            if input_data and _is_compaction_scenario(state, input_data):
+                recovered_files = _reconstruct_files_read_from_input(input_data)
+                if recovered_files:
+                    state["files_read"] = recovered_files
+                    state["_reconstructed_from_transcript"] = True
+            return state
+    state = fresh_state(terminal_id)
+    if input_data and _is_compaction_scenario(state, input_data):
+        recovered_files = _reconstruct_files_read_from_input(input_data)
+        if recovered_files:
+            state["files_read"] = recovered_files
+            state["_reconstructed_from_transcript"] = True
+    return state
 
 
 def fresh_state(terminal_id: str = "") -> InvestigationState:
@@ -931,6 +1040,7 @@ def process_hook(
     tool_input: ToolDict,
     user_message: str = "",
     terminal_id: str = "",
+    input_data: dict | None = None,
 ) -> CheckResult:
     """
     Main hook entry point.
@@ -940,7 +1050,7 @@ def process_hook(
     if not ENABLED:
         return True, None
 
-    state = load_state(terminal_id)
+    state = load_state(terminal_id, input_data)
 
     # Track message from architectural check (for warn mode)
     message_to_return: str | None = None
@@ -1072,7 +1182,7 @@ if __name__ == "__main__":
             or os.environ.get("CLAUDE_TERMINAL_ID", "")
         ).strip()
 
-        allowed, message = process_hook(tool_name, tool_input, user_message, terminal_id)
+        allowed, message = process_hook(tool_name, tool_input, user_message, terminal_id, input_data)
 
         if not allowed:
             # Query CKS for related patterns if triggers match (with caching)

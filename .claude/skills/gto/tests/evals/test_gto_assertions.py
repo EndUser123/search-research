@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from evals.gto_assertions import GTOAssertions, _get_default_terminal_id
 
@@ -30,14 +30,18 @@ class TestGTOAssertions:
         assert assertions.terminal_id == "test_terminal"
 
     def test_check_a1_artifacts_exist_no_artifacts(self, tmp_path: Path) -> None:
-        """Test A1 check returns False when no artifacts exist."""
+        """Test A1 check returns False when .evidence exists but has no valid artifacts."""
+        evidence_dir = tmp_path / ".evidence"
+        evidence_dir.mkdir()
         assertions = GTOAssertions(tmp_path, "test_terminal")
         passed, msg = assertions.check_a1_artifacts_exist()
         assert passed is False
         assert "No valid GTO artifacts" in msg
 
     def test_check_a2_health_score_no_artifacts(self, tmp_path: Path) -> None:
-        """Test A2 check returns False when no health score exists."""
+        """Test A2 check returns False when .evidence exists but has no health score."""
+        evidence_dir = tmp_path / ".evidence"
+        evidence_dir.mkdir()
         assertions = GTOAssertions(tmp_path, "test_terminal")
         passed, msg = assertions.check_a2_health_score()
         assert passed is False

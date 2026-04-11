@@ -557,8 +557,9 @@ def extract_section_content(plan: str, section_name: str) -> str:
             break
 
     for alias in aliases_to_check:
-        # Match H1-H6 headings (not just H2) so ### Section works alongside ## Section
-        pattern = rf"^#{1,6}\s+{re.escape(alias)}.*?(?=^#{1,6}\s+|\Z)"
+        # Match H1-H6 headings so ### Section works alongside ## Section.
+        # Note: uses r"" not rf"" to avoid {N} being interpolated as f-string tuple.
+        pattern = r"^#{1,6}\s+" + re.escape(alias) + r".*?(?=^#{1,6}\s+|\Z)"
         match = re.search(pattern, plan, re.DOTALL | re.IGNORECASE | re.MULTILINE)
         if match:
             return match.group(0)
@@ -2179,11 +2180,20 @@ def check_contract_boundary_matrix(plan: str) -> list[dict[str, Any]]:
         return findings
 
     claimed_status = frontmatter.get("status", "draft")
+    # Case-insensitive row key lookup since markdown table headers may have mixed casing
+    # (e.g., "Contract Authority Packet" vs "Contract authority packet")
+    def _ri(row: dict, key: str) -> str:
+        lower_key = key.lower()
+        for k, v in row.items():
+            if k.lower() == lower_key:
+                return v.strip()
+        return ""
+
     for row in rows:
-        boundary = row.get("Boundary", "").strip() or "UNKNOWN"
-        packet_ref = row.get("Contract authority packet", "").strip()
-        test_binding = row.get("Test Binding", "").strip()
-        packet_alignment = row.get("Packet Alignment", "").strip()
+        boundary = _ri(row, "Boundary") or "UNKNOWN"
+        packet_ref = _ri(row, "Contract authority packet")
+        test_binding = _ri(row, "Test Binding")
+        packet_alignment = _ri(row, "Packet Alignment")
 
         if not packet_ref:
             findings.append(

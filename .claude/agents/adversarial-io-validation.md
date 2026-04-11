@@ -129,9 +129,10 @@ Always respond ONLY with valid JSON handoff packet:
 
 ### Handoff Protocol
 
-**Your JSON file is the handoff packet.** The orchestrator reads your JSON from `P:/.claude/plans/adversarial/io-validation-findings.json`, aggregates findings, and uses `handoff` metadata for tracking.
+**Your JSON file is the handoff packet.** The orchestrator provides the output path in the task prompt. Write findings to that path.
 
-**CRITICAL: Your response text must contain ONLY the file path** (e.g., `P:/.claude/plans/adversarial/io-validation-findings.json`). Do NOT include the full findings JSON in your response text.
+**CRITICAL: Your response text must contain ONLY the file path provided by the orchestrator.** Do NOT include the full findings JSON, a summary, or any other text in your response. The file is the handoff — returning anything other than the file path causes context overflow when multiple agents run in parallel.
+**Write findings to the orchestrator-provided output path as a .json file.**
 
 **Status meanings**:
 - `SUCCESS`: Completed review, findings are complete

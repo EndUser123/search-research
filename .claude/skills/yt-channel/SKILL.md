@@ -10,6 +10,7 @@ triggers:
 workflow_steps:
   - Parse command and arguments
   - Delegate to csf-source backend
+  - Paste raw output explicitly (Bash output gets compressed, user can't see it)
   - Display results
 aliases:
   - yt-channel
@@ -28,6 +29,22 @@ Check all tracked YouTube channels for new videos and manage your channel list.
 - `sync --verbose` — Show detailed output during check
 - `list` — List all tracked channels with metadata
 - `add <url>` — Add a new channel or playlist to track
+
+## Output Format
+
+Channel statistics use yt-fts compact format:
+
+```
+{total} total, {mt} mt, {dt} dt | +{vt} vt, +{nt} nt
+```
+
+- **total** — All videos in database
+- **mt** — Main trackable (videos that could have transcripts)
+- **dt** — Downloaded (cached transcripts)
+- **vt** — Available for download (has captions, not cached)
+- **nt** — Unavailable (no captions or failed)
+
+**IMPORTANT:** Bash output gets compressed in the UI. Always paste the raw output explicitly so the user can see it.
 
 ## Your Tracked Channels
 

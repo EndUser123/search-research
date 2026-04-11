@@ -74,8 +74,9 @@ def main() -> None:
         if uncompleted:
             tracker.save_checkpoint(uncompleted, terminal_id)
 
-    except Exception:
-        # Fail silently - PreCompact errors should not block compaction
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("PreCompact commitment tracker failed: %s", exc)
         pass
 
     sys.exit(0)

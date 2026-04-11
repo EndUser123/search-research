@@ -1,6 +1,6 @@
 ---
 name: ai-gemini
-description: Gemini-powered research and engineering assistant using ACG workflow and soft XoT orchestration
+description: Gemini-powered research and engineering assistant using Analyze-Challenge-Gap (ACG) workflow and soft XoT orchestration
 version: 1.3.6
 category: productivity
 triggers:

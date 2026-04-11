@@ -116,7 +116,7 @@ def validate_path(file_path: str) -> tuple[bool, str, Path]:
 
 
 def verify_write(file_path: str, expected_content: str) -> tuple[bool, str, str]:
-    """Verify Write operation: file must exist and not be empty."""
+    """Verify Write operation: file must exist, not empty, and match expected content."""
     is_valid, reason, path = validate_path(file_path)
     if not is_valid:
         return False, f"Write verification failed: {reason}", ""
@@ -128,6 +128,11 @@ def verify_write(file_path: str, expected_content: str) -> tuple[bool, str, str]
 
     if not actual_content or actual_content == "":
         return False, f"Write verification failed: file is empty at {file_path}", ""
+
+    # Deep verification: content must match what was supposed to be written
+    # This catches Windows buffer flush failures where old content remains
+    if expected_content and actual_content != expected_content:
+        return False, f"Write verification failed: content mismatch at {file_path}\nExpected {len(expected_content)} bytes, got {len(actual_content)} bytes", ""
 
     return True, "Write verification passed", actual_content
 

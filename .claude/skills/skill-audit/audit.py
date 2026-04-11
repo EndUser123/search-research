@@ -1277,12 +1277,10 @@ def _expected_internal_mode_contracts(parsed: ParsedSkill) -> list[tuple[str, st
 
     def add_modes(skill_label: str, modes: list[str]) -> None:
         # Use contextual patterns — not bare word-boundary matches — to avoid
-        # false positives (e.g. "code trace" is a cost level, not the `trace` mode)
-        markers: list[str] = (
-            [rf"`{m}`" for m in modes] +
-            [rf"use `{m}`" for m in modes] +
-            [rf"{m}` as an internal" for m in modes]
-        )
+        # false positives (e.g. "code trace" is a cost level, not the `trace` mode).
+        # Backtick-quoted form is REQUIRED (sufficient evidence of mode reference).
+        # "use X" and "X as an internal" forms are examples (sufficient but not required).
+        required: list[str] = [rf"`{m}`" for m in modes]
         examples: list[str] = [
             f"use `{m}` as an internal helper mode when it materially improves the skill's judgment"
             for m in modes
@@ -1290,7 +1288,7 @@ def _expected_internal_mode_contracts(parsed: ParsedSkill) -> list[tuple[str, st
         expectations.append((
             "Internal Discovery Modes",
             f"{skill_label} lacks appropriate internal-mode support ({', '.join(modes)})",
-            markers,
+            required,
             examples,
         ))
 

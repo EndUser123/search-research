@@ -61,7 +61,7 @@ class TestMalformedInput:
         except json.JSONDecodeError:
             pytest.fail(f"Stdout is not JSON: {stdout!r}")
         assert output.get("decision") == "block"
-        assert "invalid JSON" in output.get("reason", "").lower()
+        assert "invalid json" in output.get("reason", "").lower()
 
 
 class TestRequiredFields:
