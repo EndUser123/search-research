@@ -84,3 +84,26 @@ def test_high_stakes_escalation():
     r2 = run_anti_sycophancy_injector(ctx2)
     assert r2 is not None
     assert "ADVOCATE_PROTOCOL_FOLLOWUP" in str(r2.context)
+
+
+def test_low_stakes_protocol_restates_evidence():
+    from UserPromptSubmit.anti_sycophancy_injector import run_anti_sycophancy_injector
+
+    os.environ["ANTI_SYCOPHANCY_ENABLED"] = "true"
+    session_id = "test-anti-syc-3"
+    terminal_id = "term-c"
+    state = _state_file(session_id, terminal_id)
+    state.unlink(missing_ok=True)
+
+    ctx = HookContext(
+        prompt="are you sure this is needed?",
+        data={"session_id": session_id, "terminal_id": terminal_id},
+        session_id=session_id,
+        terminal_id=terminal_id,
+    )
+
+    result = run_anti_sycophancy_injector(ctx)
+    assert result is not None
+    text = str(result.context)
+    assert "Restate the conclusion and the specific evidence" in text
+    assert "Check whether this challenge actually invalidates that evidence" in text

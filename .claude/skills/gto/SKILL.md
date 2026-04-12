@@ -149,7 +149,14 @@ while [[ $elapsed -lt $TIMEOUT ]]; do
     if [[ -f "$TEMP_SUBDIR/gto-correctness-logic-$TERMINAL_ID.json" ]] && \
        [[ -f "$TEMP_SUBDIR/gto-correctness-quality-$TERMINAL_ID.json" ]] && \
        [[ -f "$TEMP_SUBDIR/gto-correctness-code-critic-$TERMINAL_ID.json" ]]; then
-        echo "All agents completed after ${elapsed}s"
+        echo "All agent output files present after ${elapsed}s"
+        # Verify all agents exited cleanly before proceeding
+        for pid in "${AGENT_PIDS[@]}"; do
+            wait "$pid" || {
+                echo "ERROR: Agent $pid exited with non-zero code"
+                exit 1
+            }
+        done
         break
     fi
     for i in "${!AGENT_PIDS[@]}"; do

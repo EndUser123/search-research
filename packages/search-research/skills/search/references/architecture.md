@@ -34,6 +34,25 @@ Chat history search is handled by the **claude-history** Rust package:
 - Score: 0.9 (competitive with CKS for chat queries)
 - Character boundary fix: v1.0.1 - Fixed UTF-8 multi-byte character slicing
 
+## Extended Backends
+
+Beyond the standard 7 backends, additional specialized backends are available:
+
+| Backend | File | Purpose |
+|---------|------|---------|
+| **KG Boosting** | `core/backends/kg_boosting.py` | Entity affinity boosting via Jaccard similarity for architecture/contract queries |
+| **CPGBackend** | `core/backends/local/cpg_backend.py` | Code Property Graph — data flow, control flow, semantic code structure |
+| **HDMABackend** | `core/backends/local/hdma_backend.py` | Hybrid Dual-Map Architecture — architectural anti-patterns, bottlenecks |
+| **CallGraphBackend** | `core/backends/local/call_graph_backend.py` | Call relationship mapping |
+| **ASTCodeBackend** | `core/backends/local/ast_code_backend.py` | Lightweight AST without CPG/embeddings |
+| **PersonaMemory** | `core/backends/persona.py` | 3D scoring (novelty, feasibility, impact) for cognitive-spectrum search |
+| **RLM Backend** | `core/backends/rlm.py` | Template-based code generation (sandboxed, no external LLM) |
+
+**KG Boosting** is controlled by env vars:
+- `SEARCH_ENABLE_KG_BOOSTING` — enable/disable
+- `SEARCH_KG_BOOST_ALPHA` — Jaccard similarity weight
+- `SEARCH_KG_BOOST_ENTITY_TYPES` — filter by entity types
+
 ## Architecture Alignment
 
 - Unified search interface replacing multiple specialized search commands

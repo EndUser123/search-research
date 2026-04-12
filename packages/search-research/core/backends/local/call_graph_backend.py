@@ -26,6 +26,10 @@ except ImportError:
 from ...backend_health import BackendHealthRegistry
 
 
+# Backend identifier
+BACKEND_NAME_CALL_GRAPH = "CALL_GRAPH"
+
+
 class CallGraphBackend:
     """
     Backend wrapper for static call graph analysis.

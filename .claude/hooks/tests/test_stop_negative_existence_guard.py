@@ -519,6 +519,18 @@ def test_no_subprocess_with_verification_allowed():
     assert output == {}
 
 
+def test_no_subprocess_verified_with_file_path():
+    """'no subprocess' with Read using file_path field (primary extraction path)."""
+    response = "There's no subprocess configured."
+    # Use file_path (primary extraction path), not command fallback
+    tool_events = [{"name": "Read", "file_path": "config.json", "command": "", "ts": "2026-03-07T12:00:00Z"}]
+
+    output, exit_code = run_guard(response, tool_events=tool_events)
+
+    assert exit_code == 0
+    assert output == {}
+
+
 def test_theres_no_thread_blocked():
     """'there's no thread' pattern should be blocked without verification."""
     response = "There's no thread running for this task."
@@ -622,6 +634,107 @@ def test_no_subprocesses_plural_with_verification_still_blocked():
     # Runtime-construct denials have no exemption path — Read of the file doesn't help
     assert exit_code == 2
     assert output.get("decision") == "block"
+
+
+# === REFINEMENT 1: Grep exemption should require entity correlation ===
+
+
+def test_grep_for_unrelated_entity_does_not_exempt():
+    """Grep for 'foo' should NOT exempt claim 'no bar file exists' (entity correlation required)."""
+    response = "There's no bar file in this directory."
+    tool_events = [{"name": "Grep", "pattern": "foo", "ts": "2026-03-07T12:00:00Z"}]
+
+    output, exit_code = run_guard(response, tool_events=tool_events)
+
+    # Grep for "foo" doesn't ground claim about "bar" - should block
+    assert exit_code == 2
+    assert output.get("decision") == "block"
+
+
+def test_grep_for_related_entity_does_exempt():
+    """Grep for 'bar' SHOULD exempt claim 'no bar file exists' (entity correlation)."""
+    response = "There's no bar file in this directory."
+    tool_events = [{"name": "Grep", "pattern": "bar", "ts": "2026-03-07T12:00:00Z"}]
+
+    output, exit_code = run_guard(response, tool_events=tool_events)
+
+    # Grep for "bar" grounds claim about "bar" - should allow
+    assert exit_code == 0
+    assert output == {}
+
+
+def test_grep_partial_entity_match_exempts():
+    """Grep for 'config' should exempt claim 'no config.json file' (partial match)."""
+    response = "There's no config.json file."
+    tool_events = [{"name": "Grep", "pattern": "config", "ts": "2026-03-07T12:00:00Z"}]
+
+    output, exit_code = run_guard(response, tool_events=tool_events)
+
+    # Grep for "config" grounds claim about "config.json" - partial match sufficient
+    assert exit_code == 0
+    assert output == {}
+
+
+# === REFINEMENT 2: Word boundary matching for prefix scenarios ===
+
+
+def test_prefix_match_word_boundary():
+    """Claim about 'validate' should be exempted by grep for 'validate_foo' (prefix match)."""
+    response = "There's no validate method in this class."
+    tool_events = [{"name": "Grep", "pattern": "validate_foo", "ts": "2026-03-07T12:00:00Z"}]
+
+    output, exit_code = run_guard(response, tool_events=tool_events)
+
+    # Grep for "validate_foo" grounds claim about "validate" (prefix match)
+    assert exit_code == 0
+    assert output == {}
+
+
+def test_suffix_match_word_boundary():
+    """Claim about 'validate_foo' should be exempted by grep for 'validate' (contains match)."""
+    response = "There's no validate_foo method in this class."
+    tool_events = [{"name": "Grep", "pattern": "def validate", "ts": "2026-03-07T12:00:00Z"}]
+
+    output, exit_code = run_guard(response, tool_events=tool_events)
+
+    # Grep for "def validate" grounds claim about "validate_foo" (contains match)
+    assert exit_code == 0
+    assert output == {}
+
+
+def test_subprocess_rstrip_not_corrupted():
+    """Regression: 'subprocess'.rstrip('s') must NOT produce 'subproce'.
+
+    The original bug was: construct.rstrip('s') on 'subprocess' produced 'subproce',
+    causing word-boundary regex \\bsubproce\\b to fail matching 'subprocess'.
+    The fix uses word-boundary regex on the full construct name without stripping.
+    This test explicitly verifies the word-boundary matching works for 'subprocess'.
+    """
+    import re
+
+    # Verify the word-boundary regex approach works (not the rstrip approach)
+    construct = "subprocess"
+    claim_lower = "there's no subprocess configured."
+
+    # This is the CORRECT approach (word boundary, no stripping)
+    correct_pattern = r"\b" + construct + r"\b"
+    correct_match = re.search(correct_pattern, claim_lower, re.IGNORECASE)
+    assert correct_match is not None, f"Word-boundary pattern should match 'subprocess' in claim"
+    assert correct_match.group() == "subprocess"
+
+    # This was the BROKEN approach: rstrip('s') on already-singular word
+    broken_singular = construct.rstrip("s")  # "subprocess" -> "subproce"
+    assert broken_singular == "subproce", "rstrip on 'subprocess' produces 'subproce'"
+    broken_pattern = r"\b" + broken_singular + r"\b"
+    broken_match = re.search(broken_pattern, claim_lower, re.IGNORECASE)
+    assert broken_match is None, "The broken rstrip pattern should NOT match 'subprocess'"
+
+    # Functional test: singular subprocess with Read should be exempted
+    response = "There's no subprocess configured."
+    tool_events = [{"name": "Read", "file_path": "config.json", "command": "", "ts": "2026-03-07T12:00:00Z"}]
+    output, exit_code = run_guard(response, tool_events=tool_events)
+    assert exit_code == 0, "Singular 'subprocess' with Read should be allowed"
+    assert output == {}
 
 
 if __name__ == "__main__":

@@ -146,6 +146,14 @@ def extract_query(tool_name: str, tool_input: dict) -> str:
         pattern = tool_input.get("pattern", "")
         return pattern
 
+    elif tool_name == "Skill":
+        # Skill tool invocation: extract skill name and args for routing suggestions
+        skill = tool_input.get("skill", "")
+        args = tool_input.get("args", "")
+        # Combine skill name + args for search-relevant pattern detection
+        combined = f"{skill} {args}".strip()
+        return combined[:200]
+
     return ""
 
 

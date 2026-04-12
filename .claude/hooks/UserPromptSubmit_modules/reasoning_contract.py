@@ -20,6 +20,8 @@ def _contract_lines(
     include_discovery: bool = True,
     include_rollback: bool = True,
     include_evidence: bool = True,
+    include_falsification: bool = True,
+    include_comparison_axis: bool = True,
 ) -> list[str]:
     lines: list[str] = [_HEADER]
 
@@ -41,6 +43,14 @@ def _contract_lines(
         )
     if include_evidence:
         lines.append("- State what evidence would change the answer if uncertainty remains.")
+    if include_falsification:
+        lines.append(
+            '- Before stating a conclusion, name the falsification condition: "This would be wrong if ___." Then give one concrete counterexample or disconfirming signal.'
+        )
+    if include_comparison_axis:
+        lines.append(
+            "- When comparing options, name the comparison axis and scale assumption before ranking them."
+        )
 
     return lines
 
@@ -52,6 +62,8 @@ def build_reasoning_contract(
     include_discovery: bool = True,
     include_rollback: bool = True,
     include_evidence: bool = True,
+    include_falsification: bool = True,
+    include_comparison_axis: bool = True,
 ) -> str:
     """Build the canonical reasoning contract block.
 
@@ -65,6 +77,8 @@ def build_reasoning_contract(
             include_discovery=include_discovery,
             include_rollback=include_rollback,
             include_evidence=include_evidence,
+            include_falsification=include_falsification,
+            include_comparison_axis=include_comparison_axis,
         )
     )
 
@@ -77,6 +91,8 @@ def append_reasoning_contract(
     include_discovery: bool = True,
     include_rollback: bool = True,
     include_evidence: bool = True,
+    include_falsification: bool = True,
+    include_comparison_axis: bool = True,
 ) -> str:
     """Append the reasoning contract to a text block unless it is already present."""
     contract = build_reasoning_contract(
@@ -85,6 +101,8 @@ def append_reasoning_contract(
         include_discovery=include_discovery,
         include_rollback=include_rollback,
         include_evidence=include_evidence,
+        include_falsification=include_falsification,
+        include_comparison_axis=include_comparison_axis,
     )
 
     stripped = text.strip()

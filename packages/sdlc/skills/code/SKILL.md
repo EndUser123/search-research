@@ -13,7 +13,7 @@ triggers:
   - 'new feature'
   - 'implement feature'
   - 'start development'
-argument-hint: <feature_description|stats> [--fast|--full] [--no-loop] [--no-ralph-loop] [--ralph-enable] [--ralph-disable] [--no-got] [--no-tot] [--no-checklist]
+argument-hint: <feature_description|stats|continue> [--fast|--full] [--no-loop] [--no-ralph-loop] [--ralph-enable] [--ralph-disable] [--no-got] [--no-tot] [--no-checklist]
 context: main
 user-invocable: True
 status: stable
@@ -58,12 +58,6 @@ workflow_steps:
     kind: verification
   - id: done_final_certification
     kind: verification
-suggest:
-  - /search (integrated - pre-implementation context discovery)
-  - /qa
-  - /test
-  - /comply
-  - /`ruff` (automatic) + `/p`
 ---
 
 
@@ -384,7 +378,7 @@ Use the Claude shared task list as the coordination spine when using agent team/
 2. Choose route (`--fast`, `--full`, or auto)
 3. Choose execution model from thresholds
 4. Set scoped task list context (team/hybrid only)
-5. Resolve plan state: If the user references a named output from the conversation (e.g. "implement SuspicionDetector from /arch output"), use the conversation context as the plan source. If `/code` is bare (no args), use conversation context to determine the last active task and resume it. Only ask the user to clarify if the context is genuinely ambiguous.
+5. Resolve plan state: If the user references a named output from the conversation (e.g. "implement SuspicionDetector from /arch output"), use the conversation context as the plan source. If `/code` is bare (no args) or `/code continue`, use session context to determine the last active task and resume from where it left off (e.g., "continue with Phase 2 of ADR-002" means resuming from Phase 2 implementation). Only ask the user to clarify if the context is genuinely ambiguous.
 6. Initialize/refresh resume ledger (full route)
 7. REQUIREMENTS -> continue execution
 

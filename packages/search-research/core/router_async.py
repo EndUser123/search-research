@@ -221,6 +221,36 @@ class AsyncSearchRouter:
         except Exception as e:
             logger.debug(f"NotebookLM backend not available: {e}")
 
+        # Extended backends (AST-aware, call graph, CPG, HDMA, LSP, dependency)
+        # These use graceful degradation - they're optional but provide deep analysis
+        try:
+            backends["ast_code"] = local.create_ast_backend()
+        except Exception as e:
+            logger.debug(f"AST code backend not available: {e}")
+
+        try:
+            if local.CPG_AVAILABLE:
+                backends["cpg"] = local.CPGBackend()
+        except Exception as e:
+            logger.debug(f"CPG backend not available: {e}")
+
+        try:
+            if local.HDMA_AVAILABLE:
+                backends["hdma"] = local.HDMABackend()
+        except Exception as e:
+            logger.debug(f"HDMA backend not available: {e}")
+
+        try:
+            backends["lsp"] = local.create_lsp_backend()
+        except Exception as e:
+            logger.debug(f"LSP backend not available: {e}")
+
+        try:
+            if local.DEP_GRAPH_AVAILABLE:
+                backends["dependency"] = local.DependencyBackend()
+        except Exception as e:
+            logger.debug(f"Dependency backend not available: {e}")
+
         self._backends = backends
         self._backends_initialized = True
 

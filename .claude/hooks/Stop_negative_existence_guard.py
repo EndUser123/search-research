@@ -51,9 +51,13 @@ sys.path.insert(0, str(HOOKS_DIR))
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 _logger = logging.getLogger("negative_existence_guard")
-_handler = logging.FileHandler(LOG_DIR / "negative_existence_guard.log", encoding="utf-8")
-_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
-_logger.addHandler(_handler)
+try:
+    _handler = logging.FileHandler(LOG_DIR / "negative_existence_guard.log", encoding="utf-8")
+    _handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    _logger.addHandler(_handler)
+except (OSError, PermissionError) as exc:
+    # Fail silently on disk-full or permission errors — logging is diagnostic only
+    pass
 _logger.setLevel(logging.DEBUG)
 
 
@@ -293,7 +297,9 @@ def _claim_was_verified_this_turn(
         # verification — the user is making a nuanced claim about what they read.
         claim_lower = claim.lower()
         for construct in _RUNTIME_CONSTRUCTS:
-            if construct in claim_lower:
+            # Use word boundary to avoid substring false positives (e.g., "process" in "subprocess")
+            pattern = r"\b" + re.escape(construct) + r"\b"
+            if re.search(pattern, claim_lower, re.IGNORECASE):
                 # Check if any Read tool was used
                 for event in tool_events:
                     tool_name = event.get("name") or event.get("tool_name", "")
@@ -328,11 +334,21 @@ def _claim_was_verified_this_turn(
         for event in tool_events:
             tool_name = (event.get("name") or event.get("tool_name") or "").lower()
 
-            # Grep tool - check if pattern contains the entity
+            # Grep tool - check if pattern contains the entity OR entity contains pattern prefix
+            # Bidirectional matching handles both:
+            # 1. entity "validate" in pattern "validate_foo" (substring)
+            # 2. pattern "def validate" with entity "validate_foo" (prefix match)
             if tool_name == "grep":
                 pattern = (event.get("pattern") or event.get("command", "")).lower()
+                # Direct substring match: entity in pattern
                 if entity_lower in pattern:
                     return True
+                # Prefix match: extract words from pattern, check if entity starts with any word
+                # This handles "def validate" pattern with "validate_foo" entity
+                pattern_words = re.findall(r'\b\w+\b', pattern)
+                for word in pattern_words:
+                    if len(word) >= 4 and entity_lower.startswith(word):
+                        return True
 
             # Read tool - check if file path matches
             if tool_name == "read":
@@ -472,6 +488,12 @@ def _should_exempt_claim(claim: str, read_targets: dict[str, set[str]] | None) -
     Exempts:
     - Pure number counts: "there's no 10" (count claim, not file existence) - always exempt
     - Code-element claims where the element name appears in Grep patterns used - requires read_targets
+
+    NOTE: This function handles GREP-BASED pre-filtering only. Runtime-construct and
+    entity-based per-claim verification is handled by _claim_was_verified_this_turn (line 229).
+    Both functions run in the guard check() loop (line 688): _should_exempt_claim pre-filters
+    via grep patterns before _claim_was_verified_this_turn is called for remaining claims.
+    These two exemption paths have different semantics and must stay in sync.
     """
     claim_lower = claim.lower()
 

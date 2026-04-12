@@ -8,12 +8,14 @@ Stemming patterns catch all word forms automatically.
 Examples:
     "this keeps breaking in production, the test is flaky" -> debug_rca
     "should we use Redis or Memcached for caching?" -> tradeoff_decision
+    "can you verify whether this is actually implemented?" -> evidence_audit
     "deploying the migration to prod tonight" -> pre_commit_risk
     "split into microservice or keep the monolith?" -> architecture
 
 Profiles:
     debug_rca          -> 5-Whys root cause analysis
     tradeoff_decision  -> Tradeoff decision framework
+    evidence_audit     -> Verification / proof check
     architecture       -> Architecture evaluation
     pre_commit_risk    -> Pre-commit risk assessment
 """
@@ -79,7 +81,7 @@ def _stem(root: str, suffixes: str = "ed|ing|s|es") -> str:
 
 # Strong keywords: unambiguous signals, 1 match is enough.
 # Each entry is a raw regex pattern with word boundaries added at compile time.
-_THINK_PROFILES: dict[str, ThinkProfile] = {
+_PROFILE_DEFINITIONS: dict[str, ThinkProfile] = {
     "debug_rca": ThinkProfile(
         name="debug_rca",
         template="""\
@@ -119,10 +121,45 @@ Output discipline:
             _stem("fail", "ed|ing|s|ure|ures"),
         ],
     ),
+    "evidence_audit": ThinkProfile(
+        name="evidence_audit",
+        template="""\
+THINK PROFILE: EVIDENCE AUDIT
+
+Evidence-first check:
+- Identify the exact claim to verify.
+- Separate proof, counterexample, and remaining uncertainty.
+- Check the smallest relevant source of truth: code, tests, docs, or runtime output.
+- State verdict: verified, refuted, or still uncertain.
+- Name the evidence that would change the answer.""",
+        strong_patterns=[
+            r"verify(?:\s+(?:this|that|whether))?",
+            r"prove(?:\s+(?:this|that|it))?",
+            r"fact[- ]?check(?:ing)?",
+            r"cross[- ]?check(?:ing)?",
+            r"double[- ]?check(?:ing)?",
+            r"is this actually",
+            r"can you confirm",
+            r"confirm(?:\s+(?:this|that|whether))?",
+            r"validate(?:\s+(?:this|that|whether))?",
+        ],
+        weak_patterns=[
+            r"\bcheck(?:ing)?\b",
+            r"\bverified\b",
+            r"\bproof\b",
+            r"\bevidence\b",
+            r"\baccurate\b",
+            r"\btrue\b",
+            r"\breally\b",
+            r"\bactually\b",
+        ],
+    ),
     "tradeoff_decision": ThinkProfile(
         name="tradeoff_decision",
         template="""\
-THINK PROFILE: DECISION / TRADEOFF
+THINK PROFILE: DECISION / TRADEOFF (LIGHT PRECHECK)
+
+Use this for a quick comparison, not the full decision-tree scaffold.
 
 Decision frame:
 - Option A vs Option B (always include simplest fallback)
@@ -398,7 +435,15 @@ Common pitfalls:
     ),
 }
 
+# Backward-compat alias for older tests/imports.
+_THINK_PROFILES = _PROFILE_DEFINITIONS
+
 _PROFILE_ALIASES: dict[str, str] = {
+    "verify": "evidence_audit",
+    "audit": "evidence_audit",
+    "prove": "evidence_audit",
+    "confirm": "evidence_audit",
+    "validate": "evidence_audit",
     "quick": "quick",
     "why": "debug_rca",
     "debug": "debug_rca",
@@ -418,17 +463,14 @@ _PROFILE_ALIASES: dict[str, str] = {
 # ---------------------------------------------------------------------------
 
 
-# Extract pattern dictionaries from dataclass for backward compat
+# Extract pattern dictionaries from dataclass definitions for backward compat
 _STRONG_PATTERNS: dict[str, list[str]] = {
-    name: profile.strong_patterns for name, profile in _THINK_PROFILES.items()
+    name: profile.strong_patterns for name, profile in _PROFILE_DEFINITIONS.items()
 }
 
 _WEAK_PATTERNS: dict[str, list[str]] = {
-    name: (profile.weak_patterns or []) for name, profile in _THINK_PROFILES.items()
+    name: (profile.weak_patterns or []) for name, profile in _PROFILE_DEFINITIONS.items()
 }
-
-# Extract templates for backward compat
-_PROFILES: dict[str, str] = {name: profile.template for name, profile in _THINK_PROFILES.items()}
 
 # Pre-compile all patterns with word boundaries
 _COMPILED_STRONG: dict[str, list[re.Pattern]] = {}
@@ -453,7 +495,14 @@ _PROFILE_KEYWORDS: dict[str, list[str]] = {
 }
 
 # Export ThinkProfile for testing and type annotations
-__all__ = ["ThinkProfile", "_THINK_PROFILES", "_PROFILES", "_STRONG_PATTERNS", "_WEAK_PATTERNS"]
+__all__ = [
+    "ThinkProfile",
+    "_PROFILE_DEFINITIONS",
+    "_THINK_PROFILES",
+    "_PROFILES",
+    "_STRONG_PATTERNS",
+    "_WEAK_PATTERNS",
+]
 
 
 def _detect_profile(prompt: str) -> str | None:
@@ -463,10 +512,6 @@ def _detect_profile(prompt: str) -> str | None:
     Weak keywords need 2+ matches (ambiguous alone).
     Strips inline code (`...`) before matching.
     """
-    explicit_profile, _ = _parse_think(prompt)
-    if explicit_profile is not None:
-        return explicit_profile
-
     explicit_profile, _ = _parse_think(prompt)
     if explicit_profile is not None:
         return explicit_profile
@@ -510,8 +555,14 @@ THINK PROFILE: DEBUG / ROOT CAUSE ANALYSIS
 
 5 Whys: symptom -> mechanism -> upstream condition -> process gap -> detection gap.
 State the root-cause candidate as [UNVERIFIED], list evidence needed, and end with a minimal fix + regression test.""",
+    "evidence_audit": """\
+THINK PROFILE: EVIDENCE AUDIT
+
+Treat the claim as provisional. Verify against the smallest relevant source of truth, separate proof from uncertainty, state whether it is verified, refuted, or still uncertain, and return the evidence that would change it.""",
     "tradeoff_decision": """\
-THINK PROFILE: DECISION / TRADEOFF
+THINK PROFILE: DECISION / TRADEOFF (LIGHT PRECHECK)
+
+Use this for a quick comparison, not the full decision-tree scaffold.
 
 Compare 2 options plus the simplest fallback. State tradeoffs, one failure mode, your recommendation, and how to verify it.""",
     "architecture": """\
@@ -540,9 +591,9 @@ THINK PROFILE: DELIBERATE REASONING
 Explicit reasoning mode (THINK keyword detected).
 
 1. Restate the problem in one sentence
-2. Surface key assumptions — mark each [ASSUMED] or [VERIFIED]
-3. Generate 2-3 alternative approaches
-4. Recommend one with the top tradeoff named
+2. Consider at least 2 plausible approaches internally; do not stop at the first plausible answer
+3. Surface key assumptions — mark each [ASSUMED] or [VERIFIED]
+4. Recommend one path and name the main alternative you rejected
 5. State what evidence would change the answer""",
     "quick": """\
 THINK PROFILE: QUICK TRIAGE

@@ -17,7 +17,7 @@ from UserPromptSubmit_modules.reasoning_contract import (
 )
 from UserPromptSubmit_modules.reasoning_mode_selector import reasoning_mode_selector
 from UserPromptSubmit_modules.sequential_thinking import sequential_thinking_hook
-from UserPromptSubmit_modules.think_trigger import think_trigger
+from UserPromptSubmit_modules.think_trigger import _detect_profile, _PROFILES, think_trigger
 
 
 def test_reasoning_contract_includes_baseline_clauses() -> None:
@@ -31,6 +31,9 @@ def test_reasoning_contract_includes_baseline_clauses() -> None:
     assert "search existing implementations first" in lower
     assert "rollback or fallback" in lower
     assert "evidence would change the answer" in lower
+    assert "falsification condition" in lower
+    assert "this would be wrong if" in lower
+    assert "comparison axis" in lower
 
 
 def test_reasoning_contract_flags_trim_expected_clauses() -> None:
@@ -40,6 +43,7 @@ def test_reasoning_contract_flags_trim_expected_clauses() -> None:
         include_counterexample=True,
         include_verification=True,
         include_evidence=True,
+        include_falsification=True,
     )
     lower = contract.lower()
 
@@ -64,6 +68,8 @@ def test_contract_clauses_match_expected_baseline() -> None:
     assert clauses[0] == "**REASONING CONTRACT**"
     assert any("counterexample" in clause.lower() for clause in clauses)
     assert any("negative example" in clause.lower() for clause in clauses)
+    assert any("falsification condition" in clause.lower() for clause in clauses)
+    assert any("comparison axis" in clause.lower() for clause in clauses)
 
 
 def test_think_trigger_includes_shared_contract() -> None:
@@ -81,6 +87,66 @@ def test_think_trigger_includes_shared_contract() -> None:
     text = result.context["additionalContext"]
     assert "counterexample" in text.lower()
     assert "rollback or fallback" in text.lower()
+    assert "falsification condition" in text.lower()
+
+
+def test_explicit_think_profile_requires_internal_alternatives() -> None:
+    template = _PROFILES["explicit_think"].lower()
+
+    assert "at least 2 plausible approaches" in template
+    assert "rejected" in template
+    assert "2-3 alternative approaches" not in template
+
+
+def test_explicit_think_keyword_routes_to_explicit_profile() -> None:
+    assert _detect_profile("We should THINK through this cache design carefully.") == "explicit_think"
+
+
+def test_explicit_think_hook_asks_for_internal_alternatives_but_one_path() -> None:
+    context = HookContext(
+        prompt="We should THINK through this cache design carefully.",
+        data={},
+        session_id="test-session",
+        terminal_id="test-terminal",
+    )
+
+    result = think_trigger(context)
+
+    assert not result.is_empty()
+    text = result.context["additionalContext"].lower()
+    assert "at least 2 plausible approaches" in text
+    assert "rejected" in text
+    assert "2-3 alternative approaches" not in text
+
+
+def test_evidence_audit_keyword_routes_to_evidence_profile() -> None:
+    assert _detect_profile("Can you verify whether this is actually implemented?") == "evidence_audit"
+
+
+def test_evidence_audit_hook_injects_verification_template() -> None:
+    context = HookContext(
+        prompt="Can you verify whether this is actually implemented?",
+        data={},
+        session_id="test-session",
+        terminal_id="test-terminal",
+    )
+
+    result = think_trigger(context)
+
+    assert not result.is_empty()
+    text = result.context["additionalContext"].lower()
+    assert "evidence audit" in text
+    assert "verified, refuted, or still uncertain" in text
+    assert "counterexample" in text
+
+
+def test_tradeoff_profile_stays_lightweight() -> None:
+    template = _PROFILES["tradeoff_decision"].lower()
+
+    assert "light precheck" in template
+    assert "compare 2 options plus the simplest fallback" in template
+    assert "5 dimensions" not in template
+    assert "state transition" not in template
 
 
 def test_sequential_thinking_includes_shared_contract() -> None:
@@ -98,6 +164,7 @@ def test_sequential_thinking_includes_shared_contract() -> None:
     text = result.context["additionalContext"]
     assert "counterexample" in text.lower()
     assert "negative example" in text.lower()
+    assert "falsification condition" in text.lower()
 
 
 def test_reasoning_mode_selector_includes_shared_contract() -> None:
@@ -114,6 +181,7 @@ def test_reasoning_mode_selector_includes_shared_contract() -> None:
     assert isinstance(result.context, dict)
     assert "systemContext" in result.context
     assert "counterexample" in result.context["systemContext"].lower()
+    assert "falsification condition" in result.context["systemContext"].lower()
 
 
 def test_claim_risk_router_includes_shared_contract() -> None:
@@ -131,6 +199,7 @@ def test_claim_risk_router_includes_shared_contract() -> None:
     text = result.context["additionalContext"]
     assert "counterexample" in text.lower()
     assert "verify repo/runtime facts" in text.lower()
+    assert "falsification condition" in text.lower()
 
 
 def test_cognitive_guardrails_include_shared_contract() -> None:
@@ -138,3 +207,4 @@ def test_cognitive_guardrails_include_shared_contract() -> None:
 
     assert "counterexample" in result["additionalContext"].lower()
     assert "search existing implementations first" in result["additionalContext"].lower()
+    assert "falsification condition" in result["additionalContext"].lower()

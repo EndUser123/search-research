@@ -87,8 +87,10 @@ Before finalizing your response:
 
 LIGHT_ADVOCATE_PROTOCOL = """
 <ADVOCATE_PROTOCOL_LIGHT>
-Before agreeing: include one reason FOR and one reason AGAINST your prior approach,
-then conclude.
+Before agreeing:
+1) Restate the conclusion and the specific evidence that supported it.
+2) Check whether this challenge actually invalidates that evidence.
+3) Update the conclusion only if the evidence is genuinely undermined.
 </ADVOCATE_PROTOCOL_LIGHT>
 """.strip()
 

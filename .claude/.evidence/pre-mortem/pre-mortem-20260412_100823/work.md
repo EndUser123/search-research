@@ -1,0 +1,1 @@
+gto_verify_wrapper.py diagnostic output fix

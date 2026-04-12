@@ -36,9 +36,13 @@ Choose the depth that matches the problem, and escalate if the first pass still 
 
 If the prompt is broad, ambiguous, high-stakes, or cross-cutting, prefer deeper analysis over the first adequate tier.
 
+The hook-level `tradeoff_decision` profile is only a lightweight precheck. Use the full `/decision-tree` mode when the decision needs the 5-dimensional scaffold.
+
 ## Evidence-Audit Mode
 
 Use evidence-audit mode when the user wants verification, skepticism, or a direct assessment backed by proof.
+
+- The hook stack may auto-route verification-heavy prompts here when they contain cues like verify, prove, validate, or fact-check.
 
 - Treat claims as hypotheses until the relevant files, commands, or tests have been checked.
 - Prefer actual evidence over confidence language.
