@@ -195,6 +195,26 @@ _SPECIFIC_REF_RE = re.compile(
 )
 
 _QUESTION_ONLY_RE = re.compile(r"^[^.!]*\?\s*$", re.MULTILINE)
+
+# Questions that indicate decision/intent requiring cognitive enhancement
+_QUESTION_INTENT_RE = re.compile(
+    r"\b("
+    r"does\s+(?:this|the|it|that)\s+"
+    r"(?:need|require|want|have|support|work|exist)|"
+    r"should\s+(?:i|we|this|the|it)\s+"
+    r"(?:do|use|add|implement|update|change|modify)|"
+    r"could\s+(?:this|the|it)\s+"
+    r"(?:work|be|handle|support)|"
+    r"would\s+(?:it|this)\s+"
+    r"(?:be|work|make sense)|"
+    r"is\s+(?:this|the|it)\s+"
+    r"(?:correct|right|wrong|broken|sufficient)|"
+    r"are\s+(?:we|you)\s+"
+    r"(?:missing|needing|wanting)"
+    r")\b\?",
+    re.IGNORECASE,
+)
+
 _SLASH_RE = re.compile(r"^\s*/[a-z]", re.IGNORECASE)
 _MODE_RE = re.compile(r"#(\w+)")
 
@@ -375,9 +395,9 @@ def _is_actionable_prompt(prompt: str, config: dict) -> bool:
         return True
     if len(stripped) < config.get("min_prompt_length", 30): return False
     if _QUESTION_ONLY_RE.match(stripped) and not (
-        _IMPL_RE.search(stripped) or _PLAN_RE.search(stripped) or 
-        _OUTCOME_RE.search(stripped) or _DIAGNOSTIC_RE.search(stripped) or 
-        _DECOMPOSITION_RE.search(stripped)
+        _IMPL_RE.search(stripped) or _PLAN_RE.search(stripped) or
+        _OUTCOME_RE.search(stripped) or _DIAGNOSTIC_RE.search(stripped) or
+        _DECOMPOSITION_RE.search(stripped) or _QUESTION_INTENT_RE.search(stripped)
     ):
         return False
     return True

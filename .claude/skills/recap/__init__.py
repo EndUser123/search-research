@@ -45,7 +45,8 @@ def load_air_gaps() -> list[dict[str, Any]]:
 # Regex patterns compiled at module level for performance (PERF-001)
 # Require full markdown section headers to avoid garbage matches on casual text
 #
-# FIX for Python 3.14: (?=\Z) in lookahead is broken — \Z only works as $ anchor.
+# FIX for Python 3.14: \Z in lookahead (?=\Z) is broken — \Z only works as $ anchor.
+# Use (?=\n\n|\n\*\*|\Z) lookahead to stop before another header or end-of-string.
 # Pattern structure: **...header...** then optional space then content captured.
 # Use [^*]* (zero-or-more) in a non-greedy match between ** delimiters.
 _RE_PROBLEM = re.compile(
@@ -994,6 +995,15 @@ def format_brief(sessions: list[dict[str, Any]]) -> str:
     parts.append(
         f"- Messages: {latest['user_message_count']} user, {latest['assistant_message_count']} assistant"
     )
+
+    # Add duration if available
+    if latest.get("duration"):
+        parts.append(f"- Duration: {latest['duration']}")
+
+    # Add priority score if available
+    priority = latest.get("priority_score", 0)
+    if priority > 0:
+        parts.append(f"- Priority Score: {priority:.1f}/100")
 
     return "\n".join(parts)
 

@@ -1,7 +1,7 @@
 ---
 name: recap
 description: Catch up on all sessions in this terminal via checkpoint chain traversal and surface unresolved assumptions, contract gaps, Contract Authority Packet gaps, and resume risks
-version: 1.2.0
+version: 1.3.0
 status: stable
 category: session
 enforcement: strict
