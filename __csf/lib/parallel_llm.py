@@ -59,9 +59,14 @@ def _save_cli_output(command: str, stdout_text: str, stderr_text: str) -> None:
         temp_dir.mkdir(parents=True, exist_ok=True)
 
         # Extract CLI name from command for filename
-        # Handle Windows paths like: node "path/to/cli.js" and Unix paths
-        cmd_parts = command.split()
-        cli_name = cmd_parts[0].replace("/", "_").replace("\\", "_").replace('"', '').replace("'", "")
+        # Handle both string commands and list commands (list when using subprocess_exec on Windows)
+        if isinstance(command, list):
+            # List command: first element is the executable (e.g., ["node", "path/to/script.js", ...])
+            cli_name = command[0].replace("/", "_").replace("\\", "_").replace('"', '').replace("'", "")
+        else:
+            # String command: split to get first part
+            cmd_parts = command.split()
+            cli_name = cmd_parts[0].replace("/", "_").replace("\\", "_").replace('"', '').replace("'", "")
 
         # Add timestamp for unique filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
@@ -194,7 +199,12 @@ async def run_single_command(
                 stderr=asyncio.subprocess.PIPE,
             )
 
-        if input_text:
+        # Detect shell pipes AFTER proc creation - if "|" in command, the shell handles
+        # the pipe (echo X | cmd), not Python's stdin. But we need the proc first to
+        # access proc.stdin, so check here before writing.
+        has_shell_pipe = not isinstance(command, list) and "|" in command
+
+        if input_text and not has_shell_pipe:
             proc.stdin.write(input_text.encode("utf-8"))
             proc.stdin.close()
 

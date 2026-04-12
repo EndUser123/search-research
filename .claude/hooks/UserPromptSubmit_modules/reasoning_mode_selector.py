@@ -18,6 +18,8 @@ from pathlib import Path
 
 from UserPromptSubmit_modules.base import HookContext, HookResult
 from UserPromptSubmit_modules.observability import log_reasoning_mode
+from UserPromptSubmit_modules.reasoning_contract import build_reasoning_contract
+from UserPromptSubmit_modules.unified_detection import UnifiedDetectionResult
 
 # Add reasoning package and hooks to path
 REASONING_PKG = Path("P:/packages/reasoning")
@@ -26,6 +28,20 @@ if str(REASONING_PKG) not in sys.path:
     sys.path.insert(0, str(REASONING_PKG))
 if str(REASONING_HOOKS) not in sys.path:
     sys.path.insert(0, str(REASONING_HOOKS))
+
+
+def _map_unified_result_to_legacy_format(
+    unified_result: UnifiedDetectionResult,
+) -> dict[str, object]:
+    """Map unified detection output back to the legacy selector shape."""
+    matched_modes = list(unified_result.matched_modes or [])
+    mode = matched_modes[0] if matched_modes else "sequential"
+    reasoning_required = bool(matched_modes and unified_result.confidence > 0)
+    return {
+        "mode": mode,
+        "confidence": unified_result.confidence,
+        "reasoning_required": reasoning_required,
+    }
 
 
 def reasoning_mode_selector(context: HookContext) -> HookResult:
@@ -62,7 +78,14 @@ def reasoning_mode_selector(context: HookContext) -> HookResult:
         # System context for AI
         system_context = (
             f"Reasoning mode: {mode_name} ({confidence}/4). "
-            "Start here, then widen depth if uncertainty remains."
+            "Start here, then widen depth if uncertainty remains.\n\n"
+            + build_reasoning_contract(
+                include_discovery=False,
+                include_rollback=False,
+                include_verification=True,
+                include_counterexample=True,
+                include_evidence=True,
+            )
         )
 
         # User-facing message

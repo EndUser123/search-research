@@ -955,7 +955,9 @@ def generate_parallel_bash_commands(
     if run_qwen:
         commands.append(f"echo {safe_query} | qwen")
     if run_gemini:
-        commands.append(f"echo {safe_query} | gemini")
+        # Use stdin pipe (echo X | gemini) - do NOT also use -p with the same query
+        # Gemini rejects "Cannot use both a positional prompt and the --prompt (-p) flag together"
+        commands.append(f"echo {safe_query} | gemini -y -o text -m gemini-2.5-flash")
     if run_codex:
         # Codex exec takes query as argument (not stdin), like vibe uses -p
         commands.append(f'codex exec "{query}"')
@@ -1155,15 +1157,17 @@ def _build_cli_commands(
     if run_qwen:
         commands.append(("qwen", qwen_cmd))
     if run_gemini:
-        # Use stable model via -m flag to avoid MODEL_CAPACITY_EXHAUSTED errors
-        # Need to embed query as separate argument (not stdin) so model selection applies
-        # On Windows, use bare 'gemini' command (in PATH) to avoid cd + node path issues
-        # Use list format to avoid shell quoting issues with PowerShell
+        # Use -p flag with list format to avoid:
+        # 1. Shell pipe issues on Windows (stdin conflicts)
+        # 2. Positional argument conflicts (gemini rejects both -p AND positional)
+        # Pass as list to create_subprocess_exec (not shell) so -p flag works correctly
+        # On Windows, must use full node path since npm global commands aren't in PATH for exec
         if sys.platform == "win32":
-            commands.append(("gemini", ["gemini", "-y", "-o", "text", "-m", "gemini-2.5-flash", "-p", query]))
+            gemini_script = npm_root / "@google" / "gemini-cli" / "bundle" / "gemini.js"
+            gemini_args = ["node", str(gemini_script), "-y", "-o", "text", "-m", "gemini-2.5-flash", "-p", query]
         else:
-            gemini_cmd_parts = ["gemini", "-y", "-o", "text", "-m", "gemini-2.5-flash", "-p", query]
-            commands.append(("gemini", " ".join(gemini_cmd_parts)))
+            gemini_args = ["gemini", "-y", "-o", "text", "-m", "gemini-2.5-flash", "-p", query]
+        commands.append(("gemini", gemini_args))
     if run_codex:
         commands.append(("codex", codex_cmd))
     if run_vibe:

@@ -82,6 +82,25 @@ python P:/.claude/skills/git/sync.py [args]
 
 ---
 
+## Prerequisites
+
+Before using `/git`, ensure git is configured for authentication:
+
+**1. Authentication** - Set up git credentials for your hosting provider:
+- GitHub: https://docs.github.com/en/authentication
+- GitLab: https://docs.gitlab.com/ee/user/profile/preferences.html#access-tokens
+
+**2. Windows users** - Configure credential helper:
+```bash
+git config --global credential.helper manager-core
+```
+
+**3. Test manually first** - Run `git push` once to authenticate before relying on auto-push. This confirms credentials work and prevents silent authentication failures during automated sync.
+
+**Note**: The skill will show actionable error messages if authentication fails, but first-time setup is easier when done manually.
+
+---
+
 ## What It Does
 
 ### Multi-Repo Discovery

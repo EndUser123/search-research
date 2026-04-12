@@ -19,6 +19,7 @@ HOOKS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, HOOKS_DIR)
 
 from UserPromptSubmit_modules.base import HookContext, HookResult
+from UserPromptSubmit_modules.reasoning_contract import append_reasoning_contract
 from UserPromptSubmit_modules.registry import register_hook
 
 # Configuration
@@ -53,6 +54,15 @@ Before proposing any implementation or solution:
    (a) What problem CLASS this covers (not just the presenting instance)
    (b) What other instances of this problem exist that your solution does NOT cover
    (c) Whether those uncovered instances require a separate solution or are acceptable gaps"""
+
+COGNITIVE_GUARDRAILS_INJECTION = append_reasoning_contract(
+    COGNITIVE_GUARDRAILS_INJECTION,
+    include_verification=True,
+    include_counterexample=True,
+    include_discovery=True,
+    include_rollback=False,
+    include_evidence=True,
+)
 
 
 @register_hook("cognitive_guardrails", priority=2.0)

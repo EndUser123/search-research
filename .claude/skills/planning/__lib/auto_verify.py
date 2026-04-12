@@ -2199,13 +2199,16 @@ def check_duplicate_implementations(plan: str, plan_path: str | None = None) -> 
             proposed_classes.add(match.group(2))
 
     # If still no classes found, try a broader search for capitalized words near file paths
+    # BUT only when "class" keyword appears nearby (not just any capitalized word)
     if not proposed_classes:
-        # Use double quotes for raw string to properly escape quotes in character class
-        broad_pattern = re.compile(r"[`'\"]([a-z_][a-z0-9_/]*\.py)[`'\"]?\s+\b([A-Z][a-zA-Z0-9]*)\b")
+        broad_pattern = re.compile(
+            r"[`'\"]([a-z_][a-z0-9_/]*\.py)[`'\"]?\s+.{0,30}\b([A-Z][a-zA-Z0-9]*)\s+class\b",
+            re.IGNORECASE | re.DOTALL,
+        )
         for match in broad_pattern.finditer(implementation_section):
             class_name = match.group(2)
             # Filter out common words that aren't class names
-            if class_name not in ('Python', 'The', 'This', 'That', 'List', 'Dict', 'Any'):
+            if class_name not in ("Python", "The", "This", "That", "List", "Dict", "Any"):
                 proposed_classes.add(class_name)
 
     # Common base class names to skip (too generic)

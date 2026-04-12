@@ -603,5 +603,26 @@ def test_theres_no_subprocess_case_insensitive():
     assert output.get("decision") == "block"
 
 
+def test_no_subprocesses_plural_blocked():
+    """'no subprocesses' (plural) should be blocked without verification."""
+    response = "There are no subprocesses available for this operation."
+    output, exit_code = run_guard(response, tool_events=[])
+
+    assert exit_code == 2
+    assert output.get("decision") == "block"
+
+
+def test_no_subprocesses_plural_with_verification_still_blocked():
+    """'no subprocesses' (plural) is blocked even after Read — runtime constructs have no exemption."""
+    response = "There are no subprocesses configured."
+    tool_events = [{"name": "Read", "command": "gto_orchestrator.py", "ts": "2026-03-07T12:00:00Z"}]
+
+    output, exit_code = run_guard(response, tool_events=tool_events)
+
+    # Runtime-construct denials have no exemption path — Read of the file doesn't help
+    assert exit_code == 2
+    assert output.get("decision") == "block"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

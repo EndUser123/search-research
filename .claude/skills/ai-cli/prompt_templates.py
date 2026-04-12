@@ -205,7 +205,11 @@ def build_prompt(
     """
     template = PROMPT_TEMPLATES.get(task_type, PROMPT_TEMPLATES[TaskType.GENERAL])
 
-    if context:
+    # Check if query already contains --- Context --- (added by _build_query_context)
+    # If so, don't wrap in another --- Context --- to avoid nesting issues that confuse gemini CLI
+    query_has_context = "--- Context ---" in query
+
+    if context and not query_has_context:
         prompt = f"""--- Context ---
 {context}
 

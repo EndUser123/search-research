@@ -120,7 +120,7 @@ def _auto_correct_params(tool_input: dict, tool_name: str = "TaskCreate") -> dic
     Auto-correct common wrong parameter names.
 
     TaskCreate: name, title -> subject
-    TaskUpdate: taskId -> task_id
+    TaskUpdate: task_id -> taskId (camelCase is correct for built-in TaskUpdate)
 
     Returns corrected tool_input dict with corrections applied, or None if no corrections needed.
     """
@@ -134,6 +134,7 @@ def _auto_correct_params(tool_input: dict, tool_name: str = "TaskCreate") -> dic
     elif tool_name == "TaskUpdate":
         if "task_id" in tool_input and "taskId" not in tool_input:
             corrections["task_id"] = "taskId"
+        # Collision (both task_id and taskId present): keep taskId, remove task_id — handled below
 
     if not corrections:
         return None
@@ -142,6 +143,12 @@ def _auto_correct_params(tool_input: dict, tool_name: str = "TaskCreate") -> dic
     corrected = dict(tool_input)
     for wrong_param, correct_param in corrections.items():
         corrected[correct_param] = corrected.pop(wrong_param)
+
+    # Handle collision case: when both taskId and task_id were present,
+    # we kept taskId (correct) and auto-corrected task_id -> taskId.
+    # Now remove the leftover task_id key if it still exists.
+    if tool_name == "TaskUpdate" and "task_id" in corrected and "taskId" in corrected:
+        corrected.pop("task_id")
 
     print(
         f"Auto-corrected {tool_name} params: {list(corrections.keys())} -> {list(corrections.values())}",
@@ -172,12 +179,20 @@ def run(data: dict) -> dict | None:
 
     # Auto-correct wrong parameter names before validation
     corrected = _auto_correct_params(tool_input, tool_name)
+    if corrected is None and tool_name == "TaskUpdate":
+        # Collision case: both taskId (correct) and task_id (wrong) present.
+        # Resolve by removing task_id, keeping taskId.
+        if "taskId" in tool_input and "task_id" in tool_input:
+            corrected = dict(tool_input)
+            corrected.pop("task_id")
     if corrected is not None:
-        # COMP-002: For TaskUpdate without status=completed, skip validation
-        # since no self-doc requirement exists for non-completion updates
+        # For TaskUpdate without status=completed, skip self-doc validation since
+        # no description requirement exists for non-completion updates.
+        # Note: Auto-correct still runs (e.g. task_id -> taskId) but validation
+        # is intentionally bypassed for non-completion status. This is safe because
+        # the built-in TaskUpdate tool validates params; we only add guidance.
         status = corrected.get("status", "")
         if tool_name == "TaskUpdate" and status != "completed":
-            # Auto-correction is useful (taskId->task_id) but no validation needed
             return {"decision": "modify", "tool_input": corrected}
         # Validate self-doc on corrected input (not just for TaskUpdate with status=completed)
         is_valid, reason = _validate_task_doc(corrected, tool_name)

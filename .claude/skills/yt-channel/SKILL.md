@@ -29,6 +29,10 @@ Check all tracked YouTube channels for new videos and manage your channel list.
 - `sync --verbose` — Show detailed output during check
 - `list` — List all tracked channels with metadata
 - `add <url>` — Add a new channel or playlist to track
+- `fetch` — **ESCALATION BATCH PROCESS**: Download transcripts for all pending videos using yt-dlp → Selenium fallback (RECOMMENDED)
+  - `fetch --dry-run` — Preview what would be fetched
+  - `fetch --source <url>` — Process only one channel
+  - `fetch --workers <n>` — Use N parallel workers (default: 1)
 
 ## Your Workflow
 
@@ -95,6 +99,39 @@ https://www.youtube.com/channel/@UniverseofAIz                 161  2026-04-10T0
 
 Channels are checked in order of `last_checked` (oldest first) to ensure fair coverage.
 
+## Escalation Batch Process (`csf-source fetch`)
+
+The `fetch` command implements automatic escalation for transcript downloading:
+
+**Escalation Chain (per video):**
+1. **yt-dlp (WEB client)** - Fastest method (~5 seconds), works for most public videos
+2. **yt-dlp with cookies** - For age-restricted videos
+3. **Selenium Firefox** - Fallback for bot-check failures (~15-30 seconds)
+
+**Features:**
+- **Automatic retries**: Each video tries all methods until one succeeds
+- **Resume support**: Interrupted runs skip already-cached videos
+- **Parallel processing**: Use `--workers N` for concurrent downloads
+- **Status tracking**: Automatically marks videos complete/failed in batch_status
+
+**Recommended Workflow:**
+```bash
+# 1. Discover new videos
+csf-source check-all
+
+# 2. Download transcripts (all channels, automatic escalation)
+csf-source fetch
+
+# 3. Or dry-run first to see what will be fetched
+csf-source fetch --dry-run
+
+# 4. Or process only one channel
+csf-source fetch --source "https://youtube.com/@channel"
+
+# 5. Or use parallel workers for faster processing
+csf-source fetch --workers 2
+```
+
 ## Data Flow
 
 ```
@@ -105,7 +142,7 @@ channel_metadata table (SQLite)
   │                                                ▼
   │                                       batch_status table (pending)
   │
-  └─► yt-batch-fetch ──► Download transcripts for pending videos
+  └─► csf-source fetch ──► ESCALATION CHAIN (yt-dlp → Selenium) ──► transcripts.sqlite
 ```
 
 ## Storage

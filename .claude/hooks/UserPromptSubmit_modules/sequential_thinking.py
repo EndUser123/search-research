@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Optional
 
 from UserPromptSubmit_modules.base import HookContext, HookResult
+from UserPromptSubmit_modules.reasoning_contract import append_reasoning_contract
 from UserPromptSubmit_modules.registry import register_hook
 
 # Ensure __lib is importable (hooks dir is already in sys.path via UserPromptSubmit.py)
@@ -315,6 +316,14 @@ def sequential_thinking_hook(context: HookContext) -> HookResult:
             f"Mode: {mode_text} (iteration 0 of 2)\n"
             f"</sequential_thinking>\n\n"
             f"{instructions}\n"
+        )
+        injection = append_reasoning_contract(
+            injection,
+            include_verification=True,
+            include_counterexample=True,
+            include_discovery=False,
+            include_rollback=True,
+            include_evidence=True,
         )
         return HookResult(
             context={

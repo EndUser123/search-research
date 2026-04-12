@@ -1,7 +1,7 @@
 ---
 name: think
 description: Adaptive reasoning gate for SDLC work - choose the right depth and evidence posture
-version: "2.2.0"
+version: "2.6.0"
 status: stable
 category: meta
 triggers:
@@ -30,7 +30,7 @@ Choose the depth that matches the problem, and escalate if the first pass still 
 
 1. `/truth` if the question is about evidence, existence, behavior, implementation status, or "what actually happened."
 2. Evidence-audit mode if you want the answer challenged, cross-checked, or auto-verified before it is trusted. This subsumes the old `/truth-av` behavior.
-3. `/decision-tree` if the question is about options, lifecycle, state transitions, phases, or resource management. Use the explicit 5-dimensional scaffold below.
+3. `/decision-tree` if the question is about options, lifecycle, state transitions, phases, or resource management. Use the SDLC branch, scoring axes, and matching branch template below.
 4. `/sequential-thinking` if the question needs multiple hypotheses, root-cause analysis, or uncertainty reduction.
 5. `/think` if the prompt is straightforward enough that a concise recommendation is better than a framework dump.
 
@@ -49,6 +49,18 @@ Use evidence-audit mode when the user wants verification, skepticism, or a direc
 
 Use this when the problem has real options, state changes, timing, or lifecycle impact.
 
+### Automatic Branch Selection
+
+Pick the first matching branch in this order:
+
+1. Incident / Bug / Regression if something is broken, flaky, intermittent, failing, or regressing.
+2. Ops / Release Risk if the question is about deploy, rollback, hotfix, cutover, validation, or production safety.
+3. Refactor / Migration if the work changes structure, moves APIs, extracts modules, or upgrades dependencies.
+4. Architecture / Lifecycle if boundaries, ownership, state, timing, or persistence are the main concern.
+5. Feature / Design if the question is primarily about building, choosing, or shaping a new capability.
+
+If multiple branches match, keep the highest-risk operational branch and treat the others as secondary checks.
+
 Apply the full 5-dimensional scaffold in order:
 
 1. Name the decision and the concrete options.
@@ -56,6 +68,18 @@ Apply the full 5-dimensional scaffold in order:
 3. Analyze lifecycle impact: persistent, ephemeral, or mixed.
 4. Check the phases that matter: before, during, after, or never.
 5. Clarify the purpose and constraints, then recommend one path.
+
+When the decision is SDLC-specific, narrow into the decision-tree branches:
+
+- incident / bug / regression
+- feature / design
+- refactor / migration
+- architecture / lifecycle
+- ops / release risk
+
+Score each option on blast radius, reversibility, compatibility risk, lifecycle impact, uncertainty, and effort before recommending.
+Use the branch template that matches the problem. Do not force a generic template when the branch has a better one.
+State the selected branch explicitly and explain the cue that selected it.
 
 If evidence is also uncertain, verify the facts first, then apply the decision tree.
 

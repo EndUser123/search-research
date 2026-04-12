@@ -355,19 +355,15 @@ class TestParamAutoCorrect:
         assert result["tool_input"]["metadata"] == {"priority": "high"}
 
     def test_auto_corrects_task_id_for_task_update(self, base_data):
-        """Should auto-correct taskId -> task_id for TaskUpdate."""
+        """Should NOT auto-correct taskId (it's already correct camelCase)."""
         base_data["tool_name"] = "TaskUpdate"
         base_data["tool_input"] = {
             "taskId": "123",
             "name": "Updated task name",
         }
         result = gate_run(base_data)
-        # Gate corrects taskId -> task_id and allows
-        assert result is not None
-        assert result["decision"] == "modify"
-        assert "task_id" in result["tool_input"]
-        assert "taskId" not in result["tool_input"]
-        assert result["tool_input"]["name"] == "Updated task name"  # other params preserved
+        # taskId is already correct, no correction needed
+        assert result is None
 
     def test_blocks_task_update_completion_without_description(self, base_data):
         """TaskUpdate with status=completed but no description is blocked."""
@@ -390,7 +386,11 @@ class TestParamAutoCorrect:
             "description": "Fix that shows error when processing invalid input during overnight batch runs - it fails silently and outputs corrupted data.",
         }
         result = gate_run(base_data)
-        assert result is None  # allowed
+        # task_id gets auto-corrected to taskId (the correct param name)
+        assert result is not None
+        assert result["decision"] == "modify"
+        assert "taskId" in result["tool_input"]
+        assert "task_id" not in result["tool_input"]
 
     def test_allows_task_update_non_completion(self, base_data):
         """TaskUpdate with non-completion status requires no self-doc."""
@@ -400,20 +400,25 @@ class TestParamAutoCorrect:
             "status": "in_progress",
         }
         result = gate_run(base_data)
-        assert result is None  # allowed, no self-doc required
+        # task_id gets auto-corrected to taskId (the correct param name)
+        assert result is not None
+        assert result["decision"] == "modify"
+        assert "taskId" in result["tool_input"]
+        assert "task_id" not in result["tool_input"]
 
     def test_task_update_task_id_auto_correct(self, base_data):
-        """TaskUpdate corrects taskId to task_id."""
+        """TaskUpdate corrects task_id (wrong) to taskId (correct)."""
         base_data["tool_name"] = "TaskUpdate"
         base_data["tool_input"] = {
-            "taskId": "456",
+            "task_id": "456",
             "status": "in_progress",
         }
         result = gate_run(base_data)
+        # Corrects snake_case task_id to camelCase taskId
         assert result is not None
         assert result["decision"] == "modify"
-        assert "task_id" in result["tool_input"]
-        assert "taskId" not in result["tool_input"]
+        assert "taskId" in result["tool_input"]
+        assert "task_id" not in result["tool_input"]
 
 
 # --- TEST-GATE Coverage Tests -----------------------------------------------
@@ -448,30 +453,26 @@ class TestInvalidTaskIdTypes:
         assert result is not None
 
     def test_taskupdate_none_taskid_auto_corrects(self, base_data):
-        """TaskUpdate with None taskId should be auto-corrected to task_id=None."""
+        """TaskUpdate with None taskId should NOT be auto-corrected (taskId is correct param name)."""
         base_data["tool_name"] = "TaskUpdate"
         base_data["tool_input"] = {
             "taskId": None,
             "status": "in_progress",
         }
         result = gate_run(base_data)
-        # Gate auto-corrects taskId -> task_id even for None
-        assert result is not None
-        assert result["decision"] == "modify"
-        assert "task_id" in result["tool_input"]
+        # taskId is the correct param name, no correction needed
+        assert result is None
 
     def test_taskupdate_empty_string_taskid_auto_corrects(self, base_data):
-        """TaskUpdate with empty string taskId should be auto-corrected."""
+        """TaskUpdate with empty string taskId should NOT be auto-corrected (taskId is correct param)."""
         base_data["tool_name"] = "TaskUpdate"
         base_data["tool_input"] = {
             "taskId": "",
             "status": "in_progress",
         }
         result = gate_run(base_data)
-        # Gate auto-corrects even empty string
-        assert result is not None
-        assert result["decision"] == "modify"
-        assert "task_id" in result["tool_input"]
+        # taskId is the correct param name, no correction needed
+        assert result is None
 
 
 class TestEmptyToolInput:
@@ -567,7 +568,7 @@ class TestCollisionDetection:
     """TEST-GATE-009: Collision when both taskId and task_id present."""
 
     def test_taskupdate_both_taskid_and_task_id(self, base_data):
-        """TaskUpdate with both taskId and task_id should use task_id, remove taskId."""
+        """TaskUpdate with both taskId and task_id: keep taskId (correct), remove task_id (wrong)."""
         base_data["tool_name"] = "TaskUpdate"
         base_data["tool_input"] = {
             "taskId": "old_id",
@@ -575,7 +576,11 @@ class TestCollisionDetection:
             "description": "When running pytest, it crashes with error.",  # Valid description
         }
         result = gate_run(base_data)
-        # Valid TaskUpdate with correct task_id passes through
-        assert result is None, f"Expected None for valid TaskUpdate, got: {result}"
+        # Collision resolved: keep taskId (correct), remove task_id (wrong)
+        assert result is not None
+        assert result["decision"] == "modify"
+        assert "taskId" in result["tool_input"]
+        assert "task_id" not in result["tool_input"]
+        assert result["tool_input"]["taskId"] == "old_id"
 
 

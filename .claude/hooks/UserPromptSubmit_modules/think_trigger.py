@@ -24,6 +24,7 @@ import re
 from dataclasses import dataclass
 
 from UserPromptSubmit_modules.base import HookContext, HookResult
+from UserPromptSubmit_modules.reasoning_contract import append_reasoning_contract
 from UserPromptSubmit_modules.registry import register_hook
 
 # ---------------------------------------------------------------------------
@@ -61,6 +62,10 @@ class ThinkProfile:
 
 # Regex to strip inline code spans before keyword matching
 _CODE_SPAN_RE = re.compile(r"`[^`]+`")
+_THINK_PREFIX_RE = re.compile(
+    r"^\s*THINK(?:\s+(?P<alias>[A-Z][A-Z0-9_-]*))?(?:\s*:\s*|\s+)?(?P<remainder>.*)$",
+    re.IGNORECASE,
+)
 
 
 def _stem(root: str, suffixes: str = "ed|ing|s|es") -> str:
@@ -333,6 +338,19 @@ Big-O analysis:
         strong_patterns=[],
         weak_patterns=None,
     ),
+    "quick": ThinkProfile(
+        name="quick",
+        template="""\
+THINK PROFILE: QUICK TRIAGE
+
+Use this for an explicit but lightweight THINK prompt.
+
+1. Restate the problem in one sentence
+2. Identify the smallest safe next step
+3. Ask at most one clarifying question if needed""",
+        strong_patterns=[],
+        weak_patterns=[],
+    ),
     "multi_file_refactor": ThinkProfile(
         name="multi_file_refactor",
         template="""\
@@ -378,6 +396,20 @@ Common pitfalls:
             r"(?:merge|combine)\s+(?:into|files)",
         ],
     ),
+}
+
+_PROFILE_ALIASES: dict[str, str] = {
+    "quick": "quick",
+    "why": "debug_rca",
+    "debug": "debug_rca",
+    "rca": "debug_rca",
+    "decide": "tradeoff_decision",
+    "decision": "tradeoff_decision",
+    "tradeoff": "tradeoff_decision",
+    "arch": "architecture",
+    "architecture": "architecture",
+    "risk": "pre_commit_risk",
+    "premortem": "pre_commit_risk",
 }
 
 
@@ -431,6 +463,14 @@ def _detect_profile(prompt: str) -> str | None:
     Weak keywords need 2+ matches (ambiguous alone).
     Strips inline code (`...`) before matching.
     """
+    explicit_profile, _ = _parse_think(prompt)
+    if explicit_profile is not None:
+        return explicit_profile
+
+    explicit_profile, _ = _parse_think(prompt)
+    if explicit_profile is not None:
+        return explicit_profile
+
     # Uppercase THINK keyword — intentional explicit reasoning request (case-sensitive)
     if re.search(r"\bTHINK\b", prompt):
         return "explicit_think"
@@ -504,7 +544,37 @@ Explicit reasoning mode (THINK keyword detected).
 3. Generate 2-3 alternative approaches
 4. Recommend one with the top tradeoff named
 5. State what evidence would change the answer""",
+    "quick": """\
+THINK PROFILE: QUICK TRIAGE
+
+Use this for an explicit but lightweight THINK prompt.
+
+1. Restate the problem in one sentence
+2. Identify the smallest safe next step
+3. Ask at most one clarifying question if needed""",
 }
+
+
+def _parse_think(prompt: str) -> tuple[str | None, str]:
+    """Parse explicit THINK-style prompts into a profile and remainder."""
+    stripped = prompt.strip()
+    if not stripped:
+        return None, ""
+
+    match = _THINK_PREFIX_RE.match(stripped)
+    if not match:
+        return None, prompt
+
+    alias = (match.group("alias") or "").lower()
+    remainder = (match.group("remainder") or "").strip()
+
+    if not alias:
+        return "quick", remainder
+
+    profile = _PROFILE_ALIASES.get(alias)
+    if profile is None:
+        return "quick", remainder
+    return profile, remainder
 
 # Module-level invariant check (runs on import)
 if __debug__:  # Only runs in dev/test, optimized out in production
@@ -528,7 +598,14 @@ def think_trigger(context: HookContext) -> HookResult:
     if profile is None:
         return HookResult.empty()
 
-    template = f"[THINK:{profile}]\n\n" + _PROFILES[profile]
+    template = append_reasoning_contract(
+        f"[THINK:{profile}]\n\n" + _PROFILES[profile],
+        include_verification=True,
+        include_counterexample=True,
+        include_discovery=True,
+        include_rollback=True,
+        include_evidence=True,
+    )
     suppression = [
         "operating_rules",
     ]

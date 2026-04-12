@@ -1,5 +1,18 @@
 # Search Architecture
 
+## Routing Modes
+
+The `UnifiedAsyncRouter` supports 4 operating modes:
+
+| Mode | Behavior | Use Case |
+|------|----------|----------|
+| `local-only` | Local sources only (CKS, CHS, CDS, code, docs, skills) | Privacy-preserving, fast |
+| `auto` | Local + web quality check + optional web | Balanced coverage |
+| `web-fallback` | Local first, then web if insufficient results | Comprehensive |
+| `unified` | Full progressive enhancement with RRF fusion | Best quality |
+
+**TF-IDF topic alignment** is computed between query and result content, stored in `metadata["topic_alignment_score"]`.
+
 ## Chat History Architecture (Updated 2026-03-19)
 
 Chat history search is handled by the **claude-history** Rust package:

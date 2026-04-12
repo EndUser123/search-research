@@ -2,10 +2,10 @@
 name: chs
 description: Dedicated chat history search with summarization, workspace aliases, tool filtering, context preview, session stats, and branch filtering
 category: chat-history
-version: 1.0.0
-status: stable
-enforcement: advisory
+triggers:
+  - /chs
 aliases:
+  - /chs
   - /chat-history
   - /history-search
 
@@ -13,7 +13,6 @@ suggest:
   - /search
   - /all
   - /cks
-  - /top-problems
 
 do_not:
   - duplicate /search functionality - use this for chat-specific workflows
@@ -54,6 +53,59 @@ Dedicated search for Claude Code chat history with advanced features: summarizat
 6. **Generate output** - Summary, context preview, or full details
 7. **Optional summarization** - Apply selected summarization mode
 
+## Quick Start: Searching Previous Sessions
+
+When you have a session_id from handoff context or need to find content from a previous conversation:
+
+### With session_id (from handoff)
+
+```bash
+# View the session with surrounding context
+/chs show {session_id} --context 20
+
+# Search within a specific session for unique phrases
+/chs "CRITICAL: You MUST call Skill" --session {session_id}
+
+# Use two-stage search for deep exploration
+/chs "Option A Option B Option C" --session {session_id} --stage auto
+```
+
+### Without session_id (search across all sessions)
+
+```bash
+# Search for unique phrases from the conversation
+/chs "unique phrase from discussion"
+
+# Filter by workspace or time
+/chs "authentication" --workspace tiny-vacation --since "7 days ago"
+
+# Use context preview to see surrounding messages
+/chs show {found_session_id} --context 10
+```
+
+### Why /chs instead of generic search tools
+
+| Feature | /chs | Generic (grep/Read) |
+|---------|-----|---------------------|
+| **Speed** | ~10ms index, ~500ms deep | Full file scan every time |
+| **Context** | Session-aware, filters | Raw content only |
+| **Precision** | Two-stage search | Manual pattern refinement |
+| **Output** | Structured with context | Raw grep results |
+
+### Search Tips from Failure Analysis
+
+**DO:**
+- Use unique phrases from the conversation ("CRITICAL: You MUST call Skill")
+- Combine multiple unique terms for better matching
+- Search the handoff session file first
+- Use `--context` flag to see surrounding messages
+
+**DON'T:**
+- Use generic terms ("Option A") that match unrelated content
+- Search current session when handoff points to previous session
+- Use grep/python when /chs exists and has the session
+- Load full conversations unnecessarily (use two-stage search)
+
 ## Seven Key Features
 
 ### 1. Summarization Modes
@@ -68,58 +120,288 @@ Transform raw chat history into structured documentation.
 | `debug-postmortem` | Symptoms, investigation, dead ends, root cause, fix | Learn from debugging sessions |
 | `onboarding` | "How this works" for new devs | Team knowledge transfer |
 
-Usage: `/chs "query" --mode <mode>` -- See `references/examples.md` for mode-specific examples.
+```bash
+/chs "authentication" --mode documentation
+/chs "session-abc123" --mode short-memory
+/chs "migration" --mode changelog
+/chs "error handling" --mode debug-postmortem
+/chs "project-architecture" --mode onboarding
+```
 
 ### 2. Two-Stage Search Architecture
 
-**Stage 1 (Fast):** Index-only search (~10ms) -- `firstPrompt`, `summary`, `terminalId`, `branch`, `timestamp`.
-**Stage 2 (Deep):** Full JSONL content scan (~500ms) -- all message content, tool results, thinking blocks.
+**Stage 1 (Fast):** Index-only search
+- Searches: `firstPrompt`, `summary`, `terminalId`, `branch`, `timestamp`
+- Speed: ~10ms
+- Use for: Initial exploration, finding relevant sessions
 
-Default is `--stage auto` (Stage 1 first, Stage 2 on-demand). Key principle: never load full conversations unnecessarily.
+**Stage 2 (Deep):** Full JSONL content scan
+- Searches: All message content, tool results, thinking blocks
+- Speed: ~500ms (depends on corpus size)
+- Use for: When Stage 1 finds nothing or needs more detail
+
+```bash
+/chs "authentication" --stage 1  # Fast index search
+/chs "authentication" --stage 2  # Deep content scan
+/chs "authentication" --stage auto  # Auto-select (default)
+```
+
+**Key principle:** Never load full conversations into context unnecessarily.
 
 ### 3. Workspace Aliases
 
-Group related workspaces for unified search. Define in `~/.claude/chs_config.json`.
+Group related workspaces for unified search.
 
-Usage: `/chs "query" --workspace-alias <alias>` -- See `references/configuration.md` for setup.
+```bash
+# Define aliases in config file
+# ~/.claude/chs_config.json
+{
+  "workspace_aliases": {
+    "frontend": ["tiny-vacation", "vacation-api", "vacation-ui"],
+    "backend": ["api-gateway", "auth-service", "user-service"],
+    "ml": ["ml-pipeline", "model-training", "inference"]
+  }
+}
+
+# Search across aliased workspaces
+/chs "deployment" --workspace-alias frontend
+/chs "auth" --workspace-alias backend
+```
 
 ### 4. Tool-Based Filtering
 
-Find conversations by tool usage (Edit, Write, Bash, Read, Grep, Glob, Task, Agent, LSP, etc.).
+Find conversations by tool usage.
 
-Usage: `/chs --tool <Tool> --file "<pattern>"` -- See `references/examples.md` for tool filter examples.
+```bash
+# Find all Edit tool usage on a file
+/chs --tool Edit --file "config/api.php"
+
+# Find Task tool usage in last 7 days
+/chs --tool Task --since "7 days ago"
+
+# Find Bash tool usage with keyword
+/chs "npm" --tool Bash --limit 50
+```
+
+Supported tools: Edit, Write, Bash, Read, Grep, Glob, Task, Agent, LSP, etc.
 
 ### 5. Context Window Preview
 
-Show surrounding messages without loading full conversation.
+Show surrounding messages for context without loading full conversation.
 
-Usage: `/chs show <session-id> --context <N>` -- See `references/examples.md` for preview examples.
+```bash
+/chs show <session-id> --context 10  # Show 10 messages before/after
+/chs show <session-id> --context 5 --center  # Center on match
+```
+
+**Output format:**
+```
+=== Session: abc123 ===
+[5 messages before match]
+...
+[MATCH] User: "how does authentication work?"
+[1 message after match]
+...
+Use --depth full to see complete conversation.
+```
 
 ### 6. Session Statistics Dashboard
 
-Metrics: sessions per workspace, average length, most-used tools, terminal mapping, branch distribution, time patterns.
+Metrics and insights about chat history.
 
-Usage: `/chs stats [--workspace <ws>] [--since <date>]`
+```bash
+/chs stats
+/chs stats --workspace tiny-vacation
+/chs stats --since "30 days ago"
+```
+
+**Statistics include:**
+- Total sessions per workspace
+- Average session length (messages, duration)
+- Most-used tools (by count)
+- Terminal ID ↔ session mapping
+- Branch distribution
+- Time-based patterns (hourly, daily activity)
 
 ### 7. Branch-Based Filtering
 
-Search conversations by git branch: `/chs "query" --branch "<branch-name>"`
+Search conversations by git branch.
+
+```bash
+/chs "deploy" --branch "main"
+/chs "feature" --branch "feature/story-6.5"
+/chs "bugfix" --branch "fix/auth-error"
+```
+
+**Use case:** "What did we discuss on the feature/story-6.5 branch?"
 
 ## Command Reference
 
-See `references/command-reference.md` for full command syntax covering basic search, filter options, output options, session management, and advanced options.
+### Basic Search
+
+```bash
+/chs "query"                          # Basic search
+/chs "authentication" --limit 20      # Limit results
+/chs "migration" --since "7 days ago" # Date filter
+/chs "migration" --until "2025-01-01" # Until date
+/chs "error" --exact                  # Exact match
+```
+
+### Filter Options
+
+```bash
+# Workspace filters
+/chs "deploy" --workspace tiny-vacation
+/chs "api" --workspace-alias frontend
+
+# Tool filters
+/chs --tool Edit --file "*.py"
+/chs --tool Bash --since "today"
+
+# Branch filters
+/chs "feature" --branch "main"
+/chs "bugfix" --branch "fix/*"
+
+# Content filters
+/chs --exclude-thinking               # Exclude thinking blocks
+/chs --include-tool-results           # Include tool execution results
+```
+
+### Output Options
+
+```bash
+# Detail levels
+/chs "query" --depth summary          # Lightweight index only
+/chs "query" --depth full             # Complete content
+/chs "query" --depth auto             # Auto-detect (default)
+
+# Context preview
+/chs show <session-id> --context 10
+
+# Summarization modes
+/chs "query" --mode documentation
+/chs "query" --mode short-memory
+/chs "query" --mode changelog
+/chs "query" --mode debug-postmortem
+/chs "query" --mode onboarding
+
+# Output formats
+/chs "query" --format json            # Machine-readable
+/chs "query" --format markdown        # Formatted markdown
+```
+
+### Session Management
+
+```bash
+# Show specific session
+/chs show <session-id>
+/chs show <session-id> --max-messages 100
+/chs show <session-id> --json          # JSON output
+
+# List recent sessions
+/chs list --limit 20
+/chs list --workspace tiny-vacation
+/chs list --since "yesterday"
+
+# Statistics
+/chs stats
+/chs stats --workspace tiny-vacation
+```
+
+### Advanced Options
+
+```bash
+# Search stages
+/chs "query" --stage 1                # Index-only (fast)
+/chs "query" --stage 2                # Deep scan
+/chs "query" --stage auto             # Auto-select
+
+# Rebuild index
+/chs --reindex                        # Rebuild search index
+
+# Export
+/chs "query" --output results.json    # Save to file
+/chs "query" --clipboard              # Copy to clipboard
+```
 
 ## Configuration
 
-See `references/configuration.md` for config file format (`~/.claude/chs_config.json`), workspace aliases setup, and `/search` integration guidance.
+Create `~/.claude/chs_config.json`:
+
+```json
+{
+  "workspace_aliases": {
+    "frontend": ["tiny-vacation", "vacation-api"],
+    "backend": ["api-gateway", "auth-service"]
+  },
+  "defaults": {
+    "limit": 20,
+    "depth": "summary",
+    "stage": "auto"
+  },
+  "paths": {
+    "metrics_db": "P:/packages/search-research/data/chs_metrics.db"
+  }
+}
+```
+
+## Integration with /search
+
+```bash
+# /search for unified search across all sources
+/search "authentication"
+
+# /chs for chat-specific workflows with advanced features
+/chs "authentication" --mode documentation --context 10
+```
+
+**When to use which:**
+- Use `/search` for: General queries, multi-source research, quick lookups
+- Use `/chs` for: Chat-specific analysis, summarization, filtering, statistics
 
 ## Examples
 
-See `references/examples.md` for practical examples covering all seven features including summarization modes, two-stage search, tool filtering, branch filtering, and session statistics.
+### Find and summarize debugging session
+```bash
+/chs "CSRF error" --mode debug-postmortem
+```
+
+### Track changes over time
+```bash
+/chs "authentication" --mode changelog --since "30 days ago"
+```
+
+### Find all Edit usage on a file
+```bash
+/chs --tool Edit --file "config/api.php" --since "7 days ago"
+```
+
+### Search across related workspaces
+```bash
+/chs "deployment" --workspace-alias frontend
+```
+
+### Generate onboarding docs
+```bash
+/chs "project architecture" --mode onboarding --output docs/onboarding.md
+```
+
+### View context around match
+```bash
+/chs show abc123 --context 10
+```
+
+### Session statistics
+```bash
+/chs stats --workspace tiny-vacation --since "30 days ago"
+```
 
 ## Implementation Notes
 
 - **Reuses existing CHS backend** from `/search` for consistency
+- **Metrics database** tracks usage patterns and sync status
 - **Two-stage architecture** ensures fast initial results
 - **Summarization modes** use LLM templates for structured output
+- **Workspace aliases** defined in config file for flexibility
 - **Tool filtering** parses JSONL content for tool usage patterns
+- **Branch detection** extracts from session metadata

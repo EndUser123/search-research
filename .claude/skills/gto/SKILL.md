@@ -89,23 +89,123 @@ These are internal self-check prompts. They are not default user-facing question
 
 ## EXECUTE
 
-**Run GTO analysis via CLI:**
+**Step 1: Initialize session and terminal isolation**
 
 ```bash
-python P:/.claude/skills/gto/gto_orchestrator.py --format both
+# Generate session-scoped identifiers
+SESSION_ID="$(uuidgen 2>/dev/null || echo "session-$(date +%s)-$$")"
+TERMINAL_ID="${CLAUDE_TERMINAL_ID:-${TERM:-console}-$$}"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+# Platform-safe temp directory
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
+    TEMP_DIR="${TEMP:-C:/Users/$USER/AppData/Local/Temp}"
+else
+    TEMP_DIR="${TMPDIR:-/tmp}"
+fi
+
+# Terminal-scoped temp subdirectory
+TEMP_SUBDIR="$TEMP_DIR/gto-$TERMINAL_ID"
+mkdir -p "$TEMP_SUBDIR"
+
+# Evidence directory
+EVIDENCE_DIR="P:/.claude/skills/gto/.evidence"
+mkdir -p "$EVIDENCE_DIR"
+```
+
+**Step 2: Run L1 analysis**
+
+```bash
+python P:/.claude/skills/gto/gto_orchestrator.py \
+    --format json \
+    --output "$TEMP_SUBDIR/gto-l1-$TERMINAL_ID.json" || {
+    echo "ERROR: L1 analysis failed"
+    exit 1
+}
+```
+
+**Step 3: Dispatch correctness agents via Agent tool (parallel)**
+
+```bash
+# NOTE: Agent tool is invoked internally by each subagent
+# SKILL.md dispatches; Agent tool handles execution in Claude Code context
+# Output paths include terminal_id for multi-terminal isolation
+
+Agent(subagent_type="gto-logic", prompt="Analyze P:/.claude/skills/gto/lib/ for pure logic errors (off-by-one, wrong operators, inverted conditionals). Write findings as JSON to $TEMP_SUBDIR/gto-correctness-logic-$TERMINAL_ID.json with format: {\"findings\": [{\"id\":\"LOGIC-001\",\"severity\":\"HIGH\",\"location\":\"file.py:123\",\"title\":\"...\",\"description\":\"...\",\"evidence\":\"...\"}]}. If no issues found, write {\"findings\": []}.") &
+
+Agent(subagent_type="gto-quality", prompt="Analyze P:/.claude/skills/gto/lib/ for maintainability issues (technical debt, code smells, complex implementations). Write findings as JSON to $TEMP_SUBDIR/gto-correctness-quality-$TERMINAL_ID.json with format: {\"findings\": [{\"id\":\"QUAL-001\",\"severity\":\"MEDIUM\",\"location\":\"file.py:45\",\"title\":\"...\",\"description\":\"...\",\"evidence\":\"...\"}]}. If no issues found, write {\"findings\": []}.") &
+
+Agent(subagent_type="gto-code-critic", prompt="Analyze P:/.claude/skills/gto/lib/ for root cause issues (causal chains, multi-step reasoning failures). Write findings as JSON to $TEMP_SUBDIR/gto-correctness-code-critic-$TERMINAL_ID.json with format: {\"findings\": [{\"id\":\"CAUSE-001\",\"severity\":\"HIGH\",\"location\":\"file.py:78\",\"title\":\"...\",\"description\":\"...\",\"evidence\":\"...\"}]}. If no issues found, write {\"findings\": []}.") &
+
+AGENT_PIDS=($!)
+```
+
+**Step 4: Poll for agent completion with early exit**
+
+```bash
+TIMEOUT=300
+elapsed=0
+while [[ $elapsed -lt $TIMEOUT ]]; do
+    if [[ -f "$TEMP_SUBDIR/gto-correctness-logic-$TERMINAL_ID.json" ]] && \
+       [[ -f "$TEMP_SUBDIR/gto-correctness-quality-$TERMINAL_ID.json" ]] && \
+       [[ -f "$TEMP_SUBDIR/gto-correctness-code-critic-$TERMINAL_ID.json" ]]; then
+        echo "All agents completed after ${elapsed}s"
+        break
+    fi
+    for i in "${!AGENT_PIDS[@]}"; do
+        if ! kill -0 "${AGENT_PIDS[$i]}" 2>/dev/null; then
+            wait "${AGENT_PIDS[$i]}" || {
+                echo "ERROR: Agent ${i} crashed with exit code $?"
+                exit 1
+            }
+        fi
+    done
+    sleep 1
+    ((elapsed++))
+done
+
+if [[ $elapsed -ge $TIMEOUT ]]; then
+    echo "ERROR: Timeout after ${TIMEOUT}s waiting for agents"
+    for pid in "${AGENT_PIDS[@]}"; do
+        kill "$pid" 2>/dev/null || true
+    done
+    exit 1
+fi
+```
+
+**Step 5: Merge results**
+
+```bash
+python P:/.claude/skills/gto/lib/merge_agent_results.py \
+    --l1 "$TEMP_SUBDIR/gto-l1-$TERMINAL_ID.json" \
+    --agents "$TEMP_SUBDIR/gto-correctness-*-${TERMINAL_ID}.json" \
+    --output "$EVIDENCE_DIR/gto-artifact-$SESSION_ID-$TIMESTAMP.json" \
+    --validate-schema || {
+    echo "ERROR: Merge failed"
+    echo "Temp files preserved at: $TEMP_SUBDIR"
+    exit 1
+}
+```
+
+**Step 6: Cleanup with trap protection**
+
+```bash
+cleanup() {
+    local exit_code=$?
+    rm -f "$TEMP_SUBDIR"/gto-*-$TERMINAL_ID.json 2>/dev/null || true
+    rmdir "$TEMP_SUBDIR" 2>/dev/null || true
+    exit $exit_code
+}
+trap cleanup EXIT INT TERM
 ```
 
 **What happens:**
-- GTO auto-detects the target from session context
-- Runs transcript-based L1 detectors (session goal, outcomes, suspicion)
-- Runs L2 AI subagents for gap finding
-- Produces gap list and categorized RNS
-- Saves JSON artifact to `.evidence/gto-outputs/`
-
-**Output formats:**
-- `--format json`: Saves JSON artifact to `.evidence/gto-outputs/gto-artifact-{timestamp}.json`
-- `--format markdown`: Prints markdown to stdout (no file saved)
-- `--format both`: Saves JSON to file AND prints markdown to stdout
+- GTO auto-detects target from session context
+- Runs L1 transcript-based detectors (session goal, outcomes, suspicion)
+- Dispatches 3 correctness agents in parallel (logic, quality, code-critic)
+- Polls for completion, merges results
+- Saves JSON artifact to `.evidence/gto-artifact-{session_id}-{timestamp}.json`
+- Cleanup via trap ensures temp files removed even on interrupt
 
 ## Output
 

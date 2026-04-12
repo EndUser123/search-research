@@ -9,7 +9,17 @@ import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
+
+# Pre-mortem fix 3b: SessionSummary TypedDict
+class SessionSummary(TypedDict):
+    """Type definition for session summary dictionaries."""
+    session_id: str
+    goal: str
+    current_task: str
+    active_files: list[str]
+    created_at: str
+    transcript_path: str
 
 logger = logging.getLogger(__name__)
 
@@ -1268,6 +1278,31 @@ def format_quick_argument_section() -> str:
 # Constants for handoff-first resolution (TASK-002, R-020)
 FRESH_HANDOFF_THRESHOLD_SECONDS = 300  # 5 minutes
 
+# Pre-mortem fix 3a: Extract shared file discovery helper
+def _get_most_recent_transcript(transcript_dir: Path) -> Path | None:
+    """Get the most recent transcript file from a directory.
+
+    Args:
+        transcript_dir: Directory containing transcript files
+
+    Returns:
+        Path to most recent transcript file, or None if not found
+    """
+    jsonl_files: list[tuple[float, Path]] = []
+    for jsonl_file in transcript_dir.glob("*.jsonl"):
+        if _is_transcript_file(jsonl_file):
+            try:
+                mtime = jsonl_file.stat().st_mtime
+                jsonl_files.append((mtime, jsonl_file))
+            except OSError:
+                continue
+
+    if not jsonl_files:
+        return None
+
+    jsonl_files.sort(key=lambda x: x[0], reverse=True)
+    return jsonl_files[0][1]
+
 
 def _get_fresh_handoff(
     session_id: str,
@@ -1318,6 +1353,16 @@ def _get_fresh_handoff(
                     with open(hf, encoding="utf-8") as f:
                         data = json.load(f)
 
+                    # Pre-mortem fix 1b: Validate session_id match
+                    handoff_session_id = data.get("session_id")
+                    if handoff_session_id and handoff_session_id != session_id:
+                        logger.debug(
+                            "Skipping handoff from different session: %s (expected %s)",
+                            handoff_session_id,
+                            session_id,
+                        )
+                        continue
+
                     created_str = data.get("resume_snapshot", {}).get("created_at")
                     if not created_str:
                         continue
@@ -1343,13 +1388,19 @@ def _get_fresh_handoff(
                     continue
         except OSError as e:
             # R-014: Handle P:/ drive unavailable
-            logger.warning("Cannot access handoff directory %s: %s", handoff_dir, e)
+            # Pre-mortem fix 3c: User-friendly error message
+            logger.warning(
+                "Unable to access handoff directory at %s. "
+                "Your session history may be incomplete. Cause: %s",
+                handoff_dir,
+                e,
+            )
             continue
 
     return None
 
 
-def _load_from_handoff(handoff_path: Path) -> list[dict[str, Any]]:
+def _load_from_handoff(handoff_path: Path) -> list[SessionSummary]:
     """Load sessions from a handoff file.
 
     Args:
@@ -1364,6 +1415,18 @@ def _load_from_handoff(handoff_path: Path) -> list[dict[str, Any]]:
     """
     with open(handoff_path, encoding="utf-8") as f:
         data = json.load(f)
+
+    # Pre-mortem fix 2c: Validate handoff schema
+    required_fields = ["session_id", "resume_snapshot"]
+    for field in required_fields:
+        if field not in data:
+            logger.warning(
+                "Handoff file is incomplete (missing '%s'). "
+                "Unable to load session context. File: %s",
+                field,
+                handoff_path,
+            )
+            return []
 
     resume_snapshot = data.get("resume_snapshot", {})
 
@@ -1384,7 +1447,7 @@ def _load_from_chain_result(
     chain_result,
     project_root: Path,
     seen_session_ids: set[str] | None = None,  # R-007: deduplication
-) -> list[dict[str, Any]]:
+) -> list[SessionSummary]:
     """Load sessions from chain result, filtering subagents.
 
     Args:
@@ -1426,12 +1489,18 @@ def _load_from_chain_result(
             except (OSError, ValueError) as e:
                 logger.warning("Failed to load transcript %s: %s", transcript_path, e)
         elif transcript_path:
-            logger.warning("Transcript not found (broken chain link): %s", transcript_path)
+            # Pre-mortem fix 2b/3c: User-friendly warning for incomplete history
+            logger.warning(
+                "Some session history could not be loaded. "
+                "The transcript file at %s was not found. "
+                "You may see fewer sessions than actually exist.",
+                transcript_path,
+            )
 
     return sessions
 
 
-def _load_from_direct_transcript(project_root: Path) -> list[dict[str, Any]]:
+def _load_from_direct_transcript(project_root: Path) -> list[SessionSummary]:
     """Load sessions from the current transcript file (final fallback).
 
     Args:
@@ -1444,21 +1513,10 @@ def _load_from_direct_transcript(project_root: Path) -> list[dict[str, Any]]:
     if not transcript_dir:
         return []
 
-    # Find the most recent transcript file
-    jsonl_files: list[tuple[float, Path]] = []
-    for jsonl_file in transcript_dir.glob("*.jsonl"):
-        if _is_transcript_file(jsonl_file):
-            try:
-                mtime = jsonl_file.stat().st_mtime
-                jsonl_files.append((mtime, jsonl_file))
-            except OSError:
-                continue
-
-    if not jsonl_files:
+    # Pre-mortem fix 3a: Use shared helper
+    most_recent = _get_most_recent_transcript(transcript_dir)
+    if not most_recent:
         return []
-
-    jsonl_files.sort(key=lambda x: x[0], reverse=True)
-    most_recent = jsonl_files[0][1]
 
     entries = load_transcript_entries(str(most_recent))
     return extract_sessions_from_transcript(entries)
@@ -1491,7 +1549,7 @@ def _is_subagent_transcript(path: Path) -> bool:
 
 def _load_all_sessions_via_history_index(
     project_root: Path | None = None,
-) -> list[dict[str, Any]]:
+) -> list[SessionSummary]:
     """Load sessions using handoff-first resolution strategy.
 
     TASK-002: Resolution order:
@@ -1507,14 +1565,25 @@ def _load_all_sessions_via_history_index(
     if not current_session_id:
         return []
 
-    # TASK-001, R-013: Import all functions at top, eliminate redundant import
+    # TASK-001, R-013: Import from core.session_chain (correct path)
+    # Pre-mortem fix 1a: Changed from search_research to core.session_chain
+    # Add search-research package to path if needed
+    import sys
+    from pathlib import Path
+    _search_research_root = Path("P:/packages/search-research")
+    if str(_search_research_root) not in sys.path:
+        sys.path.insert(0, str(_search_research_root))
+
     try:
-        from search_research import (
+        from core.session_chain import (
             SessionChainEntry,
             walk_handoff_chain,
             walk_session_chain,
         )
-    except (ImportError, ValueError, OSError) as exc:
+        # 1c: Verify API
+        assert hasattr(walk_handoff_chain, '__call__'), "walk_handoff_chain not callable"
+        assert hasattr(walk_session_chain, '__call__'), "walk_session_chain not callable"
+    except (ImportError, ValueError, OSError, AssertionError) as exc:
         logger.warning("Failed to import session_chain: %s", exc)
         return _load_from_direct_transcript(project_root)
 
@@ -1538,7 +1607,8 @@ def _load_all_sessions_via_history_index(
             session_ids_in_chain = {entry.session_id for entry in handoff_result.entries}
             if current_session_id not in session_ids_in_chain:
                 logger.warning(
-                    "Current session %s not in handoff chain, degrading to unified chain",
+                    "Current session %s not found in recent handoff history. "
+                    "Trying alternative method to load your sessions...",
                     current_session_id,
                 )
             elif len(handoff_result.entries) > 0:  # R-008: Changed from >1 to >0
@@ -1571,21 +1641,10 @@ def _get_current_session_id(project_root: Path | None) -> str | None:
     if not transcript_dir or not transcript_dir.exists():
         return None
 
-    # Find most recently modified transcript file
-    jsonl_files: list[tuple[float, Path]] = []
-    for jsonl_file in transcript_dir.glob("*.jsonl"):
-        if _is_transcript_file(jsonl_file):
-            try:
-                mtime = jsonl_file.stat().st_mtime
-                jsonl_files.append((mtime, jsonl_file))
-            except OSError:
-                continue
-
-    if not jsonl_files:
+    # Pre-mortem fix 3a: Use shared helper
+    most_recent = _get_most_recent_transcript(transcript_dir)
+    if not most_recent:
         return None
-
-    jsonl_files.sort(key=lambda x: x[0], reverse=True)
-    most_recent = jsonl_files[0][1]
 
     # Read first entry to get sessionId
     try:

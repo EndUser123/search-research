@@ -78,12 +78,19 @@ python -m csf.csf_nlm_ingest --run --notebook-id <uuid>
 # Dry run: preview import from all notebooks
 python -m csf.csf_nlm_import --dry-run
 
-# Import from all notebooks
-python -m csf.csf_nlm_import --run
+# Import from specific notebook only (small notebooks <50 videos)
+python -m csf.csf_nlm_import --notebook "yt-AI Stack Studio"
 
-# Import from specific notebook only
-python -m csf.csf_nlm_import --run --notebook "yt-AI Stack Studio"
+# Import from all notebooks (WARNING: 1,156 videos takes ~1 hour)
+# Run directly in terminal, not through Claude Code:
+python -m csf.csf_nlm_import
 ```
+
+**Timeout Notes:**
+- Rate limit: 2-second delay per video = ~10 minutes minimum per 300 videos
+- Resume: Interrupted runs continue from last checkpoint (cached videos are skipped)
+- Progress: Checkpoint every 10 videos shows running stats
+- **For 200+ video notebooks**: Run directly in terminal, not through Claude Code CLI
 
 ## How It Works
 

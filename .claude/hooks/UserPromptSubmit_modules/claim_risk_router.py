@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 
 from UserPromptSubmit_modules.base import HookContext, HookResult
+from UserPromptSubmit_modules.reasoning_contract import append_reasoning_contract
 from UserPromptSubmit_modules.registry import register_hook
 from UserPromptSubmit_modules.unified_injector import classify_intent
 
@@ -148,7 +149,14 @@ def _build_injection(prompt: str) -> str:
             "Comparison branch: compare at least two viable options against explicit criteria before recommending one."
         )
 
-    return "\n\n".join(sections)
+    return append_reasoning_contract(
+        "\n\n".join(sections),
+        include_verification=True,
+        include_counterexample=True,
+        include_discovery=True,
+        include_rollback=True,
+        include_evidence=True,
+    )
 
 
 @register_hook("claim_risk_router", priority=7.5)

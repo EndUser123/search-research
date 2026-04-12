@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Chat History Search (/chs) - Dedicated chat history search with advanced features.
 
@@ -20,35 +19,25 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-# Add paths for imports
-CSF_SRC = Path("P:/__csf/src")
-if CSF_SRC.exists():
-    sys.path.insert(0, str(CSF_SRC))
-
-# Try to import CHS v2 components
 CHS_SEARCH_AVAILABLE = False
 CHS_DB_AVAILABLE = False
 FAISS_AVAILABLE = False
-
 try:
-    from knowledge.systems.chs.v2 import db as chs_db
-    from knowledge.systems.chs.v2 import search as chs_search
+    from search_research.core.chs import db as chs_db  # noqa: F401
+    from search_research.core.chs import search as chs_search  # noqa: F401
 
     CHS_SEARCH_AVAILABLE = True
-    # Check if CHS database exists
     chs_db_path = Path("P:/__csf/data/chat_history.db")
     if chs_db_path.exists():
         CHS_DB_AVAILABLE = True
 except ImportError:
     pass
-
 try:
-    import faiss
+    import faiss  # noqa: F401
 
     FAISS_AVAILABLE = True
 except ImportError:
     pass
-
 SQLITE_AVAILABLE = True
 
 
@@ -66,7 +55,6 @@ class CHSConfig:
             "defaults": {"limit": 20, "depth": "summary", "stage": "auto"},
             "paths": {"metrics_db": "P:/packages/search-research/data/chs_metrics.db"},
         }
-
         if self.config_path.exists():
             try:
                 with open(self.config_path) as f:
@@ -74,7 +62,6 @@ class CHSConfig:
                     defaults.update(user_config)
             except (OSError, json.JSONDecodeError):
                 pass
-
         return defaults
 
     def save_config(self):
@@ -114,33 +101,14 @@ class CHSMetrics:
         """Initialize metrics database schema."""
         if not SQLITE_AVAILABLE:
             return
-
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS session_stats (
-                session_id TEXT PRIMARY KEY,
-                workspace TEXT,
-                branch TEXT,
-                terminal_id TEXT,
-                message_count INTEGER,
-                tool_usage TEXT,  -- JSON string
-                timestamp REAL,
-                duration_seconds REAL
-            )
-        """)
-
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS tool_usage (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT,
-                tool_name TEXT,
-                usage_count INTEGER,
-                FOREIGN KEY (session_id) REFERENCES session_stats(session_id)
-            )
-        """)
-
+        cursor.execute(
+            "\n            CREATE TABLE IF NOT EXISTS session_stats (\n                session_id TEXT PRIMARY KEY,\n                workspace TEXT,\n                branch TEXT,\n                terminal_id TEXT,\n                message_count INTEGER,\n                tool_usage TEXT,  -- JSON string\n                timestamp REAL,\n                duration_seconds REAL\n            )\n        "
+        )
+        cursor.execute(
+            "\n            CREATE TABLE IF NOT EXISTS tool_usage (\n                id INTEGER PRIMARY KEY AUTOINCREMENT,\n                session_id TEXT,\n                tool_name TEXT,\n                usage_count INTEGER,\n                FOREIGN KEY (session_id) REFERENCES session_stats(session_id)\n            )\n        "
+        )
         conn.commit()
         conn.close()
 
@@ -158,16 +126,10 @@ class CHSMetrics:
         """Record session statistics."""
         if not SQLITE_AVAILABLE:
             return
-
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-
         cursor.execute(
-            """
-            INSERT OR REPLACE INTO session_stats
-            (session_id, workspace, branch, terminal_id, message_count, tool_usage, timestamp, duration)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """,
+            "\n            INSERT OR REPLACE INTO session_stats\n            (session_id, workspace, branch, terminal_id, message_count, tool_usage, timestamp, duration)\n            VALUES (?, ?, ?, ?, ?, ?, ?, ?)\n        ",
             (
                 session_id,
                 workspace,
@@ -179,18 +141,11 @@ class CHSMetrics:
                 duration,
             ),
         )
-
-        # Record individual tool usage
         for tool_name, count in tool_usage.items():
             cursor.execute(
-                """
-                INSERT OR REPLACE INTO tool_usage (session_id, tool_name, usage_count)
-                VALUES (?, ?, COALESCE((SELECT usage_count FROM tool_usage
-                                       WHERE session_id=? AND tool_name=?), 0) + ?)
-            """,
+                "\n                INSERT OR REPLACE INTO tool_usage (session_id, tool_name, usage_count)\n                VALUES (?, ?, COALESCE((SELECT usage_count FROM tool_usage\n                                       WHERE session_id=? AND tool_name=?), 0) + ?)\n            ",
                 (session_id, tool_name, session_id, tool_name, count),
             )
-
         conn.commit()
         conn.close()
 
@@ -200,49 +155,37 @@ class CHSMetrics:
         """Get session statistics."""
         if not SQLITE_AVAILABLE:
             return {"error": "SQLite not available"}
-
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-
-        # Build query with filters
         query = "SELECT * FROM session_stats WHERE 1=1"
         params = []
-
         if workspace:
             query += " AND workspace = ?"
             params.append(workspace)
-
         if since:
             query += " AND timestamp >= ?"
             params.append(since.timestamp())
-
         cursor.execute(query, params)
         sessions = cursor.fetchall()
-
-        # Calculate statistics
         total_sessions = len(sessions)
         workspace_counts = {}
         branch_counts = {}
         tool_totals = {}
         total_messages = 0
         total_duration = 0
-
         for session in sessions:
             _, ws, branch, terminal_id, msg_count, tool_usage_json, timestamp, duration = session
             workspace_counts[ws] = workspace_counts.get(ws, 0) + 1
             branch_counts[branch] = branch_counts.get(branch, 0) + 1
             total_messages += msg_count or 0
             total_duration += duration or 0
-
             try:
                 tool_usage = json.loads(tool_usage_json) if tool_usage_json else {}
                 for tool, count in tool_usage.items():
                     tool_totals[tool] = tool_totals.get(tool, 0) + count
             except json.JSONDecodeError:
                 pass
-
         conn.close()
-
         return {
             "total_sessions": total_sessions,
             "workspaces": workspace_counts,
@@ -272,7 +215,7 @@ class CHSSearch:
         status = {
             "chs_fts5": CHS_DB_AVAILABLE,
             "chs_faiss": FAISS_AVAILABLE and CHS_DB_AVAILABLE,
-            "direct_jsonl": True,  # Always available as fallback
+            "direct_jsonl": True,
         }
         return status
 
@@ -296,50 +239,35 @@ class CHSSearch:
         2. Direct JSONL index search (fallback)
         """
         results = []
-
-        # Try CHS SQLite FTS5 first (fastest)
         if self._backend_status["chs_fts5"]:
             try:
                 results = self._search_chs_fts5(query, workspace, branch, tool, limit)
                 if results:
                     return results
             except Exception:
-                # Fallback to JSONL if CHS fails
                 pass
-
-        # Fallback to direct JSONL parsing
         results = self._search_jsonl_index(query, workspace, branch, tool, limit)
         return results
 
     def _search_chs_fts5(
-        self,
-        query: str,
-        workspace: str | None,
-        branch: str | None,
-        tool: str | None,
-        limit: int,
+        self, query: str, workspace: str | None, branch: str | None, tool: str | None, limit: int
     ) -> list[dict[str, Any]]:
         """Search using CHS SQLite FTS5 backend."""
         if not CHS_SEARCH_AVAILABLE:
             return []
-
         try:
-            from knowledge.systems.chs.v2.db import get_connection
-            from knowledge.systems.chs.v2.search import search_fts_messages
+            from search_research.core.chs.db import get_connection
+            from search_research.core.chs.search import search_fts_messages
 
             chs_db_path = Path("P:/__csf/data/chat_history.db")
             conn = get_connection(chs_db_path)
-
-            # Search using CHS FTS5
             fts_results = search_fts_messages(conn, query, limit)
-
-            # Convert to our format
             results = []
             for r in fts_results:
                 results.append(
                     {
                         "session_id": r.get("id", "unknown"),
-                        "workspace": "P--",  # Would need to extract from DB
+                        "workspace": "P--",
                         "first_prompt": r.get("content", "")[:100],
                         "summary": r.get("content", "")[:100],
                         "branch": "unknown",
@@ -350,9 +278,7 @@ class CHSSearch:
                 )
             conn.close()
             return results
-
         except Exception:
-            # Log and fall through
             return []
 
     def search_stage2(
@@ -371,8 +297,6 @@ class CHSSearch:
         2. Direct JSONL deep scan (fallback)
         """
         results = []
-
-        # Try CHS FAISS semantic search first
         if self._backend_status["chs_faiss"]:
             try:
                 results = self._search_chs_faiss(query, workspace, branch, limit)
@@ -380,63 +304,32 @@ class CHSSearch:
                     return results
             except Exception:
                 pass
-
-        # Fallback to direct JSONL deep scan
         results = self._search_jsonl_deep(query, workspace, branch, tool, limit)
         return results
 
     def _search_chs_faiss(
-        self,
-        query: str,
-        workspace: str | None,
-        branch: str | None,
-        limit: int,
+        self, query: str, workspace: str | None, branch: str | None, limit: int
     ) -> list[dict[str, Any]]:
         """Search using CHS FAISS backend (semantic search)."""
         if not FAISS_AVAILABLE or not CHS_DB_AVAILABLE:
             return []
-
         try:
-            from knowledge.systems.chs.v2.embeddings import get_embed_client
+            from search_research.core.chs.embeddings import get_embed_client
 
-            # Get embedding client and generate query embedding
             client = get_embed_client()
             import numpy as np
 
             query_embedding = client.embed_texts([query])[0]
             query_vector = np.frombuffer(query_embedding, dtype=np.float32)
-
-            # Load FAISS index and search
             faiss_index_path = Path("P:/__csf/data/chat_history_faiss")
             if faiss_index_path.exists():
                 import faiss
 
                 index = faiss.read_index(str(faiss_index_path / "index.bin"))
                 distances, indices = index.search(query_vector.reshape(1, -1), limit)
-
-                # Return results (would need to map indices to actual content)
                 return []
-
         except Exception:
             return []
-
-    def search_stage2(
-        self,
-        query: str,
-        workspace: str | None = None,
-        branch: str | None = None,
-        tool: str | None = None,
-        limit: int = 20,
-    ) -> list[dict[str, Any]]:
-        """
-        Stage 2: Deep content scan.
-
-        Searches: All message content, tool results, thinking blocks
-        Speed: ~500ms (depends on corpus size)
-        """
-        # Deep scan of JSONL files
-        results = self._search_jsonl_deep(query, workspace, branch, tool, limit)
-        return results
 
     def _search_jsonl_index(
         self, query: str, workspace: str | None, branch: str | None, tool: str | None, limit: int
@@ -444,33 +337,24 @@ class CHSSearch:
         """Search JSONL files using index fields only."""
         results = []
         projects_path = Path.home() / ".claude" / "projects"
-
         if not projects_path.exists():
             return results
-
         query_lower = query.lower()
-
         for project_dir in projects_path.iterdir():
             if project_dir.is_dir():
-                # Check workspace filter
                 if workspace and workspace != project_dir.name:
-                    # Check workspace alias
                     resolved = self.config.resolve_workspace_alias(workspace)
                     if project_dir.name not in resolved:
                         continue
-
-                # Search for JSONL files
                 for jsonl_file in project_dir.glob("*.jsonl"):
                     try:
                         with open(jsonl_file, encoding="utf-8") as f:
                             for line_num, line in enumerate(f):
                                 if len(results) >= limit:
                                     break
-
                                 try:
                                     data = json.loads(line)
                                     if self._matches_index(data, query_lower, branch, tool):
-                                        # Extract content for display
                                         content_preview = ""
                                         entry_type = data.get("type", "")
                                         if entry_type == "user":
@@ -485,7 +369,6 @@ class CHSSearch:
                                             content_list = message.get("content", [])
                                             if isinstance(content_list, list) and content_list:
                                                 content_preview = str(content_list[0])[:100]
-
                                         results.append(
                                             {
                                                 "session_id": data.get(
@@ -504,7 +387,6 @@ class CHSSearch:
                                     continue
                     except OSError:
                         continue
-
         return results
 
     def _search_jsonl_deep(
@@ -513,20 +395,15 @@ class CHSSearch:
         """Deep search of JSONL content."""
         results = []
         projects_path = Path.home() / ".claude" / "projects"
-
         if not projects_path.exists():
             return results
-
         query_lower = query.lower()
-
         for project_dir in projects_path.iterdir():
             if project_dir.is_dir():
-                # Check workspace filter
                 if workspace and workspace != project_dir.name:
                     resolved = self.config.resolve_workspace_alias(workspace)
                     if project_dir.name not in resolved:
                         continue
-
                 for jsonl_file in project_dir.glob("*.jsonl"):
                     try:
                         with open(jsonl_file, encoding="utf-8") as f:
@@ -542,17 +419,13 @@ class CHSSearch:
                                 )
                     except OSError:
                         continue
-
         return sorted(results, key=lambda x: x["match_count"], reverse=True)[:limit]
 
     def _matches_index(
         self, data: dict, query_lower: str, branch: str | None, tool: str | None
     ) -> bool:
         """Check if session matches index-based criteria."""
-        # Check actual JSONL format
         entry_type = data.get("type", "")
-
-        # For user messages, check content
         if entry_type == "user":
             message = data.get("message", {})
             content = message.get("content", [])
@@ -562,8 +435,6 @@ class CHSSearch:
                         if query_lower in item["text"].lower():
                             if self._check_filters(data, branch, tool):
                                 return True
-
-        # For assistant messages, check content
         elif entry_type == "assistant":
             message = data.get("message", {})
             content = message.get("content", [])
@@ -573,7 +444,6 @@ class CHSSearch:
                         if "text" in item and query_lower in item["text"].lower():
                             if self._check_filters(data, branch, tool):
                                 return True
-
         return False
 
     def _check_filters(self, data: dict, branch: str | None, tool: str | None) -> bool:
@@ -581,19 +451,12 @@ class CHSSearch:
         if branch:
             if data.get("gitBranch") != branch:
                 return False
-
         if tool:
-            # Check if tool was used in this session
-            # This would require parsing the full content
-            # For now, skip this check in stage 1
             pass
-
         return True
 
     def _parse_chs_output(self, output: str) -> list[dict[str, Any]]:
         """Parse output from existing CHS CLI."""
-        # This would parse the actual output format from CHS
-        # For now, return empty list
         return []
 
 
@@ -618,130 +481,178 @@ class CHSSummarizer:
 
     def _template_documentation(self, data: dict) -> str:
         """Full technical documentation format."""
-        return f"""# Session Documentation: {data.get("session_id", "Unknown")}
-
-## Problem
-{data.get("firstPrompt", "No problem statement")}
-
-## Changes Made
-<!-- Extract from conversation -->
-- File changes would be listed here
-- Code modifications would be detailed here
-
-## Patterns Identified
-<!-- Key patterns from the session -->
-- Pattern 1
-- Pattern 2
-
-## Lessons Learned
-<!-- Key takeaways -->
-- Lesson 1
-- Lesson 2
-
-## Related Sessions
-<!-- Links to related conversations -->
-- None identified
-"""
+        return f"# Session Documentation: {data.get('session_id', 'Unknown')}\n\n## Problem\n{data.get('firstPrompt', 'No problem statement')}\n\n## Changes Made\n<!-- Extract from conversation -->\n- File changes would be listed here\n- Code modifications would be detailed here\n\n## Patterns Identified\n<!-- Key patterns from the session -->\n- Pattern 1\n- Pattern 2\n\n## Lessons Learned\n<!-- Key takeaways -->\n- Lesson 1\n- Lesson 2\n\n## Related Sessions\n<!-- Links to related conversations -->\n- None identified\n"
 
     def _template_short_memory(self, data: dict) -> str:
         """MEMORY.md-ready bullet format."""
         timestamp = data.get("timestamp", 0)
-
-        # Handle both string timestamps (ISO format) and numeric timestamps
         if isinstance(timestamp, str):
-            # ISO format string like "2025-11-17T19:53:30.888Z"
-            date_str = timestamp[:10]  # Extract YYYY-MM-DD
+            date_str = timestamp[:10]
         else:
             date_str = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d")
-
-        return f"""## {data.get("first_prompt", "Topic")[:50]}
-
-**Context:** {data.get("workspace", "unknown")} on {date_str}
-
-**Key Points:**
-- Point extracted from conversation
-- Another key insight
-
-**Outcome:** {data.get("summary", "No summary available")[:100]}
-"""
+        return f"## {data.get('first_prompt', 'Topic')[:50]}\n\n**Context:** {data.get('workspace', 'unknown')} on {date_str}\n\n**Key Points:**\n- Point extracted from conversation\n- Another key insight\n\n**Outcome:** {data.get('summary', 'No summary available')[:100]}\n"
 
     def _template_changelog(self, data: dict) -> str:
         """Changelog format with file paths."""
-        return f"""# Changelog Entry
-
-## Added
-- Features added during this session
-
-## Changed
-- {data.get("workspace", "unknown")}: Modified files
-
-## Fixed
-- Bug fixes addressed
-
-## Removed
-- Deprecated features removed
-
-**Files Modified:**
-- File paths would be listed here
-"""
+        return f"# Changelog Entry\n\n## Added\n- Features added during this session\n\n## Changed\n- {data.get('workspace', 'unknown')}: Modified files\n\n## Fixed\n- Bug fixes addressed\n\n## Removed\n- Deprecated features removed\n\n**Files Modified:**\n- File paths would be listed here\n"
 
     def _template_debug_postmortem(self, data: dict) -> str:
         """Debug postmortem format."""
-        return f"""# Debug Postmortem: {data.get("firstPrompt", "Unknown Issue")[:50]}
-
-## Symptoms
-{data.get("firstPrompt", "Describe the symptoms")}
-
-## Investigation
-<!-- Investigation steps -->
-1. First hypothesis
-2. Test performed
-3. Result observed
-
-## Dead Ends
-<!-- Approaches that didn't work -->
-- Tried X, didn't work because Y
-- Attempted Z, ruled out because W
-
-## Root Cause
-<!-- The actual cause -->
-The issue was caused by...
-
-## Fix Applied
-<!-- The solution -->
-Applied fix: X
-Verified by: Y
-"""
+        return f"# Debug Postmortem: {data.get('firstPrompt', 'Unknown Issue')[:50]}\n\n## Symptoms\n{data.get('firstPrompt', 'Describe the symptoms')}\n\n## Investigation\n<!-- Investigation steps -->\n1. First hypothesis\n2. Test performed\n3. Result observed\n\n## Dead Ends\n<!-- Approaches that didn't work -->\n- Tried X, didn't work because Y\n- Attempted Z, ruled out because W\n\n## Root Cause\n<!-- The actual cause -->\nThe issue was caused by...\n\n## Fix Applied\n<!-- The solution -->\nApplied fix: X\nVerified by: Y\n"
 
     def _template_onboarding(self, data: dict) -> str:
         """Onboarding documentation format."""
-        return f"""# How This Works: {data.get("workspace", "Project")} Onboarding
+        return f"# How This Works: {data.get('workspace', 'Project')} Onboarding\n\n## Architecture Overview\n<!-- High-level architecture -->\n- Component A: Purpose\n- Component B: Purpose\n\n## Key Files\n<!-- Important files to understand -->\n- `path/to/file.py`: Core logic\n- `path/to/config.py`: Configuration\n\n## Common Patterns\n<!-- Development patterns used -->\n- Pattern 1 usage\n- Pattern 2 usage\n\n## Getting Started\n<!-- First steps for new developers -->\n1. Step one\n2. Step two\n3. Step three\n\n## Common Issues\n<!-- Gotchas and how to avoid them -->\n- Issue: Solution\n"
 
-## Architecture Overview
-<!-- High-level architecture -->
-- Component A: Purpose
-- Component B: Purpose
 
-## Key Files
-<!-- Important files to understand -->
-- `path/to/file.py`: Core logic
-- `path/to/config.py`: Configuration
+class CHSExporter:
+    """Export full session chain transcripts to a single readable file."""
 
-## Common Patterns
-<!-- Development patterns used -->
-- Pattern 1 usage
-- Pattern 2 usage
+    def __init__(self, exclude_thinking: bool = False, include_tool_results: bool = False):
+        self.exclude_thinking = exclude_thinking
+        self.include_tool_results = include_tool_results
 
-## Getting Started
-<!-- First steps for new developers -->
-1. Step one
-2. Step two
-3. Step three
+    def get_current_session_id(self) -> str | None:
+        """Get current Claude Code session UUID.
 
-## Common Issues
-<!-- Gotchas and how to avoid them -->
-- Issue: Solution
-"""
+        Claude Code names transcript files <uuid>.jsonl in the projects dir.
+        The current session is the most recently modified one.
+        """
+        projects_dir = Path.home() / ".claude" / "projects"
+        if not projects_dir.exists():
+            return None
+        # Look in the P-- project dir first (most common case), then all projects
+        candidates = list((projects_dir / "P--").glob("*.jsonl")) if (
+            projects_dir / "P--"
+        ).exists() else []
+        if not candidates:
+            candidates = list(projects_dir.rglob("*.jsonl"))
+        if not candidates:
+            return None
+        most_recent = max(candidates, key=lambda f: f.stat().st_mtime)
+        return most_recent.stem
+
+    def export_chain(
+        self,
+        session_id: str | None = None,
+        output_path: Path | None = None,
+    ) -> Path:
+        """Walk the session chain and write all transcripts to one markdown file."""
+        try:
+            import sys as _sys
+
+            _sys.path.insert(0, "P:/packages/search-research")
+            from core.session_chain import get_all_chain_files  # type: ignore[import]
+        except ImportError as exc:
+            raise ValueError(f"session_chain module not importable: {exc}") from exc
+
+        if session_id is None:
+            session_id = self.get_current_session_id()
+            if session_id is None:
+                raise ValueError(
+                    "Could not determine current session ID. "
+                    "Pass --session-id explicitly or ensure current_session.json exists."
+                )
+
+        chain_files = get_all_chain_files(session_id)
+        if not chain_files:
+            # Active sessions are not yet in sessions.json index.
+            # Fall back: walk_handoff_chain finds the transcript directly.
+            import sys as _sys2
+
+            _sys2.path.insert(0, "P:/packages/search-research")
+            from core.session_chain import walk_handoff_chain  # type: ignore[import]
+
+            handoff_result = walk_handoff_chain(session_id)
+            chain_files = [e.transcript_path for e in handoff_result.entries]
+        if not chain_files:
+            raise ValueError(f"No transcript files found for session {session_id}")
+
+        if output_path is None:
+            exports_dir = Path.home() / ".claude" / "exports"
+            exports_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_path = exports_dir / f"chain_{timestamp}.md"
+
+        parts: list[str] = [
+            "# Session Chain Export\n\n",
+            f"**Root session:** {session_id}  \n",
+            f"**Exported:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  \n",
+            f"**Sessions in chain:** {len(chain_files)}\n\n",
+            "---\n\n",
+        ]
+
+        for i, transcript_path in enumerate(chain_files, 1):
+            parts.append(f"## Session {i} — `{transcript_path.stem}`\n\n")
+            parts.extend(self._format_transcript(transcript_path))
+            parts.append("\n---\n\n")
+
+        output_path.write_text("".join(parts), encoding="utf-8")
+        return output_path
+
+    def _format_transcript(self, transcript_path: Path) -> list[str]:
+        """Parse a .jsonl transcript and return formatted markdown lines."""
+        result: list[str] = []
+        try:
+            with open(transcript_path, encoding="utf-8", errors="replace") as f:
+                for raw_line in f:
+                    raw_line = raw_line.strip()
+                    if not raw_line:
+                        continue
+                    try:
+                        entry = json.loads(raw_line)
+                    except json.JSONDecodeError:
+                        continue
+                    entry_type = entry.get("type", "")
+                    if entry_type == "user":
+                        text = self._extract_content(entry, role="user")
+                        if text:
+                            result.append(f"**User:** {text}\n\n")
+                    elif entry_type == "assistant":
+                        text = self._extract_content(entry, role="assistant")
+                        if text:
+                            result.append(f"**Assistant:** {text}\n\n")
+        except OSError as exc:
+            result.append(f"*[Error reading {transcript_path.name}: {exc}]*\n\n")
+        return result
+
+    def _extract_content(self, entry: dict[str, Any], role: str) -> str:
+        """Extract readable text from a message entry."""
+        content = entry.get("message", {}).get("content", "")
+        if isinstance(content, str):
+            return content.strip()
+        if not isinstance(content, list):
+            return ""
+
+        parts: list[str] = []
+        for item in content:
+            if not isinstance(item, dict):
+                continue
+            item_type = item.get("type", "")
+            if item_type == "text":
+                text = item.get("text", "").strip()
+                if text:
+                    parts.append(text)
+            elif item_type == "thinking" and not self.exclude_thinking:
+                thinking = item.get("thinking", "").strip()
+                if thinking:
+                    # Truncate long thinking blocks
+                    preview = thinking[:300] + ("…" if len(thinking) > 300 else "")
+                    parts.append(f"\n> *[Thinking]* {preview}\n")
+            elif item_type == "tool_use" and self.include_tool_results:
+                name = item.get("name", "?")
+                inp = json.dumps(item.get("input", {}), indent=2)
+                inp_preview = inp[:400] + ("…" if len(inp) > 400 else "")
+                parts.append(f"\n*[Tool call: {name}]*\n```json\n{inp_preview}\n```\n")
+            elif item_type == "tool_result" and self.include_tool_results:
+                tc = item.get("content", "")
+                if isinstance(tc, list):
+                    tc = " ".join(
+                        i.get("text", "") for i in tc if isinstance(i, dict)
+                    )
+                preview = str(tc)[:400] + ("…" if len(str(tc)) > 400 else "")
+                parts.append(f"\n*[Tool result]*\n```\n{preview}\n```\n")
+        return "\n".join(parts).strip()
 
 
 class CHSContext:
@@ -752,21 +663,16 @@ class CHSContext:
         try:
             with open(session_file, encoding="utf-8") as f:
                 lines = f.readlines()
-
             start = max(0, match_line - context_lines)
             end = min(len(lines), match_line + context_lines + 1)
-
             result = f"=== Session: {session_file.stem} ===\n"
             result += f"[{match_line - start} messages before match]\n\n"
-
             for i in range(start, end):
                 prefix = "[MATCH] " if i == match_line else ""
                 try:
                     data = json.loads(lines[i])
                     role = data.get("message", {}).get("role", "unknown")
                     content_field = data.get("message", {}).get("content", "")
-
-                    # Handle both string and list content formats
                     if isinstance(content_field, str):
                         content = content_field[:100]
                     elif isinstance(content_field, list) and content_field:
@@ -777,16 +683,12 @@ class CHSContext:
                             content = str(first_item)[:100]
                     else:
                         content = str(content_field)[:100]
-
                     result += f"{prefix}{role.capitalize()}: {content}...\n\n"
                 except (json.JSONDecodeError, KeyError, IndexError):
                     result += f"{prefix}[Line {i}]\n"
-
             result += f"[{end - match_line - 1} messages after match]\n"
             result += "Use --depth full to see complete conversation.\n"
-
             return result
-
         except OSError:
             return f"Error reading session file: {session_file}"
 
@@ -797,8 +699,6 @@ def main():
         description="Chat History Search (/chs) - Advanced chat history search",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-
-    # Main arguments
     parser.add_argument("query", nargs="?", help="Search query")
     parser.add_argument("--limit", type=int, default=20, help="Limit results")
     parser.add_argument("--workspace", help="Filter by workspace")
@@ -809,16 +709,12 @@ def main():
     parser.add_argument("--until", help="Filter by date")
     parser.add_argument("--file", help="Filter by file path")
     parser.add_argument("--exact", action="store_true", help="Exact match")
-
-    # Search stages
     parser.add_argument(
         "--stage",
         choices=["1", "2", "auto"],
         default="auto",
         help="Search stage: 1=index-only, 2=deep scan, auto=auto-select",
     )
-
-    # Output options
     parser.add_argument(
         "--depth", choices=["summary", "full", "auto"], default="summary", help="Detail level"
     )
@@ -830,16 +726,10 @@ def main():
         choices=["documentation", "short-memory", "changelog", "debug-postmortem", "onboarding"],
         help="Summarization mode",
     )
-
-    # Context preview
     parser.add_argument("--context", type=int, help="Show N messages around match")
-
-    # Session management
     parser.add_argument("--show", help="Show specific session")
     parser.add_argument("--list", action="store_true", help="List recent sessions")
     parser.add_argument("--stats", action="store_true", help="Show statistics")
-
-    # Other options
     parser.add_argument("--reindex", action="store_true", help="Rebuild search index")
     parser.add_argument("--output", help="Output to file")
     parser.add_argument("--clipboard", action="store_true", help="Copy to clipboard")
@@ -847,26 +737,36 @@ def main():
     parser.add_argument(
         "--include-tool-results", action="store_true", help="Include tool execution results"
     )
-
+    parser.add_argument("--export", action="store_true", help="Export full session chain to file")
+    parser.add_argument("--session-id", help="Session ID for export (default: current session)")
     args = parser.parse_args()
-
-    # Initialize components
     config = CHSConfig()
     search = CHSSearch(config)
     metrics = CHSMetrics()
     summarizer = CHSSummarizer()
     context_viewer = CHSContext()
-
-    # Handle special commands
+    if args.export:
+        exporter = CHSExporter(
+            exclude_thinking=args.exclude_thinking,
+            include_tool_results=args.include_tool_results,
+        )
+        try:
+            out = exporter.export_chain(
+                session_id=args.session_id,
+                output_path=Path(args.output) if args.output else None,
+            )
+            text = out.read_text(encoding="utf-8")
+            session_count = text.count("\n## Session ")
+            print(f"Exported {session_count} session(s) to: {out}")
+        except ValueError as exc:
+            print(f"Export failed: {exc}", file=sys.stderr)
+            return 1
+        return 0
     if args.stats:
-        # Parse date filter
         since = None
         if args.since:
-            # Simple date parsing (could be enhanced)
-            since = datetime.now() - timedelta(days=7)  # Default fallback
-
+            since = datetime.now() - timedelta(days=7)
         stats = metrics.get_stats(workspace=args.workspace, since=since)
-
         if args.format == "json":
             print(json.dumps(stats, indent=2))
         else:
@@ -881,19 +781,14 @@ def main():
             for tool, count in stats["most_used_tools"][:10]:
                 print(f"  {tool}: {count} times")
         return 0
-
     if args.list:
-        # List recent sessions
         results = search.search_stage1("", workspace=args.workspace, limit=args.limit)
         for result in results:
             print(f"{result['session_id']}: {result['first_prompt']}")
         return 0
-
     if args.show:
-        # Show specific session
         session_path = Path(args.show)
         if not session_path.exists():
-            # Try to find it in projects directory
             projects_path = Path.home() / ".claude" / "projects"
             found = False
             for project_dir in projects_path.iterdir():
@@ -902,32 +797,22 @@ def main():
                     session_path = potential
                     found = True
                     break
-
             if not found:
                 print(f"Session not found: {args.show}")
                 return 1
-
         if args.context:
-            # Show context preview
             output = context_viewer.show_context(session_path, 0, args.context)
         else:
-            # Show full session
             with open(session_path, encoding="utf-8") as f:
                 output = f.read()
-
         print(output)
         return 0
-
     if not args.query:
         parser.print_help()
         return 1
-
-    # Perform search
     stage = args.stage
     if stage == "auto":
-        # Auto-select stage based on query
-        stage = "1"  # Default to stage 1
-
+        stage = "1"
     if stage == "1":
         results = search.search_stage1(
             args.query,
@@ -944,8 +829,6 @@ def main():
             tool=args.tool,
             limit=args.limit,
         )
-
-    # Apply summarization if requested
     if args.mode:
         summarized = []
         for result in results:
@@ -953,14 +836,11 @@ def main():
             result["summary"] = summary
             summarized.append(result)
         results = summarized
-
-    # Output results
     if args.format == "json":
         print(json.dumps(results, indent=2))
     else:
         print(f"=== Chat History Search: {args.query} ===\n")
         print(f"Found {len(results)} results\n")
-
         for i, result in enumerate(results, 1):
             print(f"[{i}] {result.get('session_id', 'unknown')}")
             print(f"    Workspace: {result.get('workspace', 'unknown')}")
@@ -968,13 +848,11 @@ def main():
             if "first_prompt" in result:
                 print(f"    Prompt: {result['first_prompt']}")
             if "summary" in result and isinstance(result["summary"], str):
-                # Check if it's a structured summary or just text
                 if result["summary"].startswith("#"):
                     print(f"\n{result['summary']}\n")
                 else:
                     print(f"    Summary: {result['summary']}")
             print()
-
     return 0
 
 
