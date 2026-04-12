@@ -197,40 +197,50 @@ opencode run "Say hello" --model chutes/deepseek-ai/DeepSeek-V3.1-Terminus-TEE -
 ```
 If this returns a response, OpenCode CLI is working. If it returns an error or empty output, flag as `[INVOCATION_FAILED]` and investigate.
 
-### Headless Mode
+### Orchestrator Workflow
 
-Use `opencode run` for unattended Bash execution:
-```
-opencode run "[prompt]" --model chutes/deepseek-ai/DeepSeek-V3.1-Terminus-TEE --format json
-```
+When this skill is invoked:
 
-- `run`: Run in programmatic/non-interactive mode
-- `--model`: AI model (`chutes/deepseek-ai/DeepSeek-V3.1-Terminus-TEE`)
-- `--format json`: Clean JSON output for parsing
+1. **Invoke via wrapper** — captures CLI output to a file:
+   ```bash
+   pwsh -File P:/scripts/agentic-cli.ps1 -cli "opencode" -command "run [your prompt] --model chutes/deepseek-ai/DeepSeek-V3.1-Terminus-TEE --format json" -outputPath "P:/tmp/opencode_output.json"
+   ```
+   Replace `[your prompt]` with the task description from the user's request.
+
+2. **Read the output file** — parse JSONL and extract text content:
+   - The file contains JSONL with `{"type":"text","text":"..."}` events
+   - Extract the `text` field from each event and concatenate
+
+3. **Apply ACG workflow** to the extracted text:
+   - **Analyze**: What are the key insights? What claims are well-supported vs. inferred?
+   - **Challenge**: What are the weakest assumptions? What would make this argument fall apart?
+   - **Gap**: What is missing? What would make this analysis complete?
+
+4. **Deliver the final result** — present only the ACG findings, not the raw CLI output.
 
 ### Input Patterns
 
 **Small inputs (<500KB)** — inline prompt:
-```bash
-opencode run "Analyze P:/path/to/file.py and summarize" --model chutes/deepseek-ai/DeepSeek-V3.1-Terminus-TEE --format json
+```
+pwsh -File P:/scripts/agentic-cli.ps1 -cli "opencode" -command "run Analyze P:/path/to/file.py --model chutes/deepseek-ai/DeepSeek-V3.1-Terminus-TEE --format json" -outputPath "P:/tmp/opencode_output.json"
 ```
 
 **Large inputs (>500KB)** — pass filepath in prompt:
-```bash
-opencode run "Read P:/path/to/file.md and summarize" --model chutes/deepseek-ai/DeepSeek-V3.1-Terminus-TEE --format json
+```
+pwsh -File P:/scripts/agentic-cli.ps1 -cli "opencode" -command "run Read P:/path/to/file.md --model chutes/deepseek-ai/DeepSeek-V3.1-Terminus-TEE --format json" -outputPath "P:/tmp/opencode_output.json"
 ```
 
 ### Timeout and Response Handling
 
 **Timeout guidance**: If no response in 10 minutes, flag as `[TIMEOUT]` and report the failure.
 
-**Empty response handling**: An empty OpenCode output (0 bytes or whitespace only) is an error — not a valid result. Flag as `[EMPTY_OUTPUT]` and do not present it as a finding. If `[EMPTY_OUTPUT]` persists after 2 re-runs, surface the failure and flag `[EMPTY_OUTPUT_UNRESOLVED]`.
+**Empty response handling**: An empty output file (0 bytes or whitespace only) is an error — not a valid result. Flag as `[EMPTY_OUTPUT]` and do not present it as a finding. If `[EMPTY_OUTPUT]` persists after 2 re-runs, surface the failure and flag `[EMPTY_OUTPUT_UNRESOLVED]`.
 
 ### Error Interpretation
 
 | Exit Code | Meaning | Action |
 |-----------|---------|--------|
-| 0 | Success | Read output |
+| 0 | Success | Read output file at returned path |
 | Non-zero | General error | Check stderr for message |
 
 **Fail Fast**: If OpenCode CLI is not available, report failure immediately. Diagnostic: run `opencode --version` to verify installation. Do not attempt fallback.

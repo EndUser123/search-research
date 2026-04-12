@@ -461,6 +461,18 @@ def _check_skill_first_gate(data: dict) -> dict | None:
                 intent_file = candidate
                 break
 
+        # Fallback: try dash-stripped terminal ID (handles normalization drift from
+        # WT_SESSION format changes). Old directories were created with dashes removed.
+        if not intent_file and terminal_id.startswith("console_"):
+            hex_part = terminal_id[8:]  # strip "console_" prefix
+            stripped = f"console_{hex_part.replace('-', '')}"
+            if stripped != terminal_id:
+                for base in (state_dir, fallback_dir):
+                    candidate = base / "terminals" / stripped / "pending_command_intent.json"
+                    if candidate.exists():
+                        intent_file = candidate
+                        break
+
     # Secondary: flat terminal-scoped format (legacy, written before TASK-005)
     # Format: state/pending_command_intent_{terminal_id}.json
     if not intent_file:

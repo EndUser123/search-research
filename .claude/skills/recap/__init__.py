@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -43,20 +44,27 @@ def load_air_gaps() -> list[dict[str, Any]]:
 
 # Regex patterns compiled at module level for performance (PERF-001)
 # Require full markdown section headers to avoid garbage matches on casual text
+#
+# FIX for Python 3.14: (?=\Z) in lookahead is broken — \Z only works as $ anchor.
+# Pattern structure: **...header...** then optional space then content captured.
+# Use [^*]* (zero-or-more) in a non-greedy match between ** delimiters.
 _RE_PROBLEM = re.compile(
-    r"\*\*(?:What was the )?problem(?:\*\*|:\s+)\s*(.+?)(?=\n\s*\*\*|\n\n|\Z)",
+    r"\*\*(?:what was the )?[^*]*problem[^*]*\*\*(?:\s+)?(.+?)(?=\n\n|\n\*\*|\Z)",
     re.DOTALL | re.IGNORECASE,
 )
 _RE_USER_PROBLEM = re.compile(
-    r"\*\*Problem:(?:\*\*)?\s+(.+?)(?=\n\s*\*\*|\n\n|\Z)",
+    r"\*\*[^*]*problem[^*]*\*\*(?:\s+)?(.+?)(?=\n\n|\n\*\*|\Z)",
     re.DOTALL | re.IGNORECASE,
 )
 _RE_FIX = re.compile(
-    r"\*\*(?:What was the |Root Cause|Fix Applied):\s*(.+?)(?=\n\s*\*\*|\n\s*```|\n\n|\Z)",
+    r"\*\*(?:what was the )?[^*]*fix[^*]*\*\*(?:\s+)?(.+?)(?=\n\n|\n\*\*|\Z)"
+    r"|\*\*root cause[^*]*\*\*(?:\s+)?(.+?)(?=\n\n|\n\*\*|\Z)"
+    r"|\*\*fix applied[^*]*\*\*(?:\s+)?(.+?)(?=\n\n|\n\*\*|\Z)",
     re.DOTALL | re.IGNORECASE,
 )
 _RE_ACTION = re.compile(
-    r"\*\*(?:What did we do|Action|action taken):(?:\*\*)?\s*(.+?)(?=\n\s*\*\*|\n\s*```|\n\n|\Z)"
+    r"\*\*(?:what did we )?[^*]*do[^*]*\*\*(?:\s+)?(.+?)(?=\n\n|\n\*\*|\Z)"
+    r"|\*\*action[^*]*\*\*(?:\s+)?(.+?)(?=\n\n|\n\*\*|\Z)"
     r"|## Files Changed\s*\n\s*[-*]\s*(.+)",
     re.DOTALL | re.IGNORECASE,
 )
@@ -65,12 +73,12 @@ _RE_TOOL = re.compile(
     re.IGNORECASE,
 )
 _RE_DECISION = re.compile(
-    r"\*\*(?:Decision|decision):(?:\*\*)?\s*(.+?)(?=\n\s*\*\*|\n\n|\Z|\.)"
-    r"|\[DECISION\]\s*(.+?)(?=\n|$)",
+    r"\*\*(?:[^*]*decision)[^*]*\*\*(?:\s+)?(.+?)(?=\n\n|\n\*\*|\Z)"
+    r"|\[DECISION\]\s*(.+?)(?=\n|\Z)",
     re.DOTALL | re.IGNORECASE,
 )
 _RE_OUTCOME = re.compile(
-    r"\*\*(?:Outcome|outcome|result):(?:\*\*)?\s*(.+?)(?=\n\s*\*\*|\n\n|\Z|\.)"
+    r"\*\*(?:[^*]*outcome)[^*]*\*\*(?:\s+)?(.+?)(?=\n\n|\n\*\*|\Z)"
     r"|(?:completed|verified|done|succeeded)(?:\s+(?:task|fix|implementation)\s+(?:of\s+)?(.+?))?"
     r"|(?:Task|Fix) #?\d+: ([^\n]+)",
     re.DOTALL | re.IGNORECASE,
@@ -207,16 +215,6 @@ def load_sessions_index(index_path: Path) -> list[dict[str, Any]]:
     # Sort chronologically: oldest first
     raw_entries.sort(key=lambda e: e.get("created", ""))
     return raw_entries
-
-    try:
-        with open(term_file, encoding="utf-8") as f:
-            term_data = json.load(f)
-        project = term_data.get("project")
-        if project:
-            return Path(project)
-    except (json.JSONDecodeError, OSError):
-        pass
-    return None
 
 
 _MAX_RECENT_SESSIONS = 30  # Parse only the N most recent sessions
@@ -519,10 +517,11 @@ def extract_sessions_from_transcript(
 
     # Filter out file-history-snapshot entries (metadata, not real transcript content)
     # and skip entries with empty type
+    # Note: entries WITHOUT sessionId are NOT filtered - they belong to the current session
     real_entries = [
         e
         for e in entries
-        if e.get("type") not in ("file-history-snapshot", None, "") and e.get("sessionId")
+        if e.get("type") not in ("file-history-snapshot", None, "")
     ]
 
     sessions = []
@@ -661,17 +660,22 @@ def _regex_extract_semantic(
 
     combined = "\n".join(all_text)
 
+    # Quality thresholds for semantic extraction filter
+    _MIN_EXTRACT_LEN = 15  # Minimum character length for extracted strings
+    _MIN_MULTILINE_LEN = 30  # Minimum length for multi-line strings
+    _MIN_USER_PROBLEM_LEN = 20  # Minimum length for user problem matches
+
     def _filter(items: list[str]) -> list[str]:
         """Filter out low-quality extractions: too short, backticks, or ASCII art."""
         result = []
         for s in items:
             s = s.strip()
             # Discard: short strings, backtick noise, ASCII art chars, control sequences
-            if len(s) < 15:
+            if len(s) < _MIN_EXTRACT_LEN:
                 continue
             if s.startswith("`") or s.startswith("-" * 40):
                 continue
-            if "\n" in s and len(s) < 30:  # Multi-line but very short
+            if "\n" in s and len(s) < _MIN_MULTILINE_LEN:  # Multi-line but very short
                 continue
             result.append(s)
         return result
@@ -682,12 +686,12 @@ def _regex_extract_semantic(
     user_texts = [e.get("content", "") for e in entries if e.get("type") == "user"]
     for text in user_texts[:3]:
         for match in _RE_USER_PROBLEM.finditer(str(text)[:500]):
-            if len(match.group(1)) > 20:
+            if len(match.group(1)) > _MIN_USER_PROBLEM_LEN:
                 problems.append(match.group(1).strip())
 
     fixes: list[str] = []
     for match in _RE_FIX.finditer(combined):
-        fixes.append(match.group(1).lstrip("* "))
+        fixes.append((match.group(1) or match.group(2) or match.group(3) or "").lstrip("* "))
 
     actions: list[str] = []
     for match in _RE_ACTION.finditer(combined):
@@ -751,6 +755,144 @@ def _extract_semantic_content(
     return _regex_extract_semantic(entries)
 
 
+def _calculate_session_duration(entries: list[dict[str, Any]]) -> str | None:
+    """Calculate session duration from first and last entry timestamps.
+
+    Args:
+        entries: Transcript entries for a session
+
+    Returns:
+        Human-readable duration string (e.g., "8h 45m", "14m") or None if timestamps unavailable
+    """
+    if not entries:
+        return None
+
+    # Extract timestamps from entries
+    timestamps = []
+    for entry in entries:
+        # Try multiple timestamp fields that may exist in transcript entries
+        for ts_field in ("timestamp", "time", "created", "createdAt"):
+            ts_val = entry.get(ts_field)
+            if ts_val is not None:
+                try:
+                    # Handle both Unix millis (int) and ISO strings
+                    if isinstance(ts_val, (int, float)):
+                        timestamps.append(float(ts_val))
+                    elif isinstance(ts_val, str):
+                        # Parse ISO format
+                        from datetime import datetime
+                        dt = datetime.fromisoformat(ts_val.replace("Z", "+00:00"))
+                        timestamps.append(dt.timestamp())
+                except (ValueError, TypeError):
+                    pass
+                break  # Found a timestamp, don't check other fields for this entry
+
+    if len(timestamps) < 2:
+        return None
+
+    first_ts = min(timestamps)
+    last_ts = max(timestamps)
+    duration_seconds = (last_ts - first_ts) / 1000  # Convert millis to seconds
+
+    # Format duration
+    if duration_seconds < 60:
+        return f"{int(duration_seconds)}s"
+    elif duration_seconds < 3600:
+        minutes = int(duration_seconds / 60)
+        return f"{minutes}m"
+    else:
+        hours = int(duration_seconds / 3600)
+        minutes = int((duration_seconds % 3600) / 60)
+        if minutes > 0:
+            return f"{hours}h {minutes}m"
+        return f"{hours}h"
+
+
+def _calculate_token_usage(entries: list[dict[str, Any]]) -> dict[str, int]:
+    """Extract token usage from transcript entries.
+
+    Args:
+        entries: Transcript entries for a session
+
+    Returns:
+        Dict with input_tokens, output_tokens, total_tokens
+    """
+    total_input = 0
+    total_output = 0
+
+    for entry in entries:
+        # Check for usage metadata in various locations
+        usage = entry.get("usage")
+        if usage is None:
+            message = entry.get("message", {})
+            usage = message.get("usage")
+
+        if isinstance(usage, dict):
+            total_input += usage.get("input_tokens", 0)
+            total_output += usage.get("output_tokens", 0)
+
+    return {
+        "input_tokens": total_input,
+        "output_tokens": total_output,
+        "total_tokens": total_input + total_output,
+    }
+
+
+def _calculate_priority_score(
+    entry_count: int,
+    duration_str: str | None,
+    semantic_content: dict[str, list[str]],
+    token_usage: dict[str, int],
+) -> float:
+    """Calculate session importance score for prioritization.
+
+    Higher scores indicate more important sessions (more context-dense).
+
+    Args:
+        entry_count: Number of transcript entries
+        duration_str: Human-readable duration string or None
+        semantic_content: Dict with problems, fixes, actions, decisions, outcomes
+        token_usage: Token usage dict
+
+    Returns:
+        Priority score (0-100)
+    """
+    score = 0.0
+
+    # Factor 1: Entry count (0-25 points)
+    # More entries = more substantial interaction
+    score += min(entry_count / 4, 25)
+
+    # Factor 2: Token usage (0-30 points)
+    # High token count = deep technical work
+    total_tokens = token_usage.get("total_tokens", 0)
+    if total_tokens > 0:
+        # Log-scale to avoid extreme dominance
+        score += min(30 * (total_tokens / 100000), 30)
+
+    # Factor 3: Semantic richness (0-30 points)
+    # Problems, fixes, actions = real work done
+    semantic_items = (
+        len(semantic_content.get("problems", []))
+        + len(semantic_content.get("fixes", []))
+        + len(semantic_content.get("actions", []))
+        + len(semantic_content.get("decisions", []))
+        + len(semantic_content.get("outcomes", []))
+    )
+    score += min(semantic_items * 3, 30)
+
+    # Factor 4: Duration (0-15 points)
+    # Longer sessions = more sustained work
+    if duration_str:
+        if "h" in duration_str:
+            score += 15  # Multi-hour session
+        elif "m" in duration_str:
+            minutes = int(duration_str.replace("m", "").replace("h", "").strip())
+            score += min(minutes / 4, 12)  # Up to 48 minutes = 12 points
+
+    return min(score, 100.0)
+
+
 def _summarize_session(entries: list[dict[str, Any]], session_id: str | None) -> dict[str, Any]:
     """Summarize a session from its entries.
 
@@ -763,6 +905,10 @@ def _summarize_session(entries: list[dict[str, Any]], session_id: str | None) ->
     """
     user_entries = [e for e in entries if e.get("type") == "user"]
     assistant_entries = [e for e in entries if e.get("type") == "assistant"]
+
+    # Calculate session stats
+    duration = _calculate_session_duration(entries)
+    token_usage = _calculate_token_usage(entries)
 
     # last_goal: find the last user entry that contains meaningful user intent
     # Skip entries whose content is ONLY tool_result blocks (transcript stores tool output as type=="user")
@@ -793,11 +939,22 @@ def _summarize_session(entries: list[dict[str, Any]], session_id: str | None) ->
     # Extract semantic content
     semantic = _extract_semantic_content(entries)
 
+    # Calculate priority score
+    priority = _calculate_priority_score(
+        entry_count=len(entries),
+        duration_str=duration,
+        semantic_content=semantic,
+        token_usage=token_usage,
+    )
+
     return {
         "session_id": session_id or "unknown",
         "entry_count": len(entries),
         "user_message_count": len(user_entries),
         "assistant_message_count": len(assistant_entries),
+        "duration": duration,
+        "token_usage": token_usage,
+        "priority_score": priority,
         "last_goal": truncate(str(last_goal)),
         "problem": semantic["problems"][0] if semantic["problems"] else None,
         "fix": semantic["fixes"][0] if semantic["fixes"] else None,
@@ -846,7 +1003,7 @@ def format_recap(
     terminal_id: str,
     brief: bool = False,
 ) -> str:
-    """Format session data into a terminal recap.
+    """Format session data into a terminal recap (aligned with /handoff template).
 
     Args:
         sessions: List of session summaries
@@ -863,54 +1020,161 @@ def format_recap(
     lines.append(f"# Terminal Recap: {terminal_id}")
     lines.append("")
 
-    # Macro-Audit: Verify historical intent hasn't been violated
-    lines.append("## Macro-Audit")
+    # Session Metadata
+    lines.append("## Session Metadata")
     lines.append("")
-    lines.append(
-        "**Verify:** Assume I have no context. Does the recap provide enough Evidence "
-        "for me to understand Why each decision was made?"
-    )
+    lines.append(f"- **Total Sessions**: {len(sessions)}")
+    lines.append(f"- **Terminal ID**: {terminal_id}")
+    if sessions:
+        current_session = sessions[-1]['session_id'] if sessions else "unknown"
+        lines.append(f"- **Current Session**: {current_session[:16]}...")
+        # Try to get project path
+        try:
+            project_root = get_project_root()
+            if project_root:
+                lines.append(f"- **Project**: {project_root}")
+        except Exception:
+            pass
     lines.append("")
 
     # Session history from transcript
     if sessions:
         lines.append("## Session History")
         lines.append("")
-        lines.append(f"**Total Sessions**: {len(sessions)}")
-        lines.append("")
 
         for i, session in enumerate(sessions, 1):
             lines.append(f"**[Session {i}]** {session['session_id'][:12]}...")
-            lines.append(f"- Entries: {session['entry_count']}")
-            lines.append(f"- User messages: {session['user_message_count']}")
-            lines.append(f"- Assistant messages: {session['assistant_message_count']}")
+            lines.append(f"- **Entries**: {session['entry_count']}")
+            lines.append(f"- **User messages**: {session['user_message_count']}")
+            lines.append(f"- **Assistant messages**: {session['assistant_message_count']}")
+
+            # Duration if available (from session timestamp calculation)
+            if session.get("duration"):
+                lines.append(f"- **Duration**: {session['duration']}")
+
+            # Token usage if available
+            token_usage = session.get("token_usage", {})
+            if token_usage.get("total_tokens", 0) > 0:
+                total_k = token_usage["total_tokens"] // 1000
+                lines.append(f"- **Tokens**: ~{total_k}K ({token_usage['input_tokens']//1000}K in, {token_usage['output_tokens']//1000}K out)")
+
+            # Priority score (session importance)
+            priority = session.get("priority_score", 0)
+            if priority > 0:
+                lines.append(f"- **Priority Score**: {priority:.1f}/100")
+
             if session.get("last_goal"):
-                lines.append(f"- Goal: {session['last_goal']}")
+                lines.append(f"- **Goal**: {session['last_goal']}")
+            lines.append("")
 
-            # Semantic content: problem/fix/action (from structured output patterns)
-            # These are the extracted facts — the LLM responding uses these as input
-            # to synthesize: what was the problem, what was done, and what is the optimal fix?
-            if session.get("problem"):
-                lines.append(f"- Problem: {session['problem']}")
-            if session.get("fix"):
-                lines.append(f"- Fix: {session['fix']}")
-            if session.get("action"):
-                lines.append(f"- Action: {session['action']}")
+            # Original Request / Trigger (extracted from early session content)
+            if session.get("original_request"):
+                lines.append("### Original Request")
+                lines.append(f"- **User Request**: \"{session['original_request']}\"")
+                if session.get("trigger"):
+                    lines.append(f"- **Trigger**: {session['trigger']}")
+                lines.append("")
 
-            # Decisions and outcomes if found
-            if session.get("decisions"):
-                for decision in session["decisions"][:3]:  # Show up to 3
-                    lines.append(f"- Decision: {decision}")
+            # Session Objectives
+            if session.get("objectives"):
+                lines.append("### Session Objectives")
+                for obj in session.get("objectives", [])[:5]:
+                    status = obj.get("status", "unknown")
+                    description = obj.get("description", "")
+                    lines.append(f"- **{description}** ({status})")
+                lines.append("")
+
+            # Final Actions Taken
+            if session.get("actions"):
+                lines.append("### Final Actions Taken")
+                for action in session.get("actions", [])[:5]:
+                    priority = action.get("priority", "medium")
+                    description = action.get("description", "")
+                    lines.append(f"- **{description}** ({priority})")
+                lines.append("")
+
+            # Outcomes
             if session.get("outcomes"):
-                for outcome in session["outcomes"][:3]:  # Show up to 3
-                    lines.append(f"- Outcome: {outcome}")
+                lines.append("### Outcomes")
+                for outcome in session["outcomes"][:5]:
+                    status = outcome.get("status", "success")
+                    description = outcome.get("description", outcome.get("text", ""))
+                    lines.append(f"- **{description}** ({status})")
+                lines.append("")
 
-            # Condensed transcript — raw context for LLM (this agent) to reason over
-            # when regex-extracted fields are garbage. The LLM synthesizes directly
-            # from this text to answer the Macro-Audit question.
+            # Active Work At Handoff
+            if session.get("active_work"):
+                lines.append("### Active Work At Handoff")
+                work = session["active_work"]
+                lines.append(f"- **Currently Working On**: {work.get('description', 'Unknown')}")
+                lines.append(f"  - Status: {work.get('status', 'unknown')}")
+                if work.get("files_modified"):
+                    lines.append(f"  - Files Modified: {work['files_modified']}")
+                if work.get("next"):
+                    lines.append(f"  - Next: {work['next']}")
+                lines.append("")
+
+            # Working Decisions (Critical for Continuity)
+            if session.get("decisions"):
+                lines.append("### Working Decisions (Critical for Continuity)")
+                for decision in session["decisions"][:5]:
+                    lines.append(f"- **Decision**: {decision.get('text', decision.get('description', ''))}")
+                    if decision.get("rationale"):
+                        lines.append(f"  - **Rationale**: {decision['rationale']}")
+                    if decision.get("impact"):
+                        lines.append(f"  - **Impact**: {decision['impact']}")
+                lines.append("")
+
+            # Current Tasks
+            if session.get("current_tasks"):
+                lines.append("### Current Tasks")
+                for task in session["current_tasks"][:5]:
+                    task_id = task.get("id", task.get("number", "?"))
+                    description = task.get("description", "")
+                    status = task.get("status", "pending")
+                    priority = task.get("priority", "medium")
+                    lines.append(f"- **#{task_id}**: {description} ({status}, {priority})")
+                lines.append("")
+
+            # Known Issues
+            if session.get("known_issues"):
+                lines.append("### Known Issues")
+                for issue in session["known_issues"][:5]:
+                    issue_id = issue.get("id", "ISSUE")
+                    description = issue.get("description", "")
+                    status = issue.get("status", "open")
+                    priority = issue.get("priority", "medium")
+                    lines.append(f"- **{issue_id}**: {description} ({status}, {priority})")
+                lines.append("")
+
+            # Open Questions
+            if session.get("open_questions"):
+                lines.append("### Open Questions")
+                for question in session["open_questions"][:5]:
+                    q_text = question.get("text", question.get("question", ""))
+                    priority = question.get("priority", "medium")
+                    q_type = question.get("type", "technical")
+                    lines.append(f"- **Question**: {q_text}? ({priority}, {q_type})")
+                lines.append("")
+
+            # Knowledge Contributions
+            if session.get("knowledge_contributions"):
+                lines.append("### Knowledge Contributions")
+                for contribution in session["knowledge_contributions"][:5]:
+                    lines.append(f"- **Insight**: {contribution}")
+                lines.append("")
+
+            # Next Immediate Action
+            if session.get("next_actions"):
+                lines.append("### Next Immediate Action")
+                for idx, action in enumerate(session["next_actions"][:5], 1):
+                    lines.append(f"{idx}. {action}")
+                lines.append("")
+
+            # Condensed transcript — raw context for LLM synthesis
+            # This provides the full context for the LLM to reason over
             if session.get("transcript"):
                 transcript_preview = session["transcript"]
-                lines.append("")
                 lines.append("### Raw Context")
                 lines.append(transcript_preview)
 
@@ -1118,23 +1382,25 @@ def _find_transcript_dir(project_root: Path | None) -> Path | None:
     Returns:
         Path to transcript directory, or None if not found
     """
-    # Check home directory transcript storage first - this is where
-    # actual transcript files live (not project_root which is P:\)
+    if project_root:
+        # Priority 1: project-specific directory ~/.claude/projects/{project_hash}/
+        # This is where P:--specific session transcripts live (not the root ~/.claude/projects/)
+        project_hash = _get_project_hash(project_root)
+        project_transcripts = Path.home() / ".claude" / "projects" / project_hash
+        if project_transcripts.exists():
+            jsonl_files = list(project_transcripts.glob("*.jsonl"))
+            if jsonl_files:
+                return project_transcripts
+
+    # Priority 2: home directory root ~/.claude/projects/ (legacy fallback)
+    # NOTE: This contains cross-project blobs + agent files — can return stale
+    # November 2025 files when actual project transcripts are in project subdir.
+    # Only used as fallback when project_root is None or project subdir is empty.
     home_transcripts = Path.home() / ".claude" / "projects"
     if home_transcripts.exists():
-        # Verify it has .jsonl files before returning
         jsonl_files = list(home_transcripts.glob("*.jsonl"))
         if jsonl_files:
             return home_transcripts
-
-    # Also check project-specific location if project_root is provided
-    if project_root:
-        # Check if project_root/.claude/projects/{project} pattern exists
-        claude_projects = project_root / ".claude" / "projects"
-        if claude_projects.exists():
-            jsonl_files = list(claude_projects.glob("*.jsonl"))
-            if jsonl_files:
-                return claude_projects
 
     return None
 

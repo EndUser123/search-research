@@ -70,7 +70,7 @@ def run_hook_input(tool_name: str, tool_input: dict, user_message: str = "", res
         if preloaded_state:
             # Temporarily replace load_state to return our preloaded state
             original_load = gate.load_state
-            gate.load_state = lambda terminal_id="": preloaded_state
+            gate.load_state = lambda terminal_id="", input_data=None: preloaded_state
             try:
                 # Run the hook
                 allowed, message = gate.process_hook(

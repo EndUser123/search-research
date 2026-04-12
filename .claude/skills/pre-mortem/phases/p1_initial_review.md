@@ -1,5 +1,7 @@
 # Phase 1: Triage + Specialist Dispatch
 
+> **NOTE:** This is an orchestrator prompt template. Variables `{WORK_FILE}`, `{session_dir}`, and `{specialist}` must be substituted by the calling `/pre-mortem` SKILL.md workflow before use. This file cannot execute as a standalone procedure.
+
 ## Your Job
 
 You are a triage agent. Your job is NOT to critique the work yourself — it is to classify the target, select the most useful specialist subagents, dispatch them in parallel, and consolidate their findings.
@@ -53,39 +55,36 @@ Based on the target type and content, select the 2-4 most relevant specialists:
 - `adversarial-compliance` — YAML frontmatter, parameter validation
 
 **For failure / RCA:**
-- All 7 specialists run in parallel (adversarial-compliance, adversarial-logic, adversarial-performance, adversarial-security, adversarial-testing, adversarial-quality, adversarial-qa)
+- All 7 specialists run in parallel (adversarial-compliance, adversarial-logic, adversarial-performance, adversarial-security, adversarial-testing, adversarial-quality, adversarial-rca)
 
-## Step 3: Check for Prior Output (Idempotent Dispatch)
+## Step 3: Ensure Specialists Directory
+
+**Defensive check before dispatching agents.** `setup()` already creates `specialists/` when the session is initialized (via `get_specialists_dir()`), but make the directory unconditionally as a safety net — it is safe to call on an existing directory.
+
+```python
+from pathlib import Path
+specialists_dir = Path("{session_dir}") / "specialists"
+specialists_dir.mkdir(exist_ok=True)
+```
+
+This must run before Step 4 so that the specialists directory exists for the idempotency check.
+
+## Step 4: Check for Prior Output (Idempotent Dispatch)
 
 Before dispatching specialists, check whether their output files already exist at the canonical path and read any existing dispatch manifest.
 
 **Expected output path pattern:** `P:/{session_dir}/specialists/{specialist-name}-findings.json`
 
-For each selected specialist, check if `P:/{session_dir}/specialists/{specialist-name}-findings.json` already exists and contains valid JSON.
+For each selected specialist, check if `P:/{session_dir}/specialists/{specialist-name}-findings.json` already exists and contains valid JSON (validation is implemented in Step 5c).
 
 - If ALL specialist output files exist and are valid, skip dispatch entirely and proceed directly to Step 6 (consolidation).
 - If ANY output file is missing or invalid, dispatch ONLY the missing or invalid specialists.
 
 **Also check for an existing dispatch manifest** from a prior interrupted run. If `P:/{session_dir}/specialists/dispatch_manifest.json` exists, read it to know which specialists were already dispatched in the interrupted run. Use this to skip them on re-run.
 
-**Idempotent dispatch pattern:** After EACH individual dispatch call succeeds, immediately update the dispatch manifest. If context compacts mid-loop, the manifest will still show which agents were already dispatched when this run resumes.
-
-## Step 4: Ensure Specialists Directory
-
-**Defensive check before dispatching Task agents.** `setup()` already creates `specialists/` when the session is initialized (via `get_specialists_dir()`), but verify it exists as a safety net.
-
-```python
-from pathlib import Path
-specialists_dir = Path("{session_dir}") / "specialists"
-if not specialists_dir.exists():
-    specialists_dir.mkdir(exist_ok=True)
-```
-
-If this step is absent and `specialists/` does not exist, Task agent file writes silently fail and the Phase 1 Completion Gate will catch zero JSON files.
-
 ## Step 5: Dispatch Missing Specialists
 
-**CRASH-RESILIENT DISPATCH PATTERN:** Pre-populate manifest before dispatch, use completion markers.
+**Dispatch pattern:** Pre-populate manifest, then dispatch all specialists in parallel foreground. Completion markers provide idempotency.
 
 ### 5a: Pre-populate Manifest (before dispatch loop)
 
@@ -106,34 +105,37 @@ with open(manifest_path, "w") as f:
     json.dump(manifest, f)
 ```
 
-### 5b: Idempotent Dispatch Loop (check completion markers)
+### 5b: Parallel Foreground Dispatch
 
-For each specialist in `selected_specialists`, dispatch ONLY if completion marker doesn't exist:
+Dispatch all specialists in parallel via multiple Agent calls in a single message. Wait for all to complete before proceeding to consolidation.
 
-```python
-for specialist in selected_specialists:
-    # Idempotent skip: if completion marker exists, specialist already finished
-    completion_marker = specialists_dir / f"{specialist}-complete.json"
-    if completion_marker.exists():
-        continue  # Skip already-completed specialist
+Launch ALL specialists in parallel by making multiple `Agent(...)` tool calls in a single message. For each specialist:
 
-    # Dispatch Task agent
-    task = Task(
-        subagent_type="general-purpose",
-        description=(
-            f"Read P:/.claude/agents/{specialist}.md and follow its instructions to "
-            f"review the work at: P:/{{session_dir}}/work.md. "
-            f"Write your JSON findings to: P:/{{session_dir}}/specialists/{{specialist}}-findings.json. "
-            f"When complete, write a completion marker to: P:/{{session_dir}}/specialists/{specialist}-complete.json "
-            f"containing: {{\"specialist\": \"{specialist}\", \"complete\": true}}. "
-            f"Return ONLY the file path in your response text."
-        )
-    )
+```json
+Agent({
+  "description": "Run specialist review",
+  "prompt": "Read P:/.claude/agents/{specialist}.md and follow its instructions to review the work at: P:/{session_dir}/work.md. Write your JSON findings to: P:/{session_dir}/specialists/{specialist}-findings.json. When complete, write a completion marker to: P:/{session_dir}/specialists/{specialist}-complete.json containing: {\"specialist\": \"{specialist}\", \"complete\": true}. Return ONLY the file path in your response text.",
+  "subagent_type": "general-purpose"
+})
 ```
 
-**Specialist writes its own completion marker** — this is the key crash-resilience mechanism. Even if the orchestrator crashes mid-dispatch, the specialist's completion marker persists. On re-run, the idempotent skip check detects it.
+**Dispatch pattern for 4 specialists (example):**
 
-### 5c: After Dispatch Loop
+```json
+Agent({"description": "adversarial-logic specialist", "prompt": "Read P:/.claude/agents/adversarial-logic.md and follow its instructions to review the work at: P:/{session_dir}/work.md. Write your JSON findings to: P:/{session_dir}/specialists/adversarial-logic-findings.json. When complete, write a completion marker to: P:/{session_dir}/specialists/adversarial-logic-complete.json containing: {\"specialist\": \"adversarial-logic\", \"complete\": true}. Return ONLY the file path in your response text.", "subagent_type": "general-purpose"})
+Agent({"description": "adversarial-compliance specialist", "prompt": "Read P:/.claude/agents/adversarial-compliance.md and follow its instructions to review the work at: P:/{session_dir}/work.md. Write your JSON findings to: P:/{session_dir}/specialists/adversarial-compliance-findings.json. When complete, write a completion marker to: P:/{session_dir}/specialists/adversarial-compliance-complete.json containing: {\"specialist\": \"adversarial-compliance\", \"complete\": true}. Return ONLY the file path in your response text.", "subagent_type": "general-purpose"})
+Agent({"description": "adversarial-quality specialist", "prompt": "Read P:/.claude/agents/adversarial-quality.md and follow its instructions to review the work at: P:/{session_dir}/work.md. Write your JSON findings to: P:/{session_dir}/specialists/adversarial-quality-findings.json. When complete, write a completion marker to: P:/{session_dir}/specialists/adversarial-quality-complete.json containing: {\"specialist\": \"adversarial-quality\", \"complete\": true}. Return ONLY the file path in your response text.", "subagent_type": "general-purpose"})
+Agent({"description": "adversarial-testing specialist", "prompt": "Read P:/.claude/agents/adversarial-testing.md and follow its instructions to review the work at: P:/{session_dir}/work.md. Write your JSON findings to: P:/{session_dir}/specialists/adversarial-testing-findings.json. When complete, write a completion marker to: P:/{session_dir}/specialists/adversarial-testing-complete.json containing: {\"specialist\": \"adversarial-testing\", \"complete\": true}. Return ONLY the file path in your response text.", "subagent_type": "general-purpose"})
+```
+
+**Key points:**
+- Use foreground agents (no `run_in_background`) — wait for each to complete
+- Dispatch all in one message for true parallelism
+- Completion markers provide idempotency if context compacts mid-dispatch
+- After each specialist agent returns, verify its findings JSON and completion marker exist before proceeding — do not wait until all agents return to check individual results
+- After all agents return, check completion markers and JSONs before proceeding
+
+### 5c: After Dispatch — Verify All Completed
 
 ```python
 # Check which JSONs and completion markers exist
@@ -239,6 +241,8 @@ If a specialist found nothing notable in their domain, note: "No significant iss
 ## Phase 1 Completion Gate
 
 **MANDATORY before proceeding to Phase 2.** If this gate fails, do not proceed.
+
+> **Phase sequencing note:** Phase gating is enforced by the `/pre-mortem` SKILL.md orchestrator workflow, not by this file alone. This file defines the gate criteria but cannot self-enforce phase ordering.
 
 **Gate criteria:** ALL dispatched specialists produced JSONs AND `p1_findings.md` exists.
 

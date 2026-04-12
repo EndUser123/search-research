@@ -12,6 +12,7 @@ from verification.engine import (
     VerificationStatus,
     build_verdicts,
     match_claim_to_events,
+    _claim_matches_tool_output,
 )
 
 
@@ -595,6 +596,150 @@ class TestSelfVerifiedClaims:
         events = []  # No events, but also no self-verification pattern
         result = match_claim_to_events(claim, events)
         assert result == VerificationStatus.SILENT  # Not SELF_VERIFIED
+
+
+class TestClaimMatchesToolOutput:
+    """Test _claim_matches_tool_output fallback for SILENT verdicts."""
+
+    @dataclass
+    class StubClaim:
+        id: str
+        text: str
+        targets: List[str]
+        type: str
+        confidence: float
+
+    def test_claim_text_in_tool_output_returns_true(self):
+        """Full claim text found in tool output → True."""
+        claim = self.StubClaim(
+            id="test-001",
+            text="Gap Table is off by default",
+            targets=["some/path"],  # Path not relevant here
+            type="EXISTENCE",
+            confidence=0.9
+        )
+        events = [
+            {
+                "name": "Grep",
+                "command": "grep 'gaps' SKILL.md",
+                "output": "--gaps — Gap Table is off by default. (line 186)",
+                "timestamp": "2026-04-10T12:00:00Z"
+            }
+        ]
+        result = _claim_matches_tool_output(claim, events)
+        assert result is True
+
+    def test_claim_text_not_in_tool_output_returns_false(self):
+        """Claim text not in any tool output → False."""
+        claim = self.StubClaim(
+            id="test-002",
+            text="This is a very specific claim that was not verified",
+            targets=["some/path"],
+            type="EXISTENCE",
+            confidence=0.9
+        )
+        events = [
+            {
+                "name": "Read",
+                "command": "Read something.py",
+                "output": "Completely unrelated content",
+                "timestamp": "2026-04-10T12:00:00Z"
+            }
+        ]
+        result = _claim_matches_tool_output(claim, events)
+        assert result is False
+
+    def test_key_terms_subset_match_returns_true(self):
+        """At least 3 key terms from claim found in output → True."""
+        claim = self.StubClaim(
+            id="test-003",
+            text="Skill requires output format INSTRUCTION for routing",
+            targets=["some/path"],
+            type="RULE",
+            confidence=0.85
+        )
+        events = [
+            {
+                "name": "Read",
+                "command": "skill-audit/SKILL.md",
+                "output": "...routing: INSTRUCTION format required...",
+                "timestamp": "2026-04-10T12:00:00Z"
+            }
+        ]
+        result = _claim_matches_tool_output(claim, events)
+        assert result is True
+
+    def test_key_terms_insufficient_match_returns_false(self):
+        """Fewer than 3 key terms match → False."""
+        claim = self.StubClaim(
+            id="test-004",
+            text="Something about the thing",
+            targets=["some/path"],
+            type="EXISTENCE",
+            confidence=0.9
+        )
+        events = [
+            {
+                "name": "Bash",
+                "command": "ls",
+                "output": "something here",
+                "timestamp": "2026-04-10T12:00:00Z"
+            }
+        ]
+        result = _claim_matches_tool_output(claim, events)
+        assert result is False
+
+    def test_empty_events_returns_false(self):
+        """No tool events → False."""
+        claim = self.StubClaim(
+            id="test-005",
+            text="Any claim at all",
+            targets=["path"],
+            type="EXISTENCE",
+            confidence=0.9
+        )
+        result = _claim_matches_tool_output(claim, [])
+        assert result is False
+
+    def test_claim_in_command_not_just_output(self):
+        """Claim text found in command field also counts."""
+        claim = self.StubClaim(
+            id="test-006",
+            text="Stop hook blocks confident claims",
+            targets=["path"],
+            type="MECHANISM",
+            confidence=0.9
+        )
+        events = [
+            {
+                "name": "Grep",
+                "command": "grep 'Stop hook blocks confident claims' engine.py",
+                "output": "Some other output",
+                "timestamp": "2026-04-10T12:00:00Z"
+            }
+        ]
+        result = _claim_matches_tool_output(claim, events)
+        assert result is True
+
+    def test_stopwords_not_used_for_matching(self):
+        """Common stopwords are filtered when counting key terms."""
+        claim = self.StubClaim(
+            id="test-007",
+            text="The implementation requires verification before blocking",
+            targets=["path"],
+            type="RULE",
+            confidence=0.85
+        )
+        events = [
+            {
+                "name": "Read",
+                "command": "engine.py",
+                "output": "implementation verification blocking",
+                "timestamp": "2026-04-10T12:00:00Z"
+            }
+        ]
+        result = _claim_matches_tool_output(claim, events)
+        assert result is True
 
 
 if __name__ == "__main__":

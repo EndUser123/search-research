@@ -212,14 +212,24 @@ codex exec -m gpt-5-mini "[prompt]"
 - `exec`: Run in programmatic/non-interactive mode
 - `-m` (model): Model to use (default: `gpt-5-mini`)
 
-### Model Selection
+### Orchestrator Workflow
 
-Use `-m` / `--model` to specify a model:
-```bash
-codex exec -m gpt-5-mini "Your prompt"
-```
+When this skill is invoked:
 
-Default model: `gpt-5-mini` (high reasoning). Override with `-m` flag.
+1. **Invoke via wrapper** — captures CLI output to a file:
+   ```bash
+   pwsh -File P:/scripts/agentic-cli.ps1 -cli "codex" -command "exec -m gpt-5-mini [your prompt]" -outputPath "P:/tmp/codex_output.txt"
+   ```
+   Replace `[your prompt]` with the task description from the user's request.
+
+2. **Read the output file** — the file contains the raw text output from Codex.
+
+3. **Apply ACG workflow** to the extracted text:
+   - **Analyze**: What are the key insights? What claims are well-supported vs. inferred?
+   - **Challenge**: What are the weakest assumptions? What would make this argument fall apart?
+   - **Gap**: What is missing? What would make this analysis complete?
+
+4. **Deliver the final result** — present only the ACG findings, not the raw CLI output.
 
 ### Input Patterns
 
@@ -238,13 +248,13 @@ codex exec -m gpt-5-mini "Read P:/path/to/file.md and summarize"
 
 **Timeout guidance**: If no response in 10 minutes, flag as `[TIMEOUT]` and report the failure.
 
-**Empty response handling**: An empty Codex output (0 bytes or whitespace only) is an error — not a valid result. Flag as `[EMPTY_OUTPUT]` and do not present it as a finding. If `[EMPTY_OUTPUT]` persists after 2 re-runs, surface the failure and flag `[EMPTY_OUTPUT_UNRESOLVED]`.
+**Empty response handling**: An empty output file (0 bytes or whitespace only) is an error — not a valid result. Flag as `[EMPTY_OUTPUT]` and do not present it as a finding. If `[EMPTY_OUTPUT]` persists after 2 re-runs, surface the failure and flag `[EMPTY_OUTPUT_UNRESOLVED]`.
 
 ### Error Interpretation
 
 | Exit Code | Meaning | Action |
 |-----------|---------|--------|
-| 0 | Success | Read output |
+| 0 | Success | Read output file |
 | Non-zero | General error | Check stderr for message |
 
 **Fail Fast**: If Codex CLI is not available, report failure immediately. Diagnostic: run `codex --version` to verify installation. Do not attempt fallback.

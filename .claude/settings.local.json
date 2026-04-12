@@ -78,7 +78,11 @@
       "Bash(rm -rf P:/.claude/skills/data-processor-v2)",
       "Bash(ls -d P:/.claude/skills/test-*)",
       "Bash(mkdir -p P:/.claude/skills/decision-tree/references/examples)",
-      "Bash(python -c ':*)"
+      "Bash(python -c ':*)",
+      "mcp__plugin_serena_serena__find_file",
+      "mcp__plugin_serena_serena__activate_project",
+      "mcp__plugin_serena_serena__list_dir",
+      "mcp__plugin_serena_serena__create_text_file"
     ],
     "deny": [],
     "ask": []

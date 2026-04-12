@@ -544,7 +544,11 @@ class PathValidator:
 
         for pattern, suggestion_template in self.blocked_pattern_suggestions.items():
             if fnmatch.fnmatch(filename, pattern):
-                return f"P:/__csf/{suggestion_template.format(filename=filename)}"
+                # If suggestion is already a complete action (Move to, Delete), don't prepend path
+                formatted = suggestion_template.format(filename=filename)
+                if formatted.startswith(("Move to", "Delete", "move to", "delete")):
+                    return formatted
+                return f"P:/__csf/{formatted}"
 
         return f"P:/__csf/.staging/{filename}"
 

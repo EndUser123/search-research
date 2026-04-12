@@ -1583,6 +1583,95 @@ results = client.search("chs", "chat topic", limit=10)
 
 **DEPRECATED**: Standalone UserPromptSubmit hooks (direct settings.json registration) are deprecated. Use router pattern.
 
+#### In-Process vs Subprocess Registration
+
+**CRITICAL**: Understand the difference between in-process (IN_PROCESS_HOOKS) and subprocess (settings.json) registration to avoid duplicate registration bugs.
+
+**Registration Types**:
+
+| Type | Location | Performance | State Sharing | When to Use |
+|------|----------|-------------|---------------|-------------|
+| **In-Process** | `IN_PROCESS_HOOKS` in PreToolUse.py | <100ms | Shared memory (direct imports) | Performance-critical hooks, stateful hooks |
+| **TOOL_HOOKS** | `TOOL_HOOKS` in PreToolUse.py | 100-500ms | Via router dispatch | Most PreToolUse hooks |
+| **Subprocess** | `settings.json` PreToolUse section | 500ms+ | No state sharing | Standalone hooks, isolation needed |
+
+**Decision Tree**:
+
+```
+Is the hook performance-critical (<100ms required)?
+├─ YES → Use IN_PROCESS_HOOKS (in-process)
+│         - Import hook module directly
+│         - NO subprocess registration in settings.json
+│         - Examples: syntax_gate, directory_policy, path_validator
+│
+└─ NO → Does the hook need to run in TOOL_HOOKS dispatch chain?
+         ├─ YES → Add to TOOL_HOOKS only
+         │         - Runs via PreToolUse.py router
+         │         - Check: NOT also in IN_PROCESS_HOOKS
+         │         - Examples: tdd95_gate, investigation_gate, authorization_gate
+         │
+         └─ NO → Use subprocess (settings.json)
+                   - Runs as separate Python process
+                   - Use for: SessionStart, standalone hooks
+                   - Examples: sequential_thinking, tool_availability_checker
+```
+
+**Anti-Pattern** (BUG - causes "No stderr output" error):
+
+```python
+# WRONG - Hook in BOTH IN_PROCESS_HOOKS AND settings.json subprocess
+IN_PROCESS_HOOKS = {
+    "PreToolUse_directory_policy.py": PreToolUse_directory_policy.run,  # ✅ In-process
+}
+# AND settings.json has:
+# {"command": "python P:/.claude/hooks/PreToolUse_directory_policy.py"}  # ❌ DUPLICATE!
+```
+
+**Why this is a bug**: When both registrations exist:
+1. In-process version runs first (exits code 2 to block)
+2. Subprocess version runs after, also exits code 2 without stderr
+3. Claude Code treats ANY stderr from hooks as "hook error"
+4. Result: Confusing "No stderr output" error messages
+
+**Correct Pattern**:
+
+```python
+# CORRECT - Hook in ONLY ONE location
+IN_PROCESS_HOOKS = {
+    "PreToolUse_directory_policy.py": PreToolUse_directory_policy.run,  # ✅ In-process only
+}
+# settings.json does NOT have this hook as subprocess
+```
+
+**Verification**:
+
+Run the hook registration verification script to detect duplicates:
+```bash
+python P:/.claude/hooks/scripts/verify_hook_registration.py
+```
+
+This script detects:
+- Hooks in both IN_PROCESS_HOOKS and settings.json (BUG)
+- Duplicate entries within settings.json
+
+**Performance Requirements**:
+
+| Registration | Target Latency | Acceptable Use |
+|--------------|----------------|----------------|
+| IN_PROCESS_HOOKS | <100ms | Path validation, syntax checks, quick lookups |
+| TOOL_HOOKS | <500ms | Most validation gates, policy checks |
+| Subprocess | <5s | Heavy operations, external calls, complex analysis |
+
+**State Sharing Considerations**:
+
+- **In-Process**: Direct function calls, can share objects/memory
+- **Subprocess**: No state sharing, must use files or IPC
+
+**Error Handling**:
+
+- **In-Process**: Can raise exceptions, router catches them
+- **Subprocess**: Must exit with proper codes (0=allow, 2=block), stderr = error
+
 #### Router Registration Steps (3-Step Process)
 
 When creating a new UserPromptSubmit, Stop, or PostToolUse hook that uses router pattern:

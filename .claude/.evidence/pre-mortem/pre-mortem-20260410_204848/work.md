@@ -1,0 +1,1 @@
+_claim_matches_tool_output content-match fallback for SILENT verdicts in stop hook verification engine

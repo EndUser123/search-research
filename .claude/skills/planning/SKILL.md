@@ -28,6 +28,7 @@ metadata:
 workflow_steps:
   - detect_topic: Infer topic from conversation history when not explicitly provided
   - draft_plan: Generate initial plan draft (NOT placeholder normalization — concrete content only)
+  - discover_existing: Search codebase for existing implementations of proposed components (catches duplicates before verification)
   - verify: Run auto_verify.py for deterministic checks (sections, placeholders, contradictions, explicit file/line evidence, and execution semantics)
   - contract_boundary_check: Reject plans with implied producer/consumer boundaries, missing artifact schemas, missing required Contract Authority Packet consumption, or missing freshness/invalidation rules
   - remediate_blockers: Route architecture blockers to /arch for decision closure; planning keeps sole ownership of plan edits
@@ -339,12 +340,13 @@ The extraction map must cover:
 
 `/planning` must not treat a malformed first draft as an `/arch` problem merely because the source was an ADR. If the issue is that the draft does not match the canonical plan schema, `/planning` must repair the draft locally before deciding whether any remaining blockers truly belong to `/arch`.
 
-## Verification Workflow (Steps 1-3)
+## Verification Workflow (Steps 1-4)
 
-Steps 1-3 cover draft generation, auto_verify checks, and auto_fix scope.
+Steps 1-4 cover draft generation, discovery, auto_verify checks, and auto_fix scope.
 
 **Step 1**: Generate a concrete draft with actual content, NOT placeholder scaffolding.
-**Step 2**: Run `auto_verify.py` for deterministic checks (placeholders, contradictions, dispositions, plan-purity, explicit file/line evidence, execution semantics, and state-model contract closure for applicable plans).
+**Step 1.5 (Discovery)**: Search codebase for existing implementations of proposed components to catch duplicates before expensive verification. Extract class names from Implementation Changes and search for existing definitions.
+**Step 2**: Run `auto_verify.py` for deterministic checks (placeholders, contradictions, dispositions, plan-purity, explicit file/line evidence, execution semantics, and state-model contract closure for applicable plans). Includes DUPLICATE-001 check for redundant component proposals.
 **Step 2.5**: Run contract boundary check for producer/consumer artifacts and handoffs.
 **Step 3**: Run `auto_fix.py` for non-semantic repairs only (headers, metadata, and ordering only when explicitly requested).
 

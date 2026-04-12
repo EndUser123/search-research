@@ -592,3 +592,54 @@ def _output_indicates_absence(output: str) -> bool:
 
     output_lower = output.lower()
     return any(indicator in output_lower for indicator in absence_indicators)
+
+
+def _claim_matches_tool_output(
+    claim: Any,
+    events: List[Dict[str, Any]],
+) -> bool:
+    """Check if claim text appears in any tool event's output from this turn.
+
+    Used as a fallback when _filter_events_by_targets() returns empty (SILENT verdict).
+    This catches cases where a claim's content was confirmed by tool output even though
+    the target file path wasn't in the claim's targets list.
+
+    Args:
+        claim: Claim object with text attribute
+        events: List of tool event dictionaries from this turn
+
+    Returns:
+        True if claim text (or key assertion phrases) found in any tool output
+    """
+    if not events:
+        return False
+
+    claim_text = claim.text.lower()
+
+    # Split claim into key terms (nouns/verbs, length > 2)
+    # Ignore common stopwords for matching
+    stopwords = {
+        "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
+        "have", "has", "had", "do", "does", "did", "will", "would", "could",
+        "should", "may", "might", "must", "shall", "can", "to", "of", "in",
+        "for", "on", "with", "at", "by", "from", "as", "that", "this", "it",
+    }
+
+    words = claim_text.split()
+    key_terms = [w for w in words if len(w) > 2 and w not in stopwords]
+
+    for event in events:
+        output = str(event.get("output", "")).lower()
+        command = str(event.get("command", "")).lower()
+
+        # Full claim text check
+        if claim_text in output or claim_text in command:
+            return True
+
+        # Key term subset check (at least 3 terms must match)
+        if len(key_terms) >= 3:
+            matches = sum(1 for term in key_terms if term in output or term in command)
+            if matches >= 3:
+                return True
+
+    return False

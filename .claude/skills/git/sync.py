@@ -23,9 +23,14 @@ import re
 from pathlib import Path
 from typing import Tuple, Optional, List, Dict, NamedTuple
 
+# Import shared git guard config to prevent config divergence
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "hooks"))
+from __lib.git_guard_config import DESTRUCTIVE_GIT_OPS
+# Fail fast if shared config structure changes — defensive check
+assert hasattr(DESTRUCTIVE_GIT_OPS["reset"], "danger_flags"), "git_guard_config structure changed"
+
 # Import commit message parser
 try:
-    sys.path.insert(0, str(Path(__file__).parent.parent.parent / "hooks"))
     from commit_message_parser import (
         detect_file_type, detect_scope, detect_commit_type,
         generate_subject, generate_commit_body
@@ -47,6 +52,9 @@ from sync_utils import generate_commit_message as generate_scoped_commit_message
 # ============================================================
 
 MAIN_ROOT = Path("P:/")
+if not MAIN_ROOT.exists():
+    print("ERROR: P:/ drive not accessible", file=sys.stderr)
+    sys.exit(1)
 CLAUDE_DIR = MAIN_ROOT / ".claude"
 WORKTREES_DIR = MAIN_ROOT / "worktrees"
 MAIN_REPO_PATH = MAIN_ROOT / ".git"
@@ -111,10 +119,69 @@ SELECT_REPOS = args.select
 # UTILITIES
 # ============================================================
 
+def _check_destructive_git(cmd_list: list) -> dict | None:
+    """Check if git command is destructive. Returns danger info or None."""
+    if not cmd_list or cmd_list[0] != "git" or len(cmd_list) < 2:
+        return None
+
+    subcommand = cmd_list[1].lower()
+    if subcommand not in DESTRUCTIVE_GIT_OPS:
+        return None
+
+    op = DESTRUCTIVE_GIT_OPS[subcommand]
+    # op is a DangerOp dataclass instance
+    danger_flags = op.danger_flags or ()
+    danger_subcommands = op.danger_subcommands or ()
+
+    if danger_flags:
+        has_danger_flag = any(flag in cmd_list for flag in danger_flags)
+        if not has_danger_flag:
+            return None
+    elif danger_subcommands:
+        if len(cmd_list) < 3 or cmd_list[2].lower() not in danger_subcommands:
+            return None
+    else:
+        return None
+
+    return {
+        "subcommand": subcommand,
+        "severity": op.severity,
+        "command": " ".join(cmd_list),
+    }
+
+class _BlockedResult:
+    """Result returned when a destructive git operation is blocked.
+
+    Matches subprocess.CompletedProcess interface so callers that check
+    returncode/stdout/stderr work correctly without knowing the operation
+    was blocked.
+    """
+    def __init__(self):
+        self.returncode = 1
+        self.stdout = ""
+        self.stderr = "blocked: destructive git operation"
+        self.args: list[str] = []
+
+    def check_returncode(self) -> None:
+        if self.returncode != 0:
+            raise subprocess.CalledProcessError(self.returncode, self.args)
+
+
 def run(cmd, cwd=None, silent=False):
     """Run command and return result."""
     if isinstance(cmd, str):
         cmd = cmd.split()
+
+    # Block destructive git operations from skill-internal subprocess calls
+    # This closes the gap where PreToolUse hooks can't see skill subprocess git calls
+    danger = _check_destructive_git(cmd)
+    if danger and danger["severity"] in ("CRITICAL", "HIGH"):
+        print(f"⛔ BLOCKED: Dangerous git operation via skill subprocess: {danger['command']}", file=sys.stderr)
+        print("   Use explicit git commands in Claude Code instead.", file=sys.stderr)
+        result = _BlockedResult()
+        result.args = cmd
+        return result
+
     # Prevent blue console flash on Windows
     creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
     result = subprocess.run(
@@ -303,7 +370,7 @@ def get_repo_status(repo: RepoInfo) -> Tuple[bool, int]:
     if ahead_result.returncode == 0:
         commits_ahead = int(ahead_result.stdout.strip())
         return True, commits_ahead
-    return True, 0
+    return True, -1  # Unknown — rev-list failed (e.g., remote branch deleted)
 
 # ============================================================
 # COMMIT MESSAGE GENERATION

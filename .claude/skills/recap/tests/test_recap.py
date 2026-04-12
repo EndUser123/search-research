@@ -161,6 +161,40 @@ class TestExtractContent:
 
 
 # =============================================================================
+# _filter function tests — magic number thresholds
+# =============================================================================
+
+
+class TestFilter:
+    """Tests for _filter quality thresholds defined as _MIN_EXTRACT_LEN,
+    _MIN_MULTILINE_LEN, and _MIN_USER_PROBLEM_LEN in __init__.py."""
+
+    def test_rejects_short_string(self) -> None:
+        """Strings shorter than _MIN_EXTRACT_LEN (15) are filtered out."""
+        # Access the inner _filter via _extract_semantic_content which uses it
+        entries = [{"type": "user", "content": "Short."}]
+        result = _extract_semantic_content(entries)
+        # "Short." is only 6 chars, well under 15
+        assert result["problems"] == []
+
+    def test_rejects_backtick_noise(self) -> None:
+        """Strings starting with backticks are filtered out."""
+        entries = [{"type": "assistant", "content": "```python\ncode here```"}]
+        result = _extract_semantic_content(entries)
+        # The "code here" part is under 15 chars anyway, but the pattern
+        # should filter anything starting with backtick
+        assert result["actions"] == []
+
+    def test_accepts_valid_length_string(self) -> None:
+        """Strings >= _MIN_EXTRACT_LEN (15) pass through."""
+        entries = [
+            {"type": "assistant", "content": "**What did we do?** Refactored the authentication module to use token-based auth."},
+        ]
+        result = _extract_semantic_content(entries)
+        assert len(result["actions"]) >= 1
+
+
+# =============================================================================
 # _extract_semantic_content tests — regex pattern matching
 # =============================================================================
 
@@ -173,13 +207,45 @@ class TestExtractSemanticContent:
         ]
         result = _extract_semantic_content(entries)
         assert len(result["problems"]) >= 1
+        assert any("loop runs forever" in p for p in result["problems"])
 
     def test_extracts_fix_pattern(self) -> None:
         entries = [
-            {"type": "assistant", "content": "**What was the fix?** Added base case."},
+            {"type": "assistant", "content": "**What was the fix?** Added base case to prevent infinite recursion."},
         ]
         result = _extract_semantic_content(entries)
         assert len(result["fixes"]) >= 1
+        assert any("base case" in f for f in result["fixes"])
+
+    def test_extracts_fix_root_cause_pattern(self) -> None:
+        """Root cause pattern is alternative 2 in _RE_FIX."""
+        entries = [
+            {"type": "assistant", "content": "**Root cause:** Missing boundary condition."},
+        ]
+        result = _extract_semantic_content(entries)
+        assert len(result["fixes"]) >= 1
+        assert any("boundary condition" in f for f in result["fixes"])
+
+    def test_extracts_fix_applied_pattern(self) -> None:
+        """Fix applied pattern is alternative 3 in _RE_FIX."""
+        entries = [
+            {"type": "assistant", "content": "**Fix applied:** Added null check at entry point."},
+        ]
+        result = _extract_semantic_content(entries)
+        assert len(result["fixes"]) >= 1
+        assert any("null check" in f for f in result["fixes"])
+
+    def test_extracts_action_files_changed_pattern(self) -> None:
+        """Files Changed markdown pattern is alternative 3 in _RE_ACTION."""
+        entries = [
+            {
+                "type": "assistant",
+                "content": "## Files Changed\n- src/main.py\n- src/utils.py",
+            },
+        ]
+        result = _extract_semantic_content(entries)
+        assert len(result["actions"]) >= 1
+        assert any("src/main.py" in a or "src/utils.py" in a for a in result["actions"])
 
     def test_extracts_action_pattern(self) -> None:
         entries = [
@@ -212,12 +278,12 @@ class TestExtractSemanticContent:
         entries = [
             {
                 "type": "assistant",
-                "content": "**Problem:** Bug 1.\n**Problem:** Bug 1.",
+                "content": "**Problem:** Bug in auth module.\n**Problem:** Bug in auth module.",
             },
         ]
         result = _extract_semantic_content(entries)
-        # Should deduplicate — note: `.` is a lookahead boundary, not in capture
-        assert result["problems"].count("Bug 1") == 1
+        # Should deduplicate — strings >= 15 chars pass the quality filter
+        assert result["problems"].count("Bug in auth module.") == 1
 
 
 # =============================================================================
@@ -434,7 +500,8 @@ class TestIntegration:
 
         recap = format_recap(sessions, "term_test", brief=False)
         assert "sess_abc123" in recap
-        assert "Token not validated" in recap or "Added token check" in recap
+        assert "Token not validated" in recap, "Expected problem extraction in recap"
+        assert "Added token check" in recap, "Expected fix extraction in recap"
 
     def test_pipeline_with_empty_list_content(self, transcript_dir: Path) -> None:
         """Empty list content should not appear as '[]' in goal (QUAL-002)."""

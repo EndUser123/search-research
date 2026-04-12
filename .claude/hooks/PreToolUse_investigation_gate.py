@@ -79,6 +79,8 @@ def _is_compaction_scenario(state: InvestigationState, input_data: dict) -> bool
     Returns:
         True if compaction detected and transcript has prior tool calls
     """
+    if input_data is None:
+        return False
     if state.get("files_read"):
         return False
 
@@ -117,6 +119,8 @@ def _reconstruct_files_read_from_input(input_data: dict) -> list[str]:
         because they produce URLs, not file paths. They remain in the broader
         "investigation activity" concept but don't contribute to files_read.
     """
+    if input_data is None:
+        return []
     READ_TOOLS = {
         "read_file", "View", "cat", "grep", "find",
         "search_files", "Bash", "Read", "Glob", "Grep",

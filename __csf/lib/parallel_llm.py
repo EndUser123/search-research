@@ -281,22 +281,32 @@ async def run_parallel_commands(
         names.append(name)
 
     # Run all tasks concurrently - this is where parallelism happens
+    # Use as_completed to return results as each CLI finishes (not when slowest finishes)
     if verbose:
         print(f"[PARALLEL] Running {len(tasks)} CLIs concurrently...", flush=True)
     start_time = time.time()
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-    elapsed = time.time() - start_time
 
+    # Collect results as they complete, not when all complete
+    output = {}
+    completed_count = 0
+
+    # Helper to pair name with result
+    async def fetch_and_name(name: str, coro):
+        return name, await coro
+
+    # Create named coroutines for as_completed
+    named_coros = [fetch_and_name(n, t) for n, t in zip(names, tasks)]
+
+    for coro in asyncio.as_completed(named_coros):
+        name, result = await coro
+        output[name] = result if not isinstance(result, Exception) else {"output": "", "error": str(result)}
+        completed_count += 1
+        if verbose:
+            print(f"[PARALLEL] {completed_count}/{len(tasks)} CLIs completed", flush=True)
+
+    elapsed = time.time() - start_time
     if verbose:
         print(f"[PARALLEL] All {len(tasks)} CLIs completed in {elapsed:.1f}s", flush=True)
-
-    # Build results dict, handling exceptions
-    output = {}
-    for name, result in zip(names, results):
-        if isinstance(result, Exception):
-            output[name] = {"output": "", "error": str(result)}
-        else:
-            output[name] = result
 
     return output
 

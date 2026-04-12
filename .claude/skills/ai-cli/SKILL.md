@@ -69,6 +69,7 @@ python "P:\.claude\skills\ai-cli\ai_cli.py" --help
 | `--target FILE` | Target file to investigate (filters session context by relevance) |
 | `--summary` | Brief key answers only |
 | `--aggregate` | Consensus view showing agreement/disagreement |
+| `--quality-weighted` | Quality-weighted output with consensus analysis and evidence validation |
 | `--complete` | Full raw outputs |
 | `--diff` | Show differences between CLI responses |
 | `--quality-gate` | Apply 4-Layer Filter System Layer 4 (filters findings by confidence >= 80%) |

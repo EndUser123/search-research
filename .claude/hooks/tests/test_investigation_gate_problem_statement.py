@@ -57,7 +57,7 @@ def run_hook_input(
 
         if preloaded_state:
             original_load = gate.load_state
-            gate.load_state = lambda terminal_id="": preloaded_state
+            gate.load_state = lambda terminal_id="", input_data=None: preloaded_state
             try:
                 allowed, message = gate.process_hook(tool_name, tool_input, user_message, terminal_id="")
             finally:

@@ -39,28 +39,73 @@ execution:
 
 ## Output Structure
 
-The script extracts structured data via regex. The responding LLM then synthesizes it.
+The script extracts structured data via regex and presents it in a format compatible with handoff best practices.
 
-### Script Output (regex-extracted facts)
+### Script Output (aligned with `/handoff` template)
 ```
 # Terminal Recap: {terminal_id}
 
+## Session Metadata
+- **Total Sessions**: {count}
+- **Terminal ID**: {terminal_id}
+- **Current Session**: {session_id}
+- **Project**: {project_path}
+
 ## Session History
-**Total Sessions**: {count}
 
 [Session 1] {session_id}
-- Entries: {n}
-- User messages: {n} / Assistant messages: {n}
-- Last goal: {goal}
-- Problem: {extracted problem}       # from **What was the problem?**
-- Fix: {extracted fix}               # from **What was the fix?**
-- Action: {extracted action}         # from **What did we do?**
-- Decision: {decision if found}
-- Outcome: {outcome if found}
-### Raw Context                      # see note below
-{condensed text}
+- **Entries**: {n}
+- **User messages**: {n} / Assistant messages: {n}
+- **Duration**: {duration if available}
+- **Goal**: {goal}
+
+### Original Request
+- **User Request**: "{extracted request}"
+- **Trigger**: {trigger context}
+
+### Session Objectives
+- **Objective 1**: {objective} ({status})
+- **Objective 2**: {objective} ({status})
+
+### Final Actions Taken
+- **Action A** ({priority})
+- **Action B** ({priority})
+
+### Outcomes
+- **Outcome 1**: ({status})
+- **Outcome 2**: ({status})
+
+### Active Work At Handoff
+- **Currently Working On**: {work description}
+  - Status: {status}
+  - Files Modified: {file_list}
+  - Next: {next_step}
+
+### Working Decisions (Critical for Continuity)
+- **Decision**: {decision}
+  - **Rationale**: {reason}
+  - **Impact**: {high|medium|low}
+
+### Current Tasks
+- **#{id}**: {task description} ({status}, {priority})
+
+### Known Issues
+- **ISSUE-1**: {description} ({status}, {priority})
+
+### Open Questions
+- **Question**: {question text}? ({priority}, {type})
+
+### Knowledge Contributions
+- **Insight**: {contribution}
+
+### Next Immediate Action
+1. {action_1}
+2. {action_2}
+
+### Raw Context
+{condensed text for full transcript access}
 ```
-> **⚠️ Note:** The `### Raw Context` section is condensed by `_condense_transcript()` with a 2000-character budget per session. Content beyond that limit is silently dropped — the structured fields (problem/fix/action/decisions/outcomes) are the primary evidence source. Full transcript access requires reading the raw transcript file directly.
+> **⚠️ Note:** The `### Raw Context` section is condensed by `_condense_transcript()` with a 2000-character budget per session. Content beyond that limit is silently dropped — the structured fields above are the primary evidence source. Full transcript access requires reading the raw transcript file directly.
 
 
 ### Response Synthesis (LLM task after script output)

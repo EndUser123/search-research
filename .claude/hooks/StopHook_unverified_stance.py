@@ -140,12 +140,17 @@ def load_tool_events(session_id: str, limit: int = 100) -> list[dict[str, Any]]:
     )
 
 
-def _should_block_claim(claim: Claim, verdict: Any) -> bool:
+def _should_block_claim(
+    claim: Claim,
+    verdict: Any,
+    loaded_events: list[dict] | None = None,
+) -> bool:
     """Determine if a claim should be blocked based on verification verdict.
 
     Args:
         claim: The Claim object to evaluate
         verdict: VerificationVerdict from build_verdicts
+        loaded_events: Tool events from this turn (used for content-match fallback on SILENT)
 
     Returns:
         True if claim should be blocked (ungrounded confident claim)
@@ -181,6 +186,13 @@ def _should_block_claim(claim: Claim, verdict: Any) -> bool:
 
     if verdict.status == VerificationStatus.SELF_VERIFIED:
         return False  # Grounded via inline evidence citation in claim text
+
+    # SILENT: check if claim content appeared in this turn's tool output
+    if verdict.status == VerificationStatus.SILENT and loaded_events:
+        from .verification.engine import _claim_matches_tool_output
+
+        if _claim_matches_tool_output(claim, loaded_events):
+            return False  # Content confirmed in tool output → don't block
 
     # SILENT status + confident claim = ungrounded
     return True
@@ -892,7 +904,7 @@ def run(data: dict[str, Any]) -> dict[str, Any] | None:
 
                 for claim, verdict in zip(claims, verdicts):
                     claim_verdict_pairs.append((claim, verdict))
-                    if _should_block_claim(claim, verdict):
+                    if _should_block_claim(claim, verdict, loaded_events):
                         ungrounded_claims.append(claim)
 
                 # If ungrounded claims found, collect violation (don't return early)
@@ -952,6 +964,17 @@ To disable enforcement: Set UNVERIFIED_STANCE_ENABLED=false
                             outcome="pass",
                             reason=f"Claim {verdict.status.value}: grounded in tool events or hedged",
                         )
+        except ImportError as e:
+            # ImportError is a structural bug in the verification engine's dependencies,
+            # not a response violation the LLM can fix. Log it but don't block.
+            logger.error("verification_engine_import_error", error=str(e), exc_info=True)
+            violations.append(
+                (
+                    "Phase 1 (Verification Engine)",
+                    f"Verification engine import failed (non-blocking): {type(e).__name__}: {e}",
+                    "warn",
+                )
+            )
         except Exception as e:
             # COMP-001: Fail-closed on verification errors (Constitutional: "fail fast")
             # Old behavior: pass to Phase 2 (fail-open) → violations silently ignored

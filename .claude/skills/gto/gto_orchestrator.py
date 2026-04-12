@@ -1562,7 +1562,7 @@ def run_gto_analysis(
     transcript_path: Path | str | None = None,
     enable_subagents: bool = True,
     enable_health_check: bool = True,
-    enable_correctness: bool = True,
+    enable_correctness: bool = True,  # Requires rewrite: subprocess dispatch uses wrong pattern; needs Agent tool with tools=["Read","Grep"]
     verbose: bool = False,
 ) -> OrchestratorResult:
     """

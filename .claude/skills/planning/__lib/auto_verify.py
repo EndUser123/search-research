@@ -267,7 +267,7 @@ EVIDENCE_FILE_PATTERNS = (
 )
 
 INLINE_FILE_LINE_RE = re.compile(
-    rf"(?P<path>(?:[A-Za-z]:[\\/])?[\w./\\-]+\.(?:{'|'.join(EVIDENCE_FILE_PATTERNS)}))(?:(?:#L|:)(?P<start>\d+)(?:[-:](?P<end>\d+))?)",
+    rf"(?P<path>(?:[A-Za-z]:[\/])?[\w./\-_]+\.(?:{'|'.join(EVIDENCE_FILE_PATTERNS)}))(?:(?:#L|:)(?P<start>\d+)(?:[-:](?P<end>\d+))?)?",
     re.IGNORECASE,
 )
 EXPLICIT_FILE_LINE_RE = re.compile(
@@ -559,7 +559,19 @@ def extract_section_content(plan: str, section_name: str) -> str:
     for alias in aliases_to_check:
         # Match H1-H6 headings so ### Section works alongside ## Section.
         # Note: uses r"" not rf"" to avoid {N} being interpolated as f-string tuple.
-        pattern = r"^#{1,6}\s+" + re.escape(alias) + r".*?(?=^#{1,6}\s+|\Z)"
+        #
+        # Bug fix: non-greedy .*? with (?=^#{1,6}\s+) as lookahead stops
+        # prematurely at H3 subsections (### TASK) that appear within a section,
+        # because the lookahead matches at the first # character it sees.
+        # This truncates the extracted content to just the inline task list
+        # before H3 subsections begin.
+        #
+        # OLD (truncates at H3 subsections):
+        #   pattern = r"^#{1,6}\s+" + re.escape(alias) + r".*?(?=^#{1,6}\s+|\Z)"
+        #
+        # NEW: require lookahead to match an H2 heading (##) or end-of-string.
+        # This correctly skips over H3 task subsections (### TASK) within a section.
+        pattern = r"^#{1,6}\s+" + re.escape(alias) + r".*?(?=^#{2}\s+|\Z)"
         match = re.search(pattern, plan, re.DOTALL | re.IGNORECASE | re.MULTILINE)
         if match:
             return match.group(0)
@@ -797,6 +809,11 @@ def _resolve_file_reference(raw_path: str, plan_path: str | None) -> list[Path]:
         if plan_path:
             candidates.append(Path(plan_path).resolve().parent / path)
         candidates.append(Path.cwd() / path)
+        # Also search the hooks directory for hook-related file references
+        # (e.g. PreToolUse.py, PreToolUse_investigation_gate.py).
+        hooks_dir = Path(__import__('os').environ.get("CLAUDE_HOOKS_DIR", "P:/.claude/hooks"))
+        if hooks_dir.exists():
+            candidates.append(hooks_dir / path)
     # preserve order, remove duplicates
     seen: set[str] = set()
     unique: list[Path] = []
@@ -828,20 +845,37 @@ def _paragraphs_with_layer_signals(plan: str) -> list[str]:
 
 
 def _current_state_cited_files(plan: str, plan_path: str | None = None) -> list[Path]:
-    section = extract_section_content(plan, "Current State with Evidence")
-    if not section:
-        return []
+    """Collect file paths cited across all evidence-bearing sections.
 
+    Scans Current State, Design Decisions, and Implementation Changes for both
+    explicit (File:/Path:) and inline (filename.py) file references.
+    """
+    sections_to_scan = [
+        extract_section_content(plan, "Current State with Evidence"),
+        extract_section_content(plan, "Design Decisions and Invariants"),
+        extract_section_content(plan, "Implementation Changes"),
+    ]
     paths: list[Path] = []
     seen: set[str] = set()
-    for match in EXPLICIT_FILE_LINE_RE.finditer(section):
-        for candidate in _resolve_file_reference(match.group("path"), plan_path):
-            if candidate.exists():
-                key = str(candidate.resolve())
-                if key not in seen:
-                    seen.add(key)
-                    paths.append(candidate.resolve())
-                break
+    for section in sections_to_scan:
+        if not section:
+            continue
+        for match in EXPLICIT_FILE_LINE_RE.finditer(section):
+            for candidate in _resolve_file_reference(match.group("path"), plan_path):
+                if candidate.exists():
+                    key = str(candidate.resolve())
+                    if key not in seen:
+                        seen.add(key)
+                        paths.append(candidate.resolve())
+                    break
+        for match in INLINE_FILE_LINE_RE.finditer(section):
+            for candidate in _resolve_file_reference(match.group("path"), plan_path):
+                if candidate.exists():
+                    key = str(candidate.resolve())
+                    if key not in seen:
+                        seen.add(key)
+                        paths.append(candidate.resolve())
+                    break
     return paths
 
 
@@ -1177,6 +1211,15 @@ def extract_tasks(plan: str) -> list[dict[str, Any]]:
         tasks.append(
             {"id": task_id, "title": title_text[:100], "has_acceptance_criteria": has_acceptance}
         )
+
+    # Deduplicate by task_id, keeping last occurrence (H3 subsection with
+    # acceptance criteria appears later in the section scan, so it overwrites
+    # the earlier inline task list entry which lacks acceptance criteria).
+    seen: dict[str, dict[str, Any]] = {}
+    for task in tasks:
+        seen[task["id"]] = task  # last occurrence wins
+    tasks = list(seen.values())
+
     return tasks
 
 
@@ -1497,6 +1540,13 @@ def check_ambiguous_contracts(plan: str) -> list[dict[str, Any]]:
                 matched_text = match.group(0).lower()
                 if re.search(r"\b(insert|update|delete|replace|abort|rollback)\s+or\b", matched_text):
                     continue
+                # Skip Python/JavaScript code patterns with get() or os.environ.get() fallback chains.
+                if re.search(
+                    r"\b\w+\s*\.\s*get\s*\(\s*['\"][^'\"]+['\"]\s*\)\s+or\b"
+                    r"|\bos\s*\.\s*environ\s*\.\s*get\s*\(",
+                    matched_text,
+                ):
+                    continue
                 findings.append(
                     {
                         "id": f"AMBIGUITY-{len(findings) + 1:03d}",
@@ -1541,6 +1591,9 @@ def check_state_model_completeness(plan: str) -> list[dict[str, Any]]:
     required_contracts = {
         "identity model": [
             ["provider_id", "source_id", "session_id", "terminal_id", "turn_id"],
+            ["terminal_id", "safe_terminal"],
+            ["per terminal"],
+            ["identity", "per-terminal"],
         ],
         "ordering contract": [
             ["ordering contract"],
@@ -1606,6 +1659,10 @@ def check_state_model_completeness(plan: str) -> list[dict[str, Any]]:
 def check_stateless_contradictions(plan: str) -> list[dict[str, Any]]:
     """Fail when a plan declares itself stateless but still encodes stateful semantics."""
     findings = []
+    # Stateful plans are not stateless contradictions — skip check entirely.
+    # A stateful plan with "Not applicable" in some state-model rows is not a contradiction.
+    if is_stateful_plan(plan):
+        return findings
     state_model_section = extract_section_content(plan, "state_model_contracts")
     if not state_model_section:
         return findings
@@ -2061,6 +2118,108 @@ def check_helper_reference_clarity(plan: str, plan_path: str | None = None) -> l
             }
         )
         break
+    return findings
+
+
+def check_duplicate_implementations(plan: str, plan_path: str | None = None) -> list[dict[str, Any]]:
+    """Fail when plan proposes creating components that already exist in the codebase.
+
+    Checks for duplicate class/file proposals by searching the codebase for existing
+    implementations of the same name or similar functionality.
+    """
+    findings: list[dict[str, Any]] = []
+
+    # Extract proposed new files and classes from Implementation Changes
+    implementation_section = extract_section_content(plan, "Implementation Changes")
+    if not implementation_section:
+        return findings
+
+    # Pattern to match task descriptions that propose creating classes
+    # Examples:
+    # - "Create `core/query_expander.py` with QueryExpander class"
+    # - "**TASK-XXX**: Create `path/to/file.py` with ClassName"
+    # Use double quotes for raw string to avoid quote escaping issues
+    task_class_pattern = re.compile(
+        r"(?:Create|New file|Modify).*?[`'\"]([^`'\"]+/([^`'\"]+)\.py)[`'\"]?\s+(?:with\s+?)?([A-Z]\w*)\s+class",
+        re.MULTILINE | re.IGNORECASE
+    )
+
+    # Also match direct class name mentions in task descriptions
+    class_mention_pattern = re.compile(
+        r"(?:Create|New file|Modify).*?[`'\"]([^`'\"]+\.py)[`'\"]?\s+(?:with\s+)?([A-Z]\w+)(?:\s+class|$)",
+        re.MULTILINE | re.IGNORECASE
+    )
+
+    proposed_classes = set()
+
+    # Extract class names from task descriptions
+    for match in task_class_pattern.finditer(implementation_section):
+        if match.group(3):  # The class name group
+            proposed_classes.add(match.group(3))
+    for match in class_mention_pattern.finditer(implementation_section):
+        if match.group(2):  # The class name group
+            proposed_classes.add(match.group(2))
+
+    # If still no classes found, try a broader search for capitalized words near file paths
+    if not proposed_classes:
+        # Use double quotes for raw string to properly escape quotes in character class
+        broad_pattern = re.compile(r"[`'\"]([a-z_][a-z0-9_/]*\.py)[`'\"]?\s+\b([A-Z][a-zA-Z0-9]*)\b")
+        for match in broad_pattern.finditer(implementation_section):
+            class_name = match.group(2)
+            # Filter out common words that aren't class names
+            if class_name not in ('Python', 'The', 'This', 'That', 'List', 'Dict', 'Any'):
+                proposed_classes.add(class_name)
+
+    # Common base class names to skip (too generic)
+    generic_classes = {'Config', 'Settings', 'Utils', 'Helper', 'Base', 'Test', 'Manager', 'Handler'}
+    proposed_classes = {c for c in proposed_classes if c not in generic_classes}
+
+    # Search for existing implementations of proposed classes
+    for class_name in proposed_classes:
+        # Search for existing class definitions in the codebase
+        existing_matches = []
+
+        try:
+            # Search in common project directories
+            search_paths = [
+                Path.cwd() / "packages",
+                Path.cwd() / "src",
+                Path.cwd() / "core",
+                Path.cwd(),
+            ]
+
+            for search_path in search_paths:
+                if not search_path.exists():
+                    continue
+
+                # Search for Python files containing the class
+                for py_file in search_path.rglob("*.py"):
+                    try:
+                        content = py_file.read_text(encoding="utf-8", errors="ignore")
+                        # Check for class definition (matches both `class Name:` and `class Name(Base):`)
+                        if re.search(rf'class\s+{re.escape(class_name)}\s*[\(:]', content):
+                            rel_path = py_file.relative_to(Path.cwd())
+                            existing_matches.append(str(rel_path))
+                    except (OSError, PermissionError):
+                        continue
+        except Exception:
+            # If search fails, continue silently to avoid blocking verification
+            pass
+
+        if existing_matches:
+            findings.append({
+                "id": "DUPLICATE-001",
+                "category": "implementation_scope",
+                "priority": "HIGH",
+                "title": f"Plan proposes duplicate of existing {class_name}",
+                "description": (
+                    f"Plan proposes creating {class_name} but it already exists in: "
+                    f"{', '.join(existing_matches[:3])}. "
+                    f"Consider extending existing implementation instead of creating duplicate."
+                ),
+                "evidence": existing_matches[0] if existing_matches else None,
+            })
+
     return findings
 
 
@@ -3053,6 +3212,7 @@ def _mode_checks_readiness() -> list:
         check_conditional_trigger_clarity,
         check_change_component_alignment,
         check_helper_reference_clarity,
+        check_duplicate_implementations,
         check_stateless_contradictions,
         check_ambiguous_contracts,
         check_state_model_completeness,

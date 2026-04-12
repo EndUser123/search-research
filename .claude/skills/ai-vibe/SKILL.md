@@ -203,6 +203,25 @@ vibe -p "[prompt]"
 - `-p` (prompt): Run in programmatic mode — send prompt and exit
 - `--output {text,json,streaming}`: Output format selection
 
+### Orchestrator Workflow
+
+When this skill is invoked:
+
+1. **Invoke via wrapper** — captures CLI output to a file:
+   ```bash
+   pwsh -File P:/scripts/agentic-cli.ps1 -cli "vibe" -command "-p [your prompt]" -outputPath "P:/tmp/vibe_output.txt"
+   ```
+   Replace `[your prompt]` with the task description from the user's request.
+
+2. **Read the output file** — the file contains the raw text output from Vibe.
+
+3. **Apply ACG workflow** to the extracted text:
+   - **Analyze**: What are the key insights? What claims are well-supported vs. inferred?
+   - **Challenge**: What are the weakest assumptions? What would make this argument fall apart?
+   - **Gap**: What is missing? What would make this analysis complete?
+
+4. **Deliver the final result** — present only the ACG findings, not the raw CLI output.
+
 ### Input Size Determines the Pattern
 
 **Small inputs (<500KB)** — stdin piping:

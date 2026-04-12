@@ -14,6 +14,13 @@ Protects both local git operations and GitHub CLI (gh) operations.
 import json
 import sys
 
+# Import shared git guard config
+try:
+    from __lib.git_guard_config import DESTRUCTIVE_GIT_OPS
+    SHARED_CONFIG = True
+except ImportError:
+    SHARED_CONFIG = False
+
 
 def check_bash_command(command: str) -> dict | None:
     """Check if bash command is destructive git or GitHub operation."""
@@ -39,7 +46,21 @@ def check_git_command(command: str) -> dict | None:
 
     git_subcommand = parts[1].lower()
 
-    # Destructive operations (data loss)
+    # Build DESTRUCTIVE_OPS: start with shared config, extend with hook-specific entries
+    # Shared config covers reset, clean, stash at CRITICAL/HIGH severity
+    _shared = {}
+    if SHARED_CONFIG:
+        from __lib.git_guard_config import DESTRUCTIVE_GIT_OPS as _shared_ops
+        for _sub, _op in _shared_ops.items():
+            _shared[_sub] = {
+                "danger_flags": list(_op.danger_flags) if _op.danger_flags else [],
+                "danger_subcommands": list(_op.danger_subcommands) if _op.danger_subcommands else [],
+                "description": _op.description,
+                "severity": _op.severity,
+                "category": _op.category,
+            }
+
+    # Additional destructive operations NOT in shared config (hook-specific)
     DESTRUCTIVE_OPS = {
         "pull": {
             "danger_flags": [],
@@ -47,31 +68,22 @@ def check_git_command(command: str) -> dict | None:
             "severity": "MEDIUM",
             "category": "destructive"
         },
-        "reset": {
-            "danger_flags": ["--hard"],
-            "description": "Discard all uncommitted changes in working directory",
-            "severity": "CRITICAL",
-            "category": "destructive"
-        },
-        "clean": {
-            "danger_flags": ["-f", "-fd", "-fXd", "-fxd"],
-            "description": "Delete untracked files",
-            "severity": "HIGH",
-            "category": "destructive"
-        },
-        "stash": {
-            "danger_subcommands": {"drop", "clear"},
-            "description": "Permanently delete stash entries",
-            "severity": "HIGH",
-            "category": "destructive"
-        },
         "rebase": {
             "danger_flags": [],
             "description": "Rewrite git history (potential data loss)",
             "severity": "MEDIUM",
             "category": "destructive"
-        }
+        },
+        # Override stash entries from shared config if present, else use hook-local
+        **({} if "stash" in _shared else {"stash": {
+            "danger_subcommands": {"drop", "clear"},
+            "description": "Permanently delete stash entries",
+            "severity": "HIGH",
+            "category": "destructive"
+        }}),
     }
+    # Merge shared config entries (override hook-local for shared ops)
+    DESTRUCTIVE_OPS.update(_shared)
 
     # Creation operations (git should not be used as file system tool)
     CREATIVE_OPS = {

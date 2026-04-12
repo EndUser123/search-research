@@ -637,7 +637,7 @@ def _load_hooks() -> None:
         # "skill_compliance_indicator",  # DEPRECATED 2026-03-11: Pre-run indicator redundant with step headers
         "sequential_thinking",
         "skill_enforcer",
-        # "skill_forced_eval",  # DISABLED 2026-04-03: broken import structure - skill_enforcer handles this
+        "skill_forced_eval",
         # "stdout_protocol_test",  # TASK-000: Prototype to verify hook stdout → Skill() emission protocol
         "synergy_detector",  # NEW 2026-03-22: Detect framework+mode synergies
         "context_followup_detector",  # NEW 2026-03-25: Detect follow-up queries and inject prior context

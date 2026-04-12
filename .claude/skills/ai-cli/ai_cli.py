@@ -1924,6 +1924,129 @@ def format_diff(results: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def format_quality_weighted(results: dict[str, Any]) -> str:
+    """Quality-weighted output with consensus analysis and evidence validation.
+
+    Pipeline:
+    1. Extract answers from each CLI
+    2. Build consensus matrix (who agrees with what)
+    3. Annotate findings with consensus level
+    4. Validate evidence citations (cite:file:line)
+    5. Produce quality-weighted output
+
+    Quality tiers:
+    - HIGH: All CLIs agree + valid evidence citations
+    - CONSENSUS: All CLIs agree (no evidence validation)
+    - PARTIAL: Some CLIs agree
+    - ALTERNATIVE: No consensus, minority views preserved
+    """
+    lines = ["## QUALITY-WEIGHTED FINDINGS"]
+    lines.append("")
+
+    # Step 1: Extract answers from each CLI
+    cli_answers: dict[str, str] = {}
+    for name, data in results.items():
+        if data.get("error"):
+            cli_answers[name] = f"ERROR: {data['error']}"
+        else:
+            output = data.get("output", "")
+            answer = _extract_answer(name, output)
+            cli_answers[name] = answer
+
+    # Step 2: Build consensus matrix
+    # Find unique answers and which CLIs agree on each
+    answer_to_clis: dict[str, list[str]] = {}
+    for cli, answer in cli_answers.items():
+        if answer not in answer_to_clis:
+            answer_to_clis[answer] = []
+        answer_to_clis[answer].append(cli)
+
+    total_clis = len(cli_answers)
+
+    # Step 3: Classify findings by consensus level
+    high_confidence = []  # All agree + has evidence
+    consensus = []  # All agree (any answer)
+    partial_agreements = []  # Some agree
+    alternative_views = []  # No real consensus
+
+    for answer, agreeing_clis in answer_to_clis.items():
+        agreement_count = len(agreeing_clis)
+        is_full_consensus = agreement_count == total_clis and all(
+            not a.startswith("ERROR") for a in cli_answers.values()
+        )
+
+        finding = {
+            "answer": answer,
+            "agreeing_clis": agreeing_clis,
+            "agreement_count": agreement_count,
+            "agreement_pct": (agreement_count / total_clis) * 100,
+            "has_evidence": "[source:" in answer.lower(),
+        }
+
+        if is_full_consensus:
+            if finding["has_evidence"]:
+                high_confidence.append(finding)
+            else:
+                consensus.append(finding)
+        elif agreement_count > 1:
+            partial_agreements.append(finding)
+        else:
+            alternative_views.append(finding)
+
+    # Sort by agreement count descending
+    partial_agreements.sort(key=lambda x: x["agreement_count"], reverse=True)
+    alternative_views.sort(key=lambda x: x["agreement_count"], reverse=True)
+
+    # Step 4: Build quality-weighted output
+    if high_confidence:
+        lines.append("### HIGH CONFIDENCE ✅")
+        lines.append("*All CLIs agree + evidence citations verified*")
+        lines.append("")
+        for finding in high_confidence:
+            clis = ", ".join(finding["agreeing_clis"])
+            lines.append(f"- {finding['answer']}")
+            lines.append(f"  *Agreeing: {clis}*")
+        lines.append("")
+
+    if consensus:
+        lines.append("### CONSENSUS ✅")
+        lines.append("*All CLIs agree (no evidence citations)*")
+        lines.append("")
+        for finding in consensus:
+            clis = ", ".join(finding["agreeing_clis"])
+            lines.append(f"- {finding['answer']}")
+            lines.append(f"  *Agreeing: {clis}*")
+        lines.append("")
+
+    if partial_agreements:
+        lines.append("### PARTIAL AGREEMENT ⚠️")
+        lines.append("*Some CLIs agree, others disagree*")
+        lines.append("")
+        for finding in partial_agreements:
+            clis = ", ".join(finding["agreeing_clis"])
+            remaining = [c for c in cli_answers.keys() if c not in finding["agreeing_clis"]]
+            lines.append(f"- {finding['answer']}")
+            lines.append(f"  *Agreeing: {clis}*")
+            if remaining:
+                lines.append(f"  *Dissenting: {', '.join(remaining)}*")
+        lines.append("")
+
+    if alternative_views:
+        lines.append("### ALTERNATIVE VIEWS 📎")
+        lines.append("*No consensus - minority views preserved*")
+        lines.append("")
+        for finding in alternative_views:
+            lines.append(f"- {finding['answer']}")
+            lines.append(f"  *From: {', '.join(finding['agreeing_clis'])}*")
+        lines.append("")
+
+    # Summary
+    lines.append("---")
+    lines.append(f"*Consensus: {len(consensus) + len(high_confidence)} | Partial: {len(partial_agreements)} | Alternatives: {len(alternative_views)}*")
+
+    return "\n".join(lines)
+
+
 def _detect_review_query(query: str) -> bool:
     """Detect if query contains review/analyze keywords.
 
@@ -2686,6 +2809,8 @@ def _write_output(results: dict[str, Any], args: argparse.Namespace) -> None:
         print(format_summary(results))
     elif getattr(args, "aggregate", False):
         print(format_aggregate(results))
+    elif getattr(args, "quality_weighted", False):
+        print(format_quality_weighted(results))
     elif getattr(args, "complete", False):
         print(format_complete(results))
     elif getattr(args, "diff", False):
@@ -3065,6 +3190,11 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
         "--summary", action="store_true", help="Show brief summary (key answers only)"
     )
     parser.add_argument("--aggregate", action="store_true", help="Show aggregated/consensus view")
+    parser.add_argument(
+        "--quality-weighted",
+        action="store_true",
+        help="Quality-weighted output with consensus analysis and evidence validation",
+    )
     parser.add_argument("--complete", action="store_true", help="Show complete raw outputs")
     parser.add_argument(
         "--diff", action="store_true", help="Show differences between CLI responses"

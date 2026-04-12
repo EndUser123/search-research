@@ -17,7 +17,10 @@ import sys
 from pathlib import Path
 
 _HOOKS_DIR = Path(__file__).resolve().parent
-_HOOK_TIMEOUT = float(os.environ.get("PRECOMPACT_HOOK_TIMEOUT", "30.0"))
+try:
+    _HOOK_TIMEOUT = float(os.environ.get("PRECOMPACT_HOOK_TIMEOUT", "30.0"))
+except ValueError:
+    _HOOK_TIMEOUT = 30.0
 _log = logging.getLogger(__name__)
 
 # sequence (Priority-ordered)

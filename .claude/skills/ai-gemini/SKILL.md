@@ -1,7 +1,7 @@
 ---
 name: ai-gemini
 description: Gemini-powered research and engineering assistant using Analyze-Challenge-Gap (ACG) workflow and soft XoT orchestration
-version: 1.3.6
+version: 1.3.7
 category: productivity
 triggers:
   - /ai-gemini
@@ -193,7 +193,7 @@ gemini -y -o text --include-directories "P:/" -p "Read P:/README.md if it exists
 ```
 If this returns a filename or confirmed "file not found", filesystem access is working. If it returns training data or a generic response, filesystem access is not functioning — flag as `[FILESYSTEM_ACCESS_UNVERIFIED]` and do not rely on Section 9 file-reading capabilities.
 
-*These patterns were verified against gemini v0.37.0 (`gemini --help` output, 2026-04-09).*
+*[VERIFIED:v0.37.0:2026-04-09]*
 
 **Headless mode is the default** — always use `-y -o text` for unattended Bash execution:
 ```
@@ -202,6 +202,25 @@ gemini -y -o text -p "[prompt]"
 
 - `-y` (yolo): auto-approve all tool actions — prevents interactive stall when Gemini tries to read files
 - `-o text`: clean text output, no ANSI codes, safe for Bash capture
+
+### Orchestrator Workflow
+
+When this skill is invoked:
+
+1. **Invoke via wrapper** — captures CLI output to a file:
+   ```bash
+   pwsh -File P:/scripts/agentic-cli.ps1 -cli "gemini" -command "-y -o text -p [your prompt]" -outputPath "P:/tmp/gemini_output.txt"
+   ```
+   Replace `[your prompt]` with the task description from the user's request.
+
+2. **Read the output file** — the file contains the raw text output from Gemini.
+
+3. **Apply ACG workflow** to the extracted text:
+   - **Analyze**: What are the key insights? What claims are well-supported vs. inferred?
+   - **Challenge**: What are the weakest assumptions? What would make this argument fall apart?
+   - **Gap**: What is missing? What would make this analysis complete?
+
+4. **Deliver the final result** — present only the ACG findings, not the raw CLI output.
 
 ### Input Size Determines the Pattern
 

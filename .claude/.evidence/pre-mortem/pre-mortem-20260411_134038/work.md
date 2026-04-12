@@ -1,0 +1,1 @@
+skill_forced_eval re-enablement fix: corrected import path and re-enabled hook registration

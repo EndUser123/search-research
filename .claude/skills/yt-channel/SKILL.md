@@ -2,7 +2,7 @@
 name: yt-channel
 description: YouTube channel management — check for new videos and manage tracked channels
 version: 1.0.0
-enforcement: advisory
+enforcement: strict
 triggers:
   - User asks to check for new YouTube videos
   - User asks to list tracked channels
@@ -30,15 +30,36 @@ Check all tracked YouTube channels for new videos and manage your channel list.
 - `list` — List all tracked channels with metadata
 - `add <url>` — Add a new channel or playlist to track
 
+## Your Workflow
+
+1. Parse the user's command (sync/list/add)
+2. Run the appropriate `csf-source` backend command
+3. **MANDATORY — Copy and paste the output verbatim:**
+   - After the Bash command completes, copy the ENTIRE output text
+   - Paste it directly in your response (inside a code block)
+   - DO NOT summarize or abbreviate the output
+   - DO NOT say "output shown above" or "the Bash tool result"
+   - DO NOT reference the output indirectly — paste it literally
+4. Why: The Bash tool output is compressed in the UI; pasting the raw text ensures the user can see it
+
 ## Output Format
 
-Channel statistics use yt-fts compact format:
+Channel statistics use yt-fts compact format with legend:
 
 ```
-{total} total, {mt} mt, {dt} dt | +{vt} vt, +{nt} nt
+Legend:
+  total  = all videos tracked
+  valid  = videos with captions (downloadable)
+  mt     = main trackable (could have transcripts)
+  dt     = downloaded (cached transcripts)
+  vt     = available for download (has captions, not cached)
+  nt     = unavailable (no captions or failed)
+
+{total} total, {valid} valid, {mt} mt, {dt} dt | +{vt} vt, +{nt} nt
 ```
 
 - **total** — All videos in database
+- **valid** — Videos with captions (downloadable)
 - **mt** — Main trackable (videos that could have transcripts)
 - **dt** — Downloaded (cached transcripts)
 - **vt** — Available for download (has captions, not cached)

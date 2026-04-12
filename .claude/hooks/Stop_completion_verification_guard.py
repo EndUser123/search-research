@@ -40,6 +40,8 @@ ALLOWLIST (obvious claims that don't need verification):
 LIFECYCLE: Stop (blocking guard -- exits with code 2 to block)
 
 v1.0 - 2026-03-24: Initial implementation with 8 claim types
+v1.1 - 2026-04-11: FIX - Require first-person framing in all claim patterns to prevent
+                    false positives when summarizing tool output (e.g., GTO "files have changed since")
 """
 
 from __future__ import annotations
@@ -106,67 +108,62 @@ def _load_turn_events(session_id: str, terminal_id: str) -> list[dict] | None:
 
 # --- Claim type patterns ---------------------------------------------------
 
-# 1. CREATION patterns
+# 1. CREATION patterns - Require first-person or explicit action framing
 CREATION_PATTERNS = re.compile(
-    r"\b(?:created|wrote|generated|initialized|set up)\s+(?:the\s+)?(?:file|config|document)"
-    r"|\b(?:created|wrote|generated)\s+[\w\-\.]+\.(?:py|js|ts|md|json|yaml|txt|log|conf|cfg)"
-    r"|\b(?:created|made)\s+a\s+(?:new\s+)?(?:file|document|config)"
-    r"|\b(?:outputted|saved|wrote)\s+(?:to\s+)?[\w\-\.]+\.(?:py|js|ts|md|json|yaml|txt|log)",
+    r"\bI\s+(?:have\s+)?(?:created|wrote|generated|initialized|set\s+up)\s+[\w\-\.]+(?:\.?(?:py|js|ts|md|json|yaml|txt|log|conf|cfg)?)?(?:\s+(?:successfully|complete|now|done))?"
+    r"|\bI\s+(?:have\s+)?(?:created|made)\s+a\s+(?:new\s+)?[\w\-\.]+"
+    r"|\bI\s+(?:have\s+)?(?:outputted|saved|wrote)\s+(?:to\s+)?[\w\-\.]+\.?(?:py|js|ts|md|json|yaml|txt|log)?",
     re.IGNORECASE,
 )
 
-# 2. MODIFICATION patterns
+# 2. MODIFICATION patterns - Require first-person or explicit action framing
+# to distinguish user action claims from descriptive state language (e.g., GTO output)
 MODIFICATION_PATTERNS = re.compile(
-    r"\b(?:modified|updated|changed|edited|refactored|adjusted)\s+(?:the\s+)?(?:file|config)"
-    r"|\b(?:modified|updated|changed)\s+[\w\-\.]+\.(?:py|js|ts|md|json|yaml|txt|log)"
-    r"|\b(?:updated|changed)\s+(?:the\s+)?(?:content|code|implementation)"
-    r"|\b(?:fixed|corrected|improved)\s+(?:the\s+)?(?:file|code|implementation)"
-    r"|\b(?:applied|added)\s+(?:a\s+)?(?:fix|change|modification|update)",
+    r"\bI\s+(?:have\s+)?(?:modified|updated|changed|edited|refactored|adjusted)\s+[\w\-\.]+(?:\.?(?:py|js|ts|md|json|yaml|txt|log)?)?(?:\s+(?:successfully|complete|now|done))?"
+    r"|\bI\s+(?:have\s+)?(?:fixed|corrected|improved)\s+[\w\-\.]+(?:\.?(?:py|js|ts|md|json|yaml|txt|log)?)?(?:\s+(?:successfully|complete|now|done))?"
+    r"|\bI\s+(?:have\s+)?(?:applied|added)\s+(?:a\s+)?(?:fix|change|modification|update)\s+[\w\-\.]+",
     re.IGNORECASE,
 )
 
-# 3. DELETION patterns
+# 3. DELETION patterns - Require first-person or explicit action framing
 DELETION_PATTERNS = re.compile(
-    r"\b(?:deleted|removed|cleaned\s+up|gone)\s+(?:the\s+)?(?:file|config)"
-    r"|\b(?:deleted|removed)\s+[\w\-\.]+\.(?:py|js|ts|md|json|yaml|txt|log|tmp|bak|old)"
-    r"|\b(?:files?|directories?|folders?)\s+(?:are|were|have\s+been)\s+(?:deleted|removed|cleaned\s+up)",
+    r"\bI\s+(?:have\s+)?(?:deleted|removed|cleaned\s+up)\s+[\w\-\.]+(?:\.?(?:py|js|ts|md|json|yaml|txt|log|tmp|bak|old)?)?(?:\s+(?:successfully|complete|now|done))?"
+    r"|\bI\s+(?:have\s+)?(?:deleted|removed|cleaned\s+up)\s+(?:the\s+)?files?\s+(?:successfully|complete|now|done)?",
     re.IGNORECASE,
 )
 
-# 4. COPY patterns
+# 4. COPY patterns - Require first-person or explicit action framing
 COPY_PATTERNS = re.compile(
-    r"\b(?:copied|duplicated|cloned)\s+(?:the\s+)?(?:file|config)"
-    r"|\b(?:copied|duplicated)\s+[\w\-\.]+\.?(?:py|js|ts|md|json|yaml|txt|log)?\s+to\s+[\w\-\.]+"
-    r"|\b(?:created|made)\s+a\s+copy\s+(?:of\s+)?[\w\-\.]+",
+    r"\bI\s+(?:have\s+)?(?:copied|duplicated|cloned)\s+[\w\-\.]+\.?(?:py|js|ts|md|json|yaml|txt|log)?\s+to\s+[\w\-\.]+(?:\s+(?:successfully|complete|now|done))?"
+    r"|\bI\s+(?:have\s+)?(?:created|made)\s+a\s+copy\s+(?:of\s+)?[\w\-\.]+",
     re.IGNORECASE,
 )
 
-# 5. MOVE patterns
+# 5. MOVE patterns - Require first-person or explicit action framing
 MOVE_PATTERNS = re.compile(
-    r"\b(?:moved|renamed|relocated)\s+(?:the\s+)?(?:file|config)"
-    r"|\b(?:moved|renamed)\s+[\w\-\.]+\.?(?:py|js|ts|md|json|yaml|txt|log)?\s+to\s+[\w\-\.]+"
-    r"|\b(?:renamed)\s+[\w\-\.]+\s+(?:to\s+)?[\w\-\.]+",
+    r"\bI\s+(?:have\s+)?(?:moved|renamed|relocated)\s+[\w\-\.]+\.?(?:py|js|ts|md|json|yaml|txt|log)?\s+to\s+[\w\-\.]+(?:\s+(?:successfully|complete|now|done))?"
+    r"|\bI\s+(?:have\s+)?(?:renamed)\s+[\w\-\.]+\s+(?:to\s+)?[\w\-\.]+",
     re.IGNORECASE,
 )
 
-# 6. BACKUP patterns
+# 6. BACKUP patterns - Require first-person or explicit action framing
 BACKUP_PATTERNS = re.compile(
     # Requires file extension or path-like suffix (actual backup targets)
-    r"\b(?:backed\s+up|saved\s+(?:a\s+)?copy|created\s+backup)\s+(?:of\s+)?(?:the\s+)?(?:file|config|[\w\-\./]+(?:\.\w+)?)"
-    r"|\b(?:backed\s+up|saved)\s+[\w\-\.]+(?:\.\w+)"  # must have extension: saved file.txt
-    r"|\b(?:created|made)\s+(?:a\s+)?backup\s+(?:of\s+)?[\w\-\.]+(?:\.\w+)?",
+    r"\bI\s+(?:have\s+)?(?:backed\s+up|saved\s+(?:a\s+)?copy|created\s+backup)\s+(?:of\s+)?[\w\-\.]+(?:\.\w+)?\s*(?:successfully|complete|now|done)?"
+    r"|\bI\s+(?:have\s+)?(?:backed\s+up|saved)\s+[\w\-\.]+(?:\.\w+)"  # must have extension: saved file.txt
+    r"|\bI\s+(?:have\s+)?(?:created|made)\s+(?:a\s+)?backup\s+(?:of\s+)?[\w\-\.]+(?:\.\w+)?",
     re.IGNORECASE,
 )
 
-# 7. FOLDER_CREATE patterns
+# 7. FOLDER_CREATE patterns - Require first-person or explicit action framing
 FOLDER_CREATE_PATTERNS = re.compile(
-    r"\b(?:created|made)\s+[\w\-\\/]+(?:directory|folder|dir)[\w\-\\/]+"
-    r"|\b(?:created|made)\s+(?:the\s+)?[\w\-\\/]+(?:\s+(?:directory|folder|dir))"
-    r"|\b(?:created|made)\s+(?:the\s+)?(?:directory|folder|dir)\s+[\w\-\\/]+",
+    r"\bI\s+(?:have\s+)?(?:created|made)\s+[\w\-\\/]+(?:directory|folder|dir)[\w\-\\/]+\s+(?:successfully|complete|now|done)?"
+    r"|\bI\s+(?:have\s+)?(?:created|made)\s+(?:the\s+)?[\w\-\\/]+(?:\s+(?:directory|folder|dir))\s+(?:successfully|complete|now|done)?"
+    r"|\bI\s+(?:have\s+)?(?:created|made)\s+(?:the\s+)?(?:directory|folder|dir)\s+[\w\-\\/]+\s+(?:successfully|complete|now|done)?",
     re.IGNORECASE,
 )
 
-# 8. FOLDER_DELETE patterns
+# 8. FOLDER_DELETE patterns - Require first-person or explicit action framing
 # Handles three structural forms:
 #   alt1: deleted/removed/the DIRECTORY dirname  (explicit directory keyword)
 #   alt2: deleted/removed [ARG]                (bare path arg, no dir keyword)
@@ -174,11 +171,10 @@ FOLDER_CREATE_PATTERNS = re.compile(
 #   alt4: cleaned up PATH_CHAR ARG             (cleaned up .dir or /dir)
 # The (?:\s+directory|\s+folder)? clause handles bare "logs/.cache/__pycache__/dist".
 FOLDER_DELETE_PATTERNS = re.compile(
-    r"\b(?:deleted|removed)\s+(?:the\s+)?[\w\-\\\/]+(?:\s+(?:directory|folder|dir))"
-    r"|\b(?:deleted|removed)\s+(?:the\s+)?(?:directory|folder|dir)\s+[\w\-\\\/]+"
-    r"|\b(?:deleted|removed)\s+[./\\][^\s]+"
-    r"|\b(?:cleaned\s+up)\s+[./\\][^\s]+"
-    r"|\b(?:cleaned\s+up)\s+[\w./\\-]+",
+    r"\bI\s+(?:have\s+)?(?:deleted|removed)\s+(?:the\s+)?[\w\-\\\/]+(?:\s+(?:directory|folder|dir))\s+(?:successfully|complete|now|done)?"
+    r"|\bI\s+(?:have\s+)?(?:deleted|removed)\s+(?:the\s+)?(?:directory|folder|dir)\s+[\w\-\\\/]+\s+(?:successfully|complete|now|done)?"
+    r"|\bI\s+(?:have\s+)?(?:deleted|removed)\s+[./\\][^\s]+\s+(?:successfully|complete|now|done)?"
+    r"|\bI\s+(?:have\s+)?(?:cleaned\s+up)\s+[./\\][^\s]+\s+(?:successfully|complete|now|done)?",
     re.IGNORECASE,
 )
 

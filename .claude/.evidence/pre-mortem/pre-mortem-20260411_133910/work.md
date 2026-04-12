@@ -1,0 +1,1 @@
+Stop hook false positive fix - Stop_completion_verification_guard.py v1.1: Updated all 8 claim type patterns (CREATION, MODIFICATION, DELETION, COPY, MOVE, BACKUP, FOLDER_CREATE, FOLDER_DELETE) to require first-person framing (e.g., "I modified", "I created") instead of over-inclusive patterns that matched descriptive tool output like "files have changed since"

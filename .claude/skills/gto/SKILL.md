@@ -7,7 +7,6 @@ category: analysis
 enforcement: strict
 triggers:
   - /gto
-  - "what should I do next"
   - "what gaps do we have"
   - "session health"
   - "analyze project state"
@@ -78,6 +77,13 @@ Before recommending what to do next, `/gto` should run a short internal next-ste
 - What would a weaker model over-recommend here as generic cleanup instead of the highest-value next step?
 - What recommendation looks helpful locally but would move the workflow away from the real outcome?
 - What would change our prioritization if we knew the answers?
+- What gap is still a finding or complaint rather than an actionable next step?
+- What recommendation is too vague to select and execute without guesswork?
+- What dependency, ordering rule, or ownership boundary is still implicit in this gap?
+- What action should be split because bundling it would combine unrelated work?
+- What severity or effort estimate am I inferring too confidently from weak evidence?
+- Have ALL identified gaps been given an explicit disposition (MAPPED, REJECTED with rationale, or DEFERRED with owner+trigger)?
+- What should we do next that I have not yet mentioned — what else needs to be done?
 
 These are internal self-check prompts. They are not default user-facing questions and should only surface to the user when `/gto` is genuinely blocked and cannot proceed safely without clarification.
 

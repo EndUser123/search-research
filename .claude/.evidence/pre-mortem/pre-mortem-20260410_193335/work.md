@@ -1,0 +1,1 @@
+P:/.claude/skills/git/sync.py — destructive git guard fix
