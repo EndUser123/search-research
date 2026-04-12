@@ -13,13 +13,13 @@ class TestGtoVerifyWrapper:
 
     def test_module_can_be_imported(self) -> None:
         """Test that gto_verify_wrapper can be imported."""
-        from hooks import gto_verify_wrapper
+        from gto.hooks import gto_verify_wrapper
 
         assert gto_verify_wrapper is not None
 
     def test_has_main_function(self) -> None:
         """Test that main function exists."""
-        from hooks import gto_verify_wrapper
+        from gto.hooks import gto_verify_wrapper
 
         assert hasattr(gto_verify_wrapper, "main")
         assert callable(gto_verify_wrapper.main)
