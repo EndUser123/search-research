@@ -302,6 +302,143 @@ class TestSessionIdDeduplication:
             pytest.skip("search-research package not available")
 
 
+class TestSummarizeSessionChange004:
+    """CHANGE-004: Prior session summary injection into last_goal.
+
+    Tests for extracting ## Last Session Summary block from first 10 entries
+    and injecting prior session data into last_goal field.
+
+    Quality gate for valid summary block (ALL must be true):
+    - Contains **When:** field with timestamp
+    - Contains **Duration:** with ~Xh Ym format, duration > 0
+    - Content from **When:** to end (after stripping trailing blank lines) > 50 chars
+    - Content does NOT start with #
+    """
+
+    def test_prior_session_shown_when_summary_block_present(self):
+        """T2: Chain fails, session summary present → prior session shown in recap.
+
+        Scenario: First 10 entries contain a valid ## Last Session Summary block.
+        Expected: result["last_goal"] starts with "[Prior session:" and includes
+        the timestamp and duration from the summary block.
+        """
+        import sys
+        from pathlib import Path
+
+        skill_path = Path("P:/.claude/skills/recap")
+        if str(skill_path) not in sys.path:
+            sys.path.insert(0, str(skill_path))
+
+        from recap import _summarize_session
+
+        # Create entries with valid ## Last Session Summary block in first 10 entries
+        summary_block = """## Last Session Summary
+**When:** 2026-04-10T19:29:07+00:00
+**Duration:** ~1h 30m
+
+Session goal was to implement the search-research integration for the recap skill.
+We successfully wired up the session chain walking and handoff chain traversal."""
+
+        # Build entries list - first entry has the summary block
+        entries = [
+            {
+                "type": "assistant",
+                "sessionId": "prior-session",
+                "created": "2026-04-10T19:29:07+00:00",
+                "content": summary_block,
+            },
+            {
+                "type": "user",
+                "sessionId": "prior-session",
+                "created": "2026-04-10T19:30:00+00:00",
+                "content": "Continue working on the integration",
+            },
+        ]
+        # Pad to 10 entries (CHANGE-004 checks first 10 entries)
+        for i in range(3, 10):
+            entries.append({
+                "type": "user" if i % 2 == 0 else "assistant",
+                "sessionId": "prior-session",
+                "created": f"2026-04-10T19:{29 + i}:00+00:00",
+                "content": f"Entry {i} content for padding",
+            })
+
+        result = _summarize_session(entries, "current-session")
+
+        # Assert: last_goal should start with "[Prior session:" containing prior session info
+        assert "last_goal" in result, "result should have last_goal field"
+        assert result["last_goal"].startswith("[Prior session:"), \
+            f"last_goal should start with '[Prior session:', got: {result['last_goal'][:100]}"
+        assert "2026-04-10T19:29:07+00:00" in result["last_goal"], \
+            "last_goal should contain the When timestamp from summary"
+        assert "~1h 30m" in result["last_goal"] or "1h 30m" in result["last_goal"], \
+            "last_goal should contain the duration from summary"
+
+    def test_both_summary_and_current_work(self):
+        """T6: Both summary block AND current-session work present.
+
+        Scenario: First 3 entries have valid summary block, remaining entries have actual user goals.
+        Expected: Summary takes precedence for last_goal field (first valid summary wins).
+        """
+        import sys
+        from pathlib import Path
+
+        skill_path = Path("P:/.claude/skills/recap")
+        if str(skill_path) not in sys.path:
+            sys.path.insert(0, str(skill_path))
+
+        from recap import _summarize_session
+
+        # Valid prior session summary block
+        summary_block = """## Last Session Summary
+**When:** 2026-04-10T15:00:00+00:00
+**Duration:** ~2h 15m
+
+Previous session focused on implementing the PreCompact hook handoff mechanism."""
+
+        # Create entries where first 3 have valid summary, remaining have actual user goals
+        entries = [
+            {
+                "type": "assistant",
+                "sessionId": "prior-session",
+                "created": "2026-04-10T15:00:00+00:00",
+                "content": summary_block,
+            },
+            {
+                "type": "user",
+                "sessionId": "prior-session",
+                "created": "2026-04-10T15:01:00+00:00",
+                "content": "Another prior session entry",
+            },
+            {
+                "type": "assistant",
+                "sessionId": "prior-session",
+                "created": "2026-04-10T15:02:00+00:00",
+                "content": "More prior content",
+            },
+            # Current session entries - these should be secondary to the summary block
+            {
+                "type": "user",
+                "sessionId": "current-session",
+                "created": "2026-04-11T10:00:00+00:00",
+                "content": "Work on the search integration for the recap skill",
+            },
+            {
+                "type": "assistant",
+                "sessionId": "current-session",
+                "created": "2026-04-11T10:01:00+00:00",
+                "content": "I'll help you with the search integration.",
+            },
+        ]
+
+        result = _summarize_session(entries, "current-session")
+
+        # Assert: last_goal should start with "[Prior session:" (summary takes precedence)
+        assert "last_goal" in result, "result should have last_goal field"
+        assert result["last_goal"].startswith("[Prior session:"), \
+            f"last_goal should start with '[Prior session:', got: {result['last_goal'][:100]}"
+
+
 class TestErrorMessages:
     """Pre-mortem Domain 3c: Verify error messages are user-friendly."""
 

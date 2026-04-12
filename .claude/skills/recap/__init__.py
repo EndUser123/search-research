@@ -183,7 +183,7 @@ def load_sessions_index(index_path: Path) -> list[dict[str, Any]]:
         with open(index_path, encoding="utf-8") as f:
             data = json.load(f)
     except (json.JSONDecodeError, OSError) as exc:
-        logger.warning("Failed to load sessions index %s: %s", index_path, exc)
+        logger.error("Failed to load sessions index %s: %s", index_path, exc)
         return []
 
     # Handle both schemas: dict-keyed (actual) and array-based (legacy)
@@ -228,7 +228,10 @@ def load_sessions_index(index_path: Path) -> list[dict[str, Any]]:
     return raw_entries
 
 
+# Constants for session chain building
 _MAX_RECENT_SESSIONS = 30  # Parse only the N most recent sessions
+# Windows short-path prefix normalization (e.g., cts\ -> C:\Users\brsth\)
+_WINDOWS_SHORT_PATH_PREFIX = "cts\\"
 
 
 def build_session_chain(cwd: Path | None = None) -> list[dict[str, Any]]:
@@ -266,7 +269,7 @@ def build_session_chain(cwd: Path | None = None) -> list[dict[str, Any]]:
             continue
         tp = Path(transcript_path_str)
         # Normalize Windows short-path prefix (e.g., cts\ -> C:\Users\...)
-        if str(tp).startswith("cts" + "\\"):
+        if str(tp).startswith(_WINDOWS_SHORT_PATH_PREFIX):
             tp = Path(str(tp).replace("cts\\", str(Path.home()).replace("\\", "/") + "/"))
         if tp.exists() and _is_transcript_file(tp):
             recent_with_transcript.append(entry)
@@ -508,7 +511,7 @@ def load_transcript_entries(transcript_path: str | None) -> list[dict[str, Any]]
                     entries.append(entry)
         return entries
     except (json.JSONDecodeError, OSError) as exc:
-        logger.warning("Failed to load transcript %s: %s", path, exc)
+        logger.error("Failed to load transcript %s: %s", path, exc)
         return []
 
 
@@ -791,7 +794,6 @@ def _calculate_session_duration(entries: list[dict[str, Any]]) -> str | None:
                         timestamps.append(float(ts_val))
                     elif isinstance(ts_val, str):
                         # Parse ISO format
-                        from datetime import datetime
                         dt = datetime.fromisoformat(ts_val.replace("Z", "+00:00"))
                         timestamps.append(dt.timestamp())
                 except (ValueError, TypeError):
@@ -917,29 +919,60 @@ def _summarize_session(entries: list[dict[str, Any]], session_id: str | None) ->
     user_entries = [e for e in entries if e.get("type") == "user"]
     assistant_entries = [e for e in entries if e.get("type") == "assistant"]
 
+    # CHANGE-004: Parse ## Last Session Summary block from first 10 entries
+    last_goal_from_summary = None
+    if len(entries) >= 3:
+        raw_text = ""
+        for e in entries[:10]:
+            raw_text += e.get("text", "") or e.get("content", "") + "\n"
+
+        summary_regex = re.compile(
+            r"##\s*Last\s*Session\s*Summary\s*\n(?:.*?\n)*?(?=\n##|\Z)",
+            re.DOTALL
+        )
+        match = summary_regex.search(raw_text)
+        if match:
+            summary_block = match.group(0)
+            when_m = re.search(r"\*\*When:\*\*\s*(.+)", summary_block)
+            dur_m = re.search(r"\*\*Duration:\*\*\s*~?(\d+)h\s*(\d+)m", summary_block)
+            if when_m and dur_m:
+                h = int(dur_m.group(1) or 0)
+                m = int(dur_m.group(2) or 0)
+                # Use **When:** as anchor for content body
+                body_start = summary_block.find("**When:**")
+                body = summary_block[body_start:] if body_start >= 0 else summary_block
+                # Strip trailing blank lines before measuring content length
+                body_stripped = re.sub(r'\n\s*\n\s*$', '', body.strip())
+                if (h * 60 + m) > 0 and len(body_stripped) > 50 and not body_stripped.startswith("#"):
+                    last_goal_from_summary = f"[Prior session: {when_m.group(1).strip()}, ~{h}h {m}m] {body_stripped[:200]}"
+
     # Calculate session stats
     duration = _calculate_session_duration(entries)
     token_usage = _calculate_token_usage(entries)
 
     # last_goal: find the last user entry that contains meaningful user intent
     # Skip entries whose content is ONLY tool_result blocks (transcript stores tool output as type=="user")
-    last_goal = ""
-    for entry in reversed(user_entries):
-        content = entry.get("content")
-        if content is None:
-            message = entry.get("message", {})
-            content = message.get("content")
-        # Skip entries that are entirely tool_result blocks (no user intent)
-        if isinstance(content, list):
-            blocks = [b for b in content if isinstance(b, dict)]
-            if blocks and all(b.get("type") == "tool_result" for b in blocks):
-                continue  # Entire entry is tool result output — not a goal
-            # Mixed content: extract from the first text block
-            last_goal = _extract_content(entry)
-            break
-        elif isinstance(content, str) and content.strip():
-            last_goal = content.strip()
-            break
+    # CHANGE-004: Prior session summary takes precedence over reverse-chronological entry scan
+    if last_goal_from_summary:
+        last_goal = last_goal_from_summary
+    else:
+        last_goal = ""
+        for entry in reversed(user_entries):
+            content = entry.get("content")
+            if content is None:
+                message = entry.get("message", {})
+                content = message.get("content")
+            # Skip entries that are entirely tool_result blocks (no user intent)
+            if isinstance(content, list):
+                blocks = [b for b in content if isinstance(b, dict)]
+                if blocks and all(b.get("type") == "tool_result" for b in blocks):
+                    continue  # Entire entry is tool result output — not a goal
+                # Mixed content: extract from the first text block
+                last_goal = _extract_content(entry)
+                break
+            elif isinstance(content, str) and content.strip():
+                last_goal = content.strip()
+                break
 
     # Truncate goals for display
     def truncate(s: str, max_len: int = 100) -> str:
@@ -1478,24 +1511,21 @@ def _load_from_chain_result(
         seen_session_ids.add(session_key)
 
         # R-004: Validate transcript exists before loading (referential integrity)
-        if transcript_path and transcript_path.exists():
+        # R-005: TOCTOU fix - open file directly to avoid race between exists() and load
+        if transcript_path:
             try:
-                # R-005: Wrap in try/except for TOCTOU
                 entries = load_transcript_entries(str(transcript_path))
                 session_summaries = extract_sessions_from_transcript(entries)
                 sessions.extend(session_summaries)
             except FileNotFoundError:
-                logger.warning("Transcript deleted after check: %s", transcript_path)
+                logger.warning(
+                    "Some session history could not be loaded. "
+                    "The transcript file at %s was not found. "
+                    "You may see fewer sessions than actually exist.",
+                    transcript_path,
+                )
             except (OSError, ValueError) as e:
                 logger.warning("Failed to load transcript %s: %s", transcript_path, e)
-        elif transcript_path:
-            # Pre-mortem fix 2b/3c: User-friendly warning for incomplete history
-            logger.warning(
-                "Some session history could not be loaded. "
-                "The transcript file at %s was not found. "
-                "You may see fewer sessions than actually exist.",
-                transcript_path,
-            )
 
     return sessions
 
@@ -1519,7 +1549,71 @@ def _load_from_direct_transcript(project_root: Path) -> list[SessionSummary]:
         return []
 
     entries = load_transcript_entries(str(most_recent))
-    return extract_sessions_from_transcript(entries)
+
+    # CHANGE-003: Try parsing session summary block first (D5: Fallback Ordering)
+    # Parse first 50 entries for ## Last Session Summary
+    sample_entries = []
+    for i, line in enumerate(entries[:200] if isinstance(entries, list) else entries):
+        if i >= 50:
+            break
+        # entries are already dicts from load_transcript_entries, not JSONL strings
+        if isinstance(line, dict):
+            sample_entries.append(line)
+        else:
+            try:
+                entry_data = json.loads(line)
+                sample_entries.append(entry_data)
+            except json.JSONDecodeError:
+                continue
+
+    # Build raw_text from sample_entries
+    raw_text = ""
+    for e in sample_entries:
+        text = e.get("text", "") or e.get("content", "") if isinstance(e, dict) else str(e)
+        raw_text += text + "\n"
+
+    # Extract session summary block using regex
+    summary_regex = re.compile(
+        r"##\s*Last\s*Session\s*Summary\s*\n(?:.*?\n)*?(?=\n##|\Z)",
+        re.DOTALL
+    )
+    summary_match = summary_regex.search(raw_text)
+
+    fallback_sessions: list[SessionSummary] = []
+    if summary_match:
+        summary_text = summary_match.group(0)
+        when_match = re.search(r"\*\*When:\*\*\s*(.+)", summary_text)
+        dur_match = re.search(r"\*\*Duration:\*\*\s*~?(\d+)h\s*(\d+)m", summary_text)
+        content_start = summary_text.find("**When:**")
+        content_body = summary_text[content_start:] if content_start >= 0 else summary_text
+        # Strip trailing blank lines before measuring content length (LOGIC-002)
+        content_body_stripped = re.sub(r'\n\s*\n\s*$', '', content_body.strip())
+        content_len = len(content_body_stripped)
+
+        if when_match and dur_match and content_len > 50:
+            hours = int(dur_match.group(1)) if dur_match.group(1) else 0
+            mins = int(dur_match.group(2)) if dur_match.group(2) else 0
+            duration_mins = hours * 60 + mins
+            if duration_mins > 0 and not content_body_stripped.startswith("#"):
+                # Valid summary — extract prior session data
+                prior_when = when_match.group(1).strip()
+                prior_goal = content_body_stripped[:200]
+                session_summary: SessionSummary = {
+                    "session_id": f"prior@{prior_when}",
+                    "goal": f"[Prior session: {prior_when}, ~{hours}h {mins}m] {prior_goal}",
+                    "current_task": "",
+                    "active_files": [],
+                    "created_at": prior_when,
+                    "transcript_path": str(most_recent),
+                }
+                fallback_sessions.insert(0, session_summary)
+
+    # Extract sessions from transcript entries
+    sessions = extract_sessions_from_transcript(entries)
+    # If we found a valid session summary, prepend it to the sessions list (D4: Dual-Content Precedence)
+    if fallback_sessions:
+        sessions = fallback_sessions + sessions
+    return sessions
 
 
 def _is_subagent_transcript(path: Path) -> bool:
