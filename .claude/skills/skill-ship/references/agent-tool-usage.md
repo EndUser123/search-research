@@ -67,6 +67,17 @@ python scripts/list_agents.py --json  # with descriptions
 
 Sources: `~/.claude/skills/skill-ship/references/agent-tool-usage.md` (this file), `P:/.claude/agents/_README.md`
 
+## Agent/Python Architectural Boundary
+
+**SKILL.md dispatches agents via `Agent()` tool. Python handles deterministic workflows only.**
+
+- **`Agent()` calls belong in SKILL.md** (runs in Claude Code context, can dispatch subagents)
+- **Python code must NOT call `Agent()` or `Task()`** — these tools run in Claude Code's context. Python runs outside that context and cannot dispatch agents.
+- **Deterministic workflows** (detectors, parsing, file I/O, state management) → Python modules
+- **AI agent dispatch** (parallel subagent analysis, gap detection) → SKILL.md `Agent()` calls
+
+This boundary is enforced by Process Enforcement Lens 2 in `/skill-audit`. Architectural violations (finding `Agent()` in Python code) should be flagged as CRITICAL.
+
 ## Agent Tool in Skill Frontmatter
 
 Some skills declare `parallel_agents: true` in frontmatter to indicate they dispatch multiple agents simultaneously. This is advisory metadata — the actual mechanism is the `run_in_background` parameter.

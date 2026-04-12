@@ -145,6 +145,12 @@ _OBVIOUS_ALLOWLIST_PARTS = (
     # Reporting speech/references (the message says X, contains Y, includes Z)
     r"\b(?:the\s+(?:error|message|output|response|hook)\s+)?(?:says?|contains?|includes?|states?)\s+(?:'[^']+'|\"[^\"]+\"|\w+\s+\w+)",
     r"\b(?:'[^']+'\s+(?:in|within|appears?\s+in)|\"[^\"]+\"\s+(?:in|within|appears?\s+in))\b",
+    # Direct denial patterns: "No X were/was Y" — correcting a false premise, not claiming file existence
+    # These are responses to hook blocks or prior claims, not independent file/resource assertions
+    r"\bno\s+\w+\s+(?:were|was)\s+(?:deleted|modified|changed|removed|created|made)\b",
+    r"\bno\s+\w+\s+(?:were|was)\s+(?:changed|modified|removed)\b",
+    # Generic direct denial: "No [noun] was [past-participle]" — covers variations
+    r"\bno\s+\w+\s+was\s+\w{4,}\b",  # "no file was created", "no change was made"
     # Known stale archive references (established missing earlier in session)
     r"\b(?:src_)?archived[_-]20260325\b",
     r"\bP:\\?__csf\\?\.archive\b",

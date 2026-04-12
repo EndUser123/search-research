@@ -202,19 +202,23 @@ def run_gto_analysis(
             return {k: _to_serializable(v) for k, v in obj.items()}
         return obj
 
-    sm.log_skill_run(
-        {
-            "type": "skill_run",
-            "skill": "gto",
-            "timestamp": datetime.now().isoformat(),
-            "status": "complete",
-            "gaps_detected": results.total_gap_count,
-            "metadata": {
-                "gaps_by_category": _to_serializable(dict(gaps_by_category)),
-            },
-        }
-    )
-    print(f"  - Logged skill run to: {sm.skill_usage_log_path}")
+    try:
+        sm.log_skill_run(
+            {
+                "type": "skill_run",
+                "skill": "gto",
+                "timestamp": datetime.now().isoformat(),
+                "status": "complete",
+                "gaps_detected": results.total_gap_count,
+                "metadata": {
+                    "gaps_by_category": _to_serializable(dict(gaps_by_category)),
+                },
+            }
+        )
+        print(f"  - Logged skill run to: {sm.skill_usage_log_path}")
+    except OSError as e:
+        print(f"  - WARNING: Could not acquire skill-usage lock: {e}")
+        print(f"    (Skill usage log is non-critical — continuing without logging)")
 
     print("\n" + "=" * 80)
     print("Analysis complete!")

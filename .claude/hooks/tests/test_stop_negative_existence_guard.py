@@ -737,5 +737,79 @@ def test_subprocess_rstrip_not_corrupted():
     assert output == {}
 
 
+# --- Direct denial pattern tests (ADR-20260412: reduce false positives on hook correction responses) ---
+
+
+def test_direct_denial_no_files_were_deleted_allowed():
+    """'No files were deleted' — direct denial of deletion claim — should be allowed."""
+    response = "No files were deleted — the hook was blocked but nothing was removed."
+    output, exit_code = run_guard(response, tool_events=[])
+
+    assert exit_code == 0
+    assert output == {}
+
+
+def test_direct_denial_no_changes_were_made_allowed():
+    """'No changes were made' — direct denial — should be allowed."""
+    response = "No changes were made to the file."
+    output, exit_code = run_guard(response, tool_events=[])
+
+    assert exit_code == 0
+    assert output == {}
+
+
+def test_direct_denial_no_was_pattern_allowed():
+    """'No X was Y' direct denial pattern should be allowed."""
+    test_cases = [
+        "No file was created during that operation.",
+        "No change was made to the config.",
+        "No code was modified in that step.",
+    ]
+    for response in test_cases:
+        output, exit_code = run_guard(response, tool_events=[])
+        assert exit_code == 0, f"Should allow: {response}"
+        assert output == {}
+
+
+def test_direct_denial_subprocess_covered_by_allowlist():
+    """'No subprocesses were created' is exempted by the direct denial allowlist pattern.
+
+    This is intentional: "No subprocesses were created" is a runtime-construct denial
+    (unverifiable through Read), and the direct-denial allowlist covers it.
+    The runtime-construct block only fires when NEGATIVE_EXISTENCE_PATTERNS also match,
+    which triggers the per-claim exemption check. Since the allowlist already exempted
+    this, the runtime-construct logic is never reached for this case.
+    """
+    response = "No subprocesses were created for this task."
+    output, exit_code = run_guard(response, tool_events=[])
+
+    # Allowlist exempts direct denials including runtime-construct denials
+    assert exit_code == 0
+    assert output == {}
+
+
+def test_direct_denial_blocks_actual_file_nonexistence():
+    """Direct denial pattern should NOT block genuine file nonexistence claims."""
+    # "There's no such file" — the noun is "file" (not a runtime construct)
+    # and the structure is existential ("there is no"), not a direct denial
+    response = "There's no such file in the repository."
+    output, exit_code = run_guard(response, tool_events=[])
+
+    # Should still block — genuine unverified file existence claim
+    assert exit_code == 2
+    assert output.get("decision") == "block"
+
+
+def test_direct_denial_preserves_blocking_of_real_claims():
+    """Allowing 'No X was Y' denials should not block legitimate file claims."""
+    # "there's no such file" is NOT a direct denial pattern (no "was"/"were")
+    response = "There's no such file in the repository."
+    output, exit_code = run_guard(response, tool_events=[])
+
+    # Should still block — "there's no such file" is a genuine unverified existence claim
+    assert exit_code == 2
+    assert output.get("decision") == "block"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

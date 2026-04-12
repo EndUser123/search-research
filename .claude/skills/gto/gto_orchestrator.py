@@ -165,7 +165,7 @@ class OrchestratorConfig:
     project_root: Path | None = None
     terminal_id: str = field(default_factory=_get_default_terminal_id)
     transcript_path: Path | None = None
-    enable_subagents: bool = False  # Disabled: gap types route to dedicated skills (/qa, /docs, /critique, /deps)
+    enable_subagents: bool = True  # Enabled: gap types route to dedicated skills (/qa, /docs, /critique, /deps)
     enable_health_check: bool = True
     state_dir: Path | None = None
     verbose: bool = False
@@ -389,13 +389,20 @@ class GTOOrchestrator:
             )
             self.state_manager.save(current_state)
 
-            # Step 6: Append to history
-            self.state_manager.append_history(
-                {
-                    "run_summary": "GTO analysis completed",
-                    "gap_count": results.total_gap_count,
-                }
-            )
+            # Step 6: Append to history (fail closed — raise if lock unavailable)
+            try:
+                self.state_manager.append_history(
+                    {
+                        "run_summary": "GTO analysis completed",
+                        "gap_count": results.total_gap_count,
+                    }
+                )
+            except OSError as e:
+                # History append is non-critical — fail the GTO run if lock is unavailable
+                # instead of silently corrupting history with concurrent writes
+                raise RuntimeError(
+                    f"Failed to acquire history lock (lock busy or unavailable): {e}"
+                ) from e
 
             return OrchestratorResult(
                 success=True,
@@ -1157,6 +1164,12 @@ if __name__ == "__main__":
         help="Enable AI subagents (GapFinderSubagent)",
     )
     parser.add_argument(
+        "--no-subagents",
+        action="store_true",
+        default=False,
+        help="Disable AI subagents (used by SKILL.md orchestration layer)",
+    )
+    parser.add_argument(
         "--no-health",
         action="store_true",
         help="Disable health check",
@@ -1188,11 +1201,14 @@ if __name__ == "__main__":
     project_root = Path.cwd()
 
     # Run analysis
+    # --no-subagents wins: SKILL.md passes this to disable orchestrator subagent dispatch
+    # (gap_finder is handled via Agent() in SKILL.md instead)
+    enable_subagents = args.subagents and not args.no_subagents
     result = run_gto_analysis(
         project_root=project_root,
         terminal_id=terminal_id,
         transcript_path=args.transcript,
-        enable_subagents=args.subagents,
+        enable_subagents=enable_subagents,
         enable_health_check=not args.no_health,
         verbose=args.verbose,
     )

@@ -114,6 +114,15 @@ def main() -> None:
             "first_tool_validated": state.get("first_tool_validated", False),
             "checkpoint_at": time.time(),
             "terminal_id": terminal_id,
+            # Workflow stage for topic drift prevention (v1.0)
+            "workflow_stage": {
+                "active_step": state.get("active_step", ""),
+                "step_definition": state.get("step_definition", ""),
+                "done_criteria": state.get("done_criteria", []),
+                "do_not_distract": state.get("do_not_distract", []),
+                "step_index": state.get("step_index", 0),
+                "total_steps": state.get("total_steps", 0),
+            },
         }
 
         # Atomic write

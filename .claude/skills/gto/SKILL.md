@@ -118,18 +118,21 @@ mkdir -p "$EVIDENCE_DIR"
 ```bash
 python P:/.claude/skills/gto/gto_orchestrator.py \
     --format json \
+    --no-subagents \
     --output "$TEMP_SUBDIR/gto-l1-$TERMINAL_ID.json" || {
     echo "ERROR: L1 analysis failed"
     exit 1
 }
 ```
 
-**Step 3: Dispatch correctness agents via Agent tool (parallel)**
+**Step 3: Dispatch gap finder and correctness agents via Agent tool (parallel)**
 
 ```bash
 # NOTE: Agent tool is invoked internally by each subagent
 # SKILL.md dispatches; Agent tool handles execution in Claude Code context
 # Output paths include terminal_id for multi-terminal isolation
+
+Agent(subagent_type="gap_finder", prompt="Analyze $PROJECT_ROOT for code gaps (TODOs, FIXMEs, XXX, HACK, type: ignore). Scan Python files using Grep for gap patterns. Write findings as JSON to $TEMP_SUBDIR/gto-gap-finder-$TERMINAL_ID.json with format: {\"gaps\": [{\"id\":\"GAP-xxxxxxxx\",\"type\":\"...\",\"message\":\"...\",\"file_path\":\"path/to/file.py\",\"line_number\":N,\"severity\":\"...\"}],\"files_scanned\":N,\"gaps_found\":N}. If no gaps found, write {\"gaps\": [],\"files_scanned\":0,\"gaps_found\":0}.") &
 
 Agent(subagent_type="gto-logic", prompt="Analyze P:/.claude/skills/gto/lib/ for pure logic errors (off-by-one, wrong operators, inverted conditionals). Write findings as JSON to $TEMP_SUBDIR/gto-correctness-logic-$TERMINAL_ID.json with format: {\"findings\": [{\"id\":\"LOGIC-001\",\"severity\":\"HIGH\",\"location\":\"file.py:123\",\"title\":\"...\",\"description\":\"...\",\"evidence\":\"...\"}]}. If no issues found, write {\"findings\": []}.") &
 
@@ -146,7 +149,8 @@ AGENT_PIDS=($!)
 TIMEOUT=300
 elapsed=0
 while [[ $elapsed -lt $TIMEOUT ]]; do
-    if [[ -f "$TEMP_SUBDIR/gto-correctness-logic-$TERMINAL_ID.json" ]] && \
+    if [[ -f "$TEMP_SUBDIR/gto-gap-finder-$TERMINAL_ID.json" ]] && \
+       [[ -f "$TEMP_SUBDIR/gto-correctness-logic-$TERMINAL_ID.json" ]] && \
        [[ -f "$TEMP_SUBDIR/gto-correctness-quality-$TERMINAL_ID.json" ]] && \
        [[ -f "$TEMP_SUBDIR/gto-correctness-code-critic-$TERMINAL_ID.json" ]]; then
         echo "All agent output files present after ${elapsed}s"
@@ -159,12 +163,25 @@ while [[ $elapsed -lt $TIMEOUT ]]; do
         done
         break
     fi
+    # Track which output files correspond to which agent index
+    AGENT_OUTPUTS=(
+        "$TEMP_SUBDIR/gto-gap-finder-$TERMINAL_ID.json"
+        "$TEMP_SUBDIR/gto-correctness-logic-$TERMINAL_ID.json"
+        "$TEMP_SUBDIR/gto-correctness-quality-$TERMINAL_ID.json"
+        "$TEMP_SUBDIR/gto-correctness-code-critic-$TERMINAL_ID.json"
+    )
     for i in "${!AGENT_PIDS[@]}"; do
         if ! kill -0 "${AGENT_PIDS[$i]}" 2>/dev/null; then
             wait "${AGENT_PIDS[$i]}" || {
-                echo "ERROR: Agent ${i} crashed with exit code $?"
+                echo "ERROR: Agent index ${i} exited with non-zero code"
                 exit 1
             }
+            # Agent exited cleanly — verify output file was produced
+            output_file="${AGENT_OUTPUTS[$i]}"
+            if [[ ! -f "$output_file" ]]; then
+                echo "ERROR: Agent ${i} exited cleanly but produced no output at $output_file"
+                exit 1
+            fi
         fi
     done
     sleep 1
@@ -185,6 +202,7 @@ fi
 ```bash
 python P:/.claude/skills/gto/lib/merge_agent_results.py \
     --l1 "$TEMP_SUBDIR/gto-l1-$TERMINAL_ID.json" \
+    --gap-finder "$TEMP_SUBDIR/gto-gap-finder-$TERMINAL_ID.json" \
     --agents "$TEMP_SUBDIR/gto-correctness-*-${TERMINAL_ID}.json" \
     --output "$EVIDENCE_DIR/gto-artifact-$SESSION_ID-$TIMESTAMP.json" \
     --validate-schema || {

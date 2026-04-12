@@ -33,8 +33,9 @@
 - "calls `lib.foo()`" → verify the function exists in the imported module
 - "appends to state file" → verify the write logic exists
 - routing table entries → verify each branch has code
-- **Interactive-completion anti-pattern**: Completion checks that say "Re-run /X" or "Which would you prefer?" or "Options:" followed by choices — these are proxies for "I didn't implement the wait loop, so I'm asking the user to do my job". Flag as: 
+- **Interactive-completion anti-pattern**: Completion checks that say "Re-run /X" or "Which would you prefer?" or "Options:" followed by choices — these are proxies for "I didn't implement the wait loop, so I'm asking the user to do my job". Flag as:
 - **Structured progress output**: Multi-step workflows (especially parallel-agent phases) should emit machine-readable events to stderr (e.g., JSON ). Absence of structured output in long-running phases is a PROCESS_ENFORCEMENT gap.
+- **Agent/Python boundary**: SKILL.md dispatches agents via `Agent()` tool. Python (`gto_orchestrator.py` etc.) handles deterministic workflows only. Python code must NOT call `Agent()` tool directly — agents run in Claude Code's context, not Python's. This is a CRITICAL architectural violation if found in Python code.
 
 **Evidence format**:
 ```json

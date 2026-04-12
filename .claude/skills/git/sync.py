@@ -59,6 +59,10 @@ CLAUDE_DIR = MAIN_ROOT / ".claude"
 WORKTREES_DIR = MAIN_ROOT / "worktrees"
 MAIN_REPO_PATH = MAIN_ROOT / ".git"
 
+# User home .claude directory (separate git repo, not under P:)
+HOME_CLAUDE_DIR = Path.home() / ".claude"
+HOME_REPO_GIT_DIR = HOME_CLAUDE_DIR / ".git"
+
 # Repo classification
 class RepoType:
     MAIN = "main"           # P:/.git - auto-push
@@ -67,6 +71,7 @@ class RepoType:
     INTERNAL = "internal"   # .claude/hooks/.git, .claude/skills/*/.git
     NESTED = "nested"       # repos within other repos
     WORKTREE = "worktree"   # worktrees/*/.git
+    HOME = "home"           # ~/.claude/ - user home git repo
 
 # Conflict resolution strategies
 CONFLICT_STRATEGIES = {
@@ -321,6 +326,16 @@ def find_all_git_repos() -> List[RepoInfo]:
             name=name
         ))
 
+    # Also check user home .claude repo (separate git repo, not under P:/)
+    if HOME_REPO_GIT_DIR.exists():
+        repos.append(RepoInfo(
+            path=HOME_CLAUDE_DIR,
+            git_dir=HOME_REPO_GIT_DIR,
+            repo_type=RepoType.HOME,
+            relative_path="~/.claude",
+            name="~/.claude"
+        ))
+
     # Filter out nested repos (repos inside other repos' working trees)
     # This catches unintended nested .git folders like .claude/hooks/.git
     non_nested_repos = []
@@ -342,18 +357,26 @@ def filter_repos(repos: List[RepoInfo], filter_type: str) -> List[RepoInfo]:
         return [r for r in repos if r.repo_type == RepoType.INTERNAL]
     elif filter_type == "mcp":
         return [r for r in repos if r.repo_type == RepoType.MCP]
+    elif filter_type == "home":
+        return [r for r in repos if r.repo_type == RepoType.HOME]
     elif filter_type == "non-main":
         return [r for r in repos if r.repo_type != RepoType.MAIN]
     return repos
 
-def get_repo_status(repo: RepoInfo) -> Tuple[bool, int]:
-    """Check if repo has unpushed commits. Returns (has_remote, commits_ahead)"""
+def get_repo_status(repo: RepoInfo) -> Tuple[bool, int, int]:
+    """Check if repo has unpushed commits. Returns (has_remote, commits_ahead, commits_behind)
+
+    - commits_ahead > 0 and commits_behind == 0: simple ahead (can push)
+    - commits_ahead == 0 and commits_behind > 0: simple behind (can pull)
+    - commits_ahead > 0 and commits_behind > 0: diverged (need manual resolution)
+    - commits_ahead == 0 and commits_behind == 0: up-to-date
+    """
     # Check if repo has a remote
     remote_result = run(["git", "remote"], cwd=repo.path, silent=True)
     has_remote = remote_result.returncode == 0 and bool(remote_result.stdout.strip())
 
     if not has_remote:
-        return False, 0
+        return False, 0, 0
 
     # Get current branch
     branch_result = run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo.path, silent=True)
@@ -361,16 +384,25 @@ def get_repo_status(repo: RepoInfo) -> Tuple[bool, int]:
 
     # Check commits ahead of remote/branch
     remote_name = remote_result.stdout.strip().split("\n")[0]  # Use first remote
+
+    # Local commits not on remote (ahead)
     ahead_result = run(
         ["git", "rev-list", "--count", f"origin/{branch}..HEAD"],
         cwd=repo.path,
         silent=True
     )
 
-    if ahead_result.returncode == 0:
-        commits_ahead = int(ahead_result.stdout.strip())
-        return True, commits_ahead
-    return True, -1  # Unknown — rev-list failed (e.g., remote branch deleted)
+    # Remote commits not on local (behind)
+    behind_result = run(
+        ["git", "rev-list", "--count", f"HEAD..origin/{branch}"],
+        cwd=repo.path,
+        silent=True
+    )
+
+    commits_ahead = int(ahead_result.stdout.strip()) if ahead_result.returncode == 0 else -1
+    commits_behind = int(behind_result.stdout.strip()) if behind_result.returncode == 0 else -1
+
+    return True, commits_ahead, commits_behind
 
 # ============================================================
 # COMMIT MESSAGE GENERATION
@@ -550,10 +582,17 @@ def interactive_select_repos(repos: List[RepoInfo]) -> List[RepoInfo]:
     print(f"\nNon-main repos with unpushed commits:\n")
 
     for i, repo in enumerate(repos, 1):
-        has_remote, commits_ahead = get_repo_status(repo)
-        status = f"{commits_ahead} commit(s) ahead" if has_remote and commits_ahead > 0 else "up-to-date"
+        has_remote, commits_ahead, commits_behind = get_repo_status(repo)
         if not has_remote:
             status = color("no remote", "warning")
+        elif commits_ahead > 0 and commits_behind > 0:
+            status = color(f"diverged ({commits_ahead} ahead, {commits_behind} behind)", "error")
+        elif commits_ahead > 0:
+            status = f"{commits_ahead} commit(s) ahead"
+        elif commits_behind > 0:
+            status = color(f"behind {commits_behind}", "warning")
+        else:
+            status = "up-to-date"
         full_path = str(repo.path)
         print(f"  {i} {full_path} - {status}")
 
@@ -812,18 +851,31 @@ if VERBOSE:
         print(f"  [{repo.repo_type}] {repo.relative_path}")
 
 # ============================================================
-# PHASE 2: HEALTH CHECK
+# PHASE 2: HEALTH CHECK (always shown)
 # ============================================================
 
+header("GIT REPOS HEALTH")
+
+for repo in all_repos:
+    has_remote, commits_ahead, commits_behind = get_repo_status(repo)
+    if not has_remote:
+        status = "warning"
+        detail = "no remote"
+    elif commits_ahead > 0 and commits_behind > 0:
+        status = "error"
+        detail = f"diverged ({commits_ahead} ahead, {commits_behind} behind)"
+    elif commits_ahead > 0:
+        status = "ok"
+        detail = f"{commits_ahead} ahead"
+    elif commits_behind > 0:
+        status = "warning"
+        detail = f"behind {commits_behind}"
+    else:
+        status = "ok"
+        detail = "ok"
+    item(repo.relative_path, status, detail)
+
 if HEALTH_ONLY:
-    header("GIT REPOS HEALTH")
-
-    for repo in all_repos:
-        has_remote, commits_ahead = get_repo_status(repo)
-        status = "ok" if has_remote else "warning"
-        detail = f"{commits_ahead} ahead" if has_remote and commits_ahead > 0 else ("no remote" if not has_remote else "ok")
-        item(repo.relative_path, status, detail)
-
     sys.exit(0)
 
 # ============================================================
@@ -856,10 +908,11 @@ else:
 # ============================================================
 
 # Find non-main repos that have remotes and commits to push
+# Exclude diverged repos (ahead AND behind) since they need manual resolution
 repos_with_pushes = []
 for repo in non_main_repos:
-    has_remote, commits_ahead = get_repo_status(repo)
-    if has_remote and commits_ahead > 0:
+    has_remote, commits_ahead, commits_behind = get_repo_status(repo)
+    if has_remote and commits_ahead > 0 and commits_behind == 0:
         repos_with_pushes.append(repo)
 
 if repos_with_pushes:

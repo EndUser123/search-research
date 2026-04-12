@@ -24,7 +24,7 @@ class TestOrchestratorConfig:
         """Test OrchestratorConfig can be constructed."""
         config = OrchestratorConfig(project_root=Path("/tmp/test"))
         assert config.project_root == Path("/tmp/test")
-        assert config.enable_subagents is False
+        assert config.enable_subagents is True
         assert config.enable_health_check is True
 
     def test_default_values(self) -> None:

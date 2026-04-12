@@ -563,6 +563,48 @@ def handle_pre_tool_use(data: dict) -> dict:
         return {}
 
     # =========================================================================
+    # LAYER 0.5: Topic drift prevention (v1.0)
+    # Prevents pivoting to discovered-but-deferred issues (do_not_distract).
+    # Active when workflow_stage.active_step is set and do_not_distract has items.
+    # =========================================================================
+    workflow_stage = state.get("workflow_stage", {})
+    active_step = workflow_stage.get("active_step", "")
+    do_not_distract = workflow_stage.get("do_not_distract", [])
+
+    if active_step and do_not_distract:
+        # Check if tool is being used for something in do_not_distract list
+        # Extract what the tool is targeting from tool_input
+        target_info = ""
+        if tool_name == "Read":
+            target_info = tool_input.get("file_path", "")
+        elif tool_name == "Edit":
+            target_info = tool_input.get("file_path", "")
+        elif tool_name == "Write":
+            target_info = tool_input.get("file_path", "")
+        elif tool_name == "Bash":
+            target_info = tool_input.get("command", "")
+
+        # Check if target matches any do_not_distract item
+        target_lower = target_info.lower()
+        for blocked in do_not_distract:
+            blocked_lower = blocked.lower()
+            # Check for partial match in target or user message
+            if (
+                blocked_lower in target_lower
+                or blocked_lower in user_message.lower()
+            ):
+                return {
+                    "block": True,
+                    "reason": (
+                        f"⛔ TOPIC DRIFT PREVENTION\n\n"
+                        f"You are working on: {active_step}\n\n"
+                        f"The tool targets something you've deferred: '{blocked}'\n\n"
+                        f"Complete the current step first, then address deferred items.\n\n"
+                        f"To bypass: Add --allow-topic-switch to your message."
+                    ),
+                }
+
+    # =========================================================================
     # LAYER 1: First-tool coherence (v3.5)
     # Applies to ALL skills that declare allowed_first_tools, including
     # knowledge/consultation skills like /ask, /discover, /test.

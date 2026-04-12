@@ -229,9 +229,23 @@ def load_sessions_index(index_path: Path) -> list[dict[str, Any]]:
 
 
 # Constants for session chain building
-_MAX_RECENT_SESSIONS = 30  # Parse only the N most recent sessions
+_MAX_RECENT_SESSIONS = 30  # 30 sessions balances coverage vs parse time (~5 min for typical session)
 # Windows short-path prefix normalization (e.g., cts\ -> C:\Users\brsth\)
 _WINDOWS_SHORT_PATH_PREFIX = "cts\\"
+# Max lines to scan in a transcript file to detect if it's a real transcript
+# 200 lines catches real sessions (metadata + content) while skipping noise files
+_TRANSCRIPT_SCAN_LINES = 200
+
+# Constants for priority scoring (_calculate_priority_score)
+_PRIORITY_ENTRY_COUNT_MAX = 25  # Max points for entry count
+_PRIORITY_ENTRY_DIVISOR = 4  # Entry count divisor (entry_count/4 yields max at 100 entries)
+_PRIORITY_TOKEN_USAGE_MAX = 30  # Max points for token usage
+_PRIORITY_TOKEN_SCALE = 100000  # Token count denominator for log-scale scoring
+_PRIORITY_SEMANTIC_MULTIPLIER = 3  # Points per semantic item
+_PRIORITY_SEMANTIC_MAX = 30  # Max points for semantic richness
+_PRIORITY_DURATION_HOURS = 15  # Points for multi-hour session
+_PRIORITY_DURATION_MAX = 12  # Max points for minutes-based duration
+_PRIORITY_DURATION_DIVISOR = 4  # Duration divisor (minutes/4 for per-minute points)
 
 
 def build_session_chain(cwd: Path | None = None) -> list[dict[str, Any]]:
@@ -397,7 +411,7 @@ def _is_transcript_file(path: Path) -> bool:
     try:
         with open(path, encoding="utf-8") as f:
             for i, line in enumerate(f):
-                if i >= 200:  # Check first 200 lines (transcripts may have metadata before content)
+                if i >= _TRANSCRIPT_SCAN_LINES:
                     break
                 line = line.strip()
                 if not line:
@@ -872,18 +886,21 @@ def _calculate_priority_score(
     """
     score = 0.0
 
-    # Factor 1: Entry count (0-25 points)
+    # Factor 1: Entry count
     # More entries = more substantial interaction
-    score += min(entry_count / 4, 25)
+    score += min(entry_count / _PRIORITY_ENTRY_DIVISOR, _PRIORITY_ENTRY_COUNT_MAX)
 
-    # Factor 2: Token usage (0-30 points)
+    # Factor 2: Token usage
     # High token count = deep technical work
     total_tokens = token_usage.get("total_tokens", 0)
     if total_tokens > 0:
         # Log-scale to avoid extreme dominance
-        score += min(30 * (total_tokens / 100000), 30)
+        score += min(
+            _PRIORITY_TOKEN_USAGE_MAX * (total_tokens / _PRIORITY_TOKEN_SCALE),
+            _PRIORITY_TOKEN_USAGE_MAX,
+        )
 
-    # Factor 3: Semantic richness (0-30 points)
+    # Factor 3: Semantic richness
     # Problems, fixes, actions = real work done
     semantic_items = (
         len(semantic_content.get("problems", []))
@@ -892,16 +909,16 @@ def _calculate_priority_score(
         + len(semantic_content.get("decisions", []))
         + len(semantic_content.get("outcomes", []))
     )
-    score += min(semantic_items * 3, 30)
+    score += min(semantic_items * _PRIORITY_SEMANTIC_MULTIPLIER, _PRIORITY_SEMANTIC_MAX)
 
-    # Factor 4: Duration (0-15 points)
+    # Factor 4: Duration
     # Longer sessions = more sustained work
     if duration_str:
         if "h" in duration_str:
-            score += 15  # Multi-hour session
+            score += _PRIORITY_DURATION_HOURS
         elif "m" in duration_str:
             minutes = int(duration_str.replace("m", "").replace("h", "").strip())
-            score += min(minutes / 4, 12)  # Up to 48 minutes = 12 points
+            score += min(minutes / _PRIORITY_DURATION_DIVISOR, _PRIORITY_DURATION_MAX)
 
     return min(score, 100.0)
 
@@ -1310,7 +1327,9 @@ def format_quick_argument_section() -> str:
 
 
 # Constants for handoff-first resolution (TASK-002, R-020)
-FRESH_HANDOFF_THRESHOLD_SECONDS = 300  # 5 minutes
+# 5 minutes: handoffs newer than this are preferred over transcript parsing
+# This covers terminal restarts and short interruptions without losing context
+FRESH_HANDOFF_THRESHOLD_SECONDS = 300
 
 # Pre-mortem fix 3a: Extract shared file discovery helper
 def _get_most_recent_transcript(transcript_dir: Path) -> Path | None:
@@ -1763,6 +1782,13 @@ def _get_current_session_id(project_root: Path | None) -> str | None:
 
 def _find_transcript_dir(project_root: Path | None) -> Path | None:
     """Find the directory containing transcript files for this project.
+
+    Search order:
+    1. Project-specific ~/.claude/projects/{project_hash}/ (priority)
+    2. Legacy ~/.claude/projects/ (fallback, may contain stale cross-project files)
+
+    Args:
+        project_root: Root directory of the project to search transcripts for
 
     Returns:
         Path to transcript directory, or None if not found
