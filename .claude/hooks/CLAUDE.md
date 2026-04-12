@@ -52,6 +52,8 @@ grep -n "UNIVERSAL\|TOOL_HOOKS" P:/.claude/hooks/PreToolUse.py | grep -i "your_f
 
 **Issue**: LLMs repeatedly put fixes in `PreToolUse_skill_first_gate.py` or `PreToolUse_workflow_steps_gate.py`, neither of which are in the actual dispatch chain.
 
+**ACT-001 Audit (2026-04-12)**: Verified ZERO active Edit/Write hooks have `sys.stderr.write()` after commit 20d03ba fixed `PreToolUse_skill_pattern_gate.py`. Only 5 non-active files remain with stderr (dead code, tests, libraries).
+
 **Solution**: Added authoritative "DISPATCH CHAIN" comment block at the top of `PreToolUse.py` that documents:
 - Actual execution order (what really runs)
 - Files in the dispatch chain (UNIVERSAL hooks, TOOL_HOOKS)
