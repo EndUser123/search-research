@@ -105,6 +105,26 @@ def _marker_matches_scope(marker_data: dict, data: dict) -> bool:
     return True
 
 
+def _normalize_context_block(value: object) -> str:
+    """Convert a hook context payload into plain text."""
+    if isinstance(value, dict):
+        return json.dumps(value)
+    if isinstance(value, str):
+        return value
+    return str(value)
+
+
+def _dict_context_blocks(context: dict) -> list[str]:
+    """Extract router-visible context blocks from a hook result dict."""
+    blocks: list[str] = []
+    for key in ("systemContext", "additionalContext"):
+        if key in context:
+            block = _normalize_context_block(context[key]).strip()
+            if block:
+                blocks.append(block)
+    return blocks
+
+
 def check_user_pushback(data: dict, prompt: str) -> str | None:
     """
     User Pushback Protocol.
@@ -312,22 +332,13 @@ def main():
             if isinstance(res.context, dict) and "replacePrompt" in res.context:
                 replacement_prompt = res.context["replacePrompt"]
                 suppress_echo = bool(res.context.get("suppressEcho", False))
-                # Also include any additionalContext from the same result
-                if "additionalContext" in res.context:
-                    _ctx = res.context["additionalContext"]
-                    if isinstance(_ctx, dict):
-                        _ctx = json.dumps(_ctx)
-                    elif not isinstance(_ctx, str):
-                        _ctx = str(_ctx)
-                    injections.append(_ctx)
-            elif isinstance(res.context, dict) and "additionalContext" in res.context:
-                # Dict with additionalContext but no replacePrompt (e.g. operating_rules)
-                _ctx = res.context["additionalContext"]
-                if isinstance(_ctx, dict):
-                    _ctx = json.dumps(_ctx)
-                elif not isinstance(_ctx, str):
-                    _ctx = str(_ctx)
-                injections.append(_ctx)
+                # Also include any router-visible blocks from the same result.
+                injections.extend(_dict_context_blocks(res.context))
+            elif isinstance(res.context, dict) and (
+                "additionalContext" in res.context or "systemContext" in res.context
+            ):
+                # Dict with additional/system context but no replacePrompt.
+                injections.extend(_dict_context_blocks(res.context))
             else:
                 injections.append(res.context)
 

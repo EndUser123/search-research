@@ -1,0 +1,1 @@
+handoff goal drift fix - skill invocation args captured as canonical goal during compaction

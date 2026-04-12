@@ -1,10 +1,14 @@
 ---
 name: git
-version: "2.0.0"
+version: "2.1.0"
 status: "stable"
 category: vcs
 enforcement: advisory
-description: Git sync with multi-repo discovery, auto-push for main, interactive selection for others, worktree management, and smart conflict resolution.
+workflow_steps:
+  - discover_repos
+  - commit_changes
+  - push_to_remote
+description: Git sync with multi-repo discovery, auto-push for all repos (main + non-main), worktree management, and smart conflict resolution.
 triggers:
   - /git
 args:
@@ -17,7 +21,7 @@ args:
   - --worktree: Worktree management mode (list, add, remove, prune)
   - --no-resolve: Skip automatic conflict resolution (manual mode)
 execution:
-  directive: "If --worktree: manage worktrees. Otherwise: discover all git repos, auto-sync main repo (commit + push), use --select for non-interactive push or present interactive selection. Non-interactive mode skips selection."
+  directive: "If --worktree: manage worktrees. Otherwise: discover all git repos, auto-sync all repos (commit + push). Use --select for selective pushing."
   default_args: ""
   examples:
     - "/git"
@@ -42,7 +46,7 @@ do_not:
 ## Quick Usage
 
 ```powershell
-# Sync all repos (main auto-push, others interactive)
+# Sync all repos (auto-push all)
 /git
 
 # Health check - see all repos status
@@ -83,32 +87,15 @@ python P:/.claude/skills/git/sync.py [args]
 ### Multi-Repo Discovery
 Discovers all `.git` directories under `P:/`:
 - **Main repo** (`P:/.git`) - auto-sync, auto-push
-- **Package repos** (`packages/*/.git`) - interactive selection
-- **MCP repos** (`packages/.mcp/*/.git`) - interactive selection
-- **Internal repos** (`.claude/hooks/`, `.claude/skills/*/`) - interactive selection
+- **Package repos** (`packages/*/.git`) - auto-sync, auto-push
+- **MCP repos** (`packages/.mcp/*/.git`) - auto-sync, auto-push
+- **Internal repos** (`.claude/hooks/`, `.claude/skills/*/`) - auto-sync, auto-push
 
-### Main Repo (Auto-Push)
+### Auto-Push Behavior (All Repos)
 - Auto-commits uncommitted changes with scoped commit messages
 - Auto-pushes to remote (dynamic remote/branch detection)
 - On push failure: shows actionable error with remote URL and fix advice
-
-### Non-Main Repos (Interactive Selection)
-Presents numbered list of repos with unpushed commits:
-
-```
-Non-main repos with unpushed commits:
-
-  [1] packages\claude-log - 3 commit(s) ahead
-  [2] packages\reflect-system - 8 commit(s) ahead
-  [3] .claude\hooks - 12 commit(s) ahead
-
-Select repos to push (e.g., 1,3 or 1-3 or all): _
-```
-
-- `all` or `*` = push all
-- `1-3` = range selection
-- `1,3` = specific selection
-- Empty = skip all
+- Use `--select` flag for selective pushing (e.g., `/git --select 1,3`)
 
 ### Health Check (`--health`)
 Shows all repos with their status:
@@ -132,6 +119,6 @@ Push failures show actionable messages:
 
 ---
 
-**Version:** 2.0
-**Updated:** April 8, 2026
-**Status:** Production ready - multi-repo sync + auto-push main + interactive selection
+**Version:** 2.1
+**Updated:** April 11, 2026
+**Status:** Production ready - multi-repo sync + auto-push all repos (main + non-main)

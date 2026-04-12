@@ -668,6 +668,7 @@ TOOL_HOOKS = {
         "PreToolUse_parent_directory_creator.py",  # Creates parent dirs before Write/Edit to prevent silent failure bug
         "PreToolUse_syntax_gate.py",
         "PreToolUse_python_import_gate.py",
+        "PreToolUse_import_deletion_guard.py",  # Blocks overwriting existing imports without symbol search
         "recursive_failure_detector.py",
         "PreToolUse_git_safety.py",
         "PreToolUse_require_plan_for_features.py",
@@ -682,6 +683,7 @@ TOOL_HOOKS = {
         "PreToolUse_type_validator.py",  # Blocks .py files at workspace root (type mismatch prevention)
         "PreToolUse_syntax_gate.py",  # Validates Python syntax before Edit operations
         "PreToolUse_python_import_gate.py",
+        "PreToolUse_import_deletion_guard.py",  # Blocks import removal without prior symbol grep
         "recursive_failure_detector.py",
         "PreToolUse_git_safety.py",
         "PreToolUse_require_plan_for_features.py",
@@ -693,6 +695,7 @@ TOOL_HOOKS = {
     ],
     "MultiEdit": [
         "PreToolUse_directory_policy.py",
+        "PreToolUse_import_deletion_guard.py",  # Blocks import removal across batched edits
     ],
     "Bash": [
         "PreToolUse_git_state_capture.py",  # Capture git state BEFORE command (cross-agent isolation)
@@ -731,6 +734,7 @@ try:
     import PreToolUse_dependency_verification_gate
     import PreToolUse_destructive_git_guard
     import PreToolUse_directory_policy
+    import PreToolUse_import_deletion_guard
     import PreToolUse_path_validator
     import PreToolUse_task_self_doc_gate
     from artifact_grounder import ground_blocked_command, ground_git_safety_block
@@ -751,6 +755,7 @@ try:
         "PreToolUse_bulk_delete_gate.py": PreToolUse_bulk_delete_gate.run,
         "PreToolUse_dependency_verification_gate.py": PreToolUse_dependency_verification_gate.run,
         "PreToolUse_destructive_git_guard.py": PreToolUse_destructive_git_guard.run,
+        "PreToolUse_import_deletion_guard.py": PreToolUse_import_deletion_guard.run,
         "PreToolUse_task_self_doc_gate.py": PreToolUse_task_self_doc_gate.run,
         "check_external_path_consent": pre_tool_use_logic.check_external_path_consent,
     }

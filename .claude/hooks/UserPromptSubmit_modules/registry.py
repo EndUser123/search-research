@@ -629,6 +629,7 @@ def _load_hooks() -> None:
         "frameguard_classifier",  # NEW 2026-03-18: FrameGuard - systemic frame detection
         "intent_classifier",
         "intent_extractor",
+        "claim_risk_router",  # NEW 2026-04-11: Evidence-first routing tree for disputed claims and root-cause prompts
         "memory_size",
         "operating_rules",
         "path_syntax_corrector",

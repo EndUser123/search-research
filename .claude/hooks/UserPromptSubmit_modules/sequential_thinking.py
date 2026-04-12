@@ -35,11 +35,18 @@ from UserPromptSubmit_modules.base import HookContext, HookResult
 from UserPromptSubmit_modules.registry import register_hook
 
 # Ensure __lib is importable (hooks dir is already in sys.path via UserPromptSubmit.py)
-_HOOKS_DIR = Path(__file__).resolve().parent.parent
+def _find_hooks_dir() -> Path:
+    """Locate the hooks root that contains __lib/sequential_state.py."""
+    source_path = Path(__file__).resolve()
+    for candidate in source_path.parents:
+        if (candidate / "__lib" / "sequential_state.py").exists():
+            return candidate
+    return source_path.parent.parent
+
+
+_HOOKS_DIR = _find_hooks_dir()
 if str(_HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(_HOOKS_DIR))
-
-from __lib.sequential_state import create_state  # noqa: E402
 from UserPromptSubmit_modules.sequential_thinking_semantic_client import (  # noqa: E402
     compute_similarity,
 )
@@ -171,13 +178,10 @@ _INVESTIGATION_RE = re.compile(
 
 # Proactive Investigation Mode Instructions (Layer 2)
 _INVESTIGATION_INSTRUCTIONS = (
-    "I'll follow the proactive 'Hypotheses → Testing → Conclusion' workflow:\n\n"
-    "1. **Hypotheses** (iteration 0): Generate 3+ alternative hypotheses. For each, state:\n"
-    "   - → [Hypothesis Name]\n"
-    "   - What evidence would CONFIRM (✓) or FALSIFY (✗) it\n"
-    "2. **Testing** (iteration 1): Systematically test each hypothesis using tools.\n"
-    "3. **Conclusion** (iteration 2): Declare root cause only after ≥2 hypotheses are tested.\n\n"
-    "**STATUS KEY**: → Untested | ✓ Confirmed | ✗ Falsified"
+    "Hypotheses → Testing → Conclusion:\n"
+    "1) Generate 3+ competing hypotheses and note what would confirm or falsify each.\n"
+    "2) Test the best candidates with tools.\n"
+    "3) State root cause only after at least 2 hypotheses are tested."
 )
 
 
@@ -199,6 +203,22 @@ def _has_technical_depth(prompt: str) -> bool:
     """Check if prompt contains technical depth indicators."""
     prompt_lower = prompt.lower()
     return any(indicator in prompt_lower for indicator in _TECHNICAL_INDICATORS)
+
+
+def _create_sequential_state(
+    session_id: uuid.UUID,
+    trigger_phrase: str,
+    terminal_id: str,
+    metadata: dict[str, object],
+) -> None:
+    """Persist sequential-thinking session state when the helper package is available."""
+    try:
+        from __lib.sequential_state import create_state
+
+        create_state(session_id, trigger_phrase, terminal_id, metadata)
+    except Exception:
+        # Fail open: sequential thinking should still inject guidance even if state storage is unavailable.
+        pass
 
 
 @register_hook("sequential_thinking", priority=8.5)
@@ -266,14 +286,13 @@ def sequential_thinking_hook(context: HookContext) -> HookResult:
             metadata["hypothesis_mode"] = True
             metadata["max_iterations"] = 2
 
-        create_state(session_id, trigger_phrase, terminal_id, metadata)
+        _create_sequential_state(session_id, trigger_phrase, terminal_id, metadata)
         seq_tag = emit_tag("SEQ")
 
         if is_hypothesis_mode:
             mode_text = "multi_hypothesis"
             instructions = (
-                "I'll maintain 2-3 competing explanations throughout this investigation, "
-                "evaluating each against evidence before synthesizing the best answer."
+                "Maintain 2-3 competing explanations and evaluate each against evidence before concluding."
             )
         elif is_investigation:
             mode_text = "investigation"
@@ -281,14 +300,12 @@ def sequential_thinking_hook(context: HookContext) -> HookResult:
         else:
             mode_text = "initial"
             instructions = (
-                "I'll approach this step-by-step, then critically analyze my answer, "
-                "and finally improve my reasoning based on the critique."
+                "Work step-by-step, then check the answer against evidence before concluding."
             )
 
         tag_header = (
             f"{seq_tag}\n"
-            f"**TAG EMISSION REQUIRED**: Begin your response with the [SEQ] tag above "
-            f"to indicate active sequential reasoning mode.\n\n"
+            f"**Use [SEQ]** to mark sequential reasoning.\n\n"
         )
         injection = (
             f"{tag_header}"
@@ -299,7 +316,15 @@ def sequential_thinking_hook(context: HookContext) -> HookResult:
             f"</sequential_thinking>\n\n"
             f"{instructions}\n"
         )
-        return HookResult(context=injection, tokens=200)
+        return HookResult(
+            context={
+                "additionalContext": injection,
+                "suppress": [
+                    "operating_rules",
+                ],
+            },
+            tokens=200,
+        )
 
     # Hypothesis mode trigger (highest priority)
     if is_hypothesis_mode:

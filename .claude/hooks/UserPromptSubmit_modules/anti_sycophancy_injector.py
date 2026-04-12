@@ -29,6 +29,9 @@ HIGH_STAKES_PATTERNS = [
     r"(?:that's|it's|this is)\s+(?:way\s+)?too\s+(?:complex|complicated|much)",
     # Escalation-level pushback (user asserting AI is wrong about a fact)
     r"i\s+(?:just\s+)?told\s+you",
+    r"you\s+(?:missed|overlooked|ignored|removed|deleted|changed)",
+    r"did\s+you\s+just\s+remove",
+    r"without\s+(?:even\s+)?consider(?:ing|ation)",
     r"(?:fire|replace)\s+you",
     r"(?:better|worse)\s+model",
     r"you'?re\s+(?:wrong|not\s+listening|ignoring)",

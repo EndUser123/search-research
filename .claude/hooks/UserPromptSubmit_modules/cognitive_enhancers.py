@@ -199,19 +199,15 @@ _QUESTION_ONLY_RE = re.compile(r"^[^.!]*\?\s*$", re.MULTILINE)
 # Questions that indicate decision/intent requiring cognitive enhancement
 _QUESTION_INTENT_RE = re.compile(
     r"\b("
-    r"does\s+(?:this|the|it|that)\s+"
-    r"(?:need|require|want|have|support|work|exist)|"
-    r"should\s+(?:i|we|this|the|it)\s+"
-    r"(?:do|use|add|implement|update|change|modify)|"
-    r"could\s+(?:this|the|it)\s+"
-    r"(?:work|be|handle|support)|"
-    r"would\s+(?:it|this)\s+"
-    r"(?:be|work|make sense)|"
-    r"is\s+(?:this|the|it)\s+"
-    r"(?:correct|right|wrong|broken|sufficient)|"
+    r"does\s+.+?\?|"
+    r"should\s+.+?\?|"
+    r"could\s+.+?\?|"
+    r"would\s+.+?\?|"
+    r"is\s+(?:this|the|it|that)\s+"
+    r"(?:correct|right|wrong|broken|sufficient|ok|okay|best)\??|"
     r"are\s+(?:we|you)\s+"
-    r"(?:missing|needing|wanting)"
-    r")\b\?",
+    r"(?:missing|needing|wanting|using|doing)\??"
+    r")",
     re.IGNORECASE,
 )
 
@@ -250,125 +246,62 @@ _SINGLE_RC_ESCAPE_RE = re.compile(r"\[SINGLE ROOT CAUSE CONFIRMED\]", re.IGNOREC
 _ENHANCERS: list[Enhancer] = [
     Enhancer(
         name="assumption_surfacing",
-        injection=(
-            "**Assumption Check**: Before proceeding, explicitly state your key assumptions about: "
-            "scope (what's included/excluded), existing code behavior (why it works this way), "
-            "and user intent (what outcome they actually want). "
-            "If any assumption is uncertain, flag it."
-        ),
+        injection="**Assumption Check**: State the key assumptions about scope, current behavior, and user intent. Flag anything uncertain.",
         topics=["implementation", "implementation_diagnostic"],
     ),
     Enhancer(
         name="outcome_anchoring",
-        injection=(
-            "**Outcome Anchor**: Before starting, define what 'done' looks like. "
-            "What is the concrete acceptance criteria? What should work when this is complete? "
-            "State it in 1-2 sentences, then work backward from that goal."
-        ),
+        injection="**Outcome Anchor**: Define done in one sentence and work backward from it.",
         topics=["implementation"],
     ),
     Enhancer(
         name="inversion_prompting",
-        injection=(
-            "**Inversion Check**: What would make this change fail? "
-            "What's the most likely way this breaks existing behavior? "
-            "Name one concrete risk, then mitigate it in your approach."
-        ),
+        injection="**Inversion Check**: Name the most likely failure mode and mitigate it.",
         topics=["implementation"],
     ),
     Enhancer(
         name="chestertons_fence",
-        injection=(
-            "**Chesterton's Fence**: You are modifying existing code. "
-            "Before changing it, understand WHY it was written this way. "
-            "Read the code you're about to change and state its current purpose. "
-            "Only then proceed with modifications."
-        ),
+        injection="**Chesterton's Fence**: Read the existing code first and state its purpose before changing it.",
         topics=["implementation"],
     ),
     Enhancer(
         name="calibrated_confidence",
-        injection=(
-            "**Calibrated Confidence**: For key claims in your response, "
-            "state confidence: HIGH (verified via tool output/docs), "
-            "MEDIUM (based on code reading), or LOW (inference — flag it). "
-            "Do not present LOW-confidence claims as facts."
-        ),
+        injection="**Calibrated Confidence**: Mark claims HIGH only when verified; do not state LOW-confidence claims as facts.",
         topics=["diagnostic", "implementation_diagnostic"],
     ),
     Enhancer(
         name="named_artifact_discovery",
-        injection=(
-            "**Artifact Discovery First**: When investigating a named system, package, or component "
-            "that the user wants analyzed: do NOT assume you know where it lives from recently-loaded "
-            "context. Recency in context ≠ authoritative location. "
-            "Before your first tool call, explicitly state: "
-            "(1) the named system/artifact you are looking for, "
-            "(2) where you currently believe it lives and WHY you believe that, "
-            "(3) the specific Glob or Grep search you will run to confirm before acting. "
-            "A concept in the user's prompt is a search target, not a confirmed location."
-        ),
+        injection="**Artifact Discovery**: Do not trust recent context for location; name the target and confirm it with Glob/Grep first.",
         topics=["diagnostic"],
     ),
     Enhancer(
         name="socratic_decomposition",
-        injection=(
-            "**Decompose First**: This is a broad request. Before diving in, "
-            "break it into 2-4 concrete sub-questions that need answering. "
-            "Tackle them in order. If any sub-question changes the approach "
-            "to later ones, say so."
-        ),
+        injection="**Decompose First**: Break broad requests into 2-4 sub-questions and answer them in order.",
         topics=["decomposition"],
     ),
     Enhancer(
         name="cynefin_classification",
-        injection=(
-            "**Cynefin Framework**: Classify this problem domain before investigating. "
-            "Is this Clear (known cause-effect, apply SOPs), Complicated (investigate to find cause), "
-            "Complex (probe-sense-respond, experimentation needed), or Chaotic (act first to stabilize)? "
-            "Select the appropriate analysis approach based on domain classification."
-        ),
+        injection="**Cynefin**: Classify the domain first, then choose the right analysis style.",
         topics=["diagnostic", "meta_rca"],
     ),
     Enhancer(
         name="hanlons_razor",
-        injection=(
-            "**Hanlon's Razor**: Before attributing issues to malice or intentional sabotage, "
-            "consider simpler explanations: bugs, confusion, mistakes, time pressure, or misunderstanding. "
-            "What evidence supports malice vs. incompetence vs. systemic causes?"
-        ),
+        injection="**Hanlon's Razor**: Prefer bugs, confusion, or process issues before malice.",
         topics=["diagnostic"],
     ),
     Enhancer(
         name="devils_advocate",
-        injection=(
-            "**Devil's Advocate**: Stress-test this proposal by finding counterarguments. "
-            "What's the strongest argument against this approach? "
-            "Who would be hurt by this decision? What happens if we're wrong? "
-            "What's a simpler alternative? Address these before proceeding."
-        ),
+        injection="**Devil's Advocate**: State the strongest counterargument and a simpler alternative before proceeding.",
         topics=["implementation"],
     ),
     Enhancer(
         name="comparative_analysis",
-        injection=(
-            "**Comparative Analysis First**: Before suggesting any solution, follow 'Search → Evaluate → Implement': "
-            "1. Generate 2-3 diverse approaches first (don't commit to first idea). "
-            "2. Evaluate tradeoffs of each approach. "
-            "3. Select optimal based on: native > custom, prompting > scripting, discovery-first > build-new. "
-            "**Check**: Did I search existing implementations before suggesting new code? "
-            "**Check**: Is this the BEST option after comparison, or just the FIRST option I thought of?"
-        ),
+        injection="**Comparative Analysis**: Search first, compare 2-3 options, then recommend the best one.",
         topics=["implementation"],
     ),
     Enhancer(
         name="escape_hatch_gate",
-        injection=(
-            "**Escape Hatch Check**: You are using the [SINGLE ROOT CAUSE CONFIRMED] escape hatch. "
-            "Before you submit, perform one final Inversion Check: "
-            "Name one way this 'confirmed' cause could still be a red herring. "
-            "What evidence would absolutely disprove it?"
-        ),
+        injection="**Escape Hatch Check**: Before claiming a single root cause, name one way it could still be wrong.",
         topics=["escape_hatch"],
     ),
 ]
@@ -479,16 +412,12 @@ def _build_injection(enhancers: list[Enhancer], intent: dict[str, bool] | None =
 
     tags_str = " ".join(f"[{tag}]" for tag in framework_tags)
     rationale = _get_rationale(intent, enhancers, prompt_length) if intent else "unknown reason"
-    tag_header = f"{tags_str}\nWhy: {rationale}\n\n"
+    tag_header = f"{tags_str}\nWhy: {rationale}\n\n" if tags_str else f"Why: {rationale}\n\n"
 
     injections = [e.injection for e in enhancers]
     frameworks_text = "\n\n".join(injections)
     framework_names = [e.name.replace("_", " ").title() for e in enhancers]
-    tag_instruction = (
-        f"**TAG EMISSION REQUIRED**: Begin your response with the framework tags above. "
-        f"This provides visibility into which cognitive frameworks are active. "
-        f"Active frameworks: {', '.join(framework_names)}\n\n"
-    )
+    tag_instruction = f"**Use these frameworks**: {', '.join(framework_names)}.\n\n"
 
     return tag_header + tag_instruction + frameworks_text
 

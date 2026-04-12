@@ -128,6 +128,9 @@ _META_PRINCIPLE_PATTERN = re.compile(
 
 _CORRECTION_PATTERN = re.compile(
     r"\b(you\s+(?:missed|ignored|overlooked|skipped)|"
+    r"you\s+(?:removed|deleted|changed)|"
+    r"did\s+you\s+just\s+remove|"
+    r"without\s+(?:even\s+)?consider(?:ing|ation)|"
     r"that's\s+(?:not\s+right|wrong|incorrect|not\s+the\s+point)|"
     r"that\s+doesn't\s+(?:address|fix|solve)\s+(?:the|my)|"
     r"still\s+(?:missing|not\s+addressing|wrong)|"

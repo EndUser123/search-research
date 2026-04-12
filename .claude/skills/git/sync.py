@@ -4,7 +4,7 @@ Smart Git Sync with Multi-Repo Discovery, Health Check, Worktree Management, and
 
 Behavior:
 - Main repo (P:/.git): auto-commit and auto-push (no interaction)
-- Non-main repos: present numbered list for user to select which to push
+- Non-main repos: auto-commit and auto-push (use --select for manual control)
 
 Features:
 - Detects all .git directories across the workspace
@@ -874,8 +874,8 @@ if repos_with_pushes:
             selected_indices = parse_selection(SELECT_REPOS, len(repos_with_pushes))
             selected_repos = [repos_with_pushes[i - 1] for i in selected_indices]
         else:
-            # Present interactive selection
-            selected_repos = interactive_select_repos(repos_with_pushes)
+            # Auto-push all repos by default (use --select for manual control)
+            selected_repos = repos_with_pushes
 
         if selected_repos:
             header("PUSHING SELECTED REPOS")

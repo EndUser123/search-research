@@ -132,8 +132,8 @@ def _auto_correct_params(tool_input: dict, tool_name: str = "TaskCreate") -> dic
         elif "title" in tool_input and "subject" not in tool_input:
             corrections["title"] = "subject"
     elif tool_name == "TaskUpdate":
-        if "taskId" in tool_input and "task_id" not in tool_input:
-            corrections["taskId"] = "task_id"
+        if "task_id" in tool_input and "taskId" not in tool_input:
+            corrections["task_id"] = "taskId"
 
     if not corrections:
         return None

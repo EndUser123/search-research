@@ -496,5 +496,112 @@ def test_multiple_claims_some_exempted():
     assert output.get("decision") == "block"
 
 
+# --- New pattern tests (added 2026-04-11 for "no subprocess" and similar claims ---
+
+
+def test_no_subprocess_blocked():
+    """'no subprocess' pattern should be blocked without verification."""
+    response = "There's no subprocess available for this operation."
+    output, exit_code = run_guard(response, tool_events=[])
+
+    assert exit_code == 2
+    assert output.get("decision") == "block"
+
+
+def test_no_subprocess_with_verification_allowed():
+    """'no subprocess' after Bash/Read should allow."""
+    response = "There's no subprocess configured."
+    tool_events = [{"name": "Read", "command": "config.json", "ts": "2026-03-07T12:00:00Z"}]
+
+    output, exit_code = run_guard(response, tool_events=tool_events)
+
+    assert exit_code == 0
+    assert output == {}
+
+
+def test_theres_no_thread_blocked():
+    """'there's no thread' pattern should be blocked without verification."""
+    response = "There's no thread running for this task."
+    output, exit_code = run_guard(response, tool_events=[])
+
+    assert exit_code == 2
+    assert output.get("decision") == "block"
+
+
+def test_theres_no_process_blocked():
+    """'there's no process' pattern should be blocked without verification."""
+    response = "The subprocess was cleaned up — there's no process running."
+    output, exit_code = run_guard(response, tool_events=[])
+
+    assert exit_code == 2
+    assert output.get("decision") == "block"
+
+
+def test_theres_no_agent_blocked():
+    """'there's no agent' pattern should be blocked without verification."""
+    response = "We need an agent for this — there's no agent running."
+    output, exit_code = run_guard(response, tool_events=[])
+
+    assert exit_code == 2
+    assert output.get("decision") == "block"
+
+
+def test_theres_no_method_blocked():
+    """'there's no X method' pattern should be blocked without verification."""
+    response = "The API has no validate method defined."
+    output, exit_code = run_guard(response, tool_events=[])
+
+    assert exit_code == 2
+    assert output.get("decision") == "block"
+
+
+def test_theres_no_function_blocked():
+    """'there's no X function' pattern should be blocked without verification."""
+    response = "There's no helper function in this module."
+    output, exit_code = run_guard(response, tool_events=[])
+
+    assert exit_code == 2
+    assert output.get("decision") == "block"
+
+
+def test_theres_no_class_blocked():
+    """'there's no X class' pattern should be blocked without verification."""
+    response = "There's no User class defined in the schema."
+    output, exit_code = run_guard(response, tool_events=[])
+
+    assert exit_code == 2
+    assert output.get("decision") == "block"
+
+
+def test_theres_no_module_blocked():
+    """'there's no X module' pattern should be blocked without verification."""
+    response = "There's no auth module for this provider."
+    output, exit_code = run_guard(response, tool_events=[])
+
+    assert exit_code == 2
+    assert output.get("decision") == "block"
+
+
+def test_theres_no_method_with_grep_exempted():
+    """'there's no X method' should be exempt after Grep verification."""
+    response = "There's no validate method in this class."
+    tool_events = [{"name": "Grep", "command": "def validate", "ts": "2026-03-07T12:00:00Z"}]
+
+    output, exit_code = run_guard(response, tool_events=tool_events)
+
+    # Grep for "def validate" grounds the claim
+    assert exit_code == 0
+    assert output == {}
+
+
+def test_theres_no_subprocess_case_insensitive():
+    """'THERE'S NO SUBPROCESS' should block (case-insensitive)."""
+    response = "THERE'S NO SUBPROCESS RUNNING."
+    output, exit_code = run_guard(response, tool_events=[])
+
+    assert exit_code == 2
+    assert output.get("decision") == "block"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

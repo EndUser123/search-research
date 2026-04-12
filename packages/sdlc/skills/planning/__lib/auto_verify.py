@@ -267,7 +267,7 @@ EVIDENCE_FILE_PATTERNS = (
 )
 
 INLINE_FILE_LINE_RE = re.compile(
-    rf"(?P<path>(?:[A-Za-z]:[\/])?[\w./\-_]+\.(?:{'|'.join(EVIDENCE_FILE_PATTERNS)}))(?:(?:#L|:)(?P<start>\d+)(?:[-:](?P<end>\d+))?)?",
+    rf"(?P<path>(?<!\.)(?:[A-Za-z]:[\/])?[\w./\-_]+\.(?!['\"])(?:{'|'.join(EVIDENCE_FILE_PATTERNS)}))(?:(?:#L|:)(?P<start>\d+)(?:[-:](?P<end>\d+))?)?",
     re.IGNORECASE,
 )
 EXPLICIT_FILE_LINE_RE = re.compile(
@@ -1096,15 +1096,53 @@ def _has_non_placeholder_acceptance_text(text: str) -> bool:
     normalized = text.strip().strip("-").strip()
     if not normalized:
         return False
-    return not any(
+    if any(
         re.fullmatch(pattern, normalized, re.IGNORECASE)
         for pattern in ACCEPTANCE_PLACEHOLDER_PATTERNS
-    )
+    ):
+        return False
+    # Split on sentence boundaries (period, em-dash, semicolon) and check each clause
+    # If any clause explicitly declines to provide criteria, the whole line is rejected
+    clauses = re.split(r"[.;—–-]", normalized)
+    for clause in clauses:
+        clause = clause.strip()
+        if not clause:
+            continue
+        # Explicit "no acceptance criteria" / "deleted task" / deferred phrasing — not real criteria
+        if re.search(
+            r"(?i)\b(no new acceptance|acceptance criteria.*deleted|this task is deleted|deferred|not applicable\b.*acceptance)",
+            clause,
+        ):
+            return False
+    return True
 
 
 def _extract_acceptance_body(task_block: str) -> str:
     lines = task_block.splitlines()
     for idx, line in enumerate(lines):
+        # Handle inline **Acceptance Criteria:** header on same line as task heading
+        # e.g. "### TASK-003: DELETED — Covered by TASK-002\n**Acceptance Criteria**: ..."
+        inline_match = re.match(
+            r"^#{1,6}\s+(?:TASK|CHANGE)-\d+[:\s]+[^\n]*\*\*Acceptance(?: Criteria)?(?:\s*\(?[^)]*\)?)?:\*\*\s*(.*)$",
+            line,
+            re.IGNORECASE,
+        )
+        if inline_match:
+            inline = inline_match.group(1).strip()
+            collected: list[str] = []
+            if inline:
+                collected.append(inline)
+            for follow in lines[idx + 1:]:
+                if re.match(r"^\*\*(?:TASK|CHANGE)-", follow):
+                    break
+                if re.match(r"^##\s+", follow):
+                    break
+                if follow.strip().startswith("**") and not re.search(r"\*\*File\*\*", follow, re.IGNORECASE):
+                    break
+                if follow.strip():
+                    collected.append(follow.strip())
+            return "\n".join(collected)
+
         if re.search(r"\*\*Acceptance(?: Criteria)?(?:\s*\(?[^)]*\)?)?:\*\*", line, re.IGNORECASE):
             inline = re.sub(
                 r".*?\*\*Acceptance(?: Criteria)?(?:\s*\(?[^)]*\)?)?:\*\*",
@@ -1180,7 +1218,7 @@ def extract_tasks(plan: str) -> list[dict[str, Any]]:
 
     for idx, match in enumerate(matches):
         groups = match.groups()
-        task_num = groups[0] or groups[2] or groups[4]
+        task_num = (groups[0] or groups[2] or groups[4] or "").lstrip("0") or "0"
         title = groups[1] or groups[3] or groups[5]
         task_id = f"TASK-{task_num}"
         title_text = title.strip()
@@ -2406,6 +2444,52 @@ def check_contract_boundary_matrix(plan: str) -> list[dict[str, Any]]:
     return findings
 
 
+def _is_code_identifier_like(path: str) -> bool:
+    """Return True if path looks like a code identifier rather than a real file path.
+
+    This filters out false positives from INLINE_FILE_LINE_RE matching partial words
+    inside code (e.g., self.c from self.config, l1.c from l1_results).
+    Also filters bare filenames like orchestrator.py, SKILL.md that are actually
+    references to the full path shown elsewhere in the plan.
+    """
+    if not path:
+        return True
+    # Strip Windows drive prefix
+    if len(path) > 2 and path[1] == ":":
+        path = path[2:]
+    # No path separators → likely a bare identifier
+    if "/" not in path and "\\" not in path:
+        base = path.rsplit(".", 1)[0] if "." in path else path
+        ext = path.rsplit(".", 1)[1].lower() if "." in path else ""
+        # Single character base is almost certainly a code fragment
+        if len(base) <= 2:
+            return True
+        # Bare filename (no path, common English name) → code ref not real path
+        # Covers orchestrator.py, SKILL.md, results.json, config.yaml, etc.
+        if base.islower() and ext in ("py", "md", "json", "ts", "js", "yaml", "yml", "toml", "go", "rs"):
+            if base in (
+                "orchestrator", "skill", "results", "config", "main", "test",
+                "data", "self", "class", "def", "init",
+            ):
+                return True
+        # Also check uppercase/common variants case-insensitively
+        if ext in ("py", "md", "json", "ts", "js", "yaml", "yml", "toml", "go", "rs"):
+            if base.lower() in (
+                "orchestrator", "skill", "results", "config", "main", "test",
+                "data", "self", "class", "def", "init",
+            ):
+                return True
+        # Single-letter code extension paired with short base → code fragment
+        # e.g. self.c, cls.h, x.cpp, obj.cs — not real paths
+        if len(ext) == 1 and ext.isalpha() and ext in ("c", "h", "cpp", "cs", "go", "rs", "java"):
+            if len(base) <= 8 and base.islower() and base.isalpha():
+                return True
+        # Single lowercase word that looks like a variable/identifier
+        if base.islower() and "_" not in base and base.isidentifier():
+            return True
+    return False
+
+
 def check_evidence_file_targets(plan: str, plan_path: str | None = None) -> list[dict[str, Any]]:
     """Fail when explicit file/line evidence points at nonexistent files or stale line spans."""
     findings: list[dict[str, Any]] = []
@@ -2433,6 +2517,8 @@ def check_evidence_file_targets(plan: str, plan_path: str | None = None) -> list
 
         for match in INLINE_FILE_LINE_RE.finditer(section_text):
             raw_path = match.group("path").strip()
+            if _is_code_identifier_like(raw_path):
+                continue
             start = int(match.group("start")) if match.group("start") else None
             end = int(match.group("end") or match.group("start")) if match.group("start") else None
             if allow_explicit_file_only or start is not None:
@@ -2690,7 +2776,11 @@ def check_rtm_coverage(
             }
         )
 
-    tasks_without_acceptance = [t for t in tasks if not t["has_acceptance_criteria"]]
+    # Skip tasks explicitly marked as DELETED from acceptance criteria checking
+    tasks_without_acceptance = [
+        t for t in tasks
+        if not t["has_acceptance_criteria"] and "DELETED" not in t["title"].upper()
+    ]
     if tasks_without_acceptance:
         findings.append(
             {

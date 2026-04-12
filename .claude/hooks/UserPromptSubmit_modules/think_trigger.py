@@ -327,6 +327,12 @@ Big-O analysis:
             r"lazy\s+load",
         ],
     ),
+    "explicit_think": ThinkProfile(
+        name="explicit_think",
+        template="",  # Unused — detection is special-cased in _detect_profile
+        strong_patterns=[],
+        weak_patterns=None,
+    ),
     "multi_file_refactor": ThinkProfile(
         name="multi_file_refactor",
         template="""\
@@ -425,6 +431,10 @@ def _detect_profile(prompt: str) -> str | None:
     Weak keywords need 2+ matches (ambiguous alone).
     Strips inline code (`...`) before matching.
     """
+    # Uppercase THINK keyword — intentional explicit reasoning request (case-sensitive)
+    if re.search(r"\bTHINK\b", prompt):
+        return "explicit_think"
+
     # Strip code spans so `handle_error()` doesn't count as "error"
     prompt_clean = _CODE_SPAN_RE.sub("", prompt).lower()
 
@@ -458,130 +468,42 @@ _PROFILES: dict[str, str] = {
     "debug_rca": """\
 THINK PROFILE: DEBUG / ROOT CAUSE ANALYSIS
 
-Apply the 5 Whys:
-1) Symptom — What failed? (observable behavior)
-2) Why #1 — Immediate mechanism (the direct cause)
-3) Why #2 — Upstream condition (what allowed #1)
-4) Why #3 — Process/design gap (why #2 existed)
-5) Why #4/#5 — Detection gap (why wasn't this caught earlier?)
-
-Output discipline:
-- Root cause candidate: explicitly [UNVERIFIED] until checked
-- Evidence needed to confirm or refute
-- Minimal fix + regression test target""",
+5 Whys: symptom -> mechanism -> upstream condition -> process gap -> detection gap.
+State the root-cause candidate as [UNVERIFIED], list evidence needed, and end with a minimal fix + regression test.""",
     "tradeoff_decision": """\
 THINK PROFILE: DECISION / TRADEOFF
 
-Decision frame:
-- Option A vs Option B (always include simplest fallback)
-- Tradeoffs: speed, correctness, reversibility, maintenance cost
-- Inversion: what would make each option fail?
-- Recommendation with one counterargument
-- Verification plan: what to measure/check after choosing""",
+Compare 2 options plus the simplest fallback. State tradeoffs, one failure mode, your recommendation, and how to verify it.""",
     "architecture": """\
 THINK PROFILE: ARCHITECTURE
 
-Architecture checks:
-- Cynefin: is this clear, complicated, or complex?
-- Chesterton's Fence: why does the current structure exist?
-- Boundary/invariant impact of the proposed change
-- Failure modes + rollback path
-- Recommendation + strongest counterargument + verification plan""",
+Check the domain, preserve existing boundaries, name failure modes and rollback, then recommend one path with a counterargument.""",
     "pre_commit_risk": """\
 THINK PROFILE: PRE-COMMIT RISK
 
-Pre-mortem: Assume this fails in 48 hours. What likely failed and why?
-
-Immediate (0-30 min):
-- Will this break existing functionality?
-- Are there data migration issues?
-- Any unintended side effects?
-
-Short-term (1-3 days):
-- Will this create technical debt?
-- Dependency cascades?
-- Will this need hotfixes?
-
-Medium-term (1-4 weeks):
-- Will this limit future flexibility?
-- Does this need refactoring soon?
-
-Reversibility check:
-- Can git revert fix it?
-- Any breaking interface changes?
-- Can this ship incrementally?
-
-If reversibility is low: consider a more conservative approach or document a rollback plan.""",
+Assume this fails in 48 hours. Check breakage, migration risk, side effects, hotfix risk, and reversibility before shipping.""",
     "security_review": """\
 THINK PROFILE: SECURITY REVIEW
 
-Security threat modeling:
-- What assets are being protected? (data, credentials, access)
-- Who are the adversaries? (unauthenticated users, privileged insiders, external attackers)
-- What are the attack vectors? (injection, XSS, CSRF, auth bypass, data exposure)
-
-OWASP Top 10 checks:
-- Injection (SQL, NoSQL, OS command, LDAP)
-- Broken authentication (session management, credential handling)
-- Sensitive data exposure (encryption at rest/transit)
-- XML external entities (XXE)
-- Broken access control (horizontal/vertical privilege escalation)
-- Security misconfiguration (default keys, verbose error messages)
-- Cross-site scripting (XSS)
-- Insecure deserialization
-- Using components with known vulnerabilities
-- Insufficient logging & monitoring
-
-Verification:
-- Manual threat modeling review
-- Static analysis for security patterns
-- Dependency vulnerability scan""",
+Model assets, adversaries, and attack paths. Check the obvious OWASP risks, then verify with review, static analysis, and dependency scanning.""",
     "performance_analysis": """\
 THINK PROFILE: PERFORMANCE ANALYSIS
 
-Performance investigation:
-1) Symptom — What's slow? (endpoint, query, operation)
-2) Baseline — What's expected? (previous performance, SLA)
-3) Measurement — Quantify the bottleneck (CPU, memory, I/O, network)
-4) Root cause — Algorithmic complexity, N+1 queries, lock contention, missing index?
-5) Hypothesis — What will improve it? (caching, indexing, query optimization)
-6) Verification — Measure after fix, confirm improvement
-
-Common bottlenecks:
-- Algorithmic: O(n²) where O(n) possible
-- Database: Missing indexes, N+1 queries, full table scans
-- I/O: Synchronous operations, excessive network calls
-- Memory: Leaks, large object allocations, inefficient data structures
-- Concurrency: Lock contention, thread pool exhaustion, blocking calls
-
-Big-O analysis:
-- Current complexity: ?
-- Target complexity: ?
-- Can we use a more efficient data structure or algorithm?""",
+Identify the slow symptom, measure the bottleneck, test likely causes, and verify the fix with before/after metrics.""",
     "multi_file_refactor": """\
 THINK PROFILE: MULTI-FILE REFACTOR
 
-Refactoring strategy:
-1) Scope — What's changing? (class name, function signature, directory structure)
-2) Impact analysis — Which files are affected? (use ripgrep/grep to find all references)
-3) Order of operations — What's the dependency chain? (avoid breaking intermediate state)
-4) Testing strategy — How to verify each step? (unit tests, integration tests, manual smoke test)
-5) Rollback plan — What if something breaks? (git revert, revert individual files)
+Map the change, find all references, update definition and callers in order, test each step, and keep a rollback path.""",
+    "explicit_think": """\
+THINK PROFILE: DELIBERATE REASONING
 
-Execution checklist:
-- Identify all files that reference the changed symbol
-- Update the definition first (if signature changed)
-- Update all callers
-- Run tests at each step
-- Verify no remaining references to old symbol
-- Update documentation
+Explicit reasoning mode (THINK keyword detected).
 
-Common pitfalls:
-- Missing references (greedy search patterns)
-- Breaking intermediate state (partial updates)
-- Forgetting test files
-- Forgetting documentation
-- Assuming all references are in one language (check config files, templates, etc.)""",
+1. Restate the problem in one sentence
+2. Surface key assumptions — mark each [ASSUMED] or [VERIFIED]
+3. Generate 2-3 alternative approaches
+4. Recommend one with the top tradeoff named
+5. State what evidence would change the answer""",
 }
 
 # Module-level invariant check (runs on import)
@@ -607,4 +529,14 @@ def think_trigger(context: HookContext) -> HookResult:
         return HookResult.empty()
 
     template = f"[THINK:{profile}]\n\n" + _PROFILES[profile]
-    return HookResult(context=template, tokens=len(template) // 4, priority=6.0)
+    suppression = [
+        "operating_rules",
+    ]
+    return HookResult(
+        context={
+            "additionalContext": template,
+            "suppress": suppression,
+        },
+        tokens=len(template) // 4,
+        priority=6.0,
+    )

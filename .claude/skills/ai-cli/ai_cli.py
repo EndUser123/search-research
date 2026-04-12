@@ -960,8 +960,13 @@ def generate_parallel_bash_commands(
         # Codex exec takes query as argument (not stdin), like vibe uses -p
         commands.append(f'codex exec "{query}"')
     if run_vibe:
-        # Vibe uses -p flag with query as argument (not stdin)
-        commands.append(f"vibe -p {safe_query}")
+        # Vibe uses -p flag with full query as single argument (not stdin)
+        # Quote the entire query to handle special chars, newlines in appended questions
+        # Also escape --- (vibe treats it as a flag) by replacing with Unicode em-dash or escaping
+        safe_query = shlex.quote(query)
+        # Replace --- with escaped version so vibe doesn't parse as flag
+        escaped_query = safe_query.replace("---", r"\-\-\-")
+        commands.append(f"vibe -p {escaped_query}")
 
     return commands
 
@@ -1031,7 +1036,7 @@ def _determine_active_llms(
             "codex": True,
             "vibe": True,
             "opencode": True,
-            "glm_flash": bool(has_glm_api_key),
+            "glm_flash": False,  # Removed: API token expired
         }
     return {
         "qwen": qwen_only,
@@ -1039,7 +1044,7 @@ def _determine_active_llms(
         "codex": codex_only,
         "vibe": vibe_only,
         "opencode": opencode_only,
-        "glm_flash": glm_flash_only,
+        "glm_flash": False,  # Removed: API token expired
     }
 
 
@@ -1138,9 +1143,9 @@ def _build_cli_commands(
         gemini_cmd = (
             f'{ROOT_PREFIX}node "{npm_root / "@google" / "gemini-cli" / "bundle" / "gemini.js"}"'
         )
-        codex_cmd = (
-            f'{ROOT_PREFIX}node "{npm_root / "@openai" / "codex" / "bin" / "codex.js"}" exec'
-        )
+        # Codex companion wrapper (required - direct codex exec doesn't work)
+        codex_companion = Path.home() / ".claude" / "plugins" / "cache" / "openai-codex" / "codex" / "1.0.1" / "scripts" / "codex-companion.mjs"
+        codex_cmd = f'node "{codex_companion}" task'
     else:
         qwen_cmd = f"{ROOT_PREFIX}qwen"
         gemini_cmd = f"{ROOT_PREFIX}gemini"
@@ -1162,14 +1167,16 @@ def _build_cli_commands(
     if run_codex:
         commands.append(("codex", codex_cmd))
     if run_vibe:
+        # Vibe treats --- (and escaped \-\-\-) as flag-like arguments
+        # Replace BOTH forms so vibe's argparse doesn't reject the prompt
+        safe_query = query.replace("---", "___").replace("\\-\\-\\-", "___\\_\\\\_\\\\_").replace("'", "''")
         if sys.platform == "win32":
-            # PowerShell single-quotes are literal (no variable expansion)
-            # Only escape: '' -> ' (two single quotes becomes one)
-            safe_query = query.replace("'", "''")
-            commands.append(("vibe", f"vibe -p '{safe_query}'"))
+            # On Windows, pass as list to avoid cmd.exe quote interpretation issues
+            # subprocess.run(['vibe', '-p', query]) works, but shell string doesn't
+            commands.append(("vibe", ["vibe", "-p", safe_query]))
         else:
-            safe_query = shlex.quote(query)
-            commands.append(("vibe", f"vibe -p {safe_query}"))
+            safe_query_shell = shlex.quote(safe_query)
+            commands.append(("vibe", f"vibe -p {safe_query_shell}"))
     if run_opencode:
         if not opencode_models:
             opencode_models = [DEFAULT_OPENCODE_MODEL]

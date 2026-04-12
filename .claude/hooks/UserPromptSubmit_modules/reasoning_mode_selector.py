@@ -61,9 +61,8 @@ def reasoning_mode_selector(context: HookContext) -> HookResult:
 
         # System context for AI
         system_context = (
-            f"Reasoning mode: {mode_name}\n"
-            f"Confidence: {confidence}/4\n"
-            f"Using {mode_name} reasoning approach for this query."
+            f"Reasoning mode: {mode_name} ({confidence}/4). "
+            "Start here, then widen depth if uncertainty remains."
         )
 
         # User-facing message
@@ -75,8 +74,8 @@ def reasoning_mode_selector(context: HookContext) -> HookResult:
         }.get(mode_name, mode_name)
 
         user_message = (
-            f"**{mode_display} Reasoning** (confidence: {confidence}/4)\n"
-            f"This query will use {mode_name.replace('_', ' ')} reasoning."
+            f"**{mode_display} Reasoning** ({confidence}/4) - "
+            f"base mode: {mode_name.replace('_', ' ')}."
         )
 
         # Log selection for observability (fail-safe - errors never break hook)
@@ -93,10 +92,15 @@ def reasoning_mode_selector(context: HookContext) -> HookResult:
         )
 
         # Return both system context and user-facing message
-        return HookResult(context={
-            "systemContext": system_context,  # For AI
-            "additionalContext": user_message,  # For user
-        })
+        return HookResult(
+            context={
+                "systemContext": system_context,  # For AI
+                "additionalContext": user_message,  # For user
+                "suppress": [
+                    "operating_rules",
+                ],
+            }
+        )
 
     except Exception as e:
         # Fail open - don't break on errors

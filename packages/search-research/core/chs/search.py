@@ -16,8 +16,57 @@ from .search_session import SearchSession, SearchSessionManager
 from .utils import adaptive_lambda, escape_fts5_query
 
 if TYPE_CHECKING:
-    import sqlite3
+    pass
+import sqlite3
 _session_manager: SearchSessionManager | None = None
+
+
+def search_semantic_sessions(
+    db: sqlite3.Connection,
+    query: str,
+    embed_client,
+    limit: int = 10,
+    threshold: float = 0.65,
+) -> list[dict]:
+    """Search sessions by semantic similarity using sessions.embedding.
+
+    Args:
+        db: Database connection
+        query: Natural language query
+        embed_client: EmbedClient instance for encoding query
+        limit: Max results
+        threshold: Minimum cosine similarity
+
+    Returns:
+        List of dicts with session_id, first_prompt, summary_short, score
+    """
+    if not query or not query.strip():
+        return []
+
+    query_embedding_bytes = embed_client.embed_texts([query])[0]
+    query_vector = bytes_to_vector(query_embedding_bytes, dim=384)
+
+    cursor = db.execute(
+        "SELECT id, first_prompt, summary_short, embedding FROM sessions WHERE embedding IS NOT NULL"
+    )
+    scored = []
+    for session_id, first_prompt, summary_short, embedding_blob in cursor.fetchall():
+        if embedding_blob is None:
+            continue
+        session_vector = bytes_to_vector(embedding_blob, dim=384)
+        score = cosine_similarity(query_vector, session_vector)
+        if score >= threshold:
+            scored.append({
+                "session_id": session_id,
+                "first_prompt": first_prompt,
+                "summary_short": summary_short,
+                "score": score,
+            })
+
+    scored.sort(key=lambda x: x["score"], reverse=True)
+    return scored[:limit]
+
+
 logger = logging.getLogger(__name__)
 
 

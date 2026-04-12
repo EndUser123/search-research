@@ -75,7 +75,10 @@ NEGATIVE_EXISTENCE_PATTERNS = re.compile(
     r"|\bwasn't\s+created\b"
     r"|\bnot\s+documented\b"
     r"|\bno\s+documentation\b"
-    r"|\bno\s+\w+\s+file\b",  # "no config file", "no setup file", etc.
+    r"|\bno\s+\w+\s+file\b"   # "no config file", "no setup file", etc.
+    r"|\bno\s+subprocess\b"
+    r"|\bthere's\s+no\s+(?:subprocess|thread|process|agent)\b"
+    r"|\b(?:there's\s+no|has\s+no)\s+\w+\s+(?:method|function|class|module)\b",
     re.IGNORECASE,
 )
 

@@ -97,15 +97,12 @@ def _is_enabled() -> bool:
 # The injection — short, hard, actionable
 # ---------------------------------------------------------------------------
 
-_OPERATING_RULES = """**MANDATORY OPERATING RULES**
+_OPERATING_RULES = """**OPERATING RULES**
 
-**1. Verify before claiming.** Before stating something is missing, doesn't exist, or isn't implemented — search for it first (Grep, Glob, Read). Unverified absence claims are prohibited. If you didn't search, you don't know.
-
-**2. Be decisive.** When you identify options or trade-offs, recommend one with reasoning. Do not ask the user to choose. Do not say "what's your use case?" or "pending your answer." You are the expert — state your recommendation and why.
-
-**3. Confidence = action.** If you are not HIGH confidence (verified via tool output), do not state the claim. Instead, verify it first. Labeling something "medium confidence" and then stating it anyway is not acceptable. Verify or stay silent.
-
-**4. Cite evidence.** When reviewing code, read the actual files before listing gaps. Every gap you report must cite the file and line that confirms it. A gap without a file reference is speculation, not analysis."""
+- Verify before claiming absence, breakage, or non-implementation. Search first; if you did not search, you do not know.
+- Be decisive. When there are options, recommend one with reasoning instead of deferring to the user.
+- Confidence must be backed by evidence. If a claim is not verified, do not state it as fact.
+- Cite the file, symbol, or tool output for every code gap or behavioral claim."""
 
 
 @register_hook("operating_rules", priority=8.0)
@@ -121,19 +118,6 @@ def operating_rules(context: HookContext) -> HookResult:
     if not _should_fire(prompt):
         return HookResult.empty()
 
-    # Return suppress list + plain text context.
-    # Registry reads "suppress" from dict context (registry.py:110-118).
-    # Router reads dict context as-is for replacePrompt, but falls through
-    # to injections.append() for other dicts — we include "additionalContext"
-    # so the router can extract it if it ever learns to, but the plain join
-    # in the current router will append this dict. To stay compatible with
-    # the current router, we return the text as a plain string and rely on
-    # the registry to handle suppression separately via a wrapper dict.
-    #
-    # Per registry.py L108-118: suppress is extracted from dict context.
-    # Per UserPromptSubmit.py L291-292: dict context is appended as-is (bug risk).
-    # Solution: carry suppress signal in the dict but also provide plain text
-    # as a separate key the router can use. Mark this for router upgrade.
     result_context = {
         "suppress": _SUPPRESSED_HOOKS,
         "additionalContext": _OPERATING_RULES,

@@ -137,7 +137,7 @@ async def _retry_request(
 
 
 async def run_single_command(
-    command: str,
+    command: str | list[str],
     input_text: str | None = None,
     timeout: int = 120,
     verbose: bool = False,
@@ -145,7 +145,7 @@ async def run_single_command(
     """Run a single CLI command asynchronously.
 
     Args:
-        command: Command string to execute
+        command: Command string OR list of arguments to execute
         input_text: Text to pipe to stdin (for prompt input)
         timeout: Maximum seconds to wait
         verbose: Show execution progress
@@ -155,23 +155,40 @@ async def run_single_command(
     """
     import time
 
+    # Handle both string commands and list arguments
+    if isinstance(command, list):
+        cmd_list = command
+        cmd_name = command[0] if command else "unknown"
+    else:
+        cmd_list = command.split()
+        cmd_name = command.split()[0] if command else "unknown"
+
     if verbose:
-        print(f"[{command.split()[0]}] Spawned subprocess", flush=True)
+        print(f"[{cmd_name}] Spawned subprocess", flush=True)
         start = time.time()
 
     try:
         if sys.platform == "win32":
-            # Use shell execution on Windows for npm global commands (in PATH)
-            # No PowerShell wrapper needed - avoids quote interpretation issues
-            proc = await asyncio.create_subprocess_shell(
-                command,
-                stdin=asyncio.subprocess.PIPE if input_text else None,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
+            # On Windows: use shell for string commands (npm global commands in PATH)
+            # Use exec for list commands (avoids cmd.exe quote parsing issues)
+            if isinstance(command, list):
+                proc = await asyncio.create_subprocess_exec(
+                    *command,
+                    stdin=asyncio.subprocess.PIPE if input_text else None,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+            else:
+                proc = await asyncio.create_subprocess_shell(
+                    command,
+                    stdin=asyncio.subprocess.PIPE if input_text else None,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
         else:
+            # On Unix, always split string commands
             proc = await asyncio.create_subprocess_exec(
-                *command.split(),
+                *cmd_list,
                 stdin=asyncio.subprocess.PIPE if input_text else None,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -194,7 +211,7 @@ async def run_single_command(
 
             if verbose:
                 elapsed = time.time() - start
-                print(f"[{command.split()[0]}] Completed in {elapsed:.1f}s", flush=True)
+                print(f"[{cmd_name}] Completed in {elapsed:.1f}s", flush=True)
 
             # Check for errors in stderr even on success (codex outputs errors to stderr with exit 0)
             if stderr_text and stderr_text.strip():
@@ -262,19 +279,23 @@ async def run_parallel_commands(
     for name, cmd_args in commands:
         # cmd_args may be a list or a pre-built command string
         if isinstance(cmd_args, list):
-            cmd_str = " ".join(cmd_args)
+            # Pass list directly to avoid cmd.exe quote parsing issues on Windows
+            cmd_input = None  # Lists don't use stdin piping for -p style commands
         else:
-            cmd_str = cmd_args
-
-        # Commands with -p flag (vibe) or codex exec embed query directly (no stdin)
-        uses_prompt_arg = "-p" in cmd_str or cmd_str.startswith("codex exec")
-        cmd_input = None if uses_prompt_arg else input_text
+            cmd_args = cmd_args
+            # Commands with -p flag (vibe) or codex exec embed query directly (no stdin)
+            uses_prompt_arg = "-p" in cmd_args or cmd_args.startswith("codex exec")
+            # Commands with shell pipes (echo X | gemini) handle stdin internally via shell
+            # Don't pass input_text as it would conflict with the shell pipe
+            has_shell_pipe = "|" in cmd_args
+            cmd_input = None if (uses_prompt_arg or has_shell_pipe) else input_text
 
         if verbose:
-            print(f"[{name}] Starting: {cmd_str}", flush=True)
+            cmd_display = cmd_args if isinstance(cmd_args, list) else cmd_args
+            print(f"[{name}] Starting: {cmd_display}", flush=True)
 
         task = asyncio.create_task(
-            run_single_command(cmd_str, input_text=cmd_input, timeout=timeout, verbose=verbose),
+            run_single_command(cmd_args, input_text=cmd_input, timeout=timeout, verbose=verbose),
             name=name,
         )
         tasks.append(task)

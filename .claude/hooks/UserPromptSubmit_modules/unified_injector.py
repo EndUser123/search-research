@@ -221,6 +221,10 @@ CORRECTION_PATTERNS = [
     r"\bthat\'s not|not what\b",
     r"\bno\s+(?:you|that\'s|this is)\b",
     r"\b(?:wrong|incorrect|missing|forgot|missed)\b.*\bit\b",
+    r"\byou\s+(?:missed|overlooked|ignored|removed|deleted|changed)\b",
+    r"\bdid\s+you\s+just\s+remove\b",
+    r"\bwithout\s+(?:even\s+)?consider(?:ing|ation)\b",
+    r"\bwhy\s+are\s+we\s+depending\s+so\s+much\s+on\s+pushback\s+prompts\b",
     # Escalation-level corrections (user asserting a fact the AI denied)
     r"\bi\s+(?:just\s+)?told\s+you\b",
     r"\bit\'?s\s+a\s+(?:bug|error|problem|issue|failure)\b",

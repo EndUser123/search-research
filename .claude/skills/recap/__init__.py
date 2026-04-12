@@ -696,7 +696,7 @@ def _regex_extract_semantic(
 
     actions: list[str] = []
     for match in _RE_ACTION.finditer(combined):
-        actions.append((match.group(1) or match.group(2) or "").lstrip("* "))
+        actions.append((match.group(1) or match.group(2) or match.group(3) or "").lstrip("* "))
     for match in _RE_TOOL.finditer(combined):
         if match.group(1) and len(match.group(1)) > 10:
             actions.append(match.group(1).strip())
@@ -1265,76 +1265,297 @@ def format_quick_argument_section() -> str:
     return "\n".join(lines)
 
 
+# Constants for handoff-first resolution (TASK-002, R-020)
+FRESH_HANDOFF_THRESHOLD_SECONDS = 300  # 5 minutes
+
+
+def _get_fresh_handoff(
+    session_id: str,
+    terminal_id: str | None = None,
+) -> Path | None:
+    """Check for a fresh handoff file (< 5 minutes old).
+
+    Args:
+        session_id: Current session ID (for validation, R-001)
+        terminal_id: Optional terminal ID for cross-terminal filtering (R-001)
+
+    Returns:
+        Path to fresh handoff file, or None if not found
+
+    Raises:
+        None - all errors are caught and logged
+    """
+    from datetime import datetime, timezone
+    import os
+
+    # Extract terminal_id from filename if not provided (R-001)
+    if terminal_id is None:
+        terminal_id = os.environ.get("CLAUDE_TERMINAL_ID")
+
+    # R-014: Use absolute paths, no resolve() (handles P:/ drive unavailable)
+    handoff_dirs = [
+        Path("P:/") / ".claude" / "state" / "handoff",
+        Path.home() / ".claude" / "state" / "handoff",
+    ]
+
+    for handoff_dir in handoff_dirs:
+        try:
+            if not handoff_dir.exists():
+                continue
+
+            for hf in handoff_dir.glob("console_*_handoff.json"):
+                try:
+                    # R-001: Extract and validate terminal_id from filename
+                    if terminal_id:
+                        hf_stem = hf.stem  # console_{terminal_id}_handoff
+                        parts = hf_stem.split("_")
+                        if len(parts) >= 3:
+                            hf_terminal_id = parts[1]
+                            if hf_terminal_id != terminal_id:
+                                logger.debug("Skipping handoff from different terminal: %s", hf)
+                                continue
+
+                    with open(hf, encoding="utf-8") as f:
+                        data = json.load(f)
+
+                    created_str = data.get("resume_snapshot", {}).get("created_at")
+                    if not created_str:
+                        continue
+
+                    # R-006: Handle timezone-naive datetime explicitly
+                    try:
+                        if created_str.endswith("Z"):
+                            created = datetime.fromisoformat(created_str.replace("Z", "+00:00"))
+                        elif "+" in created_str or "-" in created_str[-6:]:
+                            created = datetime.fromisoformat(created_str)
+                        else:
+                            # Naive datetime - treat as UTC (R-006 fix)
+                            created = datetime.fromisoformat(created_str).replace(tzinfo=timezone.utc)
+
+                        age = (datetime.now(timezone.utc) - created).total_seconds()
+                        if age < FRESH_HANDOFF_THRESHOLD_SECONDS:
+                            return hf
+                    except ValueError as e:
+                        logger.warning("Invalid timestamp in handoff %s: %s", hf, e)
+                        continue
+                except (OSError, json.JSONDecodeError) as e:
+                    logger.debug("Failed to read handoff %s: %s", hf, e)
+                    continue
+        except OSError as e:
+            # R-014: Handle P:/ drive unavailable
+            logger.warning("Cannot access handoff directory %s: %s", handoff_dir, e)
+            continue
+
+    return None
+
+
+def _load_from_handoff(handoff_path: Path) -> list[dict[str, Any]]:
+    """Load sessions from a handoff file.
+
+    Args:
+        handoff_path: Path to handoff JSON file
+
+    Returns:
+        List of session summaries (single current session)
+
+    Raises:
+        OSError: If handoff file cannot be read
+        json.JSONDecodeError: If handoff JSON is malformed
+    """
+    with open(handoff_path, encoding="utf-8") as f:
+        data = json.load(f)
+
+    resume_snapshot = data.get("resume_snapshot", {})
+
+    # Construct session summary from handoff
+    session = {
+        "session_id": data.get("session_id", ""),
+        "goal": resume_snapshot.get("goal", ""),
+        "current_task": resume_snapshot.get("current_task", ""),
+        "active_files": resume_snapshot.get("active_files", []),
+        "created_at": resume_snapshot.get("created_at", ""),
+        "transcript_path": resume_snapshot.get("transcript_path", ""),
+    }
+
+    return [session]
+
+
+def _load_from_chain_result(
+    chain_result,
+    project_root: Path,
+    seen_session_ids: set[str] | None = None,  # R-007: deduplication
+) -> list[dict[str, Any]]:
+    """Load sessions from chain result, filtering subagents.
+
+    Args:
+        chain_result: SessionChainResult from walk_session_chain or walk_handoff_chain
+        project_root: Project root path for validation (R-004)
+        seen_session_ids: Track seen sessions for deduplication (R-007)
+
+    Returns:
+        List of session summaries
+    """
+    if seen_session_ids is None:
+        seen_session_ids = set()
+
+    sessions = []
+    for entry in chain_result.entries:
+        transcript_path = entry.transcript_path
+
+        # Filter subagent transcripts (TASK-003, R-012)
+        if _is_subagent_transcript(transcript_path):
+            logger.debug("Skipping subagent transcript: %s", transcript_path)
+            continue
+
+        # R-007: Deduplication by (session_id, transcript_path) tuple
+        session_key = (entry.session_id, str(transcript_path))
+        if session_key in seen_session_ids:
+            logger.debug("Skipping duplicate session: %s", entry.session_id)
+            continue
+        seen_session_ids.add(session_key)
+
+        # R-004: Validate transcript exists before loading (referential integrity)
+        if transcript_path and transcript_path.exists():
+            try:
+                # R-005: Wrap in try/except for TOCTOU
+                entries = load_transcript_entries(str(transcript_path))
+                session_summaries = extract_sessions_from_transcript(entries)
+                sessions.extend(session_summaries)
+            except FileNotFoundError:
+                logger.warning("Transcript deleted after check: %s", transcript_path)
+            except (OSError, ValueError) as e:
+                logger.warning("Failed to load transcript %s: %s", transcript_path, e)
+        elif transcript_path:
+            logger.warning("Transcript not found (broken chain link): %s", transcript_path)
+
+    return sessions
+
+
+def _load_from_direct_transcript(project_root: Path) -> list[dict[str, Any]]:
+    """Load sessions from the current transcript file (final fallback).
+
+    Args:
+        project_root: Project root path
+
+    Returns:
+        List of session summaries
+    """
+    transcript_dir = _find_transcript_dir(project_root)
+    if not transcript_dir:
+        return []
+
+    # Find the most recent transcript file
+    jsonl_files: list[tuple[float, Path]] = []
+    for jsonl_file in transcript_dir.glob("*.jsonl"):
+        if _is_transcript_file(jsonl_file):
+            try:
+                mtime = jsonl_file.stat().st_mtime
+                jsonl_files.append((mtime, jsonl_file))
+            except OSError:
+                continue
+
+    if not jsonl_files:
+        return []
+
+    jsonl_files.sort(key=lambda x: x[0], reverse=True)
+    most_recent = jsonl_files[0][1]
+
+    entries = load_transcript_entries(str(most_recent))
+    return extract_sessions_from_transcript(entries)
+
+
+def _is_subagent_transcript(path: Path) -> bool:
+    """Check if a transcript path belongs to a subagent.
+
+    Uses structural path analysis (component check via path.parts),
+    not substring matching (R-012: exact component match).
+
+    Args:
+        path: Transcript path to check
+
+    Returns:
+        True if path is a subagent transcript
+    """
+    # R-012: Exact component-level check, not substring
+    if path.parts:
+        for part in path.parts:
+            if part == "subagents":
+                return True
+
+    # Filename prefix check
+    if path.name.startswith("agent-"):
+        return True
+
+    return False
+
+
 def _load_all_sessions_via_history_index(
     project_root: Path | None = None,
 ) -> list[dict[str, Any]]:
-    """Load sessions in the current terminal's chain via history_chain.py.
+    """Load sessions using handoff-first resolution strategy.
 
-    Uses parentUuid chain traversal (not parentSessionId which doesn't exist).
-    1. Find the most recent transcript file to get current session ID
-    2. Walk the parentUuid chain via history_chain.py
-    3. If chain walk fails (session not in index), fall back to current transcript
-
-    Args:
-        project_root: Project root path (defaults to detected project)
-
-    Returns:
-        List of session summaries (same format as extract_sessions_from_transcript)
+    TASK-002: Resolution order:
+    1. Fresh handoff (< 5 min) - primary resume context
+    2. Handoff chain walk - session history
+    3. Unified chain walk - missing link fallback
+    4. Direct transcript - final fallback
     """
     if project_root is None:
         project_root = get_project_root()
 
-    # Find the most recent transcript file to get current session ID
     current_session_id = _get_current_session_id(project_root)
     if not current_session_id:
         return []
 
-    # Import chain modules from installed search_research package
+    # TASK-001, R-013: Import all functions at top, eliminate redundant import
     try:
-        from search_research.session_chain import SessionChainEntry, walk_session_chain
+        from search_research import (
+            SessionChainEntry,
+            walk_handoff_chain,
+            walk_session_chain,
+        )
     except (ImportError, ValueError, OSError) as exc:
-        logger.warning("Failed to import session_chain: %s — falling back to direct transcript", exc)
-        return []
+        logger.warning("Failed to import session_chain: %s", exc)
+        return _load_from_direct_transcript(project_root)
 
-    # Walk the session chain using the unified session_chain module
-    chain_sessions: list[dict[str, Any]] = []
+    # Strategy 1: Check for fresh handoff (highest priority)
+    # R-010: Wrap in try/except for fallback
+    try:
+        fresh_handoff = _get_fresh_handoff(current_session_id)
+        if fresh_handoff:
+            logger.info("Using fresh handoff for resume context: %s", fresh_handoff)
+            return _load_from_handoff(fresh_handoff)
+    except (OSError, json.JSONDecodeError) as exc:
+        logger.warning("Fresh handoff load failed: %s", exc)
+        # Fall through to Strategy 2
+
+    # Strategy 2: Walk handoff chain
+    try:
+        handoff_result = walk_handoff_chain(current_session_id)
+        # R-008, R-011: Check chain length and session_id presence
+        if handoff_result.entries:
+            # R-011: Validate current session_id is in chain
+            session_ids_in_chain = {entry.session_id for entry in handoff_result.entries}
+            if current_session_id not in session_ids_in_chain:
+                logger.warning(
+                    "Current session %s not in handoff chain, degrading to unified chain",
+                    current_session_id,
+                )
+            elif len(handoff_result.entries) > 0:  # R-008: Changed from >1 to >0
+                return _load_from_chain_result(handoff_result, project_root)
+    except (ImportError, OSError) as exc:
+        logger.warning("Handoff chain walk failed: %s", exc)
+
+    # Strategy 3: Unified chain walk
     try:
         chain_result = walk_session_chain(session_id=current_session_id)
         if chain_result.entries:
-            for entry in chain_result.entries:
-                transcript_path = entry.transcript_path
-                if transcript_path and Path(transcript_path).exists():
-                    entries = load_transcript_entries(str(transcript_path))
-                    session_summaries = extract_sessions_from_transcript(entries)
-                    chain_sessions.extend(session_summaries)
-    except (ValueError, OSError):
-        pass
+            return _load_from_chain_result(chain_result, project_root)
+    except (ValueError, OSError) as exc:
+        logger.warning("Unified chain walk failed: %s", exc)
 
-    if chain_sessions:
-        # Sort by creation time (oldest first)
-        chain_sessions.sort(key=lambda s: s.get("metadata", {}).get("created", ""))
-        return chain_sessions
-
-    # Final fallback: session not found in index (e.g., current session after compaction).
-    # Read the current transcript directly.
-    transcript_dir = _find_transcript_dir(project_root)
-    if transcript_dir:
-        # Find the most recent transcript file
-        jsonl_files: list[tuple[float, Path]] = []
-        for jsonl_file in transcript_dir.glob("*.jsonl"):
-            if _is_transcript_file(jsonl_file):
-                try:
-                    mtime = jsonl_file.stat().st_mtime
-                    jsonl_files.append((mtime, jsonl_file))
-                except OSError:
-                    continue
-        if jsonl_files:
-            jsonl_files.sort(key=lambda x: x[0], reverse=True)
-            most_recent = jsonl_files[0][1]
-            entries = load_transcript_entries(str(most_recent))
-            return extract_sessions_from_transcript(entries)
-
-    return []
+    # Strategy 4: Direct transcript fallback
+    return _load_from_direct_transcript(project_root)
 
 
 def _get_current_session_id(project_root: Path | None) -> str | None:

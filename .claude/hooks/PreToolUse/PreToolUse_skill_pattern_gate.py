@@ -264,11 +264,11 @@ def _check_daemon_intent(command: str, skill: str, timeout: float = 2.5) -> bool
             return intent_data.get("match", False)
 
     except ImportError:
-        # Daemon client not available, fail gracefully
-        sys.stderr.write("[PreToolUse_skill_pattern_gate] DaemonClient not available\n")
+        # Daemon client not available, fail gracefully (no stderr - Claude Code treats it as error)
+        pass
     except Exception as e:
-        # Daemon query failed, log and fail gracefully
-        sys.stderr.write(f"[PreToolUse_skill_pattern_gate] Daemon query failed: {e}\n")
+        # Daemon query failed, fail gracefully (no stderr - Claude Code treats it as error)
+        pass
 
     return False
 
@@ -766,12 +766,22 @@ def main():
         sys.exit(0)
 
     except Exception as e:
-        # Unexpected error - log but fail open
+        # Unexpected error - fail open silently (no stderr - Claude Code treats it as error)
         # Critical: PreToolUse exceptions block ALL tools
         import traceback
 
-        sys.stderr.write(f"[PreToolUse_skill_pattern_gate] Error: {e}\n")
-        sys.stderr.write(traceback.format_exc())
+        # Log error to diagnostics only, not stderr
+        try:
+            from pathlib import Path
+            log_path = Path("P:/.claude/hooks/logs/diagnostics/skill_pattern_gate_errors.log")
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(log_path, "a", encoding="utf-8") as f:
+                from datetime import datetime
+                ts = datetime.now().isoformat()
+                f.write(f"[{ts}] Error: {e}\n{traceback.format_exc()}\n")
+        except Exception:
+            pass  # If logging fails, continue anyway
+
         print(json.dumps({}))  # Allow tool to proceed
         sys.exit(0)
 
