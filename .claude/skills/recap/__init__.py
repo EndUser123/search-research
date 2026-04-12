@@ -906,6 +906,13 @@ def _calculate_priority_score(
     return min(score, 100.0)
 
 
+def truncate(s: str, max_len: int = 100) -> str:
+    """Truncate string to max_len, appending ellipsis if truncated."""
+    if len(s) <= max_len:
+        return s
+    return s[: max_len - 3] + "..."
+
+
 def _summarize_session(entries: list[dict[str, Any]], session_id: str | None) -> dict[str, Any]:
     """Summarize a session from its entries.
 
@@ -973,12 +980,6 @@ def _summarize_session(entries: list[dict[str, Any]], session_id: str | None) ->
             elif isinstance(content, str) and content.strip():
                 last_goal = content.strip()
                 break
-
-    # Truncate goals for display
-    def truncate(s: str, max_len: int = 100) -> str:
-        if len(s) <= max_len:
-            return s
-        return s[: max_len - 3] + "..."
 
     # Extract semantic content
     semantic = _extract_semantic_content(entries)
