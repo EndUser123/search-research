@@ -1105,10 +1105,56 @@ def process_hook(
         save_state(state, terminal_id)
         return True, message_to_return
 
-    # Check writes
+    # Check writes with auto-read fallback
     if tool_name in WRITE_TOOLS:
         allowed, reason = check_write_permission(tool_name, tool_input, state)
         if not allowed:
+            # Attempt auto-read for existing files before blocking
+            filepath = tool_input.get("file_path", "")
+            if filepath:
+                try:
+                    # Check file size before reading (memory bomb protection)
+                    file_size = Path(filepath).stat().st_size
+                    _AUTO_READ_MAX_BYTES = 1_000_000  # 1MB limit
+                    if file_size > _AUTO_READ_MAX_BYTES:
+                        raise IOError(f"File too large for auto-read ({file_size} bytes)")
+
+                    # Try reading as text, detect binary files
+                    content = None
+                    is_binary = False
+                    with open(filepath, "rb") as f:
+                        raw = f.read(8192)
+                        # Detect binary: null bytes or high bit set in first 1KB
+                        if b'\x00' in raw[:1024] or any(b > 127 for b in raw[:512]):
+                            is_binary = True
+                        else:
+                            content = raw.decode('utf-8', errors='replace')
+
+                    # Track as read
+                    state["files_read"].append(filepath)
+                    save_state(state, terminal_id)
+
+                    # Create context injection
+                    _AUTO_READ_MAX_CHARS = 5000
+                    if is_binary:
+                        preview = f"[BINARY FILE - {len(raw)} bytes, cannot preview]"
+                    elif content:
+                        preview = content[:_AUTO_READ_MAX_CHARS]
+                        if len(content) > _AUTO_READ_MAX_CHARS:
+                            preview += f"\n\n... [{len(content) - _AUTO_READ_MAX_CHARS} more characters]"
+                    else:
+                        preview = "[empty file]"
+
+                    context_msg = (
+                        f"[AUTO-READ] {filepath} has been read for investigation.\n\n"
+                        f"File preview:\n{preview}"
+                    )
+                    return True, context_msg
+                except (FileNotFoundError, PermissionError, UnicodeDecodeError, OSError, IOError):
+                    # Auto-read failed, fall through to block
+                    pass
+
+            # Block if auto-read not possible or failed
             save_state(state, terminal_id)
             return False, reason
         save_state(state, terminal_id)
