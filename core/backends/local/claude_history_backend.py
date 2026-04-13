@@ -86,7 +86,7 @@ class ClaudeHistoryBackend(BaseLocalBackend):
             List of search result dictionaries with keys:
             - title: Formatted title with message type and timestamp
             - content: Message content
-            - score: Relevance score (fixed at 0.5 for LIKE queries)
+            - score: Relevance score (0.0-1.0, higher is better)
             - metadata: Dictionary with session_id, message_type, timestamp, project, snippet
         """
         # Empty query returns no results
@@ -103,52 +103,13 @@ class ClaudeHistoryBackend(BaseLocalBackend):
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
 
-                # Build query with LIKE for keyword search
-                # Note: Using LIKE instead of FTS5 MATCH for compatibility
-                # FTS5 index may not be built (indexed_messages: 0 from CLI stats)
-                sql = """
-                    SELECT
-                        session_id,
-                        role as message_type,
-                        content,
-                        timestamp,
-                        project
-                    FROM messages
-                    WHERE content LIKE ?
-                """
-                params = [f"%{query}%"]
+                # Try FTS5 MATCH first, fall back to LIKE on FTS5 error
+                fts_results = self._fts5_search(cursor, query, limit, project)
+                if fts_results is not None:
+                    return fts_results
 
-                # Add project filter if specified
-                if project:
-                    sql += " AND project = ?"
-                    params.append(project)
-
-                # Add limit
-                sql += " LIMIT ?"
-                params.append(str(limit))
-
-                cursor.execute(sql, params)
-                rows = cursor.fetchall()
-
-                # Convert to SearchResult format
-                results = []
-                for row in rows:
-                    results.append(
-                        {
-                            "title": f"{row['message_type']} - {row['timestamp']}",
-                            "content": row["content"],
-                            "score": 0.9,  # Match CKS priority for chat history
-                            "metadata": {
-                                "session_id": row["session_id"],
-                                "message_type": row["message_type"],
-                                "timestamp": row["timestamp"],
-                                "project": row["project"],
-                                "snippet": row["content"][:200],  # First 200 chars as snippet
-                            },
-                        }
-                    )
-
-                return results
+                # Fall back to LIKE with position-based ranking
+                return self._like_search(cursor, query, limit, project)
 
         except sqlite3.Error as e:
             logger.debug(f"SQLite search failed: {e}")
@@ -156,6 +117,156 @@ class ClaudeHistoryBackend(BaseLocalBackend):
         except Exception as e:
             logger.debug(f"Unexpected error during SQLite search: {e}")
             return []
+
+    def _fts5_search(
+        self,
+        cursor: sqlite3.Cursor,
+        query: str,
+        limit: int,
+        project: str | None,
+    ) -> list[SearchResult] | None:
+        """Attempt FTS5 MATCH search with BM25 ranking.
+
+        Returns None if FTS5 fails (index not available, syntax error, etc.)
+        so caller can fall back to LIKE.
+        """
+        # Escape FTS5 special characters: * " - + ( )
+        # FTS5 query syntax: term1 AND term2 (implicit), OR for OR, "phrase" for exact
+        fts_query = query.replace('"', '""')
+        fts_query = f'"{fts_query}"'
+
+        try:
+            sql = """
+                SELECT
+                    m.session_id,
+                    m.role as message_type,
+                    m.content,
+                    m.timestamp,
+                    s.project_id,
+                    bm25(messages_fts) as rank
+                FROM messages_fts fts
+                JOIN messages m ON m.rowid = fts.rowid
+                LEFT JOIN sessions s ON s.session_key = m.session_id
+                WHERE messages_fts MATCH ?
+            """
+            params: list[str] = [fts_query]
+
+            if project:
+                sql += " AND s.project_id = ?"
+                params.append(project)
+
+            sql += " ORDER BY rank LIMIT ?"
+            params.append(str(limit))
+
+            cursor.execute(sql, params)
+            rows = cursor.fetchall()
+
+            if not rows:
+                return []
+
+            # Normalize BM25 rank to 0-1 score (BM25 is negative, lower = better)
+            # Most negative is worst match; least negative is best match
+            ranks = [row["rank"] for row in rows]
+            min_rank = min(ranks)
+            max_rank = max(ranks)
+            rank_range = max_rank - min_rank if max_rank != min_rank else 1.0
+
+            results = []
+            for row in rows:
+                # Normalize: best rank (most negative) → 1.0, worst → 0.7
+                # FTS5 results are still high-quality even at lower ranks
+                norm_rank = (row["rank"] - min_rank) / rank_range if rank_range != 0 else 0.5
+                score = 1.0 - (norm_rank * 0.3)  # Range [0.7, 1.0]
+
+                results.append(
+                    {
+                        "title": f"{row['message_type']} - {row['timestamp']}",
+                        "content": row["content"],
+                        "score": round(score, 3),
+                        "metadata": {
+                            "session_id": row["session_id"],
+                            "message_type": row["message_type"],
+                            "timestamp": row["timestamp"],
+                            "project": row["project_id"],
+                            "snippet": row["content"][:200],
+                        },
+                    }
+                )
+            return results
+
+        except sqlite3.Error as e:
+            logger.debug(f"FTS5 MATCH failed, falling back to LIKE: {e}")
+            return None
+
+    def _like_search(
+        self,
+        cursor: sqlite3.Cursor,
+        query: str,
+        limit: int,
+        project: str | None,
+    ) -> list[SearchResult]:
+        """LIKE-based search with position-based ranking.
+
+        Used as fallback when FTS5 is unavailable. Ranks results by:
+        1. Exact prefix match (content LIKE 'query%') - highest
+        2. Word boundary match (content LIKE '% query %')
+        3. Contains match (content LIKE '%query%') - lowest
+        """
+        # Build query with LIKE for keyword search
+        sql = """
+            SELECT
+                m.session_id,
+                m.role as message_type,
+                m.content,
+                m.timestamp,
+                s.project_id,
+                CASE
+                    WHEN m.content LIKE ? THEN 3      -- exact prefix
+                    WHEN m.content LIKE ? THEN 2    -- word boundary
+                    WHEN m.content LIKE ? THEN 1    -- contains
+                    ELSE 0
+                END as match_level
+            FROM messages m
+            LEFT JOIN sessions s ON s.session_key = m.session_id
+            WHERE m.content LIKE ?
+        """
+        prefix_q = f"{query}%"
+        boundary_q = f"% {query} %"
+        contains_q = f"%{query}%"
+
+        params = [prefix_q, boundary_q, contains_q, contains_q]
+
+        if project:
+            sql += " AND s.project_id = ?"
+            params.append(project)
+
+        sql += " ORDER BY match_level DESC, length(m.content) ASC LIMIT ?"
+        params.append(str(limit))
+
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
+
+        results = []
+        for row in rows:
+            # Score based on match level: exact=0.9, boundary=0.8, contains=0.7
+            match_level = row["match_level"]
+            score = 0.9 if match_level == 3 else (0.8 if match_level == 2 else 0.7)
+
+            results.append(
+                {
+                    "title": f"{row['message_type']} - {row['timestamp']}",
+                    "content": row["content"],
+                    "score": score,
+                    "metadata": {
+                        "session_id": row["session_id"],
+                        "message_type": row["message_type"],
+                        "timestamp": row["timestamp"],
+                        "project": row["project_id"],
+                        "snippet": row["content"][:200],
+                    },
+                }
+            )
+        return results
 
     def search(
         self,

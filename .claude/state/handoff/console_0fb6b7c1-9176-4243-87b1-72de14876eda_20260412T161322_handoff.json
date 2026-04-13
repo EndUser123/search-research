@@ -1,0 +1,120 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "1c8775e9-dbbe-4e72-a913-c78e387dfa2e",
+    "terminal_id": "console_0fb6b7c1-9176-4243-87b1-72de14876eda",
+    "source_session_id": "e3eede38-9fe9-44af-9564-5468a6432a16",
+    "created_at": "2026-04-12T16:13:22.300273+00:00",
+    "expires_at": "2026-04-12T16:33:22.300273+00:00",
+    "status": "rejected_stale",
+    "goal": "The session context was pretty clean that 'continue' meant 'continue with Phase 2'.  Can /code be updated so that you are smarter about this next time?",
+    "current_task": "The session context was pretty clean that 'continue' meant 'continue with Phase 2'. Can /code be updated so that you are smarter about this next time?",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "P:/.claude/skills/search/SKILL.md",
+      "P:/.claude/skills/search/references/architecture.md",
+      "P:/.claude/skills/search/references/auto-detection.md",
+      "P:/.claude/skills/search/references/advanced-features.md",
+      "P:/.claude/hooks/PreToolUse_domain_tool_router.py",
+      "P:/packages/search-research/core/unified_router.py",
+      "P:/packages/search-research/core/backends/__init__.py",
+      "P:/packages/search-research/core/router_async.py",
+      "P:/.claude/.evidence/arch_decisions/ADR-20260328-searchquality-improvements.md",
+      "P:/.claude/arch_decisions/ADR-002-search-research-optimal-architecture.md"
+    ],
+    "pending_operations": [
+      {
+        "type": "skill",
+        "target": "skill: search",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: .claude-plugin/**/*",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: .claude/skills/**/*",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: packages/**/*",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: .claude/hooks/**/*",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "Resume skill on skill: search.",
+    "decision_refs": [],
+    "evidence_refs": [
+      "ev_b97077247239468a8553f5aa5dda9e16",
+      "ev_c1d64e3d9b1b405ab9ae0dbcddfaf986",
+      "ev_dd74399c27b643bcb34351ac18deb096",
+      "ev_4b7351a288c84573b281ff516b264960",
+      "ev_98e547c27a3f418a97a69c5c1e56d0a1",
+      "ev_0980021dd6a346c3ae47302b5c0689e5"
+    ],
+    "transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\e3eede38-9fe9-44af-9564-5468a6432a16.jsonl",
+    "prior_transcript_path": null,
+    "message_intent": "question",
+    "goal_origin": "user_message",
+    "quality_score": 0.4,
+    "tasks_snapshot": [],
+    "rejected_at": "2026-04-12T16:14:17.850992+00:00",
+    "rejected_by_session_id": "e3eede38-9fe9-44af-9564-5468a6432a16",
+    "rejection_reason": "snapshot evidence path outside project directory"
+  },
+  "decision_register": [],
+  "evidence_index": [
+    {
+      "id": "ev_b97077247239468a8553f5aa5dda9e16",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\e3eede38-9fe9-44af-9564-5468a6432a16.jsonl",
+      "content_hash": "sha256:a71de42c7065981058624f1e622c84e9192ea578cf40671a512246e9d9f867ef"
+    },
+    {
+      "id": "ev_c1d64e3d9b1b405ab9ae0dbcddfaf986",
+      "type": "file",
+      "label": "SKILL.md",
+      "path": "P:\\packages\\search-research\\skills\\search\\SKILL.md",
+      "content_hash": "sha256:bd8aefaa0ef5d3eb04cf7c14b28cf1a7c14984770de58eec8261bf7cdc002fd7"
+    },
+    {
+      "id": "ev_dd74399c27b643bcb34351ac18deb096",
+      "type": "file",
+      "label": "architecture.md",
+      "path": "P:\\packages\\search-research\\skills\\search\\references\\architecture.md",
+      "content_hash": "sha256:685587bd3aee6716edc017164e6924cd974318947fc9bb46cdbe65aa8d499473"
+    },
+    {
+      "id": "ev_4b7351a288c84573b281ff516b264960",
+      "type": "file",
+      "label": "auto-detection.md",
+      "path": "P:\\packages\\search-research\\skills\\search\\references\\auto-detection.md",
+      "content_hash": "sha256:e5575e5caf82d4c9d83ccc3c2915bb02098d26bf73dd94751e6ebc68caa3c371"
+    },
+    {
+      "id": "ev_98e547c27a3f418a97a69c5c1e56d0a1",
+      "type": "file",
+      "label": "advanced-features.md",
+      "path": "P:\\packages\\search-research\\skills\\search\\references\\advanced-features.md",
+      "content_hash": "sha256:bbaec3f619c26577cda07a8b0e73addaa2ea8f2c1ab3730b85b9ea5470ec2273"
+    },
+    {
+      "id": "ev_0980021dd6a346c3ae47302b5c0689e5",
+      "type": "file",
+      "label": "PreToolUse_domain_tool_router.py",
+      "path": "P:\\.claude\\hooks\\PreToolUse_domain_tool_router.py",
+      "content_hash": "sha256:9c8a3b8a9242d2d5bc6e1627119619da62d7783ea2fdd9d0b422832a421c4f93"
+    }
+  ],
+  "checksum": "sha256:684e1cdbf6a741d343ff606ea854ec8038396d8bb7d440d6d314cf0e2f65419a"
+}

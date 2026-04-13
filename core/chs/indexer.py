@@ -5,12 +5,26 @@ Provides ChatIndexer class with incremental JSONL ingestion and turn building.
 
 from __future__ import annotations
 
+import asyncio
+import logging
 import sqlite3
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from search_research.core.chs.db import get_connection
-from search_research.core.chs.utils import file_identity, parse_jsonl_line
+from core.chs.db import get_connection
+from core.chs.utils import file_identity, parse_jsonl_line
+
+logger = logging.getLogger(__name__)
+
+_summary_executor: ThreadPoolExecutor | None = None
+
+
+def _get_summary_executor() -> ThreadPoolExecutor:
+    global _summary_executor
+    if _summary_executor is None:
+        _summary_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="summary_")
+    return _summary_executor
 
 
 class ChatIndexer:
@@ -166,7 +180,7 @@ class ChatIndexer:
     def daemon_loop(
         self, jsonl_dir: str | Path, poll_interval: float = 1.0, idle_timeout: int = 3600
     ) -> None:
-        from search_research.core.chs.utils import discover_chat_logs
+        from core.chs.utils import discover_chat_logs
 
         while True:
             jsonl_files = discover_chat_logs(jsonl_dir)
@@ -186,11 +200,61 @@ class ChatIndexer:
     def _close_idle_sessions(self, timeout: int = 3600) -> None:
         conn = self._get_connection()
         cutoff_time = int(time.time()) - timeout
+
+        # Find newly-closed sessions before marking them
+        cursor = conn.execute(
+            "SELECT id FROM sessions WHERE is_closed = 0 AND last_message_timestamp < ?",
+            (cutoff_time,),
+        )
+        closed_rows = cursor.fetchall()
+
         conn.execute(
             "UPDATE sessions SET is_closed = 1, ended_at = ? WHERE is_closed = 0 AND last_message_timestamp < ?",
             (int(time.time()), cutoff_time),
         )
         conn.commit()
+
+        # Kick off background summarization for newly-closed sessions
+        if closed_rows:
+            executor = _get_summary_executor()
+            for (session_id,) in closed_rows:
+                executor.submit(self._summarize_session_sync, session_id)
+
+    def _summarize_session_sync(self, session_id: int) -> None:
+        """Sync wrapper — runs in ThreadPoolExecutor to call async generate_with_fallback."""
+        try:
+            from core.chs.embeddings import get_embed_client
+            from core.chs.summarizer import generate_session_summary
+
+            # Fetch messages for this session
+            conn = self._get_connection()
+            cursor = conn.execute(
+                "SELECT role, content FROM messages WHERE session_id = ? ORDER BY timestamp",
+                (session_id,),
+            )
+            messages = [{"role": r, "content": c} for r, c in cursor.fetchall()]
+            if not messages:
+                return
+
+            # Generate summary via asyncio.run (safe in thread pool)
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                summary = loop.run_until_complete(generate_session_summary(messages))
+            finally:
+                loop.close()
+
+            # Write embedding from summary
+            embed_client = get_embed_client()
+            embedding = embed_client.embed_texts([summary])[0]
+
+            conn.execute(
+                "UPDATE sessions SET summary_short = ?, embedding = ?, embedding_model = ?, embedding_dim = ? WHERE id = ?",
+                (summary, embedding, "all-MiniLM-L6-v2", 384, session_id),
+            )
+            conn.commit()
+        except Exception as ex:
+            logger.warning(f"Failed to summarize session {session_id}: {ex}")
 
     def close(self) -> None:
         if self._conn:

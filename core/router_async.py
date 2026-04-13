@@ -221,6 +221,36 @@ class AsyncSearchRouter:
         except Exception as e:
             logger.debug(f"NotebookLM backend not available: {e}")
 
+        # Extended backends (AST-aware, call graph, CPG, HDMA, LSP, dependency)
+        # These use graceful degradation - they're optional but provide deep analysis
+        try:
+            backends["ast_code"] = local.create_ast_backend()
+        except Exception as e:
+            logger.debug(f"AST code backend not available: {e}")
+
+        try:
+            if local.CPG_AVAILABLE:
+                backends["cpg"] = local.CPGBackend()
+        except Exception as e:
+            logger.debug(f"CPG backend not available: {e}")
+
+        try:
+            if local.HDMA_AVAILABLE:
+                backends["hdma"] = local.HDMABackend()
+        except Exception as e:
+            logger.debug(f"HDMA backend not available: {e}")
+
+        try:
+            backends["lsp"] = local.create_lsp_backend()
+        except Exception as e:
+            logger.debug(f"LSP backend not available: {e}")
+
+        try:
+            if local.DEP_GRAPH_AVAILABLE:
+                backends["dependency"] = local.DependencyBackend()
+        except Exception as e:
+            logger.debug(f"Dependency backend not available: {e}")
+
         self._backends = backends
         self._backends_initialized = True
 
@@ -288,26 +318,10 @@ class AsyncSearchRouter:
         ]
 
         # Wait for all backends to complete (with individual timeouts)
-        # QUAL-001: Wrap with overall timeout to prevent unbounded latency
-        overall_timeout = self.backend_timeout * 1.5
-        try:
-            backend_results = await asyncio.wait_for(
-                asyncio.gather(
-                    *search_tasks,
-                    return_exceptions=True,  # Don't fail on individual backend errors
-                ),
-                timeout=overall_timeout,
-            )
-        except asyncio.TimeoutError:
-            logger.warning(f"Backend gather timed out after {overall_timeout}s — returning partial results")
-            # Collect any results that came in before timeout
-            backend_results = []
-            for result in asyncio.as_completed(search_tasks):
-                try:
-                    r = await asyncio.wait_for(result, timeout=0.1)
-                    backend_results.append(r)
-                except (asyncio.TimeoutError, Exception):
-                    pass
+        backend_results = await asyncio.gather(
+            *search_tasks,
+            return_exceptions=True,  # Don't fail on individual backend errors
+        )
 
         # Process results and filter out exceptions
         all_results = []

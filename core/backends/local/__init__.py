@@ -45,6 +45,12 @@ from .rlm_backend import (
     is_rlm_available,
 )
 from .skills_backend import BACKEND_SKILLS, SkillsBackend
+from .ast_code_backend import ASTCodeBackend, create_ast_backend, BACKEND_AST_CODE
+from .call_graph_backend import CallGraphBackend, BACKEND_NAME_CALL_GRAPH
+from .cpg_backend import CPGBackend, CPG_AVAILABLE
+from .hdma_backend import HDMABackend, HDMA_AVAILABLE
+from .lsp_backend import LSPSymbolBackend, create_lsp_backend, BACKEND_LSP_SYMBOL
+from .dependency_backend import DependencyBackend, DEP_GRAPH_AVAILABLE
 
 __all__ = [
     # Core backends
@@ -59,6 +65,13 @@ __all__ = [
     "RLMBackend",
     "ClaudeHistoryBackend",
     "NotebookLMBackend",
+    # Extended backends (graceful degradation)
+    "ASTCodeBackend",
+    "CallGraphBackend",
+    "CPGBackend",
+    "HDMABackend",
+    "LSPSymbolBackend",
+    "DependencyBackend",
     # Backend constants
     "BACKEND_NOTEBOOKLM",
     "BACKEND_SKILLS",
@@ -67,6 +80,9 @@ __all__ = [
     "BACKEND_MULTILANG",
     "BACKEND_RLM",
     "BACKEND_CLAUDE_HISTORY",
+    "BACKEND_AST_CODE",
+    "BACKEND_LSP_SYMBOL",
+    "BACKEND_NAME_CALL_GRAPH",
     "SOURCE_RELIABILITY_MULTILANG",
     # Factory functions
     "create_cks_metadata_backend",
@@ -74,5 +90,10 @@ __all__ = [
     "create_multilang_backend",
     "create_rlm_backend",
     "create_claude_history_backend",
-    "is_rlm_available",
+    "create_ast_backend",
+    "create_lsp_backend",
+    # Availability flags
+    "CPG_AVAILABLE",
+    "HDMA_AVAILABLE",
+    "DEP_GRAPH_AVAILABLE",
 ]

@@ -124,8 +124,7 @@ def _get_prior_transcript_path(handoff_path: Path) -> Path | None:
     try:
         with open(handoff_path, encoding="utf-8") as f:
             data = json.load(f)
-        resume_snapshot = data.get("resume_snapshot", {})
-        path_str = resume_snapshot.get("transcript_path") or resume_snapshot.get("prior_transcript_path")
+        path_str = data.get("resume_snapshot", {}).get("transcript_path")
         if path_str:
             p = Path(path_str)
             try:
@@ -216,6 +215,7 @@ def walk_handoff_chain(session_id: str, max_depth: int = 50) -> SessionChainResu
             prior_transcript = _get_prior_transcript_path(handoff_path)
         except (OSError, PermissionError, RuntimeError) as e:
             logger.warning("Failed to read handoff %s: %s", handoff_path, e)
+            prior_transcript = None
 
         if prior_transcript:
             prior_session_id = prior_transcript.stem
@@ -223,6 +223,8 @@ def walk_handoff_chain(session_id: str, max_depth: int = 50) -> SessionChainResu
                 break
             visited.add(str(prior_transcript))
         else:
+            # Prior transcript missing (post-compaction) — extract session_id from
+            # handoff filename as fallback: console_{session_id}_handoff.json
             prior_session_id = handoff_path.stem.replace("_handoff", "")
 
         entries.append(
@@ -853,14 +855,12 @@ def walk_session_chain(
     project_path: Path | None = None,
     max_depth: int = 50,
     newest_first: bool = False,
-    use_semantic_fallback: bool = True,
 ) -> SessionChainResult:
     """Walk session chain using the best available strategy.
 
-    Three strategies tried in order:
+    Two strategies tried in order:
       1. Handoff-file chain    - deterministic via PreCompact hook handoff files
       2. mtime + semantic chain - finds candidates by mtime gap, verifies with semantic similarity
-      3. Semantic similarity    - wide window search via embedding similarity (fallback only)
 
     Falls back gracefully: if Strategy 2 builds a partial chain, returns it as-is.
     """
@@ -880,14 +880,6 @@ def walk_session_chain(
         if newest_first:
             mtime_result.entries.reverse()
         return mtime_result
-
-    # Strategy 3: Wide-window semantic similarity (only when S1 and S2 produced single-entry chains)
-    if use_semantic_fallback and mtime_result.entries and len(mtime_result.entries) == 1:
-        semantic_result = walk_semantic_chain(session_id, project_path)
-        if semantic_result.entries and len(semantic_result.entries) > 1:
-            if newest_first:
-                semantic_result.entries.reverse()
-            return semantic_result
 
     return mtime_result
 

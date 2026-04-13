@@ -1,0 +1,10 @@
+{
+  "current_intent": {
+    "work_type": "unknown",
+    "target": "what folders",
+    "problem": "I don't understand.  For what folders?",
+    "user_prompt": "I don't understand.  For what folders?",
+    "timestamp": "2026-04-13T00:39:41.582377+00:00"
+  },
+  "last_updated": "2026-04-13T00:39:41.583259+00:00"
+}

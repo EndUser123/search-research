@@ -175,22 +175,35 @@ def walk_handoff_chain(
 
     while handoff_path and chain_depth < max_depth:
         prior_transcript = _get_prior_transcript_path(handoff_path)
-        if not prior_transcript or str(prior_transcript) in visited:
-            break
-        visited.add(str(prior_transcript))
+        prior_session_id: str | None = None
 
-        # Extract session_id from transcript filename
-        prior_session_id = prior_transcript.stem
+        if prior_transcript and str(prior_transcript) not in visited:
+            visited.add(str(prior_transcript))
+            prior_session_id = prior_transcript.stem
+        elif handoff_path:
+            # Prior transcript missing (post-compaction) — extract session_id from
+            # handoff filename as fallback: console_{session_id}_handoff.json
+            prior_session_id = handoff_path.stem.replace("_handoff", "")
+            prior_transcript = None
 
         # Check if this is the origin (no more prior handoffs)
-        prior_handoff = _find_handoff_referencing(prior_transcript)
+        prior_handoff: Path | None = None
+        if prior_transcript:
+            try:
+                prior_handoff = _find_handoff_referencing(prior_transcript)
+            except (OSError, PermissionError, RuntimeError) as e:
+                logger.warning("Failed to find handoff referencing %s: %s", prior_transcript, e)
+                prior_handoff = None
+        else:
+            prior_handoff = None
+
         if not prior_handoff:
             origin_session_id = prior_session_id
 
         entries.append(
             HandoffChainEntry(
-                session_id=prior_session_id,
-                transcript_path=prior_transcript,
+                session_id=prior_session_id or "unknown",
+                transcript_path=prior_transcript or Path("."),
                 parent_transcript_path=None,  # Set after we find next
                 created=None,
             )

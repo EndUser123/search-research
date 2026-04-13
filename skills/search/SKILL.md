@@ -279,6 +279,21 @@ See `references/consolidated-features.md` for: source control (`--source`), chat
 
 See `references/output-format.md` for: result grouping format, match explanations, and output options.
 
+## Operational Parameters
+
+The following environment variables control search behavior:
+
+| Env Var | Default | Purpose |
+|---------|---------|---------|
+| `SEARCH_ENABLE_KG_BOOSTING` | — | Enable KG entity affinity boosting |
+| `SEARCH_KG_BOOST_ALPHA` | — | Jaccard similarity weight (0.0-1.0) |
+| `SEARCH_KG_BOOST_ENTITY_TYPES` | — | Filter by entity types (comma-separated) |
+| `FAST_BACKEND_TIMEOUT` | 2s | Fast backend timeout |
+| `COMPREHENSIVE_BACKEND_TIMEOUT` | 8s | Comprehensive backend timeout |
+| `SEARCH_CACHE_TTL` | 3600s | LRU cache TTL |
+
+**Extended backends** (KG Boosting, CPG, HDMA, CallGraph, AST, Persona, RLM) are documented in `references/architecture.md`.
+
 ## Reference Files
 
 | File | Contents |

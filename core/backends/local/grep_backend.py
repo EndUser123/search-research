@@ -40,8 +40,8 @@ class GrepBackend(BaseLocalBackend):
                     continue
                 try:
                     self._index_file(py_file)
-                except Exception as e:
-                    logger.debug(f"Could not index {py_file}: {e}")
+                except Exception:
+                    pass
 
         self._indexed = True
 

@@ -1,0 +1,10 @@
+{
+  "current_intent": {
+    "work_type": "unknown",
+    "target": "tool_result",
+    "problem": "/arch how should these paths be used optimally in /recap:\n\n\u25cf Summary: Real Claude Code Paths\n\n  Chat History (Session Transcripts):\n  C:\\Users\\brsth\\.claude\\projects\\P--\\{session_id}.jsonl\n  - 100+...",
+    "user_prompt": "/arch how should these paths be used optimally in /recap:\n\n\u25cf Summary: Real Claude Code Paths\n\n  Chat History (Session Transcripts):\n  C:\\Users\\brsth\\.claude\\projects\\P--\\{session_id}.jsonl\n  - 100+ files, 1.7 MB to 34 MB each\n  - Contains user/assistant messages + tool results\n\n  Handoff Files (Resume Context):\n  P:\\.claude\\state\\handoff\\console_{terminal_id}_{timestamp}_handoff.json\n  - Latest: console_30edcd47-83e0-4abd-883a-a206cf8fbbcb_20260412T005329_handoff.json\n\n  Terminals (Legacy):\n  C:\\Users\\brsth\\.claude\\terminals\\{terminal_id}\\transcript.jsonl\n  - Empty in this environment (not used currently)\n\n  Tool Logs:\n  - Embedded in transcript files as type: \"tool_result\" entries\n  - No separate tool log files\n\nHow should the functions and capabilities be best used in /recap: P:\\packages\\claude-chain-miner P:\\packages\\claude-history P:\\packages\\claude-log P:\\packages\\search-research",
+    "timestamp": "2026-04-12T01:04:43.266231+00:00"
+  },
+  "last_updated": "2026-04-12T01:04:43.270721+00:00"
+}

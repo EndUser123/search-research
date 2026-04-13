@@ -1,0 +1,120 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "c4d4a2bc-4eb5-4891-ba29-db6537bd51a9",
+    "terminal_id": "console_0fb6b7c1-9176-4243-87b1-72de14876eda",
+    "source_session_id": "e3eede38-9fe9-44af-9564-5468a6432a16",
+    "created_at": "2026-04-12T18:34:37.908517+00:00",
+    "expires_at": "2026-04-12T18:54:37.908517+00:00",
+    "status": "rejected_stale",
+    "goal": "Continue current task (meta-discussion filtered)",
+    "current_task": "Continue current task (meta-discussion filtered)",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "P:/.claude/skills/search/SKILL.md",
+      "P:/.claude/skills/search/references/architecture.md",
+      "P:/.claude/skills/search/references/auto-detection.md",
+      "P:/.claude/skills/search/references/advanced-features.md",
+      "P:/.claude/hooks/PreToolUse_domain_tool_router.py",
+      "P:/packages/search-research/core/unified_router.py",
+      "P:/packages/search-research/core/backends/__init__.py",
+      "P:/packages/search-research/core/router_async.py",
+      "P:/.claude/.evidence/arch_decisions/ADR-20260328-searchquality-improvements.md",
+      "P:/.claude/arch_decisions/ADR-002-search-research-optimal-architecture.md"
+    ],
+    "pending_operations": [
+      {
+        "type": "skill",
+        "target": "skill: search",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: .claude-plugin/**/*",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: .claude/skills/**/*",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: packages/**/*",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: .claude/hooks/**/*",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "Resume skill on skill: search.",
+    "decision_refs": [],
+    "evidence_refs": [
+      "ev_327d5ecf8a0e4b06bc25b05e301f25c2",
+      "ev_ec3e5c9713d4448b98f4de809a9abe38",
+      "ev_333716ac0a5341b196b581acc342aa5f",
+      "ev_39246b16570544f68eef4630390eb49c",
+      "ev_63c2d241819d4c1abcf8713a8dbe9db6",
+      "ev_2f913f0c6a384cb79ce9c3ed7d42aa3f"
+    ],
+    "transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\e3eede38-9fe9-44af-9564-5468a6432a16.jsonl",
+    "prior_transcript_path": null,
+    "message_intent": "question",
+    "goal_origin": "user_message",
+    "quality_score": 0.4,
+    "tasks_snapshot": [],
+    "rejected_at": "2026-04-12T18:36:07.153589+00:00",
+    "rejected_by_session_id": "e3eede38-9fe9-44af-9564-5468a6432a16",
+    "rejection_reason": "snapshot evidence path outside project directory"
+  },
+  "decision_register": [],
+  "evidence_index": [
+    {
+      "id": "ev_327d5ecf8a0e4b06bc25b05e301f25c2",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\e3eede38-9fe9-44af-9564-5468a6432a16.jsonl",
+      "content_hash": "sha256:f58ca10dcd5d23561f3df56f61a69c533c03dcdd0b1e2135687792c4059ccf9c"
+    },
+    {
+      "id": "ev_ec3e5c9713d4448b98f4de809a9abe38",
+      "type": "file",
+      "label": "SKILL.md",
+      "path": "P:\\packages\\search-research\\skills\\search\\SKILL.md",
+      "content_hash": "sha256:bd8aefaa0ef5d3eb04cf7c14b28cf1a7c14984770de58eec8261bf7cdc002fd7"
+    },
+    {
+      "id": "ev_333716ac0a5341b196b581acc342aa5f",
+      "type": "file",
+      "label": "architecture.md",
+      "path": "P:\\packages\\search-research\\skills\\search\\references\\architecture.md",
+      "content_hash": "sha256:685587bd3aee6716edc017164e6924cd974318947fc9bb46cdbe65aa8d499473"
+    },
+    {
+      "id": "ev_39246b16570544f68eef4630390eb49c",
+      "type": "file",
+      "label": "auto-detection.md",
+      "path": "P:\\packages\\search-research\\skills\\search\\references\\auto-detection.md",
+      "content_hash": "sha256:e5575e5caf82d4c9d83ccc3c2915bb02098d26bf73dd94751e6ebc68caa3c371"
+    },
+    {
+      "id": "ev_63c2d241819d4c1abcf8713a8dbe9db6",
+      "type": "file",
+      "label": "advanced-features.md",
+      "path": "P:\\packages\\search-research\\skills\\search\\references\\advanced-features.md",
+      "content_hash": "sha256:bbaec3f619c26577cda07a8b0e73addaa2ea8f2c1ab3730b85b9ea5470ec2273"
+    },
+    {
+      "id": "ev_2f913f0c6a384cb79ce9c3ed7d42aa3f",
+      "type": "file",
+      "label": "PreToolUse_domain_tool_router.py",
+      "path": "P:\\.claude\\hooks\\PreToolUse_domain_tool_router.py",
+      "content_hash": "sha256:9c8a3b8a9242d2d5bc6e1627119619da62d7783ea2fdd9d0b422832a421c4f93"
+    }
+  ],
+  "checksum": "sha256:8758a3ca6d54bbb7a3dcdcd84672e900c39c40016f258ad285881ac1a35c8e91"
+}

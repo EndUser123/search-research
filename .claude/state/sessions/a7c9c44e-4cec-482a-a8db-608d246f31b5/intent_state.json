@@ -1,0 +1,10 @@
+{
+  "current_intent": {
+    "work_type": "unknown",
+    "target": "t want to use argumetns.  Have it show ",
+    "problem": "I don't want to use argumetns.  Have it show 'health' by defaul.",
+    "user_prompt": "I don't want to use argumetns.  Have it show 'health' by defaul.",
+    "timestamp": "2026-04-12T18:40:34.190289+00:00"
+  },
+  "last_updated": "2026-04-12T18:40:34.190511+00:00"
+}

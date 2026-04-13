@@ -52,3 +52,11 @@ class Config:
                 raise ValueError(f"CHS_JSONL_DIR must exist: {self.jsonl_dir}")
         else:
             self.jsonl_dir = self.DEFAULT_JSONL_DIR
+
+
+def get_chs_db_path() -> str:
+    """Return the CHS database path as a string.
+
+    Convenience wrapper for use by scripts that need CLI path resolution.
+    """
+    return str(Config().db_path)

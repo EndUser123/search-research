@@ -396,6 +396,12 @@ class UnifiedAsyncRouter:
         if not query or not query.strip():
             raise ValueError("Query cannot be empty")
 
+        # Conceptual query → semantic session search
+        if self._is_conceptual_query(query):
+            semantic_results = await self._search_chs_semantic(query, limit=limit)
+            if semantic_results:
+                return self._add_topic_alignment_scores(query, semantic_results)
+
         # Phase 1: Fast local search with error handling
         try:
             local_results = await self._local_router.search_async(query, limit=limit * 2)
@@ -453,6 +459,44 @@ class UnifiedAsyncRouter:
             f"satisfactory={quality_result}"
         )
         return quality_result
+
+    @staticmethod
+    def _is_conceptual_query(query: str) -> bool:
+        """Detect if query wants semantic (conceptual) vs keyword search."""
+        conceptual_patterns = [
+            r"what (did|do|did we|we) discuss",
+            r"what did we decide",
+            r"how did we handle",
+            r"remember",
+            r"patterns?",
+            r"approach",
+        ]
+        query_lower = query.lower()
+        return any(re.search(p, query_lower) for p in conceptual_patterns)
+
+    async def _search_chs_semantic(self, query: str, limit: int) -> list[SearchResult]:
+        """Route to CHS semantic search using session embeddings."""
+        from search_research.core.chs.db import get_connection
+        from search_research.core.chs.embeddings import get_embed_client
+        from search_research.core.chs.search import search_semantic_sessions
+
+        try:
+            embed_client = get_embed_client()
+            db = get_connection()
+            sessions = await search_semantic_sessions(db, query, embed_client, limit=limit)
+            results = []
+            for s in sessions:
+                results.append(SearchResult(
+                    id=str(s["session_id"]),
+                    title=(s["first_prompt"] or "Untitled")[:80],
+                    content=s["summary_short"] or "",
+                    score=s["score"],
+                    source="chs_semantic",
+                ))
+            return results
+        except Exception as e:
+            logger.debug(f"CHS semantic search failed: {e}")
+            return []
 
     def _merge_results_with_rrf(
         self,
