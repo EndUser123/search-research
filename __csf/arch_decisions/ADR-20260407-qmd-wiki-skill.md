@@ -64,10 +64,14 @@ Source: `/arch` nested resolution this session, `contract_authority_packet.packe
 
 | Boundary | Contract authority packet | Producer | Consumer | Input Schema | Output Schema | Required Fields | Freshness Authority | Invalidation Trigger | Failure Behavior | Packet Alignment | Test Binding |
 |----------|--------------------------|----------|----------|--------------|--------------|----------------|--------------------|--------------------|-----------------|-----------------|-------------|
-| skill-to-vault | source: /arch CAP v2 this session | /qmd-wiki skill (LLM) | Obsidian vault (filesystem) | raw source (file path, URL, or text blob) | .md file with YAML frontmatter + body | path, content, frontmatter.tags, frontmatter.created | filesystem (vault mtime) | new ingest, user edit, or explicit rebuild | skill surfaces error; does not corrupt existing pages | ingest-only log; no delete without user consent | file existence + frontmatter parse validation |
+| skill-to-vault | source: /arch CAP v2 this session | /wiki skill (LLM) | Obsidian vault (filesystem) | raw source (file path, URL, or text blob) | .md file with YAML frontmatter + body | path, content, frontmatter.tags, frontmatter.created | filesystem (vault mtime) | new ingest, user edit, or explicit rebuild | skill surfaces error; does not corrupt existing pages | ingest-only log; no delete without user consent | file existence + frontmatter parse validation |
 | vault-to-qmd | source: /arch CAP v2 this session | Obsidian vault (filesystem) | QMD search engine | directory of .md files under vault/wiki/ | QMD binary vector + BM25 index file | wiki/*.md files | QMD index timestamp | any .md file create/edit/delete within vault | qmd rebuilds index automatically on next search | vault is immutable source; qmd index is derived | `qmd index --rebuild` produces valid index; timestamp updated |
 | qmd-to-backend | source: /arch CAP v2 this session | QMD CLI | QMDWikiBackend | query string | `list[SearchResult]` | query, results | QMD index | qmd index rebuild or vault file change | fallback to glob+grep (FileNotFoundError or asyncio.subprocess.SubprocessError) | qmd JSON is input; backend output is list[SearchResult] | mock qmd stdout with valid JSON; mock FileNotFoundError triggers fallback |
-| backend-to-router | source: /arch CAP v2 this session | QMDWikiBackend.search_async() | UnifiedRouter | query string | `list[SearchResult]` (path, snippet, score fields) | query, results | QMDWikiBackend result | search timeout (0.5s) or uncaught exception | returns empty list, logs error to stderr | backend result is input to router | `pytest test_qmd_wiki_backend.py::test_search_returns_results` |
+| backend-to-router | source: /arch CAP v2 this session | QMDWikiBackend.search_async() | UnifiedRouter | query string | `list[SearchResult]` (path, snippet, score fields) | query, results, file_path | QMDWikiBackend result | search timeout (0.5s) or uncaught exception | returns empty list, logs error to stderr | backend result is input to router | `pytest test_qmd_wiki_backend.py::test_search_returns_results` |
+
+**Graceful Degradation Notes:**
+- Fallback glob+grep path truncates `content` to 200 characters per result (`content[:200]`). Consumers must not assume full content length in fallback mode.
+- Cross-terminal rebuild coordination: `_rebuild_lock` is per-process only. Concurrent rebuilds across terminals are serialized by separate locks; vault mtime is re-checked after lock acquisition to minimize stale-index blindness.
 
 ---
 
@@ -236,11 +240,17 @@ class QMDWikiBackend(BaseLocalBackend):
 
     def _sync_rebuild(self) -> None:
         """Synchronous index rebuild for use in executor."""
-        result = asyncio.create_subprocess_exec(
-            "qmd", "index", "--scope", self.qmd_scope, "--rebuild",
-            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-        )
-        asyncio.get_event_loop().run_until_complete(result)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(
+                asyncio.create_subprocess_exec(
+                    "qmd", "index", "--scope", self.qmd_scope, "--rebuild",
+                    stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+                )
+            )
+        finally:
+            loop.close()
 ```
 
 **Acceptance:**

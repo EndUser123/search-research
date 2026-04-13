@@ -70,7 +70,7 @@ class TestGetSessionCachePath:
         def fake_cache_dir():
             return tmp_path
 
-        monkeypatch.setattr("lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
+        monkeypatch.setattr("__lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
         path = _get_session_cache_path("abc123-def456")
         assert path.parent == tmp_path
         assert "abc123-def456.json" in str(path)
@@ -80,7 +80,7 @@ class TestGetSessionCachePath:
         def fake_cache_dir():
             return tmp_path
 
-        monkeypatch.setattr("lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
+        monkeypatch.setattr("__lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
         # On Windows, path with ../ may still resolve within cache dir after normalization
         # The security is that the final path is always within cache_dir (enforced by relative_to)
         path = _get_session_cache_path("../../../etc/passwd")
@@ -93,7 +93,7 @@ class TestGetSessionCachePath:
         def fake_cache_dir():
             return tmp_path
 
-        monkeypatch.setattr("lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
+        monkeypatch.setattr("__lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
         # Simulate a path that on Unix would escape via ../
         # The relative_to check prevents escape regardless of sanitize
         path = _get_session_cache_path("foo/../../etc/passwd")
@@ -108,7 +108,7 @@ class TestSaveAndLoadSessionCache:
         def fake_cache_dir():
             return tmp_path
 
-        monkeypatch.setattr("lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
+        monkeypatch.setattr("__lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
 
         session_id = "test-session-123"
         transcript_path = tmp_path / "transcript.jsonl"
@@ -138,7 +138,7 @@ class TestSaveAndLoadSessionCache:
         def fake_cache_dir():
             return tmp_path
 
-        monkeypatch.setattr("lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
+        monkeypatch.setattr("__lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
 
         session_id = "atomic-test"
         transcript_path = tmp_path / "transcript.jsonl"
@@ -163,7 +163,7 @@ class TestSaveAndLoadSessionCache:
         def fake_cache_dir():
             return tmp_path
 
-        monkeypatch.setattr("lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
+        monkeypatch.setattr("__lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
         assert _load_session_cache("nonexistent-session") is None
 
     def test_corrupt_json_returns_none(self, tmp_path: Path, monkeypatch) -> None:
@@ -171,7 +171,7 @@ class TestSaveAndLoadSessionCache:
         def fake_cache_dir():
             return tmp_path
 
-        monkeypatch.setattr("lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
+        monkeypatch.setattr("__lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
 
         # Write corrupt JSON directly
         cache_file = tmp_path / "corrupt-session.json"
@@ -188,7 +188,7 @@ class TestTTLExpiry:
         def fake_cache_dir():
             return tmp_path
 
-        monkeypatch.setattr("lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
+        monkeypatch.setattr("__lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
 
         session_id = "expired-session"
         # Create a cache file with an old analyzed_at date
@@ -235,7 +235,7 @@ class TestSessionMemoizerGetCachedChainResult:
         def fake_cache_dir():
             return tmp_path
 
-        monkeypatch.setattr("lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
+        monkeypatch.setattr("__lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
 
         memoizer = SessionMemoizer()
         entries = [{"sessionId": "new-session", "transcriptPath": str(tmp_path / "new.jsonl")}]
@@ -248,7 +248,7 @@ class TestSessionMemoizerGetCachedChainResult:
         def fake_cache_dir():
             return tmp_path
 
-        monkeypatch.setattr("lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
+        monkeypatch.setattr("__lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
 
         # Create a session file and its cache
         session_id = "cached-session"
@@ -278,7 +278,7 @@ class TestSessionMemoizerGetCachedChainResult:
         def fake_cache_dir():
             return tmp_path
 
-        monkeypatch.setattr("lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
+        monkeypatch.setattr("__lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
 
         session_id = "stale-session"
         transcript = tmp_path / f"{session_id}.jsonl"
@@ -311,7 +311,7 @@ class TestSessionMemoizerGetCachedChainResult:
         def fake_cache_dir():
             return tmp_path
 
-        monkeypatch.setattr("lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
+        monkeypatch.setattr("__lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
 
         # Origin (LAST entry) is session-c, cached with signature "a,b"
         # Query has entries [a, c] — sorted signature "a,c" — does NOT match "a,b"
@@ -347,7 +347,7 @@ class TestSessionMemoizerGetCachedChainResult:
         def fake_cache_dir():
             return tmp_path
 
-        monkeypatch.setattr("lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
+        monkeypatch.setattr("__lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
 
         session_id = "no-path-session"
         transcript = tmp_path / f"{session_id}.jsonl"
@@ -378,7 +378,7 @@ class TestSessionMemoizerClearCache:
         def fake_cache_dir():
             return tmp_path
 
-        monkeypatch.setattr("lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
+        monkeypatch.setattr("__lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
 
         session_a = "session-a"
         session_b = "session-b"
@@ -405,7 +405,7 @@ class TestSessionMemoizerClearCache:
         def fake_cache_dir():
             return tmp_path
 
-        monkeypatch.setattr("lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
+        monkeypatch.setattr("__lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
 
         for i in range(3):
             path = tmp_path / f"session-{i}.jsonl"
@@ -434,7 +434,7 @@ class TestSessionMemoizerCacheStats:
         def fake_cache_dir():
             return tmp_path
 
-        monkeypatch.setattr("lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
+        monkeypatch.setattr("__lib.session_memoizer._get_sessions_cache_dir", fake_cache_dir)
 
         memoizer = SessionMemoizer()
 

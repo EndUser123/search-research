@@ -33,6 +33,14 @@ from UserPromptSubmit.think_trigger import (
     _detect_profile,
     think_trigger,
 )
+from UserPromptSubmit_modules.unified_detection import UnifiedDetectionResult
+
+
+def _context_text(result) -> str:
+    """Return the injected text from HookResult context across legacy/new shapes."""
+    if isinstance(result.context, dict):
+        return result.context.get("additionalContext", "")
+    return result.context or ""
 
 
 class TestDetectProfileUnified:
@@ -97,77 +105,92 @@ class TestThinkTriggerHookIntegration:
         """Debug RCA should inject template with [THINK:debug_rca] tag."""
         ctx = HookContext(prompt="this keeps crashing with an error", data={})
         result = think_trigger(ctx)
+        text = _context_text(result)
 
         assert not result.is_empty()
-        assert "5 Whys" in result.context
-        assert "[THINK:debug_rca]" in result.context
+        assert "THINK ALIGNMENT" in text
+        assert "5 Whys" in text
+        assert "[THINK:debug_rca]" in text
 
     def test_tradeoff_decision_injects_template_with_tag(self):
         """Tradeoff decision should inject template with [THINK:tradeoff_decision] tag."""
         ctx = HookContext(prompt="should we use Redis or Memcached?", data={})
         result = think_trigger(ctx)
+        text = _context_text(result)
 
         assert not result.is_empty()
-        assert "Decision frame" in result.context
-        assert "[THINK:tradeoff_decision]" in result.context
+        assert "THINK ALIGNMENT" in text
+        assert "Compare 2 options plus the simplest fallback" in text
+        assert "[THINK:tradeoff_decision]" in text
 
     def test_architecture_injects_template_with_tag(self):
         """Architecture should inject template with [THINK:architecture] tag."""
         ctx = HookContext(prompt="should we split into microservices?", data={})
         result = think_trigger(ctx)
+        text = _context_text(result)
 
         assert not result.is_empty()
-        assert "Cynefin" in result.context
-        assert "[THINK:architecture]" in result.context
+        assert "THINK ALIGNMENT" in text
+        assert "Check the domain" in text
+        assert "[THINK:architecture]" in text
 
     def test_pre_commit_risk_injects_template_with_tag(self):
         """Pre-commit risk should inject template with [THINK:pre_commit_risk] tag."""
         ctx = HookContext(prompt="about to deploy to production", data={})
         result = think_trigger(ctx)
+        text = _context_text(result)
 
         assert not result.is_empty()
-        assert "Pre-mortem" in result.context
-        assert "[THINK:pre_commit_risk]" in result.context
+        assert "THINK ALIGNMENT" in text
+        assert "Assume this fails in 48 hours" in text
+        assert "[THINK:pre_commit_risk]" in text
 
     def test_security_review_injects_template_with_tag(self):
         """Security review should inject template with [THINK:security_review] tag."""
         ctx = HookContext(prompt="fix the SQL injection vulnerability", data={})
         result = think_trigger(ctx)
+        text = _context_text(result)
 
         assert not result.is_empty()
-        assert "OWASP" in result.context
-        assert "[THINK:security_review]" in result.context
+        assert "THINK ALIGNMENT" in text
+        assert "OWASP" in text
+        assert "[THINK:security_review]" in text
 
     def test_performance_analysis_injects_template_with_tag(self):
         """Performance analysis should inject template with [THINK:performance_analysis] tag."""
         ctx = HookContext(prompt="optimize the slow query", data={})
         result = think_trigger(ctx)
+        text = _context_text(result)
 
         assert not result.is_empty()
-        assert "Performance investigation" in result.context
-        assert "[THINK:performance_analysis]" in result.context
+        assert "THINK ALIGNMENT" in text
+        assert "Identify the slow symptom" in text
+        assert "[THINK:performance_analysis]" in text
 
     def test_multi_file_refactor_injects_template_with_tag(self):
         """Multi-file refactor should inject template with [THINK:multi_file_refactor] tag."""
         ctx = HookContext(prompt="restructure across the codebase", data={})
         result = think_trigger(ctx)
+        text = _context_text(result)
 
         assert not result.is_empty()
-        assert "Refactoring strategy" in result.context
-        assert "[THINK:multi_file_refactor]" in result.context
+        assert "THINK ALIGNMENT" in text
+        assert "Map the change" in text
+        assert "[THINK:multi_file_refactor]" in text
 
     def test_tag_format_is_correct(self):
         """Emitted tags should follow format [PREFIX:VALUE]."""
         ctx = HookContext(prompt="debug the intermittent failure", data={})
         result = think_trigger(ctx)
+        text = _context_text(result)
 
         assert not result.is_empty()
         # Tag format: [THINK:profile_name]
-        assert "[THINK:" in result.context
-        assert "]" in result.context
+        assert "[THINK:" in text
+        assert "]" in text
         # No spaces within tag brackets
-        assert "[THINK: " not in result.context
-        assert "[ THINK:" not in result.context
+        assert "[THINK: " not in text
+        assert "[ THINK:" not in text
 
 
 class TestAllSevenProfilesTrigger:
@@ -178,32 +201,33 @@ class TestAllSevenProfilesTrigger:
         ("the test keeps failing intermittently", "debug_rca", "5 Whys"),
 
         # Tradeoff decision
-        ("should we use Redis or Memcached?", "tradeoff_decision", "Decision frame"),
+        ("should we use Redis or Memcached?", "tradeoff_decision", "Compare 2 options plus the simplest fallback"),
 
         # Architecture
-        ("should we split into microservices?", "architecture", "Cynefin"),
+        ("should we split into microservices?", "architecture", "Check the domain"),
 
         # Pre-commit risk
-        ("about to deploy to production", "pre_commit_risk", "Pre-mortem"),
+        ("about to deploy to production", "pre_commit_risk", "Assume this fails in 48 hours"),
 
         # Security review
         ("SQL injection vulnerability", "security_review", "OWASP"),
 
         # Performance analysis
-        ("optimize the slow query", "performance_analysis", "Performance investigation"),
+        ("optimize the slow query", "performance_analysis", "Identify the slow symptom"),
 
         # Multi-file refactor
-        ("restructure across the codebase", "multi_file_refactor", "Refactoring strategy"),
+        ("restructure across the codebase", "multi_file_refactor", "Map the change"),
     ])
     def test_all_profiles_trigger(self, prompt, expected_profile, expected_content):
         """All 7 profiles should trigger and inject correct templates."""
         ctx = HookContext(prompt=prompt, data={})
         result = think_trigger(ctx)
+        text = _context_text(result)
 
         assert not result.is_empty(), f"Profile '{expected_profile}' should trigger for: {prompt}"
-        assert expected_content in result.context, \
+        assert expected_content in text, \
             f"Profile '{expected_profile}' should inject template with '{expected_content}'"
-        assert f"[THINK:{expected_profile}]" in result.context, \
+        assert f"[THINK:{expected_profile}]" in text, \
             f"Profile '{expected_profile}' should emit tag [THINK:{expected_profile}]"
 
     def test_all_profiles_exist(self):
@@ -230,21 +254,41 @@ class TestTagEmissionIntegration:
         """[THINK:profile_name] tag should be emitted before template."""
         ctx = HookContext(prompt="debug the intermittent failure", data={})
         result = think_trigger(ctx)
+        text = _context_text(result)
 
         assert not result.is_empty()
         # Tag should come before template content
-        tag_position = result.context.index("[THINK:")
-        template_position = result.context.index("5 Whys")
+        tag_position = text.index("[THINK:")
+        template_position = text.index("5 Whys")
         assert tag_position < template_position, "Tag should be emitted before template"
 
     def test_tag_and_template_separated(self):
         """Tag and template should be separated by blank lines."""
         ctx = HookContext(prompt="debug the intermittent failure", data={})
         result = think_trigger(ctx)
+        text = _context_text(result)
 
         assert not result.is_empty()
         # Should have tag, then \n\n, then template
-        assert "[THINK:debug_rca]\n\n" in result.context
+        assert "[THINK:debug_rca]\n\n" in text
+
+    def test_shared_unified_detection_path_selects_profile(self):
+        """Unified detection result should drive profile selection when provided."""
+        unified_result = UnifiedDetectionResult(
+            matched_profiles=["debug_rca"],
+            intent_classification="diagnostic",
+        )
+        ctx = HookContext(
+            prompt="plain prompt with no local keyword match",
+            data={"unified_detection_result": unified_result},
+        )
+        result = think_trigger(ctx)
+        text = _context_text(result)
+
+        assert not result.is_empty()
+        assert "[THINK:debug_rca]" in text
+        assert "THINK ALIGNMENT" in text
+        assert "Shared detection" in text
 
 
 # Import pytest for parametrize

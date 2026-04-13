@@ -75,12 +75,13 @@ def _import_skill_registry() -> Any:
         csf_path = Path("P:/__csf/src")
         if csf_path.exists():
             sys.path.insert(0, str(csf_path))
-            # CSF may have a different path
-            return None
+            from hooks._archive import skill_registry
+
+            return skill_registry
     except ImportError:
         pass
 
-    logger.warning("skill_registry not available - using fallback skill catalog")
+    # No registry found — fall through to caller, who will use _build_fallback_catalog()
     return None
 
 
@@ -91,18 +92,25 @@ def _build_fallback_catalog() -> dict[str, SkillSummary]:
     """
     fallback_skills = [
         SkillSummary(
+            name="/t",
+            description="Minimal test selection for targeted verification",
+            category="testing",
+            triggers=["t", "test"],
+            relevant_domains=["test_gap", "test_failure", "missing_test", "test_import_error", "flaky_test"],
+        ),
+        SkillSummary(
             name="/tdd",
             description="Test-driven development workflow",
             category="testing",
             triggers=["tdd", "test-driven"],
-            relevant_domains=["test_gap", "test_failure", "missing_test"],
+            relevant_domains=["test_gap", "test_failure", "missing_test", "test_import_error", "flaky_test"],
         ),
         SkillSummary(
             name="/qa",
             description="Feature certification workflow",
             category="testing",
             triggers=["qa", "certify", "certification"],
-            relevant_domains=["test_gap", "test_failure"],
+            relevant_domains=["test_gap", "test_failure", "test_import_error", "flaky_test"],
         ),
         SkillSummary(
             name="/critique",
@@ -179,7 +187,7 @@ def _build_fallback_catalog() -> dict[str, SkillSummary]:
             description="Root cause analysis engine",
             category="debugging",
             triggers=["debugRCA", "rca", "root-cause"],
-            relevant_domains=["test_failure", "runtime_error", "bug"],
+            relevant_domains=["test_failure", "runtime_error", "bug", "test_import_error", "flaky_test"],
         ),
         SkillSummary(
             name="/diagnose",
@@ -296,12 +304,12 @@ def _derive_relevant_domains(category: str, triggers: list[str]) -> list[str]:
 
     # Category-based domains
     category_domains: dict[str, list[str]] = {
-        "testing": ["test_gap", "test_failure", "missing_test"],
+        "testing": ["test_gap", "test_failure", "missing_test", "test_import_error", "flaky_test"],
         "quality": ["code_quality", "design_issue", "complexity"],
         "documentation": ["doc_gap", "missing_docs", "missing_readme"],
         "vcs": ["git_dirty", "uncommitted_changes", "merge_conflict"],
         "dependencies": ["import_issue", "missing_dependency", "outdated_dependency"],
-        "debugging": ["test_failure", "runtime_error", "bug"],
+        "debugging": ["test_failure", "runtime_error", "bug", "test_import_error", "flaky_test"],
         "verification": ["unverified_claim", "evidence_gap"],
         "architecture": ["design_issue", "architectural_concern"],
         "planning": ["missing_plan", "scope_unclear"],
@@ -444,6 +452,14 @@ _STOP_WORDS = {
     "automatic",
     "also",
     "its",
+    "dont",
+    "doesnt",
+    "wont",
+    "cant",
+    "shouldnt",
+    "wouldnt",
+    "couldnt",
+    "didnt",
     "not",
     "no",
     "yes",

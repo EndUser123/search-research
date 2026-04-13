@@ -1,0 +1,10 @@
+notebooklm_id: "551718eb-8903-4bb2-9823-7aee6510a22f"
+repos:
+  - url: "https://github.com/tjboudreaux/cc-thinking-skills"
+    skip: false
+  - url: "https://github.com/glebis/claude-skills"
+    skip: false
+  - url: "https://github.com/abubakarsiddik31/claude-skills-collection"
+    skip: false
+  - url: "https://github.com/VoltAgent/awesome-agent-skills"
+    skip: false

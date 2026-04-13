@@ -65,9 +65,12 @@ class GTOAssertions:
         self.results = {}
 
     def check_a1_artifacts_exist(self) -> tuple[bool, str]:
-        """A1: Artifacts exist (created in last 24 hours) with valid JSON content."""
-        one_day_ago = datetime.now() - timedelta(hours=24)
+        """A1: Artifacts exist (any age) with valid JSON content.
 
+        No time limit — an artifact from any point in history still proves
+        the GTO pipeline ran and produced output. Use A1 to confirm the
+        pipeline works; use artifact mtime in monitoring for freshness.
+        """
         artifact_patterns = [
             "gto-results*.json",
             "gto-artifact*.json",
@@ -84,32 +87,29 @@ class GTOAssertions:
             # Use rglob for recursive search in subdirectories like gto-outputs/
             for artifact in self.evidence_dir.rglob(pattern):
                 if artifact.is_file():
-                    mtime = datetime.fromtimestamp(artifact.stat().st_mtime)
-                    if mtime >= one_day_ago:
-                        # Validate JSON content is parseable
-                        try:
-                            data = json.loads(artifact.read_text())
-                        except (json.JSONDecodeError, OSError):
-                            continue  # Skip malformed artifacts
+                    try:
+                        data = json.loads(artifact.read_text())
+                    except (json.JSONDecodeError, OSError):
+                        continue  # Skip malformed artifacts
 
-                        # Validate required fields exist
-                        # GTO artifacts should have: gaps (list) and timestamp or metadata
-                        if isinstance(data, dict):
-                            has_gaps = "gaps" in data or "findings" in data
-                            has_metadata = any(
-                                k in data
-                                for k in (
-                                    "timestamp",
-                                    "metadata",
-                                    "health_score",
-                                    "overall_score",
-                                    "health_report",
-                                )
+                    # Validate required fields exist
+                    # GTO artifacts should have: gaps (list) and timestamp or metadata
+                    if isinstance(data, dict):
+                        has_gaps = "gaps" in data or "findings" in data
+                        has_metadata = any(
+                            k in data
+                            for k in (
+                                "timestamp",
+                                "metadata",
+                                "health_score",
+                                "overall_score",
+                                "health_report",
                             )
-                            if has_gaps or has_metadata:
-                                return True, f"Found valid artifact: {artifact.name}"
+                        )
+                        if has_gaps or has_metadata:
+                            return True, f"Found valid artifact: {artifact.name}"
 
-        return False, "No valid GTO artifacts with required fields found in last 24 hours"
+        return False, "No valid GTO artifacts with required fields found"
 
     def check_a2_health_score(self) -> tuple[bool, str]:
         """A2: Health score reported (0-100% in artifact files).

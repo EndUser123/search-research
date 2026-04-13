@@ -580,8 +580,6 @@ def extract_section_content(plan: str, section_name: str) -> str:
 
 def is_stateful_plan(plan: str) -> bool:
     """Heuristic detection for plans that need state/history/provider contract checks."""
-    lowered = plan.lower()
-    searchable_text = _strip_negative_declaration_sections(plan)
     frontmatter = parse_frontmatter(plan)
     explicit_stateful = frontmatter.get("stateful", "").strip().lower()
     if explicit_stateful in {"true", "yes"}:
@@ -590,12 +588,12 @@ def is_stateful_plan(plan: str) -> bool:
         return False
 
     state_model_section = extract_section_content(plan, "state_model_contracts")
-    if _has_negative_declaration(searchable_text):
-        # Negative declarations short-circuit stateful pattern matching.
-        # Check applies to full stripped text, not just state_model section,
-        # so "source of truth" in Design Decisions doesn't trigger false stateful.
+    # Check the state_model section directly — do NOT strip it before checking,
+    # as stripping would remove the very negative declaration we need to detect.
+    if _has_negative_declaration(state_model_section):
         return False
 
+    searchable_text = _strip_negative_declaration_sections(plan)
     return any(
         re.search(pattern, searchable_text, re.IGNORECASE)
         for pattern in [*STATEFUL_PLAN_PATTERNS, *PROVIDER_STATEFUL_PATTERNS]
@@ -1221,7 +1219,7 @@ def extract_tasks(plan: str) -> list[dict[str, Any]]:
         task_num = (groups[0] or groups[2] or groups[4] or "").lstrip("0") or "0"
         title = groups[1] or groups[3] or groups[5]
         task_id = f"TASK-{task_num}"
-        title_text = title.strip()
+        title_text = title.strip().rstrip("*").rstrip()
         if not title_text:
             continue
 
@@ -1697,9 +1695,11 @@ def check_state_model_completeness(plan: str) -> list[dict[str, Any]]:
 def check_stateless_contradictions(plan: str) -> list[dict[str, Any]]:
     """Fail when a plan declares itself stateless but still encodes stateful semantics."""
     findings = []
-    # Stateful plans are not stateless contradictions — skip check entirely.
-    # A stateful plan with "Not applicable" in some state-model rows is not a contradiction.
-    if is_stateful_plan(plan):
+    # is_stateful_plan returning False means the plan self-declared non-stateful via
+    # frontmatter or a negative declaration in state_model_contracts. Stateful signals
+    # found in the body of such plans are expected — the plan is correctly describing
+    # inherited semantics (e.g., a read-only CLI that queries an existing SQLite DB).
+    if not is_stateful_plan(plan):
         return findings
     state_model_section = extract_section_content(plan, "state_model_contracts")
     if not state_model_section:
@@ -2472,14 +2472,16 @@ def _is_code_identifier_like(path: str) -> bool:
         if base.islower() and ext in ("py", "md", "json", "ts", "js", "yaml", "yml", "toml", "go", "rs"):
             if base in (
                 "orchestrator", "skill", "results", "config", "main", "test",
-                "data", "self", "class", "def", "init",
+                "data", "self", "class", "def", "init", "batch_status",
+                "cache", "inspect", "check_status", "transcript",
             ):
                 return True
         # Also check uppercase/common variants case-insensitively
         if ext in ("py", "md", "json", "ts", "js", "yaml", "yml", "toml", "go", "rs"):
             if base.lower() in (
                 "orchestrator", "skill", "results", "config", "main", "test",
-                "data", "self", "class", "def", "init",
+                "data", "self", "class", "def", "init", "batch_status",
+                "cache", "inspect", "check_status", "transcript",
             ):
                 return True
         # Single-letter code extension paired with short base → code fragment

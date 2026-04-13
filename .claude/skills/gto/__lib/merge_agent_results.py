@@ -72,6 +72,9 @@ def merge_gaps(l1_data: dict, agent_data: dict[str, dict], gap_finder_data: dict
                     severity = SEVERITY_MAP[severity]
                 gap: dict[str, Any] = {**finding, "source": source}
                 gap["severity"] = severity
+                # Mark correctness agent findings so they map to correctness domain in RNS
+                gap["type"] = "correctness_gap"
+                gap["domain"] = "correctness"
                 if gap_id:
                     seen_ids.add(gap_id)
                 gaps.append(gap)

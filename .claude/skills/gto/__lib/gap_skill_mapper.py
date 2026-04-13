@@ -160,6 +160,7 @@ class SkillRecommendation:
         rationale: Why this skill is recommended.
         confidence: Confidence level (0.0 to 1.0).
         priority: Priority level (critical, high, medium, low).
+        verified: True if skill has fresh evidence in coverage log.
     """
 
     skill: SkillSummary
@@ -167,6 +168,7 @@ class SkillRecommendation:
     rationale: str
     confidence: float
     priority: str
+    verified: bool = False
 
 
 # ── Core Functions ─────────────────────────────────────────────────────────
@@ -355,28 +357,19 @@ def _calculate_confidence(skill: SkillSummary, gap_type: str, gap_message: str) 
 def _infer_domain_from_gap_type(gap_type: str) -> str:
     """Infer gap domain from gap type.
 
+    Delegates to GAP_TYPE_TO_CATEGORIES to avoid duplicate mapping logic.
+
     Args:
         gap_type: The gap type string.
 
     Returns:
-        Inferred domain string.
+        Inferred domain string (first category for known gap types,
+        otherwise the gap_type itself).
     """
-    # Direct mappings
-    domain_mappings: dict[str, str] = {
-        "test_gap": "test_gap",
-        "test_failure": "test_failure",
-        "missing_test": "missing_test",
-        "doc_gap": "doc_gap",
-        "missing_docs": "missing_docs",
-        "code_quality": "code_quality",
-        "import_error": "import_issue",
-        "import_issue": "import_issue",
-        "git_dirty": "git_dirty",
-        "uncommitted_changes": "uncommitted_changes",
-        "design_issue": "design_issue",
-    }
-
-    return domain_mappings.get(gap_type, gap_type)
+    categories = GAP_TYPE_TO_CATEGORIES.get(gap_type, [])
+    if categories:
+        return categories[0]
+    return gap_type
 
 
 def _map_severity_to_priority(severity: str) -> str:
@@ -479,6 +472,7 @@ def format_recommendations_for_rsn(
             "skill_name": rec.skill.name,
             "skill_description": rec.skill.description,
             "confidence": rec.confidence,
+            "verified": rec.verified,  # True if skill has fresh coverage evidence
         }
         findings.append(finding)
 

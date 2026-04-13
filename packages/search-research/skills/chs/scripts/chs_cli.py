@@ -13,6 +13,7 @@ Features:
 
 import argparse
 import json
+import os
 import sqlite3
 import sys
 from datetime import datetime, timedelta
@@ -23,13 +24,13 @@ CHS_SEARCH_AVAILABLE = False
 CHS_DB_AVAILABLE = False
 FAISS_AVAILABLE = False
 try:
-    from search_research.core.chs import db as chs_db  # noqa: F401
-    from search_research.core.chs import search as chs_search  # noqa: F401
+    from core.chs import db as chs_db  # noqa: F401
+    from core.chs import search as chs_search  # noqa: F401
+    from core.chs.db import database_is_initialized
 
     CHS_SEARCH_AVAILABLE = True
-    chs_db_path = Path("P:/__csf/data/chat_history.db")
-    if chs_db_path.exists():
-        CHS_DB_AVAILABLE = True
+    chs_db_path = Path(os.getenv("CHS_DB_PATH", "P:/__csf/data/chat_history.db")).expanduser()
+    CHS_DB_AVAILABLE = database_is_initialized(chs_db_path)
 except ImportError:
     pass
 try:
@@ -256,10 +257,10 @@ class CHSSearch:
         if not CHS_SEARCH_AVAILABLE:
             return []
         try:
-            from search_research.core.chs.db import get_connection
-            from search_research.core.chs.search import search_fts_messages
+            from core.chs.db import get_connection
+            from core.chs.search import search_fts_messages
 
-            chs_db_path = Path("P:/__csf/data/chat_history.db")
+            chs_db_path = Path(os.getenv("CHS_DB_PATH", "P:/__csf/data/chat_history.db")).expanduser()
             conn = get_connection(chs_db_path)
             fts_results = search_fts_messages(conn, query, limit)
             results = []
@@ -314,7 +315,7 @@ class CHSSearch:
         if not FAISS_AVAILABLE or not CHS_DB_AVAILABLE:
             return []
         try:
-            from search_research.core.chs.embeddings import get_embed_client
+            from core.chs.embeddings import get_embed_client
 
             client = get_embed_client()
             import numpy as np

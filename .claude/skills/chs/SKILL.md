@@ -37,6 +37,8 @@ Dedicated search for Claude Code chat history with advanced features: summarizat
 - **CHS Backend**: Reuses existing CHS infrastructure from `/search`
 - **Two-Stage Search**: Lightweight index → Deep content scan (on-demand)
 - **Storage**: SQLite metrics database at `P:/packages/search-research/data/chs_metrics.db`
+- **FTS5 bootstrap**: `python -m core.chs.scripts.reindex_from_jsonl --db-path "P:/__csf/data/chat_history.db" --history-path "~/.claude/history.jsonl"`
+- **Bootstrap rule**: If `chat_history.db` exists but schema/FTS tables are missing, reindex from `history.jsonl` before trusting search results
 
 ### Consolidation History
 - Previously part of `/search` (consolidated old `/chs`, `/recent`, `/search-more`)
@@ -130,10 +132,11 @@ Transform raw chat history into structured documentation.
 
 ### 2. Two-Stage Search Architecture
 
-**Stage 1 (Fast):** Index-only search
+**Stage 1 (Fast):** FTS5 / index-only search
 - Searches: `firstPrompt`, `summary`, `terminalId`, `branch`, `timestamp`
 - Speed: ~10ms
 - Use for: Initial exploration, finding relevant sessions
+- If the SQLite schema is missing or stale, bootstrap via `reindex_from_jsonl.py` before relying on Stage 1
 
 **Stage 2 (Deep):** Full JSONL content scan
 - Searches: All message content, tool results, thinking blocks

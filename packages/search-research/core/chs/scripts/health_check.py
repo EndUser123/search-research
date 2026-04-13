@@ -4,7 +4,7 @@ Check database health including table counts, embedding coverage,
 last indexed timestamp, and recent session information.
 
 Usage:
-    python -m knowledge.systems.chs.v2.scripts.health_check
+    python -m core.chs.scripts.health_check
 """
 
 from __future__ import annotations
@@ -45,16 +45,23 @@ def main() -> int:
     parser.add_argument("--json", action="store_true", help="Output results as JSON")
     args = parser.parse_args()
     if args.db_path:
-        db_path = Path(args.db_path)
+        db_path = Path(args.db_path).expanduser()
     else:
         import os
 
-        db_path = Path(os.getenv("CHS_DB_PATH", "P:/__csf/data/chat_history.db"))
+        db_path = Path(os.getenv("CHS_DB_PATH", "P:/__csf/data/chat_history.db")).expanduser()
     try:
-        from search_research.core.chs.db import get_connection
+        from core.chs.db import database_is_initialized, get_connection
 
         if not db_path.exists():
             print(f"ERROR: Database does not exist: {db_path}", file=sys.stderr)
+            return 1
+        if not database_is_initialized(db_path):
+            print(f"ERROR: Database exists but CHS schema is not initialized: {db_path}", file=sys.stderr)
+            print(
+                "Run: python -m core.chs.scripts.reindex_from_jsonl",
+                file=sys.stderr,
+            )
             return 1
         conn = get_connection(db_path)
         health_data = {}

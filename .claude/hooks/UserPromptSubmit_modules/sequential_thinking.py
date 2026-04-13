@@ -34,6 +34,7 @@ from typing import Optional
 from UserPromptSubmit_modules.base import HookContext, HookResult
 from UserPromptSubmit_modules.reasoning_contract import append_reasoning_contract
 from UserPromptSubmit_modules.registry import register_hook
+from UserPromptSubmit_modules.unified_detection import UnifiedDetectionResult
 
 # Ensure __lib is importable (hooks dir is already in sys.path via UserPromptSubmit.py)
 def _find_hooks_dir() -> Path:
@@ -222,6 +223,62 @@ def _create_sequential_state(
         pass
 
 
+def _get_unified_detection_result(
+    context: HookContext,
+) -> UnifiedDetectionResult | None:
+    """Return the shared unified detection result when available."""
+    data = getattr(context, "data", None) or {}
+    result = data.get("unified_detection_result")
+    return result if isinstance(result, UnifiedDetectionResult) else None
+
+
+def _shared_sequential_signal(
+    unified_result: UnifiedDetectionResult | None,
+) -> tuple[bool, bool, str | None]:
+    """Translate unified detection into sequential-thinking trigger signals."""
+    if unified_result is None:
+        return False, False, None
+
+    matched_modes = set(unified_result.matched_modes)
+    matched_frameworks = set(unified_result.matched_frameworks)
+    diagnostic_intents = {"diagnostic", "implementation_diagnostic"}
+    investigation_frameworks = {
+        "calibrated_confidence",
+        "cynefin_classification",
+        "hanlons_razor",
+        "named_artifact_discovery",
+    }
+
+    is_investigation = bool(
+        unified_result.intent_classification in diagnostic_intents
+        or matched_frameworks & investigation_frameworks
+    )
+    should_trigger = bool(
+        matched_modes & {"sequential", "multi_agent", "graph", "two_stage"}
+        or is_investigation
+        or unified_result.matched_profiles
+    )
+    if not should_trigger:
+        return False, is_investigation, None
+
+    phrase_parts: list[str] = []
+    if unified_result.intent_classification:
+        phrase_parts.append(f"intent={unified_result.intent_classification}")
+    if unified_result.matched_modes:
+        phrase_parts.append("modes=" + ", ".join(unified_result.matched_modes[:3]))
+    if unified_result.matched_profiles:
+        phrase_parts.append(
+            "profiles=" + ", ".join(unified_result.matched_profiles[:3])
+        )
+
+    trigger_phrase = (
+        "unified detection"
+        if not phrase_parts
+        else "unified detection: " + "; ".join(phrase_parts)
+    )
+    return True, is_investigation, trigger_phrase
+
+
 @register_hook("sequential_thinking", priority=8.5)
 def sequential_thinking_hook(context: HookContext) -> HookResult:
     """Detect sequential thinking triggers and inject session context."""
@@ -232,9 +289,13 @@ def sequential_thinking_hook(context: HookContext) -> HookResult:
     prompt = context.prompt
     prompt_lower = prompt.lower()
     terminal_id = context.terminal_id or ""
+    unified_result = _get_unified_detection_result(context)
+    shared_triggered, shared_investigation, shared_phrase = _shared_sequential_signal(
+        unified_result
+    )
 
     # Detect investigation mode (Layer 2)
-    is_investigation = bool(_INVESTIGATION_RE.search(prompt_lower))
+    is_investigation = bool(_INVESTIGATION_RE.search(prompt_lower) or shared_investigation)
 
     # Detect hypothesis mode
     is_hypothesis_mode = False
@@ -268,7 +329,12 @@ def sequential_thinking_hook(context: HookContext) -> HookResult:
         semantic_phrase = None
 
     # If neither regex nor semantic triggered, don't trigger
-    if not matched_pattern and not semantic_triggered and not is_hypothesis_mode:
+    if (
+        not matched_pattern
+        and not semantic_triggered
+        and not is_hypothesis_mode
+        and not shared_triggered
+    ):
         return HookResult.empty()
 
     # Apply gating logic
@@ -343,13 +409,25 @@ def sequential_thinking_hook(context: HookContext) -> HookResult:
     if semantic_triggered and not matched_pattern:
         return _get_injection(uuid.uuid4(), semantic_phrase or "semantic similarity match", is_investigation, False)
 
+    if shared_triggered and not matched_pattern and not semantic_triggered:
+        return _get_injection(
+            uuid.uuid4(),
+            shared_phrase or "unified detection",
+            is_investigation,
+            False,
+        )
+
     # Above soft floor
     if prompt_len >= _SOFT_FLOOR:
-        if matched_pattern or semantic_triggered:
+        if matched_pattern or semantic_triggered or shared_triggered:
             trigger_phrase = (
                 _extract_trigger_phrase(prompt, matched_pattern)
                 if matched_pattern
-                else (semantic_phrase or "semantic similarity match")
+                else (
+                    semantic_phrase
+                    or shared_phrase
+                    or "semantic similarity match"
+                )
             )
             return _get_injection(uuid.uuid4(), trigger_phrase, is_investigation, False)
 
@@ -365,12 +443,13 @@ def sequential_thinking_hook(context: HookContext) -> HookResult:
     if matched_pattern: signals += 1
     if semantic_phrase and not _is_interrogative_match(): signals += 1
     if _has_technical_depth(prompt): signals += 1
+    if shared_triggered: signals += 1
 
     if signals >= 2:
         trigger_phrase = (
             _extract_trigger_phrase(prompt, matched_pattern)
             if matched_pattern
-            else (semantic_phrase or "combined signals")
+            else (semantic_phrase or shared_phrase or "combined signals")
         )
         return _get_injection(uuid.uuid4(), trigger_phrase, is_investigation, False)
 

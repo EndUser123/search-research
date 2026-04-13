@@ -118,7 +118,6 @@ mkdir -p "$EVIDENCE_DIR"
 ```bash
 python P:/.claude/skills/gto/gto_orchestrator.py \
     --format json \
-    --no-subagents \
     --output "$TEMP_SUBDIR/gto-l1-$TERMINAL_ID.json" || {
     echo "ERROR: L1 analysis failed"
     exit 1
@@ -149,12 +148,30 @@ AGENT_PIDS=($!)
 TIMEOUT=300
 elapsed=0
 while [[ $elapsed -lt $TIMEOUT ]]; do
+    # Map agent index → output file path (defined once, used each iteration)
+    AGENT_OUTPUTS=(
+        "$TEMP_SUBDIR/gto-gap-finder-$TERMINAL_ID.json"
+        "$TEMP_SUBDIR/gto-correctness-logic-$TERMINAL_ID.json"
+        "$TEMP_SUBDIR/gto-correctness-quality-$TERMINAL_ID.json"
+        "$TEMP_SUBDIR/gto-correctness-code-critic-$TERMINAL_ID.json"
+    )
+    # Check each agent: dead PIDs exit fast, live PIDs wait for file
+    for i in "${!AGENT_PIDS[@]}"; do
+        if ! kill -0 "${AGENT_PIDS[$i]}" 2>/dev/null; then
+            wait "${AGENT_PIDS[$i]}" || true
+            output_file="${AGENT_OUTPUTS[$i]}"
+            if [[ ! -f "$output_file" ]]; then
+                echo "ERROR: Agent ${i} died without producing output at $output_file"
+                exit 1
+            fi
+        fi
+    done
+    # Check if all required output files are present
     if [[ -f "$TEMP_SUBDIR/gto-gap-finder-$TERMINAL_ID.json" ]] && \
        [[ -f "$TEMP_SUBDIR/gto-correctness-logic-$TERMINAL_ID.json" ]] && \
        [[ -f "$TEMP_SUBDIR/gto-correctness-quality-$TERMINAL_ID.json" ]] && \
        [[ -f "$TEMP_SUBDIR/gto-correctness-code-critic-$TERMINAL_ID.json" ]]; then
         echo "All agent output files present after ${elapsed}s"
-        # Verify all agents exited cleanly before proceeding
         for pid in "${AGENT_PIDS[@]}"; do
             wait "$pid" || {
                 echo "ERROR: Agent $pid exited with non-zero code"
@@ -163,27 +180,6 @@ while [[ $elapsed -lt $TIMEOUT ]]; do
         done
         break
     fi
-    # Track which output files correspond to which agent index
-    AGENT_OUTPUTS=(
-        "$TEMP_SUBDIR/gto-gap-finder-$TERMINAL_ID.json"
-        "$TEMP_SUBDIR/gto-correctness-logic-$TERMINAL_ID.json"
-        "$TEMP_SUBDIR/gto-correctness-quality-$TERMINAL_ID.json"
-        "$TEMP_SUBDIR/gto-correctness-code-critic-$TERMINAL_ID.json"
-    )
-    for i in "${!AGENT_PIDS[@]}"; do
-        if ! kill -0 "${AGENT_PIDS[$i]}" 2>/dev/null; then
-            wait "${AGENT_PIDS[$i]}" || {
-                echo "ERROR: Agent index ${i} exited with non-zero code"
-                exit 1
-            }
-            # Agent exited cleanly — verify output file was produced
-            output_file="${AGENT_OUTPUTS[$i]}"
-            if [[ ! -f "$output_file" ]]; then
-                echo "ERROR: Agent ${i} exited cleanly but produced no output at $output_file"
-                exit 1
-            fi
-        fi
-    done
     sleep 1
     ((elapsed++))
 done

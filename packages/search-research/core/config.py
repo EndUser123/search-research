@@ -38,6 +38,11 @@ class Config:
         else ["."]
     )
 
+    # Obsidian vault path for QMD wiki search
+    OBSIDIAN_VAULT_PATH: str = os.getenv(
+        "SEARCH_RESEARCH_OBSIDIAN_VAULT_PATH", "~/.obsidian/vaults/personal-wiki"
+    )
+
     # Skills and commands directories
     SKILLS_DIR: str = os.getenv("SEARCH_RESEARCH_SKILLS_DIR", "P:/.claude/skills")
     COMMANDS_DIR: str = os.getenv("SEARCH_RESEARCH_COMMANDS_DIR", "P:/.claude/commands")

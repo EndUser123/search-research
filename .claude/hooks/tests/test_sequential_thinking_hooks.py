@@ -34,6 +34,13 @@ def _run_hook(prompt: str, terminal_id: str = "test_term") -> HookResult:
     return sequential_thinking_hook(_make_context(prompt, terminal_id))
 
 
+def _context_text(result: HookResult) -> str:
+    """Return the injected text across legacy string and dict-shaped contexts."""
+    if isinstance(result.context, dict):
+        return result.context.get("additionalContext", "")
+    return result.context or ""
+
+
 # ---------------------------------------------------------------------------
 # Pattern tests — positive (should trigger)
 # ---------------------------------------------------------------------------
@@ -386,9 +393,10 @@ class TestStateCreation:
     def test_context_contains_session_id(self, tmp_path):
         with patch.object(ss, "STATE_DIR", tmp_path):
             result = _run_hook("debug the failing test", "term_x")
+            text = _context_text(result)
             assert result.context
-            assert "Session ID:" in result.context
-            assert "sequential_thinking" in result.context
+            assert "Session ID:" in text
+            assert "sequential_thinking" in text
 
     def test_no_trigger_returns_empty(self):
         result = _run_hook("just a simple question")
@@ -586,8 +594,9 @@ class TestFullPipeline:
             # Use "evaluate" trigger which is in sequential thinking but NOT investigation mode patterns
             # (investigation patterns: debug, investigate, diagnose, analyze, explain why, root cause, etc.)
             trigger_result = _run_hook("evaluate this approach thoroughly", terminal_id)
+            text = _context_text(trigger_result)
             assert trigger_result.context
-            assert "sequential_thinking" in trigger_result.context
+            assert "sequential_thinking" in text
 
             # Phase 2: initial generation → critique forced
             stop1 = sh.stop({"terminal_id": terminal_id, "response_output": "Initial analysis."})
@@ -604,9 +613,9 @@ class TestFullPipeline:
             assert stop3.get("allow") is True
 
             # Extract session_id from injected context
-            assert isinstance(trigger_result.context, str)
+            text = _context_text(trigger_result)
             session_id_str = None
-            for line in trigger_result.context.split("\n"):
+            for line in text.split("\n"):
                 if line.startswith("Session ID:"):
                     session_id_str = line.split(": ")[1].strip()
                     break
@@ -623,7 +632,7 @@ class TestFullPipeline:
             # Phase 1: trigger detection - verify [SEQ] in context
             trigger_result = _run_hook("analyze the codebase architecture", terminal_id)
             assert trigger_result.context, "Trigger must inject context"
-            assert "[SEQ]" in trigger_result.context, "[SEQ] tag must appear in trigger context"
+            assert "[SEQ]" in _context_text(trigger_result), "[SEQ] tag must appear in trigger context"
 
             # Phase 2: stop hook - verify [SEQ] in continuation reason
             stop1 = sh.stop({"terminal_id": terminal_id, "response_output": "Initial analysis."})
@@ -914,11 +923,12 @@ class TestHypothesisTriggerPatterns:
         """Hypothesis mode should set hypothesis_mode flag in state."""
         with patch.object(ss, "STATE_DIR", tmp_path):
             result = _run_hook("maintain multiple hypotheses")
+            text = _context_text(result)
             assert result.context, "Should trigger"
 
             # Extract session_id from context
             session_id_str = None
-            for line in result.context.split("\n"):
+            for line in text.split("\n"):
                 if line.startswith("Session ID:"):
                     session_id_str = line.split(": ")[1].strip()
                     break
@@ -1436,12 +1446,13 @@ class TestHypothesisE2E:
              patch.object(ptu_st, "STATE_DIR", tmp_path):
             # Phase 1: Trigger hypothesis mode
             result = _run_hook("maintain multiple hypotheses for this bug", "e2e_term")
+            text = _context_text(result)
             assert result.context
-            assert "multi_hypothesis" in result.context
+            assert "multi_hypothesis" in text
 
             # Extract session ID
             session_id_str = None
-            for line in result.context.split("\n"):
+            for line in text.split("\n"):
                 if line.startswith("Session ID:"):
                     session_id_str = line.split(": ")[1].strip()
                     break
@@ -1529,11 +1540,12 @@ class TestHypothesisE2E:
                 "debug this issue while I maintain multiple hypotheses",
                 "dual_term",
             )
+            text = _context_text(result)
             assert result.context
 
             # Extract session ID
             session_id_str = None
-            for line in result.context.split("\n"):
+            for line in text.split("\n"):
                 if line.startswith("Session ID:"):
                     session_id_str = line.split(": ")[1].strip()
                     break
@@ -1601,4 +1613,3 @@ class TestHypothesisExtractionEdgeCases:
         # H1/H2/H3 already found, so "First hypothesis" should not add a duplicate
         assert len(result) == 3
         assert result[0]["claim"] == "Token expired"
-

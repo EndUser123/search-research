@@ -19,7 +19,10 @@ from pathlib import Path
 from UserPromptSubmit_modules.base import HookContext, HookResult
 from UserPromptSubmit_modules.observability import log_reasoning_mode
 from UserPromptSubmit_modules.reasoning_contract import build_reasoning_contract
-from UserPromptSubmit_modules.unified_detection import UnifiedDetectionResult
+from UserPromptSubmit_modules.unified_detection import (
+    UnifiedDetectionResult,
+    detect_prompt,
+)
 
 # Add reasoning package and hooks to path
 REASONING_PKG = Path("P:/packages/reasoning")
@@ -36,12 +39,24 @@ def _map_unified_result_to_legacy_format(
     """Map unified detection output back to the legacy selector shape."""
     matched_modes = list(unified_result.matched_modes or [])
     mode = matched_modes[0] if matched_modes else "sequential"
-    reasoning_required = bool(matched_modes and unified_result.confidence > 0)
+    confidence = getattr(unified_result, "confidence", None)
+    if confidence is None:
+        confidence = min(len(matched_modes), 4)
+    reasoning_required = bool(matched_modes and confidence > 0)
     return {
         "mode": mode,
-        "confidence": unified_result.confidence,
+        "confidence": confidence,
         "reasoning_required": reasoning_required,
     }
+
+
+def _get_unified_detection_result(
+    context: HookContext,
+) -> UnifiedDetectionResult | None:
+    """Return the shared unified detection result when available."""
+    data = getattr(context, "data", None) or {}
+    result = data.get("unified_detection_result")
+    return result if isinstance(result, UnifiedDetectionResult) else None
 
 
 def reasoning_mode_selector(context: HookContext) -> HookResult:
@@ -64,8 +79,17 @@ def reasoning_mode_selector(context: HookContext) -> HookResult:
             # Skip very short prompts
             return HookResult.empty()
 
-        # Analyze query for optimal reasoning mode
-        analysis = analyze_query(prompt)
+        shared_result = _get_unified_detection_result(context)
+        if shared_result is not None and shared_result.matched_modes:
+            analysis = _map_unified_result_to_legacy_format(shared_result)
+        else:
+            # Prefer unified detection as the shared source of truth.
+            unified_result = detect_prompt(prompt)
+            if unified_result.matched_modes:
+                analysis = _map_unified_result_to_legacy_format(unified_result)
+            else:
+                # Fall back to the legacy analyzer for any remaining edge cases.
+                analysis = analyze_query(prompt)
 
         if not analysis.get("reasoning_required"):
             # No complex reasoning needed

@@ -1,6 +1,6 @@
 ---
 name: git
-version: "2.1.0"
+version: "2.2.0"
 status: "stable"
 category: vcs
 enforcement: advisory
@@ -8,7 +8,7 @@ workflow_steps:
   - discover_repos
   - commit_changes
   - push_to_remote
-description: Git sync with multi-repo discovery, auto-push for all repos (main + non-main), worktree management, and smart conflict resolution.
+description: Git sync with multi-repo discovery, dependency-first commit ordering, auto-push for all repos, worktree management, and smart conflict resolution.
 triggers:
   - /git
 args:
@@ -21,7 +21,7 @@ args:
   - --worktree: Worktree management mode (list, add, remove, prune)
   - --no-resolve: Skip automatic conflict resolution (manual mode)
 execution:
-  directive: "If --worktree: manage worktrees. Otherwise: discover all git repos, auto-sync all repos (commit + push). Use --select for selective pushing."
+  directive: "If --worktree: manage worktrees. Otherwise: discover all git repos, auto-sync all repos (commit first, push after dependency ordering). Use --select for selective pushing."
   default_args: ""
   examples:
     - "/git"
@@ -110,9 +110,11 @@ Discovers all `.git` directories under `P:/`:
 - **MCP repos** (`packages/.mcp/*/.git`) - auto-sync, auto-push
 - **Internal repos** (`.claude/hooks/`, `.claude/skills/*/`) - auto-sync, auto-push
 
-### Auto-Push Behavior (All Repos)
+### Auto-Sync Behavior (All Repos)
 - Auto-commits uncommitted changes with scoped commit messages
-- Auto-pushes to remote (dynamic remote/branch detection)
+- Syncs non-main repos before the parent repo so gitlink updates are captured cleanly
+- Auto-pushes to remote after commits (dynamic remote/branch detection)
+- Verifies there are no uncommitted changes left after sync
 - On push failure: shows actionable error with remote URL and fix advice
 - Use `--select` flag for selective pushing (e.g., `/git --select 1,3`)
 
@@ -131,6 +133,7 @@ Shows all repos with their status:
 - `(diverged)` - Local and remote have diverged (needs manual resolution)
 - `(no remote)` - No remote configured
 - `(ok)` - In sync with remote
+- `(dirty)` - Working tree still has uncommitted changes after sync
 
 ### Worktree Mode (`--worktree`)
 | Action | Command | Description |
@@ -148,6 +151,6 @@ Push failures show actionable messages:
 
 ---
 
-**Version:** 2.1
-**Updated:** April 11, 2026
-**Status:** Production ready - multi-repo sync + auto-push all repos (main + non-main)
+**Version:** 2.2
+**Updated:** April 13, 2026
+**Status:** Production ready - dependency-first multi-repo sync + auto-push all repos

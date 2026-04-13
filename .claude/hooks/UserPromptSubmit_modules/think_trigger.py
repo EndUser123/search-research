@@ -28,6 +28,7 @@ from dataclasses import dataclass
 from UserPromptSubmit_modules.base import HookContext, HookResult
 from UserPromptSubmit_modules.reasoning_contract import append_reasoning_contract
 from UserPromptSubmit_modules.registry import register_hook
+from UserPromptSubmit_modules.unified_detection import UnifiedDetectionResult
 
 # ---------------------------------------------------------------------------
 # Single-source profile definition (dataclass pattern)
@@ -505,7 +506,11 @@ __all__ = [
 ]
 
 
-def _detect_profile(prompt: str) -> str | None:
+def _detect_profile(
+    prompt: str,
+    *,
+    unified_result: UnifiedDetectionResult | None = None,
+) -> str | None:
     """Auto-detect a reasoning profile from keyword signals.
 
     Strong keywords trigger on 1 match (unambiguous signals).
@@ -519,6 +524,10 @@ def _detect_profile(prompt: str) -> str | None:
     # Uppercase THINK keyword — intentional explicit reasoning request (case-sensitive)
     if re.search(r"\bTHINK\b", prompt):
         return "explicit_think"
+
+    shared_profile = _select_profile_from_unified_result(unified_result)
+    if shared_profile is not None:
+        return shared_profile
 
     # Strip code spans so `handle_error()` doesn't count as "error"
     prompt_clean = _CODE_SPAN_RE.sub("", prompt).lower()
@@ -627,6 +636,62 @@ def _parse_think(prompt: str) -> tuple[str | None, str]:
         return "quick", remainder
     return profile, remainder
 
+
+def _get_unified_detection_result(
+    context: HookContext,
+) -> UnifiedDetectionResult | None:
+    """Return the shared unified detection result when prior hooks populated it."""
+    data = getattr(context, "data", None) or {}
+    result = data.get("unified_detection_result")
+    return result if isinstance(result, UnifiedDetectionResult) else None
+
+
+def _select_profile_from_unified_result(
+    unified_result: UnifiedDetectionResult | None,
+) -> str | None:
+    """Select the first think profile reported by unified detection."""
+    if unified_result is None:
+        return None
+
+    for profile in unified_result.matched_profiles:
+        if profile in _PROFILES:
+            return profile
+
+    return None
+
+
+def _build_think_alignment_block(
+    profile: str,
+    unified_result: UnifiedDetectionResult | None,
+) -> str:
+    """Prepend the /think-specific reasoning contract overlay."""
+    shared_parts: list[str] = []
+    if unified_result is not None:
+        if unified_result.intent_classification:
+            shared_parts.append(f"intent={unified_result.intent_classification}")
+        if unified_result.matched_modes:
+            shared_parts.append(
+                "modes=" + ", ".join(unified_result.matched_modes[:3])
+            )
+        if unified_result.matched_profiles:
+            shared_parts.append(
+                "profiles=" + ", ".join(unified_result.matched_profiles[:3])
+            )
+
+    lines = [
+        "THINK ALIGNMENT:",
+        "- Label material claims as Verified / Inferred / Unproven.",
+        "- If the answer depends on repo state, tests, or runtime behavior, keep it Unproven until checked.",
+        "- Name the primary reasoning frame and the fallback frame when more than one applies.",
+        "- Chain frames only when the second frame changes the answer; otherwise stay with one frame.",
+        "- State the smallest discriminating check that would resolve remaining uncertainty.",
+        f"- Active frame: {profile}.",
+    ]
+    if shared_parts:
+        lines.append("- Shared detection: " + "; ".join(shared_parts) + ".")
+
+    return "\n".join(lines)
+
 # Module-level invariant check (runs on import)
 if __debug__:  # Only runs in dev/test, optimized out in production
     missing_templates = set(_COMPILED_STRONG.keys()) - set(_PROFILES.keys())
@@ -644,13 +709,15 @@ if __debug__:  # Only runs in dev/test, optimized out in production
 @register_hook("think_trigger", priority=6.0)
 def think_trigger(context: HookContext) -> HookResult:
     """Inject reasoning framework via auto-detection."""
-    profile = _detect_profile(context.prompt)
+    unified_result = _get_unified_detection_result(context)
+    profile = _detect_profile(context.prompt, unified_result=unified_result)
 
     if profile is None:
         return HookResult.empty()
 
+    alignment_block = _build_think_alignment_block(profile, unified_result)
     template = append_reasoning_contract(
-        f"[THINK:{profile}]\n\n" + _PROFILES[profile],
+        f"[THINK:{profile}]\n\n{alignment_block}\n\n{_PROFILES[profile]}",
         include_verification=True,
         include_counterexample=True,
         include_discovery=True,

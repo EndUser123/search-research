@@ -132,8 +132,8 @@ class TestPathTraversalBlocked:
             valid_path.touch()
 
             result = scanner._sanitize_path(valid_path)
-            # _sanitize_path returns relative path for in-project paths
-            assert result == Path("src/modules/test.py")
+            # _sanitize_path returns resolved absolute path within project root
+            assert result == valid_path.resolve()
 
 
 class TestSymlinkHandling:
@@ -296,8 +296,10 @@ class TestSkipDirectories:
         with TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
 
-            # Create directories matching SKIP_DIRS
+            # Create directories matching SKIP_DIRS (filter wildcards for filesystem safety)
             for dir_name in SKIP_DIRS:
+                if "*" in dir_name:  # Skip wildcard patterns like *.egg-info
+                    continue
                 skip_dir = project_root / dir_name
                 skip_dir.mkdir(parents=True, exist_ok=True)
                 (skip_dir / "file.py").touch()
@@ -373,7 +375,7 @@ class TestScanResult:
     """Tests for ScanResult dataclass."""
 
     def test_scan_result_has_required_fields(self):
-        """Test that ScanResult has files, skipped_dirs, scan_time_ms.
+        """Test that ScanResult has files and errors fields.
 
         Given: A ScanResult instance with data
         When: Accessing its fields
@@ -381,16 +383,13 @@ class TestScanResult:
         """
         result = ScanResult(
             files=[Path("test.py")],
-            skipped_dirs=[".git", "node_modules"],
-            scan_time_ms=123.45,
+            errors=["error1", "error2"],
         )
 
         assert hasattr(result, "files")
-        assert hasattr(result, "skipped_dirs")
-        assert hasattr(result, "scan_time_ms")
+        assert hasattr(result, "errors")
         assert result.files == [Path("test.py")]
-        assert result.skipped_dirs == [".git", "node_modules"]
-        assert result.scan_time_ms == 123.45
+        assert result.errors == ["error1", "error2"]
 
     def test_scan_time_ms_is_float(self):
         """Test that scan_time_ms is recorded as a positive float.

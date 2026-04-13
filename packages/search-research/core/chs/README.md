@@ -22,27 +22,31 @@ CHS v2 is a complete rewrite of the Chat History Search system with:
 ### 1. Initialize Database
 
 ```bash
-python -m knowledge.systems.chs.v2.scripts.init_db \
+python -m core.chs.scripts.init_db \
     --db-path "P:/__csf/data/chat_history.db"
 ```
 
-### 2. Index Chat History
+### 2. Build the FTS5 Index
 
 ```bash
-python -m knowledge.systems.chs.v2.scripts.run_indexer
+python -m core.chs.scripts.reindex_from_jsonl \
+    --db-path "P:/__csf/data/chat_history.db" \
+    --history-path "~/.claude/history.jsonl"
 ```
+
+This is the bootstrap path for a fresh or empty `chat_history.db`. It creates the schema if needed, ingests `history.jsonl`, and builds the FTS5 tables and triggers.
 
 ### 3. Search
 
 ```bash
 CHS_DB_PATH="P:/__csf/data/chat_history.db" \
-    python -m knowledge.systems.chs.v2.scripts.chs_cli "TDD"
+    python P:/packages/search-research/skills/chs/scripts/chs_cli.py "TDD"
 ```
 
 ### 4. Health Check
 
 ```bash
-python -m knowledge.systems.chs.v2.scripts.health_check \
+python -m core.chs.scripts.health_check \
     --db-path "P:/__csf/data/chat_history.db"
 ```
 

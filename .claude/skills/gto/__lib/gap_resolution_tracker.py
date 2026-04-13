@@ -43,6 +43,14 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+# ── Effectiveness scoring constants ──────────────────────────────────────────
+# Used by get_skill_effectiveness_score()
+
+_FAILURE_DEMOTION_PER_FAILED = 0.05
+_FAILURE_DEMOTION_CAP = 0.3
+_VERIFICATION_BOOST_PER_VERIFIED = 0.1
+_VERIFICATION_BOOST_CAP = 0.2
+
 # ── Gap ID normalization ───────────────────────────────────────────────────────
 
 
@@ -581,6 +589,9 @@ def get_skill_effectiveness_score(
         for gt in record.gap_types_resolved:
             if _extract_root_type(gt) in gap_type_set:
                 successful_resolutions += 1
+
+    # Base score from resolution success rate
+    base_score = successful_resolutions / total_attempts if total_attempts > 0 else 0.0
 
     # Demotion factor from failed verifications (gap reappeared after being credited)
     failure_demotion = min(failed_count * _FAILURE_DEMOTION_PER_FAILED, _FAILURE_DEMOTION_CAP)

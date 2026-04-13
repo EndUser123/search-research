@@ -32,6 +32,7 @@ class NextStep:
     recurrence_count: int = 1
     file_path: str | None = None
     line_number: int | None = None
+    driven_by: str | None = None  # Which integrity prompt generated this step
 
 
 @dataclass
@@ -349,6 +350,8 @@ GTO_TYPE_TO_RSN_DOMAIN: dict[str, str] = {
     "skill_suggestion": "skill_coverage",
     "correctness_gap": "correctness",
     "pending_task": "pending_tasks",
+    "improvement_investigation": "improvements",
+    "process_gap": "improvements",
     "other": "other",  # fallback for unknown gap types
 }
 
@@ -362,6 +365,7 @@ GTO_SECTION_DEFINITIONS: dict[str, tuple[str, str]] = {
     "import": ("Import/Dependency Issues", "import_gaps"),
     "skill_coverage": ("Relevant Skills to Run", "skill_coverage"),
     "correctness": ("Correctness Issues", "correctness_gaps"),
+    "improvements": ("Process Improvement Issues", "improvements"),
     "other": ("Other Issues", "other_gaps"),
 }
 
@@ -536,6 +540,7 @@ def _detect_batch_groups(gaps: list[dict]) -> list[dict]:
                 "batch_count": len(indices),
                 "gap_ids": gap_ids,
                 "effort_minutes": aggregate_effort,
+                "driven_by": batch_gaps[0].get("driven_by"),
             }
         )
 
@@ -605,6 +610,7 @@ def _detect_batch_groups(gaps: list[dict]) -> list[dict]:
                 "batch_count": len(indices),
                 "gap_ids": gap_ids,
                 "effort_minutes": aggregate_effort,
+                "driven_by": batch_gaps[0].get("driven_by"),
             }
         )
 
@@ -636,6 +642,7 @@ def _detect_batch_groups(gaps: list[dict]) -> list[dict]:
                 "is_batch": False,
                 "batch_count": 0,
                 "gap_ids": [gap.get("id", gap.get("gap_id", "unknown"))],
+                "driven_by": gap.get("driven_by"),
             }
         )
 
@@ -654,6 +661,7 @@ _DOMAIN_EMOJI: dict[str, str] = {
     "import": "⚡",
     "skill_coverage": "🎯",
     "correctness": "✅",
+    "improvements": "🚀",
     "session": "🎯",
     "pending_tasks": "📋",
     "other": "📌",
@@ -671,6 +679,7 @@ _DOMAIN_DISPLAY: dict[str, str] = {
     "import": "IMPORT",
     "skill_coverage": "SKILL COVERAGE",
     "correctness": "CORRECTNESS",
+    "improvements": "IMPROVEMENTS",
     "session": "SESSION",
     "pending_tasks": "YOUR TASKS",
     "other": "OTHER",
@@ -778,6 +787,9 @@ def _format_gto_rsn_markdown(findings: list[dict], show_effort: bool = True) -> 
             for dep_key in ("causes", "caused_by", "blocks"):
                 if f.get(dep_key):
                     lines.append(f"  [{dep_key}: {f[dep_key]}]")
+
+            if f.get("driven_by"):
+                lines.append(f"  [from: {f['driven_by']}]")
 
         lines.append("")
 

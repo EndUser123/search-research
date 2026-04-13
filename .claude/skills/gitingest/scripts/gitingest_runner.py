@@ -19,6 +19,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -504,18 +505,17 @@ def generate_slices(repo_dir: Path, notebooklm_dir: Path, spec: RepoSpec) -> lis
             return path.name
 
         # Header template
-        def make_group_header(group_label: str, file_count: int) -> list[str]:
+        def make_group_header(group_label: str) -> list[str]:
             return [
                 f"# {spec.owner}/{spec.repo} — {group_label}\n",
                 f"**Branch:** `{spec.branch}`  |  **Source:** {spec.url}\n",
-                f"**Total repo files:** {len(repo_files)}\n",
                 "\n## File tree\n",
                 build_tree_for_files(repo_files),
                 "\n",
             ]
 
         if not current_lines:
-            current_lines.extend(make_group_header("repository + agent configs + docs", len(repo_files)))
+            current_lines.extend(make_group_header("repository + agent configs + docs"))
             current_chars = sum(len(l) for l in current_lines)
 
         # Add repo files grouped by directory
@@ -527,7 +527,7 @@ def generate_slices(repo_dir: Path, notebooklm_dir: Path, spec: RepoSpec) -> lis
                 block, _ = read_file_content(full_path, f)
                 if current_chars + len(block) > MAX_CHARS and current_chars > 0:
                     start_slice()
-                    current_lines.extend(make_group_header(f"continued (from {dir_key}/)", len(repo_files)))
+                    current_lines.extend(make_group_header(f"continued (from {dir_key}/)"))
                     current_chars = sum(len(l) for l in current_lines)
                 current_lines.append(block)
                 current_chars += len(block)
@@ -536,24 +536,25 @@ def generate_slices(repo_dir: Path, notebooklm_dir: Path, spec: RepoSpec) -> lis
         if agent_content_blocks:
             agent_section = ["\n" + "=" * 60 + "\n", "## Agent configs (.claude/)\n", "=" * 60 + "\n"]
             agent_text = "".join(agent_content_blocks)
-            if current_chars + len(agent_text) > MAX_CHARS and current_chars > 0:
+            if current_chars + len(agent_section) + len(agent_text) > MAX_CHARS and current_chars > 0:
                 start_slice()
-                current_lines.extend(make_group_header("continued — agent configs", len(repo_files)))
+                current_lines.extend(make_group_header("continued — agent configs"))
                 current_chars = sum(len(l) for l in current_lines)
             current_lines.extend(agent_section)
             current_lines.extend(agent_content_blocks)
-            current_chars += len(agent_text)
+            current_chars += len(agent_section) + len(agent_text)
 
         # Add docs
         if doc_content_blocks:
             doc_section = ["\n" + "=" * 60 + "\n", "## Documentation\n", "=" * 60 + "\n"]
             doc_text = "".join(doc_content_blocks)
-            if current_chars + len(doc_text) > MAX_CHARS and current_chars > 0:
+            if current_chars + len(doc_section) + len(doc_text) > MAX_CHARS and current_chars > 0:
                 start_slice()
-                current_lines.extend(make_group_header("continued — docs", len(repo_files)))
+                current_lines.extend(make_group_header("continued — docs"))
                 current_chars = sum(len(l) for l in current_lines)
             current_lines.extend(doc_section)
             current_lines.extend(doc_content_blocks)
+            current_chars += len(doc_section) + len(doc_text)
 
         if current_lines:
             start_slice()
@@ -565,39 +566,99 @@ def generate_slices(repo_dir: Path, notebooklm_dir: Path, spec: RepoSpec) -> lis
     return slices
 
 
-def upload_slices(notebooklm_id: str, slices: list[Path], dry_run: bool = False) -> None:
-    """Upload each slice to NotebookLM."""
+def get_existing_sources(notebooklm_id: str) -> tuple[dict[str, str], bool]:
+    """Fetch existing source titles→IDs for the notebook.
+
+    Returns (sources_dict, api_error).
+    - api_error=False: sources_dict is valid (may be empty if notebook has no sources)
+    - api_error=True: sources_dict is empty, API call failed
+    """
+    result = subprocess.run(
+        ["nlm", "source", "list", notebooklm_id],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return {}, True
+    try:
+        sources = json.loads(result.stdout)
+        return {s["title"]: s["id"] for s in sources}, False
+    except (json.JSONDecodeError, KeyError):
+        return {}, True
+
+
+def upload_slices(
+    notebooklm_id: str,
+    slices: list[Path],
+    repo_url: str,
+    existing_sources: dict[str, str],
+    dry_run: bool = False,
+) -> None:
+    """Upload slices + GitHub URL as a clickable web source, replacing older versions."""
     if dry_run:
         for s in slices:
-            print(f"  [DRY] nlm source add {notebooklm_id} --file {s}")
+            action = "replace" if s.name in existing_sources else "upload"
+            print(f"  [DRY] [{action}] nlm source add {notebooklm_id} --file {s}")
+        print(f"  [DRY] [new] nlm source add {notebooklm_id} --url {repo_url} --title {repo_url.split('/')[-1]}")
         return
 
     for s in slices:
-        print(f"  → uploading {s.name}...")
+        if s.name in existing_sources:
+            old_id = existing_sources[s.name]
+            print(f"  → replacing {s.name} (old source {old_id[:8]}...)...")
+            result = subprocess.run(["nlm", "source", "delete", old_id], capture_output=True, text=True)
+            if result.returncode != 0:
+                print(f"  ⚠ delete failed for {s.name}: {result.stderr.strip()}")
+            time.sleep(2)  # let NotebookLM process the delete before re-adding same name
+        else:
+            print(f"  → uploading {s.name}...")
         result = subprocess.run(
             ["nlm", "source", "add", notebooklm_id, "--file", str(s), "--wait"],
-            capture_output=True,
-            text=True,
+            capture_output=True, text=True,
         )
         if result.returncode != 0:
             print(f"  ⚠ upload failed for {s.name}: {result.stderr.strip()}")
-            # Retry once
             result2 = subprocess.run(
                 ["nlm", "source", "add", notebooklm_id, "--file", str(s), "--wait"],
-                capture_output=True,
-                text=True,
+                capture_output=True, text=True,
             )
             if result2.returncode != 0:
                 raise RuntimeError(f"Upload failed after retry: {result2.stderr.strip()}")
         else:
             print(f"  ✓ {s.name} uploaded")
 
+    # Add GitHub repo URL as a clickable web source
+    repo_name = repo_url.rstrip("/").rsplit("/", 1)[-1]
+    url_key = f"GitHub - {repo_url.replace('https://github.com/', '')}"
+    if url_key in existing_sources:
+        old_id = existing_sources[url_key]
+        print(f"  → replacing web source {old_id[:8]}... for {repo_url}...")
+        result = subprocess.run(["nlm", "source", "delete", old_id], capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"  ⚠ web source delete failed: {result.stderr.strip()}")
+        time.sleep(2)
+        print(f"  → adding web source for {repo_url}...")
+    else:
+        print(f"  → adding web source for {repo_url}...")
+    result = subprocess.run(
+        ["nlm", "source", "add", notebooklm_id, "--url", repo_url, "--title", url_key],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print(f"  ⚠ web source failed for {repo_url}: {result.stderr.strip()}")
+    else:
+        print(f"  ✓ web source added: {url_key}")
+
 
 def cleanup_clone(clone_root: Path, spec: RepoSpec) -> None:
     """Remove the cloned repo."""
     dest = clone_root / f"{spec.owner}__{spec.repo}"
     if dest.exists():
-        shutil.rmtree(dest, ignore_errors=True)
+        try:
+            shutil.rmtree(dest)
+        except OSError as e:
+            print(f"  ⚠ cleanup failed for {dest}: {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -645,6 +706,17 @@ def main() -> None:
             print("⚠ nlm login check:", result.stderr.strip())
         print()
 
+        # Fetch existing sources once before any uploads (for dedup/replace)
+        print("=== Existing sources ===")
+        if args.dry_run:
+            existing_sources = {}
+        else:
+            existing_sources, api_error = get_existing_sources(notebooklm_id)
+            if api_error:
+                print(f"  ⚠ source list API error — proceeding without dedup")
+        print(f"  → {len(existing_sources)} existing sources in notebook")
+        print()
+
         # Process each repo
         for i, spec in enumerate(active_specs, 1):
             print(f"=== [{i}/{len(active_specs)}] {spec.owner}/{spec.repo} ===")
@@ -668,7 +740,7 @@ def main() -> None:
 
                 # 4. Upload
                 print("--- upload ---")
-                upload_slices(notebooklm_id, slices, dry_run=args.dry_run)
+                upload_slices(notebooklm_id, slices, spec.url, existing_sources, dry_run=args.dry_run)
 
                 repo_result.success = True
                 print(f"✓ {spec.owner}/{spec.repo} done")

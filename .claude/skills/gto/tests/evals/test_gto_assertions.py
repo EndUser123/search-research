@@ -78,3 +78,93 @@ class TestGTOAssertions:
         assert "score" in result
         assert "all_passed" in result
         assert "assertions" in result
+
+
+class TestExtractHealthScore:
+    """Tests for _extract_health_score extraction paths."""
+
+    def test_health_score_at_top_level(self, tmp_path: Path) -> None:
+        """Path 1: Top-level health_score field."""
+        assertions = GTOAssertions(tmp_path, "test_terminal")
+        data = {"health_score": 86.0}
+        assert assertions._extract_health_score(data) == 86.0
+
+    def test_overall_score_at_root(self, tmp_path: Path) -> None:
+        """Path 2: overall_score at root (GTO monorepo format)."""
+        assertions = GTOAssertions(tmp_path, "test_terminal")
+        data = {"overall_score": 0.86}
+        assert assertions._extract_health_score(data) == 86.0
+
+    def test_health_report_overall_score(self, tmp_path: Path) -> None:
+        """Path 3: health_report.overall_score (GTO orchestrator)."""
+        assertions = GTOAssertions(tmp_path, "test_terminal")
+        data = {"health_report": {"overall_score": 86}}
+        assert assertions._extract_health_score(data) == 86.0
+
+    def test_health_overall_score(self, tmp_path: Path) -> None:
+        """Path 4: health.overall_score (GTO v3 artifact format)."""
+        assertions = GTOAssertions(tmp_path, "test_terminal")
+        data = {"health": {"overall_score": 0.79}}
+        assert assertions._extract_health_score(data) == 79.0
+
+    def test_metrics_overall(self, tmp_path: Path) -> None:
+        """Path 5a: metrics.overall (GTO v3)."""
+        assertions = GTOAssertions(tmp_path, "test_terminal")
+        data = {"metrics": {"overall": 92}}
+        assert assertions._extract_health_score(data) == 92.0
+
+    def test_metrics_test_coverage(self, tmp_path: Path) -> None:
+        """Path 5b: metrics.test_coverage fallback."""
+        assertions = GTOAssertions(tmp_path, "test_terminal")
+        data = {"metrics": {"test_coverage": 75}}
+        assert assertions._extract_health_score(data) == 75.0
+
+    def test_legacy_score_field(self, tmp_path: Path) -> None:
+        """Path 6: Legacy score or health_score at root."""
+        assertions = GTOAssertions(tmp_path, "test_terminal")
+        data = {"score": 88}
+        assert assertions._extract_health_score(data) == 88.0
+
+
+class TestNormalizeScore:
+    """Tests for _normalize_score decimal handling."""
+
+    def test_decimal_below_threshold(self, tmp_path: Path) -> None:
+        """Score < 1.0 is treated as decimal and multiplied by 100."""
+        assertions = GTOAssertions(tmp_path, "test_terminal")
+        assert assertions._normalize_score(0.86) == 86.0
+
+    def test_integer_percentage_unchanged(self, tmp_path: Path) -> None:
+        """Score >= 1.0 is treated as percentage and returned unchanged."""
+        assertions = GTOAssertions(tmp_path, "test_terminal")
+        assert assertions._normalize_score(86) == 86.0
+
+    def test_decimal_exact_boundary(self, tmp_path: Path) -> None:
+        """Score == 1.0 is at the boundary — treated as percentage."""
+        assertions = GTOAssertions(tmp_path, "test_terminal")
+        assert assertions._normalize_score(1.0) == 1.0
+
+    def test_decimal_just_below_boundary(self, tmp_path: Path) -> None:
+        """Score == 0.999 is just below boundary — treated as decimal."""
+        assertions = GTOAssertions(tmp_path, "test_terminal")
+        assert assertions._normalize_score(0.999) == 99.9
+
+    def test_negative_returns_none(self, tmp_path: Path) -> None:
+        """Negative scores return None."""
+        assertions = GTOAssertions(tmp_path, "test_terminal")
+        assert assertions._normalize_score(-5) is None
+
+    def test_over_100_returns_none(self, tmp_path: Path) -> None:
+        """Scores over 100 return None."""
+        assertions = GTOAssertions(tmp_path, "test_terminal")
+        assert assertions._normalize_score(150) is None
+
+    def test_none_input_returns_none(self, tmp_path: Path) -> None:
+        """None input returns None."""
+        assertions = GTOAssertions(tmp_path, "test_terminal")
+        assert assertions._normalize_score(None) is None
+
+    def test_string_input_returns_none(self, tmp_path: Path) -> None:
+        """String input returns None."""
+        assertions = GTOAssertions(tmp_path, "test_terminal")
+        assert assertions._normalize_score("86") is None

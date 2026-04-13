@@ -10,6 +10,8 @@ import sqlite3
 from pathlib import Path
 
 _SCHEMA_PATH = Path(__file__).parent / "schema.sql"
+_V2_REQUIRED_TABLES = ("projects", "sessions", "messages", "turns", "messages_fts", "turns_fts")
+_LEGACY_REQUIRED_TABLES = ("chat_messages", "chat_sessions", "message_search")
 
 
 def get_connection(db_path: Path | str) -> sqlite3.Connection:
@@ -33,6 +35,33 @@ def get_connection(db_path: Path | str) -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys=ON;")
     conn.execute("PRAGMA cache_size=-64000;")
     return conn
+
+
+def database_is_initialized(db_path: Path | str) -> bool:
+    """Return True when the database has either the v2 or legacy CHS schema.
+
+    File existence alone is not enough because an empty or preallocated SQLite file
+    can exist without any tables or FTS5 index. This helper checks the actual schema
+    so callers can bootstrap missing databases before search/index operations.
+    """
+    if isinstance(db_path, str):
+        if db_path == ":memory:":
+            return False
+        db_path = Path(db_path)
+    if isinstance(db_path, Path) and not db_path.exists():
+        return False
+    try:
+        conn = sqlite3.connect(str(db_path))
+        try:
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            tables = {row[0] for row in cursor.fetchall()}
+            v2_ready = all(table in tables for table in _V2_REQUIRED_TABLES)
+            legacy_ready = all(table in tables for table in _LEGACY_REQUIRED_TABLES)
+            return v2_ready or legacy_ready
+        finally:
+            conn.close()
+    except Exception:
+        return False
 
 
 def init_db(db_path: Path | str) -> None:

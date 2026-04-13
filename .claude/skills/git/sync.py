@@ -3,8 +3,9 @@
 Smart Git Sync with Multi-Repo Discovery, Health Check, Worktree Management, and Conflict Resolution
 
 Behavior:
-- Main repo (P:/.git): auto-commit and auto-push (no interaction)
-- Non-main repos: auto-commit and auto-push (use --select for manual control)
+- Non-main repos: auto-commit first so parent gitlinks can be updated cleanly
+- Main repo (P:/.git): auto-commit after dependency repos, then auto-push
+- All repos: auto-push after commits, with optional --select for manual control
 
 Features:
 - Detects all .git directories across the workspace
@@ -819,6 +820,16 @@ def sync_single_repo(repo: RepoInfo, is_main: bool = False) -> bool:
 
     return True
 
+
+def repo_has_worktree_changes(repo: RepoInfo) -> bool:
+    """Return True when a repo has uncommitted worktree changes."""
+    status = run(
+        ["git", "status", "--short"],
+        cwd=repo.path,
+        silent=True,
+    )
+    return status.returncode == 0 and bool(status.stdout.strip())
+
 # ============================================================
 # PHASE 0: WORKTREE MODE (exits early)
 # ============================================================
@@ -858,21 +869,28 @@ header("GIT REPOS HEALTH")
 
 for repo in all_repos:
     has_remote, commits_ahead, commits_behind = get_repo_status(repo)
+    is_dirty = repo_has_worktree_changes(repo)
+    detail_parts = []
+    if is_dirty:
+        detail_parts.append("dirty")
     if not has_remote:
         status = "warning"
-        detail = "no remote"
+        detail_parts.append("no remote")
     elif commits_ahead > 0 and commits_behind > 0:
         status = "error"
-        detail = f"diverged ({commits_ahead} ahead, {commits_behind} behind)"
+        detail_parts.append(f"diverged ({commits_ahead} ahead, {commits_behind} behind)")
     elif commits_ahead > 0:
         status = "warning"
-        detail = f"{commits_ahead} ahead"
+        detail_parts.append(f"{commits_ahead} ahead")
     elif commits_behind > 0:
         status = "warning"
-        detail = f"behind {commits_behind}"
+        detail_parts.append(f"behind {commits_behind}")
     else:
         status = "ok"
-        detail = "ok"
+        detail_parts.append("ok")
+    if is_dirty and status == "ok":
+        status = "warning"
+    detail = ", ".join(detail_parts)
     item(repo.relative_path, status, detail)
 
 # Worktree listing
@@ -902,72 +920,107 @@ if AUTO_FIX:
     pass
 
 # ============================================================
-# PHASE 4: SYNC MAIN REPO (AUTO)
+# PHASE 4: SYNC NON-MAIN REPOS (COMMIT FIRST)
+# ============================================================
+
+header("SYNC NON-MAIN REPOS")
+
+non_main_scope = non_main_repos
+if REPOS_FILTER != "all":
+    non_main_scope = filter_repos(non_main_scope, REPOS_FILTER)
+
+if non_main_scope:
+    for repo in non_main_scope:
+        sync_single_repo(repo, is_main=False)
+else:
+    print("  No non-main repos selected.")
+
+# ============================================================
+# PHASE 5: SYNC MAIN REPO (AFTER NON-MAIN COMMITS)
 # ============================================================
 
 header("SYNC MAIN REPO")
 
 if main_repo:
-    print(f"  Auto-pushing {color('main', 'repo')}...")
+    print(f"  Committing {color('main', 'repo')} after dependency repos...")
 
     # Ensure git is configured for three-way merge conflicts
     ensure_diff3_config()
 
-    sync_single_repo(main_repo, is_main=True)
+    sync_single_repo(main_repo, is_main=False)
 else:
     item("Main repo", "error", "Not found at P:/.git")
 
 # ============================================================
-# PHASE 5: SYNC NON-MAIN REPOS (INTERACTIVE)
+# PHASE 6: PUSH NON-MAIN REPOS
 # ============================================================
 
 # Find non-main repos that have remotes and commits to push
 # Exclude diverged repos (ahead AND behind) since they need manual resolution
 issues = []  # Track issues for Recommended Next Steps
 repos_with_pushes = []
-for repo in non_main_repos:
+for repo in non_main_scope:
     has_remote, commits_ahead, commits_behind = get_repo_status(repo)
     if has_remote and commits_ahead > 0 and commits_behind == 0:
         repos_with_pushes.append(repo)
 
 if repos_with_pushes:
-    # Filter if requested
-    if REPOS_FILTER != "all":
-        repos_with_pushes = filter_repos(repos_with_pushes, REPOS_FILTER)
+    # Use --select flag if provided, otherwise push all repos by default
+    if SELECT_REPOS is not None:
+        # Parse --select argument
+        selected_indices = parse_selection(SELECT_REPOS, len(repos_with_pushes))
+        selected_repos = [repos_with_pushes[i - 1] for i in selected_indices]
+    else:
+        selected_repos = repos_with_pushes
 
-    if repos_with_pushes:
-        # Use --select flag if provided, otherwise interactive
-        if SELECT_REPOS is not None:
-            # Parse --select argument
-            selected_indices = parse_selection(SELECT_REPOS, len(repos_with_pushes))
-            selected_repos = [repos_with_pushes[i - 1] for i in selected_indices]
-        else:
-            # Auto-push all repos by default (use --select for manual control)
-            selected_repos = repos_with_pushes
-
-        if selected_repos:
-            header("PUSHING SELECTED REPOS")
-            for repo in selected_repos:
-                print(f"  Pushing {color(repo.relative_path, 'repo')}...")
-                success, msg = push_repo(repo, silent=False)
-                if success:
-                    item("Push", "ok", msg)
+    if selected_repos:
+        header("PUSHING SELECTED REPOS")
+        for repo in selected_repos:
+            print(f"  Pushing {color(repo.relative_path, 'repo')}...")
+            success, msg = push_repo(repo, silent=False)
+            if success:
+                item("Push", "ok", msg)
+            else:
+                item("Push", "warning", msg)
+                # Offer specific solutions based on error type
+                error_lower = msg.lower()
+                if "repository not found" in error_lower or "remote branch" in error_lower:
+                    repo_name = repo.name.replace("\\", "/")
+                    issues.append(("push_failed", repo, f"Remote repo missing — create it: gh repo create {repo_name} --public\n"
+                        f"    Or remove remote: cd {repo.path} && git remote remove origin"))
+                elif "authentication" in error_lower or "credential" in error_lower:
+                    issues.append(("push_failed", repo, f"Auth failed — run 'git push' manually to authenticate"))
                 else:
-                    item("Push", "warning", msg)
-                    # Offer specific solutions based on error type
-                    error_lower = msg.lower()
-                    if "repository not found" in error_lower or "remote branch" in error_lower:
-                        repo_name = repo.name.replace("\\", "/")
-                        issues.append(("push_failed", repo, f"Remote repo missing — create it: gh repo create {repo_name} --public\n"
-                            f"    Or remove remote: cd {repo.path} && git remote remove origin"))
-                    elif "authentication" in error_lower or "credential" in error_lower:
-                        issues.append(("push_failed", repo, f"Auth failed — run 'git push' manually to authenticate"))
-                    else:
-                        issues.append(("push_failed", repo, f"Push failed — {msg.split(' — ')[-1] if ' — ' in msg else msg}"))
-        else:
-            print("\nNo repos selected - skipping non-main pushes.")
+                    issues.append(("push_failed", repo, f"Push failed — {msg.split(' — ')[-1] if ' — ' in msg else msg}"))
+    else:
+        print("\nNo repos selected - skipping non-main pushes.")
 elif VERBOSE:
     print("\nNo non-main repos have unpushed commits.")
+
+# ============================================================
+# PHASE 7: PUSH MAIN REPO
+# ============================================================
+
+if main_repo:
+    print(f"\n  Pushing {color('main', 'repo')}...")
+    success, msg = push_repo(main_repo, silent=not VERBOSE)
+    if success:
+        item("Push to origin", "ok", msg)
+    else:
+        item("Push to origin", "warning", msg)
+
+# ============================================================
+# PHASE 8: POST-SYNC CLEANLINESS CHECK
+# ============================================================
+
+remaining_dirty = [repo for repo in all_repos if repo_has_worktree_changes(repo)]
+if remaining_dirty:
+    issues.append((
+        "dirty",
+        None,
+        "Uncommitted changes remain after sync:\n"
+        + "\n".join(f"    - {repo.relative_path}" for repo in remaining_dirty)
+    ))
 
 # ============================================================
 # PHASE 6: RECOMMENDED NEXT STEPS
@@ -1000,7 +1053,7 @@ if issues:
     print(f"\n{color('=' * 60, 'info')}")
     print(f"\n{color('RECOMMENDED NEXT STEPS:', 'info')}")
     for issue_type, repo, recommendation in issues:
-        status = "✗" if issue_type in ("diverged", "no_remote") else "~"
+        status = "✗" if issue_type in ("diverged", "no_remote", "dirty") else "~"
         name = repo.name if repo else "main"
         print(f"  {status} {name}: {recommendation}")
     print(f"{color('=' * 60, 'info')}\n")

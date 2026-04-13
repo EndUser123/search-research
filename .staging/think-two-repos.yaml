@@ -1,0 +1,6 @@
+notebooklm_id: "551718eb-8903-4bb2-9823-7aee6510a22f"
+repos:
+  - url: "https://github.com/777genius/claude-multimodel"
+    skip: false
+  - url: "https://github.com/trilogy-group/aicoe-ai_ping_pong"
+    skip: false

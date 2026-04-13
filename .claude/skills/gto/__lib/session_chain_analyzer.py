@@ -120,6 +120,10 @@ class SessionChainAnalyzer:
                 if not resolved.is_relative_to(sessions_dir.resolve()):
                     logger.warning("Path outside sessions dir rejected: %s", p)
                     continue
+                # Check for symlinks (could escape via symlink to outside sessions dir)
+                if p.is_symlink():
+                    logger.warning("Symlink rejected: %s", p)
+                    continue
                 # Check for .. escape
                 if ".." in str(p):
                     logger.warning("Path with .. escape rejected: %s", p)

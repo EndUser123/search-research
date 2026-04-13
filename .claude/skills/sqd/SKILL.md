@@ -1,16 +1,18 @@
 ---
 name: sqd
-description: "Strategic + Deterministic Quality - intelligent orchestration combining strategic assessment and deterministic refinement with auto-routing"
-version: 1.4.0
+description: "Combined quality orchestration for /q strategic review, /r deterministic refinement, and /qr combined routing with /rns output"
+version: 2.1.0
 status: stable
 category: quality
 enforcement: advisory
 triggers:
   - /sqd
+  - /qr
   - /sqd --strategic-only
   - /sqd --refine-only
 aliases:
   - /sqd
+  - /qr
 
 suggest:
   - /sqa
@@ -20,9 +22,9 @@ suggest:
 depends_on_skills: []
 workflow_steps:
   - auto_route: QR0 - Detect scope and select applicable checks
-  - strategic_checks: QR1 - Run strategic quality (architecture, patterns, tech fit) if applicable
-  - deterministic_checks: QR2 - Run deterministic refinement (omissions, plan validation) if applicable
-  - synthesize: QR3 - Merge findings, assess health, generate improvements
+  - strategic_checks: QR1 - Run strategic quality with GoT+ToT enhancement
+  - deterministic_checks: QR2 - Run deterministic refinement (omissions, plan validation)
+  - synthesize: QR3 - Merge findings with GoT analysis, assess health
   - render_output: QR4 - Produce /rns-formatted output
   - decide_next: QR5 - Escalation decisions (/s, /p, /rns)
 
@@ -40,12 +42,15 @@ test_prompts:
   - description: "Full intelligent pipeline"
     prompt: "/sqd"
     expected_behavior: "Auto-detects scope, runs applicable strategic+deterministic checks, outputs /rns-formatted findings"
+  - description: "Combined router compatibility"
+    prompt: "/qr"
+    expected_behavior: "Runs the same combined pipeline as /sqd, preserving /q, /r, and /qr behavior in one skill"
   - description: "Strategic only"
     prompt: "/sqd --strategic-only"
-    expected_behavior: "Runs only /q-style strategic checks (architecture, patterns, tech fit), skips deterministic refinement"
+    expected_behavior: "Runs only the strategic /q review path with GoT/ToT enhancement, skips deterministic refinement"
   - description: "Refine only"
     prompt: "/sqd --refine-only"
-    expected_behavior: "Runs only /r-style deterministic checks (omissions, plan validation), skips strategic analysis"
+    expected_behavior: "Runs only the deterministic /r refinement path (omissions, plan validation), skips strategic analysis"
 
 do_not:
   - use "lock ordering" or "enterprise-grade" patterns
@@ -57,25 +62,75 @@ do_not:
 
 ---
 
-# /sqd - Intelligent Quality Orchestration
+# /sqd - Intelligent Quality Orchestration (v2.1)
 
 ## Purpose
 
-**Intelligent quality orchestration** that combines strategic quality assessment (/q) and deterministic refinement (/r) with auto-routing to skip unnecessary work.
+**Intelligent quality orchestration** that combines the merged behavior of `/q`, `/r`, and `/qr` with auto-routing to skip unnecessary work.
 
 **What it does:**
 - Auto-detects scope and runs only applicable checks
-- Strategic: architecture soundness, design patterns, technology fit
-- Deterministic: omissions, plan validation, improvements
+- Strategic `/q` path: architecture soundness, design patterns, technology fit with GoT+ToT reasoning
+- Deterministic `/r` path: omissions, plan validation, improvements
+- Combined `/qr` path: runs both lanes, merges findings, and emits one `/rns` output
 - Outputs /rns-formatted actions
+
+**This skill absorbs /q, /r, and /qr**:
+- QR1 = Strategic checks (formerly /q)
+- QR2 = Deterministic checks (formerly /r)
+- GoT+ToT enhancement integrated into QR1/QR3
 
 **Scope boundary:**
 - `/sqd` = Intelligent strategic + deterministic quality
+- `/qr` = Combined compatibility entrypoint for the same pipeline
 - `/sqa` = Code-focused 8-layer pipeline (syntax, semantic, structural, etc.)
 - `/arch` = Architecture decisions and routing
 - `/p` = Tactical implementation quality
 
 **Anti-pattern:** Don't use `/sqd` for tactical implementation bugs. That's `/p`'s job.
+
+## Graph-of-Thought (GoT) Integration
+
+**Automatic in QR1/QR3 when strategic checks run:**
+
+### GoT Requirement Constraint Extraction
+
+Automatically extract and categorize requirement constraints from strategic findings:
+
+**Node Types Extracted:**
+- **Requirements**: Functional needs ("Must authenticate users", "API response < 200ms")
+- **Constraints**: Limitations ("Must use PostgreSQL", "Budget < $X", "Timeline < 2 weeks")
+- **Ideas**: Design approaches ("Use Redis for caching", "Implement OAuth 2.0")
+- **Risks**: Strategic concerns ("OAuth latency", "Cache complexity", "Migration risk")
+- **Components**: System boundaries ("Service A", "Database B", "Cache C")
+- **Data flows**: Communication paths ("API → Service → Database")
+
+**Relationship Types Detected:**
+- **Supports**: One requirement enables another
+- **Contradicts**: One requirement conflicts with another
+- **Depends**: One requirement requires another
+- **Unrelated**: No direct relationship
+
+### GoT Cycle Detection
+
+Warns about circular requirement dependencies that would cause implementation deadlock.
+
+**Opt-out:** `export SQD_NO_GOT=true`
+
+## Tree-of-Thought (ToT) Integration
+
+**Automatic in QR1 subagent analysis:**
+
+### ToT Question Branching
+
+Automatically generate branching scenarios for strategic quality questions:
+
+**Branch Types:**
+- **Architecture Analysis**: sure/maybe/unlikely for layer separation
+- **Design Pattern**: sure/maybe/unlikely for pattern appropriateness
+- **Technology Fit**: sure/maybe/unlikely for tool selection
+
+**Opt-out:** `export SQD_NO_TOT=true`
 
 ## Auto-Routing Logic
 
@@ -140,24 +195,31 @@ Choose the smallest sufficient test mix for the target:
 
 ### QR1: Strategic Checks (if routed)
 
-From /q - Run 4 parallel subagents via Agent tool:
-- Architecture & Structure
-- Design Patterns & Domain
-- Technology Fit & Engineering Balance
-- Library Strategy
+Run 4 parallel subagents via Agent tool, preserving the old `/q` behavior:
+1. **Architecture & Structure**: Layer separation, module boundaries, coupling
+2. **Design Patterns & Domain**: Pattern usage, anti-patterns, domain logic
+3. **Technology Fit & Engineering Balance**: Right tools, over/under-engineering
+4. **Library Strategy**: Existing solutions, stdlib, codebase patterns
+
+**GoT Integration (QR1 → QR3):**
+- Normalize findings from all subagents
+- GotPlanner extracts constraint nodes from findings
+- GotEdgeAnalyzer detects relationships between constraints
+- Cycle detection warns about circular dependencies
 
 Synthesize findings, assess health (Sound/Concerning/Critical).
 
 ### QR2: Deterministic Checks (if routed)
 
-From /r - Run applicable checks:
-- Omission checklist from context/session
-- Scope classification (trivial|moderate|significant|major)
-- DUF-derived checks (Distributed, Undoable, Fault-tolerant)
-- SRPI protocol (Searched? Read? Planned? Minimal?)
-- Library-first checks
-- Plan validation (if plan intent present)
-- Standards audit (if metadata in scope)
+Run applicable checks, preserving the old `/r` behavior:
+- **Omission checklist**: Build from context/session activity
+- **Scope classification**: trivial|moderate|significant|major
+- **DUF-derived checks**: Distributed, Undoable, Fault-tolerant properties
+- **SRPI protocol**: Searched? Read? Planned? Minimal?
+- **Library-first**: Existing solutions, stdlib, codebase patterns
+- **Plan validation**: If plan intent present
+- **Standards audit**: If metadata in scope
+- **Value completeness**: List excluded items, assign HIGH|MEDIUM|LOW
 
 ### QR3: Synthesize
 
@@ -165,7 +227,26 @@ Merge strategic and deterministic findings:
 - Dedupe by (file, line, category)
 - Resolve severity conflicts
 - Detect consensus (2+ checks agree)
+- **GoT Analysis**: Extract requirement constraints, detect relationships, identify cycles
 - Generate deterministic improvements
+
+**GoT Output Example:**
+```
+GoT Analysis: Requirement Constraints
+======================================
+Nodes extracted: 8
+  - Requirements: 2 (Must authenticate users, API response < 200ms)
+  - Constraints: 3 (Must use PostgreSQL, Budget < $X, Timeline < 2 weeks)
+  - Ideas: 2 (Use Redis for caching, Implement OAuth 2.0)
+  - Risks: 1 (OAuth latency concern)
+Relationships detected: 5
+  - Supports: 3 pairs
+  - Contradicts: 1 pair (JWT vs Stateful sessions - CONFLICT)
+  - Depends: 1 pair
+Cycles detected: 0
+Strategic Health: CONCERNING
+Reason: Constraint conflict detected
+```
 
 ### QR4: Render Output
 
@@ -197,6 +278,7 @@ Set `escalate_to_s: yes` when:
 - Architecture/migration/rewrite scope is implied
 - Multiple high-risk signals are present
 - Deterministic pass has low confidence or conflicting tradeoffs
+- GoT analysis detects requirement conflicts
 
 Suggest `/sqa` when:
 - Code quality issues are found (syntax, semantic, structural)
@@ -206,6 +288,9 @@ Suggest `/sqa` when:
 ## Backward Compatibility
 
 Legacy shorthands still work:
+- `/q` → Strategic `/q` path, now routed through the combined `/sqd` skill
+- `/r` → Deterministic `/r` path, now routed through the combined `/sqd` skill
+- `/qr` → Combined intelligent pipeline
 - `/sqd` → Full intelligent pipeline
 - `/sqd1` or `/sqd --strategic-only` → Strategic checks only
 - `/sqd2` or `/sqd --refine-only` → Deterministic checks only

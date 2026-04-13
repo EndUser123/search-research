@@ -1,25 +1,27 @@
 ---
-name: yt-channel
-description: YouTube channel management — check for new videos and manage tracked channels
+name: yt-is
+description: YouTube channel management — check for new videos, manage tracked channels, and add new channels with validation
 version: 1.0.0
 enforcement: strict
 triggers:
   - User asks to check for new YouTube videos
   - User asks to list tracked channels
   - User asks to add a YouTube channel
+  - User asks about YouTube channel status or transcripts
 workflow_steps:
   - Parse command and arguments
   - Delegate to csf-source backend
   - Paste raw output explicitly (Bash output gets compressed, user can't see it)
   - Display results
 aliases:
-  - yt-channel
+  - yt-is
   - check youtube channels
   - new youtube videos
+  - youtube channel management
 depends_on_skills: []
 ---
 
-# /yt-channel — YouTube Channel Management
+# /yt-is — YouTube Channel Management
 
 Check all tracked YouTube channels for new videos and manage your channel list.
 
@@ -28,11 +30,22 @@ Check all tracked YouTube channels for new videos and manage your channel list.
 - `sync` — Check all tracked channels for new videos
 - `sync --verbose` — Show detailed output during check
 - `list` — List all tracked channels with metadata
-- `add <url>` — Add a new channel or playlist to track
+- `add <url>` — **Add a new channel** with full validation (YouTube Data API resolves @handle, rejects fake/empty/single-video channels, captures title/thumbnail/subscriber/view counts)
 - `fetch` — **ESCALATION BATCH PROCESS**: Download transcripts for all pending videos using yt-dlp → Selenium fallback (RECOMMENDED)
   - `fetch --dry-run` — Preview what would be fetched
   - `fetch --source <url>` — Process only one channel
   - `fetch --workers <n>` — Use N parallel workers (default: 1)
+
+## /yt-is add — Channel Validation Workflow
+
+When adding a channel, the system:
+
+1. **Resolves @handle** via YouTube Data API (`channels.list` with `contentDetails,statistics,snippet`)
+2. **Rejects fake/empty channels** — channels with ≤1 video are rejected (not stored)
+3. **Captures full metadata** — channel_title, thumbnail_url, subscriber_count, view_count stored in `channel_metadata`
+4. **Enumerates all videos** via API pagination and marks them as pending
+
+The validation is strict — only channels with 2+ videos are accepted. This keeps the transcript corpus free of noise from abandoned or test channels.
 
 ## Your Workflow
 

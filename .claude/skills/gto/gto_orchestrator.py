@@ -878,6 +878,23 @@ class GTOOrchestrator:
 
         # Combine gap findings and skill coverage findings
         all_findings = gaps_as_dicts + coverage_findings
+
+        # Wire in integrity prompt results from chain analysis (Next-Step Integrity Prompts)
+        # These feed directly into RNS output with provenance tracked via driven_by
+        chain_meta = result.metadata.get("chain_analysis")
+        if chain_meta:
+            chain_next_steps = chain_meta.get("next_steps", [])
+            for i, step_text in enumerate(chain_next_steps):
+                if step_text and isinstance(step_text, str) and step_text.strip():
+                    all_findings.append({
+                        "id": f"CHAIN-{i + 1:03d}",
+                        "type": "session",
+                        "severity": "medium",
+                        "message": step_text.strip(),
+                        "driven_by": "chain-analysis-integrity",
+                        "effort_estimate_minutes": 10,
+                    })
+
         if all_findings:
             lines.append("## Recommended Next Steps")
             lines.append("")
@@ -915,6 +932,22 @@ class GTOOrchestrator:
         )
 
         all_findings = gaps_as_dicts + coverage_findings
+
+        # Wire in integrity prompt results from chain analysis (Next-Step Integrity Prompts)
+        chain_meta = result.metadata.get("chain_analysis")
+        if chain_meta:
+            chain_next_steps = chain_meta.get("next_steps", [])
+            for i, step_text in enumerate(chain_next_steps):
+                if step_text and isinstance(step_text, str) and step_text.strip():
+                    all_findings.append({
+                        "id": f"CHAIN-{i + 1:03d}",
+                        "type": "session",
+                        "severity": "medium",
+                        "message": step_text.strip(),
+                        "driven_by": "chain-analysis-integrity",
+                        "effort_estimate_minutes": 10,
+                    })
+
         if all_findings:
             return format_rsn_from_gaps(all_findings, show_effort=True)
         return "✅ No gaps found."

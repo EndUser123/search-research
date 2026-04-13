@@ -22,57 +22,52 @@ class TestLegacyFormatMapping:
         """Sequential mode should map correctly with confidence."""
         unified_result = UnifiedDetectionResult(
             matched_modes=["sequential"],
-            confidence=2,
         )
 
         legacy = _map_unified_result_to_legacy_format(unified_result)
 
         assert legacy["mode"] == "sequential"
-        assert legacy["confidence"] == 2
+        assert legacy["confidence"] == 1
         assert legacy["reasoning_required"] is True
 
     def test_maps_multi_agent_mode(self):
         """Multi-agent mode should map correctly."""
         unified_result = UnifiedDetectionResult(
             matched_modes=["multi_agent"],
-            confidence=3,
         )
 
         legacy = _map_unified_result_to_legacy_format(unified_result)
 
         assert legacy["mode"] == "multi_agent"
-        assert legacy["confidence"] == 3
+        assert legacy["confidence"] == 1
         assert legacy["reasoning_required"] is True
 
     def test_maps_graph_mode(self):
         """Graph mode should map correctly."""
         unified_result = UnifiedDetectionResult(
             matched_modes=["graph"],
-            confidence=2,
         )
 
         legacy = _map_unified_result_to_legacy_format(unified_result)
 
         assert legacy["mode"] == "graph"
-        assert legacy["confidence"] == 2
+        assert legacy["confidence"] == 1
 
     def test_maps_two_stage_mode(self):
         """Two-stage mode should map correctly."""
         unified_result = UnifiedDetectionResult(
             matched_modes=["two_stage"],
-            confidence=4,
         )
 
         legacy = _map_unified_result_to_legacy_format(unified_result)
 
         assert legacy["mode"] == "two_stage"
-        assert legacy["confidence"] == 4
+        assert legacy["confidence"] == 1
 
     def test_defaults_to_sequential_when_no_modes_matched(self):
         """Empty matched_modes should default to sequential."""
         unified_result = UnifiedDetectionResult(
             matched_modes=[],  # No modes detected
-            confidence=0,
         )
 
         legacy = _map_unified_result_to_legacy_format(unified_result)
@@ -85,30 +80,27 @@ class TestLegacyFormatMapping:
         """Multiple matched modes should select first."""
         unified_result = UnifiedDetectionResult(
             matched_modes=["sequential", "multi_agent"],  # Two modes
-            confidence=3,
         )
 
         legacy = _map_unified_result_to_legacy_format(unified_result)
 
         assert legacy["mode"] == "sequential"  # First in list
-        assert legacy["confidence"] == 3
+        assert legacy["confidence"] == 2
 
-    def test_reasoning_required_false_for_zero_confidence(self):
-        """Zero confidence should result in reasoning_required=False."""
+    def test_reasoning_required_true_for_non_empty_modes(self):
+        """Any non-empty matched_modes list should require reasoning."""
         unified_result = UnifiedDetectionResult(
             matched_modes=["sequential"],
-            confidence=0,  # No confidence
         )
 
         legacy = _map_unified_result_to_legacy_format(unified_result)
 
-        assert legacy["reasoning_required"] is False
+        assert legacy["reasoning_required"] is True
 
     def test_reasoning_required_false_for_empty_modes(self):
         """Empty modes list should result in reasoning_required=False."""
         unified_result = UnifiedDetectionResult(
             matched_modes=[],
-            confidence=2,  # Has confidence but no modes
         )
 
         legacy = _map_unified_result_to_legacy_format(unified_result)
@@ -203,6 +195,20 @@ class TestReasoningModeSelector:
         assert any(mode in result.context["systemContext"].lower()
                    for mode in ["multi_agent", "sequential", "graph", "two_stage"])
 
+    def test_uses_unified_detection_result_when_present(self):
+        """Shared unified detection result should take precedence over legacy analysis."""
+        unified_result = UnifiedDetectionResult(matched_modes=["graph"])
+        context = HookContext(
+            prompt="plain prompt with no special wording",
+            data={"unified_detection_result": unified_result},
+        )
+
+        result = reasoning_mode_selector(context)
+
+        assert not result.is_empty()
+        assert "graph" in result.context["systemContext"].lower()
+        assert "graph" in result.context["additionalContext"].lower()
+
     def test_system_context_contains_confidence(self):
         """System context should include confidence level."""
         context = HookContext(
@@ -212,9 +218,10 @@ class TestReasoningModeSelector:
 
         result = reasoning_mode_selector(context)
 
-        assert "confidence:" in result.context["systemContext"].lower()
-        # Confidence is 0-4 scale
-        assert any(f"{i}/4" in result.context["systemContext"] for i in range(5))
+        system_context = result.context["systemContext"]
+        assert "reasoning mode:" in system_context.lower()
+        # Confidence is expressed on a 0-4 scale.
+        assert any(f"{i}/4" in system_context for i in range(5))
 
     def test_additional_context_has_emoji_indicator(self):
         """User-facing context should have emoji indicator."""

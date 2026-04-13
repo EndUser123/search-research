@@ -28,102 +28,133 @@ pub async fn search_fts5(
     // Read-only connections cannot enable WAL (requires write access for -wal/-shm files),
     // but they benefit from WAL if already enabled by the database initialization.
 
-    // Check if FTS5 table exists
-    let table_exists: i64 = conn
-        .query_row(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='chat_messages_fts'",
-            [],
-            |row| row.get(0),
-        )
-        .unwrap_or(0);
-
-    if table_exists == 0 {
-        info!("FTS5 table not found, checking for regular table");
-        // Check for regular table
-        let regular_table_exists: i64 = conn
+    // Detect which schema exists: new (chat_messages_fts) or existing (messages_fts)
+    // The existing database uses 'messages' and 'messages_fts' tables
+    let (fts_table, main_table) = {
+        let chat_fts_exists: i64 = conn
             .query_row(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='chat_messages'",
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='chat_messages_fts'",
                 [],
                 |row| row.get(0),
             )
             .unwrap_or(0);
 
-        if regular_table_exists == 0 {
-            info!("No chat_messages table found, returning empty results");
-            return Ok(Vec::new());
+        if chat_fts_exists > 0 {
+            ("chat_messages_fts".to_string(), "chat_messages".to_string())
+        } else {
+            // Check for existing schema (messages_fts)
+            let msg_fts_exists: i64 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='messages_fts'",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap_or(0);
+
+            if msg_fts_exists > 0 {
+                ("messages_fts".to_string(), "messages".to_string())
+            } else {
+                info!("No FTS5 table found (tried chat_messages_fts and messages_fts), returning empty results");
+                return Ok(Vec::new());
+            }
         }
-    }
+    };
 
     let mut results = Vec::new();
 
-    if table_exists > 0 {
-        // Use FTS5 search with snippet extraction
-        if let Some(proj) = project {
-            let mut stmt = conn.prepare(
-                "SELECT session_id, message_type, timestamp, content, project,
-                        bm25(chat_messages_fts) as score,
-                        snippet(chat_messages_fts, -1, '<b>', '</b>', '...', 30) as snippet
-                 FROM chat_messages_fts
-                 WHERE chat_messages_fts MATCH ?1 AND project = ?2
-                 ORDER BY score
-                 LIMIT ?3"
-            )?;
-            let rows = stmt.query_map(params![query, proj, limit as i64], |row| {
-                let content: String = row.get(3)?;
-                Ok(super::cli::SearchResult {
-                    session_id: row.get(0)?,
-                    message_type: row.get(1)?,
-                    timestamp: parse_timestamp(row.get::<_, String>(2)?.as_str())
-                        .unwrap_or_else(|_| DateTime::from_timestamp(0, 0).unwrap()),
-                    content,
-                    project: row.get(4)?,
-                    score: row.get::<_, Option<f64>>(5)?,
-                    snippet: row.get::<_, Option<String>>(6)?,
-                })
-            })?;
+    // Build FTS5 query with JOIN to main table
+    // Note: messages_fts uses content_rowid to link to messages.id
+    if let Some(proj) = project {
+        let sql = format!(
+            "SELECT m.message_id as session_id, m.role as message_type,
+                    m.timestamp, m.content, p.path as project,
+                    bm25({fts}) as score,
+                    snippet({fts}, -1, '<b>', '</b>', '...', 30) as snippet
+             FROM {fts}
+             JOIN messages m ON m.id = {fts}.rowid
+             LEFT JOIN projects p ON p.id = m.project_id
+             WHERE {fts} MATCH ?1 AND p.path = ?2
+             ORDER BY score
+             LIMIT ?3",
+            fts = fts_table
+        );
+        let mut stmt = conn.prepare(&sql)?;
+        let rows = stmt.query_map(params![query, proj, limit as i64], |row| {
+            let content: String = row.get(3)?;
+            let timestamp_str = row.get::<_, i64>(2)?.to_string();
+            Ok(super::cli::SearchResult {
+                session_id: row.get(0)?,
+                message_type: row.get(1)?,
+                timestamp: DateTime::from_timestamp(timestamp_str.parse().unwrap_or(0), 0)
+                    .unwrap_or_else(|| DateTime::from_timestamp(0, 0).unwrap()),
+                content,
+                project: row.get(4)?,
+                score: row.get::<_, Option<f64>>(5)?,
+                snippet: row.get::<_, Option<String>>(6)?,
+            })
+        })?;
 
-            for row in rows {
-                results.push(row?);
-            }
-        } else {
-            let mut stmt = conn.prepare(
-                "SELECT session_id, message_type, timestamp, content, project,
-                        bm25(chat_messages_fts) as score,
-                        snippet(chat_messages_fts, -1, '<b>', '</b>', '...', 30) as snippet
-                 FROM chat_messages_fts
-                 WHERE chat_messages_fts MATCH ?1
-                 ORDER BY score
-                 LIMIT ?2"
-            )?;
-            let rows = stmt.query_map(params![query, limit as i64], |row| {
-                let content: String = row.get(3)?;
-                Ok(super::cli::SearchResult {
-                    session_id: row.get(0)?,
-                    message_type: row.get(1)?,
-                    timestamp: parse_timestamp(row.get::<_, String>(2)?.as_str())
-                        .unwrap_or_else(|_| DateTime::from_timestamp(0, 0).unwrap()),
-                    content,
-                    project: row.get(4)?,
-                    score: row.get::<_, Option<f64>>(5)?,
-                    snippet: row.get::<_, Option<String>>(6)?,
-                })
-            })?;
-
-            for row in rows {
-                results.push(row?);
-            }
+        for row in rows {
+            results.push(row?);
         }
     } else {
-        // Fall back to LIKE search
+        let sql = format!(
+            "SELECT m.message_id as session_id, m.role as message_type,
+                    m.timestamp, m.content, p.path as project,
+                    bm25({fts}) as score,
+                    snippet({fts}, -1, '<b>', '</b>', '...', 30) as snippet
+             FROM {fts}
+             JOIN messages m ON m.id = {fts}.rowid
+             LEFT JOIN projects p ON p.id = m.project_id
+             WHERE {fts} MATCH ?1
+             ORDER BY score
+             LIMIT ?2",
+            fts = fts_table
+        );
+        let mut stmt = conn.prepare(&sql)?;
+        let rows = stmt.query_map(params![query, limit as i64], |row| {
+            let content: String = row.get(3)?;
+            let timestamp_str = row.get::<_, i64>(2)?.to_string();
+            Ok(super::cli::SearchResult {
+                session_id: row.get(0)?,
+                message_type: row.get(1)?,
+                timestamp: DateTime::from_timestamp(timestamp_str.parse().unwrap_or(0), 0)
+                    .unwrap_or_else(|| DateTime::from_timestamp(0, 0).unwrap()),
+                content,
+                project: row.get(4)?,
+                score: row.get::<_, Option<f64>>(5)?,
+                snippet: row.get::<_, Option<String>>(6)?,
+            })
+        })?;
+
+        for row in rows {
+            results.push(row?);
+        }
+    }
+
+    Ok(results)
+}
+
+/// Fallback LIKE search when no FTS5 table exists
+fn search_like(
+    conn: &Connection,
+    main_table: &str,
+    query: &str,
+    project: Option<&str>,
+    limit: usize,
+) -> Result<Vec<super::cli::SearchResult>> {
+        let mut results = Vec::new();
         let search_pattern = format!("%{}%", query);
         if let Some(proj) = project {
-            let mut stmt = conn.prepare(
+            let sql = format!(
                 "SELECT session_id, message_type, timestamp, content, project, NULL as score
-                 FROM chat_messages
+                 FROM {}
                  WHERE content LIKE ?1 AND project = ?2
                  ORDER BY timestamp DESC
-                 LIMIT ?3"
-            )?;
+                 LIMIT ?3",
+                main_table
+            );
+            let mut stmt = conn.prepare(&sql)?;
             let rows = stmt.query_map(params![search_pattern, proj, limit as i64], |row| {
                 let content: String = row.get(3)?;
                 Ok(super::cli::SearchResult {
@@ -142,13 +173,15 @@ pub async fn search_fts5(
                 results.push(row?);
             }
         } else {
-            let mut stmt = conn.prepare(
+            let sql = format!(
                 "SELECT session_id, message_type, timestamp, content, project, NULL as score
-                 FROM chat_messages
+                 FROM {}
                  WHERE content LIKE ?1
                  ORDER BY timestamp DESC
-                 LIMIT ?2"
-            )?;
+                 LIMIT ?2",
+                main_table
+            );
+            let mut stmt = conn.prepare(&sql)?;
             let rows = stmt.query_map(params![search_pattern, limit as i64], |row| {
                 let content: String = row.get(3)?;
                 Ok(super::cli::SearchResult {
@@ -167,7 +200,6 @@ pub async fn search_fts5(
                 results.push(row?);
             }
         }
-    }
 
     Ok(results)
 }

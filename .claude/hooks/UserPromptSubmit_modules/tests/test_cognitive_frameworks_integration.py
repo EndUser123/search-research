@@ -19,6 +19,8 @@ class TestCognitiveFrameworksIntegration:
         enhancer_names = {e.name for e in _ENHANCERS}
         expected = {
             "assumption_surfacing",
+            "assumption_check",
+            "escape_hatch_gate",
             "outcome_anchoring",
             "inversion_prompting",
             "chestertons_fence",

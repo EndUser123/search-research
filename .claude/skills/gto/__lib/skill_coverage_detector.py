@@ -495,6 +495,23 @@ def detect_skill_coverage(
     project_root = Path(project_root or Path.cwd()).resolve()
     findings = []
 
+    # Step 0: Read coverage log BEFORE recommendations so we can mark verified skills
+    coverage_path = _get_skill_coverage_path(target_key)
+    entries = _read_skill_coverage_log(coverage_path)
+    project_entries = _read_skill_usage_log(project_root)
+    all_entries = entries + project_entries
+
+    # Determine which skills have FRESH coverage (ran with no file changes since)
+    fresh_coverage_skills: set[str] = set()
+    for entry in all_entries:
+        if entry.timestamp:
+            is_stale, git_unavailable = _is_git_dirty_since(
+                project_root, target_key, entry.timestamp
+            )
+            # Only mark coverage as fresh if git was available AND no changes detected
+            if not is_stale and not git_unavailable:
+                fresh_coverage_skills.add(entry.skill)
+
     # Step 1: Gap-aware skill recommendations (if gaps provided)
     if gaps:
         logger.info("Using gap-aware skill recommendations for %d gaps", len(gaps))
@@ -514,6 +531,9 @@ def detect_skill_coverage(
             # Demote if skill has poor track record on these gap types
             elif score < 0.3:
                 rec.confidence = max(rec.confidence - 0.1, 0.1)
+            # Mark verified if skill has fresh coverage evidence
+            if rec.skill.name in fresh_coverage_skills:
+                rec.verified = True
 
         # Convert to RSN findings
         gap_aware_findings = format_recommendations_for_rsn(recommendations)
@@ -524,15 +544,6 @@ def detect_skill_coverage(
         if skill_context and findings:
             # Add context as metadata to first finding
             findings[0]["skill_context"] = skill_context
-
-    # Step 2: Read skill coverage log (home-based) AND project skill-usage.jsonl
-    coverage_path = _get_skill_coverage_path(target_key)
-    entries = _read_skill_coverage_log(coverage_path)
-
-    # Also check project's skill-usage.jsonl (written by run_gto_monorepo.py)
-    # These were historically two separate systems — reconcile them.
-    project_entries = _read_skill_usage_log(project_root)
-    all_entries = entries + project_entries
 
     # Step 2.5: Also read skills from package CHANGELOG.md (shared skill activity log)
     # This supplements the JSONL logs — skills that write to CHANGELOG.md are tracked here
@@ -618,7 +629,8 @@ def detect_skill_coverage(
             # Skip if this skill was already run with fresh coverage
             if suggestion.skill in skills_run:
                 # Check git freshness - if no entries, use current time
-                check_timestamp = entries[0].timestamp if entries else now
+                # Use MOST RECENT entry (entries[-1] after sorting) for freshness check
+                check_timestamp = entries[-1].timestamp if entries else now
                 is_stale, git_unavailable = _is_git_dirty_since(
                     project_root, target_key, check_timestamp
                 )

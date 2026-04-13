@@ -16,6 +16,7 @@ import pytest
 from core.chs.config import Config
 from core.chs.db import (
     get_connection,
+    database_is_initialized,
     init_db,
     load_embeddings_config,
     set_embeddings_config,
@@ -69,16 +70,18 @@ class TestConfigClass:
         config = Config()
         assert config.embedding_dim == 768
 
-    def test_config_loads_jsonl_directory_from_env(self, monkeypatch):
+    def test_config_loads_jsonl_directory_from_env(self, monkeypatch, tmp_path):
         """Test Config loads CHS_JSONL_DIR from environment variable.
 
         Given: CHS_JSONL_DIR environment variable is set
         When: Config is instantiated
         Then: jsonl_dir attribute should match the environment value
         """
-        monkeypatch.setenv("CHS_JSONL_DIR", "P:/__csf/logs/chats")
+        jsonl_dir = tmp_path / "chats"
+        jsonl_dir.mkdir()
+        monkeypatch.setenv("CHS_JSONL_DIR", str(jsonl_dir))
         config = Config()
-        assert config.jsonl_dir == Path("P:/__csf/logs/chats")
+        assert config.jsonl_dir == jsonl_dir
 
     def test_config_validates_embedding_dim_is_positive_int(self, monkeypatch):
         """Test Config validates embedding_dim is a positive integer.
@@ -159,6 +162,22 @@ class TestGetConnection:
         db_path = tmp_path / "nested" / "dirs" / "test.db"
         get_connection(db_path)
         assert db_path.parent.exists()
+
+
+class TestDatabaseInitialization:
+    """Tests for schema readiness detection."""
+
+    def test_database_is_initialized_returns_false_for_empty_file(self, tmp_path):
+        """An empty SQLite file should not count as an initialized CHS database."""
+        db_path = tmp_path / "empty.db"
+        db_path.touch()
+        assert database_is_initialized(db_path) is False
+
+    def test_database_is_initialized_returns_true_after_init(self, tmp_path):
+        """A schema-initialized database should be detected as ready."""
+        db_path = tmp_path / "ready.db"
+        init_db(db_path)
+        assert database_is_initialized(db_path) is True
 
 
 class TestInitDB:

@@ -251,6 +251,12 @@ class AsyncSearchRouter:
         except Exception as e:
             logger.debug(f"Dependency backend not available: {e}")
 
+        # QMD Wiki backend - searches Obsidian vault via QMD CLI
+        try:
+            backends["qmd_wiki"] = local.QMDWikiBackend()
+        except Exception as e:
+            logger.debug(f"QMD Wiki backend not available: {e}")
+
         self._backends = backends
         self._backends_initialized = True
 

@@ -5,7 +5,7 @@ Reads from ~/.claude/history.jsonl (source of truth) and populates
 P:/__csf/data/chat_history.db using the v2 schema.
 
 Usage:
-    python -m search_research.core.chs.scripts.reindex_from_jsonl [--dry-run] [--limit N]
+    python -m core.chs.scripts.reindex_from_jsonl [--dry-run] [--limit N]
 
 The source data (~/.claude/history.jsonl) is NOT moved - it's system-owned.
 The derived database (P:/__csf/data/chat_history.db) is project-managed.
@@ -159,10 +159,10 @@ class HistoryReindexer:
 
     def init_schema(self) -> None:
         """Initialize the v2 schema if database doesn't exist."""
-        from core.chs.db import init_db
+        from core.chs.db import database_is_initialized, init_db
 
-        if not self.db_path.exists():
-            logger.info(f"Initializing new database at {self.db_path}")
+        if not self.db_path.exists() or not database_is_initialized(self.db_path):
+            logger.info(f"Initializing CHS schema at {self.db_path}")
             init_db(self.db_path)
         else:
             logger.info(f"Using existing database at {self.db_path}")
@@ -463,8 +463,8 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    history_path = Path(args.history_path)
-    db_path = Path(args.db_path)
+    history_path = Path(args.history_path).expanduser()
+    db_path = Path(args.db_path).expanduser()
 
     if not history_path.exists():
         logger.error(f"History file not found: {history_path}")
