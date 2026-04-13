@@ -52,6 +52,21 @@ class UnifiedDetectionResult:
     timing_ms: float = 0.0
 
 
+def ensure_unified_detection_result(context: HookContext) -> UnifiedDetectionResult:
+    """Return a shared detection result, computing and caching it if needed."""
+    data = getattr(context, "data", None)
+    if isinstance(data, dict):
+        result = data.get("unified_detection_result")
+        if isinstance(result, UnifiedDetectionResult):
+            return result
+
+    result = detect_prompt(context.prompt)
+    if isinstance(data, dict):
+        data["unified_detection_result"] = result
+        data.setdefault("unified_detection_source", "computed")
+    return result
+
+
 # =============================================================================
 # COGNITIVE FRAMEWORKS (10 total)
 # =============================================================================

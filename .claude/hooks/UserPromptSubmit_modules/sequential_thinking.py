@@ -32,9 +32,16 @@ from pathlib import Path
 from typing import Optional
 
 from UserPromptSubmit_modules.base import HookContext, HookResult
-from UserPromptSubmit_modules.reasoning_contract import append_reasoning_contract
+from UserPromptSubmit_modules.reasoning_contract import (
+    append_reasoning_contract,
+    mark_reasoning_contract_applied,
+    reasoning_contract_already_applied,
+)
 from UserPromptSubmit_modules.registry import register_hook
-from UserPromptSubmit_modules.unified_detection import UnifiedDetectionResult
+from UserPromptSubmit_modules.unified_detection import (
+    UnifiedDetectionResult,
+    ensure_unified_detection_result,
+)
 
 # Ensure __lib is importable (hooks dir is already in sys.path via UserPromptSubmit.py)
 def _find_hooks_dir() -> Path:
@@ -223,15 +230,6 @@ def _create_sequential_state(
         pass
 
 
-def _get_unified_detection_result(
-    context: HookContext,
-) -> UnifiedDetectionResult | None:
-    """Return the shared unified detection result when available."""
-    data = getattr(context, "data", None) or {}
-    result = data.get("unified_detection_result")
-    return result if isinstance(result, UnifiedDetectionResult) else None
-
-
 def _shared_sequential_signal(
     unified_result: UnifiedDetectionResult | None,
 ) -> tuple[bool, bool, str | None]:
@@ -256,7 +254,6 @@ def _shared_sequential_signal(
     should_trigger = bool(
         matched_modes & {"sequential", "multi_agent", "graph", "two_stage"}
         or is_investigation
-        or unified_result.matched_profiles
     )
     if not should_trigger:
         return False, is_investigation, None
@@ -279,6 +276,16 @@ def _shared_sequential_signal(
     return True, is_investigation, trigger_phrase
 
 
+def _sequential_addendum() -> str:
+    """Return the minimal sequential-thinking addendum when the base contract is already active."""
+    return (
+        "SEQUENTIAL THINKING ADDENDUM:\n"
+        "- Keep 2-3 competing explanations or steps in view until the evidence narrows them.\n"
+        "- Name the smallest discriminating check before concluding.\n"
+        "- Preserve rollback or fallback notes only if the prompt has real blast radius."
+    )
+
+
 @register_hook("sequential_thinking", priority=8.5)
 def sequential_thinking_hook(context: HookContext) -> HookResult:
     """Detect sequential thinking triggers and inject session context."""
@@ -289,7 +296,7 @@ def sequential_thinking_hook(context: HookContext) -> HookResult:
     prompt = context.prompt
     prompt_lower = prompt.lower()
     terminal_id = context.terminal_id or ""
-    unified_result = _get_unified_detection_result(context)
+    unified_result = ensure_unified_detection_result(context)
     shared_triggered, shared_investigation, shared_phrase = _shared_sequential_signal(
         unified_result
     )
@@ -383,14 +390,18 @@ def sequential_thinking_hook(context: HookContext) -> HookResult:
             f"</sequential_thinking>\n\n"
             f"{instructions}\n"
         )
-        injection = append_reasoning_contract(
-            injection,
-            include_verification=True,
-            include_counterexample=True,
-            include_discovery=False,
-            include_rollback=True,
-            include_evidence=True,
-        )
+        if reasoning_contract_already_applied(context):
+            injection = f"{injection}\n{_sequential_addendum()}"
+        else:
+            injection = append_reasoning_contract(
+                injection,
+                include_verification=True,
+                include_counterexample=True,
+                include_discovery=False,
+                include_rollback=True,
+                include_evidence=True,
+            )
+            mark_reasoning_contract_applied(context, "sequential_thinking")
         return HookResult(
             context={
                 "additionalContext": injection,

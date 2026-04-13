@@ -33,6 +33,9 @@ from UserPromptSubmit.think_trigger import (
     _detect_profile,
     think_trigger,
 )
+from UserPromptSubmit_modules.base import HookContext as InternalHookContext
+from UserPromptSubmit_modules.reasoning_mode_selector import reasoning_mode_selector
+from UserPromptSubmit_modules.sequential_thinking import sequential_thinking_hook
 from UserPromptSubmit_modules.unified_detection import UnifiedDetectionResult
 
 
@@ -289,6 +292,32 @@ class TestTagEmissionIntegration:
         assert "[THINK:debug_rca]" in text
         assert "THINK ALIGNMENT" in text
         assert "Shared detection" in text
+
+
+class TestSharedReasoningState:
+    """Ensure shared flags prevent duplicate scaffolds across hooks."""
+
+    def test_reasoning_contract_is_primed_once(self):
+        """Later hooks should observe the upstream contract and stay concise."""
+        context = InternalHookContext(
+            prompt="Should we split into microservices step by step?",
+            data={},
+        )
+
+        first = think_trigger(context)
+        assert not first.is_empty()
+        assert context.data.get("reasoning_contract_applied") is True
+        assert context.data.get("reasoning_contract_source") == "think_trigger"
+
+        second = reasoning_mode_selector(context)
+        assert not second.is_empty()
+        assert "Shared reasoning contract already applied upstream" in second.context["systemContext"]
+
+        third = sequential_thinking_hook(context)
+        assert not third.is_empty()
+        text = _context_text(third)
+        assert "REASONING CONTRACT" not in text
+        assert "SEQUENTIAL THINKING ADDENDUM" in text
 
 
 # Import pytest for parametrize

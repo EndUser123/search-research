@@ -18,10 +18,15 @@ from pathlib import Path
 
 from UserPromptSubmit_modules.base import HookContext, HookResult
 from UserPromptSubmit_modules.observability import log_reasoning_mode
-from UserPromptSubmit_modules.reasoning_contract import build_reasoning_contract
+from UserPromptSubmit_modules.reasoning_contract import (
+    build_reasoning_contract,
+    mark_reasoning_contract_applied,
+    reasoning_contract_already_applied,
+)
 from UserPromptSubmit_modules.unified_detection import (
     UnifiedDetectionResult,
     detect_prompt,
+    ensure_unified_detection_result,
 )
 
 # Add reasoning package and hooks to path
@@ -50,15 +55,6 @@ def _map_unified_result_to_legacy_format(
     }
 
 
-def _get_unified_detection_result(
-    context: HookContext,
-) -> UnifiedDetectionResult | None:
-    """Return the shared unified detection result when available."""
-    data = getattr(context, "data", None) or {}
-    result = data.get("unified_detection_result")
-    return result if isinstance(result, UnifiedDetectionResult) else None
-
-
 def reasoning_mode_selector(context: HookContext) -> HookResult:
     """Select optimal reasoning mode based on query analysis.
 
@@ -79,15 +75,18 @@ def reasoning_mode_selector(context: HookContext) -> HookResult:
             # Skip very short prompts
             return HookResult.empty()
 
-        shared_result = _get_unified_detection_result(context)
+        shared_result = ensure_unified_detection_result(context)
+        fallback_used = False
         if shared_result is not None and shared_result.matched_modes:
             analysis = _map_unified_result_to_legacy_format(shared_result)
         else:
+            fallback_used = True
             # Prefer unified detection as the shared source of truth.
             unified_result = detect_prompt(prompt)
             if unified_result.matched_modes:
                 analysis = _map_unified_result_to_legacy_format(unified_result)
             else:
+                fallback_used = True
                 # Fall back to the legacy analyzer for any remaining edge cases.
                 analysis = analyze_query(prompt)
 
@@ -100,17 +99,22 @@ def reasoning_mode_selector(context: HookContext) -> HookResult:
         confidence = analysis["confidence"]
 
         # System context for AI
-        system_context = (
-            f"Reasoning mode: {mode_name} ({confidence}/4). "
-            "Start here, then widen depth if uncertainty remains.\n\n"
-            + build_reasoning_contract(
-                include_discovery=False,
-                include_rollback=False,
-                include_verification=True,
-                include_counterexample=True,
-                include_evidence=True,
+        contract_active = reasoning_contract_already_applied(context)
+        system_context = f"Reasoning mode: {mode_name} ({confidence}/4). Start here, then widen depth if uncertainty remains."
+        if contract_active:
+            system_context += "\n\nShared reasoning contract already applied upstream; keep the mode-specific guidance concise."
+        else:
+            system_context += (
+                "\n\n"
+                + build_reasoning_contract(
+                    include_discovery=False,
+                    include_rollback=False,
+                    include_verification=True,
+                    include_counterexample=True,
+                    include_evidence=True,
+                )
             )
-        )
+            mark_reasoning_contract_applied(context, "reasoning_mode_selector")
 
         # User-facing message
         mode_display = {
@@ -134,7 +138,7 @@ def reasoning_mode_selector(context: HookContext) -> HookResult:
         log_reasoning_mode(
             mode=mode_name,
             confidence=confidence,
-            fallback=False,  # Not a fallback selection
+            fallback=fallback_used,
             tokens=total_tokens,
         )
 

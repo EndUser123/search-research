@@ -26,9 +26,15 @@ import re
 from dataclasses import dataclass
 
 from UserPromptSubmit_modules.base import HookContext, HookResult
-from UserPromptSubmit_modules.reasoning_contract import append_reasoning_contract
+from UserPromptSubmit_modules.reasoning_contract import (
+    append_reasoning_contract,
+    mark_reasoning_contract_applied,
+)
 from UserPromptSubmit_modules.registry import register_hook
-from UserPromptSubmit_modules.unified_detection import UnifiedDetectionResult
+from UserPromptSubmit_modules.unified_detection import (
+    UnifiedDetectionResult,
+    ensure_unified_detection_result,
+)
 
 # ---------------------------------------------------------------------------
 # Single-source profile definition (dataclass pattern)
@@ -637,15 +643,6 @@ def _parse_think(prompt: str) -> tuple[str | None, str]:
     return profile, remainder
 
 
-def _get_unified_detection_result(
-    context: HookContext,
-) -> UnifiedDetectionResult | None:
-    """Return the shared unified detection result when prior hooks populated it."""
-    data = getattr(context, "data", None) or {}
-    result = data.get("unified_detection_result")
-    return result if isinstance(result, UnifiedDetectionResult) else None
-
-
 def _select_profile_from_unified_result(
     unified_result: UnifiedDetectionResult | None,
 ) -> str | None:
@@ -709,7 +706,7 @@ if __debug__:  # Only runs in dev/test, optimized out in production
 @register_hook("think_trigger", priority=6.0)
 def think_trigger(context: HookContext) -> HookResult:
     """Inject reasoning framework via auto-detection."""
-    unified_result = _get_unified_detection_result(context)
+    unified_result = ensure_unified_detection_result(context)
     profile = _detect_profile(context.prompt, unified_result=unified_result)
 
     if profile is None:
@@ -724,6 +721,7 @@ def think_trigger(context: HookContext) -> HookResult:
         include_rollback=True,
         include_evidence=True,
     )
+    mark_reasoning_contract_applied(context, "think_trigger")
     suppression = [
         "operating_rules",
     ]

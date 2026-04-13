@@ -10,7 +10,11 @@ The goal is to make the baseline reasoning discipline automatic:
 
 from __future__ import annotations
 
+from UserPromptSubmit_modules.base import HookContext
+
 _HEADER = "**REASONING CONTRACT**"
+_STATE_KEY = "reasoning_contract_applied"
+_SOURCE_KEY = "reasoning_contract_source"
 
 
 def _contract_lines(
@@ -143,3 +147,20 @@ def append_reasoning_contract(
 def contract_clauses() -> tuple[str, ...]:
     """Return the canonical contract clauses for test assertions."""
     return tuple(_contract_lines())
+
+
+def mark_reasoning_contract_applied(context: HookContext, source: str) -> None:
+    """Record that a reasoning contract has already been injected upstream."""
+    data = getattr(context, "data", None)
+    if not isinstance(data, dict):
+        return
+    data[_STATE_KEY] = True
+    data[_SOURCE_KEY] = source
+
+
+def reasoning_contract_already_applied(context: HookContext) -> bool:
+    """Return True when a prior hook has already primed the reasoning contract."""
+    data = getattr(context, "data", None)
+    if not isinstance(data, dict):
+        return False
+    return bool(data.get(_STATE_KEY))
