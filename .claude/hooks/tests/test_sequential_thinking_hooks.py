@@ -14,6 +14,11 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Ensure the hooks-local __lib package wins even if another test imported a
+# different __lib namespace earlier in the same pytest process.
+sys.modules.pop("__lib", None)
+sys.modules.pop("__lib.sequential_state", None)
+
 import __lib.sequential_state as ss
 import StopHook_sequential_thinking as sh
 from UserPromptSubmit_modules.base import HookContext, HookResult
