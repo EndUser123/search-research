@@ -90,7 +90,12 @@
       "Bash(mv P:/packages/yt-is/.claude/skills/code P:/packages/yt-is/skills/)",
       "Bash(rmdir P:/packages/yt-is/.claude/skills)",
       "Bash(mkdir -p P:/.staging)",
-      "Bash(cp P:/.claude/skills/gitingest/references/repos-template.yaml P:/.staging/vibe-ensemble-mcp.yaml)"
+      "Bash(cp P:/.claude/skills/gitingest/references/repos-template.yaml P:/.staging/vibe-ensemble-mcp.yaml)",
+      "Bash(cp \"P:/.claude/hooks/PreToolUse/PreToolUse_skill_pattern_gate.py\" \"P:/packages/skill-guard/src/skill_guard/PreToolUse/PreToolUse_skill_pattern_gate.py\")",
+      "Bash(cp \"P:/.claude/hooks/posttooluse/skill_execution_tracker.py\" \"P:/packages/skill-guard/src/skill_guard/posttooluse/skill_execution_tracker.py\")",
+      "Bash(rm -f \"P:/.claude/hooks/PreToolUse/PreToolUse_skill_pattern_gate.py\" \"P:/.claude/hooks/posttooluse/skill_execution_tracker.py\")",
+      "Bash(ln -s \"/p/packages/skill-guard/src/skill_guard/PreToolUse/PreToolUse_skill_pattern_gate.py\" \"P:/.claude/hooks/PreToolUse/PreToolUse_skill_pattern_gate.py\")",
+      "Bash(ln -s \"/p/packages/skill-guard/src/skill_guard/posttooluse/skill_execution_tracker.py\" \"P:/.claude/hooks/posttooluse/skill_execution_tracker.py\")"
     ],
     "deny": [],
     "ask": []

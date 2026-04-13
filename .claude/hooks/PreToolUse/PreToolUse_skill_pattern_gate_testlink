@@ -612,11 +612,6 @@ def handle_pre_tool_use(data: dict) -> dict:
     # END STATELESS SKILL-FIRST GATE
     # =========================================================================
 
-    # Always allow investigation tools (they don't count as "first action")
-    # This check MUST be before Layer 0.5 to allow investigation even when skill is pending
-    if tool_name in INVESTIGATION_TOOLS:
-        return {}
-
     # =========================================================================
     # LAYER 0.5 (STATE-FILE): Read pending_command_intent for post-compaction detection
     # =========================================================================

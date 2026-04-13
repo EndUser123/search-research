@@ -582,15 +582,11 @@ def get_skill_effectiveness_score(
             if _extract_root_type(gt) in gap_type_set:
                 successful_resolutions += 1
 
-    # Base score from resolution ratio
-    base_score = successful_resolutions / max(total_attempts, 1)
-
     # Demotion factor from failed verifications (gap reappeared after being credited)
-    # Each failure reduces score significantly
-    failure_demotion = min(failed_count * 0.2, 0.4)  # Cap demotion at 0.4
+    failure_demotion = min(failed_count * _FAILURE_DEMOTION_PER_FAILED, _FAILURE_DEMOTION_CAP)
 
     # Boost from verified resolutions (gap stayed absent)
-    verification_boost = min(verified_count * 0.05, 0.2)  # Cap boost at 0.2
+    verification_boost = min(verified_count * _VERIFICATION_BOOST_PER_VERIFIED, _VERIFICATION_BOOST_CAP)
 
     final_score = base_score + verification_boost - failure_demotion
     return min(max(final_score, 0.0), 1.0)

@@ -15,6 +15,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+# Thresholds for effort formatting
+MINUTES_PER_HOUR = 60
+EFFORT_LARGE_THRESHOLD = 120  # Efforts >= 120 min shown in hours
+
 
 @dataclass
 class NextStep:
@@ -758,8 +762,7 @@ def _format_gto_rsn_markdown(findings: list[dict], show_effort: bool = True) -> 
 
             effort = f.get("effort_minutes", f.get("effort_estimate_minutes", 5))
             total_effort_minutes += effort
-            effort_str = f"[~{effort // 60}hr]" if effort >= 120 else f"[~{effort}min]"
-
+            effort_str = f"[~{effort // MINUTES_PER_HOUR}hr]" if effort >= EFFORT_LARGE_THRESHOLD else f"[~{effort}min]"
             message = f.get("message", "")
             file_ref = f.get("file_ref") or f.get("file_path", "")
             location = f"({file_ref})" if file_ref else ""

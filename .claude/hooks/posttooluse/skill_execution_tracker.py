@@ -45,33 +45,26 @@ class SkillExecutionTracker(PostToolUseHook):
         self._import_functions()
 
     def _import_functions(self):
-        """Lazy import state management functions."""
-        try:
-            from skill_execution_state import (
-                detect_terminal_id,
-                record_tool_use,
-                set_skill_loaded,
-                update_workflow_stage,
-            )
-            self._set_skill_loaded = set_skill_loaded
-            self._record_tool_use = record_tool_use
-            self._detect_terminal_id = detect_terminal_id
-            self._update_workflow_stage = update_workflow_stage
-            self._imports_ok = True
-        except ImportError:
-            self._set_skill_loaded = lambda s: None
-            self._record_tool_use = lambda t, i: None
-            self._detect_terminal_id = lambda: None
-            self._update_workflow_stage = lambda **kw: None
-            self._imports_ok = False
+        """Fail-fast import of state management functions."""
+        from skill_execution_state import (
+            detect_terminal_id,
+            record_tool_use,
+            set_skill_loaded,
+            update_workflow_stage,
+        )
+        self._set_skill_loaded = set_skill_loaded
+        self._record_tool_use = record_tool_use
+        self._detect_terminal_id = detect_terminal_id
+        self._update_workflow_stage = update_workflow_stage
+        self._imports_ok = True
 
     def _load_workflow_steps(self, skill_name: str):
-        """Lazy import for _load_workflow_steps from skill_guard.breadcrumb.tracker."""
-        try:
-            from skill_guard.breadcrumb.tracker import _load_workflow_steps as _lw
-            return _lw(skill_name)
-        except ImportError:
-            return None
+        """Import _load_workflow_steps from skill_guard.breadcrumb.tracker.
+
+        Fails fast if the module or function is unavailable.
+        """
+        from skill_guard.breadcrumb.tracker import _load_workflow_steps as _lw
+        return _lw(skill_name)
 
     def process(
         self,
