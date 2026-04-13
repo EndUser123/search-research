@@ -6,7 +6,7 @@
     "source_session_id": "5867dab7-5e3d-4927-ae16-ec32bcb5248c",
     "created_at": "2026-04-13T19:31:01.924142+00:00",
     "expires_at": "2026-04-13T19:51:01.924142+00:00",
-    "status": "pending",
+    "status": "rejected_stale",
     "goal": "does /gto check anything about unit tests, regression tests, or integration tests?",
     "current_task": "does /gto check anything about unit tests, regression tests, or integration tests?",
     "progress_percent": 65,
@@ -66,7 +66,10 @@
     "message_intent": "question",
     "goal_origin": "user_message",
     "quality_score": 0.4,
-    "tasks_snapshot": []
+    "tasks_snapshot": [],
+    "rejected_at": "2026-04-13T19:32:19.454221+00:00",
+    "rejected_by_session_id": "5867dab7-5e3d-4927-ae16-ec32bcb5248c",
+    "rejection_reason": "snapshot evidence changed: Current compact transcript"
   },
   "decision_register": [],
   "evidence_index": [
@@ -109,5 +112,5 @@
       "path": "P:\\packages\\search-research\\packages\\search-research\\core\\backends\\local\\__init__.py"
     }
   ],
-  "checksum": "sha256:3670064a123eb7791e9990a733d05663ecc3d4798921f50d6f5a489e551a6b27"
+  "checksum": "sha256:9de5aad9661fd6a4f4037e0ea983414e9c557190e28f2566d08605c196a977c9"
 }
