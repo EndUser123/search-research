@@ -21,6 +21,19 @@ import time
 from pathlib import Path
 
 
+def cleanup_state_file():
+    """Clean up any state files from this test module."""
+    try:
+        sys.path.insert(0, "P:/.claude/hooks")
+        from __lib.hook_base import get_terminal_id
+        terminal_id = get_terminal_id(None)
+        state_file = Path("P:/.claude/hooks/state/terminals") / terminal_id / "pending_command_intent.json"
+        if state_file.exists():
+            state_file.unlink()
+    except Exception:
+        pass
+
+
 def test_read_pending_command_intent_file_not_exists():
     """State file doesn't exist → returns None."""
     # Set a terminal ID that won't have a state file
@@ -134,7 +147,9 @@ def test_malformed_json_returns_none():
 
 def test_state_file_layer_blocks_when_skill_pending():
     """Edit tool is blocked when pending_command_intent has skill with workflow_steps."""
-    # Set up test state file
+    # Clean state before test
+    cleanup_state_file()
+
     from pathlib import Path
     import sys
     sys.path.insert(0, "P:/.claude/hooks")
@@ -179,19 +194,23 @@ def test_state_file_layer_blocks_when_skill_pending():
             capture_output=True,
             text=True,
             env=env,
+            cwd="P:/.claude/hooks",
             timeout=10
         )
 
         data = json.loads(result.stdout)
-        assert data.get("block") is True, "Should block Edit when skill with workflow_steps is pending"
+        assert data.get("block") is True, f"Should block Edit when skill with workflow_steps is pending, got: {data}"
         assert "SKILL-FIRST GATE" in data.get("reason", "")
         assert "rns" in data.get("reason", "")
     finally:
-        state_file.unlink()
+        cleanup_state_file()
 
 
 def test_state_file_layer_allows_skill_call():
     """Skill tool is allowed even when skill with workflow_steps is pending."""
+    # Clean state before test
+    cleanup_state_file()
+
     from pathlib import Path
     import sys
     sys.path.insert(0, "P:/.claude/hooks")
@@ -236,13 +255,14 @@ def test_state_file_layer_allows_skill_call():
             capture_output=True,
             text=True,
             env=env,
+            cwd="P:/.claude/hooks",
             timeout=10
         )
 
         data = json.loads(result.stdout)
         assert data.get("block") is not True, f"Should NOT block Skill tool call, got: {data}"
     finally:
-        state_file.unlink()
+        cleanup_state_file()
 
 
 def test_investigation_tools_not_blocked():
@@ -295,11 +315,12 @@ def test_investigation_tools_not_blocked():
                 capture_output=True,
                 text=True,
                 env=env,
+                cwd="P:/.claude/hooks",
                 timeout=10
             )
 
             data = json.loads(result.stdout)
-            assert data.get("block") is not True, f"Should NOT block {tool_name} (investigation tool)"
+            assert data.get("block") is not True, f"Should NOT block {tool_name} (investigation tool), got: {data}"
         finally:
             # Clean up after each tool test
             if state_file.exists():

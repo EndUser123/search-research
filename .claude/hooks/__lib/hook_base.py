@@ -62,17 +62,37 @@ FAIL-FAST POLICY:
 from __future__ import annotations
 
 import functools
+import importlib.util
 import json
 import sys
 import traceback
 from pathlib import Path
 from threading import local
 
+_script_path = Path(__file__)
+for _hooks_root in (
+    Path(r"P:\.claude\hooks"),
+    _script_path.parent.parent,
+    _script_path.resolve().parent.parent,
+):
+    _hooks_root_str = str(_hooks_root)
+    if _hooks_root_str not in sys.path:
+        sys.path.insert(0, _hooks_root_str)
+
 # Canonical terminal ID normalization (prevents cross-package prefix mismatch)
 try:
     from __lib.terminal_id import normalize_terminal_id
 except ImportError:
-    from terminal_id import normalize_terminal_id  # type: ignore
+    _terminal_id_path = _script_path.parent / "terminal_id.py"
+    _terminal_id_spec = importlib.util.spec_from_file_location(
+        "_hooks_terminal_id", _terminal_id_path
+    )
+    if _terminal_id_spec is None or _terminal_id_spec.loader is None:
+        from terminal_id import normalize_terminal_id  # type: ignore
+    else:
+        _terminal_id_module = importlib.util.module_from_spec(_terminal_id_spec)
+        _terminal_id_spec.loader.exec_module(_terminal_id_module)
+        normalize_terminal_id = _terminal_id_module.normalize_terminal_id
 
 # Thread-local storage for hook context (user_prompt, claude_session_id)
 _hook_context = local()
@@ -424,6 +444,8 @@ def get_terminal_id(data: Mapping[str, Any] | None = None) -> str:
             terminal_id = ""
 
     # Cache in thread-local context for subsequent calls
+    if terminal_id:
+        os.environ["CLAUDE_TERMINAL_ID"] = terminal_id
     _hook_context.terminal_id = terminal_id
 
     return terminal_id

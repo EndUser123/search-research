@@ -36,7 +36,7 @@ Check all tracked YouTube channels for new videos and manage your channel list.
 
 ## Your Workflow
 
-1. Parse the user's command (sync/list/add)
+1. Parse the user's command (sync/list/add/fetch)
 2. Run the appropriate `csf-source` backend command
 3. **MANDATORY — Copy and paste the output verbatim:**
    - After the Bash command completes, copy the ENTIRE output text

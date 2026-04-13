@@ -7,6 +7,7 @@ Provides slash command detection and routing for skill execution.
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -14,10 +15,39 @@ import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
+import sys
 
-from __lib.hook_base import get_terminal_id
-from __lib.ttl_utils import write_monotonic_ts as _write_monotonic_ts
-from __lib.ttl_utils import sanitize_future_ts as _sanitize_future_ts
+_script_path = Path(__file__)
+for _hooks_root in (
+    Path(r"P:\.claude\hooks"),
+    _script_path.parent.parent,
+    _script_path.resolve().parent.parent,
+):
+    _hooks_root_str = str(_hooks_root)
+    if _hooks_root_str not in sys.path:
+        sys.path.insert(0, _hooks_root_str)
+
+try:
+    from __lib.hook_base import get_terminal_id
+    from __lib.ttl_utils import write_monotonic_ts as _write_monotonic_ts
+    from __lib.ttl_utils import sanitize_future_ts as _sanitize_future_ts
+except ImportError:
+    _hooks_root = Path(__file__).resolve().parent.parent
+
+    def _load_hook_module(module_name: str, relative_path: str):
+        module_path = _hooks_root / relative_path
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"Unable to load {relative_path} from {_hooks_root}")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    _hook_base = _load_hook_module("_hooks_hook_base", "__lib/hook_base.py")
+    _ttl_utils = _load_hook_module("_hooks_ttl_utils", "__lib/ttl_utils.py")
+    get_terminal_id = _hook_base.get_terminal_id
+    _write_monotonic_ts = _ttl_utils.write_monotonic_ts
+    _sanitize_future_ts = _ttl_utils.sanitize_future_ts
 from UserPromptSubmit_modules.base import HookContext, HookResult
 from UserPromptSubmit_modules.registry import register_hook
 

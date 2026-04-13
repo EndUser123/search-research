@@ -1,9 +1,9 @@
 ---
 name: yt-nlm
-description: YouTube transcript extraction via NotebookLM ephemeral notebooks
-version: "1.1.0"
+description: YouTube transcript extraction via NotebookLM batch notebooks
+version: "2.0.0"
 status: stable
-enforcement: advisory
+enforcement: strict
 category: ingestion
 triggers:
   - 'notebooklm'
@@ -18,17 +18,22 @@ suggest: []
 
 workflow_steps:
   - Check for pending videos in batch_status.sqlite
-  - Create ephemeral notebook per video
-  - Extract transcript via nlm audio report
-  - Download transcript artifact
-  - Write transcript to database cache (transcripts.sqlite)
-  - Delete ephemeral notebook (cleanup)
+  - Check auth with `nlm login --check`, auto-recover if expired
+  - Create batch notebook (up to 300 YouTube sources per notebook)
+  - Add all sources with `nlm source add --youtube <url1> --youtube <url2> ... --wait`
+  - Extract content via `nlm source content <source-id>` (returns raw JSON)
+  - Delete batch notebook (cleanup)
+  - Write transcripts to database cache (transcripts.sqlite)
   - Combine transcripts into batches for external use
 
 parameters:
   - name: dry-run
     description: Preview what will be ingested without processing
     type: boolean
+    required: false
+  - name: channel
+    description: Process only one channel (by URL)
+    type: string
     required: false
   - name: batch-size
     description: Transcripts per combined source
@@ -39,11 +44,16 @@ parameters:
 
 # /yt-nlm — NotebookLM Transcript Extraction
 
-Extract YouTube transcripts using NotebookLM's ephemeral notebook workflow.
+Extract YouTube transcripts using NotebookLM's batch notebook workflow.
 
 ## Purpose
 
-Implements the ephemeral notebook pattern from ADR-20260410: create temporary notebooks, extract transcripts, download artifacts, then cleanup. This allows using NotebookLM as an extraction tool while keeping the local database as source of truth.
+Uses batch notebooks (up to 300 YouTube sources per notebook) via `_fetch_via_notebooklm_batch()` in `transcript.py`:
+- Reuses a single notebook for up to 300 videos (vs. 1 notebook per video)
+- Uses `nlm source content` (raw text) instead of `nlm notebook query` (LLM)
+- Has auth auto-recovery built in
+
+The old ephemeral notebook pattern (1 notebook per video) is deprecated.
 
 ## Commands
 
@@ -63,13 +73,19 @@ yt-nlm --batch-size 20
 
 ## How It Works
 
-**Ephemeral Notebook Workflow (per video):**
-1. Create ephemeral notebook: `nlm notebook create "Video {id}"`
-2. Add video URL: `nlm source add <nb-id> --url <url>`
-3. Extract transcript: `nlm audio report create <nb-id> --confirm`
-4. Download artifact: `nlm download audio <nb-id> --output file.txt`
-5. Cache to database: `set_cached_transcript(video_id, "en", "notebooklm", transcript)`
-6. Delete notebook: `nlm notebook delete <nb-id> --confirm`
+**Batch Notebook Workflow (up to 300 sources per notebook):**
+
+1. **Auth check**: `nlm login --check` before commands
+2. **Auto-recovery**: If expired, `nlm login --force` runs automatically (no user prompt)
+3. **Create batch notebook**: `nlm notebook create "batch_transcript_{id}"`
+4. **Add sources**: `nlm source add <nb-id> --youtube <url1> --youtube <url2> ... --wait`
+5. **Get content**: `nlm source content <source-id>` — returns JSON with `{"value": {"content": "..."}}`
+6. **Delete notebook**: `nlm notebook delete <nb-id> --confirm`
+
+**vs. Deprecated Ephemeral Workflow (1 notebook per video):**
+- Slow: Creates/deletes notebook for each video
+- Wasteful: Burns NotebookLM slot for each video
+- No auth recovery: Fails when session expires
 
 **Batch Combination:**
 - Combines N transcripts into single markdown source
@@ -81,8 +97,8 @@ yt-nlm --batch-size 20
 - Reads from `batch_status.sqlite` (pending videos marked by `/yt-channel`)
 - Writes to `transcripts.sqlite` cache via `csf.cache.set_cached_transcript()`
 - Stores combined markdown files in `P:/__csf/.data/yt-is/transcripts/`
-- Reuses `/nlm` skill CLI commands
-- Compatible with `/yt-dlp` (both write to same cache database, different sources)
+- Compatible with `/yt-channel fetch` (both write to same cache database, different sources)
+- External provider hook: `register_external_transcript_provider()` for custom sources
 
 ## Data Flow
 
@@ -91,31 +107,55 @@ yt-nlm --batch-size 20
     ↓
 batch_status.sqlite (pending videos)
     ↓
-/yt-nlm
+/yt-nlm (batch workflow)
     ↓
-Ephemeral notebooks → Transcript download → transcripts.sqlite
+Batch notebook → nlm source content → transcripts.sqlite
     ↓
 Combined markdown files → Your knowledge system
 ```
 
 ## Storage
 
-- **Transcripts:** `P:/__csf/.data/yt-is/transcripts/transcripts.sqlite` (cache database)
-- **Combined batches:** `P:/__csf/.data/yt-is/transcripts/combined_batch_1.md`, etc.
-- **Database:** `batch_status.sqlite` (status updates: pending → complete/failed)
+- **Transcripts:** `transcripts.sqlite` (cache database, keyed by video_id)
+- **Combined batches:** `combined_batch_1.md`, etc. in `P:/__csf/.data/yt-is/`
+- **Database:** `batch_status.sqlite` (status updates: pending → complete/failed, last_stage, failure_reason)
+
+## Configuration
+
+| Environment Variable | Default | Description |
+|--------------------|---------|-------------|
+| `YTIS_NLM_MAX_SOURCES_PER_NOTEBOOK` | 300 | Max YouTube sources per NotebookLM notebook |
+
+## Failure Taxonomy
+
+When transcript fetch fails, `last_stage` and `failure_reason` are recorded:
+
+| failure_reason | Meaning |
+|----------------|---------|
+| `quota_exceeded` | NotebookLM API quota exceeded |
+| `region_block` | Video not available in NotebookLM region |
+| `auth_failed` | NotebookLM auth expired and recovery failed |
+| `captcha` | Captcha challenge during extraction |
+| `timeout` | Source content extraction timed out |
+| `no_transcript` | Video has no captions/transcript |
+| `unavailable` | Video unavailable or deleted |
+| `unknown` | Unclassified error |
 
 ## Requirements
 
 - `nlm` CLI (NotebookLM command-line interface)
-- NotebookLM Pro/Plus account (300 source limit)
+- NotebookLM Pro/Plus account (300 source limit per notebook)
 - Internet connection for NotebookLM API
 
 ## Related Skills
 
 - `/nlm` — NotebookLM CLI operations
 - `/yt-channel` — Video discovery and tracking
+- `/yt-channel fetch` — yt-dlp → Selenium transcript download (escalation chain)
 - `/yt-dlp` — Local transcript download via yt-dlp
 
 ## ADR Reference
 
 See `P:/__csf/arch_decisions/ADR-20260410-notebooklm-ephemeral-notebooks.md` for architecture decision and performance characteristics.
+
+**Note:** The ADR describes the ephemeral pattern. The batch workflow is the current implementation.

@@ -31,14 +31,23 @@ def get_terminal_id(input_data: Optional[dict[str, Any]] = None) -> str:
     try:
         from __lib.terminal_detection import detect_terminal_id_from_payload
 
-        return detect_terminal_id_from_payload(input_data or {})
+        terminal_id = detect_terminal_id_from_payload(input_data or {})
+        if terminal_id:
+            os.environ["CLAUDE_TERMINAL_ID"] = terminal_id
+        return terminal_id
     except ImportError:
         try:
             from terminal_detection import detect_terminal_id_from_payload  # type: ignore
 
-            return detect_terminal_id_from_payload(input_data or {})
+            terminal_id = detect_terminal_id_from_payload(input_data or {})
+            if terminal_id:
+                os.environ["CLAUDE_TERMINAL_ID"] = terminal_id
+            return terminal_id
         except ImportError:
-            return str(os.environ.get("CLAUDE_TERMINAL_ID", "")).strip()
+            terminal_id = str(os.environ.get("CLAUDE_TERMINAL_ID", "")).strip()
+            if terminal_id:
+                os.environ["CLAUDE_TERMINAL_ID"] = terminal_id
+            return terminal_id
 
 
 def get_active_turn_id(terminal_id: str) -> Optional[str]:
