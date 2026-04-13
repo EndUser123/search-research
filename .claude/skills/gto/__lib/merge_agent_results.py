@@ -125,8 +125,8 @@ def main() -> int:
                 agent_data[agent_key] = load_json_file(agent_file)
             else:
                 print(f"WARNING: Agent file does not match expected pattern (gto-correctness-{{type}}-{{terminal_id}}): {agent_file}", file=sys.stderr)
-        except Exception:
-            print(f"WARNING: Failed to load agent file {agent_file}: {Exception}", file=sys.stderr)
+        except Exception as e:
+            print(f"WARNING: Failed to load agent file {agent_file}: {e}", file=sys.stderr)
             continue
 
     # Merge and write

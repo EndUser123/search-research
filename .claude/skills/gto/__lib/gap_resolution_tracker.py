@@ -76,10 +76,10 @@ def _extract_gap_type(gap_id: str) -> str:
              "SESSION-unco-001" -> "session_outcome_unco"
     """
     normalized = _normalize_gap_key(gap_id)
-    # Remove the numeric suffix
+    # Remove the numeric suffix then extract type from remaining segments
     parts = normalized.rsplit("-", 1)
-    type_str = parts[0] if len(parts) == 2 else normalized
-    # Convert to snake_case gap type
+    # Preserve both segments (e.g. "SESSION-unco" -> "session_unco", not "session")
+    type_str = "_".join(parts) if len(parts) == 2 else normalized
     return type_str.lower().replace("-", "_")
 
 

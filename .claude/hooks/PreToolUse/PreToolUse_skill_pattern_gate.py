@@ -548,6 +548,53 @@ def handle_pre_tool_use(data: dict) -> dict:
     # END STATELESS SKILL-FIRST GATE
     # =========================================================================
 
+    # =========================================================================
+    # LAYER 0.5 (STATE-FILE): Read pending_command_intent for post-compaction detection
+    # =========================================================================
+    # After compaction, the current user message may not contain the slash command
+    # (transcript is compacted). The pending_command_intent.json state file survives
+    # compaction and records what slash command was invoked.
+    #
+    # This layer reads that state file to detect slash commands that would otherwise
+    # be invisible post-compaction. If a slash command is found in the state file
+    # and the Skill tool hasn't been called yet this turn, block.
+    #
+    # TTL: Entries older than SKILL_FIRST_INTENT_TTL_SECONDS are discarded as stale.
+    # Fingerprint: If fingerprint matches current prompt, skip (already handled this turn).
+
+    intent_state = _read_pending_command_intent()
+    if intent_state:
+        slash_from_state = intent_state.get("skill", "")
+        if slash_from_state:
+            # Check if Skill tool is being used this turn
+            if tool_name != "Skill":
+                # Skill tool not called yet - check if this is a skill with workflow_steps
+                try:
+                    from skill_guard.breadcrumb.tracker import _load_workflow_steps
+
+                    result = _load_workflow_steps(slash_from_state)
+                    workflow_steps = result.steps
+
+                    if workflow_steps:
+                        # Skill has workflow_steps - block until Skill tool is called
+                        return {
+                            "block": True,
+                            "reason": (
+                                f"⛔ SKILL-FIRST GATE (state-file)\n\n"
+                                f"Pending slash command /{slash_from_state} detected from prior state.\n\n"
+                                f"The skill /{slash_from_state} has {len(workflow_steps)} declared workflow steps.\n\n"
+                                f"Your FIRST action must be: Skill(skill='{slash_from_state}')\n\n"
+                                f"Do NOT respond with prose analysis or use other tools before calling Skill.\n"
+                                f"Do NOT bypass this gate by outputting inline analysis text without calling Skill(...)."
+                            ),
+                        }
+                except ImportError:
+                    # breadcrumb system not available - allow tools (fail open)
+                    pass
+                except Exception:
+                    # Error checking workflow_steps - allow tools (fail open)
+                    pass
+
     # Read current skill state
     state = _read_pending_state()
 

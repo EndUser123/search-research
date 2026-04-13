@@ -1780,7 +1780,11 @@ def _load_all_sessions_via_history_index(
                     current_session_id,
                 )
             elif len(handoff_result.entries) > 0:  # R-008: Changed from >1 to >0
-                return _load_from_chain_result(handoff_result, project_root)
+                sessions = _load_from_chain_result(handoff_result, project_root)
+                # CHANGE-002: Three-case handling — ALL-invalid (subagent-only chain)
+                # returns []. Fall through to next strategy instead of returning empty.
+                if sessions:
+                    return sessions
     except (ImportError, OSError) as exc:
         logger.warning("Handoff chain walk failed: %s", exc)
 
@@ -1788,7 +1792,13 @@ def _load_all_sessions_via_history_index(
     try:
         chain_result = walk_session_chain(session_id=current_session_id)
         if chain_result.entries:
-            return _load_from_chain_result(chain_result, project_root)
+            sessions = _load_from_chain_result(chain_result, project_root)
+            # CHANGE-002: Three-case handling — ALL-invalid returns [],
+            # MIXED returns valid-only, ALL-valid returns full chain.
+            # If _load_from_chain_result filtered ALL entries (subagent-only),
+            # fall through to next strategy instead of returning empty.
+            if sessions:
+                return sessions
     except (ValueError, OSError) as exc:
         logger.warning("Unified chain walk failed: %s", exc)
 

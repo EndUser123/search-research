@@ -222,9 +222,9 @@ Be specific and grounded in the transcript evidence.
         """
         import re
 
-        # Anchor to first { and match minimally (non-greedy) to capture
-        # a single complete JSON object, not the rest of the text after it
-        match = re.search(r"\{[\s\S]*?\}", text)
+        # Anchor to first { and match greedily to capture
+        # a single complete JSON object (handles nested braces)
+        match = re.search(r"\{[\s\S]*\}", text)
         if match:
             try:
                 return json.loads(match.group(0))
