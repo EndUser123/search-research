@@ -82,6 +82,10 @@ GAP_TYPE_TO_CATEGORIES: dict[str, list[str]] = {
     "knowledge_gap": ["search", "research"],
     # Improvement gaps
     "improvement_gap": ["quality", "refactoring"],
+    # Retrospective/process gaps - patterns suggesting workflow improvements
+    "improvement_investigation": ["retrospective", "quality"],
+    "process_gap": ["retrospective", "planning"],
+    "repeatable_pattern": ["retrospective", "analysis"],
 }
 
 
@@ -134,6 +138,7 @@ When analyzing gaps, consider these relevant skills:
 ### Planning
 - /breakdown - Implementation planning
 - /pre-mortem - Pre-mortem failure analysis
+- /retro - Self-Contrast retrospective orchestrator (use when gaps span process + code)
 
 When recommending skills:
 1. Match skill capabilities to specific gap issues

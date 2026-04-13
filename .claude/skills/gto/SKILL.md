@@ -309,6 +309,7 @@ Examples:
 - `/verify` for unproven behavior or missing boundary-proof gaps
 - `/critique` for adversarial review of risky or blind-spot-heavy changes
 - `/pre-mortem` for risky fixes, recurring failures, or low-reversibility changes
+- `/retro` for process-pattern gaps, repeated issues across sessions, or improvement investigation needs
 
 `/gto` identifies and routes. It does not directly absorb those responsibilities.
 

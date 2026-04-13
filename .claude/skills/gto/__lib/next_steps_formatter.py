@@ -89,6 +89,11 @@ class NextStepsFormatter:
         "suspicion_silent_failure_masking": "session",
         "suspicion_excessive_breadcrumbs": "session",
         "suspicion_reasoning_action": "session",
+        # Improvement/retrospective gaps
+        "improvement_gap": "improvements",
+        "improvement_investigation": "improvements",
+        "process_gap": "improvements",
+        "repeatable_pattern": "improvements",
         # Code quality (default)
         "pending_task": "pending_tasks",
         "pending_tasks": "pending_tasks",
