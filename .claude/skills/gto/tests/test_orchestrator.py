@@ -59,7 +59,7 @@ class TestGTOOrchestrator:
         orchestrator = GTOOrchestrator(config)
 
         # Create a mock result
-        from lib import ConsolidatedResults, Gap
+        from __lib import ConsolidatedResults, Gap
 
         mock_results = ConsolidatedResults(
             gaps=[
@@ -102,7 +102,7 @@ class TestGTOOrchestrator:
         orchestrator = GTOOrchestrator(config)
 
         # Create a mock result
-        from lib import ConsolidatedResults, Gap
+        from __lib import ConsolidatedResults, Gap
 
         mock_results = ConsolidatedResults(
             gaps=[

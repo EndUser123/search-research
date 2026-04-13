@@ -89,6 +89,21 @@ _COMPARISON_RE = re.compile(
     re.IGNORECASE,
 )
 
+_PATH_LAYOUT_RE = re.compile(
+    r"\b("
+    r"junction\b|"
+    r"symlink\b|"
+    r"symbolic\s+link\b|"
+    r"reparse\s+point\b|"
+    r"target\s+path\b|"
+    r"resolution\s+root\b|"
+    r"path\s+layout\b|"
+    r"why\s+is\s+.*\bjunction\b|"
+    r"why\s+is\s+.*\bsymlink\b"
+    r")\b",
+    re.IGNORECASE,
+)
+
 
 def _should_fire(prompt: str) -> bool:
     stripped = prompt.strip()
@@ -107,6 +122,7 @@ def _should_fire(prompt: str) -> bool:
         or _EXISTENCE_RE.search(stripped)
         or _IMPLEMENTATION_RE.search(stripped)
         or _COMPARISON_RE.search(stripped)
+        or _PATH_LAYOUT_RE.search(stripped)
     )
 
 
@@ -130,23 +146,30 @@ def _build_injection(prompt: str) -> str:
 
     if _ROOT_CAUSE_RE.search(prompt):
         sections.append(
-            "Root-cause branch: do not stop at the first plausible explanation. "
-            "Trace the mechanism, separate symptom from cause, and keep at least one alternative hypothesis alive until evidence rules it out."
+            "Root-cause branch: state the primary hypothesis first, then name the smallest alternative needed to falsify it. "
+            "Trace the mechanism, separate symptom from cause, and test the top hypothesis before treating it as a conclusion."
         )
 
     if _EXISTENCE_RE.search(prompt):
         sections.append(
-            "Existence branch: never claim something is missing or unimplemented until you have searched for it in the relevant files, symbols, or tests."
+            "Existence branch: treat absence as a hypothesis, not a conclusion. "
+            "Search the relevant files, symbols, tests, and adjacent resolution roots with the narrowest path that can falsify the claim."
         )
 
     if _IMPLEMENTATION_RE.search(prompt):
         sections.append(
-            "Implementation branch: search existing code first, preserve compatibility unless you confirm no callers depend on it, and explain any behavior change explicitly."
+            "Implementation branch: search existing code first, preserve compatibility unless you confirm no callers depend on it, and explain any behavior change explicitly. "
+            "If the code seems missing or broken, test the most likely path before concluding the implementation is absent."
         )
 
     if _COMPARISON_RE.search(prompt):
         sections.append(
-            "Comparison branch: compare at least two viable options against explicit criteria before recommending one."
+            "Comparison branch: compare the top options against explicit criteria and the evidence that would distinguish them before recommending one."
+        )
+
+    if _PATH_LAYOUT_RE.search(prompt):
+        sections.append(
+            "Path-layout branch: treat the visible path as one candidate only. Inspect the resolved target, the surrounding package root, and the nearest sibling directories before concluding anything is missing."
         )
 
     return append_reasoning_contract(

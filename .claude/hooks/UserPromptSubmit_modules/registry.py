@@ -643,11 +643,13 @@ def _load_hooks() -> None:
         "synergy_detector",  # NEW 2026-03-22: Detect framework+mode synergies
         "context_followup_detector",  # NEW 2026-03-25: Detect follow-up queries and inject prior context
         "tdd_contract_auto_gate",  # NEW 2026-04-08: Auto-create TDD contract for /code, /tdd skills
+        "testing_strategy_router",  # NEW 2026-04-12: Inject smallest-sufficient test mix guidance
         "evidence_grounding_reminder",  # NEW 2026-04-08: Conditional epistemic priming every N turns
         "file_immediate_read",  # NEW 2026-04-09: Read file paths in prompts immediately to prevent semantic satisficing
         "think_trigger",
         "truthfulness_gate",  # NEW 2026-03-13: Enforce proactive honesty on completion queries
         "turn_marker",
+        "subagent_enforcer",  # NEW 2026-04-12: Inject constitutional constraints into subagent contexts + telemetry
         "verify_before_claim",  # NEW 2026-03-14: Remind to verify before existence/absence claims
         "unified_injector",
         "workflow_tier_tagging",

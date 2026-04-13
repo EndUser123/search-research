@@ -837,6 +837,12 @@ def materialize_turn(terminal_id: str, turn_id: str) -> dict[str, Any]:
             skill_state["first_tool_validated"] = True
         elif event_type == "skill_phase_transition" and skill_state is not None:
             skill_state["phase"] = payload.get("phase", "")
+        elif event_type == "skill_workflow_stage_update" and skill_state is not None:
+            ws = skill_state.get("workflow_stage", {})
+            for key in ("active_step", "step_definition", "done_criteria", "do_not_distract", "step_index", "total_steps"):
+                if key in payload:
+                    ws[key] = payload[key]
+            skill_state["workflow_stage"] = ws
         elif event_type == "governance_expected":
             snapshot["governance"] = payload
         elif event_type == "response_snapshot":

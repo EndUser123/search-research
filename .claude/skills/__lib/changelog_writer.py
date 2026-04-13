@@ -298,16 +298,29 @@ def append_package_changelog(
     for s in SECTIONS:
         unreleased_lines.append(_build_section(s, sections[s]).rstrip())
 
-    # Replace or insert ## [Unreleased] section
+    # Replace or insert ## [Unreleased] section using LINE-BASED logic (not DOTALL regex)
     unreleased_block = "\n".join(unreleased_lines) + "\n"
-    if re.search(r"^##\s+\[Unreleased\]", content, re.MULTILINE):
-        new_content = re.sub(
-            r"^##\s+\[Unreleased\].*?(?=^##\s+\[|\Z)",
-            unreleased_block,
-            content,
-            count=1,
-            flags=re.MULTILINE | re.DOTALL,
-        )
+    lines = content.splitlines(keepends=True)
+    unreleased_idx = None
+    section_end_idx = None
+
+    # Find first ## [Unreleased] line
+    for i, line in enumerate(lines):
+        if re.match(r"^##\s+\[Unreleased\]", line):
+            unreleased_idx = i
+            # Find the next ## heading, --- separator, or end of file
+            for j in range(i + 1, len(lines)):
+                if re.match(r"^##\s+\[", lines[j]) or lines[j].startswith("---"):
+                    section_end_idx = j
+                    break
+            else:
+                section_end_idx = len(lines)
+            break
+
+    if unreleased_idx is not None:
+        # Replace only the ## [Unreleased] section (line-based, no DOTALL)
+        new_lines = lines[:unreleased_idx] + [unreleased_block] + lines[section_end_idx:]
+        new_content = "".join(new_lines)
     else:
         # No ## [Unreleased] — prepend it
         new_content = unreleased_block + content

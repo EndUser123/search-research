@@ -66,6 +66,7 @@ _DEFAULT_CONFIG = {
         "decomposition": True,
         "implementation_diagnostic": True,
         "escape_hatch": True,
+        "question": True,  # Universal cognitive gate for simple questions
     },
     "enhancers": {
         "assumption_surfacing": True,
@@ -80,6 +81,7 @@ _DEFAULT_CONFIG = {
         "devils_advocate": True,
         "comparative_analysis": True,
         "escape_hatch_gate": True,
+        "assumption_check": True,  # Minimal universal cognitive enhancement
     },
     "max_enhancers_per_prompt": 3,
     "max_enhancers_by_topic": {
@@ -89,6 +91,7 @@ _DEFAULT_CONFIG = {
         "decomposition": 4,
         "implementation_diagnostic": 5,
         "escape_hatch": 1,
+        "question": 1,  # One minimal enhancer for questions
     },
     "socratic_min_length": 200,
     "min_prompt_length": 30,
@@ -204,7 +207,8 @@ _QUESTION_INTENT_RE = re.compile(
     r"could\s+.+?\?|"
     r"would\s+.+?\?|"
     r"is\s+(?:this|the|it|that)\s+"
-    r"(?:correct|right|wrong|broken|sufficient|ok|okay|best)\??|"
+    r"(?:correct|right|wrong|broken|sufficient|ok|okay|best|needed|required|safe)\??|"
+    r"is\s+(?:this|the|it|that)\s+\w+\s+\w+|"
     r"are\s+(?:we|you)\s+"
     r"(?:missing|needing|wanting|using|doing)\??"
     r")",
@@ -304,6 +308,11 @@ _ENHANCERS: list[Enhancer] = [
         injection="**Escape Hatch Check**: Before claiming a single root cause, name one way it could still be wrong.",
         topics=["escape_hatch"],
     ),
+    Enhancer(
+        name="assumption_check",
+        injection="**Question Check**: Before answering, verify what you're being asked. Don't assume intent - state your understanding and check if it's correct.",
+        topics=["question"],
+    ),
 ]
 
 
@@ -344,6 +353,7 @@ def _detect_intent(prompt: str) -> dict[str, bool]:
 
     explicit_implementation = bool(_IMPL_RE.search(prompt) or _OUTCOME_RE.search(prompt))
     planning_implementation = bool(_PLAN_RE.search(prompt))
+    question_intent = bool(_QUESTION_INTENT_RE.search(prompt))
 
     intent = {
         "implementation": bool(explicit_implementation or planning_implementation) and not impl_blocked,
@@ -352,6 +362,7 @@ def _detect_intent(prompt: str) -> dict[str, bool]:
         "escape_hatch": bool(_SINGLE_RC_ESCAPE_RE.search(prompt)),
         "decomposition": False,
         "implementation_diagnostic": False,
+        "question": question_intent,  # NEW: Universal cognitive gate for questions
     }
 
     if intent["implementation"] and intent["diagnostic"]:
@@ -395,6 +406,7 @@ def _get_rationale(intent: dict[str, bool], enhancers: list[Enhancer], prompt_le
     if intent.get("implementation_diagnostic"): return "implementation + diagnostic intent detected"
     if intent.get("diagnostic"): return "diagnostic intent detected (investigate to find cause)"
     if intent.get("decomposition"): return f"long vague prompt detected (length: {prompt_length} chars)"
+    if intent.get("question"): return "question intent detected (verify understanding before answering)"
     if intent.get("implementation"): return "implementation intent detected"
     return f"matched {len(enhancers)} intent topics"
 

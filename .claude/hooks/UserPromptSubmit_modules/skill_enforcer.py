@@ -371,7 +371,8 @@ def _check_workflow_steps_advisory(command: str) -> str | None:
     try:
         from skill_guard.breadcrumb.tracker import _load_workflow_steps
 
-        workflow_steps = _load_workflow_steps(command)
+        result = _load_workflow_steps(command)
+        workflow_steps = result.steps
 
         if not workflow_steps:
             return (

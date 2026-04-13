@@ -16,7 +16,7 @@ sys_path_insert = str(Path(__file__).parent.parent)
 import sys
 sys.path.insert(0, sys_path_insert)
 
-from lib.session_memoizer import (
+from __lib.session_memoizer import (
     DEFAULT_CACHE_TTL_DAYS,
     CachedSessionAnalysis,
     SessionMemoizer,

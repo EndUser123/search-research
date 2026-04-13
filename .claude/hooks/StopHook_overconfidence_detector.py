@@ -159,10 +159,10 @@ def run(data: dict[str, Any]) -> dict[str, Any] | None:
         return None
 
     msg = (
-        f"⚠️ Overconfident assertion detected: **{match.pattern_type}**\n\n"
-        f"Matched: `{match.matched}`\n\n"
-        f"Fix: {match.suggestion}\n\n"
-        f"Add evidence tier (e.g. `[Tier 1]:`) or reframe as hypothesis to suppress."
+        f"⚠️ Overconfident assertion detected: {match.pattern_type}\n"
+        f"Matched: `{match.matched}`\n"
+        f"Fix: {match.suggestion}\n"
+        f"Add evidence tier (e.g. [Tier 1]:) or reframe as hypothesis to suppress."
     )
 
     # RCA turns keep this hook advisory to avoid prose-policing loops.

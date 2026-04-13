@@ -9,7 +9,7 @@ from unittest.mock import Mock
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from lib.gap_resolution_tracker import (
+from __lib.gap_resolution_tracker import (
     ResolutionRecord,
     ResolutionVerificationRecord,
     _append_resolution_record,

@@ -23,7 +23,7 @@ from typing import Any
 # Add lib to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from lib import (
+from __lib import (
     build_initial_results,
     format_rsn_from_gaps,
 )
@@ -56,7 +56,7 @@ def run_gto_analysis(
     # Chain integrity check expects transcript file paths, not a project directory.
     # For monorepo analysis (project_root is a directory), skip this check.
     # It is only relevant for handoff transcript analysis.
-    from lib.chain_integrity_checker import ChainIntegrityResult
+    from __lib.chain_integrity_checker import ChainIntegrityResult
 
     detector_results["chain_integrity"] = ChainIntegrityResult(
         paths=[],
@@ -86,7 +86,7 @@ def run_gto_analysis(
 
     # Step 3: Format recommended next steps
     print("\n[3/5] Formatting recommended next steps...")
-    from lib.skill_coverage_detector import detect_skill_coverage
+    from __lib.skill_coverage_detector import detect_skill_coverage
 
     # Compute target_key same way as gto_orchestrator.py
     try:
@@ -188,7 +188,7 @@ def run_gto_analysis(
     print(f"  - Saved JSON artifact: {json_file}")
 
     # Log skill run to shared skill-usage log
-    from lib.state_manager import get_state_manager
+    from __lib.state_manager import get_state_manager
 
     sm = get_state_manager(project_root=project_root)
 

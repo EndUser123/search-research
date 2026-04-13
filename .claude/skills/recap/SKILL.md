@@ -1,7 +1,7 @@
 ---
 name: recap
 description: Catch up on all sessions in this terminal via checkpoint chain traversal and surface unresolved assumptions, contract gaps, Contract Authority Packet gaps, and resume risks
-version: 1.3.0
+version: 1.4.0
 status: stable
 category: session
 enforcement: strict
@@ -51,6 +51,33 @@ The script extracts structured data via regex and presents it in a format compat
 - **Current Session**: {session_id}
 - **Project**: {project_path}
 
+### Session Timeline (Mermaid)
+When the session history has any entries, output one of the following diagrams for at-a-glance orientation:
+
+**For 1 session:**
+```mermaid
+timeline
+    title Session Timeline
+    [Session 1] : {goal}
+```
+
+**For 2-4 sessions:**
+```mermaid
+timeline
+    title Session Timeline
+    [Session 1] : {goal}
+    [Session 2] : {goal}
+```
+
+**For 5+ sessions:**
+```mermaid
+timeline
+    title Session Timeline — {count} Sessions
+    [Session 1] : {goal}
+    [Session 2] : {goal}
+    [Session N] : ... (oldest to newest)
+```
+
 ## Session History
 
 [Session 1] {session_id}
@@ -92,8 +119,9 @@ The script extracts structured data via regex and presents it in a format compat
 ### Known Issues
 - **ISSUE-1**: {description} ({status}, {priority})
 
-### Open Questions
+### Open Questions / Parking Lot
 - **Question**: {question text}? ({priority}, {type})
+  - *Urgency*: High/Med/Low — what would need to be true to decide this?
 
 ### Knowledge Contributions
 - **Insight**: {contribution}
@@ -101,6 +129,12 @@ The script extracts structured data via regex and presents it in a format compat
 ### Next Immediate Action
 1. {action_1}
 2. {action_2}
+
+### Parking Lot (Inversion)
+*What would guarantee this session's work fails?* Surface it here.
+- **Failure Mode**: {description} — *Mitigation*: {what would prevent it}
+- **Assumption**: {core assumption} — *Invalidates*: D# or Action#
+- **External Block**: {dependency} — *Blocks*: Action#
 
 ### Raw Context
 {condensed text for full transcript access}
@@ -111,6 +145,12 @@ The script extracts structured data via regex and presents it in a format compat
 ### Response Synthesis (LLM task after script output)
 
 When responding to `/recap`, apply reasoning to the script output plus the raw transcript context. For each session, synthesize:
+
+**Cynefin Domain**: Classify the problem type for each session:
+- **Clear**: Routine task, obvious solution (e.g., config edit, simple refactor)
+- **Complicated**: Requires analysis or expert knowledge (e.g., debugging, architecture)
+- **Complex**: Emergent behavior, no single right answer (e.g., integration issues, conflicting requirements)
+- **Chaotic**: Novel situation, no clear precedent (e.g., debugging mystery bugs, first-of-kind work)
 
 **Problem**: What was the underlying issue? Not just the symptom — the root cause.
 
@@ -144,6 +184,8 @@ Present synthesis as a per-session narrative in the response, not replacing the 
 - suggest `/gto` when current gaps or stale assumptions are unclear
 - suggest `/arch` when unresolved state or contract decisions appear in prior sessions
 - suggest `/verify` when work was discussed or implemented but not actually proven
+- suggest `/pre-mortem` when sessions are classified Complex or Chaotic (risk escalation)
+- suggest `/chat-to-decisions` when open items from the Parking Lot need formal ADR output
 
 `/recap` should not implement fixes itself.
 

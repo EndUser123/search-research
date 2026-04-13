@@ -66,7 +66,25 @@ def _get_state_dir(terminal_id: str) -> Path:
 
 
 def _read_current_state(terminal_id: str) -> dict | None:
-    """Read the current workflow state from disk."""
+    """Read the current workflow state from ledger via read_pending_state().
+
+    This reads from the hook ledger which has the full state including
+    workflow_stage fields populated by skill_execution_state.
+
+    Falls back to direct file read for backward compatibility with
+    pre-existing state files.
+    """
+    try:
+        # Try to use read_pending_state from skill_execution_state
+        from skill_execution_state import read_pending_state
+
+        state = read_pending_state()
+        if state:
+            return state
+    except Exception:
+        pass
+
+    # Fallback to direct file read
     state_dir = _get_state_dir(terminal_id)
     state_file = state_dir / "skill_execution_pending.json"
     if not state_file.exists():

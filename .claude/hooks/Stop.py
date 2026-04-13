@@ -1004,7 +1004,8 @@ def _is_execution_skill(skill_name: str) -> bool:
         from skill_guard.breadcrumb.tracker import _load_workflow_steps
 
         # Try to load workflow steps for this skill
-        workflow_steps = _load_workflow_steps(skill_name)
+        result = _load_workflow_steps(skill_name)
+        workflow_steps = result.steps
 
         # Has workflow_steps = execution skill
         # Empty list or None = knowledge skill

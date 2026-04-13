@@ -51,16 +51,27 @@ class SkillExecutionTracker(PostToolUseHook):
                 detect_terminal_id,
                 record_tool_use,
                 set_skill_loaded,
+                update_workflow_stage,
             )
             self._set_skill_loaded = set_skill_loaded
             self._record_tool_use = record_tool_use
             self._detect_terminal_id = detect_terminal_id
+            self._update_workflow_stage = update_workflow_stage
             self._imports_ok = True
         except ImportError:
             self._set_skill_loaded = lambda s: None
             self._record_tool_use = lambda t, i: None
             self._detect_terminal_id = lambda: None
+            self._update_workflow_stage = lambda **kw: None
             self._imports_ok = False
+
+    def _load_workflow_steps(self, skill_name: str):
+        """Lazy import for _load_workflow_steps from skill_guard.breadcrumb.tracker."""
+        try:
+            from skill_guard.breadcrumb.tracker import _load_workflow_steps as _lw
+            return _lw(skill_name)
+        except ImportError:
+            return None
 
     def process(
         self,
@@ -84,6 +95,18 @@ class SkillExecutionTracker(PostToolUseHook):
                 self._set_skill_loaded(skill_name)
                 # Write loaded_skill to checkpoint task for SessionStart restoration
                 self._update_checkpoint_task_with_skill(skill_name)
+                # Initialize workflow_stage with step info from skill's workflow_steps
+                steps_result = self._load_workflow_steps(skill_name)
+                if steps_result and steps_result.steps:
+                    first_step = steps_result.steps[0]
+                    self._update_workflow_stage(
+                        active_step=first_step.get("id", ""),
+                        total_steps=len(steps_result.steps),
+                        step_index=0,
+                    )
+                elif steps_result and not steps_result.steps:
+                    # Skill has no workflow_steps but has parse_error? skip silently
+                    pass
                 return {
                     "passed": True,
                     "metadata": {"skill_loaded": skill_name}

@@ -18,10 +18,13 @@ def _contract_lines(
     include_verification: bool = True,
     include_counterexample: bool = True,
     include_discovery: bool = True,
+    include_investigation: bool = True,
     include_rollback: bool = True,
     include_evidence: bool = True,
     include_falsification: bool = True,
     include_comparison_axis: bool = True,
+    include_premortem_checklist: bool = True,
+    include_fix_closure_check: bool = True,
 ) -> list[str]:
     lines: list[str] = [_HEADER]
 
@@ -37,6 +40,10 @@ def _contract_lines(
         lines.append(
             "- Search existing implementations first before proposing new code or removing behavior."
         )
+    if include_investigation:
+        lines.append(
+            "- When uncertainty exists, state the primary hypothesis first, name only the alternatives needed to test it, and choose the smallest discriminating test before concluding."
+        )
     if include_rollback:
         lines.append(
             "- If the change has blast radius or is hard to reverse, name the rollback or fallback path."
@@ -51,6 +58,14 @@ def _contract_lines(
         lines.append(
             "- When comparing options, name the comparison axis and scale assumption before ranking them."
         )
+    if include_premortem_checklist:
+        lines.append(
+            "- Before celebrating a fix, ask: what is the likely failure mode, what discriminating test would falsify it, what existing rule already covers part of the risk, could this overfire, and what snapshot must move with it?"
+        )
+    if include_fix_closure_check:
+        lines.append(
+            "- Before declaring a fix complete, say whether the user's reported gap is actually closed, not just whether a related bug was fixed."
+        )
 
     return lines
 
@@ -60,10 +75,13 @@ def build_reasoning_contract(
     include_verification: bool = True,
     include_counterexample: bool = True,
     include_discovery: bool = True,
+    include_investigation: bool = True,
     include_rollback: bool = True,
     include_evidence: bool = True,
     include_falsification: bool = True,
     include_comparison_axis: bool = True,
+    include_premortem_checklist: bool = True,
+    include_fix_closure_check: bool = True,
 ) -> str:
     """Build the canonical reasoning contract block.
 
@@ -75,10 +93,13 @@ def build_reasoning_contract(
             include_verification=include_verification,
             include_counterexample=include_counterexample,
             include_discovery=include_discovery,
+            include_investigation=include_investigation,
             include_rollback=include_rollback,
             include_evidence=include_evidence,
             include_falsification=include_falsification,
             include_comparison_axis=include_comparison_axis,
+            include_premortem_checklist=include_premortem_checklist,
+            include_fix_closure_check=include_fix_closure_check,
         )
     )
 
@@ -89,20 +110,26 @@ def append_reasoning_contract(
     include_verification: bool = True,
     include_counterexample: bool = True,
     include_discovery: bool = True,
+    include_investigation: bool = True,
     include_rollback: bool = True,
     include_evidence: bool = True,
     include_falsification: bool = True,
     include_comparison_axis: bool = True,
+    include_premortem_checklist: bool = True,
+    include_fix_closure_check: bool = True,
 ) -> str:
     """Append the reasoning contract to a text block unless it is already present."""
     contract = build_reasoning_contract(
         include_verification=include_verification,
         include_counterexample=include_counterexample,
         include_discovery=include_discovery,
+        include_investigation=include_investigation,
         include_rollback=include_rollback,
         include_evidence=include_evidence,
         include_falsification=include_falsification,
         include_comparison_axis=include_comparison_axis,
+        include_premortem_checklist=include_premortem_checklist,
+        include_fix_closure_check=include_fix_closure_check,
     )
 
     stripped = text.strip()

@@ -215,6 +215,7 @@ def walk_handoff_chain(session_id: str, max_depth: int = 50) -> SessionChainResu
             prior_transcript = _get_prior_transcript_path(handoff_path)
         except (OSError, PermissionError, RuntimeError) as e:
             logger.warning("Failed to read handoff %s: %s", handoff_path, e)
+            prior_transcript = None
 
         if prior_transcript:
             prior_session_id = prior_transcript.stem
@@ -222,6 +223,8 @@ def walk_handoff_chain(session_id: str, max_depth: int = 50) -> SessionChainResu
                 break
             visited.add(str(prior_transcript))
         else:
+            # Prior transcript missing (post-compaction) — extract session_id from
+            # handoff filename as fallback: console_{session_id}_handoff.json
             prior_session_id = handoff_path.stem.replace("_handoff", "")
 
         entries.append(

@@ -10,7 +10,7 @@ from unittest.mock import Mock
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
-from lib import (
+from __lib import (
     CodeMarkerResult,
     ConsolidatedResults,
     DependencyResult,
@@ -413,7 +413,7 @@ class TestSecurityPathTraversal:
         """Test that scanner skips symlinks pointing outside project root."""
         import os
 
-        from lib.code_marker_scanner import CodeMarkerScanner
+        from __lib.code_marker_scanner import CodeMarkerScanner
 
         # Create project structure
         project_root = tmp_path / "project"
@@ -447,7 +447,7 @@ class TestSecurityPathTraversal:
         """Test that scanner follows symlinks to valid files within project."""
         import os
 
-        from lib.code_marker_scanner import CodeMarkerScanner
+        from __lib.code_marker_scanner import CodeMarkerScanner
 
         # Create project structure
         project_root = tmp_path / "project"

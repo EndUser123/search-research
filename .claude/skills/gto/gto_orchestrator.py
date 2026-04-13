@@ -18,7 +18,7 @@ from typing import Any
 
 # Import GTO library components - handle both package and direct import
 try:
-    from .lib import (
+    from .__lib import (
         ConsolidatedResults,
         Gap,
         build_initial_results,
@@ -34,10 +34,10 @@ try:
         get_state_manager,
         track_gap_resolutions,
     )
-    from .lib.session_memoizer import SessionMemoizer, _build_chain_signature
+    from .__lib.session_memoizer import SessionMemoizer, _build_chain_signature
 except ImportError:
-    # When imported directly (e.g., in tests), import from lib
-    from lib import (
+    # When imported directly (e.g., in tests), import from __lib
+    from __lib import (
         ConsolidatedResults,
         Gap,
         build_initial_results,
@@ -53,20 +53,20 @@ except ImportError:
         get_state_manager,
         track_gap_resolutions,
     )
-    from lib.session_memoizer import SessionMemoizer, _build_chain_signature
+    from __lib.session_memoizer import SessionMemoizer, _build_chain_signature
 
 # Import skill coverage detector - handle both package and direct import
 try:
-    from .lib.skill_coverage_detector import detect_skill_coverage
+    from .__lib.skill_coverage_detector import detect_skill_coverage
 except ImportError:
-    # When imported directly (e.g., in tests), import from lib
-    from lib.skill_coverage_detector import detect_skill_coverage
+    # When imported directly (e.g., in tests), import from __lib
+    from __lib.skill_coverage_detector import detect_skill_coverage
 
 # Import session chain analyzer - handle both package and direct import
 try:
-    from .lib.session_chain_analyzer import ChainAnalysisResult, SessionChainAnalyzer
+    from .__lib.session_chain_analyzer import ChainAnalysisResult, SessionChainAnalyzer
 except ImportError:
-    from lib.session_chain_analyzer import ChainAnalysisResult, SessionChainAnalyzer
+    from __lib.session_chain_analyzer import ChainAnalysisResult, SessionChainAnalyzer
 
 
 import hashlib
@@ -650,9 +650,9 @@ class GTOOrchestrator:
         """
         # Import here to avoid circular dependency at module load
         try:
-            from .lib.session_goal_detector import SessionGoalDetector
+            from .__lib.session_goal_detector import SessionGoalDetector
         except ImportError:
-            from lib.session_goal_detector import SessionGoalDetector
+            from __lib.session_goal_detector import SessionGoalDetector
 
         detector = SessionGoalDetector(self.project_root)
 

@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from lib.session_chain_analyzer import (
+from __lib.session_chain_analyzer import (
     ChainAnalysisResult,
     SessionChainAnalyzer,
     analyze_session_chain,

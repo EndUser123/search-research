@@ -29,17 +29,23 @@ def test_reasoning_contract_includes_baseline_clauses() -> None:
     assert "counterexample" in lower
     assert "negative example" in lower
     assert "search existing implementations first" in lower
+    assert "smallest discriminating test" in lower
     assert "rollback or fallback" in lower
     assert "evidence would change the answer" in lower
     assert "falsification condition" in lower
     assert "this would be wrong if" in lower
     assert "comparison axis" in lower
+    assert "before celebrating a fix" in lower
+    assert "user's reported gap is actually closed" in lower
 
 
 def test_reasoning_contract_flags_trim_expected_clauses() -> None:
     contract = build_reasoning_contract(
         include_discovery=False,
+        include_investigation=False,
         include_rollback=False,
+        include_premortem_checklist=False,
+        include_fix_closure_check=False,
         include_counterexample=True,
         include_verification=True,
         include_evidence=True,
@@ -49,7 +55,10 @@ def test_reasoning_contract_flags_trim_expected_clauses() -> None:
 
     assert "counterexample" in lower
     assert "search existing implementations first" not in lower
+    assert "smallest discriminating test" not in lower
     assert "rollback or fallback" not in lower
+    assert "before celebrating a fix" not in lower
+    assert "user's reported gap is actually closed" not in lower
 
 
 def test_append_reasoning_contract_is_idempotent() -> None:
@@ -68,8 +77,11 @@ def test_contract_clauses_match_expected_baseline() -> None:
     assert clauses[0] == "**REASONING CONTRACT**"
     assert any("counterexample" in clause.lower() for clause in clauses)
     assert any("negative example" in clause.lower() for clause in clauses)
+    assert any("smallest discriminating test" in clause.lower() for clause in clauses)
     assert any("falsification condition" in clause.lower() for clause in clauses)
     assert any("comparison axis" in clause.lower() for clause in clauses)
+    assert any("before celebrating a fix" in clause.lower() for clause in clauses)
+    assert any("user's reported gap is actually closed" in clause.lower() for clause in clauses)
 
 
 def test_think_trigger_includes_shared_contract() -> None:
@@ -86,8 +98,11 @@ def test_think_trigger_includes_shared_contract() -> None:
     assert isinstance(result.context, dict)
     text = result.context["additionalContext"]
     assert "counterexample" in text.lower()
+    assert "smallest discriminating test" in text.lower()
     assert "rollback or fallback" in text.lower()
     assert "falsification condition" in text.lower()
+    assert "before celebrating a fix" in text.lower()
+    assert "user's reported gap is actually closed" in text.lower()
 
 
 def test_explicit_think_profile_requires_internal_alternatives() -> None:
@@ -199,7 +214,10 @@ def test_claim_risk_router_includes_shared_contract() -> None:
     text = result.context["additionalContext"]
     assert "counterexample" in text.lower()
     assert "verify repo/runtime facts" in text.lower()
+    assert "smallest discriminating test" in text.lower()
     assert "falsification condition" in text.lower()
+    assert "before celebrating a fix" in text.lower()
+    assert "user's reported gap is actually closed" in text.lower()
 
 
 def test_cognitive_guardrails_include_shared_contract() -> None:
@@ -207,4 +225,12 @@ def test_cognitive_guardrails_include_shared_contract() -> None:
 
     assert "counterexample" in result["additionalContext"].lower()
     assert "search existing implementations first" in result["additionalContext"].lower()
+    assert "smallest discriminating test" in result["additionalContext"].lower()
     assert "falsification condition" in result["additionalContext"].lower()
+    assert "before celebrating a fix" in result["additionalContext"].lower()
+    assert "user's reported gap is actually closed" in result["additionalContext"].lower()
+
+
+def test_reasoning_contract_snapshot_matches() -> None:
+    snapshot = Path(__file__).resolve().parent / "snapshots" / "reasoning_contract.full.txt"
+    assert build_reasoning_contract() == snapshot.read_text(encoding="utf-8").strip()

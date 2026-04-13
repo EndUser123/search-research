@@ -1,11 +1,11 @@
 # GTO v3 API Reference
 
-## Core Library (`lib/`)
+## Core Library (`__lib/`)
 
 ### Convenience Functions
 
 ```python
-from gto.lib import (
+from gto.__lib import (
     # Viability
     check_viability,
 
@@ -30,7 +30,7 @@ from gto.lib import (
 ### ViabilityGate
 
 ```python
-from gto.lib import ViabilityGate, check_viability
+from gto.__lib import ViabilityGate, check_viability
 
 # Using class
 gate = ViabilityGate(project_root=Path("path/to/project"))
@@ -45,7 +45,7 @@ result = check_viability(Path("path/to/project"))
 ### ChainIntegrityChecker
 
 ```python
-from gto.lib import ChainIntegrityChecker, check_chain_integrity
+from gto.__lib import ChainIntegrityChecker, check_chain_integrity
 
 checker = ChainIntegrityChecker(project_root=Path("path/to/project"))
 result = checker.check()
@@ -56,7 +56,7 @@ result = checker.check()
 ### SessionGoalDetector
 
 ```python
-from gto.lib import SessionGoalDetector, detect_session_goal
+from gto.__lib import SessionGoalDetector, detect_session_goal
 
 detector = SessionGoalDetector(transcript_path=Path("path/to/transcript.jsonl"))
 result = detector.detect_goal()
@@ -67,7 +67,7 @@ result = detector.detect_goal()
 ### UnfinishedBusinessDetector
 
 ```python
-from gto.lib import UnfinishedBusinessDetector, detect_unfinished_business
+from gto.__lib import UnfinishedBusinessDetector, detect_unfinished_business
 
 detector = UnfinishedBusinessDetector(
     project_root=Path("path/to/project"),
@@ -80,7 +80,7 @@ result = detector.detect()
 ### CodeMarkerScanner
 
 ```python
-from gto.lib import CodeMarkerScanner, scan_code_markers
+from gto.__lib import CodeMarkerScanner, scan_code_markers
 
 scanner = CodeMarkerScanner(project_root=Path("path/to/project"))
 result = scanner.scan()
@@ -90,7 +90,7 @@ result = scanner.scan()
 ### TestPresenceChecker
 
 ```python
-from gto.lib import TestPresenceChecker, check_test_presence
+from gto.__lib import TestPresenceChecker, check_test_presence
 
 checker = TestPresenceChecker(project_root=Path("path/to/project"))
 result = checker.check()
@@ -101,7 +101,7 @@ result = checker.check()
 ### DocsPresenceChecker
 
 ```python
-from gto.lib import DocsPresenceChecker, check_docs_presence
+from gto.__lib import DocsPresenceChecker, check_docs_presence
 
 checker = DocsPresenceChecker(project_root=Path("path/to/project"))
 result = checker.check()
@@ -111,7 +111,7 @@ result = checker.check()
 ### DependencyChecker
 
 ```python
-from gto.lib import DependencyChecker, check_dependencies
+from gto.__lib import DependencyChecker, check_dependencies
 
 checker = DependencyChecker(project_root=Path("path/to/project"))
 result = checker.check()
@@ -122,7 +122,7 @@ result = checker.check()
 ### ResultsBuilder
 
 ```python
-from gto.lib import InitialResultsBuilder, build_initial_results, Gap
+from gto.__lib import InitialResultsBuilder, build_initial_results, Gap
 
 # Using class
 builder = InitialResultsBuilder(project_root=Path("path/to/project"))
@@ -144,7 +144,7 @@ for gap in results.gaps:
 ### StateManager
 
 ```python
-from gto.lib import StateManager, StateFile, get_state_manager
+from gto.__lib import StateManager, StateFile, get_state_manager
 
 # Using class
 manager = StateManager(
@@ -169,7 +169,7 @@ gaps_with_recurrence = manager.update_gap_recurrence(gaps)
 ### NextStepsFormatter
 
 ```python
-from gto.lib import NextStepsFormatter, format_recommended_next_steps
+from gto.__lib import NextStepsFormatter, format_recommended_next_steps
 
 # Using class
 formatter = NextStepsFormatter()
@@ -188,7 +188,7 @@ print(markdown)
 ### GapFinderSubagent
 
 ```python
-from gto.lib import GapFinderSubagent, find_gaps
+from gto.__lib import GapFinderSubagent, find_gaps
 
 # Using class
 finder = GapFinderSubagent(project_root=Path("path/to/project"))
@@ -205,7 +205,7 @@ for gap in result.gaps:
 ### HealthCalculatorSubagent
 
 ```python
-from gto.lib import HealthCalculatorSubagent, calculate_health
+from gto.__lib import HealthCalculatorSubagent, calculate_health
 
 # Using class
 calculator = HealthCalculatorSubagent(project_root=Path("path/to/project"))
@@ -226,7 +226,7 @@ for metric in report.metrics:
 ### Gap
 
 ```python
-from gto.lib import Gap
+from gto.__lib import Gap
 
 gap = Gap(
     gap_id="GAP-0001",
@@ -247,7 +247,7 @@ gap = Gap(
 ### ConsolidatedResults
 
 ```python
-from gto.lib import ConsolidatedResults
+from gto.__lib import ConsolidatedResults
 
 results = ConsolidatedResults(
     gaps=[gap1, gap2],
@@ -264,7 +264,7 @@ results = ConsolidatedResults(
 ### StateFile
 
 ```python
-from gto.lib import StateFile
+from gto.__lib import StateFile
 
 state = StateFile(
     version="3.0.0",

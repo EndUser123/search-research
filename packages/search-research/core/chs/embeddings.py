@@ -22,13 +22,38 @@ if TYPE_CHECKING:
     pass
 logger = logging.getLogger(__name__)
 DEFAULT_EMBEDDING_DIM = 384
-MAX_RETRIES = 2
-RETRY_DELAY = 0.5
+MAX_RETRIES = 3
+INITIAL_DELAY = 0.5
 
 # Module-level cache for direct SentenceTransformer fallback (when daemon unavailable)
 _st_model: "SentenceTransformer | None" = None
 _st_model_last_used: float = 0.0
 _ST_MODEL_TTL_SECONDS: float = 300.0  # 5 minutes
+
+
+# Exception types that indicate transient failures and should trigger retry
+_RETRYABLE_EXCEPTIONS = (
+    ConnectionError,
+    TimeoutError,
+    OSError,  # Includes pipe busy (EBUSY), named pipe not found (ENOENT)
+)
+
+
+def _daemon_health_check(daemon_client) -> bool:
+    """Check if daemon is responsive via ping.
+
+    Returns True if daemon responds to a health/ping request, False otherwise.
+    """
+    try:
+        if hasattr(daemon_client, "ping"):
+            daemon_client.ping()
+            return True
+        if hasattr(daemon_client, "health"):
+            result = daemon_client.health()
+            return result is not None
+    except Exception:
+        pass
+    return False
 
 
 def _get_st_model() -> "SentenceTransformer":
@@ -109,10 +134,11 @@ class EmbedClient:
                         "daemon_client.embed_texts not available, falling back to direct SentenceTransformer"
                     )
                     return self._direct_embed(texts)
-            except ConnectionError as e:
+            except _RETRYABLE_EXCEPTIONS as e:
                 if attempt < MAX_RETRIES:
-                    logger.debug(f"Retry {attempt + 1}/{MAX_RETRIES}: {e}")
-                    time.sleep(RETRY_DELAY)
+                    delay = INITIAL_DELAY * (2 ** attempt)  # Exponential backoff: 0.5s, 1s, 2s
+                    logger.debug(f"Retry {attempt + 1}/{MAX_RETRIES} after {delay:.1f}s: {e}")
+                    time.sleep(delay)
                     continue
                 else:
                     logger.warning(f"All retries exhausted, falling back to direct SentenceTransformer: {e}")

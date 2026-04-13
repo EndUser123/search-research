@@ -247,6 +247,125 @@ _PRIORITY_DURATION_HOURS = 15  # Points for multi-hour session
 _PRIORITY_DURATION_MAX = 12  # Max points for minutes-based duration
 _PRIORITY_DURATION_DIVISOR = 4  # Duration divisor (minutes/4 for per-minute points)
 
+# Constants for semantic extraction quality filtering
+_MIN_EXTRACT_LEN = 15  # Minimum character length for extracted strings
+_MIN_MULTILINE_LEN = 30  # Minimum length for multi-line strings
+_MIN_USER_PROBLEM_LEN = 20  # Minimum length for user problem matches
+
+
+def _filter(items: list[str]) -> list[str]:
+    """Filter out low-quality extractions: too short, backticks, or ASCII art."""
+    result = []
+    for s in items:
+        s = s.strip()
+        # Discard: short strings, backtick noise, ASCII art chars, control sequences
+        if len(s) < _MIN_EXTRACT_LEN:
+            continue
+        if s.startswith("`") or s.startswith("-" * 40):
+            continue
+        if "\n" in s and len(s) < _MIN_MULTILINE_LEN:  # Multi-line but very short
+            continue
+        result.append(s)
+    return result
+
+
+def _scan_transcript_dir(transcript_dir: Path) -> list[tuple[float, Path]]:
+    """Scan a directory for .jsonl files with real transcript content.
+
+    Args:
+        transcript_dir: Directory to scan
+
+    Returns:
+        List of (mtime, path) tuples for valid transcript files
+    """
+    candidates: list[tuple[float, Path]] = []
+    for jsonl_file in transcript_dir.glob("*.jsonl"):
+        try:
+            mtime = jsonl_file.stat().st_mtime
+            if _is_transcript_file(jsonl_file):
+                candidates.append((mtime, jsonl_file))
+        except OSError:
+            continue
+    return candidates
+
+
+def _parse_last_session_summary(entries: list[dict[str, Any]]) -> str | None:
+    """Parse ## Last Session Summary block from first 10 entries.
+
+    Args:
+        entries: Transcript entries
+
+    Returns:
+        Parsed last_goal string, or None if no valid summary found
+    """
+    if len(entries) < 3:
+        return None
+
+    raw_text = ""
+    for e in entries[:10]:
+        raw_text += e.get("text", "") or e.get("content", "") + "\n"
+
+    summary_regex = re.compile(
+        r"##\s*Last\s*Session\s*Summary\s*\n(?:.*?\n)*?(?=\n##|\Z)",
+        re.DOTALL
+    )
+    match = summary_regex.search(raw_text)
+    if not match:
+        return None
+
+    summary_block = match.group(0)
+    when_m = re.search(r"\*\*When:\*\*\s*(.+)", summary_block)
+    dur_m = re.search(r"\*\*Duration:\*\*\s*~?(\d+)h\s*(\d+)m", summary_block)
+    if not when_m or not dur_m:
+        return None
+
+    h = int(dur_m.group(1) or 0)
+    m = int(dur_m.group(2) or 0)
+    body_start = summary_block.find("**When:**")
+    body = summary_block[body_start:] if body_start >= 0 else summary_block
+    body_stripped = re.sub(r'\n\s*\n\s*$', '', body.strip())
+    if (h * 60 + m) > 0 and len(body_stripped) > 50 and not body_stripped.startswith("#"):
+        return f"[Prior session: {when_m.group(1).strip()}, ~{h}h {m}m] {body_stripped[:200]}"
+    return None
+
+
+def _validate_handoff_identity(
+    handoff_path: Path,
+    expected_session_id: str,
+    expected_terminal_id: str | None,
+) -> bool:
+    """Validate handoff file belongs to this session and terminal.
+
+    Args:
+        handoff_path: Path to handoff file
+        expected_session_id: Expected session ID
+        expected_terminal_id: Expected terminal ID (None to skip terminal check)
+
+    Returns:
+        True if valid, False if should be skipped
+    """
+    # R-001: Extract and validate terminal_id from filename
+    if expected_terminal_id:
+        hf_stem = handoff_path.stem  # console_{terminal_id}_handoff
+        parts = hf_stem.split("_")
+        if len(parts) >= 3:
+            hf_terminal_id = parts[1]
+            if hf_terminal_id != expected_terminal_id:
+                return False
+
+    # Pre-mortem fix 1b: Validate session_id match (requires reading file)
+    try:
+        with open(handoff_path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return False
+
+    handoff_session_id = data.get("session_id")
+    if handoff_session_id and handoff_session_id != expected_session_id:
+        return False
+
+    return True
+
 
 def build_session_chain(cwd: Path | None = None) -> list[dict[str, Any]]:
     """Build a chronological chain of recent sessions for the current project.
@@ -371,15 +490,7 @@ def _find_project_transcript() -> Path | None:
         return None
 
     # Find .jsonl files with real transcript content
-    candidates: list[tuple[float, Path]] = []
-    for jsonl_file in transcript_dir.glob("*.jsonl"):
-        try:
-            mtime = jsonl_file.stat().st_mtime
-            # Quick check: does this file have actual transcript entries?
-            if _is_transcript_file(jsonl_file):
-                candidates.append((mtime, jsonl_file))
-        except OSError:
-            continue
+    candidates = _scan_transcript_dir(transcript_dir)
 
     if not candidates:
         # Fallback: try home directory transcript storage
@@ -688,25 +799,8 @@ def _regex_extract_semantic(
 
     combined = "\n".join(all_text)
 
-    # Quality thresholds for semantic extraction filter
-    _MIN_EXTRACT_LEN = 15  # Minimum character length for extracted strings
-    _MIN_MULTILINE_LEN = 30  # Minimum length for multi-line strings
-    _MIN_USER_PROBLEM_LEN = 20  # Minimum length for user problem matches
-
-    def _filter(items: list[str]) -> list[str]:
-        """Filter out low-quality extractions: too short, backticks, or ASCII art."""
-        result = []
-        for s in items:
-            s = s.strip()
-            # Discard: short strings, backtick noise, ASCII art chars, control sequences
-            if len(s) < _MIN_EXTRACT_LEN:
-                continue
-            if s.startswith("`") or s.startswith("-" * 40):
-                continue
-            if "\n" in s and len(s) < _MIN_MULTILINE_LEN:  # Multi-line but very short
-                continue
-            result.append(s)
-        return result
+    # Quality thresholds moved to module level (_MIN_EXTRACT_LEN, _MIN_MULTILINE_LEN, _MIN_USER_PROBLEM_LEN)
+    # _filter moved to module level
 
     problems: list[str] = []
     for match in _RE_PROBLEM.finditer(combined):
@@ -944,31 +1038,7 @@ def _summarize_session(entries: list[dict[str, Any]], session_id: str | None) ->
     assistant_entries = [e for e in entries if e.get("type") == "assistant"]
 
     # CHANGE-004: Parse ## Last Session Summary block from first 10 entries
-    last_goal_from_summary = None
-    if len(entries) >= 3:
-        raw_text = ""
-        for e in entries[:10]:
-            raw_text += e.get("text", "") or e.get("content", "") + "\n"
-
-        summary_regex = re.compile(
-            r"##\s*Last\s*Session\s*Summary\s*\n(?:.*?\n)*?(?=\n##|\Z)",
-            re.DOTALL
-        )
-        match = summary_regex.search(raw_text)
-        if match:
-            summary_block = match.group(0)
-            when_m = re.search(r"\*\*When:\*\*\s*(.+)", summary_block)
-            dur_m = re.search(r"\*\*Duration:\*\*\s*~?(\d+)h\s*(\d+)m", summary_block)
-            if when_m and dur_m:
-                h = int(dur_m.group(1) or 0)
-                m = int(dur_m.group(2) or 0)
-                # Use **When:** as anchor for content body
-                body_start = summary_block.find("**When:**")
-                body = summary_block[body_start:] if body_start >= 0 else summary_block
-                # Strip trailing blank lines before measuring content length
-                body_stripped = re.sub(r'\n\s*\n\s*$', '', body.strip())
-                if (h * 60 + m) > 0 and len(body_stripped) > 50 and not body_stripped.startswith("#"):
-                    last_goal_from_summary = f"[Prior session: {when_m.group(1).strip()}, ~{h}h {m}m] {body_stripped[:200]}"
+    last_goal_from_summary = _parse_last_session_summary(entries)
 
     # Calculate session stats
     duration = _calculate_session_duration(entries)
@@ -1393,28 +1463,12 @@ def _get_fresh_handoff(
 
             for hf in handoff_dir.glob("console_*_handoff.json"):
                 try:
-                    # R-001: Extract and validate terminal_id from filename
-                    if terminal_id:
-                        hf_stem = hf.stem  # console_{terminal_id}_handoff
-                        parts = hf_stem.split("_")
-                        if len(parts) >= 3:
-                            hf_terminal_id = parts[1]
-                            if hf_terminal_id != terminal_id:
-                                logger.debug("Skipping handoff from different terminal: %s", hf)
-                                continue
+                    # R-001: Validate terminal_id and session_id match
+                    if not _validate_handoff_identity(hf, session_id, terminal_id):
+                        continue
 
                     with open(hf, encoding="utf-8") as f:
                         data = json.load(f)
-
-                    # Pre-mortem fix 1b: Validate session_id match
-                    handoff_session_id = data.get("session_id")
-                    if handoff_session_id and handoff_session_id != session_id:
-                        logger.debug(
-                            "Skipping handoff from different session: %s (expected %s)",
-                            handoff_session_id,
-                            session_id,
-                        )
-                        continue
 
                     created_str = data.get("resume_snapshot", {}).get("created_at")
                     if not created_str:

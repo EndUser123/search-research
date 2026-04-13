@@ -1,7 +1,7 @@
 ---
 name: think
 description: Adaptive reasoning gate for SDLC work - choose the right depth and evidence posture
-version: "2.6.0"
+version: "2.8.0"
 status: stable
 category: meta
 triggers:
@@ -31,7 +31,7 @@ Choose the depth that matches the problem, and escalate if the first pass still 
 1. `/truth` if the question is about evidence, existence, behavior, implementation status, or "what actually happened."
 2. Evidence-audit mode if you want the answer challenged, cross-checked, or auto-verified before it is trusted. This subsumes the old `/truth-av` behavior.
 3. `/decision-tree` if the question is about options, lifecycle, state transitions, phases, or resource management. Use the SDLC branch, scoring axes, and matching branch template below.
-4. `/sequential-thinking` if the question needs multiple hypotheses, root-cause analysis, or uncertainty reduction.
+4. `/sequential-thinking` if the question needs multiple hypotheses, root-cause analysis, or uncertainty reduction. Use investigation mode to state the primary hypothesis, test it, and keep only the minimum alternatives needed to falsify it.
 5. `/think` if the prompt is straightforward enough that a concise recommendation is better than a framework dump.
 
 If the prompt is broad, ambiguous, high-stakes, or cross-cutting, prefer deeper analysis over the first adequate tier.
@@ -48,6 +48,16 @@ Use evidence-audit mode when the user wants verification, skepticism, or a direc
 - Prefer actual evidence over confidence language.
 - For advisory questions, answer directly with tradeoffs and sources instead of deferring back to the user.
 - Cite the proof, not the vibe.
+
+## Investigation Mode
+
+Use investigation mode when the prompt is ambiguous, contradictory, a regression, a missing-behavior claim, a performance complaint, or a "what's wrong" diagnosis.
+
+- State the most likely explanation first.
+- Name only the minimum alternative explanations needed to test the primary one.
+- Choose the smallest discriminating test or search path that could falsify the top hypothesis.
+- Stay provisional until the test resolves the uncertainty.
+- Do not turn uncertainty into a flat list of equally plausible theories.
 
 ## Decision-Tree Mode
 
@@ -107,6 +117,7 @@ Return:
 - If the task is trivial or purely informational, answer directly and skip the framework.
 - If one blocking unknown remains, ask at most one question; otherwise proceed with the best assumption.
 - If the problem belongs in decision-tree mode, do not stop at "there are options." Walk the 5 dimensions and then recommend.
+- If the problem belongs in investigation mode, do not stop at a symptom label. State a hypothesis, a discriminating test, and the provisional conclusion.
 
 ## Hook Alignment
 
@@ -129,8 +140,10 @@ Do not restate that machinery. Use it, then give the user the shortest answer th
 
 - Clear recommendation, not a list of undecided possibilities
 - One reasoned path, not three equally weighted paths
+- Before declaring a fix complete, say whether the user's reported gap is actually closed, not just whether a related bug was fixed
 - For decision-tree problems, explicit option/state/lifecycle/phase/purpose analysis
 - Explicit uncertainty when needed
+- Hypothesis-first diagnosis when uncertainty remains
 - Specific verification or rollback steps
 - Enough depth for the stakes, without ceremonial fluff
 - Low-friction follow-up for the user

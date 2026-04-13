@@ -118,9 +118,19 @@ Discovers all `.git` directories under `P:/`:
 
 ### Health Check (`--health`)
 Shows all repos with their status:
-- Commits ahead of remote
-- No remote configured
-- Up-to-date
+
+| Icon | Meaning |
+|------|--------|
+| `✓` | Up-to-date with remote |
+| `~` | Needs attention (unpushed commits, behind, or no remote) |
+| `✗` | Error (diverged history) |
+
+**Status details:**
+- `(X ahead)` - Local has X commits not pushed to remote
+- `(behind X)` - Remote has X commits not pulled locally
+- `(diverged)` - Local and remote have diverged (needs manual resolution)
+- `(no remote)` - No remote configured
+- `(ok)` - In sync with remote
 
 ### Worktree Mode (`--worktree`)
 | Action | Command | Description |

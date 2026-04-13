@@ -48,45 +48,13 @@ Check all tracked YouTube channels for new videos and manage your channel list.
 
 ## Output Format
 
-Channel statistics use yt-fts compact format with legend:
-
-```
-Legend:
-  total  = all videos tracked
-  valid  = videos with captions (downloadable)
-  mt     = main trackable (could have transcripts)
-  dt     = downloaded (cached transcripts)
-  vt     = available for download (has captions, not cached)
-  nt     = unavailable (no captions or failed)
-
-{total} total, {valid} valid, {mt} mt, {dt} dt | +{vt} vt, +{nt} nt
-```
-
-- **total** — All videos in database
-- **valid** — Videos with captions (downloadable)
-- **mt** — Main trackable (videos that could have transcripts)
-- **dt** — Downloaded (cached transcripts)
-- **vt** — Available for download (has captions, not cached)
-- **nt** — Unavailable (no captions or failed)
+Paste the raw output from each command — the format is determined by the backend, not this skill. The backend output will include its own legend where applicable.
 
 **IMPORTANT:** Bash output gets compressed in the UI. Always paste the raw output explicitly so the user can see it.
 
 ## Your Tracked Channels
 
-```
-Channel URL                                              Videos  Last Checked
-------------------------------------------------------------------------
-https://www.youtube.com/channel/UC9Rrud-8CaHokDtK9FszvRg     298  2026-04-10T02:41:27
-https://www.youtube.com/channel/@SpeedyFoxAi                  64  2026-04-10T02:41:27
-https://www.youtube.com/channel/@Chase-H-AI                   507  2026-04-10T02:41:26
-https://www.youtube.com/channel/@rileybrownai                 168  2026-04-10T02:41:26
-https://www.youtube.com/channel/@matthew_berman               950  2026-04-10T02:41:25
-https://www.youtube.com/channel/@LuukAlleman                   91  2026-04-10T02:41:25
-https://www.youtube.com/channel/@lev-selector                  277  2026-04-10T02:41:25
-https://www.youtube.com/channel/@UniverseofAIz                 161  2026-04-10T02:41:24
-```
-
-**Total: 2,516 videos across 8 channels**
+Run `csf-source list` to see current channel data. The backend output will include a legend explaining the column format.
 
 ## How It Works
 

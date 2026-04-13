@@ -85,7 +85,12 @@
       "mcp__plugin_serena_serena__create_text_file",
       "Bash(rm -rf \"P:/./.claude/skills/search\")",
       "Bash(rm -rf \"P:/./.claude/skills/all\")",
-      "Bash(rm -rf \"P:/./.claude/skills/research\")"
+      "Bash(rm -rf \"P:/./.claude/skills/research\")",
+      "Bash(mv P:/packages/yt-is/.claude/skills/yt-nlm P:/packages/yt-is/skills/)",
+      "Bash(mv P:/packages/yt-is/.claude/skills/code P:/packages/yt-is/skills/)",
+      "Bash(rmdir P:/packages/yt-is/.claude/skills)",
+      "Bash(mkdir -p P:/.staging)",
+      "Bash(cp P:/.claude/skills/gitingest/references/repos-template.yaml P:/.staging/vibe-ensemble-mcp.yaml)"
     ],
     "deny": [],
     "ask": []

@@ -521,7 +521,8 @@ def handle_pre_tool_use(data: dict) -> dict:
         try:
             from skill_guard.breadcrumb.tracker import _load_workflow_steps
 
-            workflow_steps = _load_workflow_steps(slash_command)
+            result = _load_workflow_steps(slash_command)
+            workflow_steps = result.steps
 
             if workflow_steps:
                 # Skill has workflow_steps - block with helpful message

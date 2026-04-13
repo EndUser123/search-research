@@ -218,8 +218,8 @@ def header(text):
 def item(text, status, detail=""):
     """Print status item."""
     icons = {
-        "ok": "+",
-        "error": "X",
+        "ok": "✓",
+        "error": "✗",
         "warning": "~",
         "info": "->",
         "pending": "o",
@@ -865,7 +865,7 @@ for repo in all_repos:
         status = "error"
         detail = f"diverged ({commits_ahead} ahead, {commits_behind} behind)"
     elif commits_ahead > 0:
-        status = "ok"
+        status = "warning"
         detail = f"{commits_ahead} ahead"
     elif commits_behind > 0:
         status = "warning"
@@ -874,6 +874,20 @@ for repo in all_repos:
         status = "ok"
         detail = "ok"
     item(repo.relative_path, status, detail)
+
+# Worktree listing
+result = run(["git", "worktree", "list"], cwd=MAIN_ROOT, silent=True)
+if result.returncode == 0 and result.stdout.strip():
+    print()
+    print("  Worktrees:")
+    for line in result.stdout.strip().split("\n"):
+        parts = line.split()
+        if len(parts) >= 3:
+            path, commit = parts[0], parts[1]
+            branch = parts[2].strip("[]") if len(parts) > 2 else "?"
+            is_current = Path.cwd().resolve() == Path(path).resolve()
+            prefix = "  * " if is_current else "    "
+            print(f"{prefix}{branch} at {path}")
 
 if HEALTH_ONLY:
     sys.exit(0)
@@ -909,6 +923,7 @@ else:
 
 # Find non-main repos that have remotes and commits to push
 # Exclude diverged repos (ahead AND behind) since they need manual resolution
+issues = []  # Track issues for Recommended Next Steps
 repos_with_pushes = []
 for repo in non_main_repos:
     has_remote, commits_ahead, commits_behind = get_repo_status(repo)
@@ -939,30 +954,57 @@ if repos_with_pushes:
                     item("Push", "ok", msg)
                 else:
                     item("Push", "warning", msg)
+                    # Offer specific solutions based on error type
+                    error_lower = msg.lower()
+                    if "repository not found" in error_lower or "remote branch" in error_lower:
+                        repo_name = repo.name.replace("\\", "/")
+                        issues.append(("push_failed", repo, f"Remote repo missing — create it: gh repo create {repo_name} --public\n"
+                            f"    Or remove remote: cd {repo.path} && git remote remove origin"))
+                    elif "authentication" in error_lower or "credential" in error_lower:
+                        issues.append(("push_failed", repo, f"Auth failed — run 'git push' manually to authenticate"))
+                    else:
+                        issues.append(("push_failed", repo, f"Push failed — {msg.split(' — ')[-1] if ' — ' in msg else msg}"))
         else:
             print("\nNo repos selected - skipping non-main pushes.")
 elif VERBOSE:
     print("\nNo non-main repos have unpushed commits.")
 
 # ============================================================
-# PHASE 6: CONTEXT-AWARE OUTPUT
+# PHASE 6: RECOMMENDED NEXT STEPS
 # ============================================================
 
-print(f"\n{color('=' * 60, 'info')}")
-print(f"\n{color('Context-Aware Commands:', 'info')}")
+# Collect issues for actionable recommendations (push failures added during Phase 5)
+stash_count = 0
 
-print("""
-  Sync:
-    /git                        # Sync all repos
-    /git --verbose              # Show detailed sync output
-    /git --health               # Check all repos health
-    /git --repos packages       # Only sync package repos
+# Check for stashes in main repo
+if main_repo:
+    stash_result = run(["git", "stash", "list"], cwd=main_repo.path, silent=True)
+    if stash_result.returncode == 0 and stash_result.stdout.strip():
+        stashes = stash_result.stdout.strip().split("\n")
+        stash_count = len(stashes)
 
-  Worktrees:
-    /git --worktree             # List all worktrees
-    /git --worktree add name    # Create new worktree
-    /git --worktree remove name # Remove worktree
-    /git --worktree prune       # Clean up stale worktrees
-""")
+# Check for repos needing attention
+for repo in all_repos:
+    has_remote, commits_ahead, commits_behind = get_repo_status(repo)
+    if not has_remote and repo.repo_type == RepoType.PACKAGE:
+        issues.append(("no_remote", repo, f"No remote — add one with: cd {repo.path} && git remote add origin <url>"))
+    elif commits_ahead > 0 and commits_behind > 0:
+        issues.append(("diverged", repo, f"Diverged — resolve with: cd {repo.path} && git pull --rebase"))
+    elif commits_behind > 0:
+        issues.append(("behind", repo, f"Behind remote — pull with: cd {repo.path} && git pull"))
 
-print(f"{color('=' * 60, 'info')}\n")
+if stash_count > 0:
+    issues.append(("stash", None, f"Stash available — apply with: git stash pop"))
+
+if issues:
+    print(f"\n{color('=' * 60, 'info')}")
+    print(f"\n{color('RECOMMENDED NEXT STEPS:', 'info')}")
+    for issue_type, repo, recommendation in issues:
+        status = "✗" if issue_type in ("diverged", "no_remote") else "~"
+        name = repo.name if repo else "main"
+        print(f"  {status} {name}: {recommendation}")
+    print(f"{color('=' * 60, 'info')}\n")
+else:
+    print(f"\n{color('=' * 60, 'info')}")
+    print(f"  {color('✓', 'success')} All repos in sync")
+    print(f"{color('=' * 60, 'info')}\n")

@@ -285,7 +285,7 @@ def detect_overconfidence(response: str, user_prompt: str = "") -> Optional[Over
         return OverconfidenceMatch(
             matched=outcome_match.group(0),
             pattern_type="outcome_attribution",
-            suggestion="Trace which component caused outcome (logs, hook output). Context ≠ causation. Use '[INFERRED]' if untraced",
+            suggestion="Trace which component caused outcome (logs, hook output). Context ≠ causation. Use [INFERRED] if untraced",
             severity="flag"
         )
 

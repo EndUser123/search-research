@@ -68,6 +68,28 @@ mkdir -p {{TARGET_DIR}}/skill
 - NO pyproject.toml - Plugins are not pip packages
 - CLAUDE_PLUGIN_ROOT - Use for all path references (portability)
 
+**IMPORTANT**: Claude Code plugins do NOT use `.claude/skills/` layout. Skills MUST be at root level `skills/` directory. The `.claude/` directory is reserved for hooks, handoff state, and Claude Code internal files only. Never place skill definitions under `.claude/skills/` — this pattern is forbidden for plugins.
+
+**Skills layout (correct):**
+```
+{{TARGET_DIR}}/
+├── skills/                    # Skills at ROOT level (not under .claude/)
+│   └── skill-name/
+│       └── SKILL.md
+├── .claude-plugin/
+│   └── plugin.json
+...
+```
+
+**Skills layout (WRONG — never do this):**
+```
+{{TARGET_DIR}}/
+├── .claude/
+│   └── skills/               # FORBIDDEN — skills under .claude/ not allowed
+│       └── skill-name/
+│           └── SKILL.md
+```
+
 **Steps:**
 
 1. **Create directory structure**:

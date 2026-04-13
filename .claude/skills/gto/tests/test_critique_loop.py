@@ -10,7 +10,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from lib.session_chain_analyzer import ChainAnalysisResult, SessionChainAnalyzer
+from __lib.session_chain_analyzer import ChainAnalysisResult, SessionChainAnalyzer
 
 
 class TestCritiqueGradeCriteria:

@@ -182,6 +182,7 @@ eggs/
 .eggs/
 lib/
 !__csf/lib/
+!.claude/skills/gto/__lib/
 
 lib64/
 parts/

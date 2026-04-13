@@ -24,7 +24,7 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from lib.state_manager import StateManager
+from __lib.state_manager import StateManager
 
 
 def get_current_git_sha(project_root: Path) -> str | None:
