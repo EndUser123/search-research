@@ -1,9 +1,10 @@
-"""CHS v2 Indexer Daemon.
+"""CHS v2 Indexer Monitor.
 
-Run the indexer daemon with file locking and idle timeout handling.
+Run the incremental indexer monitor with file locking and idle timeout handling.
+Use reindex_from_jsonl.py first to bootstrap an empty or schema-missing database.
 
 Usage:
-    python -m knowledge.systems.chs.v2.scripts.run_indexer
+    python -m core.chs.scripts.run_indexer
 """
 
 from __future__ import annotations
@@ -53,7 +54,7 @@ def main() -> int:
     Returns:
         Exit code (0 for success, 1 for error)
     """
-    parser = argparse.ArgumentParser(description="Run CHS v2 indexer daemon")
+    parser = argparse.ArgumentParser(description="Run CHS v2 incremental indexer monitor")
     parser.add_argument(
         "--idle-timeout", type=int, default=300, help="Idle timeout in seconds (default: 300)"
     )
@@ -83,7 +84,7 @@ def main() -> int:
         max_idle_cycles = args.idle_timeout // args.loop_interval
         while True:
             try:
-                from search_research.core.chs.config import Config
+                from core.chs.config import Config
 
                 config = Config()
             except (ValueError, ImportError) as e:
@@ -95,7 +96,7 @@ def main() -> int:
                 print(f"Found {len(jsonl_files)} JSONL file(s) to index")
                 idle_count = 0
                 try:
-                    from search_research.core.chs.indexer import ChatIndexer  # noqa: F401
+                    from core.chs.indexer import ChatIndexer  # noqa: F401
 
                     for jsonl_file in jsonl_files:
                         print(f"  - {jsonl_file.name}")

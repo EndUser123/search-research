@@ -103,13 +103,20 @@ class ClaudeHistoryBackend(BaseLocalBackend):
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
 
+                # Fetch more results than needed to allow for diversification
+                fetch_limit = min(limit * 3, 100)
+
                 # Try FTS5 MATCH first, fall back to LIKE on FTS5 error
-                fts_results = self._fts5_search(cursor, query, limit, project)
-                if fts_results is not None:
-                    return fts_results
+                try:
+                    fts_results = self._fts5_search(cursor, query, fetch_limit, project)
+                    return self._diversify_results(fts_results, limit)
+                except sqlite3.Error:
+                    # FTS5 failed, fall back to LIKE
+                    pass
 
                 # Fall back to LIKE with position-based ranking
-                return self._like_search(cursor, query, limit, project)
+                like_results = self._like_search(cursor, query, fetch_limit, project)
+                return self._diversify_results(like_results, limit)
 
         except sqlite3.Error as e:
             logger.debug(f"SQLite search failed: {e}")
@@ -124,11 +131,11 @@ class ClaudeHistoryBackend(BaseLocalBackend):
         query: str,
         limit: int,
         project: str | None,
-    ) -> list[SearchResult] | None:
+    ) -> list[SearchResult]:
         """Attempt FTS5 MATCH search with BM25 ranking.
 
-        Returns None if FTS5 fails (index not available, syntax error, etc.)
-        so caller can fall back to LIKE.
+        Returns a list (possibly empty) on success.
+        Raises sqlite3.Error on FTS5 failure so caller can fall back to LIKE.
         """
         # Escape FTS5 special characters: * " - + ( )
         # FTS5 query syntax: term1 AND term2 (implicit), OR for OR, "phrase" for exact
@@ -196,7 +203,7 @@ class ClaudeHistoryBackend(BaseLocalBackend):
 
         except sqlite3.Error as e:
             logger.debug(f"FTS5 MATCH failed, falling back to LIKE: {e}")
-            return None
+            raise  # Re-raise so caller can catch and try LIKE fallback
 
     def _like_search(
         self,
@@ -212,6 +219,7 @@ class ClaudeHistoryBackend(BaseLocalBackend):
         2. Word boundary match (content LIKE '% query %')
         3. Contains match (content LIKE '%query%') - lowest
         """
+        import re as re_module
         # Build query with LIKE for keyword search
         sql = """
             SELECT
@@ -230,13 +238,18 @@ class ClaudeHistoryBackend(BaseLocalBackend):
             LEFT JOIN sessions s ON s.session_key = m.session_id
             WHERE m.content LIKE ?
         """
-        prefix_q = f"{query}%"
-        boundary_q = f"% {query} %"
-        contains_q = f"%{query}%"
+        # Escape LIKE wildcards in query to treat literal % and _ as characters
+        escaped_query = re_module.escape(query)
+        prefix_q = f"{escaped_query}%"
+        boundary_q = f"% {escaped_query} %"
+        contains_q = f"%{escaped_query}%"
 
         params = [prefix_q, boundary_q, contains_q, contains_q]
 
         if project:
+            # Use INNER JOIN when filtering by project to avoid NULL comparison issues
+            # (LEFT JOIN returns NULL for unmatched sessions, and NULL=? is always false)
+            sql = sql.replace("LEFT JOIN sessions s", "JOIN sessions s")
             sql += " AND s.project_id = ?"
             params.append(project)
 
@@ -267,6 +280,88 @@ class ClaudeHistoryBackend(BaseLocalBackend):
                 }
             )
         return results
+
+    def _diversify_results(
+        self,
+        results: list[SearchResult],
+        limit: int,
+        max_per_session: int = 2,
+    ) -> list[SearchResult]:
+        """Diversify search results across sessions.
+
+        Groups results by session_id and limits results per session to ensure
+        diverse coverage. Results within each session are ordered by score.
+
+        The algorithm:
+        1. Groups results by session_id
+        2. Sorts results within each session by score (descending)
+        3. Round-robins across sessions, taking up to max_per_session per session
+        4. If limit not reached, fills remaining slots with score-sorted fallback
+
+        Note: When limit < number of sessions, some sessions may receive zero
+        results (round-robin exhausts before all sessions get a turn).
+
+        Args:
+            results: Raw search results from FTS5 or LIKE search
+            limit: Maximum number of results to return
+            max_per_session: Maximum results to return per session (default 2)
+
+        Returns:
+            Diversified list of results with session diversity
+        """
+        if not results:
+            return results
+
+        # Guard: if max_per_session <= 0, return score-sorted results without diversification
+        if max_per_session <= 0:
+            sorted_results = sorted(results, key=lambda x: x.get("score", 0), reverse=True)
+            return sorted_results[:limit]
+
+        # Group by session_id
+        session_groups: dict[str, list[SearchResult]] = {}
+        for result in results:
+            # Normalize metadata: None or non-dict becomes {}
+            metadata = result.get("metadata") or {}
+            session_id = metadata.get("session_id", "unknown")
+            if session_id not in session_groups:
+                session_groups[session_id] = []
+            session_groups[session_id].append(result)
+            if session_id not in session_groups:
+                session_groups[session_id] = []
+            session_groups[session_id].append(result)
+
+        # Sort results within each session by score (descending)
+        for session_id in session_groups:
+            session_groups[session_id].sort(key=lambda x: x.get("score", 0), reverse=True)
+
+        # Interleave results from different sessions
+        diversified: list[SearchResult] = []
+        session_iters = {
+            sid: iter(group[:max_per_session]) for sid, group in session_groups.items()
+        }
+
+        # Round-robin through sessions, taking top results per session
+        max_rounds = max_per_session
+        for _ in range(max_rounds):
+            for session_id in session_iters:
+                try:
+                    result = next(session_iters[session_id])
+                    diversified.append(result)
+                    if len(diversified) >= limit:
+                        return diversified
+                except StopIteration:
+                    pass
+
+        # If we still need more results, add remaining results sorted by score
+        if len(diversified) < limit:
+            remaining = []
+            for session_id, group in session_groups.items():
+                for result in group[max_per_session:]:
+                    remaining.append(result)
+            remaining.sort(key=lambda x: x.get("score", 0), reverse=True)
+            diversified.extend(remaining[: limit - len(diversified)])
+
+        return diversified[:limit]
 
     def search(
         self,

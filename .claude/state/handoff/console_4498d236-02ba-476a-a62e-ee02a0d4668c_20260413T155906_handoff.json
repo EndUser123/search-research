@@ -1,0 +1,134 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "5b4d0f88-978b-4835-addc-ef63d813dca1",
+    "terminal_id": "console_4498d236-02ba-476a-a62e-ee02a0d4668c",
+    "source_session_id": "cfe6c907-290f-4cb5-85af-9e4ebe880549",
+    "created_at": "2026-04-13T15:59:06.076701+00:00",
+    "expires_at": "2026-04-13T16:19:06.076701+00:00",
+    "status": "rejected_stale",
+    "goal": "I'd like to add the useful features to /sqd so that it is a completed skill.\nThen I'd like to figure out why /chs wasn't as sucessful as /search at finding the information.",
+    "current_task": "I'd like to add the useful features to /sqd so that it is a completed skill. Then I'd like to figure out why /chs wasn't as sucessful as /search at finding the information.",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "P:\\.claude\\skills\\chs\\SKILL.md",
+      "P:/packages/search-research/skills/chs/SKILL.md",
+      "P:\\.claude\\skills\\chs\\scripts\\chs_cli.py",
+      "P:\\.claude\\skills\\chs\\references\\command-reference.md",
+      "P:\\.claude\\skills\\chs\\references\\configuration.md",
+      "P:\\.claude\\skills\\chs\\references\\examples.md",
+      "P:/./.claude/skills/search/SKILL.md",
+      "P:/packages/search-research/skills/search/SKILL.md",
+      "P:/./.claude/skills/search/references/architecture.md",
+      "P:/packages/search-research/skills/search/references/architecture.md"
+    ],
+    "pending_operations": [
+      {
+        "type": "skill",
+        "target": "skill: chs",
+        "state": "in_progress"
+      },
+      {
+        "type": "skill",
+        "target": "skill: search",
+        "state": "in_progress"
+      },
+      {
+        "type": "skill",
+        "target": "skill: recap",
+        "state": "in_progress"
+      },
+      {
+        "type": "skill",
+        "target": "skill: handoff",
+        "state": "in_progress"
+      },
+      {
+        "type": "skill",
+        "target": "skill: session",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "Resume skill on skill: chs.",
+    "decision_refs": [
+      "dec_a75a17c2752c401e91062be95e055de0"
+    ],
+    "evidence_refs": [
+      "ev_98b926bf1e14474ea9b8d1b7bb036d34",
+      "ev_08af8682067a4a6c883dc30840c45f05",
+      "ev_24479686dfd64615be606df2019131e4",
+      "ev_d9deb208278c47f3be0d9c64917bb47d",
+      "ev_e41fb9791b944e38bbfbbe9c6e4f294a",
+      "ev_31c4e6fac3a54a1d9c69a636f08d0336"
+    ],
+    "transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\cfe6c907-290f-4cb5-85af-9e4ebe880549.jsonl",
+    "prior_transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\f77bd39c-c6db-4f0a-ad96-c0ff6dd5449e.jsonl",
+    "message_intent": "instruction",
+    "goal_origin": "user_message",
+    "quality_score": 0.4,
+    "tasks_snapshot": [],
+    "rejected_at": "2026-04-13T16:00:01.487555+00:00",
+    "rejected_by_session_id": "cfe6c907-290f-4cb5-85af-9e4ebe880549",
+    "rejection_reason": "snapshot evidence path outside project directory"
+  },
+  "decision_register": [
+    {
+      "id": "dec_a75a17c2752c401e91062be95e055de0",
+      "kind": "constraint",
+      "summary": "Found it. Here's the history: **`/q` skill existed on March 12, 2026** with this SKILL.md: ```yaml name: q description: \"Strategic quality check with GoT+ToT enhancement - architectural soundness, design patterns, technology fit, over/under-engineering detection...\" category: quality triggers: - /q aliases: - /q suggest: - /p - /r - /s ``` **What happened:** - On **April 9, 2026** - `/q` was supposed to be combined with `/r` into `/qr` - The `/r` SKILL.md was edited to add: `deprecated_by: /qr`, `deprecated_reason: \"Combined with /q into /qr...\"`, `deprecated_date: 2026-04-09` - But **`/qr` was never actually created** as a skill directory **Current state (April 13):** - `/q` - doesn't exist (filesystem deleted, not git tracked) - `/r` - exists but deprecated (points to non-existent `/qr`) - `/qr` - referenced as the successor but never created - `/sqd` - exists as orchestrator design that references `/q` and `/r` **The `/q` skill is recoverable** - I found its complete SKILL.md in the March 12 transcript. It had hooks for phase gating and state tracking. Would you like me to help restore `/q` or create `/qr` to complete the planned combination?",
+      "details": "Found it. Here's the history: **`/q` skill existed on March 12, 2026** with this SKILL.md: ```yaml name: q description: \"Strategic quality check with GoT+ToT enhancement - architectural soundness, design patterns, technology fit, over/under-engineering detection...\" category: quality triggers: - /q aliases: - /q suggest: - /p - /r - /s ``` **What happened:** - On **April 9, 2026** - `/q` was supposed to be combined with `/r` into `/qr` - The `/r` SKILL.md was edited to add: `deprecated_by: /qr`, `deprecated_reason: \"Combined with /q into /qr...\"`, `deprecated_date: 2026-04-09` - But **`/qr` was never actually created** as a skill directory **Current state (April 13):** - `/q` - doesn't exist (filesystem deleted, not git tracked) - `/r` - exists but deprecated (points to non-existent `/qr`) - `/qr` - referenced as the successor but never created - `/sqd` - exists as orchestrator design that references `/q` and `/r` **The `/q` skill is recoverable** - I found its complete SKILL.md in the March 12 transcript. It had hooks for phase gating and state tracking. Would you like me to help restore `/q` or create `/qr` to complete the planned combination?",
+      "priority": "high",
+      "applies_when": "Continue the current task after compact.",
+      "source_refs": [
+        "ev_98b926bf1e14474ea9b8d1b7bb036d34"
+      ]
+    }
+  ],
+  "evidence_index": [
+    {
+      "id": "ev_98b926bf1e14474ea9b8d1b7bb036d34",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\cfe6c907-290f-4cb5-85af-9e4ebe880549.jsonl",
+      "content_hash": "sha256:e6ce6ef0b4991d3a01d8318621567d5f99552dc82626fdc89260e61081e911e2"
+    },
+    {
+      "id": "ev_08af8682067a4a6c883dc30840c45f05",
+      "type": "file",
+      "label": "SKILL.md",
+      "path": "P:\\packages\\search-research\\skills\\chs\\SKILL.md",
+      "content_hash": "sha256:b8148966802367be6fd6ee99a6efce7252225a13f745d46e5682abca33a75dbc"
+    },
+    {
+      "id": "ev_24479686dfd64615be606df2019131e4",
+      "type": "file",
+      "label": "SKILL.md",
+      "path": "P:\\packages\\search-research\\skills\\chs\\SKILL.md",
+      "content_hash": "sha256:b8148966802367be6fd6ee99a6efce7252225a13f745d46e5682abca33a75dbc"
+    },
+    {
+      "id": "ev_d9deb208278c47f3be0d9c64917bb47d",
+      "type": "file",
+      "label": "chs_cli.py",
+      "path": "P:\\packages\\search-research\\skills\\chs\\scripts\\chs_cli.py",
+      "content_hash": "sha256:1b5d27857058f295a7ccbcff697c8ebc45f49729a4ed82e45477d445440199f8"
+    },
+    {
+      "id": "ev_e41fb9791b944e38bbfbbe9c6e4f294a",
+      "type": "file",
+      "label": "command-reference.md",
+      "path": "P:\\packages\\search-research\\skills\\chs\\references\\command-reference.md",
+      "content_hash": "sha256:6dde3fbea820b8e17a6934620f3b98e0289b14c5597eb7d6d29cc9bf935fe30d"
+    },
+    {
+      "id": "ev_31c4e6fac3a54a1d9c69a636f08d0336",
+      "type": "file",
+      "label": "configuration.md",
+      "path": "P:\\packages\\search-research\\skills\\chs\\references\\configuration.md",
+      "content_hash": "sha256:bb56b228f9ce5de387677754486bb07e4aacb1c265c63692b6959969d88b55f3"
+    }
+  ],
+  "checksum": "sha256:c8cba05239378edac9c86b83d8ba56b5b79d0b693adac9590426d890148e3f05"
+}

@@ -49,6 +49,7 @@ Single entry point to search across all CSF NIP data stores in parallel - **loca
 - **Backends**: CKS, CHS (claude-history/Rust+FTS5), CDS, Code/Grep, DOCS, SKILLS
 - **Search methods**: FTS5 (~10ms), Hybrid (~50ms), Semantic (~200ms)
 - **Output formats**: Human-readable (default), JSON for scripting
+- **CHS bootstrap**: If `chat_history.db` exists but FTS5 tables are missing, build it with `python -m core.chs.scripts.reindex_from_jsonl --db-path "P:/__csf/data/chat_history.db" --history-path "~/.claude/history.jsonl"`
 
 See `references/architecture.md` for backend architecture details and NotebookLM integration.
 
@@ -87,6 +88,7 @@ See `references/auto-detection.md` for full detection rules, query indicators, a
 - **Empty results**: Report clearly, don't fabricate findings
 - **Relevance scores**: Report actual scores from search engine
 - **Do not invent module paths**: Never call `knowledge.systems.chs.cli` (does not exist)
+- **CHS readiness**: A non-empty `chat_history.db` file is not enough; verify schema/FTS tables or reindex first
 
 When the query is about architecture, handoffs, resume, stale data, fields, payloads, schemas, or consumers, `/search` should preferentially surface:
 
@@ -209,7 +211,7 @@ Manual flags are available for precise control:
 
 | Backend | Description | Content |
 |---------|-------------|---------|
-| **CHS** | Chat History (claude-history/FTS5) | Sessions and messages |
+| **CHS** | Chat History (claude-history/FTS5; bootstrap with reindex_from_jsonl.py) | Sessions and messages |
 | **CKS** | Knowledge (FAISS) | Patterns, lessons, docs |
 | **CDS** | Discovery Findings | Code analysis findings |
 | **Code/Grep** | Source Code | File content search |

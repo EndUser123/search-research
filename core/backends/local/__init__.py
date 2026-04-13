@@ -51,6 +51,9 @@ from .cpg_backend import CPGBackend, CPG_AVAILABLE
 from .hdma_backend import HDMABackend, HDMA_AVAILABLE
 from .lsp_backend import LSPSymbolBackend, create_lsp_backend, BACKEND_LSP_SYMBOL
 from .dependency_backend import DependencyBackend, DEP_GRAPH_AVAILABLE
+from .qmd_wiki_backend import QMDWikiBackend
+
+BACKEND_QMD_WIKI = "QMD_WIKI"
 
 __all__ = [
     # Core backends
@@ -72,6 +75,7 @@ __all__ = [
     "HDMABackend",
     "LSPSymbolBackend",
     "DependencyBackend",
+    "QMDWikiBackend",
     # Backend constants
     "BACKEND_NOTEBOOKLM",
     "BACKEND_SKILLS",

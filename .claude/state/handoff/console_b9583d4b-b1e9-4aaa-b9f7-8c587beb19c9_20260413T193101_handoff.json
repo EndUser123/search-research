@@ -1,0 +1,113 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "23a2d12c-8047-4117-8608-c4f1bc8e3ea7",
+    "terminal_id": "console_b9583d4b-b1e9-4aaa-b9f7-8c587beb19c9",
+    "source_session_id": "5867dab7-5e3d-4927-ae16-ec32bcb5248c",
+    "created_at": "2026-04-13T19:31:01.924142+00:00",
+    "expires_at": "2026-04-13T19:51:01.924142+00:00",
+    "status": "pending",
+    "goal": "does /gto check anything about unit tests, regression tests, or integration tests?",
+    "current_task": "does /gto check anything about unit tests, regression tests, or integration tests?",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "C:\\Users\\brsth\\.claude\\plans\\plan-adr-20260407-qmd-wiki-skill.md",
+      "P:\\.claude\\skills\\code\\flows\\feature.md",
+      "packages/search-research/core/backends/local/base_local_backend.py",
+      "packages/search-research/core/config.py",
+      "packages/search-research/core/backends/local/__init__.py",
+      "packages/search-research/core/unified_router.py",
+      "packages/search-research/core/models.py",
+      "packages/search-research/core/router_async.py",
+      "packages/search-research/tests/test_notebooklm_backend.py",
+      "packages/search-research/core/backends/local/notebooklm_backend.py"
+    ],
+    "pending_operations": [
+      {
+        "type": "read",
+        "target": "C:\\Users\\brsth\\.claude\\plans\\plan-adr-20260407-qmd-wiki-skill.md",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:\\.claude\\skills\\code\\flows\\feature.md",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: P:/packages/search-research/**/*.py",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: P:/.claude/skills/qmd-wiki/**/*",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: packages/search-research/core/**/*.py",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "Resume read on C:\\Users\\brsth\\.claude\\plans\\plan-adr-20260407-qmd-wiki-skill.md.",
+    "decision_refs": [],
+    "evidence_refs": [
+      "ev_5a3880ca6cea4219b83de16ad052a90a",
+      "ev_30dd56b293294659bd2ef8aec38681ae",
+      "ev_b83c957ca94949a28d4eaeb52ade71d6",
+      "ev_f0cdc199a9994f589a5384d5a00275e1",
+      "ev_7e50771e0f334bcb925114cbc665a61a",
+      "ev_9b14a08fd3414aca9b8314f115f1c032"
+    ],
+    "transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\5867dab7-5e3d-4927-ae16-ec32bcb5248c.jsonl",
+    "prior_transcript_path": null,
+    "message_intent": "question",
+    "goal_origin": "user_message",
+    "quality_score": 0.4,
+    "tasks_snapshot": []
+  },
+  "decision_register": [],
+  "evidence_index": [
+    {
+      "id": "ev_5a3880ca6cea4219b83de16ad052a90a",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\5867dab7-5e3d-4927-ae16-ec32bcb5248c.jsonl",
+      "content_hash": "sha256:fb755d3b4d59d79db584808b3782767b5035628983d8a8abc7cd69d642e11849"
+    },
+    {
+      "id": "ev_30dd56b293294659bd2ef8aec38681ae",
+      "type": "file",
+      "label": "plan-adr-20260407-qmd-wiki-skill.md",
+      "path": "C:\\Users\\brsth\\.claude\\plans\\plan-adr-20260407-qmd-wiki-skill.md",
+      "content_hash": "sha256:92b4806e1b90563437ad1e96e97cd727ac154ce274c4132b2986bd4a37452736"
+    },
+    {
+      "id": "ev_b83c957ca94949a28d4eaeb52ade71d6",
+      "type": "file",
+      "label": "feature.md",
+      "path": "P:\\packages\\sdlc\\skills\\code\\flows\\feature.md"
+    },
+    {
+      "id": "ev_f0cdc199a9994f589a5384d5a00275e1",
+      "type": "file",
+      "label": "base_local_backend.py",
+      "path": "P:\\packages\\search-research\\packages\\search-research\\core\\backends\\local\\base_local_backend.py"
+    },
+    {
+      "id": "ev_7e50771e0f334bcb925114cbc665a61a",
+      "type": "file",
+      "label": "config.py",
+      "path": "P:\\packages\\search-research\\packages\\search-research\\core\\config.py"
+    },
+    {
+      "id": "ev_9b14a08fd3414aca9b8314f115f1c032",
+      "type": "file",
+      "label": "__init__.py",
+      "path": "P:\\packages\\search-research\\packages\\search-research\\core\\backends\\local\\__init__.py"
+    }
+  ],
+  "checksum": "sha256:3670064a123eb7791e9990a733d05663ecc3d4798921f50d6f5a489e551a6b27"
+}
