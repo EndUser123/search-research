@@ -782,6 +782,60 @@ def run_hook_syntax_check() -> CheckResult:
     )
 
 
+def run_hook_stats_check() -> CheckResult:
+    """Summarize hook diagnostics DB activity and remind users to inspect stats."""
+    start = time.time()
+    hooks_dir = CLAUDE_DIR / "hooks"
+    diag_db = hooks_dir / "logs" / "diagnostics" / "diagnostics.db"
+
+    if not diag_db.exists():
+        return CheckResult(
+            name="hook_stats",
+            status="healthy",
+            message="Hook stats: no diagnostics DB yet. Run /hook-audit stats when hooks start logging.",
+            duration_ms=int((time.time() - start) * 1000),
+        )
+
+    try:
+        if str(hooks_dir) not in sys.path:
+            sys.path.insert(0, str(hooks_dir))
+        from cc_diagnostic_logger import query_hook_invocations
+
+        rows = query_hook_invocations(days=7, limit=50)
+        duration_ms = int((time.time() - start) * 1000)
+
+        if not rows:
+            return CheckResult(
+                name="hook_stats",
+                status="healthy",
+                message="Hook stats: no recent hook events. Run /hook-audit stats to inspect the DB.",
+                duration_ms=duration_ms,
+            )
+
+        total = len(rows)
+        blocks = sum(1 for row in rows if row.get("action") == "block")
+        injects = sum(1 for row in rows if row.get("action") == "inject")
+        turns = len({row.get("turn_id") for row in rows if row.get("turn_id")})
+
+        return CheckResult(
+            name="hook_stats",
+            status="healthy",
+            message=(
+                f"Hook stats: {total} events, {injects} injects, {blocks} blocks, "
+                f"{turns} turns in the last 7 days. Run /hook-audit stats for turn-scoped detail."
+            ),
+            duration_ms=duration_ms,
+        )
+    except Exception as e:
+        return CheckResult(
+            name="hook_stats",
+            status="warning",
+            message=f"Hook stats unavailable: {e}",
+            details=["Run /hook-audit stats"],
+            duration_ms=int((time.time() - start) * 1000),
+        )
+
+
 def run_cleanup_check() -> dict | None:
     """Run cleanup.py --json to detect filesystem violations.
 
@@ -1571,6 +1625,9 @@ def run_all_checks(
 
     # Hook syntax check (fast, always run) - catches corrupted hooks early
     checks.append(run_hook_syntax_check())
+
+    # Hook stats reminder (fast, always run) - surfaces diagnostics DB activity
+    checks.append(run_hook_stats_check())
 
     # Env changes check (fast, always run) - detects settings.json env var changes
     checks.append(run_env_changes_check())

@@ -2,6 +2,20 @@
 
 Complete documentation of debugging or RCA investigation.
 
+## Analysis Contract
+
+Do not name a root cause until you can fill all of these with evidence:
+- Observable Definition
+- Evidence Buckets
+- Executed Path
+- Competing Hypothesis
+- Falsifier
+- First Divergence
+- Root Cause
+- Verification
+
+If any of those are missing, do not name a root cause yet. Keep investigating instead of drafting a conclusion.
+
 ## Metadata
 
 - **Date**: [YYYY-MM-DD]
@@ -15,6 +29,17 @@ Complete documentation of debugging or RCA investigation.
 ### What is broken?
 [One sentence description]
 
+### Observable Definition
+
+**Expected Observable**
+[What the user should directly see or experience]
+
+**Non-Equivalent Proxies**
+- [Proxy] -> Why this is not proof
+
+**Exact Success Evidence**
+[What would directly prove the feature works]
+
 ### Expected Behavior
 [What should happen]
 
@@ -26,8 +51,56 @@ Complete documentation of debugging or RCA investigation.
 
 ## Investigation Summary
 
+### Evidence Buckets
+
+**Mechanism**
+[How the code is wired]
+
+**State**
+[What runtime state/logs/files show]
+
+**Outcome**
+[What the user actually saw]
+
+### Executed Path
+
+[Entry point -> ... -> failure point]
+[Name the exact files/functions that were reached]
+
+### Competing Hypothesis
+
+[Strongest alternative explanation]
+[Why it is plausible]
+
+### Falsifier
+
+[Evidence that refutes the competing hypothesis]
+[Be explicit about why the alternative loses]
+
+### First Divergence
+
+[Earliest point where reality stopped matching the expected path]
+
+### RCA Think Pass
+
+[Strongest likely diagnosis]
+[Strongest competing explanation]
+[Most pragmatic explanation]
+[Smallest discriminating check]
+[One refinement only]
+
 ### Root Cause
+
 **[Root cause statement]**
+
+**Technical**
+[What broke, at the mechanism level]
+
+**Systemic**
+[Why the failure was possible]
+
+**Why this is the root cause**
+[Tie the root cause back to the executed path and the divergence]
 
 ### Evidence Chain
 
@@ -55,9 +128,9 @@ Complete documentation of debugging or RCA investigation.
 
 ### Verification
 
-- [x] Test passes
-- [x] Reproduction steps no longer trigger issue
-- [x] Regression test added
+- [ ] Direct verification on the failure path
+- [ ] Regression test added
+- [ ] Counterexample checked
 
 ## Lessons Learned
 

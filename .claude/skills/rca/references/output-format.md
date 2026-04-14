@@ -44,6 +44,11 @@
 2. Verify function has callers (not dead code with 0 callers)
 3. Confirm call-site is reachable from Executed Path
 
+**Anti-Lazy Conclusion Rule**:
+- If you cannot complete `Executed Path`, `Competing Hypothesis`, `Falsifier`, and `First Divergence`, do not name a root cause yet.
+- If your conclusion is only a symptom summary, keep investigating.
+- If the root cause does not appear in the executed path, the diagnosis is not finished.
+
 ### Template
 
 ```markdown
@@ -61,13 +66,35 @@
 [Cite >=1 current-turn tool observation: Read on X, Grep found Y, Bash showed Z]
 [MUST include time-scope label: current-state, transcript-time, or inference]
 
+### Observable Definition
+
+**Expected Observable**
+[What the user should directly see or experience]
+
+**Non-Equivalent Proxies**
+- [Proxy] -> Why this is not proof
+
+**Exact Success Evidence**
+[What would directly prove the feature works]
+
+### Evidence Buckets
+
+**Mechanism**
+[How the code is wired]
+
+**State**
+[What runtime state/logs/files show]
+
+**Outcome**
+[What the user actually saw]
+
 ### Executed Path
 
 [Functions/files that actually ran this turn, reachable via current-turn evidence]
 [Must show call chain: entry point -> ... -> failure point]
 [Dead code (0 callers) CANNOT be the root cause]
 
-### Alternative Hypothesis
+### Competing Hypothesis
 
 [Competing explanation - must exist even if brief]
 
@@ -75,6 +102,18 @@
 
 [Evidence that refutes the Alternative Hypothesis]
 [Must show WHY alternative is wrong, not just that it exists]
+
+### First Divergence
+
+[Earliest point where actual behavior diverged from expected behavior]
+
+### RCA Think Pass
+
+[Strongest likely diagnosis]
+[Strongest competing explanation]
+[Most pragmatic explanation]
+[Smallest discriminating check]
+[One refinement only]
 
 ### Root Cause
 
@@ -84,6 +123,8 @@
 **Technical:** [What broke - file, line, mechanism] (Tier [0-4], [0-100]%)
 
 **Systemic:** [Why it was possible - missing test, unclear interface, process gap] (Tier [0-4], [0-100]%)
+
+**Why this is the root cause:** [Tie the cause back to executed path and divergence]
 
 ### Fix
 

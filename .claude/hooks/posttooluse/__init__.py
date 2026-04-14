@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from posttooluse.base import HookRegistry, PostToolUseHook
+from posttooluse.base import HookRegistry, PostToolUseHook, is_block_result
 
 # Agent contract validator - validates adversarial agent .md files on Write/Edit
 from posttooluse.agent_contract_validator import AgentContractValidator
@@ -89,6 +89,7 @@ __all__ = [
     "PostToolUseHook",
     "HookRegistry",
     "create_registry",
+    "is_block_result",
 ]
 
 

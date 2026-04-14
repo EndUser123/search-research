@@ -179,10 +179,8 @@ graph TB
     Library --> Polish
     Polish --> Docs[Documentation]
     Polish --> Media[Media Assets]
-    Polish --> CI[CI/CD]
     Docs --> Output[GitHub-Ready Package]
     Media --> Output
-    CI --> Output
 ```
 
 ### 📑 Presentation Slides

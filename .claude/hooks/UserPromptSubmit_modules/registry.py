@@ -634,6 +634,7 @@ def _load_hooks() -> None:
         "operating_rules",
         "path_syntax_corrector",
         "plan_injector",
+        "behavior_contract",  # NEW 2026-04-13: Keep responses grounded and concise before generation
         "reasoning_mode_selector",
         # "skill_compliance_indicator",  # DEPRECATED 2026-03-11: Pre-run indicator redundant with step headers
         "sequential_thinking",

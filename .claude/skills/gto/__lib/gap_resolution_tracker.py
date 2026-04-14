@@ -416,7 +416,7 @@ def _verify_past_resolutions(
             # Append verification record
             verification = ResolutionVerificationRecord(
                 skill=record.skill,
-                gap_ids=[gap_id],
+                gap_ids=[_normalize_gap_key(gap_id)],
                 gap_types=record.gap_types_resolved,
                 resolution_timestamp=record.timestamp,
                 verification_timestamp=now,
@@ -569,7 +569,7 @@ def get_skill_effectiveness_score(
     skill_verifications = [
         v
         for v in verifications
-        if v.skill == skill and any(_extract_root_type(gt) in gap_type_set for gt in v.gap_types)
+        if v.skill == skill and any(gt in gap_type_set or _extract_root_type(gt) in gap_type_set for gt in v.gap_types)
     ]
 
     verified_count = sum(1 for v in skill_verifications if v.status == "verified")
@@ -652,8 +652,24 @@ def get_gap_decay_metrics(target_key: str) -> dict[str, GapDecayMetrics]:
         days_span: float | None = None
         if first_ts and last_ts:
             try:
-                first_dt = datetime.fromisoformat(first_ts.replace("Z", "+00:00"))
-                last_dt = datetime.fromisoformat(last_ts.replace("Z", "+00:00"))
+                # Normalize all ISO 8601 timezone formats before parsing
+                # Handles: Z, +00:00, +00, +0530, -08:00, -0800, etc.
+                import re
+
+                def _normalize_ts(ts: str) -> str:
+                    if ts.endswith("Z"):
+                        return ts[:-1] + "+00:00"
+                    # Match +/-HH:MM, +/-HHMM, +/-HH
+                    m = re.match(r"^(.+?)([+-])(\d{2}):?(\d{2})?$", ts)
+                    if m:
+                        sign = m.group(2)
+                        hh = m.group(3)
+                        mm = m.group(4) or "00"
+                        return f"{m.group(1)}{sign}{hh}:{mm}"
+                    return ts
+
+                first_dt = datetime.fromisoformat(_normalize_ts(first_ts))
+                last_dt = datetime.fromisoformat(_normalize_ts(last_ts))
                 days_span = (last_dt - first_dt).total_seconds() / 86400.0
             except (ValueError, OSError):
                 pass

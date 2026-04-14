@@ -264,16 +264,33 @@ class TestContractValidation:
 The system crashed with a KeyError.
 
 ## Evidence
-Grep found showed the missing timeout key in the configuration.
+[current-state] From Read: inspected the config parser and found the `timeout` key missing.
+[current-state] Grep found the `dict.get("timeout")` call at line 42.
 
 ## Executed Path
 config.py:42 - calls dict.get() on config object
 
 ## Alternative Hypothesis
-The config file is missing the timeout key.
+| # | Hypothesis | Confidence | Status | Evidence | Test/Falsification |
+|---|---|---|---|---|---|
+| 1 | Missing timeout key in config | Tier 1 | CHECKING | [current-state] `config.json` lacks `timeout` | [inference] Add the key and re-run |
+| 2 | Stale config cache returned an older file | Tier 1 | CHECKING | [current-state] a cached config object was loaded | [inference] Clear cache and re-run |
 
 ## Falsifier
-Adding timeout key to config.json does not fix the crash.
+[current-state] Adding the `timeout` key still leaves the crash because the code path dereferences a missing config object.
+
+## First Divergence
+At config.py line 42, the code reads a missing value without guarding the absent object.
+
+## RCA Think Pass
+- Strongest likely diagnosis: null check missing in the parser.
+- Strongest competing explanation: stale config state caused the KeyError.
+- Most pragmatic explanation: the parser dereferences a missing object.
+- Smallest discriminating check: trace the line 42 call path.
+- One refinement only: verify the failing branch before concluding.
+
+## Ruled Out
+The issue is not a bad file parse or a network timeout; the same crash appears with a valid JSON file.
 
 ## Root Cause
 config.py:42 - Missing null check before dict.get()
@@ -282,9 +299,9 @@ config.py:42 - Missing null check before dict.get()
 Add null check: if config and 'timeout' in config:
 
 ## Verification
-Run pytest tests/test_config.py - all tests pass.
+[current-state] Run pytest tests/test_config.py - all tests pass.
 """
-        rca_data["tool_events"] = [{"name": "Read", "tool_name": "Read"}]
+        rca_data["tool_events"] = [{"name": "Read", "tool_name": "Read", "id": "evt-1"}]
 
         result = check(rca_data)
         assert result is None  # None = allow
@@ -305,7 +322,7 @@ The config file is missing the timeout key.
 Adding timeout key to config.json does not fix the crash.
 
 ## Root Cause
-config.py:42
+config.py:42 - Missing null check before dict.get()
 
 ## Fix
 Add null check
@@ -339,7 +356,7 @@ config.py:42
 N/A
 
 ## Root Cause
-config.py:42
+config.py:42 - Missing null check before dict.get()
 
 ## Fix
 Add null check
@@ -378,6 +395,207 @@ Add null check
 Run pytest
 """
         rca_data["tool_events"] = [{"name": "Read"}]
+
+        result = check(rca_data)
+        assert result is not None
+        assert result["decision"] == "block"
+
+    def test_missing_first_divergence_blocks(self, rca_data):
+        """Missing First Divergence should block."""
+        rca_data["assistant_response"] = """
+## Symptom
+The system crashed.
+
+## Evidence
+Read on `config.json` showed missing key.
+
+## Executed Path
+config.py:42
+
+## Alternative Hypothesis
+The config is missing a key.
+
+## Falsifier
+Adding the key does not change the crash.
+
+## Root Cause
+config.py:42
+
+## Fix
+Add null check
+
+## Verification
+Run pytest
+"""
+        rca_data["tool_events"] = [{"name": "Read"}]
+
+        result = check(rca_data)
+        assert result is not None
+        assert result["decision"] == "block"
+
+    def test_first_divergence_after_root_cause_blocks(self, rca_data):
+        """First Divergence appearing after Root Cause should block."""
+        rca_data["assistant_response"] = """
+## Symptom
+The system crashed.
+
+## Evidence
+[current-state] From Read: inspected the config parser and found the missing field.
+
+## Executed Path
+config.py:42
+
+## Alternative Hypothesis
+| # | Hypothesis | Confidence | Status | Evidence | Test/Falsification |
+|---|---|---|---|---|---|
+| 1 | Missing key in config | Tier 1 | CHECKING | [current-state] config lacks the field | [inference] add the field and re-run |
+| 2 | Null check missing in parser | Tier 1 | CHECKING | [current-state] parser dereferences object | [inference] trace line 42 |
+
+## Falsifier
+[current-state] Adding the field still fails because the parser dereferences a missing object.
+
+## Root Cause
+config.py:42
+
+## First Divergence
+At config.py line 42 the parser reads the field before checking the object.
+
+## Ruled Out
+The issue is not file format or timeout.
+
+## Fix
+Add null check
+
+## Verification
+[current-state] Run pytest
+"""
+        rca_data["tool_events"] = [{"name": "Read", "id": "evt-1"}]
+
+        result = check(rca_data)
+        assert result is not None
+        assert result["decision"] == "block"
+
+    def test_competing_hypothesis_too_similar_blocks(self, rca_data):
+        """A competing hypothesis too similar to the root cause should block."""
+        rca_data["assistant_response"] = """
+## Symptom
+The system crashed.
+
+## Evidence
+[current-state] From Read: inspected the config parser and found the missing field.
+
+## Executed Path
+config.py:42
+
+## Alternative Hypothesis
+| # | Hypothesis | Confidence | Status | Evidence | Test/Falsification |
+|---|---|---|---|---|---|
+| 1 | Missing null check in parser | Tier 1 | CHECKING | [current-state] parser dereferences object | [inference] trace line 42 |
+| 2 | Missing null check in parser | Tier 1 | CHECKING | [current-state] parser dereferences object | [inference] trace line 42 |
+
+## Falsifier
+[current-state] Adding the field still fails because the parser dereferences a missing object.
+
+## First Divergence
+At config.py line 42 the parser reads the field before checking the object.
+
+## Ruled Out
+The issue is not file format or timeout.
+
+## Root Cause
+config.py:42 - Missing null check before dict.get()
+
+## Fix
+Add null check
+
+## Verification
+[current-state] Run pytest
+"""
+        rca_data["tool_events"] = [{"name": "Read", "id": "evt-1"}]
+
+        result = check(rca_data)
+        assert result is not None
+        assert result["decision"] == "block"
+
+    def test_falsifier_without_evidence_blocks(self, rca_data):
+        """A prose-only falsifier should block."""
+        rca_data["assistant_response"] = """
+## Symptom
+The system crashed.
+
+## Evidence
+[current-state] From Read: inspected the config parser and found the missing field.
+
+## Executed Path
+config.py:42
+
+## Alternative Hypothesis
+| # | Hypothesis | Confidence | Status | Evidence | Test/Falsification |
+|---|---|---|---|---|---|
+| 1 | Missing key in config | Tier 1 | CHECKING | [current-state] config lacks the field | [inference] add the field and re-run |
+| 2 | Null check missing in parser | Tier 1 | CHECKING | [current-state] parser dereferences object | [inference] trace line 42 |
+
+## Falsifier
+Adding the field still fails because the parser dereferences a missing object.
+
+## First Divergence
+At config.py line 42 the parser reads the field before checking the object.
+
+## Ruled Out
+The issue is not file format or timeout.
+
+## Root Cause
+config.py:42
+
+## Fix
+Add null check
+
+## Verification
+[current-state] Run pytest
+"""
+        rca_data["tool_events"] = [{"name": "Read", "id": "evt-1"}]
+
+        result = check(rca_data)
+        assert result is not None
+        assert result["decision"] == "block"
+
+    def test_missing_rca_think_pass_blocks(self, rca_data):
+        """Missing RCA Think Pass should block."""
+        rca_data["assistant_response"] = """
+## Symptom
+The system crashed.
+
+## Evidence
+[current-state] From Read: inspected the config parser and found the missing field.
+
+## Executed Path
+config.py:42
+
+## Alternative Hypothesis
+| # | Hypothesis | Confidence | Status | Evidence | Test/Falsification |
+|---|---|---|---|---|---|
+| 1 | Missing key in config | Tier 1 | CHECKING | [current-state] config lacks the field | [inference] add the field and re-run |
+| 2 | Null check missing in parser | Tier 1 | CHECKING | [current-state] parser dereferences object | [inference] trace line 42 |
+
+## Falsifier
+[current-state] Adding the field still fails because the parser dereferences a missing object.
+
+## First Divergence
+At config.py line 42 the parser reads the field before checking the object.
+
+## Ruled Out
+The issue is not file format or timeout.
+
+## Root Cause
+config.py:42
+
+## Fix
+Add null check
+
+## Verification
+[current-state] Run pytest
+"""
+        rca_data["tool_events"] = [{"name": "Read", "id": "evt-1"}]
 
         result = check(rca_data)
         assert result is not None
@@ -496,27 +714,44 @@ class TestRunInterface:
 The system crashed.
 
 ## Evidence
-Grep found showed the missing timeout key in the configuration.
+[current-state] From Read: inspected the config parser and found the `timeout` key missing.
+[current-state] Grep found the `dict.get("timeout")` call at line 42.
 
 ## Executed Path
 config.py:42
 
 ## Alternative Hypothesis
-The config is missing a key.
+| # | Hypothesis | Confidence | Status | Evidence | Test/Falsification |
+|---|---|---|---|---|---|
+| 1 | Missing timeout key in config | Tier 1 | CHECKING | [current-state] `config.json` lacks `timeout` | [inference] Add the key and re-run |
+| 2 | Stale config cache returned an older file | Tier 1 | CHECKING | [current-state] a cached config object was loaded | [inference] Clear cache and re-run |
 
 ## Falsifier
-Adding timeout key does not fix it.
+[current-state] Adding the `timeout` key still leaves the crash because the code path dereferences a missing config object.
+
+## First Divergence
+At config.py line 42, the parser reads the field before it verifies the config object exists.
+
+## RCA Think Pass
+- Strongest likely diagnosis: null check missing in the parser.
+- Strongest competing explanation: stale config state caused the crash.
+- Most pragmatic explanation: the parser dereferences a missing object.
+- Smallest discriminating check: trace the line 42 call path.
+- One refinement only: verify the failing branch before concluding.
+
+## Ruled Out
+Not a file format issue; the JSON is valid and the failure remains.
 
 ## Root Cause
-config.py:42
+config.py:42 - Missing null check before dict.get()
 
 ## Fix
 Add null check
 
 ## Verification
-Run pytest
+[current-state] Run pytest
 """
-        rca_data["tool_events"] = [{"name": "Read"}]
+        rca_data["tool_events"] = [{"name": "Read", "id": "evt-1"}]
 
         result = run(rca_data)
         assert result is None  # None = allow
@@ -550,7 +785,7 @@ class TestToolEvents:
         """Response without verification tools should block."""
         events = []  # No tools used
         is_valid, _ = _validate_rca_contract(
-            "## Symptom\nCrash\n## Evidence\nNothing", events, True
+            {}, "## Symptom\nCrash\n## Evidence\nNothing", events, True
         )
         # Without verification tools, evidence section should fail
         assert is_valid is False

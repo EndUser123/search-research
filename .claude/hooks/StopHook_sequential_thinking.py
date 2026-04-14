@@ -24,10 +24,6 @@ from __lib.sequential_state import (
 # State directory
 STATE_DIR = Path("P:/").resolve() / ".claude" / "state" / "sequential-thinking"
 
-# Import tag emission
-sys.path.insert(0, str(Path(__file__).parent))
-from UserPromptSubmit_modules.tag_emission import emit_tag  # noqa: E402       
-
 _MODE_INSTRUCTIONS = {
     "critique": (
         "Critically analyze your previous answer and identify:\n"
@@ -160,7 +156,7 @@ def _format_investigation_feedback(
     Returns:
         Formatted feedback string
     """
-    lines = [f"[SEQ] Investigation Mode \u2014 Phase: {phase.upper()}", ""]
+    lines = [f"Sequential Thinking Investigation Mode \u2014 Phase: {phase.upper()}", ""]
 
     # --- Path A: structured hypothesis list (legacy callers) ---
     if isinstance(hypothesis_details_or_text, list) and hypothesis_details_or_text:
@@ -244,7 +240,7 @@ def stop(data: dict) -> dict:
             return {
                 "allow": False,
                 "reason": (
-                    f"{emit_tag('SEQ')}\n"
+                    f"Sequential Thinking\n"
                     f"<sequential_thinking_continuation>\n"
                     f"Iteration {next_iteration} of 2 \u2014 HYPOTHESIS MODE ({phase_key.upper()})\n"
                     f"</sequential_thinking_continuation>\n\n"
@@ -261,7 +257,7 @@ def stop(data: dict) -> dict:
             return {
                 "allow": False,
                 "reason": (
-                    f"{emit_tag('SEQ')}\n"
+                    f"Sequential Thinking\n"
                     f"<sequential_thinking_continuation>\n"
                     f"Iteration {next_iteration} of 2 \u2014 INVESTIGATION MODE ({phase_key.upper()})\n"
                     f"</sequential_thinking_continuation>\n\n"
@@ -274,7 +270,7 @@ def stop(data: dict) -> dict:
             return {
                 "allow": False,
                 "reason": (
-                    f"{emit_tag('SEQ')}\n"
+                    f"Sequential Thinking\n"
                     f"<sequential_thinking_continuation>\n"
                     f"Iteration {next_iteration} of 2 \u2014 {mode_key.upper()} MODE\n"
                     f"</sequential_thinking_continuation>\n\n"

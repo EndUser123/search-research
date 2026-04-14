@@ -587,6 +587,16 @@ def get_existing_sources(notebooklm_id: str) -> tuple[dict[str, str], bool]:
         return {}, True
 
 
+def _wait_for_delete_confirmed(notebooklm_id: str, source_id: str, max_attempts: int = 10) -> bool:
+    """Poll nlm source list until source_id is gone. Returns True if confirmed deleted, False if still present after max_attempts."""
+    for attempt in range(max_attempts):
+        sources, api_error = get_existing_sources(notebooklm_id)
+        if not api_error and source_id not in sources.values():
+            return True
+        time.sleep(1)
+    return False
+
+
 def upload_slices(
     notebooklm_id: str,
     slices: list[Path],
@@ -609,7 +619,9 @@ def upload_slices(
             result = subprocess.run(["nlm", "source", "delete", old_id], capture_output=True, text=True)
             if result.returncode != 0:
                 print(f"  ⚠ delete failed for {s.name}: {result.stderr.strip()}")
-            time.sleep(2)  # let NotebookLM process the delete before re-adding same name
+            if not _wait_for_delete_confirmed(notebooklm_id, old_id):
+                print(f"  ⚠ delete not confirmed for {s.name}, skipping upload")
+                continue
         else:
             print(f"  → uploading {s.name}...")
         result = subprocess.run(
@@ -636,7 +648,8 @@ def upload_slices(
         result = subprocess.run(["nlm", "source", "delete", old_id], capture_output=True, text=True)
         if result.returncode != 0:
             print(f"  ⚠ web source delete failed: {result.stderr.strip()}")
-        time.sleep(2)
+        elif not _wait_for_delete_confirmed(notebooklm_id, old_id):
+            print(f"  ⚠ web source delete not confirmed, skipping add")
         print(f"  → adding web source for {repo_url}...")
     else:
         print(f"  → adding web source for {repo_url}...")

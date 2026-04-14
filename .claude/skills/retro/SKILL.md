@@ -1,13 +1,17 @@
 ---
 name: retro
 description: Identify what went wrong, what went right, and what to do differently next time. Chains 5 skills: recap → gap analysis → opportunities → adversarial review → actions.
-version: 1.0.0
+version: 1.1.0
+category: orchestration
 triggers:
   - "retro"
   - "/retro"
   - "run self-contrast"
   - "retrospective protocol"
   - "self-contrast"
+aliases:
+  - /retro
+  - /self-contrast
 suggest:
   - /recap
   - /gto
@@ -16,6 +20,14 @@ suggest:
   - /rns
   - /critique
 depends_on_skills: [recap, gto, ideas, pre-mortem, rns]
+workflow_steps:
+  - step_1: Call /recap — get session summary with problem/optimal contrast
+  - step_2: Call /gto gap — extract top gaps from session evidence
+  - step_3: Call /ideas — extract top opportunities (or invert top-problems output)
+  - step_4: Call /pre-mortem — adversarial validation of approach
+  - step_5: Evaluate SCORES — rate completeness/optimality/satisfaction 0-10; invoke /critique if any axis < 8
+  - step_6: Call /rns — extract prioritized actions from all findings
+  - step_7: Aggregate ALL findings from all chained skills into the RNS (not just /pre-mortem); group by domain
 enforcement: advisory
 ---
 
@@ -68,11 +80,28 @@ SCORES:
   o:[0-10]  Optimality  — was the approach best possible?
   s:[0-10]  Satisfaction — smooth process?
 
-ACTIONS: [prioritized RNS list]
+ACTIONS: [prioritized RNS list — see RNS Aggregation Rule below]
   [recover/high] ACT-001 ...
   [prevent/med]  ACT-002 ...
   [realize/low]  ACT-003 ...
 ```
+
+### RNS Aggregation Rule (Critical)
+
+**The RNS must include ALL findings from ALL chained skills, not just /pre-mortem.**
+
+When building the ACTIONS list, aggregate findings from:
+- `/recap` — work already done, completed, or committed (do not include as actionable unless something was left incomplete)
+- `/gto gap` — internal technical debt in the target itself (own by GTO if the target is GTO, otherwise own by the retro's target)
+- `/ideas` — opportunities not yet implemented (include all ROI-ranked items, even if LOW ROI)
+- `/pre-mortem` — adversarial findings by domain
+- `/rns` — extracted actions from above
+
+Group by domain (security, correctness, quality, testing, performance, internal). Within each domain sort CRITICAL > HIGH > MEDIUM > LOW.
+
+**Every finding from every skill must appear in the RNS with an owner and action.** If a finding is dropped, state why explicitly in the retro output.
+
+**Failure mode this prevents:** RNS was previously built only from /pre-mortem findings, dropping GTO internal gaps (CAUSE-001/002/003, 7 TODOs in GTO test files) and the mock call counting pattern improvement from /ideas. The retro felt complete but was systematically incomplete.
 
 ## Step Execution
 

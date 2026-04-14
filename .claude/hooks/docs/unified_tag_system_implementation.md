@@ -5,15 +5,15 @@
 
 ## Objective
 
-Unify cognitive frameworks and reasoning package to have the same invoking system and tag emission system, both triggerable via simple prompts.
+Unify cognitive frameworks and reasoning package to have the same invoking system and telemetry system, both triggerable via simple prompts.
 
 ## Changes Made
 
-### 1. Added [COG] Tag Emission to Cognitive Frameworks
+### 1. Added Cognitive Telemetry to Framework Selection
 
 **File**: `P:/.claude/hooks/UserPromptSubmit_modules/cognitive_enhancers.py`
 
-**Change**: Modified `_build_injection()` function to emit [COG] tag with active framework names.
+**Change**: Modified `_build_injection()` function to record active framework names for telemetry while keeping prompt-facing text tag-free.
 
 **Before**:
 ```python
@@ -30,9 +30,9 @@ def _build_injection(enhancers: list[Enhancer]) -> str:
     if not enhancers:
         return ""
 
-    # Build tag header listing active cognitive frameworks
+    # Build telemetry metadata for active cognitive frameworks
     framework_names = [e.name.replace("_", " ").title() for e in enhancers]
-    tag_header = f"[COG] Active Cognitive Frameworks: {', '.join(framework_names)}\n\n"
+    tag_header = f"Active Cognitive Frameworks: {', '.join(framework_names)}\n\n"
 
     # Build framework injections
     injections = [e.injection for e in enhancers]
@@ -41,7 +41,7 @@ def _build_injection(enhancers: list[Enhancer]) -> str:
     return tag_header + frameworks_text
 ```
 
-**Result**: Cognitive frameworks now emit `[COG] Active Cognitive Frameworks: X, Y, Z` tag header.
+**Result**: Cognitive frameworks now record the active framework set in telemetry instead of surfacing a `[COG]` header to the LLM.
 
 ### 2. Created Prompt-Based Test Suite
 
@@ -67,16 +67,16 @@ python test_tag_emission.py reasoning
 **File**: `P:/.claude/hooks/docs/cognitive_and_reasoning_prompts.md`
 
 **Contents**:
-- Unified tag system explanation ([COG], [SEQ], [MAS])
+- Unified telemetry system explanation for cognitive and reasoning selectors
 - How to invoke cognitive frameworks with simple prompts
 - How to invoke reasoning modes with simple prompts
 - Manual override modes (#deep, #rca, #fast)
-- Example tag emission output
+- Example telemetry output
 - Testing instructions
 
 ## Unified System Architecture
 
-### Cognitive Frameworks ([COG] tag)
+### Cognitive Frameworks (telemetry only)
 
 **Invoking System**: Automatic keyword-based intent detection
 - Diagnostic prompts → Calibrated Confidence, Cynefin, Hanlon's Razor
@@ -84,21 +84,21 @@ python test_tag_emission.py reasoning
 - Root cause analysis → Cynefin Classification
 - Long/complex prompts → Socratic Decomposition
 
-**Tag Emission**: Hook injects `[COG] Active Cognitive Frameworks: X, Y, Z` at start of context
+**Telemetry**: Hook records the active cognitive frameworks and keeps the injected context free of tag tokens
 
 **Example**:
 ```
 User: diagnose why the API is returning 500 errors
 
 Injected:
-[COG] Active Cognitive Frameworks: Calibrated Confidence, Cynefin Classification, Hanlon's Razor
+Active Cognitive Frameworks: Calibrated Confidence, Cynefin Classification, Hanlon's Razor
 
 **Calibrated Confidence**: ...
 **Cynefin Framework**: ...
 **Hanlon's Razor**: ...
 ```
 
-### Reasoning Package ([SEQ], [MAS], [COG] tags)
+### Reasoning Package (telemetry only)
 
 **Invoking System**: Automatic keyword-based intent detection
 - Sequential ([SEQ]): "explain", "how to", "step by step"
@@ -106,10 +106,7 @@ Injected:
 - Graph ([COG]): "explore", "what if", "branches"
 - Two-Stage: "write function", "create class", "implement"
 
-**Tag Emission**: Reasoning modules emit tags when returning processed results
-- `sequential.py` emits `[SEQ]`
-- `multi_agent.py` emits `[MAS]`
-- `cognitive.py` emits `[COG]`
+**Telemetry**: Reasoning modules record selected modes and do not surface tag tokens in prompt-facing output
 
 **Example**:
 ```
@@ -121,7 +118,6 @@ Confidence: 2/4
 Using multi_agent reasoning approach for this query.
 
 Processing emits:
-[MAS]
 <multi-agent analysis result>
 ```
 
@@ -158,11 +154,11 @@ test_cognitive_frameworks_integration.py::TestCognitiveFrameworksIntegration::te
 
 ## User Benefits
 
-1. **Unified Tag System**: Both systems now emit visible tags ([COG], [SEQ], [MAS]) for easy identification
+1. **Unified Telemetry System**: Both systems now record selection metadata for easy identification
 2. **Prompt-Based Invocation**: Both systems trigger automatically via natural language prompts
 3. **No Manual Syntax Required**: No need to remember special commands or invoke skills manually
 4. **Consistent Behavior**: Both systems use keyword-based intent detection
-5. **Visible Feedback**: Tags show which frameworks/modes are active in each response
+5. **Telemetry Feedback**: Active frameworks/modes are available in logs and dashboards, not in the LLM response
 
 ## Example Workflow
 
@@ -171,10 +167,8 @@ test_cognitive_frameworks_integration.py::TestCognitiveFrameworksIntegration::te
 User: diagnose why the API is returning 500 errors
 ```
 
-**System responds with visible tags**:
+**System records telemetry and responds without tags**:
 ```
-[COG] Active Cognitive Frameworks: Calibrated Confidence, Cynefin Classification, Hanlon's Razor
-
 <analysis follows using the injected frameworks>
 ```
 
@@ -183,9 +177,8 @@ User: diagnose why the API is returning 500 errors
 User: should we use Redis or Memcached for caching?
 ```
 
-**System responds with visible tags**:
+**System records telemetry and responds without tags**:
 ```
-[MAS]
 <multi-agent comparison analysis follows>
 ```
 
@@ -199,7 +192,7 @@ User: should we use Redis or Memcached for caching?
 
 Both cognitive frameworks and reasoning package now have:
 - ✅ Unified invoking system (keyword-based intent detection)
-- ✅ Unified tag emission system ([COG], [SEQ], [MAS] tags)
+- ✅ Unified telemetry system for active frameworks and modes
 - ✅ Prompt-based triggering (no manual skill invocation needed)
 - ✅ Test coverage (11 integration tests + 2 prompt-based tests)
 - ✅ Documentation (prompt reference guide)

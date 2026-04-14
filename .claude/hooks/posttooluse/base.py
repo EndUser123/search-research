@@ -27,6 +27,17 @@ if not logger.handlers:
     logger.addHandler(logging.NullHandler())
 
 
+def is_block_result(result: Any) -> bool:
+    """Return True when a hook result requests blocking."""
+    if not isinstance(result, dict):
+        return False
+    return (
+        result.get("decision") == "block"
+        or result.get("block") is True
+        or result.get("allow") is False
+    )
+
+
 class PostToolUseHook(ABC):
     """
     Base class for PostToolUse hooks.
@@ -175,7 +186,7 @@ class HookRegistry:
                 injections.append(result["injection"])
 
             # Check for blocking results (not used by current hooks)
-            if result.get("decision") == "block":
+            if is_block_result(result):
                 return result
 
         # Combine injections

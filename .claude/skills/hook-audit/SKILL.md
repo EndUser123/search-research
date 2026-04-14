@@ -38,11 +38,13 @@ python P:/.claude/hooks/hook_audit_dashboard.py attribution
 python P:/.claude/hooks/hook_audit_dashboard.py health
 python P:/.claude/hooks/hook_audit_dashboard.py escalation
 python P:/.claude/hooks/hook_audit_dashboard.py replay
+python P:/.claude/hooks/hook_audit_dashboard.py stats
 python P:/.claude/hooks/hook_audit_dashboard.py reasoning
 
 # Custom time period
 python P:/.claude/hooks/hook_audit_dashboard.py --days 14
 python P:/.claude/hooks/hook_audit_dashboard.py attribution --days 30
+python P:/.claude/hooks/hook_audit_dashboard.py stats --turn <turn-id>
 
 # Terminal filtering (v2.1)
 python P:/.claude/hooks/hook_audit_dashboard.py --terminal        # Current terminal only
@@ -78,6 +80,7 @@ See `references/subcommand-details.md` for full output descriptions.
 | `health` | Hook system health - timeouts, failures, enforcement metrics |
 | `escalation` | Phase 1 to Phase 2 escalation recommendations |
 | `replay` | Enforcement replay quality - block rates, autofix, latency |
+| `stats` | Diagnostics DB stats - turn-scoped hook invocation lookup |
 
 ## Log File Locations
 
@@ -111,6 +114,7 @@ See `references/escalation-and-runtime.md` for:
 /hook-audit --days 30        # Last 30 days
 /hook-audit --terminal       # Current terminal only (v2.1)
 /hook-audit --all            # Per-terminal breakdown (v2.1)
+/hook-audit stats --turn <turn-id>  # Turn-scoped diagnostics lookup
 ```
 
 ## Terminal Isolation (v2.1)

@@ -60,6 +60,37 @@ CLAIM_PATTERNS = (
     r"(?:`[^`\n]{2,}`|/?[A-Za-z][A-Za-z0-9]*(?:[._/-][A-Za-z0-9]+)*)",
 )
 CLAIM_RE = re.compile("|".join(f"(?:{p})" for p in CLAIM_PATTERNS), re.IGNORECASE)
+ACTION_LANGUAGE_RE = re.compile(r"^\s*(?:i|we|let me|let's|i'll|we'll)\b", re.IGNORECASE)
+STATE_CLAIM_SIGNAL_RE = re.compile(
+    r"\b(?:"
+    r"fixed|resolved|working|correct(?:ly)?|"
+    r"exists?|missing|absent|not found|"
+    r"pass(?:ed|es|ing)?|fail(?:ed|s|ing)?|"
+    r"deleted|removed|added|created|modified|updated|changed|"
+    r"implemented|configured|integrated|enabled"
+    r")\b",
+    re.IGNORECASE,
+)
+TECHNICAL_ANCHOR_RE = re.compile(
+    r"(?:`[^`]+`|[A-Za-z]:[\\/]|https?://|[\w.-]+(?:[./_-][\w.-]+)+|\b\w*\d\w*\b)",
+    re.IGNORECASE,
+)
+
+
+def _is_plausible_claim_line(text: str) -> bool:
+    """Keep declarative technical claims, skip generic prose and process language."""
+    has_state_signal = bool(STATE_CLAIM_SIGNAL_RE.search(text))
+    has_technical_anchor = bool(TECHNICAL_ANCHOR_RE.search(text))
+
+    if ACTION_LANGUAGE_RE.search(text) and not (has_state_signal or has_technical_anchor):
+        return False
+    if has_state_signal:
+        return True
+    if has_technical_anchor:
+        return True
+    return False
+
+
 EQUIVALENCE_LINK_RE = re.compile(
     r"\b(?:"
     r"is|are|was|were|equals?|equal to|equivalent to|same as|same package as|"
@@ -396,10 +427,17 @@ def detect_claims(response_text: str) -> list[str]:
         if is_question(text):
             continue
         if CLAIM_RE.search(text):
+            if not _is_plausible_claim_line(text):
+                continue
             claims.append(text)
 
     # fallback: long prose with success claims but no line split signal
-    if not claims and CLAIM_RE.search(cleaned_text) and not is_question(cleaned_text):
+    if (
+        not claims
+        and CLAIM_RE.search(cleaned_text)
+        and not is_question(cleaned_text)
+        and _is_plausible_claim_line(cleaned_text)
+    ):
         claims = [cleaned_text.strip()]
     return claims[:20]
 

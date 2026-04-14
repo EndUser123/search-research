@@ -257,6 +257,12 @@ class AsyncSearchRouter:
         except Exception as e:
             logger.debug(f"QMD Wiki backend not available: {e}")
 
+        # yt-is backend - searches YouTube transcript cache via FTS5
+        try:
+            backends["yt_is"] = local.YtIsBackend()
+        except Exception as e:
+            logger.debug(f"yt-is backend not available: {e}")
+
         self._backends = backends
         self._backends_initialized = True
 

@@ -59,7 +59,6 @@ if str(_HOOKS_DIR) not in sys.path:
 from UserPromptSubmit_modules.sequential_thinking_semantic_client import (  # noqa: E402
     compute_similarity,
 )
-from UserPromptSubmit_modules.tag_emission import emit_tag  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Semantic Trigger Detection (Embedding-Based via Daemon)
@@ -361,7 +360,6 @@ def sequential_thinking_hook(context: HookContext) -> HookResult:
             metadata["max_iterations"] = 2
 
         _create_sequential_state(session_id, trigger_phrase, terminal_id, metadata)
-        seq_tag = emit_tag("SEQ")
 
         if is_hypothesis_mode:
             mode_text = "multi_hypothesis"
@@ -377,12 +375,8 @@ def sequential_thinking_hook(context: HookContext) -> HookResult:
                 "Work step-by-step, then check the answer against evidence before concluding."
             )
 
-        tag_header = (
-            f"{seq_tag}\n"
-            f"**Use [SEQ]** to mark sequential reasoning.\n\n"
-        )
         injection = (
-            f"{tag_header}"
+            f"Sequential thinking enabled.\n\n"
             f"<sequential_thinking>\n"
             f"Session ID: {session_id}\n"
             f"Trigger: {trigger_phrase}\n"

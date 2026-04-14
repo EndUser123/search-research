@@ -231,3 +231,28 @@ def test_diversify_results_max_per_session_one():
         session_counts[sid] = session_counts.get(sid, 0) + 1
     for count in session_counts.values():
         assert count <= 1
+
+
+def test_diversify_results_no_duplicates():
+    """Test that _diversify_results never returns duplicate titles."""
+    backend = ClaudeHistoryBackend()
+
+    # 3 sessions with 3 results each
+    results = []
+    for session_num in range(3):
+        for msg_num in range(3):
+            results.append({
+                "title": f"session-{session_num}-msg-{msg_num}",
+                "content": f"content {session_num} {msg_num}",
+                "score": 1.0 - (msg_num * 0.1),
+                "metadata": {"session_id": f"session-{session_num}"}
+            })
+
+    diversified = backend._diversify_results(results, limit=10, max_per_session=2)
+
+    # No duplicates allowed
+    titles = [r["title"] for r in diversified]
+    assert len(titles) == len(set(titles)), f"Duplicates found: {[t for t in titles if titles.count(t) > 1]}"
+    # With 3 sessions and max_per_session=2, round-robin gives 6 results;
+    # remaining fallback adds up to 3 more (one per session) = 9 total
+    assert len(diversified) == 9

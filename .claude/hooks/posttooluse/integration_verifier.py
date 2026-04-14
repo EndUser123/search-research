@@ -20,6 +20,7 @@ Implementing T-001 from approved plan.
 """
 
 import re
+import os
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +40,7 @@ class IntegrationVerifier(PostToolUseHook):
     env_var = "INTEGRATION_VERIFIER_ENABLED"
     default_enabled = True
     tool_matcher = {"Write", "Edit"}
+    mode_env_var = "INTEGRATION_VERIFIER_MODE"
 
     def __init__(self):
         super().__init__()
@@ -49,6 +51,9 @@ class IntegrationVerifier(PostToolUseHook):
             Path(__file__).resolve().parent.parent.parent / "skills",  # P:\.claude\skills
             Path.home() / ".claude" / "skills",  # ~/.claude/skills (user skills)
         ]
+
+    def _mode(self) -> str:
+        return os.environ.get(self.mode_env_var, "warn").strip().lower()
 
     def process(
         self, tool_name: str, tool_input: dict[str, Any], tool_response: dict[str, Any]
@@ -150,6 +155,7 @@ class IntegrationVerifier(PostToolUseHook):
 
         # Generate injection if any gaps found
         if warnings:
+            mode = self._mode()
             # Use visual formatter for better presentation
             try:
                 # Add hooks to path for import
@@ -179,6 +185,21 @@ class IntegrationVerifier(PostToolUseHook):
                     "Skill integration claims don't match implementation reality:\n\n"
                     + "\n\n".join(warnings)
                     + f"\n\nFix: Either implement the integrations or remove them from {skill_name}/SKILL.md"
+                )
+
+            if mode == "block":
+                block_reason = (
+                    "INTEGRATION VERIFICATION FAILED\n\n"
+                    + "\n\n".join(warnings)
+                    + f"\n\nFix: Either implement the integrations or remove them from {skill_name}/SKILL.md"
+                )
+                result.update(
+                    {
+                        "passed": False,
+                        "decision": "block",
+                        "reason": block_reason,
+                        "blocking_hook": "posttooluse.integration_verifier",
+                    }
                 )
 
         return result

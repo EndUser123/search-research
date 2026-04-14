@@ -182,20 +182,17 @@ def main() -> None:
     if unverified:
         context_msg = "; ".join(unverified[:3])  # Limit to first 3
         output = {
-            "hookSpecificOutput": {
-                "hookEventName": "PostToolUse",
-                "hookName": "self_verification_gate",
-                "additionalContext": (
-                    f"Completion claim(s) require verification: {context_msg}. "
-                    f"Provide runtime evidence (test output, command results) to confirm."
-                ),
-                "blocked": False,  # Non-blocking, just a warning
-                "claims": unverified,
-                "session": session,
-            }
+            "decision": "block",
+            "reason": (
+                f"Completion claim(s) require verification: {context_msg}. "
+                "Provide runtime evidence (test output, command results) to confirm."
+            ),
+            "blocking_hook": "self_verification_gate.py",
+            "claims": unverified,
+            "session": session,
         }
         print(json.dumps(output))
-        sys.exit(0)
+        sys.exit(2)
 
     # All claims verified
     print("{}")

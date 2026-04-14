@@ -38,7 +38,7 @@ Before writing the completion report, track which phases actually ran during thi
 #   "Tests: PASSING" — test directory exists but no pytest was run this session
 
 # RIGHT (evidence-backed claims):
-#   "PHASE 5 Polish: EXECUTED — generated badges, CI/CD workflow, CHANGELOG"
+#   "PHASE 5 Polish: EXECUTED — generated badges, CHANGELOG"
 #   "PHASE 4.7 Media: SKIPPED (not applicable for skill-only plugin)"
 #   "Architecture diagram: PRE-EXISTING (Mermaid block in README, not modified this session)"
 ```
@@ -58,7 +58,6 @@ checklist=(
   "CHANGELOG.md"
   "CONTRIBUTING.md"
   "AGENTS.md"
-  ".github/workflows/test.yml"
   "LICENSE file"
   "tests/ directory exists"
   "pytest tests pass"
@@ -83,7 +82,7 @@ PHASE 1.5 Detect: EXECUTED -> classified as {classification}
 PHASE 2 Build: EXECUTED -> created {files}
 PHASE 3 Templates: EXECUTED -> generated {artifacts}
 PHASE 4 Validate: EXECUTED -> {results}
-PHASE 5 Polish: EXECUTED -> generated badges, CI/CD, CHANGELOG
+PHASE 5 Polish: EXECUTED -> generated badges, CHANGELOG
 PHASE 4.7 Media: SKIPPED (not applicable for {reason})
 
 Ready for: recruiters, portfolio, public use

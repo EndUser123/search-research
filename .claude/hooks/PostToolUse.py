@@ -22,7 +22,7 @@ HOOKS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(HOOKS_DIR))
 
 from evidence_store import append_tool_event  # noqa: E402
-from posttooluse import create_registry  # noqa: E402
+from posttooluse import create_registry, is_block_result  # noqa: E402
 from __lib.write_tool_error_signal import write_tool_error_signal  # noqa: E402
 
 # Configure logger for PostToolUse - no stderr output (Claude Code treats stderr as hook error)
@@ -255,6 +255,10 @@ def main():
             registry_result = create_registry().run_all(data)
         except Exception as e:
             logger.debug(f"Registry error: {e}")
+
+    if is_block_result(registry_result):
+        print(json.dumps(registry_result))
+        sys.exit(2)
 
     # 1.6. Output injection if present
     # Merge cognitive injection with registry results

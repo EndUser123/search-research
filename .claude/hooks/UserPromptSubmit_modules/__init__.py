@@ -9,6 +9,7 @@ Modules:
 - unified_injector: Solo dev context, goal anchor, falsification
 - skill_enforcer: Slash command detection and routing
 - plan_injector: Plan context injection and disambiguation
+- behavior_contract: Response grounding and self-check rubric
 - diagnostic_guard: Speculative claims, quantitative checks
 - intent_handlers: Research directives, diagnostic questions
 - registry: Hook discovery and loading
@@ -34,6 +35,7 @@ __all__ = [
     "unified_injector",
     "skill_enforcer",
     "plan_injector",
+    "behavior_contract",
     "diagnostic_guard",
     "intent_handlers",
     "registry",

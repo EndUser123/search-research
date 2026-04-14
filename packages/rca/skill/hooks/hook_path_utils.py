@@ -81,8 +81,14 @@ def verify_all_hooks(expected_hooks: list[str]) -> dict[str, bool]:
 
 # Expected hooks for this skill
 EXPECTED_HOOKS = [
+    "evidence_scope.py",
+    "evidence_store.py",
+    "file_lock.py",
     "PostToolUse_rca_init.py",
     "PostToolUse_rca_phase_tracker.py",
+    "StopHook_rca_auto_promotion.py",
+    "StopHook_rca_contract.py",
+    "StopHook_rca_reflector.py",
     "SessionEnd_rca_cleanup.py",
     "StopHook_rca_enforcement.py",
     "hook_error_rca.py",

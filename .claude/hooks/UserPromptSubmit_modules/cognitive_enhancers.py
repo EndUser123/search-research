@@ -413,25 +413,20 @@ def _get_rationale(intent: dict[str, bool], enhancers: list[Enhancer], prompt_le
 
 def _build_injection(enhancers: list[Enhancer], intent: dict[str, bool] | None = None, prompt_length: int = 0) -> str:
     if not enhancers: return ""
-    framework_tags = []
     for enhancer in enhancers:
         tags = get_framework_tags_for_enhancer(enhancer.name)
         if tags:
-            framework_tags.extend(tags)
             for tag in tags:
                 is_valid, warning = validate_tag_emission(tag)
                 log_tag_emission(tag_type=tag, tag_category="framework", is_valid=is_valid, has_warning=warning is not None, warning_message=warning, source="cognitive_enhancers")
 
-    tags_str = " ".join(f"[{tag}]" for tag in framework_tags)
     rationale = _get_rationale(intent, enhancers, prompt_length) if intent else "unknown reason"
-    tag_header = f"{tags_str}\nWhy: {rationale}\n\n" if tags_str else f"Why: {rationale}\n\n"
-
     injections = [e.injection for e in enhancers]
     frameworks_text = "\n\n".join(injections)
     framework_names = [e.name.replace("_", " ").title() for e in enhancers]
     tag_instruction = f"**Use these frameworks**: {', '.join(framework_names)}.\n\n"
 
-    return tag_header + tag_instruction + frameworks_text
+    return f"Why: {rationale}\n\n{tag_instruction}{frameworks_text}"
 
 
 @register_hook("cognitive_enhancers", priority=11.0)

@@ -1,5 +1,7 @@
 # T-005 Completion Summary (2026-03-14)
 
+> Note: tag strings in this summary are historical telemetry examples. Prompt-facing output now stays tag-free.
+
 ## Implementation Complete ✅
 
 **Task**: Integrate questioning_patterns.md into detection
@@ -55,7 +57,7 @@
 - ✅ T-000: Measure current hook performance baseline
 - ✅ T-001: Create unified detection engine module
 - ✅ T-002: Create shared configuration system
-- ✅ T-003: Implement unified tag emission standard
+- ✅ T-003: Implement unified telemetry standard
 - ✅ T-004: Add performance monitoring
 - ✅ T-005: Integrate questioning_patterns.md into detection ← THIS TASK
 
@@ -76,4 +78,3 @@
 - Detect complementary combinations (e.g., assumption_surfacing + sequential)
 - Prerequisites: T-001 (unified detection) ✅ complete
 - Effort: M (2-3h)
-

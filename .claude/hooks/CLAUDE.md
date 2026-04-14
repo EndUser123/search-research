@@ -422,6 +422,30 @@ Source: plan-20260312-anti-laziness-arch-verification.md
 | `observable_effect_verifier.py`       | Observable effect verification (SEV) - verify expected side effects from code changes | plan-20260304 | ❌ None |
 | `integration_verifier.py`             | Integration verification - prevents aspirational documentation in SKILL.md files | plan-20260304 | ❌ None |
 
+### Reduced Stop Strategy
+
+Stop hooks are the backstop, not the primary behavior shaper.
+
+Prefer to prevent bad outputs earlier by:
+
+- injecting a compact response behavior contract in `UserPromptSubmit`
+- requiring direct answers, evidence labels, and explicit uncertainty
+- keeping style and pacing guidance lightweight and repetitive only when needed
+- treating Stop as the final safety net for hard violations
+
+Keep block decisions focused on high-confidence contract breaks:
+
+- unverified factual claims
+- tool or execution misrepresentation
+- explicit bypasses of required workflow or policy
+
+Use advisory or telemetry-only hooks for:
+
+- tone cleanup
+- response structure nudges
+- generic reasoning polish
+- low-confidence quality issues that do not justify a hard block
+
 ### Integration Verifier
 
 **Purpose**: PostToolUse hook that prevents aspirational documentation by verifying skill integration claims.

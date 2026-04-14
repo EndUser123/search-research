@@ -29,6 +29,7 @@ sys.path.insert(0, str(HOOKS_DIR))
 # Note: Package moved to UserPromptSubmit_modules to avoid naming conflict
 # with this router file (UserPromptSubmit.py)
 from UserPromptSubmit_modules import registry
+from UserPromptSubmit_modules.tag_emission import VALID_TAGS
 
 try:
     from __lib import prompt_session_state
@@ -47,6 +48,12 @@ ACCEPTANCE_RESPONSES = {
     "proceed",
     "yes",
 }
+_TAG_LINE_RE = re.compile(r"^(?:\[[A-Z0-9_]+\](?:\s+\[[A-Z0-9_]+\])*)$")
+_KNOWN_TAG_TOKEN_RE = re.compile(
+    r"\[(?:"
+    + "|".join(sorted((re.escape(tag) for tag in VALID_TAGS), key=len, reverse=True))
+    + r")\]"
+)
 
 
 def _safe_id(value: str | None) -> str:
@@ -123,6 +130,38 @@ def _dict_context_blocks(context: dict) -> list[str]:
             if block:
                 blocks.append(block)
     return blocks
+
+
+def _split_visible_tag_header(block: str) -> tuple[list[str], str]:
+    """Extract a compact tag header from the first line of a block."""
+    if not block:
+        return [], block
+
+    lines = block.splitlines()
+    if not lines:
+        return [], block
+
+    first_line = lines[0].strip()
+    if not _TAG_LINE_RE.fullmatch(first_line):
+        return [], block
+
+    tags = re.findall(r"\[([A-Z0-9_]+)\]", first_line)
+    remainder = "\n".join(lines[1:]).lstrip("\n")
+    return tags, remainder
+
+
+def _strip_visible_tag_tokens(block: str) -> str:
+    """Remove known tag tokens from LLM-facing text while preserving the rest."""
+    if not block:
+        return block
+
+    cleaned_lines: list[str] = []
+    for line in block.splitlines():
+        cleaned = _KNOWN_TAG_TOKEN_RE.sub("", line)
+        cleaned = re.sub(r"[ \t]{2,}", " ", cleaned).strip()
+        if cleaned:
+            cleaned_lines.append(cleaned)
+    return "\n".join(cleaned_lines)
 
 
 def check_user_pushback(data: dict, prompt: str) -> str | None:
@@ -333,14 +372,20 @@ def main():
                 replacement_prompt = res.context["replacePrompt"]
                 suppress_echo = bool(res.context.get("suppressEcho", False))
                 # Also include any router-visible blocks from the same result.
-                injections.extend(_dict_context_blocks(res.context))
+                for block in _dict_context_blocks(res.context):
+                    _, remainder = _split_visible_tag_header(block)
+                    injections.append(_strip_visible_tag_tokens(remainder or block))
             elif isinstance(res.context, dict) and (
                 "additionalContext" in res.context or "systemContext" in res.context
             ):
                 # Dict with additional/system context but no replacePrompt.
-                injections.extend(_dict_context_blocks(res.context))
+                for block in _dict_context_blocks(res.context):
+                    _, remainder = _split_visible_tag_header(block)
+                    injections.append(_strip_visible_tag_tokens(remainder or block))
             else:
-                injections.append(res.context)
+                block = str(res.context)
+                _, remainder = _split_visible_tag_header(block)
+                injections.append(_strip_visible_tag_tokens(remainder or block))
 
     # 2. Add User Pushback Logic
     pushback = check_user_pushback(data, prompt)

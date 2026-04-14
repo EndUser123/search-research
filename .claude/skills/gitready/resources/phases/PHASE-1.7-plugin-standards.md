@@ -29,7 +29,6 @@
 - **`skills/`** - Agent skills (subdirectories with `SKILL.md`)
 - **`hooks/`** - Hook configuration (`hooks.json`)
 - **`scripts/`** - Helper scripts and utilities (Python code goes here)
-- **`.github/`** - GitHub workflows
 
 **⚠️ CRITICAL CORRECTION FROM v5.6.0**:
 - ❌ **WRONG**: `core/` directory is NOT in official spec

@@ -29,6 +29,11 @@ ANTI_SYCOPHANCY_LOG = HOOKS_DIR / "logs" / "anti_sycophancy_violations.jsonl"
 SKILL_FIRST_LOG = HOOKS_DIR / "logs" / "skill_first_enforcement.jsonl"
 SKILL_FIRST_MODES = {"off", "monitor", "soft_block", "hard_block"}
 
+try:
+    from cc_diagnostic_logger import log_hook_invocation as _log_hook_invocation
+except Exception:  # pragma: no cover - observability must fail open
+    _log_hook_invocation = None
+
 
 def _env_bool(name: str, default: bool = False) -> bool:
     value = os.environ.get(name)
@@ -73,6 +78,34 @@ def _log_skill_first_stop_event(event: str, session_id: str, skill_name: str, mo
             return
         except OSError:
             continue
+
+
+def _log_stop_block_event(data: dict, gate_name: str, result: dict) -> None:
+    """Persist a blocking Stop decision into the diagnostics DB."""
+    if _log_hook_invocation is None:
+        return
+
+    try:
+        _log_hook_invocation(
+            hook_name=result.get("blocking_hook") or f"Stop.py:{gate_name}",
+            event_type="Stop",
+            action="block",
+            reason=result.get("reason"),
+            turn_id=data.get("turn_id"),
+            session_id=(
+                data.get("session_id")
+                or data.get("sessionId")
+                or data.get("CLAUDE_SESSION_ID")
+            ),
+            terminal_id=(
+                data.get("terminal_id")
+                or data.get("terminalId")
+                or data.get("CLAUDE_TERMINAL_ID")
+            ),
+        )
+    except Exception:
+        # Observability must never change hook behavior.
+        return
 
 
 def _resolve_anti_sycophancy_log_path() -> Path:
@@ -263,6 +296,67 @@ def _run_behavior_audit(data: dict) -> dict | None:
             ),
             "blocking_hook": "Stop.py:behavior_audit",
         }
+
+
+def _run_cross_validator(data: dict) -> dict | None:
+    """Block document and action fabrication claims without evidence."""
+    try:
+        from StopHook_cross_validator import run as cross_validate
+
+        result = cross_validate(
+            {
+                "assistant_response": data.get("response", ""),
+                "response": data.get("response", ""),
+                "session_id": data.get("session_id") or data.get("sessionId") or "",
+                "terminal_id": data.get("terminal_id") or data.get("terminalId") or "",
+                "tool_events": data.get("tool_events", []),
+                "transcript_path": data.get("transcript_path", ""),
+                "transcript": data.get("transcript", []),
+            }
+        )
+        if result and not result.get("allow", True):
+            return {
+                "decision": "block",
+                "reason": result.get("reason", "Cross validation failed."),
+                "blocking_hook": result.get("blocking_hook", "Stop.py:cross_validator"),
+            }
+        return None
+    except Exception as e:
+        print(f"[Stop] cross_validator error: {e}", file=sys.stderr)
+        return None
+
+
+def _run_cited_content_guard(data: dict) -> dict | None:
+    """Block fabricated file citations that are not supported by Read output."""
+    try:
+        from StopHook_cited_content_guard import run as cited_content_run
+
+        result = cited_content_run(
+            {
+                "assistant_response": data.get("response", ""),
+                "response": data.get("response", ""),
+                "session_id": data.get("session_id") or data.get("sessionId") or "",
+                "terminal_id": data.get("terminal_id") or data.get("terminalId") or "",
+                "tool_events": data.get("tool_events", []),
+                "transcript_path": data.get("transcript_path", ""),
+                "transcript": data.get("transcript", []),
+            }
+        )
+        if not result:
+            return None
+        if result.get("block") is True or result.get("allow") is False:
+            return {
+                "decision": "block",
+                "reason": result.get("reason", "Cited content verification failed."),
+                "blocking_hook": result.get("blocking_hook", "Stop.py:cited_content_guard"),
+            }
+        warning = str(result.get("warning") or result.get("systemMessage") or "").strip()
+        if warning:
+            return {"systemMessage": warning}
+        return None
+    except Exception as e:
+        print(f"[Stop] cited_content_guard error: {e}", file=sys.stderr)
+        return None
 
 
 def _run_dependency_chain_guard(data: dict) -> dict | None:
@@ -544,9 +638,12 @@ def _run_behavior_gates_guidance(data: dict) -> dict | None:
         is_violation, reason = check_gate1_guidance(response_text, tools_used, working_dir)
 
         if is_violation:
-            # ADVISORY gate - log warning but don't block
-            print(f"[Stop] Gate 1 (Guidance): {reason}", file=sys.stderr)
-        return None  # Never block, just advisory
+            return {
+                "decision": "block",
+                "reason": f"GUIDANCE WITHOUT EVIDENCE: {reason}",
+                "blocking_hook": "Stop.py:behavior_gates_guidance",
+            }
+        return None
     except Exception as e:
         print(f"[Stop] behavior_gates_guidance error: {e}", file=sys.stderr)
         return None
@@ -569,9 +666,12 @@ def _run_behavior_gates_blacklist(data: dict) -> dict | None:
         is_violation, reason = check_gate2_tools(response_text, tools_used, working_dir)
 
         if is_violation:
-            # ADVISORY gate - log warning but don't block
-            print(f"[Stop] Gate 2 (Tool Blacklist): {reason}", file=sys.stderr)
-        return None  # Never block, just advisory
+            return {
+                "decision": "block",
+                "reason": f"BLACKLISTED TOOL USE: {reason}",
+                "blocking_hook": "Stop.py:behavior_gates_blacklist",
+            }
+        return None
     except Exception as e:
         print(f"[Stop] behavior_gates_blacklist error: {e}", file=sys.stderr)
         return None
@@ -1305,6 +1405,8 @@ IN_PROCESS_GATES = [
     ("post_skill_prose_gate", _run_post_skill_prose_gate),
     ("verification_enforcement", _run_verification_enforcement),
     ("behavior_audit", _run_behavior_audit),
+    ("cited_content_guard", _run_cited_content_guard),
+    ("cross_validator", _run_cross_validator),
     ("dependency_chain_guard", _run_dependency_chain_guard),
     ("comparative_claim_guard", _run_comparative_claim_guard),
     ("behavior_gates_agreement", _run_behavior_gates_agreement),
@@ -1544,6 +1646,7 @@ def main():
             continue
 
         if res.get("decision") == "block":
+            _log_stop_block_event(data, name, res)
             if "blocking_hook" not in res:
                 res["blocking_hook"] = f"Stop.py:{name}"
             print(json.dumps(res))

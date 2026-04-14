@@ -2,11 +2,9 @@
 
 Verifies that:
 1. Frameworks are emitted for appropriate prompts
-2. Framework-specific tags are used
+2. Visible tag tokens are not surfaced to the LLM
 3. Empty result for non-actionable prompts
 """
-
-import re
 
 from UserPromptSubmit_modules.base import HookContext
 from UserPromptSubmit_modules.cognitive_enhancers import cognitive_enhancers
@@ -26,8 +24,8 @@ class TestCognitiveEnhancersBasic:
 
         # Should emit implementation frameworks
         assert result.context is not None
-        assert "[ASUM]" in result.context  # Assumption Surfacing
-        assert "[ANCH]" in result.context  # Outcome Anchoring
+        assert "[ASUM]" not in result.context
+        assert "[ANCH]" not in result.context
         assert "Assumption Surfacing" in result.context
         assert "Outcome Anchoring" in result.context
 
@@ -42,7 +40,7 @@ class TestCognitiveEnhancersBasic:
 
         # Should emit diagnostic frameworks
         assert result.context is not None
-        assert "[CAL]" in result.context  # Calibrated Confidence
+        assert "[CAL]" not in result.context
         assert "Calibrated Confidence" in result.context
 
     def test_decomposition_prompt_emits_socratic(self):
@@ -64,7 +62,7 @@ class TestCognitiveEnhancersBasic:
 
         # Should emit Socratic Decomposition
         assert result.context is not None
-        assert "[SOC]" in result.context
+        assert "[SOC]" not in result.context
         assert "Socratic Decomposition" in result.context
 
     def test_empty_result_for_simple_prompt(self):
@@ -80,8 +78,8 @@ class TestCognitiveEnhancersBasic:
         assert result.is_empty()
         assert result.context is None
 
-    def test_framework_specific_tags_format(self):
-        """Test that framework-specific tags are emitted correctly."""
+    def test_framework_specific_tags_are_hidden(self):
+        """Test that framework names are surfaced without tag tokens."""
         context = HookContext(
             prompt="Implement feature with proper safety checks",
             data={},
@@ -89,12 +87,13 @@ class TestCognitiveEnhancersBasic:
 
         result = cognitive_enhancers(context)
 
-        # Check tag format - should be [TAG] not [COG]
+        # Check visible output - should not contain tag tokens
         assert result.context is not None
-        # Should NOT contain [COG] anymore
         assert "[COG]" not in result.context
-        # Should contain framework-specific tags
-        assert "[ASUM]" in result.context or "[ANCH]" in result.context or "[INV]" in result.context
+        assert "[ASUM]" not in result.context
+        assert "[ANCH]" not in result.context
+        assert "[INV]" not in result.context
+        assert "Assumption Surfacing" in result.context or "Outcome Anchoring" in result.context or "Inversion Prompting" in result.context
 
     def test_multiple_framework_tags_emitted(self):
         """Test that multiple frameworks emit multiple tags."""
@@ -105,10 +104,20 @@ class TestCognitiveEnhancersBasic:
 
         result = cognitive_enhancers(context)
 
-        # Should have multiple framework tags
+        # Should have multiple framework names
         assert result.context is not None
-        # Count framework-specific tags
-
         text = str(result.context) if result.context else ""
-        tags = re.findall(r"\[(ASUM|ANCH|INV|FENC|CAL|DISC|SOC|CYNE|RAZR|DADV)\]", text)
-        assert len(tags) >= 2, f"Expected at least 2 framework tags, got {tags}"
+        names = [
+            "Assumption Surfacing",
+            "Outcome Anchoring",
+            "Inversion Prompting",
+            "Chesterton's Fence",
+            "Calibrated Confidence",
+            "Named Artifact Discovery",
+            "Socratic Decomposition",
+            "Cynefin Classification",
+            "Hanlon's Razor",
+            "Devil's Advocate",
+        ]
+        matched = [name for name in names if name in text]
+        assert len(matched) >= 2, f"Expected at least 2 framework names, got {matched}"

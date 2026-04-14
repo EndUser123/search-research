@@ -146,7 +146,6 @@ The most common mistake is uploading only documentation files (README, CHANGELOG
 - ❌ Generic templates: `CONTRIBUTING.md`, `SECURITY.md`, `LICENSE`, `CHANGELOG.md`
 - ❌ State/diagnostics: `*-tree.txt`, `.claude/state/`, `*.pid`
 - ❌ Generated media: `assets/videos/*.mp4`, `assets/infographics/*.png`, `assets/slides/*`
-- ❌ CI/CD config: `.github/workflows/`
 
 ---
 
@@ -163,9 +162,7 @@ The most common mistake is uploading only documentation files (README, CHANGELOG
 - `build/`, `dist/`, `*.egg-info/` - Build artifacts
 - `venv/`, `.venv/` - Virtual environments
 
-**CI/CD & infrastructure:**
-- `.github/workflows/` - CI/CD configuration (not package logic)
-- **Lock files (machine-generated dependency pinning):**
+**Lock files (machine-generated dependency pinning):**
   - `package-lock.json` - npm/yarn lock files
   - `poetry.lock` - Poetry lock files
   - `requirements.lock`, `Pipfile.lock` - pip lock files
@@ -263,7 +260,6 @@ echo "✓ Video brief uploaded"
 # - Generic templates: CONTRIBUTING.md, SECURITY.md, LICENSE
 # - State/diagnostics: *-tree.txt
 # - Generated media: assets/videos/, assets/infographics/, assets/slides/
-# - CI/CD config: .github/workflows/
 
 echo "Uploading source files..."
 find . -type f \( -name "*.py" -o -name "*.json" -o -name "SKILL.md" -o -name "README.md" \) \
@@ -281,7 +277,6 @@ find . -type f \( -name "*.py" -o -name "*.json" -o -name "SKILL.md" -o -name "R
   ! -path "./assets/videos/*" \
   ! -path "./assets/infographics/*" \
   ! -path "./assets/slides/*" \
-  ! -path "./.github/workflows/*" \
   ! -name "package-lock.json" \
   ! -name "poetry.lock" \
   ! -name "requirements.lock" \
@@ -579,7 +574,7 @@ ghi789  Package Documentation
 ```
 CONTEXT (10-15s): Name the package and its purpose in one sentence.
 WORKFLOW (25-40s): Show how it detects type, generates structure, and validates outputs.
-ARTIFACTS (20-30s): Call out the key outputs: docs, CI/CD, flowchart, video, slides.
+ARTIFACTS (20-30s): Call out the key outputs: docs, flowchart, video, slides.
 SUMMARY (10-15s): Close with the practical result for a developer using the package.
 ```
 
@@ -705,10 +700,8 @@ graph TB
     Library --> Polish
     Polish --> Docs[Documentation]
     Polish --> Media[Media Assets]
-    Polish --> CI[CI/CD]
     Docs --> Output[GitHub-Ready Package]
     Media --> Output
-    CI --> Output
 ```
 ```
 

@@ -1,5 +1,7 @@
 # T-003: 3D Compatibility Checking Implementation Report
 
+> Note: tag strings in this report are historical telemetry examples. Prompt-facing output now stays tag-free.
+
 **Implementation Date:** 2026-03-15
 **Status:** ✅ Complete
 **File:** `P:\.claude\hooks\UserPromptSubmit_modules\unified_detection.py`
@@ -341,7 +343,7 @@ The implementation exceeds performance requirements by 2-3 orders of magnitude, 
 
 ### Immediate (T-004)
 - Update consumers to use `compatible_combinations` field
-- Add integration tests for tag emission with 3D combinations
+- Add integration tests for telemetry with 3D combinations
 
 ### Future Enhancements
 - Expand `_COMPATIBILITY_MATRIX` with more combinations as patterns emerge

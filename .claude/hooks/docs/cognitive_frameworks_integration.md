@@ -144,7 +144,7 @@ description: ⚠️ DEPRECATED - All frameworks now automatic via cognitive_enha
 
 ## Related Documentation
 
-- `working_principles.md` - Section 7: Reasoning Tag Emission
+- `working_principles.md` - Section 7: Reasoning Telemetry
 - `cognitive_enhancers.py` - Main hook implementation
 - `test_cognitive_frameworks_integration.py` - Test suite
 

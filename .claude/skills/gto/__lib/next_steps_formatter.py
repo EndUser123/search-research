@@ -528,7 +528,7 @@ def _detect_batch_groups(gaps: list[dict]) -> list[dict]:
         results.append(
             {
                 "id": f"BATCH-LOC-{file_path.replace('|', '_')}|{line_number or 'NOLINE'}",
-                "severity": aggregate_severity,
+                "severity": aggregate_severity.upper(),
                 "message": message,
                 "file_ref": file_ref,
                 "action_type": "Manual",
@@ -598,7 +598,7 @@ def _detect_batch_groups(gaps: list[dict]) -> list[dict]:
         results.append(
             {
                 "id": f"BATCH-IGNORE-{_sanitize_id_segment(reason)}",
-                "severity": aggregate_severity,
+                "severity": aggregate_severity.upper(),
                 "message": f"Multiple # type: ignore entries: {reason} ({len(indices)} gaps — install missing dependency to fix all)",
                 "file_ref": None,
                 "action_type": "Manual",
@@ -631,7 +631,7 @@ def _detect_batch_groups(gaps: list[dict]) -> list[dict]:
         results.append(
             {
                 "id": gap.get("id", gap.get("gap_id", "unknown")),
-                "severity": (gap.get("severity") or "low").lower(),
+                "severity": (gap.get("severity") or "low").upper(),
                 "message": gap.get("message", ""),
                 "file_ref": file_ref,
                 "action_type": "Manual",
@@ -847,6 +847,7 @@ def _format_gto_rsn_markdown(findings: list[dict], show_effort: bool = True) -> 
 def format_rsn_from_gaps(
     gaps: list[dict],
     show_effort: bool = False,
+    intent_summary: str = "",
 ) -> str:
     """
     Format GTO gaps as GTO-native RNS markdown.

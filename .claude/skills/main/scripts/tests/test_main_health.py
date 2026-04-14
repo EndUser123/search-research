@@ -11,11 +11,16 @@ import sys
 from pathlib import Path
 
 import pytest
+import threading
 
 # Ensure main_health module is importable
 sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path("P:/.claude/hooks")))
 
+import main_health as main_health_module  # noqa: E402
 from main_health import _match_suggestions, _SUGGESTION_MAP  # noqa: E402
+from main_health import run_hook_stats_check  # noqa: E402
+import cc_diagnostic_logger  # noqa: E402
 
 
 # ---------------------------------------------------------------------
@@ -223,3 +228,44 @@ def test_match_suggestions_no_false_positive_case_mismatch():
     # Check name must match exactly; pattern is case-insensitive
     result = _match_suggestions("hooks", "", "SYNTAX ERROR DETECTED")
     assert "/hook-audit" in result, "syntax pattern should be case-insensitive"
+
+
+def test_run_hook_stats_check_reports_db_summary(tmp_path, monkeypatch):
+    """Hook stats reminder should summarize the diagnostics DB when present."""
+    diag_root = tmp_path / ".claude"
+    db_path = diag_root / "hooks" / "logs" / "diagnostics" / "diagnostics.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+
+    monkeypatch.setattr(cc_diagnostic_logger, "DB_PATH", db_path)
+    monkeypatch.setattr(cc_diagnostic_logger, "_local", threading.local())
+    monkeypatch.setattr(cc_diagnostic_logger, "DIAGNOSTICS_ENABLED", True)
+    monkeypatch.setattr(main_health_module, "CLAUDE_DIR", diag_root)
+
+    cc_diagnostic_logger._init_schema()
+    cc_diagnostic_logger.log_hook_invocation(
+        hook_name="behavior_contract",
+        event_type="UserPromptSubmit",
+        action="inject",
+        injection_content="If the question is concrete, answer directly.",
+        reason="behavior_contract_injection",
+        turn_id="turn-123",
+        session_id="session-123",
+        terminal_id="terminal-123",
+    )
+    cc_diagnostic_logger.log_hook_invocation(
+        hook_name="Stop.py:behavior_audit",
+        event_type="Stop",
+        action="block",
+        reason="UNVERIFIED CLAIMS",
+        turn_id="turn-123",
+        session_id="session-123",
+        terminal_id="terminal-123",
+    )
+
+    result = run_hook_stats_check()
+
+    assert result.name == "hook_stats"
+    assert result.status == "healthy"
+    assert "Hook stats:" in result.message
+    assert "2 events" in result.message
+    assert "/hook-audit stats" in result.message

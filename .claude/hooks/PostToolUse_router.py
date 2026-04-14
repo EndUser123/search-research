@@ -43,7 +43,7 @@ except ImportError:
     from hook_base import hook_main  # type: ignore
 
 # Import the consolidated hook package
-from posttooluse import create_registry
+from posttooluse import create_registry, is_block_result
 
 # Import tool sequence tracking and terminal detection
 try:
@@ -625,6 +625,8 @@ def main() -> None:
 
     registry = create_registry()
     result = registry.run_all(data)
+    if is_block_result(result):
+        any_blocked = True
 
     # Track router execution for logging
     total_latency = (time.perf_counter() - router_start) * 1000
@@ -648,6 +650,10 @@ def main() -> None:
             pass  # Fail silently if logging fails
 
     # Output combined results
+    if is_block_result(result):
+        print(json.dumps(result))
+        sys.exit(2)
+
     if result:
         print(json.dumps(result))
     else:

@@ -156,9 +156,10 @@ class Gap:
         - "Foo" and "FOO" (case) → same signature
         """
         file_part = self.file_path or ""
+        line_part = str(self.line_number) if self.line_number else ""
         # Normalize all whitespace to single space, then lowercase
         message_part = re.sub(r"\s+", " ", self.message).lower().strip()
-        sig_content = f"{self.type}:{file_part}:{message_part}"
+        sig_content = f"{self.type}:{file_part}:{line_part}:{message_part}"
         return hashlib.md5(sig_content.encode()).hexdigest()
 
 

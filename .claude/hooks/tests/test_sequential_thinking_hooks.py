@@ -630,24 +630,28 @@ class TestFullPipeline:
             assert final_state is None
 
     def test_seq_tag_appears_in_output(self, tmp_path):
-        """E2E test: [SEQ] tag must appear in both trigger context and stop reason."""
+        """E2E test: sequential reasoning guidance should not expose tag tokens."""
         terminal_id = "seq_tag_test"
 
         with patch.object(ss, "STATE_DIR", tmp_path), patch.object(sh, "STATE_DIR", tmp_path):
-            # Phase 1: trigger detection - verify [SEQ] in context
+            # Phase 1: trigger detection - verify guidance is present without tags
             trigger_result = _run_hook("analyze the codebase architecture", terminal_id)
             assert trigger_result.context, "Trigger must inject context"
-            assert "[SEQ]" in _context_text(trigger_result), "[SEQ] tag must appear in trigger context"
+            trigger_text = _context_text(trigger_result)
+            assert "[SEQ]" not in trigger_text
+            assert "Sequential thinking" in trigger_text
 
-            # Phase 2: stop hook - verify [SEQ] in continuation reason
+            # Phase 2: stop hook - verify continuation reason without tags
             stop1 = sh.stop({"terminal_id": terminal_id, "response_output": "Initial analysis."})
             assert stop1.get("allow") is False, "First stop must block to force continuation"
-            assert "[SEQ]" in stop1["reason"], "[SEQ] tag must appear in stop reason"
+            assert "[SEQ]" not in stop1["reason"]
+            assert "Sequential Thinking" in stop1["reason"]
 
-            # Phase 3: second stop should also have [SEQ] tag
+            # Phase 3: second stop should also avoid tag tokens
             stop2 = sh.stop({"terminal_id": terminal_id, "response_output": "Critique."})
             assert stop2.get("allow") is False
-            assert "[SEQ]" in stop2["reason"], "[SEQ] tag must appear in second stop reason"
+            assert "[SEQ]" not in stop2["reason"]
+            assert "Sequential Thinking" in stop2["reason"]
 
             # Cleanup: complete the session
             sh.stop({"terminal_id": terminal_id, "response_output": "Improved."})

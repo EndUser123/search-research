@@ -63,6 +63,48 @@ repos:
 
 ---
 
+## Deduplication Lifecycle
+
+NotebookLM has no native replace API. Sources are deduplicated by title:
+
+1. **List** existing sources via `nlm source list`
+2. **Detect** if source title already exists → capture its `source_id`
+3. **Delete** old source via `nlm source delete <source_id>`
+4. **Poll** until source_id disappears from list (up to 10 attempts × 1s interval)
+5. **Upload** new source with same title
+
+If poll confirmation fails after max attempts, the upload is skipped with a warning.
+
+---
+
+## Web Sources
+
+The pipeline also ingests web sources listed in the config under `sources.web`:
+
+```yaml
+notebooklm_id: "your-notebook-id-from-url"
+repos:
+  - url: "https://github.com/owner/repo"
+sources:
+  web:
+    - url: "https://example.com/docs"
+      label: "Example Docs"   # used as title in NotebookLM
+```
+
+Web sources are deduped by URL (checked against existing sources by label), using the same delete → poll → re-add lifecycle. The `nlm source add` command uses `--web <url>` instead of `--file <path>`.
+
+---
+
+## Error Handling
+
+- **Clone failure**: repo skipped, error logged to status.json
+- **Upload failure**: source skipped, pipeline continues to next source
+- **Delete failure**: warning printed, upload still attempted
+- **Poll timeout**: warning printed, upload skipped (prevents race condition where upload fails because old source still exists)
+- **API error on list**: pipeline proceeds without deduplication (safe to re-add, may create duplicate — user can clean up manually)
+
+---
+
 ## Output
 
 ```

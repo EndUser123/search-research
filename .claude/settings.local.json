@@ -97,7 +97,15 @@
       "Bash(ln -s \"/p/packages/skill-guard/src/skill_guard/PreToolUse/PreToolUse_skill_pattern_gate.py\" \"P:/.claude/hooks/PreToolUse/PreToolUse_skill_pattern_gate.py\")",
       "Bash(ln -s \"/p/packages/skill-guard/src/skill_guard/posttooluse/skill_execution_tracker.py\" \"P:/.claude/hooks/posttooluse/skill_execution_tracker.py\")",
       "Bash(rm -f P:/.claude/hooks/PreToolUse/PreToolUse_skill_pattern_gate.py)",
-      "Bash(ln -s /p/packages/skill-guard/src/skill_guard/PreToolUse/PreToolUse_skill_pattern_gate.py P:/.claude/hooks/PreToolUse/PreToolUse_skill_pattern_gate.py)"
+      "Bash(ln -s /p/packages/skill-guard/src/skill_guard/PreToolUse/PreToolUse_skill_pattern_gate.py P:/.claude/hooks/PreToolUse/PreToolUse_skill_pattern_gate.py)",
+      "mcp__plugin_episodic-memory_episodic-memory__search",
+      "Bash(rm -rf \"P:/.claude/skills/yt-dlp\")",
+      "Bash(ln -s \"P:/packages/yt-is/skills/yt-dlp\" \"P:/.claude/skills/yt-dlp\")",
+      "mcp__zai-mcp-server__analyze_image",
+      "mcp__plugin_serena_serena__read_file",
+      "mcp__plugin_serena_serena__find_symbol",
+      "mcp__plugin_serena_serena__search_for_pattern",
+      "mcp__brave__brave_web_search"
     ],
     "deny": [],
     "ask": []

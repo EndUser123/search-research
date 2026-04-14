@@ -41,7 +41,7 @@ class TestGapFinding:
         )
         result = finding.to_dict()
         assert isinstance(result, dict)
-        assert result["gap_type"] == "test_gap"
+        assert result["type"] == "test_gap"
         assert result["line_number"] == 42
         assert "id" in result
 

@@ -5,6 +5,8 @@
 **Status**: READY
 **Task**: T-012
 
+> Note: tag strings in this guide are historical telemetry examples. Prompt-facing output now stays tag-free.
+
 ---
 
 ## Table of Contents
@@ -85,7 +87,7 @@ _SYNERGY_COMBINATIONS: set[tuple[str, str]] = {
 - **No integration** with questioning patterns
 - **Manual enforcement** via conflict_arbiter.py
 
-### Current Tag Emission
+### Current Telemetry Output
 
 ```python
 # Example current output
@@ -392,7 +394,7 @@ result = UnifiedDetectionResult(
 )
 ```
 
-### Phase 3: Enhanced Tag Emission (TASK-015)
+### Phase 3: Enhanced Telemetry (TASK-015)
 
 **File**: `P:\.claude\hooks\UserPromptSubmit_modules\tag_emission.py`
 
@@ -571,7 +573,7 @@ _COMPATIBILITY_METADATA[("new_framework", "new_mode")] = (
 - **3D System**: 8 (framework, mode, [questioning_patterns]) entries
 - **Additional Memory**: ~2KB - **Negligible**
 
-**Tag Emission**:
+**Telemetry**:
 - **2D System**: ~200 characters average tag header
 - **3D System**: ~280 characters average tag header (with 3D-COMPAT tag)
 - **Additional Tokens**: ~20 tokens - **Within budget**
@@ -843,7 +845,7 @@ class Test3DIntegration:
                 assert "debugging_cognition" in compat.questioning_patterns
 
     def test_tag_emission_includes_3d(self):
-        """Test that tag emission includes 3D compatibility information."""
+"""Test that telemetry includes 3D compatibility information."""
         from tag_emission import build_tag_header
         from unified_detection import detect_prompt
 
@@ -996,7 +998,7 @@ def lookup_3d_compatibility(
 
 **Diagnosis**:
 ```bash
-# Test tag emission with 3D compatibility
+# Test telemetry with 3D compatibility
 python -c "
 from tag_emission import build_tag_header
 from compatibility_matrix import Compatibility3D
@@ -1025,9 +1027,9 @@ print(tag)
 ```
 
 **Possible Causes**:
-1. **Tag emission not updated**: `build_tag_header()` missing `compatibility_3d` parameter
+1. **Telemetry not updated**: `build_tag_header()` missing `compatibility_3d` parameter
 2. **Empty compatibility list**: `compatibility_3d` is empty list
-3. **Tag format changed**: Tag emission logic not handling 3D-COMPAT tag
+3. **Tag format changed**: Telemetry logic not handling 3D-COMPAT tag
 
 **Solution**:
 ```bash
@@ -1224,12 +1226,12 @@ except Exception:
 - [ ] Verify all tests pass
 - [ ] Measure detection latency overhead (target: <10ms)
 
-### Phase 3: Enhanced Tag Emission (TASK-015)
+### Phase 3: Enhanced Telemetry (TASK-015)
 
 - [ ] Update `build_tag_header()` to accept `compatibility_3d` parameter
 - [ ] Implement `[3D-COMPAT]` tag formatting
-- [ ] Update tag emission in all hooks (`cognitive_enhancers.py`, `think_trigger.py`)
-- [ ] Write tag emission tests
+- [ ] Update telemetry in all hooks (`cognitive_enhancers.py`, `think_trigger.py`)
+- [ ] Write telemetry tests
 - [ ] Verify tag format is correct and readable
 
 ### Phase 4: Conflict Arbiter (TASK-016)
@@ -1272,7 +1274,7 @@ Migration is complete when:
 - **Unified Detection System**: `docs/cognitive_optimization_migration.md`
 - **Questioning Patterns**: `C:\Users\brsth\.claude\projects\P--\memory\questioning_patterns.md`
 - **Conflict Arbitration**: `UserPromptSubmit_modules/conflict_arbiter.py`
-- **Tag Emission**: `UserPromptSubmit_modules/tag_emission.py`
+- **Telemetry**: `UserPromptSubmit_modules/tag_emission.py`
 
 ### Test Files
 

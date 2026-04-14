@@ -6,6 +6,10 @@ This module contains the core deterministic components for GTO analysis.
 from __future__ import annotations
 
 __all__ = [
+    "AdjacentFileScanner",
+    "AdjacentScanResult",
+    "TouchedFile",
+    "scan_adjacent_files",
     "ViabilityGate",
     "check_viability",
     "GitContext",
@@ -112,12 +116,26 @@ from .chain_integrity_checker import (
     ChainIntegrityResult,
     check_chain_integrity,
 )
-from .code_marker_scanner import (
-    CodeMarker,
-    CodeMarkerResult,
-    CodeMarkerScanner,
-    scan_code_markers,
+from .adjacent_file_scanner import (
+    AdjacentFileScanner,
+    AdjacentScanResult,
+    TouchedFile,
+    scan_adjacent_files,
 )
+try:
+    from .code_marker_scanner import (
+        CodeMarker,
+        CodeMarkerResult,
+        CodeMarkerScanner,
+        scan_code_markers,
+    )
+except ImportError:
+    # scanners.base not available (e.g. _shared package missing)
+    # Gracefully degrade so other detectors remain importable
+    CodeMarker = None  # type: ignore[assignment]
+    CodeMarkerResult = None  # type: ignore[assignment]
+    CodeMarkerScanner = None  # type: ignore[assignment]
+    scan_code_markers = None  # type: ignore[assignment]
 from .dependency_checker import (
     DependencyChecker,
     DependencyIssue,

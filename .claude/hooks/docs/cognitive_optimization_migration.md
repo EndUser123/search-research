@@ -4,6 +4,8 @@
 **Version**: 1.0
 **Status**: READY-FOR-IMPLEMENTATION
 
+> Note: tag strings in this guide are historical telemetry examples. Prompt-facing output now stays tag-free.
+
 ---
 
 ## Table of Contents
@@ -30,17 +32,17 @@ The hook system had **three independent detection systems** that analyzed the sa
 1. **Cognitive Frameworks** (`cognitive_enhancers.py`)
    - 9 frameworks with regex-based intent detection
    - ~50ms latency per UserPromptSubmit event
-   - Emitted `[COG]` tags
+   - Recorded cognitive telemetry for framework selection
 
 2. **Reasoning Mode Selector** (`reasoning_mode_selector.py`)
    - 4 modes via external `packages/reasoning/` integration
    - ~30ms latency per UserPromptSubmit event
-   - Emitted `[SEQ]`, `[MAS]`, `[2ST]` tags
+   - Recorded reasoning-mode telemetry for selection
 
 3. **Think Trigger** (`think_trigger.py`)
    - 7 profiles with strong/weak pattern matching
    - ~40ms latency per UserPromptSubmit event
-   - No tag emission
+   - No telemetry emission
 
 **Total Overhead**: ~120ms per event with **~30% duplicate work** (same prompt analyzed 3×)
 
@@ -57,7 +59,7 @@ The hook system had **three independent detection systems** that analyzed the sa
 **Key Improvements**:
 - ✅ **50% performance improvement** (120ms → 60ms)
 - ✅ **Zero duplicate pattern matching** (single-pass detection)
-- ✅ **Unified tag emission** ([COG], [SEQ/MAS/2ST], [THINK], [SYNERGY], [PERF], [QUESTIONING])
+- ✅ **Unified telemetry** for active frameworks/modes ([COG], [SEQ/MAS/2ST], [THINK], [SYNERGY], [PERF], [QUESTIONING] in logs and docs only)
 - ✅ **Synergy detection** between frameworks and modes
 - ✅ **Questioning patterns** integrated from memory
 - ✅ **Performance monitoring** built-in
@@ -324,12 +326,12 @@ if __name__ == "__main__":
 
 ---
 
-#### TASK-003: Unified Tag Emission Standard
+#### TASK-003: Unified Telemetry Standard
 
 **New File**: `UserPromptSubmit_modules/tag_emission.py`
 
 ```python
-"""Unified tag emission standard for cognitive & reasoning systems.
+"""Unified telemetry standard for cognitive & reasoning systems.
 
 Tag formats:
 - [COG] - Cognitive frameworks (9 frameworks)
@@ -702,7 +704,7 @@ def run_hooks(data: dict, prompt: str) -> dict:
    - **Migration Script**: `scripts/migrate_cognitive_config.py`
 
 3. **Think Trigger Now Emits Tags**
-   - **Before**: No tag emission (silent operation)
+   - **Before**: No telemetry emission (silent operation)
    - **After**: Emits `[THINK]` tag with profile names
    - **Impact**: Tag parsing code must handle new `[THINK]` format
 
@@ -729,9 +731,9 @@ def run_hooks(data: dict, prompt: str) -> dict:
 
 ## New Tag Formats
 
-### Tag Emission Standard
+### Telemetry Standard
 
-All tags now follow unified format: `[TAG_NAME] payload`
+All telemetry entries now follow a unified format: `[TAG_NAME] payload`
 
 | Tag | Source | Payload | Example |
 |-----|--------|---------|---------|
@@ -1006,7 +1008,7 @@ print(f"Rules fired: {arbiter_result.rules_fired}")
 | **Duplicate Work** | ~30% (3× analysis) | 0% (single pass) | **Eliminated** |
 | **Pattern Compilation** | 3× at runtime | 1× at module load | **67% reduction** |
 | **Memory Overhead** | 3 separate caches | 1 shared cache | **66% reduction** |
-| **Tag Emission** | Inconsistent formats | Unified standard | **100% coverage** |
+| **Telemetry** | Inconsistent formats | Unified standard | **100% coverage** |
 
 ### Performance Monitoring
 
@@ -1138,13 +1140,13 @@ grep -n "unified_detection_result" UserPromptSubmit_router.py
 
 ---
 
-### Issue 4: Tag Format Inconsistency
+### Issue 4: Telemetry Format Inconsistency
 
 **Symptom**: Tags not parsing, unexpected format
 
 **Diagnosis**:
 ```bash
-# Test tag emission
+# Test telemetry output
 python -c "
 from UserPromptSubmit_modules.tag_emission import build_tag_header
 tag = build_tag_header(
@@ -1162,7 +1164,7 @@ print(tag)
 ```
 
 **Possible Causes**:
-1. **Tag emission not updated**: Old format still in use
+1. **Telemetry not updated**: Old format still in use
 2. **Whitespace errors**: Extra spaces in tag format
 3. **Missing tags**: `[THINK]` not emitted (TASK-010 not complete)
 

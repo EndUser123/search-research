@@ -137,6 +137,7 @@ def _init_schema() -> None:
             timestamp TEXT NOT NULL,
             session_id TEXT NOT NULL,
             terminal_id TEXT NOT NULL,
+            turn_id TEXT,
             event TEXT NOT NULL,
             hook_name TEXT NOT NULL,
             event_type TEXT NOT NULL,
@@ -228,9 +229,19 @@ def _init_schema() -> None:
         )
     """)
 
-    # Create indexes for common queries
+    try:
+        conn.execute("ALTER TABLE hooks ADD COLUMN turn_id TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    # Create indexes for common queries after the migration has had a chance to
+    # add the new column on older databases.
     conn.execute("CREATE INDEX IF NOT EXISTS idx_context_session ON context(session_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_hooks_session ON hooks(session_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_hooks_turn ON hooks(turn_id)")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_hooks_session_turn ON hooks(session_id, turn_id)"
+    )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_tools_session ON tools(session_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_assumptions_session ON assumptions(session_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_errors_session ON errors(session_id)")
@@ -417,8 +428,20 @@ def log_entry(log_type: str, data: dict) -> None:
         return
 
     # Get terminal_id for multi-terminal traceability
-    terminal_id = detect_terminal_id() if TERMINAL_DETECTION_AVAILABLE else "unknown"
-    session_id = _get_session_id()
+    terminal_id = (
+        str(
+            data.get("terminal_id")
+            or data.get("terminalId")
+            or data.get("CLAUDE_TERMINAL_ID")
+            or (detect_terminal_id() if TERMINAL_DETECTION_AVAILABLE else "unknown")
+        )
+    )
+    session_id = str(
+        data.get("session_id")
+        or data.get("sessionId")
+        or data.get("CLAUDE_SESSION_ID")
+        or _get_session_id()
+    )
     timestamp = datetime.now(UTC).isoformat()
 
     try:
@@ -448,12 +471,12 @@ def log_entry(log_type: str, data: dict) -> None:
         elif log_type == "hooks":
             cursor.execute("""
                 INSERT INTO hooks (
-                    timestamp, session_id, terminal_id, event, hook_name, event_type,
+                    timestamp, session_id, terminal_id, turn_id, event, hook_name, event_type,
                     action, injection_preview, injection_length, reason, duration_ms,
                     execution_time_ms, timeout_ms, output_size_bytes
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                timestamp, session_id, terminal_id,
+                timestamp, session_id, terminal_id, data.get("turn_id"),
                 _required_text(data.get("event"), "hook_event"),
                 _required_text(data.get("hook_name"), "unknown_hook"),
                 _required_text(data.get("event_type"), "unknown_event_type"),
@@ -568,11 +591,17 @@ def log_hook_invocation(
     execution_time_ms: float | None = None,
     timeout_ms: int | None = None,
     output_size_bytes: int | None = None,
+    turn_id: str | None = None,
+    session_id: str | None = None,
+    terminal_id: str | None = None,
 ) -> None:
     """Log when a hook fires and what it does."""
     log_entry(
         "hooks",
         {
+            "session_id": session_id,
+            "terminal_id": terminal_id,
+            "turn_id": turn_id,
             "event": "hook_invoked",
             "hook_name": hook_name,
             "event_type": event_type,
@@ -822,6 +851,57 @@ def get_recent_logs(log_type: str, n: int = 20) -> list[dict]:
         return results
     except Exception as e:
         print(f"[DIAG] Failed to get recent logs: {e}", file=sys.stderr)
+        return []
+
+
+def query_hook_invocations(
+    days: int = 7,
+    turn_id: str | None = None,
+    session_id: str | None = None,
+    terminal_id: str | None = None,
+    actions: list[str] | None = None,
+    limit: int = 50,
+) -> list[dict]:
+    """Query hook invocation rows from the diagnostics database."""
+    if not DIAGNOSTICS_ENABLED:
+        return []
+
+    cutoff = datetime.now(UTC) - timedelta(days=days)
+    clauses = ["timestamp >= ?"]
+    params: list[Any] = [cutoff.isoformat()]
+
+    if turn_id:
+        clauses.append("turn_id = ?")
+        params.append(turn_id)
+    if session_id:
+        clauses.append("session_id = ?")
+        params.append(session_id)
+    if terminal_id:
+        clauses.append("terminal_id = ?")
+        params.append(terminal_id)
+    if actions:
+        placeholders = ",".join("?" for _ in actions)
+        clauses.append(f"action IN ({placeholders})")
+        params.extend(actions)
+
+    params.append(limit)
+    query = f"""
+        SELECT *
+        FROM hooks
+        WHERE {" AND ".join(clauses)}
+        ORDER BY timestamp DESC
+        LIMIT ?
+    """
+
+    try:
+        conn = _get_connection()
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+        return [dict(zip(columns, row)) for row in rows]
+    except Exception as e:
+        print(f"[DIAG] Failed to query hook invocations: {e}", file=sys.stderr)
         return []
 
 

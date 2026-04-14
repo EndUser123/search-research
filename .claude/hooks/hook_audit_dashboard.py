@@ -3,7 +3,7 @@
 Hook Audit Dashboard - Unified hook behavioral compliance report.
 
 Usage:
-    python hook_audit_dashboard.py [subcommand] [--days N] [--terminal] [--all]
+    python hook_audit_dashboard.py [subcommand] [--days N] [--terminal] [--all] [--turn TURN_ID]
 
 Subcommands:
     (none)      Full dashboard (all metrics)
@@ -14,6 +14,7 @@ Subcommands:
     reasoning   Reasoning profile and THINK auto-routing metrics
     principles  Principle-based behavior monitoring (context_reuse, etc.)
     frameguard  FrameGuard systemic frame compliance (from DB)
+    stats       Diagnostics DB hook stats and turn-scoped lookup
     health      Hook system health
     escalation  Escalation recommendations
     replay      Enforcement replay quality metrics
@@ -21,6 +22,7 @@ Subcommands:
 Terminal Filtering (v2.1):
     --terminal  Filter to current terminal only
     --all       Show per-terminal breakdown
+    --turn      Filter stats to a specific turn ID
 """
 
 import argparse
@@ -28,10 +30,13 @@ import json
 import subprocess
 import sys
 from datetime import datetime, timedelta
+from collections import Counter
 from pathlib import Path
 
 HOOKS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(HOOKS_DIR))
+
+from cc_diagnostic_logger import query_hook_invocations
 
 
 def get_current_terminal_id() -> str:
@@ -78,6 +83,11 @@ def dashboard(days: int, terminal_filter: str = None, show_all: bool = False):
         filter_label = " (per-terminal)"
     print(f"Period: Last {days} days{filter_label}")
     print("=" * 60)
+
+    print("\n" + "-" * 60)
+    print("HOOK DB STATS")
+    print("-" * 60)
+    stats(days, terminal_filter, show_all, show_header=False)
 
     print("\n" + "-" * 60)
     print("ERROR ATTRIBUTION")
@@ -133,6 +143,82 @@ def dashboard(days: int, terminal_filter: str = None, show_all: bool = False):
 def blocks(days: int, terminal_filter: str = None, show_all: bool = False):
     """Hook blocking events analysis."""
     run_script("analyze_blocks.py")
+
+
+def stats(
+    days: int,
+    terminal_filter: str = None,
+    show_all: bool = False,
+    turn_id: str | None = None,
+    limit: int = 20,
+    show_header: bool = True,
+):
+    """SQLite hook invocation stats and turn-scoped query helper."""
+    if show_header:
+        print("Hook Database Stats")
+        print("-" * 40)
+
+    db_path = HOOKS_DIR / "logs" / "diagnostics" / "diagnostics.db"
+    filter_label = ""
+    if turn_id:
+        filter_label = f"turn: {turn_id}"
+    elif terminal_filter:
+        filter_label = f"terminal: {terminal_filter[:20]}..."
+    elif show_all:
+        filter_label = "per-terminal"
+
+    print(f"  Database: {db_path}")
+    if filter_label:
+        print(f"  Scope: {filter_label}")
+
+    rows = query_hook_invocations(
+        days=days,
+        turn_id=turn_id,
+        terminal_id=terminal_filter,
+        limit=max(limit, 1),
+    )
+
+    if not rows:
+        print(f"  No hook invocations found in the last {days} days.")
+        print("  Reminder: run /hook-audit stats --turn <turn-id> for a turn-scoped lookup.")
+        return
+
+    total = len(rows)
+    injects = sum(1 for row in rows if row.get("action") == "inject")
+    blocks = sum(1 for row in rows if row.get("action") == "block")
+    warns = sum(1 for row in rows if row.get("action") == "warn")
+    passes = sum(1 for row in rows if row.get("action") == "pass")
+    unique_turns = len({row.get("turn_id") for row in rows if row.get("turn_id")})
+    hook_counts = Counter(row.get("hook_name", "unknown") for row in rows)
+    terminal_counts = Counter(row.get("terminal_id", "unknown") for row in rows)
+
+    print(f"  Events: {total}")
+    print(f"  Injects: {injects} | Blocks: {blocks} | Warns: {warns} | Passes: {passes}")
+    print(f"  Distinct turns: {unique_turns}")
+
+    print("\n  Top Hooks:")
+    for hook_name, count in hook_counts.most_common(5):
+        print(f"    {hook_name}: {count}")
+
+    if show_all and not turn_id:
+        print("\n  By Terminal:")
+        for terminal, count in terminal_counts.most_common(5):
+            label = terminal if terminal and terminal != "unknown" else "unknown"
+            print(f"    {label}: {count}")
+
+    print("\n  Recent Events:")
+    for index, row in enumerate(rows[: min(limit, 10)], 1):
+        timestamp = str(row.get("timestamp", ""))[:19]
+        hook_name = row.get("hook_name", "unknown")
+        action = row.get("action", "unknown")
+        reason = row.get("reason", "") or ""
+        scoped_turn = row.get("turn_id") or "no-turn"
+        print(f"    {index}. [{timestamp}] {hook_name} {action} ({scoped_turn})")
+        if reason:
+            print(f"       {reason[:120]}")
+
+    print("\n  Query Tip:")
+    print("    /hook-audit stats --turn <turn-id>")
 
 
 def assumptions(days: int, terminal_filter: str = None, show_all: bool = False):
@@ -821,6 +907,7 @@ def main():
             "reasoning",
             "principles",
             "frameguard",
+            "stats",
             "friction",
             "health",
             "escalation",
@@ -833,6 +920,8 @@ def main():
     parser.add_argument(
         "--all", dest="show_all", action="store_true", help="Show per-terminal breakdown"
     )
+    parser.add_argument("--turn", help="Filter to a specific turn ID")
+    parser.add_argument("--limit", type=int, default=20, help="Limit recent stat rows (default: 20)")
 
     args = parser.parse_args()
 
@@ -852,6 +941,7 @@ def main():
         "reasoning": reasoning,
         "principles": principles,
         "frameguard": frameguard,
+        "stats": stats,
         "friction": friction,
         "health": health,
         "escalation": escalation,
@@ -859,7 +949,10 @@ def main():
     }
 
     handler = handlers.get(args.subcommand, dashboard)
-    handler(args.days, terminal_filter, args.show_all)
+    if args.subcommand == "stats":
+        handler(args.days, terminal_filter, args.show_all, args.turn, args.limit)
+    else:
+        handler(args.days, terminal_filter, args.show_all)
 
 
 if __name__ == "__main__":

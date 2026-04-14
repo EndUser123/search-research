@@ -1,8 +1,8 @@
 ---
 name: gitready
-version: 5.21.0
+version: 5.25.0
 status: "stable"
-description: This skill should be used when the user asks to "create a package", "scaffold a Python library", "make a GitHub-ready repo", "generate badges", "set up CI/CD", "convert to plugin", "brownfield conversion", "validate plugin standards", or mentions package scaffolding, portfolio polish, repository structure setup, badge generation, or plugin standards validation. Creates GitHub-ready Python libraries, Claude skills, and Claude Code plugins with badges, CI/CD workflows, coverage metrics, media artifacts, interactive course modules, and automatic plugin standards validation. Now includes PHASE 6: GitHub Publication and PHASE 7: Repository Finalization.
+description: This skill should be used when the user asks to "create a package", "scaffold a Python library", "make a GitHub-ready repo", "generate badges", "convert to plugin", "brownfield conversion", "validate plugin standards", or mentions package scaffolding, portfolio polish, repository structure setup, badge generation, or plugin standards validation. Creates GitHub-ready Python libraries, Claude skills, and Claude Code plugins with badges, coverage metrics, media artifacts, interactive course modules, and automatic plugin standards validation. Includes PHASE 6: GitHub Publication and PHASE 7: Repository Finalization.
 category: scaffolding
 enforcement: advisory
 triggers:
@@ -36,7 +36,7 @@ suggest:
 
 **ADVANCED**: Create pure Python backend libraries (pip-installable) only when plugin architecture is not appropriate.
 
-All packages are polished into resume-worthy GitHub artifacts with badges, CI/CD, coverage metrics, and media assets.
+All packages are polished into resume-worthy GitHub artifacts with badges, coverage metrics, and media assets.
 
 ## Quick Start
 
@@ -68,7 +68,7 @@ One command runs the full intelligent pipeline:
 4. **VALIDATE** (PHASE 4) - Verify everything works
 5. **REVIEW** (PHASE 4.5-4.6) - Code review and quality checks
 6. **MEDIA** (PHASE 4.7-4.8) - Optional media and course generation
-7. **POLISH** (PHASE 5) - Portfolio-quality badges, CI/CD, docs
+7. **POLISH** (PHASE 5) - Portfolio-quality badges, docs
 8. **CLEANUP** (PHASE 8) - Remove obsolete files
 9. **GIT** (PHASE 9) - Initialize repo and commit
 10. **REPORT** (PHASE 10) - Show completion status
@@ -252,15 +252,10 @@ Runs code-review plugin (security, performance, maintainability) and meta-review
 
 **Auto-generated artifacts** (if missing):
 - **Badges**: Coverage, version, license, CI status (shields.io)
-- **CI/CD**: GitHub Actions workflow (`.github/workflows/test.yml`)
 - **Documentation**: CHANGELOG.md, CONTRIBUTING.md, AGENTS.md, API docs
 - **Architecture flowchart**: GitHub-safe Mermaid in README.md
 - **Video playback**: `docs/video.html` for GitHub Pages
 - **Quick Start**: Installation and usage examples
-
-**CI/CD rules**:
-- NO Codecov integration - local coverage only (`--cov-report=term`)
-- CI badge shows workflow status, not external coverage service
 
 ---
 
@@ -316,9 +311,9 @@ Initialize git repo (if not already): `git init`, add all files, initial commit,
 
 ## PHASE 10: Recruiter Readiness Validation (Auto-invoked)
 
-**Checks**: TODOs in pyproject.toml, plan files in root, missing CI/CD, no tests, version 0.0.x/0.1.x.
+**Checks**: TODOs in pyproject.toml, plan files in root, no tests, version 0.0.x/0.1.x.
 **Scoring**: 90-100 (Excellent), 70-89 (Good), 50-69 (Fair), <50 (Poor).
-**Auto-fixes**: Remove TODOs, move plans to `docs/planning/`, create CI/CD, bump version.
+**Auto-fixes**: Remove TODOs, move plans to `docs/planning/`, bump version.
 **Output**: `RECRUITER_READINESS_REPORT.md`
 
 ---

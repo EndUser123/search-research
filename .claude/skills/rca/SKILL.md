@@ -165,6 +165,22 @@ Before converging on a diagnosis, `/rca` should run a short internal competing-c
 
 These are internal self-check prompts. They are not default user-facing questions and should only surface to the user when `/rca` is genuinely blocked and cannot proceed safely without clarification.
 
+## RCA Think Pass
+
+Use a lightweight `/think` pass only when it improves the diagnosis, not for every turn.
+
+1. Form the strongest likely diagnosis from the evidence.
+2. Challenge it with the strongest competing explanation.
+3. State the pragmatic explanation that would still work if the first two are wrong.
+4. Pick the smallest discriminating check that separates those branches.
+5. Refine once, then move back to evidence or conclusion.
+
+Use this pass:
+- before converging on root cause
+- before proposing a fix when the failure mode is still ambiguous
+
+Do not use this pass to add more prose. Use it to reduce overconfidence and choose the next check.
+
 ## Trace And Challenge Passes
 
 `/rca` should treat `trace` and `challenge` as core internal passes:
@@ -246,6 +262,8 @@ All claims must include confidence tags: `(Tier [0-4], [0-100]%)`
 **RCA Structure**: Symptom -> Evidence (with time-scope labels) -> Executed Path -> Alternative Hypothesis -> Falsifier -> Root Cause -> Fix -> Verification
 
 **Block Triggers**: No Executed Path, root cause not in path, dead code, no alternative, no falsifier, missing time-scope, vague fix.
+
+**Anti-lazy rule**: If you cannot support the RCA Structure with evidence, do not write a root cause yet. Stay in investigation mode until you can produce an Executed Path, a competing hypothesis, a falsifier, and a first divergence point.
 
 See `references/output-format.md` for full template and tier definitions.
 

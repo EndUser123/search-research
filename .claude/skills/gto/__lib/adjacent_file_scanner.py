@@ -80,25 +80,35 @@ class AdjacentFileScanner:
                         continue
 
                     try:
-                        turn = json.loads(line)
+                        message = json.loads(line)
 
-                        # Extract file paths from tool_use blocks
-                        if "tool_use" in turn:
-                            for tool in turn["tool_use"]:
-                                tool_name = tool.get("name", "")
-                                input_data = tool.get("input", {})
+                        # Claude Code transcripts store tool_use inside content list,
+                        # not at root level. Each content block has a type field.
+                        content = message.get("content", [])
+                        if not isinstance(content, list):
+                            content = [content]
 
-                                # Extract file_path from common tools
-                                if "file_path" in input_data:
-                                    file_path = input_data["file_path"]
-                                    if file_path not in file_operations:
-                                        file_operations[file_path] = []
-                                    file_operations[file_path].append(tool_name)
+                        for block in content:
+                            if not isinstance(block, dict):
+                                continue
+                            block_type = block.get("type", "")
 
-                                # Extract paths from Glob tool
-                                elif tool_name == "Glob" and "pattern" in input_data:
-                                    # Don't scan glob results - too many files
-                                    pass
+                            # Handle tool_use blocks
+                            if block_type == "tool_use":
+                                tool_name = block.get("name", "")
+                                input_data = block.get("input", {})
+                                self._extract_path_from_tool(
+                                    input_data, tool_name, file_operations
+                                )
+
+                            # Handle tool_result blocks - file paths appear here too
+                            elif block_type == "tool_result":
+                                tool_name = block.get("name", "")
+                                content_val = block.get("content", {})
+                                if isinstance(content_val, dict):
+                                    self._extract_path_from_tool(
+                                        content_val, tool_name, file_operations
+                                    )
 
                     except json.JSONDecodeError:
                         continue
@@ -125,6 +135,35 @@ class AdjacentFileScanner:
                 )
 
         return touched_files
+
+    def _extract_path_from_tool(
+        self,
+        input_data: dict,
+        tool_name: str,
+        file_operations: dict[str, list[str]],
+    ) -> None:
+        """Extract file path from tool input data and record operation.
+
+        Args:
+            input_data: Tool input dictionary
+            tool_name: Name of the tool
+            file_operations: Dict to accumulate operations per file
+        """
+        # Don't scan glob results - too many files
+        if tool_name == "Glob" and "pattern" in input_data:
+            return
+
+        # Try file_path first, then fallbacks
+        file_path = input_data.get("file_path")
+        if not file_path:
+            file_path = input_data.get("relative_path")
+        if not file_path:
+            file_path = input_data.get("path")
+
+        if file_path:
+            if file_path not in file_operations:
+                file_operations[file_path] = []
+            file_operations[file_path].append(tool_name)
 
     def scan_adjacent_files(self, transcript_path: Path) -> AdjacentScanResult:
         """Scan files touched in the transcript for code quality issues.

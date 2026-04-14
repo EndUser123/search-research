@@ -21,6 +21,7 @@ MAX_FILE_READ = 1024 * 1024  # 1MB
 VAULT_MTIME_CACHE_TTL = 5.0  # seconds
 REBUILD_FAILURE_LIMIT = 3
 REBUILD_COOLDOWN = 60.0  # seconds
+MAX_QUERY_LENGTH = 500
 
 
 class QMDWikiBackend(BaseLocalBackend):
@@ -54,8 +55,8 @@ class QMDWikiBackend(BaseLocalBackend):
             raise ValueError(f"Vault path does not exist: {self.vault_path}")
 
     def _sanitize_query(self, query: str) -> str:
-        """Constraint 4: Query sanitization - limit to 500 chars, strip non-printable."""
-        return "".join(c for c in query if c.isprintable() or c in " ")[:500]
+        """Constraint 4: Query sanitization - limit to MAX_QUERY_LENGTH chars, strip non-printable."""
+        return "".join(c for c in query if c.isprintable() or c in " ")[:MAX_QUERY_LENGTH]
 
     def _get_vault_mtime_cached(self) -> float | None:
         """Constraint 11: os.scandir() for vault mtime scan with 5-second cache TTL."""
@@ -105,6 +106,11 @@ class QMDWikiBackend(BaseLocalBackend):
     async def search_async(self, query: str, **kwargs) -> list["SearchResult"]:
         query = self._sanitize_query(query)
 
+        # CAUSE-001 fix: Await in-flight rebuild before searching to avoid stale index
+        if self._rebuild_lock.locked():
+            async with self._rebuild_lock:
+                pass  # Wait for any in-progress rebuild to complete
+
         # Constraint 7: Circuit breaker - skip rebuild if in cooldown
         if (
             self._rebuild_cooldown_until is not None
@@ -112,7 +118,9 @@ class QMDWikiBackend(BaseLocalBackend):
         ):
             pass
         else:
-            vault_mtime = self._get_vault_mtime_cached()
+            # CAUSE-003 fix: Use fresh vault mtime for rebuild decision, not cached
+            # (cache is fine for display/logging but not for freshness-critical decisions)
+            vault_mtime = self._get_vault_mtime()
             index_mtime = self._index_mtime
             # Constraint 5: Trigger rebuild if vault mtime > index mtime
             if vault_mtime and (index_mtime is None or vault_mtime > index_mtime):
@@ -121,7 +129,7 @@ class QMDWikiBackend(BaseLocalBackend):
 
         try:
             result = await asyncio.create_subprocess_exec(
-                "qmd", "search", "--scope", self.qmd_scope, query,
+                "qmd", "search", "--collection", self.qmd_scope.rstrip("/"), "--format", "json", query,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -140,9 +148,17 @@ class QMDWikiBackend(BaseLocalBackend):
             return []
         except FileNotFoundError:
             # Constraint 9: PermissionError handling in fallback path
+            # CAUSE-002 fix: Check cooldown before expensive fallback
+            if self._rebuild_cooldown_until is not None and time.monotonic() < self._rebuild_cooldown_until:
+                logger.debug("qmd not found, circuit breaker active — skipping fallback")
+                return []
             logger.debug("qmd not found, falling back to grep")
             return self._fallback_grep(query)
         except OSError as e:
+            # CAUSE-002 fix: Check cooldown before expensive fallback
+            if self._rebuild_cooldown_until is not None and time.monotonic() < self._rebuild_cooldown_until:
+                logger.debug("qmd subprocess error, circuit breaker active — skipping fallback")
+                return []
             logger.debug(f"qmd subprocess error: {e}")
             return self._fallback_grep(query)
 
@@ -153,11 +169,13 @@ class QMDWikiBackend(BaseLocalBackend):
         except json.JSONDecodeError:
             return []
         results = []
-        for r in data.get("results", []):
-            path = r.get("path", "")
+        # qmd returns a list directly, not {"results": [...]}
+        items = data if isinstance(data, list) else data.get("results", [])
+        for r in items:
+            path = r.get("file", "")
             snippet = r.get("snippet", "")
             score = r.get("score", 0.0)
-            title = path.split("/")[-1].rsplit(".md", 1)[0] or path
+            title = r.get("title", path.split("/")[-1].rsplit(".md", 1)[0] or path)
             results.append(SearchResult(
                 title=title, content=snippet, source=self.BACKEND_NAME,
                 score=score, file_path=path,
@@ -203,7 +221,7 @@ class QMDWikiBackend(BaseLocalBackend):
                 return
             try:
                 result = await asyncio.create_subprocess_exec(
-                    "qmd", "index", "--scope", self.qmd_scope, "--rebuild",
+                    "qmd", "update", self.qmd_scope.rstrip("/"),
                     stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
                 )
                 stdout, stderr = await asyncio.wait_for(
@@ -237,7 +255,7 @@ class QMDWikiBackend(BaseLocalBackend):
         """Constraint 1: _sync_rebuild uses sync subprocess.run(), NOT async."""
         try:
             result = subprocess.run(
-                ["qmd", "index", "--scope", self.qmd_scope, "--rebuild"],
+                ["qmd", "update", self.qmd_scope.rstrip("/")],
                 capture_output=True, timeout=self.TIMEOUT * 4,
             )
             if result.stderr:

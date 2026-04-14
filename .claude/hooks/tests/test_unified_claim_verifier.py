@@ -26,6 +26,12 @@ def test_claim_detection_does_not_overmatch_process_language() -> None:
     assert claims == []
 
 
+def test_claim_detection_ignores_generic_copula_prose() -> None:
+    text = "This is a normal response."
+    claims = ucv.detect_claims(text)
+    assert claims == []
+
+
 def test_scoped_invalidation_preserves_unrelated_observations() -> None:
     events = [
         {"name": "Read", "command": "src/a.py", "cwd": "P:/repo", "output": ""},

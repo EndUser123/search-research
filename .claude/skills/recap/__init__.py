@@ -360,7 +360,7 @@ def _validate_handoff_identity(
     except (OSError, json.JSONDecodeError):
         return False
 
-    handoff_session_id = data.get("session_id")
+    handoff_session_id = data.get("resume_snapshot", {}).get("session_id")
     if handoff_session_id and handoff_session_id != expected_session_id:
         return False
 
@@ -1229,8 +1229,12 @@ def format_recap(
             if session.get("actions"):
                 lines.append("### Final Actions Taken")
                 for action in session.get("actions", [])[:5]:
-                    priority = action.get("priority", "medium")
-                    description = action.get("description", "")
+                    if isinstance(action, str):
+                        priority = "medium"
+                        description = action
+                    else:
+                        priority = action.get("priority", "medium") if isinstance(action, dict) else "medium"
+                        description = action.get("description", "") if isinstance(action, dict) else str(action)
                     lines.append(f"- **{description}** ({priority})")
                 lines.append("")
 
@@ -1524,7 +1528,9 @@ def _load_from_handoff(handoff_path: Path) -> list[SessionSummary]:
         data = json.load(f)
 
     # Pre-mortem fix 2c: Validate handoff schema
-    required_fields = ["session_id", "resume_snapshot"]
+    # V2 handoff: session_id lives inside resume_snapshot, not at top level
+    resume_snapshot = data.get("resume_snapshot", {})
+    required_fields = ["resume_snapshot"]
     for field in required_fields:
         if field not in data:
             logger.warning(
@@ -1535,11 +1541,9 @@ def _load_from_handoff(handoff_path: Path) -> list[SessionSummary]:
             )
             return []
 
-    resume_snapshot = data.get("resume_snapshot", {})
-
     # Construct session summary from handoff
     session = {
-        "session_id": data.get("session_id", ""),
+        "session_id": resume_snapshot.get("session_id", ""),
         "goal": resume_snapshot.get("goal", ""),
         "current_task": resume_snapshot.get("current_task", ""),
         "active_files": resume_snapshot.get("active_files", []),

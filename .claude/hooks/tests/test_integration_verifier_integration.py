@@ -42,34 +42,46 @@ class TestIntegrationVerifierIntegration:
         hook = dict(self.registry._hooks)["integration_verifier"]
         assert isinstance(hook, IntegrationVerifier)
 
-    def test_hook_processes_code_skill_integration(self):
-        """Test that hook processes /code SKILL.md integration claims."""
-        code_skill_path = self.skills_dir / "code" / "SKILL.md"
+    def test_hook_processes_code_skill_integration(self, tmp_path):
+        """Test that hook blocks a skill with a missing integration target."""
+        import os
+        from posttooluse.integration_verifier import IntegrationVerifier
 
-        if not code_skill_path.exists():
-            import pytest
-            pytest.skip("code/SKILL.md not found")
+        skill_root = tmp_path / "skills" / "test-skill"
+        skill_root.mkdir(parents=True)
+        code_skill_path = skill_root / "SKILL.md"
+        code_skill_path.write_text(
+            "---\n"
+            "name: test-skill\n"
+            "description: Test skill\n"
+            "suggest:\n"
+            "  - /missing-skill\n"
+            "---\n"
+            "# Test Skill\n"
+        )
 
-        # Simulate PostToolUse data
+        old_mode = os.environ.get("INTEGRATION_VERIFIER_MODE")
+        os.environ["INTEGRATION_VERIFIER_MODE"] = "block"
+
         data = {
             "tool_name": "Edit",
             "tool_input": {"file_path": str(code_skill_path)},
             "tool_response": {}
         }
 
-        # Run the full registry
-        result = self.registry.run_all(data)
+        try:
+            verifier = IntegrationVerifier()
+            verifier.skills_dirs = [tmp_path / "skills"]
+            result = verifier.run(data)
 
-        # Result is a dict with hookSpecificOutput
-        assert isinstance(result, dict)
-        assert "hookSpecificOutput" in result
-        assert "additionalContext" in result["hookSpecificOutput"]
-
-        # Verify integration_verifier contributed to output
-        context = result["hookSpecificOutput"]["additionalContext"]
-        # The IntegrationVerifier should have produced warnings
-        # (code/SKILL.md has integration gaps)
-        assert "INTEGRATION VERIFICATION" in context or "integration" in context.lower()
+            assert isinstance(result, dict)
+            assert result.get("decision") == "block"
+            assert "INTEGRATION VERIFICATION FAILED" in result.get("reason", "")
+        finally:
+            if old_mode is None:
+                os.environ.pop("INTEGRATION_VERIFIER_MODE", None)
+            else:
+                os.environ["INTEGRATION_VERIFIER_MODE"] = old_mode
 
     def test_hook_detects_bidirectional_integration(self):
         """Test that hook detects /code to /async-bugs bidirectional integration."""
@@ -176,7 +188,7 @@ def test_integration_verifier_enabled_in_settings():
 
     # Check mode is set
     assert "INTEGRATION_VERIFIER_MODE" in settings.get("env", {})
-    assert settings["env"]["INTEGRATION_VERIFIER_MODE"] == "warn"
+    assert settings["env"]["INTEGRATION_VERIFIER_MODE"] == "block"
 
 
 if __name__ == "__main__":

@@ -163,20 +163,17 @@ def _compute_gap_trend(
 
     Returns: (trend_direction, percent_change)
     """
-    if len(history) < 2:
+    # Require minimum 4 entries for symmetric 2-vs-2 window trend
+    if len(history) < 4:
         return "unknown", 0.0
 
     # Extract gap counts
     gap_counts = [h.get("gap_count", 0) for h in history[-TREND_WINDOW:]]
-    if len(gap_counts) < 2:
+    if len(gap_counts) < 4:
         return "unknown", 0.0
 
     recent_avg = sum(gap_counts[-2:]) / 2
-    prior_avg = (
-        sum(gap_counts[-4:-2]) / 2
-        if len(gap_counts) >= 4
-        else sum(gap_counts[:-2]) / max(len(gap_counts) - 2, 1)
-    )
+    prior_avg = sum(gap_counts[-4:-2]) / 2
 
     if prior_avg == 0:
         return "unknown", 0.0

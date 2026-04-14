@@ -71,7 +71,7 @@ The fix introduces:
 
 **RISK-006 (Bundle assumption) → RISK-002 (Cross-phase break)**
 - Skill runner skips `> READ:` → PHASE 1.7 runs without PHASE 3 templates → template resolution fails
-- Then: CI/CD badge generation fails → broken README → portfolio polish fails silently
+- Then: badge generation fails → broken README → portfolio polish fails silently
 
 **RISK-012 (Hallucination)**
 - LLM claims phase is in SKILL.md based on old context → actually in resource file → wrong content applied

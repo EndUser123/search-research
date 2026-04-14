@@ -52,6 +52,27 @@ For any handoff between hooks, sessions, plans, skills, files, or agents, explic
 
 If any of these are unclear, the work is not ready to advance.
 
+### Response Behavior Contract
+
+Use a grounded response shape by default:
+
+- State the answer directly.
+- Separate verified facts from inference.
+- Do not claim tool use, file reads, or execution unless it happened.
+- If evidence is missing, say what is missing and what would verify it.
+- For recommendations, name the decision criterion.
+- For simple questions, stay brief and avoid filler.
+
+Before finalizing, run this self-check:
+
+1. Can every factual claim be traced to evidence or clearly marked as inference?
+2. Did I avoid narrating intent without execution?
+3. Did I answer the actual question instead of drifting into padding?
+4. If I recommended something, did I explain why it is the best option?
+5. If I am uncertain, did I say so plainly?
+
+The canonical text for this contract lives in `P:/.claude/templates/llm_behavior_contract.md`.
+
 ---
 
 ## Estimating

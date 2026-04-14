@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-"""Tests for [COG] tag collision fix - TASK-001.
+"""Tests for mode selection collisions.
 
-Verifies that graph mode uses [GRA] tag instead of [COG] to avoid
-collision with cognitive frameworks.
+Verifies that graph mode no longer exposes tag tokens in user-facing context.
 """
 
 import pytest
 
 
 class TestTagCollisionFix:
-    """Test that [COG] tag collision is resolved."""
+    """Test that visible mode tag collisions are resolved."""
 
     def test_graph_mode_uses_gra_tag_not_cog(self):
         """Graph mode should emit [GRA] tag, not [COG]."""
@@ -28,24 +27,21 @@ class TestTagCollisionFix:
             "query": "Explore the alternatives for implementing caching"
         })
 
-        # Should return context with [GRA] tag for graph mode
+        # Should return context with graph mode guidance
         assert "additionalContext" in result, "Expected additionalContext in result"
 
         context = result["additionalContext"]
 
-        # Graph mode should use [GRA] tag
-        assert "[GRA]" in context, (
-            f"Expected [GRA] tag for graph mode, but got: {context[:200]}"
+        assert "[GRA]" not in context, (
+            f"Found graph tag in user-facing context: {context[:200]}"
         )
-
-        # Should NOT contain [COG] for graph mode
-        # Note: [COG] is reserved for cognitive frameworks
         assert "[COG]" not in context, (
-            f"Found [COG] tag in graph mode context (collision): {context[:200]}"
+            f"Found [COG] tag in user-facing context: {context[:200]}"
         )
+        assert "Reasoning mode: graph" in context
 
     def test_other_modes_keep_original_tags(self):
-        """Other modes should keep their original tags."""
+        """Other modes should keep their original mode guidance."""
         import sys
         from pathlib import Path
 
@@ -61,8 +57,8 @@ class TestTagCollisionFix:
         })
 
         if "additionalContext" in result:
-            # Sequential should use [SEQ]
-            assert "[SEQ]" in result["additionalContext"] or "sequential" in result["additionalContext"].lower()
+            assert "[SEQ]" not in result["additionalContext"]
+            assert "reasoning mode: sequential" in result["additionalContext"].lower()
 
 
 if __name__ == "__main__":

@@ -10,6 +10,8 @@ This module provides search backends that operate on local data sources:
 - KG Backend: Knowledge graph entity search
 - RLM Backend: Template-based code generation search
 - Claude History Backend: Fast keyword search for Claude Code chat history
+- QMD Wiki Backend: Obsidian vault search via qmd CLI
+- yt-is Backend: YouTube transcript FTS search via SQLite FTS5
 """
 
 from .cds_backend import CDSBackend
@@ -52,8 +54,10 @@ from .hdma_backend import HDMABackend, HDMA_AVAILABLE
 from .lsp_backend import LSPSymbolBackend, create_lsp_backend, BACKEND_LSP_SYMBOL
 from .dependency_backend import DependencyBackend, DEP_GRAPH_AVAILABLE
 from .qmd_wiki_backend import QMDWikiBackend
+from .yt_is_backend import YtIsBackend
 
 BACKEND_QMD_WIKI = "QMD_WIKI"
+BACKEND_YT_IS = "yt-is"
 
 __all__ = [
     # Core backends
@@ -76,6 +80,7 @@ __all__ = [
     "LSPSymbolBackend",
     "DependencyBackend",
     "QMDWikiBackend",
+    "YtIsBackend",
     # Backend constants
     "BACKEND_NOTEBOOKLM",
     "BACKEND_SKILLS",
@@ -87,6 +92,8 @@ __all__ = [
     "BACKEND_AST_CODE",
     "BACKEND_LSP_SYMBOL",
     "BACKEND_NAME_CALL_GRAPH",
+    "BACKEND_QMD_WIKI",
+    "BACKEND_YT_IS",
     "SOURCE_RELIABILITY_MULTILANG",
     # Factory functions
     "create_cks_metadata_backend",

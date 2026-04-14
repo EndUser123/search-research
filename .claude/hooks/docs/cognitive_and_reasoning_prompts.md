@@ -2,18 +2,18 @@
 
 ## Unified Tag System
 
-Both cognitive frameworks and reasoning modes now emit visible tags in responses:
+Both cognitive frameworks and reasoning modes now emit telemetry tags for observability:
 
 - **[COG]** - Active Cognitive Frameworks (e.g., Cynefin, Hanlon's Razor, Devil's Advocate)
 - **[SEQ]** - Sequential reasoning mode (step-by-step analysis)
 - **[MAS]** - Multi-Agent reasoning mode (multiple perspectives)
 - **[2ST]** - Two-Stage reasoning mode (separate reasoning and implementation)
 
-**How it works**: Both systems inject explicit instructions for the model to prepend tags to responses, ensuring consistent visibility into active reasoning approaches.
+**How it works**: Both systems record active reasoning context for observability. Prompt-facing text stays tag-free; any tag references here are telemetry examples, not instructions to show the LLM.
 
 ## How to Invoke with Simple Prompts
 
-### Cognitive Frameworks ([COG] tag)
+### Cognitive Frameworks (telemetry: `[COG]` in legacy examples only)
 
 Cognitive frameworks trigger automatically based on prompt intent. No special syntax needed.
 
@@ -43,7 +43,7 @@ I need to improve the overall system architecture but I'm not sure where to star
 There are multiple issues with the codebase and I need help prioritizing fixes.
 ```
 
-### Reasoning Modes ([SEQ], [MAS], [COG] tags)
+### Reasoning Modes (telemetry: `[SEQ]`, `[MAS]`, `[2ST]` in legacy examples only)
 
 Reasoning modes trigger automatically based on keywords in your prompt.
 
@@ -104,7 +104,7 @@ Disables all cognitive frameworks.
 
 Reasoning modes are selected automatically, but you can influence them by using keywords from the tables above.
 
-## Example: Unified Tag Emission
+## Example: Unified Telemetry
 
 When you use a diagnostic prompt:
 
@@ -112,11 +112,11 @@ When you use a diagnostic prompt:
 User: diagnose why the API is returning 500 errors
 ```
 
-**Injected context**:
+**Telemetry / routing context**:
 ```
-[COG] Active Cognitive Frameworks: Calibrated Confidence, Cynefin Classification, Hanlon's Razor
+Active cognitive frameworks: Calibrated Confidence, Cynefin Classification, Hanlon's Razor
 
-**TAG EMISSION REQUIRED**: Begin your response with '[COG]' tag followed by the active framework names above. This provides visibility into which cognitive frameworks are active. Format: '[COG] Active Frameworks: X, Y, Z'
+**Telemetry note**: this is routing metadata only. Do not surface tag tokens in the LLM response.
 
 **Calibrated Confidence**: For key claims in your response, state confidence: HIGH (verified via tool output/docs), MEDIUM (based on code reading), or LOW (inference — flag it). Do not present LOW-confidence claims as facts.
 
@@ -125,10 +125,8 @@ User: diagnose why the API is returning 500 errors
 **Hanlon's Razor**: Before attributing issues to malice or intentional sabotage, consider simpler explanations: bugs, confusion, mistakes, time pressure, or misunderstanding. What evidence supports malice vs. incompetence vs. systemic causes?
 ```
 
-**Model response starts with**:
+**Model response uses**:
 ```
-[COG] Active Frameworks: Calibrated Confidence, Cynefin Classification, Hanlon's Razor
-
 Based on the 500 error, I need to investigate...
 ```
 
@@ -138,23 +136,19 @@ When you use a comparison prompt:
 User: should we use Redis or Memcached for caching?
 ```
 
-**Injected context**:
+**Telemetry / routing context**:
 ```
 Reasoning mode: multi_agent
 Confidence: 2/4
 Using multi_agent reasoning approach for this query.
-
-**TAG EMISSION REQUIRED**: Begin your response with '[MAS]' tag to indicate the active reasoning mode. This provides visibility into which reasoning approach is being used.
 ```
 
-**Model response starts with**:
+**Model response uses**:
 ```
-[MAS]
-
 When comparing Redis vs Memcached for caching, we need to consider...
 ```
 
-And when the reasoning package processes the query, it will emit `[MAS]` in the final response.
+And when the reasoning package processes the query, it records the selected mode in telemetry rather than surfacing the tag in the response.
 
 ## Testing
 
