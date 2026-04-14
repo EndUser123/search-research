@@ -45,14 +45,24 @@ def test_is_block_result(result: dict | None, expected: bool) -> None:
     assert is_block_result(result) is expected
 
 
-def test_posttooluse_main_exits_2_on_block(monkeypatch, capsys) -> None:
+def test_posttooluse_main_emits_block_json_on_block(monkeypatch, capsys) -> None:
+    calls: list[str] = []
+
     monkeypatch.setattr(
         PostToolUse,
         "create_registry",
         lambda: FakeRegistry({"decision": "block", "reason": "registry blocked"}),
     )
-    monkeypatch.setattr(PostToolUse, "append_tool_event", lambda *args, **kwargs: None)
-    monkeypatch.setattr(PostToolUse, "write_tool_error_signal", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        PostToolUse,
+        "append_tool_event",
+        lambda *args, **kwargs: calls.append("append_tool_event"),
+    )
+    monkeypatch.setattr(
+        PostToolUse,
+        "write_tool_error_signal",
+        lambda *args, **kwargs: calls.append("write_tool_error_signal"),
+    )
     monkeypatch.setattr(
         sys,
         "stdin",
@@ -71,22 +81,47 @@ def test_posttooluse_main_exits_2_on_block(monkeypatch, capsys) -> None:
     with pytest.raises(SystemExit) as exc:
         PostToolUse.main()
 
-    assert exc.value.code == 2
+    assert exc.value.code == 0
     captured = capsys.readouterr()
     payload = json.loads(captured.out.strip())
     assert payload["decision"] == "block"
     assert payload["reason"] == "registry blocked"
+    assert calls == []
 
 
-def test_posttooluse_router_main_exits_2_on_block(monkeypatch, capsys) -> None:
+def test_posttooluse_router_main_emits_block_json_on_block(monkeypatch, capsys) -> None:
+    calls: list[str] = []
+
     monkeypatch.setattr(
         PostToolUse_router,
         "create_registry",
         lambda: FakeRegistry({"decision": "block", "reason": "router blocked"}),
     )
-    monkeypatch.setattr(PostToolUse_router, "_run_auto_commit", lambda *args, **kwargs: None)
-    monkeypatch.setattr(PostToolUse_router, "_write_error_signal", lambda *args, **kwargs: None)
-    monkeypatch.setattr(PostToolUse_router, "_clear_pending_skill_intent", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        PostToolUse_router,
+        "_set_session_terminal_context",
+        lambda *args, **kwargs: calls.append("_set_session_terminal_context"),
+    )
+    monkeypatch.setattr(
+        PostToolUse_router,
+        "_run_auto_commit",
+        lambda *args, **kwargs: calls.append("_run_auto_commit"),
+    )
+    monkeypatch.setattr(
+        PostToolUse_router,
+        "_write_error_signal",
+        lambda *args, **kwargs: calls.append("_write_error_signal"),
+    )
+    monkeypatch.setattr(
+        PostToolUse_router,
+        "_clear_pending_skill_intent",
+        lambda *args, **kwargs: calls.append("_clear_pending_skill_intent"),
+    )
+    monkeypatch.setattr(
+        PostToolUse_router,
+        "append_tool_event",
+        lambda *args, **kwargs: calls.append("append_tool_event"),
+    )
     monkeypatch.setattr(PostToolUse_router, "LEGACY_TRACKING_AVAILABLE", False)
     monkeypatch.setattr(PostToolUse_router, "EVIDENCE_AVAILABLE", False)
     monkeypatch.setattr(PostToolUse_router, "LEDGER_AVAILABLE", False)
@@ -110,8 +145,9 @@ def test_posttooluse_router_main_exits_2_on_block(monkeypatch, capsys) -> None:
     with pytest.raises(SystemExit) as exc:
         PostToolUse_router.main()
 
-    assert exc.value.code == 2
+    assert exc.value.code == 0
     captured = capsys.readouterr()
     payload = json.loads(captured.out.strip())
     assert payload["decision"] == "block"
     assert payload["reason"] == "router blocked"
+    assert calls == []

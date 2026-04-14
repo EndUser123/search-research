@@ -103,7 +103,7 @@ class QMDWikiBackend(BaseLocalBackend):
         """Constraint 10: Empty vault guard in _get_vault_mtime()."""
         return self._get_vault_mtime_cached()
 
-    async def search_async(self, query: str, **kwargs) -> list["SearchResult"]:
+    async def search_async(self, query: str, limit: int = 10, **kwargs) -> list["SearchResult"]:
         query = self._sanitize_query(query)
 
         # CAUSE-001 fix: Await in-flight rebuild before searching to avoid stale index

@@ -77,9 +77,11 @@ class YtIsBackend:
         conn = sqlite3.connect(str(_TRANSCRIPT_DB))
         conn.row_factory = sqlite3.Row
         try:
+            # FTS5 bm25() returns score at query time (lower=better, negate for DESC)
             rows = conn.execute(
                 f"""
-                SELECT title, snippet, score, video_id,
+                SELECT title, snippet,
+                       -bm25({_FTS_TABLE}) AS score, video_id,
                        'https://youtube.com/watch?v=' || video_id AS url
                 FROM {_FTS_TABLE}
                 WHERE {_FTS_TABLE} MATCH ?
@@ -192,6 +194,7 @@ class YtIsBackend:
                     "video_id": video_id,
                     "title": title,
                     "description": description,
+                    "transcript": transcript,
                     "snippet": transcript[:MAX_SNIPPET],
                     "content": f"{title} {description} {transcript}",
                 })

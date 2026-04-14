@@ -124,6 +124,18 @@ def main():
     tool_result = data.get("tool_result", "")
     session_id = data.get("session_id") or data.get("sessionId", "unknown")
 
+    # 0. Registry preflight: block before any side effects run.
+    registry_result = {}
+    if tool_name not in ("Read", "Glob", "Grep", "ls", "dir"):
+        try:
+            registry_result = create_registry().run_all(data)
+        except Exception as e:
+            logger.debug(f"Registry error: {e}")
+
+    if is_block_result(registry_result):
+        print(json.dumps(registry_result))
+        sys.exit(0)
+
     # 0. Skill-first gate: clear pending intent when Skill() is called
     if tool_name == "Skill":
         _clear_pending_skill_intent(data)
@@ -245,20 +257,6 @@ def main():
                 f"🔵 CONTEXT NOTE: `{tool_name}` returned ~{token_est:,} tokens. "
                 "Extract ONLY the specific fact you need."
             )
-
-    # 2. Run PostToolUse Registry - all verification and side-effect hooks
-    # Skip for read-only tools to save overhead.
-    # Registry runs synchronously to capture injection output
-    registry_result = {}
-    if tool_name not in ("Read", "Glob", "Grep", "ls", "dir"):
-        try:
-            registry_result = create_registry().run_all(data)
-        except Exception as e:
-            logger.debug(f"Registry error: {e}")
-
-    if is_block_result(registry_result):
-        print(json.dumps(registry_result))
-        sys.exit(2)
 
     # 1.6. Output injection if present
     # Merge cognitive injection with registry results

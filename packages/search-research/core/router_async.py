@@ -615,19 +615,35 @@ class AsyncSearchRouter:
 
     def _convert_to_search_result(
         self,
-        raw_result: dict[str, Any],
+        raw_result: dict[str, Any] | SearchResult,
         source: str,
     ) -> SearchResult:
         """Convert backend result to SearchResult format.
 
+        Handles both dict-style raw results and SearchResult dataclass instances.
+
         Args:
-            raw_result: Raw result from backend
+            raw_result: Raw result from backend (dict or SearchResult dataclass)
             source: Backend name
 
         Returns:
             SearchResult instance
         """
-        # Extract common fields
+        # If already a SearchResult dataclass, normalize source and return
+        if isinstance(raw_result, SearchResult):
+            return SearchResult(
+                title=raw_result.title,
+                content=raw_result.content,
+                source=source.upper(),
+                score=raw_result.score,
+                url=getattr(raw_result, "url", None),
+                file_path=raw_result.file_path,
+                line_number=raw_result.line_number,
+                metadata=raw_result.metadata,
+                cached=raw_result.cached,
+            )
+
+        # Dict-style result (legacy backends)
         title = raw_result.get("title") or raw_result.get("name", "")
         content = raw_result.get("content") or raw_result.get("description", "")
         score = raw_result.get("score", 0.5)

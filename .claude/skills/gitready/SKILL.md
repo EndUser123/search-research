@@ -149,10 +149,17 @@ python resources/phases/validate_pointers.py
 ```
 Validates all bundled-resource pointers resolve to existing, non-empty files. Stop and fix broken pointers before continuing.
 
+**Read completed phases** (from target's `references/changelog.md`):
+```bash
+python resources/phases/track_phases.py {{TARGET_DIR}} --read
+```
+Reports which phases already completed; skips phases marked `-- COMPLETED`.
+
 **Steps**:
 1. Check existing structure: `tree {{TARGET_DIR}} -a -L 3`
 2. Clear state files: `rm -f {{TARGET_DIR}}/.claude/state*.json`
 3. Check for existing modules: `ls {{TARGET_DIR}}/src/`
+4. **Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 1`
 
 **Output**: "Prep complete. Modules: [Y/N]. State cleared."
 
@@ -163,6 +170,8 @@ Validates all bundled-resource pointers resolve to existing, non-empty files. St
 > See `references/package-type-detection.md` for full detection script and package type table.
 
 Auto-detects package type. Python libraries with `src/` + `pyproject.toml` auto-convert to `brownfield-plugin`.
+
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 1.5`
 
 ---
 
@@ -179,6 +188,8 @@ Auto-detects package type. Python libraries with `src/` + `pyproject.toml` auto-
 
 **Rollback**: Backup at `.backup/`. To rollback: `cp -r .backup/* . && rm -rf scripts/ .claude-plugin/`
 
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 1.6`
+
 ---
 
 ## PHASE 1.6.5: Intentional Exception Registry (Auto-invoked)
@@ -186,6 +197,8 @@ Auto-detects package type. Python libraries with `src/` + `pyproject.toml` auto-
 > See `references/exception-registry.md` for full 4-step workflow.
 
 Documents known deviations from plugin standards in `.gitready/exceptions.json` so gitready stops repeatedly flagging them.
+
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 1.6.5`
 
 ---
 
@@ -196,6 +209,8 @@ Documents known deviations from plugin standards in `.gitready/exceptions.json` 
 
 Validates plugin files/folders against Claude Code plugin standards. Exception-aware: skips waived violations from `.gitready/exceptions.json`.
 
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 1.7`
+
 ---
 
 ## PHASE 1.8: Stale Location Cleanup and Junction/Symlink Setup (Auto-invoked)
@@ -203,6 +218,8 @@ Validates plugin files/folders against Claude Code plugin standards. Exception-a
 > See `references/stale-location-cleanup.md` for full 8-step workflow.
 
 Cleans old canonical locations, creates proper junctions/symlinks pointing to `P:/packages/` source of truth.
+
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 1.8`
 
 ---
 
@@ -213,6 +230,8 @@ Cleans old canonical locations, creates proper junctions/symlinks pointing to `P
 Creates directory structure based on detected package type. Claude skills get `skill/`, plugins get `.claude-plugin/` + `scripts/` + `hooks/`, libraries get `src/` + `pyproject.toml`.
 
 **Local Development Setup**: See `references/deployment-models.md` for junction/symlink setup, multiple skills/hooks patterns, and cleanup after relocation.
+
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 2`
 
 ---
 

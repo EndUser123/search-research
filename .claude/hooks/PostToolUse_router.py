@@ -511,6 +511,13 @@ def main() -> None:
     if "tool_input" in data and not isinstance(data.get("tool_input"), dict):
         data["tool_input"] = {}
 
+    # Registry preflight: block before any logging or side effects run.
+    registry = create_registry()
+    result = registry.run_all(data)
+    if is_block_result(result):
+        print(json.dumps(result))
+        sys.exit(0)
+
     session_id = _set_session_terminal_context(data)
 
     # Track tool usage for empirical claims validation
@@ -623,11 +630,6 @@ def main() -> None:
     hooks_executed = []
     any_blocked = False
 
-    registry = create_registry()
-    result = registry.run_all(data)
-    if is_block_result(result):
-        any_blocked = True
-
     # Track router execution for logging
     total_latency = (time.perf_counter() - router_start) * 1000
     tool_name = data.get("tool_name", "Unknown")
@@ -650,10 +652,6 @@ def main() -> None:
             pass  # Fail silently if logging fails
 
     # Output combined results
-    if is_block_result(result):
-        print(json.dumps(result))
-        sys.exit(2)
-
     if result:
         print(json.dumps(result))
     else:
