@@ -133,9 +133,7 @@ def verify_write(file_path: str, expected_content: str) -> tuple[bool, str, str]
     # This catches Windows buffer flush failures where old content remains
     # Exception: Claude Code's native memory system appends originSessionId to frontmatter
     # after writes to .claude/projects/*/memory/ — exact match will always fail there.
-    _path_str = str(path).replace("\\", "/")
-    _is_memory_file = ".claude/projects/" in _path_str and "/memory/" in _path_str
-    if expected_content and actual_content != expected_content and not _is_memory_file:
+    if expected_content and actual_content != expected_content:
         return False, f"Write verification failed: content mismatch at {file_path}\nExpected {len(expected_content)} bytes, got {len(actual_content)} bytes", ""
 
     return True, "Write verification passed", actual_content
