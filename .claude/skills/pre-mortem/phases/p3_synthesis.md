@@ -56,27 +56,11 @@ Return the refined critique in this structure:
 
 ## Recommended Next Steps
 
-Organize by domain using the 7 sections as domains. Severity is implied by domain order (domain 1 = most critical). **P1 #8 Within each domain, sort sub-items by severity: CRITICAL > HIGH > MEDIUM > LOW.**
+Organize by domain using the 7 sections as domains. Severity is implied by domain order (domain 1 = most critical). Within each domain, sort sub-items by severity: CRITICAL > HIGH > MEDIUM > LOW.
 
-**Format (GTO v2 style):**
+Do NOT format these as RNS — output them as plain structured text. RNS format is applied by the `/rns` skill as a separate transformation step.
 
-```
-**Recommended Next Steps**
-
-1 (DOMAIN NAME) - Brief domain description
-- 1a: Action → Manual - context (file:line)
-- 1b: Action → Use /skill - context
-
-2 (DOMAIN NAME) - Brief domain description
-- 2a: Action → Manual - context
-
-0 - Do ALL Recommended Next Steps
-```
-
-**Requirements:**
-- Domain headers: `1 (DOMAIN) - description` format
-- Sub-items: `1a:`, `1b:`, `2a:`, etc.
-- Action format: `- 1a: Action → Manual - context` or `- 1a: Action → Use /skill - context`
-- Dash prefix required for all sub-item lines
-- Terminator: `0 - Do ALL Recommended Next Steps`
-- No severity tags in sub-items (severity is implied by domain ordering)
+**Output as plain structured text:**
+- Domain name and brief description
+- Numbered sub-items with action, method, and context
+- No specific format requirements — RNS consumes this regardless of formatting

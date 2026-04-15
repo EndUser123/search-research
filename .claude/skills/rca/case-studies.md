@@ -28,7 +28,7 @@ Real-world Root Cause Analysis sessions using the 5-phase protocol.
 ### Phase 1: GATHER
 
 **Evidence Collected**:
-1. Hook configuration files in `P:\.claude\hooks\`
+1. Registered hook commands in `P:/.claude/settings.json` and matching implementation files in `P:/.claude/hooks/`
 2. Hook execution logs from recent sessions
 3. Error message pattern: consistent across all startups
 4. Recent changes: plugin re-enablement in prior session
@@ -39,6 +39,8 @@ Real-world Root Cause Analysis sessions using the 5-phase protocol.
 - Session timeline analysis
 
 **Key Finding**: Error appeared after re-enabling previously disabled plugins
+
+**Authority Note**: The investigation used `P:/.claude/settings.json` as the source of truth for hook registration and `P:/.claude/hooks/` as the implementation tree. The presence or absence of files in `~/.claude/hooks` was not treated as evidence.
 
 ---
 
@@ -129,6 +131,7 @@ During RCA, discovered broader hook architecture issues:
 3. **Reproducibility**: The error was 100% reproducible on startup, making it easier to verify the fix
 4. **Meta-Lesson**: Document this pattern so future hook developers avoid stderr
 5. **RCA Value**: Systematic investigation uncovered broader issues beyond immediate fix
+6. **Hook Authority**: When diagnosing hook behavior, always anchor on `P:/.claude/settings.json` first and treat directory listings as implementation evidence only
 
 ---
 

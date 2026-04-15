@@ -24,6 +24,16 @@ Use `/think` when a prompt needs better judgment, not more output.
 
 Pick the reasoning depth that best fits the risk, uncertainty, and blast radius of the problem, then return a distilled recommendation.
 
+## Context Resolution
+
+Treat `/think` as the reasoning mechanism, not the subject of the request.
+
+- Infer the topic from the user's actual prompt and the surrounding conversation.
+- Do not let the command name override the semantic subject the user is asking about.
+- If the prompt mentions `/think` while discussing something else, analyze the something else.
+- Ask a clarifying question only if multiple plausible subjects remain after using the conversation context.
+- Prefer the user's intended object of analysis over any meta-reference to the tool itself.
+
 ## Reasoning Depth
 
 If you invoke `/think`, use the full reasoning depth the problem warrants.

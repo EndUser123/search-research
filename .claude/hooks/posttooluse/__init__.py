@@ -65,7 +65,6 @@ from posttooluse.task_tracker_hook import TaskTrackerHook
 from posttooluse.task_unresolved_suggester_hook import TaskUnresolvedSuggesterHook
 from posttooluse.tdd95_autoscaffold_hook import TDD95AutoScaffoldHook
 from posttooluse.tdd_state_hook import TDDStateHook
-from posttooluse.truth_validator_hook import TruthValidatorHook
 from posttooluse.workflow_completion_tracker import WorkflowCompletionTracker
 
 """
@@ -74,7 +73,7 @@ PostToolUse Hook Package
 
 In-process PostToolUse hooks - eliminates subprocess overhead.
 
-19 hooks in a single process with matcher filtering.
+18 hooks in a single process with matcher filtering.
 Each hook defines tool_matcher to control which tools trigger it.
 Registry is created fresh per invocation — no cross-process state leaks.
 
@@ -143,7 +142,6 @@ def create_registry() -> HookRegistry:
     # TDD-95 auto-scaffold - creates test stubs for implementation files
     registry.register("tdd95_autoscaffold", TDD95AutoScaffoldHook())
     registry.register("inherited_choice", InheritedChoiceHook())
-    registry.register("truth_validator", TruthValidatorHook())
     registry.register("strategy_escalation", StrategyEscalationHook())
 
     # --- Wave 2: absorbed from standalone subprocesses ---

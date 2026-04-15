@@ -7,13 +7,14 @@ PostToolUse hook that automatically verifies skill integration claims
 in SKILL.md files to prevent "aspirational documentation" anti-pattern.
 
 Problem: Documentation often claims integrations that don't actually exist.
-Solution: Automatically verify that "suggest:" targets exist and reciprocate.
+Solution: Automatically verify that "suggest:" targets exist and reciprocate,
+while treating "follow_up_offer:" as advisory-only metadata.
 
 Architecture:
 1. Triggers on Write/Edit operations for SKILL.md files
-2. Parses YAML frontmatter to extract "suggest:" targets
-3. Verifies each target skill exists and reciprocates the integration
-4. Returns warnings via additionalContext for integration gaps
+2. Parses YAML frontmatter to extract "suggest:" targets and "follow_up_offer:" offers
+3. Verifies each suggested target skill exists and reciprocates the integration
+4. Warns on missing advisory offers without blocking edits
 
 Based on plan-20260306-skill-integration-verification.md Task 1.1.
 Implementing T-001 from approved plan.
@@ -35,6 +36,7 @@ class IntegrationVerifier(PostToolUseHook):
     Prevents aspirational documentation by checking:
     - Each "suggest:" target skill exists (has SKILL.md file)
     - Each target skill reciprocates the suggestion
+    - Each "follow_up_offer:" target exists, but only as advisory validation
     """
 
     env_var = "INTEGRATION_VERIFIER_ENABLED"
@@ -75,6 +77,8 @@ class IntegrationVerifier(PostToolUseHook):
             "verified_integrations": [],
             "missing_integrations": [],
             "one_way_integrations": [],
+            "follow_up_offers": [],
+            "missing_follow_up_offers": [],
         }
 
         # Extract file path
@@ -100,12 +104,14 @@ class IntegrationVerifier(PostToolUseHook):
 
         # Parse suggest: targets
         suggested_targets = self._extract_suggest_targets(content)
-        if not suggested_targets:
-            # No suggest: field - nothing to verify
+        follow_up_targets = self._extract_follow_up_offer_targets(content)
+
+        if not suggested_targets and not follow_up_targets:
+            # No relevant frontmatter - nothing to verify
             return result
 
         # Verify each suggested target
-        warnings = []
+        routing_warnings = []
         for target in suggested_targets:
             target = target.strip()
             if not target.startswith("/"):
@@ -115,12 +121,10 @@ class IntegrationVerifier(PostToolUseHook):
 
             # Check all skills directories for the target
             target_file = None
-            found_location = None
             for skills_dir in self.skills_dirs:
                 candidate = skills_dir / target_skill_name / "SKILL.md"
                 if candidate.exists():
                     target_file = candidate
-                    found_location = skills_dir
                     break
 
             # Check if target skill exists
@@ -128,7 +132,7 @@ class IntegrationVerifier(PostToolUseHook):
                 result["missing_integrations"].append(
                     {"target": target, "reason": "Target skill does not exist"}
                 )
-                warnings.append(
+                routing_warnings.append(
                     f"❌ MISSING: {target} skill does not exist\n"
                     f"   {skill_name} suggests {target}, but there is no {target_skill_name}/SKILL.md file in any skills directory"
                 )
@@ -141,7 +145,7 @@ class IntegrationVerifier(PostToolUseHook):
                     result["one_way_integrations"].append(
                         {"target": target, "reason": "Target does not reciprocate"}
                     )
-                    warnings.append(
+                    routing_warnings.append(
                         f"⚠️  ONE-WAY: {skill_name} → {target}\n"
                         f"   {skill_name} suggests {target}, but {target} does not mention {skill_name}"
                     )
@@ -153,44 +157,82 @@ class IntegrationVerifier(PostToolUseHook):
                 # Can't read target file - skip this verification (silent - no stderr per hook policy)
                 continue
 
+        # Verify each follow-up offer as advisory-only metadata.
+        advisory_warnings = []
+        for target in follow_up_targets:
+            target = target.strip()
+            if not target.startswith("/"):
+                continue
+
+            target_skill_name = target.lstrip("/")
+
+            target_file = None
+            for skills_dir in self.skills_dirs:
+                candidate = skills_dir / target_skill_name / "SKILL.md"
+                if candidate.exists():
+                    target_file = candidate
+                    break
+
+            if not target_file:
+                result["missing_follow_up_offers"].append(
+                    {"target": target, "reason": "Target skill does not exist"}
+                )
+                advisory_warnings.append(
+                    f"ℹ️  ADVISORY: {skill_name} follow_up_offer {target}\n"
+                    f"   {skill_name} lists {target} as an optional follow-up, but there is no {target_skill_name}/SKILL.md file in any skills directory"
+                )
+                continue
+
+            result["follow_up_offers"].append({"target": target, "exists": True})
+
         # Generate injection if any gaps found
-        if warnings:
+        if routing_warnings or advisory_warnings:
             mode = self._mode()
-            # Use visual formatter for better presentation
-            try:
-                # Add hooks to path for import
-                import sys
+            sections: list[str] = []
 
-                hooks_dir = Path(__file__).resolve().parent.parent
-                if str(hooks_dir) not in sys.path:
-                    sys.path.insert(0, str(hooks_dir))
+            if routing_warnings:
+                # Use visual formatter for better presentation
+                try:
+                    # Add hooks to path for import
+                    import sys
 
-                from __lib.verification_visualizer import VerificationVisualizer
+                    hooks_dir = Path(__file__).resolve().parent.parent
+                    if str(hooks_dir) not in sys.path:
+                        sys.path.insert(0, str(hooks_dir))
 
-                visualizer = VerificationVisualizer()
+                    from __lib.verification_visualizer import VerificationVisualizer
 
-                # Format with visual formatter
-                missing = [item["target"] for item in result["missing_integrations"]]
-                one_way = [item["target"] for item in result["one_way_integrations"]]
+                    visualizer = VerificationVisualizer()
 
-                result["injection"] = visualizer.format_integration_warning(
-                    skill_name=skill_name,
-                    missing_targets=missing,
-                    one_way_targets=one_way if one_way else None,
-                )
-            except ImportError:
-                # Fallback to original formatting
-                result["injection"] = (
-                    "⚠️  INTEGRATION VERIFICATION WARNING\n\n"
-                    "Skill integration claims don't match implementation reality:\n\n"
-                    + "\n\n".join(warnings)
-                    + f"\n\nFix: Either implement the integrations or remove them from {skill_name}/SKILL.md"
-                )
+                    # Format with visual formatter
+                    missing = [item["target"] for item in result["missing_integrations"]]
+                    one_way = [item["target"] for item in result["one_way_integrations"]]
 
-            if mode == "block":
+                    sections.append(
+                        visualizer.format_integration_warning(
+                            skill_name=skill_name,
+                            missing_targets=missing,
+                            one_way_targets=one_way if one_way else None,
+                        )
+                    )
+                except ImportError:
+                    # Fallback to original formatting
+                    sections.append(
+                        "⚠️  INTEGRATION VERIFICATION WARNING\n\n"
+                        "Skill integration claims don't match implementation reality:\n\n"
+                        + "\n\n".join(routing_warnings)
+                        + f"\n\nFix: Either implement the integrations or remove them from {skill_name}/SKILL.md"
+                    )
+
+            if advisory_warnings:
+                sections.append(self._format_follow_up_offer_warning(skill_name, advisory_warnings))
+
+            result["injection"] = "\n\n".join(sections)
+
+            if mode == "block" and routing_warnings:
                 block_reason = (
                     "INTEGRATION VERIFICATION FAILED\n\n"
-                    + "\n\n".join(warnings)
+                    + "\n\n".join(routing_warnings)
                     + f"\n\nFix: Either implement the integrations or remove them from {skill_name}/SKILL.md"
                 )
                 result.update(
@@ -239,37 +281,49 @@ class IntegrationVerifier(PostToolUseHook):
 
         Tries YAML parsing first (on frontmatter only), falls back to regex extraction.
         """
-        # Extract YAML frontmatter only (content between --- delimiters)
-        frontmatter_match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
-        if frontmatter_match:
-            frontmatter = frontmatter_match.group(1)
-        else:
-            frontmatter = content  # Fall back to full content if no frontmatter
+        return self._extract_frontmatter_targets(content, "suggest")
+
+    def _extract_follow_up_offer_targets(self, content: str) -> list[str]:
+        """Extract follow_up_offer targets from SKILL.md content."""
+        return self._extract_frontmatter_targets(content, "follow_up_offer")
+
+    def _extract_frontmatter_targets(self, content: str, field_name: str) -> list[str]:
+        """Extract a list-valued field from SKILL.md frontmatter."""
+        frontmatter = self._extract_frontmatter(content)
 
         # Try YAML parsing first
         try:
             import yaml
 
             data = yaml.safe_load(frontmatter)
-            if isinstance(data, dict) and "suggest" in data:
-                suggest = data["suggest"]
-                if isinstance(suggest, list):
-                    return suggest
+            if isinstance(data, dict) and field_name in data:
+                entries = data[field_name]
+                if isinstance(entries, list):
+                    return [str(entry) for entry in entries]
+                if isinstance(entries, str) and entries.strip():
+                    return [entries.strip()]
         except Exception:
             # YAML parsing failed, fall back to regex
             pass
 
-        # Regex fallback: extract suggest: section
-        # Matches lines like "  - /target-skill" after "suggest:"
-        suggest_pattern = re.compile(r"^suggest:\s*\n((?:\s+-\s+/[^\n]+\n?)+)", re.MULTILINE)
-        match = suggest_pattern.search(content)
+        # Regex fallback: extract the specific section
+        section_pattern = re.compile(
+            rf"^{re.escape(field_name)}:\s*\n((?:\s+-\s+/[^\n]+\n?)+)",
+            re.MULTILINE,
+        )
+        match = section_pattern.search(frontmatter)
         if match:
-            # Extract all - /target entries
             target_pattern = re.compile(r"-\s+(/[^\s]+)")
-            targets = target_pattern.findall(match.group(1))
-            return targets
+            return target_pattern.findall(match.group(1))
 
         return []
+
+    def _extract_frontmatter(self, content: str) -> str:
+        """Return the YAML frontmatter block, or the full content if absent."""
+        frontmatter_match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
+        if frontmatter_match:
+            return frontmatter_match.group(1)
+        return content
 
     def _reciprocates(self, target_content: str, skill_name: str) -> bool:
         """
@@ -308,3 +362,18 @@ class IntegrationVerifier(PostToolUseHook):
             return f"/{skill_name}" in suggest_section.group(0)
 
         return False
+
+    def _format_follow_up_offer_warning(
+        self, skill_name: str, advisory_warnings: list[str]
+    ) -> str:
+        """Format advisory-only follow-up offer warnings."""
+        warning = f"ℹ️  FOLLOW-UP OFFER ADVISORY\n\n"
+        warning += f"**Skill**: /{skill_name}\n\n"
+        warning += "**Missing Follow-Up Offers**:\n"
+        for entry in advisory_warnings:
+            warning += f"  • {entry}\n"
+        warning += (
+            "\n**Note**: `follow_up_offer:` is advisory only. "
+            "Missing targets do not block edits."
+        )
+        return warning

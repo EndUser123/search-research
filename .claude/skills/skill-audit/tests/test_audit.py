@@ -26,6 +26,7 @@ from audit import (
     _lens_operational_resilience,
     _lens_assurance_strategy,
     _lens_non_goals_clarity,
+    _lens_cleanup_discipline,
     Finding,
 )
 from validate import validate_shape, validate_frontmatter
@@ -953,6 +954,43 @@ description: "Ship a skill"
 """
         parsed = _parse_skill(Path("."), md)
         findings = _lens_question_strategy(parsed)
+        assert findings == []
+
+
+class TestLensCleanupDiscipline:
+    def test_package_local_runtime_artifacts_are_flagged(self, tmp_path):
+        skill = tmp_path / "cleanup-target"
+        skill.mkdir()
+        (skill / ".claude" / "state").mkdir(parents=True)
+        (skill / ".evidence").mkdir()
+        (skill / ".pytest_cache").mkdir()
+        md = """---
+name: cleanup-target
+description: "Skill with cleanup debt"
+---
+
+# Cleanup Target
+"""
+        parsed = _parse_skill(skill, md)
+        findings = _lens_cleanup_discipline(parsed)
+        assert len(findings) == 1
+        assert findings[0].lens == "CLEANUP_DISCIPLINE"
+        assert "package-local runtime artifacts" in findings[0].gap
+        assert ".claude/state" in findings[0].evidence
+        assert ".evidence" in findings[0].evidence
+
+    def test_clean_skill_tree_is_quiet(self, tmp_path):
+        skill = tmp_path / "clean-target"
+        skill.mkdir()
+        md = """---
+name: clean-target
+description: "Skill with no debris"
+---
+
+# Clean Target
+"""
+        parsed = _parse_skill(skill, md)
+        findings = _lens_cleanup_discipline(parsed)
         assert findings == []
 
 

@@ -1,13 +1,14 @@
-"""Auto-scaffolded test for cli."""
+from __future__ import annotations
 
-import pytest
-from cli import cli
+import sys
+from pathlib import Path
+
+PACKAGE_ROOT = Path(__file__).resolve().parents[1]
+if str(PACKAGE_ROOT) not in sys.path:
+    sys.path.insert(0, str(PACKAGE_ROOT))
+
+from scripts import cli
 
 
-def test_cli_exists():
-    """Smoke test: cli can be imported."""
+def test_cli_imports() -> None:
     assert cli is not None
-
-
-# TODO: Add more tests based on actual functionality
-# Run: pytest tests/test_cli.py -v

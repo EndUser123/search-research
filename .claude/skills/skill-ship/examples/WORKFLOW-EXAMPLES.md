@@ -431,6 +431,89 @@ Audit Summary:
 
 ---
 
+### 4. Command-Contract Repair: "/chs export"
+
+**Scenario**: `/skill-audit` found that `/chs export` relied on prose and CLI probing instead of a machine-readable first-command contract.
+
+**Phase 1: Discovery & Intent**
+```
+User Request: "Fix /chs export so it uses the right command surface and stops probing help"
+
+Intent Extraction:
+- What should be improved?
+  → Make export a first-class documented command path
+  → Eliminate docs/CLI drift between SKILL.md and the CLI
+  → Encode the first command contract so the model can enforce it mechanically
+
+- Existing skill analysis?
+  → `/chs` already has an export mode, but the contract is split across prose and help output
+  → Query export and session export need separate wording
+  → No machine-readable first-command metadata was present for the export path
+
+Decision: Enhance existing /chs skill
+```
+
+**Phase 2: Creation & Structuring**
+```
+Skill Coordination:
+- Update SKILL.md frontmatter with:
+  - allowed_first_tools: [Bash]
+  - required_first_command_patterns: ['^python\\s+P:/packages/search-research/skills/chs/scripts/chs_cli\\.py\\s+--export(?:\\s|$)']
+  - required_first_command_hint: "Use --export for session-chain export; use --output only for query export."
+- Add a dedicated Session Chain Export section to SKILL.md
+- Update CLI help text to describe query export vs session-chain export
+- Keep the canonical command surface consistent across body, frontmatter, and CLI help
+```
+
+**Phase 3: Quality & Validation**
+```
+Invoke /testing-skills for validation:
+
+Test Results:
+| Test | Status | Evidence | Fix |
+|------|--------|----------|-----|
+| YAML completeness | ✓ | required fields present | None |
+| Trigger accuracy | ✓ | /chs export remains reachable | None |
+| Output consistency | ✓ | export section added with examples | None |
+| Execution flow | ✓ | export path now explicit | None |
+| Command contract completeness | ✓ | first-command contract added | None |
+| CLI parity | ✓ | help output and skill docs agree | None |
+
+Selected Issues:
+**Priority:** High
+**Issue:** Query export and session export were conflated in prose-only docs
+**Fix:** Add explicit contract fields and separate the examples
+
+Validation Plan:
+1. Add command contract fields to frontmatter
+2. Update CLI help and SKILL.md examples together
+3. Re-run /testing-skills for validation
+```
+
+**Phase 4: Optimization & Enhancement**
+```
+Skill Coordination:
+- Update /chs help text to mention:
+  - query export: --output / --clipboard
+  - session-chain export: --export
+- Keep examples short and canonical
+- Do not add new hooks; this is a docs/contract fix, not a runtime redesign
+```
+
+**Phase 5: Distribution & Documentation**
+```
+Skill Coordination:
+- Commit docs and help-text updates together
+- Add a short note in /skill-audit examples linking the audit finding to the repair example
+
+Current Status
+**Phase:** Complete
+**Blockers:** None
+**Next action:** Use the updated /chs export path in normal workflow
+```
+
+---
+
 ## Template Reference
 
 These examples demonstrate the seven output format templates:

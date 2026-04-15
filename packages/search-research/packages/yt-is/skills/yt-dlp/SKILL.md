@@ -18,6 +18,11 @@ workflow_steps:
   - Call fetch_transcript_chain() with yt-dlp as preferred method
   - On failure, escalate to next method in chain (cookies → Selenium → NLM → Whisper)
   - Cache successful transcript to transcripts.sqlite
+allowed_first_tools:
+  - Bash
+required_first_command_patterns:
+  - '^yt-dlp(?:\s|$)'
+required_first_command_hint: Start with the yt-dlp entrypoint so the transcript chain can resolve the requested video.
 
 parameters:
   - name: dry-run

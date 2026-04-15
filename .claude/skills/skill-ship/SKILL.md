@@ -40,7 +40,7 @@ workflow_steps:
       output: required_phases (list), risk_level (low/medium/high), matched_artifact_type (string)
   - phase_2_creation: "Create or update skill structure using skill-creator and skill-development guidance WITH constitutional filter (no enterprise patterns), plan-and-review for complex skills (>5 steps). REQUIRES: Phase 1.5 output present in workflow state or conversation — if Phase 1.5 was skipped, its skip reason must be documented before Phase 2 begins."
   - phase_3a_spec_compliance: Verify implementation follows plan with completion evidence (RED/GREEN/REGRESSION/VERIFY) - blocks 3b until SPEC_PASS
-  - phase_3b_code_quality: Validate YAML frontmatter, trigger accuracy, quality gates, context bloat prevention, operational resilience, and NO interactive-completion anti-patterns (no "Re-run /X", "Which would you prefer?", or "Options:" mid-workflow) — blocks 3c until critical issues resolved
+  - phase_3b_code_quality: Validate YAML frontmatter, trigger accuracy, command-contract completeness, docs/CLI parity, quality gates, cleanup hygiene, context bloat prevention, operational resilience, and NO interactive-completion anti-patterns (no "Re-run /X", "Which would you prefer?", or "Options:" mid-workflow) — blocks 3c until critical issues resolved
   - phase_3c_integration_verification: Test skill invocation and execution paths - blocks Phase 4 until integration passes
   - phase_3_5_evaluation: Run eval suite with skill-creator including benchmarks and variance analysis (skip for simple skills)
   - phase_3e_evaluator:
@@ -53,7 +53,7 @@ workflow_steps:
       enforcement: required
       blocks_phase_4: true
       output: {decision, required_follow_ups, scores}
-  - phase_4_optimization: Add hooks for mechanical continuation, validation patterns, cognitive/reasoning support where justified, and standardized formatting via output-style-extractor
+  - phase_4_optimization: Add hooks for mechanical continuation, validation patterns, command-contract fixes, cognitive/reasoning support where justified, and standardized formatting via output-style-extractor
   - phase_5_distribution: Package skill for sharing via GitHub PR workflow using sharing-skills
 ---
 
@@ -170,6 +170,8 @@ Before declaring a shipped skill ready, `/skill-ship` should ask itself:
 - What regression class will recur unless we add a test or validator now?
 - What implementation detail is doing policy work by accident?
 - What should fail closed, but currently only fails by convention?
+- What workflow has a deterministic first backend action, but no machine-readable first-command contract yet?
+- Where does the skill describe a command surface in prose, but the CLI help or examples still drift from that contract?
 - What is the strongest implementation-side objection to declaring this ready? (`challenge`)
 - What repeated fix should now graduate into a validator, hook, or test? (`graduate`)
 - What earlier design decision or user correction most changed what "correct implementation" means here? (`trace`)
@@ -199,6 +201,7 @@ When `/skill-ship` builds or repairs a skill, it should ensure one of two things
   - terminal/session scope
   - stale-data invalidation or freshness authority
   - interrupted-workflow / compact recovery
+  - cleanup / artifact-disposal routing so package-local runtime debris does not accumulate by accident
 
 For hook-heavy skills, `/skill-ship` should also decide explicitly whether the design should:
 - reuse existing cognitive/reasoning hooks from the hook stack
@@ -212,6 +215,8 @@ Do not leave these as implicit assumptions.
 When `/skill-ship` builds or repairs a skill, it should also check four ACEF-derived command-discipline concerns:
 
 - **Input quality gate**: if the skill accepts broad or ambiguous requests, define when it should clarify, infer, block, or route instead of guessing
+- **Command contract completeness**: if the workflow has a deterministic first backend action, encode `allowed_first_tools`, `required_first_command_patterns`, and a short hint in frontmatter
+- **Docs/CLI parity**: if the skill documents an external command surface, keep SKILL.md examples, CLI help text, and canonical mode names aligned
 - **Single responsibility**: if the skill is trying to do strategy, implementation, and distribution at once, document the scope guard or route part of the work elsewhere
 - **Path enumeration**: for routing-, phase-, or branch-heavy skills, enumerate the meaningful execution and failure paths so validators/tests can cover them
 - **Standardized errors**: blocking/enforcement paths should use consistent, operator-readable language so users can tell workflow enforcement from accidental breakage
@@ -320,7 +325,7 @@ If those questions cannot be answered clearly, prefer the simpler implementation
 **Phase 3 (Quality):** Three sub-phases run sequentially with fresh subagents (no state sharing between phases). Each spawns a fresh subagent with minimal context to prevent bias. Phase 3 is about implementation correctness and readiness, not strategic redesign.
 
 - **3a Spec:** Did implementation follow the plan? Output: `SPEC_PASS`/`SPEC_FAIL`. Blocks 3c. Never skip.
-- **3b Quality:** YAML completeness, trigger accuracy, context bloat prevention, operational resilience, and NO interactive-completion anti-patterns. Multi-step workflows must implement automatic wait loops for parallel agents — completion checks that say "Re-run /X", "Which would you prefer?", or "Options:" mid-workflow are PROCESS_ENFORCEMENT violations that must be fixed before Phase 3c. Confirm the skill is terminal-isolated or explicitly stateless, stale-data-immune, compact-resilient, and deliberate about cognitive/reasoning hooks. Blocks 3c until critical issues resolved. Skip for simple skills (<100 lines) only when those concerns are truly not applicable.
+- **3b Quality:** YAML completeness, trigger accuracy, cleanup hygiene, context bloat prevention, operational resilience, and NO interactive-completion anti-patterns. Multi-step workflows must implement automatic wait loops for parallel agents — completion checks that say "Re-run /X", "Which would you prefer?", or "Options:" mid-workflow are PROCESS_ENFORCEMENT violations that must be fixed before Phase 3c. Confirm the skill is terminal-isolated or explicitly stateless, stale-data-immune, compact-resilient, deliberate about cognitive/reasoning hooks, and free of package-local runtime debris unless that debris is explicitly retained by contract. Blocks 3c until critical issues resolved. Skip for simple skills (<100 lines) only when those concerns are truly not applicable.
 - **3c Integration:** Test skill invocation, execution paths, runtime behavior. Blocks Phase 4. Never skip.
 - **3d Artifact (conditional):** Activate when skill emits durable artifacts (plans, reports). See `references/phase3-validation-details.md` for tables, processes, gate criteria.
 
@@ -354,7 +359,7 @@ During Phase 3b (Quality) and Phase 3.5 (Evaluation), score skills across weight
 | Dimension | Weight | Criteria |
 |-----------|--------|----------|
 | Completeness | 0.25 | All workflow steps covered, no gaps in execution path |
-| Clarity | 0.25 | Unambiguous instructions, examples for complex steps |
+| Clarity | 0.25 | Unambiguous instructions, examples for complex steps, canonical command contracts, CLI help parity |
 | Usability | 0.20 | Correct triggers, suggests bidirectional, progressive disclosure |
 | Testability | 0.15 | Verification steps defined, acceptance criteria concrete |
 | Robustness | 0.15 | Error handling guidance, edge cases documented |
@@ -439,9 +444,26 @@ After user selects a mode (or defaults to RUN-003), execute the appropriate phas
 
 ---
 
-## Recommended Next Steps
+## Recommended Next Steps (RNS)
 
-When analysis is complete, present next steps in structured domain/action format. See `references/recommended-next-steps-format.md` for complete format specification, including machine-parseable format for downstream skill chaining.
+When analysis is complete, present next steps in RNS format:
+
+```
+🛠️ SHIP
+  SHIP-001 [~5min] Verify /yt-is contract resolution (run /yt-is list, confirm step 5 executes)
+  SHIP-002 [~2min] Remove empty required_first_command_patterns from yt-is frontmatter
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+0 — Do ALL Recommended Next Actions (2 items, ~7min total)
+```
+
+**Format rules:**
+- Dynamic domain grouping — only domains with findings appear
+- Flat globally-numbered items per domain (SHIP-001, not 1.1)
+- Effort in `[~Nmin]` per item
+- 0 — Do ALL as last option
+- No code fences around the RNS output
 
 ---
 

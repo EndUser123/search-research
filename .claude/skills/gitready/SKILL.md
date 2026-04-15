@@ -43,6 +43,7 @@ All packages are polished into resume-worthy GitHub artifacts with badges, cover
 ```bash
 /gitready                  # Full pipeline on current directory
 /gitready <name>           # Scaffold new package
+/gitready --status         # Show phase status (COMPLETED/SKIPPED/PENDING)
 /gitready --dry-run        # Preview without creating
 /gitready --skip <phase>   # Skip specific phase (e.g., --skip media)
 /gitready --check-only     # Analyze without creating
@@ -54,6 +55,7 @@ All packages are polished into resume-worthy GitHub artifacts with badges, cover
 |-----------|--------|
 | `/gitready` | Full pipeline on current directory |
 | `/gitready <name>` | Scaffold new package with full pipeline |
+| `/gitready --status` | Show all phase states for a package (✓ COMPLETED, ⏭ SKIPPED, ○ PENDING) |
 | `/gitready --dry-run` | Preview what will happen |
 | `/gitready --skip media` | Skip NotebookLM media generation |
 | `/gitready --check-only` | Analyze without creating |
@@ -67,11 +69,13 @@ One command runs the full intelligent pipeline:
 3. **GENERATE** (PHASE 2-3) - Create all missing artifacts
 4. **VALIDATE** (PHASE 4) - Verify everything works
 5. **REVIEW** (PHASE 4.5-4.6) - Code review and quality checks
-6. **MEDIA** (PHASE 4.7-4.8) - Optional media and course generation
+6. **MEDIA** (PHASE 4.7-4.8) - Optional media and course generation (track as SKIPPED if auth unavailable)
 7. **POLISH** (PHASE 5) - Portfolio-quality badges, docs
 8. **CLEANUP** (PHASE 8) - Remove obsolete files
 9. **GIT** (PHASE 9) - Initialize repo and commit
 10. **REPORT** (PHASE 10) - Show completion status
+
+**Phase states:** ✓ COMPLETED (done) · ⏭ SKIPPED (conditional — auth missing or flag not provided) · ⏭ N/A (not applicable to this package type)
 
 ## Package Types
 
@@ -153,7 +157,7 @@ Validates all bundled-resource pointers resolve to existing, non-empty files. St
 ```bash
 python resources/phases/track_phases.py {{TARGET_DIR}} --read
 ```
-Reports which phases already completed; skips phases marked `-- COMPLETED`.
+Reports which phases already completed; skips phases marked `-- COMPLETED` or `-- SKIPPED`.
 
 **Steps**:
 1. Check existing structure: `tree {{TARGET_DIR}} -a -L 3`
@@ -188,7 +192,8 @@ Auto-detects package type. Python libraries with `src/` + `pyproject.toml` auto-
 
 **Rollback**: Backup at `.backup/`. To rollback: `cp -r .backup/* . && rm -rf scripts/ .claude-plugin/`
 
-**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 1.6`
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 1.6 --status N/A`
+*(If not brownfield-plugin, this phase is N/A — track as N/A, not SKIPPED)*
 
 ---
 
@@ -239,11 +244,15 @@ Creates directory structure based on detected package type. Claude skills get `s
 
 > READ: `resources/phases/PHASE-3-templates.md`
 
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 3`
+
 ---
 
 ## PHASE 4: Validate (1min)
 
 > See `references/validation-scripts.md` for platform compatibility checks, symlink tests, pytest collect, and tree diff.
+
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 4`
 
 ---
 
@@ -253,17 +262,35 @@ Creates directory structure based on detected package type. Claude skills get `s
 
 Runs code-review plugin (security, performance, maintainability) and meta-review (path traversal, import graph, doc consistency). Critical findings must be fixed before PHASE 5.
 
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 4.5`
+
 ---
 
 ## PHASE 4.7: Media Generation (Auto-invoked)
 
 > READ: `resources/phases/PHASE-4.7-media-gen.md`
+> IMPORTANT: READ `references/notebooklm-integration.md` for auth credentials, valid video styles (NOT "documentary"), file upload workaround, and download commands.
+
+Requires NotebookLM auth. If auth is not available, track as SKIPPED:
+```
+python resources/phases/track_phases.py {{TARGET_DIR}} --write 4.7 --status SKIPPED
+```
+
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 4.7`
 
 ---
 
 ## PHASE 4.8: Interactive Course (Auto-invoked)
 
 > READ: `resources/phases/PHASE-4.8-interactive-course.md`
+> IMPORTANT: The course is built using the 4-pass pipeline in the phase doc — design-system.md and interactive-elements.md are bundled with this skill at `resources/codebase-to-course/`. READ them before generating.
+
+Requires NotebookLM auth. If auth is not available, track as SKIPPED:
+```
+python resources/phases/track_phases.py {{TARGET_DIR}} --write 4.8 --status SKIPPED
+```
+
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 4.8`
 
 ---
 
@@ -275,6 +302,8 @@ Runs code-review plugin (security, performance, maintainability) and meta-review
 - **Architecture flowchart**: GitHub-safe Mermaid in README.md
 - **Video playback**: `docs/video.html` for GitHub Pages
 - **Quick Start**: Installation and usage examples
+
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 5`
 
 ---
 
@@ -298,6 +327,13 @@ Runs code-review plugin (security, performance, maintainability) and meta-review
 python resources/create_github_repo_api.py my-package "Description here"
 ```
 
+If `--publish` flag is not provided, track as SKIPPED:
+```
+python resources/phases/track_phases.py {{TARGET_DIR}} --write 6 --status SKIPPED
+```
+
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 6`
+
 ---
 
 ## PHASE 7: Repository Finalization (Optional)
@@ -306,13 +342,22 @@ python resources/create_github_repo_api.py my-package "Description here"
 
 **Trigger**: `--finalize` flag. Enables GitHub Pages, creates initial release, adds topics/tags, generates CODEOWNERS and SECURITY.md.
 
+If `--finalize` flag is not provided, track as SKIPPED:
+```
+python resources/phases/track_phases.py {{TARGET_DIR}} --write 7 --status SKIPPED
+```
+
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 7`
+
 ---
 
-## PHASE 4.6: Quality Scanning (Optional)
+## PHASE 4.6: Quality Scanning (Auto-invoked)
 
 > See `references/advanced-phases.md` for details and options.
 
-**Trigger**: `--scan-quality` flag. Security scanning (bandit, safety), dependency auditing (pip-audit), badge validation, quality metrics.
+Security scanning (bandit, safety), dependency auditing (pip-audit), badge validation, quality metrics.
+
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 4.6`
 
 ---
 
@@ -320,11 +365,15 @@ python resources/create_github_repo_api.py my-package "Description here"
 
 Detects and reports obsolete files: backup files (`*.backup-*`, `*.old`, `*.bak`), orphaned test files, obsolete documentation, duplicate implementations. Output: `CLEANUP_REPORT.md` with categorized removal commands.
 
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 8`
+
 ---
 
 ## PHASE 9: Git Ready (Auto-invoked)
 
 Initialize git repo (if not already): `git init`, add all files, initial commit, set main branch. Skips if `.git/` exists.
+
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 9`
 
 ---
 
@@ -334,6 +383,8 @@ Initialize git repo (if not already): `git init`, add all files, initial commit,
 **Scoring**: 90-100 (Excellent), 70-89 (Good), 50-69 (Fair), <50 (Poor).
 **Auto-fixes**: Remove TODOs, move plans to `docs/planning/`, bump version.
 **Output**: `RECRUITER_READINESS_REPORT.md`
+
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 10`
 
 ---
 
@@ -345,8 +396,14 @@ Initialize git repo (if not already): `git init`, add all files, initial commit,
 
 Three statuses:
 1. **PUBLIC ON GITHUB** - Live and accessible
-2. **READY FOR GITHUB** - Polished, needs push
-3. **LOCAL ONLY** - Needs polish before GitHub
+2. **READY FOR GITHUB** - Core phases complete; conditional phases (GitHub Publication, Repository Finalization) pending flag authorization
+3. **LOCAL ONLY** - Core phases incomplete or blocked
+
+**Do not claim "no pending work" when conditional phases are SKIPPED.** SKIPPED means the phase was not run because a flag was not provided — it is not settled, it is deferred. Pending flags = outstanding decisions.
+
+**When reporting skipped phases, use full phase names (not numbers). Show N/A separately from SKIPPED:**
+- ⏭ SKIPPED → Media Generation, Interactive Course, GitHub Publication, Repository Finalization (conditional — not run because auth missing or flag not provided; outstanding until flag is added)
+- ⏭ N/A → Brownfield Conversion (not applicable to this package type)
 
 ---
 

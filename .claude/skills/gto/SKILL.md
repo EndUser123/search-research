@@ -12,6 +12,11 @@ triggers:
   - "analyze project state"
 workflow_steps:
   - execute_gto_analysis
+allowed_first_tools:
+  - Bash
+required_first_command_patterns:
+  - '^python\s+P:/.claude/skills/gto/gto_orchestrator\.py(?:\s|$)'
+required_first_command_hint: Run gto_orchestrator.py first to initialize the session analysis workflow.
 ---
 
 # GTO v3.1 - Strategic Next-Step Advisor

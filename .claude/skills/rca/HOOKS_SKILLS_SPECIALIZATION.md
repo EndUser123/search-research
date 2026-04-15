@@ -60,12 +60,14 @@ Where system state is stored:
 - **Usage**: Tier 3 evidence for skill execution claims
 
 ### Hook Registration
+- **Authority**: `P:/.claude/settings.json` is the source of truth for which hooks are actually registered
 - **Location**: `P:/.claude/hooks/{hook-type}/`
 - **Format**: Python files with `*Hook` classes
 - **Metadata**: Hook class attributes define behavior
   - `env_var`: Environment variable for enable/disable
   - `default_enabled`: Boolean
   - `tool_matcher`: Set of tool names to match
+- **Rule**: Do not infer hook absence from `~/.claude/hooks`; inspect the registered commands in `P:/.claude/settings.json` first
 
 ---
 
@@ -178,7 +180,15 @@ Where system state is stored:
 - Check validity: Does proxy accurately reflect observable?
 **Verification**: Replace proxy with direct observable measurement
 
-### 6. Import Path Issues
+### 6. Wrong Hook Root
+**Symptoms**: RCA concludes hooks do not exist or are advisory only because the wrong directory was inspected
+**Diagnosis**:
+- Check registered hooks first: `P:/.claude/settings.json`
+- Confirm implementation path next: `P:/.claude/hooks/`
+- Ignore `~/.claude/hooks` unless the settings file explicitly points there
+**Verification**: The registered command in settings matches the implementation file path you inspected
+
+### 7. Import Path Issues
 **Symptoms**: `ImportError: attempted relative import with no known parent package`
 **Diagnosis**:
 - Check import path: Are you importing from package subdirectory?
@@ -186,7 +196,7 @@ Where system state is stored:
 - **Fix**: Add package parent to sys.path, not subdirectory
 **Verification**: Import succeeds, test passes
 
-### 7. Pytest Hanging
+### 8. Pytest Hanging
 **Symptoms**: pytest test never completes, appears stuck
 **Diagnosis**:
 - Check cleanup: Is test properly cleaning up resources?
@@ -194,7 +204,7 @@ Where system state is stored:
 - Check timeouts: Is test waiting indefinitely?
 **Verification**: All tests complete in reasonable time
 
-### 8. Multi-Terminal Contamination
+### 9. Multi-Terminal Contamination
 **Symptoms**: Test fails when run in parallel with other tests
 **Diagnosis**:
 - Check shared state: Are tests writing to same files?

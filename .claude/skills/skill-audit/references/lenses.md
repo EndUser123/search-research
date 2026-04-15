@@ -1,4 +1,4 @@
-# 13 Lenses for /skill-audit
+# 14 Lenses for /skill-audit
 
 ## Lens 1: Reference Integrity
 
@@ -53,6 +53,9 @@
 - Branch-heavy/routing-heavy skills should enumerate their logical execution and failure paths clearly
 - Multi-role skills should guard against single-responsibility drift
 - User-facing workflow skills should use predictable error/block reasons so enforcement does not look like random failure
+- If the workflow has a deterministic first backend action, require machine-readable first-command contract fields (`allowed_first_tools`, `required_first_command_patterns`, and an optional hint) and verify they match the body examples
+- If the skill exposes command-like modes or subcommands, verify the skill body, frontmatter, and CLI help agree on the canonical command surface
+- If the command surface is documented in prose but only discoverable by probing help output, flag the docs as under-specified and the command contract as incomplete
 
 **Evidence format**:
 ```json
@@ -77,6 +80,7 @@
   - [ ] Has version evidence annotation (e.g., "verified against vX.Y on DATE") tied to actual `--help` output
   - [ ] No verification step = Structural Justification gap: documented as fact, is actually hypothesis
   - Flag as: `STRUCTURAL_JUSTIFICATION: CLI_DOC_UNVERIFIED`
+  - If the skill body and CLI help disagree on the canonical command surface, flag as `STRUCTURAL_JUSTIFICATION: CLI_DOC_DRIFT`
 
 **Evidence format**:
 ```json
@@ -151,10 +155,12 @@
 - Frontmatter `version` vs footer `**Version:**`
 - Frontmatter status/metadata vs body behavior
 - Contradictory authority statements across sections
+- Deterministic workflow ordering in body/examples vs missing machine-readable first-command contract fields in frontmatter
+- Skill body export/mode examples vs CLI help output when the skill presents an external command surface
 
 **Evidence format**:
 ```json
-{"lens": "SKILL_CONTRACT_CONSISTENCY", "status": "DRIFT", "evidence": "Frontmatter says enforcement=advisory but body says '/arch must repair HIGH severity defects before saving'"}
+{"lens": "SKILL_CONTRACT_CONSISTENCY", "status": "DRIFT", "evidence": "Body examples show /chs export, but frontmatter has no required_first_command_patterns and CLI help is the only place the mapping appears"}
 ```
 
 ---
@@ -280,4 +286,34 @@
 **Evidence format**:
 ```json
 {"lens": "NON_GOALS_CLARITY", "status": "MISSING", "evidence": "SKILL.md has no Non-Goals section — scope boundary undefined"}
+```
+
+---
+
+## Lens 14: Cleanup Discipline
+
+**Question**: Does the skill leave package-local runtime, evidence, temp, or cache debris behind?
+
+**Checks**:
+- Search the target skill tree for package-local runtime artifacts:
+  - `.claude/`
+  - `.evidence/`
+  - `.state/`
+  - `.temp/`
+  - `__pycache__/`
+  - `.mypy_cache/`
+  - `.pytest_cache/`
+  - `.ruff_cache/`
+- If any of those directories live under the package tree, flag them as cleanup debt unless the skill is explicitly a cleanup tool that is meant to manage them
+- If the skill needs durable runtime state, the state should be routed to the workspace-level canonical location instead of living under the package tree
+- If cleanup artifacts are intentionally retained, the skill should name the retention/cleanup contract so the debt is explicit rather than incidental
+- For cleanup-heavy repairs, route implementation cleanup to `/skill-ship`; for strategy questions about whether the cleanup contract belongs in the skill at all, route back to `/skill-audit`
+
+**Ownership guidance**:
+- Usually `skill-ship` when the issue is concrete package-local debris that should be removed or relocated
+- `source skill` when the skill's own contract fails to say where runtime artifacts belong
+
+**Evidence format**:
+```json
+{"lens": "CLEANUP_DISCIPLINE", "status": "DIRTY_TREE", "evidence": "Package-local runtime artifacts found under the skill tree: .claude/state/..., .evidence/..., .pytest_cache/...", "owner": "skill-ship"}
 ```

@@ -149,6 +149,8 @@ def mine_chain(
     query: str | None = None,
     max_depth: int = 20,
     use_llm: bool = False,
+    start_session_id: str | None = None,
+    start_transcript_path: str | None = None,
 ) -> dict:
     """Walk the chain and mine it for patterns or LLM-based query.
 
@@ -161,7 +163,12 @@ def mine_chain(
     Returns:
         dict with 'entries', 'chain', 'mine_results' keys
     """
-    chain, origin = get_chain_for_slug(slug, max_depth=max_depth)
+    chain, origin = get_chain_for_slug(
+        slug,
+        max_depth=max_depth,
+        start_session_id=start_session_id,
+        start_transcript_path=start_transcript_path,
+    )
     if not chain:
         return {"slug": slug, "entries": [], "chain": [], "mine_results": {}}
 
@@ -251,12 +258,17 @@ def main() -> int:
     parser.add_argument("--list", action="store_true", help="List available sessions for slug")
     parser.add_argument("--max-depth", type=int, default=20, help="Max chain depth (default: 20)")
     parser.add_argument("--use-llm", action="store_true", help="Use LLM for mining (requires ANTHROPIC_API_KEY)")
+    parser.add_argument(
+        "--transcript-path",
+        default=None,
+        help="Explicit current transcript path anchor (preferred over mtime guessing)",
+    )
     parser.add_argument("--output", default=None, help="Output file for --walk/--mine (default: stdout)")
     parser.add_argument("--json", action="store_true", help="Output JSON for --walk/--mine")
     parser.add_argument(
         "--session-id",
         default=None,
-        help="Start from specific session ID (default: newest session for slug)",
+        help="Explicit Claude session ID anchor (used to resolve transcript path)",
     )
     parser.add_argument("--fts-index", action="store_true", help="Build FTS5 index over chain exports")
     parser.add_argument("--fts-mine", default=None, metavar="QUERY", help="FTS5 query over indexed chain")
@@ -271,7 +283,12 @@ def main() -> int:
 
     # --list
     if args.list:
-        entries, origin = get_chain_for_slug(args.slug, max_depth=args.max_depth)
+        entries, origin = get_chain_for_slug(
+            args.slug,
+            max_depth=args.max_depth,
+            start_session_id=args.session_id,
+            start_transcript_path=args.transcript_path,
+        )
         print(f"Chain for slug '{args.slug}':")
         for e in entries:
             print(f"  {e.session_id}  {e.transcript_path}")
@@ -281,7 +298,12 @@ def main() -> int:
 
     # --walk
     if args.walk:
-        entries, origin = get_chain_for_slug(args.slug, max_depth=args.max_depth)
+        entries, origin = get_chain_for_slug(
+            args.slug,
+            max_depth=args.max_depth,
+            start_session_id=args.session_id,
+            start_transcript_path=args.transcript_path,
+        )
         result = {
             "slug": args.slug,
             "origin_session_id": origin,
@@ -307,6 +329,8 @@ def main() -> int:
             query=args.mine,
             max_depth=args.max_depth,
             use_llm=args.use_llm,
+            start_session_id=args.session_id,
+            start_transcript_path=args.transcript_path,
         )
         output = json.dumps(result, indent=2) if args.json else _format_mine_output(result)
         _write_output(output, args.output)
@@ -314,7 +338,12 @@ def main() -> int:
 
     # --export
     if args.export:
-        entries, origin = get_chain_for_slug(args.slug, max_depth=args.max_depth)
+        entries, origin = get_chain_for_slug(
+            args.slug,
+            max_depth=args.max_depth,
+            start_session_id=args.session_id,
+            start_transcript_path=args.transcript_path,
+        )
         if not entries:
             print("No chain found.")
             return 1

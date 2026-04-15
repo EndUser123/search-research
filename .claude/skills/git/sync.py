@@ -294,8 +294,12 @@ def find_all_git_repos() -> List[RepoInfo]:
 
         repo_path = git_dir.parent
 
-        # Determine repo type based on path
+        # Skip system/administrative paths that are not real repos
         rel_path = str(repo_path.relative_to(MAIN_ROOT))
+        if "$RECYCLE.BIN" in rel_path or "/tmp/" in rel_path or rel_path.startswith("tmp/"):
+            continue
+
+        # Determine repo type based on path
 
         if git_dir == MAIN_REPO_PATH:
             repo_type = RepoType.MAIN

@@ -17,6 +17,13 @@ from UserPromptSubmit.think_trigger import (
     _parse_think,
 )
 
+
+def _context_text(result) -> str:
+    """Return injected text across legacy/new HookResult shapes."""
+    if isinstance(result.context, dict):
+        return result.context.get("additionalContext", "")
+    return result.context or ""
+
 # === _parse_think tests ===
 
 class TestParseThink:
@@ -114,22 +121,21 @@ class TestProfiles:
 
     def test_debug_rca_has_5_whys(self):
         assert "5 Whys" in _PROFILES["debug_rca"]
-        assert "Why #1" in _PROFILES["debug_rca"]
+        assert "symptom -> mechanism -> upstream condition" in _PROFILES["debug_rca"]
 
     def test_tradeoff_has_decision_frame(self):
-        assert "Decision frame" in _PROFILES["tradeoff_decision"]
-        assert "Inversion" in _PROFILES["tradeoff_decision"]
+        assert "Compare 2 options plus the simplest fallback" in _PROFILES["tradeoff_decision"]
+        assert "how to verify it" in _PROFILES["tradeoff_decision"]
 
     def test_architecture_has_cynefin(self):
-        assert "Cynefin" in _PROFILES["architecture"]
-        assert "Chesterton" in _PROFILES["architecture"]
+        assert "Check the domain" in _PROFILES["architecture"]
+        assert "rollback" in _PROFILES["architecture"]
 
     def test_pre_commit_risk_has_time_horizons(self):
         template = _PROFILES["pre_commit_risk"]
-        assert "Immediate" in template
-        assert "Short-term" in template
-        assert "Medium-term" in template
-        assert "Reversibility" in template
+        assert "Assume this fails in 48 hours" in template
+        assert "breakage" in template
+        assert "reversibility" in template
 
 
 # === Auto-detection tests ===
@@ -143,6 +149,17 @@ class TestDetectProfile:
 
     def test_short_prompt_rejected(self):
         assert _detect_profile("bug crash") is None  # < 15 chars
+
+    def test_meta_subject_prompt_uses_quick_not_debug(self):
+        result = _detect_profile(
+            "why did you use /think as the target of /think vs the topic in the chat that was actually the subject?"
+        )
+        assert result == "quick"
+
+    def test_meta_subject_prompt_variants_use_quick(self):
+        assert _detect_profile("what is /think doing here?") == "quick"
+        assert _detect_profile("how should /think interpret the command context?") == "quick"
+        assert _detect_profile("can /think distinguish the topic from the subject?") == "quick"
 
     def test_debug_rca_two_keywords(self):
         result = _detect_profile("the test is flaky and keeps failing intermittently")
@@ -220,14 +237,14 @@ class TestThinkTriggerHook:
         ctx = HookContext(prompt="THINK WHY: test is flaky", data={})
         result = think_trigger(ctx)
         assert not result.is_empty()
-        assert "5 Whys" in result.context
+        assert "5 Whys" in _context_text(result)
 
     def test_think_risk_injects_precommit_template(self):
         from UserPromptSubmit.think_trigger import think_trigger
         ctx = HookContext(prompt="THINK RISK: deploying migration", data={})
         result = think_trigger(ctx)
         assert not result.is_empty()
-        assert "Pre-mortem" in result.context
+        assert "Assume this fails in 48 hours" in _context_text(result)
 
     def test_auto_detect_injects_template(self):
         from UserPromptSubmit.think_trigger import think_trigger
@@ -237,7 +254,7 @@ class TestThinkTriggerHook:
         )
         result = think_trigger(ctx)
         assert not result.is_empty()
-        assert "5 Whys" in result.context
+        assert "5 Whys" in _context_text(result)
 
     def test_explicit_think_still_works(self):
         from UserPromptSubmit.think_trigger import think_trigger
@@ -247,7 +264,7 @@ class TestThinkTriggerHook:
         )
         result = think_trigger(ctx)
         assert not result.is_empty()
-        assert "Pre-mortem" in result.context
+        assert "Assume this fails in 48 hours" in _context_text(result)
 
     def test_auto_detect_tradeoff(self):
         from UserPromptSubmit.think_trigger import think_trigger
@@ -257,4 +274,4 @@ class TestThinkTriggerHook:
         )
         result = think_trigger(ctx)
         assert not result.is_empty()
-        assert "Decision frame" in result.context
+        assert "Compare 2 options plus the simplest fallback" in _context_text(result)

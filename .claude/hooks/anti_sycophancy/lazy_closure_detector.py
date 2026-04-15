@@ -134,6 +134,54 @@ DECLARATION_PATTERNS = [
     r"\bmust\s+(?:update|edit|modify)\s+(?:the\s+)?(?:template|arch/|SKILL\.md)",
 ]
 
+# Explicit debt deferral - "I'll leave that for now" without formal tracking
+# Acceptable only when spawn_task or explicit tracking evidence is present.
+# frozenset + substring: O(1) lookup, no \b false positives on punctuation.
+DEFERRAL_PHRASES = frozenset([
+    "i'll leave that for now",
+    "i'll leave this for now",
+    "i'll leave it for now",
+    "i'll leave that for later",
+    "i'll leave this for later",
+    "leave that for now",
+    "leave this for now",
+    "leave it for now",
+    "leave that for later",
+    "leave this for later",
+    "defer that",
+    "defer this",
+    "defer it",
+    "deferring the fix",
+    "deferring this",
+    "deferring that",
+    "we can address that later",
+    "we can address this later",
+    "we can fix that later",
+    "we can fix this later",
+    "we can handle that later",
+    "we can handle this later",
+    "can be addressed later",
+    "can be fixed later",
+    "can be handled later",
+    "that can wait",
+    "this can wait",
+    "leave this as debt",
+    "leave that as debt",
+    "leave this as technical debt",
+    "leave that as technical debt",
+])
+
+# Tracking markers that make deferral acceptable (debt formally tracked)
+DEFERRAL_TRACKING_MARKERS = frozenset([
+    "spawn_task",
+    "side task",
+    "flagged this",
+    "tracked this",
+    "todowrite",
+    "created a task",
+    "filed as",
+])
+
 # Sycophantic capitulation - agreeing with user challenge without Bash evidence
 # Fires when model says "I see now" / "You're right" after a challenge, then makes
 # a confident claim about external behavior — without running the actual command.
@@ -147,6 +195,23 @@ SYCOPHANCY_CAPITULATION_PHRASES = [
     r"\bYou(?:'re|\s+are)\s+right[,.]",
     r"\bI\s+(?:mis|was\s+mis)understood\b",
     r"\bI\s+(?:was\s+)?wrong\s+about\b",
+]
+
+# Self-referential evasion — hedging about own decisions/reasoning without evidence.
+# Pattern: model treats its own choices as external phenomena, not commitments it made.
+# Scope guard: only flags when tools WERE used — investigation hedging is OK,
+# decision evasion (claiming verified when tools exist) is not.
+# "I investigated X" (no tools) + "but it might still be Y" = OK (investigation caveat)
+# "I verified X" (no tools) + "but Y is also possible" = BLOCK (decision without evidence)
+SELF_REFERENTIAL_EVASION_PATTERNS = [
+    r"\bROOT\s+CAUSE\s+CANDIDATE\b",
+    r"\bhypothes[ei]s\b.*?(?:(?:yet|still|also|may|might|could)\s+)?(?:be|apply|explain)",
+    r"(?:yet|still|also)\s+(?:might|may|could)\s+(?:be|explain|apply)",
+    r"\bhedge[s]?\b",
+    r"\bunverified\b",
+    r"\b(?:this|that)\s+(?:still\s+)?(?:might|may|could)\s+(?:be|require)\b",
+    r"\b(?:competing|ruling\s+out)\s+hypotheses\b",
+    r"\b(?:candidate|hypothesis)\s+(?:for|of|is)\s+\w+\b",
 ]
 
 # Bash-only evidence markers — these appear in actual terminal/Bash output,
@@ -226,6 +291,17 @@ TOOL_USAGE_MARKERS = frozenset(
         "edit(",
         "write(",
         "file changed",
+        # Bash execution indicators — specific command/tool names that are
+        # unambiguous when embedded in text (hard to fake in conversational hedges)
+        "ran csf-source",
+        "executed csf-source",
+        "used csf-source",
+        "ran the sync",
+        "ran yt-is",
+        "executed the command",
+        "used bash",
+        "csf-source sync",
+        "csf-source list",
     ]
 )
 
@@ -240,6 +316,13 @@ _PREMATURE_OFFER = [re.compile(p, re.IGNORECASE) for p in PREMATURE_OFFER_PHRASE
 _USER_DELEGATION = [re.compile(p, re.IGNORECASE) for p in USER_DELEGATION_PHRASES]
 _DECLARATION = [re.compile(p, re.IGNORECASE) for p in DECLARATION_PATTERNS]
 _SYCOPHANCY_CAPITULATION = [re.compile(p, re.IGNORECASE) for p in SYCOPHANCY_CAPITULATION_PHRASES]
+_SELF_REFERENTIAL_EVASION = [re.compile(p, re.IGNORECASE) for p in SELF_REFERENTIAL_EVASION_PATTERNS]
+
+
+def _find_deferral(text_lower: str) -> str | None:
+    """Return the first matched deferral phrase, or None. O(n * |phrases|) worst case
+    but avoids regex backtracking and \b false positives on punctuation."""
+    return next((p for p in DEFERRAL_PHRASES if p in text_lower), None)
 
 
 def _has_evidence_marker(text: str) -> bool:
@@ -258,6 +341,12 @@ def _has_tool_usage_marker(text: str) -> bool:
     """Check if text indicates Edit/Write tools were actually used."""
     text_lower = text.lower()
     return any(marker in text_lower for marker in TOOL_USAGE_MARKERS)
+
+
+def _has_deferral_tracking(text_lower: str) -> bool:
+    """Check if deferral is acceptable because debt is formally tracked (spawn_task called).
+    Expects pre-lowercased input."""
+    return any(marker in text_lower for marker in DEFERRAL_TRACKING_MARKERS)
 
 
 def _has_bash_evidence(text: str) -> bool:
@@ -291,6 +380,21 @@ def detect_lazy_closure(response: str) -> LazyClosureMatch | None:
     # Normalize whitespace for matching
     text = " ".join(response.split())
 
+    # Deferral — "I'll leave that for now" without formal tracking is unacceptable.
+    # Exemption: spawn_task was called (debt formally tracked).
+    text_lower = text.lower()
+    hit = _find_deferral(text_lower)
+    if hit and not _has_deferral_tracking(text_lower):
+        return LazyClosureMatch(
+            matched=hit,
+            pattern_type="deferral",
+            suggestion=(
+                "Untracked debt detected. Either fix it now, or use spawn_task to formally "
+                "track it. 'I'll leave that for now' without tracking creates invisible debt."
+            ),
+            severity="flag",
+        )
+
     # User delegation is checked unconditionally — "I ran bash" earlier in the
     # response doesn't excuse asking the user to fetch information later.
     match = _find_pattern(text, _USER_DELEGATION)
@@ -316,6 +420,26 @@ def detect_lazy_closure(response: str) -> LazyClosureMatch | None:
                 "disagree based on real output."
             ),
             severity="flag",
+        )
+
+    # Self-referential evasion — model treats its own decisions/reasoning as
+    # external phenomena rather than commitments it made.
+    # Scope guard: only flags when tools WERE used — this distinguishes:
+    #   OK:    "I should investigate X" + no tools used = investigation hedge
+    #   BLOCK: "I verified X" + no tools used + "but might still be Y" = decision evasion
+    match = _find_pattern(text, _SELF_REFERENTIAL_EVASION)
+    if match and _has_tool_usage_marker(text):
+        return LazyClosureMatch(
+            matched=match.group(0),
+            pattern_type="self_referential_evasion",
+            suggestion=(
+                "You are hedging about your own reasoning or decisions as if they were "
+                "external phenomena. Either: (1) State what you actually verified or "
+                "decided — 'I did not verify X' or 'I decided Y based on Z' — or "
+                "(2) If you genuinely have not verified something, say so plainly without "
+                "framing it as competing hypotheses or unverified candidates."
+            ),
+            severity="block",
         )
 
     # If evidence or verification markers present, other patterns are acceptable
@@ -413,6 +537,20 @@ def detect_all_lazy_closure(response: str) -> list[LazyClosureMatch]:
     results = []
     text = " ".join(response.split())
 
+    # Deferral — untracked debt is always flagged unless spawn_task was called.
+    text_lower = text.lower()
+    if not _has_deferral_tracking(text_lower):
+        for phrase in DEFERRAL_PHRASES:
+            if phrase in text_lower:
+                results.append(
+                    LazyClosureMatch(
+                        matched=phrase,
+                        pattern_type="deferral",
+                        suggestion="Fix it now or use spawn_task to track it. Untracked debt is invisible.",
+                        severity="flag",
+                    )
+                )
+
     # User delegation runs unconditionally — verification markers elsewhere don't excuse it.
     for pattern in _USER_DELEGATION:
         for match in pattern.finditer(text):
@@ -435,6 +573,24 @@ def detect_all_lazy_closure(response: str) -> list[LazyClosureMatch]:
                         pattern_type="sycophancy_capitulation",
                         suggestion="Run the disputed behavior with Bash before agreeing.",
                         severity="flag",
+                    )
+                )
+
+    # Self-referential evasion — only when tools were used (scope guard)
+    if _has_tool_usage_marker(text):
+        for pattern in _SELF_REFERENTIAL_EVASION:
+            for match in pattern.finditer(text):
+                results.append(
+                    LazyClosureMatch(
+                        matched=match.group(0),
+                        pattern_type="self_referential_evasion",
+                        suggestion=(
+                            "Frame your own reasoning as your commitment, not an external "
+                            "phenomenon. Either state what you verified/didn't verify, or "
+                            "say plainly without hedging phrases like 'candidate' or "
+                            "'hypothesis'."
+                        ),
+                        severity="block",
                     )
                 )
 
@@ -579,5 +735,23 @@ if __name__ == "__main__":
         "Ah, I see. stdout: Models available: 5\nreturncode: 0 — so the command works."
     )
     assert cap_bash2 is None, "sycophancy_capitulation: stdout/returncode should exempt this"
+
+    # Deferral patterns (should detect)
+    d1 = detect_lazy_closure("I'll leave that for now — the script can be updated later.")
+    assert d1 is not None, "deferral: 'I'll leave that for now' should be detected"
+    assert d1.pattern_type == "deferral"
+
+    d2 = detect_lazy_closure("We can address that later when we have more time.")
+    assert d2 is not None, "deferral: 'address that later' should be detected"
+
+    d3 = detect_lazy_closure("Leave that for now, it's lower priority.")
+    assert d3 is not None, "deferral: 'leave that for now' should be detected"
+
+    # Deferral with tracking (should pass)
+    d4 = detect_lazy_closure("I'll leave that for now — I've used spawn_task to track it.")
+    assert d4 is None, "deferral with spawn_task should be exempt"
+
+    d5 = detect_lazy_closure("We can address that later — flagged this as a side task.")
+    assert d5 is None, "deferral with 'flagged this' tracking should be exempt"
 
     print("✅ All tests passed")

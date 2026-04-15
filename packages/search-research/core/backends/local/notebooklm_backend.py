@@ -1,12 +1,20 @@
-"""NotebookLM Search Backend - MCP-based long-form research synthesis.
+"""NotebookLM Search Backend - CLI-based long-form research synthesis.
 
 This backend provides semantic search over NotebookLM notebooks using
-the notebooklm-mcp CLI for authenticated queries.
+the nlm CLI (not MCP) for authenticated queries.
+
+CLI approach is preferred over MCP because:
+- No server process needed
+- Full feature parity
+- Better error messages
+- No module import failures
 """
 
 from __future__ import annotations
 
+import json
 import logging
+import subprocess
 from typing import Any
 
 from ..query_intent import QueryIntent
@@ -18,11 +26,13 @@ logger = logging.getLogger(__name__)
 
 BACKEND_NOTEBOOKLM = "notebooklm"
 
+NLM_TIMEOUT = 30  # seconds per nlm operation
+
 
 class NotebookLMBackend(BaseLocalBackend):
     """Search backend for NotebookLM notebooks.
 
-    Uses the notebooklm-mcp CLI for long-form research synthesis
+    Uses the nlm CLI for long-form research synthesis
     with citation-backed answers from curated notebooks.
     """
 
@@ -46,6 +56,29 @@ class NotebookLMBackend(BaseLocalBackend):
         super().__init__(root_paths, exclude_patterns)
         self.notebook_id = notebook_id
 
+    def _run_nlm(self, args: list[str], timeout: int = NLM_TIMEOUT) -> str | None:
+        """Run nlm CLI and return stdout, or None on failure."""
+        try:
+            result = subprocess.run(
+                ["nlm"] + args,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+            if result.returncode != 0:
+                logger.warning(f"nlm command failed: {result.stderr}")
+                return None
+            return result.stdout
+        except FileNotFoundError:
+            logger.warning("nlm CLI not found in PATH")
+            return None
+        except subprocess.TimeoutExpired:
+            logger.warning(f"nlm command timed out after {timeout}s")
+            return None
+        except Exception as e:
+            logger.warning(f"NotebookLM backend error: {e}")
+            return None
+
     def search(self, query: str, limit: int = 5) -> list[SearchResult]:
         """Search NotebookLM notebooks for the query.
 
@@ -56,34 +89,50 @@ class NotebookLMBackend(BaseLocalBackend):
         Returns:
             List of search results with title, content, url, source
         """
-        try:
-            from mcp__notebooklm_mcp__notebook_list import notebook_list
-            from mcp__notebooklm_mcp__notebook_query import notebook_query
-
-            notebook_id = self.notebook_id
-            if not notebook_id:
-                notebooks = notebook_list()
-                if notebooks.get("notebooks"):
-                    notebook_id = notebooks["notebooks"][0].get("id")
-                else:
+        # Determine which notebook to query
+        notebook_id = self.notebook_id
+        if not notebook_id:
+            # List notebooks and use the first one
+            output = self._run_nlm(["notebook", "list", "--json"])
+            if not output:
+                return []
+            try:
+                notebooks = json.loads(output)
+                if not isinstance(notebooks, list) or not notebooks:
                     logger.warning("No NotebookLM notebooks found")
                     return []
-
-            if not notebook_id:
+                notebook_id = notebooks[0].get("id")
+            except (json.JSONDecodeError, IndexError, KeyError) as e:
+                logger.warning(f"Failed to parse notebook list: {e}")
                 return []
 
-            result = notebook_query(query, notebook_id=notebook_id, max_results=limit)
+        if not notebook_id:
+            return []
 
+        # Query the notebook
+        output = self._run_nlm(
+            ["notebook", "query", notebook_id, query, "--json"],
+            timeout=NLM_TIMEOUT * 2,  # Query can be slower
+        )
+        if not output:
+            return []
+
+        try:
+            data = json.loads(output)
+            # nlm notebook query returns {"value": {"answer": "...", "sources": [...]}}
+            if isinstance(data, dict) and "value" in data:
+                data = data["value"]
+            answer = data.get("answer", "") if isinstance(data, dict) else str(data)
             return [
                 {
                     "title": "NotebookLM Result",
-                    "content": result,
+                    "content": answer,
                     "url": "",
                     "source": "notebooklm",
                 }
             ]
-        except Exception as e:
-            logger.debug(f"NotebookLM backend error: {e}")
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse notebook query response: {e}")
             return []
 
     def supports_intent(self, intent: QueryIntent) -> bool:

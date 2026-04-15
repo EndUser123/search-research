@@ -39,6 +39,23 @@
 - `[transcript-time]` -- Evidence from chat history or prior turns
 - `[inference]` -- Logical derivation from evidence (must be labeled as such)
 
+### Hook Authority
+
+**REQUIRED for any RCA involving hooks, skills, or enforcement behavior**
+
+- **Registered hook authority:** `P:/.claude/settings.json`
+- **Implementation tree:** `P:/.claude/hooks/`
+- **Non-authoritative path:** `~/.claude/hooks`
+
+If the investigation touches hook registration or skill enforcement, the report MUST state:
+
+1. Which settings entry registered the hook
+2. Which implementation file was actually inspected
+3. Whether config and filesystem matched
+4. If they differed, which one was authoritative and why
+
+Do not conclude "no hook exists" or "skill-guard is absent" unless the registered settings entry is missing or points nowhere.
+
 **Reachability Proof**: Before naming a function as root cause:
 1. Grep for call-sites: `grep -r "funcName(" --include="*.py"`
 2. Verify function has callers (not dead code with 0 callers)

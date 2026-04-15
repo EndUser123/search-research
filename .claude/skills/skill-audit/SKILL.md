@@ -16,7 +16,7 @@ depends_on_skills: []
 workflow_steps:
   - step_classify: Classify audit mode (target-quality, transfer/reuse, merge/remove, implementation-readiness)
   - step_discover: Discover skill files, references, and cross-skill links
-  - step_lenses: Apply all 13 lenses to the target skill
+  - step_lenses: Apply all 14 lenses to the target skill
   - step_mine: Mine session transcript for improvement signals (repeated failure patterns)
   - step_output: Emit outcome summary, gap table, improvement plan, and improvement signals
 ---
@@ -33,8 +33,11 @@ Audits whether a skill is the right skill in the right shape for the goal. Singl
 - skill-to-goal fit and outcome quality
 - enforcement ownership and policy placement
 - SKILL.md contract integrity and internal consistency
+- machine-readable command contracts for deterministic first actions
+- docs/CLI parity when the skill documents external tool interfaces
 - mechanism leakage in policy text
 - multi-terminal isolation, stale-data immunity, and compact resilience
+- cleanup hygiene for package-local runtime artifacts and cache directories
 - cognitive/reasoning hook fit and ownership
 - process enforcement model (prompt, hook, code, or hybrid)
 - ACEF-style command discipline (input gates, path enumeration, standardized errors, single responsibility)
@@ -43,6 +46,8 @@ Audits whether a skill is the right skill in the right shape for the goal. Singl
 - model variance risk
 - contract primitive completeness
 - Internal skill-contract consistency
+- command contract completeness
+- CLI documentation drift
 - Out-of-scope clarity
 
 `/skill-audit` should answer questions like:
@@ -50,6 +55,8 @@ Audits whether a skill is the right skill in the right shape for the goal. Singl
 - Is the trigger/scope boundary correct?
 - Is the enforcement model in the right place?
 - Is the skill over-specified, under-specified, or split incorrectly?
+- Does this skill declare machine-readable first-command contracts anywhere the workflow has a deterministic first backend action?
+- Do the body, frontmatter, and CLI help agree on the canonical command surface, or is there hidden command drift?
 - Does the resulting user outcome match the intended goal?
 
 It should not stop at "here are the findings." It should make the next decision easier:
@@ -290,7 +297,7 @@ If the request mixes modes, say so briefly and prioritize the mode that makes th
 
 ## Lenses
 
-See `references/lenses.md` for full lens definitions. Thirteen lenses:
+See `references/lenses.md` for full lens definitions. Fourteen lenses:
 
 1. **Reference Integrity** — does what SKILL.md promises to exist actually exist?
 2. **Process Enforcement** — are workflow steps backed by actual Python code?
@@ -305,6 +312,7 @@ See `references/lenses.md` for full lens definitions. Thirteen lenses:
 11. **Operational Resilience** — is the skill multi-terminal safe, stale-data-aware, compact-resilient, and deliberate about cognitive hooks?
 12. **Assurance Strategy** — does the skill use the right critique-agent and smoke-test contracts for its job?
 13. **Non-Goals Clarity** — is scope explicitly defined?
+14. **Cleanup Discipline** — does the skill leave package-local runtime, evidence, temp, or cache debris behind?
 
 ## Boundary With /skill-ship
 
@@ -346,6 +354,8 @@ Before finalizing an audit on a strategy-heavy target, `/skill-audit` should ask
 - What would a weaker or faster model most likely misunderstand here?
 - Which decisions are still implicit but materially affect downstream execution?
 - What does this skill claim to guarantee that it does not yet enforce?
+- What workflow has a deterministic first backend action but no machine-readable first-command contract yet?
+- Where do the docs, examples, and CLI help disagree about the canonical command surface?
 - What part of this skill would still drift if the docs stayed right but the validator stayed unchanged?
 - Am I evaluating the target itself, or evaluating what should be learned from it?
 - Is this really a target-quality audit, or is it transfer/reuse analysis in disguise?
@@ -433,8 +443,8 @@ When useful, emit a structured lesson artifact using the schema in `references/l
 
 ## Implementation
 
-- **No phases** — single pass through all 13 lenses
-- **No policy routing** — always runs all 13 lenses
+- **No phases** — single pass through all 14 lenses
+- **No policy routing** — always runs all 14 lenses
   - **Bounded critique subagents when warranted** — default to direct file glob/read/search, but use a narrowly scoped critique pass for strategic, routing, transfer, or high-blast-radius audits
 - **Structured spec parsing** — parse frontmatter/body/footer before applying lenses
 - **Docs-first aware** — treat `SKILL.md` as a first-class contract artifact, not just Python backing
@@ -450,9 +460,30 @@ skill-audit/
 ├── audit.py             # Router + glob/read/search + LLM synthesis
 ├── validate.py          # Basic shape validation (pre-audit check)
 ├── references/
-│   ├── lenses.md        # 11 lenses verbatim
+│   ├── lenses.md        # 14 lenses verbatim
 │   ├── learning-loop.md # Transcript mining + lesson artifact schema
 │   └── examples.md     # Sample audits
 └── tests/
     └── test_audit.py    # Regression coverage for all lens classes
 ```
+
+## Recommended Next Steps (RNS)
+
+After each audit, present next steps in RNS format:
+
+```
+🛠️ SKILL
+  SKILL-001 [~5min] Fix contract conflict in /yt-is list output (SKILL.md:64-71)
+  SKILL-002 [~2min] Add lc to backend legend (P:/packages/yt-is/csf/display.py:113)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+0 — Do ALL Recommended Next Actions (2 items, ~7min total)
+```
+
+**Format rules:**
+- Dynamic domain grouping — only domains with findings appear
+- Flat globally-numbered items per domain (SKILL-001, not 1.1)
+- Effort in `[~Nmin]` per item
+- 0 — Do ALL as last option
+- No code fences around the RNS output

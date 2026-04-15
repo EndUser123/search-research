@@ -53,3 +53,5 @@ echo "$state" | jq '.complete'
 # 4. Update state to complete
 echo "$state" | jq '.complete = true' > ~/.claude/state/rca/rca_workflow.json
 ```
+
+**Do not** infer hook registration from `~/.claude/hooks` when investigating `/rca`. Hook registration authority lives in `P:/.claude/settings.json`; this workflow file is only about RCA session state.

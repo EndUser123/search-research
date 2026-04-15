@@ -461,6 +461,20 @@ class TestInProcessIntegration:
         content = ueea_path.read_text()
         assert "def run(" in content, "Should have run() function for in-process protocol"
 
+    def test_unified_claim_verifier_registered_in_stop_router(self):
+        """
+        Test that unified_claim_verifier.py is part of the live Stop sequence.
+
+        Given: The unified verifier is meant to be the active general claim gate
+        When: Checking Stop_router HOOK_SEQUENCE
+        Then: The verifier should be present and enabled for in-process dispatch
+        """
+        import Stop_router  # type: ignore
+
+        hook_names = [hook[0] for hook in Stop_router.HOOK_SEQUENCE]
+        assert "unified_claim_verifier.py" in hook_names
+        assert "unified_claim_verifier.py" in Stop_router.ACTIVE_RUNTIME_HOOKS
+
     def test_inprocess_enabled_flag_exists(self):
         """
         Test that INPROCESS_HOOK_DISPATCH_ENABLED flag exists.

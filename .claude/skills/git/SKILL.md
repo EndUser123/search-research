@@ -8,6 +8,11 @@ workflow_steps:
   - discover_repos
   - commit_changes
   - push_to_remote
+allowed_first_tools:
+  - Bash
+required_first_command_patterns:
+  - '^python\s+P:/.claude/skills/git/sync\.py(?:\s|$)'
+required_first_command_hint: Run sync.py first to discover repos and establish the sync plan.
 description: Git sync with multi-repo discovery, dependency-first commit ordering, auto-push for all repos, worktree management, and smart conflict resolution.
 triggers:
   - /git

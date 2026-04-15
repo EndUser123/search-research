@@ -1,13 +1,14 @@
-"""Auto-scaffolded test for miner."""
+from __future__ import annotations
 
-import pytest
-from miner import miner
+import sys
+from pathlib import Path
+
+PACKAGE_ROOT = Path(__file__).resolve().parents[1]
+if str(PACKAGE_ROOT) not in sys.path:
+    sys.path.insert(0, str(PACKAGE_ROOT))
+
+from scripts import miner
 
 
-def test_miner_exists():
-    """Smoke test: miner can be imported."""
+def test_miner_imports() -> None:
     assert miner is not None
-
-
-# TODO: Add more tests based on actual functionality
-# Run: pytest tests/test_miner.py -v

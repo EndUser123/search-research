@@ -18,6 +18,11 @@ workflow_steps:
   - channel_selection: Optionally specify --channel URL for specific channel
   - execute_extraction: Run with --run to extract transcripts via Selenium Firefox
   - fallback_handling: Selenium is slower (15-30s/video) but bypasses TLS bot detection
+allowed_first_tools:
+  - Bash
+required_first_command_patterns:
+  - '^python\s+-m\s+csf\.csf_selenium(?:\s|$)'
+required_first_command_hint: Start with python -m csf.csf_selenium to validate the pending queue before extraction.
 enforcement: advisory
 ---
 

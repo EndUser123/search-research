@@ -6,6 +6,15 @@ status: "stable"
 category: analysis
 triggers:
   - /pre-mortem
+workflow_steps:
+  - Capture work input
+  - Initialize file-based session
+  - Launch Phase 1 (triage + specialist dispatch)
+  - Launch Phase 2 (cross-agent meta-critique)
+  - Launch Phase 3 (synthesis)
+  - Deliver final output in RNS format
+  - Log skill coverage
+  - Execute "0 — Do ALL" directive
 suggest:
 enforcement: advisory
 parallel_agents: true
@@ -201,9 +210,9 @@ Write final critique to: P:/{session_dir}/p3.md
 Output ONLY the path P:/{session_dir}/p3.md
 ```
 
-### Step 6: Deliver Final Output
+### Step 6: Deliver Final Output — RNS Format
 
-Read `P:/{session_dir}/p3.md` and present it as the final output.
+Read `P:/{session_dir}/p3.md` and present it as the final output **reformatted as RNS**.
 
 After presenting, log the skill coverage:
 
@@ -280,16 +289,30 @@ For contract-heavy reviews, this section must explicitly call out:
 ...
 
 ## Recommended Next Steps
-[Sorted by severity across all sections]
 
-1. [HIGH] Fix specific thing
-2. [MEDIUM] Address specific thing
-...
+Organize by domain using the 7 sections as domains. Severity is implied by domain order (domain 1 = most critical). Within each domain, sort sub-items by severity: CRITICAL > HIGH > MEDIUM > LOW.
 
-**When you respond "0", the skill will begin implementing these fixes — starting with HIGH items and working through each cluster. This is an execution directive, not a display request.**
+**Format — RNS / GTO v2 compatible:**
 
-0 — Begin Implementing ALL Recommended Next Steps
 ```
+1 (DOMAIN) - Brief domain description
+  1a: Action → Manual - context (file:line)
+  1b: Action → Use /skill - context
+
+2 (DOMAIN) - Brief domain description
+  2a: Action → Manual - context
+
+0 — Do ALL Recommended Next Steps
+```
+
+**Requirements:**
+- Domain headers: `1 (DOMAIN) - description` format
+- Sub-items: `1a:`, `1b:`, `2a:`, etc.
+- Action format: `- 1a: Action → Manual - context` or `- 1a: Action → Use /skill - context`
+- Terminator: `0 — Do ALL Recommended Next Steps`
+- No severity tags in sub-items (severity is implied by domain ordering)
+
+**When you respond "0", the skill will begin implementing these fixes — starting with domain 1 items and working through each cluster. This is an execution directive, not a display request.**
 
 ## Handling "0 — Do ALL" (Step 8)
 
@@ -304,17 +327,17 @@ From work.md, determine what was reviewed:
 - If a plan was reviewed, the target is the plan file referenced
 - If a module was reviewed, the target is that module's path
 
-**Step 8c: Execute HIGH severity items first**
+**Step 8c: Execute domain 1 items first, then domain 2, etc.**
 
-Start with all [HIGH] items. For each:
+Start with all items in domain 1. For each:
 1. Read the relevant source file
 2. Make the minimal fix
 3. If tests exist, run them
 4. Verify the fix
 
-**Step 8d: Continue through MEDIUM items**
+**Step 8d: Continue through subsequent domains**
 
-After all HIGH items complete, proceed through MEDIUM items.
+After all domain 1 items complete, proceed through domain 2, etc.
 
 **Step 8e: Report per-item status**
 

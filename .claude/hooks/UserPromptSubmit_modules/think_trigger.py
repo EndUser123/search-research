@@ -86,6 +86,59 @@ def _stem(root: str, suffixes: str = "ed|ing|s|es") -> str:
     return re.escape(root) + r"(?:" + suffixes + r")?"
 
 
+# Self-referential prompt patterns: questions about the model's own reasoning/decisions.
+# These should NOT trigger debug_rca — the model knows its own mind, it's not an external bug.
+_SELF_REFERENTIAL_PROMPT_RE = re.compile(
+    r"(?i)^\s*(?:"
+    r"why\s+(?:did\s+you|does\s+(?:the\s+)?model|is|did|are|do)\s+|"
+    r"what\s+(?:did\s+you|does\s+(?:the\s+)?model|did)\s+|"
+    r"how\s+(?:did\s+you|does\s+(?:the\s+)?model)\s+|"
+    r"explain\s+your\s+|"
+    r"(?:are\s+you\s+)?sure\s+(?:why|that\s+I|what\s+I)|"
+    r"(?:are\s+you\s+)?certain\s+(?:why|that\s+I)|"
+    r"did\s+you\s+(?:know|understand|realize|mean)\s+|"
+    r"can\s+you\s+explain\s+your\s+"
+    r")",
+    re.MULTILINE,
+)
+
+# Meta-prompts about the /think mechanism itself, rather than the user's substantive topic.
+# These should fall back to quick triage instead of being reinterpreted as debugging or RCA.
+_META_THINK_CONTEXT_RE = re.compile(
+    r"(?i)\b(?:subject|topic|context|command|tool|skill|mechanism|invocation|target|prompt|mode|reasoning)\b"
+)
+_META_THINK_DIRECT_RE = re.compile(
+    r"(?i)\b(?:why|what|how|when|where|should|did|does|is|are|can|would)\b.*?/think\b|/think\b.*?\b(?:why|what|how|when|where|should|did|does|is|are|can|would)\b"
+)
+_THINK_COMMAND_MENTION_RE = re.compile(r"(?i)(?:^|[\s`'\"(])/(?:think)\b")
+
+
+def _is_self_referential_prompt(prompt: str) -> bool:
+    """Detect prompts that ask the model to explain its own prior decisions/reasoning.
+
+    These are not external investigations — the model has direct access to its own
+    reasoning chain. Applying debug_rca's [UNVERIFIED] framing to self-knowledge is
+    epistemically wrong and produces the verbose hedging observed in the transcript.
+    """
+    return bool(_SELF_REFERENTIAL_PROMPT_RE.search(prompt))
+
+
+def _is_meta_think_prompt(prompt: str) -> bool:
+    """Detect prompts that are about the /think mechanism instead of the real subject.
+
+    The goal is to keep `/think` focused on the user's substantive question while
+    still allowing explicit `/think ...` commands to resolve normally.
+    """
+    prompt_clean = _CODE_SPAN_RE.sub("", prompt)
+    if not _THINK_COMMAND_MENTION_RE.search(prompt_clean):
+        return False
+
+    if _META_THINK_DIRECT_RE.search(prompt_clean):
+        return True
+
+    return bool(_META_THINK_CONTEXT_RE.search(prompt_clean))
+
+
 # Strong keywords: unambiguous signals, 1 match is enough.
 # Each entry is a raw regex pattern with word boundaries added at compile time.
 _PROFILE_DEFINITIONS: dict[str, ThinkProfile] = {
@@ -535,6 +588,17 @@ def _detect_profile(
     if shared_profile is not None:
         return shared_profile
 
+    # Self-referential prompt guard: questions about the model's own prior decisions
+    # should NOT trigger debug_rca (which forces [UNVERIFIED] labeling on self-knowledge).
+    # The model knows its own reasoning — it is not an external phenomenon requiring 5-Whys.
+    if _is_self_referential_prompt(prompt):
+        return "quick"
+
+    # Meta prompts about the /think mechanism itself should not be reinterpreted as
+    # debugging or root-cause analysis of the command name.
+    if _is_meta_think_prompt(prompt):
+        return "quick"
+
     # Strip code spans so `handle_error()` doesn't count as "error"
     prompt_clean = _CODE_SPAN_RE.sub("", prompt).lower()
 
@@ -677,6 +741,7 @@ def _build_think_alignment_block(
 
     lines = [
         "THINK ALIGNMENT:",
+        "- Infer the subject from the user's actual request and surrounding conversation; the /think command only selects a reasoning mode.",
         "- Label material claims as Verified / Inferred / Unproven.",
         "- If the answer depends on repo state, tests, or runtime behavior, keep it Unproven until checked.",
         "- Name the primary reasoning frame and the fallback frame when more than one applies.",

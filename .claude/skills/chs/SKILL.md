@@ -18,6 +18,7 @@ do_not:
   - duplicate /search functionality - use this for chat-specific workflows
   - load full conversations into context unnecessarily
   - skip the two-stage search architecture
+  - probe CLI help for export when the export mapping is already documented
 ---
 
 # Chat History Search (/chs)
@@ -226,7 +227,37 @@ Metrics and insights about chat history.
 - Branch distribution
 - Time-based patterns (hourly, daily activity)
 
-### 7. Branch-Based Filtering
+### 7. Session Chain Export
+
+When the user asks for `export`, interpret it as a full session-chain export, not a search-result export.
+
+**Exact CLI mapping:**
+
+```bash
+python P:/packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id <session-id> --output <path>
+```
+
+**Behavior:**
+- `--export` writes the full linked session chain to a markdown file
+- `--session-id` is optional; if omitted, the current session is used
+- `--output` is optional; if omitted, the CLI writes to `~/.claude/exports/chain_<timestamp>.md`
+- `--exclude-thinking` removes thinking blocks from the export
+- `--include-tool-results` keeps raw tool results in the export
+
+**Examples:**
+
+```bash
+# Export the current session chain
+python P:/packages/search-research/skills/chs/scripts/chs_cli.py --export
+
+# Export a specific session chain
+python P:/packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id abc123
+
+# Export to a specific file
+python P:/packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id abc123 --output P:/tmp/chs-export.md
+```
+
+### 8. Branch-Based Filtering
 
 Search conversations by git branch.
 
@@ -322,9 +353,14 @@ Search conversations by git branch.
 # Rebuild index
 /chs --reindex                        # Rebuild search index
 
-# Export
+# Query export
 /chs "query" --output results.json    # Save to file
 /chs "query" --clipboard              # Copy to clipboard
+
+# Session chain export
+/chs export                           # Export full session chain
+/chs export --session-id abc123       # Export specific session chain
+/chs export --output P:/tmp/out.md    # Write export to a specific file
 ```
 
 ## Configuration

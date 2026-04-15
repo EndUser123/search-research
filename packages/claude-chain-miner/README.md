@@ -23,6 +23,9 @@ pip install -e .
 # Walk and print the chain
 claude-chain-mine --walk --slug P--
 
+# Walk from a deterministic Claude session anchor
+claude-chain-mine --walk --slug P-- --session-id <uuid> --transcript-path <path>
+
 # Export all sessions in the chain
 claude-chain-mine --export --slug P--
 
@@ -68,6 +71,8 @@ scripts/
 - **Self-match fix**: Detects and breaks loops from the `prior_transcript_path=N/A` bug
 - **Terminal-safe**: Slug derived from cwd ensures isolation across terminals
 - **Dual-path search**: Handles both `P:/.claude/state/handoff/` and `~/.claude/state/handoff/`
+- **Deterministic anchors**: Accepts explicit `session_id` and `transcript_path` when Claude Code provides them
+- **Robust fallback chain**: Uses transcript-path env vars, session-id env vars, then `sessions.json` before mtime guessing
 - **chscli integration**: Reuses chs_cli.py's file-history-snapshot parser instead of reinventing it
 
 ## Test Data

@@ -170,6 +170,7 @@ Total boost: +25%
    - **Bucket 2 (State)**: Session state, intent files, workflow state
    - **Bucket 3 (Outcome)**: Skill invocations, transcript events
    - **Bucket 4 (Hook Events)**: events.db constitutional_events filtered by symptom keyword
+   - **Bucket 0 (Authority)**: `P:/.claude/settings.json` when the symptom involves hook registration or enforcement
 
 **Why this matters:**
 - Telemetry is Tier 1 evidence (highest confidence) — logs don't lie
@@ -180,6 +181,8 @@ Total boost: +25%
 - Session state reveals whether hooks fired, whether state was written
 
 **Evidence tier:** Direct log access = Tier 1 (95%). If telemetry unavailable, note: "Telemetry unavailable — proceeding with code analysis (Tier 3)."
+
+**Hook-specific rule:** If the RCA is about hooks, skill enforcement, or hook registration, inspect `P:/.claude/settings.json` before drawing any conclusion from directory listings. The registered hook commands in settings are the authority; `P:/.claude/hooks/` is only the implementation tree.
 
 ### Step 1.6: Check Learned Patterns (AUTO-LEARNING)
 

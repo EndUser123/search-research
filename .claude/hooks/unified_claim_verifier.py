@@ -12,8 +12,10 @@ Single source of truth for Stop-time claim verification:
 Principle enforced: "Never assert the result of an action you didn't take."
 """
 
+import json
 import os
 import re
+import sys
 from typing import Any
 
 from __lib.shared_helpers import is_question, strip_non_claim_lines
@@ -838,3 +840,93 @@ def evaluate_claims(response_text: str, tools_used: list[str] | None = None, ses
         "claim_details": claim_details,
         "evidence_entities": sorted(list(evidence_entities))[:100],
     }
+
+
+def _extract_user_entities(prompt_text: str) -> set[str]:
+    """Extract entities from the user's prompt so we do not treat user-provided
+    identifiers as novel assistant claims.
+
+    This is intentionally conservative: it only subtracts entities the prompt
+    clearly names, and it never blocks on its own.
+    """
+    if not prompt_text or not isinstance(prompt_text, str):
+        return set()
+    return _extract_entities(prompt_text)
+
+
+def run(data: dict[str, Any]) -> dict[str, Any]:
+    """In-process entry point used by Stop_router.
+
+    The router passes the Stop payload as a dict. This adapter normalizes the
+    fields expected by evaluate_claims() and returns the same decision schema.
+    """
+    if not isinstance(data, dict):
+        return {"decision": "allow", "reason": "INVALID_INPUT"}
+
+    response_text = str(
+        data.get("response")
+        or data.get("assistant_response")
+        or data.get("last_assistant_message")
+        or ""
+    )
+    if not response_text.strip():
+        return {
+            "decision": "warn",
+            "reason": "MISSING_RESPONSE",
+            "systemMessage": "Unified claim verifier received no response text.",
+        }
+
+    prompt_text = str(data.get("prompt") or data.get("user_prompt") or "")
+    tool_events = data.get("tool_events")
+    tool_sequence = tool_events if isinstance(tool_events, list) else None
+
+    tools_used = data.get("tools_used")
+    tools_list = [str(tool) for tool in tools_used if str(tool).strip()] if isinstance(tools_used, list) else None
+
+    extracted_claims = data.get("extracted_claims")
+    if not isinstance(extracted_claims, list):
+        extracted_claims = None
+
+    user_entities = _extract_user_entities(prompt_text)
+    session_id = str(data.get("session_id") or data.get("conversation_id") or "")
+    terminal_id = str(data.get("terminal_id") or data.get("terminalId") or "")
+
+    return evaluate_claims(
+        response_text=response_text,
+        tools_used=tools_list,
+        session_id=session_id,
+        terminal_id=terminal_id,
+        tool_sequence=tool_sequence,
+        user_entities=user_entities,
+        extracted_claims=extracted_claims,
+    )
+
+
+def main() -> int:
+    """CLI fallback for subprocess execution and manual debugging."""
+    raw = sys.stdin.read().strip()
+    if not raw:
+        print(json.dumps({"decision": "allow", "reason": "EMPTY_INPUT"}))
+        return 0
+
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        print(
+            json.dumps(
+                {
+                    "decision": "warn",
+                    "reason": "INVALID_JSON",
+                    "systemMessage": f"Unified claim verifier could not parse input: {exc}",
+                }
+            )
+        )
+        return 0
+
+    result = run(payload if isinstance(payload, dict) else {})
+    print(json.dumps(result))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

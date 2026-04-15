@@ -280,6 +280,7 @@ OBSERVATION_TOOL_NAMES = frozenset(
 HOOK_SEQUENCE = [
     ("speculation_gate.py", "SPECULATION_GATE_ENABLED", False, "inprocess"),
     ("empirical_claims_gate.py", "EMPIRICAL_CLAIMS_GATE_ENABLED", True, "inprocess"),
+    ("unified_claim_verifier.py", "UNIFIED_CLAIM_VERIFIER_ENABLED", True, "inprocess"),
     ("assumption_audit_v2.py", "ASSUMPTION_AUDIT_V2_ENABLED", False, "inprocess"),
     ("stop_success_validator.py", "STOP_SUCCESS_VALIDATOR_ENABLED", False, "inprocess"),
     ("StopHook_cross_validator.py", "STOP_CROSS_VALIDATOR_ENABLED", False, "inprocess"),
@@ -373,6 +374,7 @@ HOOK_DISPATCH = {
 ACTIVE_RUNTIME_HOOKS = frozenset(
     {
         "empirical_claims_gate.py",
+        "unified_claim_verifier.py",
         "StopHook_skill_execution_gate.py",
         "StopHook_behavioral_quality_gate.py",
         "StopHook_overconfidence_detector.py",

@@ -59,6 +59,11 @@ class TestDetectProfileUnified:
         result = _detect_profile("bug")
         assert result is None
 
+    def test_meta_subject_prompt_uses_quick(self):
+        """Meta-prompts about /think should fall back to quick triage."""
+        result = _detect_profile("what is /think doing here?")
+        assert result == "quick"
+
     def test_debug_rca_detection(self):
         """Debug RCA profile should match debugging prompts."""
         result = _detect_profile("the test is flaky and keeps failing intermittently")
@@ -103,6 +108,16 @@ class TestThinkTriggerHookIntegration:
         ctx = HookContext(prompt="just fix the bug", data={})
         result = think_trigger(ctx)
         assert result.is_empty()
+
+    def test_meta_subject_prompt_returns_quick(self):
+        """Meta-prompts about /think should not trigger diagnostic scaffolds."""
+        ctx = HookContext(prompt="can /think distinguish the topic from the subject?", data={})
+        result = think_trigger(ctx)
+        text = _context_text(result)
+
+        assert not result.is_empty()
+        assert "[THINK:quick]" in text
+        assert "QUICK TRIAGE" in text
 
     def test_debug_rca_injects_template_with_tag(self):
         """Debug RCA should inject template with [THINK:debug_rca] tag."""

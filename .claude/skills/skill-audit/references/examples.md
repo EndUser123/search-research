@@ -167,3 +167,47 @@ Why this is the right pattern:
 - The user asked for a **new artifact**, not a verdict on `/skill-audit`.
 - Audit can constrain the build, but it should not substitute for the build.
 - Ambiguous shorthand like "the skill" should anchor to the most recent explicit external target (`/ai-gemini`), not to `/skill-audit` itself.
+
+---
+
+## Example 6: `/chs export` Command Drift
+
+User question:
+
+`Why did /chs export probe CLI help instead of just using the documented export path?`
+
+Correct framing:
+
+- This is a **target-quality audit** of `/chs`.
+- The skill has a deterministic first command surface for export, but the contract was only discoverable by probing help output.
+- The audit should flag both missing machine-readable command contracts and docs/CLI drift.
+
+Useful output shape:
+
+````
+Outcome Summary
+- verdict: RIGHT IDEA, WRONG CONTRACT
+- rationale: `/chs` has a real export mode, but the command surface is split across prose, help text, and body examples instead of being encoded as a machine-readable contract.
+- next moves:
+  - add `allowed_first_tools`, `required_first_command_patterns`, and `required_first_command_hint` to the target skill
+  - align SKILL.md export examples with CLI help output
+  - verify the export mode in the skill body, frontmatter, and CLI help all describe the same canonical command surface
+
+Gap Table
+| Lens | Gap | Evidence | Owner | Priority |
+|------|-----|----------|-------|----------|
+| COMMAND_DISCIPLINE | missing first-command contract for export path | workflow has a deterministic export entrypoint, but only prose examples and CLI probing reveal it | source skill | HIGH |
+| STRUCTURAL_JUSTIFICATION | CLI_DOC_DRIFT | body says `/chs export`, frontmatter lacks required_first_command_patterns, help text is the only place the mapping is explicit | source skill | HIGH |
+| SKILL_CONTRACT_CONSISTENCY | command contract drift | body examples, frontmatter, and CLI help do not yet present the same canonical export surface | source skill | HIGH |
+
+Improvement Plan
+1. **COMMAND_DISCIPLINE** (HIGH): Add machine-readable command contract fields for the export workflow.
+2. **STRUCTURAL_JUSTIFICATION** (HIGH): Update skill docs so export mapping is explicit before any help probing is needed.
+3. **SKILL_CONTRACT_CONSISTENCY** (HIGH): Make body examples, frontmatter, and CLI help agree on `/chs export` vs query export.
+````
+
+Why this is the right pattern:
+
+- The skill already has the functionality, so the failure is contract shape, not feature absence.
+- A good audit should name the exact missing contract fields, not just say "docs are unclear."
+- CLI-driven skills are especially vulnerable to drift unless command contracts are machine-readable and parity-checked.

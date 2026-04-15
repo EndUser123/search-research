@@ -96,6 +96,9 @@ enforcement: none
 | `workflow_steps` | list | ✅ | Required workflow steps for this skill |
 | `enforcement` | string | ✅ | `strict`, `advisory`, or `none` |
 | `effort` | string | No | Optional reasoning depth override: `low`, `medium`, `high`, or `max` |
+| `allowed_first_tools` | list | No | Allowed tool types for the first executable action when the workflow has a deterministic start |
+| `required_first_command_patterns` | list | No | Regex patterns for the first backend command when ordering matters |
+| `required_first_command_hint` | string | No | Short human-readable reminder for the required first command |
 | `status` | string | No | Optional metadata only; do not add unless local tooling or repo conventions actually use it |
 
 ## Effort (OPTIONAL)
@@ -121,6 +124,49 @@ effort: high
 **Use `high` when:**
 - The skill does RCA, architecture, policy, routing, safety, or cross-boundary reasoning
 - Missed nuance would create expensive downstream mistakes
+
+## Command Contract Fields (OPTIONAL)
+
+Use these when a workflow has a deterministic first backend action or when command ordering must be machine-readable.
+
+### `allowed_first_tools`
+
+List the tool types allowed for the first executable action.
+
+```yaml
+allowed_first_tools:
+  - Bash
+```
+
+Use when:
+- the first action is always a concrete command or script invocation
+- you want the validator to fail closed before later tools run out of order
+
+### `required_first_command_patterns`
+
+Regex patterns for the canonical first backend command.
+
+```yaml
+required_first_command_patterns:
+  - '^csf-source\\s+sync(?:\\s|$)'
+```
+
+Use when:
+- the workflow has a stable first backend command
+- the skill body contains command ordering rules that should be enforced mechanically
+- the skill docs need to stop relying on prose-only sequencing
+
+### `required_first_command_hint`
+
+Short human-readable reminder for the required first command.
+
+```yaml
+required_first_command_hint: Use `csf-source sync` first, then list or fetch as needed.
+```
+
+Use when:
+- the first-command contract may be violated by model variance
+- you want the hook or validator to show a useful remediation hint
 
 **Use `max` when:**
 - The work is unusually ambiguous and high-stakes

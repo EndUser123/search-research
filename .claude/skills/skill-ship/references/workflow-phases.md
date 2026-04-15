@@ -401,8 +401,17 @@ Before beginning Phase 2, verify ONE of the following:
    - **High freedom** (text-based instructions): Multiple approaches valid, decisions depend on context
    - **Medium freedom** (pseudocode/scripts with parameters): Preferred pattern exists, some variation acceptable
    - **Low freedom** (specific scripts, few parameters): Operations fragile, consistency critical
-3. Apply progressive disclosure pattern (keep under 500 lines)
-4. Choose appropriate output format template from display_templates.md:
+3. **Encode command contracts when the workflow has a deterministic first backend action**:
+   - Add `allowed_first_tools`
+   - Add `required_first_command_patterns`
+   - Add `required_first_command_hint` when a reminder will reduce variance
+   - Anchor the regex to the canonical backend command, not to a generic tool family
+4. **Close docs/CLI parity when the skill exposes an external command surface**:
+   - Ensure SKILL.md examples, CLI help text, and command-line examples name the same canonical mode/flag
+   - Distinguish query export vs session export when both exist
+   - If the command surface must be verified from `--help`, record that verification explicitly in the skill docs
+5. Apply progressive disclosure pattern (keep under 500 lines)
+6. Choose appropriate output format template from display_templates.md:
    - Template 1: Strict Analysis Format (API-like)
    - Template 2: Executive Summary Format (flexible)
    - Template 3: Hypothesis Testing Format
@@ -458,6 +467,8 @@ If the draft fails any of these checks: revise before Phase 3a. Do not pass inad
 **ACEF Command Discipline Check** (before leaving Phase 2):
 
 - if inputs can be vague, define the quality gate
+- if the skill has a deterministic first backend action, encode it as `allowed_first_tools` + `required_first_command_patterns` + optional hint
+- if the skill documents an external CLI, verify the help text and the skill body agree on the canonical command surface before freezing the design
 - if the skill branches or routes, enumerate the execution and failure paths
 - if block/error paths exist, standardize their wording
 - if the skill appears to span multiple responsibilities, either narrow it or document the scope guard
@@ -489,10 +500,12 @@ If the draft fails any of these checks: revise before Phase 3a. Do not pass inad
 
 2. **Manual Verification Checks** (always performed):
    - **YAML frontmatter**: Verify name, description, triggers, category present
+   - **Command contracts**: If the workflow has a deterministic first backend action, verify `allowed_first_tools`, `required_first_command_patterns`, and `required_first_command_hint` are present and consistent
    - **Description quality**: Check ≤100 characters (registry constraint)
    - **Trigger phrases**: Test that phrases actually invoke the skill
    - **Constitution links**: Ensure skill declares which PARTs it extends
    - **Execution paths**: Walk through workflow steps to verify they complete
+   - **CLI parity**: If the skill documents an external command surface, verify body examples and help output agree on the canonical command/mode names
    - **`execution_hint` alignment** (NEW - catches aspirational tool declarations):
      - Parse `execution_hint` for explicit tool declarations (e.g., `Agent tool:`, `Bash tool:`, `Skill tool:`)
      - If `execution_hint` declares a tool, verify the execution flow actually contains that tool's invocation syntax (e.g., `Agent(...)`, `Bash(...)`, `Skill(...)`)
@@ -572,6 +585,7 @@ If the draft fails any of these checks: revise before Phase 3a. Do not pass inad
 | Test | Status | Evidence | Fix |
 |------|--------|----------|-----|
 | YAML completeness | ✓/✗ | [details] | [action if needed] |
+| Command contract completeness | ✓/✗ | [details] | [action if needed] |
 | Trigger accuracy | ✓/✗ | [details] | [action if needed] |
 | Output consistency | ✓/✗ | [details] | [action if needed] |
 | Execution flow | ✓/✗ | [details] | [action if needed] |
@@ -842,14 +856,16 @@ For `risk_level == "high"` artifacts, dangerous assumptions (no fallback, hard-c
 1. Analyze workflow for phase enforcement needs
 2. Add StopHook if multi-phase workflow detected
 3. Optimize description for triggering accuracy (if Phase 3.5 showed issues)
-4. Ensure output format matches chosen template
-5. Add progressive disclosure if skill > 300 lines
-6. Confirm operational resilience remains explicit after optimization:
+4. If a workflow has a deterministic first backend action, add or fix `allowed_first_tools`, `required_first_command_patterns`, and `required_first_command_hint`
+5. If the skill exposes a CLI surface, align SKILL.md examples, CLI help text, and canonical command names before considering the fix complete
+6. Ensure output format matches chosen template
+7. Add progressive disclosure if skill > 300 lines
+8. Confirm operational resilience remains explicit after optimization:
    - terminal/session scope or explicit statelessness
    - stale-data invalidation / freshness authority
    - compact / interrupted-workflow recovery
    - cognitive/reasoning hook fit
-7. **Consistency verification** (flaky test detection):
+9. **Consistency verification** (flaky test detection):
    - Run skill 3x with identical prompts
    - Measure output variance across runs
    - Flag non-deterministic behavior

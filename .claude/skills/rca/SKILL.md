@@ -111,6 +111,26 @@ When error output is quoted in the prompt AND user asks "what happened" or "why 
 
 **Only ask if**: Action is destructive (delete, modify) OR requires external resources.
 
+### Hook Authority Check
+
+When the investigation touches hooks, skills, or enforcement behavior:
+
+1. **Read `P:/.claude/settings.json` first.**
+   - Treat it as the authoritative source for hook registration.
+   - Confirm the actual registered `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Stop`, and `SessionEnd` commands before inferring anything about hook behavior.
+
+2. **Read `P:/.claude/hooks/README.md` next.**
+   - Use it to map the registered commands to the runtime hook layout.
+
+3. **Treat `P:/.claude/hooks/` as the implementation location, not the source of truth.**
+   - Do not infer that a hook is absent just because it is not present in a home-directory path.
+   - Do not use `~/.claude/hooks` as evidence unless the registered settings actually point there.
+
+4. **If configuration and filesystem disagree, report the mismatch.**
+   - Configuration wins for registration.
+   - Filesystem wins for implementation details.
+   - Absence in the wrong directory is not evidence.
+
 ## Reference Files
 
 | File | Contents |

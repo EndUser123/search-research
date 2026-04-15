@@ -1,13 +1,14 @@
-"""Auto-scaffolded test for exporter."""
+from __future__ import annotations
 
-import pytest
-from exporter import exporter
+import sys
+from pathlib import Path
+
+PACKAGE_ROOT = Path(__file__).resolve().parents[1]
+if str(PACKAGE_ROOT) not in sys.path:
+    sys.path.insert(0, str(PACKAGE_ROOT))
+
+from scripts import exporter
 
 
-def test_exporter_exists():
-    """Smoke test: exporter can be imported."""
+def test_exporter_imports() -> None:
     assert exporter is not None
-
-
-# TODO: Add more tests based on actual functionality
-# Run: pytest tests/test_exporter.py -v

@@ -322,6 +322,7 @@ When creating or improving skills, verify:
 - [ ] **Tests written**: pytest tests (no mocks, real objects preferred)
 - [ ] **Hook registered**: New hooks registered in router or settings.json
 - [ ] **Documentation accurate**: SKILL.md reflects actual implementation (not aspirational)
+- [ ] **Cleanup hygiene verified**: package-local `.claude/`, `.evidence/`, `.state/`, `.temp/`, and cache directories are absent or intentionally relocated
 
 ### Quality Gate Integration
 
@@ -335,7 +336,7 @@ Skills should be aware of these quality gates during development:
 2. **PostToolUse Gates**: Analyze output after tool completion
    - Integration verifier checks SKILL.md claims
    - Observable effect verifier checks side effects
-   - Cleanup verifier checks for missing cleanup steps
+   - Cleanup verifier checks for missing cleanup steps and leftover package-local runtime artifacts
 
 3. **Stop Hooks**: Validate responses before completion
    - Unverified stance detection prevents empty claims

@@ -11,6 +11,7 @@ Test Coverage:
 - SKILL.md without suggest: passes
 - Missing suggest: targets trigger warnings
 - One-way integrations trigger warnings
+- follow_up_offer: targets warn without blocking
 - Valid bidirectional integrations pass
 - YAML parse failure falls back to regex
 - Malformed frontmatter handled gracefully
@@ -109,6 +110,58 @@ class TestIntegrationVerifier:
             # If injection is None, it might be because suggest: extraction failed
             # For now, let's just check it doesn't crash
             assert len(result["verified_integrations"]) == 0
+        finally:
+            self.verifier.skills_dirs = original_dirs
+
+    def test_follow_up_offer_targets_warn_but_do_not_block(self, tmp_path):
+        """Test that follow_up_offer targets warn but do not block edits."""
+        skills_root = tmp_path / "skills"
+        source_dir = skills_root / "source-skill"
+        reviewer_dir = skills_root / "reviewer-skill"
+        source_dir.mkdir(parents=True)
+        reviewer_dir.mkdir(parents=True)
+
+        source_file = source_dir / "SKILL.md"
+        reviewer_file = reviewer_dir / "SKILL.md"
+
+        source_file.write_text(
+            "---\n"
+            "name: source-skill\n"
+            "description: Source skill\n"
+            "suggest:\n"
+            "  - /reviewer-skill\n"
+            "follow_up_offer:\n"
+            "  - /missing-review-skill\n"
+            "---\n"
+            "# Source Skill\n"
+            "Body prose mentions /missing-review-skill but should not affect routing.\n"
+        )
+        reviewer_file.write_text(
+            "---\n"
+            "name: reviewer-skill\n"
+            "description: Reviewer skill\n"
+            "suggest:\n"
+            "  - /source-skill\n"
+            "---\n"
+            "# Reviewer Skill\n"
+        )
+
+        original_dirs = self.verifier.skills_dirs
+        self.verifier.skills_dirs = [skills_root]
+
+        try:
+            tool_input = {"file_path": str(source_file)}
+            tool_response = {}
+
+            result = self.verifier.process("Write", tool_input, tool_response)
+
+            assert result["passed"] is True
+            assert result["missing_integrations"] == []
+            assert result["one_way_integrations"] == []
+            assert len(result["follow_up_offers"]) == 0
+            assert len(result["missing_follow_up_offers"]) == 1
+            assert "FOLLOW-UP OFFER ADVISORY" in result["injection"]
+            assert "/missing-review-skill" in result["injection"]
         finally:
             self.verifier.skills_dirs = original_dirs
 

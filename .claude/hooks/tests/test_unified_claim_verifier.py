@@ -194,3 +194,21 @@ def test_evaluate_claims_uses_shared_evidence_scope_loader(monkeypatch) -> None:
 def test_unified_claim_verifier_has_no_legacy_turn_marker_helpers() -> None:
     assert not hasattr(ucv, "_read_turn_marker")
     assert not hasattr(ucv, "_slice_turn_events")
+
+
+def test_run_adapter_uses_stop_payload() -> None:
+    payload = {
+        "response": "The file P:/exists.py exists.",
+        "prompt": "Check P:/exists.py",
+        "session_id": "88888888-8888-8888-8888-888888888888",
+        "terminal_id": "term-run",
+        "tool_events": [
+            {"name": "Read", "command": "P:/exists.py", "output": "content of exists.py", "cwd": "P:/repo"}
+        ],
+        "tools_used": ["Read"],
+    }
+
+    result = ucv.run(payload)
+
+    assert result["decision"] == "allow"
+    assert result["reason"] == "CLAIMS_VERIFIED"

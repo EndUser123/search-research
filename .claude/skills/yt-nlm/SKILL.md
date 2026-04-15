@@ -25,6 +25,11 @@ workflow_steps:
   - Delete batch notebook (cleanup)
   - Write transcripts to database cache (transcripts.sqlite)
   - Combine transcripts into batches for external use
+allowed_first_tools:
+  - Bash
+required_first_command_patterns:
+  - '^nlm\s+login\s+--check(?:\s|$)'
+required_first_command_hint: Run nlm login --check first so auth is validated before notebook work starts.
 
 parameters:
   - name: dry-run

@@ -44,7 +44,7 @@ Each sub-phase spawns a FRESH subagent with minimal context to prevent state con
 ### Phase 3b: Code Quality
 **Question:** "Is this well-structured, secure skill code?"
 
-**Focus:** YAML completeness, trigger accuracy, quality gates, context bloat prevention
+**Focus:** YAML completeness, trigger accuracy, quality gates, cleanup hygiene, context bloat prevention
 
 **Process:**
 1. Spawn FRESH subagent with: SKILL.md + `SPEC_PASS` verdict (not spec rationale)
@@ -64,6 +64,7 @@ Each sub-phase spawns a FRESH subagent with minimal context to prevent state con
 | Enforcement tier field (required) | - | critical/warning/info | - |
 | Trigger accuracy (third person) | - | critical/warning/info | - |
 | Description length (<1024 chars) | - | critical/warning/info | - |
+| Cleanup hygiene (package-local runtime debris absent or relocated) | - | critical/warning/info | - |
 | Progressive disclosure (<500 lines) | - | warning/info | - |
 | Quality Commitments (from Phase 1.5) | - | critical/warning | - |
 | Hook analysis (if applicable) | - | info | - |
@@ -76,7 +77,8 @@ Before claiming a component is missing, verify absence with tool evidence:
 1. **Grep before claim**: Search codebase for the component name/pattern
 2. **Read before missing**: Check referenced files exist before stating they're absent
 3. **Glob before none**: Verify no matches with glob patterns before claiming "no files"
-4. Document negative findings with explicit search terms used
+4. **Cleanup before clean**: Search the target skill tree for `.claude/`, `.evidence/`, `.state/`, `.temp/`, `__pycache__/`, and cache directories before claiming a skill tree is clean
+5. Document negative findings with explicit search terms used
 
 **Gate:** Block Phase 3c until critical issues resolved
 
@@ -116,6 +118,7 @@ See `references/gto-skill-coverage.md` for full API documentation.
 | Executes workflow correctly | - | - | - |
 | Orchestrated skills work | - | - | - |
 | Multi-terminal safe (if applicable) | - | - | - |
+| Cleanup artifacts stay out of the package tree | - | - | - |
 | Absence claims verified before asserting | - | - | - |
 
 **Gate:** Block Phase 4 until integration passes

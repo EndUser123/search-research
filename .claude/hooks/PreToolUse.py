@@ -703,6 +703,7 @@ TOOL_HOOKS = {
         "PreToolUse_windows_path_unicode_gate.py",  # Detect Python -c with unescaped Windows paths
         "PreToolUse_directory_policy.py",
         "PreToolUse_destructive_git_guard.py",
+        "PreToolUse_git_remote_check_order_guard.py",  # Require local HEAD check before origin/* inspection
         "PreToolUse_authorization_gate.py",
         "PreToolUse_dependency_verification_gate.py",
         "PreToolUse_bulk_delete_gate.py",
@@ -734,6 +735,7 @@ try:
     import PreToolUse_dependency_verification_gate
     import PreToolUse_destructive_git_guard
     import PreToolUse_directory_policy
+    import PreToolUse_git_remote_check_order_guard
     import PreToolUse_import_deletion_guard
     import PreToolUse_path_validator
     import PreToolUse_task_self_doc_gate
@@ -755,6 +757,7 @@ try:
         "PreToolUse_bulk_delete_gate.py": PreToolUse_bulk_delete_gate.run,
         "PreToolUse_dependency_verification_gate.py": PreToolUse_dependency_verification_gate.run,
         "PreToolUse_destructive_git_guard.py": PreToolUse_destructive_git_guard.run,
+        "PreToolUse_git_remote_check_order_guard.py": PreToolUse_git_remote_check_order_guard.run,
         "PreToolUse_import_deletion_guard.py": PreToolUse_import_deletion_guard.run,
         "PreToolUse_task_self_doc_gate.py": PreToolUse_task_self_doc_gate.run,
         "check_external_path_consent": pre_tool_use_logic.check_external_path_consent,

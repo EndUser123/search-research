@@ -2,7 +2,7 @@
 audit.py — /skill-audit router and lens executor.
 
 Single-pass skill architecture auditor.
-Reads target SKILL.md, inventories files, runs 13 lenses, outputs outcome summary + gap table + improvement plan.
+Reads target SKILL.md, inventories files, runs 14 lenses, outputs outcome summary + gap table + improvement plan.
 """
 
 from __future__ import annotations
@@ -77,6 +77,7 @@ _LENS_ACTION_TEMPLATES = {
     "OPERATIONAL_RESILIENCE": "make runtime behavior explicit for stale data, multi-terminal, follow-up context, or nested-workflow recovery",
     "ASSURANCE_STRATEGY": "add the cheapest real smoke proof or critique policy that would catch this class of failure early",
     "NON_GOALS_CLARITY": "define what the skill will not do so users stop inferring unsupported behavior",
+    "CLEANUP_DISCIPLINE": "remove package-local runtime debris or relocate durable artifacts to the canonical workspace location",
 }
 _PRINCIPLE_FAMILY_PATTERNS = {
     "structural_justification": [
@@ -140,7 +141,7 @@ _TRANSFER_STOPWORDS = {
 
 
 def audit(target: str) -> list[Finding]:
-    """Run all 13 lenses against target skill. Returns list of findings."""
+    """Run all 14 lenses against target skill. Returns list of findings."""
     skill_path = _resolve_skill(target)
     if not skill_path:
         return [Finding("SETUP", "Skill not found", f"'{target}' does not exist in {SKILLS_DIR}", "HIGH", "skill-audit")]
@@ -166,6 +167,7 @@ def audit(target: str) -> list[Finding]:
     findings.extend(_lens_operational_resilience(parsed))
     findings.extend(_lens_assurance_strategy(parsed))
     findings.extend(_lens_non_goals_clarity(parsed.body))
+    findings.extend(_lens_cleanup_discipline(parsed))
 
     return findings
 
@@ -1575,6 +1577,46 @@ def _lens_operational_resilience(parsed: ParsedSkill) -> list[Finding]:
             "Skill promises follow-up/context inference but does not explicitly forbid asking the user to restate a subject that recent session context already establishes",
             "MEDIUM",
             "source skill",
+        ))
+
+    return findings
+
+
+_CLEANUP_ARTIFACT_NAMES = {
+    ".claude",
+    ".evidence",
+    ".state",
+    ".temp",
+    "__pycache__",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+}
+
+
+def _lens_cleanup_discipline(parsed: ParsedSkill) -> list[Finding]:
+    """Check for package-local runtime, evidence, temp, or cache debris."""
+    findings: list[Finding] = []
+    dirty_paths: list[str] = []
+
+    for path in parsed.skill_path.rglob("*"):
+        try:
+            relative = path.relative_to(parsed.skill_path)
+        except ValueError:
+            continue
+        if any(part in _CLEANUP_ARTIFACT_NAMES for part in relative.parts):
+            dirty_paths.append(relative.as_posix())
+
+    if dirty_paths:
+        sample = ", ".join(dirty_paths[:5])
+        if len(dirty_paths) > 5:
+            sample += f", +{len(dirty_paths) - 5} more"
+        findings.append(Finding(
+            "CLEANUP_DISCIPLINE",
+            "package-local runtime artifacts still live under the skill tree",
+            f"Found cleanup debt in the skill tree: {sample}. Durable runtime artifacts should move to the workspace-level canonical location or be deleted.",
+            "HIGH",
+            "skill-ship",
         ))
 
     return findings
