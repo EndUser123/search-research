@@ -697,8 +697,21 @@ class CHSContext:
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        description="Chat History Search (/chs) - Advanced chat history search",
+        description=(
+            "Chat History Search (/chs) - Advanced chat history search\n\n"
+            "Export modes:\n"
+            "  - Query export: /chs \"query\" --output results.json or --clipboard\n"
+            "  - Session chain export: /chs export -> python ... --export"
+        ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  /chs \"authentication\" --mode documentation\n"
+            "  /chs export\n"
+            "  /chs export --session-id abc123\n"
+            "  /chs export --output P:/tmp/chs-export.md\n"
+            "  python P:/packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id abc123\n"
+        ),
     )
     parser.add_argument("query", nargs="?", help="Search query")
     parser.add_argument("--limit", type=int, default=20, help="Limit results")
@@ -732,14 +745,14 @@ def main():
     parser.add_argument("--list", action="store_true", help="List recent sessions")
     parser.add_argument("--stats", action="store_true", help="Show statistics")
     parser.add_argument("--reindex", action="store_true", help="Rebuild search index")
-    parser.add_argument("--output", help="Output to file")
-    parser.add_argument("--clipboard", action="store_true", help="Copy to clipboard")
+    parser.add_argument("--output", help="Write query results to file (session export uses --export)")
+    parser.add_argument("--clipboard", action="store_true", help="Copy query results to clipboard")
     parser.add_argument("--exclude-thinking", action="store_true", help="Exclude thinking blocks")
     parser.add_argument(
         "--include-tool-results", action="store_true", help="Include tool execution results"
     )
     parser.add_argument("--export", action="store_true", help="Export full session chain to file")
-    parser.add_argument("--session-id", help="Session ID for export (default: current session)")
+    parser.add_argument("--session-id", help="Session ID for session export (default: current session)")
     args = parser.parse_args()
     config = CHSConfig()
     search = CHSSearch(config)

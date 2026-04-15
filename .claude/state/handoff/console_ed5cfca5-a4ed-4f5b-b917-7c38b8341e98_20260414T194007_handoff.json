@@ -1,0 +1,120 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "1384bff5-07a0-4ddc-bf69-0aaaa9830504",
+    "terminal_id": "console_ed5cfca5-a4ed-4f5b-b917-7c38b8341e98",
+    "source_session_id": "9fdc04cb-635a-4d57-ab79-6c9948f28581",
+    "created_at": "2026-04-14T19:40:07.101386+00:00",
+    "expires_at": "2026-04-14T20:00:07.101386+00:00",
+    "status": "rejected_stale",
+    "goal": "C:\\Users\\brsth\\Downloads\\exported-assets\\script.md C:\\Users\\brsth\\Downloads\\exported-assets\\script_1.md C:\\Users\\brsth\\Downloads\\exported-assets\\script_2.md\n\nPlease review these files.  What do they show and how do they relate to search-research?",
+    "current_task": "C:\\Users\\brsth\\Downloads\\exported-assets\\script.md C:\\Users\\brsth\\Downloads\\exported-assets\\script_1.md C:\\Users\\brsth\\Downloads\\exported-assets\\script_2.md Please review these files. What do they show and how do they relate to search-research?",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "P:\\packages\\search-research\\core\\cli.py",
+      "P:\\.claude\\settings.local.json",
+      "C:\\Users\\brsth\\.claude.json",
+      "P:\\packages\\search-research\\tests\\test_github_integration.py",
+      "P:\\packages\\search-research\\skills\\research\\SKILL.md",
+      "C:\\Users\\brsth\\AppData\\Roaming\\Python\\Python314\\site-packages\\serpapi\\core.py",
+      "C:\\Users\\brsth\\AppData\\Roaming\\Python\\Python314\\site-packages\\serpapi\\http.py",
+      "P:\\packages\\search-research\\core\\backends\\local\\qmd_wiki_backend.py",
+      "C:\\Users\\brsth\\.obsidian\\vaults\\personal-wiki\\wiki\\concepts\\yt-is-notebooklm-pipeline-improvements.md",
+      "P:\\packages\\yt-is\\csf\\cache.py"
+    ],
+    "pending_operations": [
+      {
+        "type": "investigation",
+        "target": "search: _glm_search|glm.*search",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:\\packages\\search-research\\core\\cli.py",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "search: web.search|prime|model",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "grep -r \"web-search-prime\\|web_search_prime\" \"P:/.claude/\" --include=\"*.json\" --",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "search: web.search|web-search-prime",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "Resume investigation on search: _glm_search|glm.*search.",
+    "decision_refs": [],
+    "evidence_refs": [
+      "ev_3892dfa8b927469684f1fc1d45d27a3d",
+      "ev_5f38216b1ffa49a6a5c6ee523550a8ff",
+      "ev_ab852810f0054dd18e7cebb4be100cac",
+      "ev_ddc0df7f8d704d3cbb4f686a27fb3d4c",
+      "ev_0be69650121047cfb8d659ff79f93751",
+      "ev_d2cf4f22231b42d592da98623edcd769"
+    ],
+    "n_1_transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\9fdc04cb-635a-4d57-ab79-6c9948f28581.jsonl",
+    "n_2_transcript_path": null,
+    "message_intent": "question",
+    "goal_origin": "user_message",
+    "quality_score": 0.4,
+    "tasks_snapshot": [],
+    "rejected_at": "2026-04-14T19:41:24.246218+00:00",
+    "rejected_by_session_id": "9fdc04cb-635a-4d57-ab79-6c9948f28581",
+    "rejection_reason": "snapshot evidence path outside project directory"
+  },
+  "decision_register": [],
+  "evidence_index": [
+    {
+      "id": "ev_3892dfa8b927469684f1fc1d45d27a3d",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\9fdc04cb-635a-4d57-ab79-6c9948f28581.jsonl",
+      "content_hash": "sha256:2fbbf652315510c9004b3686dfb84341d8adb985c23a123d39bbdbbad6551fff"
+    },
+    {
+      "id": "ev_5f38216b1ffa49a6a5c6ee523550a8ff",
+      "type": "file",
+      "label": "cli.py",
+      "path": "P:\\packages\\search-research\\core\\cli.py",
+      "content_hash": "sha256:321dcb1a3277ddd6d2706d04d2f69ec8ebd6b1a724e3ba9290aa7e8f581a0293"
+    },
+    {
+      "id": "ev_ab852810f0054dd18e7cebb4be100cac",
+      "type": "file",
+      "label": "settings.local.json",
+      "path": "P:\\.claude\\settings.local.json",
+      "content_hash": "sha256:120a1edab229e4846b4adb26e8b5d698a303c1e2352856ee3582e4aa235b034a"
+    },
+    {
+      "id": "ev_ddc0df7f8d704d3cbb4f686a27fb3d4c",
+      "type": "file",
+      "label": ".claude.json",
+      "path": "C:\\Users\\brsth\\.claude.json",
+      "content_hash": "sha256:1e1cd2346a657f088e6e76e924bed822220595c54c19b50fe720e526f9b9f8bd"
+    },
+    {
+      "id": "ev_0be69650121047cfb8d659ff79f93751",
+      "type": "file",
+      "label": "test_github_integration.py",
+      "path": "P:\\packages\\search-research\\tests\\test_github_integration.py",
+      "content_hash": "sha256:7477b19c007226848f9c8eaba304daa38b1835014f1560885424fcab7e1826eb"
+    },
+    {
+      "id": "ev_d2cf4f22231b42d592da98623edcd769",
+      "type": "file",
+      "label": "SKILL.md",
+      "path": "P:\\packages\\search-research\\skills\\research\\SKILL.md",
+      "content_hash": "sha256:ae75355fdec20bc145c9dd0150e76304dbca9638f25104fc53515acc2d3a3aa1"
+    }
+  ],
+  "checksum": "sha256:67e59b0aded0ceb8dc62a7ac57c8526e17a735ff584e37b759ffbf8f625b95c3"
+}

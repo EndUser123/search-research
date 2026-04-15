@@ -3,7 +3,7 @@
 """
 Core Search Research CLI - Focused on search providers only.
 
-Supports: tavily, serper, exa, glm, zai, webreader, webreader_mcp, github, notebooklm, claude
+Supports: tavily, exa, glm, serpapi, webreader, webreader_mcp, github, notebooklm, claude
 Modes: auto, web, quick
 """
 
@@ -103,7 +103,7 @@ def args_to_config(args: argparse.Namespace) -> ResearchConfig:
         # Provider selection
         "default_providers": [args.mode]
         if args.mode and args.mode not in ("auto", "web", "quick")
-        else ["tavily", "serper"],
+        else ["tavily"],
         # Check if using default websearch/webfetch (external providers)
         "using_default_providers": args.mode in ("auto", "web", "quick") or not args.mode,
         # HyDE settings
@@ -239,10 +239,9 @@ class CoreResearchCommand:
             "web",
             "quick",
             "tavily",
-            "serper",
             "exa",
             "glm",
-            "zai",
+            "serpapi",
             "webreader",  # Direct URL fetching via webReader adapter
             "fetch",  # Alias for webreader
             "github",  # GitHub repository search
@@ -590,10 +589,6 @@ class CoreResearchCommand:
             return await self._tavily_search(
                 query, max_results=kwargs.get("max_results", 10), timeout=kwargs.get("timeout", 30)
             )
-        elif mode == "serper":
-            return await self._serper_search(
-                query, kwargs.get("max_results", 10), kwargs.get("timeout", 30)
-            )
         elif mode == "exa":
             return await self._exa_search(
                 query, kwargs.get("max_results", 10), kwargs.get("timeout", 30)
@@ -602,8 +597,10 @@ class CoreResearchCommand:
             return await self._glm_search(
                 query, kwargs.get("max_results", 10), kwargs.get("timeout", 180)
             )
-        elif mode == "zai":
-            return await self._zai_search(query, max_results=kwargs.get("max_results", 10))
+        elif mode == "serpapi":
+            return await self._serpapi_search(
+                query, kwargs.get("max_results", 10), kwargs.get("timeout", 30)
+            )
         elif mode in ["webreader", "fetch"]:
             return await self._webreader_search(
                 query,
@@ -623,7 +620,7 @@ class CoreResearchCommand:
             return await self._webreader_mcp_search(query, kwargs.get("max_results", 10), kwargs)
         else:
             # Default fallback
-            return await self._zai_search(query, max_results=10)
+            return await self._glm_search(query, 10, 180)
 
     async def _web_search(self, query: str, **kwargs) -> dict[str, Any]:
         """Web search mode: try multiple web search providers in parallel.
@@ -635,7 +632,7 @@ class CoreResearchCommand:
         Returns:
             Combined results from multiple providers.
         """
-        # Try tavily and serper in parallel
+        # Try tavily in parallel with exa
         tasks = []
 
         if os.getenv("TAVILY_API_KEY"):
@@ -647,14 +644,14 @@ class CoreResearchCommand:
                 )
             )
 
-        if os.getenv("SERPER_API_KEY"):
+        if os.getenv("EXA_API_KEY"):
             tasks.append(
-                self._serper_search(query, kwargs.get("max_results", 10), kwargs.get("timeout", 30))
+                self._exa_search(query, kwargs.get("max_results", 10), kwargs.get("timeout", 30))
             )
 
         if not tasks:
-            # Fallback to zai if no web search API keys
-            return await self._zai_search(query, max_results=kwargs.get("max_results", 10))
+            # Fallback to glm if no web search API keys
+            return await self._glm_search(query, kwargs.get("max_results", 10), 180)
 
         # Execute in parallel and combine results
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -687,45 +684,10 @@ class CoreResearchCommand:
         Returns:
             Research results.
         """
-        # Use zai for quick searches (fastest)
-        return await self._zai_search(query, max_results=5)
+        # Use glm for quick searches
+        return await self._glm_search(query, 5, 60)
 
     # Provider methods
-
-    async def _zai_search(self, query: str, *args, **kwargs) -> dict[str, Any]:
-        """ZAI search with flexible arguments."""
-        max_results = kwargs.get("max_results", 10)
-        if args and len(args) >= 1:
-            try:
-                max_results = args[0]
-            except (IndexError, TypeError):
-                pass
-
-        try:
-            from research_flash.query_engine_clean import ResearchFlashEngine
-
-            engine = ResearchFlashEngine()
-            result = await engine.query(
-                query_text=query, sources=["zai"], max_results_per_source=max_results
-            )
-
-            return {
-                "results": [
-                    {
-                        "title": r.title,
-                        "content": r.content,
-                        "url": r.url,
-                        "source": r.source,
-                    }
-                    for r in result.results
-                ],
-                "sources_used": ["zai-web-search"],
-                "synthesis": result.synthesis,
-            }
-
-        except Exception as e:
-            logger.warning(f"ZAI search failed: {e}")
-            return self._error_result("zai-web-search", str(e))
 
     async def _tavily_search(self, query: str, *args, **kwargs) -> dict[str, Any]:
         """Search using Tavily API."""
@@ -788,56 +750,6 @@ class CoreResearchCommand:
                 "answer": data.get("answer"),
             }
             return _create_timing_result(result, "tavily", duration_ms)
-
-        except Exception:
-            raise
-
-    async def _serper_search(self, query: str, max_results: int, timeout: int) -> dict[str, Any]:
-        """Search using Serper API (Google-powered)."""
-        start_time = time.perf_counter()
-        api_key = os.getenv("SERPER_API_KEY")
-
-        if not api_key:
-            duration_ms = (time.perf_counter() - start_time) * 1000
-            result = self._error_result(
-                "serper", "SERPER_API_KEY not set. Get one at https://serper.dev/"
-            )
-            return _create_timing_result(result, "serper", duration_ms)
-
-        try:
-            import requests
-
-            url = "https://google.serper.dev/search"
-            headers = {"X-API-KEY": api_key, "Content-Type": "application/json"}
-            payload = {"q": query, "num": min(max_results, 100), "type": "search"}
-
-            response = requests.post(url, headers=headers, json=payload, timeout=timeout)
-            response.raise_for_status()
-            data = response.json()
-
-            results = []
-            for item in data.get("organic", []):
-                results.append(
-                    {
-                        "title": item.get("title", ""),
-                        "content": item.get("snippet", ""),
-                        "url": item.get("link", ""),
-                        "source": "google",
-                    }
-                )
-
-            synthesis = ""
-            if "knowledgeGraph" in data:
-                kg = data["knowledgeGraph"]
-                synthesis = f"{kg.get('title', '')}: {kg.get('description', '')}"
-
-            duration_ms = (time.perf_counter() - start_time) * 1000
-            result = {
-                "results": results,
-                "sources_used": ["serper"],
-                "synthesis": synthesis,
-            }
-            return _create_timing_result(result, "serper", duration_ms)
 
         except Exception:
             raise
@@ -922,7 +834,7 @@ class CoreResearchCommand:
             )
 
             create_params = {
-                "model": "glm-4.7-flash",
+                "model": "GLM-4.5-Air",
                 "messages": [{"role": "user", "content": query}],
                 "max_tokens": 4000,
                 "temperature": 0.2,
@@ -975,6 +887,47 @@ class CoreResearchCommand:
 
         except Exception:
             raise
+
+    async def _serpapi_search(self, query: str, max_results: int, timeout: int) -> dict[str, Any]:
+        """Search using SerpAPI (Google results via serpapi.com)."""
+        start_time = time.perf_counter()
+        api_key = os.getenv("SERPAPI_API_KEY")
+
+        if not api_key:
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            result = self._error_result(
+                "serpapi", "SERPAPI_API_KEY not set. Get one at https://serpapi.com/"
+            )
+            return _create_timing_result(result, "serpapi", duration_ms)
+
+        try:
+            import serpapi
+
+            client = serpapi.Client(api_key=api_key)
+            result = client.search({"q": query, "engine": "google"})
+
+            results = []
+            for item in result.get("organic_results", [])[:max_results]:
+                results.append(
+                    {
+                        "title": item.get("title", ""),
+                        "content": item.get("snippet", ""),
+                        "url": item.get("link", ""),
+                        "source": "serpapi",
+                    }
+                )
+
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            search_result = {
+                "results": results,
+                "sources_used": ["serpapi"],
+            }
+            return _create_timing_result(search_result, "serpapi", duration_ms)
+
+        except Exception as e:
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            error_result = self._error_result("serpapi", str(e))
+            return _create_timing_result(error_result, "serpapi", duration_ms)
 
     async def _webreader_search(
         self, query: str, max_results: int, timeout: int, vision: bool = False
@@ -1160,12 +1113,14 @@ class CoreResearchCommand:
 
         Includes rate limit tracking with automatic fallback to repo search.
         """
+        from github import Github
+        from github.Auth import Token
+
         start_time = time.perf_counter()
 
         try:
-            from research_flash.sources.github_source import GitHubAdapter
-
-            adapter = GitHubAdapter()
+            token = os.getenv("GITHUB_TOKEN")
+            client = Github(auth=Token(token)) if token else Github()
 
             # Use pattern detection to route to code or repo search
             is_code_search = self._is_code_search_query(query)
@@ -1173,14 +1128,14 @@ class CoreResearchCommand:
             if is_code_search:
                 try:
                     # Code search: find specific code patterns
-                    code_results = await adapter.search_code(query, max_results=max_results)
+                    code_results = client.search_code(query, top_repositories=max_results)
                     results = []
-                    for code_item in code_results:
+                    for item in code_results[:max_results]:
                         results.append(
                             {
-                                "title": f"{code_item.repository} - {code_item.path}",
-                                "content": code_item.content or "",
-                                "url": code_item.url,
+                                "title": f"{item.repository.full_name} - {item.path}",
+                                "content": item.text_matches[0].fragment if hasattr(item, "text_matches") and item.text_matches else "",
+                                "url": item.html_url,
                                 "source": "github_code",
                             }
                         )
@@ -1208,22 +1163,20 @@ class CoreResearchCommand:
 
                     if is_rate_limit:
                         # Fall back to repo search with warning
-                        import logging
-
                         logging.warning(
                             f"GitHub code search rate limited for query '{query}'. "
                             f"Falling back to repo search. Error: {code_error}"
                         )
 
                         # Attempt repo search as fallback
-                        repos = await adapter.search_repos(query, max_results=max_results)
+                        repos = client.search_repositories(query)[:max_results]
                         results = []
                         for repo in repos:
                             results.append(
                                 {
                                     "title": repo.full_name,
-                                    "content": repo.content,
-                                    "url": repo.url,
+                                    "content": repo.description or "",
+                                    "url": repo.html_url,
                                     "source": "github",
                                 }
                             )
@@ -1241,14 +1194,14 @@ class CoreResearchCommand:
 
             else:
                 # Repository search: find repositories
-                repos = await adapter.search_repos(query, max_results=max_results)
+                repos = client.search_repositories(query)[:max_results]
                 results = []
                 for repo in repos:
                     results.append(
                         {
                             "title": repo.full_name,
-                            "content": repo.content,
-                            "url": repo.url,
+                            "content": repo.description or "",
+                            "url": repo.html_url,
                             "source": "github",
                         }
                     )

@@ -4,6 +4,7 @@ description: Web research with multiple providers and intelligent result synthes
 version: 1.0.0
 status: stable
 category: research
+enforcement: advisory
 triggers:
   - /research
   - 'research '
@@ -13,8 +14,6 @@ aliases:
   - /research
 suggest:
   - /search
-  - /cks
-  - /nse
 
 do_not:
   - claim to search without actually invoking providers
@@ -41,16 +40,17 @@ Conduct comprehensive web research using multiple search providers with intellig
 
 ## Capabilities
 
-### Providers (10+ available)
+### Providers (working)
 - **tavily** - Fast, comprehensive search (recommended default)
-- **serper** - Google search via API
 - **exa** - High-quality technical/engineering results
-- **glm** - Chinese web search
-- **zai** - Multi-modal search capabilities
-- **webreader** - URL fetching and content extraction
-- **github** - Code and repository search
-- **notebooklm** - Document analysis
-- **claude** - Claude API documentation
+- **glm** - Web search via GLM-4.5-Air model
+- **serpapi** - Google results via serpapi.com (250/month free)
+- **webreader** - URL fetching and content extraction (not a search engine)
+- **github** - Code and repository search (requires GITHUB_TOKEN)
+
+### Providers (non-functional)
+- **notebooklm** - Document analysis (requires NotebookLM MCP + notebooks)
+- **claude** - Claude API documentation (requires ANTHROPIC_API_KEY)
 
 ### Modes
 - **auto** - Auto-select providers based on query type
@@ -78,11 +78,10 @@ Conduct comprehensive web research using multiple search providers with intellig
 
 | Query Type | Recommended Providers | Alternative |
 |------------|----------------------|-------------|
-| **General research** | tavily, serper | - |
+| **General research** | tavily | exa, serpapi |
 | **Technical/Code** | exa, github | - |
 | **AI/ML topics** | tavily, exa | - |
 | **Chinese content** | glm | - |
-| **Multi-modal** | zai | - |
 | **Documentation** | webreader + tavily | - |
 | **Fast results** | tavily only | quick mode |
 
@@ -177,11 +176,11 @@ Warning: "Code search rate limited - showing repositories instead"
 
 ## Implementation
 
-**Backend**: `P:\packages\search-research\src\search_research\cli.py`
+**Backend**: `P:\packages\search-research\core\cli.py`
 
 **Entry point**: `python -m search_research.cli [query] --mode [auto|web|quick|tavily|serper|exa|...]`
 
-**Available modes**: `auto`, `web`, `quick`, `tavily`, `serper`, `exa`, `glm`, `zai`, `webreader`, `fetch`, `github`, `claude`, `webreader_mcp`, `notebooklm`
+**Available modes**: `auto`, `web`, `quick`, `tavily`, `exa`, `glm`, `serpapi`, `webreader`, `fetch`, `github`, `claude`, `webreader_mcp`, `notebooklm`
 
 **Key capabilities**:
 - argparse-based CLI with comprehensive options

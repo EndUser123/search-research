@@ -19,6 +19,26 @@ SearchResult = dict[str, Any]
 
 logger = logging.getLogger(__name__)
 
+# Score normalization constants
+FTS5_SCORE_MIN = 0.7  # Lowest score for least-relevant FTS5 results
+FTS5_SCORE_SPREAD = 0.3  # Spread between best and worst FTS5 scores
+FTS5_RANK_DEFAULT = 0.5  # Default rank when all BM25 ranks are equal
+
+# LIKE search score tiers
+LIKE_SCORE_EXACT_PREFIX = 0.9  # Exact prefix match (content LIKE 'query%')
+LIKE_SCORE_WORD_BOUNDARY = 0.8  # Word boundary match (content LIKE '% query %')
+LIKE_SCORE_CONTAINS = 0.7  # Contains match (content LIKE '%query%')
+
+# Result set limits
+DIVERSIFICATION_MAX_PER_SESSION = 2  # Default max results per session during round-robin
+FETCH_LIMIT_MULTIPLIER = 3  # Fetch this multiple of limit for diversification headroom
+FETCH_LIMIT_MAX = 100  # Maximum fetch limit cap
+SNIPPET_LENGTH = 200  # Default truncation length for content snippets
+
+# Search source modes
+SOURCE_JSONL = "jsonl"  # CLI-based search via claude-history executable
+SOURCE_DB = "db"  # Direct SQLite FTS5 search (default, recommended)
+
 
 class ClaudeHistoryBackend(BaseLocalBackend):
     """Search backend for Claude Code chat history.
@@ -104,7 +124,7 @@ class ClaudeHistoryBackend(BaseLocalBackend):
                 cursor = conn.cursor()
 
                 # Fetch more results than needed to allow for diversification
-                fetch_limit = min(limit * 3, 100)
+                fetch_limit = min(limit * FETCH_LIMIT_MULTIPLIER, FETCH_LIMIT_MAX)
 
                 # Try FTS5 MATCH first, fall back to LIKE on FTS5 error
                 try:
@@ -182,8 +202,8 @@ class ClaudeHistoryBackend(BaseLocalBackend):
             for row in rows:
                 # Normalize: best rank (most negative) → 1.0, worst → 0.7
                 # FTS5 results are still high-quality even at lower ranks
-                norm_rank = (row["rank"] - min_rank) / rank_range if rank_range != 0 else 0.5
-                score = 1.0 - (norm_rank * 0.3)  # Range [0.7, 1.0]
+                norm_rank = (row["rank"] - min_rank) / rank_range if rank_range != 0 else FTS5_RANK_DEFAULT
+                score = 1.0 - (norm_rank * FTS5_SCORE_SPREAD)  # Range [0.7, 1.0]
 
                 results.append(
                     {
@@ -195,7 +215,7 @@ class ClaudeHistoryBackend(BaseLocalBackend):
                             "message_type": row["message_type"],
                             "timestamp": row["timestamp"],
                             "project": row["project_id"],
-                            "snippet": row["content"][:200],
+                            "snippet": row["content"][:SNIPPET_LENGTH],
                         },
                     }
                 )
@@ -229,9 +249,9 @@ class ClaudeHistoryBackend(BaseLocalBackend):
                 m.timestamp,
                 s.project_id,
                 CASE
-                    WHEN m.content LIKE ? THEN 3      -- exact prefix
-                    WHEN m.content LIKE ? THEN 2    -- word boundary
-                    WHEN m.content LIKE ? THEN 1    -- contains
+                    WHEN m.content LIKE ? THEN 3      -- exact prefix (LIKE_SCORE_EXACT_PREFIX)
+                    WHEN m.content LIKE ? THEN 2    -- word boundary (LIKE_SCORE_WORD_BOUNDARY)
+                    WHEN m.content LIKE ? THEN 1    -- contains (LIKE_SCORE_CONTAINS)
                     ELSE 0
                 END as match_level
             FROM messages m
@@ -261,9 +281,9 @@ class ClaudeHistoryBackend(BaseLocalBackend):
 
         results = []
         for row in rows:
-            # Score based on match level: exact=0.9, boundary=0.8, contains=0.7
+            # Score based on match level: exact=LIKE_SCORE_EXACT_PREFIX, boundary=LIKE_SCORE_WORD_BOUNDARY, contains=LIKE_SCORE_CONTAINS
             match_level = row["match_level"]
-            score = 0.9 if match_level == 3 else (0.8 if match_level == 2 else 0.7)
+            score = LIKE_SCORE_EXACT_PREFIX if match_level == 3 else (LIKE_SCORE_WORD_BOUNDARY if match_level == 2 else LIKE_SCORE_CONTAINS)
 
             results.append(
                 {
@@ -323,9 +343,6 @@ class ClaudeHistoryBackend(BaseLocalBackend):
             # Normalize metadata: None or non-dict becomes {}
             metadata = result.get("metadata") or {}
             session_id = metadata.get("session_id", "unknown")
-            if session_id not in session_groups:
-                session_groups[session_id] = []
-            session_groups[session_id].append(result)
             if session_id not in session_groups:
                 session_groups[session_id] = []
             session_groups[session_id].append(result)
