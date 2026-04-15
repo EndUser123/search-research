@@ -12,6 +12,7 @@ CLI approach is preferred over MCP because:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import subprocess
@@ -26,7 +27,8 @@ logger = logging.getLogger(__name__)
 
 BACKEND_NOTEBOOKLM = "notebooklm"
 
-NLM_TIMEOUT = 30  # seconds per nlm operation
+NLM_LIST_TIMEOUT = 10
+NLM_QUERY_TIMEOUT = 60
 
 
 class NotebookLMBackend(BaseLocalBackend):
@@ -56,8 +58,8 @@ class NotebookLMBackend(BaseLocalBackend):
         super().__init__(root_paths, exclude_patterns)
         self.notebook_id = notebook_id
 
-    def _run_nlm(self, args: list[str], timeout: int = NLM_TIMEOUT) -> str | None:
-        """Run nlm CLI and return stdout, or None on failure."""
+    def _run_nlm_sync(self, args: list[str], timeout: int) -> str | None:
+        """Run nlm CLI synchronously. Used by sync search()."""
         try:
             result = subprocess.run(
                 ["nlm"] + args,
@@ -79,8 +81,37 @@ class NotebookLMBackend(BaseLocalBackend):
             logger.warning(f"NotebookLM backend error: {e}")
             return None
 
-    def search(self, query: str, limit: int = 5) -> list[SearchResult]:
-        """Search NotebookLM notebooks for the query.
+    async def _run_nlm_async(self, args: list[str], timeout: int) -> str | None:
+        """Run nlm CLI asynchronously. Used by search_async()."""
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "nlm", *args,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            try:
+                stdout, stderr = await asyncio.wait_for(
+                    proc.communicate(), timeout=timeout
+                )
+            except asyncio.TimeoutError:
+                proc.kill()
+                await proc.wait()
+                logger.warning(f"nlm command timed out after {timeout}s")
+                return None
+
+            if proc.returncode != 0:
+                logger.warning(f"nlm command failed: {stderr.decode() if stderr else ''}")
+                return None
+            return stdout.decode() if stdout else ""
+        except FileNotFoundError:
+            logger.warning("nlm CLI not found in PATH")
+            return None
+        except Exception as e:
+            logger.warning(f"NotebookLM backend error: {e}")
+            return None
+
+    async def search_async(self, query: str, limit: int = 5) -> list["SearchResult"]:
+        """Search NotebookLM notebooks asynchronously.
 
         Args:
             query: Search query
@@ -92,8 +123,9 @@ class NotebookLMBackend(BaseLocalBackend):
         # Determine which notebook to query
         notebook_id = self.notebook_id
         if not notebook_id:
-            # List notebooks and use the first one
-            output = self._run_nlm(["notebook", "list", "--json"])
+            output = await self._run_nlm_async(
+                ["notebook", "list", "--json"], timeout=NLM_LIST_TIMEOUT
+            )
             if not output:
                 return []
             try:
@@ -110,9 +142,9 @@ class NotebookLMBackend(BaseLocalBackend):
             return []
 
         # Query the notebook
-        output = self._run_nlm(
+        output = await self._run_nlm_async(
             ["notebook", "query", notebook_id, query, "--json"],
-            timeout=NLM_TIMEOUT * 2,  # Query can be slower
+            timeout=NLM_QUERY_TIMEOUT,
         )
         if not output:
             return []
@@ -134,6 +166,12 @@ class NotebookLMBackend(BaseLocalBackend):
         except json.JSONDecodeError as e:
             logger.warning(f"Failed to parse notebook query response: {e}")
             return []
+
+    def search(self, query: str, limit: int = 5) -> list[SearchResult]:
+        """Sync wrapper for backward compatibility."""
+        return asyncio.get_event_loop().run_until_complete(
+            self.search_async(query, limit)
+        )
 
     def supports_intent(self, intent: QueryIntent) -> bool:
         """NotebookLM supports knowledge queries for deep research."""
