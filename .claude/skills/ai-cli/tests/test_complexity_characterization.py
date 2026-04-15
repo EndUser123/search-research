@@ -506,7 +506,7 @@ class TestMainHelpers:
         result = _add_datetime_suffix(input_path)
 
         # Assert - Pattern: output_YYYYMMDD_HHMMSS.json
-        pattern = re.compile(r"^output_\d{8}_\d{6}\.json$")
+        pattern = re.compile(r"^output_\d{8}_\d{6}_\d{6}\.json$")
         assert pattern.match(Path(result).name), f"Expected datetime suffix, got: {result}"
 
     def test_add_datetime_suffix_without_extension(self):
@@ -520,7 +520,7 @@ class TestMainHelpers:
         result = _add_datetime_suffix(input_path)
 
         # Assert - Should be output_YYYYMMDD_HHMMSS.json
-        pattern = re.compile(r"^output_\d{8}_\d{6}\.json$")
+        pattern = re.compile(r"^output_\d{8}_\d{6}_\d{6}\.json$")
         assert pattern.match(Path(result).name)
 
     def test_add_datetime_suffix_preserves_directory(self):

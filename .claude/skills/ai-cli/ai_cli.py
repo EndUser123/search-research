@@ -2863,6 +2863,17 @@ def _write_output(results: dict[str, Any], args: argparse.Namespace) -> None:
     if args.output_format == "json":
         output_json = json.dumps(results, indent=2)
         print(output_json)
+
+        # Persist the combined JSON when requested.
+        # The filename always gets a datetime suffix so repeated runs do not collide.
+        output_file = getattr(args, "output_file", None)
+        if output_file is None:
+            output_file = "output.json"
+
+        output_path = Path(_add_datetime_suffix(output_file))
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(output_json + "\n", encoding="utf-8")
+
         # Create tiered YAML reports from individual CLI results
         _create_tiered_reports(results)
     # Text output - select formatter based on flags
@@ -3301,6 +3312,11 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
         "--hide-prompt",
         action="store_true",
         help="Don't print the enhanced prompt before sending to CLIs (suppresses default behavior)",
+    )
+    parser.add_argument(
+        "--no-critic",
+        action="store_true",
+        help="Skip the post-run ai-cli critic subagent",
     )
 
     args = parser.parse_args()

@@ -11,13 +11,13 @@ triggers:
 
 # /ai-cli
 
-**Renamed March 2026:** `/ai-cli` -> `/ai-cli` for consistent naming as AI-based CLI tool.
+**Parallel multi-LLM command:** `/ai-cli` runs multiple CLI-backed model providers and aggregates their output.
 
 ## EXECUTION DIRECTIVE
 
 **When invoked, check query type first:**
 
-- If query is `"config"` (case-insensitive): Skip to Step 5
+- If query is `"config"` (case-insensitive): Skip to Step 6
 - Otherwise: Continue with Steps 1-4
 
 **Step 1:** Run the CLI:
@@ -29,9 +29,16 @@ python "P:\.claude\skills\ai-cli\ai_cli.py" "{{user_query}}" {{options}}
 
 **Step 3:** Report the aggregated CLI outputs verbatim
 
-**Step 4:** Dispatch `adversarial-critic` on `P:/__csf/temp/cli_results/` (skip if `--no-critic` used)
+**Step 4:** Run `ai-cli-critic` on the combined output unless `--no-critic` is set
 
-**Step 5 (config query):** Read `P:/.claude/ai-cli-recipe.json` and display:
+```text
+Task(subagent_type="ai-cli-critic",
+     description="Critic pass for /ai-cli outputs. Review the combined LLM outputs for unsupported claims, contradictions, overconfidence, and missing evidence. Use the saved JSON file if available, otherwise analyze the raw transcript.")
+```
+
+**Step 5:** If `--output-format json` is used, save the combined JSON to a datetime-suffixed output file and generate tiered YAML reports
+
+**Step 6 (config query):** Read `P:/.claude/ai-cli-recipe.json` and display:
 ```
 Active CLIs:
   Default:
@@ -75,6 +82,8 @@ python "P:\.claude\skills\ai-cli\ai_cli.py" --help
 | `--quality-gate` | Apply 4-Layer Filter System Layer 4 (filters findings by confidence >= 80%) |
 | `--output-format json` | Machine-readable JSON output |
 | `--timeout N` | Max wait in seconds (default: auto-calculated) |
+| `--output-file FILE` | Save JSON output to a datetime-suffixed file |
+| `--no-critic` | Skip the post-run ai-cli critic subagent |
 | `--qwen-only` | Run only qwen-cli |
 | `--gemini-only` | Run only gemini-cli |
 | `--codex-only` | Run only codex-cli |
@@ -84,7 +93,6 @@ python "P:\.claude\skills\ai-cli\ai_cli.py" --help
 | `--route` | Use rule-based routing (from llm-route) to select CLI by task keywords |
 | `--doc-review` | Use document review prompt (from llm-doc_review) - prepends review questions |
 | `--hide-prompt` | Suppress the enhanced prompt display (which is shown by default) |
-| `--no-critic` | Skip the adversarial critic analysis after JSON output |
 | `-bash` | Show bash commands instead of executing (debug) |
 
 ---
@@ -111,3 +119,4 @@ For clean output format when using "config" query, see [references/output-templa
 | Context handling best practices and auto-detection | `references/context-handling.md` |
 | CLI characteristics, OpenCode models, setup, health check, limitations | `references/cli-reference.md` |
 | Troubleshooting (errors, causes, fixes) | `references/troubleshooting.md` |
+| Critic subagent for output sanity checks | `P:/.claude/agents/ai-cli-critic.md` |
