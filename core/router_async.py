@@ -19,12 +19,17 @@ import logging
 from collections.abc import AsyncIterator
 from typing import Any
 
+from datetime import datetime
+import time as time_module
+
 from .backend_health import BackendHealthRegistry
 from .cache import QueryCache
 from .config import config
 from .hyde import apply_hyde
+from .metrics import MetricsLogger, ComponentName  # TASK-3: Instrumented metrics
 from .models import SearchResult  # CANONICAL import (Q-ARCH-001 fix)
 from .modes import Mode
+from .tracing import QueryTracer, QueryTrace  # TASK-3: Query tracing
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +100,10 @@ class AsyncSearchRouter:
 
         # Initialize health registry
         self._health = BackendHealthRegistry()
+
+        # TASK-3: Initialize metrics logger and query tracer
+        self._metrics = MetricsLogger()
+        self._tracer = QueryTracer()
 
         # Backend timeouts based on mode (PERF-007 baseline)
         if self.mode == "fast":
@@ -323,11 +332,39 @@ class AsyncSearchRouter:
         if backends is None:
             backends = self._get_backends_for_mode()
 
+        # TASK-3: Start query trace
+        query_id = self._tracer.start_trace(query)
+
         # PERF-001: Concurrent backend execution using asyncio.gather()
         # This is the CRITICAL performance optimization - all backends run in parallel
-        search_tasks = [
-            self._search_backend_async(backend, search_query, limit) for backend in backends
-        ]
+        # Track backend hits for trace
+        backend_hits: dict[str, int] = {}
+
+        # Wrap each backend call with timing for metrics
+        async def timed_search_backend(backend: str) -> tuple[str, list[SearchResult]]:
+            start_time = time_module.perf_counter()
+            results = await self._search_backend_async(backend, search_query, limit)
+            elapsed_ms = (time_module.perf_counter() - start_time) * 1000
+            # Log metric for this backend
+            if results:
+                avg_quality = sum(r.score for r in results) / len(results)
+                backend_key = backend.replace("-", "_").upper()
+                try:
+                    component = ComponentName[backend_key]
+                except KeyError:
+                    component = ComponentName.SEARCH_PROVIDER
+                self._metrics.log_component(
+                    component=component,
+                    latency_ms=elapsed_ms,
+                    tokens_used=0,
+                    quality=avg_quality,
+                    cache_hit=False,
+                )
+            # Track backend hits
+            backend_hits[backend] = len(results)
+            return backend, results
+
+        search_tasks = [timed_search_backend(backend) for backend in backends]
 
         # Wait for all backends to complete (with individual timeouts)
         backend_results = await asyncio.gather(
@@ -341,8 +378,9 @@ class AsyncSearchRouter:
             if isinstance(result, Exception):
                 # Log error but continue with other results
                 continue
-            if isinstance(result, list):
-                all_results.extend(result)
+            if isinstance(result, tuple):
+                backend, results = result
+                all_results.extend(results)
 
         # Rank and limit results
         ranked_results = self._rank_results(all_results)[:limit]
@@ -353,6 +391,22 @@ class AsyncSearchRouter:
             # Use enhanced query as cache key if HyDE was applied
             cache_key = search_query if hyde_applied else query
             self._cache.set(cache_key, cache_results, limit=limit, backends=backends)
+
+        # TASK-3: Log query trace after search completes
+        final_quality = ranked_results[0].score if ranked_results else 0.0
+        path_taken = "local_only" if not self.web else "web_search"
+        trace = QueryTrace(
+            query_id=query_id,
+            timestamp=datetime.now().isoformat(),
+            question=query,
+            path_taken=path_taken,
+            backend_hits=backend_hits,
+            sources=[r.source for r in ranked_results],
+            final_quality=final_quality,
+            contradiction_detected=False,
+            decision_audit_id=None,
+        )
+        self._tracer.log_trace(trace)
 
         return ranked_results
 
@@ -569,22 +623,25 @@ class AsyncSearchRouter:
             _sentinel = object()
             search_async_method = getattr(backend_instance, "search_async", _sentinel)
 
+            # Per-backend timeout override (NotebookLM needs 60s for LLM queries)
+            backend_timeout = getattr(backend_instance, "TIMEOUT", None) or self.backend_timeout
+
             if search_async_method is not _sentinel and callable(search_async_method):
                 # Native async backend (has search_async method)
                 raw_results = await asyncio.wait_for(
-                    search_async_method(query, limit), timeout=self.backend_timeout
+                    search_async_method(query, limit), timeout=backend_timeout
                 )
             elif inspect.iscoroutinefunction(backend_instance.search):
                 # Async search method (coroutine)
                 raw_results = await asyncio.wait_for(
-                    backend_instance.search(query, limit), timeout=self.backend_timeout
+                    backend_instance.search(query, limit), timeout=backend_timeout
                 )
             else:
                 # Sync backend - use asyncio.to_thread() for non-blocking execution
                 loop = asyncio.get_event_loop()
                 raw_results = await asyncio.wait_for(
                     loop.run_in_executor(None, backend_instance.search, query, limit),
-                    timeout=self.backend_timeout,
+                    timeout=backend_timeout,
                 )
 
             # Record success

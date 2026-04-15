@@ -55,20 +55,21 @@ class QMDWikiBackend(BaseLocalBackend):
     def __init__(
         self,
         vault_path: str | None = None,
-        qmd_scope: str = "",
+        qmd_scope: str | None = None,
     ):
         # Initialize BaseLocalBackend first to ensure exclude_patterns is set
         super().__init__(root_paths=[str(vault_path)] if vault_path else None)
 
-        self.qmd_scope = qmd_scope
+        self.qmd_scope = qmd_scope if qmd_scope is not None else ""
 
         # Resolve vault_path: prefer qmd's config, fall back to OBSIDIAN_VAULT_PATH
         if vault_path:
             raw_vault = os.path.expanduser(vault_path)
         else:
-            # qmd's config IS the source of truth — path already includes the collection
-            # subdirectory (e.g. ".../personal-wiki/wiki"), so qmd_scope is ignored
-            qmd_vault = _get_vault_from_qmd_config(qmd_scope.rstrip("/"))
+            # qmd's config IS the source of truth — the path already includes the
+            # collection subdirectory (e.g. ".../personal-wiki/wiki"), so
+            # qmd_scope must be "" to avoid doubling the subdirectory
+            qmd_vault = _get_vault_from_qmd_config("wiki")
             raw_vault = str(qmd_vault) if qmd_vault else config.OBSIDIAN_VAULT_PATH
 
         self.vault_path = Path(raw_vault).resolve()
@@ -100,7 +101,7 @@ class QMDWikiBackend(BaseLocalBackend):
         ):
             return self._vault_mtime_cache[0]
 
-        wiki_path = self.vault_path / self.qmd_scope
+        wiki_path = self.vault_path / self.qmd_scope if self.qmd_scope else self.vault_path
         if not wiki_path.exists():
             return None
 

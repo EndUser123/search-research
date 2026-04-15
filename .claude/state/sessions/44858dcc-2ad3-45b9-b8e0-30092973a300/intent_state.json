@@ -1,10 +1,10 @@
 {
   "current_intent": {
-    "work_type": "bugfix",
-    "target": "QMD CLI uses C:\\Users\\brsth\\.obsidian\\vaults\\personal-wiki\\wiki (correct vault, 10 docs, but has a BM25 regex column error)",
-    "problem": "\"QMD CLI uses C:\\Users\\brsth\\.obsidian\\vaults\\personal-wiki\\wiki (correct vault, 10 docs, but has a BM25 regex column error)\"\nfix \"QMDWikiBackend resolves vault_path / qmd_scope = P:/wiki/wiki/ (wr...",
-    "user_prompt": "fix \"QMD CLI uses C:\\Users\\brsth\\.obsidian\\vaults\\personal-wiki\\wiki (correct vault, 10 docs, but has a BM25 regex column error)\"\nfix \"QMDWikiBackend resolves vault_path / qmd_scope = P:/wiki/wiki/ (wrong \u2014 P:/wiki/ has only 2 docs, no wiki/ subdirectory)\" I've already told you P:/wiki is wrong.\nfix \"NotebookLM works but takes 33s, exceeding the 2s router timeout\" so we can use NotebookLM realistically.\n\nThere should be more than 10 docs.",
-    "timestamp": "2026-04-15T04:25:26.365407+00:00"
+    "work_type": "unknown",
+    "target": "router config",
+    "problem": "address NotebookLM router timeout (increase timeout in router config)",
+    "user_prompt": "address NotebookLM router timeout (increase timeout in router config)",
+    "timestamp": "2026-04-15T11:34:59.882184+00:00"
   },
-  "last_updated": "2026-04-15T04:25:26.370370+00:00"
+  "last_updated": "2026-04-15T11:34:59.886071+00:00"
 }

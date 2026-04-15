@@ -196,8 +196,12 @@ class TestFM5LogRotation:
         rotated_name = rotated_files[0].name
         assert "metrics.jsonl." in rotated_name
         timestamp_part = rotated_name.replace("metrics.jsonl.", "")
-        assert len(timestamp_part) == 15, f"Timestamp format incorrect: {timestamp_part}"
-        assert timestamp_part.isdigit(), f"Timestamp should be all digits: {timestamp_part}"
+        assert len(timestamp_part) == 15, f"Timestamp format incorrect (should be YYYYMMDD_HHMMSS, 15 chars): {timestamp_part}"
+        # YYYYMMDD_HHMMSS contains underscore, so check format matches pattern
+        assert timestamp_part[8] == "_", f"Timestamp should have underscore at position 8: {timestamp_part}"
+        date_part, time_part = timestamp_part.split("_")
+        assert len(date_part) == 8 and date_part.isdigit(), f"Date part should be 8 digits: {date_part}"
+        assert len(time_part) == 6 and time_part.isdigit(), f"Time part should be 6 digits: {time_part}"
 
 
 class TestQueueFullSilentDrop:
