@@ -1,0 +1,120 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "d17cd368-0968-4347-9365-582b696fc827",
+    "terminal_id": "console_c2a957c9-b4ad-4406-9a0c-5917e9177aee",
+    "source_session_id": "d8299853-8246-4759-911f-9c62f784036c",
+    "created_at": "2026-04-15T04:34:48.671460+00:00",
+    "expires_at": "2026-04-15T04:54:48.671460+00:00",
+    "status": "rejected_stale",
+    "goal": "remove techcrunch from our channel list.  add it to a do not add list so if it shows up as a channel to add, we will skip it with notification.",
+    "current_task": "remove techcrunch from our channel list. add it to a do not add list so if it shows up as a channel to add, we will skip it with notification.",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "P:/.claude/skills/yt-is/SKILL.md",
+      "P:/packages/yt-is/csf/display.py",
+      "P:/packages/yt-is/bin/csf-source",
+      "P:/.claude/skills/gto/references/rns-format.md",
+      "P:/.claude/skills/skill-audit/SKILL.md",
+      "P:/.claude/skills/skill-ship/SKILL.md",
+      "P:/packages/yt-is/extract_channels.py",
+      "P:/packages/yt-is/csf/batch_status.py",
+      "C:\\Users\\brsth\\AppData\\Local\\Temp\\claude\\P--\\d8299853-8246-4759-911f-9c62f784036c\\tasks\\be95qreuy.output",
+      "P:/packages/yt-is/csf/transcript.py"
+    ],
+    "pending_operations": [
+      {
+        "type": "skill",
+        "target": "skill: yt-is",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: P:/.claude/skills/yt-is/**/*.py",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "ls -la \"P:/.claude/skills/yt-is/\"",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:/.claude/skills/yt-is/SKILL.md",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "cd \"P:/.claude/skills/yt-is\" && csf-source sync 2>&1",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "Resume skill on skill: yt-is.",
+    "decision_refs": [],
+    "evidence_refs": [
+      "ev_35494300963e476785bca4836b86062a",
+      "ev_f2c78ce31ab94d59a177f71ac53f5ddb",
+      "ev_996ecf54c5b14cb3aa19218933ab87c9",
+      "ev_b2ede42e85d84f90ae1e2ff05917a150",
+      "ev_2018c9c1d7754e5d86e41f67ee58d8f5",
+      "ev_f3d31f4163774b30864c9463cae3ef39"
+    ],
+    "n_1_transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\d8299853-8246-4759-911f-9c62f784036c.jsonl",
+    "n_2_transcript_path": null,
+    "message_intent": "directive",
+    "goal_origin": "user_message",
+    "quality_score": 0.4,
+    "tasks_snapshot": [],
+    "rejected_at": "2026-04-15T04:36:29.930997+00:00",
+    "rejected_by_session_id": "d8299853-8246-4759-911f-9c62f784036c",
+    "rejection_reason": "snapshot evidence path outside project directory"
+  },
+  "decision_register": [],
+  "evidence_index": [
+    {
+      "id": "ev_35494300963e476785bca4836b86062a",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\d8299853-8246-4759-911f-9c62f784036c.jsonl",
+      "content_hash": "sha256:c9a12b2c0ada4621fb15a1d94d6da8c658ba80a0c2bb35c588a0891c93e1aff0"
+    },
+    {
+      "id": "ev_f2c78ce31ab94d59a177f71ac53f5ddb",
+      "type": "file",
+      "label": "SKILL.md",
+      "path": "P:\\.claude\\skills\\yt-is\\SKILL.md",
+      "content_hash": "sha256:680dcd97c948ef4598ae5cd7685a44a42771cf3dd74800997e67f0b044710930"
+    },
+    {
+      "id": "ev_996ecf54c5b14cb3aa19218933ab87c9",
+      "type": "file",
+      "label": "display.py",
+      "path": "P:\\packages\\yt-is\\csf\\display.py",
+      "content_hash": "sha256:12938d87671d8c24115a893b82ce90db7e37af9a7cf26a6c02b4377dbd009d2c"
+    },
+    {
+      "id": "ev_b2ede42e85d84f90ae1e2ff05917a150",
+      "type": "file",
+      "label": "csf-source",
+      "path": "P:\\packages\\yt-is\\bin\\csf-source",
+      "content_hash": "sha256:3ddee292975707a272390059666ce990fd20ddbe51108668c0c1932ba361deac"
+    },
+    {
+      "id": "ev_2018c9c1d7754e5d86e41f67ee58d8f5",
+      "type": "file",
+      "label": "rns-format.md",
+      "path": "P:\\.claude\\skills\\gto\\references\\rns-format.md",
+      "content_hash": "sha256:2d63bdc459665a663d5046c5f2d956b74266eaf813c55f1073939a4a097e675d"
+    },
+    {
+      "id": "ev_f3d31f4163774b30864c9463cae3ef39",
+      "type": "file",
+      "label": "SKILL.md",
+      "path": "P:\\.claude\\skills\\skill-audit\\SKILL.md",
+      "content_hash": "sha256:3148e54d5f437d258dbfffcc917b223cb3570362d6777615e629ebc783a3980c"
+    }
+  ],
+  "checksum": "sha256:e1027a122bd7b46c20b58dc48f8da3e498c281f097e1bd98db5902f857986d64"
+}

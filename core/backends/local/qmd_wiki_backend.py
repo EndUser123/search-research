@@ -55,7 +55,7 @@ class QMDWikiBackend(BaseLocalBackend):
     def __init__(
         self,
         vault_path: str | None = None,
-        qmd_scope: str = "wiki/",
+        qmd_scope: str = "",
     ):
         # Initialize BaseLocalBackend first to ensure exclude_patterns is set
         super().__init__(root_paths=[str(vault_path)] if vault_path else None)
@@ -66,7 +66,8 @@ class QMDWikiBackend(BaseLocalBackend):
         if vault_path:
             raw_vault = os.path.expanduser(vault_path)
         else:
-            # Try qmd's own config first — it is the source of truth for vault location
+            # qmd's config IS the source of truth — path already includes the collection
+            # subdirectory (e.g. ".../personal-wiki/wiki"), so qmd_scope is ignored
             qmd_vault = _get_vault_from_qmd_config(qmd_scope.rstrip("/"))
             raw_vault = str(qmd_vault) if qmd_vault else config.OBSIDIAN_VAULT_PATH
 
