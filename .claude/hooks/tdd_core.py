@@ -1062,6 +1062,7 @@ def extract_test_file_from_command(command: str) -> str | None:
     - pytest tests/test_foo.py
     - pytest path/to/test_foo.py
     - python -m pytest tests/test_foo.py
+    - pytest tests/test_foo.py::TestClass::test_method  (node ID — strip suffix)
     """
     import shlex
 
@@ -1071,12 +1072,15 @@ def extract_test_file_from_command(command: str) -> str | None:
         parts = command.split()
 
     for part in parts:
-        part_lower = part.lower()
-        if part_lower.endswith(".py"):
-            name = Path(part).name.lower()
+        # Strip pytest node ID suffix (::Class::method) so targeted runs and
+        # full-suite runs resolve to the same state file key.
+        file_part = part.split("::")[0] if "::" in part else part
+        file_part_lower = file_part.lower()
+        if file_part_lower.endswith(".py"):
+            name = Path(file_part).name.lower()
             if name.startswith("test_") or name.endswith("_test.py"):
-                debug_log(f"extract_test_file_from_command: found {part}")
-                return normalize_path(part)
+                debug_log(f"extract_test_file_from_command: found {file_part} (from {part!r})")
+                return normalize_path(file_part)
 
     debug_log(f"extract_test_file_from_command: no test file found in {command[:50]}")
     return None

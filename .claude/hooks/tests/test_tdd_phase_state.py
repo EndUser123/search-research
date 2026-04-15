@@ -244,5 +244,62 @@ def main():
     sys.exit(exit_code)
 
 
+# ---------------------------------------------------------------------------
+# extract_test_file_from_command — node ID normalisation (tdd_core)
+# ---------------------------------------------------------------------------
+
+
+class TestExtractTestFileFromCommand:
+    """extract_test_file_from_command must strip pytest node ID suffixes.
+
+    Without this fix, a targeted run like:
+        pytest tests/test_foo.py::TestClass::test_method
+    returns None (the part doesn't end with .py), falls back to
+    find_active_tdd_cycle(), and creates a separate state key from the
+    full-suite run — so RED demonstrated on a subset never satisfies
+    the AWAITING_RED requirement for the full suite.
+    """
+
+    def setup_method(self) -> None:
+        from tdd_core import extract_test_file_from_command
+        self.extract = extract_test_file_from_command
+
+    def test_plain_file_path(self) -> None:
+        result = self.extract("python -m pytest tests/test_foo.py -v")
+        assert result is not None
+        assert result.endswith("test_foo.py")
+
+    def test_node_id_class_and_method(self) -> None:
+        """Node ID suffix stripped — same file key as full-suite run."""
+        result = self.extract(
+            "python -m pytest tests/test_foo.py::TestClass::test_method -v"
+        )
+        assert result is not None
+        assert result.endswith("test_foo.py")
+        assert "::" not in result
+
+    def test_node_id_class_only(self) -> None:
+        result = self.extract("pytest tests/test_foo.py::TestClass")
+        assert result is not None
+        assert result.endswith("test_foo.py")
+        assert "::" not in result
+
+    def test_node_id_and_plain_give_same_key(self) -> None:
+        """Targeted run and full-suite run resolve to the same normalised path."""
+        plain = self.extract("pytest tests/test_foo.py")
+        node = self.extract("pytest tests/test_foo.py::TestClass::test_bar")
+        assert plain is not None
+        assert node is not None
+        assert plain == node
+
+    def test_non_test_file_ignored(self) -> None:
+        result = self.extract("python hook.py --run")
+        assert result is None
+
+    def test_no_py_file_returns_none(self) -> None:
+        result = self.extract("pytest --collect-only -q")
+        assert result is None
+
+
 if __name__ == "__main__":
     main()
