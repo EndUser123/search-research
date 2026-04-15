@@ -23,6 +23,30 @@ REBUILD_FAILURE_LIMIT = 3
 REBUILD_COOLDOWN = 60.0  # seconds
 MAX_QUERY_LENGTH = 500
 
+# QMD config path for reading actual vault locations
+QMD_CONFIG_PATH = Path.home() / ".config" / "qmd" / "index.yml"
+
+
+def _get_vault_from_qmd_config(scope: str) -> Path | None:
+    """Read vault path for a scope from qmd's config file.
+
+    qmd CLI uses its own config (~/.config/qmd/index.yml) rather than
+    OBSIDIAN_VAULT_PATH. This ensures we track the correct vault.
+    """
+    import yaml
+
+    try:
+        with open(QMD_CONFIG_PATH, "r") as f:
+            data = yaml.safe_load(f)
+        collections = data.get("collections", {})
+        if scope in collections:
+            path = collections[scope].get("path")
+            if path:
+                return Path(os.path.expanduser(path))
+    except Exception:
+        pass
+    return None
+
 
 class QMDWikiBackend(BaseLocalBackend):
     BACKEND_NAME = "QMD_WIKI"
@@ -36,9 +60,17 @@ class QMDWikiBackend(BaseLocalBackend):
         # Initialize BaseLocalBackend first to ensure exclude_patterns is set
         super().__init__(root_paths=[str(vault_path)] if vault_path else None)
 
-        raw_vault = os.path.expanduser(vault_path or config.OBSIDIAN_VAULT_PATH)
-        self.vault_path = Path(raw_vault).resolve()
         self.qmd_scope = qmd_scope
+
+        # Resolve vault_path: prefer qmd's config, fall back to OBSIDIAN_VAULT_PATH
+        if vault_path:
+            raw_vault = os.path.expanduser(vault_path)
+        else:
+            # Try qmd's own config first — it is the source of truth for vault location
+            qmd_vault = _get_vault_from_qmd_config(qmd_scope.rstrip("/"))
+            raw_vault = str(qmd_vault) if qmd_vault else config.OBSIDIAN_VAULT_PATH
+
+        self.vault_path = Path(raw_vault).resolve()
         self._index_mtime: float | None = None
         self._rebuild_lock = asyncio.Lock()
         self._rebuild_failures = 0
