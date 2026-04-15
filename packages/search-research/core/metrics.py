@@ -60,7 +60,7 @@ class MetricsLogger:
         if self._log_path.exists():
             size = self._log_path.stat().st_size
             if size >= self._max_size_bytes:
-                stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                stamp = datetime.now().strftime("%Y%m%d%H%M%S")
                 rotated_path = self._log_path.parent / f"{self._log_path.name}.{stamp}"
                 try:
                     self._log_path.rename(rotated_path)
