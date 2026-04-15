@@ -39,8 +39,34 @@ def _load_ai_cli_config() -> dict[str, Any] | None:
     """Load saved AI-CLI recipe config if it exists."""
     try:
         if _AI_CLI_CONFIG.exists():
-            with open(_AI_CLI_CONFIG) as f:
-                return json.load(f)
+            with open(_AI_CLI_CONFIG, encoding="utf-8") as f:
+                raw = json.load(f)
+
+            # New format: structured groups for config display.
+            if isinstance(raw, dict) and ("default" in raw or "aux" in raw):
+                return raw
+
+            # Legacy format: flatten into the structure expected by the
+            # config display branch so old recipe files still render.
+            if isinstance(raw, dict):
+                default_clis = []
+                for cli in raw.get("clis", []):
+                    if isinstance(cli, str) and cli and not cli.startswith("opencode:"):
+                        default_clis.append({"name": cli})
+
+                aux_clis = []
+                for model in raw.get("opencode_models", []):
+                    if isinstance(model, str) and model:
+                        aux_clis.append(
+                            {"name": "opencode", "model": _resolve_opencode_model(model)}
+                        )
+
+                return {
+                    "default": {"clis": default_clis},
+                    "aux": {"clis": aux_clis},
+                    "clis": raw.get("clis", []),
+                    "opencode_models": raw.get("opencode_models", []),
+                }
     except Exception:
         pass
     return None
@@ -49,8 +75,30 @@ def _load_ai_cli_config() -> dict[str, Any] | None:
 def _save_ai_cli_config(clis: list[str], opencode_models: list[str]) -> None:
     """Save AI-CLI recipe config."""
     try:
-        with open(_AI_CLI_CONFIG, "w") as f:
-            json.dump({"clis": clis, "opencode_models": opencode_models}, f)
+        default_clis = []
+        for cli in clis:
+            if isinstance(cli, str) and cli and not cli.startswith("opencode:"):
+                default_clis.append({"name": cli})
+
+        resolved_opencode_models = []
+        for model in opencode_models:
+            if not isinstance(model, str) or not model:
+                continue
+            resolved = _resolve_opencode_model(model)
+            if resolved not in resolved_opencode_models:
+                resolved_opencode_models.append(resolved)
+
+        aux_clis = [{"name": "opencode", "model": model} for model in resolved_opencode_models]
+
+        payload = {
+            "default": {"clis": default_clis},
+            "aux": {"clis": aux_clis},
+            "clis": clis,
+            "opencode_models": resolved_opencode_models,
+        }
+
+        with open(_AI_CLI_CONFIG, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2)
     except Exception:
         pass
 
@@ -361,11 +409,13 @@ def _resolve_opencode_model(model: str | None) -> str:
     """
     aliases = {
         # User-preferred models
+        "kimi": "chutes/moonshotai/Kimi-K2.5-TEE",
+        "minimax": "chutes/MiniMaxAI/MiniMax-M2.1-TEE",
         "nemotron": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
         "mimo": "chutes/XiaomiMiMo/MiMo-V2-Flash",
         "glm5": "zai-coding-plan/glm-5.1",
-        "k2": "nvidia Kimi K2 Thinking DeepSeek V3.2 Nvidia",
-        "deepseek-v3.2": "nvidia Kimi K2 Thinking DeepSeek V3.2 Nvidia",
+        "k2": "chutes/moonshotai/Kimi-K2.5-TEE",
+        "deepseek-v3.2": "chutes/deepseek-ai/DeepSeek-V3.2-TEE",
         "deepseek-v3.2-tee": "chutes/deepseek-ai/DeepSeek-V3.2-TEE",
     }
     if model in aliases:
@@ -3258,9 +3308,17 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
     # Simple logic tree: "config" query just shows saved config and exits
     if args.query.strip().lower() == "config":
         saved = _load_ai_cli_config()
+        default_clis = []
+        aux_clis = []
         if saved:
+            default_clis = saved.get("default", {}).get("clis", [])
+            aux_clis = saved.get("aux", {}).get("clis", [])
+
+        if default_clis or aux_clis:
             print("Active CLIs:")
-            for i, (group_name, group_data) in enumerate([("Default", saved.get("default", {})), ("Aux / Enh", saved.get("aux", {}))]):
+            for i, (group_name, group_data) in enumerate(
+                [("Default", {"clis": default_clis}), ("Aux / Enh", {"clis": aux_clis})]
+            ):
                 clis = group_data.get("clis", [])
                 if not clis:
                     continue
@@ -3504,9 +3562,7 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
 
     # Save recipe config (CLIs used + opencode models) for future runs
     active_clis = list(results.keys())
-    if opencode_models or args.opencode_model:
-        saved_models = opencode_models if opencode_models else args.opencode_model
-        _save_ai_cli_config(active_clis, saved_models)
+    _save_ai_cli_config(active_clis, opencode_models)
 
 
 if __name__ == "__main__":

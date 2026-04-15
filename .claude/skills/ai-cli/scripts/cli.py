@@ -132,11 +132,13 @@ def cmd_models(args: argparse.Namespace) -> int:
     """Show available models for each CLI."""
     # OpenCode model aliases (from ai_cli.py)
     aliases = {
+        "kimi": "chutes/moonshotai/Kimi-K2.5-TEE",
+        "minimax": "chutes/MiniMaxAI/MiniMax-M2.1-TEE",
         "nemotron": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
         "mimo": "chutes/XiaomiMiMo/MiMo-V2-Flash",
         "glm5": "zai-coding-plan/glm-5.1",
-        "k2": "nvidia Kimi K2 Thinking DeepSeek V3.2 Nvidia",
-        "deepseek-v3.2": "nvidia Kimi K2 Thinking DeepSeek V3.2 Nvidia",
+        "k2": "chutes/moonshotai/Kimi-K2.5-TEE",
+        "deepseek-v3.2": "chutes/deepseek-ai/DeepSeek-V3.2-TEE",
         "deepseek-v3.2-tee": "chutes/deepseek-ai/DeepSeek-V3.2-TEE",
     }
     default_model = "chutes/deepseek-ai/DeepSeek-V3-0324-TEE"
