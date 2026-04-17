@@ -152,13 +152,14 @@ def test_handles_multiple_imports_on_one_line():
     assert any(s in reason for s in ["os", "sys", "re"])
 
 
-def test_fail_open_on_missing_session_id():
-    """Missing session_id should fail open (allow)."""
+def test_fail_closed_on_missing_session_id_with_import_deletion():
+    """Missing session_id should fail closed (block) when imports are removed."""
     old = 'import os\n\ndef foo():\n    return "bar"'
     new = 'def foo():\n    return "bar"'
 
     result = run_hook("Edit", "test.py", old, new, session_id="")
-    assert result.get("continue") is True
+    assert result.get("continue") is False
+    assert "os" in result.get("reason", "")
 
 
 def test_symbol_extraction_from_from_import():

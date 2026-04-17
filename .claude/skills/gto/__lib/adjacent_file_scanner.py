@@ -270,23 +270,26 @@ class AdjacentFileScanner:
         try:
             with open(file_path, encoding="utf-8", errors="ignore") as f:
                 # Skip shebang and encoding pragma lines, then check for docstring
-                for i in range(2):
+                prefix_skips = 2  # max shebang + encoding lines to skip
+                lines_checked = 0
+                while lines_checked < 4:
                     line = f.readline()
                     if not line:
                         return False  # EOF
-                    if line.startswith("#!") or line.startswith("# -*-"):
-                        continue  # Skip this line, loop back to read next
+                    lines_checked += 1
+                    if lines_checked <= prefix_skips and (line.startswith("#!") or line.startswith("# -*-")):
+                        continue  # Skip this prefix line
 
-                    # This line is not shebang/encoding — check if it's the docstring
                     if line.strip().startswith('"""') or line.strip().startswith("'''"):
                         return True
 
-                    # Not a docstring on this line — read the next line as the potential docstring
+                    # Not a docstring — try one more line
                     next_line = f.readline()
                     if next_line:
                         stripped = next_line.strip()
                         if stripped.startswith('"""') or stripped.startswith("'''"):
                             return True
+                    return False
 
                 return False
         except (OSError, PermissionError):

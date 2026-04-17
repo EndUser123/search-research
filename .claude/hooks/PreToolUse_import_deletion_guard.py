@@ -352,7 +352,26 @@ def evaluate(data: dict) -> dict | None:
 
     tool_events = load_this_turn_events(session_id, terminal_id)
     if tool_events is None:
-        return None  # Fail open — evidence unavailable
+        # Fail closed: block import deletions when evidence store is unavailable
+        for file_path, old_string, new_string in _iter_candidate_edits(tool_name, tool_input):
+            removed_symbols = extract_removed_symbols(old_string, new_string)
+            if not removed_symbols:
+                continue
+            symbols_str = ", ".join(sorted(removed_symbols))
+            reason = f"""⛔ IMPORT DELETION WITHOUT EVIDENCE (session unavailable)
+
+You are removing the import of: {symbols_str}
+From: {file_path}
+
+The evidence store is unavailable for this session, so prior investigation
+cannot be verified. Before removing this import, search for the symbol:
+  grep -r "{sorted(removed_symbols)[0]}" --include="*.py" P:/
+
+If the search confirms the symbol is genuinely absent everywhere, proceed.
+
+Bypass: Add --allow-import-removal to your message."""
+            return {"continue": False, "reason": reason}
+        return None
 
     for file_path, old_string, new_string in _iter_candidate_edits(tool_name, tool_input):
         removed_symbols = extract_removed_symbols(old_string, new_string)

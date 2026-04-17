@@ -95,7 +95,7 @@ class DocsPresenceChecker:
 
         # Also check for SKILL.md at project root (skills self-document via SKILL.md)
         skill_md = self.project_root / "SKILL.md"
-        if skill_md.exists() and skill_md not in found_docs:
+        if skill_md.exists() and str(skill_md) not in found_docs:
             found_docs.append(str(skill_md))
 
         return found_docs

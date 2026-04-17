@@ -441,3 +441,159 @@ class TestCompletionMarker:
 
         # Should return string with invalid bytes stripped/ignored
         assert result == "abc123"  # Non-UTF-8 bytes ignored
+
+    def test_write_cleanup_temp_file_on_failure(self, tmp_path: Path) -> None:
+        """Test that _write_completion_marker cleans up temp file on OSError."""
+        config = OrchestratorConfig(
+            project_root=tmp_path,
+            terminal_id="test_terminal",
+            transcript_path=None,
+        )
+        orchestrator = GTOOrchestrator(config)
+
+        metadata = {
+            "timestamp": datetime.now().isoformat(),
+            "project_root": str(tmp_path),
+            "terminal_id": "test_terminal",
+        }
+
+        mock_results = MagicMock()
+        mock_results.gaps = []
+        mock_results.total_gap_count = 0
+
+        # Mock os.replace to raise OSError (simulating write failure)
+        original_replace = __import__("os").replace
+        call_count = [0]
+
+        def failing_replace(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:  # First call fails
+                raise OSError("Simulated write failure")
+            return original_replace(*args, **kwargs)
+
+        with patch("os.replace", side_effect=failing_replace):
+            # First call should fail and clean up temp file
+            with pytest.raises(OSError):
+                orchestrator._write_completion_marker(metadata, mock_results)
+
+        # Verify temp file was cleaned up (should not exist)
+        state_dir = tmp_path / ".evidence" / "gto-state-test_terminal"
+        temp_files = list(state_dir.glob("*.tmp"))
+        assert len(temp_files) == 0, "Temp file should be cleaned up after failure"
+
+    def test_read_only_state_directory(self, tmp_path: Path) -> None:
+        """Test behavior when state directory creation fails."""
+        config = OrchestratorConfig(
+            project_root=tmp_path,
+            terminal_id="test_terminal",
+            transcript_path=None,
+        )
+        orchestrator = GTOOrchestrator(config)
+
+        # Mock state_manager to raise OSError on _ensure_state_dir
+        with patch.object(orchestrator.state_manager, "_ensure_state_dir", side_effect=OSError("Permission denied")):
+            metadata = {
+                "timestamp": datetime.now().isoformat(),
+                "project_root": str(tmp_path),
+                "terminal_id": "test_terminal",
+            }
+
+            mock_results = MagicMock()
+            mock_results.gaps = []
+            mock_results.total_gap_count = 0
+
+            # Should raise OSError when state dir cannot be created
+            with pytest.raises(OSError, match="Permission denied"):
+                orchestrator._write_completion_marker(metadata, mock_results)
+
+    def test_check_completion_marker_malformed_json(self, tmp_path: Path) -> None:
+        """Test that _check_completion_marker handles malformed JSON gracefully."""
+        config = OrchestratorConfig(
+            project_root=tmp_path,
+            terminal_id="test_terminal",
+            transcript_path=None,
+        )
+        orchestrator = GTOOrchestrator(config)
+
+        # Create completion file with malformed JSON
+        state_dir = tmp_path / ".evidence" / "gto-state-test_terminal"
+        state_dir.mkdir(parents=True, exist_ok=True)
+
+        completion_file = state_dir / "completion.json"
+        completion_file.write_text("{invalid json content")
+
+        # Should return None for malformed JSON
+        result = orchestrator._check_completion_marker()
+        assert result is None, "Should return None for malformed JSON"
+
+    def test_concurrent_write_terminal_isolation(self, tmp_path: Path) -> None:
+        """Test that concurrent writes from different terminals are isolated."""
+        import threading
+        import time
+
+        # Create two orchestrators with different terminal IDs
+        config_a = OrchestratorConfig(
+            project_root=tmp_path,
+            terminal_id="terminal_A",
+            transcript_path=None,
+        )
+        orchestrator_a = GTOOrchestrator(config_a)
+
+        config_b = OrchestratorConfig(
+            project_root=tmp_path,
+            terminal_id="terminal_B",
+            transcript_path=None,
+        )
+        orchestrator_b = GTOOrchestrator(config_b)
+
+        results = {"success": [], "errors": []}
+
+        def write_marker_a():
+            try:
+                metadata = {
+                    "timestamp": datetime.now().isoformat(),
+                    "project_root": str(tmp_path),
+                    "terminal_id": "terminal_A",
+                }
+                mock_results = MagicMock()
+                mock_results.gaps = []
+                mock_results.total_gap_count = 0
+                orchestrator_a._write_completion_marker(metadata, mock_results)
+                results["success"].append("A")
+            except Exception as e:
+                results["errors"].append(f"A: {e}")
+
+        def write_marker_b():
+            try:
+                metadata = {
+                    "timestamp": datetime.now().isoformat(),
+                    "project_root": str(tmp_path),
+                    "terminal_id": "terminal_B",
+                }
+                mock_results = MagicMock()
+                mock_results.gaps = []
+                mock_results.total_gap_count = 0
+                orchestrator_b._write_completion_marker(metadata, mock_results)
+                results["success"].append("B")
+            except Exception as e:
+                results["errors"].append(f"B: {e}")
+
+        # Start both threads concurrently
+        thread_a = threading.Thread(target=write_marker_a)
+        thread_b = threading.Thread(target=write_marker_b)
+
+        thread_a.start()
+        thread_b.start()
+
+        thread_a.join(timeout=5)
+        thread_b.join(timeout=5)
+
+        # Both should succeed without corruption
+        assert len(results["errors"]) == 0, f"Concurrent writes failed: {results['errors']}"
+        assert len(results["success"]) == 2, "Both terminals should write successfully"
+
+        # Verify each terminal has its own marker
+        state_dir_a = tmp_path / ".evidence" / "gto-state-terminal_A"
+        state_dir_b = tmp_path / ".evidence" / "gto-state-terminal_B"
+        assert (state_dir_a / "completion.json").exists(), "Terminal A marker should exist"
+        assert (state_dir_b / "completion.json").exists(), "Terminal B marker should exist"

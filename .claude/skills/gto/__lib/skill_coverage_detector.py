@@ -210,11 +210,23 @@ def _rotate_skill_coverage_log(coverage_path: Path) -> None:
         # Keep only the last 100 entries
         if len(entries) > 100:
             entries = entries[-100:]
+        else:
+            return  # No rotation needed
 
-        # Write back the trimmed entries
-        with open(coverage_path, "w") as f:
-            for entry in entries:
-                f.write(json.dumps(entry) + "\n")
+        # Write to temp file then rename (atomic-ish on Windows, atomic on POSIX)
+        import tempfile as _tf
+        tmp_fd, tmp_path = _tf.mkstemp(
+            dir=str(coverage_path.parent), suffix=".jsonl.tmp"
+        )
+        try:
+            with open(tmp_fd, "w") as f:
+                for entry in entries:
+                    f.write(json.dumps(entry) + "\n")
+            Path(tmp_path).replace(coverage_path)
+        except BaseException:
+            import os as _os
+            _os.unlink(tmp_path)
+            raise
     except OSError:
         # If rotation fails, leave the file as-is
         pass
