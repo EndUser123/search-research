@@ -1,0 +1,30 @@
+{
+  "version": "3.0.0",
+  "terminal_id": "4febd9ad69d2",
+  "timestamp": "2026-04-17T14:28:01.156621",
+  "session_id": "2026-04-17T14:28:01.064797",
+  "gaps": [],
+  "metadata": {
+    "timestamp": "2026-04-17T14:28:01.064797",
+    "project_root": "P:\\packages\\search-research",
+    "terminal_id": "4febd9ad69d2",
+    "viability_check": {
+      "is_viable": true,
+      "failure_reason": null
+    },
+    "git_context": {
+      "branch": "main",
+      "branch_display": "main",
+      "is_detached": false,
+      "is_worktree": false,
+      "worktree_count": 1,
+      "error": null
+    },
+    "subagent_results": {},
+    "resolution_result": {
+      "resolved_count": 0,
+      "new_count": 0,
+      "credited_skill": null
+    }
+  }
+}

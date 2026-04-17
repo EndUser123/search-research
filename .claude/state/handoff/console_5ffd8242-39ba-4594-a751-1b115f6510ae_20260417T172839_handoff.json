@@ -1,0 +1,119 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "be6b9e35-5a37-4cd5-9f7d-6546ce19739d",
+    "terminal_id": "console_5ffd8242-39ba-4594-a751-1b115f6510ae",
+    "source_session_id": "2b23f841-6774-40cc-ab86-7b7a6fcdd30f",
+    "created_at": "2026-04-17T17:28:39.719207+00:00",
+    "expires_at": "2026-04-17T17:48:39.719207+00:00",
+    "status": "consumed",
+    "goal": "We just refactored the search research project. Please review it to make sure it looks okay. And then let's try to fix the problems with the local backends and the cleanup noise.",
+    "current_task": "We just refactored the search research project. Please review it to make sure it looks okay. And then let's try to fix the problems with the local backends and the cleanup noise.",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "P:/packages/search-research/core/router_async.py",
+      "P:/packages/search-research/tests/simple_router_test.py",
+      "P:/packages/search-research/core/config.py",
+      "P:/packages/search-research/core/backends/local/claude_history_backend.py",
+      "P:/packages/search-research/core/unified_router.py",
+      "P:/packages/search-research/core/backends/local/notebooklm_backend.py",
+      "P:/packages/search-research/core/backends/local/yt_is_backend.py",
+      "P:/packages/search-research/core/chs/embeddings.py",
+      "P:/packages/search-research/core/chs/search.py",
+      "P:/packages/search-research/pyproject.toml"
+    ],
+    "pending_operations": [
+      {
+        "type": "skill",
+        "target": "skill: search",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "ls \"P:/packages/search-research/\" 2>/dev/null || echo \"NOT FOUND\"",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "ls \"P:/packages/search-research/core/\" 2>/dev/null",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "cd \"P:/packages/search-research\" && python -c \"from core.cli import run_search; ",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "ls \"P:/packages/search-research/core/backends/\" 2>/dev/null",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "(advisory) Previous session had pending: skill on skill: search.",
+    "decision_refs": [],
+    "evidence_refs": [
+      "ev_a9f3395922ea4d1192b7275910e68ff2",
+      "ev_33d5fde44e594a0387d0083ce359cc2c",
+      "ev_eb56176959e54a4da5c537517b512e49",
+      "ev_b25e87a41a734d6f97d2c0d3d9684690",
+      "ev_2832370358d543f598f5b8a433af00e1",
+      "ev_49e8203276374f709dbc969794d1e85d"
+    ],
+    "n_1_transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\2b23f841-6774-40cc-ab86-7b7a6fcdd30f.jsonl",
+    "n_2_transcript_path": null,
+    "message_intent": "instruction",
+    "goal_origin": "user_message",
+    "quality_score": 0.9,
+    "tasks_snapshot": [],
+    "consumed_at": "2026-04-17T17:30:17.170246+00:00",
+    "consumed_by_session_id": "2b23f841-6774-40cc-ab86-7b7a6fcdd30f"
+  },
+  "decision_register": [],
+  "evidence_index": [
+    {
+      "id": "ev_a9f3395922ea4d1192b7275910e68ff2",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\2b23f841-6774-40cc-ab86-7b7a6fcdd30f.jsonl",
+      "content_hash": "sha256:c8c666c8634c8f01091890c1be0aa3a8320195031c782a78092fe25e660b4fa4"
+    },
+    {
+      "id": "ev_33d5fde44e594a0387d0083ce359cc2c",
+      "type": "file",
+      "label": "router_async.py",
+      "path": "P:\\packages\\search-research\\core\\router_async.py",
+      "content_hash": "sha256:e5b62cd3a29b7382cc3a368d1d26f2e6fe6b4e4469ad319590f50902464964e8"
+    },
+    {
+      "id": "ev_eb56176959e54a4da5c537517b512e49",
+      "type": "file",
+      "label": "simple_router_test.py",
+      "path": "P:\\packages\\search-research\\tests\\simple_router_test.py",
+      "content_hash": "sha256:c25716c2ae1d8baf3e17934dbae18b63be0a0a16cd760e95fd0de74b168b9eba"
+    },
+    {
+      "id": "ev_b25e87a41a734d6f97d2c0d3d9684690",
+      "type": "file",
+      "label": "config.py",
+      "path": "P:\\packages\\search-research\\core\\config.py",
+      "content_hash": "sha256:ffca65246e150dedaf6d6ee65f23d462f72de2faed4fd218766ec70eb0c50b19"
+    },
+    {
+      "id": "ev_2832370358d543f598f5b8a433af00e1",
+      "type": "file",
+      "label": "claude_history_backend.py",
+      "path": "P:\\packages\\search-research\\core\\backends\\local\\claude_history_backend.py",
+      "content_hash": "sha256:4eafbb52282926ba5386bd5fb1a3d2b246b9d326d28faa648e467dad99baa445"
+    },
+    {
+      "id": "ev_49e8203276374f709dbc969794d1e85d",
+      "type": "file",
+      "label": "unified_router.py",
+      "path": "P:\\packages\\search-research\\core\\unified_router.py",
+      "content_hash": "sha256:7c96a32298858d2d40fad34559f0fe28f3cd5f3a450bb022e039c9e6520761dd"
+    }
+  ],
+  "checksum": "sha256:7a68b6ce6d01e6814e49371d5d9ab0c1519daa96083e6772851ad8abafdea1e5"
+}
