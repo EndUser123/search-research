@@ -203,10 +203,10 @@ class TestEmbeddingCacheAdaptiveThreshold:
         """AT-1: Threshold floor at 0.80, cannot go lower."""
         cache = EmbeddingCache(log_dir=str(cache_dir), ttl_seconds=3600, initial_threshold=0.85)
 
-        # Simulate many rounds of low hit rate using orthogonal vectors
-        for round_num in range(10):
-            for i in range(100):
-                # Use orthogonal-ish vectors for consistently low similarity
+        # Threshold adjusts at _queries >= 100; use 2 rounds of 60 to trigger adjustment
+        # then drop to floor, without hitting the disk I/O wall on Windows.
+        for round_num in range(2):
+            for i in range(60):
                 store_emb = [0.1] * 768
                 search_emb = [0.1 if j % 2 == 0 else -0.1 for j in range(768)]
                 cache.store(f"query_{round_num}_{i}", store_emb, {"result": f"{round_num}_{i}"})

@@ -162,10 +162,13 @@ class QMDWikiBackend(BaseLocalBackend):
                     asyncio.create_task(self._async_rebuild_index())
 
         try:
+            # Enforce English locale for qmd output
+            env = {**os.environ, "LANG": "en_US.UTF-8", "LC_ALL": "en_US.UTF-8"}
             result = await asyncio.create_subprocess_exec(
                 "qmd", "search", "--collection", self.qmd_scope.rstrip("/"), "--format", "json", query,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                env=env,
             )
             stdout, stderr = await asyncio.wait_for(
                 result.communicate(), timeout=self.TIMEOUT
@@ -254,9 +257,11 @@ class QMDWikiBackend(BaseLocalBackend):
             ):
                 return
             try:
+                env = {**os.environ, "LANG": "en_US.UTF-8", "LC_ALL": "en_US.UTF-8"}
                 result = await asyncio.create_subprocess_exec(
                     "qmd", "update", self.qmd_scope.rstrip("/"),
                     stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+                    env=env,
                 )
                 stdout, stderr = await asyncio.wait_for(
                     result.communicate(), timeout=self.TIMEOUT * 4
@@ -288,9 +293,11 @@ class QMDWikiBackend(BaseLocalBackend):
     def _sync_rebuild(self) -> None:
         """Constraint 1: _sync_rebuild uses sync subprocess.run(), NOT async."""
         try:
+            env = {**os.environ, "LANG": "en_US.UTF-8", "LC_ALL": "en_US.UTF-8"}
             result = subprocess.run(
                 ["qmd", "update", self.qmd_scope.rstrip("/")],
                 capture_output=True, timeout=self.TIMEOUT * 4,
+                env=env,
             )
             if result.stderr:
                 logger.debug(f"qmd index stderr: {result.stderr.decode()}")

@@ -1,0 +1,114 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "e6b13c78-4484-479b-9a1f-70f178ce1f73",
+    "terminal_id": "console_2e3ba45f-4d21-47ad-8c77-5a1fe6ef31ad",
+    "source_session_id": "13cab26e-40e8-4b6b-9969-818abe7c8cfa",
+    "created_at": "2026-04-15T16:56:48.800592+00:00",
+    "expires_at": "2026-04-15T17:16:48.800592+00:00",
+    "status": "rejected_stale",
+    "goal": "Continue current task (meta-discussion filtered)",
+    "current_task": "Continue current task (meta-discussion filtered)",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "C:\\Users\\brsth\\AppData\\Local\\Temp\\claude\\P--\\13cab26e-40e8-4b6b-9969-818abe7c8cfa\\tasks\\b808ayod8.output",
+      "P:/.claude/skills/yt-is/SKILL.md",
+      "P:/packages/yt-is/skills/yt-is/SKILL.md",
+      "P:/packages/yt-is/csf/display.py",
+      "C:\\Users\\brsth\\.claudeprojects\\P--\\13cab26e-40e8-4b6b-9969-818abe7c8cfa\\tool-results\\bj8qd2csg.txt"
+    ],
+    "pending_operations": [
+      {
+        "type": "skill",
+        "target": "skill: yt-is",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "cd P:/.claude/skills/yt-is && csf-source check-all",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "ls P:/.claude/skills/yt-is/bin/ && ls P:/.claude/skills/yt-is/",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "ls -la P:/.claude/skills/yt-is/ 2>/dev/null || echo \"Directory not found\"",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "which csf-source 2>/dev/null || where csf-source 2>/dev/null || echo \"csf-source",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "Resume skill on skill: yt-is.",
+    "decision_refs": [],
+    "evidence_refs": [
+      "ev_71b7a0d913b2429fb356cad02af4eb1a",
+      "ev_94e14aed67e14df9a0f203070d386b81",
+      "ev_76a5883579144e0da32c2cbf8632678e",
+      "ev_2d6a52176b0347edabda05c922b3da0e",
+      "ev_25b1ac92f38741c9bd240eb56c33553a",
+      "ev_1a9d643295f34bffa308a28b1974c97f"
+    ],
+    "n_1_transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\13cab26e-40e8-4b6b-9969-818abe7c8cfa.jsonl",
+    "n_2_transcript_path": null,
+    "message_intent": "question",
+    "goal_origin": "user_message",
+    "quality_score": 0.4,
+    "tasks_snapshot": [],
+    "rejected_at": "2026-04-15T16:57:37.772191+00:00",
+    "rejected_by_session_id": "13cab26e-40e8-4b6b-9969-818abe7c8cfa",
+    "rejection_reason": "snapshot evidence path outside project directory"
+  },
+  "decision_register": [],
+  "evidence_index": [
+    {
+      "id": "ev_71b7a0d913b2429fb356cad02af4eb1a",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\13cab26e-40e8-4b6b-9969-818abe7c8cfa.jsonl",
+      "content_hash": "sha256:7c65bf73e4d7c6b3020a8982689ddd79f5c3b09b77f323b9e7d4d771fa2107fd"
+    },
+    {
+      "id": "ev_94e14aed67e14df9a0f203070d386b81",
+      "type": "file",
+      "label": "b808ayod8.output",
+      "path": "C:\\Users\\brsth\\AppData\\Local\\Temp\\claude\\P--\\13cab26e-40e8-4b6b-9969-818abe7c8cfa\\tasks\\b808ayod8.output",
+      "content_hash": "sha256:b4c4f2fba1604d21a4db3f9ebc06054acc90117757cb14ca6db75f25ef848e40"
+    },
+    {
+      "id": "ev_76a5883579144e0da32c2cbf8632678e",
+      "type": "file",
+      "label": "SKILL.md",
+      "path": "P:\\packages\\yt-is\\skills\\yt-is\\SKILL.md",
+      "content_hash": "sha256:84a5954e95efebe8c8b3b8311eea979346ddec179d34105de74bb25924d13ee6"
+    },
+    {
+      "id": "ev_2d6a52176b0347edabda05c922b3da0e",
+      "type": "file",
+      "label": "SKILL.md",
+      "path": "P:\\packages\\yt-is\\skills\\yt-is\\SKILL.md",
+      "content_hash": "sha256:84a5954e95efebe8c8b3b8311eea979346ddec179d34105de74bb25924d13ee6"
+    },
+    {
+      "id": "ev_25b1ac92f38741c9bd240eb56c33553a",
+      "type": "file",
+      "label": "display.py",
+      "path": "P:\\packages\\yt-is\\csf\\display.py",
+      "content_hash": "sha256:82ae2d96414392efe266d14e430f074c4d9543c103bdde198ffc7da008403c01"
+    },
+    {
+      "id": "ev_1a9d643295f34bffa308a28b1974c97f",
+      "type": "file",
+      "label": "bj8qd2csg.txt",
+      "path": "C:\\Users\\brsth\\.claudeprojects\\P--\\13cab26e-40e8-4b6b-9969-818abe7c8cfa\\tool-results\\bj8qd2csg.txt"
+    }
+  ],
+  "checksum": "sha256:2552e7e24cb0e840d69230da7096f8b4038e0a14d13a3d618a0e90aa565f1ef8"
+}

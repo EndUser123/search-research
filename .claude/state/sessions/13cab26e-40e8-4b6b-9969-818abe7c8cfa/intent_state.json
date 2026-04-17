@@ -1,0 +1,10 @@
+{
+  "current_intent": {
+    "work_type": "bugfix",
+    "target": "\n\u25cf Two questions to address:\n\n  1. 10-minute timeout \u2014 that",
+    "problem": "\"\n\u25cf Two questions to address:\n\n  1. 10-minute timeout \u2014 that's the Bash tool's default maximum timeout (600s), not something csf-source controls. The tool capped at that\n  because the fetch was tak...",
+    "user_prompt": "\"\n\u25cf Two questions to address:\n\n  1. 10-minute timeout \u2014 that's the Bash tool's default maximum timeout (600s), not something csf-source controls. The tool capped at that\n  because the fetch was taking longer. It can be increased if needed.\n  2. \"staging notebook unavailable\" \u2014 the industrial ingest mode is trying to use the NotebookLM staging API to process transcripts in bulk,\n  and that staging endpoint isn't reachable. This is an external dependency, not a csf-source issue. The fallback chain should have continued\n  to yt-dlp.\"\n\nthe timeout shouldn't cause us to lose data or slow progress.  I think there is a 20 min limit on notebooklm authentication, but I never see that in my human use.  Plus authentication should happen automatically .\n\nwe need to fix the notebooklm issues, when it's working properly, we can get 18K videos per hour.",
+    "timestamp": "2026-04-15T16:58:44.528596+00:00"
+  },
+  "last_updated": "2026-04-15T16:58:44.528802+00:00"
+}
