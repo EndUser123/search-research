@@ -167,15 +167,15 @@
         }
 
         #diagram svg {
-            width: 100% !important;
-            height: 100% !important;
-            max-width: 100%;
-            max-height: 100%;
+            min-width: 100%;
+            min-height: 100%;
+            max-width: 100% !important;
+            max-height: none !important;
             overflow: visible !important;
         }
 
         #diagram svg.max-width-limited {
-            max-width: 1600px !important;
+            max-width: none !important;
         }
 
         .loading {
@@ -288,7 +288,7 @@
         function buildMermaidCode(direction) {
             return `flowchart ${direction}
     subgraph L1 ["L1 — Intent"]
-        L1_S1(["<b>/think</b>, <b>/planning</b><br/>classify_intent()<br/>route()"])
+        L1_S1(["<b>/think</b>, <b>/prd</b><br/>classify_intent()<br/>route()"])
     end
 
     subgraph L2 ["L2 — Plan"]
@@ -345,19 +345,28 @@
             try {
                 const { svg, bindFunctions } = await mermaid.render(
                     renderId,
-                    buildMermaidCode(modeConfig.direction),
-                    {
-                        theme,
-                        flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
-                        securityLevel: 'loose',
-                    }
+                    buildMermaidCode(modeConfig.direction)
                 );
 
                 diagram.innerHTML = `<div class="diagram-inner">${svg}</div>`;
                 const svgEl = diagram.querySelector('svg');
                 if (svgEl) {
+                    svgEl.removeAttribute('width');
+                    svgEl.removeAttribute('height');
+                    const containerRect = diagram.getBoundingClientRect();
+                    const availW = containerRect.width - 48;
+                    const availH = containerRect.height - 48;
+                    const viewBox = svgEl.getAttribute('viewBox');
+                    const parts = viewBox.split(' ');
+                    const vbW = parseFloat(parts[2]);
+                    const vbH = parseFloat(parts[3]);
+                    const scaleX = availW / vbW;
+                    const scaleY = availH / vbH;
+                    const fitScale = Math.min(scaleX, scaleY);
+                    svgEl.style.width = (vbW * fitScale) + 'px';
+                    svgEl.style.height = (vbH * fitScale) + 'px';
                     svgEl.classList.toggle('max-width-limited', currentLayout === 'LR' || currentLayout === 'RL');
-                    if (bindFunctions) mermaid.bindFunctions(svgEl, bindFunctions);
+                    if (typeof bindFunctions === 'function') bindFunctions(svgEl);
                     svgEl.style.transform = `scale(${currentScale})`;
                     svgEl.style.transformOrigin = 'center center';
                 }
@@ -404,6 +413,13 @@
 
             document.getElementById('theme-toggle').addEventListener('click', () => {
                 document.body.classList.toggle('dark');
+                const theme = getTheme();
+                mermaid.initialize({
+                    startOnLoad: false,
+                    theme: theme,
+                    flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+                    securityLevel: 'loose',
+                });
                 renderDiagram();
             });
 

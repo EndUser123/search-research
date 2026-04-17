@@ -117,40 +117,60 @@ class YtIsBackend:
         if not query:
             return []
 
-        # Trigger async rebuild if FTS table doesn't exist or DB is newer
-        db_mtime = self._get_db_mtime()
-        index_mtime = self._index_mtime
-        needs_build = not self._ensure_fts() or (db_mtime and (index_mtime is None or db_mtime > index_mtime))
-
-        if needs_build:
-            # Try to start a rebuild (only one thread can rebuild at a time)
-            if self._rebuild_lock.acquire(blocking=False):
-                try:
-                    if self._rebuild_in_progress:
-                        # Another thread is already rebuilding, skip this round
-                        pass
-                    else:
-                        self._rebuild_in_progress = True
-                        # Run synchronous build in thread pool (non-blocking for event loop)
-                        await asyncio.to_thread(self.build_index)
-                finally:
-                    self._rebuild_lock.release()
-            else:
-                # Another thread holds the lock (rebuild in progress), skip this round
-                # FTS will be empty but at least we don't hang
-                pass
-
+        # Try to get results from existing FTS5 index
+        # Do NOT trigger a rebuild in the hot path — if FTS5 is empty or stale,
+        # just return empty and let a lazy background rebuild happen for next time.
+        # This prevents router 5s timeouts from cancelling mid-build and
+        # leaving the FTS5 table in a corrupted/empty state.
         try:
             results = self._fts_search(query, limit)
             self._rebuild_failures = 0
             self._index_mtime = self._get_db_mtime()
+            # If FTS5 is empty but transcript_cache has data, trigger lazy rebuild
+            if not results and self._ensure_fts():
+                db_mtime = self._get_db_mtime()
+                index_mtime = self._index_mtime
+                if db_mtime and (index_mtime is None or db_mtime > index_mtime):
+                    self._trigger_lazy_rebuild()
             return results
         except Exception as e:
             logger.debug(f"yt-is FTS search failed: {e}")
             return []
 
+    def _trigger_lazy_rebuild(self) -> None:
+        """Trigger a lazy background rebuild if one isn't already running.
+
+        Called after an empty-result search when the DB has newer data than the index.
+        Runs rebuild in thread pool without blocking the event loop.
+        """
+        if self._rebuild_in_progress:
+            return
+        with self._rebuild_lock:
+            if self._rebuild_in_progress:
+                return
+            self._rebuild_in_progress = True
+        # Detach rebuild so it doesn't block the caller
+        import threading
+        t = threading.Thread(target=self._lazy_build_wrapper, daemon=True)
+        t.start()
+
+    def _lazy_build_wrapper(self) -> None:
+        """Wrapper for lazy rebuild that resets the in-progress flag on completion."""
+        try:
+            self._sync_build_fts()
+        except Exception as e:
+            logger.debug(f"yt-is lazy FTS build failed: {e}")
+            self._rebuild_failures += 1
+            self._update_cooldown()
+        finally:
+            self._rebuild_in_progress = False
+
     def build_index(self) -> None:
-        """Build or rebuild the FTS5 table from transcript_cache + analysis_status join."""
+        """Build or rebuild the FTS5 table from transcript_cache + analysis_status join.
+
+        Called from a thread pool (via asyncio.to_thread) so must be safe to run
+        concurrently with search_async on the main thread.
+        """
         if not _TRANSCRIPT_DB.exists():
             logger.debug("yt-is transcripts DB not found, skipping index build")
             self._rebuild_in_progress = False
