@@ -81,7 +81,7 @@ claude
 
 | Command | Description |
 |---------|-------------|
-| `/plan` | Generate implementation plan |
+| `/planning` | Generate implementation plan |
 | `/explore` | Explore codebase architecture |
 | `/chs` | Search chat history |
 | `/comply` | Check standards compliance |

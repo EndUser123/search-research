@@ -80,7 +80,7 @@ Director Model (human director + AI agent). Strategies guide AI agents under use
 **Output:**
 - Ranked ideas with scores
 - Decision memo (chosen alternative, why others were rejected)
-- Next command hints (/plan, /nse, /arch)
+- Next command hints (/planning, /nse, /arch)
 
 ### Recall and Prior Context
 

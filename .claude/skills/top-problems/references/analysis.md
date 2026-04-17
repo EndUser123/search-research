@@ -23,7 +23,7 @@ Auto-escalate problems meeting these criteria:
 | Condition | Escalation | Suggested Action |
 |-----------|------------|-----------------|
 | Score >= 15 AND appears 3+ runs unchanged | `CRITICAL-STALE` | `Try: /pre-mortem specifically for this problem` |
-| Score >= 20 AND new this run | `CRITICAL-NEW` | `Try: /plan to design immediate fix` |
+| Score >= 20 AND new this run | `CRITICAL-NEW` | `Try: /planning to design immediate fix` |
 | Cross-ref count >= 3 | `WELL-VALIDATED` | High confidence — safe to prioritize |
 | Previously RESOLVED, now in evidence again | `REGRESSION` | Auto-escalate to P1 bucket — fixed problem reappeared |
 

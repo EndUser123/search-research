@@ -9,6 +9,14 @@ triggers:
   - /tilldone
 aliases:
   - /tilldone
+workflow_steps:
+  - discover_targets
+  - parse_phase_states
+  - run_command_per_package
+  - check_convergence
+  - report_stability
+  - repeat_until_done
+
 suggest:
   - /gitready
 ---

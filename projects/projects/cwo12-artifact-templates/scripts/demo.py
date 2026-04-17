@@ -118,7 +118,7 @@ def run_demo():
     print("- 4 Project Types (API, Web App, Data Processing, ML)")
     print("- Customizable templates with variable substitution")
     print("- Built-in CWO12 compliance validation")
-    print("- Integration ready for /plan command")
+    print("- Integration ready for /planning command")
     print("- Comprehensive documentation and examples")
     print("- Production-quality templates")
 

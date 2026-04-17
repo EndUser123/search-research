@@ -54,7 +54,7 @@ The workspace has successfully migrated from consolidated TSK-LEGACY to project-
 1. **Set Active TSK**: `/tsk.set <project-tsk-id>`
 2. **List Tasks**: `/task list`
 3. **Work on Tasks**: `/task update <id> --status in_progress`
-4. **Plan Work**: `/plan add "New task description"`
+4. **Plan Work**: `/planning add "New task description"`
 5. **Execute Work**: `/exec validate` (validates current TSK)
 
 ### Switching Projects
@@ -70,7 +70,7 @@ The workspace has successfully migrated from consolidated TSK-LEGACY to project-
 ```
 
 ### Task Operations
-All `/task`, `/plan`, and `/exec` commands work on the currently active TSK.
+All `/task`, `/planning`, and `/exec` commands work on the currently active TSK.
 
 ## Data-Task Linking
 

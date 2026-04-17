@@ -1,7 +1,7 @@
 # Strategic Plan: implement authentication system with MFA
 
 **Generated**: 2025-12-13 23:21:33
-**Command**: /plan (TaskMaster Integrated)
+**Command**: /planning (TaskMaster Integrated)
 **Planning Type**: Strategic
 **Project ID**: TM-20251213-2317-IMPLEMENT-AUTHENTICATION-SYSTEM
 

@@ -55,20 +55,21 @@ class QMDWikiBackend(BaseLocalBackend):
     def __init__(
         self,
         vault_path: str | None = None,
-        qmd_scope: str = "",
+        qmd_scope: str | None = None,
     ):
         # Initialize BaseLocalBackend first to ensure exclude_patterns is set
         super().__init__(root_paths=[str(vault_path)] if vault_path else None)
 
-        self.qmd_scope = qmd_scope
+        self.qmd_scope = qmd_scope if qmd_scope is not None else ""
 
         # Resolve vault_path: prefer qmd's config, fall back to OBSIDIAN_VAULT_PATH
         if vault_path:
             raw_vault = os.path.expanduser(vault_path)
         else:
-            # qmd's config IS the source of truth — path already includes the collection
-            # subdirectory (e.g. ".../personal-wiki/wiki"), so qmd_scope is ignored
-            qmd_vault = _get_vault_from_qmd_config(qmd_scope.rstrip("/"))
+            # qmd's config IS the source of truth — the path already includes the
+            # collection subdirectory (e.g. ".../personal-wiki/wiki"), so
+            # qmd_scope must be "" to avoid doubling the subdirectory
+            qmd_vault = _get_vault_from_qmd_config("wiki")
             raw_vault = str(qmd_vault) if qmd_vault else config.OBSIDIAN_VAULT_PATH
 
         self.vault_path = Path(raw_vault).resolve()
@@ -100,7 +101,7 @@ class QMDWikiBackend(BaseLocalBackend):
         ):
             return self._vault_mtime_cache[0]
 
-        wiki_path = self.vault_path / self.qmd_scope
+        wiki_path = self.vault_path / self.qmd_scope if self.qmd_scope else self.vault_path
         if not wiki_path.exists():
             return None
 
@@ -161,10 +162,13 @@ class QMDWikiBackend(BaseLocalBackend):
                     asyncio.create_task(self._async_rebuild_index())
 
         try:
+            # Enforce English locale for qmd output
+            env = {**os.environ, "LANG": "en_US.UTF-8", "LC_ALL": "en_US.UTF-8"}
             result = await asyncio.create_subprocess_exec(
                 "qmd", "search", "--collection", self.qmd_scope.rstrip("/"), "--format", "json", query,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                env=env,
             )
             stdout, stderr = await asyncio.wait_for(
                 result.communicate(), timeout=self.TIMEOUT
@@ -253,9 +257,11 @@ class QMDWikiBackend(BaseLocalBackend):
             ):
                 return
             try:
+                env = {**os.environ, "LANG": "en_US.UTF-8", "LC_ALL": "en_US.UTF-8"}
                 result = await asyncio.create_subprocess_exec(
                     "qmd", "update", self.qmd_scope.rstrip("/"),
                     stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+                    env=env,
                 )
                 stdout, stderr = await asyncio.wait_for(
                     result.communicate(), timeout=self.TIMEOUT * 4
@@ -287,9 +293,11 @@ class QMDWikiBackend(BaseLocalBackend):
     def _sync_rebuild(self) -> None:
         """Constraint 1: _sync_rebuild uses sync subprocess.run(), NOT async."""
         try:
+            env = {**os.environ, "LANG": "en_US.UTF-8", "LC_ALL": "en_US.UTF-8"}
             result = subprocess.run(
                 ["qmd", "update", self.qmd_scope.rstrip("/")],
                 capture_output=True, timeout=self.TIMEOUT * 4,
+                env=env,
             )
             if result.stderr:
                 logger.debug(f"qmd index stderr: {result.stderr.decode()}")

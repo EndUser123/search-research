@@ -2831,7 +2831,7 @@ Code: "Once approved, implement the solution."
 
 Commit: "Create a PR and write good commit messages."
 
-Pro tip: Use /plan mode explicitly or write "Do not write code yet, just give me the plan."
+Pro tip: Use /planning mode explicitly or write "Do not write code yet, just give me the plan."
 
 ### Planner Response
 

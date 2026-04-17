@@ -63,13 +63,13 @@ Previous commands (specify) have established context and requirements.
 2. **Technical analysis** - Detailed analysis of implementation approach
 3. **Stakeholder validation** - Review and approval process
 4. **Implementation planning** - Detailed development roadmap
-5. **Command coordination** - Coordinate with /plan, /exec, or /cwo12 as needed
+5. **Command coordination** - Coordinate with /planning, /exec, or /cwo12 as needed
 
 ## TaskMaster Integration
 
 - **Project tracked in**: TaskMaster database
 - **Artifacts stored**: Unified project context
-- **Command coordination**: Ready for /plan and /exec integration
+- **Command coordination**: Ready for /planning and /exec integration
 - **Evidence collection**: Automatic specification evidence storage
 
 ---

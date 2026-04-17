@@ -207,7 +207,182 @@ def acquire_cleanup_lock(timeout: int = CLEANUP_LOCK_TIMEOUT) -> Generator[bool,
                 lock_file.close()
 
 
-# Build artifact patterns - common temporary/generated directories
+# =============================================================================
+# SESSION STATE MANAGEMENT - Multi-terminal isolated, compact-event immune
+# =============================================================================
+
+
+def get_terminal_id() -> str:
+    """Get or create a unique terminal identifier.
+
+    Terminal ID is persisted to disk and reused across sessions.
+    This enables multi-terminal isolation: each terminal has its own state file.
+
+    Returns:
+        String terminal identifier (UUID prefix)
+    """
+    terminal_id_file = STATE_DIR / "terminal_id"
+
+    # Try to read existing terminal ID
+    if terminal_id_file.exists():
+        try:
+            terminal_id = terminal_id_file.read_text().strip()
+            if terminal_id:
+                return terminal_id
+        except Exception:
+            pass
+
+    # Generate new terminal ID
+    terminal_id = str(uuid.uuid4())[:8]
+
+    # Persist it
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        terminal_id_file.write_text(terminal_id)
+    except Exception:
+        pass
+
+    return terminal_id
+
+
+def get_session_state_path() -> Path:
+    """Get the terminal-specific session state file path.
+
+    Uses terminal-scoped state directory per state_paths.py pattern:
+    .claude/state/terminals/{terminal_id}/cleanup_session.json
+    """
+    terminal_id = get_terminal_id()
+    # Import here to avoid circular import at module level
+    from state_paths import get_terminal_state_path
+    return get_terminal_state_path(terminal_id, "cleanup_session.json")
+
+
+def load_session_state() -> dict:
+    """Load session state from terminal-specific disk file.
+
+    This enables:
+    - Multi-terminal isolation: each terminal sees only its own state
+    - Compact-event immunity: state survives session compaction/restart
+    - Stale-data immunity: fresh scan on each run overwrites cached data
+
+    Returns:
+        Session state dict with keys: approved_actions, skipped_items,
+        current_index, scan_timestamp, violations_snapshot, terminal_id
+    """
+    state_file = get_session_state_path()
+
+    if not state_file.exists():
+        return _empty_session_state()
+
+    try:
+        with open(state_file) as f:
+            state = json.load(f)
+
+        required_fields = [
+            "approved_actions",
+            "skipped_items",
+            "current_index",
+            "scan_timestamp",
+            "violations_snapshot",
+        ]
+        for field in required_fields:
+            if field not in state:
+                return _empty_session_state()
+
+        return state
+
+    except (json.JSONDecodeError, OSError):
+        return _empty_session_state()
+
+
+def _empty_session_state() -> dict:
+    """Return empty session state structure."""
+    return {
+        "approved_actions": [],
+        "skipped_items": [],
+        "current_index": 0,
+        "scan_timestamp": None,
+        "violations_snapshot": [],
+        "terminal_id": get_terminal_id(),
+    }
+
+
+def save_session_state(state: dict) -> None:
+    """Persist session state to terminal-specific disk file.
+
+    Called after each action to ensure compact-event immunity and
+    multi-terminal isolation.
+
+    Args:
+        state: Session state dict to persist
+    """
+    state_file = get_session_state_path()
+    state["last_saved"] = datetime.now().isoformat()
+
+    try:
+        STATE_DIR.mkdir(parents=True, exist_ok=True)
+        with open(state_file, "w") as f:
+            json.dump(state, f, indent=2)
+    except OSError:
+        pass
+
+
+def invalidate_session_state(reason: str) -> None:
+    """Invalidate session state when scan data may be stale.
+
+    Args:
+        reason: Why session state was invalidated
+    """
+    state_file = get_session_state_path()
+    if state_file.exists():
+        try:
+            stale_path = state_file.with_suffix(".stale")
+            state_file.rename(stale_path)
+        except OSError:
+            try:
+                state_file.unlink()
+            except OSError:
+                pass
+
+
+def is_session_state_valid(state: dict, violations_count: int) -> bool:
+    """Validate that session state is still usable.
+
+    Session state becomes invalid when:
+    - Violations count changed (new scan needed)
+    - Scan is older than 1 hour (stale data)
+    - Terminal ID mismatch (multi-terminal confusion)
+
+    Args:
+        state: Session state dict to validate
+        violations_count: Current violations count from fresh scan
+
+    Returns:
+        True if session state is valid and can be resumed
+    """
+    if state.get("terminal_id") != get_terminal_id():
+        return False
+
+    if len(state.get("violations_snapshot", [])) != violations_count:
+        return False
+
+    if state.get("scan_timestamp"):
+        try:
+            scan_time = datetime.fromisoformat(state["scan_timestamp"])
+            age_seconds = (datetime.now() - scan_time).total_seconds()
+            if age_seconds > 3600:
+                return False
+        except (ValueError, TypeError):
+            return False
+
+    return True
+
+
+# =============================================================================
+# BUILD ARTIFACT PATTERNS
+# =============================================================================
+
+
 BUILD_ARTIFACT_PATTERNS = {
     "__pycache__",
     ".pytest_cache",
@@ -3970,6 +4145,31 @@ NEW FEATURES:
     if internal_violations:
         results["summary"]["internal_count"] = len(internal_violations)
 
+    # SESSION STATE: Check if we can resume from a previous session
+    # This provides compact-event immunity and multi-terminal isolation
+    session_state = None
+    resumed_from_checkpoint = False
+
+    if not args.yes:  # Don't resume in auto-approve mode - always fresh run
+        saved_state = load_session_state()
+        if is_session_state_valid(saved_state, len(all_violations)):
+            session_state = saved_state
+            resumed_from_checkpoint = True
+            print(f"\n🔄 Resuming session from checkpoint (terminal {get_terminal_id()[:8]})")
+            print(f"   {len(saved_state['approved_actions'])} actions previously taken")
+            print(f"   {len(saved_state['skipped_items'])} items previously skipped")
+        else:
+            # Fresh scan - invalidate any stale state
+            invalidate_session_state("fresh_scan")
+
+    # Build set of already-processed paths for quick lookup
+    processed_paths: set[str] = set()
+    if session_state:
+        for action in session_state["approved_actions"]:
+            processed_paths.add(action.get("path", ""))
+        for path in session_state["skipped_items"]:
+            processed_paths.add(path)
+
     # REFERENCE CHECK: Verify violations aren't actively referenced
     print("\n" + "=" * 60)
     print("🔍 REFERENCE CHECK: Searching for active references")
@@ -4075,10 +4275,24 @@ NEW FEATURES:
             # Logging failure is not critical
             pass
 
-    # Execute cleanup
+    # Execute cleanup (pass session state for resume, processed_paths to skip)
     summary = interactive_cleanup(
-        violations, yes=args.yes, force=args.force, large_threshold_mb=args.large_threshold
+        violations,
+        yes=args.yes,
+        force=args.force,
+        large_threshold_mb=args.large_threshold,
+        session_state=session_state,
+        processed_paths=processed_paths,
     )
+
+    # Save final session state for compact-event immunity
+    if session_state is not None and not args.yes:
+        session_state["approved_actions"].extend(
+            summary.get("session_state", {}).get("approved_actions", [])
+        )
+        session_state["scan_timestamp"] = datetime.now().isoformat()
+        session_state["violations_snapshot"] = [v["path"] for v in violations]
+        save_session_state(session_state)
 
     # Show summary
     print("\n" + "=" * 60)

@@ -2,7 +2,7 @@
 
 **Generated**: 2025-12-13 23:21:33
 **Project ID**: TM-20251213-2317-IMPLEMENT-AUTHENTICATION-SYSTEM
-**Command**: /plan (TaskMaster Integrated)
+**Command**: /planning (TaskMaster Integrated)
 
 ## Overview
 

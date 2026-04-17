@@ -2,7 +2,7 @@
 
 ## What This Does
 - Moves all CWO12 triplets and task stores into project-scoped .speckit/memory/TSK-* folders.
-- Establishes a single active TSK per project for /task, /plan, and /exec.
+- Establishes a single active TSK per project for /task, /planning, and /exec.
 
 ## Prereqs
 - Workspace constitution: P:/.speckit/memory/constitution.md.
@@ -47,7 +47,7 @@
 
 7) Update Commands
 - /task: require active TSK; use workspace DB (tasks.db) for reads/writes; export tasks.json only if needed for compatibility.
-- /plan: require active TSK; write plan.md in the TSK folder.
+- /planning: require active TSK; write plan.md in the TSK folder.
 - /exec: require active TSK; validate only that triplet; block otherwise.
 - Helpers: /tsk.set <id>, /tsk.new <id> (registers in DB).
 
@@ -59,6 +59,6 @@
 - active_tsk recorded in P:/.speckit/taskmaster/tasks.db (and optional stub index.json if needed for legacy callers).
 - Triplet present in the active TSK folder: plan.md, data_model.md, tasks.json (export).
 - /exec validation points only to .speckit/memory/TSK-*.
-- /task and /plan refuse to write outside the active TSK.
+- /task and /planning refuse to write outside the active TSK.
 - Project constitution references P:/.speckit/memory/constitution.md.
 - Tasks referencing entities/validation_rules match names in data_model.md.

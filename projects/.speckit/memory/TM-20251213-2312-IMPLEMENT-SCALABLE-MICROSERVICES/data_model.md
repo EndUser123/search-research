@@ -2,7 +2,7 @@
 
 **Generated**: 2025-12-13 23:12:07
 **Project ID**: TM-20251213-2312-IMPLEMENT-SCALABLE-MICROSERVICES
-**Command**: /plan (TaskMaster Integrated)
+**Command**: /planning (TaskMaster Integrated)
 
 ## Overview
 

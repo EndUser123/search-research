@@ -1,4 +1,4 @@
-"""MetricsLogger - async metrics collection for search-research pipeline."""
+"""Re-export metrics components from core."""
 
 from core.metrics import (
     ComponentMetric,

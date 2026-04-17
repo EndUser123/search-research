@@ -55,7 +55,7 @@ This is a PROCEDURE-type skill — it runs a Python script that:
 
 The skill outputs:
 1. **Console summary** - Grouped by similarity tier (HIGH/MEDIUM/LOW/MINIMAL)
-2. **JSON report** - Full similarity data exported to `~/.claude/.evidence/similarity/<target>_report.json`
+2. **JSON report** - Full similarity data exported to `~/.claude/.artifacts/{terminal_id}/similarity/<target>_report.json`
 
 Each result shows:
 - Skill name and similarity score
@@ -121,7 +121,7 @@ LOW (0.05-0.19)
 
 ```bash
 # View full report
-cat ~/.claude/.evidence/similarity/<target>_report.json
+cat ~/.claude/.artifacts/{terminal_id}/similarity/<target>_report.json
 ```
 
 ## What This Does NOT Do

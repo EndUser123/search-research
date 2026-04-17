@@ -105,7 +105,9 @@
       "mcp__plugin_serena_serena__read_file",
       "mcp__plugin_serena_serena__find_symbol",
       "mcp__plugin_serena_serena__search_for_pattern",
-      "mcp__brave__brave_web_search"
+      "mcp__brave__brave_web_search",
+      "Bash(mkdir -p /p/.claude/plans/adversarial)",
+      "Bash(python3 -c ' *)"
     ],
     "deny": [],
     "ask": []

@@ -16,7 +16,7 @@
 - /tsk.new <id>: scaffold .speckit/memory/TSK-<project>-<id>/, register in DB; optional tasks.json export.
 - /tsk.set <id>: switch active_tsk in DB.
 - /task ... : reads/writes via workspace DB; refuses root writes; export tasks.json only if required for a legacy tool.
-- /plan ... : reads/writes plan.md in the active TSK folder; refuses root writes.
+- /planning ... : reads/writes plan.md in the active TSK folder; refuses root writes.
 - /exec ... : resolves active TSK from DB; validates only that triplet; blocks if missing/incomplete; no root fallback.
 
 ## Data-Task Linking

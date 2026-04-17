@@ -231,6 +231,31 @@ When proposing a challenger, ask a focused attack question:
 3. Ask the challenger to break it, propose a stronger alternative, or identify a falsifying condition.
 4. Ask for a short ranked comparison, not a freeform brainstorm.
 
+## External Challenger Dispatch
+
+When the escalation criteria in the External Challenger Policy are met AND `SDLC_MULTI_LLM` is set to `"1"`, dispatch an external challenger via `/ai-cli`:
+
+```bash
+python -c "import os; print(os.environ.get('SDLC_MULTI_LLM', '0'))"
+```
+
+If `"1"`, run:
+
+```bash
+python "P:/packages/ai-cli/skills/ai-cli/ai_cli.py" "<CHALLENGER_PROMPT>" --context "<relevant_file_if_any>" --<provider>-only --output-format json --no-critic --timeout 120
+```
+
+Where:
+- `<CHALLENGER_PROMPT>` follows the 4-element structure: (1) state leading answer, (2) state main assumption, (3) ask challenger to break it or propose stronger alternative, (4) ask for short ranked comparison.
+- Provider selection:
+  - `--codex-only` for code, repo behavior, implementation detail
+  - `--gemini-only` for broad framing, long-context critique, creative alternatives
+  - `--qwen-only` for model diversity or fresh ranking
+
+After receiving the external challenger response, incorporate it into the Output Contract item 5 ("evidence or verification step that would change the answer"). If the challenger surfaced a stronger alternative, re-rank before finalizing.
+
+**Fallback:** If the external dispatch fails, note in the output: "External challenger unavailable; internal review only."
+
 ## Reasoning Frames
 
 Pick the frame that matches the shape of the problem instead of using one generic pattern for everything:

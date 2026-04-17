@@ -397,11 +397,11 @@ def build_follow_up_hints(result_type: str, top_idea_text: str) -> list[str]:
     idea_lower = top_idea_text.lower()
 
     if result_type == "high_confidence_plan":
-        hints.extend(["/plan", "/nse"])
+        hints.extend(["/planning", "/nse"])
     elif result_type == "risky_or_blocked":
         hints.extend(["/r", "/arch", "/nse"])
     else:
-        hints.extend(["/plan", "/r"])
+        hints.extend(["/planning", "/r"])
 
     if any(k in idea_lower for k in ("architecture", "system", "design", "module boundary")):
         if "/arch" not in hints:

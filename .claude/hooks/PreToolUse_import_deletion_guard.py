@@ -167,6 +167,92 @@ def has_symbol_search_this_turn(symbol: str, tool_events: list[dict]) -> bool:
     return False
 
 
+def extract_module_name(import_line: str) -> str | None:
+    """Extract the module name from an import statement.
+
+    'from .tracing import X' → 'tracing'
+    'from .sub.tracing import X' → 'sub.tracing'
+    'from collections import X' → 'collections'
+    'import os' → 'os'
+    """
+    match = re.match(r'^\s*from\s+\.+([.\w]*)\s+import', import_line)
+    if match:
+        return match.group(1).lstrip('.') or None
+
+    match = re.match(r'^\s*from\s+([\w.]+)\s+import', import_line)
+    if match:
+        return match.group(1)
+
+    match = re.match(r'^\s*import\s+([\w.]+)', import_line)
+    if match:
+        return match.group(1)
+
+    return None
+
+
+def has_investigation_evidence(
+    old_string: str,
+    removed_symbols: set[str],
+    file_path: str,
+    tool_events: list[dict],
+) -> bool:
+    """Check if the turn contains evidence of investigating the imported module.
+
+    Evidence:
+    - Read tool targeting a path containing the module name
+    - Bash tool with git log/status/diff/blame for the module path
+    - Grep tool searching for any removed symbol or module name
+    - Bash tool with grep/findstr for any removed symbol or module name
+    """
+    if not tool_events:
+        return False
+
+    module_names: set[str] = set()
+    for line in old_string.split("\n"):
+        name = extract_module_name(line)
+        if name:
+            module_names.add(name)
+            if "." in name:
+                module_names.add(name.split(".")[-1])
+
+    if not module_names and not removed_symbols:
+        return False
+
+    for event in tool_events:
+        tool_name = event.get("name") or event.get("tool_name", "")
+
+        if tool_name == "Read":
+            read_path = (event.get("file_path") or "").lower()
+            for mod in module_names:
+                if mod.lower() in read_path:
+                    return True
+
+        elif tool_name == "Grep":
+            pattern = (event.get("pattern") or "").lower()
+            if any(s.lower() in pattern for s in removed_symbols):
+                return True
+            for mod in module_names:
+                if mod.lower() in pattern:
+                    return True
+
+        elif tool_name == "Bash":
+            command = (event.get("command") or "").lower()
+            git_markers = ("git log", "git status", "git diff", "git show", "git blame")
+            for mod in module_names:
+                if mod.lower() in command and any(m in command for m in git_markers):
+                    return True
+            search_markers = ("grep", " rg ", " rg\t", "rg ", "select-string", "findstr", "sls ")
+            if any(m in command for m in search_markers):
+                for sym in removed_symbols:
+                    if sym.lower() in command:
+                        return True
+                for mod in module_names:
+                    if mod.lower() in command:
+                        return True
+
+    return False
+
+
 def load_this_turn_events(session_id: str, terminal_id: str) -> list[dict] | None:
     """Load tool events for the current turn.
 
@@ -271,6 +357,10 @@ def evaluate(data: dict) -> dict | None:
     for file_path, old_string, new_string in _iter_candidate_edits(tool_name, tool_input):
         removed_symbols = extract_removed_symbols(old_string, new_string)
         if not removed_symbols:
+            continue
+
+        # Broader investigation check: Read of module, git log, or grep
+        if has_investigation_evidence(old_string, removed_symbols, file_path, tool_events):
             continue
 
         unsymbols = sorted(removed_symbols)

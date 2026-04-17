@@ -1,7 +1,7 @@
 # Strategic Plan: implement scalable microservices architecture
 
 **Generated**: 2025-12-13 23:12:07
-**Command**: /plan (TaskMaster Integrated)
+**Command**: /planning (TaskMaster Integrated)
 **Planning Type**: Strategic
 **Project ID**: TM-20251213-2312-IMPLEMENT-SCALABLE-MICROSERVICES
 

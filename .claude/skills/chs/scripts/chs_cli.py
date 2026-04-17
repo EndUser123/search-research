@@ -516,18 +516,45 @@ class CHSExporter:
     def get_current_session_id(self) -> str | None:
         """Get current Claude Code session UUID.
 
-        Claude Code names transcript files <uuid>.jsonl in the projects dir.
-        The current session is the most recently modified one.
+        Detection hierarchy (most reliable first):
+        1. SDK list_sessions() + file_size cross-reference + last_modified tiebreaker.
+           Works reliably in single-terminal environments. In multi-terminal
+           environments (concurrent Claude Code sessions in the same project dir),
+           may return a sibling session with higher last_modified.
+        2. Mtime-based fallback: picks most recently modified transcript.
+
+        For reliable detection in multi-terminal environments, pass --session-id
+        explicitly, or use /status to determine the current session first.
         """
+        try:
+            from claude_agent_sdk import list_sessions
+
+            projects_dir = Path.home() / ".claude" / "projects"
+            p_dir = projects_dir / "P--"
+
+            sessions = list_sessions(limit=10)
+            size_matches: list[tuple[int, str]] = []  # (last_modified, session_id)
+            for s in sessions:
+                if not s.file_size:
+                    continue
+                transcript = p_dir / f"{s.session_id}.jsonl"
+                if not transcript.exists():
+                    continue
+                if s.file_size == transcript.stat().st_size:
+                    size_matches.append((s.last_modified or 0, s.session_id))
+
+            if size_matches:
+                return max(size_matches)[1]
+        except Exception:
+            pass
+
+        # Fallback: mtime-based detection
         projects_dir = Path.home() / ".claude" / "projects"
         if not projects_dir.exists():
             return None
-        # Look in the P-- project dir first (most common case), then all projects
         candidates = list((projects_dir / "P--").glob("*.jsonl")) if (
             projects_dir / "P--"
         ).exists() else []
-        if not candidates:
-            candidates = list(projects_dir.rglob("*.jsonl"))
         if not candidates:
             return None
         most_recent = max(candidates, key=lambda f: f.stat().st_mtime)
@@ -539,12 +566,28 @@ class CHSExporter:
         output_path: Path | None = None,
     ) -> Path:
         """Walk the session chain and write all transcripts to one markdown file."""
-        try:
-            import sys as _sys
+        import importlib.util
+        import sys
 
-            _sys.path.insert(0, "P:/packages/search-research")
-            from core.session_chain import get_all_chain_files  # type: ignore[import]
-        except ImportError as exc:
+        def _load_session_chain():
+            """Load session_chain directly from file, bypassing core/__init__."""
+            _spec = importlib.util.spec_from_file_location(
+                "core.session_chain", "P:/packages/search-research/core/session_chain.py"
+            )
+            _mod = importlib.util.module_from_spec(_spec)
+            # Register in sys.modules before exec so dataclass decorator works
+            sys.modules["core.session_chain"] = _mod
+            try:
+                _spec.loader.exec_module(_mod)
+            finally:
+                # Remove to avoid polluting the module cache
+                sys.modules.pop("core.session_chain", None)
+            return _mod
+
+        try:
+            _session_chain = _load_session_chain()
+            get_all_chain_files = _session_chain.get_all_chain_files
+        except Exception as exc:
             raise ValueError(f"session_chain module not importable: {exc}") from exc
 
         if session_id is None:
@@ -559,10 +602,8 @@ class CHSExporter:
         if not chain_files:
             # Active sessions are not yet in sessions.json index.
             # Fall back: walk_handoff_chain finds the transcript directly.
-            import sys as _sys2
-
-            _sys2.path.insert(0, "P:/packages/search-research")
-            from core.session_chain import walk_handoff_chain  # type: ignore[import]
+            _fallback_mod = _load_session_chain()
+            walk_handoff_chain = _fallback_mod.walk_handoff_chain
 
             handoff_result = walk_handoff_chain(session_id)
             chain_files = [e.transcript_path for e in handoff_result.entries]

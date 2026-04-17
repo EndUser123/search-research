@@ -25,14 +25,17 @@ from search_research.backends.local.qmd_wiki_backend import (
 
 @pytest.fixture
 def temp_vault(tmp_path):
-    """Create a temporary vault with wiki structure."""
-    wiki = tmp_path / "wiki"
-    wiki.mkdir()
-    (wiki / "entities").mkdir()
-    (wiki / "concepts").mkdir()
-    (wiki / "sources").mkdir()
-    # Create some test pages - at TOP LEVEL for mtime scan to work
-    (wiki / "test-entity.md").write_text(
+    """Create a temporary vault matching qmd's config structure.
+
+    qmd config maps "wiki" → ".../personal-wiki/wiki" directly (no wiki/ subdir).
+    Files go directly into the vault path, not a nested wiki/ subdirectory.
+    """
+    vault = tmp_path
+    (vault / "entities").mkdir()
+    (vault / "concepts").mkdir()
+    (vault / "sources").mkdir()
+    # Create some test pages at vault root level (matching qmd structure)
+    (vault / "test-entity.md").write_text(
         "---\ntitle: Test Entity\ntags:\n  - test\ncreated: 2024-01-01\nsources: []\nsummary: A test entity.\n---\nTest content."
     )
     return tmp_path
@@ -94,8 +97,7 @@ class TestVaultMtimeCache:
         """Constraint 10: Empty vault returns None without error."""
         empty_vault = tmp_path / "empty"
         empty_vault.mkdir()
-        wiki_dir = empty_vault / "wiki"
-        wiki_dir.mkdir()
+        # With qmd_scope="", _get_vault_mtime_cached() scans empty_vault directly
         backend = QMDWikiBackend(vault_path=str(empty_vault))
         result = backend._get_vault_mtime()
         assert result is None
@@ -117,7 +119,7 @@ class TestFallbackGrep:
 
         original_open = open
         def mock_open(*args, **kwargs):
-            if "wiki" in str(args[0]):
+            if str(temp_vault) in str(args[0]):
                 raise PermissionError("Permission denied")
             return original_open(*args, **kwargs)
 
@@ -150,15 +152,14 @@ class TestQMDJSONParsing:
         """Valid qmd JSON output is correctly parsed."""
         backend = QMDWikiBackend(vault_path=str(temp_vault))
 
-        qmd_output = json.dumps({
-            "results": [
-                {
-                    "path": "wiki/entities/test.md",
-                    "snippet": "Test snippet",
-                    "score": 0.95
-                }
-            ]
-        }).encode()
+        # qmd CLI returns "file" field, not "path"
+        qmd_output = json.dumps([
+            {
+                "file": "wiki/entities/test.md",
+                "snippet": "Test snippet",
+                "score": 0.95
+            }
+        ]).encode()
 
         results = backend._parse_qmd_json(qmd_output)
         assert len(results) == 1
@@ -187,7 +188,7 @@ class TestSyncRebuild:
             mock_run.assert_called_once()
             call_args = mock_run.call_args[0][0]
             assert call_args[0] == "qmd"
-            assert "index" in call_args
+            assert "update" in call_args
 
 
 class TestIndexMtimeTracking:

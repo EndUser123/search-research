@@ -16,11 +16,15 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+# Terminal ID sanitization: allow only safe characters
+_TERMINAL_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 
 # Cross-platform file locking
 try:
@@ -90,9 +94,19 @@ class StateManager:
         Args:
             project_root: Project root directory
             terminal_id: Terminal identifier for isolation
+
+        Raises:
+            ValueError: If terminal_id contains unsafe characters
         """
         self.project_root = Path(project_root or Path.cwd()).resolve()
-        self.terminal_id = terminal_id or self._resolve_terminal_id()
+        self.terminal_id = terminal_id if terminal_id is not None else self._resolve_terminal_id()
+
+        # CRITICAL: Validate terminal_id to prevent path traversal
+        if not _TERMINAL_ID_PATTERN.match(self.terminal_id):
+            raise ValueError(
+                f"Invalid terminal_id: {self.terminal_id!r}. "
+                f"Must match {_TERMINAL_ID_PATTERN.pattern}"
+            )
 
         # State directory: .evidence/gto-state-{terminal_id}/
         self.state_dir = self.project_root / ".evidence" / f"gto-state-{self.terminal_id}"

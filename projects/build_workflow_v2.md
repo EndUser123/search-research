@@ -157,7 +157,7 @@ depends_on_skills:
   - /triage@^2.0         # TRIAGE must be v2.0+
   - /tm@^1.0             # TaskMaster v1.0+
   - /specify@^1.0        # Spec command v1.0+
-  - /plan@^2.0           # Plan with challenge/debate v2.0+
+  - /planning@^2.0           # Plan with challenge/debate v2.0+
   - /tdd@^1.5            # TDD state guard v1.5+
   - /exec@^1.0           # CWO15 exec v1.0+
   - /verify@^1.0         # Verification v1.0+
@@ -181,7 +181,7 @@ requires_tools:
 | **0. TRIAGE** | Pre-flight complexity scoring | Always | `/triage`, `/discover` | Complexity score ≤25, path selected |
 | **1. BOOTSTRAP** | Ensure system ready | All paths | `/tm`, `/git worktree`, `/checkpoint` | TSK created, worktree active, clean state |
 | **2. ALIGN** | Define problem clearly | MODERATE+ | `/specify`, human review | spec.md approved, questions resolved |
-| **3. DESIGN** | Plan solution | COMPLEX+ | `/brainstorm`, `/arch`, `/plan`, `/checkpoint` | plan.md approved, arch validated |
+| **3. DESIGN** | Plan solution | COMPLEX+ | `/brainstorm`, `/arch`, `/planning`, `/checkpoint` | plan.md approved, arch validated |
 | **4. BUILD** | TDD-driven implementation | All paths | `/ralph`, `/tdd`, `/exec`, `/verify` | All tasks ✓, tier 1-2 tests pass |
 | **5. SHIP** | Certify & finalize | All paths | `/verify --tier 1,2,3`, `/learn`, `/tm close` | Tier 1-3 tests pass, knowledge saved |
 
@@ -307,7 +307,7 @@ requires_tools:
 
 3. Decompose into granular tasks
    ```bash
-   /plan "<feature>" --challenge
+   /planning "<feature>" --challenge
    ```
    Output: `plan.md` with 2-5 minute tasks
 
@@ -337,14 +337,14 @@ requires_tools:
    → Record approval timestamp
 
 🔄 /refine-plan "<feedback>"
-   → Loop back to /plan
+   → Loop back to /planning
    → Adjust task decomposition
    → Return to approval gate
 
 ⚠️  /escalate-design "<concern>"
    → Return to /arch reevaluation
    → Address architectural concern
-   → Re-run /plan
+   → Re-run /planning
    → Return to approval gate
 ```
 
@@ -566,7 +566,7 @@ If `/ralph` reveals architectural unknowns during BUILD:
 
 ---
 
-### 7. /plan — Granular Implementation Planning
+### 7. /planning — Granular Implementation Planning
 
 **Source:** `P:\.claude\commands\plan.md`
 
@@ -574,9 +574,9 @@ If `/ralph` reveals architectural unknowns during BUILD:
 
 **Enhancement Modes:**
 ```bash
-/plan "<feature>" --challenge        # Prevent over-engineering
-/plan "<feature>" --debate           # High-stakes planning
-/plan "<feature>" --synthesize       # Research-backed planning
+/planning "<feature>" --challenge        # Prevent over-engineering
+/planning "<feature>" --debate           # High-stakes planning
+/planning "<feature>" --synthesize       # Research-backed planning
 ```
 
 **Output:** `plan.md` with sequential tasks, dependencies, and checkpoints
@@ -1189,7 +1189,7 @@ Context fork should be triggered when:
    → Progress to Phase 4 (BUILD)
 
 🔄 /refine-plan "<feedback>"
-   → Loop back to /plan
+   → Loop back to /planning
    → Adjust task decomposition
    → Possibly re-run /arch
    → Return to this gate
@@ -1197,7 +1197,7 @@ Context fork should be triggered when:
 ⚠️  /escalate-design "<concern>"
    → Return to /arch reevaluation
    → Address specific architectural concern
-   → Re-run /plan
+   → Re-run /planning
    → Return to this gate
 
 ❌ /reject-plan "<reason>"
@@ -1250,7 +1250,7 @@ During /ralph on "Implement user auth":
 | Decision | Action |
 |----------|--------|
 | Continue with wrapper | Update implementation, resume Phase 4 |
-| Pivot to different API | Update design, re-run /plan, resume Phase 4 |
+| Pivot to different API | Update design, re-run /planning, resume Phase 4 |
 | Restructure approach | Return to Phase 2 (ALIGN), handle as spec drift |
 
 **Step 4: Update Documentation**
@@ -1280,7 +1280,7 @@ During /ralph on "Implement user auth":
 depends_on_skills:
   - /tm@^1.0              # Major version must be 1
   - /specify@^1.0         # 1.0, 1.1, 1.2 OK; 2.0 not OK
-  - /plan@^2.0            # 2.0, 2.1, 2.2 OK; 1.x or 3.x not OK
+  - /planning@^2.0            # 2.0, 2.1, 2.2 OK; 1.x or 3.x not OK
   - /arch@~2.5            # 2.5.x only; not 2.4 or 2.6
   - /verify@2.1.3         # Exact version only
 ```
@@ -1303,15 +1303,15 @@ depends_on_skills:
 **Example:**
 ```yaml
 # Before (v1.0)
-/plan "feature" --challenge
+/planning "feature" --challenge
 
 # After (v2.0 with breaking change)
-/plan "feature" --challenge --mode=aggressive
+/planning "feature" --challenge --mode=aggressive
                                     ↑ new required parameter
 
 # SKILL.md update:
 depends_on_skills:
-  - /plan@^2.0    # Enforce new version
+  - /planning@^2.0    # Enforce new version
 ```
 
 ---
@@ -1461,7 +1461,7 @@ Recommendation: Return to Phase 2 (ALIGN) to reassess scope
 │  │              │    │              │    │              │            │
 │  │ /tm          │    │ /specify     │    │ /brainstorm  │            │
 │  │ /git worktree│    │              │    │ /arch [ADF]  │            │
-│  │ /checkpoint  │    │ [GATE 1] ✅  │    │ /plan        │            │
+│  │ /checkpoint  │    │ [GATE 1] ✅  │    │ /planning        │            │
 │  └──────────────┘    └──────────────┘    │ /checkpoint  │            │
 │                             ▲              │              │            │
 │                             │              │ [GATE 2] ✅  │            │
@@ -1506,7 +1506,7 @@ GATES & DECISION POINTS:
 
   [GATE 2] - Design & Plan Approval (Phase 3→4)
     ✅ /approve-plan → Continue to Phase 4
-    🔄 /refine-plan → Loop back to /plan
+    🔄 /refine-plan → Loop back to /planning
     ⚠️  /escalate-design → Return to /arch
     ❌ /reject-plan → End or restart
 
@@ -1539,7 +1539,7 @@ ERROR RECOVERY:
 
 **Commands that use active TSK:**
 - `/exec` — Context-aware execution uses TSK context
-- `/plan` — Task decomposition linked to TSK
+- `/planning` — Task decomposition linked to TSK
 - `/verify` — Validation against TSK requirements
 - `/learn` — Lessons tagged with TSK ID
 - `/metrics` — All metrics recorded under TSK

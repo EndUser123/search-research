@@ -37,7 +37,7 @@ Config:
 
 ## Command Behaviors
 - /task: requires active TSK; reads/writes via workspace DB (tasks.db); optional export to tasks.json if needed for compatibility; refuses root writes.
-- /plan: requires active TSK; writes/updates plan.md in that TSK folder.
+- /planning: requires active TSK; writes/updates plan.md in that TSK folder.
 - /exec: requires active TSK; validates only that triplet; blocks if missing or outside TSK.
 - Helper: /tsk.set <id> sets active TSK in the DB; /tsk.new creates TSK folder scaffold and registers in DB.
 

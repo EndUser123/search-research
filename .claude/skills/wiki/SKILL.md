@@ -21,7 +21,9 @@ Persistent knowledge management: LLM maintains an Obsidian wiki (ingest/synthesi
 
 ### Ingest
 
-Accept source (file path, URL, or text blob) → LLM reads source → writes/updates wiki page with YAML frontmatter → **searches vault for related pages → injects `[[wikilinks]]` into page body** → appends entry to `log.md`
+Accept source (file path, URL, or text blob) → LLM reads source → **compute SHA256 hash** → **check log.md for existing hash (skip if duplicate)** → writes/updates wiki page with YAML frontmatter → **runs `qmd update <collection>`** (with English locale: `$env:LANG='en_US.UTF-8'`) to keep search index fresh → **searches vault for related pages → injects `[[wikilinks]]` into page body** → appends entry to `log.md`
+
+**Hash-based deduplication**: Before ingesting, compute SHA256 of file content. If hash already exists in `log.md`, skip the ingest (already processed). Log entry includes hash for traceability.
 
 **Auto-linking phase**: After writing the page, query QMD for semantically similar existing pages using the new page's title and summary. Inject `[[Page Name]]` links to top-K (default K=5) related pages into the new page's body under a `## Related` section.
 
@@ -87,5 +89,7 @@ Usage: `/wiki lint`
 
 ### Index
 Rebuild `index.md` catalog from current wiki state
+
+**Alternate method**: For raw QMD operations (`qmd ingest`, `qmd query`, `qmd lint`, `qmd index`), see `references/qmd-wiki.md` in this skill directory.
 
 Usage: `/wiki index`

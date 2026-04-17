@@ -1,7 +1,7 @@
 # Strategic Plan: implement cloud architecture with auto-scaling
 
 **Generated**: 2025-12-13 23:17:17
-**Command**: /plan (TaskMaster Integrated)
+**Command**: /planning (TaskMaster Integrated)
 **Planning Type**: Strategic
 **Project ID**: TM-20251213-2317-IMPLEMENT-CLOUD-ARCHITECTURE
 

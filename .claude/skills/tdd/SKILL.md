@@ -5,7 +5,24 @@ description: Test-Driven Development with PARALLEL subagent delegation + Core Pl
 status: stable
 depends_on:
   - sdlc: ">=0.1.0"
-enforcement: advisory
+contract_type: workflow
+enforcement: strict
+workflow_binding: exclusive
+workflow_enforcement: hard
+phase_recovery_mode: resumable
+user_override: explicit
+layer1_enforcement: true
+required_phase_artifacts:
+  - RED
+  - GREEN
+  - VERIFY
+  - REGRESSION
+  - REFACTOR
+usage_markers:
+  - TDD COMPLETE - Summary
+  - Status Summary
+  - Test Results
+  - Next Steps
 category: execution
 activation_triggers: ['implement', 'refactor', 'CC.*[2-9][0-9]', 'extract.*method', 'reduce.*complexity', 'high complexity', 'simplify.*function', 'new feature', 'add.*function', 'add.*test', 'write.*test', 'update.*test', 'create.*test', 'unit.*test', 'regression.*test', 'typeddict', 'interface', 'contract', 'add.*type', 'type.*hint', 'fix', 'bug', 'broken', 'error', 'crash']
 triggers:
@@ -296,7 +313,16 @@ Does NOT trigger for: Documentation changes, configuration updates, reading/anal
 
 ---
 
-## References
+## Record Activity in CHANGELOG.md
+
+After the TDD cycle completes (all phases GREEN and REGRESSION passed), append the activity to the target's CHANGELOG.md under `## [Unreleased]`:
+
+```markdown
+### Fixed
+- **/tdd** (YYYY-MM-DD): <1-line summary of what was test-driven (e.g., "Added frobnitz validator with 3 new edge-case tests")>
+```
+
+**References**
 
 **Reference files in `references/`:**
 

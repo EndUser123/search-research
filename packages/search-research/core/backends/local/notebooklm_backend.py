@@ -41,6 +41,8 @@ class NotebookLMBackend(BaseLocalBackend):
     name = BACKEND_NOTEBOOKLM
     description = "Long-form research synthesis from NotebookLM notebooks"
     source_types = ["notebook", "research"]
+    # Router uses this for per-backend timeout override (NLM_QUERY_TIMEOUT=60)
+    TIMEOUT = 60
 
     def __init__(
         self,

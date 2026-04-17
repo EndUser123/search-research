@@ -1,6 +1,6 @@
 ---
 name: retro
-description: Identify what went wrong, what went right, and what to do differently next time. Chains 5 skills: recap → gap analysis → opportunities → adversarial review → actions.
+description: "Identify what went wrong, what went right, and what to do differently next time. Chains 5 skills: recap → gap analysis → opportunities → adversarial review → actions."
 version: 1.1.0
 category: orchestration
 triggers:
@@ -9,6 +9,7 @@ triggers:
   - "run self-contrast"
   - "retrospective protocol"
   - "self-contrast"
+contract_type: workflow
 aliases:
   - /retro
   - /self-contrast
@@ -28,7 +29,24 @@ workflow_steps:
   - step_5: Evaluate SCORES — rate completeness/optimality/satisfaction 0-10; invoke /critique if any axis < 8
   - step_6: Call /rns — extract prioritized actions from all findings
   - step_7: Aggregate ALL findings from all chained skills into the RNS (not just /pre-mortem); group by domain
-enforcement: advisory
+enforcement: strict
+workflow_binding: exclusive
+workflow_enforcement: hard
+phase_recovery_mode: resumable
+user_override: explicit
+layer1_enforcement: true
+required_phase_artifacts:
+  - /recap
+  - /gto
+  - /ideas
+  - /pre-mortem
+  - /rns
+usage_markers:
+  - "RECAP:"
+  - "GAPS:"
+  - "IDEAS:"
+  - "SCORES:"
+  - "ACTIONS:"
 ---
 
 # RETRO — SELF-CONTRAST Orchestrator

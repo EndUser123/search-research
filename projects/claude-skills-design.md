@@ -96,7 +96,7 @@ Decision is **organizational**, not functional:
 | No helper scripts needed        | Needs scripts, examples, templates               |
 | Simple, self-contained action   | Multi-step workflows, orchestration, subagents   |
 
-Reserved built‑ins like `/clear`, `/compact`, `/cost`, `/plan`, `/config`, `/memory`, `/mcp` **must not be overridden**.
+Reserved built‑ins like `/clear`, `/compact`, `/cost`, `/planning`, `/config`, `/memory`, `/mcp` **must not be overridden**.
 
 ---
 

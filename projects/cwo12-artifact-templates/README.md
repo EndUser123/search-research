@@ -167,21 +167,21 @@ cwo12-artifact-templates/
 └── README.md
 ```
 
-## Integration with /plan Command
+## Integration with /planning Command
 
-These templates are designed to integrate seamlessly with the `/plan` command. The template generation utility can be used as a backend service for automated artifact generation.
+These templates are designed to integrate seamlessly with the `/planning` command. The template generation utility can be used as a backend service for automated artifact generation.
 
 ### Integration Steps
 
 1. **Copy Templates**: Deploy templates to your CWO12 environment
 2. **Install Generator**: Set up the Python script as a service
-3. **Configure /plan**: Modify `/plan` command to use the generator
+3. **Configure /planning**: Modify `/planning` command to use the generator
 4. **Customize**: Add project-specific variables and configurations
 
 ### Example Integration
 ```bash
-# Integrate with /plan command
-/plan --generate --type api-development --name "My API Project"
+# Integrate with /planning command
+/planning --generate --type api-development --name "My API Project"
 ```
 
 ## Quality Assurance
@@ -264,4 +264,4 @@ This template collection is released under the MIT License and is designed to wo
 - **v1.0.0**: Initial release with 4 project types
 - Templates validated against CWO12 artifact validator
 - Built-in validation and quality assurance
-- Integration-ready for /plan command
+- Integration-ready for /planning command

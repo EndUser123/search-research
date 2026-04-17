@@ -232,7 +232,7 @@ Current /exec behavior shows "force execution" option when artifacts are missing
 - [ ] Remove or minimize the "force execution" prompt
 
 **Auto-Generation Strategy**:
-- Use existing /plan command for plan.md generation
+- Use existing /planning command for plan.md generation
 - Use /zen-testgen for tasks.md generation
 - Use /zen-refactor for data_model.md generation
 - Infer context from command arguments and conversation history
@@ -240,7 +240,7 @@ Current /exec behavior shows "force execution" option when artifacts are missing
 
 **Files**:
 - `/exec command implementation` (need to locate)
-- `/plan command implementation` (reuse logic)
+- `/planning command implementation` (reuse logic)
 - CWO12 artifact validation system
 - Template systems for artifact generation
 

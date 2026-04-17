@@ -123,11 +123,11 @@ def validate_cwo12_compliance(content, artifact_type):
 ```
 
 ### Integration Architecture
-Templates designed for seamless integration with `/plan` command:
+Templates designed for seamless integration with `/planning` command:
 
 1. **Deploy Templates**: Copy to CWO12 environment
 2. **Install Generator**: Set up as backend service
-3. **Configure /plan**: Modify to use template generator
+3. **Configure /planning**: Modify to use template generator
 4. **Customize**: Add project-specific configurations
 
 ## Demonstration Results
@@ -173,7 +173,7 @@ Ml_Project:
 - **Documentation**: Comprehensive usage guides and examples
 
 ### Integration Features
-- **/plan Command Ready**: Designed for CWO12 workflow integration
+- **/planning Command Ready**: Designed for CWO12 workflow integration
 - **API Integration**: Can be called as a service
 - **Configuration Flexibility**: JSON-based project configuration
 - **Automation Support**: Batch generation and validation
@@ -215,9 +215,9 @@ python scripts/generate_artifacts.py \
   --output ./my-project
 ```
 
-### Integration with /plan
+### Integration with /planning
 ```bash
-/plan --generate --type api-development --name "My Project"
+/planning --generate --type api-development --name "My Project"
 ```
 
 ## File Structure and Organization
@@ -246,7 +246,7 @@ Each project type follows a consistent structure:
 - **Template Coverage**: 100% of CWO12 requirements addressed
 - **Validation Success Rate**: 100% CWO12 compliance achieved
 - **Generation Success**: All project types working perfectly
-- **Integration Ready**: Seamless /plan command integration
+- **Integration Ready**: Seamless /planning command integration
 
 ### Quality Metrics
 - **CWO12 Score**: >0.7 for all generated artifacts
@@ -287,4 +287,4 @@ Successfully implemented a comprehensive CWO12 artifact template system that:
 The templates are ready for immediate use and integration with the CWO12 workflow, providing users with high-quality, compliant project artifacts that accelerate development while maintaining CWO12 standards.
 
 **Status**: Complete and Ready for Production Use
-**Next Steps**: Deploy to CWO12 environment and integrate with /plan command
+**Next Steps**: Deploy to CWO12 environment and integrate with /planning command

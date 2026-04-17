@@ -104,5 +104,5 @@ CWO Workflow: Steps 0-6 - Complete, Step 6.5 - You are here, Phases A-E - Parall
 ## See Also
 
 - /cwo-orchestrator - Terminal A monitor
-- /plan - Generate plan.md (Step 5)
+- /planning - Generate plan.md (Step 5)
 - /quadlet - Atomic task decomposition (Step 6)

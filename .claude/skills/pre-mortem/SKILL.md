@@ -29,7 +29,7 @@ Dynamically dispatch specialist subagents based on what you're reviewing. Absorb
 | Phase | Agent | Timing | Purpose |
 |-------|-------|--------|---------|
 | 1 | general-purpose (triage) | Orchestrator | Classify target, dispatch specialists in parallel |
-| 1 | specialist subagents | Parallel | Domain-specific analysis |
+| 1 | specialist subagents | Parallel | Domain-specific analysis (quality specialist uses external LLM when SDLC_MULTI_LLM=1) |
 | 2 | general-purpose | After Phase 1 | Cross-agent meta-critique |
 | 3 | general-purpose | After Phase 2 | Synthesized final critique |
 

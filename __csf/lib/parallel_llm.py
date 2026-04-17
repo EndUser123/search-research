@@ -260,11 +260,18 @@ async def run_single_command(
 
 
 
+def _is_quota_error(error: str) -> bool:
+    """Check if error is a quota/rate-limit error that should trigger fallback."""
+    quota_signals = ["429", "no capacity", "rate limit", "quota", "limit exceeded", "temporarily unavailable"]
+    return any(signal in error.lower() for signal in quota_signals)
+
+
 async def run_parallel_commands(
     commands: list[tuple[str, list[str]]],
     timeout: int = 120,
     input_text: str | None = None,
     verbose: bool = False,
+    fallback_commands: dict[str, tuple[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Run multiple CLI commands in parallel using asyncio.gather.
 
@@ -278,6 +285,7 @@ async def run_parallel_commands(
         timeout: Max seconds to wait for ALL commands
         input_text: Text to pipe to stdin for all commands
         verbose: Show parallel execution progress
+        fallback_commands: Optional dict mapping name -> (fallback_name, fallback_cmd_args) for quota errors
 
     Returns:
         Dict mapping name -> {output, error} results
@@ -286,26 +294,44 @@ async def run_parallel_commands(
     tasks = []
     names = []
 
+    # Build task list with metadata for fallback support
+    async def run_with_fallback(name: str, cmd_args, cmd_input, fallback_name_cmd=None):
+        """Run a command with fallback on quota error."""
+        result = await run_single_command(cmd_args, input_text=cmd_input, timeout=timeout, verbose=verbose)
+
+        # Check if we should retry with fallback
+        if fallback_name_cmd and result.get("error") and _is_quota_error(result["error"]):
+            if verbose:
+                print(f"[{name}] Quota error detected, retrying with fallback...", flush=True)
+            fallback_name, fallback_cmd_args = fallback_name_cmd
+            result = await run_single_command(fallback_cmd_args, input_text=cmd_input, timeout=timeout, verbose=verbose)
+            result["_used_fallback"] = True  # Mark that we used fallback
+
+        return name, result
+
     for name, cmd_args in commands:
         # cmd_args may be a list or a pre-built command string
         if isinstance(cmd_args, list):
             # Pass list directly to avoid cmd.exe quote parsing issues on Windows
             cmd_input = None  # Lists don't use stdin piping for -p style commands
         else:
-            cmd_args = cmd_args
             # Commands with -p flag (vibe) or codex exec embed query directly (no stdin)
-            uses_prompt_arg = "-p" in cmd_args or cmd_args.startswith("codex exec")
+            # Use " -p " to avoid false matches in model names like "minimax-coding-plan"
+            uses_prompt_arg = " -p " in f" {cmd_args} " or cmd_args.startswith("codex exec")
             # Commands with shell pipes (echo X | gemini) handle stdin internally via shell
             # Don't pass input_text as it would conflict with the shell pipe
             has_shell_pipe = "|" in cmd_args
             cmd_input = None if (uses_prompt_arg or has_shell_pipe) else input_text
+
+        # Get fallback command if available
+        fallback = fallback_commands.get(name) if fallback_commands else None
 
         if verbose:
             cmd_display = cmd_args if isinstance(cmd_args, list) else cmd_args
             print(f"[{name}] Starting: {cmd_display}", flush=True)
 
         task = asyncio.create_task(
-            run_single_command(cmd_args, input_text=cmd_input, timeout=timeout, verbose=verbose),
+            run_with_fallback(name, cmd_args, cmd_input, fallback),
             name=name,
         )
         tasks.append(task)
@@ -321,9 +347,10 @@ async def run_parallel_commands(
     output = {}
     completed_count = 0
 
-    # Helper to pair name with result
+    # Helper to pair name with result (unpack nested tuple from run_with_fallback)
     async def fetch_and_name(name: str, coro):
-        return name, await coro
+        _, result = await coro
+        return name, result
 
     # Create named coroutines for as_completed
     named_coros = [fetch_and_name(n, t) for n, t in zip(names, tasks)]

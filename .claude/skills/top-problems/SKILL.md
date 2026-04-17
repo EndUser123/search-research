@@ -84,8 +84,8 @@ Run these 6 scans in parallel:
 
 | # | Source | Path/Command | Extract |
 |---|--------|-------------|---------|
-| 1 | Pre-mortems | `P:/.claude/.evidence/premortem_*.md` | OPEN/DEFERRED items, risk scores |
-| 2 | Critiques | `P:/.claude/.evidence/critique/*/p1_findings.md` + staleness gate | CRITICAL/HIGH findings with staleness badge |
+| 1 | Pre-mortems | `P:/.claude/.artifacts/{terminal_id}/top-problems/premortem_*.md` | OPEN/DEFERRED items, risk scores |
+| 2 | Critiques | `P:/.claude/.artifacts/{terminal_id}/critique/*/p1_findings.md` + staleness gate | CRITICAL/HIGH findings with staleness badge |
 | 3 | Tasks | TaskList or `git status` | pending/in_progress, no owner |
 | 4 | Git | `git log --since="<date>" --oneline` | fix/bug/BLOCKER/revert patterns |
 | 5 | Session errors | `~/.claude/projects/P--/*.jsonl` (last 500 lines) | `"is_error":true` |
@@ -231,7 +231,7 @@ See `references/flags.md` for `--diff` procedure (including regression detection
 
 ### Results Cache
 
-Write to `P:/.claude/.evidence/top-problems_<YYYYMMDD>.md`.
+Write to `P:/.claude/.artifacts/{terminal_id}/top-problems/top-problems_<YYYYMMDD>.md`.
 
 ### Output Format
 
@@ -251,15 +251,15 @@ Write to `P:/.claude/.evidence/top-problems_<YYYYMMDD>.md`.
 | Problem Type | Suggested Command |
 |-------------|-------------------|
 | Fixability >= 4 | `Try: /task to create a tracked fix` |
-| Fixability 2-3 | `Try: /plan to design the approach` |
+| Fixability 2-3 | `Try: /planning to design the approach` |
 | Fixability 1 | `Try: /pre-mortem to analyze before fixing` |
 | Quality concern | `Try: /critique for adversarial review` |
 | Stale (3+ runs) | `Try: /reflect to extract lessons` |
 | CRITICAL-STALE | `Try: /pre-mortem specifically for this problem` |
-| CRITICAL-NEW | `Try: /plan to design immediate fix` |
+| CRITICAL-NEW | `Try: /planning to design immediate fix` |
 | 3+ Band-Aids to same file | `XY-SUSPECT — Try: /solution-space for systemic redesign` |
 | Band-Aid fix level | `Consider: Is this treating a symptom? Check for X-Y suspects.` |
-| Redesign fix level | `Try: /plan to design architectural change` |
+| Redesign fix level | `Try: /planning to design architectural change` |
 
 **Do NOT** execute these commands. Only suggest them.
 
@@ -277,7 +277,7 @@ Write to `P:/.claude/.evidence/top-problems_<YYYYMMDD>.md`.
 
 ### Footer
 
-Quick wins, stale count, escalated, resolved, excluded, vetoed, conflicts, window type. Suggest `/task`, `/plan`, `/pre-mortem`, `/top-problems --diff`.
+Quick wins, stale count, escalated, resolved, excluded, vetoed, conflicts, window type. Suggest `/task`, `/planning`, `/pre-mortem`, `/top-problems --diff`.
 
 ## Periodic Usage
 
@@ -289,13 +289,13 @@ Quick wins, stale count, escalated, resolved, excluded, vetoed, conflicts, windo
 
 | Source | Path | What to extract |
 |--------|------|----------------|
-| Pre-mortems | `P:/.claude/.evidence/premortem_*.md` | OPEN/DEFERRED items |
-| Critiques | `P:/.claude/.evidence/critique/*/p1_findings.md` | CRITICAL/HIGH |
+| Pre-mortems | `P:/.claude/.artifacts/{terminal_id}/top-problems/premortem_*.md` | OPEN/DEFERRED items |
+| Critiques | `P:/.claude/.artifacts/{terminal_id}/critique/*/p1_findings.md` | CRITICAL/HIGH |
 | Tasks | TaskList tool | pending/in_progress |
 | Git | `git log --since` or `<sha>..HEAD` | fix/bug/BLOCKER |
 | Sessions | `~/.claude/projects/P--/*.jsonl` | `"is_error":true` (sample) |
 | Retries | Same JSONL | Consecutive identical tool_use |
-| Previous runs | `P:/.claude/.evidence/top-problems_*.md` | Trend, resolution |
+| Previous runs | `P:/.claude/.artifacts/{terminal_id}/top-problems/top-problems_*.md` | Trend, resolution |
 
 ## Reference Files
 
@@ -313,7 +313,7 @@ Quick wins, stale count, escalated, resolved, excluded, vetoed, conflicts, windo
 | `/pre-mortem` | Create premortems for planned changes |
 | `/critique` | Run adversarial review on recent changes |
 | `/reflect` | Extract lessons from session history |
-| `/plan` | Design implementation approach |
+| `/planning` | Design implementation approach |
 | `/task` | Create tracked work items |
 | `/loop` | Set up periodic problem scanning |
 

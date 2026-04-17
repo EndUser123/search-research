@@ -29,7 +29,7 @@ import structlog
 HOOKS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(HOOKS_DIR))
 
-from __lib.claim_patterns import has_action_claim, has_document_claim
+from __lib.claim_patterns import has_action_claim, has_document_claim, has_error_characterization
 from cc_diagnostic_logger import log_hook_invocation
 from evidence_store import is_file_invalidated, resolve_session_id
 
@@ -223,6 +223,47 @@ def verify_action_claim(data: dict[str, Any]) -> dict[str, Any]:
     return {"allow": True}
 
 
+def verify_error_characterization(data: dict[str, Any]) -> dict[str, Any]:
+    """Verify that error-dismissal language has investigation tool evidence."""
+    response = str(data.get("response", "") or data.get("assistant_response", ""))
+
+    if not has_error_characterization(response):
+        return {"allow": True}
+
+    session_id = resolve_session_id(data.get("session_id", ""))
+    try:
+        events = load_tool_events(session_id, limit=50)
+    except Exception as e:
+        logger.warning("evidence_load_failed", error=str(e))
+        return {"allow": True}
+
+    investigation_tools = {"Read", "Grep", "Glob", "Bash"}
+    investigated = any(str(e.get("name", "")) in investigation_tools for e in events)
+
+    if not investigated:
+        try:
+            log_hook_invocation(
+                hook_name="cross_validator",
+                event_type="error_characterization_verification",
+                action="block",
+                reason="Error characterization without investigation tool evidence",
+            )
+        except Exception:
+            pass
+        return {
+            "allow": False,
+            "reason": (
+                "Error characterization detected (transient/benign/no fix needed) "
+                "but no investigation tool evidence (Read, Grep, Glob, Bash) found. "
+                "Read the error source before characterizing it. "
+                "If you haven't investigated, say 'I would need to check the traceback source'."
+            ),
+            "blocking_hook": "StopHook_cross_validator.py",
+        }
+
+    return {"allow": True}
+
+
 def run(input_data: dict[str, Any]) -> dict[str, Any]:
     """
     Main entry point for the cross-validation hook.
@@ -255,7 +296,19 @@ def run(input_data: dict[str, Any]) -> dict[str, Any]:
             print(f"\n⚠️ CROSS-VALIDATION WARNING\n{reason}\n")
             return {"allow": True}
 
-        return result
+        if not result["allow"]:
+            return result
+
+        # Phase 3 - Error characterization without investigation
+        error_result = verify_error_characterization(input_data)
+        if not error_result["allow"]:
+            if STOP_CROSS_VALIDATOR_MODE == "warn":
+                reason = error_result.get("reason", "")
+                print(f"\n⚠️ CROSS-VALIDATION WARNING\n{reason}\n")
+                return {"allow": True}
+            return error_result
+
+        return {"allow": True}
 
     except Exception as e:
         logger.exception("hook_error", error=str(e))

@@ -227,6 +227,45 @@ BEHAVIORAL_ASSERTION_PATTERNS = [
 ]
 
 
+# Error characterization dismissal patterns - evidence-free error dismissal verbs
+#
+# ERROR CHARACTERIZATION DETECTION PATTERNS
+# =========================================
+#
+# Purpose: Detect dismissive characterizations of errors/tracebacks without
+# investigation evidence. Prevents LLMs from labeling errors as "transient",
+# "benign", or "no fix needed" without having read the error source.
+#
+# What Each Pattern Catches:
+# ---------------------------
+# 1. Transient dismissal:
+#    - "This was a transient hook warning" → Dismisses without reading source
+#    - "transient error, not a real failure" → Labels without investigation
+#
+# 2. Benign/noise dismissal:
+#    - "benign noise, not a real issue" → Characterizes without evidence
+#    - "known benign warning" → Inherits frame without verification
+#
+# 3. No-fix dismissal:
+#    - "No fix needed. The file is fine." → Closes without investigation
+#    - "not a real problem" → Dismisses without reading traceback
+#
+# What is NOT an error characterization (excluded):
+# --------------------------------------------------
+# - Tentative: "might be transient", "could be benign" → Hedging, not dismissal
+# - Investigated: "After reading the hook source, this is a non-blocking error" → Evidence present
+#
+ERROR_CHARACTERIZATION_PATTERNS = [
+    r"(?i)(?:this\s+was|is)\s+(?:a\s+)?transient\s+(?:error|warning|noise|issue|failure|problem)",
+    r"(?i)benign\s+(?:noise|warning|error|issue)",
+    r"(?i)no\s+fix\s+needed",
+    r"(?i)not\s+(?:a\s+)?real\s+(?:failure|issue|problem)",
+    r"(?i)(?:the\s+)?(?:file|hook)\s+is\s+fine\s*(?:[.!?]|$)",
+    r"(?i)known\s+benign",
+    r"(?i)transient\s+(?:hook\s+)?(?:warning|error|noise)",
+]
+
+
 # Tentative/hedging patterns - these NEGATE a behavioral assertion
 # If any of these patterns appear near a BEHAVIORAL_ASSERTION match,
 # the match should be skipped (self-correction or hedging cancels the claim)
@@ -415,6 +454,27 @@ def has_external_claim(response_text: Any) -> bool:
     return any(re.search(p, response_lower) for p in EXTERNAL_CLAIM_PATTERNS)
 
 
+def has_error_characterization(response_text: Any) -> bool:
+    """Check if response contains evidence-free error-dismissal language.
+
+    Detects dismissive characterizations of errors/tracebacks (transient,
+    benign, no fix needed) without corresponding investigation evidence.
+
+    Returns True if dismissal pattern found and not hedged as tentative.
+    """
+    if not response_text or not isinstance(response_text, str):
+        return False
+    response_lower = response_text.lower()
+    tentative = [
+        r"(?i)might\s+be\s+(?:transient|benign)",
+        r"(?i)could\s+be\s+(?:transient|benign)",
+        r"(?i)appears?\s+(?:to\s+be\s+)?(?:transient|benign)",
+    ]
+    if any(re.search(p, response_lower) for p in tentative):
+        return False
+    return any(re.search(p, response_lower) for p in ERROR_CHARACTERIZATION_PATTERNS)
+
+
 if __name__ == "__main__":
     import sys
 
@@ -560,9 +620,46 @@ if __name__ == "__main__":
 
     print(f"\nDocument claims: {doc_passed} passed, {doc_failed} failed")
 
+    # Self-test for ERROR_CHARACTERIZATION_PATTERNS
+    print("\n" + "=" * 50)
+    print("ERROR_CHARACTERIZATION_PATTERNS Self-Test (Error Dismissal):")
+    print("=" * 50)
+    error_test_cases = [
+        # Error dismissal (should return True)
+        ("This was a transient hook warning, not a real failure", True),
+        ("The hook error was non-blocking, benign noise", True),
+        ("No fix needed. The file is fine.", True),
+        ("known benign issue", True),
+        ("transient error, can be ignored", True),
+        ("not a real problem", True),
+        # Tentative language (should return False - hedging, not dismissal)
+        ("This might be transient", False),
+        ("This could be benign", False),
+        ("appears to be transient", False),
+        # Neutral statements (should return False)
+        ("The traceback shows the root cause is...", False),
+        ("I need to investigate this error", False),
+        ("Let me read the hook source to understand the traceback", False),
+        # False-positive regression: see tests/test_error_characterization_patterns.py
+    ]
+
+    error_passed = 0
+    error_failed = 0
+    for test, expected in error_test_cases:
+        result = has_error_characterization(test)
+        status = "PASS" if result == expected else "FAIL"
+        if result == expected:
+            error_passed += 1
+        else:
+            error_failed += 1
+        print(f"{status}: {test[:60]}")
+        print(f"  Expected: {expected}, Got: {result}")
+
+    print(f"\nError characterization: {error_passed} passed, {error_failed} failed")
+
     # Overall result
-    total_passed = external_passed + action_passed + behavioral_passed + doc_passed
-    total_failed = external_failed + action_failed + behavioral_failed + doc_failed
+    total_passed = external_passed + action_passed + behavioral_passed + doc_passed + error_passed
+    total_failed = external_failed + action_failed + behavioral_failed + doc_failed + error_failed
     print("\n" + "=" * 50)
     print(f"TOTAL: {total_passed} passed, {total_failed} failed")
 

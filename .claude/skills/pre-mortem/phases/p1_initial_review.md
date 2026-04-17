@@ -135,6 +135,63 @@ Agent({"description": "adversarial-testing specialist", "prompt": "Read P:/.clau
 - After each specialist agent returns, verify its findings JSON and completion marker exist before proceeding — do not wait until all agents return to check individual results
 - After all agents return, check completion markers and JSONs before proceeding
 
+### 5b-alt: External LLM Dispatch for Quality Specialist
+
+**Conditional**: Only applies when `adversarial-quality` is one of the selected specialists AND `SDLC_MULTI_LLM=1`.
+
+**Pre-flight check:**
+
+```bash
+python -c "import os; print(os.environ.get('SDLC_MULTI_LLM', '0'))"
+```
+
+If not `"1"`, use the standard Agent dispatch for all specialists (Step 5b).
+
+**If enabled**, for `adversarial-quality` ONLY, dispatch via Bash instead of Agent. Remove `adversarial-quality` from the parallel Agent dispatch batch and handle it separately:
+
+```bash
+python "P:/packages/ai-cli/skills/ai-cli/ai_cli.py" "Review the work file at P:/{session_dir}/work.md for maintainability risks, tech debt, structural quality issues, and missing best practices. Output findings as a JSON array with severity (HIGH/MEDIUM/LOW), description, and location." --context "P:/{session_dir}/work.md" --gemini-only --output-format json --no-critic --timeout 120
+```
+
+**Transform output:** Parse the ai-cli JSON output and write to the canonical specialist findings path:
+
+```python
+import json
+from pathlib import Path
+
+ai_cli_json = Path("{ai_cli_output_path}")
+raw = json.loads(ai_cli_json.read_text(encoding='utf-8'))
+output_text = raw.get('output', '')
+
+try:
+    parsed = json.loads(output_text)
+    if isinstance(parsed, list):
+        findings = parsed
+    elif isinstance(parsed, dict) and 'findings' in parsed:
+        findings = parsed['findings']
+    else:
+        findings = [{'severity': 'MEDIUM', 'description': output_text}]
+except json.JSONDecodeError:
+    findings = [{'severity': 'MEDIUM', 'description': output_text}]
+
+canonical = {
+    'specialist': 'adversarial-quality',
+    'findings': findings,
+    'model': raw.get('model', {}).get('name', 'gemini-external'),
+}
+findings_path = Path('P:/{session_dir}/specialists/adversarial-quality-findings.json')
+findings_path.write_text(json.dumps(canonical, indent=2), encoding='utf-8')
+```
+
+Write a completion marker to `P:/{session_dir}/specialists/adversarial-quality-complete.json` containing `{"specialist": "adversarial-quality", "complete": true}`.
+
+**Fallback:** If ai-cli fails, fall back to the standard Claude agent dispatch:
+```json
+Agent({"description": "adversarial-quality specialist", "prompt": "Read P:/.claude/agents/adversarial-quality.md and follow its instructions to review the work at: P:/{session_dir}/work.md. Write your JSON findings to: P:/{session_dir}/specialists/adversarial-quality-findings.json. When complete, write a completion marker to: P:/{session_dir}/specialists/adversarial-quality-complete.json containing: {\"specialist\": \"adversarial-quality\", \"complete\": true}. Return ONLY the file path in your response text.", "subagent_type": "general-purpose"})
+```
+
+**All other specialists** remain Claude agent dispatches (unchanged).
+
 ### 5c: After Dispatch — Verify All Completed
 
 ```python
