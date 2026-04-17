@@ -513,19 +513,72 @@ class CHSExporter:
         self.exclude_thinking = exclude_thinking
         self.include_tool_results = include_tool_results
 
+    def _detect_terminal_id_inline(self) -> str:
+        """Detect terminal ID inline (mirrors skill-guard's detect_terminal_id)."""
+        import ctypes
+        import os
+
+        # Priority 1: Explicit environment variables
+        for env_var in ("CLAUDE_TERMINAL_ID", "TERMINAL_ID", "TERM_ID", "SESSION_TERMINAL"):
+            value = os.environ.get(env_var)
+            if value:
+                source = "env"
+                safe_id = value.replace("/", "-").replace("\\", "-").replace(":", "-")
+                return f"{source}_{safe_id}"
+
+        # Priority 2: WT_SESSION (Windows Terminal UUID - stable per terminal)
+        wt_session = os.environ.get("WT_SESSION")
+        if wt_session:
+            return f"console_{wt_session}"
+
+        # Priority 3: GetConsoleWindow() handle
+        if sys.platform == "win32":
+            try:
+                handle = ctypes.windll.kernel32.GetConsoleWindow()
+                if handle:
+                    hex_handle = hex(handle)[2:]
+                    return f"console_{hex_handle}"
+            except Exception:
+                pass
+
+        # Priority 4: Return empty string — PID fallback is forbidden by skill-guard
+        # contract (terminal ID must be stable across subprocesses). Returning ""
+        # allows get_current_session_id() to fall through to SDK/mtime fallbacks.
+        return ""
+
     def get_current_session_id(self) -> str | None:
         """Get current Claude Code session UUID.
 
         Detection hierarchy (most reliable first):
-        1. SDK list_sessions() + file_size cross-reference + last_modified tiebreaker.
+        1. active-session file written by SessionStart hook (per-terminal, no ambiguity).
+           Written by: P:/packages/handoff/scripts/hooks/SessionStart_handoff_restore.py (symlinked).
+        2. SDK list_sessions() + file_size cross-reference + last_modified tiebreaker.
            Works reliably in single-terminal environments. In multi-terminal
            environments (concurrent Claude Code sessions in the same project dir),
            may return a sibling session with higher last_modified.
-        2. Mtime-based fallback: picks most recently modified transcript.
+        3. Mtime-based fallback: picks most recently modified transcript.
 
         For reliable detection in multi-terminal environments, pass --session-id
         explicitly, or use /status to determine the current session first.
         """
+        # Priority 1: Check active-session file (written by SessionStart hook)
+        terminal_id = self._detect_terminal_id_inline()
+        if terminal_id:
+            active_session_file = Path.home() / ".claude" / f"active-session-{terminal_id}.txt"
+            if active_session_file.exists():
+                try:
+                    session_id = active_session_file.read_text().strip()
+                    if session_id:
+                        # Verify the transcript exists before returning
+                        transcript_path = (
+                            Path.home() / ".claude" / "projects" / "P--" / f"{session_id}.jsonl"
+                        )
+                        if transcript_path.exists():
+                            return session_id
+                except Exception:
+                    pass
+
+        # Priority 2: SDK list_sessions() with file_size cross-reference
         try:
             from claude_agent_sdk import list_sessions
 
@@ -548,7 +601,7 @@ class CHSExporter:
         except Exception:
             pass
 
-        # Fallback: mtime-based detection
+        # Priority 3: Mtime-based detection (last resort, may be wrong in multi-terminal)
         projects_dir = Path.home() / ".claude" / "projects"
         if not projects_dir.exists():
             return None

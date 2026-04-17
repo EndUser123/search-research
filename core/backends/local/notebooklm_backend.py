@@ -60,6 +60,12 @@ class NotebookLMBackend(BaseLocalBackend):
         super().__init__(root_paths, exclude_patterns)
         self.notebook_id = notebook_id
 
+    AUTH_ERROR_PATTERNS = ("Authentication Error", "Authentication expired")
+
+    def _is_auth_error(self, stderr: str) -> bool:
+        """Check if stderr indicates an authentication failure."""
+        return any(pat in stderr for pat in self.AUTH_ERROR_PATTERNS)
+
     def _run_nlm_sync(self, args: list[str], timeout: int) -> str | None:
         """Run nlm CLI synchronously. Used by sync search()."""
         try:
@@ -70,7 +76,26 @@ class NotebookLMBackend(BaseLocalBackend):
                 timeout=timeout,
             )
             if result.returncode != 0:
-                logger.warning(f"nlm command failed: {result.stderr}")
+                stderr = result.stderr
+                if self._is_auth_error(stderr):
+                    # Attempt re-login and retry once
+                    login_result = subprocess.run(
+                        ["nlm", "login"],
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
+                    )
+                    if login_result.returncode == 0:
+                        # Retry original command after login
+                        result = subprocess.run(
+                            ["nlm"] + args,
+                            capture_output=True,
+                            text=True,
+                            timeout=timeout,
+                        )
+                        if result.returncode == 0:
+                            return result.stdout
+                logger.warning(f"nlm command failed: {stderr}")
                 return None
             return result.stdout
         except FileNotFoundError:
@@ -102,7 +127,44 @@ class NotebookLMBackend(BaseLocalBackend):
                 return None
 
             if proc.returncode != 0:
-                logger.warning(f"nlm command failed: {stderr.decode() if stderr else ''}")
+                stderr_str = stderr.decode() if stderr else ''
+                if self._is_auth_error(stderr_str):
+                    # Attempt re-login and retry once (cookie-based, non-blocking)
+                    login_proc = await asyncio.create_subprocess_exec(
+                        "nlm", "login",
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE,
+                    )
+                    try:
+                        login_stdout, login_stderr = await asyncio.wait_for(
+                            login_proc.communicate(), timeout=30
+                        )
+                    except asyncio.TimeoutError:
+                        login_proc.kill()
+                        await login_proc.wait()
+                        logger.warning("nlm re-login timed out")
+                        return None
+
+                    if login_proc.returncode == 0:
+                        # Retry original command after auto-login
+                        retry_proc = await asyncio.create_subprocess_exec(
+                            "nlm", *args,
+                            stdout=asyncio.subprocess.PIPE,
+                            stderr=asyncio.subprocess.PIPE,
+                        )
+                        try:
+                            stdout, stderr = await asyncio.wait_for(
+                                retry_proc.communicate(), timeout=timeout
+                            )
+                        except asyncio.TimeoutError:
+                            retry_proc.kill()
+                            await retry_proc.wait()
+                            logger.warning(f"nlm command timed out after {timeout}s")
+                            return None
+
+                        if retry_proc.returncode == 0:
+                            return stdout.decode() if stdout else ""
+                logger.warning(f"nlm command failed: {stderr_str}")
                 return None
             return stdout.decode() if stdout else ""
         except FileNotFoundError:
