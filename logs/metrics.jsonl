@@ -27,3 +27,7 @@
 {"timestamp": "2026-04-17T08:11:20.111912", "component": "SEARCH_PROVIDER", "latency_ms": 294.6308999962639, "tokens_used": 0, "cache_hit": false, "output_quality": 0.9, "branch": "main"}
 {"timestamp": "2026-04-17T08:11:20.112312", "component": "SEARCH_PROVIDER", "latency_ms": 294.9965999869164, "tokens_used": 0, "cache_hit": false, "output_quality": 0.85, "branch": "main"}
 {"timestamp": "2026-04-17T08:11:20.400519", "component": "QMD_WIKI", "latency_ms": 302.55530000431463, "tokens_used": 0, "cache_hit": false, "output_quality": 0.039, "branch": "main"}
+{"timestamp": "2026-04-17T09:22:45.354247", "component": "YT_IS", "latency_ms": 43747.44550001924, "tokens_used": 0, "cache_hit": false, "output_quality": 0.9677254342463305, "branch": "main"}
+{"timestamp": "2026-04-17T09:23:09.977819", "component": "YT_IS", "latency_ms": 26420.871199981775, "tokens_used": 0, "cache_hit": false, "output_quality": 8.787684714412107, "branch": "main"}
+{"timestamp": "2026-04-17T09:41:15.183503", "component": "YT_IS", "latency_ms": 29088.06770000956, "tokens_used": 0, "cache_hit": false, "output_quality": 0.9679960944409757, "branch": "main"}
+{"timestamp": "2026-04-17T09:41:26.501878", "component": "SEARCH_PROVIDER", "latency_ms": 40417.3892000108, "tokens_used": 0, "cache_hit": false, "output_quality": 0.5, "branch": "main"}

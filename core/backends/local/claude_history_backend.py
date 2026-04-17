@@ -57,7 +57,7 @@ class ClaudeHistoryBackend(BaseLocalBackend):
         exclude_patterns: set[str] | None = None,
         cli_path: str | None = None,
         db_path: str | None = None,
-        default_source: str = "jsonl",
+        default_source: str = "db",
     ):
         """Initialize the Claude history backend.
 
@@ -156,54 +156,61 @@ class ClaudeHistoryBackend(BaseLocalBackend):
 
         Returns a list (possibly empty) on success.
         Raises sqlite3.Error on FTS5 failure so caller can fall back to LIKE.
+
+        Note: Uses two-query approach (rowids first, then join) to avoid
+        SQLite's slow bm25() sorting in Python. The bm25() function is fast
+        in the CLI's Rust FTS5 but slow in Python's SQLite.
         """
         # Escape FTS5 special characters: * " - + ( )
-        # FTS5 query syntax: term1 AND term2 (implicit), OR for OR, "phrase" for exact
         fts_query = query.replace('"', '""')
         fts_query = f'"{fts_query}"'
 
         try:
-            sql = """
-                SELECT
-                    m.session_id,
-                    m.role as message_type,
-                    m.content,
-                    m.timestamp,
-                    s.project_id,
-                    bm25(messages_fts) as rank
-                FROM messages_fts fts
-                JOIN messages m ON m.rowid = fts.rowid
-                LEFT JOIN sessions s ON s.session_key = m.session_id
-                WHERE messages_fts MATCH ?
-            """
-            params: list[str] = [fts_query]
+            # Step 1: Get rowids and BM25 scores from FTS5 (fast: ~2ms)
+            # Project filter applied in Python after fetch since FTS5 result is limited
+            cursor.execute(
+                "SELECT rowid, bm25(messages_fts) as rank FROM messages_fts WHERE messages_fts MATCH ? ORDER BY rank LIMIT ?",
+                [fts_query, str(limit)],
+            )
+            fts_rows = cursor.fetchall()
 
-            if project:
-                sql += " AND s.project_id = ?"
-                params.append(project)
-
-            sql += " ORDER BY rank LIMIT ?"
-            params.append(str(limit))
-
-            cursor.execute(sql, params)
-            rows = cursor.fetchall()
-
-            if not rows:
+            if not fts_rows:
                 return []
 
-            # Normalize BM25 rank to 0-1 score (BM25 is negative, lower = better)
-            # Most negative is worst match; least negative is best match
-            ranks = [row["rank"] for row in rows]
+            # Step 2: Build rowid→score map
+            rowid_scores: dict[int, float] = {row["rowid"]: row["rank"] for row in fts_rows}
+
+            # Step 3: Fetch message content by id (fast: ~2ms)
+            # Note: messages.id IS the rowid (INTEGER PRIMARY KEY), so we use m.id
+            placeholders = ",".join("?" * len(rowid_scores))
+            cursor.execute(
+                f"""
+                SELECT m.id, m.session_id, m.role as message_type,
+                       m.content, m.timestamp, s.project_id
+                FROM messages m
+                LEFT JOIN sessions s ON s.session_key = m.session_id
+                WHERE m.id IN ({placeholders})
+                """,
+                list(rowid_scores.keys()),
+            )
+            msg_rows = cursor.fetchall()
+
+            # Step 4: Normalize BM25 ranks to 0-1 scores
+            ranks = list(rowid_scores.values())
             min_rank = min(ranks)
             max_rank = max(ranks)
             rank_range = max_rank - min_rank if max_rank != min_rank else 1.0
 
             results = []
-            for row in rows:
-                # Normalize: best rank (most negative) → 1.0, worst → 0.7
-                # FTS5 results are still high-quality even at lower ranks
-                norm_rank = (row["rank"] - min_rank) / rank_range if rank_range != 0 else FTS5_RANK_DEFAULT
+            for row in msg_rows:
+                rowid = row["id"]
+                bm25_rank = rowid_scores.get(rowid, 0.0)
+                norm_rank = (bm25_rank - min_rank) / rank_range if rank_range != 0 else FTS5_RANK_DEFAULT
                 score = 1.0 - (norm_rank * FTS5_SCORE_SPREAD)  # Range [0.7, 1.0]
+
+                # Apply project filter in Python (FTS5 result is already limited)
+                if project and row["project_id"] != project:
+                    continue
 
                 results.append(
                     {
@@ -219,9 +226,10 @@ class ClaudeHistoryBackend(BaseLocalBackend):
                         },
                     }
                 )
+
             return results
 
-        except sqlite3.Error as e:
+        except (sqlite3.Error, IndexError, KeyError) as e:
             logger.debug(f"FTS5 MATCH failed, falling back to LIKE: {e}")
             raise  # Re-raise so caller can catch and try LIKE fallback
 

@@ -106,9 +106,10 @@ class AsyncSearchRouter:
         self._tracer = QueryTracer()
 
         # Backend timeouts based on mode (PERF-007 baseline)
-        if self.mode == "fast":
-            self.backend_timeout = 2.0  # 2s for fast mode
-        else:  # comprehensive
+        # "fast" and "local-only" use fast timeout; "comprehensive" uses longer timeout
+        if self.mode in ("fast", "local-only"):
+            self.backend_timeout = 2.0  # 2s for fast/local-only modes
+        else:
             self.backend_timeout = 8.0  # 8s for comprehensive mode
 
         # Web provider timeout (PERF-008)

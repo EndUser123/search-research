@@ -24,16 +24,16 @@ skills_path = Path(__file__).parent
 sys.path.insert(0, str(skills_path))
 
 # Import Layer 1 enhancements (absolute imports for package context)
-import skills.all.adaptive_limits as adaptive_limits
-import skills.all.query_complexity as query_complexity
-import skills.all.semantic_cluster as semantic_cluster
+import skills.explore.adaptive_limits as adaptive_limits
+import skills.explore.query_complexity as query_complexity
+import skills.explore.semantic_cluster as semantic_cluster
 
 # Import search executor
-import skills.all.search_executor as search_executor
+import skills.explore.search_executor as search_executor
 
 # Import Layer 2 filtering
-import skills.all.agent_filter as agent_filter
-import skills.all.layer2_filter as layer2_filter
+import skills.explore.agent_filter as agent_filter
+import skills.explore.layer2_filter as layer2_filter
 
 
 
@@ -186,9 +186,9 @@ async def execute_unified_search(query: str, **kwargs) -> str:
 # Main execution entry point
 def main(query: str, **kwargs) -> str:
     """
-    Main entry point for /all skill execution.
+Main entry point for /explore skill execution.
 
-    This function is called by Claude Code when the /all skill is invoked.
+This function is called by Claude Code when the /explore skill is invoked.
     It executes inline (NOT as subprocess), enabling Agent tool access.
     """
     # Run async search

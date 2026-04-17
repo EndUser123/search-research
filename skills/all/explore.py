@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Universal search command - search local + web sources with unified results.
 
-This script provides the /all command that searches across:
+This script provides the /explore command that searches across:
 - Local sources: CLAUDE-HISTORY (chat), CKS (knowledge), Code, DOCS, SKILLS
 - Web sources: Tavily, Serper, Exa, multiple search providers
 - Merged results via Reciprocal Rank Fusion (RRF)
@@ -11,10 +11,10 @@ Note: Chat history search is now handled by the claude-history Rust package (v1.
 See: P:/packages/claude-history/ for details on the chat history search backend.
 
 Usage:
-    python all.py "python async patterns"              # Auto mode (default)
-    python all.py "query" --mode unified               # Always search both
-    python all.py "query" --enable-layer2             # Force context-aware filtering
-    python all.py "query" --format json               # JSON output
+    python explore.py "python async patterns"          # Auto mode (default)
+    python explore.py "query" --mode unified           # Always search both
+    python explore.py "query" --enable-layer2          # Force context-aware filtering
+    python explore.py "query" --format json            # JSON output
 """
 
 from __future__ import annotations

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import sqlite3
@@ -34,12 +35,14 @@ class YtIsBackend:
 
     BACKEND_NAME = "yt-is"
     TIMEOUT = 5.0  # seconds for FTS queries
+    BATCH_SIZE = 100  # rows per batch INSERT
 
     def __init__(self) -> None:
         self._index_mtime: float | None = None
         self._rebuild_lock = threading.Lock()
         self._rebuild_failures = 0
         self._rebuild_cooldown_until: float | None = None
+        self._rebuild_in_progress = False  # Tracks if a rebuild is currently running
 
     def _get_db_mtime(self) -> float | None:
         """Return mtime of transcript DB as index freshness surrogate."""
@@ -114,11 +117,28 @@ class YtIsBackend:
         if not query:
             return []
 
-        # Trigger rebuild if FTS table doesn't exist or DB is newer
+        # Trigger async rebuild if FTS table doesn't exist or DB is newer
         db_mtime = self._get_db_mtime()
         index_mtime = self._index_mtime
-        if not self._ensure_fts() or (db_mtime and (index_mtime is None or db_mtime > index_mtime)):
-            self.build_index()
+        needs_build = not self._ensure_fts() or (db_mtime and (index_mtime is None or db_mtime > index_mtime))
+
+        if needs_build:
+            # Try to start a rebuild (only one thread can rebuild at a time)
+            if self._rebuild_lock.acquire(blocking=False):
+                try:
+                    if self._rebuild_in_progress:
+                        # Another thread is already rebuilding, skip this round
+                        pass
+                    else:
+                        self._rebuild_in_progress = True
+                        # Run synchronous build in thread pool (non-blocking for event loop)
+                        await asyncio.to_thread(self.build_index)
+                finally:
+                    self._rebuild_lock.release()
+            else:
+                # Another thread holds the lock (rebuild in progress), skip this round
+                # FTS will be empty but at least we don't hang
+                pass
 
         try:
             results = self._fts_search(query, limit)
@@ -133,6 +153,7 @@ class YtIsBackend:
         """Build or rebuild the FTS5 table from transcript_cache + analysis_status join."""
         if not _TRANSCRIPT_DB.exists():
             logger.debug("yt-is transcripts DB not found, skipping index build")
+            self._rebuild_in_progress = False
             return
 
         with self._rebuild_lock:
@@ -142,6 +163,7 @@ class YtIsBackend:
                 self._rebuild_cooldown_until is not None
                 and time.monotonic() < self._rebuild_cooldown_until
             ):
+                self._rebuild_in_progress = False
                 return
 
             try:
@@ -152,6 +174,8 @@ class YtIsBackend:
                 logger.debug(f"yt-is FTS build failed: {e}")
                 self._rebuild_failures += 1
                 self._update_cooldown()
+            finally:
+                self._rebuild_in_progress = False
 
     def _sync_build_fts(self) -> None:
         """Synchronously rebuild FTS table from joined transcript + metadata."""
@@ -217,23 +241,40 @@ class YtIsBackend:
                 )
             """)
 
+            # Batch insert: accumulate rows and insert in batches
+            batch = []
             for row_data in rows:
+                batch.append((
+                    row_data["title"],
+                    row_data["description"],
+                    row_data["transcript"],
+                    row_data["content"],
+                    row_data["snippet"],
+                    row_data["video_id"],
+                ))
+                if len(batch) >= self.BATCH_SIZE:
+                    try:
+                        conn2.executemany(
+                            f"""INSERT INTO {_FTS_TABLE}
+                                (title, description, transcript, content, snippet, video_id)
+                                VALUES (?, ?, ?, ?, ?, ?)""",
+                            batch,
+                        )
+                    except Exception as e:
+                        logger.debug(f"yt-is FTS batch insert failed: {e}")
+                    batch = []
+
+            # Insert remaining rows
+            if batch:
                 try:
-                    conn2.execute(
+                    conn2.executemany(
                         f"""INSERT INTO {_FTS_TABLE}
                             (title, description, transcript, content, snippet, video_id)
                             VALUES (?, ?, ?, ?, ?, ?)""",
-                        (
-                            row_data["title"],
-                            row_data["description"],
-                            row_data["transcript"],
-                            row_data["content"],
-                            row_data["snippet"],
-                            row_data["video_id"],
-                        ),
+                        batch,
                     )
                 except Exception as e:
-                    logger.debug(f"yt-is FTS insert failed for {row_data['video_id']}: {e}")
+                    logger.debug(f"yt-is FTS batch insert failed: {e}")
 
             conn2.commit()
             conn2.execute("PRAGMA wal_checkpoint(TRUNCATE)")

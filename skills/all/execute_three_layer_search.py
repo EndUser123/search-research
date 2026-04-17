@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Complete implementation of /all skill with three-layer filtering.
+Complete implementation of /explore skill with three-layer filtering.
 
 This integrates:
 - Layer 1: Python rule-based filtering (UnifiedAsyncRouter)

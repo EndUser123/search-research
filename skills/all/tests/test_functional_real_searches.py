@@ -16,7 +16,8 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from skills.all.search_executor import execute_search, format_results_human
+from skills.explore.search_executor import execute_search, format_results_human
+from skills.explore import agent_filter, layer2_filter, query_complexity
 
 
 class TestFunctionalLayer1Only:
@@ -65,8 +66,6 @@ class TestFunctionalLayer2Triggering:
     @pytest.mark.asyncio
     async def test_high_result_count_triggers_layer2(self):
         """Test Layer 2 triggers when result count is high."""
-        from skills.all import layer2_filter
-
         # Use a broad query to get many results
         query = "python programming"
 
@@ -90,8 +89,6 @@ class TestFunctionalLayer2Triggering:
     @pytest.mark.asyncio
     async def test_context_hints_trigger_layer2(self):
         """Test Layer 2 triggers on context hints in query."""
-        from skills.all import layer2_filter
-
         # Query with context hints
         query = "what did we discuss about async"
 
@@ -111,8 +108,6 @@ class TestFunctionalLayer2Triggering:
     @pytest.mark.asyncio
     async def test_simple_query_skips_layer2(self):
         """Test Layer 2 skips for simple queries with few results."""
-        from skills.all import layer2_filter
-
         # Simple, specific query
         query = "hello world"
 
@@ -136,7 +131,6 @@ class TestFunctionalLayer2Filtering:
     @pytest.mark.asyncio
     async def test_layer2_keyword_fallback_in_cli_context(self, monkeypatch):
         """Test Layer 2 uses keyword fallback in CLI context."""
-        from skills.all import agent_filter
 
         # Ensure CLI context (no skill execution env var)
         monkeypatch.delenv('CLAUDE_CODE_SKILL_EXECUTION', raising=False)
@@ -146,7 +140,6 @@ class TestFunctionalLayer2Filtering:
         results = await execute_search(query, mode="auto", limit=30)
 
         # Apply Layer 2 filtering (should use keyword fallback in CLI)
-        from skills.all import query_complexity
         complexity_score = query_complexity.calculate_complexity_score(query)
 
         filtered = await agent_filter.apply_agent_filtering(
@@ -178,7 +171,6 @@ class TestFunctionalEndToEnd:
         results = await execute_search(query, mode="auto", limit=10)
 
         # Layer 2: Check if triggered (but don't apply for this test)
-        from skills.all import layer2_filter
         should_apply, reason = layer2_filter.should_apply_context_filter(results, query)
 
         # Layer 3: Format for display (standard)

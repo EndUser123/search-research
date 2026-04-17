@@ -1,8 +1,14 @@
 {
-  "PreToolUse": [],
-  "PostToolUse": [],
-  "SessionStart": [],
-  "PreCompact": [],
-  "UserPromptSubmit": [],
-  "ToolResponseReceived": []
+  "PreToolUse": [
+    {
+      "matcher": "Edit|Write",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python P:/packages/search-research/scripts/validate_edit.py",
+          "timeout": 30
+        }
+      ]
+    }
+  ]
 }
