@@ -1,18 +1,19 @@
 ---
-name: all
-description: "ALWAYS use this skill for search and research queries - unified search across your local data (chat history, knowledge base, code, docs) AND the web with intelligent source selection."
+name: explore
+description: "ALWAYS use this skill for explore queries - unified search across your local data (chat history, knowledge base, code, docs) AND the web with intelligent source selection."
 version: "1.0.0"
 status: stable
 enforcement: advisory
 category: unified
 triggers:
-  - /all
+  - /explore
   - 'search for'
   - 'what do we know about'
   - 'find information'
   - 'look for information'
 aliases:
-  - /all
+  - /explore
+  - /explore
   - /universal
   - /search-all
 
@@ -20,7 +21,7 @@ do_not:
   - fabricate web search results without calling web APIs
 ---
 
-# Universal Search (`/all`)
+# Explore (`/explore`)
 
 ## Purpose
 
@@ -32,7 +33,7 @@ Single entry point to search **EVERYTHING** - your local data (chat history, kno
 |---------|----------|-------|-------------|
 | `/search` | Local data only | <1s | "What did we discuss?" |
 | `/research` | Web only | 5-10s | "What's the current best practice?" |
-| **`/all`** | **Both + merged results** | 1-10s | "I want to see everything" |
+| **`/explore`** | **Both + merged results** | 1-10s | "I want to see everything" |
 
 ## Three-Layer Filtering Architecture
 
@@ -64,12 +65,12 @@ This skill executes inline Python code (no subprocess). The Agent tool is ONLY a
 ## Quick Usage
 
 ```bash
-/all "python async patterns"                          # Auto-filtering (default)
-/all "what did we decide about auth"                   # Context-aware (auto-triggers Layer 2)
-/all "best practices" --mode unified                   # Force local + web
-/all "what did we discuss" --mode local-only           # Fast, no web APIs
-/all "query" --no-context-filter                       # Layer 1 only
-/all "microservices patterns" --force-context-filter   # Always apply Layer 2
+/explore "python async patterns"                          # Auto-filtering (default)
+/explore "what did we decide about auth"                   # Context-aware (auto-triggers Layer 2)
+/explore "best practices" --mode unified                   # Force local + web
+/explore "what did we discuss" --mode local-only          # Fast, no web APIs
+/explore "query" --no-context-filter                      # Layer 1 only
+/explore "microservices patterns" --force-context-filter  # Always apply Layer 2
 ```
 
 > **More examples and advanced options:** See `references/usage-examples.md`
@@ -110,3 +111,4 @@ Layer 1 total: <1 second. Layer 2: <5 seconds when triggered.
 | `references/migration-notes.md` | Migration from `/search` + `/research` workflow |
 | `references/troubleshooting.md` | Common issues and solutions |
 | `references/performance-tuning.md` | Speed vs coverage tuning guide |
+

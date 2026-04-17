@@ -1,6 +1,6 @@
 """PreToolUse hook to track discovery tool usage.
 
-Tracks when discovery tools (Glob, Grep, /search, /discover) are used and sets
+Tracks when discovery tools (Glob, Grep, /explore, /search, /research, /discover) are used and sets
 discovery_done flag in session-scoped state file.
 
 Adversarial review fixes applied:
@@ -18,7 +18,7 @@ from pathlib import Path
 import time
 
 # Discovery tools to track
-DISCOVERY_TOOLS = ['Glob', 'Grep', '/search', '/discover']
+DISCOVERY_TOOLS = ['Glob', 'Grep', '/explore', '/search', '/research', '/discover']
 
 
 def get_session_id(data):
@@ -55,6 +55,7 @@ def write_state_atomic(session_id, discovery_done=True):
         bool: True if write succeeded, False otherwise
     """
     state_file = Path.home() / '.claude' / f'discovery_state_{session_id}.json'
+    state_file.parent.mkdir(parents=True, exist_ok=True)
 
     # Create state data
     state = {
@@ -88,7 +89,7 @@ def main(hook_input):
     Returns:
         None
     """
-    tool_name = hook_input.get('tool', '')
+    tool_name = hook_input.get('tool_name') or hook_input.get('tool', '')
 
     # Check if this is a discovery tool
     if tool_name not in DISCOVERY_TOOLS:

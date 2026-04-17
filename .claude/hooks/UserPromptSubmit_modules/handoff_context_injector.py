@@ -58,7 +58,18 @@ def load_handoff_envelope(terminal_id: str) -> dict | None:
         return None
     try:
         data = json.loads(state_file.read_text(encoding="utf-8"))
-        created_at = data.get("created_at", 0)
+        resume = data.get("resume_snapshot", {})
+        created_at_raw = resume.get("created_at", 0)
+        # Parse ISO 8601 timestamp to epoch
+        if isinstance(created_at_raw, str) and created_at_raw:
+            from datetime import datetime, timezone
+            try:
+                dt = datetime.fromisoformat(created_at_raw).replace(tzinfo=timezone.utc)
+                created_at = dt.timestamp()
+            except (ValueError, OSError):
+                created_at = 0
+        else:
+            created_at = 0
         if time.time() - created_at > HANDOFF_TTL:
             logger.debug(f"Handoff envelope expired for terminal {terminal_id}")
             state_file.unlink(missing_ok=True)

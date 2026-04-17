@@ -72,7 +72,8 @@ Test-Driven Development for new features AND refactoring. Write tests first, the
 - **TDD mandatory**: All code changes follow RED -> GREEN -> REFACTOR
 - **Tests first**: Write tests BEFORE changing code, never after
 - **PARALLEL delegation**: Use multiple subagents simultaneously for independent tasks
-- **5-phase process**: DISCOVER -> RED -> GREEN -> VERIFY -> REGRESSION -> REFACTOR
+- **6-phase process**: DISCOVER -> RED -> GREEN -> VERIFY -> EDGE CASE ANALYSIS -> REGRESSION -> REFACTOR
+- **Edge case analysis**: After VERIFY phase, dispatch `adversarial-failure-modes` agent on changed files (see `__lib/fix-verification-protocol.md`)
 - **Baseline capture**: Save test results before changes for comparison
 - **TypedDict contracts**: Use for cross-module data structures
 

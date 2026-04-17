@@ -69,7 +69,7 @@
 
 ### Web search failures
 ```bash
-/all "query" --mode auto
+/explore "query" --mode auto
 # → Local search succeeds
 # → Web search fails (network, API error)
 # → Result: Shows local results with warning
@@ -77,7 +77,7 @@
 
 ### Quality fallback
 ```bash
-/all "very specific term" --mode auto
+/explore "very specific term" --mode auto
 # → Local search returns 1 low-quality result (score: 0.3)
 # → Quality check fails
 # → Triggers web search automatically
@@ -86,8 +86,9 @@
 
 ### Agent tool failures
 ```bash
-/all "query" (triggers Layer 2)
+/explore "query" (triggers Layer 2)
 # → Agent tool fails or times out
 # → Falls back to keyword-based filtering
 # → Result: Still shows Layer 1 output
 ```
+

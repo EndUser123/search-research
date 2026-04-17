@@ -35,11 +35,28 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+# Cross-platform file locking
+try:
+    import fcntl
+
+    HAS_FCNTL = True
+except ImportError:
+    HAS_FCNTL = False
+
+# Windows file locking
+try:
+    import msvcrt
+
+    HAS_MSVCRT = True
+except ImportError:
+    HAS_MSVCRT = False
 
 logger = logging.getLogger(__name__)
 
@@ -380,53 +397,82 @@ def _verify_past_resolutions(
     """
     log_path = _get_resolution_log_path(target_key)
     verification_log_path = _get_verification_log_path(target_key)
+    lock_path = verification_log_path.parent / ".verification.lock"
 
-    records = _read_resolution_log(log_path)
-    verified_gap_ids = _get_verified_gap_ids(verification_log_path)
+    # Lock file for exclusive access to verification log
+    lock_file_obj = None
+    try:
+        # Open lock file
+        lock_file_obj = open(lock_path, "w")
 
-    verified_count = 0
-    failed_count = 0
-    now = datetime.now().isoformat()
+        # Acquire lock
+        if HAS_FCNTL:
+            fcntl.flock(lock_file_obj.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        elif HAS_MSVCRT:
+            msvcrt.locking(lock_file_obj.fileno(), msvcrt.LK_NBLCK, 1)
 
-    for record in records:
-        # Skip already-verified records (by checking if any of their gap IDs were verified)
-        record_gap_ids = {_normalize_gap_key(gid) for gid in record.gap_ids_resolved}
-        already_verified = record_gap_ids & verified_gap_ids
+        # Lock acquired — read and write verification log
+        records = _read_resolution_log(log_path)
+        verified_gap_ids = _get_verified_gap_ids(verification_log_path)
 
-        # Only verify gaps we haven't verified yet
-        unverified_gap_ids = record_gap_ids - already_verified
+        verified_count = 0
+        failed_count = 0
+        now = datetime.now().isoformat()
 
-        if not unverified_gap_ids:
-            continue
+        for record in records:
+            # Skip already-verified records (by checking if any of their gap IDs were verified)
+            record_gap_ids = {_normalize_gap_key(gid) for gid in record.gap_ids_resolved}
+            already_verified = record_gap_ids & verified_gap_ids
 
-        # Check each unverified gap
-        for gap_id in unverified_gap_ids:
-            normalized = _normalize_gap_key(gap_id)
-            if normalized in current_gap_ids:
-                # Gap reappeared → resolution FAILED
-                status = "failed"
-                reason = "gap_reappeared"
-                failed_count += 1
-            else:
-                # Gap still absent → resolution VERIFIED
-                status = "verified"
-                reason = "gap_still_absent"
-                verified_count += 1
+            # Only verify gaps we haven't verified yet
+            unverified_gap_ids = record_gap_ids - already_verified
 
-            # Append verification record
-            verification = ResolutionVerificationRecord(
-                skill=record.skill,
-                gap_ids=[_normalize_gap_key(gap_id)],
-                gap_types=record.gap_types_resolved,
-                resolution_timestamp=record.timestamp,
-                verification_timestamp=now,
-                status=status,
-                reason=reason,
-                terminal_id=terminal_id,
-            )
-            _append_verification_record(target_key, verification)
+            if not unverified_gap_ids:
+                continue
 
-    return verified_count, failed_count
+            # Check each unverified gap
+            for gap_id in unverified_gap_ids:
+                normalized = _normalize_gap_key(gap_id)
+                if normalized in current_gap_ids:
+                    # Gap reappeared → resolution FAILED
+                    status = "failed"
+                    reason = "gap_reappeared"
+                    failed_count += 1
+                else:
+                    # Gap still absent → resolution VERIFIED
+                    status = "verified"
+                    reason = "gap_still_absent"
+                    verified_count += 1
+
+                # Append verification record
+                verification = ResolutionVerificationRecord(
+                    skill=record.skill,
+                    gap_ids=[_normalize_gap_key(gap_id)],
+                    gap_types=record.gap_types_resolved,
+                    resolution_timestamp=record.timestamp,
+                    verification_timestamp=now,
+                    status=status,
+                    reason=reason,
+                    terminal_id=terminal_id,
+                )
+                _append_verification_record(target_key, verification)
+
+        return verified_count, failed_count
+    except (OSError, IOError):
+        # Lock busy or unavailable — fail closed, do NOT write unprotected
+        raise
+    finally:
+        # Always release lock if it was acquired
+        if lock_file_obj is not None:
+            try:
+                if HAS_FCNTL:
+                    fcntl.flock(lock_file_obj.fileno(), fcntl.LOCK_UN)
+                elif HAS_MSVCRT:
+                    msvcrt.locking(lock_file_obj.fileno(), msvcrt.LK_UNLCK, 1)
+            except (OSError, IOError):
+                # Ignore errors during lock release
+                pass
+            lock_file_obj.close()
 
 
 # ── Public API ─────────────────────────────────────────────────────────────────

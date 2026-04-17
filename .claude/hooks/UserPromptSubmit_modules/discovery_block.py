@@ -20,13 +20,13 @@ if TYPE_CHECKING:
     from UserPromptSubmit_modules.base import HookContext, HookResult
 
 # Regex detection pattern for implementation intent
-IMPL_PATTERNS = r'\b(?:create|write|implement|add|build)\s+(?:file|function|class|code|script|test)'
+IMPL_PATTERNS = r'\b(?:create|write|implement|add|build|update|edit|modify|change|patch|fix|refactor|remove|delete)\b'
 
 # Discovery tools allow-list (LOGIC-001 fix)
-DISCOVERY_TOOLS = ['Glob', 'Grep', '/search', '/discover']
+DISCOVERY_TOOLS = ['Glob', 'Grep', '/explore', '/search', '/research', '/discover']
 DISCOVERY_PATTERNS = [
     r'\b(?:Glob|Grep)\s+',  # Tool invocations
-    r'^/(?:search|discover)\s+',  # Skill commands
+    r'^/(?:explore|search|research|discover)\s+',  # Skill commands
 ]
 
 # Escape hatch patterns
@@ -162,13 +162,13 @@ def process_prompt(context: 'HookContext') -> 'HookResult':
 
         # Block implementation without discovery
         topic = extract_topic_from_prompt(prompt)
-        suggested_query = f'/{topic}' if topic else '/search "your topic"'
+        suggested_query = f'/explore "{topic}"' if topic else '/explore "your topic"'
 
         block_message = (
             f"**Discovery First**\n\n"
-            f"Use discovery tools (`/search`, `/discover`, `Glob`, `Grep`) before implementing.\n\n"
+            f"Use discovery tools (`/explore`, `/search`, `/research`, `/discover`, `Glob`, `Grep`) before implementing.\n\n"
             f"Suggested: `{suggested_query}`\n\n"
-            f"Escape hatch: Add `{ESCAPE_HATCH_FLAG}`` to your prompt."
+            f"Escape hatch: Add `{ESCAPE_HATCH_FLAG}` to your prompt."
         )
 
         return HookResult(context=block_message, tokens=150)

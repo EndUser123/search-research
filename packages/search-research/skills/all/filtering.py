@@ -1,7 +1,7 @@
 """
-Three-layer filtering implementation for /all skill.
+Three-layer filtering implementation for /explore skill.
 
-This module implements the context-aware filtering logic for the /all skill,
+This module implements the context-aware filtering logic for the /explore skill,
 including trigger detection and subagent orchestration.
 """
 

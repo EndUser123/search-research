@@ -328,6 +328,15 @@ class SessionMemoizer:
             self._cache_misses += len(missed_sessions)
             return None, list(missed_sessions)
 
+        # CRITICAL FIX: Re-validate origin session mtime just before returning
+        # to prevent TOCTOU vulnerability between initial validation and use
+        if origin_transcript_path:
+            final_origin_mtime = _get_session_mtime(Path(origin_transcript_path))
+            if final_origin_mtime is None or final_origin_mtime != current_cache.mtime:
+                self._cache_misses += 1
+                logger.debug("Origin session mtime changed after initial validation - cache miss")
+                return None, [current_session_id]
+
         # All sessions cached and mtimes match — return cached result
         self._cache_hits += 1
         logger.info(

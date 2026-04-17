@@ -15,9 +15,11 @@ CONSTITUTIONAL BASIS:
 - CLAUDE_updated.md: "Plan-Then-Act Pattern"
 """
 
+import ast
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 from datetime import datetime
@@ -181,6 +183,13 @@ hooks_dir = Path(__file__).resolve().parent
 # CKS pre-load - lazy import only when needed for write blocks
 CKS_PRELOAD_AVAILABLE = False
 is_model_ready = lambda: False
+
+AUTO_READ_MAX_BYTES = 1_000_000
+AUTO_READ_MAX_CHARS = 5_000
+LOW_RISK = "LOW"
+MEDIUM_RISK = "MEDIUM"
+HIGH_RISK = "HIGH"
+SENSITIVE_CODE_DIRS = {"core", "backends", "chs"}
 
 
 def _load_cks_preload():
@@ -405,7 +414,7 @@ def load_state(terminal_id: str = "", input_data: dict | None = None) -> Investi
                     if recovered_files:
                         state["files_read"] = recovered_files
                         state["_reconstructed_from_transcript"] = True
-                return state
+                return _normalize_state(state, terminal_id)
         except (json.JSONDecodeError, KeyError):
             state = fresh_state(terminal_id)
             if input_data and _is_compaction_scenario(state, input_data):
@@ -413,14 +422,14 @@ def load_state(terminal_id: str = "", input_data: dict | None = None) -> Investi
                 if recovered_files:
                     state["files_read"] = recovered_files
                     state["_reconstructed_from_transcript"] = True
-            return state
+            return _normalize_state(state, terminal_id)
     state = fresh_state(terminal_id)
     if input_data and _is_compaction_scenario(state, input_data):
         recovered_files = _reconstruct_files_read_from_input(input_data)
         if recovered_files:
             state["files_read"] = recovered_files
             state["_reconstructed_from_transcript"] = True
-    return state
+    return _normalize_state(state, terminal_id)
 
 
 def fresh_state(terminal_id: str = "") -> InvestigationState:
@@ -432,7 +441,39 @@ def fresh_state(terminal_id: str = "") -> InvestigationState:
         "investigation_declared": False,
         "greenfield_declared": False,
         "searches_performed": [],
+        "targets_auto_read_once": [],
+        "dependency_checks": {},
+        "workspace_state": {},
+        "risk_context": {},
     }
+
+
+def _normalize_state(state: InvestigationState, terminal_id: str = "") -> InvestigationState:
+    """Fill in new state fields without breaking older persisted state files."""
+    if "files_read" not in state or not isinstance(state.get("files_read"), list):
+        state["files_read"] = list(state.get("files_read", []) or [])
+    if "timestamp" not in state:
+        state["timestamp"] = 0
+    if "modules_investigated" in state and isinstance(state["modules_investigated"], list):
+        state["modules_investigated"] = set(state["modules_investigated"])
+    if "modules_investigated" not in state:
+        state["modules_investigated"] = set()
+    if "searches_performed" not in state or not isinstance(state.get("searches_performed"), list):
+        state["searches_performed"] = list(state.get("searches_performed", []) or [])
+    if "targets_auto_read_once" not in state or not isinstance(state.get("targets_auto_read_once"), list):
+        state["targets_auto_read_once"] = list(state.get("targets_auto_read_once", []) or [])
+    if "dependency_checks" not in state or not isinstance(state.get("dependency_checks"), dict):
+        state["dependency_checks"] = dict(state.get("dependency_checks", {}) or {})
+    if "workspace_state" not in state or not isinstance(state.get("workspace_state"), dict):
+        state["workspace_state"] = dict(state.get("workspace_state", {}) or {})
+    if "risk_context" not in state or not isinstance(state.get("risk_context"), dict):
+        state["risk_context"] = dict(state.get("risk_context", {}) or {})
+    if "investigation_declared" not in state:
+        state["investigation_declared"] = False
+    if "greenfield_declared" not in state:
+        state["greenfield_declared"] = False
+    state["terminal_id"] = _safe_id_str(terminal_id) if terminal_id else state.get("terminal_id", "default")
+    return state
 
 
 def save_state(state: InvestigationState, terminal_id: str = "") -> None:
@@ -530,6 +571,412 @@ def _required_related_reads(tool_name: str, tool_input: ToolDict, filepath: str)
     if _is_structural_code_change(tool_name, tool_input, filepath):
         return HIGH_RISK_MIN_RELATED_READS, "high"
     return MIN_RELATED_READS, "low"
+
+
+def _resolve_repo_root(path_hint: str | None = None) -> Path:
+    """Find the nearest repo root for git-aware workspace checks."""
+    candidates: list[Path] = []
+    if path_hint:
+        path_obj = Path(path_hint).resolve()
+        start = path_obj if path_obj.is_dir() else path_obj.parent
+        candidates.append(start)
+        candidates.extend(list(start.parents))
+
+    cwd = Path.cwd().resolve()
+    if cwd not in candidates:
+        candidates.append(cwd)
+    candidates.extend(parent for parent in cwd.parents if parent not in candidates)
+
+    for candidate in candidates:
+        if (candidate / ".git").exists():
+            return candidate
+    return cwd
+
+
+def _run_git_status(repo_root: Path) -> list[str]:
+    """Return porcelain status lines for the repo if git is available."""
+    try:
+        result = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repo_root),
+                "status",
+                "--porcelain=v1",
+                "--untracked-files=all",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=3,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+
+    if result.returncode != 0:
+        return []
+    return [line for line in result.stdout.splitlines() if line.strip()]
+
+
+def _parse_git_status(repo_root: Path, target_path: Path) -> dict[str, Any]:
+    """Build a structured git workspace snapshot for the target path."""
+    status_lines = _run_git_status(repo_root)
+    changed_paths: list[str] = []
+    status_map: dict[str, str] = {}
+    has_deleted_files = False
+    has_staged_deletions = False
+    has_conflicts = False
+    has_renames = False
+
+    target_rel = None
+    try:
+        target_rel = target_path.resolve(strict=False).relative_to(repo_root.resolve())
+    except Exception:
+        target_rel = None
+
+    target_parent_rel = str(target_rel.parent).replace("\\", "/") if target_rel else ""
+
+    for line in status_lines:
+        if len(line) < 3:
+            continue
+        status = line[:2]
+        path_part = line[3:] if len(line) > 3 else ""
+        if " -> " in path_part:
+            path_part = path_part.split(" -> ", 1)[-1]
+        normalized_path = path_part.replace("\\", "/").strip()
+        if normalized_path:
+            changed_paths.append(normalized_path)
+            status_map[normalized_path] = status
+
+        if "U" in status or status in {"AA", "DD", "AU", "UA", "DU", "UD", "UU"}:
+            has_conflicts = True
+        if "R" in status:
+            has_renames = True
+        if status[0] == "D":
+            has_staged_deletions = True
+            has_deleted_files = True
+        if status[1] == "D":
+            has_deleted_files = True
+
+    dirty_same_dir = bool(
+        target_parent_rel
+        and any(Path(path).parent.as_posix() == target_parent_rel for path in changed_paths)
+    )
+
+    return {
+        "available": bool(status_lines),
+        "changed_paths": changed_paths,
+        "status_map": status_map,
+        "has_deleted_files": has_deleted_files,
+        "has_staged_deletions": has_staged_deletions,
+        "has_conflicts": has_conflicts,
+        "has_renames": has_renames,
+        "dirty_same_dir": dirty_same_dir,
+    }
+
+
+def _read_text_file(filepath: Path) -> str:
+    try:
+        return filepath.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return filepath.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+
+
+def _extract_local_import_specs(source_text: str) -> list[dict[str, Any]]:
+    """Parse import statements and return candidate local module specs."""
+    if not source_text.strip():
+        return []
+
+    try:
+        tree = ast.parse(source_text)
+    except SyntaxError:
+        return []
+
+    specs: list[dict[str, Any]] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name:
+                    specs.append({"spec": alias.name, "kind": "import"})
+        elif isinstance(node, ast.ImportFrom):
+            prefix = "." * node.level + (node.module or "")
+            if prefix:
+                specs.append({"spec": prefix, "kind": "from"})
+            for alias in node.names:
+                if not alias.name or alias.name == "*":
+                    continue
+                if not node.module and node.level:
+                    specs.append({"spec": f"{'.' * node.level}{alias.name}", "kind": "from_relative"})
+                else:
+                    specs.append({"spec": alias.name, "kind": "from"})
+
+    unique: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for entry in specs:
+        spec = str(entry["spec"])
+        if spec not in seen:
+            seen.add(spec)
+            unique.append(entry)
+    return unique
+
+
+def _collect_attribute_bases(tree: ast.AST) -> set[str]:
+    """Collect names used as attribute bases, e.g. tracing.QueryTracer."""
+    bases: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+            bases.add(node.value.id)
+    return bases
+
+
+def _candidate_module_paths(spec: str, target_path: Path) -> list[Path]:
+    """Generate possible on-disk paths for a module spec."""
+    spec = spec.strip()
+    if not spec:
+        return []
+
+    relative_depth = len(spec) - len(spec.lstrip("."))
+    module_name = spec.lstrip(".")
+    module_parts = [part for part in module_name.split(".") if part]
+    if not module_parts:
+        return []
+
+    base_dirs: list[Path] = []
+    target_parent = target_path.resolve(strict=False).parent
+    if relative_depth:
+        base = target_parent
+        for _ in range(max(relative_depth - 1, 0)):
+            if base.parent == base:
+                break
+            base = base.parent
+        base_dirs.append(base)
+    else:
+        base_dirs.append(target_parent)
+        base_dirs.extend(list(target_parent.parents))
+
+    candidates: list[Path] = []
+    for base in base_dirs:
+        module_path = base.joinpath(*module_parts)
+        candidates.append(module_path.with_suffix(".py"))
+        candidates.append(module_path / "__init__.py")
+
+    unique: list[Path] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key not in seen:
+            seen.add(key)
+            unique.append(candidate)
+    return unique
+
+
+def _resolve_local_imports(
+    target_path: Path, repo_root: Path, status_map: dict[str, str], source_text: str
+) -> dict[str, Any]:
+    """Resolve local imports and identify tombstones or staged dependency targets."""
+    import_specs = _extract_local_import_specs(source_text)
+    try:
+        tree = ast.parse(source_text) if source_text.strip() else None
+    except SyntaxError:
+        tree = None
+    attribute_bases = _collect_attribute_bases(tree) if tree is not None else set()
+    from_import_aliases: list[tuple[str, str]] = []
+    if tree is not None:
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                prefix = "." * node.level + (node.module or "")
+                if not prefix:
+                    continue
+                for alias in node.names:
+                    if alias.name and alias.name != "*":
+                        from_import_aliases.append((prefix, alias.name))
+    local_import_specs: list[str] = []
+    resolved_local_imports: list[dict[str, str]] = []
+    unresolved_local_imports: list[str] = []
+    deleted_or_staged_import_targets: list[str] = []
+
+    stdlib_modules = getattr(sys, "stdlib_module_names", set())
+    target_ancestry_names = {part.name for part in [target_path.parent, *target_path.parent.parents]}
+
+    for entry in import_specs:
+        spec = entry["spec"]
+        top_level = spec.lstrip(".").split(".", 1)[0]
+        if not top_level:
+            continue
+        if top_level not in stdlib_modules or spec.startswith("."):
+            local_import_specs.append(spec)
+
+        candidates = _candidate_module_paths(spec, target_path)
+        resolved_candidate = next((candidate for candidate in candidates if candidate.exists()), None)
+        if resolved_candidate is not None:
+            try:
+                rel_candidate = resolved_candidate.resolve(strict=False).relative_to(repo_root.resolve())
+                rel_key = rel_candidate.as_posix()
+            except Exception:
+                rel_key = resolved_candidate.as_posix()
+            resolved_local_imports.append({"spec": spec, "path": rel_key})
+            continue
+
+        # Local-ish imports that line up with the target package ancestry should be
+        # treated as dependency risks even when the file was deleted or staged away.
+        localish = spec.startswith(".") or top_level in target_ancestry_names
+        candidate_hits: list[str] = []
+        for candidate in candidates:
+            try:
+                rel_candidate = candidate.resolve(strict=False).relative_to(repo_root.resolve())
+                rel_key = rel_candidate.as_posix()
+            except Exception:
+                rel_key = candidate.as_posix().replace("\\", "/")
+            status = status_map.get(rel_key)
+            if status and (status[0] == "D" or status[1] == "D" or "U" in status):
+                candidate_hits.append(rel_key)
+
+        if candidate_hits:
+            unresolved_local_imports.append(spec)
+            deleted_or_staged_import_targets.extend(candidate_hits)
+        elif localish:
+            unresolved_local_imports.append(spec)
+
+    for prefix, alias_name in from_import_aliases:
+        if alias_name not in attribute_bases:
+            continue
+        module_like_spec = f"{prefix}.{alias_name}"
+        if module_like_spec in local_import_specs:
+            continue
+        local_import_specs.append(module_like_spec)
+        candidates = _candidate_module_paths(module_like_spec, target_path)
+        resolved_candidate = next((candidate for candidate in candidates if candidate.exists()), None)
+        if resolved_candidate is not None:
+            try:
+                rel_candidate = resolved_candidate.resolve(strict=False).relative_to(repo_root.resolve())
+                rel_key = rel_candidate.as_posix()
+            except Exception:
+                rel_key = resolved_candidate.as_posix()
+            resolved_local_imports.append({"spec": module_like_spec, "path": rel_key})
+        else:
+            unresolved_local_imports.append(module_like_spec)
+
+    return {
+        "local_import_specs": local_import_specs,
+        "resolved_local_imports": resolved_local_imports,
+        "unresolved_local_imports": list(dict.fromkeys(unresolved_local_imports)),
+        "deleted_or_staged_import_targets": list(dict.fromkeys(deleted_or_staged_import_targets)),
+        "local_import_count": len(local_import_specs),
+    }
+
+
+def _paths_match(a: str | Path, b: str | Path) -> bool:
+    try:
+        return Path(a).resolve(strict=False) == Path(b).resolve(strict=False)
+    except Exception:
+        return str(Path(a)).replace("\\", "/") == str(Path(b)).replace("\\", "/")
+
+
+def _target_directly_read(target_path: Path, files_read: list[str]) -> bool:
+    return any(_paths_match(read_path, target_path) for read_path in files_read)
+
+
+def _classify_risk_tier(
+    tool_name: str,
+    filepath: str,
+    tool_input: ToolDict,
+    dependency_context: dict[str, Any],
+    workspace_state: dict[str, Any],
+) -> str:
+    """Assign a deterministic risk tier from structured signals."""
+    score = 0
+    path_obj = Path(filepath)
+
+    if tool_name == "MultiEdit":
+        score += 2
+    if path_obj.suffix.lower() == ".py":
+        score += 1
+    if path_obj.suffix.lower() == ".py" and dependency_context.get("local_import_specs"):
+        score += 1
+    if any(part in SENSITIVE_CODE_DIRS for part in path_obj.parts):
+        score += 1
+    if _is_structural_code_change(tool_name, tool_input, filepath):
+        score += 1
+    if workspace_state.get("dirty_same_dir"):
+        score += 1
+    if workspace_state.get("has_deleted_files") or workspace_state.get("has_staged_deletions"):
+        score += 2
+    if workspace_state.get("has_conflicts"):
+        score += 3
+    if dependency_context.get("unresolved_local_imports"):
+        score += 3
+    if dependency_context.get("deleted_or_staged_import_targets"):
+        score += 3
+
+    if score >= 5:
+        return HIGH_RISK
+    if score >= 2:
+        return MEDIUM_RISK
+    return LOW_RISK
+
+
+def _required_reads_for_risk(risk_tier: str) -> int:
+    if risk_tier == HIGH_RISK:
+        return max(HIGH_RISK_MIN_RELATED_READS, 2)
+    if risk_tier == MEDIUM_RISK:
+        return max(MIN_RELATED_READS, 2)
+    return MIN_RELATED_READS
+
+
+def _build_risk_context(
+    tool_name: str,
+    tool_input: ToolDict,
+    state: InvestigationState,
+    terminal_id: str = "",
+) -> dict[str, Any]:
+    """Build the structured risk context consumed by the write gate."""
+    filepath = str(tool_input.get("path") or tool_input.get("file_path") or "")
+    target_path = Path(filepath) if filepath else Path.cwd()
+    repo_root = _resolve_repo_root(filepath or terminal_id)
+    source_text = _read_text_file(target_path) if target_path.exists() else ""
+    git_snapshot = _parse_git_status(repo_root, target_path)
+    dependency_context = _resolve_local_imports(target_path, repo_root, git_snapshot["status_map"], source_text)
+    workspace_state = {
+        "available": git_snapshot["available"],
+        "has_deleted_files": git_snapshot["has_deleted_files"],
+        "has_staged_deletions": git_snapshot["has_staged_deletions"],
+        "has_conflicts": git_snapshot["has_conflicts"],
+        "has_renames": git_snapshot["has_renames"],
+        "dirty_same_dir": git_snapshot["dirty_same_dir"],
+        "changed_paths": git_snapshot["changed_paths"],
+    }
+    target_direct_read = _target_directly_read(target_path, state.get("files_read", []))
+    related_reads_count = count_related_reads(filepath, state.get("files_read", [])) if filepath else 0
+    risk_tier = _classify_risk_tier(tool_name, filepath, tool_input, dependency_context, workspace_state)
+    required_reads = _required_reads_for_risk(risk_tier)
+
+    return {
+        "tool_name": tool_name,
+        "target_path": filepath,
+        "repo_root": str(repo_root),
+        "target_ext": target_path.suffix.lower() if filepath else "",
+        "target_dir": str(target_path.parent) if filepath else "",
+        "risk_tier": risk_tier,
+        "investigation": {
+            "files_read_count": len(state.get("files_read", [])),
+            "target_read": target_direct_read,
+            "related_reads_count": related_reads_count,
+            "required_reads": required_reads,
+            "discovery_declared": bool(state.get("investigation_declared")),
+        },
+        "workspace": workspace_state,
+        "dependencies": dependency_context,
+        "signals": {
+            "python_target": filepath.endswith(".py"),
+            "multi_file_edit": tool_name == "MultiEdit",
+        },
+        "decision": {
+            "allow_auto_read": risk_tier == LOW_RISK,
+            "requires_explicit_discovery": risk_tier != LOW_RISK,
+        },
+    }
 
 
 # === ARCHITECTURAL RECOMMENDATION DETECTION ===
@@ -956,7 +1403,10 @@ def record_read(
 
 
 def check_write_permission(
-    tool_name: str, tool_input: ToolDict, state: InvestigationState
+    tool_name: str,
+    tool_input: ToolDict,
+    state: InvestigationState,
+    risk_context: dict[str, Any] | None = None,
 ) -> CheckResult:
     """
     Check if a write operation should be allowed.
@@ -967,6 +1417,40 @@ def check_write_permission(
     filepath = tool_input.get("path") or tool_input.get("file_path")
     if not filepath:
         return True, "No filepath detected"
+
+    risk_context = risk_context or {}
+    investigation = risk_context.get("investigation", {})
+    dependency_context = risk_context.get("dependencies", {})
+    workspace_state = risk_context.get("workspace", {})
+    risk_tier = str(risk_context.get("risk_tier") or LOW_RISK)
+    required_reads = int(investigation.get("required_reads") or MIN_RELATED_READS)
+    related_reads = int(investigation.get("related_reads_count") or 0)
+    target_read = bool(investigation.get("target_read"))
+    normalized_target = str(Path(filepath).resolve(strict=False))
+    auto_read_targets = state.get("targets_auto_read_once", [])
+    if not isinstance(auto_read_targets, list):
+        auto_read_targets = []
+        state["targets_auto_read_once"] = auto_read_targets
+
+    unresolved_local_imports = dependency_context.get("unresolved_local_imports", []) or []
+    deleted_or_staged_import_targets = dependency_context.get("deleted_or_staged_import_targets", []) or []
+
+    if unresolved_local_imports:
+        return (
+            False,
+            "MISSING_DEPENDENCY_DISCOVERY: unresolved local import(s) "
+            + ", ".join(str(item) for item in unresolved_local_imports),
+        )
+
+    if deleted_or_staged_import_targets:
+        return (
+            False,
+            "IMPORT_TARGET_DELETED_OR_STAGED: "
+            + ", ".join(str(item) for item in deleted_or_staged_import_targets),
+        )
+
+    if workspace_state.get("has_conflicts"):
+        return False, "SUSPICIOUS_WORKSPACE_STATE: merge conflict markers present"
 
     # Greenfield exemption
     if state.get("greenfield_declared"):
@@ -987,26 +1471,6 @@ def check_write_permission(
     except (TypeError, ValueError):
         pass
 
-    # Check read coverage (risk-based: structural code edits require broader context)
-    required_reads, risk_tier = _required_related_reads(tool_name, tool_input, filepath)
-    related_reads = count_related_reads(filepath, state["files_read"])
-
-    if related_reads >= required_reads:
-        return True, (
-            f"Sufficient investigation ({related_reads} related files read, "
-            f"required={required_reads}, risk={risk_tier})"
-        )
-
-    # Self-read exemption applies only to low-risk edits.
-    # For high-risk structural edits, maintain broader context requirement.
-    try:
-        normalized_filepath = str(Path(filepath).resolve())
-        if any(str(Path(rp).resolve()) == normalized_filepath for rp in state["files_read"]):
-            if required_reads <= MIN_RELATED_READS:
-                return True, f"Target file was read directly ({filepath})"
-    except (OSError, ValueError):
-        pass
-
     # NEW FILE exemption - if creating in empty directory or new project
     if not Path(filepath).exists():
         parent = Path(filepath).parent
@@ -1023,19 +1487,73 @@ def check_write_permission(
         if not lib_allowed:
             return False, lib_msg
 
-    # BLOCK
+    # LOW-risk convenience path: allow one guided auto-read per target.
+    if risk_tier == LOW_RISK:
+        if target_read:
+            return True, f"Target file was read directly ({filepath})"
+
+        if normalized_target not in auto_read_targets:
+            try:
+                file_size = Path(filepath).stat().st_size
+                if file_size > AUTO_READ_MAX_BYTES:
+                    raise IOError(f"File too large for auto-read ({file_size} bytes)")
+
+                content = None
+                is_binary = False
+                with open(filepath, "rb") as f:
+                    raw = f.read(8192)
+                    if b"\x00" in raw[:1024] or any(b > 127 for b in raw[:512]):
+                        is_binary = True
+                    else:
+                        content = raw.decode("utf-8", errors="replace")
+
+                auto_read_targets.append(normalized_target)
+                if normalized_target not in state["files_read"]:
+                    state["files_read"].append(filepath)
+
+                if is_binary:
+                    preview = f"[BINARY FILE - {len(raw)} bytes, cannot preview]"
+                elif content:
+                    preview = content[:AUTO_READ_MAX_CHARS]
+                    if len(content) > AUTO_READ_MAX_CHARS:
+                        preview += f"\n\n... [{len(content) - AUTO_READ_MAX_CHARS} more characters]"
+                else:
+                    preview = "[empty file]"
+
+                context_msg = (
+                    f"[AUTO-READ LOW RISK] {filepath} has been read for investigation.\n\n"
+                    f"File preview:\n{preview}"
+                )
+                return True, context_msg
+            except (FileNotFoundError, PermissionError, UnicodeDecodeError, OSError, IOError):
+                pass
+
+        return (
+            False,
+            f"AUTO_READ_EXHAUSTED: target not yet discovered\n\n"
+            f"Target: {filepath}\n"
+            f"Risk tier: {risk_tier}\n"
+            f"Coverage: {related_reads}/{required_reads} related files read\n\n"
+            f"Required before editing:\n"
+            f"1. Read: {sanitize_path(filepath)}\n"
+            f"2. Understand the data flow\n\n"
+            f"Recent files read: {[sanitize_path(p) for p in state['files_read'][:5]]}\n\n"
+            f"Bypass: Declare 'Investigation complete: [summary]'"
+        )
+
+    # MEDIUM/HIGH: require explicit discovery, no auto-read fallback.
     return False, (
-        f"⛔ INVESTIGATION GATE: File not yet read\n\n"
+        f"EXPLICIT_DISCOVERY_REQUIRED: discovery must be explicit at this risk level\n\n"
         f"Target: {filepath}\n"
         f"Risk tier: {risk_tier}\n"
         f"Coverage: {related_reads}/{required_reads} related files read\n\n"
         f"Required before editing:\n"
         f"1. Read: {sanitize_path(filepath)}\n"
-        f"2. Understand the data flow\n\n"
+        f"2. Read the dependency surface or adjacent implementation files\n"
+        f"3. Re-run the write request after discovery\n\n"
         f"Recent files read: {[sanitize_path(p) for p in state['files_read'][:5]]}\n\n"
         f"This is a workflow checkpoint, not an error.\n"
-        f"Bypass: Declare 'Investigation complete: [summary]'\n"
-        f"         or 'Greenfield: [reason]'"
+        f"Bypass: Declare 'Investigation complete: [summary]'"
     )
 
 
@@ -1107,57 +1625,21 @@ def process_hook(
 
     # Check writes with auto-read fallback
     if tool_name in WRITE_TOOLS:
-        allowed, reason = check_write_permission(tool_name, tool_input, state)
-        if not allowed:
-            # Attempt auto-read for existing files before blocking
-            filepath = tool_input.get("file_path", "")
-            if filepath:
-                try:
-                    # Check file size before reading (memory bomb protection)
-                    file_size = Path(filepath).stat().st_size
-                    _AUTO_READ_MAX_BYTES = 1_000_000  # 1MB limit
-                    if file_size > _AUTO_READ_MAX_BYTES:
-                        raise IOError(f"File too large for auto-read ({file_size} bytes)")
-
-                    # Try reading as text, detect binary files
-                    content = None
-                    is_binary = False
-                    with open(filepath, "rb") as f:
-                        raw = f.read(8192)
-                        # Detect binary: null bytes or high bit set in first 1KB
-                        if b'\x00' in raw[:1024] or any(b > 127 for b in raw[:512]):
-                            is_binary = True
-                        else:
-                            content = raw.decode('utf-8', errors='replace')
-
-                    # Track as read
-                    state["files_read"].append(filepath)
-                    save_state(state, terminal_id)
-
-                    # Create context injection
-                    _AUTO_READ_MAX_CHARS = 5000
-                    if is_binary:
-                        preview = f"[BINARY FILE - {len(raw)} bytes, cannot preview]"
-                    elif content:
-                        preview = content[:_AUTO_READ_MAX_CHARS]
-                        if len(content) > _AUTO_READ_MAX_CHARS:
-                            preview += f"\n\n... [{len(content) - _AUTO_READ_MAX_CHARS} more characters]"
-                    else:
-                        preview = "[empty file]"
-
-                    context_msg = (
-                        f"[AUTO-READ] {filepath} has been read for investigation.\n\n"
-                        f"File preview:\n{preview}"
-                    )
-                    return True, context_msg
-                except (FileNotFoundError, PermissionError, UnicodeDecodeError, OSError, IOError):
-                    # Auto-read failed, fall through to block
-                    pass
-
-            # Block if auto-read not possible or failed
-            save_state(state, terminal_id)
-            return False, reason
+        risk_context = _build_risk_context(tool_name, tool_input, state, terminal_id)
+        state["risk_context"] = risk_context
+        state["workspace_state"] = risk_context.get("workspace", {})
+        state["dependency_checks"][risk_context.get("target_path", "")] = risk_context.get(
+            "dependencies", {}
+        )
+        allowed, reason = check_write_permission(tool_name, tool_input, state, risk_context)
         save_state(state, terminal_id)
+        if not allowed:
+            return False, reason
+
+        if reason.startswith("[AUTO-READ"):
+            return True, reason
+
+        return True, message_to_return
 
     return True, message_to_return
 

@@ -62,6 +62,7 @@ For code quality standards, naming conventions, regex best practices, and pre-ed
 6. **ADVERSARIAL REVIEW** -- Stress-test characterization tests via `adversarial-review` (8 perspectives)
 7. **REFACTOR** -- Apply changes (GREEN phase). Must use AST-based refactoring (see `references/ast-refactoring.md`)
 8. **REGRESSION** -- Run full test suite, verify no new failures
+8.5. **FIX VERIFICATION** -- Verify each change applied + edge case analysis (see `__lib/fix-verification-protocol.md`). Dispatch `adversarial-failure-modes` agent on changed files.
 9. **CODE SIMPLIFICATION** -- Polish via `pr-review-toolkit:code-simplifier`
 
 **Stopping Conditions:**

@@ -320,6 +320,7 @@ class StateManager:
         # Atomic write: temp file + rename
         # Use terminal-specific prefix to avoid conflicts between terminals
         tmp_path = None
+        write_succeeded = False
         try:
             # Create temp file with terminal-specific prefix to avoid cross-terminal conflicts
             tmp_prefix = f".state_{self.terminal_id}_"
@@ -331,12 +332,22 @@ class StateManager:
 
             # Atomic rename (overwrites existing if any)
             os.replace(tmp_path, self.state_file_path)
+            write_succeeded = True
+        except BaseException:
+            # Keep temp file for recovery if os.replace failed.
+            # Orphaned temp files are cleaned up on next load().
+            if tmp_path is not None and not write_succeeded:
+                # Write failed - temp file may contain partial data for recovery
+                # Leave temp file for manual recovery.
+                pass
+            raise
         finally:
-            # Clean up temp file on error or if replace failed partially
-            if tmp_path is not None:
+            # Clean up temp file if write succeeded
+            if tmp_path is not None and write_succeeded:
                 try:
                     os.unlink(tmp_path)
                 except OSError:
+                    # Temp file already cleaned up or replaced
                     pass
 
     def append_history(self, run_summary: dict[str, Any]) -> None:
@@ -358,41 +369,39 @@ class StateManager:
         lock_path = self.state_dir / ".history.lock"
 
         # Acquire exclusive lock first — fail closed if lock is busy
+        # Use single try-finally to ensure lock is always released
         lock_file_obj = None
         try:
+            # Open lock file
             lock_file_obj = open(lock_path, "w")
+
+            # Acquire lock
             if HAS_FCNTL:
                 # Non-blocking: fail with EWOULDBLOCK if lock is held
                 fcntl.flock(lock_file_obj.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
             elif HAS_MSVCRT:
                 # Windows non-blocking: raises OSError (Win32 Error 33) if busy
                 msvcrt.locking(lock_file_obj.fileno(), msvcrt.LK_NBLCK, 1)
-        except (OSError, IOError):
-            # Lock busy or unavailable — fail closed, do NOT write unprotected
-            if lock_file_obj is not None:
-                lock_file_obj.close()
-            # Clean up stale lock file that couldn't be locked
-            try:
-                lock_path.unlink(missing_ok=True)
-            except OSError:
-                pass
-            raise  # Caller must decide: fail or skip
 
-        # Lock acquired — write and unlock
-        try:
+            # Lock acquired — write operation
             with open(self.history_file_path, "a") as f:
                 f.write(json.dumps(run_summary) + "\n")
+        except (OSError, IOError):
+            # Lock busy or unavailable — fail closed, do NOT write unprotected
+            raise  # Caller must decide: fail or skip
         finally:
-            if HAS_FCNTL:
-                fcntl.flock(lock_file_obj.fileno(), fcntl.LOCK_UN)
-            elif HAS_MSVCRT:
-                msvcrt.locking(lock_file_obj.fileno(), msvcrt.LK_UNLCK, 1)
-            lock_file_obj.close()
-            # Clean up lock file after releasing lock
-            try:
-                lock_path.unlink(missing_ok=True)
-            except OSError:
-                pass
+            # Always release lock if it was acquired
+            if lock_file_obj is not None:
+                try:
+                    if HAS_FCNTL:
+                        fcntl.flock(lock_file_obj.fileno(), fcntl.LOCK_UN)
+                    elif HAS_MSVCRT:
+                        msvcrt.locking(lock_file_obj.fileno(), msvcrt.LK_UNLCK, 1)
+                except (OSError, IOError):
+                    # Ignore errors during lock release
+                    pass
+                lock_file_obj.close()
+                # Do NOT delete lock file: another terminal may acquire it next.
 
     def get_history(self, last_n: int = 10) -> list[dict[str, Any]]:
         """Get last N run summaries from history.
@@ -508,39 +517,37 @@ class StateManager:
         lock_path = self.project_root / ".evidence" / ".skill_usage.lock"
 
         # Acquire exclusive lock first — fail closed if lock is busy
+        # Use single try-finally to ensure lock is always released
         lock_file_obj = None
         try:
+            # Open lock file
             lock_file_obj = open(lock_path, "w")
+
+            # Acquire lock
             if HAS_FCNTL:
                 fcntl.flock(lock_file_obj.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
             elif HAS_MSVCRT:
                 msvcrt.locking(lock_file_obj.fileno(), msvcrt.LK_NBLCK, 1)
-        except (OSError, IOError):
-            # Lock busy or unavailable — fail closed, do NOT write unprotected
-            if lock_file_obj is not None:
-                lock_file_obj.close()
-            # Clean up stale lock file that couldn't be locked
-            try:
-                lock_path.unlink(missing_ok=True)
-            except OSError:
-                pass
-            raise  # Caller must decide: fail or skip
 
-        # Lock acquired — write and unlock
-        try:
+            # Lock acquired — write operation
             with open(self.skill_usage_log_path, "a") as f:
                 f.write(json.dumps(skill_run) + "\n")
+        except (OSError, IOError):
+            # Lock busy or unavailable — fail closed, do NOT write unprotected
+            raise  # Caller must decide: fail or skip
         finally:
-            if HAS_FCNTL:
-                fcntl.flock(lock_file_obj.fileno(), fcntl.LOCK_UN)
-            elif HAS_MSVCRT:
-                msvcrt.locking(lock_file_obj.fileno(), msvcrt.LK_UNLCK, 1)
-            lock_file_obj.close()
-            # Clean up lock file after releasing lock
-            try:
-                lock_path.unlink(missing_ok=True)
-            except OSError:
-                pass
+            # Always release lock if it was acquired
+            if lock_file_obj is not None:
+                try:
+                    if HAS_FCNTL:
+                        fcntl.flock(lock_file_obj.fileno(), fcntl.LOCK_UN)
+                    elif HAS_MSVCRT:
+                        msvcrt.locking(lock_file_obj.fileno(), msvcrt.LK_UNLCK, 1)
+                except (OSError, IOError):
+                    # Ignore errors during lock release
+                    pass
+                lock_file_obj.close()
+                # Do NOT delete lock file: another terminal may acquire it next.
 
     def get_skill_usage(self, skill: str | None = None, last_n: int = 50) -> list[dict[str, Any]]:
         """Query skill usage log.

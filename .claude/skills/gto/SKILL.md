@@ -442,6 +442,19 @@ If implementation happened in a different session from documentation, emit a fol
 - Priority within domain: critical → high → medium → low
 - Ends with `0 — Do ALL Recommended Next Actions` directive
 
+### Fix Verification Mode
+
+After running GTO and executing fixes, verify completeness and edge cases:
+
+1. Collect fix list from GTO artifact or session task list
+2. Per-fix: read file, confirm code change present, run tests if they exist
+3. Dispatch `adversarial-failure-modes` agent on changed files for edge case analysis
+4. Report per-fix: PASS / PARTIAL / FAIL with evidence
+
+**Reference**: `__lib/fix-verification-protocol.md`
+
+**Trigger**: User asks "are all fixes verified?" or "any edge cases?" after GTO run.
+
 ### Why Dynamic Domains?
 
 Static RNS sections assume all gap types are always present. GTO detects **which gap types actually exist** in the target project and only generates domains for those types. This prevents empty sections and keeps output focused.

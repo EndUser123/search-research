@@ -1,6 +1,6 @@
 # Inline Execution Code
 
-This file contains the full Python execution code for the `/all` skill. This code executes directly in the skill context (NOT as subprocess), enabling access to Claude Code's Agent tool for Layer 2 semantic filtering.
+This file contains the full Python execution code for the `/explore` skill. This code executes directly in the skill context (NOT as subprocess), enabling access to Claude Code's Agent tool for Layer 2 semantic filtering.
 
 ## Full Source
 
@@ -19,18 +19,18 @@ by pytest for Tier 2/3 verification.
 import sys
 from pathlib import Path
 
-# Add skills/all to path so orchestration module can be imported
+# Add skills/explore to path so orchestration module can be imported
 skills_path = Path(__file__).parent.parent
 sys.path.insert(0, str(skills_path))
 
-from skills.all.orchestration import execute_unified_search as _execute
+from skills.explore.orchestration import execute_unified_search as _execute
 
 
 def main(query: str, **kwargs) -> str:
     """
-    Main entry point for /all skill execution.
+Main entry point for /explore skill execution.
 
-    This function is called by Claude Code when the /all skill is invoked.
+This function is called by Claude Code when the /explore skill is invoked.
     It executes inline (NOT as subprocess), enabling Agent tool access.
     """
     import asyncio

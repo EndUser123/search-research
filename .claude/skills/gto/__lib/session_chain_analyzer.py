@@ -8,11 +8,27 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+def _kill_process_after_delay(proc: subprocess.Popen, timeout_seconds: int) -> None:
+    """Kill process if it doesn't complete within timeout.
+
+    This runs in a separate thread and kills the process if the main thread
+    doesn't complete in time. Used to enforce timeout on process creation.
+    """
+    import time
+    time.sleep(timeout_seconds)
+    if proc.poll() is None:  # Process still running
+        try:
+            proc.kill()
+        except OSError:
+            pass
 
 
 @dataclass
@@ -193,6 +209,7 @@ Be specific and grounded in the transcript evidence.
             if not claude_cmd:
                 raise RuntimeError("claude command not found in PATH")
 
+            # Create process with timeout protection
             proc = subprocess.Popen(
                 [claude_cmd, "-p", agent_prompt],
                 stdout=subprocess.PIPE,
@@ -201,7 +218,23 @@ Be specific and grounded in the transcript evidence.
                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if sys.platform == "win32" else 0,
             )
 
-            stdout, stderr = proc.communicate(timeout=self.SUBAGENT_TIMEOUT_SECONDS)
+            # Start timeout thread to enforce timeout during process creation
+            timeout_thread = threading.Thread(
+                target=_kill_process_after_delay,
+                args=(proc, self.SUBAGENT_TIMEOUT_SECONDS),
+                daemon=True,
+            )
+            timeout_thread.start()
+
+            try:
+                stdout, stderr = proc.communicate(timeout=self.SUBAGENT_TIMEOUT_SECONDS)
+                # Cancel the timeout thread since we completed successfully
+                timeout_thread.join(timeout=0.1)
+            except subprocess.TimeoutExpired:
+                # Wait for timeout thread to complete (should have killed process)
+                timeout_thread.join(timeout=1.0)
+                raise
+
             stdout_text = stdout.decode("utf-8", errors="replace")
 
             if proc.returncode not in (0, 1):

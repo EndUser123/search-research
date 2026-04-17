@@ -22,9 +22,10 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 # Use package imports from pytest rootdir (P:\.claude)
-# The package is at .claude/skills/all/, so import as skills.all
-from skills.all import layer2_filter
-from skills.all.search_executor import execute_search, format_results_human
+# The package is at .claude/skills/explore/, so import as skills.explore
+from skills.explore.agent_filter import apply_agent_filtering, parse_agent_response
+from skills.explore import layer2_filter
+from skills.explore.search_executor import execute_search, format_results_human
 
 
 class MockSearchResult:
@@ -51,7 +52,7 @@ class TestLayer1Execution:
     @pytest.mark.asyncio
     async def test_layer1_returns_filtered_results(self):
         """Test Layer 1 filtering returns results within limits."""
-        with patch("skills.all.search_executor.UnifiedAsyncRouter") as mock_router_class:
+        with patch("skills.explore.search_executor.UnifiedAsyncRouter") as mock_router_class:
             mock_router = AsyncMock()
             # Mock Layer 1 filtered results (already deduplicated, quality floor applied)
             mock_router.search_async.return_value = [
@@ -180,10 +181,8 @@ class TestLayer2SkillContext:
             "original_count": 2,
         }
 
-        with patch("skills.all.agent_filter.apply_agent_filtering") as mock_filter:
+        with patch("skills.explore.agent_filter.apply_agent_filtering") as mock_filter:
             mock_filter.return_value = mock_agent_response
-
-            from skills.all.agent_filter import apply_agent_filtering
 
             filtered = await apply_agent_filtering(
                 "python async patterns", results, complexity_score=70
@@ -208,7 +207,7 @@ class TestLayer2SkillContext:
             ),
         ]
 
-        with patch("skills.all.layer2_filter._keyword_based_filtering") as mock_keyword:
+        with patch("skills.explore.layer2_filter._keyword_based_filtering") as mock_keyword:
             mock_keyword.return_value = {
                 "themes": [
                     {
@@ -222,8 +221,6 @@ class TestLayer2SkillContext:
                 "original_count": 1,
             }
 
-            from skills.all.agent_filter import apply_agent_filtering
-
             filtered = await apply_agent_filtering("python async", results, complexity_score=50)
 
             # Verify keyword fallback was used
@@ -235,8 +232,6 @@ class TestLayer2FailureModes:
 
     def test_failure_mode_1_agent_missing_themes_key(self):
         """Test Agent returns JSON missing 'themes' key."""
-        from skills.all.agent_filter import parse_agent_response
-
         # Agent response missing themes key
         invalid_response = '{"filtered_count": 0, "original_count": 10}'
 
@@ -247,8 +242,6 @@ class TestLayer2FailureModes:
 
     def test_failure_mode_2_empty_themes_with_count(self):
         """Test Agent returns empty themes array but filtered_count > 0."""
-        from skills.all.agent_filter import parse_agent_response
-
         # Inconsistent response - filtered_count provided but themes are empty
         # parse_agent_response keeps provided filtered_count value if present in JSON
         inconsistent_response = '{"themes": [], "filtered_count": 5, "original_count": 10}'
@@ -268,8 +261,6 @@ class TestLayer2FailureModes:
         # Mock timeout - agent_filter handles this internally with asyncio.timeout
         # We'll test by verifying the function doesn't hang
         # In CLI mode (no Agent tool), should use keyword fallback
-
-        from skills.all.agent_filter import apply_agent_filtering
 
         old_val = os.environ.get("CLAUDE_CODE_SKILL_EXECUTION")
         try:
@@ -342,8 +333,6 @@ class TestCircuitBreaker:
     @pytest.mark.asyncio
     async def test_circuit_breaker_triggers_after_3_failures(self):
         """Test circuit breaker triggers after 3 consecutive Agent failures."""
-        from skills.all.agent_filter import apply_agent_filtering
-
         results = [MockSearchResult(title="Test", content="Content", source="TEST")]
 
         # Simulate 3 consecutive Agent failures (in CLI mode, always falls back)
@@ -453,7 +442,7 @@ class TestLayer3Presentation:
         """Test Layer 3 produces JSON output."""
         import json
 
-        from search_executor import format_results_json
+        from skills.explore.search_executor import format_results_json
 
         results = [MockSearchResult(title="Result", content="Content", source="WEB", score=0.75)]
 
@@ -473,7 +462,7 @@ class TestEndToEndFlow:
     @pytest.mark.asyncio
     async def test_complete_flow_layer1_to_layer3(self):
         """Test complete flow from search to presentation."""
-        with patch("skills.all.search_executor.UnifiedAsyncRouter") as mock_router_class:
+        with patch("skills.explore.search_executor.UnifiedAsyncRouter") as mock_router_class:
             mock_router = AsyncMock()
 
             # Layer 1: Simulate search results (already filtered by UnifiedAsyncRouter)

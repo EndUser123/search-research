@@ -9,11 +9,12 @@
 
 ## New workflow:
 ```bash
-/all "async patterns"          # Everything, unified
+/explore "async patterns"          # Everything, unified
 # No merge needed
 ```
 
 ## When to still use `/search` or `/research`:
 - `/search` - ONLY local results (faster, private)
 - `/research` - ONLY web results (no local clutter)
-- `/all` - EVERYTHING (default for most cases)
+- `/explore` - EVERYTHING (default for most cases)
+
