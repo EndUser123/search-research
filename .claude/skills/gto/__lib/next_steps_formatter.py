@@ -135,8 +135,10 @@ class NextStepsFormatter:
         Returns:
             Formatted effort string (e.g., "[~5min]", "[~30min]", "[~2hr]")
         """
-        if effort_minutes >= 120:
-            hours = effort_minutes // 60
+        if effort_minutes >= 60:
+            hours = round(effort_minutes / 60, 1)
+            if hours == int(hours):
+                hours = int(hours)
             return f"[~{hours}hr]"
         return f"[~{effort_minutes}min]"
 

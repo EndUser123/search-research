@@ -147,15 +147,21 @@ class StateManager:
         self.state_dir.mkdir(parents=True, exist_ok=True)
 
     def _cleanup_orphaned_temp_files(self) -> None:
-        """Clean up orphaned .tmp files from incomplete writes."""
+        """Clean up orphaned .tmp files from incomplete writes.
+
+        Only removes files older than 60 seconds to avoid deleting
+        temp files from concurrent terminals mid-write.
+        """
         if not self.state_dir.exists():
             return
 
+        import time
+        now = time.time()
         for tmp_file in self.state_dir.glob("*.tmp"):
             try:
-                tmp_file.unlink()
+                if now - tmp_file.stat().st_mtime > 60:
+                    tmp_file.unlink()
             except OSError:
-                # Ignore cleanup errors
                 pass
 
     def _validate_schema(self, data: dict[str, Any]) -> bool:
@@ -601,4 +607,6 @@ def get_state_manager(
     if state_dir is not None:
         manager.state_dir = state_dir
         manager.state_file_path = state_dir / "state.json"
+        manager.history_file_path = state_dir / f"gto-history-{manager.terminal_id}.jsonl"
+        manager.skill_usage_log_path = state_dir / "skill-usage.jsonl"
     return manager

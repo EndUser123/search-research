@@ -366,6 +366,12 @@ class DependencyChecker:
         imported_packages = self._extract_imports_from_source()
 
         # Check for missing dependencies (imports not in requirements)
+        # Normalize per PEP 503: hyphens → underscores for comparison
+        def _normalize(name: str) -> str:
+            return name.replace("-", "_").replace(".", "_")
+
+        normalized_deps = {_normalize(d): d for d in declared_deps}
+        normalized_installed = {_normalize(p): p for p in installed_packages}
         for imp in imported_packages:
             if imp in PYTHON_STDLIB_MODULES:
                 continue
@@ -373,7 +379,7 @@ class DependencyChecker:
             if (self.project_root / f"{imp}.py").exists():
                 continue
             # Check if declared or installed
-            if imp not in declared_deps and imp not in installed_packages:
+            if _normalize(imp) not in normalized_deps and _normalize(imp) not in normalized_installed:
                 issues.append(
                     DependencyIssue(
                         issue_type="missing",

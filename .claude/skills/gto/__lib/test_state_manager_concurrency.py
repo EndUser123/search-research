@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from pathlib import Path
 from unittest.mock import patch
 
@@ -124,6 +125,9 @@ class TestOrphanedTempFileCleanup:
         # Create an orphaned temp file
         orphan = sm.state_dir / ".state_test-conc_orphan.tmp"
         orphan.write_text('{"orphan": true}')
+        # Age it past the 60-second cleanup threshold
+        old_time = time.time() - 120
+        os.utime(orphan, (old_time, old_time))
 
         sm.load()
         assert not orphan.exists()
@@ -141,6 +145,11 @@ class TestOrphanedTempFileCleanup:
 
         tmp_files = list(sm.state_dir.glob("*.tmp"))
         assert len(tmp_files) >= 1
+
+        # Age temp files past the 60-second cleanup threshold
+        old_time = time.time() - 120
+        for tf in tmp_files:
+            os.utime(tf, (old_time, old_time))
 
         # load() cleans them up
         sm.load()
