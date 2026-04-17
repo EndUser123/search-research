@@ -71,9 +71,31 @@ def load_handoff_envelope(terminal_id: str) -> dict | None:
         else:
             created_at = 0
         if time.time() - created_at > HANDOFF_TTL:
-            logger.debug(f"Handoff envelope expired for terminal {terminal_id}")
-            state_file.unlink(missing_ok=True)
-            return None
+            # Only delete if checksum is also invalid (defensive: don't delete
+            # valid envelopes just because TTL expired — another path may still
+            # need them)
+            checksum = data.get("checksum")
+            if checksum:
+                import hashlib
+                resume = data.get("resume_snapshot", {})
+                payload = json.dumps(resume, sort_keys=True)
+                expected = hashlib.sha256(payload.encode()).hexdigest()[:16]
+                if checksum != expected:
+                    logger.debug(
+                        f"Handoff envelope expired and checksum invalid for {terminal_id}"
+                    )
+                    state_file.unlink(missing_ok=True)
+                    return None
+                else:
+                    logger.debug(
+                        f"Handoff envelope expired but checksum valid for {terminal_id}, keeping"
+                    )
+                    return None
+            else:
+                # No checksum to validate — safe to remove expired envelope
+                logger.debug(f"Handoff envelope expired (no checksum) for {terminal_id}")
+                state_file.unlink(missing_ok=True)
+                return None
         return data
     except (json.JSONDecodeError, OSError) as e:
         logger.warning(f"Failed to load handoff envelope for {terminal_id}: {e}")

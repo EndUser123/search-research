@@ -479,7 +479,7 @@ class SessionOutcomeDetector:
             prior_transcript = self._get_prior_transcript_path(handoff_path)
             if not prior_transcript or prior_transcript in visited:
                 break
-            visited.add(str(prior_transcript))
+            visited.add(str(prior_transcript.resolve()))
 
             # Scan this prior transcript
             prior_items = self._scan_transcript(prior_transcript, session_age=session_age)

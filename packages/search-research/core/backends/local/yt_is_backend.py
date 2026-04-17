@@ -122,23 +122,19 @@ class YtIsBackend:
         index_mtime = self._index_mtime
         needs_build = not self._ensure_fts() or (db_mtime and (index_mtime is None or db_mtime > index_mtime))
 
-        if needs_build:
-            # Try to start a rebuild (only one thread can rebuild at a time)
-            if self._rebuild_lock.acquire(blocking=False):
-                try:
-                    if self._rebuild_in_progress:
-                        # Another thread is already rebuilding, skip this round
-                        pass
-                    else:
-                        self._rebuild_in_progress = True
-                        # Run synchronous build in thread pool (non-blocking for event loop)
-                        await asyncio.to_thread(self.build_index)
-                finally:
-                    self._rebuild_lock.release()
-            else:
-                # Another thread holds the lock (rebuild in progress), skip this round
-                # FTS will be empty but at least we don't hang
-                pass
+        if needs_build and not self._rebuild_in_progress:
+            # Atomically check-and-set _rebuild_in_progress under lock
+            with self._rebuild_lock:
+                if self._rebuild_in_progress:
+                    # Already rebuilding in another thread, skip
+                    needs_build = False
+                else:
+                    self._rebuild_in_progress = True
+
+            if needs_build:
+                # Run synchronous build in thread pool (non-blocking for event loop)
+                # Note: lock is released before this runs; build_index checks _rebuild_in_progress itself
+                await asyncio.to_thread(self.build_index)
 
         try:
             results = self._fts_search(query, limit)
@@ -150,7 +146,11 @@ class YtIsBackend:
             return []
 
     def build_index(self) -> None:
-        """Build or rebuild the FTS5 table from transcript_cache + analysis_status join."""
+        """Build or rebuild the FTS5 table from transcript_cache + analysis_status join.
+
+        Called from a thread pool (via asyncio.to_thread) so must be safe to run
+        concurrently with search_async on the main thread.
+        """
         if not _TRANSCRIPT_DB.exists():
             logger.debug("yt-is transcripts DB not found, skipping index build")
             self._rebuild_in_progress = False

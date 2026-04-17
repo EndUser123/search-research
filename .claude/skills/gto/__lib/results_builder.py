@@ -68,15 +68,6 @@ def _is_code_marker_false_positive(content: str) -> bool:
     if stripped.startswith('"') or stripped.startswith("'"):
         return True
 
-    # Tuple/list member patterns: only reject actual tuple literals like 'foo", "bar'
-    # where content starts with a quote, contains separator, and ends with a quote.
-    # Do NOT reject sentences like "fix something, then test" just because they contain comma+quote.
-    if (content.startswith('"') or content.startswith("'")) and any(sep in content for sep in _TUPLE_SEPARATOR_PAIRS):
-        # Check if it looks like a tuple literal (ends with quote, separator is internal)
-        stripped_c = content.strip()
-        if stripped_c.endswith('"') or stripped_c.endswith("'"):
-            return True
-
     # Short lowercase action phrases from gap_finder pattern definitions
     words = content.split()
     if (

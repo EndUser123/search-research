@@ -115,7 +115,9 @@ def main() -> int:
         normalized = agents_arg.replace("/tmp/", "").replace("\\tmp\\", "")
         agents_arg = str(system_temp / normalized)
     agent_pattern = Path(agents_arg)
-    agent_files = list(agent_pattern.parent.glob(agent_pattern.name))
+    agent_dir = agent_pattern.parent
+    agent_glob = agents_arg.rsplit("/", 1)[-1] if "/" in agents_arg else agents_arg.rsplit("\\", 1)[-1]
+    agent_files = list(agent_dir.glob(agent_glob))
     if not agent_files:
         print(f"WARNING: No agent files found matching pattern: {args.agents}", file=sys.stderr)
 

@@ -529,7 +529,7 @@ def detect_skill_coverage(
         logger.info("Using gap-aware skill recommendations for %d gaps", len(gaps))
 
         # Generate skill recommendations based on gaps
-        recommendations = generate_skill_recommendations(gaps, limit=0)  # No limit per user request
+        recommendations = generate_skill_recommendations(gaps, limit=5)
 
         # Collect gap types for effectiveness scoring
         gap_types = list({g.get("type", "") for g in gaps if g.get("type")})

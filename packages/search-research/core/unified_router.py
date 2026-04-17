@@ -476,9 +476,9 @@ class UnifiedAsyncRouter:
 
     async def _search_chs_semantic(self, query: str, limit: int) -> list[SearchResult]:
         """Route to CHS semantic search using session embeddings."""
-        from search_research.core.chs.db import get_connection
-        from search_research.core.chs.embeddings import get_embed_client
-        from search_research.core.chs.search import search_semantic_sessions
+        from core.chs.db import get_connection
+        from core.chs.embeddings import get_embed_client
+        from core.chs.search import search_semantic_sessions
 
         try:
             embed_client = get_embed_client()

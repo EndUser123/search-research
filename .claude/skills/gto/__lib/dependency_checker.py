@@ -306,7 +306,10 @@ class DependencyChecker:
             Set of imported package names
         """
         imports = set()
+        _SKIP_DIRS = {".venv", "venv", "node_modules", "__pycache__", ".git", ".mypy_cache", ".pytest_cache"}
         for py_file in self.project_root.rglob("*.py"):
+            if any(part in _SKIP_DIRS for part in py_file.parts):
+                continue
             try:
                 with open(py_file) as f:
                     content = f.read()

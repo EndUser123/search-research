@@ -147,7 +147,7 @@ class ResolutionRecord:
     timestamp: str
     terminal_id: str | None = None
     verified: bool = False  # True once verified (gap stayed resolved)
-    verified_at: str | None = None  # ISO timestamp when verified</
+    verified_at: str | None = None  # ISO timestamp when verified
 
 
 @dataclass
