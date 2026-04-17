@@ -773,9 +773,31 @@ class AsyncSearchRouter:
         if not results:
             return []
 
-        # Group by score (round to 3 decimals for grouping)
         from collections import defaultdict
 
+        # Normalize scores per-backend to [0, 1] using min-max scaling.
+        # Different backends use incompatible scoring systems (e.g. raw BM25
+        # scores of 5-10 vs normalized confidence of 0-1). Without
+        # normalization, high-magnitude scores dominate ranking and
+        # effectively silence backends with lower-magnitude scores.
+        source_scores: dict[str, list[float]] = defaultdict(list)
+        for r in results:
+            source_scores[r.source].append(r.score)
+
+        source_min_max: dict[str, tuple[float, float]] = {}
+        for source, scores in source_scores.items():
+            mn, mx = min(scores), max(scores)
+            source_min_max[source] = (mn, mx)
+
+        # Normalize each result's score for ranking purposes
+        for r in results:
+            mn, mx = source_min_max[r.source]
+            if mx > mn:
+                r.score = (r.score - mn) / (mx - mn)
+            else:
+                r.score = 1.0  # All scores equal within this source
+
+        # Group by score (round to 3 decimals for grouping)
         score_groups = defaultdict(list)
         for r in results:
             score_key = round(r.score, 3)
@@ -789,7 +811,7 @@ class AsyncSearchRouter:
         for score in sorted_scores:
             group = score_groups[score]
             # Group by source within this score
-            source_groups = defaultdict(list)
+            source_groups: dict[str, list[SearchResult]] = defaultdict(list)
             for r in group:
                 source_groups[r.source].append(r)
 

@@ -117,13 +117,11 @@ class YtIsBackend:
         if not query:
             return []
 
-        # Try to get results from existing FTS5 index
-        # Do NOT trigger a rebuild in the hot path — if FTS5 is empty or stale,
-        # just return empty and let a lazy background rebuild happen for next time.
-        # This prevents router 5s timeouts from cancelling mid-build and
-        # leaving the FTS5 table in a corrupted/empty state.
+        # Run FTS search in thread pool to avoid blocking the event loop.
+        # The sqlite3 calls are thread-safe and this allows concurrent execution
+        # with other async backends during the gather.
         try:
-            results = self._fts_search(query, limit)
+            results = await asyncio.to_thread(self._fts_search, query, limit)
             self._rebuild_failures = 0
             self._index_mtime = self._get_db_mtime()
             # If FTS5 is empty but transcript_cache has data, trigger lazy rebuild
