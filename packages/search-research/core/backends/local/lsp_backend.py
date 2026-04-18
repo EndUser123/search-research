@@ -191,7 +191,7 @@ class LSPSymbolBackend:
         Args:
             root_paths: List of root paths to search. Defaults to src directory.
         """
-        self.root_paths: list[Path] = [Path(p) for p in (root_paths or ["P:/__csf/src"])]
+        self.root_paths: list[Path] = [Path(p) for p in (root_paths or ["."])]
         self._index: dict[str, list[LSPSymbolInfo]] = {}
         self._indexed: bool = False
         self._lsp_available: bool = self._check_lsp_available()
@@ -234,7 +234,7 @@ class LSPSymbolBackend:
                     )
                 else:
                     # Use AST fallback when LSP unavailable
-                    symbols = asyncio.run(self._index_python_symbols(root_path))
+                    symbols = self._index_python_symbols(root_path)
 
                 for symbol in symbols:
                     # Index by symbol name for quick lookup
@@ -304,7 +304,7 @@ class LSPSymbolBackend:
             logger.debug("LSP client module not available, using AST fallback")
             return await self._index_python_symbols(root_path)
 
-    async def _index_python_symbols(self, root_path: Path) -> list[LSPSymbolInfo]:
+    def _index_python_symbols(self, root_path: Path) -> list[LSPSymbolInfo]:
         """Index Python symbols using AST (fallback when LSP unavailable).
 
         Args:

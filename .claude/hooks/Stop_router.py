@@ -505,12 +505,19 @@ def _import_hook_module(hook_path: Path) -> ModuleType | None:
             hook_path,
         )
         if spec is None or spec.loader is None:
+            _router_logger.error(
+                "stop_router: spec_from_file_location returned None for %s",
+                hook_path,
+            )
             return None
         module = importlib.util.module_from_spec(spec)
         sys.modules[spec.name] = module
         spec.loader.exec_module(module)
         return module
     except Exception:
+        _router_logger.exception(
+            "stop_router: failed to import in-process hook %s", hook_path
+        )
         return None
 
 

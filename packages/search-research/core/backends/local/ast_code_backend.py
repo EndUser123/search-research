@@ -40,7 +40,7 @@ class ASTCodeBackend:
         Args:
             root_paths: List of root directories to analyze.
         """
-        self.root_paths = [Path(p) for p in (root_paths or ["P:/__csf/src"])]
+        self.root_paths = [Path(p) for p in (root_paths or ["."])]
         self._entity_index: dict[str, dict[str, Any]] = {}
         self._call_graph: dict[str, set[str]] = {}  # entity_id -> callers
         self._reverse_call_graph: dict[str, set[str]] = {}  # entity_id -> callees

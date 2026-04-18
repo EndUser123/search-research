@@ -51,13 +51,13 @@ def _parse_pi_jsonl(raw_output: str) -> dict | None:
                                 if delta:
                                     full_text += delta
                     elif etype == "agent_end":
-                        # Capture error info before looking for content
-                        if obj.get("stopReason") == "error":
-                            err = obj.get("errorMessage", "unknown error")
-                            return {"error": err}
                         msgs = obj.get("messages", [])
                         for msg in msgs:
                             if msg.get("role") == "assistant":
+                                # Surface API errors from the message itself
+                                if msg.get("stopReason") == "error" or msg.get("errorMessage"):
+                                    err = msg.get("errorMessage", "unknown error")
+                                    return {"error": err}
                                 content = msg.get("content", "")
                                 if content:
                                     return {"text": content}

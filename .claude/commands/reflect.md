@@ -8,7 +8,7 @@ argument-hint: "<reflect question or task>"
 Use the `reflect` skill as the backing implementation for this command.
 
 - Skill entrypoint: `P:/.claude/skills/reflect/SKILL.md`
-- Junction target: /p/packages/reflect-system/reflect
+- Junction target: P:/packages/cc-skills-meta/skills/reflect
 
 Instructions:
 1. Treat `$ARGUMENTS` as the explicit user query when present.
