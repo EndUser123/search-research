@@ -90,7 +90,6 @@
       "Bash(mv P:/packages/yt-is/.claude/skills/code P:/packages/yt-is/skills/)",
       "Bash(rmdir P:/packages/yt-is/.claude/skills)",
       "Bash(mkdir -p P:/.staging)",
-      "Bash(cp P:/.claude/skills/gitingest/references/repos-template.yaml P:/.staging/vibe-ensemble-mcp.yaml)",
       "Bash(cp \"P:/.claude/hooks/PreToolUse/PreToolUse_skill_pattern_gate.py\" \"P:/packages/skill-guard/src/skill_guard/PreToolUse/PreToolUse_skill_pattern_gate.py\")",
       "Bash(cp \"P:/.claude/hooks/posttooluse/skill_execution_tracker.py\" \"P:/packages/skill-guard/src/skill_guard/posttooluse/skill_execution_tracker.py\")",
       "Bash(rm -f \"P:/.claude/hooks/PreToolUse/PreToolUse_skill_pattern_gate.py\" \"P:/.claude/hooks/posttooluse/skill_execution_tracker.py\")",
@@ -114,7 +113,14 @@
       "Bash(ln -s \"/p/packages/cc-skills-ai-cli/skills/ai-pi-gemma-4-31b-it\" \"P:/.claude/skills/ai-pi-gemma-4-31b-it\")",
       "Bash(rm P:/.claude/hooks/StopHook_rca_contract.py P:/.claude/hooks/StopHook_rca_reflector.py)",
       "Bash(ln -s /p/packages/cc-skills-sdlc/skills/rca/hooks/StopHook_rca_contract.py P:/.claude/hooks/StopHook_rca_contract.py)",
-      "Bash(ln -s /p/packages/cc-skills-sdlc/skills/rca/hooks/StopHook_rca_reflector.py P:/.claude/hooks/StopHook_rca_reflector.py)"
+      "Bash(ln -s /p/packages/cc-skills-sdlc/skills/rca/hooks/StopHook_rca_reflector.py P:/.claude/hooks/StopHook_rca_reflector.py)",
+      "Bash(rm -rf P:/.claude/skills/ai-pi-nv-deepseek)",
+      "Bash(ln -s /p/packages/cc-skills-ai-cli/skills/ai-pi-nv-deepseek P:/.claude/skills/ai-pi-nv-deepseek)",
+      "Bash(cp -r P:/packages/cc-skills-ai-cli/skills/__TRACKED_VAR__ P:/packages/cc-skills-ai-api/skills/__TRACKED_VAR__)",
+      "Bash(rm -rf P:/.claude/skills/__TRACKED_VAR__)",
+      "Bash(cp -r P:/.claude/skills/__TRACKED_VAR__ P:/packages/cc-skills-ai-api/skills/__TRACKED_VAR__)",
+      "Bash(cp -r P:/.claude/skills/uci P:/packages/cc-skills-sdlc/skills/uci)",
+      "Bash(rm -rf P:/.claude/skills/uci)"
     ],
     "deny": [],
     "ask": []

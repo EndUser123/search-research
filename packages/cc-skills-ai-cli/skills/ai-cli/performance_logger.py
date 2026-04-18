@@ -22,7 +22,7 @@ class CliExecutionRecord:
 
     Attributes:
         timestamp: ISO format timestamp of execution
-        cli_name: CLI identifier (qwen, gemini, codex, vibe, opencode, glm-4.7-flash)
+        cli_name: CLI identifier (qwen, gemini, codex, opencode, glm-4.7-flash)
         task_type: Classified task type
         query_preview: First 100 chars of query (for storage efficiency)
         duration_seconds: Execution time in seconds
@@ -94,7 +94,7 @@ class CliPerformanceLogger:
         Thread-safe for concurrent writes from multiple terminals.
 
         Args:
-            cli_name: CLI identifier (qwen, gemini, codex, vibe, opencode, glm-4.7-flash)
+            cli_name: CLI identifier (qwen, gemini, codex, opencode, glm-4.7-flash)
             task_type: Classified task type
             query: Original query (truncated to 100 chars for storage)
             duration_seconds: Execution time
@@ -189,7 +189,7 @@ class CliPerformanceLogger:
             return {}
 
         stats = {}
-        for cli in ["qwen", "gemini", "codex", "vibe", "opencode", "glm-4.7-flash"]:
+        for cli in ["qwen", "gemini", "codex", "opencode", "glm-4.7-flash"]:
             cli_records = [r for r in records if r.cli_name == cli]
             if not cli_records:
                 continue

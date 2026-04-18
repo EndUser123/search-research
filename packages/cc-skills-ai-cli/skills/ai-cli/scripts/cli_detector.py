@@ -45,15 +45,6 @@ CLI_TOOLS = {
         "npm_script": "bin/codex.js",
         "type": "npm",
     },
-    "vibe": {
-        "name": "vibe",
-        "command": "vibe",
-        "description": "Mistral AI Vibe (Python tasks)",
-        "install": "npm install -g @mistralai/vibe",
-        "npm_package": "@mistralai/vibe",
-        "npm_script": "dist/index.js",
-        "type": "npm",
-    },
     "pi": {
         "name": "pi-coding-agent",
         "command": "pi",
@@ -100,13 +91,6 @@ def _get_npm_cli_path(cli_info: dict[str, Any]) -> Path | None:
     package_path = npm_root / npm_package / npm_script
     if package_path.exists():
         return package_path
-
-    # Try alternative locations (some CLIs have different structures)
-    # For vibe, try the dist directory
-    if cli_info["command"] == "vibe":
-        alt_path = npm_root / "@mistralai/vibe" / "dist" / "index.js"
-        if alt_path.exists():
-            return alt_path
 
     # For gemini, the CLI is in bundle/ not dist/
     if cli_info["command"] == "gemini":
@@ -212,7 +196,7 @@ def check_cli_installation(cli_id: str) -> dict[str, Any]:
     """Check if a CLI tool is installed and accessible.
 
     Args:
-        cli_id: CLI identifier (qwen, gemini, codex, vibe, opencode)
+        cli_id: CLI identifier (qwen, gemini, codex, opencode)
 
     Returns:
         Dictionary with keys:

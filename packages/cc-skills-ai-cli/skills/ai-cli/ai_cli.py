@@ -2,7 +2,7 @@
 """
 LLM CLI - Parallel Multi-LLM Command Invocation with Context Support
 
-Run qwen, gemini, codex, vibe, and opencode CLIs in parallel, aggregate results.
+Run qwen, gemini, codex, and opencode CLIs in parallel, aggregate results.
 Supports injecting context from chat history or files.
 """
 
@@ -926,7 +926,7 @@ def _read_multi_file_context(context_source: str, cli_name: str | None = None) -
         cli_name: CLI name (unused, kept for backward compatibility - all CLIs now use @file syntax)
 
     Returns:
-        Space-separated @file references for all files (consistent behavior across codex, qwen, gemini, vibe)
+        Space-separated @file references for all files (consistent behavior across codex, qwen, gemini)
     """
     import sys
 
@@ -953,7 +953,7 @@ def _read_multi_file_context(context_source: str, cli_name: str | None = None) -
             # Copy to tmp if needed (for external files) and use the returned path
             path_to_use = _copy_to_tmp_if_needed(path)
 
-            # All CLIs (codex, qwen, gemini, vibe) now use @file syntax for consistency
+            # All CLIs (codex, qwen, gemini) now use @file syntax for consistency
             # Use forward slashes for @file syntax (cross-platform compatibility)
             at_file_refs.append(f"@{path_to_use.as_posix()}")
         else:
@@ -975,26 +975,23 @@ def generate_parallel_bash_commands(
     qwen_only: bool = False,
     gemini_only: bool = False,
     codex_only: bool = False,
-    vibe_only: bool = False,
 ) -> list[str]:
     """Generate bash commands for parallel execution.
 
     Returns a list of bash commands that can be run in parallel.
-    Each command pipes the query to stdin (except vibe which uses -p flag).
+    Each command pipes the query to stdin.
     """
     import shlex
 
     # Determine which LLMs to run
-    if not qwen_only and not gemini_only and not codex_only and not vibe_only:
+    if not qwen_only and not gemini_only and not codex_only:
         run_qwen = True
         run_gemini = True
         run_codex = True
-        run_vibe = True
     else:
         run_qwen = qwen_only
         run_gemini = gemini_only
         run_codex = codex_only
-        run_vibe = vibe_only
 
     commands = []
 
@@ -1009,16 +1006,8 @@ def generate_parallel_bash_commands(
         # Gemini rejects "Cannot use both a positional prompt and the --prompt (-p) flag together"
         commands.append(f"echo {safe_query} | gemini -y -o text -m gemini-2.5-flash")
     if run_codex:
-        # Codex exec takes query as argument (not stdin), like vibe uses -p
+        # Codex exec takes query as argument (not stdin)
         commands.append(f'codex exec "{query}"')
-    if run_vibe:
-        # Vibe uses -p flag with full query as single argument (not stdin)
-        # Quote the entire query to handle special chars, newlines in appended questions
-        # Also escape --- (vibe treats it as a flag) by replacing with Unicode em-dash or escaping
-        safe_query = shlex.quote(query)
-        # Replace --- with escaped version so vibe doesn't parse as flag
-        escaped_query = safe_query.replace("---", r"\-\-\-")
-        commands.append(f"vibe -p {escaped_query}")
 
     return commands
 
@@ -1066,19 +1055,18 @@ def _determine_active_llms(
     qwen_only: bool,
     gemini_only: bool,
     codex_only: bool,
-    vibe_only: bool,
     opencode_only: bool,
     glm_flash_only: bool,
 ) -> dict[str, bool]:
     """Determine which LLMs to run based on flags.
 
     Args:
-        qwen_only, gemini_only, codex_only, vibe_only, opencode_only, glm_flash_only: CLI flags
+        qwen_only, gemini_only, codex_only, opencode_only, glm_flash_only: CLI flags
 
     Returns:
         Dictionary with boolean flags for each LLM
     """
-    has_cli_flags = qwen_only or gemini_only or codex_only or vibe_only or opencode_only
+    has_cli_flags = qwen_only or gemini_only or codex_only or opencode_only
     has_glm_api_key = os.environ.get("ZAI_API_KEY")
 
     if not has_cli_flags:
@@ -1086,7 +1074,6 @@ def _determine_active_llms(
             "qwen": True,
             "gemini": True,
             "codex": True,
-            "vibe": True,
             "opencode": True,
             "glm_flash": False,  # Removed: API token expired
         }
@@ -1094,7 +1081,6 @@ def _determine_active_llms(
         "qwen": qwen_only,
         "gemini": gemini_only,
         "codex": codex_only,
-        "vibe": vibe_only,
         "opencode": opencode_only,
         "glm_flash": False,  # Removed: API token expired
     }
@@ -1104,7 +1090,6 @@ def _get_cli_preview(
     qwen_only: bool,
     gemini_only: bool,
     codex_only: bool,
-    vibe_only: bool,
     opencode_only: bool,
     glm_flash_only: bool,
     opencode_models: list[str],
@@ -1112,13 +1097,13 @@ def _get_cli_preview(
     """Build a preview string showing which CLIs and LLMs will be used.
 
     Args:
-        qwen_only, gemini_only, codex_only, vibe_only, opencode_only, glm_flash_only: CLI flags
+        qwen_only, gemini_only, codex_only, opencode_only, glm_flash_only: CLI flags
         opencode_models: List of OpenCode model names
 
     Returns:
         Formatted string listing all CLIs/LLMs that will be invoked
     """
-    has_any_flag = qwen_only or gemini_only or codex_only or vibe_only or opencode_only or glm_flash_only
+    has_any_flag = qwen_only or gemini_only or codex_only or opencode_only or glm_flash_only
 
     # Collect items
     native_clis = []
@@ -1128,8 +1113,6 @@ def _get_cli_preview(
         native_clis.append("gemini")
     if codex_only or not has_any_flag:
         native_clis.append("codex")
-    if vibe_only or not has_any_flag:
-        native_clis.append("vibe")
 
     opencode_models_list = []
     if opencode_only or not has_any_flag:
@@ -1171,7 +1154,6 @@ def _build_cli_commands(
     run_qwen: bool,
     run_gemini: bool,
     run_codex: bool,
-    run_vibe: bool,
     run_opencode: bool,
     opencode_models: list[str],
 ) -> list[tuple[str, str]]:
@@ -1179,7 +1161,7 @@ def _build_cli_commands(
 
     Args:
         query: User query string
-        run_qwen, run_gemini, run_codex, run_vibe, run_opencode: Boolean flags
+        run_qwen, run_gemini, run_codex, run_opencode: Boolean flags
         opencode_models: List of OpenCode model names (empty list = use default)
 
     Returns:
@@ -1220,17 +1202,6 @@ def _build_cli_commands(
         commands.append(("gemini", gemini_args))
     if run_codex:
         commands.append(("codex", codex_cmd))
-    if run_vibe:
-        # Vibe treats --- (and escaped \-\-\-) as flag-like arguments
-        # Replace BOTH forms so vibe's argparse doesn't reject the prompt
-        safe_query = query.replace("---", "___").replace("\\-\\-\\-", "___\\_\\\\_\\\\_").replace("'", "''")
-        if sys.platform == "win32":
-            # On Windows, pass as list to avoid cmd.exe quote interpretation issues
-            # subprocess.run(['vibe', '-p', query]) works, but shell string doesn't
-            commands.append(("vibe", ["vibe", "-p", safe_query]))
-        else:
-            safe_query_shell = shlex.quote(safe_query)
-            commands.append(("vibe", f"vibe -p {safe_query_shell}"))
     if run_opencode:
         if not opencode_models:
             opencode_models = [DEFAULT_OPENCODE_MODEL]
@@ -1341,7 +1312,6 @@ def run_parallel_llm(
     qwen_only: bool = False,
     gemini_only: bool = False,
     codex_only: bool = False,
-    vibe_only: bool = False,
     opencode_only: bool = False,
     glm_flash_only: bool = False,
     timeout: int = 180,
@@ -1349,7 +1319,7 @@ def run_parallel_llm(
     verbose: bool = False,
     opencode_models: list[str] = [],
 ) -> dict[str, Any]:
-    """Run qwen, gemini, codex, vibe CLIs, and GLM-4.7-Flash via API in parallel.
+    """Run qwen, gemini, codex, and GLM-4.7-Flash via API in parallel.
 
     Uses asyncio for true parallel execution.
     """
@@ -1362,7 +1332,7 @@ def run_parallel_llm(
 
     # Determine which LLMs to run
     active = _determine_active_llms(
-        qwen_only, gemini_only, codex_only, vibe_only, opencode_only, glm_flash_only
+        qwen_only, gemini_only, codex_only, opencode_only, glm_flash_only
     )
 
     # Build CLI command list
@@ -1371,7 +1341,6 @@ def run_parallel_llm(
         active["qwen"],
         active["gemini"],
         active["codex"],
-        active["vibe"],
         active["opencode"],
         opencode_models,
     )
@@ -1736,39 +1705,6 @@ def _extract_codex_answer(output: str) -> str:
     return output[:200]
 
 
-def _extract_vibe_answer(output: str) -> str:
-    """Extract answer from vibe CLI output (JSON array with role/content)."""
-    import json
-
-    try:
-        messages = json.loads(output)
-        if isinstance(messages, list):
-            # Search backwards for last assistant message
-            for msg in reversed(messages):
-                if isinstance(msg, dict):
-                    if msg.get("role") == "assistant":
-                        content = msg.get("content", "")
-                        if content:
-                            # Skip system prompts
-                            if "You are operating" in content:
-                                continue
-                            # Return first substantial line
-                            lines = content.split("\n")
-                            for line in lines:
-                                line = line.strip()
-                                if (
-                                    line
-                                    and len(line) > 20
-                                    and not line.startswith("You are operating")
-                                ):
-                                    return line[:500]
-                            return content[:500]
-    except (json.JSONDecodeError, KeyError, TypeError, AttributeError):
-        pass
-
-    return output[:200]
-
-
 def _extract_answer(cli_name: str, output: str) -> str:
     """Extract the actual answer from a CLI's raw output.
 
@@ -1776,7 +1712,6 @@ def _extract_answer(cli_name: str, output: str) -> str:
     - qwen: JSON array with system/assistant/result objects
     - gemini: JSON with response field
     - codex: JSONL lines (thread.started, turn.started, item.completed, turn.completed)
-    - vibe: JSON array with role/content messages
     - opencode: Plain text
 
     Dispatches to CLI-specific parser for each format.
@@ -1794,7 +1729,6 @@ def _extract_answer(cli_name: str, output: str) -> str:
         "qwen": _extract_qwen_answer,
         "gemini": _extract_gemini_answer,
         "codex": _extract_codex_answer,
-        "vibe": _extract_vibe_answer,
     }
 
     parser = parsers.get(cli_name)
@@ -3209,7 +3143,6 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
     parser.add_argument("--qwen-only", action="store_true", help="Run only qwen-cli")
     parser.add_argument("--gemini-only", action="store_true", help="Run only gemini-cli")
     parser.add_argument("--codex-only", action="store_true", help="Run only codex-cli")
-    parser.add_argument("--vibe-only", action="store_true", help="Run only vibe-cli")
     parser.add_argument("--opencode-only", action="store_true", help="Run only opencode-cli")
     parser.add_argument(
         "--glm-flash-only", action="store_true", help="Run only GLM-4.7-Flash (via API)"
@@ -3455,8 +3388,6 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
                 args.gemini_only = True
             elif flag == "--codex-only":
                 args.codex_only = True
-            elif flag == "--vibe-only":
-                args.vibe_only = True
             elif flag == "--opencode-only":
                 args.opencode_only = True
 
@@ -3468,7 +3399,6 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
             qwen_only=args.qwen_only,
             gemini_only=args.gemini_only,
             codex_only=args.codex_only,
-            vibe_only=args.vibe_only,
         )
         for cmd in bash_commands:
             print(cmd)
@@ -3515,7 +3445,6 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
         qwen_only=args.qwen_only,
         gemini_only=args.gemini_only,
         codex_only=args.codex_only,
-        vibe_only=args.vibe_only,
         opencode_only=args.opencode_only,
         glm_flash_only=args.glm_flash_only,
         opencode_models=opencode_models,
@@ -3528,7 +3457,6 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
         qwen_only=args.qwen_only,
         gemini_only=args.gemini_only,
         codex_only=args.codex_only,
-        vibe_only=args.vibe_only,
         opencode_only=args.opencode_only,
         glm_flash_only=args.glm_flash_only,
         timeout=args.timeout,

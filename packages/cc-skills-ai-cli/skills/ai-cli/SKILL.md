@@ -2,7 +2,7 @@
 name: ai-cli
 version: "1.4.0"
 status: stable
-description: Parallel Multi-LLM Command - Run qwen, gemini, codex, vibe, opencode CLI tools in parallel
+description: Parallel Multi-LLM Command - Run qwen, gemini, codex, and opencode CLI tools in parallel
 category: ai-llm
 enforcement: strict
 triggers:
@@ -87,7 +87,6 @@ python "P:\.claude\skills\ai-cli\ai_cli.py" --help
 | `--qwen-only` | Run only qwen-cli |
 | `--gemini-only` | Run only gemini-cli |
 | `--codex-only` | Run only codex-cli |
-| `--vibe-only` | Run only vibe |
 | `--opencode-only` | Run only opencode (DeepSeek V3) |
 | `--opencode-model MODEL` | OpenCode model or alias (kimi, minimax) |
 | `--route` | Use rule-based routing (from llm-route) to select CLI by task keywords |

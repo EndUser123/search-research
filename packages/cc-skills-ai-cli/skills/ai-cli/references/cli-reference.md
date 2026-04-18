@@ -7,7 +7,6 @@
 | qwen | Fastest (~63s) | Code gen, debugging |
 | gemini | Medium (~160s) | Concise answers |
 | codex | Fast | Code reviews |
-| vibe | Fast | Python tasks |
 | opencode | Fast | Alternative perspectives |
 | glm-4.7-flash | Fast (~60s API) | Additional perspective (requires ZAI_API_KEY) |
 
@@ -41,7 +40,7 @@ OpenCode Zen provides access to specialized models via model aliases:
 
 **External CLIs** (install separately):
 ```bash
-npm install -g qwen-code gemini-cli @openai/codex opencode-ai @mistralai/vibe
+npm install -g qwen-code gemini-cli @openai/codex opencode-ai
 ```
 
 **Environment Variables:**
@@ -63,7 +62,7 @@ python "P:\.claude\skills\ai-cli\scripts\cli.py" health --cli qwen
 
 **Health checks:**
 - Environment variables (CHUTES_API_KEY, ZAI_API_KEY)
-- CLI installations (qwen-code, gemini-cli, codex-cli, vibe, opencode-ai)
+- CLI installations (qwen-code, gemini-cli, codex-cli, opencode-ai)
 - Optional sanity test (runs actual CLI with --version flag)
 
 **Exit codes:** `0` = healthy, `1` = failed

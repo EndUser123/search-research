@@ -156,7 +156,7 @@ def cmd_models(args: argparse.Namespace) -> int:
 
     lines.append("")
     lines.append("Fixed (no model selection)")
-    for cli_id in ["qwen", "gemini", "codex", "vibe"]:
+    for cli_id in ["qwen", "gemini", "codex"]:
         status = cli_status[cli_id]
         version = status.get("version") or "unknown"
         cli_def = cli_detector.CLI_TOOLS[cli_id]
@@ -211,14 +211,12 @@ CLI Tools:
   qwen      qwen-code - Chutes Qwen3 235B (analysis)
   gemini    gemini-cli - Google Gemini CLI (1M+ tokens)
   codex     codex-cli - OpenRouter DeepSeek R1T2 Chimera (coding)
-  vibe      @mistralai/vibe - Mistral AI Vibe (Python tasks)
   opencode  opencode-ai - OpenCode (planning/creative, 300+ models)
 
 Installation:
   npm install -g qwen-code
   npm install -g gemini-cli
   pip install codex-cli
-  npm install -g @mistralai/vibe
   npm install -g opencode-ai
 
 Resources:

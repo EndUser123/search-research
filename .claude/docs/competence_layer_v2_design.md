@@ -1254,7 +1254,7 @@ def load_skill_config() -> dict:
             # ... existing patterns
         },
         "restrictive_flags": {
-            "ask-olymp": ["--qwen-only", "--gemini-only", "--codeex-only", "--vibe-only"],
+            "ask-olymp": ["--qwen-only", "--gemini-only", "--codeex-only"],
             # ... existing flags
         },
         "soft_warn_patterns": {

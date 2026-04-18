@@ -195,7 +195,6 @@ def extract_model_id(output: str, cli_name: str) -> str | None:
         "qwen": "qwen/qwen3-235b",
         "gemini": "gemini-2.0-flash-exp",
         "codex": "deepseek/deepseek-r1",
-        "vibe": "mistral/mistral-large",
         "opencode": "chutes/moonshotai/Kimi-K2.5-TEE",
         "glm-flash": "glm-4.7-flash",
     }
