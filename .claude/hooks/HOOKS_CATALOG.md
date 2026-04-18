@@ -142,6 +142,7 @@ Consolidates bash validation hooks with parallel execution:
 | `PostToolUse/task_contract_generator.py` | TaskCreate | Yes | - | Generate contract for task validation |
 | `PostToolUse_file_lock.py` | Write\|Edit\|MultiEdit\|Update | Yes | - | Release file lock after write operation |
 | `PostToolUse_code_verification_gate.py` | Write\|Edit | Yes | - | Verify Python syntax after write/edit (py_compile) |
+| `posttooluse/python_syntax_checker.py` | Edit\|Write\|MultiEdit | No (in-process) | PostToolUse_router.py | ast.parse() syntax check on .py files after Edit/Write/MultiEdit |
 | `PostToolUse_hook_protection_gate.py` | Write\|Edit | Yes | - | Validate hook file changes for API breakages |
 | `PostToolUse_lint_router.py` | Write\|Edit | Yes | - | Auto-format after edits (ruff, prettier) |
 | `PostToolUse_router.py` | .* | Yes | Router v2.1 | **Consolidated router** - See details below (session/terminal context pinning) |
@@ -540,6 +541,7 @@ To register a module in `UserPromptSubmit_router.py`:
 | `PostToolUse_hook_protection_gate.py` | PostToolUse | Validate hook file changes for API breakages |
 | `PreToolUse_syntax_gate.py` | PreToolUse | Block writes with Python syntax errors |
 | `PostToolUse_code_verification_gate.py` | PostToolUse | Verify Python syntax after write/edit |
+| `posttooluse/python_syntax_checker.py` | PostToolUse | ast.parse() syntax check on .py files after Edit/Write/MultiEdit (advisory, injection-based) |
 | `skills/tdd/hooks/PreToolUse_tdd_gate.py` | PreToolUse | TDD phase enforcement |
 | `recursive_failure_detector.py` | PreToolUse | Detect Catch-22 loops, block repeated failures |
 

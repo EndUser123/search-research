@@ -574,3 +574,4 @@ ai-api/proxy/litellm_venv/
 
 # Prevent large data files from being committed
 __csf/data/
+backups/
