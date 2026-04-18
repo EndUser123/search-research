@@ -20,7 +20,7 @@ BACKENDS_UNDER_TEST = [
 ]
 
 
-async def test_backend(router: AsyncSearchRouter, backend_name: str, query: str) -> dict:
+async def check_backend(router: AsyncSearchRouter, backend_name: str, query: str) -> dict:
     """Test a single backend with a broad query."""
     try:
         results = await router.search_async(query, limit=3, backends=[backend_name])
@@ -58,7 +58,7 @@ async def main():
     print("-" * 80)
 
     for backend_name in BACKENDS_UNDER_TEST:
-        result = await test_backend(router, backend_name, query)
+        result = await check_backend(router, backend_name, query)
         status = result["status"]
         count = result["count"]
         first = result["first_result"] or ""
