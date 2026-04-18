@@ -1,0 +1,160 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "22fce7eb-5d3d-4630-80fa-c691603b060b",
+    "terminal_id": "console_e07ad480-f4d3-467b-ba85-5d20e91012e4",
+    "source_session_id": "57914d7b-4ecd-4f68-9094-2cd8301fb7d7",
+    "created_at": "2026-04-18T00:08:26.757071+00:00",
+    "expires_at": "2026-04-18T00:28:26.757071+00:00",
+    "status": "pending",
+    "goal": "L5 is at the same level as L2, when it should not be higher than L4.\n/explore has a link from /design, but the link back from /explore to /design crosses the line with /planning, and that's wrong.",
+    "current_task": "L5 is at the same level as L2, when it should not be higher than L4. /explore has a link from /design, but the link back from /explore to /design crosses the line with /planning, and that's wrong.",
+    "progress_percent": 100,
+    "progress_state": "blocked",
+    "blockers": [
+      {
+        "type": "awaiting_approval",
+        "summary": "Plan exists but requires user approval before implementation."
+      }
+    ],
+    "active_files": [
+      "P:/packages/gitready/skills/gitready/SKILL.md",
+      "P:/packages/gitready/skills/gitready/references/package-type-detection.md",
+      "P:/packages/gitready/skills/gitready/references/stale-location-cleanup.md",
+      "P:/packages/gitready/skills/gitready/references/changelog.md",
+      "P:/packages/gitready/skills/gitready/references/exception-aware-validation.md",
+      "P:/packages/gitready/skills/gitready/resources/phases/validate_pointers.py",
+      "P:/packages/gitready/skills/gitready/resources/phases/track_phases.py",
+      "P:/packages/gitready/skills/gitready/references/completion-report.md",
+      "P:/packages/gitready/skills/gitready/references/exception-registry.md",
+      "P:/.claude/skills/skill-audit/audit.py"
+    ],
+    "pending_operations": [
+      {
+        "type": "skill",
+        "target": "skill: skill-audit",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: **/*",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:/packages/gitready/skills/gitready/SKILL.md",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: **/*.md",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:/packages/gitready/skills/gitready/references/package-type-detection.md",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "(advisory) Previous session had pending: skill on skill: skill-audit.",
+    "decision_refs": [
+      "dec_2310928b609842be8d383464fce7d7e1",
+      "dec_ff1a9bb305924066b00a049675465fad",
+      "dec_facdf7b97fea45348bd6322eb1a9e82b"
+    ],
+    "evidence_refs": [
+      "ev_06957318ed154521be3efd826fc3ec96",
+      "ev_effbde59bb674fa194b1118aac75bde7",
+      "ev_bd9f29595f3342d08a156a5143d67283",
+      "ev_b9a2a9cfc28843b5b33a6848ff10493f",
+      "ev_40540f761b3448c68d72adb1a6752f8c",
+      "ev_1d5e09c811134bf7a5abc7d1a598458f"
+    ],
+    "n_1_transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\57914d7b-4ecd-4f68-9094-2cd8301fb7d7.jsonl",
+    "n_2_transcript_path": null,
+    "message_intent": "instruction",
+    "goal_origin": "user_message",
+    "quality_score": 0.9,
+    "tasks_snapshot": []
+  },
+  "decision_register": [
+    {
+      "id": "dec_2310928b609842be8d383464fce7d7e1",
+      "kind": "anti_goal",
+      "summary": "L5 is at the same level as L2, when it should not be higher than L4. /explore has a link from /design, but the link back from /explore to /design crosses the line with /planning, and that's wrong.",
+      "details": "L5 is at the same level as L2, when it should not be higher than L4. /explore has a link from /design, but the link back from /explore to /design crosses the line with /planning, and that's wrong.",
+      "priority": "medium",
+      "applies_when": "Continue the current task after compact.",
+      "source_refs": [
+        "ev_06957318ed154521be3efd826fc3ec96"
+      ]
+    },
+    {
+      "id": "dec_ff1a9bb305924066b00a049675465fad",
+      "kind": "constraint",
+      "summary": "Two issues to fix: 1. **L5 at same level as L2** — likely the subgraph nodes for L2 and L5 have similar structure and Mermaid is placing them on the same grid row. Need to add explicit positioning to enforce the vertical stack. 2. **`/explore` → `/design` arrow crossing `/planning`** — the bidirectional arrows need room to breathe. I need to rearrange L2 nodes so design and explore are on the same row (horizontal), giving the return arrow a clean path. Let me restructure L2: put `/design` and `/explore` side by side, `/planning` below them, so the design↔explore bidirectional arrows don't cross planning.",
+      "details": "Two issues to fix: 1. **L5 at same level as L2** — likely the subgraph nodes for L2 and L5 have similar structure and Mermaid is placing them on the same grid row. Need to add explicit positioning to enforce the vertical stack. 2. **`/explore` → `/design` arrow crossing `/planning`** — the bidirectional arrows need room to breathe. I need to rearrange L2 nodes so design and explore are on the same row (horizontal), giving the return arrow a clean path. Let me restructure L2: put `/design` and `/explore` side by side, `/planning` below them, so the design↔explore bidirectional arrows don't cross planning.",
+      "priority": "high",
+      "applies_when": "Continue the current task after compact.",
+      "source_refs": [
+        "ev_06957318ed154521be3efd826fc3ec96"
+      ]
+    },
+    {
+      "id": "dec_facdf7b97fea45348bd6322eb1a9e82b",
+      "kind": "constraint",
+      "summary": "The Mermaid `flowchart TD` with nodes in the same subgraph is the root cause — design/explore/planning share horizontal space and arrows between them inherently cross. The only real solution is to separate `design` and `explore` into their own subgraph so they can be positioned independently of `planning`. Here's the fix: split L2 into two parallel subgraphs — one for the design/explore cluster and one for planning — keeping them both at the same vertical level but horizontally apart: ``` L2 [\"<<TABLE...L2 — Architecture>>\"] subgraph L2A [\"\"] ← design + explore (bidirectional, no planning crossing) subgraph L2B [\"\"] ← planning (below design, via design→planning arrow) ``` This way `design ↔ explore` arrows stay within L2A's boundaries and don't enter L2B's space. The `design → planning` arrow exits L2A and enters L2B cleanly. Want me to apply this?",
+      "details": "The Mermaid `flowchart TD` with nodes in the same subgraph is the root cause — design/explore/planning share horizontal space and arrows between them inherently cross. The only real solution is to separate `design` and `explore` into their own subgraph so they can be positioned independently of `planning`. Here's the fix: split L2 into two parallel subgraphs — one for the design/explore cluster and one for planning — keeping them both at the same vertical level but horizontally apart: ``` L2 [\"<<TABLE...L2 — Architecture>>\"] subgraph L2A [\"\"] ← design + explore (bidirectional, no planning crossing) subgraph L2B [\"\"] ← planning (below design, via design→planning arrow) ``` This way `design ↔ explore` arrows stay within L2A's boundaries and don't enter L2B's space. The `design → planning` arrow exits L2A and enters L2B cleanly. Want me to apply this?",
+      "priority": "high",
+      "applies_when": "Continue the current task after compact.",
+      "source_refs": [
+        "ev_06957318ed154521be3efd826fc3ec96"
+      ]
+    }
+  ],
+  "evidence_index": [
+    {
+      "id": "ev_06957318ed154521be3efd826fc3ec96",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\57914d7b-4ecd-4f68-9094-2cd8301fb7d7.jsonl",
+      "content_hash": "sha256:08e21dcc821ce9ad0ec04219546db4a014303cd61e527876947689c71d562024"
+    },
+    {
+      "id": "ev_effbde59bb674fa194b1118aac75bde7",
+      "type": "file",
+      "label": "SKILL.md",
+      "path": "P:\\packages\\gitready\\skills\\gitready\\SKILL.md",
+      "content_hash": "sha256:077772846b2577a9b518ea70a78971c8e9f60933c656cdd1e1c596bf24418a6b"
+    },
+    {
+      "id": "ev_bd9f29595f3342d08a156a5143d67283",
+      "type": "file",
+      "label": "package-type-detection.md",
+      "path": "P:\\packages\\gitready\\skills\\gitready\\references\\package-type-detection.md",
+      "content_hash": "sha256:7e01909197e83bc65d269cb1bc026a47c2963617ee37ea70a3f2a3f51ef28560"
+    },
+    {
+      "id": "ev_b9a2a9cfc28843b5b33a6848ff10493f",
+      "type": "file",
+      "label": "stale-location-cleanup.md",
+      "path": "P:\\packages\\gitready\\skills\\gitready\\references\\stale-location-cleanup.md",
+      "content_hash": "sha256:2316a407dea9da15bcc629872a543275dbc0077c470b56f0c00ff793bceecbe1"
+    },
+    {
+      "id": "ev_40540f761b3448c68d72adb1a6752f8c",
+      "type": "file",
+      "label": "changelog.md",
+      "path": "P:\\packages\\gitready\\skills\\gitready\\references\\changelog.md",
+      "content_hash": "sha256:fb9c2998d44e09570a431d5aa596fa50dfd9a826a3c1bde3faa68582d1abc475"
+    },
+    {
+      "id": "ev_1d5e09c811134bf7a5abc7d1a598458f",
+      "type": "file",
+      "label": "exception-aware-validation.md",
+      "path": "P:\\packages\\gitready\\skills\\gitready\\references\\exception-aware-validation.md",
+      "content_hash": "sha256:f84738c3182460871b5639bf8c01b80e3ef16668101a91e110bdf43d609349ed"
+    }
+  ],
+  "checksum": "sha256:2e7c4aaebdcdf0f2dc070751fbbe08cc632b69d94f9e0fb45356d0dcbd4c2ef8"
+}

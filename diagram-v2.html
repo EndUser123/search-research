@@ -281,7 +281,7 @@
             font-size: 12px;
             color: var(--text-muted);
             box-shadow: var(--shadow-lg);
-            max-width: 220px;
+            max-width: 240px;
             line-height: 1.6;
             z-index: 25;
             touch-action: none;
@@ -313,6 +313,22 @@
             margin-bottom: 6px;
         }
 
+        .legend-section {
+            margin-bottom: 8px;
+        }
+
+        .legend-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .legend-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-muted);
+            margin-bottom: 3px;
+        }
+
         .legend-item {
             display: flex;
             align-items: center;
@@ -325,6 +341,37 @@
             height: 10px;
             border-radius: 50%;
             flex-shrink: 0;
+        }
+
+        .legend-code {
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 11px;
+            color: var(--text);
+        }
+
+        .legend-arrow {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 2px;
+        }
+
+        .legend-arrow-line {
+            width: 24px;
+            height: 2px;
+            background: var(--text-muted);
+        }
+
+        .legend-arrow-dotted {
+            width: 24px;
+            height: 2px;
+            background: repeating-linear-gradient(
+                90deg,
+                var(--text-muted) 0px,
+                var(--text-muted) 4px,
+                transparent 4px,
+                transparent 8px
+            );
         }
 
         @media (max-width: 600px) {
@@ -366,18 +413,34 @@
 
     <div class="legend" id="legend" role="complementary" aria-label="Pipeline legend" title="Drag to move. Double-click to reset to auto placement." tabindex="0">
         <strong>Pipeline Flow</strong>
-        <div class="legend-item"><span class="legend-color" style="background:#3b82f6"></span>L1 Intent</div>
-        <div class="legend-item"><span class="legend-color" style="background:#eab308"></span>L2 Architecture</div>
-        <div class="legend-item"><span class="legend-color" style="background:#f97316"></span>L3 Implement</div>
-        <div class="legend-item"><span class="legend-color" style="background:#22c55e"></span>L4 Verify</div>
-        <div class="legend-item"><span class="legend-color" style="background:#a855f7"></span>L5 Release</div>
-        <div class="legend-item"><span class="legend-color" style="background:#ef4444"></span>L6 Recap</div>
-        <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">
-            Dashed = fail loop<br/>Solid = pass forward<br/>
-            Any phase:<br/>
-            - /think<br/>
-            - /explore<br/>
-            - /search
+
+        <div class="legend-section">
+            <div class="legend-label">Phases</div>
+            <div class="legend-item"><span class="legend-color" style="background:#3b82f6"></span><span class="legend-code">L1 Intent</span></div>
+            <div class="legend-item"><span class="legend-color" style="background:#eab308"></span><span class="legend-code">L2 Architecture</span></div>
+            <div class="legend-item"><span class="legend-color" style="background:#f97316"></span><span class="legend-code">L3 Implement</span></div>
+            <div class="legend-item"><span class="legend-color" style="background:#22c55e"></span><span class="legend-code">L4 Verify</span></div>
+            <div class="legend-item"><span class="legend-color" style="background:#a855f7"></span><span class="legend-code">L5 Release</span></div>
+            <div class="legend-item"><span class="legend-color" style="background:#ef4444"></span><span class="legend-code">L6 Recap</span></div>
+        </div>
+
+        <div class="legend-section">
+            <div class="legend-label">Arrows</div>
+            <div class="legend-arrow">
+                <div class="legend-arrow-line"></div>
+                <span>Pass forward</span>
+            </div>
+            <div class="legend-arrow">
+                <div class="legend-arrow-dotted"></div>
+                <span>Fail loop</span>
+            </div>
+        </div>
+
+        <div class="legend-section">
+            <div class="legend-label">Available any phase</div>
+            <div class="legend-item"><span class="legend-code">/think</span></div>
+            <div class="legend-item"><span class="legend-code">/explore</span></div>
+            <div class="legend-item"><span class="legend-code">/search</span></div>
         </div>
     </div>
 
@@ -417,10 +480,10 @@
         };
 
         const STORAGE_KEYS = {
-            layout: 'diagramLayout',
-            zoom: 'diagramZoom',
-            legendCorner: 'diagramLegendCorner',
-            legendMode: 'diagramLegendMode'
+            layout: 'diagramLayoutV2',
+            zoom: 'diagramZoomV2',
+            legendCorner: 'diagramLegendCornerV2',
+            legendMode: 'diagramLegendModeV2'
         };
 
         let renderInProgress = false;
@@ -641,8 +704,8 @@
             lastMermaidDirection = direction;
             lastMermaidCode = `flowchart ${direction}
     subgraph L1 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L1 — Intent</B></TD></TR></TABLE>>"]
-        L1_S0(["<span class='skillLabel'>/think</span><span class='skillDesc'>question · design · route</span>"])
-        L1_S1(["<span class='skillLabel'>/prd</span><span class='skillDesc'>elicit · write · review</span>"])
+        L1_S0(["<span class='skillLabel'>/think</span><span class='skillDesc'>reasoning<br/>tradeoffs</span>"])
+        L1_S1(["<span class='skillLabel'>/prd</span><span class='skillDesc'>elicit · write<br/>review requirements</span>"])
         L1_S2(["<span class='skillLabel'>/specify</span><span class='skillDesc'>expand requirements<br/>user stories · acceptance criteria</span>"])
     end
 
@@ -672,27 +735,27 @@
         L6_S1(["<span class='skillLabel'>/recap</span><span class='skillDesc'>exit_reason()<br/>summarize()</span>"])
     end
 
+    %% Pass flow
     L1_S1 --> L1_S2
     L1_S2 --> L2_S1
 
-    L2_S1 --> L2_S2
-    L2_S2 --> L2_S1
+    L2_S1 <--> L2_S2
     L2_S1 --> L2_S3
     L2_S3 --> L3_S1
 
     L3_S1 --> L3_S2
     L3_S2 --> L3_S3
-    L3_S3 -->|Pass| L4_S1
+    L3_S3 ---|Pass| L4_S1
     L4_S1 --> L4_S2
-    L4_S2 ---->|Pass| L5_S1
+    L4_S2 ---|Pass| L5_S1
     L5_S1 --> L5_S2
     L5_S2 --> L6_S1
 
+    %% Fail loops
     L4_S1 -.->|Fail| L3_S1
     L4_S2 -.->|Fail| L3_S2
     L5_S1 -.->|Fail| L4_S1
     L5_S2 -.->|Fail| L4_S1
-    L5_S2 --> L6_S1
 
     style L1 fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
     style L2 fill:#fef9c3,stroke:#eab308,stroke-width:2px
@@ -1165,7 +1228,7 @@
                 ctx.fillStyle = document.body.classList.contains('dark') ? '#0f172a' : '#ffffff';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(img, 0, 0);
-                URL.revokeObjectURL(url);
+                URL.revokeCloudURL(url);
                 const pngUrl = canvas.toDataURL('image/png');
                 const a = document.createElement('a');
                 a.href = pngUrl; a.download = 'sdlc-pipeline.png'; a.click();
