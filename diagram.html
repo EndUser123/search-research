@@ -189,8 +189,8 @@
             white-space: normal !important;
             word-break: normal !important;
             overflow-wrap: anywhere !important;
-            line-height: 1.1 !important;
-            font-size: 12px !important;
+            line-height: 1.15 !important;
+            font-size: 13px !important;
             text-align: center !important;
             padding: 0 !important;
         }
@@ -276,21 +276,22 @@
             bottom: 20px;
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 12px 16px;
-            font-size: 12px;
+            border-radius: 16px;
+            padding: 14px 18px;
+            font-size: 11px;
             color: var(--text-muted);
             box-shadow: var(--shadow-lg);
-            max-width: 220px;
+            max-width: 210px;
             line-height: 1.6;
             z-index: 25;
             touch-action: none;
             user-select: none;
             cursor: grab;
+            backdrop-filter: blur(12px);
         }
 
         .legend:focus {
-            outline: 2px solid var(--accent);
+            outline: 2px solid var(--text-muted);
             outline-offset: 2px;
         }
 
@@ -306,25 +307,87 @@
 
         .legend strong {
             display: block;
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.08em;
             color: var(--text);
-            margin-bottom: 6px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .legend-section { margin-bottom: 10px; }
+        .legend-section:last-child { margin-bottom: 0; }
+
+        .legend-subhead {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            opacity: 0.7;
         }
 
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 7px;
             margin-bottom: 3px;
         }
 
         .legend-color {
-            width: 10px;
-            height: 10px;
+            width: 9px;
+            height: 9px;
             border-radius: 50%;
             flex-shrink: 0;
+        }
+
+        .legend-skill {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .legend-row {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 3px;
+        }
+
+        .legend-line {
+            width: 28px;
+            height: 2px;
+            border-radius: 2px;
+        }
+
+        .legend-line.pass { background: var(--text-muted); }
+        .legend-line.fail {
+            background: repeating-linear-gradient(
+                90deg,
+                var(--text-muted) 0px,
+                var(--text-muted) 4px,
+                transparent 4px,
+                transparent 8px
+            );
+        }
+        .legend-line.bidi {
+            background: var(--text-muted);
+            position: relative;
+        }
+        .legend-line.bidi::after {
+            content: '';
+            position: absolute;
+            right: -1px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 4px solid transparent;
+            border-left-color: var(--text-muted);
+        }
+
+        .legend-caption {
+            font-size: 11px;
+            color: var(--text-muted);
         }
 
         @media (max-width: 600px) {
@@ -366,18 +429,26 @@
 
     <div class="legend" id="legend" role="complementary" aria-label="Pipeline legend" title="Drag to move. Double-click to reset to auto placement." tabindex="0">
         <strong>Pipeline Flow</strong>
-        <div class="legend-item"><span class="legend-color" style="background:#3b82f6"></span>L1 Intent</div>
-        <div class="legend-item"><span class="legend-color" style="background:#eab308"></span>L2 Architecture</div>
-        <div class="legend-item"><span class="legend-color" style="background:#f97316"></span>L3 Implement</div>
-        <div class="legend-item"><span class="legend-color" style="background:#22c55e"></span>L4 Verify</div>
-        <div class="legend-item"><span class="legend-color" style="background:#a855f7"></span>L5 Release</div>
-        <div class="legend-item"><span class="legend-color" style="background:#ef4444"></span>L6 Recap</div>
-        <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">
-            Dashed = fail loop<br/>Solid = pass forward<br/>
-            Any phase:<br/>
-            - /think<br/>
-            - /explore<br/>
-            - /search
+        <div class="legend-section">
+            <div class="legend-subhead">Phases</div>
+            <div class="legend-item"><span class="legend-color" style="background:#3b82f6"></span><span class="legend-skill">L1 Intent</span></div>
+            <div class="legend-item"><span class="legend-color" style="background:#eab308"></span><span class="legend-skill">L2 Architecture</span></div>
+            <div class="legend-item"><span class="legend-color" style="background:#f97316"></span><span class="legend-skill">L3 Implement</span></div>
+            <div class="legend-item"><span class="legend-color" style="background:#22c55e"></span><span class="legend-skill">L4 Verify</span></div>
+            <div class="legend-item"><span class="legend-color" style="background:#a855f7"></span><span class="legend-skill">L5 Release</span></div>
+            <div class="legend-item"><span class="legend-color" style="background:#ef4444"></span><span class="legend-skill">L6 Recap</span></div>
+        </div>
+        <div class="legend-section">
+            <div class="legend-subhead">Flow</div>
+            <div class="legend-row"><div class="legend-line pass"></div><span class="legend-caption">pass forward</span></div>
+            <div class="legend-row"><div class="legend-line fail"></div><span class="legend-caption">fail loop back</span></div>
+            <div class="legend-row"><div class="legend-line bidi"></div><span class="legend-caption">bidirectional</span></div>
+        </div>
+        <div class="legend-section">
+            <div class="legend-subhead">Available any phase</div>
+            <div class="legend-item"><span class="legend-skill">/think</span></div>
+            <div class="legend-item"><span class="legend-skill">/explore</span></div>
+            <div class="legend-item"><span class="legend-skill">/search</span></div>
         </div>
     </div>
 

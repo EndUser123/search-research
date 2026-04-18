@@ -7,52 +7,77 @@
     <link rel="icon" href="data:," />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --bg: #f8f9fa;
+            /* Phase palette — muted, harmonious, each phase has identity */
+            --l1: #4f7ef7;
+            --l1-bg: #eef2ff;
+            --l1-border: #c7d4fa;
+            --l2: #d97706;
+            --l2-bg: #fffbeb;
+            --l2-border: #fde68a;
+            --l3: #ea580c;
+            --l3-bg: #fff7ed;
+            --l3-border: #fed7aa;
+            --l4: #16a34a;
+            --l4-bg: #f0fdf4;
+            --l4-border: #bbf7d0;
+            --l5: #9333ea;
+            --l5-bg: #faf5ff;
+            --l5-border: #e9d5ff;
+            --l6: #dc2626;
+            --l6-bg: #fff1f2;
+            --l6-border: #fecdd3;
+
+            /* UI */
+            --bg: #f1f5f9;
             --surface: #ffffff;
-            --border: #e2e8f0;
-            --text: #1a202c;
+            --text: #0f172a;
             --text-muted: #64748b;
-            --accent: #3b82f6;
-            --accent-hover: #2563eb;
-            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-            --radius: 10px;
-            --font: 'Inter', system-ui, -apple-system, sans-serif;
+            --border: #e2e8f0;
+            --shadow: 0 2px 8px -2px rgb(0 0 0 / 0.08), 0 4px 16px -4px rgb(0 0 0 / 0.06);
+            --shadow-lg: 0 8px 24px -4px rgb(0 0 0 / 0.1), 0 16px 48px -8px rgb(0 0 0 / 0.08);
+            --radius: 14px;
+            --font-mono: 'JetBrains Mono', 'Cascadia Code', monospace;
+            --font-sans: 'DM Sans', system-ui, sans-serif;
+        }
+
+        body.dark {
+            --bg: #0c1222;
+            --surface: #162032;
+            --text: #e2e8f0;
+            --text-muted: #64748b;
+            --border: #1e3a5f;
+            --l1-bg: #1a2744;  --l1-border: #2d4270; --l1: #6b9aff;
+            --l2-bg: #2a200a;  --l2-border: #4a3a18; --l2: #fbbf24;
+            --l3-bg: #2a1005;  --l3-border: #4a2510; --l3: #fb923c;
+            --l4-bg: #0a2418;  --l4-border: #1a4830; --l4: #4ade80;
+            --l5-bg: #1a0a2e;  --l5-border: #3d1a60; --l5: #c084fc;
+            --l6-bg: #2a0a10;  --l6-border: #5a1a22; --l6: #f87171;
+            --shadow: 0 2px 8px -2px rgb(0 0 0 / 0.3), 0 4px 16px -4px rgb(0 0 0 / 0.2);
+            --shadow-lg: 0 8px 24px -4px rgb(0 0 0 / 0.3), 0 16px 48px -8px rgb(0 0 0 / 0.2);
         }
 
         html, body {
             height: 100%;
-            font-family: var(--font);
+            font-family: var(--font-sans);
             background: var(--bg);
             color: var(--text);
-            transition: background 0.2s ease, color 0.2s ease;
+            transition: background 0.25s ease, color 0.25s ease;
         }
 
-        body.dark {
-            --bg: #0f172a;
-            --surface: #1e293b;
-            --border: #334155;
-            --text: #f1f5f9;
-            --text-muted: #cbd5e1;
-            --accent: #60a5fa;
-            --accent-hover: #93c5fd;
-        }
-
+        /* ── Toolbar ── */
         .toolbar {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
+            top: 0; left: 0; right: 0;
             z-index: 100;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 12px 24px;
+            padding: 10px 20px;
             background: var(--surface);
             border-bottom: 1px solid var(--border);
             box-shadow: var(--shadow);
@@ -61,70 +86,66 @@
         }
 
         .toolbar-title {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             color: var(--text);
             letter-spacing: -0.01em;
+            font-family: var(--font-mono);
         }
 
         .toolbar-controls {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .layout-btn {
-            font-family: monospace;
-            font-size: 12px;
+            font-family: var(--font-mono);
+            font-size: 11px;
             font-weight: 700;
-            padding: 7px 10px;
-            min-width: 38px;
+            padding: 6px 9px;
+            min-width: 36px;
+            border-radius: 8px;
         }
 
         .layout-btn.active {
-            background: var(--accent);
-            color: #fff;
-            border-color: var(--accent);
+            background: var(--text);
+            color: var(--surface);
+            border-color: var(--text);
         }
 
         button {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 7px 14px;
-            font-family: var(--font);
-            font-size: 13px;
+            gap: 5px;
+            padding: 6px 12px;
+            font-family: var(--font-sans);
+            font-size: 12px;
             font-weight: 500;
             border: 1px solid var(--border);
             border-radius: var(--radius);
             background: var(--surface);
             color: var(--text);
             cursor: pointer;
-            transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+            transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
             white-space: nowrap;
         }
 
         button:hover {
             background: var(--bg);
-            border-color: var(--accent);
+            border-color: var(--text-muted);
             box-shadow: var(--shadow);
         }
 
-        button:active {
-            transform: scale(0.97);
-        }
+        button:active { transform: scale(0.97); }
 
-        button svg {
-            width: 14px;
-            height: 14px;
-            flex-shrink: 0;
-        }
+        button svg { width: 13px; height: 13px; flex-shrink: 0; }
 
         #theme-toggle::before {
             content: '';
             display: inline-block;
-            width: 14px;
-            height: 14px;
+            width: 13px;
+            height: 13px;
             background: currentColor;
             mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z'/%3E%3C/svg%3E");
             mask-repeat: no-repeat;
@@ -135,15 +156,13 @@
         }
 
         body.dark #theme-toggle::before {
-            background: var(--text);
             mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z'/%3E%3C/svg%3E");
             -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z'/%3E%3C/svg%3E");
-            -webkit-mask-repeat: no-repeat;
-            -webkit-mask-size: contain;
         }
 
+        /* ── Diagram area ── */
         .diagram-wrapper {
-            padding-top: 64px;
+            padding-top: 58px;
             width: 100vw;
             height: 100vh;
             display: flex;
@@ -155,30 +174,20 @@
 
         #diagram {
             width: 100%;
-            height: calc(100vh - 64px);
+            height: calc(100vh - 58px);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 24px;
-        }
-
-        #diagram .mermaid {
-            width: 100%;
-            height: 100%;
+            padding: 20px;
         }
 
         #diagram svg {
-            min-width: 100%;
-            min-height: 100%;
-            max-width: 100% !important;
-            max-height: none !important;
             overflow: visible !important;
         }
 
-        #diagram svg.max-width-limited {
-            max-width: none !important;
-        }
+        #diagram svg.max-width-limited { max-width: none !important; }
 
+        /* Node label rendering */
         #diagram svg .nodeLabel {
             width: 100% !important;
             height: 100% !important;
@@ -189,8 +198,8 @@
             white-space: normal !important;
             word-break: normal !important;
             overflow-wrap: anywhere !important;
-            line-height: 1.1 !important;
-            font-size: 12px !important;
+            line-height: 1.2 !important;
+            font-size: 11px !important;
             text-align: center !important;
             padding: 0 !important;
         }
@@ -206,11 +215,10 @@
             white-space: normal !important;
             word-break: normal !important;
             overflow-wrap: anywhere !important;
-            line-height: 1.1 !important;
-            gap: 0 !important;
+            line-height: 1.2 !important;
             padding: 0 !important;
             box-sizing: border-box !important;
-            font-size: 12px !important;
+            font-size: 11px !important;
         }
 
         #diagram svg .nodeLabel .skillLabel,
@@ -221,53 +229,61 @@
             text-align: center;
         }
 
-        #diagram svg .nodeLabel .skillLabel {
-            font-weight: 700;
-        }
+        #diagram svg foreignObject { overflow: visible; }
 
-        #diagram svg foreignObject {
-            overflow: visible;
-        }
-
-        #diagram svg .cluster-label {
-            text-align: left !important;
-        }
-
+        /* Cluster titles */
+        #diagram svg .cluster-label { text-align: left !important; }
         #diagram svg .cluster-label div {
-            width: 100% !important;
             display: flex !important;
             align-items: flex-start !important;
             justify-content: flex-start !important;
             text-align: left !important;
         }
-
-        #diagram svg .cluster-label text {
-            text-anchor: start !important;
-        }
+        #diagram svg .cluster-label text { text-anchor: start !important; }
 
         #diagram svg .cluster-title-text {
             fill: var(--text);
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
+            font-family: var(--font-sans);
             pointer-events: none;
+            letter-spacing: -0.01em;
         }
 
         #diagram svg .cluster-title-bg {
-            fill: var(--panel);
-            fill-opacity: 0.86;
-            stroke: var(--panel-border);
-            stroke-width: 1;
+            fill-opacity: 0;
+            stroke: transparent;
+            stroke-width: 0;
             pointer-events: none;
+        }
+
+        /* Arrow label styling */
+        #diagram svg .edgeLabel {
+            background: none !important;
+            border: none !important;
+            font-family: var(--font-mono) !important;
+            font-size: 10px !important;
+            font-weight: 600 !important;
+            color: var(--text-muted) !important;
+        }
+
+        #diagram svg .edgeLabel span {
+            background: none !important;
+            padding: 0 2px !important;
+            font-family: var(--font-mono) !important;
+            font-size: 10px !important;
         }
 
         .loading {
             display: grid;
             place-items: center;
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-muted);
+            font-family: var(--font-sans);
             height: 200px;
         }
 
+        /* ── Legend ── */
         .legend {
             position: fixed;
             left: auto;
@@ -276,27 +292,26 @@
             bottom: 20px;
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 12px 16px;
-            font-size: 12px;
+            border-radius: 16px;
+            padding: 14px 18px;
+            font-size: 11px;
             color: var(--text-muted);
             box-shadow: var(--shadow-lg);
-            max-width: 240px;
+            max-width: 210px;
             line-height: 1.6;
             z-index: 25;
             touch-action: none;
             user-select: none;
             cursor: grab;
+            backdrop-filter: blur(12px);
         }
 
         .legend:focus {
-            outline: 2px solid var(--accent);
+            outline: 2px solid var(--text-muted);
             outline-offset: 2px;
         }
 
-        .legend[data-legend-dragging="true"] {
-            cursor: grabbing;
-        }
+        .legend[data-legend-dragging="true"] { cursor: grabbing; }
 
         .legend[data-legend-corner="tl"] { right: auto; bottom: auto; }
         .legend[data-legend-corner="tr"] { left: auto; bottom: auto; }
@@ -306,65 +321,63 @@
 
         .legend strong {
             display: block;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text);
-            margin-bottom: 6px;
-        }
-
-        .legend-section {
-            margin-bottom: 8px;
-        }
-
-        .legend-section:last-child {
-            margin-bottom: 0;
-        }
-
-        .legend-label {
             font-size: 10px;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.08em;
+            color: var(--text);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .legend-section { margin-bottom: 10px; }
+        .legend-section:last-child { margin-bottom: 0; }
+
+        .legend-subhead {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
             color: var(--text-muted);
-            margin-bottom: 3px;
+            margin-bottom: 4px;
+            opacity: 0.7;
         }
 
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 7px;
             margin-bottom: 3px;
         }
 
-        .legend-color {
-            width: 10px;
-            height: 10px;
+        .legend-pip {
+            width: 9px;
+            height: 9px;
             border-radius: 50%;
             flex-shrink: 0;
         }
 
-        .legend-code {
-            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+        .legend-skill {
+            font-family: var(--font-mono);
             font-size: 11px;
+            font-weight: 600;
             color: var(--text);
         }
 
-        .legend-arrow {
+        /* Arrow legend */
+        .legend-row {
             display: flex;
             align-items: center;
-            gap: 4px;
-            margin-bottom: 2px;
+            gap: 7px;
+            margin-bottom: 3px;
         }
 
-        .legend-arrow-line {
-            width: 24px;
+        .legend-line {
+            width: 28px;
             height: 2px;
-            background: var(--text-muted);
+            border-radius: 2px;
         }
 
-        .legend-arrow-dotted {
-            width: 24px;
-            height: 2px;
+        .legend-line.pass { background: var(--text-muted); }
+        .legend-line.fail {
             background: repeating-linear-gradient(
                 90deg,
                 var(--text-muted) 0px,
@@ -373,11 +386,29 @@
                 transparent 8px
             );
         }
+        .legend-line.bidi {
+            background: var(--text-muted);
+            position: relative;
+        }
+        .legend-line.bidi::after {
+            content: '';
+            position: absolute;
+            right: -1px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 4px solid transparent;
+            border-left-color: var(--text-muted);
+        }
+
+        .legend-caption {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
 
         @media (max-width: 600px) {
-            .toolbar { padding: 10px 14px; }
-            .toolbar-title { font-size: 13px; }
-            button { padding: 6px 10px; font-size: 12px; }
+            .toolbar { padding: 8px 12px; }
+            .toolbar-title { font-size: 12px; }
+            button { padding: 5px 9px; font-size: 11px; }
             .legend { display: none; }
         }
     </style>
@@ -411,36 +442,48 @@
         </div>
     </div>
 
-    <div class="legend" id="legend" role="complementary" aria-label="Pipeline legend" title="Drag to move. Double-click to reset to auto placement." tabindex="0">
+    <div class="legend" id="legend" role="complementary" aria-label="Pipeline legend" title="Drag to reposition. Double-click to reset." tabindex="0">
         <strong>Pipeline Flow</strong>
 
         <div class="legend-section">
-            <div class="legend-label">Phases</div>
-            <div class="legend-item"><span class="legend-color" style="background:#3b82f6"></span><span class="legend-code">L1 Intent</span></div>
-            <div class="legend-item"><span class="legend-color" style="background:#eab308"></span><span class="legend-code">L2 Architecture</span></div>
-            <div class="legend-item"><span class="legend-color" style="background:#f97316"></span><span class="legend-code">L3 Implement</span></div>
-            <div class="legend-item"><span class="legend-color" style="background:#22c55e"></span><span class="legend-code">L4 Verify</span></div>
-            <div class="legend-item"><span class="legend-color" style="background:#a855f7"></span><span class="legend-code">L5 Release</span></div>
-            <div class="legend-item"><span class="legend-color" style="background:#ef4444"></span><span class="legend-code">L6 Recap</span></div>
+            <div class="legend-subhead">Phases</div>
+            <div class="legend-item"><span class="legend-pip" style="background:#4f7ef7"></span><span class="legend-skill">L1 Intent</span></div>
+            <div class="legend-item"><span class="legend-pip" style="background:#d97706"></span><span class="legend-skill">L2 Architecture</span></div>
+            <div class="legend-item"><span class="legend-pip" style="background:#ea580c"></span><span class="legend-skill">L3 Implement</span></div>
+            <div class="legend-item"><span class="legend-pip" style="background:#16a34a"></span><span class="legend-skill">L4 Verify</span></div>
+            <div class="legend-item"><span class="legend-pip" style="background:#9333ea"></span><span class="legend-skill">L5 Release</span></div>
+            <div class="legend-item"><span class="legend-pip" style="background:#dc2626"></span><span class="legend-skill">L6 Recap</span></div>
         </div>
 
         <div class="legend-section">
-            <div class="legend-label">Arrows</div>
-            <div class="legend-arrow">
-                <div class="legend-arrow-line"></div>
-                <span>Pass forward</span>
-            </div>
-            <div class="legend-arrow">
-                <div class="legend-arrow-dotted"></div>
-                <span>Fail loop</span>
+            <div class="legend-subhead">Pass flow</div>
+            <div class="legend-row">
+                <div class="legend-line pass"></div>
+                <span class="legend-caption">forward</span>
             </div>
         </div>
 
         <div class="legend-section">
-            <div class="legend-label">Available any phase</div>
-            <div class="legend-item"><span class="legend-code">/think</span></div>
-            <div class="legend-item"><span class="legend-code">/explore</span></div>
-            <div class="legend-item"><span class="legend-code">/search</span></div>
+            <div class="legend-subhead">Fail loops</div>
+            <div class="legend-row">
+                <div class="legend-line fail"></div>
+                <span class="legend-caption">code · tests · commit · push</span>
+            </div>
+        </div>
+
+        <div class="legend-section">
+            <div class="legend-subhead">L2 bidirectional</div>
+            <div class="legend-row">
+                <div class="legend-line bidi"></div>
+                <span class="legend-caption">iterate · context</span>
+            </div>
+        </div>
+
+        <div class="legend-section">
+            <div class="legend-subhead">Available any phase</div>
+            <div class="legend-item"><span class="legend-skill">/think</span></div>
+            <div class="legend-item"><span class="legend-skill">/explore</span></div>
+            <div class="legend-item"><span class="legend-skill">/search</span></div>
         </div>
     </div>
 
@@ -473,17 +516,17 @@
             legendGap: 12,
             fitPadding: 48,
             resizeDebounceMs: 300,
-            titleInsetX: 12,
-            titleInsetY: 14,
-            titlePadX: 6,
+            titleInsetX: 10,
+            titleInsetY: 12,
+            titlePadX: 5,
             titlePadY: 4
         };
 
         const STORAGE_KEYS = {
-            layout: 'diagramLayoutV2',
-            zoom: 'diagramZoomV2',
-            legendCorner: 'diagramLegendCornerV2',
-            legendMode: 'diagramLegendModeV2'
+            layout: 'diagramLayoutV3',
+            zoom: 'diagramZoomV3',
+            legendCorner: 'diagramLegendCornerV3',
+            legendMode: 'diagramLegendModeV3'
         };
 
         let renderInProgress = false;
@@ -493,245 +536,162 @@
         let legendUpdateTimer = null;
         let resizeTimer = null;
 
-        function safeStorageGet(key) {
-            try {
-                return localStorage.getItem(key);
-            } catch (err) {
-                return null;
-            }
+        function safeGet(key) {
+            try { return localStorage.getItem(key); } catch { return null; }
+        }
+        function safeSet(key, val) {
+            try { localStorage.setItem(key, val); } catch {}
+        }
+        function safeRemove(key) {
+            try { localStorage.removeItem(key); } catch {}
         }
 
-        function safeStorageSet(key, value) {
-            try {
-                localStorage.setItem(key, value);
-            } catch (err) {
-                // Ignore storage failures in private mode or blocked storage contexts.
-            }
+        function parseLayout(v) { return ['TB','BT','LR','RL'].includes(v) ? v : null; }
+        function parseLegendCorner(v) { return ['tl','tr','bl','br'].includes(v) ? v : null; }
+        function parseZoom(v) {
+            const n = Number.parseFloat(v);
+            return Number.isFinite(n) ? n : null;
         }
-
-        function safeStorageRemove(key) {
-            try {
-                localStorage.removeItem(key);
-            } catch (err) {
-                // Ignore storage failures in private mode or blocked storage contexts.
-            }
-        }
-
-        function parseLayout(value) {
-            return ['TB', 'BT', 'LR', 'RL'].includes(value) ? value : null;
-        }
-
-        function parseLegendCorner(value) {
-            return ['tl', 'tr', 'bl', 'br'].includes(value) ? value : null;
-        }
-
-        function parseZoom(value) {
-            const num = Number.parseFloat(value);
-            return Number.isFinite(num) ? num : null;
-        }
-
-        function clamp(value, min, max) {
-            return Math.min(Math.max(value, min), max);
-        }
+        function clamp(v, lo, hi) { return Math.min(Math.max(v, lo), hi); }
 
         function getStateFromUrl() {
-            const params = new URLSearchParams(window.location.search);
-            return {
-                layout: parseLayout(params.get('layout')),
-                zoom: parseZoom(params.get('zoom')),
-                legendCorner: parseLegendCorner(params.get('corner'))
-            };
+            const p = new URLSearchParams(window.location.search);
+            return { layout: parseLayout(p.get('layout')), zoom: parseZoom(p.get('zoom')), legendCorner: parseLegendCorner(p.get('corner')) };
         }
 
         function getStoredState() {
             return {
-                layout: parseLayout(safeStorageGet(STORAGE_KEYS.layout)),
-                zoom: parseZoom(safeStorageGet(STORAGE_KEYS.zoom)),
-                legendCorner: parseLegendCorner(safeStorageGet(STORAGE_KEYS.legendCorner)),
-                legendMode: safeStorageGet(STORAGE_KEYS.legendMode)
+                layout: parseLayout(safeGet(STORAGE_KEYS.layout)),
+                zoom: parseZoom(safeGet(STORAGE_KEYS.zoom)),
+                legendCorner: parseLegendCorner(safeGet(STORAGE_KEYS.legendCorner)),
+                legendMode: safeGet(STORAGE_KEYS.legendMode)
             };
         }
 
-        function getThemeToggleLabel() {
-            return document.body.classList.contains('dark') ? 'Switch to light theme' : 'Toggle dark theme';
-        }
-
-        function updateThemeToggleLabel() {
-            const themeButton = document.getElementById('theme-toggle');
-            if (themeButton) {
-                themeButton.setAttribute('aria-label', getThemeToggleLabel());
-            }
-        }
-
         function setLayoutButtonState(layout) {
-            document.querySelectorAll('.layout-btn').forEach((button) => {
-                const isActive = button.id === `layout-${layout.toLowerCase()}`;
-                button.classList.toggle('active', isActive);
-                button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            document.querySelectorAll('.layout-btn').forEach(btn => {
+                const on = btn.id === `layout-${layout.toLowerCase()}`;
+                btn.classList.toggle('active', on);
+                btn.setAttribute('aria-pressed', on ? 'true' : 'false');
             });
         }
 
-        function setExportButtonsDisabled(disabled) {
-            document.getElementById('export-png').disabled = disabled;
-            document.getElementById('export-svg').disabled = disabled;
+        function setExportButtonsDisabled(d) {
+            document.getElementById('export-png').disabled = d;
+            document.getElementById('export-svg').disabled = d;
         }
 
         function syncUrlState() {
-            const params = new URLSearchParams(window.location.search);
-            params.set('layout', currentLayout);
-            params.set('zoom', String(Number(currentScale.toFixed(2))));
-            params.set('corner', currentLegendCorner);
-
-            const query = params.toString();
-            const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash || ''}`;
-            try {
-                window.history.replaceState({}, '', nextUrl);
-            } catch (err) {
-                // Ignore history failures in locked-down browsing contexts.
-            }
+            const p = new URLSearchParams(window.location.search);
+            p.set('layout', currentLayout);
+            p.set('zoom', String(Number(currentScale.toFixed(2))));
+            p.set('corner', currentLegendCorner);
+            const q = p.toString();
+            const url = `${window.location.pathname}${q ? `?${q}` : ''}${window.location.hash || ''}`;
+            try { window.history.replaceState({}, '', url); } catch {}
         }
 
         function persistUiState() {
-            safeStorageSet(STORAGE_KEYS.layout, currentLayout);
-            safeStorageSet(STORAGE_KEYS.zoom, String(currentScale));
-            safeStorageSet(STORAGE_KEYS.legendCorner, currentLegendCorner);
-            safeStorageSet(STORAGE_KEYS.legendMode, legendMode);
+            safeSet(STORAGE_KEYS.layout, currentLayout);
+            safeSet(STORAGE_KEYS.zoom, String(currentScale));
+            safeSet(STORAGE_KEYS.legendCorner, currentLegendCorner);
+            safeSet(STORAGE_KEYS.legendMode, legendMode);
             syncUrlState();
         }
 
         function applyInitialState() {
-            const fromUrl = getStateFromUrl();
-            const fromStorage = getStoredState();
-
-            currentLayout = fromUrl.layout || fromStorage.layout || currentLayout;
-            currentScale = clamp(fromUrl.zoom || fromStorage.zoom || currentScale, 0.3, 3);
-            currentLegendCorner = fromUrl.legendCorner || fromStorage.legendCorner || currentLegendCorner;
-            if (fromUrl.legendCorner) {
-                legendMode = 'manual';
-                legendPlacementOrigin = 'url';
-            } else if (fromStorage.legendMode === 'manual' && fromStorage.legendCorner) {
-                legendMode = 'manual';
-                legendPlacementOrigin = 'manual';
-            } else {
-                legendMode = 'auto';
-                legendPlacementOrigin = 'auto';
-            }
+            const url = getStateFromUrl();
+            const stored = getStoredState();
+            currentLayout = url.layout || stored.layout || currentLayout;
+            currentScale = clamp(url.zoom || stored.zoom || currentScale, 0.3, 3);
+            currentLegendCorner = url.legendCorner || stored.legendCorner || currentLegendCorner;
+            if (url.legendCorner) { legendMode = 'manual'; legendPlacementOrigin = 'url'; }
+            else if (stored.legendMode === 'manual' && stored.legendCorner) { legendMode = 'manual'; legendPlacementOrigin = 'manual'; }
+            else { legendMode = 'auto'; legendPlacementOrigin = 'auto'; }
         }
 
         function loadMermaidWithFallback() {
-            if (window.mermaid) {
-                return Promise.resolve(window.mermaid);
-            }
-
-            const sources = [
-                'diagram_mermaid.min.js',
-                'https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js'
-            ];
-
-            const appendScript = (src) => new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = src;
-                script.async = true;
-                script.onload = () => resolve();
-                script.onerror = () => reject(new Error(`Failed to load Mermaid from ${src}`));
-                document.head.appendChild(script);
+            if (window.mermaid) return Promise.resolve(window.mermaid);
+            const sources = ['diagram_mermaid.min.js', 'https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js'];
+            const append = src => new Promise((res, rej) => {
+                const s = document.createElement('script');
+                s.src = src; s.async = true;
+                s.onload = res;
+                s.onerror = () => rej(new Error(`Failed to load Mermaid from ${src}`));
+                document.head.appendChild(s);
             });
-
-            const loadLocalScriptText = (src) => new Promise((resolve, reject) => {
-                const request = new XMLHttpRequest();
-                request.open('GET', src, true);
-                request.onreadystatechange = () => {
-                    if (request.readyState !== 4) return;
-                    if (request.status >= 200 && request.status < 300) {
-                        resolve(request.responseText);
-                    } else {
-                        reject(new Error(`Local Mermaid bundle unavailable at ${src}`));
-                    }
-                };
-                request.onerror = () => reject(new Error(`Local Mermaid bundle unavailable at ${src}`));
-                request.send();
+            const loadLocal = src => new Promise((res, rej) => {
+                const r = new XMLHttpRequest();
+                r.open('GET', src, true);
+                r.onreadystatechange = () => { if (r.readyState === 4) r.status >= 200 && r.status < 300 ? res(r.responseText) : rej(new Error(`Local unavailable: ${src}`)); };
+                r.onerror = () => rej(new Error(`Local unavailable: ${src}`));
+                r.send();
             });
-
-            const injectScriptText = (code, sourceLabel) => new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.text = code;
-                document.head.appendChild(script);
-                if (window.mermaid) {
-                    resolve();
-                } else {
-                    reject(new Error(`Failed to evaluate Mermaid from ${sourceLabel}`));
-                }
+            const inject = (code, label) => new Promise((res, rej) => {
+                const s = document.createElement('script');
+                s.text = code;
+                document.head.appendChild(s);
+                if (window.mermaid) res(); else rej(new Error(`Eval failed: ${label}`));
             });
-
             return (async () => {
                 for (const src of sources) {
                     try {
-                        if (src.startsWith('http')) {
-                            await appendScript(src);
-                        } else {
-                            const code = await loadLocalScriptText(src);
-                            await injectScriptText(code, src);
-                        }
+                        if (src.startsWith('http')) await append(src);
+                        else { const c = await loadLocal(src); await inject(c, src); }
                         if (window.mermaid) return window.mermaid;
-                    } catch (err) {
-                        // Try the next source.
-                    }
+                    } catch {}
                 }
-                throw new Error('Mermaid failed to load from both the local bundle and the CDN fallback.');
+                throw new Error('Mermaid failed to load from all sources.');
             })();
         }
 
         function scheduleLegendPlacement() {
             clearTimeout(legendUpdateTimer);
-            legendUpdateTimer = window.setTimeout(() => {
-                updateLegendPlacement();
-            }, 0);
+            legendUpdateTimer = setTimeout(updateLegendPlacement, 0);
         }
 
         function scheduleResizeWork() {
             clearTimeout(resizeTimer);
-            resizeTimer = window.setTimeout(() => {
-                if (window.innerWidth <= 600) return;
-                updateLegendPlacement();
-            }, UI.resizeDebounceMs);
+            resizeTimer = setTimeout(() => { if (window.innerWidth > 600) updateLegendPlacement(); }, UI.resizeDebounceMs);
         }
 
         function buildMermaidCode(direction) {
-            if (direction === lastMermaidDirection && lastMermaidCode) {
-                return lastMermaidCode;
-            }
-
+            if (direction === lastMermaidDirection && lastMermaidCode) return lastMermaidCode;
             lastMermaidDirection = direction;
+
             lastMermaidCode = `flowchart ${direction}
-    subgraph L1 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L1 — Intent</B></TD></TR></TABLE>>"]
-        L1_S0(["<span class='skillLabel'>/think</span><span class='skillDesc'>reasoning<br/>tradeoffs</span>"])
+    ENTRY(("▶ start"))
+    subgraph L1 ["<<TABLE border='0' cellborder='0' cellpadding='0'><TR><TD align='left' valign='top'><B>L1 — Intent</B></TD></TR></TABLE>>"]
+        L1_S0(["<span class='skillLabel'>/think</span><span class='skillDesc'>route intent →<br/>/prd · /specify</span>"])
         L1_S1(["<span class='skillLabel'>/prd</span><span class='skillDesc'>elicit · write<br/>review requirements</span>"])
         L1_S2(["<span class='skillLabel'>/specify</span><span class='skillDesc'>expand requirements<br/>user stories · acceptance criteria</span>"])
     end
 
-    subgraph L2 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L2 — Architecture</B></TD></TR></TABLE>>"]
+    ENTRY --> L1_S0
+
+    subgraph L2 ["<<TABLE border='0' cellborder='0' cellpadding='0'><TR><TD align='left' valign='top'><B>L2 — Architecture</B></TD></TR></TABLE>>"]
         L2_S1(["<span class='skillLabel'>/design</span><span class='skillDesc'>architecture<br/>decisions</span>"])
         L2_S2(["<span class='skillLabel'>/explore</span><span class='skillDesc'>inspect context<br/>test assumptions</span>"])
         L2_S3(["<span class='skillLabel'>/planning</span><span class='skillDesc'>plan_edits()<br/>glob_files()</span>"])
     end
 
-    subgraph L3 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L3 — Implement</B></TD></TR></TABLE>>"]
+    subgraph L3 ["<<TABLE border='0' cellborder='0' cellpadding='0'><TR><TD align='left' valign='top'><B>L3 — Implement</B></TD></TR></TABLE>>"]
         L3_S1(["<span class='skillLabel'>/code</span><span class='skillDesc'>tool loop<br/>until done</span>"])
         L3_S2(["<span class='skillLabel'>/tdd</span><span class='skillDesc'>run_tests()<br/>until pass</span>"])
         L3_S3(["<span class='skillLabel'>/refactor</span><span class='skillDesc'>reshape<br/>simplify · tighten</span>"])
     end
 
-    subgraph L4 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L4 — Verify</B></TD></TR></TABLE>>"]
+    subgraph L4 ["<<TABLE border='0' cellborder='0' cellpadding='0'><TR><TD align='left' valign='top'><B>L4 — Verify</B></TD></TR></TABLE>>"]
         L4_S1(["<span class='skillLabel'>/code-review</span><span class='skillDesc'>self_critique()<br/>anti_sycophancy()</span>"])
         L4_S2(["<span class='skillLabel'>/verify</span><span class='skillDesc'>confirm behavior<br/>close loops</span>"])
     end
 
-    subgraph L5 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L5 — Release</B></TD></TR></TABLE>>"]
+    subgraph L5 ["<<TABLE border='0' cellborder='0' cellpadding='0'><TR><TD align='left' valign='top'><B>L5 — Release</B></TD></TR></TABLE>>"]
         L5_S1(["<span class='skillLabel'>/commit</span><span class='skillDesc'>commit()</span>"])
         L5_S2(["<span class='skillLabel'>/push</span><span class='skillDesc'>push()<br/>publish()</span>"])
     end
 
-    subgraph L6 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L6 — Recap</B></TD></TR></TABLE>>"]
+    subgraph L6 ["<<TABLE border='0' cellborder='0' cellpadding='0'><TR><TD align='left' valign='top'><B>L6 — Recap</B></TD></TR></TABLE>>"]
         L6_S1(["<span class='skillLabel'>/recap</span><span class='skillDesc'>exit_reason()<br/>summarize()</span>"])
     end
 
@@ -739,254 +699,174 @@
     L1_S1 --> L1_S2
     L1_S2 --> L2_S1
 
-    L2_S1 <--> L2_S2
+    L2_S1 -->|iterate| L2_S2
+    L2_S2 -->|context| L2_S1
     L2_S1 --> L2_S3
     L2_S3 --> L3_S1
 
     L3_S1 --> L3_S2
     L3_S2 --> L3_S3
-    L3_S3 ---|Pass| L4_S1
+    L3_S3 -->|pass| L4_S1
     L4_S1 --> L4_S2
-    L4_S2 ---|Pass| L5_S1
+    L4_S2 -->|pass| L5_S1
     L5_S1 --> L5_S2
     L5_S2 --> L6_S1
 
     %% Fail loops
-    L4_S1 -.->|Fail| L3_S1
-    L4_S2 -.->|Fail| L3_S2
-    L5_S1 -.->|Fail| L4_S1
-    L5_S2 -.->|Fail| L4_S1
+    L4_S1 -.->|code fails| L3_S1
+    L4_S2 -.->|tests fail| L3_S2
+    L5_S1 -.->|commit fails| L4_S1
+    L5_S2 -.->|push fails| L4_S2
 
-    style L1 fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
-    style L2 fill:#fef9c3,stroke:#eab308,stroke-width:2px
-    style L3 fill:#ffedd5,stroke:#f97316,stroke-width:2px
-    style L4 fill:#dcfce7,stroke:#22c55e,stroke-width:2px
-    style L5 fill:#f3e8ff,stroke:#a855f7,stroke-width:2px
-    style L6 fill:#fee2e2,stroke:#ef4444,stroke-width:2px`;
+    %% Phase colours
+    style ENTRY fill:#1a2744,stroke:#6b9aff,stroke-width:3px,color:#e2e8f0
+    style L1 fill:#eef2ff,stroke:#4f7ef7,stroke-width:2.5px
+    style L2 fill:#fffbeb,stroke:#d97706,stroke-width:2.5px
+    style L3 fill:#fff7ed,stroke:#ea580c,stroke-width:2.5px
+    style L4 fill:#f0fdf4,stroke:#16a34a,stroke-width:2.5px
+    style L5 fill:#faf5ff,stroke:#9333ea,stroke-width:2.5px
+    style L6 fill:#fff1f2,stroke:#dc2626,stroke-width:2.5px`;
             return lastMermaidCode;
         }
 
-        function getTheme() {
-            return document.body.classList.contains('dark') ? 'dark' : 'default';
-        }
+        function getTheme() { return document.body.classList.contains('dark') ? 'dark' : 'default'; }
 
         function getToolbarRect() {
-            const toolbar = document.querySelector('.toolbar');
-            return toolbar ? toolbar.getBoundingClientRect() : { top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0 };
+            const t = document.querySelector('.toolbar');
+            return t ? t.getBoundingClientRect() : { bottom: 0 };
         }
 
-        function getLegendPlacementRect(corner, legendRect, viewportRect, toolbarRect) {
-            const margin = UI.legendMargin;
-            const topGap = Math.max(toolbarRect.bottom + UI.legendGap, margin);
-            const left = margin;
-            const right = Math.max(margin, viewportRect.width - legendRect.width - margin);
-            const bottom = Math.max(margin, viewportRect.height - legendRect.height - margin);
-            const top = Math.max(topGap, toolbarRect.bottom + UI.legendGap);
-
+        function getLegendPlacementRect(corner, lRect, vRect, tRect) {
+            const m = UI.legendMargin;
+            const topGap = Math.max(tRect.bottom + UI.legendGap, m);
+            const left = m;
+            const right = Math.max(m, vRect.width - lRect.width - m);
+            const bottom = Math.max(m, vRect.height - lRect.height - m);
+            const top = Math.max(topGap, tRect.bottom + UI.legendGap);
             switch (corner) {
-                case 'tl':
-                    return { left, top };
-                case 'tr':
-                    return { left: right, top };
-                case 'bl':
-                    return { left, top: bottom };
-                case 'br':
-                default:
-                    return { left: right, top: bottom };
+                case 'tl': return { left, top };
+                case 'tr': return { left: right, top };
+                case 'bl': return { left, top: bottom };
+                default:    return { left: right, top: bottom };
             }
         }
 
-        function rectIntersectionArea(a, b) {
-            const left = Math.max(a.left, b.left);
-            const top = Math.max(a.top, b.top);
-            const right = Math.min(a.right, b.right);
-            const bottom = Math.min(a.bottom, b.bottom);
-            if (right <= left || bottom <= top) return 0;
-            return (right - left) * (bottom - top);
+        function rectOverlap(a, b) {
+            const l = Math.max(a.left, b.left), t = Math.max(a.top, b.top);
+            const r = Math.min(a.right, b.right), bot = Math.min(a.bottom, b.bottom);
+            if (r <= l || bot <= t) return 0;
+            return (r - l) * (bot - t);
         }
 
         function placeLegend(corner, { persist = true } = {}) {
             const legend = document.querySelector('.legend');
-            if (!legend || getComputedStyle(legend).display === 'none') return;
-
-            const viewportRect = document.documentElement.getBoundingClientRect();
-            const legendRect = legend.getBoundingClientRect();
-            const toolbarRect = getToolbarRect();
-            const placement = getLegendPlacementRect(corner, legendRect, viewportRect, toolbarRect);
-
+            if (!legend) return;
+            const vRect = document.documentElement.getBoundingClientRect();
+            const lRect = legend.getBoundingClientRect();
+            const tRect = getToolbarRect();
+            const p = getLegendPlacementRect(corner, lRect, vRect, tRect);
             legend.dataset.legendCorner = corner;
-            legend.style.left = `${placement.left}px`;
-            legend.style.top = `${placement.top}px`;
+            legend.style.left = `${p.left}px`;
+            legend.style.top = `${p.top}px`;
             legend.style.right = 'auto';
             legend.style.bottom = 'auto';
-
-            if (persist) {
-                currentLegendCorner = corner;
-                persistUiState();
-            }
+            if (persist) { currentLegendCorner = corner; persistUiState(); }
         }
 
         function chooseBestLegendCorner() {
             const legend = document.querySelector('.legend');
-            if (!legend || getComputedStyle(legend).display === 'none') return 'br';
-
-            const viewportRect = document.documentElement.getBoundingClientRect();
-            const legendRect = legend.getBoundingClientRect();
-            const toolbarRect = getToolbarRect();
-            const diagram = document.querySelector('#diagram svg');
-            const diagramRect = diagram ? diagram.getBoundingClientRect() : null;
-            const corners = ['tl', 'tr', 'bl', 'br'];
-
-            let bestCorner = 'br';
-            let bestScore = Number.POSITIVE_INFINITY;
-
-            corners.forEach((corner) => {
-                const placement = getLegendPlacementRect(corner, legendRect, viewportRect, toolbarRect);
-                const candidateRect = {
-                    left: placement.left,
-                    top: placement.top,
-                    right: placement.left + legendRect.width,
-                    bottom: placement.top + legendRect.height
-                };
-
+            if (!legend) return 'br';
+            const vRect = document.documentElement.getBoundingClientRect();
+            const lRect = legend.getBoundingClientRect();
+            const tRect = getToolbarRect();
+            const dRect = document.querySelector('#diagram svg')?.getBoundingClientRect() || null;
+            const corners = ['tl','tr','bl','br'];
+            let best = 'br', bestScore = Infinity;
+            corners.forEach(corner => {
+                const p = getLegendPlacementRect(corner, lRect, vRect, tRect);
+                const cRect = { left: p.left, top: p.top, right: p.left + lRect.width, bottom: p.top + lRect.height };
                 let score = 0;
-                if (diagramRect) {
-                    score += rectIntersectionArea(candidateRect, diagramRect);
-                }
-
-                if (corner.startsWith('t')) {
-                    score += rectIntersectionArea(candidateRect, toolbarRect) * 1000;
-                }
-
-                if (score < bestScore) {
-                    bestScore = score;
-                    bestCorner = corner;
-                }
+                if (dRect) score += rectOverlap(cRect, dRect);
+                if (corner.startsWith('t')) score += rectOverlap(cRect, tRect) * 1000;
+                if (score < bestScore) { bestScore = score; best = corner; }
             });
-
-            return bestCorner;
+            return best;
         }
 
         function updateLegendPlacement() {
             const legend = document.querySelector('.legend');
-            if (!legend || getComputedStyle(legend).display === 'none') return;
-
-            if (legendPlacementOrigin === 'url' || legendPlacementOrigin === 'manual') {
-                placeLegend(currentLegendCorner, { persist: true });
-                return;
-            }
-
-            const savedCorner = parseLegendCorner(safeStorageGet(STORAGE_KEYS.legendCorner));
-            const savedMode = safeStorageGet(STORAGE_KEYS.legendMode);
-            if (savedCorner && savedMode === 'manual') {
-                currentLegendCorner = savedCorner;
-                legendMode = 'manual';
-                legendPlacementOrigin = 'manual';
-                placeLegend(savedCorner, { persist: true });
-                return;
-            }
-
+            if (!legend) return;
+            if (legendPlacementOrigin === 'url' || legendPlacementOrigin === 'manual') { placeLegend(currentLegendCorner, { persist: true }); return; }
+            const savedCorner = parseLegendCorner(safeGet(STORAGE_KEYS.legendCorner));
+            const savedMode = safeGet(STORAGE_KEYS.legendMode);
+            if (savedCorner && savedMode === 'manual') { currentLegendCorner = savedCorner; legendMode = 'manual'; legendPlacementOrigin = 'manual'; placeLegend(savedCorner, { persist: true }); return; }
             const corner = chooseBestLegendCorner();
-            currentLegendCorner = corner;
-            legendMode = 'auto';
-            legendPlacementOrigin = 'auto';
+            currentLegendCorner = corner; legendMode = 'auto'; legendPlacementOrigin = 'auto';
             placeLegend(corner, { persist: true });
         }
 
         function snapLegendToNearestCorner() {
             const legend = document.querySelector('.legend');
-            if (!legend || getComputedStyle(legend).display === 'none') return;
-
-            const legendRect = legend.getBoundingClientRect();
-            const viewportRect = document.documentElement.getBoundingClientRect();
-            const toolbarRect = getToolbarRect();
+            if (!legend) return;
+            const lRect = legend.getBoundingClientRect();
+            const vRect = document.documentElement.getBoundingClientRect();
+            const tRect = getToolbarRect();
             const centers = {
-                tl: { x: UI.legendMargin, y: toolbarRect.bottom + UI.legendGap },
-                tr: { x: viewportRect.width - legendRect.width - UI.legendMargin, y: toolbarRect.bottom + UI.legendGap },
-                bl: { x: UI.legendMargin, y: viewportRect.height - legendRect.height - UI.legendMargin },
-                br: { x: viewportRect.width - legendRect.width - UI.legendMargin, y: viewportRect.height - legendRect.height - UI.legendMargin }
+                tl: { x: UI.legendMargin, y: tRect.bottom + UI.legendGap },
+                tr: { x: vRect.width - lRect.width - UI.legendMargin, y: tRect.bottom + UI.legendGap },
+                bl: { x: UI.legendMargin, y: vRect.height - lRect.height - UI.legendMargin },
+                br: { x: vRect.width - lRect.width - UI.legendMargin, y: vRect.height - lRect.height - UI.legendMargin }
             };
-
-            const centerX = legendRect.left + legendRect.width / 2;
-            const centerY = legendRect.top + legendRect.height / 2;
-            let bestCorner = 'br';
-            let bestDist = Number.POSITIVE_INFINITY;
-
-            Object.entries(centers).forEach(([corner, point]) => {
-                const dx = centerX - point.x;
-                const dy = centerY - point.y;
-                const dist = (dx * dx) + (dy * dy);
-                if (dist < bestDist) {
-                    bestDist = dist;
-                    bestCorner = corner;
-                }
+            const cx = lRect.left + lRect.width / 2;
+            const cy = lRect.top + lRect.height / 2;
+            let best = 'br', bestDist = Infinity;
+            Object.entries(centers).forEach(([corner, pt]) => {
+                const d = (cx - pt.x) ** 2 + (cy - pt.y) ** 2;
+                if (d < bestDist) { bestDist = d; best = corner; }
             });
-
-            legendMode = 'manual';
-            legendPlacementOrigin = 'manual';
-            placeLegend(bestCorner, { persist: true });
+            legendMode = 'manual'; legendPlacementOrigin = 'manual';
+            placeLegend(best, { persist: true });
         }
 
         function attachLegendDragging() {
             const legend = document.querySelector('.legend');
             if (!legend || legend.dataset.dragBound === 'true') return;
-
             legend.dataset.dragBound = 'true';
-            legend.addEventListener('pointerdown', (event) => {
-                if (event.button !== 0) return;
-                if (window.matchMedia('(max-width: 600px)').matches) return;
-
-                const target = event.target;
-                if (target && target.closest && target.closest('a, button, input, textarea, select')) return;
-
+            legend.addEventListener('pointerdown', e => {
+                if (e.button !== 0 || window.matchMedia('(max-width:600px)').matches) return;
+                if (e.target.closest && e.target.closest('a,button,input,textarea,select')) return;
                 const rect = legend.getBoundingClientRect();
-                legendDragState = {
-                    pointerId: event.pointerId,
-                    offsetX: event.clientX - rect.left,
-                    offsetY: event.clientY - rect.top
-                };
+                legendDragState = { pointerId: e.pointerId, offX: e.clientX - rect.left, offY: e.clientY - rect.top };
                 legend.dataset.legendDragging = 'true';
-                legend.setPointerCapture(event.pointerId);
-                event.preventDefault();
+                legend.setPointerCapture(e.pointerId);
+                e.preventDefault();
             });
-
-            legend.addEventListener('pointermove', (event) => {
-                if (!legendDragState || legendDragState.pointerId !== event.pointerId) return;
-
-                const viewportRect = document.documentElement.getBoundingClientRect();
-                const toolbarRect = getToolbarRect();
-                const legendRect = legend.getBoundingClientRect();
-                const minLeft = UI.legendMargin;
-                const maxLeft = Math.max(UI.legendMargin, viewportRect.width - legendRect.width - UI.legendMargin);
-                const minTop = toolbarRect.bottom + UI.legendGap;
-                const maxTop = Math.max(minTop, viewportRect.height - legendRect.height - UI.legendMargin);
-
-                const left = Math.min(Math.max(event.clientX - legendDragState.offsetX, minLeft), maxLeft);
-                const top = Math.min(Math.max(event.clientY - legendDragState.offsetY, minTop), maxTop);
-
+            legend.addEventListener('pointermove', e => {
+                if (!legendDragState || legendDragState.pointerId !== e.pointerId) return;
+                const vRect = document.documentElement.getBoundingClientRect();
+                const tRect = getToolbarRect();
+                const lRect = legend.getBoundingClientRect();
+                const left = Math.min(Math.max(e.clientX - legendDragState.offX, UI.legendMargin), Math.max(UI.legendMargin, vRect.width - lRect.width - UI.legendMargin));
+                const top = Math.min(Math.max(e.clientY - legendDragState.offY, tRect.bottom + UI.legendGap), Math.max(tRect.bottom + UI.legendGap, vRect.height - lRect.height - UI.legendMargin));
                 legend.style.left = `${left}px`;
                 legend.style.top = `${top}px`;
                 legend.style.right = 'auto';
                 legend.style.bottom = 'auto';
                 legend.dataset.legendCorner = 'free';
             });
-
-            const finishDrag = (event) => {
-                if (!legendDragState || legendDragState.pointerId !== event.pointerId) return;
+            const finish = e => {
+                if (!legendDragState || legendDragState.pointerId !== e.pointerId) return;
                 legendDragState = null;
                 legend.dataset.legendDragging = 'false';
-                try { legend.releasePointerCapture(event.pointerId); } catch (err) {}
+                try { legend.releasePointerCapture(e.pointerId); } catch {}
                 snapLegendToNearestCorner();
             };
-
-            legend.addEventListener('pointerup', finishDrag);
-            legend.addEventListener('pointercancel', finishDrag);
-
+            legend.addEventListener('pointerup', finish);
+            legend.addEventListener('pointercancel', finish);
             legend.addEventListener('dblclick', () => {
-                safeStorageRemove(STORAGE_KEYS.legendCorner);
-                safeStorageRemove(STORAGE_KEYS.legendMode);
-                legendMode = 'auto';
-                legendPlacementOrigin = 'auto';
+                safeRemove(STORAGE_KEYS.legendCorner);
+                safeRemove(STORAGE_KEYS.legendMode);
+                legendMode = 'auto'; legendPlacementOrigin = 'auto';
                 updateLegendPlacement();
             });
         }
@@ -996,12 +876,12 @@
             renderInProgress = true;
             setExportButtonsDisabled(true);
             const diagram = document.getElementById('diagram');
-            diagram.innerHTML = '<div class="loading" id="loading">Rendering diagram…</div>';
+            diagram.innerHTML = '<div class="loading">Rendering diagram…</div>';
 
-            const renderId = 'mermaid-diagram-' + Math.random().toString(36).slice(2, 10);
+            const renderId = 'sdlc-' + Math.random().toString(36).slice(2, 10);
             const theme = getTheme();
             const modeConfig = layoutModes[currentLayout];
-            const renderSignature = `${currentLayout}|${theme}`;
+            const sig = `${currentLayout}|${theme}`;
 
             try {
                 await loadMermaidWithFallback();
@@ -1012,32 +892,24 @@
                     securityLevel: 'loose',
                 });
 
-                if (renderSignature === lastRenderSignature && diagram.querySelector('svg')) {
+                if (sig === lastRenderSignature && diagram.querySelector('svg')) {
                     scheduleLegendPlacement();
+                    renderInProgress = false;
                     return;
                 }
 
-                const { svg, bindFunctions } = await mermaid.render(
-                    renderId,
-                    buildMermaidCode(modeConfig.direction)
-                );
-                lastRenderSignature = renderSignature;
-
+                const { svg, bindFunctions } = await mermaid.render(renderId, buildMermaidCode(modeConfig.direction));
+                lastRenderSignature = sig;
                 diagram.innerHTML = `<div class="diagram-inner">${svg}</div>`;
+
                 const svgEl = diagram.querySelector('svg');
                 if (svgEl) {
                     svgEl.removeAttribute('width');
                     svgEl.removeAttribute('height');
-                    const containerRect = diagram.getBoundingClientRect();
-                    const availW = containerRect.width - UI.fitPadding;
-                    const availH = containerRect.height - UI.fitPadding;
-                    const viewBox = svgEl.getAttribute('viewBox');
-                    const parts = viewBox.split(' ');
-                    const vbW = parseFloat(parts[2]);
-                    const vbH = parseFloat(parts[3]);
-                    const scaleX = availW / vbW;
-                    const scaleY = availH / vbH;
-                    const fitScale = Math.min(scaleX, scaleY);
+                    const cRect = diagram.getBoundingClientRect();
+                    const vb = svgEl.getAttribute('viewBox').split(' ');
+                    const vbW = parseFloat(vb[2]), vbH = parseFloat(vb[3]);
+                    const fitScale = Math.min((cRect.width - UI.fitPadding) / vbW, (cRect.height - UI.fitPadding) / vbH);
                     svgEl.style.width = (vbW * fitScale) + 'px';
                     svgEl.style.height = (vbH * fitScale) + 'px';
                     svgEl.classList.toggle('max-width-limited', currentLayout === 'LR' || currentLayout === 'RL');
@@ -1048,7 +920,7 @@
                     scheduleLegendPlacement();
                 }
             } catch (err) {
-                diagram.innerHTML = `<div class="loading" style="color:red">Error: ${err.message}</div>`;
+                diagram.innerHTML = `<div class="loading" style="color:#dc2626">Error: ${err.message}</div>`;
             } finally {
                 renderInProgress = false;
                 setExportButtonsDisabled(false);
@@ -1062,142 +934,37 @@
             renderDiagram();
         }
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            applyInitialState();
-            updateThemeToggleLabel();
-            setLayoutButtonState(currentLayout);
-
-            document.getElementById('layout-tb').addEventListener('click', () => setLayout('TB'));
-            document.getElementById('layout-bt').addEventListener('click', () => setLayout('BT'));
-            document.getElementById('layout-lr').addEventListener('click', () => setLayout('LR'));
-            document.getElementById('layout-rl').addEventListener('click', () => setLayout('RL'));
-
-            document.getElementById('zoom-in').addEventListener('click', () => {
-                currentScale = Math.min(currentScale + 0.2, 3);
-                applyZoom();
-            });
-
-            document.getElementById('zoom-out').addEventListener('click', () => {
-                currentScale = Math.max(currentScale - 0.2, 0.3);
-                applyZoom();
-            });
-
-            document.getElementById('zoom-reset').addEventListener('click', () => {
-                currentScale = 1;
-                applyZoom();
-            });
-
-            document.getElementById('theme-toggle').addEventListener('click', () => {
-                document.body.classList.toggle('dark');
-                updateThemeToggleLabel();
-                persistUiState();
-                renderDiagram();
-            });
-
-            document.getElementById('export-png').addEventListener('click', () => exportDiagram('png'));
-            document.getElementById('export-svg').addEventListener('click', () => exportDiagram('svg'));
-
-            attachLegendDragging();
-            updateLegendPlacement();
-            updateThemeToggleLabel();
-
-            window.addEventListener('resize', scheduleResizeWork);
-
-            document.addEventListener('keydown', (event) => {
-                if (event.defaultPrevented) return;
-                const target = event.target;
-                if (target && target.closest && target.closest('input, textarea, select, [contenteditable="true"]')) return;
-
-                const key = event.key.toLowerCase();
-                if (key === '+' || key === '=' || event.code === 'NumpadAdd') {
-                    event.preventDefault();
-                    currentScale = Math.min(currentScale + 0.2, 3);
-                    applyZoom();
-                } else if (key === '-' || event.code === 'NumpadSubtract') {
-                    event.preventDefault();
-                    currentScale = Math.max(currentScale - 0.2, 0.3);
-                    applyZoom();
-                } else if (key === '0') {
-                    event.preventDefault();
-                    currentScale = 1;
-                    applyZoom();
-                } else if (key === 'l') {
-                    event.preventDefault();
-                    setLayout('LR');
-                } else if (key === 'r') {
-                    event.preventDefault();
-                    setLayout('RL');
-                } else if (key === 't') {
-                    event.preventDefault();
-                    setLayout('TB');
-                } else if (key === 'b') {
-                    event.preventDefault();
-                    setLayout('BT');
-                } else if (key === 'escape') {
-                    event.preventDefault();
-                    legendDragState = null;
-                    safeStorageRemove(STORAGE_KEYS.legendMode);
-                    safeStorageRemove(STORAGE_KEYS.legendCorner);
-                    legendMode = 'auto';
-                    updateLegendPlacement();
-                }
-            });
-
-            renderDiagram();
-        });
-
         function applyZoom() {
             const svgEl = document.querySelector('#diagram svg');
-            if (svgEl) {
-                svgEl.style.transform = `scale(${currentScale})`;
-                svgEl.style.transformOrigin = 'center center';
-            }
+            if (svgEl) { svgEl.style.transform = `scale(${currentScale})`; svgEl.style.transformOrigin = 'center center'; }
             persistUiState();
         }
 
         function positionClusterLabels(svgEl) {
-            const clusters = svgEl.querySelectorAll('g.cluster');
-            clusters.forEach((cluster) => {
+            svgEl.querySelectorAll('g.cluster').forEach(cluster => {
                 const labelRoot = cluster.querySelector('g.cluster-label, .cluster-label');
                 const title = clusterTitles[cluster.id];
                 if (!title) return;
-
-                if (labelRoot) {
-                    labelRoot.style.display = 'none';
+                if (labelRoot) labelRoot.style.display = 'none';
+                let layer = cluster.querySelector('g.custom-cluster-title');
+                if (!layer) {
+                    layer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                    layer.setAttribute('class', 'custom-cluster-title');
+                    layer.style.pointerEvents = 'none';
+                    cluster.insertBefore(layer, cluster.children[1] || null);
                 }
-
-                let titleLayer = cluster.querySelector('g.custom-cluster-title');
-                if (!titleLayer) {
-                    titleLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-                    titleLayer.setAttribute('class', 'custom-cluster-title');
-                    titleLayer.style.pointerEvents = 'none';
-                    cluster.insertBefore(titleLayer, cluster.children[1] || null);
-                }
-
-                titleLayer.innerHTML = '';
-                const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                layer.innerHTML = '';
                 const rect = cluster.querySelector('rect');
-                const rectX = rect ? parseFloat(rect.getAttribute('x') || '0') : 0;
-                const rectY = rect ? parseFloat(rect.getAttribute('y') || '0') : 0;
-
-                text.setAttribute('x', String(rectX + UI.titleInsetX));
-                text.setAttribute('y', String(rectY + UI.titleInsetY));
+                const rx = rect ? parseFloat(rect.getAttribute('x') || '0') : 0;
+                const ry = rect ? parseFloat(rect.getAttribute('y') || '0') : 0;
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', String(rx + UI.titleInsetX));
+                text.setAttribute('y', String(ry + UI.titleInsetY));
                 text.setAttribute('text-anchor', 'start');
                 text.setAttribute('dominant-baseline', 'hanging');
                 text.setAttribute('class', 'cluster-title-text');
                 text.textContent = title;
-
-                titleLayer.appendChild(text);
-                const textBox = text.getBBox();
-                bg.setAttribute('class', 'cluster-title-bg');
-                bg.setAttribute('x', String(textBox.x - UI.titlePadX));
-                bg.setAttribute('y', String(textBox.y - UI.titlePadY));
-                bg.setAttribute('width', String(textBox.width + UI.titlePadX * 2));
-                bg.setAttribute('height', String(textBox.height + UI.titlePadY * 2));
-                bg.setAttribute('rx', '6');
-                bg.setAttribute('ry', '6');
-                titleLayer.insertBefore(bg, text);
+                layer.appendChild(text);
             });
         }
 
@@ -1217,23 +984,62 @@
                 const img = new Image();
                 const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
                 const url = URL.createObjectURL(blob);
-                await new Promise((resolve, reject) => {
-                    img.onload = resolve;
-                    img.onerror = reject;
-                    img.src = url;
-                });
-                canvas.width = img.width * 2;
-                canvas.height = img.height * 2;
+                await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+                canvas.width = img.width * 2; canvas.height = img.height * 2;
                 ctx.scale(2, 2);
-                ctx.fillStyle = document.body.classList.contains('dark') ? '#0f172a' : '#ffffff';
+                ctx.fillStyle = document.body.classList.contains('dark') ? '#0c1222' : '#ffffff';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(img, 0, 0);
-                URL.revokeCloudURL(url);
-                const pngUrl = canvas.toDataURL('image/png');
+                URL.revokeObjectURL(url);
                 const a = document.createElement('a');
-                a.href = pngUrl; a.download = 'sdlc-pipeline.png'; a.click();
+                a.href = canvas.toDataURL('image/png'); a.download = 'sdlc-pipeline.png'; a.click();
             }
         }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            applyInitialState();
+            setLayoutButtonState(currentLayout);
+
+            document.getElementById('layout-tb').addEventListener('click', () => setLayout('TB'));
+            document.getElementById('layout-bt').addEventListener('click', () => setLayout('BT'));
+            document.getElementById('layout-lr').addEventListener('click', () => setLayout('LR'));
+            document.getElementById('layout-rl').addEventListener('click', () => setLayout('RL'));
+            document.getElementById('zoom-in').addEventListener('click', () => { currentScale = Math.min(currentScale + 0.2, 3); applyZoom(); });
+            document.getElementById('zoom-out').addEventListener('click', () => { currentScale = Math.max(currentScale - 0.2, 0.3); applyZoom(); });
+            document.getElementById('zoom-reset').addEventListener('click', () => { currentScale = 1; applyZoom(); });
+            document.getElementById('theme-toggle').addEventListener('click', () => {
+                document.body.classList.toggle('dark');
+                persistUiState();
+                renderDiagram();
+            });
+            document.getElementById('export-png').addEventListener('click', () => exportDiagram('png'));
+            document.getElementById('export-svg').addEventListener('click', () => exportDiagram('svg'));
+
+            attachLegendDragging();
+            updateLegendPlacement();
+            window.addEventListener('resize', scheduleResizeWork);
+
+            document.addEventListener('keydown', e => {
+                if (e.target.closest && e.target.closest('input,textarea,select,[contenteditable="true"]')) return;
+                const key = e.key.toLowerCase();
+                if (key === '+' || key === '=' || e.code === 'NumpadAdd') { e.preventDefault(); currentScale = Math.min(currentScale + 0.2, 3); applyZoom(); }
+                else if (key === '-' || e.code === 'NumpadSubtract') { e.preventDefault(); currentScale = Math.max(currentScale - 0.2, 0.3); applyZoom(); }
+                else if (key === '0') { e.preventDefault(); currentScale = 1; applyZoom(); }
+                else if (key === 'l') { e.preventDefault(); setLayout('LR'); }
+                else if (key === 'r') { e.preventDefault(); setLayout('RL'); }
+                else if (key === 't') { e.preventDefault(); setLayout('TB'); }
+                else if (key === 'b') { e.preventDefault(); setLayout('BT'); }
+                else if (key === 'escape') {
+                    legendDragState = null;
+                    safeRemove(STORAGE_KEYS.legendMode);
+                    safeRemove(STORAGE_KEYS.legendCorner);
+                    legendMode = 'auto';
+                    updateLegendPlacement();
+                }
+            });
+
+            renderDiagram();
+        });
     </script>
 </body>
 </html>
