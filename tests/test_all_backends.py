@@ -4,24 +4,24 @@
 import asyncio
 from search_research import AsyncSearchRouter
 
-BACKENDS_UNDER_TEST = [
-    "cds",
-    "cks",
-    "claude-history",
-    "grep",
-    "kg",
-    "ast_code",
-    "lsp",
-    "notebooklm",
-    "rlm",
-    "skills",
-    "yt_is",
-    "qmd_wiki",
-]
+BACKEND_QUERIES = {
+    "cds": "async def",
+    "cks": "router",
+    "claude-history": "import asyncio",
+    "grep": "class AsyncSearchRouter",
+    "kg": "class",
+    "ast_code": "class",
+    "lsp": "class",
+    "notebooklm": "class",
+    "rlm": "class AsyncSearchRouter",
+    "skills": "class",
+    "yt_is": "class",
+    "qmd_wiki": "import asyncio",
+}
 
 
 async def check_backend(router: AsyncSearchRouter, backend_name: str, query: str) -> dict:
-    """Test a single backend with a broad query."""
+    """Test a single backend with its specific query."""
     try:
         results = await router.search_async(query, limit=3, backends=[backend_name])
         return {
@@ -45,10 +45,8 @@ async def main():
     print("=" * 80)
 
     router = AsyncSearchRouter(enable_jmri=True, enable_cache=False, mode="local-only")
-    query = "class AsyncSearchRouter"  # Should match in router.py
 
-    print(f"\nQuery: '{query}'")
-    print(f"Mode: local-only\n")
+    print(f"\nMode: local-only\n")
 
     # First verify backends are registered
     results_all = await router.search_async("class", limit=1)
@@ -57,7 +55,7 @@ async def main():
     print(f"{'Backend':<20} {'Status':<15} {'Count':<6} First Result")
     print("-" * 80)
 
-    for backend_name in BACKENDS_UNDER_TEST:
+    for backend_name, query in BACKEND_QUERIES.items():
         result = await check_backend(router, backend_name, query)
         status = result["status"]
         count = result["count"]
