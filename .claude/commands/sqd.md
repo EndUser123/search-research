@@ -8,7 +8,7 @@ argument-hint: "<sqd question or task>"
 Use the `sqd` skill as the backing implementation for this command.
 
 - Skill entrypoint: `P:/.claude/skills/sqd/SKILL.md`
-- Junction target: /p/packages/sdlc/skills/sqd
+- Junction target: /p/packages/cc-skills-sdlc/skills/sqd
 
 Instructions:
 1. Treat `$ARGUMENTS` as the explicit user query when present.

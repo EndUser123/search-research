@@ -150,7 +150,7 @@ If not `"1"`, use the standard Agent dispatch for all specialists (Step 5b).
 **If enabled**, for `adversarial-quality` ONLY, dispatch via Bash instead of Agent. Remove `adversarial-quality` from the parallel Agent dispatch batch and handle it separately:
 
 ```bash
-python "P:/packages/ai-cli/skills/ai-cli/ai_cli.py" "Review the work file at P:/{session_dir}/work.md for maintainability risks, tech debt, structural quality issues, and missing best practices. Output findings as a JSON array with severity (HIGH/MEDIUM/LOW), description, and location." --context "P:/{session_dir}/work.md" --gemini-only --output-format json --no-critic --timeout 120
+python "P:/packages/cc-skills-ai-cli/skills/ai-cli/ai_cli.py" "Review the work file at P:/{session_dir}/work.md for maintainability risks, tech debt, structural quality issues, and missing best practices. Output findings as a JSON array with severity (HIGH/MEDIUM/LOW), description, and location." --context "P:/{session_dir}/work.md" --gemini-only --output-format json --no-critic --timeout 120
 ```
 
 **Transform output:** Parse the ai-cli JSON output and write to the canonical specialist findings path:

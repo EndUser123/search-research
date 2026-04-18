@@ -35,11 +35,16 @@ from file_context import (
 _AI_CLI_CONFIG = Path("P:/.claude/ai-cli-recipe.json")
 
 
-def _load_ai_cli_config() -> dict[str, Any] | None:
-    """Load saved AI-CLI recipe config if it exists."""
+def _load_ai_cli_config(config_path: str | None = None) -> dict[str, Any] | None:
+    """Load saved AI-CLI recipe config if it exists.
+
+    Args:
+        config_path: Optional path to config file. If None, uses default location.
+    """
+    path = Path(config_path) if config_path else _AI_CLI_CONFIG
     try:
-        if _AI_CLI_CONFIG.exists():
-            with open(_AI_CLI_CONFIG, encoding="utf-8") as f:
+        if path.exists():
+            with open(path, encoding="utf-8") as f:
                 raw = json.load(f)
 
             # New format: structured groups for config display.
@@ -3318,12 +3323,18 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
         action="store_true",
         help="Skip the post-run ai-cli critic subagent",
     )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default=None,
+        help="Path to alternate ai-cli-recipe.json (default: P:/.claude/ai-cli-recipe.json)",
+    )
 
     args = parser.parse_args()
 
     # Simple logic tree: "config" query just shows saved config and exits
     if args.query.strip().lower() == "config":
-        saved = _load_ai_cli_config()
+        saved = _load_ai_cli_config(args.config)
         default_clis = []
         aux_clis = []
         if saved:
@@ -3506,7 +3517,7 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
     # Load saved recipe if no opencode_models specified on command line
     opencode_models = args.opencode_model
     if not opencode_models:
-        saved = _load_ai_cli_config()
+        saved = _load_ai_cli_config(args.config)
         if saved:
             opencode_models = saved.get("opencode_models", [])
 

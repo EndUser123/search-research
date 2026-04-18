@@ -8,7 +8,7 @@ argument-hint: "<planning question or task>"
 Use the `planning` skill as the backing implementation for this command.
 
 - Skill entrypoint: `P:/.claude/skills/planning/SKILL.md`
-- Junction target: `P:/packages/sdlc/skills/planning`
+- Junction target: `P:/packages/cc-skills-sdlc/skills/planning`
 
 Instructions:
 1. Treat `$ARGUMENTS` as the explicit user query when present.

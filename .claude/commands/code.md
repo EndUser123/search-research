@@ -8,7 +8,7 @@ argument-hint: "<code question or task>"
 Use the `code` skill as the backing implementation for this command.
 
 - Skill entrypoint: `P:/.claude/skills/code/SKILL.md`
-- Junction target: `P:/packages/sdlc/skills/code`
+- Junction target: `P:/packages/cc-skills-sdlc/skills/code`
 
 Instructions:
 1. Treat `$ARGUMENTS` as the explicit user query when present.

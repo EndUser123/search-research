@@ -242,7 +242,7 @@ python -c "import os; print(os.environ.get('SDLC_MULTI_LLM', '0'))"
 If `"1"`, run:
 
 ```bash
-python "P:/packages/ai-cli/skills/ai-cli/ai_cli.py" "<CHALLENGER_PROMPT>" --context "<relevant_file_if_any>" --<provider>-only --output-format json --no-critic --timeout 120
+python "P:/packages/cc-skills-ai-cli/skills/ai-cli/ai_cli.py" "<CHALLENGER_PROMPT>" --context "<relevant_file_if_any>" --<provider>-only --output-format json --no-critic --timeout 120
 ```
 
 Where:

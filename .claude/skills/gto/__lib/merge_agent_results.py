@@ -122,11 +122,19 @@ def main() -> int:
         print(f"WARNING: No agent files found matching pattern: {args.agents}", file=sys.stderr)
 
     agent_data: dict[str, Any] = {}
-    for agent_file in agent_files:
+    seen_sources: dict[str, Path] = {}
+    for agent_file in sorted(agent_files):
         try:
             parts = agent_file.stem.split("-")
             if len(parts) >= 3:
                 agent_key = parts[2]  # "logic", "quality", "code-critic"
+                if agent_key in seen_sources:
+                    print(
+                        f"WARNING: Duplicate agent source '{agent_key}' — "
+                        f"{agent_file.name} overwrites {seen_sources[agent_key].name}",
+                        file=sys.stderr,
+                    )
+                seen_sources[agent_key] = agent_file
                 agent_data[agent_key] = load_json_file(agent_file)
             else:
                 print(f"WARNING: Agent file does not match expected pattern (gto-correctness-{{type}}-{{terminal_id}}): {agent_file}", file=sys.stderr)

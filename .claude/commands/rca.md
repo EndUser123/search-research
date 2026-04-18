@@ -8,7 +8,7 @@ argument-hint: "<root cause analysis question or task>"
 Use the `rca` skill as the backing implementation for this command.
 
 - Skill entrypoint: `P:/.claude/skills/rca/SKILL.md`
-- Junction target: `P:/packages/sdlc/skills/rca`
+- Junction target: `P:/packages/cc-skills-sdlc/skills/rca`
 
 Instructions:
 1. Treat `$ARGUMENTS` as the explicit user query when present.

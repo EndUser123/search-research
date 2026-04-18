@@ -8,7 +8,7 @@ argument-hint: "<architecture question or task>"
 Use the `arch` skill as the backing implementation for this command.
 
 - Skill entrypoint: `P:/.claude/skills/arch/SKILL.md`
-- Junction target: `P:/packages/sdlc/skills/arch`
+- Junction target: `P:/packages/cc-skills-sdlc/skills/arch`
 
 Instructions:
 1. Treat `$ARGUMENTS` as the explicit user query when present.

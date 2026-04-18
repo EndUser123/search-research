@@ -1,5 +1,5 @@
 ---
-name: mermaid-diagrams
+name: mermaid-c4
 model: fast
 version: 1.1.0
 status: stable

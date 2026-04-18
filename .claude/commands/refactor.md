@@ -8,7 +8,7 @@ argument-hint: "<refactoring question or task>"
 Use the `refactor` skill as the backing implementation for this command.
 
 - Skill entrypoint: `P:/.claude/skills/refactor/SKILL.md`
-- Junction target: `P:/packages/sdlc/skills/refactor`
+- Junction target: `P:/packages/cc-skills-sdlc/skills/refactor`
 
 Instructions:
 1. Treat `$ARGUMENTS` as the explicit user query when present.

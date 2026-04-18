@@ -47,6 +47,7 @@ from posttooluse.investigation_tracker import InvestigationTracker
 # REMOVED: structurally disabled — lint_hook.py runs ruff --fix, corrupts code between sequential edits
 # from posttooluse.lint_hook import LintHook
 from posttooluse.observable_effect_verifier import ObservableEffectVerifier
+from posttooluse.python_syntax_checker import PythonSyntaxChecker
 from posttooluse.outcome_validator_hook import OutcomeValidatorHook
 
 # SQA Phase Tracker - tracks layer-specific tool invocations during SQA execution
@@ -183,6 +184,8 @@ def create_registry() -> HookRegistry:
     registry.register("agent_contract_validator", AgentContractValidator())
     # Edit verifier - verifies Write/Edit operations actually persisted to disk
     registry.register("edit_verifier", EditVerifier())
+    # Python syntax checker - catches SyntaxErrors after Edit/Write on .py files
+    registry.register("python_syntax_checker", PythonSyntaxChecker())
 
     # --- Discovered skill hooks from SKILL.md frontmatter ---
     # Auto-discover hooks declared in skill SKILL.md files and register them

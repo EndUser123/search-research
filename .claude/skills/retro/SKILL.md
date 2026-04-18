@@ -22,8 +22,8 @@ workflow_steps:
   - step_3: Call /friction — identify workflow friction and automation opportunities
   - step_4: Call /pre-mortem — adversarial validation of approach
   - step_5: Evaluate SCORES — rate completeness/optimality/satisfaction 0-10; invoke red-team if any axis < 8
-  - step_6: Call /rns — extract prioritized actions from all findings
-  - step_7: Aggregate ALL findings from all chained skills into the RNS; group by domain
+  - step_6: Aggregate ALL findings from all chained skills
+  - step_7: Render RNS output — domain grouping, gap coverage, Do ALL footer; every finding must have a next step or explicit disposition
 enforcement: strict
 workflow_binding: exclusive
 workflow_enforcement: hard
@@ -41,7 +41,8 @@ usage_markers:
   - "GAPS:"
   - "FRICTION:"
   - "SCORES:"
-  - "ACTIONS:"
+  - "GAP COVERAGE"
+  - "Do ALL Recommended Next Actions"
 ---
 
 # RETRO — SELF-CONTRAST Orchestrator
@@ -92,27 +93,70 @@ SCORES:
   c:[0-10]  Completeness — were all gaps found?
   o:[0-10]  Optimality  — was the approach best possible?
   s:[0-10]  Satisfaction — smooth process?
-
-ACTIONS: [prioritized RNS list — see RNS Aggregation Rule below]
-  [recover/high] ACT-001 ...
-  [prevent/med]  ACT-002 ...
-  [realize/low]  ACT-003 ...
 ```
+
+### RNS Output (Final Section)
+
+The retro ends with an RNS-formatted action list. Follow the `/rns` output format exactly — dynamic domain grouping, domain-numbered items, `@ file:line` references, gap coverage, and the `0 — Do ALL` footer.
+
+```
+1 🔧 QUALITY (2)
+  1a [recover/high] Fix concurrent save registry integrity test @ test_critique_io_concurrent.py:89
+  1b [prevent/med] Add Phase 2/3 filename round-trip tests @ test_critique_io.py
+
+2 📄 DOCS (1)
+  2a [realize/low] Update SKILL.md with Phase 1 completion gate @ SKILL.md
+
+📋 GAP COVERAGE (7 items)
+  5 MAPPED → see actions above
+  1 REJECTED — "MECHANISM_LEAKAGE: hardcoded @gitready is low-risk branding, not a functional issue"
+  1 DEFERRED — "ASSURANCE: AGENTS.template.md deferred to /skill-ship (owns skill wiring)"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+0 — Do ALL Recommended Next Actions (3 items)
+```
+
+**Format rules** (same as `/rns`):
+- Domain sections use emoji headers (🔧 QUALITY, 📄 DOCS, etc.) — no markdown fences
+- Items use domain-numbered format: `1a`, `1b`, `2a`
+- Each item shows: `[action/priority] Description @ file:line`
+- Within each domain sort: recover → prevent → realize, then CRITICAL > HIGH > MEDIUM > LOW
+- Gap coverage section accounts for ALL findings with explicit dispositions (MAPPED/REJECTED/DEFERRED)
+- Ends with `0 — Do ALL Recommended Next Actions (N items)` — nothing follows after that line
+
+### Domain Emoji Mapping
+
+| Domain | Emoji |
+|--------|-------|
+| quality / code_quality | 🔧 |
+| tests / testing | 🧪 |
+| docs / documentation | 📄 |
+| security | 🔒 |
+| performance | ⚡ |
+| git | 🐙 |
+| deps / dependencies | 📦 |
+| process / workflow | 🔄 |
+| other | 📌 |
 
 ### RNS Aggregation Rule (Critical)
 
 **The RNS must include ALL findings from ALL chained skills, not just /pre-mortem.**
 
-When building the ACTIONS list, aggregate findings from:
+When building the action list, aggregate findings from:
 - `/recap` — work already done, completed, or committed (do not include as actionable unless something was left incomplete)
 - `/gto gap` — internal technical debt in the target itself (own by GTO if the target is GTO, otherwise own by the retro's target)
 - `/friction` — workflow friction and automation opportunities (include all automation-potential items)
 - `/pre-mortem` — adversarial findings by domain
 - `/rns` — extracted actions from above
+- **Prior retro carryover** — unresolved RNS actions from the previous session's retro. Check the session transcript for the last retro's RNS output and carry forward any items that were not executed. Each carryover item gets the same disposition as new findings (MAPPED/REJECTED/DEFERRED). Carryover items render with `(carryover)` tag in the action line.
 
-Group by domain (security, correctness, quality, testing, performance, internal). Within each domain sort CRITICAL > HIGH > MEDIUM > LOW.
+**Every finding from every skill must appear in the RNS with an explicit disposition.** Each finding gets exactly one:
+- **MAPPED**: Has a corresponding action item above
+- **REJECTED**: Valid but intentionally not acted on — state why
+- **DEFERRED**: Deferred to future session — name owner + trigger condition
 
-**Every finding from every skill must appear in the RNS with an owner and action.** If a finding is dropped, state why explicitly in the retro output.
+**No finding is silently dropped.** If a finding is excluded, the GAP COVERAGE section states why.
 
 **Failure mode this prevents:** RNS was previously built only from /pre-mortem findings, dropping GTO internal gaps (CAUSE-001/002/003, 7 TODOs in GTO test files) and workflow friction that no upstream skill flagged. The retro felt complete but was systematically incomplete.
 
@@ -123,9 +167,9 @@ Group by domain (security, correctness, quality, testing, performance, internal)
 3. **Call `/friction`** — identify workflow friction and automation opportunities
 4. **Call `/pre-mortem`** — adversarial validation of approach
 5. **Evaluate SCORES** — rate each axis 0-10:
-   - If any axis < 8: re-run `/rns` with adversarial framing before proceeding
-6. **Call `/rns`** — extract prioritized recover/prevent/realize actions
-7. **Aggregate** — merge ALL findings from all chained skills into the final RNS
+   - If any axis < 8: re-run with adversarial framing before proceeding
+6. **Aggregate** — merge ALL findings from all chained skills
+7. **Render RNS output** — format the aggregated findings using the RNS output format (domain grouping, gap coverage, `0 — Do ALL` footer). Every finding must have a recommended next step or an explicit REJECTED/DEFERRED disposition.
 
 ## Red-Team Protocol
 

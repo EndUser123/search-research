@@ -108,7 +108,7 @@ class AsyncSearchRouter:
         # Backend timeouts based on mode (PERF-007 baseline)
         # "fast" and "local-only" use fast timeout; "comprehensive" uses longer timeout
         if self.mode in ("fast", "local-only"):
-            self.backend_timeout = 2.0  # 2s for fast/local-only modes
+            self.backend_timeout = 8.0  # 8s for local modes (was 2s, too aggressive for KG/LSP/AST backends)
         else:
             self.backend_timeout = 8.0  # 8s for comprehensive mode
 
