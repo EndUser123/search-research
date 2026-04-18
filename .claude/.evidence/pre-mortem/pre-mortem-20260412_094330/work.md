@@ -1,1 +1,0 @@
-GTO correctness subagent rewrite: SKILL.md now dispatches Agent tool for gto-logic/gto-quality/gto-code-critic subagents; gto_orchestrator.py had _run_correctness_subagents() removed (broken subprocess.Popen pattern); merge_agent_results.py created

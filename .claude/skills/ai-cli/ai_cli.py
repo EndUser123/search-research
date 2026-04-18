@@ -2,7 +2,7 @@
 """
 LLM CLI - Parallel Multi-LLM Command Invocation with Context Support
 
-Run qwen, gemini, codex, vibe, and opencode CLIs in parallel, aggregate results.
+Run qwen, gemini, codex, and opencode CLIs in parallel, aggregate results.
 Supports injecting context from chat history or files.
 """
 
@@ -980,26 +980,23 @@ def generate_parallel_bash_commands(
     qwen_only: bool = False,
     gemini_only: bool = False,
     codex_only: bool = False,
-    vibe_only: bool = False,
 ) -> list[str]:
     """Generate bash commands for parallel execution.
 
     Returns a list of bash commands that can be run in parallel.
-    Each command pipes the query to stdin (except vibe which uses -p flag).
+    Each command pipes the query to stdin.
     """
     import shlex
 
     # Determine which LLMs to run
-    if not qwen_only and not gemini_only and not codex_only and not vibe_only:
+    if not qwen_only and not gemini_only and not codex_only:
         run_qwen = True
         run_gemini = True
         run_codex = True
-        run_vibe = True
     else:
         run_qwen = qwen_only
         run_gemini = gemini_only
         run_codex = codex_only
-        run_vibe = vibe_only
 
     commands = []
 
@@ -1014,16 +1011,10 @@ def generate_parallel_bash_commands(
         # Gemini rejects "Cannot use both a positional prompt and the --prompt (-p) flag together"
         commands.append(f"echo {safe_query} | gemini -y -o text -m gemini-2.5-flash")
     if run_codex:
-        # Codex exec takes query as argument (not stdin), like vibe uses -p
+        # Codex exec takes query as argument (not stdin)
         commands.append(f'codex exec "{query}"')
-    if run_vibe:
-        # Vibe uses -p flag with full query as single argument (not stdin)
-        # Quote the entire query to handle special chars, newlines in appended questions
-        # Also escape --- (vibe treats it as a flag) by replacing with Unicode em-dash or escaping
-        safe_query = shlex.quote(query)
-        # Replace --- with escaped version so vibe doesn't parse as flag
-        escaped_query = safe_query.replace("---", r"\-\-\-")
-        commands.append(f"vibe -p {escaped_query}")
+
+    return commands
 
     return commands
 
@@ -1083,7 +1074,7 @@ def _determine_active_llms(
     Returns:
         Dictionary with boolean flags for each LLM
     """
-    has_cli_flags = qwen_only or gemini_only or codex_only or vibe_only or opencode_only
+    has_cli_flags = qwen_only or gemini_only or codex_only or opencode_only
     has_glm_api_key = os.environ.get("ZAI_API_KEY")
 
     if not has_cli_flags:
@@ -1091,7 +1082,6 @@ def _determine_active_llms(
             "qwen": True,
             "gemini": True,
             "codex": True,
-            "vibe": True,
             "opencode": True,
             "glm_flash": False,  # Removed: API token expired
         }
@@ -1099,7 +1089,6 @@ def _determine_active_llms(
         "qwen": qwen_only,
         "gemini": gemini_only,
         "codex": codex_only,
-        "vibe": vibe_only,
         "opencode": opencode_only,
         "glm_flash": False,  # Removed: API token expired
     }
@@ -1109,7 +1098,6 @@ def _get_cli_preview(
     qwen_only: bool,
     gemini_only: bool,
     codex_only: bool,
-    vibe_only: bool,
     opencode_only: bool,
     glm_flash_only: bool,
     opencode_models: list[str],
@@ -1117,13 +1105,13 @@ def _get_cli_preview(
     """Build a preview string showing which CLIs and LLMs will be used.
 
     Args:
-        qwen_only, gemini_only, codex_only, vibe_only, opencode_only, glm_flash_only: CLI flags
+        qwen_only, gemini_only, codex_only, opencode_only, glm_flash_only: CLI flags
         opencode_models: List of OpenCode model names
 
     Returns:
         Formatted string listing all CLIs/LLMs that will be invoked
     """
-    has_any_flag = qwen_only or gemini_only or codex_only or vibe_only or opencode_only or glm_flash_only
+    has_any_flag = qwen_only or gemini_only or codex_only or opencode_only or glm_flash_only
 
     # Collect items
     native_clis = []
@@ -1133,8 +1121,6 @@ def _get_cli_preview(
         native_clis.append("gemini")
     if codex_only or not has_any_flag:
         native_clis.append("codex")
-    if vibe_only or not has_any_flag:
-        native_clis.append("vibe")
 
     opencode_models_list = []
     if opencode_only or not has_any_flag:
@@ -1176,7 +1162,6 @@ def _build_cli_commands(
     run_qwen: bool,
     run_gemini: bool,
     run_codex: bool,
-    run_vibe: bool,
     run_opencode: bool,
     opencode_models: list[str],
 ) -> list[tuple[str, str]]:
@@ -1184,7 +1169,7 @@ def _build_cli_commands(
 
     Args:
         query: User query string
-        run_qwen, run_gemini, run_codex, run_vibe, run_opencode: Boolean flags
+        run_qwen, run_gemini, run_codex, run_opencode: Boolean flags
         opencode_models: List of OpenCode model names (empty list = use default)
 
     Returns:
@@ -1225,17 +1210,6 @@ def _build_cli_commands(
         commands.append(("gemini", gemini_args))
     if run_codex:
         commands.append(("codex", codex_cmd))
-    if run_vibe:
-        # Vibe treats --- (and escaped \-\-\-) as flag-like arguments
-        # Replace BOTH forms so vibe's argparse doesn't reject the prompt
-        safe_query = query.replace("---", "___").replace("\\-\\-\\-", "___\\_\\\\_\\\\_").replace("'", "''")
-        if sys.platform == "win32":
-            # On Windows, pass as list to avoid cmd.exe quote interpretation issues
-            # subprocess.run(['vibe', '-p', query]) works, but shell string doesn't
-            commands.append(("vibe", ["vibe", "-p", safe_query]))
-        else:
-            safe_query_shell = shlex.quote(safe_query)
-            commands.append(("vibe", f"vibe -p {safe_query_shell}"))
     if run_opencode:
         if not opencode_models:
             opencode_models = [DEFAULT_OPENCODE_MODEL]
