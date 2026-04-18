@@ -341,6 +341,96 @@ class TestDependsOnSkillsValidation:
         assert result == ["/alpha", "/beta"]
 
 
+class TestEndToEndPipeline:
+    """End-to-end tests exercising run() → process() → injection output."""
+
+    def setup_method(self):
+        self.verifier = IntegrationVerifier()
+
+    def test_e2e_missing_suggest_and_dep_injects_both_sections(self, tmp_path, monkeypatch):
+        """Full run() pipeline: SKILL.md with dead suggest + dead dep produces injection with both warnings."""
+        monkeypatch.setenv("INTEGRATION_VERIFIER_MODE", "warn")
+        skills_root = tmp_path / "skills"
+        skill_dir = skills_root / "alpha"
+        skill_dir.mkdir(parents=True)
+        skill_file = skill_dir / "SKILL.md"
+        skill_file.write_text(
+            "---\n"
+            "name: alpha\n"
+            "suggest:\n"
+            "  - /nonexistent-beta\n"
+            "depends_on_skills: [nonexistent-gamma]\n"
+            "---\n"
+            "# Alpha\n"
+        )
+
+        original_dirs = self.verifier.skills_dirs
+        self.verifier.skills_dirs = [skills_root]
+        try:
+            data = {
+                "tool_name": "Write",
+                "tool_input": {"file_path": str(skill_file)},
+                "tool_response": {},
+            }
+            result = self.verifier.run(data)
+
+            assert result["passed"] is True  # warn mode, not block
+            assert result["injection"] is not None
+            assert "/nonexistent-beta" in result["injection"]
+            assert "/nonexistent-gamma" in result["injection"]
+            assert len(result["missing_integrations"]) == 1
+            assert len(result.get("missing_deps", [])) == 1
+        finally:
+            self.verifier.skills_dirs = original_dirs
+
+    def test_e2e_tool_mismatch_skips_verification(self, tmp_path):
+        """run() with non-Write/Edit tool returns skipped without processing."""
+        data = {
+            "tool_name": "Bash",
+            "tool_input": {"command": "echo hi"},
+            "tool_response": {},
+        }
+        result = self.verifier.run(data)
+        assert result["passed"] is True
+        assert result.get("skipped") is True
+
+    def test_e2e_clean_skill_no_injection(self, tmp_path):
+        """Full run() with valid bidirectional skill produces no injection."""
+        skills_root = tmp_path / "skills"
+
+        # Create two skills that reference each other
+        for name in ("left", "right"):
+            d = skills_root / name
+            d.mkdir(parents=True)
+            other = "right" if name == "left" else "left"
+            (d / "SKILL.md").write_text(
+                "---\n"
+                f"name: {name}\n"
+                f"suggest:\n"
+                f"  - /{other}\n"
+                "---\n"
+                f"# {name}\n"
+            )
+
+        original_dirs = self.verifier.skills_dirs
+        self.verifier.skills_dirs = [skills_root]
+        try:
+            left_file = skills_root / "left" / "SKILL.md"
+            data = {
+                "tool_name": "Write",
+                "tool_input": {"file_path": str(left_file)},
+                "tool_response": {},
+            }
+            result = self.verifier.run(data)
+
+            assert result["passed"] is True
+            assert result["injection"] is None
+            assert len(result["verified_integrations"]) == 1
+            assert result["verified_integrations"][0]["target"] == "/right"
+        finally:
+            self.verifier.skills_dirs = original_dirs
+
+
 if __name__ == "__main__":
     import pytest
 
