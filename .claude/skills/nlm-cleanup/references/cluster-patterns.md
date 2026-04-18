@@ -58,7 +58,7 @@ Per-topic consolidation guides based on observed NotebookLM notebook patterns.
 ## MCP (Model Context Protocol) (~5-7 sources) → Keep 3
 
 **KEEP:**
-1. Official MCP architecture docs (`modelcontextprotocol.io/docs/learn/architecture`)
+1. Official MCP architecture docs (`modelcontextprotocol.io/docs/learn/designitecture`)
 2. Anthropic code execution with MCP
 3. One vendor explainer (Neo4j or Obot)
 

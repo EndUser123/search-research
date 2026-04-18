@@ -161,6 +161,6 @@ When transcript fetch fails, `last_stage` and `failure_reason` are recorded:
 
 ## ADR Reference
 
-See `P:/__csf/arch_decisions/ADR-20260410-notebooklm-ephemeral-notebooks.md` for architecture decision and performance characteristics.
+See `P:/__csf/design_decisions/ADR-20260410-notebooklm-ephemeral-notebooks.md` for architecture decision and performance characteristics.
 
 **Note:** The ADR describes the ephemeral pattern. The batch workflow is the current implementation.

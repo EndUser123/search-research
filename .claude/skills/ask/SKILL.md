@@ -11,10 +11,9 @@ triggers:
 aliases:
   - /ask
 
-suggest:
+follow_up_offer:
   - /search
   - /orchestrator
-  - /nse
 
 # First-tool coherence (v3.5): /ask is a router — its first substantive
 # tool must be a discovery/search action, NOT execution (Bash/python).
@@ -211,7 +210,7 @@ _See `references/integration-notes.md` for ambiguous request handling and fallba
 | "help", "what can you do"            | Help display       |
 | "plan project", "break down task"    | `/breakdown`            |
 | "should I extract this service"      | `/adf`             |
-| "architecture design", "how to design" | `/arch`            |
+| "architecture design", "how to design" | `/design`            |
 | "why is this failing"                | `/rca` or `/debug` |
 | "research X", "learn about Y"        | `/research`        |
 | "document this code", "ingest docs"  | `/doc`             |

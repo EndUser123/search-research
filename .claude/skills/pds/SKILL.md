@@ -32,7 +32,7 @@ execution:
     
     3. PHASE-LOCKED EXECUTION:
        - PHASE 1 (Alignment): Build a checklist mapped 1:1 to `/code` ALIGN criteria.
-       - PHASE 2 (Rigorous Design): Perform adversarial review via `/arch`.
+       - PHASE 2 (Rigorous Design): Perform adversarial review via `/design`.
        - PHASE 3 (Build): RED/GREEN TDD evidence + **Read-After-Edit** (read file *after* write to verify state).
        - PHASE 4 (Verify): **Self-Falsification** (Adversarial Audit). **No Sycophancy** (clinical tone, admit uncertainty).
        - **Verify Complete:**

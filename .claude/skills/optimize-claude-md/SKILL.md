@@ -118,7 +118,7 @@ CONFIDENCE LEVELS (not binary):
 CATEGORIZE BY IMPACT:
 - HELPFUL: Prevents recurring failures seen in transcripts
 - HARMFUL: Misleading, outdated, or caused failures in transcripts
-- REDUNDANT: Merely restates discoverable code/architecture
+- REDUNDANT: Merely restates discoverable code/designitecture
 - UNCONNECTED: No demonstrated impact in transcripts
 
 If the repo has a `memory/` directory:

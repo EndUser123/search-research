@@ -113,14 +113,14 @@ result = invoke_skill("/nse", {"query": "what's next?"})
 
 # Get suggested next skills
 next_skills = get_suggestions("/nse")
-# Returns: ['/analyze', '/search', '/r', '/arch', '/r', ...]
+# Returns: ['/analyze', '/search', '/r', '/design', '/r', ...]
 
 # Get skill information
 info = get_skill_info("/nse")
 # Returns: {skill, suggests, suggested_by, metadata, ...}
 
 # Validate a workflow
-validation = validate_workflow(["/analyze", "/nse", "/arch"])
+validation = validate_workflow(["/analyze", "/nse", "/design"])
 # Returns: {valid: True, valid_transitions: [...], issues: []}
 
 # Get statistics
@@ -230,7 +230,7 @@ python suggest_field_analyzer.py --fix-missing
 
 ### Results Applied
 
-- Added suggestions to 5 high-traffic skills (`/nse`, `/comply`, `/analyze`, `/search`, `/arch`)
+- Added suggestions to 5 high-traffic skills (`/nse`, `/comply`, `/analyze`, `/search`, `/design`)
 - Fixed 5 skills missing suggest fields
 - **193/193 skills now have suggest fields (100% coverage)**
 
@@ -244,7 +244,7 @@ See `WORKFLOWS.md` for canonical workflow patterns:
 
 | Workflow | Path |
 |----------|------|
-| Development | `/analyze → /nse → /arch → /r` |
+| Development | `/analyze → /nse → /design → /r` |
 | Quality | `/build → /t → /comply → /qa` |
 | Bug Fix | `/debug → /fix → /t → /comply` |
 | Research | `/search → /research → /cks → /chs` |
@@ -274,7 +274,7 @@ name: my_skill
 category: analysis
 suggest:
   - /nse
-  - /arch
+  - /design
   - /r
 ---
 ```

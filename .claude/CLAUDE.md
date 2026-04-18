@@ -571,6 +571,7 @@ These hooks enforce constitutional rules:
 | `empirical_claims_gate.py` | No success claims without execution |
 | `bloat_guard_extended.py` | Solo-dev pattern compliance |
 | `path_resolution_orchestrator.py` | Path protection |
+| `PreToolUse_win32_path_gate.py` | Blocks backslash paths in Write/Edit (Windows silent-failure prevention) |
 | `architecture_evidence_gate.py` | Architecture proposal evidence |
 | `error_attribution_validator.py` | Green State / external blame bias |
 | `unparseable_command_gate.py` | Block arbitrary code execution |

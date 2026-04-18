@@ -49,7 +49,7 @@ Detect cross-file refactoring synergies to avoid duplicate extractions.
 ### Architecture Alignment
 - Auto-invokes /p for .py files
 - Integrates with /aid for single-file deep dives
-- Uses /arch for architecture decision framework
+- Uses /design for architecture decision framework
 
 ## Your Workflow
 
@@ -275,4 +275,4 @@ Each synergy scored 0-100:
 - `/aid` - Single-file refactoring analysis
 - `//p` - Python 2025 standards (auto-invoked)
 - `/complexity` - Code complexity analysis
-- `/arch` - Architecture decision framework
+- `/design` - Architecture decision framework

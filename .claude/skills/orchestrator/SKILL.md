@@ -12,7 +12,7 @@ aliases:
 suggest:
   - /nse
   - /analyze
-  - /arch
+  - /design
   - /workflow
   - /cwo_orchestrator
 tags:
@@ -46,7 +46,7 @@ Intelligent central orchestrator for unified skill routing and workflow manageme
 - **Quality categories**: Testing (3 skills), Validation (2 skills), Analysis (3 skills), Optimization (2 skills)
 
 ### Architecture Alignment
-- Integrates with /nse (next steps), /analyze (analysis), /arch (architecture), /workflow (workflow management)
+- Integrates with /nse (next steps), /analyze (analysis), /design (architecture), /workflow (workflow management)
 - Links to /cwo_orchestrator (CWO workflow)
 - Central coordination point for skill ecosystem
 
@@ -107,7 +107,7 @@ See `references/quality-pipeline.md` for quality skills listing, workflow templa
 
 Recorded in decision audit trail:
 - `/nse` - Next Step Engine
-- `/arch` - Ultimate Architectural Advisor
+- `/design` - Ultimate Architectural Advisor
 - `/r` - Deterministic Remember + Refine (pre-mortem ownership)
 - `/llm-brainstorm` - Multi-provider brainstorming
 - `/rca` - Root Cause Analysis
@@ -133,5 +133,5 @@ python -m pytest test_orchestrator.py::test_quality_pipeline -v
 |------|----------|
 | `references/api-reference.md` | Phase 1 and Phase 2 Python API examples |
 | `references/cli-reference.md` | CLI commands for Phase 1 and Phase 2 |
-| `references/architecture.md` | Component architecture, backward compatibility, performance notes |
+| `references/designitecture.md` | Component architecture, backward compatibility, performance notes |
 | `references/quality-pipeline.md` | Quality skills, workflow templates, stage transitions, metrics |

@@ -48,7 +48,7 @@ Unified modernization workflow to transform working code into high-standard syst
 
 ### Technical Context
 - **4-phase process**: AUDIT (measure debt) → STRATEGY (design abstraction) → EXECUTE (transform code) → HARDEN (certify excellence)
-- **Key tools**: /complexity, /analyze, /profile, /arch, /refactor, /aid, /checkpoint, //p-2025, /verify, /learn
+- **Key tools**: /complexity, /analyze, /profile, /design, /refactor, /aid, /checkpoint, //p-2025, /verify, /learn
 - **Success criteria**: All CC > 10 functions refactored, Python 2025 compliance, performance measured, dead-code purged, CKS updated
 - **Flow spec**: flows/modernize.md
 
@@ -61,7 +61,7 @@ Unified modernization workflow to transform working code into high-standard syst
 
 1. **READ FLOW** — Load flows/modernize.md for detailed workflow
 2. **AUDIT (Phase 1)** — Measure debt: /complexity, /analyze --focus quality, /profile --baseline
-3. **STRATEGY (Phase 2)** — Design abstraction: /arch, /plan, ADR auto-draft
+3. **STRATEGY (Phase 2)** — Design abstraction: /design, /plan, ADR auto-draft
 4. **EXECUTE (Phase 3)** — Transform code: /refactor, /aid refactor, /checkpoint, /analyze --focus dead-code
 5. **HARDEN (Phase 4)** — Certify excellence: //p-2025, /verify, /audit, /profile --compare, /learn
 6. **PRESENT NEXT STEPS** — Show completion markers for finished phases
@@ -76,7 +76,7 @@ Unified modernization workflow to transform working code into high-standard syst
 ### Prohibited Actions
 - Refactoring without baseline (run complexity/profile FIRST)
 - Only refactoring "new code" (CC threshold applies to ALL code)
-- Guessing the new pattern (use /arch to validate strategy)
+- Guessing the new pattern (use /design to validate strategy)
 - Editing without /checkpoint safety for multi-file changes
 
 ## ⚡ ALLOCATION DIRECTIVE
@@ -95,7 +95,7 @@ Unified modernization workflow to transform working code into high-standard syst
 | Phase           | Goal               | Key Tools                                                                 |
 | --------------- | ------------------ | ------------------------------------------------------------------------- |
 | **1. AUDIT**    | Measure Debt       | `/complexity`, `/analyze --focus quality`, `/profile --baseline`          |
-| **2. STRATEGY** | Design Abstraction | `/arch`, `/plan`, ADR Auto-draft                                          |
+| **2. STRATEGY** | Design Abstraction | `/design`, `/plan`, ADR Auto-draft                                          |
 | **3. EXECUTE**  | Transform Code     | `/refactor`, `/aid refactor`, `/checkpoint`, `/analyze --focus dead-code` |
 | **4. HARDEN**   | Certify Excellence | `//p-2025`, `/verify`, `/audit`, `/profile --compare`, `/learn`  |
 
@@ -138,7 +138,7 @@ This is a **gap in tooling** that prevents complete workflow execution.
 | --------------------------- | ------------------------------------------------------------ |
 | Refactor without a baseline | Run `/complexity` and `/profile --baseline` FIRST (Phase 1). |
 | **Only refactor "new code"** | **CC threshold applies to ALL code — legacy functions with CC > 10 must also be refactored.** |
-| Guess the new pattern       | Use `/arch` to validate Strategy (Phase 2).                  |
+| Guess the new pattern       | Use `/design` to validate Strategy (Phase 2).                  |
 | Edit without safety         | Run `/checkpoint` BEFORE any multi-file change.              |
 
 ## Constitutional Compliance (REQUIRED)
@@ -190,7 +190,7 @@ Modernization suggestions are high-risk for enterprise bloat:
 
 1. `/complexity` — Find hotspots
 2. `/profile --baseline` — Establish baseline
-3. `/arch` — Validate patterns (if CC > 10)
+3. `/design` — Validate patterns (if CC > 10)
 4. `/refactor` — Apply synergies (if CC > 10)
 5. `/analyze --focus dead-code` — Purge orphans
 6. `/verify` — Validation
@@ -205,7 +205,7 @@ Highest CC: [value] | Average: [value]
 ## NEXT STEPS
 1. `/complexity` — Find hotspots ✓
 2. `/profile --baseline` — Establish baseline
-3. `/arch` — Validate patterns (if CC > 10)
+3. `/design` — Validate patterns (if CC > 10)
 4. `/refactor` — Apply synergies (if CC > 10)
 5. `/analyze --focus dead-code` — Purge orphans
 6. `/verify` — Validation (recommend)

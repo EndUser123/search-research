@@ -399,13 +399,13 @@ def build_follow_up_hints(result_type: str, top_idea_text: str) -> list[str]:
     if result_type == "high_confidence_plan":
         hints.extend(["/planning", "/nse"])
     elif result_type == "risky_or_blocked":
-        hints.extend(["/r", "/arch", "/nse"])
+        hints.extend(["/r", "/design", "/nse"])
     else:
         hints.extend(["/planning", "/r"])
 
     if any(k in idea_lower for k in ("architecture", "system", "design", "module boundary")):
-        if "/arch" not in hints:
-            hints.append("/arch")
+        if "/design" not in hints:
+            hints.append("/design")
     if "/nse" not in hints:
         hints.append("/nse")
 
@@ -1251,7 +1251,7 @@ def _display_help_and_exit() -> None:
     print("  qwen-cli   - Qwen 3.5 Plus (1M context, multimodal)")
     print("  gemini-cli - Auto mode (Gemini 3, 1M context)")
     print("  vibe       - Devstral 2 (200K context)")
-    print("  opencode   - Multi-provider meta-tool")
+    print("  pi         - Multi-provider coding agent")
 
     print("\n### SUPPORTED FLAGS ###")
     print("  --profile PROFILE         Use preset: fast | normal | deep (see above)")

@@ -18,9 +18,8 @@ aliases:
   - /s
 suggest:
   - /r
-  - /q
-  - /nse
-  - /arch
+follow_up_offer:
+  - /design
 workflow_steps:
   - step_parse_args: Extract topic and flags from user prompt; handle --help/--list/unknown flags
   - step_resolve_context: Check if topic is a filesystem path; set --context-path if so
@@ -80,7 +79,7 @@ Director Model (human director + AI agent). Strategies guide AI agents under use
 **Output:**
 - Ranked ideas with scores
 - Decision memo (chosen alternative, why others were rejected)
-- Next command hints (/planning, /nse, /arch)
+- Next command hints (/planning, /design)
 
 ### Recall and Prior Context
 
@@ -144,7 +143,7 @@ Parse the user's args before doing anything else:
 
 Before running the script, check if the topic refers to a filesystem path:
 
-1. If the topic matches or resembles a path in the repo (e.g. `package/handoff`, `packages/arch`, `skills/s`), pass it via `--context-path`
+1. If the topic matches or resembles a path in the repo (e.g. `package/handoff`, `packages/design`, `skills/s`), pass it via `--context-path`
 2. **`--context-path` behavior**: Reads all file contents from the specified path and prepends them to the topic as project context
 3. If the topic is not a path (e.g. "auth migration strategy"), omit `--context-path`
 

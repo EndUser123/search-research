@@ -21,7 +21,7 @@ stats = get_stats()
 info = get_skill_info("/nse")
 
 # Validate a workflow
-validation = validate_workflow(["/analyze", "/nse", "/arch"])
+validation = validate_workflow(["/analyze", "/nse", "/design"])
 
 # Suggest possible workflows
 workflows = suggest_workflow("/nse", max_depth=3)

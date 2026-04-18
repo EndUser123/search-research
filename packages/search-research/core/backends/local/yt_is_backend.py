@@ -117,33 +117,51 @@ class YtIsBackend:
         if not query:
             return []
 
-        # Trigger async rebuild if FTS table doesn't exist or DB is newer
-        db_mtime = self._get_db_mtime()
-        index_mtime = self._index_mtime
-        needs_build = not self._ensure_fts() or (db_mtime and (index_mtime is None or db_mtime > index_mtime))
-
-        if needs_build and not self._rebuild_in_progress:
-            # Atomically check-and-set _rebuild_in_progress under lock
-            with self._rebuild_lock:
-                if self._rebuild_in_progress:
-                    # Already rebuilding in another thread, skip
-                    needs_build = False
-                else:
-                    self._rebuild_in_progress = True
-
-            if needs_build:
-                # Run synchronous build in thread pool (non-blocking for event loop)
-                # Note: lock is released before this runs; build_index checks _rebuild_in_progress itself
-                await asyncio.to_thread(self.build_index)
-
+        # Run FTS search in thread pool to avoid blocking the event loop.
+        # The sqlite3 calls are thread-safe and this allows concurrent execution
+        # with other async backends during the gather.
         try:
-            results = self._fts_search(query, limit)
+            results = await asyncio.to_thread(self._fts_search, query, limit)
             self._rebuild_failures = 0
             self._index_mtime = self._get_db_mtime()
+            # If FTS5 is empty but transcript_cache has data, trigger lazy rebuild
+            if not results and self._ensure_fts():
+                db_mtime = self._get_db_mtime()
+                index_mtime = self._index_mtime
+                if db_mtime and (index_mtime is None or db_mtime > index_mtime):
+                    self._trigger_lazy_rebuild()
             return results
         except Exception as e:
             logger.debug(f"yt-is FTS search failed: {e}")
             return []
+
+    def _trigger_lazy_rebuild(self) -> None:
+        """Trigger a lazy background rebuild if one isn't already running.
+
+        Called after an empty-result search when the DB has newer data than the index.
+        Runs rebuild in thread pool without blocking the event loop.
+        """
+        if self._rebuild_in_progress:
+            return
+        with self._rebuild_lock:
+            if self._rebuild_in_progress:
+                return
+            self._rebuild_in_progress = True
+        # Detach rebuild so it doesn't block the caller
+        import threading
+        t = threading.Thread(target=self._lazy_build_wrapper, daemon=True)
+        t.start()
+
+    def _lazy_build_wrapper(self) -> None:
+        """Wrapper for lazy rebuild that resets the in-progress flag on completion."""
+        try:
+            self._sync_build_fts()
+        except Exception as e:
+            logger.debug(f"yt-is lazy FTS build failed: {e}")
+            self._rebuild_failures += 1
+            self._update_cooldown()
+        finally:
+            self._rebuild_in_progress = False
 
     def build_index(self) -> None:
         """Build or rebuild the FTS5 table from transcript_cache + analysis_status join.

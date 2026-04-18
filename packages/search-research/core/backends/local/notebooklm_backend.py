@@ -12,6 +12,9 @@ CLI approach is preferred over MCP because:
 
 from __future__ import annotations
 
+import warnings
+warnings.filterwarnings("ignore", category=ResourceWarning)
+
 import asyncio
 import json
 import logging

@@ -1,7 +1,7 @@
 ---
 name: retro
-description: "Identify what went wrong, what went right, and what to do differently next time. Chains 5 skills: recap → gap analysis → opportunities → adversarial review → actions."
-version: 1.1.0
+description: "Identify what went wrong, what went right, and what to do differently next time. Chains 6 skills: recap → gap analysis → friction → pre-mortem → actions."
+version: 1.2.0
 category: orchestration
 triggers:
   - "retro"
@@ -14,21 +14,16 @@ aliases:
   - /retro
   - /self-contrast
 suggest:
-  - /recap
-  - /gto
-  - /ideas
-  - /pre-mortem
-  - /rns
-  - /critique
-depends_on_skills: [recap, gto, ideas, pre-mortem, rns]
+  - /friction
+depends_on_skills: [recap, gto, friction, pre-mortem, rns]
 workflow_steps:
   - step_1: Call /recap — get session summary with problem/optimal contrast
   - step_2: Call /gto gap — extract top gaps from session evidence
-  - step_3: Call /ideas — extract top opportunities (or invert top-problems output)
+  - step_3: Call /friction — identify workflow friction and automation opportunities
   - step_4: Call /pre-mortem — adversarial validation of approach
-  - step_5: Evaluate SCORES — rate completeness/optimality/satisfaction 0-10; invoke /critique if any axis < 8
+  - step_5: Evaluate SCORES — rate completeness/optimality/satisfaction 0-10; invoke red-team if any axis < 8
   - step_6: Call /rns — extract prioritized actions from all findings
-  - step_7: Aggregate ALL findings from all chained skills into the RNS (not just /pre-mortem); group by domain
+  - step_7: Aggregate ALL findings from all chained skills into the RNS; group by domain
 enforcement: strict
 workflow_binding: exclusive
 workflow_enforcement: hard
@@ -38,13 +33,13 @@ layer1_enforcement: true
 required_phase_artifacts:
   - /recap
   - /gto
-  - /ideas
+  - /friction
   - /pre-mortem
   - /rns
 usage_markers:
   - "RECAP:"
   - "GAPS:"
-  - "IDEAS:"
+  - "FRICTION:"
   - "SCORES:"
   - "ACTIONS:"
 ---
@@ -53,7 +48,7 @@ usage_markers:
 
 ## Purpose
 
-Run the full SELF-CONTRAST protocol in sequence: retrospective → gap/opportunity analysis → adversarial validation → prioritized actions. Produces a structured output with named score axes.
+Run the full SELF-CONTRAST protocol in sequence: retrospective → gap analysis → friction detection → adversarial validation → prioritized actions. Produces a structured output with named score axes.
 
 ## When to Use
 
@@ -66,14 +61,14 @@ Run the full SELF-CONTRAST protocol in sequence: retrospective → gap/opportuni
 ```
 1. /recap          → Session retrospective (what happened, problem vs optimal)
 2. /gto            → Gap analysis (code/process gaps from session)
-3. /ideas          → Opportunity analysis (positive flips, ROI ranking)
+3. /friction       → Friction analysis (what blocked progress, what could be automated)
 4. /pre-mortem     → Adversarial validation (what WILL fail)
-5. /rns             → Action extraction (recover/prevent/realize)
+5. /rns            → Action extraction (recover/prevent/realize)
 ```
 
 ### Red-Team Trigger
 
-If any SCORES axis is below 8, invoke `/critique` for adversarial red-team before finalizing actions:
+If any SCORES axis is below 8, invoke `/rns` with adversarial framing before finalizing actions:
 - completeness_score < 8 → red-team gaps in coverage
 - optimality_score < 8 → red-team approach quality
 - satisfaction_score < 8 → red-team process/experience
@@ -88,10 +83,10 @@ GAPS: [top 3 gaps identified]
   2. [gap description]
   3. [gap description]
 
-IDEAS: [top 3 opportunities]
-  1. [opportunity — ROI: high/med/low]
-  2. [opportunity — ROI: high/med/low]
-  3. [opportunity — ROI: high/med/low]
+FRICTION: [top 3 friction points]
+  1. [friction description — category: automation/manual/repeated]
+  2. [friction description — category]
+  3. [friction description — category]
 
 SCORES:
   c:[0-10]  Completeness — were all gaps found?
@@ -111,7 +106,7 @@ ACTIONS: [prioritized RNS list — see RNS Aggregation Rule below]
 When building the ACTIONS list, aggregate findings from:
 - `/recap` — work already done, completed, or committed (do not include as actionable unless something was left incomplete)
 - `/gto gap` — internal technical debt in the target itself (own by GTO if the target is GTO, otherwise own by the retro's target)
-- `/ideas` — opportunities not yet implemented (include all ROI-ranked items, even if LOW ROI)
+- `/friction` — workflow friction and automation opportunities (include all automation-potential items)
 - `/pre-mortem` — adversarial findings by domain
 - `/rns` — extracted actions from above
 
@@ -119,24 +114,25 @@ Group by domain (security, correctness, quality, testing, performance, internal)
 
 **Every finding from every skill must appear in the RNS with an owner and action.** If a finding is dropped, state why explicitly in the retro output.
 
-**Failure mode this prevents:** RNS was previously built only from /pre-mortem findings, dropping GTO internal gaps (CAUSE-001/002/003, 7 TODOs in GTO test files) and the mock call counting pattern improvement from /ideas. The retro felt complete but was systematically incomplete.
+**Failure mode this prevents:** RNS was previously built only from /pre-mortem findings, dropping GTO internal gaps (CAUSE-001/002/003, 7 TODOs in GTO test files) and workflow friction that no upstream skill flagged. The retro felt complete but was systematically incomplete.
 
 ## Step Execution
 
 1. **Call `/recap`** — get session summary with problem/optimal contrast
 2. **Call `/gto gap`** — extract top gaps from session evidence
-3. **Call `/ideas`** — extract top opportunities (or invert top-problems output)
+3. **Call `/friction`** — identify workflow friction and automation opportunities
 4. **Call `/pre-mortem`** — adversarial validation of approach
 5. **Evaluate SCORES** — rate each axis 0-10:
-   - If any axis < 8: invoke `/critique` red-team before proceeding
+   - If any axis < 8: re-run `/rns` with adversarial framing before proceeding
 6. **Call `/rns`** — extract prioritized recover/prevent/realize actions
+7. **Aggregate** — merge ALL findings from all chained skills into the final RNS
 
 ## Red-Team Protocol
 
 When SCORES reveals weakness:
-1. Invoke `/critique` targeting the weak axis
-2. Incorporate critique findings into GAPS
-3. Re-score with critique data
+1. Re-examine the weak axis with adversarial framing
+2. Incorporate findings into GAPS or FRICTION as appropriate
+3. Re-score with new data
 4. Proceed to ACTIONS only after gaps are addressed or deferred
 
 ## Retrospective-Integrity Prompts
@@ -144,11 +140,12 @@ When SCORES reveals weakness:
 Before finalizing the retrospective, `/retro` should run a short internal retrospective-integrity check:
 
 - What did we treat as a process win even though the outcome was suboptimal?
-- What gap or opportunity is duplicated across `/recap`, `/gto`, `/ideas`, `/pre-mortem`, and `/rns` rather than being synthesized once?
+- What gap or friction point is duplicated across `/recap`, `/gto`, `/friction`, `/pre-mortem`, and `/rns` rather than being synthesized once?
 - What score is being inflated or deflated without strong evidence from the chained skills?
 - What action list would mis-sequence work by treating symptoms as the primary problem?
 - What recommendation becomes misleading if the adversarial review surfaced a deeper failure mode?
 - What positive takeaway is actually a workaround that should not be repeated?
+- What workflow friction did we treat as normal even though it could be automated or eliminated?
 - What would a weaker model smooth over instead of preserving as a real tradeoff or unresolved tension?
 - What step in the chain returned weak or partial evidence, and did I compensate for that explicitly?
 - What ownership boundary is still unclear between architecture, planning, verification, and implementation?
@@ -156,17 +153,19 @@ Before finalizing the retrospective, `/retro` should run a short internal retros
 
 These are internal self-check prompts. They are not default user-facing questions and should only surface to the user when `/retro` is genuinely blocked and cannot proceed safely without clarification.
 
-## Trace, Emerge, And Graduate
+## Trace, Emerge, Graduate, and Friction
 
-`/retro` should use three internal helper passes:
+`/retro` should use four internal helper passes:
 
 - `trace`: reconstruct how the session or project path evolved, including the moments that most changed the outcome
-- `emerge`: identify latent patterns across recap, gap analysis, pre-mortem, and action extraction that no single sub-skill named explicitly
+- `emerge`: identify latent patterns across recap, gap analysis, friction, pre-mortem, and action extraction that no single sub-skill named explicitly
 - `graduate`: promote repeated retrospective findings into durable process changes, validators, hooks, or workflow rules when warranted
+- `friction`: actively scan chained results for repeated manual steps, missing automations, and workflow gaps that no upstream skill flagged
 
 Use `trace` when the retrospective depends on a sequence of decisions or turning points.
 Use `emerge` when multiple chained skills are pointing at the same hidden theme.
 Use `graduate` when the same class of retro lesson keeps recurring and should become durable enforcement or policy.
+Use `friction` when the session reveals manual patterns that could be automated or eliminated.
 
 Reference: `P:/.claude/skills/__lib/sdlc_internal_modes.md`
 

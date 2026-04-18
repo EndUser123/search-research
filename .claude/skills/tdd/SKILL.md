@@ -74,6 +74,7 @@ Test-Driven Development for new features AND refactoring. Write tests first, the
 - **PARALLEL delegation**: Use multiple subagents simultaneously for independent tasks
 - **6-phase process**: DISCOVER -> RED -> GREEN -> VERIFY -> EDGE CASE ANALYSIS -> REGRESSION -> REFACTOR
 - **Edge case analysis**: After VERIFY phase, dispatch `adversarial-failure-modes` agent on changed files (see `__lib/fix-verification-protocol.md`)
+- **Import blast radius**: During REFACTOR phase, run `__lib/import_resolver.scan_blast_radius()` on changed files to detect cross-file import breakage before completing
 - **Baseline capture**: Save test results before changes for comparison
 - **TypedDict contracts**: Use for cross-module data structures
 

@@ -22,7 +22,7 @@ IF target command unavailable:
 IF multiple commands match equally:
     -> Present top 2-3 options with brief rationale
     -> Ask user to confirm intended direction
-    -> "This could be handled by /arch (for design decisions) or /analyze (for quality). Which fits better?"
+    -> "This could be handled by /design (for design decisions) or /analyze (for quality). Which fits better?"
 
 IF no command matches:
     -> Offer to decompose the request

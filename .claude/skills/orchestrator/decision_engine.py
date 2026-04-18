@@ -88,7 +88,7 @@ class DecisionEngine:
     """
 
     # Phase 3 skills categorization
-    PHASE_3_STRATEGY = {"/arch", "/nse", "/r"}
+    PHASE_3_STRATEGY = {"/design", "/nse", "/r"}
     PHASE_3_ANALYSIS = {"/analyze", "/llm-brainstorm", "/s"}
     PHASE_3_RCA = {"/rca"}
 
@@ -97,7 +97,7 @@ class DecisionEngine:
     QUALITY_BRANCH = {"/t", "/qa", "/tdd", "/comply", "/validate_spec", "/q", "/refactor"}
 
     # Strategy branch skills
-    STRATEGY_BRANCH = {"/search", "/research", "/chs", "/cks", "/analyze", "/arch", "/nse", "/r"}
+    STRATEGY_BRANCH = {"/search", "/research", "/chs", "/cks", "/analyze", "/design", "/nse", "/r"}
 
     # Lifecycle branch mapping
     SKILL_TO_BRANCH = {}
@@ -351,7 +351,7 @@ class DecisionEngine:
         if context.get("urgency") == "high":
             priority_skills.extend(["/debug", "/fix", "/rca"])
         elif context.get("domain") == "architecture":
-            priority_skills.extend(["/arch", "/nse", "/r"])
+            priority_skills.extend(["/design", "/nse", "/r"])
         elif context.get("priority") == "quality":
             priority_skills.extend(["/t", "/comply", "/qa"])
 
@@ -416,7 +416,7 @@ class DecisionEngine:
                     score += 3
 
             if conditions.get("complexity") == "high":
-                if "/arch" in alt_lower or "/nse" in alt_lower or "/r" in alt_lower:
+                if "/design" in alt_lower or "/nse" in alt_lower or "/r" in alt_lower:
                     score += 2
 
             if conditions.get("time_constraint") == "none":

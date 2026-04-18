@@ -48,7 +48,7 @@ class MasterSkillOrchestrator:
 
     # Strategic skills that should be recorded in decision trail
     STRATEGIC_SKILLS = {
-        '/nse', '/arch', '/r', '/llm-brainstorm', '/rca',
+        '/nse', '/design', '/r', '/llm-brainstorm', '/rca',
         '/analyze', '/s', '/dne', '/refactor', '/evolve'
     }
 

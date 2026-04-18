@@ -67,4 +67,4 @@ csf-batch --reset             # Clear all status entries first
 ## References
 
 - **Quota findings**: `P:/.claude/skills/google-ai-usage-monitor/SKILL.md` — Gemini Model Quota section
-- **ADR-20260329**: `P:/.claude/arch_decisions/ADR-20260329-intelligence-stream-nlm-export-and-i18n.md`
+- **ADR-20260329**: `P:/.claude/design_decisions/ADR-20260329-intelligence-stream-nlm-export-and-i18n.md`

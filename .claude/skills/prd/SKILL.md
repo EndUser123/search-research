@@ -1,161 +1,132 @@
 ---
 name: prd
-description: Import PRD requirements as TaskMaster tasks with full traceability
+description: Generate PRD (Product Requirements Document) from conversation
 version: 1.0.0
 status: stable
-category: taskmaster
+enforcement: advisory
+category: requirements
 triggers:
-  - /prd
-aliases:
   - /prd
 
 suggest:
   - /specify
-  - /build
-  - /nse
+
+workflow_steps:
+  - elicit
+  - write
+  - review
 
 execution:
   directive: |
-    Manage PRD requirements imports into TaskMaster.
-    1. import: Convert FR/NF requirements to tasks with traceability.
-    2. status: Check completion status of PRD requirements.
-    3. list: List imported PRDs.
-    Ensure every task has source='prd', source_id=<path>, and prd_requirement_id set.
-  default_args: "list"
-  examples:
-    - "/prd import P:/projects/auth/prd.md"
-    - "/prd status P:/projects/auth/prd.md"
-    - "/prd list"
+    Generate a PRD document from conversation.
+    1. elicit: Gather requirements via conversational questioning.
+    2. write: Write prd.md with FR (functional) and NF (non-functional) requirements.
+    3. review: Present PRD to user for confirmation.
+  default_args: "elicit"
 
 do_not:
-  - create tasks without traceability links
-  - import duplicate requirements (idempotency required)
+  - skip requirement categories (functionality, UX, data, security, performance, error handling)
+  - use vague requirement language (always specify acceptance criteria)
 
 output_template: |
-  ## PRD Status: [path]
-  Total: [N] | Completed: [N] | Pending: [N]
-  
-  Missing Requirements:
-  - [FR-XXX]
+  ## PRD: [project name]
+  Generated: [date]
+
+  ## Functional Requirements
+  - FR-1: [requirement with acceptance criteria]
+  - FR-N: [...]
+
+  ## Non-Functional Requirements
+  - NF-1: [requirement with acceptance criteria]
+  - NF-N: [...]
 ---
 
-# PRD Import Command
+# PRD — Product Requirements Document
 
-Convert PRD requirements (FR-XXX, NF-XXX) into TaskMaster tasks with full traceability.
+Generate a structured PRD from conversation.
 
 ## Purpose
 
-Import PRD requirements as TaskMaster tasks with full traceability.
+`/prd` elicits requirements through conversation and produces a `prd.md` file. Requirements come from discussion, not from importing existing documents.
 
 ## Project Context
 
 ### Constitution/Constraints
-- Evidence-first: Only import requirements that actually exist in PRD
-- Spec compliance: Follow PRD structure exactly
-- Preserve everything: Import all requirements, don't selectively omit
+- **User in charge**: Never assume — confirm requirements with the user
+- **Specificity**: Every requirement needs acceptance criteria, not just a label
+- **Completeness**: Cover all categories — functionality, UX, data, security, performance, error handling
 
 ### Technical Context
-- TaskMaster integration for task management
-- Traceability fields: source='prd', source_id=<path>, prd_requirement_id=FR-XXX
-- PRD files at project root: `P:/projects/{project}/prd.md`
+- PRD files at project root: `{project}/prd.md`
+- Format: FR-XXX for functional requirements, NF-XXX for non-functional
+- Each requirement includes: description + acceptance criteria
 
 ### Architecture Alignment
-- Integrates with /specify for project setup
-- Supports /build for implementation
-- Works with /nse for development guidance
+- Feeds `/specify` for detailed specification
+- Feeds `/design` when architectural decisions are needed
 
 ## Your Workflow
 
-### import
-1. Parse PRD file for FR-XXX and NF-XXX requirements
-2. Create TaskMaster tasks with traceability metadata
-3. Report import summary with counts
+### 1. elicit — Gather requirements
+Start a focused conversation to extract:
+- **What** the system does (functional boundary)
+- **Who** uses it and in what roles
+- **What** constitutes done (acceptance criteria)
+- **Constraints** (performance, security, compatibility)
+- **Error handling** expectations
 
-### status
-1. Query TaskMaster for tasks with matching source_id
-2. Calculate completion status
-3. Show missing requirements
+Ask one question at a time. Don't rush to write before you understand.
 
-### list
-1. Query all PRD-derived tasks
-2. Display with task counts and completion
+### 2. write — Draft prd.md
+Structure the conversation into:
+```
+## Functional Requirements
+- FR-1: [description] — Acceptance: [criteria]
+- FR-2: [description] — Acceptance: [criteria]
+
+## Non-Functional Requirements
+- NF-1: Performance — [criterion]
+- NF-2: Security — [criterion]
+```
+
+Each requirement must be specific enough that "did we meet this?" can be answered without debate.
+
+### 3. review — Confirm with user
+Present the draft. Confirm, refine, or add requirements. Iterate until user says the PRD is complete.
 
 ## Validation Rules
 
 ### Prohibited Actions
-- Do NOT create tasks without traceability links
-- Do NOT import duplicate requirements (idempotency required)
-- Do NOT skip requirements during import
+- Do NOT produce vague requirements ("system should be fast" — how fast?)
+- Do NOT skip NF category (security, performance, reliability matter)
+- Do NOT write requirements you haven't confirmed with the user
+
+### Required Coverage
+- Functional: What does it do? Who uses it? What are the inputs/outputs?
+- Non-functional: Performance, security, compatibility, scalability
+- Error handling: What happens when things go wrong?
+- Edge cases: What unusual inputs or states must be handled?
 
 ## Quick Start
 
 ```bash
-/prd import P:/projects/auth/prd.md
-/prd import P:/projects/auth/prd.md --dry-run
-/prd status P:/projects/auth/prd.md
-/prd list
+/prd
+# Starts requirement elicitation conversation
 ```
 
-## Subcommands
+## Output Location
 
-### import - Import PRD as tasks
-
-```bash
-/prd import <path_to_prd.md> [options]
+PRD lives next to your project:
 ```
-
-**Options:**
-- `--dry-run` - Preview without creating tasks
-- `--filter FR-1,FR-3` - Only import specific requirements
-- `--functional-only` - Only import functional requirements
-- `--nf-only` - Only import non-functional requirements
-
-**Examples:**
-```bash
-/prd import P:/projects/auth/prd.md
-/prd import ./PRD.md --dry-run
-/prd import ./PRD.md --filter FR-1,FR-2,FR-5
-```
-
-### status - Show PRD completion status
-
-```bash
-/prd status <path_to_prd.md>
-```
-
-**Shows:**
-- Total requirements in PRD
-- Tasks completed, in progress, pending
-- Requirements not yet imported
-
-### list - List all imported PRDs
-
-```bash
-/prd list
-```
-
-Shows all PRDs with task counts and completion status.
-
-## Traceability
-
-Every task includes:
-- `source='prd'` - Marks task as PRD-derived
-- `source_id=<prd_path>` - Links back to PRD file
-- `prd_requirement_id=FR-XXX` - Links to specific requirement
-
-**Query by PRD:**
-```bash
-/tm show --source prd --source-id P:/projects/auth/PRD.md
-/tm show --prd-requirement FR-1
-```
-
-## PRD File Location
-
-PRD files live at project root:
-```
-P:/projects/{project}/
-├── prd.md          ← Product Requirements
-├── arch.md         ← Architecture
-├── design.md       ← Design
+{project}/
+├── prd.md          ← Product Requirements (this command)
+├── specify.md      ← Detailed spec (from /specify)
 └── README.md
 ```
+
+## Tell the User
+
+After writing the PRD, tell them:
+- What `/prd` suggests next (`/specify` for flushing into detailed spec)
+- That they can edit prd.md directly if they prefer
+- That `/design` is available if architectural decisions are needed

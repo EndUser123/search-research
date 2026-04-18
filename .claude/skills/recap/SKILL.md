@@ -182,7 +182,7 @@ Present synthesis as a per-session narrative in the response, not replacing the 
 `/recap` may suggest lower skills when the reconstructed session history shows missing gates:
 
 - suggest `/gto` when current gaps or stale assumptions are unclear
-- suggest `/arch` when unresolved state or contract decisions appear in prior sessions
+- suggest `/design` when unresolved state or contract decisions appear in prior sessions
 - suggest `/verify` when work was discussed or implemented but not actually proven
 - suggest `/pre-mortem` when sessions are classified Complex or Chaotic (risk escalation)
 - suggest `/chat-to-decisions` when open items from the Parking Lot need formal ADR output
@@ -200,7 +200,7 @@ Before synthesizing a catch-up summary, `/recap` should run a short internal cat
 - What recommendation would be misleading if the transcript fallback lost important context?
 - What issue was discussed but never actually verified or completed?
 - What would a weaker model compress away that materially changes the summary?
-- What gap belongs to `/arch`, `/planning`, or `/verify` rather than being presented as a local recap observation?
+- What gap belongs to `/design`, `/planning`, or `/verify` rather than being presented as a local recap observation?
 - What summary statement is too confident given the available transcript evidence?
 - What would make this recap locally coherent but globally wrong across the full session chain?
 

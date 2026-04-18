@@ -275,19 +275,27 @@ def scan_blast_radius(
     safe: list[dict[str, str]] = []
     errors: list[str] = []
 
+    if not changed_files:
+        return {"at_risk_consumers": [], "safe_consumers": [], "scan_errors": [], "files_scanned": 0}
+
+    # Resolve repo_root once
+    resolved_root = repo_root.resolve()
+
     # Walk repo for Python files that might import the changed files
+    file_count = 0
     for py_file in repo_root.rglob("*.py"):
         # Skip __pycache__, .git, hidden dirs
         parts = py_file.parts
         if any("__pycache__" in p or p.startswith(".") for p in parts):
             continue
 
+        file_count += 1
         source = _read_file_safe(py_file)
         if not source.strip():
             continue
 
         try:
-            rel_py = py_file.resolve(strict=False).relative_to(repo_root.resolve())
+            rel_py = py_file.relative_to(resolved_root)
             rel_key = rel_py.as_posix()
         except Exception:
             continue
@@ -298,7 +306,6 @@ def scan_blast_radius(
         for imp in resolution.get("resolved_local_imports", []):
             imp_path = imp.get("path", "")
             if imp_path in changed_set:
-                # This consumer imports a changed file — check if still resolvable
                 spec = imp.get("spec", "")
                 candidates = candidate_module_paths(spec, py_file)
                 still_exists = any(c.exists() for c in candidates)
@@ -331,7 +338,5 @@ def scan_blast_radius(
         "at_risk_consumers": at_risk,
         "safe_consumers": safe,
         "scan_errors": errors,
-        "files_scanned": sum(1 for _ in repo_root.rglob("*.py")
-                           if not any("__pycache__" in p or p.startswith(".")
-                                    for p in Path(_).parts)),
+        "files_scanned": file_count,
     }

@@ -164,7 +164,7 @@ Supports `markdown` (default), `json`, and `summary` via `--format` flag. Markdo
 
 ## Architecture
 
-See `references/architecture.md` for the full system diagram including mode detection, context signals, and shared core layer.
+See `references/designitecture.md` for the full system diagram including mode detection, context signals, and shared core layer.
 
 ## Intelligent Sequential Trigger
 
@@ -203,7 +203,7 @@ UCI integrates with CKS for cross-session learning: retrieve past findings befor
 
 | File | Contents |
 |------|----------|
-| `references/architecture.md` | System diagram, mode detection, shared core layer |
+| `references/designitecture.md` | System diagram, mode detection, shared core layer |
 | `references/sequential-trigger.md` | Two-phase evaluation, triggering conditions |
 | `references/workflow-details.md` | Step-by-step workflow, circuit breaker |
 | `references/memory-integration.md` | CKS metadata schema, learning loop |

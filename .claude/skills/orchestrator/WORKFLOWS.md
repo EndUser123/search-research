@@ -6,7 +6,7 @@ Extracted from 193 skill suggest fields. These are the most common workflow patt
 
 ### Development Workflow
 ```
-/analyze → /nse → /arch → /r → /s
+/analyze → /nse → /design → /r → /s
 ```
 Analysis → Next Steps → Architecture → Deterministic refine → Exploratory strategy
 
@@ -41,7 +41,7 @@ Failure triage → Root Cause → Debug → Fix
 | 16 | `/build` → `/nse` |
 | 15 | `/comply` → `/t` |
 | 13 | `/analyze` → `/nse` |
-| 13 | `/arch` → `/nse` |
+| 13 | `/design` → `/nse` |
 | 13 | `/nse` → `/workflow` |
 | 12 | `/bug-hunt` → `/comply` |
 | 11 | `/cks` → `/search` |
@@ -65,13 +65,13 @@ Skills that are suggested by many other skills:
 | `/analyze` | 36 skills | Analysis entry point |
 | `/search` | 29 skills | Discovery |
 | `/cks` | 28 skills | Knowledge retrieval |
-| `/arch` | 25 skills | Architecture decisions |
+| `/design` | 25 skills | Architecture decisions |
 
 ## Workflow Categories
 
 ### STRATEGY Branch
 ```
-/search → /research → /analyze → /nse → /arch
+/search → /research → /analyze → /nse → /design
 ```
 Research and planning workflows.
 
@@ -101,7 +101,7 @@ To find suggested next skills for any skill:
 from orchestrator import get_suggestions
 
 next_skills = get_suggestions("/nse")
-# Returns: ['/analyze', '/search', '/r', '/arch', '/s', ...]
+# Returns: ['/analyze', '/search', '/r', '/design', '/s', ...]
 ```
 
 To validate a workflow:
@@ -109,7 +109,7 @@ To validate a workflow:
 ```python
 from orchestrator import validate_workflow
 
-result = validate_workflow(["/analyze", "/nse", "/arch"])
+result = validate_workflow(["/analyze", "/nse", "/design"])
 # Returns: {"valid": True, "branches": ["STRATEGY", "ANALYSIS"]}
 ```
 

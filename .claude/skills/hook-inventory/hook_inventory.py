@@ -302,7 +302,7 @@ def audit_hooks() -> Dict[str, HookInfo]:
         rel_path = py_file.relative_to(HOOKS_DIR)
         parts = rel_path.parts
 
-        # Check if in utility/test/archive/subcomponent directory
+        # Check if in utility/test/designive/subcomponent directory
         is_test = "tests" in parts
         is_archive = any(p in ["archive", "_archive"] or p.startswith("orphaned_") for p in parts)
         is_utility = any(p in UTILITY_DIRS for p in parts)

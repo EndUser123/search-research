@@ -120,9 +120,7 @@ def build_injection_message(envelope: dict) -> str:
     if active_files:
         parts.append(f"**Active Files**: {', '.join(active_files)}")
     parts.append("")
-    parts.append("Domain tools can reference this session context:")
-    parts.append(f"  - /chs: Use `show {session_id}` or search within session")
-    parts.append("  - /search: Auto-detects chat history from this session")
+    parts.append("This context is from the previous session before compaction.")
     return "\n".join(parts)
 
 

@@ -136,7 +136,7 @@ For any substantive response, prefix with one of:
 
 ### When to Apply
 
-- Technical recommendations that affect code/architecture
+- Technical recommendations that affect code/designitecture
 - Tool selection or implementation strategy
 - Anything involving your specific multi-instance setup
 - Risk assessments or error diagnostics

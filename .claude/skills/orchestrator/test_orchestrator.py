@@ -214,7 +214,7 @@ class TestMasterOrchestrator:
     def test_validate_workflow(self):
         """Test workflow validation."""
         # Valid workflow (based on /nse -> /r suggestion)
-        validation = master_orchestrator.validate_workflow(["/adf", "/arch"])
+        validation = master_orchestrator.validate_workflow(["/adf", "/design"])
         assert "workflow" in validation
         assert "valid" in validation
         assert "issues" in validation

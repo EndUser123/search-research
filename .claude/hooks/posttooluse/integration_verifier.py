@@ -102,12 +102,12 @@ class IntegrationVerifier(PostToolUseHook):
         if not skill_name:
             return result
 
-        # Parse suggest: targets
+        # Parse frontmatter fields
         suggested_targets = self._extract_suggest_targets(content)
         follow_up_targets = self._extract_follow_up_offer_targets(content)
+        depends_targets = self._extract_depends_on_skills(content)
 
-        if not suggested_targets and not follow_up_targets:
-            # No relevant frontmatter - nothing to verify
+        if not suggested_targets and not follow_up_targets and not depends_targets:
             return result
 
         # Verify each suggested target
@@ -185,8 +185,33 @@ class IntegrationVerifier(PostToolUseHook):
 
             result["follow_up_offers"].append({"target": target, "exists": True})
 
+        # Verify depends_on_skills — existence check only (directional, no reciprocity)
+        deps_warnings: list[str] = []
+        for target in depends_targets:
+            target = target.strip()
+            if not target.startswith("/"):
+                continue
+
+            target_skill_name = target.lstrip("/")
+
+            target_file = None
+            for skills_dir in self.skills_dirs:
+                candidate = skills_dir / target_skill_name / "SKILL.md"
+                if candidate.exists():
+                    target_file = candidate
+                    break
+
+            if not target_file:
+                result.setdefault("missing_deps", []).append(
+                    {"target": target, "reason": "Dependency skill does not exist"}
+                )
+                deps_warnings.append(
+                    f"❌ MISSING DEP: {target} skill does not exist\n"
+                    f"   {skill_name} depends_on_skills lists {target}, but there is no {target_skill_name}/SKILL.md file"
+                )
+
         # Generate injection if any gaps found
-        if routing_warnings or advisory_warnings:
+        if routing_warnings or advisory_warnings or deps_warnings:
             mode = self._mode()
             sections: list[str] = []
 
@@ -226,6 +251,13 @@ class IntegrationVerifier(PostToolUseHook):
 
             if advisory_warnings:
                 sections.append(self._format_follow_up_offer_warning(skill_name, advisory_warnings))
+
+            if deps_warnings:
+                sections.append(
+                    "⚠️  DEPENDS_ON_SKILLS VERIFICATION\n\n"
+                    + "\n\n".join(deps_warnings)
+                    + f"\n\nFix: Remove the missing skills from depends_on_skills in {skill_name}/SKILL.md, or create the missing skill directories"
+                )
 
             result["injection"] = "\n\n".join(sections)
 
@@ -286,6 +318,19 @@ class IntegrationVerifier(PostToolUseHook):
     def _extract_follow_up_offer_targets(self, content: str) -> list[str]:
         """Extract follow_up_offer targets from SKILL.md content."""
         return self._extract_frontmatter_targets(content, "follow_up_offer")
+
+    def _extract_depends_on_skills(self, content: str) -> list[str]:
+        """Extract depends_on_skills entries, converting bare names to /-prefixed."""
+        raw = self._extract_frontmatter_targets(content, "depends_on_skills")
+        result: list[str] = []
+        for entry in raw:
+            entry = entry.strip()
+            if not entry:
+                continue
+            if not entry.startswith("/"):
+                entry = f"/{entry}"
+            result.append(entry)
+        return result
 
     def _extract_frontmatter_targets(self, content: str, field_name: str) -> list[str]:
         """Extract a list-valued field from SKILL.md frontmatter."""

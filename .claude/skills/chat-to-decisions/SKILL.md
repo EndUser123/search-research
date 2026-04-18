@@ -169,7 +169,7 @@ Provide 2–4 copy-pasteable, context-aware prompts (including exact decision ra
 
 `/chat-to-decisions` may suggest lower skills when the reconstructed decision history shows gaps:
 
-- suggest `/arch` when unresolved state or architecture decisions appear in the chat
+- suggest `/design` when unresolved state or architecture decisions appear in the chat
 - suggest `/recap` when chat is a transcript needing multi-session context
 - suggest `/pre-mortem` when decision risks need adversarial stress-testing
 

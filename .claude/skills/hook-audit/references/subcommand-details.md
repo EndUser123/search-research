@@ -103,7 +103,7 @@ Reasoning profile telemetry for intelligent THINK auto-activation:
 
 Shows:
 - Auto vs explicit THINK trigger rates
-- Profile selection distribution (debug/decision/architecture/risk)
+- Profile selection distribution (debug/decision/designitecture/risk)
 - Injection rate and skipped-in-cooldown rates
 - Recommendation-quality block counts
 

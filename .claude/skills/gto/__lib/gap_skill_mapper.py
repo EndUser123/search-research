@@ -120,7 +120,7 @@ When analyzing gaps, consider these relevant skills:
 - /verify - Verification orchestrator
 
 ### Architecture
-- /arch - Architecture decision advisor
+- /design - Architecture decision advisor
 - /adf - Evaluate structural changes
 
 ### Debugging & RCA

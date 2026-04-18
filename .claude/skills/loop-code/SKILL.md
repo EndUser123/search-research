@@ -176,7 +176,7 @@ The loop orchestrator is the primary context overflow risk in multi-iteration ru
 - **Plan parser**: `P:/packages/loop-core/scripts/plan_parser.py`
 - **Config schema**: `P:/packages/loop-core/scripts/config_schema.py`
 
-See `references/architecture.md` for flow diagram and module dependency details.
+See `references/designitecture.md` for flow diagram and module dependency details.
 See `references/state-management.md` for state file schema and directory layout.
 See `references/observability.md` for event types, log formats, and metrics.
 See `references/exit-policy.md` for full exit policy configuration and verification.

@@ -27,8 +27,7 @@ from pathlib import Path
 from typing import Any
 
 # Import shared resolution functions from __lib
-sys.path.insert(0, str(Path(__file__).parent / "__lib"))
-from import_resolver import (  # noqa: E402
+from __lib.import_resolver import (  # noqa: E402
     candidate_module_paths,
     collect_attribute_bases,
     extract_import_specs,

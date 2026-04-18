@@ -80,7 +80,7 @@ A 4-phase process to transform legacy/working code into high-standard production
 
 1.  **Architectural Check:**
     ```bash
-    /arch "Should we modernize <component> using <pattern>?"
+    /design "Should we modernize <component> using <pattern>?"
     ```
 2.  **Multi-Agent Strategy Debate (High-Stakes):**
 

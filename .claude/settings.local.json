@@ -107,7 +107,9 @@
       "mcp__plugin_serena_serena__search_for_pattern",
       "mcp__brave__brave_web_search",
       "Bash(mkdir -p /p/.claude/plans/adversarial)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(sed -i 's|/arch|/design|g' \"P:\\\\\\\\.claude\\\\\\\\skills\\\\\\\\gto\\\\\\\\__lib\\\\\\\\gap_skill_mapper.py\")",
+      "Bash(sed -i 's|/arch|/design|g' \"P:\\\\\\\\.claude\\\\\\\\skills\\\\\\\\gto\\\\\\\\__lib\\\\\\\\skill_registry_bridge.py\")"
     ],
     "deny": [],
     "ask": []

@@ -54,13 +54,13 @@ CLI_TOOLS = {
         "npm_script": "dist/index.js",
         "type": "npm",
     },
-    "opencode": {
-        "name": "opencode-ai",
-        "command": "opencode",
-        "description": "OpenCode (planning/creative, 300+ models)",
-        "install": "npm install -g opencode-ai",
-        "npm_package": "opencode-ai",
-        "npm_script": "bin/opencode",
+    "pi": {
+        "name": "pi-coding-agent",
+        "command": "pi",
+        "description": "Pi coding agent (multi-provider)",
+        "install": "npm install -g @mariozechner/pi-coding-agent",
+        "npm_package": "@mariozechner/pi-coding-agent",
+        "npm_script": "dist/cli.js",
         "type": "npm",
     },
 }

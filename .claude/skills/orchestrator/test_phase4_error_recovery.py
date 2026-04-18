@@ -260,7 +260,7 @@ class TestPhase4SkillsCategorized:
         phase_skills = {
             "phase1": ["/search", "/research", "/orchestrate"],
             "phase2": ["/t", "/qa", "/comply", "/q"],
-            "phase3": ["/arch", "/nse", "/analyze", "/r"],
+            "phase3": ["/design", "/nse", "/analyze", "/r"],
             "phase4": ["/debug", "/fix", "/commit", "/push"]
         }
         for phase, skills in phase_skills.items():

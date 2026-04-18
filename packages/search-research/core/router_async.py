@@ -276,7 +276,36 @@ class AsyncSearchRouter:
         self._backends = backends
         self._backends_initialized = True
 
+        # Warm up sync backends to trigger build_index() before first search.
+        # Without this, the first gather call causes all sync backends to call
+        # build_index() simultaneously, flooding the thread pool and causing
+        # premature timeouts on fast backends (PERF-001).
+        self._warm_up_backends()
+
         return backends
+
+    def _warm_up_backends(self) -> None:
+        """Pre-warm sync backends by triggering build_index() with a no-op query.
+
+        Calls search() on each backend to force lazy build_index() to run
+        during router init rather than during the first concurrent gather.
+        Backends that raise exceptions are skipped silently.
+        """
+        for name, backend in self._backends.items():
+            try:
+                # Skip backends that don't have a sync search method
+                if not hasattr(backend, "search"):
+                    continue
+                # Skip async backends (they handle initialization differently)
+                if hasattr(backend, "search_async") or (
+                    hasattr(backend, "search") and inspect.iscoroutinefunction(backend.search)
+                ):
+                    continue
+                # Trigger build_index() with a query that returns no results
+                backend.search("", 1)
+            except Exception:
+                # Warm-up failures are non-fatal - backend may not have data yet
+                pass
 
     async def search_async(
         self,
@@ -624,8 +653,12 @@ class AsyncSearchRouter:
             _sentinel = object()
             search_async_method = getattr(backend_instance, "search_async", _sentinel)
 
-            # Per-backend timeout override (NotebookLM needs 60s for LLM queries)
-            backend_timeout = getattr(backend_instance, "TIMEOUT", None) or self.backend_timeout
+            # Per-backend timeout: router timeout is the ceiling for cancellation.
+            # A backend's TIMEOUT is ignored so that slow backends (NotebookLM
+            # at 60s) cannot override the router's cancellation budget and
+            # block fast backends from returning. Backend internal timeouts
+            # (e.g. subprocess timeouts) are unaffected by this.
+            backend_timeout = self.backend_timeout
 
             if search_async_method is not _sentinel and callable(search_async_method):
                 # Native async backend (has search_async method)
@@ -740,9 +773,31 @@ class AsyncSearchRouter:
         if not results:
             return []
 
-        # Group by score (round to 3 decimals for grouping)
         from collections import defaultdict
 
+        # Normalize scores per-backend to [0, 1] using min-max scaling.
+        # Different backends use incompatible scoring systems (e.g. raw BM25
+        # scores of 5-10 vs normalized confidence of 0-1). Without
+        # normalization, high-magnitude scores dominate ranking and
+        # effectively silence backends with lower-magnitude scores.
+        source_scores: dict[str, list[float]] = defaultdict(list)
+        for r in results:
+            source_scores[r.source].append(r.score)
+
+        source_min_max: dict[str, tuple[float, float]] = {}
+        for source, scores in source_scores.items():
+            mn, mx = min(scores), max(scores)
+            source_min_max[source] = (mn, mx)
+
+        # Normalize each result's score for ranking purposes
+        for r in results:
+            mn, mx = source_min_max[r.source]
+            if mx > mn:
+                r.score = (r.score - mn) / (mx - mn)
+            else:
+                r.score = 1.0  # All scores equal within this source
+
+        # Group by score (round to 3 decimals for grouping)
         score_groups = defaultdict(list)
         for r in results:
             score_key = round(r.score, 3)
@@ -756,7 +811,7 @@ class AsyncSearchRouter:
         for score in sorted_scores:
             group = score_groups[score]
             # Group by source within this score
-            source_groups = defaultdict(list)
+            source_groups: dict[str, list[SearchResult]] = defaultdict(list)
             for r in group:
                 source_groups[r.source].append(r)
 

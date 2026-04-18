@@ -3,6 +3,9 @@ from __future__ import annotations
 
 from posttooluse.base import HookRegistry, PostToolUseHook, is_block_result
 
+# Artifact scraper - records locally-found artifacts into session ledger
+from posttooluse.artifact_scraper import ArtifactScraperHook
+
 # Agent contract validator - validates adversarial agent .md files on Write/Edit
 from posttooluse.agent_contract_validator import AgentContractValidator
 
@@ -113,6 +116,8 @@ def create_registry() -> HookRegistry:
     # --- Original in-process hooks ---
     registry.register("fix_validator", FixValidator())
     registry.register("reflexion_verifier", ReflexionVerifier())
+    # Artifact scraper - records locally-found artifacts into session ledger (replaces subprocess hook_runner.py)
+    registry.register("artifact_scraper", ArtifactScraperHook())
     # Implementation Verifier - verifies Write/Edit actually creates claimed files
     registry.register("implementation_verifier", ImplementationVerifier())
     # Observable Effect Verifier - verifies expected side effects from code changes

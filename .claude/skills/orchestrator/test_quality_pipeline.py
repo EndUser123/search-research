@@ -130,7 +130,7 @@ def test_is_quality_skill():
     assert qp.is_quality_skill('/q'), "/q should be quality skill"
 
     # Non-quality skills
-    assert not qp.is_quality_skill('/arch'), "/arch should not be quality skill"
+    assert not qp.is_quality_skill('/design'), "/design should not be quality skill"
     assert not qp.is_quality_skill('/build'), "/build should not be quality skill"
     assert not qp.is_quality_skill('/research'), "/research should not be quality skill"
 
@@ -152,7 +152,7 @@ def test_get_quality_category():
     assert qp.get_quality_category('/q') == 'optimization', "/q category wrong"
 
     # Non-quality skill
-    assert qp.get_quality_category('/arch') is None, "/arch should have no quality category"
+    assert qp.get_quality_category('/design') is None, "/design should have no quality category"
 
     print("  ✓ Quality category retrieval working correctly")
 
@@ -194,7 +194,7 @@ def test_quality_transition_validation():
     assert not qp.is_valid_quality_transition('/t', '/refactor'), "t → refactor should be invalid"
 
     # Non-quality skills should return True (allow)
-    assert qp.is_valid_quality_transition('/arch', '/test'), "arch → test should be allowed (non-quality)"
+    assert qp.is_valid_quality_transition('/design', '/test'), "arch → test should be allowed (non-quality)"
 
     print("  ✓ Quality transition validation working correctly")
 
@@ -240,7 +240,7 @@ def test_get_next_quality_skills():
     assert '/q' in next_from_comply, "q should be suggested after comply"
 
     # From non-quality skill
-    next_from_arch = qp.get_next_quality_skills('/arch')
+    next_from_arch = qp.get_next_quality_skills('/design')
     assert '/t' in next_from_arch, "t should be entry point"
     assert '/analyze' in next_from_arch, "analyze should be entry point"
 

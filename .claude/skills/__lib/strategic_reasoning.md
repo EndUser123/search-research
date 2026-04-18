@@ -15,7 +15,7 @@ Strategic reasoning patterns improve decision quality by:
 ## When to Use
 
 **Good use cases:**
-- `/arch` - Architecture decision validation before ADR creation
+- `/design` - Architecture decision validation before ADR creation
 - `/planning` - Plan quality assurance through branching scenario analysis
 - `/rca` - Competing-cause hypothesis generation and testing
 - `/skill-audit` - Blind-spot detection for audit completeness
@@ -161,7 +161,7 @@ Prevent implicit decisions through structured questioning before execution.
 - What breaks under refactoring?
 - Are we fixing the right thing?
 
-**For Architecture/Planning skills (/arch, /planning):**
+**For Architecture/Planning skills (/design, /planning):**
 - What downstream execution semantics must be explicit?
 - What boundaries are still named but not operationally closed?
 - What would a planner need to know that the ADR leaves implicit?
@@ -276,7 +276,7 @@ Skills MUST respect these flags and degrade gracefully without breaking.
 
 - `/q` skill - Original source of GoT+ToT integration and strategic questioning
 - `/skill-audit` skill - Blind-spot prompts and internal self-check framework
-- `/arch` skill - Contract Authority Packet and architectural decision quality
+- `/design` skill - Contract Authority Packet and architectural decision quality
 - `/planning` skill - Plan quality assurance and decision closure
 
 ---

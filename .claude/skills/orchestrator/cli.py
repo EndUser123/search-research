@@ -254,7 +254,7 @@ class CLICommandHandler:
 
             if len(workflow_list) < 2:
                 self.formatter.error("Workflow must contain at least 2 skills")
-                self.formatter.info("Example: orchestrator validate '/nse /arch /r'")
+                self.formatter.info("Example: orchestrator validate '/nse /design /r'")
                 return 1
 
             self.formatter.print_header(f"Workflow Validation")
@@ -533,8 +533,8 @@ def build_parser() -> argparse.ArgumentParser:
         epilog="""
 Examples:
   orchestrator suggest /nse              Show suggestions for /nse skill
-  orchestrator info /arch                Show detailed info about /arch
-  orchestrator validate "/nse,/arch"     Validate workflow sequence
+  orchestrator info /design                Show detailed info about /design
+  orchestrator validate "/nse,/design"     Validate workflow sequence
   orchestrator workflow /nse --depth 2   Suggest workflows from /nse
   orchestrator history --limit 5         Show last 5 executions
   orchestrator stats                     Show workflow statistics
@@ -585,7 +585,7 @@ For more information, use: orchestrator <command> --help
         epilog="""
 Examples:
   orchestrator suggest /nse
-  orchestrator suggest /arch
+  orchestrator suggest /design
         """
     )
     suggest_parser.add_argument(
@@ -602,7 +602,7 @@ Examples:
         epilog="""
 Examples:
   orchestrator info /nse
-  orchestrator info /arch
+  orchestrator info /design
         """
     )
     info_parser.add_argument(
@@ -618,8 +618,8 @@ Examples:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  orchestrator validate "/nse,/arch,/r"
-  orchestrator validate "/nse /arch /r"
+  orchestrator validate "/nse,/design,/r"
+  orchestrator validate "/nse /design /r"
         """
     )
     validate_parser.add_argument(
@@ -636,7 +636,7 @@ Examples:
         epilog="""
 Examples:
   orchestrator workflow /nse
-  orchestrator workflow /arch --depth 2
+  orchestrator workflow /design --depth 2
         """
     )
     workflow_parser.add_argument(
@@ -692,7 +692,7 @@ Examples:
     graph_parser.add_argument(
         '--filter', '-f',
         dest='category',
-        help='Filter by skill category (e.g., /nse, /arch)'
+        help='Filter by skill category (e.g., /nse, /design)'
     )
 
     # invoke command
@@ -704,7 +704,7 @@ Examples:
         epilog="""
 Examples:
   orchestrator invoke /nse
-  orchestrator invoke /arch key=value
+  orchestrator invoke /design key=value
         """
     )
     invoke_parser.add_argument(

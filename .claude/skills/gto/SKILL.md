@@ -78,7 +78,7 @@ Before recommending what to do next, `/gto` should run a short internal next-ste
 - What follow-up should happen first to prevent wasted work or mis-sequencing?
 - What gap still lacks enough evidence to justify a strong recommendation?
 - What recommendation would break under multi-terminal state, stale data, or interrupted workflow?
-- What should I explicitly not recommend because ownership belongs to `/arch`, `/planning`, `/verify`, or another lower skill?
+- What should I explicitly not recommend because ownership belongs to `/design`, `/planning`, `/verify`, or another lower skill?
 - What would a weaker model over-recommend here as generic cleanup instead of the highest-value next step?
 - What recommendation looks helpful locally but would move the workflow away from the real outcome?
 - What would change our prioritization if we knew the answers?
@@ -272,7 +272,7 @@ GTO includes an intelligent skill recommendation system that analyzes gaps and s
 | doc_gap, missing_docs | documentation | /doc, /docs, /docs-validate |
 | code_quality, design_issue | quality, review | /critique, /uci |
 | import_issue, dependency | dependencies | /deps, /verify |
-| contract_gap, stale_data_risk, consumer_gap | architecture, verification, state | /arch, /planning, /verify |
+| contract_gap, stale_data_risk, consumer_gap | architecture, verification, state | /design, /planning, /verify |
 | git_dirty, uncommitted | vcs, git | /git, /push |
 | runtime_error, bug | debugging | /debugRCA, /diagnose |
 
@@ -305,7 +305,7 @@ Examples:
 
 `/gto` should suggest the owning lower skill for each gap family:
 
-- `/arch` for state, contract, identity, ordering, dedupe, invalidation, or stale-data gaps
+- `/design` for state, contract, identity, ordering, dedupe, invalidation, or stale-data gaps
 - `/planning` for execution-shape or missing contract-boundary matrix gaps
 - `/verify` for unproven behavior or missing boundary-proof gaps
 - `/critique` for adversarial review of risky or blind-spot-heavy changes

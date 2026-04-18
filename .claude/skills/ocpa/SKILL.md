@@ -11,7 +11,7 @@ aliases:
 
 suggest:
   - /nse
-  - /arch
+  - /design
   - /r
 ---
 
@@ -34,7 +34,7 @@ Validate architectural decisions through optimal completion path analysis.
 - Evaluates completion paths for architectural alternatives
 
 ### Architecture Alignment
-- Integrates with /arch for decision framework
+- Integrates with /design for decision framework
 - Supports /r for solution optimization
 
 ## Your Workflow

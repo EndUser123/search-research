@@ -26,12 +26,14 @@ Example:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import math
 import re
 import functools
 from collections import Counter
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from .hybrid_ensemble import reciprocal_rank_fusion
@@ -482,8 +484,12 @@ class UnifiedAsyncRouter:
 
         try:
             embed_client = get_embed_client()
-            db = get_connection()
-            sessions = await search_semantic_sessions(db, query, embed_client, limit=limit)
+            db = get_connection(Path("P:/__csf/data/chat_history.db"))
+            # Run sync function in thread pool with 10s timeout to avoid blocking local backends
+            sessions = await asyncio.wait_for(
+                asyncio.to_thread(search_semantic_sessions, db, query, embed_client, limit),
+                timeout=10.0,
+            )
             results = []
             for s in sessions:
                 results.append(SearchResult(
@@ -494,6 +500,9 @@ class UnifiedAsyncRouter:
                     source="chs_semantic",
                 ))
             return results
+        except asyncio.TimeoutError:
+            logger.debug("CHS semantic search timed out after 10s, falling back to local")
+            return []
         except Exception as e:
             logger.debug(f"CHS semantic search failed: {e}")
             return []

@@ -59,7 +59,7 @@ def _is_adr_path_in_args(args: dict) -> bool:
             # Match ADR filename pattern
             if _ADR_ARG_PATTERN.search(val):
                 return True
-            # Match explicit __csf/arch_decisions/... paths
+            # Match explicit __csf/design_decisions/... paths
             if "arch_decisions" in val and val.endswith(".md"):
                 return True
     return False
@@ -152,9 +152,9 @@ if __name__ == "__main__":
         # (skill_name, args, expected_tier)
         ("planning", {"adr_path": "ADR-20260329-foo.md"}, Tier.PRE_AUTHORIZED),
         ("planning", {}, Tier.AMBIGUOUS),
-        ("planning", {"path": "__csf/arch_decisions/ADR-20260329-bar.md"}, Tier.PRE_AUTHORIZED),
+        ("planning", {"path": "__csf/design_decisions/ADR-20260329-bar.md"}, Tier.PRE_AUTHORIZED),
         ("verify", {"file": "foo.md"}, Tier.AMBIGUOUS),  # No arch_decisions
-        ("verify", {"file": "__csf/arch_decisions/ADR-20260329-baz.md"}, Tier.PRE_AUTHORIZED),
+        ("verify", {"file": "__csf/design_decisions/ADR-20260329-baz.md"}, Tier.PRE_AUTHORIZED),
         ("cleanup", {"scope": "delete everything"}, Tier.BLOCKING),  # Destructive args
         ("cleanup", {}, Tier.AMBIGUOUS),  # No destructive args
         ("planning", {"type": "cleanup"}, Tier.AMBIGUOUS),  # Not destructive, just planning

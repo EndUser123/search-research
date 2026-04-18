@@ -11,7 +11,7 @@ class TestExplicitRouting:
     @pytest.mark.parametrize(
         "input_text,expected",
         [
-            ("/arch", "/arch"),
+            ("/design", "/design"),
             ("/rca", "/rca"),
             ("/debug", "/debug"),
             ("/search", "/search"),
@@ -35,7 +35,7 @@ class TestExplicitRouting:
         assert route(input_text) == expected
 
     def test_explicit_command_case_insensitive(self) -> None:
-        assert route("/ARCH") == "/arch"
+        assert route("/ARCH") == "/design"
         assert route("/RCA") == "/rca"
         assert route("/Debug") == "/debug"
 
@@ -47,8 +47,8 @@ class TestIntentBasedRouting:
         "input_text,expected",
         [
             # Architecture
-            ("how should I design this service", "/arch"),
-            ("what architecture pattern", "/arch"),
+            ("how should I design this service", "/design"),
+            ("what architecture pattern", "/design"),
             ("is creating a new module justified", "/adf"),
             ("should I extract this function", "/adf"),
             # RCA
@@ -115,5 +115,5 @@ class TestPriorityExplicitOverImplicit:
     def test_explicit_mention_wins(self) -> None:
         # Even though the text contains intent keywords,
         # an explicit command mention should win.
-        result = route("/arch design a service")
-        assert result == "/arch"
+        result = route("/design design a service")
+        assert result == "/design"

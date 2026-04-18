@@ -34,7 +34,7 @@
 **4** - [Tech Debt Item] - [WHY]
 
 **Suggestions (Optional)**
-**5** - /arch - [Why architectural review is needed]
+**5** - /design - [Why architectural review is needed]
 **6** - /test - [Why specific testing is needed]
 **7** - [optimization/refactor] - [WHY]
 
@@ -75,11 +75,11 @@ Each action item MUST state:
 |-----|------|
 | "none (trivial fix)" | "Verify debug print removal doesn't break scheduler diagnostics" |
 | "cleanup" | "Confirm removed conditional doesn't skip subtitle downloads" |
-| "not needed" | "/arch not needed - single-line change within same function" |
+| "not needed" | "/design not needed - single-line change within same function" |
 
 **Additional rules:**
 - **Group items** by importance (Priority/Maintenance/Suggestions).
-- **Omit N/A items**: If a category (e.g. /arch) is not needed, do NOT list it.
+- **Omit N/A items**: If a category (e.g. /design) is not needed, do NOT list it.
 - **Single-character selection**: Maintain 1-9, a-z selection IDs.
 - **x** = Execute all Priority + Maintenance items.
 - **0** = Skip all.

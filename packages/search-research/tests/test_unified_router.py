@@ -913,7 +913,7 @@ class TestUnifiedAsyncRouterIntegration:
         assert len(results) >= 0  # May be 0 if "async" not found, that's OK
         # If we got results, verify they're from local sources
         for result in results:
-            assert result.source in ["CDS", "Grep", "Skills", "Code", "CLAUDE-HISTORY"]
+            assert result.source in ["CDS", "CKS", "GREP", "SKILLS", "CODE", "CLAUDE-HISTORY", "YT_IS", "RLM", "QMD_WIKI", "KG", "AST_CODE", "LSP"]
 
     @pytest.mark.asyncio
     async def test_integration_with_injected_routers(self):

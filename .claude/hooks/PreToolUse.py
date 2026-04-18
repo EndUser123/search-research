@@ -663,6 +663,7 @@ COMPAT_POST_ROUTER_HOOKS = [
 # Hooks by tool type
 TOOL_HOOKS = {
     "Write": [
+        "PreToolUse_win32_path_gate.py",  # Blocks backslash paths that cause silent failures on Windows MINGW
         "PreToolUse_directory_policy.py",
         "PreToolUse_type_validator.py",  # Blocks .py files at workspace root (type mismatch prevention)
         "PreToolUse_parent_directory_creator.py",  # Creates parent dirs before Write/Edit to prevent silent failure bug
@@ -679,6 +680,7 @@ TOOL_HOOKS = {
         "PreToolUse_tdd_contract_gate.py",  # TDD Phase 2 contract gate
     ],
     "Edit": [
+        "PreToolUse_win32_path_gate.py",  # Blocks backslash paths that cause silent failures on Windows MINGW
         "PreToolUse_directory_policy.py",
         "PreToolUse_type_validator.py",  # Blocks .py files at workspace root (type mismatch prevention)
         "PreToolUse_syntax_gate.py",  # Validates Python syntax before Edit operations
@@ -694,6 +696,7 @@ TOOL_HOOKS = {
         "PreToolUse_tdd_contract_gate.py",  # TDD Phase 2 contract gate
     ],
     "MultiEdit": [
+        "PreToolUse_win32_path_gate.py",  # Blocks backslash paths that cause silent failures on Windows MINGW
         "PreToolUse_directory_policy.py",
         "PreToolUse_import_deletion_guard.py",  # Blocks import removal across batched edits
     ],
@@ -706,6 +709,7 @@ TOOL_HOOKS = {
         "PreToolUse_git_remote_check_order_guard.py",  # Require local HEAD check before origin/* inspection
         "PreToolUse_authorization_gate.py",
         "PreToolUse_dependency_verification_gate.py",
+        "PreToolUse_evidence_hierarchy_gate.py",  # Enforce local-first: block external fetch if local evidence exists
         "PreToolUse_bulk_delete_gate.py",
         "PreToolUse_python_c_validator.py",
         "PreToolUse_repo_visibility_guard.py",  # Blocks P:\ drive repos from being made public
@@ -724,6 +728,12 @@ TOOL_HOOKS = {
     "mcp__web-reader__webReader": [
         "PreToolUse_mcp_full_read_guard.py",
     ],
+    "WebFetch": [
+        "PreToolUse_evidence_hierarchy_gate.py",  # Block if local evidence exists for same topic
+    ],
+    "WebSearch": [
+        "PreToolUse_evidence_hierarchy_gate.py",  # Block if local evidence exists for same topic
+    ],
 }
 
 # Map hook filenames to in-process functions for speed
@@ -735,6 +745,7 @@ try:
     import PreToolUse_dependency_verification_gate
     import PreToolUse_destructive_git_guard
     import PreToolUse_directory_policy
+    import PreToolUse_evidence_hierarchy_gate
     import PreToolUse_git_remote_check_order_guard
     import PreToolUse_import_deletion_guard
     import PreToolUse_path_validator
@@ -757,6 +768,7 @@ try:
         "PreToolUse_bulk_delete_gate.py": PreToolUse_bulk_delete_gate.run,
         "PreToolUse_dependency_verification_gate.py": PreToolUse_dependency_verification_gate.run,
         "PreToolUse_destructive_git_guard.py": PreToolUse_destructive_git_guard.run,
+        "PreToolUse_evidence_hierarchy_gate.py": PreToolUse_evidence_hierarchy_gate.run,
         "PreToolUse_git_remote_check_order_guard.py": PreToolUse_git_remote_check_order_guard.run,
         "PreToolUse_import_deletion_guard.py": PreToolUse_import_deletion_guard.run,
         "PreToolUse_task_self_doc_gate.py": PreToolUse_task_self_doc_gate.run,

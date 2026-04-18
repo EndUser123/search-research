@@ -48,13 +48,13 @@ class TestDecisionEngine:
 
     def test_decision_branch_point_identification(self):
         """Test identifying decision points in workflows."""
-        workflow = ["/analyze", "/nse", "/arch", "/r", "/refactor"]
+        workflow = ["/analyze", "/nse", "/design", "/r", "/refactor"]
         branch_points = decision_orchestrator.get_branch_points(workflow)
         assert len(branch_points) >= 0
 
     def test_strategic_quality_integration(self):
         """Test STRATEGY and QUALITY branch integration."""
-        workflow = ["/arch", "/nse", "/t", "/comply"]
+        workflow = ["/design", "/nse", "/t", "/comply"]
         validation = decision_orchestrator.validate_cross_branch_workflow(workflow)
         assert "valid" in validation
         assert "branches" in validation
@@ -110,7 +110,7 @@ class TestDecisionEngine:
     def test_phase_3_skills_categorized(self):
         """Test that Phase 3 skills are properly categorized."""
         phase3_skills = [
-            "/arch", "/nse", "/r",
+            "/design", "/nse", "/r",
             "/analyze", "/llm-brainstorm", "/s",
             "/rca"
         ]
@@ -121,14 +121,14 @@ class TestDecisionEngine:
 
     def test_strategy_to_quality_transition_valid(self):
         """Test that STRATEGY to QUALITY transitions are valid."""
-        validation = master_orchestrator.validate_workflow(["/arch", "/t"])
+        validation = master_orchestrator.validate_workflow(["/design", "/t"])
         assert "valid" in validation
 
     def test_decision_engine_state_persistence(self):
         """Test that decision engine state persists across sessions."""
         decision_orchestrator.record_decision(
             from_skill="/nse",
-            to_skill="/arch",
+            to_skill="/design",
             context={"reason": "architecture_review"},
             alternatives=["/r", "/s"]
         )
@@ -136,7 +136,7 @@ class TestDecisionEngine:
         assert len(decisions) > 0
         latest = decisions[-1]
         assert latest["from"] == "/nse"
-        assert latest["to"] == "/arch"
+        assert latest["to"] == "/design"
 
 
 class TestDecisionEngineIntegration:

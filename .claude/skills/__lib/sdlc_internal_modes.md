@@ -15,7 +15,7 @@ Purpose:
 
 Good use cases:
 - architecture decisions inherited from prior ADRs or blockers
-- plans rewritten after nested `/arch` remediation
+- plans rewritten after nested `/design` remediation
 - RCA where "what changed?" matters
 - implementation work constrained by earlier corrections or contracts
 

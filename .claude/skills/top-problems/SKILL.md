@@ -267,7 +267,7 @@ Write to `P:/.claude/.artifacts/{terminal_id}/top-problems/top-problems_<YYYYMMD
 
 `/top-problems` is a prioritizer. It should suggest lower skills based on the owning failure type:
 
-- `/arch` for systemic contract/state redesign
+- `/design` for systemic contract/state redesign
 - `/planning` for multi-step fixes needing explicit task shape
 - `/pre-mortem` for risky or repeated failures
 - `/critique` for adversarial review before committing to a fix

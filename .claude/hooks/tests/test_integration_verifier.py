@@ -246,6 +246,101 @@ def test_hook_json_output_format():
     assert result["passed"] is True  # Should not block
 
 
+class TestDependsOnSkillsValidation:
+    """Tests for depends_on_skills existence checking."""
+
+    def setup_method(self):
+        self.verifier = IntegrationVerifier()
+
+    def test_missing_depends_on_skills_triggers_warning(self, tmp_path):
+        """depends_on_skills referencing non-existent skill triggers warning."""
+        skills_root = tmp_path / "skills"
+        skill_dir = skills_root / "orchestrator"
+        skill_dir.mkdir(parents=True)
+        skill_file = skill_dir / "SKILL.md"
+        skill_file.write_text(
+            "---\n"
+            "name: orchestrator\n"
+            "depends_on_skills: [existing-dep, missing-dep]\n"
+            "---\n"
+            "# Orchestrator\n"
+        )
+        # Create the existing dep
+        dep_dir = skills_root / "existing-dep"
+        dep_dir.mkdir()
+        (dep_dir / "SKILL.md").write_text("---\nname: existing-dep\n---\n# Dep\n")
+
+        original_dirs = self.verifier.skills_dirs
+        self.verifier.skills_dirs = [skills_root]
+        try:
+            result = self.verifier.process("Write", {"file_path": str(skill_file)}, {})
+            assert len(result.get("missing_deps", [])) == 1
+            assert result["missing_deps"][0]["target"] == "/missing-dep"
+            assert "DEPENDS_ON_SKILLS" in result["injection"]
+        finally:
+            self.verifier.skills_dirs = original_dirs
+
+    def test_all_deps_exist_no_warning(self, tmp_path):
+        """depends_on_skills where all deps exist produces no warning."""
+        skills_root = tmp_path / "skills"
+        skill_dir = skills_root / "orchestrator"
+        skill_dir.mkdir(parents=True)
+        skill_file = skill_dir / "SKILL.md"
+        skill_file.write_text(
+            "---\n"
+            "name: orchestrator\n"
+            "depends_on_skills: [dep-a, dep-b]\n"
+            "---\n"
+            "# Orchestrator\n"
+        )
+        for dep in ("dep-a", "dep-b"):
+            d = skills_root / dep
+            d.mkdir()
+            (d / "SKILL.md").write_text(f"---\nname: {dep}\n---\n# {dep}\n")
+
+        original_dirs = self.verifier.skills_dirs
+        self.verifier.skills_dirs = [skills_root]
+        try:
+            result = self.verifier.process("Write", {"file_path": str(skill_file)}, {})
+            assert len(result.get("missing_deps", [])) == 0
+            # injection may or may not be present depending on other fields
+        finally:
+            self.verifier.skills_dirs = original_dirs
+
+    def test_depends_on_skills_no_reciprocity_required(self, tmp_path):
+        """depends_on_skills does NOT require target to reference back."""
+        skills_root = tmp_path / "skills"
+        skill_dir = skills_root / "orchestrator"
+        skill_dir.mkdir(parents=True)
+        skill_file = skill_dir / "SKILL.md"
+        skill_file.write_text(
+            "---\n"
+            "name: orchestrator\n"
+            "depends_on_skills: [standalone-dep]\n"
+            "---\n"
+            "# Orchestrator\n"
+        )
+        # standalone-dep exists but does NOT mention orchestrator
+        dep_dir = skills_root / "standalone-dep"
+        dep_dir.mkdir()
+        (dep_dir / "SKILL.md").write_text("---\nname: standalone-dep\n---\n# Dep\n")
+
+        original_dirs = self.verifier.skills_dirs
+        self.verifier.skills_dirs = [skills_root]
+        try:
+            result = self.verifier.process("Write", {"file_path": str(skill_file)}, {})
+            assert len(result.get("missing_deps", [])) == 0
+            # No one_way warning because depends_on_skills is directional
+        finally:
+            self.verifier.skills_dirs = original_dirs
+
+    def test_extract_depends_on_skills_converts_bare_names(self):
+        """Bare names in depends_on_skills get /-prefixed."""
+        content = "---\ndepends_on_skills: [alpha, beta]\n---\n# Test\n"
+        result = self.verifier._extract_depends_on_skills(content)
+        assert result == ["/alpha", "/beta"]
+
+
 if __name__ == "__main__":
     import pytest
 

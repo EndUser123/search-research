@@ -169,7 +169,7 @@ def _build_fallback_catalog() -> dict[str, SkillSummary]:
             relevant_domains=["import_issue", "code_quality"],
         ),
         SkillSummary(
-            name="/arch",
+            name="/design",
             description="Architecture decision advisor",
             category="architecture",
             triggers=["arch", "architecture"],

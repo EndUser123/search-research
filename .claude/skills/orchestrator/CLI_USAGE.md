@@ -15,7 +15,7 @@ The CLI is located at `P:/.claude/skills/orchestrator/cli.py`.
 ```powershell
 cd P:\.claude\skills\orchestrator
 python cli.py suggest /nse
-python cli.py info /arch
+python cli.py info /design
 python cli.py stats
 ```
 
@@ -27,7 +27,7 @@ Git Bash interprets `/nse` as a Windows path. Use one of these workarounds:
 ```bash
 cd P:/.claude/skills/orchestrator
 python cli.py suggest //nse
-python cli.py info //arch
+python cli.py info //design
 ```
 
 **Option 2: Use the wrapper script**
@@ -65,7 +65,7 @@ python cli.py suggest /nse
 
 Valid Next Skills:
   /r
-  /arch
+  /design
   /r
   /llm-brainstorm
 ```
@@ -98,13 +98,13 @@ Metadata:
 
 Suggests:
   /r
-  /arch
+  /design
   /r
   /llm-brainstorm
 
 Suggested By:
   /analyze
-  /arch
+  /design
   /r
   ...
 ```
@@ -119,13 +119,13 @@ python cli.py validate <skill1,skill2,...>
 
 **Example:**
 ```bash
-python cli.py validate "/nse,/r,/arch"
+python cli.py validate "/nse,/r,/design"
 ```
 
 **Output:**
 ```
 === Workflow Validation ===
-  Workflow: /nse → /r → /arch
+  Workflow: /nse → /r → /design
 ✓ Valid workflow
 ```
 
@@ -151,7 +151,7 @@ python cli.py workflow /nse --depth 2
 Possible Workflows:
   1. /nse → /r → /nse
   2. /nse → /r → /dne
-  3. /nse → /r → /arch
+  3. /nse → /r → /design
   ...
 ```
 
@@ -177,7 +177,7 @@ python cli.py history --limit 5
 Recent Executions:
   ✓ /nse [success]
     Time: 2026-01-18T14:48:39
-    Next: /r, /arch, /r
+    Next: /r, /design, /r
     Path: /nse
 
   ✓ /r [success]
@@ -199,7 +199,7 @@ python cli.py stats
 === Workflow Statistics ===
   Total executions: 25
   Total strategic decisions: 12
-  Current workflow: /nse → /r → /arch
+  Current workflow: /nse → /r → /design
   Workflow stack depth: 3
   Skills with suggest fields: 58
   Valid transitions: 104
@@ -226,9 +226,9 @@ python cli.py graph --filter /nse
   Skills with suggest fields: 58
 
 Skill Transitions:
-  /analyze → /nse, /arch, /r
-  /arch → /nse, /r, /llm-brainstorm
-  /nse → /r, /arch, /r
+  /analyze → /nse, /design, /r
+  /design → /nse, /r, /llm-brainstorm
+  /nse → /r, /design, /r
   ...
 
   Total transitions: 104
@@ -245,7 +245,7 @@ python cli.py invoke <skill> [args...]
 **Example:**
 ```bash
 python cli.py invoke /nse
-python cli.py invoke /arch key=value
+python cli.py invoke /design key=value
 ```
 
 ## Global Options
@@ -267,7 +267,7 @@ python cli.py --json stats
     "name": "nse",
     "description": "Next Step Engine v2"
   },
-  "suggests": ["/r", "/arch"],
+  "suggests": ["/r", "/design"],
   ...
 }
 ```
@@ -308,16 +308,16 @@ python cli.py --version
 python cli.py suggest /nse
 ```
 
-### Plan a workflow starting from /arch
+### Plan a workflow starting from /design
 
 ```bash
-python cli.py workflow /arch --depth 3
+python cli.py workflow /design --depth 3
 ```
 
 ### Validate a proposed workflow
 
 ```bash
-python cli.py validate "/nse,/r,/arch,/r"
+python cli.py validate "/nse,/r,/design,/r"
 ```
 
 ### Get skill information for documentation
@@ -401,7 +401,7 @@ from orchestrator import master_orchestrator
 suggestions = master_orchestrator.get_workflow_suggestions('/nse')
 
 # Validate workflow
-validation = master_orchestrator.validate_workflow(['/nse', '/r', '/arch'])
+validation = master_orchestrator.validate_workflow(['/nse', '/r', '/design'])
 
 # Get statistics
 stats = master_orchestrator.get_workflow_stats()

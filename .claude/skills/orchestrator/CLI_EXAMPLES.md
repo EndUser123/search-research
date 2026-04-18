@@ -51,8 +51,8 @@ commands:
 
 Examples:
   orchestrator suggest /nse              Show suggestions for /nse skill
-  orchestrator info /arch                Show detailed info about /arch
-  orchestrator validate "/nse,/arch"     Validate workflow sequence
+  orchestrator info /design                Show detailed info about /design
+  orchestrator validate "/nse,/design"     Validate workflow sequence
   orchestrator workflow /nse --depth 2   Suggest workflows from /nse
   orchestrator history --limit 5         Show last 5 executions
   orchestrator stats                     Show workflow statistics
@@ -76,7 +76,7 @@ python cli.py suggest /nse
 
 Valid Next Skills:
   /r
-  /arch
+  /design
   /r
   /llm-brainstorm
 ```
@@ -112,14 +112,14 @@ Metadata:
 
 Suggests:
   /r
-  /arch
+  /design
   /r
   /llm-brainstorm
 
 Suggested By:
   /agent-orchestrator
   /analyze
-  /arch
+  /design
   /r
   /dne
   /llm-brainstorm
@@ -135,26 +135,26 @@ Suggested By:
 ### Valid Workflow
 
 ```bash
-python cli.py validate "/nse,/r,/arch"
+python cli.py validate "/nse,/r,/design"
 ```
 
 **Output:**
 ```
 === Workflow Validation ===
-  Workflow: /nse → /r → /arch
+  Workflow: /nse → /r → /design
 ✓ Valid workflow
 ```
 
 ### Invalid Workflow
 
 ```bash
-python cli.py validate "/nse,/invalid,/arch"
+python cli.py validate "/nse,/invalid,/design"
 ```
 
 **Output:**
 ```
 === Workflow Validation ===
-  Workflow: /nse → /invalid → /arch
+  Workflow: /nse → /invalid → /design
 ✗ Invalid workflow
 
 Issues:
@@ -163,7 +163,7 @@ Issues:
 
 Valid Next Skills:
   /r
-  /arch
+  /design
   /r
   /llm-brainstorm
 ```
@@ -185,17 +185,17 @@ python cli.py workflow /nse --depth 2
 Possible Workflows:
   1. /nse → /r → /nse
   2. /nse → /r → /dne
-  3. /nse → /r → /arch
+  3. /nse → /r → /design
   4. /nse → /r → /llm-brainstorm
-  5. /nse → /arch → /nse
-  6. /nse → /arch → /r
-  7. /nse → /arch → /llm-brainstorm
-  8. /nse → /arch → /r
+  5. /nse → /design → /nse
+  6. /nse → /design → /r
+  7. /nse → /design → /llm-brainstorm
+  8. /nse → /design → /r
   9. /nse → /r → /nse
-  10. /nse → /r → /arch
+  10. /nse → /r → /design
   11. /nse → /r → /analyze
   12. /nse → /llm-brainstorm → /nse
-  13. /nse → /llm-brainstorm → /arch
+  13. /nse → /llm-brainstorm → /design
   14. /nse → /llm-brainstorm → /analyze
   15. /nse → /llm-brainstorm → /r
 ```
@@ -222,7 +222,7 @@ Recent Executions:
 
   ✓ /nse [success]
     Time: 2026-01-18T14:48:39.190791
-    Next: /r, /arch, /r, /llm-brainstorm
+    Next: /r, /design, /r, /llm-brainstorm
     Path: /nse
 ```
 
@@ -262,15 +262,15 @@ python cli.py graph
   Skills with suggest fields: 58
 
 Skill Transitions:
-  /analyze → /nse, /arch, /r
-  /arch → /nse, /r, /llm-brainstorm, /r
+  /analyze → /nse, /design, /r
+  /design → /nse, /r, /llm-brainstorm, /r
   /bug-hunt → /comply, /t, /debug
   /build → /qa, /t, /comply
   /chs → /cks, /search, /research
   /cks → /chs, /search, /progressive-search
   /code-python-2025 → /comply, /t, /bug-hunt
   /code-typescript-2025 → /comply, /t, /bug-hunt
-  /cognitive-frameworks → /nse, /arch, /r
+  /cognitive-frameworks → /nse, /design, /r
   /commit → /push, /git-safety
   /complexity → /refactor, /bug-hunt, /analyze
   /comply → /t, /bug-hunt, /q
@@ -279,9 +279,9 @@ Skill Transitions:
   /cwo → /nse, /workflow, /quadlet
   /ddd → /comply, /t, /qa
   /debug → /rca, /r, /chs, /fix
-  /design → /build, /arch, /nse
-  /r → /nse, /dne, /arch, /llm-brainstorm
-  /dne → /nse, /r, /arch, /llm-brainstorm
+  /design → /build, /design, /nse
+  /r → /nse, /dne, /design, /llm-brainstorm
+  /dne → /nse, /r, /design, /llm-brainstorm
   /p2 → /p3, /adversarial-review, /tdd
   /evolve → /comply, /t, /refactor
   /fix → /t, /tdd, /rca
@@ -304,7 +304,7 @@ python cli.py graph --filter /nse
   Skills with suggest fields: 1
 
 Skill Transitions:
-  /nse → /r, /arch, /r, /llm-brainstorm
+  /nse → /r, /design, /r, /llm-brainstorm
 
   Total transitions: 4
 ```
@@ -325,7 +325,7 @@ python cli.py invoke /nse
 
 Suggested Next:
   /r
-  /arch
+  /design
   /r
   /llm-brainstorm
 
@@ -401,11 +401,11 @@ python cli.py --json info /nse
     "estimated_tokens": "500-3000",
     "status": "stable"
   },
-  "suggests": ["/r", "/arch", "/r", "/llm-brainstorm"],
+  "suggests": ["/r", "/design", "/r", "/llm-brainstorm"],
   "suggested_by": [
     "/agent-orchestrator",
     "/analyze",
-    "/arch",
+    "/design",
     "/r",
     ...
   ],
@@ -424,7 +424,7 @@ python cli.py --json suggest /nse
 ```json
 {
   "skill": "/nse",
-  "suggestions": ["/r", "/arch", "/r", "/llm-brainstorm"]
+  "suggestions": ["/r", "/design", "/r", "/llm-brainstorm"]
 }
 ```
 

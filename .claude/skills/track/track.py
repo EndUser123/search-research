@@ -427,7 +427,7 @@ def cmd_info() -> None:
 
 
 def cmd_archive() -> None:
-    """Mark current thread as complete/archived."""
+    """Mark current thread as complete/designived."""
     thread_id = _get_current_thread_id()
     if not thread_id:
         print("No active thread to archive.")

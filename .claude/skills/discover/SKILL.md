@@ -77,7 +77,7 @@ Discover codebase patterns, architecture, technical debt, and implementation opp
 ### Architecture Alignment
 - Integrates with /search and /analyze workflows
 - Part of CSF NIP discovery tools
-- Complements /arch and /explore
+- Complements /design and /explore
 
 ## Your Workflow
 
@@ -146,7 +146,7 @@ Discover codebase patterns, architecture, technical debt, and implementation opp
 
 ## Related
 
-- **Architecture**: `/arch` (ML enhanced architectural analysis)
+- **Architecture**: `/design` (ML enhanced architectural analysis)
 - **Explore**: `/explore` (systematic investigation with ML)
 - **Analyze**: `/analyze` (unified analysis engine)
 

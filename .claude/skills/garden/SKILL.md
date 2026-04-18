@@ -84,7 +84,7 @@ Output a short summary:
 ## Output Format
 
 - "Garden report" including:
-  - Summary counts (merged/archived/promoted).
+  - Summary counts (merged/designived/promoted).
   - A brief list of key changes.
   - Optional recommended future gardening focus (e.g., a specific skill or topic that's noisy).
 

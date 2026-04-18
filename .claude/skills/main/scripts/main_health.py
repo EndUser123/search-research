@@ -716,7 +716,7 @@ def run_hook_syntax_check() -> CheckResult:
             or "tests/" in rel_str
             or "/tests/" in rel_str
             or ".migration_backup" in path_str
-            or "/archive/" in rel_str
+            or "/designive/" in rel_str
             or "/_archive/" in rel_str
             or "/_archived/" in rel_str
             or rel_str.startswith("archive/")
