@@ -1,0 +1,133 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "e7d32098-fd94-4371-85bb-6c69d9c3373e",
+    "terminal_id": "console_5ffd8242-39ba-4594-a751-1b115f6510ae",
+    "source_session_id": "2b23f841-6774-40cc-ab86-7b7a6fcdd30f",
+    "created_at": "2026-04-18T02:25:40.085242+00:00",
+    "expires_at": "2026-04-18T02:45:40.085242+00:00",
+    "status": "consumed",
+    "goal": "test all the backends",
+    "current_task": "test all the backends",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "P:/packages/search-research/core/router_async.py",
+      "P:/packages/search-research/tests/simple_router_test.py",
+      "P:/packages/search-research/core/config.py",
+      "P:/packages/search-research/core/backends/local/claude_history_backend.py",
+      "P:/packages/search-research/core/unified_router.py",
+      "P:/packages/search-research/core/backends/local/notebooklm_backend.py",
+      "P:/packages/search-research/core/backends/local/yt_is_backend.py",
+      "P:/packages/search-research/core/chs/embeddings.py",
+      "P:/packages/search-research/core/chs/search.py",
+      "P:/packages/search-research/pyproject.toml"
+    ],
+    "pending_operations": [
+      {
+        "type": "skill",
+        "target": "skill: search",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "ls \"P:/packages/search-research/\" 2>/dev/null || echo \"NOT FOUND\"",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "ls \"P:/packages/search-research/core/\" 2>/dev/null",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "cd \"P:/packages/search-research\" && python -c \"from core.cli import run_search; ",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "ls \"P:/packages/search-research/core/backends/\" 2>/dev/null",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "(advisory) Previous session had pending: skill on skill: search.",
+    "decision_refs": [
+      "dec_933fab4e09e049ce8f606d7e071c0e7e"
+    ],
+    "evidence_refs": [
+      "ev_a8bb9a0bf5d4459c8324227ad100d19b",
+      "ev_eb8465ef89244559ae82197d429774a9",
+      "ev_d76330ec2c6f48e69aa1dfb87975f994",
+      "ev_bdb13b07ccd3423e8897cda6c7617341",
+      "ev_878626fd77484626a32e2ecb7fa72b42",
+      "ev_9e64b47543364768a74386a2fb8177d9"
+    ],
+    "n_1_transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\2b23f841-6774-40cc-ab86-7b7a6fcdd30f.jsonl",
+    "n_2_transcript_path": null,
+    "message_intent": "instruction",
+    "goal_origin": "user_message",
+    "quality_score": 0.4,
+    "tasks_snapshot": [],
+    "consumed_at": "2026-04-18T02:26:39.848636+00:00",
+    "consumed_by_session_id": "2b23f841-6774-40cc-ab86-7b7a6fcdd30f"
+  },
+  "decision_register": [
+    {
+      "id": "dec_933fab4e09e049ce8f606d7e071c0e7e",
+      "kind": "anti_goal",
+      "summary": "The function `test_backend` is being collected as a test by pytest but it needs a `router` fixture. It's a helper function, not a test. Rename it to avoid pytest collection.",
+      "details": "The function `test_backend` is being collected as a test by pytest but it needs a `router` fixture. It's a helper function, not a test. Rename it to avoid pytest collection.",
+      "priority": "medium",
+      "applies_when": "Continue the current task after compact.",
+      "source_refs": [
+        "ev_a8bb9a0bf5d4459c8324227ad100d19b"
+      ]
+    }
+  ],
+  "evidence_index": [
+    {
+      "id": "ev_a8bb9a0bf5d4459c8324227ad100d19b",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\2b23f841-6774-40cc-ab86-7b7a6fcdd30f.jsonl",
+      "content_hash": "sha256:294e133d071140559fcea221b03aa7d969c7a96f6d4874b12cd8084f431aadc0"
+    },
+    {
+      "id": "ev_eb8465ef89244559ae82197d429774a9",
+      "type": "file",
+      "label": "router_async.py",
+      "path": "P:\\packages\\search-research\\core\\router_async.py",
+      "content_hash": "sha256:acf7842919026b577d5808de4b08ba86c9ddd1abf25cf5fa9d80be8f27e4c2bb"
+    },
+    {
+      "id": "ev_d76330ec2c6f48e69aa1dfb87975f994",
+      "type": "file",
+      "label": "simple_router_test.py",
+      "path": "P:\\packages\\search-research\\tests\\simple_router_test.py",
+      "content_hash": "sha256:0d388dd7ab2d44192ef28cd1821c226a8a420dd930f5a9335563eee9d142839e"
+    },
+    {
+      "id": "ev_bdb13b07ccd3423e8897cda6c7617341",
+      "type": "file",
+      "label": "config.py",
+      "path": "P:\\packages\\search-research\\core\\config.py",
+      "content_hash": "sha256:ffca65246e150dedaf6d6ee65f23d462f72de2faed4fd218766ec70eb0c50b19"
+    },
+    {
+      "id": "ev_878626fd77484626a32e2ecb7fa72b42",
+      "type": "file",
+      "label": "claude_history_backend.py",
+      "path": "P:\\packages\\search-research\\core\\backends\\local\\claude_history_backend.py",
+      "content_hash": "sha256:4eafbb52282926ba5386bd5fb1a3d2b246b9d326d28faa648e467dad99baa445"
+    },
+    {
+      "id": "ev_9e64b47543364768a74386a2fb8177d9",
+      "type": "file",
+      "label": "unified_router.py",
+      "path": "P:\\packages\\search-research\\core\\unified_router.py",
+      "content_hash": "sha256:7c96a32298858d2d40fad34559f0fe28f3cd5f3a450bb022e039c9e6520761dd"
+    }
+  ],
+  "checksum": "sha256:7a4d31f25b9ce2cf09ddf9489329944f0867ee5d90260fa65d54fb496bfa9033"
+}

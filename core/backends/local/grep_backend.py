@@ -116,6 +116,12 @@ class GrepBackend(BaseLocalBackend):
         if query_lower in self._index:
             for idx, item in enumerate(self._index[query_lower]):
                 results.append(self._format_result(item, f"grep_{query_lower}_{idx}", 0.6))
+        else:
+            # Try stripping common declaration prefixes ("class ", "def ", "async ")
+            stripped = self._strip_declaration_prefix(query_lower)
+            if stripped in self._index:
+                for idx, item in enumerate(self._index[stripped]):
+                    results.append(self._format_result(item, f"grep_{stripped}_{idx}", 0.6))
 
         # Partial matches
         for key, items in self._index.items():
@@ -124,6 +130,23 @@ class GrepBackend(BaseLocalBackend):
                     results.append(self._format_result(item, f"grep_{key}_{idx}", 0.4))
 
         return results[:limit]
+
+    def _strip_declaration_prefix(self, query: str) -> str:
+        """Strip common declaration prefixes from a query for name-only lookup.
+
+        Handles patterns like 'class Foo', 'def foo', 'async def foo' by stripping
+        the prefix and returning the bare name for index lookup.
+
+        Args:
+            query: Lowercase query string
+
+        Returns:
+            The query with declaration prefix stripped, or original if no match
+        """
+        for prefix in ("class ", "def ", "async "):
+            if query.startswith(prefix):
+                return query[len(prefix):]
+        return query
 
     def _format_result(self, item: SearchResult, result_id: str, score: float) -> SearchResult:
         """Format a result for search routers."""
