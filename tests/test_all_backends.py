@@ -2,9 +2,6 @@
 """Per-backend test to verify each backend produces results."""
 
 import asyncio
-import sys
-from pathlib import Path
-
 from search_research import AsyncSearchRouter
 
 BACKENDS_UNDER_TEST = [
@@ -31,7 +28,7 @@ async def test_backend(router: AsyncSearchRouter, backend_name: str, query: str)
             "backend": backend_name,
             "count": len(results),
             "status": "PASS" if results else "ZERO_RESULTS",
-            "first_result": results[0]["title"][:60] if results else None,
+            "first_result": results[0].title[:60] if results else None,
         }
     except Exception as e:
         return {

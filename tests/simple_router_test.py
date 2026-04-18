@@ -5,12 +5,6 @@ Simplified test to verify router works with a guaranteed match.
 
 import asyncio
 import sys
-from pathlib import Path
-
-# Add paths
-src_path = Path(__file__).parent.parent / "src"
-sys.path.insert(0, str(src_path))
-
 from search_research import AsyncSearchRouter
 
 

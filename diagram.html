@@ -712,42 +712,40 @@
             lastMermaidDirection = direction;
             lastMermaidCode = `flowchart ${direction}
     subgraph L1 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L1 — Intent</B></TD></TR></TABLE>>"]
-        L1_S0(["<span class='skillLabel'>/think</span><span class='skillDesc'>question · design · route</span>"])
         L1_S1(["<span class='skillLabel'>/prd</span><span class='skillDesc'>elicit · write · review</span>"])
         L1_S2(["<span class='skillLabel'>/specify</span><span class='skillDesc'>expand requirements<br/>user stories · acceptance criteria</span>"])
     end
 
     subgraph L2 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L2 — Architecture</B></TD></TR></TABLE>>"]
-        L2_S1(["<span class='skillLabel'>/design</span><span class='skillDesc'>architecture<br/>decisions</span>"])
+        L2_S1(["<span class='skillLabel'>/design</span><span class='skillDesc'>explore context<br/>classify intent · select template</span>"])
         L2_S2(["<span class='skillLabel'>/explore</span><span class='skillDesc'>inspect context<br/>test assumptions</span>"])
-        L2_S3(["<span class='skillLabel'>/planning</span><span class='skillDesc'>plan_edits()<br/>glob_files()</span>"])
+        L2_S3(["<span class='skillLabel'>/planning</span><span class='skillDesc'>plan · glob · edit<br/>prepare implementation</span>"])
     end
 
     subgraph L3 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L3 — Implement</B></TD></TR></TABLE>>"]
         L3_S1(["<span class='skillLabel'>/code</span><span class='skillDesc'>tool loop<br/>until done</span>"])
-        L3_S2(["<span class='skillLabel'>/tdd</span><span class='skillDesc'>run_tests()<br/>until pass</span>"])
-        L3_S3(["<span class='skillLabel'>/refactor</span><span class='skillDesc'>reshape<br/>simplify · tighten</span>"])
+        L3_S2(["<span class='skillLabel'>/tdd</span><span class='skillDesc'>write test<br/>run · iterate · pass</span>"])
+        L3_S3(["<span class='skillLabel'>/refactor</span><span class='skillDesc'>reshape code<br/>clarify · tighten</span>"])
     end
 
     subgraph L4 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L4 — Verify</B></TD></TR></TABLE>>"]
-        L4_S1(["<span class='skillLabel'>/code-review</span><span class='skillDesc'>self_critique()<br/>anti_sycophancy()</span>"])
-        L4_S2(["<span class='skillLabel'>/verify</span><span class='skillDesc'>confirm behavior<br/>close loops</span>"])
+        L4_S1(["<span class='skillLabel'>/code-review</span><span class='skillDesc'>self-critique<br/>anti-sycophancy</span>"])
+        L4_S2(["<span class='skillLabel'>/verify</span><span class='skillDesc'>confirm behavior<br/>close all loops</span>"])
     end
 
     subgraph L5 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L5 — Release</B></TD></TR></TABLE>>"]
-        L5_S1(["<span class='skillLabel'>/commit</span><span class='skillDesc'>commit()</span>"])
-        L5_S2(["<span class='skillLabel'>/push</span><span class='skillDesc'>push()<br/>publish()</span>"])
+        L5_S1(["<span class='skillLabel'>/commit</span><span class='skillDesc'>commit changes</span>"])
+        L5_S2(["<span class='skillLabel'>/push</span><span class='skillDesc'>push · publish</span>"])
     end
 
     subgraph L6 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L6 — Recap</B></TD></TR></TABLE>>"]
-        L6_S1(["<span class='skillLabel'>/recap</span><span class='skillDesc'>exit_reason()<br/>summarize()</span>"])
+        L6_S1(["<span class='skillLabel'>/recap</span><span class='skillDesc'>exit reason<br/>summarize session</span>"])
     end
 
     L1_S1 --> L1_S2
     L1_S2 --> L2_S1
 
-    L2_S1 --> L2_S2
-    L2_S2 --> L2_S1
+    L2_S1 <--> L2_S2
     L2_S1 --> L2_S3
     L2_S3 --> L3_S1
 
@@ -755,7 +753,7 @@
     L3_S2 --> L3_S3
     L3_S3 -->|Pass| L4_S1
     L4_S1 --> L4_S2
-    L4_S2 ---->|Pass| L5_S1
+    L4_S2 -->|Pass| L5_S1
     L5_S1 --> L5_S2
     L5_S2 --> L6_S1
 
@@ -763,14 +761,17 @@
     L4_S2 -.->|Fail| L3_S2
     L5_S1 -.->|Fail| L4_S1
     L5_S2 -.->|Fail| L4_S1
-    L5_S2 --> L6_S1
+
+    G(["<b>Always Available</b><br/>/think · /explore · /search"])
 
     style L1 fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
     style L2 fill:#fef9c3,stroke:#eab308,stroke-width:2px
     style L3 fill:#ffedd5,stroke:#f97316,stroke-width:2px
     style L4 fill:#dcfce7,stroke:#22c55e,stroke-width:2px
     style L5 fill:#f3e8ff,stroke:#a855f7,stroke-width:2px
-    style L6 fill:#fee2e2,stroke:#ef4444,stroke-width:2px`;
+    style L6 fill:#fee2e2,stroke:#ef4444,stroke-width:2px
+    style G fill:#f1f5f9,stroke:#94a3b8,stroke-width:1px,stroke-dasharray:3
+    style G color:#64748b`;
             return lastMermaidCode;
         }
 

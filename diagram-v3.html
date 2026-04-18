@@ -1,0 +1,92 @@
+flowchart TD
+    %% =====================================================================
+    %% CLAUDE CODE SDLC PIPELINE — Improved Logical Flow
+    %% =====================================================================
+    %% Layout: Top-to-Bottom (TB) — phases flow naturally downward
+    %% Color key by phase:
+    %%   L1 Intent=blue(#3b82f6)  L2 Arch=yellow(#eab308)
+    %%   L3 Implement=orange(#f97316)  L4 Verify=green(#22c55e)
+    %%   L5 Release=purple(#a855f7)  L6 Recap=red(#ef4444)
+    %% =====================================================================
+
+    %% ── PHASE 1: INTENT ──────────────────────────────────────────────────
+    subgraph L1 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L1 — Intent</B></TD></TR></TABLE>>"]
+        L1A(["<b>/prd</b><br/>elicit · write · review"])
+        L1B(["<b>/specify</b><br/>expand requirements<br/>user stories · acceptance criteria"])
+    end
+
+    %% ── PHASE 2: ARCHITECTURE ──────────────────────────────────────────
+    subgraph L2 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L2 — Architecture</B></TD></TR></TABLE>>"]
+        L2A(["<b>/design</b><br/>explore context<br/>classify intent · select template"])
+        L2B(["<b>/explore</b><br/>inspect context<br/>test assumptions"])
+        L2C(["<b>/planning</b><br/>plan · glob · edit<br/>prepare implementation"])
+    end
+
+    %% ── PHASE 3: IMPLEMENT ──────────────────────────────────────────────
+    subgraph L3 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L3 — Implement</B></TD></TR></TABLE>>"]
+        L3A(["<b>/code</b><br/>tool loop<br/>until done"])
+        L3B(["<b>/tdd</b><br/>write test<br/>run · iterate · pass"])
+        L3C(["<b>/refactor</b><br/>reshape code<br/>clarify · tighten"])
+    end
+
+    %% ── PHASE 4: VERIFY ─────────────────────────────────────────────────
+    subgraph L4 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L4 — Verify</B></TD></TR></TABLE>>"]
+        L4A(["<b>/code-review</b><br/>self-critique<br/>anti-sycophancy"])
+        L4B(["<b>/verify</b><br/>confirm behavior<br/>close all loops"])
+    end
+
+    %% ── PHASE 5: RELEASE ─────────────────────────────────────────────────
+    subgraph L5 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L5 — Release</B></TD></TR></TABLE>>"]
+        L5A(["<b>/commit</b><br/>commit changes"])
+        L5B(["<b>/push</b><br/>push · publish"])
+    end
+
+    %% ── PHASE 6: RECAP ─────────────────────────────────────────────────
+    subgraph L6 ["<<TABLE border='0' cellborder='0' cellpadding='3'><TR><TD align='left' valign='top'><B>L6 — Recap</B></TD></TR></TABLE>>"]
+        L6A(["<b>/recap</b><br/>exit reason<br/>summarize session"])
+    end
+
+    %% =====================================================================
+    %% PHASE TRANSITIONS (pass forward)
+    %% =====================================================================
+    L1A --> L1B
+    L1B --> L2A
+
+    L2A <--> L2B
+    L2A --> L2C
+    L2C --> L3A
+
+    L3A --> L3B
+    L3B --> L3C
+    L3C -->|Pass| L4A
+    L4A --> L4B
+    L4B -->|Pass| L5A
+    L5A --> L5B
+    L5B --> L6A
+
+    %% =====================================================================
+    %% FAIL LOOPS — back to appropriate earlier step
+    %% =====================================================================
+    L4A -.->|Fail| L3A
+    L4B -.->|Fail| L3B
+    L5A -.->|Fail| L4A
+    L5B -.->|Fail| L4A
+
+    %% =====================================================================
+    %% GLOBAL COMMANDS — available from any phase
+    %% /think, /explore, /search can be invoked at any point
+    %% Shown as a subtle floating cluster that bleeds across all phases
+    %% =====================================================================
+    G(["<b>Always Available</b><br/>/think · /explore · /search"])
+
+    %% Floating global nodes (positioned to not interfere with main flow)
+    style G fill:#f1f5f9,stroke:#94a3b8,stroke-width:1px,stroke-dasharray:3
+    style G color:#64748b
+
+    %% ── PHASE COLORS ────────────────────────────────────────────────────
+    style L1 fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
+    style L2 fill:#fef9c3,stroke:#eab308,stroke-width:2px
+    style L3 fill:#ffedd5,stroke:#f97316,stroke-width:2px
+    style L4 fill:#dcfce7,stroke:#22c55e,stroke-width:2px
+    style L5 fill:#f3e8ff,stroke:#a855f7,stroke-width:2px
+    style L6 fill:#fee2e2,stroke:#ef4444,stroke-width:2px
