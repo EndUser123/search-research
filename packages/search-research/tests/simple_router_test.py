@@ -20,7 +20,7 @@ async def test_guaranteed_match():
     print("SIMPLE ROUTER TEST: Guaranteed Match Query")
     print("=" * 80)
 
-    router = AsyncAsyncSearchRouter(enable_jmri=True, enable_cache=False)
+    router = AsyncSearchRouter(enable_jmri=True, enable_cache=False)
 
     print("\n[INFO] Initialized AsyncAsyncSearchRouter")
     print(f"[INFO] Available backends: {list(router._backends.keys())}")

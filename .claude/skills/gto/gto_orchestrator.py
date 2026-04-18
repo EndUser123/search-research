@@ -1415,9 +1415,9 @@ if __name__ == "__main__":
     project_root = Path.cwd()
 
     # Run analysis
-    # --no-subagents wins: SKILL.md passes this to disable orchestrator subagent dispatch
-    # (gap_finder is handled via Agent() in SKILL.md instead)
-    enable_subagents = args.subagents and not args.no_subagents
+    # Subagents enabled by default unless --no-subagents is passed
+    # (gap_finder is handled via Agent() in SKILL.md, but CLI needs subagents for standalone runs)
+    enable_subagents = not args.no_subagents
     result = run_gto_analysis(
         project_root=project_root,
         terminal_id=terminal_id,

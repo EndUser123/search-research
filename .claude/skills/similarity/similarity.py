@@ -26,7 +26,7 @@ from pathlib import Path
 _gto_lib = Path("P:/.claude/skills")
 if str(_gto_lib) not in _sys.path:
     _sys.path.insert(0, str(_gto_lib))
-from gto.lib.skill_coverage_detector import _append_skill_coverage  # type: ignore[attr-defined]
+from gto.__lib.skill_coverage_detector import _append_skill_coverage  # type: ignore[attr-defined]
 
 
 @dataclass
