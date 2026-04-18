@@ -183,32 +183,34 @@
             width: 100% !important;
             height: 100% !important;
             display: flex !important;
-            align-items: flex-start !important;
-            justify-content: flex-start !important;
             flex-direction: column !important;
-            text-align: left !important;
-            padding: 6px 8px !important;
-            box-sizing: border-box !important;
+            align-items: center !important;
+            justify-content: center !important;
             white-space: normal !important;
             word-break: normal !important;
             overflow-wrap: anywhere !important;
-            line-height: 1.15 !important;
+            line-height: 1.1 !important;
             font-size: 12px !important;
+            text-align: center !important;
+            padding: 0 !important;
         }
 
-        #diagram svg .nodeLabel > div {
+        #diagram svg foreignObject > div {
             width: 100% !important;
             height: 100% !important;
             display: flex !important;
             flex-direction: column !important;
-            align-items: flex-start !important;
-            justify-content: flex-start !important;
-            text-align: left !important;
+            align-items: center !important;
+            justify-content: center !important;
+            text-align: center !important;
             white-space: normal !important;
             word-break: normal !important;
             overflow-wrap: anywhere !important;
-            line-height: 1.15 !important;
+            line-height: 1.1 !important;
             gap: 0 !important;
+            padding: 0 !important;
+            box-sizing: border-box !important;
+            font-size: 12px !important;
         }
 
         #diagram svg .nodeLabel .skillLabel,
@@ -216,6 +218,7 @@
             display: block;
             margin: 0;
             padding: 0;
+            text-align: center;
         }
 
         #diagram svg .nodeLabel .skillLabel {
@@ -370,7 +373,8 @@
         <div class="legend-item"><span class="legend-color" style="background:#a855f7"></span>L5 Release</div>
         <div class="legend-item"><span class="legend-color" style="background:#ef4444"></span>L6 Recap</div>
         <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">
-            Dashed = fail loop<br/>Solid = pass forward
+            Dashed = fail loop<br/>Solid = pass forward<br/>
+            /think · /explore · /search = any phase
         </div>
     </div>
 
@@ -665,14 +669,12 @@
         L6_S1(["<span class='skillLabel'>/recap</span><span class='skillDesc'>exit_reason()<br/>summarize()</span>"])
     end
 
-    L1_S0 --> L1_S1
     L1_S1 --> L1_S2
     L1_S2 --> L2_S1
 
     L2_S1 --> L2_S2
     L2_S2 --> L2_S1
-    L2_S2 --> L2_S3
-    L2_S3 --> L2_S2
+    L2_S1 --> L2_S3
     L2_S3 --> L3_S1
 
     L3_S1 --> L3_S2
