@@ -111,7 +111,10 @@
       "Bash(sed -i 's|/arch|/design|g' \"P:\\\\\\\\.claude\\\\\\\\skills\\\\\\\\gto\\\\\\\\__lib\\\\\\\\gap_skill_mapper.py\")",
       "Bash(sed -i 's|/arch|/design|g' \"P:\\\\\\\\.claude\\\\\\\\skills\\\\\\\\gto\\\\\\\\__lib\\\\\\\\skill_registry_bridge.py\")",
       "Bash(rm -rf \"P:/.claude/skills/ai-pi-gemma-4-31b-it\")",
-      "Bash(ln -s \"/p/packages/cc-skills-ai-cli/skills/ai-pi-gemma-4-31b-it\" \"P:/.claude/skills/ai-pi-gemma-4-31b-it\")"
+      "Bash(ln -s \"/p/packages/cc-skills-ai-cli/skills/ai-pi-gemma-4-31b-it\" \"P:/.claude/skills/ai-pi-gemma-4-31b-it\")",
+      "Bash(rm P:/.claude/hooks/StopHook_rca_contract.py P:/.claude/hooks/StopHook_rca_reflector.py)",
+      "Bash(ln -s /p/packages/cc-skills-sdlc/skills/rca/hooks/StopHook_rca_contract.py P:/.claude/hooks/StopHook_rca_contract.py)",
+      "Bash(ln -s /p/packages/cc-skills-sdlc/skills/rca/hooks/StopHook_rca_reflector.py P:/.claude/hooks/StopHook_rca_reflector.py)"
     ],
     "deny": [],
     "ask": []

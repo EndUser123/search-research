@@ -5,29 +5,17 @@ import json
 import sys
 from pathlib import Path
 
-MODELS = {"gemma", "m27", "deepseek", "kimi", "qwen-coder", "devstral", "nemotron-ultra", "nemotron-3-super", "elephant", "qwen-free", "nemotron-free"}
+MODELS = {"deepseek", "claude", "gpt", "gemma"}
 
 # pi model identifiers: provider/model-id format
-# Maps dispatch model name -> pi provider and model-id
 PI_MODEL_MAP = {
-    # google
+    "deepseek": "deepseek/deepseek-chat-v3",
+    "claude": "anthropic/claude-3.5-sonnet",
+    "gpt": "openai/gpt-4o",
     "gemma": "google/gemma-4-31b-it",
-    # minimax
-    "m27": "minimax/MiniMax-M2.7",
-    # nvidia-nim
-    "deepseek": "nvidia-nim/deepseek-ai/deepseek-v3.2",
-    "kimi": "nvidia-nim/moonshotai/kimi-k2.5",
-    "qwen-coder": "nvidia-nim/qwen/qwen3-coder-480b-a35b-instruct",
-    "devstral": "nvidia-nim/mistralai/devstral-2-123b-instruct-2512",
-    "nemotron-ultra": "nvidia-nim/nvidia/llama-3.1-nemotron-ultra-253b-v1",
-    "nemotron-3-super": "nvidia-nim/nvidia/llama-3.3-nemotron-super-49b-v1.5",
-    # openrouter
-    "elephant": "openrouter/openrouter/elephant-alpha",
-    "qwen-free": "openrouter/qwen/qwen3-coder:free",
-    "nemotron-free": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
 }
 
-PI_BIN = "pi.cmd"
+PI_BIN = "pi"
 DISPATCH_TIMEOUT_SEC = 300
 
 
@@ -54,10 +42,6 @@ def _parse_pi_jsonl(raw_output: str) -> dict | None:
                         msgs = obj.get("messages", [])
                         for msg in msgs:
                             if msg.get("role") == "assistant":
-                                # Surface API errors from the message itself
-                                if msg.get("stopReason") == "error" or msg.get("errorMessage"):
-                                    err = msg.get("errorMessage", "unknown error")
-                                    return {"error": err}
                                 content = msg.get("content", "")
                                 if content:
                                     return {"text": content}
@@ -151,9 +135,6 @@ async def dispatch_single(target: str, model: str, output_dir: Path) -> dict:
             result = json.loads(stdout)
         except json.JSONDecodeError:
             raise RuntimeError(f"No parseable JSON from pi ({model}). stdout: {stdout[:500]}")
-
-    if "error" in result:
-        raise RuntimeError(f"pi ({model}) API error: {result['error']}")
 
     score = _score_from_finding(result)
     output_dir.mkdir(parents=True, exist_ok=True)

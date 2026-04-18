@@ -1,28 +1,11 @@
 ---
 name: tdd
-version: 2.28.0
+version: 2.26.0
 description: Test-Driven Development with PARALLEL subagent delegation + Core Plan v1 evidence tracking. RED-GREEN-REFACTOR cycle with timestamped artifacts and 7-day cleanup.
 status: stable
 depends_on:
   - sdlc: ">=0.1.0"
-contract_type: workflow
-enforcement: strict
-workflow_binding: exclusive
-workflow_enforcement: hard
-phase_recovery_mode: resumable
-user_override: explicit
-layer1_enforcement: true
-required_phase_artifacts:
-  - RED
-  - GREEN
-  - VERIFY
-  - REGRESSION
-  - REFACTOR
-usage_markers:
-  - TDD COMPLETE - Summary
-  - Status Summary
-  - Test Results
-  - Next Steps
+enforcement: advisory
 category: execution
 activation_triggers: ['implement', 'refactor', 'CC.*[2-9][0-9]', 'extract.*method', 'reduce.*complexity', 'high complexity', 'simplify.*function', 'new feature', 'add.*function', 'add.*test', 'write.*test', 'update.*test', 'create.*test', 'unit.*test', 'regression.*test', 'typeddict', 'interface', 'contract', 'add.*type', 'type.*hint', 'fix', 'bug', 'broken', 'error', 'crash']
 triggers:
@@ -52,11 +35,6 @@ changelog:
       - "NEW: 7-day automatic cleanup policy for evidence artifacts"
       - "NEW: Integration with /code pre-execution checklist and task detection"
       - "DOCUMENTATION: Updated evidence collection documentation with Core Plan v1 API"
-  - version: 2.28.0 (2026-04-12)
-    changes:
-      - "NEW: Test Selection Contract for unit/regression/integration mix selection"
-      - "NEW: Stronger guidance for bug-fix regression tests and boundary-level smoke proofs"
-      - "NEW: Snapshot-vs-unit decision rule for rendered output and test logic"
 ---
 # TDD - Test-Driven Development with PARALLEL Delegation
 
@@ -72,9 +50,7 @@ Test-Driven Development for new features AND refactoring. Write tests first, the
 - **TDD mandatory**: All code changes follow RED -> GREEN -> REFACTOR
 - **Tests first**: Write tests BEFORE changing code, never after
 - **PARALLEL delegation**: Use multiple subagents simultaneously for independent tasks
-- **6-phase process**: DISCOVER -> RED -> GREEN -> VERIFY -> EDGE CASE ANALYSIS -> REGRESSION -> REFACTOR
-- **Edge case analysis**: After VERIFY phase, dispatch `adversarial-failure-modes` agent on changed files (see `__lib/fix-verification-protocol.md`)
-- **Import blast radius**: During REFACTOR phase, run `__lib/import_resolver.scan_blast_radius()` on changed files to detect cross-file import breakage before completing
+- **5-phase process**: DISCOVER -> RED -> GREEN -> VERIFY -> REGRESSION -> REFACTOR
 - **Baseline capture**: Save test results before changes for comparison
 - **TypedDict contracts**: Use for cross-module data structures
 
@@ -222,19 +198,6 @@ The smoke proof should answer:
 
 `/tdd` may keep this lightweight, but it must not skip it on high-risk behavioral changes.
 
-## Test Selection Contract
-
-Choose the smallest sufficient test mix before writing assertions:
-
-- Use **unit tests** for pure logic, deterministic transforms, and local contracts that do not need I/O or shared state.
-- Use **regression tests** for every bug fix or restored behavior. Reproduce the exact failure path first, then prove that same path no longer fails.
-- Use **integration tests** when behavior crosses modules, hooks, state, persistence, replay/resume, compaction, filesystem, or other I/O boundaries.
-- Use a **real smoke proof** for hooks, routers, or resumable workflows so mocks cannot fake success.
-- Use **snapshot tests** for rendered output, generated docs, hook-injected text, and skill bodies; use unit tests for the logic that chooses or computes that output.
-- Do not add integration tests when a unit test can prove the same contract.
-- Do not stop at unit tests when the defect lives at a boundary, through state, or across processes.
-- Before locking the plan, say which layer proves what and what a lower layer would miss.
-
 ## Critique-Agent Triggers
 
 `/tdd` should use a critique/review agent when test design is likely to miss the real contract or bless a workaround.
@@ -315,16 +278,7 @@ Does NOT trigger for: Documentation changes, configuration updates, reading/anal
 
 ---
 
-## Record Activity in CHANGELOG.md
-
-After the TDD cycle completes (all phases GREEN and REGRESSION passed), append the activity to the target's CHANGELOG.md under `## [Unreleased]`:
-
-```markdown
-### Fixed
-- **/tdd** (YYYY-MM-DD): <1-line summary of what was test-driven (e.g., "Added frobnitz validator with 3 new edge-case tests")>
-```
-
-**References**
+## References
 
 **Reference files in `references/`:**
 
