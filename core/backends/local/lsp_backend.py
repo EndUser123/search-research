@@ -191,7 +191,7 @@ class LSPSymbolBackend:
         Args:
             root_paths: List of root paths to search. Defaults to src directory.
         """
-        self.root_paths: list[Path] = [Path(p) for p in (root_paths or ["."])]
+        self.root_paths: list[Path] = [Path(p) for p in (root_paths or ["core"])]
         self._index: dict[str, list[LSPSymbolInfo]] = {}
         self._indexed: bool = False
         self._lsp_available: bool = self._check_lsp_available()
