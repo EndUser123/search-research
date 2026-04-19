@@ -11,7 +11,7 @@ triggers:
 workflow_steps:
   - Parse target (file path or description)
   - Invoke pi dispatch_single with elephant model
-  - Parse JSONL output for findings
+  - Parse JSON output for findings
   - Report score, issues, and synthesis
 allowed_tools:
   - Bash
@@ -25,7 +25,9 @@ Run adversarial code review using **Elephant Alpha** (100B dense, 262K context, 
 ## Quick Start
 
 ```bash
-pi --mode json --provider together --model elephant-alpha "Review P:/path/to/file.py and return JSON with score (0-1), summary, and issues list"
+pi --model openrouter/elephant-alpha \
+  -p @P:/path/to/file.py \
+  "Analyze for security vulnerabilities. Be adversarial. Return JSON with score (0-1), summary, and issues."
 ```
 
 ## Model Info
@@ -33,20 +35,17 @@ pi --mode json --provider together --model elephant-alpha "Review P:/path/to/fil
 | Attribute | Value |
 |-----------|-------|
 | Model | elephant-alpha |
-| Provider | together (Elephant Alpha hosted on Together) |
-| Params | ~100B dense |
+| Provider | openrouter |
 | Context | 262K |
+| Max Output | 32.8K |
+| Thinking | no |
 | LiveBench Coding | 36% |
-| Leaderboard | #13 |
 | Strength | Real-world fit; leaderboard-proven |
 
 ## Verification
 
-Run the verification ritual before first use:
-
 ```bash
-pi --help | grep -E "(provider|model|mode)"
-pi --mode json --provider together --model elephant-alpha "Say hello"
+pi --model openrouter/elephant-alpha -p @P:/path/to/file.py "Say hello"
 ```
 
-If you get `429 status code` — rate limit hit. Wait 30s and retry, or use `deepseek`/`claude` as fallback providers.
+If you get `429 status code` — rate limit hit. Wait 30s and retry.

@@ -11,7 +11,7 @@ triggers:
 workflow_steps:
   - Parse target (file path or description)
   - Invoke pi dispatch_single with minimax model
-  - Parse JSONL output for findings
+  - Parse JSON output for findings
   - Report score, issues, and synthesis
 allowed_tools:
   - Bash
@@ -25,7 +25,9 @@ Run adversarial code review using **MiniMax M2.7** (10B MoE, 197K context) via t
 ## Quick Start
 
 ```bash
-pi --mode json --provider minimax --model MiniMax-M2.7 "Review P:/path/to/file.py and return JSON with score (0-1), summary, and issues list"
+pi --model minimax/MiniMax-M2.7 \
+  -p @P:/path/to/file.py \
+  "Analyze for security vulnerabilities. Be adversarial. Return JSON with score (0-1), summary, and issues."
 ```
 
 ## Model Info
@@ -34,14 +36,16 @@ pi --mode json --provider minimax --model MiniMax-M2.7 "Review P:/path/to/file.p
 |-----------|-------|
 | Model | MiniMax-M2.7 |
 | Provider | minimax |
-| Context | 197K |
+| Context | 1M |
+| Max Output | 8.2K |
+| Thinking | no |
 | SWE-Bench | 80.2% |
 | Strength | Office/coding fluency, 51% Multi-SWE |
 
 ## Verification
 
 ```bash
-pi --mode json --provider minimax --model MiniMax-M2.7 "Say hello"
+pi --model minimax/MiniMax-M2.7 -p @P:/path/to/file.py "Say hello"
 ```
 
 If you get `429 status code` — rate limit hit. Wait 30s and retry.

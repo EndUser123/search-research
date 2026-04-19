@@ -11,7 +11,7 @@ triggers:
 workflow_steps:
   - Parse target (file path or description)
   - Invoke pi dispatch_single with gemma model
-  - Parse JSONL output for findings
+  - Parse JSON output for findings
   - Report score, issues, and synthesis
 allowed_tools:
   - Bash
@@ -25,49 +25,27 @@ Run adversarial code review using **Gemma 4-31B-IT** via the **pi** multi-provid
 ## Quick Start
 
 ```bash
-# Single target review
-pi --mode json --provider google --model gemma-4-31b-it "Review P:/path/to/file.py and return JSON with score (0-1), summary, and issues list"
+pi --model google/gemma-4-31b-it \
+  -p @P:/path/to/file.py \
+  "Analyze for security vulnerabilities. Be adversarial. Return JSON with score (0-1), summary, and issues."
 ```
-
-## How It Works
-
-This skill wraps the SQD dispatcher layer (`sqd/layers/dispatcher.py`) for single-model adversarial review:
-
-1. **pi** dispatches to Google Gemma 4-31B-IT via `google/gemma-4-31b-it`
-2. JSONL output is parsed for `type: agent_end` with assistant message
-3. Finding extracted: score (0.0-1.0), summary, issues list
-
-## Dispatcher Config
-
-```
-Model: google/gemma-4-31b-it
-Provider: google
-Timeout: 300s
-Output: finding_gemma.json
-```
-
-## Integration
-
-- SQD dispatcher: `P:/packages/sdlc/skills/sqd/layers/dispatcher.py`
-- Output path: per-session `findings/` directory
-- Exit codes: 0=consensus, 1=divergent, 2=failure, 3=not found
 
 ## Model Info
 
 | Attribute | Value |
 |-----------|-------|
-| Model ID | gemma-4-31b-it |
+| Model | gemma-4-31b-it |
 | Provider | google |
-| Context | ~32K |
+| Context | 256K |
+| Max Output | 8.2K |
+| Thinking | yes |
+| Images | yes |
 | Strength | Code review, analysis |
 
 ## Verification
 
-Run the verification ritual before first use:
-
 ```bash
-pi --help | grep -E "(provider|model|mode)"
-pi --mode json --provider google --model gemma-4-31b-it "Say hello"
+pi --model google/gemma-4-31b-it -p @P:/path/to/file.py "Say hello"
 ```
 
-If you get `429 status code` — rate limit hit. Wait 30s and retry, or use `deepseek`/`claude` as fallback providers.
+If you get `429 status code` — rate limit hit. Wait 30s and retry.

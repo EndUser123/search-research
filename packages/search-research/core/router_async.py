@@ -658,7 +658,12 @@ class AsyncSearchRouter:
             # at 60s) cannot override the router's cancellation budget and
             # block fast backends from returning. Backend internal timeouts
             # (e.g. subprocess timeouts) are unaffected by this.
+            # Exception: backends with their own TIMEOUT (NotebookLM at 60s) need
+            # enough time for LLM synthesis + API calls; use backend TIMEOUT when
+            # it exceeds the router ceiling.
             backend_timeout = self.backend_timeout
+            if hasattr(backend_instance, "TIMEOUT") and backend_instance.TIMEOUT > backend_timeout:
+                backend_timeout = backend_instance.TIMEOUT
 
             if search_async_method is not _sentinel and callable(search_async_method):
                 # Native async backend (has search_async method)
@@ -672,9 +677,8 @@ class AsyncSearchRouter:
                 )
             else:
                 # Sync backend - use asyncio.to_thread() for non-blocking execution
-                loop = asyncio.get_event_loop()
                 raw_results = await asyncio.wait_for(
-                    loop.run_in_executor(None, backend_instance.search, query, limit),
+                    asyncio.to_thread(backend_instance.search, query, limit),
                     timeout=backend_timeout,
                 )
 

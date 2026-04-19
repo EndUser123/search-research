@@ -120,7 +120,10 @@
       "Bash(rm -rf P:/.claude/skills/__TRACKED_VAR__)",
       "Bash(cp -r P:/.claude/skills/__TRACKED_VAR__ P:/packages/cc-skills-ai-api/skills/__TRACKED_VAR__)",
       "Bash(cp -r P:/.claude/skills/uci P:/packages/cc-skills-sdlc/skills/uci)",
-      "Bash(rm -rf P:/.claude/skills/uci)"
+      "Bash(rm -rf P:/.claude/skills/uci)",
+      "Bash(cp -r \"P:/packages/cc-skills-ai-cli/skills/ai-chutes\" \"P:/packages/cc-skills-ai-api/skills/ai-chutes\")",
+      "Bash(rm -rf \"P:/.claude/skills/ai-chutes\")",
+      "Bash(MSYS=winsymlinks:nativestrict ln -s \"/p/packages/cc-skills-ai-api/skills/ai-chutes\" \"P:/.claude/skills/ai-chutes\")"
     ],
     "deny": [],
     "ask": []
@@ -130,6 +133,6 @@
   ],
   "hooks": {},
   "disableAllHooks": false,
-  "outputStyle": "default",
+  "outputStyle": "adaptive-research-insights-rns",
   "prefersReducedMotion": false
 }

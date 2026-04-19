@@ -1,0 +1,70 @@
+<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" style="height:64px;margin-right:32px"/>
+
+# " Persistent memory system for Claude Code - seamlessly preserve context across sessions
+
+Author: Alex Newman
+Status: Enabled
+
+Installed components:
+• Commands: do, make-plan
+• Skills: mem-search
+• Hooks: Setup,SessionStart,UserPromptSubmit,PostToolUse,Stop"
+
+In Claude Code, what are the best use cases for this? How do I get maximum value from it?
+
+**Claude-Mem provides persistent memory in Claude Code by capturing tool usage via hooks, compressing it into searchable summaries, and auto-injecting relevant context across sessions.**  This eliminates re-learning codebases or project states after /clear or restarts, saving tokens and time in your AI-assisted dev workflows.[^1][^2][^3]
+
+## Top Use Cases
+
+- **Long-term projects**: Maintains codebase knowledge, bug fixes, and architecture decisions over weeks/months without manual recaps—ideal for your multi-terminal git worktrees and hook-heavy setups.[^2][^1]
+- **Debugging and RCA**: Searches past tool outputs (e.g., grep, edits) for root causes; use mem-search skill to query "authentication bug from last week."[^4][^2]
+- **Workflow continuity**: SessionStart loads last 50 observations (<200ms), perfect for resuming after context compaction in complex agentic flows.[^5][^1]
+- **Multi-session iteration**: Tracks progressive refinements like TDD cycles or prompt tuning across terminals/sessions.[^2]
+
+
+## Maximizing Value
+
+Leverage the 3-layer MCP search workflow: start with `search` for indexed hits (~50 tokens), `timeline` for context, then `get_observations` for details—~10x token savings.[^2]
+
+- Integrate with your hooks inventory: Chain PostToolUse for custom captures; use UserPromptSubmit to enrich prompts with mem-search results.[^6][^4]
+- Web viewer (localhost:37777): Monitor memory stream, toggle beta Endless Mode for extended sessions, cite observations via IDs.[^2]
+- Config tweaks (~/.claude-mem/settings.json): Tune injection (e.g., recency bias), exclude private tags, pair with your /reflect skill for audits.[^2]
+Regularly query via mem-search in planning phases; track ROI via reduced /init needs and faster ramps, aligning with your Claude Code optimization focus.[^7][^1]
+<span style="display:none">[^10][^11][^12][^13][^14][^15][^16][^17][^8][^9]</span>
+
+<div align="center">⁂</div>
+
+[^1]: https://www.linkedin.com/posts/alexnewman_github-thedotmackclaude-mem-a-claude-activity-7391306333355925504-p975
+
+[^2]: https://github.com/thedotmack/claude-mem
+
+[^3]: https://corti.com/claude-mem-persistent-memory-for-ai-coding-assistants/
+
+[^4]: https://docs.claude-mem.ai/hooks-architecture
+
+[^5]: https://www.perplexity.ai/search/d109508c-622e-4970-b37e-a9b60751d86d
+
+[^6]: https://www.gend.co/blog/configure-claude-code-hooks-automation
+
+[^7]: https://www.perplexity.ai/search/ce341237-4072-497e-ab67-258a10542f2b
+
+[^8]: https://github.com/hesreallyhim/awesome-claude-code/issues/167
+
+[^9]: https://www.youtube.com/watch?v=9-jyZo1DL8Y
+
+[^10]: https://websearchapi.ai/blog/claude-code-web-search-agent-skills
+
+[^11]: https://www.linkedin.com/pulse/maintaining-context-across-claude-code-sessions-guide-warren-bullock-mux3e
+
+[^12]: https://www.linkedin.com/posts/rammcodes_html-ai-javascript-activity-7406245656241033216-taDx
+
+[^13]: https://leehanchung.github.io/blogs/2025/10/26/claude-skills-deep-dive/
+
+[^14]: https://github.com/anthropics/claude-code/issues/2954
+
+[^15]: https://x.com/Claude_Memory/status/2023629412596617338
+
+[^16]: https://www.reddit.com/r/ClaudeCode/comments/1rd0wld/search_memory_my_simplest_claude_code_skill/
+
+[^17]: https://angelo-lima.fr/en/claude-code-hooks/
+

@@ -10,7 +10,7 @@ triggers:
 workflow_steps:
   - Parse target
   - Invoke pi with devstral via nvidia-nim
-  - Parse JSONL output
+  - Parse JSON output
   - Report findings
 allowed_tools:
   - Bash
@@ -19,6 +19,29 @@ allowed_tools:
 
 # /ai-pi-devstral — Adversarial Review via Pi + Devstral 2
 
+## Quick Start
+
 ```bash
-pi --mode json --provider nvidia-nim --model mistralai/devstral-2-123b-instruct-2512 "Review P:/path/to/file.py and return JSON"
+pi --model nvidia-nim/mistralai/devstral-2-123b-instruct-2512 \
+  -p @P:/path/to/file.py \
+  "Analyze for security vulnerabilities. Be adversarial. Return JSON with score (0-1), summary, and issues."
 ```
+
+## Model Info
+
+| Attribute | Value |
+|-----------|-------|
+| Model | devstral-2-123b-instruct-2512 |
+| Provider | nvidia-nim |
+| Context | 131K |
+| Max Output | 32.8K |
+| Thinking | no |
+| Strength | Code review, security analysis |
+
+## Verification
+
+```bash
+pi --model nvidia-nim/mistralai/devstral-2-123b-instruct-2512 -p @P:/path/to/file.py "Say hello"
+```
+
+If you get `429 status code` — rate limit hit. Wait 30s and retry.

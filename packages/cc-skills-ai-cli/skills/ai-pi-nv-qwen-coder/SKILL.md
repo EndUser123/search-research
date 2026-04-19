@@ -11,7 +11,7 @@ triggers:
 workflow_steps:
   - Parse target (file path or description)
   - Invoke pi dispatch_single with qwen model
-  - Parse JSONL output for findings
+  - Parse JSON output for findings
   - Report score, issues, and synthesis
 allowed_tools:
   - Bash
@@ -25,23 +25,27 @@ Run adversarial code review using **Qwen3 Coder 480B A35B** (35B MoE, 262K conte
 ## Quick Start
 
 ```bash
-pi --mode json --provider nvidia-nim --model qwen/qwen3-coder-480b-a35b-instruct "Review P:/path/to/file.py and return JSON with score (0-1), summary, and issues list"
+pi --model nvidia-nim/qwen/qwen3-coder-480b-a35b-instruct \
+  -p @P:/path/to/file.py \
+  "Analyze for security vulnerabilities. Be adversarial. Return JSON with score (0-1), summary, and issues."
 ```
 
 ## Model Info
 
 | Attribute | Value |
 |-----------|-------|
-| Model | qwen/qwen3-coder-480b-a35b-instruct |
+| Model | qwen3-coder-480b-a35b-instruct |
 | Provider | nvidia-nim |
 | Context | 262K |
+| Max Output | 65.5K |
+| Thinking | yes |
 | SWE-Bench | ~70.6% (related) |
 | Strength | Repo/long-context specialist |
 
 ## Verification
 
 ```bash
-pi --mode json --provider nvidia-nim --model qwen/qwen3-coder-480b-a35b-instruct "Say hello"
+pi --model nvidia-nim/qwen/qwen3-coder-480b-a35b-instruct -p @P:/path/to/file.py "Say hello"
 ```
 
 If you get `429 status code` — rate limit hit. Wait 30s and retry.

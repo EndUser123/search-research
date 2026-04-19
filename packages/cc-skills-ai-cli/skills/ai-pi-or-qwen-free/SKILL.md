@@ -10,7 +10,7 @@ triggers:
 workflow_steps:
   - Parse target
   - Invoke pi with qwen3-coder:free via openrouter
-  - Parse JSONL output
+  - Parse JSON output
   - Report findings
 allowed_tools:
   - Bash
@@ -19,6 +19,29 @@ allowed_tools:
 
 # /ai-pi-qwen3-coder-free — Adversarial Review via Pi + Qwen3 Coder (Free)
 
+## Quick Start
+
 ```bash
-pi --mode json --provider openrouter --model qwen/qwen3-coder:free "Review P:/path/to/file.py and return JSON"
+pi --model openrouter/qwen/qwen3-coder:free \
+  -p @P:/path/to/file.py \
+  "Analyze for security vulnerabilities. Be adversarial. Return JSON with score (0-1), summary, and issues."
 ```
+
+## Model Info
+
+| Attribute | Value |
+|-----------|-------|
+| Model | qwen3-coder:free |
+| Provider | openrouter |
+| Context | 262K |
+| Max Output | 262K |
+| Thinking | no |
+| Strength | Free tier, good coding |
+
+## Verification
+
+```bash
+pi --model openrouter/qwen/qwen3-coder:free -p @P:/path/to/file.py "Say hello"
+```
+
+If you get `429 status code` — rate limit hit. Wait 30s and retry.

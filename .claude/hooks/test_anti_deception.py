@@ -43,20 +43,20 @@ def test_skill_enforcement_gate():
         return False
 
 def test_bash_router_with_skill_gate():
-    """Test PreToolUse_bash_router includes skill gate"""
+    """Test PreToolUse_skill_pattern_gate is in PreToolUse dispatch chain"""
     print("\n" + "="*60)
-    print("TEST 2: Bash Router Integration")
+    print("TEST 2: Skill Pattern Gate Integration")
     print("="*60)
 
-    # Check if skill_enforcement_gate is in HOOK_SEQUENCE
-    router_path = HOOKS_DIR / "PreToolUse_bash_router.py"
+    # Check PreToolUse.py dispatch chain for skill pattern gate
+    router_path = HOOKS_DIR / "PreToolUse.py"
     content = router_path.read_text()
 
-    if "skill_enforcement_gate.py" in content:
-        print("✅ PASS: skill_enforcement_gate in router")
+    if "skill_pattern_gate" in content:
+        print("✅ PASS: skill_pattern_gate in PreToolUse dispatch")
         return True
     else:
-        print("❌ FAIL: skill_enforcement_gate NOT in router")
+        print("❌ FAIL: skill_pattern_gate NOT in PreToolUse dispatch")
         return False
 
 def test_affirmation_detector():

@@ -121,6 +121,16 @@ PREMATURE_OFFER_PHRASES = [
     r"\bshall\s+I\s+(?:proceed|implement|fix)\b",
 ]
 
+# Literalist framing - model treats the request as a strict, narrow spec and closes
+# without volunteering the obvious next step. "That's the extent of what you asked"
+# followed by no diagnosis = passive refusal to be useful.
+LITERALIST_FRAMING_PHRASES = [
+    r"that's\s+the\s+extent\s+of\s+what\s+you\s+asked",
+    r"that's\s+all\s+you\s+asked\s+(?:for\s+)?",
+    r"that's\s+what\s+you\s+asked\s+(?:for\s+)?",
+    r"that's\s+the\s+(?:whole|entire)\s+request",
+]
+
 # Declaration without execution patterns - saying "I'll do X" without follow-through
 DECLARATION_PATTERNS = [
     r"\bi'll\s+(?:update|edit|modify|add to|fix|change)\s+(?:the\s+)?(?:template|arch/|SKILL\.md)",
@@ -313,6 +323,7 @@ _WORK_AVOIDANCE = [re.compile(p, re.IGNORECASE) for p in WORK_AVOIDANCE_PHRASES]
 _ASSUMED_COMPLIANCE = [re.compile(p, re.IGNORECASE) for p in ASSUMED_COMPLIANCE_PHRASES]
 _LAZY_FIX = [re.compile(p, re.IGNORECASE) for p in LAZY_FIX_PHRASES]
 _PREMATURE_OFFER = [re.compile(p, re.IGNORECASE) for p in PREMATURE_OFFER_PHRASES]
+_LITERALIST_FRAMING = [re.compile(p, re.IGNORECASE) for p in LITERALIST_FRAMING_PHRASES]
 _USER_DELEGATION = [re.compile(p, re.IGNORECASE) for p in USER_DELEGATION_PHRASES]
 _DECLARATION = [re.compile(p, re.IGNORECASE) for p in DECLARATION_PATTERNS]
 _SYCOPHANCY_CAPITULATION = [re.compile(p, re.IGNORECASE) for p in SYCOPHANCY_CAPITULATION_PHRASES]
@@ -522,6 +533,20 @@ def detect_lazy_closure(response: str) -> LazyClosureMatch | None:
             severity="flag",
         )
 
+    # 7. Check for literalist framing - "that's the extent of what you asked" with no diagnosis
+    match = _find_pattern(text, _LITERALIST_FRAMING)
+    if match:
+        return LazyClosureMatch(
+            matched=match.group(0),
+            pattern_type="literalist_framing",
+            suggestion=(
+                "You framed the request as a strict narrow spec and stopped without "
+                "naming the root cause or obvious next step. If you see a diagnosis or "
+                "likely follow-up, volunteer it in one line."
+            ),
+            severity="flag",
+        )
+
     return None
 
 
@@ -620,6 +645,7 @@ def detect_all_lazy_closure(response: str) -> list[LazyClosureMatch]:
         (_LAZY_JUSTIFICATION, "lazy_justification", "Provide specific evidence", "flag"),
         (_LAZY_FIX, "lazy_fix", "Address root cause, not symptoms", "flag"),
         (_PREMATURE_OFFER, "premature_offer", "Complete Investigation Gate first", "flag"),
+        (_LITERALIST_FRAMING, "literalist_framing", "Name the root cause or next step unprompted", "flag"),
     ]
 
     for patterns, pattern_type, base_suggestion, severity in pattern_groups:
@@ -753,5 +779,23 @@ if __name__ == "__main__":
 
     d5 = detect_lazy_closure("We can address that later — flagged this as a side task.")
     assert d5 is None, "deferral with 'flagged this' tracking should be exempt"
+
+    # Literalist framing patterns (should detect)
+    lf1 = detect_lazy_closure("That's the extent of what you asked.")
+    assert lf1 is not None, "literalist_framing: 'that's the extent of what you asked' should be detected"
+    assert lf1.pattern_type == "literalist_framing"
+
+    lf2 = detect_lazy_closure("That's all you asked for.")
+    assert lf2 is not None, "literalist_framing: 'that's all you asked for' should be detected"
+
+    lf3 = detect_lazy_closure("That's what you asked for.")
+    assert lf3 is not None, "literalist_framing: 'that's what you asked for' should be detected"
+
+    lf4 = detect_lazy_closure("No — you said 're-run the adversarial review' and that's what happened. That's the extent of what you asked.")
+    assert lf4 is not None, "literalist_framing: 'that's the extent' with diagnosis context should be detected"
+
+    # Literalist framing with diagnosis above should still be caught (only one line follows)
+    lf5 = detect_all_lazy_closure("Root cause is X. That's the extent of what you asked.")
+    assert any(m.pattern_type == "literalist_framing" for m in lf5), "literalist_framing should fire even with diagnosis above"
 
     print("✅ All tests passed")

@@ -1,0 +1,44 @@
+---
+type: concept
+title: "Skill Enforcement: The ~50% Layer 1 Failure Analysis"
+created: 2026-04-18
+source: ~/Downloads/hooks_implementation_plan 2.md
+hash: 6e29ef00e690d59f033409a9927f886e4ecb9cf6f1f961f98e4f3576801f3566
+tags:
+  - claude-code
+  - hooks
+  - skill-enforcement
+  - gap-analysis
+summary: "Deep dive into why Layer 1 UserPromptSubmit achieves only ~50% compliance, and the evidence from repo code showing enforcement contracts are inconsistent."
+---
+
+# Skill Enforcement Deep Dive: The ~50% Problem
+
+## Evidence from Repo Code
+
+| Metric | Baseline | After Enhancement | Improvement |
+|--------|----------|-----------------|------------|
+| Skills not invoked | ~40% | ~20% | 50% (Layer 1) |
+| Skills invoked but not used | ~20% | ~6% | 70% (Layer 1+2) |
+
+## What The Code Actually Shows
+
+`skill_enforcer.py` (line 490) explicitly says it does **not** inject `SKILL.md` content — it tells the model to call `Skill()` instead.
+
+`PreToolUse.py` (line 128) can only block once the model has chosen a tool — it cannot stop a pure-prose answer.
+
+`Stop.py` (line 849) says it is the safety net for the exact case where the model responds with prose and no tool calls.
+
+**Bottom line**: The "50% compliance" figure is not independently verifiable from code — it's observed behavior, not a code measurement.
+
+## The Enforcing Contract Is Muddy
+
+`arch/SKILL.md` says `enforcement: advisory` but has `workflow_steps` and `layer1_enforcement: true`. That's the root of the "muddy contract" problem.
+
+## Verdict
+
+If a skill must be **truly enforced**, some backstop like Stop is necessary. If you want no Stop hook, you must accept that you're **shaping prompts**, not enforcing.
+
+## Related
+
+- [[wiki/concepts/skill-enforcement-layers]] — the full 3-layer model and architecture recommendations

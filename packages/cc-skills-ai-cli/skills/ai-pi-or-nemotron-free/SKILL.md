@@ -10,7 +10,7 @@ triggers:
 workflow_steps:
   - Parse target
   - Invoke pi with nemotron-3-super-120b-a12b:free via openrouter
-  - Parse JSONL output
+  - Parse JSON output
   - Report findings
 allowed_tools:
   - Bash
@@ -19,6 +19,29 @@ allowed_tools:
 
 # /ai-pi-or-nemotron-free — Adversarial Review via Pi + Nemotron 3 Super (Free)
 
+## Quick Start
+
 ```bash
-pi --mode json --provider openrouter --model nvidia/nemotron-3-super-120b-a12b:free "Review P:/path/to/file.py and return JSON"
+pi --model openrouter/nvidia/nemotron-3-super-120b-a12b:free \
+  -p @P:/path/to/file.py \
+  "Analyze for security vulnerabilities. Be adversarial. Return JSON with score (0-1), summary, and issues."
 ```
+
+## Model Info
+
+| Attribute | Value |
+|-----------|-------|
+| Model | nemotron-3-super-120b-a12b:free |
+| Provider | openrouter |
+| Context | 262K |
+| Max Output | 4K |
+| Thinking | yes |
+| Strength | Free tier, decent coding |
+
+## Verification
+
+```bash
+pi --model openrouter/nvidia/nemotron-3-super-120b-a12b:free -p @P:/path/to/file.py "Say hello"
+```
+
+If you get `429 status code` — rate limit hit. Wait 30s and retry.

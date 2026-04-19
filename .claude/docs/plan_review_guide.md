@@ -296,7 +296,7 @@ OUTPUT: Combined assessment + action items
 
 ### 6. `/llm-cli` - Parallel Multi-LLM Command
 
-**Purpose:** Run qwen, gemini, codex, vibe, opencode, glm-4.7-flash in parallel for multi-perspective analysis.
+**Purpose:** Run qwen, gemini, codex, opencode, glm-4.7-flash in parallel for multi-perspective analysis.
 
 **Triggers:** `/llm-cli`
 
@@ -324,7 +324,6 @@ OUTPUT: Combined assessment + action items
 | qwen | Fastest (~63s) | Code gen, debugging |
 | gemini | Medium (~160s) | Concise answers |
 | codex | Fast | Code reviews |
-| vibe | Fast | Python tasks |
 | opencode | Fast | Alternative perspectives |
 | glm-4.7-flash | Fast (~60s API) | Additional perspective |
 
