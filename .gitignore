@@ -575,3 +575,14 @@ ai-api/proxy/litellm_venv/
 # Prevent large data files from being committed
 __csf/data/
 backups/
+
+# Session-generated lock and state flag files
+**/.history.lock
+**/.skill_usage.lock
+**/.continuous_mode.flag
+
+# Personal wiki data (not source packages)
+.data/
+
+# Personal command stubs (not source packages)
+.claude/commands/

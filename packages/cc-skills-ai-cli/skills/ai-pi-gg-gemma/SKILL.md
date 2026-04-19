@@ -27,7 +27,7 @@ Run adversarial code review using **Gemma 4-31B-IT** via the **pi** multi-provid
 ```bash
 pi --model google/gemma-4-31b-it \
   -p @P:/path/to/file.py \
-  "Analyze for security vulnerabilities. Be adversarial. Return JSON with score (0-1), summary, and issues."
+  "Read the file at @{path} carefully. Return JSON with score (0-1), summary (1 sentence), and issues. Begin your response with the exact first line of the file, quoted. If you did not read the file, set score to 0.0."
 ```
 
 ## Model Info
@@ -41,6 +41,16 @@ pi --model google/gemma-4-31b-it \
 | Thinking | yes |
 | Images | yes |
 | Strength | Code review, analysis |
+
+## API Key Setup
+
+pi requires `NVIDIA_NIM_API_KEY` at startup even for google provider. Export both keys:
+
+```bash
+NV_KEY=$(python -c "import json; d=json.load(open('$USERPROFILE/.pi/agent/auth.json')); print(d.get('nvidia',{}).get('key',''))")
+export NVIDIA_NIM_API_KEY="$NV_KEY"
+pi --model google/gemma-4-31b-it -p @P:/path/to/file.py "Read the file at @{path} carefully. Return JSON with score (0-1), summary (1 sentence), and issues. Begin your response with the exact first line of the file, quoted. If you did not read the file, set score to 0.0."
+```
 
 ## Verification
 

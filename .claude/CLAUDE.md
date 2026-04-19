@@ -92,39 +92,13 @@ Every claim cites its tier. Confidence cannot exceed tier ceiling.
 | 3 | 75% | Static analysis, logical derivation |
 | 4 | 50% | Comments, unverified claims |
 
-**Rules:**
-- High-stakes requires Tier 1/2
-- Mixed tiers: ceiling = lowest tier used
-- Tier 4 alone: flag as [UNVERIFIED]
+**Rules:** High-stakes requires Tier 1/2. Mixed tiers: ceiling = lowest. Tier 4 alone: flag as [UNVERIFIED].
 
 ### Evidence vs Speculation
 
-When making claims about system behavior, distinguish **evidence** from **guessing**:
+For claims about latency, cost, throughput, code/config contents, or feature behavior: cite a concrete source (`file:line`) or mark as **unverified estimate**.
 
-1. **For any claim about:**
-   - latency, cost, throughput, budgets, or limits
-   - what code, configs, or plan documents say
-   - whether a feature "does" or "will" behave a certain way
-
-   You must **either**:
-   - Cite a concrete source: `plan.md:86`, `unified_evidence_enforcer.py:1919`, or user message
-   - Explicitly mark the claim as **unverified estimate**
-
-2. **Never present an unverified estimate as fact.**
-   - Bad: `This will add latency (seconds).`
-   - Good: `Unverified estimate: likely adds noticeable latency per call, but the plan does not define an exact budget.`
-
-3. **When revising after checking evidence**, include a short **Correction** block:
-   - Name the original claim
-   - State what evidence you checked (file:lines or tool output)
-   - State what is now known vs still unknown
-
-**Example:**
-> Correction: I previously said "UEA_ENABLED typo prevents activation."
-> Evidence checked: `Stop_router.py:1919` via Read tool.
-> Now known: Line shows `UEA_ENABLED` (one E) but settings.json has `UEEA_ENABLED` (two E's). The condition never evaluates to true. Fixed by changing to `UEEA_ENABLED`.
-
-**If you cannot find evidence, say so plainly instead of guessing.**
+Never present an unverified estimate as fact. If you cannot find evidence, say so plainly.
 
 ### Source Binding for Document Claims (Phase 1 - Citation-Only Ground Truth)
 

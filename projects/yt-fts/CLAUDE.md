@@ -126,6 +126,15 @@ When using the `/refactor` skill for multi-file refactoring:
 
 **If ANY answer is NO → Do NOT close the task**
 
+## Quick Start
+
+```bash
+npm install
+npm run dev  # Start dev server on port 3000
+npm test     # Run test suite
+pytest      # Run Python tests (if applicable)
+```
+
 ## File Locations
 
 - CLI: `src/yt_fts/core/cli.py`

@@ -27,7 +27,7 @@ Run adversarial code review using **Elephant Alpha** (100B dense, 262K context, 
 ```bash
 pi --model openrouter/elephant-alpha \
   -p @P:/path/to/file.py \
-  "Analyze for security vulnerabilities. Be adversarial. Return JSON with score (0-1), summary, and issues."
+  "Read the file at @{path} carefully. Return JSON with score (0-1), summary (1 sentence), and issues. Begin your response with the exact first line of the file, quoted. If you did not read the file, set score to 0.0."
 ```
 
 ## Model Info
@@ -41,6 +41,18 @@ pi --model openrouter/elephant-alpha \
 | Thinking | no |
 | LiveBench Coding | 36% |
 | Strength | Real-world fit; leaderboard-proven |
+
+## API Key Setup
+
+pi requires `NVIDIA_NIM_API_KEY` at startup even for openrouter models. Export both keys:
+
+```bash
+NV_KEY=$(python -c "import json; d=json.load(open('$USERPROFILE/.pi/agent/auth.json')); print(d.get('nvidia',{}).get('key',''))")
+OR_KEY=$(python -c "import json; d=json.load(open('$USERPROFILE/.pi/agent/auth.json')); print(d.get('openrouter',{}).get('key',''))")
+export NVIDIA_NIM_API_KEY="$NV_KEY"
+export OPENROUTER_API_KEY="$OR_KEY"
+pi --model openrouter/elephant-alpha -p @P:/path/to/file.py "Read the file at @{path} carefully. Return JSON with score (0-1), summary (1 sentence), and issues. Begin your response with the exact first line of the file, quoted. If you did not read the file, set score to 0.0."
+```
 
 ## Verification
 

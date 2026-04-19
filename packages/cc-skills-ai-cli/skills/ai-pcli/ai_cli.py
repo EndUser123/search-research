@@ -31,8 +31,11 @@ from file_context import (
     print_context_summary,
 )
 
+# Module-level singleton for prompting-toolkit (preserves cache across calls)
+_PROMPT_TOOLKIT_SYSTEM: "AutomaticEnhancementSystem | None" = None
+
 # Config file for remembering last used CLI recipe
-_AI_CLI_CONFIG = Path("P:/.claude/ai-cli-recipe.json")
+_AI_CLI_CONFIG = Path("P:/.claude/ai-pcli-recipe.json")
 
 
 def _load_ai_cli_config() -> dict[str, Any] | None:
@@ -1057,32 +1060,41 @@ def _determine_active_llms(
     codex_only: bool,
     opencode_only: bool,
     glm_flash_only: bool,
+    pi_m27_only: bool = False,
+    pi_glm_only: bool = False,
 ) -> dict[str, bool]:
     """Determine which LLMs to run based on flags.
 
     Args:
         qwen_only, gemini_only, codex_only, opencode_only, glm_flash_only: CLI flags
+        pi_m27_only: Run only pi with minimax/MiniMax-M2.7
+        pi_glm_only: Run only pi with z-ai/glm-5.1
 
     Returns:
         Dictionary with boolean flags for each LLM
     """
-    has_cli_flags = qwen_only or gemini_only or codex_only or opencode_only
-    has_glm_api_key = os.environ.get("ZAI_API_KEY")
+    has_cli_flags = (
+        qwen_only or gemini_only or codex_only or opencode_only or pi_m27_only or pi_glm_only
+    )
 
     if not has_cli_flags:
         return {
-            "qwen": True,
+            "qwen": False,
             "gemini": True,
             "codex": True,
-            "opencode": True,
-            "glm_flash": False,  # Removed: API token expired
+            "opencode": False,
+            "glm_flash": False,
+            "pi_m27": True,
+            "pi_glm": True,
         }
     return {
         "qwen": qwen_only,
         "gemini": gemini_only,
         "codex": codex_only,
         "opencode": opencode_only,
-        "glm_flash": False,  # Removed: API token expired
+        "glm_flash": False,
+        "pi_m27": pi_m27_only,
+        "pi_glm": pi_glm_only,
     }
 
 
@@ -1093,17 +1105,24 @@ def _get_cli_preview(
     opencode_only: bool,
     glm_flash_only: bool,
     opencode_models: list[str],
+    pi_m27_only: bool = False,
+    pi_glm_only: bool = False,
 ) -> str:
     """Build a preview string showing which CLIs and LLMs will be used.
 
     Args:
         qwen_only, gemini_only, codex_only, opencode_only, glm_flash_only: CLI flags
         opencode_models: List of OpenCode model names
+        pi_m27_only: Run only pi with minimax/MiniMax-M2.7
+        pi_glm_only: Run only pi with z-ai/glm-5.1
 
     Returns:
         Formatted string listing all CLIs/LLMs that will be invoked
     """
-    has_any_flag = qwen_only or gemini_only or codex_only or opencode_only or glm_flash_only
+    has_any_flag = (
+        qwen_only or gemini_only or codex_only or opencode_only or glm_flash_only
+        or pi_m27_only or pi_glm_only
+    )
 
     # Collect items
     native_clis = []
@@ -1156,6 +1175,9 @@ def _build_cli_commands(
     run_codex: bool,
     run_opencode: bool,
     opencode_models: list[str],
+    run_pi_m27: bool = False,
+    run_pi_glm: bool = False,
+    context_file: str | None = None,
 ) -> list[tuple[str, str]]:
     """Build platform-specific CLI command list.
 
@@ -1163,6 +1185,9 @@ def _build_cli_commands(
         query: User query string
         run_qwen, run_gemini, run_codex, run_opencode: Boolean flags
         opencode_models: List of OpenCode model names (empty list = use default)
+        run_pi_m27: Run pi with minimax/MiniMax-M2.7
+        run_pi_glm: Run pi with z-ai/glm-5.1
+        context_file: Optional file path for pi -p @filepath flag
 
     Returns:
         List of (name, command) tuples. Multiple opencode models get distinct
@@ -1215,6 +1240,16 @@ def _build_cli_commands(
                 opencode_cmd = f"{ROOT_PREFIX}opencode run -m {resolved}"
             name = f"opencode:{resolved.split('/')[-1]}"
             commands.append((name, opencode_cmd))
+
+    # Pi agents (use list form to avoid shell escaping issues)
+    if run_pi_m27:
+        ctx_arg = ["-p", f"@{context_file}"] if context_file else []
+        pi_m27_cmd = ["pi", "--model", "minimax/MiniMax-M2.7", *ctx_arg, query]
+        commands.append(("pi-m27", pi_m27_cmd))
+    if run_pi_glm:
+        ctx_arg = ["-p", f"@{context_file}"] if context_file else []
+        pi_glm_cmd = ["pi", "--model", "z-ai/glm-5.1", *ctx_arg, query]
+        commands.append(("pi-glm", pi_glm_cmd))
 
     return commands
 
@@ -1314,12 +1349,15 @@ def run_parallel_llm(
     codex_only: bool = False,
     opencode_only: bool = False,
     glm_flash_only: bool = False,
+    pi_m27_only: bool = False,
+    pi_glm_only: bool = False,
     timeout: int = 180,
     output_format: str = "text",
     verbose: bool = False,
     opencode_models: list[str] = [],
+    context_file: str | None = None,
 ) -> dict[str, Any]:
-    """Run qwen, gemini, codex, and GLM-4.7-Flash via API in parallel.
+    """Run qwen, gemini, codex, pi-m27, pi-glm, and GLM-4.7-Flash via API in parallel.
 
     Uses asyncio for true parallel execution.
     """
@@ -1332,7 +1370,8 @@ def run_parallel_llm(
 
     # Determine which LLMs to run
     active = _determine_active_llms(
-        qwen_only, gemini_only, codex_only, opencode_only, glm_flash_only
+        qwen_only, gemini_only, codex_only, opencode_only, glm_flash_only,
+        pi_m27_only, pi_glm_only,
     )
 
     # Build CLI command list
@@ -1343,6 +1382,9 @@ def run_parallel_llm(
         active["codex"],
         active["opencode"],
         opencode_models,
+        active["pi_m27"],
+        active["pi_glm"],
+        context_file,
     )
 
     # Verbose output
@@ -3144,6 +3186,8 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
     parser.add_argument("--gemini-only", action="store_true", help="Run only gemini-cli")
     parser.add_argument("--codex-only", action="store_true", help="Run only codex-cli")
     parser.add_argument("--opencode-only", action="store_true", help="Run only opencode-cli")
+    parser.add_argument("--pi-m27-only", action="store_true", help="Run only pi with minimax/MiniMax-M2.7")
+    parser.add_argument("--pi-glm-only", action="store_true", help="Run only pi with z-ai/glm-5.1")
     parser.add_argument(
         "--glm-flash-only", action="store_true", help="Run only GLM-4.7-Flash (via API)"
     )
@@ -3251,6 +3295,11 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
         action="store_true",
         help="Skip the post-run ai-cli critic subagent",
     )
+    parser.add_argument(
+        "--prompt-toolkit",
+        action="store_true",
+        help="Use prompting-toolkit AutomaticEnhancementSystem instead of built-in prompt templates",
+    )
 
     args = parser.parse_args()
 
@@ -3331,10 +3380,49 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
     query, context = _build_query_context(args, args.query)
 
     # Apply task-specific prompt engineering for better LLM responses
-    enhanced_query = build_prompt(query, classification.task_type, context)
-    if enhanced_query != query:
-        query = enhanced_query
-        print(f"[Applied {classification.task_type.value} prompt template]", file=sys.stderr)
+    if getattr(args, "prompt_toolkit", False):
+        # Use prompting-toolkit AutomaticEnhancementSystem
+        try:
+            import sys
+
+            sys.path.insert(0, "P:/packages/prompting-toolkit/packages/framework/src")
+            from prompting_framework.automatic_enhancement_system import (
+                AutomaticEnhancementSystem,
+            )
+
+            if _PROMPT_TOOLKIT_SYSTEM is None:
+                _PROMPT_TOOLKIT_SYSTEM = AutomaticEnhancementSystem(
+                    max_enhancement_time=2.0,
+                    min_quality_threshold=0.5,
+                    enable_parallel_processing=True,
+                    cache_decisions=True,
+                )
+            result = asyncio.run(
+                _PROMPT_TOOLKIT_SYSTEM.apply_automatic_enhancement(query, context=context)
+            )
+            enhanced_query = result.enhanced_query
+            if enhanced_query != query:
+                query = enhanced_query
+                frameworks = [f.value for f in result.applied_frameworks]
+                if frameworks:
+                    print(
+                        f"[Applied prompting-toolkit: {frameworks}] "
+                        f"+{result.improvement_percentage:.0f}% quality, "
+                        f"{result.processing_time:.2f}s",
+                        file=sys.stderr,
+                    )
+                # else: enhancement was skipped silently, no log needed
+        except (ImportError, AttributeError, asyncio.RuntimeError) as e:
+            print(f"[prompting-toolkit unavailable: {e}], using built-in templates", file=sys.stderr)
+            enhanced_query = build_prompt(query, classification.task_type, context)
+            if enhanced_query != query:
+                query = enhanced_query
+                print(f"[Applied {classification.task_type.value} prompt template]", file=sys.stderr)
+    else:
+        enhanced_query = build_prompt(query, classification.task_type, context)
+        if enhanced_query != query:
+            query = enhanced_query
+            print(f"[Applied {classification.task_type.value} prompt template]", file=sys.stderr)
 
     # Show the enhanced prompt by default (--hide-prompt to suppress)
     # Print to stderr and skip when JSON output is requested to avoid corrupting JSON stream
@@ -3440,6 +3528,9 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
         if saved:
             opencode_models = saved.get("opencode_models", [])
 
+    # Context file for pi agents
+    context_file = args.context
+
     # Show CLI/LLM preview before execution
     cli_preview = _get_cli_preview(
         qwen_only=args.qwen_only,
@@ -3459,10 +3550,13 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
         codex_only=args.codex_only,
         opencode_only=args.opencode_only,
         glm_flash_only=args.glm_flash_only,
+        pi_m27_only=getattr(args, "pi_m27_only", False),
+        pi_glm_only=getattr(args, "pi_glm_only", False),
         timeout=args.timeout,
         output_format=args.output_format,
         verbose=getattr(args, "verbose", False),
         opencode_models=opencode_models,
+        context_file=context_file,
     )
 
     # Log performance metrics for each CLI execution

@@ -24,7 +24,7 @@ allowed_tools:
 ```bash
 pi --model nvidia-nim/nvidia/llama-3.1-nemotron-ultra-253b-v1 \
   -p @P:/path/to/file.py \
-  "Analyze for security vulnerabilities. Be adversarial. Return JSON with score (0-1), summary, and issues."
+  "Read the file at @{path} carefully. Return JSON with score (0-1), summary (1 sentence), and issues. Begin your response with the exact first line of the file, quoted. If you did not read the file, set score to 0.0."
 ```
 
 ## Model Info
@@ -33,10 +33,20 @@ pi --model nvidia-nim/nvidia/llama-3.1-nemotron-ultra-253b-v1 \
 |-----------|-------|
 | Model | llama-3.1-nemotron-ultra-253b-v1 |
 | Provider | nvidia-nim |
-| Context | 131K |
+| Context | 131.1K |
 | Max Output | 32.8K |
 | Thinking | yes |
 | Strength | Complex reasoning, code review |
+
+## API Key Setup
+
+pi requires `NVIDIA_NIM_API_KEY` at startup. Export from auth.json:
+
+```bash
+NV_KEY=$(python -c "import json; d=json.load(open('$USERPROFILE/.pi/agent/auth.json')); print(d.get('nvidia',{}).get('key',''))")
+export NVIDIA_NIM_API_KEY="$NV_KEY"
+pi --model nvidia-nim/nvidia/llama-3.1-nemotron-ultra-253b-v1 -p @P:/path/to/file.py "Read the file at @{path} carefully. Return JSON with score (0-1), summary (1 sentence), and issues. Begin your response with the exact first line of the file, quoted. If you did not read the file, set score to 0.0."
+```
 
 ## Verification
 

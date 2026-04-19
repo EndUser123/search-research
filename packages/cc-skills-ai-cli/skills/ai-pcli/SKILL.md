@@ -1,17 +1,24 @@
 ---
-name: ai-cli
+name: ai-pcli
 version: "1.4.0"
 status: stable
-description: Parallel Multi-LLM Command - Run qwen, gemini, codex, and opencode CLI tools in parallel
+description: Parallel Multi-LLM Command with prompting-toolkit enhancement - Run qwen, gemini, codex, and opencode CLI tools in parallel
 category: ai-llm
 enforcement: strict
 triggers:
-  - /ai-cli
+  - /ai-pcli
+workflow_steps:
+  - Parse query and options
+  - Build context from --context or auto-detection
+  - Apply prompt enhancement (built-in or --prompt-toolkit)
+  - Run parallel LLM CLIs
+  - Aggregate outputs
+  - Run ai-cli-critic unless --no-critic
 ---
 
-# /ai-cli
+# /ai-pcli
 
-**Parallel multi-LLM command:** `/ai-cli` runs multiple CLI-backed model providers and aggregates their output.
+**Parallel multi-LLM command with prompting-toolkit:** `/ai-pcli` runs multiple CLI-backed model providers and aggregates their output.
 
 ## EXECUTION DIRECTIVE
 
@@ -84,6 +91,7 @@ python "P:\.claude\skills\ai-cli\ai_cli.py" --help
 | `--timeout N` | Max wait in seconds (default: auto-calculated) |
 | `--output-file FILE` | Save JSON output to a datetime-suffixed file |
 | `--no-critic` | Skip the post-run ai-cli critic subagent |
+| `--prompt-toolkit` | Use prompting-toolkit AutomaticEnhancementSystem instead of built-in templates |
 | `--qwen-only` | Run only qwen-cli |
 | `--gemini-only` | Run only gemini-cli |
 | `--codex-only` | Run only codex-cli |

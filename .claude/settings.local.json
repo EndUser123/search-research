@@ -123,7 +123,16 @@
       "Bash(rm -rf P:/.claude/skills/uci)",
       "Bash(cp -r \"P:/packages/cc-skills-ai-cli/skills/ai-chutes\" \"P:/packages/cc-skills-ai-api/skills/ai-chutes\")",
       "Bash(rm -rf \"P:/.claude/skills/ai-chutes\")",
-      "Bash(MSYS=winsymlinks:nativestrict ln -s \"/p/packages/cc-skills-ai-api/skills/ai-chutes\" \"P:/.claude/skills/ai-chutes\")"
+      "Bash(MSYS=winsymlinks:nativestrict ln -s \"/p/packages/cc-skills-ai-api/skills/ai-chutes\" \"P:/.claude/skills/ai-chutes\")",
+      "WebFetch(domain:api.z.ai)",
+      "Bash(cp P:/.claude/skills/ai-api/SKILL.md P:/packages/cc-skills-ai-api/skills/ai-api/)",
+      "Bash(cp P:/.claude/skills/ai-api/ai_api.py P:/packages/cc-skills-ai-api/skills/ai-api/)",
+      "Bash(cp -r P:/.claude/skills/ai-apiv2 P:/packages/cc-skills-ai-api/skills/ai-apiv2)",
+      "Bash(rm -rf P:/.claude/skills/adversarial-review)",
+      "Bash(rm -rf P:/.claude/skills/skill-ship-workspace)",
+      "Bash(ln -s \"/p/packages/cc-skills-sdlc/skills/adversarial-review\" \"P:/.claude/skills/adversarial-review\")",
+      "Bash(ln -s \"/p/packages/cc-skills-utils/skills/skill-ship-workspace\" \"P:/.claude/skills/skill-ship-workspace\")",
+      "Bash(rm -f P:/.claude/commands/adversarial-review.md)"
     ],
     "deny": [],
     "ask": []
@@ -133,6 +142,6 @@
   ],
   "hooks": {},
   "disableAllHooks": false,
-  "outputStyle": "adaptive-research-insights-rns",
+  "outputStyle": "signal",
   "prefersReducedMotion": false
 }

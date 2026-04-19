@@ -42,3 +42,8 @@ Thumbs.db
 skills/gitbatch/
 skills/*/
 !skills/*/SKILL.md
+
+# Session state artifacts
+.claude/
+.evidence/
+.state/

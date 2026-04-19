@@ -27,7 +27,7 @@ Run adversarial code review using **MiniMax M2.7** (10B MoE, 197K context) via t
 ```bash
 pi --model minimax/MiniMax-M2.7 \
   -p @P:/path/to/file.py \
-  "Analyze for security vulnerabilities. Be adversarial. Return JSON with score (0-1), summary, and issues."
+  "Read the file at @{path} carefully. Return JSON with score (0-1), summary (1 sentence), and issues. Begin your response with the exact first line of the file, quoted. If you did not read the file, set score to 0.0."
 ```
 
 ## Model Info
@@ -36,11 +36,21 @@ pi --model minimax/MiniMax-M2.7 \
 |-----------|-------|
 | Model | MiniMax-M2.7 |
 | Provider | minimax |
-| Context | 1M |
-| Max Output | 8.2K |
-| Thinking | no |
+| Context | 204.8K |
+| Max Output | 131.1K |
+| Thinking | yes |
 | SWE-Bench | 80.2% |
 | Strength | Office/coding fluency, 51% Multi-SWE |
+
+## API Key Setup
+
+pi requires `NVIDIA_NIM_API_KEY` at startup even for minimax models. Export both keys:
+
+```bash
+NV_KEY=$(python -c "import json; d=json.load(open('$USERPROFILE/.pi/agent/auth.json')); print(d.get('nvidia',{}).get('key',''))")
+export NVIDIA_NIM_API_KEY="$NV_KEY"
+pi --model minimax/MiniMax-M2.7 -p @P:/path/to/file.py "Read the file at @{path} carefully. Return JSON with score (0-1), summary (1 sentence), and issues. Begin your response with the exact first line of the file, quoted. If you did not read the file, set score to 0.0."
+```
 
 ## Verification
 
