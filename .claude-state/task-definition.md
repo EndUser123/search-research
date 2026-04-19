@@ -1,36 +1,26 @@
 # Task Contract
 
 ## Objective
-Fix PreToolUse:Edit hook errors caused by empty stdin in recursive_failure_detector and PreToolUse_investigation_gate
+E2E test of /go skill: verify PR_READY token emission on trivial code change.
 
 ## Scope
-**In scope:**
-- `recursive_failure_detector.py`: Add empty stdin guard before json.loads()
-- `PreToolUse_investigation_gate.py`: Add empty stdin guard before json.loads()
-
-**Out of scope:**
-- Other hook files
-- Other PreToolUse hooks
-- Test files
+**In scope:** test_e2e_script.py
+**Out of scope:** Any other files
 
 ## Forbidden Files
-- None
+{None}
 
 ## Acceptance Criteria
-- [ ] Hooks exit 0 (allow) when stdin is empty or whitespace-only
-- [ ] Hooks still work correctly with valid JSON input
-- [ ] No regression in normal hook operation
+- [ ] test_e2e_script.py runs without error
+- [ ] /go emits <promise>PR_READY</promise> at end of workflow
 
 ## Verification Commands
 ```bash
-echo "" | python .claude/hooks/recursive_failure_detector.py 2>&1; echo "exit: $?"
-echo "" | python .claude/hooks/PreToolUse_investigation_gate.py 2>&1; echo "exit: $?"
-echo '{"tool_name":"Edit","tool_input":{}}' | python .claude/hooks/recursive_failure_detector.py 2>&1 | head -1
-echo '{"tool_name":"Edit","tool_input":{}}' | python .claude/hooks/PreToolUse_investigation_gate.py 2>&1 | head -1
+python test_e2e_script.py
 ```
 
 ## State
 - Created: 2026-04-19
 - Status: IN_PROGRESS
 - Iteration: 0
-- Review Depth: quick
+- Review Depth: auto-detected
