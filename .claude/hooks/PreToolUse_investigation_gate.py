@@ -1531,8 +1531,12 @@ if __name__ == "__main__":
     - Output: Exit code 0 = allow, 2 = block
     - Block message goes to stderr
     """
+    stdin_content = sys.stdin.read()
+    if not stdin_content.strip():
+        print("PreToolUse_investigation_gate: empty stdin, allowing", file=sys.stderr)
+        sys.exit(0)
     try:
-        input_data = json.load(sys.stdin)
+        input_data = json.loads(stdin_content)
         tool_name = input_data.get("tool_name", "")
         tool_input = input_data.get("tool_input", {})
 

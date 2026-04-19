@@ -372,7 +372,12 @@ def check_for_catch22(tool: str, command: str, file_path: str = "") -> dict:
 
 @hook_main
 def main():
-    input_data = json.loads(sys.stdin.read())
+    stdin_content = sys.stdin.read()
+    if not stdin_content.strip():
+        print("recursive_failure_detector: empty stdin, allowing", file=sys.stderr)
+        print(json.dumps({"continue": True}))
+        sys.exit(0)
+    input_data = json.loads(stdin_content)
     tool_name = input_data.get("tool_name", "")
     tool_input = input_data.get("tool_input", {})
 
