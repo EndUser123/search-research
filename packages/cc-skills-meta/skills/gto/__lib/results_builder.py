@@ -100,6 +100,14 @@ class Gap:
     # TASK-009e: Theme detection
     theme: str | None = None
     recurrence_count: int = 1
+    # Cascade depth annotation (pre-mortem Step 4.5)
+    cascade_depth: str | None = None  # SHALLOW/MEDIUM/DEEP
+    # Operational verification gate (pre-mortem Step 3.8)
+    verification_required: bool = False
+    verification_evidence: str | None = None
+    is_verified: bool = False
+    # Advisory enforcement heuristic (pre-mortem Step 3.6)
+    advisory: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -117,6 +125,11 @@ class Gap:
             "effort_estimate_minutes": self.effort_estimate_minutes,
             "theme": self.theme,
             "recurrence_count": self.recurrence_count,
+            "cascade_depth": self.cascade_depth,
+            "verification_required": self.verification_required,
+            "verification_evidence": self.verification_evidence,
+            "is_verified": self.is_verified,
+            "advisory": self.advisory,
         }
 
     @classmethod
@@ -136,6 +149,11 @@ class Gap:
             effort_estimate_minutes=data.get("effort_estimate_minutes", 5),
             theme=data.get("theme"),
             recurrence_count=data.get("recurrence_count", 1),
+            cascade_depth=data.get("cascade_depth"),
+            verification_required=data.get("verification_required", False),
+            verification_evidence=data.get("verification_evidence"),
+            is_verified=data.get("is_verified", False),
+            advisory=data.get("advisory", False),
         )
 
     def signature(self) -> str:
@@ -759,8 +777,14 @@ class InitialResultsBuilder:
         # TASK-009e: Apply theme detection
         themed_gaps = self._apply_theme_detection(effort_enriched_gaps)
 
+        # Cascade depth annotation (pre-mortem Step 4.5)
+        cascade_annotated_gaps = self._apply_cascade_depth(themed_gaps)
+
+        # Advisory enforcement heuristic (pre-mortem Step 3.6)
+        advisory_marked_gaps = self._apply_advisory_heuristic(cascade_annotated_gaps)
+
         # Sort gaps by severity and ID
-        sorted_gaps = self._sort_gaps(themed_gaps)
+        sorted_gaps = self._sort_gaps(advisory_marked_gaps)
 
         # Count by severity
         severity_counts = self._count_by_severity(sorted_gaps)
@@ -899,6 +923,113 @@ class InitialResultsBuilder:
                     break
 
             result_gaps.append(replace(gap, theme=detected_theme))
+
+        return result_gaps
+
+    # Cascade depth: pre-mortem Step 4.5
+    def _apply_cascade_depth(self, gaps: list[Gap]) -> list[Gap]:
+        """Annotate gaps with cascade depth.
+
+        For HIGH/CRITICAL gaps, traces 'and then what?' chains to determine
+        cascade depth:
+        - SHALLOW (1-2 steps): Localized failure, easy recovery
+        - MEDIUM (3-4 steps): Affects multiple subsystems
+        - DEEP (5+ steps): System-wide collapse
+
+        Args:
+            gaps: List of gaps to analyze
+
+        Returns:
+            Gaps with cascade_depth annotated
+        """
+        CASCADE_POTENTIAL: dict[str, int] = {
+            "viability_failure": 5,
+            "dependency_vulnerable": 5,
+            "entry_point_mismatch": 4,
+            "missing_dependency": 4,
+            "import_error": 3,
+            "test_failure": 3,
+            "missing_test": 2,
+            "missing_docs": 2,
+            "dependency_outdated": 2,
+            "low_confidence_goal": 1,
+            "unfinished_business": 1,
+            "code_marker": 1,
+            "dependency_unused": 1,
+        }
+
+        def _classify_depth(potential: int) -> str:
+            if potential >= 5:
+                return "DEEP"
+            elif potential >= 3:
+                return "MEDIUM"
+            return "SHALLOW"
+
+        result_gaps = []
+        for gap in gaps:
+            if gap.severity not in ("critical", "high"):
+                result_gaps.append(gap)
+                continue
+
+            base = CASCADE_POTENTIAL.get(gap.type, 2)
+            sev_mult = {"critical": 2.0, "high": 1.5, "medium": 1.0, "low": 0.5}
+            mult = sev_mult.get(gap.severity, 1.0)
+            infra_boost = 0
+            if gap.file_path:
+                fp = gap.file_path.lower()
+                if any(k in fp for k in ("orchestrator", "state_manager", "results_builder")):
+                    infra_boost = 2
+                elif any(k in fp for k in ("lib/", "__lib/", "hooks/", "subagents/")):
+                    infra_boost = 1
+            if "gto" in (gap.source or "").lower():
+                infra_boost += 1
+
+            steps = int(base * mult + infra_boost)
+            depth = _classify_depth(steps)
+            needs_verification = depth == "DEEP" and not gap.is_verified
+            annotated = replace(
+                gap,
+                cascade_depth=depth,
+                verification_required=gap.verification_required or needs_verification,
+            )
+            result_gaps.append(annotated)
+
+        return result_gaps
+
+    # Advisory enforcement heuristic: pre-mortem Step 3.6
+    def _apply_advisory_heuristic(self, gaps: list[Gap]) -> list[Gap]:
+        """Mark gaps that are advisory-only with weak enforcement.
+
+        Advisory enforcement has ~80% ignore base rate. When a recommended
+        mitigation is advisory-only, annotate with advisory=True.
+
+        Args:
+            gaps: List of gaps to annotate
+
+        Returns:
+            Gaps with advisory flag set for weak-enforcement items
+        """
+        ADVISORY_TYPES = {
+            "skill_coverage",
+            "skill_suggestion",
+            "session_goal",
+            "low_confidence_goal",
+            "improvement_gap",
+            "improvement_investigation",
+            "process_gap",
+        }
+
+        result_gaps = []
+        for gap in gaps:
+            is_advisory = gap.type in ADVISORY_TYPES or (
+                gap.metadata.get("action_type") in ("Use /skill", "Run skill", "Manual")
+                and gap.severity not in ("critical", "high")
+            )
+            if is_advisory and not gap.advisory:
+                annotated = replace(gap, advisory=True)
+                result_gaps.append(annotated)
+            else:
+                result_gaps.append(gap)
 
         return result_gaps
 

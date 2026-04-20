@@ -9,6 +9,7 @@ It implements the three-layer architecture:
 
 from __future__ import annotations
 
+from dataclasses import replace
 import json
 import os
 import sys
@@ -329,6 +330,10 @@ class GTOOrchestrator:
             # Step 4: Build consolidated results (P1)
             results = build_initial_results(detector_results, self.project_root)
 
+            # Step 4.5: Second-order cascade tracing (pre-mortem Step 2.5)
+            # Trace 'and then what?' chains for HIGH/CRITICAL gaps
+            results = self._apply_cascade_tracing(results)
+
             # Update counts after merging
             results.total_gap_count = len(results.gaps)
             results.critical_count = sum(1 for g in results.gaps if g.severity == "critical")
@@ -394,7 +399,35 @@ class GTOOrchestrator:
                     f"Failed to acquire history lock (lock busy or unavailable): {e}"
                 ) from e
 
-            # Step 7: Write completion marker for compaction resilience
+            # Step 7: Success theater detection (pre-mortem Step 3.6)
+            # Detect misleading health metrics where numbers look good but evidence is weak
+            try:
+                try:
+                    from .__lib.success_theater_detector import detect_success_theater
+                except ImportError:
+                    from __lib.success_theater_detector import detect_success_theater
+
+                theater_result = detect_success_theater(
+                    artifact=None,  # No artifact yet — detect from metadata
+                    metadata=metadata,
+                    project_root=self.project_root,
+                )
+                metadata["success_theater"] = {
+                    "verdict": theater_result.overall_verdict,
+                    "is_healthy": theater_result.is_healthy,
+                    "flag_count": len(theater_result.flags),
+                }
+                if theater_result.flags:
+                    # Add theater flags as gaps in results
+                    theater_gaps = theater_result.to_gaps()
+                    if theater_gaps:
+                        for tg in theater_gaps:
+                            results.gaps.append(Gap.from_dict(tg))
+                        results.total_gap_count = len(results.gaps)
+            except Exception as e:
+                logger.warning("Success theater detection failed: %s", e)
+
+            # Step 8: Write completion marker for compaction resilience
             self._write_completion_marker(metadata, results)
 
             return OrchestratorResult(
@@ -462,6 +495,90 @@ class GTOOrchestrator:
             return results
 
         return results
+
+    def _apply_cascade_tracing(
+        self, results: ConsolidatedResults
+    ) -> ConsolidatedResults:
+        """Trace second-order cascade chains for HIGH/CRITICAL gaps.
+
+        Pre-mortem Step 2.5: Ask 'and then what?' 3-5 times for each high-risk
+        gap and annotate cascade depth.
+
+        Args:
+            results: ConsolidatedResults with gaps
+
+        Returns:
+            ConsolidatedResults with gap cascade annotations in metadata
+        """
+        CASCADE_CHAINS: dict[str, list[tuple[str, str | None]]] = {
+            "viability_failure": [
+                ("Analysis is unreliable", "health_score_wrong"),
+                ("User loses confidence in GTO", None),
+                ("Skill recommendations become untrusted", None),
+            ],
+            "dependency_vulnerable": [
+                ("Security vulnerability in pipeline", "security_breach"),
+                ("Credential exposure risk", None),
+                ("Pipeline blocked by security policy", None),
+            ],
+            "missing_dependency": [
+                ("Import errors in production", "runtime_failure"),
+                ("Health check fails silently", "health_score_wrong"),
+                ("User falls back to manual workarounds", None),
+            ],
+            "entry_point_mismatch": [
+                ("Skill execution fails", "runtime_failure"),
+                ("User loses trust in skill routing", None),
+                ("GTO recommendations not actionable", None),
+            ],
+            "import_error": [
+                ("Code fails at runtime", "runtime_failure"),
+                ("Health assertions fail", "health_score_wrong"),
+                ("User must debug manually", None),
+            ],
+            "test_failure": [
+                ("Bugs slip into production", "user_trust_erodes"),
+                ("Support burden increases", None),
+                ("Development slows due to bugfixes", None),
+            ],
+            "missing_test": [
+                ("Regressions undetected", "test_failure"),
+                ("Technical debt spirals", "code_quality_worsens"),
+                ("Refactoring becomes risky", None),
+            ],
+            "missing_docs": [
+                ("Onboarding friction for new contributors", "velocity_slows"),
+                ("Knowledge walks out the door", None),
+                ("Decision debt accumulates", None),
+            ],
+        }
+
+        def trace_cascade(gap_type: str) -> dict[str, Any]:
+            chain = CASCADE_CHAINS.get(gap_type, [])
+            steps = len(chain)
+            if steps >= 5:
+                depth = "DEEP"
+            elif steps >= 3:
+                depth = "MEDIUM"
+            else:
+                depth = "SHALLOW"
+            return {
+                "cascade_chain": chain,
+                "cascade_depth": depth,
+                "cascade_steps": steps,
+            }
+
+        updated_gaps = []
+        for gap in results.gaps:
+            if gap.severity in ("high", "critical"):
+                cascade_info = trace_cascade(gap.type)
+                new_metadata = dict(gap.metadata) if gap.metadata else {}
+                new_metadata["cascade_annotation"] = cascade_info
+                updated_gaps.append(replace(gap, metadata=new_metadata))
+            else:
+                updated_gaps.append(gap)
+
+        return replace(results, gaps=updated_gaps)
 
     def _run_session_chain_analysis(
         self,

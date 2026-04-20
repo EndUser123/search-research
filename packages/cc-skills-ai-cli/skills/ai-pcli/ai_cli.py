@@ -1007,7 +1007,7 @@ def generate_parallel_bash_commands(
     if run_gemini:
         # Use stdin pipe (echo X | gemini) - do NOT also use -p with the same query
         # Gemini rejects "Cannot use both a positional prompt and the --prompt (-p) flag together"
-        commands.append(f"echo {safe_query} | gemini -y -o text -m gemini-2.5-flash")
+        commands.append(f"echo {safe_query} | gemini -y -o text -m gemini-2.5-flash-lite")
     if run_codex:
         # Codex exec takes query as argument (not stdin)
         commands.append(f'codex exec "{query}"')
@@ -1221,9 +1221,9 @@ def _build_cli_commands(
         # On Windows, must use full node path since npm global commands aren't in PATH for exec
         if sys.platform == "win32":
             gemini_script = npm_root / "@google" / "gemini-cli" / "bundle" / "gemini.js"
-            gemini_args = ["node", str(gemini_script), "-y", "-o", "text", "-m", "gemini-2.5-flash", "-p", query]
+            gemini_args = ["node", str(gemini_script), "-y", "-o", "text", "-m", "gemini-2.5-flash-lite", "-p", query]
         else:
-            gemini_args = ["gemini", "-y", "-o", "text", "-m", "gemini-2.5-flash", "-p", query]
+            gemini_args = ["gemini", "-y", "-o", "text", "-m", "gemini-2.5-flash-lite", "-p", query]
         commands.append(("gemini", gemini_args))
     if run_codex:
         commands.append(("codex", codex_cmd))
@@ -1403,7 +1403,7 @@ def run_parallel_llm(
     async def run_all_parallel():
         """Run CLI commands and GLM API in true parallel."""
         tasks = [
-            run_parallel_commands(commands, timeout=timeout, input_text=query, verbose=verbose)
+            run_parallel_commands(commands, timeout=timeout, input_text=query, verbose=verbose, cwd=str(_REPO_ROOT))
         ]
 
         # Add GLM API task if active

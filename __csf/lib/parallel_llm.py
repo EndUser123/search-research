@@ -9,7 +9,9 @@ Also provides API-based execution for GLM models (glm-4.7-flash, glm-4.7-flashx)
 from __future__ import annotations
 
 import asyncio
+import glob
 import json
+import os
 import re
 import sys
 from datetime import datetime
@@ -146,6 +148,7 @@ async def run_single_command(
     input_text: str | None = None,
     timeout: int = 120,
     verbose: bool = False,
+    cwd: str | Path | None = None,
 ) -> dict[str, Any]:
     """Run a single CLI command asynchronously.
 
@@ -182,6 +185,7 @@ async def run_single_command(
                     stdin=asyncio.subprocess.PIPE if input_text else None,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
+                    cwd=cwd,
                 )
             else:
                 proc = await asyncio.create_subprocess_shell(
@@ -189,6 +193,7 @@ async def run_single_command(
                     stdin=asyncio.subprocess.PIPE if input_text else None,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
+                    cwd=cwd,
                 )
         else:
             # On Unix, always split string commands
@@ -197,6 +202,7 @@ async def run_single_command(
                 stdin=asyncio.subprocess.PIPE if input_text else None,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                cwd=cwd,
             )
 
         # Detect shell pipes AFTER proc creation - if "|" in command, the shell handles
@@ -262,8 +268,45 @@ async def run_single_command(
 
 def _is_quota_error(error: str) -> bool:
     """Check if error is a quota/rate-limit error that should trigger fallback."""
-    quota_signals = ["429", "no capacity", "rate limit", "quota", "limit exceeded", "temporarily unavailable"]
+    quota_signals = ["429", "no capacity", "rate limit", "quota", "limit exceeded", "temporarily unavailable", "terminalquotaerror"]
     return any(signal in error.lower() for signal in quota_signals)
+
+
+def _check_gemini_quota_file() -> bool:
+    """Check if a recent gemini-client-error-*.json file contains a quota signal.
+
+    Gemini-cli traps quota errors in a JSON file in the system temp directory
+    rather than reporting them via stderr. This function finds and inspects
+    the most recent such file to detect quota exhaustion.
+
+    Returns:
+        True if a recent error file contains a quota signal, False otherwise.
+    """
+    import glob
+    import time
+
+    temp_dir = Path(os.environ.get("TEMP", os.environ.get("TMP", "/tmp")))
+    pattern = str(temp_dir / "gemini-client-error-*.json")
+
+    try:
+        files = sorted(glob.glob(pattern), key=lambda p: Path(p).stat().st_mtime, reverse=True)
+    except (OSError, ValueError):
+        return False
+
+    if not files:
+        return False
+
+    try:
+        newest = Path(files[0])
+        # Skip files older than 4 hours (quota exhaustion persists for hours)
+        if time.time() - newest.stat().st_mtime > 14400:
+            return False
+
+        data = json.loads(newest.read_text(encoding="utf-8"))
+        error_msg = str(data.get("error", {}).get("message", ""))
+        return _is_quota_error(error_msg)
+    except (OSError, json.JSONDecodeError, KeyError, IndexError):
+        return False
 
 
 async def run_parallel_commands(
@@ -272,6 +315,7 @@ async def run_parallel_commands(
     input_text: str | None = None,
     verbose: bool = False,
     fallback_commands: dict[str, tuple[str, Any]] | None = None,
+    cwd: str | Path | None = None,
 ) -> dict[str, Any]:
     """Run multiple CLI commands in parallel using asyncio.gather.
 
@@ -297,14 +341,24 @@ async def run_parallel_commands(
     # Build task list with metadata for fallback support
     async def run_with_fallback(name: str, cmd_args, cmd_input, fallback_name_cmd=None):
         """Run a command with fallback on quota error."""
-        result = await run_single_command(cmd_args, input_text=cmd_input, timeout=timeout, verbose=verbose)
+        result = await run_single_command(cmd_args, input_text=cmd_input, timeout=timeout, verbose=verbose, cwd=cwd)
 
         # Check if we should retry with fallback
-        if fallback_name_cmd and result.get("error") and _is_quota_error(result["error"]):
+        # Note: gemini-cli traps quota errors in a JSON file, not stderr, so we also
+        # check the temp JSON file when stderr-based detection misses but we have
+        # an error with empty output (the gemini quota signature).
+        is_quota = _is_quota_error(result.get("error", ""))
+        is_gemini_quota = (
+            not is_quota
+            and result.get("error")
+            and not result.get("output")
+            and _check_gemini_quota_file()
+        )
+        if fallback_name_cmd and (is_quota or is_gemini_quota):
             if verbose:
                 print(f"[{name}] Quota error detected, retrying with fallback...", flush=True)
             fallback_name, fallback_cmd_args = fallback_name_cmd
-            result = await run_single_command(fallback_cmd_args, input_text=cmd_input, timeout=timeout, verbose=verbose)
+            result = await run_single_command(fallback_cmd_args, input_text=cmd_input, timeout=timeout, verbose=verbose, cwd=cwd)
             result["_used_fallback"] = True  # Mark that we used fallback
 
         return name, result

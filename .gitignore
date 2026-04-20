@@ -81,7 +81,8 @@ models/
 *.exe
 *.bat
 *.ps1
-!**/scripts/**/*.ps1  # Track PowerShell scripts in scripts/
+!scripts/*.ps1        # Track PowerShell scripts in root scripts/
+!**/scripts/**/*.ps1  # Track PowerShell scripts in nested scripts/
 !projects/yt-fts/deploy.ps1  # Track deploy.ps1
 !/.claude/skills/_tools/**  # Track skills tooling (all files)
 !.claude/skills/_tools/*.ps1

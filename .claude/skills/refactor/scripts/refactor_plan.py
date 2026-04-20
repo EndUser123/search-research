@@ -87,7 +87,7 @@ def create_refactor_plan(
                 {
                     "id": f.get("id", "unknown"),
                     "title": f.get("title", "Untitled"),
-                    "file": f.get("file_path", "unknown"),
+                    "file": f.get("file", "unknown"),
                     "change_description": f.get("description", ""),
                     "risk_analysis": _assess_change_risk(f),
                     "rollback_strategy": _suggest_rollback(f),

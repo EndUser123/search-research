@@ -469,6 +469,8 @@ def _detect_batch_groups(gaps: list[dict]) -> list[dict]:
     for i, gap in enumerate(gaps):
         msg = gap.get("message", "")
         # Skip # type: ignore gaps — Strategy 2 handles these by root cause
+        if msg is None:
+            continue
         if isinstance(msg, str) and "# type: ignore" in msg:
             continue
         # Skip findings without a meaningful file location (e.g., skill_coverage findings)
@@ -543,6 +545,14 @@ def _detect_batch_groups(gaps: list[dict]) -> list[dict]:
                 "gap_ids": gap_ids,
                 "effort_minutes": aggregate_effort,
                 "driven_by": batch_gaps[0].get("driven_by"),
+                # Cascade depth: worst wins (DEEP > MEDIUM > SHALLOW)
+                "cascade_depth": max(
+                    (g.get("cascade_depth") or "SHALLOW") for g in batch_gaps
+                )
+                if any(g.get("cascade_depth") for g in batch_gaps)
+                else None,
+                # Advisory: any True marks the batch
+                "advisory": any(g.get("advisory") for g in batch_gaps),
             }
         )
 
@@ -613,6 +623,8 @@ def _detect_batch_groups(gaps: list[dict]) -> list[dict]:
                 "gap_ids": gap_ids,
                 "effort_minutes": aggregate_effort,
                 "driven_by": batch_gaps[0].get("driven_by"),
+                "cascade_depth": "MEDIUM",
+                "advisory": False,
             }
         )
 
@@ -645,6 +657,8 @@ def _detect_batch_groups(gaps: list[dict]) -> list[dict]:
                 "batch_count": 0,
                 "gap_ids": [gap.get("id", gap.get("gap_id", "unknown"))],
                 "driven_by": gap.get("driven_by"),
+                "cascade_depth": gap.get("cascade_depth"),
+                "advisory": gap.get("advisory", False),
             }
         )
 
@@ -792,6 +806,10 @@ def _format_gto_rsn_markdown(findings: list[dict], show_effort: bool = True) -> 
 
             if f.get("driven_by"):
                 lines.append(f"  [from: {f['driven_by']}]")
+            if f.get("cascade_depth"):
+                lines.append(f"  [CASCADE: {f['cascade_depth']}]")
+            if f.get("advisory"):
+                lines.append(f"  [ADVISORY — base rate 80%+ ignore]")
 
         lines.append("")
 

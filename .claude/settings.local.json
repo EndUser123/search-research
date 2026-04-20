@@ -132,7 +132,15 @@
       "Bash(rm -rf P:/.claude/skills/skill-ship-workspace)",
       "Bash(ln -s \"/p/packages/cc-skills-sdlc/skills/adversarial-review\" \"P:/.claude/skills/adversarial-review\")",
       "Bash(ln -s \"/p/packages/cc-skills-utils/skills/skill-ship-workspace\" \"P:/.claude/skills/skill-ship-workspace\")",
-      "Bash(rm -f P:/.claude/commands/adversarial-review.md)"
+      "Bash(rm -f P:/.claude/commands/adversarial-review.md)",
+      "WebFetch(domain:www.mintlify.com)",
+      "Bash(rm -rf P:/.claude/skills/r P:/.claude/skills/cb)",
+      "Bash(rm P:/.claude/commands/r.md)",
+      "Bash(rm P:/.claude/commands/cb.md)",
+      "Bash(cp -r P:/.claude/skills/cco P:/packages/cc-skills-meta/skills/cco)",
+      "Bash(cp -r P:/.claude/skills/flow P:/packages/cc-skills-meta/skills/flow)",
+      "Bash(mv \"P:/.claude/commands/design.md\" \"P:/.claude/commands/design_v1.0.md\")",
+      "Bash(mv \"P:/.claude/skills/design\" \"P:/.claude/skills/design_v1.0\")"
     ],
     "deny": [],
     "ask": []
