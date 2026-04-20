@@ -165,7 +165,10 @@
       "Bash(cmd /c \"mklink /J \\\\\"P:\\\\\\\\.claude\\\\\\\\skills\\\\\\\\ai-cli-copilot\\\\\" \\\\\"P:\\\\\\\\packages\\\\\\\\cc-skills-ai-cli\\\\\\\\skills\\\\\\\\ai-cli-copilot\\\\\"\")",
       "Bash(git -C P: show HEAD:.claude/skills/go/schemas/selected-task.schema.json)",
       "Bash(git -C P: show HEAD:.claude/skills/go/schemas/dispatch-decision.schema.json)",
-      "Bash(git -C P: show HEAD:.claude/skills/go/schemas/dispatch-result.schema.json)"
+      "Bash(git -C P: show HEAD:.claude/skills/go/schemas/dispatch-result.schema.json)",
+      "Bash(cp P:/.claude/worktrees/go-v2-artifact/.claude/skills/go/SKILL.md P:/packages/cc-skills-sdlc/skills/go_v1.0/SKILL.md)",
+      "Bash(cp P:/.claude/worktrees/go-v2-artifact/.claude/skills/go/ralph-go-loop.sh P:/packages/cc-skills-sdlc/skills/go_v1.0/ralph-go-loop.sh)",
+      "Bash(cp P:/.claude/worktrees/go-v2-artifact/.claude/skills/go/go-safe.sh P:/packages/cc-skills-sdlc/skills/go_v1.0/go-safe.sh)"
     ],
     "deny": [],
     "ask": []

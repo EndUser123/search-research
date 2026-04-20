@@ -718,6 +718,7 @@ TOOL_HOOKS = {
         "PreToolUse_policy_gate.py",
         "PreToolUse_pytest_timeout_guard.py",  # CRITICAL: Blocks pytest without --timeout (prevents computer hangs)
         "PreToolUse_git_commit_test_gate.py",  # HIGH: Blocks commit if tests fail (prevents data loss)
+        "PreToolUse_referent_scope_gate.py",  # Blocks off-topic investigation when user listed specific entities
     ],
     "Task": [
         "PreToolUse_task_self_doc_gate.py",

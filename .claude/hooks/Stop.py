@@ -1395,6 +1395,55 @@ def _run_git_diff_reground(data: dict) -> dict | None:
         return None
 
 
+def _run_referent_coverage(data: dict) -> dict | None:
+    """Advisory check: warn if response mentions zero anchor terms from user's message."""
+    try:
+        tid = (
+            data.get("terminal_id")
+            or data.get("terminalId")
+            or os.environ.get("CLAUDE_TERMINAL_ID")
+            or "unknown"
+        )
+        state_file = HOOKS_DIR / "state" / f"referent_anchors_{tid}.json"
+        if not state_file.exists():
+            return None
+
+        state = json.loads(state_file.read_text(encoding="utf-8"))
+
+        if state.get("status") == "no_anchors" or not state.get("anchor_terms"):
+            state_file.unlink(missing_ok=True)
+            return None
+
+        anchor_terms = state.get("anchor_terms", [])
+        if len(anchor_terms) < 3:
+            state_file.unlink(missing_ok=True)
+            return None
+
+        response = (data.get("response") or "").lower()
+        if not response:
+            return None
+
+        mentioned = [t for t in anchor_terms if t.lower() in response]
+
+        # Lifecycle: clear state file after check
+        state_file.unlink(missing_ok=True)
+
+        if not mentioned:
+            return {
+                "decision": "allow",
+                "systemMessage": (
+                    f"ADVISORY: Response does not mention any of the {len(anchor_terms)} items "
+                    f"from the user's structured list. Consider whether the investigation "
+                    f"covered the intended entities."
+                ),
+            }
+
+        return None
+
+    except Exception:
+        return None
+
+
 IN_PROCESS_GATES = [
     ("safety_gate", _run_safety_gate),
     (
@@ -1427,6 +1476,7 @@ IN_PROCESS_GATES = [
         _run_deletion_verification_guard,
     ),  # NEW 2026-03-24: Deletion verification - checks actual file system state
     ("git_diff_reground", _run_git_diff_reground),
+    ("referent_coverage", _run_referent_coverage),
 ]
 
 # Non-Blocking Side Effects (still subprocess for isolation)

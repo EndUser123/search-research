@@ -652,6 +652,7 @@ def _load_hooks() -> None:
         "turn_marker",
         "subagent_enforcer",  # NEW 2026-04-12: Inject constitutional constraints into subagent contexts + telemetry
         "verify_before_claim",  # NEW 2026-03-14: Remind to verify before existence/absence claims
+        "referent_anchor",  # NEW 2026-04-20: Extract anchor terms from user tables/lists for scope gating
         "unified_injector",
         "workflow_tier_tagging",
     ]
