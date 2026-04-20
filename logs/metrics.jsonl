@@ -961,3 +961,12 @@
 {"timestamp": "2026-04-18T16:46:43.740857", "component": "YT_IS", "latency_ms": 25493.346900009783, "tokens_used": 0, "cache_hit": false, "output_quality": 3.807838319147662, "branch": "main"}
 {"timestamp": "2026-04-18T16:47:09.717319", "component": "QMD_WIKI", "latency_ms": 25878.080099995714, "tokens_used": 0, "cache_hit": false, "output_quality": 0.08, "branch": "main"}
 {"timestamp": "2026-04-19T05:43:33.288180", "component": "SEARCH_PROVIDER", "latency_ms": 519.0862999879755, "tokens_used": 0, "cache_hit": false, "output_quality": 0.85, "branch": "main"}
+{"timestamp": "2026-04-19T15:20:26.351357", "component": "SEARCH_PROVIDER", "latency_ms": 7285.367499978747, "tokens_used": 0, "cache_hit": false, "output_quality": 0.85, "branch": "main"}
+{"timestamp": "2026-04-19T15:20:26.377981", "component": "YT_IS", "latency_ms": 32.7273000148125, "tokens_used": 0, "cache_hit": false, "output_quality": 15.494816492038932, "branch": "main"}
+{"timestamp": "2026-04-19T19:08:57.034748", "component": "SEARCH_PROVIDER", "latency_ms": 603.339200024493, "tokens_used": 0, "cache_hit": false, "output_quality": 0.85, "branch": "main"}
+{"timestamp": "2026-04-19T19:08:57.448523", "component": "QMD_WIKI", "latency_ms": 429.20189996948466, "tokens_used": 0, "cache_hit": false, "output_quality": 0.048, "branch": "main"}
+{"timestamp": "2026-04-19T19:09:28.166291", "component": "SEARCH_PROVIDER", "latency_ms": 31192.860000010114, "tokens_used": 0, "cache_hit": false, "output_quality": 0.5, "branch": "main"}
+{"timestamp": "2026-04-19T19:10:15.400794", "component": "SEARCH_PROVIDER", "latency_ms": 579.9232000135817, "tokens_used": 0, "cache_hit": false, "output_quality": 0.5, "branch": "main"}
+{"timestamp": "2026-04-19T19:10:15.402425", "component": "SEARCH_PROVIDER", "latency_ms": 576.5143999597058, "tokens_used": 0, "cache_hit": false, "output_quality": 0.85, "branch": "main"}
+{"timestamp": "2026-04-19T19:10:15.692408", "component": "QMD_WIKI", "latency_ms": 469.8255999828689, "tokens_used": 0, "cache_hit": false, "output_quality": 0.06, "branch": "main"}
+{"timestamp": "2026-04-19T19:10:43.225250", "component": "SEARCH_PROVIDER", "latency_ms": 28042.860199988354, "tokens_used": 0, "cache_hit": false, "output_quality": 0.5, "branch": "main"}
