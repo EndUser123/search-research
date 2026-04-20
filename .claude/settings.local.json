@@ -162,7 +162,10 @@
       "Bash(rm -rf P:/.claude/skills/ai-cli-codex)",
       "Bash(rm -rf P:/.claude/skills/ai-cli-copilot)",
       "Bash(cmd /c \"mklink /J \\\\\"P:\\\\\\\\.claude\\\\\\\\skills\\\\\\\\ai-cli-codex\\\\\" \\\\\"P:\\\\\\\\packages\\\\\\\\cc-skills-ai-cli\\\\\\\\skills\\\\\\\\ai-cli-codex\\\\\"\")",
-      "Bash(cmd /c \"mklink /J \\\\\"P:\\\\\\\\.claude\\\\\\\\skills\\\\\\\\ai-cli-copilot\\\\\" \\\\\"P:\\\\\\\\packages\\\\\\\\cc-skills-ai-cli\\\\\\\\skills\\\\\\\\ai-cli-copilot\\\\\"\")"
+      "Bash(cmd /c \"mklink /J \\\\\"P:\\\\\\\\.claude\\\\\\\\skills\\\\\\\\ai-cli-copilot\\\\\" \\\\\"P:\\\\\\\\packages\\\\\\\\cc-skills-ai-cli\\\\\\\\skills\\\\\\\\ai-cli-copilot\\\\\"\")",
+      "Bash(git -C P: show HEAD:.claude/skills/go/schemas/selected-task.schema.json)",
+      "Bash(git -C P: show HEAD:.claude/skills/go/schemas/dispatch-decision.schema.json)",
+      "Bash(git -C P: show HEAD:.claude/skills/go/schemas/dispatch-result.schema.json)"
     ],
     "deny": [],
     "ask": []
