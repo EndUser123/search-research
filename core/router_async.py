@@ -24,6 +24,7 @@ import time as time_module
 
 from .backend_health import BackendHealthRegistry
 from .cache import QueryCache
+from .chs.utils import escape_fts5_query
 from .config import config
 from .hyde import apply_hyde
 from .metrics import MetricsLogger, ComponentName  # TASK-3: Instrumented metrics
@@ -344,6 +345,11 @@ class AsyncSearchRouter:
             search_query, hyde_applied = apply_hyde(query, hyde_content=hyde_content)
             if hyde_applied:
                 logger.debug(f"HyDE enhanced query: '{query[:50]}...' -> '{search_query[:50]}...'")
+
+        # Escape FTS5 special characters before backend dispatch (PERF-001 fix: CAUSE-004)
+        # qmd_wiki and yt_is backends use simple _sanitize_query that doesn't escape FTS5
+        # operators like '.', ',', etc. Centralizing escaping here protects all backends.
+        search_query = escape_fts5_query(search_query)
 
         # Check cache first
         if self.enable_cache:

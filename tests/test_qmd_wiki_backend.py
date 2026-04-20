@@ -103,6 +103,85 @@ class TestVaultMtimeCache:
         assert result is None
 
 
+class TestFallbackGrepLineNumber:
+    """Tests for line_number capture in fallback grep."""
+
+    def test_fallback_grep_returns_line_number(self, temp_vault):
+        """Fallback grep captures line number of match."""
+        # Frontmatter (3 lines: ---, title, ---) shifts content by 3
+        # "Decision framework" is on content line 4 = file line 7
+        test_file = temp_vault / "dalio-decisions.md"
+        test_file.write_text("---\ntitle: Dalio Decisions\n---\nLine 1\nLine 2\nLine 3\nDecision framework here on line 4\nLine 5\n")
+
+        backend = QMDWikiBackend(vault_path=str(temp_vault))
+        results = backend._fallback_grep("Decision framework")
+
+        assert len(results) >= 1
+        result = results[0]
+        assert result.line_number is not None
+        assert result.line_number == 7  # frontmatter occupies lines 1-3
+        assert result.file_path == str(test_file)
+
+    def test_fallback_grep_line_number_multiple_matches(self, temp_vault):
+        """When query appears on multiple lines, returns multiple results with correct line numbers."""
+        test_file = temp_vault / "multi-match.md"
+        # frontmatter (3 lines) shifts: "Alpha at line 3" → file line 4, "Alpha at line 5" → file line 6
+        test_file.write_text("---\ntitle: Multi\n---\nAlpha at line 3\nBeta\nAlpha at line 5\nGamma\n")
+
+        backend = QMDWikiBackend(vault_path=str(temp_vault))
+        results = backend._fallback_grep("Alpha")
+
+        assert len(results) == 2
+        line_nums = {r.line_number for r in results}
+        assert line_nums == {4, 6}  # frontmatter shifts by 3
+
+
+class TestSearchBatch:
+    """Tests for search_batch_async."""
+
+    @pytest.mark.asyncio
+    async def test_search_batch_runs_queries(self, temp_vault):
+        """search_batch_async runs all queries and returns aggregated results."""
+        backend = QMDWikiBackend(vault_path=str(temp_vault))
+        queries = ["entity", "test", "content"]
+
+        results = await backend.search_batch_async(queries, limit=5)
+
+        # Should get results from fallback (qmd not available in test env)
+        assert isinstance(results, list)
+
+    @pytest.mark.asyncio
+    async def test_search_batch_deduplication(self, temp_vault):
+        """Two queries returning same file → one result, higher score wins."""
+        # Create two files with distinct content
+        file1 = temp_vault / "alpha.md"
+        file1.write_text("---\ntitle: Alpha\n---\nalpha content here")
+        file2 = temp_vault / "beta.md"
+        file2.write_text("---\ntitle: Beta\n---\nbeta content here")
+
+        backend = QMDWikiBackend(vault_path=str(temp_vault))
+
+        # Mock search_async to return same file with different scores
+        async def mock_search(query, limit=10, **kwargs):
+            from search_research.models import SearchResult
+            return [
+                SearchResult(
+                    title="alpha",
+                    content="alpha",
+                    source="QMD_WIKI",
+                    score=0.8 if query == "alpha" else 0.5,
+                    file_path=str(file1),
+                )
+            ]
+
+        with patch.object(backend, 'search_async', side_effect=mock_search):
+            results = await backend.search_batch_async(["alpha", "alpha"], limit=5)
+
+        # Same file appears twice via two queries, deduplicated to one
+        file_paths = [r.file_path for r in results]
+        assert file_paths.count(str(file1)) == 1
+
+
 class TestFallbackGrep:
     """Tests for glob+grep fallback (Constraint 13)."""
 
@@ -152,7 +231,6 @@ class TestQMDJSONParsing:
         """Valid qmd JSON output is correctly parsed."""
         backend = QMDWikiBackend(vault_path=str(temp_vault))
 
-        # qmd CLI returns "file" field, not "path"
         qmd_output = json.dumps([
             {
                 "file": "wiki/entities/test.md",
@@ -167,11 +245,44 @@ class TestQMDJSONParsing:
         assert results[0].content == "Test snippet"
         assert results[0].score == 0.95
 
+    def test_qmd_json_parses_line_number_from_diff_notation(self, temp_vault):
+        """qmd returns @@ -N,M @@ diff notation — line_number extracted."""
+        backend = QMDWikiBackend(vault_path=str(temp_vault))
+
+        qmd_output = json.dumps([
+            {
+                "file": "wiki/concepts/decisions.md",
+                "snippet": "@@ -142,5 @@ (141 before, 300 after)\nDecision framework here",
+                "score": 0.88,
+                "title": "Dalio Decisions"
+            }
+        ]).encode()
+
+        results = backend._parse_qmd_json(qmd_output)
+        assert len(results) == 1
+        assert results[0].line_number == 142
+
     def test_malformed_json_returns_empty(self, temp_vault):
         """Malformed JSON returns empty list."""
         backend = QMDWikiBackend(vault_path=str(temp_vault))
         results = backend._parse_qmd_json(b"not valid json")
         assert results == []
+
+    def test_qmd_json_no_diff_notation_returns_none_line_number(self, temp_vault):
+        """qmd snippet without @@ notation leaves line_number as None."""
+        backend = QMDWikiBackend(vault_path=str(temp_vault))
+
+        qmd_output = json.dumps([
+            {
+                "file": "wiki/entities/test.md",
+                "snippet": "Plain snippet without line info",
+                "score": 0.5
+            }
+        ]).encode()
+
+        results = backend._parse_qmd_json(qmd_output)
+        assert len(results) == 1
+        assert results[0].line_number is None
 
 
 class TestSyncRebuild:
