@@ -4,6 +4,7 @@ v3.2: O(1) active session check via .active_run pointer.
 Multi-terminal isolated via pointer file + run-id validation.
 """
 
+import json
 import os
 import re
 import sys

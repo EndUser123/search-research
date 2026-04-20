@@ -183,8 +183,10 @@ def main() -> None:
     run_dir = STATE_ROOT / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    # Set the O(1) active pointer
-    ACTIVE_PTR.write_text(run_id, encoding="utf-8")
+    # Set the O(1) active pointer (atomic write via temp + replace)
+    tmp_ptr = ACTIVE_PTR.with_suffix(".tmp")
+    tmp_ptr.write_text(run_id, encoding="utf-8")
+    tmp_ptr.replace(ACTIVE_PTR)
 
     test_cmd = _detect_test_command(cwd)
     session = SessionState(

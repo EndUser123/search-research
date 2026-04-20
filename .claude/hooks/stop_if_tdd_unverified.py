@@ -4,6 +4,7 @@ v3.2: O(1) active session checks via .active_run pointer.
 Multi-terminal isolated via run-id partitioned state files.
 """
 
+import os
 import sys
 import json
 from pathlib import Path
@@ -35,6 +36,15 @@ def main() -> None:
         ACTIVE_PTR.unlink(missing_ok=True)
         print(json.dumps({"decision": "allow"}))
         return
+
+    # Also check session phase — must be "validated" to unlink pointer
+    session_file = run_dir / "session.json"
+    if session_file.exists():
+        session_data = json.loads(session_file.read_text(encoding="utf-8"))
+        if session_data.get("phase") == "validated":
+            ACTIVE_PTR.unlink(missing_ok=True)
+            print(json.dumps({"decision": "allow"}))
+            return
 
     print(
         json.dumps(

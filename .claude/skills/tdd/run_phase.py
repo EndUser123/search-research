@@ -28,8 +28,8 @@ _ALLOWED_TRANSITIONS = {
 }
 # Phase after successful run
 _NEXT_PHASE = {
-    "red": "red",
-    "green": "green",
+    "red": "green",
+    "green": "refactor",
     "refactor": "refactor",
 }
 
