@@ -218,7 +218,7 @@ When this skill is invoked:
 
 1. **Invoke via wrapper** — captures CLI output to a file:
    ```bash
-   pwsh -File P:/packages/cc-skills-ai-cli/skills/ai-cli-codex/scripts/agentic-cli.ps1 -cli "codex" -command "exec -m gpt-5-mini [your prompt]" -outputPath "P:/tmp/codex_output.txt"
+   pwsh -File P:/packages/cc-skills-ai-cli/scripts/agentic-cli.ps1 -cli "codex" -command "exec -m gpt-5-mini [your prompt]" -outputPath "P:/tmp/codex_output.txt"
    ```
    Replace `[your prompt]` with the task description from the user's request.
 

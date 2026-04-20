@@ -137,6 +137,28 @@ class QMDWikiBackend(BaseLocalBackend):
         """Constraint 10: Empty vault guard in _get_vault_mtime()."""
         return self._get_vault_mtime_cached()
 
+    async def search_batch_async(
+        self, queries: list[str], limit: int = 10
+    ) -> list["SearchResult"]:
+        """Run multiple queries in parallel and aggregate results.
+
+        Fails fast — any subprocess failure propagates immediately.
+        Deduplicates by file_path, keeping the highest score per file.
+        """
+        results = await asyncio.gather(
+            *[self.search_async(q, limit=limit) for q in queries],
+            return_exceptions=False,
+        )
+        # Flatten and deduplicate by file_path (first-seen = highest score wins,
+        # since search_async returns descending score order)
+        seen: dict[str, SearchResult] = {}
+        for result_list in results:
+            for result in result_list:
+                key = result.file_path or ""
+                if key not in seen:
+                    seen[key] = result
+        return list(seen.values())
+
     async def search_async(self, query: str, limit: int = 10, **kwargs) -> list["SearchResult"]:
         query = self._sanitize_query(query)
 
@@ -200,27 +222,35 @@ class QMDWikiBackend(BaseLocalBackend):
             return self._fallback_grep(query)
 
     def _parse_qmd_json(self, stdout: bytes) -> list["SearchResult"]:
-        import json
+        import json, re
         try:
             data = json.loads(stdout.decode())
         except json.JSONDecodeError:
             return []
         results = []
-        # qmd returns a list directly, not {"results": [...]}
         items = data if isinstance(data, list) else data.get("results", [])
+        diff_line_re = re.compile(r"@@ -(\d+),\d+ @@")
         for r in items:
             path = r.get("file", "")
             snippet = r.get("snippet", "")
             score = r.get("score", 0.0)
             title = r.get("title", path.split("/")[-1].rsplit(".md", 1)[0] or path)
+            # Extract line number from diff notation e.g. "@@ -308,5 @@ (307 before..."
+            line_number: int | None = None
+            m = diff_line_re.search(snippet)
+            if m:
+                line_number = int(m.group(1))
             results.append(SearchResult(
                 title=title, content=snippet, source=self.BACKEND_NAME,
-                score=score, file_path=path,
+                score=score, file_path=path, line_number=line_number,
             ))
         return results
 
     def _fallback_grep(self, query: str) -> list["SearchResult"]:
-        """Fallback to glob+grep when qmd is unavailable."""
+        """Fallback to glob+grep when qmd is unavailable.
+
+        Captures line_number for citation granularity.
+        """
         results = []
         wiki_path = self.vault_path / self.qmd_scope
         if not wiki_path.exists():
@@ -231,21 +261,25 @@ class QMDWikiBackend(BaseLocalBackend):
             if self._should_exclude(md_file):
                 continue
             try:
-                # Constraint 13: File size limit - read only first 1MB
                 with open(md_file, "rb") as f:
-                    content = f.read(MAX_FILE_READ).decode("utf-8", errors="replace")
-                if query_lower in content.lower():
-                    title = md_file.name.rsplit(".md", 1)[0]
-                    results.append(SearchResult(
-                        title=title, content=content[:200],
-                        source=self.BACKEND_NAME, score=0.5,
-                        file_path=str(md_file),
-                    ))
+                    content_bytes = f.read(MAX_FILE_READ)
             except PermissionError:
-                # Constraint 9: PermissionError handling in fallback path
                 continue
             except Exception:
                 continue
+
+            content = content_bytes.decode("utf-8", errors="replace")
+            lines = content.split("\n")
+            for line_num, line in enumerate(lines, start=1):
+                if query_lower in line.lower():
+                    byte_off = sum(len(l) + 1 for l in lines[:line_num - 1])
+                    snippet = content[byte_off:byte_off + 200]
+                    title = md_file.name.rsplit(".md", 1)[0]
+                    results.append(SearchResult(
+                        title=title, content=snippet,
+                        source=self.BACKEND_NAME, score=0.5,
+                        file_path=str(md_file), line_number=line_num,
+                    ))
         return results
 
     async def _async_rebuild_index(self) -> None:

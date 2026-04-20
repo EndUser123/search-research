@@ -1423,6 +1423,8 @@ def run_parallel_llm(
 
         if gemini_cmd_list:
             # Build model fallback chain by substituting -m flag
+            # Chain: auto (default) -> 3.1-pro-preview -> 3-flash-preview -> 3.1-flash-lite-preview
+            # If all gemini models exhausted, gemini slot is done — do NOT substitute pi agents
             gemini_models = [
                 "gemini-3.1-pro-preview",
                 "gemini-3-flash-preview",
@@ -1432,11 +1434,6 @@ def run_parallel_llm(
             for model in gemini_models:
                 fallback_cmd = _substitute_gemini_model(list(gemini_cmd_list), model)
                 chain.append((f"gemini-{model}", fallback_cmd))
-            # Then chain to pi agents
-            if pi_m27_cmd:
-                chain.append(("pi-m27", pi_m27_cmd))
-            elif pi_glm_cmd:
-                chain.append(("pi-glm", pi_glm_cmd))
             fallback_commands["gemini"] = chain
 
     # Verbose output
@@ -3435,7 +3432,7 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
     if getattr(args, "prompt_toolkit", False):
         # Use prompting-toolkit AutomaticEnhancementSystem
         try:
-            import sys
+            import sys as _sys_local
 
             sys.path.insert(0, "P:/packages/prompting-toolkit/packages/framework/src")
             from prompting_framework.automatic_enhancement_system import (
@@ -3461,11 +3458,11 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
                         f"[Applied prompting-toolkit: {frameworks}] "
                         f"+{result.improvement_percentage:.0f}% quality, "
                         f"{result.processing_time:.2f}s",
-                        file=sys.stderr,
+                        file=_sys_local.stderr,
                     )
                 # else: enhancement was skipped silently, no log needed
         except (ImportError, AttributeError, asyncio.RuntimeError) as e:
-            print(f"[prompting-toolkit unavailable: {e}], using built-in templates", file=sys.stderr)
+            print(f"[prompting-toolkit unavailable: {e}], using built-in templates", file=_sys_local.stderr)
             enhanced_query = build_prompt(query, classification.task_type, context)
             if enhanced_query != query:
                 query = enhanced_query

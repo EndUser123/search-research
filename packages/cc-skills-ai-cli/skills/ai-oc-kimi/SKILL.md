@@ -203,7 +203,7 @@ When this skill is invoked:
 
 1. **Invoke via wrapper** — captures CLI output to a file:
    ```bash
-   pwsh -File P:/packages/cc-skills-ai-cli/skills/ai-cli-codex/scripts/agentic-cli.ps1 -cli "opencode" -command "run [your prompt] --model chutes/moonshotai/Kimi-K2.5-TEE --format json" -outputPath "P:/tmp/opencode_output.json"
+   pwsh -File P:/packages/cc-skills-ai-cli/scripts/agentic-cli.ps1 -cli "opencode" -command "run [your prompt] --model chutes/moonshotai/Kimi-K2.5-TEE --format json" -outputPath "P:/tmp/opencode_output.json"
    ```
    Replace `[your prompt]` with the task description from the user's request.
 
@@ -222,12 +222,12 @@ When this skill is invoked:
 
 **Small inputs (<500KB)** — inline prompt:
 ```
-pwsh -File P:/packages/cc-skills-ai-cli/skills/ai-cli-codex/scripts/agentic-cli.ps1 -cli "opencode" -command "run Analyze P:/path/to/file.py --model chutes/moonshotai/Kimi-K2.5-TEE --format json" -outputPath "P:/tmp/opencode_output.json"
+pwsh -File P:/packages/cc-skills-ai-cli/scripts/agentic-cli.ps1 -cli "opencode" -command "run Analyze P:/path/to/file.py --model chutes/moonshotai/Kimi-K2.5-TEE --format json" -outputPath "P:/tmp/opencode_output.json"
 ```
 
 **Large inputs (>500KB)** — pass filepath in prompt:
 ```
-pwsh -File P:/packages/cc-skills-ai-cli/skills/ai-cli-codex/scripts/agentic-cli.ps1 -cli "opencode" -command "run Read P:/path/to/file.md --model chutes/moonshotai/Kimi-K2.5-TEE --format json" -outputPath "P:/tmp/opencode_output.json"
+pwsh -File P:/packages/cc-skills-ai-cli/scripts/agentic-cli.ps1 -cli "opencode" -command "run Read P:/path/to/file.md --model chutes/moonshotai/Kimi-K2.5-TEE --format json" -outputPath "P:/tmp/opencode_output.json"
 ```
 
 ### Timeout and Response Handling

@@ -40,7 +40,7 @@ workflow_steps:
 
 **Step 3:** Run Codex CLI via wrapper:
 ```bash
-pwsh -File P:/packages/cc-skills-ai-cli/skills/ai-cli-codex/scripts/agentic-cli.ps1 -cli "codex" -command "exec [workflow_prompt]" -outputPath "P:/tmp/codex_output.txt"
+pwsh -File P:/packages/cc-skills-ai-cli/scripts/agentic-cli.ps1 -cli "codex" -command "exec [workflow_prompt]" -outputPath "P:/tmp/codex_output.txt"
 ```
 
 **Step 4:** Read output, apply workflow step (Analyze/Challenge/Gap), deliver findings
@@ -115,7 +115,7 @@ No 1-10 scores. Binary outcomes are automatable and stable.
 
 **Wrapper pattern** (for file capture):
 ```bash
-pwsh -File P:/packages/cc-skills-ai-cli/skills/ai-cli-codex/scripts/agentic-cli.ps1 -cli "codex" -command "exec [prompt]" -outputPath "P:/tmp/codex_output.txt"
+pwsh -File P:/packages/cc-skills-ai-cli/scripts/agentic-cli.ps1 -cli "codex" -command "exec [prompt]" -outputPath "P:/tmp/codex_output.txt"
 ```
 
 **Model:** Auto-selects best model unless `--model` is specified.

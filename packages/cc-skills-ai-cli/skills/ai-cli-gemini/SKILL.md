@@ -230,7 +230,7 @@ When this skill is invoked:
 
 1. **Invoke via wrapper** — captures CLI output to a file:
    ```bash
-   pwsh -File P:/packages/cc-skills-ai-cli/skills/ai-cli-codex/scripts/agentic-cli.ps1 -cli "gemini" -command "-y -o text -p [your prompt]" -outputPath "P:/tmp/gemini_output.txt"
+   pwsh -File P:/packages/cc-skills-ai-cli/scripts/agentic-cli.ps1 -cli "gemini" -command "-y -o text -p [your prompt]" -outputPath "P:/tmp/gemini_output.txt"
    ```
    Replace `[your prompt]` with the task description from the user's request.
 

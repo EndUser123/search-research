@@ -129,7 +129,7 @@ except ImportError:
 
 # Import EvidenceManager from /code skill for evidence tracking
 try:
-    code_utils_path = Path("P:/.claude/skills/code")
+    code_utils_path = Path("P:/.claude/skills/code_v1.0")
     if str(code_utils_path) not in sys.path:
         sys.path.insert(0, str(code_utils_path))
     from utils.evidence import EvidenceManager

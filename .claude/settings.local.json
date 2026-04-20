@@ -132,7 +132,8 @@
       "Bash(rm -rf P:/.claude/skills/skill-ship-workspace)",
       "Bash(ln -s \"/p/packages/cc-skills-sdlc/skills/adversarial-review\" \"P:/.claude/skills/adversarial-review\")",
       "Bash(ln -s \"/p/packages/cc-skills-utils/skills/skill-ship-workspace\" \"P:/.claude/skills/skill-ship-workspace\")",
-<<<<<<< Updated upstream
+      "Bash(ln -s \"/p/packages/cc-skills-sdlc/skills/adversarial-review\" \"P:/.claude/skills/adversarial-review\")",
+      "Bash(ln -s \"/p/packages/cc-skills-utils/skills/skill-ship-workspace\" \"P:/.claude/skills/skill-ship-workspace\")",
       "Bash(rm -f P:/.claude/commands/adversarial-review.md)",
       "WebFetch(domain:www.mintlify.com)",
       "Bash(rm -rf P:/.claude/skills/r P:/.claude/skills/cb)",
@@ -141,10 +142,7 @@
       "Bash(cp -r P:/.claude/skills/cco P:/packages/cc-skills-meta/skills/cco)",
       "Bash(cp -r P:/.claude/skills/flow P:/packages/cc-skills-meta/skills/flow)",
       "Bash(mv \"P:/.claude/commands/design.md\" \"P:/.claude/commands/design_v1.0.md\")",
-      "Bash(mv \"P:/.claude/skills/design\" \"P:/.claude/skills/design_v1.0\")"
-||||||| Stash base
-      "Bash(rm -f P:/.claude/commands/adversarial-review.md)"
-=======
+      "Bash(mv \"P:/.claude/skills/design\" \"P:/.claude/skills/design_v1.0\")",
       "Bash(rm -f P:/.claude/commands/adversarial-review.md)",
       "Bash(mkdir -p ~/.claude/logs)",
       "Bash(touch ~/.claude/logs/test_write.log)",
@@ -153,8 +151,14 @@
       "Bash(ln -s /p/packages/cc-skills-ai-cli/skills/ai-cli-copilot P:/.claude/skills/ai-cli-copilot)",
       "Bash(rm -rf P:/.claude/skills/code-typescript)",
       "Bash(rm P:/.claude/commands/code-typescript.md)",
-      "Bash(cp -r P:/.claude/skills/aid P:/packages/cc-skills-utils/skills/aid)"
->>>>>>> Stashed changes
+      "Bash(cp -r P:/.claude/skills/aid P:/packages/cc-skills-utils/skills/aid)",
+      "Bash(mkdir -p \"P:/.claude/skills/main/hooks\")",
+      "Bash(cp \"P:/.claude/skills/main-hooks/hooks/PreToolUse_main_gate.py\" \"P:/.claude/skills/main/hooks/\")",
+      "Bash(rm P:/worktrees/go-refactor-2026/.claude/skills/go_v1.0)",
+      "Bash(rm P:/.claude/skills/go_v1.0)",
+      "Bash(cp -r P:/.claude/skills/tdd/* P:/packages/cc-skills-sdlc/skills/tdd_v3.2/)",
+      "Bash(rm -rf P:/.claude/skills/tdd)",
+      "Bash(cmd /c mklink /J P:\\\\\\\\.claude\\\\\\\\skills\\\\\\\\tdd P:\\\\\\\\packages\\\\\\\\cc-skills-sdlc\\\\\\\\skills\\\\\\\\tdd_v3.2)"
     ],
     "deny": [],
     "ask": []
