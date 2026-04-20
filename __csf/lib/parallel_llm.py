@@ -314,7 +314,7 @@ async def run_parallel_commands(
     timeout: int = 120,
     input_text: str | None = None,
     verbose: bool = False,
-    fallback_commands: dict[str, tuple[str, Any]] | None = None,
+    fallback_commands: dict[str, list[tuple[str, list[str]]]] | None = None,
     cwd: str | Path | None = None,
 ) -> dict[str, Any]:
     """Run multiple CLI commands in parallel using asyncio.gather.

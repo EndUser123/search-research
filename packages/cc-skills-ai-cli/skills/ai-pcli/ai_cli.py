@@ -1455,7 +1455,7 @@ def run_parallel_llm(
     async def run_all_parallel():
         """Run CLI commands and GLM API in true parallel."""
         tasks = [
-            run_parallel_commands(commands, timeout=timeout, input_text=query, verbose=verbose, cwd=str(_REPO_ROOT))
+            run_parallel_commands(commands, timeout=timeout, input_text=query, verbose=verbose, cwd=str(_REPO_ROOT), fallback_commands=fallback_commands)
         ]
 
         # Add GLM API task if active
