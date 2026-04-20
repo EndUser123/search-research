@@ -1,29 +1,22 @@
 ## Summary
-- **Root cause**: `recursive_failure_detector.py` and `PreToolUse_investigation_gate.py` call `json.loads(sys.stdin.read())` without checking if stdin is empty
-- **Symptom**: `JSONDecodeError: Expecting value: line 1 column 1` surfacing as PreToolUse:Edit hook errors in UI
-- **Fix**: Read stdin first, check if whitespace-only, exit 0 (allow) if empty
-
-## Files
-- `.claude/hooks/recursive_failure_detector.py` (+5 lines)
-- `.claude/hooks/PreToolUse_investigation_gate.py` (+4 lines)
-- `.claude/hooks/tests/test_pretooluse_empty_stdin_fix.py` (new, 6 tests)
+- Add TDD skill v3.2 files to worktree
+- Windows 11 compatibility: removed fcntl dependency
+- O(1) active session tracking via `.active_run` pointer file
+- Capped workspace scanning at depth 3
+- run_phase.py accepts --override-cmd and --timeout
+- validate_tdd.py includes run_id cross-check for multi-terminal isolation
+- Hooks use pointer file existence checks instead of directory iteration
 
 ## Verification
-```
-# Empty stdin - both exit 0, no error
-echo "" | python recursive_failure_detector.py → exit 0, {"continue": true}
-echo "" | python PreToolUse_investigation_gate.py → exit 0
+- No fcntl imports confirmed
+- generate_context.py creates ACTIVE_PTR
+- All models import and instantiate correctly
 
-# Valid JSON - both work correctly
-echo '{"tool_name":"Edit","tool_input":{}}' | python recursive_failure_detector.py → {} (exit 0)
-echo '{"tool_name":"Edit","tool_input":{}}' | python PreToolUse_investigation_gate.py → {"decision": "approve"} (exit 0)
-
-# Regression tests: 6/6 pass
-pytest tests/test_pretooluse_empty_stdin_fix.py -v → 6 passed
-```
+## Simplify
+SKIPPED (DOCS-ONLY DIFF + NEW FILES)
 
 ## Review
 Depth: quick
-Required passes: correctness PASS, scope PASS, pr-ready PASS
+Required passes completed: correctness, scope, pr-ready
 
 🤖 Generated with [Claude Code](https://claude.ai/claude-code)

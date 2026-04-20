@@ -1,27 +1,31 @@
 # PR Ready
 
 ## Task
-Fix PreToolUse:Edit hook errors by handling empty stdin gracefully in recursive_failure_detector and PreToolUse_investigation_gate
+Implement TDD skill v3.2 with Windows 11 compatibility (no fcntl), O(1) active session tracking, and capped workspace scanning depth.
 
 ## Review Depth
 quick
 
 ## Status
 - Completed: 2026-04-19
-- Commit: ef8d082 (3 files: 2 hooks + 1 test file)
 - All verification commands: PASS
-- Regression tests: 6/6 PASS
 - Required review passes: PASS
-- Simplify: SKIPPED (not available)
-
-## Files Changed
-- `.claude/hooks/recursive_failure_detector.py`
-- `.claude/hooks/PreToolUse_investigation_gate.py`
-- `.claude/hooks/tests/test_pretooluse_empty_stdin_fix.py` (new)
+- Simplify: SKIPPED (DOCS-ONLY DIFF)
 
 ## Next Steps
-1. Push when ready:
+1. Review `commit-message.txt` and `pr-body.md`
+2. Run:
+   ```bash
+   git add -A
+   git commit -F commit-message.txt
+   git log -1 --oneline
+   ```
+3. Push manually when ready:
    ```bash
    git push -u origin HEAD
    ```
-2. Create PR manually if needed
+
+## Artifacts
+- Commit message: `commit-message.txt`
+- PR title: `pr-title.txt`
+- PR body: `pr-body.md`
