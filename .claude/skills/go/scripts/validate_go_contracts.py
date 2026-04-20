@@ -123,8 +123,8 @@ def main() -> int:
     if args.file:
         file_path = Path(args.file).resolve()
         if not file_path.exists():
-          print(f"ERROR: file not found: {file_path}", file=sys.stderr)
-          return 2
+            print(f"ERROR: file not found: {file_path}", file=sys.stderr)
+            return 2
         ok, message = validate_file(file_path, schemas)
         print(message)
         return 0 if ok else 1
