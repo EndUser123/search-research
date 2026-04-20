@@ -29,3 +29,33 @@ Page: wiki/concepts/yt-is-notebooklm-pipeline-improvements.md
 ## [2026-04-13] ingest | Python Behavior Tree Framework for Autonomous LLM Agents
 ## [2026-04-13] ingest | YouTube restricts History (HL)
 ## [2026-04-13] ingest | Does it make sense NO My recent changes
+
+## [2026-04-18] ingest | skill-review-failure
+Source: ~/Downloads/hooks_implementation_plan 1.md
+Content: Claude Code loaded ai-gemini skill but applied ACG framework to own reasoning instead of running Gemini CLI. /truth caught false claim.
+Page: wiki/entities/skill-review-failure.md
+Hash: 9dc4017ea688c8af1afd6dc1fa01767ddd44c5759f37dfeb9f24d07947d5c585
+
+## [2026-04-18] ingest | hooks-implementation-plan
+Source: ~/Downloads/hooks_implementation_plan 0.md
+Content: Phase 0-2 plan: reduce PreToolUse latency, consolidate Stop-layer, add UserPromptSubmit helpfulness. Preserves dispatch-chain integrity and fail-open invariants.
+Page: wiki/concepts/hooks-implementation-plan.md
+Hash: 137a453b5599c5960f36346ba85f3811820c5aa073644457cb7013ba30d9d764
+
+## [2026-04-18] ingest | handoff-pre-co-problems
+Source: ~/Downloads/Conversation with claude code about handoff pre-co.md
+Content: skill-craft routes to skill-creator via keyword text matching only. skill-creator requires human-authored eval queries and can't run autonomously.
+Page: wiki/concepts/handoff-pre-co-problems.md
+Hash: 2c9752f0c97f249c5d4f3c5935e637f6d9e17b6f259b691b5558a9b17cdb8884
+
+## [2026-04-18] ingest | skill-enforcement-root-cause
+Source: ~/Downloads/Here's a chat with claude code, and codex, about o.md
+Content: Layer 1 fails because advisory text can't force tool calls. Structural fixes: inline skill content, native commands, or Superpowers enforcement.
+Page: wiki/concepts/skill-enforcement-root-cause.md
+Hash: 139dee6605c6e04cde7de577566292b5aa911185b462b761a70f7e16111c498d
+
+## [2026-04-18] ingest | command-path-vs-skill-enforcement
+Source: ~/Downloads/Here's a chat with claude code, and codex, about o (1).md
+Content: Native commands vs. UserPromptSubmit. Commands expand deterministically before model sees turn. Superpowers uses structural positioning + psychological pressure + TDD on instruction language.
+Page: wiki/concepts/command-path-vs-skill-enforcement.md
+Hash: 249a63d3853fe055bbf20e1b8186ab2ec3674e273408a7a15b81f36563646bc2

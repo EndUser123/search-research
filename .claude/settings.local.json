@@ -132,6 +132,7 @@
       "Bash(rm -rf P:/.claude/skills/skill-ship-workspace)",
       "Bash(ln -s \"/p/packages/cc-skills-sdlc/skills/adversarial-review\" \"P:/.claude/skills/adversarial-review\")",
       "Bash(ln -s \"/p/packages/cc-skills-utils/skills/skill-ship-workspace\" \"P:/.claude/skills/skill-ship-workspace\")",
+<<<<<<< Updated upstream
       "Bash(rm -f P:/.claude/commands/adversarial-review.md)",
       "WebFetch(domain:www.mintlify.com)",
       "Bash(rm -rf P:/.claude/skills/r P:/.claude/skills/cb)",
@@ -141,6 +142,19 @@
       "Bash(cp -r P:/.claude/skills/flow P:/packages/cc-skills-meta/skills/flow)",
       "Bash(mv \"P:/.claude/commands/design.md\" \"P:/.claude/commands/design_v1.0.md\")",
       "Bash(mv \"P:/.claude/skills/design\" \"P:/.claude/skills/design_v1.0\")"
+||||||| Stash base
+      "Bash(rm -f P:/.claude/commands/adversarial-review.md)"
+=======
+      "Bash(rm -f P:/.claude/commands/adversarial-review.md)",
+      "Bash(mkdir -p ~/.claude/logs)",
+      "Bash(touch ~/.claude/logs/test_write.log)",
+      "Bash(rm ~/.claude/logs/test_write.log)",
+      "Bash(rm P:/.claude/skills/ai-copilot)",
+      "Bash(ln -s /p/packages/cc-skills-ai-cli/skills/ai-cli-copilot P:/.claude/skills/ai-cli-copilot)",
+      "Bash(rm -rf P:/.claude/skills/code-typescript)",
+      "Bash(rm P:/.claude/commands/code-typescript.md)",
+      "Bash(cp -r P:/.claude/skills/aid P:/packages/cc-skills-utils/skills/aid)"
+>>>>>>> Stashed changes
     ],
     "deny": [],
     "ask": []

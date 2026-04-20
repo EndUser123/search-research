@@ -1536,7 +1536,14 @@ if __name__ == "__main__":
         print("PreToolUse_investigation_gate: empty stdin, allowing", file=sys.stderr)
         sys.exit(0)
     try:
+<<<<<<< Updated upstream
         input_data = json.loads(stdin_content)
+||||||| Stash base
+        input_data = json.load(sys.stdin)
+=======
+        input_data = json.loads(stdin_content)
+        # json.loads(stdin_content) would throw on empty/whitespace-only stdin
+>>>>>>> Stashed changes
         tool_name = input_data.get("tool_name", "")
         tool_input = input_data.get("tool_input", {})
 

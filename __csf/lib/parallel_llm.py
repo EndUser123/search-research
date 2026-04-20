@@ -298,7 +298,9 @@ def _check_gemini_quota_file() -> bool:
 
     try:
         newest = Path(files[0])
-        # Skip files older than 4 hours (quota exhaustion persists for hours)
+        # Skip files older than 4 hours (quota exhaustion persists for hours; this
+        # window is wide enough to catch active quotas but narrow enough to avoid
+        # stale files from previous sessions)
         if time.time() - newest.stat().st_mtime > 14400:
             return False
 
@@ -307,8 +309,6 @@ def _check_gemini_quota_file() -> bool:
         return _is_quota_error(error_msg)
     except (OSError, json.JSONDecodeError, KeyError, IndexError):
         return False
-
-
 async def run_parallel_commands(
     commands: list[tuple[str, list[str]]],
     timeout: int = 120,
@@ -339,9 +339,16 @@ async def run_parallel_commands(
     names = []
 
     # Build task list with metadata for fallback support
-    async def run_with_fallback(name: str, cmd_args, cmd_input, fallback_name_cmd=None):
-        """Run a command with fallback on quota error."""
+    async def run_with_fallback(name: str, cmd_args, cmd_input, fallback_chain=None):
+        """Run a command with fallback chain on quota error.
+
+        fallback_chain: list of (fallback_name, fallback_cmd_args) tuples.
+        Tries each in order until one succeeds without a quota error.
+        """
         result = await run_single_command(cmd_args, input_text=cmd_input, timeout=timeout, verbose=verbose, cwd=cwd)
+
+        if not fallback_chain:
+            return name, result
 
         # Check if we should retry with fallback
         # Note: gemini-cli traps quota errors in a JSON file, not stderr, so we also
@@ -354,13 +361,36 @@ async def run_parallel_commands(
             and not result.get("output")
             and _check_gemini_quota_file()
         )
-        if fallback_name_cmd and (is_quota or is_gemini_quota):
-            if verbose:
-                print(f"[{name}] Quota error detected, retrying with fallback...", flush=True)
-            fallback_name, fallback_cmd_args = fallback_name_cmd
-            result = await run_single_command(fallback_cmd_args, input_text=cmd_input, timeout=timeout, verbose=verbose, cwd=cwd)
-            result["_used_fallback"] = True  # Mark that we used fallback
 
+        if not (is_quota or is_gemini_quota):
+            return name, result
+
+        # Try each fallback in the chain
+        for fallback_name, fallback_cmd_args in fallback_chain:
+            if verbose:
+                print(f"[{name}] Quota error detected, falling back to {fallback_name}...", flush=True)
+            result = await run_single_command(fallback_cmd_args, input_text=cmd_input, timeout=timeout, verbose=verbose, cwd=cwd)
+
+            # Check if this fallback also hit quota
+            fb_quota = _is_quota_error(result.get("error", ""))
+            fb_gemini_quota = (
+                not fb_quota
+                and result.get("error")
+                and not result.get("output")
+                and _check_gemini_quota_file()
+            )
+
+            if not (fb_quota or fb_gemini_quota):
+                # Success - this fallback worked
+                result["_used_fallback"] = True
+                return name, result
+
+            # This fallback also failed quota - try next in chain
+            if verbose:
+                print(f"[{name}] Fallback {fallback_name} also hit quota, trying next...", flush=True)
+
+        # All fallbacks exhausted - return the last result
+        result["_used_fallback"] = True
         return name, result
 
     for name, cmd_args in commands:

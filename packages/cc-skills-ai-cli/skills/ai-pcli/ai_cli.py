@@ -115,6 +115,24 @@ def _clear_ai_cli_config() -> None:
         pass
 
 
+def _substitute_gemini_model(cmd_list: list[str], model: str) -> list[str]:
+    """Substitute the -m model flag in a gemini command list.
+
+    Args:
+        cmd_list: gemini command as list, e.g. ["node", "path/gemini.js", "-y", "-o", "text", "-m", "gemini-2.5-flash-lite", "-p", "query"]
+        model: new model name, e.g. "gemini-3.1-pro-preview"
+
+    Returns:
+        New list with the -m argument replaced.
+    """
+    result = list(cmd_list)
+    for i, arg in enumerate(result):
+        if arg == "-m" and i + 1 < len(result):
+            result[i + 1] = model
+            return result
+    return result  # -m not found, return unchanged
+
+
 # Add lib to path for parallel_llm import (COMP-RECHECK-002 fix: dynamic path)
 # NOTE: This must be BEFORE parallel_llm import since it modifies sys.path
 def _get_repo_root() -> Path:
@@ -1386,6 +1404,40 @@ def run_parallel_llm(
         active["pi_glm"],
         context_file,
     )
+
+    # Build gemini quota fallback chain: try different gemini models before falling back to pi agents
+    # gemini model chain: auto (default) -> 3.1-pro-preview -> 3-flash-preview -> 3.1-flash-lite-preview -> pi-m27 -> pi-glm -> pi-elephant
+    fallback_commands: dict[str, list[tuple[str, list[str]]]] = {}
+    if active.get("gemini"):
+        cmd_by_name = {name: cmd for name, cmd in commands}
+        pi_m27_cmd = cmd_by_name.get("pi_m27")
+        pi_glm_cmd = cmd_by_name.get("pi_glm")
+        pi_elephant_cmd = cmd_by_name.get("pi_elephant")
+
+        # Get the gemini command (list form on Windows, string form on Unix)
+        gemini_cmd_list = None
+        for name, cmd in commands:
+            if name == "gemini" and isinstance(cmd, list):
+                gemini_cmd_list = list(cmd)
+                break
+
+        if gemini_cmd_list:
+            # Build model fallback chain by substituting -m flag
+            gemini_models = [
+                "gemini-3.1-pro-preview",
+                "gemini-3-flash-preview",
+                "gemini-3.1-flash-lite-preview",
+            ]
+            chain = []
+            for model in gemini_models:
+                fallback_cmd = _substitute_gemini_model(list(gemini_cmd_list), model)
+                chain.append((f"gemini-{model}", fallback_cmd))
+            # Then chain to pi agents
+            if pi_m27_cmd:
+                chain.append(("pi-m27", pi_m27_cmd))
+            elif pi_glm_cmd:
+                chain.append(("pi-glm", pi_glm_cmd))
+            fallback_commands["gemini"] = chain
 
     # Verbose output
     if verbose:

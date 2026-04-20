@@ -32,9 +32,15 @@ WATCHED_BASH_TOKENS = ("pi ", " pi.", "opencode ", "ai-pi-", "ai-oc-", "zai-")
 
 
 def _strip_quoted(text: str) -> str:
-    """Remove fenced code blocks and inline code spans to reduce false positives."""
+    """Remove quoted/structured spans and data-display lines that may contain CJK (not model drift).
+
+    Lines containing a URL are treated as data display (database results, channel lists)
+    and stripped entirely — the CJK in channel names should not trigger drift detection.
+    """
     text = re.sub(r"```[\s\S]*?```", "", text)
     text = re.sub(r"`[^`\n]+`", "", text)
+    # Markdown links: strip entire line if it contains a URL (data display, not my language)
+    text = re.sub(r"^.*\([^\)]*https?://[^\)]*\).*$", "", text, flags=re.MULTILINE)
     return text
 
 

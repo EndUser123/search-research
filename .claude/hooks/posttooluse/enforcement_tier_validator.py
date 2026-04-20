@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from pathlib import Path
 
 from posttooluse.base import PostToolUseHook
@@ -103,14 +104,24 @@ class EnforcementTierValidator(PostToolUseHook):
         if not file_path.endswith("SKILL.md"):
             return {"passed": True}
 
-        # Read the file content
-        try:
-            path = Path(file_path)
-            if not path.exists():
-                return {"passed": True}
+        # Read the file content with retry for Windows filesystem sync
+        path = Path(file_path)
+        if not path.exists():
+            return {"passed": True}
 
-            content = path.read_text(encoding="utf-8")
-        except OSError:
+        content = None
+        for attempt in range(3):
+            try:
+                content = path.read_text(encoding="utf-8")
+                # Verify the enforcement field is actually present
+                if ENFORCEMENT_PATTERN.search(content):
+                    break
+                # Small delay for Windows filesystem sync
+                time.sleep(0.05)
+            except OSError:
+                break
+
+        if content is None:
             return {"passed": True}
 
         # Validate enforcement tier
