@@ -3,10 +3,7 @@ name: ai-cli-copilot
 description: Codex-powered research and engineering assistant using ACG workflow and soft XoT orchestration
 version: 1.0.0
 category: productivity
-triggers:
-  - /ai-cli-copilot
-aliases:
-  - /ai-cli-copilot
+triggers: []
 depends_on_skills: []
 enforcement: advisory
 effort: high

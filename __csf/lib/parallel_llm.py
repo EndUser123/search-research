@@ -180,8 +180,17 @@ async def run_single_command(
             # On Windows: use shell for string commands (npm global commands in PATH)
             # Use exec for list commands (avoids cmd.exe quote parsing issues)
             if isinstance(command, list):
+                cmd_list = command
+                # Resolve command name to absolute path so create_subprocess_exec
+                # can find npm global commands (pi, gemini, etc.) on Windows
+                executable = cmd_list[0]
+                if not (executable.startswith("/") or executable.startswith("\\") or ":" in executable):
+                    import shutil as _shutil
+                    resolved = _shutil.which(executable)
+                    if resolved:
+                        cmd_list = [resolved] + cmd_list[1:]
                 proc = await asyncio.create_subprocess_exec(
-                    *command,
+                    *cmd_list,
                     stdin=asyncio.subprocess.PIPE if input_text else None,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,

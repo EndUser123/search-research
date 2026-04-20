@@ -29,7 +29,7 @@ codex exec "[prompt]"
 
 For file capture on Windows:
 ```bash
-pwsh -File P:/scripts/agentic-cli.ps1 -cli "codex" -command "exec [prompt]" -outputPath "P:/tmp/codex_output.txt"
+pwsh -File P:/packages/cc-skills-ai-cli/scripts/agentic-cli.ps1 -cli "codex" -command "exec [prompt]" -outputPath "P:/tmp/codex_output.txt"
 ```
 
 ## Error Codes

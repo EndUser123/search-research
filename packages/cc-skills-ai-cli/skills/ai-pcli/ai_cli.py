@@ -151,7 +151,7 @@ def _get_repo_root() -> Path:
         current = parent
 
 
-_lib_path = _get_repo_root() / "__csf" / "lib"
+_lib_path = Path("P:/__csf/lib")
 if str(_lib_path) not in sys.path:
     sys.path.insert(0, str(_lib_path))
 
@@ -1221,7 +1221,7 @@ def _build_cli_commands(
             f'{ROOT_PREFIX}node "{npm_root / "@google" / "gemini-cli" / "bundle" / "gemini.js"}"'
         )
         # Codex companion wrapper (required - direct codex exec doesn't work)
-        codex_companion = Path.home() / ".claude" / "plugins" / "cache" / "openai-codex" / "codex" / "1.0.1" / "scripts" / "codex-companion.mjs"
+        codex_companion = Path.home() / ".claude" / "plugins" / "cache" / "openai-codex" / "codex" / "1.0.3" / "scripts" / "codex-companion.mjs"
         codex_cmd = f'node "{codex_companion}" task'
     else:
         qwen_cmd = f"{ROOT_PREFIX}qwen"

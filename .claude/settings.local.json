@@ -158,7 +158,11 @@
       "Bash(rm P:/.claude/skills/go_v1.0)",
       "Bash(cp -r P:/.claude/skills/tdd/* P:/packages/cc-skills-sdlc/skills/tdd_v3.2/)",
       "Bash(rm -rf P:/.claude/skills/tdd)",
-      "Bash(cmd /c mklink /J P:\\\\\\\\.claude\\\\\\\\skills\\\\\\\\tdd P:\\\\\\\\packages\\\\\\\\cc-skills-sdlc\\\\\\\\skills\\\\\\\\tdd_v3.2)"
+      "Bash(cmd /c mklink /J P:\\\\\\\\.claude\\\\\\\\skills\\\\\\\\tdd P:\\\\\\\\packages\\\\\\\\cc-skills-sdlc\\\\\\\\skills\\\\\\\\tdd_v3.2)",
+      "Bash(rm -rf P:/.claude/skills/ai-cli-codex)",
+      "Bash(rm -rf P:/.claude/skills/ai-cli-copilot)",
+      "Bash(cmd /c \"mklink /J \\\\\"P:\\\\\\\\.claude\\\\\\\\skills\\\\\\\\ai-cli-codex\\\\\" \\\\\"P:\\\\\\\\packages\\\\\\\\cc-skills-ai-cli\\\\\\\\skills\\\\\\\\ai-cli-codex\\\\\"\")",
+      "Bash(cmd /c \"mklink /J \\\\\"P:\\\\\\\\.claude\\\\\\\\skills\\\\\\\\ai-cli-copilot\\\\\" \\\\\"P:\\\\\\\\packages\\\\\\\\cc-skills-ai-cli\\\\\\\\skills\\\\\\\\ai-cli-copilot\\\\\"\")"
     ],
     "deny": [],
     "ask": []

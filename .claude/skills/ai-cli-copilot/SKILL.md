@@ -1,14 +1,12 @@
 ---
-name: ai-copilot
+name: ai-cli-copilot
 description: Codex-powered research and engineering assistant using ACG workflow and soft XoT orchestration
 version: 1.0.0
 category: productivity
 triggers:
-  - /ai-copilot
-  - /copilot
+  - /ai-cli-copilot
 aliases:
-  - /ai-copilot
-  - /copilot
+  - /ai-cli-copilot
 depends_on_skills: []
 enforcement: advisory
 effort: high
@@ -66,7 +64,7 @@ Use when task is RESEARCH. The ACG loop is MY cognitive process — Codex provid
 
 ### Step 1 — Call Codex once (get raw analysis)
 ```bash
-codex exec -m gpt-5-mini "Analyze <target>. What are the key architectural insights, design patterns, and potential failure modes? Be thorough and source-grounded."
+codex exec "Analyze <target>. What are the key architectural insights, design patterns, and potential failure modes? Be thorough and source-grounded."
 ```
 - Pull the raw analysis from Codex
 - Do NOT run multiple Codex calls for each ACG phase — ACG is what YOU do with the material
@@ -218,7 +216,7 @@ When this skill is invoked:
 
 1. **Invoke via wrapper** — captures CLI output to a file:
    ```bash
-   pwsh -File P:/scripts/agentic-cli.ps1 -cli "codex" -command "exec -m gpt-5-mini [your prompt]" -outputPath "P:/tmp/codex_output.txt"
+   pwsh -File P:/packages/cc-skills-ai-cli/scripts/agentic-cli.ps1 -cli "codex" -command "exec -m gpt-5-mini [your prompt]" -outputPath "P:/tmp/codex_output.txt"
    ```
    Replace `[your prompt]` with the task description from the user's request.
 

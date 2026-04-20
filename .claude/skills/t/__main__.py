@@ -298,7 +298,7 @@ def main(target: str | None = None, force_full: bool = False, mode: str | None =
                             "trace": ""
                         })
 
-                if failed_tests and len(failed_tests) > 1:
+                if failed_tests and len(failed_tests) >= 1:
                     grouped = failure_grouper.group_failures(failed_tests)
                     print(f"**Grouped {len(failed_tests)} failures into {len(grouped)} root cause(s)**")
                     for group in grouped[:3]:
@@ -328,7 +328,7 @@ def main(target: str | None = None, force_full: bool = False, mode: str | None =
                                 passed_tests = int(part.split()[0])
                             except (ValueError, IndexError):
                                 pass
-                elif ' passed' in line and 'failed' not in line and 'warnings' not in line:
+                elif ' passed' in line and 'failed' not in line:
                     # All tests passed: "340 passed in 2.34s"
                     try:
                         passed_tests = int(line.split()[0])
@@ -634,7 +634,7 @@ def main(target: str | None = None, force_full: bool = False, mode: str | None =
                             "trace": ""
                         })
 
-                if failed_tests and len(failed_tests) > 1:
+                if failed_tests and len(failed_tests) >= 1:
                     grouped = failure_grouper.group_failures(failed_tests)
                     print(f"Grouped {len(failed_tests)} failures into {len(grouped)} root cause(s)")
                     for group in grouped[:3]:
@@ -679,20 +679,6 @@ def main(target: str | None = None, force_full: bool = False, mode: str | None =
     )
 
     print(report)
-
-    # Cache results
-    if lock_status == "acquired":
-        cache_data = {
-            "work_context": {
-                "target_files": work_ctx.target_files,
-                "work_type": work_ctx.work_type,
-                "affected_modules": work_ctx.affected_modules,
-            },
-            "risk_score": {"value": risk_score},
-            "test_results": test_results,
-        }
-        lock.write_cache(cache_data)
-        lock.release()
 
     return 0
 

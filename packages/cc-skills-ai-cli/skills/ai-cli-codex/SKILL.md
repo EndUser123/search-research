@@ -5,8 +5,6 @@ status: new
 description: Codex-powered intelligent task assistant with soft-triage routing — RESEARCH/ENGINEERING/DESIGN/RCA paths via ACG workflow
 category: ai-llm
 enforcement: strict
-triggers:
-  - /ai-cli-codex
 workflow_steps:
   - step_triage: Classify task type (RESEARCH/ENGINEERING/DESIGN/RCA) from query keywords
   - step_route: Route to appropriate workflow based on triage
