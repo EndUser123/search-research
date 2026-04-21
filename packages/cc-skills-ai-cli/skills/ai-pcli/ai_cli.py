@@ -1080,6 +1080,7 @@ def _determine_active_llms(
     glm_flash_only: bool,
     pi_m27_only: bool = False,
     pi_glm_only: bool = False,
+    copilot_only: bool = False,
 ) -> dict[str, bool]:
     """Determine which LLMs to run based on flags.
 
@@ -1087,12 +1088,13 @@ def _determine_active_llms(
         qwen_only, gemini_only, codex_only, opencode_only, glm_flash_only: CLI flags
         pi_m27_only: Run only pi with minimax/MiniMax-M2.7
         pi_glm_only: Run only pi with z-ai/glm-5.1
+        copilot_only: Run only GitHub Copilot CLI
 
     Returns:
         Dictionary with boolean flags for each LLM
     """
     has_cli_flags = (
-        qwen_only or gemini_only or codex_only or opencode_only or pi_m27_only or pi_glm_only
+        qwen_only or gemini_only or codex_only or opencode_only or pi_m27_only or pi_glm_only or copilot_only
     )
 
     if not has_cli_flags:
@@ -1104,6 +1106,7 @@ def _determine_active_llms(
             "glm_flash": False,
             "pi_m27": True,
             "pi_glm": True,
+            "copilot": False,
         }
     return {
         "qwen": qwen_only,
@@ -1113,6 +1116,7 @@ def _determine_active_llms(
         "glm_flash": False,
         "pi_m27": pi_m27_only,
         "pi_glm": pi_glm_only,
+        "copilot": copilot_only,
     }
 
 
@@ -1125,6 +1129,7 @@ def _get_cli_preview(
     opencode_models: list[str],
     pi_m27_only: bool = False,
     pi_glm_only: bool = False,
+    copilot_only: bool = False,
 ) -> str:
     """Build a preview string showing which CLIs and LLMs will be used.
 
@@ -1139,7 +1144,7 @@ def _get_cli_preview(
     """
     has_any_flag = (
         qwen_only or gemini_only or codex_only or opencode_only or glm_flash_only
-        or pi_m27_only or pi_glm_only
+        or pi_m27_only or pi_glm_only or copilot_only
     )
 
     # Collect items
@@ -1150,6 +1155,8 @@ def _get_cli_preview(
         native_clis.append("gemini")
     if codex_only or not has_any_flag:
         native_clis.append("codex")
+    if copilot_only or not has_any_flag:
+        native_clis.append("copilot")
 
     opencode_models_list = []
     if opencode_only or not has_any_flag:
@@ -1195,6 +1202,7 @@ def _build_cli_commands(
     opencode_models: list[str],
     run_pi_m27: bool = False,
     run_pi_glm: bool = False,
+    run_copilot: bool = False,
     context_file: str | None = None,
 ) -> list[tuple[str, str]]:
     """Build platform-specific CLI command list.
@@ -1268,6 +1276,11 @@ def _build_cli_commands(
         ctx_arg = ["-p", f"@{context_file}"] if context_file else []
         pi_glm_cmd = ["pi", "--model", "z-ai/glm-5.1", *ctx_arg, query]
         commands.append(("pi-glm", pi_glm_cmd))
+
+    # GitHub Copilot CLI
+    if run_copilot:
+        copilot_cmd = ["copilot", "-p", query]
+        commands.append(("copilot", copilot_cmd))
 
     return commands
 
@@ -1369,6 +1382,7 @@ def run_parallel_llm(
     glm_flash_only: bool = False,
     pi_m27_only: bool = False,
     pi_glm_only: bool = False,
+    copilot_only: bool = False,
     timeout: int = 180,
     output_format: str = "text",
     verbose: bool = False,
@@ -1389,7 +1403,7 @@ def run_parallel_llm(
     # Determine which LLMs to run
     active = _determine_active_llms(
         qwen_only, gemini_only, codex_only, opencode_only, glm_flash_only,
-        pi_m27_only, pi_glm_only,
+        pi_m27_only, pi_glm_only, copilot_only,
     )
 
     # Build CLI command list
@@ -1402,6 +1416,7 @@ def run_parallel_llm(
         opencode_models,
         active["pi_m27"],
         active["pi_glm"],
+        active["copilot"],
         context_file,
     )
 
@@ -3237,6 +3252,7 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
     parser.add_argument("--opencode-only", action="store_true", help="Run only opencode-cli")
     parser.add_argument("--pi-m27-only", action="store_true", help="Run only pi with minimax/MiniMax-M2.7")
     parser.add_argument("--pi-glm-only", action="store_true", help="Run only pi with z-ai/glm-5.1")
+    parser.add_argument("--copilot-only", action="store_true", help="Run only GitHub Copilot CLI")
     parser.add_argument(
         "--glm-flash-only", action="store_true", help="Run only GLM-4.7-Flash (via API)"
     )
@@ -3601,6 +3617,7 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
         glm_flash_only=args.glm_flash_only,
         pi_m27_only=getattr(args, "pi_m27_only", False),
         pi_glm_only=getattr(args, "pi_glm_only", False),
+        copilot_only=getattr(args, "copilot_only", False),
         timeout=args.timeout,
         output_format=args.output_format,
         verbose=getattr(args, "verbose", False),

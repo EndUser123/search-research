@@ -424,8 +424,10 @@ class AsyncSearchRouter:
         # Cache results (convert to dict for cache)
         if self.enable_cache:
             cache_results = [r.to_dict() for r in ranked_results]
-            # Use enhanced query as cache key if HyDE was applied
-            cache_key = search_query if hyde_applied else query
+            # Always use escaped search_query as cache key for consistency (COMP-001 fix)
+            # Previously: HyDE-on used escaped, HyDE-off used raw -- causing unnecessary
+            # cache misses since backends always receive escaped query.
+            cache_key = search_query
             self._cache.set(cache_key, cache_results, limit=limit, backends=backends)
 
         # TASK-3: Log query trace after search completes
