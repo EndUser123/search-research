@@ -52,3 +52,6 @@ Thumbs.db
 
 # Old src/ directory (migrated to core/)
 src/
+
+# AI Distiller output
+.aid/
