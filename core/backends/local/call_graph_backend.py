@@ -216,9 +216,11 @@ class CallGraphBackend:
         results = []
         func_name_lower = func_name.lower()
 
-        for name, node in list(self._graph.functions.items())[:limit]:
+        for name, node in self._graph.functions.items():
             if func_name_lower in node.name.lower():
                 results.append(self._node_to_result(node, "function match"))
+                if len(results) >= limit:
+                    break
 
         return results
 
