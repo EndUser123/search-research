@@ -53,7 +53,7 @@ try:
     )
     from ..knowledge_system.cks_constitutional_validator import CKSConstitutionalValidator
     from ..orchestration.cks_agent_coordinator import CKSAgentCoordinator
-    from ..performance.cks_performance_optimizer import CKSPreformanceOptimizer
+    from ..performance.cks_performance_optimizer import CKSPerformanceOptimizer
 except ImportError:
     # Fallback for standalone execution
     pass

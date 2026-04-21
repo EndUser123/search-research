@@ -73,7 +73,7 @@ def calculate_decay_score(entry: dict[str, Any]) -> float:
     if isinstance(created_at, str):
         try:
             created_dt = datetime.fromisoformat(created_at.replace(" ", "T"))
-        except:
+        except Exception:
             created_dt = datetime.now()
     else:
         created_dt = datetime.now()
@@ -190,12 +190,12 @@ def get_quality_statistics(db_path: str | Path = "P:/__csf/data/cks.db") -> Qual
 
     # Zero usage entries
     cursor.execute(
-        "SELECT COUNT(*) as count FROM entries WHERE usage_count = 0 OR usage_count IS NULL"
+        "SELECT COUNT(*) as count FROM entries WHERE usage_count = 0 OR usage_count IS NULL",
     )
     stats.zero_usage_entries = cursor.fetchone()["count"]
 
     # Negative feedback entries
-    cursor.execute("SELECT COUNT(*) as count FROM entries WHERE thumbs_down > (thumbs_up OR 0)")
+    cursor.execute("SELECT COUNT(*) as count FROM entries WHERE thumbs_down > COALESCE(thumbs_up, 0)")
     stats.negative_feedback_entries = cursor.fetchone()["count"]
 
     # High confidence archival candidates (90+ days old, never used, 2+ downvotes)
@@ -262,7 +262,7 @@ def format_stats_terminal(stats: QualityStats) -> str:
         [
             "",
             "👍 Feedback Distribution",
-        ]
+        ],
     )
 
     # Feedback distribution
@@ -278,7 +278,7 @@ def format_stats_terminal(stats: QualityStats) -> str:
         [
             "",
             "📅 Age Distribution",
-        ]
+        ],
     )
 
     # Age distribution
@@ -292,7 +292,7 @@ def format_stats_terminal(stats: QualityStats) -> str:
         [
             "",
             "📦 Entry Types",
-        ]
+        ],
     )
 
     # Type distribution
@@ -315,14 +315,14 @@ def format_stats_terminal(stats: QualityStats) -> str:
             f"   Total candidates:     {stats.archive_candidates_high_confidence + stats.archive_candidates_medium_confidence + stats.archive_candidates_low_confidence:,}",
             "",
             "💡 Run '/cks quality sample' to see example candidates",
-        ]
+        ],
     )
 
     return "\n".join(lines)
 
 
 def sample_archival_candidates(
-    db_path: str | Path = "P:/__csf/data/cks.db", limit: int = 10
+    db_path: str | Path = "P:/__csf/data/cks.db", limit: int = 10,
 ) -> list[dict]:
     """Sample entries that would be archived."""
     db_path = Path(db_path)
@@ -439,7 +439,7 @@ def main() -> None:
 
                 print(f"{i}. [{entry['type']}] {title}")
                 print(
-                    f"   Created: {created}  |  Decay: {decay:.2f}  |  Usage: {usage}  |  Down: {down}"
+                    f"   Created: {created}  |  Decay: {decay:.2f}  |  Usage: {usage}  |  Down: {down}",
                 )
                 print()
 

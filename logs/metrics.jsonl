@@ -1295,3 +1295,10 @@
 {"timestamp": "2026-04-21T15:11:29.025209", "component": "SEARCH_PROVIDER", "latency_ms": 57.7839000034146, "tokens_used": 0, "cache_hit": false, "output_quality": 0.9428571428571428, "branch": "main"}
 {"timestamp": "2026-04-21T15:11:29.025656", "component": "SEARCH_PROVIDER", "latency_ms": 58.2746000145562, "tokens_used": 0, "cache_hit": false, "output_quality": 0.8, "branch": "main"}
 {"timestamp": "2026-04-21T15:11:29.034871", "component": "CLAUDE_HISTORY", "latency_ms": 71.64370000828058, "tokens_used": 0, "cache_hit": false, "output_quality": 0.8004285714285714, "branch": "main"}
+{"timestamp": "2026-04-21T16:10:22.303802", "component": "SEARCH_PROVIDER", "latency_ms": 884.0143000124954, "tokens_used": 0, "cache_hit": false, "output_quality": 0.5, "branch": "main"}
+{"timestamp": "2026-04-21T16:10:22.305450", "component": "SEARCH_PROVIDER", "latency_ms": 882.8720999881625, "tokens_used": 0, "cache_hit": false, "output_quality": 0.85, "branch": "main"}
+{"timestamp": "2026-04-21T16:10:22.307054", "component": "SEARCH_PROVIDER", "latency_ms": 315.1928999577649, "tokens_used": 0, "cache_hit": false, "output_quality": 0.8, "branch": "main"}
+{"timestamp": "2026-04-21T16:11:38.266311", "component": "SEARCH_PROVIDER", "latency_ms": 1279.0341000072658, "tokens_used": 0, "cache_hit": false, "output_quality": 0.5, "branch": "main"}
+{"timestamp": "2026-04-21T16:11:38.267528", "component": "SEARCH_PROVIDER", "latency_ms": 1276.8420999636874, "tokens_used": 0, "cache_hit": false, "output_quality": 0.85, "branch": "main"}
+{"timestamp": "2026-04-21T16:11:38.269057", "component": "SEARCH_PROVIDER", "latency_ms": 318.5226999921724, "tokens_used": 0, "cache_hit": false, "output_quality": 0.8, "branch": "main"}
+{"timestamp": "2026-04-21T16:11:38.480513", "component": "SEARCH_PROVIDER", "latency_ms": 1490.2275999775156, "tokens_used": 0, "cache_hit": false, "output_quality": 0.7, "branch": "main"}

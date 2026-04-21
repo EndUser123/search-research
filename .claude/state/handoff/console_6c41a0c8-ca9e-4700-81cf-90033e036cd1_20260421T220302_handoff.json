@@ -1,0 +1,119 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "0539dbfb-76c5-4178-bcc5-d4cb6c50935b",
+    "terminal_id": "console_6c41a0c8-ca9e-4700-81cf-90033e036cd1",
+    "source_session_id": "a5efc330-7fe0-44ec-b502-f811c10a3e40",
+    "created_at": "2026-04-21T22:03:02.759134+00:00",
+    "expires_at": "2026-04-21T22:23:02.759134+00:00",
+    "status": "rejected_stale",
+    "goal": "Please look for it in git.  if you can't find it there, use /search.  If you can't find it, then create it so it all works optimally.",
+    "current_task": "Please look for it in git. if you can't find it there, use /search. If you can't find it, then create it so it all works optimally.",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "P:/packages/cc-skills-sdlc/gitready/README.md",
+      "P:/packages/cc-skills-meta/skills/gitready/README.md",
+      "P:/packages/cc-skills-sdlc/CLAUDE.md",
+      "P:/packages/cc-skills-meta/CLAUDE.md",
+      "P:/packages/cc-skills-utils/CLAUDE.md",
+      "P:/packages/cc-skills-utils/skills/search/SKILL.md",
+      "P:/packages/cc-skills-utils/skills/search/references/architecture.md",
+      "P:/packages/search-research/core/router_async.py",
+      "P:/packages/search-research/core/backends/local/__init__.py",
+      "P:/packages/search-research/core/backends/local/call_graph_backend.py"
+    ],
+    "pending_operations": [
+      {
+        "type": "investigation",
+        "target": "files: P:/packages/cc-skills-sdlc/gitready/**/*",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: P:/packages/cc-skills-meta/skills/gitready/**/*",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "git -C P:/ diff --name-status HEAD -- packages/cc-skills-sdlc/gitready packages/",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "git -C P:/ log --oneline -3 --format=\"%h %s\" -- packages/cc-skills-sdlc/gitready",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "git -C P:/ ls-tree HEAD packages/cc-skills-sdlc/gitready 2>/dev/null && echo \"--",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "(advisory) Previous session had pending: investigation on files: P:/packages/cc-skills-sdlc/gitready/**/*.",
+    "decision_refs": [],
+    "evidence_refs": [
+      "ev_0a49932426124b1f9c34875e5fdb1cbb",
+      "ev_05624c025f4947318d2c1e30f6be0ebe",
+      "ev_929c02b405d940faa4a194382bde62aa",
+      "ev_3e5ee445e19a4234b2a79e5c74e20b95",
+      "ev_401fd4bb3d8848ff95a3080676aa185f",
+      "ev_8e78f0885da04dd9ac7a4b6a9ddadd23"
+    ],
+    "n_1_transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\a5efc330-7fe0-44ec-b502-f811c10a3e40.jsonl",
+    "n_2_transcript_path": null,
+    "message_intent": "instruction",
+    "goal_origin": "user_message",
+    "quality_score": 0.4,
+    "tasks_snapshot": [],
+    "rejected_at": "2026-04-21T22:04:04.093693+00:00",
+    "rejected_by_session_id": "a5efc330-7fe0-44ec-b502-f811c10a3e40",
+    "rejection_reason": "snapshot evidence path outside project directory"
+  },
+  "decision_register": [],
+  "evidence_index": [
+    {
+      "id": "ev_0a49932426124b1f9c34875e5fdb1cbb",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\a5efc330-7fe0-44ec-b502-f811c10a3e40.jsonl",
+      "content_hash": "sha256:f9271568f3863317567efa83aacc2ffb9089c1c3711ded7ccb6883b92a50d186"
+    },
+    {
+      "id": "ev_05624c025f4947318d2c1e30f6be0ebe",
+      "type": "file",
+      "label": "README.md",
+      "path": "P:\\packages\\cc-skills-sdlc\\gitready\\README.md"
+    },
+    {
+      "id": "ev_929c02b405d940faa4a194382bde62aa",
+      "type": "file",
+      "label": "README.md",
+      "path": "P:\\packages\\cc-skills-meta\\skills\\gitready\\README.md",
+      "content_hash": "sha256:77e08cb118f422daa2d742105cf025138cc48c8b72b1a978ba7a05f147d3cb76"
+    },
+    {
+      "id": "ev_3e5ee445e19a4234b2a79e5c74e20b95",
+      "type": "file",
+      "label": "CLAUDE.md",
+      "path": "P:\\packages\\cc-skills-sdlc\\CLAUDE.md",
+      "content_hash": "sha256:d8c0b0540f8d254c297c2c7cd8f75c9d4fd865ffc19e36bcc74d7642d1d8d617"
+    },
+    {
+      "id": "ev_401fd4bb3d8848ff95a3080676aa185f",
+      "type": "file",
+      "label": "CLAUDE.md",
+      "path": "P:\\packages\\cc-skills-meta\\CLAUDE.md",
+      "content_hash": "sha256:06e7cbcc4a23f0d3a2a9b90c4cac2f30791abac1c57adf9112d2288fbfa28d84"
+    },
+    {
+      "id": "ev_8e78f0885da04dd9ac7a4b6a9ddadd23",
+      "type": "file",
+      "label": "CLAUDE.md",
+      "path": "P:\\packages\\cc-skills-utils\\CLAUDE.md",
+      "content_hash": "sha256:be56161e25e822273b140600966628be542f1d32441190b6b2ec8cbd8cc1facd"
+    }
+  ],
+  "checksum": "sha256:b9a65913264da582a79787e47d48ad124e9af5519632682e7d43b9164a99b315"
+}
