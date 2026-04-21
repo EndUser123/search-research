@@ -69,6 +69,11 @@ def adaptive_lambda(query: str) -> float:
     return min(0.9, 0.1 + word_count * 0.04)
 
 
+# Pre-compiled regex patterns for escape_fts5_query (PERF fix: avoid re-compilation per call)
+_FTS5_COMMAND_RE = __import__("re").compile(r"/(\w+)\b")
+_FTS5_SLASH_S_RE = __import__("re").compile(r"\bs command\b", __import__("re").IGNORECASE)
+
+
 def escape_fts5_query(query: str) -> str:
     """Escape special FTS5 characters in query string.
 
@@ -85,10 +90,9 @@ def escape_fts5_query(query: str) -> str:
     result = query
     result = result.replace(".", " ")
     result = result.replace(",", " ")
-    import re
 
-    result = re.sub("/(\\w+)\\b", "\\1 command ", result)
-    result = re.sub("\\bs command\\b", "slash s ", result, flags=re.IGNORECASE)
+    result = _FTS5_COMMAND_RE.sub(r"\1 command ", result)
+    result = _FTS5_SLASH_S_RE.sub("slash s ", result)
     result = result.replace('"', '""')
     result = result.replace("'", "''")
     result = result.replace("[", "[[")
