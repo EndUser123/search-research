@@ -186,6 +186,56 @@ class TestExpansionBypass:
         state_file.unlink(missing_ok=True)
 
 
+class TestAnchorPreservation:
+    def test_preserves_active_anchors_on_followup_message(self):
+        """Second message without a table should NOT overwrite active anchors."""
+        tid = "test_terminal_preserve"
+        state_dir = Path(HOOKS_DIR) / "state"
+        state_dir.mkdir(parents=True, exist_ok=True)
+        state_file = state_dir / f"referent_anchors_{tid}.json"
+
+        # First message: table with referential language creates active anchors
+        ctx1 = HookContext(
+            prompt=REAL_INCIDENT_TABLE,
+            data={},
+            session_id="test_session",
+            terminal_id=tid,
+        )
+        referent_anchor_hook(ctx1)
+        state1 = json.loads(state_file.read_text(encoding="utf-8"))
+        assert len(state1["anchor_terms"]) == 6
+
+        # Second message: referential but no table — must NOT overwrite
+        ctx2 = HookContext(
+            prompt="Before checking those, show me the recent git log for the hooks directory.",
+            data={},
+            session_id="test_session",
+            terminal_id=tid,
+        )
+        referent_anchor_hook(ctx2)
+        state2 = json.loads(state_file.read_text(encoding="utf-8"))
+        assert len(state2["anchor_terms"]) == 6  # Preserved!
+        assert "status" not in state2  # Still active, not no_anchors
+
+        # Cleanup
+        state_file.unlink(missing_ok=True)
+
+    def test_no_anchors_still_written_when_no_existing_state(self):
+        """No existing state → write no_anchors normally."""
+        ctx = HookContext(
+            prompt="simple question with no structure",
+            data={},
+            session_id="test_session",
+            terminal_id="test_terminal_fresh_no_anchors",
+        )
+        referent_anchor_hook(ctx)
+        state_file = Path(HOOKS_DIR) / "state" / "referent_anchors_test_terminal_fresh_no_anchors.json"
+        assert state_file.exists()
+        state = json.loads(state_file.read_text(encoding="utf-8"))
+        assert state["status"] == "no_anchors"
+        state_file.unlink(missing_ok=True)
+
+
 # --- PreToolUse gate tests ---
 
 class TestPreToolUseGate:
@@ -329,9 +379,10 @@ class TestStopCoverage:
         assert result is not None
         assert result["decision"] == "allow"
         assert "ADVISORY" in result["systemMessage"]
-        # State file should be cleaned up
+        # State file should persist (Stop doesn't manage lifecycle)
         state_file = Path(HOOKS_DIR) / "state" / f"referent_anchors_{tid}.json"
-        assert not state_file.exists()
+        assert state_file.exists()
+        state_file.unlink(missing_ok=True)
 
     def test_allows_when_covered(self):
         from Stop import _run_referent_coverage
@@ -349,9 +400,10 @@ class TestStopCoverage:
         }
         result = _run_referent_coverage(data)
         assert result is None  # No advisory when covered
-        # State file should still be cleaned up
+        # State file should persist (Stop doesn't manage lifecycle)
         state_file = Path(HOOKS_DIR) / "state" / f"referent_anchors_{tid}.json"
-        assert not state_file.exists()
+        assert state_file.exists()
+        state_file.unlink(missing_ok=True)
 
     def test_no_state_file_returns_none(self):
         from Stop import _run_referent_coverage

@@ -104,6 +104,16 @@ def _get_terminal_id(context: HookContext) -> str:
         return "unknown"
 
 
+def _read_state(terminal_id: str) -> dict | None:
+    state_file = STATE_DIR / f"referent_anchors_{terminal_id}.json"
+    if not state_file.exists():
+        return None
+    try:
+        return json.loads(state_file.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
 def _write_state(
     terminal_id: str,
     anchor_terms: list[str] | None,
@@ -111,6 +121,13 @@ def _write_state(
     session_id: str | None,
     bypass_scope: bool = False,
 ) -> None:
+    # Don't overwrite active anchors with no_anchors — subsequent messages
+    # without tables shouldn't erase anchor terms from a prior message.
+    if anchor_terms is None:
+        existing = _read_state(terminal_id)
+        if existing and existing.get("anchor_terms") and "status" not in existing:
+            return  # Preserve existing active anchors
+
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     state_file = STATE_DIR / f"referent_anchors_{terminal_id}.json"
     data = {

@@ -25,7 +25,7 @@ REBUILD_FAILURE_LIMIT = 3
 REBUILD_COOLDOWN = 60.0  # seconds
 MAX_QUERY_LENGTH = 500
 
-# Locale env for QMD subprocess calls (DRY-001 fix)
+# Locale env for QMD subprocess calls
 _QMD_LOCALE_ENV = {"LANG": "en_US.UTF-8", "LC_ALL": "en_US.UTF-8"}
 
 # QMD config path for reading actual vault locations
@@ -278,7 +278,7 @@ class QMDWikiBackend(BaseLocalBackend):
             lines = content.split("\n")
             for line_num, line in enumerate(lines, start=1):
                 if query_lower in line.lower():
-                    byte_off = sum(len(l) + 1 for l in lines[:line_num - 1])
+                    byte_off = sum(len(line) + 1 for line in lines[:line_num - 1])
                     snippet = content[byte_off:byte_off + 200]
                     title = md_file.name.rsplit(".md", 1)[0]
                     results.append(SearchResult(

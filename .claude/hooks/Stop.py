@@ -1411,12 +1411,10 @@ def _run_referent_coverage(data: dict) -> dict | None:
         state = json.loads(state_file.read_text(encoding="utf-8"))
 
         if state.get("status") == "no_anchors" or not state.get("anchor_terms"):
-            state_file.unlink(missing_ok=True)
             return None
 
         anchor_terms = state.get("anchor_terms", [])
         if len(anchor_terms) < 3:
-            state_file.unlink(missing_ok=True)
             return None
 
         response = (data.get("response") or "").lower()
@@ -1424,9 +1422,6 @@ def _run_referent_coverage(data: dict) -> dict | None:
             return None
 
         mentioned = [t for t in anchor_terms if t.lower() in response]
-
-        # Lifecycle: clear state file after check
-        state_file.unlink(missing_ok=True)
 
         if not mentioned:
             return {
