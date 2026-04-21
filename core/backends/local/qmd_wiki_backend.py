@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -22,6 +24,9 @@ VAULT_MTIME_CACHE_TTL = 5.0  # seconds
 REBUILD_FAILURE_LIMIT = 3
 REBUILD_COOLDOWN = 60.0  # seconds
 MAX_QUERY_LENGTH = 500
+
+# Locale env for QMD subprocess calls
+_QMD_LOCALE_ENV = {"LANG": "en_US.UTF-8", "LC_ALL": "en_US.UTF-8"}
 
 # QMD config path for reading actual vault locations
 QMD_CONFIG_PATH = Path.home() / ".config" / "qmd" / "index.yml"
@@ -43,7 +48,8 @@ def _get_vault_from_qmd_config(scope: str) -> Path | None:
             path = collections[scope].get("path")
             if path:
                 return Path(os.path.expanduser(path))
-    except Exception:
+    except (OSError, ValueError, AttributeError):
+        # Config file missing, malformed YAML, or unexpected data structure
         pass
     return None
 
@@ -185,7 +191,7 @@ class QMDWikiBackend(BaseLocalBackend):
 
         try:
             # Enforce English locale for qmd output
-            env = {**os.environ, "LANG": "en_US.UTF-8", "LC_ALL": "en_US.UTF-8"}
+            env = {**os.environ, **_QMD_LOCALE_ENV}
             result = await asyncio.create_subprocess_exec(
                 "qmd", "search", "--collection", self.qmd_scope.rstrip("/"), "--format", "json", query,
                 stdout=asyncio.subprocess.PIPE,
@@ -222,7 +228,6 @@ class QMDWikiBackend(BaseLocalBackend):
             return self._fallback_grep(query)
 
     def _parse_qmd_json(self, stdout: bytes) -> list["SearchResult"]:
-        import json, re
         try:
             data = json.loads(stdout.decode())
         except json.JSONDecodeError:
@@ -230,16 +235,16 @@ class QMDWikiBackend(BaseLocalBackend):
         results = []
         items = data if isinstance(data, list) else data.get("results", [])
         diff_line_re = re.compile(r"@@ -(\d+),\d+ @@")
-        for r in items:
-            path = r.get("file", "")
-            snippet = r.get("snippet", "")
-            score = r.get("score", 0.0)
-            title = r.get("title", path.split("/")[-1].rsplit(".md", 1)[0] or path)
+        for result_item in items:
+            path = result_item.get("file", "")
+            snippet = result_item.get("snippet", "")
+            score = result_item.get("score", 0.0)
+            title = result_item.get("title", path.split("/")[-1].rsplit(".md", 1)[0] or path)
             # Extract line number from diff notation e.g. "@@ -308,5 @@ (307 before..."
             line_number: int | None = None
-            m = diff_line_re.search(snippet)
-            if m:
-                line_number = int(m.group(1))
+            match = diff_line_re.search(snippet)
+            if match:
+                line_number = int(match.group(1))
             results.append(SearchResult(
                 title=title, content=snippet, source=self.BACKEND_NAME,
                 score=score, file_path=path, line_number=line_number,
@@ -265,14 +270,15 @@ class QMDWikiBackend(BaseLocalBackend):
                     content_bytes = f.read(MAX_FILE_READ)
             except PermissionError:
                 continue
-            except Exception:
+            except (OSError, ValueError):
+                # File unreadable or decode error - skip this file
                 continue
 
             content = content_bytes.decode("utf-8", errors="replace")
             lines = content.split("\n")
             for line_num, line in enumerate(lines, start=1):
                 if query_lower in line.lower():
-                    byte_off = sum(len(l) + 1 for l in lines[:line_num - 1])
+                    byte_off = sum(len(line) + 1 for line in lines[:line_num - 1])
                     snippet = content[byte_off:byte_off + 200]
                     title = md_file.name.rsplit(".md", 1)[0]
                     results.append(SearchResult(
@@ -291,7 +297,7 @@ class QMDWikiBackend(BaseLocalBackend):
             ):
                 return
             try:
-                env = {**os.environ, "LANG": "en_US.UTF-8", "LC_ALL": "en_US.UTF-8"}
+                env = {**os.environ, **_QMD_LOCALE_ENV}
                 result = await asyncio.create_subprocess_exec(
                     "qmd", "update", self.qmd_scope.rstrip("/"),
                     stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
@@ -327,7 +333,7 @@ class QMDWikiBackend(BaseLocalBackend):
     def _sync_rebuild(self) -> None:
         """Constraint 1: _sync_rebuild uses sync subprocess.run(), NOT async."""
         try:
-            env = {**os.environ, "LANG": "en_US.UTF-8", "LC_ALL": "en_US.UTF-8"}
+            env = {**os.environ, **_QMD_LOCALE_ENV}
             result = subprocess.run(
                 ["qmd", "update", self.qmd_scope.rstrip("/")],
                 capture_output=True, timeout=self.TIMEOUT * 4,
