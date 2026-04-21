@@ -1,0 +1,117 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "25b7b77f-18c3-4a47-a2c5-e3bf3e69419b",
+    "terminal_id": "console_666a00d9-afa1-482e-a7b4-2c9b1e002c82",
+    "source_session_id": "b99d49bf-d6a4-4440-867c-35ba66c73efe",
+    "created_at": "2026-04-21T21:20:19.828169+00:00",
+    "expires_at": "2026-04-21T21:40:19.828169+00:00",
+    "status": "pending",
+    "goal": "make sure /gitpack also excludes the other exclusions from ReviewBundle.  gitpack is not for cloning a github repo.  It's the same role as /review_bundle and /repomix when used locally.",
+    "current_task": "make sure /gitpack also excludes the other exclusions from ReviewBundle. gitpack is not for cloning a github repo. It's the same role as /review_bundle and /repomix when used locally.",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "P:\\.claude\\skills\\gitingest\\references\\repos-template.yaml",
+      "P:\\.claude\\skills\\gitingest\\references\\notebooklm-upload.md",
+      "P:\\.claude\\skills\\gitingest\\scripts\\gitingest_runner.py",
+      "P:/.staging/repos-12.yaml",
+      "P:/.staging/batch-gitingest.py",
+      "C:\\Users\\brsth\\AppData\\Local\\Temp\\claude\\P--\\b99d49bf-d6a4-4440-867c-35ba66c73efe\\tasks\\bdsphpciz.output",
+      "C:\\Users\\brsth\\AppData\\Local\\Temp\\claude\\P--\\b99d49bf-d6a4-4440-867c-35ba66c73efe\\tasks\\b09z7k9q9.output",
+      "C:\\Users\\brsth\\AppData\\Local\\Temp\\claude\\P--\\b99d49bf-d6a4-4440-867c-35ba66c73efe\\tasks\\byuorvtpr.output",
+      "src/mcp/mcpServer.ts",
+      "src/mcp/tools/generateSkillTool.ts"
+    ],
+    "pending_operations": [
+      {
+        "type": "skill",
+        "target": "skill: gitingest",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:\\.claude\\skills\\gitingest\\references\\repos-template.yaml",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:\\.claude\\skills\\gitingest\\references\\notebooklm-upload.md",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "uv tool run --from notebooklm-mcp-cli nlm notebook list 2>&1",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:\\.claude\\skills\\gitingest\\scripts\\gitingest_runner.py",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "(advisory) Previous session had pending: skill on skill: gitingest.",
+    "decision_refs": [],
+    "evidence_refs": [
+      "ev_d5201cec4d5344ccba1f1bee60779f7b",
+      "ev_753fa446ffc54acebd235834ffca09ed",
+      "ev_daa5508f5d9e48c7841d9215986aa087",
+      "ev_8649955bafdb42e7ab4927c01ec6b6f2",
+      "ev_7cb288bdc179423fa482047fe5c7d845",
+      "ev_8e2b0a153f5646dca6b49ba9e135b6d7"
+    ],
+    "n_1_transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\b99d49bf-d6a4-4440-867c-35ba66c73efe.jsonl",
+    "n_2_transcript_path": null,
+    "message_intent": "directive",
+    "goal_origin": "user_message",
+    "quality_score": 0.4,
+    "tasks_snapshot": []
+  },
+  "decision_register": [],
+  "evidence_index": [
+    {
+      "id": "ev_d5201cec4d5344ccba1f1bee60779f7b",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\b99d49bf-d6a4-4440-867c-35ba66c73efe.jsonl",
+      "content_hash": "sha256:b2eafd282ea36d28eb483b2cc81e6707e1c91e49def6390b8d457700fefedb58"
+    },
+    {
+      "id": "ev_753fa446ffc54acebd235834ffca09ed",
+      "type": "file",
+      "label": "repos-template.yaml",
+      "path": "P:\\packages\\cc-skills-utils\\skills\\gitingest\\references\\repos-template.yaml",
+      "content_hash": "sha256:f9397d5ebe99e5d96ebb0f0b2bc097a2959849856ea933970009bebed4e01221"
+    },
+    {
+      "id": "ev_daa5508f5d9e48c7841d9215986aa087",
+      "type": "file",
+      "label": "notebooklm-upload.md",
+      "path": "P:\\packages\\cc-skills-utils\\skills\\gitingest\\references\\notebooklm-upload.md",
+      "content_hash": "sha256:c661731a79858e0752919ad27569c33425a7c793e92626a02d8c60520b5eca2e"
+    },
+    {
+      "id": "ev_8649955bafdb42e7ab4927c01ec6b6f2",
+      "type": "file",
+      "label": "gitingest_runner.py",
+      "path": "P:\\packages\\cc-skills-utils\\skills\\gitingest\\scripts\\gitingest_runner.py",
+      "content_hash": "sha256:3cd845b616c00525279fae930095ad2f163933f07afb9663425990244a15b014"
+    },
+    {
+      "id": "ev_7cb288bdc179423fa482047fe5c7d845",
+      "type": "file",
+      "label": "repos-12.yaml",
+      "path": "P:\\.staging\\repos-12.yaml",
+      "content_hash": "sha256:8b8e0f1c172e90de1d43a5560868298b985e0d9c55c81270907c5a9d6c3da99b"
+    },
+    {
+      "id": "ev_8e2b0a153f5646dca6b49ba9e135b6d7",
+      "type": "file",
+      "label": "batch-gitingest.py",
+      "path": "P:\\.staging\\batch-gitingest.py",
+      "content_hash": "sha256:02e4badc1a0557bab2ff8d802201ee6ca41a9f077508e64c814f9867574b1066"
+    }
+  ],
+  "checksum": "sha256:bf1f0d4c87ea1088c8e094bcaba465a08c07286821f3bb5f2f449b048f7e17df"
+}
