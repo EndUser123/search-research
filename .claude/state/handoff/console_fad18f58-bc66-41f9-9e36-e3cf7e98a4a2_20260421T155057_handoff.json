@@ -1,0 +1,119 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "f593f283-dac4-4fca-9581-b9e8e8185a69",
+    "terminal_id": "console_fad18f58-bc66-41f9-9e36-e3cf7e98a4a2",
+    "source_session_id": "a324f15b-8acc-43de-a713-126f47f81052",
+    "created_at": "2026-04-21T15:50:57.492128+00:00",
+    "expires_at": "2026-04-21T16:10:57.492128+00:00",
+    "status": "rejected_stale",
+    "goal": "please rename claude-hooks-v3.0.md to claude-hooks-v3.1.md",
+    "current_task": "please rename claude-hooks-v3.0.md to claude-hooks-v3.1.md",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "P:/.claude/skills/design_v1.1/design/SKILL.md",
+      "P:/.claude/settings.json",
+      "P:/.claude/hooks/evidence_scope.py",
+      "P:/.claude/hooks/evidence_store.py",
+      "P:/.claude/hooks/unified_claim_verifier.py",
+      "P:/.claude/hooks/StopHook_unverified_stance.py",
+      "P:/.claude/docs/claude-hooks-v3.0.md",
+      "P:/.claude/hooks/design_draft_perf-attribution-guardrail-001.json",
+      "P:/.claude/hooks/StopHook_perf_attribution_gate.py",
+      "P:/.claude/hooks/tests/test_perf_attribution_gate.py"
+    ],
+    "pending_operations": [
+      {
+        "type": "skill",
+        "target": "skill: design_v1.1",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:/.claude/skills/design_v1.1/design/SKILL.md",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "python \"P:/.claude/skills/design_v1.1/design/generate_context.py\" \"component\" \"a",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:/.claude/settings.json",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:/.claude/hooks/evidence_scope.py",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "(advisory) Previous session had pending: skill on skill: design_v1.1.",
+    "decision_refs": [],
+    "evidence_refs": [
+      "ev_69f93b173eaf4b26957858ba8e2a3486",
+      "ev_99942fff44cf4c1f880d5cc7bba8f69d",
+      "ev_c406eff1e3fc4b01a03915bf6125488a",
+      "ev_50fb67e608a24105920cd93b7d66fb44",
+      "ev_848e5e01e1b4409db023b122d11e7177",
+      "ev_8ff9edc9f9874e3ebf1e0faa0b7a1e91"
+    ],
+    "n_1_transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\a324f15b-8acc-43de-a713-126f47f81052.jsonl",
+    "n_2_transcript_path": null,
+    "message_intent": "directive",
+    "goal_origin": "user_message",
+    "quality_score": 0.4,
+    "tasks_snapshot": [],
+    "rejected_at": "2026-04-21T15:52:22.499231+00:00",
+    "rejected_by_session_id": "a324f15b-8acc-43de-a713-126f47f81052",
+    "rejection_reason": "snapshot evidence path outside project directory"
+  },
+  "decision_register": [],
+  "evidence_index": [
+    {
+      "id": "ev_69f93b173eaf4b26957858ba8e2a3486",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\a324f15b-8acc-43de-a713-126f47f81052.jsonl",
+      "content_hash": "sha256:366681d981c3cc5438345a5655109a8faebc28e48493db7a6a6ed671bced1af9"
+    },
+    {
+      "id": "ev_99942fff44cf4c1f880d5cc7bba8f69d",
+      "type": "file",
+      "label": "SKILL.md",
+      "path": "P:\\.claude\\skills\\design_v1.1\\design\\SKILL.md"
+    },
+    {
+      "id": "ev_c406eff1e3fc4b01a03915bf6125488a",
+      "type": "file",
+      "label": "settings.json",
+      "path": "P:\\.claude\\settings.json",
+      "content_hash": "sha256:5331f0e00f94a44b00568bbdf0463fccc0f3695b813ee56c392c0b2c35bc449e"
+    },
+    {
+      "id": "ev_50fb67e608a24105920cd93b7d66fb44",
+      "type": "file",
+      "label": "evidence_scope.py",
+      "path": "P:\\.claude\\hooks\\evidence_scope.py",
+      "content_hash": "sha256:0769dacc655eea1dd2a51d0c50340fbeba99b348fe8aeb5d3ce07fe15bfd470f"
+    },
+    {
+      "id": "ev_848e5e01e1b4409db023b122d11e7177",
+      "type": "file",
+      "label": "evidence_store.py",
+      "path": "P:\\.claude\\hooks\\evidence_store.py",
+      "content_hash": "sha256:d18be17f5bff7a71d058304a3fd99fd6a7b67c1484edf29dfefa419969f82f4d"
+    },
+    {
+      "id": "ev_8ff9edc9f9874e3ebf1e0faa0b7a1e91",
+      "type": "file",
+      "label": "unified_claim_verifier.py",
+      "path": "P:\\.claude\\hooks\\unified_claim_verifier.py",
+      "content_hash": "sha256:6fc7500b08af59a3b54a852b7ea65cf97f0e777b1e1db8d717fd3fe06f27b560"
+    }
+  ],
+  "checksum": "sha256:eef276178bd256027b20dd3a5c3a601844548d7fe8f3e154f2ac96db6df27f7d"
+}

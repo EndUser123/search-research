@@ -308,18 +308,25 @@ class CDSBackend(BaseLocalBackend):
 
         query_lower = query.lower()
         results = []
+        seen: set[int] = set()
+
+        def add_result(item: dict[str, Any]) -> None:
+            item_id = id(item)
+            if item_id not in seen:
+                seen.add(item_id)
+                results.append(item)
 
         # Direct name matches
         if query_lower in self._index:
-            results.extend(self._index[query_lower])
+            for item in self._index[query_lower]:
+                add_result(item)
 
         # Docstring matches via inverted index (word-split matches query tokenization)
         for word in query_lower.split():
             word = word.strip(".,;:()[]{}\"'`!@#$%^&*+-=/\\|<>~")
             if word and len(word) > 1 and word in self._doc_index:
                 for item in self._doc_index[word]:
-                    if item not in results:
-                        results.append(item)
+                    add_result(item)
 
         return results[:limit]
 

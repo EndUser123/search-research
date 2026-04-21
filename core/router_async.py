@@ -262,6 +262,11 @@ class AsyncSearchRouter:
         except Exception as e:
             logger.debug(f"Dependency backend not available: {e}")
 
+        try:
+            backends["call_graph"] = local.CallGraphBackend()
+        except Exception as e:
+            logger.debug(f"Call graph backend not available: {e}")
+
         # QMD Wiki backend - searches Obsidian vault via QMD CLI
         try:
             backends["qmd_wiki"] = local.QMDWikiBackend()

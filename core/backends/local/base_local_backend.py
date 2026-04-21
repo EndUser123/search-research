@@ -75,7 +75,7 @@ class BaseLocalBackend:
         Returns:
             Sanitized query safe for subprocess calls
         """
-        return "".join(c for c in query if c.isprintable() or c in " ")[:max_length]
+        return "".join(c for c in query if c.isprintable())[:max_length]
 
     def build_index(self) -> None:
         """Build AST index of functions, classes, and methods.

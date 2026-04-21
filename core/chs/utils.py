@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 
 
@@ -70,8 +71,8 @@ def adaptive_lambda(query: str) -> float:
 
 
 # Pre-compiled regex patterns for escape_fts5_query (PERF fix: avoid re-compilation per call)
-_FTS5_COMMAND_RE = __import__("re").compile(r"/(\w+)\b")
-_FTS5_SLASH_S_RE = __import__("re").compile(r"\bs command\b", __import__("re").IGNORECASE)
+_FTS5_COMMAND_RE = re.compile(r"/(\w+)\b")
+_FTS5_SLASH_S_RE = re.compile(r"\bs command\b", re.IGNORECASE)
 
 
 def escape_fts5_query(query: str) -> str:

@@ -1,0 +1,10 @@
+{
+  "current_intent": {
+    "work_type": "unknown",
+    "target": "source",
+    "problem": "does it include raw source files?  If not, is it possible to identify what's useful for a reviewing LLM to receive?",
+    "user_prompt": "does it include raw source files?  If not, is it possible to identify what's useful for a reviewing LLM to receive?",
+    "timestamp": "2026-04-21T17:35:43.969892+00:00"
+  },
+  "last_updated": "2026-04-21T17:35:43.973685+00:00"
+}

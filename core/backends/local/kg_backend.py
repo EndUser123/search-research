@@ -130,6 +130,8 @@ class KGBackend:
                     results.append(result)
                     seen.add(result["id"])
 
+        # Sort by score descending so exact matches (0.8) appear before partial (0.5)
+        results.sort(key=lambda r: r["score"], reverse=True)
         return results[:limit]
 
     def _search_and_query(self, terms: list[str], limit: int) -> list[SearchResult]:

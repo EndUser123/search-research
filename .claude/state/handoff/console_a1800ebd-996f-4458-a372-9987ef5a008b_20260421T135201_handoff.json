@@ -1,0 +1,115 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "ee3b5526-88d9-4bf9-a3c6-f800dee69e7f",
+    "terminal_id": "console_a1800ebd-996f-4458-a372-9987ef5a008b",
+    "source_session_id": "8a7b83ff-7d98-47e9-b3b5-3ffabc978c40",
+    "created_at": "2026-04-21T13:52:01.306781+00:00",
+    "expires_at": "2026-04-21T14:12:01.306781+00:00",
+    "status": "rejected_stale",
+    "goal": "You are updating claude-hooks-v3.0.md to v3.1 with production best practices.\n\nEXISTING DOC STRUCTURE (keep intact, append only):\n- Changelog table (v2.1.15 → v3.0 Apr 2026)\n- TOC (1-17 sections)\n- Core Concepts (Hooks vs Skills/Commands/CLAUDE.md)\n- 27 Hook Phases table\n- Input Schemas (common + phase-specific)\n- Matcher Syntax (exact/regex/word-boundary/MCP)\n- Hook Registration/Config Scopes (6 locations)\n- Exit Codes/Decisions\n- Prompt/HTTP/Agent/Async Hooks\n- Failure Modes/Testing/Checklist/Code Examples\n\nADD THESE EXACT SECTIONS at end (before any summaries):\n\n## v3.1 Production Patterns (New)\nCascade hooks: Level 1 deterministic <50ms (if-filter commands, 90% coverage), Level 2 prompt LLM ok:true/false (1-5s), Level 3 agent deep-audit (10-60s). YAML config below.\n\n### Tiered Cascade YAML (.claude/settings.json)\n```yaml\nhooks:\n  PreToolUse:\n    - matcher: \"Bash\"\n      hooks:\n        - type: \"command\"  # L1: Fast filter\n          if: \"Bash(rm*|git rm*)\"\n          command: \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-destruct.py\"\n        - type: \"prompt\"   # L2: Semantic\n          prompt: |-\n            $ARGUMENTS\n            Return JSON: {\"ok\": true/false, \"reason\": \"...\"}\n          model: \"claude-3.5-sonnet-20241022\"\n        - type: \"agent\"    # L3: Verify\n          prompt: |-\n            $ARGUMENTS Analyze with Read/Grep: block if unsafe?\n```\n\n### State & Logging\nCentral `.claudehooks/state/{session_id}.json` (tasks/approvals). Rotate logs: cron `rotatelogs`. MCP `mcp.memory.write` for persistence.\n\nTrick: PostToolUse → `mcp.slack.notify` alerts (v2.1.116 OAuth).\n\n### Perf Optimizations\n- `if: \"Bash git status|diff|log\"` (0ms non-match)\n- `once: true` SessionStart\n- `timeout: 5000`; exit 2 early\n- Alphanum matchers 10x faster\n\n### Resilience\n`stophookactive: true` anti-loop. Fallback `continue: true`. Validate stdin: `jq .`.\n\nv2.1.116: `allowManagedHooksOnly: true` plugins.\n\n### Enhanced Test Harness\n```bash\n#!/bin/bash  # testhook-multi.sh\nHOOK=\"$1\" PHASE=\"$2\" TOOL=\"$3\"\ncat >test.json <<EOF\n{\"hookEventName\": \"$PHASE\", \"toolName\": \"$TOOL\", ...}\nEOF\nparallel -j4 testhook.sh hooks/*.py ::: PreToolUse:::\n```\n\n### Integration Table\n| Pattern | Phase | Output | Use Case |\n|---------|-------|--------|----------|\n| MCP Sync | TaskCompleted | systemMessage: \"mcp.memory.update {taskId:done}\" | Memory |\n| Git Guard | PreToolUse git* | updatedInput.command | Audit |\n| LLM Escalate | PermissionDenied | defer:true | Hybrid |\n| Context Inj | PostToolUse Write | additionalContext: \"See CLAUDE.md\" | Guide |\n\n### Monitoring\nFileChanged/CwdChanged → Prometheus. TeammateIdle heartbeat. HTTP hooks → LangGraph multi-agent loops.\n\nYAML Multi-Hook Template:\n```yaml\nhooks:\n  Stop:\n    - matcher: \"*\"\n      hooks:\n        - type: \"command\"\n          command: \"stop_router.py\"  # Triage + reflection\n```\n\nChangelog Update: Add row \"v3.1 Apr 2026 2.1.116+ → Prod patterns/tiered/resilience\".\n\nTOC: Append \"18. Production Patterns\".\n\nOutput ONLY the full updated Markdown file (diff-style comments optional). Validate against https://code.claude.com/docs/en/hooks (27 events, defer, async rewake, MCP mcp__.*).",
+    "current_task": "You are updating claude-hooks-v3.0.md to v3.1 with production best practices. EXISTING DOC STRUCTURE (keep intact, append only): - Changelog table (v2.1.15 → v3.0 Apr 2026) - TOC (1-17 sections) - Core Concepts (Hooks vs Skills/Commands/CLAUDE.md) - 27 Hook Phases table - Input Schemas (common + phase-specific) - Matcher Syntax (exact/regex/word-boundary/MCP) - Hook Registration/Config Scopes (6 locations) - Exit Codes/Decisions - Prompt/HTTP/Agent/Async Hooks - Failure Modes/Testing/Checklist/Code Examples ADD THESE EXACT SECTIONS at end (before any summaries): ## v3.1 Production Patterns (New) Cascade hooks: Level 1 deterministic <50ms (if-filter commands, 90% coverage), Level 2 prompt LLM ok:true/false (1-5s), Level 3 agent deep-audit (10-60s). YAML config below. ### Tiered Cascade YAML (.claude/settings.json) ```yaml hooks: PreToolUse: - matcher: \"Bash\" hooks: - type: \"command\" # L1: Fast filter if: \"Bash(rm*|git rm*)\" command: \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-destruct.py\" - type: \"prompt\" # L2: Semantic prompt: |- $ARGUMENTS Return JSON: {\"ok\": true/false, \"reason\": \"...\"} model: \"claude-3.5-sonnet-20241022\" - type: \"agent\" # L3: Verify prompt: |- $ARGUMENTS Analyze with Read/Grep: block if unsafe? ``` ### State & Logging Central `.claudehooks/state/{session_id}.json` (tasks/approvals). Rotate logs: cron `rotatelogs`. MCP `mcp.memory.write` for persistence. Trick: PostToolUse → `mcp.slack.notify` alerts (v2.1.116 OAuth). ### Perf Optimizations - `if: \"Bash git status|diff|log\"` (0ms non-match) - `once: true` SessionStart - `timeout: 5000`; exit 2 early - Alphanum matchers 10x faster ### Resilience `stophookactive: true` anti-loop. Fallback `continue: true`. Validate stdin: `jq .`. v2.1.116: `allowManagedHooksOnly: true` plugins. ### Enhanced Test Harness ```bash #!/bin/bash # testhook-multi.sh HOOK=\"$1\" PHASE=\"$2\" TOOL=\"$3\" cat >test.json <<EOF {\"hookEventName\": \"$PHASE\", \"toolName\": \"$TOOL\", ...} EOF parallel -j4 testhook.sh hooks/*.py ::: PreToolUse::: ``` ### Integration Table | Pattern | Phase | Output | Use Case | |---------|-------|--------|----------| | MCP Sync | TaskCompleted | systemMessage: \"mcp.memory.update {taskId:done}\" | Memory | | Git Guard | PreToolUse git* | updatedInput.command | Audit | | LLM Escalate | PermissionDenied | defer:true | Hybrid | | Context Inj | PostToolUse Write | additionalContext: \"See CLAUDE.md\" | Guide | ### Monitoring FileChanged/CwdChanged → Prometheus. TeammateIdle heartbeat. HTTP hooks → LangGraph multi-agent loops. YAML Multi-Hook Template: ```yaml hooks: Stop: - matcher: \"*\" hooks: - type: \"command\" command: \"stop_router.py\" # Triage + reflection ``` Changelog Update: Add row \"v3.1 Apr 2026 2.1.116+ → Prod patterns/tiered/resilience\". TOC: Append \"18. Production Patterns\". Output ONLY the full updated Markdown file (diff-style comments optional). Validate against https://code.claude.com/docs/en/hooks (27 events, defer, async rewake, MCP mcp__.*).",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "P:/.claude/worktrees/go-v2-artifact/.claude/skills/go/SKILL.md",
+      "P:/.claude/worktrees/go-v2-artifact/.claude/skills/go/ralph-go-loop.sh",
+      "P:/.claude/worktrees/go-v2-artifact/.claude/skills/go/go-safe.sh",
+      "P:/packages/cc-skills-sdlc/skills/go_new/schemas/selected-task.schema.json",
+      "P:/packages/cc-skills-sdlc/skills/go_new/schemas/run.schema.json",
+      "P:/packages/cc-skills-sdlc/skills/go_new/SKILL.md",
+      "P:/packages/cc-skills-sdlc/skills/go_new/schemas/active-task.schema.json",
+      "P:/packages/cc-skills-sdlc/skills/go_new/schemas/task-result.schema.json",
+      "P:/packages/cc-skills-sdlc/skills/go_new/schemas/pr-ready.schema.json",
+      "C:\\Users\\brsth\\Downloads\\My design skill made some lazy errors.  __❯ _think (1).md"
+    ],
+    "pending_operations": [
+      {
+        "type": "command",
+        "target": "ls P:/.claude/skills/go/ && echo \"---\" && git -C P:/ worktree list",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "git -C P:/ branch --show-current && git -C P:/ status --short",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "git -C P:/ worktree add .claude/worktrees/go-v2-artifact P:/main -- 2>/dev/null ",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:/.claude/worktrees/go-v2-artifact/.claude/skills/go/SKILL.md",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:/.claude/worktrees/go-v2-artifact/.claude/skills/go/ralph-go-loop.sh",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "(advisory) Previous session had pending: command on ls P:/.claude/skills/go/ && echo \"---\" && git -C P:/ worktree list.",
+    "decision_refs": [],
+    "evidence_refs": [
+      "ev_881a5f69c69b4a38b7d5f30ace1348a6",
+      "ev_f06b5f5df60f45249f5821ac31b04b66",
+      "ev_6142c05c760b46d4ab9e8a34eb426c32",
+      "ev_43acf3b26d47450bb6564a9cacaca520",
+      "ev_6938333e0db5458298d3b05597cabd07",
+      "ev_e39f7169bbee4ed99569d52c5f026c71"
+    ],
+    "n_1_transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\8a7b83ff-7d98-47e9-b3b5-3ffabc978c40.jsonl",
+    "n_2_transcript_path": null,
+    "message_intent": "unsupported_language",
+    "goal_origin": "user_message",
+    "quality_score": 0.9,
+    "tasks_snapshot": [],
+    "rejected_at": "2026-04-21T13:54:03.415322+00:00",
+    "rejected_by_session_id": "8a7b83ff-7d98-47e9-b3b5-3ffabc978c40",
+    "rejection_reason": "snapshot evidence changed: Current compact transcript"
+  },
+  "decision_register": [],
+  "evidence_index": [
+    {
+      "id": "ev_881a5f69c69b4a38b7d5f30ace1348a6",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\8a7b83ff-7d98-47e9-b3b5-3ffabc978c40.jsonl",
+      "content_hash": "sha256:91a2ec58854dd198ea9148d8745cb1bffab65db4e8dfab323542eb4bd96ba191"
+    },
+    {
+      "id": "ev_f06b5f5df60f45249f5821ac31b04b66",
+      "type": "file",
+      "label": "SKILL.md",
+      "path": "P:\\.claude\\worktrees\\go-v2-artifact\\.claude\\skills\\go\\SKILL.md"
+    },
+    {
+      "id": "ev_6142c05c760b46d4ab9e8a34eb426c32",
+      "type": "file",
+      "label": "ralph-go-loop.sh",
+      "path": "P:\\.claude\\worktrees\\go-v2-artifact\\.claude\\skills\\go\\ralph-go-loop.sh"
+    },
+    {
+      "id": "ev_43acf3b26d47450bb6564a9cacaca520",
+      "type": "file",
+      "label": "go-safe.sh",
+      "path": "P:\\.claude\\worktrees\\go-v2-artifact\\.claude\\skills\\go\\go-safe.sh"
+    },
+    {
+      "id": "ev_6938333e0db5458298d3b05597cabd07",
+      "type": "file",
+      "label": "selected-task.schema.json",
+      "path": "P:\\packages\\cc-skills-sdlc\\skills\\go_new\\schemas\\selected-task.schema.json"
+    },
+    {
+      "id": "ev_e39f7169bbee4ed99569d52c5f026c71",
+      "type": "file",
+      "label": "run.schema.json",
+      "path": "P:\\packages\\cc-skills-sdlc\\skills\\go_new\\schemas\\run.schema.json"
+    }
+  ],
+  "checksum": "sha256:7605c6047b3559e39628723f2a75767cb1d2c20bae0cb981be8064a86c471ed4"
+}
