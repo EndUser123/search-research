@@ -19,7 +19,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
-    pass
+    from sentence_transformers import SentenceTransformer
+
 logger = logging.getLogger(__name__)
 DEFAULT_EMBEDDING_DIM = 384
 MAX_RETRIES = 3

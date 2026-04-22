@@ -12,17 +12,17 @@ CLI approach is preferred over MCP because:
 
 from __future__ import annotations
 
-import warnings
-warnings.filterwarnings("ignore", category=ResourceWarning)
-
 import asyncio
 import json
 import logging
 import subprocess
+import warnings
 from typing import Any
 
-from ..query_intent import QueryIntent
-from .base_local_backend import BaseLocalBackend
+warnings.filterwarnings("ignore", category=ResourceWarning)
+
+from ..query_intent import QueryIntent  # noqa: E402
+from .base_local_backend import BaseLocalBackend  # noqa: E402
 
 SearchResult = dict[str, Any]
 
