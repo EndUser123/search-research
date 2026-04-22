@@ -1,6 +1,6 @@
 """Auto-scaffolded test for utils."""
 
-import pytest
+import pytest  # noqa: F401
 from utils import utils
 
 

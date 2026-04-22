@@ -4,10 +4,9 @@ Tests use mocked responses to verify provider behavior without requiring
 actual API calls. Tests follow the TDD pattern: RED → GREEN → REFACTOR.
 """
 
-from unittest.mock import AsyncMock, MagicMock
-
-import pytest
 import httpx
+import pytest
+from unittest.mock import AsyncMock, MagicMock
 
 from providers import YouBackend
 
