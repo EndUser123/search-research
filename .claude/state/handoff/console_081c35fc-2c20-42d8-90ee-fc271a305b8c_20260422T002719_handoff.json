@@ -6,7 +6,7 @@
     "source_session_id": "a324f15b-8acc-43de-a713-126f47f81052",
     "created_at": "2026-04-22T00:27:19.485782+00:00",
     "expires_at": "2026-04-22T00:47:19.485782+00:00",
-    "status": "pending",
+    "status": "rejected_stale",
     "goal": "set both task 1 and 2.",
     "current_task": "set both task 1 and 2.",
     "progress_percent": 65,
@@ -66,7 +66,10 @@
     "message_intent": "instruction",
     "goal_origin": "user_message",
     "quality_score": 0.4,
-    "tasks_snapshot": []
+    "tasks_snapshot": [],
+    "rejected_at": "2026-04-22T00:28:20.449735+00:00",
+    "rejected_by_session_id": "a324f15b-8acc-43de-a713-126f47f81052",
+    "rejection_reason": "snapshot evidence path outside project directory"
   },
   "decision_register": [],
   "evidence_index": [
@@ -112,5 +115,5 @@
       "content_hash": "sha256:6fc7500b08af59a3b54a852b7ea65cf97f0e777b1e1db8d717fd3fe06f27b560"
     }
   ],
-  "checksum": "sha256:71d9ef7bdcb2a914249049c18b4223a0bbe72a7c566292cf012385a620bc16ef"
+  "checksum": "sha256:3ec464d8e6fe4dacbd41fa22ae1ed549c2ff9d811a02383eaf1d57b8ca837a3d"
 }
