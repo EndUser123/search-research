@@ -13,9 +13,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
-from core.chs.config import get_chs_db_path
-from core.chs.db import get_connection
-from core.chs.embeddings import get_embed_client
+from .config import get_chs_db_path
+from .db import get_connection
+from .embeddings import get_embed_client
 
 
 def backfill(db_path: str, dry_run: bool = False) -> int:

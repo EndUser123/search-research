@@ -6,7 +6,7 @@ sys.path.insert(0, "P:/__csf/src")
 import sqlite3
 from pathlib import Path
 
-from core.chs.schema_compat import CHSSchemaCompat, SchemaVersion
+from .schema_compat import CHSSchemaCompat, SchemaVersion
 
 db_path = Path("P:/__csf/data/chat_history.db")
 print("=== Testing CHS Schema Compatibility Layer ===\n")

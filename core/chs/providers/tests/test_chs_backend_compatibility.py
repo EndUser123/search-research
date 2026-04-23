@@ -11,9 +11,9 @@ from datetime import datetime, timezone
 
 import pytest
 
-from core.chs.db import get_connection
-from core.chs.normalized import query_tasks
-from core.chs.projections import query_events as query_events_from_projections
+from .db import get_connection
+from .normalized import query_tasks
+from .projections import query_events as query_events_from_projections
 
 DB_PATH = "P:/__csf/data/chat_history.db"
 

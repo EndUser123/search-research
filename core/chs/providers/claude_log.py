@@ -11,8 +11,8 @@ from pathlib import Path
 
 from filelock import FileLock
 
-from core.chs.archive import append_raw_event
-from core.chs.providers.base import ProviderCapabilities
+from ..archive import append_raw_event
+from .base import ProviderCapabilities
 
 # Source: claude-log hook output
 HISTORY_JSONL = Path.home() / "claude-log.jsonl"

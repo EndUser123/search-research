@@ -10,9 +10,9 @@ from unittest.mock import patch
 
 import pytest
 
-from core.chs.providers.claude_code_raw import ClaudeCodeRawProvider
-from core.chs.providers.codex_desktop import CodexDesktopProvider
-from core.chs.providers.claude_log import ClaudeLogProvider
+from .claude_code_raw import ClaudeCodeRawProvider
+from .codex_desktop import CodexDesktopProvider
+from .claude_log import ClaudeLogProvider
 
 
 @pytest.fixture

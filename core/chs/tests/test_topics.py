@@ -16,7 +16,7 @@ from __future__ import annotations
 import sqlite3
 
 import pytest
-from core.chs.topics import TOPIC_PATTERNS, extract_topics, update_session_topics
+from .topics import TOPIC_PATTERNS, extract_topics, update_session_topics
 
 
 class TestExtractTopicsPatternMatching:

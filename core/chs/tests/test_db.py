@@ -13,8 +13,8 @@ import sqlite3
 from pathlib import Path
 
 import pytest
-from core.chs.config import Config
-from core.chs.db import (
+from .config import Config
+from .db import (
     get_connection,
     database_is_initialized,
     init_db,

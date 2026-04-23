@@ -11,9 +11,9 @@ from pathlib import Path
 from datetime import datetime, timezone
 from unittest.mock import patch
 
-from core.chs.normalized import upsert_event
-from core.chs.db import get_connection
-from core.chs.archive import append_raw_event
+from .normalized import upsert_event
+from .db import get_connection
+from ..archive import append_raw_event
 
 DB_PATH = Path("P:/__csf/data/chat_history.db")
 

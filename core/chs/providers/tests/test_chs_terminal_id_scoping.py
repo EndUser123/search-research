@@ -15,9 +15,9 @@ from unittest.mock import patch
 
 import pytest
 
-from core.chs.providers.claude_code_raw import ClaudeCodeRawProvider, _resolve_terminal_id as resolve_ccr
-from core.chs.providers.codex_desktop import CodexDesktopProvider, _resolve_terminal_id as resolve_codex
-from core.chs.providers.claude_log import ClaudeLogProvider, _resolve_terminal_id as resolve_clog
+from .claude_code_raw import ClaudeCodeRawProvider, _resolve_terminal_id as resolve_ccr
+from .codex_desktop import CodexDesktopProvider, _resolve_terminal_id as resolve_codex
+from .claude_log import ClaudeLogProvider, _resolve_terminal_id as resolve_clog
 
 
 class TestTerminalIdScoping:

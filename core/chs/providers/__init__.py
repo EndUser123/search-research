@@ -4,7 +4,7 @@ Registry for history providers. Use register() to add providers,
 discover() or discover_all() to retrieve them.
 """
 
-from core.chs.providers.base import Provider
+from .base import Provider
 
 # Global registry: provider_id -> provider class
 _REGISTRY: dict[str, type[Provider]] = {}
@@ -53,9 +53,9 @@ def ingest_since(provider_id: str, watermark: dict | None = None) -> list[dict]:
 
 
 # Register built-in providers
-from core.chs.providers.claude_code_raw import ClaudeCodeRawProvider  # noqa: E402
-from core.chs.providers.codex_desktop import CodexDesktopProvider  # noqa: E402
-from core.chs.providers.claude_log import ClaudeLogProvider  # noqa: E402
+from .claude_code_raw import ClaudeCodeRawProvider  # noqa: E402
+from .codex_desktop import CodexDesktopProvider  # noqa: E402
+from .claude_log import ClaudeLogProvider  # noqa: E402
 
 register("claude_code_raw", ClaudeCodeRawProvider)
 register("codex_desktop", CodexDesktopProvider)

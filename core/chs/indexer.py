@@ -12,8 +12,8 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from core.chs.db import get_connection
-from core.chs.utils import file_identity, parse_jsonl_line
+from .db import get_connection
+from .utils import file_identity, parse_jsonl_line
 
 logger = logging.getLogger(__name__)
 
@@ -180,7 +180,7 @@ class ChatIndexer:
     def daemon_loop(
         self, jsonl_dir: str | Path, poll_interval: float = 1.0, idle_timeout: int = 3600
     ) -> None:
-        from core.chs.utils import discover_chat_logs
+        from .utils import discover_chat_logs
 
         while True:
             jsonl_files = discover_chat_logs(jsonl_dir)

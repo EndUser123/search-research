@@ -13,8 +13,8 @@ from unittest.mock import patch
 
 import pytest
 
-from core.chs.normalized import upsert_event, get_events_by_hash
-from core.chs.db import init_db
+from .normalized import upsert_event, get_events_by_hash
+from .db import init_db
 
 
 @pytest.fixture
