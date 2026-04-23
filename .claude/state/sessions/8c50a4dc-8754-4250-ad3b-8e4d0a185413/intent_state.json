@@ -1,0 +1,10 @@
+{
+  "current_intent": {
+    "work_type": "unknown",
+    "target": "skill so that the agents to a github issues review before making any suggestions for improvements",
+    "problem": "our skill /skill-craft has documentation and agents that look for opportunities.  Update the skill so that the agents to a github issues review before making any suggestions for improvements, so th...",
+    "user_prompt": "our skill /skill-craft has documentation and agents that look for opportunities.  Update the skill so that the agents to a github issues review before making any suggestions for improvements, so that they don't recommend something that is broken.",
+    "timestamp": "2026-04-23T04:22:47.143445+00:00"
+  },
+  "last_updated": "2026-04-23T04:22:47.143647+00:00"
+}
