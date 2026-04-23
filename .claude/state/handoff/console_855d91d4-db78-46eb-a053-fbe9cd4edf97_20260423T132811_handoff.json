@@ -1,0 +1,120 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "72ba7af4-0ade-45e6-b24e-6b9909629b3f",
+    "terminal_id": "console_855d91d4-db78-46eb-a053-fbe9cd4edf97",
+    "source_session_id": "8c50a4dc-8754-4250-ad3b-8e4d0a185413",
+    "created_at": "2026-04-23T13:28:11.286620+00:00",
+    "expires_at": "2026-04-23T13:48:11.286620+00:00",
+    "status": "rejected_stale",
+    "goal": "We are supposed to be multi-terminal isolated, immune to stale data, and immune to workflow interruption caused by compact events, so the GitHub agent should still follow the .artifact terminal ID pattern.\n\nterminal id is stable across compacts it's been tested before so we're okay with that\n\nIf you think we need more specifics about cross-recipient logic, then feel free to enhance that.",
+    "current_task": "We are supposed to be multi-terminal isolated, immune to stale data, and immune to workflow interruption caused by compact events, so the GitHub agent should still follow the .artifact terminal ID pattern. terminal id is stable across compacts it's been tested before so we're okay with that If you think we need more specifics about cross-recipient logic, then feel free to enhance that.",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "P:/.claude/hooks/Stop_router.py",
+      "P:/.claude/hooks/PreCompact.py",
+      "P:/packages/handoff/scripts/hooks/PreCompact_handoff_capture.py",
+      "P:/.claude/hooks/SessionStart.py",
+      "P:/packages/handoff/scripts/hooks/SessionStart_handoff_restore.py",
+      "P:/.claude/hooks/Stop_self_reflection_gate.py",
+      "P:/.claude/hooks/SessionStart_chs_delta_reindex.py",
+      "P:/packages/handoff/scripts/hooks/SessionStart_chs_delta_reindex.py",
+      "P:/.claude/skills/ralph/SKILL.md",
+      "P:/.claude/skills/rns/SKILL.md"
+    ],
+    "pending_operations": [
+      {
+        "type": "read",
+        "target": "P:/.claude/hooks/Stop_router.py",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "python P:/.claude/skills/tdd/generate_context.py \"bugfix\" \"Hook wiring fixes and",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:/.claude/hooks/PreCompact.py",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:/packages/handoff/scripts/hooks/PreCompact_handoff_capture.py",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:/.claude/hooks/SessionStart.py",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "(advisory) Previous session had pending: read on P:/.claude/hooks/Stop_router.py.",
+    "decision_refs": [],
+    "evidence_refs": [
+      "ev_dc12d9bd6b0e47428115ad51e5ee8d32",
+      "ev_46310d9450f04d5c9b89346abb5bdedb",
+      "ev_957b3546c8014fb1b8d9c9dd7d49c968",
+      "ev_629ef5efe34a485c8d23ed05f78478a7",
+      "ev_1c78fdb0b62a4f54a09600b129ab3936",
+      "ev_482b7fa5cc6a45d2bc83269c674cd3a0"
+    ],
+    "n_1_transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\8c50a4dc-8754-4250-ad3b-8e4d0a185413.jsonl",
+    "n_2_transcript_path": null,
+    "message_intent": "instruction",
+    "goal_origin": "user_message",
+    "quality_score": 0.4,
+    "tasks_snapshot": [],
+    "rejected_at": "2026-04-23T13:29:25.839982+00:00",
+    "rejected_by_session_id": "8c50a4dc-8754-4250-ad3b-8e4d0a185413",
+    "rejection_reason": "snapshot evidence path outside project directory"
+  },
+  "decision_register": [],
+  "evidence_index": [
+    {
+      "id": "ev_dc12d9bd6b0e47428115ad51e5ee8d32",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\8c50a4dc-8754-4250-ad3b-8e4d0a185413.jsonl",
+      "content_hash": "sha256:2a36c292dacfd04ac844bf4cd9f98a219f07fa2cd01b4f9d0d42f3bf29b87d20"
+    },
+    {
+      "id": "ev_46310d9450f04d5c9b89346abb5bdedb",
+      "type": "file",
+      "label": "Stop_router.py",
+      "path": "P:\\.claude\\hooks\\Stop_router.py",
+      "content_hash": "sha256:6913a19ee18e470219edf68db193666e912101a4fd45b2e1b00836d22d4bc22d"
+    },
+    {
+      "id": "ev_957b3546c8014fb1b8d9c9dd7d49c968",
+      "type": "file",
+      "label": "PreCompact.py",
+      "path": "P:\\.claude\\hooks\\PreCompact.py",
+      "content_hash": "sha256:aac668cb7c265844468a225b5aa2d0869cb908db3244d6b4f3bbb5baf53badfd"
+    },
+    {
+      "id": "ev_629ef5efe34a485c8d23ed05f78478a7",
+      "type": "file",
+      "label": "PreCompact_handoff_capture.py",
+      "path": "P:\\packages\\handoff\\scripts\\hooks\\PreCompact_handoff_capture.py",
+      "content_hash": "sha256:ae50fa0453e8d51683e1cbd37fc0a0cf949f1969abd8c4f93136504994149f5f"
+    },
+    {
+      "id": "ev_1c78fdb0b62a4f54a09600b129ab3936",
+      "type": "file",
+      "label": "SessionStart.py",
+      "path": "P:\\.claude\\hooks\\SessionStart.py",
+      "content_hash": "sha256:913f1f7446c9fb0490b94ca968ec53792f62bbf4f3f5e5db453e4cc9427ebe81"
+    },
+    {
+      "id": "ev_482b7fa5cc6a45d2bc83269c674cd3a0",
+      "type": "file",
+      "label": "SessionStart_handoff_restore.py",
+      "path": "P:\\packages\\handoff\\scripts\\hooks\\SessionStart_handoff_restore.py",
+      "content_hash": "sha256:063acb7d1318ddf30697ef54a40de35e5d35699a488891e71c1d22054923ac0d"
+    }
+  ],
+  "checksum": "sha256:15a53bbf7e378b3a04a8f6e1c9fbfd0a7f42d29ba22ee243b32db3277b821ba7"
+}

@@ -1,10 +1,10 @@
 {
   "current_intent": {
     "work_type": "unknown",
-    "target": "the",
-    "problem": "Yes please. When the agent writes the file, it should also include the findings that might be of interest, not just will certainly be of interest, for the receiving agent.  make sure you use the .c...",
-    "user_prompt": "Yes please. When the agent writes the file, it should also include the findings that might be of interest, not just will certainly be of interest, for the receiving agent.  make sure you use the .claude/.artifact pattern.",
-    "timestamp": "2026-04-23T04:51:52.440598+00:00"
+    "target": "s been tested before so we",
+    "problem": "We are supposed to be multi-terminal isolated, immune to stale data, and immune to workflow interruption caused by compact events, so the GitHub agent should still follow the .artifact terminal ID ...",
+    "user_prompt": "We are supposed to be multi-terminal isolated, immune to stale data, and immune to workflow interruption caused by compact events, so the GitHub agent should still follow the .artifact terminal ID pattern.\n\nterminal id is stable across compacts it's been tested before so we're okay with that\n\nIf you think we need more specifics about cross-recipient logic, then feel free to enhance that.",
+    "timestamp": "2026-04-23T13:27:47.558954+00:00"
   },
-  "last_updated": "2026-04-23T04:51:52.444992+00:00"
+  "last_updated": "2026-04-23T13:27:47.559191+00:00"
 }

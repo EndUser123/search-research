@@ -1,0 +1,120 @@
+{
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "897564d2-1b82-4a33-bb4a-c66713269e02",
+    "terminal_id": "console_87793141-c04b-449f-b4dc-42b4c6682af7",
+    "source_session_id": "493a609c-7f86-44c8-9387-7482d29d5219",
+    "created_at": "2026-04-23T13:22:51.624177+00:00",
+    "expires_at": "2026-04-23T13:42:51.624177+00:00",
+    "status": "rejected_stale",
+    "goal": "Why is PreCompact rewriting all the n-1 links?  You understand what the goal is, correct? To create a session chain going into the past.  We should be able to look at a session transcript and see the injection that points to the previous transcript and we should be able to follow that pattern back to the very start.",
+    "current_task": "Why is PreCompact rewriting all the n-1 links? You understand what the goal is, correct? To create a session chain going into the past. We should be able to look at a session transcript and see the injection that points to the previous transcript and we should be able to follow that pattern back to the very start.",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "P:/packages/cc-skills-utils/skills/main/SKILL.md",
+      "P:/packages/cc-skills-utils/CLAUDE.md",
+      "P:/packages/cc-skills-sdlc/skills/refactor/skills/refactor/SKILL.md",
+      "P:\\packages\\cc-skills-sdlc\\skills\\refactor\\skills\\refactor\\SKILL.md",
+      "P:\\__csf\\.staging\\review_bundle_refactor_2026-04-21.md",
+      "P:/.claude/skills/gitpack/SKILL.md",
+      "P:\\__csf\\.staging\\gitpack-workspace\\evals.json",
+      "P:\\__csf\\.staging\\gitpack-workspace\\iteration-1\\eval-local-dir\\eval_metadata.json",
+      "P:\\__csf\\.staging\\gitpack-workspace\\iteration-1\\eval-remote-repo\\eval_metadata.json",
+      "P:\\__csf\\.staging\\gitpack-workspace\\iteration-1\\eval-full-fidelity\\eval_metadata.json"
+    ],
+    "pending_operations": [
+      {
+        "type": "command",
+        "target": "ls -la P:/packages/cc-skills-utils/skills/ | head -60",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "find P:/packages/cc-skills-utils/skills/ -maxdepth 1 -type d | wc -l",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "for d in P:/packages/cc-skills-utils/skills/*/; do name=$(basename \"$d\"); desc=\"",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "# Check which skills have actual implementation beyond SKILL.md\nfor d in P:/pack",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "# Check overlap: search vs explore vs discover vs serena - look at what they act",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "(advisory) Previous session had pending: command on ls -la P:/packages/cc-skills-utils/skills/ | head -60.",
+    "decision_refs": [],
+    "evidence_refs": [
+      "ev_603eac3ea53543c5b67aa2985cf237cc",
+      "ev_c478f4d2d6994798bef9c2d21701212c",
+      "ev_b9502a22a130419cbc28ed7096704fb2",
+      "ev_6de05eaae9074ff2bfc5ac0187f017a9",
+      "ev_077459049ae746d6b9d1e474c63df8e9",
+      "ev_820f3c9ba79d4e1e9e814db731c68a42"
+    ],
+    "n_1_transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\493a609c-7f86-44c8-9387-7482d29d5219.jsonl",
+    "n_2_transcript_path": null,
+    "message_intent": "question",
+    "goal_origin": "user_message",
+    "quality_score": 0.4,
+    "tasks_snapshot": [],
+    "rejected_at": "2026-04-23T13:24:36.312715+00:00",
+    "rejected_by_session_id": "493a609c-7f86-44c8-9387-7482d29d5219",
+    "rejection_reason": "snapshot evidence path outside project directory"
+  },
+  "decision_register": [],
+  "evidence_index": [
+    {
+      "id": "ev_603eac3ea53543c5b67aa2985cf237cc",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\493a609c-7f86-44c8-9387-7482d29d5219.jsonl",
+      "content_hash": "sha256:200c91d7d6b9fcc76cf62628c9f7fcd9f055a89d2868bf4eeea4c6775d6a2e94"
+    },
+    {
+      "id": "ev_c478f4d2d6994798bef9c2d21701212c",
+      "type": "file",
+      "label": "SKILL.md",
+      "path": "P:\\packages\\cc-skills-utils\\skills\\main\\SKILL.md",
+      "content_hash": "sha256:54a7b3a0c864b899ab179a063a5bf15f8c7686fe7df23de1608bd5897a7d979a"
+    },
+    {
+      "id": "ev_b9502a22a130419cbc28ed7096704fb2",
+      "type": "file",
+      "label": "CLAUDE.md",
+      "path": "P:\\packages\\cc-skills-utils\\CLAUDE.md",
+      "content_hash": "sha256:be56161e25e822273b140600966628be542f1d32441190b6b2ec8cbd8cc1facd"
+    },
+    {
+      "id": "ev_6de05eaae9074ff2bfc5ac0187f017a9",
+      "type": "file",
+      "label": "SKILL.md",
+      "path": "P:\\packages\\cc-skills-sdlc\\skills\\refactor\\skills\\refactor\\SKILL.md",
+      "content_hash": "sha256:99dbdbe2fa6cb0894d8640f963411ee3be4a996311190f130b2b3dc7de423aff"
+    },
+    {
+      "id": "ev_077459049ae746d6b9d1e474c63df8e9",
+      "type": "file",
+      "label": "SKILL.md",
+      "path": "P:\\packages\\cc-skills-sdlc\\skills\\refactor\\skills\\refactor\\SKILL.md",
+      "content_hash": "sha256:99dbdbe2fa6cb0894d8640f963411ee3be4a996311190f130b2b3dc7de423aff"
+    },
+    {
+      "id": "ev_820f3c9ba79d4e1e9e814db731c68a42",
+      "type": "file",
+      "label": "review_bundle_refactor_2026-04-21.md",
+      "path": "P:\\__csf\\.staging\\review_bundle_refactor_2026-04-21.md",
+      "content_hash": "sha256:8c5ae7bc669c4f60b73b375dd06cabd9b1a6bc10fb04ab3ab76a2d6317814039"
+    }
+  ],
+  "checksum": "sha256:f05bf825dac24f53798af7723ee7738b026805beb2e5a35946ebeba118caf3e2"
+}
