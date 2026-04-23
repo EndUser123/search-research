@@ -189,6 +189,10 @@ def walk_handoff_chain(session_id: str, max_depth: int = 50) -> SessionChainResu
     Finds the handoff file that references the current session's transcript,
     then follows prior transcript paths through handoff files recursively.
     Returns entries in oldest-to-newest order.
+
+    LIMITATION: On this system, compaction rewrites the handoff chain completely,
+    so prior sessions (493a609c, 982135c5) are not recoverable via handoff files
+    alone. walk_session_chain() falls back to Strategy 2 (mtime-gap) for this.
     """
     current_transcript = _resolve_transcript_path(session_id)
     if not current_transcript:
@@ -211,10 +215,17 @@ def walk_handoff_chain(session_id: str, max_depth: int = 50) -> SessionChainResu
 
     entries: list[SessionChainEntry] = []
     visited: set[str] = set()
+    visited_handoffs: set[str] = set()  # prevent self-referential loops
 
     while handoff_path and len(entries) < max_depth:
         prior_transcript = None
         prior_session_id: str | None = None
+
+        handoff_key = str(handoff_path)
+        if handoff_key in visited_handoffs:
+            # Self-referential handoff (source == n_1) — stop following this chain
+            break
+        visited_handoffs.add(handoff_key)
 
         # TOCTOU-fix: read handoff within try/except to handle concurrent deletion
         try:
@@ -875,19 +886,21 @@ def walk_session_chain(
 
     # Strategy 1: Handoff-file chain
     handoff_result = walk_handoff_chain(session_id, max_depth)
-    if handoff_result.entries and handoff_result.entries[0].session_id != session_id:
+    # Accept if chain has more than the start session (walk_handoff_chain detected a real prior)
+    if len(handoff_result.entries) > 1:
         if newest_first:
             handoff_result.entries.reverse()
         return handoff_result
 
-    # Strategy 2: sessions-index mtime-gap + semantic
+    # Strategy 2: sessions-index mtime-gap + semantic (fallback when handoff chain is incomplete)
     mtime_result = walk_sessions_index_chain(session_id, project_path, max_depth)
-    if mtime_result.entries and mtime_result.entries[0].session_id != session_id:
+    if mtime_result.entries:
         if newest_first:
             mtime_result.entries.reverse()
         return mtime_result
 
-    return mtime_result
+    # Fallback: return what Strategy 1 produced (at minimum, the start session)
+    return handoff_result
 
 
 def get_all_chain_files(
