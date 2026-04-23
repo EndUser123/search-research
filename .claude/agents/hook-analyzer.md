@@ -58,6 +58,16 @@ Check:
 - Cleanup on completion or timeout
 - No cross-instance contamination
 
+## Key References
+
+When analyzing regex patterns in hooks, use:
+- **P:\.claude\memory\regex-alternatives-reference.md** — Comprehensive reference for regex alternatives with tradeoffs, use cases, and implementation considerations
+
+This reference is particularly useful when:
+- Evaluating pattern efficiency (NFA vs DFA, catastrophic backtracking)
+- Assessing structural alternatives to regex-based detection
+- Recommending non-regex approaches for pattern matching problems
+
 ## Output Format
 
 ```

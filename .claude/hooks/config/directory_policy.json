@@ -672,6 +672,11 @@
           "action": "DELETE"
         },
         {
+          "pattern": ".cks/",
+          "reason": "Obsolete CKS storage - canonical path is .data/cks/ (task_repository_client.py updated)",
+          "action": "DELETE"
+        },
+        {
           "pattern": ".locks/",
           "reason": "Lock directory with active consumers - KEPT (file_lock_manager.py, session_data_retention.py)",
           "action": "KEEP"
