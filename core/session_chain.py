@@ -78,11 +78,18 @@ logger = logging.getLogger(__name__)
 
 
 def _claude_base() -> Path:
+    # On Windows, Claude Code may store state on a project drive (P:)
+    # before the user home directory. Check P:/.claude first.
+    p_drive_claude = Path("P:") / ".claude"
+    if p_drive_claude.exists():
+        return p_drive_claude
     return Path.home() / ".claude"
 
 
 def _projects_dir() -> Path:
-    return _claude_base() / "projects"
+    # Transcript files live in the Windows user profile, not on P: drive.
+    # P:/.claude is used for state (handoff files), but projects live in HOME.
+    return Path.home() / ".claude" / "projects"
 
 
 def _handoff_dir() -> Path:
@@ -124,7 +131,7 @@ def _get_prior_transcript_path(handoff_path: Path) -> Path | None:
     try:
         with open(handoff_path, encoding="utf-8") as f:
             data = json.load(f)
-        path_str = data.get("resume_snapshot", {}).get("transcript_path")
+        path_str = data.get("resume_snapshot", {}).get("n_1_transcript_path")
         if path_str:
             p = Path(path_str)
             try:
@@ -148,13 +155,12 @@ def _find_handoff_referencing(transcript_path: Path) -> Path | None:
     handoff_dir = _handoff_dir()
     if not handoff_dir.exists():
         return None
-    target = str(transcript_path)
-
     for hf in handoff_dir.glob("console_*_handoff.json"):
         try:
             with open(hf, encoding="utf-8") as f:
                 handoff_data = json.load(f)
-            if handoff_data.get("resume_snapshot", {}).get("transcript_path") == target:
+            handoff_path_val = handoff_data.get("resume_snapshot", {}).get("n_1_transcript_path", "")
+            if handoff_path_val and Path(handoff_path_val) == transcript_path:
                 return hf
         except (OSError, json.JSONDecodeError, PermissionError):
             continue
