@@ -65,6 +65,18 @@ class BaseLocalBackend:
                     return True
         return False
 
+    def _sanitize_query(self, query: str, max_length: int = 500) -> str:
+        """Strip non-printable characters and limit query length.
+
+        Args:
+            query: Raw query string
+            max_length: Maximum allowed length
+
+        Returns:
+            Sanitized query safe for subprocess calls
+        """
+        return "".join(c for c in query if c.isprintable())[:max_length]
+
     def build_index(self) -> None:
         """Build AST index of functions, classes, and methods.
 

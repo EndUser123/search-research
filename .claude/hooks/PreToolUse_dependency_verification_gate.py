@@ -643,7 +643,7 @@ def main() -> None:
         }
     )
     if payload:
-        print(json.dumps(payload))
+        print(payload.get("reason", "Package installation blocked."), file=sys.stderr)
         sys.exit(2)
     sys.exit(0)
 

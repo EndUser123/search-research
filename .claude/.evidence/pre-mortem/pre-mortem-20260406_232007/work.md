@@ -1,1 +1,0 @@
-skill_forced_eval Re-enablement - Fixed sys.path imports and added manual hook registration

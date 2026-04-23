@@ -7,6 +7,7 @@ Stop-time blocking hooks for avoidable style and epistemic failures.
 from __future__ import annotations
 
 import os
+import sys
 from functools import lru_cache
 from pathlib import Path
 
@@ -34,7 +35,10 @@ _FALLBACK_CONTRACT = (
     "If the user corrects your frame, adopt the correction and stop defending the prior one. "
     "If the next step is obvious, do it instead of narrating intent. "
     "If you are blocked, ask one precise question or run the narrowest useful check. "
-    "If multiple paths exist, choose the shortest evidence-first path and say why."
+    "If multiple paths exist, choose the shortest evidence-first path and say why. "
+    "For investigation, diagnosis, or documentation requests, default to documentation-only mode and stop at findings. "
+    "Do not start implementation unless the user explicitly asks for it; silence or ambiguity is not approval. "
+    "If implementation might help, ask explicitly whether to proceed or remain documentation-only."
 )
 _CASUAL_PROMPTS = {
     "thanks",
@@ -157,6 +161,11 @@ def behavior_contract(context: HookContext) -> HookResult:
         return HookResult.empty()
 
     contract = build_behavior_contract()
+
+    # Trace visibility: print to stdout so hook-obs users can see fires without reading JSONL
+    prompt_preview = (context.prompt or "")[:80].replace("\n", " ")
+    print(f"[behavior_contract] fired | prompt: {prompt_preview}...", file=sys.stdout)
+
     if log_hook_invocation is not None:
         try:
             log_hook_invocation(

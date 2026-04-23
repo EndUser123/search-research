@@ -12,6 +12,7 @@ from UserPromptSubmit_modules.file_immediate_read import (
     _extract_paths,
     _is_readable_file,
     _expand_path,
+    _readable_files_in_dir,
     file_immediate_read,
 )
 
@@ -94,6 +95,37 @@ class TestExpandPath:
         # README.md at P:\ should exist
         if result is not None:
             assert not result.exists() or result.is_file()
+
+    def test_p_drive_path_no_doubling(self):
+        # Regression: "P:/foo" should not resolve via "P:/P:/foo"
+        result = _expand_path("P:/.claude/hooks/CLAUDE.md")
+        if result is not None:
+            assert result.exists()
+            assert result.is_file()
+
+
+class TestReadableFilesInDir:
+    """Test directory listing for readable files."""
+
+    def test_lists_readable_files(self, tmp_path):
+        (tmp_path / "a.py").write_text("# py")
+        (tmp_path / "b.md").write_text("# md")
+        (tmp_path / "c.txt").write_text("text")
+        (tmp_path / "d.exe").write_text("bin")  # not readable
+        files = _readable_files_in_dir(tmp_path, max_files=10)
+        assert len(files) == 3
+        assert all(Path(f).suffix in (".py", ".md", ".txt") for f in files)
+
+    def test_respects_max_files(self, tmp_path):
+        for i in range(8):
+            (tmp_path / f"f{i}.py").write_text("#")
+        files = _readable_files_in_dir(tmp_path, max_files=5)
+        assert len(files) == 5
+
+    def test_empty_for_non_directory(self, tmp_path):
+        f = tmp_path / "file.txt"
+        f.write_text("content")
+        assert _readable_files_in_dir(f) == []
 
 
 class TestFileImmediateReadIntegration:

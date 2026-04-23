@@ -78,11 +78,18 @@ logger = logging.getLogger(__name__)
 
 
 def _claude_base() -> Path:
+    # On Windows, Claude Code may store state on a project drive (P:)
+    # before the user home directory. Check P:/.claude first.
+    p_drive_claude = Path("P:") / ".claude"
+    if p_drive_claude.exists():
+        return p_drive_claude
     return Path.home() / ".claude"
 
 
 def _projects_dir() -> Path:
-    return _claude_base() / "projects"
+    # Transcript files live in the Windows user profile, not on P: drive.
+    # P:/.claude is used for state (handoff files), but projects live in HOME.
+    return Path.home() / ".claude" / "projects"
 
 
 def _handoff_dir() -> Path:
@@ -124,7 +131,7 @@ def _get_prior_transcript_path(handoff_path: Path) -> Path | None:
     try:
         with open(handoff_path, encoding="utf-8") as f:
             data = json.load(f)
-        path_str = data.get("resume_snapshot", {}).get("transcript_path")
+        path_str = data.get("resume_snapshot", {}).get("n_1_transcript_path")
         if path_str:
             p = Path(path_str)
             try:
@@ -148,13 +155,12 @@ def _find_handoff_referencing(transcript_path: Path) -> Path | None:
     handoff_dir = _handoff_dir()
     if not handoff_dir.exists():
         return None
-    target = str(transcript_path)
-
     for hf in handoff_dir.glob("console_*_handoff.json"):
         try:
             with open(hf, encoding="utf-8") as f:
                 handoff_data = json.load(f)
-            if handoff_data.get("resume_snapshot", {}).get("transcript_path") == target:
+            handoff_path_val = handoff_data.get("resume_snapshot", {}).get("n_1_transcript_path", "")
+            if handoff_path_val and Path(handoff_path_val) == transcript_path:
                 return hf
         except (OSError, json.JSONDecodeError, PermissionError):
             continue
@@ -180,9 +186,12 @@ def _resolve_transcript_path(session_id: str) -> Path | None:
 def walk_handoff_chain(session_id: str, max_depth: int = 50) -> SessionChainResult:
     """Walk session chain via handoff files.
 
-    Finds the handoff file that references the current session's transcript,
-    then follows prior transcript paths through handoff files recursively.
-    Returns entries in oldest-to-newest order.
+    Strategy:
+    1. Find the handoff file referencing the current session's transcript.
+    2. If the handoff has a session_chain field (oldest-first list of session IDs),
+       use it to resolve all prior sessions — this survives PreCompact chain rewrites.
+    3. Otherwise fall back to following n_1_transcript_path links (may be broken
+       on systems where PreCompact overwrites the chain on each compaction).
     """
     current_transcript = _resolve_transcript_path(session_id)
     if not current_transcript:
@@ -203,14 +212,71 @@ def walk_handoff_chain(session_id: str, max_depth: int = 50) -> SessionChainResu
             origin_session_id=session_id,
         )
 
+    # Read the handoff once to check for session_chain
+    try:
+        with open(handoff_path, encoding="utf-8") as f:
+            handoff_data = json.load(f)
+        snapshot = handoff_data.get("resume_snapshot", {})
+        session_chain_ids: list[str] = snapshot.get("session_chain") or []
+    except (OSError, json.JSONDecodeError, PermissionError):
+        session_chain_ids = []
+
+    if session_chain_ids:
+        # session_chain is oldest-first [S0, S1, S2, ...].
+        # Resolve each session_id to its transcript path.
+        visited: set[str] = set()
+        entries: list[SessionChainEntry] = []
+        for chain_session_id in session_chain_ids:
+            if len(entries) >= max_depth:
+                break
+            chain_transcript = _resolve_transcript_path(chain_session_id)
+            if chain_transcript and str(chain_transcript) not in visited:
+                entries.append(
+                    SessionChainEntry(
+                        session_id=chain_session_id,
+                        transcript_path=chain_transcript,
+                        parent_transcript_path=None,
+                        created=None,
+                    )
+                )
+                visited.add(str(chain_transcript))
+
+        # Append the current session as the newest
+        if current_transcript and str(current_transcript) not in visited:
+            entries.append(
+                SessionChainEntry(
+                    session_id=session_id,
+                    transcript_path=current_transcript,
+                    parent_transcript_path=None,
+                    created=None,
+                )
+            )
+
+        # Fill parent links (oldest → ... → current)
+        for i, entry in enumerate(entries):
+            if i > 0:
+                entry.parent_transcript_path = entries[i - 1].transcript_path
+
+        return SessionChainResult(
+            entries=entries,
+            depth=len(entries),
+            origin_session_id=entries[0].session_id if entries else None,
+        )
+
+    # Fallback: no session_chain — follow n_1_transcript_path chain (may be broken)
     entries: list[SessionChainEntry] = []
     visited: set[str] = set()
+    visited_handoffs: set[str] = set()
 
     while handoff_path and len(entries) < max_depth:
         prior_transcript = None
         prior_session_id: str | None = None
 
-        # TOCTOU-fix: read handoff within try/except to handle concurrent deletion
+        handoff_key = str(handoff_path)
+        if handoff_key in visited_handoffs:
+            break
+        visited_handoffs.add(handoff_key)
+
         try:
             prior_transcript = _get_prior_transcript_path(handoff_path)
         except (OSError, PermissionError, RuntimeError) as e:
@@ -223,8 +289,6 @@ def walk_handoff_chain(session_id: str, max_depth: int = 50) -> SessionChainResu
                 break
             visited.add(str(prior_transcript))
         else:
-            # Prior transcript missing (post-compaction) — extract session_id from
-            # handoff filename as fallback: console_{session_id}_handoff.json
             prior_session_id = handoff_path.stem.replace("_handoff", "")
 
         entries.append(
@@ -236,7 +300,6 @@ def walk_handoff_chain(session_id: str, max_depth: int = 50) -> SessionChainResu
             )
         )
 
-        # TOCTOU-fix: find prior handoff within try/except
         if prior_transcript:
             try:
                 handoff_path = _find_handoff_referencing(prior_transcript)
@@ -255,7 +318,6 @@ def walk_handoff_chain(session_id: str, max_depth: int = 50) -> SessionChainResu
         if i > 0:
             entry.parent_transcript_path = entries[i - 1].transcript_path
 
-    # FIX: Use len(entries) instead of chain_depth+1 to avoid off-by-one on early break
     return SessionChainResult(
         entries=entries,
         depth=len(entries),
@@ -869,19 +931,21 @@ def walk_session_chain(
 
     # Strategy 1: Handoff-file chain
     handoff_result = walk_handoff_chain(session_id, max_depth)
-    if handoff_result.entries and handoff_result.entries[0].session_id != session_id:
+    # Accept if chain has more than the start session (walk_handoff_chain detected a real prior)
+    if len(handoff_result.entries) > 1:
         if newest_first:
             handoff_result.entries.reverse()
         return handoff_result
 
-    # Strategy 2: sessions-index mtime-gap + semantic
+    # Strategy 2: sessions-index mtime-gap + semantic (fallback when handoff chain is incomplete)
     mtime_result = walk_sessions_index_chain(session_id, project_path, max_depth)
-    if mtime_result.entries and mtime_result.entries[0].session_id != session_id:
+    if mtime_result.entries:
         if newest_first:
             mtime_result.entries.reverse()
         return mtime_result
 
-    return mtime_result
+    # Fallback: return what Strategy 1 produced (at minimum, the start session)
+    return handoff_result
 
 
 def get_all_chain_files(

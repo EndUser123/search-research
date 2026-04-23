@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from core.chs.archive import write_watermark, read_watermark
+from ..archive import write_watermark, read_watermark
 
 DB_PATH = Path("P:/__csf/data/chat_history.db")
 

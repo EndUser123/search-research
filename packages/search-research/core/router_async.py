@@ -262,6 +262,11 @@ class AsyncSearchRouter:
         except Exception as e:
             logger.debug(f"Dependency backend not available: {e}")
 
+        try:
+            backends["call_graph"] = local.CallGraphBackend()
+        except Exception as e:
+            logger.debug(f"Call graph backend not available: {e}")
+
         # QMD Wiki backend - searches Obsidian vault via QMD CLI
         try:
             backends["qmd_wiki"] = local.QMDWikiBackend()
@@ -792,14 +797,12 @@ class AsyncSearchRouter:
         # scores of 5-10 vs normalized confidence of 0-1). Without
         # normalization, high-magnitude scores dominate ranking and
         # effectively silence backends with lower-magnitude scores.
-        source_scores: dict[str, list[float]] = defaultdict(list)
+        # Single-pass space optimization: track running (min, max) per source
+        # instead of collecting all scores into lists.
+        source_min_max: dict[str, tuple[float, float]] = defaultdict(lambda: (float("inf"), float("-inf")))
         for r in results:
-            source_scores[r.source].append(r.score)
-
-        source_min_max: dict[str, tuple[float, float]] = {}
-        for source, scores in source_scores.items():
-            mn, mx = min(scores), max(scores)
-            source_min_max[source] = (mn, mx)
+            mn, mx = source_min_max[r.source]
+            source_min_max[r.source] = (min(mn, r.score), max(mx, r.score))
 
         # Normalize each result's score for ranking purposes
         for r in results:

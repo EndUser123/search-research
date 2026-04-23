@@ -158,6 +158,41 @@ def test_behavior_contract_can_be_disabled() -> None:
             os.environ["LLM_BEHAVIOR_CONTRACT_ENABLED"] = original
 
 
+def test_behavior_contract_fires_on_documentation_request() -> None:
+    """RCA verification: ensure documentation prompts trigger the contract.
+
+    This was the gap that allowed LLM to implement when user only wanted docs.
+    The contract's behavioral rubric rule: "stop at findings, do not begin implementation."
+    """
+    original = os.environ.get("LLM_BEHAVIOR_CONTRACT_ENABLED")
+    os.environ["LLM_BEHAVIOR_CONTRACT_ENABLED"] = "true"
+    try:
+        context = HookContext(
+            prompt="can you document the approach we discussed?",
+            data={},
+            session_id="test-session",
+            terminal_id="test-terminal",
+        )
+        result = behavior_contract(context)
+        assert not result.is_empty(), "documentation request should trigger contract"
+        # Verify the documentation boundary rule is present in injected text
+        text = result.context.lower()
+        assert any(
+            phrase in text
+            for phrase in [
+                "documentation",
+                "findings",
+                "implementation",
+                "stop at",
+            ]
+        ), f"contract should mention documentation boundary, got: {result.context[:200]}"
+    finally:
+        if original is None:
+            os.environ.pop("LLM_BEHAVIOR_CONTRACT_ENABLED", None)
+        else:
+            os.environ["LLM_BEHAVIOR_CONTRACT_ENABLED"] = original
+
+
 def test_behavior_contract_logs_turn_scope(monkeypatch) -> None:
     calls: list[dict] = []
 

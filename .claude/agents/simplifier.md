@@ -58,8 +58,10 @@ After detecting the language, delegate to a specialized agent if one exists:
 
 When asked for a multi-perspective simplification review (e.g. "review the diff", "assess with multiple agents"), use **exactly** the agents below.
 
-> Full agent registry: **`P:/.claude/docs/plugin-agents.md`**
-> Only use names from that file. Never invent plugin sub-agent names.
+> Verify agent names via runtime discovery — never invent subagent_type strings.
+> ```bash
+> find "$HOME/.claude/plugins/cache" -name "*.md" -path "*/agents/*" | sed 's|.*/cache/[^/]*/\([^/]*\)/[^/]*/agents/\([^.]*\)\.md|\1:\2|' | sort -u
+> ```
 
 | Role | `subagent_type` | Focus |
 |------|----------------|-------|

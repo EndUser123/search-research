@@ -1,6 +1,6 @@
 """Auto-scaffolded test for youtube."""
 
-import pytest
+import pytest  # noqa: F401
 from core.providers.you import YouBackend
 
 

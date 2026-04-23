@@ -388,7 +388,7 @@ class LoadBalancer:
         }
 
 
-class CKSPreformanceOptimizer:
+class CKSPerformanceOptimizer:
     """Comprehensive CKS Performance Optimization System.
 
     Provides multi-tier caching, query optimization, and intelligent load balancing

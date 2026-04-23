@@ -1166,7 +1166,7 @@ def _run_recommendation_gate(data: dict) -> dict | None:
         response = data.get("response", "")
         if not response:
             return None
-        return Stop_recommendation_gate.check_recommendation(response)
+        return Stop_recommendation_gate.check_recommendation(response, data)
     except Exception as e:
         print(f"[Stop] recommendation_gate error: {e}", file=sys.stderr)
         return None

@@ -167,12 +167,12 @@ from parallel_llm import (  # noqa: E402
 try:
     from .performance_logger import CliPerformanceLogger
     from .prompt_templates import build_prompt
-    from .task_classifier import classify_task
+    from .task_classifier import classify_task, TaskType
 except ImportError:
     # Running as standalone script - use direct imports
     from performance_logger import CliPerformanceLogger
     from prompt_templates import build_prompt
-    from task_classifier import classify_task
+    from task_classifier import classify_task, TaskType
 
 # Load .env file from repo root (P:\)
 _repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -2188,6 +2188,19 @@ def _extract_file_paths_from_query(query: str) -> list[str]:
     file_matches = re.findall(file_ref_pattern, query)
     paths.extend(file_matches)
 
+    # Pattern 3: Extensionless absolute paths that are directories
+    # Matches paths like P:/packages/yt-is that have no file extension but exist as dirs
+    dir_path_pattern = r"(?:[A-Za-z]:[/\\]|/)[/\w\-.]+"
+    for match in re.findall(dir_path_pattern, query):
+        # Skip if already captured by patterns 1 or 2 (has extension)
+        if re.search(r"\.[\w]{2,4}$", match):
+            continue
+        p = Path(match)
+        if not p.exists():
+            p = Path.cwd() / match
+        if p.exists() and p.is_dir():
+            paths.append(match)
+
     # Resolve relative paths
     resolved_paths = []
     for path in paths:
@@ -2195,7 +2208,7 @@ def _extract_file_paths_from_query(query: str) -> list[str]:
         if not p.exists():
             # Try current working directory
             p = Path.cwd() / path
-        if p.exists() and p.is_file():
+        if p.exists() and (p.is_file() or p.is_dir()):
             resolved_paths.append(str(p))
 
     return list(set(resolved_paths))  # Dedupe
@@ -2255,16 +2268,24 @@ def _smart_auto_context(query: str) -> str | None:
             return context
 
     # Priority 2: Git changed files
-    git_files = _get_git_changed_files()
-    if git_files:
-        # Use most recently modified file
-        for file_path in git_files:
-            p = Path(file_path)
-            if p.exists() and p.is_file():
-                context = get_context(str(p), auto_context=False)
-                if context:
-                    print(f"[Auto-detected git changed file: {file_path}]", file=sys.stderr)
-                    return context
+    # Skip for conceptual queries - they have no specific target file
+    conceptual_keywords = [
+        "what ideas", "how should", "should we", "could we", "ways to",
+        "ideas for", "enhance", "improve", "design", "architect",
+        "concept", "approach", "strategy", "thoughts on",
+    ]
+    is_conceptual = any(kw in query.lower() for kw in conceptual_keywords)
+    if not is_conceptual:
+        git_files = _get_git_changed_files()
+        if git_files:
+            # Use most recently modified file
+            for file_path in git_files:
+                p = Path(file_path)
+                if p.exists() and p.is_file():
+                    context = get_context(str(p), auto_context=False)
+                    if context:
+                        print(f"[Auto-detected git changed file: {file_path}]", file=sys.stderr)
+                        return context
 
     # Priority 3: Session activity (already handled by WT_SESSION check below)
     return None
@@ -2633,8 +2654,7 @@ def _deduplicate_findings(findings: list[dict], priority_order: dict[str, int]) 
 
         for agg in aggregated:
             # Use fuzzy matching to detect duplicates
-            finder.set_seqs1(finding_text.lower())
-            finder.set_seqs2(agg["finding"].lower())
+            finder.set_seqs(finding_text.lower(), agg["finding"].lower())
             ratio = finder.ratio()
 
             if ratio >= 0.7:  # 70% similarity threshold
@@ -3479,11 +3499,33 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
                 # else: enhancement was skipped silently, no log needed
         except (ImportError, AttributeError, asyncio.RuntimeError) as e:
             print(f"[prompting-toolkit unavailable: {e}], using built-in templates", file=_sys_local.stderr)
+            # Override PLANNING -> BRAINSTORM when context is empty and query is conceptual
+            # Conceptual queries without files are brainstorm tasks, not planning tasks
+            if not context and classification.task_type == TaskType.PLANNING:
+                conceptual_starters = (
+                    "what ideas", "how should", "should we", "could we", "ways to",
+                    "ideas for", "how could", "what's the best", "how can we",
+                )
+                query_lower = args.query.lower().strip()
+                if any(query_lower.startswith(s) for s in conceptual_starters):
+                    classification.task_type = TaskType.BRAINSTORM
+                    print(f"[Conceptual query without context - overriding to brainstorm]", file=sys.stderr)
             enhanced_query = build_prompt(query, classification.task_type, context)
             if enhanced_query != query:
                 query = enhanced_query
                 print(f"[Applied {classification.task_type.value} prompt template]", file=sys.stderr)
     else:
+        # Override PLANNING -> BRAINSTORM when context is empty and query is conceptual
+        # Conceptual queries without files are brainstorm tasks, not planning tasks
+        if not context and classification.task_type == TaskType.PLANNING:
+            conceptual_starters = (
+                "what ideas", "how should", "should we", "could we", "ways to",
+                "ideas for", "how could", "what's the best", "how can we",
+            )
+            query_lower = args.query.lower().strip()
+            if any(query_lower.startswith(s) for s in conceptual_starters):
+                classification.task_type = TaskType.BRAINSTORM
+                print(f"[Conceptual query without context - overriding to brainstorm]", file=sys.stderr)
         enhanced_query = build_prompt(query, classification.task_type, context)
         if enhanced_query != query:
             query = enhanced_query

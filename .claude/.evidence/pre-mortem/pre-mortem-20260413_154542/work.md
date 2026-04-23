@@ -1,1 +1,0 @@
-GTO skill test fixes session — adjacent_file_scanner transcript parsing is broken (CAUSE-001), gap_resolution_tracker has wrong changelog import path (CAUSE-004), gap trend calculation has off-by-one (LOGIC-001). Session fixed 13 test failures in GTO test suite (92 pass now). Retro on going.

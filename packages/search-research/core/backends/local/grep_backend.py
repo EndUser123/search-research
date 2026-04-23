@@ -110,22 +110,18 @@ class GrepBackend(BaseLocalBackend):
             self.build_index()
 
         query_lower = query.lower()
+        # Normalize once: strip declaration prefix upfront to avoid double lookup
+        query_normalized = self._strip_declaration_prefix(query_lower)
         results = []
 
         # Exact matches first
-        if query_lower in self._index:
-            for idx, item in enumerate(self._index[query_lower]):
-                results.append(self._format_result(item, f"grep_{query_lower}_{idx}", 0.6))
-        else:
-            # Try stripping common declaration prefixes ("class ", "def ", "async ")
-            stripped = self._strip_declaration_prefix(query_lower)
-            if stripped in self._index:
-                for idx, item in enumerate(self._index[stripped]):
-                    results.append(self._format_result(item, f"grep_{stripped}_{idx}", 0.6))
+        if query_normalized in self._index:
+            for idx, item in enumerate(self._index[query_normalized]):
+                results.append(self._format_result(item, f"grep_{query_normalized}_{idx}", 0.6))
 
         # Partial matches
         for key, items in self._index.items():
-            if query_lower in key and query_lower != key:
+            if query_normalized in key and query_normalized != key:
                 for idx, item in enumerate(items):
                     results.append(self._format_result(item, f"grep_{key}_{idx}", 0.4))
 

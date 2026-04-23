@@ -161,6 +161,10 @@ class CKSMetadataBackend:
 
                 results.append(result)
 
+            # Query expansion: if 0 results and query has multiple words, try each term
+            if not results and query and query.strip() and " " in query.strip():
+                results = self._query_expansion(query, limit)
+
             conn.close()
 
         except sqlite3.Error:
@@ -168,6 +172,87 @@ class CKSMetadataBackend:
             pass
 
         return results
+
+    def _query_expansion(
+        self,
+        query: str,
+        limit: int,
+    ) -> list[dict[str, Any]]:
+        """Try individual query terms when multi-word query returns nothing.
+
+        This handles the case where CKS entries contain individual terms but not
+        the full phrase (e.g., entries mention 'claude' or 'hooks' separately
+        but not 'claude hooks' as a phrase).
+        """
+        terms = [t.strip() for t in query.split() if t.strip()]
+        if not terms:
+            return []
+
+        all_results: dict[str, dict[str, Any]] = {}
+
+        try:
+            conn = sqlite3.connect(str(self.db_path))
+            conn.row_factory = sqlite3.Row
+
+            for term in terms:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    SELECT id, type, title, content, metadata, created_at
+                    FROM entries
+                    WHERE title LIKE ? OR content LIKE ?
+                    ORDER BY created_at DESC
+                    LIMIT ?
+                    """,
+                    (f"%{term}%", f"%{term}%", limit),
+                )
+
+                for row in cursor.fetchall():
+                    row_id = row["id"]
+                    if row_id in all_results:
+                        continue
+
+                    try:
+                        outer_metadata = json.loads(row["metadata"]) if row["metadata"] else {}
+                        inner_metadata = outer_metadata.get("metadata", {})
+                    except json.JSONDecodeError:
+                        outer_metadata = {}
+                        inner_metadata = {}
+
+                    title = row["title"]
+                    if inner_metadata.get("file_path"):
+                        citation = inner_metadata["file_path"]
+                        if inner_metadata.get("line_number"):
+                            citation += f":{inner_metadata['line_number']}"
+                        title = f"{citation} — {row['title']}"
+
+                    result: dict[str, Any] = {
+                        "source": BACKEND_CKS_METADATA,
+                        "backend": BACKEND_CKS_METADATA,
+                        "reason": f"Term expansion: '{term}'",
+                        "id": row_id,
+                        "type": row["type"],
+                        "title": title,
+                        "content": row["content"],
+                        "score": 0.7,
+                        "metadata": {
+                            "file_path": inner_metadata.get("file_path"),
+                            "line_number": inner_metadata.get("line_number"),
+                            "category": inner_metadata.get("category"),
+                            "skill_source": inner_metadata.get("skill_source"),
+                            "created_at": row["created_at"],
+                            "expansion_term": term,
+                        },
+                    }
+
+                    all_results[row_id] = result
+
+            conn.close()
+
+        except sqlite3.Error:
+            pass
+
+        return list(all_results.values())[:limit]
 
     def query_file_history(self, file_path: str, limit: int = 100) -> list[dict[str, Any]]:
         """Query all entries for a specific file (file history).

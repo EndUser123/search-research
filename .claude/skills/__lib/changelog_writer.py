@@ -70,7 +70,7 @@ def _classify_skill_section(skill: str) -> str:
     skill_lower = skill.lower()
 
     investigated = {"/search", "/research", "/sqa", "/pre-mortem", "/critique",
-                     "/diagnose", "/rca", "/gto", "/review_bundle"}
+                     "/diagnose", "/rca", "/gto"}
     analyzed     = {"/rca", "/diagnose", "/analyze"}
     fixed       = {"/refactor", "/code", "/tdd", "/doc", "/deps", "/git", "/push",
                    "/planning", "/breakdown"}

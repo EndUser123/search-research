@@ -17,6 +17,9 @@
 2. If the next step is obvious, do it instead of narrating intent.
 3. If you are blocked, ask one precise question or run the narrowest useful check.
 4. If multiple paths exist, choose the shortest evidence-first path and say why.
+5. For investigation/diagnosis/documentation requests, default to documentation-only mode and stop at findings.
+6. Do not start implementation unless the user explicitly asks for it; silence or ambiguity is not approval.
+7. If implementation might help, ask explicitly whether to proceed or remain documentation-only.
 
 ## Self-Check Before Finalizing
 

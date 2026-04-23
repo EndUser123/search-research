@@ -55,6 +55,7 @@ class CDSBackend(BaseLocalBackend):
         self._hmac_key = self._cache_key().encode()
 
         self._import_index: dict[str, list[str]] = {}
+        self._doc_index: dict[str, list[dict]] = {}  # Inverted docstring index: word -> items
         self._file_mtimes: dict[str, float] = {}
 
     def _compute_hmac(self, data: dict[str, Any]) -> str:
@@ -161,6 +162,7 @@ class CDSBackend(BaseLocalBackend):
             # Load verified data
             self._index = cached_data.get("index", {})
             self._import_index = cached_data.get("import_index", {})
+            self._doc_index = cached_data.get("doc_index", {})
 
             meta = json.loads(self._index_meta_path.read_text())
             self._file_mtimes = meta.get("file_mtimes", {})
@@ -180,11 +182,12 @@ class CDSBackend(BaseLocalBackend):
         try:
             self._cache_dir.mkdir(parents=True, exist_ok=True)
 
-            # Save index with import_index and HMAC signature (SEC-001 fix)
+            # Save index with import_index, doc_index, and HMAC signature (SEC-001 fix)
             cache_data = {
                 "index": self._index,
                 "import_index": self._import_index,
-                "signature": self._compute_hmac(self._index),  # Add HMAC signature
+                "doc_index": self._doc_index,
+                "signature": self._compute_hmac(self._index),  # HMAC on _index only
             }
             with open(self._index_path, "w") as f:
                 json.dump(cache_data, f, indent=2)
@@ -196,6 +199,7 @@ class CDSBackend(BaseLocalBackend):
                 "indexed_at": time.time(),
                 "total_entries": sum(len(v) for v in self._index.values()),
                 "total_imports": len(self._import_index),
+                "total_doc_words": len(self._doc_index),
             }
             self._index_meta_path.write_text(json.dumps(meta, indent=2))
         except (OSError, Exception):
@@ -279,6 +283,15 @@ class CDSBackend(BaseLocalBackend):
                 if key not in self._index:
                     self._index[key] = []
                 self._index[key].append(result)
+                # Build inverted docstring index: tokenize and index
+                doc_lower = result["doc"].lower()
+                for word in doc_lower.split():
+                    # Strip punctuation from word
+                    word = word.strip(".,;:()[]{}\"'`!@#$%^&*+-=/\\|<>~")
+                    if word and len(word) > 1:  # Skip single-char tokens
+                        if word not in self._doc_index:
+                            self._doc_index[word] = []
+                        self._doc_index[word].append(result)
 
     def search(self, query: str, limit: int = 10) -> list[SearchResult]:
         """Search for code by name or docstring.
@@ -295,17 +308,25 @@ class CDSBackend(BaseLocalBackend):
 
         query_lower = query.lower()
         results = []
+        seen: set[int] = set()
+
+        def add_result(item: dict[str, Any]) -> None:
+            item_id = id(item)
+            if item_id not in seen:
+                seen.add(item_id)
+                results.append(item)
 
         # Direct name matches
         if query_lower in self._index:
-            results.extend(self._index[query_lower])
+            for item in self._index[query_lower]:
+                add_result(item)
 
-        # Docstring matches
-        for _key, items in self._index.items():
-            for item in items:
-                if query_lower in item["doc"].lower():
-                    if item not in results:
-                        results.append(item)
+        # Docstring matches via inverted index (word-split matches query tokenization)
+        for word in query_lower.split():
+            word = word.strip(".,;:()[]{}\"'`!@#$%^&*+-=/\\|<>~")
+            if word and len(word) > 1 and word in self._doc_index:
+                for item in self._doc_index[word]:
+                    add_result(item)
 
         return results[:limit]
 

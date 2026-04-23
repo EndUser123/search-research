@@ -51,7 +51,7 @@ class CallGraphBackend:
             root_paths: Root directories to analyze
             enable_health_tracking: Track backend health status
         """
-        self._root_paths = root_paths or ["P:/__csf/src"]
+        self._root_paths = root_paths or ["P:/packages/search-research"]
         self._enable_health = enable_health_tracking
 
         # Build call graph
@@ -216,9 +216,11 @@ class CallGraphBackend:
         results = []
         func_name_lower = func_name.lower()
 
-        for name, node in list(self._graph.functions.items())[:limit]:
-            if func_name_lower in name.lower():
+        for name, node in self._graph.functions.items():
+            if func_name_lower in node.name.lower():
                 results.append(self._node_to_result(node, "function match"))
+                if len(results) >= limit:
+                    break
 
         return results
 

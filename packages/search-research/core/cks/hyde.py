@@ -73,7 +73,7 @@ class HyDEQueryExpander:
         if self.enable_cache and query in self._cache:
             return self._cache[query]
 
-        query.lower()
+        query = query.lower()
 
         # Rule-based hypothetical generation based on query patterns
         hypothetical = self._generate_by_rules(query, query_type)

@@ -1,0 +1,36 @@
+{
+  "skill_name": "skill-craft",
+  "description": "Eval set for /skill-craft orchestrator",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run /skill-craft on P:/.claude/skills/skill-craft — the skill-craft skill should diagnose, plan, execute, evaluate fidelity, and gate itself.",
+      "expected_output": "fidelity gating evaluating diagnosing planning executing",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Run /skill-craft on a non-existent path P:/tmp/nonexistent-skill-xyz — should handle gracefully without crashing.",
+      "expected_output": "skill craft orchestrator phases",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Run /skill-craft on P:/.claude/skills/gto — a different skill. Expected: lifecycle completes, cert_gate validates, findings are routed.",
+      "expected_output": "fidelity cert_gate phase gating evaluating",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Run /skill-craft on P:/packages/cc-skills-meta/skills/skill-craft — the skill-craft skill should diagnose, plan, execute, evaluate its own fidelity, and gate itself. The /skill-craft trigger appears in this prompt.",
+      "expected_output": "fidelity cert_gate evaluating gating diagnosing",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "/skill-craft review /skill-craft for gaps and opportunities — self-review with explicit trigger",
+      "expected_output": "fidelity evaluating gating diagnosing planning",
+      "files": []
+    }
+  ]
+}

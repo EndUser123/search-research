@@ -1,6 +1,6 @@
 """Auto-scaffolded test for yt_is_backend."""
 
-import pytest
+import pytest  # noqa: F401
 from core.backends.local.yt_is_backend import YtIsBackend
 
 

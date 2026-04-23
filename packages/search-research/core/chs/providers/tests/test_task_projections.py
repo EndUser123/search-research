@@ -11,8 +11,8 @@ if _SEARCH_RESEARCH_DIR.exists():
 import pytest
 from datetime import datetime, timezone, timedelta
 
-from core.chs.db import get_connection
-from core.chs.task_projection import open_tasks, resolve_task
+from .db import get_connection
+from .task_projection import open_tasks, resolve_task
 
 DB_PATH = Path("P:/__csf/data/chat_history.db")
 

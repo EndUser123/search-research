@@ -78,6 +78,14 @@
       {
         "pattern": "scripts",
         "reason": "PowerShell and automation scripts"
+      },
+      {
+        "pattern": "worktrees",
+        "reason": "Git worktrees for parallel development"
+      },
+      {
+        "pattern": "tmp",
+        "reason": "Temporary working directory for active development"
       }
     ],
     "allowed_config_files": [
@@ -243,136 +251,161 @@
     "description": "P:/.claude\\ structure policy",
     "allowed_subdirectories": [
       {
-        "path": "commands",
-        "purpose": "Slash command stubs (.md files)"
-      },
-      {
         "path": "hooks",
-        "purpose": "Runtime hooks (Python, configs)"
-      },
-      {
-        "path": "state",
-        "purpose": "Internal state storage - adversarial reports, hook state, session data, consent tracking"
+        "purpose": "Runtime hooks (Python, configs) - user/third-party"
       },
       {
         "path": "hooks/.state",
-        "purpose": "Hook runtime state (isolated from source code) - TDD state, debug session state, task identity",
-        "contains": [
-          "tdd-state/ - TDD cycle state files (tdd_state_guard.py)",
-          "debug_session_state.json - Error tracking (PostToolUse_system2.py)",
-          "task-identity/ - Task recovery state (task_identity_manager.py)"
-        ]
-      },
-      {
-        "path": "agents",
-        "purpose": "Subagent definitions"
-      },
-      {
-        "path": "logs",
-        "purpose": "Runtime logs"
+        "purpose": "Hook runtime state - TDD state, debug session state, task identity"
       },
       {
         "path": "skills",
-        "purpose": "Agent skills (SKILL.md + scripts)"
+        "purpose": "Workflow definitions - user/third-party"
       },
       {
         "path": "skills/__lib__",
-        "purpose": "Skill automation modules (Python modules for skill automation)"
+        "purpose": "Skill automation modules (Python) - user/third-party"
+      },
+      {
+        "path": "agents",
+        "purpose": "Subagent definitions - user/third-party"
+      },
+      {
+        "path": "commands",
+        "purpose": "Custom slash commands (.md files) - user/third-party"
       },
       {
         "path": "rules",
-        "purpose": "Modular rule files (.md)"
+        "purpose": "Modular instruction files (.md) - user/third-party"
+      },
+      {
+        "path": "plans",
+        "purpose": "Plan-mode documents - user/third-party"
+      },
+      {
+        "path": "todos",
+        "purpose": "Task lists - created by /todo command"
+      },
+      {
+        "path": "projects",
+        "purpose": "Per-project session data and memory - Claude Code standard"
+      },
+      {
+        "path": "file-history",
+        "purpose": "File checkpoints and undo - Claude Code standard"
+      },
+      {
+        "path": "session-env",
+        "purpose": "Per-session environment variable snapshots - Claude Code standard"
+      },
+      {
+        "path": "shell-snapshots",
+        "purpose": "Shell state snapshots - Claude Code standard"
+      },
+      {
+        "path": "debug",
+        "purpose": "Debug logs - Claude Code standard"
+      },
+      {
+        "path": "plugins",
+        "purpose": "Installed plugins - Claude Code standard"
+      },
+      {
+        "path": "state",
+        "purpose": "Internal state storage - hooks, CKS, session state"
       },
       {
         "path": ".claude-plugin",
-        "purpose": "Plugin metadata"
+        "purpose": "Plugin metadata - user/third-party"
       },
       {
-        "path": "proxy",
-        "purpose": "MCP proxy scripts"
+        "path": "logs",
+        "purpose": "Runtime diagnostic logs - hooks, cognitive framework"
       },
       {
-        "path": "plans",
-        "purpose": "Implementation plans and specifications"
-      },
-      {
-        "path": "sessions",
-        "purpose": "Session context memory"
+        "path": "memory",
+        "purpose": "Session memory and auto-memory system"
       },
       {
         "path": "data",
-        "purpose": "Runtime data (events, caches)"
+        "purpose": "Runtime data - events, caches, working data"
       },
       {
-        "path": "event_queue",
-        "purpose": "Event queue for observability"
+        "path": "context",
+        "purpose": "Context management - session context, shared context"
       },
       {
-        "path": "fallback_events",
-        "purpose": "Fallback event storage"
+        "path": "knowledge",
+        "purpose": "Knowledge base - extracted KBs, semantic indexes"
       },
       {
-        "path": "session_context",
-        "purpose": "Session context data"
+        "path": "lessons",
+        "purpose": "Learned lessons and pattern documentation"
       },
       {
-        "path": "backups",
-        "purpose": "Configuration backups"
+        "path": "policies",
+        "purpose": "Operational policies and routing contracts"
       },
       {
-        "path": "integration",
-        "purpose": "Integration modules"
+        "path": "provider-configs",
+        "purpose": "AI provider configuration and credentials"
       },
       {
-        "path": "_archive",
-        "purpose": "Archived/deprecated items"
+        "path": "references",
+        "purpose": "Reference materials and lookup data"
       },
       {
-        "path": "docs",
-        "purpose": "Documentation for Claude Code runtime, hooks, agents, and skills (docs-as-code pattern)"
+        "path": "registry",
+        "purpose": "Service registry and capability registry"
       },
       {
-        "path": "plans",
-        "purpose": "Implementation plan files (created via /plan command)"
+        "path": "sessions",
+        "purpose": "Session history and transcript storage"
       },
       {
-        "path": "plan",
-        "purpose": "Implementation plan files (created via /plan command, staging for architecture work)"
+        "path": "session_data",
+        "purpose": "Per-session data and working state"
       },
       {
-        "path": "arch_reviews",
-        "purpose": "Architecture review documentation and analysis"
+        "path": "templates",
+        "purpose": "Response and artifact templates"
       },
       {
-        "path": "arch_decisions",
-        "purpose": "Architecture decision records (ADRs) documenting significant technical choices"
+        "path": "tests",
+        "purpose": "Test suites and test data"
+      },
+      {
+        "path": "transcripts",
+        "purpose": "Chat transcripts and conversation history"
+      },
+      {
+        "path": "wiki",
+        "purpose": "Wiki-ingested documentation (nlm-to-wiki skill)"
+      },
+      {
+        "path": "config",
+        "purpose": "Configuration files and settings"
       }
     ],
     "allowed_root_files": [
-      ".claudeignore",
       "settings.json",
       "settings.local.json",
       ".mcp.json",
+      "CLAUDE.md",
       "claude.md",
       "claude.local.md",
       "SKILL.md",
-      "CLAUDE.md",
-      "current_session.json",
-      "sessions.json",
-      "session_config.json",
-      "mutex_session.json",
-      "orchestrated_session.json",
+      ".claudeignore",
+      "history.jsonl",
+      "stats-cache.json",
+      "installed_plugins.json",
+      "known_marketplaces.json",
       "hook_validation_results.json",
       "deliberate_hook_changes.jsonl",
       ".session_start_lock",
       "config.yaml",
       "events.db",
-      "statusline.py",
-      "UNIFIED_INDEX.md",
-      "architectural_pillars.yaml",
-      "ai-cli-recipe.json",
-      "installed_plugins.json",
-      "known_marketplaces.json"
+      "ai-cli-recipe.json"
     ],
     "sensitive_patterns": [],
     "blocked_root_patterns": {
@@ -601,6 +634,47 @@
           "reason": "Legacy audit database (218MB) - no active code references",
           "action": "DELETE",
           "note": "Superseded by hooks/logs/diagnostics/diagnostics.db"
+        },
+        {
+          "pattern": "nul",
+          "reason": "Reserved Windows device name (\\\\.\\NUL) - always junk if it exists as a file",
+          "action": "DELETE"
+        },
+        {
+          "pattern": "hooks\"",
+          "reason": "Malformed filename with trailing quote - corrupted copy-paste artifact",
+          "action": "DELETE"
+        },
+        {
+          "pattern": "tmpclaude-*-cwd",
+          "reason": "Session temp files - left behind by past terminal sessions",
+          "action": "DELETE"
+        },
+        {
+          "pattern": "evidence",
+          "reason": "Non-hidden duplicate of .evidence/ - active code uses .evidence/ exclusively",
+          "action": "DELETE",
+          "note": "All references point to .evidence/ (hidden); evidence/ itself is unused"
+        },
+        {
+          "pattern": ".staging/",
+          "reason": "Duplicate staging directory - P:/__csf/.staging/ is canonical",
+          "action": "DELETE"
+        },
+        {
+          "pattern": ".evidence/",
+          "reason": "Session evidence belongs in .claude/.archive/ - prevent dot-directories at workspace root",
+          "action": "DELETE"
+        },
+        {
+          "pattern": ".claude-state/",
+          "reason": "GTO session state belongs in .claude/.archive/ - prevent dot-directories at workspace root",
+          "action": "DELETE"
+        },
+        {
+          "pattern": ".locks/",
+          "reason": "Lock directory with active consumers - KEPT (file_lock_manager.py, session_data_retention.py)",
+          "action": "KEEP"
         }
       ]
     },
@@ -939,6 +1013,11 @@
         "suggestion": "Move tests to co-located locations alongside source code in src/ subdirectories"
       },
       {
+        "pattern": "__csf/tests/",
+        "reason": "__csf/tests/ is orphaned — source files no longer exist, tests belong next to their source",
+        "suggestion": "Delete if source files are gone, or move alongside source in __csf/src/"
+      },
+      {
         "pattern": "commands/",
         "reason": "Command files belong in src/ with their feature code",
         "suggestion": "Move to src/features/commands/ or appropriate feature directory"
@@ -957,6 +1036,11 @@
         "pattern": "external-tools/",
         "reason": "External tools belong in tools/ or should be installed separately",
         "suggestion": "Move to tools/ or remove"
+      },
+      {
+        "pattern": "Users/",
+        "reason": "User home directory paths do not belong in workspace root",
+        "suggestion": "Remove - user home directories should not be placed in P:/"
       },
       {
         "pattern": "hooks/",

@@ -1,1 +1,0 @@
-P:/packages/claude-log/log-hook.py - Windows file lock retry logic fix

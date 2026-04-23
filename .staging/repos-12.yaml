@@ -1,0 +1,19 @@
+# gitingest config — 12 repos for NotebookLM ingestion
+#
+# Each repo has its own dedicated notebook (created above)
+
+notebooklm_id: "placeholder"
+
+repos:
+  - url: "https://github.com/revfactory/harness"
+  - url: "https://github.com/mohi-devhub/antivibe"
+  - url: "https://github.com/midudev/autoskills"
+  - url: "https://github.com/op7418/logo-generator-skill"
+  - url: "https://github.com/LichAmnesia/lich-skills"
+  - url: "https://github.com/robonuggets/marp-slides"
+  - url: "https://github.com/AMAP-ML/SkillClaw"
+  - url: "https://github.com/agi-now/buffett-skills"
+  - url: "https://github.com/poteto/how"
+  - url: "https://github.com/WoJiSama/skill-based-architecture"
+  - url: "https://github.com/maiobarbero/my-ai-workflow"
+  - url: "https://github.com/yamadashy/repomix"

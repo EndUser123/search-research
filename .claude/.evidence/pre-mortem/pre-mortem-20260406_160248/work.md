@@ -1,1 +1,0 @@
-Incremental CHS indexing fix in unified_semantic_daemon.py - _load_chs_messages_incremental() was querying wrong table (chat_messages instead of messages) and wrong column (metadata instead of raw_json) for v2 schema. Added schema detection to detect v2 vs legacy and use correct table/column.

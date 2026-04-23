@@ -410,8 +410,8 @@ def main() -> None:
 
         # Blocking decision
         if mode == "block" and decision == "block":
-            # Claude Code treats stderr as hook error - reason is in exit code
-            # print(result["message"], file=sys.stderr)
+            # Claude Code shows stderr as the error reason - MUST print descriptive message
+            print(result.get("message", "Bash command blocked"), file=sys.stderr)
             sys.exit(2)  # Block (exit code 2 = permission denial)
 
     sys.exit(0)  # Allow

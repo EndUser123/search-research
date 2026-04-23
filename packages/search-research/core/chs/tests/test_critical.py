@@ -15,7 +15,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
-from core.chs.critical import CHSIndexer, CHSMigrator, CHSSearcher, CHSValidator
+from .critical import CHSIndexer, CHSMigrator, CHSSearcher, CHSValidator
 
 
 class TestLogRotationDataLoss:

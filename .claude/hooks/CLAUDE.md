@@ -1870,6 +1870,31 @@ recent_messages = extract_recent_user_messages(transcript_entries, n=15)
 | Stop | Allow stop | **Block** stop (force continuation) |
 | UserPromptSubmit | Always exit 0 | N/A |
 
+### Blocking Hooks: Descriptive stderr Required
+
+**PreToolUse hooks that block with `sys.exit(2)` MUST print a descriptive error to stderr.** Claude Code displays "Blocked by hook" as its built-in UI, but the stderr output from the hook provides the only explanation of WHY the action was blocked.
+
+**Required pattern:**
+```python
+# BEFORE (bad — no stderr, useless block message)
+sys.exit(2)
+
+# AFTER (good — descriptive error explains the block reason)
+print(f"⛔ ACTION BLOCKED: '{tool_name}' is not allowed because {reason}", file=sys.stderr)
+sys.exit(2)
+```
+
+**Error message requirements:**
+- Lead with what was blocked (`⛔ BLOCKED: ...`)
+- Include the tool name that was blocked
+- Explain WHY it was blocked (what rule/policy triggered)
+- Give the user actionable next steps if possible
+
+**What NOT to do:**
+- Print JSON blobs to stdout on block — use stderr for the human-readable message
+- Leave stderr empty — "Blocked by hook" with no explanation is frustrating
+- Print generic "⛔" without context
+
 **PostToolUse verifier testing — file must exist first:**
 PostToolUse hooks like `edit_verifier.py` check that the file actually exists on disk after a Write/Edit. When testing:
 1. Create the test file on disk FIRST

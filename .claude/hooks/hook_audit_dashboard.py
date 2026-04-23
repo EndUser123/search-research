@@ -180,7 +180,7 @@ def stats(
 
     if not rows:
         print(f"  No hook invocations found in the last {days} days.")
-        print("  Reminder: run /hook-audit stats --turn <turn-id> for a turn-scoped lookup.")
+        print("  Reminder: run /hook-obs stats --turn <turn-id> for a turn-scoped lookup.")
         return
 
     total = len(rows)
@@ -218,7 +218,99 @@ def stats(
             print(f"       {reason[:120]}")
 
     print("\n  Query Tip:")
-    print("    /hook-audit stats --turn <turn-id>")
+    print("    /hook-obs stats --turn <turn-id>")
+
+
+def ups_stats(days: int, terminal_filter: str = None, show_all: bool = False):
+    """UserPromptSubmit hook fires from ups_execution_trace.jsonl."""
+    print("UserPromptSubmit Hook Fires (UPS Trace)")
+    print("-" * 40)
+
+    trace_path = HOOKS_DIR / "logs" / "diagnostics" / "ups_execution_trace.jsonl"
+    if not trace_path.exists():
+        print("  No UPS trace found.")
+        return
+
+    import json
+    from collections import Counter
+    from datetime import datetime, timedelta
+
+    cutoff = datetime.now() - timedelta(days=days)
+    hook_counts: Counter = Counter()
+    session_counts: Counter = Counter()
+    recent_entries: list[dict] = []
+    total_fires = 0
+
+    try:
+        for line in trace_path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            ts_str = entry.get("ts", "")
+            if not ts_str:
+                continue
+            try:
+                ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                if ts.tzinfo is not None:
+                    ts = ts.astimezone().replace(tzinfo=None)
+            except ValueError:
+                continue
+            if ts < cutoff:
+                continue
+
+            # Apply terminal filter if present
+            entry_terminal = entry.get("terminal_id", "")
+            if terminal_filter and entry_terminal != terminal_filter:
+                continue
+
+            hook_name = entry.get("hook_name", "unknown")
+            session_id = entry.get("session_id", "unknown")
+            result = entry.get("result", {})
+            is_empty = result.get("is_empty", True) if result else True
+
+            # Count non-empty injections
+            if not is_empty:
+                hook_counts[hook_name] += 1
+                total_fires += 1
+            session_counts[session_id] += 1
+            recent_entries.append(entry)
+    except Exception as e:
+        print(f"  Error reading trace: {e}")
+        return
+
+    print(f"  Trace: {trace_path}")
+    print(f"  Period: Last {days} days")
+    if terminal_filter:
+        print(f"  Terminal: {terminal_filter[:20]}...")
+    print(f"  Total non-empty injections: {total_fires}")
+    print(f"  Unique sessions: {len(session_counts)}")
+
+    if not hook_counts:
+        print("  No non-empty hook fires in this period.")
+        return
+
+    print("\n  Top Hooks (by injection count):")
+    for hook, count in hook_counts.most_common(10):
+        print(f"    {hook}: {count}")
+
+    if show_all:
+        print("\n  By Session:")
+        for session, count in session_counts.most_common(10):
+            print(f"    {session[:20]}...: {count}")
+
+    # Recent non-empty fires
+    recent_entries.sort(key=lambda e: e.get("ts", ""), reverse=True)
+    non_empty = [e for e in recent_entries if not e.get("result", {}).get("is_empty", True)]
+    if non_empty:
+        print("\n  Most Recent Non-Empty Fires:")
+        for i, entry in enumerate(non_empty[:5], 1):
+            ts = entry.get("ts", "")[:19]
+            hook = entry.get("hook_name", "unknown")
+            tokens = entry.get("result", {}).get("tokens_added", 0)
+            print(f"    {i}. [{ts}] {hook} ({tokens} tokens)")
 
 
 def assumptions(days: int, terminal_filter: str = None, show_all: bool = False):
@@ -908,6 +1000,7 @@ def main():
             "principles",
             "frameguard",
             "stats",
+            "ups",
             "friction",
             "health",
             "escalation",
@@ -942,6 +1035,7 @@ def main():
         "principles": principles,
         "frameguard": frameguard,
         "stats": stats,
+        "ups": ups_stats,
         "friction": friction,
         "health": health,
         "escalation": escalation,

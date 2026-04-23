@@ -1,0 +1,140 @@
+# Provider Availability Report for claude-code-proxy
+
+**Date**: 2026-03-20
+**Repository**: seifghazi/claude-code-proxy
+**Branch**: main (with reference to sg/subagent-support)
+
+## Summary
+
+The claude-code-proxy **does not currently support OpenRouter** or other multi-provider backends. The codebase only includes implementations for:
+
+1. **Anthropic** (`provider/anthropic.go`)
+2. **OpenAI** (`provider/openai.go`)
+
+## Current Provider Implementation
+
+### Supported Providers
+
+| Provider | File | Status | Base URL Configurable |
+|----------|------|--------|----------------------|
+| Anthropic | anthropic.go | ✅ Active | No (hardcoded) |
+| OpenAI | openai.go | ✅ Active | ✅ Yes (via config) |
+
+### Provider Routing Logic
+
+File: `proxy/internal/service/model_router.go`
+
+```go
+var providerPatterns = []providerPattern{
+    {"gpt-", "openai"},
+    {"o1", "openai"},   // o1, o1-mini, o1-pro
+    {"o3", "openai"},   // o3, o3-mini, o3-pro
+    {"claude-", "anthropic"},
+}
+```
+
+**Key Limitation**: The routing uses simple prefix matching. Model IDs like "openrouter/x-ai/grok-code-fast-1" will NOT match any provider pattern.
+
+## OpenRouter Compatibility Analysis
+
+### Can OpenAI Provider Route to OpenRouter?
+
+**Technically**: Yes, the OpenAI provider supports configurable BaseURL (line 64 of openai.go):
+```go
+baseURL, err := url.Parse(p.config.BaseURL)
+```
+
+**Practically**: No, due to model routing limitations:
+1. Model IDs like "openrouter/x-ai/grok-code-fast-1" won't match provider patterns
+2. OpenRouter requires specific model ID formats (e.g., "x-ai/grok-code-fast-1")
+3. The providerPatterns array doesn't include "openrouter/" prefix
+
+### Required Changes for OpenRouter Support
+
+To enable OpenRouter support, the following changes are needed:
+
+1. **Add OpenRouter provider pattern** to model_router.go:
+   ```go
+   {"openrouter/", "openrouter"},  // or route via openai
+   ```
+
+2. **Create OpenRouter provider** (`provider/openrouter.go`) OR extend OpenAI provider:
+   - BaseURL: https://openrouter.ai/api/v1
+   - API Key: OpenRouter API key format
+   - Model ID format: provider/model (e.g., "x-ai/grok-code-fast-1")
+
+3. **Update model naming** in config files:
+   - Current: `openrouter/x-ai/grok-code-fast-1`
+   - Required: Either add pattern support OR use simple IDs
+
+## Terminal Configuration Issues
+
+The created terminal configs use unsupported model ID formats:
+
+| Config | Model ID | Issue |
+|--------|----------|-------|
+| config-terminal1.yaml | `openrouter/x-ai/grok-code-fast-1` | "openrouter/" prefix not in providerPatterns |
+| config-terminal2.yaml | `openrouter/openai/gpt-4o` | Same issue |
+| config-terminal3.yaml | `openrouter/minimax/minimax-m2` | Same issue |
+
+## Resolution Options
+
+### Option A: Implement OpenRouter Provider (RECOMMENDED)
+
+Create `provider/openrouter.go` with OpenRouter-specific implementation:
+- OpenRouter API compatibility
+- Proper model ID handling
+- Provider-specific authentication
+
+**Effort**: Medium (2-4 hours)
+**Impact**: Full multi-provider support as intended
+
+### Option B: Extend OpenAI Provider with OpenRouter BaseURL
+
+Configure OpenAI provider to use OpenRouter as a backend:
+- Set `base_url: "https://openrouter.ai/api/v1"`
+- Add "openrouter/" prefix to providerPatterns
+- Update model IDs to remove "openrouter/" prefix
+
+**Effort**: Low (30 minutes)
+**Impact**: Works, but may have edge cases with OpenRouter-specific features
+
+### Option C: Use Direct OpenAI/Gemini Models (Fallback)
+
+Configure terminals to use directly supported models:
+- `gpt-4o`, `gpt-4o-mini` (via OpenAI provider)
+- `claude-3-5-sonnet`, `claude-3-7-opus` (via Anthropic provider)
+
+**Effort**: None (already supported)
+**Impact**: No cost reduction, defeats original purpose
+
+## Resolution - IMPLEMENTED ✅
+
+**Option B Implemented** (Extend OpenAI Provider with OpenRouter BaseURL):
+
+1. ✅ Updated `go.mod` to use `modernc.org/sqlite` instead of `github.com/mattn/go-sqlite3` (pure Go, no CGO required)
+2. ✅ Updated config files to use OpenAI-compatible model IDs:
+   - `gpt-4o` (instead of `openrouter/openai/gpt-4o`)
+   - `gpt-4o-mini` (for cost-effective routing)
+3. ✅ Configured OpenAI provider section with OpenRouter base_url
+4. ✅ Added `--config` flag parsing to support terminal-specific configs
+5. ✅ Fixed credential manager using base64 encoding (cmdkey workaround)
+
+## Implementation Status
+
+| Task | Status | Notes |
+|------|--------|-------|
+| TASK-004: Terminal Configs | ✅ Complete | 3 terminal configs created |
+| TASK-005: Shell Scripts | ✅ Complete | PS1, Bash, aliases created |
+| TASK-006: Provider Verification | ✅ Complete | Workaround implemented |
+| TASK-007: Test Proxy Startup | ✅ Complete | CGO-free build working |
+| TASK-008: Test Credential Loading | ✅ Complete | Base64 encoding workaround |
+| TASK-009: Verify Subagent Routing | 🔄 Pending | Proxy running, needs agent defs |
+
+**See**: `IMPLEMENTATION_SUMMARY.md` for full implementation details.
+
+---
+
+**Generated by**: /code workflow
+**Plan reference**: plan-adr-20260320-multi-provider-subagent-routing.md
+**Status**: Core implementation complete, ready for testing with actual API keys

@@ -94,10 +94,6 @@ class QMDWikiBackend(BaseLocalBackend):
         if not self.vault_path.exists():
             raise ValueError(f"Vault path does not exist: {self.vault_path}")
 
-    def _sanitize_query(self, query: str) -> str:
-        """Constraint 4: Query sanitization - limit to MAX_QUERY_LENGTH chars, strip non-printable."""
-        return "".join(c for c in query if c.isprintable() or c in " ")[:MAX_QUERY_LENGTH]
-
     def _get_vault_mtime_cached(self) -> float | None:
         """Constraint 11: os.scandir() for vault mtime scan with 5-second cache TTL."""
         now = time.monotonic()

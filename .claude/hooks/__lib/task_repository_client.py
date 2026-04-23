@@ -71,7 +71,7 @@ class TaskRepositoryClient:
             self.repo = None
             return
 
-        db_path = project_root / ".cks" / "storage" / "cks.db"
+        db_path = project_root / ".data" / "cks" / "cks.db"
         self.repo = TaskRepository(db_path=str(db_path))
 
         # Initialize schema (create tables if not exist)

@@ -674,6 +674,7 @@ TOOL_HOOKS = {
         "PreToolUse_git_safety.py",
         "PreToolUse_require_plan_for_features.py",
         "PreToolUse_settings_backup.py",
+        "PreToolUse_implementation_default_gate.py",  # Flipped default: block Edit/Write unless explicit trigger
         "PreToolUse_investigation_gate.py",
         "PreToolUse_policy_gate.py",
         "PreToolUse_tdd95_gate.py",  # TDD enforcement
@@ -690,6 +691,7 @@ TOOL_HOOKS = {
         "PreToolUse_git_safety.py",
         "PreToolUse_require_plan_for_features.py",
         "PreToolUse_settings_backup.py",
+        "PreToolUse_implementation_default_gate.py",  # Flipped default: block Edit/Write unless explicit trigger
         "PreToolUse_investigation_gate.py",
         "PreToolUse_policy_gate.py",
         "PreToolUse_tdd95_gate.py",  # TDD enforcement
@@ -711,7 +713,6 @@ TOOL_HOOKS = {
         "PreToolUse_dependency_verification_gate.py",
         "PreToolUse_evidence_hierarchy_gate.py",  # Enforce local-first: block external fetch if local evidence exists
         "PreToolUse_bulk_delete_gate.py",
-        "PreToolUse_python_c_validator.py",
         "PreToolUse_repo_visibility_guard.py",  # Blocks P:\ drive repos from being made public
         "recursive_failure_detector.py",
         "PreToolUse_command_intent_gate.py",
@@ -762,7 +763,6 @@ try:
     IN_PROCESS_HOOKS = {
         "PreToolUse_syntax_gate.py": pre_tool_use_logic.check_syntax,
         "recursive_failure_detector.py": pre_tool_use_logic.check_recursive_failure,
-        "PreToolUse_python_c_validator.py": pre_tool_use_logic.check_python_c,
         "PreToolUse_bash_syntax_validator.py": PreToolUse_bash_syntax_validator.run,
         "PreToolUse_path_validator.py": PreToolUse_path_validator.run,
         "PreToolUse_directory_policy.py": PreToolUse_directory_policy.run,

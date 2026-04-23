@@ -83,6 +83,19 @@ def _extract_paths(text: str) -> list[str]:
     return paths
 
 
+def _readable_files_in_dir(path: Path, max_files: int = 5) -> list[str]:
+    """List readable text files in a directory, capped at max_files."""
+    if not path.is_dir():
+        return []
+    results = []
+    for entry in sorted(path.iterdir()):
+        if entry.is_file() and entry.suffix.lower() in _READABLE_EXTENSIONS:
+            results.append(str(entry))
+            if len(results) >= max_files:
+                break
+    return results
+
+
 def _is_readable_file(path: str) -> bool:
     """Check if path points to a readable text file."""
     p = Path(path)
@@ -101,8 +114,11 @@ def _expand_path(path: str) -> Path | None:
     """Resolve path, handling relative and absolute forms."""
     p = Path(path)
     if not p.exists():
+        # Strip drive prefix before prepending workspace root to avoid doubling
+        # e.g. "P:/foo" + Path("P:")/ -> "P:/P:/foo" instead of "P:/foo"
+        path_for_join = path.split(":/", 1)[1] if ":/" in path else path
         # Try relative to P: drive (common workspace)
-        p_p = Path("P:") / path
+        p_p = Path("P:") / path_for_join
         if p_p.exists():
             return p_p.resolve()
         # Try relative to current dir
@@ -134,38 +150,40 @@ def file_immediate_read(context: HookContext) -> HookResult:
         if resolved is None:
             continue
 
-        if not _is_readable_file(str(resolved)):
-            continue
-
-        # Check file size
-        try:
-            size = resolved.stat().st_size
-            if size > _MAX_FILE_SIZE:
-                results.append(f"[FILE: {resolved}] (too large: {size // 1024}KB > 500KB limit — skipping)")
+        if _is_readable_file(str(resolved)):
+            # Read single file
+            try:
+                size = resolved.stat().st_size
+                if size > _MAX_FILE_SIZE:
+                    results.append(f"[FILE: {resolved}] (too large: {size // 1024}KB > 500KB limit — skipping)")
+                    continue
+            except OSError:
                 continue
-        except OSError:
-            continue
 
-        # Read file contents
-        try:
-            content = resolved.read_text(encoding="utf-8", errors="replace")
-        except (OSError, UnicodeDecodeError):
-            results.append(f"[FILE: {resolved}] (read error)")
-            continue
+            try:
+                content = resolved.read_text(encoding="utf-8", errors="replace")
+            except (OSError, UnicodeDecodeError):
+                results.append(f"[FILE: {resolved}] (read error)")
+                continue
 
-        # Truncate very long files at 100 lines for context injection
-        lines = content.splitlines()
-        if len(lines) > 100:
-            content = "\n".join(lines[:100])
-            truncation_note = f"\n[...{len(lines) - 100} lines truncated...]"
-        else:
-            truncation_note = ""
+            lines = content.splitlines()
+            if len(lines) > 100:
+                content = "\n".join(lines[:100])
+                truncation_note = f"\n[...{len(lines) - 100} lines truncated...]"
+            else:
+                truncation_note = ""
 
-        results.append(
-            f"[FILE: {resolved}]\n"
-            f"{content}"
-            f"{truncation_note}"
-        )
+            results.append(
+                f"[FILE: {resolved}]\n"
+                f"{content}"
+                f"{truncation_note}"
+            )
+        elif resolved.is_dir():
+            # Directory: list readable files instead of reading
+            dir_files = _readable_files_in_dir(resolved)
+            if dir_files:
+                files_list = ", ".join(Path(f).name for f in dir_files)
+                results.append(f"[DIR: {resolved}] — readable files: {files_list}")
 
     if not results:
         return HookResult(context=None, tokens=0, priority=9.5)

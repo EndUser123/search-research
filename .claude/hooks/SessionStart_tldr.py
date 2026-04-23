@@ -90,7 +90,30 @@ def _read_prior_summary(path: Path) -> str | None:
         return None
 
 
-def _format_tldr_output(summary: str | None, **_kwargs: object) -> str:
+def extract_last_user_message(data: dict) -> str | None:
+    """Extract the last user message from a conversation-like dict.
+
+    Walks the ``messages`` list backwards and returns the ``content`` of the
+    last entry whose ``role`` is ``"user"`` and whose ``content`` is a non-empty
+    string.
+
+    Returns None when no matching entry is found or the input is malformed.
+    """
+    messages = data.get("messages")
+    if not isinstance(messages, list):
+        return None
+    for entry in reversed(messages):
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("role") != "user":
+            continue
+        content = entry.get("content")
+        if isinstance(content, str):
+            return content.strip()
+    return None
+
+
+def _format_tldr_output(summary: str | None, *, last_user_message: str | None = None, **_kwargs: object) -> str:
     """Format the TLDR context block for injection."""
     if not summary:
         now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M")
@@ -149,6 +172,10 @@ def _format_tldr_output(summary: str | None, **_kwargs: object) -> str:
         output += "**Open items:**\n"
         for item in parsed["open"]:
             output += f"{item}\n"
+
+    # ADR-006: Verbatim last user message for post-compact disambiguation
+    if last_user_message is not None:
+        output += f"**Last user message:** {last_user_message}\n"
 
     return output
 

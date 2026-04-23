@@ -15,9 +15,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal
 
-# File locking for atomic writes
-import portalocker  # noqa: E402
-from portalocker.exceptions import LockException  # noqa: E402
+# File locking for atomic writes (via file_lock.py — handles Python 3.14/redis compat)
+from file_lock import FileLock
 
 # ---------------------------------------------------------------------------
 # Pattern imports from GTO library
@@ -241,22 +240,9 @@ class CommitmentTracker:
         # Ensure directory exists
         state_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Lock file for atomic write
+        # Atomic write with cross-process file lock
         lock_path = state_path.with_suffix(".lock")
-        try:
-            lock = portalocker.Lock(
-                str(lock_path),
-                mode="a",
-                timeout=10.0,
-            )
-            lock.acquire()
-        except LockException as exc:
-            raise RuntimeError(
-                f"Could not acquire lock on {lock_path} within 10 seconds: {exc}"
-            ) from exc
-
-        try:
-            # Atomic write: write to temp, then rename
+        with FileLock(lock_path, timeout=10.0):
             data = {
                 "version": "1.0",
                 "commitments": [asdict(c) for c in commitments],
@@ -264,8 +250,6 @@ class CommitmentTracker:
             tmp_path = state_path.with_suffix(".tmp")
             tmp_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
             tmp_path.replace(state_path)
-        finally:
-            lock.release()
 
     def load_state(self, terminal_id: str) -> list[TrackedCommitment]:
         """Load commitments from terminal-scoped state file.
@@ -312,19 +296,7 @@ class CommitmentTracker:
         checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
 
         lock_path = checkpoint_path.with_suffix(".lock")
-        try:
-            lock = portalocker.Lock(
-                str(lock_path),
-                mode="a",
-                timeout=10.0,
-            )
-            lock.acquire()
-        except LockException as exc:
-            raise RuntimeError(
-                f"Could not acquire lock on {lock_path} within 10 seconds: {exc}"
-            ) from exc
-
-        try:
+        with FileLock(lock_path, timeout=10.0):
             data = {
                 "version": "1.0",
                 "saved_at": str(Path(__file__).stat().st_mtime if Path(__file__).exists() else ""),
@@ -333,8 +305,6 @@ class CommitmentTracker:
             tmp_path = checkpoint_path.with_suffix(".tmp")
             tmp_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
             tmp_path.replace(checkpoint_path)
-        finally:
-            lock.release()
 
     def load_checkpoint(self, terminal_id: str) -> list[TrackedCommitment]:
         """Load commitments from checkpoint file.

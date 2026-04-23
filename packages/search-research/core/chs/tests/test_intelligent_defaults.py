@@ -1,6 +1,6 @@
 """Tests for intelligent defaults detection."""
 
-from core.chs.intelligent_defaults import (
+from .intelligent_defaults import (
     IntelligentDefaults,
     _cluster_reason,
     _explain_reason,

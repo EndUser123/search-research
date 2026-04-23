@@ -29,6 +29,7 @@ import logging
 import re
 from io import StringIO
 from pathlib import Path
+from typing import Any
 
 # Security: Allowlist of modules that can be imported in sandbox
 _SAFE_MODULES = frozenset(
@@ -80,8 +81,6 @@ def _restricted_import(name: str, *args, **kwargs):
         return importlib.import_module(name, package=kwargs["package"])
     return importlib.import_module(name)
 
-
-from typing import Any
 
 # Backend identifier
 BACKEND_RLM = "RLM"

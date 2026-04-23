@@ -17,7 +17,7 @@ from __future__ import annotations
 import sqlite3
 
 import pytest
-from core.chs.search import (
+from .search import (
     CHSSearchV2,
     fuse_scores,
     search_fts_messages,

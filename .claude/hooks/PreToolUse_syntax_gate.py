@@ -25,19 +25,16 @@ def main():
 
     try:
         ast.parse(content)
-    except SyntaxError:
-        # Format: Python syntax error: filename.py:42 - unexpected indent
-        # → the offending line of code
+    except SyntaxError as e:
         filename = file_path.replace("\\", "/").split("/")[-1]
-        # Claude Code treats stderr as hook error - reason is in exit code
-        # print(f"Python syntax error: {filename}:{e.lineno} - {e.msg}", file=sys.stderr)
-        # if e.text:
-        #     print(f"→ {e.text.strip()}", file=sys.stderr)
+        lineno = e.lineno or "?"
+        msg = e.msg or "syntax error"
+        print(f"⛔ Python syntax error in {filename}:{lineno} — {msg}", file=sys.stderr)
+        if e.text:
+            print(f"  → {e.text.strip()}", file=sys.stderr)
         sys.exit(2)
-    except Exception:
-        # Fallback for other parse errors
-        # Claude Code treats stderr as hook error - reason is in exit code
-        # print(f"Python parse error in {file_path}: {e}", file=sys.stderr)
+    except Exception as ex:
+        print(f"⛔ Python parse error in {file_path}: {ex}", file=sys.stderr)
         sys.exit(2)
 
     sys.exit(0)

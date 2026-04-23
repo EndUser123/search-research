@@ -11,10 +11,10 @@ from unittest.mock import patch
 
 import pytest
 
-from core.chs.db import get_connection
-from core.chs.normalized import upsert_event
-from core.chs.projections import query_events
-from core.chs.providers.claude_code_raw import ClaudeCodeRawProvider
+from .db import get_connection
+from .normalized import upsert_event
+from .projections import query_events
+from .claude_code_raw import ClaudeCodeRawProvider
 
 DB_PATH = Path("P:/__csf/data/chat_history.db")
 

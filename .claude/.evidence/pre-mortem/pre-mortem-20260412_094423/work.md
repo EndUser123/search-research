@@ -1,1 +1,0 @@
-Stop_negative_existence_guard.py bug fix review — rstrip s on subprocess runtime construct

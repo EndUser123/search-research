@@ -1,1 +1,0 @@
-Fix PreToolUse_task_self_doc_gate.py inverted TaskUpdate param auto-correct (taskId -> task_id was wrong direction)

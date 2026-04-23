@@ -1,1 +1,0 @@
-yt-is batch optimization: _fetch_via_notebooklm_batch wired into chain, 2.2x speedup confirmed

@@ -16,12 +16,12 @@ from unittest.mock import patch
 
 import pytest
 
-from core.chs.archive import append_raw_event, read_watermark, write_watermark
-from core.chs.db import get_connection
-from core.chs.normalized import upsert_event
-from core.chs.providers.claude_code_raw import ClaudeCodeRawProvider
-from core.chs.projections import query_events
-from core.chs.task_projection import open_tasks
+from ..archive import append_raw_event, read_watermark, write_watermark
+from .db import get_connection
+from .normalized import upsert_event
+from .claude_code_raw import ClaudeCodeRawProvider
+from .projections import query_events
+from .task_projection import open_tasks
 
 DB_PATH = "P:/__csf/data/chat_history.db"
 

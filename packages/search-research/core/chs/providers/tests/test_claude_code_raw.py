@@ -11,7 +11,7 @@ _SEARCH_RESEARCH_DIR = Path(__file__).resolve().parent.parent.parent.parent / "p
 if _SEARCH_RESEARCH_DIR.exists():
     sys.path.insert(0, str(_SEARCH_RESEARCH_DIR))
 
-from core.chs.providers.claude_code_raw import (  # noqa: E402
+from .claude_code_raw import (  # noqa: E402
     ClaudeCodeRawProvider,
     _compute_content_hash,
     _extract_text_content,

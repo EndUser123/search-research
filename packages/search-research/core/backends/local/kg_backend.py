@@ -117,22 +117,21 @@ class KGBackend:
         results = []
         seen = set()
 
-        # Exact matches first (higher score)
+        # Single-pass: exact matches (0.8) then partial matches (0.5)
         for entity_text, entity in self._index.items():
             if entity_text == term:
                 result = self._format_entity_result(entity, score=0.8)
                 if result["id"] not in seen:
                     results.append(result)
                     seen.add(result["id"])
-
-        # Partial matches (lower score)
-        for entity_text, entity in self._index.items():
-            if term in entity_text and entity_text != term:
+            elif term in entity_text:
                 result = self._format_entity_result(entity, score=0.5)
                 if result["id"] not in seen:
                     results.append(result)
                     seen.add(result["id"])
 
+        # Sort by score descending so exact matches (0.8) appear before partial (0.5)
+        results.sort(key=lambda r: r["score"], reverse=True)
         return results[:limit]
 
     def _search_and_query(self, terms: list[str], limit: int) -> list[SearchResult]:

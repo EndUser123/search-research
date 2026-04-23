@@ -5,8 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from core.chs.db import get_connection
-from core.chs.providers import discover_all
+from .db import get_connection
+from .providers import discover_all
 
 DB_PATH = Path("P:/__csf/data/chat_history.db")
 

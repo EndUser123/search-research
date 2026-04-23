@@ -1536,14 +1536,8 @@ if __name__ == "__main__":
         print("PreToolUse_investigation_gate: empty stdin, allowing", file=sys.stderr)
         sys.exit(0)
     try:
-<<<<<<< Updated upstream
-        input_data = json.loads(stdin_content)
-||||||| Stash base
-        input_data = json.load(sys.stdin)
-=======
         input_data = json.loads(stdin_content)
         # json.loads(stdin_content) would throw on empty/whitespace-only stdin
->>>>>>> Stashed changes
         tool_name = input_data.get("tool_name", "")
         tool_input = input_data.get("tool_input", {})
 
@@ -1612,6 +1606,7 @@ if __name__ == "__main__":
                     }
                 )
             )
+            print(message, file=sys.stderr)
             sys.exit(2)  # Block
 
         # Output explicit approval JSON (Claude Code requires this)
@@ -1621,25 +1616,29 @@ if __name__ == "__main__":
 
     except json.JSONDecodeError as e:
         # Fail FAST (fail closed) on protocol/input errors.
+        err_msg = f"⛔ investigation_gate_json_parse_error: {e}"
         print(
             json.dumps(
                 {
                     "decision": "block",
-                    "reason": f"investigation_gate_json_parse_error: {e}",
+                    "reason": err_msg,
                     "blocking_hook": "PreToolUse_investigation_gate.py",
                 }
-            )
+            ),
+            file=sys.stderr,
         )
         sys.exit(2)
     except Exception as e:
         # Fail FAST (fail closed) to surface enforcement/runtime faults immediately.
+        err_msg = f"⛔ investigation_gate_runtime_error: {e}"
         print(
             json.dumps(
                 {
                     "decision": "block",
-                    "reason": f"investigation_gate_runtime_error: {e}",
+                    "reason": err_msg,
                     "blocking_hook": "PreToolUse_investigation_gate.py",
                 }
-            )
+            ),
+            file=sys.stderr,
         )
         sys.exit(2)

@@ -16,7 +16,7 @@ from unittest.mock import patch
 
 import pytest
 
-from core.chs.archive import append_raw_event, write_watermark, read_watermark
+from ..archive import append_raw_event, write_watermark, read_watermark
 
 
 @pytest.fixture

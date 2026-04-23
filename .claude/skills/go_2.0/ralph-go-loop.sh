@@ -150,15 +150,27 @@ main() {
   while [ "$cycle" -le "$MAX_CYCLES" ]; do
     log "cycle=$cycle/$MAX_CYCLES"
 
+    # Worktree sanity check before each cycle
+    git rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
+      log "ERROR: not in git repo — cannot continue"
+      exit 1
+    }
+    git worktree list --porcelain | grep -F "worktree $(pwd)" >/dev/null 2>&1 || {
+      log "ERROR: not in registered git worktree — cannot continue"
+      exit 1
+    }
+
     # Artifact flags are authoritative — resume from last known state
     if has_flag ".pr-ready_$RUN_ID"; then
       log "artifact already indicates PR_READY"
+      echo "<promise>PR_READY</promise>"
       show_success_artifacts
       exit 0
     fi
 
     if has_flag ".blocked_$RUN_ID"; then
       log "artifact already indicates BLOCKED"
+      echo "<promise>BLOCKED</promise>"
       exit 1
     fi
 
@@ -174,6 +186,7 @@ main() {
 
     case "$OUTCOME" in
       PR_READY)
+        echo "<promise>PR_READY</promise>"
         MORE="$(remaining_tasks_after_current)"
         show_success_artifacts
         if [ "$MORE" = "yes" ]; then
@@ -184,6 +197,7 @@ main() {
         exit 0
         ;;
       BLOCKED)
+        echo "<promise>BLOCKED</promise>"
         log "run blocked"
         exit 1
         ;;

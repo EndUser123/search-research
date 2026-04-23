@@ -379,9 +379,13 @@ def auto_commit_all() -> bool:
     return committed
 
 
-def auto_commit(cwd: Path) -> bool:
+def auto_commit(cwd: Path, do_push: bool = False) -> bool:
     """
     Auto-commit and push uncommitted changes.
+
+    Args:
+        cwd: Path to the git repo.
+        do_push: Whether to push after commit. Default False (Stop hook use case).
 
     Returns:
         True if changes were committed, False otherwise.
@@ -476,11 +480,10 @@ def auto_commit(cwd: Path) -> bool:
         # add_brainstorm_notification()
         analyze_opportunities(cwd)  # Log opportunities from this commit
 
-    # NOTE: Auto-push is DISABLED for worktrees.
-    # Worktrees commit locally for isolation. Manual push via /git-sync when ready.
-    # This prevents broken/experimental code from reaching origin/main automatically.
-    # On main worktree only, push is enabled.
-    if not is_worktree(cwd):
+    # Auto-push is DISABLED by default for Stop hook use case.
+    # Stop hook should only commit locally - user pushes explicitly via /git when ready.
+    # Pass do_push=True only if you want push alongside commit (e.g., SessionEnd cleanup).
+    if do_push and not is_worktree(cwd):
         if HAS_GIT_HELPER:
             try:
                 git = GitHelper(cwd)
@@ -497,13 +500,21 @@ def auto_commit(cwd: Path) -> bool:
     return True
 
 
+def run(data: dict) -> dict | None:
+    """
+    Stop hook entry point (in-process, via Stop_router).
+
+    Runs auto-commit for all repos with uncommitted changes.
+    Designed to be fast when nothing needs committing.
+    """
+    auto_commit_all()
+    return {"continue": True}
+
+
 @hook_main
 def main() -> int:
     """
-    Main entry point for the auto-commit hook.
-
-    Returns:
-        Exit code (0 always - errors are handled gracefully).
+    CLI entry point for standalone invocation.
     """
     if auto_commit_all():
         print("[auto-commit] All repos committed and pushed")

@@ -98,12 +98,14 @@ def run(data: dict) -> dict | None:
     result = check_python_file_edits(data, pre_state=pre_state)
 
     if result and result.get("decision") == "block":
-        # Syntax errors detected - show helpful message but DON'T block
+        # Syntax errors detected - print descriptive message to stderr
         # (PostToolUse blocking has no effect since command already ran)
-        if "blocking_hook" not in result:
-            result["blocking_hook"] = "PostToolUse_bash_syntax_gate.py"
-        print(json.dumps(result), file=sys.stdout)
-        # Exit 0 (allow) so user sees the helpful message instead of "Blocked by hook"
+        message = result.get(
+            "message",
+            "Python syntax errors detected in Bash-modified files",
+        )
+        for line in message.split("\n"):
+            print(f"⛔ {line}", file=sys.stderr)
         sys.exit(0)
 
     # Allow the operation to proceed

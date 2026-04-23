@@ -3,7 +3,7 @@
 
 import pytest
 
-from core.chs.providers.base import (
+from .base import (
     NormalizedEvent,
     Provider,
     ProviderCapabilities,

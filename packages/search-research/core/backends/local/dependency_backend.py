@@ -349,7 +349,7 @@ class DependencyBackend:
             paths = self._graph.find_data_flow(var_name, max_depth=10)
             for i, path in enumerate(list(paths)[:limit]):
                 steps_str = " -> ".join([
-                    f"{f}:{l}" for f, l in list(path.steps)[:5]
+                    f"{f}:{loc}" for f, loc in list(path.steps)[:5]
                 ]) if path.steps else "direct"
 
                 results.append({

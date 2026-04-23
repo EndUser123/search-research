@@ -12,7 +12,7 @@ _SEARCH_RESEARCH_DIR = Path(__file__).resolve().parent.parent.parent.parent / "p
 if _SEARCH_RESEARCH_DIR.exists():
     sys.path.insert(0, str(_SEARCH_RESEARCH_DIR))
 
-from core.chs.providers.codex_desktop import (  # noqa: E402
+from .codex_desktop import (  # noqa: E402
     CodexDesktopProvider,
     _compute_content_hash,
     _parse_event_num,

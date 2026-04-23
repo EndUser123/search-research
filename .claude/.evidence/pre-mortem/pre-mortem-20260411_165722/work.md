@@ -1,1 +1,0 @@
-stop hook optimizations: 1) drift sentinel event limit 50→25 in StopHook_drift_sentinel.py, 2) remove bare-hook pattern from overconfidence_detector.py, 3) reuse extract_command_name regex in PreToolUse_skill_pattern_gate.py

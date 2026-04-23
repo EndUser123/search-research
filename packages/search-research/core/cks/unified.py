@@ -362,7 +362,7 @@ class CKS:
                         )
                         if use_fp16:
                             logging.getLogger(__name__).info(
-                                "CKS: FP16 enabled for 2-3x faster embeddings"
+                                "CKS: FP16 enabled for 2-3x faster embeddings",
                             )
                     else:
                         device = "cpu"
@@ -373,7 +373,7 @@ class CKS:
                     # Use local cache to avoid HuggingFace network timeouts
                     cache_folder = Path.home() / ".cache" / "huggingface" / "hub"
                     logging.getLogger(__name__).info(
-                        f"CKS: Using HuggingFace cache: {cache_folder}"
+                        f"CKS: Using HuggingFace cache: {cache_folder}",
                     )
                     self._model = self._SentenceTransformer(
                         "all-MiniLM-L6-v2",
@@ -432,7 +432,7 @@ class CKS:
         # Performance: Add indexes for ranking queries (2-5x faster ranked results)
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_usage_count ON entries(usage_count DESC)")
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_success_count ON entries(success_count DESC)"
+            "CREATE INDEX IF NOT EXISTS idx_success_count ON entries(success_count DESC)",
         )
 
         # Temporal query performance: Add index on created_at for time-based queries
@@ -586,7 +586,7 @@ class CKS:
                 quantized = self._np.clip((embedding + 1.0) * 127.5, 0, 255).astype(self._np.uint8)
                 # Add marker byte to indicate quantized format (0xFF for uint8)
                 return self._np.append(
-                    self._np.array([0xFF], dtype=self._np.uint8), quantized
+                    self._np.array([0xFF], dtype=self._np.uint8), quantized,
                 ).tobytes()
             # Serialize to bytes for SQLite storage (float32)
             return embedding.tobytes()
@@ -912,7 +912,7 @@ class CKS:
         r"tt+",
         r"pp+",
         r"ll+",  # double consonants
-        r"([^aeiou]){2,}",  # 3+ consecutive consonants
+        r"([^aeiou]){2,}",  # 3+ consecutive consonants
     ]
 
     def _has_typos(self, query: str) -> bool:
@@ -2977,7 +2977,7 @@ class CKS:
                     "final_score": final_score,
                     "query_type": "semantic_recent",
                     "threshold_used": 0.20,
-                }
+                },
             )
 
         # Sort and limit
@@ -3079,7 +3079,7 @@ class CKS:
                     "final_score": final_score,
                     "query_type": "semantic_compressed",
                     "threshold_used": 0.0,
-                }
+                },
             )
 
         # Sort and limit
@@ -3797,7 +3797,7 @@ class CKS:
                     "metadata": row["metadata"],
                     "created_at": row["created_at"],
                     "updated_at": row["updated_at"],
-                }
+                },
             )
         return results
 
@@ -3840,7 +3840,7 @@ class CKS:
                     "metadata": row["metadata"],
                     "created_at": row["created_at"],
                     "updated_at": row["updated_at"],
-                }
+                },
             )
         return results
 
@@ -3884,7 +3884,7 @@ class CKS:
                     "metadata": row["metadata"],
                     "created_at": row["created_at"],
                     "updated_at": row["updated_at"],
-                }
+                },
             )
         return results
 
@@ -3930,7 +3930,7 @@ class CKS:
                     "metadata": row["metadata"],
                     "created_at": row["created_at"],
                     "updated_at": row["updated_at"],
-                }
+                },
             )
         return results
 

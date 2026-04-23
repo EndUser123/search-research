@@ -279,6 +279,7 @@ OBSERVATION_TOOL_NAMES = frozenset(
 
 HOOK_SEQUENCE = [
     ("speculation_gate.py", "SPECULATION_GATE_ENABLED", False, "inprocess"),
+    ("StopHook_perf_attribution_gate.py", "PERF_ATTRIBUTION_GATE_ENABLED", True, "inprocess"),
     ("empirical_claims_gate.py", "EMPIRICAL_CLAIMS_GATE_ENABLED", True, "inprocess"),
     ("unified_claim_verifier.py", "UNIFIED_CLAIM_VERIFIER_ENABLED", True, "inprocess"),
     ("assumption_audit_v2.py", "ASSUMPTION_AUDIT_V2_ENABLED", False, "inprocess"),
@@ -357,6 +358,8 @@ HOOK_SEQUENCE = [
         "inprocess",
     ),
     ("Stop_proposal_decision_scanner.py", "PROPOSAL_DECISION_SCANNER_ENABLED", True, "inprocess"),
+    ("Stop_self_reflection_gate.py", "SELF_REFLECTION_GATE_ENABLED", True, "inprocess"),
+    ("auto_commit_hook.py", "AUTO_COMMIT_ON_STOP_ENABLED", True, "inprocess"),
 ]
 
 HOOK_PRIORITY = {
@@ -408,6 +411,8 @@ ACTIVE_RUNTIME_HOOKS = frozenset(
         "StopHook_correction_acknowledgment.py",
         "__lib/StopHook_consultation_loop_interrupt.py",
         "Stop_proposal_decision_scanner.py",
+        "StopHook_perf_attribution_gate.py",
+        "Stop_self_reflection_gate.py",
     }
 )
 

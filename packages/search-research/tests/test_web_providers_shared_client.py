@@ -75,7 +75,7 @@ class TestTavilyClientUsesSharedClient:
             mock_async_client.return_value = MagicMock()
 
             # This should NOT create a new client
-            result = client._get_client()
+            _result = client._get_client()
 
             # Verify httpx.AsyncClient constructor was NOT called
             assert not mock_async_client.called, (

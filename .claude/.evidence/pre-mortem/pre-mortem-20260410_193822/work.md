@@ -1,1 +1,0 @@
-PreToolUse_investigation_gate.py compaction recovery via transcript parsing

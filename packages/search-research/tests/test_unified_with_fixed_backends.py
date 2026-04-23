@@ -13,8 +13,8 @@ import pytest
 src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
-from search_research import UnifiedAsyncRouter
-from quality_checker import QualityConfig
+from search_research import UnifiedAsyncRouter  # noqa: E402
+from quality_checker import QualityConfig  # noqa: E402
 
 
 @pytest.mark.asyncio

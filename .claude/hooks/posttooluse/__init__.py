@@ -186,6 +186,9 @@ def create_registry() -> HookRegistry:
     registry.register("edit_verifier", EditVerifier())
     # Python syntax checker - catches SyntaxErrors after Edit/Write on .py files
     registry.register("python_syntax_checker", PythonSyntaxChecker())
+    # Characterization capture - stores AST characterization of hook files after edits
+    from posttooluse.characterization_capture_hook import CharacterizationCaptureHook
+    registry.register("characterization_capture", CharacterizationCaptureHook())
 
     # --- Discovered skill hooks from SKILL.md frontmatter ---
     # Auto-discover hooks declared in skill SKILL.md files and register them

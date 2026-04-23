@@ -1,1 +1,0 @@
-GTO retro implementation: 5 fixes from SELF-CONTRAST pre-mortem (staleness check, CSF fallback, negation words, domain mapping, merge_agent_results type/domain)

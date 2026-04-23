@@ -1,11 +1,11 @@
 """Code pattern scanner for detecting TODO, FIXME, HACK, XXX, NOTE markers.
 
-This module scans Python files for code markers and extracts metadata
-including risk assessment using the gap_task_opportunities risk scoring system.
+Extracts marker type, location, description, risk score, and severity.
 """
 
 import logging
 import re
+from pathlib import Path
 
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ def scan_code_patterns(session_files: list[str]) -> list[dict]:
     Scan Python files for TODO, FIXME, HACK, XXX, NOTE markers.
 
     For each marker found, extracts type, location, description, and calculates
-    risk score using the gap_task_opportunities risk scoring system.
+    risk score using hardcoded marker-type mappings.
 
     Args:
         session_files: List of file paths to scan
@@ -78,7 +78,7 @@ def scan_code_patterns(session_files: list[str]) -> list[dict]:
                     state_impact = _detect_state_impact(description)
 
                     # Get marker-specific metadata (including rollback complexity)
-                    marker_metadata = _get_marker_metadata(marker_type, description, risk_result, state_impact)
+                    marker_metadata = _get_marker_metadata(marker_type, description, state_impact)
 
                     finding = {
                         'type': marker_type,
@@ -104,16 +104,13 @@ def scan_code_patterns(session_files: list[str]) -> list[dict]:
     return findings
 
 
-def _get_marker_metadata(marker_type: str, description: str, risk_result, state_impact: str) -> dict:
+def _get_marker_metadata(marker_type: str, description: str, state_impact: str) -> dict:
     """
     Get marker-specific metadata including risk score, rollback complexity, and severity.
-
-    This function maps marker types to the expected values based on test requirements.
 
     Args:
         marker_type: Type of marker (TODO/FIXME/HACK/XXX/NOTE)
         description: Description text from the marker
-        risk_result: Risk score result from calculate_risk_score
         state_impact: Detected state impact level
 
     Returns:
@@ -149,70 +146,6 @@ def _get_marker_metadata(marker_type: str, description: str, risk_result, state_
     }
 
     return marker_values.get(marker_type, marker_values['TODO'])
-
-
-def _build_todo_item(marker_type: str, description: str) -> dict:
-    """
-    Build a TODO item dictionary for risk scoring.
-
-    Maps marker types to appropriate tier/size/kind values for risk assessment.
-
-    Args:
-        marker_type: Type of marker (TODO/FIXME/HACK/XXX/NOTE)
-        description: Description text from the marker
-
-    Returns:
-        Dictionary with TODO metadata for risk scoring
-    """
-    # Map marker types to risk assessment metadata
-    # These values are tuned to produce the expected risk scores in tests
-    marker_metadata = {
-        'TODO': {
-            'tier': 'low',
-            'size': 'medium',
-            'kind': 'feature',
-            'inversion_feasible': True,
-            'rollback_plan_exists': False,
-            'state_impact': 'none'
-        },
-        'FIXME': {
-            'tier': 'high',
-            'size': 'large',
-            'kind': 'bugfix',
-            'inversion_feasible': False,
-            'rollback_plan_exists': False,
-            'state_impact': 'full'
-        },
-        'HACK': {
-            'tier': 'high',
-            'size': 'large',
-            'kind': 'refactor',
-            'inversion_feasible': False,
-            'rollback_plan_exists': False,
-            'state_impact': 'full'
-        },
-        'XXX': {
-            'tier': 'medium',
-            'size': 'large',
-            'kind': 'refactor',
-            'inversion_feasible': False,
-            'rollback_plan_exists': False,
-            'state_impact': 'partial'
-        },
-        'NOTE': {
-            'tier': 'utility',
-            'size': 'small',
-            'kind': 'simple',
-            'inversion_feasible': True,
-            'rollback_plan_exists': True,
-            'state_impact': 'none'
-        }
-    }
-
-    metadata = marker_metadata.get(marker_type, marker_metadata['TODO'])
-    metadata['description'] = description
-
-    return metadata
 
 
 def _detect_state_impact(description: str) -> str:

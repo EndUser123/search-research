@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from core.chs.search_session import SearchSession, SearchSessionManager
+from .search_session import SearchSession, SearchSessionManager
 
 
 class TestSearchSession:

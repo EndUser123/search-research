@@ -605,6 +605,14 @@ class PathValidator:
                     return True
             return False
 
+        # Check blocked patterns first (explicit blocks override allowlist)
+        remainder = original_path[3:] if original_path.startswith("P:/") else normalized_path[3:]
+        for blocked in self.workspace_blocked_root_patterns:
+            blocked_lower = blocked["pattern"].lower().rstrip("/")
+            remainder_lower = remainder.lower()
+            if remainder_lower == blocked_lower or remainder_lower.startswith(blocked_lower + "/"):
+                return True
+
         # Check the ORIGINAL path first (before Windows normalization)
         # This catches "P:/P:corrupted.py" style paths
         if original_path.startswith("P:/"):

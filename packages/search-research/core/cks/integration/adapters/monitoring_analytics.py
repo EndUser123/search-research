@@ -61,7 +61,7 @@ try:
         CKSConstitutionalValidator,
     )
     from ..orchestration.cks_agent_coordinator import CKSAgentCoordinator
-    from ..performance.cks_performance_optimizer import CKSPreformanceOptimizer
+    from ..performance.cks_performance_optimizer import CKSPerformanceOptimizer
     from ..resilience.cks_fallback_error_handler import CKSFallbackErrorHandler
 except ImportError:
     # Fallback for standalone execution

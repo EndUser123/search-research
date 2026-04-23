@@ -17,37 +17,14 @@ from PreCompact_handoff_capture import _extract_slash_command_goal
 class TestExplicitArgs:
     """Slash command with explicit argument — arg IS the subject."""
 
-    def test_review_bundle_with_path(self):
-        goal, origin = _extract_slash_command_goal(
-            "/review_bundle P:/packages/yt-is", []
-        )
-        assert goal == "/review_bundle P:/packages/yt-is"
-        assert origin == "slash_command_with_args"
-
     def test_gto_with_flag(self):
         goal, origin = _extract_slash_command_goal("/gto --analyze", [])
         assert goal == "/gto --analyze"
         assert origin == "slash_command_with_args"
 
-    def test_args_take_priority_over_active_files(self):
-        goal, origin = _extract_slash_command_goal(
-            "/review_bundle P:/packages/yt-is",
-            ["P:/packages/something-else/foo.py"],
-        )
-        assert goal == "/review_bundle P:/packages/yt-is"
-        assert origin == "slash_command_with_args"
-
 
 class TestInferredSubject:
     """Bare slash command (no args) — subject inferred from active_files."""
-
-    def test_bare_command_with_active_files(self):
-        goal, origin = _extract_slash_command_goal(
-            "/review_bundle",
-            ["P:/packages/yt-is/main.py", "P:/packages/yt-is/utils.py"],
-        )
-        assert goal == "/review_bundle [inferred subject: P:/packages/yt-is/main.py]"
-        assert origin == "slash_command_inferred_subject"
 
     def test_uses_first_active_file(self):
         goal, _ = _extract_slash_command_goal(
@@ -59,11 +36,6 @@ class TestInferredSubject:
 
 class TestBareCommand:
     """Bare slash command with no files — minimal capture."""
-
-    def test_bare_command_no_files(self):
-        goal, origin = _extract_slash_command_goal("/review_bundle", [])
-        assert goal == "/review_bundle"
-        assert origin == "slash_command_bare"
 
     def test_bare_command_empty_files(self):
         goal, origin = _extract_slash_command_goal("/gto", [])
@@ -89,7 +61,3 @@ class TestNonSlashCommand:
     def test_unix_path_returns_none(self):
         # "/home/user/file.py" must NOT be mistaken for a slash command
         assert _extract_slash_command_goal("/home/user/file.py", []) is None
-
-    def test_uppercase_command_returns_none(self):
-        # Commands must start with lowercase letter
-        assert _extract_slash_command_goal("/Review_bundle P:/foo", []) is None

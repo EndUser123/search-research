@@ -30,6 +30,8 @@ except ImportError:
 
 # setup sequence (Priority-ordered)
 SETUP_SEQUENCE = [
+    # 0. Symlink Validation (critical infrastructure check)
+    "SessionStart_symlink_check.py",
     # 1. Identity & Environment
     "SessionStart_terminal_id.py",
     # "SessionStart_folder_context.py",  # DISABLED: Missing features.lib_folder_context module
@@ -51,6 +53,8 @@ SETUP_SEQUENCE = [
     "SessionStart_constraint_display.py",
     # 6. Commitment Tracking (uncompleted commitments on compaction resume) (uncompleted commitments on compaction resume)
     "SessionStart_commitment_tracker.py",
+    # 7. Hook Characterization Drift Check
+    "SessionStart_characterization_check.py",
 ]
 
 

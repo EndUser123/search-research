@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from core.chs.db import get_connection
+from .db import get_connection
 
 DB_PATH = Path("P:/__csf/data/chat_history.db")
 

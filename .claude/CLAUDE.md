@@ -377,6 +377,7 @@ RIGHT (with standards):
 | **Verify Complete** | Before declaring "implementation complete": (1) files exist, (2) hooks registered, (3) state flows tested. |
 | **Think Through Claims** | When external source (LLM, doc) makes a claim, verify against actual design intent before accepting. |
 | **Authorization** | State what you plan to change and wait for confirmation before implementing. "/critique", "/rca", "/pre-mortem" = advisory until user says "do it". Operational fixes = same authorization requirement as features. Parallel research is fine; parallel implementation while research is pending is a violation. |
+| **Documentation Boundary** | For investigate/diagnose/explain/document requests, stop at findings by default. Do not recommend or begin implementation unless the user explicitly asks for implementation. Silence, ambiguity, or non-response is not approval. |
 | **Capability Claims** | Documentation about external systems (CLI flags, API params, tool behaviors) is a hypothesis, not a fact. Before using a documented flag or param: verify with `--help`, `--version`, or an equivalent live check. Memory entries and skill docs can be stale. |
 
 ---

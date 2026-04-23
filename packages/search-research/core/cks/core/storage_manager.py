@@ -260,13 +260,20 @@ class StorageManager:
         self._db_connection.commit()
         self._sqlite_initialized = True
 
-    def _create_knowledge_graph_schema(self) -> None:
-        """Create knowledge graph tables."""
+    def _create_graph_schema(self, graph_type: str) -> None:
+        """Create common graph schema for a given graph type.
+
+        Creates nodes table, edges table with type-specific columns,
+        and standard indexes. Edge source/target columns default to
+        source_id/target_id unless specialized columns are needed.
+        """
         cursor = self._db_connection.cursor()
+        node_table = f"{graph_type}_nodes"
+        edge_table = f"{graph_type}_edges"
 
         cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS knowledge_nodes (
+            f"""
+            CREATE TABLE IF NOT EXISTS {node_table} (
                 id TEXT PRIMARY KEY,
                 type TEXT NOT NULL,
                 content TEXT NOT NULL,
@@ -278,159 +285,39 @@ class StorageManager:
         )
 
         cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS knowledge_edges (
+            f"""
+            CREATE TABLE IF NOT EXISTS {edge_table} (
                 id TEXT PRIMARY KEY,
                 source_id TEXT NOT NULL,
                 target_id TEXT NOT NULL,
                 relationship TEXT NOT NULL,
                 metadata JSON,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (source_id) REFERENCES knowledge_nodes(id),
-                FOREIGN KEY (target_id) REFERENCES knowledge_nodes(id)
+                FOREIGN KEY (source_id) REFERENCES {node_table}(id),
+                FOREIGN KEY (target_id) REFERENCES {node_table}(id)
             )
         """,
         )
 
-        # Create indexes for performance
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_knowledge_type ON knowledge_nodes(type)",
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_knowledge_source ON knowledge_edges(source_id)",
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_knowledge_target ON knowledge_edges(target_id)",
-        )
+        cursor.execute(f"CREATE INDEX IF NOT EXISTS idx_{graph_type}_type ON {node_table}(type)")
+        cursor.execute(f"CREATE INDEX IF NOT EXISTS idx_{graph_type}_source ON {edge_table}(source_id)")
+        cursor.execute(f"CREATE INDEX IF NOT EXISTS idx_{graph_type}_target ON {edge_table}(target_id)")
+
+    def _create_knowledge_graph_schema(self) -> None:
+        """Create knowledge graph tables."""
+        self._create_graph_schema("knowledge")
 
     def _create_causal_graph_schema(self) -> None:
         """Create causal graph tables."""
-        cursor = self._db_connection.cursor()
-
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS causal_nodes (
-                id TEXT PRIMARY KEY,
-                type TEXT NOT NULL,
-                content TEXT NOT NULL,
-                metadata JSON,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """,
-        )
-
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS causal_edges (
-                id TEXT PRIMARY KEY,
-                cause_id TEXT NOT NULL,
-                effect_id TEXT NOT NULL,
-                strength REAL,
-                confidence REAL,
-                metadata JSON,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (cause_id) REFERENCES causal_nodes(id),
-                FOREIGN KEY (effect_id) REFERENCES causal_nodes(id)
-            )
-        """,
-        )
-
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_causal_type ON causal_nodes(type)",
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_causal_cause ON causal_edges(cause_id)",
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_causal_effect ON causal_edges(effect_id)",
-        )
+        self._create_graph_schema("causal")
 
     def _create_social_graph_schema(self) -> None:
         """Create social graph tables."""
-        cursor = self._db_connection.cursor()
-
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS social_nodes (
-                id TEXT PRIMARY KEY,
-                type TEXT NOT NULL,
-                content TEXT NOT NULL,
-                metadata JSON,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """,
-        )
-
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS social_edges (
-                id TEXT PRIMARY KEY,
-                source_id TEXT NOT NULL,
-                target_id TEXT NOT NULL,
-                relationship TEXT NOT NULL,
-                weight REAL DEFAULT 1.0,
-                metadata JSON,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (source_id) REFERENCES social_nodes(id),
-                FOREIGN KEY (target_id) REFERENCES social_nodes(id)
-            )
-        """,
-        )
-
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_social_type ON social_nodes(type)",
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_social_source ON social_edges(source_id)",
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_social_target ON social_edges(target_id)",
-        )
+        self._create_graph_schema("social")
 
     def _create_system_graph_schema(self) -> None:
         """Create system graph tables."""
-        cursor = self._db_connection.cursor()
-
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS system_nodes (
-                id TEXT PRIMARY KEY,
-                type TEXT NOT NULL,
-                content TEXT NOT NULL,
-                metadata JSON,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """,
-        )
-
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS system_edges (
-                id TEXT PRIMARY KEY,
-                source_id TEXT NOT NULL,
-                target_id TEXT NOT NULL,
-                relationship TEXT NOT NULL,
-                priority INTEGER DEFAULT 1,
-                metadata JSON,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (source_id) REFERENCES system_nodes(id),
-                FOREIGN KEY (target_id) REFERENCES system_nodes(id)
-            )
-        """,
-        )
-
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_system_type ON system_nodes(type)",
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_system_source ON system_edges(source_id)",
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_system_target ON system_edges(target_id)",
-        )
+        self._create_graph_schema("system")
 
     def _create_cross_graph_schema(self) -> None:
         """Create cross-graph relationship tables."""

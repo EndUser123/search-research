@@ -494,6 +494,8 @@ _temp/
 
 # Large files that should never be committed
 *.html
+# skill-craft is a tracked spec document - negate the html files within it
+!packages/cc-skills-meta/skills/skill-craft/**
 *.txt
 !requirements_qa.txt
 
