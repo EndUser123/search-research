@@ -498,6 +498,10 @@ output: hook_findings.json — array of {hook_type, location, recommendation, pr
 - Hook chaining and composition
 - Permission models and registration
 
+**$ARGUMENTS variable**: `$ARGUMENTS` is a `type:prompt` / `type:agent` feature only — it substitutes the hook's JSON input directly into the prompt text. It is **not** available in `type:command` command strings; command hooks receive the same JSON via stdin and must parse it with `json.loads(sys.stdin.read())`. Gating for command hooks uses `if:` matcher expressions, not `$ARGUMENTS` substitution.
+
+For enforcement hooks: use `type:command` with stdin JSON parsing — that is the spec-aligned, version-resilient pattern. Use `type:prompt` with `$ARGUMENTS` only for advisory/nudge hooks where blocking is not required.
+
 **Blocking stderr standard (REQUIRED):** All PreToolUse hooks that exit code 2 MUST print a descriptive error to stderr explaining WHY the action was blocked. Claude Code shows "Blocked by hook" — the stderr text is the only explanation. Pattern:
 ```python
 print(f"⛔ BLOCKED: '{tool_name}' not allowed because {reason}", file=sys.stderr)

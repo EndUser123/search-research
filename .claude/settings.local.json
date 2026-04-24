@@ -221,7 +221,12 @@
       "Bash(mv \"P:/.claude/arch_decisions/\"*.md \"P:/docs/adrs/\")",
       "Bash(rmdir \"P:/.claude/arch_decisions\")",
       "Bash(rm -rf \"P:/packages/cc-skills-meta/skills/reason_openai_v4.0/subagents\")",
-      "Bash(rm -rf \"C:/Users/brsth/.claude/plugins/reason_openai_v4.0/subagents\")"
+      "Bash(rm -rf \"C:/Users/brsth/.claude/plugins/reason_openai_v4.0/subagents\")",
+      "Bash(rm -rf \"P:/.claude/memory/knowledge_orphaned\")",
+      "Bash(rm -rf \"P:/.claude/memory/lessons_orphaned\")",
+      "Bash(rm -rf \"P:/.claude/wiki/.claude\")",
+      "Bash(rm -f \"P:/.claude/wiki/concepts/skill-craft-index-html-debug.md\")",
+      "Bash(rm -f \"P:/.claude/lessons/2026-01-10-db-connection-leak-tdd.md\")"
     ],
     "deny": [],
     "ask": []
