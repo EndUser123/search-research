@@ -327,12 +327,22 @@
         "purpose": "Session memory and auto-memory system"
       },
       {
+        "path": ".session",
+        "purpose": "Active session state - session ledgers, reasoning metrics (terminal-isolated, 4hr timeout)"
+      },
+      {
+        "path": ".artifacts",
+        "purpose": "Skill/GTO outputs - terminal identities, findings, session registry"
+      },
+      {
         "path": "data",
-        "purpose": "Runtime data - events, caches, working data"
+        "purpose": "DEPRECATED (2026-04-23) - session ledgers moved to .session/; only active if legacy data exists",
+        "deprecated": true,
+        "replacement": ".session"
       },
       {
         "path": "context",
-        "purpose": "Context management - session context, shared context"
+        "purpose": "DEPRECATED (2026-04-23) - orphaned session artifacts, directory deleted"
       },
       {
         "path": "knowledge",
@@ -673,17 +683,17 @@
         },
         {
           "pattern": ".evidence/",
-          "reason": "Session evidence belongs in .claude/.archive/ - prevent dot-directories at workspace root",
+          "reason": "Session evidence belongs in .claude/.artifacts/ - prevent dot-directories at workspace root",
           "action": "DELETE"
         },
         {
           "pattern": ".claude-state/",
-          "reason": "GTO session state belongs in .claude/.archive/ - prevent dot-directories at workspace root",
+          "reason": "GTO session state belongs in .claude/.session/ - prevent dot-directories at workspace root",
           "action": "DELETE"
         },
         {
           "pattern": ".cks/",
-          "reason": "Obsolete CKS storage - canonical path is .data/cks/ (task_repository_client.py updated)",
+          "reason": "Obsolete CKS storage - canonical path is .claude/.session/ (task_repository_client.py updated)",
           "action": "DELETE"
         },
         {
