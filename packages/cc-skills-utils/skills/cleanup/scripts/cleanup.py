@@ -1322,7 +1322,7 @@ def detect_internal_violations(
                                 "rule": "CLAUDE_DIRECTORY_ALLOWED_SUBDIRS",
                                 "path": str(item),
                                 "message": f"Directory '{item.name}' in .claude/ is not in allowed_subdirectories policy",
-                                "suggestion": "Delete if not needed, or add to claude_directory.allowed_subdirectories in directory_policy.json",
+                                "suggestion": "DELETE if not needed (policy changes require explicit user approval)",
                             }
                         )
 

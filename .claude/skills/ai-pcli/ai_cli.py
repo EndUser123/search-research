@@ -47,9 +47,6 @@ def _load_ai_cli_config() -> dict[str, Any] | None:
 
             # New format: structured groups for config display.
             if isinstance(raw, dict) and ("default" in raw or "aux" in raw):
-                # Ensure pi_models is present
-                if "pi_models" not in raw:
-                    raw["pi_models"] = ["minimax/MiniMax-M2.7", "zai/glm-5.1"]
                 return raw
 
             # Legacy format: flatten into the structure expected by the
@@ -118,6 +115,24 @@ def _clear_ai_cli_config() -> None:
         pass
 
 
+def _substitute_gemini_model(cmd_list: list[str], model: str) -> list[str]:
+    """Substitute the -m model flag in a gemini command list.
+
+    Args:
+        cmd_list: gemini command as list, e.g. ["node", "path/gemini.js", "-y", "-o", "text", "-m", "gemini-2.5-flash-lite", "-p", "query"]
+        model: new model name, e.g. "gemini-3.1-pro-preview"
+
+    Returns:
+        New list with the -m argument replaced.
+    """
+    result = list(cmd_list)
+    for i, arg in enumerate(result):
+        if arg == "-m" and i + 1 < len(result):
+            result[i + 1] = model
+            return result
+    return result  # -m not found, return unchanged
+
+
 # Add lib to path for parallel_llm import (COMP-RECHECK-002 fix: dynamic path)
 # NOTE: This must be BEFORE parallel_llm import since it modifies sys.path
 def _get_repo_root() -> Path:
@@ -136,7 +151,7 @@ def _get_repo_root() -> Path:
         current = parent
 
 
-_lib_path = _get_repo_root() / "__csf" / "lib"
+_lib_path = Path("P:/__csf/lib")
 if str(_lib_path) not in sys.path:
     sys.path.insert(0, str(_lib_path))
 
@@ -152,12 +167,12 @@ from parallel_llm import (  # noqa: E402
 try:
     from .performance_logger import CliPerformanceLogger
     from .prompt_templates import build_prompt
-    from .task_classifier import classify_task
+    from .task_classifier import classify_task, TaskType
 except ImportError:
     # Running as standalone script - use direct imports
     from performance_logger import CliPerformanceLogger
     from prompt_templates import build_prompt
-    from task_classifier import classify_task
+    from task_classifier import classify_task, TaskType
 
 # Load .env file from repo root (P:\)
 _repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -1010,7 +1025,7 @@ def generate_parallel_bash_commands(
     if run_gemini:
         # Use stdin pipe (echo X | gemini) - do NOT also use -p with the same query
         # Gemini rejects "Cannot use both a positional prompt and the --prompt (-p) flag together"
-        commands.append(f"echo {safe_query} | gemini -y -o text -m gemini-2.5-flash")
+        commands.append(f"echo {safe_query} | gemini -y -o text -m gemini-2.5-flash-lite")
     if run_codex:
         # Codex exec takes query as argument (not stdin)
         commands.append(f'codex exec "{query}"')
@@ -1065,7 +1080,7 @@ def _determine_active_llms(
     glm_flash_only: bool,
     pi_m27_only: bool = False,
     pi_glm_only: bool = False,
-    pi_models: list[str] = [],
+    copilot_only: bool = False,
 ) -> dict[str, bool]:
     """Determine which LLMs to run based on flags.
 
@@ -1073,17 +1088,14 @@ def _determine_active_llms(
         qwen_only, gemini_only, codex_only, opencode_only, glm_flash_only: CLI flags
         pi_m27_only: Run only pi with minimax/MiniMax-M2.7
         pi_glm_only: Run only pi with zai/glm-5.1
-        pi_models: List of pi models to run by default (e.g., ["minimax/MiniMax-M2.7", "zai/glm-5.1"])
+        copilot_only: Run only GitHub Copilot CLI
 
     Returns:
         Dictionary with boolean flags for each LLM
     """
     has_cli_flags = (
-        qwen_only or gemini_only or codex_only or opencode_only or pi_m27_only or pi_glm_only
+        qwen_only or gemini_only or codex_only or opencode_only or pi_m27_only or pi_glm_only or copilot_only
     )
-
-    # Default pi models from config
-    default_pi_models = pi_models or ["minimax/MiniMax-M2.7", "zai/glm-5.1"]
 
     if not has_cli_flags:
         return {
@@ -1092,8 +1104,9 @@ def _determine_active_llms(
             "codex": True,
             "opencode": False,
             "glm_flash": False,
-            "pi_m27": "minimax/MiniMax-M2.7" in default_pi_models,
-            "pi_glm": "zai/glm-5.1" in default_pi_models,
+            "pi_m27": True,
+            "pi_glm": True,
+            "copilot": False,
         }
     return {
         "qwen": qwen_only,
@@ -1103,60 +1116,79 @@ def _determine_active_llms(
         "glm_flash": False,
         "pi_m27": pi_m27_only,
         "pi_glm": pi_glm_only,
+        "copilot": copilot_only,
     }
 
 
 def _get_cli_preview(
-    active: dict[str, bool],
+    qwen_only: bool,
+    gemini_only: bool,
+    codex_only: bool,
+    opencode_only: bool,
+    glm_flash_only: bool,
     opencode_models: list[str],
+    pi_m27_only: bool = False,
+    pi_glm_only: bool = False,
+    copilot_only: bool = False,
 ) -> str:
     """Build a preview string showing which CLIs and LLMs will be used.
 
     Args:
-        active: Dictionary with boolean flags for each LLM (from _determine_active_llms)
+        qwen_only, gemini_only, codex_only, opencode_only, glm_flash_only: CLI flags
         opencode_models: List of OpenCode model names
+        pi_m27_only: Run only pi with minimax/MiniMax-M2.7
+        pi_glm_only: Run only pi with zai/glm-5.1
 
     Returns:
         Formatted string listing all CLIs/LLMs that will be invoked
     """
+    has_any_flag = (
+        qwen_only or gemini_only or codex_only or opencode_only or glm_flash_only
+        or pi_m27_only or pi_glm_only or copilot_only
+    )
+
+    # Collect items
+    native_clis = []
+    if qwen_only or not has_any_flag:
+        native_clis.append("qwen")
+    if gemini_only or not has_any_flag:
+        native_clis.append("gemini")
+    if codex_only or not has_any_flag:
+        native_clis.append("codex")
+    if copilot_only or not has_any_flag:
+        native_clis.append("copilot")
+
+    opencode_models_list = []
+    if opencode_only or not has_any_flag:
+        models = opencode_models if opencode_models else [DEFAULT_OPENCODE_MODEL]
+        for m in models:
+            # Handle "opencode:nemotron" style names from results
+            if ":" in m:
+                model_id = m.split(":", 1)[1]
+            else:
+                model_id = m
+            # Shorten long model paths for display
+            if "/" in model_id:
+                parts = model_id.split("/")
+                model_id = parts[-1]  # Just the model name, not the full path
+            opencode_models_list.append(model_id)
+
+    has_glm = glm_flash_only or (not has_any_flag and os.environ.get("ZAI_API_KEY"))
+
+    # Build output
     lines = ["[CLI/LLM Preview]"]
 
-    # Native CLIs
-    native_clis = [k for k in ("qwen", "gemini", "codex") if active.get(k)]
     if native_clis:
         lines.append(f"  Native CLIs:")
         for m in native_clis:
             lines.append(f"    • {m}")
 
-    # OpenCode
-    if active.get("opencode"):
-        models = opencode_models if opencode_models else [DEFAULT_OPENCODE_MODEL]
-        opencode_models_list = []
-        for m in models:
-            if ":" in m:
-                model_id = m.split(":", 1)[1]
-            else:
-                model_id = m
-            if "/" in model_id:
-                model_id = model_id.split("/")[-1]
-            opencode_models_list.append(model_id)
+    if opencode_models_list:
         lines.append("")
         n = len(opencode_models_list)
         lines.append(f"  OpenCode ({n} parallel)")
         for m in opencode_models_list:
             lines.append(f"    • {m}")
-
-    # Pi agents
-    pi_agents = []
-    if active.get("pi_m27"):
-        pi_agents.append("minimax/MiniMax-M2.7")
-    if active.get("pi_glm"):
-        pi_agents.append("zai/glm-5.1")
-    if pi_agents:
-        lines.append("")
-        lines.append(f"  Pi agents ({len(pi_agents)} parallel)")
-        for m in pi_agents:
-            lines.append(f"    • pi --model {m}")
 
     return "\n".join(lines)
 
@@ -1170,6 +1202,7 @@ def _build_cli_commands(
     opencode_models: list[str],
     run_pi_m27: bool = False,
     run_pi_glm: bool = False,
+    run_copilot: bool = False,
     context_file: str | None = None,
 ) -> list[tuple[str, str]]:
     """Build platform-specific CLI command list.
@@ -1196,7 +1229,7 @@ def _build_cli_commands(
             f'{ROOT_PREFIX}node "{npm_root / "@google" / "gemini-cli" / "bundle" / "gemini.js"}"'
         )
         # Codex companion wrapper (required - direct codex exec doesn't work)
-        codex_companion = Path.home() / ".claude" / "plugins" / "cache" / "openai-codex" / "codex" / "1.0.1" / "scripts" / "codex-companion.mjs"
+        codex_companion = Path.home() / ".claude" / "plugins" / "cache" / "openai-codex" / "codex" / "1.0.3" / "scripts" / "codex-companion.mjs"
         codex_cmd = f'node "{codex_companion}" task'
     else:
         qwen_cmd = f"{ROOT_PREFIX}qwen"
@@ -1214,9 +1247,9 @@ def _build_cli_commands(
         # On Windows, must use full node path since npm global commands aren't in PATH for exec
         if sys.platform == "win32":
             gemini_script = npm_root / "@google" / "gemini-cli" / "bundle" / "gemini.js"
-            gemini_args = ["node", str(gemini_script), "-y", "-o", "text", "-m", "gemini-2.5-flash", "-p", query]
+            gemini_args = ["node", str(gemini_script), "-y", "-o", "text", "-m", "gemini-2.5-flash-lite", "-p", query]
         else:
-            gemini_args = ["gemini", "-y", "-o", "text", "-m", "gemini-2.5-flash", "-p", query]
+            gemini_args = ["gemini", "-y", "-o", "text", "-m", "gemini-2.5-flash-lite", "-p", query]
         commands.append(("gemini", gemini_args))
     if run_codex:
         commands.append(("codex", codex_cmd))
@@ -1243,6 +1276,11 @@ def _build_cli_commands(
         ctx_arg = ["-p", f"@{context_file}"] if context_file else []
         pi_glm_cmd = ["pi", "--model", "zai/glm-5.1", *ctx_arg, query]
         commands.append(("pi-glm", pi_glm_cmd))
+
+    # GitHub Copilot CLI
+    if run_copilot:
+        copilot_cmd = ["copilot", "-p", query]
+        commands.append(("copilot", copilot_cmd))
 
     return commands
 
@@ -1344,7 +1382,7 @@ def run_parallel_llm(
     glm_flash_only: bool = False,
     pi_m27_only: bool = False,
     pi_glm_only: bool = False,
-    pi_models: list[str] = [],
+    copilot_only: bool = False,
     timeout: int = 180,
     output_format: str = "text",
     verbose: bool = False,
@@ -1365,7 +1403,7 @@ def run_parallel_llm(
     # Determine which LLMs to run
     active = _determine_active_llms(
         qwen_only, gemini_only, codex_only, opencode_only, glm_flash_only,
-        pi_m27_only, pi_glm_only, pi_models,
+        pi_m27_only, pi_glm_only, copilot_only,
     )
 
     # Build CLI command list
@@ -1378,8 +1416,40 @@ def run_parallel_llm(
         opencode_models,
         active["pi_m27"],
         active["pi_glm"],
+        active["copilot"],
         context_file,
     )
+
+    # Build gemini quota fallback chain: try different gemini models before falling back to pi agents
+    # gemini model chain: auto (default) -> 3.1-pro-preview -> 3-flash-preview -> 3.1-flash-lite-preview -> pi-m27 -> pi-glm -> pi-elephant
+    fallback_commands: dict[str, list[tuple[str, list[str]]]] = {}
+    if active.get("gemini"):
+        cmd_by_name = {name: cmd for name, cmd in commands}
+        pi_m27_cmd = cmd_by_name.get("pi_m27")
+        pi_glm_cmd = cmd_by_name.get("pi_glm")
+        pi_elephant_cmd = cmd_by_name.get("pi_elephant")
+
+        # Get the gemini command (list form on Windows, string form on Unix)
+        gemini_cmd_list = None
+        for name, cmd in commands:
+            if name == "gemini" and isinstance(cmd, list):
+                gemini_cmd_list = list(cmd)
+                break
+
+        if gemini_cmd_list:
+            # Build model fallback chain by substituting -m flag
+            # Chain: auto (default) -> 3.1-pro-preview -> 3-flash-preview -> 3.1-flash-lite-preview
+            # If all gemini models exhausted, gemini slot is done — do NOT substitute pi agents
+            gemini_models = [
+                "gemini-3.1-pro-preview",
+                "gemini-3-flash-preview",
+                "gemini-3.1-flash-lite-preview",
+            ]
+            chain = []
+            for model in gemini_models:
+                fallback_cmd = _substitute_gemini_model(list(gemini_cmd_list), model)
+                chain.append((f"gemini-{model}", fallback_cmd))
+            fallback_commands["gemini"] = chain
 
     # Verbose output
     if verbose:
@@ -1397,7 +1467,7 @@ def run_parallel_llm(
     async def run_all_parallel():
         """Run CLI commands and GLM API in true parallel."""
         tasks = [
-            run_parallel_commands(commands, timeout=timeout, input_text=query, verbose=verbose)
+            run_parallel_commands(commands, timeout=timeout, input_text=query, verbose=verbose, cwd=str(_REPO_ROOT), fallback_commands=fallback_commands)
         ]
 
         # Add GLM API task if active
@@ -2118,6 +2188,19 @@ def _extract_file_paths_from_query(query: str) -> list[str]:
     file_matches = re.findall(file_ref_pattern, query)
     paths.extend(file_matches)
 
+    # Pattern 3: Extensionless absolute paths that are directories
+    # Matches paths like P:/packages/yt-is that have no file extension but exist as dirs
+    dir_path_pattern = r"(?:[A-Za-z]:[/\\]|/)[/\w\-.]+"
+    for match in re.findall(dir_path_pattern, query):
+        # Skip if already captured by patterns 1 or 2 (has extension)
+        if re.search(r"\.[\w]{2,4}$", match):
+            continue
+        p = Path(match)
+        if not p.exists():
+            p = Path.cwd() / match
+        if p.exists() and p.is_dir():
+            paths.append(match)
+
     # Resolve relative paths
     resolved_paths = []
     for path in paths:
@@ -2125,7 +2208,7 @@ def _extract_file_paths_from_query(query: str) -> list[str]:
         if not p.exists():
             # Try current working directory
             p = Path.cwd() / path
-        if p.exists() and p.is_file():
+        if p.exists() and (p.is_file() or p.is_dir()):
             resolved_paths.append(str(p))
 
     return list(set(resolved_paths))  # Dedupe
@@ -2185,16 +2268,24 @@ def _smart_auto_context(query: str) -> str | None:
             return context
 
     # Priority 2: Git changed files
-    git_files = _get_git_changed_files()
-    if git_files:
-        # Use most recently modified file
-        for file_path in git_files:
-            p = Path(file_path)
-            if p.exists() and p.is_file():
-                context = get_context(str(p), auto_context=False)
-                if context:
-                    print(f"[Auto-detected git changed file: {file_path}]", file=sys.stderr)
-                    return context
+    # Skip for conceptual queries - they have no specific target file
+    conceptual_keywords = [
+        "what ideas", "how should", "should we", "could we", "ways to",
+        "ideas for", "enhance", "improve", "design", "architect",
+        "concept", "approach", "strategy", "thoughts on",
+    ]
+    is_conceptual = any(kw in query.lower() for kw in conceptual_keywords)
+    if not is_conceptual:
+        git_files = _get_git_changed_files()
+        if git_files:
+            # Use most recently modified file
+            for file_path in git_files:
+                p = Path(file_path)
+                if p.exists() and p.is_file():
+                    context = get_context(str(p), auto_context=False)
+                    if context:
+                        print(f"[Auto-detected git changed file: {file_path}]", file=sys.stderr)
+                        return context
 
     # Priority 3: Session activity (already handled by WT_SESSION check below)
     return None
@@ -2563,8 +2654,7 @@ def _deduplicate_findings(findings: list[dict], priority_order: dict[str, int]) 
 
         for agg in aggregated:
             # Use fuzzy matching to detect duplicates
-            finder.set_seqs1(finding_text.lower())
-            finder.set_seqs2(agg["finding"].lower())
+            finder.set_seqs(finding_text.lower(), agg["finding"].lower())
             ratio = finder.ratio()
 
             if ratio >= 0.7:  # 70% similarity threshold
@@ -2797,51 +2887,6 @@ def _extract_from_full_output(cli_name: str, output: str) -> list[dict]:
     return []
 
 
-def _save_pcli_session_file(results: dict[str, Any], args: argparse.Namespace) -> Path | None:
-    """Save results to a session file for meta-critique access.
-
-    Mirrors the pre-mortem session file pattern at P:/.claude/.evidence/ai-pcli/.
-
-    Args:
-        results: The LLM results dictionary
-        args: Parsed command-line arguments
-
-    Returns:
-        Path to the saved session file, or None if not saved
-    """
-    import datetime
-
-    # Only save if meta-critique is enabled or .evidence directory exists
-    session_dir = Path("P:/.claude/.evidence/ai-pcli")
-    meta_critique = getattr(args, "meta_critique", False)
-
-    # Always save if meta-critique is set; otherwise only create dir on demand
-    if not meta_critique:
-        return None
-
-    session_dir.mkdir(parents=True, exist_ok=True)
-
-    # Build session data
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    session_id = timestamp
-
-    # Extract the original query from args
-    query = getattr(args, "query", "")
-
-    session_data = {
-        "session_id": session_id,
-        "timestamp": timestamp,
-        "query": query,
-        "agents": list(results.keys()),
-        "results": results,
-    }
-
-    session_file = session_dir / f"{session_id}.json"
-    session_file.write_text(json.dumps(session_data, indent=2), encoding="utf-8")
-
-    return session_file
-
-
 def _write_output(results: dict[str, Any], args: argparse.Namespace) -> None:
     """Write output in the selected format.
 
@@ -2904,9 +2949,6 @@ def _write_output(results: dict[str, Any], args: argparse.Namespace) -> None:
         print(format_diff(results))
     else:
         print(format_results(results))
-
-    # Save session file for meta-critique access (mirrors pre-mortem session pattern)
-    _save_pcli_session_file(results, args)
 
 
 async def _run_domain_query(
@@ -3230,6 +3272,7 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
     parser.add_argument("--opencode-only", action="store_true", help="Run only opencode-cli")
     parser.add_argument("--pi-m27-only", action="store_true", help="Run only pi with minimax/MiniMax-M2.7")
     parser.add_argument("--pi-glm-only", action="store_true", help="Run only pi with zai/glm-5.1")
+    parser.add_argument("--copilot-only", action="store_true", help="Run only GitHub Copilot CLI")
     parser.add_argument(
         "--glm-flash-only", action="store_true", help="Run only GLM-4.7-Flash (via API)"
     )
@@ -3338,11 +3381,6 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
         help="Skip the post-run ai-cli critic subagent",
     )
     parser.add_argument(
-        "--meta-critique",
-        action="store_true",
-        help="Run cross-agent meta-critique after results (Phase 2: catch contradictions and blind spots)",
-    )
-    parser.add_argument(
         "--prompt-toolkit",
         action="store_true",
         help="Use prompting-toolkit AutomaticEnhancementSystem instead of built-in prompt templates",
@@ -3430,7 +3468,7 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
     if getattr(args, "prompt_toolkit", False):
         # Use prompting-toolkit AutomaticEnhancementSystem
         try:
-            import sys
+            import sys as _sys_local
 
             sys.path.insert(0, "P:/packages/prompting-toolkit/packages/framework/src")
             from prompting_framework.automatic_enhancement_system import (
@@ -3456,16 +3494,38 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
                         f"[Applied prompting-toolkit: {frameworks}] "
                         f"+{result.improvement_percentage:.0f}% quality, "
                         f"{result.processing_time:.2f}s",
-                        file=sys.stderr,
+                        file=_sys_local.stderr,
                     )
                 # else: enhancement was skipped silently, no log needed
         except (ImportError, AttributeError, asyncio.RuntimeError) as e:
-            print(f"[prompting-toolkit unavailable: {e}], using built-in templates", file=sys.stderr)
+            print(f"[prompting-toolkit unavailable: {e}], using built-in templates", file=_sys_local.stderr)
+            # Override PLANNING -> BRAINSTORM when context is empty and query is conceptual
+            # Conceptual queries without files are brainstorm tasks, not planning tasks
+            if not context and classification.task_type == TaskType.PLANNING:
+                conceptual_starters = (
+                    "what ideas", "how should", "should we", "could we", "ways to",
+                    "ideas for", "how could", "what's the best", "how can we",
+                )
+                query_lower = args.query.lower().strip()
+                if any(query_lower.startswith(s) for s in conceptual_starters):
+                    classification.task_type = TaskType.BRAINSTORM
+                    print(f"[Conceptual query without context - overriding to brainstorm]", file=sys.stderr)
             enhanced_query = build_prompt(query, classification.task_type, context)
             if enhanced_query != query:
                 query = enhanced_query
                 print(f"[Applied {classification.task_type.value} prompt template]", file=sys.stderr)
     else:
+        # Override PLANNING -> BRAINSTORM when context is empty and query is conceptual
+        # Conceptual queries without files are brainstorm tasks, not planning tasks
+        if not context and classification.task_type == TaskType.PLANNING:
+            conceptual_starters = (
+                "what ideas", "how should", "should we", "could we", "ways to",
+                "ideas for", "how could", "what's the best", "how can we",
+            )
+            query_lower = args.query.lower().strip()
+            if any(query_lower.startswith(s) for s in conceptual_starters):
+                classification.task_type = TaskType.BRAINSTORM
+                print(f"[Conceptual query without context - overriding to brainstorm]", file=sys.stderr)
         enhanced_query = build_prompt(query, classification.task_type, context)
         if enhanced_query != query:
             query = enhanced_query
@@ -3570,30 +3630,23 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
 
     # Load saved recipe if no opencode_models specified on command line
     opencode_models = args.opencode_model
-    pi_models = []
     if not opencode_models:
         saved = _load_ai_cli_config()
         if saved:
             opencode_models = saved.get("opencode_models", [])
-            pi_models = saved.get("pi_models", ["minimax/MiniMax-M2.7", "zai/glm-5.1"])
 
     # Context file for pi agents
     context_file = args.context
 
-    # Determine which LLMs are active (for preview and execution)
-    active = _determine_active_llms(
+    # Show CLI/LLM preview before execution
+    cli_preview = _get_cli_preview(
         qwen_only=args.qwen_only,
         gemini_only=args.gemini_only,
         codex_only=args.codex_only,
         opencode_only=args.opencode_only,
         glm_flash_only=args.glm_flash_only,
-        pi_m27_only=getattr(args, "pi_m27_only", False),
-        pi_glm_only=getattr(args, "pi_glm_only", False),
-        pi_models=pi_models,
+        opencode_models=opencode_models,
     )
-
-    # Show CLI/LLM preview before execution
-    cli_preview = _get_cli_preview(active=active, opencode_models=opencode_models)
     print(cli_preview, file=sys.stderr)
 
     # Execute parallel LLM queries
@@ -3606,7 +3659,7 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
         glm_flash_only=args.glm_flash_only,
         pi_m27_only=getattr(args, "pi_m27_only", False),
         pi_glm_only=getattr(args, "pi_glm_only", False),
-        pi_models=pi_models,
+        copilot_only=getattr(args, "copilot_only", False),
         timeout=args.timeout,
         output_format=args.output_format,
         verbose=getattr(args, "verbose", False),
