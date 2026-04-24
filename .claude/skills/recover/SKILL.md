@@ -214,21 +214,10 @@ cp "C:/Users/brsth/.claude/file-history/{uuid}/{hash}@v{max}" "<target_path>"
 | File History | Untracked files with revisions | <2s | MEDIUM |
 | Transcript Index | Fast lookup of Write/Edit operations | <1s | MEDIUM |
 | Claude `/rewind` | Checkpoint snapshots before edits | interactive | HIGH |
-| claude-file-recovery | Parse JSONL + reconstruct files (TUI) | tool | HIGH |
+| PreToolUse Git Auto-Stage | Auto-stages files before deletion | <1s | HIGH |
 | VS Code/Cursor History | Editor-level local history | <1s | HIGH |
 
-### External Tools
-
-**[claude-file-recovery](https://github.com/ubos-tech/claude-file-recovery)** — open source tool that parses session JSONL and reconstructs files:
-```
-uv tool install claude-file-recovery
-claude-file-recovery list-files --filter '*.py'
-claude-file-recovery extract-files --output ./recovered
-```
-
-**VS Code / Cursor Local History** — both editors maintain automatic local history:
-- VS Code: `Ctrl+Shift+P` → "Local History: Find Entry to Restore"
-- Cursor: Similar local history, survives file deletion
+**Git Auto-Stage Hook** (`PreToolUse_git_auto_stage.py`) — runs before `rm`, `del`, `move` commands. Stages target files to git automatically so they survive in git history even after deletion. Prevention layer that makes `/recover`'s git source always have the latest committed state.
 
 ## Key Insights from Research
 
