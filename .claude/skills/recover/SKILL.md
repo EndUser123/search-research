@@ -36,10 +36,21 @@ Recover deleted, overwritten, or missing files using multiple fallback sources: 
 
 ### 1. Git (fastest, most reliable)
 ```
-git -C "P:/" log --all --full-history -- <file_path>  # Find commits touching file
+# Check ALL refs/branches (not just HEAD — files can exist on other branches)
+git -C "P:/" log --all --oneline -- <file_path>  # Find commits across all branches
+git -C "P:/" log --all --full-history -- <file_path>  # Full history including deleted
+git -C "P:/" branch -a  # List all branches
 git -C "P:/" show <commit>:<file_path>  # Preview content at commit
 git -C "P:/" restore --source=<commit> <file_path>  # Restore
+
+# Check reflog for recently deleted files
+git -C "P:/" reflog --date=iso -- <file_path>  # Reflog showing file history
+git -C "P:/" reflog --date=iso -20  # Recent HEAD moves (check after resets)
+
+# If file existed on a different branch
+git -C "P:/" checkout <branch> -- <file_path>  # Restore from another branch
 ```
+**Important**: Always use `--all` flag — a file deleted on one branch may exist on another. HEAD may be detached. Check `git worktree list` for files in worktrees.
 **When**: File was ever committed to git. Works for deleted AND modified files.
 
 ### 2. Claude File History (for untracked files)
@@ -102,7 +113,31 @@ find "C:/Users/brsth/.claude/file-history/" -name "*<filename>*" 2>/dev/null
 ls -la "C:/Users/brsth/.claude/file-history/{uuid}/" | grep <filename>
 ```
 
-### Phase 4: Parse Transcripts
+### Phase 4: Check Transcript Index (Fast Path)
+
+The transcript index at `P:/.data/recover_index/` provides fast lookups
+without parsing JSONL files on every /recover call.
+
+```bash
+# Check if index is stale (rebuilds automatically if needed)
+python P:/.data/recover_index/indexer.py --stats
+
+# Look up a file in the index
+python P:/.data/recover_index/indexer.py --lookup "TARGET_FILE_PATH" --limit 5
+
+# Manual rebuild (runs automatically on stale index)
+python P:/.data/recover_index/indexer.py
+```
+
+The indexer runs on-demand: if the index is older than 24 hours when
+/recover is called, it triggers a background rebuild before searching.
+The index stores: file_path, session_id, timestamp, operation (Write/Edit),
+content_hash, content_preview (first 200 chars), line_count.
+
+### Phase 5: Parse Transcripts (Fallback / Deep Search)
+
+If the index lookup returns no results but you believe the file was written
+by Claude, parse transcripts directly:
 
 ```bash
 # Get recent session transcripts
@@ -110,20 +145,18 @@ ls -lt "C:/Users/brsth/.claude/projects/P--/"*.jsonl | head -5
 
 # Search for file_path in transcripts
 python - <<'PY'
-import json
-import sys
+import json, sys
 path = "TARGET_FILE_PATH"
-transcripts = [
+for t in [
     r"C:\Users\brsth\.claude\projects\P--\RECENT_SESSION.jsonl",
-]
-for t in transcripts:
+]:
     try:
         with open(t, 'r', encoding='utf-8', errors='replace') as f:
             for line in f:
                 try:
                     e = json.loads(line.strip())
                     msg = e.get('message', {})
-                    content = msg.get('content', '')
+                    content = msg.get('content', '') if isinstance(msg, dict) else msg
                     if isinstance(content, list):
                         content = ' '.join(c.get('text','') for c in content if isinstance(c,dict))
                     if path.lower() in content.lower() and 'Write' in str(e):
@@ -135,7 +168,7 @@ for t in transcripts:
 PY
 ```
 
-### Phase 5: Present Options
+### Phase 6: Present Options
 
 ```
 RECOVERY OPTIONS for {filename}:
@@ -159,7 +192,7 @@ RECOVERY OPTIONS for {filename}:
 Choose option [1-4] or skip:
 ```
 
-### Phase 6: Execute Recovery
+### Phase 7: Execute Recovery
 
 ```bash
 # Based on user choice:
@@ -179,8 +212,23 @@ cp "C:/Users/brsth/.claude/file-history/{uuid}/{hash}@v{max}" "<target_path>"
 |--------|-----------------|---------|------------|
 | Git | Committed files (deleted or modified) | <1s | HIGH |
 | File History | Untracked files with revisions | <2s | MEDIUM |
-| Transcript | Content from Write/Edit operations | 5-30s | MEDIUM |
-| Checkpoints | Write/Edit content (built-in `/rewind`) | interactive | HIGH |
+| Transcript Index | Fast lookup of Write/Edit operations | <1s | MEDIUM |
+| Claude `/rewind` | Checkpoint snapshots before edits | interactive | HIGH |
+| claude-file-recovery | Parse JSONL + reconstruct files (TUI) | tool | HIGH |
+| VS Code/Cursor History | Editor-level local history | <1s | HIGH |
+
+### External Tools
+
+**[claude-file-recovery](https://github.com/ubos-tech/claude-file-recovery)** — open source tool that parses session JSONL and reconstructs files:
+```
+uv tool install claude-file-recovery
+claude-file-recovery list-files --filter '*.py'
+claude-file-recovery extract-files --output ./recovered
+```
+
+**VS Code / Cursor Local History** — both editors maintain automatic local history:
+- VS Code: `Ctrl+Shift+P` → "Local History: Find Entry to Restore"
+- Cursor: Similar local history, survives file deletion
 
 ## Key Insights from Research
 

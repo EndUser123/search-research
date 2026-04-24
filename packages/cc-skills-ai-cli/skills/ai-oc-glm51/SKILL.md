@@ -62,7 +62,7 @@ Use when task is RESEARCH. The ACG loop is MY cognitive process — OpenCode pro
 
 ### Step 1 — Call OpenCode once (get raw analysis)
 ```bash
-opencode run "[prompt]" --model zai-coding-plan/glm-5.1 --format json 2>&1
+opencode run "[prompt]" --model zai/glm-5.1 --format json 2>&1
 ```
 - Pull the raw analysis from OpenCode
 - Do NOT run multiple OpenCode calls for each ACG phase — ACG is what YOU do with the material
@@ -193,7 +193,7 @@ Confirm these flags appear in output: `run`, `--model`, `--format`, `--prompt`.
 
 **Stage 2 — Invocation test** (required before first RESEARCH task):
 ```bash
-opencode run "Say hello" --model zai-coding-plan/glm-5.1 --format json
+opencode run "Say hello" --model zai/glm-5.1 --format json
 ```
 If this returns a response, OpenCode CLI is working. If it returns an error or empty output, flag as `[INVOCATION_FAILED]` and investigate.
 
@@ -203,7 +203,7 @@ When this skill is invoked:
 
 1. **Invoke via wrapper** — captures CLI output to a file:
    ```bash
-   pwsh -File P:/packages/cc-skills-ai-cli/scripts/agentic-cli.ps1 -cli "opencode" -command "run [your prompt] --model zai-coding-plan/glm-5.1 --format json" -outputPath "P:/tmp/opencode_output.json"
+   pwsh -File P:/packages/cc-skills-ai-cli/scripts/agentic-cli.ps1 -cli "opencode" -command "run [your prompt] --model zai/glm-5.1 --format json" -outputPath "P:/tmp/opencode_output.json"
    ```
    Replace `[your prompt]` with the task description from the user's request.
 
@@ -222,12 +222,12 @@ When this skill is invoked:
 
 **Small inputs (<500KB)** — inline prompt:
 ```
-pwsh -File P:/packages/cc-skills-ai-cli/scripts/agentic-cli.ps1 -cli "opencode" -command "run Analyze P:/path/to/file.py --model zai-coding-plan/glm-5.1 --format json" -outputPath "P:/tmp/opencode_output.json"
+pwsh -File P:/packages/cc-skills-ai-cli/scripts/agentic-cli.ps1 -cli "opencode" -command "run Analyze P:/path/to/file.py --model zai/glm-5.1 --format json" -outputPath "P:/tmp/opencode_output.json"
 ```
 
 **Large inputs (>500KB)** — pass filepath in prompt:
 ```
-pwsh -File P:/packages/cc-skills-ai-cli/scripts/agentic-cli.ps1 -cli "opencode" -command "run Read P:/path/to/file.md --model zai-coding-plan/glm-5.1 --format json" -outputPath "P:/tmp/opencode_output.json"
+pwsh -File P:/packages/cc-skills-ai-cli/scripts/agentic-cli.ps1 -cli "opencode" -command "run Read P:/path/to/file.md --model zai/glm-5.1 --format json" -outputPath "P:/tmp/opencode_output.json"
 ```
 
 ### Timeout and Response Handling
@@ -259,4 +259,4 @@ pwsh -File P:/packages/cc-skills-ai-cli/scripts/agentic-cli.ps1 -cli "opencode" 
 ### 1.0.0
 - Initial release (adapted from /ai-copilot)
 - OpenCode CLI uses `opencode run` for headless mode
-- Model: `zai-coding-plan/glm-5.1` via z.ai
+- Model: `zai/glm-5.1` via z.ai

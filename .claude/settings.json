@@ -100,7 +100,8 @@
     "GIT_COMMIT_TEST_GATE_ENABLED": "true",
     "GIT_COMMIT_TEST_GATE_MODE": "block",
     "AGENT_CONTRACT_VALIDATOR_ENABLED": "true",
-    "PERF_ATTRIBUTION_GATE_ENABLED": "true"
+    "PERF_ATTRIBUTION_GATE_ENABLED": "true",
+    "CLAUDE_PLUGIN_ROOT": "C:/Users/brsth/.claude/plugins/reason_openai"
   },
   "includeCoAuthoredBy": true,
   "permissions": {
@@ -434,11 +435,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PreCompact.py",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "python P:/.claude/hooks/log_hook.py",
             "timeout": 5
           }
@@ -462,16 +458,6 @@
           {
             "type": "command",
             "command": "python P:/.claude/hooks/SessionStart_verification_cleanup.py",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/SessionStart_tldr.py",
             "timeout": 5
           }
         ]
@@ -509,11 +495,6 @@
           {
             "type": "command",
             "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/SessionEnd_breadcrumb_cleanup.py --timeout 5.0",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/SessionEnd_tldr.py --timeout 5.0",
             "timeout": 5
           },
           {

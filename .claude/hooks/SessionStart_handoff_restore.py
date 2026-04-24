@@ -1,1 +1,0 @@
-P:/packages/handoff/scripts/hooks/SessionStart_handoff_restore.py

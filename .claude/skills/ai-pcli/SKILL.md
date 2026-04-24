@@ -106,7 +106,7 @@ python "P:/packages/cc-skills-ai-cli/skills/ai-pcli/ai_cli.py" --help
 | gemini | gemini-cli | Yes |
 | codex | OpenAI Codex | Yes |
 | pi-m27 | pi --model minimax/MiniMax-M2.7 | Yes |
-| pi-glm | pi --model z-ai/glm-5.1 | Yes |
+| pi-glm | pi --model zai/glm-5.1 | Yes |
 | qwen | qwen-cli | No |
 | opencode | opencode-ai | No |
 
@@ -136,7 +136,7 @@ python "P:/packages/cc-skills-ai-cli/skills/ai-pcli/ai_cli.py" --help
 | `--gemini-only` | Run only gemini-cli |
 | `--codex-only` | Run only codex |
 | `--pi-m27-only` | Run only pi with minimax/MiniMax-M2.7 |
-| `--pi-glm-only` | Run only pi with z-ai/glm-5.1 |
+| `--pi-glm-only` | Run only pi with zai/glm-5.1 |
 | `--qwen-only` | Run only qwen-cli |
 | `--opencode-only` | Run only opencode (DeepSeek V3) |
 | `--opencode-model MODEL` | OpenCode model or alias (kimi, minimax) |

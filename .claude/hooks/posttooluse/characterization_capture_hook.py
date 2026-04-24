@@ -22,6 +22,8 @@ logger.addHandler(logging.NullHandler())
 HOOKS_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(HOOKS_DIR / "__lib"))
 
+from posttooluse.base import PostToolUseHook
+
 _char_engine_ok = False
 try:
     from characterization_engine import CharacterizationEngine
@@ -37,7 +39,7 @@ except ImportError:
     StateManager = None
 
 
-class CharacterizationCaptureHook:
+class CharacterizationCaptureHook(PostToolUseHook):
     """PostToolUse hook that captures characterization after hook edits."""
 
     env_var = "CHARACTERIZATION_CAPTURE_ENABLED"
@@ -46,23 +48,22 @@ class CharacterizationCaptureHook:
     tool_matcher = {"Edit", "Write"}
 
     def __init__(self):
+        super().__init__()
         self.enabled = os.environ.get(self.env_var, "true").lower() not in ("false", "0", "no")
 
-    def process(self, data: dict) -> dict | None:
+    def process(self, tool_name: str, tool_input: dict, tool_response: dict) -> dict | None:
         """Capture characterization after hook file edits.
 
         Args:
-            data: PostToolUse event data with tool_name, tool_input, tool_result
+            tool_name: Name of the tool (Edit or Write)
+            tool_input: Input parameters with file_path
+            tool_response: Output from the tool
 
         Returns:
             None (passive hook - no blocking output)
         """
         if not self.enabled:
             return None
-
-        # Accept both tool_input and toolInput variants
-        tool_input = data.get("tool_input") or data.get("toolInput") or {}
-        tool_name = data.get("tool_name", "")
 
         # Validate tool_matcher - only run on Edit/Write
         if tool_name not in self.tool_matcher:

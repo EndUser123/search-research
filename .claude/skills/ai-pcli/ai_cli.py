@@ -49,7 +49,7 @@ def _load_ai_cli_config() -> dict[str, Any] | None:
             if isinstance(raw, dict) and ("default" in raw or "aux" in raw):
                 # Ensure pi_models is present
                 if "pi_models" not in raw:
-                    raw["pi_models"] = ["minimax/MiniMax-M2.7", "z-ai/glm-5.1"]
+                    raw["pi_models"] = ["minimax/MiniMax-M2.7", "zai/glm-5.1"]
                 return raw
 
             # Legacy format: flatten into the structure expected by the
@@ -419,7 +419,7 @@ def _resolve_opencode_model(model: str | None) -> str:
         "minimax": "chutes/MiniMaxAI/MiniMax-M2.1-TEE",
         "nemotron": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
         "mimo": "chutes/XiaomiMiMo/MiMo-V2-Flash",
-        "glm5": "zai-coding-plan/glm-5.1",
+        "glm5": "zai/glm-5.1",
         "k2": "chutes/moonshotai/Kimi-K2.5-TEE",
         "deepseek-v3.2": "chutes/deepseek-ai/DeepSeek-V3.2-TEE",
         "deepseek-v3.2-tee": "chutes/deepseek-ai/DeepSeek-V3.2-TEE",
@@ -1072,8 +1072,8 @@ def _determine_active_llms(
     Args:
         qwen_only, gemini_only, codex_only, opencode_only, glm_flash_only: CLI flags
         pi_m27_only: Run only pi with minimax/MiniMax-M2.7
-        pi_glm_only: Run only pi with z-ai/glm-5.1
-        pi_models: List of pi models to run by default (e.g., ["minimax/MiniMax-M2.7", "z-ai/glm-5.1"])
+        pi_glm_only: Run only pi with zai/glm-5.1
+        pi_models: List of pi models to run by default (e.g., ["minimax/MiniMax-M2.7", "zai/glm-5.1"])
 
     Returns:
         Dictionary with boolean flags for each LLM
@@ -1083,7 +1083,7 @@ def _determine_active_llms(
     )
 
     # Default pi models from config
-    default_pi_models = pi_models or ["minimax/MiniMax-M2.7", "z-ai/glm-5.1"]
+    default_pi_models = pi_models or ["minimax/MiniMax-M2.7", "zai/glm-5.1"]
 
     if not has_cli_flags:
         return {
@@ -1093,7 +1093,7 @@ def _determine_active_llms(
             "opencode": False,
             "glm_flash": False,
             "pi_m27": "minimax/MiniMax-M2.7" in default_pi_models,
-            "pi_glm": "z-ai/glm-5.1" in default_pi_models,
+            "pi_glm": "zai/glm-5.1" in default_pi_models,
         }
     return {
         "qwen": qwen_only,
@@ -1151,7 +1151,7 @@ def _get_cli_preview(
     if active.get("pi_m27"):
         pi_agents.append("minimax/MiniMax-M2.7")
     if active.get("pi_glm"):
-        pi_agents.append("z-ai/glm-5.1")
+        pi_agents.append("zai/glm-5.1")
     if pi_agents:
         lines.append("")
         lines.append(f"  Pi agents ({len(pi_agents)} parallel)")
@@ -1179,7 +1179,7 @@ def _build_cli_commands(
         run_qwen, run_gemini, run_codex, run_opencode: Boolean flags
         opencode_models: List of OpenCode model names (empty list = use default)
         run_pi_m27: Run pi with minimax/MiniMax-M2.7
-        run_pi_glm: Run pi with z-ai/glm-5.1
+        run_pi_glm: Run pi with zai/glm-5.1
         context_file: Optional file path for pi -p @filepath flag
 
     Returns:
@@ -1241,7 +1241,7 @@ def _build_cli_commands(
         commands.append(("pi-m27", pi_m27_cmd))
     if run_pi_glm:
         ctx_arg = ["-p", f"@{context_file}"] if context_file else []
-        pi_glm_cmd = ["pi", "--model", "z-ai/glm-5.1", *ctx_arg, query]
+        pi_glm_cmd = ["pi", "--model", "zai/glm-5.1", *ctx_arg, query]
         commands.append(("pi-glm", pi_glm_cmd))
 
     return commands
@@ -3229,7 +3229,7 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
     parser.add_argument("--codex-only", action="store_true", help="Run only codex-cli")
     parser.add_argument("--opencode-only", action="store_true", help="Run only opencode-cli")
     parser.add_argument("--pi-m27-only", action="store_true", help="Run only pi with minimax/MiniMax-M2.7")
-    parser.add_argument("--pi-glm-only", action="store_true", help="Run only pi with z-ai/glm-5.1")
+    parser.add_argument("--pi-glm-only", action="store_true", help="Run only pi with zai/glm-5.1")
     parser.add_argument(
         "--glm-flash-only", action="store_true", help="Run only GLM-4.7-Flash (via API)"
     )
@@ -3575,7 +3575,7 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
         saved = _load_ai_cli_config()
         if saved:
             opencode_models = saved.get("opencode_models", [])
-            pi_models = saved.get("pi_models", ["minimax/MiniMax-M2.7", "z-ai/glm-5.1"])
+            pi_models = saved.get("pi_models", ["minimax/MiniMax-M2.7", "zai/glm-5.1"])
 
     # Context file for pi agents
     context_file = args.context

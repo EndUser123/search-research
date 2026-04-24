@@ -434,7 +434,7 @@ def _resolve_opencode_model(model: str | None) -> str:
         "minimax": "chutes/MiniMaxAI/MiniMax-M2.1-TEE",
         "nemotron": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
         "mimo": "chutes/XiaomiMiMo/MiMo-V2-Flash",
-        "glm5": "zai-coding-plan/glm-5.1",
+        "glm5": "zai/glm-5.1",
         "k2": "chutes/moonshotai/Kimi-K2.5-TEE",
         "deepseek-v3.2": "chutes/deepseek-ai/DeepSeek-V3.2-TEE",
         "deepseek-v3.2-tee": "chutes/deepseek-ai/DeepSeek-V3.2-TEE",
@@ -1087,7 +1087,7 @@ def _determine_active_llms(
     Args:
         qwen_only, gemini_only, codex_only, opencode_only, glm_flash_only: CLI flags
         pi_m27_only: Run only pi with minimax/MiniMax-M2.7
-        pi_glm_only: Run only pi with z-ai/glm-5.1
+        pi_glm_only: Run only pi with zai/glm-5.1
         copilot_only: Run only GitHub Copilot CLI
 
     Returns:
@@ -1137,7 +1137,7 @@ def _get_cli_preview(
         qwen_only, gemini_only, codex_only, opencode_only, glm_flash_only: CLI flags
         opencode_models: List of OpenCode model names
         pi_m27_only: Run only pi with minimax/MiniMax-M2.7
-        pi_glm_only: Run only pi with z-ai/glm-5.1
+        pi_glm_only: Run only pi with zai/glm-5.1
 
     Returns:
         Formatted string listing all CLIs/LLMs that will be invoked
@@ -1212,7 +1212,7 @@ def _build_cli_commands(
         run_qwen, run_gemini, run_codex, run_opencode: Boolean flags
         opencode_models: List of OpenCode model names (empty list = use default)
         run_pi_m27: Run pi with minimax/MiniMax-M2.7
-        run_pi_glm: Run pi with z-ai/glm-5.1
+        run_pi_glm: Run pi with zai/glm-5.1
         context_file: Optional file path for pi -p @filepath flag
 
     Returns:
@@ -1274,7 +1274,7 @@ def _build_cli_commands(
         commands.append(("pi-m27", pi_m27_cmd))
     if run_pi_glm:
         ctx_arg = ["-p", f"@{context_file}"] if context_file else []
-        pi_glm_cmd = ["pi", "--model", "z-ai/glm-5.1", *ctx_arg, query]
+        pi_glm_cmd = ["pi", "--model", "zai/glm-5.1", *ctx_arg, query]
         commands.append(("pi-glm", pi_glm_cmd))
 
     # GitHub Copilot CLI
@@ -3271,7 +3271,7 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
     parser.add_argument("--codex-only", action="store_true", help="Run only codex-cli")
     parser.add_argument("--opencode-only", action="store_true", help="Run only opencode-cli")
     parser.add_argument("--pi-m27-only", action="store_true", help="Run only pi with minimax/MiniMax-M2.7")
-    parser.add_argument("--pi-glm-only", action="store_true", help="Run only pi with z-ai/glm-5.1")
+    parser.add_argument("--pi-glm-only", action="store_true", help="Run only pi with zai/glm-5.1")
     parser.add_argument("--copilot-only", action="store_true", help="Run only GitHub Copilot CLI")
     parser.add_argument(
         "--glm-flash-only", action="store_true", help="Run only GLM-4.7-Flash (via API)"

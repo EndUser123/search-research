@@ -235,7 +235,8 @@
       "Bash(mv P:/.claude/hooks/SessionStart_tldr.py P:/packages/handoff/scripts/hooks/SessionStart_tldr.py)",
       "Bash(mv P:/.claude/hooks/SessionEnd_tldr.py P:/packages/handoff/scripts/hooks/SessionEnd_tldr.py)",
       "Bash(mv P:/.claude/hooks/PreCompact_workflow_checkpoint.py P:/packages/handoff/scripts/hooks/PreCompact_workflow_checkpoint.py)",
-      "Bash(mv P:/.claude/hooks/PreCompact_commitment_tracker.py P:/packages/handoff/scripts/hooks/PreCompact_commitment_tracker.py)"
+      "Bash(mv P:/.claude/hooks/PreCompact_commitment_tracker.py P:/packages/handoff/scripts/hooks/PreCompact_commitment_tracker.py)",
+      "mcp__perplexity__pplx_sonar"
     ],
     "deny": [],
     "ask": []

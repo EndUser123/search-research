@@ -136,7 +136,7 @@ def cmd_models(args: argparse.Namespace) -> int:
         "minimax": "chutes/MiniMaxAI/MiniMax-M2.1-TEE",
         "nemotron": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
         "mimo": "chutes/XiaomiMiMo/MiMo-V2-Flash",
-        "glm5": "zai-coding-plan/glm-5.1",
+        "glm5": "zai/glm-5.1",
         "k2": "chutes/moonshotai/Kimi-K2.5-TEE",
         "deepseek-v3.2": "chutes/deepseek-ai/DeepSeek-V3.2-TEE",
         "deepseek-v3.2-tee": "chutes/deepseek-ai/DeepSeek-V3.2-TEE",
