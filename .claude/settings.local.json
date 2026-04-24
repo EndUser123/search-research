@@ -230,7 +230,12 @@
       "Bash(mkdir -p \"C:/Users/brsth/.claude/plugins/reason_openai/.claude-plugin\")",
       "Bash(cp \"C:/Users/brsth/.claude/plugins/reason_openai/plugin.json\" \"C:/Users/brsth/.claude/plugins/reason_openai/.claude-plugin/plugin.json\")",
       "Bash(rm -f \"P:/.claude/skills/go\")",
-      "Bash(ln -s \"/p/packages/cc-skills-sdlc/skills/go_2.0/\" \"P:/.claude/skills/go\")"
+      "Bash(ln -s \"/p/packages/cc-skills-sdlc/skills/go_2.0/\" \"P:/.claude/skills/go\")",
+      "Bash(mv P:/.claude/hooks/PreCompact.py P:/packages/handoff/scripts/hooks/PreCompact.py)",
+      "Bash(mv P:/.claude/hooks/SessionStart_tldr.py P:/packages/handoff/scripts/hooks/SessionStart_tldr.py)",
+      "Bash(mv P:/.claude/hooks/SessionEnd_tldr.py P:/packages/handoff/scripts/hooks/SessionEnd_tldr.py)",
+      "Bash(mv P:/.claude/hooks/PreCompact_workflow_checkpoint.py P:/packages/handoff/scripts/hooks/PreCompact_workflow_checkpoint.py)",
+      "Bash(mv P:/.claude/hooks/PreCompact_commitment_tracker.py P:/packages/handoff/scripts/hooks/PreCompact_commitment_tracker.py)"
     ],
     "deny": [],
     "ask": []
