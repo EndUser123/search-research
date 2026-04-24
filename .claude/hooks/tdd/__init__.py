@@ -3,7 +3,7 @@
 This package extends TDD-95 with autonomous RED→GREEN→REFACTOR execution,
 Cold Code Review, and Three-File Contract patterns.
 
-ADR: P:/.claude/arch_decisions/ADR-20260324-clean-room-tdd-loop.md
+ADR: P:/docs/adrs/ADR-20260324-clean-room-tdd-loop.md
 """
 
 from .cold_code_review_dispatch import (

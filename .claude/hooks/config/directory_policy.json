@@ -657,6 +657,16 @@
           "note": "All references point to .evidence/ (hidden); evidence/ itself is unused"
         },
         {
+          "pattern": ".claude/arch_decisions/",
+          "reason": "Obsolete - ADRs moved to docs/adrs/",
+          "action": "DELETE"
+        },
+        {
+          "pattern": ".claude/context/",
+          "reason": "Orphaned session artifacts - no active consumers (last used 2026-04-08)",
+          "action": "DELETE"
+        },
+        {
           "pattern": ".staging/",
           "reason": "Duplicate staging directory - P:/__csf/.staging/ is canonical",
           "action": "DELETE"

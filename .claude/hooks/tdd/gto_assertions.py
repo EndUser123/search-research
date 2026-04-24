@@ -8,7 +8,7 @@ Implements TASK-004 from ADR-20260324-clean-room-tdd-loop.md:
 - Result aggregation produces pass/fail summary
 - Atomic write pattern for JSON state (FM-2408)
 
-ADR: P:/.claude/arch_decisions/ADR-20260324-clean-room-tdd-loop.md
+ADR: P:/docs/adrs/ADR-20260324-clean-room-tdd-loop.md
 """
 
 from __future__ import annotations

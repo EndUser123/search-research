@@ -7,7 +7,7 @@ Provides constitutional enforcement tiers per TDD phase:
 - REFACTOR: warn (optional improvement phase)
 - COMPLETE: none (no enforcement needed)
 
-ADR: P:/.claude/arch_decisions/ADR-20260324-clean-room-tdd-loop.md
+ADR: P:/docs/adrs/ADR-20260324-clean-room-tdd-loop.md
 """
 
 from __future__ import annotations

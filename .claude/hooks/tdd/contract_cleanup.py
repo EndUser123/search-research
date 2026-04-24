@@ -4,7 +4,7 @@ Contract Cleanup for Clean-Room TDD Loop v2.
 Cleans up evidence directories for completed TDD contracts.
 Evidence is retained for a configurable period before cleanup.
 
-ADR: P:/.claude/arch_decisions/ADR-20260324-clean-room-tdd-loop.md
+ADR: P:/docs/adrs/ADR-20260324-clean-room-tdd-loop.md
 """
 
 from __future__ import annotations

@@ -8,7 +8,7 @@ Implements TASK-002 from ADR-20260324-clean-room-tdd-loop.md:
 - FileLock context manager for all state operations (FM-2401)
 - Atomic write pattern for state files (FM-2408)
 
-ADR: P:/.claude/arch_decisions/ADR-20260324-clean-room-tdd-loop.md
+ADR: P:/docs/adrs/ADR-20260324-clean-room-tdd-loop.md
 """
 
 from __future__ import annotations

@@ -242,7 +242,7 @@ def check_cleanup_requirements(work_type: str, tool_history: list, response: str
 
     elif work_type == "architecture":
         # Check: ADR created
-        arch_decisions_dir = Path(project_root) / ".claude" / "arch_decisions"
+        arch_decisions_dir = Path(project_root) / "docs" / "adrs"
         if arch_decisions_dir.exists():
             # Check for recent ADR files
             import datetime
@@ -251,9 +251,9 @@ def check_cleanup_requirements(work_type: str, tool_history: list, response: str
                 most_recent = max(adrs, key=lambda p: p.stat().st_mtime)
                 mtime = datetime.datetime.fromtimestamp(most_recent.stat().st_mtime)
                 if (datetime.datetime.now() - mtime).days > 1:
-                    issues.append("Create ADR in .claude/arch_decisions/ (YYYY-MM-DD-{topic}.md)")
+                    issues.append("Create ADR in docs/adrs/ (YYYY-MM-DD-{topic}.md)")
             else:
-                issues.append("Create ADR in .claude/arch_decisions/ (YYYY-MM-DD-{topic}.md)")
+                issues.append("Create ADR in docs/adrs/ (YYYY-MM-DD-{topic}.md)")
 
     elif work_type == "documentation":
         # Check: References updated

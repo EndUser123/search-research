@@ -5,7 +5,7 @@ Logs phase transitions with evidence binding for audit trail.
 Each transition generates an evidence hash stored in:
 .claude/evidence/tdd95/{contract_id}/
 
-ADR: P:/.claude/arch_decisions/ADR-20260324-clean-room-tdd-loop.md
+ADR: P:/docs/adrs/ADR-20260324-clean-room-tdd-loop.md
 """
 
 from __future__ import annotations

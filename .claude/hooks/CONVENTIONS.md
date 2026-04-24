@@ -69,7 +69,7 @@ if should_skip:
 | Skill | Pattern | Location |
 |-------|---------|----------|
 | GTO | `gto-state-{terminal_id}` | `.evidence/gto-state-{terminal_id}/` |
-| /arch | `arch-decisions-{terminal_id}` | `.claude/arch_decisions/arch_{terminal_id}/` |
+| /arch | `arch-decisions-{terminal_id}` | `docs/adrs/arch_{terminal_id}/` |
 
 ## Platform Detection
 

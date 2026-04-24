@@ -217,7 +217,11 @@
       "Bash(mv \"C:/Users/brsth/.claude/plugins/reason_openai_v4.0/.claude-plugin/plugin.json\" \"C:/Users/brsth/.claude/plugins/reason_openai_v4.0/plugin.json\")",
       "Bash(rmdir \"C:/Users/brsth/.claude/plugins/reason_openai_v4.0/.claude-plugin\")",
       "Bash(rm -rf \"P:/.claude/.claude-state\")",
-      "Bash(rm -rf \"P:/.claude/.evidence\")"
+      "Bash(rm -rf \"P:/.claude/.evidence\")",
+      "Bash(mv \"P:/.claude/arch_decisions/\"*.md \"P:/docs/adrs/\")",
+      "Bash(rmdir \"P:/.claude/arch_decisions\")",
+      "Bash(rm -rf \"P:/packages/cc-skills-meta/skills/reason_openai_v4.0/subagents\")",
+      "Bash(rm -rf \"C:/Users/brsth/.claude/plugins/reason_openai_v4.0/subagents\")"
     ],
     "deny": [],
     "ask": []

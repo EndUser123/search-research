@@ -4,7 +4,7 @@ Cold Code Review Dispatch for Clean-Room TDD Loop v2.
 Dispatches blinded adversarial review after GREEN phase.
 The reviewer is blinded from spec/plan to evaluate code strictly on merits.
 
-ADR: P:/.claude/arch_decisions/ADR-20260324-clean-room-tdd-loop.md
+ADR: P:/docs/adrs/ADR-20260324-clean-room-tdd-loop.md
 """
 
 from __future__ import annotations

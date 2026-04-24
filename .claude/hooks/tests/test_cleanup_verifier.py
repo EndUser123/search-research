@@ -288,7 +288,7 @@ class TestCheckCleanupRequirements:
         """Test architecture cleanup check - missing ADR."""
         tool_history = [{"name": "Skill", "input": {"skill": "/arch new system"}}]
 
-        arch_decisions_dir = tmp_path / ".claude" / "arch_decisions"
+        arch_decisions_dir = tmp_path / "docs" / "adrs"
         arch_decisions_dir.mkdir(parents=True, exist_ok=True)
 
         data = {

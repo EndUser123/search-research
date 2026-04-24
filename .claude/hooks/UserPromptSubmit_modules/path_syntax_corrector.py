@@ -42,7 +42,7 @@ KNOWN_DIRS = [
     "StopHook",
     "hooks",
     ".claude",
-    "arch_decisions",
+    "docs/adrs",
 ]
 
 # Confidence threshold for auto-correction

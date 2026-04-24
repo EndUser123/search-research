@@ -1279,7 +1279,7 @@ Command: npm install @scope/package
 | **hook_dev** | Edit + hook files | Test changes, document in CLAUDE.md |
 | **feature_dev** | Edit without investigation/docs | Update project CLAUDE.md |
 | **testing** | Bash with pytest/test commands | Add tests to suite |
-| **architecture** | Skill with "/arch" invocation | Create ADR in arch_decisions/ |
+| **architecture** | Skill with "/arch" invocation | Create ADR in docs/adrs/ |
 | **documentation** | Edit with doc patterns (README, CLAUDE.md, SKILL.md) | Check for broken references |
 
 **Configuration**:

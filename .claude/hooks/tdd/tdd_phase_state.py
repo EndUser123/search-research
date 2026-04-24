@@ -4,7 +4,7 @@ TDD Phase State Management for Clean-Room TDD Loop v2.
 Extends TDD-95 with RED/GREEN/REFACTOR phases, session-scoped state isolation,
 and crash recovery support.
 
-ADR: P:/.claude/arch_decisions/ADR-20260324-clean-room-tdd-loop.md
+ADR: P:/docs/adrs/ADR-20260324-clean-room-tdd-loop.md
 """
 
 from __future__ import annotations

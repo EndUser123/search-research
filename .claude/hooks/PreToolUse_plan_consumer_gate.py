@@ -18,7 +18,7 @@ def _should_skip_for_path(file_path: str) -> bool:
     normalized = file_path.replace("\\", "/").lower()
     return (
         "/.claude/plans/" in normalized
-        or "/.claude/arch_decisions/" in normalized
+        or "/docs/adrs/" in normalized
         or normalized.endswith("/plan.md")
         or normalized.endswith("/.claude/plan.md")
     )
