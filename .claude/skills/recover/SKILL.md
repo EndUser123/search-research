@@ -225,7 +225,7 @@ cp "C:/Users/brsth/.claude/file-history/{uuid}/{hash}@v{max}" "<target_path>"
 - **Bash deletions are NOT recoverable** via checkpoints — only Write/Edit operations are captured
 - **File-history is underused** — `~/.claude/file-history/` contains versioned copies most users don't know about
 - **Transcripts are verbose** — parse with Python, don't grep raw JSONL
-- **Pre-deletion hooks could prevent loss** — future hook could auto-git-add before destructive operations
+- **Pre-deletion auto-stage hook** — `PreToolUse_git_auto_stage.py` already auto-stages files before deletion, making git recovery always possible
 
 ## Tool Backends
 
