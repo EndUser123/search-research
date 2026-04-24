@@ -101,7 +101,8 @@
     "GIT_COMMIT_TEST_GATE_MODE": "block",
     "AGENT_CONTRACT_VALIDATOR_ENABLED": "true",
     "PERF_ATTRIBUTION_GATE_ENABLED": "true",
-    "CLAUDE_PLUGIN_ROOT": "C:/Users/brsth/.claude/plugins/reason_openai"
+    "CLAUDE_PLUGIN_ROOT": "C:/Users/brsth/.claude/plugins/reason_openai",
+    "CLAUDE_PROJECT_DIR": "P:/"
   },
   "includeCoAuthoredBy": true,
   "permissions": {
