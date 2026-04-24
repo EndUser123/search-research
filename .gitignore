@@ -124,6 +124,7 @@ git_remotes/
 !.claude/config/zen_suggestions.json
 !.claude/hooks/config/directory_policy.json
 !.claude/settings.local.json
+!.claude/settings.json
 !.claude/skills/**/evals.json
 *.csv
 *.tsv
