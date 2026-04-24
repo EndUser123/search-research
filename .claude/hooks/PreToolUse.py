@@ -749,6 +749,7 @@ try:
     import PreToolUse_directory_policy
     import PreToolUse_evidence_hierarchy_gate
     import PreToolUse_git_remote_check_order_guard
+    import PreToolUse_git_auto_stage
     import PreToolUse_import_deletion_guard
     import PreToolUse_path_validator
     import PreToolUse_task_self_doc_gate
@@ -771,6 +772,7 @@ try:
         "PreToolUse_destructive_git_guard.py": PreToolUse_destructive_git_guard.run,
         "PreToolUse_evidence_hierarchy_gate.py": PreToolUse_evidence_hierarchy_gate.run,
         "PreToolUse_git_remote_check_order_guard.py": PreToolUse_git_remote_check_order_guard.run,
+        "PreToolUse_git_auto_stage.py": PreToolUse_git_auto_stage.run,
         "PreToolUse_import_deletion_guard.py": PreToolUse_import_deletion_guard.run,
         "PreToolUse_task_self_doc_gate.py": PreToolUse_task_self_doc_gate.run,
         "check_external_path_consent": pre_tool_use_logic.check_external_path_consent,
