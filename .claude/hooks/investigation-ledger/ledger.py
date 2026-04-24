@@ -41,7 +41,7 @@ else:
 # working directory, so subprocesses and tests resolve the same ledger path.
 _DEFAULT_PROJECT_DIR = Path(__file__).resolve().parents[3]
 LEDGER_DIR = (
-    Path(os.environ.get("CLAUDE_PROJECT_DIR", str(_DEFAULT_PROJECT_DIR))) / ".claude" / "data"
+    Path(os.environ.get("CLAUDE_PROJECT_DIR", str(_DEFAULT_PROJECT_DIR))) / ".claude" / ".session"
 )
 
 

@@ -390,6 +390,20 @@ checks:
       "issue_title": "Hook evaluator API error: API Error: 400 invalid_request_error",
       "severity": "block",
       "reason": "Broken at platform level across v2.1.81–v2.1.117"
+    },
+    {
+      "component": "type:agent Stop hooks",
+      "issue_number": 46926,
+      "issue_title": "Agent-type hooks on Stop event do not fire",
+      "severity": "block",
+      "reason": "Agent-type hooks on Stop often never fire at all; use type:command wrapper instead"
+    },
+    {
+      "component": "type:agent PreToolUse hooks",
+      "issue_number": 39831,
+      "issue_title": "Messages are required for agent hooks",
+      "severity": "block",
+      "reason": "PreToolUse with type:agent immediately fails with 'Messages are required' error"
     }
   ],
   "opportunities": [
@@ -418,13 +432,35 @@ checks:
 **Example**:
 ```json
 {
-  "component": "type: prompt Stop hooks",
+  "component": "type:prompt Stop hooks",
   "component_type": "hook",
   "issue_number": 37559,
   "issue_title": "Hook evaluator API error: API Error: 400 invalid_request_error",
   "severity": "block",
   "recommendation_blocked": true,
   "recommendation": "Do NOT recommend Stop hooks with type:prompt — broken at platform level (v2.1.81 through v2.1.117)"
+}
+```
+```json
+{
+  "component": "type:agent Stop hooks",
+  "component_type": "hook",
+  "issue_number": 46926,
+  "issue_title": "Agent-type hooks on Stop event do not fire",
+  "severity": "block",
+  "recommendation_blocked": true,
+  "recommendation": "Do NOT recommend Stop hooks with type:agent — use type:command wrapper instead (hooks never fire)"
+}
+```
+```json
+{
+  "component": "type:agent PreToolUse hooks",
+  "component_type": "hook",
+  "issue_number": 39831,
+  "issue_title": "Messages are required for agent hooks",
+  "severity": "block",
+  "recommendation_blocked": true,
+  "recommendation": "Do NOT recommend PreToolUse hooks with type:agent — fails with 'Messages are required' error"
 }
 ```
 

@@ -69,9 +69,9 @@ def test_hook(hook_name: str, test_payload: dict) -> dict:
 def test_stale_lock_files() -> dict:
     """Check for stale session ledger lock files that indicate cleanup bugs."""
     try:
-        # LEDGER_DIR is at .claude/data/ relative to project root
+        # LEDGER_DIR is at .claude/.session/ relative to project root
         # HOOKS_DIR is P:/.claude/hooks/, so we go up one level to get to P:/.claude/
-        ledger_dir = HOOKS_DIR.parent / "data"
+        ledger_dir = HOOKS_DIR.parent / ".session"
 
         if not ledger_dir.exists():
             return {"status": "skip", "reason": "Ledger directory not found"}

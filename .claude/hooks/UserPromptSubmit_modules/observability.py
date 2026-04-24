@@ -5,7 +5,7 @@ This module tracks:
 - Confidence distribution
 - Token overhead
 
-All metrics are logged to .claude/data/reasoning_metrics.jsonl in JSONL format.
+All metrics are logged to .claude/.session/reasoning_metrics.jsonl in JSONL format.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from UserPromptSubmit_modules.cognitive_enhancers import Enhancer
 
 # Metrics data directory
-METRICS_DIR = Path(__file__).resolve().parent.parent.parent.parent / ".claude" / "data"
+METRICS_DIR = Path(__file__).resolve().parent.parent.parent.parent / ".claude" / ".session"
 METRICS_FILE = METRICS_DIR / "reasoning_metrics.jsonl"
 
 

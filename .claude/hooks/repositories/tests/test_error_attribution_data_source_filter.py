@@ -9,7 +9,7 @@ attributing errors to hook code when the error actually comes from reading
 historical session data files.
 
 Requirements verified:
-1. EXCLUDED_PATTERNS = ["session_ledger.json", "/data/session_", "/logs/", "/.claude/data/"]
+1. EXCLUDED_PATTERNS = ["session_ledger.json", "/data/session_", "/logs/", "/.claude/.session/"]
 2. In process() method, check tool_input["file_path"] against EXCLUDED_PATTERNS
 3. If file_path matches any excluded pattern, return {"passed": True, "skipped": True, "reason": "historical_data"}
 4. This prevents false positives from session_ledger.json
@@ -88,7 +88,7 @@ class TestExcludedSessionLedgerJson:
 
         # Arrange
         tracker = ErrorAttributionTracker()
-        tool_input = {"file_path": "P:/.claude/data/session_ledger.json"}
+        tool_input = {"file_path": "P:/.claude/.session/session_ledger.json"}
         tool_response = {"output": "Some content with error-like patterns"}
 
         # Act
@@ -123,8 +123,8 @@ class TestExcludedSessionLedgerJson:
         # Arrange
         tracker = ErrorAttributionTracker()
         nested_paths = [
-            "P:/.claude/data/backups/session_ledger.json",
-            "P:/.claude/data/archive/old/session_ledger.json",
+            "P:/.claude/.session/backups/session_ledger.json",
+            "P:/.claude/.session/archive/old/session_ledger.json",
             "P:/backups/session_ledger.json",
         ]
 
@@ -165,8 +165,8 @@ class TestExcludedDataSession:
         # Arrange
         tracker = ErrorAttributionTracker()
         test_paths = [
-            "P:/.claude/data/session_abc123.json",
-            "P:/.claude/data/session_xyz789/data.json",
+            "P:/.claude/.session/session_abc123.json",
+            "P:/.claude/.session/session_xyz789/data.json",
             "P:/data/session_backup/data.json",
         ]
 
@@ -199,9 +199,9 @@ class TestExcludedDataSession:
         # Arrange
         tracker = ErrorAttributionTracker()
         session_paths = [
-            "P:/.claude/data/session_20250101.json",
-            "P:/.claude/data/session_active/data.txt",
-            "P:/.claude/data/session_error.log",
+            "P:/.claude/.session/session_20250101.json",
+            "P:/.claude/.session/session_active/data.txt",
+            "P:/.claude/.session/session_error.log",
         ]
 
         for file_path in session_paths:
@@ -261,17 +261,17 @@ class TestExcludedLogs:
 
 
 # ============================================================================
-# TEST CLASS: Excluded Pattern - /.claude/data/
+# TEST CLASS: Excluded Pattern - /.claude/.session/
 # ============================================================================
 
 
 class TestExcludedClaudeData:
-    """Tests for excluding /.claude/data/ directory pattern."""
+    """Tests for excluding /.claude/.session/ directory pattern."""
 
     def test_excluded_claude_data_pattern(self) -> None:
-        """Verify file_path containing '/.claude/data/' returns skipped result.
+        """Verify file_path containing '/.claude/.session/' returns skipped result.
 
-        Given: A file_path that contains '/.claude/data/' directory pattern
+        Given: A file_path that contains '/.claude/.session/' directory pattern
         When: The process() method is called
         Then: Returns skipped result with reason "historical_data"
 
@@ -284,9 +284,9 @@ class TestExcludedClaudeData:
         # Arrange
         tracker = ErrorAttributionTracker()
         claude_data_paths = [
-            "P:/.claude/data/state.json",
-            "P:/.claude/data/cache/results.json",
-            "P:/.claude/data/historical/session_info.json",
+            "P:/.claude/.session/state.json",
+            "P:/.claude/.session/cache/results.json",
+            "P:/.claude/.session/historical/session_info.json",
         ]
 
         for file_path in claude_data_paths:
@@ -453,13 +453,13 @@ class TestExcludedPatternsConstant:
             - "session_ledger.json"
             - "/data/session_"
             - "/logs/"
-            - "/.claude/data/"
+            - "/.claude/.session/"
 
         This ensures all historical data sources are properly excluded.
         """
         import error_attribution_tracker
 
-        required_patterns = ["session_ledger.json", "/data/session_", "/logs/", "/.claude/data/"]
+        required_patterns = ["session_ledger.json", "/data/session_", "/logs/", "/.claude/.session/"]
 
         for pattern in required_patterns:
             assert (

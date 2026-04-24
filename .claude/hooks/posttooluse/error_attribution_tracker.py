@@ -53,7 +53,7 @@ EXCLUDED_PATTERNS = [
     "session_ledger.json",
     "/data/session_",
     "/logs/",
-    "/.claude/data/",
+    "/.claude/.session/",
     "/CHANGELOG.md",
     "/CHANGELOG",
     ".md:",
