@@ -226,7 +226,11 @@
       "Bash(rm -rf \"P:/.claude/memory/lessons_orphaned\")",
       "Bash(rm -rf \"P:/.claude/wiki/.claude\")",
       "Bash(rm -f \"P:/.claude/wiki/concepts/skill-craft-index-html-debug.md\")",
-      "Bash(rm -f \"P:/.claude/lessons/2026-01-10-db-connection-leak-tdd.md\")"
+      "Bash(rm -f \"P:/.claude/lessons/2026-01-10-db-connection-leak-tdd.md\")",
+      "Bash(mkdir -p \"C:/Users/brsth/.claude/plugins/reason_openai/.claude-plugin\")",
+      "Bash(cp \"C:/Users/brsth/.claude/plugins/reason_openai/plugin.json\" \"C:/Users/brsth/.claude/plugins/reason_openai/.claude-plugin/plugin.json\")",
+      "Bash(rm -f \"P:/.claude/skills/go\")",
+      "Bash(ln -s \"/p/packages/cc-skills-sdlc/skills/go_2.0/\" \"P:/.claude/skills/go\")"
     ],
     "deny": [],
     "ask": []

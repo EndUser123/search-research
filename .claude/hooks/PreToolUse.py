@@ -973,30 +973,62 @@ def run_hook(hook_name: str, data: dict) -> dict | None:
                         "blocking_hook": hook_name,
                     }
 
-                # Clean block with no stderr - this is intentional blocking
-                # Build meaningful message with action description
+                # Clean block with no stderr - the hook blocked but didn't provide a reason.
+                # Build the most descriptive message possible from available context.
                 tool_name = data.get("tool_name", "unknown action")
                 tool_input = data.get("tool_input", {})
+                cwd = data.get("cwd", "")
 
-                # Build action description based on tool type
+                # Build context string with what we know
+                context_parts = []
+                if cwd:
+                    context_parts.append(f"cwd={cwd}")
+                context_parts.append(f"hook={hook_name}")
+
+                context_str = ", ".join(context_parts)
+
                 if tool_name == "Bash":
                     command = tool_input.get("command", "")
                     if command:
-                        # Truncate long commands for readability
                         command_preview = command[:100]
                         if len(command) > 100:
                             command_preview += "..."
-                        action_desc = f"Bash command blocked by {hook_name}: {command_preview}"
+                        action_desc = (
+                            f"⛔ BLOCKED: Bash command rejected by {hook_name}\n"
+                            f"   Command: {command_preview}\n"
+                            f"   {context_str}\n"
+                            f"   Reason: The hook blocked this action but did not print a description to stderr.\n"
+                            f"   Fix: The hook script should print a descriptive error to stderr before exiting with code 2."
+                        )
                     else:
-                        action_desc = f"Bash command blocked by {hook_name}"
+                        action_desc = (
+                            f"⛔ BLOCKED: Bash command rejected by {hook_name}\n"
+                            f"   {context_str}\n"
+                            f"   Reason: The hook blocked this action but did not print a description to stderr."
+                        )
                 elif tool_name in ("Write", "Edit"):
                     file_path = tool_input.get("file_path", "")
                     if file_path:
-                        action_desc = f"{tool_name} operation on {file_path} blocked by {hook_name}"
+                        action_desc = (
+                            f"⛔ BLOCKED: {tool_name} operation rejected by {hook_name}\n"
+                            f"   File: {file_path}\n"
+                            f"   {context_str}\n"
+                            f"   Reason: The hook blocked this action but did not print a description to stderr.\n"
+                            f"   Fix: The hook script should print a descriptive error to stderr before exiting with code 2."
+                        )
                     else:
-                        action_desc = f"{tool_name} operation blocked by {hook_name}"
+                        action_desc = (
+                            f"⛔ BLOCKED: {tool_name} operation rejected by {hook_name}\n"
+                            f"   {context_str}\n"
+                            f"   Reason: The hook blocked this action but did not print a description to stderr."
+                        )
                 else:
-                    action_desc = f"{tool_name} blocked by {hook_name}"
+                    action_desc = (
+                        f"⛔ BLOCKED: {tool_name} rejected by {hook_name}\n"
+                        f"   {context_str}\n"
+                        f"   Reason: The hook blocked this action but did not print a description to stderr.\n"
+                        f"   Fix: The hook script should print a descriptive error to stderr before exiting with code 2."
+                    )
 
                 return {
                     "decision": "block",

@@ -1,7 +1,7 @@
-# SKILL PACK: skill-craft
+# SKILL PACK: skill-craft + Hooks
 
 **Generated:** 2026-04-23
-**Source:** P:/.claude/skills/skill-craft/
+**Source:** P:/.claude/skills/skill-craft/ + P:/.claude/hooks/
 **Mode:** full (implementation included)
 
 ---
@@ -14,6 +14,13 @@
 | `index.html` | HTML artifact page with mermaid diagrams |
 | `pipeline.html` | Pipeline visualization |
 | `eval_sets/default.json` | Evaluation set for fidelity testing |
+
+### Hooks (Relevant to skill-craft)
+
+| File | Description |
+|------|-------------|
+| `StopHook_skill_execution_gate.py` | Global skill execution gate — enforces skill workflow, blocks prose-only responses |
+| `PreToolUse_skill_pattern_gate.py` | Primary defense for skill workflow enforcement (Layer 0) |
 
 ---
 
@@ -146,6 +153,46 @@ $ARGUMENTS is a `type:prompt` / `type:agent` feature only — NOT available in `
 
 ---
 
+## StopHook_skill_execution_gate.py (Key Excerpts)
+
+### Purpose
+Safety net for skill execution validation. Secondary defense — PreToolUse hook handles real-time blocking. This Stop hook only fires when PreToolUse failed to block.
+
+**Problem Solved:** Claude loads skill documentation, then provides its own analysis instead of executing the skill's designated workflow.
+
+### Key Functions
+
+```python
+# Extract user prompt to detect slash commands
+def extract_user_prompt(input_data: dict) -> str: ...
+
+# Extract tools used in current response
+def extract_tools_used(input_data: dict) -> list[str]: ...
+
+# Layer 1 marker-based governance check
+def _check_governance_markers(input_data: dict) -> dict: ...
+```
+
+### Configuration
+
+```python
+ENABLED = os.environ.get("SKILL_EXECUTION_GATE_ENABLED", "true").lower() == "true"
+BUILTIN_SLASH_COMMANDS = {"help", "clear", "compact", "cost", "doctor", ...}
+LIGHTWEIGHT_SLASH_COMMANDS = {"context-status", "clear-notifications", "obs", ...}
+STALE_TIMEOUT = 300  # 5 minutes
+```
+
+### Two-Strike Pattern
+1. First bypass: Advisory message with retry instruction
+2. Second bypass: Hard block with descriptive error
+
+### Version History
+- v3.2: Simplified to safety net only
+- v3.3: Added Layer 1 marker-based governance
+- v3.4: Slash command bypass detection
+
+---
+
 ## HOW TO USE THIS PACK
 
 - skill-craft is a PROCEDURE type skill (5-phase orchestrator)
@@ -153,3 +200,4 @@ $ARGUMENTS is a `type:prompt` / `type:agent` feature only — NOT available in `
 - Telemetry via `craft_telemetry_collector` PostToolUse hook
 - Evaluation: 80% threshold on eval_sets/default.json
 - GitHub Issues Review runs FIRST before other review agents
+- StopHook_skill_execution_gate.py provides secondary enforcement for all skills

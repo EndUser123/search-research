@@ -80,7 +80,6 @@ models/
 # Executables and binaries
 *.exe
 *.bat
-*.ps1
 !scripts/*.ps1        # Track PowerShell scripts in root scripts/
 !**/scripts/**/*.ps1  # Track PowerShell scripts in nested scripts/
 !projects/yt-fts/deploy.ps1  # Track deploy.ps1
@@ -88,6 +87,7 @@ models/
 !.claude/skills/_tools/*.ps1
 !.claude/hooks/bin/git-mutex.ps1  # Track git mutex wrapper
 !**.claude/hooks/*.ps1  # Track hooks PowerShell scripts
+!/.claude/proxy/*.ps1  # Track proxy PowerShell scripts
 
 *.out
 *.o
