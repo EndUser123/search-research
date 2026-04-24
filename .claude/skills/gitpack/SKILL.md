@@ -20,6 +20,7 @@ workflow_steps:
   - PARSE
   - ACQUIRE
   - DISTILL
+  - RESOLVE
   - OUTPUT
   - CLEANUP
 ---
@@ -88,7 +89,19 @@ If missing, the MCP tools (`mcp__aid__distill_directory`, `mcp__aid__distill_fil
    aid . --format=md --file-path-type absolute -o .aid/<dirname>.md --exclude "<exclusions>"
    ```
 
-4. **OUTPUT** -- Write the result and prepend TOC:
+4. **RESOLVE** -- Detect cross-directory dependencies from distilled content:
+   - Parse the distilled markdown for references to external paths:
+     - `.claude/hooks/` → include hook files
+     - `.claude/agents/` → include agent files
+     - `.claude-plugin/` → include plugin manifest
+     - `mcp_json.md` → include MCP server configs
+     - `P:/.claude/docs/` references → include referenced docs
+   - Also check SKILL.md frontmatter `hooks:` section for referenced hook IDs
+   - For each detected external reference, read the file and append to the pack
+   - Skip files that don't exist (warn but continue)
+   - **Why this step exists**: An LLM reviewing the pack needs the full picture. If skill-craft references `craft_phase_gate` hook but only packs the SKILL.md, the hook implementation is missing.
+
+5. **OUTPUT** -- Write the result and prepend TOC:
    - Save to `.aid/<dirname>.md` in the target directory (local) or current working directory (remote)
    - Run `gitpack_toc.py .aid/<dirname>.md <dirname> <mode>` to prepend a structured TOC with directory index, file index, and usage guidance
    - Print the full output path to the user
