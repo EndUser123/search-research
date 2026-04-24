@@ -11,7 +11,6 @@ from __future__ import annotations
 import logging
 import os
 import re
-import shlex
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
@@ -96,12 +95,11 @@ class SkillCommandHook(PostToolUseHook):
             return {}
 
         try:
-            # Use shell=False with shlex.split for command injection protection
-            # Expand environment variables (e.g. $CLAUDE_PROJECT_DIR) before executing
-            cmd_args = [os.path.expandvars(arg) for arg in shlex.split(self.command)]
+            # Use shell=True so heredoc commands (python - <<'PY') work on Windows
+            cmd = os.path.expandvars(self.command)
             result = subprocess.run(
-                cmd_args,
-                shell=False,
+                cmd,
+                shell=True,
                 capture_output=True,
                 text=True,
                 timeout=self.timeout,

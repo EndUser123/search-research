@@ -714,7 +714,7 @@ def _iter_edit_consent_dirs() -> list[Path]:
 
 def _load_edit_consent_config() -> dict:
     """Load edit consent configuration with fallback to defaults."""
-    config_path = CLAUDE_ROOT / "config" / "edit_consent_config.json"
+    config_path = CLAUDE_ROOT / "hooks" / "__lib" / "edit_consent_config.json"
     defaults = {
         "token_ttl_seconds": 300,
         "cleanup_interval_seconds": 3600,

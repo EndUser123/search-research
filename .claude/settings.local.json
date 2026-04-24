@@ -236,7 +236,10 @@
       "Bash(mv P:/.claude/hooks/SessionEnd_tldr.py P:/packages/handoff/scripts/hooks/SessionEnd_tldr.py)",
       "Bash(mv P:/.claude/hooks/PreCompact_workflow_checkpoint.py P:/packages/handoff/scripts/hooks/PreCompact_workflow_checkpoint.py)",
       "Bash(mv P:/.claude/hooks/PreCompact_commitment_tracker.py P:/packages/handoff/scripts/hooks/PreCompact_commitment_tracker.py)",
-      "mcp__perplexity__pplx_sonar"
+      "mcp__perplexity__pplx_sonar",
+      "Bash(mv -v \"P:/.claude/config/edit_consent_config.json\" \"P:/.claude/hooks/__lib/edit_consent_config.json\")",
+      "Bash(mv -v \"P:/.claude/config/solo-dev-context.yaml\" \"P:/.claude/hooks/__lib/solo-dev-context.yaml\")",
+      "Bash(rmdir -v \"P:/.claude/config\")"
     ],
     "deny": [],
     "ask": []

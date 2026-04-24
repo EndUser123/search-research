@@ -28,29 +28,13 @@ hooks:
       hooks:
         - type: command
           command: |
-            git rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
-              echo "ERROR: not in git repo"; exit 2
-            }
-            BRANCH="$(git branch --show-current)"
-            case "$BRANCH" in main|master)
-              echo "ERROR: /go cannot run on $BRANCH"; exit 2
-            esac
-            git worktree list --porcelain | grep -F "worktree $(pwd)" >/dev/null 2>&1 || {
-              echo "ERROR: not in registered git worktree"; exit 2
-            }
+            python -c "import subprocess, sys, os; r=subprocess.run(['git','rev-parse','--is-inside-work-tree'],capture_output=True,text=True); sys.exit(2) if r.returncode!=0 else None; r=subprocess.run(['git','branch','--show-current'],capture_output=True,text=True); sys.exit(2) if r.stdout.strip() in('main','master') else None; r=subprocess.run(['git','worktree','list','--porcelain'],capture_output=True,text=True); wd=os.getcwd(); sys.exit(2) if not any(l.startswith('worktree ') and l.split('worktree ',1)[1].strip()==wd for l in r.stdout.splitlines()) else None"
           description: "Block non-worktree or main-branch Bash calls"
   Stop:
     - hooks:
         - type: command
           command: |
-            STATE_DIR=".claude/.artifacts/${CLAUDE_TERMINAL_ID:-unknown}/go"
-            RUN_ID="${GO_RUN_ID:-unknown}"
-            if [ -f "$STATE_DIR/.verified_$RUN_ID" ] && [ -f "$STATE_DIR/.reviews-passed_$RUN_ID" ]; then
-              exit 0
-            else
-              echo "WARNING: /go completed without all gates passed"
-              exit 1
-            fi
+            python -c "import os; tid=os.environ.get('CLAUDE_TERMINAL_ID','unknown'); rid=os.environ.get('GO_RUN_ID','unknown'); sd=f'.claude/.artifacts/{tid}/go'; exit(0) if os.path.isfile(f'{sd}/.verified_{rid}') and os.path.isfile(f'{sd}/.reviews-passed_{rid}') else (print('WARNING: /go completed without all gates passed'), exit(1))"
           description: "Self-verify all gates passed on Stop"
 ---
 
