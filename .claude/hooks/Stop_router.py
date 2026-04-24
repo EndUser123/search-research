@@ -637,9 +637,34 @@ def run_hook_subprocess(
             pass
 
     if completed.returncode == 2:
+        # Hook exited 2 (intentional block) — extract what we can from available context
+        response_preview = ""
+        try:
+            resp = hook_data.get("response", "") or ""
+            response_preview = resp[:120] + "..." if len(resp) > 120 else resp
+        except Exception:
+            pass
+
+        stderr_desc = completed.stderr.strip()
+        if stderr_desc:
+            # Hook printed something to stderr but no structured reason — use it
+            reason = (
+                f"⛔ BLOCKED by {hook_path.name}\n"
+                f"   Response preview: {response_preview}\n"
+                f"   stderr: {stderr_desc}"
+            )
+        else:
+            # Hook blocked without any stderr explanation — this is the gap
+            reason = (
+                f"⛔ BLOCKED by {hook_path.name}\n"
+                f"   Response preview: {response_preview}\n"
+                f"   Reason: Hook exited with code 2 (intentional block) but printed no reason to stderr.\n"
+                f"   Fix: The hook script must print a descriptive reason to stderr before exiting with sys.exit(2)."
+            )
+
         return {
             "decision": "block",
-            "reason": completed.stderr.strip() or f"{hook_path.name} blocked the response.",
+            "reason": reason,
             "blocking_hook": hook_path.name,
         }
 

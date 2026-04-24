@@ -115,7 +115,7 @@ If missing, the MCP tools (`mcp__aid__distill_directory`, `mcp__aid__distill_fil
    - **FILE INDEX** — every file with a brief description derived from its name
    - Separator `---` before the raw aid output
 
-5. **CLEANUP** -- For remote repos only:
+6. **CLEANUP** -- For remote repos only:
    - Remove temp clone directory
    - Verify the temp directory is actually gone (not just attempt removal)
    - Keep the `.aid/` output file
