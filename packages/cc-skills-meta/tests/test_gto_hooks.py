@@ -47,10 +47,11 @@ def artifacts_dir(tmp_path):
 
 @pytest.fixture(autouse=True)
 def isolate_env(tmp_path):
-    """Set env vars for deterministic terminal ID and project root."""
+    """Set env vars for deterministic terminal ID, project root, and artifacts path."""
     env = {
         "CLAUDE_TERMINAL_ID": "test-term",
         "CLAUDE_PROJECT_DIR": str(tmp_path),
+        "CLAUDE_ARTIFACTS_ROOT": str(tmp_path / ".claude" / ".artifacts"),
         "WT_SESSION": "",
     }
     with patch.dict(os.environ, env, clear=False):

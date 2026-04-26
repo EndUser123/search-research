@@ -27,8 +27,12 @@ class GTOSettings:
 
     @property
     def paths(self) -> GTOPaths:
-        drive_root = Path(self.root.anchor)
-        base = drive_root / ".claude" / ".artifacts" / self.terminal_id / "gto"
+        override = os.environ.get("CLAUDE_ARTIFACTS_ROOT", "").strip()
+        if override:
+            artifacts_base = Path(override)
+        else:
+            artifacts_base = Path(self.root.anchor) / ".claude" / ".artifacts"
+        base = artifacts_base / self.terminal_id / "gto"
         return GTOPaths(
             root=self.root,
             artifacts_dir=base,

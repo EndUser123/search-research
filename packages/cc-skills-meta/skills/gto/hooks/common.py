@@ -67,9 +67,16 @@ def get_project_root() -> Path:
 def get_artifacts_root() -> Path:
     """Get the root for terminal-scoped GTO artifacts.
 
-    Uses the drive-root .claude directory (e.g. P:/.claude/.artifacts/)
-    rather than project-scoped, so artifacts survive across projects.
+    Priority:
+    1. CLAUDE_ARTIFACTS_ROOT env var (for testing)
+    2. Drive-root .claude directory (e.g. P:/.claude/.artifacts/)
+
+    Uses drive-root rather than project-scoped so artifacts survive
+    across projects within the same terminal session.
     """
+    override = os.environ.get("CLAUDE_ARTIFACTS_ROOT", "").strip()
+    if override:
+        return Path(override)
     drive_root = Path(get_project_root().anchor)
     return drive_root / ".claude" / ".artifacts"
 

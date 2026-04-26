@@ -1,7 +1,9 @@
 """Tests for GTO orchestrator."""
 import pytest
 import json
+import os
 from pathlib import Path
+from unittest.mock import patch
 
 from skills.gto.orchestrator import run, parse_args
 
@@ -12,6 +14,13 @@ def project_dir(tmp_path):
     (tmp_path / ".git").mkdir()
     (tmp_path / "README.md").write_text("# Test Project\n", encoding="utf-8")
     return tmp_path
+
+
+@pytest.fixture(autouse=True)
+def redirect_artifacts(tmp_path):
+    """Redirect artifacts to tmp_path so tests don't write to real drive root."""
+    with patch.dict(os.environ, {"CLAUDE_ARTIFACTS_ROOT": str(tmp_path / ".claude" / ".artifacts")}):
+        yield
 
 
 class TestParseArgs:
