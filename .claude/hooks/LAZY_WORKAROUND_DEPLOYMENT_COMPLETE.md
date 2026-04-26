@@ -21,7 +21,7 @@
 - **Status**: ✅ Loads successfully
 
 ### 4. Documented Patterns
-- **File**: `P:\.claude\memory\lazy_patterns.md`
+- **File**: `P:\.claude\agents\lazy_patterns.md`
 - **Added to**: MEMORY.md topic files
 - **Purpose**: Cross-session pattern recognition
 
@@ -84,7 +84,7 @@ This forces proper root cause investigation instead of workaround suggestions.
 **Created:**
 - `P:/.claude/hooks/Stop_lazy_workaround_gate.py`
 - `P:/.claude/hooks/tests/test_lazy_workaround_gate.py`
-- `P:\.claude/memory/lazy_patterns.md`
+- `P:\.claude/hooks/docs/lazy_patterns.md`
 - `P:\.claude/hooks/LAZY_WORKAROUND_GATE.md`
 - `P:\.claude/hooks/LAZY_WORKAROUND_DEPLOYMENT_COMPLETE.md`
 
@@ -94,7 +94,7 @@ This forces proper root cause investigation instead of workaround suggestions.
 
 ## Memory Persistence
 
-Pattern stored in `P:\.claude\memory\lazy_patterns.md` for cross-session recognition.
+Pattern stored in `P:\.claude\agents\lazy_patterns.md` for cross-session recognition.
 Added to MEMORY.md topic files for auto-loading.
 
 **This ensures all future sessions recognize and reject lazy workaround suggestions.**

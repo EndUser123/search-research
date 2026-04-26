@@ -24,7 +24,7 @@ Key principles (enforced structurally):
 - **Terminal isolation**: Each terminal has isolated state
 - **Stale data immunity**: State changes must propagate
 - **UUID-named transcript files**: Stored in user home directory
-- **Routing and contract policy**: See `P:\.claude\policies\skill-routing-and-contract-policy.md`
+- **Routing and contract policy**: See `.claude/rules/skill-routing-and-contracts.md`
 
 ### Session Recovery Rules
 

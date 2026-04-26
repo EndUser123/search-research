@@ -263,7 +263,7 @@ def _write_challenge_marker(session_id: str, terminal_id: str, trigger_level: st
         marker.write_text(
             json.dumps(
                 {
-                    "timestamp": time.monotonic(),
+                    "timestamp": time.time(),
                     "trigger_level": trigger_level,
                     "session_id": session_id,
                     "terminal_id": terminal_id,

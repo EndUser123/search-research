@@ -1,0 +1,4 @@
+---
+mode: suggestive
+---
+Suggestive mode

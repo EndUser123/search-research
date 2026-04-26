@@ -540,6 +540,61 @@ def _is_challenge_active(data: dict[str, Any]) -> bool:
     return True
 
 
+_CALLOUT_PHRASES = frozenset({
+    "sycophant", "sycophancy", "capitulat", "flip your", "position flip",
+    "agree with me", "you just agreed", "you changed your", "stop agreeing",
+    "did you just agree",
+})
+
+
+def _is_callout_message(user_message: str) -> bool:
+    """Return True if user explicitly named sycophantic behavior.
+
+    When the user calls out sycophancy directly, the AI's admission response
+    ("Yes, I was being sycophantic") must not be blocked — deadlock otherwise.
+    """
+    lower = user_message.lower()
+    return any(phrase in lower for phrase in _CALLOUT_PHRASES)
+
+
+def _consume_challenge_marker(data: dict[str, Any]) -> None:
+    """Delete challenge marker to enforce single-use semantics (Recommendation 3).
+
+    The marker is written per-turn by anti_sycophancy_injector.py. Deleting it here
+    prevents a follow-up message from being incorrectly gated after the challenge
+    response has already been evaluated.
+    """
+    terminal_id = str(
+        data.get("terminal_id")
+        or data.get("terminalId")
+        or os.environ.get("CLAUDE_TERMINAL_ID", "")
+    )
+    session_id = str(
+        data.get("session_id") or data.get("sessionId") or os.environ.get("CLAUDE_SESSION_ID", "")
+    )
+
+    def _safe(v: str) -> str:
+        return re.sub(r"[^a-zA-Z0-9_.-]+", "_", v) if v else "unknown"
+
+    try:
+        from UserPromptSubmit_modules.anti_sycophancy_injector import _challenge_marker_path
+
+        marker = _challenge_marker_path(session_id, terminal_id)
+    except Exception:
+        marker = (
+            HOOKS_DIR
+            / "state"
+            / "anti_sycophancy_injector"
+            / f"challenge__{_safe(session_id)}__{_safe(terminal_id)}.json"
+        )
+
+    try:
+        if marker.exists():
+            marker.unlink()
+    except OSError:
+        pass
+
+
 def _check_verification_target_mismatch(
     response: str, tool_events: list[dict[str, Any]]
 ) -> str | None:
@@ -988,6 +1043,16 @@ To disable enforcement: Set UNVERIFIED_STANCE_ENABLED=false
                 )
             )
 
+    # Consume challenge marker once per response (single-use - Recommendation 3).
+    # Callout exemption: if the user explicitly named sycophancy, exempt the admission
+    # response from the capitulation and protocol-adherence gates to avoid deadlock.
+    _user_message = str(data.get("user_message", "") or data.get("prompt", "") or "")
+    challenge_active = _is_challenge_active(data)
+    if challenge_active:
+        _consume_challenge_marker(data)
+        if _is_callout_message(_user_message):
+            challenge_active = False
+
     # Phase 2: Unique Pattern Checks (kept from original implementation)
     # PATTERN-001 FIX: Collect violations instead of returning early
     try:
@@ -1025,14 +1090,42 @@ To disable enforcement: Set UNVERIFIED_STANCE_ENABLED=false
                 f"{lazy_match.suggestion}"
             )
             effective_severity = lazy_match.severity
-            if lazy_match.pattern_type == "sycophancy_capitulation" and _is_challenge_active(data):
+            if lazy_match.pattern_type == "sycophancy_capitulation" and challenge_active:
                 effective_severity = "block"
+            # Fix 2: sycophancy_capitulation blocks when challenge is active regardless of mode.
+            # Other pattern types still respect UNVERIFIED_STANCE_MODE.
             severity = (
                 "block"
-                if (UNVERIFIED_STANCE_MODE == "block" and effective_severity == "block")
-                else "warn"
+                if effective_severity == "block"
+                else ("block" if UNVERIFIED_STANCE_MODE == "block" else "warn")
             )
             violations.append(("Phase 2 (Lazy Closure)", msg, severity))
+
+        # Fix 3: Enforce ADVOCATE_PROTOCOL adherence when a challenge is active.
+        # The injector requires STATUS: labels on every claim after a challenge. This gate
+        # blocks responses that have neither STATUS: labels nor tool verification evidence.
+        # Known limitation: STATUS: labels can be inserted without genuine evidence
+        # (adversarial adaptation). This check catches accidents, not deliberate intent.
+        if challenge_active and len(response_text) > 350:
+            has_status_labels = "STATUS:" in response_text.upper()
+            has_verification_evidence = any(
+                e.get("name") in ("Bash", "Read", "Grep", "Glob", "WebSearch", "WebFetch")
+                for e in (tool_events if isinstance(tool_events, list) else [])
+            )
+            if not has_status_labels and not has_verification_evidence:
+                protocol_msg = (
+                    "❌ **Protocol Adherence Required During Active Challenge**\n\n"
+                    "A challenge is active but your response contains no STATUS: labels "
+                    "or tool verification evidence.\n\n"
+                    "Per ADVOCATE_PROTOCOL, each factual claim requires:\n"
+                    "  STATUS: TESTED_IN_ENV — ran with Bash and saw output\n"
+                    "  STATUS: INFERRING_FROM_CODE — read source, reasoning about behavior\n"
+                    "  STATUS: INFERRING_FROM_DOCS — documentation only\n\n"
+                    "⚠️ Note: STATUS: labels catch accidental omissions but do not prevent "
+                    "adversarial insertion of labels without evidence. This is a known limitation.\n\n"
+                    "Add STATUS: labels to your claims or provide tool verification evidence."
+                )
+                violations.append(("Phase 2 (Protocol Adherence)", protocol_msg, "block"))
 
         # Verification-Target Mismatch check (unique to this hook)
         if isinstance(tool_events, list) and tool_events:

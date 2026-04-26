@@ -28,8 +28,8 @@ from typing import Any
 # Import base class
 from posttooluse.base import PostToolUseHook
 
-# Add CSF NIP to path for checkpoint modules
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent / "__csf" / "src"))
+# SemanticCompressor was never available (features.checkpoint module doesn't exist)
+# The _simple_compress fallback is the only implementation
 
 
 class SemanticCompress(PostToolUseHook):

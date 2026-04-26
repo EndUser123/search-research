@@ -4,7 +4,7 @@
 
 **File**: `P:/.claude/hooks/Stop_lazy_workaround_gate.py`
 **Tests**: `P:/.claude/hooks/tests/test_lazy_workaround_gate.py`
-**Memory**: `P:\.claude\memory\lazy_patterns.md`
+**Memory**: `P:\.claude\agents\lazy_patterns.md`
 
 ## What It Does
 
@@ -80,6 +80,6 @@ python test_lazy_workaround_gate.py -v
 
 ## Memory Storage
 
-Pattern documented in: `P:\.claude\memory\lazy_patterns.md`
+Pattern documented in: `P:\.claude\agents\lazy_patterns.md`
 
 This ensures future sessions recognize and reject lazy workaround suggestions.

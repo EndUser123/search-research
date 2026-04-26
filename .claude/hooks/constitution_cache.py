@@ -7,8 +7,7 @@ Constitution Cache for Hooks
 Loads constitutional rules from .claude/CLAUDE.md and constitution.md
 using existing parsing logic, cached for process lifetime.
 
-Reuses rule patterns from __csf/src/constitution/discovery.py
-without the directory walking and merging overhead.
+Self-contained rule pattern matching for constitutional enforcement.
 """
 import functools
 import re

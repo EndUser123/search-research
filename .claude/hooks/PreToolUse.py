@@ -676,7 +676,6 @@ TOOL_HOOKS = {
         "PreToolUse_settings_backup.py",
         "PreToolUse_implementation_default_gate.py",  # Flipped default: block Edit/Write unless explicit trigger
         "PreToolUse_investigation_gate.py",
-        "PreToolUse_policy_gate.py",
         "PreToolUse_tdd95_gate.py",  # TDD enforcement
         "PreToolUse_tdd_contract_gate.py",  # TDD Phase 2 contract gate
     ],
@@ -693,7 +692,6 @@ TOOL_HOOKS = {
         "PreToolUse_settings_backup.py",
         "PreToolUse_implementation_default_gate.py",  # Flipped default: block Edit/Write unless explicit trigger
         "PreToolUse_investigation_gate.py",
-        "PreToolUse_policy_gate.py",
         "PreToolUse_tdd95_gate.py",  # TDD enforcement
         "PreToolUse_tdd_contract_gate.py",  # TDD Phase 2 contract gate
     ],
@@ -701,6 +699,12 @@ TOOL_HOOKS = {
         "PreToolUse_win32_path_gate.py",  # Blocks backslash paths that cause silent failures on Windows MINGW
         "PreToolUse_directory_policy.py",
         "PreToolUse_import_deletion_guard.py",  # Blocks import removal across batched edits
+    ],
+    "Glob": [
+        "PreToolUse_skill_dir_gate.py",  # Phase 2: block unscoped Glob in wrong skill dir
+    ],
+    "Grep": [
+        "PreToolUse_skill_dir_gate.py",  # Phase 2: block unscoped Grep in wrong skill dir
     ],
     "Bash": [
         "PreToolUse_git_state_capture.py",  # Capture git state BEFORE command (cross-agent isolation)
@@ -716,7 +720,6 @@ TOOL_HOOKS = {
         "PreToolUse_repo_visibility_guard.py",  # Blocks P:\ drive repos from being made public
         "recursive_failure_detector.py",
         "PreToolUse_command_intent_gate.py",
-        "PreToolUse_policy_gate.py",
         "PreToolUse_pytest_timeout_guard.py",  # CRITICAL: Blocks pytest without --timeout (prevents computer hangs)
         "PreToolUse_git_commit_test_gate.py",  # HIGH: Blocks commit if tests fail (prevents data loss)
         "PreToolUse_referent_scope_gate.py",  # Blocks off-topic investigation when user listed specific entities

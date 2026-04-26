@@ -638,6 +638,7 @@ def _load_hooks() -> None:
         "reasoning_mode_selector",
         # "skill_compliance_indicator",  # DEPRECATED 2026-03-11: Pre-run indicator redundant with step headers
         "sequential_thinking",
+        "skill_context_writer",  # NEW 2026-04-25: Write expected skill dir to state file (Phase 2)
         "skill_enforcer",
         "skill_forced_eval",
         # "stdout_protocol_test",  # TASK-000: Prototype to verify hook stdout → Skill() emission protocol

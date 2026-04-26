@@ -326,6 +326,63 @@ def _run_cross_validator(data: dict) -> dict | None:
         return None
 
 
+def _run_unverified_stance(data: dict) -> dict | None:
+    """Block unverified stances: ungrounded confident claims, lazy closure, completion claims without evidence."""
+    try:
+        from StopHook_unverified_stance import run as unverified_stance_run
+
+        result = unverified_stance_run(
+            {
+                "assistant_response": data.get("response", ""),
+                "response": data.get("response", ""),
+                "session_id": data.get("session_id") or data.get("sessionId") or "",
+                "terminal_id": data.get("terminal_id") or data.get("terminalId") or "",
+                "tool_events": data.get("tool_events", []),
+                "transcript_path": data.get("transcript_path", ""),
+                "transcript": data.get("transcript", []),
+            }
+        )
+        if not result:
+            return None
+        if result.get("block") is True or result.get("allow") is False:
+            return {
+                "decision": "block",
+                "reason": result.get("reason", "Unverified stance detected."),
+                "blocking_hook": result.get("blocking_hook", "Stop.py:unverified_stance"),
+            }
+        return None
+    except Exception as e:
+        print(f"[Stop] unverified_stance error: {e}", file=sys.stderr)
+        return None
+
+
+def _run_correction_acknowledgment(data: dict) -> dict | None:
+    """Block denial or non-acknowledgment of user corrections ('I didn't say that', etc.)."""
+    try:
+        from StopHook_correction_acknowledgment import run as correction_run
+
+        result = correction_run(
+            {
+                "response": data.get("response", ""),
+                "user_prompt": data.get("user_prompt") or data.get("prompt") or "",
+                "session_id": data.get("session_id") or data.get("sessionId") or "",
+                "terminal_id": data.get("terminal_id") or data.get("terminalId") or "",
+            }
+        )
+        if not result:
+            return None
+        if result.get("allow") is False:
+            return {
+                "decision": "block",
+                "reason": result.get("reason", "Correction not acknowledged."),
+                "blocking_hook": result.get("blocking_hook", "Stop.py:correction_acknowledgment"),
+            }
+        return None
+    except Exception as e:
+        print(f"[Stop] correction_acknowledgment error: {e}", file=sys.stderr)
+        return None
+
+
 def _run_cited_content_guard(data: dict) -> dict | None:
     """Block fabricated file citations that are not supported by Read output."""
     try:
@@ -1395,6 +1452,26 @@ def _run_git_diff_reground(data: dict) -> dict | None:
         return None
 
 
+def _run_skill_dir_correlation_gate(data: dict) -> dict | None:
+    """Advisory: warn when tool events accessed a different skill dir than user intended."""
+    try:
+        from Stop_skill_dir_correlation_gate import run as _skill_corr_run
+
+        return _skill_corr_run(data)
+    except Exception:
+        return None
+
+
+def _run_cks_correction_anchor(data: dict) -> dict | None:
+    """Side-effect: persist skill-dir correction event to CKS."""
+    try:
+        from Stop_cks_correction_anchor import run as _anchor_run
+
+        return _anchor_run(data)
+    except Exception:
+        return None
+
+
 def _run_referent_coverage(data: dict) -> dict | None:
     """Advisory check: warn if response mentions zero anchor terms from user's message."""
     try:
@@ -1451,6 +1528,8 @@ IN_PROCESS_GATES = [
     ("behavior_audit", _run_behavior_audit),
     ("cited_content_guard", _run_cited_content_guard),
     ("cross_validator", _run_cross_validator),
+    ("unverified_stance", _run_unverified_stance),
+    ("correction_acknowledgment", _run_correction_acknowledgment),
     ("dependency_chain_guard", _run_dependency_chain_guard),
     ("comparative_claim_guard", _run_comparative_claim_guard),
     ("behavior_gates_agreement", _run_behavior_gates_agreement),
@@ -1471,13 +1550,13 @@ IN_PROCESS_GATES = [
         _run_deletion_verification_guard,
     ),  # NEW 2026-03-24: Deletion verification - checks actual file system state
     ("git_diff_reground", _run_git_diff_reground),
+    ("skill_dir_correlation", _run_skill_dir_correlation_gate),
+    ("cks_correction_anchor", _run_cks_correction_anchor),
     ("referent_coverage", _run_referent_coverage),
 ]
 
 # Non-Blocking Side Effects (still subprocess for isolation)
 SIDE_EFFECTS = [
-    "conversation_storage.py",
-    "auto_cks_storage.py",
     "Stop_cks_decision_capture.py",
 ]
 

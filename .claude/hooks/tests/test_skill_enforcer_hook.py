@@ -124,8 +124,10 @@ context = HookContext(
 from UserPromptSubmit import skill_enforcer
 result = skill_enforcer.skill_enforcement_hook(context)
 
-# Check intent file created (note: filename is terminal_id only, not terminal_id_session_id)
-intent_file = Path(r"{temp_state}") / f"pending_command_intent_{terminal_id}.json"
+# Check intent file at new terminal-scoped path
+from __lib.terminal_id import normalize_terminal_id
+normalized_tid = normalize_terminal_id("{terminal_id}")
+intent_file = Path(r"{temp_state}") / f"terminals/{{normalized_tid}}/pending_command_intent.json"
 print(f"INTENT_EXISTS:{{intent_file.exists()}}")
 if intent_file.exists():
     print(f"INTENT_CONTENT:{{intent_file.read_text()}}")
@@ -142,7 +144,7 @@ if intent_file.exists():
     content_json = json.loads(
         result.stdout.split("INTENT_CONTENT:")[1].split("\n")[0]
     )
-    assert content_json["skill"] == "search", "Wrong skill name in intent"
+    assert content_json["skill"] == "search", f"Wrong skill name in intent: {content_json.get('skill')}"
 
 
 def test_non_slash_command_ignored():
@@ -187,6 +189,7 @@ else:
 def test_non_slash_command_clears_stale_intent_file():
     """A new plain-English prompt should revoke an older slash-command intent."""
     import os
+    import re
     import tempfile
 
     session_id = "test_session_clear"
@@ -194,7 +197,13 @@ def test_non_slash_command_clears_stale_intent_file():
     temp_state = Path(tempfile.mkdtemp()) / "state"
     temp_state.mkdir(parents=True, exist_ok=True)
 
-    stale_intent = temp_state / f"pending_command_intent_{terminal_id}.json"
+    # Normalize terminal ID same way the hook does and use new terminal-scoped path
+    sys.path.insert(0, str(HOOKS_DIR))
+    from __lib.terminal_id import normalize_terminal_id
+    normalized_tid = normalize_terminal_id(terminal_id)
+    stale_dir = temp_state / f"terminals/{normalized_tid}"
+    stale_dir.mkdir(parents=True, exist_ok=True)
+    stale_intent = stale_dir / "pending_command_intent.json"
     stale_intent.write_text(
         json.dumps(
             {
@@ -240,7 +249,10 @@ context = HookContext(
 )
 
 result = skill_enforcer.skill_enforcement_hook(context)
-intent_file = Path(r"{temp_state}") / f"pending_command_intent_{terminal_id}.json"
+# Check at new terminal-scoped path
+from __lib.terminal_id import normalize_terminal_id
+normalized_tid = normalize_terminal_id("{terminal_id}")
+intent_file = Path(r"{temp_state}") / f"terminals/{{normalized_tid}}/pending_command_intent.json"
 print(f"IS_EMPTY:{{result.is_empty() if result else True}}")
 print(f"INTENT_EXISTS:{{intent_file.exists()}}")
 '''],
@@ -328,6 +340,8 @@ else:
 def test_multi_terminal_isolation():
     """Test that multiple terminals don't interfere with each other (PR-003)."""
     import os
+    import re
+    import sys
     import tempfile
 
     # Simulate two terminals
@@ -397,9 +411,13 @@ print(f"TERM2_INJECTION:{{result.context if result and not result.is_empty() els
         env={**env, "CLAUDE_TERMINAL_ID": terminal_2_id}
     )
 
-    # Verify both terminals created intent files (note: filename is terminal_id only)
-    intent_file_1 = temp_state / f"pending_command_intent_{terminal_1_id}.json"
-    intent_file_2 = temp_state / f"pending_command_intent_{terminal_2_id}.json"
+    # Verify both terminals created intent files at new terminal-scoped paths
+    sys.path.insert(0, str(HOOKS_DIR))
+    from __lib.terminal_id import normalize_terminal_id
+    norm_1 = normalize_terminal_id(terminal_1_id)
+    norm_2 = normalize_terminal_id(terminal_2_id)
+    intent_file_1 = temp_state / f"terminals/{norm_1}/pending_command_intent.json"
+    intent_file_2 = temp_state / f"terminals/{norm_2}/pending_command_intent.json"
 
     assert intent_file_1.exists(), "Terminal 1 intent file should exist"
     assert intent_file_2.exists(), "Terminal 2 intent file should exist"

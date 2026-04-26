@@ -349,10 +349,6 @@
         "purpose": "Knowledge base - extracted KBs, semantic indexes"
       },
       {
-        "path": "lessons",
-        "purpose": "Learned lessons and pattern documentation"
-      },
-      {
         "path": "policies",
         "purpose": "Operational policies and routing contracts"
       },

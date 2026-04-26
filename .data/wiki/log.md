@@ -59,3 +59,9 @@ Source: ~/Downloads/Here's a chat with claude code, and codex, about o (1).md
 Content: Native commands vs. UserPromptSubmit. Commands expand deterministically before model sees turn. Superpowers uses structural positioning + psychological pressure + TDD on instruction language.
 Page: wiki/concepts/command-path-vs-skill-enforcement.md
 Hash: 249a63d3853fe055bbf20e1b8186ab2ec3674e273408a7a15b81f36563646bc2
+
+## [2026-04-24] ingest | Handoff Envelope Schema
+Source: chs-export session 76b50f85-6b2f-4a73-be58-d04cb15fc9a7
+Content: Complete envelope structure for handoff v2 — build_envelope() 3 top-level keys + checksum, build_resume_snapshot() 13 required + 8 optional params, schema v2 strict validation. Local marketplace installation details.
+Page: wiki/concepts/handoff-envelope-schema.md
+Hash: 9ff9ec00ba8e443c0e5ad9f9e45f79e2381d19779b363f0f13b4a73470cb8a04

@@ -119,7 +119,7 @@ def _substitute_gemini_model(cmd_list: list[str], model: str) -> list[str]:
     """Substitute the -m model flag in a gemini command list.
 
     Args:
-        cmd_list: gemini command as list, e.g. ["node", "path/gemini.js", "-y", "-o", "text", "-m", "gemini-2.5-flash-lite", "-p", "query"]
+        cmd_list: gemini command as list, e.g. ["node", "path/gemini.js", "-y", "-o", "text", "-p", "query"]
         model: new model name, e.g. "gemini-3.1-pro-preview"
 
     Returns:
@@ -1025,7 +1025,7 @@ def generate_parallel_bash_commands(
     if run_gemini:
         # Use stdin pipe (echo X | gemini) - do NOT also use -p with the same query
         # Gemini rejects "Cannot use both a positional prompt and the --prompt (-p) flag together"
-        commands.append(f"echo {safe_query} | gemini -y -o text -m gemini-2.5-flash-lite")
+        commands.append(f"echo {safe_query} | gemini -y -o text")
     if run_codex:
         # Codex exec takes query as argument (not stdin)
         commands.append(f'codex exec "{query}"')
@@ -1230,11 +1230,11 @@ def _build_cli_commands(
         )
         # Codex companion wrapper (required - direct codex exec doesn't work)
         codex_companion = Path.home() / ".claude" / "plugins" / "cache" / "openai-codex" / "codex" / "1.0.3" / "scripts" / "codex-companion.mjs"
-        codex_cmd = f'node "{codex_companion}" task'
+        codex_cmd = f'node "{codex_companion}" task --model gpt-5.4-mini'
     else:
         qwen_cmd = f"{ROOT_PREFIX}qwen"
         gemini_cmd = f"{ROOT_PREFIX}gemini"
-        codex_cmd = f"{ROOT_PREFIX}codex exec"
+        codex_cmd = f"{ROOT_PREFIX}codex exec --model gpt-5.4-mini"
 
     commands = []
     if run_qwen:
@@ -1247,9 +1247,9 @@ def _build_cli_commands(
         # On Windows, must use full node path since npm global commands aren't in PATH for exec
         if sys.platform == "win32":
             gemini_script = npm_root / "@google" / "gemini-cli" / "bundle" / "gemini.js"
-            gemini_args = ["node", str(gemini_script), "-y", "-o", "text", "-m", "gemini-2.5-flash-lite", "-p", query]
+            gemini_args = ["node", str(gemini_script), "-y", "-o", "text", "-p", query]
         else:
-            gemini_args = ["gemini", "-y", "-o", "text", "-m", "gemini-2.5-flash-lite", "-p", query]
+            gemini_args = ["gemini", "-y", "-o", "text", "-p", query]
         commands.append(("gemini", gemini_args))
     if run_codex:
         commands.append(("codex", codex_cmd))

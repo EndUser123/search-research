@@ -61,7 +61,7 @@ Check:
 ## Key References
 
 When analyzing regex patterns in hooks, use:
-- **P:\.claude\memory\regex-alternatives-reference.md** — Comprehensive reference for regex alternatives with tradeoffs, use cases, and implementation considerations
+- **P:\.claude\hooks\docs\regex-alternatives-reference.md** — Comprehensive reference for regex alternatives with tradeoffs, use cases, and implementation considerations
 
 This reference is particularly useful when:
 - Evaluating pattern efficiency (NFA vs DFA, catastrophic backtracking)

@@ -355,26 +355,74 @@ def extract_command_name(prompt: str) -> str | None:
     return None
 
 
+def _skill_exists(command: str) -> bool:
+    """Check if a SKILL.md exists for this command in any skill directory.
+
+    Scans project skills, user skills, and plugin cache. Returns True
+    if a matching skill is found, False otherwise (built-in CLI command or typo).
+    """
+    cmd = command.lower()
+    candidates: list[Path] = []
+
+    # Project-level skills
+    project_skills = HOOKS_DIR.parent / "skills"
+    if project_skills.is_dir():
+        candidates.append(project_skills / cmd / "SKILL.md")
+
+    # User-level skills
+    user_skills = Path.home() / ".claude" / "skills"
+    if user_skills.is_dir():
+        candidates.append(user_skills / cmd / "SKILL.md")
+
+    # Plugin cache (any marketplace/plugin/skills/<cmd>/SKILL.md)
+    plugin_cache = Path.home() / ".claude" / "plugins" / "cache"
+    if plugin_cache.is_dir():
+        for marketplace_dir in plugin_cache.iterdir():
+            if not marketplace_dir.is_dir():
+                continue
+            for plugin_dir in marketplace_dir.iterdir():
+                if not plugin_dir.is_dir():
+                    continue
+                for version_dir in plugin_dir.iterdir():
+                    skill_file = version_dir / "skills" / cmd / "SKILL.md"
+                    candidates.append(skill_file)
+
+    return any(p.is_file() for p in candidates)
+
+
 def should_block_command(command: str) -> bool:
-    """Check if command should be excluded from enforcement."""
+    """Check if command should be excluded from enforcement.
+
+    Dynamic check: if no SKILL.md exists for the command, it's a built-in
+    CLI command (like /plugin, /compact, /config) — pass through without
+    enforcement. This eliminates the need for a hardcoded blocklist of
+    built-in commands.
+    """
+    cmd = command.lower()
+
+    # Static blocklist still honored for explicit exclusions
     config = _load_enforcement_config()
-    mode = str(config.get("mode", "all")).strip().lower()
     ignored = {
         str(x).strip().lower()
         for x in config.get("ignored_commands", COMMAND_BLOCKLIST)
         if str(x).strip()
     }
-    cmd = command.lower()
     if cmd in ignored:
         return True
 
+    # Allowlist mode: only enforce commands in the allowlist
+    mode = str(config.get("mode", "all")).strip().lower()
     if mode == "allowlist":
         allowlist = {
             str(x).strip().lower() for x in config.get("enforced_skills", []) if str(x).strip()
         }
         return cmd not in allowlist
 
-    # Default behavior: enforce all slash commands not ignored.
+    # Dynamic check: if no skill exists, it's a built-in CLI command — don't enforce
+    if not _skill_exists(cmd):
+        return True
+
+    # Skill exists — enforce skill-first execution
     return False
 
 

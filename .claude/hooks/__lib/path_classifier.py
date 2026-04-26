@@ -123,18 +123,13 @@ def classify_path(file_path: str, data: dict[str, Any]) -> dict[str, Any]:
     # Directory
     directory = str(path.parent)
 
-    # Test file detection (use existing module if available)
+    # Test file detection
     is_test = False
-    try:
-        from __csf.__lib.test_detection import is_test_file_operation
-        is_test = is_test_file_operation(file_path)
-    except ImportError:
-        # Fallback: simple pattern check
-        test_patterns = [
-            r"^tests?/", r"^test/", r".*/test_.*\.py$", r".*_test\.py$"
-        ]
-        normalized = file_path.replace("\\", "/")
-        is_test = any(re.search(p, normalized, re.IGNORECASE) for p in test_patterns)
+    test_patterns = [
+        r"^tests?/", r"^test/", r".*/test_.*\.py$", r".*_test\.py$"
+    ]
+    normalized = file_path.replace("\\", "/")
+    is_test = any(re.search(p, normalized, re.IGNORECASE) for p in test_patterns)
 
     # Hook file check (CRITICAL: hook files NEVER exempt - require planning for governance)
     is_hook_file = any(p.search(file_path) for p in HOOK_PATTERNS)

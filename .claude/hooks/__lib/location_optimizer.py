@@ -15,6 +15,20 @@ import re
 from pathlib import Path
 from typing import Any
 
+# Optional search backend import - fail-fast if unavailable
+try:
+    import sys as _sys
+    _search_path = Path("P:/packages/search-research")
+    if _search_path.exists():
+        _sys.path.insert(0, str(_search_path))
+        from core.unified_router import UnifiedAsyncRouter
+
+        SEARCH_BACKEND_AVAILABLE = True
+    else:
+        SEARCH_BACKEND_AVAILABLE = False
+except Exception:
+    SEARCH_BACKEND_AVAILABLE = False
+
 
 def infer_optimal_location(
     file_path: str,
@@ -329,6 +343,125 @@ def _infer_data_location(
     }
 
 
+def trace_file_references(file_path: str) -> dict[str, Any]:
+    """Trace which files consume a given file using the search backend.
+
+    Uses UnifiedAsyncRouter to find all references to the file across
+    the codebase, groups them by directory, and recommends the optimal
+    destination based on consumer distribution.
+
+    Fail-fast: If the search backend is unavailable, returns status=unavailable
+    rather than a degraded approximation.
+
+    Args:
+        file_path: Path to the file to trace references for
+
+    Returns:
+        Dict with keys:
+        - status: "available" | "unavailable"
+        - consumer_count: Total number of consumer files found
+        - consumers: List of (consumer_path, score) tuples
+        - dir_breakdown: Dict mapping directory -> count of consumers
+        - recommended_dir: The directory with most consumers (or None if unavailable)
+        - recommended_path: Full recommended path including filename (or None)
+        - multi_purpose: True if file is consumed from unrelated directories
+        - reason: Explanation of the recommendation
+    """
+    if not SEARCH_BACKEND_AVAILABLE:
+        return {
+            "status": "unavailable",
+            "consumer_count": 0,
+            "consumers": [],
+            "dir_breakdown": {},
+            "recommended_dir": None,
+            "recommended_path": None,
+            "multi_purpose": False,
+            "reason": "Search backend not available. Mark for manual investigation.",
+        }
+
+    path = Path(file_path)
+    filename = path.name
+
+    # Query the search backend for references to this filename
+    try:
+        router = UnifiedAsyncRouter(mode="local-only")
+        results = []
+        try:
+            import asyncio
+
+            results = asyncio.get_event_loop().run_until_complete(
+                router.search_async(filename, limit=50)
+            )
+        except RuntimeError:
+            # No event loop in current thread - create one
+            results = asyncio.run(router.search_async(filename, limit=50))
+    except Exception as e:
+        return {
+            "status": "unavailable",
+            "consumer_count": 0,
+            "consumers": [],
+            "dir_breakdown": {},
+            "recommended_dir": None,
+            "recommended_path": None,
+            "multi_purpose": False,
+            "reason": f"Search backend query failed: {e}. Mark for manual investigation.",
+        }
+
+    # Group consumers by directory
+    consumers: list[tuple[str, float]] = []
+    dir_counts: dict[str, int] = {}
+
+    for result in results:
+        source_path = getattr(result, "url", None) or getattr(result, "path", None) or ""
+        if not source_path or not isinstance(source_path, str):
+            continue
+        # Extract directory from source path
+        try:
+            source_path_obj = Path(source_path)
+            dir_key = str(source_path_obj.parent.relative_to("P:/"))
+        except Exception:
+            dir_key = "unknown"
+        consumers.append((source_path, float(getattr(result, "score", 0.0))))
+        dir_counts[dir_key] = dir_counts.get(dir_key, 0) + 1
+
+    if not dir_counts:
+        return {
+            "status": "available",
+            "consumer_count": 0,
+            "consumers": [],
+            "dir_breakdown": {},
+            "recommended_dir": None,
+            "recommended_path": None,
+            "multi_purpose": False,
+            "reason": f"No references found for '{filename}'. File may be orphaned.",
+        }
+
+    # Determine recommended directory based on consumer count
+    sorted_dirs = sorted(dir_counts.items(), key=lambda x: x[1], reverse=True)
+    recommended_dir = sorted_dirs[0][0]
+
+    # Check if multi-purpose (top 2 dirs have similar counts)
+    multi_purpose = False
+    if len(sorted_dirs) >= 2:
+        top_count = sorted_dirs[0][1]
+        second_count = sorted_dirs[1][1]
+        if second_count > 0 and top_count > 0 and (second_count / top_count) > 0.4:
+            multi_purpose = True
+
+    recommended_path = f"{recommended_dir}/{filename}" if recommended_dir != "unknown" else filename
+
+    return {
+        "status": "available",
+        "consumer_count": len(consumers),
+        "consumers": consumers,
+        "dir_breakdown": dir_counts,
+        "recommended_dir": recommended_dir,
+        "recommended_path": recommended_path,
+        "multi_purpose": multi_purpose,
+        "reason": f"Found {len(consumers)} reference(s) in {len(dir_counts)} directory(ies). Most consumers in {recommended_dir}.",
+    }
+
+
 # Self-test
 if __name__ == "__main__":
     print("Running location_optimizer.py self-test...")
@@ -364,5 +497,12 @@ if __name__ == "__main__":
     print(f"  Optimal: {result['optimal_location']}")
     print(f"  Reason: {result['reason']}")
     print(f"  Action: {result['action']}")
+
+    # Test 5: trace references for lazy_patterns.md
+    print("\nTest 5: trace_references for lazy_patterns.md")
+    ref_result = trace_file_references("P:/.claude/memory/lazy_patterns.md")
+    print(f"  Consumers found: {ref_result['consumer_count']}")
+    print(f"  Recommended: {ref_result['recommended_dir']}")
+    print(f"  Directory breakdown: {ref_result['dir_breakdown']}")
 
     print("\nSelf-test complete.")

@@ -29,7 +29,7 @@ from pathlib import Path
 
 # Import shared path classifier (optimization: cached classification)
 try:
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "__lib"))
+    sys.path.insert(0, str(Path(__file__).resolve().parent / "__lib"))
     from path_classifier import (
         is_exempt_path,
         is_new_file,
@@ -38,26 +38,6 @@ try:
     CLASSIFIER_AVAILABLE = True
 except ImportError:
     CLASSIFIER_AVAILABLE = False
-
-# Import test detection module (fallback if classifier unavailable)
-try:
-    from __csf.__lib.test_detection import is_test_file_operation
-except ImportError:
-    # Fallback if test_detection module not available
-    def is_test_file_operation(file_path: str) -> bool:
-        # Simple regex fallback
-        import re
-        test_patterns = [
-            r"^tests?/.*test_.*\.py$",
-            r"^tests?/.*_test\.py$",
-            r"^tests?/conftest\.py$",
-            r"^tests?/.*/conftest\.py$",
-        ]
-        normalized = file_path.replace("\\", "/")
-        for pattern in test_patterns:
-            if re.match(pattern, normalized, re.IGNORECASE):
-                return True
-        return False
 
 # Refactor indicators in user messages
 REFACTOR_INDICATORS = [
@@ -87,39 +67,6 @@ CRUD_INDICATORS = [
     r"\bcrud\b",
     r"\bsimple\b",
 ]
-
-
-def is_exempt_path_legacy(file_path: str) -> bool:
-    """
-    Legacy exemption check (fallback if classifier unavailable).
-    DEPRECATED: Use path_classifier.is_exempt_path() instead.
-    """
-    import re
-    EXEMPTION_PATTERNS = [
-        r"__init__\.py$",  # Package markers
-        r"conftest\.py$",  # Pytest fixtures
-        r".*\.md$",  # Documentation
-        r".*\.txt$",  # Text files
-        r".*\.json$",  # Config files
-        r".*\.yaml$",  # Config files
-        r".*\.yml$",  # Config files
-        r".*\.toml$",  # Config files
-        r".*\.ini$",  # Config files
-        r"tests?/.*",  # Test files
-        r".*/test_.*\.py$",  # Test files
-        r".*/.*_test\.py$",  # Test files
-        r"\.claude/.*",  # All .claude internal files (skills, hooks, config)
-        r".*/lib/.*",  # Library files (implementation details)
-        r".*/.*/.*gate\.py$",  # Gate files (validators)
-        r".*/.*/.*validator\.py$",  # Validator files
-        r".*/.*/.*utils?\.py$",  # Utility/helper files
-        r".*/__lib__/.*",  # Private library modules
-        r".*/templates/.*",  # Template files
-    ]
-    for pattern in EXEMPTION_PATTERNS:
-        if re.search(pattern, file_path, re.IGNORECASE):
-            return True
-    return False
 
 
 def is_refactor(user_message: str) -> bool:
@@ -297,7 +244,7 @@ def main() -> None:
     # Get user message for intent detection
     user_message = data.get("user_message", "")
 
-    # OPTIMIZED: Use shared path classifier (single classification pass)
+    # Use shared path classifier (single classification pass)
     if CLASSIFIER_AVAILABLE:
         # Test file exemption
         if is_test_file(file_path, data):
@@ -310,14 +257,7 @@ def main() -> None:
         # Get file status from cache
         is_new = is_new_file(file_path, data)
     else:
-        # Fallback to legacy checks
-        if is_test_file_operation(file_path):
-            sys.exit(0)
-
-        if is_exempt_path_legacy(file_path):
-            sys.exit(0)
-
-        # Manual file existence check
+        # Classifier unavailable — manual file existence check only
         path = Path(file_path)
         is_new = not path.exists() or path.stat().st_size == 0
 

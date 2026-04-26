@@ -2,6 +2,13 @@
 
 ## Entries
 
+### 2026-04-24
+
+- **handoff-envelope-schema.md** — Handoff Envelope Schema
+  - SHA256: `9ff9ec00ba8e443c0e5ad9f9e45f79e2381d19779b363f0f13b4a73470cb8a04`
+  - Source: chs-export session `76b50f85-6b2f-4a73-be58-d04cb15fc9a7`
+  - Tags: handoff, plugin, envelope, schema, architecture
+
 ### 2026-04-22
 
 - **skill-craft-index-html-debug.md** — skill-craft index.html Debug Session

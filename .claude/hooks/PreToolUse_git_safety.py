@@ -269,13 +269,13 @@ def check_worktree_cross_contamination(
     tool_input: dict,
     input_data: dict
 ) -> dict:
-    """Check git commands for cross-worktree boundary violations.
+    """Check git commands and Edit/Write operations for cross-worktree boundary violations.
 
     Validates git commands that operate on files (restore, checkout, etc.)
-    and blocks operations targeting files outside the current worktree.
+    and Edit/Write operations targeting files outside the current worktree.
 
     Args:
-        tool_name: Name of the tool being called (e.g., "Bash")
+        tool_name: Name of the tool being called (e.g., "Bash", "Edit", "Write")
         tool_input: Input parameters for the tool
         input_data: Full hook input data (for accessing bypass flags)
 
@@ -288,8 +288,8 @@ def check_worktree_cross_contamination(
     Bypass flag:
         Set '--allow-cross-worktree' in user message to bypass this check.
     """
-    # Only check Bash tools running git commands
-    if tool_name != "Bash":
+    # Only check Bash (git commands) and Edit/Write operations
+    if tool_name not in ("Bash", "Edit", "Write"):
         return {"continue": True, "decision": "allow"}
 
     # Check for bypass flag in user message
@@ -302,6 +302,32 @@ def check_worktree_cross_contamination(
         # Worktree helper not available - allow command (fail open)
         return {"continue": True, "decision": "allow", "reason": "Worktree helper unavailable"}
 
+    # Handle Edit/Write operations
+    if tool_name in ("Edit", "Write"):
+        file_path = tool_input.get("file_path", "")
+        if not file_path:
+            return {"continue": True, "decision": "allow"}
+
+        # TEST FILE EXEMPTION: test files can write anywhere
+        if is_test_file_operation(file_path):
+            return {"continue": True, "decision": "allow"}
+
+        try:
+            cwd = Path.cwd().resolve()
+            worktree = get_current_worktree(cwd)
+            if is_cross_worktree_access(cwd, file_path, worktree):
+                return {
+                    "continue": False,
+                    "reason": f"\n❌ CROSS-WORKTREE WRITE: '{file_path}' is outside current worktree ({worktree})\n\nTo bypass: Add --allow-cross-worktree to your message.",
+                    "decision": "block"
+                }
+        except (ValueError, RuntimeError):
+            # Can't determine worktree - allow (fail open)
+            pass
+
+        return {"continue": True, "decision": "allow"}
+
+    # Handle Bash (git commands)
     command = tool_input.get("command", "")
 
     # Only check git commands that operate on files
@@ -430,15 +456,8 @@ def main():
     tool_name = input_data.get("tool_name", "")
     tool_input = input_data.get("tool_input", {})
 
-    # TEST FILE EXEMPTION: Allow test file operations without git safety blocking
-    if tool_name in ("Write", "Edit"):
-        file_path = tool_input.get("file_path", "")
-        if file_path and is_test_file_operation(file_path):
-            print(json.dumps({}))
-            return 0
-
-    # WORKTREE CROSS-CONTAMINATION CHECK (Component 2, Task 1)
-    # Blocks git operations targeting files outside current worktree
+    # WORKTREE CROSS-CONTAMINATION CHECK
+    # Blocks git operations AND Edit/Write targeting files outside current worktree
     worktree_check = check_worktree_cross_contamination(tool_name, tool_input, input_data)
     if not worktree_check.get("continue", True):
         # Block the operation
