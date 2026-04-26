@@ -8,10 +8,15 @@ def classify_freshness(
     artifact_target: str | None,
     current_target: str | None,
 ) -> str:
-    if artifact_target and current_target and artifact_target != current_target:
+    # If either target is missing, we can't determine freshness reliably
+    if artifact_target is None or current_target is None:
+        return "unknown"
+    if artifact_target != current_target:
         return "stale-target"
-    if artifact_git_sha and current_git_sha and artifact_git_sha != current_git_sha:
-        return "stale-git"
-    if artifact_target and current_target and artifact_target == current_target:
+    # Targets match — check git SHA
+    if artifact_git_sha is not None and current_git_sha is not None:
+        if artifact_git_sha != current_git_sha:
+            return "stale-git"
         return "fresh"
+    # Targets match but git SHA unavailable
     return "unknown"

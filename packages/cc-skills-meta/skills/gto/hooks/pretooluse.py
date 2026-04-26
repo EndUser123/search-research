@@ -17,8 +17,26 @@ from .common import is_gto_active, read_state, write_hook_output
 # Tools that should be warned about during active GTO runs
 WARN_TOOLS = {"Bash"}
 
-# Commands that could interfere with GTO artifact generation
-BLOCK_PATTERNS = ["rm -rf", "git reset --hard", "git checkout --"]
+# Token sequences that indicate destructive commands.
+# Matched as ordered token subsequences to avoid false positives
+# (e.g., "echo 'rm -rf'" in a string should not trigger).
+BLOCK_PATTERNS: list[list[str]] = [
+    ["rm", "-rf"],
+    ["rm", "-r", "-f"],
+    ["git", "reset", "--hard"],
+    ["git", "checkout", "--"],
+    ["git", "clean", "-f"],
+]
+
+
+def _matches_pattern(tokens: list[str], pattern: list[str]) -> bool:
+    """Check if pattern tokens appear as an ordered subsequence in tokens."""
+    if len(pattern) > len(tokens):
+        return False
+    for i in range(len(tokens) - len(pattern) + 1):
+        if tokens[i:i + len(pattern)] == pattern:
+            return True
+    return False
 
 
 def run(data: dict) -> dict | None:
@@ -36,14 +54,15 @@ def run(data: dict) -> dict | None:
     if tool_name not in WARN_TOOLS:
         return None
 
-    # Check for destructive commands
+    # Check for destructive commands using tokenized matching
     if tool_name == "Bash":
         command = tool_input.get("command", "")
+        tokens = command.split()
         for pattern in BLOCK_PATTERNS:
-            if pattern in command:
+            if _matches_pattern(tokens, pattern):
                 return {
                     "decision": "block",
-                    "reason": f"GTO: blocking destructive command during active run: '{pattern}'",
+                    "reason": f"GTO: blocking destructive command during active run: '{' '.join(pattern)}'",
                 }
 
     return None

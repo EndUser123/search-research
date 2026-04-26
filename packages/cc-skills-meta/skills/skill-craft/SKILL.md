@@ -654,20 +654,40 @@ This creates an entry like:
 }
 ```
 
-#### 3. Install from the Marketplace
+#### 3. Add Plugin Entry to `marketplace.json`
+
+`/plugin install` searches `marketplace.json`, not the filesystem. Every plugin must have an entry:
+
+```bash
+# Edit marketplace manifest
+code "C:/Users/brsth/.claude/plugins/marketplaces/local/.claude-plugin/marketplace.json"
+```
+
+Add to `plugins` array:
+```json
+{
+  "name": "your-plugin",
+  "version": "1.0.0",
+  "description": "Your plugin description",
+  "source": "./your-plugin",
+  "keywords": ["keyword1", "keyword2"]
+}
+```
+
+#### 4. Install from the Marketplace
 
 ```bash
 /plugin install your-plugin@local
 ```
 
-#### 4. Refresh after Plugin Updates
+#### 5. Refresh after Plugin Updates
 
 ```bash
 cd "C:/Users/brsth/.claude/plugins/marketplaces/local" && git pull
 /plugin install your-plugin@local
 ```
 
-#### 5. Direct Registration (Fallback)
+#### 6. Direct Registration (Fallback)
 
 If `/plugin install` fails with "Plugin not found in marketplace 'local'", use direct registration:
 
@@ -702,7 +722,7 @@ cp -r P:/packages/your-plugin/. "C:/Users/brsth/.claude/plugins/cache/local/your
 /reload-plugins
 ```
 
-#### 6. Uninstall
+#### 8. Uninstall
 
 ```bash
 /plugin uninstall your-plugin@local
@@ -713,6 +733,7 @@ Or remove from `installed_plugins.json` and delete the cache directory.
 
 | Symptom | Cause | Fix |
 |--------|-------|-----|
+| `Plugin not found in any marketplace` | Plugin not listed in `marketplace.json` | Add entry to `~/.claude/plugins/marketplaces/local/.claude-plugin/marketplace.json` with `source` path — `/plugin install` searches the manifest, not the filesystem |
 | `Plugin not found in marketplace 'local'` | Marketplace cache not yet populated | `cd ~/.claude/plugins/marketplaces/local && git clone file:///P:/packages/.claude-marketplace .` |
 | Same error after cloning | Plugin has `.git/` embedded (submodule) | Re-copy with `cp -r --exclude=.git`, then `git rm --cached <path> && git add <path>` in marketplace |
 | Same error, cache has files | `known_marketplaces.json` entry missing or wrong | Verify entry at `~/.claude/plugins/known_marketplaces.json` |

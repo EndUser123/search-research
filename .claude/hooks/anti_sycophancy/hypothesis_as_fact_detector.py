@@ -32,6 +32,7 @@ class ClaimType(Enum):
     CONVENTION = "convention"  # Claims about org norms/policies (no hedge bypass)
     MECHANISM = "mechanism"  # Claims about internal code mechanism/behavior without reading code
     ANALYSIS = "analysis"  # Value judgments and architectural opinions (no verification required)
+    SESSION_BEHAVIOR = "session_behavior"  # Self-referential claims about LLM's own session output/actions
 
 
 class RiskDomain(Enum):
@@ -145,6 +146,25 @@ class HypothesisAsFactDetector:
         r"(?:pure\s+)?(?:prose|markdown)\s+(?:framework|artifact|document)",
     ]
 
+    # Session behavior patterns — self-referential claims about what the LLM did/didn't do in the session.
+    # These cannot be verified by tool events; the verdict is always SILENT, so unhedged = block.
+    # Verification would require reading the transcript, which is infeasible inside the engine.
+    SESSION_BEHAVIOR_PATTERNS = [
+        # "No/Nothing/None X in this session Y" — explicit session scope + absence claim
+        r"(?:no|nothing|none)\s+(?:\w+\s+){0,8}in\s+this\s+(?:session|conversation|chat)\s+\w+",
+        # "All X in this session was/were Y"
+        r"all\s+(?:\w+\s+){0,8}in\s+this\s+(?:session|conversation|chat)\s+(?:was|were|has\s+been|have\s+been)",
+        # "All [responses/output/code/text] were/was in [language]" — session output language claim
+        r"all\s+(?:responses?|outputs?|code|documentation|text|communication|content)\s+"
+        r"(?:in\s+this\s+(?:session|conversation|chat)\s+)?(?:was|were|has\s+been|have\s+been)\s+in\s+"
+        r"(?:English|Chinese|Japanese|Korean|French|Spanish|German|Mandarin|Arabic|Russian|another\s+language)",
+        # "X was not/never used in this session" — passive inverted form
+        r"(?:\w+\s+){1,8}was\s+(?:not\s+|never\s+)?(?:used|written|output|included)\s+"
+        r"in\s+this\s+(?:session|conversation|chat)",
+        # "I did not/I never X in this session" — active inverted form
+        r"(?:i\s+)?(?:did\s+not|never|didn?t)\s+(?:\w+\s+){0,6}in\s+this\s+(?:session|conversation|chat)",
+    ]
+
     # Skip patterns — markdown structural elements that are conventional format, not verification claims
     SKIP_PATTERNS = [
         re.compile(r"^\s*##\s+\w"),  # Markdown headers: ## Header
@@ -221,6 +241,9 @@ class HypothesisAsFactDetector:
         self.compiled_analysis = [
             re.compile(pattern, re.IGNORECASE) for pattern in self.ANALYSIS_PATTERNS
         ]
+        self.compiled_session_behavior = [
+            re.compile(pattern, re.IGNORECASE) for pattern in self.SESSION_BEHAVIOR_PATTERNS
+        ]
         self.compiled_skip = [re.compile(pattern) for pattern in self.SKIP_PATTERNS]
 
     def _is_structural_format(self, sentence: str) -> bool:
@@ -265,6 +288,7 @@ class HypothesisAsFactDetector:
             claims.extend(self._detect_convention_claims(sentence))
             claims.extend(self._detect_mechanism_claims(sentence))
             claims.extend(self._detect_analysis_claims(sentence))
+            claims.extend(self._detect_session_behavior_claims(sentence))
 
         return claims
 
@@ -434,6 +458,36 @@ class HypothesisAsFactDetector:
                 )
                 claims.append(claim)
                 break  # Only match first pattern per sentence
+
+        return claims
+
+    def _detect_session_behavior_claims(self, sentence: str) -> list[RawClaim]:
+        """Detect self-referential claims about the LLM's own session output or actions.
+
+        These claims cannot be verified against tool events (no tool produces evidence
+        about what language the LLM used, or what it did/didn't output). The verdict
+        will always be SILENT, so unhedged confident claims are blocked.
+
+        Examples caught:
+            "No code or documentation in this session used Chinese."
+            "All responses were in English."
+            "All output in this session has been in English."
+        """
+        claims: list[RawClaim] = []
+
+        for pattern in self.compiled_session_behavior:
+            match = pattern.search(sentence)
+            if match:
+                claim = RawClaim(
+                    text=sentence,
+                    subject_entity="session_output",
+                    claim_type=ClaimType.SESSION_BEHAVIOR.value,
+                    confidence=0.8,
+                    has_hedge=self._detect_hedge(sentence),
+                    risk_domain=RiskDomain.SYSTEM.value,
+                )
+                claims.append(claim)
+                break  # One claim per sentence
 
         return claims
 

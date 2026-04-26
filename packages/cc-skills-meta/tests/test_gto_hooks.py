@@ -152,17 +152,23 @@ class TestSessionStart:
 
     def test_completed_phase(self, tmp_path):
         artifacts = tmp_path / ".claude" / ".artifacts" / "test-term" / "gto"
+        artifact_path = artifacts / "outputs" / "artifact.json"
+        _write_artifact(artifact_path, {
+            "terminal_id": "test-term",
+            "findings": [{"id": "F1"}, {"id": "F2"}],
+            "machine_output": ["RNS|Z|0|NONE"],
+        })
         _write_state(artifacts, {
             "phase": "completed",
             "current_target": "src/",
-            "expected_artifacts": ["/path/to/artifact.json"],
+            "expected_artifacts": [str(artifact_path)],
         })
         with patch.dict(os.environ, {"CLAUDE_PROJECT_DIR": str(tmp_path)}):
             result = sessionstart_run({})
         assert result is not None
         assert result["decision"] == "allow"
         assert "completed" in result["reason"]
-        assert "1 findings" in result["reason"]
+        assert "2 findings" in result["reason"]
 
     def test_running_phase(self, tmp_path):
         artifacts = tmp_path / ".claude" / ".artifacts" / "test-term" / "gto"
@@ -222,6 +228,28 @@ class TestPreToolUse:
             result = pretooluse_run({
                 "tool_name": "Bash",
                 "tool_input": {"command": "rm -rf /tmp/thing"},
+            })
+        assert result is not None
+        assert result["decision"] == "block"
+
+    def test_block_rm_separate_flags(self, tmp_path):
+        artifacts = tmp_path / ".claude" / ".artifacts" / "test-term" / "gto"
+        _write_state(artifacts, {"phase": "running"})
+        with patch.dict(os.environ, {"CLAUDE_PROJECT_DIR": str(tmp_path)}):
+            result = pretooluse_run({
+                "tool_name": "Bash",
+                "tool_input": {"command": "rm -r -f /tmp/thing"},
+            })
+        assert result is not None
+        assert result["decision"] == "block"
+
+    def test_block_git_clean(self, tmp_path):
+        artifacts = tmp_path / ".claude" / ".artifacts" / "test-term" / "gto"
+        _write_state(artifacts, {"phase": "running"})
+        with patch.dict(os.environ, {"CLAUDE_PROJECT_DIR": str(tmp_path)}):
+            result = pretooluse_run({
+                "tool_name": "Bash",
+                "tool_input": {"command": "git clean -f ."},
             })
         assert result is not None
         assert result["decision"] == "block"

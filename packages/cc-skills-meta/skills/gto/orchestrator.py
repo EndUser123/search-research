@@ -18,6 +18,7 @@ from pathlib import Path
 
 from .models import GTOArtifact
 from .settings import GTOSettings
+from .agents import parse_agent_result
 from .__lib.context import get_git_sha
 from .__lib.detectors import run_basic_detectors
 from .__lib.carryover import load_carryover, save_carryover
@@ -48,20 +49,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def _read_agent_result(result_path: Path, agent_name: str) -> list:
     """Read agent results from a result file if it exists."""
-    if not result_path.exists():
-        return []
     try:
-        if agent_name == "domain_analyzer":
-            from .agents.domain_analyzer import read_result
-        elif agent_name == "findings_reviewer":
-            from .agents.findings_reviewer import read_result
-        elif agent_name == "action_normalizer":
-            from .agents.action_normalizer import read_result
-        else:
-            return []
-        result = read_result(result_path)
+        result = parse_agent_result(result_path, agent_name)
         return result.findings if result.success else []
-    except Exception:
+    except Exception as exc:
+        print(f"GTO: agent {agent_name} result read failed: {exc}", file=sys.stderr)
         return []
 
 

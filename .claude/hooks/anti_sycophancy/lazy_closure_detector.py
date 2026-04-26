@@ -101,6 +101,40 @@ LAZY_FIX_PHRASES = [
     r"\beasier\s+to\s+just\b",
 ]
 
+# Verifiable state claims — asserting env var / feature flag / config state without checking.
+# Pattern: "you likely haven’t set SDLC_MULTI_LLM=1", "X is probably not enabled"
+# These are ALWAYS checkable with one Bash/os.environ call. Assert only after verifying.
+#
+# Two-tier approach (per regex-alternatives-reference.md):
+#   - Frozenset for literal anchor phrases: no backtracking, no \b issues, O(n*|phrases|)
+#   - Regex only where structure is genuinely needed (variable word in middle, or prefix noun)
+#   Dropped: "probably not set/enabled/configured" — too broad, fires on design-discussion prose.
+
+# Tier A: literal substrings — specific enough that they only appear in runtime-state assertions.
+# Both straight (U+0027) and curly (U+2019) apostrophe variants; matching runs on lowercased text.
+_H = "haven't"   # straight apostrophe U+0027
+_HC = "haven’t"  # right single quotation mark U+2019 (common in chat/IDE output)
+VERIFIABLE_STATE_CLAIM_ANCHORS = frozenset([
+    f"likely {_H} set",          f"likely {_HC} set",
+    f"probably {_H} set",        f"probably {_HC} set",
+    f"likely {_H} enabled",      f"likely {_HC} enabled",
+    f"probably {_H} enabled",    f"probably {_HC} enabled",
+    f"likely {_H} configured",   f"likely {_HC} configured",
+    f"probably {_H} configured", f"probably {_HC} configured",
+    f"likely {_H} activated",    f"likely {_HC} activated",
+    f"probably {_H} activated",  f"probably {_HC} activated",
+    f"likely {_H} defined",      f"likely {_HC} defined",
+    f"probably {_H} defined",    f"probably {_HC} defined",
+])
+
+# Tier B: structural regex — variable word in middle or explicit noun prefix required.
+VERIFIABLE_STATE_CLAIM_PATTERNS = [
+    # "you probably don’t have DEBUG set/enabled" — variable noun between have…set
+    r"\b(?:you\s+)?(?:likely|probably)\s+(?:don['‘’]?t|do\s+not)\s+have\s+\w+\s+(?:set|enabled|configured)\b",
+    # "the environment variable / feature flag / setting is likely not set"
+    r"\b(?:env(?:ironment)?\s+var(?:iable)?|feature\s+flag|setting|config(?:uration)?)\s+(?:is\s+)?(?:likely|probably)\s+(?:not\s+)?(?:set|enabled|configured|active)\b",
+]
+
 # User delegation - asking user to fetch info Claude can get with tools
 # Pattern: "Can you show me the log output" / "look for lines containing X"
 USER_DELEGATION_PHRASES = [
@@ -129,6 +163,20 @@ LITERALIST_FRAMING_PHRASES = [
     r"that's\s+all\s+you\s+asked\s+(?:for\s+)?",
     r"that's\s+what\s+you\s+asked\s+(?:for\s+)?",
     r"that's\s+the\s+(?:whole|entire)\s+request",
+]
+
+# Universal absence claims — asserting X doesn't exist anywhere based on a limited search scope.
+# Catches "It's not on disk anywhere" after only searching one directory, or
+# "doesn't exist anywhere" when only one source was checked.
+# Exempted when VERIFICATION_MARKERS or EVIDENCE_MARKERS are present (meaning the LLM
+# actually documented what it searched before making the claim).
+UNIVERSAL_ABSENCE_PHRASES = [
+    r"\bnot\s+(?:found\s+)?anywhere\b",                      # "not anywhere", "not found anywhere"
+    r"\bnot\s+on\s+disk\s+anywhere\b",                       # "not on disk anywhere"
+    r"\bdoesn'?t\s+exist\s+anywhere\b",                      # "doesn't exist anywhere"
+    r"\bnowhere\s+(?:in|on)\s+(?:disk|the\s+\w+|this\b)",   # "nowhere on disk", "nowhere in the repo"
+    r"\bnot\s+(?:tracked|cached|registered|stored)\s+anywhere\b",  # "not cached anywhere"
+    r"\bno\s+(?:file|entry|record|match)\s+anywhere\b",      # "no file anywhere"
 ]
 
 # Declaration without execution patterns - saying "I'll do X" without follow-through
@@ -324,10 +372,12 @@ _ASSUMED_COMPLIANCE = [re.compile(p, re.IGNORECASE) for p in ASSUMED_COMPLIANCE_
 _LAZY_FIX = [re.compile(p, re.IGNORECASE) for p in LAZY_FIX_PHRASES]
 _PREMATURE_OFFER = [re.compile(p, re.IGNORECASE) for p in PREMATURE_OFFER_PHRASES]
 _LITERALIST_FRAMING = [re.compile(p, re.IGNORECASE) for p in LITERALIST_FRAMING_PHRASES]
+_VERIFIABLE_STATE_CLAIM_PATTERNS = [re.compile(p, re.IGNORECASE) for p in VERIFIABLE_STATE_CLAIM_PATTERNS]
 _USER_DELEGATION = [re.compile(p, re.IGNORECASE) for p in USER_DELEGATION_PHRASES]
 _DECLARATION = [re.compile(p, re.IGNORECASE) for p in DECLARATION_PATTERNS]
 _SYCOPHANCY_CAPITULATION = [re.compile(p, re.IGNORECASE) for p in SYCOPHANCY_CAPITULATION_PHRASES]
 _SELF_REFERENTIAL_EVASION = [re.compile(p, re.IGNORECASE) for p in SELF_REFERENTIAL_EVASION_PATTERNS]
+_UNIVERSAL_ABSENCE = [re.compile(p, re.IGNORECASE) for p in UNIVERSAL_ABSENCE_PHRASES]
 
 
 def _find_deferral(text_lower: str) -> str | None:
@@ -358,6 +408,24 @@ def _has_deferral_tracking(text_lower: str) -> bool:
     """Check if deferral is acceptable because debt is formally tracked (spawn_task called).
     Expects pre-lowercased input."""
     return any(marker in text_lower for marker in DEFERRAL_TRACKING_MARKERS)
+
+
+def _find_verifiable_state_claim(text_lower: str, text_original: str) -> str | None:
+    """Return the first matched verifiable-state-claim phrase/pattern, or None.
+
+    Two-tier (per regex-alternatives-reference.md):
+      Tier A: frozenset literal anchors — O(n*|phrases|), no backtracking.
+      Tier B: structural regex — only where a variable word or explicit prefix is needed.
+    Expects pre-lowercased text for Tier A; original-case text for Tier B regex.
+    """
+    hit = next((p for p in VERIFIABLE_STATE_CLAIM_ANCHORS if p in text_lower), None)
+    if hit:
+        return hit
+    for pattern in _VERIFIABLE_STATE_CLAIM_PATTERNS:
+        m = pattern.search(text_original)
+        if m:
+            return m.group(0)
+    return None
 
 
 def _has_bash_evidence(text: str) -> bool:
@@ -402,6 +470,23 @@ def detect_lazy_closure(response: str) -> LazyClosureMatch | None:
             suggestion=(
                 "Untracked debt detected. Either fix it now, or use spawn_task to formally "
                 "track it. 'I'll leave that for now' without tracking creates invisible debt."
+            ),
+            severity="flag",
+        )
+
+    # Verifiable state claims — env vars / flags / settings asserted without checking.
+    # Checked unconditionally: having done other verification elsewhere doesn't excuse
+    # skipping a one-line runtime check.
+    hit = _find_verifiable_state_claim(text_lower, text)
+    if hit:
+        return LazyClosureMatch(
+            matched=hit,
+            pattern_type="verifiable_state_claim",
+            suggestion=(
+                "You asserted runtime/config state (env var, feature flag, setting) without "
+                "checking it. These are always verifiable in one tool call: "
+                "Bash `echo $VAR` or `python -c \"import os; print(os.environ.get('VAR'))\"`. "
+                "Check first, then assert."
             ),
             severity="flag",
         )
@@ -547,6 +632,23 @@ def detect_lazy_closure(response: str) -> LazyClosureMatch | None:
             severity="flag",
         )
 
+    # 8. Check for universal absence claims — "not on disk anywhere", "not found anywhere"
+    # These are suspicious when only a subset of locations was searched.
+    # Exempted: response contains verification markers (LLM documented what was searched).
+    match = _find_pattern(text, _UNIVERSAL_ABSENCE)
+    if match:
+        return LazyClosureMatch(
+            matched=match.group(0),
+            pattern_type="universal_absence",
+            suggestion=(
+                "Universal absence claim without documented search scope. "
+                "Before asserting 'not anywhere', verify you searched ALL relevant locations. "
+                "For Claude Code entities: check both the project directory AND ~/.claude/ "
+                "(commands/, plugins/, etc.). State which directories were searched."
+            ),
+            severity="flag",
+        )
+
     return None
 
 
@@ -575,6 +677,18 @@ def detect_all_lazy_closure(response: str) -> list[LazyClosureMatch]:
                         severity="flag",
                     )
                 )
+
+    # Verifiable state claims run unconditionally — same rationale as user delegation.
+    hit = _find_verifiable_state_claim(text_lower, text)
+    if hit:
+        results.append(
+            LazyClosureMatch(
+                matched=hit,
+                pattern_type="verifiable_state_claim",
+                suggestion="Check runtime state with a tool call before asserting it.",
+                severity="flag",
+            )
+        )
 
     # User delegation runs unconditionally — verification markers elsewhere don't excuse it.
     for pattern in _USER_DELEGATION:
@@ -646,6 +760,7 @@ def detect_all_lazy_closure(response: str) -> list[LazyClosureMatch]:
         (_LAZY_FIX, "lazy_fix", "Address root cause, not symptoms", "flag"),
         (_PREMATURE_OFFER, "premature_offer", "Complete Investigation Gate first", "flag"),
         (_LITERALIST_FRAMING, "literalist_framing", "Name the root cause or next step unprompted", "flag"),
+        (_UNIVERSAL_ABSENCE, "universal_absence", "State which directories/sources were searched before claiming universal absence", "flag"),
     ]
 
     for patterns, pattern_type, base_suggestion, severity in pattern_groups:
@@ -797,5 +912,62 @@ if __name__ == "__main__":
     # Literalist framing with diagnosis above should still be caught (only one line follows)
     lf5 = detect_all_lazy_closure("Root cause is X. That's the extent of what you asked.")
     assert any(m.pattern_type == "literalist_framing" for m in lf5), "literalist_framing should fire even with diagnosis above"
+
+    # Universal absence patterns (the go_2.0-skill-03c80e1e incident)
+    ua1 = detect_lazy_closure(
+        "It's not on disk anywhere — no file, no cache entry, no registry. "
+        "The string only exists in the UI's skill list."
+    )
+    assert ua1 is not None, "universal_absence: 'not on disk anywhere' should be detected"
+    assert ua1.pattern_type == "universal_absence"
+
+    ua2 = detect_lazy_closure("The identifier is not found anywhere in the codebase.")
+    assert ua2 is not None, "universal_absence: 'not found anywhere' should be detected"
+
+    ua3 = detect_lazy_closure("That file doesn't exist anywhere.")
+    assert ua3 is not None, "universal_absence: 'doesn't exist anywhere' should be detected"
+
+    ua4 = detect_lazy_closure("There's no file anywhere matching that pattern.")
+    assert ua4 is not None, "universal_absence: 'no file anywhere' should be detected"
+
+    # Universal absence with verification markers should pass
+    ua_ok1 = detect_lazy_closure(
+        "I checked ~/.claude/commands/ and P:\\ — not found anywhere in those directories."
+    )
+    assert ua_ok1 is None, "universal_absence: 'checked' exemption should apply"
+
+    ua_ok2 = detect_lazy_closure(
+        "I ran Glob across both ~/.claude/ and P:\\ and it's not found anywhere."
+    )
+    assert ua_ok2 is None, "universal_absence: 'i ran' exemption should apply"
+
+    # Verifiable state claim patterns (the SDLC_MULTI_LLM incident)
+    # Tier A — frozenset anchors
+    vs1 = detect_lazy_closure("You likely haven't set SDLC_MULTI_LLM=1 in your environment.")
+    assert vs1 is not None, "verifiable_state_claim: 'likely haven't set' (Tier A) should be detected"
+    assert vs1.pattern_type == "verifiable_state_claim"
+
+    # Tier B — structural regex (variable word in middle)
+    vs3 = detect_lazy_closure("You probably don't have DEBUG set in your config.")
+    assert vs3 is not None, "verifiable_state_claim: 'probably don't have ... set' (Tier B) should be detected"
+
+    # Tier B — explicit noun prefix
+    vs4 = detect_lazy_closure("The environment variable is likely not configured.")
+    assert vs4 is not None, "verifiable_state_claim: 'env var likely not configured' (Tier B) should be detected"
+
+    # Should NOT fire — "probably not enabled" alone (dropped: too broad for design-discussion prose)
+    vs_no = detect_lazy_closure("The flag is probably not enabled by default.")
+    assert vs_no is None, "verifiable_state_claim: bare 'probably not enabled' should NOT fire (dropped pattern)"
+
+    # Should NOT fire — general performance prose, no runtime-state signal
+    vs_ok1 = detect_lazy_closure("This approach is probably not the best for large datasets.")
+    assert vs_ok1 is None, "verifiable_state_claim: design-discussion prose should NOT fire"
+
+    # Should NOT fire — unhedged direct assertion (no "likely/probably")
+    vs_ok2 = detect_lazy_closure(
+        "SDLC_MULTI_LLM: NOT SET\n"
+        "The variable is not set in your environment."
+    )
+    assert vs_ok2 is None, "verifiable_state_claim: unhedged assertion after tool output should NOT fire"
 
     print("✅ All tests passed")

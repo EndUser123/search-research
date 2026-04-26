@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 from ..models import GTOArtifact
 
@@ -11,8 +12,6 @@ def verify_artifact(artifact_path: Path) -> dict[str, Any]:
 
     Returns a dict with 'valid' (bool) and 'errors' (list of strings).
     """
-    from typing import Any
-
     result: dict[str, Any] = {"valid": True, "errors": []}
 
     if not artifact_path.exists():
@@ -62,8 +61,6 @@ def verify_artifact(artifact_path: Path) -> dict[str, Any]:
 
 def verify_state(state_path: Path) -> dict[str, Any]:
     """Verify run state has completed all expected phases."""
-    from typing import Any
-
     result: dict[str, Any] = {"valid": True, "errors": []}
 
     if not state_path.exists():

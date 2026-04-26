@@ -10,8 +10,18 @@ from __future__ import annotations
 
 import json
 import sys
+from pathlib import Path
 
 from .common import is_gto_active, read_state, write_hook_output
+
+
+def _count_findings_in_artifact(artifact_path: str) -> int:
+    """Count findings in an artifact JSON file. Returns 0 on any failure."""
+    try:
+        data = json.loads(Path(artifact_path).read_text(encoding="utf-8"))
+        return len(data.get("findings", []))
+    except (json.JSONDecodeError, OSError, ValueError):
+        return 0
 
 
 def run(data: dict) -> dict | None:
@@ -25,7 +35,12 @@ def run(data: dict) -> dict | None:
 
     phase = state.get("phase", "")
     target = state.get("current_target", "unknown")
-    findings_count = len(state.get("expected_artifacts", []))
+
+    # Count actual findings from the artifact, not artifact paths
+    findings_count = sum(
+        _count_findings_in_artifact(p)
+        for p in state.get("expected_artifacts", [])
+    )
 
     if phase == "completed":
         msg = f"GTO: prior run completed for '{target}'. {findings_count} findings available."

@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from typing import List
 
 from anti_sycophancy.hypothesis_as_fact_detector import (
+    ClaimType,
     HypothesisAsFactDetector,
     RawClaim,
 )
@@ -239,3 +240,28 @@ def _raw_claim_to_claim(raw: RawClaim) -> Claim | None:
     except (AttributeError, ValueError):
         # Fail gracefully on malformed RawClaim
         return None
+
+
+# __debug__ invariant: verify ClaimType enum values are lowercase (matching the pattern
+# 'session_behavior', 'analysis', etc.) and that _raw_claim_to_claim uppercases them.
+# This catches the case-mismatch bug where _is_self_verified_claim checked
+# "session_behavior" but _raw_claim_to_claim produces "SESSION_BEHAVIOR".
+if __debug__:
+    import sys as _sys
+
+    _ct_mod = _sys.modules.get("anti_sycophancy.hypothesis_as_fact_detector")
+    if _ct_mod is not None:
+        _mismatches = sorted(
+            f"  ClaimType.{e.name} = {e.value!r}  (expected lowercase: {e.name.lower()!r})"
+            for e in _ct_mod.ClaimType
+            if e.value != e.name.lower()
+        )
+        if _mismatches:
+            raise AssertionError(
+                f"ClaimType enum values must be lowercase names in "
+                f"hypothesis_as_fact_detector.py:\n"
+                + "\n".join(_mismatches)
+                + "\n"
+                + "  _raw_claim_to_claim() uppercases these to produce Claim.type values,\n"
+                + "  so _is_self_verified_claim() must check the uppercase form."
+            )

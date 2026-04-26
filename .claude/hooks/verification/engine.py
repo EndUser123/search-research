@@ -116,7 +116,9 @@ def match_claim_to_events(
         VerificationStatus: SUPPORTED, REFUTED, SILENT, or SELF_VERIFIED
 
     Matching Rules:
-    - SELF_VERIFIED: claim text contains inline evidence (this session, ls|, grep|, verified)
+    - SELF_VERIFIED: claim text contains inline evidence (ls|, grep|, verified)
+      NOTE: "this session" does NOT trigger SELF_VERIFIED for SESSION_BEHAVIOR claims
+            — there "this session" is the subject of the assertion, not evidence
     - ABSENCE claims + ls/Glob showing no matches → SUPPORTED
     - ABSENCE claims + Read/Glob showing entity exists → REFUTED
     - RULE claims + Read of relevant file → check content (SUPPORTED/REFUTED)
@@ -258,6 +260,13 @@ def _is_self_verified_claim(claim: Any) -> bool:
     Returns:
         True if claim text contains self-verification patterns
     """
+    # SESSION_BEHAVIOR claims use "this session" as the subject of the claim,
+    # not as evidence that the claim was already verified. The phrase
+    # "No code in this session used Chinese" is the assertion to be challenged,
+    # not a verification citation — so it must never be treated as self-verified.
+    # Claim.type == "SESSION_BEHAVIOR" (uppercase, after _raw_claim_to_claim conversion).
+    if getattr(claim, "type", "") == "SESSION_BEHAVIOR":
+        return False
     claim_text = claim.text
     for pattern in _SELF_VERIFICATION_PATTERNS:
         if pattern.search(claim_text):

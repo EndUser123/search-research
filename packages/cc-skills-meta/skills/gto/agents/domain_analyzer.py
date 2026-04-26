@@ -13,7 +13,8 @@ results back to a designated output file.
 from pathlib import Path
 import json
 
-from ..models import Finding, EvidenceRef, AgentResult
+from . import parse_agent_result
+from ..models import Finding, AgentResult
 
 
 def write_handoff(path: Path, target: str, root: str, domains: list[str] | None = None) -> None:
@@ -31,47 +32,4 @@ def write_handoff(path: Path, target: str, root: str, domains: list[str] | None 
 
 def read_result(path: Path) -> AgentResult:
     """Read the domain analyzer result from its output file."""
-    if not path.exists():
-        return AgentResult(agent="domain_analyzer", findings=[], success=False)
-
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return AgentResult(agent="domain_analyzer", findings=[], success=False)
-
-    findings: list[Finding] = []
-    for item in data.get("findings", []):
-        if not isinstance(item, dict):
-            continue
-        evidence = [
-            EvidenceRef(kind=e.get("kind", ""), value=e.get("value", ""))
-            for e in item.get("evidence", [])
-            if isinstance(e, dict)
-        ]
-        findings.append(
-            Finding(
-                id=item.get("id", "AGENT-???"),
-                title=item.get("title", "Agent finding"),
-                description=item.get("description", ""),
-                source_type="agent",
-                source_name="domain_analyzer",
-                domain=item.get("domain", "other"),
-                gap_type=item.get("gap_type", "unknown"),
-                severity=item.get("severity", "medium"),
-                evidence_level="unverified",
-                action=item.get("action", "recover"),
-                priority=item.get("priority", "medium"),
-                file=item.get("file"),
-                line=item.get("line"),
-                effort=item.get("effort"),
-                unverified=item.get("unverified", True),
-                evidence=evidence,
-            )
-        )
-
-    return AgentResult(
-        agent="domain_analyzer",
-        findings=findings,
-        raw_notes=data.get("notes", ""),
-        success=True,
-    )
+    return parse_agent_result(path, "domain_analyzer")

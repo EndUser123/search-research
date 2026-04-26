@@ -158,9 +158,21 @@ def _fallback_signature_extraction(source: str) -> list[str]:
 # File discovery
 # ---------------------------------------------------------------------------
 
+DEFAULT_EXCLUDES = [
+    "__pycache__", "*.pyc", "*.pyo", "*.so", "*.dll", "*.exe",
+    ".venv", "venv", "env", "site-packages",
+    ".pytest_cache", ".mypy_cache", ".ruff_cache", ".tox",
+    ".git", ".hg", ".svn",
+    "dist", "build", "out", "target", "egg-info",
+    ".idea", ".vscode", ".DS_Store", "Thumbs.db",
+    ".env", ".env.", "*.log", "*.min.js",
+    "node_modules",
+]
+
+
 def discover_python_files(target_dir: Path, exclude_patterns: str = "") -> list[str]:
     """Find all .py files in target_dir, excluding patterns."""
-    patterns = [p.strip() for p in exclude_patterns.split(",") if p.strip()]
+    patterns = DEFAULT_EXCLUDES + [p.strip() for p in exclude_patterns.split(",") if p.strip()]
 
     def is_excluded(path: Path) -> bool:
         path_str = str(path)
@@ -215,6 +227,59 @@ def build_directory_index(files: list[str]) -> list[str]:
     for dir_name in sorted(groups):
         lines.append(f"| `{dir_name}/` | {len(groups[dir_name])} |")
     return lines
+
+
+def build_tree(filepaths: list[str], target_dir: Path) -> list[str]:
+    """Build a visual directory tree with file counts per folder."""
+    tree: dict = {}
+    for fp in filepaths:
+        rel = Path(fp).relative_to(target_dir)
+        parts = rel.parts
+        node = tree
+        for part in parts[:-1]:
+            node = node.setdefault(part, {})
+        node[parts[-1]] = None
+
+    def count_leaves(d: dict) -> int:
+        return sum(1 if v is None else count_leaves(v) for v in d.values())
+
+    total = count_leaves(tree)
+    lines: list[str] = [f"{target_dir.name}/ ({total} files)"]
+    MAX = 200
+    truncated = False
+
+    def render(d: dict, prefix: str) -> None:
+        nonlocal truncated
+        if truncated:
+            return
+        dirs = sorted([(k, v) for k, v in d.items() if isinstance(v, dict)])
+        files = sorted([k for k, v in d.items() if v is None])
+        items = [(n, v) for n, v in dirs] + [(f, None) for f in files]
+
+        for i, (name, children) in enumerate(items):
+            if len(lines) >= MAX:
+                remaining = len(items) - i
+                lines.append(f"{prefix}... ({remaining} more)")
+                truncated = True
+                return
+            is_last = i == len(items) - 1
+            c = "└── " if is_last else "├── "
+            if children is None:
+                lines.append(f"{prefix}{c}{name}")
+            else:
+                n = count_leaves(children)
+                lines.append(f"{prefix}{c}{name}/ ({n})")
+                ext = "    " if is_last else "│   "
+                render(children, prefix + ext)
+
+    render(tree, "")
+
+    out = ["## DIRECTORY TREE", "", "```"]
+    out.extend(lines)
+    out.append("```")
+    if truncated:
+        out.append(f"\n> Truncated at {MAX} lines. See FILE INDEX for complete listing.")
+    return out
 
 
 def build_file_index(files: list[str]) -> list[str]:
@@ -273,8 +338,7 @@ def append_markdown_files(content: str, target_dir: Path) -> str:
 # Main
 # ---------------------------------------------------------------------------
 
-def build_sig_pack(filepaths: list[str], dirname: str) -> str:
-    groups = group_by_dir(filepaths)
+def build_sig_pack(filepaths: list[str], dirname: str, target_dir: Path) -> str:
     total = len(filepaths)
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
@@ -299,12 +363,12 @@ def build_sig_pack(filepaths: list[str], dirname: str) -> str:
         header,
         "\n".join(build_signatures_section(filepaths)),
         "\n".join(build_directory_index(filepaths)),
+        "\n".join(build_tree(filepaths, target_dir)),
         "\n".join(build_file_index(filepaths)),
     ])
 
 
 def build_full_pack(filepaths: list[str], dirname: str) -> str:
-    groups = group_by_dir(filepaths)
     total = len(filepaths)
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
@@ -365,7 +429,7 @@ def main() -> None:
     sig_path = out_dir / f"{name}_sig.md"
     full_path = out_dir / f"{name}_full.md"
 
-    sig_content = build_sig_pack(py_files, name)
+    sig_content = build_sig_pack(py_files, name, target)
     sig_content = append_markdown_files(sig_content, target)
     sig_path.write_text(sig_content, encoding="utf-8")
 
