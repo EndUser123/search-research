@@ -65,8 +65,13 @@ def get_project_root() -> Path:
 
 
 def get_artifacts_root() -> Path:
-    """Get the root for terminal-scoped GTO artifacts."""
-    return get_project_root() / ".claude" / ".artifacts"
+    """Get the root for terminal-scoped GTO artifacts.
+
+    Uses the drive-root .claude directory (e.g. P:/.claude/.artifacts/)
+    rather than project-scoped, so artifacts survive across projects.
+    """
+    drive_root = Path(get_project_root().anchor)
+    return drive_root / ".claude" / ".artifacts"
 
 
 def gto_state_dir() -> Path:

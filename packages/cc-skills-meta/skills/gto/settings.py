@@ -27,7 +27,8 @@ class GTOSettings:
 
     @property
     def paths(self) -> GTOPaths:
-        base = self.root / ".claude" / ".artifacts" / self.terminal_id / "gto"
+        drive_root = Path(self.root.anchor)
+        base = drive_root / ".claude" / ".artifacts" / self.terminal_id / "gto"
         return GTOPaths(
             root=self.root,
             artifacts_dir=base,
