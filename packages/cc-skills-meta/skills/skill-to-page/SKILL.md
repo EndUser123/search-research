@@ -114,6 +114,10 @@ Build `index.html` following HTML authoring rules (see below).
 - Mermaid renders correctly
 - Zoom controls work
 - TOC toggle works
+- Drag-to-pan works on all Mermaid diagrams that use advanced viewport mode
+- Wheel zoom is cursor-centric and bound to `.mermaid-container` (not SVG)
+- Reset restores scale = 1 and translation = 0 for each diagram
+- Theme toggle rerenders diagrams without losing viewport state
 
 ---
 
@@ -181,6 +185,72 @@ Every HTML skill page with a mermaid diagram must include a reset button:
 ### DOMContentLoaded + Module Script Timing
 
 `<script type="module">` is always deferred — runs **after** `DOMContentLoaded` fires. If TOC init depends on module code having already run, use a different ready signal or move initialization after the import.
+
+### JS Lifecycle Rules (MANDATORY)
+
+| Rule | Why | Enforcement |
+|------|-----|-------------|
+| **No SVG binding** | `svg.addEventListener` attaches to stale element after rerender | Bind to `.mermaid-container` instead |
+| **await-before-transform** | Rerender must complete before viewport is reapplied | `await mermaid.run()` then `applyViewport()` |
+| **rerender function contract** | `rerenderDiagram()` must preserve per-diagram viewport state | Use `viewports[diagramId]` map, not closure locals |
+| **Global state per diagram** | Multiple diagrams on one page share JS scope | `viewports` map keyed by diagram ID |
+| **Theme preserves state** | Theme toggle calls rerender, which destroys SVG | `viewports[]` survives container.innerHTML replacement |
+| **wheel passive:false** | Without `passive:false`, `preventDefault()` is ignored | Required for cursor-centric zoom |
+
+### Advanced Viewport Mode (PREFERRED)
+
+Full canvas engine — use instead of SVG-bound zoom. Required for multi-diagram pages and any page that rerenders diagrams (e.g., theme toggle).
+
+**Viewport state per diagram:**
+```javascript
+const viewports = {
+  myDiagram: { scale: 1, tx: 0, ty: 0, isDragging: false, startX: 0, startY: 0, hasInteracted: false }
+};
+```
+
+**Container CSS (required):**
+```css
+.diagram-wrapper { position: relative; overflow: hidden; cursor: grab; }
+.diagram-wrapper:active { cursor: grabbing; }
+.mermaid-container { line-height: 0; overflow-x: auto; }  /* line-height:0 required */
+```
+
+**Cursor-centric zoom math:**
+```javascript
+container.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const rect = container.getBoundingClientRect();
+  const cx = e.clientX - rect.left;
+  const cy = e.clientY - rect.top;
+  const factor = e.deltaY > 0 ? 1 / ZOOM_FACTOR : ZOOM_FACTOR;
+  const newScale = Math.min(MAX, Math.max(MIN, vp.scale * factor));
+  vp.tx = cx - (cx - vp.tx) * (newScale / vp.scale);
+  vp.ty = cy - (cy - vp.ty) * (newScale / vp.scale);
+  vp.scale = newScale;
+  applyViewport(diagramId);
+}, { passive: false });
+```
+
+**Drag-to-pan (pointer events):**
+```javascript
+container.addEventListener('pointerdown', (e) => {
+  if (e.target.closest('.zoom-controls')) return;
+  vp.isDragging = true;
+  vp.startX = e.clientX - vp.tx;
+  vp.startY = e.clientY - vp.ty;
+  container.setPointerCapture(e.pointerId);
+});
+```
+
+**Reset restores identity transform:**
+```javascript
+function btnReset() {
+  vp.scale = 1; vp.tx = 0; vp.ty = 0;
+  applyViewport(diagramId);
+}
+```
+
+**Zoom buttons** must be siblings of `.mermaid-container`, NOT children. Reason: `container.innerHTML = ''` in rerender destroys all descendants — zoom buttons vanish on theme toggle if nested.
 
 ### Testing
 

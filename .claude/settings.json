@@ -199,16 +199,6 @@
         ]
       },
       {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/PreToolUse_plan_consumer_gate.py",
-            "timeout": 10
-          }
-        ]
-      },
-      {
         "matcher": ".*",
         "hooks": [
           {
