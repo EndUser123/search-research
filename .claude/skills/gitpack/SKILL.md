@@ -36,8 +36,9 @@ Signatures are extracted via Python's `ast` module — exact, deterministic, no 
 ## Workflow
 
 ```
-python scripts/gitpack.py <target_dir> [--exclude <patterns>]
+python -c "...inline AST packer..." <target_dir>
 ```
+Or run manually — the packer is a simple inline script (no gitpack.py in this repo).
 
 1. **DISCOVER** — Glob for all `.py` files in `<target_dir>`, applying exclusions
 2. **EXTRACT** — Parse each file with `ast`, collect function/class signatures with type annotations
@@ -84,14 +85,7 @@ dist/,build/,out/,target/,egg-info/,*.egg-info/
 
 ## Architecture
 
-```
-scripts/
-  gitpack.py              # Main entry point — pure Python, no external deps
-  gitpack_structured.py  # Legacy structurer (uses aid if available)
-  gitpack_toc.py          # Legacy TOC builder
-```
-
-`gitpack.py` (v3.0) is the recommended entry point. It supersedes the aid-based workflow.
+No `gitpack.py` in this repo — the packer is a simple inline Python script using `ast`. Run it directly from Bash with `python -c "..."` or copy the pattern into a temp script.
 
 ## See Also
 

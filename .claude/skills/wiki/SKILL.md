@@ -5,10 +5,10 @@ version: 1.0.0
 type: skill
 enforcement: none
 workflow_steps:
-  - ingest: Accept source (file/URL/text) or scan ~/Downloads for new files (default: ingest all)
-  - query: Accept question, search wiki via QMD_WIKI backend, synthesize answer
-  - lint: Health-check wiki for contradictions, orphans, missing cross-refs
-  - index: Rebuild index.md catalog from current wiki state
+  - ingest: "Accept source (file/URL/text) or scan ~/Downloads for new files (default: ingest all)"
+  - query: "Accept question, search wiki via QMD_WIKI backend, synthesize answer"
+  - lint: "Health-check wiki for contradictions, orphans, missing cross-refs"
+  - index: "Rebuild index.md catalog from current wiki state"
 ---
 
 # /wiki — Obsidian Wiki + QMD Search Skill

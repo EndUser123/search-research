@@ -11,3 +11,4 @@ node_modules/
 .claude/
 .evidence/
 .state/
+.git

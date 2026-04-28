@@ -43,49 +43,49 @@ Manage, audit, validate, install, and sync all development plugins.
 
 ## Marketplace Architecture
 
-- **Junctioned plugins** (cc-skills-*, snapshot): Source at `P:/packages/<name>/`, junction at `P:/packages/.claude-marketplace/plugins/<name>`. Changes to source auto-pick up — no sync needed.
-- **Real-dir plugin** (plugin-installer): Source and marketplace are separate copies. After editing source, run `/plugin-installer sync`.
+All plugins are junctioned — source at `P:/packages/<name>/`, junction at `P:/packages/.claude-marketplace/plugins/<name>`. Changes to source auto-pick up — no sync needed.
 
 ## Full Setup (no action specified)
 
 When invoked without an action, run the complete plugin setup workflow in order:
 
-1. **Sync** plugin-installer source to marketplace:
-   ```bash
-   cp -r P:/packages/plugin-installer/skills/plugin-installer.md P:/packages/.claude-marketplace/plugins/plugin-installer/skills/
-   cp -r P:/packages/plugin-installer/scripts/ P:/packages/.claude-marketplace/plugins/plugin-installer/
-   /plugin marketplace update local
-   /reload-plugins
-   ```
-
-2. **Audit** all plugins for issues and auto-fix:
+1. **Audit** all plugins for issues and auto-fix:
    ```bash
    python3 "P:/packages/plugin-installer/scripts/plugin-audit-and-fix.py" --auto-fix --marketplace-root "P:/packages/.claude-marketplace"
-   /plugin marketplace update local
-   /reload-plugins
    ```
+   *Audit modifies source files. Since marketplace entries are junctions to source, the marketplace plugin folders update automatically.*
+
+2. **Sync the JSON index to the updated plugin folders**, then **reload**:
+   ```bash
+   claude plugin marketplace update local
+   ```
+   ⚠️ **Then type `/reload-plugins` manually** — this slash command cannot be run via bash.
 
 3. **Validate** all plugins:
    ```bash
    python3 "P:/packages/plugin-installer/scripts/plugin-audit-and-fix.py" --validate --marketplace-root "P:/packages/.claude-marketplace"
    ```
 
-4. **Discover** marketplace plugins:
+4. **Pre-install sync**, then **reload**:
+   ```bash
+   claude plugin marketplace update local
+   ```
+   ⚠️ **Then type `/reload-plugins` manually**.
+
+5. **Discover** marketplace plugins, then **install each**:
    ```bash
    ls P:/packages/.claude-marketplace/plugins/
-   ```
-
-5. **Install** each plugin:
-   ```bash
    # For each plugin in marketplace/plugins/:
-   /plugin install <name>@local
-   /plugin marketplace update local
-   /reload-plugins
+   claude plugin install <name>@local
    ```
 
-6. Report final status with:
+6. **Final sync + reload**, then **report status**:
    ```bash
-   /plugin list
+   claude plugin marketplace update local
+   ```
+   ⚠️ **Then type `/reload-plugins` manually**, then:
+   ```bash
+   claude plugin list
    ```
 
 ## Actions
@@ -104,9 +104,9 @@ python3 "P:/packages/plugin-installer/scripts/plugin-audit-and-fix.py" --auto-fi
 
 Then refresh:
 ```bash
-/plugin marketplace update local
-/reload-plugins
+claude plugin marketplace update local
 ```
+⚠️ **Then type `/reload-plugins` manually**.
 
 ### `/plugin-installer validate [name]` — Validate plugins
 
@@ -123,25 +123,44 @@ python3 "P:/packages/plugin-installer/scripts/plugin-audit-and-fix.py" --validat
 ### `/plugin-installer install` — Install all marketplace plugins
 
 ```bash
-/plugin marketplace update local
-/reload-plugins
+claude plugin marketplace update local
 ls P:/packages/.claude-marketplace/plugins/
-# Install each discovered plugin:
-/plugin install <name>@local
-/plugin marketplace update local
-/reload-plugins
-/plugin list
+# For each plugin, check entry type before install:
+# - Junction → source auto-pickup, safe to install
+# - Real dir → warn: non-junction plugin, source changes won't auto-propagate
+#   If source exists at P:/packages/<name>/, suggest converting to junction instead
+claude plugin install <name>@local
+claude plugin marketplace update local
+```
+⚠️ **After each install, type `/reload-plugins` manually**, then:
+```bash
+claude plugin list
+```
+
+**Non-junction detection:** If a marketplace entry is a real directory AND the source exists at `P:/packages/<name>/`, the plugin should be a junction instead. Flag it and suggest:
+```bash
+# Convert real-dir to junction:
+rm -rf P:/packages/.claude-marketplace/plugins/<name>
+cmd /c mklink /J "P:\\packages\\.claude-marketplace\\plugins\\<name>" "P:\\packages\\<name>"
 ```
 
 ### `/plugin-installer sync` — Sync plugin-installer source to marketplace
 
-plugin-installer is a real directory (not a junction), so edits to source do not auto-propagate. Run after editing source:
+plugin-installer should be a **junction** (not a real dir). If it is a real directory, convert it first:
 
 ```bash
-cp -r P:/packages/plugin-installer/skills/plugin-installer.md P:/packages/.claude-marketplace/plugins/plugin-installer/skills/
-cp -r P:/packages/plugin-installer/scripts/ P:/packages/.claude-marketplace/plugins/plugin-installer/
-/plugin marketplace update local
-/reload-plugins
+# Check current type
+test -L P:/packages/.claude-marketplace/plugins/plugin-installer && echo "junction" || echo "real-dir"
+# If real-dir: convert to junction
+rm -rf P:/packages/.claude-marketplace/plugins/plugin-installer
+cmd /c mklink /J "P:\\packages\\.claude-marketplace\\plugins\\plugin-installer" "P:\\packages\\plugin-installer"
+```
+
+plugin-installer is now a junction — source changes auto-pick up, no manual sync needed. The cp block below is kept only for migrating from the old real-dir setup.
+
+```bash
+# Only needed if you previously used sync with a real-dir plugin-installer
+# Source is now a junction, so changes propagate automatically
 ```
 
 ### `/plugin-installer add <name>` — Add a plugin to marketplace
@@ -156,11 +175,11 @@ Adds a plugin via junction. Assumes source at `P:/packages/<name>/`:
 
 ```bash
 cmd /c mklink /J "P:\\packages\\.claude-marketplace\\plugins\\<name>" "P:\\packages\\<name>"
-/plugin marketplace update local
-/reload-plugins
-/plugin install <name>@local
-/plugin list
+claude plugin marketplace update local
+claude plugin install <name>@local
+claude plugin list
 ```
+⚠️ **After install, type `/reload-plugins` manually**.
 
 ### `/plugin-installer remove <name>` — Remove a plugin from marketplace
 
@@ -170,40 +189,34 @@ Removes the junction from marketplace and uninstalls the plugin. Does NOT delete
 
 ```bash
 cmd /c rmdir "P:\\packages\\.claude-marketplace\\plugins\\<name>"
-/plugin uninstall <name>@local
-/plugin marketplace update local
-/reload-plugins
-/plugin list
+claude plugin uninstall <name>@local
+claude plugin marketplace update local
+claude plugin list
 ```
+⚠️ **After uninstall, type `/reload-plugins` manually**.
 
 ### `/plugin-installer status` — Check plugin status
 
 ```bash
-/plugin list
+claude plugin list
 ```
 
 ## Troubleshooting
 
-**plugin-installer changes not picking up?**
-plugin-installer is a real directory in marketplace (not a junction). After editing source, run:
-```bash
-/plugin-installer sync
-```
-
 **If install fails:**
-1. Run `/plugin marketplace update local` then `/reload-plugins`
-2. Validate the specific plugin: `/plugin-installer validate <name>`
+1. Run `claude plugin marketplace update local` then type `/reload-plugins`
+2. Validate the specific plugin: `claude plugin validate <path>`
 3. Re-run audit: `/plugin-installer audit`
 
 **To uninstall all marketplace plugins:**
 ```bash
 # Discover what's installed:
-/plugin list
+claude plugin list
 # Uninstall each:
-/plugin uninstall <name>@local
-/plugin marketplace update local
-/reload-plugins
+claude plugin uninstall <name>@local
+claude plugin marketplace update local
 ```
+⚠️ **After uninstall, type `/reload-plugins` manually**.
 
 **To add a new plugin to the marketplace:**
 ```bash

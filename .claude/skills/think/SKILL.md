@@ -4,15 +4,26 @@ description: Adaptive reasoning gate for SDLC work - choose depth, chain frames,
 version: "3.0.0"
 status: stable
 category: meta
+enforcement: advisory
 triggers:
   - /think
 aliases:
   - /think
-
 suggest:
+  - /reason_openai
+  - /genius
   - /truth
   - /decision-tree
   - /sequential-thinking
+workflow_steps:
+  - id: infer_subject
+    description: "Infer the actual subject from prompt and conversation context"
+  - id: choose_depth
+    description: "Select reasoning depth appropriate to risk and uncertainty"
+  - id: apply_frames
+    description: "Chain reasoning frames as warranted"
+  - id: verify
+    description: "Verify claims before settling"
 ---
 
 # /think

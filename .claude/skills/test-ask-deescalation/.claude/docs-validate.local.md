@@ -1,4 +1,0 @@
----
-mode: blocking
----
-Blocking mode

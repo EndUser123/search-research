@@ -223,20 +223,56 @@ If the critic fails, fix the workflow model or Mermaid before proceeding.
 
 Build `index.html` from the workflow model.
 
-The HTML must include:
+**Page structure (in order):**
 
-- page header with skill name/version
-- generated TOC
-- Mermaid diagram section
-- accordion or structured section per workflow step
+1. **Hero card** — skill name, version badge, one-line description of what this skill does
+2. **Quick Facts** — 5–7 bullets: core capabilities (gates, artifact types, browser verification count, etc.)
+3. **Mermaid diagram section** (with zoom/pan controls)
+4. **Workflow Steps** — accordion per step, outcome-focused title + description
+5. **Route Outs** — distinct section with each route-out's target and trigger condition
+6. **Terminal States** — distinct section with each terminal's description
+7. **Artifacts** — card per artifact with path + copy-to-clipboard button
+8. **Proof Summary** — scannable card: coverage metrics, browser verification results, gate pass/fail status
+
+**Required elements:**
+
+- page header with skill name/version badge
+- generated TOC (collapsible sidebar)
+- Mermaid diagram with zoom/pan/reset controls
+- accordion per workflow step (open/close on click)
 - routing/decision visibility
-- terminal states section where relevant
-- artifact outputs section where relevant
-- theme toggle
-- search UI
+- terminal states section
+- artifact outputs section with download/copy
+- theme toggle (dark/light)
+- search UI (filters step sections)
 - proof/provenance metadata section (compact)
-- responsive layout
-- accessible navigation
+- responsive layout (mobile: hamburger TOC, single column)
+- accessible navigation (ARIA labels, focus-visible)
+- copy-to-clipboard for all file paths (button per path)
+
+**Artifact cards:** Each artifact gets a card with:
+- Artifact type and description
+- File path in a `<code>` block
+- "Copy path" button that writes path to clipboard
+- Link to open/download where applicable
+
+**Proof Summary card** (placed after the diagram, before step accordions):
+Show as a compact grid: skill name, version, steps count, gate count, route-outs, terminal states, browser verification status (all 13 checks), coverage percentages.
+
+**Style requirements:**
+
+- **Fonts:** Inter (prose/body) + JetBrains Mono (code/paths/gates). Load via Google Fonts. This improves readability and gives the page a more intentional, premium feel.
+- **4-level type system:** page title (h1), section title (h2), body, metadata — reduces visual noise.
+- **Code/path blocks:** dark inset surface (`#0d1017` background), `1px solid` border, compact padding. Monospace throughout so mechanical parts stand out instantly.
+- **Section cards:** subtle gradient background, `1px solid` border with slight transparency, `8-12px` radius, soft shadow. Not flat blocks.
+- **Gate/terminal/route badges:** stronger contrast and bold weight — functional decision points should pop visually. Gate: warm amber tones. Route: purple. Terminal: green.
+- **Artifact/output sections:** distinct "console card" treatment — darker inset surface, stronger border, tabular spacing.
+- **Copy buttons:** on every `<pre>` block, every path `<code>` block, and every artifact path. Fade in on hover. Inline "Copied!" feedback.
+- **`:target` highlighting:** when a section is linked via hash, flash a subtle box-shadow animation (`0 0 0 10px rgba(accent, 0)`) so direct links feel responsive.
+- **Transitions:** subtle hover/focus transitions on buttons, TOC entries, accordion headers (`140ms ease`).
+- **Output card treatment:** distinct surface for artifact cards and proof metadata — darker inset, accent-tinted border.
+
+This structure gives readers immediate orientation (what this is, what it does, what it produces) before diving into the diagram and step details.
 
 ### Step 7: Browser Verify Artifact
 
@@ -366,15 +402,30 @@ If any ambiguity remains, record it explicitly rather than silently guessing.
 
 ```text
 .page-shell
-  ├── header
-  ├── button#tocToggle
-  ├── aside#toc.toc
+  ├── nav.toc
+  │     ├── .toc-header
+  │     │     ├── h2 "Contents"
+  │     │     └── .toc-controls
+  │     │           ├── button#themeToggle.toc-btn
+  │     │           └── button#tocToggle.toc-btn
+  │     └── .toc-body
+  │           └── ul > li > a (TOC links)
   └── main.main-content
-        ├── section#overview
-        ├── section#diagram
-        ├── section#workflow-step-*
-        └── section#proof
+        ├── section#overview (Hero)
+        ├── section#facts (Quick Facts)
+        ├── #searchWrap + #noResults
+        ├── section#diagram (Mermaid)
+        ├── .proof-summary (Verification Summary)
+        ├── section#steps (Workflow Steps accordions)
+        ├── section#route-outs
+        ├── section#terminals
+        ├── section#artifacts (Artifact cards)
+        └── section#proof (Proof metadata)
 ```
+
+**Theme toggle placement:** The theme toggle button lives inside the TOC sidebar's header controls (`.toc-controls`), not as a fixed-position element. This avoids fixed-position overlap issues and groups related controls in one place.
+
+**Sidebar close behavior:** When the TOC is hidden, `.main-content` expands to fill the full available width via `max-width: calc(100vw - 4rem)` rather than simply shifting left. The `.page-shell` uses flexbox to achieve this without position:fixed tricks.
 
 ### Mermaid CDN (ESM only)
 
@@ -463,12 +514,21 @@ function initTocToggle() {
 ```css
 :root { --toc-width: 18rem; }
 
+.page-shell { display: flex; min-height: 100vh; }
+
 .toc { width: var(--toc-width); }
-.main-content { transition: margin-left 180ms ease, width 180ms ease; }
+.main-content {
+  flex: 1;
+  transition: max-width 180ms ease, margin-left 180ms ease;
+  max-width: calc(100vw - var(--toc-width) - 4rem);
+  margin-left: var(--toc-width);
+}
+body.toc-hidden .main-content {
+  margin-left: 0;
+  max-width: calc(100vw - 4rem);  /* expands to fill space on close */
+}
 
 @media (min-width: 961px) {
-  body:not(.toc-hidden) .main-content { margin-left: var(--toc-width); }
-  body.toc-hidden .main-content { margin-left: 0; }
   .toc.collapsed,
   body.toc-hidden .toc {
     transform: translateX(-100%);
@@ -486,6 +546,12 @@ function initTocToggle() {
 
   .toc.collapsed,
   body.toc-hidden .toc {
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .main-content { margin-left: 0; max-width: calc(100vw - 4rem); }
+}
     transform: translateX(-100%);
     opacity: 0;
     pointer-events: none;

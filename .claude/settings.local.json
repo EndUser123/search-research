@@ -268,7 +268,10 @@
       "WebFetch(domain:ppl-ai-file-upload.s3.amazonaws.com)",
       "mcp__serpapi-mcp__search",
       "WebFetch(domain:www.getbifrost.ai)",
-      "WebFetch(domain:docs.getbifrost.ai)"
+      "WebFetch(domain:docs.getbifrost.ai)",
+      "Bash(mkdir -p \"C:/Users/brsth/.claude/plugins/cache/local/plugin-installer/1.0.0/skills/plugin-installer\")",
+      "Bash(mv \"C:/Users/brsth/.claude/plugins/cache/local/plugin-installer/1.0.0/skills/plugin-installer.md\" \"C:/Users/brsth/.claude/plugins/cache/local/plugin-installer/1.0.0/skills/plugin-installer/SKILL.md\")",
+      "Bash(grep -E \"^id$|^snapshot$\")"
     ],
     "deny": [],
     "ask": []

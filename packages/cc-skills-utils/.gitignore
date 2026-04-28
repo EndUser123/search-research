@@ -11,3 +11,4 @@ build/
 .claude/
 .evidence/
 .state/
+.git

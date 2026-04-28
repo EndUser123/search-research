@@ -131,9 +131,24 @@ def audit_plugins(plugins_dir: Path, marketplace_root: str) -> list[dict]:
                             result["errors"].append(f"{bad}/ inside skills/{skill_item.name}/ (should be at plugin root)")
         # Check for build artifacts in plugin root
         build_artifacts = ["__pycache__", ".venv", "venv", "node_modules", ".pytest_cache", ".git"]
+        gitignore_path = plugin / ".gitignore"
+        gitignored = set()
+        if gitignore_path.exists():
+            with open(gitignore_path, encoding="utf-8") as f:
+                gitignored = {line.strip() for line in f if line.strip() and not line.startswith("#")}
         for artifact in build_artifacts:
-            if (plugin / artifact).exists():
-                result["warnings"].append(f"Build artifact '{artifact}' in plugin root (should be gitignored)")
+            artifact_path = plugin / artifact
+            if not artifact_path.exists():
+                continue
+            # .git is always a directory in a repo; check if it's actually gitignored
+            if artifact == ".git":
+                if ".git" in gitignored:
+                    continue
+            else:
+                # For other artifacts, only warn if not gitignored
+                if artifact in gitignored or artifact + "/" in gitignored:
+                    continue
+            result["warnings"].append(f"Build artifact '{artifact}' in plugin root (should be gitignored)")
         # Check for state/data files in plugin root (state should be in P:/\.claude/.artifacts/<terminal_id>/)
         for fpath in plugin.iterdir():
             if fpath.is_file() and any(fpath.suffix == ext for ext in [".data.json", ".meta.json", ".state.json"]):
@@ -314,6 +329,38 @@ def auto_fix_skill_state_dirs(plugins_dir: Path) -> list[dict]:
                         result["actions"].append(f"Failed to delete {bad}/ inside skills/{skill_item.name}/: {e}")
         results.append(result)
     return results
+def auto_fix_git_artifacts(plugins_dir: Path) -> list[dict]:
+    """Add build artifacts to .gitignore files when they exist in plugin root without being gitignored."""
+    results = []
+    if not plugins_dir.exists():
+        return results
+    # .git always exists in repos; .pytest_cache is the only other artifact we auto-fix
+    auto_fix_artifacts = [".pytest_cache"]
+    for plugin in sorted(plugins_dir.iterdir()):
+        if plugin.name.startswith("."):
+            continue
+        result = {"plugin": plugin.name, "actions": [], "fixed": False}
+        gitignore_path = plugin / ".gitignore"
+        gitignore_entries = set()
+        if gitignore_path.exists():
+            with open(gitignore_path, encoding="utf-8") as f:
+                gitignore_entries = {line.strip() for line in f if line.strip() and not line.startswith("#")}
+        for artifact in auto_fix_artifacts:
+            artifact_path = plugin / artifact
+            if not artifact_path.exists():
+                continue
+            if artifact in gitignore_entries or artifact + "/" in gitignore_entries:
+                continue
+            try:
+                with open(gitignore_path, "a", encoding="utf-8") as f:
+                    f.write(f"\n{artifact}\n")
+                result["actions"].append(f"Added {artifact} to .gitignore")
+                result["fixed"] = True
+            except OSError as e:
+                result["actions"].append(f"Failed to update .gitignore: {e}")
+        results.append(result)
+    return results
+
 def main(argv: list[str]) -> int:
     import argparse
     parser = argparse.ArgumentParser(description="Audit and fix Claude Code plugins")
@@ -398,6 +445,13 @@ def main(argv: list[str]) -> int:
         if skill_fix_count > 0:
             print(f"{C_GREEN}Deleted {skill_fix_count} stale skill-state dir(s).{C_RESET}")
             for r in skill_state_results:
+                for action in r["actions"]:
+                    print(f"  [{r['plugin']}] {action}")
+        git_results = auto_fix_git_artifacts(plugins_dir)
+        git_fix_count = sum(len(r["actions"]) for r in git_results)
+        if git_fix_count > 0:
+            print(f"{C_GREEN}Added .git to {git_fix_count} .gitignore file(s).{C_RESET}")
+            for r in git_results:
                 for action in r["actions"]:
                     print(f"  [{r['plugin']}] {action}")
         print(f"\n{C_CYAN}=== Next Steps ==={C_RESET}")
