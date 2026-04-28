@@ -34,6 +34,39 @@ _TRANSCRIPT_SCAN_LINES = 200
 _WINDOWS_SHORT_PATH_PREFIX = "cts\\"
 
 
+# ── Identity cache (authoritative, written by SessionStart hook) ─────────────────
+
+
+def _read_identity_json() -> dict | None:
+    """Read authoritative session identity from SessionStart hook's cache.
+
+    Uses WT_SESSION env var to find identity.json under:
+    P:/.claude/.artifacts/console_{WT_SESSION}/identity.json
+
+    This is the primary source for session_id and transcript_path.
+    It is written fresh at session start and is immune to compaction chain rewrites.
+
+    Returns None if not available (SessionStart hook may not have fired).
+    """
+    wt = os.environ.get("WT_SESSION")
+    if not wt:
+        return None
+    identity_path = Path("P:/.claude/.artifacts") / f"console_{wt}" / "identity.json"
+    if not identity_path.exists():
+        return None
+    try:
+        data = json.loads(identity_path.read_text(encoding="utf-8"))
+        return {
+            "terminal_id": data.get("terminal", {}).get("id", ""),
+            "session_id": data.get("claude", {}).get("session_id"),
+            "transcript_path": data.get("claude", {}).get("transcript_path"),
+            "cwd": data.get("claude", {}).get("cwd"),
+            "captured_at": data.get("captured_at"),
+        }
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        return None
+
+
 # ── Terminal / project resolution ─────────────────────────────────────────────
 
 
@@ -451,16 +484,26 @@ def discover_evidence(
 
     Returns an EvidenceSources container — never raises.
     """
-    from dataclasses import dataclass, field
-
     if project_root is None:
         project_root = get_project_root()
     if not terminal_id:
         terminal_id = resolve_terminal_key(None)
-    if not session_id:
-        session_id = _get_current_session_id(project_root) or ""
 
     result = EvidenceSources()
+
+    # Strategy -1: identity.json (authoritative, written fresh at session start)
+    identity = _read_identity_json()
+    if identity:
+        sid = identity.get("session_id")
+        tp = identity.get("transcript_path")
+        if sid:
+            session_id = sid
+        if tp:
+            result.current_transcript = tp
+            result.paths_scanned.append(tp)
+
+    if not session_id:
+        session_id = _get_current_session_id(project_root) or ""
 
     # Strategy 0: registry (primary when sessions-index is stale)
     if terminal_id:

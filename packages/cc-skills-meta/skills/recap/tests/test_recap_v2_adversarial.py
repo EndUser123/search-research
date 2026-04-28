@@ -437,6 +437,46 @@ def multi_session_state(tmp_path: Path) -> RecapV2State:
     state = build_claims(state)
     state = build_resume_packet(state)
 
+    # Add a GAP claim so markdown tests can verify GAP label rendering
+    # (all sessions have modified files, so no GAP would otherwise be emitted)
+    from recap_v2 import Claim, ClaimType, ClaimStatus, ClaimEvidence
+    state.claims.append(
+        Claim(
+            claim_id="clm-gap-1",
+            statement="Verification gap: session B's type-check approach was discussed but not confirmed in transcript",
+            type=ClaimType.GAP,
+            confidence=0.7,
+            status=ClaimStatus.UNVERIFIED,
+            scope="session",
+            session_ids=["s1b"],
+            evidence=[
+                ClaimEvidence(
+                    kind="transcript_content",
+                    detail="User mentioned switching approach but no explicit confirmation",
+                    anchors=["transcript"],
+                )
+            ],
+            verification_hint="Verify type-check approach was actually implemented in session B",
+        )
+    )
+
+    # Add a verification queue item so the Verification Queue section renders
+    from recap_v2 import VerificationItem
+    state.verification_queue.append(
+        VerificationItem(
+            verification_id="vq-1",
+            priority="HIGH",
+            target_type="workflow",
+            target="s1b approach verification",
+            claim_id="clm-gap-1",
+            why="Type-check approach was discussed but transcript confirmation is ambiguous",
+            suggested_action="Run tests from session B to confirm behavior",
+            success_signal="All tests pass with type-check validation",
+            failure_signal="Tests fail or wrong validation behavior",
+            anchors=["s1b transcript"],
+        )
+    )
+
     return state
 
 
@@ -614,7 +654,9 @@ class TestResumePacketCorrectness:
         rp = multi_session_state.resume_packet
         latest_files = multi_session_state.sessions[-1].modified_files
         assert len(rp.active_files) > 0
-        assert any(Path(f).name in latest_files for f in rp.active_files), (
+        # Compare by filename (stem) since paths may use different separators
+        latest_names = {Path(f).name for f in latest_files}
+        assert any(Path(f).name in latest_names for f in rp.active_files), (
             f"active_files should include files from s1c. "
             f"active_files: {rp.active_files}, s1c modified: {latest_files}"
         )
@@ -833,7 +875,8 @@ class TestWorkstreamClustering:
 
     def test_foo_py_sessions_clustered(self, multi_session_state: RecapV2State):
         """Sessions A, B, C all touch foo.py — must be in the same workstream."""
-        foo_sessions = {s.session_id for s in multi_session_state.sessions if "foo.py" in s.modified_files}
+        foo_sessions = {s.session_id for s in multi_session_state.sessions
+                        if any("foo.py" in f for f in s.modified_files)}
         assert len(foo_sessions) == 3, f"Expected A, B, C to touch foo.py, got: {foo_sessions}"
 
         # Find workstream containing those sessions
@@ -881,7 +924,7 @@ class TestMarkdownViews:
     ):
         """Brief markdown must show current goal and exact next action."""
         from recap_v2 import render_markdown_brief
-        md = render_markdown(multi_session_state, brief=True)
+        md = render_markdown_brief(multi_session_state)
         assert md
         assert len(md) < 2000, "Brief markdown should be condensed"
         # Must contain goal and action

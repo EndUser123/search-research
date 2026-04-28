@@ -264,7 +264,11 @@
       "Bash(cmd /c \"mklink /J \\\\\"P:\\\\\\\\.claude\\\\\\\\skills\\\\\\\\go\\\\\" \\\\\"P:\\\\\\\\packages\\\\\\\\cc-skills-sdlc\\\\\\\\skills\\\\\\\\go\\\\\"\")",
       "mcp__aid__get_capabilities",
       "Bash(rm -rf \"C:/Users/brsth/.claude/plugins/marketplaces/local/plugins/snapshot\")",
-      "Bash(cmd //c \"mklink /J \\\\\"C:\\\\\\\\Users\\\\\\\\brsth\\\\\\\\.claude\\\\\\\\plugins\\\\\\\\marketplaces\\\\\\\\local\\\\\\\\plugins\\\\\\\\snapshot\\\\\" \\\\\"P:\\\\\\\\packages\\\\\\\\snapshot\\\\\"\")"
+      "Bash(cmd //c \"mklink /J \\\\\"C:\\\\\\\\Users\\\\\\\\brsth\\\\\\\\.claude\\\\\\\\plugins\\\\\\\\marketplaces\\\\\\\\local\\\\\\\\plugins\\\\\\\\snapshot\\\\\" \\\\\"P:\\\\\\\\packages\\\\\\\\snapshot\\\\\"\")",
+      "WebFetch(domain:ppl-ai-file-upload.s3.amazonaws.com)",
+      "mcp__serpapi-mcp__search",
+      "WebFetch(domain:www.getbifrost.ai)",
+      "WebFetch(domain:docs.getbifrost.ai)"
     ],
     "deny": [],
     "ask": []

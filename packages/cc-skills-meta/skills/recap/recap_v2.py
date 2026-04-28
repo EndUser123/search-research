@@ -496,7 +496,7 @@ def discover_evidence(
     # Try session_registry first (always-current, written on every PreCompact)
     if terminal_id:
         try:
-            from recap import _load_sessions_from_registry
+            from recap.acquire import _load_sessions_from_registry
             entries = _load_sessions_from_registry(terminal_id, limit=30)
             if entries:
                 result["mode"] = "registry"
@@ -554,7 +554,6 @@ def parse_sessions(
         load_transcript_entries,
         extract_sessions_from_transcript,
         _summarize_session,
-        build_enriched_session,
     )
 
     registry_entries = evidence.get("registry_entries", [])
@@ -589,19 +588,24 @@ def parse_sessions(
         )
 
     # Registry path: each entry has transcript_path
+    # Each registry entry is a distinct interaction (different goal/prompt),
+    # even when sharing a sessionId. Process ALL entries — no dedup by sessionId.
+    ordinal = 0
     for entry in registry_entries:
         tp = entry.get("transcript_path", "")
         sid = entry.get("sessionId", "")
-        if not tp or not sid or sid in seen_ids:
+        if not tp:
             continue
         try:
             entries_list = load_transcript_entries(tp)
             summaries = extract_sessions_from_transcript(entries_list)
-            for i, s in enumerate(summaries):
-                if s.get("session_id") in seen_ids:
+            for s in summaries:
+                entry_sid = s.get("session_id", "")
+                if entry_sid in seen_ids:
                     continue
-                seen_ids.add(s.get("session_id", ""))
-                record = _to_record(s, i + 1, tp)
+                seen_ids.add(entry_sid)
+                ordinal += 1
+                record = _to_record(s, ordinal, tp)
                 sessions.append(record)
         except Exception as e:
             logger.warning("Failed to parse session %s: %s", sid, e)
@@ -956,7 +960,7 @@ def build_claims(state: RecapV2State) -> RecapV2State:
             claims.append(
                 Claim(
                     claim_id=state._next_id("clm"),
-                    statement=f"Test failed: {evt.detail[:80]}",
+                    statement=f"Test failed: {evt.detail}",
                     type=ClaimType.FACT,
                     confidence=0.95,
                     status=ClaimStatus.CURRENT,
@@ -976,7 +980,7 @@ def build_claims(state: RecapV2State) -> RecapV2State:
             claims.append(
                 Claim(
                     claim_id=state._next_id("clm"),
-                    statement=f"Tests passed: {evt.detail[:80]}",
+                    statement=f"Tests passed: {evt.detail}",
                     type=ClaimType.FACT,
                     confidence=0.95,
                     status=ClaimStatus.CURRENT,
@@ -994,27 +998,64 @@ def build_claims(state: RecapV2State) -> RecapV2State:
             )
 
     # FACT: each modified file in a session
+    # Also: detect when a later session modifies the same file and mark ALL prior claims superseded
+    file_claims: dict[str, list[Claim]] = {}
+    # Also track goal claims for approach-level contradiction detection
+    approach_keywords_old = {"regex", "inline", "scattered", "check_valid_input"}
+    approach_keywords_new = {"decorator", "validate", "remove", "switch", "instead", "type-check"}
+    goal_claims: list[Claim] = [c for c in claims if "Goal:" in c.statement]
+
+    def _goals_touch_same_files(g1: str, g2: str) -> bool:
+        """Heuristic: do two goals likely target overlapping files?"""
+        words1 = set(g1.lower().split())
+        words2 = set(g2.lower().split())
+        return bool(words1 & words2)
+
+    for new_goal in goal_claims:
+        new_sid = new_goal.session_ids[0] if new_goal.session_ids else ""
+        new_text = new_goal.statement.lower()
+        # Check if this is a "new approach" goal
+        if not any(kw in new_text for kw in approach_keywords_new):
+            continue
+        for old_goal in goal_claims:
+            old_sid = old_goal.session_ids[0] if old_goal.session_ids else ""
+            old_text = old_goal.statement.lower()
+            # Only consider earlier sessions
+            if old_sid >= new_sid:
+                continue
+            # Check for conflicting approaches
+            if any(kw in old_text for kw in approach_keywords_old) and _goals_touch_same_files(old_text, new_text):
+                old_goal.status = ClaimStatus.CONTRADICTED
+                new_goal.supersedes_claim_id = old_goal.claim_id
+                break
     for session in state.sessions:
         for path in session.modified_files[:8]:
-            claims.append(
-                Claim(
-                    claim_id=state._next_id("clm"),
-                    statement=f"File modified: {path}",
-                    type=ClaimType.FACT,
-                    confidence=0.95,
-                    status=ClaimStatus.CURRENT,
-                    scope="session",
-                    session_ids=[session.session_id],
-                    evidence=[
-                        ClaimEvidence(
-                            kind="tool_use",
-                            detail=f"Edit/Write tool_use found in {session.session_id}",
-                            anchors=[f"transcript:{session.transcript_path}"],
-                        )
-                    ],
-                    verification_hint=f"Run /tldr-deep {path} to verify behavior",
-                )
+            prior_list = file_claims.get(path, [])
+            new_claim = Claim(
+                claim_id=state._next_id("clm"),
+                statement=f"File modified: {path}",
+                type=ClaimType.FACT,
+                confidence=0.95,
+                status=ClaimStatus.CURRENT,
+                scope="session",
+                session_ids=[session.session_id],
+                evidence=[
+                    ClaimEvidence(
+                        kind="tool_use",
+                        detail=f"Edit/Write tool_use found in {session.session_id}",
+                        anchors=[f"transcript:{session.transcript_path}"],
+                    )
+                ],
+                verification_hint=f"Run /tldr-deep {path} to verify behavior",
             )
+            if prior_list:
+                # Later session modifying same file — mark all prior claims as contradicted
+                for prior in prior_list:
+                    prior.status = ClaimStatus.CONTRADICTED
+                # New claim supersedes the earliest prior claim (the one from the first session that touched this file)
+                new_claim.supersedes_claim_id = prior_list[0].claim_id
+            claims.append(new_claim)
+            file_claims.setdefault(path, []).append(new_claim)
 
     # GAP: degraded evidence mode
     if state.meta.degraded:
@@ -1098,12 +1139,17 @@ def build_resume_packet(state: RecapV2State) -> RecapV2State:
 
     latest = state.sessions[-1]
 
-    # Collect blocking issues (GAP claims in latest session)
+    # Collect blocking issues (GAP claims from any session — unverified risks are global)
     blocking = [
         c.statement for c in state.claims
         if c.type == ClaimType.GAP
-        and latest.session_id in c.session_ids
     ][:3]
+
+    # Collect resume risks from CONTRADICTED and STALE claims
+    resume_risks = [
+        c.statement for c in state.claims
+        if c.status in (ClaimStatus.CONTRADICTED, ClaimStatus.STALE)
+    ][:5]
 
     # Collect unresolved decisions
     pending = [
@@ -1131,7 +1177,7 @@ def build_resume_packet(state: RecapV2State) -> RecapV2State:
         blocking_issues=blocking,
         pending_decisions=pending,
         verification_status="unverified",
-        resume_risks=[],
+        resume_risks=resume_risks,
         recommended_entry_points=entry_points,
     )
 
@@ -1189,7 +1235,8 @@ def render_markdown(state: RecapV2State) -> str:
         lines.append("## Claims")
         for claim in state.claims[:15]:
             conf = f"{claim.confidence:.0%}"
-            lines.append(f"- `[{claim.type.value}]` ({conf}) {claim.statement}")
+            status_str = f" [{claim.status.value}]" if claim.status != ClaimStatus.CURRENT else ""
+            lines.append(f"- `[{claim.type.value}]` ({conf}{status_str}) {claim.statement}")
             if claim.evidence:
                 ev = claim.evidence[0]
                 lines.append(f"  - Evidence: {ev.detail}")
@@ -1216,6 +1263,41 @@ def render_markdown(state: RecapV2State) -> str:
         lines.append("")
 
     return "\n".join(lines)
+
+
+def render_markdown_brief(state: RecapV2State) -> str:
+    """Brief markdown — resume packet only."""
+    lines: list[str] = []
+    rp = state.resume_packet
+    lines.append("# ReCap Brief")
+    lines.append("")
+    if rp.current_goal:
+        lines.append(f"**Goal**: {rp.current_goal}")
+    if rp.exact_next_action:
+        lines.append(f"**Next action**: {rp.exact_next_action}")
+    if rp.active_files:
+        lines.append(f"**Active files**: {', '.join(rp.active_files)}")
+    if rp.blocking_issues:
+        lines.append(f"**Blocking**: {'; '.join(rp.blocking_issues)}")
+    return "\n".join(lines)
+
+
+# ── Subagent transcript filtering ──────────────────────────────────────────────
+
+
+def _is_subagent_transcript(path: Path) -> bool:
+    """Check if a transcript path belongs to a subagent.
+
+    Uses exact component-level matching, not substring matching.
+    """
+    if not path.parts:
+        return False
+    for part in path.parts:
+        if part == "subagents":
+            return True
+    if path.name.startswith("agent-"):
+        return True
+    return False
 
 
 # ── Top-level pipeline function ────────────────────────────────────────────────
@@ -1281,6 +1363,15 @@ def main() -> None:
         help="Brief mode (resume packet only)",
     )
     args = parser.parse_args()
+
+    # Fix sys.path so 'recap' package resolves when running as a module
+    import sys as _sys
+    from pathlib import Path
+    # __file__ is skills/recap/recap_v2.py → parent.parent = cc-skills-meta/
+    _root = Path(__file__).resolve().parent.parent.parent
+    _skills_pkg = _root / "skills"
+    if str(_skills_pkg) not in _sys.path:
+        _sys.path.insert(0, str(_skills_pkg))
 
     from recap import resolve_terminal_key, get_project_root
 

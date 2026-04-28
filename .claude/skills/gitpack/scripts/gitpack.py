@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Build a two-file gitpack output for a Python codebase: signatures + full source.
+Build a two-file gitpack output for a codebase: signatures + full source.
 
-No external AI tools required — uses AST parsing and direct file reads.
+No external AI tools required — uses AST parsing (Python) and direct file reads.
 
 Workflow:
   python gitpack.py <target_dir> [--exclude <patterns>]
@@ -11,8 +11,9 @@ Produces two files in .aid/<name>/:
   - <name>_sig.md  — SIGNATURE TOC + DIRECTORY/FILE INDEX (compact, scannable)
   - <name>_full.md — same + APPENDIX with full source read from disk
 
-Target dir is processed directly: .py files discovered via glob, signatures
-extracted via AST, appendix read directly from source. Deterministic output.
+Target dir is processed directly: files discovered via glob, signatures
+extracted via AST (Python) or regex (other languages), appendix read
+directly from source. Deterministic output.
 """
 
 import ast
@@ -24,7 +25,7 @@ from pathlib import Path
 
 
 # ---------------------------------------------------------------------------
-# Signature extraction
+# Signature extraction — Python
 # ---------------------------------------------------------------------------
 
 def extract_py_signatures(filepath: str) -> list[str]:
@@ -37,7 +38,6 @@ def extract_py_signatures(filepath: str) -> list[str]:
     try:
         tree = ast.parse(source, filename=filepath)
     except SyntaxError:
-        # Fall back to line-based extraction for files with syntax errors
         return _fallback_signature_extraction(source)
 
     lines_by_node: dict[int, str] = {}
@@ -75,13 +75,11 @@ def _format_func(name: str, args: ast.arguments, source: str, lineno: int) -> st
         else:
             arg_parts.append(arg.arg)
 
-    # Handle *args and **kwargs
     if args.vararg:
         arg_parts.append(f"*{args.vararg.arg}")
     if args.kwarg:
         arg_parts.append(f"**{args.kwarg.arg}")
 
-    # Get return annotation from the function def line if present
     return_annotation = _get_function_return_annotation(source, lineno)
 
     sig = f"{name}({', '.join(arg_parts)})"
@@ -92,11 +90,9 @@ def _format_func(name: str, args: ast.arguments, source: str, lineno: int) -> st
 
 def _get_annotation_str(ann: ast.expr, source: str) -> str:
     """Get the string representation of an annotation from the source."""
-    # For simple names, we can just use the name
     if isinstance(ann, ast.Name):
         return ann.id
     elif isinstance(ann, ast.Attribute):
-        # Walk the attribute chain
         parts = []
         node = ann
         while isinstance(node, ast.Attribute):
@@ -106,7 +102,6 @@ def _get_annotation_str(ann: ast.expr, source: str) -> str:
             parts.append(node.id)
         return ".".join(reversed(parts))
     elif isinstance(ann, ast.Subscript):
-        # Generic types like List[int], Dict[str, Any]
         base = _get_annotation_str(ann.value, source)
         if ann.slice:
             slice_str = _get_annotation_str(ann.slice, source)
@@ -115,7 +110,6 @@ def _get_annotation_str(ann: ast.expr, source: str) -> str:
     elif isinstance(ann, ast.Constant):
         return repr(ann.value)
     elif isinstance(ann, ast.BinOp):
-        # Union types: X | Y
         left = _get_annotation_str(ann.left, source)
         right = _get_annotation_str(ann.right, source)
         return f"{left} | {right}"
@@ -128,7 +122,6 @@ def _get_function_return_annotation(source: str, lineno: int) -> str:
     if lineno < 1 or lineno > len(lines):
         return ""
     line = lines[lineno - 1].strip()
-    # Look for "-> Type" at the end before the colon
     m = re.search(r"->\s*([\w\[\]\|\s.,]+)\s*:\s*$", line)
     if m:
         return m.group(1).strip()
@@ -141,17 +134,139 @@ def _fallback_signature_extraction(source: str) -> list[str]:
     for line in source.splitlines():
         stripped = line.strip()
         if stripped.startswith("def ") or stripped.startswith("async def ") or stripped.startswith("class "):
-            # Stop at first line that looks like implementation (no colon at end or has body)
             if not stripped.startswith("class "):
                 m = re.match(r"(async\s+)?def\s+(\w+)\(.*\)(?:\s*->\s*[^\s:]+)?\s*:", stripped)
                 if m:
-                    prefix = "async " if stripped.startswith("async def ") else ""
                     sigs.append(stripped.rstrip(":"))
             else:
                 m = re.match(r"class\s+(\w+).*", stripped)
                 if m:
                     sigs.append(stripped.rstrip(":"))
     return sigs
+
+
+# ---------------------------------------------------------------------------
+# Signature extraction — generic (non-Python)
+# ---------------------------------------------------------------------------
+
+def _remove_fenced_blocks(source: str) -> str:
+    """Strip triple-backtick fenced code blocks from source before pattern matching."""
+    return re.sub(r"```[^\n]*\n[\s\S]*?```", "", source)
+
+
+def _get_lang_schema(lang: str) -> str:
+    """Return the appropriate regex pattern for a given language."""
+    # (?m) must not appear inline — MULTILINE flag is passed at compile time
+    schemas = {
+        "markdown": (
+            r"^#{1,6}\s+(.+)$|"  # headings
+            r"^---+\s*$|"           # frontmatter separator
+            r"^```\s*$|"            # code fence start
+            r"^trigger[s]?:\s*(.+)$|"  # triggers
+            r"^\w[\w-]*:\s+(?!\s*$)"
+        ),
+        "javascript": (
+            r"^(export\s+(default\s+)?(const|let|var|function|async\s+function|class))|"
+            r"^(const|let|var)\s+(\w+)\s*=|"
+            r"^function\s+(\w+)|"
+            r"^async\s+function\s+(\w+)|"
+            r"^class\s+(\w+)|"
+            r"^export\s+\{[^}]+\}|"
+            r"^import\s+.*from\s+['\"]"
+        ),
+        "typescript": (
+            r"^(export\s+(default\s+)?(const|let|var|function|async\s+function|class|interface|type))|"
+            r"^(const|let|var)\s+(\w+)\s*:|"
+            r"^function\s+(\w+)|"
+            r"^async\s+function\s+(\w+)|"
+            r"^class\s+(\w+)|"
+            r"^interface\s+(\w+)|"
+            r"^type\s+(\w+)|"
+            r"^export\s+\{[^}]+\}|"
+            r"^import\s+.*from\s+['\"]"
+        ),
+        "html": (
+            r"^<!--[\s\S]*?-->|"      # comments
+            r"^<script[\s>]|"
+            r"^<style[\s>]|"
+            r"^<([a-z]+)[\s>]"
+        ),
+        "css": (
+            r"^@[a-z-]+|"             # at-rules
+            r"^[.#]?[a-z][\w-]*\s*\{|"
+            r"^[a-z][\w-]*\s*:[^;]+;"
+        ),
+        "sql": (
+            r"^(CREATE|ALTER|DROP|SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|JOIN)\s+|"
+            r"^(TABLE|VIEW|INDEX|PROCEDURE|FUNCTION|TRIGGER)\s+(\w+)|"
+            r"^--"
+        ),
+        "yaml": (
+            r"^[\w-]+:\s*(?!\s*$)"
+        ),
+        "json": (
+            r"^\s*\"[^\"]+\"\s*:"
+        ),
+        "default": (
+            r"^(def|class|function|const|let|var|public\s+static|private\s+static)\s+\w+|"
+            r"^(export|import)\s+"
+        ),
+    }
+    return schemas.get(lang.lower(), schemas["default"])
+
+
+def extract_generic_signatures(filepath: str, lang: str = "default") -> list[str]:
+    """Extract top-level signatures from a non-Python file via regex."""
+    try:
+        source = Path(filepath).read_text(encoding="utf-8")
+    except Exception:
+        return []
+
+    if lang.lower() == "markdown":
+        source = _remove_fenced_blocks(source)
+
+    pattern = _get_lang_schema(lang)
+    sigs: list[str] = []
+    seen: set[str] = set()
+
+    compiled = re.compile(pattern, re.MULTILINE)
+    for match in compiled.finditer(source):
+        line = source[:match.start()].count("\n") + 1
+        line_text = source.splitlines()[line - 1].strip() if line <= len(source.splitlines()) else ""
+        if line_text and line_text not in seen and len(sigs) < 100:
+            seen.add(line_text)
+            sigs.append(line_text)
+
+    return sigs
+
+
+def extract_signatures(filepath: str) -> list[str]:
+    """Dispatch to the correct signature extractor based on file extension."""
+    ext = Path(filepath).suffix.lower()
+    lang_map = {
+        ".py": "python",
+        ".pyw": "python",
+        ".js": "javascript",
+        ".mjs": "javascript",
+        ".cjs": "javascript",
+        ".jsx": "typescript",
+        ".ts": "typescript",
+        ".tsx": "typescript",
+        ".html": "html",
+        ".htm": "html",
+        ".css": "css",
+        ".scss": "css",
+        ".sql": "sql",
+        ".md": "markdown",
+        ".markdown": "markdown",
+        ".yaml": "yaml",
+        ".yml": "yaml",
+        ".json": "json",
+    }
+    lang = lang_map.get(ext, "default")
+    if lang == "python":
+        return extract_py_signatures(filepath)
+    return extract_generic_signatures(filepath, lang)
 
 
 # ---------------------------------------------------------------------------
@@ -169,9 +284,13 @@ DEFAULT_EXCLUDES = [
     "node_modules",
 ]
 
+EXTENSIONS = ["*.py", "*.pyw", "*.js", "*.mjs", "*.cjs", "*.jsx", "*.ts", "*.tsx",
+              "*.html", "*.htm", "*.css", "*.scss", "*.sql", "*.md", "*.markdown",
+              "*.yaml", "*.yml", "*.json"]
 
-def discover_python_files(target_dir: Path, exclude_patterns: str = "") -> list[str]:
-    """Find all .py files in target_dir, excluding patterns."""
+
+def discover_files(target_dir: Path, exclude_patterns: str = "") -> list[str]:
+    """Find all supported files in target_dir, excluding patterns."""
     patterns = DEFAULT_EXCLUDES + [p.strip() for p in exclude_patterns.split(",") if p.strip()]
 
     def is_excluded(path: Path) -> bool:
@@ -182,13 +301,18 @@ def discover_python_files(target_dir: Path, exclude_patterns: str = "") -> list[
         return False
 
     files: list[str] = []
-    for pattern in ["**/*.py", "**/*.pyw"]:
+    for pattern in EXTENSIONS:
         for p in target_dir.glob(pattern):
             if is_excluded(p) or p.name.startswith("."):
                 continue
-            # Only include files, not directories
             if p.is_file():
-                files.append(str(p.resolve()))
+                resolved = p.resolve()
+                # Skip files that resolve outside target_dir (symlinks to other trees)
+                try:
+                    resolved.relative_to(target_dir.resolve())
+                except ValueError:
+                    continue
+                files.append(str(resolved))
 
     return sorted(files)
 
@@ -197,12 +321,27 @@ def discover_python_files(target_dir: Path, exclude_patterns: str = "") -> list[
 # Markdown building
 # ---------------------------------------------------------------------------
 
+LANG_LABEL = {
+    ".py": "python", ".pyw": "python",
+    ".js": "javascript", ".mjs": "javascript", ".cjs": "javascript",
+    ".jsx": "typescript", ".ts": "typescript", ".tsx": "typescript",
+    ".html": "html", ".htm": "html",
+    ".css": "css", ".scss": "css",
+    ".sql": "sql",
+    ".md": "markdown", ".markdown": "markdown",
+    ".yaml": "yaml", ".yml": "yaml",
+    ".json": "json",
+}
+
+
 def build_signatures_section(filepaths: list[str]) -> list[str]:
     lines = ["## SIGNATURE TOC", ""]
     for fp in filepaths:
-        sigs = extract_py_signatures(fp)
+        sigs = extract_signatures(fp)
+        ext = Path(fp).suffix.lower()
+        lang = LANG_LABEL.get(ext, "text")
         lines.append(f"### {fp}")
-        lines.append("```python")
+        lines.append(f"```{lang}")
         if sigs:
             lines.extend(sigs)
         else:
@@ -283,23 +422,27 @@ def build_tree(filepaths: list[str], target_dir: Path) -> list[str]:
 
 
 def build_file_index(files: list[str]) -> list[str]:
-    lines = ["", "## FILE INDEX", "", "| File | Description |", "|------|-------------|"]
+    lines = ["", "## FILE INDEX", "", "| File | Language | Description |", "|------|-------------|"]
     for filepath in sorted(files):
         name = Path(filepath).stem
         parts = filepath.replace("\\", "/").split("/")
+        ext = Path(filepath).suffix.lower()
+        lang = LANG_LABEL.get(ext, "text")
         if name in ("__init__", "index", "main"):
             desc = f"Package: {parts[-2]}" if len(parts) > 1 else filepath
         else:
             desc = name.replace("_", " ").replace("-", " ")
-        lines.append(f"| `{filepath}` | {desc} |")
+        lines.append(f"| `{filepath}` | {lang} | {desc} |")
     return lines
 
 
 def build_appendix(filepaths: list[str]) -> list[str]:
     lines = ["", "---", "", "## APPENDIX: FULL IMPLEMENTATIONS", ""]
     for fp in sorted(filepaths):
+        ext = Path(fp).suffix.lower()
+        lang = LANG_LABEL.get(ext, "text")
         lines.append(f"### {fp}")
-        lines.append("```python")
+        lines.append(f"```{lang}")
         try:
             lines.append(Path(fp).read_text(encoding="utf-8"))
         except Exception as ex:
@@ -421,25 +564,25 @@ def main() -> None:
     out_dir = target / ".aid" / name
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    py_files = discover_python_files(target, exclude)
-    if not py_files:
-        print("ERROR: No .py files found", file=sys.stderr)
+    files = discover_files(target, exclude)
+    if not files:
+        print("ERROR: No supported files found", file=sys.stderr)
         sys.exit(1)
 
     sig_path = out_dir / f"{name}_sig.md"
     full_path = out_dir / f"{name}_full.md"
 
-    sig_content = build_sig_pack(py_files, name, target)
+    sig_content = build_sig_pack(files, name, target)
     sig_content = append_markdown_files(sig_content, target)
     sig_path.write_text(sig_content, encoding="utf-8")
 
-    full_content = build_full_pack(py_files, name)
+    full_content = build_full_pack(files, name)
     full_content = append_markdown_files(full_content, target)
     full_path.write_text(full_content, encoding="utf-8")
 
     print(f"Signatures: {sig_path} — {len(sig_content):,} chars")
     print(f"Full:       {full_path} — {len(full_content):,} chars")
-    print(f"Files: {len(py_files)} Python files")
+    print(f"Files: {len(files)} files")
 
 
 if __name__ == "__main__":

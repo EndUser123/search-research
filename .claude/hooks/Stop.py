@@ -530,7 +530,8 @@ def _run_anti_sycophancy_quality(data: dict) -> dict | None:
             "true",
             "yes",
         ):
-            overconfidence = detect_all_overconfidence(response)
+            tool_events = data.get("tool_events", [])
+            overconfidence = detect_all_overconfidence(response, tool_events=tool_events)
             if overconfidence:
                 block_matches = [m for m in overconfidence if m.severity == "block"]
                 if block_matches:
@@ -1557,6 +1558,7 @@ IN_PROCESS_GATES = [
 
 # Non-Blocking Side Effects (still subprocess for isolation)
 SIDE_EFFECTS = [
+    "auto_commit_hook.py",
     "Stop_cks_decision_capture.py",
 ]
 
@@ -1568,12 +1570,14 @@ def run_side_effect(hook_name: str, input_data: str) -> None:
         if not hook_path.exists():
             return
 
+        # Auto-commit needs more time for multi-repo git operations
+        timeout = 30.0 if "auto_commit" in hook_name else 5.0
         creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
         result = subprocess.run(
             [sys.executable, str(hook_path)],
             input=input_data.encode(),
             capture_output=True,
-            timeout=5.0,
+            timeout=timeout,
             creationflags=creation_flags,
         )
         if result.returncode != 0:

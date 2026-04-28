@@ -36,6 +36,12 @@ DESTRUCTIVE_GIT_OPS: dict[str, DangerOp] = {
         description="Delete untracked files",
         category="destructive",
     ),
+    "checkout": DangerOp(
+        danger_subcommands=("--",),
+        severity="HIGH",
+        description="Overwrite working tree files with staged content",
+        category="destructive",
+    ),
     "stash": DangerOp(
         danger_subcommands=("drop", "clear"),
         severity="HIGH",
