@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "2838a722-a448-4e10-bd59-ee7279bfbfa1",
+    "terminal_id": "console_893ffc51-cf5f-433f-ae4c-f4015630f37c",
+    "source_session_id": "5454f382-10ea-4471-b9d1-3973a579086a",
+    "created_at": "2026-05-02T23:25:57.589906+00:00",
+    "expires_at": "2026-05-02T23:45:57.589906+00:00",
+    "status": "consumed",
+    "goal": "\"C:\\Users\\brsth\\Downloads\\exported-assets (8)\\target_llm_audit_prompt.txt\"",
+    "current_task": "\"C:\\Users\\brsth\\Downloads\\exported-assets (8)\\target_llm_audit_prompt.txt\"",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "P:/.claude/settings.json",
+      "P:/.claude/hooks/__lib/hook_importer.py",
+      "P:/.claude/hooks/SessionStart/registry.py",
+      "P:/.claude/hooks/SessionStart.py",
+      "P:/.claude/hooks/UserPromptSubmit.py",
+      "P:/.claude/hooks/SessionStart_breadcrumb_init.py",
+      "P:/.claude/hooks/PROTOCOL.md",
+      "C:\\Users\\brsth\\AppData\\Local\\Temp\\claude\\P--\\5454f382-10ea-4471-b9d1-3973a579086a\\tasks\\biof9drik.output",
+      "P:/.claude/hooks/log_hook.py",
+      "C:\\Users\\brsth\\AppData\\Local\\Temp\\claude\\P--\\5454f382-10ea-4471-b9d1-3973a579086a\\tasks\\bajawjt4b.output"
+    ],
+    "pending_operations": [
+      {
+        "type": "read",
+        "target": "P:\\.claude\\settings.json",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:\\.claude\\hooks\\epistemic_validator.py",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:\\.claude\\hooks\\Stop.py",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "files: *epistemic*",
+        "state": "in_progress"
+      },
+      {
+        "type": "investigation",
+        "target": "search: EPISTEMIC",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "(advisory) Previous session had pending: read on P:\\.claude\\settings.json.",
+    "decision_refs": [],
+    "evidence_refs": [
+      "ev_53596ae3c6bc461a9294ae6d77c55ca4",
+      "ev_fb1444f29a27442cb2e7f04ac7654e90",
+      "ev_c56eb7d6838d4e81a484498b95bb2f15",
+      "ev_31563a27fb8f41848e7f89b4b4c13e42",
+      "ev_0298451defc745148fd9069c86d81106",
+      "ev_3fd6f0c403e7487da3e639318b27d9b2"
+    ],
+    "n_1_transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\5454f382-10ea-4471-b9d1-3973a579086a.jsonl",
+    "n_2_transcript_path": null,
+    "message_intent": "instruction",
+    "goal_origin": "user_message",
+    "quality_score": 0.4,
+    "tasks_snapshot": [],
+    "session_chain": [
+      "5454f382-10ea-4471-b9d1-3973a579086a"
+    ],
+    "last_user_message": "\"C:\\Users\\brsth\\Downloads\\exported-assets (8)\\target_llm_audit_prompt.txt\"",
+    "consumed_at": "2026-05-02T23:27:14.000962+00:00",
+    "consumed_by_session_id": "5454f382-10ea-4471-b9d1-3973a579086a"
+  },
+  "decision_register": [],
+  "evidence_index": [
+    {
+      "id": "ev_53596ae3c6bc461a9294ae6d77c55ca4",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\5454f382-10ea-4471-b9d1-3973a579086a.jsonl",
+      "content_hash": "sha256:2f8ac7c6fd8d38d31decf46f2939d5f53c96da4a8daf1b3c3ca414ef8c51d26e"
+    },
+    {
+      "id": "ev_fb1444f29a27442cb2e7f04ac7654e90",
+      "type": "file",
+      "label": "settings.json",
+      "path": "P:\\.claude\\settings.json",
+      "content_hash": "sha256:91cfe81b201c64dbc846f3145a1f296237c0e61df624877ed9c774b293f0c9d5"
+    },
+    {
+      "id": "ev_c56eb7d6838d4e81a484498b95bb2f15",
+      "type": "file",
+      "label": "hook_importer.py",
+      "path": "P:\\.claude\\hooks\\__lib\\hook_importer.py",
+      "content_hash": "sha256:10cf19220a99cc9e88d49f56958bc168271748ee9b0ffdb869a4f9aaf1edbb40"
+    },
+    {
+      "id": "ev_31563a27fb8f41848e7f89b4b4c13e42",
+      "type": "file",
+      "label": "registry.py",
+      "path": "P:\\.claude\\hooks\\SessionStart\\registry.py",
+      "content_hash": "sha256:af89f641f534690574b49c43025190d46971f2621248987037f590ab804582a6"
+    },
+    {
+      "id": "ev_0298451defc745148fd9069c86d81106",
+      "type": "file",
+      "label": "SessionStart.py",
+      "path": "P:\\.claude\\hooks\\SessionStart.py",
+      "content_hash": "sha256:84375ffd71127400826e8272001d5ab4926c9502981a7264a73c1b63107a01e5"
+    },
+    {
+      "id": "ev_3fd6f0c403e7487da3e639318b27d9b2",
+      "type": "file",
+      "label": "UserPromptSubmit.py",
+      "path": "P:\\.claude\\hooks\\UserPromptSubmit.py",
+      "content_hash": "sha256:0ac764465d18c32740521f27a036c3552d19c2cc6c3af9595efafecc20a014f4"
+    }
+  ],
+  "checksum": "sha256:da9a2652b554eec05074fc5905d29941c10d25306687cadb867f96fe6cbde047",
+  "environment_context": {
+    "git_state": {
+      "branch": "main",
+      "has_uncommitted_changes": true,
+      "last_commit": {
+        "hash": "71d55b1b",
+        "message": "chore(hooks): update hooks,tests",
+        "timestamp": "2026-05-02 16:57:05 -0600"
+      }
+    }
+  }
+}
