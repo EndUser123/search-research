@@ -41,7 +41,7 @@ _SLASH_SKILL_RE = re.compile(r"/([a-z][a-z0-9-]{1,40})\b", re.IGNORECASE)
 
 # Non-skill entries that appear inside .claude/skills/ — skip these
 _NON_SKILL_PREFIXES = ("_", ".")
-_NON_SKILL_NAMES = frozenset({"__lib", "__pycache__", "README", "SKILL_TEMPLATE", "SKILL_SCHEMA"})
+_NON_SKILL_NAMES = frozenset({"__lib", "__pycache__", "README", "SKILL_TEMPLATE"})
 
 
 def _is_enabled() -> bool:

@@ -85,8 +85,8 @@ DELETION_CLAIM_PATTERNS = re.compile(
     r"|\b(?:successfully\s+)?(?:deleted|removed|cleaned\s+up)\s+\S+"
     # All/both completed: "all/both files deleted/removed"
     r"|\b(?:all|both)\s+(?:files?|directories?|folders?)\s+(?:deleted|removed)\b"
-    # BUT NOT: "will be deleted" or "should be deleted" (handled by allowlist)
-    r"(?!\s+(?:will|shall|should|can|must|going to))",
+    # Drop verb (databases: DROP TABLE; shells: drop as alias for delete)
+    r"|\bdropped?\s+\S+",
     re.IGNORECASE,
 )
 
@@ -157,7 +157,14 @@ OBVIOUS_ALLOWLIST = re.compile(
     r"|\bremoved?\s+.*(?:from\s+[\w-]+|in\s+[\w-]+|config|file|section|document)\b"
     # Code-refactoring contexts — "removed unused/dead/obsolete code" (not file deletion)
     # Requires explicit code-related term to avoid false positives
-    r"|\bremoved?\s+(?:the\s+)?(?:unused|dead|obsolete|deprecated|redundant)\s+(?:code|branch|logic|function|import|statement|class|method)\b",
+    r"|\bremoved?\s+(?:the\s+)?(?:unused|dead|obsolete|deprecated|redundant)\s+(?:code|branch|logic|function|import|statement|class|method)\b"
+    # Regex/code token contexts — "removed bare from the regex", "dropped the token"
+    # These describe in-code removals, not filesystem operations
+    r"|\bremoved?\s+bare\b"
+    r"|\bremoved?\s+.*(?:regex|token|pattern|qualifier)\b"
+    r"|\bdropped?\s+(?:the\s+)?(?:COMPARATIVEWORDSRE|token|pattern|entry|flag|qualifier)\b"
+    r"|\bremoved?\s+.*(?:from\s+(?:the\s+)?(?:regex|pattern|constraint|schema|section))\b"
+    r"|\bremoved?\s+.*(?:\bdocstring|comment|section|Phase|CHANGE|D\d+)\b",
     re.IGNORECASE,
 )
 

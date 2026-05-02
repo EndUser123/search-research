@@ -22,16 +22,18 @@ from UserPromptSubmit_modules.base import HookContext, HookResult
 
 # Trigger phrases from documentation
 TRIGGER_PHRASES = [
-    # Explicit requests
+    # Explicit CKS requests
     "check cks", "cks context", "search cks", "query cks",
     # Prior context signals
     "prior context", "previous conversation", "past discussion",
     "we discussed", "we talked about", "as we mentioned",
-    # Frustration/memory signals
-    "you forget", "been down this road", "we've done this before",
-    "you keep making", "same mistake", "already told you",
     # Historical reference
     "remember when", "last time", "earlier we", "before you",
+    # Cross-session context questions (the natural way to ask)
+    "what did we discuss", "what did we talk about", "what were we discussing",
+    "what did i ask about", "what were we working on",
+    "earlier today", "yesterday we", "last session",
+    "in a previous session", "before this session",
 ]
 
 

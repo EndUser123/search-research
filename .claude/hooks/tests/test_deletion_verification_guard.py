@@ -55,6 +55,10 @@ class TestPatternDetection:
             "Both directories removed",
             "Cleaned up the files",
             "Files are gone",
+            # Drop verb (database/shell deletion)
+            "Dropped test.py",
+            "dropped foo.py and bar.py",
+            "I dropped the database table",
         ]
         for case in positive_cases:
             assert DELETION_CLAIM_PATTERNS.search(case), f"Should detect: {case}"
@@ -146,6 +150,44 @@ class TestPatternDetection:
             else:
                 # Also OK if not matched at all
                 pass
+
+    def test_obvious_allowlist_regex_token_contexts(self):
+        """Test that regex/code token removal contexts are in allowlist."""
+        token_cases = [
+            "removed bare because from the regex pattern",
+            "dropped the COMPARATIVEWORDSRE entry",
+            "removed the token from the pattern",
+            "removed bare from the regex",
+            "dropped the qualifier from the constraint",
+            "removed the regex token",
+            "removed a line from this docstring",
+            "removed Phase 1 from the plan",
+            "removed D2 from the document",
+            "removed the comment section",
+            "removed CHANGE from the section",
+        ]
+        for case in token_cases:
+            assert OBVIOUS_ALLOWLIST.search(case), f"Should allowlist token removal: {case}"
+
+    def test_obvious_allowlist_regex_token_negative_cases(self):
+        """Test that actual file deletions are NOT caught by regex allowlist."""
+        # These should NOT be allowlisted (they're real file deletion claims)
+        negative_cases = [
+            "removed test.py",  # File path with extension
+            "removed config.json",  # File path with extension
+            "removed /usr/local/bin/script",  # Unix path
+            "removed P:\\project\\file.py",  # Windows path
+        ]
+        for case in negative_cases:
+            # If matched by allowlist, verify it's NOT by token patterns
+            result = OBVIOUS_ALLOWLIST.search(case)
+            if result:
+                # Should match content-change patterns, not token-specific ones
+                # "removed test.py" has no token/regex/bare keyword
+                assert not any(
+                    p in case.lower()
+                    for p in ("bare", "regex", "token", "pattern", "qualifier", "docstring", "phase", "change", "d2")
+                ), f"Should NOT match token allowlist: {case}"
 
     def test_url_exclusion_pattern(self):
         """Test that URLs are excluded from file path extraction."""

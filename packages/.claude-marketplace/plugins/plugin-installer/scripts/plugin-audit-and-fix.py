@@ -90,7 +90,7 @@ def audit_plugins(plugins_dir: Path, marketplace_root: str) -> list[dict]:
     if not plugins_dir.exists():
         return results
     for plugin in sorted(plugins_dir.iterdir()):
-        if plugin.name.startswith("."):
+        if plugin.name.startswith(".") or not plugin.is_dir():
             continue
         result = {"plugin": plugin.name, "errors": [], "warnings": [], "fixed": False}
         # Check plugin.json
@@ -112,14 +112,49 @@ def audit_plugins(plugins_dir: Path, marketplace_root: str) -> list[dict]:
             ok, data = _load_json(mp_json)
             if not ok:
                 result["errors"].append("Invalid marketplace.json")
-        # Check hooks.json
-        hooks_path = plugin / "hooks.json"
+        # Check hooks.json (at hooks/hooks.json)
+        hooks_path = plugin / "hooks" / "hooks.json"
         if hooks_path.exists():
             ok, data = _load_json(hooks_path)
             if not ok:
-                result["errors"].append("Invalid hooks.json")
+                result["errors"].append("Invalid hooks/hooks.json")
             elif not isinstance(data, dict):
-                result["errors"].append("hooks.json must be a dict")
+                result["errors"].append("hooks/hooks.json must be a dict")
+            elif "hooks" not in data:
+                result["errors"].append("hooks/hooks.json missing required 'hooks' key")
+            else:
+                # Validate hook entry structure: each event entry needs matcher + hooks array
+                for event, entries in data.get("hooks", {}).items():
+                    if not isinstance(entries, list):
+                        result["errors"].append(f"hooks.{event} must be a list")
+                        continue
+                    for i, entry in enumerate(entries):
+                        if not isinstance(entry, dict):
+                            result["errors"].append(f"hooks.{event}[{i}] must be a dict")
+                            continue
+                        if "matcher" not in entry:
+                            result["errors"].append(f"hooks.{event}[{i}] missing 'matcher' field")
+                        if "hooks" not in entry:
+                            result["errors"].append(f"hooks.{event}[{i}] missing 'hooks' array")
+                        elif not isinstance(entry["hooks"], list):
+                            result["errors"].append(f"hooks.{event}[{i}].hooks must be an array")
+                        else:
+                            for j, hook in enumerate(entry["hooks"]):
+                                if not isinstance(hook, dict):
+                                    result["errors"].append(f"hooks.{event}[{i}].hooks[{j}] must be a dict")
+                                elif "type" not in hook or "command" not in hook:
+                                    result["errors"].append(f"hooks.{event}[{i}].hooks[{j}] missing 'type' or 'command'")
+                                elif hook.get("type") == "command":
+                                    cmd = hook.get("command", "")
+                                    # Extract script path from command (handles "python script.py --args", "node script.js", etc.)
+                                    parts = cmd.split()
+                                    if parts:
+                                        script_path = Path(parts[-1])
+                                        # Resolve relative paths from plugin root
+                                        if not script_path.is_absolute():
+                                            script_path = plugin / script_path
+                                        if not script_path.exists():
+                                            result["errors"].append(f"Hook command file not found: {script_path}")
         # Check for .claude/.state inside skill subdirectories (not at plugin root)
         skills_dir = plugin / "skills"
         if skills_dir.is_dir():
@@ -203,6 +238,133 @@ def scan_source_paths(plugins_dir: Path) -> list[dict]:
                     findings.append({"plugin": plugin.name, "file": str(fpath.relative_to(plugin)), "issue": issue})
     return findings
 
+def audit_orphan_skill_junctions(plugins_dir: Path) -> list[dict]:
+    """Detect marketplace entries that are junctions to skills already inside a cluster package.
+
+    A cluster package is any plugin that has .claude-plugin/plugin.json AND a skills/ directory
+    with multiple skills. If a marketplace entry is a junction pointing to a subdirectory inside
+    another cluster package's skills/ dir, it's redundant — the cluster already provides it.
+    """
+    findings: list[dict] = []
+    if not plugins_dir.exists():
+        return findings
+
+    # Build map: cluster_name -> set of skill names it provides
+    cluster_skills: dict[str, set[str]] = {}
+    for plugin in plugins_dir.iterdir():
+        if plugin.name.startswith(".") or not plugin.is_dir():
+            continue
+        manifest = plugin / ".claude-plugin" / "plugin.json"
+        skills_dir = plugin / "skills"
+        if manifest.exists() and skills_dir.is_dir():
+            skill_names = set()
+            for skill in skills_dir.iterdir():
+                if skill.is_dir() and (skill / "SKILL.md").exists():
+                    skill_names.add(skill.name)
+            if len(skill_names) >= 2:  # Clusters have multiple skills
+                cluster_skills[plugin.name] = skill_names
+
+    # Check each plugin: is it a junction pointing into a cluster's skills/?
+    for plugin in plugins_dir.iterdir():
+        if plugin.name.startswith(".") or not plugin.is_dir():
+            continue
+        # Skip cluster packages themselves
+        if plugin.name in cluster_skills:
+            continue
+
+        # Resolve junction target
+        target = None
+        try:
+            target = os.readlink(str(plugin))
+        except OSError:
+            continue
+
+        if not target:
+            continue
+
+        # Normalize path separators
+        target_norm = target.replace("\\", "/").replace("/p/", "P:/")
+
+        # Check if target points into a cluster's skills/ subdirectory
+        for cluster_name, skill_names in cluster_skills.items():
+            # Pattern: P:/packages/{cluster}/skills/{skill_name}
+            prefix = f"P:/packages/{cluster_name}/skills/"
+            if target_norm.startswith(prefix):
+                skill_name = target_norm[len(prefix):]
+                if skill_name in skill_names:
+                    findings.append({
+                        "type": "orphan_skill_junction",
+                        "marketplace_entry": plugin.name,
+                        "target": target_norm,
+                        "cluster": cluster_name,
+                        "skill": skill_name,
+                        "issue": f"'{plugin.name}' is a junction to a skill already provided by cluster '{cluster_name}'",
+                    })
+                    break
+
+    return findings
+
+
+def audit_source_cache_drift(plugins_dir: Path) -> list[dict]:
+    """Detect drift between source packages and their cache copies.
+
+    Source is truth. Cache lives at ~/.claude/plugins/cache/local/{name}/{version}/.
+    If cache files differ from source, the cache is stale.
+    """
+    findings: list[dict] = []
+    if not plugins_dir.exists():
+        return findings
+
+    cache_root = Path(os.path.expanduser("~/.claude/plugins/cache/local"))
+
+    for plugin in plugins_dir.iterdir():
+        if plugin.name.startswith(".") or not plugin.is_dir():
+            continue
+
+        source_dir = Path(f"P:/packages/{plugin.name}")
+        if not source_dir.exists():
+            continue
+
+        cache_dir = cache_root / plugin.name
+        if not cache_dir.exists():
+            continue
+
+        # Find versioned directory in cache
+        version_dirs = [d for d in cache_dir.iterdir() if d.is_dir()]
+        if not version_dirs:
+            continue
+
+        version_dir = version_dirs[0]  # Use first version found
+
+        # Sample key files for drift check (don't diff everything — too slow)
+        drift_files: list[str] = []
+        key_patterns = ["**/*.py", "**/*.json", "**/SKILL.md"]
+        for pattern in key_patterns:
+            for src_file in source_dir.glob(pattern):
+                if ".git" in src_file.parts or "__pycache__" in src_file.parts:
+                    continue
+                rel = src_file.relative_to(source_dir)
+                cache_file = version_dir / rel
+                if cache_file.exists():
+                    try:
+                        if src_file.read_text(encoding="utf-8", errors="ignore") != cache_file.read_text(encoding="utf-8", errors="ignore"):
+                            drift_files.append(str(rel))
+                    except OSError:
+                        pass
+
+        if drift_files:
+            findings.append({
+                "type": "source_cache_drift",
+                "plugin": plugin.name,
+                "cache_version": version_dir.name,
+                "drift_count": len(drift_files),
+                "sample_files": drift_files[:5],
+                "issue": f"'{plugin.name}' cache ({version_dir.name}) has {len(drift_files)} file(s) diverged from source",
+            })
+
+    return findings
+
+
 def audit_name_conflicts() -> list[dict]:
     """Check for conflicting skill and command names across global and local skill/command dirs."""
     findings = []
@@ -263,7 +425,7 @@ def auto_fix_plugins(plugins_dir: Path, delete_hooks: bool) -> list[dict]:
     if not plugins_dir.exists():
         return results
     for plugin in sorted(plugins_dir.iterdir()):
-        if plugin.name.startswith("."):
+        if plugin.name.startswith(".") or not plugin.is_dir():
             continue
         result = {"plugin": plugin.name, "actions": [], "fixed": False}
         # Fix broken symlinks
@@ -284,21 +446,23 @@ def auto_fix_plugins(plugins_dir: Path, delete_hooks: bool) -> list[dict]:
                     if _save_json(manifest_path, fixed_data):
                         result["actions"].append("Auto-fixed invalid plugin.json")
                         result["fixed"] = True
-            # Fix invalid hooks.json
-            hooks_path = plugin / "hooks.json"
-            ok, _ = _load_json(hooks_path)
-            if not hooks_path.exists():
-                if _save_json(hooks_path, {}):
-                    result["actions"].append("Created missing hooks.json")
+            # Fix invalid hooks/hooks.json (only when hooks dir exists)
+            hooks_dir = plugin / "hooks"
+            if hooks_dir.is_dir():
+                hooks_path = hooks_dir / "hooks.json"
+                ok, data = _load_json(hooks_path)
+                if not hooks_path.exists():
+                    if _save_json(hooks_path, {}):
+                        result["actions"].append("Created missing hooks/hooks.json")
+                        result["fixed"] = True
+                elif not ok:
+                    if _save_json(hooks_path, {}):
+                        result["actions"].append("Auto-fixed invalid hooks/hooks.json")
+                        result["fixed"] = True
+                elif delete_hooks:
+                    hooks_path.unlink()
+                    result["actions"].append("Deleted hooks/hooks.json")
                     result["fixed"] = True
-            elif not ok:
-                if _save_json(hooks_path, {}):
-                    result["actions"].append("Auto-fixed invalid hooks.json")
-                    result["fixed"] = True
-            elif delete_hooks and hooks_path.exists():
-                hooks_path.unlink()
-                result["actions"].append("Deleted hooks.json")
-                result["fixed"] = True
         results.append(result)
     return results
 def auto_fix_skill_state_dirs(plugins_dir: Path) -> list[dict]:
@@ -361,6 +525,70 @@ def auto_fix_git_artifacts(plugins_dir: Path) -> list[dict]:
         results.append(result)
     return results
 
+def bump_version(plugins_dir: Path, marketplace_root: str, plugin_name: str) -> dict:
+    """Bump patch version for a plugin in all three version locations."""
+    result = {"plugin": plugin_name, "actions": [], "old_version": None, "new_version": None, "errors": []}
+    plugin_dir = plugins_dir / plugin_name
+    if not plugin_dir.exists():
+        result["errors"].append(f"Plugin directory not found: {plugin_dir}")
+        return result
+
+    # 1. Read current version from plugin.json
+    manifest_path = plugin_dir / ".claude-plugin" / "plugin.json"
+    if not manifest_path.exists():
+        result["errors"].append("Missing .claude-plugin/plugin.json")
+        return result
+    ok, manifest = _load_json(manifest_path)
+    if not ok or "version" not in manifest:
+        result["errors"].append("Invalid or version-less plugin.json")
+        return result
+    old_ver = manifest["version"]
+    result["old_version"] = old_ver
+
+    # Bump patch version
+    parts = old_ver.split(".")
+    if len(parts) != 3:
+        result["errors"].append(f"Unexpected version format: {old_ver}")
+        return result
+    parts[2] = str(int(parts[2]) + 1)
+    new_ver = ".".join(parts)
+    result["new_version"] = new_ver
+
+    # 2. Update plugin.json
+    manifest["version"] = new_ver
+    if _save_json(manifest_path, manifest):
+        result["actions"].append(f"Updated .claude-plugin/plugin.json: {old_ver} → {new_ver}")
+    else:
+        result["errors"].append("Failed to save plugin.json")
+
+    # 3. Update both marketplace.json files
+    for mp_path in [
+        Path(marketplace_root) / "marketplace.json",
+        Path(marketplace_root) / ".claude-plugin" / "marketplace.json",
+    ]:
+        if not mp_path.exists():
+            continue
+        ok, mp_data = _load_json(mp_path)
+        if not ok or "plugins" not in mp_data:
+            result["errors"].append(f"Invalid marketplace.json at {mp_path}")
+            continue
+        found = False
+        for entry in mp_data["plugins"]:
+            if entry.get("name") == plugin_name:
+                entry["version"] = new_ver
+                found = True
+                break
+        if not found:
+            result["errors"].append(f"Plugin '{plugin_name}' not found in {mp_path}")
+            continue
+        if _save_json(mp_path, mp_data):
+            result["actions"].append(f"Updated {mp_path.name}: {old_ver} → {new_ver}")
+        else:
+            result["errors"].append(f"Failed to save {mp_path}")
+
+    return result
+
+
 def main(argv: list[str]) -> int:
     import argparse
     parser = argparse.ArgumentParser(description="Audit and fix Claude Code plugins")
@@ -370,6 +598,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--scan-paths", action="store_true", help="Scan for hardcoded paths")
     parser.add_argument("--scan-name-conflicts", action="store_true", help="Scan for conflicting skill/command names across global and local dirs")
     parser.add_argument("--validate", action="store_true", help="Run 'claude plugin validate' on each plugin")
+    parser.add_argument("--bump", metavar="PLUGIN_NAME", help="Bump patch version for a plugin in all version files")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     args = parser.parse_args(argv[1:])
     resolved_root = args.marketplace_root or os.environ.get("CLAUDE_MARKETPLACE_ROOT")
@@ -400,6 +629,18 @@ def main(argv: list[str]) -> int:
                 print(f"  [{c['type']}] {c['name']}: {c['issue']}")
         else:
             print(f"{C_GREEN}No name conflicts found.{C_RESET}")
+        return 0
+    if args.bump:
+        bump_result = bump_version(plugins_dir, mp_root, args.bump)
+        if bump_result["errors"]:
+            for e in bump_result["errors"]:
+                print(f"  {C_RED}ERROR: {e}{C_RESET}")
+            return 1
+        for a in bump_result["actions"]:
+            print(f"  {C_GREEN}{a}{C_RESET}")
+        print(f"\n{C_CYAN}=== Next Steps ==={C_RESET}")
+        print(f"  1. /plugin marketplace update local")
+        print(f"  2. /reload-plugins")
         return 0
     if args.validate:
         print("Validating plugins...")
@@ -433,6 +674,29 @@ def main(argv: list[str]) -> int:
             for w in r["warnings"]: print(f"  [WARNING] {r['plugin']}: {w}")
     else:
         print(f"{C_GREEN}All plugins OK.{C_RESET}")
+
+    # Check for orphan skill junctions (skills duplicated outside their cluster)
+    print("\nChecking for orphan skill junctions...")
+    orphan_findings = audit_orphan_skill_junctions(plugins_dir)
+    if orphan_findings:
+        print(f"{C_YELLOW}Found {len(orphan_findings)} orphan skill junction(s):{C_RESET}")
+        for f in orphan_findings:
+            print(f"  {f['marketplace_entry']} -> {f['cluster']}/skills/{f['skill']}")
+    else:
+        print(f"{C_GREEN}No orphan skill junctions.{C_RESET}")
+
+    # Check for source/cache drift
+    print("\nChecking source vs cache drift...")
+    drift_findings = audit_source_cache_drift(plugins_dir)
+    if drift_findings:
+        print(f"{C_YELLOW}Found {len(drift_findings)} plugin(s) with cache drift:{C_RESET}")
+        for f in drift_findings:
+            sample = ", ".join(f["sample_files"][:3])
+            extra = f" (+{f['drift_count'] - 3} more)" if f["drift_count"] > 3 else ""
+            print(f"  {f['plugin']} ({f['cache_version']}): {f['drift_count']} file(s) drifted — {sample}{extra}")
+    else:
+        print(f"{C_GREEN}Cache is in sync with source.{C_RESET}")
+
     if args.auto_fix:
         fix_results = auto_fix_plugins(plugins_dir, args.delete_hooks)
         fix_count = sum(len(r["actions"]) for r in fix_results)
@@ -454,10 +718,45 @@ def main(argv: list[str]) -> int:
             for r in git_results:
                 for action in r["actions"]:
                     print(f"  [{r['plugin']}] {action}")
+
+        # Auto-fix: remove orphan skill junctions
+        if orphan_findings:
+            import shutil
+            print(f"\n{C_YELLOW}Removing {len(orphan_findings)} orphan skill junction(s)...{C_RESET}")
+            for f in orphan_findings:
+                junction_path = plugins_dir / f["marketplace_entry"]
+                try:
+                    if junction_path.is_dir():
+                        shutil.rmtree(str(junction_path))
+                    print(f"  {C_GREEN}Removed: {f['marketplace_entry']} (now via {f['cluster']}){C_RESET}")
+                except OSError as e:
+                    print(f"  {C_RED}Failed to remove {f['marketplace_entry']}: {e}{C_RESET}")
+
+        # Auto-fix: sync source to cache
+        if drift_findings:
+            import subprocess
+            print(f"\n{C_YELLOW}Syncing source -> cache for {len(drift_findings)} plugin(s)...{C_RESET}")
+            cache_root = Path(os.path.expanduser("~/.claude/plugins/cache/local"))
+            for f in drift_findings:
+                pkg = f["plugin"]
+                src = Path(f"P:/packages/{pkg}")
+                version_dir = cache_root / pkg / f["cache_version"]
+                if src.exists() and version_dir.exists():
+                    result = subprocess.run(
+                        ["robocopy", str(src), str(version_dir), "/MIR", "/XD", ".git", "__pycache__", ".pytest_cache", ".mypy_cache",
+                         "/NFL", "/NDL", "/NJH", "/NJS", "/NC", "/NS", "/NP"],
+                        capture_output=True, text=True,
+                    )
+                    # robocopy returns 0-7 for success, 8+ for errors
+                    if result.returncode < 8:
+                        print(f"  {C_GREEN}Synced: {pkg}{C_RESET}")
+                    else:
+                        print(f"  {C_RED}Failed: {pkg} (robocopy exit {result.returncode}){C_RESET}")
+
         print(f"\n{C_CYAN}=== Next Steps ==={C_RESET}")
-        print(f"  1. Run with --ScanForHardcodedPaths to detect hardcoded paths")
-        print(f"  2. Run with --ScanNameConflicts to detect conflicting skill/command names")
-        print(f"  3. Run with --Validate to validate all plugins")
+        print(f"  1. Run with --scan-paths to detect hardcoded paths")
+        print(f"  2. Run with --scan-name-conflicts to detect conflicting skill/command names")
+        print(f"  3. Run with --validate to validate all plugins")
         print(f"  4. Update marketplace: {C_CYAN}/plugin marketplace update local{C_RESET}")
     return error_count
 if __name__ == "__main__":

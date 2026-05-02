@@ -1,6 +1,6 @@
 """Re-export metrics components from core."""
 
-from .core.metrics import (
+from core.metrics import (
     ComponentMetric,
     ComponentName,
     MetricsLogger,

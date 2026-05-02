@@ -4,6 +4,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
+## Bulk Refactoring Rule
+
+**Core principle: Use atomic operations for directory restructuring.**
+
+When restructuring directories (move, rename, split packages), the sqa incident showed that separate delete + create risks losing files.
+
+### The Rule
+
+1. **Always use `git mv`** — never separate delete + create
+   - `git mv .claude/skills/foo packages/cc-skills-bar/skills/foo`
+   - This preserves git history and ensures files aren't lost
+2. **One logical operation per commit** — move first, then modify
+3. **Verify before committing** — `git status` should show renames (R), not delete+add
+
+### Anti-Patterns
+
+| Pattern | Why it fails | Fix |
+|---------|-------------|-----|
+| `rm -rf dir/` + `mkdir new/` + copy files | Files lost if process interrupted | `git mv dir/ new/` |
+| Delete in commit A, create in commit B | Files missing in commit A's tree | Single atomic commit |
+| Mass delete (`git rm *`) without verification | Lost files (sqa incident) | `git mv` + check |
+
+### Evidence
+
+The sqa incident (commit d1d4d2a): `SKILL.md` and `orchestrator.py` were deleted from `.claude/skills/sqa/` but never copied to `packages/cc-skills-sdlc/skills/sqa/`. Recovery required `git show d1d4d2a^:path > file`.
+
+---
+
 ## Hooks Directory Architecture
 
 This directory implements the **Cognitive Steering Framework (CSF)** - structural enforcement hooks that provide deterministic control over Claude Code behavior.

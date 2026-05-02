@@ -630,6 +630,7 @@ def unified_detection_hook(context: HookContext) -> HookResult:
 
     # Store in context data for subsequent hooks (side-effect)
     context.data["unified_detection_result"] = result
+    context.data["remaining_budget"] = 20000  # Hard cap * 4 chars/token
 
     # Detection itself has no text injection
     return HookResult.empty()

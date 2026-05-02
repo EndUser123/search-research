@@ -1,0 +1,1 @@
+/plugin-installer skill - SKILL.md at P:/packages/plugin-installer/skills/plugin-installer/SKILL.md

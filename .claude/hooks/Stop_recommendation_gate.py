@@ -76,6 +76,35 @@ DIRECTION_PATTERNS = [
 STATE_SUBDIR = "stop_recommendation_gate"
 STATE_TTL_SECONDS = 14 * 24 * 60 * 60  # 14 days
 
+# Patterns that signal the model just completed the task/discribed work done.
+# When the response contains one of these and has NO open question, clear the nag.
+# Handles both straight (') and curly (') apostrophes.
+_AP = r"['’]"  # apostrophe variant shorthand
+
+DISMISSAL_PATTERNS = [
+    rf"(?i)here{_AP}s?\s+(?:what\s+I|the\s+changes?)",
+    rf"(?i)i{_AP}ve?\s+(?:added|updated|fixed|done|completed)",
+    r"(?i)(?:task|update|changes?)\s+(?:complete|done)",
+    r"(?i)now\s+(?:back\s+to|fixed|complete)",
+    r"(?i)cleanup\s+done",
+    r"(?i)verification\s+complete",
+    r"(?i)tests?\s+(?:pass|ok)",
+    r"(?i)all\s+\d+\s+tests?\s+(?:pass|ok)",
+    rf"(?i)i\s+didn{_AP}t\s+stop",
+    r"(?i)answered\s+fully",
+    r"(?i)no[n']?\s+(?:stopped|paused)",
+    r"(?i)already\s+(?:done|complete|finished)",
+]
+
+# Patterns for open questions — if these appear, dismissal does NOT clear the nag.
+OPEN_QUESTION_PATTERNS = [
+    r"should\s+i",
+    r"what\s+(?:do\s+you|next)",
+    r"want\s+me\s+to",
+    r"prefer",
+    r"which\s+(?:would|should|do)",
+]
+
 NEW_BREACH_MESSAGE = (
     "[RECOMMENDATION GATE] You presented multiple options and delegated the decision "
     "without stating a recommendation.\n\n"
@@ -188,6 +217,18 @@ def _pending_active(state: dict) -> bool:
     return (int(time.time()) - updated_at) <= STATE_TTL_SECONDS
 
 
+def _check_dismissal(response: str) -> bool:
+    """True if response shows task completion and has no open question."""
+    if not response or len(response) < 10:
+        return False
+    response_lower = response.lower()
+    has_dismissal = any(re.search(p, response_lower) for p in DISMISSAL_PATTERNS)
+    if not has_dismissal:
+        return False
+    has_open_question = any(re.search(p, response_lower) for p in OPEN_QUESTION_PATTERNS)
+    return not has_open_question
+
+
 def _extract_latest_user_text(data: dict | None) -> str:
     payload = data or {}
     for key in ("user_prompt", "prompt", "message", "last_user_message"):
@@ -252,6 +293,10 @@ def check_recommendation(response: str, data: dict | None = None) -> dict | None
 
     latest_user_text = _extract_latest_user_text(data)
     if pending and _has_user_direction(latest_user_text):
+        _clear_pending_state(state_file)
+        pending = False
+
+    if pending and _check_dismissal(response):
         _clear_pending_state(state_file)
         pending = False
 

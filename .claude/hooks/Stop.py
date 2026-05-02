@@ -224,13 +224,205 @@ def _run_safety_gate(data: dict) -> dict | None:
         return None
 
 
+def _is_analytical_response(response: str) -> bool:
+    """Heuristic: only demand full epistemic schema for clearly analytical responses."""
+    lines = [l for l in response.strip().splitlines() if l.strip()]
+    if len(lines) <= 3:
+        return False
+    # Analytical markers signal structured reasoning
+    markers = (
+        "because", "due to", "is caused by", "the reason is",
+        "root cause", "evidence", "source:", "[fact]", "[inference]",
+        "verified", "unverified", "unproven", "falsification",
+    )
+    lower = response.lower()
+    return any(m in lower for m in markers)
+
+
+# Planning-style prompt detection for turn mode classification
+_PLANNING_PROMPT_RE = re.compile(
+    r"(?i)"
+    r"(?:what(?:'s| is) (?:the )?next|next steps?|what should we|"
+    r"prioritized? list|plan for|roadmap|action items|what to work on|"
+    r"what are the next|top \d+ (?:things|tasks|items|priorities)|"
+    r"give me \d+|what \d+ things|recommend \d+|list \d+)"
+)
+
+
+def _detect_turn_kind(data: dict) -> str:
+    """Classify user message as 'control' vs 'query/plan/report'.
+
+    Control turns (short imperative commands) should bypass quality gates
+    so that corrections, overrides, and direct instructions are not derailed
+    by format/lazy advisory messages.
+    """
+    user_prompt = data.get("user_prompt") or data.get("prompt") or ""
+    if not user_prompt:
+        return "control"  # Empty = continuation turn; suppress quality gates
+
+    stripped = user_prompt.strip()
+    if not stripped:
+        return "control"  # Whitespace-only = continuation turn
+
+    # Short imperative commands are control turns
+    # Heuristic: single sentence, starts with imperative verb, no question mark
+    words = stripped.split()
+    first_word = words[0].lower() if words else ""
+
+    # Control indicators: direct commands, corrections, overrides
+    control_starts = (
+        "stop", "don't", "do ", "don't ",  # "do X" is two words
+        "use ", "use/",
+        "instead", "actually", "wait",
+        "no,", "yes,", "yeah,",
+        "re-read", "re-read",
+        "skip", "bypass",
+        "override", "ignore",
+        "fix ", "check ",
+        "run ", "call ", "invoke ",
+        "add ", "remove ", "delete ", "create ",
+        "write ", "edit ", "read ",
+    )
+
+    # Check if first word signals control intent
+    if any(stripped.lower().startswith(s) for s in control_starts):
+        return "control"
+
+    # Also check for single-word control signals at start
+    if first_word in ("stop", "skip", "bypass", "override", "ignore", "actually", "wait"):
+        return "control"
+
+    # Planning-style prompts = plan (not control)
+    if _PLANNING_PROMPT_RE.search(stripped):
+        return "plan"
+
+    # Short responses to status queries = report
+    report_indicators = ("[status]", "[changes]", "[results]", "[next]", "status:")
+    if any(stripped.lower().startswith(ri) for ri in report_indicators):
+        return "report"
+
+    # Question marks = query (only after control patterns are evaluated)
+    if "?" in stripped:
+        return "query"
+
+    # Default: query
+    return "query"
+
+
+def _detect_turn_mode(data: dict) -> str:
+    """Classify turn as plan, report, or analysis mode.
+
+    Uses user prompt (intent) and response (markers) to determine mode.
+    Plan/report modes skip epistemic format repair and lazy_fix gates.
+    """
+    response = data.get("response", "")
+
+    # Report mode: check for explicit status markers
+    report_markers = ("[STATUS]", "[CHANGES]", "[RESULTS]", "[NEXT]")
+    if sum(1 for m in report_markers if m in response) >= 2:
+        return "report"
+
+    # Plan mode: check response markers first
+    if "[PLAN]" in response or "[RATIONALE]" in response:
+        return "plan"
+
+    # Plan mode: check user prompt for planning intent
+    user_prompt = data.get("user_prompt") or data.get("prompt") or ""
+    if user_prompt and _PLANNING_PROMPT_RE.search(user_prompt):
+        return "plan"
+
+    return "analysis"
+
+
+def _run_epistemic_contract(data: dict) -> dict | None:
+    """Unified epistemic validator — format, citations, causal, comparative."""
+    try:
+        from epistemic_validator import EpistemicConfig, validate
+
+        response = data.get("response", "")
+        if not response:
+            return None
+
+        mode = os.environ.get("EPISTEMIC_CONTRACT_MODE", "warn")
+
+        # CLI flag overrides: --epistemic-strict / --epistemic-warn in user prompt
+        user_prompt = (
+            data.get("user_prompt") or data.get("prompt") or ""
+        )
+        if "--epistemic-strict" in user_prompt:
+            mode = "block"
+        elif "--epistemic-warn" in user_prompt:
+            mode = "warn"
+
+        cfg = EpistemicConfig(mode=mode)
+        verdict = validate(response, cfg)
+
+        # Structured telemetry — one line per validation, all decisions.
+        _log_epistemic_telemetry(data, verdict, mode)
+
+        if verdict.decision == "block":
+            reason_parts = [f"EPISTEMIC VIOLATION ({len(verdict.issues)} issue(s)):"]
+            for issue in verdict.issues[:5]:
+                reason_parts.append(
+                    f"  [{issue.section}] {issue.type}: {issue.message}"
+                )
+            return {
+                "decision": "block",
+                "reason": "\n".join(reason_parts),
+                "blocking_hook": "Stop.py:epistemic_contract",
+            }
+        if verdict.decision == "warn" and verdict.issues:
+            turn_mode = _detect_turn_mode(data)
+            if turn_mode in ("plan", "report"):
+                return None  # Skip format enforcement for plan/report turns
+            # Auto-repair: if ALL issues are format-only, inject a single
+            # repair prompt instead of surfacing the raw advisory.
+            # Only demand full schema for clearly analytical responses.
+            all_format = all(i.type == "format" for i in verdict.issues)
+            if all_format and _is_analytical_response(response):
+                missing = [
+                    i.section for i in verdict.issues
+                    if i.type == "format" and i.section != "__GLOBAL__"
+                ]
+                sections_hint = ", ".join(sorted(set(missing))) if missing else "all"
+                repair = (
+                    "EPISTEMIC FORMAT REPAIR: Your response is missing required "
+                    "section headers. Reformat your previous answer into the "
+                    "required schema only. Do not add or remove substantive "
+                    "content. Do not include text outside the required section "
+                    f"headers. Missing: {sections_hint}."
+                )
+                return {
+                    "decision": "warn",
+                    "reason": repair,
+                    "systemMessage": repair,
+                }
+            # Mixed or non-format issues: surface advisory as before.
+            parts = [f"EPISTEMIC ADVISORY ({len(verdict.issues)} issue(s)):"]
+            for issue in verdict.issues[:3]:
+                parts.append(f"  [{issue.section}] {issue.type}: {issue.message}")
+            return {
+                "decision": "warn",
+                "reason": "\n".join(parts),
+                "systemMessage": "\n".join(parts),
+            }
+        return None
+    except Exception as e:
+        print(f"[Stop] epistemic_contract error: {e}", file=sys.stderr)
+        return None
+
+
 def _run_behavior_audit(data: dict) -> dict | None:
-    """Stop_behavior_audit.py logic - claim verification."""
+    """Claim verification — telemetry-only. Retired from blocking/warn duty.
+
+    The unified epistemic_validator (run via _run_epistemic_contract) now owns
+    structural, citation, causal, and comparative checks.  This gate still runs
+    evaluate_claims() for telemetry but returns None so it never blocks or
+    injects advisories.  Re-enable by returning a decision dict if needed.
+    """
     try:
         import os
-        import time
 
-        from Stop_behavior_audit import _marker_path
         from unified_claim_verifier import evaluate_claims
 
         response = data.get("response", "")
@@ -248,54 +440,64 @@ def _run_behavior_audit(data: dict) -> dict | None:
             ),
         )
 
-        if result["decision"] == "block":
-            # Write marker for UserPromptSubmit pushback protocol
-            scoped_marker = _marker_path(data)
-            scoped_marker.parent.mkdir(parents=True, exist_ok=True)
-            marker_data = {
-                "timestamp": time.time(),
-                "reason": result["reason"],
-                "missing_claims": result.get("missing_claims", []),
-                "session_id": (
-                    data.get("session_id")
-                    or data.get("sessionId")
-                    or os.environ.get("CLAUDE_SESSION_ID")
-                    or ""
-                ),
-                "terminal_id": (
-                    data.get("terminal_id")
-                    or data.get("terminalId")
-                    or os.environ.get("CLAUDE_TERMINAL_ID")
-                    or ""
-                ),
-            }
-            scoped_marker.write_text(json.dumps(marker_data), encoding="utf-8")
-
-            return {
-                "decision": "block",
-                "reason": (
-                    f"UNVERIFIED CLAIMS: {result['reason']}\n\n"
-                    f"Evidence missing for: {result.get('missing_claims', [])}"
-                ),
-                "blocking_hook": "Stop.py:behavior_audit",
-            }
-        # Handle warn decisions (Strategy B existence evidence unavailable)
-        if result.get("decision") == "warn" and result.get("systemMessage"):
-            return {"systemMessage": result["systemMessage"]}
+        # Log to diagnostics for future analysis, but never block/warn.
+        if result.get("decision") in ("block", "warn"):
+            _log_behavior_audit_telemetry(data, result)
 
         return None
     except Exception as e:
-        # Behavior audit fails CLOSED — if the verifier crashes, block.
-        # Rationale: silent fail-open is how lies slip through undetected.
-        return {
-            "decision": "block",
-            "reason": (
-                f"CLAIM_VERIFIER_CRASH: {type(e).__name__}: {e}\n\n"
-                "The claim verification system crashed. Blocking until fixed.\n"
-                "If this is a false alarm, fix unified_claim_verifier.py."
-            ),
-            "blocking_hook": "Stop.py:behavior_audit",
+        print(f"[Stop] behavior_audit telemetry error: {e}", file=sys.stderr)
+        return None
+
+
+def _log_behavior_audit_telemetry(data: dict, result: dict) -> None:
+    """Append behavior_audit findings to diagnostics JSONL."""
+    try:
+        log_path = HOOKS_DIR / "logs" / "diagnostics" / "behavior_audit_telemetry.jsonl"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        entry = {
+            "timestamp": time.time(),
+            "session_id": data.get("session_id", ""),
+            "terminal_id": data.get("terminal_id", ""),
+            "decision": result.get("decision"),
+            "reason": result.get("reason", "")[:500],
+            "missing_claims": result.get("missing_claims", [])[:10],
         }
+        with log_path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception:
+        pass
+
+
+def _log_epistemic_telemetry(data: dict, verdict, mode: str) -> None:
+    """Append one structured line per epistemic validation to JSONL."""
+    try:
+        from epistemic_validator import detect_response_mode
+
+        raw = data.get("response", "")
+        response_mode = detect_response_mode(raw)
+        log_path = HOOKS_DIR / "logs" / "diagnostics" / "epistemic_telemetry.jsonl"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        issue_types = sorted({i.type for i in verdict.issues})
+        entry = {
+            "timestamp": time.time(),
+            "gate": "epistemic_contract",
+            "decision": verdict.decision,
+            "issue_count": len(verdict.issues),
+            "issue_types": issue_types,
+            "has_format_issues": "format" in issue_types,
+            "has_unsupported_fact": "unsupported_fact" in issue_types,
+            "has_causal_issues": any(t.startswith("causal") for t in issue_types),
+            "has_comparative_issues": any(t.startswith("comparative") for t in issue_types),
+            "mode": mode,
+            "responseMode": response_mode,
+            "session_id": data.get("session_id", ""),
+            "terminal_id": data.get("terminal_id", ""),
+        }
+        with log_path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception:
+        pass
 
 
 def _run_cross_validator(data: dict) -> dict | None:
@@ -509,6 +711,22 @@ def _run_anti_sycophancy_quality(data: dict) -> dict | None:
         from anti_sycophancy.overconfidence_detector import detect_all_overconfidence
 
         response = data.get("response", "")
+
+        # PROBE: log lam length for truncation verification (remove after)
+        try:
+            import time as _t
+            _pp = HOOKS_DIR / "logs" / "lam_truncation_probe.jsonl"
+            with open(_pp, "a", encoding="utf-8") as _f:
+                _f.write(json.dumps({
+                    "ts": _t.time(),
+                    "lam_len": len(response),
+                    "lam_words": len(response.split()) if response else 0,
+                    "first_60": response[:60] if response else "",
+                    "last_60": response[-60:] if response else "",
+                }) + "\n")
+        except Exception:
+            pass
+
         if not response:
             return None
 
@@ -561,6 +779,23 @@ def _run_anti_sycophancy_quality(data: dict) -> dict | None:
 
         if os.environ.get("LAZY_CLOSURE_DETECTOR_ENABLED", "true").lower() in ("1", "true", "yes"):
             lazy = detect_all_lazy_closure(response)
+            # After a format-only repair, suppress lazy_fix to avoid
+            # infinite loop between format repair and lazy_closure flags.
+            if lazy:
+                _epistemic_verdict = None
+                try:
+                    from epistemic_validator import validate as _ev_validate
+                    _epistemic_verdict = _ev_validate(response)
+                except Exception:
+                    pass
+                if _epistemic_verdict and _epistemic_verdict.issues:
+                    all_format = all(i.type == "format" for i in _epistemic_verdict.issues)
+                    if all_format:
+                        lazy = [m for m in lazy if m.pattern_type != "lazy_fix"]
+                # Also suppress lazy_fix for plan/report turns
+                turn_mode = _detect_turn_mode(data)
+                if turn_mode in ("plan", "report"):
+                    lazy = [m for m in lazy if m.pattern_type != "lazy_fix"]
             if lazy:
                 block_matches = [m for m in lazy if m.severity == "block"]
                 if block_matches:
@@ -738,22 +973,10 @@ def _run_behavior_gates_blacklist(data: dict) -> dict | None:
 def _run_advisory(data: dict) -> dict | None:
     """Stop_advisory.py logic - non-blocking suggestions."""
     try:
-        from __lib.next_step_choice_state import (
-            clear_next_step_menu,
-            save_next_step_menu,
-        )
         from Stop_advisory import check_advisories
-        from Stop_next_step_suggester import (
-            _extract_last_command,
-            _should_append_next_steps,
-            build_alphanumeric_menu,
-            get_next_step_options,
-        )
 
         response = data.get("response", "")
         if not response:
-            # No response text => no menu possible. Clear any pending menu for this scope.
-            clear_next_step_menu(data)
             return None
 
         messages: list[str] = []
@@ -761,46 +984,6 @@ def _run_advisory(data: dict) -> dict | None:
         suggestions = check_advisories(response)
         if suggestions:
             messages.append("\n\n\U0001f4a1 **ADVISORY**: " + " | ".join(suggestions))
-
-        # Option C Enhanced: Collision detection before appending next steps
-        hook_options = get_next_step_options(data)
-        last_command = _extract_last_command(data)
-
-        # DIAGNOSTIC: Log why menus aren't being saved
-        try:
-            import os
-
-            if os.environ.get("NEXT_STEP_DEBUG", "false").lower() == "true":
-                log_dir = HOOKS_DIR / "state" / "logs"
-                log_dir.mkdir(parents=True, exist_ok=True)
-                log_file = log_dir / "next_step_debug.log"
-                timestamp = time.strftime("%Y-%m-%dT%H:%M:%S")
-                with open(log_file, "a", encoding="utf-8") as f:
-                    f.write(f"\n{timestamp} [NEXT_STEP_DEBUG]\n")
-                    f.write(f"  hook_options: {hook_options}\n")
-                    f.write(f"  last_command: {last_command}\n")
-                    f.write(
-                        f"  should_append: {_should_append_next_steps(response, last_command, hook_options)}\n"
-                    )
-                    f.write(f"  response_len: {len(response)}\n")
-        except Exception:
-            pass  # Don't break hook on logging error
-
-        if _should_append_next_steps(response, last_command, hook_options):
-            next_menu = build_alphanumeric_menu(hook_options)
-            if next_menu:
-                # Persist as one-turn state so the user can reply with A/B/... next.
-                save_next_step_menu(data, hook_options, response_text=response)
-
-                # Add menu + a minimal usage hint.
-                messages.append("\n\n" + next_menu)
-                messages.append('\n(Reply with the option number only, e.g. "0", to run it.)')
-            else:
-                # No menu this turn => ensure we don't accept stale letter selections.
-                clear_next_step_menu(data)
-        else:
-            # Template already has next steps or no hook options => clear any stale menu
-            clear_next_step_menu(data)
 
         if messages:
             return {"systemMessage": "".join(messages)}
@@ -1171,10 +1354,13 @@ def _is_execution_skill(skill_name: str) -> bool:
 
         return is_execution
 
+    except ModuleNotFoundError as e:
+        # skill-guard package not installed — log as non-blocking, fail open
+        print(f"[Stop] skill_guard import skipped (non-blocking): {e}", file=sys.stderr)
+        return False
     except Exception:
-        # Fail safe: treat as execution skill if we can't determine
-        # This is conservative - better to block than allow violation
-        return True
+        # Other errors — fail open to avoid cascading blocks
+        return False
 
 
 # Blocking gate sequence - evaluated in order, first block wins
@@ -1199,6 +1385,9 @@ def _run_existence_gate(data: dict) -> dict | None:
 def _run_lazy_workaround_gate(data: dict) -> dict | None:
     """Detect accept-bug-as-feature lazy workaround suggestions."""
     try:
+        turn_mode = _detect_turn_mode(data)
+        if turn_mode in ("plan", "report"):
+            return None
         import Stop_lazy_workaround_gate
 
         response = data.get("response", "")
@@ -1333,7 +1522,12 @@ def _run_verification_enforcement(data: dict) -> dict | None:
             return None
 
         # Import breadcrumb tracker
-        from skill_guard.breadcrumb.tracker import get_active_breadcrumb_trails
+        try:
+            from skill_guard.breadcrumb.tracker import get_active_breadcrumb_trails
+        except ModuleNotFoundError as e:
+            # skill-guard not installed — log as non-blocking, skip silently
+            print(f"[Stop] skill_guard import skipped (non-blocking): {e}", file=sys.stderr)
+            return None
 
         # Get all active breadcrumb trails for this terminal
         trails = get_active_breadcrumb_trails()
@@ -1517,6 +1711,46 @@ def _run_referent_coverage(data: dict) -> dict | None:
         return None
 
 
+# Gate classification: POLICY gates fire on all turns.
+# QUALITY gates are suppressed on control turns in normal mode,
+# allowing corrections and direct instructions to pass without
+# epistemic/lazy advisory derailment.
+GATE_CLASSES: dict[str, str] = {
+    # Policy gates — always fire
+    "safety_gate": "policy",
+    "frameguard_stop": "policy",
+    "skill_first_stop_gate": "policy",
+    "post_skill_prose_gate": "policy",
+    "verification_enforcement": "policy",
+    "cited_content_guard": "policy",
+    "cross_validator": "policy",
+    "unverified_stance": "policy",
+    "correction_acknowledgment": "policy",
+    "dependency_chain_guard": "policy",
+    "comparative_claim_guard": "policy",
+    "behavior_gates_agreement": "policy",
+    "behavior_gates_guidance": "policy",
+    "behavior_gates_blacklist": "policy",
+    "command_execution_validator": "policy",
+    "recommendation_gate": "policy",
+    "deletion_verification_guard": "policy",
+    "git_diff_reground": "policy",
+    "skill_dir_correlation": "policy",
+    "cks_correction_anchor": "policy",
+    "referent_coverage": "policy",
+    # Quality gates — suppressed on control turns in normal mode
+    "epistemic_contract": "quality",
+    "behavior_audit": "quality",
+    "narrative_intent": "quality",
+    "anti_sycophancy_quality": "quality",
+    "advisory": "quality",
+    "reflect_integration": "quality",
+    "reasoning_quality_gate": "quality",
+    "reasoning_enhanced": "quality",
+    "existence_gate": "quality",
+    "lazy_workaround_gate": "quality",
+}
+
 IN_PROCESS_GATES = [
     ("safety_gate", _run_safety_gate),
     (
@@ -1526,6 +1760,7 @@ IN_PROCESS_GATES = [
     ("skill_first_stop_gate", _run_skill_first_stop_gate),
     ("post_skill_prose_gate", _run_post_skill_prose_gate),
     ("verification_enforcement", _run_verification_enforcement),
+    ("epistemic_contract", _run_epistemic_contract),
     ("behavior_audit", _run_behavior_audit),
     ("cited_content_guard", _run_cited_content_guard),
     ("cross_validator", _run_cross_validator),
@@ -1758,9 +1993,19 @@ def main():
         print("{}")
         sys.exit(0)
 
+    # CC passes last_assistant_message, not response. Normalize so all
+    # downstream gates (anti-sycophancy, overconfidence, lazy closure, etc.)
+    # can read data["response"] as they expect.
+    if "response" not in data and "last_assistant_message" in data:
+        data["response"] = data["last_assistant_message"]
+
     _pin_scope_env(data)
 
+    turn_kind = _detect_turn_kind(data)
+    quality_mode = os.environ.get("STOP_QUALITY_MODE", "normal")
+
     system_messages: list[str] = []
+    quality_messages: list[str] = []
 
     # Process Blocking Gates (in-process, fast)
     for name, gate_fn in IN_PROCESS_GATES:
@@ -1781,7 +2026,17 @@ def main():
             sys.exit(0)
 
         if "systemMessage" in res:
-            system_messages.append(res["systemMessage"])
+            gate_class = GATE_CLASSES.get(name, "policy")
+            if gate_class == "policy":
+                system_messages.append(res["systemMessage"])
+            else:
+                quality_messages.append(res["systemMessage"])
+
+    # Quality gate filtering: suppress quality messages on control turns
+    # in normal mode (allow corrections and direct instructions through).
+    # Strict mode or non-control turns: include quality messages.
+    if quality_mode == "strict" or turn_kind != "control":
+        system_messages.extend(quality_messages)
 
     # Process Side Effects (only if not blocked)
     if SIDE_EFFECTS:

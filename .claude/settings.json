@@ -102,7 +102,10 @@
     "AGENT_CONTRACT_VALIDATOR_ENABLED": "true",
     "PERF_ATTRIBUTION_GATE_ENABLED": "true",
     "CLAUDE_PLUGIN_ROOT": "C:/Users/brsth/.claude/plugins/reason_openai",
-    "CLAUDE_PROJECT_DIR": "P:/"
+    "CLAUDE_PROJECT_DIR": "P:/",
+    "EPISTEMIC_CONTRACT_MODE": "warn",
+    "EPISTEMIC_CAUSAL_MODE": "warn",
+    "EPISTEMIC_COMPARATIVE_MODE": "warn"
   },
   "includeCoAuthoredBy": true,
   "permissions": {

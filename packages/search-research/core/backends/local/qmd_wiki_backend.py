@@ -19,6 +19,10 @@ from ...models import SearchResult
 
 logger = logging.getLogger(__name__)
 
+
+class BackendUnavailableError(Exception):
+    """Raised when a required backend dependency is not available."""
+
 MAX_FILE_READ = 1024 * 1024  # 1MB
 VAULT_MTIME_CACHE_TTL = 5.0  # seconds
 REBUILD_FAILURE_LIMIT = 3
@@ -93,6 +97,32 @@ class QMDWikiBackend(BaseLocalBackend):
         # Constraint 8: Vault existence validation
         if not self.vault_path.exists():
             raise ValueError(f"Vault path does not exist: {self.vault_path}")
+
+        # Check qmd availability at init time (fail-fast)
+        try:
+            result = subprocess.run(
+                ["qmd", "--version"],
+                capture_output=True,
+                timeout=5,
+            )
+            if result.returncode != 0:
+                raise BackendUnavailableError(
+                    "QMD_WIKI backend unavailable: 'qmd' command failed.\n"
+                    "Install: pip install qmd\n"
+                    "Docs: https://github.com/tobi/qmd"
+                )
+        except FileNotFoundError:
+            raise BackendUnavailableError(
+                "QMD_WIKI backend unavailable: 'qmd' command not found.\n"
+                "Install: pip install qmd\n"
+                "Docs: https://github.com/tobi/qmd"
+            )
+        except subprocess.TimeoutExpired:
+            raise BackendUnavailableError(
+                "QMD_WIKI backend unavailable: 'qmd --version' timed out.\n"
+                "Install: pip install qmd\n"
+                "Docs: https://github.com/tobi/qmd"
+            )
 
     def _get_vault_mtime_cached(self) -> float | None:
         """Constraint 11: os.scandir() for vault mtime scan with 5-second cache TTL."""
@@ -208,20 +238,17 @@ class QMDWikiBackend(BaseLocalBackend):
             logger.debug("qmd search timed out")
             return []
         except FileNotFoundError:
-            # Constraint 9: PermissionError handling in fallback path
-            # CAUSE-002 fix: Check cooldown before expensive fallback
-            if self._rebuild_cooldown_until is not None and time.monotonic() < self._rebuild_cooldown_until:
-                logger.debug("qmd not found, circuit breaker active — skipping fallback")
-                return []
-            logger.debug("qmd not found, falling back to grep")
-            return self._fallback_grep(query)
+            raise BackendUnavailableError(
+                "QMD_WIKI backend unavailable: 'qmd' command not found.\n"
+                "Install: pip install qmd\n"
+                "Docs: https://github.com/tobi/qmd"
+            )
         except OSError as e:
-            # CAUSE-002 fix: Check cooldown before expensive fallback
-            if self._rebuild_cooldown_until is not None and time.monotonic() < self._rebuild_cooldown_until:
-                logger.debug("qmd subprocess error, circuit breaker active — skipping fallback")
-                return []
-            logger.debug(f"qmd subprocess error: {e}")
-            return self._fallback_grep(query)
+            raise BackendUnavailableError(
+                f"QMD_WIKI backend unavailable: {e}\n"
+                "Install: pip install qmd\n"
+                "Docs: https://github.com/tobi/qmd"
+            )
 
     def _parse_qmd_json(self, stdout: bytes) -> list["SearchResult"]:
         try:
@@ -245,43 +272,6 @@ class QMDWikiBackend(BaseLocalBackend):
                 title=title, content=snippet, source=self.BACKEND_NAME,
                 score=score, file_path=path, line_number=line_number,
             ))
-        return results
-
-    def _fallback_grep(self, query: str) -> list["SearchResult"]:
-        """Fallback to glob+grep when qmd is unavailable.
-
-        Captures line_number for citation granularity.
-        """
-        results = []
-        wiki_path = self.vault_path / self.qmd_scope
-        if not wiki_path.exists():
-            return results
-
-        query_lower = query.lower()
-        for md_file in wiki_path.rglob("*.md"):
-            if self._should_exclude(md_file):
-                continue
-            try:
-                with open(md_file, "rb") as f:
-                    content_bytes = f.read(MAX_FILE_READ)
-            except PermissionError:
-                continue
-            except (OSError, ValueError):
-                # File unreadable or decode error - skip this file
-                continue
-
-            content = content_bytes.decode("utf-8", errors="replace")
-            lines = content.split("\n")
-            for line_num, line in enumerate(lines, start=1):
-                if query_lower in line.lower():
-                    byte_off = sum(len(line) + 1 for line in lines[:line_num - 1])
-                    snippet = content[byte_off:byte_off + 200]
-                    title = md_file.name.rsplit(".md", 1)[0]
-                    results.append(SearchResult(
-                        title=title, content=snippet,
-                        source=self.BACKEND_NAME, score=0.5,
-                        file_path=str(md_file), line_number=line_num,
-                    ))
         return results
 
     async def _async_rebuild_index(self) -> None:

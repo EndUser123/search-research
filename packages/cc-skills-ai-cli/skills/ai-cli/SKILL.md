@@ -22,7 +22,7 @@ triggers:
 
 **Step 1:** Run the CLI:
 ```bash
-python "P:\.claude\skills\ai-cli\ai_cli.py" "{{user_query}}" {{options}}
+python "P:\packages\cc-skills-ai-cli\skills\ai-cli\ai_cli.py" "{{user_query}}" {{options}}
 ```
 
 **Step 2:** Wait for ALL model outputs to complete
@@ -60,7 +60,7 @@ If no config file exists, display: `No saved configuration found`
 
 **DEFAULT (no arguments):**
 ```bash
-python "P:\.claude\skills\ai-cli\ai_cli.py" --help
+python "P:\packages\cc-skills-ai-cli\skills\ai-cli\ai_cli.py" --help
 ```
 
 **If execution fails:** Report exact error message. Do NOT fabricate results or provide your own analysis as substitute.

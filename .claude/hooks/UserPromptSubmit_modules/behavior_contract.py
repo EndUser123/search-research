@@ -151,6 +151,30 @@ def _is_enabled() -> bool:
     return os.environ.get(_ENABLED_ENV, "true").lower() in ("1", "true", "yes")
 
 
+def _process_session_constraints(context: HookContext) -> str | None:
+    """Detect corrections in user prompt, save them, and return active constraint text."""
+    try:
+        from session_constraints import (
+            detect_corrections,
+            detect_revocations,
+            save_constraints,
+            build_constraint_prompt,
+        )
+    except ImportError:
+        return None
+
+    prompt = context.prompt or ""
+    session_id = context.session_id or ""
+
+    additions = detect_corrections(prompt)
+    removals = detect_revocations(prompt)
+
+    if additions or removals:
+        save_constraints(session_id, additions, removals)
+
+    return build_constraint_prompt(session_id)
+
+
 @register_hook("behavior_contract", priority=11.6)
 def behavior_contract(context: HookContext) -> HookResult:
     """Inject the response behavior contract for substantive prompts."""
@@ -160,7 +184,14 @@ def behavior_contract(context: HookContext) -> HookResult:
     if not _should_inject(context):
         return HookResult.empty()
 
+    # Process session constraints from user prompt
+    constraint_text = _process_session_constraints(context)
+
     contract = build_behavior_contract()
+
+    # Append active session constraints if any
+    if constraint_text:
+        contract = f"{contract}\n\n{constraint_text}"
 
     # Trace visibility: print to stdout so hook-obs users can see fires without reading JSONL
     prompt_preview = (context.prompt or "")[:80].replace("\n", " ")

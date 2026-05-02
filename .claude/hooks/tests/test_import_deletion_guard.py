@@ -9,10 +9,15 @@ import sys
 from pathlib import Path
 
 HOOKS_DIR = Path(__file__).resolve().parent.parent
-HOOK_FILE = HOOKS_DIR / "PreToolUse_import_deletion_guard.py"
+HOOK_FILE = Path("P:/packages/skill-guard/src/skill_guard/PreToolUse/PreToolUse_import_deletion_guard.py")
 sys.path.insert(0, str(HOOKS_DIR))
 
-from PreToolUse_import_deletion_guard import (
+# Plugin src for skill-guard hooks (single source of truth)
+_PLUGIN_SRC = Path("P:/packages/skill-guard/src")
+if _PLUGIN_SRC.exists():
+    sys.path.insert(1, str(_PLUGIN_SRC))
+
+from skill_guard.PreToolUse.PreToolUse_import_deletion_guard import (
     extract_module_name,
     has_investigation_evidence,
     has_symbol_search_this_turn,

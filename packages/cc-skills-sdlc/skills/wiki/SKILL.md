@@ -23,6 +23,12 @@ Persistent knowledge management: LLM maintains an Obsidian wiki (ingest/synthesi
 
 Accept source (file path, URL, or text blob) → LLM reads source → **compute SHA256 hash** → **check log.md for existing hash (skip if duplicate)** → writes/updates wiki page with YAML frontmatter → **runs `qmd update <collection>`** (with English locale: `$env:LANG='en_US.UTF-8'`) to keep search index fresh → **searches vault for related pages → injects `[[wikilinks]]` into page body** → appends entry to `log.md`
 
+**URL handling with Crawl4AI**: When a URL is provided (starts with `http://` or `https://`), invoke the `/crawl` workflow:
+```bash
+/crawl <url> --max-pages 5 --collection wiki
+```
+The crawl skill handles all URL fetching, deduplication, wikilinks, and logging. Skip manual URL fetching — let the crawl skill handle it.
+
 **Hash-based deduplication**: Before ingesting, compute SHA256 of file content. If hash already exists in `log.md`, skip the ingest (already processed). Log entry includes hash for traceability.
 
 **Auto-linking phase**: After writing the page, query QMD for semantically similar existing pages using the new page's title and summary. Inject `[[Page Name]]` links to top-K (default K=5) related pages into the new page's body under a `## Related` section.

@@ -634,6 +634,7 @@ def _load_hooks() -> None:
         "operating_rules",
         "path_syntax_corrector",
         "plan_injector",
+        "plan_mode_schema",  # Inject [PLAN]/[RATIONALE] schema for planning-style prompts
         "behavior_contract",  # NEW 2026-04-13: Keep responses grounded and concise before generation
         "reasoning_mode_selector",
         # "skill_compliance_indicator",  # DEPRECATED 2026-03-11: Pre-run indicator redundant with step headers
@@ -705,6 +706,13 @@ def _load_hooks() -> None:
     _try_import_hook(
         module_name="skill_forced_eval",
         module_path="skill_guard.skill_forced_eval",
+        # Module self-registers via @register_hook decorator
+    )
+
+    # Load slash_command_observability from skill-guard package (replaces symlink)
+    _try_import_hook(
+        module_name="slash_command_observability",
+        module_path="skill_guard.slash_command_observability",
         # Module self-registers via @register_hook decorator
     )
 

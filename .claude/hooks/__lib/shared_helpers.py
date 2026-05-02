@@ -144,12 +144,23 @@ def is_user_intent_statement(transcript_or_text) -> bool:
     return any(re.search(p, lower) for p in INTENT_PATTERNS)
 
 
+_STOP_DIAGNOSTIC_PREFIXES: tuple[str, ...] = (
+    "STATUS:",
+    "UNVERIFIED CLAIMS:",
+    "Evidence missing for:",
+    "Stop hook error:",
+    "Stop hook feedback:",
+    "Ran ",
+)
+
+
 def strip_non_claim_lines(text: str) -> str:
     """Remove lines that are structural formatting, not factual claims.
 
     Strips: markdown headers, blockquotes quoting prior output, horizontal
-    rules, table rows, and table separator lines. These are presentation,
-    not assertions about code/files/state.
+    rules, table rows, table separator lines, and Stop-hook diagnostic
+    scaffolding (STATUS:, UNVERIFIED CLAIMS:, etc.). These are presentation
+    or transport artifacts, not assertions about code/files/state.
     """
     if not text:
         return ""
@@ -170,6 +181,15 @@ def strip_non_claim_lines(text: str) -> str:
             continue
         # Table separator lines (e.g. "|---|---|")
         if re.match(r"^\|[\s:_-]+\|", stripped):
+            continue
+        # Stop-hook diagnostic lines (transport scaffolding, not claims)
+        if any(stripped.startswith(p) for p in _STOP_DIAGNOSTIC_PREFIXES):
+            continue
+        # Ran N stop hooks summary
+        if re.match(r"^Ran\s+\d+\s+stop\s+hooks?", stripped):
+            continue
+        # Tool/UI markers (⎿, ●, etc.)
+        if stripped and stripped[0] in "⎿●":
             continue
         out.append(line)
     return "\n".join(out)

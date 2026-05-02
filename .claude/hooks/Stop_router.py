@@ -287,7 +287,7 @@ HOOK_SEQUENCE = [
     ("StopHook_cross_validator.py", "STOP_CROSS_VALIDATOR_ENABLED", False, "inprocess"),
     ("StopHook_drift_sentinel.py", "DRIFT_SENTINEL_ENABLED", False, "inprocess"),
     ("StopHook_correction_acknowledgment.py", "CORRECTION_GATE_ENABLED", False, "inprocess"),
-    ("StopHook_skill_execution_gate.py", "SKILL_EXECUTION_GATE_ENABLED", True, "inprocess"),
+    # StopHook_skill_execution_gate moved to skill-guard plugin hooks.json (v2.1.0)
     (
         "StopHook_behavioral_quality_gate.py",
         "BEHAVIORAL_QUALITY_GATE_ENABLED",
@@ -379,7 +379,7 @@ ACTIVE_RUNTIME_HOOKS = frozenset(
     {
         "empirical_claims_gate.py",
         "unified_claim_verifier.py",
-        "StopHook_skill_execution_gate.py",
+        # StopHook_skill_execution_gate moved to skill-guard plugin hooks.json (v2.1.0)
         "StopHook_behavioral_quality_gate.py",
         "StopHook_overconfidence_detector.py",
         "StopHook_unverified_stance.py",

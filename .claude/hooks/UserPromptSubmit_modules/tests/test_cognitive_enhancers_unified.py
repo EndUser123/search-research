@@ -280,7 +280,8 @@ class TestBehavioralRegression:
 
         # Should trigger cynefin_classification (meta_rca topic)
         if result.context:
-            assert "cynefin_classification" in result.context.lower()
+            # _build_injection replaces underscores with spaces and title-cases names
+            assert "cynefin classification" in result.context.lower()
 
 
 # =============================================================================

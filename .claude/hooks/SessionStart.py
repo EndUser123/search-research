@@ -40,7 +40,7 @@ SETUP_SEQUENCE = [
     # 3. Log Rotation (throttled to once per day)
     "SessionStart_log_rotation.py",
     # 4. State Restore (Session Continuity)
-    "SessionStart_handoff_restore.py",
+    # "SessionStart_handoff_restore.py",  # REMOVED: file deleted, snapshot plugin handles handoff
     # 4. Memory & Daemons (Long-term context)
     "SessionStart_semantic_daemon.py",  # Semantic search daemon (named pipe server)
     "SessionStart_dreaming_daemon.py",  # Insight/reflection daemon

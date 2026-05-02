@@ -112,8 +112,6 @@ def _clear_ai_cli_config() -> None:
         pass
 
 
-# Add lib to path for parallel_llm import (COMP-RECHECK-002 fix: dynamic path)
-# NOTE: This must be BEFORE parallel_llm import since it modifies sys.path
 def _get_repo_root() -> Path:
     """Find git repository root by searching upward from current directory."""
     current = Path.cwd().resolve()
@@ -129,17 +127,25 @@ def _get_repo_root() -> Path:
             return parent
         current = parent
 
-
-_lib_path = _get_repo_root() / "__csf" / "lib"
-if str(_lib_path) not in sys.path:
-    sys.path.insert(0, str(_lib_path))
-
-# Local imports (after sys.path modification for parallel_llm)
-from parallel_llm import (  # noqa: E402
-    calc_timeout,
-    run_parallel_commands,
-    run_parallel_glm,
-)
+# Import parallel_llm utilities
+# Handle both module execution (scripts/ as package) and standalone script execution
+try:
+    from scripts.parallel_llm import (  # noqa: E402
+        calc_timeout,
+        run_parallel_commands,
+        run_parallel_glm,
+    )
+except ImportError:
+    # Running as standalone script - use P:/__csf/lib fallback
+    import sys
+    _lib_path = Path("P:/__csf/lib")
+    if str(_lib_path) not in sys.path:
+        sys.path.insert(0, str(_lib_path))
+    from parallel_llm import (  # noqa: E402
+        calc_timeout,
+        run_parallel_commands,
+        run_parallel_glm,
+    )
 
 # Import task classification, prompt engineering, and performance tracking modules
 # Handle both module execution (relative imports) and standalone script execution (direct imports)

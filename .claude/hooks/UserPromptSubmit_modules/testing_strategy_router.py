@@ -92,6 +92,16 @@ def _build_injection(style: str) -> str:
 
 @register_hook("testing_strategy_router", priority=2.1)
 def strategy_router(context: HookContext) -> HookResult:
+    # Budget guard — initialize budget before safety check
+    SAFETY_MODULES = {"behavior_contract", "operating_rules", "verify_before_claim", "truthfulness_gate"}
+    _mod_name = "testing_strategy_router"
+    budget = context.data.get("remaining_budget", 20000)
+    min_chars = 250
+
+    if _mod_name not in SAFETY_MODULES and budget < min_chars:
+        context.data.setdefault("skipped_budget", []).append(_mod_name)
+        return HookResult.empty()
+
     if not TESTING_STRATEGY_ENABLED:
         return HookResult.empty()
 
@@ -99,4 +109,8 @@ def strategy_router(context: HookContext) -> HookResult:
     if style is None:
         return HookResult.empty()
 
-    return HookResult(context={"additionalContext": _build_injection(style)})
+    injection_text = _build_injection(style)
+    # Update remaining budget
+    context.data["remaining_budget"] = budget - len(injection_text)
+
+    return HookResult(context={"additionalContext": injection_text})

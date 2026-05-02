@@ -94,14 +94,6 @@ _DEFAULT_CONFIG = {
         "question": 1,  # One minimal enhancer for questions
     },
     "socratic_min_length": 200,
-    "min_prompt_length": 30,
-    "enhance_skills": True,
-    "skip_skills": [
-        "commit", "push", "search", "search-more", "obs", "timeline", "quota", "bgkill",
-        "clear-notifications", "clear_restore", "checkpoint-list", "checkpoint-diff",
-        "checkpoint-delete", "checkpoint-restore", "context-status", "llm-health",
-        "llm-performance", "llm-models", "recent", "catchup", "session", "restore", "help",
-    ],
     "modes": {
         "rca": {"topic": "meta_rca"},
         "deep": {"topic": "implementation"},
@@ -328,20 +320,21 @@ def _extract_skill_name(prompt: str) -> str | None:
 
 
 def _is_actionable_prompt(prompt: str, config: dict) -> bool:
+    """Check if prompt should receive cognitive enhancement.
+
+    All non-empty prompts receive enhancement. The intent detection
+    determines WHICH enhancers are selected — not this gate.
+    """
     if not prompt: return False
     stripped = prompt.strip()
-    skill = _extract_skill_name(stripped)
-    if skill is not None:
-        if not config.get("enhance_skills", True): return False
-        if skill in config.get("skip_skills", []): return False
+    if not stripped: return False
+
+    # Slash commands always pass through
+    if _extract_skill_name(stripped) is not None:
         return True
-    if len(stripped) < config.get("min_prompt_length", 30): return False
-    if _QUESTION_ONLY_RE.match(stripped) and not (
-        _IMPL_RE.search(stripped) or _PLAN_RE.search(stripped) or
-        _OUTCOME_RE.search(stripped) or _DIAGNOSTIC_RE.search(stripped) or
-        _DECOMPOSITION_RE.search(stripped) or _QUESTION_INTENT_RE.search(stripped)
-    ):
-        return False
+
+    # Pure questions without implementation/diagnostic keywords: still enhance
+    # (assumption_surfacing and question_check are useful for all questions)
     return True
 
 
@@ -431,6 +424,16 @@ def _build_injection(enhancers: list[Enhancer], intent: dict[str, bool] | None =
 
 @register_hook("cognitive_enhancers", priority=11.0)
 def cognitive_enhancers(context: HookContext) -> HookResult:
+    # Budget guard — initialize budget before safety check
+    SAFETY_MODULES = {"behavior_contract", "operating_rules", "verify_before_claim", "truthfulness_gate"}
+    _mod_name = "cognitive_enhancers"
+    budget = context.data.get("remaining_budget", 20000)
+    min_chars = 400
+
+    if _mod_name not in SAFETY_MODULES and budget < min_chars:
+        context.data.setdefault("skipped_budget", []).append(_mod_name)
+        return HookResult.empty()
+
     config = _load_config()
     if not config.get("enabled", True): return HookResult.empty()
     prompt = context.prompt or ""
@@ -465,5 +468,8 @@ def cognitive_enhancers(context: HookContext) -> HookResult:
     token_count = len(injection) // CHARS_PER_TOKEN
     rationale = _get_rationale(intent, selected, prompt_length)
     log_cognitive_selection(enhancers=selected, intent=intent, tokens=token_count, rationale=rationale)
+
+    # Update remaining budget
+    context.data["remaining_budget"] = budget - len(injection)
 
     return HookResult(context=injection, tokens=token_count, priority=11.0)

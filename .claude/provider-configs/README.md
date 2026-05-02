@@ -9,12 +9,36 @@ PowerShell scripts that configure Claude Code's LLM backend. Two categories:
 
 ## Provider Scripts
 
-| Script | Command | Provider | Orchestrator model | Base URL |
-|--------|---------|----------|--------------------|----------|
-| `cc-glm.ps1` | `cc-glm [4\|5]` | Z.ai | glm-4.7 (default) or glm-5 | `https://api.z.ai/api/anthropic` |
-| `cc-mm.ps1` | `cc-mm` | MiniMax | MiniMax-M2.7 | `https://api.minimax.io/anthropic` |
+| Script | Command | Provider | Model Family |
+|--------|---------|----------|--------------|
+| `cc-bifrost.ps1` | `cc-bf [route]` | Bifrost AI Gateway | See route table below |
+| `cc-glm.ps1` | `cc-glm [4\|5]` | Z.ai | glm-4.7 (default) or glm-5 |
+| `cc-mm.ps1` | `cc-mm` | MiniMax | MiniMax-M2.7 |
 
-Both providers expose an Anthropic-compatible API, so Claude Code needs no modification.
+All providers expose an Anthropic-compatible API, so Claude Code needs no modification.
+
+### Bifrost Routes
+
+Bifrost proxies to multiple providers via a local gateway at `http://localhost:8081/anthropic`.
+
+| Command | Provider | Sonnet/Opus/Haiku |
+|---------|----------|-----------------|
+| `cc-bf` | Default (M27 + GLM-5.1) | M27 / GLM-5.1 / M27 |
+| `cc-bf M27` | MiniMax | MiniMax-M2.7 all tiers |
+| `cc-bf GLM-5.1` | Z.AI | glm-5.1 / glm-5.1 / glm-4.5-air |
+| `cc-bf DeepSeek` or `cc-bf DSv4` | Nvidia | DSv4-flash all tiers |
+| `cc-bf or-ling` or `cc-bf ling` | OpenRouter | ling-2.6-1t:free all tiers |
+| `cc-bf hy3` | OpenRouter | hy3-preview:free all tiers |
+| `cc-bf mistral` | OpenRouter | devstral-latest all tiers |
+| `cc-bf step` | Nvidia | step-3.5-flash all tiers |
+| `cc-bf gemini-lite` | Gemini | gemini-3.1-flash-lite-preview all tiers |
+| `cc-bf gemini` | Gemini | gemini-3.1-flash-live-preview all tiers |
+| `cc-bf gemini-pro` | Gemini | gemini-3.1-pro-preview all tiers |
+| `cc-bf gpt5` or `cc-bf gh` | GitHub | gpt-5-mini all tiers |
+| `cc-bf gemma` | OpenRouter | gemma-4-31b-it:free all tiers |
+| `cc-bf qwen` | OpenRouter | qwen3-coder:free all tiers |
+
+### GLM and MiniMax (Direct API)
 
 ```powershell
 cc-glm       # route orchestrator to GLM-4.7, launch claude
@@ -57,9 +81,10 @@ See that file's inline comments for benchmark rationale behind each mapping.
 All commands are thin wrappers defined in the PS7 profile:
 
 ```powershell
-function cc-glm { & "P:\.claude\provider-configs\cc-glm.ps1" @Args }
-function cc-mm  { & "P:\.claude\provider-configs\cc-mm.ps1"  @Args }
-function proxy  { & "P:\.claude\provider-configs\proxy.ps1"  @Args }
+function cc-bf   { & "P:\.claude\provider-configs\cc-bifrost.ps1" @Args }
+function cc-glm  { & "P:\.claude\provider-configs\cc-glm.ps1" @Args }
+function cc-mm   { & "P:\.claude\provider-configs\cc-mm.ps1"  @Args }
+function proxy   { & "P:\.claude\provider-configs\proxy.ps1"  @Args }
 ```
 
 ### PowerShell Profile Location — Critical

@@ -64,7 +64,21 @@ def reasoning_mode_selector(context: HookContext) -> HookResult:
     Returns:
         HookResult with reasoning mode context or empty result
     """
+    # Budget semantics:
+    #   remaining_budget tracks CHARS AVAILABLE for injection, not effort expended.
+    #   Modules that skip (budget < min_chars) do NOT decrement budget — no context was added.
+    #   skipped_budget list captures which modules attempted but produced no injection.
+    #   The 20000 hard-cap is safe padding (never measured as insufficient in normal use).
+    SAFETY_MODULES = {"behavior_contract", "operating_rules", "verify_before_claim", "truthfulness_gate"}
+    _mod_name = "reasoning_mode_selector"
+    budget = context.data.get("remaining_budget", 20000)
+    min_chars = 400
+
     try:
+        if _mod_name not in SAFETY_MODULES and budget < min_chars:
+            context.data.setdefault("skipped_budget", []).append(_mod_name)
+            return HookResult.empty()
+
         # Import the reasoning mode selector
         # Path: P:/packages/reasoning/hooks/Start_reasoning_mode_selector.py
         import Start_reasoning_mode_selector as selector_module
@@ -72,7 +86,8 @@ def reasoning_mode_selector(context: HookContext) -> HookResult:
 
         prompt = context.prompt
         if not prompt or len(prompt.strip()) < 20:
-            # Skip very short prompts
+            # Skip very short prompts — decrement budget for analysis work done
+            context.data["remaining_budget"] = budget
             return HookResult.empty()
 
         shared_result = ensure_unified_detection_result(context)
@@ -143,6 +158,10 @@ def reasoning_mode_selector(context: HookContext) -> HookResult:
         )
 
         # Return both system context and user-facing message
+        # Update remaining budget
+        injection_text = system_context + user_message
+        context.data["remaining_budget"] = budget - len(injection_text)
+
         return HookResult(
             context={
                 "systemContext": system_context,  # For AI

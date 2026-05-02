@@ -122,6 +122,9 @@ HOOK_CONTENT_FILTERS: dict[str, list[str]] = {
         r"pip\s+install",
         r"cargo\s+add",
     ],
+    "PreToolUse_skill_script_path_gate.py": [
+        r"python(?:3)?\s+[\"']?P:[/\\]",  # python "P:\..." or python P:/...
+    ],
 }
 
 # =============================================================================
@@ -708,6 +711,7 @@ TOOL_HOOKS = {
     ],
     "Bash": [
         "PreToolUse_git_state_capture.py",  # Capture git state BEFORE command (cross-agent isolation)
+        "PreToolUse_skill_script_path_gate.py",  # Block stale P:\ skill script paths before execution (RC3)
         "PreToolUse_bash_syntax_validator.py",
         "PreToolUse_windows_path_unicode_gate.py",  # Detect Python -c with unescaped Windows paths
         "PreToolUse_directory_policy.py",
@@ -744,6 +748,12 @@ TOOL_HOOKS = {
 # Map hook filenames to in-process functions for speed
 try:
     sys.path.insert(0, str(HOOKS_DIR / "__lib"))
+
+    # Plugin import path for skill-guard hooks (hardcoded — CLAUDE_PLUGIN_ROOT is per-plugin, not usable here)
+    _PLUGIN_SRC = Path("P:/packages/skill-guard/src")
+    if _PLUGIN_SRC.exists():
+        sys.path.insert(1, str(_PLUGIN_SRC))  # position 1 preserves __lib at position 0
+
     import pre_tool_use_logic
     import PreToolUse_bash_syntax_validator
     import PreToolUse_bulk_delete_gate
@@ -753,9 +763,16 @@ try:
     import PreToolUse_evidence_hierarchy_gate
     import PreToolUse_git_remote_check_order_guard
     import PreToolUse_git_auto_stage
-    import PreToolUse_import_deletion_guard
     import PreToolUse_path_validator
     import PreToolUse_task_self_doc_gate
+
+    # skill-guard hooks imported from plugin (single source of truth)
+    from skill_guard.PreToolUse.PreToolUse_import_deletion_guard import run as _import_deletion_run
+    from skill_guard.PreToolUse.PreToolUse_skill_script_path_gate import run as _skill_script_path_run
+    from skill_guard.PreToolUse.PreToolUse_skill_dir_gate import run as _skill_dir_gate_run
+    from skill_guard.PreToolUse.PreToolUse_skill_question_gate import run as _skill_question_gate_run
+    from skill_guard.PreToolUse.PreToolUse_context_sufficiency_gate import run as _context_sufficiency_run
+    from skill_guard.PreToolUse.PreToolUse_skill_pattern_gate import handle_pre_tool_use as _skill_pattern_gate_run
     from artifact_grounder import ground_blocked_command, ground_git_safety_block
     from pretooluse_observability import (
         append_jsonl as append_observability_jsonl,
@@ -776,7 +793,12 @@ try:
         "PreToolUse_evidence_hierarchy_gate.py": PreToolUse_evidence_hierarchy_gate.run,
         "PreToolUse_git_remote_check_order_guard.py": PreToolUse_git_remote_check_order_guard.run,
         "PreToolUse_git_auto_stage.py": PreToolUse_git_auto_stage.run,
-        "PreToolUse_import_deletion_guard.py": PreToolUse_import_deletion_guard.run,
+        "PreToolUse_import_deletion_guard.py": _import_deletion_run,
+        "PreToolUse_skill_script_path_gate.py": _skill_script_path_run,
+        "PreToolUse_skill_dir_gate.py": _skill_dir_gate_run,
+        "PreToolUse_skill_question_gate.py": _skill_question_gate_run,
+        "PreToolUse_context_sufficiency_gate.py": _context_sufficiency_run,
+        "PreToolUse/PreToolUse_skill_pattern_gate.py": _skill_pattern_gate_run,
         "PreToolUse_task_self_doc_gate.py": PreToolUse_task_self_doc_gate.run,
         "check_external_path_consent": pre_tool_use_logic.check_external_path_consent,
     }
@@ -914,7 +936,13 @@ def run_hook(hook_name: str, data: dict) -> dict | None:
             try:
                 payload = json.loads(out)
                 # Check for both "decision": "block" and "block": True formats
-                is_block = payload.get("decision") == "block" or payload.get("block") is True
+                is_block = (
+                    payload.get("decision") == "block"
+                    or payload.get("block") is True
+                    or payload.get("continue") is False
+                    or (isinstance(payload.get("hookSpecificOutput"), dict)
+                        and payload["hookSpecificOutput"].get("permissionDecision") == "deny")
+                )
 
                 # FIXED: Preserve hookSpecificOutput for non-blocking hooks (e.g., advisories)
                 has_advisory = "hookSpecificOutput" in payload and "advisory" in payload["hookSpecificOutput"]
@@ -1293,7 +1321,13 @@ def main():
             # Continue processing other hooks (don't break loop)
 
         # Check for both "decision": "block" and "block": True formats
-        is_block = res.get("decision") == "block" or res.get("block") is True
+        is_block = (
+            res.get("decision") == "block"
+            or res.get("block") is True
+            or res.get("continue") is False
+            or (isinstance(res.get("hookSpecificOutput"), dict)
+                and res["hookSpecificOutput"].get("permissionDecision") == "deny")
+        )
         if is_block:
             # Hard block - exit with code 2
             _msg = res.get("message") or res.get("reason")

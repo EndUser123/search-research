@@ -151,16 +151,24 @@ def _get_repo_root() -> Path:
         current = parent
 
 
-_lib_path = Path("P:/__csf/lib")
-if str(_lib_path) not in sys.path:
-    sys.path.insert(0, str(_lib_path))
-
-# Local imports (after sys.path modification for parallel_llm)
-from parallel_llm import (  # noqa: E402
-    calc_timeout,
-    run_parallel_commands,
-    run_parallel_glm,
-)
+# Import parallel_llm utilities
+# Handle both module execution (scripts/ as package) and standalone script execution
+try:
+    from scripts.parallel_llm import (  # noqa: E402
+        calc_timeout,
+        run_parallel_commands,
+        run_parallel_glm,
+    )
+except ImportError:
+    # Running as standalone script - use P:/__csf/lib fallback
+    _lib_path = Path("P:/__csf/lib")
+    if str(_lib_path) not in sys.path:
+        sys.path.insert(0, str(_lib_path))
+    from parallel_llm import (  # noqa: E402
+        calc_timeout,
+        run_parallel_commands,
+        run_parallel_glm,
+    )
 
 # Import task classification, prompt engineering, and performance tracking modules
 # Handle both module execution (relative imports) and standalone script execution (direct imports)
@@ -1462,7 +1470,10 @@ def run_parallel_llm(
         start_all = time.time()
 
     # Execute CLI commands and GLM API in parallel (single asyncio.gather)
-    from parallel_llm import run_parallel_glm
+    try:
+        from scripts.parallel_llm import run_parallel_glm
+    except ImportError:
+        from parallel_llm import run_parallel_glm
 
     async def run_all_parallel():
         """Run CLI commands and GLM API in true parallel."""

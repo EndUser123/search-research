@@ -12,3 +12,5 @@ build/
 .evidence/
 .state/
 .git
+
+.pytest_cache

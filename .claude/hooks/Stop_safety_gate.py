@@ -23,10 +23,18 @@ SECRET_PATTERNS = [
 ]
 
 # Patterns indicating forbidden autonomous behavior (Part C.1)
+# Catches: suggesting new background/daemon services, autonomous self-healing/auto-correct as prescriptive actions
+# Does NOT catch: descriptive architecture ("runs as background"), feature nouns ("self-healing mechanism"), examples
 FORBIDDEN_PATTERNS = [
-    r"\bbackground\s+(?:service|process|task|job)\b",
-    r"\bdaemon|persistent\s+process\b",
-    r"\bself.?healing|auto.?correct|autonomous\s+fix\b",
+    # Modal + action + optional intermediate words + background/daemon (prescriptive: "should/need/going to/will ADD a background service")
+    r"\bshould\s+(?:run|start|launch|add|create)\s+.+?(?:background|daemon|persistent)\b",
+    r"\bneed\s+to\s+(?:run|start|launch|add)\s+.+?(?:background|daemon|persistent)\b",
+    r"\bgoing\s+to\s+(?:run|start|launch|add)\s+.+?(?:background|daemon|persistent)\b",
+    r"\bwill\s+(?:run|start|launch|add)\s+.+?(?:background|daemon|persistent)\b",
+    r"\bshould\s+be\s+(?:running|started|launched|added)\b.*?(?:background|daemon)\b",
+    # Autonomous self-healing/fix as PRESCRIPTIVE ACTION (not feature noun)
+    r"\b(?:need\s+to|going\s+to)\s+(?:self.?heal|auto.?correct)\b",
+    r"\bshould\s+(?:self.?heal|auto.?correct)\b",
 ]
 
 # Patterns that indicate describing a command instead of executing it

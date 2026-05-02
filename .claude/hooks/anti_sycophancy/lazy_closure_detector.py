@@ -92,7 +92,7 @@ LAZY_FIX_PHRASES = [
     r"\bquick\s+fix\b",
     r"\bsimple\s+(?:fix|patch|edit)\b",
     r"\b\d+-line\s+(?:fix|edit|change)\b",  # "5-line fix"
-    r"\bbypass(?:es|ing)?\s+(?:the|this)?\s*(?:issue|problem|whole)?\b",
+    r"\bbypass(?:es|ing)?\s+(?:the\s+)?(?:issue|problem|whole\s+\w+)\b",
     r"\bworkaround\b",
     r"\bregardless\s+of\b",  # "regardless of task name" - ignoring design
     r"\bbandaid\b",
@@ -163,6 +163,19 @@ LITERALIST_FRAMING_PHRASES = [
     r"that's\s+all\s+you\s+asked\s+(?:for\s+)?",
     r"that's\s+what\s+you\s+asked\s+(?:for\s+)?",
     r"that's\s+the\s+(?:whole|entire)\s+request",
+]
+
+# Status-quo defense — fabricating architectural rationale for why something is the way it is
+# without reading design docs, git history, or ADRs. Patterns: "here's why X", "because of Y"
+# followed by confident placement justification. Exempted when evidence/verification markers present.
+STATUS_QUO_DEFENSE_PHRASES = [
+    r"\bthey\s+belong\s+where\s+they\s+are\b",
+    r"\b(?:it|they|this|that)\s+belong[s]?\s+(?:here|there|in\s+(?:this|that)\s+(?:directory|folder|location))\b",
+    r"\bhere'?s\s+why\s+(?:they'?re|it'?s|that'?s)\s+(?:there|here|in)\b",
+    r"\bconvenience\s+and\s+discoverability\b",
+    r"\b(?:there|here|placed|kept|put)\s+(?:for|because\s+of)\s+(?:convenience|discoverability|simplicity|historical\s+reasons)\b",
+    r"\bthe\s+(?:reason|rationale)\s+(?:is|was)\s+(?:simply|just|because)\b",
+    r"\bit\s+(?:makes?\s+sense|is\s+(?:natural|logical|intuitive))\s+(?:to\s+(?:keep|put|place|have)\s+(?:them|it|this|that)\s+(?:here|there|in))\b",
 ]
 
 # Universal absence claims — asserting X doesn't exist anywhere based on a limited search scope.
@@ -326,6 +339,8 @@ VERIFICATION_MARKERS = frozenset(
         "i executed",
         "i tested",
         "i verified",
+        "i read",
+        "i checked",
         "running",
         "executing",
         "testing",
@@ -335,6 +350,12 @@ VERIFICATION_MARKERS = frozenset(
         "checked",
         "inspected",
         "examined",
+        "according to",
+        "git blame",
+        "git log",
+        "the commit",
+        "the adr",
+        "design doc",
     ]
 )
 
@@ -378,6 +399,7 @@ _DECLARATION = [re.compile(p, re.IGNORECASE) for p in DECLARATION_PATTERNS]
 _SYCOPHANCY_CAPITULATION = [re.compile(p, re.IGNORECASE) for p in SYCOPHANCY_CAPITULATION_PHRASES]
 _SELF_REFERENTIAL_EVASION = [re.compile(p, re.IGNORECASE) for p in SELF_REFERENTIAL_EVASION_PATTERNS]
 _UNIVERSAL_ABSENCE = [re.compile(p, re.IGNORECASE) for p in UNIVERSAL_ABSENCE_PHRASES]
+_STATUS_QUO_DEFENSE = [re.compile(p, re.IGNORECASE) for p in STATUS_QUO_DEFENSE_PHRASES]
 
 
 def _find_deferral(text_lower: str) -> str | None:
@@ -436,6 +458,31 @@ def _has_bash_evidence(text: str) -> bool:
     """
     text_lower = text.lower()
     return any(marker.lower() in text_lower for marker in BASH_ONLY_EVIDENCE_MARKERS)
+
+
+# Markers indicating the response is a test/summary artifact, not analytical prose.
+_TEST_SUMMARY_MARKERS = frozenset([
+    "tests added",
+    "tests pass",
+    "edge cases covered",
+    "files modified",
+    "| file | change |",
+    "test coverage",
+    "test description",
+    "test_",
+    "def test_",
+    "passed in",
+])
+
+
+def _is_test_summary_context(text: str) -> bool:
+    """Return True if text looks like a test summary or edge-case listing.
+
+    Used to suppress lazy_fix false positives on benign test descriptions
+    like 'non-format bypasses repair' in a test coverage summary.
+    """
+    text_lower = text.lower()
+    return any(marker in text_lower for marker in _TEST_SUMMARY_MARKERS)
 
 
 def _find_pattern(text: str, patterns: list[re.Pattern]) -> re.Match | None:
@@ -515,7 +562,7 @@ def detect_lazy_closure(response: str) -> LazyClosureMatch | None:
                 "evidence. Run the disputed behavior with Bash first, then agree or "
                 "disagree based on real output."
             ),
-            severity="flag",
+            severity="block",
         )
 
     # Self-referential evasion — model treats its own decisions/reasoning as
@@ -598,9 +645,9 @@ def detect_lazy_closure(response: str) -> LazyClosureMatch | None:
             severity="flag",
         )
 
-    # 5. Check for lazy fix language
+    # 5. Check for lazy fix language (skip in test-summary context)
     match = _find_pattern(text, _LAZY_FIX)
-    if match:
+    if match and not _is_test_summary_context(text):
         return LazyClosureMatch(
             matched=match.group(0),
             pattern_type="lazy_fix",
@@ -647,6 +694,22 @@ def detect_lazy_closure(response: str) -> LazyClosureMatch | None:
                 "(commands/, plugins/, etc.). State which directories were searched."
             ),
             severity="flag",
+        )
+
+    # 9. Check for status-quo defense — fabricating rationale for why something exists
+    # where it does without reading design docs, git history, or ADRs.
+    match = _find_pattern(text, _STATUS_QUO_DEFENSE)
+    if match:
+        return LazyClosureMatch(
+            matched=match.group(0),
+            pattern_type="status_quo_defense",
+            suggestion=(
+                "You fabricated architectural rationale without evidence. "
+                "Before explaining WHY something is where it is, read git log/blame, "
+                "design docs, or ADRs. If no rationale exists, say so plainly instead "
+                "of inventing 'convenience' or 'discoverability' justifications."
+            ),
+            severity="block",
         )
 
     return None
@@ -711,7 +774,7 @@ def detect_all_lazy_closure(response: str) -> list[LazyClosureMatch]:
                         matched=match.group(0),
                         pattern_type="sycophancy_capitulation",
                         suggestion="Run the disputed behavior with Bash before agreeing.",
-                        severity="flag",
+                        severity="block",
                     )
                 )
 
@@ -761,6 +824,7 @@ def detect_all_lazy_closure(response: str) -> list[LazyClosureMatch]:
         (_PREMATURE_OFFER, "premature_offer", "Complete Investigation Gate first", "flag"),
         (_LITERALIST_FRAMING, "literalist_framing", "Name the root cause or next step unprompted", "flag"),
         (_UNIVERSAL_ABSENCE, "universal_absence", "State which directories/sources were searched before claiming universal absence", "flag"),
+        (_STATUS_QUO_DEFENSE, "status_quo_defense", "Read git log/blame or design docs before explaining WHY something exists where it does", "block"),
     ]
 
     for patterns, pattern_type, base_suggestion, severity in pattern_groups:

@@ -33,7 +33,7 @@ def run_hook(test_input: dict) -> dict:
     Returns:
         Hook result dict (block decision + reason if blocked)
     """
-    hook_path = Path("P:/.claude/hooks/PreToolUse/PreToolUse_skill_pattern_gate.py")
+    hook_path = Path("P:/packages/skill-guard/src/skill_guard/PreToolUse/PreToolUse_skill_pattern_gate.py")
 
     # Run hook with test input
     env = {
@@ -562,12 +562,11 @@ def test_edge_cases():
     print("\nEdge Case 4: Registry skill with empty required_tools (validation)")
 
     # This tests the RISK:9 mitigation we just added
-    # Use absolute path to avoid CWD-dependence (works from any directory)
-    _hook_dir = Path(__file__).resolve().parent.parent
-    _pretooluse_dir = _hook_dir / "PreToolUse"
-    if str(_pretooluse_dir) not in sys.path:
-        sys.path.insert(0, str(_pretooluse_dir))
-    from PreToolUse_skill_pattern_gate import SKILL_EXECUTION_REGISTRY
+    # Use plugin path for skill-guard hooks (single source of truth)
+    _plugin_src = Path("P:/packages/skill-guard/src")
+    if str(_plugin_src) not in sys.path:
+        sys.path.insert(0, str(_plugin_src))
+    from skill_guard.PreToolUse.PreToolUse_skill_pattern_gate import SKILL_EXECUTION_REGISTRY
 
     # Save original registry
     original_registry = SKILL_EXECUTION_REGISTRY.get("edge_test_skill", None)

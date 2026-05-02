@@ -27,10 +27,29 @@ from typing import Tuple, Optional, List, Dict, NamedTuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Import shared git guard config to prevent config divergence
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "hooks"))
-from __lib.git_guard_config import DESTRUCTIVE_GIT_OPS
-# Fail fast if shared config structure changes — defensive check
-assert hasattr(DESTRUCTIVE_GIT_OPS["reset"], "danger_flags"), "git_guard_config structure changed"
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class _DangerOp:
+    danger_flags: tuple[str, ...] | None = None
+    danger_subcommands: tuple[str, ...] | None = None
+    severity: str = "MEDIUM"
+    description: str = ""
+    category: str = "destructive"
+
+_FALLBACK_OPS = {
+    "reset": _DangerOp(danger_flags=("--hard",), severity="CRITICAL", description="Discard uncommitted changes"),
+    "clean": _DangerOp(danger_flags=("-f", "-fd", "-fXd", "-fxd"), severity="HIGH", description="Delete untracked files"),
+    "checkout": _DangerOp(danger_subcommands=("--",), severity="HIGH", description="Overwrite working tree files"),
+    "stash": _DangerOp(danger_subcommands=("drop", "clear"), severity="HIGH", description="Delete stash entries"),
+}
+
+try:
+    _hooks_lib = str(Path("P:/.claude/hooks/__lib").resolve())
+    sys.path.insert(0, _hooks_lib)
+    from git_guard_config import DESTRUCTIVE_GIT_OPS
+except ImportError:
+    DESTRUCTIVE_GIT_OPS = _FALLBACK_OPS
 
 # Import commit message parser
 try:
@@ -825,8 +844,8 @@ def sync_single_repo(repo: RepoInfo, is_main: bool = False) -> Tuple[bool, bool]
 
     did_commit = False
 
-    # Check for unstaged or untracked changes (not just any output from status --short)
-    if _has_uncommitted_worktree_changes(repo):
+    # Loop until no uncommitted worktree changes remain (new changes may land during session)
+    while _has_uncommitted_worktree_changes(repo):
         run("git add -A", cwd=worktree, silent=not VERBOSE)
 
         # Generate scoped commit message
@@ -836,8 +855,12 @@ def sync_single_repo(repo: RepoInfo, is_main: bool = False) -> Tuple[bool, bool]
             "git", "commit", "-m", commit_msg
         ], cwd=worktree, silent=not VERBOSE)
 
-        did_commit = commit_result.returncode == 0
+        if commit_result.returncode != 0:
+            # Commit failed — abort to avoid infinite loop
+            print(f"  X Commit failed, leaving dirty state for manual resolution")
+            break
 
+        did_commit = True
         if VERBOSE:
             print(f"  Committed: {commit_msg}")
 

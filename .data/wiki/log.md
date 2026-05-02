@@ -65,3 +65,23 @@ Source: chs-export session 76b50f85-6b2f-4a73-be58-d04cb15fc9a7
 Content: Complete envelope structure for handoff v2 — build_envelope() 3 top-level keys + checksum, build_resume_snapshot() 13 required + 8 optional params, schema v2 strict validation. Local marketplace installation details.
 Page: wiki/concepts/handoff-envelope-schema.md
 Hash: 9ff9ec00ba8e443c0e5ad9f9e45f79e2381d19779b363f0f13b4a73470cb8a04
+
+## 2026-04-29
+
+- **crawl4ai**: [Claude Code Hooks: Complete Guide to All 12 Lifecycle Events](sources/claudefa.st/000-blog-tools-hooks-hooks-guide.md)
+  - URL: https://claudefa.st/blog/tools/hooks/hooks-guide
+  - SHA256: f2328ca0607c2ead65aaecf097f404f112408696b23bb9547f813abb1f3c7f00
+  - Source: crawl-ingest skill (crawl4ai → QMD)
+  - Related: hook-discovery, hook-debugging, hook-implementation-plan, rca-go-stop-hooks
+
+## 2026-04-29
+- **Claude Code Hooks: Complete Guide to All 12 Lifecycle Events** (P:\.data\wiki\sources\claudefa.st\000-blog-tools-hooks-hooks-guide.md)
+  - URL: https://claudefa.st/blog/tools/hooks/hooks-guide
+  - SHA256: 87e100778fde89ccd519593b5023342e17dfec5bf1e7f337af10c5d4f6f9c0dd
+  - Source: crawl-ingest
+
+## 2026-04-29
+- **Example Domain** (P:\.data\wiki\sources\example.com\000-.md)
+  - URL: https://example.com
+  - SHA256: afbe8ebdfffe8026d9bec5c5b006005661c1f715df2d060fec6cea228b9aa28a
+  - Source: crawl-ingest

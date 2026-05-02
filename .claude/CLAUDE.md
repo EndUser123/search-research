@@ -19,6 +19,34 @@ Key principles (enforced structurally):
 
 ---
 
+## Bulk Refactoring Rule
+
+**Core principle: Use atomic operations for directory restructuring.**
+
+When restructuring directories (move, rename, split packages), the sqa incident showed that separate delete + create risks losing files.
+
+### The Rule
+
+1. **Always use `git mv`** — never separate delete + create
+   - `git mv .claude/skills/foo packages/cc-skills-bar/skills/foo`
+   - This preserves git history and ensures files aren't lost
+2. **One logical operation per commit** — move first, then modify
+3. **Verify before committing** — `git status` should show renames (R), not delete+add
+
+### Anti-Patterns
+
+| Pattern | Why it fails | Fix |
+|---------|-------------|-----|
+| `rm -rf dir/` + `mkdir new/` + copy files | Files lost if process interrupted | `git mv dir/ new/` |
+| Delete in commit A, create in commit B | Files missing in commit A's tree | Single atomic commit |
+| Mass delete (`git rm *`) without verification | Lost files (sqa incident) | `git mv` + check |
+
+### Evidence
+
+The sqa incident (commit d1d4d2a): `SKILL.md` and `orchestrator.py` were deleted from `.claude/skills/sqa/` but never copied to `packages/cc-skills-sdlc/skills/sqa/`. Recovery required `git show d1d4d2a^:path > file`.
+
+---
+
 ## Terminal & Session Behavior
 
 - **Terminal isolation**: Each terminal has isolated state
@@ -72,6 +100,50 @@ Before finalizing, run this self-check:
 5. If I am uncertain, did I say so plainly?
 
 The canonical text for this contract lives in `P:/.claude/templates/llm_behavior_contract.md`.
+
+### Epistemic Contract (Structured Analysis)
+
+When producing analytical answers about code, tools, or behavior, use this structure:
+
+```
+[FACT]
+- ...
+
+[INFERENCE]
+- ...
+
+[UNKNOWN]
+- ...
+
+[RECOMMENDATION]
+- ...
+```
+
+Rules:
+
+- Every non-trivial sentence must appear under one of these sections as a bullet.
+- **[FACT]** is for grounded observations only:
+  - Include an explicit source suffix: `(source: filename:line)`, `(source: pytest output above)`.
+  - If you cannot cite a source, it is NOT a FACT; move it to [INFERENCE].
+- **[INFERENCE]** is for hypotheses and interpretations:
+  - Always use uncertainty language ("may", "might", "could", "this suggests").
+  - Refer back to specific FACTs when possible.
+- **[UNKNOWN]** is for what you do NOT know:
+  - Do not include causal or comparative claims here.
+  - You can say "I do not know X because Y is missing", but don't guess.
+- **[RECOMMENDATION]** is for concrete next steps:
+  - State the goal or priority, any assumptions, and a brief rationale.
+  - If using "best"/"optimal"/"lowest risk", tie them to a criterion: "best for maintainability".
+
+Evidence reuse:
+
+- Before re-running tools, check whether their outputs already appear in this session's logs.
+- Quote or restate those outputs in [FACT] with a `(source: ...)` suffix instead of re-executing.
+
+Causal and comparative language:
+
+- Causal ("because", "is caused by", "the reason is"): in [FACT] only with evidence; in [INFERENCE] only with uncertainty; never in [UNKNOWN].
+- Comparative ("best", "optimal", "simpler"): in [FACT] only quoting external sources; in [RECOMMENDATION] always specify criterion and assumptions.
 
 ---
 

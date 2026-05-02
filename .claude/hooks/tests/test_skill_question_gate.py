@@ -17,9 +17,14 @@ import pytest
 # Add __lib to path for FileLock
 sys.path.insert(0, str(Path(__file__).parent.parent / "__lib"))
 
-import PreToolUse_skill_question_gate as pre_mod
+# Plugin src for skill-guard hooks (single source of truth)
+_PLUGIN_SRC = Path("P:/packages/skill-guard/src")
+if _PLUGIN_SRC.exists():
+    sys.path.insert(1, str(_PLUGIN_SRC))
+
+from skill_guard.PreToolUse.PreToolUse_skill_question_gate import run as pre_run
+import skill_guard.PreToolUse.PreToolUse_skill_question_gate as pre_mod
 import Stop_skill_question_marker as stop_mod
-from PreToolUse_skill_question_gate import run as pre_run
 from Stop_skill_question_marker import run as stop_run
 
 

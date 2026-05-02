@@ -25,7 +25,7 @@ def run_hook(test_input: dict, env_vars: dict | None = None) -> tuple[dict, str,
     Returns:
         Tuple of (result_dict, stdout, stderr)
     """
-    hook_path = Path("P:/.claude/hooks/PreToolUse/PreToolUse_skill_pattern_gate.py")
+    hook_path = Path("P:/packages/skill-guard/src/skill_guard/PreToolUse/PreToolUse_skill_pattern_gate.py")
 
     # Default environment - disable daemon to test fallback
     default_env = {

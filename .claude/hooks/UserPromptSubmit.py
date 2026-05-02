@@ -288,58 +288,10 @@ def main():
         except Exception:
             pass
 
-    # --- Next Step Options: single-letter choice bridge (A/B/...) ---
-    # This must run BEFORE the "len(prompt) < 5" early-exit.
-    #
-    # Stale immunity WITHOUT TTL:
-    # - If there's a pending menu and the user does NOT reply with a single letter,
-    #   we clear the menu state immediately.
-    # - If the user replies with a valid letter, we clear state and rewrite prompt.
-    try:
-        from __lib.next_step_choice_state import (
-            clear_next_step_menu,
-            detect_letter_choice,
-            get_pending_next_step_menu,
-            resolve_choice_to_command,
-        )
-
-        pending_menu = get_pending_next_step_menu(data)
-        choice = detect_letter_choice(prompt)
-
-        if pending_menu and choice is not None:
-            resolved = resolve_choice_to_command(pending_menu, choice)
-            if resolved:
-                cmd, display = resolved
-                clear_next_step_menu(data)
-
-                output = {
-                    "hookSpecificOutput": {
-                        "hookEventName": "UserPromptSubmit",
-                        "additionalContext": f"**✓ Next Step selected:** {choice} - {display}",
-                        "replacePrompt": cmd,
-                    }
-                }
-                print(json.dumps(output))
-                sys.exit(0)
-
-            # Choice provided, but not valid for the pending menu => clear (stale immune).
-            clear_next_step_menu(data)
-
-        elif pending_menu and choice is None:
-            # User said something else; do not keep the old menu alive.
-            clear_next_step_menu(data)
-
-    except Exception:
-        # Fail open: never block user prompts.
-        pass
-
     # Check for prompt choice responses (short prompts like "0", "1", "enhanced")
     # These should be allowed even if less than 5 characters
     choice_indicators = ["0", "1", "enhanced", "original", "[0]", "[1]"]
     is_choice_response = any(prompt.strip().lower() == c.lower() for c in choice_indicators)
-
-    # Also allow numeric Next Step choice inputs (even if no menu is pending).
-    is_next_step_choice = bool(re.fullmatch(r"\d+", prompt.strip()))
 
     # Also allow slash commands (e.g., /gto, /ask, /arch) - these trigger skill execution
     is_slash_command = bool(re.match(r"^/\w+", prompt.strip()))
@@ -347,7 +299,6 @@ def main():
     if not prompt or (
         len(prompt.strip()) < 5
         and not is_choice_response
-        and not is_next_step_choice
         and not is_slash_command
     ):
         print("{}")
@@ -426,6 +377,32 @@ def main():
             output = {}
     else:
         output = {}
+
+    # Budget trace logging
+    _TRACE_LOG = HOOKS_DIR / "logs" / "diagnostics" / "ups_budget_trace.jsonl"
+    try:
+        _TRACE_LOG.parent.mkdir(parents=True, exist_ok=True)
+        final_budget = data.get("remaining_budget", "unknown")
+        total_injected = sum(len(i) for i in injections) if injections else 0
+        skipped = data.get("skipped_budget", [])
+
+        trace = {
+            # initial_budget: hard cap (safe padding, not a tuned limit)
+            # final_budget: chars remaining for this turn's injections
+            # total_injected_chars: sum of all hook injections this turn
+            # modules_skipped_budget: modules that ran but produced no injection
+            "turn_id": data.get("turn_id", "unknown"),
+            "initial_budget": 20000,
+            "final_budget": final_budget,
+            "total_injected_chars": total_injected,
+            "modules_skipped_budget": skipped,
+            "safety_tier_fired": data.get("_safety_tier_count", 0),
+        }
+        with open(_TRACE_LOG, "a", encoding="utf-8") as f:
+            f.write(json.dumps(trace) + "\n")
+    except Exception as e:
+        import sys as _sys
+        print(f"[UserPromptSubmit] Budget trace logging failed: {e}", file=_sys.stderr)
 
     print(json.dumps(output))
 
