@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "e00d2737-50a9-4564-9a91-b16fbe1a6ed0",
+    "terminal_id": "console_f2d81ae7-c814-4255-bf6d-930e8f5a616e",
+    "source_session_id": "e7d41b2b-9a67-4009-af43-1322d1ee5589",
+    "created_at": "2026-05-02T00:31:10.845532+00:00",
+    "expires_at": "2026-05-02T00:51:10.845532+00:00",
+    "status": "rejected_stale",
+    "goal": "yes please",
+    "current_task": "yes please",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "P:/packages/cc-skills-utils/skills/gitingest/SKILL.md",
+      "P:/.staging/trading-agents.yaml",
+      "P:\\packages\\search-research\\ARCHITECTURE.md",
+      "P:\\packages\\search-research\\BASELINE.md",
+      "P:/packages/search-research/core/chs/embeddings.py",
+      "P:/packages/search-research/core/chs/indexer.py",
+      "P:\\.claude\\hooks\\SessionStart.py",
+      "P:\\.claude\\hooks\\UserPromptSubmit_modules\\unified_injector.py",
+      "P:\\.claude\\hooks\\UserPromptSubmit_modules\\context_summary.py",
+      "P:\\.claude\\hooks\\UserPromptSubmit_modules\\handoff_context_injector.py"
+    ],
+    "pending_operations": [
+      {
+        "type": "read",
+        "target": "P:\\packages\\search-research\\core\\__init__.py",
+        "state": "in_progress"
+      },
+      {
+        "type": "read",
+        "target": "P:\\packages\\search-research\\search_research\\__init__.py",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "claude mcp call search-research 2>&1 | head -10",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "cd \"P:/packages/search-research\" && python -c \"\nimport sys\nsys.path.insert(0, 's",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "cd \"P:/packages/search-research\" && timeout 5 uv run python -m search_research.m",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "(advisory) Previous session had pending: read on P:\\packages\\search-research\\core\\__init__.py.",
+    "decision_refs": [],
+    "evidence_refs": [
+      "ev_800b1668a4424cba97913e1646f70360",
+      "ev_ef34698cb54e423e80935ab18d759a12",
+      "ev_6dadcfc4706c43b8a750a2eccfa67a2d",
+      "ev_f372b60a00a747aabd264feb53f37bce",
+      "ev_55ca765771084d808ae8ae801665d3b0",
+      "ev_642ad33c4458470589039cb3047a0718"
+    ],
+    "n_1_transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\e7d41b2b-9a67-4009-af43-1322d1ee5589.jsonl",
+    "n_2_transcript_path": null,
+    "message_intent": "instruction",
+    "goal_origin": "user_message",
+    "quality_score": 0.4,
+    "tasks_snapshot": [],
+    "session_chain": [
+      "e7d41b2b-9a67-4009-af43-1322d1ee5589"
+    ],
+    "last_user_message": "Push only is not good enough, since it barely works.  I think we already have various search endpoints for our search research system and backends.  Why do you say we would need an MCP server? Do we need one or is it just optimal?  Search Research already has an MCP server, but it's not working. We would probably want to fix it and enhance it if needed.",
+    "rejected_at": "2026-05-02T00:32:44.179711+00:00",
+    "rejected_by_session_id": "e7d41b2b-9a67-4009-af43-1322d1ee5589",
+    "rejection_reason": "snapshot evidence path outside project directory"
+  },
+  "decision_register": [],
+  "evidence_index": [
+    {
+      "id": "ev_800b1668a4424cba97913e1646f70360",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\e7d41b2b-9a67-4009-af43-1322d1ee5589.jsonl",
+      "content_hash": "sha256:28c738e4817fb036536bd620a22e50afffe9bc6f8fde408f19271ba42ea98186"
+    },
+    {
+      "id": "ev_ef34698cb54e423e80935ab18d759a12",
+      "type": "file",
+      "label": "SKILL.md",
+      "path": "P:\\packages\\cc-skills-utils\\skills\\gitingest\\SKILL.md",
+      "content_hash": "sha256:87932b7ba6234875afbf064921c388e162fe825edb5ae1f0bff495af0787f2db"
+    },
+    {
+      "id": "ev_6dadcfc4706c43b8a750a2eccfa67a2d",
+      "type": "file",
+      "label": "trading-agents.yaml",
+      "path": "P:\\.staging\\trading-agents.yaml",
+      "content_hash": "sha256:d5c6e1b53f03e598b1d0bd5a4ffa0bec7d9d39f1b3f3a8c7e8d14a5f38807019"
+    },
+    {
+      "id": "ev_f372b60a00a747aabd264feb53f37bce",
+      "type": "file",
+      "label": "ARCHITECTURE.md",
+      "path": "P:\\packages\\search-research\\ARCHITECTURE.md",
+      "content_hash": "sha256:9f2a71e115305ddef29be00d5a77710555f11bb6be69dc57a471aada9c4b6871"
+    },
+    {
+      "id": "ev_55ca765771084d808ae8ae801665d3b0",
+      "type": "file",
+      "label": "BASELINE.md",
+      "path": "P:\\packages\\search-research\\BASELINE.md",
+      "content_hash": "sha256:a4cc33a92c1b5ad8fa214d102a6abeb21c9450e3d6aec99f61827d0b0905d117"
+    },
+    {
+      "id": "ev_642ad33c4458470589039cb3047a0718",
+      "type": "file",
+      "label": "embeddings.py",
+      "path": "P:\\packages\\search-research\\core\\chs\\embeddings.py",
+      "content_hash": "sha256:f1ad62ad62ea31f77f3d2ddfdbd7ce7dd9f019064b7e5877de9b6b769fe94745"
+    }
+  ],
+  "checksum": "sha256:79fbfb82a1bf1e73ca9334d9a3e9601a615421eefb8e30adaf226c2c5ab36670",
+  "environment_context": {
+    "git_state": {
+      "branch": "main",
+      "has_uncommitted_changes": true,
+      "last_commit": {
+        "hash": "57e76dcd",
+        "message": "chore(hooks): update hooks,tests",
+        "timestamp": "2026-04-23 17:42:04 -0600"
+      }
+    }
+  }
+}

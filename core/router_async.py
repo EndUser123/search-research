@@ -271,7 +271,10 @@ class AsyncSearchRouter:
         try:
             backends["qmd_wiki"] = local.QMDWikiBackend()
         except Exception as e:
-            logger.debug(f"QMD Wiki backend not available: {e}")
+            if "backend unavailable" in str(e).lower():
+                logger.warning(f"QMD_WIKI backend unavailable: {e}")
+            else:
+                logger.warning(f"QMD Wiki backend not available: {e}")
 
         # yt-is backend - searches YouTube transcript cache via FTS5
         try:

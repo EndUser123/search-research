@@ -1,0 +1,1 @@
+{"id":"gen-1777563178-BiTmM2oH8L8VjO2NZQCK","type":"message","role":"assistant","content":[],"model":"tencent/hy3-preview-20260421:free","stop_reason":"end_turn","usage":{"input_tokens":1872,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0},"output_tokens":2500}}

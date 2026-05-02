@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "641bb32e-0a28-4261-a19c-dd19bbeac277",
+    "terminal_id": "console_4dabaf3a-7bb0-4b78-bfdc-5f8d300d7e17",
+    "source_session_id": "4d7fe48b-5a2e-4cf8-b73d-977936238468",
+    "created_at": "2026-04-28T15:27:10.931674+00:00",
+    "expires_at": "2026-04-28T15:47:10.931674+00:00",
+    "status": "rejected_stale",
+    "goal": "cc-bf --model GLM-5.1, should use the models that the existing cc-glm uses.\ncc-bf --model M2.7, should use the models that the existing cc-mm uses.\n\n\"  Detected a custom API key in your environment\n\n  ANTHROPIC_API_KEY: sk-ant-...e0-8669-d9e874661853\n\n  Do you want to use this API key?\n\n    1. Yes\n  ❯ 2. No (recommended)\",   what do I do with this?  Will there be consequences?  Can this be set per powershell script?",
+    "current_task": "cc-bf --model GLM-5.1, should use the models that the existing cc-glm uses. cc-bf --model M2.7, should use the models that the existing cc-mm uses. \" Detected a custom API key in your environment ANTHROPIC_API_KEY: sk-ant-...e0-8669-d9e874661853 Do you want to use this API key? 1. Yes ❯ 2. No (recommended)\", what do I do with this? Will there be consequences? Can this be set per powershell script?",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "C:\\Users\\brsth\\.claude\\projects\\P--\\4d7fe48b-5a2e-4cf8-b73d-977936238468\\tool-results\\call_function_ph5zk7pwmjem_2.json",
+      "C:/Users/brsth/.config/bifrost/config.json",
+      "/c/Users/brsth/AppData/Roaming/npm/pi",
+      "/c/Users/brsth/AppData/Roaming/npm/node_modules/@mariozechner/pi-coding-agent/dist/core/model-registry.js",
+      "C:/Users/brsth/AppData/Roaming/npm/node_modules/@mariozechner/pi-coding-agent/node_modules/@mariozechner/pi-ai/dist/models.generated.js",
+      "C:\\Users\\brsth\\.config\\bifrost\\config.json",
+      "P:\\.claude\\proxy\\cc-glm.ps1",
+      "P:\\.claude\\proxy\\cc-mm.ps1",
+      "P:/.claude/proxy/cc-bifrost.ps1",
+      "C:/Users/brsth/Documents/PowerShell/Microsoft.PowerShell_profile.ps1"
+    ],
+    "pending_operations": [
+      {
+        "type": "command",
+        "target": "netstat -tlnp 2>/dev/null | grep 8080 || ss -tlnp 2>/dev/null | grep 8080 || ech",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "netstat -ano 2>/dev/null | grep \":8080\" || echo \"netstat failed\"",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "powershell -Command \"Get-Process -Id 13284 | Select-Object Name, Id, Path\" 2>/de",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "cd /tmp && npx -y @maximhq/bifrost -port 8081",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "sleep 3 && curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8081/ 2>/dev/",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "(advisory) Previous session had pending: command on netstat -tlnp 2>/dev/null | grep 8080 || ss -tlnp 2>/dev/null | grep 8080 || ech.",
+    "decision_refs": [
+      "dec_7994354b2663480cad65ae08ba9f724c",
+      "dec_38ebafbc84d14ee98c8c74f9f6c42d48"
+    ],
+    "evidence_refs": [
+      "ev_24f07eebef9a4e8e8910b2bb326739ee",
+      "ev_b06f5557fd1448c5bee0df07e0eaa334",
+      "ev_f1373823ee394f688cc54457a3262aee",
+      "ev_b08a3d3f13424f55985cb7983934c948",
+      "ev_c0ffb897e9e145e8aa8dac9a166737d6",
+      "ev_32902b3eec2445fd9b2e26892ae4ca2f"
+    ],
+    "n_1_transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\4d7fe48b-5a2e-4cf8-b73d-977936238468.jsonl",
+    "n_2_transcript_path": null,
+    "message_intent": "unsupported_language",
+    "goal_origin": "user_message",
+    "quality_score": 0.4,
+    "tasks_snapshot": [],
+    "session_chain": [
+      "4d7fe48b-5a2e-4cf8-b73d-977936238468"
+    ],
+    "last_user_message": "cc-bf --model GLM-5.1, should use the models that the existing cc-glm uses.\ncc-bf --model M2.7, should use the models that the existing cc-mm uses.\n\n\"  Detected a custom API key in your environment\n\n  ANTHROPIC_API_KEY: sk-ant-...e0-8669-d9e874661853\n\n  Do you want to use this API key?\n\n    1. Yes\n  ❯ 2. No (recommended)\",   what do I do with this?  Will there be consequences?  Can this be set per powershell script?",
+    "rejected_at": "2026-04-28T15:28:51.457048+00:00",
+    "rejected_by_session_id": "4d7fe48b-5a2e-4cf8-b73d-977936238468",
+    "rejection_reason": "snapshot evidence changed: Current compact transcript"
+  },
+  "decision_register": [
+    {
+      "id": "dec_7994354b2663480cad65ae08ba9f724c",
+      "kind": "constraint",
+      "summary": "`cc-bf` is not in the loaded profile — that's the problem. PS7 loads the **OneDrive copy** (`C:\\Users\\brsth\\OneDrive\\Documents\\PowerShell\\`), which is where your `cc-glm` and `cc-mm` are, but `cc-bf` was never added there.",
+      "details": "`cc-bf` is not in the loaded profile — that's the problem. PS7 loads the **OneDrive copy** (`C:\\Users\\brsth\\OneDrive\\Documents\\PowerShell\\`), which is where your `cc-glm` and `cc-mm` are, but `cc-bf` was never added there.",
+      "priority": "high",
+      "applies_when": "Continue the current task after compact.",
+      "source_refs": [
+        "ev_24f07eebef9a4e8e8910b2bb326739ee"
+      ]
+    },
+    {
+      "id": "dec_38ebafbc84d14ee98c8c74f9f6c42d48",
+      "kind": "constraint",
+      "summary": "The OneDrive profile has no `cc-bf` — I was editing the wrong file. PS7 loads the OneDrive copy at `C:\\Users\\brsth\\OneDrive\\Documents\\PowerShell\\`. That's why it never worked.",
+      "details": "The OneDrive profile has no `cc-bf` — I was editing the wrong file. PS7 loads the OneDrive copy at `C:\\Users\\brsth\\OneDrive\\Documents\\PowerShell\\`. That's why it never worked.",
+      "priority": "high",
+      "applies_when": "Continue the current task after compact.",
+      "source_refs": [
+        "ev_24f07eebef9a4e8e8910b2bb326739ee"
+      ]
+    }
+  ],
+  "evidence_index": [
+    {
+      "id": "ev_24f07eebef9a4e8e8910b2bb326739ee",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\4d7fe48b-5a2e-4cf8-b73d-977936238468.jsonl",
+      "content_hash": "sha256:73d2ab6089d82287b25fbc7c41ef823c0addc2efc29f297509d5b76f5a495b61"
+    },
+    {
+      "id": "ev_b06f5557fd1448c5bee0df07e0eaa334",
+      "type": "file",
+      "label": "call_function_ph5zk7pwmjem_2.json",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\4d7fe48b-5a2e-4cf8-b73d-977936238468\\tool-results\\call_function_ph5zk7pwmjem_2.json",
+      "content_hash": "sha256:4af5b00fae895d9f88eae5f4aacd268e5a451b692d76d36d7f2a54d66c946876"
+    },
+    {
+      "id": "ev_f1373823ee394f688cc54457a3262aee",
+      "type": "file",
+      "label": "config.json",
+      "path": "C:\\Users\\brsth\\.config\\bifrost\\config.json",
+      "content_hash": "sha256:28d84a53053f3bb589d2175352664674b539e5259d850dc0d4a5030e6b2932d8"
+    },
+    {
+      "id": "ev_b08a3d3f13424f55985cb7983934c948",
+      "type": "file",
+      "label": "pi",
+      "path": "P:\\c\\Users\\brsth\\AppData\\Roaming\\npm\\pi"
+    },
+    {
+      "id": "ev_c0ffb897e9e145e8aa8dac9a166737d6",
+      "type": "file",
+      "label": "model-registry.js",
+      "path": "P:\\c\\Users\\brsth\\AppData\\Roaming\\npm\\node_modules\\@mariozechner\\pi-coding-agent\\dist\\core\\model-registry.js"
+    },
+    {
+      "id": "ev_32902b3eec2445fd9b2e26892ae4ca2f",
+      "type": "file",
+      "label": "models.generated.js",
+      "path": "C:\\Users\\brsth\\AppData\\Roaming\\npm\\node_modules\\@mariozechner\\pi-coding-agent\\node_modules\\@mariozechner\\pi-ai\\dist\\models.generated.js",
+      "content_hash": "sha256:0f5f45d0a4d1a05a54393a3468d3d115bf5c63d1acc319dda440f6dcfe661dab"
+    }
+  ],
+  "checksum": "sha256:4b31c5585e831f80c3e3a676bbed2055a7dd024f1213f41f4f92d3cd3eea90ae",
+  "environment_context": {
+    "git_state": {
+      "branch": "main",
+      "has_uncommitted_changes": true,
+      "last_commit": {
+        "hash": "57e76dcd",
+        "message": "chore(hooks): update hooks,tests",
+        "timestamp": "2026-04-23 17:42:04 -0600"
+      }
+    }
+  }
+}
