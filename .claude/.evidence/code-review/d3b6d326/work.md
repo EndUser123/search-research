@@ -1,0 +1,56 @@
+# Review Target
+
+Target: P:/packages/snapshot
+
+Files (147):
+- P:\packages\snapshot\sub_agent_invocation_example.py
+- P:\packages\snapshot\core\__init__.py
+- P:\packages\snapshot\examples\basic_usage.py
+- P:\packages\snapshot\scripts\checkpoint_chain.py
+- P:\packages\snapshot\scripts\checkpoint_ops.py
+- P:\packages\snapshot\scripts\cli.py
+- P:\packages\snapshot\scripts\config.py
+- P:\packages\snapshot\scripts\fix_test_imports.py
+- P:\packages\snapshot\scripts\migrate.py
+- P:\packages\snapshot\scripts\models.py
+- P:\packages\snapshot\scripts\protocol.py
+- P:\packages\snapshot\scripts\__init__.py
+- P:\packages\snapshot\tests\add_non_english_tests.py
+- P:\packages\snapshot\tests\conftest.py
+- P:\packages\snapshot\tests\test_canonical_goal_extraction.py
+- P:\packages\snapshot\tests\test_conflict_detection.py
+- P:\packages\snapshot\tests\test_context_gathering_boundaries.py
+- P:\packages\snapshot\tests\test_continuation_rule.py
+- P:\packages\snapshot\tests\test_correction_message_detection.py
+- P:\packages\snapshot\tests\test_dependency_state.py
+- P:\packages\snapshot\tests\test_deterministic_checksums.py
+- P:\packages\snapshot\tests\test_edge_case_transcripts.py
+- P:\packages\snapshot\tests\test_envelope_schema_validation.py
+- P:\packages\snapshot\tests\test_git_state.py
+- P:\packages\snapshot\tests\test_haiku_conversation_summary.py
+- P:\packages\snapshot\tests\test_handoff_context_preservation.py
+- P:\packages\snapshot\tests\test_handoff_full_integration.py
+- P:\packages\snapshot\tests\test_handoff_integration.py
+- P:\packages\snapshot\tests\test_handoff_meta_discussion.py
+- P:\packages\snapshot\tests\test_handoff_regression_skill_capture.py
+- P:\packages\snapshot\tests\test_handoff_skill_definition_filter.py
+- P:\packages\snapshot\tests\test_handoff_task_injector.py
+- P:\packages\snapshot\tests\test_handoff_ttl.py
+- P:\packages\snapshot\tests\test_intent_classification.py
+- P:\packages\snapshot\tests\test_intent_integration.py
+- P:\packages\snapshot\tests\test_last_substantive_message_integration.py
+- P:\packages\snapshot\tests\test_last_user_message.py
+- P:\packages\snapshot\tests\test_lifecycle_phase.py
+- P:\packages\snapshot\tests\test_p0_characterization.py
+- P:\packages\snapshot\tests\test_p0_filelock_toctou.py
+- P:\packages\snapshot\tests\test_pending_operations_extraction.py
+- P:\packages\snapshot\tests\test_performance_canonical_goal.py
+- P:\packages\snapshot\tests\test_precompact_capture_improvements.py
+- P:\packages\snapshot\tests\test_restoration_message.py
+- P:\packages\snapshot\tests\test_skill_invocation_goal_drift.py
+- P:\packages\snapshot\tests\test_state_transition_validation.py
+- P:\packages\snapshot\tests\test_task_identity_manager_terminal_scope.py
+- P:\packages\snapshot\tests\test_terminal_isolation.py
+- P:\packages\snapshot\tests\test_three_message_iteration.py
+- P:\packages\snapshot\tests\test_tool_result_skipping.py
+- ... and 97 more
