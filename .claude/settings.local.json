@@ -64,7 +64,8 @@
       "mcp__plugin_playwright_playwright__browser_navigate",
       "Bash(mkdir -p \"P:/.claude/.artifacts/default/refactor/skill-guard\")",
       "Bash(cp \"P:/tmp/agent_1_findings.json\" \"P:/.claude/.artifacts/default/refactor/skill-guard/agent_1.json\")",
-      "mcp__MiniMax__web_search"
+      "mcp__MiniMax__web_search",
+      "Bash(rm -rf \"C:/Users/brsth/.claude/plugins/cache/local/skill-guard\")"
     ],
     "deny": [],
     "ask": []

@@ -12,7 +12,7 @@ param(
 # Available routes are dynamically loaded from the Bifrost DB at runtime.
 # Run 'cc-bf' with no arguments to see all available routes.
 
-$env:ANTHROPIC_BASE_URL = "http://localhost:8080/anthropic"
+$env:ANTHROPIC_BASE_URL = "http://localhost:8081/anthropic"
 $env:ANTHROPIC_API_KEY = "sk-bf-49998d75-3b06-4e72-8547-741cb81b497e"
 
 # Default: Sonnet=M27, Opus=GLM-5.1, Haiku=M27
@@ -218,7 +218,7 @@ if ($modelOverride) {
 Write-Host ""
 Write-Host "Bifrost Configuration:" -ForegroundColor Yellow
 Write-Host "   - Provider:             Bifrost AI Gateway" -ForegroundColor White
-Write-Host "   - Endpoint:            http://localhost:8080/anthropic" -ForegroundColor White
+Write-Host "   - Endpoint:            http://localhost:8081/anthropic" -ForegroundColor White
 Write-Host "   - Sonnet:              $env:ANTHROPIC_DEFAULT_SONNET_MODEL" -ForegroundColor White
 Write-Host "   - Opus:                $env:ANTHROPIC_DEFAULT_OPUS_MODEL" -ForegroundColor White
 Write-Host "   - Haiku:               $env:ANTHROPIC_DEFAULT_HAIKU_MODEL" -ForegroundColor White
