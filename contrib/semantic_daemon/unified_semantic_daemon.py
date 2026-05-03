@@ -109,6 +109,7 @@ from search_research.cache import QueryCache
 # =============================================================================
 
 PIPE_NAME = r"\\.\pipe\csf_semantic"  # Fallback/legacy name
+WRITE_SIGNAL_PIPE_NAME = r"\\.\pipe\csf_semantic_write_signal"  # Advisory write-signal pipe
 DISCOVERY_FILE = Path("P:/__csf/data/semantic_daemon_discovery.json")
 PID_FILE = Path("P:/__csf/data/semantic_daemon.pid")
 MAX_DAEMON_AGE = 3600  # Maximum daemon age in seconds (1 hour) before old non-canonical daemons should self-terminate
@@ -532,23 +533,11 @@ class UnifiedSemanticDaemon:
     """
 
     def __init__(self, pipe_name: str = PIPE_NAME, num_workers: int = 8):
-        # Generate dynamic pipe name if using default
-        if pipe_name == PIPE_NAME:
-            self.pid = os.getpid()
-            self.timestamp = int(time.time())
-            self._pipe_name = rf"\\.\pipe\csf_semantic_{self.pid}_{self.timestamp}"
-        else:
-            self._pipe_name = pipe_name
-            # Extract PID/timestamp if provided in dynamic format
-            import re
-
-            match = re.search(r"csf_semantic_(\d+)_(\d+)", pipe_name)
-            if match:
-                self.pid = int(match.group(1))
-                self.timestamp = int(match.group(2))
-            else:
-                self.pid = os.getpid()
-                self.timestamp = int(time.time())
+        # Use fixed pipe name — stale handle protection is now handled by write-signal
+        # mechanism (immediate FAISS refresh on CKS write) rather than dynamic naming
+        self._pipe_name = PIPE_NAME
+        self.pid = os.getpid()
+        self.timestamp = int(time.time())
 
         self._num_workers = num_workers
         self._running = False
@@ -566,6 +555,7 @@ class UnifiedSemanticDaemon:
         self._last_faiss_update_time = 0  # Track last FAISS update
         self._faiss_update_enabled = True  # Enable/disable FAISS updates
         self._faiss_updating = False  # Flag to prevent concurrent FAISS updates
+        self._faiss_dirty = False  # Flag set by write-signal to trigger immediate FAISS update
         self._staleness_cache = {"entries": {}, "last_updated": 0}
         self._stats_lock = threading.Lock()
         self._stats = {
@@ -1017,6 +1007,9 @@ class UnifiedSemanticDaemon:
         )
         self._server_thread.start()
 
+        # Start write-signal server (advisory CKS write notifications)
+        self._start_write_signal_server()
+
         # AT-006: Start JsonlWatcher thread for JSONL file detection
         def _jsonl_watcher_loop():
             """Wrapper for JsonlWatcher watch loop."""
@@ -1313,10 +1306,10 @@ class UnifiedSemanticDaemon:
             except Exception as e:
                 logger.warning(f"CHS re-index failed: {e}")
 
-        # FAISS update check: every 10 minutes of idle time
+        # FAISS update check: triggered by write-signal (immediate) or every 10 minutes of idle time
         if self._faiss_update_enabled:
             time_since_faiss = time.time() - self._last_faiss_update_time
-            if time_since_faiss > FAISS_UPDATE_INTERVAL and not self._faiss_updating:
+            if (self._faiss_dirty or time_since_faiss > FAISS_UPDATE_INTERVAL) and not self._faiss_updating:
                 try:
                     self._ensure_chs_indexed()  # Cascades to FAISS update
                     logger.info(f"FAISS update triggered (idle for {idle:.0f}s)")
@@ -1504,6 +1497,7 @@ class UnifiedSemanticDaemon:
             DISCOVERY_FILE.parent.mkdir(parents=True, exist_ok=True)
             discovery_data = {
                 "pipe_name": self._pipe_name,
+                "write_signal_pipe": WRITE_SIGNAL_PIPE_NAME,
                 "pid": self.pid,
                 "timestamp": self.timestamp,
             }
@@ -1919,6 +1913,127 @@ class UnifiedSemanticDaemon:
                 pass
 
         logger.info("Server loop ended")
+
+    # -------------------------------------------------------------------------
+    # Write-Signal Server (advisory CKS write notifications)
+    # -------------------------------------------------------------------------
+
+    def _start_write_signal_server(self) -> None:
+        """Start the write-signal server thread."""
+        if not WIN32_AVAILABLE:
+            logger.warning("Write-signal server: win32file not available, skipping")
+            return
+        t = threading.Thread(target=self._write_signal_server_loop, daemon=True, name="WriteSignalServer")
+        t.start()
+        logger.info(f"Write-signal server thread started on {WRITE_SIGNAL_PIPE_NAME}")
+
+    def _write_signal_server_loop(self) -> None:
+        """Server loop for the advisory write-signal pipe.
+
+        This pipe receives fire-and-forget notifications from cks_context when
+        new CKS entries are written. Each notification sets self._faiss_dirty = True
+        which triggers an immediate FAISS update on the next check_idle_work() call.
+
+        This does NOT block the main server loop - it runs in its own thread.
+        """
+        while self._running:
+            try:
+                # Create the write-signal pipe
+                handle = win32pipe.CreateNamedPipe(
+                    WRITE_SIGNAL_PIPE_NAME,
+                    win32pipe.PIPE_ACCESS_DUPLEX | win32file.FILE_FLAG_OVERLAPPED,
+                    win32pipe.PIPE_TYPE_MESSAGE | win32pipe.PIPE_READMODE_MESSAGE | win32pipe.PIPE_WAIT,
+                    1,
+                    MAX_PIPE_SIZE,
+                    MAX_PIPE_SIZE,
+                    5000,  # 5 second timeout
+                    None,
+                )
+                logger.info(f"Write-signal pipe created: {WRITE_SIGNAL_PIPE_NAME}")
+            except pywintypes.error as e:
+                logger.warning(f"Write-signal pipe creation failed: {e}, will retry in 5s")
+                time.sleep(5)
+                continue
+
+            try:
+                # Wait for client connection
+                overlapped = pywintypes.OVERLAPPED()
+                overlapped.hEvent = win32event.CreateEvent(None, True, False, None)
+                win32pipe.ConnectNamedPipe(handle, overlapped)
+                result = win32event.WaitForSingleObject(overlapped.hEvent, 5000)
+
+                if result == win32event.WAIT_TIMEOUT:
+                    win32file.CloseHandle(handle)
+                    continue
+
+                # Read the JSON message (length-prefixed like main pipe)
+                try:
+                    ld_result = win32file.ReadFile(handle, 4)
+                    if isinstance(ld_result, tuple) and len(ld_result) >= 2:
+                        ld = ld_result[1] if isinstance(ld_result[1], bytes) else ld_result[0]
+                    else:
+                        ld = ld_result[0]
+                    length = struct.unpack("<I", ld)[0]
+
+                    # Read JSON data
+                    data = b""
+                    rem = length
+                    while rem > 0:
+                        result = win32file.ReadFile(handle, min(4096, rem))
+                        if isinstance(result, tuple) and len(result) >= 2:
+                            chunk = result[1] if isinstance(result[1], bytes) else result[0]
+                        else:
+                            chunk = result[0]
+                        data += chunk
+                        rem -= len(chunk)
+
+                    msg = json.loads(data.decode("utf-8"))
+                    self._log_to_file(f"[WRITE_SIGNAL] Received: {msg}")
+
+                    # Handle the write signal
+                    self.handle_write_signal(msg)
+
+                    # Send ACK
+                    ack = b"\x01\x00\x00\x00"  # Length=1, data=b"\x01"
+                    win32file.WriteFile(handle, ack)
+
+                except Exception as e:
+                    self._log_to_file(f"[WRITE_SIGNAL] Error reading message: {e}")
+
+            except Exception as e:
+                self._log_to_file(f"[WRITE_SIGNAL] Connection error: {e}")
+            finally:
+                try:
+                    win32file.CloseHandle(handle)
+                except Exception:
+                    pass
+
+    def handle_write_signal(self, msg: dict[str, Any]) -> None:
+        """Handle an incoming write-signal message.
+
+        Sets self._faiss_dirty = True to trigger an immediate FAISS update
+        on the next check_idle_work() call. Also logs the signal for debugging.
+
+        Args:
+            msg: Parsed JSON message from cks_context. Expected keys:
+                 - action: "cks_write"
+                 - entry_id: int or str
+                 - entry_type: str
+                 - workspace: str
+                 - terminal_id: str
+        """
+        action = msg.get("action", "")
+        if action != "cks_write":
+            self._log_to_file(f"[WRITE_SIGNAL] Unknown action: {action}")
+            return
+
+        entry_id = msg.get("entry_id", "unknown")
+        entry_type = msg.get("entry_type", "unknown")
+        self._log_to_file(
+            f"[WRITE_SIGNAL] CKS write signal received: entry_id={entry_id}, type={entry_type}"
+        )
+        self._faiss_dirty = True
+        logger.info(f"Write signal received, faiss_dirty=True (entry_id={entry_id})")
 
     # -------------------------------------------------------------------------
     # Pipe I/O
@@ -2859,6 +2974,7 @@ class UnifiedSemanticDaemon:
                     try:
                         self._update_faiss_index()
                         self._last_faiss_update_time = time.time()
+                        self._faiss_dirty = False  # Clear after successful update
                     except Exception as e:
                         logger.warning(f"FAISS update failed: {e}")
 

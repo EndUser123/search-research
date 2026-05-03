@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "resume_snapshot": {
+    "schema_version": 2,
+    "snapshot_id": "06dc9480-6d00-4cdd-b73c-376f83f7b5b1",
+    "terminal_id": "console_f2d81ae7-c814-4255-bf6d-930e8f5a616e",
+    "source_session_id": "e7d41b2b-9a67-4009-af43-1322d1ee5589",
+    "created_at": "2026-05-03T14:44:01.177125+00:00",
+    "expires_at": "2026-05-03T15:04:01.177125+00:00",
+    "status": "rejected_stale",
+    "goal": "is the push side working optimally?  In theory, the push side could have told you about the hooks.",
+    "current_task": "is the push side working optimally? In theory, the push side could have told you about the hooks.",
+    "progress_percent": 65,
+    "progress_state": "in_progress",
+    "blockers": [],
+    "active_files": [
+      "P:/packages/cc-skills-utils/skills/gitingest/SKILL.md",
+      "P:/.staging/trading-agents.yaml",
+      "P:\\packages\\search-research\\ARCHITECTURE.md",
+      "P:\\packages\\search-research\\BASELINE.md",
+      "P:/packages/search-research/core/chs/embeddings.py",
+      "P:/packages/search-research/core/chs/indexer.py",
+      "P:\\.claude\\hooks\\SessionStart.py",
+      "P:\\.claude\\hooks\\UserPromptSubmit_modules\\unified_injector.py",
+      "P:\\.claude\\hooks\\UserPromptSubmit_modules\\context_summary.py",
+      "P:\\.claude\\hooks\\UserPromptSubmit_modules\\handoff_context_injector.py"
+    ],
+    "pending_operations": [
+      {
+        "type": "command",
+        "target": "cd \"P:/packages/search-research\" && python -m core.cli \"hook system proactive co",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "cd \"P:/packages/search-research\" && python -m core.cli \"claude-mem semantic sear",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "cd \"P:/packages/search-research\" && python -m core.cli \"MCP model context protoc",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "cd \"P:/packages/search-research\" && python -m core.cli \"pull model vs push model",
+        "state": "in_progress"
+      },
+      {
+        "type": "command",
+        "target": "ls \"P:/packages/search-research/skills/research/scripts/\" 2>&1",
+        "state": "in_progress"
+      }
+    ],
+    "next_step": "(advisory) Previous session had pending: command on cd \"P:/packages/search-research\" && python -m core.cli \"hook system proactive co.",
+    "decision_refs": [
+      "dec_a071bc9fa4654ca3ac002b98408421da",
+      "dec_8c51aa5875a54c649b756821649b6de7"
+    ],
+    "evidence_refs": [
+      "ev_48883156aad742c196989d32f54ba7b9",
+      "ev_a44afb17652846b4a2422d784c3e3f6f",
+      "ev_c73777f505e448f28ba416ec72f1d044",
+      "ev_b07419df10074ba79de20f5113187ba9",
+      "ev_df96010e418f4d509d50888a86c11f0a",
+      "ev_729816b3ba6b4fe9ab7fe16daa9bb259"
+    ],
+    "n_1_transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\e7d41b2b-9a67-4009-af43-1322d1ee5589.jsonl",
+    "n_2_transcript_path": null,
+    "message_intent": "question",
+    "goal_origin": "user_message",
+    "quality_score": 0.4,
+    "tasks_snapshot": [],
+    "session_chain": [
+      "e7d41b2b-9a67-4009-af43-1322d1ee5589"
+    ],
+    "last_user_message": "Base directory for this skill: P:\\packages\\.claude-marketplace\\plugins\\cc-skills-utils\\skills\\research\n\n# Research Skill\n\n## Purpose\n\nConduct comprehensive web research using multiple search providers with intelligent result synthesis, saturation detection, and HyDE-powered query expansion.\n\n## Capabilities\n\n### Providers (working)\n- **tavily** - Fast, comprehensive search (recommended default)\n- **exa** - High-quality technical/engineering results\n- **glm** - Web search via GLM-4.5-Air model\n- **serpapi** - Google results via serpapi.com (250/month free)\n- **webreader** - URL fetching and content extraction (not a search engine)\n- **github** - Code and repository search (requires GITHUB_TOKEN)\n\n### Providers (non-functional)\n- **notebooklm** - Document analysis (requires NotebookLM MCP + notebooks)\n- **claude** - Claude API documentation (requires ANTHROPIC_API_KEY)\n\n### Modes\n- **auto** - Auto-select providers based on query type\n- **web** - Web search with multiple providers\n- **quick** - Fast results from single provider\n\n### Features\n- **HyDE integration** - Query expansion for better results\n- **Saturation detection** - Stop when results are semantically saturated\n- **URL fetching** - Extract full content from search results\n- **Result caching** - Avoid duplicate searches\n- **Multi-provider synthesis** - Combine results from multiple sources\n\n## Your Workflow\n\n1. **Analyze query intent** - Detect if technical, general, or code search\n2. **Select mode** - Choose auto/web/quick based on query complexity\n3. **Choose providers** - Pick appropriate providers for query type\n4. **Execute search** - Parallel queries with saturation detection\n5. **Synthesize results** - Combine and rank from multiple providers\n6. **Fetch URLs** - Extract content when results need verification\n7. **Format output** - Present findings with sources and relevance scores\n\n## Provider Selection Guide\n\n| Query Type | Recommended Providers | Alternative |\n|------------|----------------------|-------------|\n| **General research** | tavily | exa, serpapi |\n| **Technical/Code** | exa, github | - |\n| **AI/ML topics** | tavily, exa | - |\n| **Chinese content** | glm | - |\n| **Documentation** | webreader + tavily | - |\n| **Fast results** | tavily only | quick mode |\n\n## Usage Examples\n\n### Basic research\n```\n/research \"async best practices in Python\"\n```\n\n### Technical search with specific provider\n```\n/research \"FastAPI vs Flask performance\" --mode exa\n```\n(Note: Provider names are used as modes, not as separate --providers flag)\n\n### Quick search\n```\n/research \"numpy array operations\" --mode quick\n```\n\n### Research with URL fetching\n```\n/research \"microservices architecture\" --fetch-urls 10\n```\n\n### Code-specific search\n```\n/research \"pytest fixtures tutorial\" --mode github\n```\n(Note: Provider names are used as modes)\n\n## GitHub Search Routing\n\n### Intelligent Code vs. Repository Detection\n\nWhen using `--mode github`, the system intelligently routes between **code search** and **repository search** based on query patterns:\n\n**Routes to CODE SEARCH when**:\n- **Code keywords detected**: `function`, `class`, `def`, `import`, `async def`, `await`, `const`, `let`, `var`, `interface`, `component`, `hook`, `lambda`, `decorator`, etc.\n- **File extensions present**: `.py`, `.js`, `.ts`, `.java`, `.go`, `.rs`, `.cpp`, `.dockerfile`, `.json`, `.yaml`, etc.\n- **Language specifiers used**: `language:python`, `language:javascript`, etc. (GitHub API syntax)\n\n**Routes to REPOSITORY SEARCH when**:\n- **No code patterns detected**: General queries like \"pytest testing libraries\"\n- **Repository-focused terms**: \"framework\", \"library\", \"package\", \"tool\", \"tutorial\", \"guide\", \"comparison\"\n- **Ambiguous queries**: Defaults to repository search (safe fallback)\n\n### Known Limitations\n\n**False Positives** (documented in pre-mortem analysis):\n- ❌ `\"python async framework\"` → Routes to code search (user wants repos)\n- ❌ `\"import tutorial\"` → Routes to code search (user wants tutorials)\n\n**These occur because**: Current implementation uses keyword presence without phrase-level context analysis.\n\n**Workaround**: Use web providers for repo discovery when you encounter false positives:\n```\n/research \"python async framework\" --mode tavily\n```\n\n### Rate Limit Handling\n\n**Automatic fallback**: If code search is rate-limited by GitHub API, the system automatically falls back to repository search with a warning:\n```\nWarning: \"Code search rate limited - showing repositories instead\"\n```\n\n**Monitoring**: Rate limit errors are logged for monitoring and debugging.\n\n### Examples\n\n**Code search** (finds code files):\n```\n/research \"python function decorator\" --mode github\n/research \"async def await\" --mode github\n/research \"setup.py configuration\" --mode github\n```\n\n**Repository search** (finds repos):\n```\n/research \"pytest testing libraries\" --mode github\n/research \"python web framework\" --mode github\n/research \"machine learning tools\" --mode github\n```\n\n**Language specifier** (GitHub API syntax):\n```\n/research \"language:python async\" --mode github\n/research \"language:javascript react\" --mode github\n```\n\n## Implementation\n\n**Backend**: `P:\\packages\\search-research\\core\\cli.py`\n\n**Entry point**: `python -m search_research.cli [query] --mode [auto|web|quick|tavily|serper|exa|...]`\n\n**Available modes**: `auto`, `web`, `quick`, `tavily`, `exa`, `glm`, `serpapi`, `webreader`, `fetch`, `github`, `claude`, `webreader_mcp`, `notebooklm`\n\n**Key capabilities**:\n- argparse-based CLI with comprehensive options\n- Async provider execution for parallel queries\n- SaturationDetector for intelligent stopping\n- Multiple output formats (JSON, markdown, terminal)\n- Result persistence and caching\n\n## Configuration\n\n**Environment variables** (optional):\n```bash\nexport TAVILY_API_KEY=tvly-xxx\nexport SERPER_API_KEY=xxx\nexport EXA_API_KEY=exa_xxx\nexport PERPLEXITY_API_KEY=pplx-xxx\n```\n\n**Config files**: Searches `P:/.env` and `P:/__csf/.env` automatically\n\n## Output\n\nResults include:\n- **Title** - Result headline\n- **URL** - Source link\n- **Snippet** - Content preview\n- **Score** - Relevance ranking\n- **Provider** - Which provider found it\n- **Timing** - Query duration\n\n## Output Routing\n\nResearch results can be large — multi-provider synthesis with snippets, and especially URL-fetched content, will overflow the caller's context window if returned inline.\n\n**Default behaviour:**\n- Write full results to `.claude/state/research-{query-hash}.md`\n- Return to caller: result file path, result count, top 3 titles, and a 2–3 sentence synthesis. Nothing else inline.\n\n**`--fetch-urls` is always high-output:**\n- Fetched page content MUST be written to artifact files (`.claude/state/research-urls-{hash}/url-{n}.md`), never returned inline.\n- Return to caller: artifact directory path + a one-line summary per URL fetched.\n- Treat `--fetch-urls` the same as a large diff or long log — it goes to Tier 1 (Artifact Store), the caller reads from disk selectively.\n\n**When the caller needs specific content from results:**\n- Use targeted reads of the result artifact (with `offset`/`limit` or `Grep`) rather than re-running the search or inlining the full result file.\n\n## Integration Points\n\n- **CHS** - Can search chat history for related research\n- **CKS** - Can query constitutional knowledge for context\n- **/search** - Complementary local search vs web research\n- **NotebookLM** - Can send results to NotebookLM for analysis\n\n\nARGUMENTS: ideas that we can use to improve the usefulness of our search-research system for context identification and injection.  I'm ok with refactoring and changing technologies if there's an ROI.",
+    "rejected_at": "2026-05-03T14:45:34.810981+00:00",
+    "rejected_by_session_id": "e7d41b2b-9a67-4009-af43-1322d1ee5589",
+    "rejection_reason": "snapshot evidence path outside project directory"
+  },
+  "decision_register": [
+    {
+      "id": "dec_a071bc9fa4654ca3ac002b98408421da",
+      "kind": "constraint",
+      "summary": "**Inferred — not yet verified with runtime evidence.** The transcript (lines 1382-1387) describes the push side as problematic: trigger phrases are brittle, SQL LIKE against 508K entries misses queries like \"what did we build in the last session?\" that don't match any trigger. The push side *should* have surfaced the hook discussion — the conversation happened in `P:\\.claude\\hooks` and included \"hook architecture\", \"push pull\", \"context_followup_detector\" — all of which seem like they should fire trigger phrases. Let me verify the actual cks_context.py trigger configuration:",
+      "details": "**Inferred — not yet verified with runtime evidence.** The transcript (lines 1382-1387) describes the push side as problematic: trigger phrases are brittle, SQL LIKE against 508K entries misses queries like \"what did we build in the last session?\" that don't match any trigger. The push side *should* have surfaced the hook discussion — the conversation happened in `P:\\.claude\\hooks` and included \"hook architecture\", \"push pull\", \"context_followup_detector\" — all of which seem like they should fire trigger phrases. Let me verify the actual cks_context.py trigger configuration:",
+      "priority": "high",
+      "applies_when": "Continue the current task after compact.",
+      "source_refs": [
+        "ev_48883156aad742c196989d32f54ba7b9"
+      ]
+    },
+    {
+      "id": "dec_8c51aa5875a54c649b756821649b6de7",
+      "kind": "constraint",
+      "summary": "No — and you're making a precise architectural point. The push side (trigger phrase matching in `cks_context`) is brittle because: - My query `\"did you check P:/.claude/hooks?\"` doesn't match any `TRIGGER_PHRASES` (none of the patterns cover \"what hooks exist\" or \"check this path\") - I used **Bash** to investigate, not the CKS push mechanism — which means the push side never even fired - The trigger phrases are document-oriented (\"what did we discuss\", \"prior context\") but not system-discovery-oriented (\"what hooks do we have\", \"is there a pull model\") **The gap**: Push-side triggering is limited to natural-language prior-context references. It can't handle arbitrary system discovery questions because those don't contain trigger phrases. That's exactly why I ran `ls` instead — the push side silently failed to fire, and I had no signal that CKS entries about hooks even existed. **The user's implicit point**: If the push side were smarter (semantic pull model), it would have fired when I said \"did you check hooks\" and surfaced the hook discussion from prior sessions. Instead, the push side is dead weight — it fires only on the exact keyword patterns defined, and fails silently for everything else. The question `\"did you check P:/.claude/hooks?\"` falls through the cracks of the trigger phrase system every time. **Falsification condition**: If `\"check hooks\"` were a trigger phrase, and CKS had entries about the pull/push hooks, the push side would have surfaced them automatically. The fact that I had to use Bash to find `auto_commit_hook.py` proves the push side never fired.",
+      "details": "No — and you're making a precise architectural point. The push side (trigger phrase matching in `cks_context`) is brittle because: - My query `\"did you check P:/.claude/hooks?\"` doesn't match any `TRIGGER_PHRASES` (none of the patterns cover \"what hooks exist\" or \"check this path\") - I used **Bash** to investigate, not the CKS push mechanism — which means the push side never even fired - The trigger phrases are document-oriented (\"what did we discuss\", \"prior context\") but not system-discovery-oriented (\"what hooks do we have\", \"is there a pull model\") **The gap**: Push-side triggering is limited to natural-language prior-context references. It can't handle arbitrary system discovery questions because those don't contain trigger phrases. That's exactly why I ran `ls` instead — the push side silently failed to fire, and I had no signal that CKS entries about hooks even existed. **The user's implicit point**: If the push side were smarter (semantic pull model), it would have fired when I said \"did you check hooks\" and surfaced the hook discussion from prior sessions. Instead, the push side is dead weight — it fires only on the exact keyword patterns defined, and fails silently for everything else. The question `\"did you check P:/.claude/hooks?\"` falls through the cracks of the trigger phrase system every time. **Falsification condition**: If `\"check hooks\"` were a trigger phrase, and CKS had entries about the pull/push hooks, the push side would have surfaced them automatically. The fact that I had to use Bash to find `auto_commit_hook.py` proves the push side never fired.",
+      "priority": "high",
+      "applies_when": "Continue the current task after compact.",
+      "source_refs": [
+        "ev_48883156aad742c196989d32f54ba7b9"
+      ]
+    }
+  ],
+  "evidence_index": [
+    {
+      "id": "ev_48883156aad742c196989d32f54ba7b9",
+      "type": "transcript",
+      "label": "Current compact transcript",
+      "path": "C:\\Users\\brsth\\.claude\\projects\\P--\\e7d41b2b-9a67-4009-af43-1322d1ee5589.jsonl",
+      "content_hash": "sha256:216935d323f2e6bd8f3e01bce68120a89224968e1761e9086faf89bec524c155"
+    },
+    {
+      "id": "ev_a44afb17652846b4a2422d784c3e3f6f",
+      "type": "file",
+      "label": "SKILL.md",
+      "path": "P:\\packages\\cc-skills-utils\\skills\\gitingest\\SKILL.md",
+      "content_hash": "sha256:87932b7ba6234875afbf064921c388e162fe825edb5ae1f0bff495af0787f2db"
+    },
+    {
+      "id": "ev_c73777f505e448f28ba416ec72f1d044",
+      "type": "file",
+      "label": "trading-agents.yaml",
+      "path": "P:\\.staging\\trading-agents.yaml",
+      "content_hash": "sha256:d5c6e1b53f03e598b1d0bd5a4ffa0bec7d9d39f1b3f3a8c7e8d14a5f38807019"
+    },
+    {
+      "id": "ev_b07419df10074ba79de20f5113187ba9",
+      "type": "file",
+      "label": "ARCHITECTURE.md",
+      "path": "P:\\packages\\search-research\\ARCHITECTURE.md",
+      "content_hash": "sha256:9f2a71e115305ddef29be00d5a77710555f11bb6be69dc57a471aada9c4b6871"
+    },
+    {
+      "id": "ev_df96010e418f4d509d50888a86c11f0a",
+      "type": "file",
+      "label": "BASELINE.md",
+      "path": "P:\\packages\\search-research\\BASELINE.md",
+      "content_hash": "sha256:a4cc33a92c1b5ad8fa214d102a6abeb21c9450e3d6aec99f61827d0b0905d117"
+    },
+    {
+      "id": "ev_729816b3ba6b4fe9ab7fe16daa9bb259",
+      "type": "file",
+      "label": "embeddings.py",
+      "path": "P:\\packages\\search-research\\core\\chs\\embeddings.py",
+      "content_hash": "sha256:f1ad62ad62ea31f77f3d2ddfdbd7ce7dd9f019064b7e5877de9b6b769fe94745"
+    }
+  ],
+  "checksum": "sha256:e8fd080aea11edd4440bf4ad487511b8935c2e1c50b11acd1cdc901fe0480025",
+  "environment_context": {
+    "git_state": {
+      "branch": "main",
+      "has_uncommitted_changes": true,
+      "last_commit": {
+        "hash": "01cbfc03",
+        "message": "chore(packages\\search-research): update packages\\search-research",
+        "timestamp": "2026-05-02 19:08:23 -0600"
+      }
+    }
+  }
+}
