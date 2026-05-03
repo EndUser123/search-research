@@ -19,6 +19,11 @@ Run plugin-audit-and-fix.py to scan and auto-fix manifest issues across the mark
 python3 "P:/packages/plugin-installer/scripts/plugin-audit-and-fix.py" --auto-fix --marketplace-root "P:/packages/.claude-marketplace"
 ```
 
+### Audit specific plugin
+```bash
+python3 "P:/packages/plugin-installer/scripts/plugin-audit-and-fix.py" --auto-fix --marketplace-root "P:/packages/.claude-marketplace" --plugins <name>
+```
+
 ## What it checks
 
 - Manifest validity and required fields

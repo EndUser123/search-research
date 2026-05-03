@@ -84,13 +84,15 @@ def _save_json(path: Path, obj: dict) -> bool:
         return True
     except OSError:
         return False
-def audit_plugins(plugins_dir: Path, marketplace_root: str) -> list[dict]:
+def audit_plugins(plugins_dir: Path, marketplace_root: str, plugin_filter: Optional[str] = None) -> list[dict]:
     """Audit plugin directories and manifests."""
     results = []
     if not plugins_dir.exists():
         return results
     for plugin in sorted(plugins_dir.iterdir()):
         if plugin.name.startswith(".") or not plugin.is_dir():
+            continue
+        if plugin_filter and plugin.name != plugin_filter:
             continue
         result = {"plugin": plugin.name, "errors": [], "warnings": [], "fixed": False}
         # Check plugin.json
@@ -607,6 +609,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--delete-hooks", action="store_true", help="Delete hooks.json (use with --auto-fix)")
     parser.add_argument("--scan-paths", action="store_true", help="Scan for hardcoded paths")
     parser.add_argument("--scan-name-conflicts", action="store_true", help="Scan for conflicting skill/command names across global and local dirs")
+    parser.add_argument("--plugins", metavar="NAME", help="Filter to a specific plugin name")
     parser.add_argument("--validate", action="store_true", help="Run 'claude plugin validate' on each plugin")
     parser.add_argument("--bump", metavar="PLUGIN_NAME", help="Bump patch version for a plugin in all version files")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
@@ -658,6 +661,8 @@ def main(argv: list[str]) -> int:
         for plugin in sorted(plugins_dir.iterdir()):
             if plugin.name.startswith("."):
                 continue
+            if args.plugins and plugin.name != args.plugins:
+                continue
             plugin_dir = str(plugin)
             result = __import__("subprocess").run(
                 ["claude", "plugin", "validate", plugin_dir],
@@ -674,7 +679,7 @@ def main(argv: list[str]) -> int:
             print(f"{C_GREEN}All plugins validated{C_RESET}")
         return failed
     print("Auditing plugins...")
-    plugin_results = audit_plugins(plugins_dir, mp_root)
+    plugin_results = audit_plugins(plugins_dir, mp_root, plugin_filter=args.plugins)
     error_count = sum(len(r["errors"]) for r in plugin_results)
     warning_count = sum(len(r["warnings"]) for r in plugin_results)
     if error_count > 0 or warning_count > 0:

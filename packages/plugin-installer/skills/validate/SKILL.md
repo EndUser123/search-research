@@ -19,6 +19,11 @@ Run plugin-audit-and-fix.py to validate plugin structure and manifest compliance
 python3 "P:/packages/plugin-installer/scripts/plugin-audit-and-fix.py" --validate --marketplace-root "P:/packages/.claude-marketplace"
 ```
 
+### Validate specific plugin
+```bash
+python3 "P:/packages/plugin-installer/scripts/plugin-audit-and-fix.py" --validate --marketplace-root "P:/packages/.claude-marketplace" --plugins <name>
+```
+
 ## What it validates
 
 - plugin.json exists and has required fields
