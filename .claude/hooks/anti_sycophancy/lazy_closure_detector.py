@@ -92,7 +92,7 @@ LAZY_FIX_PHRASES = [
     r"\bquick\s+fix\b",
     r"\bsimple\s+(?:fix|patch|edit)\b",
     r"\b\d+-line\s+(?:fix|edit|change)\b",  # "5-line fix"
-    r"\b(?:let'?s?\s+|just\s+|simply\s+)?bypass\s+(?:the\s+)?(?:issue|problem|whole\s+\w+)\b",
+    r"\b(?:let'?s?\s+|just\s+|simply\s+)?bypass(?:es)?\s+(?:the\s+)?(?:issue|problem|whole\s+\w+)\b",
     r"\bbypassing\s+(?:the\s+)?(?:issue|problem|validation|check)\b",
     r"\b(?:a|the|this|quick|simple)\s+workaround\b",
     r"\bpropose\s+(?:a\s+)?workaround\b",

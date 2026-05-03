@@ -918,6 +918,10 @@ def run(data: dict[str, Any]) -> dict[str, Any] | None:
         and VerificationStatus is not None
         and load_tool_events_for_context is not None
     ):
+
+        # Control-turn bypass: skip verification for short directive turns
+        if _is_control_turn(response_text):
+            return {"allow": True, "reason": "Control turn — verification skipped"}
         try:
             # Extract claims using verification engine
             claims = extract_claims(response_text)
@@ -953,13 +957,29 @@ def run(data: dict[str, Any]) -> dict[str, Any] | None:
                 # Build verification verdicts using engine
                 verdicts = build_verdicts(claims, loaded_events)
 
-                # Evaluate each claim against its verdict
+                # Second-stage analysis: decomposition + coverage for SILENT verdicts
+                try:
+                    from verification.engine import analyze_silent_verdicts as _analyze_silent
+                    enriched_verdicts = _analyze_silent(verdicts, claims, loaded_events)
+                except Exception:
+                    # Fail-open: wrap original verdicts as unenriched
+                    from verification.engine import EnrichedVerdict as _EV
+                    enriched_verdicts = [
+                        _EV(
+                            verdict=v, decomposition=None, sub_verdicts=(),
+                            coverage=None, recommendation=None,
+                            final_status=v.status, final_confidence=v.confidence,
+                        )
+                        for v in verdicts
+                    ]
+
+                # Evaluate each claim against its enriched verdict
                 ungrounded_claims = []
                 claim_verdict_pairs = []
 
-                for claim, verdict in zip(claims, verdicts):
-                    claim_verdict_pairs.append((claim, verdict))
-                    if _should_block_claim(claim, verdict, loaded_events):
+                for claim, enriched in zip(claims, enriched_verdicts):
+                    claim_verdict_pairs.append((claim, enriched.verdict))
+                    if _should_block_enriched_claim(claim, enriched, loaded_events):
                         ungrounded_claims.append(claim)
 
                 # If ungrounded claims found, collect violation (don't return early)

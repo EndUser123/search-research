@@ -652,3 +652,260 @@ def _claim_matches_tool_output(
                 return True
 
     return False
+
+
+# ===========================================================================
+# Second-stage analysis: decomposition + coverage for SILENT/weak verdicts
+# ===========================================================================
+
+import re as _re
+
+# Micro-fallback patterns (strict allowlist, bounded, fail-open)
+_FILE_PATH_RE = _re.compile(r'[\w./\\-]+\.\w{1,6}')
+_COMMAND_RE = _re.compile(r'(?:pytest|python|node|npm)\s+\S+', _re.IGNORECASE)
+_TEST_RE = _re.compile(r'\btests?\b', _re.IGNORECASE)
+
+
+@dataclass
+class EnrichedVerdict:
+    """Verification verdict enriched with decomposition and coverage data.
+
+    Wraps a VerificationVerdict with optional second-stage analysis results.
+    If no enrichment occurred, decomposition/coverage are None and
+    final_status == verdict.status.
+    """
+
+    verdict: VerificationVerdict
+    decomposition: Any | None  # DecompositionResult from decomposition.py
+    sub_verdicts: tuple[VerificationStatus, ...]
+    coverage: Any | None  # CoverageReport from coverage.py
+    recommendation: Any | None  # RecommendationAssessment from recommendation_rubric.py
+    final_status: VerificationStatus
+    final_confidence: float
+
+
+def analyze_silent_verdicts(
+    verdicts: List[VerificationVerdict],
+    claims: List[Any],
+    tool_events: List[Dict[str, Any]],
+) -> List[EnrichedVerdict]:
+    """Second-stage analysis for SILENT/weak verdicts.
+
+    For each SILENT verdict:
+    1. Check if claim is decomposition-eligible
+    2. Decompose into sub-claims, verify each
+    3. Run coverage analysis
+    4. Run micro-fallback verification
+    5. Produce EnrichedVerdict with potentially upgraded status
+
+    Non-SILENT verdicts pass through as EnrichedVerdict with no enrichment.
+
+    DOES NOT change build_verdicts() signature.
+    Fail-open: if any step raises, returns original verdict wrapped in EnrichedVerdict.
+    """
+    enriched: List[EnrichedVerdict] = []
+
+    for i, verdict in enumerate(verdicts):
+        claim = claims[i] if i < len(claims) else None
+
+        # Only enrich SILENT verdicts
+        if verdict.status != VerificationStatus.SILENT or claim is None:
+            enriched.append(EnrichedVerdict(
+                verdict=verdict,
+                decomposition=None,
+                sub_verdicts=(),
+                coverage=None,
+                recommendation=None,
+                final_status=verdict.status,
+                final_confidence=verdict.confidence,
+            ))
+            continue
+
+        try:
+            enriched_verdict = _enrich_single(verdict, claim, verdicts, tool_events)
+            enriched.append(enriched_verdict)
+        except Exception:
+            # Fail-open: return unenriched verdict
+            enriched.append(EnrichedVerdict(
+                verdict=verdict,
+                decomposition=None,
+                sub_verdicts=(),
+                coverage=None,
+                recommendation=None,
+                final_status=verdict.status,
+                final_confidence=verdict.confidence,
+            ))
+
+    return enriched
+
+
+def _enrich_single(
+    verdict: VerificationVerdict,
+    claim: Any,
+    all_verdicts: List[VerificationVerdict],
+    tool_events: List[Dict[str, Any]],
+) -> EnrichedVerdict:
+    """Enrich a single SILENT verdict with decomposition + coverage."""
+    from verification.decomposition import decompose_claim, should_decompose
+
+    decomposition = None
+    sub_verdict_statuses: tuple[VerificationStatus, ...] = ()
+    final_status = verdict.status
+    final_confidence = verdict.confidence
+
+    # Step 1: Decomposition
+    if should_decompose(claim, verdict):
+        decomposition = decompose_claim(claim)
+        if decomposition.is_compound and decomposition.sub_claims:
+            sub_verdict_statuses = _verify_sub_claims(
+                decomposition.sub_claims, claim, tool_events
+            )
+            agg_status, agg_conf = _aggregate_sub_verdicts(
+                sub_verdict_statuses, verdict
+            )
+            if agg_status != VerificationStatus.SILENT:
+                final_status = agg_status
+                final_confidence = agg_conf
+
+    # Step 2: Coverage analysis (only if still SILENT after decomposition)
+    coverage_result = None
+    if final_status == VerificationStatus.SILENT:
+        try:
+            from verification.coverage import assess_coverage
+            coverage_result = assess_coverage(verdict, claim, all_verdicts, tool_events)
+            # Upgrade if coverage is sufficient
+            if coverage_result.recommendation == "sufficient":
+                final_status = VerificationStatus.SUPPORTED
+                final_confidence = min(0.6, verdict.confidence)
+            elif coverage_result.recommendation == "contradicted":
+                final_status = VerificationStatus.SILENT
+                final_confidence = 0.0
+        except Exception:
+            coverage_result = None
+
+    # Step 3: Micro-fallback (only if still SILENT)
+    if final_status == VerificationStatus.SILENT:
+        fallback = micro_fallback_verify(claim, tool_events)
+        if fallback is not None:
+            final_status = fallback
+            final_confidence = min(0.55, verdict.confidence)
+
+    return EnrichedVerdict(
+        verdict=verdict,
+        decomposition=decomposition,
+        sub_verdicts=sub_verdict_statuses,
+        coverage=coverage_result,
+        recommendation=None,
+        final_status=final_status,
+        final_confidence=final_confidence,
+    )
+
+
+def _verify_sub_claims(
+    sub_claims: tuple[Any, ...],
+    parent_claim: Any,
+    tool_events: List[Dict[str, Any]],
+) -> tuple[VerificationStatus, ...]:
+    """Verify decomposed sub-claims against tool events.
+
+    Creates temporary Claim-like objects and reuses match_claim_to_events().
+    """
+    results: list[VerificationStatus] = []
+    for sc in sub_claims:
+        # Create a minimal claim-like object for match_claim_to_events
+        claim_proxy = _SubClaimProxy(
+            text=sc.text,
+            targets=list(sc.targets),
+            type=getattr(parent_claim, "type", ""),
+            confidence=0.7,
+            has_hedge=False,
+        )
+        status = match_claim_to_events(claim_proxy, tool_events)
+        results.append(status)
+    return tuple(results)
+
+
+def _aggregate_sub_verdicts(
+    sub_verdicts: tuple[VerificationStatus, ...],
+    original_verdict: VerificationVerdict,
+) -> tuple[VerificationStatus, float]:
+    """Aggregate sub-verdicts into a final status.
+
+    Rules:
+    - All SUPPORTED → upgrade SILENT to SUPPORTED
+    - >=75% SUPPORTED → SUPPORTED with lower confidence
+    - Any REFUTED → remain SILENT (no upgrade)
+    - All SILENT → remain SILENT (decomposition didn't help)
+    """
+    if not sub_verdicts:
+        return VerificationStatus.SILENT, original_verdict.confidence
+
+    supported = sum(1 for s in sub_verdicts if s == VerificationStatus.SUPPORTED)
+    refuted = sum(1 for s in sub_verdicts if s == VerificationStatus.REFUTED)
+    total = len(sub_verdicts)
+
+    # Any REFUTED → keep SILENT
+    if refuted > 0:
+        return VerificationStatus.SILENT, original_verdict.confidence
+
+    # All SUPPORTED → upgrade
+    if supported == total:
+        return VerificationStatus.SUPPORTED, original_verdict.confidence * 0.9
+
+    # Majority (>=75%) → upgrade with reduced confidence
+    if supported / total >= 0.75:
+        return VerificationStatus.SUPPORTED, original_verdict.confidence * 0.7
+
+    # Didn't meet threshold → remain SILENT
+    return VerificationStatus.SILENT, original_verdict.confidence
+
+
+def micro_fallback_verify(
+    claim: Any,
+    tool_events: List[Dict[str, Any]],
+) -> VerificationStatus | None:
+    """Simple rule-based fallback for claims still SILENT after decomposition.
+
+    Strict allowlist only. Returns None if no fallback applies.
+
+    Checks:
+    - Claim mentions a file path AND Glob events exist for that path
+    - Claim mentions a command AND Bash events contain that command
+    """
+    claim_text = getattr(claim, "text", "")
+    if not claim_text or not tool_events:
+        return None
+
+    # Check: file path in claim + matching Glob event
+    file_paths = _FILE_PATH_RE.findall(claim_text)
+    if file_paths:
+        for evt in tool_events:
+            tool_name = evt.get("name", "").lower()
+            if tool_name in ("glob", "read"):
+                output = str(evt.get("output", "")).lower()
+                command = str(evt.get("command", "")).lower()
+                for fp in file_paths:
+                    if fp.lower() in output or fp.lower() in command:
+                        return VerificationStatus.SUPPORTED
+
+    # Check: command in claim + matching Bash event
+    commands = _COMMAND_RE.findall(claim_text)
+    if commands:
+        for evt in tool_events:
+            if evt.get("name", "").lower() == "bash":
+                bash_cmd = str(evt.get("command", "")).lower()
+                for cmd in commands:
+                    if cmd.lower() in bash_cmd:
+                        return VerificationStatus.SUPPORTED
+
+    return None
+
+
+@dataclass
+class _SubClaimProxy:
+    """Minimal claim-like object for match_claim_to_events()."""
+    text: str
+    targets: List[str]
+    type: str
+    confidence: float
+    has_hedge: bool

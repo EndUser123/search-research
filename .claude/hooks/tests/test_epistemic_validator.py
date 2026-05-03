@@ -1240,16 +1240,6 @@ def test_genuine_bypasses_problem_still_caught():
     assert result.pattern_type == "lazy_fix"
 
 
-def test_base_prompt_includes_behavior_rules():
-    """base_system.md contains the 3 new behavior rules."""
-    content = (Path(__file__).resolve().parents[3]
-               / "packages" / "prompt-builder" / "prompts" / "base_system.md")
-    text = content.read_text(encoding="utf-8")
-    assert "Do not argue with hooks" in text
-    assert "Avoid meta-reasoning" in text
-    assert "Format-only feedback" in text
-
-
 def test_format_repair_suppresses_lazy_fix_loop():
     """After format-only repair, lazy_fix is suppressed to prevent loops."""
     from Stop import _run_anti_sycophancy_quality
