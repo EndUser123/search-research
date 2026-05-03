@@ -237,11 +237,84 @@ result = client.query(
 
 ## Constants
 
-| Constant                | Value                   | Purpose                             |
-| ----------------------- | ----------------------- | ----------------------------------- |
-| `PIPE_NAME`             | `\\.\pipe\csf_semantic` | Default named pipe                  |
-| `STARTUP_TIMEOUT`       | 6.0s                    | Max wait for daemon ready           |
-| `REQUEST_TIMEOUT`       | 5.0s                    | Per-request timeout                 |
+| Constant                   | Value                            | Purpose                             |
+| -------------------------- | -------------------------------- | ----------------------------------- |
+| `PIPE_NAME`                | `\\.\pipe\csf_semantic`          | Search query named pipe             |
+| `WRITE_SIGNAL_PIPE_NAME`   | `\\.\pipe\csf_semantic_write_signal` | Advisory write-signal pipe   |
+| `STARTUP_TIMEOUT`          | 6.0s                              | Max wait for daemon ready           |
+| `REQUEST_TIMEOUT`          | 5.0s                              | Per-request timeout                 |
+
+## Write-Signal Real-Time FAISS Refresh
+
+The write-signal mechanism replaces the 10-minute time-based staleness window with event-driven immediate FAISS updates when CKS entries are written.
+
+### Architecture
+
+```
+Stop hook (cks_context) → DaemonClient.send_write_signal()
+                         → \\.\pipe\csf_semantic_write_signal
+                         → UnifiedSemanticDaemon.handle_write_signal()
+                         → _faiss_dirty = True
+                         → check_idle_work() triggers immediate FAISS update
+```
+
+### Components
+
+| Component | File | Role |
+|-----------|------|------|
+| `DaemonClient` | `daemon_client.py` | Sends advisory `cks_write` signal via `send_write_signal()` |
+| `UnifiedSemanticDaemon` | `unified_semantic_daemon.py` | Listens on `WRITE_SIGNAL_PIPE_NAME`, sets `_faiss_dirty` on signal |
+| `Stop_cks_correction_anchor.py` | `P:/.claude/hooks/` | Sends signal after `ingest_memory()` for corrections |
+| `Stop_cks_decision_capture.py` | `P:/.claude/hooks/` | Sends signal after `extract_and_ingest_decisions()` |
+
+### Wire Protocol
+
+The write-signal uses the same length-prefixed JSON protocol as the main search pipe:
+
+**Message format:**
+```python
+{
+    "action": "cks_write",
+    "entry_id": "...",      # CKS entry ID from ingest call
+    "entry_type": "...",   # "memory", "correction", "decision", etc.
+    "workspace": "...",   # Workspace path
+    "terminal_id": "..."   # Terminal/session identifier
+}
+```
+
+### Advisory Pattern
+
+The write-signal is **advisory only** — failure does not block CKS ingest:
+
+- Signal send uses fire-and-forget: `try/except` with `return False` on failure
+- If daemon is down, signal fails silently with warning logged
+- If signal is missed, `_faiss_dirty` is set and daemon catches up on next idle loop
+- `_faiss_dirty` cleared after successful FAISS update
+
+### Discovery File
+
+The discovery file now includes `write_signal_pipe`:
+
+```json
+{
+  "pipe_name": "\\\\.\\pipe\\csf_semantic",
+  "write_signal_pipe": "\\\\.\\pipe\\csf_semantic_write_signal",
+  "pid": 12345,
+  "timestamp": 1769657446
+}
+```
+
+### Fixed Pipe Names
+
+The daemon uses fixed pipe names (no dynamic `_{pid}_{timestamp}` suffix). Stale handle protection is handled by the write-signal mechanism — if a new daemon starts and the old one is gone, the signal simply arrives at the new instance.
+
+### Flow Sequence
+
+1. **Ingest**: Stop hook calls `cks.ingest_memory()` or `cks.extract_and_ingest_decisions()`
+2. **Signal**: Stop hook calls `client.send_write_signal(entry_id, entry_type, ...)`
+3. **Receive**: `UnifiedSemanticDaemon.handle_write_signal()` sets `_faiss_dirty = True`
+4. **Refresh**: `check_idle_work()` detects `_faiss_dirty` and triggers immediate FAISS update
+5. **Queryable**: New CKS entry searchable via daemon within ~2 seconds (vs. 10-minute staleness window)
 | `IDLE_SHUTDOWN_TIMEOUT` | Time-based              | Disabled until 9pm, then 30 minutes |
 
 ### Time-Based Idle Timeout
