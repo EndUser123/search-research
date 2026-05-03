@@ -146,6 +146,11 @@ def audit_plugins(plugins_dir: Path, marketplace_root: str) -> list[dict]:
                                     result["errors"].append(f"hooks.{event}[{i}].hooks[{j}] missing 'type' or 'command'")
                                 elif hook.get("type") == "command":
                                     cmd = hook.get("command", "")
+                                    # Check for literal $CLAUDE_PLUGIN_ROOT (not expanded — common snapshot bug)
+                                    if "$CLAUDE_PLUGIN_ROOT" in cmd:
+                                        result["errors"].append(
+                                            f"Hook uses literal $CLAUDE_PLUGIN_ROOT in command (not expanded): {cmd[:80]}"
+                                        )
                                     # Extract script path from command (handles "python script.py --args", "node script.js", etc.)
                                     parts = cmd.split()
                                     if parts:
@@ -153,6 +158,11 @@ def audit_plugins(plugins_dir: Path, marketplace_root: str) -> list[dict]:
                                         # Resolve relative paths from plugin root
                                         if not script_path.is_absolute():
                                             script_path = plugin / script_path
+                                        # Expand known env vars for path resolution
+                                        env_vars = {"CLAUDE_PLUGIN_ROOT": str(plugin)}
+                                        for var, replacement in env_vars.items():
+                                            if var in str(script_path):
+                                                script_path = Path(str(script_path).replace(f"${var}", replacement))
                                         if not script_path.exists():
                                             result["errors"].append(f"Hook command file not found: {script_path}")
         # Check for .claude/.state inside skill subdirectories (not at plugin root)

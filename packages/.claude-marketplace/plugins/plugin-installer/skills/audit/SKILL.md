@@ -2,7 +2,8 @@
 description: Audit all or specific plugins for manifest issues and auto-fix them. Trigger when asked to "audit plugins", "check plugin manifests", "fix plugin issues", or "plugin audit".
 enforcement: advisory
 workflow_steps:
-  - Run plugin-audit-and-fix.py scan
+  - Run plugin-audit-and-fix.py scan (manifests, hooks, structure)
+  - Run plugin-audit-and-fix.py --scan-paths (hardcoded path scan)
   - Auto-fix manifest issues found
   - Report audit results
 ---
