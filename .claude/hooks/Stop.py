@@ -354,9 +354,9 @@ def _run_epistemic_contract(data: dict) -> dict | None:
         if not response:
             return None
 
-        # Skip format enforcement for control/exploration turns
+        # Skip format enforcement for exploration turns
         turn_kind = _detect_turn_kind(data)
-        if turn_kind in ("control", "exploration"):
+        if turn_kind == "exploration":
             return None
 
         mode = os.environ.get("EPISTEMIC_CONTRACT_MODE", "warn")

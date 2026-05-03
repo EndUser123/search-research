@@ -352,7 +352,7 @@ class TestDetectTurnKindExploration:
 
     def test_query_not_exploration(self):
         from Stop import _detect_turn_kind
-        data = {"prompt": "What is the next step?"}
+        data = {"prompt": "What is the current file structure?"}
         assert _detect_turn_kind(data) == "query"
 
     def test_exploration_skips_epistemic_contract(self):
