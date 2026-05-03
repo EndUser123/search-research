@@ -328,27 +328,25 @@ This ensures the daemon stays available during active work hours and auto-shuts 
 
 **Override**: Use `--idle-timeout` argument to manually set idle timeout (0 = disabled, >0 = seconds).
 
-### Dynamic Pipe Names and Discovery File
+### Fixed Pipe Names and Discovery File
 
-The daemon generates dynamic pipe names to avoid Windows stale handle problems:
+The daemon uses **fixed pipe names** (no dynamic `_{pid}_{timestamp}` suffix). Stale handle protection is now handled by the write-signal mechanism — if a daemon crashes and a new one starts, signals arrive at the new instance.
 
-**Problem**: After daemon crash, Windows retains stale pipe handles, preventing new daemons from using the same pipe name.
+**Pipe names:**
 
-**Solution**: Generate unique pipe names per daemon instance using PID and timestamp.
-
-**Pipe name format**: `\\.\pipe\csf_semantic_{PID}_{timestamp}`
-
-Example: `\\.\pipe\csf_semantic_12345_1769657446`
+- `PIPE_NAME`: `\\.\pipe\csf_semantic` — search query pipe
+- `WRITE_SIGNAL_PIPE_NAME`: `\\.\pipe\csf_semantic_write_signal` — advisory write-signal pipe
 
 **Discovery File**: `P:/__csf/data/semantic_daemon_discovery.json`
 
-Clients read this file to find the current daemon's dynamic pipe name.
+Clients read this file to find the current daemon's pipe names.
 
 **Discovery file format**:
 
 ```json
 {
-  "pipe_name": "\\\\.\\pipe\\csf_semantic_12345_1769657446",
+  "pipe_name": "\\\\.\\pipe\\csf_semantic",
+  "write_signal_pipe": "\\\\.\\pipe\\csf_semantic_write_signal",
   "pid": 12345,
   "timestamp": 1769657446
 }
