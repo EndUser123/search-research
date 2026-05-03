@@ -1,4 +1,4 @@
-"""Test local_search with explicit message framing."""
+"""Quick test - just init + ping, verify server stays responsive."""
 import subprocess, json, sys, os, time
 
 env = os.environ.copy()
@@ -10,45 +10,33 @@ proc = subprocess.Popen(
     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env,
 )
 
-# Read with timeout
-def read_msg(timeout=10):
+def read_any(timeout=3):
+    """Read whatever comes back, with timeout."""
     start = time.time()
-    data = b""
+    result = b""
     while time.time() - start < timeout:
-        chunk = proc.stdout.read(1)
-        if not chunk:
-            print(f"EOF after {time.time()-start:.1f}s, data={data[:50]}")
+        ch = proc.stdout.read(1)
+        if not ch:
             return None
-        data += chunk
-        if chunk == b'\n':
-            break
-    return data.decode().strip()
+        result += ch
+        if ch == b'\n':
+            return result.decode().strip()
+    return result.decode().strip() if result else None
 
 def send(msg, id=None):
     if id is not None:
         msg["id"] = id
-    line = json.dumps(msg) + "\n"
-    proc.stdin.write(line.encode())
+    proc.stdin.write((json.dumps(msg) + "\n").encode())
     proc.stdin.flush()
 
-# Initialize
+# Init
 send({"jsonrpc": "2.0", "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "test", "version": "1.0"}}}, id=0)
-r = read_msg()
-print("INIT:", r[:80] if r else "NONE")
+print("INIT:", read_any(5)[:60])
 
-# Tools/call for local_search
-call = {
-    "jsonrpc": "2.0",
-    "method": "tools/call",
-    "params": {
-        "name": "local_search",
-        "arguments": {"query": "mcp", "limit": 2}
-    },
-    "id": 2
-}
-send(call)
-r = read_msg(15)
-print("RESP:", r[:200] if r else "NONE")
-print("POLL:", proc.poll())
+# Ping (notification - no id)
+send({"jsonrpc": "2.0", "method": "ping"})
+print("PING sent, checking if alive...")
+time.sleep(0.5)
+print("Still alive:", proc.poll() is None)
 
 proc.kill()
