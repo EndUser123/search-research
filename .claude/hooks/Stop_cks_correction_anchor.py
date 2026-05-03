@@ -60,6 +60,46 @@ def _get_ingest():
 ENABLED = os.environ.get("STOP_CKS_CORRECTION_ANCHOR_ENABLED", "true").lower() == "true"
 CHALLENGE_MARKER_VERSION = "v1"
 
+# Daemon client for write signal
+_write_signal_client = None
+
+
+def _get_write_signal_client():
+    """Get or create daemon client for write signals."""
+    global _write_signal_client
+    if _write_signal_client is None:
+        try:
+            # Add semantic_daemon path
+            semantic_daemon_path = Path("P:/packages/search-research/contrib/semantic_daemon")
+            if str(semantic_daemon_path) not in sys.path:
+                sys.path.insert(0, str(semantic_daemon_path))
+            from daemons.daemon_client import DaemonClient
+
+            _write_signal_client = DaemonClient(auto_start=False, enable_fallback=True)
+        except Exception:
+            return None
+    return _write_signal_client
+
+
+def _send_write_signal(entry_id: str, entry_type: str, workspace: str, terminal_id: str) -> None:
+    """Send write signal to daemon after CKS ingest (fire-and-forget).
+
+    This is advisory only - failure does not raise, just returns False.
+    The daemon will catch up on its next idle cycle if the signal is missed.
+    """
+    client = _get_write_signal_client()
+    if client is None:
+        return
+    try:
+        client.send_write_signal(
+            entry_id=entry_id,
+            entry_type=entry_type,
+            workspace=workspace,
+            terminal_id=terminal_id,
+        )
+    except Exception:
+        pass  # fire-and-forget, never block
+
 
 def run(data: dict) -> dict | None:
     """Persist skill-dir correction event to CKS.
@@ -132,7 +172,7 @@ def run(data: dict) -> dict | None:
 
         try:
             ingest_memory = _get_ingest()
-            ingest_memory(
+            entry_id = ingest_memory(
                 question=question,
                 answer=answer,
                 entry_type="correction",
@@ -143,6 +183,8 @@ def run(data: dict) -> dict | None:
                 terminal_id=terminal_id,
                 marker_version=CHALLENGE_MARKER_VERSION,
             )
+            # Send write signal to daemon for immediate FAISS refresh (fire-and-forget)
+            _send_write_signal(entry_id, "correction", session_id, terminal_id)
         except Exception:
             pass  # fail open — CKS write error must not block stop
 

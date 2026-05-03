@@ -1,0 +1,18 @@
+{
+  "run_id": "1d2544d3-9fc0-493e-be2c-9c935324ac9d",
+  "skill_name": "cc-skills-sdlc:code-review",
+  "contract_type": "workflow-execution",
+  "phase": "executing",
+  "status": "complete",
+  "terminal_id": "console_979b4813-ac56-4a40-8a8a-b62c3cf1a422",
+  "session_id": "3f389751-c4fe-404d-8631-f04e2d05ce66",
+  "turn_id": null,
+  "created_at": 1777816933.644727,
+  "updated_at": 1777819084.6226764,
+  "required_artifacts": [],
+  "completed_artifacts": [],
+  "missing_requirements": [],
+  "allowed_tools_now": [],
+  "blocked_tools": [],
+  "response_requirements": {}
+}

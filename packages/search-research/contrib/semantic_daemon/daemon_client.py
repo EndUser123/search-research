@@ -46,19 +46,20 @@ CSF_ROOT = Path("P:/__csf")
 DISCOVERY_FILE = CSF_ROOT / "data" / "semantic_daemon_discovery.json"
 
 
-def _read_discovery_pipe_name() -> str | None:
-    """Read discovery file to get current daemon pipe name.
+def _read_discovery_pipe_name() -> tuple[str | None, str | None]:
+    """Read discovery file to get current daemon pipe names.
 
-    Verifies pipe connectivity before returning the pipe name to prevent
+    Verifies pipe connectivity before returning pipe names to prevent
     connecting to zombie daemons with inaccessible pipes.
 
     Returns:
-        Dynamic pipe name if discovery file exists and pipe is accessible, None otherwise
+        Tuple of (pipe_name, write_signal_pipe) if discovery file exists and pipes are accessible
     """
     try:
         if DISCOVERY_FILE.exists():
             data = json.loads(DISCOVERY_FILE.read_text())
             pipe_name = data.get("pipe_name")
+            write_signal_pipe = data.get("write_signal_pipe")
             pid = data.get("pid")
             timestamp = data.get("timestamp", 0)
 
@@ -77,7 +78,7 @@ def _read_discovery_pipe_name() -> str | None:
                     DISCOVERY_FILE.unlink(missing_ok=True)
                 except Exception:
                     pass
-                return None
+                return None, None
 
             # Verify pipe is actually accessible before trusting discovery file
             # This prevents connecting to zombie daemons with dead pipes
@@ -85,7 +86,7 @@ def _read_discovery_pipe_name() -> str | None:
                 if _is_pipe_accessible(pipe_name):
                     # Also verify PID is valid to prevent connection to wrong process
                     if _is_pid_valid(pid):
-                        return pipe_name
+                        return pipe_name, write_signal_pipe
                     else:
                         # Stale PID - clean up discovery file
                         try:
@@ -105,7 +106,7 @@ def _read_discovery_pipe_name() -> str | None:
                         pass
     except Exception:
         pass
-    return None
+    return None, None
 
 
 def _is_pipe_accessible(pipe_name: str) -> bool:
@@ -537,7 +538,7 @@ class DaemonClient(metaclass=_DaemonClientSingleton):
         self._backend_type = backend_type
 
         # Try to read discovery file first to get dynamic pipe name
-        discovery_pipe = _read_discovery_pipe_name()
+        discovery_pipe, discovery_write_signal = _read_discovery_pipe_name()
         if discovery_pipe:
             # Extract just the pipe name from full path (\\.\pipe\csf_semantic_123_456)
             import re
@@ -549,6 +550,8 @@ class DaemonClient(metaclass=_DaemonClientSingleton):
             else:
                 # Fallback to auto-generation
                 self.pipe_name = pipe_name or "csf_semantic"
+            # Use write_signal_pipe from discovery if available, otherwise use default
+            self._write_signal_pipe = discovery_write_signal if discovery_write_signal else r"\\.\pipe\csf_semantic_write_signal"
         else:
             # Auto-generate pipe name if not provided
             if pipe_name is None:
@@ -557,6 +560,7 @@ class DaemonClient(metaclass=_DaemonClientSingleton):
                 else:
                     pipe_name = "csf_semantic"
             self.pipe_name = pipe_name
+            self._write_signal_pipe = r"\\.\pipe\csf_semantic_write_signal"
 
         self.timeout = timeout
         self.max_retries = max_retries
@@ -909,6 +913,61 @@ class DaemonClient(metaclass=_DaemonClientSingleton):
             raise ConnectionError(f"Daemon socket not found: {self._pipe_path}")
         finally:
             sock.close()
+
+    def _send_write_signal(self, msg: dict) -> bool:
+        """Send write signal to daemon via write-signal pipe (fire-and-forget).
+
+        This is advisory only - failure does not raise, just returns False.
+        The signal tells the daemon that CKS entries have been written and
+        it should refresh its FAISS index.
+
+        Args:
+            msg: Dictionary with keys: action, entry_id, entry_type, workspace, terminal_id
+
+        Returns:
+            True if signal sent successfully, False otherwise
+        """
+        if platform.system() != "Windows":
+            return False
+
+        try:
+            import win32file
+            import win32pipe
+            import pywintypes
+
+            # Connect to write signal pipe
+            try:
+                pipe = win32file.CreateFile(
+                    self._write_signal_pipe,
+                    win32file.GENERIC_WRITE,
+                    0,
+                    None,
+                    win32file.OPEN_EXISTING,
+                    0,
+                    None,
+                )
+            except pywintypes.error as e:
+                if e.args[0] == 2:  # File not found
+                    logger.debug(f"Write signal pipe not found: {self._write_signal_pipe}")
+                    return False
+                elif e.args[0] == 233:  # No process on other end
+                    logger.debug(f"Daemon not running on write signal pipe")
+                    return False
+                else:
+                    logger.debug(f"Write signal pipe error: {e}")
+                    return False
+
+            # Send the message
+            request_data = json.dumps(msg).encode("utf-8")
+            message = struct.pack("<I", len(request_data)) + request_data
+            win32file.WriteFile(pipe, message)
+            win32file.CloseHandle(pipe)
+            logger.debug(f"Write signal sent: {msg.get('action')} for entry_id={msg.get('entry_id')}")
+            return True
+
+        except Exception as e:
+            logger.debug(f"Failed to send write signal: {e}")
+            return False
 
     def _fallback_search(self, backend: str, query: str, limit: int | None = None) -> dict:
         """Fallback to direct backend search when daemon unavailable.
@@ -1331,6 +1390,41 @@ class DaemonClient(metaclass=_DaemonClientSingleton):
 
         # Should not reach here
         return {"status": "error", "error": "Max retries exceeded"}
+
+    def send_write_signal(
+        self,
+        entry_id: str,
+        entry_type: str,
+        workspace: str,
+        terminal_id: str,
+    ) -> bool:
+        """Send advisory write signal to daemon after CKS ingest.
+
+        This notifies the daemon that new CKS entries have been written so it
+        can refresh its FAISS index immediately instead of waiting for the
+        10-minute idle timeout.
+
+        This is advisory only - failure does not raise exceptions. The daemon
+        will catch up on its next idle cycle if the signal is missed.
+
+        Args:
+            entry_id: The CKS entry ID that was written
+            entry_type: The CKS entry type (memory, pattern, correction, etc.)
+            workspace: The workspace path where the entry was written
+            terminal_id: The terminal ID where the entry was written
+
+        Returns:
+            True if signal was sent successfully, False if it failed
+                   (daemon down, pipe error, etc.)
+        """
+        msg = {
+            "action": "cks_write",
+            "entry_id": entry_id,
+            "entry_type": entry_type,
+            "workspace": workspace,
+            "terminal_id": terminal_id,
+        }
+        return self._send_write_signal(msg)
 
     def shutdown(self):
         """Shutdown daemon if we started it.

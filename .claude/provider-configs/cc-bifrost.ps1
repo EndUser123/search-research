@@ -8,11 +8,15 @@ param(
 # Usage: cc-bf [--sync] [model]
 #
 # --sync   : backup current config.json, then sync routing rules from DB to config.json
+# --start  : start bifrost-http daemon
+# --restart: stop then start the daemon
+# --shutdown: stop the daemon
+# --dashboard: open Bifrost dashboard in browser
 #
 # Available routes are dynamically loaded from the Bifrost DB at runtime.
 # Run 'cc-bf' with no arguments to see all available routes.
 
-$env:ANTHROPIC_BASE_URL = "http://localhost:8081/anthropic"
+$env:ANTHROPIC_BASE_URL = "http://localhost:8080/anthropic"
 $env:ANTHROPIC_API_KEY = "sk-bf-49998d75-3b06-4e72-8547-741cb81b497e"
 
 # Default: Sonnet=M27, Opus=GLM-5.1, Haiku=M27
@@ -21,12 +25,24 @@ $env:ANTHROPIC_DEFAULT_OPUS_MODEL = "GLM-5.1"
 $env:ANTHROPIC_DEFAULT_HAIKU_MODEL = "M27"
 
 $doSync = $false
+$doStart = $false
+$doRestart = $false
+$doShutdown = $false
+$doDashboard = $false
 $modelOverride = $null
 $i = 0
 while ($i -lt $Args.Count) {
     $arg = $Args[$i]
     if ($arg -eq "--sync") {
         $doSync = $true
+    } elseif ($arg -eq "--start") {
+        $doStart = $true
+    } elseif ($arg -eq "--restart") {
+        $doRestart = $true
+    } elseif ($arg -eq "--shutdown") {
+        $doShutdown = $true
+    } elseif ($arg -eq "--dashboard") {
+        $doDashboard = $true
     } elseif ($arg -eq "--model" -or $arg -eq "-m") {
         $i++
         if ($i -lt $Args.Count) { $modelOverride = $Args[$i] }
@@ -61,7 +77,7 @@ for row in c.fetchall():
     provider = row[2]
     model = row[3]
     import re
-    m = re.search(r'model\s*==\s*\"([^\"]+)\"', cel)
+    m = re.search(r'model\s*==\s*"([^"]+)"', cel)
     if m and provider and model:
         modelName = m.group(1)
         routes[modelName] = {'display': f'{provider}/{model}', 'sonnet': modelName, 'opus': modelName, 'haiku': modelName}
@@ -74,10 +90,8 @@ conn.close()
             $data = ConvertFrom-Json $json
             $ht = @{}
             try {
-                # PowerShell 7+ with -AsHashtable
                 $data.psobject.properties | ForEach-Object { $ht[$_.Name] = $_.Value }
             } catch {
-                # Fallback: enumerate as PSCustomObject
                 foreach ($prop in $data.PSObject.Properties) {
                     $ht[$prop.Name] = $prop.Value
                 }
@@ -159,25 +173,125 @@ function Sync-BifrostConfig {
     Write-Host "   Synced $($rules.Count) rules from DB -> config.json" -ForegroundColor Green
 }
 
+function Get-BifrostProcess {
+    $proc = Get-Process -Name "bifrost-http*" -ErrorAction SilentlyContinue
+    if ($proc) { return $proc }
+    $allProcs = Get-Process -ErrorAction SilentlyContinue
+    foreach ($p in $allProcs) {
+        if ($p.Path -like "*bifrost*") { return $p }
+    }
+    return $null
+}
+
+function Start-BifrostDaemon {
+    $proc = Get-BifrostProcess
+    if ($proc) {
+        Write-Host "   Bifrost already running (PID $($proc.Id))" -ForegroundColor Yellow
+        return
+    }
+    $bifrostBin = "$env:LOCALAPPDATA\bifrost\v1.5.0-prerelease8\bin\bifrost-http.exe-0"
+    if (-not (Test-Path $bifrostBin)) {
+        $bifrostBin = "$env:LOCALAPPDATA\bifrost\v1.5.0-prerelease7\bin\bifrost-http.exe-0"
+    }
+    if (-not (Test-Path $bifrostBin)) {
+        $bifrostBin = "$env:LOCALAPPDATA\bifrost\v1.5.0-prerelease6\bin\bifrost-http.exe-0"
+    }
+    if (-not (Test-Path $bifrostBin)) {
+        Write-Host "   [ERROR] Bifrost binary not found at expected paths" -ForegroundColor Red
+        return
+    }
+    $appDir = "$env:APPDATA\bifrost"
+    $errLog = "$env:TEMP\bifrost_err.log"
+    $proc = Start-Process -FilePath $bifrostBin -ArgumentList "-app-dir=$appDir -port=8080" -PassThru -RedirectStandardError $errLog
+    Start-Sleep -Milliseconds 500
+    $newProc = Get-BifrostProcess
+    if ($newProc) {
+        Write-Host "   Started Bifrost (PID $($newProc.Id)) on port 8080" -ForegroundColor Green
+    } else {
+        Write-Host "   [ERROR] Failed to start Bifrost" -ForegroundColor Red
+    }
+}
+
+function Stop-BifrostDaemon {
+    $proc = Get-BifrostProcess
+    if (-not $proc) {
+        Write-Host "   Bifrost is not running" -ForegroundColor Yellow
+        return
+    }
+    Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Milliseconds 300
+    $remaining = Get-BifrostProcess
+    if (-not $remaining) {
+        Write-Host "   Stopped Bifrost (PID $($proc.Id))" -ForegroundColor Green
+    } else {
+        Write-Host "   [WARN] Bifrost process may still be running (PID $($remaining.Id))" -ForegroundColor Yellow
+    }
+}
+
+function Restart-BifrostDaemon {
+    Stop-BifrostDaemon
+    Start-Sleep -Milliseconds 500
+    Start-BifrostDaemon
+}
+
+function Show-BifrostDashboard {
+    $proc = Get-BifrostProcess
+    if (-not $proc) {
+        Write-Host "   [ERROR] Bifrost is not running -- start it first with /bf start" -ForegroundColor Red
+        return
+    }
+    $port = "8080"
+    try {
+        $procId = $proc.Id
+        $netstatLines = netstat -ano 2>$null
+        foreach ($line in $netstatLines) {
+            if ($line -match "127\.0\.0\.1:(\d+)\s+.*LISTENING\s+$procId") {
+                $port = $matches[1]
+                break
+            }
+        }
+    } catch {}
+    $url = "http://localhost:$port"
+    Write-Host "   Opening dashboard: $url" -ForegroundColor Cyan
+    Start-Process -FilePath $url
+}
+
 # Load routes from DB
 $routingTable = Get-BifrostRoutesFromDb
 
 if ($doSync) {
     Sync-BifrostConfig
-    # Reload after sync
     $routingTable = Get-BifrostRoutesFromDb
+}
+
+if ($doStart) {
+    Start-BifrostDaemon
+    return
+}
+
+if ($doRestart) {
+    Restart-BifrostDaemon
+    return
+}
+
+if ($doShutdown) {
+    Stop-BifrostDaemon
+    return
+}
+
+if ($doDashboard) {
+    Show-BifrostDashboard
+    return
 }
 
 # Build the $routes hashtable for alias resolution
 $routes = @{}
 
-# Add all model names as their own aliases
 foreach ($modelName in $routingTable.Keys) {
     $entry = $routingTable[$modelName]
     $routes[$modelName] = @($modelName, $modelName, $modelName, $entry.display)
 }
 
-# Aliases for routes with multiple shortcut names
 $aliasMap = @{
     "DSv4"      = "DSv4-flash"
     "DeepSeek"  = "DSv4-flash"
@@ -195,7 +309,6 @@ foreach ($alias in $aliasMap.Keys) {
     }
 }
 
-# Apply model override
 if ($modelOverride) {
     $normalizedKey = $modelOverride -replace "^glm-5.1$", "GLM-5.1" `
                                     -replace "^MiniMax-M2.7$", "M27" `
@@ -218,7 +331,7 @@ if ($modelOverride) {
 Write-Host ""
 Write-Host "Bifrost Configuration:" -ForegroundColor Yellow
 Write-Host "   - Provider:             Bifrost AI Gateway" -ForegroundColor White
-Write-Host "   - Endpoint:            http://localhost:8081/anthropic" -ForegroundColor White
+Write-Host "   - Endpoint:            http://localhost:8080/anthropic" -ForegroundColor White
 Write-Host "   - Sonnet:              $env:ANTHROPIC_DEFAULT_SONNET_MODEL" -ForegroundColor White
 Write-Host "   - Opus:                $env:ANTHROPIC_DEFAULT_OPUS_MODEL" -ForegroundColor White
 Write-Host "   - Haiku:               $env:ANTHROPIC_DEFAULT_HAIKU_MODEL" -ForegroundColor White

@@ -258,102 +258,6 @@ _PLANNING_PROMPT_RE = re.compile(
 )
 
 
-def _detect_turn_kind(data: dict) -> str:
-    """Classify user message as 'control' vs 'query/plan/report'.
-
-    Control turns (short imperative commands) should bypass quality gates
-    so that corrections, overrides, and direct instructions are not derailed
-    by format/lazy advisory messages.
-    """
-    user_prompt = data.get("user_prompt") or data.get("prompt") or ""
-    if not user_prompt:
-        return "control"  # Empty = continuation turn; suppress quality gates
-
-    stripped = user_prompt.strip()
-    if not stripped:
-        return "control"  # Whitespace-only = continuation turn
-
-    # Short imperative commands are control turns
-    # Heuristic: single sentence, starts with imperative verb, no question mark
-    words = stripped.split()
-    first_word = words[0].lower() if words else ""
-
-    # Control indicators: direct commands, corrections, overrides
-    control_starts = (
-        "stop", "don't", "do ", "don't ",  # "do X" is two words
-        "use ", "use/",
-        "instead", "actually", "wait",
-        "no,", "yes,", "yeah,",
-        "re-read", "re-read",
-        "skip", "bypass",
-        "override", "ignore",
-        "fix ", "check ",
-        "run ", "call ", "invoke ",
-        "add ", "remove ", "delete ", "create ",
-        "write ", "edit ", "read ",
-    )
-
-    # Check if first word signals control intent
-    if any(stripped.lower().startswith(s) for s in control_starts):
-        return "control"
-
-    # Also check for single-word control signals at start
-    if first_word in ("stop", "skip", "bypass", "override", "ignore", "actually", "wait"):
-        return "control"
-
-    # Planning-style prompts = plan (not control)
-    if _PLANNING_PROMPT_RE.search(stripped):
-        return "plan"
-
-    # Short responses to status queries = report
-    report_indicators = ("[status]", "[changes]", "[results]", "[next]", "status:")
-    if any(stripped.lower().startswith(ri) for ri in report_indicators):
-        return "report"
-
-    # Exploration: architecture/design discussion prompts
-    _EXPLORATION_KEYWORDS = (
-        "should we", "alternatives", "tradeoffs", "trade-offs", "downsides",
-        "better approach", "what if we", "consider using", "worth considering",
-        "optimal approach", "design decision", "refactor or", "consolidate or",
-        "which is better", "pros and cons", "evaluate options",
-        "compare", "versus", "vs.", "migration strategy",
-    )
-    if any(kw in stripped.lower() for kw in _EXPLORATION_KEYWORDS):
-        return "exploration"
-
-    # Question marks = query (only after control patterns are evaluated)
-    if "?" in stripped:
-        return "query"
-
-    # Default: query
-    return "query"
-
-
-def _detect_turn_mode(data: dict) -> str:
-    """Classify turn as plan, report, or analysis mode.
-
-    Uses user prompt (intent) and response (markers) to determine mode.
-    Plan/report modes skip epistemic format repair and lazy_fix gates.
-    """
-    response = data.get("response", "")
-
-    # Report mode: check for explicit status markers
-    report_markers = ("[STATUS]", "[CHANGES]", "[RESULTS]", "[NEXT]")
-    if sum(1 for m in report_markers if m in response) >= 2:
-        return "report"
-
-    # Plan mode: check response markers first
-    if "[PLAN]" in response or "[RATIONALE]" in response:
-        return "plan"
-
-    # Plan mode: check user prompt for planning intent
-    user_prompt = data.get("user_prompt") or data.get("prompt") or ""
-    if user_prompt and _PLANNING_PROMPT_RE.search(user_prompt):
-        return "plan"
-
-    return "analysis"
-
-
 def _run_epistemic_contract(data: dict) -> dict | None:
     """Unified epistemic validator — format, citations, causal, comparative."""
     try:
@@ -364,8 +268,7 @@ def _run_epistemic_contract(data: dict) -> dict | None:
             return None
 
         # Skip format enforcement for exploration turns
-        turn_kind = _detect_turn_kind(data)
-        if turn_kind == "exploration":
+        if _classify_turn_mode(data) == "exploration":
             return None
 
         mode = os.environ.get("EPISTEMIC_CONTRACT_MODE", "warn")
@@ -398,7 +301,7 @@ def _run_epistemic_contract(data: dict) -> dict | None:
             }
         if verdict.decision == "warn" and verdict.issues:
             turn_mode = _classify_turn_mode(data)
-            if turn_mode in ("plan", "report", "exploration"):
+            if turn_mode in ("plan", "execution-report", "exploration"):
                 return None  # Skip format enforcement for plan/report/exploration turns
             # Auto-repair: if ALL issues are format-only, inject a single
             # repair prompt instead of surfacing the raw advisory.
@@ -818,9 +721,8 @@ def _run_anti_sycophancy_quality(data: dict) -> dict | None:
                     if all_format:
                         lazy = [m for m in lazy if m.pattern_type != "lazy_fix"]
                 # Also suppress lazy_fix and sycophancy_capitulation for plan/report/exploration turns
-                turn_mode = _detect_turn_mode(data)
-                turn_kind = _detect_turn_kind(data)
-                if turn_mode in ("plan", "report") or turn_kind == "exploration":
+                _turn = _classify_turn_mode(data)
+                if _turn in ("plan", "execution-report", "exploration"):
                     lazy = [m for m in lazy if m.pattern_type not in ("lazy_fix", "sycophancy_capitulation")]
             if lazy:
                 block_matches = [m for m in lazy if m.severity == "block"]
@@ -1411,8 +1313,8 @@ def _run_existence_gate(data: dict) -> dict | None:
 def _run_lazy_workaround_gate(data: dict) -> dict | None:
     """Detect accept-bug-as-feature lazy workaround suggestions."""
     try:
-        turn_mode = _detect_turn_mode(data)
-        if turn_mode in ("plan", "report"):
+        _turn = _classify_turn_mode(data)
+        if _turn in ("plan", "execution-report"):
             return None
         import Stop_lazy_workaround_gate
 
@@ -1752,18 +1654,18 @@ GATE_CLASSES: dict[str, str] = {
     "cross_validator": "policy",
     "unverified_stance": "policy",
     "correction_acknowledgment": "policy",
-    "dependency_chain_guard": "policy",
-    "comparative_claim_guard": "policy",
+    "dependency_chain_guard": "quality",
+    "comparative_claim_guard": "quality",
     "behavior_gates_agreement": "policy",
-    "behavior_gates_guidance": "policy",
+    "behavior_gates_guidance": "quality",
     "behavior_gates_blacklist": "policy",
     "command_execution_validator": "policy",
-    "recommendation_gate": "policy",
+    "recommendation_gate": "quality",
     "deletion_verification_guard": "policy",
     "git_diff_reground": "policy",
     "skill_dir_correlation": "policy",
     "cks_correction_anchor": "policy",
-    "referent_coverage": "policy",
+    "referent_coverage": "quality",
     # Quality gates — suppressed on control turns in normal mode
     "epistemic_contract": "quality",
     "behavior_audit": "quality",
@@ -1847,6 +1749,47 @@ def run_side_effect(hook_name: str, input_data: str) -> None:
                 print(f"[Stop side-effect error] {hook_name}: {stderr}", file=sys.stderr)
     except Exception as e:
         print(f"[Stop side-effect exception] {hook_name}: {e}", file=sys.stderr)
+
+
+def _run_gate_safe(name: str, gate_fn, data: dict) -> dict | None:
+    """Run a single gate, catching exceptions to prevent cascade failure."""
+    try:
+        return gate_fn(data)
+    except Exception as e:
+        print(f"[Stop] gate {name} crashed: {e}", file=sys.stderr)
+        return None
+
+
+def _process_gate_result(
+    res: dict, name: str, system_messages: list[str],
+    quality_messages: list[str], data: dict,
+) -> bool:
+    """Route a gate result: block exits immediately, otherwise route systemMessage.
+    Returns True if the turn was blocked (caller should exit), False to continue."""
+    if not res:
+        return False
+    if res.get("decision") == "block":
+        _log_stop_block_event(data, name, res)
+        if "blocking_hook" not in res:
+            res["blocking_hook"] = f"Stop.py:{name}"
+        print(json.dumps(res))
+        return True
+    if "systemMessage" in res:
+        gate_class = GATE_CLASSES.get(name, "policy")
+        if gate_class == "policy":
+            system_messages.append(res["systemMessage"])
+        else:
+            quality_messages.append(res["systemMessage"])
+    return False
+
+
+def _merge_quality_messages(
+    system_messages: list[str], quality_messages: list[str],
+    turn_mode: str, quality_mode: str,
+) -> None:
+    """Append quality messages to system_messages only when not suppressed."""
+    if not is_quality_mode_suppressed(turn_mode, quality_mode):
+        system_messages.extend(quality_messages)
 
 
 def get_hook_health_summary(session_id: str | None = None) -> dict | None:
@@ -2027,43 +1970,22 @@ def main():
 
     _pin_scope_env(data)
 
-    turn_kind = _detect_turn_kind(data)
+    # Classify turn mode once — used for quality gate suppression
+    turn_mode = _classify_turn_mode(data)
     quality_mode = os.environ.get("STOP_QUALITY_MODE", "normal")
 
     system_messages: list[str] = []
     quality_messages: list[str] = []
 
-    # Process Blocking Gates (in-process, fast)
+    # Run all in-process gates
     for name, gate_fn in IN_PROCESS_GATES:
-        try:
-            res = gate_fn(data)
-        except Exception as e:
-            print(f"[Stop] gate {name} crashed: {e}", file=sys.stderr)
-            continue
-
-        if not res:
-            continue
-
-        if res.get("decision") == "block":
-            _log_stop_block_event(data, name, res)
-            if "blocking_hook" not in res:
-                res["blocking_hook"] = f"Stop.py:{name}"
-            print(json.dumps(res))
+        res = _run_gate_safe(name, gate_fn, data)
+        blocked = _process_gate_result(res, name, system_messages, quality_messages, data)
+        if blocked:
             sys.exit(0)
 
-        if "systemMessage" in res:
-            gate_class = GATE_CLASSES.get(name, "policy")
-            if gate_class == "policy":
-                system_messages.append(res["systemMessage"])
-            else:
-                quality_messages.append(res["systemMessage"])
-
-    # Quality gate filtering: suppress quality messages on control/exploration turns
-    # in normal mode (allow corrections and direct instructions through).
-    # Strict mode or other turns: include quality messages.
-    turn_mode = _classify_turn_mode(data)
-    if not is_quality_mode_suppressed(turn_mode, quality_mode):
-        system_messages.extend(quality_messages)
+    # Merge quality messages based on turn mode and enforcement mode
+    _merge_quality_messages(system_messages, quality_messages, turn_mode, quality_mode)
 
     # Process Side Effects (only if not blocked)
     if SIDE_EFFECTS:

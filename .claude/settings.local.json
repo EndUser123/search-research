@@ -65,7 +65,9 @@
       "Bash(mkdir -p \"P:/.claude/.artifacts/default/refactor/skill-guard\")",
       "Bash(cp \"P:/tmp/agent_1_findings.json\" \"P:/.claude/.artifacts/default/refactor/skill-guard/agent_1.json\")",
       "mcp__MiniMax__web_search",
-      "Bash(rm -rf \"C:/Users/brsth/.claude/plugins/cache/local/skill-guard\")"
+      "Bash(rm -rf \"C:/Users/brsth/.claude/plugins/cache/local/skill-guard\")",
+      "Bash(mkdir -p \"P:/.claude/.evidence/code-review/d3b6d326/specialists\")",
+      "mcp__search-research__web_search"
     ],
     "deny": [],
     "ask": []

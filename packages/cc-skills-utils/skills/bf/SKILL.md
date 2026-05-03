@@ -13,9 +13,8 @@ disable-model-invocation: true
 triggers:
   - /bf
 workflow_steps:
-  - import bf_agent
-  - call run_simple / run_compare / run_code
-  - report result
+  - 'if first arg is start, restart, shutdown, or dashboard: run powershell -File P:/.claude/provider-configs/cc-bifrost.ps1 --<arg>'
+  - 'else: import bf_agent, call run_simple / run_compare / run_code, report result'
 ---
 
 You are a Bifrost workbench controller.
@@ -48,9 +47,19 @@ No HTTP, no curl, no subprocess. Just Python in-process.
 - Tool actions: read_file, list_dir, glob, write_file, final_answer
 - Tool results fed back to model each turn until final_answer or max_turns
 
+## Management Commands
+
+These invoke `cc-bifrost.ps1` for process lifecycle control:
+
+- `/bf start` — start bifrost-http daemon on port 8080
+- `/bf restart` — stop then start the daemon
+- `/bf shutdown` — stop the daemon
+- `/bf dashboard` — open `http://localhost:<port>` in default browser
+
 ## Invocation
 
   /bf <mode> <model> <prompt...>
+  /bf start|restart|shutdown|dashboard
 
 Argument semantics:
 - `$0` = mode
