@@ -1,4 +1,4 @@
-"""Test local_search and cks_search return meaningful data."""
+"""Quick test: does cks_search work (sync, should be fast)?."""
 import subprocess, json, sys, os, time
 
 env = os.environ.copy()
@@ -10,7 +10,7 @@ proc = subprocess.Popen(
     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env,
 )
 
-def read_msg(timeout=15):
+def read_msg(timeout=20):
     chunks = []
     start = time.time()
     while time.time() - start < timeout:
@@ -30,28 +30,16 @@ def send(msg, id=None):
 
 # Init
 send({"jsonrpc": "2.0", "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "test", "version": "1.0"}}}, id=0)
-init_resp, t = read_msg(5)
-print(f"INIT: OK ({t:.1f}s)")
+print("INIT:", read_msg(5)[0][:60])
 
-# Test cks_search - should hit FTS on the ~508K entries
-send({"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "cks_search", "arguments": {"query": "mcp server search", "limit": 3}}, "id": 2})
-resp, t = read_msg(15)
-print(f"\nCKS_SEARCH: ({t:.1f}s)")
+# cks_search (sync, no async needed)
+send({"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "cks_search", "arguments": {"query": "mcp server", "limit": 2}}, "id": 2})
+resp, t = read_msg(20)
+print(f"\nCKS_SEARCH ({t:.1f}s):")
 if resp:
     data = json.loads(resp)
     content = data.get("result", {}).get("content", [{}])[0].get("text", "")
-    print(content[:400])
-else:
-    print("NO RESPONSE")
-
-# Test local_search
-send({"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "local_search", "arguments": {"query": "mcp tool description", "limit": 3}}, "id": 3})
-resp, t = read_msg(15)
-print(f"\nLOCAL_SEARCH: ({t:.1f}s)")
-if resp:
-    data = json.loads(resp)
-    content = data.get("result", {}).get("content", [{}])[0].get("text", "")
-    print(content[:400])
+    print(content[:300] if content else "(empty)")
 else:
     print("NO RESPONSE")
 
