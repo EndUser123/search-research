@@ -7,7 +7,7 @@
     "source_session_id": "e7d41b2b-9a67-4009-af43-1322d1ee5589",
     "created_at": "2026-05-03T01:07:10.177172+00:00",
     "expires_at": "2026-05-03T01:27:10.177172+00:00",
-    "status": "pending",
+    "status": "rejected_stale",
     "goal": "if you THINK that is optimal, then yes please.",
     "current_task": "if you THINK that is optimal, then yes please.",
     "progress_percent": 65,
@@ -71,7 +71,10 @@
     "session_chain": [
       "e7d41b2b-9a67-4009-af43-1322d1ee5589"
     ],
-    "last_user_message": "is it returning useful information from all appliable backends?"
+    "last_user_message": "is it returning useful information from all appliable backends?",
+    "rejected_at": "2026-05-03T01:08:09.475558+00:00",
+    "rejected_by_session_id": "e7d41b2b-9a67-4009-af43-1322d1ee5589",
+    "rejection_reason": "snapshot evidence path outside project directory"
   },
   "decision_register": [],
   "evidence_index": [
@@ -118,7 +121,7 @@
       "content_hash": "sha256:f1ad62ad62ea31f77f3d2ddfdbd7ce7dd9f019064b7e5877de9b6b769fe94745"
     }
   ],
-  "checksum": "sha256:1bb07c8f181ec10ec676b36ef96144a3c8e527147e228b24ec333f6e15207ae8",
+  "checksum": "sha256:239572c477a8454bfad071a4c75651942b2f0e4343c0c97eed6a7a7c2c9bc18a",
   "environment_context": {
     "git_state": {
       "branch": "main",
