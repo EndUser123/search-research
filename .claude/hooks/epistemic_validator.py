@@ -36,7 +36,7 @@ UNCERTAINTY_WORDS_RE = re.compile(
 RATIONALE_WORDS_RE = re.compile(
     r"""\b(
         because\s+(?!of\b)
-      | since\s+(?=\w+\s+(?:is|was|being|would|should|has|have|had))
+      | since\s+(?!\d{4}\b|yesterday|last\s+|the\s+(?:last|previous|prior)|earlier|then\b)(?=\w+\s+(?:is|was|being|would|should|has|have|had))
       | so\s+that
       | in\s+order\s+to
       | to\s+ensure

@@ -4,7 +4,7 @@ Phase 2: Shared verification engine and claim detection.
 This module provides unified claim and verification abstractions.
 """
 
-from .claims import Claim, extract_claims
+from .claims import Claim, classify_claim, extract_claims
 from .engine import (
     ToolEventView,
     VerificationStatus,
@@ -15,6 +15,7 @@ from .engine import (
 
 __all__ = [
     "Claim",
+    "classify_claim",
     "extract_claims",
     "VerificationStatus",
     "VerificationVerdict",

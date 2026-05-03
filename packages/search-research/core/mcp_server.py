@@ -181,7 +181,22 @@ def _format_results_as_markdown(
     )
 
 
-@mcp.tool(description="Unified search across local and web sources with intelligent routing")
+@mcp.tool(description="""Unified search across local and web sources with intelligent routing.
+
+Use when: user asks something like "find how X works in our codebase", "search for Y",
+or wants results from both local files and the web simultaneously.
+
+Use local_search instead when: query is clearly local-only
+(e.g., "find all uses of function X", "search our docs for Y").
+
+Use web_search instead when: query is clearly web-only
+(e.g., "latest Next.js docs", "how does library X work" with no local context needed).
+
+mode: "auto" (default) tries local fast, quality-gates web;
+"local-only" for fast local-only; "web-fallback" for quality-gated web;
+"unified" for simultaneous local+web.
+
+Returns: markdown with title, source, score, URL/file_path, and content preview per result.""")
 async def unified_search(
     query: str,
     mode: str = "auto",
@@ -244,7 +259,17 @@ async def unified_search(
         return f'## Search Error\n\nQuery: "{query}"\nMode: {mode}\nDuration: {duration:.2f}s\n\nError: {e}'
 
 
-@mcp.tool(description="Fast local-only search across codebase, knowledge base, and docs")
+@mcp.tool(description="""Fast local-only search across codebase, knowledge base, and docs.
+
+Use when: query is clearly local — "find all uses of function X", "search our docs for Y",
+"where is Z defined", "grep for pattern X in the codebase".
+
+Also use when: results are needed fast (<1s) and web search is unnecessary.
+
+Do NOT use for: general knowledge questions, documentation lookup, or queries about
+things outside the codebase (use web_search instead).
+
+Returns: markdown with title, source, score, file_path/line_number, and content preview per result.""")
 async def local_search(
     query: str,
     limit: int = 30,
@@ -293,7 +318,15 @@ async def local_search(
         return f'## Local Search Error\n\nQuery: "{query}"\nDuration: {duration:.2f}s\n\nError: {e}'
 
 
-@mcp.tool(description="Web-only search across multiple providers (Tavily, Serper, Exa, Brave)")
+@mcp.tool(description="""Web-only search across multiple providers (Tavily, Serper, Exa, Brave).
+
+Use when: query is clearly web-only — "latest Next.js docs", "how does library X work",
+"best practices for Y", "Python package Z documentation", "current status of X".
+
+Do NOT use for: searching local codebase, files, or anything that lives in the repo
+(use local_search instead). Only use when the answer lives on the web.
+
+Returns: markdown with title, source, score, URL, and content preview per result.""")
 async def web_search(
     query: str,
     limit: int = 30,
@@ -387,7 +420,15 @@ def _format_cks_results_as_markdown(
     return "\n".join(output)
 
 
-@mcp.tool(description="Search the Constitutional Knowledge System (CKS) using full-text search")
+@mcp.tool(description="""Search the Constitutional Knowledge System (CKS) using full-text search.
+
+Use when: user asks about past decisions, patterns, corrections, or learnings stored in CKS.
+Examples: "what decision did we make about X", "show me our logging patterns",
+"any corrections related to Y", "what do we know about Z pattern".
+
+CKS stores: memories, patterns, code snippets, corrections, decisions, commitments, insights, learnings.
+
+Returns: markdown with title, entry_type, score, and content preview per result.""")
 def cks_search(
     query: str,
     entry_type: str | None = None,
@@ -433,7 +474,18 @@ def cks_search(
         return f'## CKS Search Error\n\nQuery: "{query}"\nDuration: {duration:.2f}s\n\nError: {e}'
 
 
-@mcp.tool(description="Search CKS using semantic/vector search with embeddings")
+@mcp.tool(description="""Search CKS using semantic/vector search with embeddings.
+
+Use when: user asks about related concepts, similar patterns, or things where exact
+keyword matching isn't needed. Best for: "find patterns like X", "what's similar to Y",
+"concepts related to Z even if worded differently".
+
+Use cks_search (FTS) instead when: query has specific keywords that should match exactly
+or when entry_type filtering is needed.
+
+expand_query: enable to break complex queries into multiple searches for better recall.
+
+Returns: markdown with title, entry_type, score, and content preview per result.""")
 def cks_search_semantic(
     query: str,
     entry_type: str | None = None,
@@ -483,7 +535,15 @@ def cks_search_semantic(
         return f'## CKS Semantic Search Error\n\nQuery: "{query}"\nDuration: {duration:.2f}s\n\nError: {e}'
 
 
-@mcp.tool(description="Ingest knowledge into the Constitutional Knowledge System")
+@mcp.tool(description="""Store knowledge in CKS for future retrieval.
+
+Use when: capturing decisions, patterns, corrections, insights, or learnings to remember.
+Examples: "remember we decided X because Y", "note that pattern Z is preferred over Q",
+"store this insight about W", "log that we fixed bug X by doing Y".
+
+entry_type options: memory, pattern, code, correction, decision, commitment, insight, learning, knowledge.
+
+Returns: success message with entry ID.""")
 def cks_ingest(
     content: str,
     title: str | None = None,

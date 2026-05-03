@@ -92,8 +92,12 @@ LAZY_FIX_PHRASES = [
     r"\bquick\s+fix\b",
     r"\bsimple\s+(?:fix|patch|edit)\b",
     r"\b\d+-line\s+(?:fix|edit|change)\b",  # "5-line fix"
-    r"\bbypass(?:es|ing)?\s+(?:the\s+)?(?:issue|problem|whole\s+\w+)\b",
-    r"\bworkaround\b",
+    r"\b(?:let'?s?\s+|just\s+|simply\s+)?bypass\s+(?:the\s+)?(?:issue|problem|whole\s+\w+)\b",
+    r"\bbypassing\s+(?:the\s+)?(?:issue|problem|validation|check)\b",
+    r"\b(?:a|the|this|quick|simple)\s+workaround\b",
+    r"\bpropose\s+(?:a\s+)?workaround\b",
+    r"\buse\s+(?:a\s+)?workaround\b",
+    r"\bimplement\s+(?:a\s+)?workaround\b",
     r"\bregardless\s+of\b",  # "regardless of task name" - ignoring design
     r"\bbandaid\b",
     r"\bband-aid\b",

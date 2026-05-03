@@ -80,6 +80,7 @@ class Claim:
     confidence: float
     risk_domain: str
     has_hedge: bool
+    decomposition_eligible: bool = False
 
 
 def _detect_outcome_attribution_claims(response_text: str) -> List[Claim]:
@@ -240,6 +241,64 @@ def _raw_claim_to_claim(raw: RawClaim) -> Claim | None:
     except (AttributeError, ValueError):
         # Fail gracefully on malformed RawClaim
         return None
+
+
+# ---------------------------------------------------------------------------
+# Claim classification for decomposition routing
+# ---------------------------------------------------------------------------
+
+# Mapping from claim type prefixes to functional categories.
+# These align with pattern categories in __lib/claim_patterns.py.
+_CLASSIFICATION_MAP: dict[str, str] = {
+    # extraction — standard claim detection
+    "ABSENCE": "extraction",
+    "RULE": "extraction",
+    "OUTCOME_ATTRIBUTION": "extraction",
+    "FOLDER_CREATE": "extraction",
+    # escalation — high-risk, strict enforcement
+    "ACTION": "escalation",
+    "BEHAVIORAL": "escalation",
+    "ERROR": "escalation",
+    # coverage_signal — evidence quality check needed
+    "TENTATIVE": "coverage_signal",
+    "VERIFICATION": "coverage_signal",
+}
+
+# Compound/aggregate language triggers for decomposition
+_COMPOUND_INDICATORS = re.compile(
+    r"\b(?:all|every|each|both|and|while|but|as well as|along with)\b",
+    re.IGNORECASE,
+)
+
+
+def classify_claim(claim: Claim) -> str:
+    """Return the functional category for pattern routing.
+
+    Categories:
+    - "extraction" — standard claim detection (existing behavior)
+    - "decomposition_trigger" — should be decomposed before verification
+    - "escalation" — high-risk, strict enforcement needed
+    - "coverage_signal" — evidence quality check needed
+
+    Deterministic, regex-based.
+
+    Args:
+        claim: Claim object to classify.
+
+    Returns:
+        Category string.
+    """
+    # Check for decomposition trigger first (overrides base classification)
+    if _COMPOUND_INDICATORS.search(claim.text):
+        return "decomposition_trigger"
+
+    # Map from claim type prefix
+    claim_type_upper = claim.type.upper()
+    for prefix, category in _CLASSIFICATION_MAP.items():
+        if prefix in claim_type_upper:
+            return category
+
+    return "extraction"
 
 
 # __debug__ invariant: verify ClaimType enum values are lowercase (matching the pattern
