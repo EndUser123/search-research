@@ -198,6 +198,86 @@ def _should_block_claim(
     return True
 
 
+def _is_control_turn(response_text: str) -> bool:
+    """Detect control/directive turns that should bypass verification.
+
+    Control turns are short acknowledgments or directives that don't contain
+    verifiable claims: "stop", "no", "yes", "ok", "done", "continue".
+    """
+    stripped = response_text.strip().lower()
+    if len(stripped) < 1:
+        return True  # Empty response
+    if len(stripped) > 30:
+        return False  # Long enough to contain real claims
+
+    control_words = {
+        "stop", "no", "yes", "ok", "okay", "done", "continue",
+        "go ahead", "proceed", "skip", "cancel", "abort",
+        "y", "n", "1", "0", "true", "false",
+    }
+    return stripped in control_words
+
+
+def _should_block_enriched_claim(
+    claim: Claim,
+    enriched: Any,
+    loaded_events: list[dict] | None = None,
+) -> bool:
+    """Determine if a claim should be blocked based on enriched verdict.
+
+    Same semantics as _should_block_claim but also considers:
+    - EnrichedVerdict.final_status (may be upgraded from SILENT)
+    - CoverageReport.recommendation
+
+    Args:
+        claim: The Claim object to evaluate
+        enriched: EnrichedVerdict from analyze_silent_verdicts
+        loaded_events: Tool events from this turn
+    """
+    # ANALYSIS/MECHANISM/hedge/low-confidence exemptions (same as _should_block_claim)
+    if claim.type in ("ANALYSIS", "MECHANISM"):
+        return False
+    if claim.has_hedge:
+        return False
+    if claim.confidence < 0.7:
+        return False
+
+    verdict = enriched.verdict
+
+    # SUPPORTED, REFUTED, SELF_VERIFIED → don't block
+    if verdict.status in (
+        VerificationStatus.SUPPORTED,
+        VerificationStatus.REFUTED,
+        VerificationStatus.SELF_VERIFIED,
+    ):
+        return False
+
+    # Check final_status from enrichment (may be upgraded from SILENT)
+    final_status = getattr(enriched, "final_status", None)
+    if final_status in (
+        VerificationStatus.SUPPORTED,
+        VerificationStatus.SELF_VERIFIED,
+    ):
+        return False  # Upgraded by decomposition/coverage/fallback
+
+    # SILENT: check if claim content appeared in tool output (existing fallback)
+    if verdict.status == VerificationStatus.SILENT and loaded_events:
+        from .verification.engine import _claim_matches_tool_output
+
+        if _claim_matches_tool_output(claim, loaded_events):
+            return False
+
+    # Check coverage recommendation
+    coverage = getattr(enriched, "coverage", None)
+    if coverage is not None:
+        recommendation = getattr(coverage, "recommendation", "")
+        if recommendation == "sufficient":
+            return False  # Coverage analysis says evidence is sufficient
+
+    # SILENT status + confident claim + no upgrade = ungrounded
+    return True
+
+
 def _log_decision(
     session_id: str,
     terminal_id: str,

@@ -301,6 +301,17 @@ def _detect_turn_kind(data: dict) -> str:
     if any(stripped.lower().startswith(ri) for ri in report_indicators):
         return "report"
 
+    # Exploration: architecture/design discussion prompts
+    _EXPLORATION_KEYWORDS = (
+        "should we", "alternatives", "tradeoffs", "trade-offs", "downsides",
+        "better approach", "what if we", "consider using", "worth considering",
+        "optimal approach", "design decision", "refactor or", "consolidate or",
+        "which is better", "pros and cons", "evaluate options",
+        "compare", "versus", "vs.", "migration strategy",
+    )
+    if any(kw in stripped.lower() for kw in _EXPLORATION_KEYWORDS):
+        return "exploration"
+
     # Question marks = query (only after control patterns are evaluated)
     if "?" in stripped:
         return "query"
@@ -341,6 +352,11 @@ def _run_epistemic_contract(data: dict) -> dict | None:
 
         response = data.get("response", "")
         if not response:
+            return None
+
+        # Skip format enforcement for control/exploration turns
+        turn_kind = _detect_turn_kind(data)
+        if turn_kind in ("control", "exploration"):
             return None
 
         mode = os.environ.get("EPISTEMIC_CONTRACT_MODE", "warn")
@@ -792,9 +808,10 @@ def _run_anti_sycophancy_quality(data: dict) -> dict | None:
                     all_format = all(i.type == "format" for i in _epistemic_verdict.issues)
                     if all_format:
                         lazy = [m for m in lazy if m.pattern_type != "lazy_fix"]
-                # Also suppress lazy_fix for plan/report turns
+                # Also suppress lazy_fix for plan/report/exploration turns
                 turn_mode = _detect_turn_mode(data)
-                if turn_mode in ("plan", "report"):
+                turn_kind = _detect_turn_kind(data)
+                if turn_mode in ("plan", "report") or turn_kind == "exploration":
                     lazy = [m for m in lazy if m.pattern_type != "lazy_fix"]
             if lazy:
                 block_matches = [m for m in lazy if m.severity == "block"]
@@ -2035,7 +2052,7 @@ def main():
     # Quality gate filtering: suppress quality messages on control turns
     # in normal mode (allow corrections and direct instructions through).
     # Strict mode or non-control turns: include quality messages.
-    if quality_mode == "strict" or turn_kind != "control":
+    if quality_mode == "strict" or turn_kind not in ("control", "exploration"):
         system_messages.extend(quality_messages)
 
     # Process Side Effects (only if not blocked)
