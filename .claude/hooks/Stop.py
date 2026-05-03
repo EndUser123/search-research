@@ -34,6 +34,15 @@ try:
 except Exception:  # pragma: no cover - observability must fail open
     _log_hook_invocation = None
 
+from __lib.turn_mode import (
+    classify as _classify_turn_mode,
+    is_quality_mode_suppressed,
+    is_rubric_required,
+    is_format_required,
+    mode_display_label,
+    TurnMode,
+)
+
 
 def _env_bool(name: str, default: bool = False) -> bool:
     value = os.environ.get(name)
@@ -388,9 +397,9 @@ def _run_epistemic_contract(data: dict) -> dict | None:
                 "blocking_hook": "Stop.py:epistemic_contract",
             }
         if verdict.decision == "warn" and verdict.issues:
-            turn_mode = _detect_turn_mode(data)
-            if turn_mode in ("plan", "report"):
-                return None  # Skip format enforcement for plan/report turns
+            turn_mode = _classify_turn_mode(data)
+            if turn_mode in ("plan", "report", "exploration"):
+                return None  # Skip format enforcement for plan/report/exploration turns
             # Auto-repair: if ALL issues are format-only, inject a single
             # repair prompt instead of surfacing the raw advisory.
             # Only demand full schema for clearly analytical responses.
@@ -808,11 +817,11 @@ def _run_anti_sycophancy_quality(data: dict) -> dict | None:
                     all_format = all(i.type == "format" for i in _epistemic_verdict.issues)
                     if all_format:
                         lazy = [m for m in lazy if m.pattern_type != "lazy_fix"]
-                # Also suppress lazy_fix for plan/report/exploration turns
+                # Also suppress lazy_fix and sycophancy_capitulation for plan/report/exploration turns
                 turn_mode = _detect_turn_mode(data)
                 turn_kind = _detect_turn_kind(data)
                 if turn_mode in ("plan", "report") or turn_kind == "exploration":
-                    lazy = [m for m in lazy if m.pattern_type != "lazy_fix"]
+                    lazy = [m for m in lazy if m.pattern_type not in ("lazy_fix", "sycophancy_capitulation")]
             if lazy:
                 block_matches = [m for m in lazy if m.severity == "block"]
                 if block_matches:
@@ -2049,10 +2058,11 @@ def main():
             else:
                 quality_messages.append(res["systemMessage"])
 
-    # Quality gate filtering: suppress quality messages on control turns
+    # Quality gate filtering: suppress quality messages on control/exploration turns
     # in normal mode (allow corrections and direct instructions through).
-    # Strict mode or non-control turns: include quality messages.
-    if quality_mode == "strict" or turn_kind not in ("control", "exploration"):
+    # Strict mode or other turns: include quality messages.
+    turn_mode = _classify_turn_mode(data)
+    if not is_quality_mode_suppressed(turn_mode, quality_mode):
         system_messages.extend(quality_messages)
 
     # Process Side Effects (only if not blocked)
