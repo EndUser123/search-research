@@ -122,7 +122,8 @@ class TestMicroFallback:
         assert result == VerificationStatus.SUPPORTED
 
     def test_command_in_bash(self):
-        claim = _FakeClaim(id="21", text="ran pytest successfully", targets=[])
+        # Claim text must contain a command pattern that matches the event command
+        claim = _FakeClaim(id="21", text="ran pytest tests/ successfully", targets=[])
         events = [{"name": "Bash", "output": "ok", "command": "pytest tests/"}]
         result = micro_fallback_verify(claim, events)
         assert result == VerificationStatus.SUPPORTED
