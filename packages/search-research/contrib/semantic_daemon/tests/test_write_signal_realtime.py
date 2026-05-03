@@ -19,14 +19,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-# Ensure search_research is importable
+# Ensure semantic_daemon package is importable
 import sys
+from pathlib import Path
 
-package_root = Path(__file__).parent.parent.parent.parent
-if str(package_root) not in sys.path:
-    sys.path.insert(0, str(package_root))
+package_root = Path(__file__).parent.parent  # contrib/semantic_daemon
+sys.path.insert(0, str(package_root))
 
-from search_research.daemons.daemon_client import DaemonClient
+from daemon_client import DaemonClient
 
 
 class TestWriteSignalRealtime:
@@ -178,7 +178,7 @@ class TestDiscoveryFileWriteSignal:
         # which we modified to include write_signal_pipe in the discovery data
 
         # We can't easily start the daemon here, but we can verify the constant exists
-        from search_research.daemons.unified_semantic_daemon import WRITE_SIGNAL_PIPE_NAME
+        from unified_semantic_daemon import WRITE_SIGNAL_PIPE_NAME
 
         assert WRITE_SIGNAL_PIPE_NAME == r"\\.\pipe\csf_semantic_write_signal"
 
