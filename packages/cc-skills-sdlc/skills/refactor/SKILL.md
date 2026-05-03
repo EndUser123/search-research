@@ -50,7 +50,7 @@ Multi-file refactoring with orchestration -- discovers synergies across files, p
 - **Constitutional filter required**: All recommendations pass SoloDevConstitutionalFilter
 - **TDD mandatory**: Characterization tests before any changes
 - **16-step workflow**: Discovery -> Deduplicate -> Evidence Verify -> Classify Debt -> Prioritize -> Constitutional Filter -> Plan -> RED Phase -> Checkpoint -> Adversarial Review -> Refactor -> LSP Validate -> Checkpoint -> Regression -> Simplification -> Deletion Metric
-- **Parallel agents**: 8 agents with structured 8-dimension analysis rubric
+- **Parallel agents**: 10 agents with structured 10-dimension analysis rubric (8 original rubric agents + adversarial-security + adversarial-io-validation)
 - **Priority levels**: P0 (bugs/race), P1 (error handling), P2 (DRY), P3 (conventions)
 - **Debt types**: design debt, code debt, test debt, documentation debt
 - **Rollback safety**: Git tag checkpoints after RED and GREEN phases
