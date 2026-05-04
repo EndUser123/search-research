@@ -188,7 +188,8 @@ let _mermaid = null;
 
 async function _ensureMermaid() {
   if (!_mermaid) {
-    _mermaid = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
+    const ns = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
+    _mermaid = ns.default || ns;
   }
   return _mermaid;
 }

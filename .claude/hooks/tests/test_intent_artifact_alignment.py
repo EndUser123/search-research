@@ -399,3 +399,244 @@ class TestEdgeCases:
         assert result is not None
         assert result["decision"] == "block"
         assert "Stop.py" in result["missed_targets"]
+
+
+# =============================================================================
+# TEST 5: Runtime schema (flat {name, command} events)
+# =============================================================================
+
+
+class TestRuntimeSchemaFiles:
+    """Verify file extraction from flat runtime tool_events ({name, command})."""
+
+    def test_edit_command_contains_path(self):
+        events = [{"name": "Edit", "command": "P:/.claude/hooks/Stop.py"}]
+        paths = extract_modified_paths(events)
+        assert any("Stop.py" in p for p in paths)
+
+    def test_write_command_contains_relative_path(self):
+        events = [{"name": "Write", "command": "tests/test_gate.py"}]
+        paths = extract_modified_paths(events)
+        assert any("test_gate.py" in p for p in paths)
+
+    def test_edit_command_bare_filename(self):
+        events = [{"name": "Edit", "command": "Stop.py"}]
+        paths = extract_modified_paths(events)
+        assert any("Stop.py" in p for p in paths)
+
+    def test_edit_command_no_path(self):
+        events = [{"name": "Edit", "command": ""}]
+        paths = extract_modified_paths(events)
+        assert len(paths) == 0
+
+    def test_rich_schema_still_works(self):
+        """Rich schema (file_path) takes priority over command."""
+        events = [{"name": "Edit", "file_path": "Stop.py", "command": "other.py"}]
+        paths = extract_modified_paths(events)
+        assert "Stop.py" in paths
+
+
+class TestSkillCommandFormatInventory:
+    """Parametrized regression tests covering all observed runtime Skill event formats.
+
+    Format inventory (source: test_stop_hook_tier3_verification.py:346,
+    test_cleanup_verifier.py:222,289, evidence_scope.py):
+      1. command="/verify"   (slash-prefixed, observed in tier3 test)
+      2. command="rca"       (bare name)
+      3. command="/bf"       (slash-prefixed short name)
+      4. skill="code"        (rich schema, flat field)
+      5. input.skill="code"  (rich schema, nested)
+      6. command="plugin-installer:plugin-installer" (namespaced)
+      7. command=""          (empty — no extraction)
+    """
+
+    @pytest.mark.parametrize(
+        "events,expected",
+        [
+            # Runtime flat schema — slash-prefixed (real format from tier3 test)
+            ([{"name": "Skill", "command": "/verify"}], "verify"),
+            # Runtime flat schema — bare name
+            ([{"name": "Skill", "command": "rca"}], "rca"),
+            # Runtime flat schema — slash-prefixed short name
+            ([{"name": "Skill", "command": "/bf"}], "bf"),
+            # Runtime flat schema — namespaced plugin skill
+            (
+                [{"name": "Skill", "command": "plugin-installer:plugin-installer"}],
+                "plugin-installer:plugin-installer",
+            ),
+            # Rich schema — flat skill field
+            ([{"name": "Skill", "skill": "code"}], "code"),
+            # Rich schema — nested input.skill
+            ([{"name": "Skill", "input": {"skill": "research"}}], "research"),
+            # Rich schema takes priority over command
+            ([{"name": "Skill", "skill": "arch", "command": "/bf"}], "arch"),
+            # Empty command — no extraction
+            ([{"name": "Skill", "command": ""}], None),
+        ],
+    )
+    def test_skill_extraction_format(self, events, expected):
+        skills = extract_invoked_skills(events)
+        if expected is None:
+            assert len(skills) == 0
+        else:
+            assert expected in skills
+
+
+class TestRuntimeSchemaAlignment:
+    """End-to-end alignment checks with runtime-format events."""
+
+    def test_file_hit_runtime_schema(self):
+        result = check_alignment(
+            prompt="modify Stop.py",
+            tool_events=[
+                {"name": "Edit", "command": "P:/.claude/hooks/Stop.py"},
+            ],
+            response="Updated the hook.",
+        )
+        assert result is None
+
+    def test_file_miss_runtime_schema(self):
+        result = check_alignment(
+            prompt="modify Stop.py",
+            tool_events=[
+                {"name": "Write", "command": "P:/.claude/hooks/helper.py"},
+            ],
+            response="Done.",
+        )
+        assert result is not None
+        assert any("Stop.py" in t for t in result["missed_targets"])
+
+    def test_skill_hit_runtime_schema(self):
+        result = check_alignment(
+            prompt="use /rca to investigate",
+            tool_events=[
+                {"name": "Skill", "command": "rca"},
+            ],
+        )
+        assert result is None
+
+    def test_skill_miss_runtime_schema(self):
+        result = check_alignment(
+            prompt="use /rca to investigate",
+            tool_events=[
+                {"name": "Skill", "command": "bf"},
+            ],
+        )
+        assert result is not None
+
+    def test_command_hit_runtime_schema(self):
+        result = check_alignment(
+            prompt="run pytest on the module",
+            tool_events=[
+                {"name": "Bash", "command": "pytest module.py"},
+            ],
+        )
+        assert result is None
+
+
+# =============================================================================
+# TEST 6: Narrowed completion-claim detection
+# =============================================================================
+
+
+class TestNarrowedCompletionClaims:
+    """Verify that narrowed _COMPLETION_CLAIM_RE avoids false positives."""
+
+    def test_emoji_triggers_block(self):
+        result = check_alignment(
+            prompt="modify Stop.py",
+            tool_events=[
+                {"name": "Write", "file_path": "helper.py"},
+            ],
+            response="✅ All done!",
+        )
+        assert result is not None
+        assert result["decision"] == "block"
+
+    def test_is_complete_triggers_block(self):
+        result = check_alignment(
+            prompt="modify Stop.py",
+            tool_events=[
+                {"name": "Write", "file_path": "helper.py"},
+            ],
+            response="The implementation is complete.",
+        )
+        assert result is not None
+        assert result["decision"] == "block"
+
+    def test_past_tense_no_completion_claim(self):
+        """'I updated Stop.py' should NOT escalate to block."""
+        result = check_alignment(
+            prompt="modify Stop.py",
+            tool_events=[
+                {"name": "Edit", "file_path": "helper.py"},
+            ],
+            response="I updated the helper module.",
+        )
+        assert result is not None
+        assert result["decision"] == "warn"
+
+    def test_added_no_completion_claim(self):
+        """'I added the gate' should NOT escalate to block."""
+        result = check_alignment(
+            prompt="modify Stop.py",
+            tool_events=[
+                {"name": "Write", "file_path": "helper.py"},
+            ],
+            response="I added the helper function.",
+        )
+        assert result is not None
+        assert result["decision"] == "warn"
+
+    def test_fixed_no_completion_claim(self):
+        """'I fixed the bug' should NOT escalate to block."""
+        result = check_alignment(
+            prompt="modify Stop.py",
+            tool_events=[
+                {"name": "Edit", "file_path": "helper.py"},
+            ],
+            response="I fixed the issue in the helper.",
+        )
+        assert result is not None
+        assert result["decision"] == "warn"
+
+    def test_all_tests_pass_triggers_block(self):
+        result = check_alignment(
+            prompt="modify Stop.py",
+            tool_events=[
+                {"name": "Write", "file_path": "helper.py"},
+            ],
+            response="All tests pass.",
+        )
+        assert result is not None
+        assert result["decision"] == "block"
+
+
+# =============================================================================
+# TEST 7: Clause-level scoping for in/to path extraction
+# =============================================================================
+
+
+class TestClauseScoping:
+    """Verify that 'in <path>' / 'to <path>' only match near modification verbs."""
+
+    def test_in_path_near_verb(self):
+        targets = extract_targets_from_prompt("add tests in test_foo.py")
+        paths = [t.value for t in targets if t.kind == "file"]
+        assert any("test_foo.py" in p for p in paths)
+
+    def test_in_path_far_from_verb_not_extracted(self):
+        """'in <path>' far from any modification verb should not be a target."""
+        targets = extract_targets_from_prompt(
+            "fix the bug in Stop.py then verify the documented behavior described in README.md"
+        )
+        paths = [t.value for t in targets if t.kind == "file"]
+        # Stop.py should be a target ("fix" is near "in Stop.py")
+        assert any("Stop.py" in p for p in paths)
+        # README.md should NOT be a target (no verb within 60 chars of "in README.md")
+        assert not any("README.md" in p for p in paths)
+
+    def test_to_path_near_verb(self):
+        targets = extract_targets_from_prompt("add the gate to Stop.py")
+        paths = [t.value for t in targets if t.kind == "file"]
+        assert any("Stop.py" in p for p in paths)

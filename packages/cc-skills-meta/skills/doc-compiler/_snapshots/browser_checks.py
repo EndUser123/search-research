@@ -20,6 +20,11 @@ time.sleep(2)
 
 results = {}
 
+# J0: Boot marker — confirms script tag actually executed
+boot_marker = js("typeof window.__DOC_COMPILER_BOOT__ !== 'undefined'")
+results["J0_boot_marker"] = {"passed": bool(boot_marker), "reason": "boot marker found" if boot_marker else "window.__DOC_COMPILER_BOOT__ missing"}
+screenshot(os.path.join(SNAP_DIR, "J0_boot.png"))
+
 # J1: Desktop initial load
 # Note: js() returns {} for DOM elements (Chrome CDP can't serialize live nodes).
 # Use JSON-serializable expressions for existence checks.

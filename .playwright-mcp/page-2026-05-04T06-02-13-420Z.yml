@@ -1,0 +1,162 @@
+- generic [active] [ref=e1]:
+  - button "Toggle table of contents" [ref=e2] [cursor=pointer]: ☰
+  - generic [ref=e3]:
+    - navigation "Table of contents":
+      - generic:
+        - heading "Contents" [level=2]
+        - generic:
+          - button "Toggle theme": 🌙
+      - generic:
+        - list:
+          - listitem:
+            - link "Overview":
+              - /url: "#overview"
+          - listitem:
+            - link "Quick Facts":
+              - /url: "#facts"
+          - listitem:
+            - link "Diagram":
+              - /url: "#diagram"
+          - listitem:
+            - link "Workflow Steps":
+              - /url: "#steps"
+          - listitem:
+            - link "Route Outs":
+              - /url: "#route-outs"
+          - listitem:
+            - link "Terminal States":
+              - /url: "#terminals"
+          - listitem:
+            - link "Artifacts":
+              - /url: "#artifacts"
+          - listitem:
+            - link "Proof":
+              - /url: "#proof"
+    - generic [ref=e4]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - heading "skill-to-page" [level=1] [ref=e8]
+          - generic [ref=e9]: v2.0.0
+          - generic [ref=e10]: strict
+          - generic [ref=e11]: active
+        - paragraph [ref=e12]: Transform a skill's SKILL.md into a navigable, verified index.html with Mermaid diagrams, TOC, search, viewport controls, provenance, and proof-oriented verification.
+      - generic [ref=e13]:
+        - searchbox "Search documentation" [ref=e14]
+        - button "Clear search" [ref=e15] [cursor=pointer]: ✕
+      - generic [ref=e16]:
+        - heading "Diagram" [level=2] [ref=e17]
+        - generic [ref=e18]:
+          - generic [ref=e19]:
+            - generic [ref=e20]:
+              - generic [ref=e21]: Palette
+              - combobox "Select Mermaid color palette" [ref=e22] [cursor=pointer]:
+                - option "Tailwind Modern" [selected]
+                - option "GitHub Dark"
+                - option "Nord"
+                - option "One Dark Pro"
+                - option "Dracula"
+                - option "Material Ocean"
+            - generic "Zoom controls" [ref=e23]:
+              - button "Fit to view" [ref=e24] [cursor=pointer]: ⟌
+              - button "Zoom out" [ref=e25] [cursor=pointer]: −
+              - generic [ref=e26]: 100%
+              - button "Zoom in" [ref=e27] [cursor=pointer]: +
+              - button "Reset zoom" [ref=e28] [cursor=pointer]: 1:1
+          - group "Diagram viewport" [ref=e29]:
+            - button "Copy code block" [ref=e30] [cursor=pointer]: Copy
+          - separator "Drag to resize diagram pane" [ref=e31]
+      - generic [ref=e32]:
+        - heading "Workflow Steps" [level=2] [ref=e33]
+        - article [ref=e34]:
+          - button "1. stage_a_source_extractor ▾" [ref=e35] [cursor=pointer]:
+            - generic [ref=e36]: "1."
+            - generic [ref=e37]: stage_a_source_extractor
+            - generic [ref=e38]: ▾
+        - article [ref=e39]:
+          - button "2. stage_b_artifact_plan_builder ▾" [ref=e40] [cursor=pointer]:
+            - generic [ref=e41]: "2."
+            - generic [ref=e42]: stage_b_artifact_plan_builder
+            - generic [ref=e43]: ▾
+        - article [ref=e44]:
+          - button "3. stage_c_mermaid_design ▾" [ref=e45] [cursor=pointer]:
+            - generic [ref=e46]: "3."
+            - generic [ref=e47]: stage_c_mermaid_design
+            - generic [ref=e48]: ▾
+        - article [ref=e49]:
+          - button "4. stage_d_mermaid_critic_review ▾" [ref=e50] [cursor=pointer]:
+            - generic [ref=e51]: "4."
+            - generic [ref=e52]: stage_d_mermaid_critic_review
+            - generic [ref=e53]: ▾
+        - article [ref=e54]:
+          - button "5. stage_e1_loader ▾" [ref=e55] [cursor=pointer]:
+            - generic [ref=e56]: "5."
+            - generic [ref=e57]: stage_e1_loader
+            - generic [ref=e58]: ▾
+        - article [ref=e59]:
+          - button "6. stage_e2_binder ▾" [ref=e60] [cursor=pointer]:
+            - generic [ref=e61]: "6."
+            - generic [ref=e62]: stage_e2_binder
+            - generic [ref=e63]: ▾
+        - article [ref=e64]:
+          - button "7. stage_e3_assembler ▾" [ref=e65] [cursor=pointer]:
+            - generic [ref=e66]: "7."
+            - generic [ref=e67]: stage_e3_assembler
+            - generic [ref=e68]: ▾
+        - article [ref=e69]:
+          - button "8. stage_e4_writer ▾" [ref=e70] [cursor=pointer]:
+            - generic [ref=e71]: "8."
+            - generic [ref=e72]: stage_e4_writer
+            - generic [ref=e73]: ▾
+        - article [ref=e74]:
+          - button "9. stage_f_static_validator ▾" [ref=e75] [cursor=pointer]:
+            - generic [ref=e76]: "9."
+            - generic [ref=e77]: stage_f_static_validator
+            - generic [ref=e78]: ▾
+        - article [ref=e79]:
+          - button "10. stage_g_artifact_proof ▾" [ref=e80] [cursor=pointer]:
+            - generic [ref=e81]: "10."
+            - generic [ref=e82]: stage_g_artifact_proof
+            - generic [ref=e83]: ▾
+        - article [ref=e84]:
+          - button "11. stage_h_external_critic ▾" [ref=e85] [cursor=pointer]:
+            - generic [ref=e86]: "11."
+            - generic [ref=e87]: stage_h_external_critic
+            - generic [ref=e88]: ▾
+        - article [ref=e89]:
+          - button "12. stage_i_emit_proof_metadata ▾" [ref=e90] [cursor=pointer]:
+            - generic [ref=e91]: "12."
+            - generic [ref=e92]: stage_i_emit_proof_metadata
+            - generic [ref=e93]: ▾
+      - generic [ref=e94]:
+        - heading "Verification Summary" [level=3] [ref=e95]
+        - generic [ref=e96]:
+          - generic [ref=e97]:
+            - generic [ref=e98]: Steps
+            - generic [ref=e99]: 12 / 12
+          - generic [ref=e100]:
+            - generic [ref=e101]: Gates
+            - generic [ref=e102]: 2 / 2
+          - generic [ref=e103]:
+            - generic [ref=e104]: Route Outs
+            - generic [ref=e105]: 0 / 0
+          - generic [ref=e106]:
+            - generic [ref=e107]: Terminals
+            - generic [ref=e108]: 0 / 0
+          - generic [ref=e109]:
+            - generic [ref=e110]: Browser
+            - generic [ref=e111]: 10 / 10
+          - generic [ref=e112]:
+            - generic [ref=e113]: Mermaid
+            - generic [ref=e114]: ✓ rendered
+          - generic [ref=e115]:
+            - generic [ref=e116]: TOC Sync
+            - generic [ref=e117]: ✓ aligned
+          - generic [ref=e118]:
+            - generic [ref=e119]: Gate S5
+            - generic [ref=e120]: ✓ passed
+          - generic [ref=e121]:
+            - generic [ref=e122]: Gate S8
+            - generic [ref=e123]: ✓ passed
+          - generic [ref=e124]:
+            - generic [ref=e125]: Ambiguities
+            - generic [ref=e126]: 0 acknowledged

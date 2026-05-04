@@ -17,7 +17,7 @@ All plugins are junctioned — source at `P:/packages/<name>/`, junction at `P:/
 
 ## Full Setup (no action specified)
 
-When invoked without an action, run the complete check-fix-install workflow:
+When invoked without an action, run the complete check-fix-install workflow. **All steps are mandatory — do not skip step 3 (cache sync check) even if steps 1 and 2 look clean.**
 
 1. **Audit** all plugins for issues and auto-fix:
    ```bash
@@ -29,7 +29,7 @@ When invoked without an action, run the complete check-fix-install workflow:
    claude plugin marketplace update local
    ```
 
-3. **Detect stale + missing caches** — compare source plugin.json version against installed cache version:
+3. **⚠️ MANDATORY — Detect stale + missing caches** — compare source plugin.json version against installed cache version. **This is the most commonly skipped step and the most common source of "plugin installed but not loading" bugs.** Run this even when steps 1 and 2 report clean:
    ```bash
    python3 -c "
    import json

@@ -216,6 +216,18 @@ function Start-BifrostDaemon {
     } else {
         Write-Host "   [ERROR] Failed to start Bifrost" -ForegroundColor Red
     }
+
+    # Re-enable all routing rules (Bifrost sets enabled=0 on startup)
+    $pythonScript = @"
+import sqlite3
+conn = sqlite3.connect(r'$env:APPDATA\bifrost\config.db')
+c = conn.cursor()
+c.execute('UPDATE routing_rules SET enabled = 1')
+conn.commit()
+print(f'Enabled {c.rowcount} rules')
+conn.close()
+"@
+    python3 -c $pythonScript 2>$null | ForEach-Object { Write-Host "   $_" -ForegroundColor DarkGray }
 }
 
 function Stop-BifrostDaemon {

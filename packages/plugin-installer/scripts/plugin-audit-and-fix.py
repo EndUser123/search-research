@@ -196,10 +196,23 @@ def audit_plugins(plugins_dir: Path, marketplace_root: str, plugin_filter: Optio
             artifact_path = plugin / artifact
             if not artifact_path.exists():
                 continue
-            # .git is always a directory in a repo; check if it's actually gitignored
+            # .git is always a directory in a repo; check if it's actually gitignored or has a real remote
             if artifact == ".git":
                 if ".git" in gitignored:
                     continue
+                # Skip warning if plugin is a real git repo with a remote — .git is appropriate there
+                try:
+                    check = __import__("subprocess").run(
+                        ["git", "remote", "get-url", "origin"],
+                        cwd=str(plugin),
+                        capture_output=True, text=True, timeout=5,
+                    )
+                    if check.returncode == 0 and check.stdout.strip():
+                        continue  # has real remote, .git is legitimate
+                except Exception:
+                    pass
+                # No remote detected — likely a stray clone, warn about it
+                result["warnings"].append(f"Build artifact '.git' in plugin root (should be gitignored)")
             else:
                 # For other artifacts, only warn if not gitignored
                 if artifact in gitignored or artifact + "/" in gitignored:

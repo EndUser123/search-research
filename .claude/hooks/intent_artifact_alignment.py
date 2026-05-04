@@ -90,11 +90,14 @@ def extract_targets_from_prompt(prompt: str) -> list[TargetSpec]:
     for m in _TARGET_EXTRACT_RE.finditer(prompt):
         _add("file", m.group("path"))
 
-    # File targets: "in <path>" when modification verbs present
-    if _MODIFICATION_VERB_RE.search(prompt):
-        for m in _IN_PATH_RE.finditer(prompt):
+    # File targets: "in <path>" / "to <path>" near modification verbs
+    for m in _IN_PATH_RE.finditer(prompt):
+        start = max(0, m.start() - 60)
+        if _MODIFICATION_VERB_RE.search(prompt[start:m.start()]):
             _add("file", m.group("path"))
-        for m in _TO_PATH_RE.finditer(prompt):
+    for m in _TO_PATH_RE.finditer(prompt):
+        start = max(0, m.start() - 60)
+        if _MODIFICATION_VERB_RE.search(prompt[start:m.start()]):
             _add("file", m.group("path"))
 
     # Command targets
@@ -128,6 +131,25 @@ def _extract_file_path(event: dict) -> str:
     return ""
 
 
+def _extract_path_from_command(command: str) -> str | None:
+    """Extract a file path from a command string (runtime schema fallback)."""
+    if not command:
+        return None
+    # Drive-letter paths: P:/foo/bar.py
+    m = re.search(r"[A-Za-z]:[/\\][\w./\\-]+", command)
+    if m:
+        return m.group(0)
+    # Relative paths with separator: tests/test_gate.py
+    m = re.search(r"[\w./\\-]+[/\\][\w./\\-]+", command)
+    if m:
+        return m.group(0)
+    # Bare filename with extension: Stop.py
+    m = re.search(r"\b[\w-]+\.\w{2,4}\b", command)
+    if m:
+        return m.group(0)
+    return None
+
+
 def extract_modified_paths(tool_events: list[dict]) -> set[str]:
     """Extract file paths that were modified via Edit/Write."""
     modified: set[str] = set()
@@ -135,10 +157,18 @@ def extract_modified_paths(tool_events: list[dict]) -> set[str]:
         if not isinstance(event, dict):
             continue
         name = event.get("name", "")
-        if name in _MODIFICATION_TOOLS:
-            path = _extract_file_path(event)
-            if path:
-                modified.add(path)
+        if name not in _MODIFICATION_TOOLS:
+            continue
+        # Rich schema: file_path or input.file_path
+        path = _extract_file_path(event)
+        if path:
+            modified.add(path)
+            continue
+        # Runtime schema: command field contains path
+        command = str(event.get("command", ""))
+        extracted = _extract_path_from_command(command)
+        if extracted:
+            modified.add(extracted)
     return modified
 
 
@@ -161,14 +191,21 @@ def extract_invoked_skills(tool_events: list[dict]) -> set[str]:
     for event in tool_events:
         if not isinstance(event, dict):
             continue
-        if event.get("name") == "Skill":
-            skill = event.get("skill", "")
-            if not skill:
-                inp = event.get("input", {})
-                if isinstance(inp, dict):
-                    skill = inp.get("skill", "")
-            if skill:
-                skills.add(str(skill))
+        if event.get("name") != "Skill":
+            continue
+        # Rich schema: skill or input.skill
+        skill = event.get("skill", "")
+        if not skill:
+            inp = event.get("input", {})
+            if isinstance(inp, dict):
+                skill = inp.get("skill", "")
+        # Runtime schema: command field contains skill name
+        if not skill:
+            command = str(event.get("command", ""))
+            if command:
+                skill = command.strip().lstrip("/")
+        if skill:
+            skills.add(str(skill))
     return skills
 
 
@@ -215,8 +252,14 @@ def _skill_matches(target: str, skill: str) -> bool:
 
 # Completion claim patterns (escalate warn → block when present)
 _COMPLETION_CLAIM_RE = re.compile(
-    r"(?i)(?:(?:done|complete|finished|implemented|updated|added|fixed|ready)"
-    r"|(?:✅|all\s+(?:tests?\s+)?pass))",
+    r"(?i)(?:"
+    r"✅"
+    r"|\b(?:all|everything)\s+(?:is\s+)?(?:done|complete|finished|ready)\b"
+    r"|\b(?:is|are|was|were)\s+(?:now\s+)?(?:done|complete|finished|ready)\b"
+    r"|\b(?:done|complete|finished)\s*[!.](?:\s|$)"
+    r"|\bimplementation\s+(?:is\s+)?(?:complete|finished|done)\b"
+    r"|all\s+(?:tests?\s+)?pass"
+    r")"
 )
 
 
