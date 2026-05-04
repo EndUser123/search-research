@@ -49,7 +49,7 @@ TRIGGER_PHRASES = [
 
 # === Auto-correction injection for analysis/final-answer turns ===
 
-CORRECTION_INJECTION_MODES = ("analysis", "final-answer")
+CORRECTION_INJECTION_MODES = ("analysis", "final-answer", "meta")
 
 
 def _should_inject_recent_corrections(prompt: str) -> bool:
@@ -67,7 +67,7 @@ def _should_inject_recent_corrections(prompt: str) -> bool:
 def _query_recent_corrections(prompt: str, max_results: int = 3, hours: int = 24) -> list[dict]:
     """Query CKS for recent corrections matching the user prompt keywords."""
     try:
-        cks_db_path = project_root / "__csf" / "data" / "cks.db"
+        cks_db_path = Path("P:/__csf/data/cks.db")
         if not cks_db_path.exists():
             return []
 
@@ -159,7 +159,7 @@ def _query_cks(prompt: str, max_results: int = 5) -> list[dict]:
     """
     try:
         # Import CKS database path
-        cks_db_path = project_root / "__csf" / "data" / "cks.db"
+        cks_db_path = Path("P:/__csf/data/cks.db")
 
         if not cks_db_path.exists():
             return []
