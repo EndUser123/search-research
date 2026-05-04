@@ -124,7 +124,7 @@ def main() -> None:
     source_summary = summarize_source(source_model)
 
     # Extract key metrics from HTML
-    html_excerpt = html_content[:4000]  # first 4000 chars for context
+    html_excerpt = html_content[:40000]  # must cover full page since HTML is ~63KB
 
     steps_declared = len(source_model.get("steps", []))
     steps_found = html_content.count('class="step"')
@@ -157,7 +157,7 @@ def main() -> None:
             [
                 "claude", "--print",
                 "--model", "sonnet",
-                "--system", SYSTEM_PROMPT,
+                "--system-prompt", SYSTEM_PROMPT,
             ],
             input=user_prompt,
             capture_output=True,

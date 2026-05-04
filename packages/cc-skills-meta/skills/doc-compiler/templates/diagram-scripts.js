@@ -384,3 +384,8 @@ initMermaid();
 renderMermaid();
 // Re-render on theme toggle (fired from shared-scripts)
 document.addEventListener('theme-toggle', () => { renderMermaid(true); });
+
+// Initialize all after modules and DOM are ready
+initMermaid();
+renderMermaid();
+initTocToggle();

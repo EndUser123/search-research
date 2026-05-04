@@ -67,7 +67,10 @@
       "mcp__MiniMax__web_search",
       "Bash(rm -rf \"C:/Users/brsth/.claude/plugins/cache/local/skill-guard\")",
       "Bash(mkdir -p \"P:/.claude/.evidence/code-review/d3b6d326/specialists\")",
-      "mcp__search-research__web_search"
+      "mcp__search-research__web_search",
+      "Bash(mv P:/.claude/hooks/tests/test_cleanup_feedback.py P:/.claude/hooks/tests/_legacy/)",
+      "Bash(mv P:/.claude/hooks/tests/test_first_tool_coherence.py P:/.claude/hooks/tests/_legacy/)",
+      "Bash(mv P:/.claude/hooks/tests/test_slash_command_observability.py P:/.claude/hooks/tests/_legacy/)"
     ],
     "deny": [],
     "ask": []

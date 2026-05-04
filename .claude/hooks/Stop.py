@@ -285,7 +285,22 @@ def _challenge_marker_active() -> bool:
 
 
 def _run_epistemic_contract(data: dict) -> dict | None:
-    """Unified epistemic validator — format, citations, causal, comparative."""
+    """Unified epistemic validator — format, citations, causal, comparative.
+
+    Turn mode behavior (see turn_mode.py for classification):
+      - control:           SKIP entirely (direct command, no format nagging).
+      - exploration:       SKIP entirely (open-ended reasoning, format relaxed).
+      - plan / exec-report: skip format repair on warns; block-level still fires.
+      - analysis / final-answer: FULL enforcement (format repair + block).
+
+    Strict mode override:
+      ``--epistemic-strict`` in the user prompt forces full validation even on
+      control/exploration turns.  ``STOP_QUALITY_MODE=strict`` re-enables quality
+      gates for exploration but still suppresses control — you never nag on "stop".
+
+    ``_challenge_marker_active()`` deduplicates format-only repair when the
+    upstream ADVOCATE_PROTOCOL already injected a challenge (2-min TTL).
+    """
     try:
         from epistemic_validator import EpistemicConfig, validate
 
@@ -293,17 +308,21 @@ def _run_epistemic_contract(data: dict) -> dict | None:
         if not response:
             return None
 
-        # Skip format enforcement for exploration turns
-        if _classify_turn_mode(data) == "exploration":
+        turn_mode = _classify_turn_mode(data)
+        user_prompt = data.get("user_prompt") or data.get("prompt") or ""
+        quality_mode = os.environ.get("STOP_QUALITY_MODE", "normal")
+
+        # Per-turn strict override: --epistemic-strict forces full validation
+        # regardless of turn mode or quality mode.
+        strict_override = "--epistemic-strict" in user_prompt
+
+        # Control and exploration: skip unless --epistemic-strict overrides.
+        if not strict_override and is_quality_mode_suppressed(turn_mode, quality_mode):
             return None
 
+        # Determine validator mode: block vs warn
         mode = os.environ.get("EPISTEMIC_CONTRACT_MODE", "warn")
-
-        # CLI flag overrides: --epistemic-strict / --epistemic-warn in user prompt
-        user_prompt = (
-            data.get("user_prompt") or data.get("prompt") or ""
-        )
-        if "--epistemic-strict" in user_prompt:
+        if strict_override:
             mode = "block"
         elif "--epistemic-warn" in user_prompt:
             mode = "warn"
@@ -326,17 +345,17 @@ def _run_epistemic_contract(data: dict) -> dict | None:
                 "blocking_hook": "Stop.py:epistemic_contract",
             }
         if verdict.decision == "warn" and verdict.issues:
-            turn_mode = _classify_turn_mode(data)
-            if turn_mode in ("plan", "execution-report", "exploration"):
-                return None  # Skip format enforcement for plan/report/exploration turns
-            # When ADVOCATE_PROTOCOL was injected upstream (challenge marker active),
-            # skip format-only repair — STATUS labels already satisfy evidence discipline.
+            # Plan/execution-report: suppress format repair on warns.
+            if turn_mode in ("plan", "execution-report"):
+                return None
+
+            # ADVOCATE_PROTOCOL dedup: skip format-only repair when challenge
+            # was already injected upstream.
             all_format = all(i.type == "format" for i in verdict.issues)
             if all_format and _challenge_marker_active():
                 return None
-            # Auto-repair: if ALL issues are format-only, inject a single
-            # repair prompt instead of surfacing the raw advisory.
-            # Only demand full schema for clearly analytical responses.
+
+            # Auto-repair: format-only issues on analytical responses.
             if all_format and _is_analytical_response(response):
                 missing = [
                     i.section for i in verdict.issues
@@ -355,7 +374,7 @@ def _run_epistemic_contract(data: dict) -> dict | None:
                     "reason": repair,
                     "systemMessage": repair,
                 }
-            # Mixed or non-format issues: surface advisory as before.
+            # Mixed or non-format issues: surface advisory.
             parts = [f"EPISTEMIC ADVISORY ({len(verdict.issues)} issue(s)):"]
             for issue in verdict.issues[:3]:
                 parts.append(f"  [{issue.section}] {issue.type}: {issue.message}")
@@ -1793,12 +1812,22 @@ def _run_gate_safe(name: str, gate_fn, data: dict) -> dict | None:
 def _process_gate_result(
     res: dict, name: str, system_messages: list[str],
     quality_messages: list[str], data: dict,
+    turn_mode: str, quality_mode: str,
 ) -> bool:
     """Route a gate result: block exits immediately, otherwise route systemMessage.
-    Returns True if the turn was blocked (caller should exit), False to continue."""
+
+    Quality gate blocks are suppressed on control/exploration turns (normal mode)
+    or control turns only (strict mode), matching the systemMessage suppression.
+    Policy gate blocks always fire regardless of turn mode.
+
+    Returns True if the turn was blocked (caller should exit), False to continue.
+    """
     if not res:
         return False
     if res.get("decision") == "block":
+        gate_class = GATE_CLASSES.get(name, "policy")
+        if gate_class == "quality" and is_quality_mode_suppressed(turn_mode, quality_mode):
+            return False
         _log_stop_block_event(data, name, res)
         if "blocking_hook" not in res:
             res["blocking_hook"] = f"Stop.py:{name}"
@@ -2010,7 +2039,10 @@ def main():
     # Run all in-process gates
     for name, gate_fn in IN_PROCESS_GATES:
         res = _run_gate_safe(name, gate_fn, data)
-        blocked = _process_gate_result(res, name, system_messages, quality_messages, data)
+        blocked = _process_gate_result(
+            res, name, system_messages, quality_messages, data,
+            turn_mode, quality_mode,
+        )
         if blocked:
             sys.exit(0)
 

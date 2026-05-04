@@ -16,8 +16,7 @@ function isLightMode() {
       ).join('\n    ');
     }
 
-initMermaid();
-    renderMermaid();
+// initMermaid/renderMermaid called in diagram-scripts.js after mermaid import resolves
 
     // Re-render when OS theme changes
     window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
@@ -184,7 +183,7 @@ initMermaid();
       }
     });
 
-    initTocToggle();
+    // initTocToggle called in diagram-scripts.js after TOC structure is ready
 import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
 
 const PALETTES = {
@@ -571,3 +570,8 @@ initMermaid();
 renderMermaid();
 // Re-render on theme toggle (fired from shared-scripts)
 document.addEventListener('theme-toggle', () => { renderMermaid(true); });
+
+// Initialize all after modules and DOM are ready
+initMermaid();
+renderMermaid();
+initTocToggle();

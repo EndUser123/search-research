@@ -148,10 +148,15 @@ def audit_plugins(plugins_dir: Path, marketplace_root: str, plugin_filter: Optio
                                     result["errors"].append(f"hooks.{event}[{i}].hooks[{j}] missing 'type' or 'command'")
                                 elif hook.get("type") == "command":
                                     cmd = hook.get("command", "")
-                                    # Check for literal $CLAUDE_PLUGIN_ROOT (not expanded — common snapshot bug)
-                                    if "$CLAUDE_PLUGIN_ROOT" in cmd:
+                                    # $CLAUDE_PLUGIN_ROOT/%CLAUDE_PLUGIN_ROOT% is the correct runtime convention.
+                                    # Skip path-existence check — it will expand correctly at hook execution time.
+                                    has_runtime_env = (
+                                        "$CLAUDE_PLUGIN_ROOT" in cmd
+                                        or "%CLAUDE_PLUGIN_ROOT%" in cmd.lower()
+                                    )
+                                    if "$$" in cmd:
                                         result["errors"].append(
-                                            f"Hook uses literal $CLAUDE_PLUGIN_ROOT in command (not expanded): {cmd[:80]}"
+                                            f"Hook command contains double-dollar (corrupted variable): {cmd[:80]}"
                                         )
                                     # Extract script path from command (handles "python script.py --args", "node script.js", etc.)
                                     parts = cmd.split()
@@ -165,7 +170,8 @@ def audit_plugins(plugins_dir: Path, marketplace_root: str, plugin_filter: Optio
                                         for var, replacement in env_vars.items():
                                             if var in str(script_path):
                                                 script_path = Path(str(script_path).replace(f"${var}", replacement))
-                                        if not script_path.exists():
+                                        # Only check existence for non-runtime commands (no $CLAUDE_PLUGIN_ROOT/%VAR%)
+                                        if not has_runtime_env and not script_path.exists():
                                             result["errors"].append(f"Hook command file not found: {script_path}")
         # Check for .claude/.state inside skill subdirectories (not at plugin root)
         skills_dir = plugin / "skills"

@@ -10,8 +10,9 @@ _hooks_dir = Path(__file__).resolve().parent.parent
 if str(_hooks_dir) not in sys.path:
     sys.path.insert(0, str(_hooks_dir))
 
-# Ignore deprecated test directory
-collect_ignore = ["deprecated"]
+# Ignore deprecated and legacy test directories
+# _legacy: tests for permanently removed features, source modules no longer exist.
+collect_ignore = ["deprecated", "_legacy"]
 
 
 def pytest_collection_modifyitems(config, items):
