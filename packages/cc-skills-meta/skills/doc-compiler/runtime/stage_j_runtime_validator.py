@@ -20,9 +20,9 @@ import json, re, sys, subprocess, time
 from pathlib import Path
 from datetime import datetime
 
-BASE = Path("P:/packages/cc-skills-meta/skills/doc-compiler")
+BASE = Path("P:/packages/.claude-marketplace/plugins/cc-skills-meta/skills/doc-compiler")
 INDEX = BASE / "index.html"
-SOURCE = BASE / "source-model.json"
+SOURCE = BASE / "runtime" / "source-model.json"
 OUT = BASE / "runtime-validation.json"
 SNAP_DIR = BASE / "_snapshots"
 BH_DIR = Path("P:/packages/.github_repos/browser-harness")

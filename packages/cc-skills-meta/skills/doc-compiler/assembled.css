@@ -1,63 +1,74 @@
-/* minimal shared CSS: compact, reference-oriented, reduced ornamentation */
 :root {
-  --doc-font-scale: 0.85;
-  --doc-card-padding: 0.5rem;
-  --doc-section-gap: 1rem;
-  --doc-hero-sub-max: 45ch;
-  --doc-proof-display: none;
-  --doc-diagram-weight: 0.85;
-  --doc-whitespace: 0;
-}
+      --font-body: "Inter", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-body {
-  background: #0f1115;
-  line-height: 1.45;
-}
+      --timing-snap: 140ms ease;   /* hover, focus, small changes */
+      --timing-smooth: 180ms ease; /* layout: width, margin, position */
+      --timing-slow: 200ms ease;   /* transforms, opacity, emphasis */
 
-.section-card {
-  padding: var(--doc-card-padding);
-  border-radius: 6px;
-  border-color: var(--border);
-}
-.section { margin-bottom: var(--doc-section-gap); }
-.hero { margin-bottom: 1.5rem; padding-bottom: 1.25rem; }
-.hero h1 { font-size: calc(1.75rem * var(--doc-font-scale)); }
-.hero-sub { font-size: calc(0.875rem * var(--doc-font-scale)); max-width: var(--doc-hero-sub-max); }
-.hero-badges { gap: 0.35rem; }
-.badge { padding: 0.15rem 0.5rem; font-size: 0.65rem; }
-.stages-grid {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 0.5rem;
-}
-.what-it-does-grid {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.5rem;
-}
-.val-card, .stage-card { padding: 0.625rem; }
-.accordion-header { padding: 0.5rem 0.75rem; font-size: calc(0.775rem * var(--doc-font-scale)); }
-.accordion-body { padding: 0.625rem; }
-.diagram-shell { min-height: 240px; border-radius: 6px; }
-.diagram-controls { padding: 0.4rem 0.5rem; }
-.func-table { font-size: calc(0.7rem * var(--doc-font-scale)); }
-.func-table th { padding: 0.4rem 0.5rem; }
-.func-table td { padding: 0.4rem 0.5rem; }
-.workflow-step-content { padding: 0.625rem; }
-.workflow-step-num { width: 1.5rem; height: 1.5rem; font-size: 0.65rem; }
-.artifact-card { padding: 0.5rem; }
-.artifact-icon { width: 1.5rem; height: 1.5rem; font-size: 0.7rem; }
-.filemap-group { margin-bottom: 0.75rem; }
-.filemap-group h4 { font-size: 0.65rem; }
-.toc-body li a { padding: 0.25rem 1rem; font-size: 0.7rem; }
-.toc-header h2 { font-size: 0.65rem; }
+      --bg: #0f1115;
+      --surface: #151922;
+      --surface-2: #1b2130;
+      --surface-3: #222a3a;
+      --text: #e8edf5;
+      --text-muted: #a8b3c7;
+      --text-faint: #7e889b;
+      --border: rgba(255,255,255,0.10);
+      --border-strong: rgba(255,255,255,0.16);
+      --accent: #66b3ff;
+      --accent-soft: rgba(102,179,255,0.14);
+      --shadow: 0 10px 30px rgba(0,0,0,0.22);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
 
-.hero {
-  background: #151922;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 0.875rem;
-}
-.hero::before { display: none; }
+      --toc-width: 18rem;
+    }
+
+@media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc;
+        --surface: #ffffff;
+        --surface-2: #f1f5f9;
+        --surface-3: #e2e8f0;
+        --text: #0f172a;
+        --text-muted: #475569;
+        --text-faint: #94a3b8;
+        --border: rgba(0,0,0,0.10);
+        --border-strong: rgba(0,0,0,0.16);
+        --accent: #0369a1;
+        --accent-soft: rgba(3,105,161,0.12);
+        --shadow: 0 8px 24px rgba(0,0,0,0.10);
+      }
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { overflow-x: hidden; }
+    body {
+      font-family: var(--font-body);
+      color: var(--text);
+      background: radial-gradient(circle at top, rgba(102,179,255,0.06), transparent 28%), var(--bg);
+      line-height: 1.55;
+      letter-spacing: -0.01em;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+::selection { background-color: var(--accent); color: var(--bg); }
+
+button, input, select, textarea {
+      line-height: 1.2;
+      font-family: inherit;
+      font-size: inherit;
+    }
+
+h1 { font-size: clamp(1.9rem, 2.5vw, 2.4rem); font-weight: 700; letter-spacing: -0.025em; line-height: 1.15; }
+    h2 { font-size: clamp(1rem, 1.4vw, 1.25rem); font-weight: 650; letter-spacing: -0.02em; line-height: 1.2; }
+    h3, h4 { font-size: 0.95rem; font-weight: 600; letter-spacing: -0.01em; }
+    h2 { text-transform: uppercase; letter-spacing: 0.07em; font-size: 0.72rem; font-weight: 700; color: var(--text-muted); margin: 1.75rem 0 0.6rem; }
+    h2:first-of-type { margin-top: 0; }
+    p, li { color: var(--text-muted); font-size: 0.875rem; line-height: 1.6; }
+    code, pre, .mono { font-family: var(--font-mono); font-size: 0.875em; font-variant-ligatures: none; }
 .toc {
       position: fixed; top: 0; left: 0;
       width: var(--toc-width); height: 100vh;
