@@ -166,10 +166,17 @@ def main() -> None:
         )
         output_text = result.stdout.strip()
 
+        # Fail closed: no output at all means the critic failed to run
+        if not output_text:
+            raise ValueError("critic produced empty output")
+
         # Parse JSON from output (may be wrapped in markdown code block)
         json_match = re.search(r'```json\s*(.*?)```', output_text, re.DOTALL)
         if json_match:
             output_text = json_match.group(1)
+
+        if not output_text:
+            raise ValueError("critic produced no parseable JSON")
 
         report = json.loads(output_text)
         report["stage"] = "K"

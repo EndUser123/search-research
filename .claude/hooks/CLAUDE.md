@@ -1573,12 +1573,13 @@ Only say "All tests passed" or similar when you have just shown actual test outp
 **Purpose**: Provides fast semantic search for CKS and CHS via Windows named pipes.
 
 **Architecture**:
-- **Daemon**: `__csf/src/daemons/unified_semantic_daemon.py` - Named pipe server
+- **Daemon**: `unified_semantic_daemon.py` - Named pipe server (two pipes: search + write-signal)
 - **Clients**: `SemanticClient` (low-level), `DaemonClient` (high-level with auto-start)
 - **Hook**: `SessionStart_semantic_daemon.py` - Auto-start daemon on session start
 
 **Features**:
-- **Dynamic pipe names**: `\.\pipe\csf_nip_semantic_{PID}_{timestamp}` avoids Windows stale handles
+- **Fixed pipe names**: `\\.\pipe\csf_semantic` (search) + `\\.\pipe\csf_semantic_write_signal` (advisory write-signal)
+- **Write-signal**: Advisory mechanism for immediate FAISS refresh on CKS writes (~2s vs 10min staleness)
 - **Discovery file**: `P:/__csf/data/semantic_daemon_discovery.json` for clients to find current daemon
 - **Auto-start**: Clients automatically start daemon if not running
 - **Fallback**: `DaemonClient` falls back to direct backend on daemon failure
@@ -1589,16 +1590,29 @@ Only say "All tests passed" or similar when you have just shown actual test outp
 from daemons.daemon_client import DaemonClient
 
 client = DaemonClient(auto_start=True, enable_fallback=True)
+
+# Search
 results = client.search("cks", "query text", limit=5)
 results = client.search("chs", "chat topic", limit=10)
+
+# Send write signal after CKS ingest (fire-and-forget)
+client.send_write_signal(
+    entry_id="mem_abc123",
+    entry_type="correction",
+    workspace="P:/workspace",
+    terminal_id="console_xyz",
+)
 ```
 
 **Discovery file integration**:
-- Daemon writes discovery file on startup with pipe name, PID, timestamp
+- Daemon writes discovery file on startup with `pipe_name`, `write_signal_pipe`, PID, timestamp
 - `SemanticClient` and `DaemonClient` read discovery file to find current pipe
 - `SessionStart_semantic_daemon.py` hook uses discovery file to check daemon status
 
-**See also**: `__csf/src/daemons/CLAUDE.md` for complete daemon documentation.
+**Write-signal mechanism**:
+After Stop hooks ingest to CKS (corrections, decisions), they send an advisory `cks_write` signal via `send_write_signal()`. The daemon sets `_faiss_dirty = True` and triggers immediate FAISS refresh — new entries queryable within ~2 seconds instead of the 10-minute time-based window.
+
+**See also**: `P:/packages/search-research/contrib/semantic_daemon/CLAUDE.md` for complete daemon documentation.
 
 ### Hook Output Formats
 

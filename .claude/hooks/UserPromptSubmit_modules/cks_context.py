@@ -3,6 +3,9 @@
 Detects trigger phrases and injects relevant context from CKS database.
 Uses keyword search (fast, no model loading) for hook compatibility.
 
+On analysis/final-answer turns, also automatically injects the 3 most recent
+CKS corrections (last 24h) that semantically match the user prompt.
+
 This hook is registered manually in registry.py to avoid circular import.
 """
 
@@ -10,6 +13,8 @@ from __future__ import annotations
 
 import os
 import sys
+import time
+from datetime import datetime, timedelta
 from pathlib import Path
 
 # Add project root to path for CKS imports
@@ -19,6 +24,12 @@ if str(project_root) not in sys.path:
 
 # Import base classes directly
 from UserPromptSubmit_modules.base import HookContext, HookResult
+
+# Import turn mode classifier
+import_path = str(Path(__file__).resolve().parents[1] / "__lib" / "turn_mode")
+if import_path not in sys.path:
+    sys.path.insert(0, import_path)
+from turn_mode import classify as classify_turn_mode
 
 # Trigger phrases from documentation
 TRIGGER_PHRASES = [
@@ -35,6 +46,104 @@ TRIGGER_PHRASES = [
     "earlier today", "yesterday we", "last session",
     "in a previous session", "before this session",
 ]
+
+# === Auto-correction injection for analysis/final-answer turns ===
+
+CORRECTION_INJECTION_MODES = ("analysis", "final-answer")
+
+
+def _should_inject_recent_corrections(prompt: str) -> bool:
+    """Check if prompt warrants automatic recent-correction injection."""
+    if os.environ.get("CKS_CORRECTION_AUTO_INJECT", "true").lower() not in ("1", "true", "yes"):
+        return False
+    try:
+        data = {"user_prompt": prompt, "response": ""}
+        mode = classify_turn_mode(data)
+        return mode in CORRECTION_INJECTION_MODES
+    except Exception:
+        return False
+
+
+def _query_recent_corrections(prompt: str, max_results: int = 3, hours: int = 24) -> list[dict]:
+    """Query CKS for recent corrections matching the user prompt keywords."""
+    try:
+        cks_db_path = project_root / "__csf" / "data" / "cks.db"
+        if not cks_db_path.exists():
+            return []
+
+        import sqlite3
+
+        conn = sqlite3.connect(cks_db_path)
+        cursor = conn.cursor()
+
+        cutoff = (datetime.now() - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%S")
+
+        cursor.execute(
+            """
+            SELECT id, type, title, content, metadata, created_at
+            FROM entries
+            WHERE type = 'correction'
+              AND created_at > ?
+            ORDER BY created_at DESC
+            LIMIT 50
+            """,
+            (cutoff,),
+        )
+        rows = cursor.fetchall()
+        conn.close()
+
+        if not rows:
+            return []
+
+        # Score by keyword overlap with prompt
+        prompt_words = set(prompt.lower().split())
+        scored = []
+        for row in rows:
+            entry_words = set((row[2] or "").lower().split() + (row[3] or "").lower().split())
+            overlap = len(prompt_words & entry_words)
+            scored.append((overlap, row))
+
+        # Sort by overlap desc, then created_at desc
+        scored.sort(key=lambda x: (x[0], x[1][5]), reverse=True)
+        return [
+            {
+                "id": row[0],
+                "type": row[1],
+                "title": row[2],
+                "content": row[3],
+                "metadata": row[4],
+                "created_at": row[5],
+            }
+            for _, row in scored[:max_results]
+        ]
+
+    except Exception:
+        return []
+
+
+def _format_recent_corrections(results: list[dict], prompt: str) -> str:
+    """Format recent corrections as context injection."""
+    if not results:
+        return ""
+
+    lines = [
+        "## Recent CKS Corrections",
+        "",
+    ]
+    for i, result in enumerate(results, 1):
+        title = result.get("title", "") or f"Correction {result.get('id')}"
+        content = result.get("content", "")
+        created = result.get("created_at", "")
+        if len(content) > 300:
+            content = content[:300] + "..."
+        lines.append(f"{i}. **{title}**")
+        if created:
+            lines.append(f"   _{created[:10]}_")
+        lines.append(f"   {content}")
+        lines.append("")
+
+    lines.append("*Recent corrections auto-injected by cks_context hook.*")
+    return "\n".join(lines)
 
 
 def _should_trigger_cks(prompt: str) -> bool:
@@ -151,7 +260,7 @@ def _format_cks_context(results: list[dict], prompt: str) -> str:
 
 
 def cks_context_hook(context: HookContext) -> HookResult:
-    """Inject CKS context when trigger phrases detected.
+    """Inject CKS context when trigger phrases detected, plus recent corrections on analysis/final-answer turns.
 
     This function is registered manually in registry.py to avoid circular import.
     """
@@ -159,23 +268,29 @@ def cks_context_hook(context: HookContext) -> HookResult:
     if os.environ.get("CKS_INTEGRATION_ENABLED", "true").lower() not in ("1", "true", "yes"):
         return HookResult.empty()
 
-    # Fast path: skip if no trigger phrase
-    if not _should_trigger_cks(context.prompt):
+    parts = []
+
+    # 1. Existing trigger-phrase logic (unchanged)
+    if _should_trigger_cks(context.prompt):
+        results = _query_cks(context.prompt, max_results=5)
+        if results:
+            formatted = _format_cks_context(results, context.prompt)
+            if formatted:
+                parts.append(formatted)
+
+    # 2. Auto-inject recent corrections on analysis/final-answer turns
+    if _should_inject_recent_corrections(context.prompt):
+        corrections = _query_recent_corrections(context.prompt, max_results=3, hours=24)
+        if corrections:
+            formatted = _format_recent_corrections(corrections, context.prompt)
+            if formatted:
+                parts.append(formatted)
+
+    if not parts:
         return HookResult.empty()
 
-    # Query CKS for relevant entries
-    results = _query_cks(context.prompt, max_results=5)
-
-    if not results:
-        return HookResult.empty()
-
-    # Format and return context
-    formatted_context = _format_cks_context(results, context.prompt)
-
-    if not formatted_context:
-        return HookResult.empty()
-
-    return HookResult.context_injection(formatted_context)
+    combined = "\n\n".join(parts)
+    return HookResult.context_injection(combined)
 
 
 # Add context_injection as a class method for compatibility

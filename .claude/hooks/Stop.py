@@ -258,6 +258,32 @@ _PLANNING_PROMPT_RE = re.compile(
 )
 
 
+def _challenge_marker_active() -> bool:
+    """Check if anti_sycophancy_injector wrote a challenge marker for this turn."""
+    import glob as _glob
+    from pathlib import Path as _Path
+    import time as _time
+
+    session_id = os.environ.get("CLAUDE_SESSION_ID", "")
+    terminal_id = os.environ.get("CLAUDE_TERMINAL_ID", "")
+    safe_session = re.sub(r"[^a-zA-Z0-9_.-]+", "_", session_id) if session_id else ""
+    safe_terminal = re.sub(r"[^a-zA-Z0-9_.-]+", "_", terminal_id) if terminal_id else ""
+
+    state_dir = _Path("P:/.claude/hooks/state/anti_sycophancy_injector")
+    if not state_dir.exists():
+        return False
+
+    # Check exact marker first, then fall back to any recent marker in this scope
+    marker = state_dir / f"challenge__{safe_session}__{safe_terminal}.json"
+    if marker.exists():
+        try:
+            data = json.loads(marker.read_text(encoding="utf-8"))
+            return _time.time() - data.get("timestamp", 0) < 120  # 2 min TTL
+        except Exception:
+            return True  # exists but unreadable — assume active
+    return False
+
+
 def _run_epistemic_contract(data: dict) -> dict | None:
     """Unified epistemic validator — format, citations, causal, comparative."""
     try:
@@ -303,10 +329,14 @@ def _run_epistemic_contract(data: dict) -> dict | None:
             turn_mode = _classify_turn_mode(data)
             if turn_mode in ("plan", "execution-report", "exploration"):
                 return None  # Skip format enforcement for plan/report/exploration turns
+            # When ADVOCATE_PROTOCOL was injected upstream (challenge marker active),
+            # skip format-only repair — STATUS labels already satisfy evidence discipline.
+            all_format = all(i.type == "format" for i in verdict.issues)
+            if all_format and _challenge_marker_active():
+                return None
             # Auto-repair: if ALL issues are format-only, inject a single
             # repair prompt instead of surfacing the raw advisory.
             # Only demand full schema for clearly analytical responses.
-            all_format = all(i.type == "format" for i in verdict.issues)
             if all_format and _is_analytical_response(response):
                 missing = [
                     i.section for i in verdict.issues

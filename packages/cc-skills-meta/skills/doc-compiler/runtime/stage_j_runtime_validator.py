@@ -148,7 +148,11 @@ def load_json(p: Path) -> dict:
 
 
 def run_browser_checks() -> dict:
-    """Write and run browser script, return results."""
+    """Write and run browser script, return results.
+
+    Fails closed: any exception, crash, empty verification_matrix, or non-zero
+    exit code produces passed=False so Stage L cannot certify a broken run as clean.
+    """
     script_path = SNAP_DIR / "browser_checks.py"
     script_path.write_text(BROWSER_SCRIPT, encoding="utf-8")
 
@@ -160,6 +164,18 @@ def run_browser_checks() -> dict:
             text=True,
             timeout=120,
         )
+
+        # --- fail closed on any non-zero exit code ---
+        if result.returncode != 0:
+            return {
+                "passed": False,
+                "verification_matrix": {},
+                "snapshots": [],
+                "stdout": result.stdout[:2000],
+                "stderr": result.stderr[:1000],
+                "_fail_reason": f"harness_exit_{result.returncode}",
+            }
+
         output = result.stdout + result.stderr
 
         vmatrix = {}
@@ -171,6 +187,25 @@ def run_browser_checks() -> dict:
                     vmatrix = json.loads(match.group(0))
                 except Exception as ex:
                     print(f"  Warning: Could not parse results JSON: {ex}")
+                    return {
+                        "passed": False,
+                        "verification_matrix": {},
+                        "snapshots": [],
+                        "stdout": result.stdout[:2000],
+                        "stderr": f"JSON parse error: {ex}",
+                        "_fail_reason": "json_parse_error",
+                    }
+
+        # --- fail closed: no results extracted means harness produced nothing useful ---
+        if not vmatrix:
+            return {
+                "passed": False,
+                "verification_matrix": {},
+                "snapshots": [],
+                "stdout": result.stdout[:2000],
+                "stderr": result.stderr[:500] if result.stderr else "no __RESULTS__ marker in output",
+                "_fail_reason": "no_verification_matrix",
+            }
 
         snapshots = []
         for line in output.splitlines():
@@ -194,6 +229,7 @@ def run_browser_checks() -> dict:
             "snapshots": [],
             "stdout": "",
             "stderr": "Timeout after 120s",
+            "_fail_reason": "timeout",
         }
     except Exception as ex:
         return {
@@ -202,6 +238,7 @@ def run_browser_checks() -> dict:
             "snapshots": [],
             "stdout": "",
             "stderr": str(ex),
+            "_fail_reason": f"exception_{type(ex).__name__}",
         }
 
 
@@ -232,6 +269,10 @@ def main() -> None:
 
     result = run_browser_checks()
     vmatrix = result["verification_matrix"]
+    fail_reason = result.get("_fail_reason", "")
+
+    if fail_reason:
+        print(f"  Browser harness failed: {fail_reason}")
 
     if not vmatrix:
         print(f"  Warning: No structured results. stdout: {result['stdout'][:200]}")
@@ -243,6 +284,9 @@ def main() -> None:
     # Build runtime validation output
     steps_declared = len(model.get("steps", []))
     steps_rendered = index_content.count('class="step"') if index_content else 0
+
+    # Fail closed: any harness failure means runtime validation did not pass
+    runtime_all_passed = (passed_count == total_count) and (total_count > 0) and (not fail_reason)
 
     proof = {
         "stage": "J",
@@ -273,9 +317,10 @@ def main() -> None:
         "runtime_verification": {
             "passed": passed_count,
             "total": total_count,
-            "all_passed": passed_count == total_count,
+            "all_passed": runtime_all_passed,
             "snapshots": result.get("snapshots", []),
             "stdout": result.get("stdout", "")[:500],
+            "_fail_reason": fail_reason or None,
         },
     }
 

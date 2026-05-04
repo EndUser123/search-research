@@ -26,24 +26,25 @@ verification:
     - description: "Confirm p3.md synthesis exists"
       tool: "Bash"
       args:
-        command: "ls -la \"P:/.claude/.artifacts/\$WT_SESSION/pre-mortem/pre-mortem-*/p3.md\" 2>/dev/null | tail -1 || echo 'NO P3 FOUND'"
+        command: 'ls -la "P:/.claude/.artifacts/$WT_SESSION/pre-mortem/pre-mortem-*/p3.md" 2>/dev/null | tail -1 || echo "NO P3 FOUND"'
     - description: "Confirm Phase 1 findings exist"
       tool: "Bash"
       args:
-        command: "ls -la \"P:/.claude/.artifacts/\$WT_SESSION/pre-mortem/pre-mortem-*/p1_findings.md\" 2>/dev/null | tail -1 || echo 'NO P1 FOUND'"
+        command: 'ls -la "P:/.claude/.artifacts/$WT_SESSION/pre-mortem/pre-mortem-*/p1_findings.md" 2>/dev/null | tail -1 || echo "NO P1 FOUND"'
     - description: "Confirm Phase 2 meta-critique exists"
       tool: "Bash"
       args:
-        command: "ls -la \"P:/.claude/.artifacts/\$WT_SESSION/pre-mortem/pre-mortem-*/p2.md\" 2>/dev/null | tail -1 || echo 'NO P2 FOUND'"
+        command: 'ls -la "P:/.claude/.artifacts/$WT_SESSION/pre-mortem/pre-mortem-*/p2.md" 2>/dev/null | tail -1 || echo "NO P2 FOUND"'
     - description: "Count findings with severity levels"
       tool: "Bash"
       args:
-        command: "grep -cP '\\[(CRITICAL|HIGH|MEDIUM|LOW)\\]' \"P:/.claude/.artifacts/\$WT_SESSION/pre-mortem/pre-mortem-*/p3.md\" 2>/dev/null || echo '0'"
+        command: 'grep -cP "\\[(CRITICAL|HIGH|MEDIUM|LOW)\\]" "P:/.claude/.artifacts/$WT_SESSION/pre-mortem/pre-mortem-*/p3.md" 2>/dev/null || echo "0"'
   summary_mode: evidence_only
   expected_artifacts:
     - "P:/.claude/.artifacts/{terminal_id}/pre-mortem/{session_id}/p1_findings.md"
     - "P:/.claude/.artifacts/{terminal_id}/pre-mortem/{session_id}/p2.md"
     - "P:/.claude/.artifacts/{terminal_id}/pre-mortem/{session_id}/p3.md"
+
 ---
 
 # Critique — Adaptive Adversarial Review
