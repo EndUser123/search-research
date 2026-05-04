@@ -23,8 +23,8 @@ from pathlib import Path
 from __lib.hook_base import hook_main
 
 # Add CSF src to path for CKS import
-csf_src = Path(__file__).resolve().parent.parent.parent / "__csf" / "src"
-if csf_src.exists():
+csf_src = Path("P:/packages/search-research/core")
+if str(csf_src) not in sys.path:
     sys.path.insert(0, str(csf_src))
 
 # Add semantic_daemon path for write signal client

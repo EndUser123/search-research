@@ -246,8 +246,10 @@ def build_html(plan: dict) -> str:
 
     body_parts.append('  </div><!-- .main-content -->')
 
-    # Assemble JS
+    # Assemble JS — prepend boot marker so we can verify script execution
     js = assemble_js()
+    boot_marker = "window.__DOC_COMPILER_BOOT__ = { ran: true, ts: Date.now() };"
+    js_with_boot = boot_marker + "\n" + js
 
     # Build complete HTML
     html_lines = []
@@ -272,8 +274,8 @@ def build_html(plan: dict) -> str:
         for line in part.splitlines():
             html_lines.append(line)
     html_lines.append('</div><!-- .page-shell -->')
-    html_lines.append('<script type="module">')
-    for js_line in js.splitlines():
+    html_lines.append('<script defer>')
+    for js_line in js_with_boot.splitlines():
         html_lines.append("  " + js_line)
     html_lines.append('</script>')
     html_lines.append("</body>")
