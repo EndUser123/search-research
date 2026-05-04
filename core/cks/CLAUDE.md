@@ -189,6 +189,16 @@ export CUDA_VISIBLE_DEVICES=0
 - **Database**: `P:/__csf.nip/data/cks.db`
 - **FAISS Index**: `P:/__csf.nip/data/cks_hypergraph/`
 
+### Real-Time FAISS Updates
+
+CKS entries are queryable via semantic search within ~2 seconds of ingest via the write-signal mechanism:
+
+1. Stop hooks (`Stop_cks_correction_anchor.py`, `Stop_cks_decision_capture.py`) call `DaemonClient.send_write_signal()` after ingest
+2. `UnifiedSemanticDaemon` receives the signal on `\\.\pipe\csf_semantic_write_signal` and sets `_faiss_dirty = True`
+3. `check_idle_work()` triggers immediate FAISS refresh — no 10-minute staleness window
+
+This replaces time-based FAISS staleness (600s interval) with event-driven updates.
+
 ## Related Systems
 
 CKS is part of the unified search ecosystem:
