@@ -322,3 +322,4 @@ def check_alignment(
         "modified_files": list(modified_files),
         "claims_completion": claims_completion,
     }
+
