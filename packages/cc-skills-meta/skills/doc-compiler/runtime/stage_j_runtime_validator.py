@@ -21,7 +21,8 @@ from pathlib import Path
 from datetime import datetime
 
 BASE = Path("P:/packages/.claude-marketplace/plugins/cc-skills-meta/skills/doc-compiler")
-INDEX = BASE / "index.html"
+INDEX_NAME = sys.argv[1] if len(sys.argv) > 1 else "index.html"
+INDEX = BASE / INDEX_NAME
 SOURCE = BASE / "runtime" / "source-model.json"
 OUT = BASE / "runtime-validation.json"
 SNAP_DIR = BASE / "_snapshots"

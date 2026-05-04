@@ -1,60 +1,63 @@
-/* product shared CSS: polished hero, examples-first, generous whitespace */
+/* minimal shared CSS: compact, reference-oriented, reduced ornamentation */
 :root {
-  --doc-font-scale: 1.0;
-  --doc-card-padding: 1.25rem;
-  --doc-section-gap: 2.5rem;
-  --doc-hero-sub-max: 65ch;
-  --doc-proof-display: inline-block;
-  --doc-diagram-weight: 1.0;
-  --doc-whitespace: 1;
+  --doc-font-scale: 0.85;
+  --doc-card-padding: 0.5rem;
+  --doc-section-gap: 1rem;
+  --doc-hero-sub-max: 45ch;
+  --doc-proof-display: none;
+  --doc-diagram-weight: 0.85;
+  --doc-whitespace: 0;
 }
 
 body {
-  background: radial-gradient(circle at top, rgba(102,179,255,0.06), transparent 28%), #0f1115;
+  background: #0f1115;
+  line-height: 1.45;
 }
 
 .section-card {
   padding: var(--doc-card-padding);
-  border-radius: 14px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  border-color: var(--border);
 }
-.hero { margin-bottom: 2.5rem; }
-.hero-sub { max-width: var(--doc-hero-sub-max); }
-.hero-badges { gap: 0.625rem; }
-.badge { padding: 0.3rem 0.75rem; font-size: 0.75rem; }
+.section { margin-bottom: var(--doc-section-gap); }
+.hero { margin-bottom: 1.5rem; padding-bottom: 1.25rem; }
+.hero h1 { font-size: calc(1.75rem * var(--doc-font-scale)); }
+.hero-sub { font-size: calc(0.875rem * var(--doc-font-scale)); max-width: var(--doc-hero-sub-max); }
+.hero-badges { gap: 0.35rem; }
+.badge { padding: 0.15rem 0.5rem; font-size: 0.65rem; }
 .stages-grid {
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.5rem;
 }
 .what-it-does-grid {
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.5rem;
 }
-.diagram-shell { min-height: 520px; border-radius: 14px; }
-.workflow-step-content { padding: 1.25rem; border-radius: 10px; }
-.accordion-header { padding: 1rem 1.25rem; font-size: 0.875rem; }
-.accordion-body { padding: 1.25rem; }
-.proof-summary {
-  padding: 1.5rem;
-  border-radius: 14px;
-  background: linear-gradient(135deg, var(--surface-2), var(--surface-3));
-}
-.filemap-group h4 { margin-bottom: 0.75rem; }
-.artifact-grid { gap: 1rem; }
-.artifact-card { padding: 1.25rem; border-radius: 10px; }
-.toc-body li a { padding: 0.5rem 1rem; font-size: 0.8rem; }
-.toc-header { padding: 1.25rem 1rem 1rem; }
+.val-card, .stage-card { padding: 0.625rem; }
+.accordion-header { padding: 0.5rem 0.75rem; font-size: calc(0.775rem * var(--doc-font-scale)); }
+.accordion-body { padding: 0.625rem; }
+.diagram-shell { min-height: 240px; border-radius: 6px; }
+.diagram-controls { padding: 0.4rem 0.5rem; }
+.func-table { font-size: calc(0.7rem * var(--doc-font-scale)); }
+.func-table th { padding: 0.4rem 0.5rem; }
+.func-table td { padding: 0.4rem 0.5rem; }
+.workflow-step-content { padding: 0.625rem; }
+.workflow-step-num { width: 1.5rem; height: 1.5rem; font-size: 0.65rem; }
+.artifact-card { padding: 0.5rem; }
+.artifact-icon { width: 1.5rem; height: 1.5rem; font-size: 0.7rem; }
+.filemap-group { margin-bottom: 0.75rem; }
+.filemap-group h4 { font-size: 0.65rem; }
+.toc-body li a { padding: 0.25rem 1rem; font-size: 0.7rem; }
+.toc-header h2 { font-size: 0.65rem; }
 
 .hero {
-  background: linear-gradient(135deg, #151922 0%, #0f1115 100%);
-  border: 1px solid rgba(102,179,255,0.18);
-  border-radius: 16px;
-  padding: 1.75rem 2rem;
-  margin-bottom: 1.25rem;
+  background: #151922;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.875rem;
 }
-.hero::before {
-  background: radial-gradient(circle at top right, rgba(102,179,255,0.10), transparent 60%);
-}
+.hero::before { display: none; }
 .toc {
       position: fixed; top: 0; left: 0;
       width: var(--toc-width); height: 100vh;
