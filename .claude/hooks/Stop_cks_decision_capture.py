@@ -95,7 +95,7 @@ def main() -> int:
         from cks.unified import CKS
 
         # CKS database location
-        db_path = Path(__file__).resolve().parent.parent.parent / "__csf.nip" / "data" / "cks.db"
+        db_path = Path(__file__).resolve().parent.parent.parent / "__csf" / "data" / "cks.db"
 
         session_id = f"S-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}"
 

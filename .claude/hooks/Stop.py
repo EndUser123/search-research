@@ -37,7 +37,6 @@ except Exception:  # pragma: no cover - observability must fail open
 from __lib.turn_mode import (
     classify as _classify_turn_mode,
     is_quality_mode_suppressed,
-    is_rubric_required,
     is_format_required,
     mode_display_label,
     TurnMode,
@@ -282,6 +281,20 @@ def _challenge_marker_active() -> bool:
         except Exception:
             return True  # exists but unreadable — assume active
     return False
+
+
+def _run_intent_artifact_alignment(data: dict) -> dict | None:
+    """Intent vs Artifacts alignment gate.
+
+    Detects when the assistant did adjacent work instead of modifying
+    the requested targets. Quality gate — suppressed on control/exploration/meta turns.
+    """
+    from intent_artifact_alignment import check_alignment
+
+    prompt = data.get("user_prompt") or data.get("prompt") or ""
+    tool_events = data.get("tool_events", [])
+    response = data.get("response", "")
+    return check_alignment(prompt, tool_events, response)
 
 
 def _run_epistemic_contract(data: dict) -> dict | None:
@@ -1710,6 +1723,7 @@ GATE_CLASSES: dict[str, str] = {
     "behavior_gates_blacklist": "policy",
     "command_execution_validator": "policy",
     "recommendation_gate": "quality",
+    "intent_artifact_alignment": "quality",
     "deletion_verification_guard": "policy",
     "git_diff_reground": "policy",
     "skill_dir_correlation": "policy",
@@ -1758,6 +1772,7 @@ IN_PROCESS_GATES = [
     ("existence_gate", _run_existence_gate),
     ("lazy_workaround_gate", _run_lazy_workaround_gate),
     ("recommendation_gate", _run_recommendation_gate),
+    ("intent_artifact_alignment", _run_intent_artifact_alignment),
     (
         "deletion_verification_guard",
         _run_deletion_verification_guard,

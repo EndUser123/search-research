@@ -29,6 +29,8 @@ $doStart = $false
 $doRestart = $false
 $doShutdown = $false
 $doDashboard = $false
+$doRoutes = $false
+$newOnly = $false
 $modelOverride = $null
 $i = 0
 while ($i -lt $Args.Count) {
@@ -43,6 +45,10 @@ while ($i -lt $Args.Count) {
         $doShutdown = $true
     } elseif ($arg -eq "--dashboard") {
         $doDashboard = $true
+    } elseif ($arg -eq "--routes") {
+        $doRoutes = $true
+    } elseif ($arg -eq "--new-only") {
+        $newOnly = $true
     } elseif ($arg -eq "--model" -or $arg -eq "-m") {
         $i++
         if ($i -lt $Args.Count) { $modelOverride = $Args[$i] }
@@ -234,8 +240,17 @@ function Restart-BifrostDaemon {
     Start-BifrostDaemon
 }
 
+function Show-BifrostRoutes {
+    $scriptPath = "$PSScriptRoot\scripts\routes_probe.py"
+    if (-not (Test-Path $scriptPath)) {
+        Write-Host "   [ERROR] routes_probe.py not found at $scriptPath" -ForegroundColor Red
+        return
+    }
+    Write-Host ""
+    python3 $scriptPath 2>&1 | ForEach-Object { Write-Host $_ }
+}
+
 function Show-BifrostDashboard {
-    $proc = Get-BifrostProcess
     if (-not $proc) {
         Write-Host "   [ERROR] Bifrost is not running -- start it first with /bf start" -ForegroundColor Red
         return
@@ -281,6 +296,21 @@ if ($doShutdown) {
 
 if ($doDashboard) {
     Show-BifrostDashboard
+    return
+}
+
+if ($doRoutes) {
+    $scriptPath = "$PSScriptRoot\scripts\routes_probe.py"
+    if (-not (Test-Path $scriptPath)) {
+        Write-Host "   [ERROR] routes_probe.py not found at $scriptPath" -ForegroundColor Red
+        return
+    }
+    if ($newOnly) {
+        $output = python3 $scriptPath "--new-only" 2>&1
+    } else {
+        $output = python3 $scriptPath 2>&1
+    }
+    $output | ForEach-Object { Write-Host $_ }
     return
 }
 

@@ -33,14 +33,17 @@ import sys, json, os
 BH_DIR = r"P:/packages/.github_repos/browser-harness"
 if BH_DIR not in sys.path:
     sys.path.insert(0, BH_DIR)
+from admin import restart_daemon, ensure_daemon
 from helpers import *
-from admin import *
+
+# Restart daemon here so the fresh state is available in this process
+restart_daemon()
+ensure_daemon()
 
 INDEX_PATH = "file:///P:/packages/cc-skills-meta/skills/doc-compiler/index.html"
 SNAP_DIR = r"P:/packages/cc-skills-meta/skills/doc-compiler/_snapshots"
 
 os.makedirs(SNAP_DIR, exist_ok=True)
-ensure_daemon()
 new_tab(INDEX_PATH)
 wait_for_load()
 time.sleep(2)
@@ -159,16 +162,8 @@ def run_browser_checks() -> dict:
     script_path.write_text(BROWSER_SCRIPT, encoding="utf-8")
 
     try:
-        # Restart daemon before running checks to avoid stale Chrome WebSocket connection.
-        # Without this, the daemon's CDPClient may raise "no close frame received or sent"
-        # on subsequent new_tab calls if Chrome was previously in a disconnected state.
-        subprocess.run(
-            ["uv", "run", "python", "-c",
-             "from admin import restart_daemon, ensure_daemon; restart_daemon(); ensure_daemon()"],
-            cwd=str(BH_DIR),
-            capture_output=True,
-            timeout=30,
-        )
+        script_path = SNAP_DIR / "browser_checks.py"
+        script_path.write_text(BROWSER_SCRIPT, encoding="utf-8")
 
         result = subprocess.run(
             ["uv", "run", "python", str(script_path)],

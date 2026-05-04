@@ -3,14 +3,17 @@ import sys, json, os
 BH_DIR = r"P:/packages/.github_repos/browser-harness"
 if BH_DIR not in sys.path:
     sys.path.insert(0, BH_DIR)
+from admin import restart_daemon, ensure_daemon
 from helpers import *
-from admin import *
+
+# Restart daemon here so the fresh state is available in this process
+restart_daemon()
+ensure_daemon()
 
 INDEX_PATH = "file:///P:/packages/cc-skills-meta/skills/doc-compiler/index.html"
 SNAP_DIR = r"P:/packages/cc-skills-meta/skills/doc-compiler/_snapshots"
 
 os.makedirs(SNAP_DIR, exist_ok=True)
-ensure_daemon()
 new_tab(INDEX_PATH)
 wait_for_load()
 time.sleep(2)

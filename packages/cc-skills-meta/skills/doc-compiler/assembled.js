@@ -184,7 +184,14 @@ function isLightMode() {
     });
 
     // initTocToggle called in diagram-scripts.js after TOC structure is ready
-import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+let _mermaid = null;
+
+async function _ensureMermaid() {
+  if (!_mermaid) {
+    _mermaid = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
+  }
+  return _mermaid;
+}
 
 const PALETTES = {
       'tailwind-modern': {
@@ -303,7 +310,8 @@ const PALETTES = {
       ).join('\n    ');
     }
 
-function initMermaid() {
+async function initMermaid() {
+      const mermaid = await _ensureMermaid();
       mermaid.initialize({
         startOnLoad: false,
         theme: 'base',
@@ -314,6 +322,7 @@ function initMermaid() {
     }
 
     async function renderMermaid(force) {
+      const mermaid = await _ensureMermaid();
       const pre = document.getElementById('mermaidSource');
       if (!pre) return;
       const stage = document.getElementById('diagramStage');
@@ -574,4 +583,4 @@ document.addEventListener('theme-toggle', () => { renderMermaid(true); });
 // Initialize all after modules and DOM are ready
 initMermaid();
 renderMermaid();
-initTocToggle();
+window.initTocToggle();

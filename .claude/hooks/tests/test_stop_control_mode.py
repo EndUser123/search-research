@@ -59,10 +59,10 @@ def control_long_data():
 def exploration_data():
     """Input classified as exploration mode."""
     return {
-        "prompt": "should we refactor the epistemic validator?",
+        "prompt": "should we refactor the payment processor?",
         "response": (
-            "We could refactor it into separate modules for format, "
-            "citation, and causal checks. This might improve maintainability."
+            "We could refactor it into separate modules for validation, "
+            "charging, and refund checks. This might improve maintainability."
         ),
         "session_id": "test-session-exploration",
         "terminal_id": "test-terminal",
@@ -73,10 +73,10 @@ def exploration_data():
 def analysis_data():
     """Input classified as analysis mode (regression check)."""
     return {
-        "prompt": "Why is the hook not firing?",
+        "prompt": "Why is the database connection failing?",
         "response": (
-            "The hook is not firing because the import path is wrong. "
-            "The root cause is that sys.path does not include the hooks directory. "
+            "The database is not connecting because the import path is wrong. "
+            "The root cause is that sys.path does not include the drivers directory. "
             "Evidence: grep output shows no match for the module name."
         ),
         "session_id": "test-session-analysis",
@@ -152,7 +152,7 @@ class TestExplorationModeEpistemicSkip:
             "should we consolidate these packages?",
             "what are the tradeoffs of this approach?",
             "alternatives to using FAISS?",
-            "hooks vs. MCP servers for enforcement?",
+            "REST vs. GraphQL for the API?",
             "compare the two approaches",
         ]
         for prompt in prompts:

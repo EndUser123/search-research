@@ -474,6 +474,71 @@ Use advisory or telemetry-only hooks for:
 - generic reasoning polish
 - low-confidence quality issues that do not justify a hard block
 
+### Turn-Mode Quality Gate Suppression
+
+**Purpose**: Skip quality gate enforcement on turns where format nagging is inappropriate (control commands, open-ended exploration), while preserving full enforcement on analytical turns.
+
+**Classifier**: `__lib/turn_mode.py` — 6-way turn mode classifier (`control`, `exploration`, `analysis`, `plan`, `execution-report`, `final-answer`). Public API: `classify(data)`, `is_quality_mode_suppressed(mode, enforcement)`.
+
+**Gate classes**: `GATE_CLASSES` dict in Stop.py maps each in-process gate to `"policy"` or `"quality"`. Policy gates (safety, deletion verification, blacklist) never suppress. Quality gates (epistemic contract, anti-sycophancy quality) suppress based on turn mode.
+
+**Suppression matrix**:
+
+| Turn Mode | Normal | `STOP_QUALITY_MODE=strict` |
+|-----------|--------|---------------------------|
+| control | suppressed | suppressed |
+| exploration | suppressed | active |
+| analysis / final-answer | active | active |
+| plan / execution-report | format repair skipped; blocks fire | same |
+
+**Mechanism** (two-layer):
+1. `_run_epistemic_contract` calls `is_quality_mode_suppressed()` at entry — returns `None` early for suppressed modes (validator never runs).
+2. `_process_gate_result` checks `GATE_CLASSES[name]` before exiting on a block — quality blocks suppressed when mode calls for it; policy blocks always fire.
+
+**Per-turn override**: `--epistemic-strict` in the user prompt forces full validation regardless of turn mode.
+
+**Test coverage**: `tests/test_stop_control_mode.py` (20 tests), `tests/test_stop_plan_report_mode.py` (28 tests).
+
+### Intent-Artifact Alignment Gate
+
+**Purpose**: Quality gate that detects when the assistant did adjacent work instead of modifying the requested targets. Warns when user names specific file/command/skill targets but the assistant's tool operations miss them.
+
+**Problem Solved**: User gives explicit instructions ("modify Stop.py and add tests in test_gate.py") but the assistant creates a helper module instead, then claims completion. This gate catches the misalignment between intent and artifacts.
+
+**Classification**: Quality gate (`"intent_artifact_alignment": "quality"` in `GATE_CLASSES`). Respects turn-mode suppression — skipped on control, exploration, plan, report, and meta turns.
+
+**Architecture**:
+- **Module**: `intent_artifact_alignment.py` — standalone, importable by Stop.py
+- **Runner**: `_run_intent_artifact_alignment()` in Stop.py
+- **Registration**: `IN_PROCESS_GATES` + `GATE_CLASSES`
+- **Target types**: file paths, command names, skill invocations
+
+**Target Extraction** (from user prompt):
+- File targets: "modify Stop.py", "create test_gate.py", "add tests in test_foo.py", "add the gate to Stop.py"
+- Command targets: "run pytest", "execute the build"
+- Skill targets: "use /rca", "invoke /bf"
+
+**Artifact Extraction** (from tool_events):
+- Edit/Write events → file paths (flat `file_path` or nested `input.file_path`)
+- Bash events → command strings
+- Skill events → skill names
+
+**Comparison**: If any prompt targets are NOT in the modified set, warn. If response also claims completion, escalate to block.
+
+**Path normalization**: Loose matching via suffix and basename comparison. "Stop.py" matches "P:/.claude/hooks/Stop.py".
+
+**Test coverage**: `tests/test_intent_artifact_alignment.py` (47 tests) covering target extraction, artifact extraction, alignment detection, edge cases, Windows paths, and adjacent-work detection.
+
+### Legacy Test Exclusion
+
+Tests for permanently removed features live in `tests/_legacy/`. Excluded from collection at four points:
+- `pytest.ini:norecursedirs`
+- `conftest.py:ignored_dirs`
+- `conftest.py:stale_files` set
+- `tests/conftest.py:collect_ignore`
+
+Do not remove `_legacy` tests — they document removed features for historical reference.
+
 ### Integration Verifier
 
 **Purpose**: PostToolUse hook that prevents aspirational documentation by verifying skill integration claims.

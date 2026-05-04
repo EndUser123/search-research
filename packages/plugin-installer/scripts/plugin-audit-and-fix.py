@@ -161,15 +161,18 @@ def audit_plugins(plugins_dir: Path, marketplace_root: str, plugin_filter: Optio
                                     # Extract script path from command (handles "python script.py --args", "node script.js", etc.)
                                     parts = cmd.split()
                                     if parts:
-                                        script_path = Path(parts[-1])
-                                        # Resolve relative paths from plugin root
-                                        if not script_path.is_absolute():
-                                            script_path = plugin / script_path
-                                        # Expand known env vars for path resolution
+                                        script_path = Path(parts[-1].strip('"').strip("'"))
+                                        # Pre-expand runtime env vars BEFORE relative-path prefix
+                                        # to prevent double-prefix when path is not absolute
+                                        path_str = str(script_path)
                                         env_vars = {"CLAUDE_PLUGIN_ROOT": str(plugin)}
                                         for var, replacement in env_vars.items():
-                                            if var in str(script_path):
-                                                script_path = Path(str(script_path).replace(f"${var}", replacement))
+                                            if var in path_str:
+                                                path_str = path_str.replace(f"${var}", replacement)
+                                        script_path = Path(path_str)
+                                        # Resolve relative paths from plugin root (only if still relative after expansion)
+                                        if not script_path.is_absolute():
+                                            script_path = plugin / script_path
                                         # Only check existence for non-runtime commands (no $CLAUDE_PLUGIN_ROOT/%VAR%)
                                         if not has_runtime_env and not script_path.exists():
                                             result["errors"].append(f"Hook command file not found: {script_path}")

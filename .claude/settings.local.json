@@ -70,7 +70,9 @@
       "mcp__search-research__web_search",
       "Bash(mv P:/.claude/hooks/tests/test_cleanup_feedback.py P:/.claude/hooks/tests/_legacy/)",
       "Bash(mv P:/.claude/hooks/tests/test_first_tool_coherence.py P:/.claude/hooks/tests/_legacy/)",
-      "Bash(mv P:/.claude/hooks/tests/test_slash_command_observability.py P:/.claude/hooks/tests/_legacy/)"
+      "Bash(mv P:/.claude/hooks/tests/test_slash_command_observability.py P:/.claude/hooks/tests/_legacy/)",
+      "Bash(mkdir -p \"P:/.claude/provider-configs/scripts\")",
+      "Bash(cp \"C:/Users/brsth/AppData/Local/Temp/bifrost_routes_probe.py\" \"P:/.claude/provider-configs/scripts/routes_probe.py\")"
     ],
     "deny": [],
     "ask": []

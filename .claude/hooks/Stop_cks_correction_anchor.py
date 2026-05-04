@@ -21,7 +21,7 @@ from pathlib import Path
 # --------------------------------------------------------------------------- #
 # Path setup                                                                  #
 # --------------------------------------------------------------------------- #
-__csf_src = Path("P:/__csf.nip/src")
+__csf_src = Path("P:/packages/search-research/core")
 sys.path.insert(0, str(__csf_src))
 
 # --------------------------------------------------------------------------- #
@@ -47,7 +47,7 @@ _ingest_memory: MagicMock | None = None
 def _get_ingest():
     global _ingest_memory
     if _ingest_memory is None:
-        __csf_src = Path("P:/__csf.nip/src")
+        __csf_src = Path("P:/packages/search-research/core")
         sys.path.insert(0, str(__csf_src))
         from cks.unified import ingest_memory as _im
 

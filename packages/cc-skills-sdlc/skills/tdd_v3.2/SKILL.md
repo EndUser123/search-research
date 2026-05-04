@@ -17,25 +17,25 @@ verification:
     - description: "Confirm evidence.json exists for this run"
       tool: "Bash"
       args:
-        command: "ls -la .claude-state/tdd/$RUN_ID/evidence.json 2>/dev/null || echo 'MISSING'"
+        command: "ls -la .claude/.artifacts/$CLAUDE_TERMINAL_ID/tdd/$RUN_ID/evidence.json 2>/dev/null || echo 'MISSING'"
     - description: "Confirm validated.json exists (validation passed)"
       tool: "Bash"
       args:
-        command: "ls -la .claude-state/tdd/$RUN_ID/validated.json 2>/dev/null || echo 'NOT VALIDATED'"
+        command: "ls -la .claude/.artifacts/$CLAUDE_TERMINAL_ID/tdd/$RUN_ID/validated.json 2>/dev/null || echo 'NOT VALIDATED'"
     - description: "Show test files modified"
       tool: "Bash"
       args:
-        command: "python -c \"import json; e=json.load(open('.claude-state/tdd/$RUN_ID/evidence.json')); print('test_files:', e.get('test_files_modified',[])); print('impl_files:', e.get('impl_files_modified',[]))\" 2>/dev/null || echo 'CANNOT READ'"
+        command: "python -c \"import json; e=json.load(open('.claude/.artifacts/$CLAUDE_TERMINAL_ID/tdd/$RUN_ID/evidence.json')); print('test_files:', e.get('test_files_modified',[])); print('impl_files:', e.get('impl_files_modified',[]))\" 2>/dev/null || echo 'CANNOT READ'"
     - description: "Verify RED receipt exists and GREEN receipt exists"
       tool: "Bash"
       args:
-        command: "ls .claude-state/tdd/$RUN_ID/red_receipt.json .claude-state/tdd/$RUN_ID/green_receipt.json 2>/dev/null || echo 'RECEIPTS MISSING'"
+        command: "ls .claude/.artifacts/$CLAUDE_TERMINAL_ID/tdd/$RUN_ID/red_receipt.json .claude/.artifacts/$CLAUDE_TERMINAL_ID/tdd/$RUN_ID/green_receipt.json 2>/dev/null || echo 'RECEIPTS MISSING'"
   summary_mode: evidence_only
   expected_artifacts:
-    - ".claude-state/tdd/{RUN_ID}/evidence.json"
-    - ".claude-state/tdd/{RUN_ID}/validated.json"
-    - ".claude-state/tdd/{RUN_ID}/red_receipt.json"
-    - ".claude-state/tdd/{RUN_ID}/green_receipt.json"
+    - ".claude/.artifacts/{TERMINAL_ID}/tdd/{RUN_ID}/evidence.json"
+    - ".claude/.artifacts/{TERMINAL_ID}/tdd/{RUN_ID}/validated.json"
+    - ".claude/.artifacts/{TERMINAL_ID}/tdd/{RUN_ID}/red_receipt.json"
+    - ".claude/.artifacts/{TERMINAL_ID}/tdd/{RUN_ID}/green_receipt.json"
 ---
 
 # /tdd Protocol (NTP v3.2)
@@ -72,7 +72,7 @@ This prints:
 - a **detected test command**
 - a **Standard Operating Procedure (SOP)**
 
-and creates `.claude-state/tdd/<RUN_ID>/session.json`.
+and creates `.claude/.artifacts/$CLAUDE_TERMINAL_ID/tdd/<RUN_ID>/session.json`.
 
 ---
 
@@ -128,7 +128,7 @@ REFACTOR MUST PASS and have a distinct stdout from GREEN.
 Create:
 
 ```text
-.claude-state/tdd/<RUN_ID>/evidence.json
+.claude/.artifacts/$CLAUDE_TERMINAL_ID/tdd/<RUN_ID>/evidence.json
 ```
 
 matching `TddEvidence` in `session_models.py`.
@@ -168,7 +168,7 @@ The validator will:
 
 On SUCCESS:
 
-- it writes `validated.json` under `.claude-state/tdd/<RUN_ID>/`,
+- it writes `validated.json` under `.claude/.artifacts/$CLAUDE_TERMINAL_ID/tdd/<RUN_ID>/`,
 - updates `session.phase` to `validated`,
 - clears `.active_run` so the post-response hook will allow your reply.
 
@@ -217,7 +217,7 @@ Status: PASS/FAIL — [one sentence]
 
 ## Multi-Terminal Isolation
 
-- Each TDD session is partitioned by `run_id` under `.claude-state/tdd/`
+- Each TDD session is partitioned by `run_id` under `.claude/.artifacts/$CLAUDE_TERMINAL_ID/tdd/`
 - Active session pointer is `.active_run` file (O(1) check, not directory scan)
 - Stale pointer cleanup: if run_dir missing, pointer is cleaned automatically
 - Validation includes `run_id` cross-check to prevent session confusion

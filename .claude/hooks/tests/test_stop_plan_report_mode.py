@@ -31,10 +31,10 @@ if str(HOOKS_DIR) not in sys.path:
 def analysis_data():
     """Input that should be classified as analysis mode."""
     return {
-        "prompt": "Why is the hook not firing?",
+        "prompt": "Why is the database connection failing?",
         "response": (
-            "The hook is not firing because the import path is wrong. "
-            "The root cause is that sys.path does not include the hooks directory. "
+            "The database is not connecting because the import path is wrong. "
+            "The root cause is that sys.path does not include the drivers directory. "
             "Evidence: grep output shows no match for the module name."
         ),
         "session_id": "test-session-analysis",
@@ -140,8 +140,8 @@ class TestDetectTurnMode:
         from Stop import _classify_turn_mode
         prompts = [
             "Why is the test failing?",
-            "Debug the hook not firing",
-            "Explain how the validator works",
+            "Debug the database not connecting",
+            "Explain how the payment processor works",
         ]
         # Response must be >100 chars so _classify_question_response returns "analysis"
         long_response = (
@@ -344,7 +344,7 @@ class TestDetectTurnKindExploration:
 
     def test_vs_dot(self):
         from Stop import _classify_turn_mode
-        data = {"prompt": "hooks vs. MCP servers for enforcement?"}
+        data = {"prompt": "REST vs. GraphQL for the API?"}
         assert _classify_turn_mode(data) == "exploration"
 
     def test_control_still_works(self):
