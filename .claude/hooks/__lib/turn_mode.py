@@ -33,6 +33,7 @@ TurnMode = Literal[
     "plan",
     "execution-report",
     "final-answer",
+    "meta",
 ]
 
 # Pre-compiled patterns for speed
@@ -67,6 +68,15 @@ _EXPLORATION_KEYWORDS = (
     "which is better", "pros and cons", "evaluate options",
     "compare", "versus", "vs.", "migration strategy",
     "architectural", "pattern", "debt", "merit", "justify",
+)
+
+_META_KEYWORDS = (
+    "hook", "cks_context", "turn_mode", "epistemic_validator",
+    "settings.json", "UserPromptSubmit", "PreToolUse", "PostToolUse",
+    "Stop.py", "GTO", "orchestrator", "gap_reviewer", "detector",
+    "constitutional", "claude code", "hook system", "gate", "gates",
+    "skill enforcement", "invocation_tracker", "workflow",
+    "register", "dispatch chain", "PreToolUse_",
 )
 
 _STATUS_MARKERS = ("[STATUS]", "[CHANGES]", "[RESULTS]", "[NEXT]")
@@ -112,6 +122,10 @@ def _classify_from_prompt(user_prompt: str, response: str) -> TurnMode:
     # Plan: explicit planning intent in user prompt
     if _PLANNING_PROMPT_RE.search(stripped):
         return "plan"
+
+    # Meta: system introspection queries (hooks, GTO, turn modes, etc.)
+    if any(kw in stripped.lower() for kw in _META_KEYWORDS):
+        return "meta"
 
     # Exploration: architecture/design discussion
     if any(kw in stripped.lower() for kw in _EXPLORATION_KEYWORDS):
@@ -196,6 +210,11 @@ def _infer_from_response(response: str, default: TurnMode) -> TurnMode:
     return default
 
 
+def is_format_required(mode: TurnMode) -> bool:
+    """Returns True if the epistemic format (FACT/INFERENCE/etc.) is required."""
+    return mode == "final-answer"
+
+
 def is_quality_mode_suppressed(mode: TurnMode, enforcement: str = "normal") -> bool:
     """
     Returns True if quality gates should be suppressed for this mode.
@@ -203,23 +222,13 @@ def is_quality_mode_suppressed(mode: TurnMode, enforcement: str = "normal") -> b
     Args:
         mode: The classified turn mode
         enforcement: "strict" or "normal"
-            - normal: suppress quality gates on control and exploration
-            - strict: suppress quality gates only on control
+            - normal: suppress quality gates on control, exploration, and meta
+            - strict: suppress quality gates only on control and meta
     """
     if enforcement == "strict":
-        return mode == "control"
+        return mode in ("control", "meta")
     # normal mode
-    return mode in ("control", "exploration")
-
-
-def is_rubric_required(mode: TurnMode) -> bool:
-    """Returns True if a recommendation must include the 5-part rubric."""
-    return mode in ("plan", "analysis", "execution-report", "final-answer")
-
-
-def is_format_required(mode: TurnMode) -> bool:
-    """Returns True if the epistemic format (FACT/INFERENCE/etc.) is required."""
-    return mode == "final-answer"
+    return mode in ("control", "exploration", "meta")
 
 
 def mode_display_label(mode: TurnMode) -> str:
@@ -231,6 +240,7 @@ def mode_display_label(mode: TurnMode) -> str:
         "plan": "◈ PLAN",
         "execution-report": "◧ EXEC",
         "final-answer": "◆ ANS",
+        "meta": "◇ META",
     }
     return labels.get(mode, f"?{mode}")
 
@@ -250,6 +260,12 @@ if __name__ == "__main__":
         ("debug this error", "", "analysis"),
         ("fix the bug", "", "control"),
         ("propose a solution", "I propose a solution to fix this.", "plan"),  # proposal in response
+        # Meta mode — system introspection
+        ("how does cks_context hook work", "", "meta"),
+        ("why is turn_mode classifying as analysis", "", "meta"),
+        ("tell me about GTO orchestrator", "", "meta"),
+        ("what gates fire before PreToolUse", "", "meta"),
+        ("how does invocation_tracker detect unactioned recommendations", "", "meta"),
     ]
 
     failed = 0
