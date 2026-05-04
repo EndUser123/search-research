@@ -16,7 +16,7 @@ import json, os, sys, subprocess
 from pathlib import Path
 from datetime import datetime
 
-BASE = Path("P:/packages/cc-skills-meta/skills/doc-compiler")
+BASE = Path("P:/packages/.claude-marketplace/plugins/cc-skills-meta/skills/doc-compiler")
 RUNTIME = BASE / "runtime"
 
 STAGES = [
@@ -81,6 +81,9 @@ def run_stage(stage_name: str, stage_module: str, target: Path) -> bool:
 
     env = os.environ.copy()
     env["DOCC_TARGET"] = str(target.resolve())
+    # Pass style to stages that support it
+    if stage_name in ("A", "H"):
+        env["DOCC_STYLE"] = "minimal"
 
     print(f"\n{'='*60}")
     print(f"Stage {stage_name}: {stage_module}")
@@ -172,6 +175,7 @@ def _run_runtime_validator(target: Path, env: dict) -> bool:
 
     env = env.copy()
     env["DOCC_TARGET"] = str(target.resolve())
+    env["DOCC_INDEX"] = "minimal/index.html"
 
     print(f"\n{'='*60}")
     print(f"Stage J: stage_j_runtime_validator")
@@ -179,7 +183,7 @@ def _run_runtime_validator(target: Path, env: dict) -> bool:
 
     try:
         result = subprocess.run(
-            [sys.executable, str(stage_path)],
+            [sys.executable, str(stage_path), "index.html"],
             cwd=str(BASE),
             env=env,
             capture_output=False,

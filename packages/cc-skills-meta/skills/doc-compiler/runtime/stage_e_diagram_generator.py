@@ -16,7 +16,7 @@ import json, re, sys
 from pathlib import Path
 from typing import Any
 
-BASE = Path("P:/packages/cc-skills-meta/skills/doc-compiler")
+BASE = Path("P:/packages/.claude-marketplace/plugins/cc-skills-meta/skills/doc-compiler")
 GUIDES = BASE / "guides-loaded.json"
 PLAN   = BASE / "diagram-plan.json"
 OUT    = BASE / "diagrams.json"
@@ -44,28 +44,34 @@ def sanitize_label(text: str) -> str:
 # ---------------------------------------------------------------------------
 
 def generate_flowchart(plan: dict, guide: dict) -> str:
-    """Generate a primary flowchart Mermaid definition."""
+    """Generate a primary flowchart Mermaid definition with proper styling."""
     steps = plan.get("step_transitions", [])
     raw_steps = plan.get("diagrams", [{}])[0].get("elements", []) if plan.get("diagrams") else []
 
-    # Use step_transitions for edges
-    lines = ["flowchart TD"]
-    lines.append("    %% Nodes")
+    lines = [
+        "%%{ init: { 'theme': 'dark', 'flowchart': { 'curve': 'basis', 'nodeSpacing': 60, 'rankSpacing': 80 }, 'htmlLabels': true } }%%",
+        "flowchart TD",
+        "classDef step     fill:#1e40af,stroke:#60a5fa,stroke-width:2.5px,color:#ffffff,font-size:13px,font-weight:600",
+        "classDef gate     fill:#92400e,stroke:#fbbf24,stroke-width:3px,color:#fef3c7,font-weight:700",
+        "classDef terminal fill:#059669,stroke:#10b981,stroke-width:3px,color:#ffffff,font-weight:700",
+        "classDef routeout fill:#7c3aed,stroke:#c084fc,stroke-width:2px,color:#ede9fe,font-style:italic",
+        "classDef start    fill:#1e1b4b,stroke:#818cf8,stroke-width:3px,color:#c7d2fe,font-weight:700",
+        "START([Start])",
+        "class START start",
+    ]
+
     node_ids = {}
-    for i, t in enumerate(steps):
-        sid = sanitize_id(t["from"])
-        node_ids[t["from"]] = sid
-
-    # Add all elements as nodes
-    all_elements = []
-    for diag in plan.get("diagrams", []):
-        all_elements.extend(diag.get("elements", []))
-
-    # Draw step nodes
     for step in raw_steps:
         sid = sanitize_id(step) if isinstance(step, str) else sanitize_id(step.get("id", "step"))
+        node_ids[sid] = sid
         label = sanitize_label(step if isinstance(step, str) else step.get("name", "Step"))
-        lines.append(f"    {sid}([{label}])")
+        lines.append(f"{sid}[\"{label}\"]")
+        lines.append(f"class {sid} step")
+
+    # Connect START to first step
+    if raw_steps:
+        first_id = sanitize_id(raw_steps[0]) if isinstance(raw_steps[0], str) else sanitize_id(raw_steps[0].get("id", "step"))
+        lines.append(f"START --> {first_id}")
 
     # Draw transitions
     for t in steps:
@@ -73,15 +79,16 @@ def generate_flowchart(plan: dict, guide: dict) -> str:
         tid = sanitize_id(t["to"])
         label = sanitize_label(t.get("label", ""))
         if label:
-            lines.append(f"    {fid} -->|{label}| {tid}")
+            lines.append(f"{fid} -->|{label}| {tid}")
         else:
-            lines.append(f"    {fid} --> {tid}")
+            lines.append(f"{fid} --> {tid}")
 
     # Add decision diamonds if decision_points exist
     for dp in plan.get("decision_points", []):
         did = sanitize_id(dp.get("id", "decision"))
         dname = sanitize_label(dp.get("name", "Decision"))
-        lines.append(f"    {did}{{{{{dname}}}}}")
+        lines.append(f"{did}{{{{{dname}}}}}")
+        lines.append(f"class {did} gate")
 
     return "\n".join(lines)
 

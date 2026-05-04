@@ -1,4 +1,3 @@
-
 import sys, json, os
 BH_DIR = r"P:/packages/.github_repos/browser-harness"
 if BH_DIR not in sys.path:
@@ -10,8 +9,8 @@ from helpers import *
 restart_daemon()
 ensure_daemon()
 
-INDEX_PATH = "file:///P:/packages/cc-skills-meta/skills/doc-compiler/index.html"
-SNAP_DIR = r"P:/packages/cc-skills-meta/skills/doc-compiler/_snapshots"
+INDEX_PATH = "http://localhost:7891/index.html"
+SNAP_DIR = r"P:\packages\.claude-marketplace\plugins\cc-skills-meta\skills\doc-compiler\_snapshots"
 
 os.makedirs(SNAP_DIR, exist_ok=True)
 new_tab(INDEX_PATH)
@@ -26,8 +25,6 @@ results["J0_boot_marker"] = {"passed": bool(boot_marker), "reason": "boot marker
 screenshot(os.path.join(SNAP_DIR, "J0_boot.png"))
 
 # J1: Desktop initial load
-# Note: js() returns {} for DOM elements (Chrome CDP can't serialize live nodes).
-# Use JSON-serializable expressions for existence checks.
 toc_found = js("document.getElementById('tocToggle') !== null")
 if toc_found:
     pos = js("getComputedStyle(document.getElementById('tocToggle')).position")

@@ -9,7 +9,7 @@ import json, re, sys
 from pathlib import Path
 from datetime import datetime
 
-BASE = Path("P:/packages/cc-skills-meta/skills/doc-compiler")
+BASE = Path("P:/packages/.claude-marketplace/plugins/cc-skills-meta/skills/doc-compiler")
 TPL  = BASE / "templates"
 SHARED = TPL / "shared"
 PLAN = BASE / "artifact-plan.json"
@@ -313,27 +313,50 @@ def build_html(plan: dict, style: str = "default") -> str:
 
 
 def main() -> None:
+    import os
+
     if not PLAN.exists():
         print(f"ERROR: {PLAN} not found. Run Stage G first.", file=sys.stderr)
         sys.exit(1)
 
     plan = load_json(PLAN)
 
-    # Resolve style from plan
-    presentation = plan.get("presentation", {})
-    style = presentation.get("style", "default")
+    # Resolve style: CLI arg > env var > plan default
+    style = "default"
+    for i, arg in enumerate(sys.argv[1:], 1):
+        if arg == "--style" and i < len(sys.argv):
+            style = sys.argv[i]
+            break
+        if arg.startswith("--style="):
+            style = arg.split("=", 1)[1]
+            break
+    if style == "default" and os.environ.get("DOCC_STYLE"):
+        style = os.environ["DOCC_STYLE"]
+    if not style or style == "default":
+        presentation = plan.get("presentation", {})
+        style = presentation.get("style", "default")
+
+    # Output path: index-{style}.html when style != default, else index.html at root
+    if style and style != "default":
+        out_html = BASE / f"index-{style}.html"
+        out_css = BASE / f"assembled-{style}.css"
+        out_js = BASE / f"assembled-{style}.js"
+    else:
+        out_html = BASE / "index.html"
+        out_css = BASE / "assembled.css"
+        out_js = BASE / "assembled.js"
 
     # Build the HTML
     html = build_html(plan, style=style)
 
     # Write index.html
-    OUT_HTML.write_text(html, encoding="utf-8")
+    out_html.write_text(html, encoding="utf-8")
 
     # Also write assembled CSS/JS as separate artifacts
     css = assemble_css(style)
     js = assemble_js(style)
-    OUT_CSS.write_text(css, encoding="utf-8")
-    OUT_JS.write_text(js, encoding="utf-8")
+    out_css.write_text(css, encoding="utf-8")
+    out_js.write_text(js, encoding="utf-8")
 
     # Validate DOM elements
     checks = {

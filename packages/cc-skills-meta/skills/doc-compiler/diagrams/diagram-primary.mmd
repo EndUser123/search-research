@@ -1,25 +1,45 @@
+%%{ init: { 'theme': 'dark', 'flowchart': { 'curve': 'basis', 'nodeSpacing': 60, 'rankSpacing': 80 }, 'htmlLabels': true } }%%
 flowchart TD
-    %% Nodes
-    step_1([step-1])
-    step_2([step-2])
-    step_3([step-3])
-    step_4([step-4])
-    step_5([step-5])
-    step_6([step-6])
-    step_7([step-7])
-    step_8([step-8])
-    step_9([step-9])
-    step_10([step-10])
-    step_11([step-11])
-    step_12([step-12])
-    step_1 --> step_2
-    step_2 --> step_3
-    step_3 --> step_4
-    step_4 --> step_5
-    step_5 --> step_6
-    step_6 --> step_7
-    step_7 --> step_8
-    step_8 --> step_9
-    step_9 --> step_10
-    step_10 --> step_11
-    step_11 --> step_12
+classDef step     fill:#1e40af,stroke:#60a5fa,stroke-width:2.5px,color:#ffffff,font-size:13px,font-weight:600
+classDef gate     fill:#92400e,stroke:#fbbf24,stroke-width:3px,color:#fef3c7,font-weight:700
+classDef terminal fill:#059669,stroke:#10b981,stroke-width:3px,color:#ffffff,font-weight:700
+classDef routeout fill:#7c3aed,stroke:#c084fc,stroke-width:2px,color:#ede9fe,font-style:italic
+classDef start    fill:#1e1b4b,stroke:#818cf8,stroke-width:3px,color:#c7d2fe,font-weight:700
+START([Start])
+class START start
+step_1["step-1"]
+class step_1 step
+step_2["step-2"]
+class step_2 step
+step_3["step-3"]
+class step_3 step
+step_4["step-4"]
+class step_4 step
+step_5["step-5"]
+class step_5 step
+step_6["step-6"]
+class step_6 step
+step_7["step-7"]
+class step_7 step
+step_8["step-8"]
+class step_8 step
+step_9["step-9"]
+class step_9 step
+step_10["step-10"]
+class step_10 step
+step_11["step-11"]
+class step_11 step
+step_12["step-12"]
+class step_12 step
+START --> step_1
+step_1 --> step_2
+step_2 --> step_3
+step_3 --> step_4
+step_4 --> step_5
+step_5 --> step_6
+step_6 --> step_7
+step_7 --> step_8
+step_8 --> step_9
+step_9 --> step_10
+step_10 --> step_11
+step_11 --> step_12
