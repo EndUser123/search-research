@@ -10,18 +10,42 @@ input_kinds:
   - project
   - workflow
 workflow_steps:
-  - stage_a_source_extractor
-  - stage_b_artifact_plan_builder
-  - stage_c_mermaid_design
-  - stage_d_mermaid_critic_review
-  - stage_e1_loader
-  - stage_e2_binder
-  - stage_e3_assembler
-  - stage_e4_writer
-  - stage_f_static_validator
-  - stage_g_artifact_proof
-  - stage_h_external_critic
-  - stage_i_emit_proof_metadata
+  - id: stage_a_source_extractor
+    display_name: Source Extractor
+    description: Read the target source file completely and extract a normalized source-model.json
+  - id: stage_b_artifact_plan_builder
+    display_name: Artifact Plan Builder
+    description: Design the page structure from source-model.json and emit artifact-plan.json
+  - id: stage_c_mermaid_design
+    display_name: Mermaid Design
+    description: Generate Mermaid diagram from the normalized workflow model
+  - id: stage_d_mermaid_critic_review
+    display_name: Mermaid Critic Review
+    description: Mandatory gate — validate the Mermaid diagram for syntax, legibility, and coverage
+  - id: stage_e1_loader
+    display_name: Template Loader
+    description: Load style-specific template overrides with fallback to shared templates
+  - id: stage_e2_binder
+    display_name: Content Binder
+    description: Bind content_bindings from artifact-plan.json into assembled template parts
+  - id: stage_e3_assembler
+    display_name: CSS/JS Assembler
+    description: Assemble CSS with style-specific overlays and concatenate JS assets
+  - id: stage_e4_writer
+    display_name: HTML Writer
+    description: Emit the complete index.html by writing all assembled parts to disk
+  - id: stage_f_static_validator
+    display_name: Static Validator
+    description: Validate the generated HTML for DOM element presence and structural correctness
+  - id: stage_g_runtime_validator
+    display_name: Runtime Validator
+    description: Browser-based validation of DOM behavior, Mermaid rendering, and TOC interaction
+  - id: stage_h_external_critic
+    display_name: External Critic
+    description: Final LLM review of generated HTML for fidelity and quality
+  - id: stage_i_emit_proof_metadata
+    display_name: Emit Proof Metadata
+    description: Emit proof metadata alongside the artifact as final proof of pipeline completion
 triggers:
   - '/doc-compiler'
   - 'compile docs for'

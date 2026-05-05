@@ -7,39 +7,195 @@ classDef routeout fill:#7c3aed,stroke:#c084fc,stroke-width:2px,color:#ede9fe,fon
 classDef start    fill:#1e1b4b,stroke:#818cf8,stroke-width:3px,color:#c7d2fe,font-weight:700
 START([Start])
 class START start
-step_1["step-1"]
-class step_1 step
-step_2["step-2"]
-class step_2 step
-step_3["step-3"]
-class step_3 step
-step_4["step-4"]
-class step_4 step
-step_5["step-5"]
-class step_5 step
-step_6["step-6"]
-class step_6 step
-step_7["step-7"]
-class step_7 step
-step_8["step-8"]
-class step_8 step
-step_9["step-9"]
-class step_9 step
-step_10["step-10"]
-class step_10 step
-step_11["step-11"]
-class step_11 step
-step_12["step-12"]
-class step_12 step
-START --> step_1
-step_1 --> step_2
-step_2 --> step_3
-step_3 --> step_4
-step_4 --> step_5
-step_5 --> step_6
-step_6 --> step_7
-step_7 --> step_8
-step_8 --> step_9
-step_9 --> step_10
-step_10 --> step_11
-step_11 --> step_12
+stage_a_source_extractor["Source Extractor"]
+class stage_a_source_extractor step
+stage_b_artifact_plan_builder["Artifact Plan Builder"]
+class stage_b_artifact_plan_builder step
+stage_c_mermaid_design["Mermaid Design"]
+class stage_c_mermaid_design step
+stage_d_mermaid_critic_review["Mermaid Critic Review"]
+class stage_d_mermaid_critic_review step
+stage_e1_loader["Template Loader"]
+class stage_e1_loader step
+stage_e2_binder["Content Binder"]
+class stage_e2_binder step
+stage_e3_assembler["CSS/JS Assembler"]
+class stage_e3_assembler step
+stage_e4_writer["HTML Writer"]
+class stage_e4_writer step
+stage_f_static_validator["Static Validator"]
+class stage_f_static_validator step
+stage_g_runtime_validator["Runtime Validator"]
+class stage_g_runtime_validator step
+stage_h_external_critic["External Critic"]
+class stage_h_external_critic step
+stage_i_emit_proof_metadata["Emit Proof Metadata"]
+class stage_i_emit_proof_metadata step
+START --> stage_a_source_extractor
+stage_a_source_extractor --> stage_b_artifact_plan_builder
+stage_b_artifact_plan_builder --> stage_c_mermaid_design
+stage_c_mermaid_design --> stage_d_mermaid_critic_review
+stage_d_mermaid_critic_review --> stage_e1_loader
+stage_e1_loader --> stage_e2_binder
+stage_e2_binder --> stage_e3_assembler
+stage_e3_assembler --> stage_e4_writer
+stage_e4_writer --> stage_f_static_validator
+stage_f_static_validator --> stage_g_runtime_validator
+stage_g_runtime_validator --> stage_h_external_critic
+stage_h_external_critic --> stage_i_emit_proof_metadata
+decision_1{{gate}}
+class decision_1 gate
+decision_2{{check}}
+class decision_2 gate
+decision_3{{check}}
+class decision_3 gate
+decision_4{{gate}}
+class decision_4 gate
+decision_5{{gate}}
+class decision_5 gate
+decision_6{{check}}
+class decision_6 gate
+decision_7{{check}}
+class decision_7 gate
+decision_8{{check}}
+class decision_8 gate
+decision_9{{When emitting, the LLM must}}
+class decision_9 gate
+decision_10{{check}}
+class decision_10 gate
+decision_11{{check}}
+class decision_11 gate
+decision_12{{gate}}
+class decision_12 gate
+decision_13{{Check}}
+class decision_13 gate
+decision_14{{check}}
+class decision_14 gate
+decision_15{{gate}}
+class decision_15 gate
+decision_16{{Gate}}
+class decision_16 gate
+decision_17{{gate}}
+class decision_17 gate
+decision_18{{gate}}
+class decision_18 gate
+decision_19{{gate}}
+class decision_19 gate
+decision_20{{gate}}
+class decision_20 gate
+decision_21{{decision point}}
+class decision_21 gate
+decision_22{{GATE}}
+class decision_22 gate
+decision_23{{check}}
+class decision_23 gate
+decision_24{{decision point}}
+class decision_24 gate
+decision_25{{gate}}
+class decision_25 gate
+decision_26{{gate}}
+class decision_26 gate
+decision_27{{gate}}
+class decision_27 gate
+decision_28{{check}}
+class decision_28 gate
+decision_29{{gate}}
+class decision_29 gate
+decision_30{{Gate}}
+class decision_30 gate
+decision_31{{check}}
+class decision_31 gate
+decision_32{{check}}
+class decision_32 gate
+decision_33{{MUST verify}}
+class decision_33 gate
+decision_34{{check}}
+class decision_34 gate
+decision_35{{check}}
+class decision_35 gate
+decision_36{{check}}
+class decision_36 gate
+decision_37{{check}}
+class decision_37 gate
+decision_38{{Check}}
+class decision_38 gate
+decision_39{{check}}
+class decision_39 gate
+decision_40{{check}}
+class decision_40 gate
+decision_41{{check}}
+class decision_41 gate
+decision_42{{check}}
+class decision_42 gate
+decision_43{{check}}
+class decision_43 gate
+decision_44{{check}}
+class decision_44 gate
+decision_45{{check}}
+class decision_45 gate
+decision_46{{check}}
+class decision_46 gate
+decision_47{{check}}
+class decision_47 gate
+decision_48{{check}}
+class decision_48 gate
+decision_49{{check}}
+class decision_49 gate
+decision_50{{check}}
+class decision_50 gate
+decision_51{{check}}
+class decision_51 gate
+decision_52{{check}}
+class decision_52 gate
+decision_53{{check}}
+class decision_53 gate
+decision_54{{check}}
+class decision_54 gate
+decision_55{{check}}
+class decision_55 gate
+decision_56{{check}}
+class decision_56 gate
+decision_57{{check}}
+class decision_57 gate
+decision_58{{Gate}}
+class decision_58 gate
+decision_59{{check}}
+class decision_59 gate
+decision_60{{check}}
+class decision_60 gate
+decision_61{{MUST pass}}
+class decision_61 gate
+decision_62{{check}}
+class decision_62 gate
+decision_63{{check}}
+class decision_63 gate
+decision_64{{gate}}
+class decision_64 gate
+decision_65{{Gate}}
+class decision_65 gate
+decision_66{{check}}
+class decision_66 gate
+decision_67{{check}}
+class decision_67 gate
+decision_68{{check}}
+class decision_68 gate
+decision_69{{MUST pass}}
+class decision_69 gate
+decision_70{{check}}
+class decision_70 gate
+decision_71{{gate}}
+class decision_71 gate
+decision_72{{Check}}
+class decision_72 gate
+decision_73{{check}}
+class decision_73 gate
+decision_74{{Output Requirements}}
+class decision_74 gate
+decision_75{{gate}}
+class decision_75 gate
+decision_76{{gate}}
+class decision_76 gate
+decision_77{{gate}}
+class decision_77 gate
+decision_78{{gate}}
+class decision_78 gate

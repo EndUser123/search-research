@@ -240,6 +240,12 @@ async def run_single_command(
 
             # Check for errors in stderr even on success (codex outputs errors to stderr with exit 0)
             if stderr_text and stderr_text.strip():
+                # Filter PTY noise on Windows — these are cosmetic, not real errors.
+                # Real errors contain capitalised "Error" or "Fail"; PTY noise does not.
+                stripped = stderr_text.strip()
+                if not any(word in stripped for word in ["Error:", "Fail:", "Exception:", "Traceback"]):
+                    # Only PTY noise present — treat as success
+                    return {"output": stdout_text, "error": None}
                 return {"output": stdout_text, "error": stderr_text}
             if proc.returncode == 0:
                 return {"output": stdout_text, "error": None}

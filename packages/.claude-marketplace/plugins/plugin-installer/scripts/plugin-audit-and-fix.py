@@ -339,11 +339,25 @@ def audit_orphan_skill_junctions(plugins_dir: Path) -> list[dict]:
     return findings
 
 
+def _version_key(v: Path) -> tuple:
+    """Sort version directories: latest version first, oldest last.
+    Treats version components as integers for proper numeric ordering (2.1.4 > 2.1.3).
+    """
+    parts = v.name.split(".")
+    try:
+        return tuple(int(p) for p in parts)
+    except ValueError:
+        return (0, 0, 0)
+
+
 def audit_source_cache_drift(plugins_dir: Path) -> list[dict]:
     """Detect drift between source packages and their cache copies.
 
     Source is truth. Cache lives at ~/.claude/plugins/cache/local/{name}/{version}/.
-    If cache files differ from source, the cache is stale.
+    Three drift types detected:
+      1. source_modified: files in source changed since cache was installed
+      2. cache_only: files in cache that don't exist in source (deleted from source)
+      3. stale_version: old version directories in cache that should be purged
     """
     findings: list[dict] = []
     if not plugins_dir.exists():
@@ -355,31 +369,57 @@ def audit_source_cache_drift(plugins_dir: Path) -> list[dict]:
         if plugin.name.startswith(".") or not plugin.is_dir():
             continue
 
-        source_dir = Path(f"P:/packages/{plugin.name}")
+        source_dir = plugins_dir / plugin.name
         if not source_dir.exists():
             continue
+
+        # Get version from manifest
+        manifest = source_dir / ".claude-plugin" / "plugin.json"
+        src_version = "?"
+        if manifest.exists():
+            try:
+                src_version = json.load(open(manifest)).get("version", "?")
+            except Exception:
+                pass
 
         cache_dir = cache_root / plugin.name
         if not cache_dir.exists():
             continue
 
-        # Find versioned directory in cache
-        version_dirs = [d for d in cache_dir.iterdir() if d.is_dir()]
+        # Find versioned directories — sort latest first
+        version_dirs = sorted([d for d in cache_dir.iterdir() if d.is_dir()], key=_version_key, reverse=True)
         if not version_dirs:
             continue
 
-        version_dir = version_dirs[0]  # Use first version found
+        current_version_dir = version_dirs[0]
 
-        # Sample key files for drift check (don't diff everything — too slow)
+        # Check for stale version directories (older than current)
+        stale_versions = [d for d in version_dirs if d != current_version_dir]
+        if stale_versions:
+            findings.append({
+                "type": "stale_version_dirs",
+                "plugin": plugin.name,
+                "current_version": current_version_dir.name,
+                "stale_versions": [d.name for d in stale_versions],
+                "issue": f"'{plugin.name}' has {len(stale_versions)} stale version dir(s): {[d.name for d in stale_versions]}",
+            })
+
+        # Check drift against the LATEST (current) version directory only
         drift_files: list[str] = []
+        cache_only_files: list[str] = []
         key_patterns = ["**/*.py", "**/*.json", "**/SKILL.md"]
+        src_files_set: set[str] = set()
+        cache_files_set: set[str] = set()
+
         for pattern in key_patterns:
             for src_file in source_dir.glob(pattern):
-                if ".git" in src_file.parts or "__pycache__" in src_file.parts:
+                if ".git" in src_file.parts or "__pycache__" in str(src_file):
                     continue
                 rel = src_file.relative_to(source_dir)
-                cache_file = version_dir / rel
+                src_files_set.add(str(rel))
+                cache_file = current_version_dir / rel
                 if cache_file.exists():
+                    cache_files_set.add(str(rel))
                     try:
                         if src_file.read_text(encoding="utf-8", errors="ignore") != cache_file.read_text(encoding="utf-8", errors="ignore"):
                             drift_files.append(str(rel))
@@ -388,12 +428,24 @@ def audit_source_cache_drift(plugins_dir: Path) -> list[dict]:
 
         if drift_files:
             findings.append({
-                "type": "source_cache_drift",
+                "type": "source_modified",
                 "plugin": plugin.name,
-                "cache_version": version_dir.name,
+                "cache_version": current_version_dir.name,
                 "drift_count": len(drift_files),
                 "sample_files": drift_files[:5],
-                "issue": f"'{plugin.name}' cache ({version_dir.name}) has {len(drift_files)} file(s) diverged from source",
+                "issue": f"'{plugin.name}' cache ({current_version_dir.name}) has {len(drift_files)} file(s) diverged from source",
+            })
+
+        # Detect cache-only files (in cache but not in source — deleted from source)
+        cache_only = cache_files_set - src_files_set
+        if cache_only:
+            findings.append({
+                "type": "cache_only",
+                "plugin": plugin.name,
+                "cache_version": current_version_dir.name,
+                "cache_only_count": len(cache_only),
+                "cache_only_files": sorted(cache_only)[:5],
+                "issue": f"'{plugin.name}' cache has {len(cache_only)} file(s) not in source (deleted from source)",
             })
 
     return findings
@@ -725,12 +777,23 @@ def main(argv: list[str]) -> int:
     # Check for source/cache drift
     print("\nChecking source vs cache drift...")
     drift_findings = audit_source_cache_drift(plugins_dir)
+    stale_count = sum(1 for f in drift_findings if f["type"] == "stale_version_dirs")
+    modified_count = sum(1 for f in drift_findings if f["type"] == "source_modified")
+    cache_only_count = sum(1 for f in drift_findings if f["type"] == "cache_only")
     if drift_findings:
-        print(f"{C_YELLOW}Found {len(drift_findings)} plugin(s) with cache drift:{C_RESET}")
+        print(f"{C_YELLOW}Found {stale_count} stale version dir(s), {modified_count} with source drift, {cache_only_count} with cache-only files:{C_RESET}")
         for f in drift_findings:
-            sample = ", ".join(f["sample_files"][:3])
-            extra = f" (+{f['drift_count'] - 3} more)" if f["drift_count"] > 3 else ""
-            print(f"  {f['plugin']} ({f['cache_version']}): {f['drift_count']} file(s) drifted — {sample}{extra}")
+            t = f["type"]
+            if t == "stale_version_dirs":
+                print(f"  {f['plugin']}: STALE versions {[d for d in f['stale_versions']]} (current: {f['current_version']})")
+            elif t == "source_modified":
+                sample = ", ".join(f["sample_files"][:3])
+                extra = f" (+{f['drift_count'] - 3} more)" if f["drift_count"] > 3 else ""
+                print(f"  {f['plugin']} ({f['cache_version']}): {f['drift_count']} file(s) modified — {sample}{extra}")
+            elif t == "cache_only":
+                sample = ", ".join(f["cache_only_files"][:3])
+                extra = f" (+{f['cache_only_count'] - 3} more)" if f["cache_only_count"] > 3 else ""
+                print(f"  {f['plugin']} ({f['cache_version']}): {f['cache_only_count']} cache-only file(s) — {sample}{extra}")
     else:
         print(f"{C_GREEN}Cache is in sync with source.{C_RESET}")
 
@@ -769,13 +832,25 @@ def main(argv: list[str]) -> int:
                 except OSError as e:
                     print(f"  {C_RED}Failed to remove {f['marketplace_entry']}: {e}{C_RESET}")
 
-        # Auto-fix: sync source to cache
-        if drift_findings:
-            import subprocess
-            print(f"\n{C_YELLOW}Syncing source -> cache for {len(drift_findings)} plugin(s)...{C_RESET}")
+        # Auto-fix: stale version dirs + source sync
+        import shutil
+        import subprocess
+        synced = []
+        stale_deleted = []
+        for f in drift_findings:
+            t = f["type"]
+            pkg = f["plugin"]
             cache_root = Path(os.path.expanduser("~/.claude/plugins/cache/local"))
-            for f in drift_findings:
-                pkg = f["plugin"]
+            if t == "stale_version_dirs":
+                # Delete all stale version directories
+                for stale_ver in f["stale_versions"]:
+                    stale_path = cache_root / pkg / stale_ver
+                    if stale_path.exists():
+                        shutil.rmtree(str(stale_path))
+                        stale_deleted.append(f"{pkg}/{stale_ver}")
+                        print(f"  {C_RED}Deleted stale: {pkg}/{stale_ver}{C_RESET}")
+            elif t == "source_modified":
+                # Sync source -> cache for the current version directory
                 src = Path(f"P:/packages/{pkg}")
                 version_dir = cache_root / pkg / f["cache_version"]
                 if src.exists() and version_dir.exists():
@@ -784,11 +859,17 @@ def main(argv: list[str]) -> int:
                          "/NFL", "/NDL", "/NJH", "/NJS", "/NC", "/NS", "/NP"],
                         capture_output=True, text=True,
                     )
-                    # robocopy returns 0-7 for success, 8+ for errors
                     if result.returncode < 8:
                         print(f"  {C_GREEN}Synced: {pkg}{C_RESET}")
+                        synced.append(pkg)
                     else:
                         print(f"  {C_RED}Failed: {pkg} (robocopy exit {result.returncode}){C_RESET}")
+            elif t == "cache_only":
+                # Cannot auto-fix — files deleted from source, must be restored from elsewhere
+                print(f"  {C_YELLOW}Cache-only files in {pkg}: {f['cache_only_count']} file(s) — restore from git history or delete manually{C_RESET}")
+
+        if stale_deleted:
+            print(f"\n{C_GREEN}Deleted {len(stale_deleted)} stale version dir(s): {stale_deleted}{C_RESET}")
 
         print(f"\n{C_CYAN}=== Next Steps ==={C_RESET}")
         print(f"  1. Run with --scan-paths to detect hardcoded paths")

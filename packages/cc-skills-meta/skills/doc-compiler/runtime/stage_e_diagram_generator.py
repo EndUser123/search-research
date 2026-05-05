@@ -19,6 +19,7 @@ from typing import Any
 BASE = Path("P:/packages/.claude-marketplace/plugins/cc-skills-meta/skills/doc-compiler")
 GUIDES = BASE / "guides-loaded.json"
 PLAN   = BASE / "diagram-plan.json"
+ARTIFACT_PLAN = BASE / "artifact-plan.json"
 OUT    = BASE / "diagrams.json"
 MMD_DIR = BASE / "diagrams"
 
@@ -60,12 +61,25 @@ def generate_flowchart(plan: dict, guide: dict) -> str:
         "class START start",
     ]
 
+    # Build id -> display_name lookup from content_bindings.steps
+    steps_array = plan.get("content_bindings", {}).get("steps", [])
+    id_to_display = {}
+    for s in steps_array:
+        step_id = s.get("id", "")
+        display = s.get("display_name", s.get("name", ""))
+        if step_id:
+            id_to_display[step_id] = display
+
     node_ids = {}
     for step in raw_steps:
         sid = sanitize_id(step) if isinstance(step, str) else sanitize_id(step.get("id", "step"))
         node_ids[sid] = sid
-        label = sanitize_label(step if isinstance(step, str) else step.get("name", "Step"))
-        lines.append(f"{sid}[\"{label}\"]")
+        # Look up display_name from content_bindings; fall back to bare id
+        if isinstance(step, str):
+            label = id_to_display.get(step, step)
+        else:
+            label = step.get("display_name", step.get("name", "Step"))
+        lines.append(f"{sid}[\"{sanitize_label(label)}\"]")
         lines.append(f"class {sid} step")
 
     # Connect START to first step
@@ -255,6 +269,14 @@ def main() -> None:
 
     guides_data = load_json(GUIDES)
     plan_data = load_json(PLAN)
+
+    # Enrich plan_data with content_bindings from artifact-plan.json (Stage G output)
+    # so that generate_flowchart can look up display_name for each step ID
+    if ARTIFACT_PLAN.exists():
+        artifact_plan = load_json(ARTIFACT_PLAN)
+        cb = artifact_plan.get("content_bindings", {})
+        if cb.get("steps"):
+            plan_data["content_bindings"] = cb
 
     plan_diagrams = plan_data.get("diagrams", [])
     guides_list = guides_data.get("guides", [])

@@ -58,17 +58,79 @@ def extract_presentation(fm: dict) -> dict[str, Any]:
     return {"style": "default", "source": "default"}
 
 
-def normalize_steps(raw_steps: list) -> list[dict[str, Any]]:
-    """Convert string steps to dicts, leave dicts as-is."""
+def _build_stage_heading_map(text: str) -> dict[str, tuple[str, str]]:
+    """Extract Stage X heading names and first-paragraph descriptions from body.
+
+    Returns dict mapping bare stage IDs (e.g. 'stage_a_source_extractor')
+    to (display_name, description) tuples derived from '### Stage X: Name' headings.
+    """
+    heading_map = {}
+    # Match ### Stage A: Source Extractor → `source-model.json`
+    stage_heading_re = re.compile(r'^###\s+Stage\s+([A-Z])\s*:\s+(.+?)\s*(?:→|$)', re.MULTILINE)
+    # Collect all stage headings in document order
+    headings_in_order = []
+    for m in stage_heading_re.finditer(text):
+        stage_letter = m.group(1).lower()
+        raw_name = m.group(2).strip()
+        # Strip trailing '→' and artifact path (e.g. "Source Extractor  →  `source-model.json`")
+        raw_name = re.sub(r'\s*→.*$', '', raw_name).strip()
+        # Strip parenthetical suffixes like "(MANDATORY GATE)" so they don't pollute the bare_id
+        raw_name_clean = re.sub(r'\s*\([^)]*\)\s*$', '', raw_name).strip()
+        # Derive the bare ID that frontmatter uses:
+        # "Stage A: Source Extractor" -> "stage_a_source_extractor"
+        words = raw_name_clean.lower().split()
+        bare_id = "stage_" + stage_letter + "_" + "_".join(words)
+        headings_in_order.append((bare_id, raw_name, m.end()))
+
+    # For each heading, grab the first meaningful sentence after it
+    for bare_id, raw_name, after in headings_in_order:
+        chunk = text[after:after + 800]
+        desc_lines = []
+        for line in chunk.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            # Stop at another heading or code fence
+            if stripped.startswith('```') or stripped.startswith('###') or stripped.startswith('##'):
+                break
+            # Skip lines that are only punctuation or artifacts (like → `source-model.json`)
+            if re.match(r'^[→\-\*]+$', stripped) or stripped.startswith('→'):
+                continue
+            # Strip list markers and bold markers
+            desc = re.sub(r'^[-*+]\s+(?:\*\*)?|\*\*$', '', stripped).strip()
+            if desc and len(desc) > 10:
+                desc_lines.append(desc)
+            if desc_lines:
+                break
+        description = desc_lines[0][:200] if desc_lines else ""
+        heading_map[bare_id] = (raw_name, description)
+
+    return heading_map
+
+
+def normalize_steps(raw_steps: list, text: str = "") -> list[dict[str, Any]]:
+    """Convert string steps to dicts, leave dicts as-is.
+
+    When text is provided and frontmatter steps look like internal stage IDs
+    (stage_a_*, stage_b_*), enrich display_name and description from body headings.
+    """
+    heading_map = _build_stage_heading_map(text) if text else {}
+
     result = []
     for i, s in enumerate(raw_steps, 1):
         if isinstance(s, str):
+            # Try to enrich from body headings
+            display_name = s
+            description = ""
+            if s in heading_map:
+                display_name = heading_map[s][0]
+                description = heading_map[s][1]
             result.append({
                 "id": f"step-{i}",
                 "index": i,
                 "name": s,
-                "display_name": s,
-                "description": "",
+                "display_name": display_name,
+                "description": description,
                 "kind": "step",
                 "conditions": [],
                 "inputs": [],
@@ -87,11 +149,11 @@ def extract_steps_from_skill(text: str, fm: dict) -> list[dict[str, Any]]:
 
     # First: try frontmatter steps
     if fm and "steps" in fm:
-        return normalize_steps(fm["steps"])
+        return normalize_steps(fm["steps"], text)
 
     # Second: try workflow_steps from frontmatter
     if fm and "workflow_steps" in fm:
-        return normalize_steps(fm["workflow_steps"])
+        return normalize_steps(fm["workflow_steps"], text)
 
     # Third: scan body for step-like headings (### Step N or ### N. Name)
     step_pattern = re.compile(r'^###\s+(?:\d+[.)]\s*)?(.+)$', re.MULTILINE)

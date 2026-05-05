@@ -12,8 +12,8 @@ import json, sys
 from pathlib import Path
 from typing import Any
 
-BASE = Path("P:/packages/cc-skills-meta/skills/doc-compiler")
-SOURCE = BASE / "source-model.json"
+BASE = Path("P:/packages/.claude-marketplace/plugins/cc-skills-meta/skills/doc-compiler")
+SOURCE = BASE / "runtime" / "source-model.json"
 OUT    = BASE / "doc-model.json"
 
 

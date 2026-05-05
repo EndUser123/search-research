@@ -392,5 +392,7 @@ if ($routes.Count -eq 0) {
     }
 }
 Write-Host ""
-Write-Host "Use 'cc-bf --sync' to backup and sync routing rules from DB to config.json" -ForegroundColor DarkGray
+Write-Host "   cc-bf --routes              probe all routes (DB + runtime latency)" -ForegroundColor White
+Write-Host "   cc-bf --routes --new-only   show catalog models with no routing rule" -ForegroundColor White
+Write-Host "   cc-bf --sync                backup + sync routing rules from DB to config.json" -ForegroundColor White
 Write-Host ""

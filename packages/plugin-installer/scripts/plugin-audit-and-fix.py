@@ -685,6 +685,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--scan-name-conflicts", action="store_true", help="Scan for conflicting skill/command names across global and local dirs")
     parser.add_argument("--plugins", metavar="NAME", help="Filter to a specific plugin name")
     parser.add_argument("--validate", action="store_true", help="Run 'claude plugin validate' on each plugin")
+    parser.add_argument("--drift", action="store_true", help="Detect source-vs-cache drift using content hash (no version comparison)")
     parser.add_argument("--bump", metavar="PLUGIN_NAME", help="Bump patch version for a plugin in all version files")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     args = parser.parse_args(argv[1:])
@@ -752,6 +753,34 @@ def main(argv: list[str]) -> int:
         else:
             print(f"{C_GREEN}All plugins validated{C_RESET}")
         return failed
+    if args.drift:
+        findings = audit_source_cache_drift(plugins_dir)
+        stale = [f for f in findings if f["type"] == "stale_version_dirs"]
+        modified = [f for f in findings if f["type"] == "source_modified"]
+        cache_only = [f for f in findings if f["type"] == "cache_only"]
+        if stale:
+            print(f"{C_YELLOW}Stale version dirs:{C_RESET}")
+            for f in stale:
+                print(f"  {f['plugin']}: stale {[d for d in f['stale_versions']]}")
+        else:
+            print("No stale version dirs.")
+        if modified:
+            print(f"{C_YELLOW}Source drift:{C_RESET}")
+            for f in modified:
+                sample = ", ".join(f["sample_files"][:3])
+                extra = f" (+{f['drift_count'] - len(f['sample_files'])} more)" if f["drift_count"] > len(f["sample_files"]) else ""
+                print(f"  {f['plugin']} ({f['cache_version']}): {f['drift_count']} file(s) modified — {sample}{extra}")
+        else:
+            print("No source drift.")
+        if cache_only:
+            print(f"{C_YELLOW}Cache-only files:{C_RESET}")
+            for f in cache_only:
+                print(f"  {f['plugin']}: {[cf for cf in f['cache_only_files']]}")
+        else:
+            print("No cache-only files.")
+        # Output machine-readable summary for downstream parsing
+        print(f"\nSummary: {len(stale)} stale, {len(modified)} drift, {len(cache_only)} cache-only")
+        return 0
     print("Auditing plugins...")
     plugin_results = audit_plugins(plugins_dir, mp_root, plugin_filter=args.plugins)
     error_count = sum(len(r["errors"]) for r in plugin_results)
