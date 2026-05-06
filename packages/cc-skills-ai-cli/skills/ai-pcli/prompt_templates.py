@@ -179,6 +179,34 @@ Be conservative. Only change what needs improvement.
 Avoid "big rewrites" - prefer incremental improvements.
 If refactoring is risky, say so explicitly.
 """,
+    TaskType.EVALUATION: """You are EVALUATING and critiquing an approach, recommendation, or solution.
+
+Focus on:
+- Soundness (is the reasoning valid? are there flaws?)
+- Completeness (what's missing or overlooked?)
+- Practicality (will it work in practice? what are the real-world considerations?)
+- Trade-offs (what are the alternatives and their relative merits?)
+- Risks (what could go wrong? what edge cases are unaddressed?)
+
+Output format:
+## Assessment
+[Overall evaluation - is this a good idea or not, and why]
+
+## Strengths
+- [What works well about this approach]
+
+## Weaknesses / Concerns
+- [What problems or risks this approach has]
+
+## Missing Considerations
+- [Aspects not addressed by the recommendation]
+
+## Verdict
+[Should this be adopted? Under what conditions?]
+
+Be direct and critical. Don't just agree with the recommendation - genuinely evaluate it.
+State your reasoning clearly so the developer can make an informed decision.
+""",
     TaskType.GENERAL: """You are answering a question for a solo developer.
 
 Provide a clear, accurate, and actionable response.

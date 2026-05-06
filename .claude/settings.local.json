@@ -77,7 +77,19 @@
       "mcp__plugin_playwright_playwright__browser_tabs",
       "mcp__plugin_playwright_playwright__browser_take_screenshot",
       "mcp__plugin_playwright_playwright__browser_close",
-      "mcp__plugin_playwright_playwright__browser_console_messages"
+      "mcp__plugin_playwright_playwright__browser_console_messages",
+      "Bash(cp \"C:\\\\Users\\\\brsth\\\\Downloads\\\\snapshot_validation_matrix.csv\" \"P:\\\\.claude\\\\.artifacts\\\\snapshot_validation_matrix.csv\")",
+      "Bash(cp \"C:\\\\Users\\\\brsth\\\\Downloads\\\\recall_validation_matrix.csv\" \"P:\\\\.claude\\\\.artifacts\\\\recall_validation_matrix.csv\")",
+      "Bash(cp \"C:\\\\Users\\\\brsth\\\\Downloads\\\\test_priority_guide.csv\" \"P:\\\\.claude\\\\.artifacts\\\\test_priority_guide.csv\")",
+      "Bash(rm \"P:/.claude/.artifacts/_gitpack_snapshot.py\")",
+      "Bash(ls P:/.claude/hooks/logs/*.db)",
+      "Bash(ls P:/.claude/hooks/*.db)",
+      "Bash(ls P:/.claude/hooks/logs/)",
+      "Bash(dir /b *.py)",
+      "Bash(dir /b __lib\\\\*.py)",
+      "WebFetch(domain:www.reddit.com)",
+      "WebFetch(domain:glama.ai)",
+      "WebFetch(domain:pcarion.com)"
     ],
     "deny": [],
     "ask": []

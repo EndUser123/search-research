@@ -16,6 +16,7 @@ class TestCksCorrectionAnchor:
 
     def _make_data(self, session_id="sess-test", terminal_id="t1"):
         return {"session_id": session_id, "terminal_id": terminal_id}
+        return {"session_id": session_id, "terminal_id": terminal_id}
 
     # --- Enabled/disable ----------------------------------------------------- #
 
@@ -129,7 +130,12 @@ class TestCksCorrectionAnchor:
             call_kwargs = mock_get_ingest.return_value.call_args.kwargs
             assert call_kwargs["wrong_skill"] == "ai-cli"
             assert call_kwargs["correct_skill"] == "ai-pcli"
-            assert call_kwargs["entry_type"] == "correction"
+            # ingest_correction(title=..., content=..., **metadata) — NOT ingest_memory
+            assert "title" in call_kwargs, "Must use ingest_correction(title=...), not ingest_memory()"
+            assert "content" in call_kwargs, "Must use ingest_correction(content=...), not ingest_memory()"
+            assert "entry_type" not in call_kwargs, (
+                "Must not pass entry_type kwarg — ingest_correction hardcodes type='correction'"
+            )
         finally:
             marker.unlink(missing_ok=True)
 
@@ -157,6 +163,49 @@ class TestCksCorrectionAnchor:
             assert result is None  # fail open — no exception propagated
         finally:
             marker.unlink(missing_ok=True)
+
+    # --- Write-path type regression ----------------------------------------- #
+
+    def test_ingest_uses_correct_api(self):
+        """Guard: calling ingest_memory with entry_type='correction' writes type='memory'.
+
+        This test documents the old broken behavior and proves the fix is in place.
+        ingest_correction() hardcodes type='correction'; ingest_memory() hardcodes type='memory'.
+        Stop_cks_correction_anchor must use ingest_correction, not ingest_memory.
+        """
+        import sys
+        cks_path = Path("P:/packages/search-research/core")
+        if str(cks_path) not in sys.path:
+            sys.path.insert(0, str(cks_path))
+
+        from cks.unified import CKS
+
+        db = "P:/__csf/data/cks.db"
+        with CKS(db) as cks:
+            before = cks.conn.execute(
+                "SELECT COUNT(*) FROM entries WHERE type='correction'"
+            ).fetchone()[0]
+
+            eid = cks.ingest_correction(
+                title="regression: verify ingest_correction sets type=correction",
+                content="Direct API test — must be type='correction', not 'memory'",
+                test_marker="write_path_regression_test",
+            )
+
+            after = cks.conn.execute(
+                "SELECT COUNT(*) FROM entries WHERE type='correction'"
+            ).fetchone()[0]
+
+            row_type = cks.conn.execute(
+                "SELECT type FROM entries WHERE id=?", (eid,)
+            ).fetchone()[0]
+
+        assert row_type == "correction", (
+            f"BUG: ingest_correction wrote type='{row_type}', expected 'correction'. "
+            "Root cause: ensure Stop_cks_correction_anchor uses ingest_correction(), "
+            "NOT ingest_memory(question=..., answer=..., entry_type='correction')."
+        )
+        assert after == before + 1, "Delta should be exactly 1"
 
 
 # Needed for patch.dict in test_disabled_by_env

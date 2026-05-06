@@ -500,6 +500,69 @@ class TestIntegration:
         # Should allow (no content to check)
         assert result is None
 
+    def test_code_element_removal_allowlisted(self):
+        """Code-edit summary phrases like 'removed the marker from the pattern' should be allowlisted."""
+        cases = [
+            '"source:" marker removed from _is_analytical_response',  # original false positive
+            "Removed the marker from the markers list",
+            "Removed a condition from the gate",
+            "Removed the check from the guard",
+            "Removed the constraint from the schema",
+            "Removed marker from Stop.py",  # no extension, no path separator
+            "removed the rule from the guard",
+            "removed the flag from the pattern",
+            "removed the qualifier from the constraint",
+        ]
+        for case in cases:
+            assert OBVIOUS_ALLOWLIST.search(case), f"Should allowlist: {case}"
+
+    def test_file_deletion_claims_still_detected(self):
+        """Actual file deletion claims should still be matched by DELETION_CLAIM_PATTERNS."""
+        blocked_cases = [
+            "Removed foo.py",           # file with extension
+            "Deleted build/",           # directory
+            "Dropped test.py",          # drop verb + file
+            "Removed the temp directory",
+            "Cleaned up the cache files",
+            "All files deleted",
+        ]
+        for case in blocked_cases:
+            assert DELETION_CLAIM_PATTERNS.search(case), f"Should detect: {case}"
+
+    def test_bare_deletion_claim_blocks(self):
+        """Bare 'removed X' without any path-like strings still blocks."""
+        # Bare: no extension, no path separator, not allowlisted
+        data = {"response": "removed the thing without any file reference"}
+        result = check(data)
+        assert result is not None and result["decision"] == "block"
+
+    def test_removed_marker_from_pattern_allows(self):
+        """The original false positive scenario now passes end-to-end."""
+        data = {
+            "response": (
+                '"source:" marker removed from _is_analytical_response '
+                "markers list in Stop.py line 243"
+            )
+        }
+        result = check(data)
+        assert result is None  # allow — allowlist covers it
+
+    def test_code_edit_vs_file_deletion_distinction(self):
+        """Verify code-edit allowlist does NOT cover actual file deletion claims."""
+        # These should STILL be detected (not allowlisted)
+        still_detected = [
+            "removed test.py",          # file extension → detection
+            "removed config.json",      # file extension → detection
+            "removed P:\\project\\file.py",  # windows path → detection
+            "removed /usr/local/bin/script",  # unix path → detection
+            "dropped foo.py",           # drop verb + extension → detection
+        ]
+        for case in still_detected:
+            # Not allowlisted (file path, not code component)
+            assert not OBVIOUS_ALLOWLIST.search(case), f"Should NOT allowlist: {case}"
+            # But still detected by DELETION_CLAIM_PATTERNS
+            assert DELETION_CLAIM_PATTERNS.search(case), f"Should detect: {case}"
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -401,6 +401,40 @@ STRUCTURAL_ASSESSMENT_PHRASES = [
     r"\b(?:architecture|structure|design|organization)\s+is\s+(?:optimal|proper|correct)\b",
 ]
 
+# Runtime mismatch language — signals local verification vs live runtime disagreement
+# Used to detect when the LLM is describing a mismatch without properly hedging
+RUNTIME_MISMATCH_PHRASES = [
+    r"\blive\s+(?:hook|plugin|module|code)\s+(?:differs?|mismatch(?:es)?|is\s+different)\b",
+    r"\btest(?:s)?\s+(?:pass(?:es)?|passing)\s+but\s+(?:live|runtime|production)\s+(?:does\s+)?(?:not\s+)?(?:work|match|pass|fail)\b",
+    r"\blocal\s+(?:test|verification)\s+(?:pass(?:es)?|works?)\s+but\s+(?:live|runtime)\s+(?:doesn't?|does\s+not|doesn't)\b",
+    r"\bstale\s+(?:cache|bytecode|import)\b",
+    r"\bversion\s+(?:mismatch|differ|differs)\b",
+    r"\bthe\s+(?:hook|module|code)\s+(?:you're|you(?:'re| are))\s+(?:seeing|looking\s+at|using)\s+(?:is\s+)?(?:different|differ)\b",
+    r"\bpersistent\s+(?:process|state|cache)\b",
+    r"\breload(?:ing)?\s+(?:plugin|hook|module)\b",
+    r"\bbytecode\s+(?:cache|stale|out\s+of\s+date)\b",
+]
+
+# Singular root-cause assertion phrases — "The issue is", "This is because" without hedging
+# Used in combination with runtime mismatch language to flag overconfident mismatch attribution
+SINGULAR_CAUSE_PHRASES = [
+    r"\bthe\s+issue\s+is\b",
+    r"\bthe\s+cause\s+is\b",
+    r"\bthis\s+is\s+(?:due\s+to|because\s+of)\b",
+    r"\bthe\s+root\s+cause\s+is\b",
+    r"\bthe\s+problem\s+is\b",
+    r"\bthat's?\s+because\b",
+    r"\bis\s+the\s+reason\b",
+]
+
+# Blind sys.path workaround phrases — sys.path.insert/append without explicit diagnostic label
+# "temporary workaround" or "diagnostic" in the same paragraph exempts the pattern
+SYS_PATH_BLIND_PATTERNS = [
+    r"\bsys\.path\.insert\s*\(\s*0\s*,\s*(?:os\.path\.dirname|Path|str)\s*\(",
+    r"\bsys\.path\.append\s*\(",
+    r"\bsys\.path\s*=\s*\["  # sys.path reassignment without prior "for verification" or "diagnostic"
+]
+
 # Evidence markers that make causal claims acceptable
 # NOTE: Current mode is lenient (accepts any marker).
 # Future: Add STRICT_EVIDENCE_MODE env var requiring explicit "[Tier X]:" format
@@ -452,6 +486,9 @@ _OUTCOME_ATTRIBUTION_PATTERNS = [re.compile(p, re.IGNORECASE) for p in OUTCOME_A
 _STRUCTURAL_ASSESSMENT_PATTERNS = [re.compile(p, re.IGNORECASE) for p in STRUCTURAL_ASSESSMENT_PHRASES]
 _DATA_INDICATOR_PATTERNS = [re.compile(p, re.IGNORECASE) for p in DATA_INDICATORS]
 _EXPLANATORY_CONTEXT_PATTERNS = [re.compile(p, re.IGNORECASE) for p in EXPLANATORY_CONTEXT_PATTERNS]
+_RUNTIME_MISMATCH_PATTERNS = [re.compile(p, re.IGNORECASE) for p in RUNTIME_MISMATCH_PHRASES]
+_SINGULAR_CAUSE_PATTERNS = [re.compile(p, re.IGNORECASE) for p in SINGULAR_CAUSE_PHRASES]
+_SYS_PATH_BLIND_PATTERNS = [re.compile(p, re.IGNORECASE) for p in SYS_PATH_BLIND_PATTERNS]
 
 
 def _has_evidence_marker(text: str) -> bool:
@@ -613,6 +650,43 @@ def detect_overconfidence(
             suggestion="Structural claims need quantification. Add: 'After reviewing N files/skills', 'Compared against all N peers', or '[Tier X]'",
             severity="flag"
         )
+
+    # 7. Check for runtime mismatch attribution — singular root-cause claim co-located
+    #    with mismatch language (local vs live disagreement)
+    #    e.g. "The issue is stale bytecode" + "live hook differs from what I'm seeing"
+    #    Both patterns must be present (no evidence marker) to trigger
+    has_mismatch = _find_pattern(text, _RUNTIME_MISMATCH_PATTERNS)
+    has_singular_cause = _find_pattern(text, _SINGULAR_CAUSE_PATTERNS)
+    if has_mismatch and has_singular_cause and not _has_evidence_marker(text):
+        return OverconfidenceMatch(
+            matched=f"{has_singular_cause.group(0)} ... {has_mismatch.group(0)}",
+            pattern_type="runtime_mismatch_attribution",
+            suggestion="Avoid singular root-cause when mismatch language is present. Report mismatch using: 'Observed: ... Possible causes: ... Next check: ...'",
+            severity="flag"
+        )
+
+    # 8. Check for blind sys.path workaround — bare sys.path.insert/append without
+    #    explicit diagnostic/temporary label in the same paragraph
+    syspath_match = _find_pattern(text, _SYS_PATH_BLIND_PATTERNS)
+    if syspath_match:
+        # Exempt if paragraph contains "temporary", "diagnostic", "verification", "workaround"
+        _EXEMPT_PATTERNS = [
+            re.compile(p, re.I) for p in [
+                r"\btemporary\b",
+                r"\bdiagnostic\b",
+                r"\bworkaround\b",
+                r"\bfor\s+verification\b",
+                r"\bverification\s+snippet\b",
+            ]
+        ]
+        exempt = any(p.search(text) for p in _EXEMPT_PATTERNS)
+        if not exempt:
+            return OverconfidenceMatch(
+                matched=syspath_match.group(0),
+                pattern_type="blind_syspath_workaround",
+                suggestion="sys.path.insert/append should be labeled as temporary diagnostic workaround. Reframe: 'For verification purposes only: ...' or 'This is a temporary workaround'",
+                severity="flag"
+            )
 
     return None
 

@@ -13,6 +13,11 @@ Design principle: never trigger on a word being merely present.
   - Factual claims: gated behind full-response evidence check first
   - Contradictions: paragraph-scoped + comparison/temporal context exemption
   - Promises: only flag exactly-1-item (0=cutoff, ≥2=fine)
+
+Noise reduction (2026-05-05):
+  - Deduplicates near-identical contradiction text
+  - Skips contradictions from known documentation headings
+  - Caps user-visible contradictions at 5 (full details logged)
 """
 
 from __future__ import annotations
@@ -64,7 +69,8 @@ _DEFINITIVE_CLAIM = re.compile(
 # Sentence is already hedged — exempt from flagging
 _QUALIFIER = re.compile(
     r'\b(?:might|may|could|seems?|appears?|likely|probably|possibly|'
-    r'I\s+think|I\s+believe|suspect|unclear|unverified|inferred|unconfirmed)\b',
+    r'I\s+think|I\s+believe|suspect|unclear|unverified|inferred|unconfirmed|'
+    r'sufficient|appropriate|adequate|acceptable)\b',
     re.IGNORECASE,
 )
 
@@ -170,6 +176,76 @@ def _find_incomplete_promises(response: str) -> list[dict[str, Any]]:
     return incomplete
 
 
+# ── 5. Noise reduction ─────────────────────────────────────────────────────────
+
+# Documentation headings whose content frequently produces spurious contradictions.
+# Entries from these headings (GOOD/BAD examples, code blocks, etc.) should not
+# generate contradiction findings when they appear in the model's own response text.
+_SKIP_HEADINGS = {
+    "UNCERTAINTY EXPRESSION",
+    "SPECIFIC LIMITATION + NEXT STEP",
+    "HOW TO EXPRESS UNCERTAINTY",
+    "GOOD:",
+    "BAD:",
+    "EXAMPLE:",
+}
+_MAX_VISIBLE_CONTRADICTIONS = 5
+
+
+def _normalize(text: str) -> str:
+    """Normalize text for deduplication: lowercase, whitespace-collapse."""
+    return re.sub(r'\s+', ' ', text.lower().strip())
+
+
+def _is_from_doc_block(text: str, heading: str) -> bool:
+    """Return True if text is near a documentation heading."""
+    if heading.upper() in text.upper():
+        return True
+    # Heuristic: if the normalized text starts with the same words as the heading
+    heading_words = heading.lower().split()
+    text_words = text.lower().split()
+    if len(heading_words) >= 2 and len(text_words) >= 2:
+        if text_words[:2] == heading_words[:2]:
+            return True
+    return False
+
+
+def _deduplicate_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Deduplicate near-identical findings, skip doc-block contradictions, cap."""
+    seen_normalized: set[str] = set()
+    doc_skip_count = 0
+    deduped: list[dict[str, Any]] = []
+
+    for f in findings:
+        if f["type"] != "contradiction":
+            deduped.append(f)
+            continue
+
+        norm = _normalize(f["text"])
+
+        # Skip if normalized text already seen
+        if norm in seen_normalized:
+            continue
+
+        # Skip if text appears to be from a documentation example block
+        if any(_is_from_doc_block(f["text"], h) for h in _SKIP_HEADINGS):
+            doc_skip_count += 1
+            continue
+
+        seen_normalized.add(norm)
+        deduped.append(f)
+
+    # Cap contradictions at _MAX_VISIBLE_CONTRADICTIONS
+    contradictions = [f for f in deduped if f["type"] == "contradiction"]
+    non_contradictions = [f for f in deduped if f["type"] != "contradiction"]
+
+    if len(contradictions) > _MAX_VISIBLE_CONTRADICTIONS:
+        excess = len(contradictions) - _MAX_VISIBLE_CONTRADICTIONS
+        contradictions = contradictions[:_MAX_VISIBLE_CONTRADICTIONS]
+
+    return non_contradictions + contradictions
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 def run(data: dict) -> dict | None:
@@ -189,11 +265,15 @@ def run(data: dict) -> dict | None:
 
     findings: list[dict[str, Any]] = claims + contradictions + incomplete
 
+    # Noise reduction: dedupe, skip doc-block contradictions, cap visible list
+    findings = _deduplicate_findings(findings)
+
     if not findings:
         return {"allow": True, "reason": "no issues"}
 
+    visible = findings[:10]  # Keep full list for logging, show first 10 to user
     lines = [f"Self-reflection ({len(findings)} finding(s)):"]
-    for f in findings:
+    for f in visible:
         lines.append(f"  [{f['type']}] {f['text'][:100]}")
     lines.append("Consider adding evidence or hedging unverified claims.")
     print("\n".join(lines), file=sys.stdout)

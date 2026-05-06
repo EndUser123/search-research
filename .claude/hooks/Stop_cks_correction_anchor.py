@@ -49,9 +49,9 @@ def _get_ingest():
     if _ingest_memory is None:
         __csf_src = Path("P:/packages/search-research/core")
         sys.path.insert(0, str(__csf_src))
-        from cks.unified import ingest_memory as _im
+        from cks.unified import ingest_correction as _ic
 
-        _ingest_memory = _im
+        _ingest_memory = _ic
     return _ingest_memory
 
 # --------------------------------------------------------------------------- #
@@ -171,20 +171,21 @@ def run(data: dict) -> dict | None:
         )
 
         try:
-            ingest_memory = _get_ingest()
-            entry_id = ingest_memory(
-                question=question,
-                answer=answer,
-                entry_type="correction",
-                source_chunk=None,
+            ingest_correction = _get_ingest()
+            entry_id = ingest_correction(
+                title=question,
+                content=answer,
                 wrong_skill=wrong_skill,
                 correct_skill=correct_skill,
                 session_id=session_id,
                 terminal_id=terminal_id,
                 marker_version=CHALLENGE_MARKER_VERSION,
             )
-            # Send write signal to daemon for immediate FAISS refresh (fire-and-forget)
-            _send_write_signal(entry_id, "correction", session_id, terminal_id)
+            # Send write signal to daemon for immediate FAISS refresh.
+            # DISABLED: daemon not running (pipe code 3), write-signal path untested for CKS entries.
+            # Remove comment to re-enable once: daemon starts reliably, vector query path exists for CKS,
+            # and end-to-end signal test passes. See decision-memo-2026-05-05.
+            # _send_write_signal(entry_id, "correction", session_id, terminal_id)
         except Exception:
             pass  # fail open — CKS write error must not block stop
 

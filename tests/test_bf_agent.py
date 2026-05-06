@@ -59,7 +59,7 @@ def test_tool_action_model():
 def test_config_constants():
     """VALID_MODELS, VALID_RUN_MODES, BF_ALLOWED_ROOT are exposed."""
     from bf_agent import VALID_MODELS, VALID_RUN_MODES, BF_ALLOWED_ROOT
-    assert "M27" in VALID_MODELS
+    assert isinstance(VALID_MODELS, set)  # deprecated — now empty, Bifrost validates at runtime
     assert "compare" in VALID_RUN_MODES
     assert "code" in VALID_RUN_MODES
     assert BF_ALLOWED_ROOT == Path("P:/").resolve()

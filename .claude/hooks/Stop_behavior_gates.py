@@ -27,8 +27,16 @@ Updated: 2025-03-01 (v2 - reduced false positives, added telemetry)
 import json
 import os
 import re
+import sys
 from datetime import datetime
 from pathlib import Path
+
+# Add hooks dir to path for turn_mode import
+_HOOKS_DIR = Path(__file__).resolve().parents[1]
+if str(_HOOKS_DIR) not in sys.path:
+    sys.path.insert(0, str(_HOOKS_DIR))
+
+from __lib.turn_mode import classify as _classify_turn_mode
 
 # ============================================================================
 # CONFIGURATION
@@ -385,7 +393,7 @@ def _is_question_format(text: str) -> bool:
     return False
 
 
-def check_gate3_agreement(text: str, tools_used: list[str], working_dir: Path | None = None) -> tuple[bool, str]:
+def check_gate3_agreement(text: str, tools_used: list[str], working_dir: Path | None = None, user_prompt: str | None = None) -> tuple[bool, str]:
     """
     Check if assistant agreed to perform action without Edit/Write/Bash.
 
@@ -422,11 +430,13 @@ def check_gate3_agreement(text: str, tools_used: list[str], working_dir: Path | 
       * Ignores question format ("Should I...?")
       * Allows tool mentions in same sentence ("I'll fix it using Edit")
       * More specific patterns (excludes generic agreement words)
+    - Plan-mode exemption: future commitments in plan/execution-report turns are allowed
 
     Args:
         text: Assistant response text to analyze
         tools_used: List of tool names used in response
         working_dir: Working directory (optional, for telemetry)
+        user_prompt: User prompt text (optional, for turn-mode classification)
 
     Returns:
         Tuple of (is_violation, reason):
@@ -466,6 +476,18 @@ def check_gate3_agreement(text: str, tools_used: list[str], working_dir: Path | 
     if _has_tool_mention_in_same_sentence(text, list(required_tools)):
         # Agent mentioned tools in text → likely implementing → no violation
         return (False, "")
+
+    # Plan-mode check: skip if turn is plan or execution-report
+    # (future commitments like "I'll do X next" are legitimate planning language)
+    try:
+        turn_mode = _classify_turn_mode({
+            "user_prompt": user_prompt or "",
+            "response": text,
+        })
+        if turn_mode in ("plan", "execution-report"):
+            return (False, "")
+    except Exception:
+        pass  # Fail open — gate fires if classification fails
 
     # ========================================================================
     # PATTERN MATCHING (only if tools not found)

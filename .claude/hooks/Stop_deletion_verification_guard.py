@@ -154,7 +154,7 @@ OBVIOUS_ALLOWLIST = re.compile(
     # Content-change contexts — "removed the X" where X is NOT a file/directory
     # These are config/entry/line changes, not filesystem deletions
     r"|\bremoved?\s+(?:the\s+)?(?:duplicate|entry|alias|line|item|value|setting|parameter|option|argument|flag)\b"
-    r"|\bremoved?\s+.*(?:from\s+[\w-]+|in\s+[\w-]+|config|file|section|document)\b"
+    r"|\bremoved?\s+.*(?:from\s+[\w-]+|in\s+[\w-]+)\b"
     # Code-refactoring contexts — "removed unused/dead/obsolete code" (not file deletion)
     # Requires explicit code-related term to avoid false positives
     r"|\bremoved?\s+(?:the\s+)?(?:unused|dead|obsolete|deprecated|redundant)\s+(?:code|branch|logic|function|import|statement|class|method)\b"
@@ -164,7 +164,16 @@ OBVIOUS_ALLOWLIST = re.compile(
     r"|\bremoved?\s+.*(?:regex|token|pattern|qualifier)\b"
     r"|\bdropped?\s+(?:the\s+)?(?:COMPARATIVEWORDSRE|token|pattern|entry|flag|qualifier)\b"
     r"|\bremoved?\s+.*(?:from\s+(?:the\s+)?(?:regex|pattern|constraint|schema|section))\b"
-    r"|\bremoved?\s+.*(?:\bdocstring|comment|section|Phase|CHANGE|D\d+)\b",
+    r"|\bremoved?\s+.*(?:\bdocstring|comment|section|Phase|CHANGE|D\d+)\b"
+    # Code-edit / structural-change contexts — "removed the X" where X is a
+    # code component, not a filesystem artifact. These are git-diff summaries,
+    # not deletion completion claims. Examples:
+    #   "source:" marker removed from _is_analytical_response" → allowlist
+    #   "Removed the check from the guard" → allowlist
+    #   "Removed marker from Stop.py" → allowlist (no extension, not a path)
+    r"|\bremoved?\s+(?:the\s+)?(?:marker|condition|check|guard|rule|flag|qualifier|constraint)\b"
+    r"|\bremoved?\s+(?:the\s+)?(?:section|comment|docstring|block|stanza)\b"
+    r"|\bremoved?\s+.*(?:from\s+the\s+(?:markers?|list|pattern|regex|constraint|gate|hook|section))\b",
     re.IGNORECASE,
 )
 
@@ -426,7 +435,18 @@ def _detect_deletion_claims(response: str) -> list[tuple[str, list[str]]]:
 
 
 def check(data: dict) -> dict | None:
-    """Core guard logic. Returns block dict or None (allow)."""
+    """Core guard logic. Returns block dict or None (allow).
+
+    Detection flow:
+      1. DELETION_CLAIM_PATTERNS detects deletion-completion phrases
+         (past tense: "files deleted", "removed the foo", "dropped bar.py").
+      2. OBVIOUS_ALLOWLIST is consulted first — code-edit summaries like
+         "removed the marker from the pattern" are skipped here so they never
+         reach the claim list.
+      3. When patterns match but no file paths are extracted AND the response
+         contains no path-like strings anywhere, the guard blocks as a
+         "bare deletion claim" (no artifact specified to verify).
+    """
     response = data.get("assistant_response", "") or data.get("response", "")
     if not response:
         return None

@@ -2,7 +2,7 @@
 name: ai-pcli
 version: "1.4.0"
 status: stable
-description: Parallel Multi-LLM Command with prompting-toolkit enhancement - Run qwen, gemini, codex, and opencode CLI tools in parallel
+description: Parallel Multi-LLM Command with prompting-toolkit enhancement - Run gemini, codex, and opencode CLI tools in parallel
 category: ai-llm
 enforcement: strict
 triggers:
@@ -45,7 +45,7 @@ Task(subagent_type="ai-cli-critic",
 
 **Step 5:** If `--output-format json` is used, save the combined JSON to a datetime-suffixed output file and generate tiered YAML reports
 
-**Step 6 (config query):** Read `P:/.claude/ai-cli-recipe.json` and display:
+**Step 6 (config query):** Read `P:/.data/ai-pcli-recipe.json` and display:
 ```
 Active CLIs:
   Default:
@@ -57,6 +57,19 @@ Active CLIs:
     ...
 ```
 If no config file exists, display: `No saved configuration found`
+
+**Config file format** (`P:/.data/ai-pcli-recipe.json`, fallback: `ai-cli-recipe.json`):
+```json
+{
+  "default": { "clis": [{ "name": "pi:kimi-k2.6" }, { "name": "gemini" }] },
+  "aux": { "clis": [{ "name": "opencode", "model": "kimi", "failover": "minimax" }] },
+  "clis": ["pi:kimi-k2.6", "gemini"],
+  "opencode_models": ["kimi"]
+}
+```
+- **`default.clis`** — simple CLI invocations. Name is a CLI identifier (e.g. `pi:kimi-k2.6`, `gemini`, `codex`)
+- **`aux.clis`** — model-annotated entries for CLIs with model selection (currently `opencode` only). Fields: `name`, `model`, `failover`
+- **`clis`** and **`opencode_models`** — legacy flat format (still read for backward compatibility)
 
 **DO NOT:**
 - Provide your own analysis instead of running the command
@@ -92,11 +105,11 @@ python "P:\packages\cc-skills-ai-cli\skills\ai-pcli\ai_cli.py" --help
 | `--output-file FILE` | Save JSON output to a datetime-suffixed file |
 | `--no-critic` | Skip the post-run ai-cli critic subagent |
 | `--prompt-toolkit` | Use prompting-toolkit AutomaticEnhancementSystem instead of built-in templates |
-| `--qwen-only` | Run only qwen-cli |
 | `--gemini-only` | Run only gemini-cli |
 | `--codex-only` | Run only codex-cli |
 | `--opencode-only` | Run only opencode (DeepSeek V3) |
 | `--opencode-model MODEL` | OpenCode model or alias (kimi, minimax) |
+| `--pi-model MODEL` | Run pi with specified model(s) — any from `pi --list-models` |
 | `--route` | Use rule-based routing (from llm-route) to select CLI by task keywords |
 | `--doc-review` | Use document review prompt (from llm-doc_review) - prepends review questions |
 | `--hide-prompt` | Suppress the enhanced prompt display (which is shown by default) |
@@ -126,4 +139,5 @@ For clean output format when using "config" query, see [references/output-templa
 | Context handling best practices and auto-detection | `references/context-handling.md` |
 | CLI characteristics, OpenCode models, setup, health check, limitations | `references/cli-reference.md` |
 | Troubleshooting (errors, causes, fixes) | `references/troubleshooting.md` |
+| Config file structure (direct vs pi vs aux groups) | `references/config-format.md` |
 | Critic subagent for output sanity checks | `P:/.claude/agents/ai-cli-critic.md` |

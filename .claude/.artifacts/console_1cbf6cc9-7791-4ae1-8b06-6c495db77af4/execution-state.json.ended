@@ -1,0 +1,18 @@
+{
+  "run_id": "7676d6da-5094-4d05-a939-cc2aa5cff5d3",
+  "skill_name": "cc-skills-sdlc:design",
+  "contract_type": "workflow-execution",
+  "phase": "pending",
+  "status": "complete",
+  "terminal_id": "console_1cbf6cc9-7791-4ae1-8b06-6c495db77af4",
+  "session_id": "81e78213-ee2e-4c25-b674-b8668834bf47",
+  "turn_id": null,
+  "created_at": 1777941061.756271,
+  "updated_at": 1777941083.8982508,
+  "required_artifacts": [],
+  "completed_artifacts": [],
+  "missing_requirements": [],
+  "allowed_tools_now": [],
+  "blocked_tools": [],
+  "response_requirements": {}
+}

@@ -1,1 +1,1 @@
-P:/packages/cc-skills-meta/reasoning/ReasoningHooks/analyze_reasoning_profiles.py
+P:/packages/cc-skills-thinking/reasoning/ReasoningHooks/analyze_reasoning_profiles.py

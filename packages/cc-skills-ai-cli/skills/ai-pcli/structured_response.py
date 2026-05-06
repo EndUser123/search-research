@@ -192,7 +192,6 @@ def extract_model_id(output: str, cli_name: str) -> str | None:
 
     # Known model defaults by CLI
     known_models = {
-        "qwen": "qwen/qwen3-235b",
         "gemini": "gemini-2.0-flash-exp",
         "codex": "deepseek/deepseek-r1",
         "opencode": "chutes/moonshotai/Kimi-K2.5-TEE",

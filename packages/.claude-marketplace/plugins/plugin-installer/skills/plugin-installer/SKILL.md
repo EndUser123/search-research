@@ -17,132 +17,34 @@ All plugins are junctioned — source at `P:/packages/<name>/`, junction at `P:/
 
 ## Full Setup (no action specified)
 
-When invoked without an action, run the complete check-fix-install workflow. **All steps are mandatory — do not skip step 3 (cache sync check) even if steps 1 and 2 look clean.**
+When invoked without an action, run the complete check-fix-verify workflow.
 
-1. **Audit** all plugins for issues and auto-fix:
+1. **Audit + auto-fix** — detects issues and syncs cache from source (source wins on drift):
    ```bash
    python3 "P:/packages/plugin-installer/scripts/plugin-audit-and-fix.py" --auto-fix --marketplace-root "P:/packages/.claude-marketplace"
    ```
+   Auto-fix handles all three drift types:
+   - **Source drift** → `robocopy /MIR` syncs cache from source
+   - **Stale version dirs** → deleted from cache
+   - **Cache-only files** → warned but preserved (source-deleted files stay in cache until manually removed)
 
 2. **Sync marketplace index**:
    ```bash
    claude plugin marketplace update local
    ```
 
-3. **⚠️ MANDATORY — Detect stale + missing caches** — compare source plugin.json version against installed cache version. **This is the most commonly skipped step and the most common source of "plugin installed but not loading" bugs.** Run this even when steps 1 and 2 report clean:
+3. **Verify cache is clean** — confirms no residual drift after auto-fix:
    ```bash
-   python3 -c "
-   import json
-   from pathlib import Path
-
-   installed = json.load(open('C:/Users/brsth/.claude/plugins/installed_plugins.json'))
-   marketplace = Path('P:/packages/.claude-marketplace/plugins')
-   stale, missing = [], []
-
-   for plugin_dir in sorted(marketplace.iterdir()):
-       name = plugin_dir.name
-       if name.startswith('.') or not (plugin_dir / '.claude-plugin' / 'plugin.json').exists():
-           continue
-       src_ver = json.load(open(plugin_dir / '.claude-plugin' / 'plugin.json')).get('version', '?')
-       entry = installed.get('plugins', {}).get(f'{name}@local')
-       if not entry:
-           missing.append((name, src_ver))
-           continue
-       cache_ver = entry[0].get('version', '?')
-       if cache_ver != src_ver:
-           stale.append((name, cache_ver, src_ver))
-
-   if stale:
-       print('STALE CACHES:')
-       for name, cv, sv in stale:
-           print(f'  {name}: cache v{cv} != source v{sv}')
-   else:
-       print('No stale caches.')
-
-   if missing:
-       print('NOT INSTALLED:')
-       for name, sv in missing:
-           print(f'  {name}: source v{sv}')
-   else:
-       print('All marketplace plugins installed.')
-
-   print(f'Summary: {len(stale)} stale, {len(missing)} missing')
-   "
+   python3 "P:/packages/plugin-installer/scripts/plugin-audit-and-fix.py" --drift --marketplace-root "P:/packages/.claude-marketplace"
    ```
+   If "Source drift" or "Stale version dirs" appear here, those plugins need manual refresh (`/plugin-installer refresh <name>`). Cache-only files are informational — the cache holds files the source deleted; no action needed unless you want to restore them from git history.
 
-4. **Nuke stale caches** — for each plugin where cache version != source version:
-   ```bash
-   # For each stale plugin:
-   rm -rf "C:/Users/brsth/.claude/plugins/cache/local/<name>"
-   # Remove stale entry from installed_plugins.json:
-   python3 -c "
-   import json
-   f = 'C:/Users/brsth/.claude/plugins/installed_plugins.json'
-   d = json.load(open(f))
-   for name in [<stale_names>]:
-       d['plugins'].pop(f'{name}@local', None)
-   json.dump(d, open(f, 'w'), indent=2)
-   "
-   ```
-
-5. **Reinstall all plugins** — covers both stale (nuked) and missing.
-   Try `claude plugin install` first. If it fails with "source type not supported" (directory-source marketplaces in v2.1.126), fall back to Direct Registration:
-   ```bash
-   claude plugin marketplace update local
-   ls P:/packages/.claude-marketplace/plugins/
-   # For each missing/stale plugin:
-   claude plugin install <name>@local
-   ```
-   **If install fails** (directory source not supported), use Direct Registration fallback for each failed plugin:
-   ```bash
-   python3 << 'PYEOF'
-   import json, shutil
-   from pathlib import Path
-   from datetime import datetime, timezone
-
-   plugins_to_install = ["<name>"]  # fill with failed plugin names
-   cache_root = Path("C:/Users/brsth/.claude/plugins/cache/local")
-   installed_file = Path("C:/Users/brsth/.claude/plugins/installed_plugins.json")
-   settings_file = Path("C:/Users/brsth/.claude/settings.json")
-
-   src_ver = json.load(open(f"P:/packages/{plugins_to_install[0]}/.claude-plugin/plugin.json")).get("version", "1.0.0")
-   d = json.load(open(installed_file))
-   now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
-
-   for name in plugins_to_install:
-       src = Path(f"P:/packages/{name}")
-       ver = json.load(open(src / ".claude-plugin" / "plugin.json")).get("version", "1.0.0")
-       dst = cache_root / name / ver
-       if dst.exists():
-           shutil.rmtree(dst)
-       shutil.copytree(src, dst, ignore=shutil.ignore_patterns(".git"))
-       d["plugins"][f"{name}@local"] = [{
-           "scope": "user",
-           "installPath": str(dst),
-           "version": ver,
-           "installedAt": now,
-           "lastUpdated": now,
-       }]
-       print(f"Installed {name} v{ver} -> {dst}")
-
-   json.dump(d, open(installed_file, "w"), indent=2)
-
-   # Ensure enabledPlugins
-   s = json.load(open(settings_file))
-   for name in plugins_to_install:
-       key = f"{name}@local"
-       s.setdefault("enabledPlugins", {})[key] = True
-   json.dump(s, open(settings_file, "w"), indent=2)
-   print("Done. Run /reload-plugins.")
-   PYEOF
-   ```
-
-6. **Validate** all plugins:
+4. **Validate** all plugins:
    ```bash
    python3 "P:/packages/plugin-installer/scripts/plugin-audit-and-fix.py" --validate --marketplace-root "P:/packages/.claude-marketplace"
    ```
 
-7. **Final sync + report**:
+5. **Final sync + report**:
    ```bash
    claude plugin marketplace update local
    claude plugin list

@@ -171,9 +171,9 @@ async def run_single_command(
         cmd_list = command.split()
         cmd_name = command.split()[0] if command else "unknown"
 
+    start = time.time()
     if verbose:
         print(f"[{cmd_name}] Spawned subprocess", flush=True)
-        start = time.time()
 
     try:
         if sys.platform == "win32":
@@ -234,14 +234,25 @@ async def run_single_command(
             # Save CLI output to timestamped JSON file for recovery
             _save_cli_output(command, stdout_text, stderr_text)
 
-            if verbose:
-                elapsed = time.time() - start
-                print(f"[{cmd_name}] Completed in {elapsed:.1f}s", flush=True)
+            # Always log diagnostics for pi models to debug empty responses
+            is_pi = cmd_name == "pi" or cmd_name.startswith("pi:")
+            elapsed = time.time() - start
+            quota_check = _is_quota_error(stderr_text)
+            # Always show for pi models; show for others only if verbose
+            if is_pi or verbose:
+                print(f"[{cmd_name}] rc={proc.returncode} stdout_len={len(stdout_text)} stderr_len={len(stderr_text)} is_quota={quota_check} elapsed={elapsed:.1f}s", flush=True)
+                if stderr_text.strip():
+                    preview = stderr_text.strip()[:500]
+                    print(f"[{cmd_name}] stderr: {preview}", flush=True)
+                elif not stdout_text.strip() and proc.returncode != 0:
+                    print(f"[{cmd_name}] WARNING: empty output + rc={proc.returncode}", flush=True)
 
             # Check for errors in stderr even on success (codex outputs errors to stderr with exit 0)
             if stderr_text and stderr_text.strip():
-                # Filter PTY noise on Windows — these are cosmetic, not real errors.
-                # Real errors contain capitalised "Error" or "Fail"; PTY noise does not.
+                # PTY noise: stderr contains only warning/status messages with no real error words.
+                # These are cosmetic Windows PTY artifacts (model warnings, progress output, etc.)
+                # and should NOT clear output. Real errors contain "Error:", "Fail:", "Exception:",
+                # "Traceback", "HTTP 4", "HTTP 5".
                 stripped = stderr_text.strip()
                 if not any(word in stripped for word in ["Error:", "Fail:", "Exception:", "Traceback"]):
                     # Only PTY noise present — treat as success
@@ -253,8 +264,9 @@ async def run_single_command(
                 return {"output": stdout_text, "error": stderr_text or f"Exit code {proc.returncode}"}
 
         except asyncio.TimeoutError:
+            cmd_name = command[0] if isinstance(command, list) else command.split()[0]
             if verbose:
-                print(f"[{command.split()[0]}] TIMEOUT after {timeout}s - terminating", flush=True)
+                print(f"[{cmd_name}] TIMEOUT after {timeout}s - terminating", flush=True)
 
             try:
                 if hasattr(proc, 'terminate'):
@@ -283,7 +295,9 @@ async def run_single_command(
 
 def _is_quota_error(error: str) -> bool:
     """Check if error is a quota/rate-limit error that should trigger fallback."""
-    quota_signals = ["429", "no capacity", "rate limit", "quota", "limit exceeded", "temporarily unavailable", "terminalquotaerror"]
+    if not error:
+        return False
+    quota_signals = ["429", "no capacity", "rate limit", "quota", "limit exceeded", "temporarily unavailable", "terminalquotaerror", "failed to create the engine", "gpu_artisan"]
     return any(signal in error.lower() for signal in quota_signals)
 
 

@@ -1,0 +1,1 @@
+Bug fixes for /ai-pcli skill: is_pi detection (parallel_llm.py:238), PTY noise filter Warning: (line 255), regex Nice to holy (ai_cli.py:2829), SKILL.md config path mismatch, ling-2.6-1t-free alias, missing reference docs

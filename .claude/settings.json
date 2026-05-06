@@ -1,5 +1,6 @@
 {
   "env": {
+    "TDD_AUTOSCAFFOLD": "0",
     "TDD_BYPASS": "0",
     "CLAUDE_CODE_ENABLE_AWAY_SUMMARY": true,
     "SENTENCE_TRANSFORMERS_HOME": "P:\\.model_cache",
@@ -313,16 +314,6 @@
         ]
       },
       {
-        "matcher": "^Bash$",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/PostToolUse_tdd_state_tracker.py",
-            "timeout": 5
-          }
-        ]
-      },
-      {
         "matcher": "^(?:Write|Edit|MultiEdit|Bash)$",
         "hooks": [
           {
@@ -428,8 +419,20 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python P:/.claude/hooks/log_hook.py",
-            "timeout": 5
+            "command": "python P:/.claude/hooks/PreCompact.py",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/PostCompact.py",
+            "timeout": 2
           }
         ]
       }
@@ -471,6 +474,16 @@
           {
             "type": "command",
             "command": "python P:/.claude/hooks/SessionStart_identity_capture.py",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/SessionStart_reminder_recovery.py",
             "timeout": 5
           }
         ]
@@ -577,7 +590,7 @@
     "enabled": true,
     "enforcement_mode": "smart",
     "autoscaffold": {
-      "enabled": true,
+      "enabled": false,
       "on_create": true,
       "on_edit_missing": true,
       "template": "minimal"

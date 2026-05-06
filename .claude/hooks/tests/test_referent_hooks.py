@@ -414,3 +414,144 @@ class TestStopCoverage:
         }
         result = _run_referent_coverage(data)
         assert result is None
+
+    # ---- Size-aware regression tests ----
+
+    def test_small_list_zero_mentions_still_fires(self):
+        """Small list (≤5): zero mentions → advisory fires."""
+        from Stop import _run_referent_coverage
+
+        tid = "test_small_zero"
+        self._write_anchor_state(tid, ["item alpha", "item beta", "item gamma"])
+        data = {"response": "I looked at the issue broadly.", "terminal_id": tid}
+        result = _run_referent_coverage(data)
+        assert result is not None
+        assert "ADVISORY" in result["systemMessage"]
+        # cleanup
+        (Path(HOOKS_DIR) / "state" / f"referent_anchors_{tid}.json").unlink(missing_ok=True)
+        # clear cooldown state
+        import Stop
+        Stop._referent_cooldown.pop(tid, None)
+
+    def test_small_list_some_mentions_suppressed(self):
+        """Small list (≤5): some mentions → advisory suppressed."""
+        from Stop import _run_referent_coverage
+
+        tid = "test_small_some"
+        self._write_anchor_state(tid, ["item alpha", "item beta", "item gamma"])
+        data = {"response": "item alpha is the main issue.", "terminal_id": tid}
+        result = _run_referent_coverage(data)
+        assert result is None
+        (Path(HOOKS_DIR) / "state" / f"referent_anchors_{tid}.json").unlink(missing_ok=True)
+        import Stop
+        Stop._referent_cooldown.pop(tid, None)
+
+    def test_large_list_zero_mentions_still_fires(self):
+        """Large list (>5): zero mentions → advisory fires."""
+        from Stop import _run_referent_coverage
+
+        tid = "test_large_zero"
+        items = [f"item{i}" for i in range(8)]
+        self._write_anchor_state(tid, items)
+        data = {"response": "I investigated the issues generally.", "terminal_id": tid}
+        result = _run_referent_coverage(data)
+        assert result is not None
+        assert "ADVISORY" in result["systemMessage"]
+        (Path(HOOKS_DIR) / "state" / f"referent_anchors_{tid}.json").unlink(missing_ok=True)
+        import Stop
+        Stop._referent_cooldown.pop(tid, None)
+
+    def test_large_list_some_mentions_suppressed(self):
+        """Large list (>5): some mentioned → advisory suppressed."""
+        from Stop import _run_referent_coverage
+
+        tid = "test_large_some"
+        items = [f"item{i}" for i in range(8)]
+        self._write_anchor_state(tid, items)
+        data = {"response": "item0 and item1 are the priority.", "terminal_id": tid}
+        result = _run_referent_coverage(data)
+        assert result is None
+        (Path(HOOKS_DIR) / "state" / f"referent_anchors_{tid}.json").unlink(missing_ok=True)
+        import Stop
+        Stop._referent_cooldown.pop(tid, None)
+
+    def test_focused_response_zero_mentions_fires(self):
+        """Focused response with zero mentions → fires (worst case, still detectable)."""
+        from Stop import _run_referent_coverage
+
+        tid = "test_focused_zero"
+        items = [f"item{i}" for i in range(18)]  # large list
+        self._write_anchor_state(tid, items)
+        data = {
+            "response": "[NEXT_STEP] Highest leverage: item0. Quickest fix: item1.",
+            "terminal_id": tid,
+        }
+        result = _run_referent_coverage(data)
+        # Focused response suppresses the downgraded advisory for large lists
+        assert result is None
+        (Path(HOOKS_DIR) / "state" / f"referent_anchors_{tid}.json").unlink(missing_ok=True)
+        import Stop
+        Stop._referent_cooldown.pop(tid, None)
+
+    def test_very_large_list_zero_mentions_no_focused_fires_downgraded(self):
+        """Very large list (>15) + zero mentions + no focused strategy → fires with downgraded."""
+        from Stop import _run_referent_coverage
+
+        tid = "test_vlarge_zero"
+        items = [f"item{i}" for i in range(18)]
+        self._write_anchor_state(tid, items)
+        data = {
+            "response": "I looked at the issues generally.",
+            "terminal_id": tid,
+        }
+        result = _run_referent_coverage(data)
+        assert result is not None
+        assert "downgraded" in result["systemMessage"].lower()
+        (Path(HOOKS_DIR) / "state" / f"referent_anchors_{tid}.json").unlink(missing_ok=True)
+        import Stop
+        Stop._referent_cooldown.pop(tid, None)
+
+    def test_focused_large_list_zero_mentions_suppressed(self):
+        """Very large list (>15) + focused strategy + zero mentions → suppressed.
+
+        This is intentional per Part 3 softening: focused/prioritized responses
+        do not require exhaustive item coverage.
+        """
+        from Stop import _run_referent_coverage
+
+        tid = "test_focused_large_zero"
+        items = [f"item{i}" for i in range(18)]
+        self._write_anchor_state(tid, items)
+        data = {
+            "response": "[NEXT_STEP] Focus on highest-leverage items from the table.",
+            "terminal_id": tid,
+        }
+        result = _run_referent_coverage(data)
+        # Focused strategy suppresses even on very large lists with zero mentions
+        assert result is None
+        (Path(HOOKS_DIR) / "state" / f"referent_anchors_{tid}.json").unlink(missing_ok=True)
+        import Stop
+        Stop._referent_cooldown.pop(tid, None)
+
+    def test_cooldown_suppresses_repeat_advisory(self):
+        """Same terminal+anchor_set: cooldown suppresses repeat advisory."""
+        from Stop import _run_referent_coverage
+        import Stop as stop_module
+
+        tid = "test_cooldown"
+        items = ["item1", "item2", "item3"]
+        self._write_anchor_state(tid, items)
+
+        # First turn: zero mentions → advisory fires AND sets cooldown
+        data1 = {"response": "general overview", "terminal_id": tid}
+        r1 = _run_referent_coverage(data1)
+        assert r1 is not None
+
+        # Second turn immediately after: cooldown should suppress
+        data2 = {"response": "another general statement", "terminal_id": tid}
+        r2 = _run_referent_coverage(data2)
+        assert r2 is None, "Expected cooldown to suppress repeat advisory"
+
+        # Cleanup
+        (Path(HOOKS_DIR) / "state" / f"referent_anchors_{tid}.json").unlink(missing_ok=True)
+        stop_module._referent_cooldown.pop(tid, None)

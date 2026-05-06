@@ -1,0 +1,18 @@
+{
+  "run_id": "8894ac39-c65c-4c97-b4e4-709f1ca77ef4",
+  "skill_name": "gitpack",
+  "contract_type": "workflow-execution",
+  "phase": "executing",
+  "status": "complete",
+  "terminal_id": "console_1ba3925f-dc6f-4e3b-a2a4-46f5adbb3ae3",
+  "session_id": "e7d41b2b-9a67-4009-af43-1322d1ee5589",
+  "turn_id": null,
+  "created_at": 1777987888.00866,
+  "updated_at": 1777988333.3011794,
+  "required_artifacts": [],
+  "completed_artifacts": [],
+  "missing_requirements": [],
+  "allowed_tools_now": [],
+  "blocked_tools": [],
+  "response_requirements": {}
+}

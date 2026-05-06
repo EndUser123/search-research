@@ -551,16 +551,20 @@ def auto_fix_plugins(plugins_dir: Path, delete_hooks: bool) -> list[dict]:
                     result["fixed"] = True
         results.append(result)
     return results
-def auto_fix_skill_state_dirs(plugins_dir: Path) -> list[dict]:
-    """Delete .claude/ and .state/ directories inside skills/ subdirectories."""
-    import shutil
+def audit_skill_state_dirs(plugins_dir: Path) -> list[dict]:
+    """Audit .claude/ and .state/ directories inside skills/ subdirectories.
+
+    Does NOT delete — warns only. These dirs may contain legitimate per-skill
+    state (e.g., .aid/ AI Distiller output). They should be reviewed before
+    removal, not silently nuked.
+    """
     results = []
     if not plugins_dir.exists():
         return results
     for plugin in sorted(plugins_dir.iterdir()):
         if plugin.name.startswith("."):
             continue
-        result = {"plugin": plugin.name, "actions": [], "fixed": False}
+        result = {"plugin": plugin.name, "errors": [], "warnings": []}
         skills_dir = plugin / "skills"
         if not skills_dir.is_dir():
             results.append(result)
@@ -571,12 +575,19 @@ def auto_fix_skill_state_dirs(plugins_dir: Path) -> list[dict]:
             for bad in [".claude", ".state"]:
                 bad_dir = skill_item / bad
                 if bad_dir.exists() and bad_dir.is_dir():
-                    try:
-                        shutil.rmtree(bad_dir)
-                        result["actions"].append(f"Deleted {bad}/ inside skills/{skill_item.name}/")
-                        result["fixed"] = True
-                    except OSError as e:
-                        result["actions"].append(f"Failed to delete {bad}/ inside skills/{skill_item.name}/: {e}")
+                    entries = list(bad_dir.iterdir())
+                    entry_names = [e.name for e in entries]
+                    # .aid/ is AI Distiller output — always warn-only, never delete
+                    if bad == ".claude" and ".aid" in entry_names:
+                        result["warnings"].append(
+                            f"{bad}/ inside skills/{skill_item.name}/ "
+                            f"(contains .aid/ — AI Distiller output, preserve)"
+                        )
+                    else:
+                        result["errors"].append(
+                            f"{bad}/ inside skills/{skill_item.name}/ "
+                            f"(should be at plugin root; {len(entries)} entries: {entry_names[:3]}{'...' if len(entries) > 3 else ''})"
+                        )
         results.append(result)
     return results
 def auto_fix_git_artifacts(plugins_dir: Path) -> list[dict]:
@@ -833,13 +844,12 @@ def main(argv: list[str]) -> int:
         for r in fix_results:
             for action in r["actions"]:
                 print(f"  [{r['plugin']}] {action}")
-        skill_state_results = auto_fix_skill_state_dirs(plugins_dir)
-        skill_fix_count = sum(len(r["actions"]) for r in skill_state_results)
-        if skill_fix_count > 0:
-            print(f"{C_GREEN}Deleted {skill_fix_count} stale skill-state dir(s).{C_RESET}")
-            for r in skill_state_results:
-                for action in r["actions"]:
-                    print(f"  [{r['plugin']}] {action}")
+        skill_state_results = audit_skill_state_dirs(plugins_dir)
+        for r in skill_state_results:
+            for err in r["errors"]:
+                print(f"  [{C_RED}ERROR{C_RESET}] {r['plugin']}: {err}")
+            for warn in r["warnings"]:
+                print(f"  [{C_YELLOW}WARNING{C_RESET}] {r['plugin']}: {warn}")
         git_results = auto_fix_git_artifacts(plugins_dir)
         git_fix_count = sum(len(r["actions"]) for r in git_results)
         if git_fix_count > 0:

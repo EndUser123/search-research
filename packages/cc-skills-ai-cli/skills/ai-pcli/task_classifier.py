@@ -22,6 +22,7 @@ class TaskType(Enum):
     RESEARCH = "research"
     DEBUG = "debug"
     REFACTOR = "refactor"
+    EVALUATION = "evaluation"
     GENERAL = "general"
 
 
@@ -59,6 +60,21 @@ TASK_PATTERNS = {
         "code review",
         "what's wrong with",
         "improve this code",
+    ],
+    TaskType.EVALUATION: [
+        "what do you think",
+        "what's your opinion",
+        "your thoughts on",
+        "your take on",
+        "is it good",
+        "is this good",
+        "does this make sense",
+        "worth it",
+        "recommendation",
+        "evaluate this",
+        "rate this",
+        "assess this",
+        "validat",
     ],
     TaskType.PLANNING: [
         "plan",

@@ -11,6 +11,56 @@ v3.0: Converted safety_gate, behavior_audit, advisory to direct function calls.
 
 v3.1: Stores Stop-time "Next Step Options" as a one-turn menu so the user can
       reply with a single letter (A/B/...) to run the chosen option.
+
+=============================================================================
+EPISTEMIC / QUALITY ADVISORY CLASSIFICATION (Steps 1-5 implementation)
+=============================================================================
+
+Hook: _run_epistemic_contract (Stop.py, via epistemic_validator)
+
+LOCATION OF NOISE SOURCES:
+  • Line ~380: "EPISTEMIC FORMAT REPAIR: Your response is missing required..."
+    → Injected into user-visible response (format-only, non-critical)
+  • Line ~392: "EPISTEMIC ADVISORY (N issue(s)):" + issue list
+    → Injected into user-visible response (mixed/coaching, non-critical)
+
+Both were surfaced inline on every analytical turn — ~3-5 lines of coaching
+text per response regardless of issue severity.
+
+WHAT CHANGED (Steps 3-4):
+  Non-critical advisories are now log-only by default:
+    • format_repair → logged to logs/diagnostics/epistemic_advisories.jsonl
+      (systemMessage = None, decision = "warn" still recorded in telemetry)
+    • mixed_advisory → same, logged silently
+    • Full advisory text is NOT injected into the user-visible response
+
+Critical advisories SURVIVE unchanged:
+    • block verdict (unsupported_fact, causal, comparative, serious) →
+      "EPISTEMIC VIOLATION (N issue(s)):" + issue list → still inline
+    • Format repair on analytical responses — if --epistemic-verbose is in prompt,
+      the full repair text is surfaced for this turn only
+
+CRITICAL vs NON-CRITICAL TABLE:
+  Critical (still inline)          | Non-critical (now log-only)
+  ------------------------------- | --------------------------------
+  epistemic violation (block)    | format_repair (format-only, analytical)
+  unsupported_fact                | mixed_advisory (citations, minor causal)
+  causal without uncertainty      | coaching-level epistemic notes
+  comparative without hedging
+
+ON-DEMAND DIAGNOSTICS (Step 4):
+  Flag: --epistemic-verbose in user prompt
+  Effect: Full non-critical advisory text surfaced inline for that turn only.
+  Use when you want to see the coaching output without changing defaults.
+
+LOG STREAMS:
+  • logs/diagnostics/epistemic_telemetry.jsonl — all verdicts (block/warn/allow)
+  • logs/diagnostics/epistemic_advisories.jsonl — non-critical advisory detail
+
+GATE CLASS: "quality" — suppressed on control/exploration turns.
+  (classified in GATE_CLASSES dict, respects turn_mode suppression)
+
+=============================================================================
 """
 
 from __future__ import annotations
@@ -41,6 +91,34 @@ from __lib.turn_mode import (
     mode_display_label,
     TurnMode,
 )
+
+# Referent coverage advisory tuning
+_SMALL_LIST_THRESHOLD = 5        # ≤N items: strict — fire when zero items mentioned
+_VERY_LARGE_LIST_THRESHOLD = 15  # >N items: very soft — downgrade advisory
+_COOLDOWN_TURNS = 3             # Suppress repeat advisory for this many turns
+
+# Ephemeral cooldown: maps terminal_id -> {"anchor_hash", "mentioned", "suppress_until"}
+# Cleared when session ends or terminal_id changes.
+_referent_cooldown: dict[str, dict] = {}
+
+# Focused/prioritized response markers — signal non-exhaustive strategy
+_FOCUSED_RESPONSE_PATTERNS = [
+    r"\[RECOMMENDATION\]",
+    r"\[DECISION\]",
+    r"\[NEXT_STEP\]",
+    r"\[SMALLEST_NEXT_STEP\]",
+    r"\bhighest\s+(?:priority|leverage|impact)\b",
+    r"\bnext\s+step\b",
+    r"\bprioritized?\b",
+    r"\bfocus(?:ed)?\s+on\b",
+    r"\bmost\s+critical\b",
+    r"\btop\s+\d+\b",
+    r"\bquick(?:est)?\s+win\b",
+    r"\bhigh(?:est)?\s+(?:priority|value|impact)\b",
+    r"\bstarting\s+with\b",
+    r"\bfirst(?:\s+pass)?\b",
+]
+_FOCUSED_RESPONSE_RE = [re.compile(p, re.I) for p in _FOCUSED_RESPONSE_PATTERNS]
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -237,10 +315,11 @@ def _is_analytical_response(response: str) -> bool:
     lines = [l for l in response.strip().splitlines() if l.strip()]
     if len(lines) <= 3:
         return False
-    # Analytical markers signal structured reasoning
+    # NOTE: "source:" removed — too generic; matches file paths like
+    # "source: ai-probe-nim/scripts/cli.py" and causes false positives.
     markers = (
         "because", "due to", "is caused by", "the reason is",
-        "root cause", "evidence", "source:", "[fact]", "[inference]",
+        "root cause", "evidence", "[fact]", "[inference]",
         "verified", "unverified", "unproven", "falsification",
     )
     lower = response.lower()
@@ -329,6 +408,11 @@ def _run_epistemic_contract(data: dict) -> dict | None:
         # regardless of turn mode or quality mode.
         strict_override = "--epistemic-strict" in user_prompt
 
+        # Per-turn verbose mode: --epistemic-verbose surfaces full non-critical
+        # advisory text inline instead of silently logging. Intended for
+        # deep-diagnosis turns where you want to see the full coaching output.
+        verbose_override = "--epistemic-verbose" in user_prompt
+
         # Control and exploration: skip unless --epistemic-strict overrides.
         if not strict_override and is_quality_mode_suppressed(turn_mode, quality_mode):
             return None
@@ -347,6 +431,11 @@ def _run_epistemic_contract(data: dict) -> dict | None:
         _log_epistemic_telemetry(data, verdict, mode)
 
         if verdict.decision == "block":
+            # Plan/execution-report: suppress blocks on non-critical epistemic
+            # violations. These modes produce [PLAN] scaffolding that may not
+            # match the analytical 4-section schema.
+            if turn_mode in ("plan", "execution-report"):
+                return None
             reason_parts = [f"EPISTEMIC VIOLATION ({len(verdict.issues)} issue(s)):"]
             for issue in verdict.issues[:5]:
                 reason_parts.append(
@@ -369,32 +458,42 @@ def _run_epistemic_contract(data: dict) -> dict | None:
                 return None
 
             # Auto-repair: format-only issues on analytical responses.
+            # NON-CRITICAL — log only, no user-visible injection by default.
             if all_format and _is_analytical_response(response):
                 missing = [
                     i.section for i in verdict.issues
                     if i.type == "format" and i.section != "__GLOBAL__"
                 ]
                 sections_hint = ", ".join(sorted(set(missing))) if missing else "all"
-                repair = (
-                    "EPISTEMIC FORMAT REPAIR: Your response is missing required "
-                    "section headers. Reformat your previous answer into the "
-                    "required schema only. Do not add or remove substantive "
-                    "content. Do not include text outside the required section "
-                    f"headers. Missing: {sections_hint}."
-                )
+                _log_non_critical_advisory(data, "format_repair", verdict.issues)
+                # On-demand verbose: surface full repair text for this turn.
+                if verbose_override:
+                    repair = (
+                        "EPISTEMIC FORMAT REPAIR: Your response is missing required "
+                        "section headers. Reformat your previous answer into the "
+                        "required schema only. Do not add or remove substantive "
+                        "content. Do not include text outside the required section "
+                        f"headers. Missing: {sections_hint}."
+                    )
+                    return {"decision": "warn", "reason": repair, "systemMessage": repair}
                 return {
                     "decision": "warn",
-                    "reason": repair,
-                    "systemMessage": repair,
+                    "reason": "format_repair_logged",
+                    "systemMessage": None,  # silent — logged to diagnostics
                 }
-            # Mixed or non-format issues: surface advisory.
-            parts = [f"EPISTEMIC ADVISORY ({len(verdict.issues)} issue(s)):"]
-            for issue in verdict.issues[:3]:
-                parts.append(f"  [{issue.section}] {issue.type}: {issue.message}")
+            # Mixed or non-format issues: log only, no inline advisory.
+            # These are coaching-level (citations missing, minor causal language).
+            _log_non_critical_advisory(data, "mixed_advisory", verdict.issues)
+            # On-demand verbose: surface full advisory text for this turn.
+            if verbose_override:
+                parts = [f"EPISTEMIC ADVISORY ({len(verdict.issues)} issue(s)):"]
+                for issue in verdict.issues[:3]:
+                    parts.append(f"  [{issue.section}] {issue.type}: {issue.message}")
+                return {"decision": "warn", "reason": "\n".join(parts), "systemMessage": "\n".join(parts)}
             return {
                 "decision": "warn",
-                "reason": "\n".join(parts),
-                "systemMessage": "\n".join(parts),
+                "reason": "epistemic_advisory_logged",
+                "systemMessage": None,  # silent — logged to diagnostics
             }
         return None
     except Exception as e:
@@ -483,6 +582,36 @@ def _log_epistemic_telemetry(data: dict, verdict, mode: str) -> None:
             "responseMode": response_mode,
             "session_id": data.get("session_id", ""),
             "terminal_id": data.get("terminal_id", ""),
+        }
+        with log_path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception:
+        pass
+
+
+def _log_non_critical_advisory(data: dict, advisory_type: str, issues) -> None:
+    """Append non-critical advisory detail to diagnostics JSONL.
+
+    These advisories (format-only, mixed/coaching) are logged for
+    observability but NOT injected into the user-visible response.
+    Critical blocks (epistemic violations with unsupported_fact, causal,
+    comparative) still surface inline and are already covered by
+    _log_epistemic_telemetry.
+    """
+    try:
+        log_path = HOOKS_DIR / "logs" / "diagnostics" / "epistemic_advisories.jsonl"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        issue_types = sorted({i.type for i in issues})
+        entry = {
+            "timestamp": time.time(),
+            "advisory_type": advisory_type,  # "format_repair" | "mixed_advisory"
+            "issue_count": len(issues),
+            "issue_types": issue_types,
+            "sections": sorted({i.section for i in issues if i.section != "__GLOBAL__"}),
+            "messages": [i.message for i in issues[:5]],
+            "session_id": data.get("session_id", ""),
+            "terminal_id": data.get("terminal_id", ""),
+            "response_length": len(data.get("response", "")),
         }
         with log_path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(entry) + "\n")
@@ -699,6 +828,7 @@ def _run_anti_sycophancy_quality(data: dict) -> dict | None:
         from anti_sycophancy.affirmation_detector import detect_praise_opener
         from anti_sycophancy.lazy_closure_detector import detect_all_lazy_closure
         from anti_sycophancy.overconfidence_detector import detect_all_overconfidence
+        from anti_sycophancy.destructive_cleanup_detector import detect_all_destructive_cleanup
 
         response = data.get("response", "")
 
@@ -880,6 +1010,7 @@ def _run_behavior_gates_agreement(data: dict) -> dict | None:
         # Extract response text and tools from data
         response_text = data.get("response", "")
         tools_output = data.get("tool_calls", "")
+        user_prompt = data.get("user_prompt") or data.get("prompt") or ""
 
         # Extract tools using helper from behavior_gates module
         tools_used = _extract_tools_used(tools_output)
@@ -888,8 +1019,8 @@ def _run_behavior_gates_agreement(data: dict) -> dict | None:
         project_root = Path(__file__).resolve().parents[1]  # P:\ from P:\.claude\hooks\
         working_dir = data.get("working_dir", project_root)
 
-        # Run gate check (now with working_dir for telemetry)
-        is_violation, reason = check_gate3_agreement(response_text, tools_used, working_dir)
+        # Run gate check (now with working_dir and user_prompt for turn-mode classification)
+        is_violation, reason = check_gate3_agreement(response_text, tools_used, working_dir, user_prompt)
 
         if is_violation:
             return {
@@ -1658,7 +1789,22 @@ def _run_cks_correction_anchor(data: dict) -> dict | None:
 
 
 def _run_referent_coverage(data: dict) -> dict | None:
-    """Advisory check: warn if response mentions zero anchor terms from user's message."""
+    """Advisory check: warn if response mentions zero anchor terms from user's message.
+
+    Anchors are written by referent_anchor.py when the user lists items in a
+    table/bullet list combined with referential language ('those', 'them') AND
+    an investigative verb ('investigate', 'check', 'analyze'). This means the
+    user explicitly framed the list as investigation targets, not just data to show.
+
+    Size-aware behavior:
+      ≤5 items      → strict: fire when zero items mentioned
+      6–15 items    → soft: fire when zero mentioned; suppress when some mentioned
+      >15 items      → very soft: downgrade unless user asked for exhaustive coverage
+      Focused response → suppressed unless zero items mentioned
+
+    Bypass_scope is set by referent_anchor when the user says 'and anything else'
+    or 'plus any' — expansion language signals the user wants broader coverage.
+    """
     try:
         tid = (
             data.get("terminal_id")
@@ -1675,30 +1821,131 @@ def _run_referent_coverage(data: dict) -> dict | None:
         if state.get("status") == "no_anchors" or not state.get("anchor_terms"):
             return None
 
-        anchor_terms = state.get("anchor_terms", [])
-        if len(anchor_terms) < 3:
+        if state.get("bypass_scope"):
+            return None
+
+        anchor_terms: list[str] = state.get("anchor_terms", [])
+        n = len(anchor_terms)
+
+        if n < 3:
             return None
 
         response = (data.get("response") or "").lower()
         if not response:
             return None
 
+        # Cooldown check: suppress if same (terminal_id, anchor_set) was recently warned
+        anchor_key = "|".join(sorted(t.lower() for t in anchor_terms))
+        cooldown_entry = _referent_cooldown.get(tid)
+        if cooldown_entry and cooldown_entry.get("anchor_key") == anchor_key:
+            if cooldown_entry.get("suppress_until", 0) > time.time():
+                return None
+            # Expire old entry so a new advisory can fire after cooldown passes
+            if time.time() >= cooldown_entry.get("suppress_until", 0):
+                _referent_cooldown.pop(tid, None)
+
+        # Suppress when response uses generic list-level references
+        list_level_patterns = [
+            "these items", "those items", "the items", "the options",
+            "those hooks", "these hooks", "the entries", "the rows",
+            "the options you listed", "the items in your table",
+            "the entries in the", "the rows in the",
+        ]
+        if any(pat in response for pat in list_level_patterns):
+            return None
+
         mentioned = [t for t in anchor_terms if t.lower() in response]
+        some_mentioned = 0 < len(mentioned) < n
 
+        # --- Size-aware suppression ---
+        if n <= _SMALL_LIST_THRESHOLD:
+            # Strict: fire on zero mentions only
+            if not mentioned:
+                _set_referent_cooldown(tid, anchor_key)
+                return _build_advisory(anchor_terms, mentioned, "strict")
+            return None
+
+        if n > _VERY_LARGE_LIST_THRESHOLD:
+            # Very soft: only fire when ZERO items mentioned AND no focused strategy
+            if not mentioned and not _is_focused_response(data.get("response", "")):
+                _set_referent_cooldown(tid, anchor_key)
+                return _build_advisory(anchor_terms, mentioned, "downgraded")
+            return None
+
+        # 6–15 items: soft — fire on zero mentions, suppress when some mentioned
         if not mentioned:
-            return {
-                "decision": "allow",
-                "systemMessage": (
-                    f"ADVISORY: Response does not mention any of the {len(anchor_terms)} items "
-                    f"from the user's structured list. Consider whether the investigation "
-                    f"covered the intended entities."
-                ),
-            }
-
+            _set_referent_cooldown(tid, anchor_key)
+            return _build_advisory(anchor_terms, mentioned, "soft")
         return None
 
     except Exception:
         return None
+
+
+def _set_referent_cooldown(tid: str, anchor_key: str) -> None:
+    """Set 3-turn cooldown for the referent coverage advisory on this terminal."""
+    _referent_cooldown[tid] = {
+        "anchor_key": anchor_key,
+        "suppress_until": time.time() + (_COOLDOWN_TURNS * 30),
+    }
+
+
+def _is_focused_response(response: str) -> bool:
+    """Return True if response shows a focused/prioritized non-exhaustive strategy."""
+    if not response:
+        return False
+    return any(p.search(response) for p in _FOCUSED_RESPONSE_RE)
+
+
+def _build_advisory(anchor_terms: list[str], mentioned: list[str], tier: str) -> dict:
+    """Build the referent coverage advisory systemMessage."""
+    n = len(anchor_terms)
+    m = len(mentioned)
+    suffix = ""
+    if tier == "downgraded":
+        suffix = (
+            " (downgraded — large list). Consider focusing on the highest-leverage items "
+            "if exhaustive coverage was not explicitly requested."
+        )
+    elif tier == "soft":
+        suffix = " (softened — some items were addressed; only firing on zero coverage)."
+    return {
+        "decision": "allow",
+        "systemMessage": (
+            f"ADVISORY: Response does not mention any of the {n} items "
+            f"from the user's structured list.{suffix} "
+            f"Consider whether the investigation covered the intended entities."
+        ),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Self-check: _run_referent_coverage behavior summary
+# ---------------------------------------------------------------------------
+# Advisory fires when ALL conditions are true:
+#   1. referent_anchor.py wrote ≥3 anchor_terms for this terminal
+#   2. bypass_scope is False (user did NOT say "and anything else", etc.)
+#   3. Response contains ZERO list-level engagement phrases
+#   4. Response mentions NONE of the anchor_terms
+#   5. (For >5 items) Not in cooldown period for this terminal+anchor_set
+#
+# Size-aware behavior:
+#   ≤5 items      → strict: fires on zero mentions
+#   6–15 items    → soft: fires on zero mentions; suppressed if some mentioned
+#   >15 items      → downgraded: suppressed unless focused response OR zero mentions
+#   Focused response (any size) → suppressed unless zero mentions
+#
+# Cooldown: 3 turns (~90s) after advisory fires for same terminal+anchor_set
+#
+# Suppressed when:
+#   - bypass_scope = True → user wants broader coverage
+#   - Response contains list-level phrases → conceptual engagement
+#   - Fewer than 3 anchor_terms stored
+#   - Cooldown active for this terminal+anchor combination
+#   - Response shows focused/prioritized strategy (suppressed unless strict size)
+#
+# Gate class: "quality" — suppressed on control/exploration turns.
+# ---------------------------------------------------------------------------
 
 
 # Gate classification: POLICY gates fire on all turns.
@@ -1848,12 +2095,13 @@ def _process_gate_result(
             res["blocking_hook"] = f"Stop.py:{name}"
         print(json.dumps(res))
         return True
-    if "systemMessage" in res:
+    msg = res.get("systemMessage")
+    if msg:
         gate_class = GATE_CLASSES.get(name, "policy")
         if gate_class == "policy":
-            system_messages.append(res["systemMessage"])
+            system_messages.append(msg)
         else:
-            quality_messages.append(res["systemMessage"])
+            quality_messages.append(msg)
     return False
 
 

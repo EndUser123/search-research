@@ -6,7 +6,7 @@ Usage:
     python routes_probe.py --providers  # list all available providers in catalog
 """
 
-import sqlite3, urllib.request, json, re, sys, pathlib
+import sqlite3, urllib.request, json, re, sys
 
 db_path     = r"C:\Users\brsth\AppData\Roaming\bifrost\config.db"
 bifrost_url = "http://localhost:8080"
@@ -135,22 +135,32 @@ elif "--new-only" in sys.argv:
 else:
     # Standard: show configured routes + runtime probe
     print("=== CONFIGURED ROUTES ===")
+    header = f"  {'Priority':<8} {'Model':<22} -> Target"
+    print(header)
+    print("  " + "-" * (len(header) - 2))
     for rule in rules:
         mn  = extract_model(rule["cel"]) or rule["cel"]
         tgt = f"{rule['provider']}/{rule['model']}" if rule["provider"] and rule["model"] else "NO TARGET"
-        print(f"  {mn} -> {tgt}  [priority={rule['priority']}]")
+        print(f"  {rule['priority']:<8} {mn:<22} -> {tgt}")
 
     if not rules:
         print("  [no routing rules found in DB]")
         sys.exit(0)
 
-    print()
     print("=== RUNTIME PROBE ===")
-    for rule in rules:
+    total = len(rules)
+    header = f"  {'#':>2}  {'Model':<20} {'Provider':<14} {'Latency':>9}  Status"
+    print(header)
+    print("  " + "-" * (len(header) - 2))
+
+    ok_probe_count = 0
+    err_probe_count = 0
+    for i, rule in enumerate(rules, 1):
         mn = extract_model(rule["cel"])
         if not mn:
-            print(f"  [skip {rule['id']} - no model in CEL]")
+            print(f"  {i:>2}  {rule['id']:<20} {'[no model in CEL]':<14}")
             continue
+        mn_display = mn[:20]
         payload = json.dumps({
             "model": mn,
             "messages": [{"role": "user", "content": "test"}],
@@ -165,10 +175,19 @@ else:
         try:
             with urllib.request.urlopen(req, timeout=15) as resp:
                 body = json.loads(resp.read().decode("utf-8"))
-                extra  = body.get("extra_fields", {})
-                prov   = extra.get("provider", "UNKNOWN")
-                lat    = extra.get("latency", 0)
-                status = "OK" if prov == rule["provider"] else "MISMATCH"
-                print(f"  {mn}: provider={prov} latency={lat}ms [{status}]")
+                extra = body.get("extra_fields", {})
+                prov = extra.get("provider", "UNKNOWN")
+                lat  = extra.get("latency", 0)
+                status = f"\033[92m{prov}\033[0m" if prov == rule["provider"] else f"\033[93m{prov}\033[0m (MISMATCH)"
+                print(f"  {i:>2}  {mn_display:<20} {status:<14} {lat:>7}ms")
+                ok_probe_count += 1
         except Exception as e:
-            print(f"  {mn}: ERROR {e}")
+            err_str = str(e).splitlines()[0]
+            err_col = f"\033[91m{err_str}\033[0m"
+            print(f"  {i:>2}  {mn_display:<20} {err_col:<14}")
+            err_probe_count += 1
+
+    if err_probe_count == 0:
+        print(f"\n  \033[92mAll {ok_probe_count} routes healthy\033[0m")
+    else:
+        print(f"\n  \033[92m{ok_probe_count} OK\033[0m, \033[91m{err_probe_count} ERROR\033[0m")

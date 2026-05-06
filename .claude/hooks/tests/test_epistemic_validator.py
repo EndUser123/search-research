@@ -464,11 +464,16 @@ def test_validate_good_response_passes():
 
 def test_validate_diagnostic_response_sanitized():
     """Contaminated response with diagnostics should still parse correctly
-    after sanitization strips the Stop scaffolding."""
+    after sanitization strips the Stop scaffolding.
+
+    Under the evidence-first design, the sanitized line with a source citation
+    is a valid simple response - no format issues expected.
+    """
     verdict = validate(DIAGNOSTIC_RESPONSE)
-    # After sanitization, only the factual line remains
-    # It won't have sections, so format issues expected
-    assert any(i.type == "format" for i in verdict.issues)
+    # After sanitization, the factual line remains with a source citation.
+    # It passes as a valid simple/evidence response (no format issues).
+    assert verdict.decision == "allow"
+    assert not any(i.type == "format" for i in verdict.issues)
 
 
 def test_validate_unsupported_fact_blocks():
@@ -1111,12 +1116,14 @@ def test_mixed_issues_not_all_format():
 
 
 def test_stop_auto_repair_format_only():
-    """Stop._run_epistemic_contract returns repair prompt for format-only issues."""
-    # Import Stop module components
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    """Stop._run_epistemic_contract silently logs format-only issues by default.
+
+    NON-CRITICAL — format repair is logged to epistemic_advisories.jsonl
+    instead of injecting repair text into the response. Use --epistemic-verbose
+    to surface full repair text inline.
+    """
     from Stop import _run_epistemic_contract
 
-    # Response missing [UNKNOWN] and [RECOMMENDATION] — format issues only.
     data = {
         "response": (
             "[FACT]\n"
@@ -1129,15 +1136,20 @@ def test_stop_auto_repair_format_only():
     result = _run_epistemic_contract(data)
     assert result is not None
     assert result["decision"] == "warn"
-    assert "FORMAT REPAIR" in result["systemMessage"]
-    assert "Missing:" in result["systemMessage"]
+    # Silent logging — systemMessage is None, reason tells caller it was logged
+    assert result["systemMessage"] is None
+    assert result["reason"] == "format_repair_logged"
 
 
 def test_stop_mixed_issues_surface_advisory():
-    """Stop._run_epistemic_contract surfaces raw advisory for mixed issues."""
+    """Stop._run_epistemic_contract silently logs mixed issues by default.
+
+    NON-CRITICAL — advisory is logged to epistemic_advisories.jsonl instead
+    of injecting raw advisory into the response. Use --epistemic-verbose to
+    surface full advisory text inline.
+    """
     from Stop import _run_epistemic_contract
 
-    # Response with missing sections (format) + unsupported fact (non-format).
     data = {
         "response": (
             "[FACT]\n"
@@ -1150,15 +1162,15 @@ def test_stop_mixed_issues_surface_advisory():
     result = _run_epistemic_contract(data)
     assert result is not None
     assert result["decision"] == "warn"
-    assert "FORMAT REPAIR" not in result["systemMessage"]
-    assert "ADVISORY" in result["systemMessage"]
+    # Silent logging — systemMessage is None, reason tells caller it was logged
+    assert result["systemMessage"] is None
+    assert result["reason"] == "epistemic_advisory_logged"
 
 
 def test_stop_non_format_issues_no_repair():
-    """Causal/comparative violations do NOT trigger repair path."""
+    """Causal/comparative violations do NOT trigger repair path — silently logged."""
     from Stop import _run_epistemic_contract
 
-    # Response with all 4 sections but a causal violation in UNKNOWN.
     data = {
         "response": (
             "[FACT]\n"
@@ -1175,8 +1187,92 @@ def test_stop_non_format_issues_no_repair():
     result = _run_epistemic_contract(data)
     assert result is not None
     assert result["decision"] == "warn"
-    assert "FORMAT REPAIR" not in result["systemMessage"]
-    assert "ADVISORY" in result["systemMessage"]
+    # Silent logging — systemMessage is None
+    assert result["systemMessage"] is None
+    assert result["reason"] == "epistemic_advisory_logged"
+
+
+def test_suppressed_advisory_does_not_surface_none_string():
+    """Suppressed advisory (systemMessage: None) must not produce 'None' in output.
+
+    Regression test: _process_gate_result was appending None to quality_messages
+    when systemMessage key existed (even with value None), causing the literal
+    string "None" to appear in user-visible output after join().
+    """
+    from Stop import _process_gate_result, _merge_quality_messages
+
+    quality_messages: list[str] = []
+    system_messages: list[str] = []
+
+    # Simulate a suppressed epistemic advisory — decision=warn, systemMessage=None
+    suppressed_result = {
+        "decision": "warn",
+        "reason": "format_repair_logged",
+        "systemMessage": None,
+    }
+
+    blocked = _process_gate_result(
+        suppressed_result,
+        "epistemic_contract",
+        system_messages,
+        quality_messages,
+        {},  # data
+        "analysis",  # turn_mode
+        "normal",  # quality_mode
+    )
+
+    assert blocked is False  # warn, not a block
+    # None must NOT be in quality_messages — the fix filters it out
+    assert None not in quality_messages, (
+        f"None leaked into quality_messages: {quality_messages!r}"
+    )
+
+    # Simulate merge on an analysis turn (quality gate not suppressed)
+    _merge_quality_messages(system_messages, quality_messages, "analysis", "normal")
+
+    # Final output assembly — "None" must not appear in system_messages
+    assert "None" not in system_messages, (
+        f"Literal 'None' string in system_messages: {system_messages!r}"
+    )
+
+    # system_messages should be empty since the advisory was suppressed
+    assert system_messages == []
+
+
+def test_real_system_message_still_surfaces():
+    """Real visible systemMessage still appears exactly as returned by the gate."""
+    from Stop import _process_gate_result, _merge_quality_messages
+
+    quality_messages: list[str] = []
+    system_messages: list[str] = []
+
+    # Simulate a policy gate with a real visible message
+    real_result = {
+        "decision": "warn",
+        "reason": "EPISTEMIC ADVISORY (2 issue(s))",
+        "systemMessage": "EPISTEMIC ADVISORY (2 issue(s)):\n  [FACT] citation: Bare assertion",
+    }
+
+    blocked = _process_gate_result(
+        real_result,
+        "epistemic_contract",
+        system_messages,
+        quality_messages,
+        {},
+        "analysis",
+        "normal",
+    )
+
+    assert blocked is False
+    # Real message must be in quality_messages
+    assert len(quality_messages) == 1
+    assert "EPISTEMIC ADVISORY" in quality_messages[0]
+
+    _merge_quality_messages(system_messages, quality_messages, "analysis", "normal")
+
+    # Message must survive into system_messages
+    assert len(system_messages) == 1
+    assert "EPISTEMIC ADVISORY" in system_messages[0]
 
 
 def test_stop_good_response_no_advisory():
@@ -1263,3 +1359,135 @@ def test_format_repair_suppresses_lazy_fix_loop():
         assert "LAZY CLOSURE" not in result.get("reason", ""), (
             f"lazy_fix should be suppressed after format repair, got: {result}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Grounded status confirmation tests
+# ---------------------------------------------------------------------------
+
+def test_grounded_status_confirmation_103_passed():
+    """103 passed. — ultra-short count restatement, should allow."""
+    from epistemic_validator import validate as v
+
+    verdict = v("103 passed.")
+    assert verdict.decision == "allow"
+    assert verdict.issues == []
+
+
+def test_grounded_status_confirmation_all_passed():
+    """all passed. — all-clear signal, should allow."""
+    from epistemic_validator import validate as v
+
+    verdict = v("all passed.")
+    assert verdict.decision == "allow"
+    assert verdict.issues == []
+
+
+def test_grounded_status_confirmation_done():
+    """done — bare done signal, should allow."""
+    from epistemic_validator import validate as v
+
+    verdict = v("done")
+    assert verdict.decision == "allow"
+    assert verdict.issues == []
+
+
+def test_grounded_status_confirmation_yes_103_passed():
+    """yes, 103 passed — yes-prefixed restatement, should allow."""
+    from epistemic_validator import validate as v
+
+    verdict = v("yes, 103 passed.")
+    assert verdict.decision == "allow"
+    assert verdict.issues == []
+
+
+def test_grounded_status_confirmation_3_failed():
+    """3 failed — failure count restatement, should allow."""
+    from epistemic_validator import validate as v
+
+    verdict = v("3 failed.")
+    assert verdict.decision == "allow"
+    assert verdict.issues == []
+
+
+def test_grounded_status_confirmation_still_blocks_interpretive():
+    """103 passed and the bug is fixed — interpretive, should still block."""
+    from epistemic_validator import validate as v
+
+    verdict = v("103 passed and the bug is fixed.")
+    assert verdict.decision == "block"
+
+
+def test_grounded_status_confirmation_still_blocks_summary():
+    """All tests passed, so Phase B is complete. — inference signal blocks, fix confirmed."""
+    from epistemic_validator import validate as v
+
+    verdict = v("All tests passed, so Phase B is complete.")
+    # After the inference-guard fix: so-completion blocks the report-mode bypass.
+    # Falls through to simple type with no citation → block.
+    assert verdict.decision == "block"
+
+
+def test_grounded_status_confirmation_still_blocks_confirmed_alone():
+    """confirmed — too generic without evidence context, still blocked."""
+    from epistemic_validator import validate as v
+
+    verdict = v("confirmed")
+    assert verdict.decision == "block"
+
+
+def test_grounded_status_confirmation_still_blocks_multi_sentence():
+    """103 passed. The fix works. — two sentences, blocks."""
+    from epistemic_validator import validate as v
+
+    verdict = v("103 passed. The fix works.")
+    assert verdict.decision == "block"
+
+
+# ---------------------------------------------------------------------------
+# is_status_summary_response — inference guard regression tests
+# ---------------------------------------------------------------------------
+
+def test_status_summary_still_allows_pure_status():
+    """'All tests passed' (no inference signal) still bypasses via report mode."""
+    from epistemic_validator import is_status_summary_response, validate as v
+
+    assert is_status_summary_response("All tests passed.")
+    verdict = v("All tests passed.")
+    assert verdict.decision == "allow"
+
+
+def test_status_summary_blocks_so_completion():
+    """'All tests passed, so Phase B is complete' — inference signal blocks report bypass."""
+    from epistemic_validator import is_status_summary_response, validate as v
+
+    assert not is_status_summary_response("All tests passed, so Phase B is complete.")
+    verdict = v("All tests passed, so Phase B is complete.")
+    # Falls through to simple type → no citation → block
+    assert verdict.decision == "block"
+
+
+def test_status_summary_blocks_causal_bug_fixed():
+    """'Tests passed; the bug is fixed.' — causal claim blocks report bypass."""
+    from epistemic_validator import is_status_summary_response, validate as v
+
+    assert not is_status_summary_response("Tests passed; the bug is fixed.")
+    verdict = v("Tests passed; the bug is fixed.")
+    assert verdict.decision == "block"
+
+
+def test_status_summary_blocks_therefore_conclusion():
+    """'All tests passed, therefore Phase B is complete.' — therefore fires guard."""
+    from epistemic_validator import is_status_summary_response, validate as v
+
+    assert not is_status_summary_response("All tests passed, therefore Phase B is complete.")
+    verdict = v("All tests passed, therefore Phase B is complete.")
+    assert verdict.decision == "block"
+
+
+def test_grounded_status_short_still_allows():
+    """'103 passed' — grounded-status logic (not report mode) handles it."""
+    from epistemic_validator import validate as v
+
+    verdict = v("103 passed.")
+    assert verdict.decision == "allow"

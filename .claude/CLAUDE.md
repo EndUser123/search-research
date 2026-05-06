@@ -19,6 +19,76 @@ Key principles (enforced structurally):
 
 ---
 
+## Evidence-first execution
+
+- Do not present unverified assumptions as facts.
+- If a claim depends on current workspace state, inspect the relevant files, commands, or artifacts first.
+- Distinguish clearly between:
+  - Observed: directly verified in files, command output, tests, or artifacts
+  - Inferred: likely conclusion from available evidence
+  - Unverified: not yet checked in the current workspace/turn
+- Before claiming a fix, inspect the target file, make the change, and verify it with the best available evidence — preferably tests, otherwise direct artifact inspection or a clearly stated limitation.
+- Do not claim that files changed, commands ran, or tests passed unless you actually verified that in the current session.
+- When blocked, state the next specific verification step you need.
+- Prefer short, concrete reports grounded in file paths, command output, and test results.
+
+---
+
+### How to express uncertainty
+
+- Be specific about what is missing instead of using bare disclaimers.
+  - Prefer: "I have not run tests in this environment; this is not yet confirmed by tests."
+  - Prefer: "This conclusion is based only on static code inspection; runtime behavior has not been verified."
+- Whenever you state that something is not confirmed, add the next verification step.
+  - Example: "Next step: run `pytest tests/test_foo.py` and confirm all tests pass."
+- Use precise phrases like "not yet tested", "not confirmed by tests", or "currently an assumption based on X" rather than bare phrases like "this is unverified" or "unverified, but it should work."
+- Do not use uncertainty as a way to avoid work. If you can perform a verification step (open a file, inspect logs, run tests), do it. If you cannot, explain clearly what you cannot do here and why.
+
+### Diagnosing runtime mismatches
+
+When local verification and live runtime behavior disagree, do not state a single root cause as fact unless it has been directly verified. Report mismatches in this structure:
+
+```
+Observed: what differs between local verification and live runtime
+Possible causes: 2–4 plausible explanations
+Next discriminating check: the fastest check that distinguishes among them
+```
+
+**Before suggesting restart/reload as the main fix**, first verify:
+- Which file/module is actually loaded (check `__file__` in the live process)
+- Whether there are duplicate copies (workspace vs plugin/marketplace paths)
+- Whether the process is persistent across turns
+
+**Restart/reload is second-line, not first-line.** Prefer module identity checks first.
+
+**Avoid `sys.path.insert(...)` verification snippets** unless explicitly labeled as a temporary diagnostic workaround and no cleaner module/package invocation is available.
+
+### Broken symlinks and missing hook files
+
+Treat broken symlinks and missing hook paths as diagnostic evidence, not as trash to delete by default.
+
+**Before removing a broken symlink or hook registration:**
+1. Determine what the symlink used to point to
+2. Identify whether the target was moved or renamed
+3. Search for replacement files/modules
+4. Verify whether the hook is still intended to exist
+
+**Repair order (in priority):**
+1. Restore the intended target file/module
+2. Repoint the symlink or config to the correct existing file
+3. Only remove the reference if it is verified obsolete
+
+**Destructive cleanup without repair analysis is flagged.** When a response recommends or reports:
+- Deleting a broken symlink inside `.claude/hooks/`
+- Removing a hook entry from settings
+- Deleting a config reference or registration
+
+...the response should also show evidence of: target search, rename/move diagnosis, replacement identification, or explicit obsolescence verification. If none of these are present, an advisory warns that deletion was recommended without repair analysis.
+
+**Do not delete both the symlink and the registration as a first response to a missing-file error.** Preserve recoverability until replacement or obsolescence is confirmed.
+
+---
+
 ## Bulk Refactoring Rule
 
 **Core principle: Use atomic operations for directory restructuring.**
@@ -101,49 +171,30 @@ Before finalizing, run this self-check:
 
 The canonical text for this contract lives in `P:/.claude/templates/llm_behavior_contract.md`.
 
-### Epistemic Contract (Structured Analysis)
+### Epistemic Contract
 
-When producing analytical answers about code, tools, or behavior, use this structure:
+**For investigations and multi-step analysis:** Use structured sections to organize evidence and reasoning:
 
 ```
 [FACT]
-- ...
+- Grounded observations with source citations
 
 [INFERENCE]
-- ...
+- Hypotheses with uncertainty language ("may", "might", "could")
 
 [UNKNOWN]
-- ...
+- What you genuinely don't know
 
 [RECOMMENDATION]
-- ...
+- Next steps with assumptions stated
 ```
 
-Rules:
+**For simple answers:** Direct prose with inline citations is preferred. STATUS labels are scaffolding — they help the reader follow complex reasoning, but a direct answer with a citation is better than a labeled empty section.
 
-- Every non-trivial sentence must appear under one of these sections as a bullet.
-- **[FACT]** is for grounded observations only:
-  - Include an explicit source suffix: `(source: filename:line)`, `(source: pytest output above)`.
-  - If you cannot cite a source, it is NOT a FACT; move it to [INFERENCE].
-- **[INFERENCE]** is for hypotheses and interpretations:
-  - Always use uncertainty language ("may", "might", "could", "this suggests").
-  - Refer back to specific FACTs when possible.
-- **[UNKNOWN]** is for what you do NOT know:
-  - Do not include causal or comparative claims here.
-  - You can say "I do not know X because Y is missing", but don't guess.
-- **[RECOMMENDATION]** is for concrete next steps:
-  - State the goal or priority, any assumptions, and a brief rationale.
-  - If using "best"/"optimal"/"lowest risk", tie them to a criterion: "best for maintainability".
-
-Evidence reuse:
-
-- Before re-running tools, check whether their outputs already appear in this session's logs.
-- Quote or restate those outputs in [FACT] with a `(source: ...)` suffix instead of re-executing.
-
-Causal and comparative language:
-
-- Causal ("because", "is caused by", "the reason is"): in [FACT] only with evidence; in [INFERENCE] only with uncertainty; never in [UNKNOWN].
-- Comparative ("best", "optimal", "simpler"): in [FACT] only quoting external sources; in [RECOMMENDATION] always specify criterion and assumptions.
+**Rules for structured sections:**
+- Every non-trivial claim should appear under a section with a source citation, or be marked as inference.
+- If you cannot cite evidence, use uncertainty language or mark as [UNKNOWN].
+- Before re-running tools, check session logs — quote prior output with `(source: ...)` instead of re-executing.
 
 ---
 
@@ -153,61 +204,34 @@ Causal and comparative language:
 
 ---
 
-## Evidence Tiers
+## Evidence and Attribution
 
-Every claim cites its tier. Confidence cannot exceed tier ceiling.
+Every substantive claim should be traceable to a concrete source. Use citation suffixes:
+- `(source: filename:line)` — direct citation
+- `(source: pytest output above)` — session artifact
+- `(source: README.md §3)` — document section
 
-| Tier | Ceiling | Sources |
-|------|---------|---------|
-| 1 | 95% | Execution artifacts, logs, test output |
-| 2 | 85% | Official docs, specs, peer-reviewed |
-| 3 | 75% | Static analysis, logical derivation |
-| 4 | 50% | Comments, unverified claims |
+Confidence bounds by source type:
 
-**Rules:** High-stakes requires Tier 1/2. Mixed tiers: ceiling = lowest. Tier 4 alone: flag as [UNVERIFIED].
+| Source | Confidence ceiling |
+|--------|-------------------|
+| Execution artifacts, logs, test output | 95% |
+| Official docs, specs, verified specs | 85% |
+| Static analysis, code inspection | 75% |
+| Memory entries, unverified claims | ≤50% |
 
-### Evidence vs Speculation
+**STATUS labels are scaffolding**, not a gate. For investigations, use `[FACT]`/`[INFERENCE]`/`[UNKNOWN]`/`[RECOMMENDATION]` to organize reasoning. For simple answers, direct prose with inline citations is preferred over mandatory section headers.
 
-For claims about latency, cost, throughput, code/config contents, or feature behavior: cite a concrete source (`file:line`) or mark as **unverified estimate**.
+**Key rule:** If you cannot find evidence for a claim, say so plainly — "I haven't verified this", "this would need a live check", "my memory may be stale". Never present speculation as fact.
 
-Never present an unverified estimate as fact. If you cannot find evidence, say so plainly.
+### Source Binding for Document Claims
 
-### Source Binding for Document Claims (Phase 1 - Citation-Only Ground Truth)
+**Required behavior:**
+1. Before claiming specific content from a document, read it first
+2. Cite the exact part that supports the claim
+3. If unread, say explicitly: "I haven't read that document yet" or "I would need to read it to answer"
 
-**Principle:** When making claims about provided documents, cite the specific source. If no source supports a claim, state "unsupported."
-
-**Problem Addressed:** AI may fabricate content from user-provided documents (source fabrication), claiming "the document says X" without actually reading the document.
-
-**Required Behavior:**
-1. **Before claiming** content from a document, use the Read tool to read it first
-2. **Cite specific content**: Quote or reference the exact part of the document that supports your claim
-3. **If you haven't read the document**, say explicitly: "I haven't read that document yet" or "I would need to read the document to answer that"
-
-**Examples:**
-
-✅ **Correct (Read then cite):**
-```
-User: What does the document say about authentication?
-Assistant: Let me read the document first.
-[Reads document.pdf]
-Assistant: According to the document, "Authentication is handled via OAuth 2.0 with JWT tokens" (section 3.2, paragraph 1).
-```
-
-❌ **Incorrect (fabrication):**
-```
-User: What does the document say about authentication?
-Assistant: The document says authentication is handled via OAuth 2.0 with JWT tokens.
-[No Read tool evidence]
-```
-
-**Enforcement:** `StopHook_cross_validator.py` blocks responses that claim content from documents without Read tool evidence in the session.
-
-**Configuration:**
-```bash
-# Enable document claim verification (default: false)
-export STOP_CROSS_VALIDATOR_ENABLED=true
-export STOP_CROSS_VALIDATOR_MODE=warn  # or "strict" to block
-```
+**Enforcement:** `StopHook_cross_validator.py` blocks responses fabricating document content without Read tool evidence in the session. This block behavior is **always on** regardless of mode toggles.
 
 ### Test-Driven Pattern Development
 
@@ -451,6 +475,8 @@ RIGHT (with standards):
 | **Authorization** | State what you plan to change and wait for confirmation before implementing. "/critique", "/rca", "/pre-mortem" = advisory until user says "do it". Operational fixes = same authorization requirement as features. Parallel research is fine; parallel implementation while research is pending is a violation. |
 | **Documentation Boundary** | For investigate/diagnose/explain/document requests, stop at findings by default. Do not recommend or begin implementation unless the user explicitly asks for implementation. Silence, ambiguity, or non-response is not approval. |
 | **Capability Claims** | Documentation about external systems (CLI flags, API params, tool behaviors) is a hypothesis, not a fact. Before using a documented flag or param: verify with `--help`, `--version`, or an equivalent live check. Memory entries and skill docs can be stale. |
+| **Evidence First** | Lead with what you verified. Name concrete sources (file:line, command output, docs). Speculation gets explicit uncertainty markers, not confident declarations. |
+| **Format Serves Clarity** | STATUS labels organize complex analysis. Direct prose with inline citations is preferred for simple answers. Labels are scaffolding, not a gate. |
 
 ---
 

@@ -370,7 +370,26 @@ def check_file_path(
     existing_tests = [t for t in test_candidates if t.exists()]
 
     if not existing_tests:
-        # No test file exists - auto-scaffold test, then allow edit
+        # Check env var override before auto-scaffolding
+        env_override = os.environ.get("TDD_AUTOSCAFFOLD", "").strip()
+        if env_override:
+            # Env var takes precedence: 0/false = disable, 1/true = enable
+            autoscaffold_enabled = env_override.lower() in ("1", "true", "yes")
+        else:
+            # Fall back to config
+            autoscaffold_enabled = config.get("autoscaffold", {}).get("enabled", False)
+
+        if not autoscaffold_enabled:
+            return (
+                False,
+                f"No test found for {file_path.name}. Set TDD_AUTOSCAFFOLD=1 to auto-scaffold.",
+                {
+                    "block_reason": "no_tests",
+                    "tdd_state": "BLOCKED",
+                    "hint": "Create test manually or set TDD_AUTOSCAFFOLD=1",
+                },
+            )
+
         scaffold_result = _scaffold_test_for_impl(file_path, config)
 
         if scaffold_result["action"] == "scaffolded":

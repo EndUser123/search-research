@@ -32,6 +32,14 @@ _REFERENTIAL_PRONOUNS = re.compile(
     re.IGNORECASE,
 )
 
+# Investigative verbs that signal the user is asking to cover the listed items,
+# not just showing data. Used to reduce false positives when a table/list appears
+# without a clear investigation intent (e.g. "here's the output: | foo | bar |").
+_INVESTIGATIVE_VERBS = re.compile(
+    r"\b(?:investigate|check|analyze|look\s+into|debug|inspect|review|examine|audit|test|verify)\b",
+    re.IGNORECASE,
+)
+
 _EXPANSION_LANGUAGE = re.compile(
     r"\b(?:and\s+anything\s+else|also\s+check|or\s+other|plus\s+any)\b",
     re.IGNORECASE,
@@ -88,6 +96,15 @@ def _has_referential_language(text: str) -> bool:
 
 def _has_expansion_language(text: str) -> bool:
     return bool(_EXPANSION_LANGUAGE.search(text))
+
+
+def _has_investigative_verb(text: str) -> bool:
+    """Check if text contains an investigative verb (investigate, check, etc.).
+
+    Reduces false positives when a table/list appears without a clear investigation
+    intent (e.g. 'here's the output: | foo | bar |' should not trigger anchor creation).
+    """
+    return bool(_INVESTIGATIVE_VERBS.search(text))
 
 
 def _get_terminal_id(context: HookContext) -> str:
@@ -175,8 +192,10 @@ def referent_anchor_hook(context: HookContext) -> HookResult:
             anchor_terms_raw = bullet_items
             source_type = "list"
 
-    # Need both structured content AND referential language to activate
-    if not anchor_terms_raw or not has_referential:
+    # Need ALL THREE: structured content AND referential language AND investigative verb
+    # to activate. This prevents false positives when a table/list appears without
+    # a clear investigation intent (e.g. "here's the output: | foo | bar |").
+    if not anchor_terms_raw or not has_referential or not _has_investigative_verb(prompt):
         _write_state(terminal_id, None, source_type, context.session_id)
         return HookResult.empty()
 
@@ -188,3 +207,29 @@ def referent_anchor_hook(context: HookContext) -> HookResult:
     _write_state(terminal_id, anchor_terms, source_type, context.session_id, bypass_scope)
 
     return HookResult.empty()
+
+
+# ---------------------------------------------------------------------------
+# Self-check: referent_anchor behavior summary
+# ---------------------------------------------------------------------------
+# Activation conditions (ALL must be true):
+#   1. ≥3 table rows OR ≥3 bullet items in the user message
+#   2. Referential pronoun present ("those", "them", "these", etc.)
+#   3. Investigative verb nearby ("investigate", "check", "analyze", etc.)
+#
+# Anchor terms are normalized (lowercase, stripped of punctuation) before
+# storage to improve match reliability in Stop.py's _run_referent_coverage.
+#
+# bypass_scope flag:
+#   Set when user says "and anything else", "also check", "or other",
+#   "plus any" — signals they want broader coverage beyond explicit items.
+#   _run_referent_coverage skips its advisory when bypass_scope is True.
+#
+# List-level engagement suppression (Stop.py):
+#   Phrases like "these items", "those hooks" suppress the advisory even if
+#   no specific anchor term matched — signals the LLM is engaging with the
+#   list conceptually, not ignoring it.
+#
+# State file: state/referent_anchors_{terminal_id}.json
+#   Per-terminal isolation prevents cross-terminal anchor contamination.
+# ---------------------------------------------------------------------------

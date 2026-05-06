@@ -15,6 +15,25 @@ Core requirements:
 4. Keep unique patterns: lazy_closure, verification_target_mismatch, system_claims
 5. Warn or block per UNVERIFIED_STANCE_MODE
 6. Log every decision with claim text and tool events considered
+
+UNCERTAINTY EXPRESSION — SPECIFIC LIMITATION + NEXT STEP
+========================================================
+When the model states something is unverified or uncertain, it should follow
+the "specific limitation + next step" pattern:
+
+  GOOD: "I have not run tests in this environment; this is not yet confirmed."
+        "Next step: run pytest tests/test_foo.py and confirm all pass."
+
+  BAD:  "this is unverified, but..." / "I believe it's correct but haven't tested"
+
+Bare disclaimers like "this is unverified, but..." are treated as lazy closure
+patterns and blocked. The preferred pattern explicitly names:
+  (1) what is missing / unconfirmed (specific limitation)
+  (2) what verification step would confirm it (next step)
+
+This is the inverse of the completion-claim pattern: both enforce evidence-based
+communication, but completion-claim requires runtime tool evidence for "fixed/tested"
+claims, while this hook requires precise uncertainty language for "unverified" claims.
 """
 
 from __future__ import annotations

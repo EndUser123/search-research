@@ -22,7 +22,7 @@ class CliExecutionRecord:
 
     Attributes:
         timestamp: ISO format timestamp of execution
-        cli_name: CLI identifier (qwen, gemini, codex, opencode, glm-4.7-flash)
+        cli_name: CLI identifier (gemini, codex, opencode, glm-4.7-flash)
         task_type: Classified task type
         query_preview: First 100 chars of query (for storage efficiency)
         duration_seconds: Execution time in seconds
@@ -94,7 +94,7 @@ class CliPerformanceLogger:
         Thread-safe for concurrent writes from multiple terminals.
 
         Args:
-            cli_name: CLI identifier (qwen, gemini, codex, opencode, glm-4.7-flash)
+            cli_name: CLI identifier (gemini, codex, opencode, glm-4.7-flash)
             task_type: Classified task type
             query: Original query (truncated to 100 chars for storage)
             duration_seconds: Execution time
@@ -158,7 +158,7 @@ class CliPerformanceLogger:
         """Get all records for a specific CLI.
 
         Args:
-            cli_name: CLI name to filter by (qwen, gemini, codex, etc.)
+            cli_name: CLI name to filter by (gemini, codex, etc.)
 
         Returns:
             List of records for this CLI
@@ -189,7 +189,7 @@ class CliPerformanceLogger:
             return {}
 
         stats = {}
-        for cli in ["qwen", "gemini", "codex", "opencode", "glm-4.7-flash"]:
+        for cli in ["gemini", "codex", "opencode", "glm-4.7-flash"]:
             cli_records = [r for r in records if r.cli_name == cli]
             if not cli_records:
                 continue
@@ -222,7 +222,7 @@ def _test_performance_logger():
         # Test 1: Log some executions
         print("\n1. Logging test executions...")
         logger.log_execution(
-            cli_name="qwen",
+            cli_name="gemini",
             task_type=TaskType.CODE_REVIEW,
             query="review this code for bugs",
             duration_seconds=63.5,

@@ -1,1 +1,1 @@
-P:/packages/cc-skills-meta/reasoning/hooks/Start_reasoning_mode_selector.py
+P:/packages/cc-skills-thinking/reasoning/hooks/Start_reasoning_mode_selector.py

@@ -291,3 +291,53 @@ class TestEvidenceAdapterIntegration:
 if __name__ == "__main__":
     # Run tests
     pytest.main([__file__, "-v"])
+
+
+# ---------------------------------------------------------------------------
+# Additional completion claim tests for unverified_completion_claim gate
+# ---------------------------------------------------------------------------
+
+
+class TestUnverifiedCompletionClaim:
+    """Tests for unverified completion claim detection (Phase 2 gate)."""
+
+    def test_all_tests_pass_no_tool_output_flags_claim(self):
+        """'all tests passed' with no pytest/Bash tool output → flags unverified_completion_claim."""
+        from StopHook_unverified_stance import _check_completion_claim_with_events
+
+        response = "all tests passed"
+        tool_events = []  # No Bash/pytest output in this turn
+
+        claim_valid, claim_msg = _check_completion_claim_with_events(response, tool_events)
+        # Without runtime evidence, the claim should be flagged
+        assert not claim_valid, "Claim should be invalid without runtime evidence"
+        assert "Completion claim without runtime testing evidence" in claim_msg
+
+    def test_all_tests_pass_with_pytest_output_does_not_flag(self):
+        """'all tests passed' with pytest output in tool_events → no flag."""
+        from StopHook_unverified_stance import _check_completion_claim_with_events
+
+        response = "all tests passed"
+        tool_events = [
+            {"name": "Bash", "command": "pytest --tb=short", "output_excerpt": "103 passed in 0.31s"},
+        ]
+
+        claim_valid, claim_msg = _check_completion_claim_with_events(response, tool_events)
+        # With pytest output, claim should be valid
+        assert claim_valid, f"Claim should be valid with pytest output: {claim_msg}"
+
+    def test_hedged_belief_does_not_flag(self):
+        """'I believe this fixes the bug, but I have not run tests' → no flag (already hedges)."""
+        from StopHook_unverified_stance import _check_completion_claim_with_events
+
+        response = "I believe this fixes the bug, but I have not run tests"
+        tool_events = []
+
+        # Hedged language should not match COMPLETION_PATTERNS
+        # (only strong absolute claims are flagged)
+        from StopHook_unverified_stance import COMPLETION_PATTERNS
+        matched = any(p.search(response) for p in COMPLETION_PATTERNS)
+        assert not matched, (
+            f"'I believe...' hedging should not match any COMPLETION_PATTERNS. "
+            "If it does, the pattern is too broad."
+        )

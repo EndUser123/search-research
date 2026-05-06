@@ -58,6 +58,26 @@ LAZY_JUSTIFICATION_PHRASES = [
     r"\bi\s+don'?t\s+see\s+(?:any\s+)?(?:issues?|problems?)\b",
 ]
 
+# Exemptions: phrases where "appropriate/sufficient" is properly hedged by context.
+# These must appear BEFORE the claim (not after) to exempt.
+_LAZY_JUSTIFICATION_EXEMPT = [
+    re.compile(r, re.I) for r in [
+        # "After [evidence], [claim]" — evidence precedes the evaluation
+        r"after\s+(?:testing|review|checking|verifying|inspecting|examining)\b.*\bis\s+appropriate\b",
+        r"after\s+(?:testing|review|checking|verifying|inspecting|examining)\b.*\bis\s+sufficient\b",
+        r"after\s+(?:testing|review|checking|verifying|inspecting|examining)\b.*\bis\s+adequate\b",
+        # "Based on [evidence], [claim]" — evidence precedes the evaluation
+        r"based\s+on\s+[^.]*\b(?:testing|review|check|verification|output|result)[^.]*\bis\s+appropriate\b",
+        r"based\s+on\s+[^.]*\b(?:testing|review|check|verification|output|result)[^.]*\bis\s+sufficient\b",
+        # "Given [evidence], [claim]" — evidence precedes the evaluation
+        r"given\s+[^.]*\b(?:testing|review|check|verification|output|result|evidence)[^.]*\bis\s+appropriate\b",
+        r"given\s+[^.]*\b(?:testing|review|check|verification|output|result|evidence)[^.]*\bis\s+sufficient\b",
+        # "[Claim], which is [evaluation]" — claim first, evaluation is descriptor (not a bare claim)
+        r"\bit\s+is\s+appropriate\b.*\bfor\b",
+        r"\bit\s+is\s+sufficient\b.*\bfor\b",
+    ]
+]
+
 # Assumed mechanism - claiming something exists/works without verification
 ASSUMED_MECHANISM_PHRASES = [
     r"\bbuilt-in\s+(?:verification|validation|checking|mechanism)\b",
@@ -640,14 +660,18 @@ def detect_lazy_closure(response: str) -> LazyClosureMatch | None:
         )
 
     # 4. Check for lazy justification
+    # Exempted: "After testing, X is appropriate" (evidence precedes evaluation)
     match = _find_pattern(text, _LAZY_JUSTIFICATION)
     if match:
-        return LazyClosureMatch(
-            matched=match.group(0),
-            pattern_type="lazy_justification",
-            suggestion="'Appropriate/sufficient' claims need evidence. What specifically makes it so?",
-            severity="flag",
-        )
+        if any(p.search(text) for p in _LAZY_JUSTIFICATION_EXEMPT):
+            pass  # Exempted — evidence context precedes the claim
+        else:
+            return LazyClosureMatch(
+                matched=match.group(0),
+                pattern_type="lazy_justification",
+                suggestion="'Appropriate/sufficient' claims need evidence. What specifically makes it so?",
+                severity="flag",
+            )
 
     # 5. Check for lazy fix language (skip in test-summary context)
     match = _find_pattern(text, _LAZY_FIX)

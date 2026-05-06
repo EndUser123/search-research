@@ -6,6 +6,10 @@ Uses keyword search (fast, no model loading) for hook compatibility.
 On analysis/final-answer turns, also automatically injects the 3 most recent
 CKS corrections (last 24h) that semantically match the user prompt.
 
+Hybrid retrieval: when CKS_CORRECTION_SEMANTIC=true, merges semantic search
+(via CKS.search with vector embeddings) with keyword overlap scoring.
+The keyword path is always preserved as fallback.
+
 This hook is registered manually in registry.py to avoid circular import.
 """
 
@@ -14,7 +18,7 @@ from __future__ import annotations
 import os
 import sys
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 # Add project root to path for CKS imports
@@ -51,6 +55,9 @@ TRIGGER_PHRASES = [
 
 CORRECTION_INJECTION_MODES = ("analysis", "final-answer", "meta")
 
+# Hybrid semantic retrieval: merges CKS.search() vector results with keyword scoring
+CKS_SEMANTIC_ENABLED = os.environ.get("CKS_CORRECTION_SEMANTIC", "false").lower() in ("1", "true", "yes")
+
 
 def _should_inject_recent_corrections(prompt: str) -> bool:
     """Check if prompt warrants automatic recent-correction injection."""
@@ -62,6 +69,42 @@ def _should_inject_recent_corrections(prompt: str) -> bool:
         return mode in CORRECTION_INJECTION_MODES
     except Exception:
         return False
+
+
+def _query_semantic_corrections(prompt: str, max_results: int = 3, hours: int = 24) -> list[dict]:
+    """Query CKS corrections via vector embedding similarity.
+
+    Uses CKS.search() with enable_semantic=True to find corrections with
+    semantic similarity even when keyword overlap is zero. Falls back to
+    empty list on any error (fail-open, never blocks injection).
+    """
+    try:
+        from cks.unified import CKS
+
+        cks_db_path = Path("P:/__csf/data/cks.db")
+        if not cks_db_path.exists():
+            return []
+
+        with CKS(db_path=cks_db_path, enable_semantic=True) as cks:
+            results = cks.search(
+                query=prompt,
+                entry_type="correction",
+                limit=max_results,
+            )
+
+        if not results:
+            return []
+
+        # Use UTC consistently — DB stores created_at in UTC (ISO format with +00:00)
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+        recent = [
+            r for r in results
+            if r.get("created_at", "") > cutoff
+        ]
+        return recent[:max_results]
+
+    except Exception:
+        return []
 
 
 def _query_recent_corrections(prompt: str, max_results: int = 3, hours: int = 24) -> list[dict]:
@@ -95,16 +138,31 @@ def _query_recent_corrections(prompt: str, max_results: int = 3, hours: int = 24
         if not rows:
             return []
 
-        # Score by keyword overlap with prompt
-        prompt_words = set(prompt.lower().split())
+        import re
+
+        # Strip punctuation for robust keyword matching
+        # "authentication," → "authentication", "web-app" → "web app"
+        def _normalize(text: str) -> set[str]:
+            if not text:
+                return set()
+            # Replace common separators with spaces, then split and strip remaining punctuation
+            normalized = re.sub(r'[-_/]', ' ', text.lower())
+            words = [w.strip().strip('.,!?;:"\'()[]{}') for w in normalized.split()]
+            return set(w for w in words if w)
+
+        prompt_words = _normalize(prompt)
         scored = []
         for row in rows:
-            entry_words = set((row[2] or "").lower().split() + (row[3] or "").lower().split())
+            entry_words = _normalize((row[2] or "") + " " + (row[3] or ""))
             overlap = len(prompt_words & entry_words)
             scored.append((overlap, row))
 
         # Sort by overlap desc, then created_at desc
         scored.sort(key=lambda x: (x[0], x[1][5]), reverse=True)
+
+        # Filter: only return results with at least 1 keyword overlap
+        # (name promises "matching", so don't return non-matching entries)
+        relevant = [(score, row) for score, row in scored if score > 0]
         return [
             {
                 "id": row[0],
@@ -114,11 +172,33 @@ def _query_recent_corrections(prompt: str, max_results: int = 3, hours: int = 24
                 "metadata": row[4],
                 "created_at": row[5],
             }
-            for _, row in scored[:max_results]
+            for _, row in relevant[:max_results]
         ]
 
     except Exception:
         return []
+
+
+def _query_hybrid_corrections(prompt: str, max_results: int = 3, hours: int = 24) -> list[dict]:
+    """Merge keyword and semantic correction results for hybrid retrieval.
+
+    Strategy: keyword results first (high precision), then semantic-only results
+    (high recall for symptom/vocabulary mismatch). No combined score — keeps
+    the ranking simple and deterministic. Fails open to keyword-only on any error.
+    """
+    keyword_results = _query_recent_corrections(prompt, max_results=max_results, hours=hours)
+    keyword_ids = {r["id"] for r in keyword_results}
+
+    if not CKS_SEMANTIC_ENABLED:
+        return keyword_results
+
+    semantic_results = _query_semantic_corrections(prompt, max_results=max_results, hours=hours)
+
+    # Deduplicate: keep all keyword results + semantic-only results
+    semantic_only = [r for r in semantic_results if r["id"] not in keyword_ids]
+
+    merged = keyword_results + semantic_only[:max_results - len(keyword_results)]
+    return merged[:max_results]
 
 
 def _format_recent_corrections(results: list[dict], prompt: str) -> str:
@@ -280,7 +360,7 @@ def cks_context_hook(context: HookContext) -> HookResult:
 
     # 2. Auto-inject recent corrections on analysis/final-answer turns
     if _should_inject_recent_corrections(context.prompt):
-        corrections = _query_recent_corrections(context.prompt, max_results=3, hours=24)
+        corrections = _query_hybrid_corrections(context.prompt, max_results=3, hours=24)
         if corrections:
             formatted = _format_recent_corrections(corrections, context.prompt)
             if formatted:

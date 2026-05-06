@@ -12,6 +12,9 @@ def _add_import_paths() -> None:
     package_src = root / "contract-primitives" / "src"
     if str(package_src) not in sys.path:
         sys.path.insert(0, str(package_src))
+    hooks_dir = root / "hooks"
+    if str(hooks_dir) not in sys.path:
+        sys.path.insert(0, str(hooks_dir))
 
 
 def _should_skip_for_path(file_path: str) -> bool:
@@ -63,12 +66,32 @@ def main() -> None:
         print(json.dumps({"decision": "approve", "reason": "No local plan artifact discovered"}))
         sys.exit(0)
 
+    # Ledger check: if contract precheck was already recorded, approve silently.
+    # If not, validate_plan_for_execution() is the authoritative gate;
+    # on allowed, write the ledger marker here (this is the phase write point).
+    from code_phase_ledger import write_phase_marker, read_phase_ledger
+
+    ledger = read_phase_ledger()
+    precheck_done = False
+    if ledger:
+        precheck_phase = ledger.get("phases", {}).get("consumer_contract_precheck", {})
+        precheck_done = bool(precheck_phase.get("done"))
+
     result = validate_plan_for_execution(
         plan_path,
         consumer="/code",
         required_phase=_required_phase(),
     )
     if result.allowed:
+        if not precheck_done:
+            write_phase_marker(
+                "consumer_contract_precheck",
+                {
+                    "result": "pass",
+                    "verify_status": result.verify_status,
+                    "claimed_status": result.claimed_status,
+                },
+            )
         print(
             json.dumps(
                 {

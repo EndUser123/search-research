@@ -2,7 +2,7 @@
 """
 LLM CLI - Parallel Multi-LLM Command Invocation with Context Support
 
-Run qwen, gemini, codex, and opencode CLIs in parallel, aggregate results.
+Run gemini, codex, and opencode CLIs in parallel, aggregate results.
 Supports injecting context from chat history or files.
 """
 
@@ -30,46 +30,67 @@ from file_context import (
     build_context_from_paths,
     print_context_summary,
 )
-
 # Module-level singleton for prompting-toolkit (preserves cache across calls)
 _PROMPT_TOOLKIT_SYSTEM: "AutomaticEnhancementSystem | None" = None
 
 # Config file for remembering last used CLI recipe
-_AI_CLI_CONFIG = Path("P:/.claude/ai-pcli-recipe.json")
+_AI_CLI_CONFIG = Path("P:/.data/ai-pcli-recipe.json")
 
 
 def _load_ai_cli_config() -> dict[str, Any] | None:
-    """Load saved AI-CLI recipe config if it exists."""
+    """Load saved AI-CLI recipe config if it exists.
+
+    Falls back from ai-pcli-recipe.json to ai-cli-recipe.json if the primary
+    path does not exist (e.g. users who previously saved config via /ai-cli).
+    """
+    # Primary config path for /ai-pcli
+    primary = Path("P:/.data/ai-pcli-recipe.json")
+    # Fallback path for legacy /ai-cli config
+    fallback = Path("P:/.data/ai-cli-recipe.json")
+
+    config_path = primary if primary.exists() else (fallback if fallback.exists() else None)
+
+    if config_path is None:
+        return None
+
     try:
-        if _AI_CLI_CONFIG.exists():
-            with open(_AI_CLI_CONFIG, encoding="utf-8") as f:
-                raw = json.load(f)
+        with open(config_path, encoding="utf-8") as f:
+            raw = json.load(f)
 
-            # New format: structured groups for config display.
-            if isinstance(raw, dict) and ("default" in raw or "aux" in raw):
-                return raw
+        # New format: structured groups for config display.
+        if isinstance(raw, dict) and ("direct" in raw or "pi" in raw or "default" in raw or "aux" in raw):
+            return raw
 
-            # Legacy format: flatten into the structure expected by the
-            # config display branch so old recipe files still render.
-            if isinstance(raw, dict):
-                default_clis = []
-                for cli in raw.get("clis", []):
-                    if isinstance(cli, str) and cli and not cli.startswith("opencode:"):
-                        default_clis.append({"name": cli})
+        # Legacy format: flatten into the structure expected by the
+        # config display branch so old recipe files still render.
+        if isinstance(raw, dict):
+            default_clis = []
+            for cli in raw.get("clis", []):
+                if isinstance(cli, dict):
+                    # Support structured format with name + tags
+                    name = cli.get("name", "")
+                    if name and not name.startswith("opencode:"):
+                        entry = {"name": name}
+                        if "tags" in cli and isinstance(cli["tags"], list):
+                            entry["tags"] = cli["tags"]
+                        default_clis.append(entry)
+                elif isinstance(cli, str) and cli and not cli.startswith("opencode:"):
+                    # Legacy string format
+                    default_clis.append({"name": cli})
 
-                aux_clis = []
-                for model in raw.get("opencode_models", []):
-                    if isinstance(model, str) and model:
-                        aux_clis.append(
-                            {"name": "opencode", "model": _resolve_opencode_model(model)}
-                        )
+            aux_clis = []
+            for model in raw.get("opencode_models", []):
+                if isinstance(model, str) and model:
+                    aux_clis.append(
+                        {"name": "opencode", "model": _resolve_opencode_model(model)}
+                    )
 
-                return {
-                    "default": {"clis": default_clis},
-                    "aux": {"clis": aux_clis},
-                    "clis": raw.get("clis", []),
-                    "opencode_models": raw.get("opencode_models", []),
-                }
+            return {
+                "default": {"clis": default_clis},
+                "aux": {"clis": aux_clis},
+                "clis": raw.get("clis", []),
+                "opencode_models": raw.get("opencode_models", []),
+            }
     except Exception:
         pass
     return None
@@ -246,11 +267,6 @@ ROUTING_RULES = {
         "description": "OpenRouter DeepSeek R1T2 Chimera (coding)",
         "flag": "--codex-only",
     },
-    "qwen": {
-        "keywords": ["analyze", "compare", "evaluate"],
-        "description": "Chutes Qwen3 235B (analysis)",
-        "flag": "--qwen-only",
-    },
     "gemini": {
         "keywords": ["whole codebase", "entire project", "all files", "large context"],
         "description": "Google Gemini CLI (1M+ tokens)",
@@ -422,6 +438,34 @@ def _apply_quality_gate_filter(
 
 # Default models
 DEFAULT_OPENCODE_MODEL = "chutes/deepseek-ai/DeepSeek-V3-0324-TEE"
+
+
+def _resolve_model_alias(model: str) -> str:
+    """Resolve user-friendly model alias to full pi model ID.
+
+    User-friendly aliases for common models with hard-to-remember provider paths.
+    Full model IDs are passed through unchanged.
+
+    Args:
+        model: Alias (e.g., "kimi-k2.6", "devstral", "nemotron-super") or full model ID
+
+    Returns:
+        Full pi model ID string
+    """
+    aliases = {
+        # pi CLI aliases - these map to the actual provider/model paths
+        "kimi-k2.6": "nvidia-nim/moonshotai/kimi-k2.6",
+        "devstral": "mistral/devstral-2512",
+        "nemotron-super": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+        "glm-5.1": "zai/glm-5.1",
+        "deepseek-v4-flash": "deepseek-ai/deepseek-v4-flash",
+        "minimax-m2.7": "minimax/MiniMax-M2.7",
+        "hy3-preview": "tencent/hy3-preview:free",
+        "ling-2.6-1t-free": "openrouter/inclusionai/ling-2.6-1t:free",
+    }
+    if model in aliases:
+        return aliases[model]
+    return model
 
 
 def _resolve_opencode_model(model: str | None) -> str:
@@ -955,7 +999,7 @@ def _read_multi_file_context(context_source: str, cli_name: str | None = None) -
         cli_name: CLI name (unused, kept for backward compatibility - all CLIs now use @file syntax)
 
     Returns:
-        Space-separated @file references for all files (consistent behavior across codex, qwen, gemini)
+        Space-separated @file references for all files (consistent behavior across codex, gemini)
     """
     import sys
 
@@ -982,7 +1026,7 @@ def _read_multi_file_context(context_source: str, cli_name: str | None = None) -
             # Copy to tmp if needed (for external files) and use the returned path
             path_to_use = _copy_to_tmp_if_needed(path)
 
-            # All CLIs (codex, qwen, gemini) now use @file syntax for consistency
+            # All CLIs (codex, gemini) now use @file syntax for consistency
             # Use forward slashes for @file syntax (cross-platform compatibility)
             at_file_refs.append(f"@{path_to_use.as_posix()}")
         else:
@@ -1001,7 +1045,6 @@ def _read_multi_file_context(context_source: str, cli_name: str | None = None) -
 
 def generate_parallel_bash_commands(
     query: str,
-    qwen_only: bool = False,
     gemini_only: bool = False,
     codex_only: bool = False,
 ) -> list[str]:
@@ -1013,12 +1056,10 @@ def generate_parallel_bash_commands(
     import shlex
 
     # Determine which LLMs to run
-    if not qwen_only and not gemini_only and not codex_only:
-        run_qwen = True
+    if not gemini_only and not codex_only:
         run_gemini = True
         run_codex = True
     else:
-        run_qwen = qwen_only
         run_gemini = gemini_only
         run_codex = codex_only
 
@@ -1028,8 +1069,6 @@ def generate_parallel_bash_commands(
     # This prevents command injection via backticks, $(), pipes, etc.
     safe_query = shlex.quote(query)
 
-    if run_qwen:
-        commands.append(f"echo {safe_query} | qwen")
     if run_gemini:
         # Use stdin pipe (echo X | gemini) - do NOT also use -p with the same query
         # Gemini rejects "Cannot use both a positional prompt and the --prompt (-p) flag together"
@@ -1081,93 +1120,104 @@ def _parse_opencode_streaming_json(output: str) -> str:
 
 
 def _determine_active_llms(
-    qwen_only: bool,
     gemini_only: bool,
     codex_only: bool,
     opencode_only: bool,
     glm_flash_only: bool,
-    pi_m27_only: bool = False,
-    pi_glm_only: bool = False,
+    pi_models: list[str] = [],
     copilot_only: bool = False,
+    use_config: bool = False,
 ) -> dict[str, bool]:
     """Determine which LLMs to run based on flags.
 
     Args:
-        qwen_only, gemini_only, codex_only, opencode_only, glm_flash_only: CLI flags
-        pi_m27_only: Run only pi with minimax/MiniMax-M2.7
-        pi_glm_only: Run only pi with zai/glm-5.1
+        gemini_only, codex_only, opencode_only, glm_flash_only: CLI flags
+        pi_models: List of pi model names from config
         copilot_only: Run only GitHub Copilot CLI
+        use_config: If True, config was loaded — suppress all defaults
 
     Returns:
         Dictionary with boolean flags for each LLM
     """
     has_cli_flags = (
-        qwen_only or gemini_only or codex_only or opencode_only or pi_m27_only or pi_glm_only or copilot_only
+        gemini_only or codex_only or opencode_only or copilot_only
     )
 
-    if not has_cli_flags:
+    if has_cli_flags:
         return {
-            "qwen": False,
-            "gemini": True,
-            "codex": True,
+            "gemini": gemini_only,
+            "codex": codex_only,
+            "opencode": opencode_only,
+            "glm_flash": False,
+            "pi": bool(pi_models),  # Keep pi if config provided models (e.g. --gemini-only shouldn't kill pi)
+            "copilot": copilot_only,
+        }
+
+    if use_config:
+        # Config loaded — only run what's in config
+        return {
+            "gemini": False,
+            "codex": False,
             "opencode": False,
             "glm_flash": False,
-            "pi_m27": True,
-            "pi_glm": True,
+            "pi": bool(pi_models),
             "copilot": False,
         }
+
+    # No config, no flags — use hardcoded defaults
     return {
-        "qwen": qwen_only,
-        "gemini": gemini_only,
-        "codex": codex_only,
-        "opencode": opencode_only,
+        "gemini": True,
+        "codex": True,
+        "opencode": False,
         "glm_flash": False,
-        "pi_m27": pi_m27_only,
-        "pi_glm": pi_glm_only,
-        "copilot": copilot_only,
+        "pi": bool(pi_models) if pi_models else True,
+        "copilot": False,
     }
 
 
 def _get_cli_preview(
-    qwen_only: bool,
     gemini_only: bool,
     codex_only: bool,
     opencode_only: bool,
     glm_flash_only: bool,
-    opencode_models: list[str],
-    pi_m27_only: bool = False,
-    pi_glm_only: bool = False,
+    opencode_models: list[str] | None,
+    pi_models: list[str] | None,
     copilot_only: bool = False,
+    use_config_pi: bool = False,
 ) -> str:
     """Build a preview string showing which CLIs and LLMs will be used.
 
     Args:
-        qwen_only, gemini_only, codex_only, opencode_only, glm_flash_only: CLI flags
+        gemini_only, codex_only, opencode_only, glm_flash_only: CLI flags
         opencode_models: List of OpenCode model names
-        pi_m27_only: Run only pi with minimax/MiniMax-M2.7
-        pi_glm_only: Run only pi with zai/glm-5.1
+        pi_models: List of pi model names (e.g. ["minimax-m2.7", "glm-5.1"])
+        copilot_only: Include copilot CLI
+        use_config_pi: If True, pi_models came from config and should replace defaults
 
     Returns:
         Formatted string listing all CLIs/LLMs that will be invoked
     """
-    has_any_flag = (
-        qwen_only or gemini_only or codex_only or opencode_only or glm_flash_only
-        or pi_m27_only or pi_glm_only or copilot_only
-    )
+    # Only use defaults when no explicit CLI flags are set
+    # If config-based pi_models are provided, suppress all defaults
+    no_explicit_clis = not (gemini_only or codex_only or opencode_only or glm_flash_only or copilot_only)
+    use_config = use_config_pi and no_explicit_clis
 
     # Collect items
     native_clis = []
-    if qwen_only or not has_any_flag:
-        native_clis.append("qwen")
-    if gemini_only or not has_any_flag:
+    if use_config:
+        # Config loaded - only show what's explicitly in config (native_clis stays empty)
+        pass
+    elif no_explicit_clis:
+        pass  # gemini and codex are already added as defaults below
+    if (not use_config) and (gemini_only or no_explicit_clis):
         native_clis.append("gemini")
-    if codex_only or not has_any_flag:
+    if (not use_config) and (codex_only or no_explicit_clis):
         native_clis.append("codex")
-    if copilot_only or not has_any_flag:
+    if (not use_config) and (copilot_only or no_explicit_clis):
         native_clis.append("copilot")
 
     opencode_models_list = []
-    if opencode_only or not has_any_flag:
+    if (not use_config) and (opencode_only or no_explicit_clis):
         models = opencode_models if opencode_models else [DEFAULT_OPENCODE_MODEL]
         for m in models:
             # Handle "opencode:nemotron" style names from results
@@ -1180,8 +1230,6 @@ def _get_cli_preview(
                 parts = model_id.split("/")
                 model_id = parts[-1]  # Just the model name, not the full path
             opencode_models_list.append(model_id)
-
-    has_glm = glm_flash_only or (not has_any_flag and os.environ.get("ZAI_API_KEY"))
 
     # Build output
     lines = ["[CLI/LLM Preview]"]
@@ -1198,29 +1246,34 @@ def _get_cli_preview(
         for m in opencode_models_list:
             lines.append(f"    • {m}")
 
+    # Pi models
+    if pi_models:
+        lines.append("")
+        lines.append(f"  Pi ({len(pi_models)} parallel)")
+        for m in pi_models:
+            lines.append(f"    • {m}")
+
     return "\n".join(lines)
 
 
 def _build_cli_commands(
     query: str,
-    run_qwen: bool,
     run_gemini: bool,
     run_codex: bool,
     run_opencode: bool,
     opencode_models: list[str],
-    run_pi_m27: bool = False,
-    run_pi_glm: bool = False,
+    pi_models: list[str] = [],
     run_copilot: bool = False,
     context_file: str | None = None,
-) -> list[tuple[str, str]]:
+) -> list[tuple[str, Any]]:
     """Build platform-specific CLI command list.
 
     Args:
         query: User query string
-        run_qwen, run_gemini, run_codex, run_opencode: Boolean flags
+        run_gemini, run_codex, run_opencode: Boolean flags
         opencode_models: List of OpenCode model names (empty list = use default)
-        run_pi_m27: Run pi with minimax/MiniMax-M2.7
-        run_pi_glm: Run pi with zai/glm-5.1
+        pi_models: List of pi model names (e.g. ["minimax/MiniMax-M2.7", "zai/glm-5.1"])
+        run_copilot: Run GitHub Copilot CLI
         context_file: Optional file path for pi -p @filepath flag
 
     Returns:
@@ -1232,21 +1285,17 @@ def _build_cli_commands(
 
     # Platform-specific command templates
     if sys.platform == "win32":
-        qwen_cmd = f'{ROOT_PREFIX}node "{npm_root / "@qwen-code" / "qwen-code" / "cli.js"}"'
         gemini_cmd = (
             f'{ROOT_PREFIX}node "{npm_root / "@google" / "gemini-cli" / "bundle" / "gemini.js"}"'
         )
         # Codex companion wrapper (required - direct codex exec doesn't work)
-        codex_companion = Path.home() / ".claude" / "plugins" / "cache" / "openai-codex" / "codex" / "1.0.3" / "scripts" / "codex-companion.mjs"
+        codex_companion = Path.home() / ".claude" / "plugins" / "cache" / "openai-codex" / "codex" / "1.0.4" / "scripts" / "codex-companion.mjs"
         codex_cmd = f'node "{codex_companion}" task --model gpt-5.4-mini'
     else:
-        qwen_cmd = f"{ROOT_PREFIX}qwen"
         gemini_cmd = f"{ROOT_PREFIX}gemini"
         codex_cmd = f"{ROOT_PREFIX}codex exec --model gpt-5.4-mini"
 
     commands = []
-    if run_qwen:
-        commands.append(("qwen", qwen_cmd))
     if run_gemini:
         # Use -p flag with list format to avoid:
         # 1. Shell pipe issues on Windows (stdin conflicts)
@@ -1276,14 +1325,13 @@ def _build_cli_commands(
             commands.append((name, opencode_cmd))
 
     # Pi agents (use list form to avoid shell escaping issues)
-    if run_pi_m27:
+    for model in pi_models:
+        resolved = _resolve_model_alias(model)
         ctx_arg = ["-p", f"@{context_file}"] if context_file else []
-        pi_m27_cmd = ["pi", "--model", "minimax/MiniMax-M2.7", *ctx_arg, query]
-        commands.append(("pi-m27", pi_m27_cmd))
-    if run_pi_glm:
-        ctx_arg = ["-p", f"@{context_file}"] if context_file else []
-        pi_glm_cmd = ["pi", "--model", "zai/glm-5.1", *ctx_arg, query]
-        commands.append(("pi-glm", pi_glm_cmd))
+        pi_cmd = ["pi", "--model", resolved, *ctx_arg, query]
+        # Short display name: provider/model -> "pi:model"
+        short_name = resolved.split("/")[-1].replace(":", "-")
+        commands.append((f"pi:{short_name}", pi_cmd))
 
     # GitHub Copilot CLI
     if run_copilot:
@@ -1348,6 +1396,14 @@ def _process_llm_results(
     Returns:
         Processed results with error filtering
     """
+    # Handle exception case from run_parallel_llm
+    if not isinstance(raw_results, dict):
+        return {"__error__": {"output": "", "error": str(raw_results)}}
+
+    # Handle special __error__ key from exception propagation
+    if "__error__" in raw_results:
+        return raw_results
+
     results: dict[str, Any] = {}
 
     for name, result in raw_results.items():
@@ -1358,7 +1414,7 @@ def _process_llm_results(
         if not output.strip() and not error:
             error = "Empty response - CLI may have failed silently"
 
-        # Filter out INFO/DEBUG log messages from stderr (not actual errors)
+        # Filter out INFO/DEBUG/WARNING log messages from stderr (not actual errors)
         if error and not any(
             e in error.lower() for e in ["error", "fail", "exception", "http 4", "http 5"]
         ):
@@ -1383,21 +1439,20 @@ def _process_llm_results(
 
 def run_parallel_llm(
     query: str,
-    qwen_only: bool = False,
     gemini_only: bool = False,
     codex_only: bool = False,
     opencode_only: bool = False,
     glm_flash_only: bool = False,
-    pi_m27_only: bool = False,
-    pi_glm_only: bool = False,
+    pi_models: list[str] = [],
     copilot_only: bool = False,
     timeout: int = 180,
     output_format: str = "text",
     verbose: bool = False,
     opencode_models: list[str] = [],
     context_file: str | None = None,
+    use_config: bool = False,
 ) -> dict[str, Any]:
-    """Run qwen, gemini, codex, pi-m27, pi-glm, and GLM-4.7-Flash via API in parallel.
+    """Run gemini, codex, pi agents, and GLM-4.7-Flash via API in parallel.
 
     Uses asyncio for true parallel execution.
     """
@@ -1410,33 +1465,26 @@ def run_parallel_llm(
 
     # Determine which LLMs to run
     active = _determine_active_llms(
-        qwen_only, gemini_only, codex_only, opencode_only, glm_flash_only,
-        pi_m27_only, pi_glm_only, copilot_only,
+        gemini_only, codex_only, opencode_only, glm_flash_only,
+        pi_models, copilot_only, use_config=use_config,
     )
 
     # Build CLI command list
     commands = _build_cli_commands(
         query,
-        active["qwen"],
         active["gemini"],
         active["codex"],
         active["opencode"],
         opencode_models,
-        active["pi_m27"],
-        active["pi_glm"],
+        pi_models if active["pi"] else [],
         active["copilot"],
         context_file,
     )
 
-    # Build gemini quota fallback chain: try different gemini models before falling back to pi agents
-    # gemini model chain: auto (default) -> 3.1-pro-preview -> 3-flash-preview -> 3.1-flash-lite-preview -> pi-m27 -> pi-glm -> pi-elephant
+    # Build gemini quota fallback chain: try different gemini models before failing
+    # gemini model chain: auto (default) -> 3.1-pro-preview -> 3-flash-preview -> 3.1-flash-lite-preview
     fallback_commands: dict[str, list[tuple[str, list[str]]]] = {}
     if active.get("gemini"):
-        cmd_by_name = {name: cmd for name, cmd in commands}
-        pi_m27_cmd = cmd_by_name.get("pi_m27")
-        pi_glm_cmd = cmd_by_name.get("pi_glm")
-        pi_elephant_cmd = cmd_by_name.get("pi_elephant")
-
         # Get the gemini command (list form on Windows, string form on Unix)
         gemini_cmd_list = None
         for name, cmd in commands:
@@ -1447,7 +1495,6 @@ def run_parallel_llm(
         if gemini_cmd_list:
             # Build model fallback chain by substituting -m flag
             # Chain: auto (default) -> 3.1-pro-preview -> 3-flash-preview -> 3.1-flash-lite-preview
-            # If all gemini models exhausted, gemini slot is done — do NOT substitute pi agents
             gemini_models = [
                 "gemini-3.1-pro-preview",
                 "gemini-3-flash-preview",
@@ -1492,15 +1539,18 @@ def run_parallel_llm(
         # Gather all results
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # First result is always CLI results
+        # First result is always CLI results (may be exception if all CLIs failed)
         raw_results = results[0]
+        if isinstance(raw_results, Exception):
+            # All CLIs failed - return error dict so _process_llm_results can handle it
+            raw_results = {"__error__": {"output": "", "error": str(raw_results)}}
 
         # Second result (if exists) is GLM results
         if active["glm_flash"] and len(results) > 1:
             glm_results = results[1]
-            # Merge GLM results into CLI results
-            for name, result in glm_results.items():
-                raw_results[name] = result
+            if isinstance(glm_results, dict):
+                for name, result in glm_results.items():
+                    raw_results[name] = result
 
         return raw_results
 
@@ -1709,8 +1759,85 @@ def _format_progressive_selections(issues: dict[str, list[str]]) -> str:
     return "\n".join(lines)
 
 
+def _analyze_output_structure(output: str) -> dict[str, Any]:
+    """Analyze structural characteristics of an LLM output.
+
+    Multi-terminal safe: pure function, no side effects, no file I/O.
+    Idempotent: same input always produces same output.
+
+    Returns:
+        dict with keys: step_count, framing_style, has_evidence, section_count,
+                       has_citations, has_lists, output_length
+    """
+    if not output or not output.strip():
+        return {
+            "step_count": 0,
+            "framing_style": "unknown",
+            "has_evidence": False,
+            "section_count": 0,
+            "has_citations": False,
+            "has_lists": False,
+            "output_length": 0,
+        }
+
+    lines = output.strip().split("\n")
+    non_empty_lines = [l for l in lines if l.strip()]
+
+    # Count sections (## headings or === markers)
+    section_count = sum(1 for l in lines if l.startswith("##") or l.startswith("==="))
+
+    # Count steps (numbered lines or "Step N:" patterns)
+    step_count = 0
+    for l in non_empty_lines:
+        stripped = l.strip()
+        if stripped and stripped[0].isdigit() and ". " in stripped[:4]:
+            step_count += 1
+        elif "step" in stripped.lower() and any(f"step {n}:" in stripped.lower() for n in range(1, 20)):
+            step_count += 1
+
+    # Detect framing style
+    has_pros_cons = "pros" in output.lower() and "cons" in output.lower()
+    has_risk = any(kw in output.lower() for kw in ["risk", "mitigation", "failure", "rollback"])
+    has_citations = any(kw in output.lower() for kw in ["source:", "cite:", "(source", "according to"])
+    has_lists = any(
+        l.strip().startswith("-") or l.strip().startswith("*") or l.strip()[0:2].isdigit()
+        for l in non_empty_lines[-20:]  # Check last 20 lines for list patterns
+    )
+
+    # Determine framing style
+    if has_pros_cons:
+        framing_style = "tradeoff"
+    elif has_risk:
+        framing_style = "risk-aware"
+    elif section_count >= 4:
+        framing_style = "structured"
+    elif step_count >= 3:
+        framing_style = "stepwise"
+    elif has_lists:
+        framing_style = "list-based"
+    else:
+        framing_style = "narrative"
+
+    return {
+        "step_count": step_count,
+        "framing_style": framing_style,
+        "has_evidence": has_citations,
+        "section_count": section_count,
+        "has_citations": has_citations,
+        "has_lists": has_lists,
+        "output_length": len(output),
+    }
+
+
 def format_results(results: dict[str, Any]) -> str:
+    """Format CLI results with structural comparison.
+
+    Shows per-CLI output + COMPARISON section with structural analysis.
+    Multi-terminal safe: no shared state, no file I/O.
+    """
     lines = []
+
+    # Phase 1: Individual results
     for name, data in results.items():
         lines.append(f"=== {name.upper()} RESULT ===")
         if data.get("error"):
@@ -1719,53 +1846,46 @@ def format_results(results: dict[str, Any]) -> str:
             lines.append(data.get("output", ""))
         lines.append("")
 
+    # Phase 2: COMPARISON with structural analysis
     lines.append("=== COMPARISON ===")
     for name, data in results.items():
         if data.get("output"):
-            preview = data["output"][:200].replace("\n", " ")
-            lines.append(f"- {name}: {preview}...")
+            output = data["output"]
+            struct = _analyze_output_structure(output)
+
+            # Format markers: framing style, evidence, step count
+            evidence_marker = "✓" if struct["has_evidence"] else "?"
+            framing_marker = struct["framing_style"][0].upper()  # T=tradeoff, R=risk-aware, S=structured, W=stepwise, L=list, N=narrative
+            steps = struct["step_count"]
+
+            # Show structural prefix + first 200 chars
+            preview = output[:200].replace("\n", " ")
+            lines.append(f"- {name} [{framing_marker}{evidence_marker}@{steps}st]: {preview}...")
         elif data.get("error"):
             err = data["error"]
             lines.append(f"- {name}: Error - {err[:200] if err else 'Unknown'}")
         else:
             lines.append(f"- {name}: [No output]")
 
+    # Phase 3: Structural consensus (which CLIs agree on framing style?)
+    style_groups: dict[str, list[str]] = {}
+    for name, data in results.items():
+        if not data.get("output"):
+            continue
+        struct = _analyze_output_structure(data["output"])
+        style = struct["framing_style"]
+        if style not in style_groups:
+            style_groups[style] = []
+        style_groups[style].append(name)
+
+    if len(style_groups) > 1:
+        lines.append("")
+        lines.append("### Framing Consensus")
+        for style, names in sorted(style_groups.items(), key=lambda x: -len(x[1])):
+            names_str = ", ".join(names)
+            lines.append(f"  {style}: {names_str}")
+
     return "\n".join(lines)
-
-
-def _extract_qwen_answer(output: str) -> str:
-    """Extract answer from qwen CLI output (JSON array format)."""
-    import json
-
-    try:
-        objects = json.loads(output)
-        # Search backwards for last assistant message with text
-        for obj in reversed(objects):
-            if isinstance(obj, dict):
-                # Look for result field first
-                if "result" in obj:
-                    return str(obj["result"])[:1000]
-                # Look for assistant message content (LAST one wins)
-                if obj.get("type") == "assistant":
-                    content = obj.get("message", {})
-                    if isinstance(content, dict):
-                        items = content.get("content", [])
-                        if isinstance(items, list):
-                            for item in items:
-                                if isinstance(item, dict) and "text" in item:
-                                    text = item["text"]
-                                    if text and text.strip():
-                                        return text[:1000]
-    except (json.JSONDecodeError, KeyError, TypeError, AttributeError):
-        pass
-
-    # Fallback: find first line that looks like an answer
-    for line in output.split("\n"):
-        line = line.strip()
-        if line and not line.startswith("{") and not line.startswith("["):
-            return line[:200]
-
-    return output[:200]
 
 
 def _extract_gemini_answer(output: str) -> str:
@@ -1826,7 +1946,6 @@ def _extract_answer(cli_name: str, output: str) -> str:
     """Extract the actual answer from a CLI's raw output.
 
     Each CLI returns data in different formats:
-    - qwen: JSON array with system/assistant/result objects
     - gemini: JSON with response field
     - codex: JSONL lines (thread.started, turn.started, item.completed, turn.completed)
     - opencode: Plain text
@@ -1843,7 +1962,6 @@ def _extract_answer(cli_name: str, output: str) -> str:
 
     # Dispatch to CLI-specific parser
     parsers = {
-        "qwen": _extract_qwen_answer,
         "gemini": _extract_gemini_answer,
         "codex": _extract_codex_answer,
     }
@@ -1995,17 +2113,26 @@ def format_complete(results: dict[str, Any]) -> str:
 
 
 def format_diff(results: dict[str, Any]) -> str:
-    """Show differences between CLI responses."""
+    """Show differences between CLI responses with structural comparison.
+
+    Multi-terminal safe: pure function, no side effects, no file I/O.
+    Idempotent: same input always produces same output.
+    """
     lines = ["## RESPONSE DIFFERENCES"]
     lines.append("")
 
-    # Extract answers from each CLI
+    # Extract answers and structural analysis from each CLI
     answers = {}
+    cli_structs = {}
     for name, data in results.items():
         if data.get("error"):
             answers[name] = f"ERROR: {data['error']}"
+            cli_structs[name] = {}
         else:
-            answers[name] = _extract_answer(name, data.get("output", ""))
+            output = data.get("output", "")
+            answers[name] = _extract_answer(name, output)
+            # Analyze structural characteristics
+            cli_structs[name] = _analyze_output_structure(output)
 
     # Group by unique responses
     response_groups: dict[str, list[str]] = {}
@@ -2017,11 +2144,40 @@ def format_diff(results: dict[str, Any]) -> str:
     lines.append(f"### {len(response_groups)} unique response(s) from {len(answers)} CLI(s)")
     lines.append("")
 
-    # Show each unique response with which CLIs gave it
+    # Show each unique response with which CLIs gave it + structural markers
     for i, (response, names) in enumerate(response_groups.items(), 1):
-        lines.append(f"**Response {i}** (from {', '.join(names)}):")
+        # Build structural profile for this response group
+        struct_markers = []
+        for name in names:
+            struct = cli_structs.get(name, {})
+            framing = struct.get("framing_style", "?")
+            steps = struct.get("step_count", 0)
+            has_evidence = "✓" if struct.get("has_evidence") else "?"
+            struct_markers.append(f"{framing[0].upper()}:{steps}st E:{has_evidence}")
+
+        markers_str = " | ".join(struct_markers)
+        lines.append(f"**Response {i}** ({', '.join(names)}):")
+        lines.append(f"  [Structure: {markers_str}]")
         lines.append(f"  {response[:500]}{'...' if len(response) > 500 else ''}")
         lines.append("")
+
+    # Show CLI approach comparison table
+    lines.append("### CLI Approach Comparison")
+    lines.append("")
+    lines.append("| CLI | Framing | Steps | Evidence | Length |")
+    lines.append("|-----|---------|-------|----------|--------|")
+    for name in sorted(answers.keys()):
+        struct = cli_structs.get(name, {})
+        framing = struct.get("framing_style", "?")
+        steps = struct.get("step_count", 0)
+        has_evidence = "✓" if struct.get("has_evidence") else "✗"
+        length = struct.get("output_length", 0)
+        if length > 1000:
+            length_str = f"{length // 1000}KB"
+        else:
+            length_str = f"{length}ch"
+        lines.append(f"| {name} | {framing} | {steps} | {has_evidence} | {length_str} |")
+    lines.append("")
 
     # Highlight disagreements
     if len(response_groups) > 1:
@@ -2036,36 +2192,201 @@ def format_diff(results: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def format_quality_weighted(results: dict[str, Any]) -> str:
+"""Quality scoring weights per task type.
+
+Multi-terminal safe: pure data, no side effects, no file I/O.
+Idempotent: same input always produces same output.
+"""
+
+# Task-type-specific quality weights for consensus scoring
+# Each tuple: (structural_weight, evidence_bonus, min_steps_for_full_credit)
+# Higher structural_weight = CLIs with this framing style get weighted higher
+# evidence_bonus = bonus points when CLI provides evidence citations
+# min_steps_for_full_credit = minimum steps needed for full score credit
+TASK_TYPE_WEIGHTS = {
+    "code_review": {
+        "structural_weight": 1.3,  # Structured/analytical responses preferred
+        "evidence_bonus": 2.0,  # Evidence citations are critical for reviews
+        "min_steps_for_full_credit": 4,  # Need detailed analysis steps
+        "framing_preference": ["structured", "risk-aware", "stepwise"],
+    },
+    "planning": {
+        "structural_weight": 1.4,  # Step-by-step planning is essential
+        "evidence_bonus": 1.5,
+        "min_steps_for_full_credit": 5,  # Need comprehensive steps
+        "framing_preference": ["structured", "stepwise", "list-based"],
+    },
+    "brainstorm": {
+        "structural_weight": 1.0,  # Less emphasis on structure
+        "evidence_bonus": 0.5,
+        "min_steps_for_full_credit": 2,
+        "framing_preference": ["list-based", "narrative"],
+    },
+    "research": {
+        "structural_weight": 1.2,
+        "evidence_bonus": 2.5,  # Evidence citations are critical for research
+        "min_steps_for_full_credit": 3,
+        "framing_preference": ["structured", "list-based", "tradeoff"],
+    },
+    "debug": {
+        "structural_weight": 1.5,  # Step-by-step debugging is critical
+        "evidence_bonus": 1.8,
+        "min_steps_for_full_credit": 4,
+        "framing_preference": ["stepwise", "risk-aware", "structured"],
+    },
+    "refactor": {
+        "structural_weight": 1.3,
+        "evidence_bonus": 1.5,
+        "min_steps_for_full_credit": 4,
+        "framing_preference": ["structured", "stepwise", "list-based"],
+    },
+    "evaluation": {
+        "structural_weight": 1.1,
+        "evidence_bonus": 1.8,
+        "min_steps_for_full_credit": 3,
+        "framing_preference": ["tradeoff", "risk-aware", "structured"],
+    },
+    "general": {
+        "structural_weight": 1.0,
+        "evidence_bonus": 1.0,
+        "min_steps_for_full_credit": 2,
+        "framing_preference": [],
+    },
+}
+
+
+def _get_quality_score(
+    output: str,
+    task_type: str,
+    cli_name: str,
+    structural_info: dict[str, Any],
+) -> float:
+    """Calculate quality score for a CLI output given task type.
+
+    Multi-terminal safe: pure function, no side effects, no file I/O.
+    Idempotent: same inputs always produce same output.
+
+    Args:
+        output: The CLI output text
+        task_type: Task type string (e.g., "code_review")
+        cli_name: Name of the CLI (for per-CLI adjustments)
+        structural_info: Output from _analyze_output_structure
+
+    Returns:
+        Quality score 0.0 to 1.0
+    """
+    weights = TASK_TYPE_WEIGHTS.get(task_type, TASK_TYPE_WEIGHTS["general"])
+
+    # Base score from structural framing
+    framing = structural_info.get("framing_style", "narrative")
+    preferred_frames = weights["framing_preference"]
+
+    if preferred_frames and framing in preferred_frames:
+        # Framing matches task preference — full structural weight
+        base_score = weights["structural_weight"] * 0.4
+    else:
+        # Non-preferred framing — reduced credit
+        base_score = 0.4
+
+    # Step count bonus
+    steps = structural_info.get("step_count", 0)
+    min_steps = weights["min_steps_for_full_credit"]
+    if steps >= min_steps:
+        step_bonus = 0.2
+    else:
+        step_bonus = (steps / min_steps) * 0.2 if min_steps > 0 else 0.0
+
+    # Evidence bonus (normalized)
+    has_evidence = structural_info.get("has_evidence", False)
+    evidence_bonus = weights["evidence_bonus"] * 0.15 if has_evidence else 0.0
+
+    # Citation bonus
+    has_citations = structural_info.get("has_citations", False)
+    citation_bonus = 0.1 if has_citations else 0.0
+
+    # Output length factor (prefer non-trivial but not verbose)
+    length = structural_info.get("output_length", 0)
+    if length < 200:
+        length_factor = 0.5  # Too short
+    elif length < 500:
+        length_factor = 0.8
+    elif length < 5000:
+        length_factor = 1.0
+    else:
+        length_factor = 0.9  # Slightly reduced for verbose outputs
+
+    # Compute final score (cap at 1.0)
+    raw_score = base_score + step_bonus + evidence_bonus + citation_bonus
+    final_score = min(raw_score * length_factor, 1.0)
+
+    return final_score
+
+
+def format_quality_weighted(results: dict[str, Any], task_type: str = "general") -> str:
     """Quality-weighted output with consensus analysis and evidence validation.
 
     Pipeline:
     1. Extract answers from each CLI
-    2. Build consensus matrix (who agrees with what)
-    3. Annotate findings with consensus level
-    4. Validate evidence citations (cite:file:line)
-    5. Produce quality-weighted output
+    2. Analyze structural quality using task-type-aware weights
+    3. Build consensus matrix (who agrees with what)
+    4. Annotate findings with quality scores and consensus level
+    5. Validate evidence citations (cite:file:line)
+    6. Produce quality-weighted output
+
+    Multi-terminal safe: pure function, no side effects, no file I/O.
+    Idempotent: same inputs always produce same output.
 
     Quality tiers:
-    - HIGH: All CLIs agree + valid evidence citations
+    - HIGH: All CLIs agree + valid evidence citations + preferred framing
     - CONSENSUS: All CLIs agree (no evidence validation)
     - PARTIAL: Some CLIs agree
     - ALTERNATIVE: No consensus, minority views preserved
+
+    Args:
+        results: Dict of CLI results with 'output' and 'error' keys
+        task_type: Task type for quality weighting (code_review, planning, etc.)
     """
     lines = ["## QUALITY-WEIGHTED FINDINGS"]
     lines.append("")
 
-    # Step 1: Extract answers from each CLI
+    # Step 1: Extract answers + structural analysis from each CLI
     cli_answers: dict[str, str] = {}
+    cli_scores: dict[str, float] = {}
+    cli_structs: dict[str, dict[str, Any]] = {}
+
     for name, data in results.items():
         if data.get("error"):
             cli_answers[name] = f"ERROR: {data['error']}"
+            cli_scores[name] = 0.0
+            cli_structs[name] = {}
         else:
             output = data.get("output", "")
             answer = _extract_answer(name, output)
             cli_answers[name] = answer
 
-    # Step 2: Build consensus matrix
+            # Analyze structural quality
+            struct = _analyze_output_structure(output)
+            cli_structs[name] = struct
+
+            # Compute quality score
+            score = _get_quality_score(output, task_type, name, struct)
+            cli_scores[name] = score
+
+    # Step 2: Show CLI quality scores
+    lines.append("### CLI Quality Scores")
+    lines.append(f"*Task type: {task_type}*")
+    lines.append("")
+    for name in sorted(cli_scores.keys(), key=lambda x: cli_scores[x], reverse=True):
+        score_pct = int(cli_scores[name] * 100)
+        struct = cli_structs.get(name, {})
+        framing = struct.get("framing_style", "?")
+        steps = struct.get("step_count", 0)
+        has_evidence = "✓" if struct.get("has_evidence") else "?"
+        bar = "█" * (score_pct // 10) + "░" * (10 - score_pct // 10)
+        lines.append(f"- {name}: {bar} {score_pct}% [F:{framing[0]} E:{has_evidence} S:{steps}]")
+    lines.append("")
+
+    # Step 3: Build quality-weighted consensus matrix
     # Find unique answers and which CLIs agree on each
     answer_to_clis: dict[str, list[str]] = {}
     for cli, answer in cli_answers.items():
@@ -2074,9 +2395,10 @@ def format_quality_weighted(results: dict[str, Any]) -> str:
         answer_to_clis[answer].append(cli)
 
     total_clis = len(cli_answers)
+    total_score = sum(cli_scores.values())
 
-    # Step 3: Classify findings by consensus level
-    high_confidence = []  # All agree + has evidence
+    # Step 4: Classify findings by consensus level + quality score
+    high_confidence = []  # All agree + has evidence + preferred framing
     consensus = []  # All agree (any answer)
     partial_agreements = []  # Some agree
     alternative_views = []  # No real consensus
@@ -2087,16 +2409,34 @@ def format_quality_weighted(results: dict[str, Any]) -> str:
             not a.startswith("ERROR") for a in cli_answers.values()
         )
 
+        # Compute weighted quality score for this finding
+        agreeing_scores = [cli_scores[c] for c in agreeing_clis]
+        avg_quality = sum(agreeing_scores) / len(agreeing_scores) if agreeing_scores else 0.0
+
+        # Check if any agreeing CLI has evidence
+        has_evidence = any(cli_structs.get(c, {}).get("has_evidence", False) for c in agreeing_clis)
+
+        # Check framing preference
+        weights = TASK_TYPE_WEIGHTS.get(task_type, TASK_TYPE_WEIGHTS["general"])
+        preferred_frames = weights.get("framing_preference", [])
+        framing_matches = any(
+            cli_structs.get(c, {}).get("framing_style", "") in preferred_frames
+            for c in agreeing_clis
+        ) if preferred_frames else True
+
         finding = {
             "answer": answer,
             "agreeing_clis": agreeing_clis,
             "agreement_count": agreement_count,
             "agreement_pct": (agreement_count / total_clis) * 100,
-            "has_evidence": "[source:" in answer.lower(),
+            "avg_quality": avg_quality,
+            "weighted_score": avg_quality * (agreement_count / total_clis),
+            "has_evidence": has_evidence,
+            "framing_matches": framing_matches,
         }
 
         if is_full_consensus:
-            if finding["has_evidence"]:
+            if has_evidence and framing_matches:
                 high_confidence.append(finding)
             else:
                 consensus.append(finding)
@@ -2105,29 +2445,34 @@ def format_quality_weighted(results: dict[str, Any]) -> str:
         else:
             alternative_views.append(finding)
 
-    # Sort by agreement count descending
-    partial_agreements.sort(key=lambda x: x["agreement_count"], reverse=True)
-    alternative_views.sort(key=lambda x: x["agreement_count"], reverse=True)
+    # Sort by weighted score descending
+    def sort_key(x):
+        return (x["weighted_score"], x["agreement_count"], x["avg_quality"])
 
-    # Step 4: Build quality-weighted output
+    partial_agreements.sort(key=sort_key, reverse=True)
+    alternative_views.sort(key=sort_key, reverse=True)
+
+    # Step 5: Build quality-weighted output
     if high_confidence:
         lines.append("### HIGH CONFIDENCE ✅")
-        lines.append("*All CLIs agree + evidence citations verified*")
+        lines.append("*All CLIs agree + evidence citations + preferred framing*")
         lines.append("")
         for finding in high_confidence:
             clis = ", ".join(finding["agreeing_clis"])
+            q_pct = int(finding["avg_quality"] * 100)
             lines.append(f"- {finding['answer']}")
-            lines.append(f"  *Agreeing: {clis}*")
+            lines.append(f"  *Agreeing: {clis} (avg quality: {q_pct}%)*")
         lines.append("")
 
     if consensus:
         lines.append("### CONSENSUS ✅")
-        lines.append("*All CLIs agree (no evidence citations)*")
+        lines.append("*All CLIs agree (no evidence or preferred framing)*")
         lines.append("")
         for finding in consensus:
             clis = ", ".join(finding["agreeing_clis"])
+            q_pct = int(finding["avg_quality"] * 100)
             lines.append(f"- {finding['answer']}")
-            lines.append(f"  *Agreeing: {clis}*")
+            lines.append(f"  *Agreeing: {clis} (avg quality: {q_pct}%)*")
         lines.append("")
 
     if partial_agreements:
@@ -2137,8 +2482,9 @@ def format_quality_weighted(results: dict[str, Any]) -> str:
         for finding in partial_agreements:
             clis = ", ".join(finding["agreeing_clis"])
             remaining = [c for c in cli_answers.keys() if c not in finding["agreeing_clis"]]
+            q_pct = int(finding["avg_quality"] * 100)
             lines.append(f"- {finding['answer']}")
-            lines.append(f"  *Agreeing: {clis}*")
+            lines.append(f"  *Agreeing: {clis} (quality: {q_pct}%)*")
             if remaining:
                 lines.append(f"  *Dissenting: {', '.join(remaining)}*")
         lines.append("")
@@ -2148,13 +2494,17 @@ def format_quality_weighted(results: dict[str, Any]) -> str:
         lines.append("*No consensus - minority views preserved*")
         lines.append("")
         for finding in alternative_views:
+            clis = ", ".join(finding["agreeing_clis"])
+            q_pct = int(finding["avg_quality"] * 100)
             lines.append(f"- {finding['answer']}")
-            lines.append(f"  *From: {', '.join(finding['agreeing_clis'])}*")
+            lines.append(f"  *From: {clis} (quality: {q_pct}%)*")
         lines.append("")
 
-    # Summary
+    # Summary with quality context
+    total_quality_pct = int((total_score / total_clis) * 100) if total_clis else 0
     lines.append("---")
     lines.append(f"*Consensus: {len(consensus) + len(high_confidence)} | Partial: {len(partial_agreements)} | Alternatives: {len(alternative_views)}*")
+    lines.append(f"*Avg CLI quality: {total_quality_pct}% | Task: {task_type}*")
 
     return "\n".join(lines)
 
@@ -2835,7 +3185,7 @@ def _extract_text_findings_all(output: str, cli_name: str) -> list[dict]:
 
     # Track current priority while parsing
     current_priority = None
-    priority_section_pattern = r"^##\s*(Critical|High|Important|Medium|Suggestions?|Nice to holy)"
+    priority_section_pattern = r"^##\s*(Critical|High|Important|Medium|Suggestions?|Nice to have)"
 
     for line in output.split("\n"):
         # Check for section headers
@@ -2953,7 +3303,16 @@ def _write_output(results: dict[str, Any], args: argparse.Namespace) -> None:
     elif getattr(args, "aggregate", False):
         print(format_aggregate(results))
     elif getattr(args, "quality_weighted", False):
-        print(format_quality_weighted(results))
+        # Get task type for quality weighting from classification
+        task_type_str = "general"
+        try:
+            from task_classifier import classify_task
+            cls = classify_task(args.query)
+            task_type_str = cls.task_type.value
+        except Exception:
+            pass
+
+        print(format_quality_weighted(results, task_type=task_type_str))
     elif getattr(args, "complete", False):
         print(format_complete(results))
     elif getattr(args, "diff", False):
@@ -2968,7 +3327,7 @@ async def _run_domain_query(
     """Run query using dynamic model router for domain-based model comparison.
 
     Runs top 2 models in parallel:
-    - Uses native CLI tools when available (qwen, gemini, codex)
+    - Uses native CLI tools when available (gemini, codex)
     - Falls back to opencode for models without native CLIs
 
     Args:
@@ -3083,7 +3442,7 @@ async def _run_domain_query(
             model_start = time.time()
 
             if native_cli:
-                # Use native CLI tool (qwen, gemini, codex)
+                # Use native CLI tool (gemini, codex)
                 cmd = [native_cli]
 
                 proc = await asyncio.create_subprocess_exec(
@@ -3263,7 +3622,7 @@ def main():
   llm_cli.py "continue" --auto-context
 
   # Run specific LLM only
-  llm_cli.py "debug this" --qwen-only
+  llm_cli.py "debug this" --gemini-only
 
 CONTEXT HANDLING:
   --context FILE     Read and embed file content (recommended for file analysis)
@@ -3277,12 +3636,10 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("query", help="Question or task for the LLMs")
-    parser.add_argument("--qwen-only", action="store_true", help="Run only qwen-cli")
     parser.add_argument("--gemini-only", action="store_true", help="Run only gemini-cli")
     parser.add_argument("--codex-only", action="store_true", help="Run only codex-cli")
     parser.add_argument("--opencode-only", action="store_true", help="Run only opencode-cli")
-    parser.add_argument("--pi-m27-only", action="store_true", help="Run only pi with minimax/MiniMax-M2.7")
-    parser.add_argument("--pi-glm-only", action="store_true", help="Run only pi with zai/glm-5.1")
+    parser.add_argument("--pi-model", action="append", default=[], help="Run pi with specified model(s) (e.g., kimi-k2.6, devstral, nemotron-super). Multiple models run in parallel. Overrides --gemini default when set.")
     parser.add_argument("--copilot-only", action="store_true", help="Run only GitHub Copilot CLI")
     parser.add_argument(
         "--glm-flash-only", action="store_true", help="Run only GLM-4.7-Flash (via API)"
@@ -3402,23 +3759,39 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
     # Simple logic tree: "config" query just shows saved config and exits
     if args.query.strip().lower() == "config":
         saved = _load_ai_cli_config()
-        default_clis = []
+        # Support both new format (pi/direct groups) and legacy format (default group)
+        direct_clis = []
+        pi_clis = []
         aux_clis = []
         if saved:
-            default_clis = saved.get("default", {}).get("clis", [])
-            aux_clis = saved.get("aux", {}).get("clis", [])
+            # Legacy fallback: "default" group becomes "direct" for config display
+            if "direct" not in saved and "default" in saved:
+                default_clis = saved.get("default", {}).get("clis", [])
+                direct_clis = [c for c in default_clis if not c.get("name", "").startswith("pi:")]
+                pi_clis_from_default = [c for c in default_clis if c.get("name", "").startswith("pi:")]
+                saved["direct"] = {"clis": direct_clis}
+                if pi_clis_from_default:
+                    saved["pi"] = {"clis": pi_clis_from_default}
+            else:
+                direct_clis = saved.get("direct", {}).get("clis", [])
+                pi_clis = saved.get("pi", {}).get("clis", [])
 
-        if default_clis or aux_clis:
+        if direct_clis or pi_clis or aux_clis:
             print("Active CLIs:")
-            for i, (group_name, group_data) in enumerate(
-                [("Default", {"clis": default_clis}), ("Aux / Enh", {"clis": aux_clis})]
+            group_labels = {
+                "direct": "Direct",
+                "pi": "Pi (by params ↓)",
+            }
+            for i, (group_name_raw, group_data) in enumerate(
+                [("direct", saved.get("direct", {})), ("pi", saved.get("pi", {}))]
             ):
                 clis = group_data.get("clis", [])
                 if not clis:
                     continue
                 if i > 0:
                     print()
-                print(f"  {group_name}:")
+                group_label = group_labels.get(group_name_raw, group_name_raw.title())
+                print(f"  {group_label}:")
                 for idx, cli in enumerate(clis):
                     is_last_cli = (idx == len(clis) - 1)
                     name = cli.get("name", "")
@@ -3428,6 +3801,10 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
                     top_connector = "└── " if is_last_cli else "├── "
 
                     print(f"    {top_connector}{name}")
+                    # Show tags if present
+                    tags = cli.get("tags", [])
+                    if tags and isinstance(tags, list):
+                        print(f"    │   └── [{', '.join(tags)}]")
 
                     if model:
                         # Model is a child of CLI
@@ -3588,9 +3965,7 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
         routed_flags = route_query_to_clis(query)
         # Set the appropriate CLI flag based on routing
         for flag in routed_flags:
-            if flag == "--qwen-only":
-                args.qwen_only = True
-            elif flag == "--gemini-only":
+            if flag == "--gemini-only":
                 args.gemini_only = True
             elif flag == "--codex-only":
                 args.codex_only = True
@@ -3602,7 +3977,6 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
         print("# Run these 4 bash commands in parallel:", file=sys.stderr)
         bash_commands = generate_parallel_bash_commands(
             query=query,
-            qwen_only=args.qwen_only,
             gemini_only=args.gemini_only,
             codex_only=args.codex_only,
         )
@@ -3639,43 +4013,59 @@ Session IDs: ls ~/.claude/projects/P--/*.jsonl""",
             print(result.get("response", ""))
         return
 
-    # Load saved recipe if no opencode_models specified on command line
+    # Load saved recipe (config)
+    saved = _load_ai_cli_config()
     opencode_models = args.opencode_model
-    if not opencode_models:
-        saved = _load_ai_cli_config()
-        if saved:
-            opencode_models = saved.get("opencode_models", [])
+    if not opencode_models and saved:
+        opencode_models = saved.get("opencode_models", [])
 
     # Context file for pi agents
     context_file = args.context
 
+    # Pi models from --pi-model flag OR from saved config (default.clis entries with "pi:" prefix)
+    pi_models = getattr(args, "pi_model", []) or []
+    if saved and not getattr(args, "pi_model", []):
+        # Load pi models from saved config (format: {"name": "pi:kimi-k2.6"} or {"name": "pi", "model": "kimi-k2.6"})
+        # Config uses "pi" and "direct" groups; also support legacy "default" group
+        for group in ("pi", "default"):
+            for cli in saved.get(group, {}).get("clis", []):
+                name = cli.get("name", "")
+                model = cli.get("model", "")
+                if name.startswith("pi:"):
+                    pi_models.append(name[3:])
+                elif name == "pi" and model:
+                    pi_models.append(model)
+
     # Show CLI/LLM preview before execution
+    use_config_pi = bool(saved and pi_models and not getattr(args, "pi_model", []))
     cli_preview = _get_cli_preview(
-        qwen_only=args.qwen_only,
         gemini_only=args.gemini_only,
         codex_only=args.codex_only,
         opencode_only=args.opencode_only,
         glm_flash_only=args.glm_flash_only,
         opencode_models=opencode_models,
+        pi_models=pi_models,
+        copilot_only=getattr(args, "copilot_only", False),
+        use_config_pi=use_config_pi,
     )
     print(cli_preview, file=sys.stderr)
 
     # Execute parallel LLM queries
+    use_config = bool(saved)
     results = run_parallel_llm(
         query=query,
-        qwen_only=args.qwen_only,
         gemini_only=args.gemini_only,
         codex_only=args.codex_only,
         opencode_only=args.opencode_only,
         glm_flash_only=args.glm_flash_only,
-        pi_m27_only=getattr(args, "pi_m27_only", False),
-        pi_glm_only=getattr(args, "pi_glm_only", False),
+        pi_models=pi_models,
         copilot_only=getattr(args, "copilot_only", False),
         timeout=args.timeout,
         output_format=args.output_format,
         verbose=getattr(args, "verbose", False),
         opencode_models=opencode_models,
         context_file=context_file,
+        use_config=use_config,
     )
 
     # Log performance metrics for each CLI execution

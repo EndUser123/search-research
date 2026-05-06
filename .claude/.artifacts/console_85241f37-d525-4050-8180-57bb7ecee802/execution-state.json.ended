@@ -1,0 +1,18 @@
+{
+  "run_id": "a15d45ab-9008-4850-a53b-539ff2705046",
+  "skill_name": "cc-skills-sdlc:pre-mortem",
+  "contract_type": "workflow-execution",
+  "phase": "executing",
+  "status": "complete",
+  "terminal_id": "console_85241f37-d525-4050-8180-57bb7ecee802",
+  "session_id": "ad1d9e81-aa41-4b1a-a9cb-5ea0b95e7833",
+  "turn_id": null,
+  "created_at": 1778007740.067183,
+  "updated_at": 1778009145.5019116,
+  "required_artifacts": [],
+  "completed_artifacts": [],
+  "missing_requirements": [],
+  "allowed_tools_now": [],
+  "blocked_tools": [],
+  "response_requirements": {}
+}

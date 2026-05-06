@@ -380,6 +380,11 @@ class TDD95State(Enum):
     Simplified TDD state machine.
 
     NONE -> TEST_EXISTS -> FAILING -> PASSING -> COMPLETE
+
+    Extended with RED/GREEN/REFACTOR for Three-File Contract enforcement:
+    - RED: Test editable, impl editable
+    - GREEN: Test locked, impl editable
+    - REFACTOR: Test locked, impl editable
     """
 
     NONE = "none"  # No test file exists
@@ -387,6 +392,11 @@ class TDD95State(Enum):
     FAILING = "failing"  # Test runs but fails (RED)
     PASSING = "passing"  # Test passes (GREEN)
     COMPLETE = "complete"  # TDD cycle done, ready to refactor
+
+    # Extended phases for Three-File Contract
+    RED = "red"  # Test editable, impl editable
+    GREEN = "green"  # Test locked, impl editable
+    REFACTOR = "refactor"  # Test locked, impl editable
 
     @classmethod
     def from_string(cls, value: str) -> TDD95State:
@@ -405,16 +415,53 @@ class TDD95State(Enum):
                 "red_confirmed": cls.FAILING,
                 "green_confirmed": cls.PASSING,
                 "refactoring": cls.COMPLETE,
+                # Legacy aliases for extended phases
+                "red": cls.RED,
+                "green": cls.GREEN,
+                "refactor": cls.REFACTOR,
             }
             return legacy_map.get(value.lower(), cls.NONE)
 
     def can_edit_impl(self) -> bool:
         """Check if implementation file can be edited in this state."""
-        return self in (TDD95State.FAILING, TDD95State.PASSING, TDD95State.COMPLETE)
+        return self in (
+            TDD95State.FAILING,
+            TDD95State.PASSING,
+            TDD95State.COMPLETE,
+            TDD95State.RED,
+            TDD95State.GREEN,
+            TDD95State.REFACTOR,
+        )
 
-    def can_edit_test(self) -> bool:
-        """Check if test file can be edited in this state."""
-        return True  # Tests can always be edited
+    def can_edit_test(self, file_path: str | Path | None = None) -> bool:
+        """
+        Check if test file can be edited in this state.
+
+        Three-File Contract: Test files can ONLY be edited in RED phase.
+        This prevents accidental test modification during implementation.
+
+        Args:
+            file_path: Optional path to check (currently unused, for future
+                      per-file granularity if needed). For now, uses global state.
+
+        Returns:
+            True only in RED phase (or legacy FAILING state for backward compat)
+        """
+        # RED phase: tests can be edited
+        # Legacy FAILING maps to RED behavior
+        return self in (TDD95State.RED, TDD95State.FAILING)
+
+    def is_red_phase(self) -> bool:
+        """Check if currently in RED phase (test-first, test-editable)."""
+        return self in (TDD95State.RED, TDD95State.FAILING)
+
+    def is_green_phase(self) -> bool:
+        """Check if currently in GREEN phase (test-locked, impl-editable)."""
+        return self in (TDD95State.GREEN, TDD95State.PASSING)
+
+    def is_refactor_phase(self) -> bool:
+        """Check if currently in REFACTOR phase (cleanup, test-locked)."""
+        return self == TDD95State.REFACTOR
 
     def requires_test_run(self) -> bool:
         """Check if state requires running tests."""

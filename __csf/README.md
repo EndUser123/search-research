@@ -7,11 +7,11 @@ A comprehensive cognitive infrastructure system for Claude Code on Windows 11, p
 ## Quick Start
 
 ```bash
-# Run system health check
-cd P:/__csf && python src/modules/observability/system_health.py health
+# Run system health check via plugin skill
+/health
 
-# View all status information
-python src/modules/observability/system_health.py all
+# Or execute underlying script directly
+python P:/packages/.claude-marketplace/plugins/cc-skills-utils/skills/health/scripts/main_health.py
 ```
 
 ## Project Structure
@@ -20,14 +20,7 @@ python src/modules/observability/system_health.py all
 P:\__csf\
 ├── docs\                    # Design documentation
 │   └── CSF_SOLUTION_DESIGN.md
-├── src\                     # Source code
-│   ├── modules\             # Core modules
-│   │   ├── observability\   # Health monitoring & logging
-│   │   ├── knowledge\       # CKS (Constitutional Knowledge System)
-│   │   └── ...
-│   ├── commands\            # CLI commands
-│   ├── core\                # Core systems
-│   └── ...
+├── csf\                     # Package implementation
 ├── .claude\                 # Claude Code runtime (symlink to P:\.claude)
 └── reports\                 # Generated reports
 ```
@@ -36,32 +29,31 @@ P:\__csf\
 
 ### API Keys & Environment
 
-The system requires API keys for LLM providers and external services. See **[System Health Configuration](src/modules/observability/CONFIGURATION.md)** for:
+The system requires API keys for LLM providers and external services. These are managed via `.env` files and validated by the `/health` skill.
 
-- `.env` file locations (`P:/.env`, `P:\__csf\.env`)
-- Sync validation between parent and project configs
-- Adding new API keys
-- Troubleshooting health check warnings
+- **Primary .env**: `P:/.env`
+- **Validation**: Run `/health --llm` to verify provider status.
 
 ### Health Check Commands
 
-| Command | Description |
-|---------|-------------|
-| `health` | System health status (default) |
-| `activity` | Last hour system activity |
-| `blocked` | Blocked actions and reasons |
-| `tests` | Test coverage statistics |
-| `all` | All status information |
+Use `/health` with the following flags:
+
+| Flag | Description |
+|------|-------------|
+| `--health` | System health status (default) |
+| `--activity` | Last hour system activity |
+| `--llm` | Provider health and API key status |
+| `--tests` | Test coverage statistics |
+| `--all` | Run all status checks |
 
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
 | [CSF Solution Design](docs/CSF_SOLUTION_DESIGN.md) | Architecture & migration plan |
-| [System Health Configuration](src/modules/observability/CONFIGURATION.md) | API key setup & sync validation |
 | [Beads Setup Guide](docs/BEADS_SETUP.md) | Task tracker installation & multi-worktree configuration |
 | [CFLO Architecture](docs/CFLO_ARCHITECTURE.md) | Cognitive Feedback Loop Orchestrator - Multi-agent closed-loop workflows |
-| [Verification Workflow Documentation](src/core/VERIFICATION_WORKFLOW_DOCUMENTATION.md) | Evidence-based claim validation and enforcement system |
+| [Verification Workflow Documentation](docs/VERIFICATION_WORKFLOW.md) | Evidence-based claim validation and enforcement system |
 
 ## Key Systems
 

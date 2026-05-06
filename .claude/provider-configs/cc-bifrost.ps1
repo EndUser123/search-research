@@ -30,6 +30,7 @@ $doRestart = $false
 $doShutdown = $false
 $doDashboard = $false
 $doRoutes = $false
+$doStatus = $false
 $newOnly = $false
 $modelOverride = $null
 $i = 0
@@ -47,6 +48,8 @@ while ($i -lt $Args.Count) {
         $doDashboard = $true
     } elseif ($arg -eq "--routes") {
         $doRoutes = $true
+    } elseif ($arg -eq "--status") {
+        $doStatus = $true
     } elseif ($arg -eq "--new-only") {
         $newOnly = $true
     } elseif ($arg -eq "--model" -or $arg -eq "-m") {
@@ -66,7 +69,8 @@ function Get-BifrostRoutesFromDb {
     if (-not (Test-Path $dbPath)) {
         return @{}
     }
-    $pythonScript = @"
+    $tmp = [System.IO.Path]::GetTempFileName() + ".py"
+    $scriptContent = @"
 import sqlite3, json
 conn = sqlite3.connect(r'$dbPath')
 c = conn.cursor()
@@ -83,15 +87,17 @@ for row in c.fetchall():
     provider = row[2]
     model = row[3]
     import re
-    m = re.search(r'model\s*==\s*"([^"]+)"', cel)
+    m = re.search('model==\"([^\"]+)\"', cel.replace(' ', ''))
     if m and provider and model:
         modelName = m.group(1)
         routes[modelName] = {'display': f'{provider}/{model}', 'sonnet': modelName, 'opus': modelName, 'haiku': modelName}
 print(json.dumps(routes))
 conn.close()
 "@
+    [System.IO.File]::WriteAllText($tmp, $scriptContent, [System.Text.Encoding]::UTF8)
     try {
-        $json = python3 -c $pythonScript 2>$null
+        $json = python3 $tmp 2>$null
+        Remove-Item $tmp -Force -ErrorAction SilentlyContinue
         if ($json) {
             $data = ConvertFrom-Json $json
             $ht = @{}
@@ -115,7 +121,8 @@ function Get-BifrostRulesFromDb {
     if (-not (Test-Path $dbPath)) {
         return @()
     }
-    $pythonScript = @"
+    $tmp = [System.IO.Path]::GetTempFileName() + ".py"
+    $scriptContent = @"
 import sqlite3, json
 conn = sqlite3.connect(r'$dbPath')
 c = conn.cursor()
@@ -138,8 +145,10 @@ for row in c.fetchall():
 print(json.dumps({'rules': rules}))
 conn.close()
 "@
+    [System.IO.File]::WriteAllText($tmp, $scriptContent, [System.Text.Encoding]::UTF8)
     try {
-        $json = python3 -c $pythonScript 2>$null
+        $json = python3 $tmp 2>$null
+        Remove-Item $tmp -Force -ErrorAction SilentlyContinue
         if ($json) {
             $data = ConvertFrom-Json $json
             return $data.rules
@@ -218,7 +227,8 @@ function Start-BifrostDaemon {
     }
 
     # Re-enable all routing rules (Bifrost sets enabled=0 on startup)
-    $pythonScript = @"
+    $tmp = [System.IO.Path]::GetTempFileName() + ".py"
+    $pythonContent = @"
 import sqlite3
 conn = sqlite3.connect(r'$env:APPDATA\bifrost\config.db')
 c = conn.cursor()
@@ -227,7 +237,9 @@ conn.commit()
 print(f'Enabled {c.rowcount} rules')
 conn.close()
 "@
-    python3 -c $pythonScript 2>$null | ForEach-Object { Write-Host "   $_" -ForegroundColor DarkGray }
+    [System.IO.File]::WriteAllText($tmp, $pythonContent, [System.Text.Encoding]::UTF8)
+    python3 $tmp 2>$null | ForEach-Object { Write-Host "   $_" -ForegroundColor DarkGray }
+    Remove-Item $tmp -Force -ErrorAction SilentlyContinue
 }
 
 function Stop-BifrostDaemon {
@@ -250,6 +262,28 @@ function Restart-BifrostDaemon {
     Stop-BifrostDaemon
     Start-Sleep -Milliseconds 500
     Start-BifrostDaemon
+    # Wait for Bifrost HTTP endpoint to become responsive (bootstrap takes ~45-60s)
+    Write-Host "   Waiting for Bifrost API..." -ForegroundColor DarkGray
+    $ready = $false
+    for ($i = 0; $i -lt 70; $i++) {
+        Start-Sleep -Seconds 1
+        try {
+            $req = [System.Net.HttpWebRequest]::Create("http://localhost:8080/v1/models")
+            $req.Timeout = 3000
+            $req.Method = "GET"
+            $resp = $req.GetResponse()
+            $resp.Close()
+            $ready = $true
+            break
+        } catch {}
+    }
+    if ($ready) {
+        Write-Host "   Bifrost API ready" -ForegroundColor Green
+    } else {
+        Write-Host "   [WARN] Bifrost API not responding after 70s -- verification skipped" -ForegroundColor Yellow
+        return
+    }
+    Verify-BifrostRouting
 }
 
 function Show-BifrostRoutes {
@@ -259,7 +293,8 @@ function Show-BifrostRoutes {
         return
     }
     Write-Host ""
-    python3 $scriptPath 2>&1 | ForEach-Object { Write-Host $_ }
+    Write-Host "=== CONFIGURED ROUTES ===" -ForegroundColor Yellow
+    python3 -u $scriptPath 2>&1
 }
 
 function Show-BifrostDashboard {
@@ -281,6 +316,172 @@ function Show-BifrostDashboard {
     $url = "http://localhost:$port"
     Write-Host "   Opening dashboard: $url" -ForegroundColor Cyan
     Start-Process -FilePath $url
+}
+
+function Show-BifrostStatus {
+    Write-Host ""
+    Write-Host "=== BIFROST STATUS ===" -ForegroundColor Yellow
+
+    # Daemon status
+    $proc = Get-BifrostProcess
+    if ($proc) {
+        Write-Host "   Daemon:            RUNNING (PID $($proc.Id))" -ForegroundColor Green
+    } else {
+        Write-Host "   Daemon:            NOT RUNNING" -ForegroundColor Red
+    }
+
+    # DB summary via temp file
+    $statusCode = @'
+import sqlite3, json, os
+
+db = os.path.join(os.environ['APPDATA'], 'bifrost', 'config.db')
+conn = sqlite3.connect(db)
+c = conn.cursor()
+
+# Rules count
+c.execute('SELECT COUNT(*), SUM(CASE WHEN enabled=1 THEN 1 ELSE 0 END) FROM routing_rules')
+total, enabled = c.fetchone()
+enabled = enabled or 0
+
+# Rules with targets
+c.execute('SELECT COUNT(DISTINCT r.id) FROM routing_rules r JOIN routing_targets rt ON rt.rule_id = r.id WHERE r.enabled = 1 AND rt.provider IS NOT NULL')
+rules_with_targets = c.fetchone()[0] or 0
+
+# Providers that have enabled rules
+c.execute('''
+    SELECT DISTINCT rt.provider
+    FROM routing_targets rt
+    JOIN routing_rules r ON r.id = rt.rule_id
+    WHERE r.enabled = 1 AND rt.provider IS NOT NULL
+''')
+providers_with_rules = sorted([row[0] for row in c.fetchall()])
+
+# All config_keys deduplicated by normalized provider name
+c.execute('SELECT LOWER(provider) as p, substr(value, 1, 12) FROM config_keys GROUP BY LOWER(provider)')
+all_keys = [[row[0], row[1]] for row in c.fetchall()]
+
+# Missing keys (case-insensitive comparison against normalized all_keys)
+all_keys_lower = [k[0].lower() for k in all_keys]
+missing = [p for p in providers_with_rules if p.lower() not in all_keys_lower]
+
+print(json.dumps({
+    'total': total,
+    'enabled': enabled,
+    'rules_with_targets': rules_with_targets,
+    'providers_with_rules': providers_with_rules,
+    'all_keys': all_keys,
+    'missing_keys': missing
+}))
+conn.close()
+'@
+
+    $tmp = [System.IO.Path]::GetTempFileName() + ".py"
+    [System.IO.File]::WriteAllText($tmp, $statusCode, [System.Text.Encoding]::UTF8)
+    $jsonOut = python3 $tmp 2>$null
+    Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+
+    if ($jsonOut) {
+        try {
+            $data = ConvertFrom-Json $jsonOut
+            $total = $data.total; $enabled = $data.enabled
+
+            if ($enabled -eq $total -and $total -gt 0) {
+                $ruleColor = "Green"
+            } elseif ($enabled -eq 0) {
+                $ruleColor = "Red"
+            } else {
+                $ruleColor = "Yellow"
+            }
+            Write-Host "   Rules:             $enabled / $total enabled" -ForegroundColor $ruleColor
+
+            $rwt = $data.rules_with_targets
+            if ($rwt -eq $total) {
+                Write-Host "   Rules with targets: $rwt / $total" -ForegroundColor Green
+            } else {
+                Write-Host "   Rules with targets: $rwt / $total" -ForegroundColor Red
+            }
+
+            $missing = $data.missing_keys
+            $keyCount = $data.all_keys.Count
+            $pc = $keyCount
+            if ($missing.Count -eq 0) {
+                Write-Host "   Provider keys:     ALL ALIGNED $pc providers" -ForegroundColor Green
+            } else {
+                $missingList = $missing -join ", "
+                Write-Host "   Provider keys:     MISSING for: $missingList" -ForegroundColor Red
+            }
+
+            Write-Host ""
+            Write-Host "   Provider -> Key map:" -ForegroundColor White
+            $data.all_keys | ForEach-Object {
+                $name = $_[0]; $prefix = $_[1]
+                Write-Host "     ${name}: ${prefix}..." -ForegroundColor DarkGray
+            }
+        } catch {
+            Write-Host "   [WARN] Could not parse DB output: $_" -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "   [WARN] Could not query DB" -ForegroundColor Yellow
+    }
+
+    # Live probe
+    Write-Host ""
+    Write-Host "   Live probe:" -ForegroundColor White
+    $probeCode = @'
+import urllib.request, json
+
+try:
+    payload = json.dumps({
+        'model': 'M27',
+        'messages': [{'role': 'user', 'content': 'test'}],
+        'max_tokens': 1,
+    }).encode()
+    req = urllib.request.Request(
+        'http://localhost:8080/v1/chat/completions',
+        data=payload,
+        headers={'Content-Type': 'application/json'},
+        method='POST'
+    )
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        body = json.loads(resp.read())
+        extra = body.get('extra_fields', {})
+        prov = extra.get('provider', '?')
+        print('M27: OK  (provider=' + str(prov) + ')')
+except urllib.error.HTTPError as e:
+    print('HTTP ' + str(e.code) + ': ' + e.read().decode()[:200])
+except Exception as e:
+    print('ERROR: ' + str(e))
+'@
+
+    $tmp2 = [System.IO.Path]::GetTempFileName() + ".py"
+    [System.IO.File]::WriteAllText($tmp2, $probeCode, [System.Text.Encoding]::UTF8)
+    $probeOut = python3 $tmp2 2>&1
+    Remove-Item $tmp2 -Force -ErrorAction SilentlyContinue
+    if ($probeOut -match "M27: OK") {
+        Write-Host "     $probeOut" -ForegroundColor Green
+    } else {
+        Write-Host "     $probeOut" -ForegroundColor Red
+    }
+}
+
+# Verify-BifrostAfterRestart: probes routes after restart to confirm routing chain is functional
+function Verify-BifrostRouting {
+    Write-Host "   Verifying routes..." -ForegroundColor DarkGray
+
+    $scriptPath = "$PSScriptRoot\scripts\routes_probe.py"
+    $tmp = [System.IO.Path]::GetTempFileName() + ".py"
+    [System.IO.File]::WriteAllText($tmp, (Get-Content $scriptPath -Raw), [System.Text.Encoding]::UTF8)
+    $out = python3 $tmp 2>&1
+    Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+    if ($out) {
+        $out -split "`n" | ForEach-Object {
+            if ($_ -match ": OK\b|: MISMATCH|: ERROR") {
+                Write-Host "     $_" -ForegroundColor Yellow
+            } else {
+                Write-Host "     $_" -ForegroundColor DarkGray
+            }
+        }
+    }
 }
 
 # Load routes from DB
@@ -308,6 +509,11 @@ if ($doShutdown) {
 
 if ($doDashboard) {
     Show-BifrostDashboard
+    return
+}
+
+if ($doStatus) {
+    Show-BifrostStatus
     return
 }
 
@@ -394,5 +600,7 @@ if ($routes.Count -eq 0) {
 Write-Host ""
 Write-Host "   cc-bf --routes              probe all routes (DB + runtime latency)" -ForegroundColor White
 Write-Host "   cc-bf --routes --new-only   show catalog models with no routing rule" -ForegroundColor White
-Write-Host "   cc-bf --sync                backup + sync routing rules from DB to config.json" -ForegroundColor White
+Write-Host "   cc-bf --status              health check: rules, keys, live probe" -ForegroundColor White
+Write-Host "   cc-bf --restart             stop + start + verify routing chain" -ForegroundColor White
+Write-Host "   cc-bf --sync                backup + sync rules AND provider keys from config.json" -ForegroundColor White
 Write-Host ""

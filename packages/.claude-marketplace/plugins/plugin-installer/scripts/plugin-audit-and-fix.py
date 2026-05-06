@@ -551,16 +551,20 @@ def auto_fix_plugins(plugins_dir: Path, delete_hooks: bool) -> list[dict]:
                     result["fixed"] = True
         results.append(result)
     return results
-def auto_fix_skill_state_dirs(plugins_dir: Path) -> list[dict]:
-    """Delete .claude/ and .state/ directories inside skills/ subdirectories."""
-    import shutil
+def audit_skill_state_dirs(plugins_dir: Path) -> list[dict]:
+    """Audit .claude/ and .state/ directories inside skills/ subdirectories.
+
+    Does NOT delete — warns only. These dirs may contain legitimate per-skill
+    state (e.g., .aid/ AI Distiller output). They should be reviewed before
+    removal, not silently nuked.
+    """
     results = []
     if not plugins_dir.exists():
         return results
     for plugin in sorted(plugins_dir.iterdir()):
         if plugin.name.startswith("."):
             continue
-        result = {"plugin": plugin.name, "actions": [], "fixed": False}
+        result = {"plugin": plugin.name, "errors": [], "warnings": []}
         skills_dir = plugin / "skills"
         if not skills_dir.is_dir():
             results.append(result)
@@ -571,12 +575,19 @@ def auto_fix_skill_state_dirs(plugins_dir: Path) -> list[dict]:
             for bad in [".claude", ".state"]:
                 bad_dir = skill_item / bad
                 if bad_dir.exists() and bad_dir.is_dir():
-                    try:
-                        shutil.rmtree(bad_dir)
-                        result["actions"].append(f"Deleted {bad}/ inside skills/{skill_item.name}/")
-                        result["fixed"] = True
-                    except OSError as e:
-                        result["actions"].append(f"Failed to delete {bad}/ inside skills/{skill_item.name}/: {e}")
+                    entries = list(bad_dir.iterdir())
+                    entry_names = [e.name for e in entries]
+                    # .aid/ is AI Distiller output — always warn-only, never delete
+                    if bad == ".claude" and ".aid" in entry_names:
+                        result["warnings"].append(
+                            f"{bad}/ inside skills/{skill_item.name}/ "
+                            f"(contains .aid/ — AI Distiller output, preserve)"
+                        )
+                    else:
+                        result["errors"].append(
+                            f"{bad}/ inside skills/{skill_item.name}/ "
+                            f"(should be at plugin root; {len(entries)} entries: {entry_names[:3]}{'...' if len(entries) > 3 else ''})"
+                        )
         results.append(result)
     return results
 def auto_fix_git_artifacts(plugins_dir: Path) -> list[dict]:
@@ -685,6 +696,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--scan-name-conflicts", action="store_true", help="Scan for conflicting skill/command names across global and local dirs")
     parser.add_argument("--plugins", metavar="NAME", help="Filter to a specific plugin name")
     parser.add_argument("--validate", action="store_true", help="Run 'claude plugin validate' on each plugin")
+    parser.add_argument("--drift", action="store_true", help="Detect source-vs-cache drift using content hash (no version comparison)")
     parser.add_argument("--bump", metavar="PLUGIN_NAME", help="Bump patch version for a plugin in all version files")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     args = parser.parse_args(argv[1:])
@@ -752,6 +764,34 @@ def main(argv: list[str]) -> int:
         else:
             print(f"{C_GREEN}All plugins validated{C_RESET}")
         return failed
+    if args.drift:
+        findings = audit_source_cache_drift(plugins_dir)
+        stale = [f for f in findings if f["type"] == "stale_version_dirs"]
+        modified = [f for f in findings if f["type"] == "source_modified"]
+        cache_only = [f for f in findings if f["type"] == "cache_only"]
+        if stale:
+            print(f"{C_YELLOW}Stale version dirs:{C_RESET}")
+            for f in stale:
+                print(f"  {f['plugin']}: stale {[d for d in f['stale_versions']]}")
+        else:
+            print("No stale version dirs.")
+        if modified:
+            print(f"{C_YELLOW}Source drift:{C_RESET}")
+            for f in modified:
+                sample = ", ".join(f["sample_files"][:3])
+                extra = f" (+{f['drift_count'] - len(f['sample_files'])} more)" if f["drift_count"] > len(f["sample_files"]) else ""
+                print(f"  {f['plugin']} ({f['cache_version']}): {f['drift_count']} file(s) modified — {sample}{extra}")
+        else:
+            print("No source drift.")
+        if cache_only:
+            print(f"{C_YELLOW}Cache-only files:{C_RESET}")
+            for f in cache_only:
+                print(f"  {f['plugin']}: {[cf for cf in f['cache_only_files']]}")
+        else:
+            print("No cache-only files.")
+        # Output machine-readable summary for downstream parsing
+        print(f"\nSummary: {len(stale)} stale, {len(modified)} drift, {len(cache_only)} cache-only")
+        return 0
     print("Auditing plugins...")
     plugin_results = audit_plugins(plugins_dir, mp_root, plugin_filter=args.plugins)
     error_count = sum(len(r["errors"]) for r in plugin_results)
@@ -804,13 +844,12 @@ def main(argv: list[str]) -> int:
         for r in fix_results:
             for action in r["actions"]:
                 print(f"  [{r['plugin']}] {action}")
-        skill_state_results = auto_fix_skill_state_dirs(plugins_dir)
-        skill_fix_count = sum(len(r["actions"]) for r in skill_state_results)
-        if skill_fix_count > 0:
-            print(f"{C_GREEN}Deleted {skill_fix_count} stale skill-state dir(s).{C_RESET}")
-            for r in skill_state_results:
-                for action in r["actions"]:
-                    print(f"  [{r['plugin']}] {action}")
+        skill_state_results = audit_skill_state_dirs(plugins_dir)
+        for r in skill_state_results:
+            for err in r["errors"]:
+                print(f"  [{C_RED}ERROR{C_RESET}] {r['plugin']}: {err}")
+            for warn in r["warnings"]:
+                print(f"  [{C_YELLOW}WARNING{C_RESET}] {r['plugin']}: {warn}")
         git_results = auto_fix_git_artifacts(plugins_dir)
         git_fix_count = sum(len(r["actions"]) for r in git_results)
         if git_fix_count > 0:

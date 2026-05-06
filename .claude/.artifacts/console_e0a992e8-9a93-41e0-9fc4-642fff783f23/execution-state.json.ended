@@ -1,0 +1,18 @@
+{
+  "run_id": "f1929a86-f833-41af-8d79-49f03ba3e366",
+  "skill_name": "ai-pcli",
+  "contract_type": "workflow-execution",
+  "phase": "loaded",
+  "status": "complete",
+  "terminal_id": "console_e0a992e8-9a93-41e0-9fc4-642fff783f23",
+  "session_id": "c3e0fc2e-0fa3-44a4-bc5a-5a68c80f929b",
+  "turn_id": null,
+  "created_at": 1778018596.795358,
+  "updated_at": 1778018848.0104866,
+  "required_artifacts": [],
+  "completed_artifacts": [],
+  "missing_requirements": [],
+  "allowed_tools_now": [],
+  "blocked_tools": [],
+  "response_requirements": {}
+}

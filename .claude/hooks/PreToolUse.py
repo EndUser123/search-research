@@ -637,9 +637,15 @@ def _check_skill_first_gate(data: dict) -> dict | None:
 
 
 # Hooks that run for ALL tool types
+#
+# INVARIANT 3 WIRING (2026-05-05):
+#   PreToolUse_skill_pattern_gate.py REMOVED from this list.
+#   execution_hooks.py (skill-guard subprocess via hooks.json) is the SOLE
+#   PreToolUse contract authority for /skill-name runs.
+#   The legacy gate ran before the subprocess, causing double-gating with conflicting state.
+#   It is now completely removed from the dispatch chain.
 UNIVERSAL = [
     "PreToolUse_path_validator.py",
-    "PreToolUse/PreToolUse_skill_pattern_gate.py",  # v3.2 - Parallel regex + daemon validation
     "PreToolUse_domain_tool_router.py",  # NEW 2026-03-21: Advisory domain tool suggestions
     "PreToolUse_discovery_tracker.py",  # ADR-00X: Tracks discovery tool usage for discovery-first enforcement (2026-04-09)
     "PreToolUse_risk_tier_gate.py",
@@ -654,10 +660,17 @@ UNIVERSAL = [
 
 # Legacy top-level PreToolUse entries are routed here now so Claude only has to
 # spawn one Bash hook for PreToolUse instead of one per sub-hook.
+#
+# NOTE: PreToolUse_skill_pattern_gate.py was REMOVED from UNIVERSAL.
+# It has been replaced by execution_hooks.py (skill-guard subprocess in hooks.json)
+# which is the SOLE contract authority for /skill-name runs per INVARIANT 3.
+# The legacy gate is kept in this list as documentation of its former position
+# but is COMMENTED OUT to prevent double-gating. Do NOT uncomment.
 COMPAT_POST_ROUTER_HOOKS = [
     "PreToolUse_file_existence_guard.py",
     "pre/PreToolUse_tool_check.py",
     "PreToolUse_verification_router.py",
+    # "PreToolUse/PreToolUse_skill_pattern_gate.py",  # REMOVED - see note above
 ]
 
 # Mutation tools rely on path_validator (UNIVERSAL) for path protection.
@@ -680,7 +693,6 @@ TOOL_HOOKS = {
         "PreToolUse_implementation_default_gate.py",  # Flipped default: block Edit/Write unless explicit trigger
         "PreToolUse_investigation_gate.py",
         "PreToolUse_tdd95_gate.py",  # TDD enforcement
-        "PreToolUse_tdd_contract_gate.py",  # TDD Phase 2 contract gate
     ],
     "Edit": [
         "PreToolUse_win32_path_gate.py",  # Blocks backslash paths that cause silent failures on Windows MINGW
@@ -696,7 +708,6 @@ TOOL_HOOKS = {
         "PreToolUse_implementation_default_gate.py",  # Flipped default: block Edit/Write unless explicit trigger
         "PreToolUse_investigation_gate.py",
         "PreToolUse_tdd95_gate.py",  # TDD enforcement
-        "PreToolUse_tdd_contract_gate.py",  # TDD Phase 2 contract gate
     ],
     "MultiEdit": [
         "PreToolUse_win32_path_gate.py",  # Blocks backslash paths that cause silent failures on Windows MINGW
@@ -772,7 +783,8 @@ try:
     from skill_guard.PreToolUse.PreToolUse_skill_dir_gate import run as _skill_dir_gate_run
     from skill_guard.PreToolUse.PreToolUse_skill_question_gate import run as _skill_question_gate_run
     from skill_guard.PreToolUse.PreToolUse_context_sufficiency_gate import run as _context_sufficiency_run
-    from skill_guard.PreToolUse.PreToolUse_skill_pattern_gate import handle_pre_tool_use as _skill_pattern_gate_run
+    # NOTE: PreToolUse_skill_pattern_gate.py REMOVED from IN_PROCESS_HOOKS.
+    # execution_hooks.py (skill-guard subprocess via hooks.json) is the sole contract gate.
     from artifact_grounder import ground_blocked_command, ground_git_safety_block
     from pretooluse_observability import (
         append_jsonl as append_observability_jsonl,
@@ -798,7 +810,7 @@ try:
         "PreToolUse_skill_dir_gate.py": _skill_dir_gate_run,
         "PreToolUse_skill_question_gate.py": _skill_question_gate_run,
         "PreToolUse_context_sufficiency_gate.py": _context_sufficiency_run,
-        "PreToolUse/PreToolUse_skill_pattern_gate.py": _skill_pattern_gate_run,
+        # PreToolUse_skill_pattern_gate.py REMOVED - execution_hooks.py is sole contract gate
         "PreToolUse_task_self_doc_gate.py": PreToolUse_task_self_doc_gate.run,
         "check_external_path_consent": pre_tool_use_logic.check_external_path_consent,
     }
