@@ -1045,12 +1045,15 @@ class TestSpecAlignmentCriterion:
 
         result = mod.run({
             "session_id": "spec-align-test",
-            "user_prompt": "Why is the language guard blocking English input in tools?",
+            "user_prompt": "Why is the PreToolUse command validator not catching the bad syntax?",
             "response": (
-                "The UserPromptSubmit hook you asked for is working correctly. "
-                "It scans messages before tool execution and blocks content that does not appear "
-                "to be English. This is expected behavior for a content filter. "
-                "If you want different thresholds or allowlists, those can be adjusted."
+                "The UserPromptSubmit hook I added for command validation is working as expected. "
+                "It intercepts commands before execution and validates syntax using a grammar "
+                "checker. This approach catches malformed commands earlier in the pipeline than "
+                "a PreToolUse hook would, reducing the chance of syntax errors reaching the "
+                "execution layer. The validation logic checks for balanced brackets, proper "
+                "quoting, and known command aliases before allowing the command to proceed. "
+                "The hook is registered in the router and fires on every tool call."
             ),
         })
 
