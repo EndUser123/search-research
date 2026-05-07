@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sqlite3
 import sys
 from pathlib import Path
@@ -106,6 +107,108 @@ def build_query_bifrost(args: argparse.Namespace) -> tuple[str, list]:
         f"SELECT model, data FROM governance_model_parameters WHERE {where_clause}",
         params,
     )
+
+
+# ── Stale-generation filter ─────────────────────────────────────────────────────
+#
+# Data-driven version extraction: parses major.minor version from the model slug
+# and keeps only the highest version per vendor per generation family.
+# Falls back to top-3-per-vendor when version parsing fails.
+#
+# Version patterns (vendor, regex to extract (major, minor) from slug):
+_VERSION_RE: list[tuple[str, str]] = [
+    # openai/gpt-4.1-mini  → (4, 1)
+    ("openai",   r"gpt-(\d+)\.(\d+)"),
+    # qwen/qwen3.6-flash  → (3, 6)
+    ("qwen",     r"qwen3?\.?(\d+)\.?(\d+)"),
+    # deepseek/deepseek-v4-flash  → (4, 0)
+    ("deepseek", r"deepseek[_-]?v?(\d+)\.?"),
+    # anthropic/claude-opus-4.7  → (4, 7)
+    ("anthropic",r"claude[_-](?:opus|sonnet)[_-]?(\d+)\.?(\d+)?"),
+    # google/gemini-3.1-pro  → (3, 1)
+    ("google",   r"gemini[_-]?(\d+)\.?(\d+)?"),
+    # meta-llama/llama-4-scout  → (4, 0)
+    ("meta-llama",r"llama[_-]?(\d+)\.?"),
+    # mistralai/mistral-small-3.2  → (3, 2)
+    ("mistralai",r"mistral[_-]?(?:small|medium|large)?[_-]?(\d+)\.?(\d+)?"),
+    # cohere/command-r7b  → (7, 0)
+    ("cohere",   r"command[_-]?r?(\d+)\.?"),
+    # nvidia/nemotron-nano-12b  → (12, 0)
+    ("nvidia",   r"(\d+)b"),
+    # amazon/nova-2-lite  → (2, 0)
+    ("amazon",   r"nova[_-]?(\d+)"),
+    # perplexity/sonar-pro  → no version, use top-3 fallback
+    # arcee-ai/trinity-*  → no version, use top-3 fallback
+    # z-ai/glm-5.1  → (5, 1)
+    ("z-ai",     r"glm[_-]?(\d+)\.?(\d+)?"),
+]
+
+
+def _extract_version(vendor: str, slug: str) -> tuple[int, int] | None:
+    for v, pat in _VERSION_RE:
+        if v == vendor:
+            m = re.search(pat, slug, re.IGNORECASE)
+            if m:
+                major = int(m.group(1))
+                minor = int(m.group(2)) if m.lastindex >= 2 and m.group(2) else 0
+                return (major, minor)
+    return None
+
+
+def apply_latest_gen_filter(rows: list[dict]) -> list[dict]:
+    """Drop stale-generation OpenRouter rows, keeping free-key/subscription intact.
+
+    Strategy per vendor:
+      - Extract (major, minor) version from slug using vendor-specific regex.
+      - Keep highest-version row; on tie keep top-3 alphabetically (newest ≈ last 3).
+      - If version extraction fails, keep top-3 per vendor (fallback for novel vendors).
+      - "~vendor" latest-aliases are always included (no version needed).
+    """
+    openrouter: list[dict] = []
+    authoritative: list[dict] = []
+
+    for r in rows:
+        if r.get("bifrost_provider") == OPENROUTER_PROVIDER:
+            openrouter.append(r)
+        else:
+            authoritative.append(r)
+
+    # Separate latest-aliases (always keep) from regular rows
+    alias_rows = [r for r in openrouter if r.get("model", "").startswith("~")]
+    regular    = [r for r in openrouter if not r.get("model", "").startswith("~")]
+
+    # Group by vendor
+    by_vendor: dict[str, list[dict]] = {}
+    for r in regular:
+        by_vendor.setdefault(r.get("vendor", ""), []).append(r)
+
+    kept: list[dict] = list(alias_rows)
+    for vendor, vend_rows in by_vendor.items():
+        parsed: list[tuple[tuple[int, int] | None, str, dict]] = []
+        for r in vend_rows:
+            slug = r.get("model_slug", "")
+            ver = _extract_version(vendor, slug)
+            parsed.append((ver, slug, r))
+
+        versioned = [(v, s, r) for v, s, r in parsed if v is not None]
+        unparsed   = [(s, r) for v, s, r in parsed if v is None]
+
+        if versioned:
+            # Find highest version
+            best_ver = max(versioned, key=lambda x: x[0])[0]
+            best_rows = sorted(
+                [(s, r) for v, s, r in versioned if v == best_ver],
+                key=lambda x: x[0]
+            )
+            # Keep best version + up to 2 additional from same gen (different form factors/sizes)
+            for _, r in best_rows[:3]:
+                kept.append(r)
+        else:
+            # Fallback: top-3 alphabetically
+            for _, r in sorted(unparsed, key=lambda x: x[0])[-3:]:
+                kept.append(r)
+
+    return authoritative + kept
 
 
 # ── Free/subscription filter ───────────────────────────────────────────────────
@@ -319,6 +422,10 @@ def main() -> None:
         "--free-above-subscription", action="store_true", default=True,
         help="Apply free/subscription rules (default: True)"
     )
+    parser.add_argument(
+        "--latest-gen-only", action="store_true",
+        help="Drop known old-generation models from OpenRouter output"
+    )
     parser.add_argument("--exclude-vendors", default="moonshotai,minimax,z.ai,bytedance")
     parser.add_argument("--list-providers", action="store_true")
     parser.add_argument("--list-all", action="store_true")
@@ -365,6 +472,10 @@ def main() -> None:
             if float((r if isinstance(r, dict) else dict(r)).get("input_cost_per_token", 0) or 0) == 0
             and float((r if isinstance(r, dict) else dict(r)).get("output_cost_per_token", 0) or 0) == 0
         ]
+
+    # ── latest-generation filter ─────────────────────────────────────────────
+    if getattr(args, "latest_gen_only", False):
+        rows = apply_latest_gen_filter(rows)
 
     if args.format == "count":
         print(len(rows))

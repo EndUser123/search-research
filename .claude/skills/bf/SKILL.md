@@ -96,7 +96,14 @@ These invoke `cc-bifrost.ps1` for process lifecycle control:
 - `/bf catalog --provider openrouter --free-only --min-context 131072` — OpenRouter free models >= 128k ctx
 - `/bf catalog --mode embed` — embedding models only
 - `/bf catalog --format json` — machine-readable output
+- `/bf catalog --latest-gen-only` — drop known old-generation models from OpenRouter output (e.g. gpt-4, deepseek-v2, glm-4); free-key and subscription providers are always authoritative. Default: enabled when no `--provider` specified.
 - `/bf catalog --list-all` — all models in DB without taxonomy filter
+
+**Example — agentic work (coding/architecture/reasoning, >= 128k ctx):**
+```bash
+/bf catalog --latest-gen-only --min-context 128000
+```
+Produces ~280 models covering latest generation per vendor.
 
 ## Local Catalog DB (--source local)
 

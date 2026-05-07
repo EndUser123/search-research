@@ -32,7 +32,7 @@ def check_identity_handshake():
             return
 
     safe_tid = tid.replace("/", "-").replace("\\", "-").replace(":", "-")
-    identity_path = Path("P:\\\\.claude/.artifacts") / safe_tid / "identity.json"
+    identity_path = Path("P:/.claude/.artifacts") / safe_tid / "identity.json"
 
     if not identity_path.exists():
         print(f"{C_RED}FAIL (identity.json missing for {tid}){C_RESET}")
@@ -53,7 +53,7 @@ def check_identity_handshake():
 def check_junctions():
     """Verify marketplace junctions are healthy."""
     print(f"Checking Marketplace Junctions...", end=" ")
-    marketplace_dir = Path("P:\\\\packages/.claude-marketplace/plugins")
+    marketplace_dir = Path("P:/packages/.claude-marketplace/plugins")
     if not marketplace_dir.exists():
         print(f"{C_YELLOW}SKIP (Marketplace not found){C_RESET}")
         return
@@ -76,7 +76,7 @@ def check_junctions():
 def check_version_drift():
     """Check for version misalignment in the cluster."""
     print(f"Checking Version Drift...", end=" ")
-    packages_dir = Path("P:\\\\packages")
+    packages_dir = Path("P:/packages")
     versions = {}
     try:
         for pkg in packages_dir.iterdir():
