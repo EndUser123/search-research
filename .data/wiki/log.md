@@ -1,5 +1,12 @@
 # Vault Log
 
+## 2026-05-06
+## [2026-05-06] ingest | Claude Code Hooks Reference v3.1
+Source: P:/.claude/docs/claude-hooks-v3.1.md
+SHA256: 98ba34235c5b029447792a982cbd3a26d69ff7cd6b7f89684cbec31ef98ab16f
+Content: Authoritative hooks reference — 27 events, 4 hook types, schemas, matchers, exit codes, component-scoped hooks
+Page: wiki/sources/hooks/claude-hooks-v3.1.md
+
 ## 2026-04-10
 - Vault restored from backup
 - Obsidian GUI unavailable (indexing hang on Windows 11)

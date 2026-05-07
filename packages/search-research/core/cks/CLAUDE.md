@@ -186,8 +186,8 @@ export CUDA_VISIBLE_DEVICES=0
 
 ## Data Storage
 
-- **Database**: `P:/__csf.nip/data/cks.db`
-- **FAISS Index**: `P:/__csf.nip/data/cks_hypergraph/`
+- **Database**: `P:\\\\__csf.nip/data/cks.db`
+- **FAISS Index**: `P:\\\\__csf.nip/data/cks_hypergraph/`
 
 ### Real-Time FAISS Updates
 
@@ -219,7 +219,7 @@ File references are automatically extracted from lesson text in the format: `pat
 
 Supported formats:
 - Relative paths: `contract_api.py:142`
-- Absolute paths (Windows): `P:/__csf/src/core/lesson_extractor_claude.py:387`
+- Absolute paths (Windows): `P:\\\\__csf/src/core/lesson_extractor_claude.py:387`
 - Nested paths: `src/cks/unified.py:410`
 
 Supported extensions: `.py`, `.md`, `.ts`, `.js`, `.yaml`, `.yml`, `.json`, `.sh`

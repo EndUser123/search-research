@@ -7,7 +7,7 @@ Usage: python similarity.py <target_skill>
 This script:
 1. Parses the target skill to extract keywords, dependencies, category
 2. Scans all skills in multiple directories:
-   - P:/.claude/skills (project-local)
+   - P:\\\\.claude/skills (project-local)
    - ~/.claude/skills (user-local)
    - .claude-plugins/*/skills (plugin skills, both locations)
 3. Calculates similarity scores based on multiple factors
@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 # GTO skill coverage for GTO session tracking
-_gto_lib = Path("P:/.claude/skills")
+_gto_lib = Path("P:\\\\.claude/skills")
 if str(_gto_lib) not in _sys.path:
     _sys.path.insert(0, str(_gto_lib))
 from gto.__lib.skill_coverage_detector import _append_skill_coverage  # type: ignore[attr-defined]
@@ -340,13 +340,13 @@ def get_skills_directories() -> list[Path]:
     """Return all directories containing skills.
 
     Searches in:
-    1. Project-local skills: P:/.claude/skills
+    1. Project-local skills: P:\\\\.claude/skills
     2. User-local skills: ~/.claude/skills
     3. Plugin skills: .claude-plugins/*/skills (both locations)
     """
     # Get base directories
-    # __file__ is in P:/.claude/skills/similarity/similarity.py
-    # So __file__.parent.parent.parent is P:/.claude
+    # __file__ is in P:\\\\.claude/skills/similarity/similarity.py
+    # So __file__.parent.parent.parent is P:\\\\.claude
     base_dir = Path(__file__).parent.parent.parent
     user_dir = Path.home() / ".claude"
 
@@ -414,7 +414,7 @@ def scan_skills(
                 if target_skill is None and skill.name.lower() == target_name.lower().lstrip("/"):
                     target_skill = skill
 
-                # Handle duplicates: prefer project-local (P:/) over user-local (~)
+                # Handle duplicates: prefer project-local (P:\\\\) over user-local (~)
                 # If skill already exists, only replace if the new path is project-local
                 skill_key = skill.name.lower()
                 if skill_key not in skills_dict:
@@ -531,7 +531,7 @@ def main():
             }
         )
 
-    # Create output directory in P:/.claude/.artifacts/{terminal_id}/similarity/
+    # Create output directory in P:\\\\.claude/.artifacts/{terminal_id}/similarity/
     terminal_id = os.environ.get("CLAUDE_TERMINAL_ID", "cli")
     evidence_dir = Path.cwd().resolve() / ".claude" / ".artifacts" / terminal_id / "similarity"
     evidence_dir.mkdir(parents=True, exist_ok=True)

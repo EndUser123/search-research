@@ -15,7 +15,7 @@ Deploy 3 reasoning system enhancements as hooks in the reasoning package, with s
 ## Architecture
 
 ```
-P:/packages/reasoning/
+P:\\\\packages/reasoning/
 ├── hooks/
 │   ├── Start_reasoning_mode_selector.py      # NEW: Mode selection logic
 │   ├── Stop_reasoning_enhanced.py            # NEW: Enhanced quality gate
@@ -23,7 +23,7 @@ P:/packages/reasoning/
 └── tests/
     └── test_hooks/                             # NEW: Hook tests
 
-P:/.claude/hooks/
+P:\\\\.claude/hooks/
 ├── Start_reasoning_mode_selector.py -> ../../packages/reasoning/hooks/Start_reasoning_mode_selector.py
 ├── Stop_reasoning_enhanced.py -> ../../packages/reasoning/hooks/Stop_reasoning_enhanced.py
 └── PreTool_multi_agent_reasoning.py -> ../../packages/reasoning/hooks/PreTool_multi_agent_reasoning.py
@@ -100,7 +100,7 @@ Returns improved response or allows original
 ## Implementation Tasks
 
 ### Task 1: Create Reasoning Mode Selector Hook
-**File:** `P:/packages/reasoning/hooks/Start_reasoning_mode_selector.py`
+**File:** `P:\\\\packages/reasoning/hooks/Start_reasoning_mode_selector.py`
 
 **Requirements:**
 - Analyzes query for complexity indicators
@@ -117,7 +117,7 @@ Returns improved response or allows original
 ---
 
 ### Task 2: Create Enhanced Quality Gate Hook
-**File:** `P:/packages/reasoning/hooks/Stop_reasoning_enhanced.py`
+**File:** `P:\\\\packages/reasoning/hooks/Stop_reasoning_enhanced.py`
 
 **Requirements:**
 - Extends existing quality gate to use full reasoning process
@@ -133,7 +133,7 @@ Returns improved response or allows original
 ---
 
 ### Task 3: Create Multi-Agent Reasoning Hook
-**File:** `P:/packages/reasoning/hooks/PreTool_multi_agent_reasoning.py`
+**File:** `P:\\\\packages/reasoning/hooks/PreTool_multi_agent_reasoning.py`
 
 **Requirements:**
 - Detects complex decisions requiring multiple perspectives
@@ -149,7 +149,7 @@ Returns improved response or allows original
 ---
 
 ### Task 4: Create Symlink Integration Script
-**File:** `P:/packages/reasoning/scripts/create_hook_symlinks.py`
+**File:** `P:\\\\packages/reasoning/scripts/create_hook_symlinks.py`
 
 **Requirements:**
 - Creates symlinks from .claude/hooks/ to package hooks
@@ -166,7 +166,7 @@ Returns improved response or allows original
 ---
 
 ### Task 5: Router Integration
-**Files:** `P:/.claude/hooks/Start.py`, `P:/.claude/hooks/Stop.py`, `P:/.claude/hooks/PreToolUse_router.py` (or settings.json)
+**Files:** `P:\\\\.claude/hooks/Start.py`, `P:\\\\.claude/hooks/Stop.py`, `P:\\\\.claude/hooks/PreToolUse_router.py` (or settings.json)
 
 **Requirements:**
 - Register hooks in appropriate routers
@@ -213,8 +213,8 @@ Returns improved response or allows original
 - Symlink vs. copy usage (Windows compatibility)
 
 **Log locations:**
-- `P:/packages/reasoning/hook_usage.log` (existing)
-- `P:/.claude/state/logs/reasoning_hooks.log` (new)
+- `P:\\\\packages/reasoning/hook_usage.log` (existing)
+- `P:\\\\.claude/state/logs/reasoning_hooks.log` (new)
 - Router debug output via `ROUTER_DEBUG=true`
 
 **Alert thresholds:**

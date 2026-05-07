@@ -718,7 +718,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 
     client = CKSHyperGraphClient(
-        "P:/__csf/src/features/cks/integration/adapters/project_context/test_cks.db"
+        "P:\\\\__csf/src/features/cks/integration/adapters/project_context/test_cks.db"
     )
 
     # Create task

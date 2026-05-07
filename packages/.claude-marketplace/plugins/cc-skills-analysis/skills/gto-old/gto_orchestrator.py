@@ -144,7 +144,7 @@ def _get_default_terminal_id() -> str:
     try:
         import sys
 
-        # P:/packages/search-research — resolved relative to this file's location
+        # P:\\\\packages/search-research — resolved relative to this file's location
         search_research_root = (
             Path(__file__).parent.parent.parent.parent / "packages" / "search-research"
         )

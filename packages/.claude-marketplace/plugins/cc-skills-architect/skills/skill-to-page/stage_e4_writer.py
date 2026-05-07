@@ -8,7 +8,7 @@ Behavior: Takes assembled CSS + JS + filled templates, concatenates into a valid
 import json, re, sys
 from pathlib import Path
 
-BASE   = Path("P:/packages/cc-skills-architect/skills/skill-to-page")
+BASE   = Path("P:\\\\packages/cc-skills-architect/skills/skill-to-page")
 TPL    = BASE / "templates"
 
 SECTION_ORDER = [

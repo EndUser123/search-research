@@ -97,6 +97,7 @@ CRITICAL_HOOKS = {
     "PreToolUse_authorization_gate.py",
     "PreToolUse_deny_root_write.py",
     "PreToolUse_risk_tier_gate.py",
+    "PreToolUse_protected_file_recovery_gate.py",  # Fail-closed: block edits on broken protected files
 }
 
 HOOK_TIMEOUTS = {
@@ -693,6 +694,7 @@ TOOL_HOOKS = {
         "PreToolUse_implementation_default_gate.py",  # Flipped default: block Edit/Write unless explicit trigger
         "PreToolUse_investigation_gate.py",
         "PreToolUse_tdd95_gate.py",  # TDD enforcement
+        "PreToolUse_protected_file_recovery_gate.py",  # Recovery lockout: block Edit/Write on broken protected files
     ],
     "Edit": [
         "PreToolUse_win32_path_gate.py",  # Blocks backslash paths that cause silent failures on Windows MINGW
@@ -708,6 +710,7 @@ TOOL_HOOKS = {
         "PreToolUse_implementation_default_gate.py",  # Flipped default: block Edit/Write unless explicit trigger
         "PreToolUse_investigation_gate.py",
         "PreToolUse_tdd95_gate.py",  # TDD enforcement
+        "PreToolUse_protected_file_recovery_gate.py",  # Recovery lockout: block Edit/Write on broken protected files
     ],
     "MultiEdit": [
         "PreToolUse_win32_path_gate.py",  # Blocks backslash paths that cause silent failures on Windows MINGW
@@ -738,6 +741,7 @@ TOOL_HOOKS = {
         "PreToolUse_pytest_timeout_guard.py",  # CRITICAL: Blocks pytest without --timeout (prevents computer hangs)
         "PreToolUse_git_commit_test_gate.py",  # HIGH: Blocks commit if tests fail (prevents data loss)
         "PreToolUse_referent_scope_gate.py",  # Blocks off-topic investigation when user listed specific entities
+        "PreToolUse_git_auto_stage.py",  # Auto-stage tracked files before deletion/move commands
     ],
     "Task": [
         "PreToolUse_task_self_doc_gate.py",
@@ -776,6 +780,7 @@ try:
     import PreToolUse_git_auto_stage
     import PreToolUse_path_validator
     import PreToolUse_task_self_doc_gate
+    import PreToolUse_protected_file_recovery_gate
 
     # skill-guard hooks imported from plugin (single source of truth)
     from skill_guard.PreToolUse.PreToolUse_import_deletion_guard import run as _import_deletion_run
@@ -812,7 +817,9 @@ try:
         "PreToolUse_context_sufficiency_gate.py": _context_sufficiency_run,
         # PreToolUse_skill_pattern_gate.py REMOVED - execution_hooks.py is sole contract gate
         "PreToolUse_task_self_doc_gate.py": PreToolUse_task_self_doc_gate.run,
+        "PreToolUse_protected_file_recovery_gate.py": PreToolUse_protected_file_recovery_gate.run,
         "check_external_path_consent": pre_tool_use_logic.check_external_path_consent,
+        "PreToolUse_protected_file_recovery_gate.py": PreToolUse_protected_file_recovery_gate.run,
     }
 except ImportError:
     # Claude Code treats stderr as hook error - silence this

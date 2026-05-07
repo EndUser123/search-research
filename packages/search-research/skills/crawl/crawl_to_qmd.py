@@ -44,7 +44,7 @@ def _get_wiki_root() -> Path:
                 return Path(os.path.expanduser(path))
     except (OSError, ValueError, AttributeError):
         pass
-    return Path("P:/.data/wiki")
+    return Path("P:\\\\.data/wiki")
 def _get_wiki_log_path() -> Path:
     """Get log.md path."""
     return _get_wiki_root() / "log.md"

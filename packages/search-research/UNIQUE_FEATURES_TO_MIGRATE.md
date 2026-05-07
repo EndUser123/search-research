@@ -1,6 +1,6 @@
 # Unique Features Migration Plan
 
-## From: `P:\packages\research\` (research_skill)
+## From: `P:\\\\packages\research\` (research_skill)
 
 ### 1. Analysis & Quality Components
 MIGRATE to `search-research/src/search_research/analysis/`:
@@ -19,7 +19,7 @@ MIGRATE to `search-research/src/search_research/orchestration/`:
 MIGRATE to `search-research/src/search_research/processing/`:
 - `normalization.py` → `result_normalizer.py`
 
-## From: `P:\projects\research-enhancement/`
+## From: `P:\\\\projects\research-enhancement/`
 
 ### 4. Enhancement Components
 MIGRATE to `search-research/src/search_research/enhancement/`:

@@ -9,7 +9,7 @@ Applies Generate→Critique→Improve loop to Claude's responses:
 - Fail-open design: errors don't block responses
 
 This is the authoritative source file.
-Symlink from: P:/.claude/hooks/Stop_reasoning_quality_gate.py
+Symlink from: P:\\\\.claude/hooks/Stop_reasoning_quality_gate.py
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ def _resolve_reasoning_package() -> Path | None:
         candidates.append(Path(env_path))
     candidates.extend([
         Path(__file__).resolve().parent.parent,
-        Path("P:/packages/reasoning"),
+        Path("P:\\\\packages/reasoning"),
     ])
 
     for candidate in candidates:
@@ -44,7 +44,7 @@ _reasoning_pkg = _resolve_reasoning_package()
 if _reasoning_pkg is None:
     print(
         "[Stop_reasoning_quality_gate] ERROR: Could not locate reasoning package. "
-        "Checked: REASONING_PKG_PATH env var, parent directories, P:/packages/reasoning. "
+        "Checked: REASONING_PKG_PATH env var, parent directories, P:\\\\packages/reasoning. "
         "Hook will pass-through (fail-open).",
         file=sys.stderr,
     )
@@ -74,7 +74,7 @@ def _resolve_log_path(reasoning_pkg: Path | None) -> Path:
     project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "").strip()
     if project_dir and reasoning_pkg:
         return Path(project_dir) / ".claude" / "logs" / "reasoning" / "hook_usage.log"
-    return Path("P:/packages/reasoning/hook_usage.log")
+    return Path("P:\\\\packages/reasoning/hook_usage.log")
 
 
 LOG_FILE = _resolve_log_path(REASONING_PKG)

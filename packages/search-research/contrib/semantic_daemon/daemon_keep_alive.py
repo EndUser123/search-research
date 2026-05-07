@@ -39,7 +39,7 @@ RESPAWN_DELAY_MAX: Final[float] = 60.0  # Maximum delay between respawns
 HEALTH_CHECK_INTERVAL: Final[int] = 30  # Seconds between health checks
 
 # State directory for PID files
-STATE_DIR: Final[Path] = Path("P:/__csf/data")
+STATE_DIR: Final[Path] = Path("P:\\\\__csf/data")
 
 # ============================================================================
 # Signal Handling

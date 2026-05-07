@@ -23,7 +23,8 @@ from .common import gto_state_dir, write_hook_output
 
 def run(data: dict) -> dict | None:
     """In-process hook entry point."""
-    state_dir = gto_state_dir()
+    session_id = data.get("session_id")
+    state_dir = gto_state_dir(session_id)
     artifact_path = state_dir.parent / "outputs" / "artifact.json"
 
     if not artifact_path.exists():

@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 # Configuration
-TEST_SEARCH_ROOT = Path("P:/__csf/src")
+TEST_SEARCH_ROOT = Path("P:\\\\__csf/src")
 ITERATIONS = 20
 WARMUP = 5
 ACCEPTABLE_VARIANCE = 0.10  # 10%

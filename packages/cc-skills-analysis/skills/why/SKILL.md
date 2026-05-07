@@ -42,7 +42,7 @@ Run these data sources in parallel to find all mentions of the topic:
 
 **Tier 1 — Primary (terminal-attributed, authoritative):**
 
-1. **Session history** — `python "P:\.claude\skills\recap\scripts\recap_cli.py" recap`
+1. **Session history** — `python "$CLAUDE_ROOT/skills\recap\scripts\recap_cli.py" recap`
    - Gets full session chain with problems/fixes/decisions per session
    - Terminal-attributed via `sessionId`/`session_chain_id`
 
@@ -52,7 +52,7 @@ Run these data sources in parallel to find all mentions of the topic:
 3. **Memory files** — Search `C:\Users\brsth\.claude\projects\P--\memory\` for topic keywords
    - Project context, feedback rules, behavioral expectations
 
-4. **CLAUDE.md + ADRs** — `Grep` for topic in `P:\.claude\CLAUDE.md` and `P:\__csf\arch_decisions\`
+4. **CLAUDE.md + ADRs** — `Grep` for topic in `$CLAUDE_ROOT/CLAUDE.md` and `$__CSF_ROOT/arch_decisions\`
    - Architectural context and documented decisions
 
 **Tier 2 — Supplementary (corroboration only, no terminal attribution):**
@@ -228,12 +228,12 @@ If multiple valid causes exist at any decision point:
 
 | Source | Provides | How to access |
 |--------|----------|---------------|
-| `/recap` CLI | Session chain + semantic content | `python "P:\.claude\skills\recap\scripts\recap_cli.py" recap` |
+| `/recap` CLI | Session chain + semantic content | `python "$CLAUDE_ROOT/skills\recap\scripts\recap_cli.py" recap` |
 | TranscriptParser | Decisions, patterns, corrections | Via recap output or direct grep of transcript |
 | CKS | Prior decisions in knowledge base | `mcp__search-research__cks_search` |
 | Memory | Feedback rules, project context | Search `C:\Users\brsth\.claude\projects\P--\memory\` |
 | CLAUDE.md | Architectural constraints | `Grep` for topic keywords |
-| ADRs | Documented architecture decisions | `Glob` in `P:\__csf\arch_decisions\` |
+| ADRs | Documented architecture decisions | `Glob` in `$__CSF_ROOT/arch_decisions\` |
 
 ### Tier 2 — Supplementary (corroboration only, no terminal attribution)
 

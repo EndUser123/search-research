@@ -21,7 +21,7 @@ Implement a three-layer system to encode practices so issues don't happen, and w
 - `PreToolUse_auto_import.py` - Auto-add missing imports on edit
 - `PreToolUse_import_order.py` - Enforce import ordering standards
 
-**Location**: `P:\.claude\hooks\PreToolUse_*.py`
+**Location**: `$CLAUDE_ROOT/hooks\PreToolUse_*.py`
 
 **Behavior**:
 - On `Edit` or `Write` tool calls, intercept and auto-fix formatting/imports
@@ -37,7 +37,7 @@ Implement a three-layer system to encode practices so issues don't happen, and w
 - Run `gto_assertions.py --project-root` before commit allowed
 - Block commit if A1-A5 assertions fail
 
-**Location**: `P:\.claude\hooks\` + git hooks configuration
+**Location**: `$CLAUDE_ROOT/hooks\` + git hooks configuration
 
 **Behavior**:
 - Before commit: run binary assertions
@@ -53,7 +53,7 @@ Implement a three-layer system to encode practices so issues don't happen, and w
 - Add periodic scheduling (via cron or SessionStart)
 - Integrate skill routing for detected gap types
 
-**Location**: `P:\.claude\hooks\` + existing GTO infrastructure
+**Location**: `$CLAUDE_ROOT/hooks\` + existing GTO infrastructure
 
 **Behavior**:
 - Run GTO analysis on session start or periodically

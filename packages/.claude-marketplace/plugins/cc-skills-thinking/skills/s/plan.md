@@ -6,7 +6,7 @@ Implement 6 priority improvements to the `/s list` command identified through pr
 
 ## Architecture
 
-**Target File**: `P:\.claude\skills\s\scripts\display.py`
+**Target File**: `$CLAUDE_ROOT/skills\s\scripts\display.py`
 
 **Components**:
 - Rich table column sizing (Provider width fix)

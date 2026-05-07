@@ -21,7 +21,11 @@ Decision = Literal["allow", "warn", "block"]
 # ---------------------------------------------------------------------------
 
 SECTION_ORDER = ["[FACT]", "[INFERENCE]", "[UNKNOWN]", "[RECOMMENDATION]"]
-REPORT_SECTION_ORDER = ["[STATUS]", "[CHANGES]", "[RESULTS]", "[NEXT]"]
+REPORT_SECTION_ORDER = [
+    "[STATUS]", "[CHANGES]", "[RESULTS]", "[NEXT]",
+    "FILES_CHANGED", "LOGIC_CHANGES", "TESTS", "LIMITATIONS",
+    "Part 1", "Part 2", "Part 3", "Part 4", "Part 5", "Part 6",
+]
 BULLET_RE = re.compile(r"^\s*-\s+")
 CITATION_RE = re.compile(r"\(source:\s*[^)]+\)", re.IGNORECASE)
 USER_SOURCE_RE = re.compile(
@@ -818,6 +822,14 @@ def validate(raw_response: str, config: Optional[EpistemicConfig] = None) -> Epi
     - "investigation": enforce all 4 sections (full 4-section contract)
     """
     cfg = config or EpistemicConfig()
+
+    # Skip all checks for non-substantive turns (greetings, acknowledgments, etc.)
+    try:
+        from __lib.shared_helpers import is_non_substantive_turn
+        if is_non_substantive_turn(raw_response):
+            return EpistemicVerdict(decision="allow", issues=[])
+    except ImportError:
+        pass
 
     # Resolve response mode: explicit config overrides auto-detection.
     response_mode = cfg.responseMode

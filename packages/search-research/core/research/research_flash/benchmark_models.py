@@ -16,8 +16,8 @@ from pathlib import Path
 
 import httpx
 
-# Load P:/.env for API keys
-_dotenv_path = Path("P:/.env")
+# Load P:\\\\.env for API keys
+_dotenv_path = Path("P:\\\\.env")
 if _dotenv_path.exists():
     from dotenv import load_dotenv
 

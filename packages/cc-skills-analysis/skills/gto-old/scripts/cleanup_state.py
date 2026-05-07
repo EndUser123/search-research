@@ -107,12 +107,12 @@ def cleanup_all_evidence_dirs() -> dict:
     """
     # Define all project roots to clean up
     project_roots = [
-        Path(r"P:\.claude"),  # Claude config root
-        Path(r"P:\.claude\skills"),  # Skills directory
-        Path(r"P:\.claude\skills\gto"),  # GTO skill directory
-        Path(r"P:\p"),  # P: drive root
-        Path(r"P:\p\packages"),  # Packages directory
-        Path(r"P:\p\packages\handoff"),  # Handoff package
+        Path(r"P:\\\\.claude"),  # Claude config root
+        Path(r"$CLAUDE_ROOT/skills"),  # Skills directory
+        Path(r"$CLAUDE_ROOT/skills\gto"),  # GTO skill directory
+        Path(r"P:\\\\p"),  # P: drive root
+        Path(r"P:\\\\p\packages"),  # Packages directory
+        Path(r"P:\\\\p\packages\handoff"),  # Handoff package
     ]
 
     results = {"removed": [], "errors": [], "skipped": []}

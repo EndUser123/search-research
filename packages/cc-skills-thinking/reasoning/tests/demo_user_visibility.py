@@ -4,8 +4,8 @@
 import sys
 
 # Add packages to path
-sys.path.insert(0, "P:/packages/reasoning")
-sys.path.insert(0, "P:/.claude/hooks")
+sys.path.insert(0, "P:\\\\packages/reasoning")
+sys.path.insert(0, "P:\\\\.claude/hooks")
 
 def demo_reasoning_mode_selector():
     """Show UserPromptSubmit reasoning mode selector output."""

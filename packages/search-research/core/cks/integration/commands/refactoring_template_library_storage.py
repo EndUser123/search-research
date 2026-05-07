@@ -163,8 +163,8 @@ class RefactoringTemplateKnowledgeProcessor:
                     "success_rate": "100%",
                 },
                 evidence_sources=[
-                    "P:/__csf/src/features/core_utils/output_formatter.py",
-                    "P:/__csf/src/features/modules/validation_gate_report/report/generator.py",
+                    "P:\\\\__csf/src/features/core_utils/output_formatter.py",
+                    "P:\\\\__csf/src/features/modules/validation_gate_report/report/generator.py",
                     "Production validation: 47 successful implementations",
                 ],
                 implementation_code=self._get_output_formatter_code(),
@@ -200,7 +200,7 @@ class RefactoringTemplateKnowledgeProcessor:
                     "success_rate": "100%",
                 },
                 evidence_sources=[
-                    "P:/__csf/src/features/modules/advisory/cwo/enhanced_cwo_processor.py",
+                    "P:\\\\__csf/src/features/modules/advisory/cwo/enhanced_cwo_processor.py",
                     "Performance benchmarks: 0.004ms average execution",
                     "Production validation: 23 successful workflows",
                 ],

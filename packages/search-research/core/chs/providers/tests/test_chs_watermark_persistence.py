@@ -10,7 +10,7 @@ import pytest
 
 from ..archive import write_watermark, read_watermark
 
-DB_PATH = Path("P:/__csf/data/chat_history.db")
+DB_PATH = Path("P:\\\\__csf/data/chat_history.db")
 
 
 @pytest.fixture

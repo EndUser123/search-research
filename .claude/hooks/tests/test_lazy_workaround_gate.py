@@ -126,5 +126,58 @@ class TestLazyPatternCoverage(unittest.TestCase):
                            f"Should block: {response}")
 
 
+class TestReportContextAllowPatterns(unittest.TestCase):
+    """Report/implementation context: behavior descriptions should not be blocked."""
+
+    def test_two_signals_intentional_allowed(self):
+        """Describing dual-signal suppression as intentional behavior is not lazy."""
+        response = (
+            "The OR combination means two independent signals suppress the advisory. "
+            "This is intentional — both user framing and response style point toward "
+            "non-exhaustive coverage."
+        )
+        result = check_lazy_workarounds(response)
+        self.assertEqual(result["decision"], "allow")
+
+    def test_advisory_suppression_intentional_allowed(self):
+        """Explaining that suppression is correct behavior is not lazy."""
+        response = "The advisory correctly suppresses in both cases — there is no bug to fix."
+        result = check_lazy_workarounds(response)
+        self.assertEqual(result["decision"], "allow")
+
+    def test_edge_case_to_monitor_allowed(self):
+        """Describing an edge case to monitor is not lazy workaround."""
+        response = "The edge case to monitor is whether phrase sets drift out of sync over time."
+        result = check_lazy_workarounds(response)
+        self.assertEqual(result["decision"], "allow")
+
+    def test_not_a_workaround_allowed(self):
+        """Describing something as not a workaround is not lazy."""
+        response = "There is no redundant execution path — this is not a workaround."
+        result = check_lazy_workarounds(response)
+        self.assertEqual(result["decision"], "allow")
+
+    def test_suppression_is_correct_allowed(self):
+        """Describing suppression as correct is not lazy."""
+        response = "Suppression is correct when either signal fires — this is expected behavior."
+        result = check_lazy_workarounds(response)
+        self.assertEqual(result["decision"], "allow")
+
+    def test_real_duplicate_workaround_still_blocked(self):
+        """Real duplicate-workaround language is still blocked in report context."""
+        response = (
+            "just accept the duplicate advisory — the duplicate bars are fine, "
+            "that's expected behavior."
+        )
+        result = check_lazy_workarounds(response)
+        self.assertEqual(result["decision"], "block")
+
+    def test_accept_bug_as_feature_still_blocked(self):
+        """Accept-bug-as-feature language still blocked even in report context."""
+        response = "We should accept this bug as expected behavior."
+        result = check_lazy_workarounds(response)
+        self.assertEqual(result["decision"], "block")
+
+
 if __name__ == "__main__":
     unittest.main()

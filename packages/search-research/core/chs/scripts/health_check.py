@@ -40,7 +40,7 @@ def main() -> int:
         "--db-path",
         type=str,
         default=None,
-        help="Path to database file (default: from CHS_DB_PATH env var or P:/__csf/data/chat_history.db)",
+        help="Path to database file (default: from CHS_DB_PATH env var or P:\\\\__csf/data/chat_history.db)",
     )
     parser.add_argument("--json", action="store_true", help="Output results as JSON")
     args = parser.parse_args()
@@ -49,7 +49,7 @@ def main() -> int:
     else:
         import os
 
-        db_path = Path(os.getenv("CHS_DB_PATH", "P:/__csf/data/chat_history.db")).expanduser()
+        db_path = Path(os.getenv("CHS_DB_PATH", "P:\\\\__csf/data/chat_history.db")).expanduser()
     try:
         from core.chs.db import database_is_initialized, get_connection
 

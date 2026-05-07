@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(0, 'P:/packages/.github_repos/browser-harness')
+sys.path.insert(0, 'P:\\\\packages/.github_repos/browser-harness')
 
 from admin import ensure_daemon, restart_daemon
 from helpers import new_tab, wait_for_load, js, screenshot

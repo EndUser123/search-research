@@ -19,7 +19,7 @@ import sys
 import pytest
 
 # Add utils path to import GotPlanner, GotEdgeAnalyzer, and BranchGenerator from /code
-sys.path.insert(0, r"P:\.claude\skills\code\utils")
+sys.path.insert(0, r"$CLAUDE_ROOT/skills\code\utils")
 from got_planner import GotPlanner
 from tot_tracer import BranchGenerator
 

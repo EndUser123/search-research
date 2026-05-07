@@ -10,7 +10,7 @@ S15–S19: Content-model binding (workflow-model elements present in HTML)
 import json, re, sys
 from pathlib import Path
 
-BASE = Path("P:/packages/cc-skills-architect/skills/skill-to-page")
+BASE = Path("P:\\\\packages/cc-skills-architect/skills/skill-to-page")
 HTML = BASE / "index.html"
 OUT  = BASE / "static-validation.json"
 

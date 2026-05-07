@@ -38,7 +38,7 @@ def _sessions_index(project_path: str | Path | None = None) -> Path:
     On Windows: C:/Users/<user>/.claude/projects/<project>/sessions-index.json
     """
     if project_path is None:
-        project_path = "P:/"
+        project_path = "P:\\\\"
     pp = Path(project_path)
 
     # Find .claude/projects/<project> in the path and extract just <project>

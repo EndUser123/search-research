@@ -50,7 +50,7 @@ def validate_implementation() -> bool | None:
         print("\n3. Creating test contexts...")
         result1 = adapter.create_context(
             tsk_id="TSK-ALT-PLATFORM-DOWNLOADING",
-            worktree_path="P:/yt-fts-alt-platforms",
+            worktree_path="P:\\\\yt-fts-alt-platforms",
             description="YouTube alternative platforms",
         )
         print(
@@ -59,7 +59,7 @@ def validate_implementation() -> bool | None:
 
         result2 = adapter.create_context(
             tsk_id="TSK-122225-GPUWorkloadIntegration-1457",
-            worktree_path="P:/gpu-workload-integration",
+            worktree_path="P:\\\\gpu-workload-integration",
             description="GPU workload integration",
         )
         print(
@@ -91,7 +91,7 @@ def validate_implementation() -> bool | None:
         print("\n7. Testing validation...")
         allowed, message = adapter.validate_operation(
             operation_type="edit",
-            operation_target="P:/yt-fts-alt-platforms/main.py",
+            operation_target="P:\\\\yt-fts-alt-platforms/main.py",
             operation_description="Add download function",
         )
         print(f"   {'✅' if allowed else '❌'} Platform operation in platform context: {message}")
@@ -99,7 +99,7 @@ def validate_implementation() -> bool | None:
         # Test validation - GPU operation in platform context (should warn)
         allowed, message = adapter.validate_operation(
             operation_type="edit",
-            operation_target="P:/gpu-workload-integration/kernel.py",
+            operation_target="P:\\\\gpu-workload-integration/kernel.py",
             operation_description="Add GPU kernel",
         )
         print(
@@ -123,7 +123,7 @@ def validate_implementation() -> bool | None:
 
         # Test context detection from path
         print("\n10. Testing context detection from path...")
-        detected = adapter.detect_context_from_path("P:/yt-fts-alt-platforms/main.py")
+        detected = adapter.detect_context_from_path("P:\\\\yt-fts-alt-platforms/main.py")
         print(f"   ✅ Detected context: {detected if detected else 'None'}")
 
         print("\n" + "=" * 70)

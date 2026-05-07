@@ -9,7 +9,7 @@
 
 ## What Was Built
 
-### 1. Stop Hook (`P:\.claude\hooks\Stop_self_reflection.py`)
+### 1. Stop Hook (`$CLAUDE_ROOT/hooks\Stop_self_reflection.py`)
 
 **Purpose**: Automatically applies Generate→Critique→Improve loop to Claude's responses.
 
@@ -49,7 +49,7 @@ def should_apply_reflection(response: str) -> tuple[bool, str]:
 - **Contradictions**: Conflicting statements
 - **Missing Alternatives**: Definitive answers without considering options
 
-### 2. Stop Hook Registration (`P:\.claude\hooks\Stop.py`)
+### 2. Stop Hook Registration (`$CLAUDE_ROOT/hooks\Stop.py`)
 
 **Added**: `_run_self_reflection()` function and registration in `IN_PROCESS_GATES`
 
@@ -72,7 +72,7 @@ def should_apply_reflection(response: str) -> tuple[bool, str]:
 ### Hook Integration Test
 ```bash
 echo '{"response": "Therefore, the best solution is to always use this approach..."}' | \
-  python P:/.claude/hooks/Stop_self_reflection.py
+  python P:\\\\.claude/hooks/Stop_self_reflection.py
 
 # Output:
 {
@@ -97,7 +97,7 @@ No action required. The hook runs automatically on responses that:
 
 **Check usage log**:
 ```bash
-cat P:/packages/reasoning/hook_usage.log | jq -r '.result' | sort | uniq -c
+cat P:\\\\packages/reasoning/hook_usage.log | jq -r '.result' | sort | uniq -c
 ```
 
 **Expected output**:
@@ -205,7 +205,7 @@ def _passes_quality_gate(self, response: str, critique: dict) -> bool:
 **Hook not running**:
 1. Check Stop.py has `self_reflection` in IN_PROCESS_GATES
 2. Verify Stop_self_reflection.py exists in hooks directory
-3. Test manually: `echo '{}' | python P:/.claude/hooks/Stop_self_reflection.py`
+3. Test manually: `echo '{}' | python P:\\\\.claude/hooks/Stop_self_reflection.py`
 
 **No issues detected**:
 1. Response may be too short (<200 chars)
@@ -218,9 +218,9 @@ def _passes_quality_gate(self, response: str, critique: dict) -> bool:
 
 ## Files Modified
 
-1. **Created**: `P:\.claude\hooks\Stop_self_reflection.py` (147 lines)
-2. **Modified**: `P:\.claude\hooks\Stop.py` (added `_run_self_reflection()` function)
-3. **Created**: `P:/packages/reasoning/hook_usage.log` (auto-created on first use)
+1. **Created**: `$CLAUDE_ROOT/hooks\Stop_self_reflection.py` (147 lines)
+2. **Modified**: `$CLAUDE_ROOT/hooks\Stop.py` (added `_run_self_reflection()` function)
+3. **Created**: `P:\\\\packages/reasoning/hook_usage.log` (auto-created on first use)
 
 ## Validation
 
@@ -230,10 +230,10 @@ def _passes_quality_gate(self, response: str, critique: dict) -> bool:
 
 ## References
 
-- **Architecture Decision**: `P:\packages\reasoning\MCP_INVESTIGATION_SUMMARY.md`
-- **Quality Validation**: `P:\packages\reasoning\QUALITY_VALIDATION_RESULTS.md`
-- **Implementation**: `P:\.claude\hooks\Stop_self_reflection.py`
-- **Registration**: `P:\.claude\hooks\Stop.py` (line 749-814)
+- **Architecture Decision**: `P:\\\\packages\reasoning\MCP_INVESTIGATION_SUMMARY.md`
+- **Quality Validation**: `P:\\\\packages\reasoning\QUALITY_VALIDATION_RESULTS.md`
+- **Implementation**: `$CLAUDE_ROOT/hooks\Stop_self_reflection.py`
+- **Registration**: `$CLAUDE_ROOT/hooks\Stop.py` (line 749-814)
 
 ---
 

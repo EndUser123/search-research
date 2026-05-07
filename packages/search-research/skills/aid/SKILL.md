@@ -20,7 +20,7 @@ execution:
   directive: |
     Execute the AI-Distiller (aid.exe) wrapper to analyze code.
     Use specific subcommands (refactor, arch, security, perf, best, bugs, docs, diagrams, flow, multi, git) based on user need.
-    Results are typically saved to P:\.aid\ unless --stdout is used.
+    Results are typically saved to P:\\\\.aid\ unless --stdout is used.
   default_args: ""
   examples:
     - "/aid refactor src/main.py"
@@ -33,7 +33,7 @@ do_not:
   - ignore security vulnerabilities
 
 output_template: |
-  Analysis results are saved to: P:\.aid\[ANALYSIS-TYPE].[timestamp].[filename].md
+  Analysis results are saved to: P:\\\\.aid\[ANALYSIS-TYPE].[timestamp].[filename].md
   
   (Or stdout content if --stdout is used)
 ---
@@ -55,10 +55,10 @@ Interface to AI-Distiller (aid.exe) for intelligent code distillation — extrac
 - **READ-BEFORE-WRITE**: Always explore existing code before recommending changes
 
 ### Technical Context
-- **Python wrapper**: `P:\__csf\src\commands\aid\aid.py`
-- **aid.exe location**: `P:\__csf\tools\ai-distiller-optimized\aid.exe`
+- **Python wrapper**: `$__CSF_ROOT/src\commands\aid\aid.py`
+- **aid.exe location**: `$__CSF_ROOT/tools\ai-distiller-optimized\aid.exe`
 - **AI-Distiller Version**: v1.3.1 (built 2025-06-21)
-- **Output location**: `P:\.aid\[ANALYSIS-TYPE].[timestamp].[filename].md`
+- **Output location**: `P:\\\\.aid\[ANALYSIS-TYPE].[timestamp].[filename].md`
 - **Supported languages**: Python, TypeScript, JavaScript, Go, Rust, Java, C#, Kotlin, C++, PHP, Ruby, Swift
 - **Compression ratio**: 60-90% size reduction while preserving semantic information
 
@@ -73,7 +73,7 @@ Interface to AI-Distiller (aid.exe) for intelligent code distillation — extrac
 2. **Set visibility level** — Use --private/--protected/--internal as appropriate
 3. **Choose output format** --format md|text|jsonl|xml, and optionally --stdout
 4. **Execute aid.exe** — Run via wrapper with appropriate arguments
-5. **Locate results** — Check `P:\.aid\` for timestamped output files
+5. **Locate results** — Check `P:\\\\.aid\` for timestamped output files
 6. **Present findings** — Summarize key insights with file:line citations
 
 ## Validation Rules
@@ -130,7 +130,7 @@ Use `/aid` when you need to:
 
 ## Output Location
 
-Results saved to `P:\.aid\[ANALYSIS-TYPE].[timestamp].[filename].md`
+Results saved to `P:\\\\.aid\[ANALYSIS-TYPE].[timestamp].[filename].md`
 
 ## Reference Files
 

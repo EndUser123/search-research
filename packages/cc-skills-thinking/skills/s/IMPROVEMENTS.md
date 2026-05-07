@@ -3,12 +3,12 @@
 ## Phase 1: Critical Fixes (COMPLETED ✅)
 
 ### 1. Removed NIP References
-- **File**: `P:\.claude\skills\s\SKILL.md:38`
+- **File**: `$CLAUDE_ROOT/skills\s\SKILL.md:38`
 - **Change**: "CSF NIP" → "CSF"
 - **Rationale**: NIP (Next Iteration Platform) concept no longer exists
 
 ### 2. Increased Timeouts (No Cutting Ideas Short)
-- **File**: `P:/__csf/src/commands/brainstorm/orchestrator.py:78-82`
+- **File**: `P:\\\\__csf/src/commands/brainstorm/orchestrator.py:78-82`
 - **Changes**:
   - DIVERGE_TIMEOUT: 180s → 300s (5 minutes)
   - DISCUSS_TIMEOUT: 240s → 300s (5 minutes)
@@ -16,30 +16,30 @@
 - **Rationale**: Parallel LLM calls need time; previous timeouts were cutting idea generation short
 
 ### 3. Fixed Mock Mode Default (FAIL FAST)
-- **File**: `P:/__csf/src/commands/brainstorm/orchestrator.py:151`
+- **File**: `P:\\\\__csf/src/commands/brainstorm/orchestrator.py:151`
 - **Before**: `is_mock_mode = llm_config is None or getattr(llm_config, "mock_mode", True)`
 - **After**: `is_mock_mode = use_mock_agents or (llm_config is not None and getattr(llm_config, "mock_mode", False))`
 - **Rationale**: **FAIL FAST** - now defaults to REAL agents, not mocks. Production will fail explicitly rather than silently using mocks.
 
 ### 4. Updated Timeout Allocation
-- **File**: `P:/__csf/src/commands/brainstorm/orchestrator.py:320, 344`
+- **File**: `P:\\\\__csf/src/commands/brainstorm/orchestrator.py:320, 344`
 - **Changes**:
   - Diverge: 70% → 60% of total timeout
   - Discuss: 25% → 35% of total timeout
 - **Rationale**: Give more time for discussion/evaluation phase
 
 ### 5. Removed Unimplemented AID Helpers
-- **File**: `P:\.claude\skills\s\SKILL.md:161-172`
+- **File**: `$CLAUDE_ROOT/skills\s\SKILL.md:161-172`
 - **Change**: Removed "Mandatory heavy enrichment" section that called `aid_complex_analysis` and `aid_generate_diagram`
 - **Rationale**: These were documented as mandatory but never implemented in `run_heavy.py` - removed misleading documentation
 
 ### 6. Default to Real Agents
-- **File**: `P:\.claude\skills\s\scripts\run_heavy.py:456`
+- **File**: `$CLAUDE_ROOT/skills\s\scripts\run_heavy.py:456`
 - **Change**: Added `use_mock: bool = False` parameter default
 - **Rationale**: Ensure real agents are used by default, not mocks
 
 ### 7. Updated Brainstorming Techniques Documentation
-- **File**: `P:\.claude\skills\s\SKILL.md:32-36`
+- **File**: `$CLAUDE_ROOT/skills\s\SKILL.md:32-36`
 - **Change**: Added explicit list of brainstorming techniques used (SCAMPER, Lateral Thinking, Six Thinking Hats, First Principles, Reverse Engineering)
 - **Rationale**: Documents the techniques; makes it clear what methods are used
 
@@ -59,7 +59,7 @@
   - Six Thinking Hats
 - This is "free" diversity improvement — no external LLM costs
 
-**Code location**: `P:\.claude\skills\s\scripts\run_heavy.py:455-510`
+**Code location**: `$CLAUDE_ROOT/skills\s\scripts\run_heavy.py:455-510`
 
 **Files modified**:
 - `run_heavy.py`: Added `local_repetition` parameter and `_add_persona_variation()` function
@@ -92,10 +92,10 @@
   - T3 (Experimental): All other providers
 
 **Code locations**:
-- `P:/__csf/src/llm/providers/config.py:29` - ProviderConfig.tier field
-- `P:/__csf/src/llm/providers/config.py:100` - LLMConfig.allowed_tiers field
-- `P:/__csf/src/commands/brainstorm/orchestrator.py:165-220` - Tier filtering methods
-- `P:\.claude\skills\s\scripts\run_heavy.py:456` - CLI flag and validation
+- `P:\\\\__csf/src/llm/providers/config.py:29` - ProviderConfig.tier field
+- `P:\\\\__csf/src/llm/providers/config.py:100` - LLMConfig.allowed_tiers field
+- `P:\\\\__csf/src/commands/brainstorm/orchestrator.py:165-220` - Tier filtering methods
+- `$CLAUDE_ROOT/skills\s\scripts\run_heavy.py:456` - CLI flag and validation
 
 **Documentation**: Added to SKILL.md with usage examples
 
@@ -155,7 +155,7 @@ All Phase 1 and Phase 2 improvements are now complete! The /s skill now has:
 
 ### Overview
 
-Consolidated the entire brainstorm module from `P:\__csf\src\commands\brainstorm\` into the `/s` skill as `P:\.claude\skills\s\lib\`. This consolidation:
+Consolidated the entire brainstorm module from `$__CSF_ROOT/src\commands\brainstorm\` into the `/s` skill as `$CLAUDE_ROOT/skills\s\lib\`. This consolidation:
 
 - **Eliminates external dependency** on `__csf/src/commands/brainstorm`
 - **Simplifies architecture** by co-locating all brainstorm code with the skill that uses it
@@ -166,7 +166,7 @@ Consolidated the entire brainstorm module from `P:\__csf\src\commands\brainstorm
 
 #### 1. Code Consolidation (T-001 through T-014)
 
-**Created**: `P:\.claude\skills\s\lib\` directory structure:
+**Created**: `$CLAUDE_ROOT/skills\s\lib\` directory structure:
 ```
 lib/
 ├── __init__.py (version 3.0.0)
@@ -187,7 +187,7 @@ lib/
 
 **Import Updates**:
 - Changed `run_heavy.py` imports from `commands.brainstorm.*` to `lib.*`
-- Added `P:/.claude\skills\s` to `sys.path` for absolute imports
+- Added `$CLAUDE_ROOT/skills\s` to `sys.path` for absolute imports
 - External dependencies in CKS and LLM providers identified for later update
 
 #### 2. Advanced Features Integration (T-018 through T-021)
@@ -239,11 +239,11 @@ lib/
 ### External Dependencies (Deferred to Phase 7)
 
 **Files requiring import updates**:
-- `P:\__csf\src\cks\commands\auto_learning_expander.py`
+- `$__CSF_ROOT/src\cks\commands\auto_learning_expander.py`
   - Current: `from brainstorm.llm.llm_client import ...`
   - Needs: Update to point to new location
 
-- `P:\__csf\src\csf\llm_providers\unified_manager.py`
+- `$__CSF_ROOT/src\csf\llm_providers\unified_manager.py`
   - Current: `from src.features.brainstorm.performance.model_tracker import ...`
   - Needs: Update to point to new location
 
@@ -259,11 +259,11 @@ lib/
 ### Rollback Strategy
 
 If issues arise:
-1. Restore original `P:\__csf\src\commands\brainstorm\` from backup
+1. Restore original `$__CSF_ROOT/src\commands\brainstorm\` from backup
 2. Revert `run_heavy.py` imports to `commands.brainstorm.*`
 3. Version bump back to 2.4.1 (patch release)
 
-**Backup location**: `P:\.claude\skills\s\backup_before_consolidation_20260228_164908\`
+**Backup location**: `$CLAUDE_ROOT/skills\s\backup_before_consolidation_20260228_164908\`
 
 ---
 

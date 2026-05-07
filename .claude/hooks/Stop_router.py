@@ -287,6 +287,7 @@ HOOK_SEQUENCE = [
     ("StopHook_cross_validator.py", "STOP_CROSS_VALIDATOR_ENABLED", False, "inprocess"),
     ("StopHook_drift_sentinel.py", "DRIFT_SENTINEL_ENABLED", False, "inprocess"),
     ("StopHook_correction_acknowledgment.py", "CORRECTION_GATE_ENABLED", False, "inprocess"),
+    ("Stop_correction_followthrough_gate.py", "CORRECTION_FOLLOWTHROUGH_ENABLED", True, "inprocess"),
     # StopHook_skill_execution_gate moved to skill-guard plugin hooks.json (v2.1.0)
     (
         "StopHook_behavioral_quality_gate.py",
@@ -359,6 +360,12 @@ HOOK_SEQUENCE = [
     ),
     ("Stop_proposal_decision_scanner.py", "PROPOSAL_DECISION_SCANNER_ENABLED", True, "inprocess"),
     ("Stop_self_reflection_gate.py", "SELF_REFLECTION_GATE_ENABLED", True, "inprocess"),
+    (
+        "Stop_diagnostic_analysis_quality_gate.py",
+        "DIAGNOSTIC_ANALYSIS_QUALITY_GATE_ENABLED",
+        True,
+        "inprocess",
+    ),
     ("auto_commit_hook.py", "AUTO_COMMIT_ON_STOP_ENABLED", True, "inprocess"),
 ]
 
@@ -409,10 +416,12 @@ ACTIVE_RUNTIME_HOOKS = frozenset(
         "StopHook_cited_content_guard.py",
         "StopHook_drift_sentinel.py",
         "StopHook_correction_acknowledgment.py",
+        "Stop_correction_followthrough_gate.py",
         "__lib/StopHook_consultation_loop_interrupt.py",
         "Stop_proposal_decision_scanner.py",
         "StopHook_perf_attribution_gate.py",
         "Stop_self_reflection_gate.py",
+        "Stop_diagnostic_analysis_quality_gate.py",
     }
 )
 
@@ -946,6 +955,7 @@ def route_stop(input_data: dict[str, Any]) -> dict[str, Any]:
     validator_input["session_start_ts"] = time.monotonic()
 
     warning_messages: list[str] = []
+    warning_tuples: list[tuple[str, str, str]] = []  # (hook_name, severity, message) for aggregation
 
     _HOOK_TIMEOUTS: dict[str, float] = {
         "StopHook_drift_sentinel.py": 15.0,  # TF-IDF computation is expensive
@@ -1006,6 +1016,7 @@ def route_stop(input_data: dict[str, Any]) -> dict[str, Any]:
         message = str(result.get("systemMessage", "")).strip()
         if message:
             warning_messages.append(message)
+            warning_tuples.append((hook_name, "warn", message))
 
         if result.get("decision") == "block":
             if terminal_id and turn_id:

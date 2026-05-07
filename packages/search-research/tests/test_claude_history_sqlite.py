@@ -79,6 +79,6 @@ class TestSQLiteDirectSearch:
 def db_backend():
     """Create ClaudeHistoryBackend with real database path."""
     return ClaudeHistoryBackend(
-        db_path="P:/__csf/data/chat_history.db",
-        cli_path="P:/packages/claude-history/target/release/claude-history.exe",
+        db_path="P:\\\\__csf/data/chat_history.db",
+        cli_path="P:\\\\packages/claude-history/target/release/claude-history.exe",
     )

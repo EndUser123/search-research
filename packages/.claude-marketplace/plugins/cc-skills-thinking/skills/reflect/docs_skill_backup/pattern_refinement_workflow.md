@@ -12,10 +12,10 @@
 
 ```bash
 # Run validation on a past transcript
-python P:/.claude/skills/reflect/scripts/validate_pattern_coverage.py ~/.claude/history/session_YYYYMMDD.jsonl
+python P:\\\\.claude/skills/reflect/scripts/validate_pattern_coverage.py ~/.claude/history/session_YYYYMMDD.jsonl
 
 # Example: Validate yesterday's session
-python P:/.claude/skills/reflect/scripts/validate_pattern_coverage.py ~/.claude/history/session_20260310.jsonl
+python P:\\\\.claude/skills/reflect/scripts/validate_pattern_coverage.py ~/.claude/history/session_20260310.jsonl
 ```
 
 ---
@@ -35,7 +35,7 @@ Select a past session that involved technical work:
 ### 2. Run Validation Script
 
 ```bash
-python P:/.claude/skills/reflect/scripts/validate_pattern_coverage.py <transcript.jsonl>
+python P:\\\\.claude/skills/reflect/scripts/validate_pattern_coverage.py <transcript.jsonl>
 ```
 
 **Output**:
@@ -70,7 +70,7 @@ Without tests, this would have been a production bug
 
 If you identified genuine learnings:
 
-**Edit**: `P:/.claude/skills/reflect/scripts/extract_signals.py`
+**Edit**: `P:\\\\.claude/skills/reflect/scripts/extract_signals.py`
 
 Add patterns to the appropriate category:
 
@@ -92,7 +92,7 @@ IMPLEMENTATION_PATTERNS = [
 ### 5. Re-Run Tests
 
 ```bash
-cd P:/.claude/skills/reflect
+cd P:\\\\.claude/skills/reflect
 pytest tests/test_extract_signals_technical.py -v
 ```
 

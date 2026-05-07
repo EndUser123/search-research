@@ -111,7 +111,7 @@ AI-powered analysis with line number precision:
 Each terminal gets isolated state:
 
 ```
-P:\.claude\projects\PROJECT\.evidence\
+$CLAUDE_ROOT/projects\PROJECT\.evidence\
 ├── gto-state-console-abc123\
 │   └── state.json
 ├── gto-state-console-def456\
@@ -180,7 +180,7 @@ JSON artifact output
   "low_count": 1,
   "timestamp": "2026-03-21T10:00:00",
   "metadata": {
-    "project_root": "P:\\project",
+    "project_root": "P:\\\\\project",
     "detector_count": 7,
     "raw_gap_count": 8,
     "deduplicated_count": 5,

@@ -208,3 +208,84 @@ def is_question(text: str) -> bool:
         "can you", "would you", "should i", "is there", "are there", "do you",
     )
     return any(lowered.startswith(s) for s in question_starters)
+
+
+def is_non_substantive_turn(text: str) -> bool:
+    """
+    Check if a response is phatic/meta with no substantive claims.
+
+    Conservative: returns True only when ALL conditions are met.
+
+    Conditions:
+    1. Short length: Fewer than ~20 words
+    2. No obvious factual/technical content (digits, technical terms)
+    3. No strong epistemic or causal markers
+    4. No recommendation or decision language
+    5. Matches at least one phatic/meta pattern
+
+    When in doubt, return False.
+    """
+    if not text or not isinstance(text, str):
+        return False
+
+    # Strip markdown formatting
+    stripped = text.strip()
+    # Remove blockquote markers
+    if stripped.startswith(">"):
+        return False
+
+    # Condition 1: Length check
+    words = stripped.split()
+    if len(words) >= 20:
+        return False
+
+    # Condition 2: No digits (factual/technical content proxy)
+    if any(c.isdigit() for c in text):
+        return False
+
+    # Condition 3: No epistemic/causal markers
+    epistemic_causal = [
+        "because", "caused by", "due to", "result of", "therefore",
+        "as a result", "this means", "indicates that", "proves that",
+        "confirms that", "shows that", "reveals that", "demonstrates",
+        "i found", "tests passed", "the test", "verified that",
+        "confirmed that", "discovered that", "concluded that",
+        "in fact", "actually", "in reality", "the reality is",
+    ]
+    text_lower = stripped.lower()
+    for marker in epistemic_causal:
+        if marker in text_lower:
+            return False
+
+    # Condition 4: No recommendation/decision language
+    recommendation = [
+        "should", "i recommend", "you should", "we should",
+        "choose", "option", "prefer", "recommend",
+        "better to", "best to", "ideal", "optimal",
+    ]
+    for word in recommendation:
+        if word in text_lower:
+            return False
+
+    # Condition 5: Matches at least one phatic/meta pattern
+    phatic_patterns = [
+        r"^\s*(hi|hello|hey|greetings|good morning|good afternoon|good evening|howdy)\b",
+        r"\b(got it|understood|okay|ok|alright|sure|certainly)\b",
+        r"\b(ready when you are|ready when you|ready to proceed|ready to start)\b",
+        r"\b(no problem|you're welcome|my pleasure|happy to)\b",
+        r"\b(let me know|feel free|just say|just ask|just tell)\b",
+        r"\b(sounds good|looks good|great|perfect|excellent)\b",
+        r"\b(what are we|what shall we|what should we)\b",
+        r"\b(i'?m? (here|ready|available|open) (when|for|today|tomorrow))\b",
+    ]
+    for pattern in phatic_patterns:
+        if re.search(pattern, stripped, re.IGNORECASE):
+            return True
+
+    # More lenient: check for common greeting endings (after content)
+    greeting_enders = ["hi there", "hello!", "hey there", "hi!", "hello there"]
+    for greeting in greeting_enders:
+        if stripped.lower().endswith(greeting):
+            return True
+
+    return False

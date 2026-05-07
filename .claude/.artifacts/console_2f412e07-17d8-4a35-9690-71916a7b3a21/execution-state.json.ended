@@ -1,0 +1,18 @@
+{
+  "run_id": "aba779de-f70f-4569-8024-75b4ee77a328",
+  "skill_name": "cc-skills-utils:plugin-installer",
+  "contract_type": "workflow-execution",
+  "phase": "executing",
+  "status": "complete",
+  "terminal_id": "console_2f412e07-17d8-4a35-9690-71916a7b3a21",
+  "session_id": "0b8d52a3-6a1b-4b42-a028-8442401e91ab",
+  "turn_id": null,
+  "created_at": 1778127619.426239,
+  "updated_at": 1778127994.6842427,
+  "required_artifacts": [],
+  "completed_artifacts": [],
+  "missing_requirements": [],
+  "allowed_tools_now": [],
+  "blocked_tools": [],
+  "response_requirements": {}
+}

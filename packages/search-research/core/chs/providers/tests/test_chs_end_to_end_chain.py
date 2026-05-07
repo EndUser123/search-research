@@ -23,7 +23,7 @@ from .claude_code_raw import ClaudeCodeRawProvider
 from .projections import query_events
 from .task_projection import open_tasks
 
-DB_PATH = "P:/__csf/data/chat_history.db"
+DB_PATH = "P:\\\\__csf/data/chat_history.db"
 
 
 def make_content_hash(payload: dict) -> str:
@@ -78,7 +78,7 @@ def test_e2e_archive_files_created_in_provider_directory(
     clean_task_table, clean_events_table, tmp_path
 ):
     """
-    Verify archive files are created in P:/__csf/data/chs_archive/claude_code_raw/...
+    Verify archive files are created in P:\\\\__csf/data/chs_archive/claude_code_raw/...
     after provider ingest.
     """
     with patch("core.chs.archive._ARCHIVE_BASE", tmp_path):
@@ -103,7 +103,7 @@ def test_e2e_watermark_files_created(
 ):
     """
     Verify watermark files are created in
-    P:/__csf/data/chs_archive/watermarks/claude_code_raw/...
+    P:\\\\__csf/data/chs_archive/watermarks/claude_code_raw/...
     after provider ingest.
     """
     with patch("core.chs.archive._ARCHIVE_BASE", tmp_path):

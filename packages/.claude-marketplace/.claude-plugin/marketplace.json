@@ -1,0 +1,113 @@
+{
+  "name": "local",
+  "owner": {
+    "name": "Bruce Thomson"
+  },
+  "plugins": [
+    {
+      "name": "snapshot",
+      "version": "0.5.2",
+      "description": "Session snapshot capture and restore system for Claude Code sessions",
+      "source": "./plugins/snapshot",
+      "keywords": [
+        "snapshot",
+        "session",
+        "compaction",
+        "multi-terminal"
+      ]
+    },
+    {
+      "name": "cc-skills-meta",
+      "version": "1.1.0",
+      "description": "Meta-cognitive and workflow skills for Claude Code \u2014 retrospectives, gap analysis, learning, self-improvement, and orchestration.",
+      "source": "./plugins/cc-skills-meta",
+      "keywords": [
+        "meta",
+        "workflow",
+        "retrospective",
+        "orchestration",
+        "skill-craft"
+      ]
+    },
+    {
+      "name": "cc-skills-ai-api",
+      "version": "1.0.2",
+      "description": "AI API integration skills for Claude Code",
+      "source": "./plugins/cc-skills-ai-api",
+      "keywords": [
+        "ai",
+        "api",
+        "integration"
+      ]
+    },
+    {
+      "name": "cc-skills-ai-cli",
+      "version": "1.0.0",
+      "description": "AI CLI skills for Claude Code \u2014 parallel LLM execution, provider routing, and coding agents.",
+      "source": "./plugins/cc-skills-ai-cli",
+      "keywords": [
+        "ai",
+        "cli",
+        "llm",
+        "coding"
+      ]
+    },
+    {
+      "name": "cc-skills-media",
+      "version": "1.0.2",
+      "description": "Media processing and generation skills for Claude Code",
+      "source": "./plugins/cc-skills-media",
+      "keywords": [
+        "media",
+        "processing",
+        "generation"
+      ]
+    },
+    {
+      "name": "cc-skills-sdlc",
+      "version": "1.0.2",
+      "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
+      "source": "./plugins/cc-skills-sdlc",
+      "keywords": [
+        "sdlc",
+        "development",
+        "lifecycle"
+      ]
+    },
+    {
+      "name": "cc-skills-utils",
+      "version": "1.1.6",
+      "description": "Utility skills for Claude Code",
+      "source": "./plugins/cc-skills-utils",
+      "keywords": [
+        "utilities",
+        "tools"
+      ]
+    },
+    {
+      "name": "search-research",
+      "version": "0.1.5",
+      "description": "Unified search and research system with async concurrent execution and 11 web providers.",
+      "source": "./plugins/search-research",
+      "keywords": [
+        "search",
+        "research",
+        "web search",
+        "code search"
+      ]
+    },
+    {
+      "name": "skill-guard",
+      "version": "2.1.6",
+      "description": "Universal skill auto-discovery and enforcement for Claude Code",
+      "source": "./plugins/skill-guard",
+      "keywords": [
+        "skills",
+        "enforcement",
+        "hooks",
+        "gate",
+        "compliance"
+      ]
+    }
+  ]
+}

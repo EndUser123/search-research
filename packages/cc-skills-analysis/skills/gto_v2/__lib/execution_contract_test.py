@@ -124,7 +124,7 @@ def test_sync_to_execution_state_writes_correct_shape():
             skill="gto_v2",
             run_id="test-run-001",
             phase="completed",
-            current_target="P:/test",
+            current_target="P:\\\\test",
             git_sha="abc123",
             last_artifact=str(base / "outputs" / "artifact.json"),
             expected_artifacts=[],

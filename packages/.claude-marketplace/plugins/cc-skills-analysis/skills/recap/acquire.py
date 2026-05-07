@@ -41,7 +41,7 @@ def _read_identity_json() -> dict | None:
     """Read authoritative session identity from SessionStart hook's cache.
 
     Uses WT_SESSION env var to find identity.json under:
-    P:/.claude/.artifacts/console_{WT_SESSION}/identity.json
+    P:\\\\.claude/.artifacts/console_{WT_SESSION}/identity.json
 
     This is the primary source for session_id and transcript_path.
     It is written fresh at session start and is immune to compaction chain rewrites.
@@ -51,7 +51,7 @@ def _read_identity_json() -> dict | None:
     wt = os.environ.get("WT_SESSION")
     if not wt:
         return None
-    identity_path = Path("P:/.claude/.artifacts") / f"console_{wt}" / "identity.json"
+    identity_path = Path("P:\\\\.claude/.artifacts") / f"console_{wt}" / "identity.json"
     if not identity_path.exists():
         return None
     try:
@@ -274,7 +274,7 @@ def _load_sessions_from_registry(
     Primary when sessions-index is absent or stale.
     """
     try:
-        snapshot_root = Path("P:/packages/snapshot")
+        snapshot_root = Path("P:\\\\packages/snapshot")
         lib_path = snapshot_root / "scripts" / "hooks" / "__lib"
         if str(lib_path) not in sys.path:
             sys.path.insert(0, str(lib_path))
@@ -342,7 +342,7 @@ def _get_fresh_handoff(
         terminal_id = os.environ.get("CLAUDE_TERMINAL_ID")
 
     handoff_dirs = [
-        Path("P:/") / ".claude" / ".state" / "handoff",
+        Path("P:\\\\") / ".claude" / ".state" / "handoff",
         Path.home() / ".claude" / ".state" / "handoff",
     ]
     for handoff_dir in handoff_dirs:
@@ -422,7 +422,7 @@ def _walk_session_chain(
 ) -> list[dict[str, Any]]:
     """Walk session chain and return entries as dicts."""
     try:
-        search_research_root = Path("P:/packages/search-research")
+        search_research_root = Path("P:\\\\packages/search-research")
         if str(search_research_root) not in sys.path:
             sys.path.insert(0, str(search_research_root))
         from core.session_chain import walk_handoff_chain, walk_session_chain

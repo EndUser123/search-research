@@ -42,7 +42,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 # Add src to path for imports
-# The script is at: P:/__csf/src/features/cks/commands/unified_ingest.py
+# The script is at: P:\\\\__csf/src/features/cks/commands/unified_ingest.py
 # Project root is 4 levels up
 project_root = Path(__file__).parent.parent.parent.parent
 src_dir = project_root / "src"

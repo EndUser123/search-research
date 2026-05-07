@@ -6,7 +6,7 @@ This enhancement adds granular memory types to the CKS system while maintaining 
 
 ## What Was Changed
 
-### 1. New Constants Added (`P:\__csf.nip\src\features\cks\unified.py`)
+### 1. New Constants Added (`P:\\\\__csf.nip\src\features\cks\unified.py`)
 
 #### `VALID_ENTRY_TYPES`
 Added 9 valid memory types:
@@ -72,12 +72,12 @@ cks.ingest_decision("Chose PostgreSQL over MySQL", "Better JSON support and ACID
 cks.ingest_insight("Code organization", "Separating business logic from presentation improves testability...")
 ```
 
-#### Bridge Documentation (`P:\__csf.nip\src\features\core_utils\claude_code_cks_bridge.py`)
+#### Bridge Documentation (`P:\\\\__csf.nip\src\features\core_utils\claude_code_cks_bridge.py`)
 Updated docstring to document all 9 memory types with usage examples.
 
 ## Files Modified
 
-1. **P:\__csf.nip\src\features\cks\unified.py**
+1. **P:\\\\__csf.nip\src\features\cks\unified.py**
    - Added `VALID_ENTRY_TYPES` constant
    - Added `QUERY_INTENT_BOOSTS` constant
    - Added `_validate_entry_type()` method
@@ -86,13 +86,13 @@ Updated docstring to document all 9 memory types with usage examples.
    - Added 5 new module-level functions
    - Updated module docstring
 
-2. **P:\__csf.nip\src\features\core_utils\claude_code_cks_bridge.py**
+2. **P:\\\\__csf.nip\src\features\core_utils\claude_code_cks_bridge.py**
    - Updated module docstring with new memory types
    - Added usage examples for new types
 
 ## Files Created
 
-1. **P:\__csf.nip\tests\test_memory_types.py**
+1. **P:\\\\__csf.nip\tests\test_memory_types.py**
    - Comprehensive test suite for memory types
    - Tests validation, convenience methods, backward compatibility
    - Tests search by type

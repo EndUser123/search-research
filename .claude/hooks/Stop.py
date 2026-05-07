@@ -12,6 +12,8 @@ v3.0: Converted safety_gate, behavior_audit, advisory to direct function calls.
 v3.1: Stores Stop-time "Next Step Options" as a one-turn menu so the user can
       reply with a single letter (A/B/...) to run the chosen option.
 
+v3.2: Added Stop_aggregator for hook result deduplication/prioritization.
+
 =============================================================================
 EPISTEMIC / QUALITY ADVISORY CLASSIFICATION (Steps 1-5 implementation)
 =============================================================================
@@ -92,9 +94,11 @@ from __lib.turn_mode import (
     TurnMode,
 )
 
+from Stop_aggregator import aggregate_and_render as _aggregate_and_render
+
 # Referent coverage advisory tuning
-_SMALL_LIST_THRESHOLD = 5        # ≤N items: strict — fire when zero items mentioned
-_VERY_LARGE_LIST_THRESHOLD = 15  # >N items: very soft — downgrade advisory
+_SMALL_LIST_THRESHOLD = 5         # ≤N items: strict — fire when zero items mentioned
+_VERY_LARGE_LIST_THRESHOLD = 20  # >N items: very soft — downgrade advisory
 _COOLDOWN_TURNS = 3             # Suppress repeat advisory for this many turns
 
 # Ephemeral cooldown: maps terminal_id -> {"anchor_hash", "mentioned", "suppress_until"}
@@ -119,6 +123,27 @@ _FOCUSED_RESPONSE_PATTERNS = [
     r"\bfirst(?:\s+pass)?\b",
 ]
 _FOCUSED_RESPONSE_RE = [re.compile(p, re.I) for p in _FOCUSED_RESPONSE_PATTERNS]
+
+# User-side prioritization intent — signals user asked for prioritized/focused coverage
+_USER_PRIORITIZATION_PATTERNS = [
+    r"\bprioritize\b",
+    r"\btop\s+\d+\b",
+    r"\bmost\s+important\b",
+    r"\bhighest\s+(?:impact|leverage)\b",
+    r"\bwhich\s+(?:are\s+)?(?:the\s+)?most\s+important\b",
+    r"\bwhich\s+(?:are\s+)?(?:the\s+)?(?:ones?\s+)?should\s+i\s+focus\s+on\b",
+    r"\bwhich\s+(?:are\s+)?(?:the\s+)?(?:ones?\s+)?(?:to\s+)?prioritize\b",
+    r"\bprioritiz(?:e|ing|ed)\b",
+    r"\bfocus\s+on\s+(?:the\s+)?(?:top\s+)?(?:highest\s+)?(?:priority|impact|leverage)\b",
+]
+_USER_PRIORITIZATION_RE = [re.compile(p, re.I) for p in _USER_PRIORITIZATION_PATTERNS]
+
+
+def _user_asked_for_prioritization(prompt: str) -> bool:
+    """Return True if the user's prompt explicitly asks for prioritization."""
+    if not prompt:
+        return False
+    return any(p.search(prompt) for p in _USER_PRIORITIZATION_RE)
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -374,6 +399,17 @@ def _run_intent_artifact_alignment(data: dict) -> dict | None:
     tool_events = data.get("tool_events", [])
     response = data.get("response", "")
     return check_alignment(prompt, tool_events, response)
+
+
+def _run_semantic_critic(data: dict) -> dict | None:
+    """Semantic quality gate for diagnostic/analytical responses.
+
+    Evaluates whether analytical responses adequately address the diagnostic question.
+    Uses Haiku for semantic evaluation. Quality gate — suppressed on control/exploration.
+    """
+    from Stop_semantic_critic import run as _semantic_critic_run
+
+    return _semantic_critic_run(data)
 
 
 def _run_epistemic_contract(data: dict) -> dict | None:
@@ -943,6 +979,24 @@ def _run_anti_sycophancy_quality(data: dict) -> dict | None:
                 sample = sorted({f"{m.matched} -> {m.suggestion}" for m in lazy})[:5]
                 messages.append("LAZY CLOSURE CHECK:\n- " + "\n- ".join(sample))
 
+        if os.environ.get("DESTRUCTIVE_CLEANUP_DETECTOR_ENABLED", "true").lower() in (
+            "1",
+            "true",
+            "yes",
+        ):
+            cleanup = detect_all_destructive_cleanup(response)
+            if cleanup:
+                _append_anti_sycophancy_log(
+                    data=data,
+                    detector="destructive_cleanup_detector",
+                    severity="warn",
+                    findings=[m.matched for m in cleanup],
+                )
+                samp = "\n- ".join(
+                    f"{m.matched}: {m.suggestion}" for m in cleanup
+                )
+                messages.append("DESTRUCTIVE CLEANUP ADVISORY:\n- " + samp)
+
         if os.environ.get("RESPONSE_STRUCTURE_DETECTOR_ENABLED", "true").lower() in (
             "1",
             "true",
@@ -1507,7 +1561,7 @@ def _run_lazy_workaround_gate(data: dict) -> dict | None:
     """Detect accept-bug-as-feature lazy workaround suggestions."""
     try:
         _turn = _classify_turn_mode(data)
-        if _turn in ("plan", "execution-report"):
+        if _turn in ("plan", "execution-report", "meta"):
             return None
         import Stop_lazy_workaround_gate
 
@@ -1788,6 +1842,121 @@ def _run_cks_correction_anchor(data: dict) -> dict | None:
         return None
 
 
+# ── Tool-call sanity checker ─────────────────────────────────────────────────
+
+# Per-turn counts — cleared at start of each Stop invocation
+_turn_bash_count: int = 0
+_turn_edit_paths: dict[str, int] = {}  # path -> count
+_turn_high_risk_bash: list[str] = []   # list of detected high-risk commands
+
+
+def _extract_tool_calls(data: dict) -> list[tuple[str, dict]]:
+    """Extract (tool_name, tool_input) pairs from Stop data."""
+    calls: list[tuple[str, dict]] = []
+
+    # tool_events is the canonical field for this turn's tool calls
+    tool_events: list[dict] = data.get("tool_events", [])
+    for event in tool_events:
+        name = event.get("name", "")
+        tool_input = event.get("input", {}) or event.get("tool_input", {}) or {}
+        if name:
+            calls.append((name, tool_input))
+
+    # tool_calls string (some hooks pass this as a text summary)
+    tc = data.get("tool_calls", "")
+    if tc and isinstance(tc, str):
+        import re
+        # Match tool call patterns: "ToolName(" with optional path arg
+        for m in re.finditer(r"(\w+)\s*\(", tc):
+            calls.append((m.group(1), {}))
+
+    return calls
+
+
+def _run_tool_sanity_check(data: dict) -> dict | None:
+    """Advisory: flag abnormal tool usage patterns this turn.
+
+    Thresholds (conservative):
+      - Bash: warn if >3 calls in a single turn
+      - Same file edited/written: warn if >2 times
+      - High-risk Bash commands (rm, git reset --hard, etc.): warn on any occurrence
+        unless the command is already a Best Practice (e.g., git restore, git checkout HEAD)
+    """
+    global _turn_bash_count, _turn_edit_paths, _turn_high_risk_bash
+
+    # Reset per turn
+    _turn_bash_count = 0
+    _turn_edit_paths.clear()
+    _turn_high_risk_bash.clear()
+
+    BASH_THRESHOLD = 3
+    EDIT_THRESHOLD = 2
+    HIGH_RISK_PATTERNS = [
+        (r"\brm\s+-(?:rf|r)\b", "rm -rf / rm -r"),
+        (r"\bgit\s+reset\s+--hard\b", "git reset --hard"),
+        (r"\bgit\s+clean\s+-(?:fd|f)\b", "git clean -fd / -f"),
+        (r"\bkill\s+-\s*9\b", "kill -9"),
+        (r"\bpowershell\s+.*-Recurse\s+.*rm\b", "PowerShell recursive delete"),
+        (r"\bdel\s+/[sq]\b", "del /s /q (Windows recursive delete)"),
+        (r"\bFormat-Volume\b.*-Confirm", "Format-Volume"),
+    ]
+    # Commands that are best-practice recovery, not high-risk
+    SAFE_RECOVERY = [
+        r"\bgit\s+restore\b",
+        r"\bgit\s+checkout\s+HEAD\b",
+        r"\bgit\s+checkout\s+--\s+\S",  # git checkout -- file
+    ]
+
+    warnings: list[str] = []
+    tool_calls = _extract_tool_calls(data)
+
+    for tool_name, tool_input in tool_calls:
+        if tool_name == "Bash":
+            _turn_bash_count += 1
+            command = tool_input.get("command", "") if isinstance(tool_input, dict) else ""
+            for pat, label in HIGH_RISK_PATTERNS:
+                import re
+                if re.search(pat, command, re.I):
+                    # Skip if it matches a safe-recovery pattern
+                    if any(re.search(safe, command, re.I) for safe in SAFE_RECOVERY):
+                        continue
+                    _turn_high_risk_bash.append(label)
+                    break
+
+        if tool_name in ("Edit", "Write", "MultiEdit"):
+            path = tool_input.get("file_path", "") if isinstance(tool_input, dict) else ""
+            if path:
+                _turn_edit_paths[path] = _turn_edit_paths.get(path, 0) + 1
+
+    if _turn_bash_count > BASH_THRESHOLD:
+        warnings.append(
+            f"High Bash usage this turn: {_turn_bash_count} calls (> {BASH_THRESHOLD} threshold). "
+            "Confirm all commands are intentional and necessary."
+        )
+
+    repeated_edits = {p: c for p, c in _turn_edit_paths.items() if c > EDIT_THRESHOLD}
+    if repeated_edits:
+        paths_str = ", ".join(f"'{p}' ({c}x)" for p, c in list(repeated_edits.items())[:3])
+        warnings.append(
+            f"Repeated edits to same file(s): {paths_str}. "
+            "Consolidate edits or verify this is intentional."
+        )
+
+    if _turn_high_risk_bash:
+        unique_risks = ", ".join(sorted(set(_turn_high_risk_bash)))
+        warnings.append(
+            f"High-risk Bash commands detected: {unique_risks}. "
+            "Verify these commands are correct before proceeding."
+        )
+
+    if warnings:
+        return {
+            "decision": "allow",  # Advisory only — never blocks
+            "systemMessage": "TOOL SANITY ADVISORY:\n" + "\n".join(f"  • {w}" for w in warnings),
+        }
+    return None
+
+
 def _run_referent_coverage(data: dict) -> dict | None:
     """Advisory check: warn if response mentions zero anchor terms from user's message.
 
@@ -1797,14 +1966,21 @@ def _run_referent_coverage(data: dict) -> dict | None:
     user explicitly framed the list as investigation targets, not just data to show.
 
     Size-aware behavior:
-      ≤5 items      → strict: fire when zero items mentioned
-      6–15 items    → soft: fire when zero mentioned; suppress when some mentioned
-      >15 items      → very soft: downgrade unless user asked for exhaustive coverage
-      Focused response → suppressed unless zero items mentioned
+      ≤5 items       → strict:  fire when zero items mentioned
+      6–20 items     → soft:   fire when zero mentioned; suppress when some mentioned
+      >20 items      → downgraded: fire only when zero AND no focused/prioritized strategy
+
+    Suppression signals (either exempts from advisory):
+      - Response is focused/prioritized  (_is_focused_response)
+      - User asked for prioritization   (_user_asked_for_prioritization)
 
     Bypass_scope is set by referent_anchor when the user says 'and anything else'
     or 'plus any' — expansion language signals the user wants broader coverage.
     """
+    # Skip quality enforcement on non-final-answer turns (report/meta)
+    _turn = _classify_turn_mode(data)
+    if _turn in ("execution-report", "meta"):
+        return None
     try:
         tid = (
             data.get("terminal_id")
@@ -1857,26 +2033,31 @@ def _run_referent_coverage(data: dict) -> dict | None:
         mentioned = [t for t in anchor_terms if t.lower() in response]
         some_mentioned = 0 < len(mentioned) < n
 
+        # --- User-prompt intent (prioritization framing) ---
+        user_prompt = data.get("prompt") or ""
+        user_prioritized = _user_asked_for_prioritization(user_prompt)
+
         # --- Size-aware suppression ---
         if n <= _SMALL_LIST_THRESHOLD:
-            # Strict: fire on zero mentions only
+            # Strict: fire on zero mentions only — small lists require exhaustive coverage
             if not mentioned:
                 _set_referent_cooldown(tid, anchor_key)
                 return _build_advisory(anchor_terms, mentioned, "strict")
             return None
 
         if n > _VERY_LARGE_LIST_THRESHOLD:
-            # Very soft: only fire when ZERO items mentioned AND no focused strategy
-            if not mentioned and not _is_focused_response(data.get("response", "")):
+            # Very soft: only fire when ZERO items mentioned AND no focused/prioritized strategy
+            if not mentioned and not _is_focused_response(data.get("response", "")) and not user_prioritized:
                 _set_referent_cooldown(tid, anchor_key)
                 return _build_advisory(anchor_terms, mentioned, "downgraded")
             return None
 
-        # 6–15 items: soft — fire on zero mentions, suppress when some mentioned
+        # 6–20 items (soft): fire on zero mentions unless response is focused OR user asked for prioritization
         if not mentioned:
-            _set_referent_cooldown(tid, anchor_key)
-            return _build_advisory(anchor_terms, mentioned, "soft")
-        return None
+            if not _is_focused_response(data.get("response", "")) and not user_prioritized:
+                _set_referent_cooldown(tid, anchor_key)
+                return _build_advisory(anchor_terms, mentioned, "soft")
+            return None
 
     except Exception:
         return None
@@ -1930,10 +2111,11 @@ def _build_advisory(anchor_terms: list[str], mentioned: list[str], tier: str) ->
 #   5. (For >5 items) Not in cooldown period for this terminal+anchor_set
 #
 # Size-aware behavior:
-#   ≤5 items      → strict: fires on zero mentions
-#   6–15 items    → soft: fires on zero mentions; suppressed if some mentioned
-#   >15 items      → downgraded: suppressed unless focused response OR zero mentions
-#   Focused response (any size) → suppressed unless zero mentions
+#   ≤5 items       → strict:     fires on zero mentions
+#   6–20 items     → soft:       fires on zero mentions; suppressed if some mentioned
+#                                Also suppressed if response is focused OR user asked for prioritization
+#   >20 items      → downgraded: fires only on zero mentions AND no focused response AND
+#                                user did NOT ask for prioritization
 #
 # Cooldown: 3 turns (~90s) after advisory fires for same terminal+anchor_set
 #
@@ -1942,7 +2124,8 @@ def _build_advisory(anchor_terms: list[str], mentioned: list[str], tier: str) ->
 #   - Response contains list-level phrases → conceptual engagement
 #   - Fewer than 3 anchor_terms stored
 #   - Cooldown active for this terminal+anchor combination
-#   - Response shows focused/prioritized strategy (suppressed unless strict size)
+#   - Response shows focused/prioritized strategy
+#   - User's prompt explicitly asked for prioritization (soft/downgraded tiers only)
 #
 # Gate class: "quality" — suppressed on control/exploration turns.
 # ---------------------------------------------------------------------------
@@ -1976,6 +2159,7 @@ GATE_CLASSES: dict[str, str] = {
     "skill_dir_correlation": "policy",
     "cks_correction_anchor": "policy",
     "referent_coverage": "quality",
+    "tool_sanity": "quality",
     # Quality gates — suppressed on control turns in normal mode
     "epistemic_contract": "quality",
     "behavior_audit": "quality",
@@ -1987,6 +2171,7 @@ GATE_CLASSES: dict[str, str] = {
     "reasoning_enhanced": "quality",
     "existence_gate": "quality",
     "lazy_workaround_gate": "quality",
+    "semantic_critic": "quality",
 }
 
 IN_PROCESS_GATES = [
@@ -2020,6 +2205,7 @@ IN_PROCESS_GATES = [
     ("lazy_workaround_gate", _run_lazy_workaround_gate),
     ("recommendation_gate", _run_recommendation_gate),
     ("intent_artifact_alignment", _run_intent_artifact_alignment),
+    ("semantic_critic", _run_semantic_critic),
     (
         "deletion_verification_guard",
         _run_deletion_verification_guard,
@@ -2028,6 +2214,7 @@ IN_PROCESS_GATES = [
     ("skill_dir_correlation", _run_skill_dir_correlation_gate),
     ("cks_correction_anchor", _run_cks_correction_anchor),
     ("referent_coverage", _run_referent_coverage),
+    ("tool_sanity", _run_tool_sanity_check),
 ]
 
 # Non-Blocking Side Effects (still subprocess for isolation)
@@ -2062,12 +2249,36 @@ def run_side_effect(hook_name: str, input_data: str) -> None:
         print(f"[Stop side-effect exception] {hook_name}: {e}", file=sys.stderr)
 
 
+CRITICAL_STOP_GATES = frozenset((
+    "destructive_cleanup_detector",  # advisory-only detector, but must not silently fail
+    "referent_coverage",           # ensures coverage of user-specified items
+))
+
+# Module-level critical gate failure flag for this turn
+_critical_gate_failed_this_turn: bool = False
+
+
 def _run_gate_safe(name: str, gate_fn, data: dict) -> dict | None:
-    """Run a single gate, catching exceptions to prevent cascade failure."""
+    """Run a single gate, catching exceptions to prevent cascade failure.
+
+    Critical gates fail CLOSED: if a critical gate crashes, the turn is flagged
+    and advisory/warn messages surface the failure so the model does not silently proceed.
+    """
+    global _critical_gate_failed_this_turn
     try:
         return gate_fn(data)
     except Exception as e:
         print(f"[Stop] gate {name} crashed: {e}", file=sys.stderr)
+        _critical_gate_failed_this_turn = True
+        if name in CRITICAL_STOP_GATES:
+            # Fail closed: surface the failure so the model is aware
+            return {
+                "decision": "allow",  # don't block the turn
+                "systemMessage": (
+                    f"SAFETY WARNING: {name} could not run (internal error: {e}). "
+                    "Treat the system as degraded. Avoid destructive actions until the issue is diagnosed."
+                ),
+            }
         return None
 
 
@@ -2272,6 +2483,8 @@ def _mark_alert_shown(session_id: str, alert_signature: str) -> None:
 
 
 def main():
+    global _critical_gate_failed_this_turn
+    _critical_gate_failed_this_turn = False  # reset per turn
     raw_input = sys.stdin.read().strip()
     if not raw_input:
         print("{}")
@@ -2298,6 +2511,8 @@ def main():
 
     system_messages: list[str] = []
     quality_messages: list[str] = []
+    # Raw messages for aggregation: (hook_name, severity, message)
+    _raw_messages: list[tuple[str, str, str]] = []
 
     # Run all in-process gates
     for name, gate_fn in IN_PROCESS_GATES:
@@ -2308,12 +2523,16 @@ def main():
         )
         if blocked:
             sys.exit(0)
+        # Collect raw messages for aggregation: (hook_name, severity, message)
+        # systemMessage gates emit warnings by default
+        if res and res.get("systemMessage"):
+            _raw_messages.append((name, "warn", res["systemMessage"]))
 
     # Merge quality messages based on turn mode and enforcement mode
     _merge_quality_messages(system_messages, quality_messages, turn_mode, quality_mode)
 
     # Process Side Effects (only if not blocked)
-    if SIDE_EFFECTS:
+    if SIDE_EFFECTS and not os.environ.get("STOP_NO_SIDE_EFFECTS"):
         import concurrent.futures
 
         input_str = json.dumps(data)
@@ -2322,6 +2541,13 @@ def main():
                 executor.submit(run_side_effect, hook, input_str)
 
     output = {}
+    # Apply aggregation to raw messages before rendering
+    aggregated = _aggregate_and_render(_raw_messages)
+    if aggregated:
+        if system_messages:
+            system_messages.append(aggregated)
+        else:
+            system_messages = [aggregated]
     if system_messages:
         output["systemMessage"] = "\n".join(system_messages)
 

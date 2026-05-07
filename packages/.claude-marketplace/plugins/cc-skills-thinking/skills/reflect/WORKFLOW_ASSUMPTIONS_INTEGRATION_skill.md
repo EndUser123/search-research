@@ -27,20 +27,20 @@ Enhanced `/reflect` skill to detect **assumption-driven workflow patterns** (roo
 ## Files Created/Modified
 
 ### Created
-1. `P:\.claude\skills\reflect\scripts\workflow_assumptions.py` (270 lines)
+1. `$CLAUDE_ROOT/skills\reflect\scripts\workflow_assumptions.py` (270 lines)
    - `detect_external_tool_without_verification()` - Detects CLI tools without state checks
    - `detect_missing_exit_conditions()` - Detects polling without timeout
    - `detect_assumption_driven_actions()` - Detects actions on tool output without verification
    - `detect_assumption_patterns()` - Main entry point combining all detectors
 
 ### Modified
-1. `P:\.claude\skills\reflect\scripts\extract_signals.py`
+1. `$CLAUDE_ROOT/skills\reflect\scripts\extract_signals.py`
    - Added workflow_assumptions import (line 57)
    - Added argparse arguments: `--workflow-assumptions`, `--no-workflow-assumptions`
    - Added detection call in main extraction flow (line ~350)
    - Default: Enabled (unless `DISABLE_WORKFLOW_ASSUMPTIONS=1`)
 
-2. `P:\.claude\skills\reflect\SKILL.md`
+2. `$CLAUDE_ROOT/skills\reflect\SKILL.md`
    - Added workflow_assumptions to signal detection scripts section
    - Added usage mode documentation with examples
 
@@ -99,7 +99,7 @@ done
 
 ### Verification
 ```bash
-cd P:\.claude\skills\reflect\scripts
+cd $CLAUDE_ROOT/skills\reflect\scripts
 python workflow_assumptions.py
 # Output: Detected 1 assumption-driven patterns
 #   - missing_exit_condition (HIGH)
@@ -150,9 +150,9 @@ python workflow_assumptions.py
 
 ## Related Documentation
 
-- `/reflect` skill: `P:\.claude\skills\reflect\SKILL.md`
-- Implementation: `P:\.claude\skills\reflect\scripts\workflow_assumptions.py`
-- Integration: `P:\.claude\skills\reflect\scripts\extract_signals.py` (lines 57, 152, 167, ~350)
+- `/reflect` skill: `$CLAUDE_ROOT/skills\reflect\SKILL.md`
+- Implementation: `$CLAUDE_ROOT/skills\reflect\scripts\workflow_assumptions.py`
+- Integration: `$CLAUDE_ROOT/skills\reflect\scripts\extract_signals.py` (lines 57, 152, 167, ~350)
 
 ---
 

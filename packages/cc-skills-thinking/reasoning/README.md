@@ -187,7 +187,7 @@ Pattern Matching Accuracy: >70%
 **Running Validation Tests:**
 ```bash
 # Run quality validation tests
-cd P:/packages/reasoning
+cd P:\\\\packages/reasoning
 pytest tests/modes/test_sequential_quality_validation.py -v
 
 # Generate validation report

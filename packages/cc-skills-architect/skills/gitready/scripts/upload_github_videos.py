@@ -312,8 +312,8 @@ class GitHubVideoUploader:
 async def main():
     """Main entry point."""
     repo_url = "https://github.com/EndUser123/gitready"
-    readme_path = Path("P:/packages/gitready/README.md")
-    video_dir = Path("P:/packages/gitready/assets/videos")
+    readme_path = Path("P:\\\\packages/gitready/README.md")
+    video_dir = Path("P:\\\\packages/gitready/assets/videos")
     session_file = Path.home() / ".github_video_uploader_session.json"
 
     uploader = GitHubVideoUploader(repo_url, readme_path, video_dir, session_file)

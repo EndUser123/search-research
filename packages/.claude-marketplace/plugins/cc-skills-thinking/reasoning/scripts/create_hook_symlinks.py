@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create symlinks from P:/.claude/hooks/ to package reasoning hooks.
+"""Create symlinks from P:\\\\.claude/hooks/ to package reasoning hooks.
 
 This script integrates the reasoning package hooks into Claude Code's hook system
 by creating symbolic links (or copies as fallback on Windows) from the project hooks directory
@@ -27,7 +27,7 @@ from pathlib import Path
 # Paths
 SCRIPT_DIR = Path(__file__).parent.parent
 PACKAGE_HOOKS_DIR = SCRIPT_DIR / "hooks"
-CLAUDE_HOOKS_DIR = Path("P:/.claude/hooks")
+CLAUDE_HOOKS_DIR = Path("P:\\\\.claude/hooks")
 
 
 # Hook mappings: target name -> (source file, target subdirectory)
@@ -249,7 +249,7 @@ def create_hook_link(
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="Create symlinks from P:/.claude/hooks/ to package reasoning hooks"
+        description="Create symlinks from P:\\\\.claude/hooks/ to package reasoning hooks"
     )
     parser.add_argument(
         "--dry-run", action="store_true", help="Show what would be done without making changes"
@@ -295,7 +295,7 @@ def main():
             print("   - Run as Administrator for symlink creation")
             print("   - Or enable Developer Mode in Windows Settings")
         else:
-            print("   - Check permissions for P:/.claude/hooks/")
+            print("   - Check permissions for P:\\\\.claude/hooks/")
         return 1
 
     return 0

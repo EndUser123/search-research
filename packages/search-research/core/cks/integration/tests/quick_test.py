@@ -54,7 +54,7 @@ def quick_test() -> bool | None:
         print("\n3. Creating test context...")
         result = adapter.create_context(
             tsk_id="TSK-TEST-PLATFORM",
-            worktree_path="P:/test-platform",
+            worktree_path="P:\\\\test-platform",
             description="Test platform project",
         )
         print(
@@ -85,7 +85,7 @@ def quick_test() -> bool | None:
         print("\n7. Testing operation validation...")
         allowed, message = adapter.validate_operation(
             operation_type="edit",
-            operation_target="P:/test-platform/main.py",
+            operation_target="P:\\\\test-platform/main.py",
             operation_description="Test edit",
         )
         print(f"   ✅ Validation result: allowed={allowed}, message={message}")

@@ -41,10 +41,11 @@ def _matches_pattern(tokens: list[str], pattern: list[str]) -> bool:
 
 def run(data: dict) -> dict | None:
     """In-process hook entry point."""
-    if not is_gto_active():
+    session_id = data.get("session_id")
+    if not is_gto_active(session_id):
         return None
 
-    state = read_state()
+    state = read_state(session_id)
     if state.get("phase") != "running":
         return None
 

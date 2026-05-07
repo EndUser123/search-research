@@ -103,22 +103,22 @@ CLI - Local Tools
 
 ## Provider Data Source Truth
 
-Provider classification (FREE vs PAID) is grounded in `P:\__csf\src\llm\providers\utils\model_enumerator.py`, where each provider's `enumerate_*_models()` function returns `ModelInfo` objects with an `is_free` boolean flag.
+Provider classification (FREE vs PAID) is grounded in `$__CSF_ROOT/src\llm\providers\utils\model_enumerator.py`, where each provider's `enumerate_*_models()` function returns `ModelInfo` objects with an `is_free` boolean flag.
 
 **Source of truth hierarchy:**
 1. **Primary**: `model_enumerator.py` - Each provider's enumerator function sets `is_free=True/False`
 2. **Secondary**: Provider documentation and actual API behavior (free tier vs paid service)
-3. **Audit**: `P:\.claude\skills\s\tests\provider_audit.md` - Manual verification of all 10 providers in FREE_PROVIDERS
+3. **Audit**: `$CLAUDE_ROOT/skills\s\tests\provider_audit.md` - Manual verification of all 10 providers in FREE_PROVIDERS
 
 **Verification process:**
-- Run regression tests: `pytest P:/.claude/skills/s/tests/test_provider_classification.py -v`
+- Run regression tests: `pytest P:\\\\.claude/skills/s/tests/test_provider_classification.py -v`
 - Review provider audit document for classification discrepancies
 - For provider pricing questions, check `model_enumerator.py` line numbers referenced in audit
 
 **Updating provider classifications:**
 1. Verify actual provider pricing model (free tier, subscription-based, or paid API)
 2. Update `enumerate_*_models()` function in `model_enumerator.py` with correct `is_free` flag
-3. Run regression tests to verify changes: `pytest P:/.claude/skills/s/tests/test_provider_classification.py -v`
+3. Run regression tests to verify changes: `pytest P:\\\\.claude/skills/s/tests/test_provider_classification.py -v`
 4. Update provider audit document with findings
 
 **Known discrepancies (from audit):**

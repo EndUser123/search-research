@@ -106,7 +106,7 @@ A 4-phase process to transform legacy/working code into high-standard production
 **Objective:** Apply synergies and eliminate "Ghost Code."
 
 -1. **Predictive Regression Check (Future):**
-_TODO: Query `P:/logs/test_failure_ledger.json` to predict if this refactor is likely to regress known failure modes. Requires `/verify` history logging._
+_TODO: Query `P:\\\\logs/test_failure_ledger.json` to predict if this refactor is likely to regress known failure modes. Requires `/verify` history logging._
 
 0.  **TDD Gate (Optional):**
 
@@ -147,7 +147,7 @@ _TODO: Query `P:/logs/test_failure_ledger.json` to predict if this refactor is l
     _Ensure modern patterns (like Async) didn't regress performance._
 
 1b. **Log Complexity Delta:**
-After `/profile --compare`, note the before/after CC scores. Append to `P:/logs/debt_ledger.json`:
+After `/profile --compare`, note the before/after CC scores. Append to `P:\\\\logs/debt_ledger.json`:
 `json
     {"date": "<ISO_DATE>", "target": "<file>", "cc_before": N, "cc_after": M, "delta": N-M}
     `
@@ -165,7 +165,7 @@ After `/profile --compare`, note the before/after CC scores. Append to `P:/logs/
     _Finalize the evolution by updating the CKS and Project Constitution (`CLAUDE.md`)._
 
 4.  **Auto-Generate Architecture Decision Record (ADR):**
-    After `/learn`, draft an ADR to `P:/__csf/adr/` documenting:
+    After `/learn`, draft an ADR to `P:\\\\__csf/adr/` documenting:
     - **Context:** What was the old pattern?
     - **Decision:** What is the new standard?
     - **Consequences:** What are the trade-offs?

@@ -24,11 +24,11 @@ def _count_findings_in_artifact(artifact_path: str) -> int:
         return 0
 
 
-def _count_resolved_carryover(state: dict) -> int:
+def _count_resolved_carryover(state: dict, session_id: str | None = None) -> int:
     """Count resolved findings in carryover.json for this terminal."""
     try:
         from .common import gto_state_dir
-        carryover_path = gto_state_dir().parent / "carryover.json"
+        carryover_path = gto_state_dir(session_id).parent / "carryover.json"
         if not carryover_path.exists():
             return 0
         data = json.loads(carryover_path.read_text(encoding="utf-8"))
@@ -39,10 +39,11 @@ def _count_resolved_carryover(state: dict) -> int:
 
 def run(data: dict) -> dict | None:
     """In-process hook entry point. Returns None to allow, dict to modify."""
-    if not is_gto_active():
+    session_id = data.get("session_id")
+    if not is_gto_active(session_id):
         return None
 
-    state = read_state()
+    state = read_state(session_id)
     if not state:
         return None
 
@@ -58,7 +59,7 @@ def run(data: dict) -> dict | None:
     if phase == "completed":
         msg = f"GTO: prior run completed for '{target}'. {findings_count} findings available."
         # Report resolved findings from carryover
-        resolved = _count_resolved_carryover(state)
+        resolved = _count_resolved_carryover(state, session_id)
         if resolved:
             msg += f" ({resolved} findings resolved since last run)"
     elif phase in ("initialized", "running"):

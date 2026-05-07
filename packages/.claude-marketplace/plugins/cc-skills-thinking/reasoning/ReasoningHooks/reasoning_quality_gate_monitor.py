@@ -29,7 +29,7 @@ def _resolve_log_path() -> Path:
     project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "").strip()
     if project_dir:
         return Path(project_dir) / ".claude" / "logs" / "reasoning" / "hook_usage.log"
-    return Path("P:/packages/reasoning/hook_usage.log")
+    return Path("P:\\\\packages/reasoning/hook_usage.log")
 
 
 LOG_FILE = _resolve_log_path()
@@ -154,7 +154,7 @@ def check_health(logs: List[Dict]) -> int:
         print("  • Responses not passing keyword filter")
         print("  • Hook not registered in Stop router")
         print("\nTo verify registration:")
-        print("  grep -r 'self_reflection' P:/.claude/hooks/Stop.py")
+        print("  grep -r 'self_reflection' P:\\\\.claude/hooks/Stop.py")
         return 1
 
     # Check if quality gate is too strict (100% failure rate)

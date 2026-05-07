@@ -41,7 +41,7 @@ Example:
     python -m search_research.mcp_server
 
     # Or via uv
-    uv --directory P:/packages/search-research run python -m search_research.mcp_server
+    uv --directory P:\\\\packages/search-research run python -m search_research.mcp_server
 """
 
 from __future__ import annotations
@@ -51,6 +51,8 @@ import logging
 import time
 from collections.abc import Callable
 from typing import Any
+
+from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
@@ -67,8 +69,13 @@ mcp = FastMCP("search-research")
 
 @functools.cache
 def _get_cks() -> CKS:
-    """Get or create CKS instance (thread-safe singleton via functools.cache)."""
-    return CKS()
+    """Get or create CKS instance (thread-safe singleton via functools.cache).
+
+    Uses config.CKS_DB_PATH as the authoritative source of truth for the DB path.
+    """
+    from .config import config as _search_config
+
+    return CKS(db_path=Path(_search_config.CKS_DB_PATH))
 
 
 def _search_result_to_dict(result: SearchResult) -> dict[str, Any]:

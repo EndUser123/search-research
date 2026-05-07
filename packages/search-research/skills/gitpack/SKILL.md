@@ -42,7 +42,7 @@ Or run manually — the packer is a simple inline script (no gitpack.py in this 
 
 1. **DISCOVER** — Glob for all `.py` files in `<target_dir>`, applying exclusions
 2. **EXTRACT** — Parse each file with `ast`, collect function/class signatures with type annotations
-3. **BUILD** — Write two markdown files to `P:/.claude/.artifacts/`:
+3. **BUILD** — Write two markdown files to `P:\\\\.claude/.artifacts/`:
    - `_sig.md` — signatures + indexes only
    - `_full.md` — signatures + indexes + full source appendix
 4. **APPEND** — Top-level `.md` files from `<target_dir>` appended to both outputs
@@ -65,7 +65,7 @@ dist/,build/,out/,target/,egg-info/,*.egg-info/
 | `<name>_sig.md` | PACK INFO, HOW TO USE, SIGNATURE TOC, DIRECTORY INDEX, FILE INDEX |
 | `<name>_full.md` | All of the above + APPENDIX: FULL IMPLEMENTATIONS (full source from disk) |
 
-**Output location:** `P:/.claude/.artifacts/` — always, never inside the target directory.
+**Output location:** `P:\\\\.claude/.artifacts/` — always, never inside the target directory.
 This prevents polluting source trees (especially skills/plugin cache) with temp files. |
 
 ## Features
@@ -83,7 +83,7 @@ This prevents polluting source trees (especially skills/plugin cache) with temp 
 **Always include when present near the target:**
 - Any companion `.py` files referenced by the target (e.g., a service that backs a skill)
 - Any `CLAUDE.md`, `AGENTS.md`, or `.mcp.json` in the same tree
-- If packing a skill, also pack its backing service, companion scripts, or related config files if they live in `P:/tools/`, `P:/.claude/`, or other well-known locations
+- If packing a skill, also pack its backing service, companion scripts, or related config files if they live in `P:\\\\tools/`, `P:\\\\.claude/`, or other well-known locations
 
 **Rule:** If a file is named in code as a dependency or companion, it belongs in the pack. Err on the side of inclusion.
 
@@ -92,8 +92,8 @@ This prevents polluting source trees (especially skills/plugin cache) with temp 
 When the target is a known skill name (e.g., `/git`, `handoff:id`), resolve it to a filesystem path before packing:
 
 **Resolution order:**
-1. `P:/.claude/skills/<name>/` — local skill directory
-2. `P:/packages/.claude-marketplace/plugins/<plugin>/skills/<name>/` — marketplace source
+1. `P:\\\\.claude/skills/<name>/` — local skill directory
+2. `P:\\\\packages/.claude-marketplace/plugins/<plugin>/skills/<name>/` — marketplace source
 3. `C:/Users/brsth/.claude/plugins/cache/local/<plugin>/<version>/skills/<name>/` — installed plugin cache
 
 **Rule:** Skills installed via marketplace are loaded from the **cache on C:**, not from P: source. Always resolve through the cache path when the plugin is installed.
@@ -101,7 +101,7 @@ When the target is a known skill name (e.g., `/git`, `handoff:id`), resolve it t
 ```python
 # Skill name resolution helper
 SKILL_CACHE_ROOT = Path("C:/Users/brsth/.claude/plugins/cache/local")
-MARKETPLACE_ROOT = Path("P:/packages/.claude-marketplace/plugins")
+MARKETPLACE_ROOT = Path("P:\\\\packages/.claude-marketplace/plugins")
 
 def resolve_skill_path(skill_ref: str) -> Path | None:
     """Resolve a skill reference like '/git' or 'handoff:id' to a filesystem path."""
@@ -127,14 +127,14 @@ def resolve_skill_path(skill_ref: str) -> Path | None:
 ## Examples
 
 ```bash
-# Pack a directory — outputs go to P:/.claude/.artifacts/
-/gitpack P:\packages\cc-skills-meta
+# Pack a directory — outputs go to P:\\\\.claude/.artifacts/
+/gitpack P:\\\\packages\cc-skills-meta
 
 # Pack with exclusions
 /gitpack ./my-project --exclude __pycache__,*.pyc
 ```
 
-**Output:** `P:/.claude/.artifacts/<name>_sig.md` and `_full.md`
+**Output:** `P:\\\\.claude/.artifacts/<name>_sig.md` and `_full.md`
 
 ## Architecture
 

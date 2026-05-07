@@ -60,7 +60,7 @@ Primary entry point for all CLI operations with intelligent command discovery, r
 - **Evidence-based routing**: Understand context before routing, don't guess
 
 ### Technical Context
-- **Skill registry**: `P:\.claude\hooks\skill_registry.py` for command discovery
+- **Skill registry**: `$CLAUDE_ROOT/hooks\skill_registry.py` for command discovery
 - **Search integration**: `/search --backend skills` for command discovery
 - **Triage levels**: FAST (<2s), STANDARD (<15s), CAREFUL (<60s)
 - **Evidence tiers**: Tier 1 (95%), Tier 2 (85%), Tier 3 (75%), Tier 4 (50%)
@@ -208,7 +208,7 @@ IF request references specific files or code:
 
 IF request asks "what [category] command would help..." or seeks command discovery:
     → Use /search with skills backend FIRST
-    → Execute: cd "P:/__csf" && python src/csf/cli/nip/search.py "query" --backend skills --layer 3
+    → Execute: cd "P:\\\\__csf" && python src/csf/cli/nip/search.py "query" --backend skills --layer 3
     → Review results and route to best match
 
 IF request is ambiguous:

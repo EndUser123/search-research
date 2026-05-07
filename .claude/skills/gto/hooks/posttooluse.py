@@ -19,7 +19,8 @@ from .common import is_gto_active, read_state, gto_state_dir, write_hook_output
 
 def run(data: dict) -> dict | None:
     """In-process hook entry point."""
-    if not is_gto_active():
+    session_id = data.get("session_id")
+    if not is_gto_active(session_id):
         return None
 
     tool_name = data.get("tool_name", "")
@@ -28,18 +29,18 @@ def run(data: dict) -> dict | None:
 
     # Capture failures during GTO runs
     if _is_failure(tool_output):
-        _capture_failure(tool_name, tool_input, tool_output)
+        _capture_failure(tool_name, tool_input, tool_output, session_id)
 
     # Record file changes for session-scoped tracking
     if tool_name in ("Write", "Edit"):
         file_path = tool_input.get("file_path", "")
         if file_path:
-            _record_file_change(file_path)
+            _record_file_change(file_path, session_id)
 
     # Validate artifact writes
     if tool_name in ("Write", "Edit"):
         file_path = tool_input.get("file_path", "")
-        artifacts_dir = gto_state_dir().parent
+        artifacts_dir = gto_state_dir(session_id).parent
         if artifacts_dir in Path(file_path).resolve().parents or str(artifacts_dir) in file_path:
             validation = _validate_artifact_write(file_path)
             if validation:
@@ -56,9 +57,9 @@ def _is_failure(output: str) -> bool:
     return any(s in output for s in failure_signals)
 
 
-def _capture_failure(tool_name: str, tool_input: dict, output: str) -> None:
+def _capture_failure(tool_name: str, tool_input: dict, output: str, session_id: str | None = None) -> None:
     """Append a failure capture entry to the GTO logs."""
-    logs_dir = gto_state_dir().parent / "logs"
+    logs_dir = gto_state_dir(session_id).parent / "logs"
     logs_dir.mkdir(parents=True, exist_ok=True)
     log_file = logs_dir / "failures.jsonl"
 
@@ -71,15 +72,15 @@ def _capture_failure(tool_name: str, tool_input: dict, output: str) -> None:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
-def _record_file_change(file_path: str) -> None:
+def _record_file_change(file_path: str, session_id: str | None = None) -> None:
     """Append a file change record to the session changes log."""
-    artifacts_dir = gto_state_dir().parent
+    artifacts_dir = gto_state_dir(session_id).parent
     log_path = artifacts_dir / "session_changes.jsonl"
     entry = {
         "ts": datetime.now(timezone.utc).isoformat(),
         "tool": "file-edit",
         "file": file_path,
-        "session_id": os.environ.get("CLAUDE_SESSION_ID", ""),
+        "session_id": session_id or os.environ.get("CLAUDE_SESSION_ID", ""),
     }
     log_path.parent.mkdir(parents=True, exist_ok=True)
     with open(log_path, "a", encoding="utf-8") as f:

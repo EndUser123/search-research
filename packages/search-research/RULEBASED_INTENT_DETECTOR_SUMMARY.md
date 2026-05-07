@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-06
 **Status:** ✅ Complete
-**Location:** `P:\packages\search-research\src\search_research\query_intent.py`
+**Location:** `$CLAUDE_PLUGIN_ROOT/src\search_research\query_intent.py`
 
 ---
 
@@ -392,17 +392,17 @@ else:
 
 ## Files Modified
 
-1. **P:\packages\search-research\src\search_research\query_intent.py**
+1. **$CLAUDE_PLUGIN_ROOT/src\search_research\query_intent.py**
    - Added ModeIntent enum (line 407)
    - Added ModeIntentDetection dataclass (line 419)
    - Added RuleBasedIntentDetector class (line 426-693)
    - Total additions: ~270 lines
 
-2. **P:\packages\search-research\validate_intent_detector.py**
+2. **$CLAUDE_PLUGIN_ROOT/validate_intent_detector.py**
    - Validation script for implementation verification
    - AST-based checking (no imports required)
 
-3. **P:\packages\search-research\test_rulebased_intent.py**
+3. **$CLAUDE_PLUGIN_ROOT/test_rulebased_intent.py**
    - Test suite (incomplete due to missing dependencies)
 
 ---

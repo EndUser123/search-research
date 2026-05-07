@@ -13,7 +13,8 @@ disable-model-invocation: true
 triggers:
   - /bf
 workflow_steps:
-  - 'if first arg is start, restart, shutdown, dashboard, status, or sync: run powershell -File P:/.claude/provider-configs/cc-bifrost.ps1 --<arg>'
+  - 'if first arg is start, restart, shutdown, dashboard, status, or sync: run powershell -File P:\\\\.claude/provider-configs/cc-bifrost.ps1 --<arg>'
+  - 'if first arg is catalog: run python P:/packages/cc-skills-utils/skills/bifrost/scripts/filter_models.py --source local <remaining args>'
   - 'if first arg is routes: import bf_agent, call probe_routes(), format as table'
   - 'if first arg is routes with second arg --new-only: import bf_agent, call list_catalog_models(min_context=128000, free_only=True), format as unrouted list'
   - 'if first arg is list-routes: import bf_agent, call list_routes(), format as table'
@@ -89,8 +90,22 @@ These invoke `cc-bifrost.ps1` for process lifecycle control:
 - `/bf restart` — stop + start + auto-verify routing chain
 - `/bf shutdown` — stop the daemon
 - `/bf dashboard` — open `http://localhost:<port>` in default browser
-- `/bf routes` — probe all routing rules: verify target provider, measure latency (1-token completion), flag new models missing from rules
-- `/bf routes --new-only` — show only models in catalog that have no routing rule yet
+- `/bf catalog` — query local shadow catalog DB. Pass `--help` for all filter flags. Default: free/subscription chat models >= 128k ctx
+- `/bf catalog --list-providers` — show provider counts in local DB
+- `/bf catalog --provider nvidia --free-only` — filter by provider, show only free models
+- `/bf catalog --provider openrouter --free-only --min-context 131072` — OpenRouter free models >= 128k ctx
+- `/bf catalog --mode embed` — embedding models only
+- `/bf catalog --format json` — machine-readable output
+- `/bf catalog --list-all` — all models in DB without taxonomy filter
+
+## Local Catalog DB (--source local)
+
+The local shadow catalog at `P:/packages/cc-skills-utils/skills/bifrost/scripts/catalog.db` is populated by `sync_catalog.py`. It replaces the Bifrost governance DB for model discovery and filtering when the Bifrost daemon is not running.
+
+**Taxonomy rules (applied automatically):**
+- FREE-KEY providers (cerebras, groq, mistral, nvidia): API key covers all models — no context or cost filter
+- SUBSCRIPTION providers (minimax, z.ai): covered by subscription — no cost filter
+- OPENROUTER: only models with `input_cost_per_token = 0 AND output_cost_per_token = 0` are free (excludes moonshotai, minimax, z.ai, bytedance)
 - `/bf status` — health check: rule count/enabled, provider key alignment, live probe
 - `/bf list-routes` — list all routing rules (enabled and disabled)
 - `/bf add <model> <provider> <target>` — add a routing rule: model alias, provider name, target model-id
@@ -119,7 +134,7 @@ The probe sends the Bifrost routing alias (e.g. `DSv4-flash`) but Bifrost's inte
 ## Invocation
 
   /bf <mode> <model> <prompt...>
-  /bf start|restart|shutdown|dashboard|status|routes|routes --new-only|list-routes|add|delete|sync
+  /bf start|restart|shutdown|dashboard|status|catalog|catalog --<args>|routes|routes --new-only|list-routes|add|delete|sync
 
 Argument semantics:
 - `$0` = mode
@@ -177,7 +192,7 @@ print(f"(completed via: {result['completed_via']}, turns: {len(result['turns'])}
 
 ## Constraints
 
-- BF_ALLOWED_ROOT defaults to P:/
+- BF_ALLOWED_ROOT defaults to P:\\\\
 - File reads limited to BF_FILE_CHAR_LIMIT (default 12000 chars)
 - Directory listing capped at BF_DIR_ITEM_LIMIT (default 200 items)
 - Glob capped at BF_GLOB_LIMIT (default 100 matches)
@@ -191,7 +206,7 @@ print(f"(completed via: {result['completed_via']}, turns: {len(result['turns'])}
 - /bf plan GLM-5.1 migration from Python to TypeScript
 - /bf review M27 this plugin architecture for brittleness
 - /bf compare M27,GLM-5.1,DSv4-flash best architecture for multi-model planning in Claude Code
-- /bf code DSv4-flash read P:/README.md and propose a refactor
+- /bf code DSv4-flash read P:\\\\README.md and propose a refactor
 - /bf explore GLM-5.1 what would a pre-mortem skill look like in Claude Code
 - /bf routes — probe all configured routes and measure latency
 - /bf routes --new-only — find catalog models with no routing rule yet

@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 # Test configuration
-TEST_SEARCH_ROOT = Path("P:/__csf/src")
+TEST_SEARCH_ROOT = Path("P:\\\\__csf/src")
 SAMPLE_QUERIES = [
     "search",
     "index",

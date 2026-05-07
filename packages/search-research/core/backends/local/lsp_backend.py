@@ -191,7 +191,11 @@ class LSPSymbolBackend:
         Args:
             root_paths: List of root paths to search. Defaults to src directory.
         """
-        self.root_paths: list[Path] = [Path(p) for p in (root_paths or ["core"])]
+        # Anchor default to package root — never resolve from process CWD
+        # __file__ = .../backends/local/lsp_backend.py
+        # parent[0] = local/, parent[1] = backends/, parent[2] = core/
+        _default_root = str(Path(__file__).parent.parent.parent)
+        self.root_paths: list[Path] = [Path(p) for p in (root_paths or [_default_root])]
         self._index: dict[str, list[LSPSymbolInfo]] = {}
         self._indexed: bool = False
         self._lsp_available: bool = self._check_lsp_available()

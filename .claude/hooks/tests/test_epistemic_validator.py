@@ -935,6 +935,62 @@ def test_detect_response_mode_empty():
     assert detect_response_mode("") == "analysis"
 
 
+def test_detect_patch_report_format():
+    """Patch-report format with FILES_CHANGED / TESTS / LIMITATIONS is detected as report mode."""
+    from epistemic_validator import detect_response_mode
+
+    text = """FILES_CHANGED
+- Stop.py
+- test_referent_hooks.py
+
+LOGIC_CHANGES
+- Added _user_asked_for_prioritization helper
+- VERY_LARGE_LIST_THRESHOLD bumped to 20
+
+TESTS
+- pytest tests/test_referent_hooks.py -v → 41 passed
+
+LIMITATIONS
+- Heuristic phrase detection may miss edge cases."""
+    assert detect_response_mode(text) == "report"
+
+
+def test_validate_patch_report_format_bypasses_enforcement():
+    """Patch-report format bypasses epistemic enforcement via auto-detection."""
+    from epistemic_validator import validate
+
+    text = """FILES_CHANGED
+- Stop.py
+
+LOGIC_CHANGES
+- Added _user_asked_for_prioritization
+
+TESTS
+- pytest -v → 41 passed
+
+LIMITATIONS
+- May need phrase-set tuning."""
+    verdict = validate(text)
+    assert verdict.decision == "allow"
+    assert verdict.issues == []
+
+
+def test_validate_patch_report_with_unsupported_fact_allowed():
+    """Patch report with unsourced fact is still allowed (report mode skips enforcement)."""
+    from epistemic_validator import validate
+
+    text = """FILES_CHANGED
+- Stop.py
+
+TESTS
+- All 41 tests passed
+
+LIMITATIONS
+- The heuristic phrase detection may miss edge cases."""
+    verdict = validate(text)
+    assert verdict.decision == "allow"
+
+
 def test_validate_report_mode_auto_detect():
     """Report-mode response bypasses format enforcement via auto-detection."""
     from epistemic_validator import validate

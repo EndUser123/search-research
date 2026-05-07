@@ -12,7 +12,7 @@ Usage:
     python scan_package_quality.py <target_dir> [options]
 
 Examples:
-    python scan_package_quality.py P:/packages/my-package
+    python scan_package_quality.py P:\\\\packages/my-package
     python scan_package_quality.py /path/to/package --skip-security
     python scan_package_quality.py . --fix-bandit
 """

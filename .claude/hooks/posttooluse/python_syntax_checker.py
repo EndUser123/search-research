@@ -57,9 +57,36 @@ class PythonSyntaxChecker(PostToolUseHook):
             if e.text:
                 msg += f"\n  -> {e.text.strip()}"
 
+            # Track broken state for protected files
+            self._track_broken_state(file_path, msg)
+
             return {
                 "passed": True,  # PostToolUse is advisory — edit already happened
-                "injection": f"**SYNTAX WARNING**: {msg}\nFix the syntax error before continuing.",
+                "injection": (
+                    f"**SYNTAX WARNING (CRITICAL FILE)**: {msg}\n"
+                    "**Recovery mode required**: Do NOT patch this file with more edits.\n"
+                    "Run: `git restore {filename}` to revert to HEAD, then verify syntax before re-applying the fix."
+                ).format(filename=filename),
             }
 
+        # File is now syntactically valid — clear broken state if this was tracked
+        self._clear_broken_state(file_path)
         return {"passed": True}
+
+    def _track_broken_state(self, file_path: str, reason: str) -> None:
+        """Mark protected file as syntactically broken for recovery lockout."""
+        try:
+            from __lib.protected_paths import is_protected_path, set_file_broken
+            if is_protected_path(file_path):
+                set_file_broken(file_path, reason)
+        except Exception:
+            pass  # Non-blocking — state tracking is best-effort
+
+    def _clear_broken_state(self, file_path: str) -> None:
+        """Clear broken state when file becomes valid again."""
+        try:
+            from __lib.protected_paths import is_protected_path, clear_file_broken
+            if is_protected_path(file_path):
+                clear_file_broken(file_path)
+        except Exception:
+            pass

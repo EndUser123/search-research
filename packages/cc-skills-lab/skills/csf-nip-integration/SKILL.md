@@ -65,7 +65,7 @@ Guide Claude in working with CSF NIP architecture, commands, patterns, and conve
 
 - Import modules without registering in QualityOrchestrator
 - Assume imports will auto-register
-- Use sl from P:\ root (use git instead)
+- Use sl from P:\\\\ root (use git instead)
 - Use sl push (use git push instead)
 - Speculate without investigation
 
@@ -81,7 +81,7 @@ Guide Claude in working with CSF NIP architecture, commands, patterns, and conve
 ### Directory Structure
 
 ```
-P:/
+P:\\\\
 +-- __csf/               # Core system
 |   +-- commands/            # Slash command implementations
 |   |   +-- nip/             # Main orchestration (/main, /exec)
@@ -104,7 +104,7 @@ P:/
 |--------|---------|-------------|
 | **CKS** | Cognitive Knowledge System - persistent learning | `import cognitive_keystone` |
 | **CHS** | Chat History Search - conversation retrieval | `/chs <query>` |
-| **Hooks** | Pre/post processing for operations | `P:/.claude/hooks/` |
+| **Hooks** | Pre/post processing for operations | `P:\\\\.claude/hooks/` |
 | **Registry** | Command discovery and workflow routing | `skill_registry` |
 | **SLC** | Session Learning & Context system | Auto-loaded on session start |
 
@@ -122,7 +122,7 @@ See `references/commands-and-patterns.md` for full command details, git workflow
 
 | Category | Key Commands |
 |----------|-------------|
-| **Health & Status** | `/main`, `python P:/.claude/hooks/hook_health_check.py` |
+| **Health & Status** | `/main`, `python P:\\\\.claude/hooks/hook_health_check.py` |
 | **Knowledge** | `/chs "query"`, `cks.ingest_learning(...)`, `/ask "question"` |
 | **Development** | `/debug "what went wrong"`, `/research "topic"`, `/analyze <path> --focus quality` |
 | **Planning** | `/breakdown`, `/exec <task>`, `/cwo12` |

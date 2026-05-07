@@ -18,7 +18,7 @@ from .base import ProviderCapabilities
 HISTORY_JSONL = Path.home() / ".codex" / "history.jsonl"
 
 # Archive base for watermarks
-_ARCHIVE_BASE = Path("P:/__csf/data/chs_archive")
+_ARCHIVE_BASE = Path("P:\\\\__csf/data/chs_archive")
 _WATERMARK_DIR = _ARCHIVE_BASE / "watermarks" / "codex_desktop"
 
 # FileLock settings

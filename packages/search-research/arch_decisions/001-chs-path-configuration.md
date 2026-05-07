@@ -10,11 +10,11 @@ Chat History Search (CHS) path configuration is fragmented across 5+ components:
 
 | Component | Location | Path Approach |
 |-----------|----------|---------------|
-| CHS v2 | `P:/__csf/src/knowledge/systems/chs/v2/config.py` | `CHS_DB_PATH` env var, wrong JSONL dir |
-| search-research | `P:/packages/search-research/core/config.py` | `SEARCH_RESEARCH_CHS_*` env vars |
-| search-backends | `P:/packages/search-backends/backends/local/chs_incremental.py` | Imports from `...config` (MISSING) |
-| semantic_daemon | `P:/packages/search-research/contrib/semantic_daemon/unified_semantic_daemon.py` | Hardcoded `Path.home()/.claude/history.jsonl` |
-| claude-history CLI | `P:/packages/claude-history/src/cli.rs` | Hardcoded `C:/Users/brsth/.claude/history.jsonl` |
+| CHS v2 | `P:\\\\__csf/src/knowledge/systems/chs/v2/config.py` | `CHS_DB_PATH` env var, wrong JSONL dir |
+| search-research | `P:\\\\packages/search-research/core/config.py` | `SEARCH_RESEARCH_CHS_*` env vars |
+| search-backends | `P:\\\\packages/search-backends/backends/local/chs_incremental.py` | Imports from `...config` (MISSING) |
+| semantic_daemon | `P:\\\\packages/search-research/contrib/semantic_daemon/unified_semantic_daemon.py` | Hardcoded `Path.home()/.claude/history.jsonl` |
+| claude-history CLI | `P:\\\\packages/claude-history/src/cli.rs` | Hardcoded `C:/Users/brsth/.claude/history.jsonl` |
 
 **Problems:**
 1. Users see "not initialized" errors because components look in wrong paths
@@ -49,8 +49,8 @@ search-backends (library repo)
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `SEARCH_RESEARCH_CHS_JSONL_PATH` | `~/.claude/history.jsonl` | Chat history JSONL |
-| `SEARCH_RESEARCH_CHS_DB_PATH` | `P:/__csf/data/chat_history.db` | SQLite database |
-| `SEARCH_RESEARCH_CHS_INDEX_PATH` | `P:/__csf/data/chat_history_faiss_424k/faiss_index.bin` | FAISS index |
+| `SEARCH_RESEARCH_CHS_DB_PATH` | `P:\\\\__csf/data/chat_history.db` | SQLite database |
+| `SEARCH_RESEARCH_CHS_INDEX_PATH` | `P:\\\\__csf/data/chat_history_faiss_424k/faiss_index.bin` | FAISS index |
 
 **search-research** owns `CHSPaths` class and injects paths into backends.
 
@@ -88,7 +88,7 @@ search-backends (library repo)
 ### From search-research (Recommended)
 
 ```python
-# P:/packages/search-research/core/config.py
+# P:\\\\packages/search-research/core/config.py
 class CHSPaths:
     """Chat History Search paths - single source of truth."""
     CHS_JSONL_PATH: str = os.getenv(
@@ -97,11 +97,11 @@ class CHSPaths:
     )
     CHS_DB_PATH: str = os.getenv(
         "SEARCH_RESEARCH_CHS_DB_PATH",
-        "P:/__csf/data/chat_history.db"
+        "P:\\\\__csf/data/chat_history.db"
     )
     CHS_INDEX_PATH: str = os.getenv(
         "SEARCH_RESEARCH_CHS_INDEX_PATH",
-        "P:/__csf/data/chat_history_faiss_424k/faiss_index.bin"
+        "P:\\\\__csf/data/chat_history_faiss_424k/faiss_index.bin"
     )
 
 # Usage in search-research
@@ -118,7 +118,7 @@ updater = IncrementalIndexUpdater(
 ### From search-backends (Standalone)
 
 ```python
-# P:/packages/search-backends/backends/local/chs_incremental.py
+# P:\\\\packages/search-backends/backends/local/chs_incremental.py
 class IncrementalIndexUpdater:
     """Incrementally update FAISS index - pure backend, no embedded paths."""
 
@@ -165,7 +165,7 @@ updater = IncrementalIndexUpdater(
 
 - Pre-mortem analysis: 6 high-risk failure modes identified
 - Issue: "not initialized" errors due to path fragmentation
-- Related: `P:/packages/search-research/DEPENDENCY_INJECTION_REFACTOR.md`
+- Related: `P:\\\\packages/search-research/DEPENDENCY_INJECTION_REFACTOR.md`
 
 ---
 

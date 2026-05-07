@@ -7,7 +7,7 @@
 
 ## Summary
 
-GTO has 5 hook files in `P:\.claude\skills\gto\hooks\`:
+GTO has 5 hook files in `$CLAUDE_ROOT/skills\gto\hooks\`:
 
 | File | Type | Purpose | Integration |
 |------|------|---------|--------------|
@@ -25,7 +25,7 @@ Only `gto_verify_wrapper.py` is actually registered and executed as a hook. The 
 
 ## Main Hooks Infrastructure
 
-The main hooks directory (`P:\.claude\hooks\`) has comprehensive infrastructure:
+The main hooks directory (`$CLAUDE_ROOT/hooks\`) has comprehensive infrastructure:
 
 ### Core Components
 
@@ -110,7 +110,7 @@ def run(data: dict) -> dict | None:
 
 **Current State:** PostToolUseFailure hook exists but is NOT registered.
 
-**Action Required:** Add to `P:\.claude\settings.json`:
+**Action Required:** Add to `$CLAUDE_ROOT/settings.json`:
 
 ```json
 {
@@ -121,7 +121,7 @@ def run(data: dict) -> dict | None:
         "hooks": [
           {
             "type": "command",
-            "command": "python P:\\.claude\\skills\\gto\\hooks\\gto_failure_capture.py"
+            "command": "python P:\\\\\.claude\\skills\\gto\\hooks\\gto_failure_capture.py"
           }
         ]
       }
@@ -214,7 +214,7 @@ if should_skip:
 
 ### 1. Consolidate GTO Hook Registration
 
-Create `P:\.claude\skills\gto\hooks\router.py` to register all GTO hooks:
+Create `$CLAUDE_ROOT/skills\gto\hooks\router.py` to register all GTO hooks:
 
 ```python
 GTO_HOOKS = {
@@ -285,10 +285,10 @@ def run(data: dict) -> dict | None:
 
 ## Related Documentation
 
-- **Hook Architecture:** `P:\.claude\hooks\CLAUDE.md`
-- **Hook Protocol:** `P:\.claude\hooks\PROTOCOL.md`
-- **Hook Base:** `P:\.claude\hooks\__lib\hook_base.py`
-- **Platform Detection:** `P:\.claude\hooks\__lib\hook_platform.py`
+- **Hook Architecture:** `$CLAUDE_ROOT/hooks\CLAUDE.md`
+- **Hook Protocol:** `$CLAUDE_ROOT/hooks\PROTOCOL.md`
+- **Hook Base:** `$CLAUDE_ROOT/hooks\__lib\hook_base.py`
+- **Platform Detection:** `$CLAUDE_ROOT/hooks\__lib\hook_platform.py`
 
 ## Next Steps
 

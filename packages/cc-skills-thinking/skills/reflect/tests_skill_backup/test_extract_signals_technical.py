@@ -13,7 +13,7 @@ Test Categories:
 
 All tests should FAIL initially (RED phase) - patterns not implemented yet.
 
-Run with: pytest P:/.claude/skills/reflect/tests/test_extract_signals_technical.py -v
+Run with: pytest P:\\\\.claude/skills/reflect/tests/test_extract_signals_technical.py -v
 """
 
 import re

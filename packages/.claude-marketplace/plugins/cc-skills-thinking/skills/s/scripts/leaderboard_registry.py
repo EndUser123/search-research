@@ -5,7 +5,7 @@ Leaderboard Registry for LLM Model Performance Tracking.
 Loads model performance data from a JSON data file (single source of truth).
 No HTTP scraping, no hardcoded fallback data - fail fast if JSON file is missing.
 
-JSON data file location: P:/.claude/skills/s/data/leaderboard_data.json
+JSON data file location: P:\\\\.claude/skills/s/data/leaderboard_data.json
 Update the JSON file manually with fresh arena.ai data.
 
 Scores are raw Elo ratings (1400-1600 range), not normalized percentages.

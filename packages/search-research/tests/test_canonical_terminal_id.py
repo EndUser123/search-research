@@ -98,7 +98,7 @@ class TestCritiqueIoDelegation:
         result_path = (
             Path(__file__).parent.parent / ".claude" / "packages" / "search-guard" / "src"
         )
-        # Path should go: tests/ → search-research/ → P:\ → .claude → packages → search-research → src
+        # Path should go: tests/ → search-research/ → P:\\\\ → .claude → packages → search-research → src
         assert "packages" in str(result_path)
 
     def test_gto_orchestrator_uses_search_research_path(self):
@@ -107,7 +107,7 @@ class TestCritiqueIoDelegation:
 
         # Simulate gto_orchestrator._get_default_terminal_id() path construction
         result_path = (
-            Path("P:/packages/search-research/skills/gto")
+            Path("P:\\\\packages/search-research/skills/gto")
             .parent.parent.parent
             / "packages"
             / "search-research"

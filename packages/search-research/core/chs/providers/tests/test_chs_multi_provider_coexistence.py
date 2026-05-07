@@ -16,7 +16,7 @@ from .normalized import upsert_event, get_events_by_hash
 from .db import get_connection
 from ..archive import append_raw_event
 
-DB_PATH = Path("P:/__csf/data/chat_history.db")
+DB_PATH = Path("P:\\\\__csf/data/chat_history.db")
 
 
 @pytest.fixture

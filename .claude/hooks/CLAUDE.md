@@ -72,6 +72,37 @@ grep -n "UNIVERSAL\|TOOL_HOOKS" P:/.claude/hooks/PreToolUse.py | grep -i "your_f
 
 ---
 
+### Critical File Recovery Mode
+
+**Purpose**: Stop iterative corruption when a protected file becomes syntactically invalid.
+
+**Protected files** (do not compound-edit when broken):
+- `.claude/hooks/` — all hook files
+- `anti_sycophancy/`, `validators/` — enforcement modules
+- `CLAUDE.md`, `.claude/settings.json` — policy files
+- `__lib/turn_mode.py`, `__lib/path_validator.py` — critical utilities
+
+**If a protected file becomes syntactically invalid after an edit:**
+
+1. **Do NOT continue patching it** — stop immediately
+2. **Restore from Git HEAD** — `git restore <filename>`
+3. **Verify syntax** — `python -m py_compile <filename>`
+4. **Re-apply the smallest possible fix** — one logical change at a time
+5. **Run targeted tests** before continuing
+
+**Recovery lockout**: When `PreToolUse_protected_file_recovery_gate` detects a broken protected file, it blocks further Edit/Write on that file until `git restore` clears the broken state.
+
+**Destructive repair guard**: Before deleting hook files, broken symlinks, or hook registrations, the response must show evidence of repair analysis (target search, rename/move diagnosis, or verified obsolescence). Deletion without diagnosis triggers an advisory.
+
+**Anti-patterns**:
+| Pattern | Why it fails | Correct approach |
+|---------|-------------|-----------------|
+| Edit a broken file to "fix" it | String substitution on syntactically invalid file compounds corruption | `git restore` first |
+| Delete symlink when path breaks | Removes recoverable state | Diagnose, then repair or remove |
+| Remove hook registration on missing-path error | Lost registration blocks the hook permanently | Repair the path first |
+
+---
+
 ### Systemic Issues and Fixes
 
 **PROBLEM**: Five systemic issues were causing LLMs to repeatedly edit dead code and create persistent deadlocks.

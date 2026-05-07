@@ -8,7 +8,7 @@ against adversarial filesystem conditions:
 - .gitignore patterns
 - Windows-specific edge cases
 
-Run with: pytest P:/.claude/skills/gto/tests/test_scanner_corpus.py -v
+Run with: pytest P:\\\\.claude/skills/gto/tests/test_scanner_corpus.py -v
 """
 
 import sys

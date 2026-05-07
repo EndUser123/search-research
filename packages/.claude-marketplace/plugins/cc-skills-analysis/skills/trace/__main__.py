@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 
 # Add hooks lib to path for quality_log import
-_hooks_lib = Path("P:/.claude/hooks/__lib")
+_hooks_lib = Path("P:\\\\.claude/hooks/__lib")
 if str(_hooks_lib) not in sys.path:
     sys.path.insert(0, str(_hooks_lib))
 
@@ -90,7 +90,7 @@ def resolve_target_path(target: str, domain: str) -> Path:
         # If relative, resolve from project root (configurable via environment)
         if not target_path.is_absolute():
             # P0: Make project root configurable (Recommendation #3)
-            project_root = Path(os.getenv("TRACE_PROJECT_ROOT", "P:/"))
+            project_root = Path(os.getenv("TRACE_PROJECT_ROOT", "P:\\\\"))
             target_path = project_root / target_path
 
         # Resolve to absolute path (raises OSError if path is invalid)
@@ -104,7 +104,7 @@ def resolve_target_path(target: str, domain: str) -> Path:
             f"Failed to resolve path '{target}': {e}\n"
             f"  Hint: Check the file path is correct and accessible.\n"
             f"  Current working directory: {Path.cwd()}\n"
-            f"  Project root: {os.getenv('TRACE_PROJECT_ROOT', 'P:/')}"
+            f"  Project root: {os.getenv('TRACE_PROJECT_ROOT', 'P:\\\\')}"
         ) from e
 
 

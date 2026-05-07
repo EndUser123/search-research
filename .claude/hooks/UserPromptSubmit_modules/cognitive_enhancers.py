@@ -406,12 +406,16 @@ def _get_rationale(intent: dict[str, bool], enhancers: list[Enhancer], prompt_le
 
 def _build_injection(enhancers: list[Enhancer], intent: dict[str, bool] | None = None, prompt_length: int = 0) -> str:
     if not enhancers: return ""
+
+    tag_codes: list[str] = []
     for enhancer in enhancers:
         tags = get_framework_tags_for_enhancer(enhancer.name)
         if tags:
             for tag in tags:
                 is_valid, warning = validate_tag_emission(tag)
                 log_tag_emission(tag_type=tag, tag_category="framework", is_valid=is_valid, has_warning=warning is not None, warning_message=warning, source="cognitive_enhancers")
+                if is_valid and warning is None and tag not in tag_codes:
+                    tag_codes.append(tag)
 
     rationale = _get_rationale(intent, enhancers, prompt_length) if intent else "unknown reason"
     injections = [e.injection for e in enhancers]
@@ -419,7 +423,20 @@ def _build_injection(enhancers: list[Enhancer], intent: dict[str, bool] | None =
     framework_names = [e.name.replace("_", " ").title() for e in enhancers]
     tag_instruction = f"**Use these frameworks**: {', '.join(framework_names)}.\n\n"
 
-    return f"Why: {rationale}\n\n{tag_instruction}{frameworks_text}"
+    base = f"Why: {rationale}\n\n{tag_instruction}{frameworks_text}"
+
+    if not tag_codes:
+        return base
+
+    tag_line = " ".join(f"[{t}]" for t in tag_codes)
+    return (
+        f"{base}\n\n"
+        f"<cognitive-tags>\n"
+        f"Append this exact line at the very end of your first reply "
+        f"to this user message (not in later replies or after tool use):\n"
+        f"Tags: {tag_line}\n"
+        f"</cognitive-tags>"
+    )
 
 
 @register_hook("cognitive_enhancers", priority=11.0)

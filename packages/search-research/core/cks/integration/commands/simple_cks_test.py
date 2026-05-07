@@ -300,7 +300,7 @@ async def test_cks_integration() -> None:
 
     test_cases = [
         ("https://example.com/article", "Website URL"),
-        ("P:/__csf/docs/example.pdf", "File path"),
+        ("P:\\\\__csf/docs/example.pdf", "File path"),
         ("User: How do I implement X?\nAssistant: You can use Y method...", "Conversation"),
         ("Key insight: The best approach to optimize performance is...", "Learning/Insight"),
         ("This is just some direct text without specific patterns", "Direct text"),

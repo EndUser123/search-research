@@ -51,7 +51,7 @@ class CallGraphBackend:
             root_paths: Root directories to analyze
             enable_health_tracking: Track backend health status
         """
-        self._root_paths = root_paths or ["P:/packages/search-research"]
+        self._root_paths = root_paths or ["P:\\\\packages/search-research"]
         self._enable_health = enable_health_tracking
 
         # Build call graph

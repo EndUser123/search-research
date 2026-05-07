@@ -28,10 +28,11 @@ from .common import (
 
 def run(data: dict) -> dict | None:
     """In-process hook entry point."""
-    if not is_gto_active():
+    session_id = data.get("session_id")
+    if not is_gto_active(session_id):
         return None
 
-    state = read_state()
+    state = read_state(session_id)
     if not state:
         return None
 
@@ -45,6 +46,7 @@ def run(data: dict) -> dict | None:
         return {
             "decision": "block",
             "reason": f"GTO verification failed: {'; '.join(errors)}",
+            "additionalContext": "\n\n💡 Problems with GTO state? Run /doctor to check identity and cache health."
         }
 
     return None

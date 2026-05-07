@@ -134,6 +134,18 @@ def check_lazy_workarounds(response: str) -> dict:
             if any(re.search(phrase, clean_lower) for phrase in ROOT_CAUSE_PHRASES):
                 continue  # This is proper investigation, not lazy acceptance
 
+            # Report/implementation context: allow phrases describing intended system behavior.
+            # Excludes any pattern containing "bug", "acceptable", or "intentional as" to avoid
+            # overlapping with the bug-as-feature lazy patterns.
+            _REPORT_ALLOW_PATTERNS = [
+                r"\btwo\b.*\bsignals?\b.*\bsuppress",
+                r"\bthe\s+advisory\b.*\bsuppress",
+                r"\bsuppression\s+is\b.*\bcorrect\b",
+                r"\bthe\s+edge\s+case\b.*\bto\s+monitor\b",
+            ]
+            if any(re.search(p, clean_lower) for p in _REPORT_ALLOW_PATTERNS):
+                continue  # Describing intended behavior, not accepting a bug
+
             return {
                 "decision": "block",
                 "message": f"LAZY WORKAROUND DETECTED: {label.replace('_', ' ')}\n\n"

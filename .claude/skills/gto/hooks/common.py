@@ -69,7 +69,7 @@ def get_artifacts_root() -> Path:
 
     Priority:
     1. CLAUDE_ARTIFACTS_ROOT env var (for testing)
-    2. Drive-root .claude directory (e.g. P:/.claude/.artifacts/)
+    2. Drive-root .claude directory (e.g. P:\\\\.claude/.artifacts/)
 
     Uses drive-root rather than project-scoped so artifacts survive
     across projects within the same terminal session.
@@ -81,24 +81,63 @@ def get_artifacts_root() -> Path:
     return drive_root / ".claude" / ".artifacts"
 
 
-def gto_state_dir() -> Path:
+def get_verified_identity(session_id: str | None = None) -> dict | None:
+    """Read and verify the global identity cache for the current terminal.
+
+    This implements a 'Handshake' pattern: we only trust the cached identity
+    if it matches our live session_id. This prevents using stale data from
+    a previous session in the same terminal.
+    """
+    # 1. Start with the fastest heuristic-based ID (WT_SESSION)
+    terminal_id = get_terminal_id()
+    if not terminal_id:
+        return None
+
+    # 2. Locate the identity.json file
+    safe_tid = terminal_id.replace("/", "-").replace("\\", "-").replace(":", "-")
+    identity_file = get_artifacts_root() / safe_tid / "identity.json"
+
+    if not identity_file.exists():
+        return None
+
+    # 3. THE HANDSHAKE: Verify against live session_id
+    try:
+        identity = json.loads(identity_file.read_text(encoding="utf-8"))
+        if session_id:
+            cached_sid = identity.get("claude", {}).get("session_id")
+            if cached_sid and cached_sid != session_id:
+                # Stale data: identity file belongs to a DIFFERENT session
+                return None
+        return identity
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def gto_state_dir(session_id: str | None = None) -> Path:
     """Get the GTO state directory for the current terminal."""
-    return get_artifacts_root() / get_terminal_id() / "gto" / "state"
+    # Opportunistic Handshake: use identity.json if verified
+    identity = get_verified_identity(session_id)
+    if identity:
+        terminal_id = identity.get("terminal", {}).get("id")
+    else:
+        terminal_id = get_terminal_id()
+
+    return get_artifacts_root() / terminal_id / "gto" / "state"
 
 
-def is_gto_active() -> bool:
+def is_gto_active(session_id: str | None = None) -> bool:
     """Check if GTO is currently active in this terminal.
 
     GTO is active if a state file exists in the terminal-scoped artifacts dir.
     """
-    state_dir = gto_state_dir()
+    state_dir = gto_state_dir(session_id)
     state_file = state_dir / "run_state.json"
     return state_file.exists()
 
 
-def read_state() -> dict:
+def read_state(session_id: str | None = None) -> dict:
     """Read the current GTO run state. Returns empty dict if not active."""
-    state_file = gto_state_dir() / "run_state.json"
+    state_file = gto_state_dir(session_id) / "run_state.json"
     if not state_file.exists():
         return {}
     try:

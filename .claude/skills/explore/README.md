@@ -83,11 +83,11 @@ Results show **source indicators** so you know where each result came from:
 **Status:** ✅ Complete
 
 The `/explore` skill uses the `UnifiedAsyncRouter` implementation:
-- **Core:** `P:/packages/search-research/core/unified_router.py`
-- **Quality checks:** `P:/packages/search-research/core/quality_checker.py`
-- **RRF fusion:** `P:/packages/search-research/core/hybrid_ensemble.py`
+- **Core:** `P:\\\\packages/search-research/core/unified_router.py`
+- **Quality checks:** `P:\\\\packages/search-research/core/quality_checker.py`
+- **RRF fusion:** `P:\\\\packages/search-research/core/hybrid_ensemble.py`
 
-**Script:** `P:/packages/search-research/skills/explore/explore.py`
+**Script:** `P:\\\\packages/search-research/skills/explore/explore.py`
 
 ## Migration from `/search` + `/research`
 

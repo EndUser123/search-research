@@ -17,6 +17,7 @@ Test Coverage:
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -130,12 +131,14 @@ class TestHookChainExecution:
 
         stop_hook = hooks_dir / "Stop.py"
         if stop_hook.exists():
+            env = {**os.environ, "STOP_NO_SIDE_EFFECTS": "1"}
             stop_result = subprocess.run(
                 [sys.executable, str(stop_hook)],
                 input=json.dumps(stop_input),
                 capture_output=True,
                 text=True,
                 timeout=10,
+                env=env,
             )
 
             # Stop may block if verification fails

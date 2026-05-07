@@ -6,8 +6,8 @@ Usage:
     python run_fidelity.py <skill_path> [eval_set_path]
 
 Example:
-    python run_fidelity.py P:/.claude/skills/gto
-    python run_fidelity.py P:/.claude/skills/gto eval_sets/default.json
+    python run_fidelity.py P:\\\\.claude/skills/gto
+    python run_fidelity.py P:\\\\.claude/skills/gto eval_sets/default.json
     python run_fidelity.py .  # run against self
 """
 import sys

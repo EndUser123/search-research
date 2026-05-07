@@ -3,9 +3,9 @@
 RED phase: Write failing tests first.
 These tests define the expected behavior - implementation follows.
 
-Test file: P:/__csf/src/knowledge/systems/chs/v2/tests/test_indexer.py
+Test file: P:\\\\__csf/src/knowledge/systems/chs/v2/tests/test_indexer.py
 
-Implementation target: P:/__csf/src/knowledge/systems/chs/v2/indexer.py
+Implementation target: P:\\\\__csf/src/knowledge/systems/chs/v2/indexer.py
 """
 
 from __future__ import annotations
@@ -59,12 +59,12 @@ def sample_project(temp_db_path: Path) -> dict:
     """Create a sample project in the database."""
     conn = sqlite3.connect(temp_db_path)
     cursor = conn.execute(
-        "INSERT INTO projects (path, label) VALUES (?, ?)", ("P:/test_project", "Test Project")
+        "INSERT INTO projects (path, label) VALUES (?, ?)", ("P:\\\\test_project", "Test Project")
     )
     project_id = cursor.lastrowid
     conn.commit()
     conn.close()
-    return {"id": project_id, "path": "P:/test_project", "label": "Test Project"}
+    return {"id": project_id, "path": "P:\\\\test_project", "label": "Test Project"}
 
 
 @pytest.fixture

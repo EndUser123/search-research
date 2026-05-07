@@ -3,7 +3,7 @@
 import sys, subprocess
 from pathlib import Path
 
-BASE = Path("P:/packages/cc-skills-architect/skills/skill-to-page")
+BASE = Path("P:\\\\packages/cc-skills-architect/skills/skill-to-page")
 
 STAGES = [
     ("E1 (Template Loader)",   "stage_e1_loader.py"),

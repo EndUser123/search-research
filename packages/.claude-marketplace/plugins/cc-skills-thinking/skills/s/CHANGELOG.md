@@ -45,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Known Issues
 - Integration test requires LLM providers module fix (CLI timeout issue)
-  - Located in `P:\__csf\src\llm\providers\cli_providers.py`
+  - Located in `$__CSF_ROOT/src\llm\providers\cli_providers.py`
   - Outside /s skill scope
 
 ## [2.7.0] - 2026-03-14

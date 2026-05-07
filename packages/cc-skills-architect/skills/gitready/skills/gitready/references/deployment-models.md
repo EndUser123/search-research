@@ -15,7 +15,7 @@ if ($junctionName -ne "{{package_name}}") {
     Write-Host "NOTE: Sanitized junction name from '{{package_name}}' to '$junctionName'"
 }
 
-New-Item -ItemType Junction -Path "P:\.claude\skills\$junctionName" -Target "P:\packages\{{package_name}}\skill"
+New-Item -ItemType Junction -Path "$CLAUDE_ROOT/skills\$junctionName" -Target "P:\\\\packages\{{package_name}}\skill"
 
 # macOS/Linux (Symlink)
 ln -s /path/to/packages/{{package_name}}/skill ~/.claude/skills/$junctionName
@@ -23,7 +23,7 @@ ln -s /path/to/packages/{{package_name}}/skill ~/.claude/skills/$junctionName
 
 **Key points:**
 - Junction the entire `skill/` directory
-- Skills auto-discovered from `P:/.claude/skills/`
+- Skills auto-discovered from `P:\\\\.claude/skills/`
 - Edit in your package, changes work immediately
 
 ## 2. HOOKS (Dev Deployment)
@@ -32,17 +32,17 @@ ln -s /path/to/packages/{{package_name}}/skill ~/.claude/skills/$junctionName
 
 **Setup:**
 ```powershell
-# Symlinks go in P:/.claude/hooks/ (NOT ~/.claude/plugins/)
-cd P:/.claude/hooks
+# Symlinks go in P:\\\\.claude/hooks/ (NOT ~/.claude/plugins/)
+cd P:\\\\.claude/hooks
 
 # Symlink individual hook files from your package
-ln -sf P:/packages/{{package_name}}/scripts/hooks/HookName.py HookName.py
+ln -sf P:\\\\packages/{{package_name}}/scripts/hooks/HookName.py HookName.py
 ```
 
 **Key points:**
 - Symlink individual `.py` hook files only
 - NOT the entire directory - just the `.py` files
-- Symlinks go in `P:/.claude/hooks/` (NOT `~/.claude/plugins/`)
+- Symlinks go in `P:\\\\.claude/hooks/` (NOT `~/.claude/plugins/`)
 - These are dev-only symlinks for working directly on source code
 - Routers or settings.json register the symlinks as actual code
 
@@ -53,7 +53,7 @@ ln -sf P:/packages/{{package_name}}/scripts/hooks/HookName.py HookName.py
 **Setup:**
 ```bash
 # End users install via /plugin command
-/plugin P:/packages/{{package_name}}
+/plugin P:\\\\packages/{{package_name}}
 
 # Or from marketplace
 /plugin install {{package_name}}
@@ -77,9 +77,9 @@ ln -sf P:/packages/{{package_name}}/scripts/hooks/HookName.py HookName.py
 ## Common Mistakes
 
 - Don't use `/plugin` command for local development (requires reinstall on every change)
-- Don't symlink entire directories to `P:/claude/hooks/` (only symlink `.py` files)
-- Don't confuse skills (`P:/.claude/skills/`) with plugins (`~/.claude/plugins/`)
-- Don't look for hook symlinks in `~/.claude/plugins/` - they go in `P:/.claude/hooks/`
+- Don't symlink entire directories to `P:\\\\claude/hooks/` (only symlink `.py` files)
+- Don't confuse skills (`P:\\\\.claude/skills/`) with plugins (`~/.claude/plugins/`)
+- Don't look for hook symlinks in `~/.claude/plugins/` - they go in `P:\\\\.claude/hooks/`
 - Don't forget to update symlinks after brownfield conversion - check for `src/` paths
 
 ## Multiple Skills or Hooks
@@ -109,7 +109,7 @@ if ($sanitizedName -ne $skillName) {
     Write-Host "NOTE: Sanitized '$skillName' to '$sanitizedName'"
 }
 
-New-Item -ItemType Junction -Path "P:\.claude\skills\$sanitizedName" -Target "P:\packages\my-plugin\skills\skill-a"
+New-Item -ItemType Junction -Path "$CLAUDE_ROOT/skills\$sanitizedName" -Target "P:\\\\packages\my-plugin\skills\skill-a"
 # Repeat for skill-b, skill-c...
 ```
 
@@ -132,10 +132,10 @@ my-plugin/
 ```
 
 ```powershell
-cd P:/.claude/hooks
-cmd /c "mklink hook1.py P:\packages\my-plugin\scripts\hooks\hook1.py"
-cmd /c "mklink hook2.py P:\packages\my-plugin\scripts\hooks\hook2.py"
-cmd /c "mklink hook3.py P:\packages\my-plugin\scripts\hooks\hook3.py"
+cd P:\\\\.claude/hooks
+cmd /c "mklink hook1.py P:\\\\packages\my-plugin\scripts\hooks\hook1.py"
+cmd /c "mklink hook2.py P:\\\\packages\my-plugin\scripts\hooks\hook2.py"
+cmd /c "mklink hook3.py P:\\\\packages\my-plugin\scripts\hooks\hook3.py"
 ```
 
 ### Both Skills AND Hooks
@@ -148,22 +148,22 @@ $sanitized = $skillName -replace '[@?*:<>|+]', ''
 if ($sanitized -ne $skillName) {
     Write-Host "NOTE: Sanitized '$skillName' to '$sanitized'"
 }
-New-Item -ItemType Junction -Path "P:\.claude\skills\$sanitized" -Target "P:\packages\my-plugin\skills\skill-a"
+New-Item -ItemType Junction -Path "$CLAUDE_ROOT/skills\$sanitized" -Target "P:\\\\packages\my-plugin\skills\skill-a"
 
 # Repeat for skill-b, skill-c, etc.
 
 # 2. Create symlinks for hook files (one per file)
-cd P:/.claude/hooks
-cmd /c "mklink hook1.py P:\packages\my-plugin\core\hooks\hook1.py"
-cmd /c "mklink hook2.py P:\packages\my-plugin\core\hooks\hook2.py"
+cd P:\\\\.claude/hooks
+cmd /c "mklink hook1.py P:\\\\packages\my-plugin\core\hooks\hook1.py"
+cmd /c "mklink hook2.py P:\\\\packages\my-plugin\core\hooks\hook2.py"
 ```
 
 **Summary table:**
 
 | Plugin has... | Link type | How many? | Where? |
 |---------------|-----------|-----------|--------|
-| 1 skill | Junction | 1 | `P:/.claude/skills/skill-name` |
-| 3 skills | Junctions | 3 (one per skill) | `P:/.claude/skills/skill-a`, `skill-b`, `skill-c` |
-| 1 hook file | Symlink | 1 | `P:/.claude/hooks/hook.py` |
-| 5 hook files | Symlinks | 5 (one per file) | `P:/.claude/hooks/hook1.py` through `hook5.py` |
-| 2 skills + 3 hooks | Both | 2 junctions + 3 symlinks | Skills → `P:/.claude/skills/`, Hooks → `P:/.claude/hooks/` |
+| 1 skill | Junction | 1 | `P:\\\\.claude/skills/skill-name` |
+| 3 skills | Junctions | 3 (one per skill) | `P:\\\\.claude/skills/skill-a`, `skill-b`, `skill-c` |
+| 1 hook file | Symlink | 1 | `P:\\\\.claude/hooks/hook.py` |
+| 5 hook files | Symlinks | 5 (one per file) | `P:\\\\.claude/hooks/hook1.py` through `hook5.py` |
+| 2 skills + 3 hooks | Both | 2 junctions + 3 symlinks | Skills → `P:\\\\.claude/skills/`, Hooks → `P:\\\\.claude/hooks/` |

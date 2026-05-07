@@ -6,7 +6,7 @@ These tests verify the command-line interface tools for CHS v2:
 - chs_cli.py: Search CLI with flags
 - health_check.py: System health check
 
-Run with: pytest P:/__csf/src/knowledge/systems/chs/v2/tests/test_cli.py -v
+Run with: pytest P:\\\\__csf/src/knowledge/systems/chs/v2/tests/test_cli.py -v
 """
 
 import json

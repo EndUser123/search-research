@@ -11,7 +11,7 @@ Results where harness limitations prevented accurate testing are marked
 import json, subprocess, sys, time
 from pathlib import Path
 
-BASE  = Path("P:/packages/cc-skills-architect/skills/skill-to-page")
+BASE  = Path("P:\\\\packages/cc-skills-architect/skills/skill-to-page")
 HTML  = BASE / "index.html"
 PROOF = BASE / "artifact-proof.json"
 SHOTS = BASE / ".stage_g_screenshots"
@@ -22,7 +22,7 @@ FILE_URL = HTML.resolve().as_uri()
 # Python-format-safe placeholder approach
 PY_TMPL = r"""
 import sys, json, time
-sys.path.insert(0, r'P:/packages/.github_repos/browser-harness')
+sys.path.insert(0, r'P:\\\\packages/.github_repos/browser-harness')
 from run import ensure_daemon, new_tab, wait_for_load, click, js, page_info
 
 ensure_daemon()
@@ -122,7 +122,7 @@ for placeholder, value in replacements.items():
 
 result = subprocess.run(
     ["uv", "run", "python", "-c", raw_py],
-    cwd="P:/packages/.github_repos/browser-harness",
+    cwd="P:\\\\packages/.github_repos/browser-harness",
     capture_output=True, text=True, encoding="utf-8", timeout=90
 )
 print(result.stdout)

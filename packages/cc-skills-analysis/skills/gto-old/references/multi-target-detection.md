@@ -15,7 +15,7 @@ When no `--project-root` is provided:
 - **Package directory**: `packages/<name>/` -- confirmed by `.git` or `pyproject.toml`
 - **Git repository root**: fallback, confirmed by `.git` directory
 
-**Example**: If the session modified `P:\.claude\skills\gto\lib\foo.py` and `P:\.claude\skills\gto\SKILL.md`, the resolved target is `P:\.claude\skills\gto` (one target, not two files).
+**Example**: If the session modified `$CLAUDE_ROOT/skills\gto\lib\foo.py` and `$CLAUDE_ROOT/skills\gto\SKILL.md`, the resolved target is `$CLAUDE_ROOT/skills\gto` (one target, not two files).
 
 ## Target Selection Priority (for single-target mode)
 
@@ -24,24 +24,24 @@ When `--project-root` IS provided explicitly, use this priority:
 | Priority | Signal | Example Target |
 |----------|--------|---------------|
 | 1 | **Explicit --project-root** | The path provided on CLI |
-| 2 | **Recent file edits** -- session modified files in a specific skill/package | `P:\.claude\skills\{skill}` |
+| 2 | **Recent file edits** -- session modified files in a specific skill/package | `$CLAUDE_ROOT/skills\{skill}` |
 | 3 | **Skill invocation target** -- `/critique on X`, `/pre-mortem on X`, `/debugRCA on X` | The explicit target of the skill |
 | 4 | **Handoff/RESTORE_CONTEXT** -- explicit target stated in session restore | From `transcript_path` or `current_goal` |
-| 5 | **Recent evidence files** -- premortem, adversarial review, or gap analysis artifacts | `P:\.claude\hooks\evidence\{name}` |
-| 6 | **Last resort: cwd** -- only if no other signal exists | `P:\.claude\hooks` |
+| 5 | **Recent evidence files** -- premortem, adversarial review, or gap analysis artifacts | `$CLAUDE_ROOT/hooks\evidence\{name}` |
+| 6 | **Last resort: cwd** -- only if no other signal exists | `$CLAUDE_ROOT/hooks` |
 
-**Anti-pattern to avoid**: Picking `P:\.claude\hooks` just because it's the current working directory, when the session was actually focused on a specific hook or skill within it.
+**Anti-pattern to avoid**: Picking `$CLAUDE_ROOT/hooks` just because it's the current working directory, when the session was actually focused on a specific hook or skill within it.
 
 **When genuinely ambiguous**: Ask the user to confirm the target.
 
 **Examples:**
 ```
 # Explicit single target
-/gto --project-root "P:\.claude\skills\gto"
+/gto --project-root "$CLAUDE_ROOT/skills\gto"
 
-/gto --project-root "P:\packages\handoff"
+/gto --project-root "P:\\\\packages\handoff"
 
-/gto --project-root "P:\.claude\hooks"
+/gto --project-root "$CLAUDE_ROOT/hooks"
 ```
 
-**WARNING:** P:\ is the config root, not a valid target. Running GTO on P:\ will fail with an error explaining why.
+**WARNING:** P:\\\\ is the config root, not a valid target. Running GTO on P:\\\\ will fail with an error explaining why.

@@ -61,7 +61,7 @@ def _import_skill_registry() -> Any:
 
     try:
         # Try adding to path
-        hooks_path = Path("P:/.claude/hooks")
+        hooks_path = Path("P:\\\\.claude/hooks")
         if hooks_path.exists():
             sys.path.insert(0, str(hooks_path.parent))
             from hooks._archive import skill_registry
@@ -72,7 +72,7 @@ def _import_skill_registry() -> Any:
 
     try:
         # Try from CSF
-        csf_path = Path("P:/__csf/src")
+        csf_path = Path("P:\\\\__csf/src")
         if csf_path.exists():
             sys.path.insert(0, str(csf_path))
             from hooks._archive import skill_registry

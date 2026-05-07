@@ -35,7 +35,7 @@ def query_file_history(file_path: str) -> list[dict]:
         - created_at: Creation timestamp
 
     """
-    sys.path.insert(0, "P:/__csf")
+    sys.path.insert(0, "P:\\\\__csf")
     from src.cks.unified import CKS
 
     results = []

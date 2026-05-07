@@ -14,7 +14,7 @@ from datetime import datetime, timezone, timedelta
 from .db import get_connection
 from .task_projection import open_tasks, resolve_task
 
-DB_PATH = Path("P:/__csf/data/chat_history.db")
+DB_PATH = Path("P:\\\\__csf/data/chat_history.db")
 
 
 @pytest.fixture

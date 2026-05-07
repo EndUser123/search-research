@@ -85,7 +85,7 @@ reasoning = cks.semantic_reasoning(premise="TDD improves code quality")
 ## Data Storage
 
 ### Primary Database
-- **Location:** `P:\__csf.nip\__csf.nip\data\cks_hypergraph\cks_hypergraph.db`
+- **Location:** `P:\\\\__csf.nip\__csf.nip\data\cks_hypergraph\cks_hypergraph.db`
 - **Format:** SQLite with optimized indexing
 - **Size:** ~5MB (includes all migrated content)
 

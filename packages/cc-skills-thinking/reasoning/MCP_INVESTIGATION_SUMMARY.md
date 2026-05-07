@@ -3,7 +3,7 @@
 ## Current Status
 
 ### What We Built
-- ✅ MCP server created (`P:/packages/reasoning/mcp_server.py`)
+- ✅ MCP server created (`P:\\\\packages/reasoning/mcp_server.py`)
 - ✅ Tools registered in `settings.json`
 - ✅ All tests passing (5/5)
 - ✅ <200ms performance target met
@@ -102,7 +102,7 @@ Return improved response
 
 ### Implementation
 
-Create `P:/.claude/hooks/Stop_self_reflection.py`:
+Create `P:\\\\.claude/hooks/Stop_self_reflection.py`:
 
 ```python
 #!/usr/bin/env python3
@@ -113,7 +113,7 @@ import sys
 from pathlib import Path
 
 # Add reasoning package to path
-sys.path.insert(0, "P:/packages/reasoning")
+sys.path.insert(0, "P:\\\\packages/reasoning")
 
 from reasoning.config import Mode, ReasoningConfig
 from reasoning.modes.sequential import SequentialMode
@@ -213,7 +213,7 @@ if __name__ == "__main__":
 
 ### Registration
 
-Add to `P:/.claude/hooks/Stop.py` IN_PROCESS_GATES:
+Add to `P:\\\\.claude/hooks/Stop.py` IN_PROCESS_GATES:
 
 ```python
 IN_PROCESS_GATES = [

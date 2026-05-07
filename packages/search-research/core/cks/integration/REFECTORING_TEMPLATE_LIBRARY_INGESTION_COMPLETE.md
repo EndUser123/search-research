@@ -13,12 +13,12 @@
 ## Knowledge Repository Structure Created
 
 ### 1. Master Knowledge Document
-**File**: `P:/__csf.nip/docs/knowledge/refactoring_template_library_complete.md`
+**File**: `P:\\\\__csf.nip/docs/knowledge/refactoring_template_library_complete.md`
 **Status**: ✅ **COMPLETE**
 **Content**: Complete refactoring template library with proven success metrics
 
 ### 2. Storage Infrastructure
-**File**: `P:/__csf.nip/src/features/cks/integration/commands/refactoring_template_library_storage.py`
+**File**: `P:\\\\__csf.nip/src/features/cks/integration/commands/refactoring_template_library_storage.py`
 **Status**: ✅ **COMPLETE**
 **Content**: Automated CKS knowledge storage system (ready for CKS integration)
 
@@ -174,7 +174,7 @@
 
 ### Primary Knowledge Document
 ```
-P:/__csf.nip/docs/knowledge/refactoring_template_library_complete.md
+P:\\\\__csf.nip/docs/knowledge/refactoring_template_library_complete.md
 ├── Executive Summary
 ├── Template Library Master Index
 ├── Individual Template Documentation (6 templates)
@@ -188,7 +188,7 @@ P:/__csf.nip/docs/knowledge/refactoring_template_library_complete.md
 
 ### Supporting Infrastructure
 ```
-P:/__csf.nip/src/features/cks/integration/commands/refactoring_template_library_storage.py
+P:\\\\__csf.nip/src/features/cks/integration/commands/refactoring_template_library_storage.py
 ├── Automated knowledge storage system
 ├── Template data structures and validation
 ├── CKS integration compatibility
@@ -229,7 +229,7 @@ The complete refactoring template library is now available for:
 ## File Structure Created
 
 ```
-P:/
+P:\\\\
 ├── __csf.nip/
 │   ├── docs/knowledge/
 │   │   └── refactoring_template_library_complete.md  ✅ COMPLETE

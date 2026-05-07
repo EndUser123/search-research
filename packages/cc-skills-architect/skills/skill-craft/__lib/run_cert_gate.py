@@ -6,7 +6,7 @@ Usage:
     python run_cert_gate.py <skill_path>
 
 Example:
-    python run_cert_gate.py P:/.claude/skills/gto
+    python run_cert_gate.py P:\\\\.claude/skills/gto
     python run_cert_gate.py .  # run against self
 """
 import sys

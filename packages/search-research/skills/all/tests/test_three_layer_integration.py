@@ -21,7 +21,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-# Use package imports from pytest rootdir (P:\.claude)
+# Use package imports from pytest rootdir (P:\\\\.claude)
 # The package is at .claude/skills/explore/, so import as skills.explore
 from skills.explore.agent_filter import apply_agent_filtering, parse_agent_response
 from skills.explore import layer2_filter

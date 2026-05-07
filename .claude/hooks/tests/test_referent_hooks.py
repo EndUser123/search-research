@@ -494,11 +494,11 @@ class TestStopCoverage:
         Stop._referent_cooldown.pop(tid, None)
 
     def test_very_large_list_zero_mentions_no_focused_fires_downgraded(self):
-        """Very large list (>15) + zero mentions + no focused strategy → fires with downgraded."""
+        """Very large list (>20) + zero mentions + no focused strategy → fires with downgraded."""
         from Stop import _run_referent_coverage
 
         tid = "test_vlarge_zero"
-        items = [f"item{i}" for i in range(18)]
+        items = [f"item{i}" for i in range(21)]  # 21 items → >20 → downgraded tier
         self._write_anchor_state(tid, items)
         data = {
             "response": "I looked at the issues generally.",
@@ -553,5 +553,128 @@ class TestStopCoverage:
         assert r2 is None, "Expected cooldown to suppress repeat advisory"
 
         # Cleanup
+        (Path(HOOKS_DIR) / "state" / f"referent_anchors_{tid}.json").unlink(missing_ok=True)
+        stop_module._referent_cooldown.pop(tid, None)
+
+    # ---- New: user-asked-for-prioritization tests ----
+
+    def test_prioritization_prompt_suppresses_large_list_advisory(self):
+        """User asks 'prioritize top 3'; list 6-20 items; response mentions 1-2 → advisory suppressed."""
+        from Stop import _run_referent_coverage
+        import Stop as stop_module
+
+        tid = "test_prioritize_large"
+        items = [f"item{i}" for i in range(8)]  # 8 items → soft tier (6-20)
+        self._write_anchor_state(tid, items)
+
+        data = {
+            "prompt": "Which of these are the most important? Prioritize the top 3.",
+            "response": "item0 and item1 are the highest priority items.",
+            "terminal_id": tid,
+        }
+        result = _run_referent_coverage(data)
+        # User asked for prioritization → advisory suppressed even though some items mentioned
+        assert result is None, (
+            "Expected advisory suppressed when user explicitly asked for prioritization "
+            "and response is focused, even with zero mentions of structured list items"
+        )
+        (Path(HOOKS_DIR) / "state" / f"referent_anchors_{tid}.json").unlink(missing_ok=True)
+        stop_module._referent_cooldown.pop(tid, None)
+
+    def test_prioritization_prompt_small_list_zero_mentions_still_fires(self):
+        """User asks 'prioritize'; list ≤5 items; zero mentions → advisory still fires (strict rule)."""
+        from Stop import _run_referent_coverage
+        import Stop as stop_module
+
+        tid = "test_prioritize_small_zero"
+        items = ["item1", "item2", "item3", "item4"]  # 4 items → strict tier (≤5)
+        self._write_anchor_state(tid, items)
+
+        data = {
+            "prompt": "Which are the most important to focus on first?",
+            "response": "I looked at the overall problem broadly.",
+            "terminal_id": tid,
+        }
+        result = _run_referent_coverage(data)
+        # Small list + zero mentions → fires even when user asked for prioritization
+        assert result is not None, (
+            "Expected advisory to fire on small list (≤5) with zero mentions "
+            "even if user asked for prioritization"
+        )
+        assert "ADVISORY" in result["systemMessage"]
+        (Path(HOOKS_DIR) / "state" / f"referent_anchors_{tid}.json").unlink(missing_ok=True)
+        stop_module._referent_cooldown.pop(tid, None)
+
+    def test_very_large_list_prioritized_prompt_zero_mentions_suppressed(self):
+        """User asks for prioritization; list >20 items; response zero mentions → advisory suppressed.
+
+        Chosen behavior: suppression applies (same as focused-response softening).
+        """
+        from Stop import _run_referent_coverage
+        import Stop as stop_module
+
+        tid = "test_vlarge_prioritize_zero"
+        items = [f"item{i}" for i in range(25)]  # 25 items → >20 → downgraded tier
+        self._write_anchor_state(tid, items)
+
+        data = {
+            "prompt": "Prioritize the most critical issues.",
+            "response": "I'll focus on the top 3 highest leverage items.",
+            "terminal_id": tid,
+        }
+        result = _run_referent_coverage(data)
+        # User asked for prioritization → suppressed even on very large list
+        assert result is None, (
+            "Expected advisory suppressed when user explicitly asked for prioritization "
+            "on very large list (>20 items) with zero mentions"
+        )
+        (Path(HOOKS_DIR) / "state" / f"referent_anchors_{tid}.json").unlink(missing_ok=True)
+        stop_module._referent_cooldown.pop(tid, None)
+
+    def test_thresholds_updated_to_20(self):
+        """VERY_LARGE_LIST_THRESHOLD is 20; list 16-20 items uses soft behavior."""
+        from Stop import (
+            _run_referent_coverage,
+            _VERY_LARGE_LIST_THRESHOLD,
+            _SMALL_LIST_THRESHOLD,
+        )
+        import Stop as stop_module
+
+        assert _VERY_LARGE_LIST_THRESHOLD == 20, (
+            f"Expected _VERY_LARGE_LIST_THRESHOLD to be 20, got {_VERY_LARGE_LIST_THRESHOLD}"
+        )
+        assert _SMALL_LIST_THRESHOLD == 5
+
+        # List of 16 items → soft tier (6-20), not downgraded
+        tid = "test_threshold_20"
+        items = [f"item{i}" for i in range(16)]
+        self._write_anchor_state(tid, items)
+
+        data = {
+            "response": "I'll focus on the top priority items.",
+            "prompt": "What should I focus on?",
+            "terminal_id": tid,
+        }
+        result = _run_referent_coverage(data)
+        # With user prompt asking for focus AND response is focused → suppressed (soft)
+        # (This uses the soft suppression, not the downgraded path)
+        assert result is None, (
+            "Expected soft suppression for 16-item list with focused response"
+        )
+
+        # List of 20 items → still soft tier (within 6-20 range)
+        # Reset cooldown state first
+        stop_module._referent_cooldown.pop(tid, None)
+
+        data2 = {
+            "response": "I'll prioritize the top items.",
+            "prompt": "Which are most important?",
+            "terminal_id": tid,
+        }
+        result2 = _run_referent_coverage(data2)
+        assert result2 is None, (
+            "Expected suppression for 20-item list with prioritization framing"
+        )
+
         (Path(HOOKS_DIR) / "state" / f"referent_anchors_{tid}.json").unlink(missing_ok=True)
         stop_module._referent_cooldown.pop(tid, None)

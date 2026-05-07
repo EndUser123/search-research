@@ -177,7 +177,7 @@ These are internal self-check prompts. They are not default user-facing question
 Use `emerge` when several candidates look related but the shared lesson is still unclear.
 Use `graduate` when the same underlying lesson keeps reappearing and should stop living as isolated session trivia.
 
-Reference: `P:/.claude/skills/__lib/sdlc_internal_modes.md`
+Reference: `P:\\\\.claude/skills/__lib/sdlc_internal_modes.md`
 
 ## Output Format
 
@@ -194,7 +194,7 @@ Reference: `P:/.claude/skills/__lib/sdlc_internal_modes.md`
 
 1. [score: 7] Terminal detection path mismatch
    SessionStart writes to %TEMP%/claude_terminal_id.txt but
-   skill_execution_state reads from P:/.claude/state/ (wrong path)
+   skill_execution_state reads from P:\\\\.claude/state/ (wrong path)
    → CKS: pattern_abc123
 
 2. [score: 6] Session isolation via ConsoleHost handle

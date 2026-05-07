@@ -45,7 +45,7 @@ This document provides AI-readable context for {{package_name}}.
 # Sanitize name (remove @, ?, *, etc.)
 $name = "{{package_name}}" -replace '[@?*:<>|+]', ''
 
-New-Item -ItemType Junction -Path "P:\.claude\skills\$name" -Target "P:\packages\{{package_name}}\{{skill_path}}"
+New-Item -ItemType Junction -Path "$CLAUDE_ROOT/skills\$name" -Target "P:\\\\packages\{{package_name}}\{{skill_path}}"
 ```
 
 ## Key Constraints
@@ -65,8 +65,8 @@ New-Item -ItemType Junction -Path "P:\.claude\skills\$name" -Target "P:\packages
 
 ```powershell
 # Check junction resolves correctly
-Get-Item "P:\.claude\skills\{{package_name}}" | Select-Object LinkType, Target
+Get-Item "$CLAUDE_ROOT/skills\{{package_name}}" | Select-Object LinkType, Target
 
 # Check hooks directory for broken symlinks
-Get-ChildItem P:/.claude/hooks -Force | Where-Object { $_.LinkType -eq "SymbolicLink" -and -not (Test-Path $_.Target) }
+Get-ChildItem P:\\\\.claude/hooks -Force | Where-Object { $_.LinkType -eq "SymbolicLink" -and -not (Test-Path $_.Target) }
 ```

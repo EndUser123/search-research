@@ -1,0 +1,18 @@
+{
+  "run_id": "0dfb53d4-a3e4-4a0d-a73c-c53e3b6a1acf",
+  "skill_name": "wiki",
+  "contract_type": "workflow-execution",
+  "phase": "executing",
+  "status": "complete",
+  "terminal_id": "console_5cada87b-d502-46c2-a41e-2f0e491e5475",
+  "session_id": "4356fefc-2f17-473a-b938-00244b61e9bd",
+  "turn_id": null,
+  "created_at": 1778105893.574848,
+  "updated_at": 1778106178.422632,
+  "required_artifacts": [],
+  "completed_artifacts": [],
+  "missing_requirements": [],
+  "allowed_tools_now": [],
+  "blocked_tools": [],
+  "response_requirements": {}
+}

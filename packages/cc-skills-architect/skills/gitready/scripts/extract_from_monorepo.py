@@ -10,8 +10,8 @@ Usage:
     python extract_from_monorepo.py <target_dir> <package_name> [--fresh-init]
 
 Examples:
-    python extract_from_monorepo.py P:/packages/search-research search-research
-    python extract_from_monorepo.py P:/packages/my-package my-package --fresh-init
+    python extract_from_monorepo.py P:\\\\packages/search-research search-research
+    python extract_from_monorepo.py P:\\\\packages/my-package my-package --fresh-init
 """
 
 import argparse

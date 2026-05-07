@@ -6,11 +6,11 @@ to allow GTO analysis on monorepo subdirectories that don't have
 their own .git directory.
 
 Usage (CLI):
-    python run_gto_monorepo.py --project-root "P:\.claude\skills\gto"
+    python run_gto_monorepo.py --project-root "$CLAUDE_ROOT/skills\gto"
 
 Usage (as module):
     from run_gto_monorepo import run_gto_analysis
-    results = run_gto_analysis(Path("P:\.claude\skills\gto"))
+    results = run_gto_analysis(Path("$CLAUDE_ROOT/skills\gto"))
 """
 
 import argparse

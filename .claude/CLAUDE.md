@@ -702,6 +702,23 @@ When a hook blocks your response:
 
 ---
 
+### Critical guard failures and tool sanity checks
+
+**Critical guards** (`PreToolUse_protected_file_recovery_gate`, `destructive_cleanup_detector`, `referent_coverage`) enforce non-negotiable safety properties. When a critical guard fails to run (import error, exception, crash):
+
+1. **Treat the system as degraded** — the guard cannot confirm safety
+2. **Avoid destructive actions** (Edit/Write/Bash rm, git reset --hard, etc.) until the issue is diagnosed
+3. **Surface the failure** to the user clearly
+
+The tool-call sanity checker (Stop `tool_sanity` gate) flags abnormal usage patterns per turn:
+- >3 Bash calls in one turn
+- Same file edited >2 times
+- High-risk Bash commands (rm -rf, git reset --hard, etc.) unless best-practice recovery (git restore, git checkout --)
+
+**When the sanity checker warns:** double-check whether all actions are intentional; consolidate or defer destructive operations until the situation is understood.
+
+---
+
 ## NotebookLM Prep
 
 Prepare this repo for NotebookLM ingestion by generating focused, size-bounded Markdown slices.

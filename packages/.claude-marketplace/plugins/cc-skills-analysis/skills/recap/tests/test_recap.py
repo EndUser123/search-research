@@ -28,7 +28,7 @@ class TestImportPath:
         """
         from pathlib import Path
 
-        _search_research_root = Path("P:/packages/search-research")
+        _search_research_root = Path("P:\\\\packages/search-research")
         if str(_search_research_root) not in sys.path:
             sys.path.insert(0, str(_search_research_root))
 
@@ -46,7 +46,7 @@ class TestImportPath:
 
     def test_session_chain_entry_structure(self):
         """Test that SessionChainEntry has expected fields."""
-        _search_research_root = Path("P:/packages/search-research")
+        _search_research_root = Path("P:\\\\packages/search-research")
         if str(_search_research_root) not in sys.path:
             sys.path.insert(0, str(_search_research_root))
 
@@ -76,7 +76,7 @@ class TestHandoffChainWalking:
 
         This verifies the chain walking API works correctly.
         """
-        _search_research_root = Path("P:/packages/search-research")
+        _search_research_root = Path("P:\\\\packages/search-research")
         if str(_search_research_root) not in sys.path:
             sys.path.insert(0, str(_search_research_root))
 
@@ -123,7 +123,7 @@ class TestSubagentFiltering:
         from pathlib import Path
 
         # Add skills/recap to path to import
-        skill_path = Path("P:/.claude/skills/recap")
+        skill_path = Path("P:\\\\.claude/skills/recap")
         if str(skill_path) not in sys.path:
             sys.path.insert(0, str(skill_path))
 
@@ -141,7 +141,7 @@ class TestSubagentFiltering:
         import sys
         from pathlib import Path
 
-        skill_path = Path("P:/.claude/skills/recap")
+        skill_path = Path("P:\\\\.claude/skills/recap")
         if str(skill_path) not in sys.path:
             sys.path.insert(0, str(skill_path))
 
@@ -159,7 +159,7 @@ class TestSubagentFiltering:
         import sys
         from pathlib import Path
 
-        skill_path = Path("P:/.claude/skills/recap")
+        skill_path = Path("P:\\\\.claude/skills/recap")
         if str(skill_path) not in sys.path:
             sys.path.insert(0, str(skill_path))
 
@@ -175,7 +175,7 @@ class TestSubagentFiltering:
         import sys
         from pathlib import Path
 
-        skill_path = Path("P:/.claude/skills/recap")
+        skill_path = Path("P:\\\\.claude/skills/recap")
         if str(skill_path) not in sys.path:
             sys.path.insert(0, str(skill_path))
 
@@ -201,12 +201,12 @@ class TestSessionIdDeduplication:
         import sys
         from pathlib import Path
 
-        skill_path = Path("P:/.claude/skills/recap")
+        skill_path = Path("P:\\\\.claude/skills/recap")
         if str(skill_path) not in sys.path:
             sys.path.insert(0, str(skill_path))
 
         # Import dependencies
-        _search_research_root = Path("P:/packages/search-research")
+        _search_research_root = Path("P:\\\\packages/search-research")
         if str(_search_research_root) not in sys.path:
             sys.path.insert(0, str(_search_research_root))
 
@@ -257,11 +257,11 @@ class TestSessionIdDeduplication:
         import sys
         from pathlib import Path
 
-        skill_path = Path("P:/.claude/skills/recap")
+        skill_path = Path("P:\\\\.claude/skills/recap")
         if str(skill_path) not in sys.path:
             sys.path.insert(0, str(skill_path))
 
-        _search_research_root = Path("P:/packages/search-research")
+        _search_research_root = Path("P:\\\\packages/search-research")
         if str(_search_research_root) not in sys.path:
             sys.path.insert(0, str(_search_research_root))
 
@@ -325,7 +325,7 @@ class TestSummarizeSessionChange004:
         import sys
         from pathlib import Path
 
-        skill_path = Path("P:/.claude/skills/recap")
+        skill_path = Path("P:\\\\.claude/skills/recap")
         if str(skill_path) not in sys.path:
             sys.path.insert(0, str(skill_path))
 
@@ -383,7 +383,7 @@ We successfully wired up the session chain walking and handoff chain traversal."
         import sys
         from pathlib import Path
 
-        skill_path = Path("P:/.claude/skills/recap")
+        skill_path = Path("P:\\\\.claude/skills/recap")
         if str(skill_path) not in sys.path:
             sys.path.insert(0, str(skill_path))
 
@@ -453,7 +453,7 @@ class TestErrorMessages:
         import sys
         from pathlib import Path
 
-        skill_path = Path("P:/.claude/skills/recap")
+        skill_path = Path("P:\\\\.claude/skills/recap")
         if str(skill_path) not in sys.path:
             sys.path.insert(0, str(skill_path))
 
@@ -479,7 +479,7 @@ class TestExtractModifiedFiles:
 
     @pytest.fixture(autouse=True)
     def _import_recap(self):
-        skill_path = Path("P:/.claude/skills/recap")
+        skill_path = Path("P:\\\\.claude/skills/recap")
         if str(skill_path) not in sys.path:
             sys.path.insert(0, str(skill_path))
         from recap import _extract_modified_files
@@ -490,42 +490,42 @@ class TestExtractModifiedFiles:
             {
                 "type": "assistant",
                 "content": [
-                    {"type": "tool_use", "name": "Edit", "input": {"file_path": "P:/src/main.py"}},
-                    {"type": "tool_use", "name": "Write", "input": {"file_path": "P:/src/utils.py"}},
+                    {"type": "tool_use", "name": "Edit", "input": {"file_path": "P:\\\\src/main.py"}},
+                    {"type": "tool_use", "name": "Write", "input": {"file_path": "P:\\\\src/utils.py"}},
                 ],
             },
         ]
         result = self.extract(entries)
-        assert result == ["P:/src/main.py", "P:/src/utils.py"]
+        assert result == ["P:\\\\src/main.py", "P:\\\\src/utils.py"]
 
     def test_deduplicates_paths(self):
         entries = [
             {
                 "type": "assistant",
                 "content": [
-                    {"type": "tool_use", "name": "Edit", "input": {"file_path": "P:/src/main.py"}},
-                    {"type": "tool_use", "name": "Edit", "input": {"file_path": "P:/src/main.py"}},
+                    {"type": "tool_use", "name": "Edit", "input": {"file_path": "P:\\\\src/main.py"}},
+                    {"type": "tool_use", "name": "Edit", "input": {"file_path": "P:\\\\src/main.py"}},
                 ],
             },
         ]
         result = self.extract(entries)
-        assert result == ["P:/src/main.py"]
+        assert result == ["P:\\\\src/main.py"]
 
     def test_skips_noise_files(self):
         entries = [
             {
                 "type": "assistant",
                 "content": [
-                    {"type": "tool_use", "name": "Write", "input": {"file_path": "P:/package.json"}},
-                    {"type": "tool_use", "name": "Write", "input": {"file_path": "P:/poetry.lock"}},
-                    {"type": "tool_use", "name": "Edit", "input": {"file_path": "P:/__pycache__/cache.pyc"}},
-                    {"type": "tool_use", "name": "Edit", "input": {"file_path": "P:/node_modules/react/index.js"}},
-                    {"type": "tool_use", "name": "Edit", "input": {"file_path": "P:/src/app.py"}},
+                    {"type": "tool_use", "name": "Write", "input": {"file_path": "P:\\\\package.json"}},
+                    {"type": "tool_use", "name": "Write", "input": {"file_path": "P:\\\\poetry.lock"}},
+                    {"type": "tool_use", "name": "Edit", "input": {"file_path": "P:\\\\__pycache__/cache.pyc"}},
+                    {"type": "tool_use", "name": "Edit", "input": {"file_path": "P:\\\\node_modules/react/index.js"}},
+                    {"type": "tool_use", "name": "Edit", "input": {"file_path": "P:\\\\src/app.py"}},
                 ],
             },
         ]
         result = self.extract(entries)
-        assert result == ["P:/src/app.py"]
+        assert result == ["P:\\\\src/app.py"]
 
     def test_empty_input_returns_empty(self):
         assert self.extract([]) == []
@@ -538,17 +538,17 @@ class TestExtractModifiedFiles:
                 "type": "assistant",
                 "message": {
                     "content": [
-                        {"type": "tool_use", "name": "Edit", "input": {"file_path": "P:/src/handler.py"}},
+                        {"type": "tool_use", "name": "Edit", "input": {"file_path": "P:\\\\src/handler.py"}},
                     ],
                 },
             },
         ]
         result = self.extract(entries)
-        assert result == ["P:/src/handler.py"]
+        assert result == ["P:\\\\src/handler.py"]
 
     def test_summarize_session_includes_modified_files(self):
         """_summarize_session return dict includes modified_files."""
-        skill_path = Path("P:/.claude/skills/recap")
+        skill_path = Path("P:\\\\.claude/skills/recap")
         if str(skill_path) not in sys.path:
             sys.path.insert(0, str(skill_path))
         from recap import _summarize_session
@@ -563,10 +563,10 @@ class TestExtractModifiedFiles:
                 "type": "assistant",
                 "sessionId": "s1",
                 "content": [
-                    {"type": "tool_use", "name": "Edit", "input": {"file_path": "P:/src/bug.py"}},
+                    {"type": "tool_use", "name": "Edit", "input": {"file_path": "P:\\\\src/bug.py"}},
                 ],
             },
         ]
         result = _summarize_session(entries, "s1")
         assert "modified_files" in result
-        assert result["modified_files"] == ["P:/src/bug.py"]
+        assert result["modified_files"] == ["P:\\\\src/bug.py"]

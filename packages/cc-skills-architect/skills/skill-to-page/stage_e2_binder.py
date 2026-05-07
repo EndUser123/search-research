@@ -10,7 +10,7 @@ Behavior: For each section template, merge static template content with
 import json, re, sys
 from pathlib import Path
 
-BASE  = Path("P:/packages/cc-skills-architect/skills/skill-to-page")
+BASE  = Path("P:\\\\packages/cc-skills-architect/skills/skill-to-page")
 TPL   = BASE / "templates"
 E1_OUT = BASE / "e1-output.json"
 PLAN   = BASE / "artifact-plan.json"

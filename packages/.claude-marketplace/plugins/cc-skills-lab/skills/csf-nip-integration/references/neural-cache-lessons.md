@@ -2,7 +2,7 @@
 
 **86 lessons migrated to CKS vector database** (2026-01-05)
 
-Full context searchable via CKS. Migration: P:/__csf/src/csf/cks/integration/commands/neural_cache_migration.py
+Full context searchable via CKS. Migration: P:\\\\__csf/src/csf/cks/integration/commands/neural_cache_migration.py
 
 ## Core Reflexes (L1 - kept for quick reference)
 
@@ -83,11 +83,11 @@ For Python 3.14 development, use GPU wrapper scripts when GPU acceleration is ne
 
 ```powershell
 # PowerShell (preferred)
-P:\__csf\tools\run_gpu.ps1 script.py [args...]
-P:\__csf\tools\run_gpu.ps1 -m module.name [args...]
+$__CSF_ROOT/tools\run_gpu.ps1 script.py [args...]
+$__CSF_ROOT/tools\run_gpu.ps1 -m module.name [args...]
 
 # Windows Batch
-P:\__csf\tools\run_gpu.bat script.py [args...]
+$__CSF_ROOT/tools\run_gpu.bat script.py [args...]
 ```
 
 **When to use GPU:**

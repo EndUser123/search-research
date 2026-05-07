@@ -1,1 +1,0 @@
-UserPromptSubmit hook for skill-guard: user_prompt_submit_hook.py — validates /skill-name invocations and creates execution-state.json via ExecutionRuntime.create_run()

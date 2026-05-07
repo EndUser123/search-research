@@ -6,11 +6,11 @@ Implement a profile system for the `/s` skill to reduce cognitive load by provid
 
 ## Architecture
 
-**New File**: `P:\.claude\skills\s\scripts\profiles\config.py`
+**New File**: `$CLAUDE_ROOT/skills\s\scripts\profiles\config.py`
 
 **Modified Files**:
-- `P:\.claude\skills\s\scripts\run_heavy.py` - Add profile support
-- `P:\.claude\skills\s\SKILL.md` - Document profiles
+- `$CLAUDE_ROOT/skills\s\scripts\run_heavy.py` - Add profile support
+- `$CLAUDE_ROOT/skills\s\SKILL.md` - Document profiles
 
 **Components**:
 - Profile dataclass with preset configurations
@@ -86,10 +86,10 @@ All tasks completed successfully. The `/s` skill now has 3 preset profile config
 
 **Test Results**: 27/27 tests passing
 **Files Created**:
-- `P:\.claude\skills\s\scripts\profiles\config.py` (183 lines)
-- `P:\.claude\skills\s\scripts\profiles\__init__.py` (26 lines)
-- `P:\.claude\skills\s\tests\test_profiles.py` (309 lines)
+- `$CLAUDE_ROOT/skills\s\scripts\profiles\config.py` (183 lines)
+- `$CLAUDE_ROOT/skills\s\scripts\profiles\__init__.py` (26 lines)
+- `$CLAUDE_ROOT/skills\s\tests\test_profiles.py` (309 lines)
 
 **Files Modified**:
-- `P:\.claude\skills\s\scripts\run_heavy.py` (added profile support)
-- `P:\.claude\skills\s\SKILL.md` (added profile documentation)
+- `$CLAUDE_ROOT/skills\s\scripts\run_heavy.py` (added profile support)
+- `$CLAUDE_ROOT/skills\s\SKILL.md` (added profile documentation)

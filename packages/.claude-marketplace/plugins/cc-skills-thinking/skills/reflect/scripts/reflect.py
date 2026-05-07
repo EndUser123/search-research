@@ -98,7 +98,7 @@ def store_lessons_to_cks(changes, critique_lessons: list[dict] | None = None):
     """
     try:
         # Try to import CKS (may not be available)
-        sys.path.insert(0, "P:/__csf/src")
+        sys.path.insert(0, "P:\\\\__csf/src")
         from knowledge.systems.cks.unified import CKS
     except ImportError:
         print("Note: CKS not available, skipping lesson storage")

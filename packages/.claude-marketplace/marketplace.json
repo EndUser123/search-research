@@ -1,0 +1,122 @@
+{
+  "name": "local",
+  "owner": {
+    "name": "Bruce Thomson"
+  },
+  "metadata": {
+    "description": "Local marketplace for development plugins"
+  },
+  "plugins": [
+    {
+      "name": "cc-skills-ai-api",
+      "version": "1.0.2",
+      "description": "AI provider skills for Claude Code \u2014 multi-provider LLM access, API gateways, usage monitoring, and quota management.",
+      "source": "./plugins/cc-skills-ai-api",
+      "keywords": [
+        "ai",
+        "llm",
+        "providers",
+        "quota",
+        "monitoring"
+      ]
+    },
+    {
+      "name": "cc-skills-ai-cli",
+      "version": "1.0.0",
+      "description": "Command-line AI skill plugins for Claude Code.",
+      "source": "./plugins/cc-skills-ai-cli",
+      "keywords": [
+        "ai",
+        "cli",
+        "tools",
+        "automation"
+      ]
+    },
+    {
+      "name": "cc-skills-media",
+      "version": "1.0.2",
+      "description": "Media-related AI skills for Claude Code.",
+      "source": "./plugins/cc-skills-media",
+      "keywords": [
+        "media",
+        "audio",
+        "video",
+        "content"
+      ]
+    },
+    {
+      "name": "cc-skills-meta",
+      "version": "1.1.0",
+      "description": "Metadata and utility skills for Claude Code.",
+      "source": "./plugins/cc-skills-meta",
+      "keywords": [
+        "meta",
+        "utilities",
+        "skills",
+        "metadata"
+      ]
+    },
+    {
+      "name": "cc-skills-sdlc",
+      "version": "1.0.2",
+      "description": "Software development lifecycle AI skills for Claude Code.",
+      "source": "./plugins/cc-skills-sdlc",
+      "keywords": [
+        "sdlc",
+        "devops",
+        "quality",
+        "lifecycle"
+      ]
+    },
+    {
+      "name": "cc-skills-utils",
+      "version": "1.1.6",
+      "description": "Utility AI skills for Claude Code.",
+      "source": "./plugins/cc-skills-utils",
+      "keywords": [
+        "utils",
+        "tooling",
+        "helpers",
+        "automation"
+      ]
+    },
+    {
+      "name": "snapshot",
+      "version": "0.5.2",
+      "description": "Snapshot plugin for Claude Code.",
+      "source": "./plugins/snapshot",
+      "keywords": [
+        "snapshot",
+        "backup",
+        "state",
+        "archive"
+      ]
+    },
+    {
+      "name": "search-research",
+      "version": "0.1.5",
+      "description": "Unified search and research system with async concurrent execution and 11 web providers.",
+      "source": "./plugins/search-research",
+      "keywords": [
+        "search",
+        "research",
+        "code search",
+        "knowledge search",
+        "web search"
+      ]
+    },
+    {
+      "name": "skill-guard",
+      "version": "2.1.6",
+      "description": "Universal skill auto-discovery and enforcement for Claude Code",
+      "source": "./plugins/skill-guard",
+      "keywords": [
+        "skills",
+        "enforcement",
+        "hooks",
+        "gate",
+        "compliance"
+      ]
+    }
+  ]
+}

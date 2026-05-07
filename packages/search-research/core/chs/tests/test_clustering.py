@@ -4,7 +4,7 @@ Tests for CHS v2 Clustering module.
 Tests verify the clustering functionality for organizing search results
 into thematic groups using different clustering modes.
 
-Run with: pytest P:/__csf/src/knowledge/systems/chs/v2/tests/test_clustering.py -v
+Run with: pytest P:\\\\__csf/src/knowledge/systems/chs/v2/tests/test_clustering.py -v
 """
 
 from __future__ import annotations

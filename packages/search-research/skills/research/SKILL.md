@@ -176,7 +176,7 @@ Warning: "Code search rate limited - showing repositories instead"
 
 ## Implementation
 
-**Backend**: `P:\packages\search-research\core\cli.py`
+**Backend**: `$CLAUDE_PLUGIN_ROOT/core\cli.py`
 
 **Entry point**: `python -m search_research.cli [query] --mode [auto|web|quick|tavily|serper|exa|...]`
 
@@ -199,7 +199,7 @@ export EXA_API_KEY=exa_xxx
 export PERPLEXITY_API_KEY=pplx-xxx
 ```
 
-**Config files**: Searches `P:/.env` and `P:/__csf/.env` automatically
+**Config files**: Searches `P:\\\\.env` and `P:\\\\__csf/.env` automatically
 
 ## Output
 

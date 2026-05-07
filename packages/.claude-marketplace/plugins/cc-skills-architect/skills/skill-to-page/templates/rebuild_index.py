@@ -2,7 +2,7 @@
 """Rebuild index.html from extracted template files."""
 import os
 
-BASE = "P:/packages/cc-skills-architect/skills/skill-to-page"
+BASE = "P:\\\\packages/cc-skills-architect/skills/skill-to-page"
 TPL = f"{BASE}/templates"
 
 def read(name):

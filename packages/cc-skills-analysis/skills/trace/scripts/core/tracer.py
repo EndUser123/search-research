@@ -29,7 +29,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 # GTO skill coverage integration
-_gto_lib = Path("P:/.claude/skills")
+_gto_lib = Path("P:\\\\.claude/skills")
 if str(_gto_lib) not in sys.path:
     sys.path.insert(0, str(_gto_lib))
 from gto.lib.skill_coverage_detector import _append_skill_coverage
@@ -330,7 +330,7 @@ class TraceReport:
         Integration with debugRCA's CKS findings storage framework.
         """
         # Add CSF src to path for CKS integration
-        csf_src = str(Path("P:/__csf/src").resolve())
+        csf_src = str(Path("P:\\\\__csf/src").resolve())
         if csf_src not in sys.path:
             sys.path.insert(0, csf_src)
 
@@ -581,7 +581,7 @@ class Tracer(ABC):
         # Import BranchGenerator from shared utils
         try:
             # Add code skill utils to path
-            code_utils_path = Path("P:/.claude/skills/code/utils")
+            code_utils_path = Path("P:\\\\.claude/skills/code/utils")
             if str(code_utils_path) not in sys.path:
                 sys.path.insert(0, str(code_utils_path))
 

@@ -53,7 +53,7 @@ allowed_first_tools:
 
 ## Main Documentation
 
-**Full implementation:** `P:/__csf/src/features/commands/nip/discover.md`
+**Full implementation:** `P:\\\\__csf/src/features/commands/nip/discover.md`
 
 ## Purpose
 
@@ -172,4 +172,4 @@ aid <path> --ai-action prompt-for-complex-codebase-analysis
 - Architecture reviews (dependency analysis)
 - Legacy modernization planning (debt inventory)
 
-**Integration module**: `P:\.claude\skills\arch\aid_integration.py`
+**Integration module**: `$CLAUDE_ROOT/skills\arch\aid_integration.py`
