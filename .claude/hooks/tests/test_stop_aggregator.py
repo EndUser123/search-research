@@ -70,7 +70,6 @@ class TestClassifyResult:
 
     def test_low_confidence_hooks(self):
         assert classify_result("self_reflection", "warn") == ("other", "low")
-        assert classify_result("referent_coverage", "warn") == ("coverage_gap", "low")
         assert classify_result("overconfidence_detector", "warn") == ("overconfidence", "low")
         assert classify_result("tool_sanity", "warn") == ("tool_usage_anomaly", "low")
         assert classify_result("advisory", "warn") == ("other", "low")

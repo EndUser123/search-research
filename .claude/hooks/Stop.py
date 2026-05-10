@@ -99,54 +99,11 @@ from __lib.claim_type import _read_claim_type
 from Stop_aggregator import aggregate_and_render as _aggregate_and_render
 from Stop_artifact_enforcement import run as _run_artifact_enforcement
 
-# Referent coverage advisory tuning
-_SMALL_LIST_THRESHOLD = 5         # ≤N items: strict — fire when zero items mentioned
-_VERY_LARGE_LIST_THRESHOLD = 20  # >N items: very soft — downgrade advisory
-_COOLDOWN_TURNS = 3             # Suppress repeat advisory for this many turns
-
-# Ephemeral cooldown: maps terminal_id -> {"anchor_hash", "mentioned", "suppress_until"}
-# Cleared when session ends or terminal_id changes.
-_referent_cooldown: dict[str, dict] = {}
-
-# Focused/prioritized response markers — signal non-exhaustive strategy
-_FOCUSED_RESPONSE_PATTERNS = [
-    r"\[RECOMMENDATION\]",
-    r"\[DECISION\]",
-    r"\[NEXT_STEP\]",
-    r"\[SMALLEST_NEXT_STEP\]",
-    r"\bhighest\s+(?:priority|leverage|impact)\b",
-    r"\bnext\s+step\b",
-    r"\bprioritized?\b",
-    r"\bfocus(?:ed)?\s+on\b",
-    r"\bmost\s+critical\b",
-    r"\btop\s+\d+\b",
-    r"\bquick(?:est)?\s+win\b",
-    r"\bhigh(?:est)?\s+(?:priority|value|impact)\b",
-    r"\bstarting\s+with\b",
-    r"\bfirst(?:\s+pass)?\b",
-]
-_FOCUSED_RESPONSE_RE = [re.compile(p, re.I) for p in _FOCUSED_RESPONSE_PATTERNS]
-
-# User-side prioritization intent — signals user asked for prioritized/focused coverage
-_USER_PRIORITIZATION_PATTERNS = [
-    r"\bprioritize\b",
-    r"\btop\s+\d+\b",
-    r"\bmost\s+important\b",
-    r"\bhighest\s+(?:impact|leverage)\b",
-    r"\bwhich\s+(?:are\s+)?(?:the\s+)?most\s+important\b",
-    r"\bwhich\s+(?:are\s+)?(?:the\s+)?(?:ones?\s+)?should\s+i\s+focus\s+on\b",
-    r"\bwhich\s+(?:are\s+)?(?:the\s+)?(?:ones?\s+)?(?:to\s+)?prioritize\b",
-    r"\bprioritiz(?:e|ing|ed)\b",
-    r"\bfocus\s+on\s+(?:the\s+)?(?:top\s+)?(?:highest\s+)?(?:priority|impact|leverage)\b",
-]
-_USER_PRIORITIZATION_RE = [re.compile(p, re.I) for p in _USER_PRIORITIZATION_PATTERNS]
-
-
-def _user_asked_for_prioritization(prompt: str) -> bool:
-    """Return True if the user's prompt explicitly asks for prioritization."""
-    if not prompt:
-        return False
-    return any(p.search(prompt) for p in _USER_PRIORITIZATION_RE)
+# Referent coverage (Stop advisory) removed 2026-05-10.
+# Lexical anchor-matching is not a reliable proxy for task completion.
+# The PreToolUse scope gate (PreToolUse_referent_scope_gate.py) still prevents
+# off-topic tool calls during investigation — that is the right intervention point.
+# The UserPromptSubmit anchor writer (referent_anchor.py) is retained for that gate.
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -1922,6 +1879,42 @@ def _run_git_diff_reground(data: dict) -> dict | None:
         return None
 
 
+def _run_acknowledgment_loop(data: dict) -> dict | None:
+    """Detect acknowledgment loop: ack + same violation in one turn."""
+    try:
+        from Stop_acknowledgment_loop import run_acknowledgment_loop
+        return run_acknowledgment_loop(data)
+    except Exception:
+        return None
+
+
+def _run_repetition_blocker(data: dict) -> dict | None:
+    """Block repeated violations after acknowledgment/correction."""
+    try:
+        from Stop_repetition_blocker import run_repetition_blocker
+        return run_repetition_blocker(data)
+    except Exception:
+        return None
+
+
+def _run_fake_done_detector(data: dict) -> dict | None:
+    """Detect completion claims without evidence."""
+    try:
+        from Stop_fake_done_detector import run_fake_done_detector
+        return run_fake_done_detector(data)
+    except Exception:
+        return None
+
+
+def _run_meta_analysis_trap(data: dict) -> dict | None:
+    """Block meta-analysis: analyzing WHY instead of fixing."""
+    try:
+        from Stop_meta_analysis_trap import run_meta_analysis_trap
+        return run_meta_analysis_trap(data)
+    except Exception:
+        return None
+
+
 def _run_skill_dir_correlation_gate(data: dict) -> dict | None:
     """Advisory: warn when tool events accessed a different skill dir than user intended."""
     try:
@@ -2067,178 +2060,202 @@ def _run_phase0_depends_on_skills(data: dict) -> dict | None:
         return None
 
 
-def _run_referent_coverage(data: dict) -> dict | None:
-    """Advisory check: warn if response mentions zero anchor terms from user's message.
-
-    Anchors are written by referent_anchor.py when the user lists items in a
-    table/bullet list combined with referential language ('those', 'them') AND
-    an investigative verb ('investigate', 'check', 'analyze'). This means the
-    user explicitly framed the list as investigation targets, not just data to show.
-
-    Size-aware behavior:
-      ≤5 items       → strict:  fire when zero items mentioned
-      6–20 items     → soft:   fire when zero mentioned; suppress when some mentioned
-      >20 items      → downgraded: fire only when zero AND no focused/prioritized strategy
-
-    Suppression signals (either exempts from advisory):
-      - Response is focused/prioritized  (_is_focused_response)
-      - User asked for prioritization   (_user_asked_for_prioritization)
-
-    Bypass_scope is set by referent_anchor when the user says 'and anything else'
-    or 'plus any' — expansion language signals the user wants broader coverage.
-    """
-    # Skip quality enforcement on non-final-answer turns (report/meta)
-    _turn = _classify_turn_mode(data)
-    if _turn in ("execution-report", "meta"):
-        return None
-    try:
-        tid = (
-            data.get("terminal_id")
-            or data.get("terminalId")
-            or os.environ.get("CLAUDE_TERMINAL_ID")
-            or "unknown"
-        )
-        state_file = HOOKS_DIR / "state" / f"referent_anchors_{tid}.json"
-        if not state_file.exists():
-            return None
-
-        state = json.loads(state_file.read_text(encoding="utf-8"))
-
-        if state.get("status") == "no_anchors" or not state.get("anchor_terms"):
-            return None
-
-        if state.get("bypass_scope"):
-            return None
-
-        anchor_terms: list[str] = state.get("anchor_terms", [])
-        n = len(anchor_terms)
-
-        if n < 3:
-            return None
-
-        response = (data.get("response") or "").lower()
-        if not response:
-            return None
-
-        # Cooldown check: suppress if same (terminal_id, anchor_set) was recently warned
-        anchor_key = "|".join(sorted(t.lower() for t in anchor_terms))
-        cooldown_entry = _referent_cooldown.get(tid)
-        if cooldown_entry and cooldown_entry.get("anchor_key") == anchor_key:
-            if cooldown_entry.get("suppress_until", 0) > time.time():
-                return None
-            # Expire old entry so a new advisory can fire after cooldown passes
-            if time.time() >= cooldown_entry.get("suppress_until", 0):
-                _referent_cooldown.pop(tid, None)
-
-        # Suppress when response uses generic list-level references
-        list_level_patterns = [
-            "these items", "those items", "the items", "the options",
-            "those hooks", "these hooks", "the entries", "the rows",
-            "the options you listed", "the items in your table",
-            "the entries in the", "the rows in the",
-        ]
-        if any(pat in response for pat in list_level_patterns):
-            return None
-
-        mentioned = [t for t in anchor_terms if t.lower() in response]
-        some_mentioned = 0 < len(mentioned) < n
-
-        # --- User-prompt intent (prioritization framing) ---
-        user_prompt = data.get("prompt") or ""
-        user_prioritized = _user_asked_for_prioritization(user_prompt)
-
-        # --- Size-aware suppression ---
-        if n <= _SMALL_LIST_THRESHOLD:
-            # Strict: fire on zero mentions only — small lists require exhaustive coverage
-            if not mentioned:
-                _set_referent_cooldown(tid, anchor_key)
-                return _build_advisory(anchor_terms, mentioned, "strict")
-            return None
-
-        if n > _VERY_LARGE_LIST_THRESHOLD:
-            # Very soft: only fire when ZERO items mentioned AND no focused/prioritized strategy
-            if not mentioned and not _is_focused_response(data.get("response", "")) and not user_prioritized:
-                _set_referent_cooldown(tid, anchor_key)
-                return _build_advisory(anchor_terms, mentioned, "downgraded")
-            return None
-
-        # 6–20 items (soft): fire on zero mentions unless response is focused OR user asked for prioritization
-        if not mentioned:
-            if not _is_focused_response(data.get("response", "")) and not user_prioritized:
-                _set_referent_cooldown(tid, anchor_key)
-                return _build_advisory(anchor_terms, mentioned, "soft")
-            return None
-
-    except Exception:
-        return None
-
-
-def _set_referent_cooldown(tid: str, anchor_key: str) -> None:
-    """Set 3-turn cooldown for the referent coverage advisory on this terminal."""
-    _referent_cooldown[tid] = {
-        "anchor_key": anchor_key,
-        "suppress_until": time.time() + (_COOLDOWN_TURNS * 30),
-    }
-
-
-def _is_focused_response(response: str) -> bool:
-    """Return True if response shows a focused/prioritized non-exhaustive strategy."""
-    if not response:
-        return False
-    return any(p.search(response) for p in _FOCUSED_RESPONSE_RE)
-
-
-def _build_advisory(anchor_terms: list[str], mentioned: list[str], tier: str) -> dict:
-    """Build the referent coverage advisory systemMessage."""
-    n = len(anchor_terms)
-    m = len(mentioned)
-    suffix = ""
-    if tier == "downgraded":
-        suffix = (
-            " (downgraded — large list). Consider focusing on the highest-leverage items "
-            "if exhaustive coverage was not explicitly requested."
-        )
-    elif tier == "soft":
-        suffix = " (softened — some items were addressed; only firing on zero coverage)."
-    return {
-        "decision": "allow",
-        "systemMessage": (
-            f"ADVISORY: Response does not mention any of the {n} items "
-            f"from the user's structured list.{suffix} "
-            f"Consider whether the investigation covered the intended entities."
-        ),
-    }
-
-
+# _run_referent_coverage removed 2026-05-10.
+# Reason: Lexical anchor-matching is not a reliable proxy for task completion.
+# False positives from stale anchors across topic shifts outweigh the signal.
+# The PreToolUse scope gate (PreToolUse_referent_scope_gate.py) still blocks
+# off-topic tool calls during active investigations using the same anchors.
 # ---------------------------------------------------------------------------
-# Self-check: _run_referent_coverage behavior summary
-# ---------------------------------------------------------------------------
-# Advisory fires when ALL conditions are true:
-#   1. referent_anchor.py wrote ≥3 anchor_terms for this terminal
-#   2. bypass_scope is False (user did NOT say "and anything else", etc.)
-#   3. Response contains ZERO list-level engagement phrases
-#   4. Response mentions NONE of the anchor_terms
-#   5. (For >5 items) Not in cooldown period for this terminal+anchor_set
 #
-# Size-aware behavior:
-#   ≤5 items       → strict:     fires on zero mentions
-#   6–20 items     → soft:       fires on zero mentions; suppressed if some mentioned
-#                                Also suppressed if response is focused OR user asked for prioritization
-#   >20 items      → downgraded: fires only on zero mentions AND no focused response AND
-#                                user did NOT ask for prioritization
+# ── task_contract_fit gate ────────────────────────────────────────────────────
 #
-# Cooldown: 3 turns (~90s) after advisory fires for same terminal+anchor_set
+# HOW STOP DECIDES TURN KINDS (for this gate's purposes):
+#   _classify_turn_mode(data) → one of: control, exploration, analysis, plan,
+#   execution-report, final-answer, meta.
+#   - "analysis" / "final-answer": diagnostic/analytical → candidate for checking
+#   - "control" / "exploration" / "plan" / "meta": not a completion attempt → skip
 #
-# Suppressed when:
-#   - bypass_scope = True → user wants broader coverage
-#   - Response contains list-level phrases → conceptual engagement
-#   - Fewer than 3 anchor_terms stored
-#   - Cooldown active for this terminal+anchor combination
-#   - Response shows focused/prioritized strategy
-#   - User's prompt explicitly asked for prioritization (soft/downgraded tiers only)
+# WHICH EXISTING GATES TOUCH "did we do what was asked?":
+#   intent_artifact_alignment: checks tool_events match prompt file/command targets
+#   epistemic_contract: checks response structure (FACT/INFERENCE/etc.)
+#   semantic_critic: Haiku-based semantic quality evaluation
+#   None of these check "did you produce the specific deliverables the task required?"
+#   That is the gap task_contract_fit fills.
+#
+# INSERTION POINT: After semantic_critic, before deletion_verification_guard.
+#   Rationale: task_contract_fit is a quality gate that depends on the response
+#   being a plausible completion attempt (not exploration/control). It runs after
+#   structural checks have had their say but before policy-level gates.
 #
 # Gate class: "quality" — suppressed on control/exploration turns.
 # ---------------------------------------------------------------------------
+
+
+def _run_task_contract_fit_gate(data: dict) -> dict | None:
+    """Check whether the response satisfies the active task contract.
+
+    Only fires when:
+    1. An active task_contract.json exists for this terminal.
+    2. The current turn looks like a completion attempt (analysis/final-answer,
+       response is substantive enough to plausibly be a final report).
+    3. One or more required_outputs are clearly missing from the response.
+
+    Returns None (silent) when no contract exists or the turn is not a
+    completion attempt. Returns a block decision when required deliverables
+    are missing.
+    """
+    try:
+        from __lib.task_contract import load_contract, clear_contract
+
+        _, terminal_id = _resolve_scope_ids(data)
+        if not terminal_id:
+            return None
+
+        contract = load_contract(terminal_id)
+        response = data.get("response", "")
+        turn_mode = _classify_turn_mode(data)
+
+        # Telemetry: gate entry
+        _log_task_contract_telemetry(terminal_id, "check", {
+            "contract_present": contract is not None,
+            "turn_mode": turn_mode,
+            "response_len": len(response),
+        })
+
+        if contract is None:
+            return None
+
+        if not response:
+            _log_task_contract_telemetry(terminal_id, "silent", {
+                "reason": "empty_response",
+            })
+            return None
+
+        # Only check responses that look like completion attempts.
+        if turn_mode in ("control", "exploration", "plan", "meta"):
+            _log_task_contract_telemetry(terminal_id, "silent", {
+                "reason": f"turn_mode={turn_mode}",
+            })
+            return None
+
+        # Heuristic: skip very short responses (not a final report).
+        # At least ~300 chars suggests a substantive answer.
+        if len(response) < 300:
+            _log_task_contract_telemetry(terminal_id, "silent", {
+                "reason": "response_too_short",
+                "response_len": len(response),
+            })
+            return None
+
+        required = contract.get("required_outputs", [])
+        if not required:
+            return None
+
+        missing = _check_missing_outputs(response, required)
+        if not missing:
+            # All required outputs present — contract satisfied, clear it.
+            clear_contract(terminal_id)
+            _log_task_contract_telemetry(terminal_id, "auto_clear", {
+                "required": required,
+            })
+            return None
+
+        # Telemetry: block
+        _log_task_contract_telemetry(terminal_id, "block", {
+            "required": required,
+            "missing": missing,
+        })
+
+        # Build a specific, actionable block message.
+        required_str = ", ".join(required)
+        missing_str = ", ".join(missing)
+        return {
+            "decision": "block",
+            "reason": (
+                f"TASK CONTRACT INCOMPLETE: required outputs [{required_str}], "
+                f"missing: [{missing_str}]."
+            ),
+            "systemMessage": (
+                f"The user's task contract requires: {required_str}. "
+                f"Your answer is missing: {missing_str}. "
+                f"Extend your answer to include those explicitly before responding."
+            ),
+            "blocking_hook": "Stop.py:task_contract_fit",
+        }
+    except Exception as e:
+        print(f"[Stop] task_contract_fit error: {e}", file=sys.stderr)
+        return None
+
+
+def _log_task_contract_telemetry(
+    terminal_id: str, event: str, fields: dict,
+) -> None:
+    """Append structured telemetry for task_contract_fit gate."""
+    try:
+        log_path = HOOKS_DIR / "logs" / "diagnostics" / "task_contract_telemetry.jsonl"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        entry = {
+            "timestamp": time.time(),
+            "gate": "task_contract_fit",
+            "event": event,
+            "terminal_id": terminal_id,
+            **fields,
+        }
+        with log_path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=True) + "\n")
+    except Exception:
+        pass  # Observability must never change hook behavior
+
+
+# Deterministic pattern checks for required output types.
+# v1 uses simple keyword/heading detection — no external calls.
+
+_OUTPUT_PATTERNS: dict[str, list[str]] = {
+    "root_cause": [
+        r"(?i)\broot\s*cause\b",
+        r"(?i)\bcaused\s+by\b",
+        r"(?i)\bthe\s+(?:underlying|actual|real)\s+(?:issue|problem|cause|bug)\b",
+        r"(?i)\bwhat\s+(?:went\s+wrong|caused|broke)\b",
+    ],
+    "fix": [
+        r"(?i)\bfix(?:ed|es)?\b",
+        r"(?i)\bworkaround\b",
+        r"(?i)\bpatch\b",
+        r"(?i)\bchanged?\s+.*\bto\b",
+        r"(?i)\bapplied\s+(?:the\s+)?(?:fix|change|patch)\b",
+        r"(?i)\bthe\s+fix\b",
+        r"(?i)\bsolution\b",
+    ],
+    "tests": [
+        r"(?i)\btest[s]?\b",
+        r"(?i)\bpytest\b",
+        r"(?i)\bassert\b",
+        r"(?i)\btest_",
+        r"(?i)\bdef\s+test_",
+        r"(?i)\bcoverage\b",
+    ],
+    "verification_commands": [
+        r"(?i)\bverify(?:ing)?\b",
+        r"(?i)\bverification\b",
+        r"(?i)(?:python|pytest|npm|cargo|go\s+test)\s+",
+        r"(?i)\brun\s+(?:the\s+)?(?:test|check|verify|command)",
+        r"(?i)\bcommand[s]?\s+to\s+(?:verify|run|check|test)\b",
+        r"(?i)```\s*(?:python|bash|sh)\s+.*(?:test|check|verify|run)",
+    ],
+}
+
+
+def _check_missing_outputs(response: str, required: list[str]) -> list[str]:
+    """Return the subset of required outputs that are NOT clearly present."""
+    import re as _re
+
+    missing: list[str] = []
+    for output_type in required:
+        patterns = _OUTPUT_PATTERNS.get(output_type, [])
+        found = any(_re.search(p, response) for p in patterns)
+        if not found:
+            missing.append(output_type)
+    return missing
 
 
 # Gate classification: POLICY gates fire on all turns.
@@ -2268,7 +2285,6 @@ GATE_CLASSES: dict[str, str] = {
     "git_diff_reground": "policy",
     "skill_dir_correlation": "policy",
     "cks_correction_anchor": "policy",
-    "referent_coverage": "quality",
     "tool_sanity": "quality",
     "artifact_enforcement": "policy",  # Block unverified mechanism claims
     # Quality gates — suppressed on control turns in normal mode
@@ -2283,14 +2299,19 @@ GATE_CLASSES: dict[str, str] = {
     "existence_gate": "quality",
     "lazy_workaround_gate": "quality",
     "semantic_critic": "quality",
+    "task_contract_fit": "quality",
     "phase0_depends_on_skills": "quality",
+    "acknowledgment_loop": "policy",
+    "repetition_blocker": "policy",
+    "fake_done": "policy",
+    "meta_analysis_trap": "quality",
 }
 
 IN_PROCESS_GATES = [
     # Telemetry evidence (524 records, 4 sessions, 35 gates):
     # - 28 gates fired exclusively allow across all sessions (active but not triggered)
     # - 7 gates produced non-allow outcomes (unverified_stance, epistemic_contract,
-    #   reasoning_quality_gate, referent_coverage, semantic_critic, advisory,
+    #   reasoning_quality_gate, semantic_critic, advisory,
     #   anti_sycophancy_quality)
     # - 3 gates removed per silent-gate investigation 2026-05-08:
     #     existence_gate: explicitly disabled (_run_existence_gate returns None;
@@ -2325,6 +2346,7 @@ IN_PROCESS_GATES = [
     ("recommendation_gate", _run_recommendation_gate),
     ("intent_artifact_alignment", _run_intent_artifact_alignment),
     ("semantic_critic", _run_semantic_critic),
+    ("task_contract_fit", _run_task_contract_fit_gate),
     (
         "deletion_verification_guard",
         _run_deletion_verification_guard,
@@ -2336,9 +2358,12 @@ IN_PROCESS_GATES = [
     ("git_diff_reground", _run_git_diff_reground),
     ("skill_dir_correlation", _run_skill_dir_correlation_gate),
     ("cks_correction_anchor", _run_cks_correction_anchor),
-    ("referent_coverage", _run_referent_coverage),
     ("phase0_depends_on_skills", _run_phase0_depends_on_skills),
     ("tool_sanity", _run_tool_sanity_check),
+    ("acknowledgment_loop", _run_acknowledgment_loop),
+    ("repetition_blocker", _run_repetition_blocker),
+    ("fake_done", _run_fake_done_detector),
+    ("meta_analysis_trap", _run_meta_analysis_trap),
 ]
 
 # Non-Blocking Side Effects (still subprocess for isolation)
@@ -2386,7 +2411,6 @@ def run_side_effect(hook_name: str, input_data: str) -> None:
 
 CRITICAL_STOP_GATES = frozenset((
     "destructive_cleanup_detector",  # advisory-only detector, but must not silently fail
-    "referent_coverage",           # ensures coverage of user-specified items
 ))
 
 # Module-level critical gate failure flag for this turn
@@ -2643,6 +2667,12 @@ def main():
     if "response" not in data and "last_assistant_message" in data:
         data["response"] = data["last_assistant_message"]
 
+    # Normalize output_text for gates that expect it (fake_done, meta_analysis_trap, etc.)
+    # These hooks were written against a different data contract and read output_text
+    # instead of response. Alias it here so they work without modification.
+    if "output_text" not in data:
+        data["output_text"] = data.get("response", "")
+
     _pin_scope_env(data)
 
     # Classify turn mode once — used for quality gate suppression
@@ -2654,8 +2684,22 @@ def main():
     # Raw messages for aggregation: (hook_name, severity, message)
     _raw_messages: list[tuple[str, str, str]] = []
 
+    # Post-violation gates: these need all_violations populated from earlier gate results.
+    # acknowledgment_loop and repetition_blocker need to know what violations earlier
+    # gates detected in this turn. They run late in the list, so by the time they execute,
+    # _raw_messages has results from all preceding gates.
+    _POST_VIOLATION_GATES = frozenset((
+        "acknowledgment_loop", "repetition_blocker",
+    ))
+
     # Run all in-process gates
     for name, gate_fn in IN_PROCESS_GATES:
+        # Enrich data for post-violation gates with current turn's detected issues
+        if name in _POST_VIOLATION_GATES and "all_violations" not in data:
+            data["all_violations"] = [
+                {"type": hook_name, "message": msg}
+                for hook_name, severity, msg in _raw_messages
+            ]
         res = _run_gate_safe(name, gate_fn, data)
         blocked = _process_gate_result(
             res, name, system_messages, quality_messages, data,
@@ -2698,6 +2742,26 @@ def main():
 
     # Merge quality messages based on turn mode and enforcement mode
     _merge_quality_messages(system_messages, quality_messages, turn_mode, quality_mode)
+
+    # Write violation state for cross-turn tracking (repetition detection).
+    # The repetition_blocker gate reads this state in subsequent turns to detect
+    # repeated violations. Without this write, state is never populated.
+    if _raw_messages:
+        try:
+            from hook_state_manager import set_last_violations
+            _tid = data.get("terminal_id") or data.get("terminalId") or os.environ.get("CLAUDE_TERMINAL_ID", "")
+            _sid = data.get("session_id") or data.get("sessionId") or os.environ.get("CLAUDE_SESSION_ID", "")
+            if _tid:
+                _violation_types = [h for h, _, _ in _raw_messages]
+                set_last_violations(
+                    _tid, _sid,
+                    turn_number=int(time.time()),
+                    violations=_violation_types,
+                    user_corrected=False,
+                    acknowledged=False,
+                )
+        except Exception:
+            pass  # Observability must not change hook behavior
 
     # Process Side Effects (only if not blocked)
     if SIDE_EFFECTS and not os.environ.get("STOP_NO_SIDE_EFFECTS"):

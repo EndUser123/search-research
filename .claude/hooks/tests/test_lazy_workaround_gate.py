@@ -114,16 +114,76 @@ class TestLazyPatternCoverage(unittest.TestCase):
                            f"Should block: {response}")
 
     def test_duplicate_fine_pattern(self):
-        """Test duplication acceptance pattern"""
+        """Test duplication acceptance pattern via proximity detection"""
         test_cases = [
-            "Duplicates are fine",
-            "The redundant bars are acceptable",
-            "Extra tasks are expected",
+            ("Duplicates are fine", True),
+            ("The redundant bars are acceptable", True),
+            ("Extra tasks are expected", True),
+            # These should NOT trigger (no acceptance word near problem word)
+            ("ignoring duplication in the report", False),
+            ("duplicate is documented in the changelog", False),
+            ("duplicates are mentioned in the README", False),
         ]
-        for response in test_cases:
+        for response, should_block in test_cases:
             result = check_lazy_workarounds(response)
-            self.assertEqual(result["decision"], "block",
-                           f"Should block: {response}")
+            self.assertEqual(result["decision"], "block" if should_block else "allow",
+                           f"{'Should block' if should_block else 'Should allow'}: {response}")
+
+
+class TestProximityBoundary(unittest.TestCase):
+    """Test the 8-token proximity boundary.
+
+    Window behavior (with end = i + PROXIMITY_TOKENS + 1):
+    - Forward: tokens[i+1:i+9] — 8 tokens (index i+1 through i+8), distance 1-8 BLOCK
+    - Backward: tokens[i-8:i] — 8 tokens (index i-8 through i-1), distance 1-8 BLOCK
+    - Distance 9+ (9+ tokens between): ALLOW
+
+    Both directions are symmetric at PROXIMITY_TOKENS=8.
+    """
+
+    def _tokens_forward(self, n: int) -> str:
+        """n filler tokens between 'duplicate' and 'fine'."""
+        return "duplicate " + " ".join(f"tok{i}" for i in range(1, n + 1)) + " fine"
+
+    def _tokens_backward(self, n: int) -> str:
+        """n filler tokens between 'fine' and 'duplicate'."""
+        return "fine " + " ".join(f"tok{i}" for i in range(1, n + 1)) + " duplicate"
+
+    def test_7_tokens_forward_blocks(self):
+        """7 filler tokens (distance 8) — within 8-token window."""
+        text = self._tokens_forward(7)
+        result = check_lazy_workarounds(text)
+        self.assertEqual(result["decision"], "block", f"Should block: {text!r}")
+
+    def test_8_tokens_forward_allows(self):
+        """8 filler tokens (distance 9) — outside 8-token window."""
+        text = self._tokens_forward(8)
+        result = check_lazy_workarounds(text)
+        self.assertEqual(result["decision"], "allow", f"Should allow: {text!r}")
+
+    def test_9_tokens_forward_allows(self):
+        """9 filler tokens (distance 10) — outside 8-token window."""
+        text = self._tokens_forward(9)
+        result = check_lazy_workarounds(text)
+        self.assertEqual(result["decision"], "allow", f"Should allow: {text!r}")
+
+    def test_7_tokens_backward_blocks(self):
+        """7 filler tokens (distance 8) — within 8-token window."""
+        text = self._tokens_backward(7)
+        result = check_lazy_workarounds(text)
+        self.assertEqual(result["decision"], "block", f"Should block: {text!r}")
+
+    def test_8_tokens_backward_allows(self):
+        """8 filler tokens (distance 9) — outside 8-token window."""
+        text = self._tokens_backward(8)
+        result = check_lazy_workarounds(text)
+        self.assertEqual(result["decision"], "allow", f"Should allow: {text!r}")
+
+    def test_9_tokens_backward_allows(self):
+        """9 filler tokens (distance 10) — outside 8-token window."""
+        text = self._tokens_backward(9)
+        result = check_lazy_workarounds(text)
+        self.assertEqual(result["decision"], "allow", f"Should allow: {text!r}")
 
 
 class TestReportContextAllowPatterns(unittest.TestCase):

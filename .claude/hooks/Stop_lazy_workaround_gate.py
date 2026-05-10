@@ -11,37 +11,29 @@ This is LAZY and UNACCEPTABLE. Fix the actual problem.
 
 import json
 import re
+import string
 import sys
 
 # Lazy workaround patterns to block
 LAZY_PATTERNS = [
-    # Accept-as-feature patterns
+    # Accept-as-feature patterns (regex - specific phrase structure)
     (r"accept\s+.+?\s+as\s+(?:a\s+)?(?:visible\s+logging|feature|design|intentional|expected)", "accepting_bug_as_feature"),
 
-    # "Live with it" patterns
+    # "Live with it" patterns (regex - specific verb phrase)
     (r"live\s+with\s+((the|this)\s+)?(bug|issue|problem|limitation|behavior|race\s+condition)", "accepting_technical_debt"),
 
-    # "That's fine/acceptable/expected" for actual problems
-    (r"(duplicates?|redundant|extra|double).*(is\s+)?(fine|acceptable|expected|normal|ok)", "ignoring_duplication"),
-
-    # "Cosmetic" dismissal of functional issues
+    # "Cosmetic" dismissal of functional issues (regex - specific adjective)
     (r"(cosmetic|minor|trivial).*(bug|issue|problem|error)", "dismissing_functional_bug"),
 
-    # "Not worth fixing" - lazy prioritization
+    # "Not worth fixing" - lazy prioritization (regex - specific phrase)
     (r"n[o']t\s+worth\s+(fixing|addressing|investigating)", "avoiding_necessary_work"),
 
-    # "Workaround is fine" instead of fixing
+    # "Workaround is fine" instead of fixing (regex - specific phrase)
     (r"workaround\s+(is\s+)?(fine|acceptable|sufficient|good)", "accepting_workaround_over_fix"),
 
     # ANTI-PATTERN-4: "Fix" that is actually a try/except wrapper (error suppression)
-    (
-        r"added?\s+(?:a\s+)?try\s*/\s*except\s+(?:to\s+)?suppress",
-        "try_except_error_suppression",
-    ),
-    (
-        r"wrapped?\s+(?:it\s+)?in\s+try\s*/\s*except\s+(?:to\s+)?hide",
-        "try_except_error_suppression",
-    ),
+    (r"added?\s+(?:a\s+)?try\s*/\s*except\s+(?:to\s+)?suppress", "try_except_error_suppression"),
+    (r"wrapped?\s+(?:it\s+)?in\s+try\s*/\s*except\s+(?:to\s+)?hide", "try_except_error_suppression"),
     (r"catch\s+the\s+exception\s+(?:and\s+)?(ignore|suppress|hide|pass)", "exception_suppression"),
     (r"except\s*\([^)]*\)\s*:\s*pass\s*(?:#|$)", "bare_except_pass"),
 
@@ -54,8 +46,45 @@ LAZY_PATTERNS = [
     (r"bypass(?:ed)?\s+(?:the\s+)?(?:check|validation)", "bypassing_checks"),
 ]
 
+# Non-regex duplicate detection: proximity-based keyword matching
+# Replaces the brittle (duplicates?|redundant|extra|double).*(is\s+)?(fine|acceptable|expected|normal|ok)
+_PROBLEM_WORDS = frozenset({"duplicate", "duplicates", "redundant", "extra", "double"})
+_ACCEPTANCE_WORDS = frozenset({"fine", "acceptable", "expected", "normal", "ok"})
+_PROXIMITY_TOKENS = 8  # Must be within this many tokens of each other
+# Rationale: 8 tokens provides enough context for 'X is fine/acceptable' detection
+# while avoiding false positives from distant acceptance words in long responses.
+
+# Module-level punctuation table (cached, created once)
+_PUNCTUATION_TABLE = str.maketrans("", "", string.punctuation.replace("'", ""))
+
+
+def _check_duplicate_acceptance_proximity(text: str) -> tuple[bool, list[str]]:
+    """
+    Check for 'X is fine/acceptable/expected' patterns using proximity-based matching.
+    Returns (matched, matched_words) where matched_words contains the problem and acceptance words found.
+    Only triggers when problem word and acceptance word are within PROXIMITY_TOKENS of each other.
+    """
+    tokens = [t.translate(_PUNCTUATION_TABLE).lower() for t in text.split()]
+
+    for i, token in enumerate(tokens):
+        if token in _PROBLEM_WORDS:
+            end = min(i + _PROXIMITY_TOKENS + 1, len(tokens))
+            window = tokens[i+1:end]
+            for w in window:
+                if w in _ACCEPTANCE_WORDS:
+                    return True, [token, w]
+
+            start = max(0, i - _PROXIMITY_TOKENS)
+            window = tokens[start:i]
+            for w in window:
+                if w in _ACCEPTANCE_WORDS:
+                    return True, [w, token]
+
+    return False, []
+
 # Root cause phrases that signal proper investigation
 ROOT_CAUSE_PHRASES = [
+    # Full investigation phrases
     r"trace\s+(the\s+)?(source|cause|origin)",
     r"investigate\s+why",
     r"find\s+(the\s+)?(root\s+)?cause",
@@ -63,7 +92,16 @@ ROOT_CAUSE_PHRASES = [
     r"debug\s+(the\s+)?(issue|problem)",
     r"fix\s+(the\s+)?(underlying|root)",
     r"prevent\s+(the\s+)?duplication",
+    # Investigation verbs (standalone - catches "we should investigate", "let me trace...")
+    r"(?:should|will|need to|going to|planning to)\s+(?:trace|investigate|find root|debug|identify)",
+    r"(?:let me|let us|i'll|i will)\s+(?:trace|investigate|find|debug|identify)",
+    r"(?:tracing|investigating|finding|debugging|identifying)\s+(?:where|why|what|how)",
 ]
+
+
+def _has_investigation_intent(text: str) -> bool:
+    """Check if text contains a root-cause investigation phrase (bypass pattern)."""
+    return any(re.search(phrase, text) for phrase in ROOT_CAUSE_PHRASES)
 
 
 def _strip_quoted_blocks(text: str) -> str:
@@ -131,7 +169,7 @@ def check_lazy_workarounds(response: str) -> dict:
         if re.search(pattern, clean_lower, re.IGNORECASE):
             # Check if this is actually explaining the problem (not suggesting it)
             # Allow if it's followed by root cause investigation
-            if any(re.search(phrase, clean_lower) for phrase in ROOT_CAUSE_PHRASES):
+            if _has_investigation_intent(clean_lower):
                 continue  # This is proper investigation, not lazy acceptance
 
             # Report/implementation context: allow phrases describing intended system behavior.
@@ -159,6 +197,27 @@ def check_lazy_workarounds(response: str) -> dict:
                           f"Remember: 'Accepting bugs as features' creates technical debt.\n"
                           f"Fix the problem, don't document the workaround."
             }
+
+    # Non-regex duplicate detection: check proximity-based matching
+    matched, words = _check_duplicate_acceptance_proximity(clean_lower)
+    if matched:
+        if _has_investigation_intent(clean_lower):
+            return {"decision": "allow"}  # Proper investigation, not lazy acceptance
+
+        return {
+            "decision": "block",
+            "message": f"LAZY WORKAROUND DETECTED: ignoring duplication\n\n"
+                      f"⚠️  This suggests accepting a problem instead of fixing the root cause.\n\n"
+                      f"Matched: {words[0]!r} near {words[1]!r}\n\n"
+                      f"Required approach:\n"
+                      f"1. TRACE: Find where the problem originates\n"
+                      f"2. IDENTIFY: What's causing it\n"
+                      f"3. FIX: Address the actual root cause\n"
+                      f"4. VERIFY: Confirm the fix works\n\n"
+                      f"Detection method: proximity-based keyword matching\n\n"
+                      f"Remember: 'Accepting bugs as features' creates technical debt.\n"
+                      f"Fix the problem, don't document the workaround."
+        }
 
     return {"decision": "allow"}
 

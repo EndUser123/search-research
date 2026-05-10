@@ -52,6 +52,7 @@ ROOT_ISSUES: list[RootIssue] = [
     "overconfidence",
     "missing_verification",
     "epistemic_format",
+    "task_incomplete",
     "other",
 ]
 
@@ -99,7 +100,6 @@ _HOOK_CLASSIFICATION: dict[str, Tuple[RootIssue, Confidence]] = {
     "dependency_chain_guard": ("unsupported_causal_claim", "medium"),
     # Low confidence — heuristic/style advisories
     "self_reflection": ("other", "low"),
-    "referent_coverage": ("coverage_gap", "low"),
     "overconfidence_detector": ("overconfidence", "low"),
     "tool_sanity": ("tool_usage_anomaly", "low"),
     "advisory": ("other", "low"),
@@ -131,6 +131,13 @@ _HOOK_CLASSIFICATION: dict[str, Tuple[RootIssue, Confidence]] = {
     "skill_dir_correlation": ("other", "low"),
     "cks_correction_anchor": ("other", "low"),
     "consultation_loop_interrupt": ("other", "low"),
+    # High confidence — repetition and completion fraud
+    "acknowledgment_loop": ("empty_ack_after_correction", "high"),
+    "repetition_blocker": ("empty_ack_after_correction", "high"),
+    "fake_done": ("missing_verification", "high"),
+    "meta_analysis_trap": ("lazy_closure", "medium"),
+    # Task contract — explicit deliverable completeness check
+    "task_contract_fit": ("task_incomplete", "high"),
 }
 
 # Priority for rendering (lower = higher priority)
@@ -146,6 +153,7 @@ _ISSUE_PRIORITY: dict[RootIssue, int] = {
     "overconfidence": 8,
     "tool_usage_anomaly": 9,
     "epistemic_format": 10,
+    "task_incomplete": 2,
     "other": 11,
 }
 
@@ -174,6 +182,7 @@ _NEXT_STEPS: dict[RootIssue, str] = {
     "tool_usage_anomaly": "Confirm repeated or high-risk tool usage is intentional.",
     "overconfidence": "Add uncertainty language or evidence support for strong claims.",
     "missing_verification": "Run verification (tests, file checks) before claiming completion.",
+    "task_incomplete": "Include all required deliverables (root cause, fix, tests, verification commands).",
     "epistemic_format": "Structure analytical responses with FACT/INFERENCE/UNKNOWN/RECOMMENDATION sections.",
     "other": "Review the advisory and adjust if needed.",
 }

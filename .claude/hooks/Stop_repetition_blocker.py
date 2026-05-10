@@ -47,6 +47,10 @@ _LAZY_ESCALATION_TYPES = frozenset({
     "lazy_fix",
     "confidence_without_evidence",
     "workaround",
+    # Gate names that map to lazy escalation behavior
+    "lazy_workaround_gate",
+    "recommendation_gate",
+    "unverified_stance",
 })
 
 # Types that block immediately on repetition (no gradual escalation)
@@ -57,6 +61,9 @@ _IMMEDIATE_BLOCK_TYPES = frozenset({
     "fake_done",
     "tool_hallucination",
     "agreement_without_understanding",
+    # Gate names that map to immediate block behavior
+    "safety_gate",
+    "correction_acknowledgment",
 })
 
 # ---------------------------------------------------------------------------

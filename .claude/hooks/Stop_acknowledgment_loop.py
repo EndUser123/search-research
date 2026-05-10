@@ -89,6 +89,11 @@ def run_acknowledgment_loop(data: dict) -> dict | None:
         vtype = v.get("type", "")
         if vtype in _VIOLATION_LABELS or vtype in lower_output:
             repeated_types.append(vtype)
+        # Also match gate names that indicate violations (e.g., "lazy_workaround_gate")
+        elif any(label in vtype for label in ("lazy", "workaround", "unverified",
+                                                "epistemic", "overconfidence",
+                                                "fabricat", "sycophan")):
+            repeated_types.append(vtype)
 
     # Also check for meta-analysis trap patterns (analyzing WHY instead of fixing)
     if check_meta_analysis_trap(output_text):

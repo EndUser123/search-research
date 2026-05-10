@@ -644,6 +644,7 @@ def _load_hooks() -> None:
         "skill_forced_eval",
         # "stdout_protocol_test",  # TASK-000: Prototype to verify hook stdout → Skill() emission protocol
         "synergy_detector",  # NEW 2026-03-22: Detect framework+mode synergies
+        "task_start_contract_writer",  # Auto-create task contracts on substantive software-dev prompts
         "context_followup_detector",  # NEW 2026-03-25: Detect follow-up queries and inject prior context
         "tdd_contract_auto_gate",  # NEW 2026-04-08: Auto-create TDD contract for /code, /tdd skills
         "testing_strategy_router",  # NEW 2026-04-12: Inject smallest-sufficient test mix guidance
