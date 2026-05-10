@@ -727,6 +727,14 @@ def _load_hooks() -> None:
         priority=0.5,
     )
 
+    # Load approval handler for /approve command detection
+    _try_import_hook(
+        module_name="approval",
+        module_path="UserPromptSubmit_approval",
+        # Module self-registers via @register_hook decorator
+        priority=9.0,  # Before unified_injector (10.0)
+    )
+
 
 # Auto-load on module import
 _load_hooks()

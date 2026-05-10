@@ -98,6 +98,7 @@ from __lib.claim_type import _read_claim_type
 
 from Stop_aggregator import aggregate_and_render as _aggregate_and_render
 from Stop_artifact_enforcement import run as _run_artifact_enforcement
+from Stop_approval_gate import run as _run_approval_gate
 
 # Referent coverage (Stop advisory) removed 2026-05-10.
 # Lexical anchor-matching is not a reliable proxy for task completion.
@@ -2305,6 +2306,7 @@ GATE_CLASSES: dict[str, str] = {
     "repetition_blocker": "policy",
     "fake_done": "policy",
     "meta_analysis_trap": "quality",
+    "approval_gate": "policy",
 }
 
 IN_PROCESS_GATES = [
@@ -2355,6 +2357,7 @@ IN_PROCESS_GATES = [
         "artifact_enforcement",
         _run_artifact_enforcement,
     ),  # NEW 2026-05-08: Artifact enforcement for mechanism claims
+    ("approval_gate", _run_approval_gate),  # NEW 2026-05-10: Implementation approval gate
     ("git_diff_reground", _run_git_diff_reground),
     ("skill_dir_correlation", _run_skill_dir_correlation_gate),
     ("cks_correction_anchor", _run_cks_correction_anchor),
