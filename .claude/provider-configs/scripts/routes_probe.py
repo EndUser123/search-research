@@ -15,6 +15,8 @@ db_path     = r"C:\Users\brsth\AppData\Roaming\bifrost\config.db"
 bifrost_url = "http://localhost:8080"
 MIN_CONTEXT = 128_000   # tokens
 FREE_OPENROUTER = True   # exclude paid OpenRouter models
+LATENCY_DB  = r"C:\Users\brsth\AppData\Roaming\bifrost\latency_history.json"
+LATENCY_TTL = 90         # days to keep latency records
 
 # Known provider quotas (CEL model name -> quota string).
 # Sources: user console (Mistral, Z.AI), official docs (MiniMax, Gemini),
@@ -41,11 +43,12 @@ MODEL_QUOTA: dict[str, str] = {
     "step-3.5-flash":        "40RPM",
     "N-Q3C-480b-a35b":       "40RPM",
     "N-N3S-120b-a12b":       "40RPM",
-    # OpenRouter — 50 req/day free tier (source: openrouter.ai/docs)
-    "ring-2.6-1t":           "50/day",
-    "owl-alpha":             "50/day",
+    # OpenRouter — paid account ($10+ credits): 1K/day free models (source: openrouter.ai/docs + reddit)
+    "ring-2.6-1t":           "1K/day",
+    "owl-alpha":             "1K/day",
     # Z.AI — Max plan (source: docs.z.ai + user confirmation)
     "GLM-5.1":               "1600/5h",
+    "glm-4.7":               "1600/5h",
 }
 
 # ── helpers ──────────────────────────────────────────────────────────────────
@@ -222,6 +225,48 @@ def apply_latest_only(candidates: list[dict], only_providers: list | None = None
             if v == max_ver or is_alias:
                 kept.add(c["id"])
     return [c for c in candidates if c["id"] in kept]
+
+# ── latency history ───────────────────────────────────────────────────────────
+
+def load_latency_history() -> dict[str, list[dict]]:
+    """Load latency history from JSON. Keys are lowercase model names."""
+    import time as _t
+    try:
+        with open(LATENCY_DB, "r") as f:
+            data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+    cutoff = _t.time() - LATENCY_TTL * 86400
+    pruned = {}
+    for key, entries in data.items():
+        kept = [e for e in entries if e.get("ts", 0) > cutoff]
+        if kept:
+            pruned[key.lower()] = kept
+    return pruned
+
+def save_latency_history(history: dict[str, list[dict]]) -> None:
+    """Save latency history to JSON."""
+    with open(LATENCY_DB, "w") as f:
+        json.dump(history, f)
+
+def record_latency(history: dict[str, list[dict]], model: str, latency_ms: float) -> float | None:
+    """Record a latency sample and return the rolling average (ms), or None."""
+    import time as _t
+    key = model.lower()
+    entries = history.setdefault(key, [])
+    entries.append({"ts": _t.time(), "lat": latency_ms})
+    if entries:
+        return sum(e["lat"] for e in entries) / len(entries)
+    return None
+
+def avg_latency_str(history: dict[str, list[dict]], model: str) -> str:
+    """Return formatted average latency string, or empty."""
+    entries = history.get(model.lower(), [])
+    if not entries:
+        return ""
+    avg = sum(e["lat"] for e in entries) / len(entries)
+    n = len(entries)
+    return f"{int(avg):,}({n})"
 
 def display_width(s: str) -> int:
     """Column width accounting for wide chars (CJK, emoji)."""
@@ -428,9 +473,12 @@ else:
     print("=== RUNTIME PROBE ===")
     prov_w = 14
     quota_w = 9
-    header = f"  {pad_to('#', 3)} {pad_to('Model', max_model)} {pad_to('Provider', prov_w)} {'Latency':>9} {pad_to('Quota', quota_w)}"
+    avg_w = 12
+    header = f"  {pad_to('#', 3)} {pad_to('Model', max_model)} {pad_to('Provider', prov_w)} {'Latency':>9} {pad_to('Quota', quota_w)} {pad_to('Avg', avg_w)}"
     print(header)
     print("  " + "-" * ansi_width(header))
+
+    lat_history = load_latency_history()
 
     ok_probe_count = 0
     err_probe_count = 0
@@ -445,28 +493,49 @@ else:
             "messages": [{"role": "user", "content": "test"}],
             "max_tokens": 1,
         }).encode("utf-8")
-        req = urllib.request.Request(
-            f"{bifrost_url}/v1/chat/completions",
-            data=payload,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                body = json.loads(resp.read().decode("utf-8"))
-                extra = body.get("extra_fields", {})
-                prov = extra.get("provider", "UNKNOWN")
-                lat  = extra.get("latency", 0)
-                lat_str = f"{int(lat):,}ms"
-                prov_col = f"\033[92m{prov}\033[0m" if prov == rule["provider"] else f"\033[93m{prov}\033[0m"
-                print(f"  {pad_to(str(i), 3)} {pad_to(mn, max_model)} {pad_ansi(prov_col, prov_w)} {lat_str:>9} {pad_to(quota, quota_w)}")
-                ok_probe_count += 1
-        except Exception as e:
-            err_str = short_error(str(e).splitlines()[0])
-            err_col = f"\033[91m{err_str}\033[0m"
-            print(f"  {pad_to(str(i), 3)} {pad_to(mn, max_model)} {pad_ansi(err_col, prov_w)} {'':>9} {pad_to(quota, quota_w)}")
-            err_probe_count += 1
+        def probe_once():
+            req2 = urllib.request.Request(
+                f"{bifrost_url}/v1/chat/completions",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            return urllib.request.urlopen(req2, timeout=15)
 
+        try:
+            resp = probe_once()
+        except Exception as e:
+            err_raw = str(e).splitlines()[0]
+            err_str = short_error(err_raw)
+            if err_str in ("Timeout", "500 Server Error"):
+                try:
+                    resp = probe_once()
+                except Exception as e2:
+                    err_raw = str(e2).splitlines()[0]
+                    err_str = short_error(err_raw)
+                    err_col = f"\033[91m{err_str}\033[0m"
+                    avg_str = avg_latency_str(lat_history, mn)
+                    print(f"  {pad_to(str(i), 3)} {pad_to(mn, max_model)} {pad_ansi(err_col, prov_w)} {'':>9} {pad_to(quota, quota_w)} {pad_to(avg_str, avg_w)}")
+                    err_probe_count += 1
+                    continue
+            else:
+                err_col = f"\033[91m{err_str}\033[0m"
+                avg_str = avg_latency_str(lat_history, mn)
+                print(f"  {pad_to(str(i), 3)} {pad_to(mn, max_model)} {pad_ansi(err_col, prov_w)} {'':>9} {pad_to(quota, quota_w)} {pad_to(avg_str, avg_w)}")
+                err_probe_count += 1
+                continue
+        body = json.loads(resp.read().decode("utf-8"))
+        extra = body.get("extra_fields", {})
+        prov = extra.get("provider", "UNKNOWN")
+        lat  = extra.get("latency", 0)
+        lat_str = f"{int(lat):,}ms"
+        record_latency(lat_history, mn, lat)
+        avg_str = avg_latency_str(lat_history, mn)
+        prov_col = f"\033[92m{prov}\033[0m" if prov == rule["provider"] else f"\033[93m{prov}\033[0m"
+        print(f"  {pad_to(str(i), 3)} {pad_to(mn, max_model)} {pad_ansi(prov_col, prov_w)} {lat_str:>9} {pad_to(quota, quota_w)} {pad_to(avg_str, avg_w)}")
+        ok_probe_count += 1
+
+    save_latency_history(lat_history)
     if err_probe_count == 0:
         print(f"\n  \033[92mAll {ok_probe_count} routes healthy\033[0m")
     else:

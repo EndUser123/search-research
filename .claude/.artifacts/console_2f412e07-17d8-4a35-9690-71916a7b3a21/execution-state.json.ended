@@ -1,18 +1,20 @@
 {
-  "run_id": "b176a37f-6711-4d24-8578-49d62c6f2bdc",
-  "skill_name": "cc-skills-utils:plugin-installer",
+  "run_id": "c3f03eb1-1456-4634-8b09-0d875733ae91",
+  "skill_name": "gto",
   "contract_type": "workflow-execution",
   "phase": "executing",
-  "status": "complete",
+  "status": "failed",
   "terminal_id": "console_2f412e07-17d8-4a35-9690-71916a7b3a21",
   "session_id": "423b6de5-70b8-4a38-abc1-47b64558de40",
   "turn_id": null,
-  "created_at": 1778377204.606755,
-  "updated_at": 1778377705.6703286,
+  "created_at": 1778377887.200798,
+  "updated_at": 1778389091.526058,
   "required_artifacts": [],
   "completed_artifacts": [],
   "missing_requirements": [],
-  "allowed_tools_now": [],
+  "allowed_tools_now": [
+    "Bash"
+  ],
   "blocked_tools": [],
   "response_requirements": {}
 }
