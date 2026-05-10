@@ -2,7 +2,7 @@
 import re
 from pathlib import Path
 
-plugins_dir = Path('P:\\\\packages/.claude-marketplace/plugins')
+plugins_dir = Path('P:\\\\\\packages/.claude-marketplace/plugins')
 categories = {'claude-state': set(), 'external-project': set(), 'other': set()}
 
 pattern = re.compile(r'[P-p]:[/\\][^\s`"\'<>]+')
@@ -21,9 +21,9 @@ for plugin in sorted(plugins_dir.iterdir()):
             for m in pattern.finditer(content):
                 path = m.group()
                 p = path.replace('/', '\\')
-                if re.match(r'P:\\\\\.claude', p, re.I):
+                if re.match(r'P:\\\\\\\.claude', p, re.I):
                     categories['claude-state'].add(path)
-                elif re.match(r'P:\\\\\__csf', p, re.I):
+                elif re.match(r'P:\\\\\\\__csf', p, re.I):
                     categories['external-project'].add(path)
                 else:
                     categories['other'].add(path)

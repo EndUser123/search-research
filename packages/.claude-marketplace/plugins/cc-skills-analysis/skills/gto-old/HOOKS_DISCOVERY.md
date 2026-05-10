@@ -121,7 +121,7 @@ def run(data: dict) -> dict | None:
         "hooks": [
           {
             "type": "command",
-            "command": "python P:\\\\\.claude\\skills\\gto\\hooks\\gto_failure_capture.py"
+            "command": "python P:\\\\\\\.claude\\skills\\gto\\hooks\\gto_failure_capture.py"
           }
         ]
       }

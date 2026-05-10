@@ -248,7 +248,7 @@ plugin-name/
 **Setup**:
 ```powershell
 # Windows (Junction)
-New-Item -ItemType Junction -Path "$CLAUDE_ROOT/skills\plugin-name" -Target "P:\\\\packages\plugin-name\skills\plugin-name"
+New-Item -ItemType Junction -Path "$CLAUDE_ROOT/skills\plugin-name" -Target "P:\\\\\\packages\plugin-name\skills\plugin-name"
 
 # macOS/Linux (Symlink)
 ln -s /path/to/packages/plugin-name/skills/plugin-name ~/.claude/skills/plugin-name
@@ -258,15 +258,15 @@ ln -s /path/to/packages/plugin-name/skills/plugin-name ~/.claude/skills/plugin-n
 
 **Setup**:
 ```powershell
-cd P:\\\\.claude/hooks
-cmd /c "mklink HookName.py P:\\\\packages/plugin-name/scripts/HookName.py"
+cd P:\\\\\\.claude/hooks
+cmd /c "mklink HookName.py P:\\\\\\packages/plugin-name/scripts/HookName.py"
 ```
 
 ### 3. PLUGINS (End User Deployment)
 
 **Setup**:
 ```bash
-/plugin P:\\\\packages/plugin-name
+/plugin P:\\\\\\packages/plugin-name
 ```
 
 ## Validation Checklist

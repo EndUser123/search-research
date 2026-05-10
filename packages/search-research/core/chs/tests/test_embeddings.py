@@ -3,10 +3,10 @@
 These tests verify the embeddings module that wraps the semantic daemon client
 and provides utility functions for embedding validation and similarity computation.
 
-Test file: P:\\\\__csf/src/knowledge/systems/chs/v2/tests/test_embeddings.py
-Implementation: P:\\\\__csf/src/knowledge/systems/chs/v2/embeddings.py (to be created)
+Test file: P:\\\\\\__csf/src/knowledge/systems/chs/v2/tests/test_embeddings.py
+Implementation: P:\\\\\\__csf/src/knowledge/systems/chs/v2/embeddings.py (to be created)
 
-Run with: pytest P:\\\\__csf/src/knowledge/systems/chs/v2/tests/test_embeddings.py -v
+Run with: pytest P:\\\\\\__csf/src/knowledge/systems/chs/v2/tests/test_embeddings.py -v
 """
 
 from unittest.mock import MagicMock

@@ -41,7 +41,7 @@ Example:
     python -m search_research.mcp_server
 
     # Or via uv
-    uv --directory P:\\\\packages/search-research run python -m search_research.mcp_server
+    uv --directory P:\\\\\\packages/search-research run python -m search_research.mcp_server
 """
 
 from __future__ import annotations

@@ -238,8 +238,14 @@ class TestHookFailureHandling:
         # by returning a structured blocking decision from the current router chain.
         assert result.returncode in [0, 2]
         if result.returncode == 0:
-            payload = json.loads(result.stdout)
-            assert payload.get("decision") in {"block", "deny", "ask_user"}
+            # stdout may contain diagnostic lines from imported modules
+            # (e.g. "Directory policy: ALLOWED_EXTERNAL_PATTERNS loaded (N patterns)")
+            # Find the first JSON object in stdout
+            json_start = result.stdout.find("{")
+            if json_start >= 0:
+                json_str = result.stdout[json_start:]
+                payload = json.loads(json_str)
+                assert payload.get("decision") in {"block", "deny", "ask_user"}
 
     def test_posttooluse_never_blocks(self):
         """

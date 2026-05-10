@@ -15,6 +15,7 @@ from epistemic_validator import (
     EpistemicVerdict,
     ParsedBullet,
     ParsedResponse,
+    _is_direct_answer_to_question,
     check_causal_rules,
     check_comparative_rules,
     check_fact_support,
@@ -1546,4 +1547,40 @@ def test_grounded_status_short_still_allows():
     from epistemic_validator import validate as v
 
     verdict = v("103 passed.")
+    assert verdict.decision == "allow"
+
+
+def test_question_word_lead_blocks():
+    """User questions starting with what/why/how should NOT be treated as direct answers."""
+    from epistemic_validator import _is_direct_answer_to_question, validate as v
+
+    assert not _is_direct_answer_to_question("What's your current task?")
+    assert not _is_direct_answer_to_question("Why is the minimax provider failing?")
+    assert not _is_direct_answer_to_question("How do I configure the hook?")
+    assert not _is_direct_answer_to_question("Who is responsible for this?")
+
+    # These should still work as direct answers
+    assert _is_direct_answer_to_question("Is the hook configured correctly?")
+    assert _is_direct_answer_to_question("Does the semantic critic run on Stop?")
+
+    # Validate blocks the question-word lead
+    verdict = v("What's your current task?")
+    assert verdict.decision == "block"
+
+    verdict = v("Why is the minimax provider failing?")
+    assert verdict.decision == "block"
+
+
+def test_real_direct_answers_still_allow():
+    """Real direct answers (is/does/can/will) without question words are still allowed."""
+    from epistemic_validator import _is_direct_answer_to_question, validate as v
+
+    assert _is_direct_answer_to_question("Is the hook configured correctly?")
+    assert _is_direct_answer_to_question("Does the semantic critic run on Stop?")
+    assert _is_direct_answer_to_question("Can I add a Stop hook for test coverage?")
+
+    verdict = v("Is the hook configured correctly?")
+    assert verdict.decision == "allow"
+
+    verdict = v("Does the semantic critic run on Stop?")
     assert verdict.decision == "allow"

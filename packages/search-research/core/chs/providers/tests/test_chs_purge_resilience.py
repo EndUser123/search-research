@@ -20,8 +20,8 @@ from .db import get_connection
 from .normalized import upsert_event
 from .projections import query_events
 
-DB_PATH = "P:\\\\__csf/data/chat_history.db"
-TEST_ARCHIVE_BASE = Path("P:\\\\__csf/data/chs_archive")
+DB_PATH = "P:\\\\\\__csf/data/chat_history.db"
+TEST_ARCHIVE_BASE = Path("P:\\\\\\__csf/data/chs_archive")
 TEST_PROVIDER_ID = "test_purge_source"
 
 

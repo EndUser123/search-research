@@ -15,7 +15,7 @@ from .db import get_connection
 from .normalized import query_tasks
 from .projections import query_events as query_events_from_projections
 
-DB_PATH = "P:\\\\__csf/data/chat_history.db"
+DB_PATH = "P:\\\\\\__csf/data/chat_history.db"
 
 
 @pytest.fixture
@@ -79,7 +79,7 @@ def test_query_tasks_returns_inserted_task(clean_task_table):
             datetime.now(timezone.utc).isoformat(),
             None,
             "open",
-            "P:\\\\__csf/data/chs_archive/test_compat_source/test_compat_001.json",
+            "P:\\\\\\__csf/data/chs_archive/test_compat_source/test_compat_001.json",
         ),
     )
     conn.commit()
@@ -112,7 +112,7 @@ def test_query_events_returns_data_from_normalized_db(clean_events_table):
             "test_compat_002",
             "hashabc002",
             datetime.now(timezone.utc).isoformat(),
-            "P:\\\\__csf/data/chs_archive/test_compat_source/test_compat_002.json",
+            "P:\\\\\\__csf/data/chs_archive/test_compat_source/test_compat_002.json",
             datetime.now(timezone.utc).isoformat(),
             '{"title": "Test event task"}',
         ),
@@ -150,7 +150,7 @@ def test_query_tasks_with_status_filter(clean_task_table):
             datetime.now(timezone.utc).isoformat(),
             None,
             "open",
-            "P:\\\\__csf/data/chs_archive/test_compat_source/test_compat_003.json",
+            "P:\\\\\\__csf/data/chs_archive/test_compat_source/test_compat_003.json",
         ),
     )
     # Insert closed task
@@ -169,7 +169,7 @@ def test_query_tasks_with_status_filter(clean_task_table):
             datetime.now(timezone.utc).isoformat(),
             datetime.now(timezone.utc).isoformat(),
             "closed",
-            "P:\\\\__csf/data/chs_archive/test_compat_source/test_compat_004.json",
+            "P:\\\\\\__csf/data/chs_archive/test_compat_source/test_compat_004.json",
         ),
     )
     conn.commit()
@@ -204,7 +204,7 @@ def test_query_events_across_multiple_providers(clean_events_table, clean_task_t
             "test_compat_005",
             "hash555",
             datetime.now(timezone.utc).isoformat(),
-            "P:\\\\__csf/data/chs_archive/test_compat_source/test_compat_005.json",
+            "P:\\\\\\__csf/data/chs_archive/test_compat_source/test_compat_005.json",
             datetime.now(timezone.utc).isoformat(),
             '{"title": "Multi-provider test"}',
         ),
@@ -224,7 +224,7 @@ def test_query_events_across_multiple_providers(clean_events_table, clean_task_t
             datetime.now(timezone.utc).isoformat(),
             None,
             "open",
-            "P:\\\\__csf/data/chs_archive/test_compat_source/test_compat_005.json",
+            "P:\\\\\\__csf/data/chs_archive/test_compat_source/test_compat_005.json",
         ),
     )
     conn.commit()

@@ -31,8 +31,8 @@ class MigrationToCKS:
 
     def __init__(
         self,
-        source_db: str | Path = "P:\\\\.cks/storage/cks.db",
-        target_db: str | Path = "P:\\\\__csf/data/cks.db",
+        source_db: str | Path = "P:\\\\\\.cks/storage/cks.db",
+        target_db: str | Path = "P:\\\\\\__csf/data/cks.db",
     ) -> None:
         self.source_db = Path(source_db)
         self.target_db = Path(target_db)
@@ -264,7 +264,7 @@ def main() -> int:
 
     # Verify migration
     print("\n[Verification] Checking migrated entities...")
-    cks = CKSHyperGraphClient("P:\\\\__csf/data/cks.db")
+    cks = CKSHyperGraphClient("P:\\\\\\__csf/data/cks.db")
 
     for entity_type in ["Task", "SessionCheckpoint", "ProjectContext"]:
         entities = cks.hyper_graph_query(entity_type=entity_type, limit=1000)

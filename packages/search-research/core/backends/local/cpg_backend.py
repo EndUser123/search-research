@@ -57,7 +57,7 @@ class CPGBackend:
             enable_health_tracking: Track backend health status
             language: Programming language (default: "python")
         """
-        self._root_paths = root_paths or ["P:\\\\__csf/src"]
+        self._root_paths = root_paths or ["P:\\\\\\__csf/src"]
         self._enable_health = enable_health_tracking
         self._language = language
 
@@ -86,7 +86,7 @@ class CPGBackend:
         try:
             # Build semantic CPG for code search (supports multiple languages)
             builder = SemanticCPGBuilder()
-            root = Path(self._root_paths[0]) if self._root_paths else Path("P:\\\\__csf/src")
+            root = Path(self._root_paths[0]) if self._root_paths else Path("P:\\\\\\__csf/src")
             self._semantic_cpg = builder.build(root)
 
             if self._health:

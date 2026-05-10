@@ -12,7 +12,7 @@ Usage:
     python finalize_github_repo.py <package_name> <target_dir> [options]
 
 Examples:
-    python finalize_github_repo.py "search-research" "P:\\\\packages/search-research"
+    python finalize_github_repo.py "search-research" "P:\\\\\\packages/search-research"
     python finalize_github_repo.py "my-lib" "/path/to/my-lib" --release-version 1.0.0
 """
 

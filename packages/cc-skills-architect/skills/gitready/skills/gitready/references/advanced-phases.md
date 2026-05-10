@@ -102,7 +102,7 @@ meta_review_summary = {
 /gitready my-package --publish
 
 # Or manually
-cd P:\\\\packages/my-package
+cd P:\\\\\\packages/my-package
 python ../../scripts/extract_from_monorepo.py . my-package
 python ../../scripts/create_github_repo.py my-package . "My awesome package"
 ```

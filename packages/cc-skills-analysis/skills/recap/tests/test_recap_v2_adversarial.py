@@ -134,7 +134,7 @@ def build_session_a_transcript() -> list[dict[str, Any]]:
         ], entry_index=2, timestamp=ts_a),
         # Edit foo.py
         make_transcript_entry("assistant", "s1a", [
-            make_tool_use_block("Edit", file_path="P:\\\\project/src/foo.py",
+            make_tool_use_block("Edit", file_path="P:\\\\\\project/src/foo.py",
                                  input_extra={"old_string": "def check_valid_input(data):\n    pass",
                                               "new_string": "def check_valid_input(data):\n"
                                               "    if not isinstance(data, str):\n"
@@ -143,7 +143,7 @@ def build_session_a_transcript() -> list[dict[str, Any]]:
         ], entry_index=3, timestamp=ts_a2),
         # Edit bar.py
         make_transcript_entry("assistant", "s1a", [
-            make_tool_use_block("Edit", file_path="P:\\\\project/src/bar.py",
+            make_tool_use_block("Edit", file_path="P:\\\\\\project/src/bar.py",
                                  input_extra={"old_string": "def check_valid_input(data):\n    pass",
                                               "new_string": "def check_valid_input(data):\n"
                                               "    if not isinstance(data, str):\n"
@@ -152,7 +152,7 @@ def build_session_a_transcript() -> list[dict[str, Any]]:
         ], entry_index=4, timestamp=ts_a2),
         # Read to verify
         make_transcript_entry("assistant", "s1a", [
-            make_tool_use_block("Read", file_path="P:\\\\project/src/foo.py")
+            make_tool_use_block("Read", file_path="P:\\\\\\project/src/foo.py")
         ], entry_index=5, timestamp=ts_a3),
         make_transcript_entry("assistant", "s1a", [
             {"type": "text", "text": "Validation added to both foo.py and bar.py. "
@@ -198,7 +198,7 @@ def build_session_b_transcript() -> list[dict[str, Any]]:
         ], entry_index=5, timestamp=ts_b2),
         # Edit: fix the guard — foo.py
         make_transcript_entry("assistant", "s1b", [
-            make_tool_use_block("Edit", file_path="P:\\\\project/src/foo.py",
+            make_tool_use_block("Edit", file_path="P:\\\\\\project/src/foo.py",
                                  input_extra={"old_string": "def check_valid_input(data):\n"
                                               "    if not isinstance(data, str):\n"
                                               "        return False\n"
@@ -254,7 +254,7 @@ def build_session_c_transcript() -> list[dict[str, Any]]:
         ], entry_index=2, timestamp=ts_c),
         # Write new decorator to utils.py
         make_transcript_entry("assistant", "s1c", [
-            make_tool_use_block("Write", file_path="P:\\\\project/src/utils.py",
+            make_tool_use_block("Write", file_path="P:\\\\\\project/src/utils.py",
                                  input_extra={"content": "def validate(*types):\n"
                                  "    def decorator(func):\n"
                                  "        def wrapper(*args, **kwargs):\n"
@@ -267,7 +267,7 @@ def build_session_c_transcript() -> list[dict[str, Any]]:
         ], entry_index=3, timestamp=ts_c2),
         # Edit foo.py to remove old validation and add decorator usage
         make_transcript_entry("assistant", "s1c", [
-            make_tool_use_block("Edit", file_path="P:\\\\project/src/foo.py",
+            make_tool_use_block("Edit", file_path="P:\\\\\\project/src/foo.py",
                                  input_extra={"old_string": "def check_valid_input(data):\n"
                                               "    if not isinstance(data, str):\n"
                                               "        return False\n"
@@ -281,7 +281,7 @@ def build_session_c_transcript() -> list[dict[str, Any]]:
         ], entry_index=4, timestamp=ts_c2),
         # Edit bar.py to remove old validation
         make_transcript_entry("assistant", "s1c", [
-            make_tool_use_block("Edit", file_path="P:\\\\project/src/bar.py",
+            make_tool_use_block("Edit", file_path="P:\\\\\\project/src/bar.py",
                                  input_extra={"old_string": "def check_valid_input(data):\n"
                                               "    if not isinstance(data, str):\n"
                                               "        return False\n"
@@ -293,7 +293,7 @@ def build_session_c_transcript() -> list[dict[str, Any]]:
         ], entry_index=5, timestamp=ts_c3),
         # Read to confirm
         make_transcript_entry("assistant", "s1c", [
-            make_tool_use_block("Read", file_path="P:\\\\project/src/foo.py")
+            make_tool_use_block("Read", file_path="P:\\\\\\project/src/foo.py")
         ], entry_index=6, timestamp=ts_c3),
     ]
 
@@ -388,7 +388,7 @@ def multi_session_state(tmp_path: Path) -> RecapV2State:
             stats=SessionStats(entry_count=6, user_message_count=1, assistant_message_count=5,
                                token_usage={"input_tokens": 12000, "output_tokens": 4500, "total_tokens": 16500}),
             goal="Add input validation to foo.py and bar.py using regex-based sanitization",
-            modified_files=["P:\\\\project/src/foo.py", "P:\\\\project/src/bar.py"],
+            modified_files=["P:\\\\\\project/src/foo.py", "P:\\\\\\project/src/bar.py"],
             transcript_path=str(paths["s1a"]),
             summary="Added check_valid_input to foo.py and bar.py using regex-only approach",
             event_ids=[],
@@ -405,7 +405,7 @@ def multi_session_state(tmp_path: Path) -> RecapV2State:
             stats=SessionStats(entry_count=10, user_message_count=3, assistant_message_count=7,
                                token_usage={"input_tokens": 18000, "output_tokens": 7200, "total_tokens": 25200}),
             goal="Switch from regex-only to type-check + length validation, fix and verify tests",
-            modified_files=["P:\\\\project/src/foo.py"],  # one fix edit in B
+            modified_files=["P:\\\\\\project/src/foo.py"],  # one fix edit in B
             transcript_path=str(paths["s1b"]),
             summary="Changed approach from regex-only to type-check + length; test failed once, then passed",
             event_ids=[],
@@ -422,7 +422,7 @@ def multi_session_state(tmp_path: Path) -> RecapV2State:
             stats=SessionStats(entry_count=6, user_message_count=1, assistant_message_count=5,
                                token_usage={"input_tokens": 14000, "output_tokens": 5800, "total_tokens": 19800}),
             goal="Switch to @validate decorator and remove inline check_valid_input calls",
-            modified_files=["P:\\\\project/src/foo.py", "P:\\\\project/src/bar.py", "P:\\\\project/src/utils.py"],
+            modified_files=["P:\\\\\\project/src/foo.py", "P:\\\\\\project/src/bar.py", "P:\\\\\\project/src/utils.py"],
             transcript_path=str(paths["s1c"]),
             summary="Adopted @validate decorator approach; removed old check_valid_input from foo.py and bar.py",
             event_ids=[],

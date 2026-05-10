@@ -69,7 +69,7 @@ def get_artifacts_root() -> Path:
 
     Priority:
     1. CLAUDE_ARTIFACTS_ROOT env var (for testing)
-    2. Drive-root .claude directory (e.g. P:\\\\.claude/.artifacts/)
+    2. Drive-root .claude directory (e.g. P:\\\\\\.claude/.artifacts/)
 
     Uses drive-root rather than project-scoped so artifacts survive
     across projects within the same terminal session.

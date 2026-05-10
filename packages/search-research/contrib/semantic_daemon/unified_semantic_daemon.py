@@ -60,8 +60,8 @@ class IntentClassificationResult(TypedDict, total=True):
 
 
 # Project root for path resolution (used for FAISS, database paths)
-# Daemon lives in packages/search-research but serves P:\\\\__csf/
-_csf_root = Path("P:\\\\__csf")
+# Daemon lives in packages/search-research but serves P:\\\\\\__csf/
+_csf_root = Path("P:\\\\\\__csf")
 
 # JSON logging configuration (Python 2025 standard)
 import structlog
@@ -110,13 +110,13 @@ from search_research.cache import QueryCache
 
 PIPE_NAME = r"\\.\pipe\csf_semantic"  # Fallback/legacy name
 WRITE_SIGNAL_PIPE_NAME = r"\\.\pipe\csf_semantic_write_signal"  # Advisory write-signal pipe
-DISCOVERY_FILE = Path("P:\\\\__csf/data/semantic_daemon_discovery.json")
-PID_FILE = Path("P:\\\\__csf/data/semantic_daemon.pid")
+DISCOVERY_FILE = Path("P:\\\\\\__csf/data/semantic_daemon_discovery.json")
+PID_FILE = Path("P:\\\\\\__csf/data/semantic_daemon.pid")
 MAX_DAEMON_AGE = 3600  # Maximum daemon age in seconds (1 hour) before old non-canonical daemons should self-terminate
 # Windows Mutex for atomic single-instance daemon determination
 # Using "Global\" prefix ensures mutex works across terminal sessions
 DAEMON_MUTEX_NAME = r"Global\CSF_SemanticDaemon_Instance"
-DAEMON_LOG_FILE = Path("P:\\\\__csf/data/semantic_daemon.log")  # Debug log for silent crashes
+DAEMON_LOG_FILE = Path("P:\\\\\\__csf/data/semantic_daemon.log")  # Debug log for silent crashes
 STARTUP_TIMEOUT = 6.0
 IDLE_WORK_SHORT = 5.0
 IDLE_WORK_LONG = 900.0
@@ -3619,8 +3619,8 @@ class UnifiedSemanticDaemon:
         if plans_dir.exists():
             return plans_dir
 
-        # Fallback to P:\\\\.claude/plans
-        fallback = Path("P:\\\\") / ".claude" / "plans"
+        # Fallback to P:\\\\\\.claude/plans
+        fallback = Path("P:\\\\\\") / ".claude" / "plans"
         return fallback
 
     def _load_plans(self) -> list[dict[str, Any]]:

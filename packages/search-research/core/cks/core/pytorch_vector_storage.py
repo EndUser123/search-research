@@ -49,7 +49,7 @@ class PyTorchStorageConfig:
     """
 
     db_path: str = field(
-        default_factory=lambda: os.path.expanduser("P:\\\\__csf/data/cks.db"),
+        default_factory=lambda: os.path.expanduser("P:\\\\\\__csf/data/cks.db"),
     )
     tensor_cache_path: str = field(
         default_factory=lambda: os.path.expanduser("~/.cks/storage/tensors.pt"),

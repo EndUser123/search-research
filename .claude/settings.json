@@ -106,7 +106,8 @@
     "CLAUDE_PROJECT_DIR": "P:/",
     "EPISTEMIC_CONTRACT_MODE": "warn",
     "EPISTEMIC_CAUSAL_MODE": "warn",
-    "EPISTEMIC_COMPARATIVE_MODE": "warn"
+    "EPISTEMIC_COMPARATIVE_MODE": "warn",
+    "STOP_TELEMETRY": "1"
   },
   "includeCoAuthoredBy": true,
   "permissions": {

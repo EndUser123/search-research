@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "cc-skills-ai-api",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "description": "AI provider skills for Claude Code \u2014 multi-provider LLM access, API gateways, usage monitoring, and quota management.",
       "source": "./plugins/cc-skills-ai-api",
       "keywords": [
@@ -34,7 +34,7 @@
     },
     {
       "name": "cc-skills-media",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "description": "Media-related AI skills for Claude Code.",
       "source": "./plugins/cc-skills-media",
       "keywords": [
@@ -58,7 +58,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.2",
+      "version": "1.0.4",
       "description": "Software development lifecycle AI skills for Claude Code.",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -70,7 +70,7 @@
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.1.6",
+      "version": "1.1.13",
       "description": "Utility AI skills for Claude Code.",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
@@ -82,7 +82,7 @@
     },
     {
       "name": "snapshot",
-      "version": "0.5.2",
+      "version": "0.5.3",
       "description": "Snapshot plugin for Claude Code.",
       "source": "./plugins/snapshot",
       "keywords": [
@@ -94,7 +94,7 @@
     },
     {
       "name": "search-research",
-      "version": "0.1.5",
+      "version": "0.1.8",
       "description": "Unified search and research system with async concurrent execution and 11 web providers.",
       "source": "./plugins/search-research",
       "keywords": [
@@ -107,7 +107,7 @@
     },
     {
       "name": "skill-guard",
-      "version": "2.1.6",
+      "version": "2.1.7",
       "description": "Universal skill auto-discovery and enforcement for Claude Code",
       "source": "./plugins/skill-guard",
       "keywords": [
@@ -116,6 +116,46 @@
         "hooks",
         "gate",
         "compliance"
+      ]
+    },
+    {
+      "name": "cc-skills-architect",
+      "version": "1.0.5",
+      "description": "Architect plugin",
+      "source": "./plugins/cc-skills-architect",
+      "keywords": []
+    },
+    {
+      "name": "cc-skills-thinking",
+      "version": "1.0.1",
+      "description": "Thinking plugin",
+      "source": "./plugins/cc-skills-thinking",
+      "keywords": []
+    },
+    {
+      "name": "cc-skills-lab",
+      "version": "1.0.0",
+      "description": "Lab plugin",
+      "source": "./plugins/cc-skills-lab",
+      "keywords": []
+    },
+    {
+      "name": "cc-skills-analysis",
+      "version": "1.0.0",
+      "description": "Analysis plugin",
+      "source": "./plugins/cc-skills-analysis",
+      "keywords": []
+    },
+    {
+      "name": "fact-guard",
+      "version": "0.1.0",
+      "description": "Prevents fabricated values, adjacent-entry contamination, and unsupported completion claims in structured edits",
+      "source": "./plugins/fact-guard",
+      "keywords": [
+        "guard",
+        "fact",
+        "contamination",
+        "hook"
       ]
     }
   ]

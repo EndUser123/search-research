@@ -69,6 +69,10 @@ Use `/cognitive-frameworks` mental models:
 - **Devil's Advocate**: Generate strongest objections and stakeholder impacts
 
 ### 3. AI-Specific Checks
+- **Diagnostic Metrics**: Use LLM-as-a-judge diagnostics to evaluate the artifact:
+    - **Contradiction Detection**: Scan for logical, formatting, or persona conflicts (e.g., plan says "X" but code does "Y").
+    - **Cognitive Load Assessment**: Flag plans or diffs that are too complex/dense for reliable execution (threshold: >5 nested conditions or >10 unrelated changes).
+    - **Semantic Coverage**: Identify "missing error paths" or unhandled intents in the proposed solution.
 - **Evidence**: Highlight claims without clear support (e.g., "this improves performance" with no measurement)
 - **Coverage**: Identify missing tests, edge cases, or non-covered failure paths
 - **Overreach**: Identify changes that go beyond request scope or touch unrelated modules

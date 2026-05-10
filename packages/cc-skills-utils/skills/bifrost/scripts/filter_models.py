@@ -57,11 +57,14 @@ def build_query_local(args: argparse.Namespace) -> tuple[str, list]:
         wheres.append("mode = ?")
         params.append(args.mode)
 
-    # Context minimum: free-key providers (API key covers all) are excluded from this filter
-    # Others: require min_context. Uses CASE so a single SQL clause handles both paths.
+    # Context minimum: apply to all providers uniformly using the appropriate column.
+    # --free-tier: use free-tier column (max_input_tokens_free); NULL means no free tier.
+    # Default: use paid-tier column (max_input_tokens).
+    # Free-key providers (cerebras, groq, mistral, nvidia) are covered by our API key —
+    # the free-tier column reflects actual available context per model, not a hard limit.
+    ctx_col = ("max_input_tokens_free" if getattr(args, 'free_tier', False) else "max_input_tokens")
     if getattr(args, 'min_context', None):
-        free_key_case = " OR ".join(f"bifrost_provider = '{p}'" for p in FREE_KEY_PROVIDERS)
-        wheres.append(f"(CASE WHEN {free_key_case} THEN 1 ELSE max_input_tokens >= ? END)")
+        wheres.append(f"{ctx_col} >= ?")
         params.append(args.min_context)
 
     if args.provider:
@@ -75,7 +78,8 @@ def build_query_local(args: argparse.Namespace) -> tuple[str, list]:
     where_clause = " AND ".join(wheres) if wheres else "1=1"
     return (
         f"SELECT model, umu, bifrost_provider, host, vendor, model_slug, mode, "
-        f"max_input_tokens, max_output_tokens, input_cost_per_token, output_cost_per_token "
+        f"max_input_tokens, max_output_tokens, max_input_tokens_free, max_output_tokens_free, "
+        f"input_cost_per_token, output_cost_per_token "
         f"FROM models WHERE {where_clause} ORDER BY bifrost_provider, model",
         params,
     )
@@ -272,28 +276,41 @@ def apply_free_above_subscription(rows: list, excluded_vendors: set) -> list:
 
 # ── Output formatters ──────────────────────────────────────────────────────────
 
-def _format_row(model: str, data: dict, include_costs: bool) -> str:
+def _format_row(model: str, data: dict, include_costs: bool, show_free_ctx: bool = False) -> str:
     bp = data.get("bifrost_provider", "?")
     ctx = data.get("max_input_tokens", 0) or 0
+    free_ctx = data.get("max_input_tokens_free")
     in_cost = data.get("input_cost_per_token", 0) or 0
     out_cost = data.get("output_cost_per_token", 0) or 0
 
     in_str = "free" if in_cost == 0 else f"${in_cost*1e6:.2f}/M"
     out_str = "free" if out_cost == 0 else f"${out_cost*1e6:.2f}/M"
 
+    if show_free_ctx and free_ctx is not None:
+        try:
+            ctx_str = f"{int(ctx):,}/{int(free_ctx):,}"
+        except (ValueError, TypeError):
+            ctx_str = f"{ctx}/{free_ctx}"
+    else:
+        ctx_str = f"{ctx:>10,}"
+
     if include_costs:
-        return f"{bp:<15} {model:<50} {ctx:>10,} {in_str:>8} {out_str:>8}"
-    return f"{bp:<15} {model:<65} {ctx:>10,}"
+        return f"{bp:<15} {model:<50} {ctx_str:>14} {in_str:>8} {out_str:>8}"
+    return f"{bp:<15} {model:<65} {ctx_str:>14}"
 
 
-def format_table(rows: list, include_costs: bool = True) -> str:
+def format_table(rows: list, include_costs: bool = True, show_free_ctx: bool = False) -> str:
     if not rows:
         return "No models found."
 
     lines = []
     if include_costs:
-        lines.append(f"{'Provider':<15} {'Model':<50} {'Ctx':>10} {'In':>8} {'Out':>8}")
-        lines.append("-" * 93)
+        if show_free_ctx:
+            lines.append(f"{'Provider':<15} {'Model':<50} {'Ctx(Paid/Free)':>14} {'In':>8} {'Out':>8}")
+            lines.append("-" * 101)
+        else:
+            lines.append(f"{'Provider':<15} {'Model':<50} {'Ctx':>10} {'In':>8} {'Out':>8}")
+            lines.append("-" * 93)
     else:
         lines.append(f"{'Provider':<15} {'Model':<65} {'Ctx':>10}")
         lines.append("-" * 90)
@@ -301,7 +318,7 @@ def format_table(rows: list, include_costs: bool = True) -> str:
     for row in rows:
         data = row if isinstance(row, dict) else _row_to_dict(row)
         model = data.get("model", "")
-        lines.append(_format_row(model, data, include_costs))
+        lines.append(_format_row(model, data, include_costs, show_free_ctx=show_free_ctx))
 
     lines.append(f"\nTotal: {len(rows)} models")
     return "\n".join(lines)
@@ -320,6 +337,8 @@ def format_json(rows: list) -> str:
             "mode": data.get("mode"),
             "max_input_tokens": data.get("max_input_tokens"),
             "max_output_tokens": data.get("max_output_tokens"),
+            "max_input_tokens_free": data.get("max_input_tokens_free"),
+            "max_output_tokens_free": data.get("max_output_tokens_free"),
             "input_cost_per_token": data.get("input_cost_per_token"),
             "output_cost_per_token": data.get("output_cost_per_token"),
         })
@@ -387,7 +406,7 @@ def list_all_local(args: argparse.Namespace) -> None:
     if args.format == "json":
         print(format_json(rows))
     else:
-        print(format_table(rows, include_costs=True))
+        print(format_table(rows, include_costs=True, show_free_ctx=True))
 
 
 def list_all_bifrost(args: argparse.Namespace) -> None:
@@ -400,7 +419,7 @@ def list_all_bifrost(args: argparse.Namespace) -> None:
     if args.format == "json":
         print(format_json(rows))
     else:
-        print(format_table(rows, include_costs=True))
+        print(format_table(rows, include_costs=True, show_free_ctx=True))
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -429,6 +448,11 @@ def main() -> None:
     parser.add_argument("--exclude-vendors", default="moonshotai,minimax,z.ai,bytedance")
     parser.add_argument("--list-providers", action="store_true")
     parser.add_argument("--list-all", action="store_true")
+    parser.add_argument(
+        "--free-tier",
+        action="store_true",
+        help="Use free-tier context limits (max_input_tokens_free) for context filtering"
+    )
     parser.add_argument("--format", choices=["table", "json", "count"], default="table")
     args = parser.parse_args()
 
@@ -483,7 +507,7 @@ def main() -> None:
     elif args.format == "json":
         print(format_json(rows))
     else:
-        print(format_table(rows))
+        print(format_table(rows, show_free_ctx=True))
 
 
 if __name__ == "__main__":

@@ -23,7 +23,7 @@ async def test_guaranteed_match():
     # "class AsyncAsyncSearchRouter" will definitely match in router.py
     query = "class AsyncAsyncSearchRouter"
     print(f"\n[INFO] Testing query: '{query}'")
-    print("[INFO] This query MUST match in P:\\\\packages/search-research/src/search_research/router.py")
+    print("[INFO] This query MUST match in P:\\\\\\packages/search-research/src/search_research/router.py")
 
     results = await router.search_async(query, limit=10)
     print(f"\n[RESULT] Search returned {len(results)} results")

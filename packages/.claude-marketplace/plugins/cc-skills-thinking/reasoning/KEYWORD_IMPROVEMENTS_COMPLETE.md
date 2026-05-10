@@ -78,7 +78,7 @@ export SELF_REFLECTION_DEBUG=true
 ### Test 1: New Keywords Work
 ```bash
 # Test: "root cause", "leads to", "due to", "refactor"
-echo '{"response": "The root cause... leads to... due to... refactor..."}' | python P:\\\\.claude/hooks/Stop_self_reflection.py
+echo '{"response": "The root cause... leads to... due to... refactor..."}' | python P:\\\\\\.claude/hooks/Stop_self_reflection.py
 
 # Result: {"_debug": {"stats": {"applied": 1, "skipped": 0}, "result": "passed"}}
 ```
@@ -86,7 +86,7 @@ echo '{"response": "The root cause... leads to... due to... refactor..."}' | pyt
 ### Test 2: Conversational Keywords Work
 ```bash
 # Test: "so", "shows that", "means that"
-echo '{"response": "So... shows that... means that..."}' | python P:\\\\.claude/hooks/Stop_self_reflection.py
+echo '{"response": "So... shows that... means that..."}' | python P:\\\\\\.claude/hooks/Stop_self_reflection.py
 
 # Result: {"_debug": {"stats": {"applied": 1, "skipped": 0}, "result": "passed"}}
 ```
@@ -94,7 +94,7 @@ echo '{"response": "So... shows that... means that..."}' | python P:\\\\.claude/
 ### Test 3: Quality Issues Detected
 ```bash
 # Test: Problematic response triggers feedback
-echo '{"response": "Therefore, always use this approach without alternatives."}' | python P:\\\\.claude/hooks/Stop_self_reflection.py
+echo '{"response": "Therefore, always use this approach without alternatives."}' | python P:\\\\\\.claude/hooks/Stop_self_reflection.py
 
 # Result: {"systemMessage": "[Self-reflection: Issues found: {...}]"}
 ```
@@ -134,7 +134,7 @@ echo '{"response": "Therefore, always use this approach without alternatives."}'
 export SELF_REFLECTION_DEBUG=true
 
 # Run through Stop hook chain
-echo '{"response": "test response..."}' | python P:\\\\.claude/hooks/Stop.py
+echo '{"response": "test response..."}' | python P:\\\\\\.claude/hooks/Stop.py
 
 # Verify _debug field appears in output
 ```

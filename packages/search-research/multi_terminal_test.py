@@ -15,7 +15,7 @@ import threading
 import os
 
 NPX = 'cmd /c "C:/Program Files/nodejs/npx" github:jasonwarta/mcp-mux'
-CWD = "P:\\\\packages/search-research"
+CWD = "P:\\\\\\packages/search-research"
 
 results = {}
 results_lock = threading.Lock()

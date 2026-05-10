@@ -236,23 +236,27 @@ def audit_plugins(plugins_dir: Path, marketplace_root: str, plugin_filter: Optio
                 if artifact in gitignored or artifact + "/" in gitignored:
                     continue
             result["warnings"].append(f"Build artifact '{artifact}' in plugin root (should be gitignored)")
-# Check for state/data files in plugin root (state should be in P:\\.claude/.artifacts/<terminal_id>/)
+# Check for state/data files in plugin root (state should be in P:\\\\.claude/.artifacts/<terminal_id>/)
         for fpath in plugin.iterdir():
             if fpath.is_file() and any(fpath.suffix == ext for ext in [".data.json", ".meta.json", ".state.json"]):
-                result["warnings"].append(f"State file '{fpath.name}' in plugin root (should use P:\\.claude/.artifacts/<terminal_id>/)")
+                result["warnings"].append(f"State file '{fpath.name}' in plugin root (should use P:\\\\.claude/.artifacts/<terminal_id>/)")
 
         # Check for .claude/ anywhere in the plugin tree (except .claude-plugin/ manifest dir)
+        # Workspace-typical entries are legitimate for packages that serve as dev workspaces.
+        _workspace_entries = {"hooks", ".artifacts", "settings.local.json", "CLAUDE.md"}
         for bad_claude in plugin.rglob(".claude"):
             # .claude-plugin/ is the legitimate plugin manifest directory — skip it
             if str(bad_claude).endswith(".claude-plugin") or bad_claude.name == ".claude-plugin":
                 continue
             if not bad_claude.is_dir():
                 continue
-            # Compute relative path for readable error message
             rel = bad_claude.relative_to(plugin)
-            entries = list(bad_claude.iterdir())
+            entries = [e.name for e in bad_claude.iterdir()]
+            non_workspace = [e for e in entries if e not in _workspace_entries]
+            if not non_workspace:
+                continue
             result["errors"].append(
-                f".claude/ at {rel} (should be removed; {len(entries)} entries: {[e.name for e in entries[:3]]}{'...' if len(entries) > 3 else ''})"
+                f".claude/ at {rel} (should be removed; {len(entries)} entries: {entries[:3]}{'...' if len(entries) > 3 else ''})"
             )
         results.append(result)
     return results
@@ -269,6 +273,22 @@ def audit_marketplace(marketplace_root: str) -> list[dict]:
         return results
     if "plugins" not in data:
         results.append({"file": "marketplace.json", "warning": "No plugins array"})
+        return results
+
+    # Check for unregistered plugins: junctions in plugins/ not in marketplace.json
+    registered = {p.get("name", "") for p in data.get("plugins", [])}
+    plugins_dir = Path(marketplace_root) / "plugins"
+    if plugins_dir.exists():
+        for entry in sorted(plugins_dir.iterdir()):
+            if entry.name.startswith("."):
+                continue
+            if entry.name not in registered:
+                results.append({
+                    "file": "marketplace.json",
+                    "warning": f"Unregistered: {entry.name} has junction but is not in marketplace.json",
+                    "fix": f"Run: /cc-skills-utils:plugin-installer add {entry.name}",
+                })
+
     return results
 def _scan_paths(file_path: Path, plugin_name: str) -> list[str]:
     """Scan a file for hardcoded paths."""
@@ -281,7 +301,7 @@ def _scan_paths(file_path: Path, plugin_name: str) -> list[str]:
         r"/home/[^'\"]+",         # Linux home paths
         r"/Users/[^'\"]+",       # macOS paths
         r"/Volumes/[^'\"]+",    # macOS volumes
-        r"P:\\\\\[^'\"]+",        # Explicit P: drives
+        r"P:\\\\\\\[^'\"]+",        # Explicit P: drives
     ]
     for pattern in patterns:
         source = re.sub(r"^\./", "", content, flags=re.MULTILINE)
@@ -353,8 +373,8 @@ def audit_orphan_skill_junctions(plugins_dir: Path) -> list[dict]:
 
         # Check if target points into a cluster's skills/ subdirectory
         for cluster_name, skill_names in cluster_skills.items():
-            # Pattern: P:\\\\packages/{cluster}/skills/{skill_name}
-            prefix = f"P:\\packages/{cluster_name}/skills/"
+            # Pattern: P:\\\\\packages/{cluster}/skills/{skill_name}
+            prefix = f"P:\\\\packages/{cluster_name}/skills/"
             if target_norm.startswith(prefix):
                 skill_name = target_norm[len(prefix):]
                 if skill_name in skill_names:
@@ -380,6 +400,98 @@ def _version_key(v: Path) -> tuple:
         return tuple(int(p) for p in parts)
     except ValueError:
         return (0, 0, 0)
+
+
+_BIDIR_SKIP_DIRS = {".git", ".claude", "__pycache__", ".pytest_cache", ".mypy_cache", ".venv", "node_modules"}
+_BIDIR_SKIP_EXTS = {".pyc", ".pyo"}
+
+
+def bidir_sync(source: Path, cache: Path) -> dict:
+    """Bidirectional sync between source and cache directories.
+
+    For each file that differs, keeps whichever copy has the newer mtime.
+    Files only in source are copied to cache. Files only in cache are
+    copied to source (preserves work done directly in cache).
+
+    Returns dict with stats: {src_to_cache, cache_to_src, skipped, errors}.
+    """
+    import shutil
+    stats = {"src_to_cache": 0, "cache_to_src": 0, "skipped": 0, "errors": []}
+
+    if not source.exists() or not cache.exists():
+        stats["errors"].append(f"Missing directory: source={source.exists()}, cache={cache.exists()}")
+        return stats
+
+    # Collect relative paths from both sides
+    src_files: dict[str, Path] = {}
+    cache_files: dict[str, Path] = {}
+
+    def _walk(base: Path, into: dict[str, Path]) -> None:
+        for fpath in base.rglob("*"):
+            if not fpath.is_file():
+                continue
+            if any(skip in fpath.parts for skip in _BIDIR_SKIP_DIRS):
+                continue
+            if fpath.suffix in _BIDIR_SKIP_EXTS:
+                continue
+            into[str(fpath.relative_to(base))] = fpath
+
+    _walk(source, src_files)
+    _walk(cache, cache_files)
+
+    all_keys = set(src_files) | set(cache_files)
+
+    for rel in sorted(all_keys):
+        src_file = src_files.get(rel)
+        cache_file = cache_files.get(rel)
+
+        if src_file and cache_file:
+            # Both exist — compare content, then mtime
+            try:
+                if src_file.read_bytes() == cache_file.read_bytes():
+                    continue  # identical, skip
+            except OSError:
+                pass
+
+            # Content differs — use mtime to decide direction
+            try:
+                src_mt = src_file.stat().st_mtime
+                cache_mt = cache_file.stat().st_mtime
+            except OSError:
+                continue
+
+            dest_dir = cache_file.parent
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            if src_mt >= cache_mt:
+                shutil.copy2(str(src_file), str(cache_file))
+                stats["src_to_cache"] += 1
+            else:
+                dest = source / rel
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(str(cache_file), str(dest))
+                stats["cache_to_src"] += 1
+
+        elif src_file and not cache_file:
+            # Only in source — copy to cache
+            dest = cache / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                shutil.copy2(str(src_file), str(dest))
+                stats["src_to_cache"] += 1
+            except OSError as e:
+                stats["errors"].append(f"copy src→cache {rel}: {e}")
+
+        elif cache_file and not src_file:
+            # Only in cache — copy to source (preserves cache edits)
+            dest = source / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                shutil.copy2(str(cache_file), str(dest))
+                stats["cache_to_src"] += 1
+            except OSError as e:
+                stats["errors"].append(f"copy cache→src {rel}: {e}")
+
+    return stats
 
 
 def audit_source_cache_drift(plugins_dir: Path) -> list[dict]:
@@ -486,14 +598,14 @@ def audit_source_cache_drift(plugins_dir: Path) -> list[dict]:
 def audit_name_conflicts() -> list[dict]:
     """Check for conflicting skill and command names across global and local skill/command dirs."""
     findings = []
-    # Collect skills/commands from: ~/.claude/ and P:\\.claude/
+    # Collect skills/commands from: ~/.claude/ and P:\\\\.claude/
     skill_dirs = [
         Path(os.path.expanduser("~/.claude/skills")),
-        Path(r"P:\\\.claude/skills"),
+        Path(r"P:\\\\\.claude/skills"),
     ]
     cmd_dirs = [
         Path(os.path.expanduser("~/.claude/commands")),
-        Path(r"P:\\\.claude/commands"),
+        Path(r"P:\\\\\.claude/commands"),
     ]
     # Collect skill names (subdirectory with SKILL.md or .md file under skills/)
     skill_names: dict[str, list[str]] = {}
@@ -636,7 +748,9 @@ def auto_fix_plugins(plugins_dir: Path, delete_hooks: bool) -> list[dict]:
                         pass
 
             # Fix: .claude/ anywhere in the plugin tree (except .claude-plugin/ manifest dir)
+            # Same workspace-entry allowlist as the validator.
             import shutil as _shutil
+            _workspace_entries = {"hooks", ".artifacts", "settings.local.json", "CLAUDE.md"}
             for bad_claude in list(plugin.rglob(".claude")):
                 # .claude-plugin/ is the legitimate plugin manifest directory — skip it
                 if str(bad_claude).endswith(".claude-plugin") or bad_claude.name == ".claude-plugin":
@@ -644,14 +758,21 @@ def auto_fix_plugins(plugins_dir: Path, delete_hooks: bool) -> list[dict]:
                 if not bad_claude.is_dir():
                     continue
                 rel = bad_claude.relative_to(plugin)
-                entries = list(bad_claude.iterdir())
-                # Remove .claude/ entirely — includes any .aid/ or other contents
-                try:
-                    _shutil.rmtree(str(bad_claude))
-                    result["actions"].append(f"Removed {rel}/ ({len(entries)} entries)")
-                    result["fixed"] = True
-                except OSError:
-                    pass
+                entries = [e.name for e in bad_claude.iterdir()]
+                non_workspace = [e for e in entries if e not in _workspace_entries]
+                if not non_workspace:
+                    continue
+                # Remove only non-workspace entries, keep the directory if
+                # workspace entries remain. Previously this nuked the entire
+                # directory even when it contained legitimate hooks/artifacts.
+                for nw in non_workspace:
+                    target = bad_claude / nw
+                    try:
+                        _shutil.rmtree(str(target)) if target.is_dir() else target.unlink()
+                        result["actions"].append(f"Removed {rel}/{nw}")
+                        result["fixed"] = True
+                    except OSError:
+                        pass
 
             # Fix invalid hooks/hooks.json (only when hooks dir exists)
             hooks_dir = plugin / "hooks"
@@ -706,16 +827,16 @@ def auto_fix_git_artifacts(plugins_dir: Path) -> list[dict]:
     return results
 
 def fix_hardcoded_paths(plugins_dir: Path) -> list[dict]:
-    """Auto-fix hardcoded P:\\\\ and absolute paths to $CLAUDE_PLUGIN_ROOT-relative paths.
+    """Auto-fix hardcoded P:/ and absolute paths to $CLAUDE_PLUGIN_ROOT-relative paths.
 
     Rewrites hardcoded paths in .py, .md, .yaml, .yml, .json source files.
     Skips hooks/hooks.json (structural JSON, not path documentation).
     Replacement rules:
-      - P:\\\\\\\\\\__csf/... -> $__CSF_ROOT/...
-      - P:\\\\\\\\\\packages/<name>/... -> $CLAUDE_PLUGIN_ROOT/...  (for files in the plugin being scanned)
-      - P:\\\\\\\\\\.claude/... -> $CLAUDE_ROOT/...
-      - P:\\\\\\\\\\__csf.nip/... -> preserved (external project reference)
-      - P:\\\\\\\\\\tmp/... -> preserved (temporary paths)
+      - P:/__csf/... -> $__CSF_ROOT/...
+      - P:/packages/<name>/... -> $CLAUDE_PLUGIN_ROOT/...  (for files in the plugin being scanned)
+      - P:/.claude/... -> $CLAUDE_ROOT/...
+      - P:/__csf.nip/... -> preserved (external project reference)
+      - P:/tmp/... -> preserved (temporary paths)
     """
     results = []
     if not plugins_dir.exists():
@@ -726,7 +847,7 @@ def fix_hardcoded_paths(plugins_dir: Path) -> list[dict]:
             continue
         result = {"plugin": plugin.name, "actions": [], "fixed": False}
 
-        plugin_root_pattern = f"P:\\packages/{plugin.name}/"
+        plugin_root_pattern = f"P:\\\\packages/{plugin.name}/"
         # no longer needed
 
         exts = {".py", ".md", ".yaml", ".yml", ".json"}
@@ -746,26 +867,36 @@ def fix_hardcoded_paths(plugins_dir: Path) -> list[dict]:
 
             original = content
 
-            # Normalize P:\\\ to P:\\\ for consistent matching
+            # Skip files that have no actual hardcoded P:\\packages/ or P:\\.claude/
+            # paths remaining. Uses regex to detect the target patterns (1-4
+            # backslashes before "packages" or ".claude") while NOT matching
+            # already-replaced $CLAUDE_PLUGIN_ROOT or $CLAUDE_ROOT references.
+            # Without this guard, the normalizer doubles backslashes on every
+            # run, creating infinite drift.
+            has_hardcoded = bool(re.search(r'P:\\\{1,4}packages[/\\]|P:\\\{1,4}\.claude[/\\]', content))
+            if not has_hardcoded:
+                continue
+
+            # Normalize P:\\ to P:\\\ for consistent matching
             content_norm = content.replace("P:" + chr(92), "P:" + chr(92) + chr(92))
 
-            # Rule 1: P:\\.claude/... -> $CLAUDE_ROOT/...
+            # Rule 1: P:\\\\.claude/... -> $CLAUDE_ROOT/...
             content_norm = re.sub(
-                r"P:\\\\\\.claude\\",
+                r"P:\\\\\\\\.claude\\",
                 "$CLAUDE_ROOT/",
                 content_norm,
                 flags=re.IGNORECASE,
             )
 
-            # Rule 2: P:\\__csf/... -> $__CSF_ROOT/...
+            # Rule 2: P:\\\\__csf/... -> $__CSF_ROOT/...
             content_norm = re.sub(
-                r"P:\\\\\__csf\\",
+                r"P:\\\\\\\__csf\\",
                 "$__CSF_ROOT/",
                 content_norm,
                 flags=re.IGNORECASE,
             )
 
-            # Rule 3: P:\\packages/<plugin>/... -> $CLAUDE_PLUGIN_ROOT/...
+            # Rule 3: P:\\\\packages/<plugin>/... -> $CLAUDE_PLUGIN_ROOT/...
             content_norm = re.sub(
                 re.escape(plugin_root_pattern.replace("/", "\\")),
                 "$CLAUDE_PLUGIN_ROOT/",
@@ -863,12 +994,12 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--drift", action="store_true", help="Detect source-vs-cache drift using content hash (no version comparison)")
     parser.add_argument("--bump", metavar="PLUGIN_NAME", help="Bump patch version for a plugin in all version files")
     parser.add_argument("--no-fix-paths", action="store_true", help="Skip hardcoded path auto-fix (default: on)")
-    parser.add_argument("--packages-root", default=None, help="Scan source packages directory directly (e.g., P:\\packages/)")
+    parser.add_argument("--packages-root", default=None, help="Scan source packages directory directly (e.g., P:\\\\packages/)")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     args = parser.parse_args(argv[1:])
     script_path = __file__ if "__file__" in dir() else "plugin-audit-and-fix.py"
 
-    # Source packages scan mode: scan P:\\packages/ directly
+    # Source packages scan mode: scan P:\\\\packages/ directly
     if args.packages_root:
         packages_dir = Path(args.packages_root)
         if not packages_dir.exists():
@@ -980,6 +1111,49 @@ def main(argv: list[str]) -> int:
                             continue
                         for action in r["actions"]:
                             print(f"  [{r['plugin']}] {action}")
+
+            # Auto-fix: stale version dirs + source sync
+            # Re-check drift AFTER path fixes — path fixes modify source, so the
+            # original drift_findings are stale.
+            import shutil
+            import subprocess
+            path_fixes = path_fix_count if not args.no_fix_paths else 0
+            if path_fixes > 0:
+                drift_findings = audit_source_cache_drift(packages_dir)
+                drift_findings = [f for f in drift_findings if f["plugin"] in plugin_names]
+            synced = []
+            stale_deleted = []
+            for f in drift_findings:
+                t = f["type"]
+                pkg = f["plugin"]
+                cache_root = Path(os.path.expanduser("~/.claude/plugins/cache/local"))
+                if t == "stale_version_dirs":
+                    for stale_ver in f["stale_versions"]:
+                        stale_path = cache_root / pkg / stale_ver
+                        if stale_path.exists():
+                            shutil.rmtree(str(stale_path))
+                            stale_deleted.append(f"{pkg}/{stale_ver}")
+                            print(f"  {C_RED}Deleted stale: {pkg}/{stale_ver}{C_RESET}")
+                elif t == "source_modified":
+                    src = packages_dir / pkg
+                    version_dir = cache_root / pkg / f["cache_version"]
+                    if src.exists() and version_dir.exists():
+                        sync_stats = bidir_sync(src, version_dir)
+                        if sync_stats["errors"]:
+                            for err in sync_stats["errors"]:
+                                print(f"  {C_RED}Sync error {pkg}: {err}{C_RESET}")
+                        if sync_stats["src_to_cache"] or sync_stats["cache_to_src"]:
+                            print(f"  {C_GREEN}Synced: {pkg} (src→cache: {sync_stats['src_to_cache']}, cache→src: {sync_stats['cache_to_src']}){C_RESET}")
+                            synced.append(pkg)
+                        else:
+                            print(f"  {C_GREEN}Synced: {pkg} (no changes needed){C_RESET}")
+                            synced.append(pkg)
+                elif t == "cache_only":
+                    print(f"  {C_YELLOW}Cache-only files in {pkg}: {f['cache_only_count']} file(s) — restore from git history or delete manually{C_RESET}")
+
+            if stale_deleted:
+                print(f"\n{C_GREEN}Deleted {len(stale_deleted)} stale version dir(s): {stale_deleted}{C_RESET}")
+
         # Only return non-zero for actionable errors (manifest issues), not warnings
         actionable_errors = sum(
             len(r["errors"]) for r in all_results
@@ -1024,6 +1198,34 @@ def main(argv: list[str]) -> int:
             return 1
         for a in bump_result["actions"]:
             print(f"  {C_GREEN}{a}{C_RESET}")
+
+        # Post-bump: create new cache dir, remove old version dir
+        import shutil
+        import subprocess
+        cache_root = Path(os.path.expanduser("~/.claude/plugins/cache/local"))
+        pkg_name = args.bump
+        old_ver = bump_result["old_version"]
+        new_ver = bump_result["new_version"]
+        cache_dir = cache_root / pkg_name
+
+        if cache_dir.exists():
+            # Create new version dir by syncing from source
+            src = plugins_dir / pkg_name
+            new_cache = cache_dir / new_ver
+            if src.exists():
+                new_cache.mkdir(parents=True, exist_ok=True)
+                sync_stats = bidir_sync(src, new_cache)
+                if sync_stats["errors"]:
+                    for err in sync_stats["errors"]:
+                        print(f"  {C_YELLOW}Cache sync error: {err}{C_RESET}")
+                print(f"  {C_GREEN}Created cache: {pkg_name}/{new_ver} (src→cache: {sync_stats['src_to_cache']}, cache→src: {sync_stats['cache_to_src']}){C_RESET}")
+
+            # Remove old version dir
+            old_cache = cache_dir / old_ver
+            if old_cache.exists() and old_ver != new_ver:
+                shutil.rmtree(str(old_cache))
+                print(f"  {C_GREEN}Removed stale cache: {pkg_name}/{old_ver}{C_RESET}")
+
         print(f"\n{C_CYAN}=== Next Steps ==={C_RESET}")
         print(f"  1. /plugin marketplace update local")
         print(f"  2. /reload-plugins")
@@ -1140,6 +1342,7 @@ def main(argv: list[str]) -> int:
                     print(f"  [{r['plugin']}] {action}")
 
         # Auto-fix: hardcoded paths (on by default, skip with --no-fix-paths)
+        path_fix_count = 0
         if not args.no_fix_paths:
             path_results = fix_hardcoded_paths(plugins_dir)
             path_fix_count = sum(len(r["actions"]) for r in path_results if r.get("fixed"))
@@ -1163,8 +1366,14 @@ def main(argv: list[str]) -> int:
                     print(f"  {C_RED}Failed to remove {f['marketplace_entry']}: {e}{C_RESET}")
 
         # Auto-fix: stale version dirs + source sync
+        # Re-check drift AFTER path fixes — path fixes modify source, so the
+        # original drift_findings are stale. Without this, robocopy syncs
+        # pre-fix source and path fixes re-introduce drift immediately.
         import shutil
         import subprocess
+        if path_fix_count > 0:
+            drift_findings = audit_source_cache_drift(plugins_dir)
+            drift_findings = [f for f in drift_findings if f["plugin"] in plugin_names]
         synced = []
         stale_deleted = []
         for f in drift_findings:
@@ -1180,23 +1389,30 @@ def main(argv: list[str]) -> int:
                         stale_deleted.append(f"{pkg}/{stale_ver}")
                         print(f"  {C_RED}Deleted stale: {pkg}/{stale_ver}{C_RESET}")
             elif t == "source_modified":
-                # Sync source -> cache for the current version directory
-                src = Path(f"P:\\packages/{pkg}")
+                # Bidirectional sync for the current version directory
+                src = Path(f"P:\\\\packages/{pkg}")
                 version_dir = cache_root / pkg / f["cache_version"]
                 if src.exists() and version_dir.exists():
-                    result = subprocess.run(
-                        ["robocopy", str(src), str(version_dir), "/MIR", "/XD", ".git", ".claude", "__pycache__", ".pytest_cache", ".mypy_cache",
-                         "/NFL", "/NDL", "/NJH", "/NJS", "/NC", "/NS", "/NP"],
-                        capture_output=True, text=True,
-                    )
-                    if result.returncode < 8:
-                        print(f"  {C_GREEN}Synced: {pkg}{C_RESET}")
+                    sync_stats = bidir_sync(src, version_dir)
+                    if sync_stats["errors"]:
+                        for err in sync_stats["errors"]:
+                            print(f"  {C_RED}Sync error {pkg}: {err}{C_RESET}")
+                    if sync_stats["src_to_cache"] or sync_stats["cache_to_src"]:
+                        print(f"  {C_GREEN}Synced: {pkg} (src→cache: {sync_stats['src_to_cache']}, cache→src: {sync_stats['cache_to_src']}){C_RESET}")
                         synced.append(pkg)
                     else:
-                        print(f"  {C_RED}Failed: {pkg} (robocopy exit {result.returncode}){C_RESET}")
+                        print(f"  {C_GREEN}Synced: {pkg} (no changes needed){C_RESET}")
+                        synced.append(pkg)
             elif t == "cache_only":
-                # Cannot auto-fix — files deleted from source, must be restored from elsewhere
-                print(f"  {C_YELLOW}Cache-only files in {pkg}: {f['cache_only_count']} file(s) — restore from git history or delete manually{C_RESET}")
+                # Bidirectional sync will handle cache-only files by copying them to source
+                src = Path(f"P:\\\\packages/{pkg}")
+                version_dir = cache_root / pkg / f["cache_version"]
+                if src.exists() and version_dir.exists():
+                    sync_stats = bidir_sync(src, version_dir)
+                    if sync_stats["cache_to_src"] > 0:
+                        print(f"  {C_GREEN}Rescued cache-only files: {pkg} ({sync_stats['cache_to_src']} file(s) copied to source){C_RESET}")
+                    else:
+                        print(f"  {C_YELLOW}Cache-only files in {pkg}: {f['cache_only_count']} file(s) — restore from git history or delete manually{C_RESET}")
 
         if stale_deleted:
             print(f"\n{C_GREEN}Deleted {len(stale_deleted)} stale version dir(s): {stale_deleted}{C_RESET}")

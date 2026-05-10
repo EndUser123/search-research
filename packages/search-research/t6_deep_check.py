@@ -17,7 +17,7 @@ def list_procs():
 proc = subprocess.Popen(
     'cmd /c "C:/Program Files/nodejs/npx" github:jasonwarta/mcp-mux',
     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-    shell=True, cwd='P:\\\\packages/search-research'
+    shell=True, cwd='P:\\\\\\packages/search-research'
 )
 
 def send(req):

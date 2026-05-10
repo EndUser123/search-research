@@ -8,7 +8,7 @@ Note: PALETTES is already embedded in diagram-scripts.js — no injection needed
 import json, sys
 from pathlib import Path
 
-BASE  = Path("P:\\\\packages/cc-skills-architect/skills/skill-to-page")
+BASE  = Path("P:\\\\\\packages/cc-skills-architect/skills/skill-to-page")
 TPL   = BASE / "templates"
 E2_OUT = BASE / "e2-output.json"
 

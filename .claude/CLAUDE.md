@@ -150,6 +150,17 @@ For any handoff between hooks, sessions, plans, skills, files, or agents, explic
 
 If any of these are unclear, the work is not ready to advance.
 
+### Schema-and-evidence discipline
+
+When analyzing systems that emit structured data — logs, telemetry, benchmark artifacts, parsers, observability reports — apply these rules before making causal or mechanism claims:
+
+- **Verify the producer, not the summary.** Do not infer runtime schema or event shape from summaries, planned design, comments, or parser output alone. Identify the code that emits the data and inspect its actual output before claiming what fields or record shapes exist.
+- **Inspect at least one real artifact.** Before drawing mechanism or root-cause conclusions, examine at least one real emitted artifact from the relevant run. Aggregate counts are insufficient for mechanism claims when event-level records are needed to distinguish intermediate from terminal states.
+- **Align consumer with producer.** Before interpreting results, verify that the consumer, parser, or test matches the producer's current schema. If producer, artifact, and consumer disagree, fix the interpretation layer before explaining the system's behavior.
+- **Distinguish intermediate from terminal.** Claims about failure mechanisms require event-level evidence, not aggregate counts. "100 failures" is a count; the mechanism requires looking at individual records to see whether failure occurred in processing, in transmission, or in storage.
+
+**Falsification test:** This discipline would be wrong if all evidence were genuinely inaccessible — but config files, log directories, evidence stores, and code paths are usually present and cheap to inspect.
+
 ### Response Behavior Contract
 
 Use a grounded response shape by default:
@@ -263,6 +274,18 @@ When modifying regex patterns, validation rules, or detection logic:
 **Rationale:** Pattern changes often have edge cases. Test corpus prevents "fixed one, broke three" scenarios.
 
 **Example:** `test_diagnostic_patterns.py` validates diagnostic question detection against 13 real user queries.
+
+### Contract-Preserving Implementation
+
+For bug fixes and feature implementations, the contract must be stated before patching:
+
+- **What inputs are trusted vs hostile, escaped, stale, or inconsistent?** Distinguish environment-dependent or user-supplied values from internal state.
+- **What classifications and invariants must continue to hold?** State what must remain classified as allowed, blocked, leakage, or unexpected after the fix.
+- **What would make the fix wrong?** Identify at least one condition under which the fix fails that isn't covered by the test suite.
+- **Is one successful run proof of correctness?** No. A single pass, smoke test, benchmark run, or soak test does not validate the contract. Focused edge-case tests do.
+- **Are changes local?** Unless evidence shows another module owns the contract, keep changes bounded. Fixing one failure while introducing three others is not a fix.
+
+This principle is enforced by the Stop semantic critic on software diagnostic and implementation answers.
 
 ---
 

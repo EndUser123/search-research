@@ -1367,7 +1367,7 @@ Command: npm install @scope/package
 - `ZAI_API_KEY` environment variable dependency
 - All Stage 2 claim patterns (uncertain patterns that required LLM verification)
 
-**Why**: Hooks must not make external API calls. The Z.AI httpx call violated the [Hook External Dependency Policy](#hook-external-dependency-policy).
+**Why**: The Z.AI httpx call used a remote API for claim verification, which has been replaced by local in-process pattern matching.
 
 **Current in-process replacements** (all rule-based, no external calls):
 
@@ -1956,42 +1956,6 @@ result = extract_correction_description(content, match)
 ```
 
 **See also**: `~/memory/testing_patterns.md` for complete guidance on testing without mocks.
-
-### Hook External Dependency Policy
-
-**Policy**: Hooks MUST NOT make external API calls, HTTP requests, or spawn network-dependent subprocesses.
-
-**Rationale**:
-1. **Silent degradation**: Network failure during a hook event (PreCompact, SessionStart, etc.) silently degrades output quality or blocks user workflow with no clear error
-2. **Latency injection**: Every hook event gains network round-trip overhead — PreCompact hooks that call an LLM add 1–5 seconds to every compaction
-3. **Credential complexity**: Hooks run in the framework event loop; managing API keys there adds surface area for leaks and auth failures
-4. **Circular dependency**: Claude Code hooks that call the Claude API create a dependency loop — if the API is down, hooks fail, which may prevent the session from starting or compacting
-
-**Red flags** (these patterns in a hook file are always wrong):
-```python
-# ❌ LLM call inside a hook
-llm = get_llm_client()
-summary = llm.messages.create(...)
-
-# ❌ HTTP request inside a hook
-import requests
-response = requests.get("https://api.example.com/...")
-
-# ❌ "Graceful degradation" that silently drops captured data
-try:
-    summary = call_external_api(transcript)
-except Exception:
-    summary = None  # NOT graceful — you just lost the data
-```
-
-**Correct pattern** — use already-captured local artifacts:
-```python
-# ✅ Read from transcript (already in handoff envelope) at restore-time
-transcript_entries = parse_transcript(snapshot["transcript_path"])
-recent_messages = extract_recent_user_messages(transcript_entries, n=15)
-```
-
-**Decision rule**: If a hook design requires external data, restructure so the data is read from a local artifact at restore/start time rather than fetched at capture/compaction time. The `transcript_path` is already in the handoff envelope — use it.
 
 ### Hook Testing Protocol
 

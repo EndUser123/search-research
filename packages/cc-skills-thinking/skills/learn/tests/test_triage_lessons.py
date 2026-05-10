@@ -13,7 +13,7 @@ Test Categories:
 
 All tests should FAIL initially (RED phase) - parse_triage_lesson() not implemented yet.
 
-Run with: pytest P:\\\\.claude/skills/learn/tests/test_triage_lessons.py -v
+Run with: pytest P:\\\\\\.claude/skills/learn/tests/test_triage_lessons.py -v
 """
 
 import sys

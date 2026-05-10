@@ -15,7 +15,7 @@
 ```bash
 # Test with a response that has quality issues
 echo '{"response": "Therefore, the best solution is to always use this approach. We must implement it immediately."}' | \
-  python P:\\\\.claude/hooks/Stop_self_reflection.py
+  python P:\\\\\\.claude/hooks/Stop_self_reflection.py
 
 # Expected output:
 # {"systemMessage": "[Self-reflection: Issues found: {...}]"}
@@ -26,7 +26,7 @@ echo '{"response": "Therefore, the best solution is to always use this approach.
 ```bash
 # Test through Stop.py
 echo '{"response": "Therefore, the best solution is to always use this approach. We must implement it immediately."}' | \
-  python P:\\\\.claude/hooks/Stop.py 2>&1 | jq .systemMessage
+  python P:\\\\\\.claude/hooks/Stop.py 2>&1 | jq .systemMessage
 
 # Should show self-reflection feedback
 ```
@@ -35,7 +35,7 @@ echo '{"response": "Therefore, the best solution is to always use this approach.
 
 ```bash
 # Check usage log
-cat P:\\\\packages/reasoning/hook_usage.log | jq -r '.result' | sort | uniq -c
+cat P:\\\\\\packages/reasoning/hook_usage.log | jq -r '.result' | sort | uniq -c
 
 # Expected output:
 #    5 passed
@@ -72,9 +72,9 @@ cat P:\\\\packages/reasoning/hook_usage.log | jq -r '.result' | sort | uniq -c
 
 1. **Created**: `$CLAUDE_ROOT/hooks\Stop_self_reflection.py` (147 lines)
 2. **Modified**: `$CLAUDE_ROOT/hooks\Stop.py` (added `_run_self_reflection()` function)
-3. **Created**: `P:\\\\packages/reasoning/hook_usage.log` (auto-created)
+3. **Created**: `P:\\\\\\packages/reasoning/hook_usage.log` (auto-created)
 4. **Modified**: `$CLAUDE_ROOT/settings.json` (removed MCP server)
-5. **Created**: `P:\\\\packages/reasoning/AUTOMATIC_SELF_REFLECTION_COMPLETE.md` (documentation)
+5. **Created**: `P:\\\\\\packages/reasoning/AUTOMATIC_SELF_REFLECTION_COMPLETE.md` (documentation)
 
 ## How It Works
 
@@ -150,7 +150,7 @@ Hook output:
 **Hook not running**:
 - Check Stop.py has `self_reflection` in IN_PROCESS_GATES
 - Verify Stop_self_reflection.py exists
-- Test manually: `echo '{}' | python P:\\\\.claude/hooks/Stop_self_reflection.py`
+- Test manually: `echo '{}' | python P:\\\\\\.claude/hooks/Stop_self_reflection.py`
 
 **No issues detected**:
 - Response may be too short (<200 chars)
@@ -163,9 +163,9 @@ Hook output:
 
 ## References
 
-- **Complete documentation**: `P:\\\\packages/reasoning/AUTOMATIC_SELF_REFLECTION_COMPLETE.md`
-- **Investigation summary**: `P:\\\\packages/reasoning/MCP_INVESTIGATION_SUMMARY.md`
-- **Quality validation**: `P:\\\\packages/reasoning/QUALITY_VALIDATION_RESULTS.md`
+- **Complete documentation**: `P:\\\\\\packages/reasoning/AUTOMATIC_SELF_REFLECTION_COMPLETE.md`
+- **Investigation summary**: `P:\\\\\\packages/reasoning/MCP_INVESTIGATION_SUMMARY.md`
+- **Quality validation**: `P:\\\\\\packages/reasoning/QUALITY_VALIDATION_RESULTS.md`
 - **Hook implementation**: `$CLAUDE_ROOT/hooks\Stop_self_reflection.py`
 - **Hook registration**: `$CLAUDE_ROOT/hooks\Stop.py` (line 749-814)
 

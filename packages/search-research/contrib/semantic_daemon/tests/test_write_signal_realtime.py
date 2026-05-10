@@ -45,7 +45,7 @@ class TestWriteSignalRealtime:
         result = client.send_write_signal(
             entry_id="test_entry_123",
             entry_type="memory",
-            workspace="P:\\\\test",
+            workspace="P:\\\\\\test",
             terminal_id="test_terminal",
         )
 
@@ -72,7 +72,7 @@ class TestWriteSignalRealtime:
             client.send_write_signal(
                 entry_id="mem_abc123def456",
                 entry_type="correction",
-                workspace="P:\\\\workspace",
+                workspace="P:\\\\\\workspace",
                 terminal_id="console_xyz",
             )
 
@@ -81,7 +81,7 @@ class TestWriteSignalRealtime:
         assert captured_msg["action"] == "cks_write"
         assert captured_msg["entry_id"] == "mem_abc123def456"
         assert captured_msg["entry_type"] == "correction"
-        assert captured_msg["workspace"] == "P:\\\\workspace"
+        assert captured_msg["workspace"] == "P:\\\\\\workspace"
         assert captured_msg["terminal_id"] == "console_xyz"
 
     def test_send_write_signal_fire_and_forget(self):
@@ -96,7 +96,7 @@ class TestWriteSignalRealtime:
         result = client.send_write_signal(
             entry_id="test_entry",
             entry_type="memory",
-            workspace="P:\\\\test",
+            workspace="P:\\\\\\test",
             terminal_id="test",
         )
 
@@ -137,7 +137,7 @@ class TestWriteSignalUnhappyPath:
             result = client.send_write_signal(
                 entry_id="test_entry",
                 entry_type="pattern",
-                workspace="P:\\\\test",
+                workspace="P:\\\\\\test",
                 terminal_id="test",
             )
 
@@ -162,7 +162,7 @@ class TestWriteSignalUnhappyPath:
         result = client.send_write_signal(
             entry_id="invalid_entry_id_format",
             entry_type="memory",
-            workspace="P:\\\\test",
+            workspace="P:\\\\\\test",
             terminal_id="test",
         )
 

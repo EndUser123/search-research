@@ -169,7 +169,7 @@ For `/t` requests, execute this workflow:
 
 ```bash
 # Main entry point
-cd P:\\\\.claude/skills/t && python __main__.py "target" --force-full
+cd P:\\\\\\.claude/skills/t && python __main__.py "target" --force-full
 
 # With context-aware routing
 python __main__.py  # Auto-detects from conversation
@@ -232,7 +232,7 @@ Tests are located in `tests/`:
 - `test_codemap_integration.py` - Codemap reuse tests
 
 ```bash
-cd P:\\\\.claude/skills/t && python -m pytest tests/ -v
+cd P:\\\\\\.claude/skills/t && python -m pytest tests/ -v
 ```
 
 ## Success Criteria

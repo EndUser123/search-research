@@ -1,6 +1,6 @@
 """Citation parser for extracting file:line references from text.
 
-Parses citations in format: path/to/file.py:123 or P:\\\\absolute/path.py:123
+Parses citations in format: path/to/file.py:123 or P:\\\\\\absolute/path.py:123
 Returns structured metadata for CKS storage.
 """
 
@@ -15,7 +15,7 @@ def extract_citations(text: str) -> dict[str, Any]:
 
     Supports formats:
     - Relative: path/to/file.py:123
-    - Absolute (Windows): P:\\\\path/to/file.py:123
+    - Absolute (Windows): P:\\\\\\path/to/file.py:123
     - Extensions: py, md, ts, js, yaml, yml, json, sh
 
     Args:
@@ -27,11 +27,11 @@ def extract_citations(text: str) -> dict[str, Any]:
 
     """
     # Pattern matches:
-    # - Optional P:\\\\ prefix (Windows absolute paths)
+    # - Optional P:\\\\\\ prefix (Windows absolute paths)
     # - File path with alphanumeric, underscore, dash, dot, forward slash
     # - File extension from supported set
     # - Colon followed by line number
-    pattern = r"(?:P:\\\\)?([A-Za-z0-9_\-./]+)\.(py|md|ts|js|yaml|yml|json|sh):(\d+)"
+    pattern = r"(?:P:\\\\\\)?([A-Za-z0-9_\-./]+)\.(py|md|ts|js|yaml|yml|json|sh):(\d+)"
     match = re.search(pattern, text)
 
     if match:

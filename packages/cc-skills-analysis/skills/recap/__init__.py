@@ -157,7 +157,7 @@ def _get_project_hash(project_path: Path) -> str:
         project_path: Absolute path to the project root
 
     Returns:
-        Project hash string (e.g., 'P--' for 'P:\\\\\')
+        Project hash string (e.g., 'P--' for 'P:\\\\\\\')
     """
     path_str = str(project_path.resolve())
     # Replace both path separators and colons with dash
@@ -169,7 +169,7 @@ def _get_sessions_index_path(project_path: Path) -> Path | None:
     """Find the sessions-index.json for a given project.
 
     Args:
-        project_path: The project root path (e.g. P:\\\\\)
+        project_path: The project root path (e.g. P:\\\\\\\)
 
     Returns:
         Path to sessions-index.json or None if not found
@@ -1528,9 +1528,9 @@ def _get_fresh_handoff(
     if terminal_id is None:
         terminal_id = os.environ.get("CLAUDE_TERMINAL_ID")
 
-    # R-014: Use absolute paths, no resolve() (handles P:\\\\ drive unavailable)
+    # R-014: Use absolute paths, no resolve() (handles P:\\\\\\ drive unavailable)
     handoff_dirs = [
-        Path("P:\\\\") / ".claude" / "state" / "handoff",
+        Path("P:\\\\\\") / ".claude" / "state" / "handoff",
         Path.home() / ".claude" / "state" / "handoff",
     ]
 
@@ -1572,7 +1572,7 @@ def _get_fresh_handoff(
                     logger.debug("Failed to read handoff %s: %s", hf, e)
                     continue
         except OSError as e:
-            # R-014: Handle P:\\\\ drive unavailable
+            # R-014: Handle P:\\\\\\ drive unavailable
             # Pre-mortem fix 3c: User-friendly error message
             logger.warning(
                 "Unable to access handoff directory at %s. "
@@ -1816,7 +1816,7 @@ def _load_all_sessions_via_history_index(
     # Add search-research package to path if needed
     import sys
     from pathlib import Path
-    _search_research_root = Path("P:\\\\packages/search-research")
+    _search_research_root = Path("P:\\\\\\packages/search-research")
     if str(_search_research_root) not in sys.path:
         sys.path.insert(0, str(_search_research_root))
 

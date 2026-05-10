@@ -5,7 +5,7 @@ Strategy: Use psutil for accurate PID detection, keep client connected across br
 import subprocess, time, json, psutil
 
 NPX_CMD = ['C:/Program Files/nodejs/npx.cmd', 'github:jasonwarta/mcp-mux']
-CWD = "P:\\\\packages/search-research"
+CWD = "P:\\\\\\packages/search-research"
 
 def get_matching_pids(name_pattern):
     """Get PIDs matching pattern using psutil."""

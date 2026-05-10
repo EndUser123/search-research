@@ -11,7 +11,7 @@ import json
 import sys
 import time
 
-sys.path.insert(0, "P:\\\\__csf/src")
+sys.path.insert(0, "P:\\\\\\__csf/src")
 
 from search_research.contrib.semantic_daemon.unified_semantic_daemon import (
     DISCOVERY_FILE,

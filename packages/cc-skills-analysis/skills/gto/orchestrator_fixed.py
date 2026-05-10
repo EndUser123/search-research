@@ -66,7 +66,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def _resolve_transcript_from_identity(terminal_id: str) -> Path | None:
     """Resolve transcript path from identity.json (hook-captured, no scanning)."""
-    artifacts_root = Path(os.environ.get("CLAUDE_ARTIFACTS_ROOT", "P:\\\\.claude/.artifacts"))
+    artifacts_root = Path(os.environ.get("CLAUDE_ARTIFACTS_ROOT", "P:\\\\\\.claude/.artifacts"))
     identity_file = artifacts_root / terminal_id / "identity.json"
     if not identity_file.exists():
         return None
@@ -82,12 +82,12 @@ def _resolve_transcript_from_identity(terminal_id: str) -> Path | None:
 
 def _load_session_chain(terminal_id: str) -> list[str]:
     """Load session transcript paths from session registry for this terminal."""
-    registry_path = Path("P:\\\\.claude/.artifacts/session_registry.jsonl")
+    registry_path = Path("P:\\\\\\.claude/.artifacts/session_registry.jsonl")
     if not registry_path.exists():
         return []
     try:
         import sys as _sys
-        sys.path.insert(0, "P:\\\\packages/snapshot/scripts/hooks/__lib")
+        sys.path.insert(0, "P:\\\\\\packages/snapshot/scripts/hooks/__lib")
         from session_registry import query_registry
     except ImportError:
         return []

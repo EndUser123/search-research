@@ -15,7 +15,7 @@ The search-research migration split the monolithic `research_skill/cli.py` (5,95
 
 **Installation**:
 ```bash
-pip install -e P:\\\\packages/search-research
+pip install -e P:\\\\\\packages/search-research
 ```
 
 ### Basic Usage
@@ -113,7 +113,7 @@ search-research "query" --json
 
 **Installation**:
 ```bash
-pip install -e P:\\\\packages/research
+pip install -e P:\\\\\\packages/research
 ```
 
 ### Core Search Modes

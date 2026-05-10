@@ -16,7 +16,7 @@ Create `~/.claude/chs_config.json`:
     "stage": "auto"
   },
   "paths": {
-    "metrics_db": "P:\\\\packages/search-research/data/chs_metrics.db"
+    "metrics_db": "P:\\\\\\packages/search-research/data/chs_metrics.db"
   }
 }
 ```

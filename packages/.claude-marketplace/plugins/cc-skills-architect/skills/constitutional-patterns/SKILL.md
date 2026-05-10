@@ -43,7 +43,7 @@ suggest:
 ### Architecture Alignment
 - Integrates with `/comply`, `/standards`, `/validate-safety-patterns`
 - Supports `/retro` for lesson integration
-- Main documentation in `P:\\\\__csf/docs/constitutional_patterns/`
+- Main documentation in `P:\\\\\\__csf/docs/constitutional_patterns/`
 
 ## Your Workflow
 

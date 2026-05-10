@@ -4,7 +4,7 @@ Consolidated tree-sitter utilities for code parsing and analysis.
 This module provides a unified interface for tree-sitter parsing across multiple
 languages, with graceful fallback to stdlib ast when tree-sitter is unavailable.
 
-Migrated from: P:\\\\__csf/src/search/backends/tree_sitter_utils.py
+Migrated from: P:\\\\\\__csf/src/search/backends/tree_sitter_utils.py
 """
 
 from functools import lru_cache

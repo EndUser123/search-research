@@ -49,12 +49,12 @@ Transforms a skill's `SKILL.md` into a self-contained, navigable, browser-verifi
 # Example: /skill-to-page go
 ```
 
-**Reads:** `P:\\\\.claude/skills/{target}/SKILL.md`
+**Reads:** `P:\\\\\\.claude/skills/{target}/SKILL.md`
 **Outputs:**
-- `P:\\\\.claude/skills/{target}/index.html` — written alongside target skill source (documentation artifact, not runtime state)
-- `P:\\\\.claude/.artifacts/{terminal_id}/skill-to-page/{target}/artifact-proof.json` (recommended)
-- `P:\\\\.claude/.artifacts/{terminal_id}/skill-to-page/{target}/workflow-model.json` (recommended)
-- `P:\\\\.claude/.artifacts/{terminal_id}/skill-to-page/{target}/diagram.mmd` (recommended)
+- `P:\\\\\\.claude/skills/{target}/index.html` — written alongside target skill source (documentation artifact, not runtime state)
+- `P:\\\\\\.claude/.artifacts/{terminal_id}/skill-to-page/{target}/artifact-proof.json` (recommended)
+- `P:\\\\\\.claude/.artifacts/{terminal_id}/skill-to-page/{target}/workflow-model.json` (recommended)
+- `P:\\\\\\.claude/.artifacts/{terminal_id}/skill-to-page/{target}/diagram.mmd` (recommended)
 
 ***
 

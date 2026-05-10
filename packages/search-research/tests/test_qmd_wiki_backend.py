@@ -295,10 +295,12 @@ class TestSyncRebuild:
         with patch("search_research.backends.local.qmd_wiki_backend.subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(stderr=b"")
             backend._sync_rebuild()
-            # Verify subprocess.run was called
+            # Verify subprocess.run was called with sys.executable -m qmd update
             mock_run.assert_called_once()
             call_args = mock_run.call_args[0][0]
-            assert call_args[0] == "qmd"
+            assert call_args[0] == sys.executable
+            assert call_args[1] == "-m"
+            assert call_args[2] == "qmd"
             assert "update" in call_args
 
 

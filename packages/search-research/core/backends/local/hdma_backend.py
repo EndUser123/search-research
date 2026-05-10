@@ -64,7 +64,7 @@ class HDMABackend:
             root_paths: Root directories to analyze
             enable_health_tracking: Track backend health status
         """
-        self._root_paths = root_paths or ["P:\\\\__csf/src"]
+        self._root_paths = root_paths or ["P:\\\\\\__csf/src"]
         self._enable_health = enable_health_tracking
 
         # HDMA analyzer and cached analysis result
@@ -93,7 +93,7 @@ class HDMABackend:
 
         try:
             # Create analyzer with the first root path
-            primary_path = Path(self._root_paths[0]) if self._root_paths else Path("P:\\\\__csf/src")
+            primary_path = Path(self._root_paths[0]) if self._root_paths else Path("P:\\\\\\__csf/src")
             if not primary_path.exists():
                 # Fallback to current directory
                 primary_path = Path.cwd()

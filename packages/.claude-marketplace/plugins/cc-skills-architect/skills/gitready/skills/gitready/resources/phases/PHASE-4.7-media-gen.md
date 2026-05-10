@@ -197,7 +197,7 @@ echo "Generating review bundle for architectural context..."
 Skill(skill="review_bundle", args="{{TARGET_DIR}}")
 
 # Find the generated review bundle
-REVIEW_BUNDLE=$(ls -t P:\\\\__csf/.staging/review_bundle_*.md 2>/dev/null | head -1)
+REVIEW_BUNDLE=$(ls -t P:\\\\\\__csf/.staging/review_bundle_*.md 2>/dev/null | head -1)
 if [ -z "$REVIEW_BUNDLE" ]; then
   echo "⚠️  Warning: Review bundle not found, continuing without it"
 else

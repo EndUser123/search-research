@@ -7,7 +7,7 @@ Gate: no_invented_routes AND toc_initial_state_synced AND toc_handler_atomic
 import json, subprocess, sys, re
 from pathlib import Path
 
-BASE   = Path("P:\\\\packages/cc-skills-architect/skills/skill-to-page")
+BASE   = Path("P:\\\\\\packages/cc-skills-architect/skills/skill-to-page")
 HTML   = BASE / "index.html"
 REPORT = BASE / "validation-report.json"
 

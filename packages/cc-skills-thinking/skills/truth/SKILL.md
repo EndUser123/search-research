@@ -43,11 +43,13 @@ Verifies claims using actual evidence. Reads files, runs commands, and shows out
 
 ## Your Workflow
 
-1. Identify claim(s) to verify
-2. Read actual file/code being referenced
-3. Run commands to verify behavior
-4. Show actual output (don't say "verified")
-5. Correct any false claims with evidence
+1. Identify claim(s) to verify.
+2. **Scan for Contradictions**: Check if the claim conflicts with existing documentation, code, or previous outputs (Diagnostic Metric: Contradiction Detection).
+3. Read actual file/code being referenced.
+4. Run commands to verify behavior.
+5. **Assess Semantic Coverage**: Check if the verification covers all intents and error paths mentioned in the claim.
+6. Show actual output (don't say "verified").
+7. Correct any false claims with evidence.
 
 ## Validation Rules
 

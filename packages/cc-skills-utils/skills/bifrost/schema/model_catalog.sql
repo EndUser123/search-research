@@ -31,6 +31,10 @@ CREATE TABLE IF NOT EXISTS models (
     input_cost_per_token   REAL,
     output_cost_per_token  REAL,
 
+    -- Free-tier context limits (NULL = same as paid columns; used for free-key providers like Cerebras)
+    max_input_tokens_free  INTEGER,
+    max_output_tokens_free INTEGER,
+
     -- Source
     source              TEXT,                 -- "nvidia_nim", "openrouter", "manual"
 

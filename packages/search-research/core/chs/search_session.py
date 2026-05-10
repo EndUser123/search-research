@@ -319,7 +319,7 @@ class SearchSession:
         import sys as _sys
         from pathlib import Path as _Path
 
-        _project_root = _Path(__file__).resolve().parents[2]  # P:\\\\packages/search-research
+        _project_root = _Path(__file__).resolve().parents[2]  # P:\\\\\\packages/search-research
         if str(_project_root) not in _sys.path:
             _sys.path.insert(0, str(_project_root))
 

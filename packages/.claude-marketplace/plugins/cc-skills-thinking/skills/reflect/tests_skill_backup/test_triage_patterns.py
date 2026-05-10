@@ -12,7 +12,7 @@ Test Categories:
 
 All tests should FAIL initially (RED phase) - patterns not implemented yet.
 
-Run with: pytest P:\\\\.claude/skills/reflect/tests/test_triage_patterns.py -v
+Run with: pytest P:\\\\\\.claude/skills/reflect/tests/test_triage_patterns.py -v
 """
 
 import re

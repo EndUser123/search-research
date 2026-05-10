@@ -82,7 +82,7 @@ class TestCHSSkillIntegration:
         This verifies the migration is complete and no __csf imports remain.
         """
         # Read the skill's main script
-        skill_script = Path("P:\\\\packages/search-research/skills/chs/scripts/chs_cli.py")
+        skill_script = Path("P:\\\\\\packages/search-research/skills/chs/scripts/chs_cli.py")
 
         if not skill_script.exists():
             pytest.skip("chs_cli.py not found - skill may be structured differently")
@@ -302,7 +302,7 @@ class TestCHSSkillIntegration:
         After consolidation, the skill should import directly from
         search_research.core.chs without sys.path hacks.
         """
-        skill_script = Path("P:\\\\packages/search-research/skills/chs/scripts/chs_cli.py")
+        skill_script = Path("P:\\\\\\packages/search-research/skills/chs/scripts/chs_cli.py")
 
         if not skill_script.exists():
             pytest.skip("chs_cli.py not found")
@@ -340,7 +340,7 @@ class TestCHSSkillIntegration:
             pytest.fail(f"Cannot import CHS from new location: {e}")
 
         # Step 2: Verify no old imports in CHS module
-        chs_search_path = Path("P:\\\\packages/search-research/core/chs/search.py")
+        chs_search_path = Path("P:\\\\\\packages/search-research/core/chs/search.py")
         if chs_search_path.exists():
             content = chs_search_path.read_text()
             assert "__csf" not in content, "Old __csf import found in CHS search module"
@@ -373,8 +373,8 @@ class TestCHSSkillConsolidationVerification:
     def test_old_chs_location_no_longer_imported(self):
         """Verify old __csf CHS location is not imported by any skill code."""
         skill_files = [
-            "P:\\\\packages/search-research/skills/chs/SKILL.md",
-            "P:\\\\packages/search-research/skills/chs/scripts/chs_cli.py",
+            "P:\\\\\\packages/search-research/skills/chs/SKILL.md",
+            "P:\\\\\\packages/search-research/skills/chs/scripts/chs_cli.py",
         ]
 
         old_import_patterns = [
@@ -415,7 +415,7 @@ class TestCHSSkillConsolidationVerification:
         """Verify CHS config paths reference new location if applicable."""
         # This test checks that any configuration files
         # reference the new CHS location
-        skill_config = Path("P:\\\\packages/search-research/skills/chs/chs_config.example.json")
+        skill_config = Path("P:\\\\\\packages/search-research/skills/chs/chs_config.example.json")
 
         if not skill_config.exists():
             pytest.skip("chs_config.example.json not found")

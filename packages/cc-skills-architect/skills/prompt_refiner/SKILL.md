@@ -46,7 +46,7 @@ Executable prompt specification system with constitutional compliance and cognit
 - Cognitive techniques integration for enhanced reasoning
 
 ### Technical Context
-- Specification: `P:\\\\__csf/docs/prompt_refiner.md`
+- Specification: `P:\\\\\\__csf/docs/prompt_refiner.md`
 - Meta-prompt system with tier-based quality levels
 - Token-efficient triage for rapid prompt selection
 
@@ -103,6 +103,17 @@ Executable prompt specification system with constitutional compliance and cognit
 ## Scoring Heuristics
 
 Confirm triage routing with quantitative scores (0.0-1.0).
+
+### Diagnostic Metrics (Intelligence-Augmented)
+
+Use these metrics to identify prompt reliability risks before generation.
+
+| Metric | Calculation / Indicator | Risk |
+|--------|-------------------------|------|
+| **Contradiction Score** | logical_conflicts / total_assertions | High: Logic failure |
+| **Cognitive Load** | nested_conditions + total_constraints / 5 | High: LLM drift |
+| **Persona Drift** | tone_inconsistencies / word_count | High: UX friction |
+| **Semantic Coverage** | missing_error_paths + intent_gaps | High: Edge case fail |
 
 ### Complexity Score
 

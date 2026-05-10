@@ -164,7 +164,7 @@ Skills that produce freeform summaries create a confabulation surface: the model
 
 Verification spec lives in skill frontmatter (re-read on skill reload), not in conversation context. After compaction, the skill re-injects the verification requirements when loaded again.
 
-**Verification results are persisted as artifacts** in `P:\\\\.claude/.artifacts/{terminal_id}/{skill_name}/` — the same artifact pattern used by `/refactor` and `/gto`. This means:
+**Verification results are persisted as artifacts** in `P:\\\\\\.claude/.artifacts/{terminal_id}/{skill_name}/` — the same artifact pattern used by `/refactor` and `/gto`. This means:
 
 - After compaction, session restore can read the artifact file to recover verification state
 - The artifact contains timestamps and file hashes, not just PASS/FAIL labels, enabling stale-data detection
@@ -195,11 +195,11 @@ verification:
     - description: "Verify hook registration"
       tool: "Bash"
       args:
-        command: "grep -n 'my_hook' P:\\\\.claude/hooks/PreToolUse.py | head -3"
+        command: "grep -n 'my_hook' P:\\\\\\.claude/hooks/PreToolUse.py | head -3"
     - description: "Run tests for modified code"
       tool: "Bash"
       args:
-        command: "pytest P:\\\\.claude/hooks/tests/test_my_hook.py -v --tb=short 2>&1 | tail -20"
+        command: "pytest P:\\\\\\.claude/hooks/tests/test_my_hook.py -v --tb=short 2>&1 | tail -20"
 
   # Summary format: evidence-only (default) or freeform
   summary_mode: evidence_only
@@ -207,8 +207,8 @@ verification:
   # Files this skill is expected to modify (for snapshot comparison)
   # Used to detect stale claims after compaction
   expected_artifacts:
-    - "P:\\\\.claude/hooks/my_hook.py"
-    - "P:\\\\.claude/hooks/tests/test_my_hook.py"
+    - "P:\\\\\\.claude/hooks/my_hook.py"
+    - "P:\\\\\\.claude/hooks/tests/test_my_hook.py"
 ---
 ```
 
@@ -255,7 +255,7 @@ Status: PASS/FAIL — [one sentence]
 
 Verification results MUST be written to the `.artifacts` directory so they survive compaction:
 
-**Path:** `P:\\\\.claude/.artifacts/{terminal_id}/{skill_name}/verification.json`
+**Path:** `P:\\\\\\.claude/.artifacts/{terminal_id}/{skill_name}/verification.json`
 
 **Schema:**
 ```json
@@ -275,7 +275,7 @@ Verification results MUST be written to the `.artifacts` directory so they survi
     }
   ],
   "file_snapshots": {
-    "P:\\\\.claude/hooks/my_hook.py": {
+    "P:\\\\\\.claude/hooks/my_hook.py": {
       "exists": true,
       "size_bytes": 4096,
       "mtime": "2026-04-20T16:29:55Z",
@@ -288,7 +288,7 @@ Verification results MUST be written to the `.artifacts` directory so they survi
 **Why `file_snapshots`:** After compaction, session restore can compare current file state against the snapshot. If a file was modified by another terminal after this skill ran, the snapshot detects the mismatch (stale data immunity) without using `git diff`.
 
 **Compaction recovery:** When a session resumes after compaction:
-1. Read `P:\\\\.claude/.artifacts/{terminal_id}/{skill_name}/verification.json`
+1. Read `P:\\\\\\.claude/.artifacts/{terminal_id}/{skill_name}/verification.json`
 2. For each `file_snapshots` entry, check if current file matches snapshot
 3. If mismatch: flag as stale, re-run verification commands
 4. If match: trust the artifact — no re-run needed
@@ -336,21 +336,21 @@ verification:
     - description: "Confirm test file exists"
       tool: "Bash"
       args:
-        command: "ls -la P:\\\\.claude/hooks/tests/test_my_hook.py"
+        command: "ls -la P:\\\\\\.claude/hooks/tests/test_my_hook.py"
     - description: "Confirm implementation file exists"
       tool: "Bash"
       args:
-        command: "ls -la P:\\\\.claude/hooks/my_hook.py"
+        command: "ls -la P:\\\\\\.claude/hooks/my_hook.py"
     - description: "Run tests"
       tool: "Bash"
       args:
-        command: "pytest P:\\\\.claude/hooks/tests/test_my_hook.py -v --tb=short 2>&1 | tail -20"
+        command: "pytest P:\\\\\\.claude/hooks/tests/test_my_hook.py -v --tb=short 2>&1 | tail -20"
     - description: "Verify hook is registered in dispatch chain"
       tool: "Bash"
       args:
-        command: "grep -n 'my_hook' P:\\\\.claude/hooks/PreToolUse.py | head -3"
+        command: "grep -n 'my_hook' P:\\\\\\.claude/hooks/PreToolUse.py | head -3"
   summary_mode: evidence_only
   expected_artifacts:
-    - "P:\\\\.claude/hooks/my_hook.py"
-    - "P:\\\\.claude/hooks/tests/test_my_hook.py"
+    - "P:\\\\\\.claude/hooks/my_hook.py"
+    - "P:\\\\\\.claude/hooks/tests/test_my_hook.py"
 ```

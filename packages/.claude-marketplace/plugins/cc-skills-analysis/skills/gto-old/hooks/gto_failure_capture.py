@@ -25,7 +25,7 @@ def classify_gto_failure(command: str, error: str) -> dict:
         return {
             "category": "viability-validation",
             "severity": "high",
-            "remediation": "Check project-root path. Must be a valid directory with .git, not the config root (P:\\\\\).",
+            "remediation": "Check project-root path. Must be a valid directory with .git, not the config root (P:\\\\\\\).",
             "pattern": "Invalid project root or missing git repository",
         }
 

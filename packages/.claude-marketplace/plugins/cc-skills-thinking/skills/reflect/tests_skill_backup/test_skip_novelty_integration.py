@@ -141,9 +141,9 @@ class TestSkipNoveltyIntegration(unittest.TestCase):
         # Verify the Stop hook passes the environment variable correctly
         # This tests the actual subprocess call
 
-        # Hook is at P:\\\\.claude/hooks/Stop_reflect_integration.py
+        # Hook is at P:\\\\\\.claude/hooks/Stop_reflect_integration.py
         # When running from package, we need absolute path or proper relative
-        hook_path = Path("P:\\\\.claude/hooks/Stop_reflect_integration.py")
+        hook_path = Path("P:\\\\\\.claude/hooks/Stop_reflect_integration.py")
 
         if not hook_path.exists():
             self.skipTest(f"Stop hook not found at {hook_path}")

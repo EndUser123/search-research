@@ -39,7 +39,7 @@ def _resolve_reasoning_package() -> Path:
         candidates.append(Path(env_path))
     candidates.extend([
         Path(__file__).resolve().parent.parent,
-        Path("P:\\\\packages/reasoning"),
+        Path("P:\\\\\\packages/reasoning"),
     ])
 
     for candidate in candidates:

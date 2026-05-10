@@ -121,15 +121,15 @@ TARGET_DIR="$1"  # from gitready argument
 SKILL_NAME=$(basename "$TARGET_DIR")
 
 # Detect if pointing at old canonical install location
-if [[ "$TARGET_DIR" == "P:\\\\.claude/skills/"* ]]; then
+if [[ "$TARGET_DIR" == "P:\\\\\\.claude/skills/"* ]]; then
     echo "WARNING: gitready was invoked on an installed skill location."
-    echo "The source of truth should be at P:\\\\packages/$SKILL_NAME"
-    if [ -d "P:\\\\packages/$SKILL_NAME" ]; then
+    echo "The source of truth should be at P:\\\\\\packages/$SKILL_NAME"
+    if [ -d "P:\\\\\\packages/$SKILL_NAME" ]; then
         echo "Auto-resolving to source location..."
-        TARGET_DIR="P:\\\\packages/$SKILL_NAME"
+        TARGET_DIR="P:\\\\\\packages/$SKILL_NAME"
     else
-        echo "ERROR: No package found at P:\\\\packages/$SKILL_NAME"
-        echo "Migration needed: cp -r $TARGET_DIR/* P:\\\\packages/$SKILL_NAME/"
+        echo "ERROR: No package found at P:\\\\\\packages/$SKILL_NAME"
+        echo "Migration needed: cp -r $TARGET_DIR/* P:\\\\\\packages/$SKILL_NAME/"
         exit 1
     fi
 fi
@@ -182,7 +182,7 @@ Auto-detects package type. Python libraries with `src/` + `pyproject.toml` auto-
 ## PHASE 1.6: Brownfield Conversion (2min) - ONLY IF brownfield-plugin
 
 **Pre-Conversion Checklist**:
-- Fix hardcoded paths (no `P:\\\\`, `/Users/`, `C:/` in source code)
+- Fix hardcoded paths (no `P:\\\\\\`, `/Users/`, `C:/` in source code)
 - Fix platform-specific code (`.sh` scripts need `.bat` equivalents)
 - Add error handling and logging
 - Verify dependencies
@@ -222,7 +222,7 @@ Validates plugin files/folders against Claude Code plugin standards. Exception-a
 
 > See `references/stale-location-cleanup.md` for full 8-step workflow.
 
-Cleans old canonical locations, creates proper junctions/symlinks pointing to `P:\\\\packages/` source of truth.
+Cleans old canonical locations, creates proper junctions/symlinks pointing to `P:\\\\\\packages/` source of truth.
 
 **Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 1.8`
 

@@ -8,7 +8,7 @@ This script provides the /explore command that searches across:
 - THREE-LAYER FILTERING for intelligent result reduction
 
 Note: Chat history search is now handled by the claude-history Rust package (v1.0.1+).
-See: P:\\\\packages/claude-history/ for details on the chat history search backend.
+See: P:\\\\\\packages/claude-history/ for details on the chat history search backend.
 
 Usage:
     python explore.py "python async patterns"          # Auto mode (default)

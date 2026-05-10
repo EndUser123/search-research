@@ -192,7 +192,7 @@ async def upload_video_via_issue(video_path: Path, repo_url: str, session_file: 
 async def main():
     """Main entry point."""
     repo_url = "https://github.com/EndUser123/gitready"
-    video_path = Path("P:\\\\packages/gitready/assets/videos/github-ready_explainer_video.mp4")
+    video_path = Path("P:\\\\\\packages/gitready/assets/videos/github-ready_explainer_video.mp4")
     session_file = Path.home() / ".github_video_uploader_session.json"
 
     if not video_path.exists():

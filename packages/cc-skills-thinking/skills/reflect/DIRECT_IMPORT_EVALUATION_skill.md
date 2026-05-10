@@ -6,7 +6,7 @@
 
 ## Current Implementation
 
-**File**: `P:\\\\\.claude\hooks\Stop_reflect_integration.py` (lines 111-118)
+**File**: `P:\\\\\\\.claude\hooks\Stop_reflect_integration.py` (lines 111-118)
 
 ```python
 result = subprocess.run(
@@ -42,10 +42,10 @@ new_signals = json.loads(result.stdout) if result.stdout else {}
 **1. Path Setup**
 ```python
 # extract_signals.py modifies sys.path (line 24)
-sys.path.insert(0, str(Path("P:\\\\__csf").resolve()))
+sys.path.insert(0, str(Path("P:\\\\\\__csf").resolve()))
 
 # Hook would need to replicate this
-sys.path.insert(0, str(Path("P:\\\\__csf").resolve()))
+sys.path.insert(0, str(Path("P:\\\\\\__csf").resolve()))
 from reflect.scripts.extract_signals import extract_signals
 ```
 
@@ -199,4 +199,4 @@ Instead of direct import, consider:
 3. Reconsider if performance degrades or users complain
 4. Keep Task 2 timeout reduction (5s is adequate)
 
-**Evidence**: See `P:\\\\\.claude/skills/reflect/scripts/extract_signals.py` for import dependencies and `P:\\\\\.claude/hooks/Stop_reflect_integration.py` for current subprocess implementation.
+**Evidence**: See `P:\\\\\\\.claude/skills/reflect/scripts/extract_signals.py` for import dependencies and `P:\\\\\\\.claude/hooks/Stop_reflect_integration.py` for current subprocess implementation.

@@ -27,7 +27,7 @@ GTO analyzes the current session's work — what was discussed, what was attempt
 ### Step 1: Run Session-Aware Analysis
 
 ```bash
-cd "P:\\\\packages/cc-skills-analysis" && python -m skills.gto.orchestrator --terminal-id "$WT_SESSION" --session-id "$CLAUDE_SESSION_ID" --root .
+cd "P:\\\\\\packages/cc-skills-analysis" && python -m skills.gto.orchestrator --terminal-id "$WT_SESSION" --session-id "$CLAUDE_SESSION_ID" --root .
 ```
 
 This runs:
@@ -50,7 +50,7 @@ Artifacts written to `.claude/.artifacts/{terminal_id}/gto/`.
 After the orchestrator writes its artifact, spawn the **Gap Reviewer** subagent. This is NOT optional — it is the only agent that can reason beyond deterministic detectors (producing facts, inferences, unknowns, and recommendations from the accumulated evidence).
 
 ```bash
-ARTIFACTS_ROOT="${CLAUDE_ARTIFACTS_ROOT:-P:\\\\.claude/.artifacts}"
+ARTIFACTS_ROOT="${CLAUDE_ARTIFACTS_ROOT:-P:\\\\\\.claude/.artifacts}"
 test -f "$ARTIFACTS_ROOT/$WT_SESSION/gto/gap_reviewer_handoff.json" && echo "GAP_REVIEW_NEEDED" || echo "NO_GAP_REVIEW"
 ```
 
@@ -94,7 +94,7 @@ Rules:
 After the subagent completes, re-run the orchestrator to merge the gap reviewer results:
 
 ```bash
-cd "P:\\\\packages/cc-skills-analysis" && python -m skills.gto.orchestrator --terminal-id "$WT_SESSION" --session-id "$CLAUDE_SESSION_ID" --root .
+cd "P:\\\\\\packages/cc-skills-analysis" && python -m skills.gto.orchestrator --terminal-id "$WT_SESSION" --session-id "$CLAUDE_SESSION_ID" --root .
 ```
 
 The second run reads `gap_reviewer_result.json` and merges its findings into the final artifact.

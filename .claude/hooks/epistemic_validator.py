@@ -158,6 +158,7 @@ def _has_citation_markers(text: str) -> bool:
         r"pytest\s+output",      # Test output citation
         r"as\s+shown\s+in",      # Evidence phrase
         r"according\s+to",      # Attribution phrase
+        r"[\w\-.\\\/]+\:\d+(?:\-\d+)?(?:\s|$)",  # bare path:line — "filter_models.py:60-67"
     ]
     return any(re.search(m, text, re.IGNORECASE) for m in markers)
 
@@ -190,9 +191,11 @@ def _is_direct_answer_to_question(response: str) -> bool:
         return True
 
     # Question-sensitive direct answers: "is X", "does X", "can X", "will X", "should X"
-    # These respond directly to the question without making an unsupported claim
+    # These respond directly to the question without making an unsupported claim.
+    # Exclude question-word leads (user input) — only allow actual answer starts.
     if re.match(r"^(is|does|can|will|should|would|has|have|had)\s+", stripped):
-        return True
+        if not re.match(r"^(what|why|how|who|when|where|which|whose|whom)", stripped):
+            return True
 
     return False
 

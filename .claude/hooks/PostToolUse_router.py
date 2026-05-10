@@ -608,6 +608,19 @@ def main() -> None:
         except Exception as e:
             _handle_tracking_error(e, tool_name, command)
 
+    # Track file access for claim-layer enforcement (artifact access log)
+    try:
+        tool_name_raw = data.get("tool_name", "Unknown")
+        tool_input_raw = data.get("tool_input", {}) if isinstance(data.get("tool_input"), dict) else {}
+        terminal_id_str = os.environ.get("CLAUDE_TERMINAL_ID", "") or detect_terminal_id()
+        session_id_str = session_id or os.environ.get("CLAUDE_SESSION_ID", "")
+
+        if tool_name_raw in ("Read", "Grep", "Glob", "Bash"):
+            from PostToolUse_artifact_access_tracker import track_tool_use
+            track_tool_use(session_id_str, terminal_id_str, tool_name_raw, tool_input_raw)
+    except Exception:
+        pass  # Non-blocking artifact tracking
+
     # --- Features absorbed from PostToolUse.py ---
     tool_input_raw = data.get("tool_input", {}) if isinstance(data.get("tool_input"), dict) else {}
 

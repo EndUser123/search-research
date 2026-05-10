@@ -28,7 +28,7 @@ Chat history search is handled by the **claude-history** Rust package:
 - Rust provides true parallelism, no GIL, better performance
 
 **claude-history backend details:**
-- Location: `P:\\\\packages/claude-history/`
+- Location: `P:\\\\\\packages/claude-history/`
 - Python wrapper: `core/backends/local/claude_history_backend.py`
 - Data sources: JSONL streaming (default) + SQLite FTS5 (indexed)
 - Score: 0.9 (competitive with CKS for chat queries)

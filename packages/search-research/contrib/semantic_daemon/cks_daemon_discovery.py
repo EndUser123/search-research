@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 # Add CSF src to path
-_csf_src = Path("P:\\\\__csf/src")
+_csf_src = Path("P:\\\\\\__csf/src")
 if str(_csf_src) not in sys.path:
     sys.path.insert(0, str(_csf_src))
 

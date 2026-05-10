@@ -58,7 +58,7 @@ class DependencyBackend:
             root_paths: Root directories to analyze
             enable_health_tracking: Track backend health status
         """
-        self._root_paths = root_paths or ["P:\\\\__csf/src"]
+        self._root_paths = root_paths or ["P:\\\\\\__csf/src"]
         self._enable_health = enable_health_tracking
 
         # Build dependency graph

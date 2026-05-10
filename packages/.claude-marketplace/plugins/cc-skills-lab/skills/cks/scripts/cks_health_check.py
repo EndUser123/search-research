@@ -2,7 +2,7 @@
 """
 cks_health_check.py - Check Constitutional Knowledge System health
 
-Run: python P:\\\\.claude/skills/_tools/cks_health_check.py
+Run: python P:\\\\\\.claude/skills/_tools/cks_health_check.py
 Returns exit code 0 if healthy, 1 if issues found
 
 Checks:
@@ -27,9 +27,9 @@ DB_SIZE_WARN_MB = 50  # Warn if DB exceeds 50MB
 RECENT_ACTIVITY_DAYS = 7
 
 # Paths
-CKS_DB_PATH = Path(r"P:\\\\__csf/data/cks.db")
-SKILLS_DIR = Path(r"P:\\\\.claude/skills")
-COMMANDS_DIR = Path(r"P:\\\\__csf/src/commands")
+CKS_DB_PATH = Path(r"P:\\\\\\__csf/data/cks.db")
+SKILLS_DIR = Path(r"P:\\\\\\.claude/skills")
+COMMANDS_DIR = Path(r"P:\\\\\\__csf/src/commands")
 
 
 def get_db_stats() -> dict:

@@ -10,7 +10,7 @@ These tests CAPTURE CURRENT BEHAVIOR of Copilot ingestion:
 - Graceful degradation when directory missing
 - Copilot watcher thread is created
 
-Run with: pytest P:\\\\__csf/src/daemons/tests/test_unified_semantic_daemon_copilot.py -v
+Run with: pytest P:\\\\\\__csf/src/daemons/tests/test_unified_semantic_daemon_copilot.py -v
 
 NOTE: These are characterization tests documenting existing implementation.
 The Copilot ingestion feature is already implemented in unified_semantic_daemon.py.

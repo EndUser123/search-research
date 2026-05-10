@@ -18,12 +18,12 @@ from pathlib import Path
 from typing import Any, Optional
 
 # Add debugRCA package to path
-debugrca_src = str(Path("P:\\\\packages/debugRCA/src").resolve())
+debugrca_src = str(Path("P:\\\\\\packages/debugRCA/src").resolve())
 if debugrca_src not in sys.path:
     sys.path.insert(0, debugrca_src)
 
 # Add CSF src to path for CKS integration
-csf_src = str(Path("P:\\\\__csf/src").resolve())
+csf_src = str(Path("P:\\\\\\__csf/src").resolve())
 if csf_src not in sys.path:
     sys.path.insert(0, csf_src)
 

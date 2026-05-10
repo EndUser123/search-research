@@ -5,7 +5,7 @@ Uses tree-sitter for unified parsing across all languages with fallback to Pytho
 
 Performance: 10x faster than pure ast, incremental parsing, error recovery.
 
-Migrated from: P:\\\\__csf/src/search/backends/multilang_backend.py
+Migrated from: P:\\\\\\__csf/src/search/backends/multilang_backend.py
 """
 
 from __future__ import annotations

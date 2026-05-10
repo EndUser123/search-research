@@ -201,6 +201,63 @@ def _query_hybrid_corrections(prompt: str, max_results: int = 3, hours: int = 24
     return merged[:max_results]
 
 
+HOOK_KNOWLEDGE_TYPES = ("knowledge", "pattern", "decision", "insight", "learning")
+
+KNOWLEDGE_SEMANTIC_ENABLED = os.environ.get("CKS_KNOWLEDGE_SEMANTIC", "true").lower() in ("1", "true", "yes")
+KNOWLEDGE_AUTO_INJECT_ENABLED = os.environ.get("CKS_KNOWLEDGE_AUTO_INJECT", "true").lower() in ("1", "true", "yes")
+
+
+def _query_knowledge_base(prompt: str, max_results: int = 2) -> list[dict]:
+    """Query CKS durable knowledge entries via semantic search (no time window).
+
+    Unlike corrections (ephemeral, 24h), knowledge/pattern/decision entries are
+    durable and should be searchable regardless of age. Uses semantic search so
+    queries like "glm-5.1 model availability" match entries about "z.ai endpoint
+    configuration" even without keyword overlap.
+    """
+    if not KNOWLEDGE_AUTO_INJECT_ENABLED:
+        return []
+    try:
+        from cks.unified import CKS
+
+        cks_db_path = Path("P:/__csf/data/cks.db")
+        if not cks_db_path.exists():
+            return []
+
+        with CKS(db_path=cks_db_path, enable_semantic=KNOWLEDGE_SEMANTIC_ENABLED) as cks:
+            results = cks.search(query=prompt, limit=max_results * 3)
+
+        # Filter to durable knowledge types only
+        filtered = [r for r in results if r.get("type") in HOOK_KNOWLEDGE_TYPES]
+        return filtered[:max_results]
+
+    except Exception:
+        return []
+
+
+def _format_knowledge_context(results: list[dict], prompt: str) -> str:
+    """Format knowledge base results as context injection."""
+    if not results:
+        return ""
+
+    lines = [
+        "## Relevant CKS Knowledge",
+        "",
+    ]
+    for i, result in enumerate(results, 1):
+        title = result.get("title", "") or f"Entry {result.get('id')}"
+        entry_type = result.get("type", "knowledge")
+        content = result.get("content", "")
+        if len(content) > 300:
+            content = content[:300] + "..."
+        lines.append(f"{i}. **[{entry_type}] {title}**")
+        lines.append(f"   {content}")
+        lines.append("")
+
+    lines.append("*Knowledge auto-injected by cks_context hook.*")
+    return "\n".join(lines)
+
+
 def _format_recent_corrections(results: list[dict], prompt: str) -> str:
     """Format recent corrections as context injection."""
     if not results:
@@ -363,6 +420,14 @@ def cks_context_hook(context: HookContext) -> HookResult:
         corrections = _query_hybrid_corrections(context.prompt, max_results=3, hours=24)
         if corrections:
             formatted = _format_recent_corrections(corrections, context.prompt)
+            if formatted:
+                parts.append(formatted)
+
+    # 3. Auto-inject relevant knowledge on analysis/final-answer turns
+    if _should_inject_recent_corrections(context.prompt):
+        knowledge = _query_knowledge_base(context.prompt, max_results=2)
+        if knowledge:
+            formatted = _format_knowledge_context(knowledge, context.prompt)
             if formatted:
                 parts.append(formatted)
 

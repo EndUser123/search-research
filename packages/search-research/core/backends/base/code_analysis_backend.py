@@ -3,7 +3,7 @@
 Provides common functionality for dependency analysis, impact assessment,
 and relationship tracking across different code analysis implementations.
 
-Migrated from: P:\\\\__csf/src/search/backends/code_analysis_backend.py
+Migrated from: P:\\\\\\__csf/src/search/backends/code_analysis_backend.py
 """
 
 from __future__ import annotations

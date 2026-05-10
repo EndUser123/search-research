@@ -9,7 +9,7 @@ from typing import Any
 
 from .db import get_connection
 
-DB_PATH = Path("P:\\\\__csf/data/chat_history.db")
+DB_PATH = Path("P:\\\\\\__csf/data/chat_history.db")
 
 
 def upsert_event(event: dict[str, Any]) -> bool:

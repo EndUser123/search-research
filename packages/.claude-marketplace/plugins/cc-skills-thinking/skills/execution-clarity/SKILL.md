@@ -63,7 +63,7 @@ Activate when:
 - Complex tasks
 - Decisions required
 - Recommendations needed
-- Risk assessment
+- Risk assessment (Metric: **Cognitive Load Assessment**)
 - Multi-step operations
 
 ## Plan-Then-Act Pattern
@@ -112,15 +112,16 @@ Vague indicators:
 | "Improve error handling" | Vague | Architecture first |
 
 **Workflow:**
-```
-Vague directive detected
-    ↓
-Present architecture: scope, approach, files affected
-    ↓
-Wait for explicit approval ("proceed", "do it", "approved")
-    ↓
-Execute
-```
+1. **Assess Ambiguity**: If score is >0.5, present architecture first.
+2. **Present architecture**: scope, approach, files affected.
+3. **Wait for explicit approval** ("proceed", "do it", "approved").
+4. **Execute**.
+
+**Diagnostic Metric: Cognitive Load Assessment**
+Before Phase 2 (Execution), check if the plan exceeds the cognitive threshold:
+- High Load: >5 files affected OR >3 unrelated modules.
+- Risk: High probability of LLM drift.
+- Action: Recommend splitting the task into smaller sub-tasks.
 
 **Never skip architecture for vague directives.** If scope isn't obvious, it needs definition before action.
 

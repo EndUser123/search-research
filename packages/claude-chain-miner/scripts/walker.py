@@ -29,14 +29,14 @@ _CLAUDE_BASE = Path.home() / ".claude"
 _HANDOFF_DIR = _CLAUDE_BASE / "state" / "handoff"
 _PROJECTS_DIR = _CLAUDE_BASE / "projects"
 _SESSION_INDEX_CANDIDATES = (
-    Path("P:\\\\.claude/sessions.json"),
+    Path("P:\\\\\\.claude/sessions.json"),
     _CLAUDE_BASE / "sessions.json",
 )
 
 
 def _project_handoff_dir() -> Path:
     """Project-scoped handoff directory (where PreCompact writes on P: drive)."""
-    p_drive = Path("P:\\\\")
+    p_drive = Path("P:\\\\\\")
     if p_drive.exists():
         project_path = p_drive / ".claude" / "state" / "handoff"
         if project_path.exists():
@@ -47,7 +47,7 @@ def _project_handoff_dir() -> Path:
 def _candidate_projects_dirs() -> list[Path]:
     """Return project transcript directories to search, in priority order."""
     dirs: list[Path] = []
-    for candidate in (Path("P:\\\\.claude/projects"), _PROJECTS_DIR):
+    for candidate in (Path("P:\\\\\\.claude/projects"), _PROJECTS_DIR):
         try:
             if candidate.exists() and candidate not in dirs:
                 dirs.append(candidate)

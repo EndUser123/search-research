@@ -262,4 +262,4 @@ When using this framework, return:
 ## References
 
 - **Enhanced framework:** `references/enhanced_decision_tree.md`
-- **Related:** `P:\\\\.claude/skills/subagent-first/DECISION_TREE.md`
+- **Related:** `P:\\\\\\.claude/skills/subagent-first/DECISION_TREE.md`

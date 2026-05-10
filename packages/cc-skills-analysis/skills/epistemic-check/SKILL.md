@@ -52,6 +52,7 @@ Parse the response into sections. Check:
 - Correct section order
 - No text outside sections
 - All bullets start with `- `
+- **Diagnostic Metric: Contradiction Detection**: Ensure [FACT] sections do not contradict [INFERENCE] or [RECOMMENDATION] sections.
 
 Report format issues here.
 
@@ -68,6 +69,7 @@ Check causal language (`because`, `causes`, `leads to`, `is caused by`, `due to`
 
 Check comparative/superlative language (`best`, `optimal`, `safest`, `most efficient`, `lowest risk`, `simplest`, etc.):
 
+- **Diagnostic Metric: Semantic Ambiguity**: Flag vague comparatives that lack a measurable technical signal or criterion.
 - **[FACT]**: Comparatives require citation or external reference, otherwise move to INFERENCE
 - **[INFERENCE]**: Superlatives require uncertainty markers, otherwise flag
 - **[UNKNOWN]**: Must NOT contain comparative claims

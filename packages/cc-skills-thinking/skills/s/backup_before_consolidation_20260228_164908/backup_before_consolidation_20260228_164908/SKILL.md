@@ -150,7 +150,7 @@ Before running the script, resolve the user's topic to a filesystem path:
 Run:
 
 ```bash
-python P:\\\\.claude/skills/s/scripts/run_heavy.py \
+python P:\\\\\\.claude/skills/s/scripts/run_heavy.py \
   --topic "{{USER_PROMPT}}" \
   --context-path "{{RESOLVED_PATH_OR_OMIT}}" \
   --personas "{{PERSONAS_CSV_OR_EMPTY}}" \

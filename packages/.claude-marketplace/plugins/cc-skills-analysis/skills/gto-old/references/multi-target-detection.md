@@ -39,9 +39,9 @@ When `--project-root` IS provided explicitly, use this priority:
 # Explicit single target
 /gto --project-root "$CLAUDE_ROOT/skills\gto"
 
-/gto --project-root "P:\\\\packages\handoff"
+/gto --project-root "P:\\\\\\packages\handoff"
 
 /gto --project-root "$CLAUDE_ROOT/hooks"
 ```
 
-**WARNING:** P:\\\\ is the config root, not a valid target. Running GTO on P:\\\\ will fail with an error explaining why.
+**WARNING:** P:\\\\\\ is the config root, not a valid target. Running GTO on P:\\\\\\ will fail with an error explaining why.

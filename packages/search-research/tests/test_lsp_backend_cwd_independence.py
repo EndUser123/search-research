@@ -3,7 +3,7 @@
 These tests verify that the LSP backend defaults to an absolute path anchored
 to the package location, not relative to process CWD.
 
-Run: pytest P:\\\\packages/search-research/tests/test_lsp_backend_cwd_independence.py -v
+Run: pytest P:\\\\\\packages/search-research/tests/test_lsp_backend_cwd_independence.py -v
 """
 
 from __future__ import annotations
@@ -15,9 +15,9 @@ from pathlib import Path
 import pytest
 
 # Import directly to bypass __init__.py which imports modules requiring sentence_transformers
-# __file__ = P:\\\\packages/search-research/tests/test_xxx.py
+# __file__ = P:\\\\\\packages/search-research/tests/test_xxx.py
 # parents[0] = tests/, parents[1] = search-research/, parents[2] = packages/
-project_root = Path(__file__).resolve().parents[1]  # P:\\\\packages/search-research
+project_root = Path(__file__).resolve().parents[1]  # P:\\\\\\packages/search-research
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
@@ -51,7 +51,7 @@ class TestLSPSymbolBackendCwdIndependence:
             )
 
     def test_default_root_paths_point_to_package_core(self):
-        """Verify default resolves to P:\\\\packages/search-research/core."""
+        """Verify default resolves to P:\\\\\\packages/search-research/core."""
         expected = project_root / "core"
         backend = LSPSymbolBackend()
 

@@ -788,15 +788,15 @@ class TestRemediationTemplates:
 
     def test_build_remediation_software_rca(self):
         msg = _build_remediation_message("software_rca", "missing test")
-        assert "conclusion" in msg.lower()
-        assert "verification" in msg.lower()
+        assert "contract" in msg.lower()
+        assert "patching" in msg.lower() or "edge" in msg.lower()
         assert "missing test" in msg
 
     def test_build_remediation_general_diagnostic(self):
         msg = _build_remediation_message("general_diagnostic", "premature absence")
-        # Must contain the new absence-check language
-        assert "missing" in msg.lower() or "unavailable" in msg.lower()
-        assert "evidence" in msg.lower() or "checked" in msg.lower()
+        # Must contain contract-preserving language
+        assert "contract" in msg.lower()
+        assert "falsify" in msg.lower() or "edge" in msg.lower()
         assert "premature absence" in msg
 
     def test_build_remediation_evaluative_recommendation(self):
@@ -841,8 +841,8 @@ class TestRemediationTemplates:
         assert result is not None
         assert result.get("allow") is True
         system_msg = result.get("systemMessage", "")
-        # Should contain software_rca-specific remediation
-        assert "conclusion" in system_msg.lower() or "verification" in system_msg.lower()
+        # Should contain contract-preserving remediation
+        assert "contract" in system_msg.lower()
         assert "Missing mechanism trace" in system_msg
 
 
@@ -975,22 +975,22 @@ class TestGeneralDiagnosticRemediationUpdated:
     """Verify general_diagnostic remediation uses the absence-check template."""
 
     def test_new_absence_template(self):
-        """general_diagnostic remediation must contain absence-check language."""
+        """general_diagnostic remediation must contain contract-preserving language."""
         import Stop_semantic_critic as mod
 
         msg = mod._build_remediation_message("general_diagnostic", "no key found")
-        assert "missing" in msg.lower() or "unavailable" in msg.lower()
-        assert "checked" in msg.lower() or "evidence" in msg.lower()
+        assert "contract" in msg.lower()
+        assert "falsify" in msg.lower() or "edge" in msg.lower()
         assert "no key found" in msg
 
     def test_spec_divergence_clause_present(self):
-        """general_diagnostic remediation must include spec-alignment clause."""
+        """general_diagnostic remediation must include contract-preserving clause."""
         import Stop_semantic_critic as mod
 
         msg = mod._build_remediation_message("general_diagnostic", "silent pivot")
-        assert "hook phase" in msg.lower() or "constraints" in msg.lower()
-        assert "confirm" in msg.lower()
-        assert "silently" in msg.lower()
+        assert "contract" in msg.lower()
+        assert "falsify" in msg.lower() or "symptom" in msg.lower()
+        assert "silent pivot" in msg
 
 
 class TestSpecAlignmentCriterion:
@@ -1059,8 +1059,8 @@ class TestSpecAlignmentCriterion:
 
         assert result is not None
         assert result.get("allow") is True
-        # Remediation must reference hook phase / confirmation
-        assert "confirm" in result["systemMessage"].lower() or "constraints" in result["systemMessage"].lower()
+        # Remediation must reference contract-preserving language
+        assert "contract" in result["systemMessage"].lower()
 
     def test_explicit_proposal_not_penalized(self, monkeypatch):
         """Answer that explicitly proposes a different approach should get ok=true."""
@@ -1095,6 +1095,657 @@ class TestSpecAlignmentCriterion:
 
         # ok=true -> run() returns None
         assert result is None
+
+
+# =============================================================================
+# Contract-preserving implementation — behavioral tests
+# =============================================================================
+
+
+class TestContractPreservingCritic:
+    """Behavioral tests for contract-preserving enforcement in the semantic critic.
+
+    These tests verify that the critic BEHAVIORALLY distinguishes:
+    - Symptom-only patch answers (should fail or require remediation)
+    - Contract-preserving answers (should pass)
+
+    Uses mocked Bifrost to control critic verdict.
+    """
+
+    def test_symptom_only_patch_should_fail(self, monkeypatch):
+        """A symptom-only patch answer that doesn't state the contract should fail.
+
+        Answer: patches the symptom, no contract, no edge-case tests, no falsification.
+        """
+        import Stop_semantic_critic as mod
+
+        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
+            # Simulate critic detecting symptom-only patch
+            return {
+                "ok": True,
+                "model": model,
+                "text": '{"ok": false, "reason": "Proposed fix patches symptom without '
+                       'articulating the contract it preserves or including edge-case tests."}',
+                "status": "ok",
+                "error_type": "",
+                "ttfb_ms": 100,
+                "total_ms": 400,
+            }
+
+        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        mod._INVOCATION_COUNTS.clear()
+
+        result = mod.run({
+            "session_id": "contract-fail-test",
+            "user_prompt": "Why is the hook blocking user questions as direct answers?",
+            "response": (
+                "The fix adds a question-word exclusion to the direct-answer check. "
+                "Now user questions starting with what/why/how are blocked. "
+                "Tests pass in the current session. "
+                "The fix changes the regex to exclude question-word leads before matching. "
+                "Verified with pytest — all tests pass."
+            ) * 5,
+        })
+
+        # ok=false -> run() returns dict with remediation
+        assert result is not None
+        assert "systemMessage" in result
+        # Remediation should reference contract-preserving behavior
+        assert "contract" in result["systemMessage"].lower()
+
+    def test_contract_preserving_answer_should_pass(self, monkeypatch):
+        """A contract-preserving answer that states contract and edge cases should pass.
+
+        Answer: states what must stay classified, identifies falsification conditions,
+        includes focused edge-case tests.
+        """
+        import Stop_semantic_critic as mod
+
+        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
+            # Simulate critic finding contract-preserving answer adequate
+            return {
+                "ok": True,
+                "model": model,
+                "text": '{"ok": true, "reason": "Adequate. Contract stated, falsification '
+                       'conditions identified, edge-case tests included."}',
+                "status": "ok",
+                "error_type": "",
+                "ttfb_ms": 100,
+                "total_ms": 400,
+            }
+
+        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        mod._INVOCATION_COUNTS.clear()
+
+        result = mod.run({
+            "session_id": "contract-pass-test",
+            "user_prompt": "Fix the auth token validation bug in epistemic_validator.py",
+            "response": (
+                "The contract: user questions (what/why/how) are NOT direct answers. "
+                "Inputs starting with these words must be blocked with citation requirement, "
+                "while real direct answers (is/does/can) that do NOT start with question words "
+                "remain exempt. "
+                "Falsification: if 'What's your name?' passes without citation, the fix is wrong. "
+                "Edge case tests added: test_question_word_lead_blocks, test_real_direct_answers_still_allow."
+            ),
+        })
+
+        # ok=true -> run() returns None (allow)
+        assert result is None
+
+    def test_patch_without_falsification_should_fail(self, monkeypatch):
+        """A patch that doesn't identify what would make it wrong should fail.
+
+        Answer: has mechanism, but no falsification conditions, no edge-case tests.
+        """
+        import Stop_semantic_critic as mod
+
+        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
+            return {
+                "ok": True,
+                "model": model,
+                "text": '{"ok": false, "reason": "Fix states mechanism but does not identify '
+                       'what would make it wrong or include edge-case tests."}',
+                "status": "ok",
+                "error_type": "",
+                "ttfb_ms": 100,
+                "total_ms": 400,
+            }
+
+        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        mod._INVOCATION_COUNTS.clear()
+
+        result = mod.run({
+            "session_id": "falsification-fail-test",
+            "user_prompt": "Debug why the hook keeps blocking valid input",
+            "response": (
+                "The hook is matching user questions as direct answers because the regex "
+                "'^(is|does|can)' matches 'what's' after lowercasing. "
+                "The fix is to add a question-word exclusion before applying the regex. "
+                "Verified by running pytest — tests pass now."
+            ) * 5,
+        })
+
+        # ok=false -> remediation dict returned
+        assert result is not None
+        assert "systemMessage" in result
+
+    def test_remediation_templates_are_contract_preserving(self):
+        """Remediation templates push toward contract-preserving behavior."""
+        from Stop_semantic_critic import REMEDIATION_TEMPLATES
+
+        # software_rca should reference contract, edge cases, falsification
+        s_rca = REMEDIATION_TEMPLATES.get("software_rca", "")
+        assert "contract" in s_rca.lower()
+        assert "test" in s_rca.lower() or "edge" in s_rca.lower()
+
+        # general_diagnostic should reference contract, falsification, edge cases
+        g_diag = REMEDIATION_TEMPLATES.get("general_diagnostic", "")
+        assert "contract" in g_diag.lower()
+        assert "falsify" in g_diag.lower() or "edge" in g_diag.lower()
+
+
+# =============================================================================
+# Schema-and-evidence discipline — CLAUDE.md principle check
+# =============================================================================
+
+
+class TestSchemaEvidenceDisciplineInCLAUDEMD:
+    """Verify CLAUDE.md contains the schema-and-evidence discipline principle."""
+
+    def test_claude_md_contains_schema_section(self):
+        import pathlib
+
+        claude_md_path = pathlib.Path("P:/.claude/CLAUDE.md")
+        assert claude_md_path.exists(), "CLAUDE.md not found at expected path"
+
+        content = claude_md_path.read_text(encoding="utf-8")
+        assert "schema-and-evidence" in content.lower() or "schema and evidence" in content.lower(), (
+            "CLAUDE.md must contain a schema-and-evidence discipline section"
+        )
+
+    def test_claude_md_mentions_producer_artifact_consumer(self):
+        import pathlib
+
+        claude_md_path = pathlib.Path("P:/.claude/CLAUDE.md")
+        content = claude_md_path.read_text(encoding="utf-8")
+
+        # Principle must reference producer, artifact, consumer (or close equivalents)
+        schema_section = content[content.lower().find("schema-and-evidence") :]
+        schema_section = schema_section[: schema_section.find("\n##") if "\n##" in schema_section else 500]
+
+        assert "producer" in schema_section.lower()
+        assert "artifact" in schema_section.lower()
+        assert "consumer" in schema_section.lower()
+
+    def test_claude_md_prohibits_aggregate_count_mechanism_claims(self):
+        import pathlib
+
+        claude_md_path = pathlib.Path("P:/.claude/CLAUDE.md")
+        content = claude_md_path.read_text(encoding="utf-8")
+
+        schema_section_start = content.lower().find("schema-and-evidence")
+        assert schema_section_start != -1, "Schema-and-evidence section not found"
+        # Enough chars to include all 4 bullet points
+        schema_section = content[schema_section_start : schema_section_start + 900]
+
+        assert "aggregate" in schema_section.lower()
+        assert "mechanism" in schema_section.lower()
+
+    def test_claude_md_has_falsification_principle(self):
+        import pathlib
+
+        claude_md_path = pathlib.Path("P:/.claude/CLAUDE.md")
+        content = claude_md_path.read_text(encoding="utf-8")
+
+        schema_section_start = content.lower().find("schema-and-evidence")
+        assert schema_section_start != -1, "Schema-and-evidence section not found"
+        # Falsification test paragraph starts ~1100 chars in; read enough to capture it
+        schema_section = content[schema_section_start : schema_section_start + 1600]
+
+        # Check for falsification language (uses "would be wrong if" in CLAUDE.md)
+        assert (
+            "falsification" in schema_section.lower()
+            or "would be wrong if" in schema_section.lower()
+        ), "CLAUDE.md must contain falsification test for schema-and-evidence section"
+
+
+# =============================================================================
+# Schema-and-evidence discipline — critic prompt criteria check
+# =============================================================================
+
+
+class TestSchemaEvidenceInCriticPrompts:
+    """Verify software_rca and general_diagnostic profiles contain the schema-and-evidence criteria.
+
+    The evaluative_recommendation profile is intentionally out of scope — it addresses
+    evaluative/prescriptive reasoning, not mechanism/schema analysis.
+    """
+
+    # All three profiles are listed here, but schema-discipline criteria apply only to
+    # software_rca and general_diagnostic. evaluative_recommendation is out of scope.
+    _profiles_with_criteria = [
+        ("software_rca", "software_rca"),
+        ("general_diagnostic", "general_diagnostic"),
+        ("evaluative_recommendation", "evaluative_recommendation"),
+    ]
+
+    def test_all_profiles_check_schema_inference_from_summaries(self):
+        for profile_key, profile_name in self._profiles_with_criteria:
+            prompt = CRITIC_PROMPTS[profile_key]
+            # Only software_rca and general_diagnostic (mechanism/schema profiles) apply here.
+            # evaluative_recommendation is out of scope — it does not analyze schema or mechanism.
+            if profile_key in ("software_rca", "general_diagnostic"):
+                assert "infer" in prompt.lower() or "summary" in prompt.lower(), (
+                    f"{profile_name} must check schema inference from summaries"
+                )
+                assert (
+                    "artif" in prompt.lower()
+                    or "event" in prompt.lower()
+                    or "record" in prompt.lower()
+                ), f"{profile_name} must reference artifacts/events/records"
+
+    def test_all_profiles_check_aggregate_vs_event_level(self):
+        for profile_key, profile_name in self._profiles_with_criteria:
+            prompt = CRITIC_PROMPTS[profile_key]
+            assert "aggregate" in prompt.lower() or "count" in prompt.lower(), (
+                f"{profile_name} must check aggregate count vs event-level claims"
+            )
+
+    def test_all_profiles_check_consumer_producer_schema_alignment(self):
+        for profile_key, profile_name in self._profiles_with_criteria:
+            prompt = CRITIC_PROMPTS[profile_key]
+            # Must check that parser/consumer alignment is verified
+            assert (
+                "consumer" in prompt.lower()
+                or "parser" in prompt.lower()
+                or "schema" in prompt.lower()
+            ), f"{profile_name} must check consumer/parser/schema alignment"
+
+    def test_software_rca_has_schema_inference_examples(self):
+        prompt = CRITIC_PROMPTS["software_rca"]
+        # Must have the new schema-inference examples
+        assert "Example 7" in prompt
+        assert "Example 8" in prompt
+        assert "aggregate" in prompt.lower()
+        assert "emitter" in prompt.lower() or "producer" in prompt.lower()
+
+    def test_general_diagnostic_has_schema_inference_examples(self):
+        prompt = CRITIC_PROMPTS["general_diagnostic"]
+        # Must have the new schema-inference examples
+        assert "Example 8" in prompt
+        assert "Example 9" in prompt
+        assert "benchmark" in prompt.lower()
+        assert "aggregate" in prompt.lower()
+
+
+# =============================================================================
+# Schema-and-evidence discipline — remediation template check
+# =============================================================================
+
+
+class TestSchemaEvidenceRemediation:
+    """Verify remediation templates push toward producer/artifact/parser alignment."""
+
+    def test_software_rca_remediation_mentions_producer_artifact(self):
+        template = REMEDIATION_TEMPLATES["software_rca"]
+        assert "producer" in template.lower() or "emitter" in template.lower()
+        assert "artifact" in template.lower() or "record" in template.lower()
+
+    def test_software_rca_remediation_mentions_consumer_parser_alignment(self):
+        template = REMEDIATION_TEMPLATES["software_rca"]
+        assert "consumer" in template.lower() or "parser" in template.lower()
+        assert "align" in template.lower() or "schema" in template.lower()
+
+    def test_software_rca_remediation_prohibits_aggregate_mechanism_claims(self):
+        template = REMEDIATION_TEMPLATES["software_rca"]
+        assert "aggregate" in template.lower()
+        assert "event-level" in template.lower() or "event level" in template.lower()
+
+    def test_general_diagnostic_remediation_mentions_producer_artifact(self):
+        template = REMEDIATION_TEMPLATES["general_diagnostic"]
+        assert "producer" in template.lower() or "emitter" in template.lower()
+        assert "artifact" in template.lower() or "record" in template.lower()
+
+    def test_general_diagnostic_remediation_mentions_interpretation_layer(self):
+        template = REMEDIATION_TEMPLATES["general_diagnostic"]
+        assert (
+            "interpretation" in template.lower()
+            or "consumer" in template.lower()
+            or "parser" in template.lower()
+        )
+        assert "fix" in template.lower()
+
+    def test_remediation_not_empty_for_all_profiles(self):
+        for profile in CRITIC_PROMPTS:
+            template = REMEDIATION_TEMPLATES.get(profile, "")
+            assert len(template) > 20, f"Remediation for {profile} must not be empty"
+
+
+# =============================================================================
+# Schema-and-evidence discipline — behavioral critic tests
+# =============================================================================
+
+
+class TestSchemaEvidenceBehavioralCritic:
+    """Behavioral tests for schema-and-evidence discipline enforcement.
+
+    A bad answer that infers schema from summaries should fail.
+    A good answer that verifies producer/artifact/parser alignment should pass.
+
+    Only software_rca and general_diagnostic profiles are subject to this discipline.
+    evaluative_recommendation is intentionally excluded — it addresses evaluative/prescriptive
+    reasoning, not mechanism/schema analysis.
+    """
+
+    def test_schema_discipline_bad_answer_infers_from_aggregate_count(self, monkeypatch):
+        """Answer infers failure mechanism from aggregate count without inspecting producer, artifact, or consumer.
+
+        This is the core anti-pattern the schema-and-evidence discipline targets.
+        """
+        import Stop_semantic_critic as mod
+
+        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
+            return {
+                "ok": True,
+                "model": model,
+                "text": '{"ok": false, "reason": "Infers failure mechanism from aggregate count '
+                       'without inspecting actual event records, producer code, or consumer schema."}',
+                "status": "ok",
+                "error_type": "",
+                "ttfb_ms": 100,
+                "total_ms": 400,
+            }
+
+        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        mod._INVOCATION_COUNTS.clear()
+
+        # A "bad" answer: aggregate count claim + mechanism inference from parser/summary only,
+        # no reference to producer code, real emitted artifact, or consumer/producer alignment.
+        # Must exceed 50-word gate in _is_diagnostic_scope and trigger diagnostic keywords.
+        bad_answer = (
+            "The pipeline reports 200 failed batches. Based on the aggregate failure count "
+            "and the parser's error output, the root cause is a schema mismatch in the reader. "
+            "The reader cannot parse the incoming event format correctly. "
+            "This matches the pattern from the parser summary which shows 'schema mismatch' errors. "
+            "The mechanism is that the reader's parser is not aligned with the actual event shape, "
+            "which explains why all 200 batches fail at the parsing layer."
+        ) * 3
+
+        result = mod.run({
+            "session_id": "schema-discipline-bad-test",
+            "user_prompt": "Root cause why the pipeline reports 200 failed batches — is the reader broken?",
+            "response": bad_answer,
+        })
+
+        assert result is not None
+        assert result.get("allow") is True
+        system_msg = result.get("systemMessage", "")
+        # Remediation must push toward producer/artifact/consumer/parser alignment
+        remediation_keywords = ["producer", "artifact", "consumer", "parser", "aggregate"]
+        assert any(kw in system_msg.lower() for kw in remediation_keywords), (
+            f"Schema-discipline remediation must push toward producer/artifact/parser alignment. "
+            f"Got systemMessage: {system_msg[:200]}"
+        )
+
+    def test_schema_discipline_good_answer_verifies_producer_artifact_consumer(self, monkeypatch):
+        """Answer that verifies producer, inspects real artifact, and checks consumer alignment should pass."""
+        import Stop_semantic_critic as mod
+
+        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
+            return {
+                "ok": True,
+                "model": model,
+                "text": '{"ok": true, "reason": "Producer identified, artifact inspected, '
+                       'consumer/parser alignment verified."}',
+                "status": "ok",
+                "error_type": "",
+                "ttfb_ms": 100,
+                "total_ms": 400,
+            }
+
+        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        mod._INVOCATION_COUNTS.clear()
+
+        # A "good" answer: explicitly describes producer code, real artifact, consumer alignment
+        good_answer = (
+            "The pipeline reports 200 failed batches. I identified the producer code (batch_reader.py) "
+            "and inspected a real emitted batch record from the logs directory — the record shows fields "
+            "{timestamp, event_type, batch_id, payload}. I verified the consumer schema in event_processor.py "
+            "— it reads {timestamp, event_type, batch_id, payload}, matching the producer's current shape. "
+            "The consumer/parser alignment is correct. The failures are caused by stale log directories, "
+            "not a schema mismatch — the producer and consumer are aligned."
+        )
+
+        result = mod.run({
+            "session_id": "schema-discipline-good-test",
+            "user_prompt": "Root cause why the pipeline reports 200 failed batches — is the reader broken?",
+            "response": good_answer,
+        })
+
+        # ok=true -> run() returns None (allow without advisory)
+        assert result is None
+
+    def test_aggregate_count_claim_without_event_records_should_fail(self, monkeypatch):
+        """Infers failure mechanism from aggregate count without examining event records."""
+        import Stop_semantic_critic as mod
+
+        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
+            return {
+                "ok": True,
+                "model": model,
+                "text": '{"ok": false, "reason": "Infers failure mechanism from aggregate count '
+                       'without inspecting actual event records, producer code, or consumer schema."}',
+                "status": "ok",
+                "error_type": "",
+                "ttfb_ms": 100,
+                "total_ms": 400,
+            }
+
+        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        mod._INVOCATION_COUNTS.clear()
+
+        result = mod.run({
+            "session_id": "aggregate-fail-test",
+            "user_prompt": "Root cause why the pipeline reports 200 failed batches — is the reader broken?",
+            "response": (
+                "200 batches failed. The reader is broken. Check the reader code and fix the bugs. "
+                "The root cause is a schema mismatch in the reader that processes batch events. "
+                "This is a known issue when the reader encounters unexpected record shapes. "
+                "The mechanism is that the reader cannot parse the incoming batch format correctly."
+            ) * 5,
+        })
+
+        assert result is not None
+        assert result.get("allow") is True
+        system_msg = result.get("systemMessage", "")
+        # Remediation must push toward producer/artifact/parser alignment
+        assert (
+            "producer" in system_msg.lower()
+            or "artifact" in system_msg.lower()
+            or "consumer" in system_msg.lower()
+            or "aggregate" in system_msg.lower()
+        )
+
+    def test_schema_inference_from_parser_output_without_verification_should_fail(
+        self, monkeypatch
+    ):
+        """Diagnoses schema mismatch from parser output without verifying producer shape."""
+        import Stop_semantic_critic as mod
+
+        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
+            return {
+                "ok": True,
+                "model": model,
+                "text": '{"ok": false, "reason": "Diagnoses schema mismatch from parser output '
+                       'without verifying the producer\'s current record shape or checking a real artifact."}',
+                "status": "ok",
+                "error_type": "",
+                "ttfb_ms": 100,
+                "total_ms": 400,
+            }
+
+        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        mod._INVOCATION_COUNTS.clear()
+
+        result = mod.run({
+            "session_id": "schema-inference-fail-test",
+            "user_prompt": "Why is the parser reporting zero events?",
+            "response": (
+                "The parser reports zero events. This means the event shape doesn't match "
+                "the consumer's expectations. The producer emits {timestamp, type, data} but "
+                "the consumer expects {event_time, kind, payload}. Fix the consumer schema."
+            ) * 5,
+        })
+
+        assert result is not None
+        assert result.get("allow") is True
+        assert "producer" in result["systemMessage"].lower() or "artifact" in result["systemMessage"].lower()
+
+    def test_producer_artifact_parser_verified_answer_should_pass(self, monkeypatch):
+        """A diagnostic answer that verifies producer, inspects artifact, and checks consumer alignment should pass."""
+        import Stop_semantic_critic as mod
+
+        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
+            return {
+                "ok": True,
+                "model": model,
+                "text": '{"ok": true, "reason": "Adequate. Producer identified, artifact inspected, '
+                       'consumer/parser alignment verified."}',
+                "status": "ok",
+                "error_type": "",
+                "ttfb_ms": 100,
+                "total_ms": 400,
+            }
+
+        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        mod._INVOCATION_COUNTS.clear()
+
+        result = mod.run({
+            "session_id": "schema-pass-test",
+            "user_prompt": "Why is the benchmark reporting zero events?",
+            "response": (
+                "The benchmark reports zero events. I checked the producer code in benchmark_runner.py — "
+                "it emits events with fields {session_id, timestamp, event_type, payload}. "
+                "I then inspected a real emitted event from the logs directory — the event record shows "
+                "{session_id, timestamp, event_type, payload} with all fields populated. "
+                "I verified the consumer schema in event_processor.py — it reads {session_id, timestamp, "
+                "event_type, payload}, matching the producer. "
+                "The zero count is likely a reporting issue in the aggregator, not a producer or schema mismatch. "
+                "To confirm: check whether the aggregator is reading from the correct log directory."
+            ) * 3,
+        })
+
+        # ok=true -> run() returns None (allow without advisory)
+        assert result is None
+
+    def test_intermediate_vs_terminal_failure_distinguished_should_pass(self, monkeypatch):
+        """Answer that distinguishes intermediate from terminal failure should pass."""
+        import Stop_semantic_critic as mod
+
+        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
+            return {
+                "ok": True,
+                "model": model,
+                "text": '{"ok": true, "reason": "Adequate. Event-level records examined, '
+                       'intermediate vs terminal failure distinguished."}',
+                "status": "ok",
+                "error_type": "",
+                "ttfb_ms": 100,
+                "total_ms": 400,
+            }
+
+        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        mod._INVOCATION_COUNTS.clear()
+
+        result = mod.run({
+            "session_id": "intermediate-terminal-pass-test",
+            "user_prompt": "Why did 50 records fail in the pipeline?",
+            "response": (
+                "50 records failed. I inspected the individual batch records in the logs — "
+                "40 failed in the parser (schema mismatch) and 10 failed in transmission (network timeout). "
+                "These are intermediate failures (parser) vs terminal failures (transmission). "
+                "The parser is reading {a, b, c} but the producer emits {x, y, z}. "
+                "The transmission failures are genuine network timeouts, not pipeline issues. "
+                "Fix the parser schema to match the producer's current record shape."
+            ) * 3,
+        })
+
+        assert result is None
+
+
+class TestCriticRoutingCoverage:
+    """Verify critic profile routing for high-value diagnostic flows.
+
+    software_rca: root cause / high software signal count
+    general_diagnostic: schema/observability/benchmark signals (or fallback)
+    evaluative_recommendation: evaluative signals only (not mechanism/schema)
+    """
+
+    def test_rca_prompt_routes_to_software_rca(self):
+        from Stop_semantic_critic import _detect_critic_profile
+
+        prompt = "Root cause why the API is returning 500 errors?"
+        response = "The 500 errors are caused by a null pointer exception in the user service."
+        assert _detect_critic_profile(prompt, response) == "software_rca"
+
+    def test_high_software_signal_routes_to_software_rca(self):
+        from Stop_semantic_critic import _detect_critic_profile
+
+        prompt = "Debug the crash and the timeout in the service."
+        response = "The crash is caused by a deadlock, and the timeout by a query issue."
+        assert _detect_critic_profile(prompt, response) == "software_rca"
+
+    def test_observability_diagnostic_routes_to_general_diagnostic(self):
+        from Stop_semantic_critic import _detect_critic_profile
+
+        prompt = "Why is the telemetry reporting zero events?"
+        response = "The benchmark aggregator shows zero events."
+        assert _detect_critic_profile(prompt, response) == "general_diagnostic"
+
+    def test_schema_mismatch_routes_to_general_diagnostic(self):
+        from Stop_semantic_critic import _detect_critic_profile
+
+        prompt = "Why is the parser producing empty output?"
+        response = "There is a schema mismatch between the producer and consumer."
+        assert _detect_critic_profile(prompt, response) == "general_diagnostic"
+
+    def test_aggregate_count_without_high_software_signal_routes_to_general_diagnostic(self):
+        from Stop_semantic_critic import _detect_critic_profile
+
+        prompt = "The pipeline reports 200 failed batches — investigate."
+        response = "Based on the aggregate count, the reader appears broken."
+        assert _detect_critic_profile(prompt, response) == "general_diagnostic"
+
+    def test_benchmark_diagnostic_routes_to_general_diagnostic(self):
+        from Stop_semantic_critic import _detect_critic_profile
+
+        prompt = "Why does the benchmark show no performance improvement?"
+        response = "The benchmark results show flat latency across all runs."
+        assert _detect_critic_profile(prompt, response) == "general_diagnostic"
+
+    def test_evaluative_recommendation_routes_to_evaluative_recommendation(self):
+        from Stop_semantic_critic import _detect_critic_profile
+
+        prompt = "Which library should we use — requests or httpx?"
+        response = "httpx is better for async code; requests is fine for sync."
+        assert _detect_critic_profile(prompt, response) == "evaluative_recommendation"
+
+    def test_evaluative_overrides_observability(self):
+        """evaluative signals take priority over schema/observability signals."""
+        from Stop_semantic_critic import _detect_critic_profile
+
+        prompt = "Which approach is better for our parser — evaluate the tradeoffs?"
+        response = "Option A has better latency but worse maintainability."
+        # "tradeoff" is evaluative, wins over "parser" (schema/observability)
+        assert _detect_critic_profile(prompt, response) == "evaluative_recommendation"
+
+    def test_producer_consumer_artifact_signals_route_to_general_diagnostic(self):
+        from Stop_semantic_critic import _detect_critic_profile
+
+        prompt = "Is the producer aligned with the consumer schema?"
+        response = "The producer emits X, the consumer reads X, they are aligned."
+        assert _detect_critic_profile(prompt, response) == "general_diagnostic"
 
 
 if __name__ == "__main__":

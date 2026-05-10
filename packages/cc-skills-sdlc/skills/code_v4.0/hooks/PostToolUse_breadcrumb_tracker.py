@@ -16,7 +16,7 @@ _ENFORCE = _ROOT / "enforce"
 if str(_ENFORCE) not in sys.path:
     sys.path.insert(0, str(_ENFORCE))
 
-skill_guard_path = Path("P:\\\\packages/skill-guard")
+skill_guard_path = Path("P:\\\\\\packages/skill-guard")
 if str(skill_guard_path) not in sys.path:
     sys.path.insert(0, str(skill_guard_path))
 

@@ -159,6 +159,21 @@ def _detect_critic_profile(original_user_prompt: str, assistant_response: str) -
     ):
         return "evaluative_recommendation"
 
+    # Schema-and-evidence discipline flows:
+    # Explicit signals for observability, telemetry, benchmark, parser, and aggregate
+    # analysis. These go to general_diagnostic, which carries the schema-discipline
+    # criteria. They won't override software_rca (which fires first on root cause or
+    # high signal count), but they ensure clean observability/log diagnostics reach
+    # the right profile even with low software signal count.
+    schema_observability_signals = [
+        "telemetry", "benchmark", "parser", "aggregat",
+        "artifact", "producer", "consumer", "schema",
+        "event shape", "record shape", "log directory",
+        "evidence store", "emitted artifact",
+    ]
+    if any(_matches(s) for s in schema_observability_signals):
+        return "general_diagnostic"
+
     return "general_diagnostic"
 
 
@@ -190,7 +205,11 @@ Judge adequacy mainly on these criteria:
 - Does it acknowledge uncertainty where evidence is genuinely insufficient, while still offering a best-effort interim conclusion and next test?
 - Is the main conclusion supported by the answer body?
 - Does it prematurely conclude that something is missing, impossible, or unavailable without checking obvious low-cost evidence sources already present in context (files, configs, tools, user-specific storage patterns) or without explicitly stating that those sources were not checked and therefore absence cannot be concluded?
+- Does it infer runtime schema, event shape, or failure mechanism from summaries, planned design, comments, or parser output without inspecting the actual producer code and at least one real emitted artifact?
+- Does it draw causal or mechanism conclusions from aggregate counts when event-level records are needed to distinguish intermediate from terminal failures?
+- Does it propose parser, classifier, or report changes without verifying that the consumer/parser aligns with the producer's current schema?
 - Does the answer change or ignore explicit user constraints (such as requested hook phase or event, scope, tool choice, or advisory vs blocking designation) without clearly stating the change, explaining why it is better, and asking for confirmation before treating it as accepted?
+- Does the proposed fix articulate the contract it preserves and include tests for key edge cases, or does it just patch the symptom without proving broader correctness?
 
 Strong software answers often include one or more of:
 - mechanism trace,
@@ -243,6 +262,16 @@ User prompt: "Add a Stop hook to enforce test coverage above 90%"
 Assistant response: "You asked for a Stop hook, but PreToolUse would fire before every tool call and catch the problem earlier in the cycle — before a commit is even attempted. Stop only fires at response end. PreToolUse is cleaner for this case. Would you like to switch to PreToolUse, or keep Stop?"
 Output: {"ok": true, "reason": "Adequate."}
 
+Example 7
+User prompt: "Why is the parser reporting 100 failures — is it a bug in the reader?"
+Assistant response: "The parser reports 100 failures. This means the reader has bugs."
+Output: {"ok": false, "reason": "Infers failure mechanism from aggregate count without inspecting actual event records, producer code, or consumer schema."}
+
+Example 8
+User prompt: "Why is the pipeline reporting all events as lost?"
+Assistant response: "The event shape doesn't match the consumer's expectations. The producer emits {a, b, c} but the consumer expects {x, y, z}. The fix is to update the consumer schema."
+Output: {"ok": false, "reason": "Diagnoses schema mismatch from parser output without verifying the producer's current record shape or checking a real emitted artifact."}
+
 The reason must:
 - be one short sentence,
 - be plain English,
@@ -276,7 +305,11 @@ Judge adequacy mainly on these criteria:
 - Does it acknowledge uncertainty when evidence is incomplete?
 - Is the conclusion supported by the answer body?
 - Does it prematurely conclude that something is missing, impossible, or unavailable without checking obvious low-cost evidence sources already present in context (files, configs, tools, user-specific storage patterns) or without explicitly stating that those sources were not checked and therefore absence cannot be concluded?
+- Does it infer runtime schema, event shape, or failure mechanism from summaries, planned design, comments, or parser output without inspecting the actual producer code and at least one real emitted artifact?
+- Does it draw causal or mechanism conclusions from aggregate counts when event-level records are needed to distinguish intermediate from terminal failures?
+- Does it propose parser, classifier, or report changes without verifying that the consumer/parser aligns with the producer's current schema?
 - Does the answer change or ignore explicit user constraints (such as requested hook phase or event, scope, tool choice, or advisory vs blocking designation) without clearly stating the change, explaining why it is better, and asking for confirmation before treating it as accepted?
+- Does the proposed fix articulate the contract it preserves and include tests for key edge cases, or does it just patch the symptom without proving broader correctness?
 
 Do not fail an answer for minor omissions, style, brevity alone, or not using these exact words.
 Only return {"ok": false, "reason": "..."} when the missing analysis is material.
@@ -317,6 +350,16 @@ Example 7
 User prompt: "Add a PreToolUse language guard to block non-English output"
 Assistant response: "You asked for a PreToolUse hook, but UserPromptSubmit is a better insertion point for content filtering since it runs before tool processing. This avoids false positives on tool outputs. Would you prefer UserPromptSubmit, or stick with PreToolUse?"
 Output: {"ok": true, "reason": "Adequate."}
+
+Example 8
+User prompt: "Why is the benchmark reporting zero events — is the emitter broken?"
+Assistant response: "The benchmark shows zero events because the emitter is broken. Check the emitter code."
+Output: {"ok": false, "reason": "Diagnoses broken emitter from benchmark summary without inspecting emitter code or a real event record."}
+
+Example 9
+User prompt: "Why did 50 batches fail — is it a parser bug?"
+Assistant response: "50 batches failed. The parser has bugs. Fix the parser."
+Output: {"ok": false, "reason": "Infers parser bug from aggregate count without examining individual batch records or verifying consumer schema."}
 
 The reason must:
 - be one short sentence,
@@ -424,17 +467,22 @@ CRITIC_SYSTEM_PROMPT: str = CRITIC_PROMPTS["general_diagnostic"]
 # Profile-specific remediation templates — injected when critic returns ok=false
 REMEDIATION_TEMPLATES: dict[str, str] = {
     "software_rca": (
-        "State the strongest justified interim conclusion from the evidence you already "
-        "described, clarify what the test actually proved or bypassed, and add at least one "
-        "concrete end-to-end verification step or discriminating check."
+        "State the contract before patching. Identify: (1) what must remain classified as "
+        "allowed vs blocked after the fix, (2) what input conditions (trusted vs hostile/escaped) "
+        "the fix must handle, (3) what would make the fix wrong. "
+        "For schema/event claims: identify the producer code, inspect at least one real emitted artifact, "
+        "and verify consumer/parser alignment before diagnosing mechanism or root cause. "
+        "Aggregate counts are insufficient for mechanism claims — use event-level records. "
+        "One passing test is not proof of correctness."
     ),
     "general_diagnostic": (
-        "Before concluding that something is missing or unavailable, check the obvious low-cost "
-        "evidence sources mentioned in context (files, configs, tools, storage patterns), or "
-        "state explicitly that they were not checked; then restate your best-supported conclusion. "
-        "If you deviate from the requested hook phase/event, scope, or tool constraints, "
-        "explicitly state the change, explain why you are proposing it, and ask for "
-        "confirmation instead of silently pivoting."
+        "State the contract before concluding. Identify: (1) what classifications and invariants "
+        "must still hold, (2) what conditions the fix must handle (trusted vs hostile/escaped/stale inputs), "
+        "(3) what would falsify the fix. "
+        "For schema/event claims: identify the producer that emits the data, inspect at least one real "
+        "emitted artifact, and verify the consumer/parser schema matches before diagnosing mechanism. "
+        "If producer, artifact, and consumer disagree, fix the interpretation layer before explaining behavior. "
+        "A single successful run is not proof of correctness."
     ),
     "evaluative_recommendation": (
         "Make your recommendation traceable to explicit criteria, include the main tradeoffs "

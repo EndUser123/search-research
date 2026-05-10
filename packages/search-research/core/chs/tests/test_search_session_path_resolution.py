@@ -3,7 +3,7 @@
 These tests verify that _find_cks_database uses config.CKS_DB_PATH as the
 authoritative source of truth and does NOT fall back to cwd-dependent paths.
 
-Run: pytest P:\\\\packages/search-research/core/chs/tests/test_search_session_path_resolution.py -v
+Run: pytest P:\\\\\\packages/search-research/core/chs/tests/test_search_session_path_resolution.py -v
 """
 
 from __future__ import annotations
@@ -17,9 +17,9 @@ from unittest.mock import patch
 import pytest
 
 # Import directly to bypass __init__.py which imports modules requiring sentence_transformers
-# __file__ = P:\\\\packages/search-research/core/chs/tests/test_xxx.py
+# __file__ = P:\\\\\\packages/search-research/core/chs/tests/test_xxx.py
 # parents[0] = tests/, parents[1] = chs/, parents[2] = core/, parents[3] = search-research/
-project_root = Path(__file__).resolve().parents[3]  # P:\\\\packages/search-research
+project_root = Path(__file__).resolve().parents[3]  # P:\\\\\\packages/search-research
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 

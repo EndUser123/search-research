@@ -165,7 +165,7 @@ echo "  Moved: $(grep -c "MOVE" <<<$FORBIDDEN) files to appropriate directories"
 ### 🚀 Auto-Cleanup Available
 Run this command to auto-fix all violations:
 ```bash
-cd P:\\\\packages/handoff && bash cleanup_plugin_standards.sh
+cd P:\\\\\\packages/handoff && bash cleanup_plugin_standards.sh
 ```
 
 ### 📋 Manual Cleanup Required

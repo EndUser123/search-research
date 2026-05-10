@@ -5,16 +5,28 @@ param(
 
 # Bifrost AI Gateway Proxy Configuration Script
 # Routes Claude Code through Bifrost's various LLM routes
-# Usage: cc-bf [--sync] [model]
 #
-# --sync   : backup current config.json, then sync routing rules from DB to config.json
-# --start  : start bifrost-http daemon
-# --restart: stop then start the daemon
-# --shutdown: stop the daemon
-# --dashboard: open Bifrost dashboard in browser
+# Usage: cc-bf [model | --flag ...]
+#
+#   cc-bf                 show config + available routes
+#   cc-bf <model>         switch all tiers to <model>
+#   cc-bf -m <model>      same as above
+#   cc-bf --start         start Bifrost daemon + re-enable rules
+#   cc-bf --shutdown      stop Bifrost daemon
+#   cc-bf --restart       stop + start + verify routing chain
+#   cc-bf --status        health check: rules, keys, live probe
+#   cc-bf --dashboard     open Bifrost dashboard in browser
+#   cc-bf --routes              probe all routes (DB + runtime latency)
+#   cc-bf --routes --only mistral          routed + unrouted for provider(s)
+#   cc-bf --routes yes --only mistral      routed only for provider(s)
+#   cc-bf --routes no --only mistral       unrouted only for provider(s)
+#   cc-bf --routes no                      show all unrouted catalog models
+#   cc-bf --routes no --latest-only        hide superseded versions
+#   cc-bf --routes no --exclude X,Y        exclude models containing X or Y
+#   cc-bf --routes --only all --exclude hugging  all providers except one
+#   cc-bf --sync                backup + sync rules AND provider keys from config.json
 #
 # Available routes are dynamically loaded from the Bifrost DB at runtime.
-# Run 'cc-bf' with no arguments to see all available routes.
 
 $env:ANTHROPIC_BASE_URL = "http://localhost:8080/anthropic"
 $env:ANTHROPIC_API_KEY = "sk-bf-49998d75-3b06-4e72-8547-741cb81b497e"
@@ -33,6 +45,7 @@ $doRoutes = $false
 $doStatus = $false
 $newOnly = $false
 $modelOverride = $null
+$tierOverrides = @{}
 $i = 0
 while ($i -lt $Args.Count) {
     $arg = $Args[$i]
@@ -48,13 +61,40 @@ while ($i -lt $Args.Count) {
         $doDashboard = $true
     } elseif ($arg -eq "--routes") {
         $doRoutes = $true
+        # Check if next arg is yes/no value
+        if ($i + 1 -lt $Args.Count -and $Args[$i + 1] -match '^(yes|no)$') {
+            $routesValue = $Args[$i + 1]
+            $i++
+        }
     } elseif ($arg -eq "--status") {
         $doStatus = $true
     } elseif ($arg -eq "--new-only") {
         $newOnly = $true
+    } elseif ($arg -eq "--latest-only") {
+        $latestOnly = $true
+    } elseif ($arg -eq "--exclude") {
+        $i++
+        if ($i -lt $Args.Count) {
+            $excludeTerms = $Args[$i]
+        }
+    } elseif ($arg -eq "--only") {
+        $i++
+        if ($i -lt $Args.Count) {
+            $onlyProviders = $Args[$i]
+        }
     } elseif ($arg -eq "--model" -or $arg -eq "-m") {
         $i++
-        if ($i -lt $Args.Count) { $modelOverride = $Args[$i] }
+        if ($i -lt $Args.Count) {
+            $nextArg = $Args[$i]
+            # Check for tier prefix: o=opus, s=sonnet, h=haiku
+            if ($nextArg -match "^([osh])=(.+)$") {
+                $tier = $matches[1]
+                $tierModel = $matches[2]
+                $tierOverrides[$tier] = $tierModel
+            } else {
+                $modelOverride = $nextArg
+            }
+        }
     } elseif ($arg -match "^--model=(.+)$") {
         $modelOverride = $matches[1]
     } elseif ($arg -match "^[a-zA-Z0-9_-]+$") {
@@ -428,39 +468,44 @@ conn.close()
     Write-Host ""
     Write-Host "   Live probe:" -ForegroundColor White
     $probeCode = @'
-import urllib.request, json
+import urllib.request, json, sys
 
-try:
-    payload = json.dumps({
-        'model': 'M27',
-        'messages': [{'role': 'user', 'content': 'test'}],
-        'max_tokens': 1,
-    }).encode()
-    req = urllib.request.Request(
-        'http://localhost:8080/v1/chat/completions',
-        data=payload,
-        headers={'Content-Type': 'application/json'},
-        method='POST'
-    )
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        body = json.loads(resp.read())
-        extra = body.get('extra_fields', {})
-        prov = extra.get('provider', '?')
-        print('M27: OK  (provider=' + str(prov) + ')')
-except urllib.error.HTTPError as e:
-    print('HTTP ' + str(e.code) + ': ' + e.read().decode()[:200])
-except Exception as e:
-    print('ERROR: ' + str(e))
+models = ['M27', 'GLM-5.1']
+for model in models:
+    try:
+        payload = json.dumps({
+            'model': model,
+            'messages': [{'role': 'user', 'content': 'test'}],
+            'max_tokens': 1,
+        }).encode()
+        req = urllib.request.Request(
+            'http://localhost:8080/v1/chat/completions',
+            data=payload,
+            headers={'Content-Type': 'application/json'},
+            method='POST'
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            body = json.loads(resp.read())
+            extra = body.get('extra_fields', {})
+            prov = extra.get('provider', '?')
+            lat = extra.get('latency', '?')
+            print(f'{model}: OK  (provider={prov}, latency={lat}ms)')
+    except urllib.error.HTTPError as e:
+        print(f'{model}: HTTP {e.code} - {e.read().decode()[:200]}')
+    except Exception as e:
+        print(f'{model}: ERROR - {e}')
 '@
 
     $tmp2 = [System.IO.Path]::GetTempFileName() + ".py"
     [System.IO.File]::WriteAllText($tmp2, $probeCode, [System.Text.Encoding]::UTF8)
     $probeOut = python3 $tmp2 2>&1
     Remove-Item $tmp2 -Force -ErrorAction SilentlyContinue
-    if ($probeOut -match "M27: OK") {
-        Write-Host "     $probeOut" -ForegroundColor Green
-    } else {
-        Write-Host "     $probeOut" -ForegroundColor Red
+    $probeOut | ForEach-Object {
+        if ($_ -match ": OK\b") {
+            Write-Host "     $_" -ForegroundColor Green
+        } else {
+            Write-Host "     $_" -ForegroundColor Red
+        }
     }
 }
 
@@ -523,11 +568,13 @@ if ($doRoutes) {
         Write-Host "   [ERROR] routes_probe.py not found at $scriptPath" -ForegroundColor Red
         return
     }
-    if ($newOnly) {
-        $output = python3 $scriptPath "--new-only" 2>&1
-    } else {
-        $output = python3 $scriptPath 2>&1
-    }
+    $pyArgs = @()
+    if ($newOnly) { $pyArgs += "--new-only" }
+    if ($routesValue) { $pyArgs += "--routes", $routesValue }
+    if ($latestOnly) { $pyArgs += "--latest-only" }
+    if ($excludeTerms) { $pyArgs += "--exclude", $excludeTerms }
+    if ($onlyProviders) { $pyArgs += "--only", $onlyProviders }
+    $output = python3 $scriptPath @pyArgs 2>&1
     $output | ForEach-Object { Write-Host $_ }
     return
 }
@@ -547,7 +594,8 @@ $aliasMap = @{
     "gh"        = "GH-GPT-5-mini"
     "gpt5"      = "GH-GPT-5-mini"
     "gemini"    = "Gemini-3.1-flash"
-    "gemma"     = "OR-Gemma-4-31b"
+    "gemma"     = "gemma-4-31b-it"
+    "z.ai/glm-5.1" = "GLM-5.1"
 }
 foreach ($alias in $aliasMap.Keys) {
     $target = $aliasMap[$alias]
@@ -555,6 +603,17 @@ foreach ($alias in $aliasMap.Keys) {
         $entry = $routingTable[$target]
         $routes[$alias] = @($target, $target, $target, $entry.display)
     }
+}
+
+function Resolve-ModelName($name) {
+    $normalized = $name -replace "^glm-5.1$", "GLM-5.1" `
+                       -replace "^MiniMax-M2.7$", "M27" `
+                       -replace "^Nvidia-Deepseek-v4-flash$", "DSv4-flash" `
+                       -replace "^DSv4-flash$", "DSv4"
+    if ($routes.ContainsKey($normalized)) {
+        return $routes[$normalized][3]  # display name (provider/model)
+    }
+    return $name
 }
 
 if ($modelOverride) {
@@ -570,10 +629,28 @@ if ($modelOverride) {
         $env:ANTHROPIC_DEFAULT_HAIKU_MODEL = $route[2]
         $displayName = $route[3]
     } else {
+        $env:ANTHROPIC_DEFAULT_SONNET_MODEL = $modelOverride
+        $env:ANTHROPIC_DEFAULT_OPUS_MODEL = $modelOverride
+        $env:ANTHROPIC_DEFAULT_HAIKU_MODEL = $modelOverride
         $displayName = "Custom: $modelOverride"
     }
-} else {
+}
+
+# Per-tier overrides: -m o=<model>, -m s=<model>, -m h=<model>
+if ($tierOverrides.ContainsKey("o")) {
+    $env:ANTHROPIC_DEFAULT_OPUS_MODEL = $tierOverrides["o"]
+}
+if ($tierOverrides.ContainsKey("s")) {
+    $env:ANTHROPIC_DEFAULT_SONNET_MODEL = $tierOverrides["s"]
+}
+if ($tierOverrides.ContainsKey("h")) {
+    $env:ANTHROPIC_DEFAULT_HAIKU_MODEL = $tierOverrides["h"]
+}
+
+if (-not $modelOverride -and $tierOverrides.Count -eq 0) {
     $displayName = "Default (M27 + GLM-5.1)"
+} elseif ($tierOverrides.Count -gt 0) {
+    $displayName = "Custom tiers"
 }
 
 Write-Host ""
@@ -588,19 +665,69 @@ Write-Host "Available routes (from DB):" -ForegroundColor Yellow
 if ($routes.Count -eq 0) {
     Write-Host "   [no routes loaded from DB]" -ForegroundColor Red
 } else {
-    $sortedKeys = $routes.Keys | Sort-Object
-    foreach ($key in $sortedKeys) {
+    # Build reverse map: target display -> list of keys that point to it
+    $targetGroups = @{}
+    foreach ($key in $routes.Keys) {
         $route = $routes[$key]
-        $model = $route[0]
+        $targetKey = $route[3]  # display (provider/model)
+        if (-not $targetGroups.ContainsKey($targetKey)) {
+            $targetGroups[$targetKey] = [System.Collections.ArrayList]@()
+        }
+        [void]$targetGroups[$targetKey].Add($key)
+    }
+    # Find which keys are aliases (not in routingTable directly)
+    $aliasKeys = @()
+    foreach ($alias in $aliasMap.Keys) {
+        $aliasKeys += $alias
+    }
+    # Collect canonical names and sort alphabetically for display
+    $canonicalNames = @()
+    $seen = @{}
+    foreach ($key in $routes.Keys) {
+        $route = $routes[$key]
         $desc = $route[3]
-        $line = "   cc-bf {0,-20} -> {1}" -f $key, $desc
+        if ($seen.ContainsKey($desc)) { continue }
+        $seen[$desc] = $true
+        $group = $targetGroups[$desc]
+        $canonicals = @($group | Where-Object { $_ -notin $aliasKeys } | Sort-Object { $_.Length } -Descending)
+        $canonical = if ($canonicals.Count -gt 0) { $canonicals[0] } else { @($group | Sort-Object { $_.Length } -Descending)[0] }
+        $canonicalNames += $canonical
+    }
+    foreach ($canonical in ($canonicalNames | Sort-Object)) {
+        $route = $routes[$canonical]
+        $desc = $route[3]
+        $group = $targetGroups[$desc]
+        $aliases = @($group | Where-Object { $_ -ne $canonical })
+        if ($aliases.Count -gt 0) {
+            $aliasStr = $aliases -join ", "
+            $line = "   cc-bf {0,-20} -> {1}  (aliases: {2})" -f $canonical, $desc, $aliasStr
+        } else {
+            $line = "   cc-bf {0,-20} -> {1}" -f $canonical, $desc
+        }
         Write-Host $line -ForegroundColor Cyan
     }
 }
 Write-Host ""
-Write-Host "   cc-bf --routes              probe all routes (DB + runtime latency)" -ForegroundColor White
-Write-Host "   cc-bf --routes --new-only   show catalog models with no routing rule" -ForegroundColor White
-Write-Host "   cc-bf --status              health check: rules, keys, live probe" -ForegroundColor White
+Write-Host "   cc-bf                       show config + available routes" -ForegroundColor White
+Write-Host "   cc-bf <model>               switch all tiers to <model>" -ForegroundColor White
+Write-Host "   cc-bf -m <model>            same as above" -ForegroundColor White
+Write-Host "   cc-bf -m o=<model>          switch Opus only" -ForegroundColor White
+Write-Host "   cc-bf -m s=<model>          switch Sonnet only" -ForegroundColor White
+Write-Host "   cc-bf -m h=<model>          switch Haiku only" -ForegroundColor White
+Write-Host ""
+Write-Host "   cc-bf --start               start Bifrost daemon + re-enable rules" -ForegroundColor White
+Write-Host "   cc-bf --shutdown            stop Bifrost daemon" -ForegroundColor White
 Write-Host "   cc-bf --restart             stop + start + verify routing chain" -ForegroundColor White
+Write-Host "   cc-bf --status              health check: rules, keys, live probe" -ForegroundColor White
+Write-Host "   cc-bf --dashboard           open Bifrost dashboard in browser" -ForegroundColor White
+Write-Host ""
+Write-Host "   cc-bf --routes              probe all routes (DB + runtime latency)" -ForegroundColor White
+Write-Host "   cc-bf --routes --only mistral          routed + unrouted for provider(s)" -ForegroundColor White
+Write-Host "   cc-bf --routes yes --only mistral      routed only for provider(s)" -ForegroundColor White
+Write-Host "   cc-bf --routes no --only mistral       unrouted only for provider(s)" -ForegroundColor White
+Write-Host "   cc-bf --routes no                      show all unrouted catalog models" -ForegroundColor White
+Write-Host "   cc-bf --routes no --latest-only        hide superseded versions" -ForegroundColor White
+Write-Host "   cc-bf --routes no --exclude X,Y        exclude models containing X or Y" -ForegroundColor White
+Write-Host "   cc-bf --routes --only all --exclude hugging  all providers except one" -ForegroundColor White
 Write-Host "   cc-bf --sync                backup + sync rules AND provider keys from config.json" -ForegroundColor White
 Write-Host ""

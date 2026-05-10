@@ -59,8 +59,8 @@ class InMemoryBrainstormMemory:
 
 
 def _ensure_import_paths() -> None:
-    # Insert in reverse so final priority is: P:\\\\, P:\\\\__csf, P:\\\\__csf/src
-    for candidate in ("P:\\\\__csf/src", "P:\\\\__csf", "P:\\\\"):
+    # Insert in reverse so final priority is: P:\\\\\\, P:\\\\\\__csf, P:\\\\\\__csf/src
+    for candidate in ("P:\\\\\\__csf/src", "P:\\\\\\__csf", "P:\\\\\\"):
         if candidate not in sys.path:
             sys.path.insert(0, candidate)
 

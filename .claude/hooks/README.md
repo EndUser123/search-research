@@ -72,12 +72,15 @@ Claude Code hooks are shell commands that execute at specific points in the AI a
 
 ### Hook Types
 
-Claude Code supports two hook mechanisms:
+Claude Code supports **five hook handler types**:
 
-| Type          | Mechanism                    | Best For                                         |
-| ------------- | ---------------------------- | ------------------------------------------------ |
-| **`command`** | Executes shell script/binary | Deterministic logic, file checks, Git operations |
-| **`prompt`**  | LLM evaluates a prompt       | Context-heavy judgment, semantic analysis        |
+| Type | Value | Mechanism | Best For | Default Timeout |
+|------|-------|-----------|----------|-----------------|
+| **`command`** | `"command"` | Runs shell script/binary, receives JSON via stdin | Deterministic logic, file checks, Git operations | 600s |
+| **`http`** | `"http"` | Sends JSON as HTTP POST to URL | External services, webhooks | — |
+| **`mcp_tool`** | `"mcp_tool"` | Calls tool on connected MCP server | MCP-integrated scanners | — |
+| **`prompt`** | `"prompt"` | LLM evaluates a prompt (single-turn) | Context-heavy judgment, semantic analysis | 30s |
+| **`agent`** | `"agent"` | Spawns subagent to verify conditions (experimental) | Multi-step verification | 60s |
 
 **Example `settings.json` configuration:**
 
@@ -94,6 +97,24 @@ Claude Code supports two hook mechanisms:
         "type": "prompt",
         "matcher": "Bash",
         "prompt": "Block if this command could delete system files or user data."
+      },
+      {
+        "type": "http",
+        "url": "http://localhost:8080/hooks/pre-tool-use",
+        "headers": { "Authorization": "Bearer $TOKEN" },
+        "allowedEnvVars": ["TOKEN"]
+      },
+      {
+        "type": "mcp_tool",
+        "server": "security_server",
+        "tool": "scan_file",
+        "input": { "path": "${tool_input.file_path}" }
+      },
+      {
+        "type": "agent",
+        "prompt": "Verify tests pass before deployment. $ARGUMENTS",
+        "model": "sonnet",
+        "timeout": 60
       }
     ],
     "PostToolUse": [
@@ -106,6 +127,14 @@ Claude Code supports two hook mechanisms:
   }
 }
 ```
+
+**$ARGUMENTS**: Available in `prompt` and `agent` hooks only — NOT in `command` hooks. Use stdin JSON parsing for command hooks.
+
+**Exit codes**: Exit 0 = success (stdout parsed), Exit 2 = blocking error (stderr fed back), other = non-blocking warning.
+
+**Async hooks**: Use `async: true` for non-blocking background execution, or `asyncRewake: true` to have Claude resume when the hook completes.
+
+**Common fields**: `type` (required), `if` (permission filter), `timeout` (override default), `statusMessage` (spinner text), `once` (run once per session).
 
 ### Input/Output Protocol
 

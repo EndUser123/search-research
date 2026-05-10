@@ -716,6 +716,16 @@ def _load_hooks() -> None:
         # Module self-registers via @register_hook decorator
     )
 
+    # Load claim classifier for conditional hook routing
+    # This hook runs FIRST (priority 0.5) to classify the prompt type
+    # claim_type is written to .state/claim_type_{terminal}.json for downstream gates
+    _try_import_hook(
+        module_name="claim_classifier",
+        module_path="UserPromptSubmit_claim_classifier",
+        # Module self-registers via @register_hook decorator
+        priority=0.5,
+    )
+
 
 # Auto-load on module import
 _load_hooks()

@@ -7,7 +7,7 @@ degradation delta.
 
 Usage:
     from fidelity_tracker import run
-    score = run(skill_path="P:\\\\.claude/skills/gto")
+    score = run(skill_path="P:\\\\\\.claude/skills/gto")
 """
 from __future__ import annotations
 

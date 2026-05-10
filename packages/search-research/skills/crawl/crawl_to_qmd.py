@@ -44,7 +44,7 @@ def _get_wiki_root() -> Path:
                 return Path(os.path.expanduser(path))
     except (OSError, ValueError, AttributeError):
         pass
-    return Path("P:\\\\.data/wiki")
+    return Path("P:\\\\\\.data/wiki")
 def _get_wiki_log_path() -> Path:
     """Get log.md path."""
     return _get_wiki_root() / "log.md"
@@ -78,7 +78,7 @@ def _find_related_pages(title: str, collection: str, limit: int = 5) -> list[str
     """Find related wiki pages via QMD search."""
     try:
         result = subprocess.run(
-            ["qmd", "search", title, "--collection", collection,
+            [sys.executable, "-m", "qmd", "search", title, "--collection", collection,
              "--format", "json", "--limit", str(limit * 2)],
             capture_output=True,
             timeout=10,
@@ -112,10 +112,10 @@ def _check_dependencies() -> None:
             "Install: pip install crawl4ai"
         )
 
-    # Check qmd CLI
+    # Check qmd CLI via python -m
     try:
         result = subprocess.run(
-            ["qmd-py", "version"],
+            [sys.executable, "-m", "qmd", "--help"],
             capture_output=True,
             timeout=5,
         )
@@ -126,25 +126,11 @@ def _check_dependencies() -> None:
                 "Docs: https://github.com/tobi/qmd"
             )
     except FileNotFoundError:
-        # Fallback: try 'qmd' directly
-        try:
-            result = subprocess.run(
-                ["qmd", "version"],
-                capture_output=True,
-                timeout=5,
-            )
-            if result.returncode != 0:
-                raise DependencyError(
-                    "qmd CLI failed.\n"
-                    "Install: pip install qmd\n"
-                    "Docs: https://github.com/tobi/qmd"
-                )
-        except FileNotFoundError:
-            raise DependencyError(
-                "qmd CLI not found.\n"
-                "Install: pip install qmd\n"
-                "Docs: https://github.com/tobi/qmd"
-            )
+        raise DependencyError(
+            "qmd CLI not found (python -m qmd failed).\n"
+            "Install: pip install qmd\n"
+            "Docs: https://github.com/tobi/qmd"
+        )
 
 
 def _get_vault_path(collection: str) -> Path:
@@ -263,7 +249,7 @@ async def crawl_site(
     # Update QMD index
     try:
         subprocess.run(
-            ["qmd", "update", collection],
+            [sys.executable, "-m", "qmd", "update", collection],
             capture_output=True,
             timeout=30,
             check=True,

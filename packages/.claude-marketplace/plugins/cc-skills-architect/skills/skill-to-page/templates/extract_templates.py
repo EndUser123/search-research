@@ -2,7 +2,7 @@
 """Extract index.html into named template skeleton files."""
 import re, os
 
-BASE = "P:\\\\packages/cc-skills-architect/skills/skill-to-page"
+BASE = "P:\\\\\\packages/cc-skills-architect/skills/skill-to-page"
 TPL = f"{BASE}/templates"
 os.makedirs(TPL, exist_ok=True)
 

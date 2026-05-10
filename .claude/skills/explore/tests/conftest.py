@@ -17,7 +17,7 @@ except ImportError:
     pass  # Older requests versions may not have this exception
 
 # Add the .claude directory to sys.path so 'skills.explore' imports work
-# pytest rootdir is P:\\\\.claude, but we need to add it to sys.path
+# pytest rootdir is P:\\\\\\.claude, but we need to add it to sys.path
 claude_root = Path(__file__).parent.parent.parent.parent
 if str(claude_root) not in sys.path:
     sys.path.insert(0, str(claude_root))

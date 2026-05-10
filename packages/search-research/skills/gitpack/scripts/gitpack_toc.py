@@ -11,7 +11,7 @@ def extract_files(content: str) -> list[tuple[str, str]]:
     """Extract (filepath, description) pairs from aid output.
 
     Each file in aid output looks like:
-        ### P:\\\\\path\\to\\file.py
+        ### P:\\\\\\\path\\to\\file.py
 
         ```python
         ...code...

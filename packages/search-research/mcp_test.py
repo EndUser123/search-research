@@ -20,7 +20,7 @@ def run_mcp_test():
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         shell=True,
-        cwd="P:\\\\packages/search-research",
+        cwd="P:\\\\\\packages/search-research",
     )
 
     request_id = [0]

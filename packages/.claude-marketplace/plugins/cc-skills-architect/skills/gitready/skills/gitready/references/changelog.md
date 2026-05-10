@@ -42,12 +42,12 @@
 ## v5.19.0 (2026-03-26)
 - UPDATED JUNCTION/SYMLINK CLEANUP: Revised PHASE 1.8 based on user feedback
 - DELETE OLD SOURCE LOCATIONS: Old canonical paths are now deleted when package exists
-- CRITICAL PATH RULE: Source of truth = `P:\\\\packages/PACKAGE_NAME/`
+- CRITICAL PATH RULE: Source of truth = `P:\\\\\\packages/PACKAGE_NAME/`
 
 ## v5.18.0 (2026-03-26)
 - CLEANUP OLD SYMLINKS/JUNCTIONS: Added PHASE 1.8 for post-relocation cleanup
 - DUAL IMPLEMENTATION DETECTION: Detects stale skills/hooks at canonical paths
-- SINGLE SOURCE OF TRUTH: Enforces `P:\\\\packages/` as source
+- SINGLE SOURCE OF TRUTH: Enforces `P:\\\\\\packages/` as source
 
 ## v5.17.0 (2026-03-25)
 - P3 STRUCTURAL CONSOLIDATION: Extracted 4 largest phases to `resources/phases/`

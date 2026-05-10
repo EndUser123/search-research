@@ -21,7 +21,7 @@ Fast keyword search for Claude Code chat history using SQLite FTS5.
 ## Installation
 
 ```bash
-cd P:\\\\packages/claude-history
+cd P:\\\\\\packages/claude-history
 cargo build --release
 ```
 
@@ -41,7 +41,7 @@ claude-history search "async patterns" --source jsonl --limit 10
 claude-history search "async patterns" --source db --limit 10
 
 # Filter by project
-claude-history search "hooks" --project "P:\\\\packages/search-research" --limit 5
+claude-history search "hooks" --project "P:\\\\\\packages/search-research" --limit 5
 
 # JSON output
 claude-history search "test" --format json
@@ -51,7 +51,7 @@ claude-history search "test" --format json
 
 ```bash
 claude-history list --limit 20
-claude-history list --project "P:\\\\" --sort recent
+claude-history list --project "P:\\\\\\" --sort recent
 ```
 
 #### Get session details
@@ -74,11 +74,11 @@ Claude History Statistics:
 Total Sessions: 5814
 Total Messages: 9056
 Indexed Messages: 0
-Projects: C:/Users/brsth/.claude, P:\\\\, ...
+Projects: C:/Users/brsth/.claude, P:\\\\\\, ...
 
 Data Sources:
   JSONL: C:/Users/brsth/.claude/history.jsonl
-  Database: P:\\\\__csf/data/chat_history.db
+  Database: P:\\\\\\__csf/data/chat_history.db
 ```
 
 ### MCP Server Mode
@@ -105,7 +105,7 @@ The server exposes the following tools:
    - Streaming read, no full load
    - ~2.7GB, ~9k messages
 
-2. **SQLite database** (`P:\\\\__csf/data/chat_history.db`):
+2. **SQLite database** (`P:\\\\\\__csf/data/chat_history.db`):
    - FTS5 full-text index
    - Fast BM25 ranking
    - WAL mode for concurrent reads
@@ -125,7 +125,7 @@ The JSONL file contains various entry types:
 ## Integration with search-research
 
 The Python backend wrapper is at:
-`P:\\\\packages/search-research/core/backends/local/claude_history_backend.py`
+`P:\\\\\\packages/search-research/core/backends/local/claude_history_backend.py`
 
 This backend invokes the CLI directly:
 

@@ -15,8 +15,8 @@ from ...models import SearchResult
 logger = logging.getLogger(__name__)
 
 # DB paths
-_TRANSCRIPT_DB = Path("P:\\\\__csf/.data/yt-is/transcripts.sqlite")
-_BATCH_DB = Path("P:\\\\__csf/.data/yt-is/batch_status.sqlite")
+_TRANSCRIPT_DB = Path("P:\\\\\\__csf/.data/yt-is/transcripts.sqlite")
+_BATCH_DB = Path("P:\\\\\\__csf/.data/yt-is/batch_status.sqlite")
 _FTS_TABLE = "transcript_fts"
 
 REBUILD_FAILURE_LIMIT = 3

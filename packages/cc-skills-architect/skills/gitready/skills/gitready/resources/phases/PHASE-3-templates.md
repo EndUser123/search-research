@@ -68,18 +68,18 @@ if ($junctionName -ne "{{package_name}}") {
     Write-Host "NOTE: Sanitized junction name from '{{package_name}}' to '$junctionName'"
 }
 
-New-Item -ItemType Junction -Path "$CLAUDE_ROOT/skills\$junctionName" -Target "P:\\\\packages\{{package_name}}\skills\{{package_name}}"
+New-Item -ItemType Junction -Path "$CLAUDE_ROOT/skills\$junctionName" -Target "P:\\\\\\packages\{{package_name}}\skills\{{package_name}}"
 
 # For standalone skills (skill/ directory): Junction to the skill/ subdirectory
-# New-Item -ItemType Junction -Path "$CLAUDE_ROOT/skills\$junctionName" -Target "P:\\\\packages\{{package_name}}\skill"
+# New-Item -ItemType Junction -Path "$CLAUDE_ROOT/skills\$junctionName" -Target "P:\\\\\\packages\{{package_name}}\skill"
 
 # macOS/Linux (Symlink)
 ln -s /path/to/packages/{{package_name}}/skills/{{package_name}} ~/.claude/skills/$junctionName
 \`\`\`
 
 **Key points:**
-- ✅ Edit in `P:\\\\packages/{{package_name}}/`, changes work immediately
-- ✅ No reinstallation required - skills auto-discover from `P:\\\\.claude/skills/`
+- ✅ Edit in `P:\\\\\\packages/{{package_name}}/`, changes work immediately
+- ✅ No reinstallation required - skills auto-discover from `P:\\\\\\.claude/skills/`
 - ✅ Perfect for active development
 - ✅ Junction to `skills/{{package_name}}/` for plugin skills, or `skill/` for standalone skills
 - ⚠️  **CRITICAL**: The junction target must point to WHERE THE SKILL.md FILE ACTUALLY LIVES:
@@ -89,7 +89,7 @@ ln -s /path/to/packages/{{package_name}}/skills/{{package_name}} ~/.claude/skill
 **Important Note on Skill Naming:**
 - The junction NAME (`{{package_name}}`) should match the skill directory name in the package
 - This ensures the skill URL (`/skill-name`) works correctly
-- Example: If package has `skills/my-skill/SKILL.md`, create junction as `P:\\\\.claude/skills/my-skill/`
+- Example: If package has `skills/my-skill/SKILL.md`, create junction as `P:\\\\\\.claude/skills/my-skill/`
 - **CRITICAL**: Remove invalid characters (especially `@`, `?`, `*`, etc.) from the junction name before creation. These characters cause slash command invocation failures on Windows. Use the sanitization step shown above.
 - The skill's **aliases** in the frontmatter determine what users type to invoke it
 
@@ -99,16 +99,16 @@ ln -s /path/to/packages/{{package_name}}/skills/{{package_name}} ~/.claude/skill
 
 **Setup:**
 \`\`\`powershell
-# Symlink individual hook files to P:\\\\.claude/hooks/
-cd P:\\\\.claude/hooks
+# Symlink individual hook files to P:\\\\\\.claude/hooks/
+cd P:\\\\\\.claude/hooks
 
 # Example: Symlink a specific hook file
-cmd /c "mklink HookName.py P:\\\\packages/{{package_name}}/core/hooks/HookName.py"
+cmd /c "mklink HookName.py P:\\\\\\packages/{{package_name}}/core/hooks/HookName.py"
 \`\`\`
 
 **Key points:**
 - ✅ Symlink individual \`.py\` hook files only (NOT the entire directory)
-- ✅ Symlinks go in \`P:\\\\.claude/hooks/\` (NOT \`~/.claude/plugins/\`)
+- ✅ Symlinks go in \`P:\\\\\\.claude/hooks/\` (NOT \`~/.claude/plugins/\`)
 - ✅ These are dev-only symlinks for working directly on source code
 - ⚠️  After brownfield conversion, check for broken symlinks pointing to old \`src/\` paths
 
@@ -119,7 +119,7 @@ cmd /c "mklink HookName.py P:\\\\packages/{{package_name}}/core/hooks/HookName.p
 **Setup:**
 \`\`\`bash
 # End users install via /plugin command
-/plugin P:\\\\packages/{{package_name}}
+/plugin P:\\\\\\packages/{{package_name}}
 
 # Or from marketplace (when published)
 /plugin install {{package_name}}
@@ -142,8 +142,8 @@ cmd /c "mklink HookName.py P:\\\\packages/{{package_name}}/core/hooks/HookName.p
 ### Common Mistakes to Avoid
 
 - ❌ Don't use \`/plugin\` command for local development (requires reinstall on every change)
-- ❌ Don't symlink entire directories to \`P:\\\\.claude/hooks/\` (only symlink \`.py\` files)
-- ❌ Don't confuse skills (\`P:\\\\.claude/skills/\`) with plugins (\`~/.claude/plugins/\`)
+- ❌ Don't symlink entire directories to \`P:\\\\\\.claude/hooks/\` (only symlink \`.py\` files)
+- ❌ Don't confuse skills (\`P:\\\\\\.claude/skills/\`) with plugins (\`~/.claude/plugins/\`)
 - ❌ Don't forget to update symlinks after brownfield conversion - check for \`src/\` paths
 \`\`\`
 ```

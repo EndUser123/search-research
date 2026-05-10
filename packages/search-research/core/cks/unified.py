@@ -180,7 +180,7 @@ class CKS:
 
         if db_path is None:
             # Default to main __csf data directory (absolute path for consistency)
-            db_path = Path("P:\\\\__csf/data/cks.db")
+            db_path = Path("P:\\\\\\__csf/data/cks.db")
         else:
             db_path = Path(db_path)
 
@@ -1888,7 +1888,7 @@ class CKS:
         """
         import re
 
-        # First, handle colon-based column syntax (e.g., 'P:' in 'P:\\\\path')
+        # First, handle colon-based column syntax (e.g., 'P:' in 'P:\\\\\\path')
         # FTS5 interprets 'word:' as 'search in column named word'
         sanitized = re.sub(r":", " ", query)
 

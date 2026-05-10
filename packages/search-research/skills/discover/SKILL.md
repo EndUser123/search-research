@@ -53,7 +53,7 @@ allowed_first_tools:
 
 ## Main Documentation
 
-**Full implementation:** `P:\\\\__csf/src/features/commands/nip/discover.md`
+**Full implementation:** `P:\\\\\\__csf/src/features/commands/nip/discover.md`
 
 ## Purpose
 

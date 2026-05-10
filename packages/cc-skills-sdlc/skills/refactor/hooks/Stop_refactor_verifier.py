@@ -53,7 +53,7 @@ def get_artifacts_dir(state: dict) -> Path:
     artifacts_dir = evidence.get("artifacts_dir", "")
     if artifacts_dir:
         return Path(artifacts_dir)
-    return Path(f"P:\\\\.claude/.artifacts/{state.get('instance', instance_id)}/refactor")
+    return Path(f"P:\\\\\\.claude/.artifacts/{state.get('instance', instance_id)}/refactor")
 
 
 def check_artifacts(state: dict) -> list[str]:

@@ -146,7 +146,7 @@ repomix --style markdown --stdout | cline "Analyze this codebase"
 
 Default output: `repomix-output.xml` (or format based on `--style`).
 
-Staging: For pipeline use, redirect to `P:\\\\.staging/`.
+Staging: For pipeline use, redirect to `P:\\\\\\.staging/`.
 
 ---
 

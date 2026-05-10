@@ -12,7 +12,8 @@ if str(_hooks_dir) not in sys.path:
 
 # Ignore deprecated and legacy test directories
 # _legacy: tests for permanently removed features, source modules no longer exist.
-collect_ignore = ["deprecated", "_legacy"]
+# _legacy_stop_router: tests for Stop_router.py (deleted in 2026-05-07 consolidation)
+collect_ignore = ["deprecated", "_legacy", "_legacy_stop_router"]
 
 
 def pytest_collection_modifyitems(config, items):

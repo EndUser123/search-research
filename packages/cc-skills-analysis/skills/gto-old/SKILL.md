@@ -15,7 +15,7 @@ workflow_steps:
 allowed_first_tools:
   - Bash
 required_first_command_patterns:
-  - '^python\s+P:\\\\.claude/skills/gto/gto_orchestrator\.py(?:\s|$)'
+  - '^python\s+P:\\\\\\.claude/skills/gto/gto_orchestrator\.py(?:\s|$)'
 required_first_command_hint: Run gto_orchestrator.py first to initialize the session analysis workflow.
 
 # Evidence-bound verification (anti-confabulation)
@@ -24,22 +24,22 @@ verification:
     - description: "Run GTO binary assertions (A1-A5)"
       tool: "Bash"
       args:
-        command: "python P:\\\\.claude/skills/gto/evals/gto_assertions.py 2>&1 | tail -30"
+        command: "python P:\\\\\\.claude/skills/gto/evals/gto_assertions.py 2>&1 | tail -30"
     - description: "Confirm GTO artifact file exists"
       tool: "Bash"
       args:
-        command: "ls -la P:\\\\.claude/.claude-state/gto-outputs/gto-artifact-*.json 2>/dev/null | tail -3 || echo 'NO ARTIFACT FOUND'"
+        command: "ls -la P:\\\\\\.claude/.claude-state/gto-outputs/gto-artifact-*.json 2>/dev/null | tail -3 || echo 'NO ARTIFACT FOUND'"
     - description: "Show health score from artifact"
       tool: "Bash"
       args:
-        command: "python -c \"import glob,json; f=glob.glob('P:\\\\.claude/.claude-state/gto-outputs/gto-artifact-*.json'); print(json.load(open(f[-1])).get('health_score','MISSING')) if f else print('NO ARTIFACT')\" 2>/dev/null || echo 'CANNOT READ'"
+        command: "python -c \"import glob,json; f=glob.glob('P:\\\\\\.claude/.claude-state/gto-outputs/gto-artifact-*.json'); print(json.load(open(f[-1])).get('health_score','MISSING')) if f else print('NO ARTIFACT')\" 2>/dev/null || echo 'CANNOT READ'"
     - description: "Confirm gap list is non-empty or explicitly empty"
       tool: "Bash"
       args:
-        command: "python -c \"import glob,json; f=glob.glob('P:\\\\.claude/.claude-state/gto-outputs/gto-artifact-*.json'); d=json.load(open(f[-1])); gaps=d.get('gaps',[]); print(f'{len(gaps)} gaps found') if f else print('NO ARTIFACT')\" 2>/dev/null || echo 'CANNOT READ'"
+        command: "python -c \"import glob,json; f=glob.glob('P:\\\\\\.claude/.claude-state/gto-outputs/gto-artifact-*.json'); d=json.load(open(f[-1])); gaps=d.get('gaps',[]); print(f'{len(gaps)} gaps found') if f else print('NO ARTIFACT')\" 2>/dev/null || echo 'CANNOT READ'"
   summary_mode: evidence_only
   expected_artifacts:
-    - "P:\\\\.claude/.claude-state/gto-outputs/gto-artifact-{session_id}-{timestamp}.json"
+    - "P:\\\\\\.claude/.claude-state/gto-outputs/gto-artifact-{session_id}-{timestamp}.json"
 ---
 # GTO v3.1 - Strategic Next-Step Advisor
 Reads session history to understand what happened, then recommends what skills to run next.
@@ -119,12 +119,12 @@ fi
 TEMP_SUBDIR="$TEMP_DIR/gto-$TERMINAL_ID"
 mkdir -p "$TEMP_SUBDIR"
 # Evidence directory
-EVIDENCE_DIR="P:\\\\.claude/skills/gto/.evidence"
+EVIDENCE_DIR="P:\\\\\\.claude/skills/gto/.evidence"
 mkdir -p "$EVIDENCE_DIR"
 ```
 **Step 2: Run L1 analysis**
 ```bash
-python P:\\\\.claude/skills/gto/gto_orchestrator.py \
+python P:\\\\\\.claude/skills/gto/gto_orchestrator.py \
     --format json \
     --output "$TEMP_SUBDIR/gto-l1-$TERMINAL_ID.json" || {
     echo "ERROR: L1 analysis failed"
@@ -135,9 +135,9 @@ python P:\\\\.claude/skills/gto/gto_orchestrator.py \
 ```bash
 # NOTE: Agent tool is invoked internally by each subagent
 # SKILL.md dispatches; Agent tool handles execution in Claude Code context
-# Output paths include terminal_id for multi-terminal isolationAgent(subagent_type="gto-logic", prompt="Follow the constitution at P:\\\\.claude/CLAUDE.md. Analyze P:\\\\.claude/skills/gto/lib/ for pure logic errors (off-by-one, wrong operators, inverted conditionals). Write findings as JSON to $TEMP_SUBDIR/gto-correctness-logic-$TERMINAL_ID.json with format: {\"findings\": [{\"id\":\"LOGIC-001\",\"severity\":\"HIGH\",\"location\":\"file.py:123\",\"title\":\"...\",\"description\":\"...\",\"evidence\":\"...\"}]}. If no issues found, write {\"findings\": []}.") &
-Agent(subagent_type="gto-quality", prompt="Follow the constitution at P:\\\\.claude/CLAUDE.md. Analyze P:\\\\.claude/skills/gto/lib/ for maintainability issues (technical debt, code smells, complex implementations). Write findings as JSON to $TEMP_SUBDIR/gto-correctness-quality-$TERMINAL_ID.json with format: {\"findings\": [{\"id\":\"QUAL-001\",\"severity\":\"MEDIUM\",\"location\":\"file.py:45\",\"title\":\"...\",\"description\":\"...\",\"evidence\":\"...\"}]}. If no issues found, write {\"findings\": []}.") &
-Agent(subagent_type="gto-code-critic", prompt="Follow the constitution at P:\\\\.claude/CLAUDE.md. Analyze P:\\\\.claude/skills/gto/lib/ for root cause issues (causal chains, multi-step reasoning failures). Write findings as JSON to $TEMP_SUBDIR/gto-correctness-code-critic-$TERMINAL_ID.json with format: {\"findings\": [{\"id\":\"CAUSE-001\",\"severity\":\"HIGH\",\"location\":\"file.py:78\",\"title\":\"...\",\"description\":\"...\",\"evidence\":\"...\"}]}. If no issues found, write {\"findings\": []}.") &
+# Output paths include terminal_id for multi-terminal isolationAgent(subagent_type="gto-logic", prompt="Follow the constitution at P:\\\\\\.claude/CLAUDE.md. Analyze P:\\\\\\.claude/skills/gto/lib/ for pure logic errors (off-by-one, wrong operators, inverted conditionals). Write findings as JSON to $TEMP_SUBDIR/gto-correctness-logic-$TERMINAL_ID.json with format: {\"findings\": [{\"id\":\"LOGIC-001\",\"severity\":\"HIGH\",\"location\":\"file.py:123\",\"title\":\"...\",\"description\":\"...\",\"evidence\":\"...\"}]}. If no issues found, write {\"findings\": []}.") &
+Agent(subagent_type="gto-quality", prompt="Follow the constitution at P:\\\\\\.claude/CLAUDE.md. Analyze P:\\\\\\.claude/skills/gto/lib/ for maintainability issues (technical debt, code smells, complex implementations). Write findings as JSON to $TEMP_SUBDIR/gto-correctness-quality-$TERMINAL_ID.json with format: {\"findings\": [{\"id\":\"QUAL-001\",\"severity\":\"MEDIUM\",\"location\":\"file.py:45\",\"title\":\"...\",\"description\":\"...\",\"evidence\":\"...\"}]}. If no issues found, write {\"findings\": []}.") &
+Agent(subagent_type="gto-code-critic", prompt="Follow the constitution at P:\\\\\\.claude/CLAUDE.md. Analyze P:\\\\\\.claude/skills/gto/lib/ for root cause issues (causal chains, multi-step reasoning failures). Write findings as JSON to $TEMP_SUBDIR/gto-correctness-code-critic-$TERMINAL_ID.json with format: {\"findings\": [{\"id\":\"CAUSE-001\",\"severity\":\"HIGH\",\"location\":\"file.py:78\",\"title\":\"...\",\"description\":\"...\",\"evidence\":\"...\"}]}. If no issues found, write {\"findings\": []}.") &
 AGENT_PIDS=($!)
 ```
 **Step 4: Poll for agent completion with early exit**
@@ -188,7 +188,7 @@ fi
 ```
 **Step 5: Merge results**
 ```bash
-python P:\\\\.claude/skills/gto/lib/merge_agent_results.py \
+python P:\\\\\\.claude/skills/gto/lib/merge_agent_results.py \
     --l1 "$TEMP_SUBDIR/gto-l1-$TERMINAL_ID.json" \
     --agents "$TEMP_SUBDIR/gto-correctness-*-${TERMINAL_ID}.json" \
     --output "$EVIDENCE_DIR/gto-artifact-$SESSION_ID-$TIMESTAMP.json" \
@@ -296,10 +296,10 @@ GTO maintains an append-only log of skill executions per target for routing sugg
 ## Verification (MANUAL)
 **Before claiming "done", you MUST:**
 1. Run each command from the `verification.commands` frontmatter
-2. **Write results to artifact:** `P:\\\\.claude/.artifacts/{terminal_id}/gto/verification.json`
+2. **Write results to artifact:** `P:\\\\\\.claude/.artifacts/{terminal_id}/gto/verification.json`
 3. Run the binary assertions script:
    ```
-   python P:\\\\.claude/skills/gto/evals/gto_assertions.py
+   python P:\\\\\\.claude/skills/gto/evals/gto_assertions.py
    ```
    **Note:** Terminal ID is auto-detected from environment variables (`CLAUDE_TERMINAL_ID`, `TERMINAL_ID`, etc.) or derived from PID+timestamp.
 4. Paste the full output showing all assertions passed

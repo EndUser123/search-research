@@ -92,7 +92,7 @@ class StateManager:
     def _resolve_project_root(project_root: Path | None) -> Path:
         r"""Resolve project root, routing workspace root to .claude/.
 
-        When cwd is the workspace root (P:\\\\), .claude/ exists and is the canonical
+        When cwd is the workspace root (P:\\\\\\), .claude/ exists and is the canonical
         home for Claude Code state. This prevents dot-directories at workspace root.
         """
         if project_root:

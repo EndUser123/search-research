@@ -19,7 +19,7 @@ def test_spell_correction_cache_performance():
     cks = CKS()  # Uses default cks.db
 
     # Delete cache if exists to test first load
-    cache_file = Path("P:\\\\__csf/data/symspell_cache.pkl")
+    cache_file = Path("P:\\\\\\__csf/data/symspell_cache.pkl")
     if cache_file.exists():
         cache_file.unlink()
 

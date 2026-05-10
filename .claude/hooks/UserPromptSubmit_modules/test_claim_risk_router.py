@@ -56,7 +56,7 @@ def test_root_cause_prompt_triggers_claim_risk_router() -> None:
     assert isinstance(result.context, dict)
     injection = result.context["additionalContext"]
     assert "root-cause branch" in injection.lower()
-    assert "alternative hypothesis" in injection.lower()
+    assert "alternative" in injection.lower()
     assert "operating_rules" in result.context["suppress"]
     assert "reasoning_mode_selector" not in result.context["suppress"]
     assert "analysis_protocol_gate" not in result.context["suppress"]

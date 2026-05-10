@@ -6,7 +6,7 @@ and trigger-to-usage fidelity (listed triggers actually cause the skill to fire)
 
 Usage:
     from certification_gate import check
-    result = check(skill_path="P:\\\\.claude/skills/gto")
+    result = check(skill_path="P:\\\\\\.claude/skills/gto")
 """
 from __future__ import annotations
 
@@ -211,7 +211,7 @@ def _find_large_reference_sections(content: str) -> list[str]:
                 1 for line in section_lines
                 if ("/" in line and ("skill" in line.lower() or ".md" in line.lower()))
                 or line.strip().startswith("```")
-                or "P:\\\\" in line
+                or "P:\\\\\\" in line
             )
             if reference_count >= consecutive * 0.3:
                 # Extract section title (first heading or line)

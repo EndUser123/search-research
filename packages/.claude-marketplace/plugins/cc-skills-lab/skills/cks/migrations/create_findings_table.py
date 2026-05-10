@@ -18,7 +18,7 @@ Schema Purpose:
 
 Usage:
     # Run migration
-    python P:\\\\.claude/skills/cks/migrations/create_findings_table.py
+    python P:\\\\\\.claude/skills/cks/migrations/create_findings_table.py
 
     # Use as module
     from .claude.skills.cks.migrations.create_findings_table import (
@@ -28,7 +28,7 @@ Usage:
     )
 
 Database:
-    - Path: P:\\\\__csf/data/cks.db
+    - Path: P:\\\\\\__csf/data/cks.db
     - Table: findings
     - Idempotent: Safe to run multiple times
 
@@ -73,7 +73,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Constants
-DEFAULT_DB_PATH = Path(r'P:\\\\__csf/data/cks.db')
+DEFAULT_DB_PATH = Path(r'P:\\\\\\__csf/data/cks.db')
 SEVERITY_LEVELS = ['critical', 'high', 'medium', 'low']
 COMMON_SOURCES = ['debugrca', 'dne', 'arch', 'q', 'r']
 COMMON_TYPES = ['REFACTOR', 'DEBT', 'OPT', 'DOC', 'SEC', 'BUG', 'PATTERN', 'CLEANUP']
@@ -86,7 +86,7 @@ def create_findings_table(db_path: str | Path | None = None) -> bool:
     Uses CREATE TABLE IF NOT EXISTS and CREATE INDEX IF NOT EXISTS.
 
     Args:
-        db_path: Path to CKS database. Defaults to P:\\\\__csf/data/cks.db
+        db_path: Path to CKS database. Defaults to P:\\\\\\__csf/data/cks.db
 
     Returns:
         True on success, False on error
@@ -180,7 +180,7 @@ def upsert_finding(
         finding_type: Type of finding (REFACTOR, DEBT, OPT, DOC, SEC, etc.)
         source: Source skill/tool (debugrca, dne, arch, q, r, etc.)
         message: Finding description (required)
-        db_path: Path to CKS database. Defaults to P:\\\\__csf/data/cks.db
+        db_path: Path to CKS database. Defaults to P:\\\\\\__csf/data/cks.db
         file_path: Affected file path (optional)
         line_number: Affected line number (optional)
         severity: Severity level (critical, high, medium, low). Default: medium
@@ -271,7 +271,7 @@ def query_findings(
         source: Filter by source (e.g., 'debugrca', 'q', 'r'). Optional.
         finding_type: Filter by finding type (e.g., 'REFACTOR', 'DEBT'). Optional.
         file_path: Filter by file path. Optional.
-        db_path: Path to CKS database. Defaults to P:\\\\__csf/data/cks.db
+        db_path: Path to CKS database. Defaults to P:\\\\\\__csf/data/cks.db
         limit: Maximum number of results to return. Default: 100
 
     Returns:
@@ -349,7 +349,7 @@ def get_statistics(db_path: str | Path | None = None) -> dict[str, Any]:
     """Get statistics about findings in the CKS database.
 
     Args:
-        db_path: Path to CKS database. Defaults to P:\\\\__csf/data/cks.db
+        db_path: Path to CKS database. Defaults to P:\\\\\\__csf/data/cks.db
 
     Returns:
         Dictionary with statistics:

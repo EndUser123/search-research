@@ -72,7 +72,7 @@ All constitutional hooks use standardized JSONL logging for enforcement decision
 
 ## Notification Strategy
 
-**Triggered by:** Stop_router.py (after every response)
+**Triggered by:** Stop.py IN_PROCESS_GATES (after every response)
 
 | Threshold            | Display       | Example                            |
 | -------------------- | ------------- | ---------------------------------- |
@@ -133,12 +133,12 @@ All constitutional hooks use standardized JSONL logging for enforcement decision
 
 ## Evidence Scope Notes (2026-02)
 
-- `Stop_router.py` and `PostToolUse_router.py` pin session context (`CLAUDE_SESSION_ID`) and preserve terminal context (`CLAUDE_TERMINAL_ID`) when available.
 - `PostToolUse_router.py` writes tool sequence entries with both `session_id` and `terminal_id`.
 - `assumption_audit_v2.py` now reads tool evidence via filtered sequence loading (`session_id` + `terminal_id`) instead of unscoped global reads.
 - `tool_sequence_manager.py` remains a single file store (`session_data/current_tool_sequence.json`) but consumers now apply scope filters to avoid cross-session contamination.
-- `Stop_router.py` enforces post-block observation gating: after evidence-related Stop blocks, at least one new observation tool call (`Read/Grep/Glob/Bash/View/WebFetch`) is required before another diagnostic response can pass.
 - `empirical_claims_gate.py` caches observed paths per session/prompt hash (`EMPIRICAL_OBSERVATION_CACHE_TTL_SECONDS`, default 1800) to reduce repeated false misses on already-observed paths.
+
+> **2026-05-07:** `Stop_router.py` has been consolidated into Stop.py as in-process gates. Notification strategy now triggered by Stop.py IN_PROCESS_GATES.
 
 ---
 

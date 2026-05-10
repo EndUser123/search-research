@@ -19,7 +19,7 @@ Investigation revealed that external LLM providers (groq, chutes, mistral, openr
 **Evidence Tier:** Tier 2 (Static analysis + execution output)
 
 ### Technical Root Cause
-- **Location:** `P:\\\\.claude/skills/s/lib/agents/base.py:106-122`
+- **Location:** `P:\\\\\\.claude/skills/s/lib/agents/base.py:106-122`
 - **Issue:** `AgentLLMClient.generate()` method returned response from provider without validating it
 - **Impact:** Empty responses from providers went undetected, causing retries and eventual timeout
 
@@ -32,7 +32,7 @@ Investigation revealed that external LLM providers (groq, chutes, mistral, openr
 
 ### Code Changes
 
-**File:** `P:\\\\.claude/skills/s/lib/agents/base.py`
+**File:** `P:\\\\\\.claude/skills/s/lib/agents/base.py`
 
 **Changes:**
 1. Added `provider_name` extraction for clear error messages
@@ -108,7 +108,7 @@ async def generate(
 
 ## Verification
 
-Run `python P:\\\\.claude/skills/s/lib/verify_fix.py` to verify the fix is in place.
+Run `python P:\\\\\\.claude/skills/s/lib/verify_fix.py` to verify the fix is in place.
 
 All agents already have try-except blocks around `llm_client.generate()` calls, so they will catch these `ValueError` exceptions and handle them gracefully.
 
@@ -136,9 +136,9 @@ The fix was verified to:
 
 ## Related Files
 
-- **Modified:** `P:\\\\.claude/skills/s/lib/agents/base.py`
-- **Created:** `P:\\\\.claude/skills/s/lib/verify_fix.py` (verification script)
-- **Created:** `P:\\\\.claude/skills/s/lib/test_empty_response_validation.py` (unit test template)
+- **Modified:** `P:\\\\\\.claude/skills/s/lib/agents/base.py`
+- **Created:** `P:\\\\\\.claude/skills/s/lib/verify_fix.py` (verification script)
+- **Created:** `P:\\\\\\.claude/skills/s/lib/test_empty_response_validation.py` (unit test template)
 
 ## Confidence
 

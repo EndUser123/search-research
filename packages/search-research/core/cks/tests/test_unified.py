@@ -34,7 +34,7 @@ def cks_temp_db():
 @pytest.fixture
 def cks_prod():
     """Use production CKS database for integration tests."""
-    prod_path = Path("P:\\\\__csf/data/cks.db")
+    prod_path = Path("P:\\\\\\__csf/data/cks.db")
     if not prod_path.exists():
         pytest.skip("Production CKS database not found")
     from core.cks.unified import CKS

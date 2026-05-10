@@ -94,7 +94,10 @@ from __lib.turn_mode import (
     TurnMode,
 )
 
+from __lib.claim_type import _read_claim_type
+
 from Stop_aggregator import aggregate_and_render as _aggregate_and_render
+from Stop_artifact_enforcement import run as _run_artifact_enforcement
 
 # Referent coverage advisory tuning
 _SMALL_LIST_THRESHOLD = 5         # ≤N items: strict — fire when zero items mentioned
@@ -409,7 +412,32 @@ def _run_semantic_critic(data: dict) -> dict | None:
     """
     from Stop_semantic_critic import run as _semantic_critic_run
 
-    return _semantic_critic_run(data)
+    result = _semantic_critic_run(data)
+    # Surface profile in result dict so Stop can log it via telemetry
+    if result is not None:
+        try:
+            from Stop_semantic_critic import _detect_critic_profile
+
+            user_prompt = ""
+            response_text = ""
+            if "transcript" in data:
+                for msg in reversed(data.get("transcript", [])):
+                    content = msg.get("content", "")
+                    if isinstance(content, str):
+                        if msg.get("role") == "user" and not user_prompt:
+                            user_prompt = content
+                        elif msg.get("role") == "assistant" and not response_text:
+                            response_text = content
+            if not user_prompt:
+                user_prompt = data.get("user_prompt", data.get("prompt", ""))
+            if not response_text:
+                response_text = data.get("response", data.get("raw_response", ""))
+            profile = _detect_critic_profile(user_prompt, response_text)
+            result = dict(result)
+            result["_critic_profile"] = profile
+        except Exception:
+            pass
+    return result
 
 
 def _run_epistemic_contract(data: dict) -> dict | None:
@@ -805,6 +833,13 @@ def _run_dependency_chain_guard(data: dict) -> dict | None:
 
 def _run_comparative_claim_guard(data: dict) -> dict | None:
     """Activate existing file/skill comparative verification guard."""
+    # Claim-type short-circuit: skip on irrelevant claim types
+    _, terminal_id = _resolve_scope_ids(data)
+    claim_type = _read_claim_type(terminal_id)
+    # comparative_claim_guard relevant for: mechanism_investigation
+    if not _claim_relevant(claim_type, frozenset({"mechanism_investigation"})):
+        return None  # Skip: claim type not relevant
+
     if os.environ.get("COMPARATIVE_CLAIM_GUARD_ENABLED", "true").lower() not in (
         "1",
         "true",
@@ -838,6 +873,12 @@ def _run_comparative_claim_guard(data: dict) -> dict | None:
 
 def _run_narrative_intent(data: dict) -> dict | None:
     """narrative_intent_detector.py — warn on un-hedged design-intent speculation."""
+    # Claim-type short-circuit: skip on irrelevant claim types
+    _, terminal_id = _resolve_scope_ids(data)
+    claim_type = _read_claim_type(terminal_id)
+    if not _claim_relevant(claim_type, _CLAIM_GATE_RELEVANCE["narrative_intent"]):
+        return None  # Skip: claim type not relevant
+
     try:
         from narrative_intent_detector import evaluate_narratives
 
@@ -858,6 +899,10 @@ def _run_narrative_intent(data: dict) -> dict | None:
 
 def _run_anti_sycophancy_quality(data: dict) -> dict | None:
     """Run anti-sycophancy behavioral detectors (affirmation/overconfidence/lazy closure)."""
+    _, terminal_id = _resolve_scope_ids(data)
+    claim_type = _read_claim_type(terminal_id)
+    if not _claim_relevant(claim_type, _CLAIM_GATE_RELEVANCE["anti_sycophancy_quality"]):
+        return None
     try:
         import os
 
@@ -1091,6 +1136,10 @@ def _run_behavior_gates_agreement(data: dict) -> dict | None:
 
 def _run_behavior_gates_guidance(data: dict) -> dict | None:
     """Stop_behavior_gates.py Gate 1 — warn about guidance without Read verification."""
+    _, terminal_id = _resolve_scope_ids(data)
+    claim_type = _read_claim_type(terminal_id)
+    if not _claim_relevant(claim_type, _CLAIM_GATE_RELEVANCE["behavior_gates_guidance"]):
+        return None
     try:
         from Stop_behavior_gates import _extract_tools_used, check_gate1_guidance
 
@@ -1119,6 +1168,10 @@ def _run_behavior_gates_guidance(data: dict) -> dict | None:
 
 def _run_behavior_gates_blacklist(data: dict) -> dict | None:
     """Stop_behavior_gates.py Gate 2 — warn about blacklisted tools."""
+    _, terminal_id = _resolve_scope_ids(data)
+    claim_type = _read_claim_type(terminal_id)
+    if not _claim_relevant(claim_type, _CLAIM_GATE_RELEVANCE["behavior_gates_blacklist"]):
+        return None
     try:
         from Stop_behavior_gates import _extract_tools_used, check_gate2_tools
 
@@ -1559,6 +1612,10 @@ def _run_existence_gate(data: dict) -> dict | None:
 
 def _run_lazy_workaround_gate(data: dict) -> dict | None:
     """Detect accept-bug-as-feature lazy workaround suggestions."""
+    _, terminal_id = _resolve_scope_ids(data)
+    claim_type = _read_claim_type(terminal_id)
+    if not _claim_relevant(claim_type, _CLAIM_GATE_RELEVANCE["lazy_workaround_gate"]):
+        return None
     try:
         _turn = _classify_turn_mode(data)
         if _turn in ("plan", "execution-report", "meta"):
@@ -1582,6 +1639,10 @@ def _run_lazy_workaround_gate(data: dict) -> dict | None:
 
 def _run_recommendation_gate(data: dict) -> dict | None:
     """Detect options presented without a recommendation."""
+    _, terminal_id = _resolve_scope_ids(data)
+    claim_type = _read_claim_type(terminal_id)
+    if not _claim_relevant(claim_type, _CLAIM_GATE_RELEVANCE["recommendation_gate"]):
+        return None
     try:
         import Stop_recommendation_gate
 
@@ -1670,6 +1731,11 @@ def _run_reasoning_enhanced(data: dict) -> dict | None:
 
 def _run_post_skill_prose_gate(data: dict) -> dict | None:
     """Post-Skill prose response detection - prevents AI from responding with prose after calling Skill()."""
+    # Claim-type short-circuit: skip on irrelevant claim types
+    _, terminal_id = _resolve_scope_ids(data)
+    claim_type = _read_claim_type(terminal_id)
+    if not _claim_relevant(claim_type, _CLAIM_GATE_RELEVANCE["post_skill_prose_gate"]):
+        return None  # Skip: claim type not relevant
     return _check_post_skill_prose_response(data)
 
 
@@ -1687,6 +1753,12 @@ def _run_verification_enforcement(data: dict) -> dict | None:
         --skip-verification: Allow this turn even with pending verification
     """
     try:
+        # Claim-type short-circuit: skip on irrelevant claim types
+        _, terminal_id = _resolve_scope_ids(data)
+        claim_type = _read_claim_type(terminal_id)
+        if not _claim_relevant(claim_type, _CLAIM_GATE_RELEVANCE["verification_enforcement"]):
+            return None  # Skip: claim type not relevant
+
         # Check if enforcement is enabled
         if not _env_bool("VERIFICATION_ENFORCEMENT_ENABLED", default=False):
             return None
@@ -1752,10 +1824,38 @@ def _run_verification_enforcement(data: dict) -> dict | None:
         return None
 
 
+def _claim_relevant(claim_type: str | None, relevant: set[str]) -> bool:
+    """Return True if claim_type is in the relevant set, or if claim_type is unknown (assume relevance)."""
+    if claim_type is None:
+        return True  # Unknown = assume relevant
+    return claim_type in relevant
+
+
+# Claim-type relevance maps: gate name -> set of relevant claim types
+_CLAIM_GATE_RELEVANCE: dict[str, frozenset] = {
+    "frameguard_stop": frozenset({"mechanism_investigation", "design_recommendation"}),
+    "skill_first_stop_gate": frozenset({"code_work"}),
+    "post_skill_prose_gate": frozenset({"style_heavy", "mechanism_investigation"}),
+    "verification_enforcement": frozenset({"mechanism_investigation"}),
+    "narrative_intent": frozenset({"style_heavy", "question"}),
+    "behavior_gates_guidance": frozenset({"mechanism_investigation", "design_recommendation"}),
+    "behavior_gates_blacklist": frozenset({"code_work", "mechanism_investigation"}),
+    "anti_sycophancy_quality": frozenset({"style_heavy", "question"}),
+    "lazy_workaround_gate": frozenset({"code_work", "mechanism_investigation"}),
+    "recommendation_gate": frozenset({"design_recommendation", "mechanism_investigation"}),
+}
+
+
 def _run_frameguard_stop(data: dict) -> dict | None:
     """FrameGuard Stop hook - validates systemic frame handling."""
     try:
         import subprocess
+
+        # Claim-type short-circuit: skip on irrelevant claim types
+        _, terminal_id = _resolve_scope_ids(data)
+        claim_type = _read_claim_type(terminal_id)
+        if not _claim_relevant(claim_type, _CLAIM_GATE_RELEVANCE["frameguard_stop"]):
+            return None  # Skip: claim type not relevant
 
         enabled = os.environ.get("FRAMEGUARD_ENABLED", "true").lower() == "true"
         if not enabled:
@@ -1955,6 +2055,16 @@ def _run_tool_sanity_check(data: dict) -> dict | None:
             "systemMessage": "TOOL SANITY ADVISORY:\n" + "\n".join(f"  • {w}" for w in warnings),
         }
     return None
+
+
+def _run_phase0_depends_on_skills(data: dict) -> dict | None:
+    """Phase 0 gate: verify step-1 evidence exists for depends_on_skills skills."""
+    try:
+        from stop.experimental.phase0_depends_on_skills import run as _phase0_run
+
+        return _phase0_run(data)
+    except Exception:
+        return None
 
 
 def _run_referent_coverage(data: dict) -> dict | None:
@@ -2160,6 +2270,7 @@ GATE_CLASSES: dict[str, str] = {
     "cks_correction_anchor": "policy",
     "referent_coverage": "quality",
     "tool_sanity": "quality",
+    "artifact_enforcement": "policy",  # Block unverified mechanism claims
     # Quality gates — suppressed on control turns in normal mode
     "epistemic_contract": "quality",
     "behavior_audit": "quality",
@@ -2172,9 +2283,20 @@ GATE_CLASSES: dict[str, str] = {
     "existence_gate": "quality",
     "lazy_workaround_gate": "quality",
     "semantic_critic": "quality",
+    "phase0_depends_on_skills": "quality",
 }
 
 IN_PROCESS_GATES = [
+    # Telemetry evidence (524 records, 4 sessions, 35 gates):
+    # - 28 gates fired exclusively allow across all sessions (active but not triggered)
+    # - 7 gates produced non-allow outcomes (unverified_stance, epistemic_contract,
+    #   reasoning_quality_gate, referent_coverage, semantic_critic, advisory,
+    #   anti_sycophancy_quality)
+    # - 3 gates removed per silent-gate investigation 2026-05-08:
+    #     existence_gate: explicitly disabled (_run_existence_gate returns None;
+    #       strategy moved to unified_claim_verifier via _run_behavior_audit)
+    #     reasoning_enhanced: Stop_reasoning_enhanced.py missing from disk
+    #     correction_acknowledgment: CORRECTION_GATE_ENABLED=false (flag disables gate)
     ("safety_gate", _run_safety_gate),
     (
         "frameguard_stop",
@@ -2188,7 +2310,6 @@ IN_PROCESS_GATES = [
     ("cited_content_guard", _run_cited_content_guard),
     ("cross_validator", _run_cross_validator),
     ("unverified_stance", _run_unverified_stance),
-    ("correction_acknowledgment", _run_correction_acknowledgment),
     ("dependency_chain_guard", _run_dependency_chain_guard),
     ("comparative_claim_guard", _run_comparative_claim_guard),
     ("behavior_gates_agreement", _run_behavior_gates_agreement),
@@ -2200,8 +2321,6 @@ IN_PROCESS_GATES = [
     ("advisory", _run_advisory),
     ("reflect_integration", _run_reflect_integration),
     ("reasoning_quality_gate", _run_reasoning_quality_gate),
-    ("reasoning_enhanced", _run_reasoning_enhanced),
-    ("existence_gate", _run_existence_gate),
     ("lazy_workaround_gate", _run_lazy_workaround_gate),
     ("recommendation_gate", _run_recommendation_gate),
     ("intent_artifact_alignment", _run_intent_artifact_alignment),
@@ -2210,10 +2329,15 @@ IN_PROCESS_GATES = [
         "deletion_verification_guard",
         _run_deletion_verification_guard,
     ),  # NEW 2026-03-24: Deletion verification - checks actual file system state
+    (
+        "artifact_enforcement",
+        _run_artifact_enforcement,
+    ),  # NEW 2026-05-08: Artifact enforcement for mechanism claims
     ("git_diff_reground", _run_git_diff_reground),
     ("skill_dir_correlation", _run_skill_dir_correlation_gate),
     ("cks_correction_anchor", _run_cks_correction_anchor),
     ("referent_coverage", _run_referent_coverage),
+    ("phase0_depends_on_skills", _run_phase0_depends_on_skills),
     ("tool_sanity", _run_tool_sanity_check),
 ]
 
@@ -2221,6 +2345,7 @@ IN_PROCESS_GATES = [
 SIDE_EFFECTS = [
     "auto_commit_hook.py",
     "Stop_cks_decision_capture.py",
+    "Stop_cleanup_verifier.py",
 ]
 
 
@@ -2230,6 +2355,16 @@ def run_side_effect(hook_name: str, input_data: str) -> None:
         hook_path = HOOKS_DIR / hook_name
         if not hook_path.exists():
             return
+
+        # Skip auto_commit_hook if input is invalid (missing prompt/response).
+        # The hook does git operations that can hang on malformed session context.
+        if "auto_commit" in hook_name:
+            try:
+                parsed = json.loads(input_data)
+                if not parsed.get("prompt") or not parsed.get("response"):
+                    return  # Invalid input — skip this side effect
+            except json.JSONDecodeError:
+                return  # Can't parse input — skip
 
         # Auto-commit needs more time for multi-repo git operations
         timeout = 30.0 if "auto_commit" in hook_name else 5.0
@@ -2263,6 +2398,11 @@ def _run_gate_safe(name: str, gate_fn, data: dict) -> dict | None:
 
     Critical gates fail CLOSED: if a critical gate crashes, the turn is flagged
     and advisory/warn messages surface the failure so the model does not silently proceed.
+
+    NOTE: None returns from a gate (whether from an early-exit check, a disabled gate,
+    or an exception caught here) map to allow — _process_gate_result checks 'if not res'
+    and returns False. Gates that need to warn or block must return a dict with a
+    'decision' key ('warn' or 'block') or a 'systemMessage' key.
     """
     global _critical_gate_failed_this_turn
     try:
@@ -2521,6 +2661,34 @@ def main():
             res, name, system_messages, quality_messages, data,
             turn_mode, quality_mode,
         )
+
+        # --- Gate telemetry ---
+        try:
+            from __lib.stop_gate_telemetry import log_gate_event
+
+            gate_class = GATE_CLASSES.get(name, "policy")
+            critic_profile = res.get("_critic_profile") if res else None
+            decision = (
+                "block"
+                if blocked
+                else ("warn" if res and res.get("systemMessage") else "allow")
+            )
+            extra: dict[str, Any] | None = None
+            if name == "phase0_depends_on_skills" and res and "metadata" in res:
+                extra = dict(res["metadata"])
+            log_gate_event(
+                gate_name=name,
+                classification=gate_class,
+                profile=critic_profile,
+                decision=decision,
+                session_id=data.get("session_id") or data.get("sessionId"),
+                terminal_id=data.get("terminal_id"),
+                extra=extra,
+            )
+        except Exception:
+            pass
+        # --- End telemetry ---
+
         if blocked:
             sys.exit(0)
         # Collect raw messages for aggregation: (hook_name, severity, message)

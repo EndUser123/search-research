@@ -23,10 +23,10 @@ from enum import Enum
 from pathlib import Path
 
 # Path setup
-# script is at: P:\\\\__csf/src/features/cks/integration/commands/skill_migration.py
-# P:\\\\ root is 6 levels up
-# skills are at P:\\\\.claude/skills
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent.parent  # P:\\\\ root
+# script is at: P:\\\\\\__csf/src/features/cks/integration/commands/skill_migration.py
+# P:\\\\\\ root is 6 levels up
+# skills are at P:\\\\\\.claude/skills
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent.parent  # P:\\\\\\ root
 SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 # Main CKS database (1.2GB, where all queries happen)
 CKS_DB_PATH = PROJECT_ROOT / "__csf" / "data" / "cks.db"

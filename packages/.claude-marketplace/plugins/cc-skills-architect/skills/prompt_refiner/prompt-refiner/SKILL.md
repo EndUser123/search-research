@@ -12,7 +12,7 @@ aliases:
 
 Meta-prompt system for high-reliability LLM systems with executable specifications and constitutional compliance.
 
-**Main Implementation:** `P:\\\\__csf/src/csf/cli/nip/prompt_refiner.md`
+**Main Implementation:** `P:\\\\\\__csf/src/csf/cli/nip/prompt_refiner.md`
 
 ## Quick Start
 

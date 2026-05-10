@@ -9,7 +9,7 @@ confidence levels.
 This module tests the RED phase - implementation does NOT exist yet.
 All tests MUST fail initially.
 
-Run with: pytest P:\\\\.claude/skills/reflect/tests/test_cks_schema_mapper.py -v
+Run with: pytest P:\\\\\\.claude/skills/reflect/tests/test_cks_schema_mapper.py -v
 """
 
 import sys

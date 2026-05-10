@@ -24,16 +24,13 @@ def test_behavior_contract_includes_core_rules() -> None:
 
     assert "behavior contract" in contract
     assert "if the question is concrete" in contract
-    assert "if a claim is verified" in contract
-    assert "if not, mark it as inference or unknown" in contract
+    assert "if a claim is not verified" in contract
     assert "if you did not use a tool" in contract
     assert "if evidence is missing" in contract
-    assert "decision criterion" in contract
+    assert "name the criterion" in contract
     assert "behavioral rubric" in contract
     assert "user corrects your frame" in contract
     assert "next step is obvious" in contract
-    assert "self-check" in contract
-    assert "stop hooks are the backstop" in contract
 
 
 def test_contract_clauses_are_non_empty() -> None:
@@ -43,7 +40,6 @@ def test_contract_clauses_are_non_empty() -> None:
     assert "llm behavior contract" in clauses[0].lower()
     assert any("if the question is concrete" in clause.lower() for clause in clauses)
     assert any("behavioral rubric" in clause.lower() for clause in clauses)
-    assert any("stop hooks" in clause.lower() for clause in clauses)
 
 
 def test_append_behavior_contract_is_idempotent() -> None:

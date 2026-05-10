@@ -14,14 +14,14 @@ ImportError: cannot import name 'ResearchConfig' from 'research_skill.models'
 
 There were TWO `search_research` packages:
 
-1. **P:\\\\packages/search-research/src/search_research/** - NEW standalone package (correct)
-2. **P:\\\\packages/research/src/search_research/** - OLD compatibility layer (incorrect)
+1. **P:\\\\\\packages/search-research/src/search_research/** - NEW standalone package (correct)
+2. **P:\\\\\\packages/research/src/search_research/** - OLD compatibility layer (incorrect)
 
 When Python tried to import `search_research`, it found the OLD package first (because it's in the same package as the test), causing a circular import.
 
 ### Issue 2: Old compatibility layer with stale imports
 
-The OLD `P:\\\\packages/research/src/search_research/models.py` tried to import from `research_skill.models`:
+The OLD `P:\\\\\\packages/research/src/search_research/models.py` tried to import from `research_skill.models`:
 
 ```python
 # OLD (incorrect):
@@ -39,7 +39,7 @@ Test files were still importing from `search_research.providers.claude`, but `cl
 ### Fix 1: Renamed old search_research directory
 
 ```bash
-cd P:\\\\packages/research/src
+cd P:\\\\\\packages/research/src
 mv search_research search_research.old
 ```
 
@@ -95,8 +95,8 @@ The 13 failing tests are in `test_webreader_dns_mitigation.py` and appear to be 
 
 ## Files Modified
 
-1. **Renamed**: `P:\\\\packages/research/src/search_research/` → `search_research.old/`
-2. **Modified**: `P:\\\\packages/research/src/research_skill/providers/__init__.py` - Removed migrated providers
+1. **Renamed**: `P:\\\\\\packages/research/src/search_research/` → `search_research.old/`
+2. **Modified**: `P:\\\\\\packages/research/src/research_skill/providers/__init__.py` - Removed migrated providers
 3. **Modified**: 34 test files - Fixed imports from `search_research.providers.*` to `research_skill.providers.*`
 
 ## Verification
@@ -105,7 +105,7 @@ To verify the fix:
 
 ```bash
 # Run all provider tests
-cd P:\\\\packages/research
+cd P:\\\\\\packages/research
 pytest src/research_skill/providers/ -v
 
 # Run specific test
@@ -116,7 +116,7 @@ pytest src/research_skill/providers/test_claude_provider.py -v
 
 ### Correct Package Structure
 
-**search-research package** (P:\\\\packages/search-research/):
+**search-research package** (P:\\\\\\packages/search-research/):
 - Web search providers (TavilyBackend, SerperBackend, ExaBackend, etc.)
 - Core search functionality
 - HyDE engines
@@ -124,7 +124,7 @@ pytest src/research_skill/providers/test_claude_provider.py -v
 - Results processing
 - CLI: `search-research` command
 
-**research package** (P:\\\\packages/research/):
+**research package** (P:\\\\\\packages/research/):
 - Research-specific providers (ClaudeProvider, GitHubProvider, NotebookLMProvider, etc.)
 - Knowledge graph systems (CKS, CHS)
 - Persona memory

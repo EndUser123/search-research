@@ -1,1 +1,0 @@
-P:/packages/rca/skill/hooks/StopHook_rca_auto_promotion.py

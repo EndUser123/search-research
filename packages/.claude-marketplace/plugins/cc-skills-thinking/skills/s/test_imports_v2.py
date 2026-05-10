@@ -3,7 +3,7 @@ from pathlib import Path
 
 # Setup paths similar to run_heavy.py
 skill_dir = Path(__file__).parent
-for candidate in ("P:\\\\__csf/src", "P:\\\\__csf", str(skill_dir), "P:\\\\"):
+for candidate in ("P:\\\\\\__csf/src", "P:\\\\\\__csf", str(skill_dir), "P:\\\\\\"):
     if candidate not in sys.path:
         sys.path.insert(0, candidate)
 

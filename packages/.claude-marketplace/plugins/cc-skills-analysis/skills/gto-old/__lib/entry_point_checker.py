@@ -119,10 +119,10 @@ class EntryPointChecker:
         """Resolve a path string against the project root.
 
         Handles:
-        - Absolute paths (P:\\\\\path\\to\\file.py)
+        - Absolute paths (P:\\\\\\\path\\to\\file.py)
         - Paths relative to project root (.claude/skills/foo/bar.py)
         - Skill-level paths (.claude/skills/<skill>/__lib/foo.py -> resolved from .claude/ parent)
-        - Paths with variable substitution (P:\\\\\path\\{{variable}}\\file.py)
+        - Paths with variable substitution (P:\\\\\\\path\\{{variable}}\\file.py)
 
         Args:
             path_str: Path string from documentation
@@ -150,7 +150,7 @@ class EntryPointChecker:
 
         # Handle skill-level paths: .claude/skills/<name>/__lib/foo.py
         # The .claude/ prefix anchors to the workspace's .claude/ directory.
-        # project_root.parent.parent = workspace root (P:\\\\\.claude)
+        # project_root.parent.parent = workspace root (P:\\\\\\\.claude)
         # The path .claude/skills/<name>/... is relative to workspace root
         # So .claude/skills/planning/__lib/auto_verify.py -> workspace_root / .claude/skills/planning/__lib/auto_verify.py
         skill_path_match = re.match(r"^\.claude/skills/([^/]+)(/.+)$", clean_path)

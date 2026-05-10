@@ -12,7 +12,7 @@ from playwright.async_api import async_playwright
 
 async def main():
     repo_url = "https://github.com/EndUser123/gitready"
-    video_path = Path("P:\\\\packages/gitready/assets/videos/github-ready_explainer_video.mp4")
+    video_path = Path("P:\\\\\\packages/gitready/assets/videos/github-ready_explainer_video.mp4")
     session_file = Path.home() / ".github_video_uploader_session.json"
 
     print('🚀 Starting upload...')

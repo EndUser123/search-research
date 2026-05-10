@@ -13,8 +13,8 @@ disable-model-invocation: true
 triggers:
   - /bf
 workflow_steps:
-  - 'if first arg is start, restart, shutdown, dashboard, status, or sync: run powershell -File P:\\\\.claude/provider-configs/cc-bifrost.ps1 --<arg>'
-  - 'if first arg is catalog: run python P:/packages/cc-skills-utils/skills/bifrost/scripts/filter_models.py --source local <remaining args>'
+  - 'if first arg is start, restart, shutdown, dashboard, status, or sync: run powershell -File P:\\\\\\.claude/provider-configs/cc-bifrost.ps1 --<arg>'
+  - 'if first arg is catalog: run python .claude/skills/bifrost/scripts/filter_models.py --source local <remaining args>'
   - 'if first arg is routes: import bf_agent, call probe_routes(), format as table'
   - 'if first arg is routes with second arg --new-only: import bf_agent, call list_catalog_models(min_context=128000, free_only=True), format as unrouted list'
   - 'if first arg is list-routes: import bf_agent, call list_routes(), format as table'
@@ -98,6 +98,7 @@ These invoke `cc-bifrost.ps1` for process lifecycle control:
 - `/bf catalog --format json` — machine-readable output
 - `/bf catalog --latest-gen-only` — drop known old-generation models from OpenRouter output (e.g. gpt-4, deepseek-v2, glm-4); free-key and subscription providers are always authoritative. Default: enabled when no `--provider` specified.
 - `/bf catalog --list-all` — all models in DB without taxonomy filter
+- `/bf catalog --free-tier` — show free-tier context limits instead of paid-tier (useful for Cerebras where free and paid tiers differ)
 
 **Example — agentic work (coding/architecture/reasoning, >= 128k ctx):**
 ```bash
@@ -107,7 +108,7 @@ Produces ~280 models covering latest generation per vendor.
 
 ## Local Catalog DB (--source local)
 
-The local shadow catalog at `P:/packages/cc-skills-utils/skills/bifrost/scripts/catalog.db` is populated by `sync_catalog.py`. It replaces the Bifrost governance DB for model discovery and filtering when the Bifrost daemon is not running.
+The local shadow catalog at `.claude/skills/bifrost/catalog.db` is populated by `sync_catalog.py`. It replaces the Bifrost governance DB for model discovery and filtering when the Bifrost daemon is not running.
 
 **Taxonomy rules (applied automatically):**
 - FREE-KEY providers (cerebras, groq, mistral, nvidia): API key covers all models — no context or cost filter
@@ -199,7 +200,7 @@ print(f"(completed via: {result['completed_via']}, turns: {len(result['turns'])}
 
 ## Constraints
 
-- BF_ALLOWED_ROOT defaults to P:\\\\
+- BF_ALLOWED_ROOT defaults to P:\\\\\\
 - File reads limited to BF_FILE_CHAR_LIMIT (default 12000 chars)
 - Directory listing capped at BF_DIR_ITEM_LIMIT (default 200 items)
 - Glob capped at BF_GLOB_LIMIT (default 100 matches)
@@ -213,7 +214,7 @@ print(f"(completed via: {result['completed_via']}, turns: {len(result['turns'])}
 - /bf plan GLM-5.1 migration from Python to TypeScript
 - /bf review M27 this plugin architecture for brittleness
 - /bf compare M27,GLM-5.1,DSv4-flash best architecture for multi-model planning in Claude Code
-- /bf code DSv4-flash read P:\\\\README.md and propose a refactor
+- /bf code DSv4-flash read P:\\\\\\README.md and propose a refactor
 - /bf explore GLM-5.1 what would a pre-mortem skill look like in Claude Code
 - /bf routes — probe all configured routes and measure latency
 - /bf routes --new-only — find catalog models with no routing rule yet

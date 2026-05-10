@@ -777,7 +777,7 @@ def explain_execution_plan(query: str, options: dict | None = None) -> dict:
         try:
             import sys
 
-            sys.path.insert(0, "P:\\\\")
+            sys.path.insert(0, "P:\\\\\\")
             from src.knowledge.systems.hyde import extract_key_phrases, generate_hyde
 
             hyde_doc = generate_hyde(query)

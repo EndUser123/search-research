@@ -61,7 +61,7 @@ def test_sessionstart_no_grace_period():
     """Verify SessionStart_semantic_daemon.py does NOT use grace period."""
     hook_path = Path(".claude/hooks/SessionStart_semantic_daemon.py")
     if not hook_path.exists():
-        hook_path = Path("P:\\\\.claude/hooks/SessionStart_semantic_daemon.py")
+        hook_path = Path("P:\\\\\\.claude/hooks/SessionStart_semantic_daemon.py")
 
     content = hook_path.read_text()
 

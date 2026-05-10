@@ -17,7 +17,7 @@ from .normalized import upsert_event
 from .projections import query_events
 from .claude_code_raw import ClaudeCodeRawProvider
 
-DB_PATH = Path("P:\\\\__csf/data/chat_history.db")
+DB_PATH = Path("P:\\\\\\__csf/data/chat_history.db")
 
 
 @pytest.fixture

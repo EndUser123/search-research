@@ -10,7 +10,7 @@ Usage:
     python create_github_repo.py <package_name> <target_dir> [description]
 
 Examples:
-    python create_github_repo.py "search-research" "P:\\\\packages/search-research" "Unified search provider"
+    python create_github_repo.py "search-research" "P:\\\\\\packages/search-research" "Unified search provider"
     python create_github_repo.py "my-lib" "/path/to/my-lib" "My awesome library"
 """
 

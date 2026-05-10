@@ -57,12 +57,12 @@ class ProjectContextCKSAdapter:
     providing a high-level API that integrates with CKS storage.
 
     Usage:
-        adapter = ProjectContextCKSAdapter(db_path="P:\\\\__csf/data/cks.db")
+        adapter = ProjectContextCKSAdapter(db_path="P:\\\\\\__csf/data/cks.db")
 
         # Create project context
         adapter.create_context(
             tsk_id="TSK-ALT-PLATFORM-DOWNLOADING",
-            worktree_path="P:\\\\yt-fts-alt-platforms",
+            worktree_path="P:\\\\\\yt-fts-alt-platforms",
             description="YouTube alternative platforms"
         )
 
@@ -70,7 +70,7 @@ class ProjectContextCKSAdapter:
         adapter.set_active_context("TSK-ALT-PLATFORM-DOWNLOADING")
 
         # Validate operations
-        allowed, message = adapter.validate_operation("edit", "P:\\\\yt-fts-alt-platforms/file.py")
+        allowed, message = adapter.validate_operation("edit", "P:\\\\\\yt-fts-alt-platforms/file.py")
     """
 
     def __init__(self, db_path: str | Path) -> None:

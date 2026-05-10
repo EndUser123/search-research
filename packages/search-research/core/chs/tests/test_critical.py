@@ -5,7 +5,7 @@ These tests verify CRITICAL data safety behaviors for:
 - Embedding versioning: Reject queries with mismatched embedding dimensions
 
 These are CHARACTERIZATION tests that document REQUIRED safety behaviors.
-Run with: pytest P:\\\\__csf/src/knowledge/systems/chs/v2/tests/test_critical.py -v
+Run with: pytest P:\\\\\\__csf/src/knowledge/systems/chs/v2/tests/test_critical.py -v
 """
 
 import json

@@ -34,11 +34,11 @@ Dedicated search for Claude Code chat history with advanced features: summarizat
 ## Project Context
 
 ### Technical Architecture
-- **Primary CLI**: `P:\\\\packages/search-research/skills/chs/scripts/chs_cli.py`
+- **Primary CLI**: `P:\\\\\\packages/search-research/skills/chs/scripts/chs_cli.py`
 - **CHS Backend**: Reuses existing CHS infrastructure from `/search`
 - **Two-Stage Search**: Lightweight index → Deep content scan (on-demand)
-- **Storage**: SQLite metrics database at `P:\\\\packages/search-research/data/chs_metrics.db`
-- **FTS5 bootstrap**: `python -m core.chs.scripts.reindex_from_jsonl --db-path "P:\\\\__csf/data/chat_history.db" --history-path "~/.claude/history.jsonl"`
+- **Storage**: SQLite metrics database at `P:\\\\\\packages/search-research/data/chs_metrics.db`
+- **FTS5 bootstrap**: `python -m core.chs.scripts.reindex_from_jsonl --db-path "P:\\\\\\__csf/data/chat_history.db" --history-path "~/.claude/history.jsonl"`
 - **Bootstrap rule**: If `chat_history.db` exists but schema/FTS tables are missing, reindex from `history.jsonl` before trusting search results
 
 ### Consolidation History
@@ -234,7 +234,7 @@ When the user asks for `export`, interpret it as a full session-chain export, no
 **Exact CLI mapping:**
 
 ```bash
-python P:\\\\packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id <session-id> --output <path>
+python P:\\\\\\packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id <session-id> --output <path>
 ```
 
 **Behavior:**
@@ -248,13 +248,13 @@ python P:\\\\packages/search-research/skills/chs/scripts/chs_cli.py --export --s
 
 ```bash
 # Export the current session chain
-python P:\\\\packages/search-research/skills/chs/scripts/chs_cli.py --export
+python P:\\\\\\packages/search-research/skills/chs/scripts/chs_cli.py --export
 
 # Export a specific session chain
-python P:\\\\packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id abc123
+python P:\\\\\\packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id abc123
 
 # Export to a specific file
-python P:\\\\packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id abc123 --output P:\\\\tmp/chs-export.md
+python P:\\\\\\packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id abc123 --output P:\\\\\\tmp/chs-export.md
 ```
 
 ### 8. Branch-Based Filtering
@@ -360,7 +360,7 @@ Search conversations by git branch.
 # Session chain export
 /chs export                           # Export full session chain
 /chs export --session-id abc123       # Export specific session chain
-/chs export --output P:\\\\tmp/out.md    # Write export to a specific file
+/chs export --output P:\\\\\\tmp/out.md    # Write export to a specific file
 ```
 
 ## Configuration
@@ -379,7 +379,7 @@ Create `~/.claude/chs_config.json`:
     "stage": "auto"
   },
   "paths": {
-    "metrics_db": "P:\\\\packages/search-research/data/chs_metrics.db"
+    "metrics_db": "P:\\\\\\packages/search-research/data/chs_metrics.db"
   }
 }
 ```

@@ -7,7 +7,7 @@ Tests verify the session-based search functionality including:
 - Session summary generation
 - Export to CKS storage
 
-Run with: pytest P:\\\\__csf/src/knowledge/systems/chs/v2/tests/test_search_session.py -v
+Run with: pytest P:\\\\\\__csf/src/knowledge/systems/chs/v2/tests/test_search_session.py -v
 """
 
 from __future__ import annotations

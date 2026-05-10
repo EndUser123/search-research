@@ -8,6 +8,7 @@ import logging
 import os
 import re
 import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -101,7 +102,7 @@ class QMDWikiBackend(BaseLocalBackend):
         # Check qmd availability at init time (fail-fast)
         try:
             result = subprocess.run(
-                ["qmd", "--version"],
+                [sys.executable, "-m", "qmd", "version"],
                 capture_output=True,
                 timeout=5,
             )
@@ -219,7 +220,7 @@ class QMDWikiBackend(BaseLocalBackend):
             # Enforce English locale for qmd output
             env = {**os.environ, **_QMD_LOCALE_ENV}
             result = await asyncio.create_subprocess_exec(
-                "qmd", "search", "--collection", self.qmd_scope.rstrip("/"), "--format", "json", query,
+                sys.executable, "-m", "qmd", "search", "--collection", self.qmd_scope.rstrip("/"), "--format", "json", query,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 env=env,
@@ -285,7 +286,7 @@ class QMDWikiBackend(BaseLocalBackend):
             try:
                 env = {**os.environ, **_QMD_LOCALE_ENV}
                 result = await asyncio.create_subprocess_exec(
-                    "qmd", "update", self.qmd_scope.rstrip("/"),
+                    sys.executable, "-m", "qmd", "update", self.qmd_scope.rstrip("/"),
                     stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
                     env=env,
                 )
@@ -321,7 +322,7 @@ class QMDWikiBackend(BaseLocalBackend):
         try:
             env = {**os.environ, **_QMD_LOCALE_ENV}
             result = subprocess.run(
-                ["qmd", "update", self.qmd_scope.rstrip("/")],
+                [sys.executable, "-m", "qmd", "update", self.qmd_scope.rstrip("/")],
                 capture_output=True, timeout=self.TIMEOUT * 4,
                 env=env,
             )

@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # Paths
 # ---------------------------------------------------------------------------
 
-_CHS_CLI = Path("P:\\\\packages/search-research/skills/chs/scripts/chs_cli.py")
+_CHS_CLI = Path("P:\\\\\\packages/search-research/skills/chs/scripts/chs_cli.py")
 _CLAUDE_BASE = Path.home() / ".claude"
 _EXPORTS_DIR = _CLAUDE_BASE / "exports"
 

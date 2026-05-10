@@ -9,7 +9,7 @@ Gate:   all templates exist AND all required DOM elements present
 import json, sys
 from pathlib import Path
 
-BASE = Path("P:\\\\packages/cc-skills-architect/skills/skill-to-page")
+BASE = Path("P:\\\\\\packages/cc-skills-architect/skills/skill-to-page")
 TPL  = BASE / "templates"
 ARTIFACT_PLAN = BASE / "artifact-plan.json"
 

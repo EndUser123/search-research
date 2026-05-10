@@ -17,7 +17,7 @@ BACKEND_KG = "KG"
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_KG_PATH = "P:\\\\projects/kg_builder/knowledge_graph_output"
+DEFAULT_KG_PATH = "P:\\\\\\projects/kg_builder/knowledge_graph_output"
 
 
 class KGBackend:
@@ -32,7 +32,7 @@ class KGBackend:
 
         Args:
             kg_data_path: Path to knowledge graph output directory.
-                Defaults to P:\\\\projects/kg_builder/knowledge_graph_output
+                Defaults to P:\\\\\\projects/kg_builder/knowledge_graph_output
         """
         self.kg_data_path = Path(kg_data_path or DEFAULT_KG_PATH)
         self._index: dict[str, dict[str, Any]] = {}

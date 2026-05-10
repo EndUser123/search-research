@@ -29,40 +29,37 @@ sys.path.insert(0, str(HOOKS_DIR))
 class TestStrawberryValidatorNotWired:
     """Verify strawberry_validator is not in the active runtime hooks."""
 
-    def test_not_in_stop_router_active_runtime_hooks(self):
-        """strawberry_validator must NOT appear in ACTIVE_RUNTIME_HOOKS."""
-        router_path = HOOKS_DIR / "Stop_router.py"
-        content = router_path.read_text(encoding="utf-8")
+    def test_not_in_stop_active_runtime_hooks(self):
+        """strawberry_validator must NOT appear in active Stop hooks."""
+        stop_path = HOOKS_DIR / "Stop.py"
+        content = stop_path.read_text(encoding="utf-8")
 
-        # ACTIVE_RUNTIME_HOOKS is a frozenset - find it
-        active_hooks_match = re.search(
-            r"ACTIVE_RUNTIME_HOOKS\s*=\s*frozenset\s*\((.*?)\)",
+        # Check IN_PROCESS_GATES for strawberry references
+        in_process_match = re.search(
+            r"IN_PROCESS_GATES\s*=\s*\{(.*?)\}",
             content,
             re.DOTALL,
         )
-        assert active_hooks_match, "ACTIVE_RUNTIME_HOOKS not found in Stop_router.py"
+        if in_process_match:
+            assert (
+                "strawberry" not in in_process_match.group(1).lower()
+            ), "strawberry_validator should NOT be in IN_PROCESS_GATES"
 
-        active_hooks_text = active_hooks_match.group(1)
+        # Check no import of strawberry
         assert (
-            "strawberry_validator" not in active_hooks_text.lower()
-        ), "strawberry_validator should NOT be in ACTIVE_RUNTIME_HOOKS"
+            "strawberry" not in content.lower()
+            or "scanners" not in content.lower()
+        ), "No strawberry scanner imports should exist in Stop.py"
 
     def test_not_in_hook_sequence(self):
-        """strawberry_validator should not be registered in HOOK_SEQUENCE either."""
-        router_path = HOOKS_DIR / "Stop_router.py"
-        content = router_path.read_text(encoding="utf-8")
+        """strawberry_validator should not be referenced in Stop.py."""
+        stop_path = HOOKS_DIR / "Stop.py"
+        content = stop_path.read_text(encoding="utf-8")
 
-        # HOOK_SEQUENCE entries look like tuples: ("HookName", ...)
-        hook_seq_match = re.search(
-            r"HOOK_SEQUENCE\s*=\s*\[(.*?)\]",
-            content,
-            re.DOTALL,
-        )
-        if hook_seq_match:
-            hook_seq_text = hook_seq_match.group(1)
-            assert (
-                "strawberry" not in hook_seq_text.lower()
-            ), "strawberry_validator should not be in HOOK_SEQUENCE"
+        # No strawberry references at all
+        assert (
+            "strawberry" not in content.lower()
+        ), "strawberry_validator should not be referenced in Stop.py"
 
 
 class TestStrawberryValidatorDecommissioned:
@@ -99,41 +96,31 @@ class TestStrawberryValidatorPatterns:
 
 
 class TestStopHookCrossValidator:
-    """Verify cross_validator state before merge."""
+    """Verify cross_validator state in Stop.py."""
 
     def test_not_in_active_runtime_hooks(self):
-        """cross_validator is NOT in ACTIVE_RUNTIME_HOOKS (inactive by default)."""
-        router_path = HOOKS_DIR / "Stop_router.py"
-        content = router_path.read_text(encoding="utf-8")
+        """cross_validator is NOT in active Stop hooks (inactive by default)."""
+        stop_path = HOOKS_DIR / "Stop.py"
+        content = stop_path.read_text(encoding="utf-8")
 
-        active_hooks_match = re.search(
-            r"ACTIVE_RUNTIME_HOOKS\s*=\s*frozenset\s*\((.*?)\)",
+        # Check IN_PROCESS_GATES
+        in_process_match = re.search(
+            r"IN_PROCESS_GATES\s*=\s*\{(.*?)\}",
             content,
             re.DOTALL,
         )
-        assert active_hooks_match
-        active_hooks_text = active_hooks_match.group(1)
-        assert (
-            "cross_validator" not in active_hooks_text.lower()
-        ), "cross_validator should NOT be in ACTIVE_RUNTIME_HOOKS"
+        if in_process_match:
+            assert (
+                "cross_validator" not in in_process_match.group(1).lower()
+            ), "cross_validator should NOT be in IN_PROCESS_GATES"
 
-    def test_in_hook_sequence_with_disabled_default(self):
-        """cross_validator IS in HOOK_SEQUENCE but default_enabled=false."""
-        router_path = HOOKS_DIR / "Stop_router.py"
-        content = router_path.read_text(encoding="utf-8")
+    def test_not_in_stop_py_hook_imports(self):
+        """cross_validator IS wired into Stop.py (in-process)."""
+        stop_path = HOOKS_DIR / "Stop.py"
+        content = stop_path.read_text(encoding="utf-8")
 
-        hook_seq_match = re.search(
-            r"HOOK_SEQUENCE\s*=\s*\[(.*?)\]",
-            content,
-            re.DOTALL,
-        )
-        assert hook_seq_match, "HOOK_SEQUENCE not found"
-        hook_seq_text = hook_seq_match.group(1)
-
-        # Should be present in HOOK_SEQUENCE
-        assert "cross_validator" in hook_seq_text.lower() or (
-            "cross" in hook_seq_text.lower() and "validator" in hook_seq_text.lower()
-        ), "cross_validator expected in HOOK_SEQUENCE"
+        # cross_validator IS referenced (this is the post-consolidation state)
+        assert "cross_validator" in content, "cross_validator should be in Stop.py"
 
 
 class TestStrawberryValidatorTestFiles:

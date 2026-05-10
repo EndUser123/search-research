@@ -399,7 +399,7 @@ async def test_validate_quality_improvement_claim(sequential_mode):
     print(f"{'='*60}")
 
     # Write results to file for documentation
-    results_path = "P:\\\\packages/reasoning/QUALITY_VALIDATION_RESULTS.md"
+    results_path = "P:\\\\\\packages/reasoning/QUALITY_VALIDATION_RESULTS.md"
     with open(results_path, 'w') as f:
         f.write("# Quality Validation Results\n\n")
         f.write("## Test Summary\n\n")

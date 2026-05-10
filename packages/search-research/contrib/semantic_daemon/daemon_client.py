@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 # CSF project root configuration
 # TODO: Move to pydantic-settings for production-grade config
-CSF_ROOT = Path("P:\\\\__csf")
+CSF_ROOT = Path("P:\\\\\\__csf")
 
 # Discovery file path
 DISCOVERY_FILE = CSF_ROOT / "data" / "semantic_daemon_discovery.json"
@@ -473,7 +473,7 @@ class DaemonClient(metaclass=_DaemonClientSingleton):
                 **When to disable**: Daemon already running, external management
 
         **Discovery File**:
-        The client first reads P:\\\\__csf/data/semantic_daemon_discovery.json
+        The client first reads P:\\\\\\__csf/data/semantic_daemon_discovery.json
         to find the current daemon's dynamic pipe name. This file is created
         by the daemon on startup and contains the actual pipe name (e.g.,
         "\\\\.\\pipe\\csf_semantic_12345_1769657446"). If the discovery file
