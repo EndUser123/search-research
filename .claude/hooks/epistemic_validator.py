@@ -163,6 +163,36 @@ def _has_citation_markers(text: str) -> bool:
     return any(re.search(m, text, re.IGNORECASE) for m in markers)
 
 
+def _is_repair_response_in_active_challenge(text: str, word_count: int) -> bool:
+    """Check if this is a short repair response in an active challenge/repair context.
+
+    When an epistemic format gate fires, the model tries to repair. Those repair
+    attempts are inherently short and lack citation markers. Allow them through
+    when: (a) there's an active challenge marker, and (b) the response is short.
+
+    This is NOT based on keywords like 'pattern' or 'regex' — it's based on
+    the challenge marker TTL mechanism already in the codebase.
+    """
+    if word_count > 20:
+        return False  # Not a short repair — not our concern
+
+    # Check if challenge marker is active (reuse existing mechanism)
+    # Import here to avoid circular imports
+    try:
+        from StopHook_unverified_stance import _is_challenge_active
+
+        # We need data dict — pass empty for TTL-only check
+        # _is_challenge_active reads from state file, so we construct minimal data
+        import os
+        data = {
+            "terminal_id": os.environ.get("CLAUDE_TERMINAL_ID", ""),
+            "session_id": os.environ.get("CLAUDE_SESSION_ID", ""),
+        }
+        return _is_challenge_active(data)
+    except Exception:
+        return False  # Fail open — don't block on system errors
+
+
 def _has_inference_marker(text: str) -> bool:
     """Check for explicit inference/uncertainty language."""
     markers = [
@@ -872,6 +902,10 @@ def validate(raw_response: str, config: Optional[EpistemicConfig] = None) -> Epi
         # immediately prior evidence (pytest output was just displayed) and
         # need no inline citation.  Substantive claims still require one.
         elif _is_grounded_status_confirmation(raw_response):
+            return EpistemicVerdict(decision="allow", issues=[])
+        # Short repair responses in active challenge context are allowed through.
+        # These are inherently short and lack citation markers — not a quality failure.
+        elif _is_repair_response_in_active_challenge(raw_response, word_count):
             return EpistemicVerdict(decision="allow", issues=[])
         else:
             return EpistemicVerdict(decision="block", issues=[

@@ -368,11 +368,147 @@ UNFOUNDED_SYSTEM_CLAIM_PATTERNS = [
 ]
 
 
-def _check_unfounded_system_claims(response: str) -> str | None:
+def _strip_quoted_blocks(text: str) -> str:
+    """Strip quoted/artifact blocks before pattern matching to prevent
+    meta-discussion from self-retriggering the unfounded-claims detector.
+
+    Strips:
+    - Blockquote lines (starting with '>')
+    - Inline quoted strings wrapping trigger phrases
+    - Backtick/markdown code blocks
+    - Stop hook feedback artifacts ('Stop (hook|says):', '⎿', etc.)
+    - Epistemic format repair markers
+    - Pattern-match diagnostic artifacts
+    """
+    import re as _re
+
+    result = []
+
+    # Strip triple-backtick code blocks first (multiline)
+    # Use a non-greedy match to avoid stripping entire response
+    code_block_pattern = _re.compile(r"```[\s\S]*?```", _re.MULTILINE)
+    text = code_block_pattern.sub("", text)
+
+    # Strip single-backtick inline code spans
+    inline_code_pattern = _re.compile(r"`[^`\n]+`")
+    text = inline_code_pattern.sub("", text)
+
+    # Strip inline double-quoted strings that wrap trigger phrase patterns
+    # Phase 1: strip whole-string matches (trigger IS the entire quoted content)
+    quoted_trigger_pattern = _re.compile(
+        r"""["']Since\s+(?:the\s+)?(?:\w+\s+)?hook\s+\w+["']|"""
+        r"""["']Because\s+(?:the\s+)?(?:\w+\s+)?hook\s+\w+["']|"""
+        r"""["']As\s+(?:the\s+)?(?:\w+\s+)?hook\s+\w+["']|"""
+        r"""["']The\s+system\s+(?:does\s+not|doesn't|can't|cannot)\s+\w+["']|"""
+        r"""["']There's\s+no\s+hook\s+for["']|"""
+        r"""["']No\s+hook\s+exists\s+that["']|"""
+        r"""["']We\s+can't\s+\w+\s+because\s+the\s+\w+["']|"""
+        r"""["']Unable\s+to\s+\w+\s+due\s+to\s+(?:the\s+)?\w+["']""",
+        _re.IGNORECASE,
+    )
+    text = quoted_trigger_pattern.sub("", text)
+
+    # Phase 2: strip trigger phrase content FROM WITHIN longer quoted strings
+    # Catches: "Root cause: since the hook blocks this path"
+    # where the trigger is embedded within a longer quoted string
+    embedded_trigger_pattern = _re.compile(
+        r'''(["'])(.*?)\1''',
+        _re.DOTALL,
+    )
+
+    def _strip_trigger_within_quotes(m: re.Match) -> str:
+        """Remove trigger phrase content from within a quoted string."""
+        quote_char = m.group(1)
+        content = m.group(2)
+        # Strip trigger phrases from within the quoted content
+        inner_stripped = _re.sub(
+            r"""Since\s+(?:the\s+)?(?:\w+\s+)?hook\s+\w+|"""
+            r"""Because\s+(?:the\s+)?(?:\w+\s+)?hook\s+\w+|"""
+            r"""As\s+(?:the\s+)?(?:\w+\s+)?hook\s+\w+|"""
+            r"""The\s+system\s+(?:does\s+not|doesn't|can't|cannot)\s+\w+|"""
+            r"""There's\s+no\s+hook\s+for|"""
+            r"""No\s+hook\s+exists\s+that|"""
+            r"""We\s+can't\s+\w+\s+because\s+the\s+\w+|"""
+            r"""Unable\s+to\s+\w+\s+due\s+to\s+(?:the\s+)?\w+""",
+            "",
+            content,
+            flags=_re.IGNORECASE,
+        )
+        # Collapse extra whitespace
+        inner_stripped = _re.sub(r"\s+", " ", inner_stripped).strip()
+        if inner_stripped:
+            return quote_char + inner_stripped + quote_char
+        return ""
+
+    text = embedded_trigger_pattern.sub(_strip_trigger_within_quotes, text)
+
+    # Drop blockquote lines entirely (don't keep their content)
+    for line in text.splitlines():
+        stripped = line.lstrip("> \t")
+        # Detect blockquotes: starts with '>' OR contains a '> ' cell in a markdown table row
+        is_blockquote = line.startswith(">") or (
+            "|" in line and any(
+                cell.startswith("> ") for cell in (c.strip() for c in line.split("|"))
+            )
+        )
+        if stripped and not is_blockquote:
+            result.append(line)
+        elif is_blockquote:
+            pass  # Drop entire blockquote line
+        else:
+            result.append(line)
+
+    text = "\n".join(result)
+
+    # Strip Stop hook artifacts
+    result = []
+    for line in text.splitlines():
+        # Skip stop hook feedback artifacts
+        lower = line.lower()
+        if any(
+            lower.startswith(prefix)
+            for prefix in (
+                "stop hook says:",
+                "stop hook:",
+                "stop:",
+                "⎿",  # Hook feedback indent
+                "lazy workaround",
+                "epistemic format repair",
+                "pattern matched:",
+                "required approach:",
+                "remember:",
+                "this suggests",
+                "this is a",
+            )
+        ):
+            continue
+        result.append(line)
+
+    return "\n".join(result)
+
+
+def _check_unfounded_system_claims(response: str, data: dict | None = None) -> str | None:
+    """Check for unfounded system claims (hook/system capability statements without evidence).
+
+    Args:
+        response: The assistant's response text.
+        data: Optional dict with 'toolUse' key for evidence checking. If None, skips
+              evidence discrimination (backward-compatible for callers that don't pass data).
+
+    Returns:
+        Matched phrase if unfounded claim detected without valid evidence, else None.
+    """
+    # Strip quoted/artifact blocks before pattern matching to prevent meta-discussion
+    # from self-retriggering (SHOULD-001 extension: quoted blocks, hook feedback, code)
+    stripped = _strip_quoted_blocks(response)
+
     for pattern in UNFOUNDED_SYSTEM_CLAIM_PATTERNS:
-        if pattern.search(response):
-            match = pattern.search(response)
-            return match.group(0) if match else None
+        match = pattern.search(stripped)
+        if match:
+            # Discriminate: valid explanation = verification tools used OR evidence phrases present
+            if data is not None and _distinguish_valid_explanation(response, data):
+                return None  # Valid evidence — allow
+            return match.group(0)
     return None
 
 
@@ -472,9 +608,9 @@ _RUNTIME_CLAIM_PATTERN = re.compile(
     r"(?:the|this)\s+(?:command|skill|feature)\s+(?:shows?|does?|returns?|runs?))\b",
     re.IGNORECASE,
 )
-# FIX-005: Remove "Read" from doc-only set (RISK:6, prevents false positives on code reviews)
-# Reading code to verify actual behavior is VALID evidence, not zero evidence.
-_DOC_ONLY_TOOL_NAMES: frozenset[str] = frozenset({"Skill"})
+# FIX-005: _DOC_ONLY_TOOL_NAMES deleted.
+# Replaced by RUNTIME_TOOLS check in _check_verification_target_mismatch above.
+# Read is now accepted as valid runtime evidence (as it should be).
 
 # PERF-001: Evidence caching for <10ms target (vs 50-100ms baseline)
 _EVIDENCE_CACHE: dict[str, list[dict]] = {}  # session_id -> tool events
@@ -697,25 +833,32 @@ def _consume_challenge_marker(data: dict[str, Any]) -> None:
 def _check_verification_target_mismatch(
     response: str, tool_events: list[dict[str, Any]]
 ) -> str | None:
-    """Flag runtime behavior claims backed only by doc-reads with no Bash (Solution B).
+    """Flag runtime behavior claims without runtime evidence.
 
     Fires when:
     - Response claims something "works" / "runs" / is "working as intended"
-    - All tools used in the turn were Skill/Read (documentation) — no Bash evidence
+    - NO runtime tools (Bash/Edit/Read/Grep/Glob) were used
+
+    RUNTIME_TOOLS are valid evidence types. If Read was used to verify code,
+    that's legitimate evidence — the old _DOC_ONLY_TOOL_NAMES=Solid{Skill} logic
+    was wrong (FIX-005) because it excluded Read from accepted evidence.
     """
     if not _RUNTIME_CLAIM_PATTERN.search(response):
         return None
     if not tool_events:
         return None
     tool_names = {e.get("name", "") for e in tool_events if isinstance(e, dict)}
-    # Only flag when tools were used but exclusively doc-reads (Skill/Read), no Bash
-    if tool_names and not (tool_names - _DOC_ONLY_TOOL_NAMES - {""}):
+    non_empty_tools = tool_names - {""}
+    # If any runtime tool was used, claim has valid evidence — allow
+    if non_empty_tools & RUNTIME_TOOLS:
+        return None
+    # No runtime tools used but claim about runtime behavior — flag it
+    if non_empty_tools:
         return (
-            "⚠️ **Verification-Target Mismatch**: Runtime behavior claim with doc-only evidence.\n\n"
-            "You used Skill/Read (documentation) but made claims about actual runtime behavior.\n\n"
-            "Either:\n"
-            "- Run the command with Bash to verify, or\n"
-            "- Hedge: 'Based on the docs, this should...' (not confirmed in this environment)"
+            "⚠️ **Verification-Target Mismatch**: Runtime behavior claim without runtime evidence.\n\n"
+            "You claimed something 'works' or 'runs' but used no Bash, Read, Grep, Glob, or Edit tools.\n"
+            "Provide actual evidence: tool output, file content, command results.\n"
+            f"Tools used: {sorted(non_empty_tools)}"
         )
     return None
 
@@ -1182,8 +1325,8 @@ To disable enforcement: Set UNVERIFIED_STANCE_ENABLED=false
             "toolUse": [{"name": name} for name in data.get("tools_used", []) if str(name).strip()],
         }
 
-        # System claim check (unique to this hook)
-        system_claim = _check_unfounded_system_claims(response_text)
+        # System claim check (unique to this hook) — with evidence discrimination
+        system_claim = _check_unfounded_system_claims(response_text, detector_input)
         if system_claim and not _distinguish_valid_explanation(response_text, detector_input):
             severity = "block" if (UNVERIFIED_STANCE_MODE == "block" and not rca_turn) else "warn"
             msg = (

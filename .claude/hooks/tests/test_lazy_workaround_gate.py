@@ -1,8 +1,4 @@
-#!/usr/bin/env python3
-"""
-Tests for Lazy Workaround Detection Gate
-"""
-
+import os
 import sys
 import unittest
 from pathlib import Path
@@ -12,6 +8,7 @@ HOOKS_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(HOOKS_DIR))
 
 from Stop_lazy_workaround_gate import check_lazy_workarounds
+from __lib.stop_gate_telemetry import clear_test_telemetry, read_telemetry
 
 
 class TestLazyWorkaroundDetection(unittest.TestCase):
@@ -237,6 +234,114 @@ class TestReportContextAllowPatterns(unittest.TestCase):
         response = "We should accept this bug as expected behavior."
         result = check_lazy_workarounds(response)
         self.assertEqual(result["decision"], "block")
+
+
+class TestTelemetryFields(unittest.TestCase):
+    """Verify telemetry fields are written correctly on block decisions."""
+
+    def setUp(self):
+        clear_test_telemetry()
+        os.environ["STOP_TELEMETRY"] = "1"
+
+    def tearDown(self):
+        clear_test_telemetry()
+        os.environ.pop("STOP_TELEMETRY", None)
+
+    def test_telemetry_matched_pattern_logs_correctly(self):
+        """matched_pattern should log the actual regex that matched."""
+        import json
+
+        response = "The workaround is fine, we don't need to fix the actual issue"
+        result = check_lazy_workarounds(response)
+        self.assertEqual(result["decision"], "block")
+
+        entries = read_telemetry()
+        self.assertEqual(len(entries), 1)
+        entry = entries[0]
+        self.assertEqual(entry["decision"], "block")
+        self.assertEqual(entry["gate"], "lazy_workaround_gate")
+        self.assertIn("extra", entry)
+        self.assertIn("matched_pattern", entry["extra"])
+        # Should be the accepting_workaround_over_fix pattern
+        self.assertIn("workaround", entry["extra"]["matched_pattern"])
+
+    def test_telemetry_investigation_bypass_true(self):
+        """investigation_bypass should be True when investigation intent is present."""
+        import json
+
+        # Response has bypass phrase but still triggers proximity detection
+        # The "duplicate" is near "fine" so it would block, but investigation intent suppresses
+        response = (
+            "Let me trace where the duplicate is created. "
+            "The duplicate bars are fine in this case, that's expected."
+        )
+        result = check_lazy_workarounds(response)
+        # The investigation intent bypasses the block
+        self.assertEqual(result["decision"], "allow")
+        # Allow path does NOT write telemetry
+        self.assertEqual(len(read_telemetry()), 0)
+
+    def test_telemetry_investigation_bypass_false(self):
+        """investigation_bypass should be False on genuine blocks."""
+        import json
+
+        response = "We can live with this race condition, it's rare"
+        result = check_lazy_workarounds(response)
+        self.assertEqual(result["decision"], "block")
+
+        entries = read_telemetry()
+        self.assertEqual(len(entries), 1)
+        entry = entries[0]
+        self.assertEqual(entry["decision"], "block")
+        self.assertIn("extra", entry)
+        self.assertIn("investigation_bypass", entry["extra"])
+        self.assertFalse(entry["extra"]["investigation_bypass"])
+
+    def test_telemetry_response_snippet_captures_context(self):
+        """response_snippet should be the last 200 chars of the response."""
+        import json
+
+        long_response = (
+            "We should accept the duplicate bars as visible logging. "
+            "The workaround is fine, we don't need to fix the actual issue. "
+            "This is a long response that exceeds 200 characters to verify truncation."
+        )
+        result = check_lazy_workarounds(long_response)
+        self.assertEqual(result["decision"], "block")
+
+        entries = read_telemetry()
+        self.assertEqual(len(entries), 1)
+        entry = entries[0]
+        self.assertEqual(entry["decision"], "block")
+        self.assertIn("extra", entry)
+        self.assertIn("response_snippet", entry["extra"])
+        # Snippet should be last 200 chars
+        self.assertEqual(entry["extra"]["response_snippet"], long_response[-200:])
+        # Snippet should be a string
+        self.assertIsInstance(entry["extra"]["response_snippet"], str)
+
+    def test_telemetry_no_match_allow_path_no_write(self):
+        """Allow path should NOT write telemetry (fields only on block path)."""
+        response = "Let me trace where the problem originates and fix it properly."
+        result = check_lazy_workarounds(response)
+        self.assertEqual(result["decision"], "allow")
+        self.assertEqual(len(read_telemetry()), 0)
+
+    def test_telemetry_proximity_match_pattern_format(self):
+        """Proximity-based matches should log a synthetic pattern identifier."""
+        import json
+
+        response = "The duplicate bars are fine, that's expected behavior"
+        result = check_lazy_workarounds(response)
+        self.assertEqual(result["decision"], "block")
+
+        entries = read_telemetry()
+        self.assertEqual(len(entries), 1)
+        entry = entries[0]
+        self.assertIn("extra", entry)
+        self.assertIn("matched_pattern", entry["extra"])
+        # Proximity pattern format: "proximity:'duplicate'+'fine'"
+        self.assertTrue(entry["extra"]["matched_pattern"].startswith("proximity:"))
 
 
 if __name__ == "__main__":
