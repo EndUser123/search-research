@@ -79,7 +79,7 @@ def chunk_markdown(text: str, max_chunk_size: int = 2000) -> list[tuple[str, str
 
 
 def main() -> int:
-    doc_path = Path("P:/.claude/docs/claude-hooks-v3.1.md")
+    doc_path = Path("P:\\\\\\.claude/docs/claude-hooks-v3.1.md")
     if not doc_path.exists():
         print(f"ERROR: File not found: {doc_path}")
         return 1

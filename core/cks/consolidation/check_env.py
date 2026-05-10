@@ -6,7 +6,7 @@ env_path = Path("P:") / ".env"
 print(f"Checking {env_path}...")
 
 if not env_path.exists():
-    print("❌ .env file does NOT exist at P:\\.env")
+    print("❌ .env file does NOT exist at P:\\\\\\\.env")
 else:
     print("✅ .env file found.")
     try:

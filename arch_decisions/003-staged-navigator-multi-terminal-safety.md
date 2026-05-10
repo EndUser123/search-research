@@ -17,7 +17,7 @@ The `AsyncSearchRouter` in `core/router_async.py` fires all backends simultaneou
 - Best-effort search: no result is critical enough to block on freshness; stale results with a flag are acceptable
 - Windows 11 environment: `rg` (ripgrep) assumed available on PATH; ColGREP optional
 
-**Value Assessment Principle** (from `P:\.claude\.evidence\value-assessment-principle.md`): Before adding each layer or component, verify it provides unique contribution beyond what existing patterns already cover. For any new abstraction, confirm existing code doesn't already provide ≥70% of the capability.
+**Value Assessment Principle** (from `$CLAUDE_ROOT/.evidence\value-assessment-principle.md`): Before adding each layer or component, verify it provides unique contribution beyond what existing patterns already cover. For any new abstraction, confirm existing code doesn't already provide ≥70% of the capability.
 
 ---
 

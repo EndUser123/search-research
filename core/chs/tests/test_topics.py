@@ -8,7 +8,7 @@ Tests verify the topics module for CHS v2 which provides:
 - update_session_topics(): Insert new topics
 - update_session_topics(): Update existing topic scores
 
-Run with: pytest P:/__csf/src/knowledge/systems/chs/v2/tests/test_topics.py -v
+Run with: pytest P:\\\\\\__csf/src/knowledge/systems/chs/v2/tests/test_topics.py -v
 """
 
 from __future__ import annotations

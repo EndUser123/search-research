@@ -1,11 +1,11 @@
-### P:\packages\search-research\contrib\__init__.py
+### $CLAUDE_PLUGIN_ROOT/contrib\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\contrib\semantic_daemon\__init__.py
+### $CLAUDE_PLUGIN_ROOT/contrib\semantic_daemon\__init__.py
 
 ```python
 from .daemon_client import DaemonClient
@@ -18,7 +18,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\contrib\semantic_daemon\build_impl.py
+### $CLAUDE_PLUGIN_ROOT/contrib\semantic_daemon\build_impl.py
 
 ```python
 from pathlib import Path
@@ -29,7 +29,7 @@ lines = lines[:i]
 ```
 
 
-### P:\packages\search-research\contrib\semantic_daemon\cks_daemon_discovery.py
+### $CLAUDE_PLUGIN_ROOT/contrib\semantic_daemon\cks_daemon_discovery.py
 
 ```python
 import sys
@@ -47,7 +47,7 @@ content = r.get("content", "")[:150]
 ```
 
 
-### P:\packages\search-research\contrib\semantic_daemon\daemon_client.py
+### $CLAUDE_PLUGIN_ROOT/contrib\semantic_daemon\daemon_client.py
 
 ```python
 import json
@@ -64,7 +64,7 @@ import pywintypes
 import win32file
 import win32pipe
 logger = logging.getLogger(__name__)
-CSF_ROOT = Path("P:/__csf")
+CSF_ROOT = Path("P:\\\\\\__csf")
 DISCOVERY_FILE = CSF_ROOT / "data" / "semantic_daemon_discovery.json"
 
 class DaemonClientManager:
@@ -90,7 +90,7 @@ search_chs(query: str, limit: int = 20, auto_start: bool = False) -> dict
 ```
 
 
-### P:\packages\search-research\contrib\semantic_daemon\daemon_keep_alive.py
+### $CLAUDE_PLUGIN_ROOT/contrib\semantic_daemon\daemon_keep_alive.py
 
 ```python
 import argparse
@@ -115,7 +115,7 @@ main() -> int
 ```
 
 
-### P:\packages\search-research\contrib\semantic_daemon\unified_semantic_daemon.py
+### $CLAUDE_PLUGIN_ROOT/contrib\semantic_daemon\unified_semantic_daemon.py
 
 ```python
 import atexit
@@ -162,11 +162,11 @@ WIN32_AVAILABLE = False
 win32api = win32con = winerror = win32event = win32file = win32pipe = pywintypes = None
 from search_research.cache import QueryCache
 PIPE_NAME = r"\\.\pipe\csf_semantic"
-DISCOVERY_FILE = Path("P:/__csf/data/semantic_daemon_discovery.json")
-PID_FILE = Path("P:/__csf/data/semantic_daemon.pid")
+DISCOVERY_FILE = Path("P:\\\\\\__csf/data/semantic_daemon_discovery.json")
+PID_FILE = Path("P:\\\\\\__csf/data/semantic_daemon.pid")
 MAX_DAEMON_AGE = 3600
 DAEMON_MUTEX_NAME = r"Global\CSF_SemanticDaemon_Instance"
-DAEMON_LOG_FILE = Path("P:/__csf/data/semantic_daemon.log")
+DAEMON_LOG_FILE = Path("P:\\\\\\__csf/data/semantic_daemon.log")
 STARTUP_TIMEOUT = 6.0
 IDLE_WORK_SHORT = 5.0
 IDLE_WORK_LONG = 900.0
@@ -288,7 +288,7 @@ main() -> int
 ```
 
 
-### P:\packages\search-research\contrib\semantic_daemon\write_full.py
+### $CLAUDE_PLUGIN_ROOT/contrib\semantic_daemon\write_full.py
 
 ```python
 from pathlib import Path
@@ -296,7 +296,7 @@ content = Path("src/lib/daemons/unified_semantic_daemon.py").read_text(encoding=
 ```
 
 
-### P:\packages\search-research\core\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\__init__.py
 
 ```python
 __version__ = "0.1.0"
@@ -488,7 +488,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\analysis\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\analysis\__init__.py
 
 ```python
 from .contradiction_detector import Contradiction, ContradictionDetector
@@ -509,7 +509,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\analysis\contradiction_detector.py
+### $CLAUDE_PLUGIN_ROOT/core\analysis\contradiction_detector.py
 
 ```python
 import logging
@@ -547,7 +547,7 @@ class ContradictionDetector:
 ```
 
 
-### P:\packages\search-research\core\analysis\density_calculator.py
+### $CLAUDE_PLUGIN_ROOT/core\analysis\density_calculator.py
 
 ```python
 from re import findall
@@ -569,7 +569,7 @@ class DensityCalculator:
 ```
 
 
-### P:\packages\search-research\core\analysis\gap_analyzer.py
+### $CLAUDE_PLUGIN_ROOT/core\analysis\gap_analyzer.py
 
 ```python
 from dataclasses import dataclass, field
@@ -604,7 +604,7 @@ class GapAnalyzer:
 ```
 
 
-### P:\packages\search-research\core\analysis\topic_clusterer.py
+### $CLAUDE_PLUGIN_ROOT/core\analysis\topic_clusterer.py
 
 ```python
 from collections import Counter
@@ -647,7 +647,7 @@ class NoveltyTracker:
 ```
 
 
-### P:\packages\search-research\core\backend_health.py
+### $CLAUDE_PLUGIN_ROOT/core\backend_health.py
 
 ```python
 import json
@@ -679,7 +679,7 @@ class BackendHealthRegistry:
 ```
 
 
-### P:\packages\search-research\core\backends\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\__init__.py
 
 ```python
 from .kg import BACKEND_KG, KGBackend
@@ -700,7 +700,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\backends\base\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\base\__init__.py
 
 ```python
 from .code_analysis_backend import CodeAnalysisBackend
@@ -708,7 +708,7 @@ __all__ = ["CodeAnalysisBackend"]
 ```
 
 
-### P:\packages\search-research\core\backends\base\code_analysis_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\base\code_analysis_backend.py
 
 ```python
 import logging
@@ -740,7 +740,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\backends\kg.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\kg.py
 
 ```python
 from pathlib import Path
@@ -759,7 +759,7 @@ __all__ = ["BACKEND_KG", "KGBackend"]
 ```
 
 
-### P:\packages\search-research\core\backends\local\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\__init__.py
 
 ```python
 from .cds_backend import CDSBackend
@@ -840,7 +840,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\backends\local\ast_code_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\ast_code_backend.py
 
 ```python
 import ast
@@ -872,7 +872,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\backends\local\base_local_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\base_local_backend.py
 
 ```python
 from pathlib import Path
@@ -899,7 +899,7 @@ class BaseLocalBackend:
 ```
 
 
-### P:\packages\search-research\core\backends\local\call_graph_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\call_graph_backend.py
 
 ```python
 from typing import Any
@@ -919,7 +919,7 @@ class CallGraphBackend:
 ```
 
 
-### P:\packages\search-research\core\backends\local\cds_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\cds_backend.py
 
 ```python
 import ast
@@ -945,7 +945,7 @@ class CDSBackend(BaseLocalBackend):
 ```
 
 
-### P:\packages\search-research\core\backends\local\chs_incremental.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\chs_incremental.py
 
 ```python
 import json
@@ -970,7 +970,7 @@ class IncrementalIndexUpdater:
 ```
 
 
-### P:\packages\search-research\core\backends\local\cks_metadata_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\cks_metadata_backend.py
 
 ```python
 import json
@@ -988,7 +988,7 @@ create_cks_metadata_backend(db_path: str | None = None) -> CKSMetadataBackend
 ```
 
 
-### P:\packages\search-research\core\backends\local\claude_history_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\claude_history_backend.py
 
 ```python
 import json
@@ -1034,7 +1034,7 @@ BACKEND_CLAUDE_HISTORY = {
 ```
 
 
-### P:\packages\search-research\core\backends\local\cpg_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\cpg_backend.py
 
 ```python
 from pathlib import Path
@@ -1057,7 +1057,7 @@ class CPGBackend:
 ```
 
 
-### P:\packages\search-research\core\backends\local\dependency_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\dependency_backend.py
 
 ```python
 from pathlib import Path
@@ -1081,7 +1081,7 @@ class DependencyBackend:
 ```
 
 
-### P:\packages\search-research\core\backends\local\enhanced_cds_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\enhanced_cds_backend.py
 
 ```python
 from pathlib import Path
@@ -1098,7 +1098,7 @@ class EnhancedCDSBackend(CDSBackend):
 ```
 
 
-### P:\packages\search-research\core\backends\local\grep_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\grep_backend.py
 
 ```python
 import ast
@@ -1116,7 +1116,7 @@ class GrepBackend(BaseLocalBackend):
 ```
 
 
-### P:\packages\search-research\core\backends\local\hdma_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\hdma_backend.py
 
 ```python
 import logging
@@ -1142,7 +1142,7 @@ class HDMABackend:
 ```
 
 
-### P:\packages\search-research\core\backends\local\kg_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\kg_backend.py
 
 ```python
 from ...config import config
@@ -1161,7 +1161,7 @@ class KGBackend:
 ```
 
 
-### P:\packages\search-research\core\backends\local\lsp_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\lsp_backend.py
 
 ```python
 import asyncio
@@ -1233,7 +1233,7 @@ create_lsp_backend(root_paths: list[str] | None = None) -> LSPSymbolBackend
 ```
 
 
-### P:\packages\search-research\core\backends\local\multilang_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\multilang_backend.py
 
 ```python
 import ast
@@ -1292,7 +1292,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\backends\local\notebooklm_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\notebooklm_backend.py
 
 ```python
 import warnings
@@ -1323,7 +1323,7 @@ create_notebooklm_backend(notebook_id: str | None = None) -> NotebookLMBackend
 ```
 
 
-### P:\packages\search-research\core\backends\local\qmd_wiki_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\qmd_wiki_backend.py
 
 ```python
 import asyncio
@@ -1356,7 +1356,7 @@ class QMDWikiBackend(BaseLocalBackend):
 ```
 
 
-### P:\packages\search-research\core\backends\local\rlm_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\rlm_backend.py
 
 ```python
 import asyncio
@@ -1490,7 +1490,7 @@ is_rlm_available() -> bool
 ```
 
 
-### P:\packages\search-research\core\backends\local\skills_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\skills_backend.py
 
 ```python
 import re
@@ -1514,7 +1514,7 @@ class SkillsBackend:
 ```
 
 
-### P:\packages\search-research\core\backends\local\yt_is_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\local\yt_is_backend.py
 
 ```python
 import asyncio
@@ -1541,14 +1541,14 @@ class YtIsBackend:
 ```
 
 
-### P:\packages\search-research\core\backends\notebooklm\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\notebooklm\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\backends\persona.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\persona.py
 
 ```python
 from pathlib import Path
@@ -1570,7 +1570,7 @@ __all__ = ["BACKEND_PERSONA", "PersonaMemoryBackend"]
 ```
 
 
-### P:\packages\search-research\core\backends\query_intent.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\query_intent.py
 
 ```python
 from core.query_intent import QueryIntent
@@ -1578,7 +1578,7 @@ __all__ = ["QueryIntent"]
 ```
 
 
-### P:\packages\search-research\core\backends\rlm.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\rlm.py
 
 ```python
 import json
@@ -1791,14 +1791,14 @@ __all__ = ["RLMBackend", "BACKEND_NAME", "SecurityError"]
 ```
 
 
-### P:\packages\search-research\core\backends\web\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\backends\web\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\cache.py
+### $CLAUDE_PLUGIN_ROOT/core\cache.py
 
 ```python
 import hashlib
@@ -1841,7 +1841,7 @@ class QueryCache:
 ```
 
 
-### P:\packages\search-research\core\chat_search_security.py
+### $CLAUDE_PLUGIN_ROOT/core\chat_search_security.py
 
 ```python
 import hashlib
@@ -1914,7 +1914,7 @@ class ChatSearchSecurityManager:
 ```
 
 
-### P:\packages\search-research\core\chs\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\__init__.py
 
 ```python
 __version__ = "2.0.0-dev"
@@ -1971,7 +1971,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\chs\archive.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\archive.py
 
 ```python
 import json
@@ -1989,7 +1989,7 @@ read_watermark(provider_id: str, source_id: str, terminal_id: str) -> dict[str, 
 ```
 
 
-### P:\packages\search-research\core\chs\clustering.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\clustering.py
 
 ```python
 import logging
@@ -2017,23 +2017,23 @@ extract_embeddings_from_results(results: list[dict], db: sqlite3.Connection | No
 ```
 
 
-### P:\packages\search-research\core\chs\config.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\config.py
 
 ```python
 import os
 from pathlib import Path
 
 class Config:
-    DEFAULT_DB_PATH = Path("P:/__csf/data/chat_history.db")
+    DEFAULT_DB_PATH = Path("P:\\\\\\__csf/data/chat_history.db")
     DEFAULT_EMBEDDING_MODEL = "sentence-transformers/all-mpnet-base-v2"
     DEFAULT_EMBEDDING_DIMENSIONS = 768
-    DEFAULT_JSONL_DIR = Path("P:/__csf/logs/chats")
+    DEFAULT_JSONL_DIR = Path("P:\\\\\\__csf/logs/chats")
     __init__(self) -> None
 get_chs_db_path() -> str
 ```
 
 
-### P:\packages\search-research\core\chs\critical.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\critical.py
 
 ```python
 import json
@@ -2063,7 +2063,7 @@ class CHSMigrator:
 ```
 
 
-### P:\packages\search-research\core\chs\db.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\db.py
 
 ```python
 import sqlite3
@@ -2076,7 +2076,7 @@ set_embeddings_config(db_path: Path | str, model_name: str, embedding_dim: int) 
 ```
 
 
-### P:\packages\search-research\core\chs\embeddings.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\embeddings.py
 
 ```python
 import logging
@@ -2100,7 +2100,7 @@ reset_embed_client() -> None
 ```
 
 
-### P:\packages\search-research\core\chs\indexer.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\indexer.py
 
 ```python
 import asyncio
@@ -2122,7 +2122,7 @@ class ChatIndexer:
 ```
 
 
-### P:\packages\search-research\core\chs\intelligent_defaults.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\intelligent_defaults.py
 
 ```python
 import os
@@ -2142,7 +2142,7 @@ class IntelligentDefaults:
 ```
 
 
-### P:\packages\search-research\core\chs\normalized.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\normalized.py
 
 ```python
 import json
@@ -2150,7 +2150,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from core.chs.db import get_connection
-DB_PATH = Path("P:/__csf/data/chat_history.db")
+DB_PATH = Path("P:\\\\\\__csf/data/chat_history.db")
 upsert_event(event: dict[str, Any]) -> bool
 query_tasks(provider_id: str | None = None, since: str | None = None, until: str | None = None) -> list[dict]
 query_opportunities(provider_id: str | None = None, since: str | None = None, until: str | None = None) -> list[dict]
@@ -2158,21 +2158,21 @@ get_events_by_hash(provider_id: str, source_id: str, content_hash: str) -> list[
 ```
 
 
-### P:\packages\search-research\core\chs\projections.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\projections.py
 
 ```python
 from pathlib import Path
 from typing import Any
 from core.chs.db import get_connection
 from core.chs.providers import discover_all
-DB_PATH = Path("P:/__csf/data/chat_history.db")
+DB_PATH = Path("P:\\\\\\__csf/data/chat_history.db")
 health_check() -> dict[str, bool]
 query_events(provider_id: str | None = None, source_id: str | None = None, since: str | None = None, until: str | None = None, limit: int = 100) -> list[dict[str, Any]]
 query_events_by_session(provider_id: str, source_id: str, limit: int = 1000) -> list[dict[str, Any]]
 ```
 
 
-### P:\packages\search-research\core\chs\providers\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\providers\__init__.py
 
 ```python
 from core.chs.providers.base import Provider
@@ -2186,7 +2186,7 @@ from core.chs.providers.claude_log import ClaudeLogProvider
 ```
 
 
-### P:\packages\search-research\core\chs\providers\base.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\providers\base.py
 
 ```python
 from dataclasses import dataclass
@@ -2226,7 +2226,7 @@ class Provider(Protocol):
 ```
 
 
-### P:\packages\search-research\core\chs\providers\claude_code_raw.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\providers\claude_code_raw.py
 
 ```python
 import hashlib
@@ -2248,7 +2248,7 @@ class ClaudeCodeRawProvider:
 ```
 
 
-### P:\packages\search-research\core\chs\providers\claude_log.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\providers\claude_log.py
 
 ```python
 import hashlib
@@ -2270,7 +2270,7 @@ class ClaudeLogProvider:
 ```
 
 
-### P:\packages\search-research\core\chs\providers\codex_desktop.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\providers\codex_desktop.py
 
 ```python
 import hashlib
@@ -2292,7 +2292,7 @@ class CodexDesktopProvider:
 ```
 
 
-### P:\packages\search-research\core\chs\schema_compat.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\schema_compat.py
 
 ```python
 import sqlite3
@@ -2326,14 +2326,14 @@ class CHSSchemaCompat:
 ```
 
 
-### P:\packages\search-research\core\chs\scripts\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\scripts\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\chs\scripts\backfill_embeddings.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\scripts\backfill_embeddings.py
 
 ```python
 import argparse
@@ -2347,7 +2347,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\chs\scripts\chs_cli.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\scripts\chs_cli.py
 
 ```python
 import argparse
@@ -2358,7 +2358,7 @@ main() -> int
 ```
 
 
-### P:\packages\search-research\core\chs\scripts\health_check.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\scripts\health_check.py
 
 ```python
 import argparse
@@ -2370,7 +2370,7 @@ main() -> int
 ```
 
 
-### P:\packages\search-research\core\chs\scripts\init_db.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\scripts\init_db.py
 
 ```python
 import argparse
@@ -2380,7 +2380,7 @@ main() -> int
 ```
 
 
-### P:\packages\search-research\core\chs\scripts\merge_history_jsonl.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\scripts\merge_history_jsonl.py
 
 ```python
 import argparse
@@ -2394,7 +2394,7 @@ main() -> int
 ```
 
 
-### P:\packages\search-research\core\chs\scripts\refactor_imports.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\scripts\refactor_imports.py
 
 ```python
 import ast
@@ -2411,7 +2411,7 @@ main() -> int
 ```
 
 
-### P:\packages\search-research\core\chs\scripts\reindex_from_jsonl.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\scripts\reindex_from_jsonl.py
 
 ```python
 import argparse
@@ -2422,7 +2422,7 @@ import time
 from pathlib import Path
 logger = logging.getLogger(__name__)
 HISTORY_JSONL = Path.home() / ".claude" / "history.jsonl"
-DEFAULT_DB_PATH = Path("P:/__csf/data/chat_history.db")
+DEFAULT_DB_PATH = Path("P:\\\\\\__csf/data/chat_history.db")
 CLAUDE_CODE_PROJECT_LABEL = "Claude Code"
 CLAUDE_CODE_PROJECT_PATH = "~/.claude"
 BATCH_SIZE = 1000
@@ -2444,7 +2444,7 @@ main() -> int
 ```
 
 
-### P:\packages\search-research\core\chs\scripts\run_indexer.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\scripts\run_indexer.py
 
 ```python
 import argparse
@@ -2457,7 +2457,7 @@ main() -> int
 ```
 
 
-### P:\packages\search-research\core\chs\search.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\search.py
 
 ```python
 import logging
@@ -2499,7 +2499,7 @@ explain_execution_plan(query: str, options: dict | None = None) -> dict
 ```
 
 
-### P:\packages\search-research\core\chs\search_fts_compat.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\search_fts_compat.py
 
 ```python
 from typing import TYPE_CHECKING
@@ -2510,7 +2510,7 @@ search_fts_messages(db: sqlite3.Connection, query: str, limit: int = 10) -> list
 ```
 
 
-### P:\packages\search-research\core\chs\search_session.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\search_session.py
 
 ```python
 import json
@@ -2549,7 +2549,7 @@ class SearchSessionManager:
 ```
 
 
-### P:\packages\search-research\core\chs\summarizer.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\summarizer.py
 
 ```python
 import logging
@@ -2564,18 +2564,18 @@ generate_session_summary(messages: list[dict], max_preview_chars: int = 600) -> 
 ```
 
 
-### P:\packages\search-research\core\chs\task_projection.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\task_projection.py
 
 ```python
 from core.chs.db import get_connection
 from pathlib import Path
-DB_PATH = Path("P:/__csf/data/chat_history.db")
+DB_PATH = Path("P:\\\\\\__csf/data/chat_history.db")
 open_tasks(provider_id: str | None = None) -> list[dict]
 resolve_task(task_id: str, resolved_at: str | None = None) -> bool
 ```
 
 
-### P:\packages\search-research\core\chs\topics.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\topics.py
 
 ```python
 import re
@@ -2604,7 +2604,7 @@ update_session_topics(conn: sqlite3.Connection, session_id: int, topics: dict[st
 ```
 
 
-### P:\packages\search-research\core\chs\utils.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\utils.py
 
 ```python
 import hashlib
@@ -2619,7 +2619,7 @@ escape_fts5_query(query: str) -> str
 ```
 
 
-### P:\packages\search-research\core\chs\verify_backup.py
+### $CLAUDE_PLUGIN_ROOT/core\chs\verify_backup.py
 
 ```python
 import hashlib
@@ -2663,7 +2663,7 @@ import os
 ```
 
 
-### P:\packages\search-research\core\chunking\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\chunking\__init__.py
 
 ```python
 from .smart_chunker import SmartChunker, BreakPointScore
@@ -2671,7 +2671,7 @@ __all__ = ["SmartChunker", "BreakPointScore"]
 ```
 
 
-### P:\packages\search-research\core\chunking\smart_chunker.py
+### $CLAUDE_PLUGIN_ROOT/core\chunking\smart_chunker.py
 
 ```python
 import re
@@ -2695,14 +2695,14 @@ __all__ = ["SmartChunker", "BreakPointScore"]
 ```
 
 
-### P:\packages\search-research\core\cks\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\cks\analyze_fts_performance.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\analyze_fts_performance.py
 
 ```python
 import random
@@ -2719,7 +2719,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\cks_add_cli.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\cks_add_cli.py
 
 ```python
 import logging
@@ -2795,7 +2795,7 @@ main()
 ```
 
 
-### P:\packages\search-research\core\cks\cks_cli.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\cks_cli.py
 
 ```python
 import sys
@@ -2823,7 +2823,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\cks_query_interface.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\cks_query_interface.py
 
 ```python
 import json
@@ -2850,7 +2850,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\cks_spec.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\cks_spec.py
 
 ```python
 import argparse
@@ -2895,14 +2895,14 @@ main() -> int
 ```
 
 
-### P:\packages\search-research\core\cks\cli\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\cli\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\cks\cli\dream_journal.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\cli\dream_journal.py
 
 ```python
 import json
@@ -2931,21 +2931,21 @@ commit() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\commands\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\commands\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\cks\commands\_make.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\commands\_make.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\cks\commands\auto_learning_expander.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\commands\auto_learning_expander.py
 
 ```python
 import asyncio
@@ -2980,7 +2980,7 @@ auto_learn_from_search(query: str, results: list[dict], cks_client = None, dry_r
 ```
 
 
-### P:\packages\search-research\core\cks\commands\cks_migrate.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\commands\cks_migrate.py
 
 ```python
 import argparse
@@ -3040,7 +3040,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\commands\design_prompt_cks_integration.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\commands\design_prompt_cks_integration.py
 
 ```python
 create_enhanced_cks_schema() -> str
@@ -3051,7 +3051,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\commands\file_history.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\commands\file_history.py
 
 ```python
 import json
@@ -3061,7 +3061,7 @@ query_file_history(file_path: str) -> list[dict]
 ```
 
 
-### P:\packages\search-research\core\cks\commands\fix_cks_validation_commands.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\commands\fix_cks_validation_commands.py
 
 ```python
 import asyncio
@@ -3070,7 +3070,7 @@ fix_validation_commands() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\commands\ingest_coding_standards.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\commands\ingest_coding_standards.py
 
 ```python
 import argparse
@@ -3099,7 +3099,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\commands\smart_review_cks_fixed.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\commands\smart_review_cks_fixed.py
 
 ```python
 import asyncio
@@ -3122,7 +3122,7 @@ test_cks_checker() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\commands\test_auto_learning_expander.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\commands\test_auto_learning_expander.py
 
 ```python
 import sys
@@ -3147,7 +3147,7 @@ result = test_func()
 ```
 
 
-### P:\packages\search-research\core\cks\commands\test_cks_migrate.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\commands\test_cks_migrate.py
 
 ```python
 import sys
@@ -3171,7 +3171,7 @@ result = test_func()
 ```
 
 
-### P:\packages\search-research\core\cks\commands\test_unified_ingest.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\commands\test_unified_ingest.py
 
 ```python
 import sys
@@ -3194,7 +3194,7 @@ result = test_func()
 ```
 
 
-### P:\packages\search-research\core\cks\commands\unified_ingest.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\commands\unified_ingest.py
 
 ```python
 import argparse
@@ -3269,14 +3269,14 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\consolidation\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\consolidation\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\cks\consolidation\check_env.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\consolidation\check_env.py
 
 ```python
 import os
@@ -3289,7 +3289,7 @@ val = os.getenv(key)
 ```
 
 
-### P:\packages\search-research\core\cks\consolidation\dreaming_cycle.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\consolidation\dreaming_cycle.py
 
 ```python
 import asyncio
@@ -3339,14 +3339,14 @@ class DreamingService:
 ```
 
 
-### P:\packages\search-research\core\cks\consolidation\inspect_gemini.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\consolidation\inspect_gemini.py
 
 ```python
 from instructor import from_gemini
 ```
 
 
-### P:\packages\search-research\core\cks\consolidation\inspect_instructor.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\consolidation\inspect_instructor.py
 
 ```python
 import instructor
@@ -3354,7 +3354,7 @@ from instructor import providers
 ```
 
 
-### P:\packages\search-research\core\cks\consolidation\run_daemon.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\consolidation\run_daemon.py
 
 ```python
 import logging
@@ -3365,13 +3365,13 @@ import asyncio
 LOG_DIR = Path(__file__).parents[3] / "logs"
 logger = logging.getLogger("CKS_Daemon")
 from dotenv import load_dotenv
-env_path = Path(r"P:\.env")
+env_path = Path(r"P:\\\\\\.env")
 from .dreaming_cycle import DreamingService
 main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\consolidation\simple_inspect.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\consolidation\simple_inspect.py
 
 ```python
 import instructor
@@ -3380,18 +3380,18 @@ from instructor.providers import google
 ```
 
 
-### P:\packages\search-research\core\cks\consolidation\test_dotenv.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\consolidation\test_dotenv.py
 
 ```python
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-env_path = Path(r"P:\.env")
+env_path = Path(r"P:\\\\\\.env")
 val = os.getenv("GEMINI_API_KEY")
 ```
 
 
-### P:\packages\search-research\core\cks\core\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\core\__init__.py
 
 ```python
 import re
@@ -3400,7 +3400,7 @@ __all__ = ["StorageConfig", "StorageManager"]
 ```
 
 
-### P:\packages\search-research\core\cks\core\faiss_pytorch_adapter.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\core\faiss_pytorch_adapter.py
 
 ```python
 import logging
@@ -3442,7 +3442,7 @@ __migration_version__ = "1.0.0"
 ```
 
 
-### P:\packages\search-research\core\cks\core\gpu_manager.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\core\gpu_manager.py
 
 ```python
 import builtins
@@ -3497,7 +3497,7 @@ class GPUMemoryManager:
 ```
 
 
-### P:\packages\search-research\core\cks\core\multi_graph_engine.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\core\multi_graph_engine.py
 
 ```python
 import json
@@ -3617,14 +3617,14 @@ quick_semantic_search(query: str, engine: MultiGraphEngine = None, max_results: 
 ```
 
 
-### P:\packages\search-research\core\cks\core\multi_graph_engine_instrumented.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\core\multi_graph_engine_instrumented.py
 
 ```python
 __all__ = []
 ```
 
 
-### P:\packages\search-research\core\cks\core\pytorch_vector_storage.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\core\pytorch_vector_storage.py
 
 ```python
 import logging
@@ -3662,14 +3662,14 @@ create_pytorch_vector_storage(config: PyTorchStorageConfig | None = None) -> PyT
 ```
 
 
-### P:\packages\search-research\core\cks\core\pytorch_vector_storage_instrumented.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\core\pytorch_vector_storage_instrumented.py
 
 ```python
 __all__ = []
 ```
 
 
-### P:\packages\search-research\core\cks\core\semantic_analyzer.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\core\semantic_analyzer.py
 
 ```python
 import logging
@@ -3688,7 +3688,7 @@ class SemanticAnalyzer:
 ```
 
 
-### P:\packages\search-research\core\cks\core\storage_manager.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\core\storage_manager.py
 
 ```python
 import gc
@@ -3738,7 +3738,7 @@ class StorageManager:
 ```
 
 
-### P:\packages\search-research\core\cks\core\storage_manager_optimized.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\core\storage_manager_optimized.py
 
 ```python
 import gc
@@ -3788,7 +3788,7 @@ class StorageManager:
 ```
 
 
-### P:\packages\search-research\core\cks\core\storage_manager_original.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\core\storage_manager_original.py
 
 ```python
 import gc
@@ -3841,7 +3841,7 @@ class StorageManager:
 ```
 
 
-### P:\packages\search-research\core\cks\core\vector_manager.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\core\vector_manager.py
 
 ```python
 import logging
@@ -3877,7 +3877,7 @@ class VectorKnowledgeManager:
 ```
 
 
-### P:\packages\search-research\core\cks\decision_extractor.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\decision_extractor.py
 
 ```python
 import re
@@ -3936,7 +3936,7 @@ extract_decisions_from_transcript(transcript: str, min_confidence: float = 0.60)
 ```
 
 
-### P:\packages\search-research\core\cks\document_ingest.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\document_ingest.py
 
 ```python
 import hashlib
@@ -4022,7 +4022,7 @@ class MultiGraphDocumentIngester:
 ```
 
 
-### P:\packages\search-research\core\cks\documentation_manager.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\documentation_manager.py
 
 ```python
 import logging
@@ -4058,7 +4058,7 @@ search_documentation(query: str)
 ```
 
 
-### P:\packages\search-research\core\cks\entity_filter.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\entity_filter.py
 
 ```python
 import re
@@ -4088,14 +4088,14 @@ search_entities(query: str, entity: str | None = None, limit: int = 5) -> list[d
 ```
 
 
-### P:\packages\search-research\core\cks\examples\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\examples\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\cks\examples\gpu_manager_examples.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\examples\gpu_manager_examples.py
 
 ```python
 import logging
@@ -4114,14 +4114,14 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\examples\multi_graph_engine_examples.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\examples\multi_graph_engine_examples.py
 
 ```python
 __all__ = []
 ```
 
 
-### P:\packages\search-research\core\cks\fts_performance_analysis.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\fts_performance_analysis.py
 
 ```python
 import math
@@ -4136,7 +4136,7 @@ db_path = PROJECT_ROOT / "__csf" / "data" / "cks.db"
 ```
 
 
-### P:\packages\search-research\core\cks\graph.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\graph.py
 
 ```python
 from abc import ABC, abstractmethod
@@ -4214,7 +4214,7 @@ class MutableGraph(Graph):
 ```
 
 
-### P:\packages\search-research\core\cks\hybrid_search_patch.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\hybrid_search_patch.py
 
 ```python
 import json
@@ -4224,7 +4224,7 @@ search_hybrid(self, query: str, entry_type: str | None = None, limit: int = 5, f
 ```
 
 
-### P:\packages\search-research\core\cks\hyde.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\hyde.py
 
 ```python
 import logging
@@ -4244,7 +4244,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\cks\hyde_integration.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\hyde_integration.py
 
 ```python
 import logging
@@ -4264,7 +4264,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\cks\ingester_adapter.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\ingester_adapter.py
 
 ```python
 import json
@@ -4288,7 +4288,7 @@ class CKSIngesterAdapter:
 ```
 
 
-### P:\packages\search-research\core\cks\initialize_cks_direct.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\initialize_cks_direct.py
 
 ```python
 import json
@@ -4315,7 +4315,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\initialize_cks_hypergraph.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\initialize_cks_hypergraph.py
 
 ```python
 import argparse
@@ -4348,14 +4348,14 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\.csf_nip\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\.csf_nip\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\cks\integration\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\__init__.py
 
 ```python
 import re
@@ -4380,7 +4380,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapter_factory.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapter_factory.py
 
 ```python
 import logging
@@ -4402,21 +4402,21 @@ cks_adapter_factory = CKSAdapterFactory()
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\agent_coordinator.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\agent_coordinator.py
 
 ```python
 __all__ = []
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\automated_fix_suggestions_integration.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\automated_fix_suggestions_integration.py
 
 ```python
 import json
@@ -4465,14 +4465,14 @@ class CKSIntegration:
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\constitutional_compliance_monitor.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\constitutional_compliance_monitor.py
 
 ```python
 __all__ = []
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\constitutional_compliance_validator.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\constitutional_compliance_validator.py
 
 ```python
 import asyncio
@@ -4552,14 +4552,14 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\error_recovery_system.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\error_recovery_system.py
 
 ```python
 __all__ = []
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\evidence_integration.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\evidence_integration.py
 
 ```python
 import hashlib
@@ -4628,7 +4628,7 @@ class CKSIntegrator:
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\instrumentation.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\instrumentation.py
 
 ```python
 import asyncio
@@ -4712,14 +4712,14 @@ instrument_rag_orchestration(track_workflow: bool = True)
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\knowledge_constitutional_validator.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\knowledge_constitutional_validator.py
 
 ```python
 __all__ = []
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\knowledge_input_validator.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\knowledge_input_validator.py
 
 ```python
 import logging
@@ -4759,7 +4759,7 @@ class CKSInputValidator:
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\monitoring_analytics.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\monitoring_analytics.py
 
 ```python
 import asyncio
@@ -4923,7 +4923,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\performance_optimizer.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\performance_optimizer.py
 
 ```python
 import asyncio
@@ -5023,14 +5023,14 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\project_context\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\project_context\__init__.py
 
 ```python
 __all__ = []
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\project_context\adapter.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\project_context\adapter.py
 
 ```python
 import logging
@@ -5069,7 +5069,7 @@ class ProjectContextCKSAdapter:
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\project_context\cks_client.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\project_context\cks_client.py
 
 ```python
 import hashlib
@@ -5127,7 +5127,7 @@ class CKSHyperGraphClient:
 create_task_entity(name: str, status: str = "pending", progress_pct: int = 0, description: str = "", priority: str = "medium", strategic_context: dict[str, Any] | None = None) -> TaskEntity
 create_checkpoint_entity(task_name: str, session_id: str, progress_pct: int, blocker: dict[str, Any] | None = None, files_modified: list[str] | None = None, next_steps: list[str] | None = None, session_summary: str = "", terminal_id: str | None = None) -> SessionCheckpointEntity
 client = CKSHyperGraphClient(
-        "P:/__csf/src/features/cks/integration/adapters/project_context/test_cks.db"
+        "P:\\\\\\__csf/src/features/cks/integration/adapters/project_context/test_cks.db"
     )
 task = create_task_entity(
         name="CWO12",
@@ -5159,7 +5159,7 @@ related = client.get_related_entities(checkpoint.entity_id, "belongs_to_task")
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\project_context\context_manager_cks.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\project_context\context_manager_cks.py
 
 ```python
 import json
@@ -5192,7 +5192,7 @@ class SessionContextManagerCKS:
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\project_context\migrate_to_cks.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\project_context\migrate_to_cks.py
 
 ```python
 import json
@@ -5204,7 +5204,7 @@ from csf.cks_client import (
     CKSHyperGraphClient, create_checkpoint_entity, create_task_entity, )
 
 class MigrationToCKS:
-    __init__(self, source_db: str | Path = "P:/.cks/storage/cks.db", target_db: str | Path = "P:/__csf/data/cks.db") -> None
+    __init__(self, source_db: str | Path = "P:\\\\\\.cks/storage/cks.db", target_db: str | Path = "P:\\\\\\__csf/data/cks.db") -> None
     migrate_tasks(self) -> int
     migrate_session_checkpoints(self) -> int
     migrate_project_contexts(self) -> int
@@ -5213,7 +5213,7 @@ main() -> int
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\project_context\task_identity_manager.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\project_context\task_identity_manager.py
 
 ```python
 import hashlib
@@ -5255,7 +5255,7 @@ task = manager.get_current_task()
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\project_context\validation\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\project_context\validation\__init__.py
 
 ```python
 import sys
@@ -5278,7 +5278,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\project_context\validation\config.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\project_context\validation\config.py
 
 ```python
 import os
@@ -5297,7 +5297,7 @@ set_config(config: ValidationConfig) -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\project_context\validation\config_cli.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\project_context\validation\config_cli.py
 
 ```python
 from pathlib import Path
@@ -5312,7 +5312,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\project_context\validation\validators.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\project_context\validation\validators.py
 
 ```python
 import logging
@@ -5337,14 +5337,14 @@ detect_context_from_operation(operation_type: str, description: str) -> str | No
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\rag_integration_coordinator.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\rag_integration_coordinator.py
 
 ```python
 __all__ = []
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\resilience_error_handler.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\resilience_error_handler.py
 
 ```python
 import asyncio
@@ -5467,14 +5467,14 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\session_integration_coordinator.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\session_integration_coordinator.py
 
 ```python
 __all__ = []
 ```
 
 
-### P:\packages\search-research\core\cks\integration\adapters\task_management_integration.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\adapters\task_management_integration.py
 
 ```python
 import asyncio
@@ -5548,7 +5548,7 @@ class CKSTaskOptimizer:
 ```
 
 
-### P:\packages\search-research\core\cks\integration\cks_integration_module.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\cks_integration_module.py
 
 ```python
 import json
@@ -5669,28 +5669,28 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\cks\integration\clients\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\clients\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\cks\integration\clients\chat_history_client.py
-
-```python
-__all__ = []
-```
-
-
-### P:\packages\search-research\core\cks\integration\clients\chat_history_client_instrumented.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\clients\chat_history_client.py
 
 ```python
 __all__ = []
 ```
 
 
-### P:\packages\search-research\core\cks\integration\clients\example_session_aware_usage.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\clients\chat_history_client_instrumented.py
+
+```python
+__all__ = []
+```
+
+
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\clients\example_session_aware_usage.py
 
 ```python
 import asyncio
@@ -5718,21 +5718,21 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\clients\hdma_client.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\clients\hdma_client.py
 
 ```python
 __all__ = []
 ```
 
 
-### P:\packages\search-research\core\cks\integration\clients\serena_client.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\clients\serena_client.py
 
 ```python
 __all__ = []
 ```
 
 
-### P:\packages\search-research\core\cks\integration\clients\test_session_aware_chat_history_client.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\clients\test_session_aware_chat_history_client.py
 
 ```python
 from datetime import datetime, timedelta
@@ -5792,21 +5792,21 @@ class TestSessionAwareChatHistoryClient:
 ```
 
 
-### P:\packages\search-research\core\cks\integration\clients\web_content_client.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\clients\web_content_client.py
 
 ```python
 __all__ = []
 ```
 
 
-### P:\packages\search-research\core\cks\integration\commands\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\commands\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\cks\integration\commands\cache_knowledge_simple.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\commands\cache_knowledge_simple.py
 
 ```python
 import asyncio
@@ -5827,14 +5827,14 @@ import asyncio
 ```
 
 
-### P:\packages\search-research\core\cks\integration\commands\cache_research_knowledge_integration.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\commands\cache_research_knowledge_integration.py
 
 ```python
 __all__ = []
 ```
 
 
-### P:\packages\search-research\core\cks\integration\commands\cks_knowledge_integration.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\commands\cks_knowledge_integration.py
 
 ```python
 import asyncio
@@ -5903,7 +5903,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\commands\compact_skills.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\commands\compact_skills.py
 
 ```python
 import re
@@ -5919,7 +5919,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\commands\direct_knowledge_ingestion.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\commands\direct_knowledge_ingestion.py
 
 ```python
 import hashlib
@@ -5945,7 +5945,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\commands\ml_integration_knowledge_ingestion.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\commands\ml_integration_knowledge_ingestion.py
 
 ```python
 import asyncio
@@ -6000,7 +6000,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\commands\ml_knowledge_retrieval_system.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\commands\ml_knowledge_retrieval_system.py
 
 ```python
 import asyncio
@@ -6047,7 +6047,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\commands\neural_cache_migration.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\commands\neural_cache_migration.py
 
 ```python
 import hashlib
@@ -6136,7 +6136,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\commands\nse_task_awareness_knowledge_ingestion.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\commands\nse_task_awareness_knowledge_ingestion.py
 
 ```python
 import hashlib
@@ -6165,7 +6165,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\commands\real_cks_integration.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\commands\real_cks_integration.py
 
 ```python
 import asyncio
@@ -6199,7 +6199,7 @@ test_real_cks_integration()
 ```
 
 
-### P:\packages\search-research\core\cks\integration\commands\refactoring_template_library_storage.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\commands\refactoring_template_library_storage.py
 
 ```python
 import asyncio
@@ -6253,7 +6253,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\commands\simple_cks_test.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\commands\simple_cks_test.py
 
 ```python
 import asyncio
@@ -6295,7 +6295,7 @@ test_cks_integration() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\commands\simplified_ml_knowledge_ingestion.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\commands\simplified_ml_knowledge_ingestion.py
 
 ```python
 import logging
@@ -6316,7 +6316,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\commands\skill_migration.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\commands\skill_migration.py
 
 ```python
 import argparse
@@ -6384,14 +6384,14 @@ main() -> int
 ```
 
 
-### P:\packages\search-research\core\cks\integration\examples\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\examples\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\cks\integration\examples\usage_examples.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\examples\usage_examples.py
 
 ```python
 from pathlib import Path
@@ -6406,14 +6406,14 @@ MIGRATION_TEMPLATE() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\exceptions\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\exceptions\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\cks\integration\exceptions\integration_exceptions.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\exceptions\integration_exceptions.py
 
 ```python
 from dataclasses import dataclass, field
@@ -6486,7 +6486,7 @@ create_constitutional_violation(message: str, integration_source: str, operation
 ```
 
 
-### P:\packages\search-research\core\cks\integration\integration_manager.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\integration_manager.py
 
 ```python
 import logging
@@ -6521,14 +6521,14 @@ cks_integration_manager = CKSIntegrationManager()
 ```
 
 
-### P:\packages\search-research\core\cks\integration\interfaces\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\interfaces\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\cks\integration\interfaces\base_adapter.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\interfaces\base_adapter.py
 
 ```python
 import logging
@@ -6584,7 +6584,7 @@ adapter_registry = AdapterRegistry()
 ```
 
 
-### P:\packages\search-research\core\cks\integration\interfaces\integration_interfaces.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\interfaces\integration_interfaces.py
 
 ```python
 import asyncio
@@ -6652,21 +6652,21 @@ class IntegrationClientFactory(ABC):
 ```
 
 
-### P:\packages\search-research\core\cks\integration\knowledge_artifacts\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\knowledge_artifacts\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\cks\integration\knowledge_artifacts\expertise\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\knowledge_artifacts\expertise\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\cks\integration\knowledge_query_validator.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\knowledge_query_validator.py
 
 ```python
 import json
@@ -6690,14 +6690,14 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\migration\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\migration\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\cks\integration\migration\update_imports.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\migration\update_imports.py
 
 ```python
 import argparse
@@ -6793,7 +6793,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\orchestrator_observability_knowledge_integration.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\orchestrator_observability_knowledge_integration.py
 
 ```python
 import json
@@ -6818,7 +6818,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\orchestrator_observability_knowledge_simple.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\orchestrator_observability_knowledge_simple.py
 
 ```python
 import json
@@ -6839,7 +6839,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\session_memory_adapter.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\session_memory_adapter.py
 
 ```python
 import asyncio
@@ -7048,7 +7048,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\cks\integration\standalone_test.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\standalone_test.py
 
 ```python
 import logging
@@ -7061,7 +7061,7 @@ success = test_cks_integration_module_standalone()
 ```
 
 
-### P:\packages\search-research\core\cks\integration\test_cks_integration_module.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\test_cks_integration_module.py
 
 ```python
 import logging
@@ -7074,7 +7074,7 @@ run_all_tests()
 ```
 
 
-### P:\packages\search-research\core\cks\integration\test_session_memory_adapter.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\test_session_memory_adapter.py
 
 ```python
 import asyncio
@@ -7154,7 +7154,7 @@ test_performance_benchmark(session_memory_adapter: SessionMemoryAdapter) -> None
 ```
 
 
-### P:\packages\search-research\core\cks\integration\test_session_memory_adapter_rag.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\test_session_memory_adapter_rag.py
 
 ```python
 import asyncio
@@ -7231,21 +7231,21 @@ class TestSessionMemoryAdapterPerformance:
 ```
 
 
-### P:\packages\search-research\core\cks\integration\utils\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\utils\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\cks\integration\utils\integration_factory.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\utils\integration_factory.py
 
 ```python
 __all__ = []
 ```
 
 
-### P:\packages\search-research\core\cks\integration\validate_rag_integration.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\integration\validate_rag_integration.py
 
 ```python
 import asyncio
@@ -7284,7 +7284,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\learning\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\learning\__init__.py
 
 ```python
 from src.cks.learning.citation_parser import extract_citations
@@ -7293,7 +7293,7 @@ __all__ = ["DiagnosticFinding", "extract_citations", "store_finding"]
 ```
 
 
-### P:\packages\search-research\core\cks\learning\citation_parser.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\learning\citation_parser.py
 
 ```python
 import re
@@ -7302,7 +7302,7 @@ extract_citations(text: str) -> dict[str, Any]
 ```
 
 
-### P:\packages\search-research\core\cks\learning\continuous_learner.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\learning\continuous_learner.py
 
 ```python
 import hashlib
@@ -7397,7 +7397,7 @@ continuous_learning_session(config: LearningConfig | None = None)
 ```
 
 
-### P:\packages\search-research\core\cks\learning\diagnostic_writer.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\learning\diagnostic_writer.py
 
 ```python
 import sys
@@ -7418,7 +7418,7 @@ store_finding(finding: DiagnosticFinding) -> bool
 ```
 
 
-### P:\packages\search-research\core\cks\learning\findings_helper.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\learning\findings_helper.py
 
 ```python
 from src.knowledge.systems.cks.learning.diagnostic_writer import DiagnosticFinding, store_finding
@@ -7449,7 +7449,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\cks\learning\validation.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\learning\validation.py
 
 ```python
 import logging
@@ -7565,7 +7565,7 @@ validate_learning_framework_compliance(learning_framework) -> tuple[ComplianceRe
 ```
 
 
-### P:\packages\search-research\core\cks\memory_efficient_rag.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\memory_efficient_rag.py
 
 ```python
 import logging
@@ -7588,7 +7588,7 @@ class CKSMemoryEfficientRAG:
 ```
 
 
-### P:\packages\search-research\core\cks\metadata.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\metadata.py
 
 ```python
 from dataclasses import dataclass, field
@@ -7653,14 +7653,14 @@ class KnowledgeItem:
 ```
 
 
-### P:\packages\search-research\core\cks\migrations\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\migrations\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\cks\migrations\migrate_project_context.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\migrations\migrate_project_context.py
 
 ```python
 import json
@@ -7678,12 +7678,12 @@ migrate_project_context_entity(cks: CKS, entity: dict[str, Any]) -> str | None
 migrate_checkpoint_entity(cks: CKS, entity: dict[str, Any]) -> str | None
 migrate_blocker_entity(cks: CKS, entity: dict[str, Any]) -> str | None
 migrate_decision_entity(cks: CKS, entity: dict[str, Any]) -> str | None
-run_migration(source_db_path: str = "P:/.cks/storage/cks.db", target_db_path: str = None, dry_run: bool = False) -> dict[str, int]
+run_migration(source_db_path: str = "P:\\\\\\.cks/storage/cks.db", target_db_path: str = None, dry_run: bool = False) -> dict[str, int]
 main()
 ```
 
 
-### P:\packages\search-research\core\cks\migrations\migrate_to_2025.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\migrations\migrate_to_2025.py
 
 ```python
 from dataclasses import field
@@ -7721,7 +7721,7 @@ main() -> int
 ```
 
 
-### P:\packages\search-research\core\cks\optimized_search.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\optimized_search.py
 
 ```python
 from typing import TYPE_CHECKING
@@ -7733,7 +7733,7 @@ search_parallel_backends(query: str, backends: dict[str, Callable], limit: int =
 ```
 
 
-### P:\packages\search-research\core\cks\quality.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\quality.py
 
 ```python
 import argparse
@@ -7750,14 +7750,14 @@ project_root = Path(__file__).parent.parent.parent
 class QualityStats:
     to_dict(self) -> dict[str, Any]
 calculate_decay_score(entry: dict[str, Any]) -> float
-get_quality_statistics(db_path: str | Path = "P:/__csf/data/cks.db") -> QualityStats
+get_quality_statistics(db_path: str | Path = "P:\\\\\\__csf/data/cks.db") -> QualityStats
 format_stats_terminal(stats: QualityStats) -> str
-sample_archival_candidates(db_path: str | Path = "P:/__csf/data/cks.db", limit: int = 10) -> list[dict]
+sample_archival_candidates(db_path: str | Path = "P:\\\\\\__csf/data/cks.db", limit: int = 10) -> list[dict]
 main() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\query_expansion.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\query_expansion.py
 
 ```python
 import re
@@ -7776,7 +7776,7 @@ expand_query_if_enabled(query: str, enabled: bool = True) -> list[str]
 ```
 
 
-### P:\packages\search-research\core\cks\reranking.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\reranking.py
 
 ```python
 import math
@@ -7802,7 +7802,7 @@ enhance_fts_with_density(results: list[dict], limit: int = 5) -> list[dict]
 ```
 
 
-### P:\packages\search-research\core\cks\session_lesson_extractor.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\session_lesson_extractor.py
 
 ```python
 import json
@@ -7871,7 +7871,7 @@ main()
 ```
 
 
-### P:\packages\search-research\core\cks\spell_correction.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\spell_correction.py
 
 ```python
 import pickle
@@ -7904,7 +7904,7 @@ status = "✓ CHANGED" if changed else "  OK"
 ```
 
 
-### P:\packages\search-research\core\cks\storage.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\storage.py
 
 ```python
 from abc import ABC, abstractmethod
@@ -7941,7 +7941,7 @@ class VectorStorage(KnowledgeStorage):
 ```
 
 
-### P:\packages\search-research\core\cks\test_dry_run.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\test_dry_run.py
 
 ```python
 import asyncio
@@ -7955,7 +7955,7 @@ run_dry_run() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\test_multi_signal_ranking.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\test_multi_signal_ranking.py
 
 ```python
 from datetime import UTC, datetime, timedelta
@@ -7964,7 +7964,7 @@ test_multi_signal_scoring() -> None
 ```
 
 
-### P:\packages\search-research\core\cks\unified.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\unified.py
 
 ```python
 import json
@@ -8106,7 +8106,7 @@ import warnings
 ```
 
 
-### P:\packages\search-research\core\cks\usage_tracker.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\usage_tracker.py
 
 ```python
 import os
@@ -8125,7 +8125,7 @@ stale = get_stale_entries(days=args.days, limit=args.limit)
 ```
 
 
-### P:\packages\search-research\core\cks\utils\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\utils\__init__.py
 
 ```python
 from .constitutional_validator import ConstitutionalValidator
@@ -8144,7 +8144,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\cks\utils\constitutional_validator.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\utils\constitutional_validator.py
 
 ```python
 import logging
@@ -8169,7 +8169,7 @@ class ConstitutionalValidator:
 ```
 
 
-### P:\packages\search-research\core\cks\utils\dual_sink_logger.py
+### $CLAUDE_PLUGIN_ROOT/core\cks\utils\dual_sink_logger.py
 
 ```python
 import json
@@ -8208,7 +8208,7 @@ shutdown_logging() -> None
 ```
 
 
-### P:\packages\search-research\core\cli.py
+### $CLAUDE_PLUGIN_ROOT/core\cli.py
 
 ```python
 import argparse
@@ -8245,7 +8245,7 @@ class CoreResearchCommand:
 ```
 
 
-### P:\packages\search-research\core\config.py
+### $CLAUDE_PLUGIN_ROOT/core\config.py
 
 ```python
 import logging
@@ -8271,7 +8271,7 @@ class ResearchConfig:
 ```
 
 
-### P:\packages\search-research\core\diversity.py
+### $CLAUDE_PLUGIN_ROOT/core\diversity.py
 
 ```python
 import logging
@@ -8290,7 +8290,7 @@ get_diverse_subset(results: list[dict[str, Any]], n: int, lambda_param: float = 
 ```
 
 
-### P:\packages\search-research\core\enhancement\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\enhancement\__init__.py
 
 ```python
 from .enhanced_dependency_analyzer import (
@@ -8320,7 +8320,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\enhancement\enhanced_dependency_analyzer.py
+### $CLAUDE_PLUGIN_ROOT/core\enhancement\enhanced_dependency_analyzer.py
 
 ```python
 import re
@@ -8356,7 +8356,7 @@ summary = analyzer.get_dependency_summary(deps)
 ```
 
 
-### P:\packages\search-research\core\enhancement\learning_system.py
+### $CLAUDE_PLUGIN_ROOT/core\enhancement\learning_system.py
 
 ```python
 import json
@@ -8461,7 +8461,7 @@ export_file = learning_system.export_patterns("test_patterns.json")
 ```
 
 
-### P:\packages\search-research\core\enhancement\mode_relationship_mapper.py
+### $CLAUDE_PLUGIN_ROOT/core\enhancement\mode_relationship_mapper.py
 
 ```python
 from dataclasses import dataclass
@@ -8501,7 +8501,7 @@ explanation = mapper.explain_selection(combination, deps)
 ```
 
 
-### P:\packages\search-research\core\enhancement\multi_mode_orchestrator.py
+### $CLAUDE_PLUGIN_ROOT/core\enhancement\multi_mode_orchestrator.py
 
 ```python
 import asyncio
@@ -8560,7 +8560,7 @@ test_orchestration() -> None
 ```
 
 
-### P:\packages\search-research\core\enhancement\quality_optimizer.py
+### $CLAUDE_PLUGIN_ROOT/core\enhancement\quality_optimizer.py
 
 ```python
 from dataclasses import dataclass
@@ -8621,7 +8621,7 @@ result = optimizer.optimize_for_budget(scored_combinations, deps, budget, domain
 ```
 
 
-### P:\packages\search-research\core\faceted.py
+### $CLAUDE_PLUGIN_ROOT/core\faceted.py
 
 ```python
 import logging
@@ -8633,7 +8633,7 @@ get_facets(results: list[Any]) -> dict[str, dict[str, int]]
 ```
 
 
-### P:\packages\search-research\core\faiss_lock.py
+### $CLAUDE_PLUGIN_ROOT/core\faiss_lock.py
 
 ```python
 import time
@@ -8646,7 +8646,7 @@ faiss_open_read(path: str | Path, timeout: float = 5.0) -> faiss.Index
 ```
 
 
-### P:\packages\search-research\core\fetchers\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\fetchers\__init__.py
 
 ```python
 from .batch import BatchURLFetcher, FetchedContent
@@ -8662,7 +8662,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\fetchers\batch.py
+### $CLAUDE_PLUGIN_ROOT/core\fetchers\batch.py
 
 ```python
 import asyncio
@@ -8682,7 +8682,7 @@ class BatchURLFetcher:
 ```
 
 
-### P:\packages\search-research\core\fetchers\validator.py
+### $CLAUDE_PLUGIN_ROOT/core\fetchers\validator.py
 
 ```python
 import re
@@ -8734,7 +8734,7 @@ class ContentSecurityValidator:
 ```
 
 
-### P:\packages\search-research\core\fetchers\vision.py
+### $CLAUDE_PLUGIN_ROOT/core\fetchers\vision.py
 
 ```python
 import logging
@@ -8762,7 +8762,7 @@ VisionAnalysisResult = VisionAnalysis
 ```
 
 
-### P:\packages\search-research\core\handoff_chain.py
+### $CLAUDE_PLUGIN_ROOT/core\handoff_chain.py
 
 ```python
 import json
@@ -8788,7 +8788,7 @@ walk_handoff_chain_simple(session_id: str, terminal_id: str | None = None, max_d
 ```
 
 
-### P:\packages\search-research\core\health_status.py
+### $CLAUDE_PLUGIN_ROOT/core\health_status.py
 
 ```python
 from dataclasses import asdict, dataclass
@@ -8806,7 +8806,7 @@ class HealthStatus:
 ```
 
 
-### P:\packages\search-research\core\history_chain.py
+### $CLAUDE_PLUGIN_ROOT/core\history_chain.py
 
 ```python
 import json
@@ -8849,7 +8849,7 @@ walk_chain_simple(session_id: str | None = None, start_uuid: str | None = None, 
 ```
 
 
-### P:\packages\search-research\core\http_client.py
+### $CLAUDE_PLUGIN_ROOT/core\http_client.py
 
 ```python
 from typing import Any, Final
@@ -8858,7 +8858,7 @@ get_async_client() -> httpx.AsyncClient
 ```
 
 
-### P:\packages\search-research\core\hybrid_ensemble.py
+### $CLAUDE_PLUGIN_ROOT/core\hybrid_ensemble.py
 
 ```python
 import time
@@ -8893,7 +8893,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\hyde.py
+### $CLAUDE_PLUGIN_ROOT/core\hyde.py
 
 ```python
 import logging
@@ -8907,7 +8907,7 @@ apply_hyde(query: str, hyde_content: str | None = None) -> tuple[str, bool]
 ```
 
 
-### P:\packages\search-research\core\hyde_chapters.py
+### $CLAUDE_PLUGIN_ROOT/core\hyde_chapters.py
 
 ```python
 from dataclasses import dataclass
@@ -8925,7 +8925,7 @@ generate_hyde_chapters(query: str, num_chapters: int = 3, detail_level: str = "m
 ```
 
 
-### P:\packages\search-research\core\hyde_chapters_comprehensive.py
+### $CLAUDE_PLUGIN_ROOT/core\hyde_chapters_comprehensive.py
 
 ```python
 from dataclasses import dataclass
@@ -8945,7 +8945,7 @@ generate_hyde_chapters(query: str, num_chapters: int = 3, detail_level: str = "m
 ```
 
 
-### P:\packages\search-research\core\hyde_engine\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\hyde_engine\__init__.py
 
 ```python
 from .engine import HyDEEngine
@@ -8955,7 +8955,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\hyde_engine\engine.py
+### $CLAUDE_PLUGIN_ROOT/core\hyde_engine\engine.py
 
 ```python
 from typing import Any
@@ -8972,7 +8972,7 @@ class HyDEEngine:
 ```
 
 
-### P:\packages\search-research\core\hyde_engine\generator.py
+### $CLAUDE_PLUGIN_ROOT/core\hyde_engine\generator.py
 
 ```python
 import re
@@ -9007,7 +9007,7 @@ generate_hyde(query: str, context: str = "", max_length: int = 500) -> str
 ```
 
 
-### P:\packages\search-research\core\hyde_engine\scoring.py
+### $CLAUDE_PLUGIN_ROOT/core\hyde_engine\scoring.py
 
 ```python
 import re
@@ -9053,7 +9053,7 @@ get_detailed_metrics(query: str, hyde: str, weights: dict[str, float] | None = N
 ```
 
 
-### P:\packages\search-research\core\hyde_multi_perspective.py
+### $CLAUDE_PLUGIN_ROOT/core\hyde_multi_perspective.py
 
 ```python
 import time
@@ -9079,7 +9079,7 @@ generate_multi_hypothetical_documents(query: str, config: MultiHyDEConfig | None
 ```
 
 
-### P:\packages\search-research\core\hyde_multi_perspective_comprehensive.py
+### $CLAUDE_PLUGIN_ROOT/core\hyde_multi_perspective_comprehensive.py
 
 ```python
 import time
@@ -9111,7 +9111,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\hyde_retrieval.py
+### $CLAUDE_PLUGIN_ROOT/core\hyde_retrieval.py
 
 ```python
 from typing import TYPE_CHECKING, Any
@@ -9137,7 +9137,7 @@ search_with_hyde(query: str, config: HyDERetrievalConfig | None = None) -> HyDER
 ```
 
 
-### P:\packages\search-research\core\hyde_single.py
+### $CLAUDE_PLUGIN_ROOT/core\hyde_single.py
 
 ```python
 from dataclasses import dataclass
@@ -9156,7 +9156,7 @@ generate_hypothetical_document(query: str, content: str | None = None, config: H
 ```
 
 
-### P:\packages\search-research\core\intent_classifier.py
+### $CLAUDE_PLUGIN_ROOT/core\intent_classifier.py
 
 ```python
 import json
@@ -9180,14 +9180,14 @@ __all__ = ["classify_intent", "IntentCategory"]
 ```
 
 
-### P:\packages\search-research\core\kg\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\kg\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\kg\backend.py
+### $CLAUDE_PLUGIN_ROOT/core\kg\backend.py
 
 ```python
 import json
@@ -9197,7 +9197,7 @@ from typing import Any
 SearchResult = dict[str, Any]
 BACKEND_KG = "KG"
 logger = logging.getLogger(__name__)
-DEFAULT_KG_PATH = "P:/projects/kg_builder/knowledge_graph_output"
+DEFAULT_KG_PATH = "P:\\\\\\projects/kg_builder/knowledge_graph_output"
 
 class KGBackend:
     __init__(self, kg_data_path: str | None = None)
@@ -9206,7 +9206,7 @@ class KGBackend:
 ```
 
 
-### P:\packages\search-research\core\kg\kg_boosting.py
+### $CLAUDE_PLUGIN_ROOT/core\kg\kg_boosting.py
 
 ```python
 import json
@@ -9228,14 +9228,14 @@ apply_kg_boosting(results: list[dict[str, Any]], query: str, entity_to_convs: di
 ```
 
 
-### P:\packages\search-research\core\kg\research_backend.py
+### $CLAUDE_PLUGIN_ROOT/core\kg\research_backend.py
 
 ```python
 from pathlib import Path
 from typing import Any
 SearchResult = dict[str, Any]
 BACKEND_KG = "KG"
-DEFAULT_KG_PATH = "P:/projects/kg_builder/knowledge_graph_output"
+DEFAULT_KG_PATH = "P:\\\\\\projects/kg_builder/knowledge_graph_output"
 
 class KGBackend:
     __init__(self, kg_data_path: str | None = None)
@@ -9247,7 +9247,7 @@ __all__ = ["BACKEND_KG", "KGBackend"]
 ```
 
 
-### P:\packages\search-research\core\kg_boosting.py
+### $CLAUDE_PLUGIN_ROOT/core\kg_boosting.py
 
 ```python
 import json
@@ -9269,7 +9269,7 @@ apply_kg_boosting(results: List[Dict[str, Any]], query: str, entity_to_convs: Di
 ```
 
 
-### P:\packages\search-research\core\llm\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\llm\__init__.py
 
 ```python
 from core.hyde_engine.generator import HyDEGenerator
@@ -9281,7 +9281,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\llm\provider_manager.py
+### $CLAUDE_PLUGIN_ROOT/core\llm\provider_manager.py
 
 ```python
 from typing import Any
@@ -9292,7 +9292,7 @@ generate_with_fallback(prompt: str, system_prompt: str | None = None, max_tokens
 ```
 
 
-### P:\packages\search-research\core\mcp_server.py
+### $CLAUDE_PLUGIN_ROOT/core\mcp_server.py
 
 ```python
 import functools
@@ -9325,7 +9325,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\metrics.py
+### $CLAUDE_PLUGIN_ROOT/core\metrics.py
 
 ```python
 import json
@@ -9365,7 +9365,7 @@ class MetricsLogger:
 ```
 
 
-### P:\packages\search-research\core\models.py
+### $CLAUDE_PLUGIN_ROOT/core\models.py
 
 ```python
 import hashlib
@@ -9419,7 +9419,7 @@ class EnhancedQuery:
 ```
 
 
-### P:\packages\search-research\core\modes.py
+### $CLAUDE_PLUGIN_ROOT/core\modes.py
 
 ```python
 from enum import Enum
@@ -9449,7 +9449,7 @@ CUSTOM = Mode.CUSTOM
 ```
 
 
-### P:\packages\search-research\core\orchestration\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\orchestration\__init__.py
 
 ```python
 from .cost_tracker import CostTracker
@@ -9462,7 +9462,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\orchestration\cost_tracker.py
+### $CLAUDE_PLUGIN_ROOT/core\orchestration\cost_tracker.py
 
 ```python
 from dataclasses import dataclass
@@ -9478,7 +9478,7 @@ class CostTracker:
 ```
 
 
-### P:\packages\search-research\core\orchestration\phase_controller.py
+### $CLAUDE_PLUGIN_ROOT/core\orchestration\phase_controller.py
 
 ```python
 import asyncio
@@ -9509,7 +9509,7 @@ class PhaseController:
 ```
 
 
-### P:\packages\search-research\core\orchestrator.py
+### $CLAUDE_PLUGIN_ROOT/core\orchestrator.py
 
 ```python
 import asyncio
@@ -9533,7 +9533,7 @@ class ResearchEngine:
 ```
 
 
-### P:\packages\search-research\core\processing\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\processing\__init__.py
 
 ```python
 from .result_normalizer import NormalizedResult, ResultNormalizer, SourceType
@@ -9545,7 +9545,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\processing\got_analysis.py
+### $CLAUDE_PLUGIN_ROOT/core\processing\got_analysis.py
 
 ```python
 import logging
@@ -9596,7 +9596,7 @@ class GotAnalyzer:
 ```
 
 
-### P:\packages\search-research\core\processing\result_normalizer.py
+### $CLAUDE_PLUGIN_ROOT/core\processing\result_normalizer.py
 
 ```python
 from dataclasses import dataclass, field
@@ -9649,7 +9649,7 @@ class ResultNormalizer:
 ```
 
 
-### P:\packages\search-research\core\processors\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\processors\__init__.py
 
 ```python
 from .ensemble import (
@@ -9677,7 +9677,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\processors\deduplication.py
+### $CLAUDE_PLUGIN_ROOT/core\processors\deduplication.py
 
 ```python
 from collections import defaultdict
@@ -9691,7 +9691,7 @@ class DeduplicationProcessor:
 ```
 
 
-### P:\packages\search-research\core\processors\ensemble.py
+### $CLAUDE_PLUGIN_ROOT/core\processors\ensemble.py
 
 ```python
 from dataclasses import dataclass, field
@@ -9712,7 +9712,7 @@ run_hybrid_ensemble(query: str, config: HybridEnsembleConfig | None = None) -> E
 ```
 
 
-### P:\packages\search-research\core\processors\pipeline.py
+### $CLAUDE_PLUGIN_ROOT/core\processors\pipeline.py
 
 ```python
 from typing import Any
@@ -9729,7 +9729,7 @@ class ResultProcessingPipeline:
 ```
 
 
-### P:\packages\search-research\core\processors\ranking.py
+### $CLAUDE_PLUGIN_ROOT/core\processors\ranking.py
 
 ```python
 from datetime import datetime, timezone
@@ -9744,7 +9744,7 @@ class RankingProcessor:
 ```
 
 
-### P:\packages\search-research\core\processors\reranking.py
+### $CLAUDE_PLUGIN_ROOT/core\processors\reranking.py
 
 ```python
 from datetime import datetime, timezone
@@ -9756,7 +9756,7 @@ apply_temporal_boosting(results: list, half_life_days: int = 180) -> list
 ```
 
 
-### P:\packages\search-research\core\processors\synthesis.py
+### $CLAUDE_PLUGIN_ROOT/core\processors\synthesis.py
 
 ```python
 import re
@@ -9773,7 +9773,7 @@ class SynthesisProcessor:
 ```
 
 
-### P:\packages\search-research\core\providers\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\__init__.py
 
 ```python
 from .base_web import BaseWebBackend, ProviderError, ProviderNotAvailableError
@@ -9803,7 +9803,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\providers\base_web.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\base_web.py
 
 ```python
 import abc
@@ -9838,7 +9838,7 @@ class ProviderNotAvailableError(ProviderError):
 ```
 
 
-### P:\packages\search-research\core\providers\bing.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\bing.py
 
 ```python
 import logging
@@ -9861,7 +9861,7 @@ class BingBackend(BaseWebBackend):
 ```
 
 
-### P:\packages\search-research\core\providers\bing_client.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\bing_client.py
 
 ```python
 import asyncio
@@ -9899,7 +9899,7 @@ search_sync(query: str, api_key: str | None = None, max_results: int = 10) -> Bi
 ```
 
 
-### P:\packages\search-research\core\providers\brave.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\brave.py
 
 ```python
 import logging
@@ -9921,7 +9921,7 @@ class BraveBackend(BaseWebBackend):
 ```
 
 
-### P:\packages\search-research\core\providers\brave_client.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\brave_client.py
 
 ```python
 import asyncio
@@ -9958,7 +9958,7 @@ validate_api_key(api_key: str | None = None) -> bool
 ```
 
 
-### P:\packages\search-research\core\providers\exa.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\exa.py
 
 ```python
 import logging
@@ -9981,7 +9981,7 @@ class ExaBackend(BaseWebBackend):
 ```
 
 
-### P:\packages\search-research\core\providers\exa_client.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\exa_client.py
 
 ```python
 import logging
@@ -10013,7 +10013,7 @@ validate_api_key(api_key: str | None = None) -> bool
 ```
 
 
-### P:\packages\search-research\core\providers\google.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\google.py
 
 ```python
 import logging
@@ -10036,7 +10036,7 @@ class GoogleBackend(BaseWebBackend):
 ```
 
 
-### P:\packages\search-research\core\providers\google_client.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\google_client.py
 
 ```python
 import asyncio
@@ -10073,7 +10073,7 @@ validate_api_key(api_key: str | None = None) -> bool
 ```
 
 
-### P:\packages\search-research\core\providers\kagi.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\kagi.py
 
 ```python
 import logging
@@ -10096,7 +10096,7 @@ class KagiBackend(BaseWebBackend):
 ```
 
 
-### P:\packages\search-research\core\providers\kagi_client.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\kagi_client.py
 
 ```python
 import asyncio
@@ -10133,7 +10133,7 @@ validate_api_key(api_key: str | None = None) -> bool
 ```
 
 
-### P:\packages\search-research\core\providers\mojeek.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\mojeek.py
 
 ```python
 import logging
@@ -10155,7 +10155,7 @@ class MojeekBackend(BaseWebBackend):
 ```
 
 
-### P:\packages\search-research\core\providers\mojeek_client.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\mojeek_client.py
 
 ```python
 import asyncio
@@ -10192,7 +10192,7 @@ validate_api_key(api_key: str | None = None) -> bool
 ```
 
 
-### P:\packages\search-research\core\providers\provider_health.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\provider_health.py
 
 ```python
 from dataclasses import dataclass
@@ -10204,7 +10204,7 @@ class ProviderHealthStatus:
 ```
 
 
-### P:\packages\search-research\core\providers\serper.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\serper.py
 
 ```python
 import logging
@@ -10227,7 +10227,7 @@ class SerperBackend(BaseWebBackend):
 ```
 
 
-### P:\packages\search-research\core\providers\serper_client.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\serper_client.py
 
 ```python
 import asyncio
@@ -10264,7 +10264,7 @@ validate_api_key(api_key: str | None = None) -> bool
 ```
 
 
-### P:\packages\search-research\core\providers\tavily.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\tavily.py
 
 ```python
 import logging
@@ -10286,7 +10286,7 @@ class TavilyBackend(BaseWebBackend):
 ```
 
 
-### P:\packages\search-research\core\providers\tavily_client.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\tavily_client.py
 
 ```python
 import asyncio
@@ -10323,7 +10323,7 @@ validate_api_key(api_key: str | None = None) -> bool
 ```
 
 
-### P:\packages\search-research\core\providers\you.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\you.py
 
 ```python
 import logging
@@ -10345,7 +10345,7 @@ class YouBackend(BaseWebBackend):
 ```
 
 
-### P:\packages\search-research\core\providers\you_client.py
+### $CLAUDE_PLUGIN_ROOT/core\providers\you_client.py
 
 ```python
 import asyncio
@@ -10382,7 +10382,7 @@ validate_api_key(api_key: str | None = None) -> bool
 ```
 
 
-### P:\packages\search-research\core\quality_checker.py
+### $CLAUDE_PLUGIN_ROOT/core\quality_checker.py
 
 ```python
 from dataclasses import dataclass
@@ -10398,7 +10398,7 @@ is_satisfactory(result: dict[str, Any], config: QualityConfig | None = None) -> 
 ```
 
 
-### P:\packages\search-research\core\query\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\query\__init__.py
 
 ```python
 from .abbreviations import get_abbreviation_mappings
@@ -10423,7 +10423,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\query\abbreviations.py
+### $CLAUDE_PLUGIN_ROOT/core\query\abbreviations.py
 
 ```python
 get_abbreviation_mappings() -> dict[str, str]
@@ -10431,7 +10431,7 @@ expand_abbreviation(abbr: str) -> str
 ```
 
 
-### P:\packages\search-research\core\query\expander.py
+### $CLAUDE_PLUGIN_ROOT/core\query\expander.py
 
 ```python
 import re
@@ -10455,7 +10455,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\query\expansion\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\query\expansion\__init__.py
 
 ```python
 from .expander import QueryExpander, expand_query_if_enabled, get_query_suggestions
@@ -10474,7 +10474,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\query\expansion\abbreviations.py
+### $CLAUDE_PLUGIN_ROOT/core\query\expansion\abbreviations.py
 
 ```python
 from typing import Dict
@@ -10483,7 +10483,7 @@ expand_abbreviation(abbr: str) -> str
 ```
 
 
-### P:\packages\search-research\core\query\expansion\auto_learning.py
+### $CLAUDE_PLUGIN_ROOT/core\query\expansion\auto_learning.py
 
 ```python
 import re
@@ -10507,7 +10507,7 @@ class AutoLearningQueryExpander:
 ```
 
 
-### P:\packages\search-research\core\query\expansion\expander.py
+### $CLAUDE_PLUGIN_ROOT/core\query\expansion\expander.py
 
 ```python
 import re
@@ -10523,7 +10523,7 @@ get_query_suggestions(partial: str, limit: int = 5) -> List[str]
 ```
 
 
-### P:\packages\search-research\core\query\expansion\synonyms.py
+### $CLAUDE_PLUGIN_ROOT/core\query\expansion\synonyms.py
 
 ```python
 from typing import Dict, List
@@ -10531,7 +10531,7 @@ get_synonym_mappings() -> Dict[str, List[str]]
 ```
 
 
-### P:\packages\search-research\core\query\normalizer.py
+### $CLAUDE_PLUGIN_ROOT/core\query\normalizer.py
 
 ```python
 from dataclasses import dataclass, field
@@ -10584,14 +10584,14 @@ class ResultNormalizer:
 ```
 
 
-### P:\packages\search-research\core\query\synonyms.py
+### $CLAUDE_PLUGIN_ROOT/core\query\synonyms.py
 
 ```python
 get_synonym_mappings() -> dict[str, list[str]]
 ```
 
 
-### P:\packages\search-research\core\query_intent.py
+### $CLAUDE_PLUGIN_ROOT/core\query_intent.py
 
 ```python
 from dataclasses import dataclass, field
@@ -10631,21 +10631,21 @@ class QueryIntentDetector:
 ```
 
 
-### P:\packages\search-research\core\ranking\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\ranking\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\core\research\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\research\__init__.py
 
 ```python
 __all__ = []
 ```
 
 
-### P:\packages\search-research\core\research\ai_distiller_health_check.py
+### $CLAUDE_PLUGIN_ROOT/core\research\ai_distiller_health_check.py
 
 ```python
 import importlib
@@ -10662,7 +10662,7 @@ main()
 ```
 
 
-### P:\packages\search-research\core\research\citations.py
+### $CLAUDE_PLUGIN_ROOT/core\research\citations.py
 
 ```python
 import re
@@ -10671,7 +10671,7 @@ extract_citations(text: str) -> dict[str, Any]
 ```
 
 
-### P:\packages\search-research\core\research\findings.py
+### $CLAUDE_PLUGIN_ROOT/core\research\findings.py
 
 ```python
 from src.cks.learning.diagnostic_writer import DiagnosticFinding, store_finding
@@ -10698,7 +10698,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\research\helpers.py
+### $CLAUDE_PLUGIN_ROOT/core\research\helpers.py
 
 ```python
 import sys
@@ -10719,7 +10719,7 @@ store_finding(finding: DiagnosticFinding) -> bool
 ```
 
 
-### P:\packages\search-research\core\research\history.py
+### $CLAUDE_PLUGIN_ROOT/core\research\history.py
 
 ```python
 import json
@@ -10729,7 +10729,7 @@ query_file_history(file_path: str) -> list[dict]
 ```
 
 
-### P:\packages\search-research\core\research\integration\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\research\integration\__init__.py
 
 ```python
 from .core import KnowledgeIntegrationEngine
@@ -10773,7 +10773,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\research\integration\core\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\research\integration\core\__init__.py
 
 ```python
 import json
@@ -10910,7 +10910,7 @@ class KnowledgeIntegrationEngine:
 ```
 
 
-### P:\packages\search-research\core\research\integration\strategies\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\research\integration\strategies\__init__.py
 
 ```python
 import time
@@ -10934,7 +10934,7 @@ class SemanticPatternMatcher(PatternMatchingStrategy):
 ```
 
 
-### P:\packages\search-research\core\research\integration\utils\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\research\integration\utils\__init__.py
 
 ```python
 import logging
@@ -10949,7 +10949,7 @@ get_recommendations_for_context(engine: KnowledgeIntegrationEngine, context: str
 ```
 
 
-### P:\packages\search-research\core\research\integration_engine.py
+### $CLAUDE_PLUGIN_ROOT/core\research\integration_engine.py
 
 ```python
 import json
@@ -11187,14 +11187,14 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\research\knowledge_query_engine.py
+### $CLAUDE_PLUGIN_ROOT/core\research\knowledge_query_engine.py
 
 ```python
 __all__ = []
 ```
 
 
-### P:\packages\search-research\core\research\library_knowledge_service.py
+### $CLAUDE_PLUGIN_ROOT/core\research\library_knowledge_service.py
 
 ```python
 import asyncio
@@ -11258,7 +11258,7 @@ class LibraryKnowledgeService:
 ```
 
 
-### P:\packages\search-research\core\research\orchestration_knowledge_service.py
+### $CLAUDE_PLUGIN_ROOT/core\research\orchestration_knowledge_service.py
 
 ```python
 import asyncio
@@ -11339,7 +11339,7 @@ class OrchestrationKnowledgeService:
 ```
 
 
-### P:\packages\search-research\core\research\research_flash\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\research\research_flash\__init__.py
 
 ```python
 from .query_engine import QueryResult, ResearchFlashEngine, ResearchResult
@@ -11353,7 +11353,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\research\research_flash\benchmark_models.py
+### $CLAUDE_PLUGIN_ROOT/core\research\research_flash\benchmark_models.py
 
 ```python
 import json
@@ -11403,7 +11403,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\research\research_flash\glm_integration.py
+### $CLAUDE_PLUGIN_ROOT/core\research\research_flash\glm_integration.py
 
 ```python
 import logging
@@ -11431,7 +11431,7 @@ class GLMFlashIntegration:
 ```
 
 
-### P:\packages\search-research\core\research\research_flash\query_engine.py
+### $CLAUDE_PLUGIN_ROOT/core\research\research_flash\query_engine.py
 
 ```python
 import asyncio
@@ -11494,7 +11494,7 @@ class ResearchFlashEngine:
 ```
 
 
-### P:\packages\search-research\core\research\research_flash\query_engine_clean.py
+### $CLAUDE_PLUGIN_ROOT/core\research\research_flash\query_engine_clean.py
 
 ```python
 import asyncio
@@ -11551,7 +11551,7 @@ class ResearchFlashEngine:
 ```
 
 
-### P:\packages\search-research\core\research\research_flash\test_integration.py
+### $CLAUDE_PLUGIN_ROOT/core\research\research_flash\test_integration.py
 
 ```python
 import asyncio
@@ -11577,7 +11577,7 @@ exit_code = asyncio.run(main())
 ```
 
 
-### P:\packages\search-research\core\research\standards_knowledge_service.py
+### $CLAUDE_PLUGIN_ROOT/core\research\standards_knowledge_service.py
 
 ```python
 import asyncio
@@ -11685,7 +11685,7 @@ class StandardsKnowledgeService(StandardsKnowledgeServiceInterface):
 ```
 
 
-### P:\packages\search-research\core\result_merger.py
+### $CLAUDE_PLUGIN_ROOT/core\result_merger.py
 
 ```python
 from dataclasses import dataclass, field
@@ -11701,7 +11701,7 @@ reciprocal_rank_fusion(results_list: list[list[NormalizedResult]], k: int = _DEF
 ```
 
 
-### P:\packages\search-research\core\result_normalizer.py
+### $CLAUDE_PLUGIN_ROOT/core\result_normalizer.py
 
 ```python
 from typing import Any, Final, Protocol, runtime_checkable
@@ -11716,7 +11716,7 @@ normalize_result(result: Any) -> NormalizedResult
 ```
 
 
-### P:\packages\search-research\core\results\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\results\__init__.py
 
 ```python
 from .deduplication import DeduplicationProcessor
@@ -11744,7 +11744,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\results\deduplication.py
+### $CLAUDE_PLUGIN_ROOT/core\results\deduplication.py
 
 ```python
 from collections import defaultdict
@@ -11758,7 +11758,7 @@ class DeduplicationProcessor:
 ```
 
 
-### P:\packages\search-research\core\results\ensemble.py
+### $CLAUDE_PLUGIN_ROOT/core\results\ensemble.py
 
 ```python
 from collections import defaultdict
@@ -11779,7 +11779,7 @@ run_hybrid_ensemble(query: str, config: HybridEnsembleConfig | None = None) -> E
 ```
 
 
-### P:\packages\search-research\core\results\pipeline.py
+### $CLAUDE_PLUGIN_ROOT/core\results\pipeline.py
 
 ```python
 from typing import Any
@@ -11796,7 +11796,7 @@ class ResultProcessingPipeline:
 ```
 
 
-### P:\packages\search-research\core\results\ranking.py
+### $CLAUDE_PLUGIN_ROOT/core\results\ranking.py
 
 ```python
 import math
@@ -11811,7 +11811,7 @@ class RankingProcessor:
 ```
 
 
-### P:\packages\search-research\core\results\reranking.py
+### $CLAUDE_PLUGIN_ROOT/core\results\reranking.py
 
 ```python
 import math
@@ -11824,7 +11824,7 @@ apply_temporal_boosting(results: list, half_life_days: int = 180) -> list
 ```
 
 
-### P:\packages\search-research\core\results\synthesis.py
+### $CLAUDE_PLUGIN_ROOT/core\results\synthesis.py
 
 ```python
 import re
@@ -11845,7 +11845,7 @@ class SynthesisProcessor:
 ```
 
 
-### P:\packages\search-research\core\router_async.py
+### $CLAUDE_PLUGIN_ROOT/core\router_async.py
 
 ```python
 import asyncio
@@ -11884,7 +11884,7 @@ create_async_router(mode: str | Mode = "fast", cache_ttl: int = 3600, enable_cac
 ```
 
 
-### P:\packages\search-research\core\security.py
+### $CLAUDE_PLUGIN_ROOT/core\security.py
 
 ```python
 import os
@@ -11900,7 +11900,7 @@ sanitize_log_string(text: str, max_length: int = 1000) -> str
 ```
 
 
-### P:\packages\search-research\core\session_chain.py
+### $CLAUDE_PLUGIN_ROOT/core\session_chain.py
 
 ```python
 import json
@@ -11932,7 +11932,7 @@ get_all_chain_files(session_id: str, project_path: Path | None = None, newest_fi
 ```
 
 
-### P:\packages\search-research\core\session_graph.py
+### $CLAUDE_PLUGIN_ROOT/core\session_graph.py
 
 ```python
 import argparse
@@ -11951,7 +11951,7 @@ main() -> None
 ```
 
 
-### P:\packages\search-research\core\sync_wrapper.py
+### $CLAUDE_PLUGIN_ROOT/core\sync_wrapper.py
 
 ```python
 import asyncio
@@ -11964,7 +11964,7 @@ class SyncSearchWrapper:
 ```
 
 
-### P:\packages\search-research\core\task_manager.py
+### $CLAUDE_PLUGIN_ROOT/core\task_manager.py
 
 ```python
 import json
@@ -12017,7 +12017,7 @@ class TaskManager:
 ```
 
 
-### P:\packages\search-research\core\terminal_id.py
+### $CLAUDE_PLUGIN_ROOT/core\terminal_id.py
 
 ```python
 import hashlib
@@ -12028,7 +12028,7 @@ canonical_terminal_id() -> str
 ```
 
 
-### P:\packages\search-research\core\tracing.py
+### $CLAUDE_PLUGIN_ROOT/core\tracing.py
 
 ```python
 import json
@@ -12073,7 +12073,7 @@ class DecisionAuditor:
 ```
 
 
-### P:\packages\search-research\core\unified_router.py
+### $CLAUDE_PLUGIN_ROOT/core\unified_router.py
 
 ```python
 import asyncio
@@ -12097,7 +12097,7 @@ class UnifiedAsyncRouter:
 ```
 
 
-### P:\packages\search-research\core\utils\__init__.py
+### $CLAUDE_PLUGIN_ROOT/core\utils\__init__.py
 
 ```python
 from .clustering import CoverageState, NoveltyTracker, TopicClusterer, TopicSignature
@@ -12138,7 +12138,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\core\utils\clustering.py
+### $CLAUDE_PLUGIN_ROOT/core\utils\clustering.py
 
 ```python
 from dataclasses import dataclass, field
@@ -12181,7 +12181,7 @@ class NoveltyTracker:
 ```
 
 
-### P:\packages\search-research\core\utils\cost_tracker.py
+### $CLAUDE_PLUGIN_ROOT/core\utils\cost_tracker.py
 
 ```python
 from dataclasses import dataclass
@@ -12197,7 +12197,7 @@ class CostTracker:
 ```
 
 
-### P:\packages\search-research\core\utils\density.py
+### $CLAUDE_PLUGIN_ROOT/core\utils\density.py
 
 ```python
 from typing import List
@@ -12220,7 +12220,7 @@ class DensityCalculator:
 ```
 
 
-### P:\packages\search-research\core\utils\gap_analysis.py
+### $CLAUDE_PLUGIN_ROOT/core\utils\gap_analysis.py
 
 ```python
 from dataclasses import dataclass, field
@@ -12255,7 +12255,7 @@ class GapAnalyzer:
 ```
 
 
-### P:\packages\search-research\core\utils\hyde_measurement.py
+### $CLAUDE_PLUGIN_ROOT/core\utils\hyde_measurement.py
 
 ```python
 import time
@@ -12276,7 +12276,7 @@ track_hyde_metrics(measurement: HyDEMeasurement, results: list[Any]) -> dict[str
 ```
 
 
-### P:\packages\search-research\core\utils\tree_sitter_utils.py
+### $CLAUDE_PLUGIN_ROOT/core\utils\tree_sitter_utils.py
 
 ```python
 from functools import lru_cache
@@ -12365,14 +12365,14 @@ benchmark_parse(file_paths: list, iterations: int = 5)
 ```
 
 
-### P:\packages\search-research\diagram_mermaid.min.js
+### $CLAUDE_PLUGIN_ROOT/diagram_mermaid.min.js
 
 ```javascript
 
 ```
 
 
-### P:\packages\search-research\modules\discover\__init__.py
+### $CLAUDE_PLUGIN_ROOT/modules\discover\__init__.py
 
 ```python
 from .static_call_graph import CallGraph, StaticCallGraphBuilder
@@ -12380,7 +12380,7 @@ __all__ = ["CallGraph", "StaticCallGraphBuilder"]
 ```
 
 
-### P:\packages\search-research\modules\discover\static_call_graph.py
+### $CLAUDE_PLUGIN_ROOT/modules\discover\static_call_graph.py
 
 ```python
 import ast
@@ -12412,14 +12412,14 @@ get_entry_points() -> list[str]
 ```
 
 
-### P:\packages\search-research\scripts\__init__.py
+### $CLAUDE_PLUGIN_ROOT/scripts\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\scripts\baseline_benchmark.py
+### $CLAUDE_PLUGIN_ROOT/scripts\baseline_benchmark.py
 
 ```python
 import argparse
@@ -12482,7 +12482,7 @@ main()
 ```
 
 
-### P:\packages\search-research\scripts\baseline_benchmark_simple.py
+### $CLAUDE_PLUGIN_ROOT/scripts\baseline_benchmark_simple.py
 
 ```python
 import json
@@ -12511,7 +12511,7 @@ main()
 ```
 
 
-### P:\packages\search-research\scripts\benchmark_connection_pooling.py
+### $CLAUDE_PLUGIN_ROOT/scripts\benchmark_connection_pooling.py
 
 ```python
 import asyncio
@@ -12524,7 +12524,7 @@ import sys
 ```
 
 
-### P:\packages\search-research\scripts\ingest_hooks_doc_to_cks.py
+### $CLAUDE_PLUGIN_ROOT/scripts\ingest_hooks_doc_to_cks.py
 
 ```python
 import re
@@ -12537,7 +12537,7 @@ main() -> int
 ```
 
 
-### P:\packages\search-research\search_research\__init__.py
+### $CLAUDE_PLUGIN_ROOT/search_research\__init__.py
 
 ```python
 from core.hyde import (
@@ -12567,7 +12567,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\search_research\metrics.py
+### $CLAUDE_PLUGIN_ROOT/search_research\metrics.py
 
 ```python
 from core.metrics import (
@@ -12576,14 +12576,14 @@ __all__ = ["ComponentName", "ComponentMetric", "MetricsLogger"]
 ```
 
 
-### P:\packages\search-research\skills\__init__.py
+### $CLAUDE_PLUGIN_ROOT/skills\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\skills\all\__init__.py
+### $CLAUDE_PLUGIN_ROOT/skills\all\__init__.py
 
 ```python
 from .adaptive_limits import get_adaptive_config
@@ -12604,7 +12604,7 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\skills\all\adaptive_limits.py
+### $CLAUDE_PLUGIN_ROOT/skills\all\adaptive_limits.py
 
 ```python
 from typing import Any
@@ -12620,7 +12620,7 @@ recommend_layer2_limit(complexity_score: int, result_count: int, avg_content_len
 ```
 
 
-### P:\packages\search-research\skills\all\agent_filter.py
+### $CLAUDE_PLUGIN_ROOT/skills\all\agent_filter.py
 
 ```python
 import json
@@ -12639,7 +12639,7 @@ create_agent_filter_summary(query: str, original_count: int, filtered_count: int
 ```
 
 
-### P:\packages\search-research\skills\all\complete_three_layer_implementation.py
+### $CLAUDE_PLUGIN_ROOT/skills\all\complete_three_layer_implementation.py
 
 ```python
 import asyncio
@@ -12659,7 +12659,7 @@ main()
 ```
 
 
-### P:\packages\search-research\skills\all\execute_three_layer_search.py
+### $CLAUDE_PLUGIN_ROOT/skills\all\execute_three_layer_search.py
 
 ```python
 import asyncio
@@ -12678,7 +12678,7 @@ main()
 ```
 
 
-### P:\packages\search-research\skills\all\explore.py
+### $CLAUDE_PLUGIN_ROOT/skills\all\explore.py
 
 ```python
 import argparse
@@ -12698,7 +12698,7 @@ main() -> int
 ```
 
 
-### P:\packages\search-research\skills\all\filtering.py
+### $CLAUDE_PLUGIN_ROOT/skills\all\filtering.py
 
 ```python
 from typing import Any
@@ -12711,7 +12711,7 @@ format_output(results: Any, query: str, layer2_applied: bool, format_type: str =
 ```
 
 
-### P:\packages\search-research\skills\all\layer2_filter.py
+### $CLAUDE_PLUGIN_ROOT/skills\all\layer2_filter.py
 
 ```python
 from typing import Any
@@ -12732,7 +12732,7 @@ apply_layer2_filtering(query: str, results: list[Any]) -> dict[str, Any]
 ```
 
 
-### P:\packages\search-research\skills\all\orchestration.py
+### $CLAUDE_PLUGIN_ROOT/skills\all\orchestration.py
 
 ```python
 import asyncio
@@ -12754,7 +12754,7 @@ main(query: str) -> str
 ```
 
 
-### P:\packages\search-research\skills\all\production_three_layer.py
+### $CLAUDE_PLUGIN_ROOT/skills\all\production_three_layer.py
 
 ```python
 import asyncio
@@ -12772,7 +12772,7 @@ main()
 ```
 
 
-### P:\packages\search-research\skills\all\query_complexity.py
+### $CLAUDE_PLUGIN_ROOT/skills\all\query_complexity.py
 
 ```python
 import re
@@ -12839,14 +12839,14 @@ get_adaptive_limit(complexity_score: int) -> int
 ```
 
 
-### P:\packages\search-research\skills\all\search_executor.py
+### $CLAUDE_PLUGIN_ROOT/skills\all\search_executor.py
 
 ```python
 import json
 import sys
 from pathlib import Path
 from typing import Any
-search_research_path = Path("P:/packages/search-research").resolve()
+search_research_path = Path("P:\\\\\\packages/search-research").resolve()
 from core.quality_checker import QualityConfig
 from search_research import UnifiedAsyncRouter
 execute_search(query: str, mode: str = "auto", limit: int = 10, rrf_k: int = 60, min_score: float = 0.5, min_results: int = 3, enable_jmri: bool = True) -> list
@@ -12856,7 +12856,7 @@ format_results_json(query: str, results: list, mode: str) -> str
 ```
 
 
-### P:\packages\search-research\skills\all\semantic_cluster.py
+### $CLAUDE_PLUGIN_ROOT/skills\all\semantic_cluster.py
 
 ```python
 import re
@@ -12877,7 +12877,7 @@ get_clustering_stats(original_count: int, results: list[Any], similarity_thresho
 ```
 
 
-### P:\packages\search-research\skills\chs\scripts\chs_cli.py
+### $CLAUDE_PLUGIN_ROOT/skills\chs\scripts\chs_cli.py
 
 ```python
 import argparse
@@ -12895,7 +12895,7 @@ from core.chs import db as chs_db
 from core.chs import search as chs_search
 from core.chs.db import database_is_initialized
 CHS_SEARCH_AVAILABLE = True
-chs_db_path = Path(os.getenv("CHS_DB_PATH", "P:/__csf/data/chat_history.db")).expanduser()
+chs_db_path = Path(os.getenv("CHS_DB_PATH", "P:\\\\\\__csf/data/chat_history.db")).expanduser()
 CHS_DB_AVAILABLE = database_is_initialized(chs_db_path)
 import faiss
 FAISS_AVAILABLE = True
@@ -12934,21 +12934,21 @@ main()
 ```
 
 
-### P:\packages\search-research\src\__init__.py
+### $CLAUDE_PLUGIN_ROOT/src\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\src\daemons\__init__.py
+### $CLAUDE_PLUGIN_ROOT/src\daemons\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\src\daemons\unified_semantic_daemon.py
+### $CLAUDE_PLUGIN_ROOT/src\daemons\unified_semantic_daemon.py
 
 ```python
 import sys
@@ -12976,14 +12976,14 @@ __all__ = [
 ```
 
 
-### P:\packages\search-research\src\ingestion\__init__.py
+### $CLAUDE_PLUGIN_ROOT/src\ingestion\__init__.py
 
 ```python
 
 ```
 
 
-### P:\packages\search-research\src\ingestion\jsonl_watcher.py
+### $CLAUDE_PLUGIN_ROOT/src\ingestion\jsonl_watcher.py
 
 ```python
 import os
@@ -12998,7 +12998,7 @@ class JsonlWatcher:
 ```
 
 
-### P:\packages\search-research\src\query_intent.py
+### $CLAUDE_PLUGIN_ROOT/src\query_intent.py
 
 ```python
 import logging

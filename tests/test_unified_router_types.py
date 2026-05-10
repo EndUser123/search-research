@@ -116,7 +116,7 @@ class TestMypyStrictMode:
             [sys.executable, "-m", "mypy", "--strict", module_path],
             capture_output=True,
             text=True,
-            cwd="P:/packages/search-research",
+            cwd="P:\\\\\\packages/search-research",
         )
 
         # Assert
@@ -155,7 +155,7 @@ class TestMypyStrictMode:
             [sys.executable, "-m", "mypy", "--strict", module_path],
             capture_output=True,
             text=True,
-            cwd="P:/packages/search-research",
+            cwd="P:\\\\\\packages/search-research",
         )
 
         # Assert

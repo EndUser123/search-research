@@ -28,7 +28,7 @@ import sys
 from pathlib import Path
 
 # Add hooks directory to path for imports
-_hooks_dir = Path("P:/.claude/hooks")
+_hooks_dir = Path("P:\\\\\\.claude/hooks")
 if str(_hooks_dir) not in sys.path:
     sys.path.insert(0, str(_hooks_dir))
 

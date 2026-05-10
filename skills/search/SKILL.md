@@ -45,11 +45,11 @@ Single entry point to search across all CSF NIP data stores in parallel - **loca
 - **No external dependencies**: All search is local, privacy-preserving
 - **Efficiency over complexity**: Parallel execution, fast responses
 - **Evidence-based**: Search results provide citation context
-- **Canonical CLI**: `P:/packages/search-research/core/cli.py`
+- **Canonical CLI**: `P:\\\\\\packages/search-research/core/cli.py`
 - **Backends**: CKS, CHS (claude-history/Rust+FTS5), CDS, Code/Grep, DOCS, SKILLS
 - **Search methods**: FTS5 (~10ms), Hybrid (~50ms), Semantic (~200ms)
 - **Output formats**: Human-readable (default), JSON for scripting
-- **CHS bootstrap**: If `chat_history.db` exists but FTS5 tables are missing, build it with `python -m core.chs.scripts.reindex_from_jsonl --db-path "P:/__csf/data/chat_history.db" --history-path "~/.claude/history.jsonl"`
+- **CHS bootstrap**: If `chat_history.db` exists but FTS5 tables are missing, build it with `python -m core.chs.scripts.reindex_from_jsonl --db-path "P:\\\\\\__csf/data/chat_history.db" --history-path "~/.claude/history.jsonl"`
 
 See `references/architecture.md` for backend architecture details and NotebookLM integration.
 
@@ -113,7 +113,7 @@ When the query is about architecture, handoffs, resume, stale data, fields, payl
 Run local-only search for `/search` requests:
 
 ```bash
-cd "P:/packages/search-research" && python -c "
+cd "P:\\\\\\packages/search-research" && python -c "
 from core.unified_router import UnifiedAsyncRouter
 import asyncio
 
@@ -132,12 +132,12 @@ asyncio.run(search())
 **Session-chain queries** (last 7 days):
 
 ```bash
-cd "P:/packages/search-research" && python -c "
+cd "P:\\\\\\packages/search-research" && python -c "
 from pathlib import Path
 from datetime import datetime, timedelta
 
 project = Path.home() / '.claude/projects/P--'
-handoff_dir = Path('P:/.claude/state/handoff')
+handoff_dir = Path('P:\\\\\\.claude/state/handoff')
 cutoff = datetime.now() - timedelta(days=7)
 
 transcripts = [p for p in project.glob('*.jsonl') if datetime.fromtimestamp(p.stat().st_mtime) > cutoff]
@@ -159,7 +159,7 @@ for h in handoffs:
 For chat history only:
 
 ```bash
-cd "P:/packages/search-research" && python -c "
+cd "P:\\\\\\packages/search-research" && python -c "
 from core.unified_router import UnifiedAsyncRouter
 import asyncio
 

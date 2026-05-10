@@ -2,7 +2,7 @@
 
 Provides a standard interface for backends to report their health status.
 
-This module was migrated from P:/__csf/src/search/health_status.py
+This module was migrated from P:\\\\\\__csf/src/search/health_status.py
 to eliminate circular dependency between search and search_research packages.
 """
 

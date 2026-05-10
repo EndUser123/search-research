@@ -60,7 +60,7 @@ def store_finding(finding: DiagnosticFinding) -> bool:
         True if successfully stored, False on error
     """
     try:
-        sys.path.insert(0, "P:/__csf")
+        sys.path.insert(0, "P:\\\\\\__csf")
         from src.cks.unified import CKS
 
         title, content, metadata = finding.to_cks_entry()

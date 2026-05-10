@@ -170,7 +170,7 @@ class QuerySpellCorrector:
         """Load English frequency dictionary."""
         # Try common dictionary locations
         dictionary_paths = [
-            "P:/__csf/data/frequency_dictionary_en.txt",
+            "P:\\\\\\__csf/data/frequency_dictionary_en.txt",
             "/usr/share/dict/words",
         ]
 

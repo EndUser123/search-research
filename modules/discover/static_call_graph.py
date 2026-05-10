@@ -4,7 +4,7 @@ Provides CallGraph data structure and StaticCallGraphBuilder for building
 call graphs from Python source code via AST analysis.
 
 Usage:
-    builder = StaticCallGraphBuilder(root_paths=["P:/src"])
+    builder = StaticCallGraphBuilder(root_paths=["P:\\\\\\src"])
     builder.analyze()
     graph = builder.get_graph()
     callers = graph.get_callers("my_function")
@@ -147,9 +147,9 @@ class StaticCallGraphBuilder:
 
         Args:
             root_paths: List of root directory paths to search for Python files.
-                       Defaults to ["P:/__csf/src"].
+                       Defaults to ["P:\\\\\\__csf/src"].
         """
-        self._root_paths = root_paths or ["P:/__csf/src"]
+        self._root_paths = root_paths or ["P:\\\\\\__csf/src"]
         self._graph: CallGraph = CallGraph()
         self._file_functions: dict[str, set[str]] = {}
 

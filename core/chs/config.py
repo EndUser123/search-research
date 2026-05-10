@@ -20,10 +20,10 @@ class Config:
     All paths are normalized to Path objects.
     """
 
-    DEFAULT_DB_PATH = Path("P:/__csf/data/chat_history.db")
+    DEFAULT_DB_PATH = Path("P:\\\\\\__csf/data/chat_history.db")
     DEFAULT_EMBEDDING_MODEL = "sentence-transformers/all-mpnet-base-v2"
     DEFAULT_EMBEDDING_DIMENSIONS = 768
-    DEFAULT_JSONL_DIR = Path("P:/__csf/logs/chats")
+    DEFAULT_JSONL_DIR = Path("P:\\\\\\__csf/logs/chats")
 
     def __init__(self) -> None:
         """Initialize configuration from environment variables."""

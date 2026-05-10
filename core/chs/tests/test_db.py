@@ -4,7 +4,7 @@ These tests verify the CHS v2 database initialization, configuration loading,
 and core database operations. Implementation files (schema.sql, config.py, db.py)
 will be created in the GREEN phase.
 
-Run with: pytest P:/__csf/src/knowledge/systems/chs/v2/tests/test_db.py -v
+Run with: pytest P:\\\\\\__csf/src/knowledge/systems/chs/v2/tests/test_db.py -v
 """
 
 from __future__ import annotations
@@ -33,9 +33,9 @@ class TestConfigClass:
         When: Config is instantiated
         Then: db_path attribute should match the environment value
         """
-        monkeypatch.setenv("CHS_DB_PATH", "P:/__csf/data/chat_history.db")
+        monkeypatch.setenv("CHS_DB_PATH", "P:\\\\\\__csf/data/chat_history.db")
         config = Config()
-        assert config.db_path == Path("P:/__csf/data/chat_history.db")
+        assert config.db_path == Path("P:\\\\\\__csf/data/chat_history.db")
 
     def test_config_uses_default_db_path_when_env_not_set(self, monkeypatch):
         """Test Config uses default path when CHS_DB_PATH is not set.
@@ -46,7 +46,7 @@ class TestConfigClass:
         """
         monkeypatch.delenv("CHS_DB_PATH", raising=False)
         config = Config()
-        assert config.db_path == Path("P:/__csf/data/chat_history.db")
+        assert config.db_path == Path("P:\\\\\\__csf/data/chat_history.db")
 
     def test_config_loads_embedding_model_from_env(self, monkeypatch):
         """Test Config loads EMBEDDING_MODEL from environment variable.
@@ -101,7 +101,7 @@ class TestConfigClass:
         When: Config is instantiated
         Then: Should raise ValueError with appropriate message
         """
-        non_existent = Path("P:/does/not/exist/chats")
+        non_existent = Path("P:\\\\\\does/not/exist/chats")
         monkeypatch.setenv("CHS_JSONL_DIR", str(non_existent))
         with pytest.raises(ValueError, match="CHS_JSONL_DIR must exist"):
             Config()

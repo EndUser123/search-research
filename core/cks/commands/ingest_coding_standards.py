@@ -212,7 +212,7 @@ class CodingStandardsIngestion:
         """Parse and ingest Python coding standards."""
         # Navigate to project root: src/features/cks/commands -> src -> __csf -> P:
         project_root = Path(__file__).parent.parent.parent.parent
-        # Coding standards are in P:/.claude/commands/
+        # Coding standards are in P:\\\\\\.claude/commands/
         source_file = project_root.parent / ".claude/commands/code_python_2025_quick_reference.md"
 
         if not source_file.exists():
@@ -337,7 +337,7 @@ Search for this pattern in your codebase and replace with the recommended altern
         """Parse and ingest TypeScript coding standards."""
         # Navigate to project root: src/features/cks/commands -> src -> __csf -> P:
         project_root = Path(__file__).parent.parent.parent.parent
-        # Coding standards are in P:/.claude/commands/
+        # Coding standards are in P:\\\\\\.claude/commands/
         source_file = project_root.parent / ".claude/commands/code_ts_2025_quick_reference.md"
 
         if not source_file.exists():

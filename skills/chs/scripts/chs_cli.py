@@ -29,7 +29,7 @@ try:
     from core.chs.db import database_is_initialized
 
     CHS_SEARCH_AVAILABLE = True
-    chs_db_path = Path(os.getenv("CHS_DB_PATH", "P:/__csf/data/chat_history.db")).expanduser()
+    chs_db_path = Path(os.getenv("CHS_DB_PATH", "P:\\\\\\__csf/data/chat_history.db")).expanduser()
     CHS_DB_AVAILABLE = database_is_initialized(chs_db_path)
 except ImportError:
     pass
@@ -54,7 +54,7 @@ class CHSConfig:
         defaults = {
             "workspace_aliases": {},
             "defaults": {"limit": 20, "depth": "summary", "stage": "auto"},
-            "paths": {"metrics_db": "P:/packages/search-research/data/chs_metrics.db"},
+            "paths": {"metrics_db": "P:\\\\\\packages/search-research/data/chs_metrics.db"},
         }
         if self.config_path.exists():
             try:
@@ -84,7 +84,7 @@ class CHSConfig:
         """Get path to metrics database."""
         return Path(
             self.config.get("paths", {}).get(
-                "metrics_db", "P:/packages/search-research/data/chs_metrics.db"
+                "metrics_db", "P:\\\\\\packages/search-research/data/chs_metrics.db"
             )
         )
 
@@ -260,7 +260,7 @@ class CHSSearch:
             from core.chs.db import get_connection
             from core.chs.search import search_fts_messages
 
-            chs_db_path = Path(os.getenv("CHS_DB_PATH", "P:/__csf/data/chat_history.db")).expanduser()
+            chs_db_path = Path(os.getenv("CHS_DB_PATH", "P:\\\\\\__csf/data/chat_history.db")).expanduser()
             conn = get_connection(chs_db_path)
             fts_results = search_fts_messages(conn, query, limit)
             results = []
@@ -322,7 +322,7 @@ class CHSSearch:
 
             query_embedding = client.embed_texts([query])[0]
             query_vector = np.frombuffer(query_embedding, dtype=np.float32)
-            faiss_index_path = Path("P:/__csf/data/chat_history_faiss")
+            faiss_index_path = Path("P:\\\\\\__csf/data/chat_history_faiss")
             if faiss_index_path.exists():
                 import faiss
 
@@ -551,7 +551,7 @@ class CHSExporter:
 
         Detection hierarchy (most reliable first):
         1. active-session file written by SessionStart hook (per-terminal, no ambiguity).
-           Written by: P:/packages/handoff/scripts/hooks/SessionStart_handoff_restore.py (symlinked).
+           Written by: P:\\\\\\packages/handoff/scripts/hooks/SessionStart_handoff_restore.py (symlinked).
         2. SDK list_sessions() + file_size cross-reference + last_modified tiebreaker.
            Works reliably in single-terminal environments. In multi-terminal
            environments (concurrent Claude Code sessions in the same project dir),
@@ -625,7 +625,7 @@ class CHSExporter:
         def _load_session_chain():
             """Load session_chain directly from file, bypassing core/__init__."""
             _spec = importlib.util.spec_from_file_location(
-                "core.session_chain", "P:/packages/search-research/core/session_chain.py"
+                "core.session_chain", "P:\\\\\\packages/search-research/core/session_chain.py"
             )
             _mod = importlib.util.module_from_spec(_spec)
             # Register in sys.modules before exec so dataclass decorator works
@@ -803,8 +803,8 @@ def main():
             "  /chs \"authentication\" --mode documentation\n"
             "  /chs export\n"
             "  /chs export --session-id abc123\n"
-            "  /chs export --output P:/tmp/chs-export.md\n"
-            "  python P:/packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id abc123\n"
+            "  /chs export --output P:\\\\\\tmp/chs-export.md\n"
+            "  python P:\\\\\\packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id abc123\n"
         ),
     )
     parser.add_argument("query", nargs="?", help="Search query")

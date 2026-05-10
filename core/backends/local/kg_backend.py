@@ -32,7 +32,7 @@ class KGBackend:
         Args:
             kg_data_path: Path to knowledge graph output directory.
                 Defaults to config.DEFAULT_KG_PATH (environment variable:
-                SEARCH_RESEARCH_KG_PATH, or P:/projects/kg_builder/knowledge_graph_output)
+                SEARCH_RESEARCH_KG_PATH, or P:\\\\\\projects/kg_builder/knowledge_graph_output)
         """
         self.kg_data_path = Path(kg_data_path or config.DEFAULT_KG_PATH)
         self._index: dict[str, dict[str, Any]] = {}

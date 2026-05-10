@@ -7,17 +7,17 @@
 
 ## Context
 
-Chat History Search (CHS) core system is currently located in `P:/__csf/src/knowledge/systems/chs/v2/`, which is infrastructure/data storage territory. However, CHS is an application feature, not infrastructure.
+Chat History Search (CHS) core system is currently located in `P:\\\\\\__csf/src/knowledge/systems/chs/v2/`, which is infrastructure/data storage territory. However, CHS is an application feature, not infrastructure.
 
 **Current CHS Locations:**
 
 | Component | Location | Type |
 |-----------|----------|------|
-| CHS v2 Core | `P:/__csf/src/knowledge/systems/chs/v2/` | Application code (CLI, DB init, indexer) |
-| /chs skill | `P:/packages/search-research/skills/chs/` | Skill wrapper |
-| CHS backend | `P:/packages/search-research/core/backends/local/chs_incremental.py` | Backend implementation |
-| Duplicate | `P:/packages/search-backends/.../chs_incremental.py` | Duplicate code |
-| Data files | `P:/__csf/data/` | Database, FAISS index, state |
+| CHS v2 Core | `P:\\\\\\__csf/src/knowledge/systems/chs/v2/` | Application code (CLI, DB init, indexer) |
+| /chs skill | `P:\\\\\\packages/search-research/skills/chs/` | Skill wrapper |
+| CHS backend | `P:\\\\\\packages/search-research/core/backends/local/chs_incremental.py` | Backend implementation |
+| Duplicate | `P:\\\\\\packages/search-backends/.../chs_incremental.py` | Duplicate code |
+| Data files | `P:\\\\\\__csf/data/` | Database, FAISS index, state |
 
 **Problems:**
 1. **Core application code in infrastructure directory** - CHS is a feature, not infrastructure

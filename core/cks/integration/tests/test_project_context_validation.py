@@ -50,13 +50,13 @@ class TestProjectContextValidation(unittest.TestCase):
         # Create test contexts
         self.adapter.create_context(
             tsk_id="TSK-ALT-PLATFORM-DOWNLOADING",
-            worktree_path="P:/yt-fts-alt-platforms",
+            worktree_path="P:\\\\\\yt-fts-alt-platforms",
             description="YouTube alternative platforms",
         )
 
         self.adapter.create_context(
             tsk_id="TSK-122225-GPUWorkloadIntegration-1457",
-            worktree_path="P:/gpu-workload-integration",
+            worktree_path="P:\\\\\\gpu-workload-integration",
             description="GPU workload integration",
         )
 
@@ -77,7 +77,7 @@ class TestProjectContextValidation(unittest.TestCase):
         # Validate platform file operation
         allowed, message = self.adapter.validate_operation(
             operation_type="edit",
-            operation_target="P:/yt-fts-alt-platforms/downloader.py",
+            operation_target="P:\\\\\\yt-fts-alt-platforms/downloader.py",
             operation_description="Add download function for alternative platforms",
         )
 
@@ -96,7 +96,7 @@ class TestProjectContextValidation(unittest.TestCase):
         # Validate GPU operation
         allowed, message = self.adapter.validate_operation(
             operation_type="edit",
-            operation_target="P:/gpu-workload-integration/kernel.py",
+            operation_target="P:\\\\\\gpu-workload-integration/kernel.py",
             operation_description="Add GPU kernel optimization",
         )
 
@@ -114,7 +114,7 @@ class TestProjectContextValidation(unittest.TestCase):
         # Validate platform file edit
         allowed, _message = self.adapter.validate_operation(
             operation_type="edit",
-            operation_target="P:/yt-fts-alt-platforms/main.py",
+            operation_target="P:\\\\\\yt-fts-alt-platforms/main.py",
             operation_description="Fix import error",
         )
 
@@ -131,7 +131,7 @@ class TestProjectContextValidation(unittest.TestCase):
         # Validate GPU file edit
         allowed, _message = self.adapter.validate_operation(
             operation_type="edit",
-            operation_target="P:/gpu-workload-integration/cuda_kernel.py",
+            operation_target="P:\\\\\\gpu-workload-integration/cuda_kernel.py",
             operation_description="Optimize CUDA kernel",
         )
 
@@ -148,7 +148,7 @@ class TestProjectContextValidation(unittest.TestCase):
         # Validate generic operation
         allowed, _message = self.adapter.validate_operation(
             operation_type="read",
-            operation_target="P:/README.md",
+            operation_target="P:\\\\\\README.md",
             operation_description="Read project documentation",
         )
 
@@ -241,7 +241,7 @@ class TestProjectContextValidation(unittest.TestCase):
         # Validate GPU operation is now allowed
         allowed, _message = self.adapter.validate_operation(
             operation_type="edit",
-            operation_target="P:/gpu-workload-integration/kernel.py",
+            operation_target="P:\\\\\\gpu-workload-integration/kernel.py",
             operation_description="Add GPU kernel",
         )
 
@@ -264,7 +264,7 @@ class TestSoloSessionBridgeCKSExtension(unittest.TestCase):
     def test_context_detection(self) -> None:
         """Test context detection from paths."""
         # Test platform path detection
-        self.bridge.detect_context_from_path("P:/yt-fts-alt-platforms/main.py")
+        self.bridge.detect_context_from_path("P:\\\\\\yt-fts-alt-platforms/main.py")
         # Detection logic is in validators, this test verifies bridge method exists
 
     def test_validation_methods_exist(self) -> None:

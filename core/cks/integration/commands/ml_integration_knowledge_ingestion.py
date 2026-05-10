@@ -152,8 +152,8 @@ class MLKnowledgeProcessor:
                 category=MLKnowledgeCategory.GPU_ACCELERATION,
                 confidence_level=0.95,
                 evidence_sources=[
-                    "P:/__csf/src/features/core_utils/embedding_manager.py",
-                    "P:/__csf/src/features/cks/core/vector_manager.py",
+                    "P:\\\\\\__csf/src/features/core_utils/embedding_manager.py",
+                    "P:\\\\\\__csf/src/features/cks/core/vector_manager.py",
                 ],
                 key_insights=[
                     "Thread-safe singleton GPU manager prevents repeated initialization",
@@ -173,7 +173,7 @@ class MLKnowledgeProcessor:
                 category=MLKnowledgeCategory.VECTOR_MANAGEMENT,
                 confidence_level=0.90,
                 evidence_sources=[
-                    "P:/__csf/src/features/cks/core/vector_manager.py",
+                    "P:\\\\\\__csf/src/features/cks/core/vector_manager.py",
                 ],
                 key_insights=[
                     "Qdrant integration with hybrid embeddings ready",
@@ -198,7 +198,7 @@ class MLKnowledgeProcessor:
                 confidence_level=0.85,
                 evidence_sources=[
                     "Research: IEEE Transactions on Software Engineering 2024",
-                    "P:/__csf/docs/research/TSK-251217-MLIntegration-1847_research_summary.md",
+                    "P:\\\\\\__csf/docs/research/TSK-251217-MLIntegration-1847_research_summary.md",
                 ],
                 key_insights=[
                     "CodeBERT achieves 89.7% F1-score on dead code detection",
@@ -218,7 +218,7 @@ class MLKnowledgeProcessor:
                 category=MLKnowledgeCategory.HYBRID_ANALYSIS,
                 confidence_level=0.90,
                 evidence_sources=[
-                    "P:/__csf/docs/research/TSK-251217-MLIntegration-1847_research_summary.md",
+                    "P:\\\\\\__csf/docs/research/TSK-251217-MLIntegration-1847_research_summary.md",
                 ],
                 key_insights=[
                     "Static analysis provides 85% accuracy baseline",
@@ -266,8 +266,8 @@ class MLKnowledgeProcessor:
                 category=MLKnowledgeCategory.EXPLORE_COMMAND,
                 confidence_level=0.85,
                 evidence_sources=[
-                    "P:/__csf/src/features/modules/code_analysis/hdma_analyzer.py",
-                    "P:/__csf/docs/research/TSK-251217-UnifiedChannelProcessor-research.md",
+                    "P:\\\\\\__csf/src/features/modules/code_analysis/hdma_analyzer.py",
+                    "P:\\\\\\__csf/docs/research/TSK-251217-UnifiedChannelProcessor-research.md",
                 ],
                 key_insights=[
                     "Extend simple_dead_code_detector.py with ML confidence scoring",
@@ -521,8 +521,8 @@ class MLKnowledgeProcessor:
                 "evidence_strength": "HIGH",
                 "confidence_level": 0.85,
                 "supporting_sources": [
-                    "P:/__csf/src/features/core_utils/embedding_manager.py",
-                    "P:/__csf/src/features/cks/core/vector_manager.py",
+                    "P:\\\\\\__csf/src/features/core_utils/embedding_manager.py",
+                    "P:\\\\\\__csf/src/features/cks/core/vector_manager.py",
                     "Research: IEEE Transactions on Software Engineering 2024",
                 ],
             },

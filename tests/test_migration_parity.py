@@ -1,7 +1,7 @@
 """Baseline Test Suite for Backend Migration Parity.
 
-Tests verify that legacy backends (P:/__csf/src/search/backends/) and
-new backends (P:/packages/search-research/core/backends/local/) produce
+Tests verify that legacy backends (P:\\\\\\__csf/src/search/backends/) and
+new backends (P:\\\\\\packages/search-research/core/backends/local/) produce
 equivalent results.
 
 Created: 2026-03-15
@@ -17,9 +17,9 @@ from pathlib import Path
 import pytest
 
 # Project paths
-LEGACY_SEARCH_PATH = Path("P:/__csf/src/search")
-NEW_PACKAGE_PATH = Path("P:/packages/search-research/core/backends/local")
-TEST_SEARCH_ROOT = Path("P:/__csf/src")  # Common search root for testing
+LEGACY_SEARCH_PATH = Path("P:\\\\\\__csf/src/search")
+NEW_PACKAGE_PATH = Path("P:\\\\\\packages/search-research/core/backends/local")
+TEST_SEARCH_ROOT = Path("P:\\\\\\__csf/src")  # Common search root for testing
 
 
 # ============================================================================

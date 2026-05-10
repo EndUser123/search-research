@@ -145,7 +145,7 @@ class VectorKnowledgeManager:
 
             # Default index path
             if self.config.index_path is None:
-                index_path = Path("P:/__csf/data/cks_vector.faiss")
+                index_path = Path("P:\\\\\\__csf/data/cks_vector.faiss")
             else:
                 index_path = Path(self.config.index_path)
 

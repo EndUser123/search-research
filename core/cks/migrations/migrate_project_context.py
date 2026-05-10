@@ -2,7 +2,7 @@
 """
 Migration Script: Project Context CKS to Unified CKS
 
-MIGRATION COMPLETE (2025-12-28): Was: P:/.cks/storage/cks.db (DEPRECATED)
+MIGRATION COMPLETE (2025-12-28): Was: P:\\\\\\.cks/storage/cks.db (DEPRECATED)
 to data/cks.db (Unified CKS) as part of the CKS consolidation.
 
 Entity Types Migrated:
@@ -265,7 +265,7 @@ def migrate_decision_entity(cks: CKS, entity: dict[str, Any]) -> str | None:
 
 
 def run_migration(
-    source_db_path: str = "P:/.cks/storage/cks.db",
+    source_db_path: str = "P:\\\\\\.cks/storage/cks.db",
     target_db_path: str = None,
     dry_run: bool = False
 ) -> dict[str, int]:
@@ -390,7 +390,7 @@ def main():
     )
     parser.add_argument(
         "--source",
-        default="P:/.cks/storage/cks.db",
+        default="P:\\\\\\.cks/storage/cks.db",
         help="Path to source database"
     )
     parser.add_argument(

@@ -64,15 +64,15 @@ class ClaudeHistoryBackend(BaseLocalBackend):
         Args:
             root_paths: Not used for chat history (kept for BaseLocalBackend compatibility)
             exclude_patterns: Not used for chat history (kept for BaseLocalBackend compatibility)
-            cli_path: Path to claude-history.exe (defaults to P:/packages/claude-history/target/release/claude-history.exe)
-            db_path: Path to SQLite database (defaults to P:/__csf/data/chat_history.db)
+            cli_path: Path to claude-history.exe (defaults to P:\\\\\\packages/claude-history/target/release/claude-history.exe)
+            db_path: Path to SQLite database (defaults to P:\\\\\\__csf/data/chat_history.db)
             default_source: Default data source ("jsonl" or "db")
         """
         super().__init__(root_paths, exclude_patterns)
         if cli_path is None:
-            cli_path = "P:/packages/claude-history/target/release/claude-history.exe"
+            cli_path = "P:\\\\\\packages/claude-history/target/release/claude-history.exe"
         if db_path is None:
-            db_path = "P:/__csf/data/chat_history.db"
+            db_path = "P:\\\\\\__csf/data/chat_history.db"
 
         self.cli_path = Path(cli_path)
         self.db_path = Path(db_path)

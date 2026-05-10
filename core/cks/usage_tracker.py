@@ -18,7 +18,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 # Add paths
-sys.path.insert(0, str(Path("P:/__csf").resolve()))
+sys.path.insert(0, str(Path("P:\\\\\\__csf").resolve()))
 
 from search_research.contrib.semantic_daemon.daemon_client import DaemonClient
 

@@ -8,7 +8,7 @@ from typing import Any
 from .db import get_connection
 from .providers import discover_all
 
-DB_PATH = Path("P:/__csf/data/chat_history.db")
+DB_PATH = Path("P:\\\\\\__csf/data/chat_history.db")
 
 
 def health_check() -> dict[str, bool]:

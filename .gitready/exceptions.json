@@ -3,7 +3,7 @@
     {
       "path": ".claude/",
       "violation": ".claude/ directory not in plugin spec (skills forbidden under .claude/)",
-      "reason": "Project workspace hooks/state - git-tracked development artifacts. Hooks are global at P:/.claude/hooks/ and registered in settings.json. This directory is NOT plugin content.",
+      "reason": "Project workspace hooks/state - git-tracked development artifacts. Hooks are global at P:\\\\\\.claude/hooks/ and registered in settings.json. This directory is NOT plugin content.",
       "waived_until": null
     },
     {

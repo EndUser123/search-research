@@ -4,7 +4,7 @@
 This test verifies that the _kill_stale_daemons_aggressive() function
 properly cleans up orphaned PID files.
 
-Run: python P:/__csf/src/daemons/test_pid_file_cleanup.py
+Run: python P:\\\\\\__csf/src/daemons/test_pid_file_cleanup.py
 """
 
 import os
@@ -14,8 +14,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 # Add paths
-sys.path.insert(0, str(Path("P:/__csf/src")))
-sys.path.insert(0, str(Path("P:/.claude/hooks")))
+sys.path.insert(0, str(Path("P:\\\\\\__csf/src")))
+sys.path.insert(0, str(Path("P:\\\\\\.claude/hooks")))
 
 
 def test_orphaned_pid_file_cleanup():

@@ -6,7 +6,7 @@ for k in ["TAVILY_API_KEY", "SERPER_API_KEY", "EXA_API_KEY", "BRAVE_API_KEY"]:
     env[k] = "test"
 
 proc = subprocess.Popen(
-    [sys.executable, "P:/packages/search-research/run_mcp.py"],
+    [sys.executable, "P:\\\\\\packages/search-research/run_mcp.py"],
     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env,
 )
 

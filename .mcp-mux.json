@@ -1,0 +1,14 @@
+{
+  "servers": {
+    "search-research": {
+      "command": "uv",
+      "args": ["--directory", ".", "run", "--no-project", "python", "run_mcp.py"],
+      "mode": "shared",
+      "lazy": false,
+      "maxRestarts": 5,
+      "restartBackoffMs": 1000
+    }
+  },
+  "idleTimeoutMs": 300000,
+  "requestTimeoutMs": 60000
+}

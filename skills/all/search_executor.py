@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any
 
 # Add search-research package to path (use absolute path to avoid conflicts)
-search_research_path = Path("P:/packages/search-research").resolve()
+search_research_path = Path("P:\\\\\\packages/search-research").resolve()
 if str(search_research_path) not in sys.path:
     sys.path.insert(0, str(search_research_path))
 

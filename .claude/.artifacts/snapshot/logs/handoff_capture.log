@@ -1,0 +1,4 @@
+2026-05-08 09:53:05,616 - PreCompact_snapshot_capture - INFO - [PreCompact V2] Using project root from walk-up: P:\packages\search-research
+2026-05-08 09:53:05,698 - PreCompact_snapshot_capture - DEBUG - [PreCompact V2] Skipping decision noise: PS P:\> cc-bf --routes --new-only
+=== PROVIDER CAT...
+2026-05-09 16:47:23,045 - PreCompact_snapshot_capture - INFO - [PreCompact V2] Using project root from walk-up: P:\packages\search-research

@@ -5,7 +5,7 @@ from __future__ import annotations
 from .db import get_connection
 from pathlib import Path
 
-DB_PATH = Path("P:/__csf/data/chat_history.db")
+DB_PATH = Path("P:\\\\\\__csf/data/chat_history.db")
 
 
 def open_tasks(provider_id: str | None = None) -> list[dict]:

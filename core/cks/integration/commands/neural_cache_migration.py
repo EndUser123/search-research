@@ -542,8 +542,8 @@ def main() -> None:
     """CLI entry point."""
     import argparse
 
-    # Default skill file path (at P:/ root, not __csf)
-    # PROJECT_ROOT is P:/__csf, so we go to parent for P:/
+    # Default skill file path (at P:\\\\\\ root, not __csf)
+    # PROJECT_ROOT is P:\\\\\\__csf, so we go to parent for P:\\\\\\
     default_skill = PROJECT_ROOT.parent / ".claude" / "skills" / "csf-integration" / "SKILL.md"
 
     parser = argparse.ArgumentParser(

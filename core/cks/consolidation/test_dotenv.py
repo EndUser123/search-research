@@ -3,7 +3,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-env_path = Path(r"P:\.env")
+env_path = Path(r"P:\\\\\\.env")
 print(f"Loading {env_path} (Exists: {env_path.exists()})")
 
 # clear first to be sure

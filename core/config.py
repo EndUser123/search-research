@@ -16,20 +16,20 @@ class Config:
 
     # KG Backend
     DEFAULT_KG_PATH: str = os.getenv(
-        "SEARCH_RESEARCH_KG_PATH", "P:/projects/kg_builder/knowledge_graph_output"
+        "SEARCH_RESEARCH_KG_PATH", "P:\\\\\\projects/kg_builder/knowledge_graph_output"
     )
 
     # CHS (Chat History) paths
-    CHS_DB_PATH: str = os.getenv("SEARCH_RESEARCH_CHS_DB_PATH", "P:/__csf/data/chat_history.db")
+    CHS_DB_PATH: str = os.getenv("SEARCH_RESEARCH_CHS_DB_PATH", "P:\\\\\\__csf/data/chat_history.db")
     CHS_INDEX_PATH: str = os.getenv(
-        "SEARCH_RESEARCH_CHS_INDEX_PATH", "P:/__csf/data/chat_history_faiss_424k/faiss_index.bin"
+        "SEARCH_RESEARCH_CHS_INDEX_PATH", "P:\\\\\\__csf/data/chat_history_faiss_424k/faiss_index.bin"
     )
     CHS_STATE_PATH: str = os.getenv(
-        "SEARCH_RESEARCH_CHS_STATE_PATH", "P:/__csf/data/chs_index_state.json"
+        "SEARCH_RESEARCH_CHS_STATE_PATH", "P:\\\\\\__csf/data/chs_index_state.json"
     )
 
     # CKS (Constitutional Knowledge System) path
-    CKS_DB_PATH: str = os.getenv("SEARCH_RESEARCH_CKS_DB_PATH", "P:/__csf/data/cks.db")
+    CKS_DB_PATH: str = os.getenv("SEARCH_RESEARCH_CKS_DB_PATH", "P:\\\\\\__csf/data/cks.db")
 
     # Source code search paths
     SOURCE_ROOTS: list[str] = (
@@ -40,12 +40,12 @@ class Config:
 
     # Obsidian vault path for QMD wiki search
     OBSIDIAN_VAULT_PATH: str = os.getenv(
-        "SEARCH_RESEARCH_OBSIDIAN_VAULT_PATH", "P:/wiki"
+        "SEARCH_RESEARCH_OBSIDIAN_VAULT_PATH", "P:\\\\\\wiki"
     )
 
     # Skills and commands directories
-    SKILLS_DIR: str = os.getenv("SEARCH_RESEARCH_SKILLS_DIR", "P:/.claude/skills")
-    COMMANDS_DIR: str = os.getenv("SEARCH_RESEARCH_COMMANDS_DIR", "P:/.claude/commands")
+    SKILLS_DIR: str = os.getenv("SEARCH_RESEARCH_SKILLS_DIR", "P:\\\\\\.claude/skills")
+    COMMANDS_DIR: str = os.getenv("SEARCH_RESEARCH_COMMANDS_DIR", "P:\\\\\\.claude/commands")
 
     # Web search providers (comma-separated list or environment variable)
     # Available providers: tavily, serper, exa, bing, brave, google, kagi, mojeek, you
@@ -58,8 +58,8 @@ class Config:
 
     # Environment files
     ENV_FILES: list[str] = [
-        os.getenv("SEARCH_RESEARCH_ENV_FILE", "P:/.env"),
-        os.getenv("SEARCH_RESEARCH_PROJECT_ENV", "P:/__csf/.env"),
+        os.getenv("SEARCH_RESEARCH_ENV_FILE", "P:\\\\\\.env"),
+        os.getenv("SEARCH_RESEARCH_PROJECT_ENV", "P:\\\\\\__csf/.env"),
     ]
 
     @property

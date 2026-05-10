@@ -134,7 +134,7 @@ class TestAsyncSearchRouterMypyStrict:
                 "--strict",
                 "src/search_research/router_async.py",
             ],
-            cwd="P:/packages/search-research",
+            cwd="P:\\\\\\packages/search-research",
             capture_output=True,
             text=True,
         )
@@ -157,7 +157,7 @@ class TestAsyncSearchRouterMypyStrict:
                 "--strict",
                 "src/search_research/router_async.py",
             ],
-            cwd="P:/packages/search-research",
+            cwd="P:\\\\\\packages/search-research",
             capture_output=True,
             text=True,
         )
@@ -178,7 +178,7 @@ class TestAsyncSearchRouterMypyStrict:
                 "--warn-return-any",
                 "src/search_research/router_async.py",
             ],
-            cwd="P:/packages/search-research",
+            cwd="P:\\\\\\packages/search-research",
             capture_output=True,
             text=True,
         )

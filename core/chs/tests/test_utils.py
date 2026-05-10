@@ -3,7 +3,7 @@
 RED phase: Write failing tests first.
 These tests define the expected behavior - implementation follows.
 
-Implementation file: P:/__csf/src/knowledge/systems/chs/v2/utils.py
+Implementation file: P:\\\\\\__csf/src/knowledge/systems/chs/v2/utils.py
 """
 
 from __future__ import annotations

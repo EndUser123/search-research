@@ -79,7 +79,7 @@ logger = logging.getLogger(__name__)
 
 def _claude_base() -> Path:
     # On Windows, Claude Code may store state on a project drive (P:)
-    # before the user home directory. Check P:/.claude first.
+    # before the user home directory. Check P:\\\\\\.claude first.
     p_drive_claude = Path("P:") / ".claude"
     if p_drive_claude.exists():
         return p_drive_claude
@@ -88,7 +88,7 @@ def _claude_base() -> Path:
 
 def _projects_dir() -> Path:
     # Transcript files live in the Windows user profile, not on P: drive.
-    # P:/.claude is used for state (handoff files), but projects live in HOME.
+    # P:\\\\\\.claude is used for state (handoff files), but projects live in HOME.
     return Path.home() / ".claude" / "projects"
 
 

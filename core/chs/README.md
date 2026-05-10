@@ -1,7 +1,7 @@
 # CHS v2 - Chat History Search
 
 **Status:** Alpha - Core functionality complete, verified working
-**Location:** `P:/packages/search-research/core/chs/` (consolidated)
+**Location:** `P:\\\\\\packages/search-research/core/chs/` (consolidated)
 **Date:** 2026-02-06
 
 ---
@@ -23,14 +23,14 @@ CHS v2 is a complete rewrite of the Chat History Search system with:
 
 ```bash
 python -m core.chs.scripts.init_db \
-    --db-path "P:/__csf/data/chat_history.db"
+    --db-path "P:\\\\\\__csf/data/chat_history.db"
 ```
 
 ### 2. Build the FTS5 Index
 
 ```bash
 python -m core.chs.scripts.reindex_from_jsonl \
-    --db-path "P:/__csf/data/chat_history.db" \
+    --db-path "P:\\\\\\__csf/data/chat_history.db" \
     --history-path "~/.claude/history.jsonl"
 ```
 
@@ -39,15 +39,15 @@ This is the bootstrap path for a fresh or empty `chat_history.db`. It creates th
 ### 3. Search
 
 ```bash
-CHS_DB_PATH="P:/__csf/data/chat_history.db" \
-    python P:/packages/search-research/skills/chs/scripts/chs_cli.py "TDD"
+CHS_DB_PATH="P:\\\\\\__csf/data/chat_history.db" \
+    python P:\\\\\\packages/search-research/skills/chs/scripts/chs_cli.py "TDD"
 ```
 
 ### 4. Health Check
 
 ```bash
 python -m core.chs.scripts.health_check \
-    --db-path "P:/__csf/data/chat_history.db"
+    --db-path "P:\\\\\\__csf/data/chat_history.db"
 ```
 
 ---
@@ -125,7 +125,7 @@ JSONL Files → Indexer → SQLite + FTS5 + Embeddings → Search → CLI
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `CHS_DB_PATH` | `P:/__csf/data/chat_history.db` | Database location |
+| `CHS_DB_PATH` | `P:\\\\\\__csf/data/chat_history.db` | Database location |
 | `CHS_JSONL_DIR` | Required | Directory containing `.jsonl` files |
 | `EMBEDDING_MODEL` | `sentence-transformers/all-MiniLM-L6-v2` | Model name |
 | `EMBEDDING_DIMENSIONS` | `384` | Embedding vector size |

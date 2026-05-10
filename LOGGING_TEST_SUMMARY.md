@@ -6,7 +6,7 @@ This document summarizes the implementation of comprehensive logging tests for t
 
 ## Test File Created
 
-**File:** `P:\packages\search-research\tests\test_comprehensive_logging.py`
+**File:** `$CLAUDE_PLUGIN_ROOT/tests\test_comprehensive_logging.py`
 
 **Total Tests:** 29 tests across 6 test classes
 

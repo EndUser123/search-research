@@ -9,7 +9,7 @@ Tests verify the search module for CHS v2 which provides:
 - Score fusion with adaptive lambda weighting
 - Turn-based search (conversation-level) with message-level fallback
 
-Run with: pytest P:/__csf/src/knowledge/systems/chs/v2/tests/test_search.py -v
+Run with: pytest P:\\\\\\__csf/src/knowledge/systems/chs/v2/tests/test_search.py -v
 """
 
 from __future__ import annotations

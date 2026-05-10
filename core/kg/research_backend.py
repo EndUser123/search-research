@@ -11,7 +11,7 @@ SearchResult = dict[str, Any]
 
 BACKEND_KG = "KG"
 
-DEFAULT_KG_PATH = "P:/projects/kg_builder/knowledge_graph_output"
+DEFAULT_KG_PATH = "P:\\\\\\projects/kg_builder/knowledge_graph_output"
 
 
 class KGBackend:
@@ -26,7 +26,7 @@ class KGBackend:
 
         Args:
             kg_data_path: Path to knowledge graph output directory.
-                Defaults to P:/projects/kg_builder/knowledge_graph_output
+                Defaults to P:\\\\\\projects/kg_builder/knowledge_graph_output
         """
         self._kg_data_path_input = kg_data_path  # Store original for testing
         self._kg_data_path_obj = Path(kg_data_path or DEFAULT_KG_PATH)

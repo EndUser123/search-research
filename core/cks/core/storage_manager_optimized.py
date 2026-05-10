@@ -107,7 +107,7 @@ class StorageConfig:
     """
 
     db_path: str = field(
-        default_factory=lambda: os.path.expanduser("P:/__csf/data/cks.db"),
+        default_factory=lambda: os.path.expanduser("P:\\\\\\__csf/data/cks.db"),
     )
     faiss_index_path: str = field(
         default_factory=lambda: os.path.expanduser("~/.cks/storage/vectors.index"),

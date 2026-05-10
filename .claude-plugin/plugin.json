@@ -5,9 +5,24 @@
     "name": "CSF Development Team",
     "email": "bruce.thomson@example.com"
   },
-  "version": "0.1.0",
+  "version": "0.1.8",
   "license": "MIT",
-  "keywords": ["search", "research", "code search", "knowledge search", "web search", "claude-code"],
+  "keywords": [
+    "search",
+    "research",
+    "code search",
+    "knowledge search",
+    "web search",
+    "claude-code"
+  ],
   "repository": "https://github.com/EndUser123/search-research",
-  "homepage": "https://github.com/EndUser123/search-research"
+  "homepage": "https://github.com/EndUser123/search-research",
+  "mcpServers": {
+    "sr": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/mcp-start.mjs"
+      ]
+    }
+  }
 }

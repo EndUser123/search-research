@@ -109,7 +109,7 @@ def calculate_decay_score(entry: dict[str, Any]) -> float:
     return min(1.0, temporal + usage_factor + success_penalty + feedback_penalty)
 
 
-def get_quality_statistics(db_path: str | Path = "P:/__csf/data/cks.db") -> QualityStats:
+def get_quality_statistics(db_path: str | Path = "P:\\\\\\__csf/data/cks.db") -> QualityStats:
     """Calculate comprehensive quality statistics for CKS database.
 
     Args:
@@ -322,7 +322,7 @@ def format_stats_terminal(stats: QualityStats) -> str:
 
 
 def sample_archival_candidates(
-    db_path: str | Path = "P:/__csf/data/cks.db", limit: int = 10,
+    db_path: str | Path = "P:\\\\\\__csf/data/cks.db", limit: int = 10,
 ) -> list[dict]:
     """Sample entries that would be archived."""
     db_path = Path(db_path)
@@ -366,7 +366,7 @@ def main() -> None:
     parser.add_argument(
         "--db-path",
         type=str,
-        default="P:/__csf/data/cks.db",
+        default="P:\\\\\\__csf/data/cks.db",
         help="Path to CKS database",
     )
 

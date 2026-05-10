@@ -1,7 +1,7 @@
 """Tests for MCP server.
 
 Run with:
-    cd P:/packages/search-research
+    cd P:\\\\\\packages/search-research
     uv run pytest tests/test_mcp_server.py -v
 """
 

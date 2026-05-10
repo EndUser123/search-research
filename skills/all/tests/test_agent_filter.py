@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import pytest
 
-# Use package imports from pytest rootdir (P:\.claude)
+# Use package imports from pytest rootdir (P:\\\\\\.claude)
 # The package is at .claude/skills/explore/, so import as skills.explore
 from skills.explore.agent_filter import (
     apply_agent_filtering,

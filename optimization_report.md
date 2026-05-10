@@ -1,4 +1,4 @@
-**Optimization Opportunities Analysis for `P:/packages/search-research`**
+**Optimization Opportunities Analysis for `P:\\\\\\packages/search-research`**
 
 I have completed the comprehensive analysis of the `search-research` package, focusing on backend inefficiencies, redundant computations, caching gaps, async/await issues, and memory issues. Where applicable, I have implemented specific optimizations and provided detailed findings.
 

@@ -312,17 +312,31 @@ class SearchSession:
     def _find_cks_database(self) -> str | None:
         """Find the CKS database path.
 
-        Searches common locations for CKS database.
+        Uses config.CKS_DB_PATH as the authoritative single source of truth.
+        Falls back to ~/.csf/cks.db only if config path doesn't exist.
         """
-        candidates = [
-            Path(__file__).parent.parent.parent.parent.parent / "data" / "cks.db",
-            Path(__file__).parent.parent.parent.parent.parent / ".data" / "cks.db",
-            Path.home() / ".csf" / "cks.db",
-            Path(__file__).parent.parent.parent.parent.parent / "data" / "knowledge.db",
-        ]
-        for candidate in candidates:
-            if candidate.exists():
-                return str(candidate)
+        # Import here to avoid circular imports and to pick up env-var overrides
+        import sys as _sys
+        from pathlib import Path as _Path
+
+        _project_root = _Path(__file__).resolve().parents[2]  # P:\\\\\\packages/search-research
+        if str(_project_root) not in _sys.path:
+            _sys.path.insert(0, str(_project_root))
+
+        try:
+            from core.config import config as _cfg
+
+            authoritative = _cfg.CKS_DB_PATH
+            if authoritative and _Path(authoritative).exists():
+                return authoritative
+        except Exception:
+            pass
+
+        # Fallback: ~/.csf/cks.db only (not cwd-dependent)
+        fallback = _Path.home() / ".csf" / "cks.db"
+        if fallback.exists():
+            return str(fallback)
+
         return None
 
     def cleanup(self) -> None:

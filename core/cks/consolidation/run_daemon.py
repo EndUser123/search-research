@@ -24,11 +24,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger("CKS_Daemon")
 
-# Load Environment Variables from P:\.env
+# Load Environment Variables from P:\\\\\\.env
 try:
     from dotenv import load_dotenv
 
-    env_path = Path(r"P:\.env")  # Explicit absolute path
+    env_path = Path(r"P:\\\\\\.env")  # Explicit absolute path
     if env_path.exists():
         load_dotenv(dotenv_path=env_path, override=True)
         logger.info(f"✅ Loaded environment from {env_path}")
@@ -48,7 +48,7 @@ async def main() -> None:
             os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
         ) and not os.getenv("ANTHROPIC_API_KEY"):
             logger.error(
-                r"❌ No API Keys found! Set GOOGLE_API_KEY (or GEMINI_API_KEY) in P:\.env",
+                r"❌ No API Keys found! Set GOOGLE_API_KEY (or GEMINI_API_KEY) in P:\\\\\\.env",
             )
             return
 

@@ -14,7 +14,7 @@ from typing import Any
 
 from filelock import FileLock
 
-_ARCHIVE_BASE = Path("P:/__csf/data/chs_archive")
+_ARCHIVE_BASE = Path("P:\\\\\\__csf/data/chs_archive")
 _WATERMARK_DIR = _ARCHIVE_BASE / "watermarks"
 
 # Lock settings
@@ -73,7 +73,7 @@ def _blocking_write_watermark_logic(
 def append_raw_event(provider_id: str, source_id: str, event: dict[str, Any]) -> str:
     """Append event to append-only raw archive.
 
-    Path: P:/__csf/data/chs_archive/{provider_id}/{year}/{month}/{source_id}/raw_{event_id}.jsonl
+    Path: P:\\\\\\__csf/data/chs_archive/{provider_id}/{year}/{month}/{source_id}/raw_{event_id}.jsonl
 
     Returns the absolute path to the written raw file.
     """
@@ -109,7 +109,7 @@ def append_raw_event(provider_id: str, source_id: str, event: dict[str, Any]) ->
 
 async def write_watermark(provider_id: str, source_id: str, terminal_id: str, watermark: dict[str, Any]) -> None:
     """Write watermark using staged atomic write + FileLock."""
-    # Path: P:/__csf/data/chs_archive/watermarks/{provider_id}/{source_id}/watermark_{terminal_id}.json
+    # Path: P:\\\\\\__csf/data/chs_archive/watermarks/{provider_id}/{source_id}/watermark_{terminal_id}.json
     safe_tid = re.sub(r"[^a-zA-Z0-9_.-]+", "_", terminal_id)
     target_dir = _WATERMARK_DIR / provider_id / source_id
     await asyncio.to_thread(target_dir.mkdir, parents=True, exist_ok=True)

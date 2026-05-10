@@ -2,13 +2,13 @@
 """Reindex CHS v2 from Claude Code history.jsonl.
 
 Reads from ~/.claude/history.jsonl (source of truth) and populates
-P:/__csf/data/chat_history.db using the v2 schema.
+P:\\\\\\__csf/data/chat_history.db using the v2 schema.
 
 Usage:
     python -m core.chs.scripts.reindex_from_jsonl [--dry-run] [--limit N]
 
 The source data (~/.claude/history.jsonl) is NOT moved - it's system-owned.
-The derived database (P:/__csf/data/chat_history.db) is project-managed.
+The derived database (P:\\\\\\__csf/data/chat_history.db) is project-managed.
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 HISTORY_JSONL = Path.home() / ".claude" / "history.jsonl"
 
 # Target: Project-managed derived data
-DEFAULT_DB_PATH = Path("P:/__csf/data/chat_history.db")
+DEFAULT_DB_PATH = Path("P:\\\\\\__csf/data/chat_history.db")
 
 # Project label for Claude Code history
 CLAUDE_CODE_PROJECT_LABEL = "Claude Code"

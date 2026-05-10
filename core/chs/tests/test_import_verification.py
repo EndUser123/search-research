@@ -35,7 +35,7 @@ class TestCHSImportPaths:
     @pytest.fixture
     def search_research_root(self) -> Path:
         """Get the search-research package root."""
-        return Path("P:/packages/search-research")
+        return Path("P:\\\\\\packages/search-research")
 
     @pytest.fixture
     def chs_core_dir(self, search_research_root: Path) -> Path:
@@ -176,7 +176,7 @@ class TestCHSImportPaths:
             )
 
     def test_no_hardcoded_csf_paths_in_tests(self, search_research_root: Path):
-        """Verify tests don't have hardcoded P:/__csf/ paths.
+        """Verify tests don't have hardcoded P:\\\\\\__csf/ paths.
 
         This addresses TEST-004: 11 test files have hardcoded paths.
 
@@ -189,7 +189,7 @@ class TestCHSImportPaths:
             pytest.skip(f"CHS tests directory not found at {tests_dir}")
 
         violations = []
-        hardcoded_pattern = r"P:/__csf/"
+        hardcoded_pattern = r"P:\\\\\\__csf/"
 
         for test_file in self.find_python_files(tests_dir):
             # Skip files that legitimately contain old patterns as strings
@@ -216,7 +216,7 @@ class TestCHSImportPaths:
         # This test identifies issues but doesn't block (for awareness)
         if violations:
             pytest.fail(
-                f"Found {len(violations)} hardcoded P:/__csf/ path(s) in tests:\n"
+                f"Found {len(violations)} hardcoded P:\\\\\\__csf/ path(s) in tests:\n"
                 + "\n".join(
                     f"  {v['file']}:{v['line']}\n    {v['content']}"
                     for v in violations[:10]  # Show first 10
