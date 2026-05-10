@@ -27,7 +27,7 @@ GTO analyzes the current session's work — what was discussed, what was attempt
 ### Step 1: Run Session-Aware Analysis
 
 ```bash
-cd "P:\\\\\\packages/cc-skills-analysis" && python -m skills.gto.orchestrator --terminal-id "$WT_SESSION" --session-id "$CLAUDE_SESSION_ID" --root .
+cd "P:\\\\\\packages/cc-skills-analysis" && python -m skills.gto.orchestrator --terminal-id "console_${WT_SESSION}" --session-id "$CLAUDE_SESSION_ID" --root .
 ```
 
 This runs:
@@ -94,7 +94,7 @@ Rules:
 After the subagent completes, re-run the orchestrator to merge the gap reviewer results:
 
 ```bash
-cd "P:\\\\\\packages/cc-skills-analysis" && python -m skills.gto.orchestrator --terminal-id "$WT_SESSION" --session-id "$CLAUDE_SESSION_ID" --root .
+cd "P:\\\\\\packages/cc-skills-analysis" && python -m skills.gto.orchestrator --terminal-id "console_${WT_SESSION}" --session-id "$CLAUDE_SESSION_ID" --root .
 ```
 
 The second run reads `gap_reviewer_result.json` and merges its findings into the final artifact.

@@ -125,7 +125,14 @@
       "Bash(rm -f \"P:/.claude/hooks/Stop_tdd_refactor_gate.py\")",
       "Bash(Get-Content \"C:\\\\Users\\\\brsth\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\P--\\\\a986194a-316c-49ec-a65d-8c6a46e0bc1e\\\\tasks\\\\bxew72h3p.output\" -Wait -Tail 20)",
       "Bash(Get-Content \"C:\\\\Users\\\\brsth\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\P--\\\\a986194a-316c-49ec-a65d-8c6a46e0bc1e\\\\tasks\\\\bwh43kznj.output\" -Wait -Tail 20)",
-      "mcp__exa__get_code_context_exa"
+      "mcp__exa__get_code_context_exa",
+      "Bash(rm \"P:/.claude/hooks/tests/test_documentation_validator_hook.py\")",
+      "Bash(rm -rf \"P:/.claude/skills/another-skill\")",
+      "Bash(rm -f \"C:/Users/brsth/.claude/.artifacts/console_test_e2e_task_contract/hook_state/task_contract.json\" \"C:/Users/brsth/.claude/.artifacts/console_test_e2e_task_contract/hook_state/task_contract.tmp\")",
+      "Bash(rm -f \"P:/.claude/hooks/logs/diagnostics/task_contract_telemetry.jsonl\")",
+      "WebFetch(domain:karanbansal.in)",
+      "WebFetch(domain:www.heyuan110.com)",
+      "WebFetch(domain:medium.com)"
     ],
     "deny": [],
     "ask": []

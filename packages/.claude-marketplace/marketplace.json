@@ -58,7 +58,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "description": "Software development lifecycle AI skills for Claude Code.",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -148,7 +148,7 @@
     },
     {
       "name": "fact-guard",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Prevents fabricated values, adjacent-entry contamination, and unsupported completion claims in structured edits",
       "source": "./plugins/fact-guard",
       "keywords": [
