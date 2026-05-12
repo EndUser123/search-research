@@ -21,6 +21,8 @@ from PreToolUse_delegation_gate import (
     _is_bypass_flagged,
     _build_block_message,
     _log_gate_event,
+    _get_artifacts_dir,
+    _detect_terminal_id,
 )
 
 
@@ -52,29 +54,57 @@ class TestTTLExpiration:
         assert not _is_expired(detected_at, now=now)
 
 
+class TestTerminalDetection:
+    """Test terminal ID detection."""
+
+    def test_detect_terminal_id_with_wt_session(self, monkeypatch):
+        """Terminal ID from WT_SESSION environment variable."""
+        monkeypatch.setenv("WT_SESSION", "abc123-def456-789")
+        tid = _detect_terminal_id()
+        assert tid == "console_abc123-def456-789"
+
+    def test_detect_terminal_id_without_wt_session(self, monkeypatch):
+        """Terminal ID falls back to 'unknown' without WT_SESSION."""
+        monkeypatch.delenv("WT_SESSION", raising=False)
+        tid = _detect_terminal_id()
+        assert tid == "unknown"
+
+    def test_get_artifacts_dir_uses_terminal_id(self, monkeypatch):
+        """Artifacts directory includes terminal ID."""
+        monkeypatch.setenv("WT_SESSION", "test-terminal-123")
+        artifacts_dir = _get_artifacts_dir()
+        assert "test-terminal-123" in str(artifacts_dir)
+        assert ".artifacts" in str(artifacts_dir)
+        assert "hook_state" in str(artifacts_dir)
+
+
 class TestDelegationStatePersistence:
     """Test delegation state file read/write/clear operations."""
 
     def setup_method(self):
         """Create temp directory for test state files."""
         self.temp_dir = tempfile.mkdtemp()
-        # Patch STATE_DIR before importing the module
+        # Mock _get_artifacts_dir to return our temp directory
+        self._original_get_artifacts_dir = None
         import PreToolUse_delegation_gate as gate_module
-        self._original_state_dir = gate_module.STATE_DIR
-        gate_module.STATE_DIR = Path(self.temp_dir)
+
+        def mock_get_artifacts_dir():
+            return Path(self.temp_dir)
+
+        self._original_get_artifacts_dir = gate_module._get_artifacts_dir
+        gate_module._get_artifacts_dir = mock_get_artifacts_dir
 
     def teardown_method(self):
-        """Restore original STATE_DIR and clean up temp files."""
+        """Restore original function and clean up temp files."""
         import PreToolUse_delegation_gate as gate_module
-        gate_module.STATE_DIR = self._original_state_dir
+        if self._original_get_artifacts_dir:
+            gate_module._get_artifacts_dir = self._original_get_artifacts_dir
         import shutil
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_write_and_read_delegation_state(self):
         """State written by prospector can be read by gate."""
-        session_id = "test-session-123"
         state_data = {
-            "session_id": session_id,
             "terminal_id": "console_abc",
             "detected_at": time.time() - 100,  # Recent timestamp
             "matched_pattern": "test pattern",
@@ -82,58 +112,54 @@ class TestDelegationStatePersistence:
         }
 
         # Write state (simulating what delegation_prospector does)
-        import PreToolUse_delegation_gate as gate_module
-        state_file = Path(self.temp_dir) / f"delegation_expected_{session_id}.json"
+        state_file = Path(self.temp_dir) / "delegation_expected.json"
         with open(state_file, "w", encoding="utf-8") as f:
             json.dump(state_data, f)
 
         # Read state via gate function
-        loaded = _load_delegation_state(session_id)
+        loaded = _load_delegation_state()
         assert loaded is not None, f"Failed to load state from {state_file}"
-        assert loaded["session_id"] == session_id
         assert loaded["matched_pattern"] == "test pattern"
 
     def test_load_nonexistent_state_returns_none(self):
         """Missing state file returns None."""
-        result = _load_delegation_state("nonexistent-session")
+        result = _load_delegation_state()
         assert result is None
 
     def test_expired_state_is_not_loaded(self):
         """Expired state file is deleted and returns None."""
-        session_id = "expired-session"
-        state_file = Path(self.temp_dir) / f"delegation_expected_{session_id}.json"
+        state_file = Path(self.temp_dir) / "delegation_expected.json"
 
         # Write state with old timestamp (400 seconds ago)
         state_data = {
-            "session_id": session_id,
             "detected_at": 1700000000.0 - 400,  # Expired
+            "matched_pattern": "test",
         }
         with open(state_file, "w", encoding="utf-8") as f:
             json.dump(state_data, f)
 
         # State should be expired and file deleted
-        result = _load_delegation_state(session_id)
+        result = _load_delegation_state()
         assert result is None
         assert not state_file.exists()
 
     def test_clear_delegation_state(self):
         """Clearing state removes the file."""
-        session_id = "clear-test-session"
-        state_file = Path(self.temp_dir) / f"delegation_expected_{session_id}.json"
+        state_file = Path(self.temp_dir) / "delegation_expected.json"
 
         # Create state file
         with open(state_file, "w", encoding="utf-8") as f:
-            json.dump({"session_id": session_id}, f)
+            json.dump({"matched_pattern": "test"}, f)
         assert state_file.exists()
 
         # Clear it
-        _clear_delegation_state(session_id)
+        _clear_delegation_state()
         assert not state_file.exists()
 
     def test_clear_nonexistent_state_is_silent(self):
         """Clearing nonexistent state doesn't raise."""
         # Should not raise
-        _clear_delegation_state("nonexistent-session")
+        _clear_delegation_state()
 
 
 class TestBypassFlag:
@@ -189,84 +215,100 @@ class TestBlockMessage:
 class TestDelegationProspectorState:
     """Test delegation_prospector's state writing functions."""
 
-    def test_write_delegation_state_creates_file(self):
+    def test_write_delegation_state_creates_file(self, monkeypatch):
         """State file is created with expected structure."""
-        session_id = "state-test-session"
-        terminal_id = "console_xyz"
+        # Set up temp directory and mock
+        temp_dir = tempfile.mkdtemp()
+        monkeypatch.setenv("WT_SESSION", "prospector-test-123")
 
-        # Import and call the function
         sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "UserPromptSubmit_modules"))
-        from delegation_prospector import _write_delegation_state
+        from delegation_prospector import _write_delegation_state, _get_state_dir
 
+        # Write state
         _write_delegation_state(
-            session_id=session_id,
-            terminal_id=terminal_id,
+            terminal_id="console_prospector-test-123",
             matched_pattern="test pattern",
             prompt_snippet="analyze foo and bar",
         )
 
-        # State is written to .claude/state/ (not .claude/hooks/state/)
-        state_file = Path(__file__).resolve().parent.parent.parent / "state" / f"delegation_expected_{session_id}.json"
+        # Check file exists in terminal-scoped location
+        state_dir = _get_state_dir()
+        state_file = state_dir / "delegation_expected.json"
         assert state_file.exists()
 
         with open(state_file, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        assert data["session_id"] == session_id
-        assert data["terminal_id"] == terminal_id
+        assert data["terminal_id"] == "console_prospector-test-123"
         assert data["matched_pattern"] == "test pattern"
         assert "detected_at" in data
 
         # Clean up
         state_file.unlink(missing_ok=True)
+        import shutil
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
-    def test_clear_delegation_state(self):
+    def test_clear_delegation_state(self, monkeypatch):
         """clear_delegation_state removes state file."""
-        session_id = "clear-test"
-        terminal_id = "console_xyz"
+        temp_dir = tempfile.mkdtemp()
+        monkeypatch.setenv("WT_SESSION", "prospector-clear-test")
 
         sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "UserPromptSubmit_modules"))
-        from delegation_prospector import _write_delegation_state, _clear_delegation_state
+        from delegation_prospector import _write_delegation_state, _clear_delegation_state, _get_state_dir
 
         # Write then clear
-        _write_delegation_state(session_id, terminal_id, "test", "snippet")
-        state_file = Path(__file__).resolve().parent.parent.parent / "state" / f"delegation_expected_{session_id}.json"
+        _write_delegation_state("console_prospector-clear-test", "test", "snippet")
+        state_dir = _get_state_dir()
+        state_file = state_dir / "delegation_expected.json"
         assert state_file.exists()
 
-        _clear_delegation_state(session_id)
+        _clear_delegation_state()
         assert not state_file.exists()
+
+        import shutil
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 class TestPreToolUseGate:
     """Integration test for PreToolUse gate with state."""
 
     def setup_method(self):
-        """Set up test environment."""
+        """Set up test environment with mocked state directory."""
         self.temp_dir = tempfile.mkdtemp()
-        self._orig_state_dir = None
         import PreToolUse_delegation_gate as gate_module
-        self._orig_state_dir = gate_module.STATE_DIR
-        gate_module.STATE_DIR = Path(self.temp_dir)
+
+        # Mock _get_artifacts_dir
+        def mock_get_artifacts_dir():
+            return Path(self.temp_dir)
+
+        self._original = gate_module._get_artifacts_dir
+        gate_module._get_artifacts_dir = mock_get_artifacts_dir
+
+        # Mock terminal detection
+        def mock_detect_terminal_id():
+            return "console_test-terminal"
+
+        self._original_detect = gate_module._detect_terminal_id
+        gate_module._detect_terminal_id = mock_detect_terminal_id
 
     def teardown_method(self):
         """Tear down test environment."""
         import PreToolUse_delegation_gate as gate_module
-        gate_module.STATE_DIR = self._orig_state_dir
+        gate_module._get_artifacts_dir = self._original
+        gate_module._detect_terminal_id = self._original_detect
         import shutil
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def _run_gate(self, tool_name: str, session_id: str, prompt: str = "") -> int:
+    def _run_gate(self, tool_name: str, prompt: str = "") -> int:
         """Run the gate and return exit code."""
         import PreToolUse_delegation_gate as gate_module
-        import sys
         import io
 
         # Write state file (simulating delegation_prospector) with recent timestamp
-        state_file = Path(self.temp_dir) / f"delegation_expected_{session_id}.json"
+        state_file = Path(self.temp_dir) / "delegation_expected.json"
         with open(state_file, "w", encoding="utf-8") as f:
             json.dump({
-                "session_id": session_id,
-                "terminal_id": "console_test",
+                "terminal_id": "console_test-terminal",
                 "detected_at": time.time() - 100,  # Recent, within TTL
                 "matched_pattern": "analyze A and B",
                 "prompt_snippet": "analyze foo.py and bar.py",
@@ -275,7 +317,6 @@ class TestPreToolUseGate:
         # Create test input and pipe to stdin
         test_data = {
             "tool_name": tool_name,
-            "session_id": session_id,
             "prompt": prompt,
         }
 
@@ -292,45 +333,42 @@ class TestPreToolUseGate:
 
     def test_gate_allows_task_tool(self):
         """Task tool is always allowed."""
-        exit_code = self._run_gate("Task", "session-123", "")
+        exit_code = self._run_gate("Task", "")
         assert exit_code == 0
 
     def test_gate_allows_agent_tool(self):
         """Agent tool is always allowed."""
-        exit_code = self._run_gate("Agent", "session-123", "")
+        exit_code = self._run_gate("Agent", "")
         assert exit_code == 0
 
     def test_gate_blocks_read_tool(self):
         """Read tool is blocked when delegation expected."""
-        exit_code = self._run_gate("Read", "session-456", "")
+        exit_code = self._run_gate("Read", "")
         assert exit_code == 2  # Blocked
 
     def test_gate_blocks_edit_tool(self):
         """Edit tool is blocked when delegation expected."""
-        exit_code = self._run_gate("Edit", "session-456", "")
+        exit_code = self._run_gate("Edit", "")
         assert exit_code == 2  # Blocked
 
     def test_gate_blocks_bash_tool(self):
         """Bash tool is blocked when delegation expected."""
-        exit_code = self._run_gate("Bash", "session-456", "")
+        exit_code = self._run_gate("Bash", "")
         assert exit_code == 2  # Blocked
 
     def test_gate_allows_with_bypass_flag(self):
         """Tools are allowed with --allow-inline bypass."""
-        exit_code = self._run_gate("Read", "session-789", "Use --allow-inline to skip")
+        exit_code = self._run_gate("Read", "Use --allow-inline to skip")
         assert exit_code == 0  # Allowed
 
     def test_gate_allows_without_state(self):
         """Tools are allowed when no delegation state exists."""
-        # Run with a session that has no state file
         import PreToolUse_delegation_gate as gate_module
-        import sys
         import io
 
         old_stdin = sys.stdin
         sys.stdin = io.StringIO(json.dumps({
             "tool_name": "Read",
-            "session_id": "nonexistent-session",
             "prompt": "",
         }))
 
