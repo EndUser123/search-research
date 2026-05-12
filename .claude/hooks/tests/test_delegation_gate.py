@@ -24,6 +24,11 @@ from PreToolUse_delegation_gate import (
     _get_artifacts_dir,
     _detect_terminal_id,
 )
+from UserPromptSubmit_modules.delegation_prospector import (
+    _extract_skill_name,
+    _detect_delegation_opportunity,
+    _DELEGATION_HEAVY_SKILLS,
+)
 
 
 class TestTTLExpiration:
@@ -210,6 +215,74 @@ class TestBlockMessage:
         msg = _build_block_message("Edit", state)
         # Check that pattern is in message (may be formatted differently)
         assert "pattern" in msg.lower() or "DELEGATION" in msg
+
+
+class TestSkillDetection:
+    """Test skill invocation detection for delegation-heavy skills."""
+
+    def test_extract_skill_name_simple(self):
+        """Simple slash command extraction."""
+        assert _extract_skill_name("/go") == "go"
+        assert _extract_skill_name("/code") == "code"
+        assert _extract_skill_name("/refactor") == "refactor"
+        assert _extract_skill_name("/tdd") == "tdd"
+
+    def test_extract_skill_name_with_args(self):
+        """Skill name with arguments (space or colon separator)."""
+        assert _extract_skill_name("/go implement feature X") == "go"
+        assert _extract_skill_name("/code:implement task") == "code"
+        assert _extract_skill_name("/refactor cleanup") == "refactor"
+        assert _extract_skill_name("/tdd write tests for Y") == "tdd"
+
+    def test_extract_skill_name_long_form(self):
+        """Long-form skill names."""
+        assert _extract_skill_name("/subagent-driven-development") == "subagent-driven-development"
+        assert _extract_skill_name("/planning decompose the work") == "planning"
+
+    def test_extract_skill_name_non_slash(self):
+        """Non-slash commands return None."""
+        assert _extract_skill_name("implement X") is None
+        assert _extract_skill_name("use the go skill") is None
+        assert _extract_skill_name("") is None
+
+    def test_delegation_heavy_skills_defined(self):
+        """Verify delegation-heavy skills are defined."""
+        expected = {"go", "code", "refactor", "tdd", "subagent-driven-development", "planning", "team", "sqa", "design"}
+        assert _DELEGATION_HEAVY_SKILLS == expected or expected.issubset(_DELEGATION_HEAVY_SKILLS)
+
+    def test_detect_delegation_by_skill(self):
+        """Skill invocation triggers delegation detection."""
+        # /go should trigger
+        detected, pattern = _detect_delegation_opportunity("/go implement feature X")
+        assert detected is True
+        assert pattern == "skill:/go"
+
+        # /code should trigger
+        detected, pattern = _detect_delegation_opportunity("/code:implement the task")
+        assert detected is True
+        assert pattern == "skill:/code"
+
+        # /tdd should trigger
+        detected, pattern = _detect_delegation_opportunity("/tdd write tests for auth")
+        assert detected is True
+        assert pattern == "skill:/tdd"
+
+    def test_detect_delegation_by_pattern_fallback(self):
+        """Pattern matching still works when no skill invoked."""
+        detected, pattern = _detect_delegation_opportunity("inspect file1 and file2")
+        assert detected is True
+        assert "matched:" in pattern
+
+    def test_detect_no_delegation_regular_prompt(self):
+        """Regular prompts without skill or patterns don't trigger."""
+        detected, pattern = _detect_delegation_opportunity("fix the bug in auth.py")
+        assert detected is False
+        assert pattern is None
+
+    def test_detect_no_delegation_empty_prompt(self):
+        """Empty prompt doesn't trigger."""
+        detected, pattern = _detect_delegation_opportunity("")
+        assert detected is False
 
 
 class TestDelegationProspectorState:

@@ -46,6 +46,7 @@ _NON_SUBSTANTIVE_MODES: frozenset = frozenset({
     "meta",
     "plan",
     "execution-report",
+    "audit-report",  # Phase 4.A: audit reports treated as control (format-only suppressed, factual/causal enforced elsewhere)
 })
 
 
@@ -59,6 +60,7 @@ def is_substantive_reasoning_turn(mode: TurnMode) -> bool:
     - meta: system introspection
     - plan: explicit planning
     - execution-report: task completion summaries
+    - audit-report: structured audit/reports (Phase 4.A — format-only suppressed)
 
     Active on:
     - analysis: causal reasoning, root cause investigation

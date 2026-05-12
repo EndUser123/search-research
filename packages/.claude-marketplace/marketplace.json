@@ -58,7 +58,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "description": "Software development lifecycle AI skills for Claude Code.",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [

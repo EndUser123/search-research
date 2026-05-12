@@ -819,15 +819,24 @@ def _validate_control_schema(raw_response: str, cfg: EpistemicConfig) -> Epistem
     parsed, format_issues = parse_sections(clean)
     issues: List[EpistemicIssue] = []
 
-    # Any factual claims in control mode are substantive violations
-    fact_support_issues = check_fact_support(parsed)
-    for issue in fact_support_issues:
+    # Substantive content (diagnosis, causal claim, specific attribution) in prose
+    # is a CONTROL violation even when not formatted as a bullet.
+    raw_lower = raw_response.lower()
+    substantive_patterns = [
+        "the bug is", "the issue is", "the problem is",
+        "root cause", "caused by", "is due to",
+        "at line ", "in file ", "in function ",
+        "the fix is to", "should be changed to",
+    ]
+    if any(p in raw_lower for p in substantive_patterns):
         issues.append(EpistemicIssue(
-            section=issue.section,
-            bullet_index=issue.bullet_index,
-            type="format",
-            message=f"CONTROL mode contains substantive claim: {issue.message}",
+            section="__GLOBAL__", bullet_index=-1,
+            type="unsupported_fact",
+            message="CONTROL mode response contains substantive diagnosis. "
+                    "Use ANALYSIS mode for claims about root cause, specific locations, or fixes.",
         ))
+
+    issues.extend(check_fact_support(parsed))
 
     if cfg.enable_causal_checks:
         issues.extend(check_causal_rules(parsed))
@@ -853,11 +862,14 @@ def _validate_plan_schema(raw_response: str, cfg: EpistemicConfig) -> EpistemicV
     """
     clean = sanitize_response(raw_response)
     parsed, format_issues = parse_sections(clean)
-    # For PLAN schema: only flag actual format violations, not missing sections.
-    # Missing [FACT]/[INFERENCE]/etc. sections are expected in plan mode.
+    # For PLAN schema: filter aggressively:
+    # - "Missing required section" → expected (plan responses don't need [FACT] etc.)
+    # - "Found N line(s) outside any section" → expected (plan bullets like [PLAN] and
+    #   [RATIONALE] are not STATUS_ORDER sections; they are plan structure, not violations)
     issues: List[EpistemicIssue] = [
         issue for issue in format_issues
         if "Missing required section" not in issue.message
+        and "line(s) outside any" not in issue.message
     ]
 
     # Mixed-substance detection: plan marker + RCA sections → violation
@@ -879,9 +891,14 @@ def _validate_plan_schema(raw_response: str, cfg: EpistemicConfig) -> EpistemicV
             ),
         ))
 
-    issues.extend(check_fact_support(parsed))
-    if cfg.enable_causal_checks:
-        issues.extend(check_causal_rules(parsed))
+    # In PLAN schema, [FACT] bullets are assumed premises (not confirmed findings).
+    # check_fact_support would flag them for missing citations, but citation
+    # requirements are inappropriate for plan-mode assumed content.
+    # Similarly, causal claims in PLAN [FACT]/[INFERENCE] sections are
+    # hypothetical/assumed, not verified — causal_violation checks don't apply.
+    # The only substantive violation in PLAN schema is mixed-substance
+    # (plan marker + RCA sections), handled above.
+    # NOTE: comparative claims are still substantive even in plan mode.
     if cfg.enable_comparative_checks:
         issues.extend(check_comparative_rules(parsed))
 

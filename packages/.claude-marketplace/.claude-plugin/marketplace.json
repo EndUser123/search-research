@@ -65,7 +65,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [

@@ -1,5 +1,5 @@
 ---
-name: go
+name: go3
 version: 3.0.0
 description: Execute a task from user input, plan file, or tasks.json queue and drive it to PR-ready completion. Handles intent parsing, task selection, worktree enforcement, verification, simplification, 7-pass review, and local artifact generation. Uses the shared enforce layer for phase gate tracking. Not for architecture, design, or refactoring — use /planning, /design_1.0, or /refactor instead.
 category: execution

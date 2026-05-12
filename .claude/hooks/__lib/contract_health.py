@@ -44,8 +44,16 @@ _WRITER_MIN_EVENTS_FOR_ASSESSMENT = 30  # don't assess below this
 # Stop enforcement anomaly: combined block+autoclear rate
 # Healthy usage has many benign silences (response_too_short, non_implementation_class).
 # Only alert when checks exist but enforcement is nearly absent.
-_STOP_ENFORCEMENT_RATIO = 0.30  # alert if (blocks+clears) / checks < 30%
+_STOP_ENFORCEMENT_RATIO = 0.30  # alert if enforcement rate < 30%
 _STOP_ENFORCEMENT_MIN_CHECKS = 30  # minimum check events needed for this anomaly
+
+# Explicit benign silence reasons — these are correct behavior, NOT enforcement failures.
+# The response was legitimately short/not-a-delivery and the gate correctly stayed silent.
+# Do NOT count these in the real-opportunities denominator.
+_STOP_BENIGN_SILENCE_REASONS: frozenset[str] = frozenset({
+    "response_too_short",
+    "non_implementation_task_class",
+})
 
 # Trivial analysis skip: analysis/final-answer turns trivial-skipped
 _TRIVIAL_ANALYSIS_RATIO = 0.60    # alert if >60% of analysis turns are trivial-skipped
@@ -213,42 +221,82 @@ def _check_writer_skip_problem(events: list[dict], window_n: int) -> tuple[int, 
     return 0, None
 
 
+@dataclass
+class StopEnforcementSummary:
+    """Explicit category-aware stop enforcement model."""
+
+    # A. Benign non-opportunities: checks where silence is correct behavior
+    benign_non_opportunity_count: int = 0
+
+    # B. Suspicious no-outcomes: checks where silence means an opportunity was missed
+    suspicious_no_outcome_count: int = 0
+
+    # C. Actual enforcement outcomes
+    enforcement_outcomes: int = 0
+
+    @property
+    def effective_opportunities(self) -> int:
+        """B + C: real enforcement opportunities (not benign non-opportunities)."""
+        return self.suspicious_no_outcome_count + self.enforcement_outcomes
+
+    @property
+    def enforcement_rate(self) -> float:
+        """C / (B + C): fraction of real opportunities that produced an outcome."""
+        denom = self.effective_opportunities
+        return self.enforcement_outcomes / denom if denom > 0 else 0.0
+
+
 def _check_missing_enforcement_outcomes(events: list[dict], window_n: int) -> tuple[int, str | None]:
     """
-    missing_enforcement_outcomes: detect when checks lack meaningful enforcement.
+    missing_enforcement_outcomes: explicit category-aware enforcement detection.
 
-    Looks at stop telemetry for:
-      - 'check' events (gate evaluations with contract present)
-      - 'block' events (hard blocks)
-      - 'auto_clear' / 'autoclear' events (soft clearances)
+    Categories:
+      A. Benign non-opportunities — checks where the output was legitimately short
+         (reason='response_too_short'); gate correctly stayed silent, not an enforcement fail
+      B. Suspicious no-outcomes — checks where gate should have acted but produced neither
+         block nor auto_clear nor benign silence
+      C. Enforcement outcomes — block or auto_clear events
 
-    This ONLY fires when:
-      - check events >= _STOP_ENFORCEMENT_MIN_CHECKS (30)
-      - (block + autoclear) / checks < _STOP_ENFORCEMENT_RATIO (30%)
+    Alert triggers when:
+      - effective_opportunities >= _STOP_ENFORCEMENT_MIN_CHECKS (B + C >= 30)
+      - enforcement_rate (C / (B + C)) < _STOP_ENFORCEMENT_RATIO (30%)
 
-    Benign silence reasons (response_too_short, non_implementation_class, etc.) are
-    not enforcement failures — they are correct behavior that should NOT trigger alerts.
-    The 30% threshold accounts for legitimate short-output suppression.
+    This replaces the raw (blocks+clears)/checks ratio with a model that explicitly
+    excludes benign non-opportunities from the denominator.
     """
     recent = _last_n(events, window_n)
-    if len(recent) < _STOP_ENFORCEMENT_MIN_CHECKS:
-        return 0, None
 
     checks = [e for e in recent if e.get("event") == "check"]
     blocks = [e for e in recent if e.get("event") == "block"]
     autoclears = [e for e in recent if e.get("event") in ("auto_clear", "autoclear")]
 
-    check_count = len(checks)
-    if check_count < _STOP_ENFORCEMENT_MIN_CHECKS:
+    enforcement_outcomes = len(blocks) + len(autoclears)
+
+    benign = 0
+    suspicious = 0
+    for e in checks:
+        reason = e.get("reason", "")
+        if reason in _STOP_BENIGN_SILENCE_REASONS:
+            benign += 1
+        else:
+            suspicious += 1
+
+    summary = StopEnforcementSummary(
+        benign_non_opportunity_count=benign,
+        suspicious_no_outcome_count=suspicious,
+        enforcement_outcomes=enforcement_outcomes,
+    )
+
+    effective = summary.effective_opportunities
+    if effective < _STOP_ENFORCEMENT_MIN_CHECKS:
         return 0, None
 
-    enforcement_count = len(blocks) + len(autoclears)
-    ratio = enforcement_count / check_count if check_count > 0 else 0
-
-    if ratio < _STOP_ENFORCEMENT_RATIO:
-        return enforcement_count, (
-            f"enforcement outcomes missing: {enforcement_count} blocks+clears / {check_count} checks "
-            f"({ratio:.0%} enforcement rate)"
+    rate = summary.enforcement_rate
+    if rate < _STOP_ENFORCEMENT_RATIO:
+        return summary.enforcement_outcomes, (
+            f"enforcement outcomes missing: {summary.enforcement_outcomes} blocks+clears / "
+            f"{effective} effective opportunities ({rate:.0%} enforcement rate, "
+            f"{summary.suspicious_no_outcome_count} missed)"
         )
 
     return 0, None

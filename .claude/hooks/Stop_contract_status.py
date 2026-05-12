@@ -24,6 +24,9 @@ TELEMETRY_SCRIPT = TOOLS_DIR / "contract-telemetry-queries.py"
 _WRITER_LOG = HOOKS_DIR / "logs" / "diagnostics" / "task_contract_writer_telemetry.jsonl"
 _STOP_LOG = HOOKS_DIR / "logs" / "diagnostics" / "task_contract_telemetry.jsonl"
 
+# Import the authoritative health module for anomaly detection
+sys.path.insert(0, str(HOOKS_DIR / "__lib"))
+
 
 def _load_events(path: Path) -> list[dict]:
     """Load JSONL events from a telemetry log file."""
@@ -169,26 +172,39 @@ def get_stop_breakdown() -> str:
 
 
 def get_anomaly_status() -> str:
-    """Check for anomalies and return status line."""
-    writer_events = _load_events(_WRITER_LOG)
-    stop_events = _load_events(_STOP_LOG)
+    """Check for anomalies and return status line.
 
-    anomalies: list[str] = []
+    Delegates to the authoritative contract_health module for all anomaly
+    detection. The old ad-hoc skip-rate and uncertain-silence logic has been
+    replaced by the tuned category-aware model in contract_health.py.
+    """
+    from contract_health import get_health_summary
 
-    # Writer anomalies
-    not_task = [e for e in writer_events if e.get("reason") == "not_a_task_start"]
-    if len(not_task) > 10:
-        ratio = len(not_task) / max(len(writer_events), 1)
-        anomalies.append(f"HIGH skip rate ({len(not_task)} not-task-start, {ratio:.0%})")
+    try:
+        summary = get_health_summary(hooks_dir=HOOKS_DIR)
+    except Exception:
+        return "  " + _yellow("Health check unavailable")
 
-    # Stop anomalies
-    uncertain = [e for e in stop_events if e.get("reason") == "uncertain_non_completion"]
-    if len(uncertain) > 5:
-        anomalies.append(f"{len(uncertain)} uncertain_non_completion silences")
+    if summary.healthy:
+        return "  " + _green("No anomalies detected")
 
-    if anomalies:
-        return "  Anomalies: " + _red(", ".join(anomalies))
-    return "  " + _green("No anomalies detected")
+    # Surface each alert from the authoritative health summary
+    alert_parts = []
+    for alert in summary.alerts:
+        if "writer underperformance" in alert:
+            alert_parts.append(_red(alert))
+        elif "enforcement outcomes missing" in alert:
+            alert_parts.append(_red(alert))
+        elif "lookup failures" in alert or "import failures" in alert:
+            alert_parts.append(_red(alert))
+        elif "schema drift" in alert:
+            alert_parts.append(_red(alert))
+        elif "trivial analysis" in alert:
+            alert_parts.append(_red(alert))
+        else:
+            alert_parts.append(_red(alert))
+
+    return "  Anomalies: " + ", ".join(alert_parts)
 
 
 def build_dashboard() -> str:

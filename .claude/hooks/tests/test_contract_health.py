@@ -289,11 +289,17 @@ class TestWriterSkipProblem:
 
 class TestMissingEnforcementOutcomes:
     """
-    missing_enforcement_outcomes: checks present but enforcement nearly absent → alert.
+    missing_enforcement_outcomes: explicit category-aware enforcement detection.
 
-    Benign silence reasons (response_too_short, non_implementation_class, etc.) are
-    correct behavior and should NOT trigger alerts. The 30% threshold accounts for
-    legitimate short-output suppression. Only fires when check_count >= 30.
+    Categories:
+      A. Benign non-opportunities: checks where reason='response_too_short' (correct silence)
+      B. Suspicious no-outcomes: checks with non-benign reason (or no reason)
+      C. Enforcement outcomes: block or auto_clear events
+
+    Alert fires when effective_opportunities >= 30 AND
+    enforcement_rate (C / (B + C)) < 30%.
+
+    Benign non-opportunities are EXCLUDED from the effective_opportunities denominator.
     """
 
     def test_checks_with_blocks_no_alert(self, tmp_path):
@@ -303,9 +309,10 @@ class TestMissingEnforcementOutcomes:
         now = _now()
 
         lines = []
-        # 30 checks (meets minimum)
-        lines += [json.dumps(_make_stop_event("check", timestamp=now - i * 5)) for i in range(30)]
-        # 12 blocks (40% enforcement rate → above 30% threshold → no alert)
+        # 30 checks with benign reason → 0 effective opportunities, 12 blocks
+        # (0 < 30 effective minimum → no assessment, no alert)
+        lines += [json.dumps(_make_stop_event("check", "response_too_short", timestamp=now - i * 5)) for i in range(30)]
+        # 12 blocks (healthy: no effective opportunities to measure)
         lines += [json.dumps(_make_stop_event("block", timestamp=now - i * 5)) for i in range(30, 42)]
         (diag / "task_contract_telemetry.jsonl").write_text("\n".join(lines) + "\n")
 
@@ -320,8 +327,8 @@ class TestMissingEnforcementOutcomes:
         now = _now()
 
         lines = []
-        lines += [json.dumps(_make_stop_event("check", timestamp=now - i * 5)) for i in range(30)]
-        # 12 autoclears (40% enforcement rate → above 30% threshold → no alert)
+        lines += [json.dumps(_make_stop_event("check", "response_too_short", timestamp=now - i * 5)) for i in range(30)]
+        # 12 autoclears (healthy: no effective opportunities to measure)
         lines += [json.dumps(_make_stop_event("auto_clear", timestamp=now - i * 5)) for i in range(30, 42)]
         (diag / "task_contract_telemetry.jsonl").write_text("\n".join(lines) + "\n")
 
@@ -347,13 +354,13 @@ class TestMissingEnforcementOutcomes:
         assert "enforcement outcomes missing" in alert_text
 
     def test_below_min_evals_no_assessment(self, tmp_path):
-        """Fewer than 30 check events → no assessment."""
+        """Fewer than 30 effective opportunities → no assessment."""
         diag = tmp_path / "logs" / "diagnostics"
         diag.mkdir(parents=True)
         now = _now()
 
-        # 25 checks, no blocks (below 30-check minimum → no assessment)
-        lines = [json.dumps(_make_stop_event("check", timestamp=now - i * 5)) for i in range(25)]
+        # 29 checks, all with benign reason → 0 effective opportunities (< 30 minimum)
+        lines = [json.dumps(_make_stop_event("check", "response_too_short", timestamp=now - i * 5)) for i in range(29)]
         (diag / "task_contract_telemetry.jsonl").write_text("\n".join(lines) + "\n")
 
         count, msg = _check_missing_enforcement_outcomes([], _STOP_EVENT_WINDOW)

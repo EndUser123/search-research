@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -121,48 +122,96 @@ class TestGetStopBreakdown:
 
 
 class TestAnomalyDetection:
-    """Test anomaly detection functionality."""
+    """Test anomaly detection — delegates to contract_health.py."""
 
-    def test_high_skip_rate_detected(self):
-        """HIGH skip rate (>10 not_task_start) should trigger anomaly."""
+    def test_benign_not_task_start_volume_does_not_surface_alert(self, tmp_path):
+        """High not-task-start volume alone must NOT surface a writer alert.
+
+        'not_a_task_start' is benign exploratory chatter — not a writer failure.
+        The old 'HIGH skip rate' wording is gone; the tuned model only fires on
+        actual writer infrastructure failures (no_terminal_id, ambiguous, etc.).
+        """
         from Stop_contract_status import get_anomaly_status
 
-        # With empty logs, no anomalies
-        # This test verifies the function structure
-        status = get_anomaly_status()
-        assert isinstance(status, str)
-        # Empty logs produce empty anomaly status
-        assert "No anomalies" in status or "Anomalies" in status
+        diag = tmp_path / "logs" / "diagnostics"
+        diag.mkdir(parents=True)
 
-    def test_uncertain_silences_detected(self, tmp_path):
-        """Multiple uncertain_non_completion silences should trigger anomaly."""
-        stop_log = HOOKS_DIR / "logs" / "diagnostics" / "task_contract_telemetry.jsonl"
-        backup = stop_log.with_suffix(".jsonl.test_backup")
-        shutil.copy2(stop_log, backup)
+        now = datetime.now(timezone.utc).timestamp()
+        # 200 not-task-start skips — should still be benign, no alert
+        writer_lines = [
+            json.dumps({
+                "event": "contract_skip",
+                "reason": "not_a_task_start",
+                "feature": "task_contract_writer",
+                "terminal_id": "test",
+                "timestamp": now - i,
+            }) for i in range(200)
+        ]
+        (diag / "task_contract_writer_telemetry.jsonl").write_text("\n".join(writer_lines) + "\n")
 
-        try:
-            # Write synthetic: 20 uncertain silences
-            with stop_log.open("w", encoding="utf-8") as f:
-                for i in range(20):
-                    f.write(json.dumps({
-                        "timestamp": 2e9 + i,
-                        "gate": "task_contract_fit",
-                        "event": "silent",
-                        "reason": "uncertain_non_completion",
-                        "terminal_id": f"test{i}",
-                    }) + "\n")
+        from Stop_contract_status import get_anomaly_status as _gas
+        from contract_health import get_health_summary as _ghs
 
-            result = subprocess.run(
-                [sys.executable, str(SCRIPT), "health"],
-                capture_output=True,
-                text=True,
-                cwd=str(HOOKS_DIR),
-            )
+        # The dashboard delegates to contract_health — test it directly
+        summary = _ghs(hooks_dir=tmp_path)
+        # Should be healthy — no suspicious skips
+        assert summary.healthy is True
+        # No writer-related alerts
+        alert_text = " ".join(summary.alerts)
+        assert "HIGH skip rate" not in alert_text
+        assert "writer underperformance" not in alert_text
+        assert "writer skip problem" not in alert_text
 
-            # Should detect anomaly
-            assert "Anomalies" in result.stdout or "uncertain" in result.stdout
-        finally:
-            shutil.move(str(backup), str(stop_log))
+    def test_writer_underperformance_wording_on_real_problem(self, tmp_path):
+        """Real writer infrastructure failures must surface 'writer underperformance'.
+
+        When suspicious-skip ratio exceeds 40%, the tuned model fires with the
+        'writer underperformance: N suspicious skips' wording — NOT 'HIGH skip rate'.
+        """
+        from contract_health import get_health_summary as _ghs
+
+        diag = tmp_path / "logs" / "diagnostics"
+        diag.mkdir(parents=True)
+
+        now = datetime.now(timezone.utc).timestamp()
+        writer_lines = []
+        # 30 creates (assessment minimum)
+        writer_lines += [
+            json.dumps({
+                "event": "contract_create",
+                "feature": "task_contract_writer",
+                "terminal_id": "test",
+                "timestamp": now - i,
+            }) for i in range(30)
+        ]
+        # 55 total skips: 25 benign + 30 no_terminal_id → 30/55 = 55% → fires
+        writer_lines += [
+            json.dumps({
+                "event": "contract_skip",
+                "reason": "not_a_task_start",
+                "feature": "task_contract_writer",
+                "terminal_id": "test",
+                "timestamp": now - i,
+            }) for i in range(30, 55)
+        ]
+        writer_lines += [
+            json.dumps({
+                "event": "contract_skip",
+                "reason": "no_terminal_id",
+                "feature": "task_contract_writer",
+                "terminal_id": "test",
+                "timestamp": now - i,
+            }) for i in range(55, 85)
+        ]
+        (diag / "task_contract_writer_telemetry.jsonl").write_text("\n".join(writer_lines) + "\n")
+
+        summary = _ghs(hooks_dir=tmp_path)
+        assert summary.healthy is False
+        alert_text = " ".join(summary.alerts)
+        # Must use the tuned wording
+        assert "writer underperformance" in alert_text
+        # Old wording must NOT appear
+        assert "HIGH skip rate" not in alert_text
 
 
 class TestDashboardIntegration:

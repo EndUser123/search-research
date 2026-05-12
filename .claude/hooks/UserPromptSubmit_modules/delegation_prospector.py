@@ -25,8 +25,9 @@ _LOG_FILE = _LOG_DIR / "delegation_prospector.jsonl"
 # State goes to .claude/.artifacts/{terminal_id}/hook_state/ for terminal isolation
 import os as _os
 
+# Get terminal ID from environment (no-arg version for file-based ops)
 def _get_terminal_id() -> str:
-    """Get normalized terminal ID."""
+    """Get normalized terminal ID from environment."""
     raw = _os.environ.get("WT_SESSION", "")
     return f"console_{raw}" if raw else "unknown"
 
@@ -54,7 +55,21 @@ def _redact_sensitive(value: str) -> str:
         result = pattern.sub("[REDACTED]", result)
     return result
 
-# Detection patterns for multi-surface work
+# Skills that are inherently delegation-oriented
+# Detection: prompt.lstrip().startswith(f"/{skill}") or f" /{skill} " in prompt
+_DELEGATION_HEAVY_SKILLS = frozenset([
+    "go",           # Dispatches subagents to worktrees
+    "code",         # TDD cycles, often parallelizable
+    "refactor",    # Multi-file cleanup
+    "tdd",          # Red/green/refactor phases
+    "subagent-driven-development",  # By name
+    "planning",    # Task decomposition
+    "team",         # Multi-agent coordination
+    "sqa",          # Quality analysis
+    "design",       # Architecture work
+])
+
+# Detection patterns for implicit multi-surface work (fallback when no skill invoked)
 _DELEGATION_PATTERNS = [
     re.compile(r"(?:inspect|review|analyze|check)\s+\w+\s+(?:and|,|\&)\s+\w+", re.IGNORECASE),
     re.compile(r"(?:create|add|implement)\s+(?:[^,]+,){2,}[^,]+", re.IGNORECASE),
@@ -89,16 +104,38 @@ only: (1) verified facts, (2) exact file/function references, (3) concise implic
 """.strip()
 
 
+def _extract_skill_name(prompt: str) -> str | None:
+    """Extract skill name from prompt if it's a slash command."""
+    stripped = prompt.strip()
+    if not stripped.startswith("/"):
+        return None
+    # Handle "/skill:args" or "/skill args" formats
+    after_slash = stripped.lstrip("/")
+    # Split on whitespace or colon
+    for sep in (":", " ", "\t"):
+        if sep in after_slash:
+            return after_slash.split(sep)[0]
+    return after_slash.split()[0] if after_slash else None
+
+
 def _detect_delegation_opportunity(prompt: str) -> tuple[bool, str | None]:
+    """Detect delegation opportunity via skill invocation (priority) or pattern matching."""
     if not prompt:
         return False, None
+
+    # Priority 1: Check for delegation-heavy skill invocations
+    skill_name = _extract_skill_name(prompt)
+    if skill_name and skill_name in _DELEGATION_HEAVY_SKILLS:
+        return True, f"skill:/{skill_name}"
+
+    # Priority 2: Fallback to pattern matching for implicit delegation hints
     for pattern in _DELEGATION_PATTERNS:
         if pattern.search(prompt):
             return True, f"matched: {pattern.pattern[:50]}..."
     return False, None
 
 
-def _get_terminal_id(context: HookContext) -> str:
+def _get_terminal_id_from_context(context: HookContext) -> str:
     return (context.data.get("terminal_id") or context.data.get("terminalId") or context.data.get("CLAUDE_TERMINAL_ID") or os.environ.get("CLAUDE_TERMINAL_ID") or "default")
 
 def _get_session_id(context: HookContext) -> str:
@@ -157,7 +194,7 @@ def _clear_delegation_state() -> None:
 def delegation_prospector_hook(context: HookContext) -> HookResult:
     prompt = context.prompt
     is_opportunity, matched_pattern = _detect_delegation_opportunity(prompt)
-    terminal_id = _get_terminal_id(context)
+    terminal_id = _get_terminal_id_from_context(context)
     _log_delegation_event("delegation_opportunity_detected" if is_opportunity else "no_opportunity", terminal_id, "", matched_pattern, prompt)
     if not is_opportunity:
         return HookResult.empty()

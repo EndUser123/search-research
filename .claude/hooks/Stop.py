@@ -91,7 +91,11 @@ from __lib.turn_mode import (
     is_quality_mode_suppressed,
     is_format_required,
     mode_display_label,
+    get_session_mode,
+    is_quality_gate_disabled,
+    get_effective_turn_mode_for_gate,
     TurnMode,
+    SessionMode,
 )
 
 from __lib.epistemic_applicability import (
@@ -503,7 +507,12 @@ def _run_epistemic_contract(data: dict) -> dict | None:
 
         # Exploration and meta: skip unless --epistemic-strict overrides.
         # CONTROL mode: allow validation to run (CONTROL schema enforces no substantive claims).
-        if not strict_override and turn_mode in ("exploration", "meta") and is_quality_mode_suppressed(turn_mode, quality_mode):
+        # Session mode: debug_gates = skip all quality gates; audit = treat all as CONTROL.
+        session_mode = get_session_mode(user_prompt)
+        if is_quality_gate_disabled(session_mode):
+            return None
+        effective_mode = get_effective_turn_mode_for_gate(turn_mode, session_mode)
+        if not strict_override and effective_mode in ("exploration", "meta") and is_quality_mode_suppressed(effective_mode, quality_mode):
             return None
 
         # Trivial exchange bypass: skip epistemic enforcement on low-stakes turns
@@ -553,12 +562,12 @@ def _run_epistemic_contract(data: dict) -> dict | None:
         elif "--epistemic-warn" in user_prompt:
             mode = "warn"
 
-        cfg = EpistemicConfig(mode=mode, turn_mode=turn_mode)
+        cfg = EpistemicConfig(mode=mode, turn_mode=effective_mode)
         # Require 4-section format for final-answer mode when response is substantial.
         # Short final-answers (<=100 words) are direct answers that don't need structure.
         # Substantial final-answers (>100 words) are analytical and should use
         # [FACT]/[INFERENCE]/[UNKNOWN]/[RECOMMENDATION] sections.
-        if turn_mode == "final-answer":
+        if effective_mode == "final-answer":
             cfg_dict = cfg.__dict__.copy()
             cfg_dict["sectional_response_required"] = True
             cfg = EpistemicConfig(**cfg_dict)
@@ -1808,6 +1817,12 @@ def _run_reasoning_quality_gate(data: dict) -> dict | None:
     try:
         hook_path = HOOKS_DIR / "Stop_reasoning_quality_gate.py"
         if not hook_path.exists():
+            return None
+
+        user_prompt = data.get("user_prompt") or data.get("prompt") or ""
+        # DEBUG_GATES session mode: disable all quality gates (including reasoning quality).
+        gate_session_mode = get_session_mode(user_prompt)
+        if is_quality_gate_disabled(gate_session_mode):
             return None
 
         response = data.get("response", "")
@@ -3867,6 +3882,7 @@ def _process_gate_result(
     res: dict, name: str, system_messages: list[str],
     quality_messages: list[str], data: dict,
     turn_mode: str, quality_mode: str,
+    session_mode: SessionMode = "normal",
 ) -> bool:
     """Route a gate result: block exits immediately, otherwise route systemMessage.
 
@@ -3885,7 +3901,12 @@ def _process_gate_result(
         return False
     if res.get("decision") == "block":
         gate_class = GATE_CLASSES.get(name, "policy")
-        if gate_class == "quality" and is_quality_mode_suppressed(turn_mode, quality_mode):
+        # DEBUG_GATES session mode: disable ALL quality gates.
+        # AUDIT session mode: treat all as CONTROL (already reflected in effective_mode).
+        if gate_class == "quality" and (
+            is_quality_gate_disabled(session_mode)
+            or is_quality_mode_suppressed(turn_mode, quality_mode)
+        ):
             return False
 
         # Phase 2 policy block arbitration: only surface the highest-priority block.
@@ -3996,18 +4017,6 @@ def _get_contract_status_output() -> str:
             f"{len(silent)} silent" + (f" [{sr}]" if sr else "")
         )
 
-    # Anomaly detection
-    anomalies: list[str] = []
-    skip_threshold = int(os.environ.get("CONTRACT_WRITER_SKIP_THRESHOLD", "50"))
-    if len(not_task) > skip_threshold:
-        ratio = len(not_task) / max(len(writer_events), 1)
-        anomalies.append(f"HIGH skip rate ({len(not_task)} not-task-start, {ratio:.0%})")
-    if sum(1 for e in stop_events if e.get("reason") == "uncertain_non_completion") > 5:
-        anomalies.append("uncertain silences")
-    if anomalies:
-        lines.append(f"Anomalies: {'; '.join(anomalies)}")
-
-    lines.append("─" * 40)
     return "\n".join(lines)
 
 
@@ -4344,7 +4353,10 @@ def main():
 
         # Phase 2 applicability routing: check turn kind, claim kind, artifact requirements.
         # Maps string turn_mode → TurnKind enum for is_gate_applicable.
-        gate_turn_kind = _turn_mode_to_turn_kind(turn_mode)
+        # Session mode: audit/debug_gates → all turns as CONTROL for gate suppression.
+        session_mode = get_session_mode(user_prompt)
+        effective_mode = get_effective_turn_mode_for_gate(turn_mode, session_mode)
+        gate_turn_kind = _turn_mode_to_turn_kind(effective_mode)
         # Simple claim kind from gate's GATE_METADATA — use FACTUAL as safe default
         gate_claim_kind = ClaimKind.FACTUAL
 
@@ -4383,7 +4395,8 @@ def main():
             _unverified_stance_res = res
         blocked = _process_gate_result(
             res, name, system_messages, quality_messages, data,
-            turn_mode, quality_mode,
+            effective_mode, quality_mode,
+            session_mode=session_mode,
         )
 
         # Phase 2 ADVISORY rollout: downgrades block→warn after _process_gate_result.

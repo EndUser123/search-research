@@ -50,10 +50,34 @@ def detect_context_boundaries(transcript_path: Path | None) -> list[WorkContext]
             if match:
                 # Extract the goal phrase (rest of the sentence)
                 remainder = turn.content[match.end():].strip()
-                # Snap to next word boundary to avoid mid-path/mid-word extraction
-                word_boundary = re.search(r"\S", remainder)
-                start_offset = word_boundary.start() if word_boundary else 0
-                phrase = remainder[start_offset:start_offset + 100]
+                # Snap start AND end to word boundaries to avoid
+                # mid-path/mid-word corruption when pattern ends mid-segment
+                # or truncation cuts mid-word.
+                start_r = re.search(r"\w", remainder)
+                start_offset = start_r.start() if start_r else 0
+                end_offset = start_offset + 100
+                pre_end = remainder[start_offset:end_offset]
+                # Find the last complete word in pre_end.
+                last_match = None
+                for m in re.finditer(r"\w+", pre_end):
+                    last_match = m
+                if last_match:
+                    if end_offset < len(remainder):
+                        # Truncated — check what character is immediately after the word
+                        next_pos = start_offset + last_match.end()
+                        after_char = remainder[next_pos] if next_pos < len(remainder) else ""
+                        if after_char.isalnum() or after_char == "_":
+                            # Next char is word char → word continues beyond cut → snap BACK
+                            end_offset = start_offset + last_match.start()
+                        else:
+                            # Next char is separator/end → word is complete → snap FORWARD
+                            end_offset = start_offset + last_match.end()
+                    else:
+                        # Not truncated — only snap if next char is a path separator
+                        next_pos = start_offset + last_match.end()
+                        if next_pos < len(remainder) and remainder[next_pos] == "/":
+                            end_offset = next_pos
+                phrase = remainder[start_offset:end_offset]
                 contexts.append(WorkContext(
                     start_turn=turn.turn_number,
                     goal_phrase=phrase,

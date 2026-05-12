@@ -155,38 +155,95 @@ def test_timeout_events_classified_separately():
         fake_log.unlink(missing_ok=True)
 
 
-def test_normal_workload_skip_alert_threshold():
-    """normal high not-task rate should not trigger HIGH skip alert at default threshold."""
-    import Stop
+def test_benign_not_task_start_volume_health_under_new_model(tmp_path):
+    """High not-task-start volume must NOT fire any writer alert under tuned model.
 
-    # 60 not-task-start events with 100 total writer events = 60% skip rate
-    # At default threshold of 50, 60 should still trigger the check
-    # (the alert fires when len(not_task) > skip_threshold)
-    # So 55 not-task with threshold=50 → fires
-    # But 40 not-task with threshold=50 → no fire
-    skip_threshold = 50
-    not_task_count = 40  # 40% skip rate — below threshold
-    writer_count = 100
+    The old 'HIGH skip rate' wording is gone. The tuned model classifies
+    'not_a_task_start' as benign — it does not count toward suspicious skips.
+    A window of 100 benign skips should produce a healthy summary.
+    """
+    import json
+    from datetime import datetime, timezone
+    from contract_health import get_health_summary
 
-    is_high = len(range(not_task_count)) > skip_threshold  # False
-    ratio = not_task_count / writer_count  # 0.4
-    anomalies = []
-    if len(range(not_task_count)) > skip_threshold:
-        anomalies.append(f"HIGH skip rate ({len(range(not_task_count))} not-task-start, {ratio:.0%})")
+    diag = tmp_path / "logs" / "diagnostics"
+    diag.mkdir(parents=True)
 
-    assert not anomalies, (
-        f"40% skip rate should not fire at threshold 50; got anomalies: {anomalies}"
+    now = datetime.now(timezone.utc).timestamp()
+    writer_lines = [
+        json.dumps({
+            "event": "contract_skip",
+            "reason": "not_a_task_start",
+            "feature": "task_contract_writer",
+            "terminal_id": "test",
+            "timestamp": now - i,
+        }) for i in range(100)
+    ]
+    (diag / "task_contract_writer_telemetry.jsonl").write_text(
+        "\n".join(writer_lines) + "\n"
     )
 
-    # Now test at 60% — should fire
-    not_task_count = 60
-    is_high = len(range(not_task_count)) > skip_threshold  # True
-    ratio = not_task_count / writer_count
-    anomalies = []
-    if len(range(not_task_count)) > skip_threshold:
-        anomalies.append(f"HIGH skip rate ({len(range(not_task_count))} not-task-start, {ratio:.0%})")
+    summary = get_health_summary(hooks_dir=tmp_path)
+    assert summary.healthy is True, (
+        f"100% benign skips should be healthy; got alerts: {summary.alerts}"
+    )
+    alert_text = " ".join(summary.alerts)
+    assert "HIGH skip rate" not in alert_text
+    assert "writer underperformance" not in alert_text
 
-    assert anomalies, "60% skip rate should fire at threshold 50"
+
+def test_real_suspicious_skip_problem_uses_tuned_wording(tmp_path):
+    """Real writer infrastructure failure must surface 'writer underperformance'.
+
+    Suspicious skip ratio > 40% triggers the tuned model alert. The old
+    'HIGH skip rate' wording must NOT appear.
+    """
+    import json
+    from datetime import datetime, timezone
+    from contract_health import get_health_summary
+
+    diag = tmp_path / "logs" / "diagnostics"
+    diag.mkdir(parents=True)
+
+    now = datetime.now(timezone.utc).timestamp()
+    writer_lines = []
+    writer_lines += [
+        json.dumps({
+            "event": "contract_create",
+            "feature": "task_contract_writer",
+            "terminal_id": "test",
+            "timestamp": now - i,
+        }) for i in range(30)
+    ]
+    writer_lines += [
+        json.dumps({
+            "event": "contract_skip",
+            "reason": "not_a_task_start",
+            "feature": "task_contract_writer",
+            "terminal_id": "test",
+            "timestamp": now - i,
+        }) for i in range(30, 55)
+    ]
+    writer_lines += [
+        json.dumps({
+            "event": "contract_skip",
+            "reason": "no_terminal_id",
+            "feature": "task_contract_writer",
+            "terminal_id": "test",
+            "timestamp": now - i,
+        }) for i in range(55, 85)
+    ]
+    (diag / "task_contract_writer_telemetry.jsonl").write_text(
+        "\n".join(writer_lines) + "\n"
+    )
+
+    summary = get_health_summary(hooks_dir=tmp_path)
+    assert summary.healthy is False, (
+        f"55% suspicious ratio should be unhealthy; got healthy={summary.healthy}"
+    )
+    alert_text = " ".join(summary.alerts)
+    assert "writer underperformance" in alert_text
+    assert "HIGH skip rate" not in alert_text
 
 
 def test_real_failures_still_alert():
