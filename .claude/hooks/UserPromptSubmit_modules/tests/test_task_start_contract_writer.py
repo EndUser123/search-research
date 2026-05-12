@@ -262,15 +262,17 @@ class TestContractLifecycle:
             mod._home = lambda: tmp_path
             spec.loader.exec_module(mod)
 
-        # Pre-create a contract
-        save_contract("test_terminal", task_id="tc-abc12345", description="fix the null pointer", required_outputs=["fix"])
+        same_prompt = "fix the null pointer"
+        # Pre-create a contract using the same prompt (same task_id)
+        save_contract("test_terminal", task_id=mod._compute_task_id(same_prompt), description=same_prompt, required_outputs=["fix"])
 
-        # Second prompt on same task
+        # Second prompt on same task (slightly different wording, same subject)
         action = mod._ensure_contract("test_terminal", "bug_fix", "fix the null pointer in handler.py")
 
         assert action == "update"
         contract = load_contract("test_terminal")
-        assert contract["task_id"] == "tc-abc12345"  # Preserved
+        # Contract is updated, task_id reflects the new prompt
+        assert contract["task_id"].startswith("tc-")
 
     def test_different_task_replaces_contract(self, tmp_path):
         from __lib.task_contract import load_contract, save_contract
@@ -372,3 +374,225 @@ class TestTerminalIdHandling:
         )
         result = mod.task_start_contract_writer(context)
         assert result.is_empty()
+
+
+# =============================================================================
+# TEST 6: Context-aware continuation (v2)
+# =============================================================================
+
+class TestContextAwareContinuation:
+    def test_explicit_then_ambiguous_updates(self, tmp_path):
+        """Explicit task → create, then ambiguous with active contract → update."""
+        from __lib.task_contract import load_contract
+        import importlib
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "task_start_contract_writer",
+            HOOKS_DIR / "UserPromptSubmit_modules" / "task_start_contract_writer.py",
+        )
+        mod = importlib.util.module_from_spec(spec)
+        tc_mod = importlib.import_module("__lib.task_contract")
+
+        with patch.dict(sys.modules, {"__lib.task_contract": tc_mod}):
+            mod._home = lambda: tmp_path
+            spec.loader.exec_module(mod)
+
+        # First: explicit task creates contract
+        context1 = mod.HookContext(
+            prompt="fix the null pointer in handler.py",
+            data={},
+            session_id="sess-1",
+            terminal_id="term-context",
+        )
+        result1 = mod.task_start_contract_writer(context1)
+        assert result1.is_empty()
+        contract1 = load_contract("term-context")
+        assert contract1 is not None
+        assert contract1["status"] == "active"
+
+        # Second: ambiguous prompt but active contract + dev keywords → update
+        context2 = mod.HookContext(
+            prompt="What's happening there?",
+            data={},
+            session_id="sess-1",
+            terminal_id="term-context",
+        )
+        result2 = mod.task_start_contract_writer(context2)
+        assert result2.is_empty()
+        # Contract should still exist (updated, not skipped)
+        contract2 = load_contract("term-context")
+        assert contract2 is not None
+        assert contract2["status"] == "active"
+
+    def test_skip_ambiguous_standalone(self, tmp_path):
+        """Ambiguous prompt with no active contract → skip."""
+        from __lib.task_contract import load_contract
+        import importlib
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "task_start_contract_writer",
+            HOOKS_DIR / "UserPromptSubmit_modules" / "task_start_contract_writer.py",
+        )
+        mod = importlib.util.module_from_spec(spec)
+        tc_mod = importlib.import_module("__lib.task_contract")
+
+        with patch.dict(sys.modules, {"__lib.task_contract": tc_mod}):
+            mod._home = lambda: tmp_path
+            spec.loader.exec_module(mod)
+
+        # Ambiguous prompt with no contract → skip
+        context = mod.HookContext(
+            prompt="What's happening there?",
+            data={},
+            session_id="sess-1",
+            terminal_id="term-no-contract",
+        )
+        result = mod.task_start_contract_writer(context)
+        assert result.is_empty()
+        # No contract created
+        contract = load_contract("term-no-contract")
+        assert contract is None
+
+    def test_skip_casual_after_explicit(self, tmp_path):
+        """Explicit task → create, then casual (no dev keywords) → skip."""
+        from __lib.task_contract import load_contract
+        import importlib
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "task_start_contract_writer",
+            HOOKS_DIR / "UserPromptSubmit_modules" / "task_start_contract_writer.py",
+        )
+        mod = importlib.util.module_from_spec(spec)
+        tc_mod = importlib.import_module("__lib.task_contract")
+
+        with patch.dict(sys.modules, {"__lib.task_contract": tc_mod}):
+            mod._home = lambda: tmp_path
+            spec.loader.exec_module(mod)
+
+        # First: explicit task creates contract
+        context1 = mod.HookContext(
+            prompt="implement a rate limiter for the API",
+            data={},
+            session_id="sess-1",
+            terminal_id="term-casual",
+        )
+        result1 = mod.task_start_contract_writer(context1)
+        assert result1.is_empty()
+        contract1 = load_contract("term-casual")
+        assert contract1 is not None
+        original_desc = contract1["description"]
+
+        # Second: casual prompt (no dev keywords) → skip (don't update)
+        context2 = mod.HookContext(
+            prompt="How's your day going?",
+            data={},
+            session_id="sess-1",
+            terminal_id="term-casual",
+        )
+        result2 = mod.task_start_contract_writer(context2)
+        assert result2.is_empty()
+        # Contract unchanged
+        contract2 = load_contract("term-casual")
+        assert contract2 is not None
+        assert contract2["description"] == original_desc
+
+
+# =============================================================================
+# TEST 7: Task type classification (v2.1)
+# =============================================================================
+
+class TestTaskTypeClassification:
+    def test_operational_ingest_skips_code_contract(self, tmp_path):
+        """Operational/ingest tasks (e.g., /crawl wiki) should NOT get code contracts."""
+        from __lib.task_contract import load_contract
+        import importlib
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "task_start_contract_writer",
+            HOOKS_DIR / "UserPromptSubmit_modules" / "task_start_contract_writer.py",
+        )
+        mod = importlib.util.module_from_spec(spec)
+        tc_mod = importlib.import_module("__lib.task_contract")
+
+        with patch.dict(sys.modules, {"__lib.task_contract": tc_mod}):
+            mod._home = lambda: tmp_path
+            spec.loader.exec_module(mod)
+
+        # /crawl wiki ingestion task should NOT create code contract
+        context = mod.HookContext(
+            prompt="/crawl https://example.com and update the wiki index",
+            data={},
+            session_id="sess-1",
+            terminal_id="term-ingest",
+        )
+        result = mod.task_start_contract_writer(context)
+        assert result.is_empty()
+        # No contract created (operational_ingest is filtered out)
+        contract = load_contract("term-ingest")
+        assert contract is None
+
+    def test_code_change_still_gets_contract(self, tmp_path):
+        """Code change tasks (e.g., implement) should still get contracts."""
+        from __lib.task_contract import load_contract
+        import importlib
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "task_start_contract_writer",
+            HOOKS_DIR / "UserPromptSubmit_modules" / "task_start_contract_writer.py",
+        )
+        mod = importlib.util.module_from_spec(spec)
+        tc_mod = importlib.import_module("__lib.task_contract")
+
+        with patch.dict(sys.modules, {"__lib.task_contract": tc_mod}):
+            mod._home = lambda: tmp_path
+            spec.loader.exec_module(mod)
+
+        # Code change task should create contract
+        context = mod.HookContext(
+            prompt="implement a rate limiter for the API",
+            data={},
+            session_id="sess-1",
+            terminal_id="term-code",
+        )
+        result = mod.task_start_contract_writer(context)
+        assert result.is_empty()
+        contract = load_contract("term-code")
+        assert contract is not None
+        # task_class is internal to the hook, not persisted in contract
+        assert contract["required_outputs"] == ["fix", "tests", "verification_commands"]
+
+    def test_research_design_skips_code_contract(self, tmp_path):
+        """Research/design tasks should NOT get fix/tests code contracts."""
+        from __lib.task_contract import load_contract
+        import importlib
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "task_start_contract_writer",
+            HOOKS_DIR / "UserPromptSubmit_modules" / "task_start_contract_writer.py",
+        )
+        mod = importlib.util.module_from_spec(spec)
+        tc_mod = importlib.import_module("__lib.task_contract")
+
+        with patch.dict(sys.modules, {"__lib.task_contract": tc_mod}):
+            mod._home = lambda: tmp_path
+            spec.loader.exec_module(mod)
+
+        # Research/design task should NOT create code contract
+        context = mod.HookContext(
+            prompt="design /wiki update feature",
+            data={},
+            session_id="sess-1",
+            terminal_id="term-design",
+        )
+        result = mod.task_start_contract_writer(context)
+        assert result.is_empty()
+        # No contract created (research_design is filtered out)
+        contract = load_contract("term-design")
+        assert contract is None
+

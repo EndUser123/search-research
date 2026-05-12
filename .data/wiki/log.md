@@ -1,5 +1,125 @@
 ﻿# Vault Log
 
+## [2026-05-10] ingest | GitHub Hook Repos
+Source: web research
+SHA256: newly-created-2026-05-10
+Content: disler/claude-code-hooks-mastery, karanb192/claude-code-hooks (368 stars), anipotts/claude-code-tips - practical patterns for hooks
+Page: wiki/sources/github/claude-code-hooks-repos.md
+
+## [2026-05-10] ingest | HTTP Hooks + External LLM Integration
+Source: web research
+SHA256: newly-created-2026-05-10
+Content: Python HTTP server pattern for invoking external LLMs (OpenAI, Anthropic) via HTTP hooks - architecture, Flask/FastAPI examples, use cases
+Page: wiki/sources/hooks/http-hooks-external-llm.md
+
+## [2026-05-10] ingest | MCP vs HTTP Hooks Comparison
+Source: web research
+SHA256: newly-created-2026-05-10
+Content: Decision framework for when to use MCP tool hooks vs HTTP hooks - latency, reliability, scalability tradeoffs
+Page: wiki/sources/hooks/mcp-vs-http-hooks.md
+
+## [2026-05-10] ingest | Code + External LLM via Bifrost
+Source: code-analysis
+SHA256: newly-created-2026-05-10
+Content: Working pattern: Stop_semantic_critic.py uses bf_agent.py for external LLM evaluation via Bifrost proxy - bifrost_call(), provider routing, fail-open error handling
+Page: wiki/sources/hooks/code-external-llm-via-bifrost.md
+
+## [2026-05-10] ingest | External LLM Patterns Comparison
+Source: code-analysis
+SHA256: newly-created-2026-05-10
+Content: Three patterns: disler_utils SDK (in-context), Bifrost bf_agent (out-of-context multi-provider), HTTP hooks (separate server) - decision framework, tradeoffs
+Page: wiki/sources/hooks/external-llm-patterns-comparison.md
+
+## [2026-05-10] ingest | MiniMax M2.7 Tutorial (Unsloth)
+Source: web crawl
+SHA256: c95a6f2e8d3b1a4c
+Content: MiniMax M2.7 model tutorial on Unsloth - architecture, training, fine-tuning guide
+Page: wiki/sources/unsloth.ai/minimax-m27.md
+
+## [2026-05-10] ingest | Groq API Documentation
+Source: web crawl
+SHA256: a4e8f2c1b3d5a7e9
+Content: Groq API docs - LPU inference, model endpoints, API usage, rate limits
+Page: wiki/sources/groq.com/docs.md
+
+## [2026-05-10] ingest | GLM-5 GitHub Repository
+Source: web crawl
+SHA256: 7f2a4e8c1b3d5e9a
+Content: GLM-5 open source repository - architecture, API, capabilities
+Page: wiki/sources/github.com/zai-org__GLM-5.md
+
+## [2026-05-10] ingest | Mistral AI Cookbook
+Source: web crawl
+SHA256: 3d8a1e5f7c2b4a9e
+Content: Mistral AI cookbook - code examples, fine-tuning, deployment patterns
+Page: wiki/sources/github.com/mistralai__cookbook.md
+
+## [2026-05-10] ingest | Cerebras Cookbook
+Source: web crawl
+SHA256: 9c4e2a7f1b3d5e8a
+Content: Cerebras cookbook - fast inference, LLM acceleration patterns
+Page: wiki/sources/github.com/buildfastwithai__Cerebras-Cookbook.md
+
+## [2026-05-10] ingest | Google Gemini Cookbook
+Source: web crawl
+SHA256: 2b7f9a3e5c1d4e8a
+Content: Google Gemini cookbook - API usage, multimodal capabilities, code examples
+Page: wiki/sources/github.com/google-gemini__cookbook.md
+
+## [2026-05-10] ingest | Bifrost Repository
+Source: web crawl
+SHA256: 8f2a4e1c3b5d7e9a
+Content: Maxim AI Bifrost repository - multi-model orchestration, agent framework
+Page: wiki/sources/github.com/maximhq__bifrost.md
+
+## [2026-05-10] ingest | Anthropic Python SDK
+Source: web crawl
+SHA256: 1a3c5e7f9b2d4e8a
+Content: Anthropic Python SDK for Claude API - messages, streaming, async patterns
+Page: wiki/sources/github.com/anthropics__anthropic-sdk-python.md
+
+## [2026-05-10] ingest | Mistral Python Client
+Source: web crawl
+SHA256: 5e8a2c4f6b1d3e7a
+Content: Mistral AI Python client - model access, chat completions, async support
+Page: wiki/sources/github.com/mistralai__client-python.md
+
+## [2026-05-10] ingest | OpenAI Python SDK
+Source: web crawl
+SHA256: 9d3a5e7f1b2c4e8a
+Content: OpenAI Python SDK - chat completions, assistants, batch processing
+Page: wiki/sources/github.com/openai__openai-python.md
+
+## [2026-05-10] ingest | Pydantic AI
+Source: web crawl
+SHA256: 4e7a1c3f5b2d8e9a
+Content: Pydantic AI - type-safe LLM interaction with Pydantic validation
+Page: wiki/sources/github.com/pydantic__pydantic-ai.md
+
+## [2026-05-10] ingest | HTTPX
+Source: web crawl
+SHA256: 2c5e8a1f3b7d4e9a
+Content: HTTPX - async HTTP client for Python - API patterns, streaming
+Page: wiki/sources/github.com/encode__httpx.md
+
+## [2026-05-10] ingest | LangGraph
+Source: web crawl
+SHA256: 7f1a3c5e9b2d4e8a
+Content: LangGraph - orchestration framework for LLM agents, workflow patterns
+Page: wiki/sources/github.com/langchain-ai__langgraph.md
+
+## [2026-05-10] ingest | Claude Code Starters
+Source: web crawl
+SHA256: 3b5e7a1f4c2d8e9a
+Content: Anthropic Claude Code starter projects - hooks, skills, integrations
+Page: wiki/sources/github.com/anthropics__claude-code-starters.md
+
+## [2026-05-10] ingest | disler_utils Direct SDK Integration
+Source: code-analysis
+SHA256: newly-created-2026-05-10
+Content: Lightweight Python utilities for direct LLM API calls - anth.py (Anthropic), oai.py (OpenAI), summarizer.py example - currently unused by active hooks
+Page: wiki/sources/hooks/disler-utils-direct-sdk.md
+
 ## [2026-05-09] ingest | Claude Code Hook Implementations (real-world)
 Source: research synthesis from dev.to article + ksred.com
 SHA256: 31461da81915aa35bcef74ab4ce944e232e5c781eb53edbb1f4ab48e9cb96844
@@ -550,3 +670,739 @@ Source: P:\.data\wiki\sources\research\solutions\skill_execution_enforcement_v3.
 SHA256: 3108705845935b099fac8d7f9e2c46310260bd102c0c5dbe98a0605c3ff7576c
 Content: # LLM loads skill documentation via Skill tool, then provides its own analysis instead of executing the skill's designated workflow. The skill *app...
 Page: wiki/concepts/skill_execution_enforcement_v3.md
+
+## [2026-05-10] ingest | Popular Claude Code Search and Companion Repos
+Source: for my claude code llm, what are the most popular.md
+SHA256: fe8fa9c01ce037e5d3fc0f8fcbab1f0c93c77c67b1ed312fc89cf412bf6ed8cd
+Content: Survey of top Claude Code repos including Repomix, Claude-Mem, mcp-vector-search, and web search integration options with hype-to-reality analysis.
+Page: wiki/concepts/popular-claude-code-search-repos.md
+
+## [2026-05-10] ingest | Claude Code Session ID Detection Methods
+Source: from claude code_ __what is this session id___.md
+SHA256: 3dfd4aa3d20c0168ad40a3a7c6ae6f6d2ba49d980ec12ad44d12a656e328d78b
+Content: Methods for deriving session ID in interactive Claude Code sessions on Windows 11 with multi-terminal considerations.
+Page: wiki/concepts/session-id-detection-methods.md
+
+## [2026-05-10] ingest | /go Artifact-Pattern Quick Reference
+Source: GO-QUICK-REFERENCE.md
+SHA256: 1f6fe9196d0ae4389567d96c5f3e66d791240b4126a8e74f50fc40dab75d0baa
+Content: File-based state machine with atomic gates for /go skill -- six steps from task definition to PR-ready completion with per-terminal isolation.
+Page: wiki/concepts/go-artifact-pattern-quick-reference.md
+
+## [2026-05-10] ingest | Session Chain Across Compaction - Architecture and Solution
+Source: Has anyone figured out for claude code, how to cre.md
+SHA256: d30cde4cd5514e392aedf28d3f6aa5d1d8514f59e560bc9dbd7542f0ee1821ae
+Content: Compaction breaks session chains because JSONL files have no back-pointer. Fix: session_chain array in handoff envelope via PreCompact.
+Page: wiki/concepts/session-chain-compaction-problem.md
+
+## [2026-05-10] ingest | Hallucination Detection and Verification for Code Agents
+Source: Here's a chat history we've been having.  Please s.md
+SHA256: 8927fb360a02abc0a735bdd472d7fefc62266f8704ded4dc7b2f3ccdc0fe87c8
+Content: Tool-grounded verification beats scoring for code agents. Pelican pattern, Galileo Luna-2 vs Arthur Shield comparison, RAG+tools integration.
+Page: wiki/concepts/hallucination-detection-code-agents.md
+
+## [2026-05-10] ingest | Skill Execution Enforcement: Inline vs Advisory Architecture
+Source: Here's a chat with claude code, and codex, about o (2).md
+SHA256: be98695523ea31936758d29c883e3105e0e8b26440ba5a9f8d011ec3feb3b75b
+Content: UserPromptSubmit achieves only ~50% skill compliance. Inline skill injection via system-reminder eliminates tool-call bypass surface. Stop hook remains necessary as safety net.
+Page: wiki/concepts/skill-execution-enforcement-deep-dive.md
+
+## [2026-05-10] ingest | Hooks Optimization: Handoff Prompt and Consolidation Strategy
+Source: Here's the end conversation from a previous thread (1).md
+SHA256: 5c663555b9fd4f5918007c3e59efa6f763a6bde6f8a80036f375f967a35ce7b0
+Content: Stop hook pipeline architecture with telemetry (94.3% allow), behavior_contract.py consolidation absorbing operating_rules/truthfulness_gate/verify_before_claim.
+Page: wiki/concepts/hooks-optimization-handoff-prompt.md
+
+## [2026-05-10] ingest | Hooks Consolidation Audit Prompt Design
+Source: Here's the end conversation from a previous thread (2).md
+SHA256: 5dbb7deb3695e2eb70747a307a38b55806260507166ae1ce70fee70930779dbd
+Content: Audit prompt for turn classification, hook overlap analysis, and consolidation verdict. Three-step structure: classify, audit, propose injection.
+Page: wiki/concepts/hooks-consolidation-audit-prompt.md
+
+## [2026-05-10] ingest | Hooks Architecture for Dynamic CLAUDE.md Injection
+Source: Here's the end conversation from a previous thread.md
+SHA256: 8135881a64eca622ea201d86dbd25155e41fb0dcab90a0d51c9f4c80a278f018
+Content: Design for hook system that dynamically injects relevant CLAUDE.md segments using turn classification and additionalContext injection.
+Page: wiki/concepts/hooks-claude-md-injection-strategy.md
+
+## [2026-05-10] ingest | Hooks Implementation Plan Phase 2
+Source: hooks_implementation_plan 2.md
+SHA256: 6e29ef00e690d59f033409a9927f886e4ecb9cf6f1f961f98e4f3576801f3566
+Content: Phase 2 plan: reduce PreToolUse latency, consolidate Stop-layer, add UserPromptSubmit helpfulness. Preserves dispatch-chain integrity and fail-open invariants.
+Page: wiki/concepts/hooks-implementation-plan-phase2.md
+
+## [2026-05-10] ingest | LLM Proactive Helpfulness: Fixing Passive and Literalist Responses
+Source: How can I describe the problems with this page to.md
+SHA256: 68815b9c8a85bd196f88c05d65089b5477385d0f0964c57401ee506552687ad3
+Content: Passive LLM patterns (literalism, withheld diagnoses) fixed via CLAUDE.md rules for proactive behavior plus Stop hook anti-pattern detection.
+Page: wiki/concepts/llm-proactive-helpfulness-patterns.md
+
+## [2026-05-10] ingest | Vectorized CLAUDE.md: Dynamic Retrieval of Project Policies
+Source: How can we make claude code pay attention to it's.md
+SHA256: 6d8ca34a68f4441a9315da132b1e39b9aef38abfdc05b8b8692cf6b23f158312
+Content: Hybrid approach: keep short always-on core, retrieve task-relevant micro-rules via policy engine with metadata. Two-stage retrieval at UserPromptSubmit and PostToolBatch.
+Page: wiki/concepts/vectorized-claude-md-retrieval.md
+
+## [2026-05-10] ingest | Bifrost AI Gateway Setup for Claude Code Multi-Model Routing
+Source: how do I install bifrost to work with claude code_ (1).md
+SHA256: 7232e1176ba17de6b1b27c9145d7af08beae84ef5482d947253e2ce4ebed3717
+Content: Complete setup for Bifrost gateway routing Claude Code through multiple providers. Install, configure, route, and optional MCP integration.
+Page: wiki/concepts/bifrost-gateway-multi-model-setup.md
+
+## [2026-05-10] ingest | Bifrost Setup: Anthropic-Only vs Multi-Provider Routing
+Source: how do I install bifrost to work with claude code_.md
+SHA256: 5e5247bef10049e7f4afb7e30d2f01461abd6bf27329b3eb668996ce7d77f6e7
+Content: Bifrost setup with comparison of Anthropic-only vs Bifrost-first multi-provider routing for mostly-non-Anthropic workflows.
+Page: wiki/concepts/bifrost-setup- anthropic-routing.md
+
+## [2026-05-10] ingest | NVIDIA NIM Free API: Model Access and Status Checking
+Source: I have a nvidia key.  How can I find out easily (c (1).md
+SHA256: 239ef015fec84228b8957c45d2eebb852352c9003c9876f44155948839edbc63
+Content: Reference for NVIDIA NIM free API access, PowerShell curl testing, nimping status scan (23/40 coding models UP), DeepSeek V4 availability issues.
+Page: wiki/concepts/nvidia-nim-free-models-reference.md
+
+
+## [2026-05-10] ingest | LLM Self-Critique and Self-Reflection Prompting
+Source: LLM self-critique prompting research
+SHA256: 16af3864ed809ae33bf4c3a4babfec387d8f15a0305f6e7b1c76271685153ff0
+Content: Self-critique prompting patterns and continuous feedback loops for LLM output evaluation.
+Page: wiki/concepts/llm-self-critique-prompting.md
+
+## [2026-05-10] ingest | Questions That Force LLMs to Expose Unstated Assumptions
+Source: Questions that expose LLM assumptions research
+SHA256: 172d5a9a81361b9184197c3ab18169ed6b5404c08c9148e1610d8c60980ffa1a
+Content: Scope, constraint, identity, and negative questions that challenge LLM mental models.
+Page: wiki/concepts/questions-that-expose-llm-assumptions.md
+
+## [2026-05-10] ingest | /code Skill Pipeline - Optimal Execution Order with External LLM Delegation
+Source: Code skill optimal pipeline order research
+SHA256: a46a70947a2889b4649306894053bbc0165d35b0c855dd8cff8119b3ffaa183b
+Content: /code as orchestration skill. Pipeline: resolve_input to worktree to classify to readiness to plan to delegate to verify.
+Page: wiki/concepts/code-skill-optimal-pipeline-order.md
+
+## [2026-05-10] ingest | /code Skill Pipeline Design - Execution Order Analysis
+Source: Code skill pipeline design analysis
+SHA256: 6db02dda4a26ceea883913a6661f5005f8bfbd4506dbf1ec8092c2cee79fd11c
+Content: Dependency chain analysis. Analyze before checklist, conditional explore, scope gating.
+Page: wiki/concepts/code-skill-pipeline-design.md
+
+## [2026-05-10] ingest | Model Reasoning Failures That Hooks Cannot Prevent
+Source: Model reasoning failures analysis
+SHA256: d0a0feb1972b57ca4304a268d1ddf9727593fd36f2d8453482d9d23cfbd8fe29
+Content: Three LLM failure modes hooks cannot fix. Hook best practices for v2.1.119.
+Page: wiki/concepts/model-reasoning-failures-hooks-cannot-fix.md
+
+## [2026-05-10] ingest | pi CLI NVIDIA Key Requirement Bug
+Source: pi CLI bug external review
+SHA256: 55bf4336d527f60e91ef28cde87d2d1427752a490347dd840557b76fab6fb275
+Content: pi v0.67.68 requires NVIDIA key at startup even for OpenRouter. Bug in provider init.
+Page: wiki/concepts/pi-cli-nvidia-key-bug.md
+
+## [2026-05-10] ingest | Plugin Setup - 3 Critical Fixes
+Source: Plugin setup action required
+SHA256: c1a57f0ce896620bbd84a03626ce88b13b7548cbe2b860c150a40cd083744711
+Content: Windows path fix, audit script deployment, plugin-installer optional. 7 plugins working.
+Page: wiki/concepts/plugin-setup-action-required.md
+
+## [2026-05-10] ingest | Local Plugin Marketplace Registration for Claude Code
+Source: Local plugin marketplace registration guide
+SHA256: de04a2011354b59647bafcb006cd349cb9f1d315359fe0cb6b6d73fe2b1347ee
+Content: Marketplace setup with marketplace.json, registration commands, schema validation errors.
+Page: wiki/concepts/local-plugin-marketplace-registration.md
+
+## [2026-05-10] ingest | yt-is Pipeline and Web Scraping Repository Landscape
+Source: yt-is and web scraping repo research
+SHA256: 453ceecc0d3d60f0140106e6c05afc9255972fa430d59184c19f91695edd1026
+Content: No yt-is clones. Nordstrom scraping via JSON extraction. Playwright migration path.
+Page: wiki/concepts/yt-is-pipeline-and-web-scraping-repos.md
+
+## [2026-05-10] ingest | yt-is Pipeline Selenium and DOM Scraping Research
+Source: yt-is Selenium scraping research
+SHA256: 629dc71cfca548cc418e58f78d94e99227b7047c4bc3b0e4a2a16114af874668
+Content: YouTube transcript repos vs yt-is. Multi-key API advantage. Playwright 2-5x faster.
+Page: wiki/concepts/yt-is-selenium-scraping-research.md
+
+## [2026-05-10] ingest | /bf Skill - Thin Dispatcher for Bifrost-Backed Orchestration
+Source: bf_SKILL.md
+SHA256: 1807a9c5255410392f29c965f409ba2638128c7e915738d4976747076c8a9039
+Content: Thin dispatcher (v4.0) routing to bf_v3_service.py. Models: M27, GLM-5.1, DSv4-flash.
+Page: wiki/concepts/bf-skill-thin-dispatcher.md
+
+## [2026-05-10] ingest | /bf Skill - Multi-Model Bifrost Orchestrator (v2.0)
+Source: bf_skill_complete.md
+SHA256: cfa138705bfb62d240212abf19bc55f16fddcad5ccc68e42a6c0c355da493b19
+Content: Full implementation with httpx async, mode-specific prompts, flexible arg parsing.
+Page: wiki/concepts/bf-skill-multi-model-orchestrator.md
+
+## [2026-05-10] ingest | YouTube Channel URL Verification List
+Source: YouTube channel URL verification
+SHA256: 20626e610a0c6ae6b0670f1cdf89533312e3050a75c5c8a015c424a9866c4fb9
+Content: 160+ YouTube handles verified by subscriber count and video volume. Duplicates canonicalized.
+Page: wiki/concepts/yt-channel-url-verification-list.md
+
+## [2026-05-10] ingest | Claude Search Plugin Implementation Package
+Source: claude-search-implementation-package variant
+SHA256: d7aabf33deaf1403dd32921402baf5f47b072f38604b79be42fca0436a70e8e5
+Content: Plugin-native search spec: entity types, scope maps, intent classifier, evidence packets.
+Page: wiki/concepts/claude-search-plugin-implementation-package.md
+
+## [2026-05-10] ingest | Claude Search Plugin Specification
+Source: claude-search-implementation-package
+SHA256: 92689f6f7ae258148f1e6aa8c621a4ce2308bb54e580f11df56cafcf023e9594
+Content: Deterministic entity resolution, structured evidence packets, mandatory coverage.
+Page: wiki/concepts/claude-search-plugin-spec.md
+
+## [2026-05-10] ingest | Claude Search Implementation - Final LLM Prompt
+Source: claude-search-implementing-llm-final-prompt
+SHA256: 96a10383ed5eec20bf627da9347d1ff82abe7f0b0aa1f323379dd91fc5ca11ab
+Content: Async-native bridge with UnifiedAsyncRouter. Required-root enforcement in bridge. Phase Two modules.
+Page: wiki/concepts/claude-search-implementation-final-prompt.md
+
+## [2026-05-10] ingest | Session Chaining in Claude Code After Compaction
+Source: deep-research-report session chaining
+SHA256: 9ad0d1047411f6afb6f582bdebeb57e9b9ccff805276bdf33172fee1d874aec6
+Content: No official chain API. PreCompact/PostCompact/SessionStart hooks. Hook-driven SQLite chain store.
+Page: wiki/concepts/session-chaining-after-compaction.md
+
+## [2026-05-10] ingest | Hybrid Orchestration of Local Think and External LLM Connectors
+Source: deep-research-report hybrid orchestration
+SHA256: 68d6a63f0163fa885d5b0de8114dcbe771c0ba1409b4cd6bdaf34f50b97bb55b
+Content: Think-first control plane. Six architecture patterns. Selective chaining default.
+Page: wiki/concepts/hybrid-orchestration-local-think-external-llm.md
+
+## [2026-05-10] ingest | Programming Fonts for Developers - 2026 Guide
+Source: page-2026-04-19-11-13-22.md
+SHA256: 211a31a02b2e39d0e9a21d43d2c1371a96b642dfa97bfb7daf864c073b9ea02b
+Content: Top 10 programming fonts with evaluation criteria and editor recommendations.
+Page: wiki/concepts/programming-fonts-developer-guide-2026.md
+
+## [2026-05-10] ingest | LLM Model Routing Strategy
+Source: page-2026-04-28-18-40-39.md
+SHA256: f59cb0d42ecd7380a2a1ba4f5b2b13ce34c5ed5ffd9b96cd61afbceefb5b3699
+Content: Agent harness as permanent OS with external LLMs as consultants.
+Page: wiki/concepts/llm-model-routing-strategy.md
+
+## [2026-05-10] ingest | HAT Framework Gap Analysis
+Source: Please analyze this copy-paste article and let me (1).md
+SHA256: ca42050d191bfce1e1d41e56abaa3c90c9506bcb9ad8f762836669c889735910
+Content: Six gaps in HAT framework.
+Page: wiki/concepts/hat-framework-analysis-gaps.md
+
+## [2026-05-10] ingest | Plugin Installer Setup Guide
+Source: README-OPTIMAL-SOLUTION.md
+SHA256: 0ffa3573f414d153d26995a84b8017e12b98d75a050f799b09da67aff5ac20ae
+Content: Three-step setup for 7 dev plugins with PowerShell audit and bash validation.
+Page: wiki/concepts/plugin-installer-setup-guide.md
+
+## [2026-05-10] ingest | Skill-to-Page Template Refactor
+Source: should we refactor the skill to make it more effic.md
+SHA256: 19f81bfab557f31fbf13e575f0cd0b2ed2edafa94d54edd834a384293b6ed7d1
+Content: Template skeletons for index.html instead of freeform regeneration.
+Page: wiki/concepts/skill-to-page-template-refactor.md
+
+## [2026-05-10] ingest | /go Skill Ralph Loop
+Source: SKILL.md
+SHA256: 135ed7d6ca4c625dd6c261afe5e6fd0fffb528688e348140ed11d00cff79b002
+Content: Local Ralph loop with per-terminal isolation and atomic step gating.
+Page: wiki/concepts/go-skill-ralph-loop.md
+
+## [2026-05-10] ingest | Doc-Compiler Refactor Specification
+Source: skill_to_page_refactor_prompt.md
+SHA256: 4d822a6dccfa530901b259a06034948c32e4240adb72cbcd01abb8b56a2e38ac
+Content: Diagram-aware doc compiler with nine stages and template-based emission.
+Page: wiki/concepts/doc-compiler-refactor-prompt.md
+
+## [2026-05-10] ingest | Artifact Pattern for Skill Design
+Source: SKILL-artifact-pattern.md
+SHA256: 92b8847001dd663e286d0ec8c06b276fa554e54048ffe6aa2319df12f9d016e8
+Content: Terminal-isolated state with atomic filesystem flags. Reusable across skills.
+Page: wiki/concepts/artifact-pattern-skill-design.md
+
+## [2026-05-10] ingest | LLM Reasoning Failures and Hook Boundaries
+Source: The diagnosis is correct.md
+SHA256: e01dc0d59b563bbf2da8379179ba928e616e8f46496ceae544ff306676f65c86
+Content: Literal entity resolution and unincorporated corrections are reasoning failures.
+Page: wiki/concepts/llm-reasoning-failures-hook-mitigation.md
+
+## [2026-05-10] ingest | LangGraph Task Routing
+Source: the transcript recommends using smaller &amp; chea.md
+SHA256: f78eb53c47cd84335aa286ea88e44ee7df426bd0137bc344fd8616ac321fb1ee
+Content: AgentFloor A0-E complexity tiers for model routing.
+Page: wiki/concepts/langgraph-task-routing-models.md
+
+## [2026-05-10] ingest | Doc-Compiler Pipeline Debugging
+Source: These are different conversation about our doc-com.md
+SHA256: 6f81762a19d448fc5deb19cfa629e68652bcd27a3c54c6f762c0d30ed65c3a9a
+Content: Runtime bugs, upstream modeling gaps, and process gaps in LLM prompting.
+Page: wiki/concepts/doc-compiler-pipeline-debugging.md
+
+## [2026-05-10] ingest | Z.AI Bifrost Provider Integration
+Source: This is a conversation with a not very good LLM in.md
+SHA256: c4904e83906910e108e43a2db789a9c27e4c31529c7d05bb8ea664fd5b56df05
+Content: Z.AI coding plan API different base URL. Manual GLM-5.1 declaration.
+Page: wiki/concepts/zai-bifrost-provider-integration.md
+
+## [2026-05-10] ingest | Hook False Positive Cascade
+Source: This is history from a system we have been working.md
+SHA256: 1333a8f4c8c2b24000bd57eeadae6db5d5527385b8383bf3e467a8422ef5d933
+Content: Hooks matching surface keywords without semantic understanding.
+Page: wiki/concepts/hook-false-positive-cascade.md
+
+## [2026-05-10] ingest | Skill Enforcement Gate Gap
+Source: We are having ongoing problems with claude code no.md
+SHA256: 045f6ed0de6707ecd89c771c0df14ab880ed311a407bf96c3951a7c1f501c86d
+Content: Gate only checks workflow_steps ignoring enforcement field.
+Page: wiki/concepts/skill-enforcement-gate-gap.md
+
+## [2026-05-10] ingest | Mermaid Pane Resize Solution
+Source: We are trying to resize the mermaid pane so that I.md
+SHA256: ed21c12f7a10a3c5610d7aacbd72f30c0bddd413d2e79974f39d3a7b5b159818
+Content: Container lacked height constraint. Added resize with drag handle.
+Page: wiki/concepts/mermaid-pane-resize-solution.md
+
+## [2026-05-10] ingest | CLAUDE.md Memory Injection Architecture
+Source: We had a conversation related to this subject for.md
+SHA256: 2592555de7c09788ab0a6afddcf277d029eabb07f61b3e7f1180cae01bf9b7cc
+Content: Three-layer design: baseline rules, just-in-time reminders, enforcement.
+Page: wiki/concepts/claude-md-memory-injection-architecture.md
+
+## [2026-05-10] ingest | Skill-Creator Plugin Guide
+Source: what does the claude code plugin skill-creator do_.md
+SHA256: 2ba4ab491f364cb44a50688f75cabe510c1f5f4b7ece41f7566699fcc4e0fce0
+Content: Meta-skill for automated skill creation, testing, evaluation.
+Page: wiki/concepts/skill-creator-plugin-guide.md
+
+## [2026-05-10] ingest | Tokio Prompt Orchestrator Hooks
+Source: what does this mean for claude code_ _Best practic.md
+SHA256: b73a117c04ce6cdabbb82b438d906adc85136b02f7738c92e7c37172f4209229
+Content: Rust async orchestration with 10 hook points across 5 stages.
+Page: wiki/concepts/tokio-prompt-orchestrator-hooks.md
+
+## [2026-05-10] ingest | NSE and Q Skill Decomposition
+Source: What domains are being expressed in these decompos.md
+SHA256: 64f80c3be5f7bfc3c891ccfc522eb7f61793f9b220d1db7ff79751ae208356cd
+Content: 22 components across /nse (7) and /q (15). Gaps in task backlog and RCA documentation.
+Page: wiki/concepts/nse-q-skill-decomposition-domains.md
+
+## [2026-05-10] ingest | QMD Web Ingestion Workflow
+Source: In claude code qmd ingesting files.md
+SHA256: 150d01a098ba8110436041f7adce3cac5b00483ddcee1211c117dffcf5166e14
+Content: QMD web ingestion pipeline using Firecrawl/Playwright.
+Page: wiki/concepts/qmd-web-ingestion-workflow.md
+
+## [2026-05-10] ingest | Claude Code Stop Hook Claim Enforcement
+Source: In claude code we are a little stuck.md
+SHA256: f3808ff7a97bf65d2c84a9d03a0c2c42845c4f44ea0ffa783781453a11685472
+Content: Stop hook claim verification traps and causal claim gap.
+Page: wiki/concepts/claude-code-stop-hook-claim-enforcement.md
+
+## [2026-05-10] ingest | LM Studio RAG Configuration on Windows
+Source: in lmstudio on windows.md
+SHA256: b48c616a6ac74cbe61380f4dfb8f75b4c21fbb51a7eb9092b289a706b354ce0f
+Content: LM Studio built-in RAG and Big RAG plugin setup.
+Page: wiki/concepts/lmstudio-rag-setup.md
+
+## [2026-05-10] ingest | TLDR Pages Repository
+Source: is there a tldr repo_.md
+SHA256: 507147ea8ed01f031c2bfcb535d5e16173c7e56f872c794799dfc1e05136d99e
+Content: tldr-pages/tldr canonical repository and clients.
+Page: wiki/concepts/tldr-pages-repository.md
+
+## [2026-05-10] ingest | Claude Code Plugin Skill Namespacing
+Source: Is there a workaround in claude code.md
+SHA256: 7c95aef521d41b62f457cd8b2ee3c68cd152b379eb4121c985936bbe0cac90fa
+Content: Plugin skill namespacing and autocomplete bug.
+Page: wiki/concepts/claude-code-plugin-skill-namespacing.md
+
+## [2026-05-10] ingest | Browser Session Architecture NotebookLM
+Source: Let me know browser automation.md
+SHA256: ba5bc8e45558d9f9632b43cc889b64f12066418ed7e79d6432b003de0f71e082
+Content: Playwright automation profile for NotebookLM DOM testing.
+Page: wiki/concepts/browser-session-architecture-notebooklm.md
+
+## [2026-05-10] ingest | LLM Hallucination in Debugging RCA
+Source: LLM_1 says this about LLM_2.md
+SHA256: a939fc368f9d46c89a1bf7a65e71ede5225803034978bed3aa51855943cde23d
+Content: Cross-model debugging RCA showing fabrication.
+Page: wiki/concepts/llm-hallucination-debugging-rca-analysis.md
+
+## [2026-05-10] ingest | Plugin Installer Setup Manifest
+Source: MANIFEST.md
+SHA256: 19dd16e5d30b0cab3205784e16bcb4b0dcc2190c09a768560a2ed6ec9b95ad8f
+Content: Plugin installer deployment manifest.
+Page: wiki/concepts/plugin-installer-manifest.md
+
+## [2026-05-10] ingest | Diagram-as-Code Standards Comparison
+Source: Mermaid diagrams software architecture.md
+SHA256: 2b7ce5bfc6d5f254bed9f65e3407796d7f5c43f8b63f5719924ec69885d98742
+Content: Mermaid vs Excalidraw vs D2 vs PlantUML.
+Page: wiki/concepts/diagram-standards-comparison.md
+
+## [2026-05-10] ingest | Design Review Reasoning Bookend Rule
+Source: My design skill lazy errors think 1.md
+SHA256: e0ecb18cba33c8899c4016cdffa1c13fb83fc86e55ea0e83245ac25886ac5200
+Content: Premature bug call with bookend rule fix.
+Page: wiki/concepts/design-review-reasoning-bookend-rule.md
+
+## [2026-05-10] ingest | LangGraph Skills Orchestration
+Source: My design skill lazy errors think 2.md
+SHA256: 0650ddf7e13d184b8024f3430af0b29ee7325a17a02549d6189e2d5ec05f0639
+Content: Skills with embedded scripts outperform pure LLM.
+Page: wiki/concepts/langgraph-skills-orchestration-benchmarks.md
+
+## [2026-05-10] ingest | Design Review Bookend Rule System
+Source: My design skill lazy errors think.md
+SHA256: 31fb8d0a742ada2f33beab7aa6cd0e13d1ea8f768dc7b806acc6d10afee8f8e9
+Content: Operationalizing bookend rule as system guardrail.
+Page: wiki/concepts/design-review-bookend-rule-system.md
+
+## [2026-05-10] ingest | LLM CSS Layout Verification Failure
+Source: My LLM says this wrong.md
+SHA256: 46385a56b5bda6310e4e31a2ef1e8971a522a1bc17108c64f1cd058887176a1d
+Content: Skill-to-page self-referential bug cycle.
+Page: wiki/concepts/llm-css-layout-verification-failure.md
+
+## [2026-05-10] ingest | NotebookLM YouTube Quality Prompts
+Source: notebooklm-youtube-quality-prompts.md
+SHA256: d3766899ad9edc9d78e16a280a79465685898f21ef6127ad0016e55b1f1a0c87
+Content: Five prompts for YouTube quality scoring.
+Page: wiki/concepts/notebooklm-youtube-quality-prompts.md
+
+## [2026-05-10] ingest | NotebookLM YouTube Scam Detection
+Source: notebooklm-youtube-scam-prompts.md
+SHA256: e9438ef9b24d633415eb31503596f00870232c60f0f3a57c312acbd1a643717d
+Content: Five prompts for scam and fake engagement detection.
+Page: wiki/concepts/notebooklm-youtube-scam-detection-prompts.md
+
+## [2026-05-10] ingest | NotebookLM yt-dlp Quality Playbook
+Source: notebooklm-yt-dlp-quality-playbook.md
+SHA256: cb3edac659b21591e7d9c2d389112d890aea8addfe7c991d19cf6a6962a40aa9
+Content: Batch YouTube analysis pipeline with yt-dlp.
+Page: wiki/concepts/notebooklm-ytdlp-quality-playbook.md
+
+## [2026-05-10] ingest | NotebookLM yt-dlp RedFlags Proxy
+Source: notebooklm-ytdlp-redflags-proxy-guide.md
+SHA256: e02e1ce99e940088c777538226d18b03dab02cf4502f2c0a5118cc245d7d2c40
+Content: Red-flag prompts and proxy rotation scaling.
+Page: wiki/concepts/notebooklm-ytdlp-redflags-proxy-guide.md
+
+## [2026-05-10] ingest | Plugin Installer Copy-Paste Setup
+Source: OPTIMAL-SETUP-COPY-PASTE.md
+SHA256: 5f2ce0dd70f68d8e4dfed86a2255b3e3f7c6ddf1095ca1b2e58a8f471dc20ac7
+Content: Quick copy-paste deployment of 7 plugins.
+Page: wiki/concepts/plugin-installer-copy-paste-setup.md
+
+## [2026-05-10] ingest | Programming Fonts Comparison
+Source: page-2026-04-19-11-13-08.md
+SHA256: 29682c1b340692083cfb14d3b6cced80cc494cd7731dcaca32ebff3ac68ed1b3
+Content: Free programming font comparison for eye strain.
+Page: wiki/concepts/programming-fonts-comparison.md
+
+## [2026-05-10] ingest | Claude Code Memory Plugins
+SHA256: b073729ede9b7c53c854378080bdfe01df7e0c9236670b21d315603634446641
+Content: remember and claude-mem plugins for persistent context, token efficiency, and common issues.
+Page: wiki/concepts/claude-code-memory-plugins-remember-and-claude-mem.md
+
+## [2026-05-10] ingest | GitHub Pull Requests Guide
+SHA256: 3e9b9dbe1b37ac384e9db76e953313415381d91c62225b491836beb26cd037a9
+Content: Full PR guide covering core components, PR vs MR, solo developer LLM SDLC integration, review best practices.
+Page: wiki/concepts/github-pull-requests-guide.md
+
+## [2026-05-10] ingest | GitHub PR Fundamentals
+SHA256: ba313f217af0c5449058ee9559454ef4b14178e2a4003910dd6424d5c440b206
+Content: PR basics: workflow, advanced features, review process, PR vs merge request.
+Page: wiki/concepts/github-pr-fundamentals.md
+
+## [2026-05-10] ingest | Claude Code Focus Mode
+SHA256: 9e6911bf362a2e789503cb88880950d8e7f7de1b78d3b9729ef2e81205e934d2
+Content: Focus mode as viewMode setting with three modes, configuration via /config, availability caveats on Windows.
+Page: wiki/concepts/claude-code-focus-mode.md
+
+## [2026-05-10] ingest | Gemini CLI Integration with Claude Code
+SHA256: ed13b8bb6db7ae27fe75044df6e7eb85a0420ca3fb517d717eeebb7b862f4fe1
+Content: Public repos wiring Gemini CLI into Claude Code via MCP, integration toolkits, multi-model workflows.
+Page: wiki/concepts/gemini-cli-in-claude-code-integration.md
+
+## [2026-05-10] ingest | Git Index Lock and Concurrent Access Recovery
+SHA256: 1bdc671dfe8fe9445336551d8ce9a58823735809d8040a7f02b2726084605552
+Content: Git index.lock root causes (concurrent access), submodule status codes, safe recovery path for monorepos.
+Page: wiki/concepts/git-index-lock-concurrent-access-recovery.md
+
+## [2026-05-10] ingest | Preventing Skill File Deletion Gaps
+SHA256: a4a7d799fd2de7ed0222c19a45298942fa5a35f544681dd962e6ef74d30ef872
+Content: Prevention layers for skill file deletion: audit scripts, guard skills, pre-commit hooks, two-phase playbooks.
+Page: wiki/concepts/skill-file-deletion-prevention-guardrails.md
+
+## [2026-05-10] ingest | Design Reference Template Extraction
+SHA256: 734570553aa92dc6c83bdd538f44825556a9193899521e323e59d9e2f23068a8
+Content: Prompt engineering for extracting reusable design templates, avoiding shallow mimicry and over-engineering.
+Page: wiki/concepts/design-reference-template-extraction.md
+
+## [2026-05-10] ingest | Claude Code /simplify Command
+SHA256: 0e3699414e5926ff6ff1751ed708b14df3b155c0aac8815879c05b17745d105c
+Content: /simplify as internal command, relationship to public code-simplifier agent, lifecycle domain.
+Page: wiki/concepts/claude-code-simplify-command.md
+
+## [2026-05-10] ingest | OpenAI Codex Windows 11 Troubleshooting
+SHA256: 96f71b62dd6a82770b752243030a5f6bb71a83bfac81c4203290c3aa84325484
+Content: Shell initialization failures, PowerShell conflicts, ripgrep blocking, prioritized fixes for Codex on Win11.
+Page: wiki/concepts/openai-codex-windows-11-troubleshooting.md
+
+## [2026-05-10] ingest | LLM Overconfidence and Structural Assessment Failures
+SHA256: 6d55b5002353da1b19d6da98fa806a7522c17a9e9adb4a6d0fa6a1a5ec29703f
+Content: Three root causes of LLM overconfidence (vocabulary mismatch, dead code, advisory vs enforcement).
+Page: wiki/concepts/llm-overconfidence-and-structural-assessment-failures.md
+
+## [2026-05-10] ingest | LangGraph Compare Service with Bifrost
+SHA256: ac4bbdba337032f39f56191315ccd636411bd7b4ee9997f91c44480be6846ccb
+Content: LangGraph StateGraph for parallel multi-model comparison via Bifrost with fan-out workers and result synthesis.
+Page: wiki/concepts/langgraph-compare-service-bifrost.md
+
+## [2026-05-10] ingest | SDLC Skill Stack - /code, /design, /planning, /go
+SHA256: a5d6d0f1e77cc927cf1289e3c971aa66a22175a683c57e1e613443a93bb4225f
+Content: Four-skill SDLC stack: /go (worktree), /design (CAPs), /planning (plans), /code (TDD orchestrator).
+Page: wiki/concepts/sdlc-skill-stack-code-design-planning-go.md
+
+## [2026-05-10] ingest | Producer-Consumer Contract Testing for LLM Handoffs
+SHA256: 477289bfa56acb870d682783bed53e05fcdafc256f6aeb7f818ae31673bfe731
+Content: Contract Testing (CDC) for LLM session handoffs, preventing missing envelope fields via Pydantic validation.
+Page: wiki/concepts/producer-consumer-contract-testing-for-handoffs.md
+
+## [2026-05-10] ingest | Hook Over-Enforcement and Epistemic Gate Refactoring
+SHA256: acb9d933e7554d44a4a5f47fe5249038896081d6be033b5b0c605c3fe7ed5317
+Content: Epistemic format hooks blocking architecture reasoning, root causes, refactor target.
+Page: wiki/concepts/hook-over-enforcement-and-epistemic-gate-refactoring.md
+
+## [2026-05-10] ingest | Hook Refactoring Audit Checklist
+SHA256: 4cb2760eb4b388196192c19243a6936c2097c468ef06df042626a3338f10aba5
+Content: Audit checklist for hook refactoring: inventory, policy files, runtime overrides, failure corpus.
+Page: wiki/concepts/hook-refactoring-audit-checklist.md
+
+## [2026-05-10] ingest | YouTube Ingestion Throughput Bottleneck Analysis
+SHA256: 734570553aa92dc6c83bdd538f44825556a9193899521e323e59d9e2f23068a8
+Content: NotebookLM ingestion bottleneck in source addition phase (588-1051s), workers sequential despite parallel arch.
+Page: wiki/concepts/youtube-ingestion-throughput-bottleneck-analysis.md
+
+## [2026-05-10] ingest | NVIDIA NIM Free Model Access
+Source: I have a nvidia key.  How can I find out easily (c.md
+SHA256: badf9552cb5d0a26fd0aee9271c22894c05d50f55b5446eaabfe85a158ca8a62
+Content: NVIDIA NIM free API key access to 150+ serverless models; nimping CLI for batch checks.
+Page: wiki/concepts/nvidia-nim-free-model-access.md
+
+## [2026-05-10] ingest | Iterative LLM Review Automation
+Source: I have LLM_A (claude code), and LLM_B (codex).  I.md
+SHA256: fff4bec5eb460165069ea9526eb1b2907082a6bc5f2a60624c93453efffed540
+Content: Multi-agent review frameworks for Claude/Codex ping-pong; convergence via edit distance.
+Page: wiki/concepts/iterative-llm-review-automation.md
+
+## [2026-05-10] ingest | MiniMax M2.7 Bifrost Integration
+Source: I want to use my minimax token plan with bifrost a.md
+SHA256: ee794d02c59c2bf6e1869aa239087a3bb1ccae2acce05cc7eaf28194ce8564eb
+Content: M2.7 on MiniMax platform but missing from Bifrost; manual custom provider workaround.
+Page: wiki/concepts/minimax-m27-bifrost-integration.md
+
+## [2026-05-10] ingest | NotebookLM Batch Size Experiment
+Source: I am talking to claude code but I do not think it is.md
+SHA256: 473ab9dd3b5b0f9b1842408da3411bf125e8cd921f194d638cc03dfac784a7e2
+Content: LLM reasoning failure attributing elapsed_s to yt-dlp; 225 per-request limit; hook gap.
+Page: wiki/concepts/notebooklm-batch-size-experiment.md
+
+## [2026-05-10] ingest | Hook Noise Reduction Strategy
+Source: I am working in claude code and we have hooks that.md
+SHA256: abbd63e57fe1439d50bf080c59719692e73345e3cdbd2b8f0239cf19f1ea3294
+Content: Treat hooks as alerting system; hard vs soft split; suppression tree; confidence scoring.
+Page: wiki/concepts/hook-noise-reduction-strategy.md
+
+## [2026-05-10] ingest | Artifact Pattern Implementation
+Source: IMPLEMENTATION-GUIDE.md
+SHA256: 2eb3945093eb19a1c8a59bd52c0a7091b42943ce726598bf3cf66ac758e696aa
+Content: Artifact state-flag pattern for /go skill; per-terminal isolation; atomic step gating.
+Page: wiki/concepts/go-artifact-pattern-implementation.md
+
+## [2026-05-10] ingest | Silent Stop Hook Limitation
+Source: in Claude Code Is it really impossible to have sil (1).md
+SHA256: d2f9bdbd74f1f1a02cc2396ed0122ea56d3f564774ebc9876e6e83337fb1eae0
+Content: Stop hook has no silent-block mode; move formatting to UserPromptSubmit.
+Page: wiki/concepts/silent-stop-hook-limitation.md
+
+## [2026-05-10] ingest | Silent Stop Hook Analysis Extended
+Source: in Claude Code Is it really impossible to have sil (2).md
+SHA256: 8bb9b9a58dbdd14fbf03738eb05e53f702d0b2e59fd2fdbd279e7fb26352cd06
+Content: Extended analysis; three enforcement tiers; UserPromptSubmit architecture.
+Page: wiki/concepts/silent-stop-hook-analysis-v2.md
+
+## [2026-05-10] ingest | Silent Stop Hook Original Query
+Source: in Claude Code Is it really impossible to have sil.md
+SHA256: ae092848437a7c4fcd4ed92d2e5f559532cba4fd8cf79389efbd194bb33e2a33
+Content: Original query; confirms impossibility; upstream enforcement recommended.
+Page: wiki/concepts/silent-stop-hook-original-query.md
+
+## [2026-05-10] ingest | Relative Import Fix skill-guard
+Source: in claude code on windows 11 does this proposal m.md
+SHA256: f22edd3ad1fd92aa75c13d512b56fff09264f5bd4e34e4b66b2fc52d59507211
+Content: ImportError from relative imports in hooks.json; fix is absolute imports.
+Page: wiki/concepts/relative-import-fix-skill-guard.md
+
+## [2026-05-10] ingest | OpenCode SQLite Sequential Dispatch
+Source: In claude code on windows 11 is this true Su.md
+SHA256: 2318fdb7ca5995653d91ac9383810444acdc5f329b994e5b9317c86d83040058
+Content: SQD dispatch converted to sequential due to SQLite lock.
+Page: wiki/concepts/opencode-sqlite-sequential-dispatch.md
+
+## [2026-05-10] ingest | Windows 11 Silent Edit Failures
+Source: In claude code on windows 11 this is a critical p.md
+SHA256: f518998e85ad05054d82303fb109abdf93fdb24bf338adea9cbbbc7a867d687c
+Content: Silent file write failures on Windows 11; post-edit verification loops.
+Page: wiki/concepts/windows-11-silent-edit-failures.md
+
+## [2026-05-10] ingest | Discovering All Hooks Sources
+Source: In Claude code they have hooks. They can be global.md
+SHA256: bd54dac06160ed0f1e2abe062676bad569e57b36c4661986ff7478cfea6c5a0b
+Content: Six hook sources; discovery prompt strategy; 24-26 events.
+Page: wiki/concepts/discovering-all-hooks-sources.md
+
+## [2026-05-10] ingest | Skill Self-Verification via Hooks
+Source: In claude code how can we solve this skill self-v (1).md
+SHA256: bd2920695e49b45040ba7d73aef3c3232e34060be79f96c3ef8110a62afcd495
+Content: 4-component self-verification: state file + PreToolUse + PostToolUse + Stop.
+Page: wiki/concepts/skill-self-verification-hooks.md
+
+## [2026-05-10] ingest | Auto-Stage and Commit Strategies
+Source: in claude code I want to auto-stage and commit A.md
+SHA256: fdd8ec715d716583c8e82e39bc255e7c2851d7ddc67a5556a10024b3e536794b
+Content: Three approaches: CLAUDE.md, PostToolUse hook, Stop hook.
+Page: wiki/concepts/auto-stage-commit-strategies.md
+
+## [2026-05-10] ingest | Prompt Chaining Best Practices
+Source: In Claude code I would like to learn about prompt.md
+SHA256: 09dfbe40b67a1b79af6caa48dbcd11194a2e3e320c72a03db8a1596f91ede88a
+Content: Six design principles; structured handoffs; validation loops; branching.
+Page: wiki/concepts/prompt-chaining-best-practices.md
+
+## [2026-05-10] ingest | Context Injection Memory Errors
+Source: in claude code I am trying to create a useful cont (1).md
+SHA256: 76a752805bb48f704f8caceba4d1d5bec0126b9df1b226ee40d323b84e074eac
+Content: Three mistakes about hook API; only command hooks exist; no programmatic routing.
+Page: wiki/concepts/context-injection-memory-system-errors.md
+
+## [2026-05-10] ingest | Context Injection GTO Pipeline
+Source: in claude code I am trying to create a useful cont.md
+SHA256: cc9fa1c0a2664e42b307db046778ef94209f73d85a0d6d1c74830c1afddcdf06
+Content: GTO health score 20; schema contradiction; unactioned recommendations.
+Page: wiki/concepts/context-injection-gto-pipeline-issues.md
+
+## [2026-05-10] ingest | QMD Web Ingestion Tools
+Source: In claude code I am using qmd for ingesting files (1).md
+SHA256: a5b634b5a91d74052c5d5704f87beee735abb69f3d91824ac672f6ee04fe786d
+Content: QMD web ingestion pipeline; tool stack: curl, Playwright, Firecrawl.
+Page: wiki/concepts/qmd-web-ingestion-tools.md
+## [2026-05-10] ingest | Artifact Identity Mismatch Remediation
+Source: deep-research-report (3).md
+SHA256: 00063c0b5a27055ca52168d3ea2da7bd53da2a57207a7e8b6267ada6131c118a
+Content: Remediation plan for artifact identity mismatch in Claude Code where broad search returns wrong sibling skill results
+Page: wiki/concepts/artifact-identity-mismatch-remediation.md
+
+## [2026-05-10] ingest | yt-is Throughput Bottleneck Diagnosis Prompt Review
+Source: deep-research-report.md
+SHA256: b64cb064f2e7b7ef34828002ff9a7fa93340987c25b51bb43078399ed54772fd
+Content: Analytical review of a diagnostic prompt for yt-is video ingestion pipeline throughput bottleneck
+Page: wiki/concepts/yt-is-throughput-bottleneck-diagnosis.md
+
+## [2026-05-10] ingest | NotebookLM Bulk Deletion Automation
+Source: delete all notebooks that have the _worker_ in the.md
+SHA256: 73fd53abf728b2e4fc5c3186b08cfe5adeeee9f7c8bf3e1da06d96bf5ea34c17
+Content: Browser console script and Chrome extension architecture for bulk-deleting NotebookLM notebooks by title filter
+Page: wiki/concepts/notebooklm-bulk-deletion-automation.md
+
+## [2026-05-10] ingest | Plugin Installer Deployment Guide
+Source: DEPLOYMENT.md
+SHA256: 9267d0bf47547b476b560ad7e2f6fabe71aae99bf4d0cd447389d533c122cd47
+Content: Three-option deployment guide for creating plugin-installer skill in Claude Code marketplace
+Page: wiki/concepts/plugin-installer-deployment-guide.md
+## [2026-05-10] ingest | Plugin Installer Deployment Checklist
+Source: DEPLOYMENT-CHECKLIST.md
+SHA256: f0d6337ab05bf937623f0aea394be098b98f728907317aaf7b17936cefac331a
+Content: Pre-flight through post-flight checklist for deploying plugin-installer skill and verifying 7 marketplace plugins
+Page: wiki/concepts/plugin-installer-deployment-checklist.md
+
+## [2026-05-10] ingest | Diagnose Skill Complete Implementation Package
+Source: diagnose-complete-implementation-package.md
+SHA256: 06a6e32604df30d16a6afbd35c211e9ca4faac38e56ffd1093353d2622100438
+Content: Implementation spec for diagnose skill as policy-driven orchestrator over Python analyzers agents hooks and machine artifacts
+Page: wiki/concepts/diagnose-skill-implementation-package.md
+
+## [2026-05-10] ingest | Intelligence Stream Pipeline Repo Survey
+Source: Do repos exist for the _intelligence stream_ descr.md
+SHA256: c5526b9d68863846cf18753772d1f8351cdaa8ce60b57b7935cea8ee9a6cfd4c
+Content: Survey of existing repos for YouTube intelligence stream pipeline and missing orchestration layer
+Page: wiki/concepts/intelligence-stream-repo-survey.md
+
+## [2026-05-10] ingest | Doc-Compiler Skill Specification
+Source: do the needful so that we have a full working impl.md
+SHA256: 715f6be063515a34befa678dc832f60a56b0be5a30d11b3a2cdf7adb211d2381
+Content: Complete spec for doc-compiler skill compiling skills/plugins into interactive diagram-aware HTML documentation
+Page: wiki/concepts/doc-compiler-skill-specification.md
+
+## [2026-05-10] ingest | Mermaid SVG Race Condition and Theme Toggle Fix
+Source: Do you agree with this result___The skill generate.md
+SHA256: 31d4d190114d781eed8ca1f8f414312530f3f91e38949189f31c29aaf6131760
+Content: Forensic breakdown of three JS failure points in Mermaid diagram rendering race condition DOM destruction state loss
+Page: wiki/concepts/mermaid-svg-race-condition-fix.md
+## [2026-05-10] ingest | YouTube Channel Quality Evaluation for Intelligence Stream
+Source: Do you think any of these channels are low quality (1).md
+SHA256: b3975ccea3d371bea247b2c5201ac34cffaf99c927f930d91eb7c26f9996295a
+Content: 94 YouTube channel URLs for quality evaluation as part of intelligence stream content curation pipeline
+Page: wiki/concepts/youtube-channel-quality-evaluation.md
+
+## [2026-05-10] ingest | Plugin Loading Failure Root Cause Analysis
+Source: Does this make sense_  __  Problem Statement_ reas.md
+SHA256: bbbd024d76926ad4048e9e36f2ddf297a3fbd725ab59d379712f76a2f71df8eb
+Content: Root cause analysis of reason_openai_v4.0 plugin loading failure registry entry cache location enabled toggle
+Page: wiki/concepts/plugin-loading-failure-diagnosis.md
+
+## [2026-05-10] ingest | Reasoning Hygiene Hooks Evaluation
+Source: Does this seem like a good idea given the problems (1).md
+SHA256: 93f9e8b6d73f9abc62fc51395026299e88f904f7ab7e1e434683daa914cf964f
+Content: Evaluation of regex-based Stop hooks for reasoning hygiene and alternatives self-critique local LLM verification
+Page: wiki/concepts/reasoning-hygiene-hooks-evaluation.md
+
+## [2026-05-10] ingest | Bifrost MCP Filesystem Setup Plan
+Source: exported-assets (4)/script.md
+SHA256: a28b115fcb4fc40e809dd69f9784e29930a76bb92d1492ce8abee0cbaaadf6d5
+Content: Step-by-step setup plan for Bifrost + MCP filesystem + Claude Code on Windows 11 via WSL2
+Page: wiki/concepts/bifrost-mcp-filesystem-setup-plan.md
+
+## [2026-05-10] ingest | BF Dispatcher and V3 Service Implementation
+Source: exported-assets (4)/script_1.md
+SHA256: f3964756ac7e0034d71b68e7697aec2e0f85a7da44bbc65e25cd74a2fae696d8
+Content: Complete implementation of /bf skill dispatcher and bf_v3_service.py FastAPI+LangGraph orchestration service
+Page: wiki/concepts/bf-dispatcher-and-v3-service.md
+## [2026-05-10] ingest | Bifrost Setup Quick Reference Checklist
+Source: exported-assets (7)/bf_files.md
+SHA256: 4f2b8db14bbbcd90d04af90957babdd9baff4040869f2e6aa597eab0db71c900
+Content: Structured JSON plan and quick-start checklist for Bifrost + MCP Filesystem + Claude Code setup
+Page: wiki/concepts/bifrost-setup-checklist.md
+
+## [2026-05-10] ingest | Plugin Install Facts and Reality Gap Analysis
+Source: FACTS-AND-REALITY.md
+SHA256: 67ed58fb8f98f0be9cfe54a4eeeb5de82cf7623b7c4322cf9660e07a1d1a386e
+Content: Gap analysis comparing requested bash plugin installs vs delivered with 3 specific gaps and current plugin status
+Page: wiki/concepts/plugin-install-facts-and-reality.md
+
+## [2026-05-10] ingest | NTP TDD Enforcement System v2.0 Changelog
+Source: files/CHANGELOG.md
+SHA256: b641528a37ce627b07641ab5a88ddfece58807275c6ab9d28179fb74c2bd19bb
+Content: 12 fixes for NTP TDD enforcement cross-process env vars HMAC bypass retry corruption validation hardening
+Page: wiki/concepts/ntp-tdd-enforcement-v2.0-changelog.md
+
+## [2026-05-10] ingest | NTP TDD Enforcement System v2.1 Changelog
+Source: files (1)/CHANGELOG-v2.1.md
+SHA256: 223d9285b071cd36c565d75b6e883ec4449c124d1f8cdd8c8bf992254b8177e7
+Content: 5 external review fixes preflight session-aware bypass validator-owned test execution per-session HMAC refactor enforcement
+Page: wiki/concepts/ntp-tdd-enforcement-v2.1-changelog.md
+
+## [2026-05-10] ingest | NTP TDD Enforcement System v3.1 Review
+Source: files (2)/REVIEW-AND-CHANGELOG.md
+SHA256: bbf3eb04d3d1c5f0d2df93a35fb80a0dcb2c4d7b66db287bad6c949328fa4790
+Content: Review of v3 draft 2 crashes 5 logic bugs 1 security regression HMAC dropped 3 regressions from v2.1
+Page: wiki/concepts/ntp-tdd-enforcement-v3.1-review.md

@@ -37,6 +37,8 @@ SETUP_SEQUENCE = [
     # "SessionStart_folder_context.py",  # DISABLED: Missing features.lib_folder_context module
     # 2. Health Check (cleanup now handled by session_data_retention inline)
     # "SessionStart_hook_health_check.py",  # DISABLED: 319ms avg, never caught a failure in 17 runs
+    # 2. Contract System Health (lightweight, anomaly-first)
+    "SessionStart_contract_health.py",
     # 3. Log Rotation (throttled to once per day)
     "SessionStart_log_rotation.py",
     # 4. State Restore (Session Continuity)

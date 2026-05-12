@@ -1,0 +1,1 @@
+Plugin hook namespacing: fact-guard, snapshot, skill-guard renamed hooks to {plugin}_{event}.py pattern. hooks.json updated. Versions bumped. All 13 plugins validated. Plugin reload successful.

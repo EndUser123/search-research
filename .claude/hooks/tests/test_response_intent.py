@@ -51,6 +51,36 @@ class TestQuoteStripping:
         # Bullet line stripped, but "Now I'll actually do it" remains
         assert "actually" in stripped
 
+    def test_strips_unicode_curly_double_quotes(self):
+        text = 'He said "Proceeding to implement" and left'
+        stripped = _strip_quoted(text)
+        assert "Proceeding" not in stripped
+
+    def test_strips_unicode_curly_single_quotes(self):
+        text = "She said 'proceeding to execute' in the doc"
+        stripped = _strip_quoted(text)
+        assert "proceeding" not in stripped
+
+    def test_strips_dollar_quoted_strings(self):
+        text = "The pattern $Proceeding to implement$ matches"
+        stripped = _strip_quoted(text)
+        assert "Proceeding" not in stripped
+
+    def test_strips_html_entity_double_quote(self):
+        text = "The phrase &quot;Proceeding to implement&quot; was used"
+        stripped = _strip_quoted(text)
+        assert "Proceeding" not in stripped
+
+    def test_strips_html_entity_apos(self):
+        text = "The phrase &apos;Proceeding to implement&apos; was used"
+        stripped = _strip_quoted(text)
+        assert "Proceeding" not in stripped
+
+    def test_strips_html_entity_hash39(self):
+        text = "The phrase &#39;Proceeding to implement&#39; was used"
+        stripped = _strip_quoted(text)
+        assert "Proceeding" not in stripped
+
 
 class TestMetaPatterns:
     """Test meta/debug discussion detection."""

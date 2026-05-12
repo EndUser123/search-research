@@ -1,0 +1,18 @@
+{
+  "run_id": "e3f39625-ce0c-45bc-b0a6-4b407186eb81",
+  "skill_name": "go",
+  "contract_type": "workflow-execution",
+  "phase": "executing",
+  "status": "complete",
+  "terminal_id": "console_d44d1a21-2da4-4189-b096-e5a5f8af8dcd",
+  "session_id": "bd275844-1393-4141-9186-5fec1175154f",
+  "turn_id": null,
+  "created_at": 1778537212.320957,
+  "updated_at": 1778538261.7418027,
+  "required_artifacts": [],
+  "completed_artifacts": [],
+  "missing_requirements": [],
+  "allowed_tools_now": [],
+  "blocked_tools": [],
+  "response_requirements": {}
+}

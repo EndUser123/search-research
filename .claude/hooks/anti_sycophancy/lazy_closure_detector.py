@@ -24,6 +24,27 @@ from typing import NamedTuple
 __all__ = ["detect_lazy_closure", "detect_all_lazy_closure", "LazyClosureMatch"]
 
 
+def _check_investigation_in_ledger() -> bool:
+    """Return True if the investigation ledger shows any prior investigation.
+
+    Checks files_read, searches, and executions for non-empty lists.
+    Fails open (returns True) on ledger errors to avoid false positives.
+    """
+    try:
+        import sys as _sys
+        _sys.path.insert(0, str(__file__).replace("\\", "/").rsplit("/anti_sycophancy/", 1)[0])
+        from investigation_ledger.ledger import _load_ledger
+        ledger = _load_ledger()
+        files_read = ledger.get("files_read", [])
+        searches = ledger.get("searches", [])
+        executions = ledger.get("executions", [])
+        # Any investigative activity counts
+        return bool(files_read or searches or executions)
+    except Exception:
+        # Fail open: ledger errors should not trigger false positives
+        return True
+
+
 class LazyClosureMatch(NamedTuple):
     """Detection result with remediation guidance."""
 
@@ -409,6 +430,27 @@ TOOL_USAGE_MARKERS = frozenset(
 )
 
 
+# Investigation/root-cause bypass phrases — suppress lazy_fix when describing/tracing
+# a workaround rather than proposing one as a fix.
+INVESTIGATION_BYPASS_PHRASES = [
+    r"trace\s+(the\s+)?(source|cause|origin)",
+    r"investigate\s+why",
+    r"find\s+(the\s+)?(root\s+)?cause",
+    r"identify\s+where",
+    r"debug\s+(the\s+)?(issue|problem)",
+    r"fix\s+(the\s+)?(underlying|root)",
+    r"prevent\s+(the\s+)?duplication",
+    r"(?:should|will|need to|going to|planning to)\s+(?:trace|investigate|find root|debug|identify)",
+    r"(?:let me|let us|i'll|i will)\s+(?:trace|investigate|find|debug|identify)",
+    r"(?:tracing|investigating|finding|debugging|identifying)\s+(?:where|why|what|how)",
+]
+
+
+def _has_investigation_intent(text: str) -> bool:
+    """Check if text contains root-cause investigation intent (bypass for lazy_fix)."""
+    return any(re.search(p, text, re.IGNORECASE) for p in INVESTIGATION_BYPASS_PHRASES)
+
+
 # Compile patterns for efficiency
 _LAZY_JUSTIFICATION = [re.compile(p, re.IGNORECASE) for p in LAZY_JUSTIFICATION_PHRASES]
 _ASSUMED_MECHANISM = [re.compile(p, re.IGNORECASE) for p in ASSUMED_MECHANISM_PHRASES]
@@ -564,8 +606,22 @@ def detect_lazy_closure(response: str) -> LazyClosureMatch | None:
 
     # User delegation is checked unconditionally — "I ran bash" earlier in the
     # response doesn't excuse asking the user to fetch information later.
+    # Escalate to block if ledger shows no prior investigation before this delegation.
     match = _find_pattern(text, _USER_DELEGATION)
     if match:
+        # Check if any investigation was done before this delegation
+        had_investigation = _check_investigation_in_ledger()
+        if not had_investigation:
+            return LazyClosureMatch(
+                matched=match.group(0),
+                pattern_type="user_delegation",
+                suggestion=(
+                    "Use tools (Bash/Read/Grep/Glob) to get this information yourself. "
+                    "Don't ask the user to fetch it. "
+                    "No prior investigation detected — use investigative tools before delegating to user."
+                ),
+                severity="block",
+            )
         return LazyClosureMatch(
             matched=match.group(0),
             pattern_type="user_delegation",
@@ -673,9 +729,9 @@ def detect_lazy_closure(response: str) -> LazyClosureMatch | None:
                 severity="flag",
             )
 
-    # 5. Check for lazy fix language (skip in test-summary context)
+    # 5. Check for lazy fix language (skip in test-summary or investigation context)
     match = _find_pattern(text, _LAZY_FIX)
-    if match and not _is_test_summary_context(text):
+    if match and not _is_test_summary_context(text) and not _has_investigation_intent(text):
         return LazyClosureMatch(
             matched=match.group(0),
             pattern_type="lazy_fix",
@@ -856,6 +912,9 @@ def detect_all_lazy_closure(response: str) -> list[LazyClosureMatch]:
     ]
 
     for patterns, pattern_type, base_suggestion, severity in pattern_groups:
+        # Suppress lazy_fix when investigation intent is present (false positive on tracing/root-cause language)
+        if pattern_type == "lazy_fix" and _has_investigation_intent(text):
+            continue
         for pattern in patterns:
             for match in pattern.finditer(text):
                 results.append(

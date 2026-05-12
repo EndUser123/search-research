@@ -474,9 +474,9 @@ else:
     prov_w = 14
     quota_w = 9
     avg_w = 12
-    header = f"  {pad_to('#', 3)} {pad_to('Model', max_model)} {pad_to('Provider', prov_w)} {'Latency':>9} {pad_to('Quota', quota_w)} {pad_to('Avg', avg_w)}"
+    header = f"   {pad_to('#', 3)} {pad_to('Model', max_model)} {pad_to('Provider', prov_w)} {'Latency':>9} {pad_to('Quota', quota_w)} {pad_to('Avg', avg_w)}"
     print(header)
-    print("  " + "-" * ansi_width(header))
+    print("   " + "-" * ansi_width(header))
 
     lat_history = load_latency_history()
 
@@ -515,13 +515,13 @@ else:
                     err_str = short_error(err_raw)
                     err_col = f"\033[91m{err_str}\033[0m"
                     avg_str = avg_latency_str(lat_history, mn)
-                    print(f"  {pad_to(str(i), 3)} {pad_to(mn, max_model)} {pad_ansi(err_col, prov_w)} {'':>9} {pad_to(quota, quota_w)} {pad_to(avg_str, avg_w)}")
+                    print(f"   {pad_to(str(i), 3)} {pad_to(mn, max_model)} {pad_ansi(err_col, prov_w)} {'':>9} {pad_to(quota, quota_w)} {pad_to(avg_str, avg_w)}")
                     err_probe_count += 1
                     continue
             else:
                 err_col = f"\033[91m{err_str}\033[0m"
                 avg_str = avg_latency_str(lat_history, mn)
-                print(f"  {pad_to(str(i), 3)} {pad_to(mn, max_model)} {pad_ansi(err_col, prov_w)} {'':>9} {pad_to(quota, quota_w)} {pad_to(avg_str, avg_w)}")
+                print(f"   {pad_to(str(i), 3)} {pad_to(mn, max_model)} {pad_ansi(err_col, prov_w)} {'':>9} {pad_to(quota, quota_w)} {pad_to(avg_str, avg_w)}")
                 err_probe_count += 1
                 continue
         body = json.loads(resp.read().decode("utf-8"))
@@ -532,7 +532,7 @@ else:
         record_latency(lat_history, mn, lat)
         avg_str = avg_latency_str(lat_history, mn)
         prov_col = f"\033[92m{prov}\033[0m" if prov == rule["provider"] else f"\033[93m{prov}\033[0m"
-        print(f"  {pad_to(str(i), 3)} {pad_to(mn, max_model)} {pad_ansi(prov_col, prov_w)} {lat_str:>9} {pad_to(quota, quota_w)} {pad_to(avg_str, avg_w)}")
+        print(f"   {pad_to(str(i), 3)} {pad_to(mn, max_model)} {pad_ansi(prov_col, prov_w)} {lat_str:>9} {pad_to(quota, quota_w)} {pad_to(avg_str, avg_w)}")
         ok_probe_count += 1
 
     save_latency_history(lat_history)

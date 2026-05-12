@@ -38,6 +38,11 @@ def detect_contamination(
         field = proposed.get("field", "")
         value_b = proposed.get("value", "")
 
+        # Skip fields that are legitimately shared across entities
+        _SKIP_FIELDS = {"quota", "tier", "region", "plan", "status", "version", "name"}
+        if field.lower() in _SKIP_FIELDS:
+            continue
+
         if _is_placeholder(value_b):
             continue
 

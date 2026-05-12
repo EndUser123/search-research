@@ -41,13 +41,13 @@ class TestFactGuard:
         assert len(unverified) == 0, "User-provided value should be verified"
 
     def test_2_unsupported_copied_quota(self) -> None:
-        """Test Case 2: Quota copied from neighbor without provenance -> blocked (contamination)."""
+        """Test Case 2: Copied value from neighbor without provenance -> blocked (contamination)."""
         existing_content = json.dumps({
-            "MiniMax-M2.7": {"quota": "4500/5h"},
-            "Mi-Devstral": {"quota": None},
+            "MiniMax-M2.7": {"max_tokens": "4500"},
+            "Mi-Devstral": {"max_tokens": None},
         })
 
-        proposed_facts = [{"entity": "Mi-Devstral", "field": "quota", "value": "4500/5h"}]
+        proposed_facts = [{"entity": "Mi-Devstral", "field": "max_tokens", "value": "4500"}]
         observed_facts: list[dict] = []
 
         hits = detect_contamination(proposed_facts, existing_content, observed_facts)
@@ -154,11 +154,11 @@ class TestFactGuard:
     def test_contamination_similarity_threshold(self) -> None:
         """Test that near-matches above 0.85 threshold are caught."""
         existing = json.dumps({
-            "Model-A": {"quota": "4500/5h"},
+            "Model-A": {"max_tokens": "4500"},
         })
 
         # Exact match
-        proposed = [{"entity": "Model-B", "field": "quota", "value": "4500/5h"}]
+        proposed = [{"entity": "Model-B", "field": "max_tokens", "value": "4500"}]
         hits = detect_contamination(proposed, existing, [])
         assert len(hits) == 1
         assert hits[0]["similarity"] == 1.0
@@ -166,11 +166,11 @@ class TestFactGuard:
     def test_contamination_with_provenance_allowed(self) -> None:
         """Test that values with provenance are not flagged as contamination."""
         existing = json.dumps({
-            "Model-A": {"quota": "4500/5h"},
+            "Model-A": {"max_tokens": "4500"},
         })
 
-        observed = [{"entity": "Model-B", "field": "quota", "value": "4500/5h"}]
-        proposed = [{"entity": "Model-B", "field": "quota", "value": "4500/5h"}]
+        observed = [{"entity": "Model-B", "field": "max_tokens", "value": "4500"}]
+        proposed = [{"entity": "Model-B", "field": "max_tokens", "value": "4500"}]
 
         hits = detect_contamination(proposed, existing, observed)
         assert len(hits) == 0

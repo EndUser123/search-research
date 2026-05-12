@@ -180,19 +180,85 @@ def _has_factual_claim(text: str) -> bool:
     return False
 
 
+def _strip_quoted_and_hook_blocks(text: str) -> str:
+    """Remove Stop-hook artifacts and quoted blocks that aren't the LLM's own words.
+
+    Strips:
+    - Stop-hook feedback blocks (after 'Stop hook', 'Stop says:', etc.)
+    - Markdown blockquotes (lines starting with '> ')
+    - system-reminder blocks
+    """
+    lines = text.split("\n")
+    result: list[str] = []
+    skip = False
+
+    for line in lines:
+        stripped = line.strip()
+
+        if stripped.startswith("> "):
+            continue
+
+        if stripped.startswith("<system-reminder"):
+            # Opening tag — start skipping content
+            skip = True
+            continue
+        if stripped == "</system-reminder>":
+            # Closing tag — stop skipping, process this line normally
+            skip = False
+            # Fall through to process this line (not a content line, will be skipped by final else or hook pattern check)
+        if skip:
+            continue
+
+        if re.match(
+            r"(?:Stop (?:hook|says)|⎿|Stop\s+hook\s+feedback|LAZY WORKAROUND|EPISTEMIC|"
+            r"Pattern matched:|Required approach:|Remember:|This suggests|"
+            r"⛔|⚠️|✅|❌|Block message:|Warning:)",
+            stripped,
+        ):
+            skip = True
+            continue
+
+        result.append(line)
+
+    return "\n".join(result)
+
+
+def _has_concessive_clause(text: str) -> bool:
+    """Detect if text contains a concessive subordinate clause before the target phrase.
+
+    Matches patterns like:
+    - "although I apologize... not a bug" (concessive before apology)
+    - "even though it seems... not broken" (concessive before dismissal)
+    - "while I understand... working correctly" (concessive before claim)
+    """
+    CONCESSIVE_BEFORE = re.compile(
+        r"(?:although|even though|while|despite|notwithstanding|albeit)"
+        r"\s+.{0,80}",
+        re.IGNORECASE | re.DOTALL,
+    )
+    return bool(CONCESSIVE_BEFORE.search(text))
+
+
 def _check_sycophancy_inversion(response: str) -> str | None:
     """Check for sycophancy inversion: apology + same dismissal conclusion.
 
     Detects the pattern where the AI apologizes after user pushback but then
     reaches the same dismissive conclusion (e.g., "I apologize... NOT A BUG").
 
-    Escape hatch: If the response contains evidence of new investigation using
-    the user's exact reproduction steps, allow it through.
+    Escape hatches:
+    - Stop-hook artifacts are stripped before checking (self-referential loop fix)
+    - Concessive subordinate clauses are excluded ("although I apologize...")
+    - Evidence of new investigation (NEW_EVIDENCE_PATTERNS) bypasses the gate
     """
-    normalized = _normalize(response)
+    clean = _strip_quoted_and_hook_blocks(response)
+    normalized = _normalize(clean)
 
     has_apology = any(pattern in normalized for pattern in APOLOGY_PATTERNS)
     if not has_apology:
+        return None
+
+    # Concessive clause: "although I apologize..." — allow
+    if _has_concessive_clause(normalized):
         return None
 
     has_dismissal = None

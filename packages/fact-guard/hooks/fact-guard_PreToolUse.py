@@ -111,6 +111,12 @@ def main() -> None:
         record_edit_provenance(target_file, True, "provenance verified", terminal_id)
         sys.exit(0)
 
+    except PermissionError as e:
+        print(json.dumps({"error": f"Permission denied: {e}"}), file=sys.stderr)
+        sys.exit(2)
+    except OSError as e:
+        print(json.dumps({"error": f"OS error: {e}"}), file=sys.stderr)
+        sys.exit(2)
     except Exception as e:
         print(json.dumps({"error": f"PreToolUse error: {e}"}), file=sys.stderr)
         sys.exit(2)

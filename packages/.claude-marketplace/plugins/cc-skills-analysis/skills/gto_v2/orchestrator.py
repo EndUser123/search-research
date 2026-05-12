@@ -411,7 +411,8 @@ def run(argv: list[str] | None = None) -> int:
         ]
         if not invocation_ran:
             _detectors_empty.append("invocation_tracker")
-        detectors_empty = _detectors_empty
+        # Filter: remove detectors that actually produced findings
+        detectors_empty = [d for d in _detectors_empty if d not in detectors_ran]
         outcome_dicts = [
             {"category": getattr(i, "category", ""), "content": getattr(i, "content", "")}
             for i in (outcome_result.items if outcome_result else [])

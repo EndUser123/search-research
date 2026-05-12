@@ -261,6 +261,123 @@ def _normalize_text(text: str) -> str:
     return text
 
 
+def _strip_region(text: str, start: int, end: int) -> str:
+    """Remove a region from text, replacing with spaces to preserve position."""
+    if start < 0 or end > len(text) or start >= end:
+        return text
+    return text[:start] + " " * (end - start) + text[end:]
+
+
+def _strip_quoted_regions(text: str) -> tuple[str, bool]:
+    # DESIGN NOTE: QUOTE / META STRIPPING CONTRACT
+    #
+    # Purpose
+    # This function strips *non-operative* text regions before pattern matching so that
+    # meta discussion and examples do not trigger agreement / commitment gates.
+    #
+    # Covered regions
+    # We treat the following as QUOTED/META and strip them:
+    #   - Fenced code blocks  (```...```)
+    #   - Inline code         (`...`)
+    #   - Straight ASCII quotes:  "..." and '...'
+    #   - Curly Unicode quotes:
+    #       "..." (U+201C / U+201D), '...' (U+2018 / U+2019)
+    #   - Dollar-quoted spans: $...$
+    #   - HTML entity-quoted spans:
+    #       &quot;...&quot;, &apos;...&apos;, &#39;...&#39;
+    #
+    # Invariants
+    #   - Only *paired* delimiters are stripped. Bare characters (a single curly
+    #     apostrophe in I'll, a lone $, or a single &quot;) must remain intact.
+    #   - Stripping a region sets the "had_meta" flag. Gate logic uses this to allow a
+    #     meta-only trigger to return early (no block), while still blocking when a
+    #     real, unquoted agreement/commitment appears alongside the meta.
+    #   - Two regression tests encode this invariant and MUST keep passing:
+    #       - real_dollar_quoted_with_real_commitment_beside_it_still_blocks
+    #       - real_unicode_quoted_with_real_commitment_beside_it_still_blocks
+    #
+    # Why Unicode and entity forms are included
+    # Real-world logs contain typographic quotes and entity-encoded quotes, so limiting
+    # stripping to ASCII "..." / '...' left known false-positive paths. We normalize
+    # these variants here so that only operative, unquoted agreement/commitment
+    # language is visible to the gate.
+    #
+    # Risk boundary
+    # The regexes are intentionally narrow:
+    #   - Curly-quote patterns require matching open/close delimiters and exclude
+    #     curly characters in the interior, so contractions with a single curly
+    #     apostrophe do NOT match.
+    #   - Dollar-quoted and entity-quoted patterns require both delimiters; bare $
+    #     or entity tokens survive.
+    #
+    # If you modify this logic:
+    #   - Update the corresponding tests in tests/test_gate3_quote_suppression.py
+    #   - Re-run:  python -m pytest tests/test_gate3_quote_suppression.py -v
+    #   - Do NOT simplify by dropping Unicode/entity handling or by broad "ignore
+    #     weird text" heuristics; that reintroduces known faults.
+
+    """
+    Strip code blocks, quotes, and blockquotes before pattern matching.
+
+    Returns:
+        Tuple of (stripped_text, had_meta_content)
+        - stripped_text: Text with quoted regions replaced by spaces
+        - had_meta_content: True if original had code blocks/quotes that were stripped
+    """
+    original = text
+    had_meta = False
+
+    # Normalize line endings
+    text = text.replace("\r\n", "\n")
+
+    # Remove fenced code blocks (```...```)
+    while True:
+        start = text.find("```")
+        if start == -1:
+            break
+        end = text.find("```", start + 3)
+        if end == -1:
+            break
+        had_meta = True
+        text = _strip_region(text, start, end + 3)
+
+    # Remove inline code (`...`)
+    text = re.sub(r"`[^`]*`", " ", text)
+
+    # Remove double-quoted strings — straight ASCII
+    text = re.sub(r'"[^"]*"', " ", text)
+
+    # Remove single-quoted strings — straight ASCII
+    text = re.sub(r"'[^']*'", " ", text)
+
+    # Remove double-quoted strings — Unicode curly quotes
+    text = re.sub(r'[“”][^“”]*[“”]', " ", text)
+
+    # Remove single-quoted strings — Unicode curly quotes
+    text = re.sub(r'[‘’][^‘’]*[‘’]', " ", text)
+
+    # Remove dollar-quoted strings (LaTeX/math notation)
+    text = re.sub(r"\$[^$]*\$", " ", text)
+
+    # Remove HTML entities for quotes
+    text = re.sub(r"&quot;[^&]*&quot;", " ", text)
+    text = re.sub(r"&apos;[^&]*&apos;", " ", text)
+    text = re.sub(r"&#39;[^&#]*&#39;", " ", text)
+
+    # Remove blockquote lines (lines starting with >)
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        if re.match(r"^\s*>", line):
+            had_meta = True
+            lines[i] = " "
+    text = "\n".join(lines)
+
+    # Normalize whitespace
+    text = re.sub(r"\s+", " ", text).strip()
+
+    return text, had_meta or (original != text)
+
+
 def _load_indicators(file_path: Path | None = None, working_dir: Path | None = None) -> dict[str, list[str]]:
     """
     Load behavioral indicator phrases from config file.
@@ -517,17 +634,38 @@ def check_gate3_agreement(text: str, tools_used: list[str], working_dir: Path | 
             r"\bI\s+(?:will|shall)\s+(?:update|fix|edit|modify|change|create|write|implement)\b",
         ]
 
-    # Normalize text for consistent matching
-    normalized_text = _normalize_text(text)
+    # v3: Strip quoted/code regions BEFORE pattern matching
+    # This prevents false positives on:
+    # - "The phrase "I will update" triggered the gate."
+    # - Code blocks showing trigger examples
+    # - Blockquotes with trigger phrases
+    stripped_text, had_quoted_content = _strip_quoted_regions(text)
+    normalized_stripped = _normalize_text(stripped_text)
 
-    # Check if any agreement pattern matches
+    # Check if any agreement pattern matches on stripped text
     has_agreement = False
     matched_pattern = None
     for pattern in agreement_patterns:
-        if re.search(pattern, normalized_text, re.IGNORECASE):
+        if re.search(pattern, normalized_stripped, re.IGNORECASE):
             has_agreement = True
             matched_pattern = pattern
             break
+
+    # If agreement found ONLY in quoted regions (not in stripped text),
+    # this is meta discussion about triggers, not a real agreement
+    if not has_agreement and had_quoted_content:
+        return (False, "")
+
+    # Normalize original for fallback matching (if agreement was found in stripped)
+    normalized_text = _normalize_text(text)
+
+    # Check if any agreement pattern matches
+    if not has_agreement:
+        for pattern in agreement_patterns:
+            if re.search(pattern, normalized_text, re.IGNORECASE):
+                has_agreement = True
+                matched_pattern = pattern
+                break
 
     # If no agreement detected, no violation
     if not has_agreement:

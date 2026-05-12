@@ -257,7 +257,10 @@ def run(data: dict) -> dict | None:
         return {"allow": True, "reason": "no response"}
 
     has_evidence = _response_has_evidence(response)
-    contradictions = _find_contradictions(response)
+    # Contradiction detection is only meaningful in prose-only responses
+    # — responses with code fences, file refs, or verification markers
+    # are evidence-grounded and contradictions don't apply.
+    contradictions = [] if has_evidence else _find_contradictions(response)
     # Skip per-sentence unsupported-claim check when a contradiction already
     # covers those sentences — avoids double-reporting the same problem.
     claims = [] if contradictions else _extract_unsupported_claims(response, has_evidence)

@@ -1,20 +1,18 @@
 {
-  "run_id": "c3f03eb1-1456-4634-8b09-0d875733ae91",
-  "skill_name": "gto",
+  "run_id": "74743be9-63d5-4074-bf5c-846d5e74637f",
+  "skill_name": "rca",
   "contract_type": "workflow-execution",
-  "phase": "executing",
-  "status": "failed",
+  "phase": "loaded",
+  "status": "complete",
   "terminal_id": "console_2f412e07-17d8-4a35-9690-71916a7b3a21",
-  "session_id": "423b6de5-70b8-4a38-abc1-47b64558de40",
+  "session_id": "a1812dda-a118-460f-9509-02bb55068a8f",
   "turn_id": null,
-  "created_at": 1778377887.200798,
-  "updated_at": 1778389091.526058,
+  "created_at": 1778505233.16279,
+  "updated_at": 1778505689.0231867,
   "required_artifacts": [],
   "completed_artifacts": [],
   "missing_requirements": [],
-  "allowed_tools_now": [
-    "Bash"
-  ],
+  "allowed_tools_now": [],
   "blocked_tools": [],
   "response_requirements": {}
 }

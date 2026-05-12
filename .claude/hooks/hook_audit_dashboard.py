@@ -18,6 +18,7 @@ Subcommands:
     health      Hook system health
     escalation  Escalation recommendations
     replay      Enforcement replay quality metrics
+    loop-fix    Monitor hook loop patch signals (false positives, skips, causal slips, repair bypass)
 
 Terminal Filtering (v2.1):
     --terminal  Filter to current terminal only
@@ -647,6 +648,245 @@ def replay(days: int, terminal_filter: str = None, show_all: bool = False):
     run_script("analyze_enforcement_replay.py", args)
 
 
+def loop_fix(days: int, terminal_filter: str = None, show_all: bool = False):
+    """Monitor hook loop patch signals from stop_gate_telemetry.jsonl.
+
+    HIGH PRIORITY signals:
+      1. New false positives in markdown-heavy explanations (warn_issued on allow)
+      2. Unintended blocks during legitimate hook analysis (block_triggered)
+      3. Skip rates for patched gates (repair_bypass in epistemic)
+
+    LOW PRIORITY signals:
+      4. Fresh causal system claims slipping through (has_causal_issues=false but
+         decision=block means causal logic caught something not in telemetry)
+      5. Epistemic repair bypass being abused (repair_bypass=true count)
+    """
+    print("=" * 60)
+    print("HOOK LOOP FIX TELEMETRY MONITOR")
+    print("=" * 60)
+    print(f"Period: Last {days} days")
+    print()
+
+    telemetry_path = HOOKS_DIR / ".state" / "stop_gate_telemetry.jsonl"
+    epistemic_path = HOOKS_DIR / "logs" / "diagnostics" / "epistemic_telemetry.jsonl"
+    unverified_path = HOOKS_DIR / "logs" / "diagnostics" / "unverified_stance_decisions.jsonl"
+
+    # --- Section 1: Gate skip/decision rates from stop_gate_telemetry ---
+    print("HIGH PRIORITY #3: Gate Decision Rates (stop_gate_telemetry)")
+    print("-" * 60)
+
+    gate_stats: dict[str, dict] = {}
+    cutoff_ts = (datetime.now() - timedelta(days=days)).timestamp()
+
+    for log_path in [telemetry_path]:
+        if not log_path.exists():
+            continue
+        try:
+            with open(log_path, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entry = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    ts = entry.get("timestamp", 0)
+                    if ts < cutoff_ts:
+                        continue
+                    gate = entry.get("gate_name", "unknown")
+                    if gate not in gate_stats:
+                        gate_stats[gate] = {"total": 0, "allow": 0, "warn": 0, "block": 0}
+                    gate_stats[gate]["total"] += 1
+                    decision = entry.get("decision", "allow")
+                    if decision in gate_stats[gate]:
+                        gate_stats[gate][decision] += 1
+                    else:
+                        gate_stats[gate]["allow"] += 1
+                    # Extract extra for unverified_stance
+                    extra = entry.get("extra", {}) or {}
+                    gate_stats[gate].setdefault("warn_issued_count", 0)
+                    gate_stats[gate].setdefault("block_triggered_count", 0)
+                    if extra.get("warn_issued"):
+                        gate_stats[gate]["warn_issued_count"] += 1
+                    if extra.get("block_triggered"):
+                        gate_stats[gate]["block_triggered_count"] += 1
+        except Exception:
+            pass
+    if gate_stats:
+        print(f"  Source: {telemetry_path}")
+        print()
+        print(f"  {'Gate':<28} {'Total':>6} {'Allow':>6} {'Warn':>6} {'Block':>6}  {'Warn%':>6}  {'Block%':>7}")
+        print(f"  {'-'*28} {'-'*6} {'-'*6} {'-'*6} {'-'*6}  {'-'*6}  {'-'*7}")
+        for gate, stats in sorted(gate_stats.items(), key=lambda x: -x[1]["total"]):
+            total = stats["total"]
+            allow = stats["allow"]
+            warn = stats["warn"]
+            block = stats["block"]
+            warn_pct = warn / total * 100 if total else 0
+            block_pct = block / total * 100 if total else 0
+            print(
+                f"  {gate:<28} {total:>6} {allow:>6} {warn:>6} {block:>6}  "
+                f"{warn_pct:>5.1f}%  {block_pct:>6.1f}%"
+            )
+            if gate == "unverified_stance":
+                warn_iss = stats.get("warn_issued_count", 0)
+                blk_trig = stats.get("block_triggered_count", 0)
+                if warn_iss or blk_trig:
+                    print(
+                        f"    └─ warns issued (FP signal): {warn_iss}  |  blocks triggered: {blk_trig}"
+                    )
+    else:
+        print(f"  No gate telemetry entries in last {days} days.")
+        print(f"  (File: {telemetry_path})")
+
+    # --- Section 2: Epistemic repair bypass (LOW PRIORITY #5) ---
+    print()
+    print("LOW PRIORITY #5: Epistemic Repair Bypass (repair_bypass signal)")
+    print("-" * 60)
+
+    repair_bypass_count = 0
+    epistemic_total = 0
+    epistemic_blocks = 0
+    epistemic_causal = 0
+    epistemic_recent: list[dict] = []
+
+    if epistemic_path.exists():
+        try:
+            with open(epistemic_path, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entry = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    ts = entry.get("timestamp", 0)
+                    if ts < cutoff_ts:
+                        continue
+                    epistemic_total += 1
+                    if entry.get("repair_bypass"):
+                        repair_bypass_count += 1
+                    if entry.get("decision") == "block":
+                        epistemic_blocks += 1
+                    if entry.get("has_causal_issues"):
+                        epistemic_causal += 1
+                    if len(epistemic_recent) < 5:
+                        epistemic_recent.append(entry)
+        except Exception as e:
+            print(f"  Error reading epistemic telemetry: {e}")
+
+    if epistemic_total > 0:
+        print(f"  Source: {epistemic_path}")
+        print(f"  Total validations: {epistemic_total}")
+        print(f"  Blocks: {epistemic_blocks} ({epistemic_blocks/epistemic_total*100:.1f}%)")
+        print(f"  Causal issues: {epistemic_causal}")
+        print(f"  Repair bypasses: {repair_bypass_count}")
+        if epistemic_recent and epistemic_recent[0].get("repair_bypass"):
+            print(f"  ⚠️  Recent bypass detected — low PRIORITY but watch for abuse")
+        if epistemic_recent:
+            print(f"\n  Most recent epistemic entries:")
+            for entry in epistemic_recent[:3]:
+                ts = datetime.fromtimestamp(entry.get("timestamp", 0)).strftime("%m-%d %H:%M")
+                decision = entry.get("decision", "?")
+                bypass = " [BYPASS]" if entry.get("repair_bypass") else ""
+                causal = " [CAUSAL]" if entry.get("has_causal_issues") else ""
+                print(f"    [{ts}] {decision}{bypass}{causal}")
+    else:
+        print(f"  No epistemic telemetry entries in last {days} days.")
+        print(f"  (File: {epistemic_path})")
+
+    # --- Section 3: Unverified stance decisions ---
+    print()
+    print("HIGH PRIORITY #1-2: Unverified Stance (warn/block patterns)")
+    print("-" * 60)
+
+    stance_stats = {"total": 0, "pass": 0, "block": 0, "warn": 0, "system_claim": 0}
+    stance_recent: list[dict] = []
+
+    if unverified_path.exists():
+        try:
+            with open(unverified_path, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entry = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    ts = entry.get("timestamp", 0)
+                    if ts < cutoff_ts:
+                        continue
+                    stance_stats["total"] += 1
+                    outcome = entry.get("outcome", "pass")
+                    stance_stats[outcome] = stance_stats.get(outcome, 0) + 1
+                    claim_type = entry.get("claim_type", "")
+                    if claim_type in ("system_claim", "sycophancy_inversion"):
+                        stance_stats["system_claim"] += 1
+                    if len(stance_recent) < 5:
+                        stance_recent.append(entry)
+        except Exception as e:
+            print(f"  Error reading unverified stance decisions: {e}")
+
+    if stance_stats["total"] > 0:
+        print(f"  Source: {unverified_path}")
+        print(f"  Total decisions: {stance_stats['total']}")
+        print(f"  Pass: {stance_stats['pass']} | Block: {stance_stats['block']} | Warn: {stance_stats['warn']}")
+        block_rate = stance_stats["block"] / stance_stats["total"] * 100
+        print(f"  Block rate: {block_rate:.1f}%")
+        if stance_stats["system_claim"]:
+            print(f"  System-claim/sycophancy violations: {stance_stats['system_claim']}")
+        if stance_recent:
+            print(f"\n  Most recent decisions:")
+            for entry in stance_recent[:3]:
+                ts = datetime.fromtimestamp(entry.get("timestamp", 0)).strftime("%m-%d %H:%M")
+                outcome = entry.get("outcome", "?")
+                claim_type = entry.get("claim_type", "")
+                claim_preview = entry.get("claim_text", "")[:50]
+                print(f"    [{ts}] {outcome.upper()} [{claim_type}] {claim_preview}...")
+    else:
+        print(f"  No unverified stance decisions in last {days} days.")
+        print(f"  (File: {unverified_path})")
+
+    # --- Summary ---
+    print()
+    print("=" * 60)
+    print("ACTIONABLE SIGNALS")
+    print("=" * 60)
+
+    signals = []
+    # HIGH PRIORITY checks
+    unv_gate = gate_stats.get("unverified_stance", {})
+    warn_rate = unv_gate.get("warn", 0) / max(unv_gate.get("total", 1), 1) * 100
+    if warn_rate > 20:
+        signals.append(f"HIGH: Unverified stance warn rate {warn_rate:.0f}% — possible markdown FP")
+    if unv_gate.get("block_triggered_count", 0) > 10:
+        signals.append(
+            f"HIGH: {unv_gate['block_triggered_count']} unverified_stance blocks "
+            f"— check for unintended blocks on analysis turns"
+        )
+    # LOW PRIORITY checks
+    if repair_bypass_count > epistemic_total * 0.1 and epistemic_total > 10:
+        signals.append(
+            f"LOW: {repair_bypass_count} epistemic repair bypasses ({repair_bypass_count/epistemic_total*100:.0f}%) "
+            f"— watch for abuse"
+        )
+    causal_block = epistemic_causal / max(epistemic_blocks, 1) * 100
+    if epistemic_blocks > 5 and causal_block < 30:
+        signals.append(
+            f"LOW: Only {causal_block:.0f}% of epistemic blocks are causal — "
+            f"fresh causal claims may be slipping through"
+        )
+
+    if signals:
+        for sig in signals:
+            print(f"  • {sig}")
+    else:
+        print("  ✓ No actionable signals detected. Loop patch is healthy.")
+
+
 def frameguard(days: int, terminal_filter: str = None, show_all: bool = False):
     """FrameGuard systemic frame compliance (from evidence.db)."""
     import sqlite3
@@ -1005,6 +1245,7 @@ def main():
             "health",
             "escalation",
             "replay",
+            "loop-fix",
         ],
         help="Analysis type (default: dashboard)",
     )
@@ -1040,6 +1281,7 @@ def main():
         "health": health,
         "escalation": escalation,
         "replay": replay,
+        "loop-fix": loop_fix,
     }
 
     handler = handlers.get(args.subcommand, dashboard)

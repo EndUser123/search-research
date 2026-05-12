@@ -41,8 +41,21 @@ This directory implements the **Cognitive Steering Framework (CSF)** - structura
 | Section | Purpose |
 |---------|---------|
 | Hook Edit Verification | **Read first** - Before editing ANY hook file |
+| Plugin Hook Naming | Namespaced filenames to prevent collisions |
 | Systemic Issues | Historical context and fixes |
 | Dispatch Chain | How hooks are registered and called |
+
+### Plugin Hook Naming
+
+Plugin hook scripts must use `{plugin_name}_{event}.py` naming. Generic names (`PreToolUse.py`, `Stop.py`) collide across plugins and with local hooks, causing double-fire when both `settings.json` and plugin `hooks.json` register the same filename.
+
+| Plugin | File | Standard name |
+|--------|------|---------------|
+| fact-guard | `PreToolUse.py` | `fact-guard_PreToolUse.py` |
+| snapshot | `PreCompact.py` | `snapshot_PreCompact.py` |
+| skill-guard | `execution_hooks.py` | `skill-guard_PreToolUse.py` (per entry) |
+
+**Exceptions:** Local-only hooks in `P:/.claude/hooks/` that aren't duplicated in any plugin keep their current names.
 
 ### Hook Edit Verification (MANDATORY)
 

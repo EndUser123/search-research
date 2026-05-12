@@ -59,6 +59,7 @@ def write_state(data: dict[str, Any], filename: str, terminal_id: Optional[str] 
         os.fsync(tmp.fileno())
         tmp_path = tmp.name
 
+    os.chmod(tmp_path, 0o600)  # Restrict to owner read/write
     os.replace(tmp_path, state_file)
 
 

@@ -1,7 +1,7 @@
 ---
 name: wiki
 description: Persistent knowledge system using Obsidian wiki + QMD search
-version: 1.1.0
+version: 1.2.0
 type: skill
 enforcement: none
 workflow_steps:
@@ -9,6 +9,7 @@ workflow_steps:
   - query: "Accept question, search wiki via QMD_WIKI backend, synthesize answer"
   - lint: "Health-check wiki for contradictions, orphans, missing cross-refs"
   - index: "Rebuild index.md catalog from current wiki state"
+  - update: "Discover stale pages by age + search frequency, offer web-based refresh with SHA256 dedup"
 ---
 
 # /wiki — Obsidian Wiki + QMD Search Skill
@@ -166,3 +167,56 @@ Rebuild `index.md` catalog from current wiki state
 **Alternate method**: For raw QMD operations (`qmd ingest`, `qmd query`, `qmd lint`, `qmd index`), see `references/qmd-wiki.md` in this skill directory.
 
 Usage: `/wiki index`
+
+### Update
+
+Refresh stale wiki pages by detecting topics that need updating and offering web-based refresh.
+
+**Phase 1 — Discovery**: Identify candidates via two signals:
+1. **QMD search frequency**: Run `qmd search --collection wiki <topic>` and track which topics are re-searched (implies active interest)
+2. **Age check**: Pages with `created:` frontmatter older than 90 days are candidates (configurable threshold)
+
+**Phase 2 — Staleness scoring**: Rank candidates by:
+- Days since last update (page mtime vs current date)
+- External change signals: is the source URL (if any) returning different content?
+- Search frequency: topics searched more often = higher priority
+
+**Phase 3 — Offer to user**: Present top candidates ranked by staleness score:
+
+```
+/wiki update
+=== Stale Knowledge Candidates (10 items) ===
+[1] ● Claude Code Hooks Guide (stale: 127d, searched: 23x)
+    Last updated: 2025-12-05
+    Source: https://docs.anthropic.com/claude-code/hooks
+    [U] update   [S] skip   [D] dismiss
+
+[2] ○ FastAPI Best Practices (stale: 94d, searched: 8x)
+    Last updated: 2026-01-06
+    [U] update   [S] skip   [D] dismiss
+
+Select items to refresh (e.g. "1,3,U" = update 1 & 3): _
+```
+
+**Phase 4 — Refresh pipeline**: For each selected item:
+1. Fetch current source (URL or web search)
+2. Compute new SHA256
+3. Compare against log.md entry's SHA256
+4. If changed: rewrite page, inject new wikilinks, update log entry, run `qmd update`
+5. If unchanged: report "already current — no changes needed"
+
+**Implementation details**:
+
+- **Staleness threshold**: Default 90 days, configurable via `/wiki update --max-age 60`
+- **Max candidates**: Default 20, configurable via `/wiki update --limit 15`
+- **Sources to check**: Web search via `/research` for each topic, or direct URL fetch if source URL exists in frontmatter
+- **Log entry update**: When page is refreshed, append new SHA256 to log.md with `## [YYYY-MM-DD] update | <title>` entry (NOT replacing the old ingest entry — preserves history)
+
+**Interactivity levels**:
+- `/wiki update` — interactive (offer selection)
+- `/wiki update --auto` — auto-refresh all candidates without prompting
+- `/wiki update <topic>` — update specific topic directly
+
+**Token cost**: No in-context tokens during auto-refresh. Each page refresh is an independent subagent call (out-of-context).
+
+Usage: `/wiki update [--auto] [--max-age <days>] [--limit <n>] [<topic>]

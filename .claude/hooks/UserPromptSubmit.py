@@ -220,6 +220,50 @@ def check_user_pushback(data: dict, prompt: str) -> str | None:
         return None
 
 
+def check_local_summary_guidance(data: dict) -> str | None:
+    """Read and return one-turn local-summary guidance if present.
+
+    The marker is written by Stop.py when a block is due to missing citation
+    and tool_transcript is available.  Consumed here on the next user turn;
+    deleted after read so it is strictly one-turn scoped.
+    """
+    try:
+        from pathlib import Path as _Path
+
+        session_id = (
+            data.get("session_id")
+            or data.get("sessionId")
+            or os.environ.get("CLAUDE_SESSION_ID", "")
+        )
+        terminal_id = (
+            data.get("terminal_id")
+            or data.get("terminalId")
+            or os.environ.get("CLAUDE_TERMINAL_ID", "")
+        )
+        safe_session = re.sub(r"[^a-zA-Z0-9_.-]+", "_", str(session_id)) if session_id else "anon"
+        safe_terminal = re.sub(r"[^a-zA-Z0-9_.-]+", "_", str(terminal_id)) if terminal_id else "anon"
+
+        state_dir = HOOKS_DIR / "state" / "local_summary_guidance"
+        marker_path = state_dir / f"guidance__{safe_session}__{safe_terminal}.json"
+
+        if not marker_path.exists():
+            return None
+
+        marker_data = json.loads(marker_path.read_text(encoding="utf-8"))
+
+        # TTL: 120s (one-turn window)
+        if time.time() - marker_data.get("timestamp", 0) > 120:
+            marker_path.unlink()
+            return None
+
+        guidance = marker_data.get("guidance", "")
+        if guidance:
+            marker_path.unlink()  # Delete after read — strictly one-turn
+        return guidance if guidance else None
+    except Exception:
+        return None
+
+
 def _pin_scope_env(data: dict) -> None:
     """Pin session/terminal ids in payload + env for cross-hook consistency."""
     session_id = (
@@ -343,7 +387,12 @@ def main():
     if pushback:
         injections.append(pushback)
 
-    # 3. Output - handle prompt replacement
+    # 3. Add Local Summary Guidance (one-turn hint from Stop epistemic block)
+    local_guidance = check_local_summary_guidance(data)
+    if local_guidance:
+        injections.append(local_guidance)
+
+    # 4. Output - handle prompt replacement
     if replacement_prompt:
         # User chose to replace their prompt
         combined_context = "\n\n".join(injections)

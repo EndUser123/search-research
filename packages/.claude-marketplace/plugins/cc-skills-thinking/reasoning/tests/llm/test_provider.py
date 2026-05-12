@@ -1,5 +1,8 @@
 """Tests for LLM provider abstraction."""
 
+import os
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from reasoning.llm.base import LLMProvider
 

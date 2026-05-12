@@ -24,6 +24,10 @@ from __lib.sequential_state import (
 # State directory
 STATE_DIR = Path("P:/").resolve() / ".claude" / "state" / "sequential-thinking"
 
+# Sequential thinking block delimiters
+_SEQ_BLOCK_START = re.compile(r"<sequential_thinking\b", re.IGNORECASE)
+_SEQ_BLOCK_END = re.compile(r"</sequential_thinking>", re.IGNORECASE)
+
 _MODE_INSTRUCTIONS = {
     "critique": (
         "Critically analyze your previous answer and identify:\n"
@@ -34,7 +38,7 @@ _MODE_INSTRUCTIONS = {
         "Be specific and constructive."
     ),
     "improvement": (
-        "Based on the critique, provide an improved final answer that:\n"      
+        "Based on the critique, provide an improved final answer that:\n"
         "1. Fixes the logical errors identified\n"
         "2. Strengthens weak areas with better support\n"
         "3. Acknowledges complexity where appropriate\n"
@@ -92,6 +96,81 @@ Do NOT eliminate a hypothesis until you have strong evidence against it.""",
 
 This is your final answer - make it comprehensive and well-reasoned.""",
 }
+
+
+# ── Phase templates ──────────────────────────────────────────────────────────
+# Single-source dict replacing the three dicts above.
+_PHASE_TEMPLATES = {
+    "critique": {"mode": "critique", "instructions": (
+        "Critically analyze your previous answer and identify:\n"
+        "1. Logical gaps or errors in the reasoning\n"
+        "2. Unstated assumptions\n"
+        "3. Alternative perspectives not considered\n"
+        "4. Weakest parts of the argument\n"
+        "Be specific and constructive."
+    )},
+    "improvement": {"mode": "improvement", "instructions": (
+        "Based on the critique, provide an improved final answer that:\n"
+        "1. Fixes the logical errors identified\n"
+        "2. Strengthens weak areas with better support\n"
+        "3. Acknowledges complexity where appropriate\n"
+        "This is your final answer — make it comprehensive and well-reasoned."
+    )},
+    "investigation:hypotheses": {"mode": "investigation", "instructions": (
+        "Generate 3+ alternative hypotheses BEFORE testing:\n"
+        "1. ⏳ H1: [most likely explanation] | Confirm with: [test] | Falsify with: [test]\n"
+        "2. ⏳ H2: [alternative cause] | Confirm with: [test] | Falsify with: [test]\n"
+        "3. ⏳ H3: [less likely but possible] | Confirm with: [test] | Falsify with: [test]\n\n"
+        "**STATUS KEY**: ⏳ Untested | ✓ Confirmed | ✗ Falsified"
+    )},
+    "investigation:testing": {"mode": "investigation", "instructions": (
+        "Test each hypothesis systematically using tools (Read, Grep, Bash).\n"
+        "Update the status (✓/✗) for each hypothesis based on actual tool evidence."
+    )},
+    "investigation:conclusion": {"mode": "investigation", "instructions": (
+        "Declare root cause only after ≥2 hypotheses are tested (✓ or ✗).\n"
+        "State remaining uncertainty with [UNVERIFIED] if present."
+    )},
+    "hypothesis:multi_hypothesis": {"mode": "hypothesis", "instructions": (
+        "Generate 2-3 competing explanations for the problem.\n\n"
+        "For each hypothesis:\n"
+        "1. State the explanation clearly\n"
+        "2. Identify what evidence would support it\n"
+        "3. Identify what evidence would refute it\n\n"
+        "Maintain all hypotheses as equally plausible until evidence discriminates between them.\n\n"
+        "Format your hypotheses as:\n"
+        "H1: [explanation]\n"
+        "H2: [alternative explanation]\n"
+        "H3: [another alternative]"
+    )},
+    "hypothesis:hypothesis_critique": {"mode": "hypothesis", "instructions": (
+        "Evaluate each competing hypothesis against the evidence.\n\n"
+        "For each hypothesis:\n"
+        "1. Compare predictions to actual observations\n"
+        "2. Identify inconsistencies or contradictions\n"
+        "3. Rank hypotheses by explanatory power\n\n"
+        "Do NOT eliminate a hypothesis until you have strong evidence against it."
+    )},
+    "hypothesis:hypothesis_resolution": {"mode": "hypothesis", "instructions": (
+        "Synthesize the best explanation from competing hypotheses.\n\n"
+        "1. Select the hypothesis best supported by evidence\n"
+        "2. Explain why other hypotheses were weaker\n"
+        "3. Identify what additional evidence would strengthen confidence\n\n"
+        "This is your final answer - make it comprehensive and well-reasoned."
+    )},
+}
+
+
+def _resolve_phase_key(is_hypothesis_mode: bool, is_investigation: bool, iteration: int) -> str:
+    """Return the phase key to use given current session state and iteration."""
+    if is_hypothesis_mode:
+        order = ["multi_hypothesis", "hypothesis_critique", "hypothesis_resolution"]
+    elif is_investigation:
+        order = ["hypotheses", "testing", "conclusion"]
+    else:
+        order = ["critique", "improvement"]
+    return order[min(iteration, len(order) - 1)]
+
 
 def _extract_hypotheses_from_response(response_output: str) -> list:
     """Extract hypotheses from LLM response output.
@@ -198,9 +277,45 @@ def _format_investigation_feedback(
 
     return "\n".join(lines)
 
+
+def _strip_seq_blocks(text: str) -> str:
+    """Strip <sequential_thinking>...</sequential_thinking> blocks from text.
+
+    These blocks are internal system scaffolding injected by UserPromptSubmit hooks.
+    They should never appear in visible output — the LLM renders the thinking
+    contract but not the XML container. Stripping prevents re-injection noise.
+    """
+    if not text:
+        return text
+
+    result = []
+    start_idx = 0
+
+    while True:
+        m_start = _SEQ_BLOCK_START.search(text, start_idx)
+        if not m_start:
+            result.append(text[start_idx:])
+            break
+
+        result.append(text[start_idx:m_start.start()])
+
+        m_end = _SEQ_BLOCK_END.search(text, m_start.end())
+        if m_end:
+            start_idx = m_end.end()
+        else:
+            start_idx = m_start.end()
+
+    return "".join(result)
+
+
 def stop(data: dict) -> dict:
     terminal_id = data.get("terminal_id", "")
     response_output = data.get("response_output", "") or data.get("assistant_response", "") or ""
+
+    # Strip internal <sequential_thinking> XML blocks before processing.
+    # These are re-injected every turn via UserPromptSubmit and would otherwise
+    # appear as visible output noise. Stripping prevents user-visible scaffolding.
+    response_output = _strip_seq_blocks(response_output)
 
     active_session = _find_active_session(terminal_id)
     if not active_session:
@@ -231,29 +346,27 @@ def stop(data: dict) -> dict:
         next_iteration = current_iteration + 1
         update_state(session_id, {"current_iteration": next_iteration}, terminal_id)
 
-        # CHANGE-004: Hypothesis mode handling
+        # Build phase key and fetch instructions from unified templates
         if is_hypothesis_mode:
-            phase_order = ["multi_hypothesis", "hypothesis_critique", "hypothesis_resolution"]
-            phase_key = phase_order[min(next_iteration, len(phase_order) - 1)]
-            phase_instructions = _HYPOTHESIS_MODE_MESSAGES[phase_key]
+            base = "hypothesis"
+        elif is_investigation:
+            base = "investigation"
+        else:
+            base = ""  # critique/improvement use bare keys
 
-            return {
-                "allow": False,
-                "reason": (
-                    f"Sequential Thinking\n"
-                    f"<sequential_thinking_continuation>\n"
-                    f"Iteration {next_iteration} of 2 \u2014 HYPOTHESIS MODE ({phase_key.upper()})\n"
-                    f"</sequential_thinking_continuation>\n\n"
-                    f"{phase_instructions}"
-                ),
-            }
+        phase_key = _resolve_phase_key(is_hypothesis_mode, is_investigation, next_iteration)
+        if base:
+            lookup_key = f"{base}:{phase_key}"
+        else:
+            lookup_key = phase_key
+
+        template = _PHASE_TEMPLATES.get(lookup_key, _PHASE_TEMPLATES.get(phase_key, {}))
+
+        mode_label = template.get("mode", phase_key)
+        instructions = template.get("instructions", "")
 
         if is_investigation:
-            phase_order = ["hypotheses", "testing", "conclusion"]
-            phase_key = phase_order[min(next_iteration, len(phase_order) - 1)]
-            phase_instructions = _INVESTIGATION_PHASES[phase_key]
             feedback = _format_investigation_feedback(phase_key, response_output)
-
             return {
                 "allow": False,
                 "reason": (
@@ -262,19 +375,18 @@ def stop(data: dict) -> dict:
                     f"Iteration {next_iteration} of 2 \u2014 INVESTIGATION MODE ({phase_key.upper()})\n"
                     f"</sequential_thinking_continuation>\n\n"
                     f"{feedback}\n\n"
-                    f"{phase_instructions}"
+                    f"{instructions}"
                 ),
             }
         else:
-            mode_key = "critique" if next_iteration == 1 else "improvement"
             return {
                 "allow": False,
                 "reason": (
                     f"Sequential Thinking\n"
                     f"<sequential_thinking_continuation>\n"
-                    f"Iteration {next_iteration} of 2 \u2014 {mode_key.upper()} MODE\n"
+                    f"Iteration {next_iteration} of 2 \u2014 {mode_label.upper()} MODE\n"
                     f"</sequential_thinking_continuation>\n\n"
-                    f"{_MODE_INSTRUCTIONS[mode_key]}"
+                    f"{instructions}"
                 ),
             }
     else:

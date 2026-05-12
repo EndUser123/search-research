@@ -65,6 +65,20 @@ Do NOT eliminate a hypothesis until you have strong evidence against it.""",
 3. Identify what additional evidence would strengthen confidence
 
 This is your final answer - make it comprehensive and well-reasoned.""",
+    # CHANGE-005: Self-investigation mode for RCA/diagnostic sessions
+    # Triggers when user invokes /rca or similar diagnostic skill
+    "self_investigation": """You are in SELF-INVESTIGATION mode. Before producing any output:
+
+MANDATORY PRE-FLIGHT CHECKLIST:
+1. Git history: Run `git log --oneline -5 -- <path>` for every file involved in the symptom
+2. File existence: Check plausible alternative locations when a file is missing (e.g., .bak, old/, sibling directories)
+3. State artifacts: Check session state, telemetry logs, and hook events relevant to the symptom
+4. MCP/tools: Use available MCP servers (Serena, Context7, CKS/CHS search) before asking the user
+
+TRACE IT YOURSELF — DO NOT ASK THE USER TO CHECK, PASTE, OR DESCRIBE.
+
+Only after verifying all four checks above may you proceed to diagnosis.
+If any check reveals something missing, trace its current location before concluding.""",
 }
 
 
@@ -121,6 +135,23 @@ def pre_tool_use(data: dict) -> dict:
                 f"{mode_message}\n"
             ),
             "tokens": 250,
+        }
+
+    # CHANGE-005: Self-investigation mode for RCA/diagnostic sessions
+    is_self_investigation = active_session.get("is_self_investigation", False)
+    if is_self_investigation:
+        mode_key = "self_investigation"
+        mode_message = MODE_MESSAGES[mode_key]
+        return {
+            "additionalContext": (
+                f"<sequential_thinking_mode>\n"
+                f"Session: {session_id}\n"
+                f"Iteration: {current_iteration} of 2\n"
+                f"Mode: {mode_key.upper()}\n"
+                f"</sequential_thinking_mode>\n\n"
+                f"{mode_message}\n"
+            ),
+            "tokens": 300,
         }
 
     # Determine mode based on iteration

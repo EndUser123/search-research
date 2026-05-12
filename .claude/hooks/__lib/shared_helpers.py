@@ -153,6 +153,14 @@ _STOP_DIAGNOSTIC_PREFIXES: tuple[str, ...] = (
     "Ran ",
 )
 
+# Subset of diagnostic prefixes that START a multi-line diagnostic block.
+# After one of these is seen, subsequent indented key:value continuation lines
+# (section:, bullet_index:, type:, message:) are also stripped.
+_STOP_DIAGNOSTIC_HEADER_PREFIXES = (
+    "Stop hook error:",
+    "Stop hook feedback:",
+)
+
 
 def strip_non_claim_lines(text: str) -> str:
     """Remove lines that are structural formatting, not factual claims.
@@ -161,12 +169,32 @@ def strip_non_claim_lines(text: str) -> str:
     rules, table rows, table separator lines, and Stop-hook diagnostic
     scaffolding (STATUS:, UNVERIFIED CLAIMS:, etc.). These are presentation
     or transport artifacts, not assertions about code/files/state.
+
+    Diagnostic block metadata lines (indented lowercase-word: value lines such as
+    "section:", "bullet_index:", "type:", "message:") following a "Stop hook
+    error:" or "Stop hook feedback:" header are also stripped — they are the
+    structured payload of the diagnostic, not user content.
     """
     if not text:
         return ""
     out = []
+    # Matches diagnostic key:value continuation lines — either left-margin or indented:
+    # "section: __GLOBAL__", "  section: __GLOBAL__", "bullet_index: -1"
+    diag_key_pattern = re.compile(r"^\s*[a-z_]+:\s*\S")
+    in_diagnostic_block = False
     for line in text.splitlines():
         stripped = line.strip()
+        # Diagnostic block continuation: strip indented key:value lines after a header
+        if in_diagnostic_block:
+            if not diag_key_pattern.match(line):
+                # Not a diagnostic continuation — exit block and reprocess this line
+                in_diagnostic_block = False
+            else:
+                continue
+        # Detect diagnostic block header (enters block after this line)
+        if any(stripped.startswith(p) for p in _STOP_DIAGNOSTIC_HEADER_PREFIXES):
+            in_diagnostic_block = True
+            continue
         # Markdown headers (e.g. "### What IS Already Done")
         if stripped.startswith("#"):
             continue

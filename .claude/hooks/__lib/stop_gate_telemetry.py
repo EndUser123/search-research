@@ -16,7 +16,15 @@ Log format (one JSON object per line):
         "profile": "<critic_profile or context>",
         "decision": "block|warn|allow",
         "session_id": "...",
-        "terminal_id": "..."
+        "terminal_id": "...",
+        "skip_reason": "...",        # Phase 2: why gate was skipped
+        "turn_kind": "...",          # Phase 2: classified turn kind
+        "claim_kind": "...",        # Phase 2: detected claim kind
+        "artifact_classes": [...],  # Phase 2: detected artifact classes
+        "artifact_class_required": "...",  # Phase 3: artifact class required by gate
+        "artifact_class_observed": "...",  # Phase 3: artifact class actually observed
+        "rollout_mode": "...",      # Phase 2: active rollout mode (block/advisory/shadow/disabled)
+        "visible": true,             # Phase 2: whether gate output was visible to user
     }
 
 Failures are silent — logging errors never propagate.
@@ -44,6 +52,16 @@ def log_gate_event(
     session_id: str | None = None,
     terminal_id: str | None = None,
     extra: dict[str, Any] | None = None,
+    # Phase 2 fields
+    skip_reason: str | None = None,
+    turn_kind: str | None = None,
+    claim_kind: str | None = None,
+    artifact_classes: list[str] | None = None,
+    rollout_mode: str | None = None,
+    visible: bool | None = None,
+    # Phase 3: runtime claim artifact enrichment
+    artifact_class_required: str | None = None,
+    artifact_class_observed: str | None = None,
 ) -> None:
     """Log a single gate invocation. Never raises."""
     if not _TELEMETRY_ENABLED:
@@ -60,6 +78,24 @@ def log_gate_event(
         record["session_id"] = session_id
     if terminal_id:
         record["terminal_id"] = terminal_id
+    # Phase 2 enriched fields
+    if skip_reason:
+        record["skip_reason"] = skip_reason
+    if turn_kind:
+        record["turn_kind"] = turn_kind
+    if claim_kind:
+        record["claim_kind"] = claim_kind
+    if artifact_classes:
+        record["artifact_classes"] = artifact_classes
+    if rollout_mode:
+        record["rollout_mode"] = rollout_mode
+    if visible is not None:
+        record["visible"] = visible
+    # Phase 3 runtime claim artifact enrichment
+    if artifact_class_required:
+        record["artifact_class_required"] = artifact_class_required
+    if artifact_class_observed:
+        record["artifact_class_observed"] = artifact_class_observed
     if extra:
         record["extra"] = extra
 

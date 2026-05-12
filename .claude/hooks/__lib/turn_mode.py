@@ -34,6 +34,7 @@ TurnMode = Literal[
     "execution-report",
     "final-answer",
     "meta",
+    "audit-report",
 ]
 
 # Pre-compiled patterns for speed
@@ -70,6 +71,17 @@ _EXPLORATION_KEYWORDS = (
     "architectural", "pattern", "debt", "merit", "justify",
 )
 
+# Prompt-starting patterns for question classification
+_SHORT_ANSWER_QUESTIONS = (
+    "these are", "is there a", "what's a", "what should",
+    "which is the best", "how can i", "how would", "what is",
+)
+_ANALYTICAL_IF_LONG = (
+    "what's the", "how does", "why does", "why is",
+    "what is", "how do", "can you", "should i",
+    "is it possible", "does this", "will this",
+)
+
 _META_KEYWORDS = (
     "hook", "cks_context", "turn_mode", "epistemic_validator",
     "settings.json", "UserPromptSubmit", "PreToolUse", "PostToolUse",
@@ -89,18 +101,70 @@ _EXECUTION_REPORT_MARKERS = (
     "verification complete",
 )
 
+# Phase 4.A: Audit/report contextual patterns
+# These refine UNKNOWN turns when response shows clear factual-report structure.
+_AUDIT_REPORT_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
+    # Markdown or ASCII tables (| col | col |)
+    ("markdown_table", re.compile(r"(?m)^\s*\|[^\n]+\|\s*$", re.MULTILINE)),
+    # ASCII table divider (--+-- or ==+==)
+    ("ascii_table", re.compile(r"(?m)^\s*[-=]{3,}(?:[+\s][-=]{3,})+\s*$")),
+    # Numbered Finding/Evidence/Fact lists
+    ("finding_list", re.compile(r"(?i)^\s*(?:finding|evidence|fact|gap|issue|problem|recommendation)\s*[:.]?\s*\d+", re.MULTILINE)),
+    # Audit phase headers
+    ("audit_header", re.compile(r"(?i)\b(?:phase\s*\d*[_\s]+audit|failure\s+mode\s+table|audit\s+report|audit\s+findings|gap\s+analysis)\b")),
+    # Multi-line table of contents / index with numbering
+    ("toc_numbered", re.compile(r"(?m)^\s*\d+[\.\)]\s+\S.*\n\s*\d+[\.\)]\s+\S", re.UNICODE)),
+    # Section headers with dash underlines (Title\n---)
+    ("header_underline", re.compile(r"(?m)^[A-Z][^\n]+\n[-─]+$")),
+]
+
+
+def _turn_kind_from_context(response: str, default: TurnMode) -> TurnMode:
+    """Refine turn kind when default is UNKNOWN based on response structure.
+
+    Only refines when default == TurnMode.UNKNOWN.
+    Treats responses as AUDIT_REPORT when they show clear factual-report structure.
+    Returns the original default if no audit/report patterns detected.
+    """
+    if default != TurnMode.UNKNOWN:
+        return default
+
+    if not response or len(response) < 100:
+        return default  # Too short to infer structure
+
+    matched_types: list[str] = []
+    for pattern_name, pattern in _AUDIT_REPORT_PATTERNS:
+        if pattern.search(response):
+            matched_types.append(pattern_name)
+
+    # Require at least 2 pattern matches OR a strong table match
+    # to avoid false positives on regular text with occasional | characters
+    if len(matched_types) >= 2:
+        return TurnMode.AUDIT_REPORT
+    if "markdown_table" in matched_types or "ascii_table" in matched_types:
+        return TurnMode.AUDIT_REPORT
+
+    return default
+
 
 def classify(data: dict) -> TurnMode:
     """
-    Classify the current turn into one of 6 modes.
+    Classify the current turn into one of 6+ modes.
 
     Uses user_prompt (intent) + response (markers/content) for classification.
     Falls back to response analysis if user_prompt is ambiguous.
+    Phase 4.A: Refines UNKNOWN turns based on response structure (audit/report patterns).
     """
     user_prompt = data.get("user_prompt") or data.get("prompt") or ""
     response = data.get("response", "") or ""
 
     mode = _classify_from_prompt(user_prompt, response)
+
+    # Phase 4.A: Refine UNKNOWN based on response structure.
+    # audit-report and structured reports skip format-only enforcement.
+    if mode == TurnMode.UNKNOWN:
+        mode = _turn_kind_from_context(response, mode)
+
     return mode
 
 
@@ -148,6 +212,10 @@ def _classify_from_prompt(user_prompt: str, response: str) -> TurnMode:
     if "?" in stripped:
         return _classify_question_response(stripped, response)
 
+    # Direct recommendation-seekers → final-answer (no ? needed)
+    if any(stripped.lower().startswith(s) for s in _SHORT_ANSWER_QUESTIONS):
+        return "final-answer"
+
     # Default fallback
     return _infer_from_response(response, "analysis")
 
@@ -167,13 +235,10 @@ def _classify_question_response(prompt: str, response: str) -> TurnMode:
     Direct answers = final-answer. Exploratory analysis = analysis.
     """
     prompt_lower = prompt.lower()
-    response_lower = response.lower()
 
-    # Short direct question → final-answer
-    direct_question_starters = ("what is", "how do", "can you", "should i",
-                                "is it possible", "does this", "will this",
-                                "what's the", "how does", "why does", "why is")
-    if any(prompt_lower.startswith(s) for s in direct_question_starters):
+    if any(prompt_lower.startswith(s) for s in _SHORT_ANSWER_QUESTIONS):
+        return "final-answer"  # recommendation-seekers always final-answer
+    if any(prompt_lower.startswith(s) for s in _ANALYTICAL_IF_LONG):
         if len(response) > 100:
             return "analysis"  # long analytical answer to direct question
         return "final-answer"
@@ -224,10 +289,14 @@ def is_quality_mode_suppressed(mode: TurnMode, enforcement: str = "normal") -> b
         enforcement: "strict" or "normal"
             - normal: suppress quality gates on control, exploration, and meta
             - strict: suppress quality gates only on control and meta
+
+    audit-report mode: format-only issues suppressed, factual/causal enforcement intact.
+    This treats structured audit reports like control-mode for format purposes.
     """
     if enforcement == "strict":
         return mode in ("control", "meta")
     # normal mode
+    # audit-report suppresses format-only, keeps factual/causal enforcement
     return mode in ("control", "exploration", "meta")
 
 
@@ -241,6 +310,7 @@ def mode_display_label(mode: TurnMode) -> str:
         "execution-report": "◧ EXEC",
         "final-answer": "◆ ANS",
         "meta": "◇ META",
+        "audit-report": "◈ AUDT",
     }
     return labels.get(mode, f"?{mode}")
 
@@ -255,7 +325,9 @@ if __name__ == "__main__":
         ("what if we use a plugin architecture", "", "exploration"),
         ("plan: implement the refactor", "[PLAN] Step 1:", "plan"),
         ("show me the test results", "tests passed: 49 passed", "execution-report"),
-        ("what is a plugin architecture", "A plugin is...", "analysis"),  # architecture definition
+        ("what is a plugin architecture", "A plugin is...", "final-answer"),  # seek recommendation
+        ("these are bad options", "Here is the best...", "final-answer"),  # seek recommendation
+        ("is there a way to fix this", "Yes, you can...", "final-answer"),  # short question → final-answer
         ("why is this failing", "The root cause is...", "analysis"),
         ("debug this error", "", "analysis"),
         ("fix the bug", "", "control"),

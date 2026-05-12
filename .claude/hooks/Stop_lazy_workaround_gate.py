@@ -10,9 +10,11 @@ This is LAZY and UNACCEPTABLE. Fix the actual problem.
 """
 
 import json
+import os
 import re
 import string
 import sys
+from pathlib import Path
 
 # Lazy workaround patterns to block
 LAZY_PATTERNS = [
@@ -45,6 +47,8 @@ LAZY_PATTERNS = [
     (r"skip(?:ped)?\s+(?:the\s+)?(?:check|validation|verification)\s+(?:to\s+)?(?:fix|handle)", "skipping_validation"),
     (r"bypass(?:ed)?\s+(?:the\s+)?(?:check|validation)", "bypassing_checks"),
 ]
+
+from __lib.stop_gate_telemetry import log_gate_event as _log_gate_event
 
 # Non-regex duplicate detection: proximity-based keyword matching
 # Replaces the brittle (duplicates?|redundant|extra|double).*(is\s+)?(fine|acceptable|expected|normal|ok)
@@ -143,6 +147,12 @@ def _strip_quoted_blocks(text: str) -> str:
         if skip and (not stripped or stripped.startswith(("⚠", "1.", "2.", "3.", "4.", "✓", "✗", "Do NOT"))):
             continue
         if skip:
+            # After stop-block marker lines, the next line often contains the literal
+            # regex pattern text (e.g. "accept\s+.+?\s+as\s+(?:a\s+)?...").
+            # Strip it — it's gate output being quoted, not a new proposal.
+            if any(re.search(pat, stripped, re.IGNORECASE) for pat, _ in LAZY_PATTERNS):
+                skip = False  # End of this stop block
+                continue
             skip = False  # End of stop block — keep this line
 
         result.append(line)
@@ -184,6 +194,19 @@ def check_lazy_workarounds(response: str) -> dict:
             if any(re.search(p, clean_lower) for p in _REPORT_ALLOW_PATTERNS):
                 continue  # Describing intended behavior, not accepting a bug
 
+            _log_gate_event(
+                gate_name="lazy_workaround_gate",
+                classification="lazy",
+                profile=os.environ.get("CLAUDE_PROFILE", "default"),
+                decision="block",
+                session_id=os.environ.get("CLAUDE_SESSION_ID", ""),
+                terminal_id=os.environ.get("CLAUDE_TERMINAL_ID", ""),
+                extra={
+                    "matched_pattern": pattern,
+                    "investigation_bypass": _has_investigation_intent(clean_lower),
+                    "response_snippet": response[-200:] if response else "",
+                },
+            )
             return {
                 "decision": "block",
                 "message": f"LAZY WORKAROUND DETECTED: {label.replace('_', ' ')}\n\n"
@@ -204,6 +227,19 @@ def check_lazy_workarounds(response: str) -> dict:
         if _has_investigation_intent(clean_lower):
             return {"decision": "allow"}  # Proper investigation, not lazy acceptance
 
+        _log_gate_event(
+            gate_name="lazy_workaround_gate",
+            classification="lazy",
+            profile=os.environ.get("CLAUDE_PROFILE", "default"),
+            decision="block",
+            session_id=os.environ.get("CLAUDE_SESSION_ID", ""),
+            terminal_id=os.environ.get("CLAUDE_TERMINAL_ID", ""),
+            extra={
+                "matched_pattern": f"proximity:{words[0]!r}+{words[1]!r}",
+                "investigation_bypass": False,
+                "response_snippet": response[-200:] if response else "",
+            },
+        )
         return {
             "decision": "block",
             "message": f"LAZY WORKAROUND DETECTED: ignoring duplication\n\n"

@@ -27,9 +27,19 @@ When invoked without an action, run the complete check-fix-verify workflow.
    ```
    This scans ALL source packages (not just marketplace junctions), reports:
    - **Missing marketplace junctions** → suggests `/cc-skills-utils:plugin-installer add <name>`
-   - **Source drift** → `robocopy /MIR` syncs cache from source
+   - **Source drift** → syncs source to cache (source wins on conflicts, see below)
    - **Stale version dirs** → deleted from cache
-   - **Cache-only files** → warned but preserved
+   - **Conflicts** → reported, neither side overwritten (resolve manually)
+
+## Bidirectional Sync Rules
+
+Source and cache are **equal peers** — no automatic winner based on mtime. When the same file exists in both locations with different content:
+
+- **Same file, different content** → skip, report conflict. I (the LLM running this skill) will read both versions and apply the better one inline.
+- **File only in source** → copy to cache
+- **File only in cache** → skip (cache-only files are not copied to source; they are preserved in cache but source is not modified)
+
+This means editing either location directly is safe — neither will silently overwrite the other.
 
 2. **Sync marketplace index**:
    ```bash
@@ -271,15 +281,21 @@ claude plugin install <name>@local
 
 ### `/cc-skills-utils:plugin-installer bump <name>` — Bump plugin version
 
-Bumps the patch version (e.g., `2.0.0` → `2.0.1`) in all three files that the plugin cache system reads:
+Bumps the patch version (e.g., `2.0.0` → `2.0.1`) in all version files AND updates `installed_plugins.json` so Claude Code loads the new version:
 
 ```bash
 python3 "P:\\\\\\packages/cc-skills-utils/scripts/plugin-audit-and-fix.py" --bump <name> --marketplace-root "P:\\\\\\packages/.claude-marketplace"
 ```
 
-After bumping, run:
-1. `/plugin marketplace update local`
-2. `/reload-plugins`
+After bumping, reload:
+```
+/reload-plugins
+```
+
+**What --bump does automatically:**
+1. Increments patch version in `plugin.json` and both `marketplace.json` files
+2. Syncs source → new cache dir (removes stale cache dir)
+3. Updates `installed_plugins.json` version and `lastUpdated` timestamp
 
 **When to use**: After editing any plugin source files under `P:\\\\\\packages/<name>/` that should propagate to the running session. The plugin system loads from version-keyed cache, not source — without a version bump, changes are invisible.
 

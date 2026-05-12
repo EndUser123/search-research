@@ -1,14 +1,17 @@
 ---
 name: reason
-version: 2.0.0
+version: 2.2.0
 status: stable
 category: meta
 enforcement: advisory
+contract_type: hybrid
 workflow_steps:
   - step_classify: Classify query type, confidence, epistemic state, missing capabilities
   - step_route: Emit routing decision (local_only / single_challenger / parallel_challengers / human_review)
   - step_internal: Internal Reflexion pass (Generate → Critique → Improve) with frame chaining
-  - step_external: Dispatch to external roles (verify/redteam/alternative) if needed
+  - step_external_dispatch: If routing = single_challenger → python -c "import sys; sys.path.insert(0, 'P:/tools/mcp'); from bf_agent import run_simple; print(run_simple(mode, prompt, model)['text'])"
+  - step_external_dispatch_compare: If routing = parallel_challengers → python -c "import sys; sys.path.insert(0, 'P:/tools/mcp'); from bf_agent import run_compare; print(run_compare(prompt, models)['synthesis'])"
+  - step_external_dispatch_pcli: If routing = single_challenger with multi-CLI → python "P:\\packages\\cc-skills-ai-cli\\skills\\ai-pcli\\ai_cli.py" "<prompt>" <options>
   - step_messy: Force unresolved tensions + ambiguities before synthesis (required for low-confidence)
   - step_dedupe: Cluster outputs, anti-majoritarian weighting, preserve minority reports
   - step_synthesize: Final synthesis with decision theory, bias check, second-order effects
@@ -101,6 +104,22 @@ Assign models to **cognitive roles**, not task categories. Any model can play an
 
 **Sharp role differentiation beats same-prompt parallelism.** Don't ask all models the same question.
 
+**Implementation:** External dispatch uses `/bf` and `/ai-pcli` as the two primary methods:
+
+| Method | When to Use | How to Invoke |
+|--------|-------------|---------------|
+| `/bf run_simple` | Single-model enhancement, mode-specific (brainstorm/design/plan/review/explore) | `python -c "from bf_agent import run_simple; print(run_simple(mode, prompt, model)['text'])"` |
+| `/bf run_compare` | Parallel multi-model comparison with LangGraph synthesis | `python -c "from bf_agent import run_compare; result = run_compare(prompt, models=[...]); print(result['synthesis'])"` |
+| `/ai-pcli` | Multi-CLI parallel execution (gemini, codex, opencode, pi) with aggregation | `python "P:\\packages\\cc-skills-ai-cli\\skills\\ai-pcli\\ai_cli.py" "<prompt>" <options>` |
+
+**Bifrost (`/bf`) defaults:** Model=`DSv4-flash`, mode=`brainstorm` (or per role: design for architecture, plan for sequencing, review for critique, explore for investigation).
+
+**Routing decision logic:**
+- Low confidence → `/bf run_compare` for breadth (M27, GLM-5.1, DSv4-flash)
+- Single role (Verifier/Red Team) → `/ai-pcli --gemini-only` or `/ai-pcli --pi-only`
+- Parallel diverse roles → `/ai-pcli` with multiple CLIs
+- Code-heavy task → `/bf run_code` with tool loop
+
 ### Stage 5: Messy Phase (Required for low-confidence)
 Before final synthesis, force all models to produce:
 - Unresolved tensions
@@ -152,7 +171,7 @@ Final answer must include:
 ## Decision Flags (when query is a decision)
 
 | Flag | Behavior |
-|------|------------|
+|------|----------|
 | `--force-choice` | Pick one option, state why it wins, state reversal trigger. No timid both-sidesing. |
 | `--kill` | Explicit Keep/Delegate/Defer/Kill pruning. Aggressive reduction. |
 | `--invert` | Analyze failure paths: how it fails, earliest warning sign, preventive move. |
@@ -161,7 +180,7 @@ Final answer must include:
 ## Depth Flags
 
 | Flag | Behavior |
-|------|------------|
+|------|----------|
 | `--no-external` | Pure internal Reflexion (fastest) |
 | `--debate-rounds N` | Force N rounds of external critique |
 | `--framework [reflexion\|tot\|ooda\|feynman\|devil]` | Force a specific mental model |
@@ -172,7 +191,7 @@ Final answer must include:
 ## External Provider Flags
 
 | Flag | Behavior |
-|------|------------|
+|------|----------|
 | `--gemini-only` / `--pi-m27-only` / `--codex-only` | Restrict external models |
 | `--local-only` | Skip external LLMs, use local agents only |
 | `--context PATH` | Explicit files/directories (auto-detected otherwise) |
@@ -285,7 +304,7 @@ SOURCES / CITATIONS
 **How the orchestrator compensates:**
 
 | Your Tendency | Orchestrator Response |
-|---------------|---------------------|
+|---------------|----------------------|
 | Overvalues elegance | Force realist critic + ops cost challenge |
 | Underweights maintenance | Add implementation realist pass first |
 | Optimizes too early | Force exploration phase before reduction |

@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "snapshot",
-      "version": "0.5.3",
+      "version": "0.5.8",
       "description": "Session snapshot capture and restore system for Claude Code sessions",
       "source": "./plugins/snapshot",
       "keywords": [
@@ -31,7 +31,7 @@
     },
     {
       "name": "cc-skills-ai-api",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "description": "AI API integration skills for Claude Code",
       "source": "./plugins/cc-skills-ai-api",
       "keywords": [
@@ -76,7 +76,7 @@
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.1.13",
+      "version": "1.1.14",
       "description": "Utility skills for Claude Code",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
@@ -98,7 +98,7 @@
     },
     {
       "name": "skill-guard",
-      "version": "2.1.7",
+      "version": "2.1.10",
       "description": "Universal skill auto-discovery and enforcement for Claude Code",
       "source": "./plugins/skill-guard",
       "keywords": [
@@ -111,7 +111,7 @@
     },
     {
       "name": "cc-skills-architect",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "description": "Architect plugin",
       "source": "./plugins/cc-skills-architect",
       "keywords": []
@@ -139,7 +139,7 @@
     },
     {
       "name": "fact-guard",
-      "version": "0.1.1",
+      "version": "0.1.7",
       "description": "Prevents fabricated values, adjacent-entry contamination, and unsupported completion claims in structured edits",
       "source": "./plugins/fact-guard",
       "keywords": [

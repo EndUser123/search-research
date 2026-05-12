@@ -184,6 +184,14 @@ _INVESTIGATION_RE = re.compile(
     re.IGNORECASE,
 )
 
+# CHANGE-005: RCA/Self-investigation trigger — matches skill invocation patterns
+_SELF_INVESTIGATION_RE = re.compile(
+    r"\b(/rca|/rca\s|root\s+cause\s+analysis|root\s+cause\s+diagnostic|"
+    r"why\s+is\s+.*\s+lazy|why\s+is\s+.*\s+broken|why\s+does\s+.*\s+fail|"
+    r"diagnose\s+this|debug\s+this|rca\s+skill)\b",
+    re.IGNORECASE,
+)
+
 # Proactive Investigation Mode Instructions (Layer 2)
 _INVESTIGATION_INSTRUCTIONS = (
     "Hypotheses → Testing → Conclusion:\n"
@@ -303,6 +311,11 @@ def sequential_thinking_hook(context: HookContext) -> HookResult:
     # Detect investigation mode (Layer 2)
     is_investigation = bool(_INVESTIGATION_RE.search(prompt_lower) or shared_investigation)
 
+    # CHANGE-005: Detect self-investigation mode (RCA skill invoked)
+    is_self_investigation = bool(_SELF_INVESTIGATION_RE.search(prompt_lower))
+    if is_self_investigation:
+        is_investigation = False  # Self-investigation supersedes generic investigation
+
     # Detect hypothesis mode
     is_hypothesis_mode = False
     for pattern in HYPOTHESIS_MODE_PATTERNS:
@@ -353,10 +366,13 @@ def sequential_thinking_hook(context: HookContext) -> HookResult:
         return HookResult.empty()
 
     # Injection formatting helper
-    def _get_injection(session_id: uuid.UUID, trigger_phrase: str, is_investigation: bool, is_hypothesis_mode: bool) -> HookResult:
+    def _get_injection(session_id: uuid.UUID, trigger_phrase: str, is_investigation: bool, is_hypothesis_mode: bool, is_self_investigation: bool = False) -> HookResult:
         metadata = {"is_investigation": is_investigation}
         if is_hypothesis_mode:
             metadata["hypothesis_mode"] = True
+            metadata["max_iterations"] = 2
+        if is_self_investigation:
+            metadata["is_self_investigation"] = True
             metadata["max_iterations"] = 2
 
         _create_sequential_state(session_id, trigger_phrase, terminal_id, metadata)
@@ -365,6 +381,12 @@ def sequential_thinking_hook(context: HookContext) -> HookResult:
             mode_text = "multi_hypothesis"
             instructions = (
                 "Maintain 2-3 competing explanations and evaluate each against evidence before concluding."
+            )
+        elif is_self_investigation:
+            mode_text = "self_investigation"
+            instructions = (
+                "MANDATORY PRE-FLIGHT: Trace all files, git history, state artifacts, and MCP resources "
+                "BEFORE asking the user to check anything. Trace it yourself."
             )
         elif is_investigation:
             mode_text = "investigation"
@@ -409,6 +431,10 @@ def sequential_thinking_hook(context: HookContext) -> HookResult:
     # Hypothesis mode trigger (highest priority)
     if is_hypothesis_mode:
         return _get_injection(uuid.uuid4(), "hypothesis mode trigger", False, True)
+
+    # CHANGE-005: Self-investigation mode trigger — fires on RCA/diagnostic skill invocation
+    if is_self_investigation:
+        return _get_injection(uuid.uuid4(), "self-investigation trigger", False, False, True)
 
     # Strong semantic match (>0.70)
     if semantic_triggered and not matched_pattern:

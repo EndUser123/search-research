@@ -17,6 +17,172 @@ from typing import List, Literal, Optional
 Decision = Literal["allow", "warn", "block"]
 
 # ---------------------------------------------------------------------------
+# Epistemic policy layer
+# ---------------------------------------------------------------------------
+# Explicit policy governing epistemic enforcement as a function of turn kind
+# and claim kind. Replaces ad-hoc bypass cascades with a readable table.
+#
+# Policy values:
+#   "ignore" — treat as if no issue; do not contribute to decision
+#   "allow"  — override to allow even if config says block
+#   "warn"   — downgrade block→warn
+#   "block"  — enforce block (respects config; this is the default)
+#
+# Principle: FORMAT_ONLY never blocks CONTROL/DEBUG modes; STANCE/CAUSAL/FACTUAL
+# remain strict in ANALYSIS mode.
+
+from enum import Enum
+
+
+class ClaimKind(Enum):
+    FORMAT_ONLY = "format_only"
+    FACTUAL = "factual"
+    CAUSAL = "causal"
+    STANCE = "stance"
+    UNKNOWN = "unknown"
+
+
+class TurnKind(Enum):
+    ANALYSIS = "analysis"
+    CONTROL = "control"
+    EXPLORATION = "exploration"
+    DEBUG_META = "debug_meta"
+    UNKNOWN = "unknown"
+
+
+def _classify_claim_kind(issues: List["EpistemicIssue"]) -> ClaimKind:
+    """Classify the dominant claim kind from a list of issues.
+
+    Returns the highest-severity claim kind present. The policy table
+    handles the case where no issues are present (returns UNKNOWN).
+    """
+    if not issues:
+        return ClaimKind.UNKNOWN
+
+    # Priority: CAUSAL > STANCE > FACTUAL > FORMAT_ONLY
+    for issue in issues:
+        if issue.type == "format":
+            continue
+        # unsupported_fact and comparative are factual-level claims
+        if issue.type in ("unsupported_fact", "comparative_violation"):
+            return ClaimKind.FACTUAL
+        if issue.type.startswith("causal"):
+            return ClaimKind.CAUSAL
+    return ClaimKind.FORMAT_ONLY
+
+
+# Signals that mark a response as a factual report rather than an analytical argument.
+# Conservative: only matches obvious table/numbered-finding/evidence-citation structure.
+# Used to reclassify UNKNOWN turns → CONTROL when the response is clearly a report.
+_FACTUAL_REPORT_RE = re.compile(
+    r"(?im)"
+    r"(?:"
+    # Markdown table: 4+ pipes, content between. Handles | a | b | c | and | Question | Finding |
+    # Content may include spaces, dashes, colons (alignment markers), underscores, etc.
+    r"^\s*\|[^|]*\|[^|]*\|[^|]*\|"  # 4+ pipes, content can be any non-| chars
+    r"|^\s*\|[-: ]+\|[-: ]+\|"       # markdown separator |---|:---|  (space-tolerable content)
+    r"|^\s*\d+\)\s+[A-Z]"        # numbered finding at line start
+    r"|^\s*[-*]\s+[A-Z]{2,}-\d+\s*:"  # labeled bullet at line start
+    r"|Evidence:\s"                 # evidence citation
+    r"|\[FACT\]|\[INFERENCE\]|\[UNKNOWN\]|\[RECOMMENDATION\]"  # STATUS markers
+    r"|^#{1,3}\s+Phase\s+\d+\s"  # markdown heading: ## Phase 1 Audit
+    r"|^Phase\s+\d+\s+Audit:"       # Phase 1 Audit: at line start
+    r"|^Phase\s+\d+\s+Report:"      # Phase 1 Report: at line start
+    r"|Gap\s+Summary"                # Gap Summary header
+    r")"
+)
+def _turn_kind_from_context(
+    raw_response: str, default: TurnKind
+) -> TurnKind:
+    """Reclassify UNKNOWN turns based on response structure signals.
+
+    Factual reports (audits, findings, inspection results) are CONTROL turns —
+    they present verified findings in structured form, not make open-ended claims
+    requiring [FACT]/[INFERENCE]/[RECOMMENDATION] framing.
+
+    This is a second-pass reclassification: it only fires when the first-pass
+    derivation returned UNKNOWN, so it cannot override legitimate ANALYSIS or
+    CONTROL classifications.
+
+    Substantive issues (FACTUAL, CAUSAL) remain enforceable in CONTROL mode per
+    the policy table (CONTROL + FACTUAL = warn, not ignore).
+    """
+    if default != TurnKind.UNKNOWN:
+        return default
+    if not raw_response:
+        return default
+    if _FACTUAL_REPORT_RE.search(raw_response):
+        return TurnKind.CONTROL
+    return default
+
+
+def _turn_kind_from_response_type(response_type: str, is_status_report: bool) -> TurnKind:
+    """Map response characteristics to a turn kind.
+
+    Status report responses are CONTROL regardless of other indicators —
+    they restate known task state and need no evidence framing.
+    """
+    if is_status_report:
+        return TurnKind.CONTROL
+    if response_type == "investigation":
+        return TurnKind.ANALYSIS
+    if response_type == "analytical":
+        return TurnKind.ANALYSIS
+    return TurnKind.UNKNOWN
+
+
+# Policy table: (turn_kind, claim_kind) → override Decision or None
+# None means "no override — fall through to config-based decide_from_issues"
+_POLICY_TABLE: dict[tuple[TurnKind, ClaimKind], Optional[Decision]] = {
+    # CONTROL: format never blocks; substantive issues warn (not block)
+    (TurnKind.CONTROL, ClaimKind.FORMAT_ONLY): "ignore",
+    (TurnKind.CONTROL, ClaimKind.FACTUAL): "warn",
+    (TurnKind.CONTROL, ClaimKind.CAUSAL): "warn",
+    (TurnKind.CONTROL, ClaimKind.STANCE): "warn",
+    (TurnKind.CONTROL, ClaimKind.UNKNOWN): "allow",
+
+    # EXPLORATION: same as CONTROL — format is noise in open-ended turns
+    (TurnKind.EXPLORATION, ClaimKind.FORMAT_ONLY): "ignore",
+    (TurnKind.EXPLORATION, ClaimKind.FACTUAL): "warn",
+    (TurnKind.EXPLORATION, ClaimKind.CAUSAL): "warn",
+    (TurnKind.EXPLORATION, ClaimKind.STANCE): "warn",
+    (TurnKind.EXPLORATION, ClaimKind.UNKNOWN): "allow",
+
+    # DEBUG_META: no epistemic enforcement — talking about the gate itself
+    (TurnKind.DEBUG_META, ClaimKind.FORMAT_ONLY): "ignore",
+    (TurnKind.DEBUG_META, ClaimKind.FACTUAL): "ignore",
+    (TurnKind.DEBUG_META, ClaimKind.CAUSAL): "ignore",
+    (TurnKind.DEBUG_META, ClaimKind.STANCE): "ignore",
+    (TurnKind.DEBUG_META, ClaimKind.UNKNOWN): "ignore",
+
+    # ANALYSIS: format may warn but grounded content outside sections is allowed
+    # CAUSAL/FACTUAL/STANCE remain strict via config
+    (TurnKind.ANALYSIS, ClaimKind.FORMAT_ONLY): None,  # use config (usually warn)
+    (TurnKind.ANALYSIS, ClaimKind.FACTUAL): None,  # use config (usually block)
+    (TurnKind.ANALYSIS, ClaimKind.CAUSAL): None,  # use config (usually warn)
+    (TurnKind.ANALYSIS, ClaimKind.STANCE): None,  # use config
+    (TurnKind.ANALYSIS, ClaimKind.UNKNOWN): None,  # no issues — allow
+
+    # UNKNOWN: default to config behavior (no override)
+    (TurnKind.UNKNOWN, ClaimKind.FORMAT_ONLY): "warn",
+    (TurnKind.UNKNOWN, ClaimKind.FACTUAL): None,
+    (TurnKind.UNKNOWN, ClaimKind.CAUSAL): None,
+    (TurnKind.UNKNOWN, ClaimKind.STANCE): None,
+    (TurnKind.UNKNOWN, ClaimKind.UNKNOWN): "allow",
+}
+
+
+def get_epistemic_policy(
+    turn_kind: TurnKind, claim_kind: ClaimKind
+) -> Optional[Decision]:
+    """Look up the epistemic policy for (turn_kind, claim_kind).
+
+    Returns a Decision override, or None if the config-based logic should
+    be used instead.
+    """
+    return _POLICY_TABLE.get((turn_kind, claim_kind))
+
+# ---------------------------------------------------------------------------
 # Regex patterns (originally from StopHook_epistemic_contract.py, now in _legacy/)
 # ---------------------------------------------------------------------------
 
@@ -155,7 +321,6 @@ def _has_citation_markers(text: str) -> bool:
         r"https?:\/\/",          # URLs
         r"\(source:\s+",         # Citation suffix
         r"see\s+\w+\.py",        # Script references
-        r"pytest\s+output",      # Test output citation
         r"as\s+shown\s+in",      # Evidence phrase
         r"according\s+to",      # Attribution phrase
         r"[\w\-.\\\/]+\:\d+(?:\-\d+)?(?:\s|$)",  # bare path:line — "filter_models.py:60-67"
@@ -294,6 +459,120 @@ def _is_grounded_status_confirmation(text: str) -> bool:
     return False
 
 
+# ---------------------------------------------------------------------------
+# Local tool-grounding helpers — allow short summaries of this turn's own
+# tool output without requiring (source: file:line) boilerplate.
+# ---------------------------------------------------------------------------
+
+# Linking phrases that explicitly tie a sentence to this turn's tool output.
+_LOCAL_TOOL_LINK_PHRASES = (
+    r"from the .+ run (we )?(just )?(saw|above|here)",
+    r"from the .+ output (we )?(just )?(saw|above|here)",
+    r"from pytest( output)?( above| we just saw)?",
+    r"from the pytest run( we just saw)?",
+    r"based on the .+ (above|we just saw|run)",
+    r"according to the .+ (above|we just saw|run)",
+    r"the .+ (above|we just saw|run) shows",
+    r"as shown (in|by) the .+ (above|above|run)",
+    r"source:\s*pytest",  # "(source: pytest output above)"
+    r"from the ls output above",
+    r"from the ls (run|output)",
+    r"from this (ls|grep|find|rg) output",
+)
+
+# Minimum linking phrase — sentence must contain at least one of these
+# to be considered locally grounded (prevents arbitrary numeric matches).
+_LINKING_WORD_RE = re.compile(
+    r"\b(from|based on|according to|as shown|above|we just saw|we saw)\b",
+    re.IGNORECASE,
+)
+
+
+def _has_local_tool_link(text: str) -> bool:
+    """Return True if text contains an explicit link phrase to this turn's tool output."""
+    return any(
+        re.search(p, text, re.IGNORECASE) for p in _LOCAL_TOOL_LINK_PHRASES
+    )
+
+
+def _has_substantive_overlap(text: str, transcript: str) -> bool:
+    """
+    Return True if at least 2 substantive (len >= 3, non-stop-word) tokens
+    from text are found in the transcript.
+
+    Tokens are lowercased and stripped of trailing punctuation (.,;:!?).
+    Filters out generic stop-words so that generic-word overlap alone
+    does not falsely suggest grounding. Requires MULTIPLE content matches
+    to ensure semantic relevance — a single shared word is not enough.
+    """
+    stop_words = frozenset({
+        "the", "and", "for", "with", "this", "that", "from", "was", "are",
+        "been", "have", "has", "had", "but", "not", "all", "can", "will",
+        "just", "our", "out", "about", "above", "over", "into", "only",
+        "is", "it", "as", "by", "or", "an", "be", "we", "so", "no",
+    })
+    text_lower = text.lower()
+    transcript_lower = transcript.lower()
+    substantive_tokens = [
+        tok.strip(".,;:!?")  # strip trailing punctuation for fair comparison
+        for tok in text_lower.split()
+        if len(tok.strip(".,;:!?")) >= 3 and tok.strip(".,;:!?") not in stop_words
+    ]
+    if not substantive_tokens:
+        return False
+    overlap_count = sum(1 for tok in substantive_tokens if tok in transcript_lower)
+    # Require 2+ substantive tokens so that incidental single-word
+    # overlap (e.g. "workaround" from unrelated gate output) is insufficient
+    # to create a false local-grounding signal.  Using 2 rather than 3 so that
+    # genuinely local summaries (which typically have 3+ overlapping content
+    # words) still pass while single-wokrel overlap fails.
+    return overlap_count >= 2  # require at least 2 substantive tokens to overlap
+
+
+def is_locally_grounded_in_this_turn(sentence: str, tool_transcript: str) -> bool:
+    """
+    Return True if sentence clearly cites/summarises tool output from this turn,
+    using both:
+      - a lexical linking phrase ("from pytest above", "based on the run we just saw")
+      - and content overlap with the tool_transcript string.
+
+    Without the linking phrase, numeric/text overlap alone is insufficient —
+    we don't treat bare assertions as tool-grounded just because a similar
+    string appears in the tool output.
+    """
+    if not sentence or not tool_transcript:
+        return False
+    if not _has_local_tool_link(sentence):
+        return False
+    return _has_substantive_overlap(sentence, tool_transcript)
+
+
+def _is_locally_grounded_summary(
+    text: str,
+    tool_transcript: Optional[str],
+    word_count: int,
+) -> bool:
+    """
+    Check whether a response is a locally-grounded summary of this turn's
+    tool output.  Used to bypass the citation/inference requirement for
+    operator-mode summaries that explicitly link to visible evidence.
+
+    Allow when:
+      - Response is short (operator-mode summaries are terse)
+      - Contains an explicit link phrase to this turn's tool output
+      - Tool transcript is provided and overlaps with the response content.
+    """
+    # Compute from actual text to avoid stale/bogus word_count from caller.
+    actual_word_count = len(text.split())
+    if actual_word_count > 80:
+        return False  # Not an operator-mode terse summary
+    if not tool_transcript:
+        return False
+    if not _has_local_tool_link(text):
+        return False
+    return _has_substantive_overlap(text, tool_transcript)
+
+
 def _classify_response_type(response: str) -> str:
     """Classify response to determine validation requirements.
 
@@ -305,15 +584,118 @@ def _classify_response_type(response: str) -> str:
     """
     if not response:
         return "simple"
+    return _classify_response_type_python(response)
+
+
+# ---------------------------------------------------------------------------
+# Operator / explanation response guidance — optional one-turn coaching for
+# investigation/patch/audit responses that would benefit from the 4-section
+# format contract without being hard-blocked on first attempt.
+# ---------------------------------------------------------------------------
+
+def build_local_summary_guidance(tool_name: str, tool_transcript: str) -> str:
+    """
+    Build a short inline hint to guide the model toward a passable local-
+    tool-summary style.  Used when a block is due to missing citation AND
+    tool_transcript is available — the hint tells the model exactly what
+    phrase pattern would work.
+
+    The hint is injected as oneTurn guidance and is NOT persisted beyond
+    the current turn.
+    """
+    if not tool_transcript:
+        return ""
+    preview = tool_transcript[:120].replace("\n", " ").strip()
+    return (
+        f"Tip for passing the epistemic gate on this turn: "
+        f"To summarize \"{tool_name}\" output without a file citation, "
+        f"use a linking phrase like \"from the {tool_name} run above\" or "
+        f"\"based on the {tool_name} output we just saw\" AND ensure your "
+        f"summary includes at least 2 substantive words ({'<word1>, <word2>'} style) "
+        f"that overlap with the tool output below. "
+        f'Example: "From the {tool_name} run above: {preview}..." '
+        f"(keep the summary under 80 words total)."
+    )
+
+
+def validate_local_tool_summary_style(
+    response_text: str,
+    tool_transcript: str,
+) -> dict:
+    """
+    Validate whether response_text could pass as a locally-grounded summary
+    of tool output.  Returns a dict with:
+      - pass: bool — True if the response would bypass the citation requirement
+      - word_count: int
+      - has_link: bool — has a local tool link phrase
+      - overlap_count: int — substantive token overlap count
+      - blocker: str — empty if passable, else reason for failure
+    """
+    if not response_text:
+        return {"pass": False, "word_count": 0, "has_link": False,
+                "overlap_count": 0, "blocker": "empty response"}
+    if not tool_transcript:
+        return {"pass": False, "word_count": len(response_text.split()),
+                "has_link": False, "overlap_count": 0,
+                "blocker": "no tool_transcript provided"}
+
+    word_count = len(response_text.split())
+    has_link = _has_local_tool_link(response_text)
+    # Compute raw integer count (not bool from _has_substantive_overlap)
+    stop_words = frozenset({
+        "the", "and", "for", "with", "this", "that", "from", "was", "are",
+        "been", "have", "has", "had", "but", "not", "all", "can", "will",
+        "just", "our", "out", "about", "above", "over", "into", "only",
+        "is", "it", "as", "by", "or", "an", "be", "we", "so", "no",
+    })
+    text_lower = response_text.lower()
+    transcript_lower = tool_transcript.lower()
+    substantive_tokens = [
+        tok.strip(".,;:!?")
+        for tok in text_lower.split()
+        if len(tok.strip(".,;:!?")) >= 3 and tok.strip(".,;:!?") not in stop_words
+    ]
+    overlap_count = sum(1 for tok in substantive_tokens if tok in transcript_lower)
+
+    if word_count > 80:
+        return {"pass": False, "word_count": word_count, "has_link": has_link,
+                "overlap_count": overlap_count,
+                "blocker": f"response is {word_count} words (max 80)"}
+    if not has_link:
+        return {"pass": False, "word_count": word_count, "has_link": False,
+                "overlap_count": overlap_count,
+                "blocker": "missing linking phrase to tool output"}
+    if overlap_count < 2:
+        return {"pass": False, "word_count": word_count, "has_link": True,
+                "overlap_count": overlap_count,
+                "blocker": f"only {overlap_count} substantive token(s) overlap "
+                           f"(minimum 2 required)"}
+    return {"pass": True, "word_count": word_count, "has_link": True,
+            "overlap_count": overlap_count, "blocker": ""}
+
+
+def _classify_response_type_python(response: str) -> str:
 
     lines = response.split("\n")
     words = response.split()
     text_lower = response.lower()
 
-    # Short responses (under 12 words) with analytical language are still "simple"
-    # The word "analysis" alone doesn't make something an analytical piece
+    # PLAN-scaffold prefix: unconditionally treated as "investigation" regardless
+    # of word count. The prefix is the dominant signal — a plan scaffold with
+    # analytical content, not a status report.
+    stripped = response.lstrip()
+    if stripped.startswith("PLAN MODE"):
+        return "investigation"
+
+    # Short responses (under 12 words): check for plan markers first.
+    # Plan markers ([PLAN], ## RATIONALE, ## ANALYSIS) are dominant signal
+    # even in short responses and must route to investigation, not simple.
     if len(words) < 12:
-        # But analysis/assessment/investigation phrases signal analytical intent
+        if stripped.startswith("[PLAN]"):
+            return "investigation"
+        if "## RATIONALE" in response or "## ANALYSIS" in response:
+            return "investigation"
+        # No plan prefix and no analytical signal → simple
         analytical_signal = any(
             p in text_lower for p in (
                 "analysis:", "assess:", "investigation:", "assessment:",
@@ -323,8 +705,18 @@ def _classify_response_type(response: str) -> str:
         if not analytical_signal:
             return "simple"
 
-    # STATUS-labeled responses are simple (structured, but not investigation)
+    # STATUS-labeled responses: check for plan-scaffold mixed-mode.
+    # A response that carries plan markers ([PLAN], ## RATIONALE, ## ANALYSIS)
+    # alongside [FACT]/[INFERENCE] sections is a mixed-mode response that MUST
+    # be routed to investigation validation, not collapsed to simple status.
     if any(s in response for s in ("[FACT]", "[INFERENCE]", "[UNKNOWN]", "[RECOMMENDATION]")):
+        has_plan_marker = (
+            stripped.startswith("[PLAN]")
+            or "## RATIONALE" in response
+            or "## ANALYSIS" in response
+        )
+        if has_plan_marker:
+            return "investigation"
         return "simple"
 
     # Simple responses: short with evidence markers (file paths, line refs, citations)
@@ -383,6 +775,7 @@ class EpistemicVerdict:
 @dataclass
 class EpistemicConfig:
     mode: Decision = "warn"
+    turn_mode: Optional[str] = None  # Schema-routing axis from Stop.py classification
     responseMode: str = "auto"  # "analysis", "report", or "auto"
     treat_format_violation_as: Decision = "block"
     treat_unsupported_fact_as: Decision = "block"
@@ -390,6 +783,9 @@ class EpistemicConfig:
     treat_comparative_violation_as: Decision = "warn"
     enable_causal_checks: bool = True
     enable_comparative_checks: bool = True
+    # Optional tool transcript string from this turn — used to ground
+    # local tool-output summaries without requiring (source: file:line).
+    tool_transcript: Optional[str] = None
 
 
 @dataclass
@@ -409,38 +805,280 @@ class ParsedResponse:
 
 
 # ---------------------------------------------------------------------------
+# Schema validators (selected by explicit turn_mode)
+# ---------------------------------------------------------------------------
+
+
+def _validate_control_schema(raw_response: str, cfg: EpistemicConfig) -> EpistemicVerdict:
+    """Validate CONTROL mode responses.
+
+    CONTROL schema: substantive factual claims are violations.
+    Control mode is for directives and system commands, not claims.
+    """
+    clean = sanitize_response(raw_response)
+    parsed, format_issues = parse_sections(clean)
+    issues: List[EpistemicIssue] = []
+
+    # Any factual claims in control mode are substantive violations
+    fact_support_issues = check_fact_support(parsed)
+    for issue in fact_support_issues:
+        issues.append(EpistemicIssue(
+            section=issue.section,
+            bullet_index=issue.bullet_index,
+            type="format",
+            message=f"CONTROL mode contains substantive claim: {issue.message}",
+        ))
+
+    if cfg.enable_causal_checks:
+        issues.extend(check_causal_rules(parsed))
+    if cfg.enable_comparative_checks:
+        issues.extend(check_comparative_rules(parsed))
+
+    if issues:
+        decision = decide_from_issues(issues, cfg, response_type="simple", raw_response=raw_response)
+        return EpistemicVerdict(decision=decision, issues=issues)
+    return EpistemicVerdict(decision="allow", issues=[])
+
+
+def _validate_plan_schema(raw_response: str, cfg: EpistemicConfig) -> EpistemicVerdict:
+    """Validate PLAN mode responses.
+
+    PLAN schema: lighter format requirements, but mixed-substance (plan +
+    substantive diagnosis) is a violation. A plan response that contains
+    root-cause investigation sections is flagged as mixed_substance, not
+    silently reclassified to investigation schema.
+
+    Unlike INVESTIGATION schema, PLAN schema does NOT require 4-section
+    structure — only mixed-substance detection applies.
+    """
+    clean = sanitize_response(raw_response)
+    parsed, format_issues = parse_sections(clean)
+    # For PLAN schema: only flag actual format violations, not missing sections.
+    # Missing [FACT]/[INFERENCE]/etc. sections are expected in plan mode.
+    issues: List[EpistemicIssue] = [
+        issue for issue in format_issues
+        if "Missing required section" not in issue.message
+    ]
+
+    # Mixed-substance detection: plan marker + RCA sections → violation
+    has_rca_schema = any(
+        header in raw_response for header in (
+            "## Symptom", "## Evidence", "## Root Cause",
+            "[FACT]", "[INFERENCE]", "[UNKNOWN]", "[RECOMMENDATION]",
+        )
+    )
+    if has_rca_schema:
+        issues.append(EpistemicIssue(
+            section="__GLOBAL__", bullet_index=-1,
+            type="format",
+            message=(
+                "PLAN mode response contains substantive diagnosis. "
+                "Use ANALYSIS mode for root-cause investigation. "
+                "Mixed-substance violation: plan responses must not contain "
+                "RCA/section markers."
+            ),
+        ))
+
+    issues.extend(check_fact_support(parsed))
+    if cfg.enable_causal_checks:
+        issues.extend(check_causal_rules(parsed))
+    if cfg.enable_comparative_checks:
+        issues.extend(check_comparative_rules(parsed))
+
+    decision = decide_from_issues(issues, cfg, response_type="analytical", raw_response=raw_response)
+    return EpistemicVerdict(decision=decision, issues=issues)
+
+
+def _validate_meta_schema(raw_response: str, cfg: EpistemicConfig) -> EpistemicVerdict:
+    """Validate META mode responses.
+
+    META schema: no structural requirements. Anti-lazy patterns apply
+    (lazy_fix, sycophancy_capitulation) but plan_mode_futurizing is suppressed.
+    """
+    clean = sanitize_response(raw_response)
+    parsed, format_issues = parse_sections(clean)
+    issues: List[EpistemicIssue] = list(format_issues)
+
+    issues.extend(check_fact_support(parsed))
+    if cfg.enable_causal_checks:
+        issues.extend(check_causal_rules(parsed))
+    if cfg.enable_comparative_checks:
+        issues.extend(check_comparative_rules(parsed))
+
+    decision = decide_from_issues(issues, cfg, response_type="analytical", raw_response=raw_response)
+    return EpistemicVerdict(decision=decision, issues=issues)
+
+
+def _validate_investigation_schema(raw_response: str, cfg: EpistemicConfig) -> EpistemicVerdict:
+    """Validate INVESTIGATION/ANALYSIS mode responses (full 4-section contract)."""
+    clean = sanitize_response(raw_response)
+    parsed, format_issues = parse_sections(clean)
+
+    issues: List[EpistemicIssue] = list(format_issues)
+    issues.extend(check_fact_support(parsed))
+    if cfg.enable_causal_checks:
+        issues.extend(check_causal_rules(parsed))
+    if cfg.enable_comparative_checks:
+        issues.extend(check_comparative_rules(parsed))
+
+    issues = _filter_format_issues_for_response_type(issues, "investigation", _has_citation_markers(raw_response))
+
+    strict_cfg = EpistemicConfig(
+        mode="block",
+        treat_format_violation_as=cfg.treat_format_violation_as,
+        treat_unsupported_fact_as=cfg.treat_unsupported_fact_as,
+        treat_causal_violation_as=cfg.treat_causal_violation_as,
+        treat_comparative_violation_as=cfg.treat_comparative_violation_as,
+        enable_causal_checks=cfg.enable_causal_checks,
+        enable_comparative_checks=cfg.enable_comparative_checks,
+        tool_transcript=cfg.tool_transcript,
+    )
+    decision = decide_from_issues(issues, strict_cfg, response_type="investigation", raw_response=raw_response)
+    return EpistemicVerdict(decision=decision, issues=issues)
+
+
+# ---------------------------------------------------------------------------
 # Sanitization
 # ---------------------------------------------------------------------------
 
 
+def _strip_scaffolding_blocks(text: str) -> str:
+    """Strip internal system scaffolding that should never reach the validator.
+
+    Strips:
+    - COGNITIVE GUARDRAILS ACTIVE blocks (ALL-CAPS headers)
+    - REASONING CONTRACT blocks (ALL-CAPS headers)
+    - RCA Contract Schema Required section headers
+    - TEST STRATEGY CONTRACT multi-line blocks
+    - [THINK:*] system blocks
+    - cognitive-tags trailers (Tags:)
+
+    These are hook-injected scaffolds that pollute classification and should
+    not be treated as assistant-authored content.
+    """
+    if not text:
+        return ""
+
+    lines = text.splitlines()
+    cleaned = []
+    i = 0
+    while i < len(lines):
+        s = lines[i].strip()
+
+        # Skip COGNITIVE GUARDRAILS ACTIVE block (all-CAPS header)
+        if s == "COGNITIVE GUARDRAILS ACTIVE":
+            # Skip this line and all subsequent lines until blank line or significant content
+            i += 1
+            while i < len(lines):
+                next_s = lines[i].strip()
+                if not next_s or next_s.startswith("**") or next_s.startswith("[") or next_s.startswith("-"):
+                    # Stop at blank lines, markdown headers, or list items (content continues)
+                    # But only stop at blank lines - the block continues until we hit a blank line
+                    if not next_s:
+                        i += 1
+                        break
+                    i += 1
+                else:
+                    break
+            continue
+
+        # Skip REASONING CONTRACT block (all-CAPS header)
+        if s == "REASONING CONTRACT":
+            i += 1
+            while i < len(lines):
+                next_s = lines[i].strip()
+                if not next_s:
+                    i += 1
+                    break
+                i += 1
+            continue
+
+        # Skip RCA Contract Schema Required section header (## RCA Contract...)
+        # Case-insensitive check since markdown headers may have varying case
+        s_lower = s.lower()
+        if s.startswith("## ") and ("contract" in s_lower or ("rca" in s_lower and "schema" in s_lower)):
+            i += 1
+            while i < len(lines):
+                next_s = lines[i].strip()
+                if not next_s or next_s.startswith("## "):
+                    break
+                i += 1
+            continue
+
+        # Skip lines that are purely a TEST STRATEGY CONTRACT header/marker
+        if "**TEST STRATEGY CONTRACT**" in s and len(s) < 200:
+            i += 1
+            # Skip following content lines until blank line or non-bullet
+            while i < len(lines):
+                next_s = lines[i].strip()
+                if not next_s:
+                    i += 1
+                    break
+                # Continuation lines (indented bullets, dashes)
+                if next_s.startswith("-") or next_s.startswith("*"):
+                    i += 1
+                    continue
+                break
+            continue
+
+        # Skip lines that are purely [THINK:*] system blocks
+        if re.match(r"^\[THINK:[a-z_]+\]$", s, re.IGNORECASE):
+            i += 1
+            continue
+
+        # Skip cognitive-tags trailers
+        if s == "Tags:":
+            i += 1
+            continue
+
+        cleaned.append(lines[i])
+        i += 1
+
+    return "\n".join(cleaned)
+
+
+def _inline_sanitize(text: str) -> str:
+    """Minimal inline sanitization when shared_helpers is unavailable."""
+    if not text:
+        return ""
+    diag_prefixes = (
+        "STATUS:", "UNVERIFIED CLAIMS:", "Evidence missing for:",
+        "Stop hook error:", "Stop hook feedback:", "Ran ",
+    )
+    out = []
+    for line in text.splitlines():
+        s = line.strip()
+        if s.startswith("#"):
+            continue
+        if s.startswith(">"):
+            continue
+        if any(s.startswith(p) for p in diag_prefixes):
+            continue
+        if re.match(r"^[-*_]{3,}\s*$", s):
+            continue
+        out.append(line)
+    return "\n".join(out)
+
+
 def sanitize_response(raw_response: str) -> str:
-    """Strip non-claim lines (headers, quotes, Stop diagnostics) from response."""
+    """Strip non-claim lines (headers, quotes, Stop diagnostics) from response.
+
+    Also strips known internal scaffolding that should never reach the validator:
+    - TEST STRATEGY CONTRACT blockquotes
+    - [THINK:*] system blocks
+    - cognitive-tags trailers
+    """
     try:
         from __lib.shared_helpers import strip_non_claim_lines
     except ImportError:
-        # Fallback: minimal inline stripping if shared_helpers unavailable
-        def strip_non_claim_lines(text: str) -> str:  # type: ignore[misc]
-            if not text:
-                return ""
-            diag_prefixes = (
-                "STATUS:", "UNVERIFIED CLAIMS:", "Evidence missing for:",
-                "Stop hook error:", "Stop hook feedback:", "Ran ",
-            )
-            out = []
-            for line in text.splitlines():
-                s = line.strip()
-                if s.startswith("#"):
-                    continue
-                if s.startswith(">"):
-                    continue
-                if any(s.startswith(p) for p in diag_prefixes):
-                    continue
-                if re.match(r"^[-*_]{3,}\s*$", s):
-                    continue
-                out.append(line)
-            return "\n".join(out)
+        strip_non_claim_lines = None
 
-    return strip_non_claim_lines(raw_response)
+    # Strip TEST STRATEGY CONTRACT / [THINK:*] / cognitive-tags blocks first
+    text = _strip_scaffolding_blocks(raw_response)
+
+    if strip_non_claim_lines is not None:
+        return strip_non_claim_lines(text)
+    return _inline_sanitize(text)
 
 
 # ---------------------------------------------------------------------------
@@ -462,8 +1100,15 @@ def parse_sections(clean: str) -> tuple[ParsedResponse, List[EpistemicIssue]]:
     section_lines: dict[str, list[str]] = {s: [] for s in SECTION_ORDER}
     global_lines: list[str] = []
 
+    # Build closing tag patterns for stripping during parse
+    # e.g. [/FACT] -> [FACT], [/INFERENCE] -> [INFERENCE], etc.
+    closing_tags = {f"[/{tag[1:-1]}]" for tag in SECTION_ORDER}
+
     for line in lines:
         stripped = line.strip()
+        # Skip closing tags (e.g. [/FACT], [/INFERENCE])
+        if stripped in closing_tags:
+            continue
         if stripped in SECTION_ORDER:
             current_section = stripped
             continue
@@ -697,8 +1342,18 @@ def check_comparative_rules(parsed: ParsedResponse) -> List[EpistemicIssue]:
 # ---------------------------------------------------------------------------
 
 
-def decide_from_issues(issues: List[EpistemicIssue], cfg: EpistemicConfig) -> Decision:
-    """Compute the strongest decision from collected issues."""
+def decide_from_issues(
+    issues: List[EpistemicIssue],
+    cfg: EpistemicConfig,
+    response_type: str = "simple",
+    raw_response: str = "",
+) -> Decision:
+    """Compute the strongest decision from collected issues, then apply policy layer.
+
+    The policy layer (get_epistemic_policy) overrides config-based decisions for
+    specific (turn_kind, claim_kind) combinations where format is noise or where
+    enforcement should be softer/harder than the config default.
+    """
     if not issues:
         return "allow"
 
@@ -726,8 +1381,161 @@ def decide_from_issues(issues: List[EpistemicIssue], cfg: EpistemicConfig) -> De
     if cfg.mode == "allow":
         return "allow"
     if cfg.mode == "warn" and worst == "block":
-        return "warn"
+        worst = "warn"
+
+    # Policy-layer override: consult the explicit (turn_kind, claim_kind) table.
+    # This fires after config-based ranking so it can selectively override decisions
+    # that would otherwise be too strict for specific context combinations.
+    if worst != "allow":
+        is_status_report = is_status_summary_response(raw_response)
+        turn_kind = _turn_kind_from_response_type(response_type, is_status_report)
+        # Second-pass: reclassify UNKNOWN → CONTROL for structural factual reports
+        turn_kind = _turn_kind_from_context(raw_response, turn_kind)
+        claim_kind = _classify_claim_kind(issues)
+        policy = get_epistemic_policy(turn_kind, claim_kind)
+        if policy is not None:
+            if policy == "ignore":
+                return "allow"
+            return policy
+
     return worst
+
+
+# ---------------------------------------------------------------------------
+# Policy layer — routes warn decisions to concrete system actions
+# ---------------------------------------------------------------------------
+
+# Actions produced by apply_epistemic_policy
+PolicyAction = Literal[
+    "allow",     # pass through — no special action
+    "block",     # hard block — same as current block behavior
+    "retry_with_guidance",   # write guidance marker, allow to pass
+    "retry_auto_wrap",       # auto-wrap into 4-section, re-validate once
+    "log_warn",  # warn-level issue but no behavior change — log only
+]
+
+
+@dataclass
+class EpistemicPolicyResult:
+    """Result of applying epistemic policy to a verdict."""
+
+    decision: PolicyAction
+    actions: dict
+
+
+def apply_epistemic_policy(
+    verdict: EpistemicVerdict,
+    cfg: EpistemicConfig,
+    *,
+    tool_transcript: str | None = None,
+    is_analytical: bool = False,
+    turn_mode: str | None = None,
+    verbose_override: bool = False,
+) -> EpistemicPolicyResult:
+    """Map a validator verdict + context to a concrete system action.
+
+    This is the bridge between the validator's allow/warn/block decision and
+    Stop.py's actual behavior.  It decides WHAT HAPPENS at each warn — not
+    just that a warn occurred.
+
+    Parameters
+    ----------
+    verdict:
+        Output of ``validate()``.
+    cfg:
+        EpistemicConfig in use for this turn.
+    tool_transcript:
+        Raw tool output string from this turn (same as ``cfg.tool_transcript``).
+        Used to decide the local-summary retry path.
+    is_analytical:
+        True when ``detect_response_mode`` returned ``"analysis"``
+        (not ``"report"``).  Format-only retries only apply to analytical
+        responses.
+    turn_mode:
+        Classified turn mode from ``_classify_turn_mode`` (e.g. "plan",
+        "execution-report").  Plan/execution-report modes suppress blocks
+        and format repairs on non-critical issues.
+    verbose_override:
+        True when ``--epistemic-verbose`` is in the user prompt.
+        On-demand verbose makes the full advisory text visible inline.
+
+    Returns
+    -------
+    EpistemicPolicyResult
+        ``decision`` — one of the PolicyAction literals above.
+        ``actions``   — dict of side-effects to perform (keys such as
+        ``write_guidance_marker``, ``log_advisory``, ``retry_response``).
+    """
+    issue_types = {i.type for i in verdict.issues}
+    has_format = "format" in issue_types
+    has_unsupported_fact = "unsupported_fact" in issue_types
+
+    # ── Strict mode: block is a real block ─────────────────────────────────
+    if cfg.mode == "block":
+        if verdict.decision == "block":
+            return EpistemicPolicyResult(
+                decision="block",
+                actions={
+                    "write_guidance_marker": (
+                        has_unsupported_fact and bool(tool_transcript)
+                    ),
+                },
+            )
+        # allow/warn both pass in strict mode if not a block decision
+        return EpistemicPolicyResult(decision="allow", actions={})
+
+    # ── Warn mode ───────────────────────────────────────────────────────────
+    if verdict.decision == "warn" and verdict.issues:
+        # Schema-aware routing for plan/execution-report modes:
+        # Don't blindly allow — route based on actual content type.
+        # cfg.turn_mode is now set from Stop.py classification.
+        # - plan mode + investigation-type content → enforce 4-section contract
+        # - plan mode + simple/report content → allow (format repair suppressed)
+        turn_mode = cfg.turn_mode or turn_mode
+        if turn_mode in ("plan", "execution-report"):
+            issue_types = {i.type for i in verdict.issues}
+            # If the response type is "investigation" (per _classify_response_type),
+            # this is mixed-mode (plan marker + analytical content) — don't bypass.
+            # Only suppress pure format-only issues on plan/report content.
+            is_pure_format_only = (
+                len(verdict.issues) == 1 and "format" in issue_types
+            )
+            if is_pure_format_only:
+                # Pure format-only on plan mode: suppress and allow
+                return EpistemicPolicyResult(decision="allow", actions={})
+            # Non-format issues or mixed-mode: fall through to normal warn handling
+
+        # Local-summary unsupported_fact: retry with guidance marker + allow.
+        # This is the "auto-repair" path — write the marker and pass through.
+        if (
+            has_unsupported_fact
+            and tool_transcript
+            and is_analytical
+        ):
+            return EpistemicPolicyResult(
+                decision="retry_with_guidance",
+                actions={
+                    "write_guidance_marker": True,
+                    "advisory_type": "unsupported_fact_retry",
+                },
+            )
+
+        # Pure format-only on analytical responses: optional auto-wrap.
+        all_format = all(i.type == "format" for i in verdict.issues)
+        if all_format and is_analytical:
+            return EpistemicPolicyResult(
+                decision="retry_auto_wrap",
+                actions={"advisory_type": "format_repair"},
+            )
+
+        # All other warns: log-only, no behavior change.
+        return EpistemicPolicyResult(
+            decision="log_warn",
+            actions={"advisory_type": "mixed_advisory"},
+        )
+
+    # verdict == allow (or warn with no issues)
+    return EpistemicPolicyResult(decision="allow", actions={})
 
 
 # ---------------------------------------------------------------------------
@@ -824,9 +1632,13 @@ def _filter_format_issues_for_response_type(
 
     - "simple" + evidence: drop global-text issue (citation IS evidence)
     - "analytical": keep missing-section issues but downgrade to warn
-    - "investigation": keep all format enforcement
+    - "investigation": keep all format enforcement but treat section-missing as block
     """
     if response_type == "investigation":
+        # For investigation responses, keep all format issues (they are enforced
+        # as block via treat_format_violation_as defaulting to "block").
+        # The mode=warn downgrade in decide_from_issues only applies to the
+        # weakest issue type; format issues at "block" remain block for investigation.
         return issues
 
     filtered: List[EpistemicIssue] = []
@@ -864,6 +1676,44 @@ def validate(raw_response: str, config: Optional[EpistemicConfig] = None) -> Epi
     except ImportError:
         pass
 
+    # ── Schema routing by explicit turn_mode ─────────────────────────────────
+    # turn_mode is authoritative when present. Text heuristics are fallback only
+    # when metadata is absent. Text heuristics may detect mixed-substance
+    # violations WITHIN a chosen schema; they may NOT silently reclassify.
+    if cfg.turn_mode is not None:
+        if cfg.turn_mode == "control":
+            return _validate_control_schema(raw_response, cfg)
+        if cfg.turn_mode == "plan":
+            return _validate_plan_schema(raw_response, cfg)
+        if cfg.turn_mode in ("analysis", "final-answer"):
+            return _validate_investigation_schema(raw_response, cfg)
+        if cfg.turn_mode == "execution-report":
+            # execution reports bypass the 4-section contract
+            return EpistemicVerdict(decision="allow", issues=[])
+        if cfg.turn_mode == "meta":
+            return _validate_meta_schema(raw_response, cfg)
+        # exploration: treat as generic (suppressed by quality gate upstream)
+
+    # ── PLAN MODE prefix bypass (backward-compatible fallback) ───────────────
+    # Only reachable when turn_mode is absent. This is the heuristic fallback
+    # path — explicit metadata routing (above) takes precedence.
+    stripped_prefix = raw_response.lstrip()
+    if stripped_prefix.startswith("PLAN MODE") or stripped_prefix.startswith("[PLAN]"):
+        # Allow plan-only responses (config directives with no analytical content).
+        # Block if response contains mixed-mode content (plan marker + investigation sections).
+        has_fact = "[FACT]" in raw_response or "[FACT]" in stripped_prefix
+        has_inference = "[INFERENCE]" in raw_response
+        has_unknown = "[UNKNOWN]" in raw_response
+        has_recommendation = "[RECOMMENDATION]" in raw_response
+        has_rca_schema = "## Symptom" in raw_response or "## Evidence" in raw_response or "## Root Cause" in raw_response
+        if has_fact or has_inference or has_unknown or has_recommendation or has_rca_schema:
+            # Mixed mode: plan marker coexists with analytical/RCA content
+            # → continue to schema-aware validation instead of bypassing
+            pass
+        else:
+            # Plan-only: config directives without analytical content → allow
+            return EpistemicVerdict(decision="allow", issues=[])
+
     # Resolve response mode: explicit config overrides auto-detection.
     response_mode = cfg.responseMode
     if response_mode in ("auto", None):
@@ -872,6 +1722,25 @@ def validate(raw_response: str, config: Optional[EpistemicConfig] = None) -> Epi
     # Report mode does not follow the analytical 4-section contract.
     if response_mode == "report":
         return EpistemicVerdict(decision="allow", issues=[])
+
+    # Mandate 4-section format for final-answer mode when response is substantial.
+    # Short final-answers (<=100 words) are direct answers that don't need structure.
+    # Substantial final-answers (>100 words) are analytical responses that should
+    # use [FACT]/[INFERENCE]/[UNKNOWN]/[RECOMMENDATION] sections.
+    word_count = len(raw_response.split())
+    if getattr(cfg, "sectional_response_required", False) and word_count > 100:
+        cfg = EpistemicConfig(
+            mode=cfg.mode,
+            responseMode="auto",
+            treat_format_violation_as=cfg.treat_format_violation_as,
+            treat_unsupported_fact_as=cfg.treat_unsupported_fact_as,
+            treat_causal_violation_as=cfg.treat_causal_violation_as,
+            treat_comparative_violation_as=cfg.treat_comparative_violation_as,
+            enable_causal_checks=cfg.enable_causal_checks,
+            enable_comparative_checks=cfg.enable_comparative_checks,
+            tool_transcript=cfg.tool_transcript,
+        )
+        response_type = "investigation"
 
     # Classify response type to determine validation requirements
     response_type = _classify_response_type(raw_response)
@@ -890,7 +1759,7 @@ def validate(raw_response: str, config: Optional[EpistemicConfig] = None) -> Epi
                 issues.extend(check_causal_rules(parsed))
             if cfg.enable_comparative_checks:
                 issues.extend(check_comparative_rules(parsed))
-            decision = decide_from_issues(issues, cfg)
+            decision = decide_from_issues(issues, cfg, response_type="simple", raw_response=raw_response)
             return EpistemicVerdict(decision=decision, issues=issues)
         elif has_evidence or _has_inference_marker(raw_response):
             return EpistemicVerdict(decision="allow", issues=[])
@@ -907,18 +1776,34 @@ def validate(raw_response: str, config: Optional[EpistemicConfig] = None) -> Epi
         # These are inherently short and lack citation markers — not a quality failure.
         elif _is_repair_response_in_active_challenge(raw_response, word_count):
             return EpistemicVerdict(decision="allow", issues=[])
+        # Locally-grounded tool summaries: when the response explicitly links to
+        # this turn's tool output (e.g. "from the pytest run above") AND the tool
+        # transcript overlaps with the response content, treat it as sufficiently
+        # grounded without requiring (source: file:line) boilerplate.
+        elif _is_locally_grounded_summary(raw_response, cfg.tool_transcript, word_count):
+            return EpistemicVerdict(decision="allow", issues=[])
+        # Grounded status confirmations — ultra-short restatements of evidence
+        # that was already displayed before the response (pytest output, command
+        # result, etc.). These are not epistemic claims; they restate visible state.
+        elif _is_grounded_status_confirmation(raw_response):
+            return EpistemicVerdict(decision="allow", issues=[])
         else:
-            return EpistemicVerdict(decision="block", issues=[
-                EpistemicIssue(
-                    section="__GLOBAL__", bullet_index=-1,
-                    type="format",
-                    message=(
-                        "Simple answer lacks citation or inference marker. "
-                        "Add a source citation (source: file:line) or use "
-                        "tentative language (likely, may be, I would need to)."
-                    ),
+            # Route through policy layer: context reclassification may promote
+            # UNKNOWN → CONTROL, making FORMAT_ONLY issues ignorable.
+            # (e.g. audit-structured reports: tables, numbered findings, evidence markers)
+            hard_block_issue = EpistemicIssue(
+                section="__GLOBAL__", bullet_index=-1,
+                type="format",
+                message=(
+                    "Simple answer lacks citation or inference marker. "
+                    "Add a source citation (source: file:line) or use "
+                    "tentative language (likely, may be, I would need to)."
                 ),
-            ])
+            )
+            decision = decide_from_issues(
+                [hard_block_issue], cfg, response_type="simple", raw_response=raw_response
+            )
+            return EpistemicVerdict(decision=decision, issues=[hard_block_issue])
 
     # --- Analytical responses: encourage structure, don't hard-block ---
     if response_type == "analytical":
@@ -934,7 +1819,7 @@ def validate(raw_response: str, config: Optional[EpistemicConfig] = None) -> Epi
         if cfg.enable_comparative_checks:
             issues.extend(check_comparative_rules(parsed))
 
-        decision = decide_from_issues(issues, cfg)
+        decision = decide_from_issues(issues, cfg, response_type="analytical", raw_response=raw_response)
         return EpistemicVerdict(decision=decision, issues=issues)
 
     # --- Investigation responses: enforce full 4-section contract ---
@@ -948,5 +1833,21 @@ def validate(raw_response: str, config: Optional[EpistemicConfig] = None) -> Epi
     if cfg.enable_comparative_checks:
         issues.extend(check_comparative_rules(parsed))
 
-    decision = decide_from_issues(issues, cfg)
+    # Filter format issues for investigation responses (same logic as simple/analytical)
+    issues = _filter_format_issues_for_response_type(issues, response_type, has_evidence)
+
+    # For investigation responses, format enforcement should be strict (block).
+    # Override mode to 'block' so that block-ranked format issues stay as block
+    # rather than being downgraded to warn by the mode='warn' global override.
+    strict_cfg = EpistemicConfig(
+        mode="block",
+        treat_format_violation_as=cfg.treat_format_violation_as,
+        treat_unsupported_fact_as=cfg.treat_unsupported_fact_as,
+        treat_causal_violation_as=cfg.treat_causal_violation_as,
+        treat_comparative_violation_as=cfg.treat_comparative_violation_as,
+        enable_causal_checks=cfg.enable_causal_checks,
+        enable_comparative_checks=cfg.enable_comparative_checks,
+        tool_transcript=cfg.tool_transcript,
+    )
+    decision = decide_from_issues(issues, strict_cfg, response_type="investigation", raw_response=raw_response)
     return EpistemicVerdict(decision=decision, issues=issues)

@@ -50,7 +50,10 @@ def detect_context_boundaries(transcript_path: Path | None) -> list[WorkContext]
             if match:
                 # Extract the goal phrase (rest of the sentence)
                 remainder = turn.content[match.end():].strip()
-                phrase = remainder[:100] if remainder else turn.content[match.start():match.start() + 100]
+                # Snap to next word boundary to avoid mid-path/mid-word extraction
+                word_boundary = re.search(r"\S", remainder)
+                start_offset = word_boundary.start() if word_boundary else 0
+                phrase = remainder[start_offset:start_offset + 100]
                 contexts.append(WorkContext(
                     start_turn=turn.turn_number,
                     goal_phrase=phrase,

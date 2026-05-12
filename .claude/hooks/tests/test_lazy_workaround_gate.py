@@ -344,5 +344,77 @@ class TestTelemetryFields(unittest.TestCase):
         self.assertTrue(entry["extra"]["matched_pattern"].startswith("proximity:"))
 
 
+class TestSelfTriggerRegression(unittest.TestCase):
+    """Regression tests for the self-trigger issue where quoting gate output triggers detection."""
+
+    def test_quoted_pattern_text_after_stop_block_marker_allows(self):
+        """Quoting the literal regex pattern text after a stop-block marker should be stripped."""
+        response = (
+            "Let me trace where the duplication originates.\n"
+            "Stop hook feedback:\n"
+            "> Pattern matched: accept\\s+.+?\\s+as\\s+(?:a\\s+)?(?:visible\\s+logging|feature|...)\n"
+            "I'll investigate the root cause."
+        )
+        result = check_lazy_workarounds(response)
+        self.assertEqual(result["decision"], "allow")
+
+    def test_quoted_accept_as_feature_pattern_allows(self):
+        """Quoting 'accept it as a feat*re' should not trigger the gate."""
+        response = (
+            "Let me trace the source.\n"
+            "The gate output included:\n"
+            "> accept it as a feat*re\n"
+            "I'll investigate the underlying issue."
+        )
+        result = check_lazy_workarounds(response)
+        self.assertEqual(result["decision"], "allow")
+
+    def test_quoted_workaround_is_fine_allows(self):
+        """Quoting 'workaround is fine' should not trigger the gate."""
+        response = (
+            "After reviewing the gate message:\n"
+            "> workaround is fine\n"
+            "Let me fix the actual root cause."
+        )
+        result = check_lazy_workarounds(response)
+        self.assertEqual(result["decision"], "allow")
+
+    def test_real_lazy_workaround_still_blocked(self):
+        """A genuine lazy workaround proposal is still blocked even with gate output nearby."""
+        response = (
+            "The gate said:\n"
+            "> LAZY WORKAROUND DETECTED\n"
+            "But honestly the workaround is fine, we don't need to fix it."
+        )
+        result = check_lazy_workarounds(response)
+        self.assertEqual(result["decision"], "block")
+
+    def test_multiple_stop_block_marker_lines_allows(self):
+        """Multiple stop-block artifacts followed by real content should be stripped."""
+        response = (
+            "Stop hook blocked this response.\n"
+            "⚠️  LAZY WORKAROUND DETECTED\n"
+            "Pattern matched: accept\\s+.+?\\s+as\\s+\n"
+            "Required approach:\n"
+            "1. TRACE\n"
+            "2. IDENTIFY\n"
+            "Let me trace the issue properly."
+        )
+        result = check_lazy_workarounds(response)
+        self.assertEqual(result["decision"], "allow")
+
+    def test_real_duplicate_is_fine_without_quotes_blocks(self):
+        """A real 'duplicate is fine' without quoting should still be blocked."""
+        response = "The duplicate bars are fine, that's expected behavior"
+        result = check_lazy_workarounds(response)
+        self.assertEqual(result["decision"], "block")
+
+    def test_real_accept_as_feature_blocks(self):
+        """A real 'accept as feature' suggestion should still be blocked."""
+        response = "We should accept the duplication as visible logging"
+        result = check_lazy_workarounds(response)
+        self.assertEqual(result["decision"], "block")
+
+
 if __name__ == "__main__":
     unittest.main()

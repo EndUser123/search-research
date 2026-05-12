@@ -1,18 +1,35 @@
 {
-  "run_id": "e3c6de7d-b4a6-4b87-80e6-7da8531da640",
-  "skill_name": "gto",
+  "run_id": "console_58fb5570-48e6-4c5d-90cd-cd243024461b-20260511205651",
+  "skill_name": "gto_v2",
   "contract_type": "workflow-execution",
-  "phase": "executing",
+  "phase": "completed",
   "status": "complete",
-  "terminal_id": "console_58fb5570-48e6-4c5d-90cd-cd243024461b",
-  "session_id": "8f7bfb63-6ad1-4a61-995c-5450b710c35e",
+  "terminal_id": "gto_v2",
+  "session_id": "",
   "turn_id": null,
-  "created_at": 1778392308.504377,
-  "updated_at": 1778392977.9248226,
-  "required_artifacts": [],
-  "completed_artifacts": [],
+  "created_at": "",
+  "updated_at": 1778533045.8303447,
+  "required_artifacts": [
+    "P:\\.claude\\.artifacts\\console_58fb5570-48e6-4c5d-90cd-cd243024461b\\gto_v2\\outputs\\artifact.json"
+  ],
+  "completed_artifacts": [
+    "P:\\.claude\\.artifacts\\console_58fb5570-48e6-4c5d-90cd-cd243024461b\\gto_v2\\outputs\\artifact.json"
+  ],
   "missing_requirements": [],
-  "allowed_tools_now": [],
+  "allowed_tools_now": [
+    "Bash",
+    "Read",
+    "Grep",
+    "Glob",
+    "AskUserQuestion",
+    "Skill",
+    "Agent",
+    "WebSearch",
+    "WebFetch",
+    "Write",
+    "Edit",
+    "Task"
+  ],
   "blocked_tools": [],
   "response_requirements": {}
 }

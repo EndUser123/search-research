@@ -17,6 +17,25 @@ def extract_from_tool_output(
     file_path: str = "",
 ) -> list[dict[str, Any]]:
     """Extract facts from Read/Bash/Grep output."""
+    # Skip sensitive paths — no fact extraction from credentials, configs, secrets
+    _SENSITIVE_PATTERNS = (
+        r"\.env",
+        r"\.aws[/\\]",
+        r"credentials",
+        r"secrets[/\\]",
+        r"\.npmrc",
+        r"\.pypirc",
+        r"\.gitconfig",
+        r"\.netrc",
+        r"\.config/.\.env",
+        r"settings\.local\.json",
+        r"local\.json",
+    )
+    _SENSITIVE_RE = re.compile("|".join(_SENSITIVE_PATTERNS), re.IGNORECASE)
+
+    if file_path and _SENSITIVE_RE.search(file_path):
+        return []
+
     facts: list[dict[str, Any]] = []
 
     if tool_name in ("Read", "read_file"):

@@ -97,47 +97,22 @@ while ($i -lt $Args.Count) {
         }
     } elseif ($arg -match "^--model=(.+)$") {
         $modelOverride = $matches[1]
-    } elseif ($arg -match "^[a-zA-Z0-9_-]+$") {
+    } elseif ($arg -match "^[a-zA-Z0-9_.\-]+$") {
         if (-not $modelOverride) { $modelOverride = $arg }
     }
     $i++
 }
 
-# Query the Bifrost DB using Python (since System.Data.SQLite isn't available in PowerShell)
+# Query the Bifrost DB using the persistent helper script
+$_db_script = "$PSScriptRoot\scripts\bifrost_db.py"
+
 function Get-BifrostRoutesFromDb {
-    $dbPath = "$env:APPDATA\bifrost\config.db"
-    if (-not (Test-Path $dbPath)) {
+    if (-not (Test-Path $_db_script)) {
+        Write-Host "[WARN] bifrost_db.py not found at $_db_script" -ForegroundColor Yellow
         return @{}
     }
-    $tmp = [System.IO.Path]::GetTempFileName() + ".py"
-    $scriptContent = @"
-import sqlite3, json
-conn = sqlite3.connect(r'$dbPath')
-c = conn.cursor()
-c.execute('''
-    SELECT r.id, r.cel_expression, rt.provider, rt.model
-    FROM routing_rules r
-    LEFT JOIN routing_targets rt ON rt.rule_id = r.id
-    WHERE r.cel_expression IS NOT NULL AND r.cel_expression != ''
-    ORDER BY r.priority
-''')
-routes = {}
-for row in c.fetchall():
-    cel = row[1]
-    provider = row[2]
-    model = row[3]
-    import re
-    m = re.search('model==\"([^\"]+)\"', cel.replace(' ', ''))
-    if m and provider and model:
-        modelName = m.group(1)
-        routes[modelName] = {'display': f'{provider}/{model}', 'sonnet': modelName, 'opus': modelName, 'haiku': modelName}
-print(json.dumps(routes))
-conn.close()
-"@
-    [System.IO.File]::WriteAllText($tmp, $scriptContent, [System.Text.Encoding]::UTF8)
     try {
-        $json = python3 $tmp 2>$null
-        Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+        $json = python3 $_db_script --get-routes 2>$null
         if ($json) {
             $data = ConvertFrom-Json $json
             $ht = @{}
@@ -157,38 +132,12 @@ conn.close()
 }
 
 function Get-BifrostRulesFromDb {
-    $dbPath = "$env:APPDATA\bifrost\config.db"
-    if (-not (Test-Path $dbPath)) {
+    if (-not (Test-Path $_db_script)) {
+        Write-Host "[WARN] bifrost_db.py not found at $_db_script" -ForegroundColor Yellow
         return @()
     }
-    $tmp = [System.IO.Path]::GetTempFileName() + ".py"
-    $scriptContent = @"
-import sqlite3, json
-conn = sqlite3.connect(r'$dbPath')
-c = conn.cursor()
-c.execute('''
-    SELECT r.id, r.name, r.cel_expression, r.scope, r.priority, rt.provider, rt.model, rt.weight
-    FROM routing_rules r
-    LEFT JOIN routing_targets rt ON rt.rule_id = r.id
-    ORDER BY r.priority
-''')
-rules = []
-for row in c.fetchall():
-    rules.append({
-        'id': row[0],
-        'name': row[1] or row[0],
-        'cel_expression': row[2] or '',
-        'scope': row[3] or 'global',
-        'priority': row[4],
-        'targets': [] if (row[5] is None or row[6] is None) else [{'provider': row[5], 'model': row[6], 'weight': row[7] or 1.0}]
-    })
-print(json.dumps({'rules': rules}))
-conn.close()
-"@
-    [System.IO.File]::WriteAllText($tmp, $scriptContent, [System.Text.Encoding]::UTF8)
     try {
-        $json = python3 $tmp 2>$null
-        Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+        $json = python3 $_db_script --get-rules 2>$null
         if ($json) {
             $data = ConvertFrom-Json $json
             return $data.rules
@@ -267,19 +216,12 @@ function Start-BifrostDaemon {
     }
 
     # Re-enable all routing rules (Bifrost sets enabled=0 on startup)
-    $tmp = [System.IO.Path]::GetTempFileName() + ".py"
-    $pythonContent = @"
-import sqlite3
-conn = sqlite3.connect(r'$env:APPDATA\bifrost\config.db')
-c = conn.cursor()
-c.execute('UPDATE routing_rules SET enabled = 1')
-conn.commit()
-print(f'Enabled {c.rowcount} rules')
-conn.close()
-"@
-    [System.IO.File]::WriteAllText($tmp, $pythonContent, [System.Text.Encoding]::UTF8)
-    python3 $tmp 2>$null | ForEach-Object { Write-Host "   $_" -ForegroundColor DarkGray }
-    Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+    try {
+        $out = python3 $_db_script --enable-rules 2>$null
+        if ($out) { Write-Host "   $out" -ForegroundColor DarkGray }
+    } catch {
+        Write-Host "   [WARN] Could not enable rules: $_" -ForegroundColor Yellow
+    }
 }
 
 function Stop-BifrostDaemon {
@@ -370,55 +312,12 @@ function Show-BifrostStatus {
         Write-Host "   Daemon:            NOT RUNNING" -ForegroundColor Red
     }
 
-    # DB summary via temp file
-    $statusCode = @'
-import sqlite3, json, os
-
-db = os.path.join(os.environ['APPDATA'], 'bifrost', 'config.db')
-conn = sqlite3.connect(db)
-c = conn.cursor()
-
-# Rules count
-c.execute('SELECT COUNT(*), SUM(CASE WHEN enabled=1 THEN 1 ELSE 0 END) FROM routing_rules')
-total, enabled = c.fetchone()
-enabled = enabled or 0
-
-# Rules with targets
-c.execute('SELECT COUNT(DISTINCT r.id) FROM routing_rules r JOIN routing_targets rt ON rt.rule_id = r.id WHERE r.enabled = 1 AND rt.provider IS NOT NULL')
-rules_with_targets = c.fetchone()[0] or 0
-
-# Providers that have enabled rules
-c.execute('''
-    SELECT DISTINCT rt.provider
-    FROM routing_targets rt
-    JOIN routing_rules r ON r.id = rt.rule_id
-    WHERE r.enabled = 1 AND rt.provider IS NOT NULL
-''')
-providers_with_rules = sorted([row[0] for row in c.fetchall()])
-
-# All config_keys deduplicated by normalized provider name
-c.execute('SELECT LOWER(provider) as p, substr(value, 1, 12) FROM config_keys GROUP BY LOWER(provider)')
-all_keys = [[row[0], row[1]] for row in c.fetchall()]
-
-# Missing keys (case-insensitive comparison against normalized all_keys)
-all_keys_lower = [k[0].lower() for k in all_keys]
-missing = [p for p in providers_with_rules if p.lower() not in all_keys_lower]
-
-print(json.dumps({
-    'total': total,
-    'enabled': enabled,
-    'rules_with_targets': rules_with_targets,
-    'providers_with_rules': providers_with_rules,
-    'all_keys': all_keys,
-    'missing_keys': missing
-}))
-conn.close()
-'@
-
-    $tmp = [System.IO.Path]::GetTempFileName() + ".py"
-    [System.IO.File]::WriteAllText($tmp, $statusCode, [System.Text.Encoding]::UTF8)
-    $jsonOut = python3 $tmp 2>$null
-    Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+    # DB summary via bifrost_db.py
+    try {
+        $jsonOut = python3 $_db_script --status 2>$null
+    } catch {
+        $jsonOut = $null
+    }
 
     if ($jsonOut) {
         try {
@@ -590,12 +489,6 @@ foreach ($modelName in $routingTable.Keys) {
 $aliasMap = @{
     "DSv4"      = "DSv4-flash"
     "DeepSeek"  = "DSv4-flash"
-    "ling"      = "OR-Ling-2.6-1t"
-    "gh"        = "GH-GPT-5-mini"
-    "gpt5"      = "GH-GPT-5-mini"
-    "gemini"    = "Gemini-3.1-flash"
-    "gemma"     = "gemma-4-31b-it"
-    "z.ai/glm-5.1" = "GLM-5.1"
 }
 foreach ($alias in $aliasMap.Keys) {
     $target = $aliasMap[$alias]
@@ -624,11 +517,12 @@ if ($modelOverride) {
 
     if ($routes.ContainsKey($normalizedKey)) {
         $route = $routes[$normalizedKey]
-        $env:ANTHROPIC_DEFAULT_SONNET_MODEL = $route[0]
-        $env:ANTHROPIC_DEFAULT_OPUS_MODEL = $route[1]
-        $env:ANTHROPIC_DEFAULT_HAIKU_MODEL = $route[2]
-        $displayName = $route[3]
+        $env:ANTHROPIC_DEFAULT_SONNET_MODEL = $normalizedKey  # routing key — ensures CEL rule fires
+        $env:ANTHROPIC_DEFAULT_OPUS_MODEL = $normalizedKey
+        $env:ANTHROPIC_DEFAULT_HAIKU_MODEL = $normalizedKey
+        $displayName = "$normalizedKey → $($route[3])"
     } else {
+        # Unknown model — pass through as-is (Bifrost will reject or route as-is)
         $env:ANTHROPIC_DEFAULT_SONNET_MODEL = $modelOverride
         $env:ANTHROPIC_DEFAULT_OPUS_MODEL = $modelOverride
         $env:ANTHROPIC_DEFAULT_HAIKU_MODEL = $modelOverride
@@ -645,6 +539,16 @@ if ($tierOverrides.ContainsKey("s")) {
 }
 if ($tierOverrides.ContainsKey("h")) {
     $env:ANTHROPIC_DEFAULT_HAIKU_MODEL = $tierOverrides["h"]
+}
+
+# Set display name + description for each tier (driven by whatever model is active)
+foreach ($tier in @("SONNET", "OPUS", "HAIKU")) {
+    $modelKey = "ANTHROPIC_DEFAULT_${tier}_MODEL"
+    $modelVal = (Get-Item "env:$modelKey").Value
+    if ($modelVal) {
+        Set-Item -Path "env:ANTHROPIC_DEFAULT_${tier}_MODEL_NAME" -Value $modelVal
+        Set-Item -Path "env:ANTHROPIC_DEFAULT_${tier}_MODEL_DESCRIPTION" -Value "Custom model via Bifrost"
+    }
 }
 
 if (-not $modelOverride -and $tierOverrides.Count -eq 0) {

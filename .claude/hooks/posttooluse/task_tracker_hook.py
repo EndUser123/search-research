@@ -50,8 +50,36 @@ if str(hooks_lib) not in sys.path:
 try:
     from __lib.file_lock import FileLock
 except ImportError:
-    from file_lock import FileLock  # type: ignore
+    from file_lock import FileLock  # type: ignore[no-redef]
+
 from task_self_doc_validator import self_documentation_check
+
+# Import delegation state clearer for cross-hook coordination
+_DELEGATION_STATE_DIR: Path | None = None
+
+
+def _get_delegation_state_dir() -> Path:
+    """Get delegation state directory (terminal-scoped)."""
+    global _DELEGATION_STATE_DIR
+    if _DELEGATION_STATE_DIR is None:
+        import os as _os
+        claude_root = Path(__file__).resolve().parent.parent.parent
+        terminal_id = _os.environ.get("WT_SESSION", "")
+        if terminal_id:
+            terminal_id = f"console_{terminal_id}"
+        else:
+            terminal_id = "unknown"
+        _DELEGATION_STATE_DIR = claude_root / ".artifacts" / terminal_id / "hook_state"
+    return _DELEGATION_STATE_DIR
+
+
+def _clear_delegation_state() -> None:
+    """Clear delegation_expected state after Task invocation (terminal-scoped)."""
+    state_file = _get_delegation_state_dir() / "delegation_expected.json"
+    try:
+        state_file.unlink(missing_ok=True)
+    except OSError:
+        pass
 
 # Version: 2.0 (in-process version)
 # Derived from: PostToolUse_task_tracker.py v1.3
@@ -669,6 +697,9 @@ class TaskTrackerHook(PostToolUseHook):
         message = None
         if tool_name == "TaskCreate":
             message = track_task_create(tool_input, session_id, terminal_id)
+
+            # Clear delegation_expected state when Task is used (delegation occurred)
+            _clear_delegation_state()
 
             # Self-documentation advisory for vague tasks
             subject = tool_input.get("subject", "")

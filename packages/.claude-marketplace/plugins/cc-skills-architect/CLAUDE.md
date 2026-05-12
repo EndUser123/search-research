@@ -12,7 +12,7 @@ The central triage for all CLI operations.
 | Skill | Purpose | Home |
 |-------|---------|------|
 | /ask | Universal CLI router for command discovery | `ask/` |
-| /bf | Bifrost: multi-model comparison and agentic workflows | `bf/` |
+| /ai-api | Unified LLM API — direct SDK by default, Bifrost via `bf` subcommand | `bf/` |
 
 ### 2. Meta-Development Toolbox
 Tools used to grow and maintain the skill ecosystem.

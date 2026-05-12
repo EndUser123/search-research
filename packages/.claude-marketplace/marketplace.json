@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "cc-skills-ai-api",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "description": "AI provider skills for Claude Code \u2014 multi-provider LLM access, API gateways, usage monitoring, and quota management.",
       "source": "./plugins/cc-skills-ai-api",
       "keywords": [
@@ -70,7 +70,7 @@
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.1.13",
+      "version": "1.1.14",
       "description": "Utility AI skills for Claude Code.",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
@@ -82,7 +82,7 @@
     },
     {
       "name": "snapshot",
-      "version": "0.5.3",
+      "version": "0.5.8",
       "description": "Snapshot plugin for Claude Code.",
       "source": "./plugins/snapshot",
       "keywords": [
@@ -107,7 +107,7 @@
     },
     {
       "name": "skill-guard",
-      "version": "2.1.7",
+      "version": "2.1.10",
       "description": "Universal skill auto-discovery and enforcement for Claude Code",
       "source": "./plugins/skill-guard",
       "keywords": [
@@ -120,7 +120,7 @@
     },
     {
       "name": "cc-skills-architect",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "description": "Architect plugin",
       "source": "./plugins/cc-skills-architect",
       "keywords": []
@@ -148,7 +148,7 @@
     },
     {
       "name": "fact-guard",
-      "version": "0.1.1",
+      "version": "0.1.7",
       "description": "Prevents fabricated values, adjacent-entry contamination, and unsupported completion claims in structured edits",
       "source": "./plugins/fact-guard",
       "keywords": [

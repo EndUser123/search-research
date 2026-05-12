@@ -47,6 +47,29 @@ BF_GLOB_LIMIT = int(os.getenv("BF_GLOB_LIMIT", "100"))
 BF_CRITIQUE_ENABLED = os.getenv("BF_CRITIQUE_ENABLED", "true").lower() != "false"
 BF_ARTIFACT_ROOT = Path(os.getenv("BF_ARTIFACT_ROOT", "P:/.claude/.artifacts"))
 
+# --------------------------------------------------------------------
+# Probe cache — skip models that recently failed to avoid hanging requests
+# --------------------------------------------------------------------
+PROBE_CACHE_TTL_S = float(os.getenv("BF_PROBE_CACHE_TTL", "300"))
+_PROBE_CACHE: dict[str, tuple[bool, float]] = {}  # model → (ok, timestamp)
+
+
+def _probe_cache_get(model: str) -> bool | None:
+    """Return True if model is cached as failed, False if cached as ok, None if not cached."""
+    if model not in _PROBE_CACHE:
+        return None
+    ok, ts = _PROBE_CACHE[model]
+    if time.time() - ts > PROBE_CACHE_TTL_S:
+        del _PROBE_CACHE[model]
+        return None
+    return ok
+
+
+def _probe_cache_set(model: str, ok: bool):
+    """Record probe result in cache."""
+    _PROBE_CACHE[model] = (ok, time.time())
+
+
 def _get_terminal_id() -> str:
     """Return a terminal-unique ID for artifact paths. CWD-hashed fallback if CONSOLE_ID not set."""
     console_id = os.getenv("CONSOLE_ID", "").strip()
@@ -161,6 +184,8 @@ class GraphState(TypedDict):
     synthesis: str
     correlation_id: str
     compare_id: str
+    route: str
+    route: str
 
 # --------------------------------------------------------------------
 # Prompt helpers
@@ -289,7 +314,7 @@ def probe_model(model: str) -> dict:
     }
     try:
         t_start = time.perf_counter()
-        r = requests.post(url, headers=headers, json=payload, timeout=15)
+        r = requests.post(url, headers=headers, json=payload, timeout=10)
         t_done = time.perf_counter()
         r.raise_for_status()
         body = r.json()
@@ -656,7 +681,7 @@ def _direct_call(
             headers=headers,
             json=payload,
             params=gemini_params or None,
-            timeout=120,
+            timeout=30,
         )
         t_done = time.perf_counter()
         r.raise_for_status()
@@ -754,14 +779,56 @@ def bifrost_call(
     compare_id: str,
     system: str | None = None,
     max_tokens: int | None = None,
+    route: str = "auto",
 ) -> WorkerResult:
-    # Check if this model routes to a known direct-call provider
-    route = _resolve_model_to_provider(model)
-    if route:
-        provider, actual_model = route
+    """
+    route: "auto"  — DB lookup → direct if provider found, else Bifrost HTTP
+          "direct" — force SDK call, skip DB lookup and Bifrost
+          "bifrost" — force Bifrost HTTP, skip DB lookup and direct
+    """
+    # Determine which path to take
+    force_direct = route == "direct"
+    force_bifrost = route == "bifrost"
+
+    # Auto-routing: check DB if not forced
+    db_route: tuple[str, str] | None = None
+    if not force_direct and not force_bifrost:
+        db_route = _resolve_model_to_provider(model)
+
+    if db_route:
+        # DB says this model maps to a direct provider
+        provider, actual_model = db_route
         direct_info = _get_provider_info(provider)
         if direct_info:
-            return _direct_call(provider, actual_model, prompt, correlation_id, compare_id, system, max_tokens)
+            # Pre-flight: skip if model is cached as recently failed
+            cache_key = f"{provider}:{actual_model}"
+            cached = _probe_cache_get(cache_key)
+            if cached is True:
+                log_event(
+                    "model_call_skipped",
+                    correlation_id=correlation_id,
+                    compare_id=compare_id,
+                    model=model,
+                    provider=provider,
+                    status="skipped",
+                )
+                return {
+                    "model": model, "text": "", "ok": False,
+                    "error": "model cached as unavailable",
+                    "ttfb_ms": 0, "total_ms": 0, "queue_delay_ms": 0,
+                    "status": "probe_cache_hit", "error_type": "",
+                }
+            log_event(
+                "route_decision",
+                correlation_id=correlation_id,
+                model=model,
+                provider=provider,
+                route_type="direct",
+                forced=route,
+            )
+            result = _direct_call(provider, actual_model, prompt, correlation_id, compare_id, system, max_tokens)
+            _probe_cache_set(cache_key, result.get("ok", False))
+            return result
 
     url = f"{BIFROST_BASE_URL}/anthropic/v1/messages"
     headers = {
@@ -1343,7 +1410,7 @@ def build_graph(models: List[str]):
 # Code agent loop
 # --------------------------------------------------------------------
 
-def run_code_agent(prompt: str, model: str, correlation_id: str, max_turns: int) -> dict:
+def run_code_agent(prompt: str, model: str, correlation_id: str, max_turns: int, route: str = "auto") -> dict:
     compare_id = str(uuid.uuid4())
     conversation: List[dict] = []
     current_prompt = prompt
@@ -1367,6 +1434,7 @@ def run_code_agent(prompt: str, model: str, correlation_id: str, max_turns: int)
             compare_id=compare_id,
             system=code_protocol_system_prompt(),
             max_tokens=DEFAULT_MAX_TOKENS,
+            route=route,
         )
 
         if not result["ok"]:
@@ -1442,8 +1510,10 @@ def run_code_agent(prompt: str, model: str, correlation_id: str, max_turns: int)
 # Public API — simple wrappers for skill consumption
 # --------------------------------------------------------------------
 
-def run_simple(mode: str, prompt: str, model: str | None = None) -> dict:
-    """One-shot call for stateless modes (brainstorm/design/plan/review/explore)."""
+def run_simple(mode: str, prompt: str, model: str | None = None, route: str = "auto") -> dict:
+    """One-shot call for stateless modes (brainstorm/design/plan/review/explore).
+    route: "auto" (DB-based routing), "direct" (force SDK), "bifrost" (force Bifrost HTTP).
+    """
     if model is None:
         model = os.getenv("BF_DEFAULT_MODEL", "M27")
     if mode not in VALID_RUN_MODES:
@@ -1455,7 +1525,7 @@ def run_simple(mode: str, prompt: str, model: str | None = None) -> dict:
         correlation_id=correlation_id,
         model=model,
         status="started",
-        extra={"mode": mode, "prompt_chars": len(prompt)},
+        extra={"mode": mode, "prompt_chars": len(prompt), "route": route},
     )
 
     result = bifrost_call(
@@ -1464,6 +1534,7 @@ def run_simple(mode: str, prompt: str, model: str | None = None) -> dict:
         correlation_id=correlation_id,
         compare_id="",
         system=system_prompt_for_mode(mode),
+        route=route,
     )
 
     return {
@@ -1481,8 +1552,10 @@ def run_simple(mode: str, prompt: str, model: str | None = None) -> dict:
     }
 
 
-def run_compare(prompt: str, models: List[str] | None = None) -> dict:
-    """Fan-out to multiple models in parallel, synthesize results via LangGraph."""
+def run_compare(prompt: str, models: List[str] | None = None, route: str = "auto") -> dict:
+    """Fan-out to multiple models in parallel, synthesize results via LangGraph.
+    route: "auto" (DB-based), "direct" (force SDK), "bifrost" (force Bifrost HTTP).
+    """
     if not models:
         models = DEFAULT_MODELS
     if not models:
@@ -1502,6 +1575,7 @@ def run_compare(prompt: str, models: List[str] | None = None) -> dict:
             "max_tokens": DEFAULT_MAX_TOKENS,
             "prompt_chars": len(prompt),
             "timeout_ms": REQUEST_TIMEOUT_MS,
+            "route": route,
         },
     )
 
@@ -1513,6 +1587,7 @@ def run_compare(prompt: str, models: List[str] | None = None) -> dict:
         "synthesis": "",
         "correlation_id": correlation_id,
         "compare_id": compare_id,
+        "route": route,
     }
 
     result = graph.invoke(state)
@@ -1560,8 +1635,10 @@ def run_compare(prompt: str, models: List[str] | None = None) -> dict:
     }
 
 
-def run_code(prompt: str, model: str = "DSv4-flash", max_turns: int | None = None) -> dict:
-    """Multi-turn code agent with tool loop."""
+def run_code(prompt: str, model: str = "DSv4-flash", max_turns: int | None = None, route: str = "auto") -> dict:
+    """Multi-turn code agent with tool loop.
+    route: "auto" (DB-based), "direct" (force SDK), "bifrost" (force Bifrost HTTP).
+    """
 
     correlation_id = str(uuid.uuid4())
     turns_limit = max_turns or BF_CODE_MAX_TURNS
@@ -1574,8 +1651,8 @@ def run_code(prompt: str, model: str = "DSv4-flash", max_turns: int | None = Non
         extra={
             "prompt_chars": len(prompt),
             "max_turns": turns_limit,
-            "allowed_root": "<redacted>",
+            "route": route,
         },
     )
 
-    return run_code_agent(prompt, model, correlation_id, max_turns=turns_limit)
+    return run_code_agent(prompt, model, correlation_id, max_turns=turns_limit, route=route)

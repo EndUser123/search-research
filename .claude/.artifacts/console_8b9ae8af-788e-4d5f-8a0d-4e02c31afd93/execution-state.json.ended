@@ -1,0 +1,18 @@
+{
+  "run_id": "6d36faf4-7132-41f0-8f0e-fd9dedc19fbd",
+  "skill_name": "cc-skills-ai-api:ai-pcli",
+  "contract_type": "workflow-execution",
+  "phase": "pending",
+  "status": "complete",
+  "terminal_id": "console_8b9ae8af-788e-4d5f-8a0d-4e02c31afd93",
+  "session_id": "55835ba9-8707-472b-8cc7-3a29c40ee3db",
+  "turn_id": null,
+  "created_at": 1778543635.1663,
+  "updated_at": 1778543757.6830087,
+  "required_artifacts": [],
+  "completed_artifacts": [],
+  "missing_requirements": [],
+  "allowed_tools_now": [],
+  "blocked_tools": [],
+  "response_requirements": {}
+}

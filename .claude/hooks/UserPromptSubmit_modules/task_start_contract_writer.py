@@ -23,6 +23,7 @@ Design constraints:
 from __future__ import annotations
 
 import re
+from enum import Enum
 from typing import Any
 
 from UserPromptSubmit_modules.base import HookContext, HookResult
@@ -69,6 +70,86 @@ def _log_telemetry(event: str, terminal_id: str, fields: dict[str, Any]) -> None
             f.write(json.dumps(entry, ensure_ascii=True) + "\n")
     except Exception:
         pass  # Observability must never change hook behavior
+
+
+# ── Task type classification ────────────────────────────────────────────────
+
+class TaskType(str, Enum):
+    """Task type enum for contract routing (internal only)."""
+    CODE_CHANGE = "code_change"         # bug_fix, implementation, refactor
+    CODE_DIAGNOSIS = "code_diagnosis"   # bug_diagnosis
+    OPERATIONAL_INGEST = "operational_ingest"  # /crawl, wiki update, ingest
+    RESEARCH_DESIGN = "research_design"        # architecture, design, compare
+    OTHER = "other"                            # chat, meta, control
+
+
+# Operational/ingest task patterns (don't attach code contracts)
+_OPERATIONAL_INGEST_RE = re.compile(
+    r"\b(/crawl|/wiki|/ingest|wiki\s+update|index\s+update|"
+    r"qmd\s+update|crawl\s+and\s+(?:update|ingest|index)|"
+    r"refresh\s+(?:knowledge|index|wiki)|"
+    r"update\s+(?:knowledge|index|wiki)\b)",
+    re.IGNORECASE
+)
+
+# Research/design task patterns (don't attach code contracts)
+_RESEARCH_DESIGN_ALT = (
+    r'design\s+(?:pattern|system|approach|solution)|'
+    r'architect(?:ure)?|propose\s+architecture|system\s+design|'
+    r'compare\s+(?:options|approaches|frameworks|libraries)|'
+    r'evaluate\s+(?:options|alternatives|tradeoffs)|'
+    r'should\s+we\s+(?:use|choose|implement|refactor)'
+)
+_RESEARCH_DESIGN_RE = re.compile(r'\b(' + _RESEARCH_DESIGN_ALT + r')\b', re.IGNORECASE)
+
+# Code change patterns
+_CODE_CHANGE_ALT = (
+    r'implement|add\s+(?:a\s+)?|create\s+(?:a\s+)?|'
+    r'build|write|develop|introduce|make|fix\s+the?|'
+    r'patch|resolve|repair|update\s+(?:function|module|class|method)|'
+    r'add\s+(?:to|into|in)|modify\s+(?:function|module|class|method)|'
+    r'change\s+(?:the\s+)?(?:code|function|logic|behavior)|'
+    r'replace\s+(?:function|method|code|logic)|'
+    r'add\s+(?:error|validation|handler|check)'
+)
+_CODE_CHANGE_RE = re.compile(r'\b(' + _CODE_CHANGE_ALT + r')\b', re.IGNORECASE)
+
+
+def _classify_task_type(prompt: str) -> TaskType:
+    """Classify task type for contract routing.
+
+    Separates 'what kind of task' from 'which contract applies'.
+    Only CODE_CHANGE and CODE_DIAGNOSIS get the full code contract.
+    """
+    if not prompt:
+        return TaskType.OTHER
+
+    lower = prompt.lower()
+    normalized = prompt.strip()
+
+    # Check for operational/ingest tasks first (highest specificity)
+    if _OPERATIONAL_INGEST_RE.search(normalized):
+        return TaskType.OPERATIONAL_INGEST
+
+    # Check for research/design tasks
+    if _RESEARCH_DESIGN_RE.search(normalized):
+        return TaskType.RESEARCH_DESIGN
+
+    # Code diagnosis: explicit diagnostic signals
+    has_diag_kw = any(kw in lower for kw in _BUG_DIAGNOSIS_TRIGGERS)
+    has_diag_q = _BUG_DIAGNOSIS_QUESTION_RE.search(normalized)
+    if has_diag_kw and has_diag_q:
+        return TaskType.CODE_DIAGNOSIS
+
+    # Code change: explicit action/creation signals
+    if _CODE_CHANGE_RE.search(normalized):
+        return TaskType.CODE_CHANGE
+
+    # Refactor is a code change
+    if _REFACTOR_RE.search(normalized):
+        return TaskType.CODE_CHANGE
+
+    return TaskType.OTHER
 
 
 # ── Detection patterns ────────────────────────────────────────────────────────
@@ -143,6 +224,28 @@ _ARCH_RE = re.compile(
     r"propose\s+architecture|system\s+design)\b",
     re.IGNORECASE
 )
+
+# Software-dev keywords for context-aware continuation
+_SOFTWARE_DEV_KEYWORDS = frozenset({
+    "bug", "bugs", "error", "errors", "exception", "crash", "crashing",
+    "fix", "fixing", "fixed", "patch", "patching", "resolve", "resolving",
+    "implement", "implementation", "add", "adding", "create", "creating",
+    "build", "building", "write", "writing", "refactor", "refactoring",
+    "test", "testing", "tests", "debug", "debugging", "debugged",
+    "code", "function", "method", "class", "module", "api", "endpoint",
+    "database", "query", "sql", "config", "configuration", "deploy",
+    "deploying", "deployment", "install", "installing", "setup", "setting up",
+    "runtime", "startup", "start", "running", "run", "execute", "execution",
+    "variable", "constant", "import", "export", "return", "parameter",
+    "argument", "callback", "handler", "event", "loop", "condition",
+    "null", "undefined", "none", "empty", "missing", "undefined",
+    "stack", "trace", "traceback", "overflow", "leak", "memory",
+    "timeout", "connection", "request", "response", "header", "body",
+    "auth", "authentication", "authorization", "token", "session",
+    "file", "path", "directory", "folder", "script", "shell", "command",
+    "terminal", "console", "output", "input", "stdin", "stdout", "stderr",
+    "hook", "hooks", "plugin", "skill", "command", "cli", "tool",
+})
 
 # Control patterns: skip these
 _CONTROL_RE = re.compile(
@@ -245,9 +348,11 @@ def _compute_task_id(prompt: str) -> str:
 
 
 def _tasks_are_related(task_id: str, existing: dict, new_prompt: str) -> bool:
-    """Check if new_prompt is likely the same task as the existing contract."""
-    if existing.get("task_id") != task_id:
-        return False
+    """Check if new_prompt is likely the same task as the existing contract.
+
+    Uses word overlap to determine relatedness, independent of task_id
+    (which may differ due to minor wording changes).
+    """
     # Overlap check: significant word overlap suggests same task
     existing_words = set((existing.get("description") or "").lower().split())
     new_words = set(new_prompt.strip().lower().split())
@@ -283,6 +388,7 @@ def _ensure_contract(
             task_id=task_id,
             description=description,
             required_outputs=required_outputs,
+            task_class=task_class,
         )
         _log_telemetry("contract_create", terminal_id, {
             "task_class": task_class,
@@ -299,6 +405,7 @@ def _ensure_contract(
             task_id=task_id,
             description=description,
             required_outputs=required_outputs,
+            task_class=task_class,
         )
         _log_telemetry("contract_update", terminal_id, {
             "task_class": task_class,
@@ -313,6 +420,7 @@ def _ensure_contract(
         task_id=task_id,
         description=description,
         required_outputs=required_outputs,
+        task_class=task_class,
     )
     _log_telemetry("contract_replace", terminal_id, {
         "task_class": task_class,
@@ -340,6 +448,11 @@ def task_start_contract_writer(context: HookContext) -> HookResult:
     Priority 4.0 runs:
     - AFTER skill detection hooks (so we can avoid conflicts with skill contracts)
     - BEFORE most context injection hooks
+
+    Context-aware continuation:
+    - If explicit task phrasing → create/update as now
+    - If ambiguous phrasing BUT active contract exists from recent turns → update
+    - If ambiguous AND no active contract → skip as now
     """
     # Extract terminal_id
     terminal_id = context.terminal_id or ""
@@ -349,24 +462,58 @@ def task_start_contract_writer(context: HookContext) -> HookResult:
         })
         return HookResult.empty()
 
-    # Detect task class
-    task_class = _detect_task_class(context.prompt)
+    prompt = context.prompt or ""
+    prompt_lower = prompt.lower()
+
+    # First: try explicit task class detection
+    task_class = _detect_task_class(prompt)
+
     if task_class is None:
+        # No explicit task class detected.
+        # Check for context-aware continuation: ambiguous prompt + active contract + dev keywords
+        existing = load_contract(terminal_id)
+        if existing and existing.get("status") != "completed":
+            # Only update if existing contract is a code type
+            existing_class = existing.get("task_class", "")
+            code_classes = {"bug_diagnosis", "bug_fix", "implementation", "refactor"}
+            has_dev_keywords = any(kw in prompt_lower for kw in _SOFTWARE_DEV_KEYWORDS)
+            if existing_class in code_classes and has_dev_keywords:
+                # Ambiguous prompt but follows an active code task - update existing contract
+                action = _ensure_contract(terminal_id, existing_class, prompt)
+                _log_telemetry("contract_context_update", terminal_id, {
+                    "action": action,
+                    "reason": "ambiguous_with_active_contract",
+                    "prompt_preview": prompt[:50],
+                })
+                return HookResult.empty()
+
+        # No explicit task AND no context for continuation → skip
         _log_telemetry("contract_skip", terminal_id, {
             "reason": "not_a_task_start",
-            "prompt_preview": context.prompt[:50] if context.prompt else "",
+            "prompt_preview": prompt[:50] if prompt else "",
         })
         return HookResult.empty()
 
-    # Ensure contract exists (create/update/replace)
-    action = _ensure_contract(terminal_id, task_class, context.prompt)
+    # Validate: only CODE_CHANGE and CODE_DIAGNOSIS get code contracts
+    task_type = _classify_task_type(prompt)
+    if task_type not in (TaskType.CODE_CHANGE, TaskType.CODE_DIAGNOSIS):
+        _log_telemetry("contract_skip", terminal_id, {
+            "reason": f"task_type_{task_type.value}",
+            "task_class": task_class,
+            "prompt_preview": prompt[:50] if prompt else "",
+        })
+        return HookResult.empty()
+
+    # Explicit task class detected - ensure contract exists
+    action = _ensure_contract(terminal_id, task_class, prompt)
 
     # The contract is written to disk - no context injection needed.
     # The Stop task_contract_fit gate will pick it up and enforce completion.
     _log_telemetry("contract_active", terminal_id, {
         "action": action,
         "task_class": task_class,
-        "prompt_preview": context.prompt[:50] if context.prompt else "",
+        "task_type": task_type.value,
+        "prompt_preview": prompt[:50] if prompt else "",
     })
     return HookResult.empty()
 

@@ -94,11 +94,23 @@ from __lib.turn_mode import (
     TurnMode,
 )
 
+from __lib.epistemic_applicability import (
+    is_substantive_reasoning_turn,
+    is_grounded_delivery_summary,
+    is_simple_epistemic_response,
+    determine_epistemic_applicability,
+    EpistemicApplicabilityDecision,
+)
+
+from __lib.trivial_turns import is_trivial_exchange as _is_trivial_exchange
+
 from __lib.claim_type import _read_claim_type
 
 from Stop_aggregator import aggregate_and_render as _aggregate_and_render
 from Stop_artifact_enforcement import run as _run_artifact_enforcement
 from Stop_approval_gate import run as _run_approval_gate
+from Stop_commit_gate import run as _run_commit_gate
+from Stop_subagent_opportunity import run as _run_subagent_opportunity
 
 # Referent coverage (Stop advisory) removed 2026-05-10.
 # Lexical anchor-matching is not a reliable proxy for task completion.
@@ -348,6 +360,53 @@ def _challenge_marker_active() -> bool:
     return False
 
 
+def _write_local_summary_guidance_marker(
+    data: dict, tool_name: str, tool_transcript: str
+) -> None:
+    """Write a one-turn local-summary guidance marker consumed by UserPromptSubmit.
+
+    The marker is terminal-scoped and self-deleting on read (TTL: 120s).
+    This is separate from the challenge/pushback marker namespace to avoid
+    interference with existing pushback behavior.
+    """
+    try:
+        from pathlib import Path as _Path
+        import time as _time
+
+        session_id = (
+            data.get("session_id")
+            or os.environ.get("CLAUDE_SESSION_ID", "")
+        )
+        terminal_id = (
+            data.get("terminal_id")
+            or os.environ.get("CLAUDE_TERMINAL_ID", "")
+        )
+        safe_session = re.sub(r"[^a-zA-Z0-9_.-]+", "_", str(session_id)) if session_id else "anon"
+        safe_terminal = re.sub(r"[^a-zA-Z0-9_.-]+", "_", str(terminal_id)) if terminal_id else "anon"
+
+        state_dir = HOOKS_DIR / "state" / "local_summary_guidance"
+        state_dir.mkdir(parents=True, exist_ok=True)
+
+        marker_path = state_dir / f"guidance__{safe_session}__{safe_terminal}.json"
+
+        # Build guidance using the epistemic_validator helper
+        from epistemic_validator import build_local_summary_guidance
+
+        guidance = build_local_summary_guidance(tool_name, tool_transcript)
+        if not guidance:
+            return
+
+        marker_data = {
+            "session_id": str(session_id),
+            "terminal_id": str(terminal_id),
+            "timestamp": _time.time(),
+            "guidance": guidance,
+        }
+        marker_path.write_text(json.dumps(marker_data), encoding="utf-8")
+    except Exception:
+        pass  # Fail silently — guidance is best-effort, never a block
+
+
 def _run_intent_artifact_alignment(data: dict) -> dict | None:
     """Intent vs Artifacts alignment gate.
 
@@ -416,9 +475,16 @@ def _run_epistemic_contract(data: dict) -> dict | None:
     upstream ADVOCATE_PROTOCOL already injected a challenge (2-min TTL).
     """
     try:
-        from epistemic_validator import EpistemicConfig, validate
+        from epistemic_validator import (
+            EpistemicConfig, validate, sanitize_response,
+            _is_repair_response_in_active_challenge,
+            apply_epistemic_policy,
+        )
 
         response = data.get("response", "")
+        # Strip internal scaffolding (TEST STRATEGY CONTRACT, [THINK:*], cognitive-tags)
+        # before validation so the validator only sees the assistant's answer body.
+        response = sanitize_response(response)
         if not response:
             return None
 
@@ -435,8 +501,49 @@ def _run_epistemic_contract(data: dict) -> dict | None:
         # deep-diagnosis turns where you want to see the full coaching output.
         verbose_override = "--epistemic-verbose" in user_prompt
 
-        # Control and exploration: skip unless --epistemic-strict overrides.
-        if not strict_override and is_quality_mode_suppressed(turn_mode, quality_mode):
+        # Exploration and meta: skip unless --epistemic-strict overrides.
+        # CONTROL mode: allow validation to run (CONTROL schema enforces no substantive claims).
+        if not strict_override and turn_mode in ("exploration", "meta") and is_quality_mode_suppressed(turn_mode, quality_mode):
+            return None
+
+        # Trivial exchange bypass: skip epistemic enforcement on low-stakes turns
+        # (numeric answers, short acks, smoke tests) — but NOT contract completions.
+        contract = None
+        try:
+            from __lib.task_contract import load_contract as _load_contract
+            _, tid = _resolve_scope_ids(data)
+            if tid:
+                contract = _load_contract(tid)
+        except Exception as e:
+            # Fail open on contract lookup errors — but log so degradation is observable
+            from __lib.trivial_turns import log_trivial_skip
+            log_trivial_skip("epistemic_contract", f"contract_lookup_failed:{e}", turn_mode, response)
+
+        trivial, trivial_reason = _is_trivial_exchange(
+            context=data,
+            response=response,
+            turn_mode=turn_mode,
+            contract_active=contract is not None,
+        )
+        if trivial:
+            # Belt-and-suspenders: GATE_CLASSES already suppresses quality gates on
+            # control/exploration turns, but this catches numeric answers and acks
+            # that pass through on analysis/final-answer turns.
+            from __lib.trivial_turns import log_trivial_skip
+            log_trivial_skip("epistemic_contract", trivial_reason, turn_mode, response)
+            return None
+
+        # Authoritative applicability — one decision, drives all enforcement in this gate
+        decision = determine_epistemic_applicability(response, turn_mode=turn_mode)
+
+        # Turn-mode suppression (Layer 1 of applicability) — skip non-substantive turns
+        if not decision.applicable:
+            return None
+
+        # Layer 2 fast path: bypass section-header requirement for simple responses
+        # on analytical/final-answer turns. Simple answers (direct yes/no, grounded
+        # summaries, compact assessments) don't need [FACT]/[INFERENCE].
+        if decision.enforcement_level == "simple":
             return None
 
         # Determine validator mode: block vs warn
@@ -446,18 +553,69 @@ def _run_epistemic_contract(data: dict) -> dict | None:
         elif "--epistemic-warn" in user_prompt:
             mode = "warn"
 
-        cfg = EpistemicConfig(mode=mode)
+        cfg = EpistemicConfig(mode=mode, turn_mode=turn_mode)
+        # Require 4-section format for final-answer mode when response is substantial.
+        # Short final-answers (<=100 words) are direct answers that don't need structure.
+        # Substantial final-answers (>100 words) are analytical and should use
+        # [FACT]/[INFERENCE]/[UNKNOWN]/[RECOMMENDATION] sections.
+        if turn_mode == "final-answer":
+            cfg_dict = cfg.__dict__.copy()
+            cfg_dict["sectional_response_required"] = True
+            cfg = EpistemicConfig(**cfg_dict)
+        # Assemble tool_transcript from tool_events if not already populated.
+        # This feeds the local-summary bypass predicate in epistemic_validator.
+        if not data.get("tool_transcript"):
+            tool_events = data.get("tool_events", [])
+            if tool_events:
+                parts = []
+                for event in tool_events[-5:]:  # last 5 events caps noise
+                    output = event.get("output", "")
+                    if output and isinstance(output, str):
+                        parts.append(output[:500])  # truncate per-event to 500 chars
+                data["tool_transcript"] = "\n".join(parts)
+        cfg.tool_transcript = data.get("tool_transcript") or ""
+
+        # Detect repair-bypass before validate so we can flag it in telemetry
+        # even when the gate short-circuits (short repair in active challenge context)
+        word_count = len(response.split())
+        repair_bypass = _is_repair_response_in_active_challenge(response, word_count)
+
         verdict = validate(response, cfg)
 
-        # Structured telemetry — one line per validation, all decisions.
-        _log_epistemic_telemetry(data, verdict, mode)
+        # Write local-summary guidance marker when the block is a citation failure
+        # AND tool_transcript is non-empty.  The marker is one-turn scoped and
+        # consumed by UserPromptSubmit on the next turn.
+        if verdict.decision == "block" and cfg.tool_transcript:
+            block_issues = {i.type for i in verdict.issues}
+            citation_fail = (
+                "unsupported_fact" in block_issues
+                or ("format" in block_issues and not cfg.tool_transcript)
+            )
+            if citation_fail:
+                tool_name = "the tool"
+                tool_events = data.get("tool_events", [])
+                if tool_events:
+                    tool_name = tool_events[-1].get("name", "the tool")
+                _write_local_summary_guidance_marker(data, tool_name, cfg.tool_transcript)
 
-        if verdict.decision == "block":
-            # Plan/execution-report: suppress blocks on non-critical epistemic
-            # violations. These modes produce [PLAN] scaffolding that may not
-            # match the analytical 4-section schema.
-            if turn_mode in ("plan", "execution-report"):
-                return None
+        # Structured telemetry — one line per validation, all decisions.
+        _log_epistemic_telemetry(data, verdict, mode, repair_bypass=repair_bypass)
+
+        # Route through apply_epistemic_policy for warn/retry/allow decisions
+        is_analytical = _is_analytical_response(response)
+        policy_result = apply_epistemic_policy(
+            verdict,
+            cfg,
+            tool_transcript=cfg.tool_transcript,
+            is_analytical=is_analytical,
+            turn_mode=turn_mode,
+            verbose_override=verbose_override,
+        )
+
+        if policy_result.decision == "block":
+            # Schema-aware policy routing: epistemic_policy now handles plan-mode
+            # suppression discriminately (only pure format-only issues suppressed).
+            # Non-format blocks on plan mode now fire properly.
             reason_parts = [f"EPISTEMIC VIOLATION ({len(verdict.issues)} issue(s)):"]
             for issue in verdict.issues[:5]:
                 reason_parts.append(
@@ -468,45 +626,16 @@ def _run_epistemic_contract(data: dict) -> dict | None:
                 "reason": "\n".join(reason_parts),
                 "blocking_hook": "Stop.py:epistemic_contract",
             }
-        if verdict.decision == "warn" and verdict.issues:
-            # Plan/execution-report: suppress format repair on warns.
-            if turn_mode in ("plan", "execution-report"):
-                return None
 
-            # ADVOCATE_PROTOCOL dedup: skip format-only repair when challenge
-            # was already injected upstream.
-            all_format = all(i.type == "format" for i in verdict.issues)
-            if all_format and _challenge_marker_active():
-                return None
-
-            # Auto-repair: format-only issues on analytical responses.
-            # NON-CRITICAL — log only, no user-visible injection by default.
-            if all_format and _is_analytical_response(response):
-                missing = [
-                    i.section for i in verdict.issues
-                    if i.type == "format" and i.section != "__GLOBAL__"
-                ]
-                sections_hint = ", ".join(sorted(set(missing))) if missing else "all"
-                _log_non_critical_advisory(data, "format_repair", verdict.issues)
-                # On-demand verbose: surface full repair text for this turn.
-                if verbose_override:
-                    repair = (
-                        "EPISTEMIC FORMAT REPAIR: Your response is missing required "
-                        "section headers. Reformat your previous answer into the "
-                        "required schema only. Do not add or remove substantive "
-                        "content. Do not include text outside the required section "
-                        f"headers. Missing: {sections_hint}."
-                    )
-                    return {"decision": "warn", "reason": repair, "systemMessage": repair}
-                return {
-                    "decision": "warn",
-                    "reason": "format_repair_logged",
-                    "systemMessage": None,  # silent — logged to diagnostics
-                }
-            # Mixed or non-format issues: log only, no inline advisory.
-            # These are coaching-level (citations missing, minor causal language).
-            _log_non_critical_advisory(data, "mixed_advisory", verdict.issues)
-            # On-demand verbose: surface full advisory text for this turn.
+        if policy_result.decision == "retry_with_guidance":
+            # Unsupported fact on analytical response → inject guidance marker
+            if policy_result.actions.get("write_guidance_marker"):
+                tool_name = "the tool"
+                tool_events = data.get("tool_events", [])
+                if tool_events:
+                    tool_name = tool_events[-1].get("name", "the tool")
+                _write_local_summary_guidance_marker(data, tool_name, cfg.tool_transcript or "")
+            _log_non_critical_advisory(data, "unsupported_fact_retry", verdict.issues)
             if verbose_override:
                 parts = [f"EPISTEMIC ADVISORY ({len(verdict.issues)} issue(s)):"]
                 for issue in verdict.issues[:3]:
@@ -515,8 +644,47 @@ def _run_epistemic_contract(data: dict) -> dict | None:
             return {
                 "decision": "warn",
                 "reason": "epistemic_advisory_logged",
-                "systemMessage": None,  # silent — logged to diagnostics
+                "systemMessage": None,
             }
+
+        if policy_result.decision == "retry_auto_wrap":
+            # Format-only issues on analytical responses → auto-repair hint
+            missing = [
+                i.section for i in verdict.issues
+                if i.type == "format" and i.section != "__GLOBAL__"
+            ]
+            sections_hint = ", ".join(sorted(set(missing))) if missing else "all"
+            _log_non_critical_advisory(data, "format_repair", verdict.issues)
+            if verbose_override:
+                repair = (
+                    "EPISTEMIC FORMAT REPAIR: Your response is missing required "
+                    "section headers. Reformat your previous answer into the "
+                    "required schema only. Do not add or remove substantive "
+                    "content. Do not include text outside the required section "
+                    f"headers. Missing: {sections_hint}."
+                )
+                return {"decision": "warn", "reason": repair, "systemMessage": repair}
+            return {
+                "decision": "warn",
+                "reason": "format_repair_logged",
+                "systemMessage": None,
+            }
+
+        if policy_result.decision == "log_warn":
+            # Mixed or non-format issues → silent advisory log
+            _log_non_critical_advisory(data, "mixed_advisory", verdict.issues)
+            if verbose_override:
+                parts = [f"EPISTEMIC ADVISORY ({len(verdict.issues)} issue(s)):"]
+                for issue in verdict.issues[:3]:
+                    parts.append(f"  [{issue.section}] {issue.type}: {issue.message}")
+                return {"decision": "warn", "reason": "\n".join(parts), "systemMessage": "\n".join(parts)}
+            return {
+                "decision": "warn",
+                "reason": "epistemic_advisory_logged",
+                "systemMessage": None,
+            }
+
+        # allow — nothing to do
         return None
     except Exception as e:
         print(f"[Stop] epistemic_contract error: {e}", file=sys.stderr)
@@ -580,7 +748,7 @@ def _log_behavior_audit_telemetry(data: dict, result: dict) -> None:
         pass
 
 
-def _log_epistemic_telemetry(data: dict, verdict, mode: str) -> None:
+def _log_epistemic_telemetry(data: dict, verdict, mode: str, repair_bypass: bool = False) -> None:
     """Append one structured line per epistemic validation to JSONL."""
     try:
         from epistemic_validator import detect_response_mode
@@ -602,8 +770,12 @@ def _log_epistemic_telemetry(data: dict, verdict, mode: str) -> None:
             "has_comparative_issues": any(t.startswith("comparative") for t in issue_types),
             "mode": mode,
             "responseMode": response_mode,
+            "repair_bypass": repair_bypass,
             "session_id": data.get("session_id", ""),
             "terminal_id": data.get("terminal_id", ""),
+            # Observability for tool_transcript runtime wiring (Phase 1 verification)
+            "tool_transcript_len": len(data.get("tool_transcript") or ""),
+            "tool_transcript_present": bool(data.get("tool_transcript")),
         }
         with log_path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(entry) + "\n")
@@ -683,17 +855,25 @@ def _run_unverified_stance(data: dict) -> dict | None:
                 "tool_events": data.get("tool_events", []),
                 "transcript_path": data.get("transcript_path", ""),
                 "transcript": data.get("transcript", []),
+                # Loop-fix monitoring: pass toolUse for evidence discrimination
+                "toolUse": data.get("tool_calls") or [],
             }
         )
-        if not result:
-            return None
+        # StopHook_unverified_stance.run() returns None for clean responses
+        # and a dict with block=True for blocks. We MUST return a dict on the
+        # allow path so telemetry fires (observability fix).
+        if result is None:
+            return {"decision": "allow", "allow": True}
         if result.get("block") is True or result.get("allow") is False:
             return {
                 "decision": "block",
                 "reason": result.get("reason", "Unverified stance detected."),
                 "blocking_hook": result.get("blocking_hook", "Stop.py:unverified_stance"),
+                "block": True,  # preserve for telemetry extra fields
             }
-        return None
+        # Clean path: gate ran and found no violations — return dict so
+        # telemetry fires (otherwise log_gate_event skips this gate).
+        return {"decision": "allow", "allow": True}
     except Exception as e:
         print(f"[Stop] unverified_stance error: {e}", file=sys.stderr)
         return None
@@ -951,10 +1131,12 @@ def _run_anti_sycophancy_quality(data: dict) -> dict | None:
                     all_format = all(i.type == "format" for i in _epistemic_verdict.issues)
                     if all_format:
                         lazy = [m for m in lazy if m.pattern_type != "lazy_fix"]
-                # Also suppress lazy_fix and sycophancy_capitulation for plan/report/exploration turns
+                # Only suppress plan_mode_futurizing on plan/execution-report turns.
+                # lazy_fix and sycophancy_capitulation are UNCONDITIONAL —
+                # they fire regardless of turn mode.
                 _turn = _classify_turn_mode(data)
-                if _turn in ("plan", "execution-report", "exploration"):
-                    lazy = [m for m in lazy if m.pattern_type not in ("lazy_fix", "sycophancy_capitulation")]
+                if _turn in ("plan", "execution-report"):
+                    lazy = [m for m in lazy if m.pattern_type != "plan_mode_futurizing"]
             if lazy:
                 block_matches = [m for m in lazy if m.severity == "block"]
                 if block_matches:
@@ -1576,12 +1758,20 @@ def _run_lazy_workaround_gate(data: dict) -> dict | None:
         return None
     try:
         _turn = _classify_turn_mode(data)
-        if _turn in ("plan", "execution-report", "meta"):
-            return None
-        import Stop_lazy_workaround_gate
-
         response = data.get("response", "")
         if not response:
+            return None
+
+        decision = determine_epistemic_applicability(response, turn_mode=_turn)
+
+        # enforcement_level=="none": turn mode suppressed (Layer 1)
+        if not decision.applicable:
+            return None
+
+        import Stop_lazy_workaround_gate
+
+        # enforcement_level=="simple": simple/delivery responses — skip lazy check
+        if decision.enforcement_level == "simple":
             return None
         result = Stop_lazy_workaround_gate.check_lazy_workarounds(response)
         if result.get("decision") == "block":
@@ -1624,6 +1814,28 @@ def _run_reasoning_quality_gate(data: dict) -> dict | None:
         if not response or len(response) < 200:
             return None
 
+        # Trivial exchange bypass: skip reasoning quality nagging on low-stakes turns.
+        turn_mode = _classify_turn_mode(data)
+        contract_active = False
+        try:
+            from __lib.task_contract import load_contract as _load_contract
+            _, tid = _resolve_scope_ids(data)
+            if tid and _load_contract(tid):
+                contract_active = True
+        except Exception:
+            pass
+
+        trivial, trivial_reason = _is_trivial_exchange(
+            context=data,
+            response=response,
+            turn_mode=turn_mode,
+            contract_active=contract_active,
+        )
+        if trivial:
+            from __lib.trivial_turns import log_trivial_skip
+            log_trivial_skip("reasoning_quality_gate", trivial_reason, turn_mode, response)
+            return None
+
         creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
         result = subprocess.run(
             [sys.executable, str(hook_path)],
@@ -1661,6 +1873,28 @@ def _run_reasoning_enhanced(data: dict) -> dict | None:
 
         response = data.get("response", "")
         if not response or len(response) < 200:
+            return None
+
+        # Trivial exchange bypass: skip enhanced reasoning quality nagging on low-stakes turns.
+        turn_mode = _classify_turn_mode(data)
+        contract_active = False
+        try:
+            from __lib.task_contract import load_contract as _load_contract
+            _, tid = _resolve_scope_ids(data)
+            if tid and _load_contract(tid):
+                contract_active = True
+        except Exception:
+            pass
+
+        trivial, trivial_reason = _is_trivial_exchange(
+            context=data,
+            response=response,
+            turn_mode=turn_mode,
+            contract_active=contract_active,
+        )
+        if trivial:
+            from __lib.trivial_turns import log_trivial_skip
+            log_trivial_skip("reasoning_enhanced", trivial_reason, turn_mode, response)
             return None
 
         creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
@@ -2089,10 +2323,32 @@ def _run_phase0_depends_on_skills(data: dict) -> dict | None:
 #   structural checks have had their say but before policy-level gates.
 #
 # Gate class: "quality" — suppressed on control/exploration turns.
+# V1 authority with V2 shadow mode: V1 enforces, V2 logs for threshold tuning.
+# V2 only takes authority when V2_SHADOW_MODE=False and V2_AUTHORITY is set.
 # ---------------------------------------------------------------------------
 
 
 def _run_task_contract_fit_gate(data: dict) -> dict | None:
+    """Task contract gate entry point — V1 authority, V2 shadow mode.
+
+    V1 enforces the contract. V2 runs in parallel (returns None) to collect
+    telemetry for threshold tuning. Disagreements are logged for post-hoc review.
+    """
+    # V1: always runs, is the enforcement authority
+    v1_result = _run_task_contract_fit_gate_v1(data)
+
+    # V2: shadow mode — runs after V1 to log comparison telemetry
+    try:
+        from __lib import v2_config as _cfg
+        if _cfg.V2_ENABLED and _cfg.V2_SHADOW_MODE:
+            _run_task_contract_fit_gate_v2(data)  # Always returns None in shadow mode
+    except Exception:
+        pass  # Shadow mode failures must not affect V1 enforcement
+
+    return v1_result
+
+
+def _run_task_contract_fit_gate_v1(data: dict) -> dict | None:
     """Check whether the response satisfies the active task contract.
 
     Only fires when:
@@ -2106,7 +2362,7 @@ def _run_task_contract_fit_gate(data: dict) -> dict | None:
     are missing.
     """
     try:
-        from __lib.task_contract import load_contract, clear_contract
+        from __lib.task_contract import load_contract, clear_contract, mark_provided_outputs
 
         _, terminal_id = _resolve_scope_ids(data)
         if not terminal_id:
@@ -2126,50 +2382,188 @@ def _run_task_contract_fit_gate(data: dict) -> dict | None:
         if contract is None:
             return None
 
+        # Task class awareness: skip enforcement for non-implementation task classes
+        task_class = contract.get("task_class")
+        _NON_IMPL_TASK_CLASSES = frozenset({
+            "architecture_recommendation",
+            "design_recommendation",
+            "research_only",
+        })
+        if task_class in _NON_IMPL_TASK_CLASSES:
+            _log_task_contract_telemetry(terminal_id, "silent", {
+                "reason": "non_implementation_task_class",
+                "task_class": task_class,
+            })
+            return None
+
         if not response:
             _log_task_contract_telemetry(terminal_id, "silent", {
                 "reason": "empty_response",
             })
             return None
 
-        # Only check responses that look like completion attempts.
-        if turn_mode in ("control", "exploration", "plan", "meta"):
-            _log_task_contract_telemetry(terminal_id, "silent", {
-                "reason": f"turn_mode={turn_mode}",
-            })
-            return None
+        # Some outputs still missing.
 
-        # Heuristic: skip very short responses (not a final report).
-        # At least ~300 chars suggests a substantive answer.
-        if len(response) < 300:
-            _log_task_contract_telemetry(terminal_id, "silent", {
-                "reason": "response_too_short",
-                "response_len": len(response),
-            })
-            return None
+        # Phase-aware applicability: stay silent when implementation contract
+        # gets a design/architecture response, or vice versa.
+        _IMPL_TASK_CLASSES = frozenset({"bug_fix", "implementation", "refactor"})
+        _DESIGN_SIGNALS = (
+            "architecture", "design tradeoff", "approach would be",
+            "high-level", "structure should",
+        )
+        _CODE_SIGNALS = ("def ", "class ", "async def", "if __name__", "import ")
 
+        task_class = contract.get("task_class")
+        if task_class in _IMPL_TASK_CLASSES:
+            hit = next((s for s in _DESIGN_SIGNALS if s in response), None)
+            if hit:
+                _log_task_contract_telemetry(terminal_id, "silent", {
+                    "reason": "phase_mismatch",
+                    "contract_class": task_class,
+                    "contract_desc": contract.get("description", "")[:50],
+                    "triggered_signal": hit,
+                })
+                return None
+        else:  # design/architecture contract
+            hit = next((s for s in _CODE_SIGNALS if s in response), None)
+            if hit:
+                _log_task_contract_telemetry(terminal_id, "silent", {
+                    "reason": "phase_mismatch",
+                    "contract_class": task_class,
+                    "contract_desc": contract.get("description", "")[:50],
+                    "triggered_signal": hit,
+                })
+                return None
+
+        # Load required outputs and historical provided_outputs state BEFORE bypass checks.
+        # Detection runs next so short responses with explicit output labels can be recorded.
         required = contract.get("required_outputs", [])
         if not required:
             return None
 
-        missing = _check_missing_outputs(response, required)
-        if not missing:
-            # All required outputs present — contract satisfied, clear it.
-            clear_contract(terminal_id)
+        provided_historically = set(contract.get("provided_outputs", []))
+
+        # Orthogonality check FIRST: before output detection, so orthogonal
+        # responses are cleared regardless of incidental output keywords.
+        # "tests" in a git status response != contract fulfillment.
+        if _is_response_orthogonal_to_contract(response, contract):
             _log_task_contract_telemetry(terminal_id, "auto_clear", {
-                "required": required,
+                "reason": "orthogonal_response",
+                "contract_desc": contract.get("description", "")[:50],
+            })
+            clear_contract(terminal_id)
+            return None
+
+        # Bypass for responses too short to contain substantive output content.
+        # But: run detection first so we can record outputs even from micro-turns.
+        if len(response) < 80:
+            # Still detect outputs in this turn even though the response is too short
+            # to constitute a full completion attempt.
+            provided_this_turn = _detect_provided_outputs(response, required)
+            if provided_this_turn:
+                mark_provided_outputs(terminal_id, provided_this_turn)
+            _log_task_contract_telemetry(terminal_id, "silent", {
+                "reason": "response_too_short",
+                "response_len": len(response),
+                "provided_this_turn": provided_this_turn,
             })
             return None
 
-        # Telemetry: block
+        # Stateful output tracking: detect outputs in this turn and record them.
+        provided_this_turn = _detect_provided_outputs(response, required)
+        if provided_this_turn:
+            mark_provided_outputs(terminal_id, provided_this_turn)
+            contract = load_contract(terminal_id)
+
+        # Recompute after this turn's detection (short or long).
+        provided_now = set(contract.get("provided_outputs", []))
+        required_set = set(required)
+        still_missing = [o for o in required if o not in provided_now]
+
+        # Track whether ALL required outputs are now satisfied after this turn.
+        was_satisfied = len(still_missing) == 0
+
+        if not still_missing:
+            # All required outputs have been provided across turns — allow this turn.
+            # If this was satisfied for the FIRST time in this turn, clear the contract.
+            if was_satisfied:
+                clear_contract(terminal_id)
+                _log_task_contract_telemetry(terminal_id, "auto_clear", {
+                    "reason": "all_outputs_provided_this_turn",
+                    "provided_outputs": sorted(provided_now),
+                    "required": required,
+                })
+            else:
+                _log_task_contract_telemetry(terminal_id, "silent", {
+                    "reason": "all_outputs_previously_provided",
+                    "provided_outputs": sorted(provided_now),
+                    "required": required,
+                })
+            return None
+
+        # Some outputs still missing.
+        # Short responses (< 300 chars) that matched no output patterns are too risky
+        # to block on — they may be genuine micro-follow-ups that the orthogonal
+        # check already allowed. They also cannot complete a partial contract alone.
+        # Block only if length >= 300 and nothing was detected in this turn.
+        if len(response) >= 300 and not provided_this_turn:
+            missing = _check_missing_outputs(response, required)
+            if not missing:
+                clear_contract(terminal_id)
+                _log_task_contract_telemetry(terminal_id, "auto_clear", {
+                    "required": required,
+                })
+                return None
+        elif len(response) < 300 and provided_this_turn:
+            # Short response that matched outputs but left other outputs still missing.
+            # If ANY outputs were already recorded in earlier turns (provided_historically),
+            # this is a legitimate micro-follow-up — silent pass. The contract was
+            # not yet complete so the prior turn should have blocked if truly incomplete;
+            # a short addendum after partial progress is not friction.
+            if provided_historically:
+                _log_task_contract_telemetry(terminal_id, "silent", {
+                    "reason": "short_output_after_partial_satisfaction",
+                    "response_len": len(response),
+                    "provided_this_turn": provided_this_turn,
+                    "provided_now": sorted(provided_now),
+                })
+                return None
+            # No prior history but short response with detected outputs: the explicit
+            # labels ("Root cause:", "Fixed.", "Tests pass.") demonstrate task-relevant
+            # progress. Allow without blocking — the next turn can complete remaining.
+            _log_task_contract_telemetry(terminal_id, "silent", {
+                "reason": "short_output_first_turn",
+                "response_len": len(response),
+                "provided_this_turn": provided_this_turn,
+                "provided_now": sorted(provided_now),
+            })
+            return None
+        elif len(response) < 300 and not provided_this_turn:
+            # Short response with no detected outputs — likely a trivial confirmation.
+            # Silent pass regardless of prior partial satisfaction: if the contract was
+            # truly incomplete the assistant would have been blocked on an earlier turn;
+            # a short follow-up after partial progress is not contract friction.
+            _log_task_contract_telemetry(terminal_id, "silent", {
+                "reason": "short_no_outputs_no_contract_progress",
+                "response_len": len(response),
+                "provided_now": sorted(provided_now),
+            })
+            return None
+
+        # Block path: compute missing from current provided_outputs state.
+        missing = [o for o in required if o not in provided_now]
         _log_task_contract_telemetry(terminal_id, "block", {
             "required": required,
             "missing": missing,
+            "provided_outputs": sorted(provided_now),
         })
 
         # Build a specific, actionable block message.
         required_str = ", ".join(required)
         missing_str = ", ".join(missing)
+        already_provided = sorted(provided_now)
+        provided_str = ", ".join(already_provided) if already_provided else "none"
+
         return {
             "decision": "block",
             "reason": (
@@ -2179,6 +2573,7 @@ def _run_task_contract_fit_gate(data: dict) -> dict | None:
             "systemMessage": (
                 f"The user's task contract requires: {required_str}. "
                 f"Your answer is missing: {missing_str}. "
+                f"(Already provided in this task: {provided_str}.) "
                 f"Extend your answer to include those explicitly before responding."
             ),
             "blocking_hook": "Stop.py:task_contract_fit",
@@ -2206,6 +2601,331 @@ def _log_task_contract_telemetry(
             f.write(json.dumps(entry, ensure_ascii=True) + "\n")
     except Exception:
         pass  # Observability must never change hook behavior
+
+
+# ---------------------------------------------------------------------------------------
+# Phase 3: Runtime Claim Enforcement Gate
+# ---------------------------------------------------------------------------------------
+
+def _run_runtime_claim_gate(data: dict) -> dict | None:
+    """Verify runtime claims against artifact sources.
+
+    Detects runtime claim subclasses (STOP_GATE_FIRING, UPS_HOOK_CO_FIRE,
+    AGE_GUARD_RUNTIME, BENCHMARK_RUN_EVENT) in response text and verifies them
+    against corresponding log artifacts. Policy gate — always applicable.
+    """
+    try:
+        from __lib.runtime_claims import (
+            classify_runtime_claim,
+            verify_runtime_claim,
+            RuntimeClaimType,
+        )
+    except Exception:
+        return None  # Module not available
+
+    response = data.get("response", "")
+    if not response:
+        return None
+
+    # Detect runtime claim types in response
+    claim_types = classify_runtime_claim(response)
+    if not claim_types:
+        return None  # No runtime claims detected
+
+    # Get session context for artifact lookup
+    session_id = os.environ.get("CLAUDE_SESSION_ID", "")
+    terminal_id = os.environ.get("CLAUDE_TERMINAL_ID", "")
+    _, t_id = _resolve_scope_ids(data)
+    terminal_id = t_id or terminal_id
+
+    # Verify each detected claim type
+    all_verified = True
+    messages: list[str] = []
+
+    for claim_type in claim_types:
+        verified, msg = verify_runtime_claim(
+            claim_type,
+            response,
+            session_id=session_id,
+            terminal_id=terminal_id,
+        )
+        if not verified:
+            all_verified = False
+            messages.append(msg)
+
+    if all_verified:
+        return None  # Claims verified — allow
+
+    # Build block message for unverified claims
+    verdict = "BLOCK" if not all_verified else "allow"
+    combined_msg = "\n".join(messages)
+
+    return {
+        "verdict": verdict,
+        "gate": "runtime_claim_enforcement",
+        "reason": f"Runtime claim verification failed:\n{combined_msg}",
+        "messages": messages,
+        "claim_types": [ct.value for ct in claim_types],
+        "action": "block",
+    }
+
+
+# ---------------------------------------------------------------------------------------
+# V2 Semantic State Gate
+# ---------------------------------------------------------------------------------------
+
+def _run_task_contract_fit_gate_v2(data: dict) -> dict | None:
+    """V2 semantic state-based enforcement — shadow mode by default.
+
+    When V2_SHADOW_MODE=True (default), logs all decisions but returns None so V1
+    remains the enforcement authority. This collects V1/V2 disagreement data
+    before promoting V2 to authority.
+    """
+    try:
+        from __lib import v2_config as _cfg
+        from __lib.task_contract import (
+            load_contract,
+            supersede_contract,
+            update_phase,
+            update_evidence,
+            clear_contract,
+            mark_provided_outputs,
+        )
+        from __lib.semantic_matcher_llm import (
+            classify_task_relation,
+            classify_trivial_same_task,
+        )
+        from __lib.phase_machine import (
+            should_enforce_outputs,
+            infer_phase_from_context,
+            can_transition,
+        )
+        from __lib.evidence_collector import (
+            collect_from_turn,
+            accumulate,
+        )
+
+        if not _cfg.V2_ENABLED:
+            return None
+
+        _, terminal_id = _resolve_scope_ids(data)
+        if not terminal_id:
+            return None
+
+        contract = load_contract(terminal_id)
+        if not contract or contract.get("status") != "active":
+            return None
+
+        response = data.get("response", "")
+        turn_mode = _classify_turn_mode(data)
+        user_prompt = data.get("user_prompt", "")
+
+        # Layer 1: Semantic Continuity (LLM-based)
+        # The orchestrator classifies the relation between the current prompt
+        # and the active contract's task. Short operational follow-ups use a
+        # fast-path; everything else calls classify_task_relation which reads
+        # _semantic_relation from the orchestrator's pre-populated context.
+        relation_reason: str | None = None
+        if _cfg.V2_SEMANTIC_MATCHER_ENABLED:
+            # Fast-path: obvious same-task operational follow-ups
+            if classify_trivial_same_task(user_prompt):
+                relation_reason = "trivial_same_task"
+            else:
+                relation = classify_task_relation(
+                    contract.get("description", ""),
+                    contract.get("task_class", "implementation"),
+                    user_prompt,
+                    data.get("recent_summary"),
+                )
+                relation_reason = relation
+                _log_task_contract_v2_telemetry(terminal_id, "v2_semantic_relation", {
+                    "relation": relation,
+                    "contract_desc": contract.get("description", "")[:50],
+                    "user_prompt_preview": user_prompt[:50],
+                    "source": "orchestrator",
+                })
+                if relation == "orthogonal":
+                    # Only supersede in authority mode — shadow mode must not alter contract state
+                    # (V1 is the enforcement authority in shadow mode)
+                    if not _cfg.V2_SHADOW_MODE:
+                        supersede_contract(terminal_id, reason="semantic_orthogonality")
+                    _log_task_contract_v2_telemetry(terminal_id, "v2_auto_supersede", {
+                        "reason": "semantic_orthogonality",
+                        "relation": relation,
+                        "task_id": contract.get("task_id", "?"),
+                        "shadow_mode_superseded": not _cfg.V2_SHADOW_MODE,
+                    })
+                    return None
+
+        # Layer 2: Phase Inference & Evidence Accumulation
+        inferred_phase = None
+        if _cfg.V2_PHASE_MACHINE_ENABLED and _cfg.V2_EVIDENCE_COLLECTOR_ENABLED:
+            tool_uses = data.get("tool_uses", [])
+            new_evidence = collect_from_turn(tool_uses) if tool_uses else {
+                "files_modified": [],
+                "tests_run": [],
+                "verification_commands_executed": [],
+                "code_generated": False,
+                "design_artifacts": [],
+                "git_commits": 0,
+            }
+            existing_evidence = contract.get("evidence", {})
+            merged_evidence = accumulate(existing_evidence, new_evidence)
+            # Only persist evidence in authority mode — shadow mode reads but does not write
+            if not _cfg.V2_SHADOW_MODE:
+                update_evidence(terminal_id, merged_evidence)
+            _log_task_contract_v2_telemetry(terminal_id, "v2_evidence_accumulated", {
+                "files": len(merged_evidence.get("files_modified", [])),
+                "tests": len(merged_evidence.get("tests_run", [])),
+                "shadow_mode_persisted": not _cfg.V2_SHADOW_MODE,
+            })
+
+            context_for_phase = {
+                "response": response,
+                "turn_mode": turn_mode,
+                "user_prompt": user_prompt,
+            }
+            inferred_phase = infer_phase_from_context(context_for_phase, merged_evidence)
+
+            current_phase = contract.get("phase", "exploration")
+            if inferred_phase and inferred_phase != current_phase and can_transition(current_phase, inferred_phase):
+                history = list(contract.get("phase_history", []))
+                now_iso = _now_iso()
+                for entry in reversed(history):
+                    if entry.get("phase") == current_phase and "exited_at" not in entry:
+                        entry["exited_at"] = now_iso
+                        break
+                history.append({"phase": inferred_phase, "entered_at": now_iso, "exited_at": None, "turns": 0})
+                # Only persist phase in authority mode
+                if not _cfg.V2_SHADOW_MODE:
+                    update_phase(terminal_id, inferred_phase, phase_history=history)
+                _log_task_contract_v2_telemetry(terminal_id, "v2_phase_transition", {
+                    "from": current_phase,
+                    "to": inferred_phase,
+                    "task_id": contract.get("task_id", "?"),
+                    "shadow_mode_persisted": not _cfg.V2_SHADOW_MODE,
+                })
+
+            _log_task_contract_v2_telemetry(terminal_id, "v2_phase_inference", {
+                "inferred_phase": inferred_phase,
+                "current_phase": current_phase,
+                "evidence_summary": str(merged_evidence)[:100],
+            })
+
+        # Layer 3: Enforcement Decision
+        if _cfg.V2_PHASE_MACHINE_ENABLED:
+            phase_to_check = inferred_phase or contract.get("phase", "exploration")
+            task_class = contract.get("task_class", "implementation")
+            if not should_enforce_outputs(phase_to_check, task_class):
+                _log_task_contract_v2_telemetry(terminal_id, "v2_phase_silent", {
+                    "phase": phase_to_check,
+                    "task_class": task_class,
+                    "reason": "phase_not_enforcement_ready",
+                })
+                return None
+
+        required = contract.get("required_outputs", [])
+        if not required:
+            return None
+
+        # Stateful output tracking: update provided_outputs for outputs seen in this turn.
+        if len(response) >= 300:
+            provided_this_turn = _detect_provided_outputs(response, required)
+            if provided_this_turn:
+                mark_provided_outputs(terminal_id, provided_this_turn)
+                # Re-load contract to get updated provided_outputs
+                contract = load_contract(terminal_id)
+
+        # Check which outputs are still truly missing from this task's history.
+        provided_historically = set(contract.get("provided_outputs", []))
+        required_set = set(required)
+        still_missing = [o for o in required if o not in provided_historically]
+
+        if not still_missing:
+            _log_task_contract_v2_telemetry(terminal_id, "v2_silent_provided", {
+                "provided_outputs": sorted(provided_historically),
+                "required": required,
+            })
+            return None
+
+        missing = _check_missing_outputs(response, required)
+
+        if not missing:
+            # Only clear in authority mode — shadow mode must not alter contract state
+            # (V1 is the enforcement authority in shadow mode)
+            if not _cfg.V2_SHADOW_MODE:
+                clear_contract(terminal_id)
+            _log_task_contract_v2_telemetry(terminal_id, "v2_auto_clear", {
+                "required": required,
+                "phase": contract.get("phase", "?"),
+                "task_id": contract.get("task_id", "?"),
+                "shadow_mode_cleared": not _cfg.V2_SHADOW_MODE,
+            })
+            return None
+
+        if len(response) >= 300 and turn_mode in ("analysis", "final-answer"):
+            if not _cfg.V2_SHADOW_MODE and _cfg.V2_AUTHORITY in ("full", "applicability"):
+                _log_task_contract_v2_telemetry(terminal_id, "v2_block", {
+                    "missing": missing,
+                    "required": required,
+                    "phase": contract.get("phase", "?"),
+                    "provided_outputs": sorted(provided_historically),
+                })
+                already_provided = sorted(provided_historically)
+                provided_str = ", ".join(already_provided) if already_provided else "none"
+                return {
+                    "decision": "block",
+                    "reason": "v2_missing_required_outputs",
+                    "systemMessage": (
+                        f"The task contract (phase: {contract.get('phase', '?')}) "
+                        f"requires: {', '.join(required)}. "
+                        f"Your answer is missing: {', '.join(missing)}. "
+                        f"(Already provided in this task: {provided_str}.) "
+                        f"Extend your answer to include those explicitly."
+                    ),
+                    "blocking_hook": "Stop.py:task_contract_fit_v2",
+                }
+            else:
+                _log_task_contract_v2_telemetry(terminal_id, "v2_would_block", {
+                    "missing": missing,
+                    "v1_decision": "v2_in_shadow",
+                    "provided_outputs": sorted(provided_historically),
+                })
+
+        return None
+
+    except Exception as e:
+        print(f"[Stop] task_contract_fit_v2 error: {e}", file=sys.stderr)
+        return None
+
+
+def _log_task_contract_v2_telemetry(
+    terminal_id: str, event: str, fields: dict,
+) -> None:
+    """Append V2 telemetry to task_contract_v2_telemetry.jsonl."""
+    try:
+        log_path = HOOKS_DIR / "logs" / "diagnostics" / "task_contract_v2_telemetry.jsonl"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        entry = {
+            "timestamp": time.time(),
+            "gate": "task_contract_fit_v2",
+            "event": event,
+            "terminal_id": terminal_id,
+            **fields,
+        }
+        with log_path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=True) + "\n")
+    except Exception:
+        pass
+
+
+def _now_iso() -> str:
+    """Return current UTC time as ISO string."""
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).isoformat()
+
+
+# _classify_turn_mode is imported from __lib.turn_mode at module top (line ~90).
 
 
 # Deterministic pattern checks for required output types.
@@ -2259,6 +2979,151 @@ def _check_missing_outputs(response: str, required: list[str]) -> list[str]:
     return missing
 
 
+def _detect_provided_outputs(response: str, required: list[str]) -> list[str]:
+    """Return which required outputs ARE clearly present in this response."""
+    import re as _re
+
+    provided: list[str] = []
+    for output_type in required:
+        patterns = _OUTPUT_PATTERNS.get(output_type, [])
+        found = any(_re.search(p, response) for p in patterns)
+        if found:
+            provided.append(output_type)
+    return provided
+
+
+# Stop words for semantic overlap check — common English + hook domain noise
+_STOP_WORDS = frozenset({
+    "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with",
+    "by", "from", "as", "is", "was", "are", "were", "been", "be", "have", "has", "had",
+    "do", "does", "did", "will", "would", "could", "should", "may", "might", "must",
+    "shall", "can", "need", "dare", "ought", "used", "it", "its", "i", "we", "you",
+    "he", "she", "they", "what", "which", "who", "whom", "this", "that", "these",
+    "those", "am", "if", "else", "when", "where", "why", "how", "all", "each",
+    "every", "both", "few", "more", "most", "other", "some", "such", "no", "nor",
+    "not", "only", "own", "same", "so", "than", "too", "very", "just", "also",
+    "now", "here", "there", "then", "once", "any", "about", "after", "before",
+    "between", "into", "through", "during", "above", "below", "up", "down", "out",
+    "off", "over", "under", "again", "further", "back", "look", "see", "make",
+    "way", "want", "give", "take", "put", "use", "find", "tell", "ask", "work",
+    "seem", "feel", "try", "leave", "call", "well", "even", "new", "want", "sure",
+    "thing", "things", "something", "anything", "everything", "nothing",
+    "yes", "no", "ok", "okay", "please", "thanks", "thank", "sorry", "sure",
+})
+
+
+def _tokenize(text: str) -> set[str]:
+    """Extract significant words from text: lowercase, strip punctuation, drop stop words."""
+    import re as _re
+    # Split on non-word chars, lowercase, filter empties and stop words
+    words = _re.findall(r"\b\w+\b", text.lower())
+    return {w for w in words if len(w) > 2 and w not in _STOP_WORDS}
+
+
+def _is_task_relevant_verification_update(response: str, contract: dict) -> bool:
+    """
+    INTERNAL: orthogonality disambiguator only.
+
+    This helper is allowed to be used ONLY from _is_response_orthogonal_to_contract
+    in this module. It is not a general semantic classifier and must not be
+    imported or reused from other modules.
+
+    See test_internal_helpers.py for the scope-guard test that enforces this.
+    """
+    import re as _re
+
+    required = contract.get("required_outputs", [])
+    if not required:
+        return False
+
+    needs_verification = any(o in required for o in ("tests", "verification_commands"))
+    if not needs_verification:
+        return False
+
+    # Result/status patterns: explicit test/build/verify outcomes
+    positive = _re.search(r"\b\d+\s*(?:passed?|pass|tests?)\b", response, _re.I)
+    if not positive:
+        positive = _re.search(r"\ball\s+\d+\s*(?:pass|tests?)\b", response, _re.I)
+    if not positive:
+        # "ok / passing / passed / pass" requires verification context
+        # to distinguish from casual "that's ok" in unrelated prose
+        context = _re.search(
+            r"\b(?:pytest|tests?|build|verify|run|tested|verification)\b", response, _re.I
+        )
+        positive = bool(context and _re.search(r"\b(?:ok|passing|passed|pass)\b", response, _re.I))
+
+    return bool(positive)
+
+
+def _is_response_orthogonal_to_contract(response: str, contract: dict) -> bool:
+    """Return True if response is semantically unrelated to the contract description.
+
+    Uses a priority chain — earlier signals fire first; once one fires, later signals
+    are not evaluated:
+      1. In-progress: prior outputs mean the conversation is task-active.
+      2. Semantic ratio: all responses checked regardless of length.
+         High overlap → not orthogonal (early exit).
+      3. Task-relevant verification update: brief progress report detected.
+         Fires only when contract requires verification AND response is a result shape.
+         (Early disambiguator before token-ratio fallback.)
+      4. Short fallback: responses < 50 chars may be brief progress updates
+         with zero vocabulary overlap. The short-response bypass handles these safely.
+      5. Token-ratio fallback: remaining responses judged by word-overlap ratio.
+
+    Rationale for priority order:
+      - In-progress takes precedence: a conversation with prior outputs is task-active.
+      - Semantic ratio is checked for ALL responses first, so genuinely orthogonal
+        short responses (e.g. "git status shows clean.") still auto-clear.
+      - The verification-update disambiguator catches medium-length first-turn
+        verification results (50-300 chars, zero overlap) that the ratio might
+        otherwise false-clear. Named to reflect its narrow scope — not a general
+        semantic classifier.
+      - The 50-char short fallback protects brief progress updates that the
+        semantic ratio might not catch (zero-overlap confirmation messages).
+      - Token ratio is the final fallback for long responses with no prior history.
+    """
+    desc_words = _tokenize(contract.get("description", ""))
+    resp_words = _tokenize(response)
+    provided_historically = set(contract.get("provided_outputs", []))
+
+    # Signal 1: In-progress — prior outputs mean task-active conversation.
+    if provided_historically:
+        return False
+
+    # Signal 2: Semantic ratio — checked for ALL responses regardless of length.
+    # High overlap means task-relevant (not orthogonal).
+    if desc_words and resp_words:
+        overlap = desc_words & resp_words
+        ratio = len(overlap) / len(desc_words)
+        if ratio > 0.20:
+            return False
+
+    # Signal 3b: Task-relevant verification update — disambiguator before ratio fallback.
+    # Only fires when contract requires verification AND response is a result shape.
+    if _is_task_relevant_verification_update(response, contract):
+        _log_task_contract_telemetry(
+            contract.get("task_id", "?"),
+            "verification_update_block",
+            {"response_len": len(response)},
+        )
+        return False
+
+    # Signal 3: Very short — may be brief progress updates with zero overlap.
+    if len(response) < 50:
+        return False
+
+    if not desc_words:
+        return False
+
+    _log_task_contract_telemetry(
+        contract.get("task_id", "?"),
+        "semantic_check",
+        {"overlap_words": list(desc_words & resp_words)[:10], "ratio": round(len(desc_words & resp_words) / len(desc_words), 3)},
+    )
+
+    return (len(desc_words & resp_words) / len(desc_words)) <= 0.20
+
+
 # Gate classification: POLICY gates fire on all turns.
 # QUALITY gates are suppressed on control turns in normal mode,
 # allowing corrections and direct instructions to pass without
@@ -2288,6 +3153,7 @@ GATE_CLASSES: dict[str, str] = {
     "cks_correction_anchor": "policy",
     "tool_sanity": "quality",
     "artifact_enforcement": "policy",  # Block unverified mechanism claims
+    "runtime_claim_enforcement": "policy",  # Phase 3: Runtime claim artifact verification
     # Quality gates — suppressed on control turns in normal mode
     "epistemic_contract": "quality",
     "behavior_audit": "quality",
@@ -2306,8 +3172,516 @@ GATE_CLASSES: dict[str, str] = {
     "repetition_blocker": "policy",
     "fake_done": "policy",
     "meta_analysis_trap": "quality",
-    "approval_gate": "policy",
 }
+
+# === Phase 1+2: Gate Metadata Registry ===
+# Co-located with GATE_CLASSES so classification and metadata stay in sync.
+# Used for: trivial detection, priority arbitration, applicability routing, diagnostics.
+#
+# Phase 1 fields:
+#   class: "policy" | "quality" — mirrors GATE_CLASSES for cross-check
+#   trivial_suppressible: whether is_trivial_exchange() short-circuits this gate
+#                         Quality gates are suppressible; policy gates never are.
+#   priority: arbitration priority when multiple blocks fire (lower = higher precedence)
+#             0-9 = critical (safety, identity), 10-49 = policy (enforcement), 50-99 = quality (advisory)
+#   description: one-line description for diagnostics
+#
+# Phase 2 fields:
+#   relevant_turn_kinds: set of TurnKind values this gate fires on
+#     Policy gates: all modes. Quality gates: primarily analysis/final-answer.
+#   relevant_claim_kinds: set of ClaimKind values this gate addresses
+#     Controls whether the gate runs given the detected claim type.
+#     Empty set = no claim-kind filter (gate always applies regardless of claim type).
+#   required_artifact_classes: set of artifact class strings required for the gate to fire
+#     Empty set = no artifact requirement. Non-empty = gate runs only if those
+#     artifact classes are detected in the response.
+#   rollout_mode: "block" | "advisory" | "shadow" | "disabled"
+#     Controls gate enforcement level. Env var STOP_GATE_ROLLOUT_<NAME> overrides.
+#
+# ClaimKind enum values: FORMAT_ONLY, FACTUAL, CAUSAL, STANCE, UNKNOWN
+# TurnKind enum values: ANALYSIS, CONTROL, EXPLORATION, DEBUG_META, PLAN, EXECUTION_REPORT, FINAL_ANSWER
+# RolloutMode: BLOCK=block, ADVISORY=block→warn, SHADOW=log-only, DISABLED=skip
+
+from enum import Enum as _Enum
+
+
+class ClaimKind(_Enum):
+    FORMAT_ONLY = "format_only"
+    FACTUAL = "factual"
+    CAUSAL = "causal"
+    STANCE = "stance"
+    UNKNOWN = "unknown"
+
+
+class TurnKind(_Enum):
+    ANALYSIS = "analysis"
+    CONTROL = "control"
+    EXPLORATION = "exploration"
+    DEBUG_META = "debug_meta"
+    PLAN = "plan"
+    EXECUTION_REPORT = "execution_report"
+    FINAL_ANSWER = "final_answer"
+    UNKNOWN = "unknown"
+
+
+class RolloutMode(_Enum):
+    BLOCK = "block"        # Normal enforcement (block on violation)
+    ADVISORY = "advisory"  # Block → warn
+    SHADOW = "shadow"     # Log only, never block
+    DISABLED = "disabled"  # Gate skipped entirely
+
+
+def _get_rollout_mode(name: str, default: RolloutMode) -> RolloutMode:
+    """Check env var override for gate rollout mode. Returns default if not set."""
+    env_var = f"STOP_GATE_ROLLOUT_{name.upper().replace('-', '_')}"
+    val = os.environ.get(env_var, "").lower()
+    if val == "shadow":
+        return RolloutMode.SHADOW
+    if val == "advisory":
+        return RolloutMode.ADVISORY
+    if val == "disabled":
+        return RolloutMode.DISABLED
+    if val in ("block", "on"):
+        return RolloutMode.BLOCK
+    return default
+
+
+def is_gate_applicable(
+    gate_name: str,
+    turn_kind: TurnKind,
+    claim_kind: ClaimKind,
+    artifact_classes: set[str],
+) -> tuple[bool, str]:
+    """Check if a gate is applicable given current turn/claim/artifact context.
+
+    Returns (applicable: bool, skip_reason: str) — skip_reason is empty when applicable.
+
+    Check order:
+      1. Rollout mode (DISABLED → skip)
+      2. Turn kind filter
+      3. Claim kind filter (empty set = always applicable)
+      4. Artifact class requirement (empty set = no requirement)
+    """
+    meta = GATE_METADATA.get(gate_name)
+    if not meta:
+        return True, ""  # Unknown gate — allow
+
+    rollout = _get_rollout_mode(gate_name, RolloutMode.BLOCK)
+    if rollout == RolloutMode.DISABLED:
+        return False, "rollout_disabled"
+
+    # Turn kind check
+    rtk = meta.get("relevant_turn_kinds", set())
+    if rtk and turn_kind not in rtk:
+        return False, f"turn_kind_excluded:{turn_kind.value}"
+
+    # Claim kind check (empty = no filter)
+    rck = meta.get("relevant_claim_kinds", set())
+    if rck and claim_kind not in rck:
+        return False, f"claim_kind_excluded:{claim_kind.value}"
+
+    # Artifact class requirement
+    rac = meta.get("required_artifact_classes", set())
+    if rac:
+        missing = rac - artifact_classes
+        if missing:
+            return False, f"missing_artifacts:{','.join(sorted(missing))}"
+
+    return True, ""
+
+
+# Minimal sets for gating — conservative defaults.
+# Policy gates fire on all turn kinds.
+_ALL_TURN_KINDS = frozenset(TurnKind)
+# Quality gates: primarily analysis and final-answer (high-stakes reasoning).
+_ANALYSIS_TURN_KINDS = frozenset({TurnKind.ANALYSIS, TurnKind.FINAL_ANSWER})
+_ALL_CLAIM_KINDS = frozenset(ClaimKind)
+
+GATE_METADATA: dict[str, dict] = {
+    # Critical / identity — always fire, all modes, all claim types
+    "safety_gate": {
+        "class": "policy", "trivial_suppressible": False, "priority": 0,
+        "description": "Dangerous command protection",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "frameguard_stop": {
+        "class": "policy", "trivial_suppressible": False, "priority": 1,
+        "description": "Frame injection guard",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    # Policy enforcement
+    "skill_first_stop_gate": {
+        "class": "policy", "trivial_suppressible": False, "priority": 10,
+        "description": "Skill-first enforcement at stop",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "post_skill_prose_gate": {
+        "class": "policy", "trivial_suppressible": False, "priority": 11,
+        "description": "Post-skill prose detection",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "verification_enforcement": {
+        "class": "policy", "trivial_suppressible": False, "priority": 12,
+        "description": "Verify step enforcement",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "cited_content_guard": {
+        "class": "policy", "trivial_suppressible": False, "priority": 13,
+        "description": "Cross-validate cited sources",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": frozenset({ClaimKind.FACTUAL, ClaimKind.CAUSAL}),
+        "required_artifact_classes": frozenset({"cited_source"}),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "cross_validator": {
+        "class": "policy", "trivial_suppressible": False, "priority": 14,
+        "description": "Fabrication and cross-validation",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": frozenset({ClaimKind.FACTUAL, ClaimKind.CAUSAL, ClaimKind.STANCE}),
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "unverified_stance": {
+        "class": "policy", "trivial_suppressible": False, "priority": 15,
+        "description": "Anti-sycophancy stance detection",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": frozenset({ClaimKind.STANCE, ClaimKind.FACTUAL}),
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "correction_acknowledgment": {
+        "class": "policy", "trivial_suppressible": False, "priority": 16,
+        "description": "CKS correction acknowledgment",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "behavior_gates_agreement": {
+        "class": "policy", "trivial_suppressible": False, "priority": 17,
+        "description": "Agreement consistency enforcement",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": frozenset({ClaimKind.FACTUAL}),
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "behavior_gates_blacklist": {
+        "class": "policy", "trivial_suppressible": False, "priority": 18,
+        "description": "Blacklist pattern detection",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "command_execution_validator": {
+        "class": "policy", "trivial_suppressible": False, "priority": 19,
+        "description": "Command execution alignment",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "deletion_verification_guard": {
+        "class": "policy", "trivial_suppressible": False, "priority": 20,
+        "description": "Deletion verification",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "git_diff_reground": {
+        "class": "policy", "trivial_suppressible": False, "priority": 21,
+        "description": "Git diff regrounding",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "skill_dir_correlation": {
+        "class": "policy", "trivial_suppressible": False, "priority": 22,
+        "description": "Skill directory correlation",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "cks_correction_anchor": {
+        "class": "policy", "trivial_suppressible": False, "priority": 23,
+        "description": "CKS correction anchoring",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "acknowledgment_loop": {
+        "class": "policy", "trivial_suppressible": False, "priority": 24,
+        "description": "Acknowledgment loop detection",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "repetition_blocker": {
+        "class": "policy", "trivial_suppressible": False, "priority": 25,
+        "description": "Repetitive response blocker",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "fake_done": {
+        "class": "policy", "trivial_suppressible": False, "priority": 26,
+        "description": "Fake done detection",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "artifact_enforcement": {
+        "class": "policy", "trivial_suppressible": False, "priority": 28,
+        "description": "Block unverified mechanism claims",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": frozenset({ClaimKind.FACTUAL, ClaimKind.CAUSAL}),
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.ADVISORY,  # Phase 3: Default to ADVISORY for safe rollout
+    },
+    # Phase 3: Runtime Claim Enforcement
+    "runtime_claim_enforcement": {
+        "class": "policy", "trivial_suppressible": False, "priority": 29,
+        "description": "Verify runtime claims against artifact logs",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset({"runtime_claim"}),  # Requires runtime claim detection
+        "rollout_mode": RolloutMode.ADVISORY,
+    },
+    # Quality advisory — primarily analysis/final-answer turns
+    "epistemic_contract": {
+        "class": "quality", "trivial_suppressible": True, "priority": 50,
+        "description": "Epistemic contract (format, causal, factual)",
+        "relevant_turn_kinds": frozenset({TurnKind.ANALYSIS, TurnKind.FINAL_ANSWER, TurnKind.EXECUTION_REPORT}),
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "behavior_audit": {
+        "class": "quality", "trivial_suppressible": True, "priority": 51,
+        "description": "Behavior audit detector",
+        "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "narrative_intent": {
+        "class": "quality", "trivial_suppressible": True, "priority": 52,
+        "description": "Narrative intent detection",
+        "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.ADVISORY,
+    },
+    "anti_sycophancy_quality": {
+        "class": "quality", "trivial_suppressible": True, "priority": 53,
+        "description": "Anti-sycophancy quality gate",
+        "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
+        "relevant_claim_kinds": frozenset({ClaimKind.STANCE, ClaimKind.FACTUAL}),
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.ADVISORY,
+    },
+    "advisory": {
+        "class": "quality", "trivial_suppressible": True, "priority": 54,
+        "description": "Advisory gate",
+        "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.ADVISORY,
+    },
+    "reflect_integration": {
+        "class": "quality", "trivial_suppressible": True, "priority": 55,
+        "description": "Reflect integration",
+        "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.ADVISORY,
+    },
+    "reasoning_quality_gate": {
+        "class": "quality", "trivial_suppressible": True, "priority": 56,
+        "description": "Reasoning quality gate",
+        "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "reasoning_enhanced": {
+        "class": "quality", "trivial_suppressible": True, "priority": 57,
+        "description": "Enhanced reasoning quality",
+        "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.ADVISORY,
+    },
+    "existence_gate": {
+        "class": "quality", "trivial_suppressible": True, "priority": 58,
+        "description": "Unverified existence claims",
+        "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
+        "relevant_claim_kinds": frozenset({ClaimKind.FACTUAL}),
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.ADVISORY,
+    },
+    "lazy_workaround_gate": {
+        "class": "quality", "trivial_suppressible": True, "priority": 59,
+        "description": "Lazy workaround detection",
+        "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "semantic_critic": {
+        "class": "quality", "trivial_suppressible": True, "priority": 60,
+        "description": "Semantic critic",
+        "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.ADVISORY,
+    },
+    "task_contract_fit": {
+        "class": "quality", "trivial_suppressible": True, "priority": 61,
+        "description": "Task contract fit check",
+        "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "phase0_depends_on_skills": {
+        "class": "quality", "trivial_suppressible": True, "priority": 62,
+        "description": "Phase 0 skills dependency check",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "dependency_chain_guard": {
+        "class": "quality", "trivial_suppressible": True, "priority": 63,
+        "description": "Dependency chain guard",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": frozenset({ClaimKind.FACTUAL, ClaimKind.CAUSAL}),
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "comparative_claim_guard": {
+        "class": "quality", "trivial_suppressible": True, "priority": 64,
+        "description": "Comparative claim guard",
+        "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
+        "relevant_claim_kinds": frozenset({ClaimKind.FACTUAL}),
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "behavior_gates_guidance": {
+        "class": "quality", "trivial_suppressible": True, "priority": 65,
+        "description": "Behavior guidance gate",
+        "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.ADVISORY,
+    },
+    "recommendation_gate": {
+        "class": "quality", "trivial_suppressible": True, "priority": 66,
+        "description": "Recommendation quality gate",
+        "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
+        "relevant_claim_kinds": frozenset({ClaimKind.FACTUAL, ClaimKind.CAUSAL}),
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "intent_artifact_alignment": {
+        "class": "quality", "trivial_suppressible": True, "priority": 67,
+        "description": "Intent-artifact alignment",
+        "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.ADVISORY,
+    },
+    "tool_sanity": {
+        "class": "quality", "trivial_suppressible": True, "priority": 68,
+        "description": "Tool call sanity check",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.ADVISORY,
+    },
+    "meta_analysis_trap": {
+        "class": "quality", "trivial_suppressible": True, "priority": 69,
+        "description": "Meta-analysis trap",
+        "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.ADVISORY,
+    },
+    # Missing gates - added for Phase 2 completeness
+    "task_contract_fit_v2": {
+        "class": "quality", "trivial_suppressible": True, "priority": 70,
+        "description": "Task contract fit validation",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.ADVISORY,
+    },
+    "approval_gate": {
+        "class": "policy", "trivial_suppressible": False, "priority": 10,
+        "description": "Approval gate for design skill implementation control",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "commit_gate": {
+        "class": "policy", "trivial_suppressible": False, "priority": 20,
+        "description": "Auto-commit gate",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "subagent_opportunity": {
+        "class": "quality", "trivial_suppressible": True, "priority": 71,
+        "description": "Subagent opportunity detection",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.ADVISORY,
+    },
+}
+
+# Policy block arbitration: when multiple policy gates block, use priority ordering.
+# Keys are gate names; absent keys default to priority 99 (lowest precedence).
+_POLICY_BLOCK_PRIORITY: dict[str, int] = {
+    # Critical — highest precedence
+    g: GATE_METADATA[g]["priority"]
+    for g in GATE_METADATA
+    if GATE_METADATA[g]["class"] == "policy"
+}
+# Verify GATE_CLASSES and GATE_METADATA stay in sync (runs in dev/test only)
+if __debug__:
+    for name, cls in GATE_CLASSES.items():
+        meta = GATE_METADATA.get(name)
+        if meta and meta["class"] != cls:
+            raise AssertionError(
+                f"GATE_CLASSES and GATE_METADATA out of sync for '{name}': "
+                f"GATE_CLASSES={cls}, GATE_METADATA['class']={meta['class']}"
+            )
 
 IN_PROCESS_GATES = [
     # Telemetry evidence (524 records, 4 sessions, 35 gates):
@@ -2349,15 +3723,21 @@ IN_PROCESS_GATES = [
     ("intent_artifact_alignment", _run_intent_artifact_alignment),
     ("semantic_critic", _run_semantic_critic),
     ("task_contract_fit", _run_task_contract_fit_gate),
+    ("task_contract_fit_v2", _run_task_contract_fit_gate_v2),  # shadow mode by default
     (
         "deletion_verification_guard",
         _run_deletion_verification_guard,
     ),  # NEW 2026-03-24: Deletion verification - checks actual file system state
+    ("approval_gate", _run_approval_gate),  # NEW 2026-05-10: Implementation approval gate (minimal patterns)
+    ("commit_gate", _run_commit_gate),  # NEW 2026-05-10: Git commit/push approval gate
     (
         "artifact_enforcement",
         _run_artifact_enforcement,
     ),  # NEW 2026-05-08: Artifact enforcement for mechanism claims
-    ("approval_gate", _run_approval_gate),  # NEW 2026-05-10: Implementation approval gate
+    (
+        "runtime_claim_enforcement",
+        _run_runtime_claim_gate,
+    ),  # Phase 3: Runtime claim artifact verification
     ("git_diff_reground", _run_git_diff_reground),
     ("skill_dir_correlation", _run_skill_dir_correlation_gate),
     ("cks_correction_anchor", _run_cks_correction_anchor),
@@ -2367,6 +3747,7 @@ IN_PROCESS_GATES = [
     ("repetition_blocker", _run_repetition_blocker),
     ("fake_done", _run_fake_done_detector),
     ("meta_analysis_trap", _run_meta_analysis_trap),
+    ("subagent_opportunity", _run_subagent_opportunity),  # Advisory for delegation opportunities
 ]
 
 # Non-Blocking Side Effects (still subprocess for isolation)
@@ -2374,6 +3755,7 @@ SIDE_EFFECTS = [
     "auto_commit_hook.py",
     "Stop_cks_decision_capture.py",
     "Stop_cleanup_verifier.py",
+    "Stop_contract_status.py",  # Auto-surfaces contract dashboard at turn end
 ]
 
 
@@ -2419,6 +3801,38 @@ CRITICAL_STOP_GATES = frozenset((
 # Module-level critical gate failure flag for this turn
 _critical_gate_failed_this_turn: bool = False
 
+# Phase 2 policy block arbitration: name of the winning policy blocker for this turn.
+_policy_block_this_turn: str | None = None  # reset each turn in main()
+
+
+def _log_policy_block_suppressed(
+    data: dict, suppressed_gate: str, winner_gate: str,
+    suppressed_prio: int, winner_prio: int, result: dict,
+) -> None:
+    """Log a suppressed policy block to telemetry for arbitration audit.
+
+    This helps tune _POLICY_BLOCK_PRIORITY by showing which blocks were
+    suppressed and why. Suppressed blocks don't exit — they're silent.
+    """
+    try:
+        from __lib.stop_gate_telemetry import log_gate_event
+        log_gate_event(
+            gate_name=suppressed_gate,
+            classification="policy",
+            profile=result.get("_critic_profile"),
+            decision="allow",  # was suppressed, so telemetry shows "allow"
+            session_id=data.get("session_id") or data.get("sessionId"),
+            terminal_id=data.get("terminal_id"),
+            extra={
+                "suppressed_by_policy_arb": winner_gate,
+                "suppressed_priority": suppressed_prio,
+                "winner_priority": winner_prio,
+                "skip_reason": f"policy_arb:winner={winner_gate}",
+            },
+        )
+    except Exception:
+        pass  # Telemetry errors never disrupt gate processing
+
 
 def _run_gate_safe(name: str, gate_fn, data: dict) -> dict | None:
     """Run a single gate, catching exceptions to prevent cascade failure.
@@ -2460,14 +3874,37 @@ def _process_gate_result(
     or control turns only (strict mode), matching the systemMessage suppression.
     Policy gate blocks always fire regardless of turn mode.
 
+    Phase 2 policy block arbitration: when multiple policy gates would block,
+    only the highest-priority one is surfaced. Lower-priority blocks are suppressed
+    and logged with suppressed_by_policy_arb for telemetry.
+
     Returns True if the turn was blocked (caller should exit), False to continue.
     """
+    global _policy_block_this_turn
     if not res:
         return False
     if res.get("decision") == "block":
         gate_class = GATE_CLASSES.get(name, "policy")
         if gate_class == "quality" and is_quality_mode_suppressed(turn_mode, quality_mode):
             return False
+
+        # Phase 2 policy block arbitration: only surface the highest-priority block.
+        # Higher priority = lower numeric value (0 is highest).
+        if gate_class == "policy":
+            existing_blocker = _policy_block_this_turn
+            if existing_blocker is not None:
+                # Another policy gate already blocked this turn.
+                # Suppress this one if it has lower priority (higher number).
+                my_prio = _POLICY_BLOCK_PRIORITY.get(name, 99)
+                existing_prio = _POLICY_BLOCK_PRIORITY.get(existing_blocker, 99)
+                if my_prio >= existing_prio:
+                    # We have lower or equal priority — suppress this block.
+                    # Log suppressed_by_policy_arb so telemetry captures both.
+                    _log_policy_block_suppressed(data, name, existing_blocker, my_prio, existing_prio, res)
+                    return False
+            # We're the winning blocker (or first blocker).
+            _policy_block_this_turn = name
+
         _log_stop_block_event(data, name, res)
         if "blocking_hook" not in res:
             res["blocking_hook"] = f"Stop.py:{name}"
@@ -2483,6 +3920,136 @@ def _process_gate_result(
     return False
 
 
+def _get_contract_status_output() -> str:
+    """Get contract system status for display.
+
+    Reads telemetry logs and returns a compact dashboard string.
+    This is the in-process version used by Stop.py main().
+    For the standalone side-effect, see Stop_contract_status.py.
+    """
+    from datetime import datetime as _datetime, timezone as _timezone
+
+    # Paths resolved from hook location
+    _writer_log = HOOKS_DIR / "logs" / "diagnostics" / "task_contract_writer_telemetry.jsonl"
+    _stop_log = HOOKS_DIR / "logs" / "diagnostics" / "task_contract_telemetry.jsonl"
+
+    def _load_events(path: Path) -> list[dict]:
+        if not path.exists():
+            return []
+        events = []
+        try:
+            with path.open(encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        try:
+                            events.append(json.loads(line))
+                        except json.JSONDecodeError:
+                            continue
+        except (OSError, IOError):
+            pass
+        return events
+
+    def _age_hours(ts: float) -> str:
+        now = _datetime.now(_timezone.utc).timestamp()
+        h = (now - ts) / 3600
+        return f"{h:.1f}h" if h < 24 else f"{h / 24:.1f}d"
+
+    writer_events = _load_events(_writer_log)
+    stop_events = _load_events(_stop_log)
+
+    if not writer_events and not stop_events:
+        return ""
+
+    lines = ["─" * 40]
+
+    # Writer summary
+    active = [e for e in writer_events if e.get("event") == "contract_active"]
+    skipped = [e for e in writer_events if e.get("event") == "contract_skip"]
+    not_task = [e for e in skipped if e.get("reason") == "not_a_task_start"]
+    if writer_events:
+        latest = max(e.get("timestamp", 0) for e in writer_events)
+        age = _age_hours(latest)
+        tc_counts: dict[str, int] = {}
+        for e in active:
+            tc = e.get("task_class", "unknown")
+            tc_counts[tc] = tc_counts.get(tc, 0) + 1
+        tc_str = ", ".join(f"{k}={v}" for k, v in sorted(tc_counts.items())) if tc_counts else ""
+        lines.append(
+            f"Contract Writer: {len(active)} contracts, "
+            f"{len(skipped)} skips ({len(not_task)} not-task) | "
+            f"Last: {age}" + (f" [{tc_str}]" if tc_str else "")
+        )
+
+    # Stop summary
+    allowed = [e for e in stop_events if e.get("decision") == "allow"]
+    blocked = [e for e in stop_events if e.get("decision") == "block"]
+    silent = [e for e in stop_events if e.get("event") == "silent"]
+    if stop_events:
+        silent_reasons: dict[str, int] = {}
+        for e in silent:
+            r = e.get("reason", "unknown")
+            silent_reasons[r] = silent_reasons.get(r, 0) + 1
+        sr = ", ".join(f"{k}={v}" for k, v in sorted(silent_reasons.items(), key=lambda x: -x[1])[:2])
+        lines.append(
+            f"Contract Stop: {len(allowed)} allow, {len(blocked)} block, "
+            f"{len(silent)} silent" + (f" [{sr}]" if sr else "")
+        )
+
+    # Anomaly detection
+    anomalies: list[str] = []
+    skip_threshold = int(os.environ.get("CONTRACT_WRITER_SKIP_THRESHOLD", "50"))
+    if len(not_task) > skip_threshold:
+        ratio = len(not_task) / max(len(writer_events), 1)
+        anomalies.append(f"HIGH skip rate ({len(not_task)} not-task-start, {ratio:.0%})")
+    if sum(1 for e in stop_events if e.get("reason") == "uncertain_non_completion") > 5:
+        anomalies.append("uncertain silences")
+    if anomalies:
+        lines.append(f"Anomalies: {'; '.join(anomalies)}")
+
+    lines.append("─" * 40)
+    return "\n".join(lines)
+
+
+def _turn_mode_to_turn_kind(mode: str) -> TurnKind:
+    """Map string turn_mode from __lib.turn_mode to Phase 2 TurnKind enum."""
+    mapping = {
+        "analysis": TurnKind.ANALYSIS,
+        "control": TurnKind.CONTROL,
+        "exploration": TurnKind.EXPLORATION,
+        "plan": TurnKind.PLAN,
+        "execution-report": TurnKind.EXECUTION_REPORT,
+        "final-answer": TurnKind.FINAL_ANSWER,
+        "audit-report": TurnKind.CONTROL,  # Phase 4.A: audit reports treated like control for format enforcement
+    }
+    return mapping.get(mode.lower(), TurnKind.UNKNOWN)
+
+
+def _log_gate_skip(
+    name: str, reason: str,
+    turn_kind: TurnKind, claim_kind: ClaimKind,
+    data: dict, system_messages: list[str], quality_messages: list[str],
+) -> None:
+    """Log gate skip event and emit telemetry for a skipped gate."""
+    try:
+        from __lib.stop_gate_telemetry import log_gate_event
+        log_gate_event(
+            gate_name=name,
+            classification=GATE_CLASSES.get(name, "policy"),
+            profile=None,
+            decision="allow",  # skipped = treated as allow
+            session_id=data.get("session_id") or data.get("sessionId"),
+            terminal_id=data.get("terminal_id"),
+            skip_reason=reason,
+            turn_kind=turn_kind.value if turn_kind else None,
+            claim_kind=claim_kind.value if claim_kind else None,
+            rollout_mode=GATE_METADATA.get(name, {}).get("rollout_mode", RolloutMode.BLOCK).value
+                        if GATE_METADATA.get(name) else None,
+        )
+    except Exception:
+        pass  # Telemetry errors never disrupt gate processing
+
+
 def _merge_quality_messages(
     system_messages: list[str], quality_messages: list[str],
     turn_mode: str, quality_mode: str,
@@ -2490,6 +4057,69 @@ def _merge_quality_messages(
     """Append quality messages to system_messages only when not suppressed."""
     if not is_quality_mode_suppressed(turn_mode, quality_mode):
         system_messages.extend(quality_messages)
+
+
+def _classify_error_events(cc_errors_log: Path) -> tuple[int, int, int]:
+    """Classify events in cc_errors.jsonl into errors/real_failures/expected.
+
+    Classifies events within the last hour (rolling window) from cc_errors.jsonl.
+    Timeout events (timeout_imminent/killed/terminated/exceeded) are expected
+    operational behavior. Load/execute/runtime/stderr errors are real failures.
+
+    Args:
+        cc_errors_log: Path to cc_errors.jsonl log file.
+
+    Returns:
+        Tuple of (total_errors_last_hour, real_failures_last_hour, expected_timeouts_last_hour).
+    """
+    errors_last_hour = 0
+    real_failures_last_hour = 0
+    expected_ops_last_hour = 0
+
+    _EXPECTED_TIMEOUT_PATTERNS = (
+        "timeout_imminent",
+        "timeout_terminated",
+        "timeout_killed",
+        "timeout_exceeded",
+    )
+
+    if not cc_errors_log.exists():
+        return 0, 0, 0
+
+    try:
+        one_hour_ago = time.time() - 3600
+
+        with open(cc_errors_log, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                    ts_str = entry.get("timestamp", "")
+                    if not ts_str:
+                        continue
+
+                    try:
+                        from datetime import datetime
+
+                        ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                        ts_epoch = ts.timestamp()
+                        if ts_epoch >= one_hour_ago:
+                            errors_last_hour += 1
+                            err_type = entry.get("error_type", "")
+                            if any(p in err_type.lower() for p in _EXPECTED_TIMEOUT_PATTERNS):
+                                expected_ops_last_hour += 1
+                            else:
+                                real_failures_last_hour += 1
+                    except Exception:
+                        continue
+                except json.JSONDecodeError:
+                    continue
+    except Exception:
+        pass
+
+    return errors_last_hour, real_failures_last_hour, expected_ops_last_hour
 
 
 def get_hook_health_summary(session_id: str | None = None) -> dict | None:
@@ -2518,42 +4148,22 @@ def get_hook_health_summary(session_id: str | None = None) -> dict | None:
             pass
 
     # Check cc_errors for last hour error count
-    errors_last_hour = 0
-    if cc_errors_log.exists():
-        try:
-            one_hour_ago = time.time() - 3600  # 1 hour ago
-
-            with open(cc_errors_log, encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        entry = json.loads(line)
-                        ts_str = entry.get("timestamp", "")
-                        if not ts_str:
-                            continue
-
-                        try:
-                            # Parse ISO timestamp
-                            from datetime import datetime
-
-                            ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
-                            ts_epoch = ts.timestamp()
-                            if ts_epoch >= one_hour_ago:
-                                errors_last_hour += 1
-                        except Exception:
-                            continue
-                    except json.JSONDecodeError:
-                        continue
-        except Exception:
-            pass
+    # Classify events: timeouts are expected operational events, not failures.
+    # Real failures = hook load/execute/runtime errors (not timeout events).
+    errors_last_hour, real_failures_last_hour, expected_ops_last_hour = _classify_error_events(
+        cc_errors_log
+    )
+    error_threshold = int(os.environ.get("CC_ERRORS_THRESHOLD", "5"))
 
     # Return summary if there are issues
-    if failing_hooks > 0 or errors_last_hour > 10:
+    # Alert on real failures (load/execute/runtime), not expected timeouts.
+    # `errors_last_hour` is total for display; `real_failures_last_hour` drives alert.
+    if failing_hooks > 0 or real_failures_last_hour > error_threshold:
         summary = {
             "failing_hooks": failing_hooks,
             "errors_last_hour": errors_last_hour,
+            "real_failures_last_hour": real_failures_last_hour,
+            "expected_timeouts_last_hour": expected_ops_last_hour,
             "alert": True,
             "failures": failures[:3],  # Show first 3 failures
         }
@@ -2650,8 +4260,9 @@ def _mark_alert_shown(session_id: str, alert_signature: str) -> None:
 
 
 def main():
-    global _critical_gate_failed_this_turn
+    global _critical_gate_failed_this_turn, _policy_block_this_turn
     _critical_gate_failed_this_turn = False  # reset per turn
+    _policy_block_this_turn = None  # reset per turn (Phase 2 policy block arbitration)
     raw_input = sys.stdin.read().strip()
     if not raw_input:
         print("{}")
@@ -2686,6 +4297,7 @@ def main():
     quality_messages: list[str] = []
     # Raw messages for aggregation: (hook_name, severity, message)
     _raw_messages: list[tuple[str, str, str]] = []
+    _gate_rollout_override: dict[str, RolloutMode] = {}
 
     # Post-violation gates: these need all_violations populated from earlier gate results.
     # acknowledgment_loop and repetition_blocker need to know what violations earlier
@@ -2695,6 +4307,32 @@ def main():
         "acknowledgment_loop", "repetition_blocker",
     ))
 
+    # Phase 1 Step 2: Trivial exchange detection at Stop entry.
+    # Short-circuits quality gates before they run when the exchange is low-stakes.
+    # Policy gates are NOT suppressible (GATE_METADATA["trivial_suppressible"] == False).
+    # Contract completions are NOT trivial — pass contract_active=True.
+    _trivial_detected = False
+    _trivial_reason = ""
+    _response_for_trivial = data.get("response", "") or data.get("last_assistant_message", "")
+    if _response_for_trivial:
+        _contract = None
+        try:
+            from __lib.task_contract import load_contract as _load_contract
+            _, _tid = _resolve_scope_ids(data)
+            if _tid:
+                _contract = _load_contract(_tid)
+        except Exception:
+            pass
+        _trivial_detected, _trivial_reason = _is_trivial_exchange(
+            context=data,
+            response=_response_for_trivial,
+            turn_mode=turn_mode,
+            contract_active=_contract is not None,
+        )
+        if _trivial_detected:
+            from __lib.trivial_turns import log_trivial_skip
+            log_trivial_skip("stop_entry", _trivial_reason, turn_mode, _response_for_trivial)
+
     # Run all in-process gates
     for name, gate_fn in IN_PROCESS_GATES:
         # Enrich data for post-violation gates with current turn's detected issues
@@ -2703,13 +4341,67 @@ def main():
                 {"type": hook_name, "message": msg}
                 for hook_name, severity, msg in _raw_messages
             ]
+
+        # Phase 2 applicability routing: check turn kind, claim kind, artifact requirements.
+        # Maps string turn_mode → TurnKind enum for is_gate_applicable.
+        gate_turn_kind = _turn_mode_to_turn_kind(turn_mode)
+        # Simple claim kind from gate's GATE_METADATA — use FACTUAL as safe default
+        gate_claim_kind = ClaimKind.FACTUAL
+
+        applicable, skip_reason = is_gate_applicable(
+            name, gate_turn_kind, gate_claim_kind, set(),
+        )
+        if not applicable:
+            _log_gate_skip(
+                name, skip_reason, gate_turn_kind, gate_claim_kind,
+                data, system_messages, quality_messages,
+            )
+            continue
+
+        # Phase 2 rollout mode handling: downgrades block→warn for ADVISORY.
+        # _process_gate_result applies policy block arbitration before this.
+        meta = GATE_METADATA.get(name)
+        gate_rollout = _get_rollout_mode(name, meta.get("rollout_mode", RolloutMode.BLOCK) if meta else RolloutMode.BLOCK)
+        # ADVISORY: convert block to warn after _process_gate_result runs.
+        _gate_rollout_override[name] = gate_rollout
+
         res = _run_gate_safe(name, gate_fn, data)
+        # Phase 1 Step 2 (continued): Trivial short-circuit.
+        # Quality gates are suppressed on trivial exchanges; policy gates never are.
+        if _trivial_detected:
+            meta = GATE_METADATA.get(name)
+            if meta and meta["trivial_suppressible"]:
+                # Quality gate on trivial exchange — skip entirely (allow silently)
+                _log_gate_skip(
+                    name, "trivial_exchange", gate_turn_kind, gate_claim_kind,
+                    data, system_messages, quality_messages,
+                )
+                continue
+        # Always capture result for unverified_stance so telemetry fires on allow.
+        # On other gates this is a no-op (value is re-assigned next loop iteration).
+        if name == "unverified_stance":
+            _unverified_stance_res = res
         blocked = _process_gate_result(
             res, name, system_messages, quality_messages, data,
             turn_mode, quality_mode,
         )
 
-        # --- Gate telemetry ---
+        # Phase 2 ADVISORY rollout: downgrades block→warn after _process_gate_result.
+        # Policy block arbitration (higher-priority wins) has already run inside
+        # _process_gate_result. Here we handle rollout-mode downgrade.
+        if blocked:
+            rollout = _gate_rollout_override.get(name, RolloutMode.BLOCK)
+            if rollout == RolloutMode.ADVISORY:
+                # Convert block to systemMessage warn, suppress exit.
+                _raw_messages.append((name, "warn", f"[{name}] block downgraded to warn (ADVISORY rollout)"))
+                blocked = False
+            elif rollout == RolloutMode.SHADOW:
+                # Shadow mode: log but don't block.
+                _raw_messages.append((name, "warn", f"[{name}] shadow-mode allow (no block)"))
+                blocked = False
+            else:
+                # Normal BLOCK — exit as usual (sys.exit in telemetry section below).
+                pass
         try:
             from __lib.stop_gate_telemetry import log_gate_event
 
@@ -2723,6 +4415,18 @@ def main():
             extra: dict[str, Any] | None = None
             if name == "phase0_depends_on_skills" and res and "metadata" in res:
                 extra = dict(res["metadata"])
+            elif name == "unverified_stance" and _unverified_stance_res:
+                # Loop-fix monitoring: pass violation metadata for telemetry
+                # block_triggered: blocks detected (HIGH PRIORITY signal #2)
+                # warn_issued: warnings issued even though response allowed
+                #   (potential false positive signal if response is markdown-heavy)
+                extra = {
+                    "block_triggered": _unverified_stance_res.get("block") is True,
+                    "warn_issued": (
+                        _unverified_stance_res.get("allow") is True
+                        and bool(_unverified_stance_res.get("note", ""))
+                    ),
+                }
             log_gate_event(
                 gate_name=name,
                 classification=gate_class,
@@ -2730,7 +4434,23 @@ def main():
                 decision=decision,
                 session_id=data.get("session_id") or data.get("sessionId"),
                 terminal_id=data.get("terminal_id"),
+                # Phase 2 enriched fields
+                turn_kind=gate_turn_kind.value,
+                claim_kind=gate_claim_kind.value,
+                rollout_mode=_gate_rollout_override.get(name, RolloutMode.BLOCK).value,
+                visible=bool(res and (res.get("systemMessage") or res.get("decision") == "block")),
                 extra=extra,
+                # Phase 3: runtime claim artifact enrichment (runtime_claim_enforcement gate)
+                artifact_class_required=(
+                    res.get("claim_types", [None])[0]
+                    if res and name == "runtime_claim_enforcement" and res.get("claim_types")
+                    else None
+                ),
+                artifact_class_observed=(
+                    ", ".join(res["messages"])
+                    if res and name == "runtime_claim_enforcement" and res.get("messages")
+                    else None
+                ),
             )
         except Exception:
             pass
@@ -2786,16 +4506,30 @@ def main():
     if system_messages:
         output["systemMessage"] = "\n".join(system_messages)
 
+    # Contract System Status (side-effect, non-blocking)
+    # Renders after aggregation so contract status appears after other messages
+    _contract_status = _get_contract_status_output()
+    if _contract_status:
+        if "systemMessage" in output:
+            output["systemMessage"] = output["systemMessage"] + "\n\n" + _contract_status
+        else:
+            output["systemMessage"] = _contract_status
+
     # Hook Health Summary (NEW)
     session_id = data.get("session_id") or data.get("sessionId") or data.get("CLAUDE_SESSION_ID")
     health_summary = get_hook_health_summary(session_id=session_id)
     if health_summary and health_summary.get("alert"):
+        real_fails = health_summary.get("real_failures_last_hour", 0)
+        exp_timeouts = health_summary.get("expected_timeouts_last_hour", 0)
+        total_err = health_summary.get("errors_last_hour", 0)
         alert_lines = [
             "=" * 60,
             "⚠️  HOOK HEALTH ALERT",
             "=" * 60,
             f"Failing hooks: {health_summary['failing_hooks']}",
-            f"Errors in last hour: {health_summary['errors_last_hour']}",
+            f"Real failures (1h): {real_fails}  |  "
+            f"Expected timeouts (1h): {exp_timeouts}  |  "
+            f"Total logged errors: {total_err}",
         ]
 
         if health_summary.get("failures"):

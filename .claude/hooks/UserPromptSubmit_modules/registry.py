@@ -658,6 +658,7 @@ def _load_hooks() -> None:
         "referent_anchor",  # NEW 2026-04-20: Extract anchor terms from user tables/lists for scope gating
         "unified_injector",
         "workflow_tier_tagging",
+        "delegation_prospector",  # NEW 2026-05-10: Surface delegation opportunity advisory before task execution
     ]
 
     # Try loading core hooks via relative import (batch import for efficiency)
@@ -733,6 +734,15 @@ def _load_hooks() -> None:
         module_path="UserPromptSubmit_approval",
         # Module self-registers via @register_hook decorator
         priority=9.0,  # Before unified_injector (10.0)
+    )
+
+    # Load cognitive_tags for tag instruction injection
+    # This hook runs LATE (priority 15.0) to add tag instruction after other injections
+    _try_import_hook(
+        module_name="cognitive_tags",
+        module_path="UserPromptSubmit_cognitive_tags",
+        # Module self-registers via @register_hook decorator
+        priority=15.0,
     )
 
 
