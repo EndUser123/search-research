@@ -1,44 +1,7 @@
 ---
-name: ai_distiller
+name: aid
 description: AI-Distiller wrapper for code analysis - refactoring, security, performance, architecture.
-version: "1.0.0"
-status: stable
-category: development
-tags: ['code-analysis', 'refactoring', 'security', 'performance', 'architecture', 'documentation', 'ai-distiller']
-triggers:
-  - '/ai_distiller'
-aliases:
-  - '/ai_distiller'
-  - '/aid'
-
-suggest:
-  - /analyze
-  - /bug-hunt
-  - /comply
-
-execution:
-  directive: |
-    Execute the AI-Distiller (aid.exe) wrapper to analyze code.
-    Use specific subcommands (refactor, arch, security, perf, best, bugs, docs, diagrams, flow, multi, git) based on user need.
-    Results are typically saved to P:\\\\\\.aid\ unless --stdout is used.
-  default_args: ""
-  examples:
-    - "/aid refactor src/main.py"
-    - "/aid arch . --format md"
-    - "/aid security . --private"
-
-do_not:
-  - sugarcoat technical debt
-  - recommend enterprise bloat
-  - ignore security vulnerabilities
-
-output_template: |
-  Analysis results are saved to: P:\\\\\\.aid\[ANALYSIS-TYPE].[timestamp].[filename].md
-  
-  (Or stdout content if --stdout is used)
 ---
-
-
 # AI-Distiller (aid) - Code Analysis Skill
 
 ## Purpose

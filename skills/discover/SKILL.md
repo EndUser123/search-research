@@ -1,39 +1,7 @@
 ---
 name: discover
 description: "Discover and explore codebase patterns"
-version: "1.0.0"
-status: "stable"
-category: discovery
-purpose: Intelligent codebase discovery with ML-enhanced pattern detection and GPU acceleration
-usage: /discover [query] [--mode=quick|medium|very_thorough]
-handles: ['codebase discovery', 'architecture analysis', 'pattern discovery', 'technical debt analysis', 'semantic code search', 'RAG-enhanced discovery', 'GPU-accelerated analysis']
-complexity: advanced
-dependencies: ['src/features/commands/nip/discover.md']
-validation_mode: comprehensive
-quality_gate: 0.9
-author: CSF NIP
-ml_enhanced: True
-gpu_accelerated: True
-triggers:
-  - '/discover'
-aliases:
-  - '/discover'
-
-suggest:
-  - /search (integrated - first step for context discovery)
-  - /analyze
-  - /nse
-
-# First-tool coherence (v3.5): /discover is for codebase exploration.
-# First tool must be a discovery/search action, not execution.
-allowed_first_tools:
-  - Grep
-  - Glob
-  - Read
-  - Task
 ---
-
-
 # Discover - Intelligent Codebase Discovery
 
 

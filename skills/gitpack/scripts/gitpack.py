@@ -154,6 +154,33 @@ def _remove_fenced_blocks(source: str) -> str:
     return re.sub(r"```[^\n]*\n[\s\S]*?```", "", source)
 
 
+def extract_powershell_signatures(filepath: str) -> list[str]:
+    """Extract function/filter/ Workflow signatures from a PowerShell file via regex."""
+    try:
+        source = Path(filepath).read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return []
+
+    sigs: list[str] = []
+    seen: set[str] = set()
+
+    # function <name> { ... }
+    for m in re.finditer(r"^\s*(?:function|filter|Workflow)\s+([a-zA-Z0-9_-]+)", source, re.MULTILINE):
+        line_text = m.group(0).strip()
+        if line_text and line_text not in seen and len(sigs) < 100:
+            seen.add(line_text)
+            sigs.append(line_text)
+
+    # param block: param([type]$Name, ...) at top of script/scriptblock
+    for m in re.finditer(r"^\s*param\s*\([^)]*\)", source, re.MULTILINE):
+        line_text = m.group(0).strip()
+        if line_text and line_text not in seen and len(sigs) < 100:
+            seen.add(line_text)
+            sigs.append(line_text)
+
+    return sigs
+
+
 def _get_lang_schema(lang: str) -> str:
     """Return the appropriate regex pattern for a given language."""
     # (?m) must not appear inline — MULTILINE flag is passed at compile time
@@ -266,6 +293,8 @@ def extract_signatures(filepath: str) -> list[str]:
     lang = lang_map.get(ext, "default")
     if lang == "python":
         return extract_py_signatures(filepath)
+    if lang == "powershell":
+        return extract_powershell_signatures(filepath)
     return extract_generic_signatures(filepath, lang)
 
 
@@ -286,7 +315,7 @@ DEFAULT_EXCLUDES = [
 
 EXTENSIONS = ["*.py", "*.pyw", "*.js", "*.mjs", "*.cjs", "*.jsx", "*.ts", "*.tsx",
               "*.html", "*.htm", "*.css", "*.scss", "*.sql", "*.md", "*.markdown",
-              "*.yaml", "*.yml", "*.json"]
+              "*.yaml", "*.yml", "*.json", "*.ps1", "*.psm1", "*.psd1"]
 
 
 def discover_files(target_dir: Path, exclude_patterns: str = "") -> list[str]:
@@ -345,6 +374,7 @@ LANG_LABEL = {
     ".md": "markdown", ".markdown": "markdown",
     ".yaml": "yaml", ".yml": "yaml",
     ".json": "json",
+    ".ps1": "powershell", ".psm1": "powershell", ".psd1": "powershell",
 }
 
 

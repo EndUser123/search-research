@@ -1,37 +1,7 @@
 ---
 name: crawl
 description: |
-  Ingest websites into QMD collections using Crawl4AI for semantic search.
-  FAIL FAST if crawl4ai or qmd not available.
-
-  Use when:
-  - Building a searchable local knowledge base from web sources
-  - Capturing documentation for offline reference
-  - Creating wiki content from blog posts, docs, or articles
-  - Researching a topic by ingesting multiple sources
-
-  Triggers: /crawl, "crawl url", "ingest website", "scrape to qmd"
-version: "1.0.0"
-status: experimental
-category: ingest
-enforcement: strict
-triggers:
-  - /crawl
-  - 'crawl url'
-  - 'crawl url'
-  - 'scrape to qmd'
-workflow_steps:
-  - check_dependencies
-  - fetch_content
-  - compute_hash
-  - check_dedup
-  - save_with_frontmatter
-  - find_related_pages
-  - inject_wikilinks
-  - log_ingest
-  - update_qmd_index
 ---
-
 # Crawl-Ingest
 
 ## Purpose

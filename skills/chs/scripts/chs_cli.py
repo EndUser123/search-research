@@ -617,31 +617,47 @@ class CHSExporter:
         self,
         session_id: str | None = None,
         output_path: Path | None = None,
+        max_sessions: int = 30,
     ) -> Path:
-        """Walk the session chain and write all transcripts to one markdown file."""
-        import importlib.util
-        import sys
+        """Walk the session chain and write all transcripts to one markdown file.
 
-        def _load_session_chain():
-            """Load session_chain directly from file, bypassing core/__init__."""
-            _spec = importlib.util.spec_from_file_location(
-                "core.session_chain", "P:\\\\\\packages/search-research/core/session_chain.py"
-            )
-            _mod = importlib.util.module_from_spec(_spec)
-            # Register in sys.modules before exec so dataclass decorator works
-            sys.modules["core.session_chain"] = _mod
+        Uses sessions-index.json approach (like /recap) for accurate chain building:
+        1. Load sessions-index.json
+        2. Validate paths and filter to entries with existing transcripts
+        3. Take the max_sessions most recent by startedAt
+        4. Parse each transcript chronologically
+        """
+        from importlib.util import spec_from_file_location, module_from_spec
+
+        # Resolve history_chain.py path relative to this file (QUALITY-001 fix)
+        # __file__ is .../search-research/skills/chs/scripts/chs_cli.py
+        # Go up 4 levels to reach package root: .../search-research/
+        history_chain_path = Path(__file__).parent.parent.parent.parent / "core" / "history_chain.py"
+
+        def _load_history_chain():
+            """Load history_chain directly from file, bypassing core/__init__."""
+            _spec = spec_from_file_location("core.history_chain", str(history_chain_path))
+            if _spec is None or _spec.loader is None:
+                raise ImportError(f"Cannot load history_chain from {history_chain_path}")
+            _mod = module_from_spec(_spec)
+            _loaded_modules = sys.modules.get("core.history_chain")
+            if _loaded_modules:
+                sys.modules.pop("core.history_chain")
+            sys.modules["core.history_chain"] = _mod
             try:
                 _spec.loader.exec_module(_mod)
             finally:
-                # Remove to avoid polluting the module cache
-                sys.modules.pop("core.session_chain", None)
+                if _loaded_modules:
+                    sys.modules["core.history_chain"] = _loaded_modules
+                else:
+                    sys.modules.pop("core.history_chain", None)
             return _mod
 
         try:
-            _session_chain = _load_session_chain()
-            get_all_chain_files = _session_chain.get_all_chain_files
+            _history_chain = _load_history_chain()
+            load_sessions_index = _history_chain.load_sessions_index
         except Exception as exc:
-            raise ValueError(f"session_chain module not importable: {exc}") from exc
+            raise ValueError(f"history_chain module not importable: {exc}") from exc
 
         if session_id is None:
             session_id = self.get_current_session_id()
@@ -651,38 +667,85 @@ class CHSExporter:
                     "Pass --session-id explicitly or ensure current_session.json exists."
                 )
 
-        chain_files = get_all_chain_files(session_id)
-        if not chain_files:
-            # Active sessions are not yet in sessions.json index.
-            # Fall back: walk_handoff_chain finds the transcript directly.
-            _fallback_mod = _load_session_chain()
-            walk_handoff_chain = _fallback_mod.walk_handoff_chain
+        # Load sessions-index.json with proper error handling (IO-003)
+        try:
+            sessions_index = load_sessions_index()
+        except (json.JSONDecodeError, OSError) as exc:
+            raise ValueError(f"Failed to load sessions-index.json: {exc}") from exc
 
-            handoff_result = walk_handoff_chain(session_id)
-            chain_files = [e.transcript_path for e in handoff_result.entries]
-        if not chain_files:
+        # Find the target session entry to get its timestamp
+        target_entry = sessions_index.get(session_id)
+        if not target_entry:
+            raise ValueError(f"Session {session_id} not found in sessions-index.json")
+
+        target_started = target_entry.get("startedAt", 0)
+
+        # Determine allowed sessions directory for path validation (IO-002)
+        projects_dir = Path.home() / ".claude" / "projects"
+
+        # Filter to entries with valid paths, take max_sessions most recent
+        # Note: Removed pre-check (IO-001) - we'll validate paths and handle missing files at read time
+        valid_entries = []
+        for sid, entry in sessions_index.items():
+            started = entry.get("startedAt", 0)
+            # Only include sessions that started before or at the same time as target
+            if started <= target_started:
+                valid_entries.append((sid, entry, started))
+
+        # Sort by startedAt descending (newest first), take max_sessions
+        valid_entries.sort(key=lambda x: x[2], reverse=True)
+        recent_entries = valid_entries[:max_sessions]
+
+        # Sort chronologically (oldest first) for export
+        recent_entries.sort(key=lambda x: x[2])
+
+        # Store paths for streaming write; validate at read time (LOGIC-001 TOCTOU fix)
+        chain_paths = [(sid, entry.get("fullPath")) for sid, entry, _ in recent_entries if entry.get("fullPath")]
+
+        if not chain_paths:
             raise ValueError(f"No transcript files found for session {session_id}")
 
+        # Create exports directory with error handling (IO-004)
         if output_path is None:
             exports_dir = Path.home() / ".claude" / "exports"
-            exports_dir.mkdir(parents=True, exist_ok=True)
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            try:
+                exports_dir.mkdir(parents=True, exist_ok=True)
+            except (PermissionError, OSError) as exc:
+                raise ValueError(f"Cannot create exports directory {exports_dir}: {exc}") from exc
+
+            now = datetime.now()
+            timestamp = now.strftime("%Y%m%d_%H%M%S")
             output_path = exports_dir / f"chain_{timestamp}.md"
 
-        parts: list[str] = [
-            "# Session Chain Export\n\n",
-            f"**Root session:** {session_id}  \n",
-            f"**Exported:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  \n",
-            f"**Sessions in chain:** {len(chain_files)}\n\n",
-            "---\n\n",
-        ]
+        # Streaming write to avoid O(N²) memory behavior (PERF-002 fix)
+        try:
+            with open(output_path, "w", encoding="utf-8", newline="\n") as out:
+                now = datetime.now()
+                out.write(f"# Session Chain Export\n\n")
+                out.write(f"**Root session:** {session_id}  \n")
+                out.write(f"**Exported:** {now.strftime('%Y-%m-%d %H:%M:%S')}  \n")
+                out.write(f"**Sessions in chain:** {len(chain_paths)}\n\n")
+                out.write("---\n\n")
 
-        for i, transcript_path in enumerate(chain_files, 1):
-            parts.append(f"## Session {i} — `{transcript_path.stem}`\n\n")
-            parts.extend(self._format_transcript(transcript_path))
-            parts.append("\n---\n\n")
+                for i, (sid, full_path) in enumerate(chain_paths, 1):
+                    # Validate path immediately before read (LOGIC-001 TOCTOU fix)
+                    path = Path(full_path)
+                    try:
+                        path.resolve().relative_to(projects_dir.resolve())
+                    except ValueError:
+                        out.write(f"## Session {i} — `{sid}`\n\n")
+                        out.write(f"*[Error: Invalid path in sessions-index.json: {full_path} (outside allowed directory)]*\n\n")
+                        out.write("---\n\n")
+                        continue
 
-        output_path.write_text("".join(parts), encoding="utf-8")
+                    out.write(f"## Session {i} — `{path.stem}`\n\n")
+                    # Stream formatted transcript directly to output
+                    self._format_transcript_to_file(path, out)
+                    out.write("\n---\n\n")
+
+        except (PermissionError, OSError) as exc:
+            raise ValueError(f"Failed to write export file {output_path}: {exc}") from exc
+
         return output_path
 
     def _format_transcript(self, transcript_path: Path) -> list[str]:
@@ -707,9 +770,37 @@ class CHSExporter:
                         text = self._extract_content(entry, role="assistant")
                         if text:
                             result.append(f"**Assistant:** {text}\n\n")
-        except OSError as exc:
+        except (OSError, FileNotFoundError) as exc:
+            # Handle both OSError and FileNotFoundError (IO-006)
             result.append(f"*[Error reading {transcript_path.name}: {exc}]*\n\n")
         return result
+
+    def _format_transcript_to_file(self, transcript_path: Path, out) -> None:
+        """Parse a .jsonl transcript and stream formatted markdown to file handle.
+
+        Streaming version avoids O(N²) memory behavior (PERF-002 fix).
+        """
+        try:
+            with open(transcript_path, encoding="utf-8", errors="replace") as f:
+                for raw_line in f:
+                    raw_line = raw_line.strip()
+                    if not raw_line:
+                        continue
+                    try:
+                        entry = json.loads(raw_line)
+                    except json.JSONDecodeError:
+                        continue
+                    entry_type = entry.get("type", "")
+                    if entry_type == "user":
+                        text = self._extract_content(entry, role="user")
+                        if text:
+                            out.write(f"**User:** {text}\n\n")
+                    elif entry_type == "assistant":
+                        text = self._extract_content(entry, role="assistant")
+                        if text:
+                            out.write(f"**Assistant:** {text}\n\n")
+        except (OSError, FileNotFoundError) as exc:
+            out.write(f"*[Error reading {transcript_path.name}: {exc}]*\n\n")
 
     def _extract_content(self, entry: dict[str, Any], role: str) -> str:
         """Extract readable text from a message entry."""
@@ -747,7 +838,11 @@ class CHSExporter:
                     )
                 preview = str(tc)[:400] + ("…" if len(str(tc)) > 400 else "")
                 parts.append(f"\n*[Tool result]*\n```\n{preview}\n```\n")
-        return "\n".join(parts).strip()
+        # Stream join to avoid O(N²) behavior
+        if not parts:
+            return ""
+        result = "\n".join(parts)
+        return result.strip()
 
 
 class CHSContext:
@@ -803,7 +898,7 @@ def main():
             "  /chs \"authentication\" --mode documentation\n"
             "  /chs export\n"
             "  /chs export --session-id abc123\n"
-            "  /chs export --output P:\\\\\\tmp/chs-export.md\n"
+            "  /chs export --max-sessions 50 --output P:\\\\\\tmp/chs-export.md\n"
             "  python P:\\\\\\packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id abc123\n"
         ),
     )
@@ -847,6 +942,7 @@ def main():
     )
     parser.add_argument("--export", action="store_true", help="Export full session chain to file")
     parser.add_argument("--session-id", help="Session ID for session export (default: current session)")
+    parser.add_argument("--max-sessions", type=int, default=30, help="Maximum sessions to include in chain (default: 30)")
     args = parser.parse_args()
     config = CHSConfig()
     search = CHSSearch(config)
@@ -862,6 +958,7 @@ def main():
             out = exporter.export_chain(
                 session_id=args.session_id,
                 output_path=Path(args.output) if args.output else None,
+                max_sessions=args.max_sessions,
             )
             text = out.read_text(encoding="utf-8")
             session_count = text.count("\n## Session ")

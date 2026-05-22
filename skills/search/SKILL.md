@@ -1,36 +1,7 @@
 ---
 name: search
 description: Unified intelligent search - searches only local data stores (CKS, CHS, CDS, code, docs, skills)
-version: "1.2.0"
-status: stable
-category: unified
-enforcement: strict
-triggers:
-  - /search
-  - 'search '
-  - 'find '
-  - 'look for'
-workflow_steps:
-  - execute_search_workflow
-aliases:
-  - /search
-  - /chs
-  - /recent
-  - /search-more
-  - /progressive-search
-
-suggest:
-  - /research
-  - /cks
-  - /daemon
-
-do_not:
-  - summarize this skill instead of executing it
-  - fabricate search results without querying backends
-  - skip the semantic daemon when it is available
-  - present results without relevance scores
 ---
-
 # Unified Search
 
 ## Purpose

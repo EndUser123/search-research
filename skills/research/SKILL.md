@@ -1,37 +1,7 @@
 ---
 name: research
 description: Web research with multiple providers and intelligent result synthesis
-version: 1.0.0
-status: stable
-category: research
-enforcement: advisory
-triggers:
-  - /research
-  - 'research '
-  - 'web search'
-  - 'find on web'
-aliases:
-  - /research
-suggest:
-  - /search
-
-do_not:
-  - claim to search without actually invoking providers
-  - fabricate search results without provider responses
-  - skip URL fetching when results need source verification
-  - return full search results or fetched URL content inline to the caller — write to artifact file and return path + summary instead
-  - use --fetch-urls without writing fetched content to an artifact file first
-
-workflow_steps:
-  - analyze_query_intent
-  - select_search_mode
-  - choose_providers
-  - execute_search
-  - synthesize_results
-  - fetch_urls
-  - format_output
 ---
-
 # Research Skill
 
 ## Purpose
