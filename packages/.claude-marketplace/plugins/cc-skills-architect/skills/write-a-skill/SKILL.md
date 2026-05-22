@@ -112,3 +112,34 @@ After drafting, verify:
 - [ ] Consistent terminology
 - [ ] Concrete examples included
 - [ ] References one level deep
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious
+
+## PHASE STRUCTURE
+
+```
+PHASE 1: GATHER (Generation) — Gather requirements from user (task/domain, use cases, scripts, references)
+    ↓ STOP: Present requirements summary before drafting
+PHASE 2: DRAFT (Generation) — Create SKILL.md with concise instructions, plus reference files if needed
+    ↓ STOP: Present draft skill for review before validation
+PHASE 3: REVIEW (Validation) — Present draft and ask for feedback on use cases, clarity, detail level
+```
+
+**STOP conditions:**
+- Between PHASE 1 and PHASE 2: STOP after requirements gathered (present summary before drafting)
+- Between PHASE 2 and PHASE 3: STOP after draft completed (present for review)
+- Between PHASE 3 and end: STOP after feedback incorporated (confirm completion)
+
+**Key separation**: Requirements gathering is Generation. Draft creation is Generation. Review and feedback is Validation.

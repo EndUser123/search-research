@@ -275,7 +275,7 @@ def _append_anti_sycophancy_log(
 def _run_safety_gate(data: dict) -> dict | None:
     """Stop_safety_gate.py logic - regex-based safety checks."""
     try:
-        from Stop_safety_gate import check_forbidden, check_protocol, check_secrets
+        from Stop_safety_gate import check_forbidden, check_protocol, check_secrets, check_catch_block_hygiene
 
         response = data.get("response", "")
         if not response:
@@ -302,6 +302,14 @@ def _run_safety_gate(data: dict) -> dict | None:
             return {
                 "decision": "block",
                 "reason": f"PROTOCOL VIOLATION: {protocol}",
+                "blocking_hook": "Stop.py:safety_gate",
+            }
+
+        catch_hygiene = check_catch_block_hygiene(response)
+        if catch_hygiene:
+            return {
+                "decision": "warn",
+                "reason": f"CATCH-BLOCK HYGIENE: {catch_hygiene}",
                 "blocking_hook": "Stop.py:safety_gate",
             }
 
@@ -792,14 +800,26 @@ def _log_epistemic_telemetry(data: dict, verdict, mode: str, repair_bypass: bool
         pass
 
 
-def _log_non_critical_advisory(data: dict, advisory_type: str, issues) -> None:
+def _log_non_critical_advisory(
+    data: dict, advisory_type: str, issues, strategy=None, reason_code=None,
+    triggering_codes=None, repeat_key=None, retry_count=None,
+) -> None:
     """Append non-critical advisory detail to diagnostics JSONL.
 
-    These advisories (format-only, mixed/coaching) are logged for
-    observability but NOT injected into the user-visible response.
+    These advisories (format-only, mixed/coaching, unsupported_fact_retry) are
+    logged for observability but NOT injected into the user-visible response.
     Critical blocks (epistemic violations with unsupported_fact, causal,
     comparative) still surface inline and are already covered by
     _log_epistemic_telemetry.
+
+    Fields logged:
+      advisory_type: "format_repair" | "mixed_advisory" | "unsupported_fact_retry"
+      issue_count, issue_types, sections, messages: issue details
+      strategy: action strategy (retry_with_guidance, etc.) from validator
+      reason_code: specific reason from validator
+      triggering_codes: tuple/list of error codes that triggered advisory
+      repeat_key: session+mode key for repeat detection
+      retry_count: retry attempt number
     """
     try:
         log_path = HOOKS_DIR / "logs" / "diagnostics" / "epistemic_advisories.jsonl"
@@ -807,7 +827,7 @@ def _log_non_critical_advisory(data: dict, advisory_type: str, issues) -> None:
         issue_types = sorted({i.type for i in issues})
         entry = {
             "timestamp": time.time(),
-            "advisory_type": advisory_type,  # "format_repair" | "mixed_advisory"
+            "advisory_type": advisory_type,
             "issue_count": len(issues),
             "issue_types": issue_types,
             "sections": sorted({i.section for i in issues if i.section != "__GLOBAL__"}),
@@ -816,6 +836,23 @@ def _log_non_critical_advisory(data: dict, advisory_type: str, issues) -> None:
             "terminal_id": data.get("terminal_id", ""),
             "response_length": len(data.get("response", "")),
         }
+        # Extract fields from RetryStrategy object if passed, otherwise use direct args
+        if strategy is not None:
+            if hasattr(strategy, "strategy"):  # RetryStrategy dataclass
+                entry["strategy"] = strategy.strategy
+                entry["reason_code"] = strategy.reason_code
+                entry["triggering_codes"] = strategy.triggering_codes
+                entry["repeat_key"] = strategy.repeat_key
+            else:
+                entry["strategy"] = strategy
+        if reason_code is not None and "reason_code" not in entry:
+            entry["reason_code"] = reason_code
+        if triggering_codes is not None and "triggering_codes" not in entry:
+            entry["triggering_codes"] = triggering_codes
+        if repeat_key is not None and "repeat_key" not in entry:
+            entry["repeat_key"] = repeat_key
+        if retry_count is not None:
+            entry["retry_count"] = retry_count
         with log_path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(entry) + "\n")
     except Exception:
@@ -2686,6 +2723,84 @@ def _run_runtime_claim_gate(data: dict) -> dict | None:
 
 
 # ---------------------------------------------------------------------------------------
+# Phase 4: External Judge Evaluation Gate
+# ---------------------------------------------------------------------------------------
+
+def _run_judge_evaluation(data: dict) -> dict | None:
+    """Evaluate response quality using external judge.
+
+    Uses the judge rubric to score responses on Directness, Evidence,
+    Completeness, Actionability, and Honesty. Quality gate — suppressed on
+    control/exploration turns.
+
+    Design principles:
+    - Terminal-scoped: Each terminal maintains isolated state
+    - Stale data immune: Reads fresh from files each evaluation
+    - Compact event immune: Uses file-based state, no in-memory caching
+    - Fail-open: Judge errors or unavailability don't block the response
+    """
+    try:
+        from __lib.external_judge import evaluate_response
+
+        response = data.get("response", "")
+        user_prompt = data.get("prompt", "")
+        turn_mode = _classify_turn_mode(data)
+
+        # Quality gate: suppressed on control/exploration turns
+        if is_quality_mode_suppressed(turn_mode, "stop"):
+            return None
+
+        # Short-circuit trivial responses
+        if len(response) < 100:
+            return None
+
+        verdict = evaluate_response(response, user_prompt, turn_mode)
+
+        # Log verdict for telemetry
+        _log_judge_verdict(verdict, turn_mode)
+
+        if not verdict.passes:
+            issues_str = "; ".join(verdict.issues[:3]) if verdict.issues else "Quality below threshold"
+            return {
+                "verdict": "block",
+                "gate": "external_judge",
+                "reason": f"Quality gate: score={verdict.score:.2f}, issues: {issues_str}",
+                "score": verdict.score,
+                "issues": verdict.issues,
+                "suggestions": verdict.suggestions[:3],
+            }
+        return None
+    except Exception as e:
+        print(f"[Stop] external_judge error: {e}", file=sys.stderr)
+        return None
+
+
+def _log_judge_verdict(verdict, turn_mode: str) -> None:
+    """Append judge verdict telemetry to diagnostics."""
+    try:
+        log_path = HOOKS_DIR / "logs" / "diagnostics" / "judge_verdicts.jsonl"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        entry = {
+            "timestamp": time.time(),
+            "gate": "external_judge",
+            "score": verdict.score,
+            "passes": verdict.passes,
+            "confidence": verdict.confidence,
+            "model_used": verdict.model_used,
+            "latency_ms": verdict.latency_ms,
+            "turn_mode": turn_mode,
+            "issues": verdict.issues,
+            "n_issues": len(verdict.issues),
+            "n_suggestions": len(verdict.suggestions),
+            "error": verdict.error,
+        }
+        with log_path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=True) + "\n")
+    except Exception:
+        pass
+
+
+# ---------------------------------------------------------------------------------------
 # V2 Semantic State Gate
 # ---------------------------------------------------------------------------------------
 
@@ -3187,6 +3302,8 @@ GATE_CLASSES: dict[str, str] = {
     "repetition_blocker": "policy",
     "fake_done": "policy",
     "meta_analysis_trap": "quality",
+    # Phase 4: External judge evaluation
+    "external_judge": "quality",
 }
 
 # === Phase 1+2: Gate Metadata Registry ===
@@ -3753,6 +3870,7 @@ IN_PROCESS_GATES = [
         "runtime_claim_enforcement",
         _run_runtime_claim_gate,
     ),  # Phase 3: Runtime claim artifact verification
+    ("external_judge", _run_judge_evaluation),  # Phase 4: External judge quality gate
     ("git_diff_reground", _run_git_diff_reground),
     ("skill_dir_correlation", _run_skill_dir_correlation_gate),
     ("cks_correction_anchor", _run_cks_correction_anchor),
@@ -4068,32 +4186,36 @@ def _merge_quality_messages(
         system_messages.extend(quality_messages)
 
 
-def _classify_error_events(cc_errors_log: Path) -> tuple[int, int, int]:
-    """Classify events in cc_errors.jsonl into errors/real_failures/expected.
+def _classify_error_events(cc_errors_log: Path) -> tuple[int, int, int, int]:
+    """Classify events in cc_errors.jsonl into errors/real_failures/expected/known_fixed.
 
-    Classifies events within the last hour (rolling window) from cc_errors.jsonl.
-    Timeout events (timeout_imminent/killed/terminated/exceeded) are expected
-    operational behavior. Load/execute/runtime/stderr errors are real failures.
+    Two-layer strategy (A4):
+      Layer 1 (structured fields): error_class, is_startup_actionable from log producers
+        - error_class="timeout" -> expected_ops
+        - error_class="known_fixed" -> known_fixed (not real failure)
+        - error_class="load_failure" + is_startup_actionable=False -> known_fixed
+        - error_class="load_failure" + is_startup_actionable=True -> real failure
+        - error_class="runtime_error" + is_startup_actionable=True -> real failure
+      Layer 2 (legacy fallback): string patterns in error_type/error_message
+        - For entries written before A3 structured tagging existed
 
     Args:
         cc_errors_log: Path to cc_errors.jsonl log file.
 
     Returns:
-        Tuple of (total_errors_last_hour, real_failures_last_hour, expected_timeouts_last_hour).
+        Tuple of (total_errors_last_hour, real_failures_last_hour,
+                 expected_timeouts_last_hour, known_fixed_last_hour).
     """
     errors_last_hour = 0
     real_failures_last_hour = 0
     expected_ops_last_hour = 0
+    known_fixed_last_hour = 0
 
-    _EXPECTED_TIMEOUT_PATTERNS = (
-        "timeout_imminent",
-        "timeout_terminated",
-        "timeout_killed",
-        "timeout_exceeded",
-    )
+    _EXPECTED_TIMEOUT_TYPES = ("timeout_imminent", "timeout_terminated",
+                               "timeout_killed", "timeout_exceeded")
 
     if not cc_errors_log.exists():
-        return 0, 0, 0
+        return 0, 0, 0, 0
 
     try:
         one_hour_ago = time.time() - 3600
@@ -4116,9 +4238,44 @@ def _classify_error_events(cc_errors_log: Path) -> tuple[int, int, int]:
                         ts_epoch = ts.timestamp()
                         if ts_epoch >= one_hour_ago:
                             errors_last_hour += 1
+
+                            # Layer 1: structured fields from A3 log producers
+                            error_class = entry.get("error_class")
+                            if error_class is not None:
+                                # Use structured classification
+                                if error_class == "timeout":
+                                    expected_ops_last_hour += 1
+                                elif error_class == "known_fixed":
+                                    known_fixed_last_hour += 1
+                                elif error_class == "load_failure":
+                                    # actionable=True -> real failure; False -> known_fixed
+                                    if entry.get("is_startup_actionable", True):
+                                        real_failures_last_hour += 1
+                                    else:
+                                        known_fixed_last_hour += 1
+                                elif error_class == "runtime_error":
+                                    if entry.get("is_startup_actionable", True):
+                                        real_failures_last_hour += 1
+                                    else:
+                                        known_fixed_last_hour += 1
+                                else:
+                                    # Unknown error_class - treat as real failure (fail-safe)
+                                    real_failures_last_hour += 1
+                                continue
+
+                            # Layer 1 partial: has is_startup_actionable=False but no error_class
+                            # This is still a structured signal — treat as known_fixed
+                            if entry.get("is_startup_actionable") is False:
+                                known_fixed_last_hour += 1
+                                continue
+
+                            # Layer 2: fallback for legacy records without structured fields
                             err_type = entry.get("error_type", "")
-                            if any(p in err_type.lower() for p in _EXPECTED_TIMEOUT_PATTERNS):
+                            err_msg = entry.get("error_message", "")
+                            if any(p in err_type.lower() for p in _EXPECTED_TIMEOUT_TYPES):
                                 expected_ops_last_hour += 1
+                            elif _is_known_fixed_legacy(err_type, err_msg):
+                                known_fixed_last_hour += 1
                             else:
                                 real_failures_last_hour += 1
                     except Exception:
@@ -4128,7 +4285,32 @@ def _classify_error_events(cc_errors_log: Path) -> tuple[int, int, int]:
     except Exception:
         pass
 
-    return errors_last_hour, real_failures_last_hour, expected_ops_last_hour
+    return errors_last_hour, real_failures_last_hour, expected_ops_last_hour, known_fixed_last_hour
+
+
+def _is_known_fixed_legacy(err_type: str, err_msg: str) -> bool:
+    """Check legacy (pre-A3) record for known-fixed patterns.
+
+    These are errors from refactoring artifacts that have already been addressed.
+    Used only as Layer 2 fallback when structured error_class field is absent.
+    """
+    import re as _re
+    combined = f"{err_type.lower()}|{err_msg.lower()}"
+    _KNOWN_FIXED_PATTERNS = (
+        "syntax_error",
+        "parse_error",
+        "name 'anomalies'",
+        "name 'user_prompt'",
+        _re.compile(r"attributeerror.*unknown", _re.IGNORECASE),
+        _re.compile(r"attributeerror.*audit_report", _re.IGNORECASE),
+    )
+    for p in _KNOWN_FIXED_PATTERNS:
+        if isinstance(p, _re.Pattern):
+            if p.search(combined):
+                return True
+        elif p in combined:
+            return True
+    return False
 
 
 def get_hook_health_summary(session_id: str | None = None) -> dict | None:
@@ -4159,7 +4341,7 @@ def get_hook_health_summary(session_id: str | None = None) -> dict | None:
     # Check cc_errors for last hour error count
     # Classify events: timeouts are expected operational events, not failures.
     # Real failures = hook load/execute/runtime errors (not timeout events).
-    errors_last_hour, real_failures_last_hour, expected_ops_last_hour = _classify_error_events(
+    errors_last_hour, real_failures_last_hour, expected_ops_last_hour, known_fixed_last_hour = _classify_error_events(
         cc_errors_log
     )
     error_threshold = int(os.environ.get("CC_ERRORS_THRESHOLD", "5"))
@@ -4173,6 +4355,7 @@ def get_hook_health_summary(session_id: str | None = None) -> dict | None:
             "errors_last_hour": errors_last_hour,
             "real_failures_last_hour": real_failures_last_hour,
             "expected_timeouts_last_hour": expected_ops_last_hour,
+            "known_fixed_last_hour": known_fixed_last_hour,
             "alert": True,
             "failures": failures[:3],  # Show first 3 failures
         }
@@ -4297,6 +4480,9 @@ def main():
         data["output_text"] = data.get("response", "")
 
     _pin_scope_env(data)
+
+    # user_prompt is used by gate functions inside the loop — extract once here
+    user_prompt = data.get("user_prompt", "") or data.get("prompt", "")
 
     # Classify turn mode once — used for quality gate suppression
     turn_mode = _classify_turn_mode(data)

@@ -85,6 +85,44 @@ Rules:
 - Mark confidence honestly — do not inflate inferences to facts
 - If the session was exploratory with no clear trajectory, say so rather than forcing predictions
 - Frame recommendations as actions the user can take, not obligations
+
+## Reasoning Failure Patterns to Detect
+
+The following three patterns cause downstream failures. Actively look for them in the evidence:
+
+### 1. Ambiguity Collapse (premature agreement)
+What it looks like: The transcript shows a user question that was ambiguous or unverified, followed immediately by agreement or confirmation from the LLM before any verification was run.
+
+Detection signal: Look for phrases like "You're right", "Makes sense", "Exactly" appearing in the SAME TURN as the question — not after evidence was gathered.
+
+What to surface: A finding with domain=quality, gap_type="premature_agreement", action=recover. The finding should cite the ambiguous question and the unverified claim that followed it. Even if the claim turned out to be correct, the session skipped the verification step — that's the gap.
+
+Rule: Don't claim the agreement was wrong. Claim the reasoning process skipped a step.
+
+### 2. Stale Data Claims
+What it looks like: The transcript or findings reference data (API docs, package versions, file timestamps, line numbers) that is plausibly stale — no freshness evidence accompanies the claim.
+
+Detection signal: No timestamp, no cache age, no "as of" qualifier on data references. Cross-reference against the session transcript's `captured_at` or `git_sha`. If the referenced data was captured before a relevant change, it's stale.
+
+What to surface: A finding with domain=quality, gap_type="stale_data_dependency", action=prevent. The finding should name the specific data reference and the gap in staleness verification.
+
+### 3. Challenge Marker Contamination
+What it looks like: Session markers or state identifiers from a PREVIOUS session persist into the current session's artifacts. Markers include: carryover.json IDs that don't match current detectors, handoff.json entries with stale git_sha, identity.json with session_id that doesn't match transcript sessionId.
+
+Detection signal: Check if findings in carryover or handoff files have git_sha that differs from the current run's git_sha. Check if terminal_id in artifacts doesn't match the actual WT_SESSION terminal.
+
+What to surface: A finding with domain=quality, gap_type="marker_staleness", action=recover. The finding should cite the specific artifact and the mismatched field.
+
+These three patterns are systemic — they appear consistently across sessions and cause real downstream failures (false positive findings, missed gaps, incorrect routing). Surface them as findings when detected.
+
+### 4. Unverified Implementation Claims
+What it looks like: A gap finding is based on code inspection or stated capability, but the actual hook wiring, telemetry parsing, once-per-session state, hidden-context injection, or test coverage has not been verified against runtime evidence.
+
+Detection signal: Finding cites a mechanism (hook, telemetry, state gate, context injection) without evidence that it actually fires, parses, gates, or injects. Look for absence of: hook execution logs, telemetry event traces, session-boundary state checks, test files covering the mechanism.
+
+What to surface: A finding with domain=quality, gap_type="unverified_implementation_claim", action=recover. The finding should name the claimed mechanism and the missing verification step.
+
+Rule: Code structure alone is not evidence of behavior. If the finding describes what a hook SHOULD do, it must also cite evidence of what it ACTUALLY does.
 """
 
 SESSION_REVIEWER_SYSTEM = """You are a session outcome reviewer. Your job is to classify ambiguous transcript excerpts.

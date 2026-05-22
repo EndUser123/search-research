@@ -31,6 +31,29 @@ from UserPromptSubmit_modules.anti_sycophancy_injector import (
     _challenge_marker_path,
     _write_challenge_marker,
 )
+from anti_sycophancy.lazy_closure_detector import _capitulation_state_path
+
+
+@pytest.fixture(autouse=True)
+def _clear_capitulation_state():
+    """Clear sycophancy-capitulation history before each test.
+
+    The capitulation escalation uses a sliding 10-minute window, so prior
+    tests can leave residual timestamps that escalate later tests
+    unexpectedly. Each test should start with a clean history.
+    """
+    path = _capitulation_state_path()
+    if path.exists():
+        try:
+            path.unlink()
+        except OSError:
+            pass
+    yield
+    if path.exists():
+        try:
+            path.unlink()
+        except OSError:
+            pass
 
 
 # ---------------------------------------------------------------------------

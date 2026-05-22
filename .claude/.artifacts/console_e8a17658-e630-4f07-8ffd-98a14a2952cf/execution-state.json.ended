@@ -1,0 +1,18 @@
+{
+  "run_id": "6ed9c93f-e2ea-4b46-a06a-ab83a2f59819",
+  "skill_name": "cc-skills-thinking:learn",
+  "contract_type": "workflow-execution",
+  "phase": "executing",
+  "status": "complete",
+  "terminal_id": "console_e8a17658-e630-4f07-8ffd-98a14a2952cf",
+  "session_id": "8535399f-a7a7-49c2-8725-b0f36aa33b61",
+  "turn_id": null,
+  "created_at": 1778630236.584963,
+  "updated_at": 1778630508.767489,
+  "required_artifacts": [],
+  "completed_artifacts": [],
+  "missing_requirements": [],
+  "allowed_tools_now": [],
+  "blocked_tools": [],
+  "response_requirements": {}
+}

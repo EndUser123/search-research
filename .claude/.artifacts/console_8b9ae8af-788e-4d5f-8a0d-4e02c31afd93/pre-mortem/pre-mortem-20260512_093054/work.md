@@ -1,0 +1,1 @@
+wiki_manifest.py — extracted manifest generation script from wiki HEREDOC refactor

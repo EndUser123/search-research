@@ -1,0 +1,18 @@
+{
+  "run_id": "d9e9bb73-a8a6-46b4-81c4-19cc2f1b183a",
+  "skill_name": "cc-skills-analysis:gto",
+  "contract_type": "workflow-execution",
+  "phase": "pending",
+  "status": "complete",
+  "terminal_id": "console_4edcc07c-1732-48fb-9dae-1829a0643d30",
+  "session_id": "98c17e05-8c8c-423b-811d-1ae7879954f8",
+  "turn_id": null,
+  "created_at": 1778737522.578344,
+  "updated_at": 1778737680.0718114,
+  "required_artifacts": [],
+  "completed_artifacts": [],
+  "missing_requirements": [],
+  "allowed_tools_now": [],
+  "blocked_tools": [],
+  "response_requirements": {}
+}

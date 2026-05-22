@@ -2,6 +2,7 @@
 """Stop gate: Block git commit/push without explicit /approve commit."""
 from __future__ import annotations
 
+import datetime
 import json
 import os
 import re
@@ -64,9 +65,42 @@ def run(data: dict) -> dict | None:
     if is_meta_or_quoted_context(response):
         return None
 
-    # Check if any git action pattern matches
-    if not any(p.search(response) for p in _GIT_ACTION_PATTERNS):
+    # Check if any git action pattern matches.
+    # Hoist first match to avoid double iteration and to capture diagnostic context.
+    first_match = None
+    first_pattern = None
+    for p in _GIT_ACTION_PATTERNS:
+        m = p.search(response)
+        if m:
+            first_match = m
+            first_pattern = p
+            break
+
+    if first_match is None:
         return None
+
+    # ── Diagnostic capture ─────────────────────────────────────────────────────
+    # Log matched text ±40 chars for post-hoc diagnosis of false positives.
+    # Fires on every match regardless of whether the turn is later allowed/blocked.
+    # Output goes to hook_runner_stderr.jsonl; diagnostics never alter decisions.
+    try:
+        start = max(0, first_match.start() - 40)
+        end = min(len(response), first_match.end() + 40)
+        snippet = response[start:end]
+        _log_path = ARTIFACTS_BASE / _terminal_id() / "logs" / "diagnostics" / "hook_runner_stderr.jsonl"
+        _log_path.parent.mkdir(parents=True, exist_ok=True)
+        with _log_path.open("a", encoding="utf-8") as _fh:
+            _fh.write(json.dumps({
+                "ts": datetime.datetime.now().isoformat(),
+                "hook": "Stop_commit_gate",
+                "matched_pattern": first_pattern.pattern,
+                "matched_substring": first_match.group(),
+                "context": snippet,
+            }) + "\n")
+    except Exception:
+        # Never let diagnostics alter the decision
+        pass
+    # ── End diagnostic capture ───────────────────────────────────────────────
 
     # Verify this is a real commitment, not just discussing the phrase
     intent = is_meta_or_quoted_context(response)

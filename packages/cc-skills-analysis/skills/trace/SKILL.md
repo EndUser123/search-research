@@ -227,6 +227,51 @@ The `/code` skill Phase 3.5 (TRACE) delegates to `/trace code:<file>`. The deleg
 | `references/workflow-and-report-format.md` | Workflow steps, state tables, TRACE report template |
 | `references/integrations-and-usage.md` | /code integration, CLI examples, version history |
 
+## Phase Gates
+
+**GATE 1 (STOP after Step 3: Load Target File)**: Before moving to Step 4 (Define Scenarios), verify:
+- Target file read completely
+- No fabrication — only report what was actually read
+- Line numbers available for all findings
+
+If gate fails: re-read the file completely before creating trace tables.
+
+**GATE 2 (STOP after Step 4: Define Scenarios)**: Before moving to Step 5 (Create State Table), verify:
+- Three scenarios defined: happy path, error path, edge case
+- Each scenario is distinct and complete
+- Boundary conditions identified
+
+If gate fails: define all three scenarios before proceeding.
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious
+
+**GATE 3 (STOP after Step 6: Trace Each Scenario)**: Before moving to Step 7 (Document Findings), verify:
+- All three scenarios traced
+- Cleanup verified in all paths
+- Line numbers cited for all findings
+- No logic errors skipped
+
+If gate fails: complete trace through all scenarios before documenting.
+
+**STOP between generation (Steps 1-3) and validation (Steps 4-6)**:
+- Steps 1-3: Parse target, select adapter, load file (generation)
+- Steps 4-6: Define scenarios, create state table, trace execution (validation)
+- Do NOT proceed to Step 4 until file is fully read in Step 3
+
+---
+
 ## Success Criteria
 
 - Code TRACE works (all 5 templates functional)

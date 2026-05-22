@@ -67,7 +67,7 @@ if [ -f "pyproject.toml" ]; then
     FORBIDDEN="$FORBIDDEN\n❌ DELETE: pyproject.toml (plugins don't need pip packaging)"
 fi
 if [ -d "src" ]; then
-    FORBIDDEN="$FORBIDDEN\n❌ DELETE/MIGRATE: src/ (use core/ for plugins)"
+    FORBIDDEN="$FORBIDDEN\n❌ DELETE/MIGRATE: src/ (use scripts/ or component dirs for plugins)"
 fi
 
 # Check for non-standard files (artifact patterns)
@@ -316,3 +316,5 @@ with open(hooks_file, 'w') as f:
 ```
 
 **Integration**: Runs automatically after package type detection, before structure building. Can be invoked standalone with `/gitready --check-standards`.
+
+**Cross-reference**: For full packaging-readiness validation (manifest completeness, path portability scan, bundle contents, smoke test), see PHASE 11 (`resources/phases/PHASE-11-packaging-readiness.md`).

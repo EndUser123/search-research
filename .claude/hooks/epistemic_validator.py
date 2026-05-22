@@ -764,6 +764,7 @@ class EpistemicIssue:
     bullet_index: int  # 0-based, -1 for non-bullet/global
     type: str  # "format", "unsupported_fact", "causal_violation", "comparative_violation"
     message: str
+    code: Optional[str] = None  # Structured issue code, e.g. "plan_mixed_substance"
 
 
 @dataclass
@@ -807,6 +808,101 @@ class ParsedResponse:
 # ---------------------------------------------------------------------------
 # Schema validators (selected by explicit turn_mode)
 # ---------------------------------------------------------------------------
+
+
+def _has_plan_scaffold(raw_response: str) -> bool:
+    """Return True if raw_response carries PLAN-mode scaffold markers.
+
+    Scans ALL lines for unambiguous plan markers (not just first non-empty),
+    which handles indented/non-first-line markers that lstrip()-based startswith
+    would miss. Also checks for ## RATIONALE/## ANALYSIS body headers.
+    """
+    for line in raw_response.split("\n"):
+        stripped = line.strip()
+        if stripped.startswith("PLAN MODE") or stripped.startswith("[PLAN]"):
+            return True
+
+    # Check body for ## RATIONALE / ## ANALYSIS headers
+    if "## RATIONALE" in raw_response or "## ANALYSIS" in raw_response:
+        return True
+
+    return False
+
+
+def _validate_execution_report_schema(raw_response: str, cfg: EpistemicConfig) -> EpistemicVerdict:
+    """Validate EXECUTION-REPORT mode responses.
+
+    Execution reports summarize observable state (files created, tests run,
+    commands executed). They are not analytical claims and do not require
+    4-section structure. However, completion/fix claims require runtime evidence.
+    """
+    clean = sanitize_response(raw_response)
+    parsed, format_issues = parse_sections(clean)
+    issues: List[EpistemicIssue] = list(format_issues)
+
+    # Completion/fix claims in execution reports are substantive assertions
+    # that require evidence — block bare "is complete", "is fixed" claims.
+    completion_patterns = [
+        r"\bis\s+(?:now\s+)?(?:complete|done|fixed|resolved)\b",
+        r"\b(?:task|implementation|feature)\s+(?:is\s+)?(?:complete|done)\b",
+        r"\ball\s+\d+\s+tests?\s+passed\b",
+        r"\bthe\s+bug\s+is\s+(?:fixed|resolved)\b",
+    ]
+    completion_re = re.compile("|".join(completion_patterns), re.IGNORECASE)
+    if completion_re.search(raw_response):
+        # Check if there is actual tool evidence in the transcript
+        if not cfg.tool_transcript:
+            issues.append(EpistemicIssue(
+                section="__GLOBAL__", bullet_index=-1,
+                type="unsupported_fact",
+                message=(
+                    "EXECUTION-REPORT contains completion/fix claim "
+                    "without tool evidence. Include pytest output, "
+                    "file list, or command result as evidence."
+                ),
+            ))
+
+    if issues:
+        decision = decide_from_issues(issues, cfg, response_type="simple", raw_response=raw_response)
+        return EpistemicVerdict(decision=decision, issues=issues)
+    return EpistemicVerdict(decision="allow", issues=[])
+
+
+def _validate_report_schema(raw_response: str, cfg: EpistemicConfig) -> EpistemicVerdict:
+    """Validate REPORT mode responses.
+
+    Report mode is for status/deliverable summaries (files created, tasks done).
+    It does NOT enforce the 4-section analytical contract. However, substantive
+    completion claims without any evidence context are flagged.
+    """
+    issues: List[EpistemicIssue] = []
+
+    # Substantive completion claims in report mode need some grounding.
+    # A bare "implementation is complete" with no evidence is a weak claim.
+    completion_re = re.compile(
+        r"\b(?:implementation|task|feature|migration)\s+is\s+(?:complete|done)\b",
+        re.IGNORECASE,
+    )
+    if completion_re.search(raw_response):
+        has_context = (
+            cfg.tool_transcript
+            or any(s in raw_response for s in ("[FACT]", "source:", "(source:"))
+        )
+        if not has_context:
+            issues.append(EpistemicIssue(
+                section="__GLOBAL__", bullet_index=-1,
+                type="unsupported_fact",
+                message=(
+                    "REPORT contains unsubstantiated completion claim. "
+                    "Add evidence (file list, test count, command output) "
+                    "or use tentative language (appears complete, likely done)."
+                ),
+            ))
+
+    if issues:
+        decision = decide_from_issues(issues, cfg, response_type="simple", raw_response=raw_response)
+        return EpistemicVerdict(decision=decision, issues=issues)
+    return EpistemicVerdict(decision="allow", issues=[])
 
 
 def _validate_control_schema(raw_response: str, cfg: EpistemicConfig) -> EpistemicVerdict:
@@ -868,8 +964,7 @@ def _validate_plan_schema(raw_response: str, cfg: EpistemicConfig) -> EpistemicV
     #   [RATIONALE] are not STATUS_ORDER sections; they are plan structure, not violations)
     issues: List[EpistemicIssue] = [
         issue for issue in format_issues
-        if "Missing required section" not in issue.message
-        and "line(s) outside any" not in issue.message
+        if issue.code not in ("missing_section", "outside_section")
     ]
 
     # Mixed-substance detection: plan marker + RCA sections → violation
@@ -889,6 +984,32 @@ def _validate_plan_schema(raw_response: str, cfg: EpistemicConfig) -> EpistemicV
                 "Mixed-substance violation: plan responses must not contain "
                 "RCA/section markers."
             ),
+            code="plan_mixed_substance",
+        ))
+
+    # Substantive prose detection: bare analytical claims in PLAN responses.
+    # Even without formal RCA section markers, phrases like "the bug is at line 42"
+    # or "caused by X" are substantive diagnosis wrapped in plan camouflage.
+    # This catches PLAN MODE + analytical prose that would otherwise slip through
+    # the early PLAN gate's marker-only check.
+    stripped_lower = raw_response.lower()
+    substantive_patterns = [
+        "the bug is", "the issue is", "the problem is",
+        "root cause", "caused by", "is due to",
+        "at line ", "in file ", "in function ",
+        "the fix is to", "should be changed to",
+    ]
+    if any(p in stripped_lower for p in substantive_patterns):
+        issues.append(EpistemicIssue(
+            section="__GLOBAL__", bullet_index=-1,
+            type="format",
+            message=(
+                "PLAN mode response contains substantive diagnosis. "
+                "Use ANALYSIS mode for root-cause investigation. "
+                "Mixed-substance violation: plan responses must not contain "
+                "unframed analytical claims."
+            ),
+            code="plan_mixed_substance",
         ))
 
     # In PLAN schema, [FACT] bullets are assumed premises (not confirmed findings).
@@ -991,7 +1112,7 @@ def _strip_scaffolding_blocks(text: str) -> str:
                 if not next_s or next_s.startswith("**") or next_s.startswith("[") or next_s.startswith("-"):
                     # Stop at blank lines, markdown headers, or list items (content continues)
                     # But only stop at blank lines - the block continues until we hit a blank line
-                    if not next_s:
+                    if not next_s.strip():
                         i += 1
                         break
                     i += 1
@@ -1000,6 +1121,10 @@ def _strip_scaffolding_blocks(text: str) -> str:
             continue
 
         # Skip REASONING CONTRACT block (all-CAPS header)
+        # Fix (G3): `if not next_s:` → `if not next_s.strip():`
+        # Whitespace-only lines were treated as blank-line terminators, causing
+        # body content to be silently dropped when scaffold headers were
+        # directly followed by indented prose.
         if s == "REASONING CONTRACT":
             i += 1
             while i < len(lines):
@@ -1011,16 +1136,18 @@ def _strip_scaffolding_blocks(text: str) -> str:
             continue
 
         # Skip RCA Contract Schema Required section header (## RCA Contract...)
-        # Case-insensitive check since markdown headers may have varying case
-        s_lower = s.lower()
-        if s.startswith("## ") and ("contract" in s_lower or ("rca" in s_lower and "schema" in s_lower)):
-            i += 1
-            while i < len(lines):
-                next_s = lines[i].strip()
-                if not next_s or next_s.startswith("## "):
-                    break
+        # Fix (G1b): Require 'schema' AND ('rca' OR 'contract'). Prevents over-stripping
+        # non-scaffold headers like '## Contract Bridge Design' (has 'contract', no 'schema').
+        if s.startswith("## "):
+            s_lower = s.lower()
+            if "schema" in s_lower and ("rca" in s_lower or "contract" in s_lower):
                 i += 1
-            continue
+                while i < len(lines):
+                    next_s = lines[i].strip()
+                    if not next_s or next_s.startswith("## "):
+                        break
+                    i += 1
+                continue
 
         # Skip lines that are purely a TEST STRATEGY CONTRACT header/marker
         if "**TEST STRATEGY CONTRACT**" in s and len(s) < 200:
@@ -1144,6 +1271,7 @@ def parse_sections(clean: str) -> tuple[ParsedResponse, List[EpistemicIssue]]:
                 f"Found {len(global_lines)} line(s) outside any "
                 "[FACT]/[INFERENCE]/[UNKNOWN]/[RECOMMENDATION] section."
             ),
+            code="outside_section",
         ))
 
     # Check section presence and order
@@ -1159,6 +1287,7 @@ def parse_sections(clean: str) -> tuple[ParsedResponse, List[EpistemicIssue]]:
             issues.append(EpistemicIssue(
                 section=tag, bullet_index=-1, type="format",
                 message=f"Missing required section {tag}.",
+                code="missing_section",
             ))
 
     # Wrong order
@@ -1396,6 +1525,10 @@ def decide_from_issues(
 
     # Global mode override
     if cfg.mode == "allow":
+        # PLAN mixed-substance is a minimum safety floor even in allow mode —
+        # it must reach the policy layer as warn so guidance is written.
+        if any(issue.code == "plan_mixed_substance" for issue in issues):
+            return "warn"
         return "allow"
     if cfg.mode == "warn" and worst == "block":
         worst = "warn"
@@ -1438,6 +1571,296 @@ class EpistemicPolicyResult:
 
     decision: PolicyAction
     actions: dict
+
+
+# ---------------------------------------------------------------------------
+# Retry / escalation classifier
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class RetryStrategy:
+    """Structured retry classification for validator outcomes.
+
+    Produced by ``classify_validator_outcome()`` and consumed by
+    ``apply_epistemic_policy()`` and Stop.py retry/escalation logic.
+    """
+
+    # One of the four terminal strategies
+    strategy: Literal[
+        "allow",           # pass through — no retry, no block
+        "block_no_retry",  # hard block — no retry available
+        "retry_with_guidance",   # repairable via citation/sourcing guidance
+        "retry_auto_wrap",       # repairable via section-header reformatting
+        "escalate_external_judge",  # ambiguous — external second opinion warranted
+    ]
+
+    # Machine-readable reason code for observability and deduplication
+    reason_code: str
+
+    # Human-readable one-line summary (not for routing logic)
+    summary: str
+
+    # Maximum retries allowed for this failure class before escalating to block.
+    # None = no limit / not applicable.
+    max_retries: int | None = None
+
+    # True when this case meets the narrow trigger for external-judge escalation.
+    # The judge is an advisory secondary reviewer — never overrides a deterministic block.
+    escalate_external_judge: bool = False
+
+    # Stable key used to detect repeated failures of the same class so retries
+    # can be bounded. Used by Stop.py retry-count state.
+    # Format: "reason_code:turn_mode" or similar stable tuple.
+    repeat_key: str = ""
+
+    # Issue codes that caused this retry strategy to be selected.
+    # Used for telemetry correlation: (reason_code, triggering_codes) uniquely
+    # identifies what the classifier acted on.
+    triggering_codes: tuple[str, ...] = ()
+
+
+def classify_validator_outcome(
+    verdict: EpistemicVerdict,
+    cfg: EpistemicConfig,
+    *,
+    tool_transcript: str | None = None,
+    is_analytical: bool = False,
+    turn_mode: str | None = None,
+) -> RetryStrategy:
+    """Classify a validator verdict into a structured retry strategy.
+
+    This is the single choke point for all retry / escalation decisions
+    driven by epistemic validator output.  Stop.py and the policy layer
+    both route through here so that retry bounds and escalation predicates
+    are enforced consistently and deterministically.
+
+    Parameters
+    ----------
+    verdict:
+        Output of ``validate()``.
+    cfg:
+        ``EpistemicConfig`` in use for this turn.
+    tool_transcript:
+        Raw tool output from this turn (for local-summary guidance decisions).
+    is_analytical:
+        True when the response is analytical (>3 lines, non-trivial content).
+    turn_mode:
+        Classified turn mode (e.g. "plan", "execution-report").
+
+    Returns
+    -------
+    RetryStrategy
+        ``strategy`` — terminal action to take.
+        ``reason_code`` — stable deduplication key for retry counting.
+        ``max_retries`` — bound on retries (None = not retryable).
+        ``escalate_external_judge`` — True for narrow high-risk ambiguous cases.
+        ``summary`` — human-readable summary for observability.
+    """
+    issue_types = {i.type for i in verdict.issues}
+    issue_codes = {i.code for i in verdict.issues if i.code is not None}
+    has_format = "format" in issue_types
+    has_unsupported_fact = "unsupported_fact" in issue_types
+    effective_mode = cfg.turn_mode or turn_mode or "unknown"
+    repeat_key = f"{effective_mode}"
+
+    # ── Block decisions ────────────────────────────────────────────────────────
+
+    if verdict.decision == "block":
+        # Hard violations: causal, comparative, unsupported_fact, plan_mixed_substance.
+        # These are not retryable — retry will not produce a different result.
+        if "plan_mixed_substance" in issue_codes:
+            return RetryStrategy(
+                strategy="block_no_retry",
+                reason_code="PLAN_MIXED_SUBSTANCE",
+                summary="PLAN mixed-substance — hard block, retry won't change content type",
+                max_retries=0,
+                escalate_external_judge=False,
+                repeat_key=repeat_key,
+                triggering_codes=tuple(issue_codes),
+            )
+        if "causal_violation" in issue_types or "comparative_violation" in issue_types:
+            return RetryStrategy(
+                strategy="block_no_retry",
+                reason_code="CAUSAL_OR_COMPARATIVE_VIOLATION",
+                summary="Causal or comparative violation — hard block",
+                max_retries=0,
+                escalate_external_judge=False,
+                repeat_key=repeat_key,
+                triggering_codes=tuple(i.type for i in verdict.issues if i.type in ("causal_violation", "comparative_violation")),
+            )
+        # Generic block: unsupported fact in non-analytical or non-local-summary context.
+        if has_unsupported_fact:
+            return RetryStrategy(
+                strategy="block_no_retry",
+                reason_code="UNSUPPORTED_FACT_HARD",
+                summary="Unsupported fact — hard block",
+                max_retries=0,
+                escalate_external_judge=False,
+                repeat_key=repeat_key,
+                triggering_codes=tuple(i.type for i in verdict.issues if i.type == "unsupported_fact"),
+            )
+        # Catch-all for other block reasons.
+        return RetryStrategy(
+            strategy="block_no_retry",
+            reason_code="BLOCK_OTHER",
+            summary=f"Block decision ({verdict.decision}) — hard block",
+            max_retries=0,
+            escalate_external_judge=False,
+            repeat_key=repeat_key,
+            triggering_codes=tuple(i.code for i in verdict.issues if i.code is not None),
+        )
+
+    # ── Strict mode: allow is terminal ────────────────────────────────────────
+
+    if cfg.mode == "block":
+        # Strict mode: if we reached here, verdict.decision was not "block"
+        # so the validator passed. Allow.
+        return RetryStrategy(
+            strategy="allow",
+            reason_code="STRICT_MODE_ALLOW",
+            summary="Strict mode — validator passed",
+            max_retries=None,
+            escalate_external_judge=False,
+            repeat_key=repeat_key,
+            triggering_codes=(),
+        )
+
+    # ── Warn mode: classify retry paths ───────────────────────────────────────
+
+    if verdict.decision == "warn" and verdict.issues:
+        # PLAN mixed-substance in warn mode: safety floor fires even in allow mode
+        # (handled upstream in decide_from_issues), but also needs retry bounds here.
+        if "plan_mixed_substance" in issue_codes:
+            return RetryStrategy(
+                strategy="retry_with_guidance",
+                reason_code="PLAN_MIXED_SUBSTANCE_WARN",
+                summary="PLAN mixed-substance — guidance retry, bounded",
+                max_retries=1,
+                escalate_external_judge=False,
+                repeat_key=repeat_key,
+                triggering_codes=tuple(issue_codes),
+            )
+
+        # Local-summary unsupported_fact: highest-value retry — citation is fixable.
+        if (
+            has_unsupported_fact
+            and bool(tool_transcript)
+            and is_analytical
+        ):
+            return RetryStrategy(
+                strategy="retry_with_guidance",
+                reason_code="UNSUPPORTED_FACT_LOCAL_SUMMARY",
+                summary="Unsupported fact with local summary — retry with guidance",
+                max_retries=1,
+                escalate_external_judge=False,
+                repeat_key=repeat_key,
+                triggering_codes=tuple(i.type for i in verdict.issues if i.type == "unsupported_fact"),
+            )
+
+        # Pure format-only on analytical responses: section headers can be added.
+        all_format = all(i.type == "format" for i in verdict.issues)
+        if all_format and is_analytical:
+            return RetryStrategy(
+                strategy="retry_auto_wrap",
+                reason_code="FORMAT_ONLY_ANALYTICAL",
+                summary="Format-only issues on analytical response — auto-wrap retry",
+                max_retries=1,
+                escalate_external_judge=False,
+                repeat_key=repeat_key,
+                triggering_codes=tuple(i.type for i in verdict.issues),
+            )
+
+        # Ambiguous cases: PLAN-adjacent content with mixed signals.
+        # These are narrow high-risk cases where deterministic rules are not
+        # decisive — external judge may clarify.  Never downgrades block to allow.
+        if effective_mode in ("plan", "execution-report"):
+            # Content that hovers near mixed-substance but doesn't fully trigger it.
+            # e.g. analytical language in plan mode that doesn't quite cross the threshold.
+            has_investigation_markers = any(
+                i.code in ("missing_section", "outside_section")
+                for i in verdict.issues
+            )
+            if has_investigation_markers:
+                return RetryStrategy(
+                    strategy="escalate_external_judge",
+                    reason_code="PLAN_MIXED_SECTION_AMBIGUOUS",
+                    summary="Plan/report with ambiguous section markers — external judge",
+                    max_retries=1,
+                    escalate_external_judge=True,
+                    repeat_key=repeat_key,
+                    triggering_codes=tuple(i.code for i in verdict.issues if i.code in ("missing_section", "outside_section")),
+                )
+
+        # Warn-mode unsupported_fact without tool_transcript: log only, no retry.
+        # (With tool_transcript → retry_with_guidance above.)
+        # NOTE: plan-mode with outside_section is handled above and returns early
+        # via escalate_external_judge before reaching this branch.
+        if has_unsupported_fact and not tool_transcript:
+            return RetryStrategy(
+                strategy="log_warn",
+                reason_code="UNSUPPORTED_FACT_NO_TRANSCRIPT",
+                summary="Unsupported fact without tool transcript — log only",
+                max_retries=0,
+                escalate_external_judge=False,
+                repeat_key=repeat_key,
+                triggering_codes=tuple(i.type for i in verdict.issues if i.type == "unsupported_fact"),
+            )
+
+        # Warn-mode causal/comparative: log only (not block_no_retry).
+        # This matches the original apply_epistemic_policy "log_warn" behavior
+        # where causal violations in warn mode are advisory, not blocking.
+        if (
+            ("causal_violation" in issue_types or "comparative_violation" in issue_types)
+            and cfg.mode == "warn"
+        ):
+            return RetryStrategy(
+                strategy="log_warn",
+                reason_code="CAUSAL_OR_COMPARATIVE_WARN",
+                summary="Causal or comparative in warn mode — log only",
+                max_retries=0,
+                escalate_external_judge=False,
+                repeat_key=repeat_key,
+                triggering_codes=tuple(i.type for i in verdict.issues if i.type in ("causal_violation", "comparative_violation")),
+            )
+
+        # Hard blocks: causal/comparative in block mode stay hard blocks.
+        if (
+            ("causal_violation" in issue_types or "comparative_violation" in issue_types)
+            and cfg.mode == "block"
+        ):
+            return RetryStrategy(
+                strategy="block_no_retry",
+                reason_code="CAUSAL_OR_COMPARATIVE_BLOCK",
+                summary="Causal or comparative in block mode — hard block",
+                max_retries=0,
+                escalate_external_judge=False,
+                repeat_key=repeat_key,
+                triggering_codes=tuple(i.type for i in verdict.issues if i.type in ("causal_violation", "comparative_violation")),
+            )
+
+        # Generic warn: log only, no retry.
+        return RetryStrategy(
+            strategy="allow",
+            reason_code="WARN_LOG_ONLY",
+            summary="Warn with no retryable failure class — allow",
+            max_retries=0,
+            escalate_external_judge=False,
+            repeat_key=repeat_key,
+            triggering_codes=tuple(i.code for i in verdict.issues if i.code is not None),
+        )
+
+    # ── Allow: nothing to do ─────────────────────────────────────────────────
+
+    return RetryStrategy(
+        strategy="allow",
+        reason_code="ALLOW",
+        summary="Clean verdict — allow",
+        max_retries=None,
+        escalate_external_judge=False,
+        repeat_key=repeat_key,
+        triggering_codes=(),
+    )
 
 
 def apply_epistemic_policy(
@@ -1483,76 +1906,66 @@ def apply_epistemic_policy(
         ``actions``   — dict of side-effects to perform (keys such as
         ``write_guidance_marker``, ``log_advisory``, ``retry_response``).
     """
-    issue_types = {i.type for i in verdict.issues}
-    has_format = "format" in issue_types
-    has_unsupported_fact = "unsupported_fact" in issue_types
+    strategy = classify_validator_outcome(
+        verdict,
+        cfg,
+        tool_transcript=tool_transcript,
+        is_analytical=is_analytical,
+        turn_mode=turn_mode,
+    )
 
-    # ── Strict mode: block is a real block ─────────────────────────────────
-    if cfg.mode == "block":
-        if verdict.decision == "block":
-            return EpistemicPolicyResult(
-                decision="block",
-                actions={
-                    "write_guidance_marker": (
-                        has_unsupported_fact and bool(tool_transcript)
-                    ),
-                },
-            )
-        # allow/warn both pass in strict mode if not a block decision
-        return EpistemicPolicyResult(decision="allow", actions={})
-
-    # ── Warn mode ───────────────────────────────────────────────────────────
-    if verdict.decision == "warn" and verdict.issues:
-        # Schema-aware routing for plan/execution-report modes:
-        # Don't blindly allow — route based on actual content type.
-        # cfg.turn_mode is now set from Stop.py classification.
-        # - plan mode + investigation-type content → enforce 4-section contract
-        # - plan mode + simple/report content → allow (format repair suppressed)
-        turn_mode = cfg.turn_mode or turn_mode
-        if turn_mode in ("plan", "execution-report"):
-            issue_types = {i.type for i in verdict.issues}
-            # If the response type is "investigation" (per _classify_response_type),
-            # this is mixed-mode (plan marker + analytical content) — don't bypass.
-            # Only suppress pure format-only issues on plan/report content.
-            is_pure_format_only = (
-                len(verdict.issues) == 1 and "format" in issue_types
-            )
-            if is_pure_format_only:
-                # Pure format-only on plan mode: suppress and allow
-                return EpistemicPolicyResult(decision="allow", actions={})
-            # Non-format issues or mixed-mode: fall through to normal warn handling
-
-        # Local-summary unsupported_fact: retry with guidance marker + allow.
-        # This is the "auto-repair" path — write the marker and pass through.
-        if (
-            has_unsupported_fact
-            and tool_transcript
-            and is_analytical
-        ):
-            return EpistemicPolicyResult(
-                decision="retry_with_guidance",
-                actions={
-                    "write_guidance_marker": True,
-                    "advisory_type": "unsupported_fact_retry",
-                },
-            )
-
-        # Pure format-only on analytical responses: optional auto-wrap.
-        all_format = all(i.type == "format" for i in verdict.issues)
-        if all_format and is_analytical:
-            return EpistemicPolicyResult(
-                decision="retry_auto_wrap",
-                actions={"advisory_type": "format_repair"},
-            )
-
-        # All other warns: log-only, no behavior change.
+    # Map RetryStrategy to EpistemicPolicyResult for backward compatibility
+    # with Stop.py, which consumes EpistemicPolicyResult.actions.
+    if strategy.strategy == "block_no_retry":
+        issue_types = {i.type for i in verdict.issues}
+        has_unsupported_fact = "unsupported_fact" in issue_types
+        return EpistemicPolicyResult(
+            decision="block",
+            actions={
+                "write_guidance_marker": (
+                    has_unsupported_fact and bool(tool_transcript)
+                ),
+                "_strategy": strategy,  # available for Stop.py observability
+            },
+        )
+    if strategy.strategy == "retry_with_guidance":
+        return EpistemicPolicyResult(
+            decision="retry_with_guidance",
+            actions={
+                "write_guidance_marker": True,
+                "advisory_type": "unsupported_fact_retry",
+                "_strategy": strategy,
+            },
+        )
+    if strategy.strategy == "retry_auto_wrap":
+        return EpistemicPolicyResult(
+            decision="retry_auto_wrap",
+            actions={
+                "advisory_type": "format_repair",
+                "_strategy": strategy,
+            },
+        )
+    if strategy.strategy == "escalate_external_judge":
         return EpistemicPolicyResult(
             decision="log_warn",
-            actions={"advisory_type": "mixed_advisory"},
+            actions={
+                "advisory_type": "escalate_external_judge",
+                "_strategy": strategy,
+            },
         )
-
-    # verdict == allow (or warn with no issues)
-    return EpistemicPolicyResult(decision="allow", actions={})
+    if strategy.strategy == "log_warn":
+        return EpistemicPolicyResult(
+            decision="log_warn",
+            actions={
+                "advisory_type": "mixed_advisory",
+                "_strategy": strategy,
+            },
+        )
+    # allow
+    return EpistemicPolicyResult(
+        decision="allow",
+        actions={"_strategy": strategy},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1705,31 +2118,23 @@ def validate(raw_response: str, config: Optional[EpistemicConfig] = None) -> Epi
         if cfg.turn_mode in ("analysis", "final-answer"):
             return _validate_investigation_schema(raw_response, cfg)
         if cfg.turn_mode == "execution-report":
-            # execution reports bypass the 4-section contract
-            return EpistemicVerdict(decision="allow", issues=[])
+            return _validate_execution_report_schema(raw_response, cfg)
         if cfg.turn_mode == "meta":
             return _validate_meta_schema(raw_response, cfg)
         # exploration: treat as generic (suppressed by quality gate upstream)
 
-    # ── PLAN MODE prefix bypass (backward-compatible fallback) ───────────────
-    # Only reachable when turn_mode is absent. This is the heuristic fallback
-    # path — explicit metadata routing (above) takes precedence.
-    stripped_prefix = raw_response.lstrip()
-    if stripped_prefix.startswith("PLAN MODE") or stripped_prefix.startswith("[PLAN]"):
-        # Allow plan-only responses (config directives with no analytical content).
-        # Block if response contains mixed-mode content (plan marker + investigation sections).
-        has_fact = "[FACT]" in raw_response or "[FACT]" in stripped_prefix
-        has_inference = "[INFERENCE]" in raw_response
-        has_unknown = "[UNKNOWN]" in raw_response
-        has_recommendation = "[RECOMMENDATION]" in raw_response
-        has_rca_schema = "## Symptom" in raw_response or "## Evidence" in raw_response or "## Root Cause" in raw_response
-        if has_fact or has_inference or has_unknown or has_recommendation or has_rca_schema:
-            # Mixed mode: plan marker coexists with analytical/RCA content
-            # → continue to schema-aware validation instead of bypassing
-            pass
-        else:
-            # Plan-only: config directives without analytical content → allow
-            return EpistemicVerdict(decision="allow", issues=[])
+    # ── PLAN prefix routing ─────────────────────────────────────────────────
+    # Only reachable when turn_mode is absent. Route plan-prefixed content
+    # into _validate_plan_schema() for proper validation — no bypass.
+    # The early PLAN gate no longer short-circuits to allow; all plan-prefixed
+    # content is now validated via schema-aware logic.
+    #
+    # Use _has_plan_scaffold() to handle non-first-line / indented markers
+    # (lstrip()-based startswith only catches the very first line).
+    # Also scan body for ## RATIONALE / ## ANALYSIS which indicate plan-mode
+    # intent even when the "[PLAN]" marker appears mid-document.
+    if _has_plan_scaffold(raw_response):
+        return _validate_plan_schema(raw_response, cfg)
 
     # Resolve response mode: explicit config overrides auto-detection.
     response_mode = cfg.responseMode
@@ -1737,8 +2142,10 @@ def validate(raw_response: str, config: Optional[EpistemicConfig] = None) -> Epi
         response_mode = detect_response_mode(raw_response)
 
     # Report mode does not follow the analytical 4-section contract.
+    # Route through lightweight report schema for minimal validation instead
+    # of unconditional allow — completion claims without evidence are flagged.
     if response_mode == "report":
-        return EpistemicVerdict(decision="allow", issues=[])
+        return _validate_report_schema(raw_response, cfg)
 
     # Mandate 4-section format for final-answer mode when response is substantial.
     # Short final-answers (<=100 words) are direct answers that don't need structure.

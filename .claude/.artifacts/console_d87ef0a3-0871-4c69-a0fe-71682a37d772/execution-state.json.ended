@@ -1,0 +1,23 @@
+{
+  "run_id": "919179eb-92fb-4605-b819-d2061c54a6f7",
+  "skill_name": "chs",
+  "contract_type": "workflow-execution",
+  "phase": "executing",
+  "status": "complete",
+  "terminal_id": "console_d87ef0a3-0871-4c69-a0fe-71682a37d772",
+  "session_id": "55835ba9-8707-472b-8cc7-3a29c40ee3db",
+  "turn_id": null,
+  "created_at": 1779411519.614788,
+  "updated_at": 1779412048.0575645,
+  "required_artifacts": [],
+  "completed_artifacts": [],
+  "missing_requirements": [],
+  "allowed_tools_now": [],
+  "blocked_tools": [],
+  "response_requirements": {
+    "sections": [],
+    "prohibited_claims": [],
+    "must_use_skill": false,
+    "evidence_bound": false
+  }
+}

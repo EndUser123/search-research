@@ -8,6 +8,24 @@ workflow_steps:
   - evaluate
 ---
 
+## PHASE STRUCTURE
+
+```
+PHASE 1: DRAFT (Generation)
+    ↓ STOP: Present draft to user for feedback
+PHASE 2: TEST (Generation + Validation)
+    ↓ STOP: Await user feedback via eval viewer
+PHASE 3: EVALUATE (Validation)
+    ↓ STOP: Iterate or declare complete
+```
+
+**STOP conditions separate each phase:**
+- Between PHASE 1 and PHASE 2: STOP after presenting draft (await user feedback before test runs)
+- Between PHASE 2 and PHASE 3: STOP after test runs complete (await user review of eval viewer)
+- Between PHASE 3 and loop: STOP if user satisfied, otherwise iterate back to PHASE 1
+
+**Key separation**: Generation (drafting, running) is separate from Validation (grading, benchmarking). Never skip the eval viewer step.
+
 # Skill Creator
 
 A skill for creating new skills and iteratively improving them.
@@ -517,3 +535,17 @@ Repeating one more time the core loop here for emphasis:
 Please add steps to your TodoList, if you have such a thing, to make sure you don't forget. If you're in Cowork, please specifically put "Create evals JSON and run `eval-viewer/generate_review.py` so human can review test cases" in your TodoList to make sure it happens.
 
 Good luck!
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious

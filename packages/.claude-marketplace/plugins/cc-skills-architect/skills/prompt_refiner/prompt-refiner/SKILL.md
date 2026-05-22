@@ -46,3 +46,20 @@ Answer three questions to route to appropriate cognitive technique:
 - **Chain-of-Thought** - For trivial reversibility, low dependencies
 - **Tree-of-Thoughts** - For moderate complexity with self-consistency checking
 - **Multi-Agent Debate** - For high complexity and irreversible operations
+
+## PHASE STRUCTURE
+
+```
+PHASE 1: TRIAGE (Generation) — Apply Q1-Q3 decision matrix for method selection
+    ↓ STOP: Present routing decision before applying template
+PHASE 2: APPLY (Generation) — Generate prompt using appropriate cognitive technique template
+    ↓ STOP: Present enhanced prompt before compliance check
+PHASE 3: VALIDATE (Validation) — Ensure constitutional compliance and quality
+```
+
+**STOP conditions:**
+- Between PHASE 1 and PHASE 2: STOP after technique selected (confirm routing)
+- Between PHASE 2 and PHASE 3: STOP after prompt generated (present for review)
+- Between PHASE 3 and end: STOP after compliance verified (user sees result)
+
+**Key separation**: Triage is Generation. Template application is Generation. Compliance validation is Validation.

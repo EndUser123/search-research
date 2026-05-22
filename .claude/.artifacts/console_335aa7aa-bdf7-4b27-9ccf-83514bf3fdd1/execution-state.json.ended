@@ -1,0 +1,23 @@
+{
+  "run_id": "8e9fe529-8a7c-4443-9bab-ce9626d6423c",
+  "skill_name": "cc-skills-sdlc:go-ct",
+  "contract_type": "workflow-execution",
+  "phase": "pending",
+  "status": "complete",
+  "terminal_id": "console_335aa7aa-bdf7-4b27-9ccf-83514bf3fdd1",
+  "session_id": "8535399f-a7a7-49c2-8725-b0f36aa33b61",
+  "turn_id": null,
+  "created_at": 1779411708.9552,
+  "updated_at": 1779411770.723855,
+  "required_artifacts": [],
+  "completed_artifacts": [],
+  "missing_requirements": [],
+  "allowed_tools_now": [],
+  "blocked_tools": [],
+  "response_requirements": {
+    "sections": [],
+    "prohibited_claims": [],
+    "must_use_skill": false,
+    "evidence_bound": false
+  }
+}

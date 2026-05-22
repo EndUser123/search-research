@@ -1,0 +1,23 @@
+{
+  "run_id": "0b2cc2a2-e84e-4ab2-baf9-19db01873fa6",
+  "skill_name": "bf",
+  "contract_type": "workflow-execution",
+  "phase": "pending",
+  "status": "active",
+  "terminal_id": "console_unknown",
+  "session_id": "3e18d969-fa2c-45fe-b4d2-0f8491337aa7",
+  "turn_id": null,
+  "created_at": 1779407294.819085,
+  "updated_at": 1779407294.8191442,
+  "required_artifacts": [],
+  "completed_artifacts": [],
+  "missing_requirements": [],
+  "allowed_tools_now": [],
+  "blocked_tools": [],
+  "response_requirements": {
+    "sections": [],
+    "prohibited_claims": [],
+    "must_use_skill": false,
+    "evidence_bound": false
+  }
+}

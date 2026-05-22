@@ -25,7 +25,6 @@ from core.session_chain import (
     SessionChainEntry,
     SessionChainResult,
     get_all_chain_files,
-    walk_handoff_chain,
     walk_session_chain,
 )
 

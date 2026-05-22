@@ -14,7 +14,17 @@ import json
 from pathlib import Path
 
 from . import parse_agent_result
+from ._quality_gates import apply_quality_gates
 from ..models import AgentResult, EvidenceRef, Finding
+
+
+def _load_handoff_context(handoff_path: Path) -> tuple[list[str], list[str]]:
+    """Load signals_absent and detectors_ran from the handoff file for gate application."""
+    try:
+        data = json.loads(handoff_path.read_text(encoding="utf-8"))
+        return data.get("signals_absent", []), data.get("detectors_ran", [])
+    except (json.JSONDecodeError, OSError):
+        return [], []
 
 
 def write_handoff(
@@ -143,6 +153,11 @@ def read_result(path: Path) -> AgentResult:
                     evidence=evidence,
                 )
             )
+
+        # Apply quality gates before returning findings
+        signals_absent, detectors_ran = _load_handoff_context(path)
+        findings = apply_quality_gates(findings, signals_absent, detectors_ran)
+
         return AgentResult(agent="gap_reviewer", findings=findings, success=True, raw_notes=raw_notes)
 
     return AgentResult(agent="gap_reviewer", findings=[], success=False, raw_notes=raw_notes)

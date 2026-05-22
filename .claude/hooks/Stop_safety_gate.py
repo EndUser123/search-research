@@ -66,6 +66,44 @@ def check_protocol(response: str, data: dict) -> str | None:
             return "Protocol violation: Describing a command instead of executing it."
     return None
 
+
+# Patterns that indicate a bare except or missing import for exception classes
+# Detects: "except UndefinedErrorName:" where the error name looks like a custom
+# exception that hasn't been imported. Does NOT flag standard library exceptions.
+_UNLIKELY_ERROR_NAMES = re.compile(
+    r"except\s+([A-Z][a-zA-Z]+Error)\s*:",
+    re.MULTILINE,
+)
+_STANDARD_LIBRARY_ERRORS = {
+    "Exception", "BaseException", "ValueError", "TypeError", "RuntimeError",
+    "KeyError", "IndexError", "AttributeError", "ImportError", "ModuleNotFoundError",
+    "FileNotFoundError", "PermissionError", "TimeoutError", "OSError", "IOError",
+    "NotImplementedError", "StopIteration", "GeneratorExit", "SystemExit",
+    "KeyboardInterrupt", "SignalException", "Warning",
+    "AssertionError", "SyntaxError", "IndentationError", "TabError",
+    "LookupError", "NameError", "UnboundLocalError",
+    "EnvironmentError", "IOError", "EOFError", "ZeroDivisionError",
+    "OverflowError", "FloatingPointError", "DecimalConversionError",
+    "UnicodeError", "UnicodeDecodeError", "UnicodeEncodeError", "UnicodeTranslateError",
+    "ConnectionError", "BrokenPipeError", "ConnectionAbortedError",
+    "ConnectionRefusedError", "ConnectionResetError", "FileExistsError",
+    "FileNotFoundError", "IsADirectoryError", "NotADirectoryError",
+    "ProcessLookupError", "ChildProcessError", "InvalidStateError",
+}
+
+
+def check_catch_block_hygiene(response: str) -> str | None:
+    """Detect suspicious except blocks that reference undefined or unimported error classes."""
+    for match in _UNLIKELY_ERROR_NAMES.finditer(response):
+        error_name = match.group(1)
+        if error_name not in _STANDARD_LIBRARY_ERRORS:
+            # Flag as suspicious but not blocking — just advisory
+            return (
+                f"suspicious except block: '{error_name}' is not a standard exception. "
+                "Verify it is imported or defined before use."
+            )
+    return None
+
 def main():
     try:
         raw_input = sys.stdin.read().strip()

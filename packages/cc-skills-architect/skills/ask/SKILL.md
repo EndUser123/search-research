@@ -93,6 +93,23 @@ Primary entry point for all CLI operations with intelligent command discovery, r
 - Summarizing this documentation instead of executing
 - Fabricating command capabilities
 
+## PHASE STRUCTURE
+
+```
+PHASE 1: TRIAGE + PARSE + ENHANCE (Generation)
+    ↓ STOP: Ask clarifying question if ambiguous
+PHASE 2: EXPLORE (Generation)
+    ↓ STOP: Confirm context before routing
+PHASE 3: VALIDATE (Validation)
+    ↓ STOP: Block if truth_score < 0.7
+PHASE 4: ROUTE + EXECUTE (Generation)
+```
+
+**STOP conditions separate each phase:**
+- Between PHASE 1 and PHASE 2: STOP if prompt is ambiguous (ask clarifying question)
+- Between PHASE 2 and PHASE 3: STOP if context insufficient (gather more context)
+- Between PHASE 3 and PHASE 4: STOP if claims unverified (block routing)
+
 ## ⚡ EXECUTION DIRECTIVE
 
 When invoked, execute these steps in order. Do not summarize this file.
@@ -294,6 +311,20 @@ _See `references/integration-notes.md` for ambiguous request handling and fallba
 3. **Ask when uncertain** — One clarifying question beats wrong routing
 4. **Preserve context** — Carry forward relevant session state
 
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious
 
 ## ERROR HANDLING
 

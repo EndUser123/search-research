@@ -59,6 +59,25 @@ Unified modernization workflow to transform working code into high-standard syst
 
 ## Your Workflow
 
+**PHASE STRUCTURE:**
+
+```
+PHASE 1: AUDIT (Validation) — Measure debt, establish baseline
+    ↓ STOP: Present findings before STRATEGY
+PHASE 2: STRATEGY (Generation) — Design abstraction, draft ADR
+    ↓ STOP: Require ADR or design doc before EXECUTE
+PHASE 3: EXECUTE (Generation) — Transform code, refactor
+    ↓ STOP: Require /checkpoint before multi-file changes
+PHASE 4: HARDEN (Validation) — Certify excellence, verify
+```
+
+**STOP conditions separate each phase:**
+- Between PHASE 1 and PHASE 2: STOP after AUDIT findings (present baseline before strategy)
+- Between PHASE 2 and PHASE 3: STOP if no ADR/design doc (strategy must be documented)
+- Between PHASE 3 and PHASE 4: STOP before HARDEN if /checkpoint not used for multi-file changes
+
+**Key separation**: AUDIT (Validation) is separate from STRATEGY (Generation). EXECUTE (Generation) is separate from HARDEN (Validation).
+
 1. **READ FLOW** — Load flows/modernize.md for detailed workflow
 2. **AUDIT (Phase 1)** — Measure debt: /complexity, /analyze --focus quality, /profile --baseline
 3. **STRATEGY (Phase 2)** — Design abstraction: /design, /plan, ADR auto-draft
@@ -218,6 +237,20 @@ Highest CC: [value] | Average: [value]
 ✅ Modernization complete. Code is production-grade, future-proof, and debt-free.
 
 ```
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious
 
 ---
 

@@ -1,14 +1,7 @@
 ---
 name: gitingest
-version: "1.0.1"
-status: "stable"
-category: integration
-enforcement: advisory
 description: Ingest GitHub repos into NotebookLM — clone, slice, and upload in one pipeline.
-workflow_steps:
-  - execute_gitingest_workflow
 ---
-
 # gitingest
 
 **Goal:** Ingest GitHub repos into NotebookLM — clone, slice, and upload in one pipeline.

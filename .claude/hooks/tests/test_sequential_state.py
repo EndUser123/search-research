@@ -128,8 +128,8 @@ class TestSequentialState:
         with patch("hooks.__lib.sequential_state.STATE_DIR", tmp_path):
             from hooks.__lib.sequential_state import (
                 create_state,
-                load_state,
                 set_final_answer,
+                should_continue,
             )
 
             session_id = uuid.uuid4()
@@ -138,10 +138,8 @@ class TestSequentialState:
 
             # Set final answer
             set_final_answer(session_id, "Final improved answer", terminal_id)
-            state = load_state(session_id, terminal_id=terminal_id)
-
-            assert state["final_answer"] == "Final improved answer"
-            assert state["active"] is False
+            # State file is deleted after set_final_answer(), so verify via should_continue()
+            assert should_continue(session_id, terminal_id=terminal_id) is False
 
     def test_should_continue_returns_true_for_active_session(self, tmp_path):
         """Test that should_continue returns True for active sessions below max."""

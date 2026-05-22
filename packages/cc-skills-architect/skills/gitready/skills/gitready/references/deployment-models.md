@@ -154,8 +154,8 @@ New-Item -ItemType Junction -Path "$CLAUDE_ROOT/skills\$sanitized" -Target "P:\\
 
 # 2. Create symlinks for hook files (one per file)
 cd P:\\\\\\.claude/hooks
-cmd /c "mklink hook1.py P:\\\\\\packages\my-plugin\core\hooks\hook1.py"
-cmd /c "mklink hook2.py P:\\\\\\packages\my-plugin\core\hooks\hook2.py"
+cmd /c "mklink hook1.py P:\\\\\\packages\my-plugin\scripts\hooks\hook1.py"
+cmd /c "mklink hook2.py P:\\\\\\packages\my-plugin\scripts\hooks\hook2.py"
 ```
 
 **Summary table:**

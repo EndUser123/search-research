@@ -1,0 +1,18 @@
+{
+  "run_id": "b0502c81-adf2-47f4-95a2-1ef4810bc92f",
+  "skill_name": "ut",
+  "contract_type": "workflow-execution",
+  "phase": "pending",
+  "status": "complete",
+  "terminal_id": "console_1f0461ce-9899-40af-ae0f-5c5743436a49",
+  "session_id": "208b73e1-17cf-497f-bc1e-5f2ff22fc888",
+  "turn_id": null,
+  "created_at": 1778625806.590964,
+  "updated_at": 1778625834.631039,
+  "required_artifacts": [],
+  "completed_artifacts": [],
+  "missing_requirements": [],
+  "allowed_tools_now": [],
+  "blocked_tools": [],
+  "response_requirements": {}
+}

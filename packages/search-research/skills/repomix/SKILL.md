@@ -1,18 +1,7 @@
 ---
 name: repomix
-version: "1.0.0"
-status: "stable"
-category: integration
-enforcement: advisory
 description: Pack repository contents into AI-friendly formats (XML, Markdown, JSON, plain text) for LLM context.
-workflow_steps:
-  - pack_repository
-  - configure_output
-  - optional_skill_generation
-triggers:
-  - /repomix
 ---
-
 # repomix
 
 **Goal:** Pack repository contents into a single AI-friendly file for LLM context.

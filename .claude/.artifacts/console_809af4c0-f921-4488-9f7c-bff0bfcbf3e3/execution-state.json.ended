@@ -1,0 +1,18 @@
+{
+  "run_id": "833cfc19-b2eb-4d6e-9b55-84e8cc84c2c5",
+  "skill_name": "cc-skills-sdlc:go-pi",
+  "contract_type": "workflow-execution",
+  "phase": "executing",
+  "status": "complete",
+  "terminal_id": "console_809af4c0-f921-4488-9f7c-bff0bfcbf3e3",
+  "session_id": "7b865264-f818-432a-b672-877e22f15103",
+  "turn_id": null,
+  "created_at": 1778704421.96734,
+  "updated_at": 1778705076.3014402,
+  "required_artifacts": [],
+  "completed_artifacts": [],
+  "missing_requirements": [],
+  "allowed_tools_now": [],
+  "blocked_tools": [],
+  "response_requirements": {}
+}

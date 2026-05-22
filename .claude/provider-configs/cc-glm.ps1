@@ -30,7 +30,7 @@ $env:ZAI_API_KEY = 'your_zai_api_key_here'
 
 # Model selection: GLM-4 or GLM-5 family
 if ($Model -eq '5') {
-    $env:ANTHROPIC_DEFAULT_SONNET_MODEL = 'glm-5.1'
+    $env:ANTHROPIC_DEFAULT_SONNET_MODEL = 'glm-4.7'
     $env:ANTHROPIC_DEFAULT_OPUS_MODEL = 'glm-5.1'
     $env:ANTHROPIC_DEFAULT_HAIKU_MODEL = 'glm-4.5-air'
     $selectedFamily = 'GLM-5.1'

@@ -474,7 +474,16 @@ def discover_evidence(
 
     Returns a dict with keys: mode, paths_scanned, current_transcript,
     handoff_path, registry_entries, degradation_reasons.
+
+    Uses identity.json as the PRIMARY source for current session (authoritative,
+    written fresh at session start, immune to compaction chain rewrites).
+    Falls back to registry/handoff/direct-transcript for historical sessions.
     """
+    from recap.acquire import (
+        _read_identity_json,
+        discover_evidence as acquire_discover_evidence,
+    )
+
     result: dict[str, Any] = {
         "mode": "unknown",
         "paths_scanned": [],
@@ -493,48 +502,51 @@ def discover_evidence(
         from recap import resolve_terminal_key
         terminal_id = resolve_terminal_key(None)
 
-    # Try session_registry first (always-current, written on every PreCompact)
+    # Strategy -1: identity.json (authoritative, written fresh at session start)
+    identity = _read_identity_json()
+    if identity:
+        sid = identity.get("session_id")
+        tp = identity.get("transcript_path")
+        if sid:
+            session_id = sid
+        if tp:
+            result["current_transcript"] = tp
+            result["paths_scanned"].append(tp)
+
+    # Try acquire.py's discovery for registry/handoff/chain fallback
     if terminal_id:
         try:
-            from recap.acquire import _load_sessions_from_registry
-            entries = _load_sessions_from_registry(terminal_id, limit=30)
-            if entries:
+            sources = acquire_discover_evidence(
+                project_root=project_root,
+                terminal_id=terminal_id,
+                session_id=session_id,
+            )
+            if sources.mode == "registry" and sources.registry_entries:
                 result["mode"] = "registry"
-                result["registry_entries"] = entries
+                result["registry_entries"] = sources.registry_entries
                 result["paths_scanned"].append(f"registry://{terminal_id}")
+                return result
+            if sources.mode == "handoff" and sources.handoff_path:
+                result["mode"] = "handoff"
+                result["handoff_path"] = sources.handoff_path
+                result["paths_scanned"].append(sources.handoff_path)
+                return result
+            if sources.mode == "chain" and sources.chain_entries:
+                result["mode"] = "chain"
+                result["chain_entries"] = sources.chain_entries
+                result["paths_scanned"].extend(e.get("transcript_path", "") for e in sources.chain_entries)
+                return result
         except Exception:
             pass
 
-    if not result["mode"]:
-        # Fall back to handoff chain
-        if session_id:
-            try:
-                from recap import _get_fresh_handoff
-                hf = _get_fresh_handoff(session_id, terminal_id)
-                if hf:
-                    result["mode"] = "handoff"
-                    result["handoff_path"] = str(hf)
-                    result["paths_scanned"].append(str(hf))
-            except Exception:
-                pass
-
-    if not result["mode"]:
-        # Final fallback: direct transcript scan
-        try:
-            from recap import find_transcript_file, load_transcript_entries
-            tp = find_transcript_file(terminal_id)
-            if tp:
-                result["mode"] = "direct_transcript"
-                result["current_transcript"] = str(tp)
-                result["paths_scanned"].append(str(tp))
-                result["degradation_reasons"].append(
-                    "No registry or handoff found — using direct transcript only"
-                )
-                result["degraded"] = True
-        except Exception:
-            pass
-
-    if not result["mode"]:
+    # Final fallback: direct transcript
+    if result.get("current_transcript") and Path(result["current_transcript"]).exists():
+        result["mode"] = "direct_transcript"
+        result["degraded"] = True
+        result["degradation_reasons"].append(
+            "No registry or handoff found — using current transcript only"
+        )
+    elif not result["mode"]:
         result["mode"] = "empty"
         result["degraded"] = True
         result["degradation_reasons"].append("No evidence sources available")

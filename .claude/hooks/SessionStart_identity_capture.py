@@ -38,7 +38,7 @@ def _prune_session_registry() -> None:
         tmp = _REGISTRY_PATH.with_suffix(".tmp")
         tmp.write_text("\n".join(kept) + "\n", encoding="utf-8")
         _REGISTRY_PATH.unlink()
-        tmp.rename(_REGISTRY_PATH)
+        tmp.replace(_REGISTRY_PATH)  # replace() atomic on Windows (no FileExistsError)
     except Exception:
         pass  # Non-fatal: prune failure must not block SessionStart
 
@@ -82,7 +82,7 @@ def main() -> int:
     tmp.write_text(json.dumps(identity, indent=2) + "\n", encoding="utf-8")
     if dest.exists():
         dest.unlink()
-    tmp.rename(dest)
+    tmp.replace(dest)  # replace() atomic on Windows (no FileExistsError)
 
     # Prune session registry if it exceeds 10K lines (keep last 5K)
     _prune_session_registry()

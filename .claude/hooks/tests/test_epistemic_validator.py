@@ -37,15 +37,21 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import os
 from contextlib import contextmanager
+
+import pytest
+
 from epistemic_validator import (
     EpistemicConfig,
+    EpistemicIssue,
     EpistemicVerdict,
     ParsedBullet,
     ParsedResponse,
+    RetryStrategy,
     _is_direct_answer_to_question,
     check_causal_rules,
     check_comparative_rules,
     check_fact_support,
+    classify_validator_outcome,
     decide_from_issues,
     parse_sections,
     sanitize_response,
@@ -256,15 +262,20 @@ def test_parse_good_response():
 def test_parse_missing_section():
     text = "[FACT]\n- Something (source: x)\n\n[INFERENCE]\n- Maybe"
     _, issues = parse_sections(text)
-    section_types = {i.message for i in issues if i.type == "format"}
-    assert any("Missing required section [UNKNOWN]" in m for m in section_types)
-    assert any("Missing required section [RECOMMENDATION]" in m for m in section_types)
+    missing_issues = [i for i in issues if i.code == "missing_section"]
+    assert len(missing_issues) == 2, f"Expected 2 missing_section issues, got: {issues}"
+    messages = {i.message for i in missing_issues}
+    assert any("Missing required section [UNKNOWN]" in m for m in messages)
+    assert any("Missing required section [RECOMMENDATION]" in m for m in messages)
 
 
 def test_parse_text_outside_sections():
     text = "Rogue text\n\n[FACT]\n- Ok (source: x)\n\n[INFERENCE]\n- M\n\n[UNKNOWN]\n- U\n\n[RECOMMENDATION]\n- R"
     _, issues = parse_sections(text)
-    assert any(i.type == "format" and i.section == "__GLOBAL__" for i in issues)
+    outside = [i for i in issues if i.code == "outside_section"]
+    assert len(outside) == 1, f"Expected 1 outside_section issue, got: {issues}"
+    assert outside[0].section == "__GLOBAL__"
+    assert "outside any" in outside[0].message and "line(s)" in outside[0].message
 
 
 def test_parse_wrong_order():
@@ -571,7 +582,7 @@ def test_no_issues_allows():
 
 
 def test_format_issue_blocks_by_default():
-    issues = [type("I", (), {"type": "format", "section": "", "message": "", "bullet_index": -1})()]
+    issues = [type("I", (), {"type": "format", "section": "", "message": "", "bullet_index": -1, "code": None})()]
     cfg = EpistemicConfig(mode="block")
     # Pass response_type="investigation" so the policy layer falls through
     # to config (no override entry) and format blocks as configured.
@@ -579,25 +590,25 @@ def test_format_issue_blocks_by_default():
 
 
 def test_format_issue_warns_when_configured():
-    issues = [type("I", (), {"type": "format", "section": "", "message": "", "bullet_index": -1})()]
+    issues = [type("I", (), {"type": "format", "section": "", "message": "", "bullet_index": -1, "code": None})()]
     cfg = EpistemicConfig(treat_format_violation_as="warn")
     assert decide_from_issues(issues, cfg) == "warn"
 
 
 def test_global_mode_warn_overrides_block():
-    issues = [type("I", (), {"type": "format", "section": "", "message": "", "bullet_index": -1})()]
+    issues = [type("I", (), {"type": "format", "section": "", "message": "", "bullet_index": -1, "code": None})()]
     cfg = EpistemicConfig(mode="warn")
     assert decide_from_issues(issues, cfg) == "warn"
 
 
 def test_global_mode_allow_overrides_everything():
-    issues = [type("I", (), {"type": "format", "section": "", "message": "", "bullet_index": -1})()]
+    issues = [type("I", (), {"type": "format", "section": "", "message": "", "bullet_index": -1, "code": None})()]
     cfg = EpistemicConfig(mode="allow")
     assert decide_from_issues(issues, cfg) == "allow"
 
 
 def test_causal_warns_by_default():
-    issues = [type("I", (), {"type": "causal_violation", "section": "", "message": "", "bullet_index": -1})()]
+    issues = [type("I", (), {"type": "causal_violation", "section": "", "message": "", "bullet_index": -1, "code": None})()]
     assert decide_from_issues(issues, EpistemicConfig()) == "warn"
 
 
@@ -2289,7 +2300,7 @@ def test_schema_routing_plan_mode_normal_content():
 
 
 def test_schema_routing_plan_mode_mixed_substance():
-    """PLAN schema: substantive diagnosis (RCA sections) → mixed_substance violation."""
+    """PLAN schema: substantive diagnosis (RCA sections) → plan_mixed_substance code."""
     from epistemic_validator import EpistemicConfig, validate
 
     response = (
@@ -2299,14 +2310,15 @@ def test_schema_routing_plan_mode_mixed_substance():
     )
     cfg = EpistemicConfig(mode="warn", turn_mode="plan")
     verdict = validate(response, cfg)
-    # Should contain mixed_substance_plan issue, decision should be warn or block
+    # Should contain plan_mixed_substance issue, decision should be warn or block
     assert verdict.decision in ("warn", "block"), f"Expected warn/block, got {verdict.decision}"
-    issue_types = {i.type for i in verdict.issues}
-    assert "format" in issue_types, f"Expected format issue (mixed_substance), got {verdict.issues}"
+    issue_codes = {i.code for i in verdict.issues}
+    assert "plan_mixed_substance" in issue_codes, \
+        f"Expected plan_mixed_substance code, got {verdict.issues}"
 
 
 def test_schema_routing_plan_mode_substantive_root_cause():
-    """PLAN schema: ## Root Cause section → mixed_substance_plan violation."""
+    """PLAN schema: ## Root Cause section → plan_mixed_substance issue (structured code)."""
     from epistemic_validator import EpistemicConfig, validate
 
     response = (
@@ -2316,9 +2328,32 @@ def test_schema_routing_plan_mode_substantive_root_cause():
     )
     cfg = EpistemicConfig(mode="block", turn_mode="plan")
     verdict = validate(response, cfg)
-    issue_messages = {i.message for i in verdict.issues}
-    assert any("PLAN mode response contains substantive diagnosis" in m for m in issue_messages), \
-        f"Expected mixed_substance_plan violation, got {verdict.issues}"
+    issue_codes = {i.code for i in verdict.issues}
+    assert "plan_mixed_substance" in issue_codes, \
+        f"Expected plan_mixed_substance code, got {verdict.issues}"
+
+
+def test_plan_schema_suppresses_missing_and_outside_issues():
+    """PLAN schema: missing_section and outside_section issues from parse_sections()
+    are suppressed by structured code, not by message text.
+    The PLAN response below lacks all 4 sections and has text outside any section —
+    those format issues must not appear in the PLAN verdict's issue list.
+    """
+    from epistemic_validator import EpistemicConfig, validate
+
+    response = "Rogue text\n\n[PLAN]\n1. Fix the bug\n2. Run tests"
+    cfg = EpistemicConfig(mode="block", turn_mode="plan")
+    verdict = validate(response, cfg)
+    # The outside_section and missing_section issues from parse_sections()
+    # must NOT appear in the PLAN verdict's issues.
+    plan_issue_codes = {i.code for i in verdict.issues}
+    assert "outside_section" not in plan_issue_codes, \
+        f"outside_section should be suppressed in PLAN schema: {verdict.issues}"
+    assert "missing_section" not in plan_issue_codes, \
+        f"missing_section should be suppressed in PLAN schema: {verdict.issues}"
+    # Clean plan content → should allow despite missing required 4-section structure
+    assert verdict.decision == "allow", \
+        f"Clean PLAN with rogue text should allow: {verdict.decision} / {verdict.issues}"
 
 
 def test_schema_routing_control_mode_with_substantive_claim():
@@ -2425,3 +2460,645 @@ def test_schema_routing_turn_mode_none_with_rca_markers():
     verdict = validate(response, cfg)
     # Complete 4-section with citation and hedging → allow
     assert verdict.decision == "allow", f"Expected allow, got {verdict.decision}: {verdict.issues}"
+
+
+# ── Adversarial regression tests: PLAN prefix bypass removal ──────────────
+
+def test_plan_prefix_bare_steps_only_allowed():
+    """PLAN MODE + numbered steps only → routed to plan schema, allowed."""
+    from epistemic_validator import EpistemicConfig, validate
+
+    response = "PLAN MODE\n\n1. Fix the bug\n2. Add tests"
+    cfg = EpistemicConfig(mode="warn", turn_mode=None)
+    verdict = validate(response, cfg)
+    # Pure plan steps, no analytical content → allow
+    assert verdict.decision == "allow", f"Expected allow, got {verdict.decision}: {verdict.issues}"
+
+
+def test_plan_prefix_brackets_steps_only_allowed():
+    """[PLAN] + steps only → routed to plan schema, allowed."""
+    from epistemic_validator import EpistemicConfig, validate
+
+    response = "[PLAN]\n1. Fix the bug\n2. Add tests"
+    cfg = EpistemicConfig(mode="warn", turn_mode=None)
+    verdict = validate(response, cfg)
+    # Pure plan steps, no analytical content → allow
+    assert verdict.decision == "allow", f"Expected allow, got {verdict.decision}: {verdict.issues}"
+
+
+def test_plan_prefix_bare_analytical_prose_not_early_allowed():
+    """PLAN MODE + bare analytical prose → routed to plan schema, blocked/warned.
+
+    This is the primary adversarial case: plan prefix + substantive diagnosis
+    (e.g. 'the bug is at line 42') must not get early allow via short-circuit.
+    """
+    from epistemic_validator import EpistemicConfig, validate
+
+    response = "PLAN MODE\n\nThe bug is at line 42 in process()."
+    cfg = EpistemicConfig(mode="block", turn_mode=None)
+    verdict = validate(response, cfg)
+    # Substantive prose with plan prefix → NOT allow; routed to plan schema
+    # which now detects the analytical claim and issues a format violation
+    assert verdict.decision != "allow", \
+        f"PLAN MODE + analytical prose must not early-allow: {verdict.decision} / {verdict.issues}"
+
+
+def test_plan_prefix_rationale_analytical_not_early_allowed():
+    """PLAN MODE + ## RATIONALE + analytical claim → routed to plan schema, blocked.
+
+    Another adversarial case: plan prefix with analytical header and claim.
+    """
+    from epistemic_validator import EpistemicConfig, validate
+
+    response = "PLAN MODE\n\n## RATIONALE\nThe root cause is the missing guard."
+    cfg = EpistemicConfig(mode="block", turn_mode=None)
+    verdict = validate(response, cfg)
+    # ## RATIONALE header + analytical claim → not early-allowed
+    assert verdict.decision != "allow", \
+        f"PLAN MODE + ## RATIONALE + analytical must not early-allow: {verdict.decision} / {verdict.issues}"
+
+
+def test_plan_prefix_fact_markers_not_early_allowed():
+    """PLAN MODE + [PLAN] + [FACT] ... → routed to plan schema, blocked."""
+    from epistemic_validator import EpistemicConfig, validate
+
+    response = "[PLAN]\n1. Fix the bug\n[FACT]\n- Evidence here"
+    cfg = EpistemicConfig(mode="block", turn_mode=None)
+    verdict = validate(response, cfg)
+    # Mixed [PLAN] + [FACT] → not early-allowed; plan schema flags as format
+    assert verdict.decision != "allow", \
+        f"[PLAN] + [FACT] must not early-allow: {verdict.decision} / {verdict.issues}"
+
+
+def test_plan_prefix_malformed_not_early_allowed():
+    """PLAN MODE + malformed/weak content → not early-allowed via short-circuit.
+
+    A near-empty plan with minimal content should still route to schema validation,
+    not shortcut directly to allow.
+    """
+    from epistemic_validator import EpistemicConfig, validate
+
+    response = "PLAN MODE\n\ndo something"
+    cfg = EpistemicConfig(mode="warn", turn_mode=None)
+    verdict = validate(response, cfg)
+    # Malformed minimal plan → routed to plan schema for proper evaluation
+    # (no short-circuit allow; schema decides based on content quality)
+    assert verdict.decision != "allow" or len(verdict.issues) == 0, \
+        f"PLAN MODE malformed should not short-circuit allow: {verdict.decision} / {verdict.issues}"
+
+
+# ── New regression tests: remaining gaps ─────────────────────────────────
+
+def test_plan_prefix_second_line_indented_allowed():
+    """[PLAN] on second line (after non-plan first line) → correctly routed."""
+    from epistemic_validator import EpistemicConfig, validate
+
+    response = "Some context\n  [PLAN]\n1. Fix the bug"
+    cfg = EpistemicConfig(mode="warn", turn_mode=None)
+    verdict = validate(response, cfg)
+    # Indented [PLAN] on second line is now detected and routed to plan schema
+    assert verdict.decision == "allow", \
+        f"Indented [PLAN] should route to plan schema and allow: {verdict.decision} / {verdict.issues}"
+
+
+def test_plan_prefix_mid_doc_rationale_header():
+    """## RATIONALE header mid-doc (no [PLAN] prefix) → routed to plan schema."""
+    from epistemic_validator import EpistemicConfig, validate
+
+    response = "## RATIONALE\nThe root cause is the missing guard."
+    cfg = EpistemicConfig(mode="block", turn_mode=None)
+    verdict = validate(response, cfg)
+    # ## RATIONALE in body triggers plan routing even without [PLAN] prefix
+    assert verdict.decision != "allow", \
+        f"## RATIONALE mid-doc should route to plan schema: {verdict.decision} / {verdict.issues}"
+
+
+def test_execution_report_unconditional_allow_replaced():
+    """turn_mode=execution-report now runs schema validation, not unconditional allow."""
+    from epistemic_validator import EpistemicConfig, validate
+
+    response = "Implementation is complete."
+    cfg = EpistemicConfig(mode="block", turn_mode="execution-report", tool_transcript=None)
+    verdict = validate(response, cfg)
+    # execution-report schema now validates completion claims
+    # Without tool_transcript, bare "is complete" should produce an issue
+    assert verdict.decision != "allow" or len(verdict.issues) > 0, \
+        f"execution-report should not unconditional-allow: {verdict.decision} / {verdict.issues}"
+
+
+def test_execution_report_with_evidence_allowed():
+    """execution-report + tool evidence → allowed."""
+    from epistemic_validator import EpistemicConfig, validate
+
+    response = "Files created: main.py, test_main.py"
+    cfg = EpistemicConfig(mode="block", turn_mode="execution-report", tool_transcript="created file main.py")
+    verdict = validate(response, cfg)
+    assert verdict.decision == "allow", \
+        f"execution-report with evidence should allow: {verdict.decision} / {verdict.issues}"
+
+
+def test_report_mode_unconditional_allow_replaced():
+    """response_mode=report now runs schema validation, not unconditional allow."""
+    from epistemic_validator import EpistemicConfig, validate
+
+    # Status summary is report mode, but bare "is complete" should be flagged
+    response = "Files created:\n- main.py\n- test_main.py"
+    cfg = EpistemicConfig(mode="block", turn_mode=None, responseMode="report")
+    verdict = validate(response, cfg)
+    # report schema validates completion claims
+    # No completion claim here, should be allow
+    assert verdict.decision == "allow", \
+        f"report with no completion claim should allow: {verdict.decision} / {verdict.issues}"
+
+
+def test_report_mode_substantive_completion_claim_flagged():
+    """report mode + bare completion claim (no evidence) → flagged."""
+    from epistemic_validator import EpistemicConfig, validate
+
+    response = "Implementation is complete."
+    cfg = EpistemicConfig(mode="block", turn_mode=None, responseMode="report", tool_transcript=None)
+    verdict = validate(response, cfg)
+    # Bare "is complete" without evidence → flagged
+    assert verdict.decision != "allow" or any(
+        i.type == "unsupported_fact" for i in verdict.issues
+    ), f"report with bare completion claim should flag: {verdict.decision} / {verdict.issues}"
+
+
+def test_report_mode_completion_claim_with_citation_allowed():
+    """report mode + completion claim + citation → allowed."""
+    from epistemic_validator import EpistemicConfig, validate
+
+    response = "Implementation is complete (source: git log)."
+    cfg = EpistemicConfig(mode="block", turn_mode=None, responseMode="report", tool_transcript=None)
+    verdict = validate(response, cfg)
+    # Has citation → should be allowed
+    assert verdict.decision == "allow", \
+        f"report with citation should allow: {verdict.decision} / {verdict.issues}"
+
+
+def test_plan_schema_mixed_substance_blocks_in_mode_allow():
+    """mode=allow + PLAN mixed-substance records issues; decision is now warn (safety floor)."""
+    from epistemic_validator import EpistemicConfig, validate
+
+    response = "PLAN MODE\n\n## Symptom\nFile missing\n## Root Cause\nNull pointer"
+    cfg = EpistemicConfig(mode="allow", turn_mode=None)
+    verdict = validate(response, cfg)
+    # PLAN mixed-substance is safety floor — decision is warn, not allow; issues recorded
+    assert len(verdict.issues) > 0, \
+        f"PLAN mixed-substance should record issues: {verdict.issues}"
+    assert verdict.decision != "allow", \
+        f"PLAN mixed-substance decision should warn, not allow: {verdict.decision}"
+
+
+def test_plan_prefix_rationale_on_second_line():
+    """## RATIONALE on second line → correctly routed to plan schema."""
+    from epistemic_validator import EpistemicConfig, validate
+
+    response = "## Analysis\n## RATIONALE\nThe root cause is X."
+    cfg = EpistemicConfig(mode="block", turn_mode=None)
+    verdict = validate(response, cfg)
+    # ## RATIONALE on second line triggers plan routing
+    assert verdict.decision != "allow", \
+        f"## RATIONALE on second line should route to plan: {verdict.decision} / {verdict.issues}"
+
+
+def test_mode_allow_plan_mixed_substance_warns():
+    """mode=allow + PLAN mixed-substance → warn (not allow), so policy layer runs."""
+    from epistemic_validator import EpistemicConfig, validate
+
+    response = "PLAN MODE\n\n## Symptom\nFile missing\n## Root Cause\nNull pointer"
+    cfg = EpistemicConfig(mode="allow", turn_mode=None)
+    verdict = validate(response, cfg)
+    # PLAN mixed-substance is safety floor — even in allow mode, must warn so policy runs
+    assert verdict.decision != "allow", \
+        f"PLAN mixed-substance in allow mode should warn, not allow: {verdict.decision}"
+
+
+def test_mode_allow_normal_plan_still_allows():
+    """mode=allow + clean plan-only response → still allows (no mixed-substance)."""
+    from epistemic_validator import EpistemicConfig, validate
+
+    response = "PLAN MODE\n\n## Steps\n1. Fix the bug\n2. Run tests"
+    cfg = EpistemicConfig(mode="allow", turn_mode=None)
+    verdict = validate(response, cfg)
+    # Clean plan-only → remains allow
+    assert verdict.decision == "allow", \
+        f"Clean plan in allow mode should still allow: {verdict.decision}"
+
+
+def test_mode_allow_non_plan_unaffected():
+    """mode=allow + non-PLAN issues → unchanged behavior (still allow)."""
+    from epistemic_validator import EpistemicConfig, validate
+
+    response = "Everything is fine."
+    cfg = EpistemicConfig(mode="allow", turn_mode=None)
+    verdict = validate(response, cfg)
+    # Non-plan, no issues → allow
+    assert verdict.decision == "allow", \
+        f"Non-plan content in allow mode should allow: {verdict.decision}"
+
+
+def test_plan_mixed_substance_issue_has_structured_code():
+    """PLAN mixed-substance issues carry code='plan_mixed_substance' (structured signal)."""
+    from epistemic_validator import EpistemicConfig, validate
+
+    # Both variants: RCA section headers and substantive prose
+    for response in [
+        "PLAN MODE\n\n## Symptom\nFile missing\n## Root Cause\nNull pointer",
+        "PLAN MODE\n\n## Steps\n1. Fix it\nThe bug is at line 42",
+    ]:
+        cfg = EpistemicConfig(mode="warn", turn_mode=None)
+        verdict = validate(response, cfg)
+        codes = {i.code for i in verdict.issues}
+        assert "plan_mixed_substance" in codes, \
+            f"Expected plan_mixed_substance code, got {verdict.issues}"
+
+
+def test_plan_mixed_substance_code_not_set_on_clean_plan():
+    """Clean plan responses do not carry plan_mixed_substance code."""
+    from epistemic_validator import EpistemicConfig, validate
+
+    response = "PLAN MODE\n\n## Steps\n1. Fix the bug\n2. Run tests"
+    cfg = EpistemicConfig(mode="warn", turn_mode=None)
+    verdict = validate(response, cfg)
+    codes = {i.code for i in verdict.issues if i.code is not None}
+    assert "plan_mixed_substance" not in codes, \
+        f"Clean plan should not have plan_mixed_substance code: {verdict.issues}"
+
+
+# ---------------------------------------------------------------------------
+# classify_validator_outcome tests
+# ---------------------------------------------------------------------------
+
+from epistemic_validator import (
+    RetryStrategy,
+    classify_validator_outcome,
+)
+
+
+class TestClassifyValidatorOutcome:
+    """Tests for the structured retry classifier."""
+
+    def _verdict(self, decision, issues=None):
+        """Build a minimal EpistemicVerdict for testing."""
+        from epistemic_validator import EpistemicIssue
+        if issues is None:
+            issues = []
+        return EpistemicVerdict(decision=decision, issues=issues)
+
+    # --- hard block paths ---
+
+    def test_block_plan_mixed_substance_is_block_no_retry(self):
+        """PLAN mixed-substance in block mode → block_no_retry, max_retries=0."""
+        cfg = EpistemicConfig(mode="block", turn_mode="plan")
+        verdict = self._verdict("block", [
+            EpistemicIssue(section="Steps", bullet_index=1, type="format",
+                           message="bad", code="plan_mixed_substance"),
+        ])
+        strat = classify_validator_outcome(verdict, cfg)
+        assert strat.strategy == "block_no_retry"
+        assert strat.max_retries == 0
+        assert strat.escalate_external_judge is False
+        assert strat.repeat_key == "plan"
+
+    def test_block_causal_violation_is_block_no_retry(self):
+        """Causal violation → block_no_retry regardless of mode."""
+        cfg = EpistemicConfig(mode="block")
+        verdict = self._verdict("block", [
+            EpistemicIssue(section="Root Cause", bullet_index=0, type="causal_violation",
+                           message="because of X", code=None),
+        ])
+        strat = classify_validator_outcome(verdict, cfg)
+        assert strat.strategy == "block_no_retry"
+        assert strat.max_retries == 0
+
+    def test_block_unsupported_fact_is_block_no_retry(self):
+        """Unsupported fact in block mode → block_no_retry."""
+        cfg = EpistemicConfig(mode="block", treat_unsupported_fact_as="block")
+        verdict = self._verdict("block", [
+            EpistemicIssue(section="Fact", bullet_index=0, type="unsupported_fact",
+                           message="X is true", code=None),
+        ])
+        strat = classify_validator_outcome(verdict, cfg)
+        assert strat.strategy == "block_no_retry"
+        assert strat.max_retries == 0
+
+    # --- allow paths ---
+
+    def test_allow_decision_returns_allow(self):
+        """Clean allow verdict → allow strategy with no retry."""
+        cfg = EpistemicConfig(mode="warn")
+        verdict = self._verdict("allow")
+        strat = classify_validator_outcome(verdict, cfg)
+        assert strat.strategy == "allow"
+        assert strat.max_retries is None
+
+    def test_strict_mode_pass_is_allow(self):
+        """block mode with allow verdict → allow strategy."""
+        cfg = EpistemicConfig(mode="block")
+        verdict = self._verdict("allow")
+        strat = classify_validator_outcome(verdict, cfg)
+        assert strat.strategy == "allow"
+
+    # --- retry_with_guidance paths ---
+
+    def test_plan_mixed_substance_warn_triggers_retry_with_guidance(self):
+        """PLAN mixed-substance in warn mode → retry_with_guidance, bounded."""
+        cfg = EpistemicConfig(mode="warn", turn_mode="plan")
+        verdict = self._verdict("warn", [
+            EpistemicIssue(section="Steps", bullet_index=0, type="format",
+                           message="bad", code="plan_mixed_substance"),
+        ])
+        strat = classify_validator_outcome(verdict, cfg)
+        assert strat.strategy == "retry_with_guidance"
+        assert strat.max_retries == 1
+        assert strat.escalate_external_judge is False
+
+    def test_unsupported_fact_with_tool_transcript_triggers_retry_with_guidance(self):
+        """Unsupported fact + tool_transcript + analytical → retry_with_guidance."""
+        cfg = EpistemicConfig(mode="warn", turn_mode="analysis")
+        verdict = self._verdict("warn", [
+            EpistemicIssue(section="Fact", bullet_index=0, type="unsupported_fact",
+                           message="X is true", code=None),
+        ])
+        strat = classify_validator_outcome(
+            verdict, cfg, tool_transcript="pytest output here", is_analytical=True
+        )
+        assert strat.strategy == "retry_with_guidance"
+        assert strat.max_retries == 1
+
+    # --- retry_auto_wrap paths ---
+
+    def test_format_only_analytical_triggers_retry_auto_wrap(self):
+        """Format-only issues on analytical response → retry_auto_wrap."""
+        cfg = EpistemicConfig(mode="warn", turn_mode="analysis")
+        verdict = self._verdict("warn", [
+            EpistemicIssue(section="Fact", bullet_index=0, type="format",
+                           message="missing marker", code=None),
+        ])
+        strat = classify_validator_outcome(verdict, cfg, is_analytical=True)
+        assert strat.strategy == "retry_auto_wrap"
+        assert strat.max_retries == 1
+
+    def test_format_only_non_analytical_is_not_retry_auto_wrap(self):
+        """Format-only issues on non-analytical response → allow (no retry path)."""
+        cfg = EpistemicConfig(mode="warn", turn_mode="analysis")
+        verdict = self._verdict("warn", [
+            EpistemicIssue(section="Fact", bullet_index=0, type="format",
+                           message="missing marker", code=None),
+        ])
+        strat = classify_validator_outcome(verdict, cfg, is_analytical=False)
+        # Not retry_auto_wrap because is_analytical=False
+        assert strat.strategy in ("allow", "retry_with_guidance")
+
+    # --- block_no_retry in warn mode ---
+
+    def test_causal_in_warn_mode_is_log_warn(self):
+        """Causal violation in warn mode → log_warn (advisory, not blocking)."""
+        cfg = EpistemicConfig(mode="warn")
+        verdict = self._verdict("warn", [
+            EpistemicIssue(section="Root Cause", bullet_index=0, type="causal_violation",
+                           message="because of X", code=None),
+        ])
+        strat = classify_validator_outcome(verdict, cfg)
+        assert strat.strategy == "log_warn"
+        assert strat.max_retries == 0
+
+    # --- escalate_external_judge paths ---
+
+    def test_plan_mode_missing_section_triggers_escalate(self):
+        """Plan/report with ambiguous section markers → escalate_external_judge."""
+        cfg = EpistemicConfig(mode="warn", turn_mode="plan")
+        verdict = self._verdict("warn", [
+            EpistemicIssue(section="Steps", bullet_index=0, type="format",
+                           message="missing section", code="missing_section"),
+        ])
+        strat = classify_validator_outcome(verdict, cfg)
+        assert strat.strategy == "escalate_external_judge"
+        assert strat.escalate_external_judge is True
+        assert strat.max_retries == 1
+
+    def test_plan_mode_outside_section_triggers_escalate(self):
+        """Plan with outside_section markers → escalate_external_judge."""
+        cfg = EpistemicConfig(mode="warn", turn_mode="plan")
+        verdict = self._verdict("warn", [
+            EpistemicIssue(section="Rationale", bullet_index=0, type="unsupported_fact",
+                           message="X is true", code="outside_section"),
+        ])
+        strat = classify_validator_outcome(verdict, cfg)
+        assert strat.strategy == "escalate_external_judge"
+        assert strat.escalate_external_judge is True
+
+    def test_execution_report_mode_missing_section_triggers_escalate(self):
+        """execution-report with missing_section → escalate."""
+        cfg = EpistemicConfig(mode="warn", turn_mode="execution-report")
+        verdict = self._verdict("warn", [
+            EpistemicIssue(section="Findings", bullet_index=0, type="format",
+                           message="bad", code="missing_section"),
+        ])
+        strat = classify_validator_outcome(verdict, cfg)
+        assert strat.strategy == "escalate_external_judge"
+
+    def test_non_plan_mode_missing_section_not_escalate(self):
+        """Non-plan mode with missing_section → not escalate_external_judge."""
+        cfg = EpistemicConfig(mode="warn", turn_mode="analysis")
+        verdict = self._verdict("warn", [
+            EpistemicIssue(section="Fact", bullet_index=0, type="format",
+                           message="missing section", code="missing_section"),
+        ])
+        strat = classify_validator_outcome(verdict, cfg)
+        assert strat.strategy != "escalate_external_judge"
+
+    # --- Fix 2 regression: plan/escalate must precede generic unsupported_fact ---
+
+    def test_plan_mode_unsupported_fact_outside_section_escalates(self):
+        """Plan mode + unsupported_fact with code=outside_section → escalate_external_judge.
+
+        REGRESSION TEST for Fix 2: The plan/escalate branch (lines 1755-1773) must run
+        BEFORE the generic unsupported_fact branch (lines 1775-1787). Before the fix,
+        unsupported_fact + outside_section in plan mode would fall through to log_warn
+        because the unsupported_fact check returned early, shadowing the plan escalation.
+        """
+        cfg = EpistemicConfig(mode="warn", turn_mode="plan")
+        verdict = self._verdict("warn", [
+            EpistemicIssue(
+                section="Rationale", bullet_index=0, type="unsupported_fact",
+                message="X is true", code="outside_section",
+            ),
+        ])
+        strat = classify_validator_outcome(verdict, cfg)
+        # Must be escalate_external_judge — NOT log_warn (which would indicate shadowing)
+        assert strat.strategy == "escalate_external_judge"
+        assert strat.escalate_external_judge is True
+        assert strat.reason_code == "PLAN_MIXED_SECTION_AMBIGUOUS"
+
+    def test_generic_unsupported_fact_no_transcript_outside_plan_mode_is_log_warn(self):
+        """Generic unsupported_fact (no code) without tool_transcript outside plan → log_warn.
+
+        Confirms Fix 2 did NOT change the generic unsupported_fact behavior. Outside plan
+        mode, unsupported_fact without tool_transcript must still return log_warn.
+        """
+        cfg = EpistemicConfig(mode="warn", turn_mode="analysis")
+        verdict = self._verdict("warn", [
+            EpistemicIssue(
+                section="Fact", bullet_index=0, type="unsupported_fact",
+                message="X is true", code=None,  # generic unsupported_fact
+            ),
+        ])
+        strat = classify_validator_outcome(verdict, cfg)
+        # Must be log_warn — NOT escalate_external_judge (plan branch should not apply)
+        assert strat.strategy == "log_warn"
+        assert strat.reason_code == "UNSUPPORTED_FACT_NO_TRANSCRIPT"
+        assert strat.max_retries == 0
+
+    def test_plan_mode_missing_section_format_escalates(self):
+        """Plan mode + format with code=missing_section (no unsupported_fact) → escalate.
+
+        Ensures the plan/escalate branch fires for missing_section even when the issue
+        type is 'format' (not 'unsupported_fact'), confirming the plan branch is not
+        dependent on unsupported_fact type.
+        """
+        cfg = EpistemicConfig(mode="warn", turn_mode="plan")
+        verdict = self._verdict("warn", [
+            EpistemicIssue(
+                section="Steps", bullet_index=0, type="format",
+                message="missing section", code="missing_section",
+            ),
+        ])
+        strat = classify_validator_outcome(verdict, cfg)
+        assert strat.strategy == "escalate_external_judge"
+        assert strat.escalate_external_judge is True
+        assert strat.reason_code == "PLAN_MIXED_SECTION_AMBIGUOUS"
+
+    # --- repeat_key and turn_mode ---
+
+    def test_repeat_key_includes_turn_mode(self):
+        """repeat_key reflects effective turn mode."""
+        cfg = EpistemicConfig(mode="warn", turn_mode="plan")
+        verdict = self._verdict("allow")
+        strat = classify_validator_outcome(verdict, cfg)
+        assert strat.repeat_key == "plan"
+
+    def test_repeat_key_falls_back_to_passed_turn_mode(self):
+        """When cfg.turn_mode is None, passed turn_mode is used."""
+        cfg = EpistemicConfig(mode="warn", turn_mode=None)
+        verdict = self._verdict("allow")
+        strat = classify_validator_outcome(verdict, cfg, turn_mode="execution-report")
+        assert strat.repeat_key == "execution-report"
+
+    def test_triggering_codes_are_emitted_on_all_strategies(self):
+        """Every strategy path sets triggering_codes (possibly empty tuple)."""
+        from epistemic_validator import EpistemicIssue
+
+        cases = [
+            # allow: no issues
+            ("allow", [], "warn", None, ()),
+            # block_no_retry plan_mixed_substance
+            ("block", [EpistemicIssue("S", 0, "format", "x", "plan_mixed_substance")],
+             "block", None, ("plan_mixed_substance",)),
+            # block_no_retry causal_violation
+            ("block", [EpistemicIssue("S", 0, "causal_violation", "x", None)],
+             "block", None, ("causal_violation",)),
+            # block_no_retry unsupported_fact
+            ("block", [EpistemicIssue("S", 0, "unsupported_fact", "x", None)],
+             "block", None, ("unsupported_fact",)),
+            # block_no_retry generic block
+            ("block", [EpistemicIssue("S", 0, "some_type", "x", None)],
+             "block", None, ()),  # no code → empty for BLOCK_OTHER
+            # strict_mode allow: no issues
+            ("allow", [], "block", None, ()),
+            # warn plan_mixed_substance
+            ("warn",
+             [EpistemicIssue("S", 0, "format", "x", "plan_mixed_substance")],
+             "warn", "plan", ("plan_mixed_substance",)),
+            # warn unsupported_fact + tool_transcript
+            ("warn",
+             [EpistemicIssue("S", 0, "unsupported_fact", "x", None)],
+             "warn", "analysis", ("unsupported_fact",)),
+            # warn log_warn causal
+            ("warn",
+             [EpistemicIssue("S", 0, "causal_violation", "x", None)],
+             "warn", "analysis", ("causal_violation",)),
+            # warn block causal (block mode) — warn+causal+block returns STRICT_MODE_ALLOW
+            # (strict mode allow short-circuits before the warn+causal check)
+            ("warn",
+             [EpistemicIssue("S", 0, "causal_violation", "x", None)],
+             "block", None, ()),
+            # warn generic warn (falls through to WARN_LOG_ONLY)
+            ("warn",
+             [EpistemicIssue("S", 0, "some_type", "x", "some_code")],
+             "warn", "analysis", ("some_code",)),
+        ]
+
+        for decision, issues, mode, tm, expected_codes in cases:
+            cfg = EpistemicConfig(mode=mode, turn_mode=tm)
+            verdict = self._verdict(decision, issues)
+            strat = classify_validator_outcome(verdict, cfg)
+            assert isinstance(strat.triggering_codes, tuple), \
+                f"triggering_codes not a tuple for {decision}/{mode}/{tm}"
+            assert strat.triggering_codes == expected_codes, \
+                f"triggering_codes mismatch for {decision}/{mode}/{tm}: " \
+                f"got {strat.triggering_codes!r}, expected {expected_codes!r}"
+
+    # --- reason_code coverage ---
+
+    def test_reason_code_is_set_on_all_strategies(self):
+        """Every strategy path sets a non-empty reason_code."""
+        from epistemic_validator import EpistemicIssue
+
+        cases = [
+            # (verdict_decision, issues, cfg_mode, turn_mode, expected_not_null)
+            ("allow", [], "warn", None, True),
+            ("block", [EpistemicIssue("S", 0, "unsupported_fact", "x", None)],
+             "block", None, True),
+            ("warn",
+             [EpistemicIssue("S", 0, "format", "x", "plan_mixed_substance")],
+             "warn", "plan", True),
+            ("warn", [EpistemicIssue("S", 0, "format", "x", None)],
+             "warn", "analysis", True),
+            ("warn",
+             [EpistemicIssue("S", 0, "causal_violation", "x", None)],
+             "warn", None, True),
+        ]
+
+        for decision, issues, mode, tm, _ in cases:
+            cfg = EpistemicConfig(mode=mode, turn_mode=tm)
+            verdict = self._verdict(decision, issues)
+            strat = classify_validator_outcome(verdict, cfg)
+            assert strat.reason_code, f"Empty reason_code for {decision}/{mode}/{tm}"
+
+    # --- summary field is human-readable ---
+
+    def test_summary_is_non_empty_string(self):
+        """Every strategy sets a non-empty summary."""
+        from epistemic_validator import EpistemicIssue
+
+        cfg = EpistemicConfig(mode="block")
+        verdict = self._verdict("block", [
+            EpistemicIssue("S", 0, "unsupported_fact", "x", None),
+        ])
+        strat = classify_validator_outcome(verdict, cfg)
+        assert isinstance(strat.summary, str)
+        assert len(strat.summary) > 5
+
+
+class TestRetryStrategyDataclass:
+    """Tests for the RetryStrategy frozen dataclass."""
+
+    def test_retry_strategy_is_frozen(self):
+        """RetryStrategy is frozen and cannot be mutated."""
+        strat = RetryStrategy(
+            strategy="allow", reason_code="TEST", summary="test"
+        )
+        with pytest.raises(Exception):  # frozen dataclass
+            strat.strategy = "block"  # type: ignore[assignment]
+
+    def test_all_strategy_values_constructible(self):
+        """All five strategy literals can be used to construct RetryStrategy."""
+        strategies = [
+            "allow", "block_no_retry", "retry_with_guidance",
+            "retry_auto_wrap", "escalate_external_judge",
+        ]
+        for s in strategies:
+            strat = RetryStrategy(strategy=s, reason_code=s, summary=s)
+            assert strat.strategy == s

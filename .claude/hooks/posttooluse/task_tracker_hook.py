@@ -59,16 +59,36 @@ _DELEGATION_STATE_DIR: Path | None = None
 
 
 def _get_delegation_state_dir() -> Path:
-    """Get delegation state directory (terminal-scoped)."""
+    """Get delegation state directory (terminal-scoped).
+
+    Uses WT_SESSION env var (set in Windows Terminal), falls back to
+    CLAUDE_TERMINAL_ID, then to hash(PID+cwd) for process isolation.
+    Matches the terminal ID detection in PreToolUse_delegation_gate.py.
+    """
     global _DELEGATION_STATE_DIR
     if _DELEGATION_STATE_DIR is None:
         import os as _os
+        import hashlib as _hashlib
+
         claude_root = Path(__file__).resolve().parent.parent.parent
-        terminal_id = _os.environ.get("WT_SESSION", "")
-        if terminal_id:
-            terminal_id = f"console_{terminal_id}"
+
+        # Primary: WT_SESSION
+        raw = _os.environ.get("WT_SESSION", "")
+        if raw:
+            terminal_id = f"console_{raw}"
         else:
-            terminal_id = "unknown"
+            # Fallback: CLAUDE_TERMINAL_ID
+            fallback = _os.environ.get("CLAUDE_TERMINAL_ID", "")
+            if fallback:
+                terminal_id = f"console_{fallback}"
+            else:
+                # Fallback: hash of PID + cwd for process isolation
+                pid = _os.getpid()
+                cwd = _os.getcwd()
+                hash_input = f"{pid}:{cwd}"
+                terminal_hash = _hashlib.md5(hash_input.encode()).hexdigest()[:12]
+                terminal_id = f"unknown_{terminal_hash}"
+
         _DELEGATION_STATE_DIR = claude_root / ".artifacts" / terminal_id / "hook_state"
     return _DELEGATION_STATE_DIR
 

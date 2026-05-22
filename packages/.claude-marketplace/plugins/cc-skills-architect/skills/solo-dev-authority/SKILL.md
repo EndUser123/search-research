@@ -246,6 +246,22 @@ Before generating any system, schema, or significant code:
 
 **If any check fails:** STOP → Explain the constitutional violation → Propose alternative
 
+## PHASE STRUCTURE
+
+```
+PHASE 1: CHECK (Validation) — Check for prohibited patterns
+    ↓ STOP: If violation found, STOP and explain before proposing alternative
+PHASE 2: ALTERNATIVE (Generation) — Propose constitutional alternative
+    ↓ STOP: Ask user confirmation before proceeding with alternative
+PHASE 3: VERIFY (Validation) — Confirm user decision
+```
+
+**STOP conditions:**
+- Between PHASE 1 and PHASE 2: STOP if constitutional violation detected (explain before proposing)
+- Between PHASE 2 and PHASE 3: STOP after proposing alternative (await user confirmation)
+
+**Key separation**: Pattern checking is Validation. Alternative proposal is Generation. Confirmation is Validation.
+
 ## Constitutional Violation Response Template
 
 When detecting a potential violation in user request:
@@ -260,3 +276,17 @@ Your request includes [PATTERN], which violates Article C.1 [SPECIFIC PROHIBITIO
 [Pattern that the singular developer can implement directly without requiring others' consent]
 
 Should I proceed with the recommended alternative?
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious

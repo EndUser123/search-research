@@ -58,6 +58,34 @@ Display active project constraints extracted from CLAUDE.md constitution, provid
 - Do NOT summarize constraints - show actual content
 - Do NOT guess constraint values
 
+## PHASE STRUCTURE
+
+```
+PHASE 1: LOAD + PARSE (Generation)
+    ↓ STOP: Verify CLAUDE.md was actually read
+PHASE 2: DISPLAY (Validation — user review)
+```
+
+**STOP conditions:**
+- Before PHASE 2: Verify actual CLAUDE.md content was loaded (not memory or assumption)
+- Never skip to display without reading the file first
+
+**Key separation**: Loading/parsing is Generation. Display verification is Validation (did we get it right?).
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious
+
 ## Quick Start
 
 ```python

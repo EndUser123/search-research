@@ -57,6 +57,22 @@ Use when:
 
 ## Core Workflow
 
+**PHASE STRUCTURE:**
+
+```
+PHASE 1: PLAN ANALYSIS (Generation) — Read plan, verify prerequisites, identify task types
+    ↓ STOP: Present task decomposition before dispatch
+PHASE 2: TASK EXECUTION LOOP (Generation + Validation) — Dispatch subagent, Review 1 (Spec), Review 2 (Quality)
+    ↓ STOP: Present verification result before next task
+PHASE 3: COMPLETION + SYNTHESIS (Validation) — Verify integration, run tests, summary
+```
+
+**STOP conditions separate each phase:**
+- Between PHASE 1 and PHASE 2: STOP after task decomposition (present plan before dispatch)
+- Between PHASE 2 and PHASE 3: STOP after all tasks complete (present completion before synthesis)
+
+**Key separation**: Plan analysis is Generation. Task execution mixes Generation and Validation. Completion is Validation.
+
 ### Phase 1: Plan Analysis
 1. **Read the plan** - Identify all tasks, dependencies, and acceptance criteria
 2. **Verify prerequisites** - Ensure all context is available
@@ -225,3 +241,17 @@ If any criteria fail, revise the plan before execution.
 | `references/tdd-task-decomposition.md` | TDD size heuristics, decomposition signals, TDD hook alignment |
 | `references/taskmaster-integration.md` | TaskMaster workflow, complexity thresholds, pre-dispatch flow |
 | `references/workflow-examples.md` | Full workflow walkthrough, plan generation example, integration patterns |
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious

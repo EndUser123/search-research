@@ -135,17 +135,20 @@ plugin-name/
 │       └── utils.py
 ```
 
-**Option 3: Hooks with embedded scripts**
+**Option 3: Shared scripts/ directory for all Python code**
 ```
 plugin-name/
 ├── .claude-plugin/
 │   └── plugin.json
+├── scripts/
+│   ├── __init__.py
+│   ├── hook_a.py
+│   └── hook_b.py
 ├── hooks/
-│   ├── hooks.json
-│   └── scripts/
-│       ├── validator.py
-│       └── processor.py
+│   └── hooks.json
 ```
+
+> All hook `.py` files live in `scripts/hooks/` — the `scripts/` directory is the single location for Python code. The `hooks/` directory contains only `hooks.json` (hook registration), not Python code.
 
 ## Required Files (Root)
 

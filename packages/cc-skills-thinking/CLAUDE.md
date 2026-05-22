@@ -16,7 +16,15 @@ The primary routers for complex analysis and brainstorming.
 | /genius | Super-Genius thought partner: challenges premises | `genius/` |
 | /s | Strategy engine: multi-persona brainstorming | `s/` |
 
-### 2. Cognitive Reflexes (Active Trials)
+### 3. Content Processing
+High-speed triage and extraction for technical content (videos, articles, transcripts).
+
+| Skill | Purpose | Home |
+|-------|---------|------|
+| /ut | Universal Triage: fast architectural gatekeeper for content assessment | `ut/` |
+| /ux | Universal Spec Extractor: reverse-engineer videos/transcripts into Zero-Gap skill.md | `ux/` |
+
+### 4. Cognitive Reflexes (Active Trials)
 Specialized loops that refine logic and maintain mental model hygiene.
 
 | Skill | Purpose | Home |

@@ -147,6 +147,43 @@ FRICTION: [top 3 friction points]
   3. [description] — [category]
 ```
 
+## Phase Gates
+
+**GATE 1 (STOP after Phase 1: Gather Evidence)**: Before moving to Phase 2 (Detect Patterns), verify:
+- Evidence source identified (chat history, session context, or embedded from /retro)
+- Analysis window defined
+- No duplicate re-gathering if embedded in /retro
+
+If gate fails: gather evidence before proceeding.
+
+**GATE 2 (STOP after Phase 2: Detect Patterns)**: Before moving to Phase 3 (Categorize and Score), verify:
+- Interaction friction patterns detected (at least one category identified)
+- OR workflow friction patterns detected (at least one automation candidate identified)
+- Pattern citations from evidence present
+
+If gate fails: continue detecting patterns until at least one finding is ready for scoring.
+
+**STOP between phases**:
+- Phase 1 (Gather) → Phase 2 (Detect): Must collect evidence before pattern detection
+- Phase 2 (Detect) → Phase 3 (Categorize): Must detect patterns before categorizing and scoring
+- Phase 3 (Categorize) → Phase 4 (Output): Must score before outputting findings
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious
+
+---
+
 ## Tips
 
 1. Count occurrences — frequency determines priority

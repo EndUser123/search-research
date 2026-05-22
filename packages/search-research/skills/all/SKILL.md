@@ -1,26 +1,7 @@
 ---
-name: explore
+name: all
 description: "ALWAYS use this skill for explore queries - unified search across your local data (chat history, knowledge base, code, docs) AND the web with intelligent source selection."
-version: "1.0.0"
-status: stable
-enforcement: advisory
-category: unified
-triggers:
-  - /explore
-  - 'search for'
-  - 'what do we know about'
-  - 'find information'
-  - 'look for information'
-aliases:
-  - /explore
-  - /explore
-  - /universal
-  - /search-all
-
-do_not:
-  - fabricate web search results without calling web APIs
 ---
-
 # Explore (`/explore`)
 
 ## Purpose

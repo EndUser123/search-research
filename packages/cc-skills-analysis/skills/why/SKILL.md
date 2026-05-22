@@ -222,6 +222,36 @@ If multiple valid causes exist at any decision point:
 {What you'd expect to find but didn't}
 ```
 
+## Phase Gates
+
+**GATE 1 (STOP after Step 2: Gather Evidence)**: Before moving to Step 3 (Extract Causal Markers), verify:
+- At least Tier 1 sources attempted (session history, CKS, memory, or CLAUDE.md/ADRs)
+- Git evidence gathered only for corroboration, not primary attribution
+- No claim made without evidence behind it
+
+If gate fails: re-gather evidence before proceeding.
+
+**GATE 2 (STOP after Step 3: Extract Causal Markers)**: Before moving to Step 4 (Reconstruct Causal Chain), verify:
+- At least decisions and triggers identified
+- Assumptions documented
+- Corrections noted where reasoning changed
+
+If gate fails: extract more causal markers before reconstructing chain.
+
+**GATE 3 (STOP after Step 5: Surprise Check)**: Before moving to Step 6 (Absent Evidence Check), verify:
+- Each link in chain has been challenged
+- Any surprises identified and targeted searches done
+- No link is unexplained or obvious without verification
+
+If gate fails: run surprise check before absent evidence check.
+
+**STOP between generation (Steps 1-4) and validation (Steps 5-7)**:
+- Steps 1-4: Parse, gather evidence, extract markers, reconstruct chain (generation)
+- Steps 5-7: Surprise check, absent evidence, present narrative (validation)
+- Do NOT proceed to Step 5 until causal chain is reconstructed in Step 4
+
+---
+
 ## Data Sources
 
 ### Tier 1 — Primary (terminal-attributed, authoritative)
@@ -247,6 +277,20 @@ If multiple valid causes exist at any decision point:
 ## Fallback Strategy
 
 If no evidence found for the topic:
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious
 1. Broaden the search — try related terms, abbreviations, parent concepts
 2. Check git blame on relevant files — `git log --follow -p -- {file}`
 3. Check CLAUDE.md for constraints that would explain it

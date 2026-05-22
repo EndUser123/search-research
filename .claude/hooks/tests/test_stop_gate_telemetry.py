@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -53,10 +54,13 @@ class TestStopGateTelemetry:
 import sys
 sys.path.insert(0, {HOOKS_DIR})
 import os
+from pathlib import Path
+import __lib.stop_gate_telemetry as tel
+tel._STATE_DIR = Path("{TMP_DIR}")
+tel._LOG_FILE = Path("{TMP_DIR}") / "gate_telemetry.jsonl"
 os.environ.pop("STOP_TELEMETRY", None)
-from __lib.stop_gate_telemetry import log_gate_event, _LOG_FILE
-log_gate_event(gate_name="test_gate", classification="quality", profile=None, decision="allow")
-print("file_exists:" + str(_LOG_FILE.exists()).lower())
+tel.log_gate_event(gate_name="test_gate", classification="quality", profile=None, decision="allow")
+print("file_exists:" + str(tel._LOG_FILE.exists()).lower())
 """.replace("{HOOKS_DIR}", repr(str(HOOKS_DIR)))
 
         result = subprocess.run(
@@ -228,3 +232,170 @@ print("cleared:" + str(lf.exists()).lower())
         assert result.returncode == 0, f"stderr: {result.stderr}"
         assert "exists:true" in result.stdout
         assert "cleared:false" in result.stdout
+
+    def test_telemetry_visible_field_populated(self, tmp_path):
+        """visible field is written for all gate outcomes (block/warn/allow)."""
+        script = """
+import sys
+sys.path.insert(0, {HOOKS_DIR})
+import json
+from pathlib import Path
+import __lib.stop_gate_telemetry as tel
+tel._STATE_DIR = Path("{TMP_DIR}")
+tel._LOG_FILE = Path("{TMP_DIR}") / "gate_telemetry.jsonl"
+tel._TELEMETRY_ENABLED = True
+
+# Block → visible=True
+tel.log_gate_event(gate_name="gate_block", classification="quality", profile=None,
+    decision="block", visible=True)
+# Warn → visible=True (has systemMessage)
+tel.log_gate_event(gate_name="gate_warn", classification="quality", profile=None,
+    decision="warn", visible=True)
+# Skip/suppressed → visible=False
+tel.log_gate_event(gate_name="gate_skip", classification="quality", profile=None,
+    decision="allow", visible=False, skip_reason="not_applicable")
+
+lf = tel._LOG_FILE
+records = []
+if lf.exists():
+    with open(lf) as fh:
+        for line in fh:
+            if line.strip():
+                records.append(json.loads(line))
+
+print("count:" + str(len(records)))
+for r in records:
+    print("gate:" + r.get("gate") + "|visible:" + str(r.get("visible")))
+""".replace("{HOOKS_DIR}", repr(str(HOOKS_DIR)))
+
+        result = _run_script(script, tmp_path, extra_env={"STOP_TELEMETRY": "1"})
+        assert result.returncode == 0, f"stderr: {result.stderr}"
+        assert "count:3" in result.stdout
+        assert "gate:gate_block|visible:True" in result.stdout
+        assert "gate:gate_warn|visible:True" in result.stdout
+        assert "gate:gate_skip|visible:False" in result.stdout
+
+
+class TestLogNonCriticalAdvisoryStrategyFields:
+    """Verify _log_non_critical_advisory emits retry-causality fields when strategy is passed."""
+
+    def test_strategy_fields_emitted_when_strategy_provided(self, tmp_path, monkeypatch):
+        """When strategy object is passed, entry includes strategy/reason_code/triggering_codes/repeat_key."""
+        import Stop
+
+        # _log_non_critical_advisory writes to HOOKS_DIR / "logs" / "diagnostics" / "epistemic_advisories.jsonl"
+        # so the actual log file is nested one level deeper than tmp_path itself
+        monkeypatch.setattr(Stop, "HOOKS_DIR", tmp_path)
+
+        from epistemic_validator import EpistemicIssue, RetryStrategy
+
+        issues = [
+            EpistemicIssue(section="[FACT]", bullet_index=0, type="unsupported_fact", message="no citation"),
+            EpistemicIssue(section="__GLOBAL__", bullet_index=-1, type="format", message="missing section"),
+        ]
+
+        strategy = RetryStrategy(
+            strategy="retry_with_guidance",
+            reason_code="UNSUPPORTED_FACT_LOCAL_SUMMARY",
+            summary="summary",
+            max_retries=3,
+            escalate_external_judge=False,
+            repeat_key="analytical:mode1",
+            triggering_codes=("unsupported_fact",),
+        )
+
+        data = {
+            "session_id": "sess-abc",
+            "terminal_id": "term-xyz",
+            "response": "x" * 200,
+        }
+
+        Stop._log_non_critical_advisory(
+            data, "unsupported_fact_retry", issues,
+            strategy=strategy, retry_count=2,
+        )
+
+        # Correct path: HOOKS_DIR / "logs" / "diagnostics" / "epistemic_advisories.jsonl"
+        log_file = tmp_path / "logs" / "diagnostics" / "epistemic_advisories.jsonl"
+        assert log_file.exists(), "log file was not written"
+        records = []
+        with open(log_file) as fh:
+            for line in fh:
+                if line.strip():
+                    records.append(json.loads(line))
+
+        assert len(records) == 1
+        r = records[0]
+        assert r["advisory_type"] == "unsupported_fact_retry"
+        assert r["strategy"] == "retry_with_guidance"
+        assert r["reason_code"] == "UNSUPPORTED_FACT_LOCAL_SUMMARY"
+        assert r["triggering_codes"] in (("unsupported_fact",), ["unsupported_fact"])
+        assert r["repeat_key"] == "analytical:mode1"
+        assert r["retry_count"] == 2
+
+    def test_no_strategy_fields_when_strategy_not_provided(self, tmp_path, monkeypatch):
+        """When strategy is None, no strategy-related fields are written."""
+        import Stop
+        # Correct path: HOOKS_DIR / "logs" / "diagnostics" / "epistemic_advisories.jsonl"
+        monkeypatch.setattr(Stop, "HOOKS_DIR", tmp_path)
+
+        from epistemic_validator import EpistemicIssue
+
+        issues = [
+            EpistemicIssue(section="[FACT]", bullet_index=0, type="unsupported_fact", message="no citation"),
+        ]
+
+        data = {
+            "session_id": "sess-abc",
+            "terminal_id": "term-xyz",
+            "response": "x" * 200,
+        }
+
+        Stop._log_non_critical_advisory(data, "unsupported_fact_retry", issues)
+
+        log_file = tmp_path / "logs" / "diagnostics" / "epistemic_advisories.jsonl"
+        assert log_file.exists()
+        records = []
+        with open(log_file) as fh:
+            for line in fh:
+                if line.strip():
+                    records.append(json.loads(line))
+
+        assert len(records) == 1
+        r = records[0]
+        assert "strategy" not in r
+        assert "reason_code" not in r
+        assert "triggering_codes" not in r
+        assert "retry_count" not in r
+
+    def test_retry_count_emitted_without_strategy(self, tmp_path, monkeypatch):
+        """retry_count is written even when strategy is None (passed separately)."""
+        import Stop
+        # Correct path: HOOKS_DIR / "logs" / "diagnostics" / "epistemic_advisories.jsonl"
+        monkeypatch.setattr(Stop, "HOOKS_DIR", tmp_path)
+
+        from epistemic_validator import EpistemicIssue
+
+        issues = [
+            EpistemicIssue(section="[FACT]", bullet_index=0, type="unsupported_fact", message="no citation"),
+        ]
+
+        data = {
+            "session_id": "sess-abc",
+            "terminal_id": "term-xyz",
+            "response": "x" * 200,
+        }
+
+        Stop._log_non_critical_advisory(data, "unsupported_fact_retry", issues, retry_count=1)
+
+        log_file = tmp_path / "logs" / "diagnostics" / "epistemic_advisories.jsonl"
+        assert log_file.exists()
+        records = []
+        with open(log_file) as fh:
+            for line in fh:
+                if line.strip():
+                    records.append(json.loads(line))
+
+        assert len(records) == 1
+        r = records[0]
+        assert r["retry_count"] == 1

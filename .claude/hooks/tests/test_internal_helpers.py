@@ -6,6 +6,7 @@ import importlib
 import inspect
 import json
 import os
+import tempfile
 import time
 from pathlib import Path
 from unittest import mock
@@ -121,10 +122,11 @@ def test_rolling_1h_filter_excludes_old_events():
             encoding="utf-8",
         )
 
-        errors, real_fails, expected = Stop._classify_error_events(fake_log)
+        errors, real_fails, expected, known_fixed = Stop._classify_error_events(fake_log)
         assert errors == 1, "only recent event should count"
         assert real_fails == 1, "load is a real failure"
         assert expected == 0
+        assert known_fixed == 0
     finally:
         fake_log.unlink(missing_ok=True)
 
@@ -147,10 +149,11 @@ def test_timeout_events_classified_separately():
             encoding="utf-8",
         )
 
-        errors, real_fails, expected = Stop._classify_error_events(fake_log)
+        errors, real_fails, expected, known_fixed = Stop._classify_error_events(fake_log)
         assert errors == 5, "all events counted"
         assert real_fails == 1, "only 'load' is a real failure"
         assert expected == 4, "4 timeout patterns are expected, not failures"
+        assert known_fixed == 0
     finally:
         fake_log.unlink(missing_ok=True)
 
@@ -163,7 +166,9 @@ def test_benign_not_task_start_volume_health_under_new_model(tmp_path):
     A window of 100 benign skips should produce a healthy summary.
     """
     import json
+    import sys
     from datetime import datetime, timezone
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "__lib"))
     from contract_health import get_health_summary
 
     diag = tmp_path / "logs" / "diagnostics"
@@ -199,7 +204,9 @@ def test_real_suspicious_skip_problem_uses_tuned_wording(tmp_path):
     'HIGH skip rate' wording must NOT appear.
     """
     import json
+    import sys
     from datetime import datetime, timezone
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "__lib"))
     from contract_health import get_health_summary
 
     diag = tmp_path / "logs" / "diagnostics"
@@ -266,15 +273,299 @@ def test_real_failures_still_alert():
         ]
         fake_log.write_text("".join(lines), encoding="utf-8")
 
-        errors, real_fails, expected = Stop._classify_error_events(fake_log)
+        errors, real_fails, expected, known_fixed = Stop._classify_error_events(fake_log)
         assert errors == 6
         assert real_fails == 6, "load/execute/runtime/stderr all count as real failures"
         assert expected == 0
+        assert known_fixed == 0
 
         # Threshold is 5, 6 failures > 5 → should alert
         error_threshold = int(os.environ.get("CC_ERRORS_THRESHOLD", "5"))
         should_alert = real_fails > error_threshold
         assert should_alert, "6 real failures should alert with threshold 5"
+    finally:
+        fake_log.unlink(missing_ok=True)
+
+
+def test_known_fixed_errors_do_not_count_as_real_failures():
+    """syntax_error and known-bug error messages do not count as real failures."""
+    import sys
+    import importlib
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    import Stop
+    importlib.reload(Stop)
+
+    now = time.time()
+    recent = (now - 300) * 1000
+
+    fake_log = Path("P:/fake_known_fixed.jsonl")
+    try:
+        fake_log.write_text(
+            json.dumps({
+                "timestamp": _fmt_ts(recent),
+                "error_type": "PostToolUse_syntax_error",
+                "error_message": "Syntax error in PostToolUse: expected 'except' (task_tracker_hook.py)"
+            }) + "\n"
+            + json.dumps({
+                "timestamp": _fmt_ts(recent),
+                "error_type": "Stop_runtime_error",
+                "error_message": "Runtime error in Stop: AttributeError: UNKNOWN"
+            }) + "\n"
+            + json.dumps({
+                "timestamp": _fmt_ts(recent),
+                "error_type": "Stop_runtime_error",
+                "error_message": "Runtime error in Stop: NameError: name 'anomalies' is not defined"
+            }) + "\n"
+            + json.dumps({
+                "timestamp": _fmt_ts(recent),
+                "error_type": "Stop_runtime_error",
+                "error_message": "Runtime error in Stop: NameError: name 'user_prompt' is not defined"
+            }) + "\n"
+            + json.dumps({
+                "timestamp": _fmt_ts(recent),
+                "error_type": "load",
+                "error_message": "Failed to load hook"
+            }) + "\n",  # genuine real failure
+            encoding="utf-8",
+        )
+
+        errors, real_fails, expected, known_fixed = Stop._classify_error_events(fake_log)
+        assert errors == 5, "all events counted"
+        assert real_fails == 1, "only the load error is a real failure"
+        assert expected == 0
+        assert known_fixed == 4, "4 known/fixed patterns are excluded from real failures"
+
+        # With only 1 real failure and threshold=5, should NOT alert
+        error_threshold = int(os.environ.get("CC_ERRORS_THRESHOLD", "5"))
+        should_alert = real_fails > error_threshold
+        assert not should_alert, "1 real failure with threshold 5 should NOT alert"
+    finally:
+        fake_log.unlink(missing_ok=True)
+
+
+def test_expected_timeouts_do_not_trigger_startup_alert():
+    """timeout patterns do not count as real failures."""
+    import Stop
+
+    now = time.time()
+    recent = (now - 300) * 1000
+
+    fake_log = Path("P:/fake_timeouts_only.jsonl")
+    try:
+        fake_log.write_text(
+            json.dumps({"timestamp": _fmt_ts(recent), "error_type": "timeout_imminent"}) + "\n"
+            + json.dumps({"timestamp": _fmt_ts(recent), "error_type": "timeout_terminated"}) + "\n"
+            + json.dumps({"timestamp": _fmt_ts(recent), "error_type": "timeout_killed"}) + "\n"
+            + json.dumps({"timestamp": _fmt_ts(recent), "error_type": "timeout_exceeded"}) + "\n",
+            encoding="utf-8",
+        )
+
+        errors, real_fails, expected, known_fixed = Stop._classify_error_events(fake_log)
+        assert errors == 4
+        assert real_fails == 0, "timeout patterns are not real failures"
+        assert expected == 4
+        assert known_fixed == 0
+    finally:
+        fake_log.unlink(missing_ok=True)
+
+
+def test_expected_ops_and_known_fixed_do_not_trigger_startup_alert():
+    """Startup surfacing is silent when real_failures=0, even with expected/known events.
+
+    Verifies the full surfacing predicate in get_hook_health_summary():
+      alert iff (failing_hooks > 0) or (real_failures > threshold)
+    NOT triggered by expected_ops > 0 or known_fixed > 0 alone.
+    """
+    import tempfile
+    import Stop
+
+    # Build a minimal health file with status=ok (no failing hooks)
+    health_content = json.dumps({"status": "ok", "failures": []})
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".json", delete=False
+    ) as hf:
+        hf.write(health_content)
+        health_path = hf.name
+
+    fake_log = Path("P:/fake_noise_only.jsonl")
+    try:
+        # Write a log with both timeout (expected) and known_fixed entries
+        now = time.time()
+        recent = (now - 300) * 1000
+        fake_log.write_text(
+            json.dumps({
+                "timestamp": _fmt_ts(recent),
+                "error_class": "timeout",
+                "is_startup_actionable": False,
+            }) + "\n"
+            + json.dumps({
+                "timestamp": _fmt_ts(recent),
+                "error_class": "timeout",
+                "is_startup_actionable": False,
+            }) + "\n"
+            + json.dumps({
+                "timestamp": _fmt_ts(recent),
+                "error_class": "known_fixed",
+                "is_startup_actionable": False,
+            }) + "\n",
+            encoding="utf-8",
+        )
+
+        # Verify classifier sees no real failures
+        errors, real_fails, expected, known_fixed = Stop._classify_error_events(fake_log)
+        assert errors == 3
+        assert real_fails == 0, "structured timeout/known_fixed entries are not real failures"
+        assert expected == 2, "2 timeout entries → expected_ops"
+        assert known_fixed == 1, "1 known_fixed entry"
+
+        # Threshold = 5; 0 > 5 is False; failing_hooks = 0 → predicate is False → silent
+        error_threshold = int(os.environ.get("CC_ERRORS_THRESHOLD", "5"))
+        should_alert = 0 > error_threshold
+        assert not should_alert, "predicate should be False with 0 real failures"
+
+        # Patch health file path so the function reads our controlled file
+        with mock.patch.object(Stop, "HOOKS_DIR", Path(tempfile.gettempdir())):
+            with mock.patch(
+                "Stop._classify_error_events",
+                return_value=(3, 0, 2, 1),
+            ):
+                result = Stop.get_hook_health_summary(session_id=None)
+                assert result is None, (
+                    "get_hook_health_summary must return None when "
+                    "failing_hooks=0 and real_failures=0, even if "
+                    "expected_ops>0 or known_fixed>0"
+                )
+    finally:
+        fake_log.unlink(missing_ok=True)
+        Path(health_path).unlink(missing_ok=True)
+
+
+def test_startup_alert_does_not_fire_at_threshold():
+    """Option A semantics: alert fires only when real_failures > threshold.
+
+    With default threshold=5, 5 real failures is the ceiling — no alert.
+    6 real failures triggers the alert.
+    """
+    import Stop
+
+    # healthy health file (no failing hooks)
+    health_content = json.dumps({"status": "ok", "failures": []})
+
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".json", delete=False
+    ) as hf:
+        hf.write(health_content)
+        health_path = hf.name
+
+    try:
+        with mock.patch.object(Stop, "HOOKS_DIR", Path(tempfile.gettempdir())):
+            # 5 real failures == threshold → should NOT alert (strict >)
+            with mock.patch(
+                "Stop._classify_error_events",
+                return_value=(5, 5, 0, 0),
+            ):
+                result = Stop.get_hook_health_summary(session_id=None)
+                assert result is None, (
+                    "5 real failures with threshold=5: alert must NOT fire "
+                    "(alert fires at real_failures > threshold, not >=)"
+                )
+    finally:
+        Path(health_path).unlink(missing_ok=True)
+
+
+def test_startup_alert_fires_when_above_threshold():
+    """Option A semantics: alert fires when real_failures > threshold.
+
+    With default threshold=5, 6 real failures exceeds the ceiling → alert.
+    """
+    import Stop
+
+    health_content = json.dumps({"status": "fail", "failures": ["HookA"]})
+
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".json", delete=False
+    ) as hf:
+        hf.write(health_content)
+        health_path = hf.name
+
+    try:
+        with mock.patch.object(Stop, "HOOKS_DIR", Path(tempfile.gettempdir())):
+            # 6 real failures > threshold=5 → MUST alert
+            with mock.patch(
+                "Stop._classify_error_events",
+                return_value=(6, 6, 0, 0),
+            ):
+                result = Stop.get_hook_health_summary(session_id=None)
+                assert result is not None, (
+                    "6 real failures with threshold=5: alert MUST fire "
+                    "(real_failures > threshold)"
+                )
+                assert result["alert"] is True
+                assert result["real_failures_last_hour"] == 6
+    finally:
+        Path(health_path).unlink(missing_ok=True)
+
+
+def test_structured_and_legacy_entries_classified_consistently():
+    """Layer 1 structured and Layer 2 legacy entries produce the same counts.
+
+    Verifies that the two-layer classifier is transparent: mixing structured
+    and legacy records yields the same real_failures/expected_ops/known_fixed
+    counts as an equivalent all-structured or all-legacy set.
+    """
+    import Stop
+
+    now = time.time()
+    recent = (now - 300) * 1000
+
+    fake_log = Path("P:/fake_mixed_layers.jsonl")
+    try:
+        # Layer 1 — structured entries
+        lines = [
+            json.dumps({
+                "timestamp": _fmt_ts(recent),
+                "error_class": "timeout",
+                "is_startup_actionable": False,
+                "failure_code": "HookA_timeout_imminent",
+            }) + "\n",
+            json.dumps({
+                "timestamp": _fmt_ts(recent),
+                "error_class": "known_fixed",
+                "is_startup_actionable": False,
+                "failure_code": "HookB_syntax_error",
+            }) + "\n",
+            json.dumps({
+                "timestamp": _fmt_ts(recent),
+                "is_startup_actionable": True,
+                "failure_code": "HookC_runtime_error",
+            }) + "\n",
+            # Layer 2 — legacy entries (no structured fields)
+            json.dumps({
+                "timestamp": _fmt_ts(recent),
+                "error_type": "HookD_timeout_terminated",
+                "error_message": "Hook timed out",
+            }) + "\n",
+            json.dumps({
+                "timestamp": _fmt_ts(recent),
+                "error_type": "HookE_runtime_error",
+                "error_message": "NameError: name 'anomalies' is not defined",
+            }) + "\n",
+            json.dumps({
+                "timestamp": _fmt_ts(recent),
+                "error_type": "HookF_runtime_error",
+                "error_message": "KeyError: missing key",
+            }) + "\n",
+        ]
+        fake_log.write_text("".join(lines), encoding="utf-8")
+
+        errors, real_fails, expected, known_fixed = Stop._classify_error_events(fake_log)
+        assert errors == 6, "all 6 events counted"
+
+        # Layer 1 structured: timeout=1, known_fixed=1, actionable=1
+        # Layer 2 legacy: timeout_terminated=1 (expected), name 'anomalies'=1 (known_fixed), generic=1 (real)
+        assert expected == 2, "2 timeout entries (1 structured + 1 legacy)"
+        assert known_fixed == 2, "2 known_fixed entries (1 structured + 1 legacy nameerror)"
+        assert real_fails == 2, "2 actionable entries (1 structured + 1 generic legacy)"
     finally:
         fake_log.unlink(missing_ok=True)
 

@@ -690,12 +690,23 @@ def log_error(
         user_prompt: The user prompt that triggered the error (for traceability)
         claude_session_id: Claude Code's session_id from hook input (different from our file-based session_id)
     """
+    # Derive structured classification fields from error_type + context
+    hook_name = (context or {}).get("hook", "")
+    error_class, failure_code, is_startup_actionable, root_cause_key = (
+        _error_class_and_code(hook_name, error_type, error_message, stack_trace or "")
+    )
+
     log_entry(
         "errors",
         {
             "event": "error",
             "error_type": error_type,
             "error_message": error_message,
+            # Structured classification (A3)
+            "error_class": error_class,
+            "failure_code": failure_code,
+            "is_startup_actionable": is_startup_actionable,
+            "root_cause_key": root_cause_key,
             "context": context,
             "stack_trace": stack_trace,
             "user_prompt_preview": _truncate(user_prompt, 200) if user_prompt else None,
@@ -707,6 +718,54 @@ def log_error(
             "claude_session_id": claude_session_id,  # Claude Code's actual session ID from hook input
         },
     )
+
+
+def _error_class_and_code(
+    hook_name: str, error_type: str, error_message: str, tb: str,
+) -> tuple[str, str, bool, str]:
+    """Derive structured classification fields from error type + context.
+
+    Maps error_type -> (error_class, failure_code, is_startup_actionable, root_cause_key).
+
+    Mapping rules (A3):
+      timeout_imminent/killed/terminated/exceeded -> ("timeout", code, False, key)
+        Rationale: operational noise; timeout means hook ran but took too long — not a bug.
+      syntax_error/parse_error -> ("load_failure", code, False, key)
+        Rationale: known fixed; syntax errors from previous edits are not current failures.
+      import_error/module_not_found -> ("load_failure", code, True, key)
+        Rationale: actionable; missing dependencies are real problems requiring user action.
+      runtime_error with known traceback patterns (name 'anomalies', name 'user_prompt',
+        AttributeError.*unknown, AttributeError.*audit_report) -> ("known_fixed", code, False, key)
+        Rationale: known fixed; these are refactoring artifacts already addressed.
+      runtime_error generic -> ("runtime_error", code, True, key)
+        Rationale: actionable; genuine unexpected errors need investigation.
+      unknown error_type -> ("runtime_error", code, True, key)
+        Rationale: fail-open; unclassified errors default to actionable to avoid silencing real bugs.
+
+    The four output fields feed the startup health classifier (A4):
+      error_class: coarse bucket for routing in Layer 1 of _classify_error_events.
+      failure_code: stable identifier; used as root_cause_key for telemetry grouping.
+      is_startup_actionable: True = real failure to count; False = suppress from alert.
+      root_cause_key: stable key for grouping; mirrors failure_code.
+    """
+    failure_code = f"{hook_name}_{error_type}"
+    root_cause_key = failure_code
+
+    if error_type in ("timeout_imminent", "timeout_killed", "timeout_terminated", "timeout_exceeded"):
+        return "timeout", failure_code, False, root_cause_key
+    if error_type in ("syntax_error", "parse_error"):
+        return "load_failure", failure_code, False, root_cause_key
+    if error_type in ("import_error", "module_not_found"):
+        return "load_failure", failure_code, True, root_cause_key
+    if error_type == "runtime_error":
+        msg_lower = error_message.lower()
+        tb_lower = (tb or "").lower()
+        combined = f"{msg_lower}|{tb_lower}"
+        if any(k in combined for k in ("name 'anomalies'", "name 'user_prompt'",
+                                        "attributeerror.*unknown", "attributeerror.*audit_report")):
+            return "known_fixed", failure_code, False, root_cause_key
+        return "runtime_error", failure_code, True, root_cause_key
+    return "runtime_error", failure_code, True, root_cause_key
 
 
 def log_importer_anomaly(

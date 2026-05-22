@@ -169,6 +169,22 @@ When comparing options, score each on these axes before recommending one.
 - If the change affects architecture boundaries, require an explicit invariant check.
 - If the decision is ambiguous, surface the uncertainty instead of pretending it is resolved.
 
+## PHASE STRUCTURE
+
+```
+PHASE 1: BRANCH SELECTION (Generation)
+    ↓ STOP: Confirm branch before scoring
+PHASE 2: SCORING + ANALYSIS (Validation)
+    ↓ STOP: Require rollback story if state/lifecycle affected
+PHASE 3: RECOMMENDATION (Generation)
+```
+
+**STOP conditions separate each phase:**
+- Between PHASE 1 and PHASE 2: STOP after branch selection (confirm branch is correct before scoring)
+- Between PHASE 2 and PHASE 3: STOP if rollback story missing (state/lifecycle changes require rollback)
+
+**Key separation**: Branch selection is Generation. Scoring is Validation. Recommendation is Generation.
+
 ## Branch Templates
 
 Use the template that matches the branch you selected. Keep the answer short, but do not skip the branch-specific checks.
@@ -258,6 +274,20 @@ When using this framework, return:
 - Refactor: callers -> compatibility -> migration -> rollback
 - Architecture: invariants -> boundaries -> lifecycles -> phases -> purpose
 - Ops: blast radius -> validation -> monitoring -> rollback
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious
 
 ## References
 

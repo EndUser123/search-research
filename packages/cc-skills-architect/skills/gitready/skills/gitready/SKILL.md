@@ -7,18 +7,22 @@ category: scaffolding
 enforcement: strict
 triggers:
   - /gitready
+  - --convert-hooks
+  - --check-packaging
 aliases:
   - /gitready
 workflow_steps:
   - detect_package_type
   - analyze_existing_structure
   - select_package_template
+  - hook_system_detection
   - validate_plugin_standards
   - scaffold_project_structure
   - configure_ci_cd
   - generate_badges
   - create_documentation
   - validate_package
+  - packaging_readiness
   - publish_to_github
   - finalize_repository
   - cleanup_obsolete_files
@@ -240,6 +244,24 @@ Creates directory structure based on detected package type. Claude skills get `s
 
 ---
 
+## PHASE 2.5: Hook-System-to-Plugin Conversion (2min)
+
+> See `references/hook-system-conversion.md` for full workflow.
+
+**Trigger**: `--convert-hooks` flag OR when local hook system is detected in `P:\\\\\\.claude/hooks/` or `settings.json`.
+
+Detects local hook files and settings-based hook registration, defines canonical plugin-native migration target (`.claude-plugin/plugin.json`, `hooks/hooks.json`, `scripts/`), and preserves behavior during migration.
+
+**Detection targets**:
+- Local `.claude/hooks/` Python files (not in any plugin)
+- `settings.json` hook entries with local paths
+- Stale `core/` directories (non-standard, should be `scripts/`)
+- Hardcoded paths (`P:\\\\`, `/Users/`, `C:/`, `~`)
+
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 2.5`
+
+---
+
 ## PHASE 3: Generate Templates
 
 > READ: `resources/phases/PHASE-3-templates.md`
@@ -388,6 +410,26 @@ Initialize git repo (if not already): `git init`, add all files, initial commit,
 
 ---
 
+## PHASE 11: Packaging Readiness (Auto-invoked)
+
+> See `resources/phases/PHASE-11-packaging-readiness.md` for full implementation.
+
+**Trigger**: `--check-packaging` flag OR when packaging validation is requested.
+
+**Four-step validation**:
+1. **Manifest completeness** — `plugin.json` has `name`, version, description, author
+2. **Path portability** — No hardcoded paths (`P:\\\\`, `C:/`, `/Users/`, `~`) in Python files; use `${CLAUDE_PLUGIN_ROOT}`
+3. **Bundle contents** — `pyproject.toml` excluded (plugins use `.claude-plugin/`), `__pycache__` excluded, `.git/` excluded
+4. **Smoke test** — `python scripts/validate_plugin_bundle.py --smoke-test {{TARGET_DIR}}`
+
+**CI-usable**: All four checks run independently via `--check-manifest`, `--check-paths`, `--check-bundle`, `--smoke-test`.
+
+**Output**: `PACKAGING_READINESS_REPORT.md`
+
+**Track completion**: `python resources/phases/track_phases.py {{TARGET_DIR}} --write 11`
+
+---
+
 ## Completion Report (Always Show at End)
 
 > See `references/completion-report.md` for full templates and truth-claim rules.
@@ -436,6 +478,20 @@ gitready is **read-only with respect to the workspace** and **stateful only with
 - **Cognitive/reasoning hooks**: Intentionally out of scope — gitready is a scaffolding orchestrator, not a reasoning agent. Hooks are owned by the generated packages, not by this skill.
 
 ---
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious
 
 ## Changelog
 

@@ -58,7 +58,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.6",
+      "version": "1.0.25",
       "description": "Software development lifecycle AI skills for Claude Code.",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -70,7 +70,7 @@
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.1.14",
+      "version": "1.1.15",
       "description": "Utility AI skills for Claude Code.",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
@@ -82,7 +82,7 @@
     },
     {
       "name": "snapshot",
-      "version": "0.5.8",
+      "version": "0.5.9",
       "description": "Snapshot plugin for Claude Code.",
       "source": "./plugins/snapshot",
       "keywords": [
@@ -107,7 +107,7 @@
     },
     {
       "name": "skill-guard",
-      "version": "2.1.10",
+      "version": "2.1.12",
       "description": "Universal skill auto-discovery and enforcement for Claude Code",
       "source": "./plugins/skill-guard",
       "keywords": [
@@ -127,7 +127,7 @@
     },
     {
       "name": "cc-skills-thinking",
-      "version": "1.0.1",
+      "version": "1.0.7",
       "description": "Thinking plugin",
       "source": "./plugins/cc-skills-thinking",
       "keywords": []
@@ -141,10 +141,23 @@
     },
     {
       "name": "cc-skills-analysis",
-      "version": "1.0.0",
+      "version": "1.0.3",
       "description": "Analysis plugin",
       "source": "./plugins/cc-skills-analysis",
       "keywords": []
+    },
+    {
+      "name": "prompt-enhancer",
+      "version": "0.1.5",
+      "description": "Prompt Clarification & Context Augmentation \u2014 ambiguous prompt detection, enhancement, and multi-turn context preservation via UserPromptSubmit + PreCompact hooks.",
+      "source": "./plugins/prompt-enhancer",
+      "keywords": [
+        "prompt",
+        "clarification",
+        "enhancement",
+        "hooks",
+        "context"
+      ]
     },
     {
       "name": "fact-guard",

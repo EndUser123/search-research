@@ -200,6 +200,40 @@ Fetches Anthropic docs, builds target-type rubric, checks memory.
 ### analyze-config (sonnet)
 Applies rubric to artifacts, scores patterns, quotes evidence.
 
+## Phase Gates
+
+**GATE 1 (STOP after Phase 2: Research)**: Before moving to Phase 3 (Analysis), verify:
+- Haiku model was used for Research phase
+- Anthropic docs fetched for target type
+- Rubric built from official documentation
+- Memory checked for cached findings
+
+If gate fails: re-run Research phase before proceeding.
+
+**GATE 2 (STOP after Phase 3: Analyze)**: Before moving to Phase 4 (Synthesize), verify:
+- Sonnet model used for Analysis phase
+- Each artifact scored against rubric with file:line evidence
+- Over-engineering scores assigned per finding
+- Decision memory consulted (annotate, don't suppress)
+
+If gate fails: re-run Analysis phase before proceeding.
+
+**GATE 3 (STOP after Phase 4: Synthesize)**: Before moving to Phase 5 (Apply Decisions), verify:
+- Cross-file duplication identified
+- Cross-type redundancy identified
+- Conflicts documented with specific evidence
+- Token waste estimated
+
+If gate fails: complete synthesis before proceeding.
+
+**STOP between phases**:
+- Phase 1 (Discover) → Phase 2 (Research): Must discover artifacts before research
+- Phase 2 (Research) → Phase 3 (Analyze): Must build rubric before applying it
+- Phase 3 (Analyze) → Phase 4 (Synthesize): Must analyze each artifact before aggregating
+- Phase 4 (Synthesize) → Phase 5 (Apply Decisions): Must synthesize before presenting decisions
+
+---
+
 ## Integration
 
 Use `/config-audit hooks` to audit hooks
@@ -213,3 +247,17 @@ Use `/config-audit` (no args) to audit everything in scope
 - Code quality (use `/sqa` or `/simplify`)
 - Architecture decisions (use `/design`)
 - Security scanning (use security-focused tools)
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious

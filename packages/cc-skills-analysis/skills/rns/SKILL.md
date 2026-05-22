@@ -290,6 +290,35 @@ Where: `RNS|D|` = domain header, `RNS|A|` = action item, `RNS|Z|` = terminator. 
 | Duplicate findings (same description, domain, action) | Deduplicate — keep the one with higher priority or severity |
 | Transcript unreadable | Fall back to compact-restore state. If that also fails, return the empty-input error above. |
 
+## Phase Gates
+
+**GATE 1 (STOP after Step 1: Collect Input)**: Before moving to Step 2 (Extract Actions), verify:
+- At least one input source yielded content (inline, transcript, compact-restore, or file)
+- Carryover items identified from session chain (if applicable)
+
+If gate fails: return empty-input error rather than proceeding.
+
+**GATE 2 (STOP after Step 2: Extract Actions)**: Before moving to Step 3 (Verify Gates), verify:
+- Action items extracted from source material
+- No speculative items added without evidence
+
+If gate fails: re-examine source material before gate verification.
+
+**GATE 3 (STOP after Step 3: Verify Gates)**: Before moving to Step 4 (Classify Findings), verify:
+- Gate A (Verifiability): Each item verified or marked [UNVERIFIED]
+- Gate B (No Over-Extraction): No speculative items passed
+- Gate C (Completeness): All input items have disposition
+- Gate D (No Fabrication): No invented file:line citations
+
+If gate fails: drop or mark [UNVERIFIED] offending items before proceeding.
+
+**STOP between generation (Steps 1-2) and validation (Steps 3-6)**:
+- Steps 1-2: Collect input, extract actions (generation)
+- Steps 3-6: Verify gates, classify, check dependencies, render RNS (validation)
+- Do NOT proceed to Step 4 until all gates verified in Step 3
+
+---
+
 ## Constraints
 
 - **Do NOT fabricate file paths or line numbers.** Only cite where evidence supports it. A `@ file:line` without personal tool confirmation is a gate violation.
@@ -297,6 +326,20 @@ Where: `RNS|D|` = domain header, `RNS|A|` = action item, `RNS|Z|` = terminator. 
 - If a finding cannot be made concrete (no file, no scope), phrase it generically but still include it with `[UNVERIFIED]`.
 - Do NOT skip findings because they're "obvious" — include everything.
 - Do NOT invent severity ratings not present in the source. Infer only when the source implies but doesn't label.
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious
 
 ### Background Command Display Behavior
 

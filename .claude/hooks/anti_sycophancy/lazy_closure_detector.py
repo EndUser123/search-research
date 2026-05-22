@@ -10,6 +10,9 @@ Detects patterns where the LLM minimizes work or closes tasks without verificati
 PRINCIPLE: The LLM knows if it actually verified or just wants to close the task.
            Work avoidance patterns indicate insufficient effort.
 
+Topic-scoped investigation checking is shared with PreToolUse_user_delegation_gate
+via __lib/anti_lazy_policy.py — both modules import from the same canonical source.
+
 Usage:
     from anti_sycophancy.lazy_closure_detector import detect_lazy_closure
 
@@ -18,31 +21,101 @@ Usage:
         print(f"Detected: {result.pattern_type} -> {result.suggestion}")
 """
 
+import json
+import os
 import re
+import time
+from pathlib import Path
 from typing import NamedTuple
+
+from __lib.anti_lazy_policy import check_investigation_in_ledger, check_topic_relevant_investigation
 
 __all__ = ["detect_lazy_closure", "detect_all_lazy_closure", "LazyClosureMatch"]
 
+# State for sycophancy_capitulation escalation — time-windowed.
+# Rationale: the previous consecutive-counter design reset between user
+# corrections, so multi-turn challenges never escalated. A 10-minute window
+# with threshold 2 captures the actual failure mode: the user pushes back,
+# the model agrees without verifying, user pushes back again, model agrees
+# again — that second agreement within the window escalates.
+_CAPITULATION_STATE_DIR = Path(os.environ.get("CSF_STATE_DIR", "P:/.claude/state"))
+_ESCALATION_WINDOW_S = 600  # 10 minutes
+_ESCALATION_COUNT = 2       # 2 capitulations in window = escalate
 
-def _check_investigation_in_ledger() -> bool:
-    """Return True if the investigation ledger shows any prior investigation.
 
-    Checks files_read, searches, and executions for non-empty lists.
-    Fails open (returns True) on ledger errors to avoid false positives.
+def _get_terminal_id() -> str:
+    return os.environ.get("CLAUDE_TERMINAL_ID", "default")
+
+
+def _capitulation_state_path() -> Path:
+    # Terminal-scoped to prevent cross-terminal contamination (also makes
+    # tests independent — each test can use a unique CLAUDE_TERMINAL_ID).
+    tid = _get_terminal_id()
+    return _CAPITULATION_STATE_DIR / f"lazy_closure_capitulation_{tid}.json"
+
+
+def _load_capitulation_state() -> dict:
+    path = _capitulation_state_path()
+    if not path.exists():
+        return {"timestamps": [], "updated_at": 0}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        # Back-compat: old format had {"count": N}; treat as no history.
+        if "timestamps" not in data:
+            return {"timestamps": [], "updated_at": data.get("updated_at", 0)}
+        return data
+    except (OSError, json.JSONDecodeError):
+        return {"timestamps": [], "updated_at": 0}
+
+
+def _save_capitulation_state(state: dict) -> None:
+    path = _capitulation_state_path()
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(state, ensure_ascii=True), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def _check_capitulation_escalation() -> bool:
+    """Return True if sycophancy_capitulation should escalate to block.
+
+    Uses a sliding time window. Records the current capitulation timestamp,
+    prunes entries older than _ESCALATION_WINDOW_S, and returns True when
+    the count within the window reaches _ESCALATION_COUNT.
+
+    Unlike the previous consecutive-counter design, this survives
+    user-correction interleaving — a multi-turn challenge where the user
+    pushes back between capitulations still escalates correctly.
+    """
+    state = _load_capitulation_state()
+    now = int(time.time())
+    cutoff = now - _ESCALATION_WINDOW_S
+    timestamps = [t for t in state.get("timestamps", []) if t > cutoff]
+    timestamps.append(now)
+    _save_capitulation_state({"timestamps": timestamps, "updated_at": now})
+    return len(timestamps) >= _ESCALATION_COUNT
+
+
+def reset_capitulation_counter() -> None:
+    """Clear the capitulation history.
+
+    Kept for back-compat with any external caller. The time-window design
+    no longer needs explicit resets — old entries expire naturally — but
+    callers that want a hard reset (e.g., new session boundary) can use this.
     """
     try:
-        import sys as _sys
-        _sys.path.insert(0, str(__file__).replace("\\", "/").rsplit("/anti_sycophancy/", 1)[0])
-        from investigation_ledger.ledger import _load_ledger
-        ledger = _load_ledger()
-        files_read = ledger.get("files_read", [])
-        searches = ledger.get("searches", [])
-        executions = ledger.get("executions", [])
-        # Any investigative activity counts
-        return bool(files_read or searches or executions)
-    except Exception:
-        # Fail open: ledger errors should not trigger false positives
-        return True
+        _save_capitulation_state({"timestamps": [], "updated_at": int(time.time())})
+    except OSError:
+        pass
+
+
+# _check_investigation_in_ledger() and _check_topic_relevant_investigation() are
+# imported from __lib.anti_lazy_policy — canonical source shared with
+# PreToolUse_user_delegation_gate.py. The shared module uses importlib.util to
+# load the ledger, compatible with both in-process (Stop) and subprocess (PreToolUse)
+# contexts. The noise word list, keyword extraction, and scoring logic are identical
+# across both enforcement points.
 
 
 class LazyClosureMatch(NamedTuple):
@@ -192,13 +265,19 @@ USER_DELEGATION_PHRASES = [
 ]
 
 # Premature offer - volunteering to implement before understanding
+# Premature offer - volunteering to implement before understanding.
+# Distinguishes: "Shall I proceed?" (confirmation-seeking, legitimate) vs
+# "Want me to implement?" (offering to start without authorization, problematic).
+# Pattern: offer that lacks user authorization signal AND lacks prior Skill() loading.
 PREMATURE_OFFER_PHRASES = [
     r"\bwant\s+me\s+to\s+(?:do|implement|fix|try)\s+it\b",
-    r"\bshould\s+I\s+(?:implement|proceed|do|fix)\s+(?:it|this|that)\b",
+    r"\bshould\s+I\s+(?:implement|do|fix)\s+(?:it|this|that)\b",
     r"\bI\s+can\s+(?:quickly|easily)\s+(?:fix|implement|add)\b",
     r"\blet\s+me\s+(?:just|quickly)\s+(?:fix|implement|add)\b",
-    r"\bshall\s+I\s+(?:proceed|implement|fix)\b",
+    r"\bshall\s+I\s+(?:implement|fix)\b",  # "Shall I implement/fix" — offer, not question
+    r"\bdo\s+you\s+want\s+me\s+to\s+(?:implement|do|fix)\b",  # explicit offer
 ]
+# "Shall I proceed?" is confirmation-seeking — NOT premature (legitimate after design complete)
 
 # Literalist framing - model treats the request as a strict, narrow spec and closes
 # without volunteering the obvious next step. "That's the extent of what you asked"
@@ -560,11 +639,15 @@ def _find_pattern(text: str, patterns: list[re.Pattern]) -> re.Match | None:
     return None
 
 
-def detect_lazy_closure(response: str) -> LazyClosureMatch | None:
+def detect_lazy_closure(response: str, user_prompt: str = "") -> LazyClosureMatch | None:
     """
     Detect lazy closure and work avoidance patterns.
 
     Returns None if clean, LazyClosureMatch if problematic.
+
+    Args:
+        response: The assistant's response text to analyze.
+        user_prompt: The user prompt (used for topic-scoped ledger check).
     """
     if not response:
         return None
@@ -609,8 +692,19 @@ def detect_lazy_closure(response: str) -> LazyClosureMatch | None:
     # Escalate to block if ledger shows no prior investigation before this delegation.
     match = _find_pattern(text, _USER_DELEGATION)
     if match:
-        # Check if any investigation was done before this delegation
-        had_investigation = _check_investigation_in_ledger()
+        # Suppress false positives on quoted or negated forms.
+        # e.g. "I won't say 'can you show me the log'" or "can't you just read it?"
+        before_start = max(0, match.start() - 15)
+        prefix = text[before_start:match.start()].lower()
+        if any(neg in prefix for neg in ("n't", "not ", "never ", "won't", "can't", '"', "'", "`")):
+            return None
+        # Check if any investigation was done before this delegation.
+        # Use topic-scoped check when user_prompt available to avoid stale activity false-positives.
+        had_investigation = (
+            check_topic_relevant_investigation(user_prompt)
+            if user_prompt
+            else check_investigation_in_ledger()
+        )
         if not had_investigation:
             return LazyClosureMatch(
                 matched=match.group(0),
@@ -633,17 +727,33 @@ def detect_lazy_closure(response: str) -> LazyClosureMatch | None:
     # because only Bash execution output (not Skill/Read docs) clears this pattern.
     match = _find_pattern(text, _SYCOPHANCY_CAPITULATION)
     if match and not _has_bash_evidence(text):
-        return LazyClosureMatch(
-            matched=match.group(0),
-            pattern_type="sycophancy_capitulation",
-            suggestion=(
-                "You agreed with a challenge ('I see now', 'you're right') without "
-                "running the actual command. Reading docs or SKILL.md does NOT count as "
-                "evidence. Run the disputed behavior with Bash first, then agree or "
-                "disagree based on real output."
-            ),
-            severity="block",
-        )
+        escalated = _check_capitulation_escalation()
+        if escalated:
+            return LazyClosureMatch(
+                matched=match.group(0),
+                pattern_type="sycophancy_capitulation",
+                suggestion=(
+                    "You agreed with a challenge ('I see now', 'you're right') without "
+                    "running the actual command. Reading docs or SKILL.md does NOT count as "
+                    "evidence. Run the disputed behavior with Bash first, then agree or "
+                    "disagree based on real output.\n\n"
+                    "This is your 2nd+ capitulation within 10 minutes. You must execute "
+                    "Bash verification before conceding any claim."
+                ),
+                severity="block",
+            )
+        else:
+            return LazyClosureMatch(
+                matched=match.group(0),
+                pattern_type="sycophancy_capitulation",
+                suggestion=(
+                    "You agreed with a challenge ('I see now', 'you're right') without "
+                    "running the actual command. Reading docs or SKILL.md does NOT count as "
+                    "evidence. Run the disputed behavior with Bash first, then agree or "
+                    "disagree based on real output."
+                ),
+                severity="block",
+            )
 
     # Self-referential evasion — model treats its own decisions/reasoning as
     # external phenomena rather than commitments it made.
@@ -799,11 +909,15 @@ def detect_lazy_closure(response: str) -> LazyClosureMatch | None:
     return None
 
 
-def detect_all_lazy_closure(response: str) -> list[LazyClosureMatch]:
+def detect_all_lazy_closure(response: str, user_prompt: str = "") -> list[LazyClosureMatch]:
     """
     Detect ALL lazy closure patterns (not just first).
 
     Useful for comprehensive analysis.
+
+    Args:
+        response: The assistant's response text to analyze.
+        user_prompt: The user prompt (used for topic-scoped ledger check).
     """
     if not response:
         return []
@@ -838,16 +952,36 @@ def detect_all_lazy_closure(response: str) -> list[LazyClosureMatch]:
         )
 
     # User delegation runs unconditionally — verification markers elsewhere don't excuse it.
+    # Use topic-scoped check when user_prompt available to avoid stale activity false-positives.
+    had_investigation_all = (
+        check_topic_relevant_investigation(user_prompt)
+        if user_prompt
+        else check_investigation_in_ledger()
+    )
     for pattern in _USER_DELEGATION:
         for match in pattern.finditer(text):
-            results.append(
-                LazyClosureMatch(
-                    matched=match.group(0),
-                    pattern_type="user_delegation",
-                    suggestion="Use tools to fetch this yourself, don't ask the user",
-                    severity="block",
+            if not had_investigation_all:
+                results.append(
+                    LazyClosureMatch(
+                        matched=match.group(0),
+                        pattern_type="user_delegation",
+                        suggestion=(
+                            "Use tools (Bash/Read/Grep/Glob) to get this information yourself. "
+                            "Don't ask the user to fetch it. "
+                            "No prior investigation detected — use investigative tools before delegating to user."
+                        ),
+                        severity="block",
+                    )
                 )
-            )
+            else:
+                results.append(
+                    LazyClosureMatch(
+                        matched=match.group(0),
+                        pattern_type="user_delegation",
+                        suggestion="Use tools (Bash/Read/Grep/Glob) to get this information yourself. Don't ask the user to fetch it.",
+                        severity="block",
+                    )
+                )
 
     # Sycophancy capitulation — only Bash evidence (not Skill/Read docs) exempts this.
     if not _has_bash_evidence(text):

@@ -1,0 +1,18 @@
+{
+  "run_id": "bf3d64ad-dc6d-4d9c-9a07-8951d44cccbb",
+  "skill_name": "superpowers-developing-for-claude-code:developing-claude-code-plugins",
+  "contract_type": "workflow-execution",
+  "phase": "executing",
+  "status": "complete",
+  "terminal_id": "console_86169d7c-b20c-417c-a8c7-e3a76a96dad2",
+  "session_id": "ffb920e6-62c8-4578-a9de-ffb36bba9f6d",
+  "turn_id": null,
+  "created_at": 1778616171.776755,
+  "updated_at": 1778616479.755105,
+  "required_artifacts": [],
+  "completed_artifacts": [],
+  "missing_requirements": [],
+  "allowed_tools_now": [],
+  "blocked_tools": [],
+  "response_requirements": {}
+}

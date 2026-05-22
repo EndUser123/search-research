@@ -862,3 +862,17 @@ Refresh cache after plugin updates: `cd ~/.claude/plugins/marketplaces/local && 
 ```
 
 **When to include this**: Add the above `CLAUDE.md` to every new plugin you create in the marketplace. The plugin should be self-documenting — a user or automated system picking up the plugin should know what's required for activation without reading `skill-craft`.
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious

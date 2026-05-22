@@ -95,10 +95,10 @@ mkdir -p {{TARGET_DIR}}/skill
 1. **Create directory structure**:
 ```bash
 mkdir -p {{TARGET_DIR}}/.claude-plugin
-mkdir -p {{TARGET_DIR}}/core
+mkdir -p {{TARGET_DIR}}/scripts
 mkdir -p {{TARGET_DIR}}/hooks
 mkdir -p {{TARGET_DIR}}/tests
-# Optional: mkdir -p {{TARGET_DIR}}/commands agents skills scripts
+# Optional: mkdir -p {{TARGET_DIR}}/commands agents skills
 ```
 
 2. **Create `.claude-plugin/plugin.json`**:

@@ -68,6 +68,19 @@ suggest:
 3. Wait for explicit user input
 4. Only recommend when user asks
 
+## PHASE STRUCTURE
+
+```
+PHASE 1: IDENTIFY + APPLY (Generation)
+    ↓ STOP: Present information, ask for direction before recommendations
+PHASE 2: VALIDATE (Validation)
+```
+
+**STOP conditions:**
+- Between PHASE 1 and PHASE 2: STOP after presenting information (must ask "what would you like to do?" before any action recommendation)
+
+**Key separation**: Presentation of information is Generation. Action recommendations are Validation. Never combine them.
+
 ## Validation Rules
 
 ### Prohibited Actions (Git/Action Gate)
@@ -270,6 +283,20 @@ Consider: Present information → Ask for direction → Wait for input
 - Pattern Learning: 8 weeks of evidence-based refinement
 - Automated Integration: Systematic learning embedded in startup workflow
 - Continuous Evolution: Ready for ongoing constitutional development
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious
 
 ---
 

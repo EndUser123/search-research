@@ -36,7 +36,7 @@ from .__lib.freshness import classify_freshness
 from .__lib.targeting import resolve_target
 from .__lib.coverage import compute_coverage, compute_health_score
 from .__lib.evidence import write_artifact
-from .__lib.state import RunState, load_state, save_state
+from .__lib.state import RunState, load_state, save_state, sync_to_execution_state
 from .__lib.verify import verify_artifact
 from .__lib.changelog import detect_changelog_findings
 from .__lib.invocation_tracker import check_invocations
@@ -209,11 +209,21 @@ def run(argv: list[str] | None = None) -> int:
     state.verification_required = True
     state.verification_status = "pending"
     save_state(state_file, state)
+    sync_to_execution_state(state, paths.artifacts_dir)
 
     # Phase 1: Deterministic detectors
     findings = run_basic_detectors(root, args.terminal_id, args.session_id, settings.git_sha)
 
-    # Phase 1.1: Changelog detection — files changed since previous GTO run
+    # Phase 1.2: Marker staleness — detect stale session markers from prior runs
+    from .__lib.detectors import detect_marker_staleness, detect_missing_verification_evidence
+    marker_findings = detect_marker_staleness(root, args.terminal_id, args.session_id, settings.git_sha)
+    findings.extend(marker_findings)
+
+    # Phase 1.3: Missing verification evidence — detect findings citing hooks/telemetry without test coverage
+    verification_findings = detect_missing_verification_evidence(root, args.terminal_id, args.session_id, settings.git_sha)
+    findings.extend(verification_findings)
+
+    # Phase 1.4: Changelog detection — files changed since previous GTO run
     changelog_findings = detect_changelog_findings(
         root, prev_git_sha, settings.git_sha,
         args.terminal_id, args.session_id, settings.git_sha,
@@ -410,7 +420,8 @@ def run(argv: list[str] | None = None) -> int:
         ]
         if not invocation_ran:
             _detectors_empty.append("invocation_tracker")
-        detectors_empty = _detectors_empty
+        # Filter: remove detectors that actually produced findings
+        detectors_empty = [d for d in _detectors_empty if d not in detectors_ran]
         outcome_dicts = [
             {"category": getattr(i, "category", ""), "content": getattr(i, "content", "")}
             for i in (outcome_result.items if outcome_result else [])
@@ -492,11 +503,13 @@ def run(argv: list[str] | None = None) -> int:
     state.last_artifact = str(artifact_path)
     state.expected_artifacts = [str(artifact_path)]
     save_state(state_file, state)
+    sync_to_execution_state(state, paths.artifacts_dir)
 
     # Phase 10: Verify
     verification = verify_artifact(artifact_path)
     state.verification_status = "pass" if verification["valid"] else "fail"
     save_state(state_file, state)
+    sync_to_execution_state(state, paths.artifacts_dir)
 
     # Output summary
     print(f"GTO complete: {len(all_findings)} findings", file=sys.stderr)

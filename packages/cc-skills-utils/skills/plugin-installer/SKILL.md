@@ -1,4 +1,5 @@
 ---
+name: plugin-installer
 description: Manage development plugins — audit, validate, install, sync, add, remove, refresh, bump, status. Trigger when asked to "setup plugins", "install plugins", "audit plugins", "validate plugin manifests", "add plugin to marketplace", "remove plugin from marketplace", or "check plugin status".
 enforcement: advisory
 workflow_steps:
@@ -23,23 +24,19 @@ When invoked without an action, run the complete check-fix-verify workflow.
 
 1. **Audit all source packages** — scans `P:\\\\\\packages/` for all directories with `.claude-plugin/plugin.json`, detects unregistered packages, and checks drift:
    ```bash
-   python3 "P:\\\\\\packages/cc-skills-utils/scripts/plugin-audit-and-fix.py" --packages-root "P:\\\\\\packages" --auto-fix
+   python3 "P:\\\\\\packages/cc-skills-utils/scripts/plugin-audit-and-fix.py" --packages-root "P:\\\\\\packages" --auto-fix --summarize
    ```
-   This scans ALL source packages (not just marketplace junctions), reports:
-   - **Missing marketplace junctions** → suggests `/cc-skills-utils:plugin-installer add <name>`
-   - **Source drift** → syncs source to cache (source wins on conflicts, see below)
-   - **Stale version dirs** → deleted from cache
-   - **Conflicts** → reported, neither side overwritten (resolve manually)
+   The `--summarize` flag pipes results through `summarize_audit.py` automatically, emitting a per-plugin prioritized action list with copy-paste fix commands. Without `--summarize`, the audit outputs raw structured findings only.
 
-## Bidirectional Sync Rules
+## Sync Rules
 
-Source and cache are **equal peers** — no automatic winner based on mtime. When the same file exists in both locations with different content:
+Plugins are **junctions** — `P:\packages\<name>/` IS the live source. Cache at `C:\Users\brsth\.claude\plugins\cache\local\<name>\<version>/` is only an install mirror. Source is always canonical.
 
-- **Same file, different content** → skip, report conflict. I (the LLM running this skill) will read both versions and apply the better one inline.
+- **Same file, different content** → source wins, copy to cache. Conflict logged for review.
 - **File only in source** → copy to cache
-- **File only in cache** → skip (cache-only files are not copied to source; they are preserved in cache but source is not modified)
+- **File only in cache** → skip (deleted from source = stale; not copied to source)
 
-This means editing either location directly is safe — neither will silently overwrite the other.
+There is no "cache → source" direction. Editing cache directly will be overwritten on next sync.
 
 2. **Sync marketplace index**:
    ```bash
@@ -69,12 +66,12 @@ This means editing either location directly is safe — neither will silently ov
 
 With no argument, audits all source packages:
 ```bash
-python3 "P:\\\\\\packages/cc-skills-utils/scripts/plugin-audit-and-fix.py" --packages-root "P:\\\\\\packages" --auto-fix
+python3 "P:\\\\\\packages/cc-skills-utils/scripts/plugin-audit-and-fix.py" --packages-root "P:\\\\\\packages" --auto-fix --summarize
 ```
 
 With a plugin name, audits only that plugin:
 ```bash
-python3 "P:\\\\\\packages/cc-skills-utils/scripts/plugin-audit-and-fix.py" --packages-root "P:\\\\\\packages" --auto-fix --plugins <name>
+python3 "P:\\\\\\packages/cc-skills-utils/scripts/plugin-audit-and-fix.py" --packages-root "P:\\\\\\packages" --auto-fix --summarize --plugins <name>
 ```
 
 Then refresh:

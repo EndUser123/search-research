@@ -260,5 +260,40 @@ Please address this query from multiple perspectives:
 | 0.3-0.6 | moderate | low | low | Self-Refine |
 | 0.3-0.6 | moderate | high | any | Socratic |
 | 0.6-1.0 | high | low | high | Tree-of-Thoughts |
+
+## PHASE STRUCTURE
+
+```
+PHASE 1: ANALYZE + TRIAGE (Generation) — Determine complexity, apply Q1-Q3 decision matrix
+    ↓ STOP: Present routing decision (technique + tier) before scoring
+PHASE 2: SCORE + APPLY (Generation) — Calculate heuristics, generate prompt using technique template
+    ↓ STOP: Present scored prompt before validation
+PHASE 3: VALIDATE + OUTPUT (Validation) — Constitutional compliance check, deliver with quality score
+```
+
+**STOP conditions:**
+- Between PHASE 1 and PHASE 2: STOP after triage routing (confirm technique selection)
+- Between PHASE 2 and PHASE 3: STOP after prompt generated (present for review)
+- Between PHASE 3 and end: STOP after quality score reported (user confirms)
+
+**Key separation**: Analysis and triage is Generation. Scoring and template application is Generation. Validation and output is Validation.
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious
+
+| 0.6-1.0 | high | any | high | QueryFanout |
+| any | any | any | any (security/research) | Chain-of-Verification |
+
 | 0.6-1.0 | high | any | high | QueryFanout |
 | any | any | any | any (security/research) | Chain-of-Verification |

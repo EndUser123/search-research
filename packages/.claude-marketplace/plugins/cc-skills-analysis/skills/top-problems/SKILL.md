@@ -285,6 +285,38 @@ Quick wins, stale count, escalated, resolved, excluded, vetoed, conflicts, windo
 /loop 1d /top-problems --days 3 --top 5 --diff
 ```
 
+## Phase Gates
+
+**GATE 1 (STOP after Phase 1: Evidence Gathering)**: Before moving to Phase 2 (Deduplication & Clustering), verify:
+- At least 3 of 6 evidence sources returned data (or explicit "none found" noted)
+- Window expansion logged if triggered
+- Staleness check performed on critique findings
+
+If gate fails: expand window or note evidence gaps before proceeding.
+
+**GATE 2 (STOP after Phase 2: Deduplication & Clustering)**: Before moving to Phase 3 (Ranking), verify:
+- Cross-source deduplication applied
+- Veto checks completed
+- X-Y problem detection run
+- Dependency graph built
+
+If gate fails: complete dedup and clustering before ranking.
+
+**GATE 3 (STOP after Phase 3: Ranking)**: Before moving to Phase 4 (Output), verify:
+- Confidence scoring assigned to each problem
+- Priority buckets assigned (if --buckets)
+- Fix level classification completed
+- Policy weights applied (if non-default)
+
+If gate fails: complete ranking before output.
+
+**STOP between phases**:
+- Phase 1 (Gather) → Phase 2 (Deduplicate): Must gather evidence before dedup
+- Phase 2 (Deduplicate) → Phase 3 (Rank): Must dedupe before ranking
+- Phase 3 (Rank) → Phase 4 (Output): Must rank before output
+
+---
+
 ## Evidence Sources
 
 | Source | Path | What to extract |
@@ -296,6 +328,20 @@ Quick wins, stale count, escalated, resolved, excluded, vetoed, conflicts, windo
 | Sessions | `~/.claude/projects/P--/*.jsonl` | `"is_error":true` (sample) |
 | Retries | Same JSONL | Consecutive identical tool_use |
 | Previous runs | `P:\\\\\\.claude/.artifacts/{terminal_id}/top-problems/top-problems_*.md` | Trend, resolution |
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious
 
 ## Reference Files
 

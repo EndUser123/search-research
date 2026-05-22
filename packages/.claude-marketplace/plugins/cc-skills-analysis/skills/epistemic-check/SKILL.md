@@ -112,8 +112,47 @@ Verdict: {allow|warn|block}
 | UNKNOWN | **BLOCKED** | **BLOCKED** |
 | RECOMMENDATION | Hard assertions require rationale | Superlatives require criterion/assumption |
 
+## Phase Gates
+
+**GATE 1 (STOP after Phase 1: Format & Structure)**: Before moving to Phase 2 (Causal Claims), verify:
+- All four sections present: [FACT], [INFERENCE], [UNKNOWN], [RECOMMENDATION]
+- Correct section order
+- No text outside sections
+- All bullets start with `- `
+- No contradiction between [FACT] and other sections
+
+If gate fails: report format violations before proceeding to causal analysis.
+
+**GATE 2 (STOP after Phase 2: Causal Claims)**: Before moving to Phase 3 (Comparative Claims), verify:
+- [FACT] causal claims have evidence citation or moved to INFERENCE
+- [INFERENCE] causal claims have uncertainty markers
+- [UNKNOWN] has no causal claims
+- [RECOMMENDATION] hard assertions have rationale markers
+
+If gate fails: report causal violations before proceeding.
+
+**STOP between phases**:
+- Phase 1 (Format) → Phase 2 (Causal): Must validate structure before checking causal language
+- Phase 2 (Causal) → Phase 3 (Comparative): Must complete causal analysis before comparative
+
+---
+
 ## When to Use
 
 - `/epistemic-check "what is X?" "X works because..."`
 - After receiving a structured response and wanting independent validation
 - Before accepting recommendations that contain causal or comparative language
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious

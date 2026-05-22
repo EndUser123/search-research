@@ -220,3 +220,37 @@ Centralized skill and plugin manager for AI tools. Discovers skills from SkillsM
 - `web_fetch`: Alternative to curl for fetching content
 - `read_file` / `write_file`: Manage local skill files
 - `glob`: Find existing skills in local directories
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious
+
+## PHASE STRUCTURE
+
+```
+PHASE 1: DISCOVER (Generation) — Multi-source search, identify skill/plugin sources
+    ↓ STOP: Present search results with source labels before installation
+PHASE 2: VALIDATE (Validation) — Verify repo structure, frontmatter, security scan
+    ↓ STOP: Present validation results before installation
+PHASE 3: INSTALL + SYNC (Generation) — Execute installation, sync across tools
+    ↓ STOP: Present install report before final confirmation
+PHASE 4: REPORT (Validation) — Confirm locations, provide next steps
+```
+
+**STOP conditions:**
+- Between PHASE 1 and PHASE 2: STOP after search results (confirm target before validation)
+- Between PHASE 2 and PHASE 3: STOP after validation passed (confirm install before execution)
+- Between PHASE 3 and PHASE 4: STOP after installation completes (present report before completion)
+- Between PHASE 4 and end: STOP after report formatted (user sees result)
+
+**Key separation**: Discovery is Generation. Validation is Validation. Installation/sync is Generation. Report is Validation.

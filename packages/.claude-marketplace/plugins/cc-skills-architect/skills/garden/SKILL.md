@@ -81,12 +81,47 @@ Output a short summary:
 - Number of merges, archives, promotions.
 - Notable promoted patterns.
 
+## PHASE STRUCTURE
+
+```
+PHASE 1: INVENTORY (Generation) — List CKS entries, SKILL.md lessons
+    ↓ STOP: Present inventory before action proposals
+PHASE 2: ISSUE DETECTION (Validation) — Identify duplicates, stale, hot entries
+    ↓ STOP: Present findings before proposing actions
+PHASE 3: ACTION PROPOSALS (Generation) — Propose merge/archive/promote actions
+    ↓ STOP: Present proposed actions for user confirmation
+PHASE 4: INTERACTIVE CONFIRMATION (Validation) — User confirms/rejects actions
+PHASE 5: APPLY + VERIFY (Validation)
+```
+
+**STOP conditions separate each phase:**
+- Between PHASE 1 and PHASE 2: STOP after inventory (present before analysis)
+- Between PHASE 2 and PHASE 3: STOP after issue detection (present findings before actions)
+- Between PHASE 3 and PHASE 4: STOP after proposals (await user confirmation)
+- Between PHASE 4 and PHASE 5: STOP if user rejects proposals
+
+**Key separation**: Detection is Validation. Proposals are Generation. Application is Validation.
+
 ## Output Format
 
 - "Garden report" including:
   - Summary counts (merged/designived/promoted).
   - A brief list of key changes.
   - Optional recommended future gardening focus (e.g., a specific skill or topic that's noisy).
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious
 
 ## Notes
 

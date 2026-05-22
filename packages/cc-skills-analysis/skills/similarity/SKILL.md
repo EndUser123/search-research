@@ -124,6 +124,36 @@ LOW (0.05-0.19)
 cat ~/.claude/.artifacts/{terminal_id}/similarity/<target>_report.json
 ```
 
+## Phase Gates
+
+**GATE 1 (STOP after Step 1: Run Similarity Analysis)**: Before moving to Step 2 (Format Results), verify:
+- Python script executed successfully
+- JSON report generated at expected path
+- At least one similar skill found (or explicitly none)
+
+If gate fails: re-run similarity script before formatting results.
+
+**STOP between generation (Step 1) and validation (Step 2)**:
+- Step 1 runs the similarity algorithm (generation)
+- Step 2 formats results for user presentation (validation)
+- Do NOT skip Step 1 or modify results before the gate check
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious
+
+---
+
 ## What This Does NOT Do
 
 - Does NOT modify any skills

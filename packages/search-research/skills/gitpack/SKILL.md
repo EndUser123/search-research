@@ -1,26 +1,7 @@
 ---
 name: gitpack
-version: "3.1.0"
-status: "stable"
-category: integration
-enforcement: advisory
 description: >
-  Pack any Python directory into a compact LLM-ready context file. Use this skill whenever the user wants to
-  distill, pack, compress, or prepare code for LLM consumption — phrases like "make this repo LLM-ready", "compress
-  this codebase for context", "prepare code for AI analysis", "pack this directory", "create a context file from this
-  repo". Also use when comparing /gitpack vs /repomix. Pure Python — no external AI tools required.
-triggers:
-  - /gitpack
-aliases:
-  - /gitpack
-  - /pack
-workflow_steps:
-  - DISCOVER
-  - EXTRACT
-  - BUILD
-  - APPEND
 ---
-
 # /gitpack - LLM-Ready Code Packer
 
 Pack a Python directory into a compact context file using only Python's stdlib (AST parsing + direct file reads). No external AI tools, no corruption, deterministic output.

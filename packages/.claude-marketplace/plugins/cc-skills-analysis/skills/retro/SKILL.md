@@ -219,3 +219,56 @@ Reference: `P:\\\\\\.claude/skills/__lib/sdlc_internal_modes.md`
 - Do NOT skip steps — each feeds the next
 - If a step returns no findings, note "none found" and proceed
 - Red-team is advisory if scores are 6-7, mandatory if < 6
+
+## Phase Gates
+
+**GATE 1 (STOP after Step 1: /recap)**: Before moving to Step 2 (/gto gap), verify:
+- /recap output received and complete
+- Session summary available for next steps
+
+If gate fails: re-run /recap before proceeding.
+
+**GATE 2 (STOP after Step 2: /gto gap)**: Before moving to Step 3 (/friction), verify:
+- /gto gap output received
+- Top gaps identified and documented
+
+If gate fails: re-run /gto before proceeding.
+
+**GATE 3 (STOP after Step 3: /friction)**: Before moving to Step 4 (/pre-mortem), verify:
+- /friction output received
+- Workflow friction and automation opportunities identified
+
+If gate fails: re-run /friction before proceeding.
+
+**GATE 4 (STOP after Step 4: /pre-mortem)**: Before moving to Step 5 (Evaluate SCORES), verify:
+- /pre-mortem adversarial validation complete
+- All findings from upstream skills available for aggregation
+
+If gate fails: complete /pre-mortem before scoring.
+
+**GATE 5 (STOP after Step 5: Evaluate SCORES)**: Before moving to Step 6 (Aggregate) or red-team, verify:
+- All three scores (completeness, optimality, satisfaction) rated 0-10
+- Red-team triggered if any axis < 8
+
+If gate fails: complete scoring before aggregation.
+
+**STOP between generation (Steps 1-4) and validation (Steps 5-7)**:
+- Steps 1-4: Gather findings from /recap, /gto, /friction, /pre-mortem (generation)
+- Steps 5-7: Score, aggregate, render RNS (validation)
+- Do NOT score until all upstream skills complete
+
+---
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious

@@ -1,26 +1,7 @@
 ---
 name: chs
 description: Dedicated chat history search with summarization, workspace aliases, tool filtering, context preview, session stats, and branch filtering
-category: chat-history
-triggers:
-  - /chs
-aliases:
-  - /chs
-  - /chat-history
-  - /history-search
-
-suggest:
-  - /search
-  - /all
-  - /cks
-
-do_not:
-  - duplicate /search functionality - use this for chat-specific workflows
-  - load full conversations into context unnecessarily
-  - skip the two-stage search architecture
-  - probe CLI help for export when the export mapping is already documented
 ---
-
 # Chat History Search (/chs)
 
 ## Purpose

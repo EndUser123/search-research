@@ -11,6 +11,10 @@ param(
 #   cc-bf                 show config + available routes
 #   cc-bf <model>         switch all tiers to <model>
 #   cc-bf -m <model>      same as above
+#   cc-bf -m o=<model>   switch Opus only
+#   cc-bf -m s=<model>   switch Sonnet only
+#   cc-bf -m h=<model>   switch Haiku only
+#   cc-bf -m c=<model>   set custom /model slot
 #   cc-bf --start         start Bifrost daemon + re-enable rules
 #   cc-bf --shutdown      stop Bifrost daemon
 #   cc-bf --restart       stop + start + verify routing chain
@@ -28,13 +32,27 @@ param(
 #
 # Available routes are dynamically loaded from the Bifrost DB at runtime.
 
-$env:ANTHROPIC_BASE_URL = "http://localhost:8080/anthropic"
-$env:ANTHROPIC_API_KEY = "sk-bf-49998d75-3b06-4e72-8547-741cb81b497e"
+# --- SECURITY: Load Secrets from Vault ---
+$envPath = "P:\.env"
+if (Test-Path $envPath) {
+    Get-Content $envPath | Where-Object { $_ -match '^([^=]+)=(.*)$' } | ForEach-Object {
+        [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
+    }
+} else {
+    Write-Host "[WARN] No .env file found at $envPath. Using fallbacks." -ForegroundColor Yellow
+}
 
-# Default: Sonnet=M27, Opus=GLM-5.1, Haiku=M27
-$env:ANTHROPIC_DEFAULT_SONNET_MODEL = "M27"
+$env:ANTHROPIC_BASE_URL = "http://localhost:8080/anthropic"
+if (-not $env:BIFROST_API_KEY) { $env:BIFROST_API_KEY = "sk-bf-49998d75-3b06-4e72-8547-741cb81b497e" }
+$env:ANTHROPIC_API_KEY = $env:BIFROST_API_KEY
+
+# AUTH_TOKEN is required for Claude Code's model picker to honor the tier model env vars
+$env:ANTHROPIC_AUTH_TOKEN = "sk-cp-KaSmY8e9E1Pw9XbCWOiVexNvnLGwmKJ8fBGf57gEvA3fb95gq73n7AGVyIL3zBrjvFzxRQFyocfa8QdgborzQoupFzI0UX5cjw7MCkIY3DCy5-kAFVza5z8"
+
+# Default: all tiers to MiniMax-M2.7 (Bifrost routing key -> MiniMax/MiniMax-M2.7)
+$env:ANTHROPIC_DEFAULT_SONNET_MODEL = "MiniMax-M2.7"
 $env:ANTHROPIC_DEFAULT_OPUS_MODEL = "GLM-5.1"
-$env:ANTHROPIC_DEFAULT_HAIKU_MODEL = "M27"
+$env:ANTHROPIC_DEFAULT_HAIKU_MODEL = "MiniMax-M2.7"
 
 $doSync = $false
 $doStart = $false
@@ -86,8 +104,8 @@ while ($i -lt $Args.Count) {
         $i++
         if ($i -lt $Args.Count) {
             $nextArg = $Args[$i]
-            # Check for tier prefix: o=opus, s=sonnet, h=haiku
-            if ($nextArg -match "^([osh])=(.+)$") {
+            # Check for tier prefix: o=opus, s=sonnet, h=haiku, c=custom
+            if ($nextArg -match "^([oshc])=(.+)$") {
                 $tier = $matches[1]
                 $tierModel = $matches[2]
                 $tierOverrides[$tier] = $tierModel
@@ -173,16 +191,28 @@ function Sync-BifrostConfig {
     }
 
     $cleanConfig = $config | ConvertTo-Json -Depth 10
-    $cleanConfig | Set-Content $configPath -Encoding UTF8
+    [System.IO.File]::WriteAllText($configPath, $cleanConfig, [System.Text.Encoding]::UTF8)
     Write-Host "   Synced $($rules.Count) rules from DB -> config.json" -ForegroundColor Green
 }
 
+# --- ORCHESTRATION: Strict PID Management ---
+$pidFile = "$env:APPDATA\bifrost\bifrost.pid"
+
 function Get-BifrostProcess {
-    $proc = Get-Process -Name "bifrost-http*" -ErrorAction SilentlyContinue
-    if ($proc) { return $proc }
-    $allProcs = Get-Process -ErrorAction SilentlyContinue
-    foreach ($p in $allProcs) {
-        if ($p.Path -like "*bifrost*") { return $p }
+    # Check for active PowerShell job first (primary mechanism after sync-call change)
+    $jobs = Get-Job -ErrorAction SilentlyContinue | Where-Object { $_.State -eq 'Running' -and $_.Output.Count -eq 0 }
+    foreach ($j in $jobs) {
+        $info = Receive-Job -Job $j -Keep -ErrorAction SilentlyContinue
+    }
+    $runningJob = Get-Job -ErrorAction SilentlyContinue | Where-Object { $_.State -eq 'Running' } | Select-Object -First 1
+    if ($runningJob) { return $runningJob }
+
+    # Fallback: check pidFile for legacy PID-based process
+    if (Test-Path $pidFile) {
+        $savedPid = Get-Content $pidFile
+        $proc = Get-Process -Id $savedPid -ErrorAction SilentlyContinue
+        if ($proc -and $proc.ProcessName -like "*bifrost*") { return $proc }
+        Remove-Item $pidFile -Force # Stale PID cleanup
     }
     return $null
 }
@@ -190,10 +220,14 @@ function Get-BifrostProcess {
 function Start-BifrostDaemon {
     $proc = Get-BifrostProcess
     if ($proc) {
-        Write-Host "   Bifrost already running (PID $($proc.Id))" -ForegroundColor Yellow
+        $id = if ($proc.Id) { $proc.Id } else { $proc.InstanceId }
+        Write-Host "   Bifrost already running (Job/PID $id)" -ForegroundColor Yellow
         return
     }
-    $bifrostBin = "$env:LOCALAPPDATA\bifrost\v1.5.0-prerelease8\bin\bifrost-http.exe-0"
+    $bifrostBin = "$env:LOCALAPPDATA\bifrost\v1.5.2\bin\bifrost-http.exe-0"
+    if (-not (Test-Path $bifrostBin)) {
+        $bifrostBin = "$env:LOCALAPPDATA\bifrost\v1.5.0-prerelease8\bin\bifrost-http.exe-0"
+    }
     if (-not (Test-Path $bifrostBin)) {
         $bifrostBin = "$env:LOCALAPPDATA\bifrost\v1.5.0-prerelease7\bin\bifrost-http.exe-0"
     }
@@ -206,21 +240,20 @@ function Start-BifrostDaemon {
     }
     $appDir = "$env:APPDATA\bifrost"
     $errLog = "$env:TEMP\bifrost_err.log"
-    $proc = Start-Process -FilePath $bifrostBin -ArgumentList "-app-dir=$appDir -port=8080" -PassThru -RedirectStandardError $errLog
+    # Sync invocation via PowerShell job — inherits all session env vars (including .env-loaded keys)
+    # Runs background so the terminal stays responsive
+    $job = Start-Job -ScriptBlock {
+        param($bin, $appDir, $errLog)
+        & $bin -app-dir=$appDir -port=8080 2>$errLog
+    } -ArgumentList $bifrostBin, $appDir, $errLog
     Start-Sleep -Milliseconds 500
-    $newProc = Get-BifrostProcess
-    if ($newProc) {
-        Write-Host "   Started Bifrost (PID $($newProc.Id)) on port 8080" -ForegroundColor Green
+    $jobState = Get-Job -Id $job.Id | Select-Object -ExpandProperty State
+    if ($jobState -eq 'Running') {
+        $job.Id | Out-File $pidFile -Encoding UTF8
+        Write-Host "   Started Bifrost (Job ID $($job.Id)) on port 8080" -ForegroundColor Green
+        try { python3 $_db_script --enable-rules 2>$null | Out-Null } catch {}
     } else {
-        Write-Host "   [ERROR] Failed to start Bifrost" -ForegroundColor Red
-    }
-
-    # Re-enable all routing rules (Bifrost sets enabled=0 on startup)
-    try {
-        $out = python3 $_db_script --enable-rules 2>$null
-        if ($out) { Write-Host "   $out" -ForegroundColor DarkGray }
-    } catch {
-        Write-Host "   [WARN] Could not enable rules: $_" -ForegroundColor Yellow
+        Write-Host "   [ERROR] Failed to start Bifrost. State: $jobState. Check $errLog" -ForegroundColor Red
     }
 }
 
@@ -230,13 +263,17 @@ function Stop-BifrostDaemon {
         Write-Host "   Bifrost is not running" -ForegroundColor Yellow
         return
     }
-    Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
-    Start-Sleep -Milliseconds 300
-    $remaining = Get-BifrostProcess
-    if (-not $remaining) {
-        Write-Host "   Stopped Bifrost (PID $($proc.Id))" -ForegroundColor Green
+    if ($proc -is [System.Management.Automation.Job2]) {
+        # PowerShell job
+        Stop-Job -Id $proc.Id -ErrorAction SilentlyContinue
+        Remove-Job -Id $proc.Id -Force -ErrorAction SilentlyContinue
+        Remove-Item $pidFile -Force -ErrorAction SilentlyContinue
+        Write-Host "   Stopped Bifrost (Job ID $($proc.Id))" -ForegroundColor Green
     } else {
-        Write-Host "   [WARN] Bifrost process may still be running (PID $($remaining.Id))" -ForegroundColor Yellow
+        # Legacy PID-based process
+        Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+        Remove-Item $pidFile -Force -ErrorAction SilentlyContinue
+        Write-Host "   Stopped Bifrost (PID $($proc.Id))" -ForegroundColor Green
     }
 }
 
@@ -540,30 +577,51 @@ if ($tierOverrides.ContainsKey("s")) {
 if ($tierOverrides.ContainsKey("h")) {
     $env:ANTHROPIC_DEFAULT_HAIKU_MODEL = $tierOverrides["h"]
 }
-
-# Set display name + description for each tier (driven by whatever model is active)
-foreach ($tier in @("SONNET", "OPUS", "HAIKU")) {
-    $modelKey = "ANTHROPIC_DEFAULT_${tier}_MODEL"
-    $modelVal = (Get-Item "env:$modelKey").Value
-    if ($modelVal) {
-        Set-Item -Path "env:ANTHROPIC_DEFAULT_${tier}_MODEL_NAME" -Value $modelVal
-        Set-Item -Path "env:ANTHROPIC_DEFAULT_${tier}_MODEL_DESCRIPTION" -Value "Custom model via Bifrost"
+if ($tierOverrides.ContainsKey("c")) {
+    $customModel = $tierOverrides["c"]
+    # Normalize only for the API model name
+    $normalizedC = $customModel -replace "^glm-5.1$", "GLM-5.1" `
+                                -replace "^MiniMax-M2.7$", "M27" `
+                                -replace "^Nvidia-Deepseek-v4-flash$", "DSv4-flash" `
+                                -replace "^DSv4-flash$", "DSv4"
+    $env:ANTHROPIC_CUSTOM_MODEL_OPTION = $normalizedC
+    $env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME = $customModel  # show original name
+    # Check routes using the original input key (DB stores N-DSv4-flash, not DSv4)
+    if ($routes.ContainsKey($customModel)) {
+        $env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION = "Bifrost: $($routes[$customModel][3])"
+    } else {
+        $env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION = "Custom route via Bifrost"
     }
 }
 
 if (-not $modelOverride -and $tierOverrides.Count -eq 0) {
-    $displayName = "Default (M27 + GLM-5.1)"
+    $displayName = "Default (M27)"
 } elseif ($tierOverrides.Count -gt 0) {
     $displayName = "Custom tiers"
 }
 
 Write-Host ""
 Write-Host "Bifrost Configuration:" -ForegroundColor Yellow
-Write-Host "   - Provider:             Bifrost AI Gateway" -ForegroundColor White
-Write-Host "   - Endpoint:            http://localhost:8080/anthropic" -ForegroundColor White
-Write-Host "   - Sonnet:              $env:ANTHROPIC_DEFAULT_SONNET_MODEL" -ForegroundColor White
-Write-Host "   - Opus:                $env:ANTHROPIC_DEFAULT_OPUS_MODEL" -ForegroundColor White
-Write-Host "   - Haiku:               $env:ANTHROPIC_DEFAULT_HAIKU_MODEL" -ForegroundColor White
+$configRows = @(
+    @{ Label = "   - Provider:"; Value = "Bifrost AI Gateway" },
+    @{ Label = "   - Endpoint:"; Value = "http://localhost:8080/anthropic" },
+    @{ Label = "   - Sonnet:"; Value = $env:ANTHROPIC_DEFAULT_SONNET_MODEL },
+    @{ Label = "   - Opus:"; Value = $env:ANTHROPIC_DEFAULT_OPUS_MODEL },
+    @{ Label = "   - Haiku:"; Value = $env:ANTHROPIC_DEFAULT_HAIKU_MODEL }
+)
+if ($env:ANTHROPIC_CUSTOM_MODEL_OPTION) {
+    $customName = if ($env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME) { $env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME } else { $env:ANTHROPIC_CUSTOM_MODEL_OPTION }
+    $customDesc = if ($env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION) { $env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION } else { "" }
+    $configRows += @{ Label = "   - Custom:"; Value = $customName }
+    if ($customDesc) {
+        $configRows += @{ Label = "     Description:"; Value = $customDesc }
+    }
+}
+$configRows | ForEach-Object {
+    $row = $_
+    $padLabel = $row.Label.PadRight(20)
+    Write-Host "$padLabel $($row.Value)" -ForegroundColor White
+}
 Write-Host ""
 Write-Host "Available routes (from DB):" -ForegroundColor Yellow
 if ($routes.Count -eq 0) {
@@ -584,9 +642,9 @@ if ($routes.Count -eq 0) {
     foreach ($alias in $aliasMap.Keys) {
         $aliasKeys += $alias
     }
-    # Collect canonical names and sort alphabetically for display
-    $canonicalNames = @()
+    # Collect canonical names for each unique target
     $seen = @{}
+    $canonicalNames = @()
     foreach ($key in $routes.Keys) {
         $route = $routes[$key]
         $desc = $route[3]
@@ -597,41 +655,78 @@ if ($routes.Count -eq 0) {
         $canonical = if ($canonicals.Count -gt 0) { $canonicals[0] } else { @($group | Sort-Object { $_.Length } -Descending)[0] }
         $canonicalNames += $canonical
     }
-    foreach ($canonical in ($canonicalNames | Sort-Object)) {
+
+    # Format-Table handles column widths automatically
+    $tableData = foreach ($canonical in ($canonicalNames | Sort-Object)) {
         $route = $routes[$canonical]
         $desc = $route[3]
         $group = $targetGroups[$desc]
         $aliases = @($group | Where-Object { $_ -ne $canonical })
-        if ($aliases.Count -gt 0) {
-            $aliasStr = $aliases -join ", "
-            $line = "   cc-bf {0,-20} -> {1}  (aliases: {2})" -f $canonical, $desc, $aliasStr
-        } else {
-            $line = "   cc-bf {0,-20} -> {1}" -f $canonical, $desc
+        $aliasStr = if ($aliases.Count -gt 0) { "  ($($aliases -join ', '))" } else { "" }
+        [PSCustomObject]@{
+            Command = "cc-bf $canonical"
+            Route   = "-> $desc$aliasStr"
         }
-        Write-Host $line -ForegroundColor Cyan
     }
+
+    $tableData | Format-Table -AutoSize | Out-String | ForEach-Object { Write-Host $_ -ForegroundColor Cyan }
 }
-Write-Host ""
-Write-Host "   cc-bf                       show config + available routes" -ForegroundColor White
-Write-Host "   cc-bf <model>               switch all tiers to <model>" -ForegroundColor White
-Write-Host "   cc-bf -m <model>            same as above" -ForegroundColor White
-Write-Host "   cc-bf -m o=<model>          switch Opus only" -ForegroundColor White
-Write-Host "   cc-bf -m s=<model>          switch Sonnet only" -ForegroundColor White
-Write-Host "   cc-bf -m h=<model>          switch Haiku only" -ForegroundColor White
-Write-Host ""
-Write-Host "   cc-bf --start               start Bifrost daemon + re-enable rules" -ForegroundColor White
-Write-Host "   cc-bf --shutdown            stop Bifrost daemon" -ForegroundColor White
-Write-Host "   cc-bf --restart             stop + start + verify routing chain" -ForegroundColor White
-Write-Host "   cc-bf --status              health check: rules, keys, live probe" -ForegroundColor White
-Write-Host "   cc-bf --dashboard           open Bifrost dashboard in browser" -ForegroundColor White
-Write-Host ""
-Write-Host "   cc-bf --routes              probe all routes (DB + runtime latency)" -ForegroundColor White
-Write-Host "   cc-bf --routes --only mistral          routed + unrouted for provider(s)" -ForegroundColor White
-Write-Host "   cc-bf --routes yes --only mistral      routed only for provider(s)" -ForegroundColor White
-Write-Host "   cc-bf --routes no --only mistral       unrouted only for provider(s)" -ForegroundColor White
-Write-Host "   cc-bf --routes no                      show all unrouted catalog models" -ForegroundColor White
-Write-Host "   cc-bf --routes no --latest-only        hide superseded versions" -ForegroundColor White
-Write-Host "   cc-bf --routes no --exclude X,Y        exclude models containing X or Y" -ForegroundColor White
-Write-Host "   cc-bf --routes --only all --exclude hugging  all providers except one" -ForegroundColor White
-Write-Host "   cc-bf --sync                backup + sync rules AND provider keys from config.json" -ForegroundColor White
-Write-Host ""
+function Get-DisplayWidth($s) {
+    $w = 0
+    foreach ($c in $s.GetEnumerator()) {
+        $o = [int]$c
+        if ($o -ge 0x110000) { $w += 2 }
+        elseif ($o -ge 0x100 -and $o -le 0x115F) { $w += 1 }
+        elseif ($o -eq 0x2329 -or $o -eq 0x232A) { $w += 2 }
+        elseif ($o -ge 0xAC00 -and $o -le 0xD7A3) { $w += 2 }
+        elseif ($o -ge 0x3000 -and $o -le 0x303F) { $w += 2 }
+        elseif ($o -ge 0xFF00 -and $o -le 0xFF60) { $w += 2 }
+        elseif ($o -ge 0xFFE0 -and $o -le 0xFFE6) { $w += 2 }
+        else { $w += 1 }
+    }
+    return $w
+}
+
+function Write-HelpRow($cmd, $desc, $totalWidth) {
+    $displayLen = Get-DisplayWidth($cmd)
+    $spaces = $totalWidth - $displayLen
+    Write-Host ($cmd + (' ' * $spaces) + $desc) -ForegroundColor White
+}
+
+Write-Host "Commands:" -ForegroundColor Yellow
+
+$shortMaxDisplay = 24
+$shortItems = @(
+    @{Cmd="cc-bf";                        Desc="show config + available routes"},
+    @{Cmd="cc-bf <model>";               Desc="switch all tiers to <model>"},
+    @{Cmd="cc-bf -m <model>";            Desc="same as above"},
+    @{Cmd="cc-bf -m o=<model>";          Desc="switch Opus only"},
+    @{Cmd="cc-bf -m s=<model>";          Desc="switch Sonnet only"},
+    @{Cmd="cc-bf -m h=<model>";          Desc="switch Haiku only"},
+    @{Cmd="cc-bf -m c=<model>";          Desc="set custom /model slot"}
+)
+$shortItems | ForEach-Object { Write-HelpRow $_.Cmd $_.Desc $shortMaxDisplay }
+
+$daemonMaxDisplay = 24
+$daemonItems = @(
+    @{Cmd="cc-bf --start";               Desc="start Bifrost daemon + re-enable rules"},
+    @{Cmd="cc-bf --shutdown";            Desc="stop Bifrost daemon"},
+    @{Cmd="cc-bf --restart";             Desc="stop + start + verify routing chain"},
+    @{Cmd="cc-bf --status";             Desc="health check: rules, keys, live probe"},
+    @{Cmd="cc-bf --dashboard";           Desc="open Bifrost dashboard in browser"}
+)
+$daemonItems | ForEach-Object { Write-HelpRow $_.Cmd $_.Desc $daemonMaxDisplay }
+
+$routeMaxDisplay = 50
+$routeItems = @(
+    @{Cmd="cc-bf --routes";                            Desc="probe all routes (DB + runtime latency)"},
+    @{Cmd="cc-bf --routes --only mistral";            Desc="routed + unrouted for provider(s)"},
+    @{Cmd="cc-bf --routes yes --only mistral";          Desc="routed only for provider(s)"},
+    @{Cmd="cc-bf --routes no --only mistral";          Desc="unrouted only for provider(s)"},
+    @{Cmd="cc-bf --routes no";                        Desc="show all unrouted catalog models"},
+    @{Cmd="cc-bf --routes no --latest-only";          Desc="hide superseded versions"},
+    @{Cmd="cc-bf --routes no --exclude X,Y";          Desc="exclude models containing X or Y"},
+    @{Cmd="cc-bf --routes --only all --exclude hugging"; Desc="all providers except one"},
+    @{Cmd="cc-bf --sync";                             Desc="backup + sync rules AND provider keys from config.json"}
+)
+$routeItems | ForEach-Object { Write-HelpRow $_.Cmd $_.Desc $routeMaxDisplay }

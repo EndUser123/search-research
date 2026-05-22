@@ -116,13 +116,33 @@ The script extracts structured data via regex and presents it in a format compat
 - **External Block**: {dependency} — *Blocks*: Action#
 
 ### Recommended Next Steps
-```
-RNS|D|{n}|TERMINAL RECAP
-RNS|A|1|recap|E:~1min|none|no-terminal-recap-RNS-available|{file_path}|owner=/recap|done=0|caused_by=|blocks=|unverified=0
-RNS|Z|0|NONE
+
+Use `render_actions()` from `skills/rns/scripts/core/render.py` (same plugin) to render actionable next steps in human-readable RNS format:
+
+```python
+import sys
+sys.path.insert(0, 'P:/packages/cc-skills-analysis/skills/rns/scripts')
+from core.render import render_actions, RenderOptions
+
+actions = [
+    {"id": "1a", "domain": "recap", "priority": "medium", "description": "...", "file_ref": "file.py:line", "effort": "~5min"},
+]
+print(render_actions(actions, RenderOptions(show_effort=True, show_file_ref=True)))
 ```
 
-> **Note:** RNS format is emitted when the recap output includes actionable next steps derived from the session chain analysis. Each RNS|A| line represents one recommended next step with: id, domain tag, estimated time, risk profile, description, file reference, owning skill, done flag, causation, and blocking relationships. When no terminal-recap-specific RNS is available (brief mode, no session chain, or no actionables found), emit `RNS|Z|0|NONE` to indicate no RNS was produced.
+Rendered output format (via `render_actions`):
+
+```
+1 🔄 RECAP (2)
+  1a 🟡 [E:~5min] Resume pending snapshot unit tests @ test_phase2_scan.py
+  1b 🔵 Check handoff chain integrity for recent sessions
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+0 — Do ALL Recommended Next Actions (2 items)
+```
+
+When no actionables found (brief mode, no session chain), skip the RNS section entirely — do not emit `RNS|Z|0|NONE` to the user.
 
 ### Raw Context
 {condensed text for full transcript access}
@@ -215,8 +235,36 @@ Before synthesizing a catch-up summary, `/recap` should run a short internal cat
 - What gap belongs to `/design`, `/planning`, or `/verify` rather than being presented as a local recap observation?
 - What summary statement is too confident given the available transcript evidence?
 - What would make this recap locally coherent but globally wrong across the full session chain?
+- **Weakest assumption challenge**: Which single assumption about this session chain am I MOST confident about that I HAVEN'T verified? What would happen if it is wrong? What's the smallest check that would falsify it?
+- **Inversion prompting**: What would guarantee this session's work fails? Surface it here.
+  - **Failure Mode**: {description} — *Mitigation*: {what would prevent it}
+  - **Assumption**: {core assumption} — *Invalidates*: D# or Action#
+  - **External Block**: {dependency} — *Blocks*: Action#
 
 These are internal self-check prompts. They are not default user-facing questions and should only surface to the user when `/recap` is genuinely blocked and cannot proceed safely without clarification.
+
+## Phase Gates
+
+**GATE 1 (STOP after session_chain.walk_session_chain)**: Before moving to synthesis, verify:
+- Session chain walked successfully (or fallback used)
+- Session boundaries detected via sessionId changes
+- All sessions in chain processed
+
+If gate fails: note chain walk issue and proceed with available data.
+
+**GATE 2 (STOP before Response Synthesis)**: Before LLM synthesis, verify:
+- Script output complete with all structured fields
+- Raw Context present (or AID distillation applied)
+- Project Context loaded (unless /recap brief mode)
+
+If gate fails: note missing sections and proceed with available data.
+
+**STOP between generation (Steps 1-4) and validation (Steps 5+)**:
+- Steps 1-4: Walk chain, parse transcripts, extract goals/message counts, aggregate (generation)
+- Step 5+: Response synthesis, integrity prompts, routing (validation)
+- Do NOT proceed to synthesis until session chain is fully walked
+
+---
 
 ## Implementation Notes
 
@@ -226,3 +274,17 @@ These are internal self-check prompts. They are not default user-facing question
 - `sessionId` is the stem of the transcript filename (e.g., `8a7b83ff-7d98-47e9-b3b5-3ffabc978c40.jsonl`)
 - Semantic extraction (problem/fix/action) via regex against structured output patterns (bugfixes.md format)
 - Synthesis (optimal fix reasoning) is performed by the responding LLM — not in preprocessing
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious

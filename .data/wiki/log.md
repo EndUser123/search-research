@@ -1406,3 +1406,51 @@ Source: files (2)/REVIEW-AND-CHANGELOG.md
 SHA256: bbf3eb04d3d1c5f0d2df93a35fb80a0dcb2c4d7b66db287bad6c949328fa4790
 Content: Review of v3 draft 2 crashes 5 logic bugs 1 security regression HMAC dropped 3 regressions from v2.1
 Page: wiki/concepts/ntp-tdd-enforcement-v3.1-review.md
+
+## [2026-05-12] ingest | Bash Security Agentic Safety Model
+Source: YouTube — "[CLAUDE CODE] Agentic Bash Security: 5-Level Risk Framework"
+SHA256: b25f22f771c16808a78f065310aef8500eb224856b7bb6cbfcc8e010885db17e
+Content: 5-level bash execution model: user prompt → system prompt → blacklist → whitelist → no-bash. Risk compounds with runtime.
+Page: wiki/sources/spec-bMQ54XHGRdM.md
+
+## [2026-05-12] ingest | Pi Agent TypeScript Extension Guards
+Source: YouTube — "[CLAUDE CODE] Pi Agent Sandbox: TypeScript .pie/ Extension"
+SHA256: 7f16572f9f391abe2e867fef1f6716d0c3f19db89e9c458bb3580b62ecb48230
+Content: TypeScript tool restriction via .pie/ extension guard functions. Guard predicates enforce tool restrictions at runtime.
+Page: wiki/sources/spec-1ZsFjM6yZGI.md
+
+## [2026-05-12] ingest | AIOS 5-Tier Cross-Model Failover Architecture
+Source: YouTube — "[CLAUDE CODE] AIOS Failover: Cross-Model Resilience Architecture"
+SHA256: 0d351d5622accb33c3ffa4732ab246e7a673929317dcb725eded21a4888b2d21
+Content: Context → Skills/Agents → MCP/APIs → Interface → Runtime. Cross-model failover testing validates each tier degrades gracefully.
+Page: wiki/sources/spec-JBaUXDRtRek.md
+
+## [2026-05-12] ingest | Parallel Worktrees 5-Pillar System
+Source: YouTube — "[CLAUDE CODE] Claude Code Parallel Worktrees: 5-Pillar System"
+SHA256: 12fb035c5661be68ccf1cf6c2995e338438fba5756852d916784e22513e29687
+Content: 5 pillars: Issue-as-Spec, Git Worktree Isolation, Fresh-Context Validation, Multi-Agent Review, Self-Healing Layer.
+Page: wiki/sources/spec-rFGlJ4oIlhw.md
+
+## [2026-05-12] ingest | 7-Level Memory Stack
+Source: YouTube — "[CLAUDE CODE] 7-Level Memory Stack for AI Agents"
+SHA256: 3b43e09ba9e4d741df350a68ab7f0ff198f600b24b4b4743cb4b756f7a7b0bdb
+Content: Identity, Critical Context, Working Memory, Long-Term + Episodic, Decay, Promotions, Semantic + Keyword + Entity. Memory Architect skill.
+Page: wiki/sources/spec-OMkdlwZxSt8.md
+
+## [2026-05-12] ingest | Karpathy LLM KB Compiler Analogy
+Source: YouTube — "[CLAUDE CODE] Karpathy LLM Knowledge Base: Compiler Analogy"
+SHA256: b35f5f64cc5d3940672c33278ee6b2b44fa23dbc19be9dc6c6425bc0198a2d80
+Content: Raw markdown (source) → LLM (compiler) → executable (wiki). Internal KB: session logs → daily logs → concepts → wiki.
+Page: wiki/sources/spec-7huCP6RkcY4.md
+
+## [2026-05-12] ingest | AI Newsroom Telegram Pipeline
+Source: YouTube — "[CLAUDE CODE] AI Newsroom: Telegram Pipeline"
+SHA256: 2d92cd30932edb7136002333f6cb8b4ec9a6e817c3dd2970238b6fa6b2f2bdfd
+Content: 9-component pipeline: CC Claw multi-model, Telegram control, News scanner, Skill + Context separation, Perplexity MCP fact-check, Buffer MCP cross-post.
+Page: wiki/sources/spec-C-L0xk7Uuko.md
+
+## [2026-05-12] ingest | Senior Dev AI Workflow
+Source: YouTube — "[CLAUDE CODE] Senior Dev AI Workflow"
+SHA256: 9ef70aa643de3c99e60585996f9ad6703dc1e9f212690f066790403d6056a3bf
+Content: Parallel worktrees + PR review + Karpathy KB. 5 pillars with self-healing layer. Claude Code hooks: SessionStart/PreCompact/SessionEnd.
+Page: wiki/sources/spec-t1bWyk9qVa4.md

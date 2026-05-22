@@ -33,7 +33,6 @@ __all__ = [
     "base",
     "conversation_gate",
     "unified_injector",
-    "skill_enforcer",
     "plan_injector",
     "behavior_contract",
     "diagnostic_guard",

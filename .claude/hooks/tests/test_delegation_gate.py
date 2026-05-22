@@ -69,10 +69,12 @@ class TestTerminalDetection:
         assert tid == "console_abc123-def456-789"
 
     def test_detect_terminal_id_without_wt_session(self, monkeypatch):
-        """Terminal ID falls back to 'unknown' without WT_SESSION."""
+        """Terminal ID falls back to hash-based isolation without WT_SESSION."""
         monkeypatch.delenv("WT_SESSION", raising=False)
         tid = _detect_terminal_id()
-        assert tid == "unknown"
+        # Should return unknown_<hash> for process isolation, not bare "unknown"
+        assert tid.startswith("unknown_")
+        assert len(tid) == 20  # "unknown_" (8) + hash (12)
 
     def test_get_artifacts_dir_uses_terminal_id(self, monkeypatch):
         """Artifacts directory includes terminal ID."""
@@ -93,7 +95,7 @@ class TestDelegationStatePersistence:
         self._original_get_artifacts_dir = None
         import PreToolUse_delegation_gate as gate_module
 
-        def mock_get_artifacts_dir():
+        def mock_get_artifacts_dir(terminal_id_override: str | None = None):
             return Path(self.temp_dir)
 
         self._original_get_artifacts_dir = gate_module._get_artifacts_dir
@@ -351,7 +353,7 @@ class TestPreToolUseGate:
         import PreToolUse_delegation_gate as gate_module
 
         # Mock _get_artifacts_dir
-        def mock_get_artifacts_dir():
+        def mock_get_artifacts_dir(terminal_id_override: str | None = None):
             return Path(self.temp_dir)
 
         self._original = gate_module._get_artifacts_dir

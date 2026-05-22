@@ -1,0 +1,18 @@
+{
+  "run_id": "b0200743-0c63-4e02-ad36-214ded1451e5",
+  "skill_name": "cc-skills-sdlc:planning",
+  "contract_type": "workflow-execution",
+  "phase": "executing",
+  "status": "complete",
+  "terminal_id": "console_329d3281-a4e7-417b-934a-ddf3af50bb99",
+  "session_id": "9dd7aaee-ae0d-4259-84ae-d344dd0a9273",
+  "turn_id": null,
+  "created_at": 1778616267.43326,
+  "updated_at": 1778617467.7662098,
+  "required_artifacts": [],
+  "completed_artifacts": [],
+  "missing_requirements": [],
+  "allowed_tools_now": [],
+  "blocked_tools": [],
+  "response_requirements": {}
+}

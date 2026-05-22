@@ -83,10 +83,65 @@ def _failsafe_log(message: str) -> None:
         _safe_stderr_print(f"[HOOK_RUNNER_FAILSAFE] {message}")
 
 
+def _error_class_and_code(
+    hook_name: str, error_type: str, error_msg: str, tb: str,
+) -> tuple[str, str, bool, str]:
+    """Derive structured classification fields from error type + traceback.
+
+    Maps error_type -> (error_class, failure_code, is_startup_actionable, root_cause_key).
+
+    Mapping rules (A3):
+      timeout_imminent/killed/terminated/exceeded -> ("timeout", code, False, key)
+        Rationale: operational noise; timeout means hook ran but took too long — not a bug.
+      syntax_error/parse_error -> ("load_failure", code, False, key)
+        Rationale: known fixed; syntax errors from previous edits are not current failures.
+      import_error/module_not_found -> ("load_failure", code, True, key)
+        Rationale: actionable; missing dependencies are real problems requiring user action.
+      runtime_error with known traceback patterns (name 'anomalies', name 'user_prompt',
+        AttributeError.*unknown, AttributeError.*audit_report) -> ("known_fixed", code, False, key)
+        Rationale: known fixed; these are refactoring artifacts already addressed.
+      runtime_error generic -> ("runtime_error", code, True, key)
+        Rationale: actionable; genuine unexpected errors need investigation.
+      unknown error_type -> ("runtime_error", code, True, key)
+        Rationale: fail-open; unclassified errors default to actionable to avoid silencing real bugs.
+
+    The four output fields feed the startup health classifier (A4):
+      error_class: coarse bucket for routing in Layer 1 of _classify_error_events.
+      failure_code: stable identifier; used as root_cause_key for telemetry grouping.
+      is_startup_actionable: True = real failure to count; False = suppress from alert.
+      root_cause_key: stable key for grouping; mirrors failure_code.
+    """
+    failure_code = f"{hook_name}_{error_type}"
+    root_cause_key = failure_code  # stable identifier
+
+    # Map error_type -> error_class + startup_actionable
+    if error_type in ("timeout_imminent", "timeout_killed", "timeout_terminated", "timeout_exceeded"):
+        return "timeout", failure_code, False, root_cause_key
+    if error_type in ("syntax_error", "parse_error"):
+        return "load_failure", failure_code, False, root_cause_key  # known fixed
+    if error_type in ("import_error", "module_not_found"):
+        return "load_failure", failure_code, True, root_cause_key  # actionable
+    if error_type == "runtime_error":
+        # Inspect traceback for known-fixed patterns
+        msg_lower = error_msg.lower()
+        tb_lower = (tb or "").lower()
+        combined = f"{msg_lower}|{tb_lower}"
+        if any(k in combined for k in ("name 'anomalies'", "name 'user_prompt'",
+                                        "attributeerror.*unknown", "attributeerror.*audit_report")):
+            return "known_fixed", failure_code, False, root_cause_key
+        return "runtime_error", failure_code, True, root_cause_key
+    # default
+    return "runtime_error", failure_code, True, root_cause_key
+
+
 def _log_error(hook_name: str, error_type: str, error_msg: str, tb: str) -> None:
     """Log error to cc_errors.jsonl, creating dirs if needed."""
     try:
         LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
+        error_class, failure_code, is_startup_actionable, root_cause_key = (
+            _error_class_and_code(hook_name, error_type, error_msg, tb)
+        )
 
         entry = {
             "timestamp": datetime.now(UTC).isoformat(),
@@ -95,6 +150,11 @@ def _log_error(hook_name: str, error_type: str, error_msg: str, tb: str) -> None
             "error_type": f"{hook_name}_{error_type}",
             "error_message": error_msg,
             "stack_trace": tb,
+            # Structured classification (A3)
+            "error_class": error_class,
+            "failure_code": failure_code,
+            "is_startup_actionable": is_startup_actionable,
+            "root_cause_key": root_cause_key,
             "context": {
                 "hook": hook_name,
                 "error_category": error_type,

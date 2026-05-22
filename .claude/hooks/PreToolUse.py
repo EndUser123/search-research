@@ -657,6 +657,7 @@ UNIVERSAL = [
     "PreToolUse_context_sufficiency_gate.py",  # Skill autonomy classification (ADR-20260329 CHANGE-002)
     "PreToolUse_skill_question_gate.py",  # One-question-max enforcement (ADR-20260329 CHANGE-003)
     "PreToolUse_delegation_gate.py",  # Block non-Task tools when delegation_expected state is set (2026-05-11)
+    "PreToolUse_user_delegation_gate.py",  # Block ask-user when investigation insufficient for diagnostic turns (2026-05-11)
     # NOTE: skill_metadata_advisory moved to UserPromptSubmit_modules/cognitive_guardrails.py (2026-04-07)
 ]
 

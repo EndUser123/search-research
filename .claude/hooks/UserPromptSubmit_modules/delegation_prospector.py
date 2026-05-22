@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import stat
 import tempfile
 import time
 from pathlib import Path
@@ -45,6 +46,16 @@ _SENSITIVE_PATTERNS = [
     re.compile(r"(?i)(?:bearer|api[_-]?key|token|secret|password|credential)[:\s]+[\S]{8,}"),
     re.compile(r"(?i)sk-[a-zA-Z0-9]{20,}"),
     re.compile(r"-----BEGIN [A-Z]+ PRIVATE KEY-----"),
+    # GitHub tokens
+    re.compile(r"ghp_[A-Za-z0-9]{36}"),
+    re.compile(r"gho_[A-Za-z0-9]{36}"),
+    re.compile(r"ghu_[A-Za-z0-9]{36}"),
+    re.compile(r"ghs_[A-Za-z0-9]{36}"),
+    re.compile(r"ghr_[A-Za-z0-9]{36}"),
+    # AWS access keys
+    re.compile(r"(?i)AKIA[0-9A-Z]{16}"),
+    # JWT tokens
+    re.compile(r"eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+"),
 ]
 
 def _redact_sensitive(value: str) -> str:
@@ -58,15 +69,22 @@ def _redact_sensitive(value: str) -> str:
 # Skills that are inherently delegation-oriented
 # Detection: prompt.lstrip().startswith(f"/{skill}") or f" /{skill} " in prompt
 _DELEGATION_HEAVY_SKILLS = frozenset([
-    "go",           # Dispatches subagents to worktrees
-    "code",         # TDD cycles, often parallelizable
-    "refactor",    # Multi-file cleanup
-    "tdd",          # Red/green/refactor phases
-    "subagent-driven-development",  # By name
-    "planning",    # Task decomposition
-    "team",         # Multi-agent coordination
-    "sqa",          # Quality analysis
-    "design",       # Architecture work
+    # /go variants (dispatches subagents to worktrees)
+    "go", "go_pi", "go2", "go-ct",
+    # TDD implementation (uses subagents for red/green/refactor)
+    "code", "code_v3.0", "code_v4.0", "code_v3-0", "code_v4-0",
+    # Code review (dispatches parallel specialist agents)
+    "code-review", "requesting-code-review",
+    # Planning/dispatching (adversarial subagents)
+    "planning", "dispatching-parallel-agents", "subagent-driven-development",
+    # Multi-agent workflows
+    "executing-plans", "improve-codebase-architecture", "team",
+    # TDD phases
+    "tdd", "test-driven-development", "refactor",
+    # Quality analysis
+    "sqa", "pre-mortem",
+    # Architecture
+    "design",
 ])
 
 # Detection patterns for implicit multi-surface work (fallback when no skill invoked)
@@ -168,16 +186,19 @@ def _write_delegation_state(terminal_id: str, matched_pattern: str | None, promp
     state_data = {
         "terminal_id": terminal_id,
         "detected_at": time.time(),
-        "matched_pattern": matched_pattern,
-        "prompt_snippet": _redact_sensitive(prompt_snippet[:200]) if prompt_snippet else "",
+        "matched_pattern": _redact_sensitive(matched_pattern) if matched_pattern else None,
+        "prompt_snippet": _redact_sensitive(prompt_snippet)[:200] if prompt_snippet else "",
     }
-    # Atomic write
+    # Atomic write with explicit permissions
     with tempfile.NamedTemporaryFile(
         mode="w", dir=str(state_dir), delete=False, suffix=".tmp", encoding="utf-8"
     ) as tmp:
         json.dump(state_data, tmp, indent=2)
         tmp_path = tmp.name
     os.replace(tmp_path, str(state_file))
+    # Set restrictive permissions (owner read/write only)
+    import stat as _stat
+    os.chmod(state_file, _stat.S_IRUSR | _stat.S_IWUSR)
 
 
 def _clear_delegation_state() -> None:

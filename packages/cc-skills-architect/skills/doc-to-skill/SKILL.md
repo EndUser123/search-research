@@ -1,21 +1,13 @@
 ---
-name: doc_to_skill
+name: doc-to-skill
 description: Convert documentation into Claude Skills using automated scraping and AI enhancement
 version: "1.0.0"
 status: "stable"
 category: generation
 triggers:
-  - /doc-to-skill
 aliases:
-  - /doc-to-skill
-
 suggest:
-  - /skills-migrate
-  - /orchestrator
-  - /build
-  - /skill-ship
 ---
-
 # Documentation to Skill Converter
 
 Automatically convert documentation (websites, GitHub repos, PDFs) into production-ready Claude Skills.
@@ -172,6 +164,37 @@ my-docs/
     ├── images/
     └── diagrams/
 ```
+
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious
+
+## PHASE STRUCTURE
+
+```
+PHASE 1: CONFIGURE + SCRAPE (Generation) — Select source type, configure selectors/options
+    ↓ STOP: Present source configuration before conversion
+PHASE 2: CONVERT + ENHANCE (Generation) — Run conversion with optional enhancement
+    ↓ STOP: Present converted skill preview before validation
+PHASE 3: VALIDATE (Validation) — Validate YAML, categorization, structure compliance
+```
+
+**STOP conditions:**
+- Between PHASE 1 and PHASE 2: STOP after source configured (confirm before scraping)
+- Between PHASE 2 and PHASE 3: STOP after conversion completes (present preview before validation)
+- Between PHASE 3 and end: STOP after validation report (user confirms before test)
+
+**Key separation**: Configuration and scraping is Generation. Conversion and enhancement is Generation. Validation is Validation.
 
 ## Quality Gates
 

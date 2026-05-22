@@ -101,6 +101,37 @@ CEL routing not matching. Check `/bf status` — ensure `enabled=1` for the rule
 | `/bf review M27 prompt` | `/ai-api review M27 prompt` |
 | `/bf explore GLM-5.1 prompt` | `/ai-api explore GLM-5.1 prompt` |
 
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming code is absent, unchanged, or non-existent — search the codebase and verify with tools first. Claims of absence are only valid after confirmed Read/Grep/git failures.
+
+### E4 — Investigate before asking
+Do NOT answer without reading relevant source files first. Do not ask the user for information you can obtain yourself via Read, Grep, Bash, git, or available MCP tools.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without tool verification
+- Claiming something doesn't exist without confirmed tool failure
+- Skipping evidence gathering because the answer seems obvious
+
+## PHASE STRUCTURE
+
+```
+PHASE 1: PARSE + ROUTE (Generation) — Identify command, match workflow_steps pattern
+    ↓ STOP: Confirm routing decision before execution
+PHASE 2: EXECUTE (Generation) — Run the matched command/script
+    ↓ STOP: Report result before completion
+PHASE 3: REPORT (Validation) — Format and present result to user
+```
+
+**STOP conditions:**
+- Between PHASE 1 and PHASE 2: STOP after routing decision (confirm correct path)
+- Between PHASE 2 and PHASE 3: STOP after execution completes (verify success)
+- Between PHASE 3 and end: STOP after result formatted (user sees output)
+
+**Key separation**: Parsing/routing is Generation. Command execution is Generation. Result reporting is Validation.
+
 **For Bifrost HTTP routing:** add `bf` after `/ai-api`:
 ```bash
 /ai-api bf brainstorm M27 prompt  # routes through Bifrost daemon
