@@ -365,7 +365,7 @@ c.execute("""
     FROM routing_rules r
     LEFT JOIN routing_targets rt ON rt.rule_id = r.id
     WHERE r.enabled = 1
-    ORDER BY r.priority
+    ORDER BY r.priority DESC
 """)
 rules = []
 for row in c.fetchall():

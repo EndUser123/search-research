@@ -25,7 +25,7 @@ def get_routes() -> dict:
         FROM routing_rules r
         LEFT JOIN routing_targets rt ON rt.rule_id = r.id
         WHERE r.cel_expression IS NOT NULL AND r.cel_expression != ''
-        ORDER BY r.priority
+        ORDER BY r.priority DESC
     """)
     routes = {}
     for row in c.fetchall():
@@ -54,7 +54,7 @@ def get_rules() -> list[dict]:
         SELECT r.id, r.name, r.cel_expression, r.scope, r.priority, rt.provider, rt.model, rt.weight
         FROM routing_rules r
         LEFT JOIN routing_targets rt ON rt.rule_id = r.id
-        ORDER BY r.priority
+        ORDER BY r.priority DESC
     """)
     rules = []
     for row in c.fetchall():

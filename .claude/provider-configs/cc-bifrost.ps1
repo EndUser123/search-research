@@ -34,20 +34,24 @@ param(
 
 # --- SECURITY: Load Secrets from Vault ---
 $envPath = "P:\.env"
-if (Test-Path $envPath) {
-    Get-Content $envPath | Where-Object { $_ -match '^([^=]+)=(.*)$' } | ForEach-Object {
-        [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
-    }
-} else {
-    Write-Host "[WARN] No .env file found at $envPath. Using fallbacks." -ForegroundColor Yellow
+if (-not (Test-Path $envPath)) {
+    Write-Host "[ERROR] .env file not found at $envPath. Create it with BIFROST_API_KEY and ANTHROPIC_AUTH_TOKEN." -ForegroundColor Red
+    exit 1
+}
+Get-Content $envPath | Where-Object { $_ -match '^([^=]+)=(.*)$' } | ForEach-Object {
+    [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
 }
 
-$env:ANTHROPIC_BASE_URL = "http://localhost:8080/anthropic"
-if (-not $env:BIFROST_API_KEY) { $env:BIFROST_API_KEY = "sk-bf-49998d75-3b06-4e72-8547-741cb81b497e" }
+if (-not $env:BIFROST_API_KEY) {
+    Write-Host "[ERROR] BIFROST_API_KEY is not set. Set it in P:\.env or your environment." -ForegroundColor Red
+    exit 1
+}
 $env:ANTHROPIC_API_KEY = $env:BIFROST_API_KEY
 
-# AUTH_TOKEN is required for Claude Code's model picker to honor the tier model env vars
-$env:ANTHROPIC_AUTH_TOKEN = "sk-cp-KaSmY8e9E1Pw9XbCWOiVexNvnLGwmKJ8fBGf57gEvA3fb95gq73n7AGVyIL3zBrjvFzxRQFyocfa8QdgborzQoupFzI0UX5cjw7MCkIY3DCy5-kAFVza5z8"
+if (-not $env:ANTHROPIC_AUTH_TOKEN) {
+    Write-Host "[ERROR] ANTHROPIC_AUTH_TOKEN is not set. Set it in P:\.env or your environment." -ForegroundColor Red
+    exit 1
+}
 
 # Default: all tiers to MiniMax-M2.7 (Bifrost routing key -> MiniMax/MiniMax-M2.7)
 $env:ANTHROPIC_DEFAULT_SONNET_MODEL = "MiniMax-M2.7"
@@ -166,6 +170,33 @@ function Get-BifrostRulesFromDb {
     return @()
 }
 
+# Known catalog provider names (case-sensitive — Bifrost catalog uses exact spelling)
+$CATALOG_PROVIDERS = @{
+    "cerebras" = $true
+    "gemini"   = $true
+    "groq"     = $true
+    "mistral"  = $true
+    "openrouter" = $true
+    "Minimax"  = $true   # custom (capital M)
+    "Nvidia"   = $true   # custom (capital N)
+    "Z.AI"     = $true   # custom (with dot)
+}
+
+function Test-BifrostRuleTarget {
+    param([hashtable]$rule)
+    foreach ($target in @($rule.targets)) {
+        $provider = $target.provider
+        if ($provider -and -not $CATALOG_PROVIDERS.ContainsKey($provider)) {
+            return $false
+        }
+        $model = $target.model
+        if (-not $model -or $model.Trim() -eq "") {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Sync-BifrostConfig {
     $configPath = "$env:APPDATA\bifrost\config.json"
     $backupPath = "$env:APPDATA\bifrost\config.backup_$(Get-Date -f 'yyyyMMdd-HHmmss').json"
@@ -181,18 +212,35 @@ function Sync-BifrostConfig {
         return
     }
 
+    # Filter to catalog-valid targets only (clean_sync: skip rules referencing non-catalog providers)
+    $cleanRules = @()
+    $skipped = 0
+    foreach ($rule in $rules) {
+        if (Test-BifrostRuleTarget $rule) {
+            $cleanRules += $rule
+        } else {
+            $skipped++
+            $p = $rule.targets | ForEach-Object { $_.provider } | Sort-Object -Unique
+            Write-Host "   [SKIP] Rule '$($rule.name)' references non-catalog provider(s): $($p -join ', ')" -ForegroundColor Yellow
+        }
+    }
+
+    if ($skipped -gt 0) {
+        Write-Host "   Skipped $skipped rules with non-catalog provider targets" -ForegroundColor Yellow
+    }
+
     $config = @{
         '$schema' = "https://www.getbifrost.ai/schema"
         version   = 1
         providers = @{}
         governance = @{
-            routing_rules = @($rules)
+            routing_rules = @($cleanRules)
         }
     }
 
     $cleanConfig = $config | ConvertTo-Json -Depth 10
     [System.IO.File]::WriteAllText($configPath, $cleanConfig, [System.Text.Encoding]::UTF8)
-    Write-Host "   Synced $($rules.Count) rules from DB -> config.json" -ForegroundColor Green
+    Write-Host "   Synced $($cleanRules.Count) catalog-valid rules ($skipped non-catalog skipped) -> config.json" -ForegroundColor Green
 }
 
 # --- ORCHESTRATION: Strict PID Management ---
@@ -299,8 +347,8 @@ function Restart-BifrostDaemon {
     if ($ready) {
         Write-Host "   Bifrost API ready" -ForegroundColor Green
     } else {
-        Write-Host "   [WARN] Bifrost API not responding after 70s -- verification skipped" -ForegroundColor Yellow
-        return
+        Write-Host "   [ERROR] Bifrost API not responding after 70s -- restart failed" -ForegroundColor Red
+        exit 1
     }
     Verify-BifrostRouting
 }
@@ -317,6 +365,7 @@ function Show-BifrostRoutes {
 }
 
 function Show-BifrostDashboard {
+    $proc = Get-BifrostProcess
     if (-not $proc) {
         Write-Host "   [ERROR] Bifrost is not running -- start it first with /bf start" -ForegroundColor Red
         return

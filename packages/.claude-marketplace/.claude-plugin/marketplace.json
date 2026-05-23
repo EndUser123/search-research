@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "snapshot",
-      "version": "0.5.10",
+      "version": "0.5.11",
       "description": "Session snapshot capture and restore system for Claude Code sessions",
       "source": "./plugins/snapshot",
       "keywords": [
@@ -54,7 +54,7 @@
     },
     {
       "name": "cc-skills-media",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "description": "Media processing and generation skills for Claude Code",
       "source": "./plugins/cc-skills-media",
       "keywords": [
@@ -65,7 +65,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.32",
+      "version": "1.0.35",
       "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -76,7 +76,7 @@
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.1.17",
+      "version": "1.1.18",
       "description": "Utility skills for Claude Code",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
@@ -98,7 +98,7 @@
     },
     {
       "name": "skill-guard",
-      "version": "2.1.13",
+      "version": "2.1.16",
       "description": "Universal skill auto-discovery and enforcement for Claude Code",
       "source": "./plugins/skill-guard",
       "keywords": [
@@ -132,14 +132,14 @@
     },
     {
       "name": "cc-skills-analysis",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "description": "Analysis plugin",
       "source": "./plugins/cc-skills-analysis",
       "keywords": []
     },
     {
       "name": "fact-guard",
-      "version": "0.1.7",
+      "version": "0.1.8",
       "description": "Prevents fabricated values, adjacent-entry contamination, and unsupported completion claims in structured edits",
       "source": "./plugins/fact-guard",
       "keywords": [
@@ -164,7 +164,7 @@
     },
     {
       "name": "quickstop",
-      "version": "0.1.0",
+      "version": "0.1.2",
       "description": "Claude Code utilities: audit configs (claudit), auto-documentation (inkwell), and skill building (skillet)",
       "source": "./plugins/quickstop",
       "keywords": [
@@ -191,6 +191,22 @@
         "cleanup",
         "breadcrumb",
         "snapshot"
+      ]
+    },
+    {
+      "name": "cc-aca-epistemic",
+      "version": "0.1.1",
+      "description": "ACA Epistemic plugin - evidence verification, claim validation, provenance tracking, anti-fabrication enforcement, and anti-sycophancy detection. Part of the Agent Control Architecture.",
+      "source": "./plugins/cc-aca-epistemic",
+      "keywords": [
+        "aca",
+        "epistemic",
+        "evidence",
+        "verification",
+        "provenance",
+        "anti-fabrication",
+        "anti-sycophancy",
+        "claim-validation"
       ]
     }
   ]

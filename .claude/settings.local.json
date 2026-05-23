@@ -180,7 +180,15 @@
       "Bash(cp \"C:/Users/brsth/.claude/plugins/cache/quickstop/claudit/2.6.0/skills/knowledge/SKILL.md\" \"P:/packages/claudit/skills/knowledge/SKILL.md\")",
       "Bash(cp \"C:/Users/brsth/.claude/plugins/cache/quickstop/claudit/2.6.0/references/cache-check-protocol.md\" \"P:/packages/claudit/references/cache-check-protocol.md\")",
       "Bash(cp \"C:/Users/brsth/.claude/plugins/cache/quickstop/claudit/2.6.0/references/decision-memory-protocol.md\" \"P:/packages/claudit/references/decision-memory-protocol.md\")",
-      "Bash(cp \"C:/Users/brsth/.claude/plugins/cache/quickstop/claudit/2.6.0/agents/\"*.md \"P:/packages/claudit/agents/\")"
+      "Bash(cp \"C:/Users/brsth/.claude/plugins/cache/quickstop/claudit/2.6.0/agents/\"*.md \"P:/packages/claudit/agents/\")",
+      "mcp__plugin_serena_serena__get_current_config",
+      "mcp__plugin_serena_serena__get_symbols_overview",
+      "Bash(cmd /c rmdir \"P:\\\\packages\\\\.claude-marketplace\\\\plugins\\\\claudit\")",
+      "Bash(rm -rf \"C:/Users/brsth/.claude/plugins/cache/local/claudit\")",
+      "mcp__plugin_serena_serena__create_text_file",
+      "Bash(mkdir -p /p/.claude/.artifacts/console_335aa7aa-bdf7-4b27-9ccf-83514bf3fdd1/pre-mortem/pre-mortem-20260522_184927/specialists)",
+      "Bash(python3 -c \"print\\('test'\\)\")",
+      "mcp__aid__distill_directory"
     ],
     "deny": [],
     "ask": []
