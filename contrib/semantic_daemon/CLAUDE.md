@@ -127,7 +127,7 @@ if result["status"] == "success":
 
 ```bash
 # Run as standalone process
-cd P:\\\\\\__csf/src
+cd P://__csf/src
 python -m daemons.unified_semantic_daemon --verbose
 
 # With custom workers
@@ -264,8 +264,8 @@ Stop hook (cks_context) → DaemonClient.send_write_signal()
 |-----------|------|------|
 | `DaemonClient` | `daemon_client.py` | Sends advisory `cks_write` signal via `send_write_signal()` |
 | `UnifiedSemanticDaemon` | `unified_semantic_daemon.py` | Listens on `WRITE_SIGNAL_PIPE_NAME`, sets `_faiss_dirty` on signal |
-| `Stop_cks_correction_anchor.py` | `P:\\\\\\.claude/hooks/` | Sends signal after `ingest_memory()` for corrections |
-| `Stop_cks_decision_capture.py` | `P:\\\\\\.claude/hooks/` | Sends signal after `extract_and_ingest_decisions()` |
+| `Stop_cks_correction_anchor.py` | `P://.claude/hooks/` | Sends signal after `ingest_memory()` for corrections |
+| `Stop_cks_decision_capture.py` | `P://.claude/hooks/` | Sends signal after `extract_and_ingest_decisions()` |
 
 ### Wire Protocol
 
@@ -337,7 +337,7 @@ The daemon uses **fixed pipe names** (no dynamic `_{pid}_{timestamp}` suffix). S
 - `PIPE_NAME`: `\\.\pipe\csf_semantic` — search query pipe
 - `WRITE_SIGNAL_PIPE_NAME`: `\\.\pipe\csf_semantic_write_signal` — advisory write-signal pipe
 
-**Discovery File**: `P:\\\\\\__csf/data/semantic_daemon_discovery.json`
+**Discovery File**: `P://__csf/data/semantic_daemon_discovery.json`
 
 Clients read this file to find the current daemon's pipe names.
 
@@ -361,17 +361,17 @@ Clients read this file to find the current daemon's pipe names.
 **Constants**:
 | Constant | Value | Purpose |
 |----------|-------|---------|
-| `DISCOVERY_FILE` | `P:\\\\\\__csf/data/semantic_daemon_discovery.json` | Discovery file path |
+| `DISCOVERY_FILE` | `P://__csf/data/semantic_daemon_discovery.json` | Discovery file path |
 | `FAISS_UPDATE_INTERVAL` | `600.0` (10 minutes) | FAISS auto-refresh idle interval |
-| `FAISS_INDEX_PATH` | `P:\\\\\\__csf/data/chat_history_faiss_424k` | FAISS index location |
-| `FAISS_STATE_PATH` | `P:\\\\\\__csf/data/chs_index_state.json` | FAISS incremental state |
-| `FAISS_LOCK_PATH` | `P:\\\\\\__csf/.data/daemon/faiss_update.lock` | Multi-terminal FAISS update lock |
+| `FAISS_INDEX_PATH` | `P://__csf/data/chat_history_faiss_424k` | FAISS index location |
+| `FAISS_STATE_PATH` | `P://__csf/data/chs_index_state.json` | FAISS incremental state |
+| `FAISS_LOCK_PATH` | `P://__csf/.data/daemon/faiss_update.lock` | Multi-terminal FAISS update lock |
 
 ## FAISS Index Management
 
 ### Current Status (V2 Schema)
 
-- **Database**: `P:\\\\\\__csf/data/chat_history.db` (v2 schema)
+- **Database**: `P://__csf/data/chat_history.db` (v2 schema)
 - **Messages**: 389,332 messages indexed
 - **Turns**: 133,231 turn pairs
 - **Sessions**: 2,008 sessions
@@ -382,8 +382,8 @@ Clients read this file to find the current daemon's pipe names.
 | Data Type | Location | Owner |
 |-----------|----------|-------|
 | **Source** | `~/.claude/history.jsonl` (2.7GB) | Claude Code system |
-| **Derived (SQLite)** | `P:\\\\\\__csf/data/chat_history.db` | Project-managed |
-| **Derived (FAISS)** | `P:\\\\\\__csf/data/chat_history_faiss_424k` | Project-managed (legacy) |
+| **Derived (SQLite)** | `P://__csf/data/chat_history.db` | Project-managed |
+| **Derived (FAISS)** | `P://__csf/data/chat_history_faiss_424k` | Project-managed (legacy) |
 
 **Important**: The source data (`~/.claude/history.jsonl`) is system-owned and never moved. The derived indexes are project-managed.
 
@@ -392,13 +392,13 @@ Clients read this file to find the current daemon's pipe names.
 When reindex is needed (schema update, corruption, or initial setup):
 
 ```bash
-cd P:\\\\\\packages/search-research
-PYTHONPATH=P:\\\\\\packages/search-research/core python -m core.chs.scripts.reindex_from_jsonl
+cd P://packages/search-research
+PYTHONPATH=P://packages/search-research/core python -m core.chs.scripts.reindex_from_jsonl
 ```
 
 This will:
 - Read from `~/.claude/history.jsonl` (~465k entries)
-- Create/replace `P:\\\\\\__csf/data/chat_history.db` with v2 schema
+- Create/replace `P://__csf/data/chat_history.db` with v2 schema
 - Populate `messages`, `turns`, and FTS5 tables
 - Extract plain text from complex message structures
 
@@ -408,7 +408,7 @@ This will:
 # 1. Check database record counts
 python -c "
 import sqlite3
-conn = sqlite3.connect('P:\\\\\\__csf/data/chat_history.db')
+conn = sqlite3.connect('P://__csf/data/chat_history.db')
 print('messages:', conn.execute('SELECT COUNT(*) FROM messages').fetchone()[0])
 print('turns:', conn.execute('SELECT COUNT(*) FROM turns').fetchone()[0])
 print('messages_fts:', conn.execute('SELECT COUNT(*) FROM messages_fts').fetchone()[0])
@@ -416,9 +416,9 @@ print('turns_fts:', conn.execute('SELECT COUNT(*) FROM turns_fts').fetchone()[0]
 "
 
 # 2. Test FTS5 search directly
-PYTHONPATH=P:\\\\\\packages/search-research/core python -c "
+PYTHONPATH=P://packages/search-research/core python -c "
 from core.chs.db import get_connection
-conn = get_connection('P:\\\\\\__csf/data/chat_history.db')
+conn = get_connection('P://__csf/data/chat_history.db')
 cursor = conn.execute('''
     SELECT m.role, SUBSTR(m.content, 1, 80)
     FROM messages_fts
@@ -524,7 +524,7 @@ Get-CimInstance Win32_Process |
   ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
 ```
 
-See: `P:\\\\\\__csf/docs/semantic_daemon_console_flash_typing_issue.md`
+See: `P://__csf/docs/semantic_daemon_console_flash_typing_issue.md`
 
 ## Zombie Daemon Prevention
 

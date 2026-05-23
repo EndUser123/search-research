@@ -14,25 +14,25 @@ description: Ingest GitHub repos into NotebookLM — clone, slice, and upload in
 
 ```bash
 # 1. Copy the config template to .staging
-cp references/repos-template.yaml P:\\\\\\.staging/my-repos.yaml
+cp references/repos-template.yaml P://.staging/my-repos.yaml
 
 # 2. Edit the config — add your repos and notebook ID
-vim P:\\\\\\.staging/my-repos.yaml
+vim P://.staging/my-repos.yaml
 
 # 3. Dry run (verify what would happen)
-python scripts/gitingest_runner.py --config P:\\\\\\.staging/my-repos.yaml --dry-run
+python scripts/gitingest_runner.py --config P://.staging/my-repos.yaml --dry-run
 
 # 4. Run for real
-python scripts/gitingest_runner.py --config P:\\\\\\.staging/my-repos.yaml
+python scripts/gitingest_runner.py --config P://.staging/my-repos.yaml
 ```
 
 ---
 
 ## Config file (`references/repos-template.yaml`)
 
-**Config files are templates in `references/` — actual configs live in `P:\\\\\\.staging/` (not `/tmp/`), never in the skill itself.**
+**Config files are templates in `references/` — actual configs live in `P://.staging/` (not `/tmp/`), never in the skill itself.**
 
-> **Note:** On this system, `/tmp` is blocked by `PreToolUse_directory_policy.py`. Use `P:\\\\\\.staging/` instead.
+> **Note:** On this system, `/tmp` is blocked by `PreToolUse_directory_policy.py`. Use `P://.staging/` instead.
 
 ```yaml
 notebooklm_id: "your-notebook-id-from-url"

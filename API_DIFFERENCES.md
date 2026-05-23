@@ -15,8 +15,8 @@ All critical backends (grep, cds, skills, kg, rlm) have **compatible APIs**. The
 ## GrepBackend
 
 ### Location
-- **Legacy**: `P:\\\\\\__csf/src/search/backends/grep_backend.py`
-- **New**: `P:\\\\\\packages/search-research/core/backends/local/grep_backend.py`
+- **Legacy**: `P://__csf/src/search/backends/grep_backend.py`
+- **New**: `P://packages/search-research/core/backends/local/grep_backend.py`
 
 ### API Differences
 
@@ -34,11 +34,11 @@ All critical backends (grep, cds, skills, kg, rlm) have **compatible APIs**. The
 ```python
 # BEFORE (legacy)
 from search.backends.grep_backend import GrepBackend
-backend = GrepBackend(root_paths=["P:\\\\\\src"])
+backend = GrepBackend(root_paths=["P://src"])
 
 # AFTER (new)
 from core.backends.local.grep_backend import GrepBackend
-backend = GrepBackend(root_paths=["P:\\\\\\src"])
+backend = GrepBackend(root_paths=["P://src"])
 # API is 100% compatible - just change import path
 ```
 
@@ -47,8 +47,8 @@ backend = GrepBackend(root_paths=["P:\\\\\\src"])
 ## CDSBackend
 
 ### Location
-- **Legacy**: `P:\\\\\\__csf/src/search/backends/cds_backend.py`
-- **New**: `P:\\\\\\packages/search-research/core/backends/local/cds_backend.py`
+- **Legacy**: `P://__csf/src/search/backends/cds_backend.py`
+- **New**: `P://packages/search-research/core/backends/local/cds_backend.py`
 
 ### API Differences
 
@@ -65,11 +65,11 @@ backend = GrepBackend(root_paths=["P:\\\\\\src"])
 ```python
 # BEFORE (legacy)
 from search.backends.cds_backend import CDSBackend
-backend = CDSBackend(root_paths=["P:\\\\\\src"])
+backend = CDSBackend(root_paths=["P://src"])
 
 # AFTER (new)
 from core.backends.local.cds_backend import CDSBackend
-backend = CDSBackend(root_paths=["P:\\\\\\src"])
+backend = CDSBackend(root_paths=["P://src"])
 # API is 100% compatible - just change import path
 ```
 
@@ -78,8 +78,8 @@ backend = CDSBackend(root_paths=["P:\\\\\\src"])
 ## KGBackend
 
 ### Location
-- **Legacy**: `P:\\\\\\__csf/src/search/backends/kg_backend.py`
-- **New**: `P:\\\\\\packages/search-research/core/backends/local/kg_backend.py`
+- **Legacy**: `P://__csf/src/search/backends/kg_backend.py`
+- **New**: `P://packages/search-research/core/backends/local/kg_backend.py`
 
 ### API Differences
 
@@ -109,8 +109,8 @@ backend = KGBackend()
 ## SkillsBackend
 
 ### Location
-- **Legacy**: `P:\\\\\\__csf/src/search/backends/skills_backend.py`
-- **New**: `P:\\\\\\packages/search-research/core/backends/local/skills_backend.py`
+- **Legacy**: `P://__csf/src/search/backends/skills_backend.py`
+- **New**: `P://packages/search-research/core/backends/local/skills_backend.py`
 
 ### API Differences
 
@@ -157,8 +157,8 @@ backend = SkillsBackend()
 ## RLMBackend
 
 ### Location
-- **Legacy**: `P:\\\\\\__csf/src/search/backends/rlm_backend.py`
-- **New**: `P:\\\\\\packages/search-research/core/backends/local/rlm_backend.py`
+- **Legacy**: `P://__csf/src/search/backends/rlm_backend.py`
+- **New**: `P://packages/search-research/core/backends/local/rlm_backend.py`
 
 ### API Differences
 
@@ -205,7 +205,7 @@ backend = RLMBackend()
 ## MultiLangCodeBackend (NOT YET MIGRATED)
 
 ### Location
-- **Legacy**: `P:\\\\\\__csf/src/search/backends/multilang_backend.py`
+- **Legacy**: `P://__csf/src/search/backends/multilang_backend.py`
 - **New**: ❌ Does not exist - **TASK-004 required**
 
 ### Migration Required
@@ -220,11 +220,11 @@ This is the **ONLY** backend that needs actual code migration. All others alread
 ```python
 # BEFORE (legacy)
 from search.backends.multilang_backend import MultiLangCodeBackend
-backend = MultiLangCodeBackend(root_paths=["P:\\\\\\src"])
+backend = MultiLangCodeBackend(root_paths=["P://src"])
 
 # AFTER (new) - after migration
 from core.backends.local.multilang_backend import MultiLangCodeBackend
-backend = MultiLangCodeBackend(root_paths=["P:\\\\\\src"])
+backend = MultiLangCodeBackend(root_paths=["P://src"])
 ```
 
 ---
@@ -232,7 +232,7 @@ backend = MultiLangCodeBackend(root_paths=["P:\\\\\\src"])
 ## BaseLocalBackend (New Shared Infrastructure)
 
 ### Location
-- **New**: `P:\\\\\\packages/search-research/core/backends/local/base_local_backend.py`
+- **New**: `P://packages/search-research/core/backends/local/base_local_backend.py`
 
 ### Purpose
 Provides shared functionality for local search backends:

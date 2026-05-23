@@ -7,7 +7,7 @@ Implemented weighted multi-signal scoring combining similarity (60%), boost (20%
 
 ### Files Modified
 
-#### 1. `P:\\\\\\__csf.nip\src\features\cks\unified.py`
+#### 1. `P://__csf.nip/src/features/cks/unified.py`
 
 **Added:**
 - `_calculate_final_score()` method that combines multiple ranking signals
@@ -45,7 +45,7 @@ final_score = (
   - Sort results by `final_score` instead of `boosted_similarity`
   - Include `final_score` and `usage_count` in result dictionaries
 
-#### 2. `P:\\\\\\__csf.nip\src\features\core_utils\claude_code_cks_bridge.py`
+#### 2. `P://__csf.nip/src/features/core_utils/claude_code_cks_bridge.py`
 
 **Modified:**
 - `prepare_session()` method to:
