@@ -63,7 +63,7 @@ import re
 from pathlib import Path
 
 HARDCODE_PATTERNS = [
-    r'P:\\\\+',      # P:\\ or P:\\\\\
+    r'P://+',      # P:/ or P:/
     r'P:',           # P: (in some contexts)
     r'C:\\\\+',      # C:\\ or higher
     r'/Users/',      # macOS home
@@ -103,7 +103,7 @@ def check_paths(target_dir: Path) -> tuple[bool, list[str]]:
 **Fix**: Replace hardcoded paths with `${CLAUDE_PLUGIN_ROOT}`:
 ```python
 # WRONG
-path = "P:\\packages\my-plugin\scripts"
+path = "P:/packages/my-plugin/scripts"
 
 # CORRECT
 path = "${CLAUDE_PLUGIN_ROOT}/scripts"

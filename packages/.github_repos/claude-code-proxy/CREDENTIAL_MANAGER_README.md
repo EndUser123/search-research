@@ -34,7 +34,7 @@ python credential_manager.py list
 
 ```powershell
 # PowerShell
-$env:OPENAI_API_KEY = python "P:\packages\.mcp\claude-code-proxy\credential_manager.py" get OPENAI_API_KEY
+$env:OPENAI_API_KEY = python "P:/packages/.mcp/claude-code-proxy/credential_manager.py" get OPENAI_API_KEY
 
 # Bash/Git Bash
 export OPENAI_API_KEY="$(python P:/packages/.mcp/claude-code-proxy/credential_manager.py get OPENAI_API_KEY)"
@@ -58,8 +58,8 @@ Example startup script:
 
 ```powershell
 # load_credentials.ps1
-$env:OPENAI_API_KEY = python "P:\packages\.mcp\claude-code-proxy\credential_manager.py" get OPENAI_API_KEY
-$env:OPENROUTER_API_KEY = python "P:\packages\.mcp\claude-code-proxy\credential_manager.py" get OPENROUTER_API_KEY
+$env:OPENAI_API_KEY = python "P:/packages/.mcp/claude-code-proxy/credential_manager.py" get OPENAI_API_KEY
+$env:OPENROUTER_API_KEY = python "P:/packages/.mcp/claude-code-proxy/credential_manager.py" get OPENROUTER_API_KEY
 
 # Start proxy
 .\run.sh

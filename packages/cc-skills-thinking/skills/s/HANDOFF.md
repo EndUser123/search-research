@@ -22,7 +22,7 @@
 **Priority**: HIGH | **Evidence**: Fetches from provider APIs, uses shared cache
 
 **Key changes:**
-- Imports from `P:\\\\\\__csf/src/llm/providers/utils/model_enumerator.py`
+- Imports from `P://__csf/src/llm/providers/utils/model_enumerator.py`
 - Uses `APIKeyManager` from `src.core.config.api_keys`
 - Implements 12-hour cache at `~/.claude/llm-api-models.json` (same as `/ai-api`)
 - Async model fetching with parallel provider queries
@@ -88,7 +88,7 @@ Tier context is still provided in section headers ("API PROVIDER: GROQ", etc.)
 
 ### Shared Infrastructure Used
 
-1. **Model Enumerator**: `P:\\\\\\__csf/src/llm/providers/utils/model_enumerator.py`
+1. **Model Enumerator**: `P://__csf/src/llm/providers/utils/model_enumerator.py`
    - `enumerate_openrouter_models()` - Fetch from OpenRouter API
    - `enumerate_chutes_models()` - Fetch from Chutes API
    - `enumerate_groq_models()` - Fetch from Groq API
@@ -125,7 +125,7 @@ Check cache: ~/.claude/llm-api-models.json
 
 ## Verification
 
-**Test command:** `python P:\\\\\\.claude/skills/s/scripts/run_heavy.py --topic "list"`
+**Test command:** `python P://.claude/skills/s/scripts/run_heavy.py --topic "list"`
 
 **Expected output:**
 - Dynamic models from provider APIs

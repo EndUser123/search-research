@@ -613,6 +613,75 @@ class CHSExporter:
         most_recent = max(candidates, key=lambda f: f.stat().st_mtime)
         return most_recent.stem
 
+    @staticmethod
+    def _registry_entries_to_chain_paths(
+        registry_entries: list[dict],
+        max_sessions: int,
+    ) -> list[tuple[str, str]]:
+        """Convert registry entries (queried by session_id) to chain_paths format.
+
+        Returns list of (session_id, transcript_path) tuples, oldest-first,
+        deduplicated by transcript_path.
+        """
+        seen: set[str] = set()
+        chain: list[tuple[str, str]] = []
+        for entry in registry_entries:
+            tp = entry.get("transcript_path")
+            if not tp or tp in seen:
+                continue
+            seen.add(tp)
+            chain.append((entry.get("session_id", ""), tp))
+        chain = chain[-max_sessions:]
+        return chain
+
+    def _export_from_chain_paths(
+        self,
+        session_id: str,
+        chain_paths: list[tuple[str, str]],
+        output_path: Path | None,
+    ) -> Path:
+        """Write all transcripts from chain_paths to one markdown file."""
+        if output_path is None:
+            exports_dir = Path.home() / ".claude" / "exports"
+            try:
+                exports_dir.mkdir(parents=True, exist_ok=True)
+            except (PermissionError, OSError) as exc:
+                raise ValueError(f"Cannot create exports directory {exports_dir}: {exc}") from exc
+
+            now = datetime.now()
+            timestamp = now.strftime("%Y%m%d_%H%M%S")
+            output_path = exports_dir / f"chain_{timestamp}.md"
+
+        projects_dir = Path.home() / ".claude" / "projects"
+
+        try:
+            with open(output_path, "w", encoding="utf-8", newline="\n") as out:
+                now = datetime.now()
+                out.write(f"# Session Chain Export\n\n")
+                out.write(f"**Root session:** {session_id}  \n")
+                out.write(f"**Exported:** {now.strftime('%Y-%m-%d %H:%M:%S')}  \n")
+                out.write(f"**Sessions in chain:** {len(chain_paths)}\n\n")
+                out.write("---\n\n")
+
+                for i, (sid, full_path) in enumerate(chain_paths, 1):
+                    path = Path(full_path)
+                    try:
+                        path.resolve().relative_to(projects_dir.resolve())
+                    except ValueError:
+                        out.write(f"## Session {i} — `{sid}`\n\n")
+                        out.write(f"*[Error: Invalid path: {full_path} (outside allowed directory)]*\n\n")
+                        out.write("---\n\n")
+                        continue
+
+                    out.write(f"## Session {i} — `{path.stem}`\n\n")
+                    self._format_transcript_to_file(path, out)
+                    out.write("\n---\n\n")
+
+        except (PermissionError, OSError) as exc:
+            raise ValueError(f"Failed to write export file {output_path}: {exc}") from exc
+
+        return output_path
+
     def export_chain(
         self,
         session_id: str | None = None,
@@ -621,17 +690,38 @@ class CHSExporter:
     ) -> Path:
         """Walk the session chain and write all transcripts to one markdown file.
 
-        Uses sessions-index.json approach (like /recap) for accurate chain building:
-        1. Load sessions-index.json
-        2. Validate paths and filter to entries with existing transcripts
-        3. Take the max_sessions most recent by startedAt
-        4. Parse each transcript chronologically
+        Strategy:
+        1. Try session_registry.jsonl (queried by session_id) — covers cross-terminal chains
+        2. Fall back to sessions-index.json for pre-registry data
         """
+        if session_id is None:
+            session_id = self.get_current_session_id()
+            if session_id is None:
+                raise ValueError(
+                    "Could not determine current session ID. "
+                    "Pass --session-id explicitly or ensure current_session.json exists."
+                )
+
+        # Strategy 1: Registry by session_id (cross-terminal chain)
+        registry_path = Path("P:/.claude/.artifacts/session_registry.jsonl")
+        if registry_path.exists():
+            sys.path.insert(0, str(Path("P:/packages/snapshot/scripts/hooks/__lib")))
+            try:
+                from session_registry import query_registry
+
+                entries = query_registry(session_id=session_id, limit=10_000, registry_path=registry_path)
+                if entries:
+                    chain_paths = self._registry_entries_to_chain_paths(entries, max_sessions)
+                    if chain_paths:
+                        return self._export_from_chain_paths(session_id, chain_paths, output_path)
+            except Exception:
+                pass
+            finally:
+                sys.path.pop(0)
+
+        # Strategy 2: sessions-index.json (fallback for pre-registry data)
         from importlib.util import spec_from_file_location, module_from_spec
 
-        # Resolve history_chain.py path relative to this file (QUALITY-001 fix)
-        # __file__ is .../search-research/skills/chs/scripts/chs_cli.py
-        # Go up 4 levels to reach package root: .../search-research/
         history_chain_path = Path(__file__).parent.parent.parent.parent / "core" / "history_chain.py"
 
         def _load_history_chain():
@@ -659,94 +749,33 @@ class CHSExporter:
         except Exception as exc:
             raise ValueError(f"history_chain module not importable: {exc}") from exc
 
-        if session_id is None:
-            session_id = self.get_current_session_id()
-            if session_id is None:
-                raise ValueError(
-                    "Could not determine current session ID. "
-                    "Pass --session-id explicitly or ensure current_session.json exists."
-                )
-
-        # Load sessions-index.json with proper error handling (IO-003)
         try:
             sessions_index = load_sessions_index()
         except (json.JSONDecodeError, OSError) as exc:
             raise ValueError(f"Failed to load sessions-index.json: {exc}") from exc
 
-        # Find the target session entry to get its timestamp
         target_entry = sessions_index.get(session_id)
         if not target_entry:
             raise ValueError(f"Session {session_id} not found in sessions-index.json")
 
         target_started = target_entry.get("startedAt", 0)
 
-        # Determine allowed sessions directory for path validation (IO-002)
-        projects_dir = Path.home() / ".claude" / "projects"
-
-        # Filter to entries with valid paths, take max_sessions most recent
-        # Note: Removed pre-check (IO-001) - we'll validate paths and handle missing files at read time
         valid_entries = []
         for sid, entry in sessions_index.items():
             started = entry.get("startedAt", 0)
-            # Only include sessions that started before or at the same time as target
             if started <= target_started:
                 valid_entries.append((sid, entry, started))
 
-        # Sort by startedAt descending (newest first), take max_sessions
         valid_entries.sort(key=lambda x: x[2], reverse=True)
         recent_entries = valid_entries[:max_sessions]
-
-        # Sort chronologically (oldest first) for export
         recent_entries.sort(key=lambda x: x[2])
 
-        # Store paths for streaming write; validate at read time (LOGIC-001 TOCTOU fix)
         chain_paths = [(sid, entry.get("fullPath")) for sid, entry, _ in recent_entries if entry.get("fullPath")]
 
         if not chain_paths:
             raise ValueError(f"No transcript files found for session {session_id}")
 
-        # Create exports directory with error handling (IO-004)
-        if output_path is None:
-            exports_dir = Path.home() / ".claude" / "exports"
-            try:
-                exports_dir.mkdir(parents=True, exist_ok=True)
-            except (PermissionError, OSError) as exc:
-                raise ValueError(f"Cannot create exports directory {exports_dir}: {exc}") from exc
-
-            now = datetime.now()
-            timestamp = now.strftime("%Y%m%d_%H%M%S")
-            output_path = exports_dir / f"chain_{timestamp}.md"
-
-        # Streaming write to avoid O(N²) memory behavior (PERF-002 fix)
-        try:
-            with open(output_path, "w", encoding="utf-8", newline="\n") as out:
-                now = datetime.now()
-                out.write(f"# Session Chain Export\n\n")
-                out.write(f"**Root session:** {session_id}  \n")
-                out.write(f"**Exported:** {now.strftime('%Y-%m-%d %H:%M:%S')}  \n")
-                out.write(f"**Sessions in chain:** {len(chain_paths)}\n\n")
-                out.write("---\n\n")
-
-                for i, (sid, full_path) in enumerate(chain_paths, 1):
-                    # Validate path immediately before read (LOGIC-001 TOCTOU fix)
-                    path = Path(full_path)
-                    try:
-                        path.resolve().relative_to(projects_dir.resolve())
-                    except ValueError:
-                        out.write(f"## Session {i} — `{sid}`\n\n")
-                        out.write(f"*[Error: Invalid path in sessions-index.json: {full_path} (outside allowed directory)]*\n\n")
-                        out.write("---\n\n")
-                        continue
-
-                    out.write(f"## Session {i} — `{path.stem}`\n\n")
-                    # Stream formatted transcript directly to output
-                    self._format_transcript_to_file(path, out)
-                    out.write("\n---\n\n")
-
-        except (PermissionError, OSError) as exc:
-            raise ValueError(f"Failed to write export file {output_path}: {exc}") from exc
-
-        return output_path
+        return self._export_from_chain_paths(session_id, chain_paths, output_path)
 
     def _format_transcript(self, transcript_path: Path) -> list[str]:
         """Parse a .jsonl transcript and return formatted markdown lines."""

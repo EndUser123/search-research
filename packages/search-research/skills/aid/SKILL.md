@@ -21,7 +21,7 @@ Interface to AI-Distiller (aid.exe) for intelligent code distillation — extrac
 - **Python wrapper**: `$__CSF_ROOT/src\commands\aid\aid.py`
 - **aid.exe location**: `$__CSF_ROOT/tools\ai-distiller-optimized\aid.exe`
 - **AI-Distiller Version**: v1.3.1 (built 2025-06-21)
-- **Output location**: `P:\\\\\\.aid\[ANALYSIS-TYPE].[timestamp].[filename].md`
+- **Output location**: `P://.aid/[ANALYSIS-TYPE].[timestamp].[filename].md`
 - **Supported languages**: Python, TypeScript, JavaScript, Go, Rust, Java, C#, Kotlin, C++, PHP, Ruby, Swift
 - **Compression ratio**: 60-90% size reduction while preserving semantic information
 
@@ -36,7 +36,7 @@ Interface to AI-Distiller (aid.exe) for intelligent code distillation — extrac
 2. **Set visibility level** — Use --private/--protected/--internal as appropriate
 3. **Choose output format** --format md|text|jsonl|xml, and optionally --stdout
 4. **Execute aid.exe** — Run via wrapper with appropriate arguments
-5. **Locate results** — Check `P:\\\\\\.aid\` for timestamped output files
+5. **Locate results** — Check `P://.aid/` for timestamped output files
 6. **Present findings** — Summarize key insights with file:line citations
 
 ## Validation Rules
@@ -93,7 +93,7 @@ Use `/aid` when you need to:
 
 ## Output Location
 
-Results saved to `P:\\\\\\.aid\[ANALYSIS-TYPE].[timestamp].[filename].md`
+Results saved to `P://.aid/[ANALYSIS-TYPE].[timestamp].[filename].md`
 
 ## Reference Files
 

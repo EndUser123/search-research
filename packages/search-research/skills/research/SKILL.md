@@ -169,7 +169,7 @@ export EXA_API_KEY=exa_xxx
 export PERPLEXITY_API_KEY=pplx-xxx
 ```
 
-**Config files**: Searches `P:\\\\\\.env` and `P:\\\\\\__csf/.env` automatically
+**Config files**: Searches `P://.env` and `P://__csf/.env` automatically
 
 ## Output
 

@@ -790,6 +790,7 @@ try:
     from skill_guard.PreToolUse.PreToolUse_skill_dir_gate import run as _skill_dir_gate_run
     from skill_guard.PreToolUse.PreToolUse_skill_question_gate import run as _skill_question_gate_run
     from skill_guard.PreToolUse.PreToolUse_context_sufficiency_gate import run as _context_sufficiency_run
+    from skill_guard.PreToolUse.PreToolUse_workflow_step_gate import run as _workflow_step_gate_run
     # NOTE: PreToolUse_skill_pattern_gate.py REMOVED from IN_PROCESS_HOOKS.
     # execution_hooks.py (skill-guard subprocess via hooks.json) is the sole contract gate.
     from artifact_grounder import ground_blocked_command, ground_git_safety_block
@@ -817,6 +818,7 @@ try:
         "PreToolUse_skill_dir_gate.py": _skill_dir_gate_run,
         "PreToolUse_skill_question_gate.py": _skill_question_gate_run,
         "PreToolUse_context_sufficiency_gate.py": _context_sufficiency_run,
+        "PreToolUse_workflow_step_gate.py": _workflow_step_gate_run,
         # PreToolUse_skill_pattern_gate.py REMOVED - execution_hooks.py is sole contract gate
         "PreToolUse_task_self_doc_gate.py": PreToolUse_task_self_doc_gate.run,
         "PreToolUse_protected_file_recovery_gate.py": PreToolUse_protected_file_recovery_gate.run,

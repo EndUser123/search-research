@@ -13,7 +13,7 @@ ClaudeChainMiner walks the **handoff-file chain** instead. Handoff files are wri
 ## Installation
 
 ```bash
-cd P:\\\\\\packages/claude-chain-miner
+cd P://packages/claude-chain-miner
 pip install -e .
 ```
 
@@ -70,7 +70,7 @@ scripts/
 - **Compact-proof**: Handoff files survive compaction and preserve prior_transcript_path
 - **Self-match fix**: Detects and breaks loops from the `prior_transcript_path=N/A` bug
 - **Terminal-safe**: Slug derived from cwd ensures isolation across terminals
-- **Dual-path search**: Handles both `P:\\\\\\.claude/state/handoff/` and `~/.claude/state/handoff/`
+- **Dual-path search**: Handles both `P://.claude/state/handoff/` and `~/.claude/state/handoff/`
 - **Deterministic anchors**: Accepts explicit `session_id` and `transcript_path` when Claude Code provides them
 - **Robust fallback chain**: Uses transcript-path env vars, session-id env vars, then `sessions.json` before mtime guessing
 - **chscli integration**: Reuses chs_cli.py's file-history-snapshot parser instead of reinventing it

@@ -121,7 +121,7 @@ Use `emerge` when several signals look related but the underlying lesson is stil
 Use `graduate` when a lesson has enough recurrence and evidence to justify promotion into durable enforcement.
 Use `trace` when a proposed change depends on what changed over time rather than on a single isolated correction.
 
-Reference: `P:\\\\\\.claude/skills/__lib/sdlc_internal_modes.md`
+Reference: `P://.claude/skills/__lib/sdlc_internal_modes.md`
 
 ## Routing Behavior
 

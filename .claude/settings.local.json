@@ -172,7 +172,15 @@
       "Bash(rmdir \"P:\\\\packages\\\\cc-skills-sdlc\\\\skills\\\\go2\\\\.claude\\\\.artifacts\\\\temp\\\\go\")",
       "Bash(rmdir \"P:\\\\packages\\\\cc-skills-sdlc\\\\skills\\\\go2\\\\.claude\\\\.artifacts\\\\temp\")",
       "Bash(rmdir \"P:\\\\packages\\\\cc-skills-sdlc\\\\skills\\\\go2\\\\.claude\\\\.artifacts\")",
-      "Bash(rmdir \"P:\\\\packages\\\\cc-skills-sdlc\\\\skills\\\\go2\\\\.claude\")"
+      "Bash(rmdir \"P:\\\\packages\\\\cc-skills-sdlc\\\\skills\\\\go2\\\\.claude\")",
+      "Bash(cp \"C:/Users/brsth/.claude/plugins/cache/quickstop/claudit/2.6.0/skills/claudit/SKILL.md\" \"P:/packages/claudit/skills/claudit/SKILL.md\")",
+      "Bash(cp \"C:/Users/brsth/.claude/plugins/cache/quickstop/claudit/2.6.0/skills/claudit/references/known-settings.md\" \"P:/packages/claudit/skills/claudit/references/known-settings.md\")",
+      "Bash(cp \"C:/Users/brsth/.claude/plugins/cache/quickstop/claudit/2.6.0/skills/claudit/references/pr-delivery.md\" \"P:/packages/claudit/skills/claudit/references/pr-delivery.md\")",
+      "Bash(cp \"C:/Users/brsth/.claude/plugins/cache/quickstop/claudit/2.6.0/skills/claudit/references/scoring-rubric.md\" \"P:/packages/claudit/skills/claudit/references/scoring-rubric.md\")",
+      "Bash(cp \"C:/Users/brsth/.claude/plugins/cache/quickstop/claudit/2.6.0/skills/knowledge/SKILL.md\" \"P:/packages/claudit/skills/knowledge/SKILL.md\")",
+      "Bash(cp \"C:/Users/brsth/.claude/plugins/cache/quickstop/claudit/2.6.0/references/cache-check-protocol.md\" \"P:/packages/claudit/references/cache-check-protocol.md\")",
+      "Bash(cp \"C:/Users/brsth/.claude/plugins/cache/quickstop/claudit/2.6.0/references/decision-memory-protocol.md\" \"P:/packages/claudit/references/decision-memory-protocol.md\")",
+      "Bash(cp \"C:/Users/brsth/.claude/plugins/cache/quickstop/claudit/2.6.0/agents/\"*.md \"P:/packages/claudit/agents/\")"
     ],
     "deny": [],
     "ask": []

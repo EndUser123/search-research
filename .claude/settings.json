@@ -2,7 +2,7 @@
   "env": {
     "TDD_AUTOSCAFFOLD": "0",
     "TDD_BYPASS": "0",
-    "CLAUDE_CODE_ENABLE_AWAY_SUMMARY": true,
+    "CLAUDE_CODE_ENABLE_AWAY_SUMMARY": "true",
     "SENTENCE_TRANSFORMERS_HOME": "P:\\.model_cache",
     "HF_HOME": "P:\\.model_cache",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
@@ -183,7 +183,11 @@
             "command": "python \"P:/.claude/hooks/__lib/hook_runner.py\" \"P:/packages/prompt-enhancer/scripts/hooks/prompt_enhancer_hook.py\"",
             "timeout": 15
           },
-          {"type":"command","command":"python P:/packages/skill-guard/src/skill_guard/__lib/router.py UserPromptSubmit","timeout":10},
+          {
+            "type": "command",
+            "command": "python P:/packages/skill-guard/src/skill_guard/__lib/router.py UserPromptSubmit",
+            "timeout": 10
+          },
           {
             "type": "command",
             "command": "python P:/.claude/hooks/log_hook.py",
@@ -226,7 +230,11 @@
       {
         "matcher": ".*",
         "hooks": [
-          {"type":"command","command":"python P:/packages/skill-guard/src/skill_guard/__lib/router.py PreToolUse","timeout":10},
+          {
+            "type": "command",
+            "command": "python P:/packages/skill-guard/src/skill_guard/__lib/router.py PreToolUse",
+            "timeout": 10
+          },
           {
             "type": "command",
             "command": "python P:/.claude/hooks/log_hook.py",
@@ -398,7 +406,11 @@
       {
         "matcher": ".*",
         "hooks": [
-          {"type":"command","command":"python P:/packages/skill-guard/src/skill_guard/__lib/router.py Stop","timeout":10},
+          {
+            "type": "command",
+            "command": "python P:/packages/skill-guard/src/skill_guard/__lib/router.py Stop",
+            "timeout": 10
+          },
           {
             "type": "command",
             "command": "python P:/.claude/hooks/log_hook.py",
@@ -439,18 +451,6 @@
         ]
       }
     ],
-    "PostCompact": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/PostCompact.py",
-            "timeout": 2
-          }
-        ]
-      }
-    ],
     "SessionStart": [
       {
         "matcher": ".*",
@@ -478,26 +478,6 @@
           {
             "type": "command",
             "command": "python P:/.claude/hooks/SessionStart_breadcrumb_init.py",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/SessionStart_identity_capture.py",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/SessionStart_reminder_recovery.py",
             "timeout": 5
           }
         ]

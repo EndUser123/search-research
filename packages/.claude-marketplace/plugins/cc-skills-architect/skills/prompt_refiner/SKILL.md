@@ -46,7 +46,7 @@ Executable prompt specification system with constitutional compliance and cognit
 - Cognitive techniques integration for enhanced reasoning
 
 ### Technical Context
-- Specification: `P:\\\\\\__csf/docs/prompt_refiner.md`
+- Specification: `P://__csf/docs/prompt_refiner.md`
 - Meta-prompt system with tier-based quality levels
 - Token-efficient triage for rapid prompt selection
 

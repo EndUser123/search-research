@@ -43,7 +43,7 @@ You are a senior software architect specializing in the **Claude Code Plugin eco
 
 **Wrong:**
 ```python
-path = "P:\\\\\\packages/gitready/scripts/core/main.py"  # Hardcoded path
+path = "P://packages/gitready/scripts/core/main.py"  # Hardcoded path
 ```
 
 **Right:**
@@ -93,7 +93,7 @@ python scripts/core/sync.py
 claude --plugin-dir .
 
 # Or with plugin command
-/plugin P:\\\\\\packages/gitready
+/plugin P://packages/gitready
 ```
 
 ---
@@ -128,7 +128,7 @@ nlm source add --file scripts/core/main.py \
                --file .claude-plugin/plugin.json \
                --file README.md \
                --file AGENTS.md \
-               --file P:\\\\\\.claude/skills/package/SKILL.md
+               --file P://.claude/skills/package/SKILL.md
 
 # Regenerate explainer video
 nlm video create --notebook "github-ready-docs" --output assets/explainer.mp4
@@ -305,13 +305,13 @@ ls -la .claude-plugin/ scripts/core/ hooks/
 - `.claude-plugin/plugin.json` — Plugin metadata
 - `README.md` — User documentation
 - `AGENTS.md` — This file (AI agent instructions)
-- `P:\\\\\\.claude/skills/package/SKILL.md` — Skill logic (IMPORTANT)
+- `P://.claude/skills/package/SKILL.md` — Skill logic (IMPORTANT)
 
 **Note**: The SKILL.md file was previously NOT uploaded to NotebookLM (oversight). Include it for better context in generated media.
 
 ### /package Skill
 
-**Location**: `P:\\\\\\.claude/skills/package/SKILL.md`
+**Location**: `P://.claude/skills/package/SKILL.md`
 
 **Relationship**: This plugin provides metadata for the `/package` skill
 
@@ -425,9 +425,9 @@ Before submitting PR:
 
 ## Resources
 
-- **Plugin Development**: `P:\\\\\\.claude/skills/plugin-development`
-- **Hook Development**: `P:\\\\\\.claude/skills/hook-development`
-- **MCP Integration**: `P:\\\\\\.claude/skills/mcp-integration`
+- **Plugin Development**: `P://.claude/skills/plugin-development`
+- **Hook Development**: `P://.claude/skills/hook-development`
+- **MCP Integration**: `P://.claude/skills/mcp-integration`
 - **Claude Code Docs**: https://docs.anthropic.com
 
 ---

@@ -24,8 +24,10 @@ _SNAPSHOT_PLUGIN_ROOT = pathlib.Path(os.environ.get(
     "P:/packages/snapshot",
 ))
 _snapshot_lib_path = _SNAPSHOT_PLUGIN_ROOT / "scripts" / "hooks" / "__lib"
-if _snapshot_lib_path.exists() and str(_snapshot_lib_path) not in sys.path:
-    sys.path.insert(0, str(_snapshot_lib_path))
+_snapshot_hooks_path = _SNAPSHOT_PLUGIN_ROOT / "scripts" / "hooks"
+for _p in (_snapshot_lib_path, _snapshot_hooks_path):
+    if _p.exists() and str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
 
 FINDING_TYPES = ["DRIFT", "REGRESSION", "UNFULFILLED", "GHOST", "BORROW", "PRESENT"]
 

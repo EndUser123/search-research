@@ -62,8 +62,8 @@ cp config.yaml.example config-terminal3.yaml
 
 ```powershell
 # Load credentials from Windows Credential Manager
-$env:OPENAI_API_KEY = python "P:\packages\.mcp\claude-code-proxy\credential_manager.py" get OPENAI_API_KEY
-$env:OPENROUTER_API_KEY = python "P:\packages\.mcp\claude-code-proxy\credential_manager.py" get OPENROUTER_API_KEY
+$env:OPENAI_API_KEY = python "P:/packages/.mcp/claude-code-proxy/credential_manager.py" get OPENAI_API_KEY
+$env:OPENROUTER_API_KEY = python "P:/packages/.mcp/claude-code-proxy/credential_manager.py" get OPENROUTER_API_KEY
 
 # Start proxy
 .\run.sh

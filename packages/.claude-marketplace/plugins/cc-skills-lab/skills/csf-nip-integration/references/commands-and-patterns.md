@@ -7,10 +7,10 @@
 /main
 
 # Hook health specifically
-python P:\\\\\\.claude/hooks/hook_health_check.py
+python P://.claude/hooks/hook_health_check.py
 
 # Save hook baseline after modifications
-python P:\\\\\\.claude/hooks/hook_health_check.py --save-baseline
+python P://.claude/hooks/hook_health_check.py --save-baseline
 ```
 
 ## Knowledge Operations
@@ -59,9 +59,9 @@ cks.ingest_learning(title="Topic", content="...", source="session")
 
 ```bash
 # Sapling commands (faster than git)
-P:\\\\\\__csf/tools/sapling/sl status
-P:\\\\\\__csf/tools/sapling/sl commit -m "message"
-P:\\\\\\__csf/tools/sapling/sl log
+P://__csf/tools/sapling/sl status
+P://__csf/tools/sapling/sl commit -m "message"
+P://__csf/tools/sapling/sl log
 
 # Git still works for standard operations
 git status
@@ -81,7 +81,7 @@ git diff
 
 On session start, run:
 ```bash
-python "P:\\\\\\.claude/skills/_tools/update_registry.py" --if-stale
+python "P://.claude/skills/_tools/update_registry.py" --if-stale
 ```
 
 This enables next-command hints and workflow routing.
@@ -93,7 +93,7 @@ This enables next-command hints and workflow routing.
 **Always use forward slashes in bash commands:**
 ```bash
 # Correct
-ls -la "P:\\\\\\__csf/docs/"
+ls -la "P://__csf/docs/"
 
 # Wrong (backslashes get escaped)
 ls -la $__CSF_ROOT/docs\

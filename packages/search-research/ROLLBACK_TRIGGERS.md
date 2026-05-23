@@ -45,11 +45,11 @@ Each cleanup task has:
 git revert cleanup-pre-task-019-YYYYMMDD-HHMM
 
 # 2. Verify tests pass
-pytest P:\\\\\\__csf/tests/lib/search/ -v
-pytest P:\\\\\\packages/search-research/tests/ -v
+pytest P://__csf/tests/lib/search/ -v
+pytest P://packages/search-research/tests/ -v
 
 # 3. Verify CLI works
-python P:\\\\\\__csf/src/cli/nip/search_enhanced.py "test query"
+python P://__csf/src/cli/nip/search_enhanced.py "test query"
 
 # 4. Notify stakeholders
 # Post to #development channel with rollback details
@@ -95,7 +95,7 @@ python -c "from search import search_stream, QueryCache, BackendHealth"
 python -c "from search_research import AsyncSearchRouter"
 
 # 3. Verify CLI works
-python P:\\\\\\__csf/src/cli/nip/search_enhanced.py "test query"
+python P://__csf/src/cli/nip/search_enhanced.py "test query"
 
 # 4. Notify stakeholders
 ```
@@ -139,10 +139,10 @@ git revert cleanup-pre-task-021-YYYYMMDD-HHMM
 python -c "from search_research import AsyncSearchRouter, UnifiedAsyncRouter"
 
 # 3. Verify CLI works
-python P:\\\\\\__csf/src/cli/nip/search_enhanced.py "test query"
+python P://__csf/src/cli/nip/search_enhanced.py "test query"
 
 # 4. Run full integration tests
-pytest P:\\\\\\packages/search-research/tests/integration/ -v
+pytest P://packages/search-research/tests/integration/ -v
 
 # 5. Notify stakeholders
 ```
@@ -178,10 +178,10 @@ cleanup-pre-task-021-YYYYMMDD-HHMM
 git revert cleanup-pre-task-022-YYYYMMDD-HHMM
 
 # 2. Verify test discovery
-pytest P:\\\\\\__csf/tests/lib/search/ --collect-only
+pytest P://__csf/tests/lib/search/ --collect-only
 
 # 3. Verify coverage
-pytest P:\\\\\\packages/search-research/tests/ --cov=search_research --cov-report=term
+pytest P://packages/search-research/tests/ --cov=search_research --cov-report=term
 
 # 4. Notify stakeholders
 ```
@@ -221,11 +221,11 @@ cleanup-pre-task-022-YYYYMMDD-HHMM
 git revert migration-complete-YYYYMMDD
 
 # 2. Run full test suite
-pytest P:\\\\\\packages/search-research/tests/ -v
-pytest P:\\\\\\__csf/tests/lib/search/ -v
+pytest P://packages/search-research/tests/ -v
+pytest P://__csf/tests/lib/search/ -v
 
 # 3. Verify all CLI tools
-python P:\\\\\\__csf/src/cli/nip/search_enhanced.py "test query"
+python P://__csf/src/cli/nip/search_enhanced.py "test query"
 
 # 4. Escalate to user for decision
 ```
@@ -303,7 +303,7 @@ Examples:
 
 ## References
 
-- Migration Plan: `P:\\\\\\packages/search-research/MIGRATION.md`
-- API Differences: `P:\\\\\\packages/search-research/API_DIFFERENCES.md`
-- Test Suite: `P:\\\\\\packages/search-research/tests/`
-- CLI Tool: `P:\\\\\\__csf/src/cli/nip/search_enhanced.py`
+- Migration Plan: `P://packages/search-research/MIGRATION.md`
+- API Differences: `P://packages/search-research/API_DIFFERENCES.md`
+- Test Suite: `P://packages/search-research/tests/`
+- CLI Tool: `P://__csf/src/cli/nip/search_enhanced.py`

@@ -30,7 +30,7 @@ Display active project constraints extracted from CLAUDE.md constitution, provid
 - **Truthfulness > Agreement** - Display constraints accurately, even if they limit options
 
 ### Technical Context
-- Loads constraints from `P:\\\\\\CLAUDE.md`
+- Loads constraints from `P://CLAUDE.md`
 - Extracts via `src.constraints.load_constraints()`
 - Returns structured constraint data
 
@@ -91,7 +91,7 @@ Prohibited:
 ```python
 from src.constraints import load_constraints
 
-constraints = load_constraints(Path("P:\\\\\\"))
+constraints = load_constraints(Path("P://"))
 print(f"TDD Required: {constraints.tdd_required}")
 print(f"Python Version: {constraints.python_version}")
 ```

@@ -21,8 +21,8 @@ compatibility: Claude Code v2.1+, Bifrost gateway; Windows 11/PowerShell; multi-
 
 ## Pre-Flight (1-min Check)
 - **Technical Memory (Global)**: Use `/wiki query "existing specifications for [Subject]"` to check the Obsidian vault. If an existing spec is found, build on it instead of re-extracting.
-- **Deduplication**: Check the `/wiki` log (`P:\.data\wiki\log.md`) for the source hash (SHA256) before starting.
-- **Source Folder**: Raw source material lives in `P:\.data\wiki\sources`.
+- **Deduplication**: Check the `/wiki` log (`P:/.data/wiki/log.md`) for the source hash (SHA256) before starting.
+- **Source Folder**: Raw source material lives in `P:/.data/wiki/sources`.
 
 ## Core Directive
 **Verbatim only**. Flag gaps: `EVIDENCE_GAP: [missing]; Assumption: [minimal]`. No synthesis. [Accuracy > Agreement]
@@ -36,8 +36,8 @@ compatibility: Claude Code v2.1+, Bifrost gateway; Windows 11/PowerShell; multi-
 5. **SOP**: 5-phase Mermaid/JSON tree.
 6. **Validate**: Run quality gates (YAML validation, gap flagging).
 7. **Output & Persist**: 
-    - Write raw source spec to `P:\.data\wiki\sources\spec-[Subject].md`.
-    - **Commit to Wiki**: Run `/wiki ingest P:\.data\wiki\sources\spec-[Subject].md` to process the source into the vault.
+    - Write raw source spec to `P:/.data/wiki/sources/spec-[Subject].md`.
+    - **Commit to Wiki**: Run `/wiki ingest P:/.data/wiki/sources/spec-[Subject].md` to process the source into the vault.
 
 ## Components Table Template
 | # | Technique | Verbatim Logic | Cognitive Load (1-5) | Schema/Code Primitive | Outcome | Caveats/EVIDENCE_GAP |

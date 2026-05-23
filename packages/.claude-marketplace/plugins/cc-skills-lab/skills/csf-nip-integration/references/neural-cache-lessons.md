@@ -2,7 +2,7 @@
 
 **86 lessons migrated to CKS vector database** (2026-01-05)
 
-Full context searchable via CKS. Migration: P:\\\\\\__csf/src/csf/cks/integration/commands/neural_cache_migration.py
+Full context searchable via CKS. Migration: P://__csf/src/csf/cks/integration/commands/neural_cache_migration.py
 
 ## Core Reflexes (L1 - kept for quick reference)
 

@@ -117,7 +117,7 @@ tests/                     # Test suite (may be included for source plugins)
 **Forbidden patterns**:
 ```python
 # WRONG
-path = "P:\\packages\my-plugin\scripts"
+path = "P:/packages/my-plugin/scripts"
 path = "C:\\Users\\brsth\\.claude\hooks"
 path = "/Users/brsth/.claude/skills"
 path = "~/plugins/..."
@@ -162,7 +162,7 @@ Run before publishing:
 - [ ] `hooks/hooks.json` uses correct nested format (if hooks exist)
 - [ ] No `__pycache__`, `.pytest_cache`, `.ruff_cache` in bundle
 - [ ] No `.git/` directory in bundle
-- [ ] No hardcoded `P:\\`, `C:/`, `/Users/`, `~` paths
+- [ ] No hardcoded `P:/`, `C:/`, `/Users/`, `~` paths
 - [ ] Hook scripts named `{plugin_name}_{event}.py` (not generic names)
 
 ---

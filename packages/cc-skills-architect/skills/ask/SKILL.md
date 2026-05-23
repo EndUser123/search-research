@@ -225,7 +225,7 @@ IF request references specific files or code:
 
 IF request asks "what [category] command would help..." or seeks command discovery:
     → Use /search with skills backend FIRST
-    → Execute: cd "P:\\\\\\__csf" && python src/csf/cli/nip/search.py "query" --backend skills --layer 3
+    → Execute: cd "P://__csf" && python src/csf/cli/nip/search.py "query" --backend skills --layer 3
     → Review results and route to best match
 
 IF request is ambiguous:

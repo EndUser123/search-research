@@ -12,7 +12,7 @@ Run these checks before conversion:
 
 ```bash
 # Check for local hook files
-ls P:\\.claude/hooks/*.py 2>/dev/null | head -20
+ls P:/.claude/hooks/*.py 2>/dev/null | head -20
 
 # Filter out plugin-owned hooks (those owned by registered plugins)
 # A hook is "plugin-owned" if it lives in a plugin's scripts/hooks/ directory
@@ -20,9 +20,9 @@ ls P:\\.claude/hooks/*.py 2>/dev/null | head -20
 ```
 
 **Detection signals**:
-- `P:\\\\.claude/hooks/PreToolUse.py` (not `pluginname_PreToolUse.py`)
-- `P:\\\\.claude/hooks/Stop.py` (not namespaced)
-- Any `.py` file in `P:\\\\.claude/hooks/` that is not linked to a plugin
+- `P://.claude/hooks/PreToolUse.py` (not `pluginname_PreToolUse.py`)
+- `P://.claude/hooks/Stop.py` (not namespaced)
+- Any `.py` file in `P://.claude/hooks/` that is not linked to a plugin
 
 ### 2. `settings.json` Hook Entries
 
@@ -30,19 +30,19 @@ ls P:\\.claude/hooks/*.py 2>/dev/null | head -20
 # Check settings.json for hook registrations
 python -c "
 import json
-settings = json.load(open('P:\\\\.claude/settings.json'))
+settings = json.load(open('P://.claude/settings.json'))
 hooks = settings.get('hooks', {})
 print('Hook entries in settings.json:')
 for event, entries in hooks.items():
     for entry in entries:
         cmd = entry.get('command', '')
-        if 'P:\\\\' in cmd or '/.claude/hooks/' in cmd:
+        if 'P://' in cmd or '/.claude/hooks/' in cmd:
             print(f'  {event}: {cmd}')
 "
 ```
 
 **Detection signals**:
-- `"command": "python P:\\\\.claude/hooks/SomeHook.py"` (local path)
+- `"command": "python P://.claude/hooks/SomeHook.py"` (local path)
 - `"command": "python /Users/.../hooks/..."` (home directory path)
 - `"command": "python C:/.../hooks/..."` (Windows absolute path)
 
@@ -65,8 +65,8 @@ python -c "
 import os, re
 from pathlib import Path
 HARDCODE_PATTERNS = [
-    r'P:\\\\\\\\',
-    r'P:\\\\',
+    r'P:////',
+    r'P://',
     r'C:\\\\\\\\',
     r'C:\\\\',
     r'/Users/',
@@ -159,10 +159,10 @@ mkdir -p {{TARGET_DIR}}/hooks
 
 ```bash
 # Rename and move hook files
-mv P:\\.claude/hooks/PreToolUse.py {{TARGET_DIR}}/scripts/hooks/{{plugin_name}}_PreToolUse.py
+mv P:/.claude/hooks/PreToolUse.py {{TARGET_DIR}}/scripts/hooks/{{plugin_name}}_PreToolUse.py
 
 # Update file content to remove hardcoded paths
-# Replace P:\\.claude/hooks/ with $CLAUDE_PLUGIN_ROOT/scripts/hooks/
+# Replace P:/.claude/hooks/ with $CLAUDE_PLUGIN_ROOT/scripts/hooks/
 ```
 
 ### Step 5: Update `settings.json`
@@ -173,7 +173,7 @@ Remove hook entries that point to local `.claude/hooks/` files. They are now own
 # Show what to remove from settings.json
 python -c "
 import json
-settings = json.load(open('P:\\\\.claude/settings.json'))
+settings = json.load(open('P://.claude/settings.json'))
 hooks = settings.get('hooks', {})
 for event, entries in hooks.items():
     for entry in entries:
@@ -187,7 +187,7 @@ for event, entries in hooks.items():
 
 ```bash
 # Windows: Create junction for hooks
-cmd /c "mklink {{plugin_name}}_PreToolUse.py P:\\\\\\packages\\{{plugin_name}}\\scripts\\hooks\\{{plugin_name}}_PreToolUse.py"
+cmd /c "mklink {{plugin_name}}_PreToolUse.py P://packages//{{plugin_name}}\\scripts\\hooks\\{{plugin_name}}_PreToolUse.py"
 ```
 
 ---
@@ -196,10 +196,10 @@ cmd /c "mklink {{plugin_name}}_PreToolUse.py P:\\\\\\packages\\{{plugin_name}}\\
 
 ### Local-Only Hooks (Not in Any Plugin)
 
-Hooks in `P:\\\\.claude/hooks/` that have no associated plugin are **local hooks**. These are NOT migrated — they remain in place but should be namespaced:
+Hooks in `P://.claude/hooks/` that have no associated plugin are **local hooks**. These are NOT migrated — they remain in place but should be namespaced:
 
 ```
-P:\\\\.claude/hooks/
+P://.claude/hooks/
 ├── local_PreToolUse.py    # Renamed from PreToolUse.py
 ├── local_Stop.py          # Renamed from Stop.py
 ```
@@ -216,7 +216,7 @@ rmdir {{TARGET_DIR}}/core
 
 ### Settings-Based Registration with Hardcoded Paths
 
-If `settings.json` has `"command": "python P:\\\\.claude/hooks/SomeHook.py"`, convert to plugin-owned hook and update settings to remove the entry (plugin will register via its own `hooks/hooks.json`).
+If `settings.json` has `"command": "python P://.claude/hooks/SomeHook.py"`, convert to plugin-owned hook and update settings to remove the entry (plugin will register via its own `hooks/hooks.json`).
 
 ---
 

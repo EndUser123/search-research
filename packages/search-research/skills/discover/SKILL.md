@@ -21,7 +21,7 @@ description: "Discover and explore codebase patterns"
 
 ## Main Documentation
 
-**Full implementation:** `P:\\\\\\__csf/src/features/commands/nip/discover.md`
+**Full implementation:** `P://__csf/src/features/commands/nip/discover.md`
 
 ## Purpose
 

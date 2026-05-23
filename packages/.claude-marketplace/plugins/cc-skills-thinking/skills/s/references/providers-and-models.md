@@ -111,14 +111,14 @@ Provider classification (FREE vs PAID) is grounded in `$__CSF_ROOT/src\llm\provi
 3. **Audit**: `$CLAUDE_ROOT/skills\s\tests\provider_audit.md` - Manual verification of all 10 providers in FREE_PROVIDERS
 
 **Verification process:**
-- Run regression tests: `pytest P:\\\\\\.claude/skills/s/tests/test_provider_classification.py -v`
+- Run regression tests: `pytest P://.claude/skills/s/tests/test_provider_classification.py -v`
 - Review provider audit document for classification discrepancies
 - For provider pricing questions, check `model_enumerator.py` line numbers referenced in audit
 
 **Updating provider classifications:**
 1. Verify actual provider pricing model (free tier, subscription-based, or paid API)
 2. Update `enumerate_*_models()` function in `model_enumerator.py` with correct `is_free` flag
-3. Run regression tests to verify changes: `pytest P:\\\\\\.claude/skills/s/tests/test_provider_classification.py -v`
+3. Run regression tests to verify changes: `pytest P://.claude/skills/s/tests/test_provider_classification.py -v`
 4. Update provider audit document with findings
 
 **Known discrepancies (from audit):**

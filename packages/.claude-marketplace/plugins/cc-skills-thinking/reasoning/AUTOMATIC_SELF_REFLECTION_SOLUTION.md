@@ -61,7 +61,7 @@ Claude uses improved version
      "mcpServers": {
        "reasoning-self-reflection": {
          "command": "python",
-         "args": ["P:\\\\\\packages/reasoning/mcp_server.py"]
+         "args": ["P://packages/reasoning/mcp_server.py"]
        }
      }
    }

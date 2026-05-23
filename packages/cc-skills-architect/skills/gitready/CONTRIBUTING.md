@@ -21,16 +21,16 @@ Thank you for your interest in contributing to gitready! This document provides 
 2. **Create a junction for local development**
    ```powershell
    # Windows (no admin required)
-   New-Item -ItemType Junction -Path "$CLAUDE_ROOT/skills\gitready" -Target "P:\\\\\\packages\gitready"
+   New-Item -ItemType Junction -Path "$CLAUDE_ROOT/skills\gitready" -Target "P://packages/gitready"
    ```
 
 3. **Make your changes**
-   - Edit files in `P:\\\\\\packages/gitready`
+   - Edit files in `P://packages/gitready`
    - Changes are immediately available via the junction
 
 4. **Run tests**
    ```bash
-   cd P:\\\\\\packages/gitready
+   cd P://packages/gitready
    pytest tests/ -v
    ```
 

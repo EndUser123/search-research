@@ -17,7 +17,7 @@ Create GitHub-ready Python libraries, Claude skills, and Claude Code plugins wit
 /gitready mylib
 
 # Polish existing repository
-/gitready --target P:\\\\\\packages/existing-repo
+/gitready --target P://packages/existing-repo
 
 # Preview what will happen
 /gitready --dry-run myproject
@@ -166,18 +166,18 @@ gitready auto-detects your package type from the structure — or use `--type` t
 ```powershell
 # Windows (Junction - No admin required)
 # For plugins with skills: Junction to the skills/ subdirectory
-New-Item -ItemType Junction -Path "$CLAUDE_ROOT/skills\gitready" -Target "P:\\\\\\packages\gitready\skills\gitready"
+New-Item -ItemType Junction -Path "$CLAUDE_ROOT/skills\gitready" -Target "P://packages/gitready/skills/gitready"
 
 # For standalone skills (skill/ directory): Junction to the skill/ subdirectory
-# New-Item -ItemType Junction -Path "$CLAUDE_ROOT/skills\gitready" -Target "P:\\\\\\packages\gitready\skill"
+# New-Item -ItemType Junction -Path "$CLAUDE_ROOT/skills\gitready" -Target "P://packages/gitready/skill"
 
 # macOS/Linux (Symlink)
 ln -s /path/to/packages/gitready/skills/gitready ~/.claude/skills/gitready
 ```
 
 **Key points:**
-- ✅ Edit in `P:\\\\\\packages/gitready`, changes work immediately
-- ✅ No reinstallation required - skills auto-discover from `P:\\\\\\.claude/skills/`
+- ✅ Edit in `P://packages/gitready`, changes work immediately
+- ✅ No reinstallation required - skills auto-discover from `P://.claude/skills/`
 - ✅ Perfect for active development
 - ✅ Junction to `skills/gitready/` for plugin skills, or `skill/` for standalone skills
 - ⚠️  **CRITICAL**: The junction target must point to WHERE THE SKILL.md FILE ACTUALLY LIVES:
@@ -187,7 +187,7 @@ ln -s /path/to/packages/gitready/skills/gitready ~/.claude/skills/gitready
 **Important Note on Skill Naming:**
 - The junction NAME (`gitready`) should match the skill directory name in the package
 - This ensures the skill URL (`/gitready`) works correctly
-- Example: If package has `skills/gitready/SKILL.md`, create junction as `P:\\\\\\.claude/skills/gitready/`
+- Example: If package has `skills/gitready/SKILL.md`, create junction as `P://.claude/skills/gitready/`
 - The skill's **aliases** in the frontmatter determine what users type to invoke it
 
 #### 2. HOOKS (Dev Deployment - Hook Files Only)
@@ -196,16 +196,16 @@ ln -s /path/to/packages/gitready/skills/gitready ~/.claude/skills/gitready
 
 **Setup:**
 ```powershell
-# Symlink individual hook files to P:\\\\\\.claude/hooks/
-cd P:\\\\\\.claude/hooks
+# Symlink individual hook files to P://.claude/hooks/
+cd P://.claude/hooks
 
 # Example: Symlink a specific hook file
-cmd /c "mklink HookName.py P:\\\\\\packages\gitready\core\hooks\HookName.py"
+cmd /c "mklink HookName.py P://packages/gitready/core/hooks/HookName.py"
 ```
 
 **Key points:**
 - ✅ Symlink individual `.py` hook files only (NOT the entire directory)
-- ✅ Symlinks go in `P:\\\\\\.claude/hooks/` (NOT `~/.claude/plugins/`)
+- ✅ Symlinks go in `P://.claude/hooks/` (NOT `~/.claude/plugins/`)
 - ✅ These are dev-only symlinks for working directly on source code
 - ⚠️  After brownfield conversion, check for broken symlinks pointing to old `src/` paths
 
@@ -216,7 +216,7 @@ cmd /c "mklink HookName.py P:\\\\\\packages\gitready\core\hooks\HookName.py"
 **Setup:**
 ```bash
 # End users install via /plugin command
-/plugin P:\\\\\\packages/gitready
+/plugin P://packages/gitready
 
 # Or from marketplace (when published)
 /plugin install gitready
@@ -239,8 +239,8 @@ cmd /c "mklink HookName.py P:\\\\\\packages\gitready\core\hooks\HookName.py"
 ### Common Mistakes to Avoid
 
 - ❌ Don't use `/plugin` command for local development (requires reinstall on every change)
-- ❌ Don't symlink entire directories to `P:\\\\\\.claude/hooks/` (only symlink `.py` files)
-- ❌ Don't confuse skills (`P:\\\\\\.claude/skills/`) with plugins (`~/.claude/plugins/`)
+- ❌ Don't symlink entire directories to `P://.claude/hooks/` (only symlink `.py` files)
+- ❌ Don't confuse skills (`P://.claude/skills/`) with plugins (`~/.claude/plugins/`)
 - ❌ Don't forget to update symlinks after brownfield conversion - check for `src/` paths
 
 
@@ -661,10 +661,10 @@ Extracts a package from a monorepo with two methods:
 
 ```bash
 # Extract with history preservation (default)
-python scripts/extract_from_monorepo.py P:\\\\\\packages/my-package my-package
+python scripts/extract_from_monorepo.py P://packages/my-package my-package
 
 # Extract with fresh git history
-python scripts/extract_from_monorepo.py P:\\\\\\packages/my-package my-package --fresh-init
+python scripts/extract_from_monorepo.py P://packages/my-package my-package --fresh-init
 ```
 
 #### `create_github_repo.py`
@@ -673,7 +673,7 @@ Creates a GitHub repository and pushes the extracted code:
 
 ```bash
 # Create repository with description
-python scripts/create_github_repo.py "my-package" "P:\\\\\\packages/my-package" "My awesome library"
+python scripts/create_github_repo.py "my-package" "P://packages/my-package" "My awesome library"
 ```
 
 ### Publication Workflow
@@ -725,7 +725,7 @@ Automates the following tasks:
 
 ```bash
 # Finalize after GitHub publication
-python scripts/finalize_github_repo.py my-package P:\\\\\\packages/my-package --package-type plugin
+python scripts/finalize_github_repo.py my-package P://packages/my-package --package-type plugin
 
 # With options
 python scripts/finalize_github_repo.py my-package . --release-version 1.0.0 --username myuser
@@ -796,7 +796,7 @@ Performs the following checks:
 
 ```bash
 # Scan package quality
-python scripts/scan_package_quality.py P:\\\\\\packages/my-package
+python scripts/scan_package_quality.py P://packages/my-package
 
 # Save report to file
 python scripts/scan_package_quality.py . --save-report

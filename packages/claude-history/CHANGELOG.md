@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Integration with search-research package for `/search` and `/all` skills
-- Python backend wrapper: `P:\\\\\\packages/search-research/core/backends/local/claude_history_backend.py`
+- Python backend wrapper: `P://packages/search-research/core/backends/local/claude_history_backend.py`
 - Automatic backend registration in AsyncSearchRouter
 
 ## [1.0.0] - 2026-03-18

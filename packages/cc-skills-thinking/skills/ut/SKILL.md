@@ -94,7 +94,7 @@ STEP 4 — Output: JSON array of verdicts, one object per URL:
 Pillar scoring:
 - Vision Integration (1-5): Multi-modal loops, OCR, diagram reasoning.
 - Terminal Isolation (1-5): {terminal_id} safety, artifact separation.
-- Wiki Integrity (1-5): Global technical memory, P:\\.data\\wiki usage.
+- Wiki Integrity (1-5): Global technical memory, P:/.data//wiki usage.
 - Diagnostic Rigor (1-5): Contradiction detection, CogLoad, Gates.
 
 Recommendation thresholds:
@@ -115,7 +115,7 @@ Score the content against these established workspace standards:
 | :--- | :--- | :--- |
 | **Vision Integration** | Multi-modal loops, OCR, diagram reasoning. | |
 | **Terminal Isolation** | {terminal_id} safety, artifact separation. | |
-| **Wiki Integrity** | Global technical memory, P:\.data\wiki usage. | |
+| **Wiki Integrity** | Global technical memory, P:/.data/wiki usage. | |
 | **Diagnostic Rigor** | Contradiction detection, CogLoad, Gates. | |
 
 ## Output Format

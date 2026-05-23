@@ -8,7 +8,7 @@
 - **Rationale**: NIP (Next Iteration Platform) concept no longer exists
 
 ### 2. Increased Timeouts (No Cutting Ideas Short)
-- **File**: `P:\\\\\\__csf/src/commands/brainstorm/orchestrator.py:78-82`
+- **File**: `P://__csf/src/commands/brainstorm/orchestrator.py:78-82`
 - **Changes**:
   - DIVERGE_TIMEOUT: 180s → 300s (5 minutes)
   - DISCUSS_TIMEOUT: 240s → 300s (5 minutes)
@@ -16,13 +16,13 @@
 - **Rationale**: Parallel LLM calls need time; previous timeouts were cutting idea generation short
 
 ### 3. Fixed Mock Mode Default (FAIL FAST)
-- **File**: `P:\\\\\\__csf/src/commands/brainstorm/orchestrator.py:151`
+- **File**: `P://__csf/src/commands/brainstorm/orchestrator.py:151`
 - **Before**: `is_mock_mode = llm_config is None or getattr(llm_config, "mock_mode", True)`
 - **After**: `is_mock_mode = use_mock_agents or (llm_config is not None and getattr(llm_config, "mock_mode", False))`
 - **Rationale**: **FAIL FAST** - now defaults to REAL agents, not mocks. Production will fail explicitly rather than silently using mocks.
 
 ### 4. Updated Timeout Allocation
-- **File**: `P:\\\\\\__csf/src/commands/brainstorm/orchestrator.py:320, 344`
+- **File**: `P://__csf/src/commands/brainstorm/orchestrator.py:320, 344`
 - **Changes**:
   - Diverge: 70% → 60% of total timeout
   - Discuss: 25% → 35% of total timeout
@@ -92,9 +92,9 @@
   - T3 (Experimental): All other providers
 
 **Code locations**:
-- `P:\\\\\\__csf/src/llm/providers/config.py:29` - ProviderConfig.tier field
-- `P:\\\\\\__csf/src/llm/providers/config.py:100` - LLMConfig.allowed_tiers field
-- `P:\\\\\\__csf/src/commands/brainstorm/orchestrator.py:165-220` - Tier filtering methods
+- `P://__csf/src/llm/providers/config.py:29` - ProviderConfig.tier field
+- `P://__csf/src/llm/providers/config.py:100` - LLMConfig.allowed_tiers field
+- `P://__csf/src/commands/brainstorm/orchestrator.py:165-220` - Tier filtering methods
 - `$CLAUDE_ROOT/skills\s\scripts\run_heavy.py:456` - CLI flag and validation
 
 **Documentation**: Added to SKILL.md with usage examples

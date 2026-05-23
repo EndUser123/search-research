@@ -31,7 +31,7 @@ Interactive development loop providing task decomposition and test-driven iterat
 - Solo-developer optimized
 
 ### Technical Context
-- Located at: `P:\\\\\\projects/ralph-wiggum-python/scripts/setup-ralph-loop.py`
+- Located at: `P://projects/ralph-wiggum-python/scripts/setup-ralph-loop.py`
 - Task decomposition into atomic units
 - Progress tracking for iterative development
 
@@ -92,7 +92,7 @@ The command accepts arguments directly - no special quoting required for most ca
 
 ## Implementation
 
-Located at: `P:\\\\\\projects/ralph-wiggum-python/scripts/setup-ralph-loop.py`
+Located at: `P://projects/ralph-wiggum-python/scripts/setup-ralph-loop.py`
 
 The Ralph Loop provides:
 - Task decomposition into atomic units

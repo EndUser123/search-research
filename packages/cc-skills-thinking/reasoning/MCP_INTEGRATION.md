@@ -42,14 +42,14 @@ The reasoning package now provides an **MCP server** for automatic self-reflecti
 
 ## Installation
 
-The MCP server is already configured in `P:\\\\\\.claude/settings.json`:
+The MCP server is already configured in `P://.claude/settings.json`:
 
 ```json
 {
   "mcpServers": {
     "reasoning-self-reflection": {
       "command": "python",
-      "args": ["P:\\\\\\packages/reasoning/mcp_server.py"],
+      "args": ["P://packages/reasoning/mcp_server.py"],
       "env": {}
     }
   }
@@ -60,7 +60,7 @@ The MCP server is already configured in `P:\\\\\\.claude/settings.json`:
 
 1. Install dependencies:
 ```bash
-cd P:\\\\\\packages/reasoning
+cd P://packages/reasoning
 pip install -e .
 ```
 
@@ -167,7 +167,7 @@ Pattern Matching Accuracy: >70%
 
 ```bash
 # Unit tests
-cd P:\\\\\\packages/reasoning
+cd P://packages/reasoning
 pytest tests/modes/test_sequential.py -v
 
 # Integration tests
@@ -222,17 +222,17 @@ pytest tests/modes/test_sequential_quality_validation.py -v
 **Solutions**:
 1. Check MCP server runs manually:
    ```bash
-   python P:\\\\\\packages/reasoning/mcp_server.py
+   python P://packages/reasoning/mcp_server.py
    ```
 
 2. Check settings.json has correct path:
    ```json
-   "args": ["P:\\\\\\packages/reasoning/mcp_server.py"]
+   "args": ["P://packages/reasoning/mcp_server.py"]
    ```
 
 3. Check dependencies installed:
    ```bash
-   pip install -e P:\\\\\\packages/reasoning
+   pip install -e P://packages/reasoning
    ```
 
 ### Tools Available But Not Working

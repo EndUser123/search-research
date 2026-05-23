@@ -9,17 +9,17 @@
 ```yaml
 collections:
   wiki:
-    path: P:\\\\\\.data/wiki
+    path: P://.data/wiki
     pattern: '**/*.md'
   docs:
-    path: P:\\\\\\.data/docs
+    path: P://.data/docs
     pattern: '**/*.md'
 ```
 
 ## Vault Root Resolution
 
 The script reads the `wiki` collection path and derives:
-- **Vault root**: The path itself (e.g., `P:\\\\\\.data/wiki`)
+- **Vault root**: The path itself (e.g., `P://.data/wiki`)
 - **Log file**: `{vault_root}/log.md`
 - **Sources dir**: `{vault_root}/sources/{domain}/`
 

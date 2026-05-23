@@ -374,7 +374,7 @@ checks:
 purpose: Review skill for optimal hook integration — determines where and how the skill could use or benefit from hooks, and how it integrates with the global hook environment
 inputs:
   - plugin-dev:hook-development  # Live hook development standard (updated with plugin)
-  - P:\\\\\\.claude/docs/claude-hooks-v3.1.md  # Hook architecture, hierarchy, enforcement patterns
+  - P://.claude/docs/claude-hooks-v3.1.md  # Hook architecture, hierarchy, enforcement patterns
   - target_skill_path                       # The skill being reviewed (SKILL.md + any code)
   - .claude/.artifacts/{terminal_id}/skill-craft/github-review/hook_issues.json
 checks:
@@ -393,7 +393,7 @@ output: hook_findings.json — array of {hook_type, location, recommendation, pr
 
 **Invoke**: When the skill has conditional enforcement, state dependencies, or repeated validation patterns.
 
-**Hook Reference**: The canonical hooks doc is at `P:\\\\\\.claude/docs/claude-hooks-v3.1.md`. Key sections for the review agent:
+**Hook Reference**: The canonical hooks doc is at `P://.claude/docs/claude-hooks-v3.1.md`. Key sections for the review agent:
 - Hook types and hierarchy (PreToolUse, PostToolUse, StopHook, etc.)
 - Blocking vs advisory enforcement patterns
 - Hook chaining and composition
@@ -423,8 +423,8 @@ Review should flag any blocking hook with non-descriptive or missing stderr outp
 purpose: Review skill for optimal sub-agent and MCP use
 agent: mcp-agent-analyzer
 inputs:
-  - P:\\\\\\.claude/docs/claude-agents-v1.0.md  # Agent patterns, team architecture, best practices reference
-  - P:\\\\\\.claude/docs/claude-mcp-v1.0.md     # MCP integration, skill composition, security reference
+  - P://.claude/docs/claude-agents-v1.0.md  # Agent patterns, team architecture, best practices reference
+  - P://.claude/docs/claude-mcp-v1.0.md     # MCP integration, skill composition, security reference
   - plugin-dev:agent-development            # Live agent development standard (updated with plugin)
   - plugin-dev:mcp-integration              # Live MCP integration guide (updated with plugin)
   - target_skill_path                       # The skill being reviewed (SKILL.md + any code)
@@ -474,7 +474,7 @@ output: mcp_findings.json — array of {mcp_name, capability, integration_point,
 purpose: Review skill for runtime quality — artifact isolation, error handling, execution compliance
 agent: skill-reviewer
 inputs:
-  - P:\\\\\\.claude/docs/claude-skill-v1.0.md  # Skill authoring standard (terminal_id, artifact isolation)
+  - P://.claude/docs/claude-skill-v1.0.md  # Skill authoring standard (terminal_id, artifact isolation)
   - plugin-dev:skill-development           # Live skill development guide (updated with plugin)
   - target_skill_path                       # The skill being reviewed (SKILL.md + any code)
   - .claude/.artifacts/{terminal_id}/skill-craft/github-review/runtime_issues.json
@@ -625,7 +625,7 @@ For a plugin named `reason_openai_v4.0` with a skill at `skills/reason_openai_v4
 #### 1. Marketplace Structure (flat, no `plugins/` subdirectory)
 
 ```
-P:\\\\\\packages/.claude-marketplace/
+P://packages/.claude-marketplace/
 ├── .gitignore
 ├── your-plugin/            ← flat, NOT plugins/your-plugin/
 │   ├── .claude-plugin/
@@ -651,13 +651,13 @@ P:\\\\\\packages/.claude-marketplace/
 The marketplace source is tracked in `~/.claude/plugins/known_marketplaces.json` (not `settings.json`):
 
 ```bash
-/plugin marketplace add file:///P:\\\\\\packages/.claude-marketplace local
+/plugin marketplace add file:///P://packages/.claude-marketplace local
 ```
 
 This creates an entry like:
 ```json
 "local": {
-  "source": { "source": "git", "url": "file:///P:\\\\\\packages/.claude-marketplace" },
+  "source": { "source": "git", "url": "file:///P://packages/.claude-marketplace" },
   "installLocation": "C:\\Users\\brsth\\.claude\\plugins\\marketplaces\\local"
 }
 ```
@@ -701,12 +701,12 @@ If `/plugin install` fails with "Plugin not found in marketplace 'local'", use d
 
 **Step A — Copy plugin files to cache** (excluding `.git/` to prevent submodule creation):
 ```bash
-cp -r P:\\\\\\packages/your-plugin/. "C:/Users/brsth/.claude/plugins/cache/local/your-plugin/1.0.0/"
+cp -r P://packages/your-plugin/. "C:/Users/brsth/.claude/plugins/cache/local/your-plugin/1.0.0/"
 ```
 
 > **Prevent git submodules**: If the source plugin has a `.git/` directory, `cp -r` embeds it and git registers the copied directory as a submodule (mode 160000). Always copy excluding `.git`:
 > ```bash
-> cp -r --exclude=.git P:\\\\\\packages/your-plugin/. "dest/"
+> cp -r --exclude=.git P://packages/your-plugin/. "dest/"
 > # Or on Windows (Git Bash):
 > mkdir dest && cd dest && git init && git add . && git commit -m "..."
 > ```
@@ -742,7 +742,7 @@ Or remove from `installed_plugins.json` and delete the cache directory.
 | Symptom | Cause | Fix |
 |--------|-------|-----|
 | `Plugin not found in any marketplace` | Plugin not listed in `marketplace.json` | Add entry to `~/.claude/plugins/marketplaces/local/.claude-plugin/marketplace.json` with `source` path — `/plugin install` searches the manifest, not the filesystem |
-| `Plugin not found in marketplace 'local'` | Marketplace cache not yet populated | `cd ~/.claude/plugins/marketplaces/local && git clone file:///P:\\\\\\packages/.claude-marketplace .` |
+| `Plugin not found in marketplace 'local'` | Marketplace cache not yet populated | `cd ~/.claude/plugins/marketplaces/local && git clone file:///P://packages/.claude-marketplace .` |
 | Same error after cloning | Plugin has `.git/` embedded (submodule) | Re-copy with `cp -r --exclude=.git`, then `git rm --cached <path> && git add <path>` in marketplace |
 | Same error, cache has files | `known_marketplaces.json` entry missing or wrong | Verify entry at `~/.claude/plugins/known_marketplaces.json` |
 | `.claude-plugin/` invisible in `ls` | Windows/git bug — directory exists but hidden in `ls` | Use `find . -name plugin.json` or `test -d` to verify; `git ls-tree HEAD .claude-plugin/` |
@@ -756,17 +756,17 @@ Or remove from `installed_plugins.json` and delete the cache directory.
 
 The plugin system loads from **version-keyed cache** at `~/.claude/plugins/cache/local/<name>/<version>/`, not from source. Editing source files without bumping the version means the cached (active) copy is stale and changes are invisible.
 
-**When to bump**: Any edit to plugin source files under `P:\\\\\\packages/<plugin-name>/` that should propagate to the running session.
+**When to bump**: Any edit to plugin source files under `P://packages/<plugin-name>/` that should propagate to the running session.
 
 **Automated bump**: Use `/cc-skills-utils:plugin-installer bump <name>` which updates all three files at once:
 ```bash
-python3 "P:\\\\\\packages/cc-skills-utils/scripts/plugin-audit-and-fix.py" --bump <name> --marketplace-root "P:\\\\\\packages/.claude-marketplace"
+python3 "P://packages/cc-skills-utils/scripts/plugin-audit-and-fix.py" --bump <name> --marketplace-root "P://packages/.claude-marketplace"
 ```
 
 **Three files that need the version update**:
-1. `P:\\\\\\packages/<name>/.claude-plugin/plugin.json` — `version` field
-2. `P:\\\\\\packages/.claude-marketplace/marketplace.json` — matching `version` in the plugin's entry
-3. `P:\\\\\\packages/.claude-marketplace/.claude-plugin/marketplace.json` — matching `version` in the plugin's entry
+1. `P://packages/<name>/.claude-plugin/plugin.json` — `version` field
+2. `P://packages/.claude-marketplace/marketplace.json` — matching `version` in the plugin's entry
+3. `P://packages/.claude-marketplace/.claude-plugin/marketplace.json` — matching `version` in the plugin's entry
 
 **Propagation workflow** (after bump):
 1. `/plugin marketplace update local`
@@ -841,8 +841,8 @@ When authoring a new plugin for local marketplace distribution, include this gui
 
 ## Local Installation
 
-1. Add plugin to marketplace repo: `P:\\\\\\packages/.claude-marketplace/<plugin-name>/`
-2. Copy to cache: `cp -r --exclude=.git P:\\\\\\packages/<plugin-name>/. "C:/Users/brsth/.claude/plugins/cache/local/<plugin-name>/1.0.0/"`
+1. Add plugin to marketplace repo: `P://packages/.claude-marketplace/<plugin-name>/`
+2. Copy to cache: `cp -r --exclude=.git P://packages/<plugin-name>/. "C:/Users/brsth/.claude/plugins/cache/local/<plugin-name>/1.0.0/"`
 3. Register: add entry to `~/.claude/plugins/installed_plugins.json`
 4. Reload: `/reload-plugins`
 
