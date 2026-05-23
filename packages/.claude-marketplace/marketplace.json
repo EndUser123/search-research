@@ -141,7 +141,7 @@
     },
     {
       "name": "cc-skills-analysis",
-      "version": "1.0.5",
+      "version": "1.0.7",
       "description": "Analysis plugin",
       "source": "./plugins/cc-skills-analysis",
       "keywords": []
@@ -204,7 +204,7 @@
     },
     {
       "name": "cc-aca-epistemic",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "description": "ACA Epistemic plugin - evidence verification, claim validation, provenance tracking, anti-fabrication enforcement, and anti-sycophancy detection. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-epistemic",
       "keywords": [
