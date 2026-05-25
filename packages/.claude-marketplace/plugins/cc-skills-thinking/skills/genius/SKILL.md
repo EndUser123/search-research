@@ -14,6 +14,7 @@ triggers:
   - /genius
 suggest:
   - /reason
+  - /probe
   - /s
 ---
 

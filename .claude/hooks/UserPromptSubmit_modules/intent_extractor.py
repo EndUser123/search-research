@@ -258,7 +258,7 @@ def save_intent_state(intent: dict, context: HookContext | None = None) -> None:
 
     except Exception as e:
         # Fail silently - don't break hook for state issues
-        print(f"[Intent Extractor] State save failed: {e}", file=sys.stdout)
+        print(f"[Intent Extractor] State save failed: {e}", file=sys.stderr)
 
 
 if HookContext is None:
@@ -292,13 +292,13 @@ def intent_extractor_hook(context: HookContext) -> HookResult:
 
             # Debug logging (if enabled)
             if os.environ.get("CKS_DEBUG", "0") == "1":
-                print(f"[Intent Extractor] Detected: {intent['work_type']} - {intent.get('target', 'N/A')}", file=sys.stdout)
+                print(f"[Intent Extractor] Detected: {intent['work_type']} - {intent.get('target', 'N/A')}", file=sys.stderr)
 
         return None
 
     except Exception as e:
         # Fail silently - don't break hook for parsing errors
-        print(f"[Intent Extractor] Parse failed: {e}", file=sys.stdout)
+        print(f"[Intent Extractor] Parse failed: {e}", file=sys.stderr)
         return None
 
 

@@ -20,6 +20,9 @@ from hashlib import sha1
 from pathlib import Path
 from typing import Any
 
+import logging as _li
+_logger = _li.getLogger(__name__)
+
 HOOKS_DIR = Path(__file__).resolve().parent
 STATE_DIR = HOOKS_DIR / "state"
 SESSION_DATA_DIR = Path(os.environ.get("FRAMEGUARD_SESSION_DATA_DIR", HOOKS_DIR / "session_data"))
@@ -1344,9 +1347,7 @@ def write_epistemic_commitment(
             conn.commit()  # Explicit commit for raw sqlite3.Connection
         return True
     except sqlite3.Error as e:
-        import sys
-
-        print(f"DEBUG: write_epistemic_commitment sqlite3.Error: {e}", file=sys.stderr)
+        _logger.debug(f"write_epistemic_commitment sqlite3.Error: {e}")
         return False  # Fail open
 
 
@@ -1450,9 +1451,7 @@ def create_epistemic_binding(
             conn.commit()  # Explicit commit for raw sqlite3.Connection
         return True
     except sqlite3.Error as e:
-        import sys
-
-        print(f"DEBUG: create_epistemic_binding sqlite3.Error: {e}", file=sys.stderr)
+        _logger.debug(f"create_epistemic_binding sqlite3.Error: {e}")
         return False  # Fail open
 
 

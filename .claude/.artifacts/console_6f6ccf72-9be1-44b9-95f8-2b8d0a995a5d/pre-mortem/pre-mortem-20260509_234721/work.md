@@ -1,1 +1,0 @@
-Stop_lazy_workaround_gate.py proximity detector fix - replaced brittle regex with proximity-based keyword matcher, added ROOT_CAUSE_PHRASES bypass

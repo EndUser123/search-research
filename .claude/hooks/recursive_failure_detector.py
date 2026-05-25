@@ -230,12 +230,53 @@ def get_prescriptive_directive(tool: str, command: str, errors: list) -> str:
         case ("Write" | "Edit", cmd, err) if "syntaxerror" in err or "gate" in cmd:
             return (
                 "**Prescriptive Directive:** The `Write` tool is being blocked by a syntax gate. "
-                "Use the `Edit` tool instead to modify the file in smaller chunks, or check for unclosed brackets/quotes."
+                "Do NOT retry the same edit. Instead:\n"
+                "1. Use `py_compile` or `ast.parse` locally on a temporary copy to check for syntax validity.\n"
+                "2. Apply edits in smaller, surgical chunks instead of single large replacements.\n"
+                "3. Verify that all parentheses, brackets, and quotes are properly closed."
+            )
+
+        # Git failures (lock/mutex/index.lock)
+        case ("bash", cmd, err) if "git" in cmd and any(
+            w in err for w in ("mutex", "lock", "index.lock", "already exists")
+        ):
+            return (
+                "**Prescriptive Directive:** Git operation blocked by lock or mutex.\n"
+                "1. Do NOT retry the git command immediately.\n"
+                "2. Check if a background process holds the git lock, or search for `index.lock` in the repository.\n"
+                "3. Remove the lock file manually or run the designated git-mutex cleanup script."
+            )
+
+        # Pytest failures
+        case ("bash", cmd, err) if "pytest" in cmd and any(
+            w in err for w in ("failed", "error", "exit code", "internalerror")
+        ):
+            return (
+                "**Prescriptive Directive:** Pytest execution has failed. Do NOT rerun the test suite unmodified.\n"
+                "1. Locate the failing unit test file.\n"
+                "2. Perform Symmetry Analysis: verify if the code under test is colocated and has matching imports.\n"
+                "3. Isolate the failure by running only the specific test using `pytest <test_file>::<test_name>`.\n"
+                "4. Check live logs/telemetry to understand the failure instead of guessing."
+            )
+
+        # Permission denied / Access issues
+        case (tool_name, cmd, err) if any(w in err for w in ("permission denied", "access denied", "permissionerror")):
+            return (
+                "**Prescriptive Directive:** Permission or access error. Do NOT retry the same operation.\n"
+                "1. Use the `ask_permission` tool to request the narrowest scope required (e.g., path permission).\n"
+                "2. Avoid performing file operations directly on system or restricted parent directories.\n"
+                "3. Write/read to allowed workspace scratch directories (e.g. `P:/.claude/hooks/scratch` or current scratch)."
             )
 
         # Default fallback
         case _:
-            return "Abandon this approach and try a completely different strategy (e.g., different tool or simpler command)."
+            return (
+                "**Prescriptive Directive:** Failure pattern detected. Do NOT retry the failed action.\n"
+                "1. Abandon the current approach and switch to an alternative strategy.\n"
+                "2. Check the logs, run diagnostic probes, or use python script debugging to gather context.\n"
+                "3. If the correct path is ambiguous, stop and request guidance from the user."
+            )
+
 
 
 def check_for_investigation_loop(tool: str, command: str) -> dict | None:
@@ -374,8 +415,8 @@ def check_for_catch22(tool: str, command: str, file_path: str = "") -> dict:
 def main():
     stdin_content = sys.stdin.read()
     if not stdin_content.strip():
-        print("recursive_failure_detector: empty stdin, allowing", file=sys.stderr)
-        print(json.dumps({"continue": True}))
+        _logger.info("recursive_failure_detector: empty stdin, allowing")
+        print(json.dumps({"decision": "approve"}))
         sys.exit(0)
     input_data = json.loads(stdin_content)
     tool_name = input_data.get("tool_name", "")

@@ -44,7 +44,7 @@ PROTECTED_PATH_PATTERNS: list[tuple[str, str]] = [
     (_CLAUDE_HOOKS + "/anti_sycophancy/", "anti-sycophancy validators"),
     (_CLAUDE_HOOKS + "/validators/", "validator modules"),
     # Settings and policy
-    str(Path.home() / ".claude" / "settings.json"), "Claude settings",
+    (str(Path.home() / ".claude" / "settings.json"), "Claude settings"),
     # Hooks subdirectories (all .py files under hooks/)
     (_CLAUDE_HOOKS + "/PreToolUse_*.py", "PreToolUse hook modules (glob)"),
     (_CLAUDE_HOOKS + "/PostToolUse_*.py", "PostToolUse hook modules (glob)"),

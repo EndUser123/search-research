@@ -195,7 +195,7 @@ def behavior_contract(context: HookContext) -> HookResult:
 
     # Trace visibility: print to stdout so hook-obs users can see fires without reading JSONL
     prompt_preview = (context.prompt or "")[:80].replace("\n", " ")
-    print(f"[behavior_contract] fired | prompt: {prompt_preview}...", file=sys.stdout)
+    print(f"[behavior_contract] fired | prompt: {prompt_preview}...", file=sys.stderr)
 
     if log_hook_invocation is not None:
         try:

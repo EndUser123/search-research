@@ -278,7 +278,7 @@ You appear to be repeating a directive that the LLM answered with questions.
 The LLM should recognize this as a delegation signal and proceed with ranked execution.
 Pattern logged to CKS for calibration.
 """
-                print(advisory, file=sys.stdout)
+                print(advisory, file=sys.stderr)
 
         return {"allow": True, "reason": "Consultation loop check complete"}
 

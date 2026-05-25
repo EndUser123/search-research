@@ -147,7 +147,7 @@ def workflow_tier_tagging_hook(context: HookContext) -> HookResult:
 
     print(
         f"[Tier-Tagging] Injected directive for {skill_name}: {len(workflow_steps)} workflow steps",
-        file=sys.stdout,
+        file=sys.stderr,
     )
 
     # Return directive as additional context

@@ -18,7 +18,7 @@ CONSTITUTIONAL BASIS:
 
 # --- plugin bootstrap ---
 import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "lib"
+_l = _P(__file__).resolve().parent.parent.parent / "__lib"
 if str(_l) not in _s.path: _s.path.insert(0, str(_l))
 from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
@@ -46,6 +46,25 @@ from __lib.import_resolver import (  # noqa: E402
 type ToolDict = dict[str, Any]
 type InvestigationState = dict[str, Any]
 type CheckResult = tuple[bool, str]
+
+
+def _normalize_stdout(data: dict) -> dict:
+    """Normalize hook output to Claude Code Zod-valid schema."""
+    if data.get('decision') == 'allow':
+        return {'decision': 'approve'}
+    if data.get('decision') == 'block':
+        return {'decision': 'block', 'reason': data.get('reason', '')}
+    if 'allow' in data:
+        if data['allow'] is False:
+            return {'decision': 'block', 'reason': data.get('reason', '')}
+        return {'decision': 'approve'}
+    if 'continue' in data:
+        if data['continue'] is False:
+            return {'decision': 'block', 'reason': data.get('reason', '')}
+        return {'decision': 'approve'}
+    if 'ok' in data:
+        return {'decision': 'approve'}
+    return data
 
 
 def sanitize_path(path: str | None) -> str:
@@ -1217,6 +1236,9 @@ def record_read(
         if match:
             filepath = match.group(1)
 
+    # Skip CLI flags parsed from Bash commands (e.g. -80, -l, -rn)
+    if filepath and filepath.startswith("-"):
+        filepath = None
     if filepath and filepath not in state["files_read"]:
         state["files_read"].append(filepath)
         module = extract_module(filepath)
@@ -1311,11 +1333,19 @@ def check_write_permission(
     except (TypeError, ValueError):
         pass
 
-    # NEW FILE exemption - if creating in empty directory or new project
+    # NEW FILE exemption - if creating a file that doesn't exist yet
     if not Path(filepath).exists():
         parent = Path(filepath).parent
         if not parent.exists() or not any(parent.iterdir()):
             return True, "New file in empty/new directory"
+        # New file in existing directory: exempt if sibling files were read
+        # (indicates familiarity with the directory's purpose)
+        sibling_reads = sum(
+            1 for r in state["files_read"]
+            if Path(r).resolve().parent == parent.resolve()
+        )
+        if sibling_reads >= 1:
+            return True, f"New file in known directory ({sibling_reads} sibling(s) read)"
 
     # Library-aware check for utility code
     code_content = (
@@ -1380,6 +1410,10 @@ def check_write_permission(
             f"Recent files read: {[sanitize_path(p) for p in state['files_read'][:5]]}\n\n"
             f"Bypass: Declare 'Investigation complete: [summary]'"
         )
+
+    # MEDIUM/HIGH: allow if target was directly read (investigation done)
+    if target_read:
+        return True, f"Target file was read directly ({filepath})"
 
     # MEDIUM/HIGH: require explicit discovery, no auto-read fallback.
     return False, (
@@ -1619,7 +1653,7 @@ if __name__ == "__main__":
 
         # Output explicit approval JSON (Claude Code requires this)
         output = {"decision": "approve", "reason": "Investigation gate passed"}
-        print(json.dumps(output))
+        print(json.dumps(_normalize_stdout(output)))
         sys.exit(0)  # Allow
 
     except json.JSONDecodeError as e:

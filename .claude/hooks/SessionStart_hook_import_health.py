@@ -30,6 +30,17 @@ import json
 import os
 import sys
 from pathlib import Path
+import logging as _li
+
+_HOOKS_DIR = Path(__file__).resolve().parent
+_LOG_DIR = _HOOKS_DIR / "logs" / "diagnostics"
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_logger = _li.getLogger(__name__)
+_handler = _li.FileHandler(_LOG_DIR / "hook_stderr.log", encoding="utf-8")
+_handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
+
 
 # Configuration
 ENABLED = os.environ.get("HOOK_IMPORT_HEALTH_ENABLED", "true").lower() in ("1", "true", "yes")
@@ -138,19 +149,19 @@ def main() -> int:
     if failures:
         # Import health issues detected
         if VERBOSE:
-            print("\n⚠️  HOOK IMPORT HEALTH CHECK FAILED", file=sys.stderr)
-            print("="*60, file=sys.stderr)
+            _logger.info("\n⚠️  HOOK IMPORT HEALTH CHECK FAILED")
+            _logger.info("="*60)
 
             for result in failures:
-                print(f"\n❌ {result['name']}", file=sys.stderr)
-                print(f"   {result['error']}", file=sys.stderr)
+                _logger.info(f"\n❌ {result['name']}")
+                _logger.info(f"   {result['error']}")
 
-            print("\n" + "="*60, file=sys.stderr)
-            print("\nThis may cause UserPromptSubmit hook errors.", file=sys.stderr)
-            print("Fix steps:", file=sys.stderr)
+            _logger.info("\n" + "="*60)
+            _logger.info("\nThis may cause UserPromptSubmit hook errors.")
+            _logger.info("Fix steps:")
             print("  1. Check for naming conflicts (.py vs package)", file=sys.stderr)
-            print("  2. Clear Python bytecode: find . -name '__pycache__' -exec rm -rf {} +", file=sys.stderr)
-            print("  3. Verify module structure in UserPromptSubmit_modules/", file=sys.stderr)
+            _logger.info("  2. Clear Python bytecode: find . -name '__pycache__' -exec rm -rf {} +")
+            _logger.info("  3. Verify module structure in UserPromptSubmit_modules/")
 
         # Log to state file for monitoring
         state_dir = HOOKS_DIR / "state"

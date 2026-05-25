@@ -185,6 +185,9 @@ def resolve_local_imports(
         module_like_spec = f"{prefix}.{alias_name}"
         if module_like_spec in local_import_specs:
             continue
+        top_level = module_like_spec.lstrip(".").split(".", 1)[0]
+        if top_level in stdlib_modules:
+            continue
         local_import_specs.append(module_like_spec)
         candidates = candidate_module_paths(module_like_spec, target_path)
         resolved_candidate = next((candidate for candidate in candidates if candidate.exists()), None)

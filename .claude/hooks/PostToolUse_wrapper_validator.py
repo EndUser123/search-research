@@ -106,10 +106,10 @@ def run(data: dict) -> dict | None:
         }
 
         # Print to stdout (not stderr - that would trigger hook error)
-        print(f"\n{status_icon} Wrapper Validation: {path.name} - {status_text}", file=sys.stdout)
+        _logger.warning("Wrapper Validation: %s - %s", path.name, status_text)
         for finding in all_findings:
-            print(f"  {finding}", file=sys.stdout)
-        print(file=sys.stdout)
+            _logger.warning("  %s", finding)
+        
 
         # Return data for potential downstream processing
         return findings_data

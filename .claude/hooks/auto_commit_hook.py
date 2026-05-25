@@ -5,6 +5,9 @@ import subprocess
 import sys
 from collections import Counter
 from datetime import datetime
+import logging as _li
+_logger = _li.getLogger(__name__)
+
 from pathlib import Path
 
 # Setup path for local imports BEFORE importing local modules
@@ -372,9 +375,7 @@ def auto_commit_all() -> bool:
                 committed = True
         except Exception as e:
             # Continue with other repos even if one fails
-            print(
-                f"[auto-commit] Failed to commit to {repo.relative_to(root)}: {e}", file=sys.stderr
-            )
+            _logger.warning(f"[auto-commit] Failed to commit to {rel_path}: {e}")
 
     return committed
 

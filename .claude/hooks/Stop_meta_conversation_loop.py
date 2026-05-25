@@ -20,10 +20,20 @@ Created: 2026-05-12
 from __future__ import annotations
 
 import json
+import logging as _li
 import os
 import sys
 import time
 from pathlib import Path
+
+_HOOKS_DIR = Path(__file__).resolve().parent
+_LOG_DIR = _HOOKS_DIR / "logs" / "diagnostics"
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_logger = _li.getLogger(__name__)
+_handler = _li.FileHandler(_LOG_DIR / "hook_stderr.log", encoding="utf-8")
+_handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
 
 _Hook_Dir = Path(__file__).parent.resolve()
 sys.path.insert(0, str(_Hook_Dir))
@@ -216,4 +226,4 @@ if __name__ == "__main__":
         state = json.loads(path.read_text())
         assert state["loop_count"] == 0, f"Expected loop_count=0 after productive, got {state['loop_count']}"
 
-        print("All Stop_meta_conversation_loop.py self-tests passed.", file=sys.stderr)
+        _logger.info("All Stop_meta_conversation_loop.py self-tests passed.")

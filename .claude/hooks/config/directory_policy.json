@@ -86,6 +86,10 @@
       {
         "pattern": "tmp",
         "reason": "Temporary working directory for active development"
+      },
+      {
+        "pattern": ".data",
+        "reason": "Structured data directory - wiki, yt-is, ai-cli artifacts"
       }
     ],
     "allowed_config_files": [
@@ -933,8 +937,8 @@
           "Auto-cleared on session start if >7 days old"
         ],
         "blocked_patterns": [
-          "*.py in temp/ → use .staging/ or tests/ for Python files",
-          "tests/ in temp/ → use tests/ directory for test files"
+          "*.py in temp/ \u2192 use .staging/ or tests/ for Python files",
+          "tests/ in temp/ \u2192 use tests/ directory for test files"
         ]
       }
     ],
@@ -1035,7 +1039,7 @@
       },
       {
         "pattern": "__csf/tests/",
-        "reason": "__csf/tests/ is orphaned — source files no longer exist, tests belong next to their source",
+        "reason": "__csf/tests/ is orphaned \u2014 source files no longer exist, tests belong next to their source",
         "suggestion": "Delete if source files are gone, or move alongside source in __csf/src/"
       },
       {
@@ -1391,11 +1395,11 @@
       }
     },
     "decision_tree": [
-      "1. Is there an active TSK and content references it? → tsk/{task_id}/",
-      "2. Is this a deliverable proving task completion? → reports/ (or tsk/ if known)",
-      "3. Is this reference material for future use? → reports/ or docs/",
-      "4. Is this temporary/draft work? → .staging/",
-      "5. Unknown → allow current path, no suggestion"
+      "1. Is there an active TSK and content references it? \u2192 tsk/{task_id}/",
+      "2. Is this a deliverable proving task completion? \u2192 reports/ (or tsk/ if known)",
+      "3. Is this reference material for future use? \u2192 reports/ or docs/",
+      "4. Is this temporary/draft work? \u2192 .staging/",
+      "5. Unknown \u2192 allow current path, no suggestion"
     ]
   },
   "claude_restricted_paths": {

@@ -13,9 +13,20 @@ Architecture:
 from __future__ import annotations
 
 import json
+import logging
 import sys
 from datetime import datetime
 from pathlib import Path
+
+# Structured logging to diagnostics directory (avoids stderr triggering hook error)
+_DIAG_DIR = Path(__file__).resolve().parent / 'logs' / 'diagnostics'
+_DIAG_DIR.mkdir(parents=True, exist_ok=True)
+_LOG_FILE = _DIAG_DIR / 'adversarial_aggregator.log'
+_logger = logging.getLogger('adversarial_aggregator')
+_handler = logging.FileHandler(_LOG_FILE, encoding='utf-8')
+_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
+_logger.addHandler(_handler)
+_logger.setLevel(logging.INFO)
 
 # Add hooks directory to path for imports
 HOOKS_DIR = Path(__file__).resolve().parent
@@ -74,7 +85,7 @@ def aggregate_findings(files: list[Path]) -> list[dict]:
                 all_findings.append(finding)
 
         except (json.JSONDecodeError, OSError) as e:
-            print(f"[WARN] Failed to read {filepath}: {e}", file=sys.stdout)
+            _logger.warning(f"Failed to read {filepath}: {e}")
 
     return all_findings
 
@@ -180,22 +191,22 @@ def main():
         state_dir = get_terminal_state_dir(terminal_id)
     else:
         state_dir = get_shared_state_dir()
-        print(f"[INFO] No terminal ID, using shared state: {state_dir}", file=sys.stdout)
+        _logger.info(f"No terminal ID, using shared state: {state_dir}")
 
     # Discover subagent files
     files = discover_subagent_files(state_dir)
 
     if not files:
-        print("[INFO] No adversarial subagent files found to aggregate", file=sys.stdout)
+        _logger.info("No adversarial subagent files found to aggregate")
         return 0
 
-    print(f"[INFO] Found {len(files)} subagent files in {state_dir}", file=sys.stdout)
+    _logger.info(f"Found {len(files)} subagent files in {state_dir}")
 
     # Aggregate findings
     findings = aggregate_findings(files)
 
     if not findings:
-        print("[INFO] No findings to aggregate", file=sys.stdout)
+        _logger.info("No findings to aggregate")
         return 0
 
     # Calculate consensus
@@ -223,7 +234,7 @@ def main():
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(output_data, f, indent=2)
 
-    print(f"\n[INFO] Aggregated results saved to: {output_path}", file=sys.stdout)
+    _logger.info(f"Aggregated results saved to: {output_path}")
 
     return 0
 

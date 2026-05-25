@@ -52,7 +52,7 @@ from __future__ import annotations
 
 # --- plugin bootstrap ---
 import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "lib"
+_l = _P(__file__).resolve().parent.parent.parent / "__lib"
 if str(_l) not in _s.path: _s.path.insert(0, str(_l))
 from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
@@ -406,6 +406,10 @@ def check_npm_install(command: str) -> str | None:
     match = NPM_INSTALL_PATTERN.search(command)
     if match:
         raw_package = match.group(1)
+        # Skip if preceded by quote - inside string literal, not a real install
+        start = match.start()
+        if start > 0 and command[start - 1] in ("'", '"'):
+            return None
         package = clean_package_name(raw_package)
 
         # Skip if it's a file: protocol or local path

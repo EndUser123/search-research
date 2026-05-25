@@ -7,6 +7,7 @@ Usage:
     python routes_probe.py --routes no --only mistral  # unrouted only for provider
     python routes_probe.py --routes yes --only mistral # routed only for provider
     python routes_probe.py --providers            # list all available providers in catalog
+    python routes_probe.py --routes no --only <provider>   # show unrouted for a provider
 """
 
 import sqlite3, urllib.request, json, re, sys, unicodedata
@@ -72,8 +73,6 @@ def is_free_model(mid: str, pricing: dict | None = None) -> bool:
 
 def passes_filter(mid: str, ctx: int, prov: str, only_providers: list | None = None, pricing: dict | None = None) -> bool:
     """Apply context minimum and OpenRouter free-only rule."""
-    if not only_providers and ctx == 0:
-        return False
     if 0 < ctx < MIN_CONTEXT:
         return False
     if FREE_OPENROUTER and prov == 'openrouter' and not is_free_model(mid, pricing):

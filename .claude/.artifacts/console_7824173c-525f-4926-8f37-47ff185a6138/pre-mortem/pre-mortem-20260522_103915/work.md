@@ -1,1 +1,0 @@
-Recent changes to plugin-audit-and-fix.py (lines 1651-1687) and summarize_audit.py (lines 268-272): Fixed --summarize double-audit bug where summarize_audit.py re-ran entire audit instead of receiving findings JSON. Fixed python3 hardcoded subprocess calls to use sys.executable. Changes write findings to temp JSON and pass path to summarizer.

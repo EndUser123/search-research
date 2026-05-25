@@ -7,9 +7,20 @@ Proactively checks for known issues from archive/TDD_PROBLEMS_AND_FIXES.md
 """
 
 import json
+import logging as _li
 import sys
 from collections import Counter
 from datetime import datetime
+from pathlib import Path
+
+_HOOKS_DIR = Path(__file__).resolve().parent
+_LOG_DIR = _HOOKS_DIR / "logs" / "diagnostics"
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_logger = _li.getLogger(__name__)
+_handler = _li.FileHandler(_LOG_DIR / "hook_stderr.log", encoding="utf-8")
+_handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
 
 from tdd_core import STATE_DIR, debug_log
 
@@ -212,8 +223,8 @@ RECOVERY:
 
         alert += f"\n{'=' * 60}"
 
-        # Print to stderr for visibility
-        print(alert, file=sys.stderr)
+        # Log alert for visibility
+        _logger.warning(alert)
 
         # Log the alert
         self.log_event(f"alert_{problem_key}", details)

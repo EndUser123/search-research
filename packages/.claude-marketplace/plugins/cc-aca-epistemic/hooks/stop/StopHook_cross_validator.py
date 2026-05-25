@@ -20,7 +20,27 @@ from __future__ import annotations
 
 # --- plugin bootstrap ---
 import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "lib"
+
+def _normalize_stdout(data: dict) -> dict:
+    """Normalize hook output to Claude Code Zod-valid schema."""
+    if data.get('decision') == 'allow':
+        return {'decision': 'approve'}
+    if data.get('decision') == 'block':
+        return {'decision': 'block', 'reason': data.get('reason', '')}
+    if 'allow' in data:
+        if data['allow'] is False:
+            return {'decision': 'block', 'reason': data.get('reason', '')}
+        return {'decision': 'approve'}
+    if 'continue' in data:
+        if data['continue'] is False:
+            return {'decision': 'block', 'reason': data.get('reason', '')}
+        return {'decision': 'approve'}
+    if 'ok' in data:
+        return {'decision': 'approve'}
+    return data
+
+
+_l = _P(__file__).resolve().parent.parent.parent / "__lib"
 if str(_l) not in _s.path: _s.path.insert(0, str(_l))
 from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
@@ -37,7 +57,7 @@ import structlog
 
 HOOKS_DIR = _hooks_dir  # from bootstrap
 
-from __lib.claim_patterns import has_action_claim, has_document_claim, has_error_characterization
+from claim_patterns import has_action_claim, has_document_claim, has_error_characterization
 from cc_diagnostic_logger import log_hook_invocation
 from evidence_store import is_file_invalidated, resolve_session_id
 
@@ -335,5 +355,8 @@ if __name__ == "__main__":
     result = run(input_data)
 
     # Output result as JSON
-    print(json.dumps(result))
+    output = {"decision": "approve" if result.get("allow", True) else "block", "reason": result.get("reason", "")}
+    if not result.get("allow", True):
+        output = {"decision": "block", "reason": result.get("reason", "")}
+    print(json.dumps(_normalize_stdout(output)))
     sys.exit(0 if result["allow"] else 2)

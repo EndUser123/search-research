@@ -337,7 +337,7 @@ if DIAGNOSTICS_ENABLED:
     except Exception as e:
         DIAGNOSTICS_ENABLED = False
         if DIAGNOSTICS_DEBUG:
-            print(f"[DIAG] Failed to initialize database: {e}", file=sys.stderr)
+            _logger.info(f"[DIAG] Failed to initialize database: {e}")
 
 
 # =============================================================================
@@ -549,7 +549,7 @@ def log_entry(log_type: str, data: dict) -> None:
 
     except Exception as e:
         # Fail silently - logging should never break the hook
-        print(f"[DIAG] Log write failed: {e}", file=sys.stderr)
+        _logger.info(f"[DIAG] Log write failed: {e}")
 
 
 # =============================================================================
@@ -909,7 +909,7 @@ def get_recent_logs(log_type: str, n: int = 20) -> list[dict]:
 
         return results
     except Exception as e:
-        print(f"[DIAG] Failed to get recent logs: {e}", file=sys.stderr)
+        _logger.info(f"[DIAG] Failed to get recent logs: {e}")
         return []
 
 
@@ -960,7 +960,7 @@ def query_hook_invocations(
         columns = [desc[0] for desc in cursor.description]
         return [dict(zip(columns, row)) for row in rows]
     except Exception as e:
-        print(f"[DIAG] Failed to query hook invocations: {e}", file=sys.stderr)
+        _logger.info(f"[DIAG] Failed to query hook invocations: {e}")
         return []
 
 
@@ -1007,7 +1007,7 @@ def get_session_summary(session_id: str | None = None) -> dict:
         summary["tools_used"] = {row[0] for row in cursor.fetchall()}
 
     except Exception as e:
-        print(f"[DIAG] Failed to get session summary: {e}", file=sys.stderr)
+        _logger.info(f"[DIAG] Failed to get session summary: {e}")
 
     # Convert sets to lists for JSON serialization
     summary["hooks_triggered"] = list(summary["hooks_triggered"])

@@ -83,8 +83,7 @@ class VerificationAuditLogger:
             )
         except OSError as e:
             # Don't fail if logging fails
-            print(f"WARNING: Failed to write audit log: {e}", file=sys.stderr)
-
+            _logger.warning(f"WARNING: Failed to write audit log: {e}",)
     def check_verification_status(self) -> bool:
         """Check if verification is currently enabled.
 

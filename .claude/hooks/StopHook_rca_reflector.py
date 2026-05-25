@@ -1,1 +1,0 @@
-P:/packages/cc-skills-sdlc/skills/rca/hooks/StopHook_rca_reflector.py

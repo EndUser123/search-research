@@ -201,7 +201,7 @@ ASSUMED_COMPLIANCE_PHRASES = [
     r"\bframework\s+(?:ensures|guarantees|handles)\b",
 ]
 
-# Lazy fix language - proposes bandaids over proper solutions
+# Lazy fix language - proposes superficial fixes over proper solutions
 LAZY_FIX_PHRASES = [
     r"\bquick\s+fix\b",
     r"\bsimple\s+(?:fix|patch|edit)\b",
@@ -213,8 +213,8 @@ LAZY_FIX_PHRASES = [
     r"\buse\s+(?:a\s+)?workaround\b",
     r"\bimplement\s+(?:a\s+)?workaround\b",
     r"\bregardless\s+of\b",  # "regardless of task name" - ignoring design
-    r"\bbandaid\b",
-    r"\bband-aid\b",
+    # removed: false-positive rate too high when analyzing existing fixes
+    # "workaround" patterns already cover the same intent with fewer FP.
     r"\bjust\s+(?:add|patch|fix|use)\b",
     r"\beasier\s+to\s+just\b",
 ]
@@ -402,8 +402,8 @@ SELF_REFERENTIAL_EVASION_PATTERNS = [
     r"\bROOT\s+CAUSE\s+CANDIDATE\b",
     r"\bhypothes[ei]s\b.*?(?:(?:yet|still|also|may|might|could)\s+)?(?:be|apply|explain)",
     r"(?:yet|still|also)\s+(?:might|may|could)\s+(?:be|explain|apply)",
-    r"\bhedge[s]?\b",
-    r"\bunverified\b",
+    r"(?<!`)(?<!\[)\bhedge[s]?\b(?!`)(?!\])",
+    r"(?<!`)(?<!\[)\bunverified\b(?!`)(?!\])",
     r"\b(?:this|that)\s+(?:still\s+)?(?:might|may|could)\s+(?:be|require)\b",
     r"\b(?:competing|ruling\s+out)\s+hypotheses\b",
     r"\b(?:candidate|hypothesis)\s+(?:for|of|is)\s+\w+\b",

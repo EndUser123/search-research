@@ -14,8 +14,19 @@ Existing pattern detectors (narrative_intent_detector.py) serve different purpos
 from __future__ import annotations
 
 import json
+import logging as _li
 import re
 import sys
+from pathlib import Path
+
+_HOOKS_DIR = Path(__file__).resolve().parent
+_LOG_DIR = _HOOKS_DIR / "logs" / "diagnostics"
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_logger = _li.getLogger(__name__)
+_handler = _li.FileHandler(_LOG_DIR / "hook_stderr.log", encoding="utf-8")
+_handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
 
 # Pattern definitions for query classification
 # Chat history patterns: conversational, temporal, pronoun-based
@@ -176,14 +187,16 @@ def main() -> None:
         classification = classify_query(query)
         if classification:
             advisory = build_suggestion(classification, query)
-            print(json.dumps({"decision": "approve", "hookSpecificOutput": {"advisory": advisory}}))
+            _logger.warning(f"[advisory] {advisory}")
+            print(json.dumps({"decision": "approve"}))
         else:
             # No specific recommendation
             print(json.dumps({"decision": "approve"}))
 
     except Exception as e:
         # Fail open - don't block on errors
-        print(json.dumps({"decision": "approve", "error": str(e)}), file=sys.stderr)
+        _logger.error(f"Domain tool router error: {e}")
+        print(json.dumps({"decision": "approve", "error": str(e)}))
 
 
 if __name__ == "__main__":

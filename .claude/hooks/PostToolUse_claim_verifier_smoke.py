@@ -16,13 +16,13 @@ from typing import Any
 
 
 HOOKS_DIR = Path(__file__).resolve().parent
-TEST_FILE = HOOKS_DIR / "tests" / "test_claim_verifier_runtime_assertions.py"
+TEST_FILE = HOOKS_DIR / "tests" / "test_unified_claim_verifier.py"
 
 _RELEVANT_SUFFIXES = (
     "/.claude/hooks/unified_claim_verifier.py",
     "/.claude/hooks/stop_router.py",
     "/.claude/hooks/posttooluse/__init__.py",
-    "/.claude/hooks/tests/test_claim_verifier_runtime_assertions.py",
+    "/.claude/hooks/tests/test_unified_claim_verifier.py",
     "/.claude/settings.json",
 )
 

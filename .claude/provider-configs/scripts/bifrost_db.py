@@ -51,7 +51,7 @@ def get_rules() -> list[dict]:
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
-        SELECT r.id, r.name, r.cel_expression, r.scope, r.priority, rt.provider, rt.model, rt.weight
+        SELECT r.id, r.name, r.cel_expression, r.scope, r.priority, r.enabled, rt.provider, rt.model, rt.weight
         FROM routing_rules r
         LEFT JOIN routing_targets rt ON rt.rule_id = r.id
         ORDER BY r.priority DESC
@@ -64,8 +64,9 @@ def get_rules() -> list[dict]:
             "cel_expression": row[2] or "",
             "scope": row[3] or "global",
             "priority": row[4],
-            "targets": [] if (row[5] is None or row[6] is None)
-                       else [{"provider": row[5], "model": row[6], "weight": row[7] or 1.0}],
+            "enabled": row[5],
+            "targets": [] if (row[6] is None or row[7] is None)
+                       else [{"provider": row[6], "model": row[7], "weight": row[8] or 1.0}],
         })
     conn.close()
     return {"rules": rules}
@@ -118,6 +119,61 @@ def get_status() -> dict:
     }
 
 
+def cleanup_stale_keys() -> dict:
+    """Delete all *-key-1 placeholder entries from config_keys. Returns counts."""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT name FROM config_keys WHERE name LIKE '%-key-1%'")
+    stale = [r[0] for r in c.fetchall()]
+    c.execute("DELETE FROM config_keys WHERE name LIKE '%-key-1%'")
+    conn.commit()
+    deleted_keys = c.rowcount
+    conn.close()
+    return {"deleted": deleted_keys, "stale_names": stale}
+
+
+def cleanup_orphan_providers() -> dict:
+    """Delete config_providers rows with no routing rules and no API key. Returns counts."""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+
+    # Providers that have an active routing rule (case-insensitive)
+    c.execute("SELECT DISTINCT LOWER(provider) FROM routing_targets WHERE provider IS NOT NULL")
+    active_providers = {r[0] for r in c.fetchall()}
+
+    # Providers that have an API key
+    c.execute("SELECT DISTINCT LOWER(provider) FROM config_keys WHERE provider IS NOT NULL")
+    keyed_providers = {r[0] for r in c.fetchall()}
+
+    # Providers to keep: active OR keyed (case-insensitive)
+    keep_providers = active_providers | keyed_providers
+
+    # Find orphaned rows
+    c.execute("SELECT id, name FROM config_providers")
+    all_providers = [(r[0], r[1]) for r in c.fetchall()]
+
+    orphaned = []
+    for pid, pname in all_providers:
+        if pname.lower() not in keep_providers:
+            orphaned.append((pid, pname))
+
+    deleted_providers = 0
+    for pid, pname in orphaned:
+        c.execute("DELETE FROM config_providers WHERE id = ?", (pid,))
+        deleted_providers += c.rowcount
+
+    conn.commit()
+    conn.close()
+    return {"deleted": deleted_providers, "orphaned": [p[1] for p in orphaned]}
+
+
+def cleanup_all() -> dict:
+    """Run all cleanup operations. Returns combined results."""
+    keys_result = cleanup_stale_keys()
+    providers_result = cleanup_orphan_providers()
+    return {"stale_keys": keys_result, "orphan_providers": providers_result}
+
+
 def enable_rules() -> int:
     """Re-enable all routing rules. Returns count of updated rows."""
     conn = sqlite3.connect(DB_PATH)
@@ -136,6 +192,7 @@ def main():
     group.add_argument("--get-rules", action="store_true", help="Return all rules with targets as JSON")
     group.add_argument("--status", action="store_true", help="Return daemon health summary as JSON")
     group.add_argument("--enable-rules", action="store_true", help="Enable all rules, print count")
+    group.add_argument("--cleanup", action="store_true", help="Run all cleanup operations (stale keys + orphan providers)")
     args = parser.parse_args()
 
     if args.get_routes:
@@ -147,6 +204,9 @@ def main():
     elif args.enable_rules:
         count = enable_rules()
         print(f"Enabled {count} rules")
+    elif args.cleanup:
+        result = cleanup_all()
+        print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":

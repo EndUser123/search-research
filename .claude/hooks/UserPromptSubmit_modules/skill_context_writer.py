@@ -51,6 +51,106 @@ _ENABLED = os.environ.get("SKILL_CONTEXT_WRITER_ENABLED", "true").lower() in (
 # State file location
 _STATE_DIR = _HOOKS_DIR / "state" / "skill_context"
 
+# Skill directory resolution paths
+_LOCAL_SKILLS_DIR = Path(r"P:\.claude\skills")
+_INSTALLED_PLUGINS_JSON = Path(r"C:\Users\brsth\.claude\plugins\installed_plugins.json")
+
+
+
+def _resolve_skill_dir(skill_name: str) -> str | None:
+    """Return the actual directory path for a skill, or None.
+
+    Checks in order:
+    1. Local skills (.claude/skills/)
+    2. Plugin cache (installed_plugins.json)
+
+    Returns a forward-slash normalized path string.
+    """
+    # 1. Local skill
+    local_dir = _LOCAL_SKILLS_DIR / skill_name
+    if local_dir.is_dir():
+        return f".claude/skills/{skill_name}"
+
+    # 2. Plugin cache
+    try:
+        data = json.loads(_INSTALLED_PLUGINS_JSON.read_text(encoding="utf-8"))
+        plugins = data.get("plugins", {})
+        for plugin_key, entries in plugins.items():
+            if not isinstance(entries, list):
+                continue
+            for entry in entries:
+                install_path = entry.get("installPath", "")
+                if not install_path:
+                    continue
+                skill_dir = Path(install_path) / "skills" / skill_name
+                if skill_dir.is_dir():
+                    return skill_dir.as_posix()
+    except (OSError, json.JSONDecodeError, TypeError):
+        pass
+
+    return None
+
+
+def _build_valid_paths(
+    skill_name: str, expected_dir: str, source_dir: str | None
+) -> list[str]:
+    """Build list of all valid path representations for a skill.
+
+    Includes cache, source, and junction paths so the gate can match
+    regardless of which path variant the LLM uses.
+    """
+    paths = [expected_dir.replace(chr(92), '/')]
+
+    if source_dir:
+        normalized_source = source_dir.replace(chr(92), '/')
+        if normalized_source not in expected_dir:
+            paths.append(normalized_source)
+
+        # Derive junction: P:/packages/{plugin}/skills/{name}
+        # -> P:/packages/.claude-marketplace/plugins/{plugin}/skills/{name}
+        parts = normalized_source.split('/')
+        if (
+            len(parts) >= 5
+            and parts[0] == 'P:'
+            and parts[1] == 'packages'
+            and parts[3] == 'skills'
+        ):
+            plugin_name = parts[2]
+            junction = (
+                f'P:/packages/.claude-marketplace/plugins/{plugin_name}'
+                f'/skills/{skill_name}'
+            )
+            if junction not in paths and Path(junction).is_dir():
+                paths.append(junction)
+
+    return paths
+
+
+def _resolve_source_dir(skill_name: str) -> str | None:
+    """Return the source directory for a plugin skill, or None.
+
+    Source is P:/packages/<plugin>/skills/<skill_name>/ for marketplace plugins.
+    """
+    marketplace_json = Path(r"P:/packages/.claude-marketplace/marketplace.json")
+    try:
+        data = json.loads(marketplace_json.read_text(encoding="utf-8"))
+        for plugin in data.get("plugins", []):
+            name = plugin.get("name", "")
+            source = plugin.get("source", "")
+            if not name or not source:
+                continue
+            # source format: "./plugins/<name>"
+            if source.startswith("./plugins/"):
+                plugin_name = source[len("./plugins/"):]
+            else:
+                continue
+            skill_src = Path(f"P:/packages/{plugin_name}/skills/{skill_name}")
+            if skill_src.is_dir():
+                return str(skill_src).replace("/", "\\").replace("\\", "/")
+    except (OSError, json.JSONDecodeError, KeyError):
+        pass
+    return None
+
 
 def _safe_id(value: str) -> str:
     """Sanitize a string for use in filenames."""
@@ -126,10 +226,26 @@ def skill_context_writer(context: HookContext) -> HookResult:
     state_file = _skill_context_path(terminal_id)
 
     if skill_name:
-        # Write expected skill dir to state file
+        # Resolve actual skill directory (local or plugin cache)
+        resolved_dir = _resolve_skill_dir(skill_name)
+        source_dir = _resolve_source_dir(skill_name)
+
+        # Prefer resolved cache path, then source path, then local fallback
+        if resolved_dir:
+            expected_dir = resolved_dir
+        elif source_dir:
+            expected_dir = source_dir
+        else:
+            expected_dir = f".claude/skills/{skill_name}"
+
+        valid_paths = _build_valid_paths(skill_name, expected_dir, source_dir)
+
         data = {
             "expected_skill": skill_name,
-            "expected_dir": f".claude/skills/{skill_name}",
+            "expected_dir": expected_dir,
+            "source_dir": source_dir or "",
+            "valid_paths": valid_paths,
+            "resolved": resolved_dir is not None,
             "session_id": session_id,
             "terminal_id": terminal_id,
         }

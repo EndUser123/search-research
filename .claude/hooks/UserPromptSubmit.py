@@ -15,11 +15,21 @@ Key Features:
 from __future__ import annotations
 
 import json
+import logging as _li
 import os
 import re
 import sys
 import time
 from pathlib import Path
+
+_HOOKS_DIR = Path(__file__).resolve().parent
+_LOG_DIR = _HOOKS_DIR / "logs" / "diagnostics"
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_logger = _li.getLogger(__name__)
+_handler = _li.FileHandler(_LOG_DIR / "hook_stderr.log", encoding="utf-8")
+_handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
 
 # Add project root and hooks directory to path
 HOOKS_DIR = Path(__file__).resolve().parent
@@ -353,7 +363,7 @@ def main():
         hook_results = registry.run_hooks(data, prompt)
     except Exception as e:
         # Claude Code treats stderr as hook error - use stdout for diagnostics
-        print(f"Error running hooks: {e}", file=sys.stdout)
+        _logger.error(f"Error running hooks: {e}")
         hook_results = []
 
     injections = []
@@ -451,7 +461,7 @@ def main():
             f.write(json.dumps(trace) + "\n")
     except Exception as e:
         import sys as _sys
-        print(f"[UserPromptSubmit] Budget trace logging failed: {e}", file=_sys.stderr)
+        _logger.error(f"[UserPromptSubmit] Budget trace logging failed: {e}")
 
     print(json.dumps(output))
 

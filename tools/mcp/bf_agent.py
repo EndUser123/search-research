@@ -606,6 +606,21 @@ def _get_provider_info(provider: str) -> tuple[str, str] | None:
         return None
 
 
+# --------------------------------------------------------------------
+# Provider capability registry — params to strip per provider
+# --------------------------------------------------------------------
+_PROVIDER_STRICT_PARAMS: dict[str, list[str]] = {
+    "mistral": ["reasoning_effort"],
+}
+
+def _strip_unsupported_params(provider: str, payload: dict) -> dict:
+    """Remove provider-incompatible params from API payload."""
+    strip = _PROVIDER_STRICT_PARAMS.get(provider.lower(), [])
+    if not strip:
+        return payload
+    return {k: v for k, v in payload.items() if k not in strip}
+
+
 def _direct_call(
     provider: str,
     model: str,
@@ -641,8 +656,10 @@ def _direct_call(
         api_path = (
             "/v1/messages"
             if provider_lower == "minimax"
+            else "/anthropic/v1/messages"
+            if provider_lower == "z.ai"
             else "/chat/completions"
-            if provider_lower in ("z.ai", "groq", "mistral", "cerebras")
+            if provider_lower in ("groq", "mistral", "cerebras")
             else "/v1/chat/completions"
         )
         gemini_params = None
@@ -676,6 +693,7 @@ def _direct_call(
 
     try:
         t_start = time.perf_counter()
+        payload = _strip_unsupported_params(provider_lower, payload)
         r = requests.post(
             f"{base_url}{api_path}",
             headers=headers,
@@ -823,8 +841,6 @@ def bifrost_call(
                 correlation_id=correlation_id,
                 model=model,
                 provider=provider,
-                route_type="direct",
-                forced=route,
             )
             result = _direct_call(provider, actual_model, prompt, correlation_id, compare_id, system, max_tokens)
             _probe_cache_set(cache_key, result.get("ok", False))

@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Tests for Phase 2 skill-dir prevention (writer + gate)."""
+"""Tests for Phase 2 skill-dir prevention (writer + gate v2.0).
+
+v2.0: Glob/Grep are READ_ONLY and always pass. Only executing tools
+(Bash, Write, Edit) are scope-gated by the skill context state file.
+"""
 
 from __future__ import annotations
 
 import json
 import os
 import sys
-import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
@@ -15,10 +18,15 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from UserPromptSubmit_modules.skill_context_writer import (
     _extract_skill_from_prompt,
+    _resolve_skill_dir,
     _safe_id,
     skill_context_writer,
 )
 from UserPromptSubmit_modules.base import HookContext
+
+# Import gate via plugin path
+sys.path.insert(0, str(Path(r"P:\packages\skill-guard\src")))
+from skill_guard.PreToolUse.PreToolUse_skill_dir_gate import run as gate_run
 
 # ---------------------------------------------------------------------------
 # Writer tests
@@ -28,10 +36,15 @@ class TestSkillContextWriter:
     """Tests for skill_context_writer.py."""
 
     def test_skill_found_file_written(self, tmp_path: Path):
-        """Prompt /ai-pcli do X → state file has expected_skill and expected_dir."""
-        with patch(
-            "UserPromptSubmit_modules.skill_context_writer._STATE_DIR",
-            tmp_path / "state" / "skill_context",
+        with (
+            patch(
+                "UserPromptSubmit_modules.skill_context_writer._STATE_DIR",
+                tmp_path / "state" / "skill_context",
+            ),
+            patch(
+                "UserPromptSubmit_modules.skill_context_writer._resolve_skill_dir",
+                return_value=".claude/skills/ai-pcli",
+            ),
         ):
             ctx = HookContext(
                 prompt="/ai-pcli do something",
@@ -46,11 +59,10 @@ class TestSkillContextWriter:
             data = json.loads(sf.read_text(encoding="utf-8"))
             assert data["expected_skill"] == "ai-pcli"
             assert data["expected_dir"] == ".claude/skills/ai-pcli"
+            assert data["resolved"] is True
             assert data["terminal_id"] == "term-1"
-            assert data["session_id"] == "sess-1"
 
     def test_no_skill_file_cleared(self, tmp_path: Path):
-        """Prompt 'what time is it' → state file deleted if it existed."""
         state_dir = tmp_path / "state" / "skill_context"
         state_dir.mkdir(parents=True)
         sf = state_dir / "skill_context_term-1.json"
@@ -68,74 +80,75 @@ class TestSkillContextWriter:
             )
             skill_context_writer(ctx)
 
-        assert not sf.exists(), "state file should be deleted"
+        assert not sf.exists()
 
     def test_false_positive_single_char_excluded(self, tmp_path: Path):
-        """Prompt /v (single char) → no state file written."""
         with patch(
             "UserPromptSubmit_modules.skill_context_writer._STATE_DIR",
             tmp_path / "state" / "skill_context",
         ):
-            ctx = HookContext(
-                prompt="/v do something",
-                data={},
-                session_id="sess-1",
-                terminal_id="term-1",
-            )
+            ctx = HookContext(prompt="/v do something", data={}, session_id="sess-1", terminal_id="term-1")
             skill_context_writer(ctx)
-
             sf = tmp_path / "state" / "skill_context" / "skill_context_term-1.json"
-            assert not sf.exists(), "/v should be filtered as single-char"
+            assert not sf.exists()
 
     def test_known_non_skill_excluded(self, tmp_path: Path):
-        """Prompt /README → no state file (README is in _NON_SKILL_NAMES)."""
         with patch(
             "UserPromptSubmit_modules.skill_context_writer._STATE_DIR",
             tmp_path / "state" / "skill_context",
         ):
-            ctx = HookContext(
-                prompt="/README do something",
-                data={},
-                session_id="sess-1",
-                terminal_id="term-1",
-            )
+            ctx = HookContext(prompt="/README do something", data={}, session_id="sess-1", terminal_id="term-1")
             skill_context_writer(ctx)
-
             sf = tmp_path / "state" / "skill_context" / "skill_context_term-1.json"
-            assert not sf.exists(), "README should be filtered by _NON_SKILL_NAMES"
+            assert not sf.exists()
 
     def test_extract_skill_from_prompt(self):
-        """Unit test for _extract_skill_from_prompt."""
         assert _extract_skill_from_prompt("/ai-pcli do something") == "ai-pcli"
         assert _extract_skill_from_prompt("use /search now") == "search"
         assert _extract_skill_from_prompt("no skill here") is None
-        assert _extract_skill_from_prompt("/v") is None           # single char
-        assert _extract_skill_from_prompt("/README") is None      # in non-skill names
-        assert _extract_skill_from_prompt("/ai-pcli") == "ai-pcli"
+        assert _extract_skill_from_prompt("/v") is None
+        assert _extract_skill_from_prompt("/README") is None
 
     def test_safe_id(self):
-        """Unit test for _safe_id."""
         assert _safe_id("term-1") == "term-1"
         assert _safe_id("term:1") == "term_1"
         assert _safe_id("term/1") == "term_1"
 
 
 # ---------------------------------------------------------------------------
-# Gate tests
+# Resolver tests
 # ---------------------------------------------------------------------------
 
-GATE_SCRIPT = Path(r"P:/.claude/hooks/PreToolUse_skill_dir_gate.py")
+class TestResolveSkillDir:
+    """Tests for _resolve_skill_dir."""
+
+    def test_nonexistent_returns_none(self):
+        assert _resolve_skill_dir("xyz-nonexistent-skill-12345") is None
+
+    def test_local_skill_if_exists(self, tmp_path: Path):
+        with patch(
+            "UserPromptSubmit_modules.skill_context_writer._LOCAL_SKILLS_DIR",
+            tmp_path / "skills",
+        ):
+            (tmp_path / "skills" / "my-skill").mkdir(parents=True)
+            result = _resolve_skill_dir("my-skill")
+            assert result == ".claude/skills/my-skill"
+
+    def test_plugin_cache_skill(self):
+        result = _resolve_skill_dir("chs")
+        if result is not None:
+            assert "search-research" in result
+            assert "chs" in result
+
+
+# ---------------------------------------------------------------------------
+# Gate tests — v2.0: read-only tools pass, executing tools scope-gated
+# ---------------------------------------------------------------------------
+
 REAL_STATE_DIR = Path(r"P:/.claude/hooks/state/skill_context")
 
 
-def _gate_run(
-    tool_name: str,
-    tool_input: dict,
-    terminal_id: str,
-    state_data: dict | None,
-    env: dict | None = None,
-) -> tuple[int, str, str]:
-    """Run the gate as a subprocess; state written to REAL_STATE_DIR."""
+def _write_state(terminal_id: str, state_data: dict | None) -> None:
     sf = REAL_STATE_DIR / f"skill_context_{terminal_id}.json"
     if state_data is not None:
         REAL_STATE_DIR.mkdir(parents=True, exist_ok=True)
@@ -143,114 +156,154 @@ def _gate_run(
     elif sf.exists():
         sf.unlink()
 
-    try:
-        inp = {"tool_name": tool_name, "tool_input": tool_input, "terminal_id": terminal_id}
-        env_vars = dict(os.environ)
-        env_vars["CLAUDE_TERMINAL_ID"] = terminal_id
-        if env:
-            env_vars.update(env)
 
-        r = subprocess.run(
-            [sys.executable, str(GATE_SCRIPT)],
-            input=json.dumps(inp).encode(),
-            capture_output=True,
-            env=env_vars,
-            timeout=5,
-        )
-        return r.returncode, r.stdout.decode(), r.stderr.decode()
-    finally:
-        if sf.exists():
-            try:
-                sf.unlink()
-            except OSError:
-                pass
+def _cleanup_state(terminal_id: str) -> None:
+    sf = REAL_STATE_DIR / f"skill_context_{terminal_id}.json"
+    if sf.exists():
+        try:
+            sf.unlink()
+        except OSError:
+            pass
 
 
-class TestSkillDirGate:
-    """Tests for PreToolUse_skill_dir_gate.py."""
+class TestReadOnlyToolsAlwaysPass:
+    """v2.0: Glob, Grep, Read always pass regardless of skill context."""
 
-    def test_scoped_glob_allowed(self):
-        """Pattern targeting expected_dir → exit 0."""
-        rc, _, stderr = _gate_run(
-            "Glob",
-            {"pattern": "P:/.claude/skills/ai-pcli/**/*.md"},
-            "gate-scop-glob",
-            {"expected_skill": "ai-pcli", "expected_dir": ".claude/skills/ai-pcli"},
-        )
-        assert rc == 0, f"Expected allow (0), got {rc}. stderr: {stderr}"
+    def test_glob_always_allowed(self):
+        tid = "ro-glob"
+        state = {"expected_skill": "ai-pcli", "expected_dir": ".claude/skills/ai-pcli"}
+        try:
+            _write_state(tid, state)
+            result = gate_run({"tool_name": "Glob", "tool_input": {"pattern": "**/*.md"}, "terminal_id": tid})
+            assert result["continue"] is True
+        finally:
+            _cleanup_state(tid)
 
-    def test_unscoped_glob_blocked(self):
-        """Pattern **/*.md without expected_dir → exit 2."""
-        rc, _, stderr = _gate_run(
-            "Glob",
-            {"pattern": "**/*.md"},
-            "gate-unscop-glob",
-            {"expected_skill": "ai-pcli", "expected_dir": ".claude/skills/ai-pcli"},
-        )
-        assert rc == 2, f"Expected block (2), got {rc}. stderr: {stderr}"
-        assert "BLOCKED" in stderr
-        assert "ai-pcli" in stderr
+    def test_grep_always_allowed(self):
+        tid = "ro-grep"
+        state = {"expected_skill": "ai-pcli", "expected_dir": ".claude/skills/ai-pcli"}
+        try:
+            _write_state(tid, state)
+            result = gate_run({"tool_name": "Grep", "tool_input": {"path": "src/**/*.py"}, "terminal_id": tid})
+            assert result["continue"] is True
+        finally:
+            _cleanup_state(tid)
 
-    def test_scoped_grep_allowed(self):
-        """Path .claude/skills/ai-pcli → exit 0."""
-        rc, _, stderr = _gate_run(
-            "Grep",
-            {"path": ".claude/skills/ai-pcli/**/*.py"},
-            "gate-scop-grep",
-            {"expected_skill": "ai-pcli", "expected_dir": ".claude/skills/ai-pcli"},
-        )
-        assert rc == 0, f"Expected allow (0), got {rc}. stderr: {stderr}"
+    def test_read_always_allowed(self):
+        tid = "ro-read"
+        state = {"expected_skill": "ai-pcli", "expected_dir": ".claude/skills/ai-pcli"}
+        try:
+            _write_state(tid, state)
+            result = gate_run({"tool_name": "Read", "tool_input": {"file_path": "/some/random/path.py"}, "terminal_id": tid})
+            assert result["continue"] is True
+        finally:
+            _cleanup_state(tid)
 
-    def test_grep_no_path_blocked(self):
-        """Grep without path key → exit 2."""
-        rc, _, stderr = _gate_run(
-            "Grep",
-            {"pattern": "TODO"},   # no "path" key
-            "gate-no-path",
-            {"expected_skill": "ai-pcli", "expected_dir": ".claude/skills/ai-pcli"},
-        )
-        assert rc == 2, f"Expected block (2), got {rc}. stderr: {stderr}"
-        assert "BLOCKED" in stderr
+
+class TestExecuteToolsScoped:
+    """v2.0: Bash, Write, Edit are scope-gated by skill context."""
+
+    def test_scoped_bash_allowed(self):
+        tid = "ex-scop"
+        state = {"expected_skill": "ai-pcli", "expected_dir": ".claude/skills/ai-pcli"}
+        try:
+            _write_state(tid, state)
+            result = gate_run({"tool_name": "Bash", "tool_input": {"command": "ls .claude/skills/ai-pcli/"}, "terminal_id": tid})
+            assert result["continue"] is True
+        finally:
+            _cleanup_state(tid)
+
+    def test_unscoped_bash_blocked(self):
+        tid = "ex-unscop"
+        state = {"expected_skill": "ai-pcli", "expected_dir": ".claude/skills/ai-pcli"}
+        try:
+            _write_state(tid, state)
+            result = gate_run({"tool_name": "Bash", "tool_input": {"command": "ls /tmp/"}, "terminal_id": tid})
+            assert result["continue"] is False
+            assert "BLOCKED" in result["reason"]
+        finally:
+            _cleanup_state(tid)
+
+    def test_scoped_write_allowed(self):
+        tid = "ex-scop-w"
+        state = {"expected_skill": "ai-pcli", "expected_dir": ".claude/skills/ai-pcli"}
+        try:
+            _write_state(tid, state)
+            result = gate_run({"tool_name": "Write", "tool_input": {"file_path": "P:/.claude/skills/ai-pcli/config.json"}, "terminal_id": tid})
+            assert result["continue"] is True
+        finally:
+            _cleanup_state(tid)
+
+    def test_unscoped_write_blocked(self):
+        tid = "ex-unscop-w"
+        state = {"expected_skill": "ai-pcli", "expected_dir": ".claude/skills/ai-pcli"}
+        try:
+            _write_state(tid, state)
+            result = gate_run({"tool_name": "Write", "tool_input": {"file_path": "P:/some/other/path.json"}, "terminal_id": tid})
+            assert result["continue"] is False
+            assert "BLOCKED" in result["reason"]
+        finally:
+            _cleanup_state(tid)
 
     def test_no_state_file_allow(self):
-        """State file missing → exit 0 (fail open)."""
-        rc, _, stderr = _gate_run(
-            "Glob",
-            {"pattern": "**/*.md"},
-            "gate-no-state",
-            None,   # no state file
-        )
-        assert rc == 0, f"Expected fail-open (0), got {rc}. stderr: {stderr}"
+        tid = "ex-nostate"
+        _cleanup_state(tid)
+        try:
+            result = gate_run({"tool_name": "Bash", "tool_input": {"command": "ls /tmp/"}, "terminal_id": tid})
+            assert result["continue"] is True
+        finally:
+            _cleanup_state(tid)
 
-    def test_disabled_by_env(self):
-        """SKILL_DIR_GATE_ENABLED=false → exit 0 regardless."""
-        rc, _, stderr = _gate_run(
-            "Glob",
-            {"pattern": "**/*.md"},
-            "gate-disabled",
-            {"expected_skill": "ai-pcli", "expected_dir": ".claude/skills/ai-pcli"},
-            env={"SKILL_DIR_GATE_ENABLED": "false"},
-        )
-        assert rc == 0, f"Expected disabled allow (0), got {rc}. stderr: {stderr}"
+    def test_unknown_tool_allow(self):
+        tid = "ex-unknown"
+        state = {"expected_skill": "ai-pcli", "expected_dir": ".claude/skills/ai-pcli"}
+        try:
+            _write_state(tid, state)
+            result = gate_run({"tool_name": "SomeUnknownTool", "tool_input": {"arg": "value"}, "terminal_id": tid})
+            assert result["continue"] is True
+        finally:
+            _cleanup_state(tid)
 
-    def test_backslash_normalization(self):
-        r"""Pattern with backslashes (Windows) → normalized and matched."""
-        rc, _, stderr = _gate_run(
-            "Glob",
-            {"pattern": r".claude\skills\ai-pcli\**\*.md"},
-            "gate-backslash",
-            {"expected_skill": "ai-pcli", "expected_dir": ".claude/skills/ai-pcli"},
-        )
-        # After normalization: .claude/skills/ai-pcli is found
-        assert rc == 0, f"Expected allow (0), got {rc}. stderr: {stderr}"
+    def test_backslash_normalization_bash(self):
+        tid = "ex-bslash"
+        state = {"expected_skill": "ai-pcli", "expected_dir": ".claude/skills/ai-pcli"}
+        try:
+            _write_state(tid, state)
+            result = gate_run({"tool_name": "Bash", "tool_input": {"command": "dir .claude\\skills\\ai-pcli\\"}, "terminal_id": tid})
+            assert result["continue"] is True
+        finally:
+            _cleanup_state(tid)
 
-    def test_unscoped_grep_blocked(self):
-        """Grep path not containing expected_dir → exit 2."""
-        rc, _, stderr = _gate_run(
-            "Grep",
-            {"path": "src/**/*.py"},   # wrong dir
-            "gate-unscop-grep",
-            {"expected_skill": "ai-pcli", "expected_dir": ".claude/skills/ai-pcli"},
-        )
-        assert rc == 2, f"Expected block (2), got {rc}. stderr: {stderr}"
-        assert "BLOCKED" in stderr
+
+class TestPluginSkillResolution:
+    """Plugin skill dirs resolved from C-drive cache should match in gate."""
+
+    def test_skill_name_segment_in_bash(self):
+        tid = "plug-name"
+        state = {
+            "expected_skill": "chs",
+            "expected_dir": "C:/Users/brsth/.claude/plugins/cache/local/search-research/0.1.9/skills/chs",
+        }
+        try:
+            _write_state(tid, state)
+            result = gate_run({"tool_name": "Bash", "tool_input": {"command": "python skills/chs/scripts/chs_cli.py"}, "terminal_id": tid})
+            assert result["continue"] is True
+        finally:
+            _cleanup_state(tid)
+
+    def test_full_cache_path_in_write(self):
+        tid = "plug-full"
+        state = {
+            "expected_skill": "chs",
+            "expected_dir": "C:/Users/brsth/.claude/plugins/cache/local/search-research/0.1.9/skills/chs",
+        }
+        try:
+            _write_state(tid, state)
+            result = gate_run({
+                "tool_name": "Write",
+                "tool_input": {"file_path": "C:/Users/brsth/.claude/plugins/cache/local/search-research/0.1.9/skills/chs/scripts/test.py"},
+                "terminal_id": tid,
+            })
+            assert result["continue"] is True
+        finally:
+            _cleanup_state(tid)

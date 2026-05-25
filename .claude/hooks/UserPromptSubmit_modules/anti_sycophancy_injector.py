@@ -114,6 +114,28 @@ def _safe_id(value: str | None) -> str:
     return re.sub(r"[^a-zA-Z0-9_.-]+", "_", value)
 
 
+# Import canonical challenge marker from epistemic plugin
+try:
+    from anti_sycophancy.challenge_marker import challenge_marker_path as _challenge_marker_path
+except ImportError:
+    # Fallback: define locally if plugin not on sys.path
+    def _challenge_marker_path(session_id: str, terminal_id: str) -> Path:
+        filename = f"challenge__{_safe_id(session_id)}__{_safe_id(terminal_id)}.json"
+        for base in _state_dirs():
+            try:
+                base.mkdir(parents=True, exist_ok=True)
+                return base / filename
+            except OSError:
+                continue
+        return (
+            Path(tempfile.gettempdir())
+            / "claude_hooks"
+            / "state"
+            / "anti_sycophancy_injector"
+            / filename
+        )
+
+
 def _resolve_scope(context: HookContext) -> tuple[str, str]:
     data = context.data or {}
     session_id = (
@@ -234,24 +256,6 @@ def _update_state(state: dict, sig: str, trigger_level: str, consecutive: int) -
         "last_signature": sig,
         "recent_signatures": recent,
     }
-
-
-def _challenge_marker_path(session_id: str, terminal_id: str) -> Path:
-    """Return path for cross-hook challenge marker (read by Stop.py)."""
-    filename = f"challenge__{_safe_id(session_id)}__{_safe_id(terminal_id)}.json"
-    for base in _state_dirs():
-        try:
-            base.mkdir(parents=True, exist_ok=True)
-            return base / filename
-        except OSError:
-            continue
-    return (
-        Path(tempfile.gettempdir())
-        / "claude_hooks"
-        / "state"
-        / "anti_sycophancy_injector"
-        / filename
-    )
 
 
 def _write_challenge_marker(session_id: str, terminal_id: str, trigger_level: str) -> None:

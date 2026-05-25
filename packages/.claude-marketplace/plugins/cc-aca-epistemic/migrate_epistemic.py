@@ -108,7 +108,7 @@ def adjust_hook_imports(content: str, source_type: str) -> str:
 # --- cc-aca-epistemic plugin path setup ---
 import sys as _sys
 from pathlib import Path as _Path
-_PLUGIN_LIB = _Path(__file__).resolve().parent.parent.parent / "lib"
+_PLUGIN_LIB = _Path(__file__).resolve().parent.parent.parent / "__lib"
 if str(_PLUGIN_LIB) not in _sys.path:
     _sys.path.insert(0, str(_PLUGIN_LIB))
 from hooks_resolver import get_hooks_dir as _get_hooks_dir

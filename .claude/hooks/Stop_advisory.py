@@ -178,7 +178,8 @@ def main():
         suggestions = check_advisories(response)
 
         if suggestions:
-            print(json.dumps({"systemMessage": "\n\n💡 **ADVISORY**: " + " | ".join(suggestions)}))
+            print("[advisory] " + " | ".join(suggestions), file=sys.stderr)
+            print(json.dumps({"decision": "approve"}))
         else:
             print("{}")
 

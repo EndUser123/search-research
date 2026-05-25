@@ -13,10 +13,20 @@ Environment variables:
 from __future__ import annotations
 
 import json
+import logging as _li
 import os
 import re
 import sys
 from pathlib import Path
+
+_HOOKS_DIR = Path(__file__).resolve().parent
+_LOG_DIR = _HOOKS_DIR / "logs" / "diagnostics"
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_logger = _li.getLogger(__name__)
+_handler = _li.FileHandler(_LOG_DIR / "hook_stderr.log", encoding="utf-8")
+_handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
 
 
 def run(data: dict) -> dict | None:
@@ -82,7 +92,7 @@ def run(data: dict) -> dict | None:
 
     except Exception as e:
         # Fail open - cleanup verifier should never break sessions
-        print(f"[Stop] cleanup_verifier error: {e}", file=sys.stderr)
+        _logger.error(f"[Stop] cleanup_verifier error: {e}")
         return None
 
 

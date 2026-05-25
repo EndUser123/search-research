@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(ValueFromRemainingArguments = $true)]
     [object[]] $Args
 )
@@ -34,23 +34,22 @@ param(
 
 # --- SECURITY: Load Secrets from Vault ---
 $envPath = "P:\.env"
-if (-not (Test-Path $envPath)) {
-    Write-Host "[ERROR] .env file not found at $envPath. Create it with BIFROST_API_KEY and ANTHROPIC_AUTH_TOKEN." -ForegroundColor Red
-    exit 1
-}
-Get-Content $envPath | Where-Object { $_ -match '^([^=]+)=(.*)$' } | ForEach-Object {
-    [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
+if (Test-Path $envPath) {
+    Get-Content $envPath | Where-Object { $_ -match '^([^=]+)=(.*)$' } | ForEach-Object {
+        [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
+    }
+} else {
+    Write-Host "[WARN] No .env file found at $envPath. Using fallbacks." -ForegroundColor Yellow
 }
 
+$env:ANTHROPIC_BASE_URL = "http://localhost:8080/anthropic"
 if (-not $env:BIFROST_API_KEY) {
-    Write-Host "[ERROR] BIFROST_API_KEY is not set. Set it in P:\.env or your environment." -ForegroundColor Red
-    exit 1
+    $env:BIFROST_API_KEY = "sk-bf-49998d75-3b06-4e72-8547-741cb81b497e"
 }
 $env:ANTHROPIC_API_KEY = $env:BIFROST_API_KEY
 
 if (-not $env:ANTHROPIC_AUTH_TOKEN) {
-    Write-Host "[ERROR] ANTHROPIC_AUTH_TOKEN is not set. Set it in P:\.env or your environment." -ForegroundColor Red
-    exit 1
+    $env:ANTHROPIC_AUTH_TOKEN = "sk-cp-KaSmY8e9E1Pw9XbCWOiVexNvnLGwmKJ8fBGf57gEvA3fb95gq73n7AGVyIL3zBrjvFzxRQFyocfa8QdgborzQoupFzI0UX5cjw7MCkIY3DCy5-kAFVza5z8"
 }
 
 # Default: all tiers to MiniMax-M2.7 (Bifrost routing key -> MiniMax/MiniMax-M2.7)
@@ -66,6 +65,7 @@ $doDashboard = $false
 $doRoutes = $false
 $doStatus = $false
 $newOnly = $false
+$latestOnly = $true  # default: hide superseded versions
 $modelOverride = $null
 $tierOverrides = @{}
 $i = 0
@@ -134,7 +134,7 @@ function Get-BifrostRoutesFromDb {
         return @{}
     }
     try {
-        $json = python3 $_db_script --get-routes 2>$null
+        $json = python $_db_script --get-routes 2>$null
         if ($json) {
             $data = ConvertFrom-Json $json
             $ht = @{}
@@ -159,7 +159,7 @@ function Get-BifrostRulesFromDb {
         return @()
     }
     try {
-        $json = python3 $_db_script --get-rules 2>$null
+        $json = python $_db_script --get-rules 2>$null
         if ($json) {
             $data = ConvertFrom-Json $json
             return $data.rules
@@ -201,6 +201,19 @@ function Sync-BifrostConfig {
     $configPath = "$env:APPDATA\bifrost\config.json"
     $backupPath = "$env:APPDATA\bifrost\config.backup_$(Get-Date -f 'yyyyMMdd-HHmmss').json"
 
+    # Pre-write cleanup: remove stale keys and orphan providers before syncing
+    $cleanupResult = & python "$PSScriptRoot\scripts\bifrost_db.py" --cleanup 2>$null
+    if ($LASTEXITCODE -eq 0 -and $cleanupResult) {
+        try {
+            $j = $cleanupResult | ConvertFrom-Json
+            $k = $j.stale_keys.deleted
+            $p = $j.orphan_providers.deleted
+            if ($k -gt 0 -or $p -gt 0) {
+                Write-Host "   [CLEANUP] Removed $k stale key(s), $p orphan provider(s)" -ForegroundColor Cyan
+            }
+        } catch { }
+    }
+
     if (Test-Path $configPath) {
         Copy-Item $configPath $backupPath -Force
         Write-Host "   Backed up config.json -> $backupPath" -ForegroundColor White
@@ -240,6 +253,23 @@ function Sync-BifrostConfig {
 
     $cleanConfig = $config | ConvertTo-Json -Depth 10
     [System.IO.File]::WriteAllText($configPath, $cleanConfig, [System.Text.Encoding]::UTF8)
+
+    # Read-back verification to confirm write succeeded and Bifrost can parse it
+    if (-not (Test-Path $configPath)) {
+        Write-Host "   [ERROR] config.json write verification failed -- file not found after write" -ForegroundColor Red
+        return
+    }
+    try {
+        $verifyContent = Get-Content $configPath -Raw -ErrorAction Stop
+        $verifyJson = ConvertFrom-Json $verifyContent -ErrorAction Stop
+        if ($verifyJson.governance.routing_rules.Count -ne $cleanRules.Count) {
+            Write-Host "   [ERROR] config.json write verification failed -- rule count mismatch" -ForegroundColor Red
+            return
+        }
+    } catch {
+        Write-Host "   [ERROR] config.json write verification failed -- parse error: $_" -ForegroundColor Red
+        return
+    }
     Write-Host "   Synced $($cleanRules.Count) catalog-valid rules ($skipped non-catalog skipped) -> config.json" -ForegroundColor Green
 }
 
@@ -262,6 +292,11 @@ function Get-BifrostProcess {
         if ($proc -and $proc.ProcessName -like "*bifrost*") { return $proc }
         Remove-Item $pidFile -Force # Stale PID cleanup
     }
+
+    # Last resort: scan for any bifrost-http process by name
+    $procs = Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -like "*bifrost*" }
+    if ($procs) { return ($procs | Select-Object -First 1) }
+
     return $null
 }
 
@@ -272,7 +307,10 @@ function Start-BifrostDaemon {
         Write-Host "   Bifrost already running (Job/PID $id)" -ForegroundColor Yellow
         return
     }
-    $bifrostBin = "$env:LOCALAPPDATA\bifrost\v1.5.2\bin\bifrost-http.exe-0"
+    $bifrostBin = "$env:LOCALAPPDATA\bifrost\v1.5.4\bin\bifrost-http.exe-0"
+    if (-not (Test-Path $bifrostBin)) {
+        $bifrostBin = "$env:LOCALAPPDATA\bifrost\v1.5.2\bin\bifrost-http.exe-0"
+    }
     if (-not (Test-Path $bifrostBin)) {
         $bifrostBin = "$env:LOCALAPPDATA\bifrost\v1.5.0-prerelease8\bin\bifrost-http.exe-0"
     }
@@ -288,20 +326,15 @@ function Start-BifrostDaemon {
     }
     $appDir = "$env:APPDATA\bifrost"
     $errLog = "$env:TEMP\bifrost_err.log"
-    # Sync invocation via PowerShell job — inherits all session env vars (including .env-loaded keys)
-    # Runs background so the terminal stays responsive
-    $job = Start-Job -ScriptBlock {
-        param($bin, $appDir, $errLog)
-        & $bin -app-dir=$appDir -port=8080 2>$errLog
-    } -ArgumentList $bifrostBin, $appDir, $errLog
+    $env:BIFROST_ENV = "1"
+    $proc = Start-Process -FilePath $bifrostBin -ArgumentList "-app-dir=$appDir","-port=8080" -NoNewWindow -PassThru -RedirectStandardError $errLog
     Start-Sleep -Milliseconds 500
-    $jobState = Get-Job -Id $job.Id | Select-Object -ExpandProperty State
-    if ($jobState -eq 'Running') {
-        $job.Id | Out-File $pidFile -Encoding UTF8
-        Write-Host "   Started Bifrost (Job ID $($job.Id)) on port 8080" -ForegroundColor Green
-        try { python3 $_db_script --enable-rules 2>$null | Out-Null } catch {}
+    if ($proc.HasExited) {
+        Write-Host "   [ERROR] Failed to start Bifrost. Exit code: $($proc.ExitCode). Check $errLog" -ForegroundColor Red
     } else {
-        Write-Host "   [ERROR] Failed to start Bifrost. State: $jobState. Check $errLog" -ForegroundColor Red
+        $proc.Id | Out-File $pidFile -Encoding UTF8
+        Write-Host "   Started Bifrost (PID $($proc.Id)) on port 8080" -ForegroundColor Green
+        try { python $_db_script --enable-rules 2>$null | Out-Null } catch {}
     }
 }
 
@@ -361,7 +394,7 @@ function Show-BifrostRoutes {
     }
     Write-Host ""
     Write-Host "=== CONFIGURED ROUTES ===" -ForegroundColor Yellow
-    python3 -u $scriptPath 2>&1
+    python -u $scriptPath 2>&1
 }
 
 function Show-BifrostDashboard {
@@ -400,7 +433,7 @@ function Show-BifrostStatus {
 
     # DB summary via bifrost_db.py
     try {
-        $jsonOut = python3 $_db_script --status 2>$null
+        $jsonOut = python $_db_script --status 2>$null
     } catch {
         $jsonOut = $null
     }
@@ -481,10 +514,16 @@ for model in models:
         print(f'{model}: ERROR - {e}')
 '@
 
-    $tmp2 = [System.IO.Path]::GetTempFileName() + ".py"
-    [System.IO.File]::WriteAllText($tmp2, $probeCode, [System.Text.Encoding]::UTF8)
-    $probeOut = python3 $tmp2 2>&1
-    Remove-Item $tmp2 -Force -ErrorAction SilentlyContinue
+    $tmp2 = $null
+    try {
+        $tmp2 = [System.IO.Path]::GetTempFileName() + ".py"
+        [System.IO.File]::WriteAllText($tmp2, $probeCode, [System.Text.Encoding]::UTF8)
+        $probeOut = python $tmp2 2>&1
+    } finally {
+        if ($tmp2 -and (Test-Path $tmp2)) {
+            Remove-Item $tmp2 -Force -ErrorAction SilentlyContinue
+        }
+    }
     $probeOut | ForEach-Object {
         if ($_ -match ": OK\b") {
             Write-Host "     $_" -ForegroundColor Green
@@ -499,10 +538,16 @@ function Verify-BifrostRouting {
     Write-Host "   Verifying routes..." -ForegroundColor DarkGray
 
     $scriptPath = "$PSScriptRoot\scripts\routes_probe.py"
-    $tmp = [System.IO.Path]::GetTempFileName() + ".py"
-    [System.IO.File]::WriteAllText($tmp, (Get-Content $scriptPath -Raw), [System.Text.Encoding]::UTF8)
-    $out = python3 $tmp 2>&1
-    Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+    $tmp = $null
+    try {
+        $tmp = [System.IO.Path]::GetTempFileName() + ".py"
+        [System.IO.File]::WriteAllText($tmp, (Get-Content $scriptPath -Raw), [System.Text.Encoding]::UTF8)
+        $out = python $tmp 2>&1
+    } finally {
+        if ($tmp -and (Test-Path $tmp)) {
+            Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+        }
+    }
     if ($out) {
         $out -split "`n" | ForEach-Object {
             if ($_ -match ": OK\b|: MISMATCH|: ERROR") {
@@ -559,7 +604,7 @@ if ($doRoutes) {
     if ($latestOnly) { $pyArgs += "--latest-only" }
     if ($excludeTerms) { $pyArgs += "--exclude", $excludeTerms }
     if ($onlyProviders) { $pyArgs += "--only", $onlyProviders }
-    $output = python3 $scriptPath @pyArgs 2>&1
+    $output = python $scriptPath @pyArgs 2>&1
     $output | ForEach-Object { Write-Host $_ }
     return
 }
@@ -651,21 +696,22 @@ if (-not $modelOverride -and $tierOverrides.Count -eq 0) {
 
 Write-Host ""
 Write-Host "Bifrost Configuration:" -ForegroundColor Yellow
-$configRows = @(
-    @{ Label = "   - Provider:"; Value = "Bifrost AI Gateway" },
-    @{ Label = "   - Endpoint:"; Value = "http://localhost:8080/anthropic" },
+$baseRows = @(
     @{ Label = "   - Sonnet:"; Value = $env:ANTHROPIC_DEFAULT_SONNET_MODEL },
     @{ Label = "   - Opus:"; Value = $env:ANTHROPIC_DEFAULT_OPUS_MODEL },
     @{ Label = "   - Haiku:"; Value = $env:ANTHROPIC_DEFAULT_HAIKU_MODEL }
 )
-if ($env:ANTHROPIC_CUSTOM_MODEL_OPTION) {
-    $customName = if ($env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME) { $env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME } else { $env:ANTHROPIC_CUSTOM_MODEL_OPTION }
-    $customDesc = if ($env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION) { $env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION } else { "" }
-    $configRows += @{ Label = "   - Custom:"; Value = $customName }
-    if ($customDesc) {
-        $configRows += @{ Label = "     Description:"; Value = $customDesc }
-    }
+$configRows = @(
+    @{ Label = "   - Provider:"; Value = "Bifrost AI Gateway" },
+    @{ Label = "   - Endpoint:"; Value = "http://localhost:8080/anthropic" }
+)
+$customName = if ($env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME) { $env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME } elseif ($env:ANTHROPIC_CUSTOM_MODEL_OPTION) { $env:ANTHROPIC_CUSTOM_MODEL_OPTION } else { "—" }
+$customDesc = if ($env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION) { $env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION } else { "" }
+$configRows += @{ Label = "   - Custom:"; Value = $customName }
+if ($customDesc) {
+    $configRows += @{ Label = "     Description:"; Value = $customDesc }
 }
+foreach ($row in $baseRows) { $configRows += $row }
 $configRows | ForEach-Object {
     $row = $_
     $padLabel = $row.Label.PadRight(20)
@@ -677,10 +723,12 @@ if ($routes.Count -eq 0) {
     Write-Host "   [no routes loaded from DB]" -ForegroundColor Red
 } else {
     # Build reverse map: target display -> list of keys that point to it
+    # Use dot notation to access JSON field names (PowerShell deserializes JSON dict values as PSObjects)
     $targetGroups = @{}
     foreach ($key in $routes.Keys) {
         $route = $routes[$key]
-        $targetKey = $route[3]  # display (provider/model)
+        $targetKey = $route[3]
+        if ([string]::IsNullOrWhiteSpace($targetKey)) { continue }
         if (-not $targetGroups.ContainsKey($targetKey)) {
             $targetGroups[$targetKey] = [System.Collections.ArrayList]@()
         }
@@ -697,6 +745,7 @@ if ($routes.Count -eq 0) {
     foreach ($key in $routes.Keys) {
         $route = $routes[$key]
         $desc = $route[3]
+        if ([string]::IsNullOrWhiteSpace($desc)) { continue }
         if ($seen.ContainsKey($desc)) { continue }
         $seen[$desc] = $true
         $group = $targetGroups[$desc]
@@ -705,10 +754,37 @@ if ($routes.Count -eq 0) {
         $canonicalNames += $canonical
     }
 
-    # Format-Table handles column widths automatically
-    $tableData = foreach ($canonical in ($canonicalNames | Sort-Object)) {
+    # Sort canonical names by priority (ascending = lowest priority first, matches UI)
+    # Filter to enabled-only rules
+    # Route canonical names differ from rule names (rule name = "zai-glm-5.1", route key = "glm-5.1")
+    # Build a display-name -> priority map from rules to enable matching
+    $rulesData = Get-BifrostRulesFromDb | Where-Object { $_.enabled -eq 1 }
+    $displayPriority = @{}
+    foreach ($r in $rulesData) {
+        if ($r.targets.Count -gt 0) {
+            $target = $r.targets[0]
+            $displayName = "$($target.provider)/$($target.model)"
+            $displayPriority[$displayName] = $r.priority
+        }
+    }
+    # Use display priority for sort (routes point to same display target)
+    $enabledCanons = $canonicalNames | Where-Object {
+        $canonical = $_
         $route = $routes[$canonical]
         $desc = $route[3]
+        $displayPriority.ContainsKey($desc)
+    }
+    $sortedCanonicalNames = $enabledCanons | Sort-Object {
+        $canonical = $_
+        $displayPriority[$routes[$canonical][3]]
+    }
+
+    # Format-Table handles column widths automatically
+    $tableData = foreach ($canonical in $sortedCanonicalNames) {
+        $route = $routes[$canonical]
+        if (-not $route) { continue }
+        $desc = $route[3]
+        if ([string]::IsNullOrWhiteSpace($desc)) { continue }
         $group = $targetGroups[$desc]
         $aliases = @($group | Where-Object { $_ -ne $canonical })
         $aliasStr = if ($aliases.Count -gt 0) { "  ($($aliases -join ', '))" } else { "" }
@@ -754,7 +830,9 @@ $shortItems = @(
     @{Cmd="cc-bf -m h=<model>";          Desc="switch Haiku only"},
     @{Cmd="cc-bf -m c=<model>";          Desc="set custom /model slot"}
 )
+
 $shortItems | ForEach-Object { Write-HelpRow $_.Cmd $_.Desc $shortMaxDisplay }
+Write-Host ""
 
 $daemonMaxDisplay = 24
 $daemonItems = @(
@@ -764,14 +842,16 @@ $daemonItems = @(
     @{Cmd="cc-bf --status";             Desc="health check: rules, keys, live probe"},
     @{Cmd="cc-bf --dashboard";           Desc="open Bifrost dashboard in browser"}
 )
+
 $daemonItems | ForEach-Object { Write-HelpRow $_.Cmd $_.Desc $daemonMaxDisplay }
+Write-Host ""
 
 $routeMaxDisplay = 50
 $routeItems = @(
     @{Cmd="cc-bf --routes";                            Desc="probe all routes (DB + runtime latency)"},
-    @{Cmd="cc-bf --routes --only mistral";            Desc="routed + unrouted for provider(s)"},
-    @{Cmd="cc-bf --routes yes --only mistral";          Desc="routed only for provider(s)"},
-    @{Cmd="cc-bf --routes no --only mistral";          Desc="unrouted only for provider(s)"},
+    @{Cmd="cc-bf --routes --only <provider>";          Desc="filter routes to one provider (mistral/oprouter/groq/nvidia/zai/minimax)"},
+    @{Cmd="cc-bf --routes yes --only <provider>";       Desc="show only routed models for a provider"},
+    @{Cmd="cc-bf --routes no --only <provider>";       Desc="show only unrouted models for a provider"},
     @{Cmd="cc-bf --routes no";                        Desc="show all unrouted catalog models"},
     @{Cmd="cc-bf --routes no --latest-only";          Desc="hide superseded versions"},
     @{Cmd="cc-bf --routes no --exclude X,Y";          Desc="exclude models containing X or Y"},

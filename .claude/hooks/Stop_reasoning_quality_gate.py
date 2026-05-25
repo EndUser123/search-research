@@ -1,1 +1,0 @@
-P:/packages/cc-skills-thinking/reasoning/ReasoningHooks/Stop_reasoning_quality_gate.py

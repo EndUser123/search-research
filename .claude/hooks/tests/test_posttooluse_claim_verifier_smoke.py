@@ -57,7 +57,7 @@ def test_relevant_write_runs_pytest(monkeypatch) -> None:
     assert result["smoke_checked"] is True
     assert result["reason"] == "CLAIM_VERIFIER_SMOKE_PASSED"
     assert captured["command"][2] == "pytest"
-    assert "test_claim_verifier_runtime_assertions.py" in captured["command"][3]
+    assert "test_unified_claim_verifier.py" in captured["command"][3]
     assert captured["kwargs"]["cwd"].endswith(r".claude\hooks")
 
 

@@ -11,9 +11,19 @@ Run with: python P:\.claude\hooks\analyze_audit_effectiveness.py
 """
 
 import json
+import logging as _li
 import sys
 from collections import defaultdict
 from pathlib import Path
+
+_HOOKS_DIR = Path(__file__).resolve().parent
+_LOG_DIR = _HOOKS_DIR / "logs" / "diagnostics"
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_logger = _li.getLogger(__name__)
+_handler = _li.FileHandler(_LOG_DIR / "hook_stderr.log", encoding="utf-8")
+_handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
 
 HOOKS_DIR = Path("P:/.claude/hooks")
 SESSION_DATA_DIR = HOOKS_DIR / "session_data"
@@ -32,7 +42,7 @@ def load_jsonl(file_path: Path) -> list:
                 if line:
                     entries.append(json.loads(line))
     except Exception as e:
-        print(f"Error reading {file_path}: {e}", file=sys.stderr)
+        _logger.error(f"Error reading {file_path}: {e}")
 
     return entries
 

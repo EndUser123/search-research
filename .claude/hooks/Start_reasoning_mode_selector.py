@@ -1,1 +1,0 @@
-P:/packages/cc-skills-thinking/reasoning/hooks/Start_reasoning_mode_selector.py

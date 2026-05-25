@@ -2,6 +2,18 @@ import ast
 import json
 import sys
 
+import logging as _li
+_HOOKS_DIR = Path(__file__).resolve().parent
+_LOG_DIR = _HOOKS_DIR / "logs" / "diagnostics"
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_logger = _li.getLogger(__name__)
+_handler = _li.FileHandler(_LOG_DIR / "hook_stderr.log", encoding="utf-8")
+_handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
+
+
+
 
 def main():
     try:
@@ -29,13 +41,11 @@ def main():
         filename = file_path.replace("\\", "/").split("/")[-1]
         lineno = e.lineno or "?"
         msg = e.msg or "syntax error"
-        print(f"⛔ Python syntax error in {filename}:{lineno} — {msg}", file=sys.stderr)
-        if e.text:
+            _logger.error(f"⛔ Python syntax error in {filename}:{lineno} — {msg}",)        if e.text:
             print(f"  → {e.text.strip()}", file=sys.stderr)
         sys.exit(2)
     except Exception as ex:
-        print(f"⛔ Python parse error in {file_path}: {ex}", file=sys.stderr)
-        sys.exit(2)
+            _logger.error(f"⛔ Python parse error in {file_path}: {ex}",)        sys.exit(2)
 
     sys.exit(0)
 

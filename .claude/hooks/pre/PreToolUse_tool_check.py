@@ -19,6 +19,10 @@ Enforced Protocols (from MEMORY.md):
 
 import json
 import sys
+
+import logging as _li
+_logger = _li.getLogger(__name__)
+
 from pathlib import Path
 
 # Tool parameter validation rules
@@ -184,22 +188,22 @@ def main():
 
     if not result["valid"]:
         # Validation failed - block the tool use
-        print("## TOOL VALIDATION FAILED", file=sys.stderr)
+        _logger.error("## TOOL VALIDATION FAILED")
         print(f"\nTool: {tool_name}", file=sys.stderr)
-        print(f"Parameters: {json.dumps(tool_params, indent=2)}", file=sys.stderr)
+        _logger.error(f"Parameters: {json.dumps(tool_params, indent=2)}")
 
         print(f"\nErrors Found: {len(result['errors'])}", file=sys.stderr)
         for i, error in enumerate(result["errors"], 1):
-            print(f"  {i}. {error}", file=sys.stderr)
+            _logger.error(f"  {i}. {error}")
 
         if result["warnings"]:
             print(f"\nWarnings: {len(result['warnings'])}", file=sys.stderr)
             for i, warning in enumerate(result["warnings"], 1):
-                print(f"  {i}. {warning}", file=sys.stderr)
+                _logger.warning(f"  {i}. {warning}")
 
         print("\nSuggested Fixes:", file=sys.stderr)
         for i, fix in enumerate(result["fixes"], 1):
-            print(f"  {i}. {fix}", file=sys.stderr)
+            _logger.info(f"  {i}. {fix}")
 
         print("\n📚 See MEMORY.md - Tool Usage Checklist", file=sys.stderr)
 
@@ -207,11 +211,11 @@ def main():
 
     elif result["warnings"]:
         # Validation passed with warnings - allow but notify
-        print("## TOOL VALIDATION WARNING", file=sys.stderr)
+        _logger.warning("## TOOL VALIDATION WARNING")
         print(f"\nTool: {tool_name}", file=sys.stderr)
         print(f"\nWarnings: {len(result['warnings'])}", file=sys.stderr)
         for i, warning in enumerate(result["warnings"], 1):
-            print(f"  {i}. {warning}", file=sys.stderr)
+            _logger.warning(f"  {i}. {warning}")
         print("\nProceeding with tool use...", file=sys.stderr)
 
     sys.exit(0)

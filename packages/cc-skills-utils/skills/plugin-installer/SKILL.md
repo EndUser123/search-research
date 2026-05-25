@@ -30,13 +30,19 @@ When invoked without an action, run the complete check-fix-verify workflow.
 
 ## Sync Rules
 
-Plugins are **junctions** — `P:/packages/<name>/` IS the live source. Cache at `C:\Users\brsth\.claude\plugins\cache\local\<name>\<version>/` is only an install mirror. Source is always canonical.
+Plugins are **junctions** — `P:/packages/<name>/` IS the live source. Cache at `C:\Users\brsth\.claude\plugins\cache\local\<name>\<version>/` is an install mirror.
 
-- **Same file, different content** → source wins, copy to cache. Conflict logged for review.
+The audit script uses **quality-aware conflict resolution** when both sides have different content:
+
+- **JSON files**: parsed for validity + schema structure (e.g., `hooks.json` must have `"hooks"` key — `{"hooks": {}}` beats `{}`)
+- **Python files**: `ast.parse` validity — syntax errors lose
+- **Text files**: encoding validity + non-trivial content
+- **Both pass quality checks** → source wins (canonical location)
+- **One fails quality** → the passing side wins regardless of location
+- **Both fail** → flagged for manual review
+
 - **File only in source** → copy to cache
-- **File only in cache** → skip (deleted from source = stale; not copied to source)
-
-There is no "cache → source" direction. Editing cache directly will be overwritten on next sync.
+- **File only in cache** → quality-checked before restoring to source (broken files left as stale)
 
 2. **Sync marketplace index**:
    ```bash
@@ -315,6 +321,9 @@ else:
 "
 ```
 Then `/reload-plugins`. This is the most common cause of "plugin installed but not loading."
+
+**"failed to load" with hooks.json error:**
+Plugin `hooks/hooks.json` must be `{"hooks": {}}` (valid but empty), not `{}`. The audit auto-fix corrects this. Plugins that register hooks via settings.json router hooks (not hooks.json) still need a valid `{"hooks": {}}` file — Claude Code validates the structure on load even when hooks.json has no entries.
 
 **If install fails:**
 1. Run `claude plugin marketplace update local` then type `/reload-plugins`

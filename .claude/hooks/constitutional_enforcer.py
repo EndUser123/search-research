@@ -1610,7 +1610,7 @@ class ScannerValidator:
                         }
                     )
             except Exception as e:
-                print(f"⚠️ Scanner {scanner_name} error: {e}", file=sys.stderr)
+                _logger.warning("Scanner %s error: %s", scanner_name, e)
 
         return violations
 
@@ -1636,7 +1636,7 @@ class ScannerValidator:
                     }
                 ]
         except Exception as e:
-            print(f"⚠️ Reflexion validator error: {e}", file=sys.stderr)
+            _logger.warning("Reflexion validator error: %s", e)
 
         return []
 
@@ -1949,7 +1949,7 @@ def main():
             block_response(reason=violation_msg, hook="constitutional_enforcer")
         else:
             # Fallback to manual format if block_protocol unavailable
-            print(violation_msg, file=sys.stderr)
+            _logger.warning("%s", violation_msg)
             sys.exit(2)
 
     # Valid response - allow stop

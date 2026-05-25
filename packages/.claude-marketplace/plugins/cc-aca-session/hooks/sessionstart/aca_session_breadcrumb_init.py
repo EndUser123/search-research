@@ -46,7 +46,7 @@ def main():
         initialize_breadcrumb_trail("tdd")
 
         # Allow session to continue
-        print(json.dumps({"continue": True}))
+        print(json.dumps({"decision": "approve"}))
         sys.exit(0)
 
     except Exception as e:

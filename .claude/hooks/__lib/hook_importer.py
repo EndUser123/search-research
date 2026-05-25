@@ -41,6 +41,7 @@ Diagnostics:
 from __future__ import annotations
 
 import hashlib
+import importlib
 import importlib.util
 import io
 import json
@@ -71,6 +72,9 @@ class HookImporter:
         self.hooks_dir = Path(hooks_dir)
         self._cache: dict[str, Any] = {}
         self._diag_dir = self.hooks_dir / "logs" / "diagnostics"
+        # Track source file mtimes to proactively clear stale bytecode before import failures.
+        # Cleared when source mtime advances — covers both subprocess and in-process invocations.
+        self._source_mtimes: dict[str, float] = {}
 
     def _fallback_log_diag(self, filename: str, payload: dict[str, Any]) -> None:
         """Best-effort JSONL fallback when SQLite diagnostics are unavailable."""
@@ -185,10 +189,20 @@ class HookImporter:
             FileNotFoundError: If hook file doesn't exist
             ImportError: If hook file has import errors
         """
+        # Validate hook name before constructing paths
+        try:
+            from __lib.path_sanitizer import validate_hook_name
+
+            hook_name = validate_hook_name(hook_name)
+        except (ValueError, ImportError):
+            raise FileNotFoundError(f"Hook not found: {hook_name}")
+
         if hook_name in self._cache:
             return self._cache[hook_name]
 
-        hook_path = self.hooks_dir / f"{hook_name}.py"
+        from __lib.path_sanitizer import sanitize_hook_path
+
+        hook_path = sanitize_hook_path(self.hooks_dir / f"{hook_name}.py")
         if not hook_path.exists():
             raise FileNotFoundError(f"Hook not found: {hook_name}")
 
@@ -205,6 +219,14 @@ class HookImporter:
             hooks_dir_str = str(self.hooks_dir.resolve())
             if hooks_dir_str not in sys.path:
                 sys.path.insert(0, hooks_dir_str)
+            # Proactive stale bytecode clearing: if source file has been edited since last load,
+            # clear its pyc so Python picks up the new source instead of the stale cached bytecode.
+            current_mtime = hook_path.stat().st_mtime
+            prior_mtime = self._source_mtimes.get(hook_name, 0)
+            if current_mtime > prior_mtime:
+                self._clear_hook_bytecode(hook_name)
+                importlib.invalidate_caches()
+            self._source_mtimes[hook_name] = current_mtime
             spec.loader.exec_module(module)
         except Exception as e:
             # Cleanup failed module

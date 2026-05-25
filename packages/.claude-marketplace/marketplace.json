@@ -58,7 +58,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.35",
+      "version": "1.0.40",
       "description": "Software development lifecycle AI skills for Claude Code.",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -70,7 +70,7 @@
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.1.18",
+      "version": "1.1.25",
       "description": "Utility AI skills for Claude Code.",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
@@ -82,7 +82,7 @@
     },
     {
       "name": "snapshot",
-      "version": "0.5.11",
+      "version": "0.5.12",
       "description": "Snapshot plugin for Claude Code.",
       "source": "./plugins/snapshot",
       "keywords": [
@@ -107,7 +107,7 @@
     },
     {
       "name": "skill-guard",
-      "version": "2.1.16",
+      "version": "2.1.22",
       "description": "Universal skill auto-discovery and enforcement for Claude Code",
       "source": "./plugins/skill-guard",
       "keywords": [
@@ -127,7 +127,7 @@
     },
     {
       "name": "cc-skills-thinking",
-      "version": "1.0.7",
+      "version": "1.0.11",
       "description": "Thinking plugin",
       "source": "./plugins/cc-skills-thinking",
       "keywords": []
@@ -141,7 +141,7 @@
     },
     {
       "name": "cc-skills-analysis",
-      "version": "1.0.7",
+      "version": "1.0.13",
       "description": "Analysis plugin",
       "source": "./plugins/cc-skills-analysis",
       "keywords": []
@@ -190,7 +190,7 @@
     },
     {
       "name": "cc-aca-session",
-      "version": "0.1.1",
+      "version": "0.1.4",
       "description": "ACA Session plugin - session lifecycle hooks (cleanup, breadcrumb init, snapshot). Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-session",
       "keywords": [
@@ -204,7 +204,7 @@
     },
     {
       "name": "cc-aca-epistemic",
-      "version": "0.1.2",
+      "version": "0.1.15",
       "description": "ACA Epistemic plugin - evidence verification, claim validation, provenance tracking, anti-fabrication enforcement, and anti-sycophancy detection. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-epistemic",
       "keywords": [
@@ -216,6 +216,94 @@
         "anti-fabrication",
         "anti-sycophancy",
         "claim-validation"
+      ]
+    },
+    {
+      "name": "cc-aca-investigation",
+      "version": "0.2.1",
+      "description": "ACA Investigation plugin - discovery-first enforcement, observe-before-act gating, breadcrumb progression tracking, and evidence-grounded reasoning prompts.",
+      "source": "./plugins/cc-aca-investigation",
+      "keywords": [
+        "aca",
+        "investigation",
+        "discovery",
+        "observe-before-act",
+        "breadcrumb"
+      ]
+    },
+    {
+      "name": "cc-aca-authority",
+      "version": "0.1.2",
+      "description": "ACA Authority plugin - permission enforcement, approval flow control, delegation gating, risk tiering, and git safety guards.",
+      "source": "./plugins/cc-aca-authority",
+      "keywords": [
+        "aca",
+        "authority",
+        "permission",
+        "approval",
+        "delegation",
+        "risk-tier",
+        "git-safety"
+      ]
+    },
+    {
+      "name": "cc-aca-reasoning",
+      "version": "0.1.2",
+      "description": "ACA Reasoning plugin - sequential thinking, cognitive enhancement, reasoning mode selection, reflection triggers, drift detection, and reasoning quality gates.",
+      "source": "./plugins/cc-aca-reasoning",
+      "keywords": [
+        "aca",
+        "reasoning",
+        "cognitive",
+        "sequential-thinking",
+        "reflection",
+        "drift-detection",
+        "quality-gate"
+      ]
+    },
+    {
+      "name": "cc-aca-sdlc",
+      "version": "0.1.5",
+      "description": "ACA SDLC plugin - TDD enforcement, test-state tracking, implementation verification, completion gates, and development workflow discipline.",
+      "source": "./plugins/cc-aca-sdlc",
+      "keywords": [
+        "aca",
+        "sdlc",
+        "tdd",
+        "test-driven",
+        "completion-gate",
+        "implementation-verification",
+        "quality-gate"
+      ]
+    },
+    {
+      "name": "cc-aca-safety",
+      "version": "0.1.3",
+      "description": "ACA Safety plugin -- filesystem protection, path policy enforcement, bulk delete safety, Windows path correctness, protected file recovery, and git auto-staging for deletion safety.",
+      "source": "./plugins/cc-aca-safety",
+      "keywords": [
+        "aca",
+        "safety",
+        "filesystem",
+        "path-validation",
+        "delete-protection",
+        "windows-path",
+        "git-auto-stage",
+        "recovery"
+      ]
+    },
+    {
+      "name": "cc-aca-observability",
+      "version": "0.1.1",
+      "description": "ACA Observability plugin \u2014 session health monitoring, drift detection, artifact scraping, and PostToolUse tracker orchestration. Part of the Agent Control Architecture.",
+      "source": "./plugins/cc-aca-observability",
+      "keywords": [
+        "aca",
+        "observability",
+        "tracking",
+        "drift-detection",
+        "health",
+        "session"
       ]
     }
   ]

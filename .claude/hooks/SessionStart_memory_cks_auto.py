@@ -18,11 +18,21 @@ This ensures CKS always has the latest memory content without manual re-ingestio
 from __future__ import annotations
 
 import json
+import logging as _li
 import os
 import subprocess
 import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+
+_HOOKS_DIR = Path(__file__).resolve().parent
+_LOG_DIR = _HOOKS_DIR / "logs" / "diagnostics"
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_logger = _li.getLogger(__name__)
+_handler = _li.FileHandler(_LOG_DIR / "hook_stderr.log", encoding="utf-8")
+_handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
 
 # Paths
 HOOKS_DIR = Path(__file__).resolve().parent
@@ -195,13 +205,13 @@ def run_ingestion() -> bool:
 
         # Log result (non-blocking)
         if result.returncode == 0:
-            print(f"✅ Memory CKS auto-ingestion: {result.stdout.decode(errors='ignore').strip()}", file=sys.stdout)
+            _logger.info(f"✅ Memory CKS auto-ingestion: {result.stdout.decode(errors='ignore').strip()}")
         else:
-            print(f"⚠️  Memory CKS auto-ingestion failed: {result.stderr.decode(errors='ignore')[:200]}", file=sys.stdout)
+            _logger.warning(f"⚠️  Memory CKS auto-ingestion failed: {result.stderr.decode(errors='ignore')[:200]}")
 
         return result.returncode == 0
     except subprocess.TimeoutExpired:
-        print("⚠️  Memory CKS auto-ingestion timed out", file=sys.stdout)
+        _logger.warning("⚠️  Memory CKS auto-ingestion timed out")
         return False
     except Exception:
         return False

@@ -21,9 +21,19 @@ Usage:
 """
 
 import json
+import logging as _li
 import sys
 from datetime import datetime
 from pathlib import Path
+
+_HOOKS_DIR = Path(__file__).resolve().parent
+_LOG_DIR = _HOOKS_DIR / "logs" / "diagnostics"
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_logger = _li.getLogger(__name__)
+_handler = _li.FileHandler(_LOG_DIR / "hook_stderr.log", encoding="utf-8")
+_handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
 
 BLOCK_LOG = Path("P:/.claude/hooks/logs/block_enforcement.jsonl")
 
@@ -67,7 +77,7 @@ def block_response(reason: str, hook: str, guidance: str = None) -> None:
         pass  # Don't fail blocking due to logging issues
 
     # Output reason to stderr (Stop_router reads this on exit code 2)
-    print(full_reason, file=sys.stderr)
+    _logger.warning(full_reason)
     sys.exit(2)  # Exit code 2 = BLOCK (per Stop hook protocol)
 
 

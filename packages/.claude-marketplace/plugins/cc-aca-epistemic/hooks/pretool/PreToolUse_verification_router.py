@@ -17,7 +17,27 @@ from __future__ import annotations
 
 # --- plugin bootstrap ---
 import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "lib"
+
+def _normalize_stdout(data: dict) -> dict:
+    """Normalize hook output to Claude Code Zod-valid schema."""
+    if data.get('decision') == 'allow':
+        return {'decision': 'approve'}
+    if data.get('decision') == 'block':
+        return {'decision': 'block', 'reason': data.get('reason', '')}
+    if 'allow' in data:
+        if data['allow'] is False:
+            return {'decision': 'block', 'reason': data.get('reason', '')}
+        return {'decision': 'approve'}
+    if 'continue' in data:
+        if data['continue'] is False:
+            return {'decision': 'block', 'reason': data.get('reason', '')}
+        return {'decision': 'approve'}
+    if 'ok' in data:
+        return {'decision': 'approve'}
+    return data
+
+
+_l = _P(__file__).resolve().parent.parent.parent / "__lib"
 if str(_l) not in _s.path: _s.path.insert(0, str(_l))
 from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
@@ -373,7 +393,7 @@ def main() -> None:
             output["additionalContext"] = result["additionalContext"]
 
         # Write output to stdout
-        print(json.dumps(output))
+        print(json.dumps(_normalize_stdout(output)))
 
     except json.JSONDecodeError as e:
         # Malformed JSON - allow continuation (fail open)
@@ -381,7 +401,7 @@ def main() -> None:
             "continue": True,
             "reason": f"Invalid JSON: {e}"
         }
-        print(json.dumps(output))
+        print(json.dumps(_normalize_stdout(output)))
 
     except Exception as e:
         # Unexpected error - log but allow continuation (fail open)
@@ -390,7 +410,7 @@ def main() -> None:
             "continue": True,
             "reason": f"Router error: {e}"
         }
-        print(json.dumps(output))
+        print(json.dumps(_normalize_stdout(output)))
 
 
 if __name__ == "__main__":

@@ -64,7 +64,7 @@ def run(input_data: dict) -> dict | None:
     if not plan_path:
         return None
 
-    ledger = read_phase_ledger("code_v4.0")
+    ledger = read_phase_ledger("code")
     precheck_done = False
     if ledger:
         precheck_phase = ledger.get("phases", {}).get("consumer_contract_precheck", {})
@@ -78,7 +78,7 @@ def run(input_data: dict) -> dict | None:
     if result.allowed:
         if not precheck_done:
             write_phase_marker(
-                "code_v4.0",
+                "code",
                 "consumer_contract_precheck",
                 {
                     "result": "pass",
@@ -98,6 +98,25 @@ def run(input_data: dict) -> dict | None:
     }
 
 
+def _normalize_stdout(data: dict) -> dict:
+    """Normalize hook output to Claude Code Zod-valid schema."""
+    if data.get('decision') == 'allow':
+        return {'decision': 'approve'}
+    if data.get('decision') == 'block':
+        return {'decision': 'block', 'reason': data.get('reason', '')}
+    if 'allow' in data:
+        if data['allow'] is False:
+            return {'decision': 'block', 'reason': data.get('reason', '')}
+        return {'decision': 'approve'}
+    if 'continue' in data:
+        if data['continue'] is False:
+            return {'decision': 'block', 'reason': data.get('reason', '')}
+        return {'decision': 'approve'}
+    if 'ok' in data:
+        return {'decision': 'approve'}
+    return data
+
+
 def main() -> None:
     try:
         payload = json.loads(sys.stdin.read() or "{}")
@@ -106,7 +125,7 @@ def main() -> None:
 
     result = run(payload)
     if result and result.get("decision") in ("deny", "block"):
-        print(json.dumps(result))
+        print(json.dumps(_normalize_stdout(result)))
         sys.exit(2)
     sys.exit(0)
 

@@ -3,25 +3,33 @@
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from Stop_deletion_verification_guard import (
-    DELETION_CLAIM_PATTERNS,
-    FILE_PATH_PATTERNS,
-    OBVIOUS_ALLOWLIST,
-    _sanitize_for_log,
-    _validate_path_boundary,
-    _extract_file_paths,
-    _normalize_path,
-    _check_path_with_timeout,
-    _verify_deletion_claim,
-    _detect_deletion_claims,
-    check,
-    run,
-)
+# Load directly from the cc-aca-epistemic plugin (not the delegation wrapper)
+_PLUGIN_HOOK = Path("P:/packages/cc-aca-epistemic/hooks/stop/Stop_deletion_verification_guard.py")
+_spec = importlib.util.spec_from_file_location("Stop_deletion_verification_guard", _PLUGIN_HOOK)
+_mod = importlib.util.module_from_spec(_spec)
+# Plugin bootstrap needs __lib on sys.path
+_lib = Path("P:/packages/cc-aca-epistemic/__lib")
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+_spec.loader.exec_module(_mod)
+
+DELETION_CLAIM_PATTERNS = _mod.DELETION_CLAIM_PATTERNS
+FILE_PATH_PATTERNS = _mod.FILE_PATH_PATTERNS
+OBVIOUS_ALLOWLIST = _mod.OBVIOUS_ALLOWLIST
+_sanitize_for_log = _mod._sanitize_for_log
+_validate_path_boundary = _mod._validate_path_boundary
+_extract_file_paths = _mod._extract_file_paths
+_normalize_path = _mod._normalize_path
+_check_path_with_timeout = _mod._check_path_with_timeout
+_verify_deletion_claim = _mod._verify_deletion_claim
+_detect_deletion_claims = _mod._detect_deletion_claims
+check = _mod.check
+run = _mod.run
 
 
 class TestSanitizeForLog:
@@ -182,6 +190,66 @@ class TestDetectDeletionClaims:
         claims = _detect_deletion_claims(response)
         assert claims == []
 
+    def test_removed_reference_allowlisted(self):
+        """'Removed the reference' is a code/doc change, not filesystem deletion."""
+        response = "Removed the `type: 'prompt'` reference from hook_external_llm_policy.md"
+        claims = _detect_deletion_claims(response)
+        assert claims == []
+
+    def test_removed_the_mention_allowlisted(self):
+        """'Removed the mention' is a doc change, not filesystem deletion."""
+        response = "Removed the mention of the deprecated API."
+        claims = _detect_deletion_claims(response)
+        assert claims == []
+
+    def test_removed_the_usage_allowlisted(self):
+        """'Removed the usage' is a code change, not filesystem deletion."""
+        response = "Removed the usage of the old helper function."
+        claims = _detect_deletion_claims(response)
+        assert claims == []
+
+    def test_removed_the_call_allowlisted(self):
+        """'Removed the call' is a code change, not filesystem deletion."""
+        response = "Removed the call to the deprecated method."
+        claims = _detect_deletion_claims(response)
+        assert claims == []
+
+    def test_removed_the_import_allowlisted(self):
+        """'Removed the import' is a code change, not filesystem deletion."""
+        response = "Removed the import statement from the module."
+        claims = _detect_deletion_claims(response)
+        assert claims == []
+
+    def test_removed_the_dependency_allowlisted(self):
+        """'Removed the dependency' is a code change, not filesystem deletion."""
+        response = "Removed the dependency on the external library."
+        claims = _detect_deletion_claims(response)
+        assert claims == []
+
+    def test_removed_the_statement_allowlisted(self):
+        """'Removed the statement' is a code change, not filesystem deletion."""
+        response = "Removed the statement that was causing the error."
+        claims = _detect_deletion_claims(response)
+        assert claims == []
+
+    def test_removed_the_variable_allowlisted(self):
+        """'Removed the variable' is a code change, not filesystem deletion."""
+        response = "Removed the variable from the function scope."
+        claims = _detect_deletion_claims(response)
+        assert claims == []
+
+    def test_removed_the_assertion_allowlisted(self):
+        """'Removed the assertion' is a code change, not filesystem deletion."""
+        response = "Removed the assertion that was failing intermittently."
+        claims = _detect_deletion_claims(response)
+        assert claims == []
+
+    def test_removed_file_still_detected(self):
+        """Real filesystem deletion claim still detected (no regression)."""
+        response = "Removed the placeholder at /tmp/test.txt"
+        claims = _detect_deletion_claims(response)
+        assert len(claims) > 0
+
 
 class TestCheckPathWithTimeout:
     """Tests for _check_path_with_timeout helper."""
@@ -269,6 +337,7 @@ class TestCheck:
 
     def test_unverified_deletion_blocks(self, monkeypatch, tmp_path):
         """Unverified deletion claim returns block dict."""
+        monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
         # Create a file that exists
         existing_file = tmp_path / "still_here.txt"
         existing_file.write_text("test")
@@ -286,6 +355,7 @@ class TestRun:
 
     def test_check_returns_block_dict(self, monkeypatch, tmp_path):
         """When check() returns block dict, run() formats for Stop_router."""
+        monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
         existing_file = tmp_path / "still_here.txt"
         existing_file.write_text("test")
         data = {

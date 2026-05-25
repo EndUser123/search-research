@@ -31,6 +31,7 @@ Enforces security gates, syntax validation, and loop detection.
 from __future__ import annotations
 
 import json
+import logging as _li
 import os
 import re
 import subprocess
@@ -40,6 +41,13 @@ from datetime import datetime
 from pathlib import Path
 
 HOOKS_DIR = Path(__file__).resolve().parent
+_LOG_DIR = HOOKS_DIR / "logs" / "diagnostics"
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_logger = _li.getLogger(__name__)
+_handler = _li.FileHandler(_LOG_DIR / "hook_stderr.log", encoding="utf-8")
+_handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
 sys.path.insert(0, str(HOOKS_DIR))
 hooks_lib = HOOKS_DIR / "__lib"
 if str(hooks_lib) not in sys.path:
@@ -101,9 +109,7 @@ CRITICAL_HOOKS = {
 }
 
 HOOK_TIMEOUTS = {
-    "PreToolUse_file_existence_guard.py": 15.0,
     "pre/PreToolUse_tool_check.py": 5.0,
-    "PreToolUse_verification_router.py": 15.0,
     "PreToolUse_authorization_gate.py": 30.0,  # Increased from 5s default - reads transcripts, queries CKS
 }
 
@@ -117,11 +123,6 @@ HOOK_CONTENT_FILTERS: dict[str, list[str]] = {
     "PreToolUse_windows_path_unicode_gate.py": [
         r"python3?\s+-c",  # python -c, python3 -c (not python2 -c which is EOL)
         r"py\s+-c",  # Windows Python launcher
-    ],
-    "PreToolUse_dependency_verification_gate.py": [
-        r"npm\s+install",
-        r"pip\s+install",
-        r"cargo\s+add",
     ],
     "PreToolUse_skill_script_path_gate.py": [
         r"python(?:3)?\s+[\"']?P:[/\\]",  # python "P:\..." or python P:/...
@@ -144,7 +145,7 @@ HOOK_CONTENT_FILTERS: dict[str, list[str]] = {
 # Read/Grep/Glob/Edit/Write are NOT allowed — the LLM must call Skill() first,
 # not read the SKILL.md and improvise its own version.
 _SKILL_FIRST_ALLOWED = {"Skill", "AskUserQuestion", "TodoWrite"}
-_SKILL_FIRST_MODES = {"off", "monitor", "soft_block", "hard_block"}
+_SKILL_FIRST_MODES = {"off", "monitor", "soft_block", "hard_block", "read_only"}
 _SKILL_FIRST_LOG = HOOKS_DIR / "logs" / "skill_first_enforcement.jsonl"
 _STALE_TERMINAL_INTENT_SECONDS = 15 * 60
 # Hard TTL: intent files older than this are discarded unconditionally.
@@ -426,6 +427,13 @@ def _check_skill_first_gate(data: dict) -> dict | None:
             # Allow SKILL.md edits even when slash command is pending
             return None
 
+    # read_only mode: allow read tools (Read/Grep/Glob), block writes and Bash
+    if mode == "read_only":
+        if tool_name in ("Read", "Grep", "Glob"):
+            return None
+        if tool_name in ("Edit", "Write", "MultiEdit", "Bash"):
+            return {"decision": "block", "reason": f"read_only mode: {tool_name} is blocked; call Skill() first"}
+
     # Session id is helpful for stale-intent cleanup, but the current source of
     # truth is the terminal-scoped pending intent file. Do not disable the gate
     # just because session_id is absent from the payload.
@@ -646,19 +654,12 @@ def _check_skill_first_gate(data: dict) -> dict | None:
 #   The legacy gate ran before the subprocess, causing double-gating with conflicting state.
 #   It is now completely removed from the dispatch chain.
 UNIVERSAL = [
-    "PreToolUse_path_validator.py",
-    "PreToolUse_domain_tool_router.py",  # NEW 2026-03-21: Advisory domain tool suggestions
-    "PreToolUse_discovery_tracker.py",  # ADR-00X: Tracks discovery tool usage for discovery-first enforcement (2026-04-09)
-    "PreToolUse_risk_tier_gate.py",
-    "PreToolUse_observe_before_act_gate.py",
-    "PreToolUse_arch_first_enforcer.py",  # Enforce arch-first workflow (2026-03-16)
-    "PreToolUse_ownership_colocation_gate.py",  # Block writes to shared-infra paths without consumer verification (2026-03-19)
-    "PreToolUse_session_id_capture.py",  # Session ID capture for git integration (AIR Auditor CHANGE-001)
-    "PreToolUse_context_sufficiency_gate.py",  # Skill autonomy classification (ADR-20260329 CHANGE-002)
-    "PreToolUse_skill_question_gate.py",  # One-question-max enforcement (ADR-20260329 CHANGE-003)
-    "PreToolUse_delegation_gate.py",  # Block non-Task tools when delegation_expected state is set (2026-05-11)
-    "PreToolUse_user_delegation_gate.py",  # Block ask-user when investigation insufficient for diagnostic turns (2026-05-11)
-    # NOTE: skill_metadata_advisory moved to UserPromptSubmit_modules/cognitive_guardrails.py (2026-04-07)
+    "PreToolUse_domain_tool_router.py",  # Advisory domain tool suggestions
+    "PreToolUse_session_id_capture.py",  # Session ID capture for git integration
+    "PreToolUse_context_sufficiency_gate.py",  # Skill autonomy classification
+    "PreToolUse_skill_question_gate.py",  # One-question-max enforcement
+    # ACA hooks moved to plugin hooks.json: path_validator, risk_tier_gate,
+    # ownership_colocation_gate, delegation_gate, user_delegation_gate
 ]
 
 # Legacy top-level PreToolUse entries are routed here now so Claude only has to
@@ -670,9 +671,7 @@ UNIVERSAL = [
 # The legacy gate is kept in this list as documentation of its former position
 # but is COMMENTED OUT to prevent double-gating. Do NOT uncomment.
 COMPAT_POST_ROUTER_HOOKS = [
-    "PreToolUse_file_existence_guard.py",
     "pre/PreToolUse_tool_check.py",
-    "PreToolUse_verification_router.py",
     # "PreToolUse/PreToolUse_skill_pattern_gate.py",  # REMOVED - see note above
 ]
 
@@ -682,83 +681,53 @@ COMPAT_POST_ROUTER_HOOKS = [
 # Hooks by tool type
 TOOL_HOOKS = {
     "Write": [
-        "PreToolUse_win32_path_gate.py",  # Blocks backslash paths that cause silent failures on Windows MINGW
-        "PreToolUse_directory_policy.py",
-        "PreToolUse_type_validator.py",  # Blocks .py files at workspace root (type mismatch prevention)
-        "PreToolUse_parent_directory_creator.py",  # Creates parent dirs before Write/Edit to prevent silent failure bug
+        "PreToolUse_parent_directory_creator.py",
         "PreToolUse_syntax_gate.py",
         "PreToolUse_python_import_gate.py",
-        "PreToolUse_import_deletion_guard.py",  # Blocks overwriting existing imports without symbol search
+        "PreToolUse_import_deletion_guard.py",
         "recursive_failure_detector.py",
-        "PreToolUse_git_safety.py",
-        "PreToolUse_require_plan_for_features.py",
         "PreToolUse_settings_backup.py",
-        "PreToolUse_implementation_default_gate.py",  # Flipped default: block Edit/Write unless explicit trigger
-        "PreToolUse_investigation_gate.py",
-        "PreToolUse_tdd95_gate.py",  # TDD enforcement
-        "PreToolUse_protected_file_recovery_gate.py",  # Recovery lockout: block Edit/Write on broken protected files
+        # ACA hooks moved to plugin hooks.json: win32_path_gate, directory_policy,
+        # git_safety, protected_file_recovery_gate, git_auto_stage, tdd95_gate
     ],
     "Edit": [
-        "PreToolUse_win32_path_gate.py",  # Blocks backslash paths that cause silent failures on Windows MINGW
-        "PreToolUse_directory_policy.py",
-        "PreToolUse_type_validator.py",  # Blocks .py files at workspace root (type mismatch prevention)
-        "PreToolUse_syntax_gate.py",  # Validates Python syntax before Edit operations
+        "PreToolUse_syntax_gate.py",
         "PreToolUse_python_import_gate.py",
-        "PreToolUse_import_deletion_guard.py",  # Blocks import removal without prior symbol grep
+        "PreToolUse_import_deletion_guard.py",
         "recursive_failure_detector.py",
-        "PreToolUse_git_safety.py",
-        "PreToolUse_require_plan_for_features.py",
         "PreToolUse_settings_backup.py",
-        "PreToolUse_implementation_default_gate.py",  # Flipped default: block Edit/Write unless explicit trigger
-        "PreToolUse_investigation_gate.py",
-        "PreToolUse_tdd95_gate.py",  # TDD enforcement
-        "PreToolUse_protected_file_recovery_gate.py",  # Recovery lockout: block Edit/Write on broken protected files
+        # ACA hooks moved to plugin hooks.json: win32_path_gate, directory_policy,
+        # git_safety, protected_file_recovery_gate, tdd95_gate
     ],
     "MultiEdit": [
-        "PreToolUse_win32_path_gate.py",  # Blocks backslash paths that cause silent failures on Windows MINGW
-        "PreToolUse_directory_policy.py",
-        "PreToolUse_import_deletion_guard.py",  # Blocks import removal across batched edits
+        "PreToolUse_import_deletion_guard.py",
+        # ACA hooks moved to plugin hooks.json: win32_path_gate, directory_policy
     ],
     "Glob": [
-        "PreToolUse_skill_dir_gate.py",  # Phase 2: block unscoped Glob in wrong skill dir
+        "PreToolUse_skill_dir_gate.py",
     ],
     "Grep": [
-        "PreToolUse_skill_dir_gate.py",  # Phase 2: block unscoped Grep in wrong skill dir
+        "PreToolUse_skill_dir_gate.py",
     ],
     "Bash": [
-        "PreToolUse_git_state_capture.py",  # Capture git state BEFORE command (cross-agent isolation)
-        "PreToolUse_skill_script_path_gate.py",  # Block stale P:\ skill script paths before execution (RC3)
+        "PreToolUse_git_state_capture.py",
+        "PreToolUse_skill_script_path_gate.py",
         "PreToolUse_bash_syntax_validator.py",
-        "PreToolUse_windows_path_unicode_gate.py",  # Detect Python -c with unescaped Windows paths
-        "PreToolUse_directory_policy.py",
-        "PreToolUse_destructive_git_guard.py",
-        "PreToolUse_git_remote_check_order_guard.py",  # Require local HEAD check before origin/* inspection
-        "PreToolUse_authorization_gate.py",
-        "PreToolUse_dependency_verification_gate.py",
-        "PreToolUse_evidence_hierarchy_gate.py",  # Enforce local-first: block external fetch if local evidence exists
-        "PreToolUse_bulk_delete_gate.py",
-        "PreToolUse_repo_visibility_guard.py",  # Blocks P:\ drive repos from being made public
+        "PreToolUse_windows_path_unicode_gate.py",
+        "PreToolUse_git_remote_check_order_guard.py",
         "recursive_failure_detector.py",
-        "PreToolUse_command_intent_gate.py",
-        "PreToolUse_pytest_timeout_guard.py",  # CRITICAL: Blocks pytest without --timeout (prevents computer hangs)
-        "PreToolUse_git_commit_test_gate.py",  # HIGH: Blocks commit if tests fail (prevents data loss)
-        "PreToolUse_referent_scope_gate.py",  # Blocks off-topic investigation when user listed specific entities
-        "PreToolUse_git_auto_stage.py",  # Auto-stage tracked files before deletion/move commands
+        "PreToolUse_pytest_timeout_guard.py",
+        "PreToolUse_git_commit_test_gate.py",
+        "PreToolUse_referent_scope_gate.py",
+        # ACA hooks moved to plugin hooks.json: directory_policy, destructive_git_guard,
+        # authorization_gate, bulk_delete_gate, repo_visibility_guard, git_auto_stage
     ],
     "Task": [
         "PreToolUse_task_self_doc_gate.py",
-        "PreToolUse_authorization_gate.py",
+        # ACA hooks moved to plugin hooks.json: authorization_gate
     ],
-    # MCP full-read guard: blocks large-payload URL patterns before the call is made
-    # (tavily_extract not listed — advisory handled post-call by PostToolUse.py bloat detection)
     "mcp__web-reader__webReader": [
         "PreToolUse_mcp_full_read_guard.py",
-    ],
-    "WebFetch": [
-        "PreToolUse_evidence_hierarchy_gate.py",  # Block if local evidence exists for same topic
-    ],
-    "WebSearch": [
-        "PreToolUse_evidence_hierarchy_gate.py",  # Block if local evidence exists for same topic
     ],
 }
 
@@ -773,16 +742,11 @@ try:
 
     import pre_tool_use_logic
     import PreToolUse_bash_syntax_validator
-    import PreToolUse_bulk_delete_gate
-    import PreToolUse_dependency_verification_gate
-    import PreToolUse_destructive_git_guard
-    import PreToolUse_directory_policy
-    import PreToolUse_evidence_hierarchy_gate
     import PreToolUse_git_remote_check_order_guard
-    import PreToolUse_git_auto_stage
-    import PreToolUse_path_validator
     import PreToolUse_task_self_doc_gate
-    import PreToolUse_protected_file_recovery_gate
+    # ACA imports removed — hooks now in plugin hooks.json:
+    # bulk_delete_gate, destructive_git_guard, directory_policy,
+    # git_auto_stage, path_validator, protected_file_recovery_gate
 
     # skill-guard hooks imported from plugin (single source of truth)
     from skill_guard.PreToolUse.PreToolUse_import_deletion_guard import run as _import_deletion_run
@@ -805,25 +769,18 @@ try:
         "PreToolUse_syntax_gate.py": pre_tool_use_logic.check_syntax,
         "recursive_failure_detector.py": pre_tool_use_logic.check_recursive_failure,
         "PreToolUse_bash_syntax_validator.py": PreToolUse_bash_syntax_validator.run,
-        "PreToolUse_path_validator.py": PreToolUse_path_validator.run,
-        "PreToolUse_directory_policy.py": PreToolUse_directory_policy.run,
-        "PreToolUse_bulk_delete_gate.py": PreToolUse_bulk_delete_gate.run,
-        "PreToolUse_dependency_verification_gate.py": PreToolUse_dependency_verification_gate.run,
-        "PreToolUse_destructive_git_guard.py": PreToolUse_destructive_git_guard.run,
-        "PreToolUse_evidence_hierarchy_gate.py": PreToolUse_evidence_hierarchy_gate.run,
         "PreToolUse_git_remote_check_order_guard.py": PreToolUse_git_remote_check_order_guard.run,
-        "PreToolUse_git_auto_stage.py": PreToolUse_git_auto_stage.run,
         "PreToolUse_import_deletion_guard.py": _import_deletion_run,
         "PreToolUse_skill_script_path_gate.py": _skill_script_path_run,
         "PreToolUse_skill_dir_gate.py": _skill_dir_gate_run,
         "PreToolUse_skill_question_gate.py": _skill_question_gate_run,
         "PreToolUse_context_sufficiency_gate.py": _context_sufficiency_run,
         "PreToolUse_workflow_step_gate.py": _workflow_step_gate_run,
-        # PreToolUse_skill_pattern_gate.py REMOVED - execution_hooks.py is sole contract gate
         "PreToolUse_task_self_doc_gate.py": PreToolUse_task_self_doc_gate.run,
-        "PreToolUse_protected_file_recovery_gate.py": PreToolUse_protected_file_recovery_gate.run,
         "check_external_path_consent": pre_tool_use_logic.check_external_path_consent,
-        "PreToolUse_protected_file_recovery_gate.py": PreToolUse_protected_file_recovery_gate.run,
+        # ACA hooks moved to plugin hooks.json: path_validator, directory_policy,
+        # bulk_delete_gate, destructive_git_guard, git_auto_stage,
+        # protected_file_recovery_gate
     }
 except ImportError:
     # Claude Code treats stderr as hook error - silence this
@@ -1276,9 +1233,7 @@ def main():
 
         response = {
             "decision": "block",
-            "continue": False,
             "reason": _msg,
-            "blocking_hook": "PreToolUse.py:skill_first_gate",
         }
         _log_pretooluse_block_event(
             data,
@@ -1322,25 +1277,15 @@ def main():
                             "reason": _msg,
                         },
                     )
-                print(
-                    json.dumps(
-                        {
-                            "decision": "block",
-                            "continue": False,
-                            "reason": _msg,
-                            "blocking_hook": _blocking_hook,
-                        }
-                    )
-                )
+                print(json.dumps({"decision": "block", "reason": _msg}))
                 sys.exit(0)
 
         # NEW: Handle hookSpecificOutput.advisory - display to user
         if "hookSpecificOutput" in res and "advisory" in res["hookSpecificOutput"]:
             advisory = res["hookSpecificOutput"]["advisory"]
-            # Print advisory to stdout for Claude Code to display
-            # Format: JSON with hookSpecificOutput wrapper
-            print(json.dumps({"hookSpecificOutput": {"advisory": advisory, "source_hook": hook}}))
-            sys.stdout.flush()  # Ensure advisory is visible immediately
+            # Send advisory to stderr (Claude Code displays stderr as info)
+            # stdout must only contain valid Zod-schema JSON
+            _logger.warning(f"[advisory] {hook}: {advisory}")
             # Continue processing other hooks (don't break loop)
 
         # Check for both "decision": "block" and "block": True formats
@@ -1400,16 +1345,7 @@ def main():
                         "artifact_path": artifact_path,
                     },
                 )
-            print(
-                json.dumps(
-                    {
-                        "decision": "block",
-                        "continue": False,
-                        "reason": _msg,
-                        "blocking_hook": _blocking_hook,
-                    }
-                )
-            )
+            print(json.dumps({"decision": "block", "reason": _msg}))
             sys.exit(0)
 
     # All hooks passed

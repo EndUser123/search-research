@@ -14,7 +14,7 @@ hooks/
   stop/              # Stop hooks (response validation)
   posttool/          # PostToolUse validators
   userpromptsubmit/  # UserPromptSubmit classifiers
-lib/
+__lib/
   provenance.py      # Claim provenance tracking (from fact-guard)
   contamination.py   # Contamination detection (from fact-guard)
   evidence_store.py  # Evidence accumulation and scope
@@ -85,7 +85,7 @@ Every hook uses `_bootstrap.py` for path setup (single point of change):
 ```python
 # --- plugin bootstrap ---
 import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "lib"
+_l = _P(__file__).resolve().parent.parent.parent / "__lib"
 if str(_l) not in _s.path: _s.path.insert(0, str(_l))
 from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
@@ -101,7 +101,7 @@ from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
 #!/usr/bin/env python3
 """Delegates to cc-aca-epistemic plugin."""
 import sys
-sys.path.insert(0, "P:/packages/cc-aca-epistemic/lib")
+sys.path.insert(0, "P:/packages/cc-aca-epistemic/__lib")
 from compat_loader import delegate
 delegate(__file__)
 ```
@@ -119,6 +119,21 @@ Absorbed from the standalone fact-guard plugin:
 
 Modules that remain separate: `state.py`, `fact_extraction.py`, `file_patterns.py` (in `P:/.claude/hooks/__lib__/`).
 
+### Moved from shared to plugin-canonical
+
+- `claim_patterns.py` — epistemic-only claim regex patterns (deleted from `__lib__/`)
+- `claim_layer_map.py` — epistemic-only claim classification (deleted from `__lib__/`)
+
+### Remains in shared runtime (`P:/.claude/hooks/__lib__/`)
+
+- `artifact_ledger` — used by non-epistemic `PostToolUse_artifact_scraper.py`
+- `claim_type` — used by `Stop.py` (path dependency on hooks-dir `.state/` layout)
+- `shared_utils`, `cc_diagnostic_logger`, `hook_state_manager`, `terminal_detection`, `ttl_utils`, etc.
+
+### Dead code removed
+
+- `assumption_audit_v2.py` — orphaned (104KB, not registered in any hook system), was sole consumer of old `__lib__/claim_patterns.py`
+
 ## What Is NOT in This Plugin
 
 - **Reasoning hooks** — belong in cc-aca-reasoning (or local hooks)
@@ -126,3 +141,22 @@ Modules that remain separate: `state.py`, `fact_extraction.py`, `file_patterns.p
 - **Observability/telemetry** — belongs in cc-aca-session or local hooks
 - **scanners/** — shared framework in `P:/.claude/hooks/__lib__/`
 - **validators/** — shared framework in `P:/.claude/hooks/__lib__/`
+
+## Migration Lessons (for next ACA plugin)
+
+### What worked
+1. **Audit-first** — Phase 1/2 classification audits before migration prevented scope creep
+2. **`_bootstrap.py`** — centralized path setup, eliminated 184 lines of duplicated resolver code
+3. **`compat_loader.py`** — reduced 23 unique wrappers to 23 identical stubs
+4. **Conservative refusal** — when `artifact_ledger` had non-epistemic consumers, correctly refused to break them
+5. **Reverse dependency fix** — moving `_challenge_marker_path` to plugin-owned module fixed worst coupling
+
+### What to avoid
+1. **Don't assume shared modules are movable** — always grep for non-domain consumers first
+2. **Don't leave duplicates past their deadline** — if grep confirms zero consumers, delete immediately
+3. **Don't skip operational validation** — pytest passing does not prove plugin works in Claude Code runtime
+4. **Don't trust `hooks.json` format `{}`** — Claude Code requires `{"hooks": {}}` even when empty
+
+### Next migration candidate
+
+Safest next ACA plugin based on cohesion, coupling, and file count: audit remaining local hooks to identify the next cluster with highest internal cohesion and fewest cross-domain imports. The original audit identified reasoning, authority, and investigation as candidate domains.

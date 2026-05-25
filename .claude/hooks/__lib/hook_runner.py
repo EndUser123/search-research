@@ -16,6 +16,14 @@ Or call programmatically:
 
 from __future__ import annotations
 
+import os
+
+# Prevent the hook subprocess from creating .pyc bytecode files.
+# Hooks are loaded via HookImporter (in-process) which handles pyc clearing proactively.
+# The subprocess runner is protected here to prevent it from creating stale pyc
+# that could outlive the parent process.
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+
 # Monkey-patch subprocess to prevent blue console flashes on Windows.
 # Uses a proper subclass so asyncio.windows_utils can still subclass Popen.
 import subprocess as _subprocess
@@ -169,9 +177,53 @@ def _log_error(hook_name: str, error_type: str, error_msg: str, tb: str) -> None
         _safe_stderr_print(f"[HOOK_RUNNER] Failed to log error: {error_msg}")
 
 
-def _output_error(error_msg: str) -> None:
-    """Output JSON error to stdout (for Claude Code)."""
-    print(json.dumps({"ok": False, "error": error_msg}))
+def _output_error(error_msg: str, hook_name: str = "", error_type: str = "", tb: str = "") -> None:
+    """Output JSON error to stdout (for Claude Code) with structured interrupts."""
+    error_class, failure_code, is_startup_actionable, root_cause_key = (
+        _error_class_and_code(hook_name or "unknown", error_type or "unknown", error_msg, tb)
+    )
+
+    # Prescriptive strategy shifts for structured interrupts
+    remediation = "Abandon this approach and try a completely different strategy. Do NOT retry the same action."
+    msg_lower = error_msg.lower()
+    type_lower = (error_type or "").lower()
+
+    if "import" in msg_lower or "module_not_found" in type_lower:
+        remediation = (
+            "**Prescriptive Directive (Import Error):** Required module or package is missing or not importable.\n"
+            "1. Verify that P:/.claude/hooks/__lib/ is in sys.path and the module file exists.\n"
+            "2. Perform Symmetry Analysis: verify if the target package was correctly refactored or colocated.\n"
+            "3. Do NOT retry without fixing the import paths."
+        )
+    elif "syntax" in msg_lower or "syntax_error" in type_lower:
+        remediation = (
+            "**Prescriptive Directive (Syntax Error):** The hook script has invalid Python syntax.\n"
+            "1. Run `python -m py_compile <path>` on the file directly to find the syntax error.\n"
+            "2. Repair the syntax error (e.g., unmatched brackets, quotes, or trailing characters).\n"
+            "3. Do NOT execute or retry until `py_compile` succeeds."
+        )
+    elif "timeout" in type_lower:
+        remediation = (
+            "**Prescriptive Directive (Timeout Error):** Hook execution exceeded its timeout budget.\n"
+            "1. Check for infinite loops, blocking subprocesses, or slow file I/O operations.\n"
+            "2. Optimize the hook's execution paths, database locks, or query parameters.\n"
+            "3. Ensure the operation completes under 3 seconds to avoid blocking the developer workflow."
+        )
+
+    interrupt_payload = {
+        "ok": False,
+        "error": error_msg,
+        "interrupt": {
+            "type": "HOOK_INTERRUPT",
+            "hook": hook_name or "unknown",
+            "error_class": error_class,
+            "failure_code": failure_code,
+            "remediation": remediation,
+            "is_actionable": is_startup_actionable
+        }
+    }
+    print(json.dumps(interrupt_payload))
+
 
 
 def _safe_stderr_print(message: str) -> None:
@@ -412,7 +464,7 @@ def safe_run(hook_path: str | Path, timeout: float | None = None) -> int:
         error_msg = f"Syntax error in {hook_name}: {e}"
         tb = traceback.format_exc()
         _log_error(hook_name, "syntax_error", error_msg, tb)
-        _output_error(error_msg)
+        _output_error(error_msg, hook_name, "syntax_error", tb)
         _safe_stderr_print(f"[HOOK_RUNNER] {error_msg}")
         return 1
 
@@ -420,7 +472,7 @@ def safe_run(hook_path: str | Path, timeout: float | None = None) -> int:
         error_msg = f"Import error in {hook_name}: {e}"
         tb = traceback.format_exc()
         _log_error(hook_name, "import_error", error_msg, tb)
-        _output_error(error_msg)
+        _output_error(error_msg, hook_name, "import_error", tb)
         _safe_stderr_print(f"[HOOK_RUNNER] {error_msg}")
         return 1
 
@@ -428,7 +480,7 @@ def safe_run(hook_path: str | Path, timeout: float | None = None) -> int:
         error_msg = f"Runtime error in {hook_name}: {type(e).__name__}: {e}"
         tb = traceback.format_exc()
         _log_error(hook_name, "runtime_error", error_msg, tb)
-        _output_error(error_msg)
+        _output_error(error_msg, hook_name, "runtime_error", tb)
         _safe_stderr_print(f"[HOOK_RUNNER] {error_msg}")
         return 1
 

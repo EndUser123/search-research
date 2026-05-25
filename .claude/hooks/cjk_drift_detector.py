@@ -21,6 +21,18 @@ import re
 import sys
 from pathlib import Path
 
+import logging as _li
+_HOOKS_DIR = Path(__file__).resolve().parent
+_LOG_DIR = _HOOKS_DIR / "logs" / "diagnostics"
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_logger = _li.getLogger(__name__)
+_handler = _li.FileHandler(_LOG_DIR / "hook_stderr.log", encoding="utf-8")
+_handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
+
+
+
 # Han + Hiragana + Katakana + Hangul ranges
 CJK_PATTERN = re.compile(r"[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]+")
 
@@ -140,12 +152,12 @@ def main() -> int:
 
     if event_name in ("Stop", "SubagentStop"):
         # Block + force regenerate
-        print(msg, file=sys.stderr)
-        return 2
+            _logger.debug(msg)
+            return 2
 
     # PostToolUse: advisory only
-    print(msg, file=sys.stderr)
-    return 0
+            _logger.debug(msg)
+            return 0
 
 
 if __name__ == "__main__":

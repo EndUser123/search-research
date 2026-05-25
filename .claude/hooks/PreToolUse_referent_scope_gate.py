@@ -155,13 +155,13 @@ def run(data: dict) -> dict:
 def main() -> None:
     raw = sys.stdin.read().strip()
     if not raw:
-        print(json.dumps({"decision": "allow", "reason": "referent_scope: empty input"}))
+        print(json.dumps({"decision": "approve"}))
         sys.exit(0)
 
     try:
         data = json.loads(raw.lstrip("\ufeff"))
     except json.JSONDecodeError:
-        print(json.dumps({"decision": "allow", "reason": "referent_scope: parse error"}))
+        print(json.dumps({"decision": "approve"}))
         sys.exit(0)
 
     result = run(data)

@@ -20,7 +20,7 @@ class TestSoloDevContext:
     def test_solo_dev_context_exists(self):
         """SOLO_DEV_CONTEXT constant should be defined."""
         assert SOLO_DEV_CONTEXT
-        assert 'SOLO' in SOLO_DEV_CONTEXT
+        assert 'Solo' in SOLO_DEV_CONTEXT
         assert len(SOLO_DEV_CONTEXT) > 50
 
 
@@ -143,7 +143,7 @@ class TestRunUnifiedInjector:
     def test_run_unified_injector_includes_solo_context(self, mock_context):
         """Result should always include solo dev context."""
         result = run_unified_injector(mock_context)
-        assert 'SOLO' in result.context
+        assert 'Solo' in result.context
 
     def test_run_unified_injector_with_command(self, mock_context):
         """Result should include command context when detected."""

@@ -12,6 +12,17 @@ Action: Warn user if extraction took >4 seconds
 """
 
 import re
+import logging as _li
+
+_REFL_DIR = Path(__file__).resolve().parent
+_LOG_DIR = _REFL_DIR / "logs" / "diagnostics"
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_logger = _li.getLogger(__name__)
+_handler = _li.FileHandler(_LOG_DIR / "hook_stderr.log", encoding="utf-8")
+_handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
+
 import sys
 
 
@@ -37,49 +48,19 @@ def check_performance(logs: str) -> None:
 
         # Severity levels based on duration
         if duration_ms >= 5000:
-            print(
-                "\n🚨 CRITICAL: Reflect signal extraction exceeded hook timeout!",
-                file=sys.stderr
-            )
-            print(
-                f"   Duration: {duration_ms}ms (timeout is 5000ms)",
-                file=sys.stderr
-            )
-            print(
-                "   Action: Hook may have failed. Consider disabling semantic analysis.",
-                file=sys.stderr
-            )
-            print(
-                "   Feature flags: Set FEATURE_FLAGS in extract_signals.py to disable categories.",
-                file=sys.stderr
-            )
+            _logger.error("🚨 CRITICAL: Reflect signal extraction exceeded hook timeout!")
+            _logger.error(f"Duration: {duration_ms}ms (timeout is 5000ms)")
+            _logger.error("Action: Hook may have failed. Consider disabling semantic analysis.")
+            _logger.error("Feature flags: Set FEATURE_FLAGS in extract_signals.py to disable categories.")
         elif duration_ms >= 4000:
-            print(
-                "\n⚠️  WARNING: Reflect signal extraction approaching timeout threshold",
-                file=sys.stderr
-            )
-            print(
-                f"   Duration: {duration_ms}ms (timeout is 5000ms)",
-                file=sys.stderr
-            )
-            print(
-                "   Consider: Disabling semantic analysis or reducing transcript size",
-                file=sys.stderr
-            )
-            print(
-                "   Feature flags: Set FEATURE_FLAGS in extract_signals.py to disable categories.",
-                file=sys.stderr
-            )
+            _logger.warning("Reflect signal extraction approaching timeout threshold")
+            _logger.error(f"Duration: {duration_ms}ms (timeout is 5000ms)")
+            _logger.warning("Consider: Disabling semantic analysis or reducing transcript size")
+            _logger.error("Feature flags: Set FEATURE_FLAGS in extract_signals.py to disable categories.")
         elif duration_ms >= 3000:
             # Advisory: Performance degraded but not critical
-            print(
-                f"\nℹ️  INFO: Reflect extraction took {duration_ms}ms (monitoring)",
-                file=sys.stderr
-            )
-            print(
-                "   Performance is acceptable but worth monitoring.",
-                file=sys.stderr
-            )
+            _logger.info(f"INFO: Reflect extraction took {duration_ms}ms (monitoring)")
+            _logger.info("Performance is acceptable but worth monitoring.")
 
 
 if __name__ == "__main__":

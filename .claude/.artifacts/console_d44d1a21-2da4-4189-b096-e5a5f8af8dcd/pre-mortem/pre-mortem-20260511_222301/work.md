@@ -1,1 +1,0 @@
-delegation_prospector.py + delegation_gate.py + test_delegation_gate.py - multi-terminal subagent enforcement system

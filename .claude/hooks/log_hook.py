@@ -14,6 +14,17 @@ import sys
 import time
 from pathlib import Path
 from datetime import datetime
+import logging as _li
+
+_HOOKS_DIR = Path(__file__).resolve().parent
+_LOG_DIR = _HOOKS_DIR / "logs" / "diagnostics"
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_logger = _li.getLogger(__name__)
+_handler = _li.FileHandler(_LOG_DIR / "hook_stderr.log", encoding="utf-8")
+_handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
+
 
 
 # Windows reserved names that cannot be used as file or directory names
@@ -76,14 +87,28 @@ def _retry_on_locked(func, *args, max_attempts: int = 5, **kwargs):
     raise LockRetryExhausted(max_attempts, last_err) if last_err else ValueError("max_attempts must be >= 1")
 
 
+def _is_pid_alive(pid: int) -> bool:
+    """Check if a process is still running (Windows)."""
+    try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.OpenProcess(0x100000, False, pid)  # SYNCHRONIZE
+        if handle:
+            kernel32.CloseHandle(handle)
+            return True
+        return False
+    except Exception:
+        return True  # Assume alive if check fails
+
 def get_lock(lock_file: Path) -> Path | None:
-    """Atomic lock via O_EXCL — cross-platform.
+    """Atomic lock via O_EXCL — cross-platform with stale lock recovery.
 
     Uses os.open() with O_CREAT|O_EXCL for atomic lock file creation.
     O_EXCL fails if the file already exists (EEXIST on POSIX, ERROR_FILE_EXISTS on Windows).
+    If the lock is held by a dead process, removes the stale lock and retries.
     Returns the lock file path on success, None on exhaustion.
     """
-    max_attempts = 50
+    max_attempts = 5  # Reduced from 50 — stale locks are handled explicitly
     for attempt in range(max_attempts):
         fd = None
         try:
@@ -93,8 +118,16 @@ def get_lock(lock_file: Path) -> Path | None:
         except FileExistsError:
             if fd is not None:
                 os.close(fd)
+            # Check if the lock holder is still alive
+            try:
+                pid_str = lock_file.read_text().strip()
+                if pid_str.isdigit() and not _is_pid_alive(int(pid_str)):
+                    lock_file.unlink(missing_ok=True)  # Remove stale lock
+                    continue  # Retry immediately
+            except OSError:
+                pass
             if attempt < max_attempts - 1:
-                time.sleep(0.2 * (attempt + 1))
+                time.sleep(0.1 * (attempt + 1))
         except OSError:
             if fd is not None:
                 try:
@@ -102,7 +135,7 @@ def get_lock(lock_file: Path) -> Path | None:
                 except OSError:
                     pass
             if attempt < max_attempts - 1:
-                time.sleep(0.2 * (attempt + 1))
+                time.sleep(0.1 * (attempt + 1))
     return None
 
 
@@ -112,7 +145,7 @@ def release_lock(lock_path: Path | None) -> None:
         try:
             lock_path.unlink()
         except OSError as e:
-            print(f"WARNING: lock release failed: {lock_path}: {e}", file=sys.stderr)
+            _logger.warning(f"WARNING: lock release failed: {lock_path}: {e}")
 
 
 def _append_log(entry: dict, log_path: Path) -> None:
@@ -133,7 +166,7 @@ def main() -> int:
     # Lock file - use temp dir (works on Windows)
     tmp_dir = Path(os.environ.get("TMPDIR", os.environ.get("TEMP", str(Path.home() / "AppData" / "Local" / "Temp"))))
     if not tmp_dir.is_dir() or not os.access(tmp_dir, os.W_OK):
-        print(f"WARNING: TMPDIR not writable: {tmp_dir}", file=sys.stderr)
+        _logger.warning(f"WARNING: TMPDIR not writable: {tmp_dir}")
     lock_file = tmp_dir / "claude-log.lock"
     lock_path = None
     lock_acquired = False
@@ -141,11 +174,11 @@ def main() -> int:
     try:
         lock_path = get_lock(lock_file)
         if lock_path is None:
-            print("WARNING: could not acquire lock — proceeding without synchronization", file=sys.stderr)
+            _logger.warning("WARNING: could not acquire lock — proceeding without synchronization")
         else:
             lock_acquired = True
     except Exception as e:
-        print(f"WARNING: lock error: {e}", file=sys.stderr)
+        _logger.warning(f"WARNING: lock error: {e}")
 
     try:
         # Read stdin
@@ -161,9 +194,9 @@ def main() -> int:
         if transcript_path_str:
             tp = Path(transcript_path_str)
             if _is_windows_reserved_path(tp):
-                print(f"WARNING: transcript_path is a Windows reserved name, skipping diff", file=sys.stderr)
+                _logger.warning(f"WARNING: transcript_path is a Windows reserved name, skipping diff")
             elif not tp.exists():
-                print(f"WARNING: transcript_path does not exist: {tp}", file=sys.stderr)
+                _logger.warning(f"WARNING: transcript_path does not exist: {tp}")
             else:
                 transcript_path = tp
 
@@ -250,12 +283,12 @@ def main() -> int:
         _append_log(entry, log_jsonl)
 
     except json.JSONDecodeError as e:
-        print(f"WARNING: failed to parse stdin as JSON: {e}", file=sys.stderr)
+        _logger.warning(f"WARNING: failed to parse stdin as JSON: {e}")
     except LockRetryExhausted as e:
-        print(f"ERROR: lock retry exhausted after {e.attempts} attempts: {e.last_error}", file=sys.stderr)
+        _logger.error(f"ERROR: lock retry exhausted after {e.attempts} attempts: {e.last_error}")
         return 1
     except Exception as e:
-        print(f"ERROR in log-hook.py: {e}", file=sys.stderr)
+        _logger.error(f"ERROR in log-hook.py: {e}")
         return 1
     finally:
         release_lock(lock_path)

@@ -20,6 +20,9 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 hooks_dir = Path(__file__).resolve().parent
 from typing import Any
 
+import logging as _li
+_logger = _li.getLogger(__name__)
+
 
 class ViolationReporter:
     """
@@ -90,7 +93,7 @@ class ViolationReporter:
                 self.storage_path.mkdir(parents=True, exist_ok=True)
             except (PermissionError, OSError) as e:
                 # Can't create storage dir - fall back to stderr logging
-                print(f"⚠️ Cannot create violation storage: {e}", file=sys.stderr)
+                _logger.warning(f"Cannot create violation storage: {e}")
                 self._violation_tracker = None
                 return None
 
@@ -110,11 +113,11 @@ class ViolationReporter:
             self._violation_tracker = None
         except (PermissionError, OSError) as e:
             # Permission errors accessing storage - fall back gracefully
-            print(f"⚠️ Violation tracking disabled (permission error): {e}", file=sys.stderr)
+            _logger.warning(f"Violation tracking disabled (permission error): {e}")
             self._violation_tracker = None
         except Exception as e:
             # Any other error, just disable tracking
-            print(f"⚠️ Violation tracking disabled: {e}", file=sys.stderr)
+            _logger.warning(f"Violation tracking disabled: {e}")
             self._violation_tracker = None
 
         return self._violation_tracker
@@ -174,19 +177,18 @@ class ViolationReporter:
             if verbose:
                 print(
                     f"🚨 Violation tracked: {violation.violation_id} - {violation_type}",
-                    file=sys.stderr,
-                )
+                    )
             return True
 
         except (PermissionError, OSError) as e:
             # Permission errors - log to stderr instead
             if verbose:
-                print(f"Error reading violations file: {e}", file=sys.stderr)
+                _logger.error(f"Error reading violations file: {e}")
             self._log_violation_to_stderr(file_path, violation_type, verbose)
             return False
         except Exception as e:
             if verbose:
-                print(f"❌ Error tracking violation: {e}", file=sys.stderr)
+                _logger.error(f"Error tracking violation: {e}")
             self._log_violation_to_stderr(file_path, violation_type, verbose)
             return False
 
@@ -195,7 +197,7 @@ class ViolationReporter:
     ) -> None:
         """Fallback logging to stderr when ViolationTracker is unavailable."""
         if verbose:
-            print(f"🚫 {violation_type}: {file_path}", file=sys.stderr)
+            _logger.debug(f"{violation_type}: {file_path}")
 
     def _classify_violation(self, violation_type: str) -> tuple:
         """Classify violation severity and category."""

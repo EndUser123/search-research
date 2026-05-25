@@ -94,14 +94,8 @@ except ImportError as e:
     # Fail fast - claim_classifier is required
     import sys
 
-    print(
-        f"[ERROR] assumption_audit_v2.py: Failed to import required claim_classifier: {e}",
-        file=sys.stderr,
-    )
-    print(
-        "[ERROR] Ensure P:/.claude/hooks/__lib/claim_classifier.py exists and is importable.",
-        file=sys.stderr,
-    )
+    _logger.warning("[ERROR] assumption_audit_v2.py: Failed to import required claim_classifier: %s", e)
+    _logger.warning("[ERROR] Ensure P:/.claude/hooks/__lib/claim_classifier.py exists and is importable.")
     sys.exit(1)
 
 # Configuration
@@ -287,7 +281,7 @@ NON_EQUIVALENCE_STATE_RE = re.compile(
 def debug_log(msg: str):
     """Log debug message if DEBUG enabled."""
     if DEBUG:
-        print(f"[assumption_audit_v2] {msg}", file=sys.stderr)
+        _logger.warning("[assumption_audit_v2] %s", msg)
 
 
 def resolve_session_id(session_id: str) -> str:
@@ -2499,7 +2493,7 @@ def main():
     start_time = time.time()
 
     if not ENABLED:
-        print(json.dumps({"decision": "allow", "reason": "DISABLED"}))
+        print(json.dumps({"decision": "approve"}))
         sys.exit(0)
 
     try:
@@ -2589,7 +2583,7 @@ def main():
     if has_meta_or_self and not has_ext:
         # Pure meta/process/self-report → skip this hook entirely
         debug_log("Meta-conversation/self-referential gate: skipping claim verification")
-        print(json.dumps({"decision": "allow", "reason": "META_CONVERSATION_SKIP"}))
+        print(json.dumps({"decision": "approve"}))
         sys.exit(0)
 
     # === EDIT-RESULT CLAIM GATE ===
@@ -2894,11 +2888,11 @@ if USE_NEW_ENTITY_EXTRACTION:
         _entity_extraction_patched = True
 
         if DEBUG:
-            print("[assumption_audit_v2] Using new entity extraction (v2.5.0)", file=sys.stderr)
+            _logger.warning("[assumption_audit_v2] Using new entity extraction (v2.5.0)")
 
     except ImportError as e:
         if DEBUG:
-            print(f"[assumption_audit_v2] entity_extraction not available: {e}", file=sys.stderr)
+            _logger.warning("[assumption_audit_v2] entity_extraction not available: %s", e)
 
 
 if __name__ == "__main__":

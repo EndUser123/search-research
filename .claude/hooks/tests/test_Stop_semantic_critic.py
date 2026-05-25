@@ -28,6 +28,17 @@ from Stop_semantic_critic import (
 )
 
 
+def _patch_backends(monkeypatch, mod, minimax_json: str, mistral_json: str | None = None):
+    """Patch both backends to return parsed results from JSON strings."""
+    minimax_result = parse_semantic_critic_response(minimax_json)
+    monkeypatch.setattr(mod, "_call_minimax_critic", lambda sp, um, sk, cp: minimax_result)
+    if mistral_json is not None:
+        mistral_result = parse_semantic_critic_response(mistral_json)
+        monkeypatch.setattr(mod, "_call_mistral_critic", lambda sp, um, sk, cp: mistral_result)
+    else:
+        monkeypatch.setattr(mod, "_call_mistral_critic", lambda sp, um, sk, cp: None)
+
+
 # =============================================================================
 # parse_semantic_critic_response — pure parsing unit tests
 # =============================================================================
@@ -340,18 +351,10 @@ class TestSemanticCriticWithMockedBifrost:
         """A shallow diagnostic answer should be vetoed."""
         import Stop_semantic_critic as mod
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
-            return {
-                "ok": True,
-                "model": model,
-                "text": '{"ok": false, "reason": "Answer lacks mechanism trace and alternatives"}',
-                "status": "ok",
-                "error_type": "",
-                "ttfb_ms": 100,
-                "total_ms": 500,
-            }
-
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        _patch_backends(
+            monkeypatch, mod,
+            '{"ok": false, "reason": "Answer lacks mechanism trace and alternatives"}',
+        )
 
         result = call_semantic_critic_via_bifrost(
             original_user_prompt="Why did the connection fail?",
@@ -371,18 +374,10 @@ class TestSemanticCriticWithMockedBifrost:
         """A robust diagnostic answer should pass."""
         import Stop_semantic_critic as mod
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
-            return {
-                "ok": True,
-                "model": model,
-                "text": '{"ok": true, "reason": "Adequate mechanism trace and alternatives present."}',
-                "status": "ok",
-                "error_type": "",
-                "ttfb_ms": 100,
-                "total_ms": 500,
-            }
-
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        _patch_backends(
+            monkeypatch, mod,
+            '{"ok": true, "reason": "Adequate mechanism trace and alternatives present."}',
+        )
 
         result = call_semantic_critic_via_bifrost(
             original_user_prompt="Why did the connection fail?",
@@ -404,18 +399,9 @@ class TestSemanticCriticWithMockedBifrost:
         """Timeout should return None (fail open)."""
         import Stop_semantic_critic as mod
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
-            return {
-                "ok": False,
-                "model": model,
-                "text": "",
-                "status": "timeout",
-                "error_type": "Timeout",
-                "ttfb_ms": 9000,
-                "total_ms": 9000,
-            }
-
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        # Both backends return None (timeout)
+        monkeypatch.setattr(mod, "_call_minimax_critic", lambda sp, um, sk, cp: None)
+        monkeypatch.setattr(mod, "_call_mistral_critic", lambda sp, um, sk, cp: None)
 
         result = call_semantic_critic_via_bifrost(
             original_user_prompt="Why did it fail?",
@@ -429,18 +415,9 @@ class TestSemanticCriticWithMockedBifrost:
         """Non-JSON response should return None (fail open)."""
         import Stop_semantic_critic as mod
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
-            return {
-                "ok": True,
-                "model": model,
-                "text": "The response is quite good.",
-                "status": "ok",
-                "error_type": "",
-                "ttfb_ms": 100,
-                "total_ms": 400,
-            }
-
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        # Both backends return None (parse failure)
+        monkeypatch.setattr(mod, "_call_minimax_critic", lambda sp, um, sk, cp: None)
+        monkeypatch.setattr(mod, "_call_mistral_critic", lambda sp, um, sk, cp: None)
 
         result = call_semantic_critic_via_bifrost(
             original_user_prompt="Explain the bug",
@@ -499,18 +476,7 @@ class TestStopSemanticCriticRun:
         """Ok=true verdict should return None (allow)."""
         import Stop_semantic_critic as mod
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
-            return {
-                "ok": True,
-                "model": model,
-                "text": '{"ok": true, "reason": "Adequate"}',
-                "status": "ok",
-                "error_type": "",
-                "ttfb_ms": 100,
-                "total_ms": 400,
-            }
-
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        _patch_backends(monkeypatch, mod, '{"ok": true, "reason": "Adequate"}')
 
         # Clear per-session cap between tests
         mod._INVOCATION_COUNTS.clear()
@@ -533,18 +499,7 @@ class TestStopSemanticCriticRun:
         """Ok=false verdict should return allow+systemMessage advisory."""
         import Stop_semantic_critic as mod
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
-            return {
-                "ok": True,
-                "model": model,
-                "text": '{"ok": false, "reason": "No mechanism trace provided."}',
-                "status": "ok",
-                "error_type": "",
-                "ttfb_ms": 100,
-                "total_ms": 400,
-            }
-
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        _patch_backends(monkeypatch, mod, '{"ok": false, "reason": "No mechanism trace provided."}')
 
         mod._INVOCATION_COUNTS.clear()
 
@@ -577,19 +532,12 @@ class TestCapEnforcement:
 
         call_count = [0]
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
+        def mock_minimax(sp, um, sk, cp):
             call_count[0] += 1
-            return {
-                "ok": True,
-                "model": model,
-                "text": '{"ok": false, "reason": "shallow"}',
-                "status": "ok",
-                "error_type": "",
-                "ttfb_ms": 100,
-                "total_ms": 400,
-            }
+            return parse_semantic_critic_response('{"ok": false, "reason": "shallow"}')
 
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        monkeypatch.setattr(mod, "_call_minimax_critic", mock_minimax)
+        monkeypatch.setattr(mod, "_call_mistral_critic", lambda sp, um, sk, cp: None)
         mod._INVOCATION_COUNTS.clear()
         original_cap = mod.SEMANTIC_CRITIC_CAP
         mod.SEMANTIC_CRITIC_CAP = 3
@@ -813,18 +761,7 @@ class TestRemediationTemplates:
         """run() should use profile-specific remediation on software_rca failures."""
         import Stop_semantic_critic as mod
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
-            return {
-                "ok": True,
-                "model": model,
-                "text": '{"ok": false, "reason": "Missing mechanism trace."}',
-                "status": "ok",
-                "error_type": "",
-                "ttfb_ms": 100,
-                "total_ms": 400,
-            }
-
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        _patch_backends(monkeypatch, mod, '{"ok": false, "reason": "Missing mechanism trace."}')
         mod._INVOCATION_COUNTS.clear()
 
         result = mod.run(
@@ -905,19 +842,10 @@ class TestAbsenceConclusionCriterion:
         """Answer that says 'X is missing' without checking sources should get ok=false."""
         import Stop_semantic_critic as mod
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
-            # Inject a response that says "no key available" without checking
-            return {
-                "ok": True,
-                "model": model,
-                "text": '{"ok": false, "reason": "Missing evidence check; did not search known config locations or state they were unchecked."}',
-                "status": "ok",
-                "error_type": "",
-                "ttfb_ms": 100,
-                "total_ms": 400,
-            }
-
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        _patch_backends(
+            monkeypatch, mod,
+            '{"ok": false, "reason": "Missing evidence check; did not search known config locations or state they were unchecked."}',
+        )
         mod._INVOCATION_COUNTS.clear()
 
         result = mod.run({
@@ -943,19 +871,7 @@ class TestAbsenceConclusionCriterion:
         """Answer that explicitly says sources were not checked should get ok=true."""
         import Stop_semantic_critic as mod
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
-            # Inject a response that says "I haven't checked, so I don't know"
-            return {
-                "ok": True,
-                "model": model,
-                "text": '{"ok": true, "reason": "Adequate."}',
-                "status": "ok",
-                "error_type": "",
-                "ttfb_ms": 100,
-                "total_ms": 400,
-            }
-
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        _patch_backends(monkeypatch, mod, '{"ok": true, "reason": "Adequate."}')
         mod._INVOCATION_COUNTS.clear()
 
         result = mod.run({
@@ -1029,18 +945,10 @@ class TestSpecAlignmentCriterion:
         """Answer that silently changes requested phase should get ok=false."""
         import Stop_semantic_critic as mod
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
-            return {
-                "ok": True,
-                "model": model,
-                "text": '{"ok": false, "reason": "Used UserPromptSubmit instead of the requested PreToolUse phase without stating the change."}',
-                "status": "ok",
-                "error_type": "",
-                "ttfb_ms": 100,
-                "total_ms": 400,
-            }
-
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        _patch_backends(
+            monkeypatch, mod,
+            '{"ok": false, "reason": "Used UserPromptSubmit instead of the requested PreToolUse phase without stating the change."}',
+        )
         mod._INVOCATION_COUNTS.clear()
 
         result = mod.run({
@@ -1066,18 +974,7 @@ class TestSpecAlignmentCriterion:
         """Answer that explicitly proposes a different approach should get ok=true."""
         import Stop_semantic_critic as mod
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
-            return {
-                "ok": True,
-                "model": model,
-                "text": '{"ok": true, "reason": "Adequate."}',
-                "status": "ok",
-                "error_type": "",
-                "ttfb_ms": 100,
-                "total_ms": 400,
-            }
-
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        _patch_backends(monkeypatch, mod, '{"ok": true, "reason": "Adequate."}')
         mod._INVOCATION_COUNTS.clear()
 
         result = mod.run({
@@ -1119,20 +1016,11 @@ class TestContractPreservingCritic:
         """
         import Stop_semantic_critic as mod
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
-            # Simulate critic detecting symptom-only patch
-            return {
-                "ok": True,
-                "model": model,
-                "text": '{"ok": false, "reason": "Proposed fix patches symptom without '
-                       'articulating the contract it preserves or including edge-case tests."}',
-                "status": "ok",
-                "error_type": "",
-                "ttfb_ms": 100,
-                "total_ms": 400,
-            }
-
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        _patch_backends(
+            monkeypatch, mod,
+            '{"ok": false, "reason": "Proposed fix patches symptom without '
+            'articulating the contract it preserves or including edge-case tests."}',
+        )
         mod._INVOCATION_COUNTS.clear()
 
         result = mod.run({
@@ -1161,20 +1049,11 @@ class TestContractPreservingCritic:
         """
         import Stop_semantic_critic as mod
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
-            # Simulate critic finding contract-preserving answer adequate
-            return {
-                "ok": True,
-                "model": model,
-                "text": '{"ok": true, "reason": "Adequate. Contract stated, falsification '
-                       'conditions identified, edge-case tests included."}',
-                "status": "ok",
-                "error_type": "",
-                "ttfb_ms": 100,
-                "total_ms": 400,
-            }
-
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        _patch_backends(
+            monkeypatch, mod,
+            '{"ok": true, "reason": "Adequate. Contract stated, falsification '
+            'conditions identified, edge-case tests included."}',
+        )
         mod._INVOCATION_COUNTS.clear()
 
         result = mod.run({
@@ -1200,19 +1079,11 @@ class TestContractPreservingCritic:
         """
         import Stop_semantic_critic as mod
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
-            return {
-                "ok": True,
-                "model": model,
-                "text": '{"ok": false, "reason": "Fix states mechanism but does not identify '
-                       'what would make it wrong or include edge-case tests."}',
-                "status": "ok",
-                "error_type": "",
-                "ttfb_ms": 100,
-                "total_ms": 400,
-            }
-
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        _patch_backends(
+            monkeypatch, mod,
+            '{"ok": false, "reason": "Fix states mechanism but does not identify '
+            'what would make it wrong or include edge-case tests."}',
+        )
         mod._INVOCATION_COUNTS.clear()
 
         result = mod.run({
@@ -1445,19 +1316,11 @@ class TestSchemaEvidenceBehavioralCritic:
         """
         import Stop_semantic_critic as mod
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
-            return {
-                "ok": True,
-                "model": model,
-                "text": '{"ok": false, "reason": "Infers failure mechanism from aggregate count '
-                       'without inspecting actual event records, producer code, or consumer schema."}',
-                "status": "ok",
-                "error_type": "",
-                "ttfb_ms": 100,
-                "total_ms": 400,
-            }
-
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        _patch_backends(
+            monkeypatch, mod,
+            '{"ok": false, "reason": "Infers failure mechanism from aggregate count '
+            'without inspecting actual event records, producer code, or consumer schema."}',
+        )
         mod._INVOCATION_COUNTS.clear()
 
         # A "bad" answer: aggregate count claim + mechanism inference from parser/summary only,
@@ -1492,19 +1355,11 @@ class TestSchemaEvidenceBehavioralCritic:
         """Answer that verifies producer, inspects real artifact, and checks consumer alignment should pass."""
         import Stop_semantic_critic as mod
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
-            return {
-                "ok": True,
-                "model": model,
-                "text": '{"ok": true, "reason": "Producer identified, artifact inspected, '
-                       'consumer/parser alignment verified."}',
-                "status": "ok",
-                "error_type": "",
-                "ttfb_ms": 100,
-                "total_ms": 400,
-            }
-
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        _patch_backends(
+            monkeypatch, mod,
+            '{"ok": true, "reason": "Producer identified, artifact inspected, '
+            'consumer/parser alignment verified."}',
+        )
         mod._INVOCATION_COUNTS.clear()
 
         # A "good" answer: explicitly describes producer code, real artifact, consumer alignment
@@ -1530,19 +1385,11 @@ class TestSchemaEvidenceBehavioralCritic:
         """Infers failure mechanism from aggregate count without examining event records."""
         import Stop_semantic_critic as mod
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
-            return {
-                "ok": True,
-                "model": model,
-                "text": '{"ok": false, "reason": "Infers failure mechanism from aggregate count '
-                       'without inspecting actual event records, producer code, or consumer schema."}',
-                "status": "ok",
-                "error_type": "",
-                "ttfb_ms": 100,
-                "total_ms": 400,
-            }
-
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        _patch_backends(
+            monkeypatch, mod,
+            '{"ok": false, "reason": "Infers failure mechanism from aggregate count '
+            'without inspecting actual event records, producer code, or consumer schema."}',
+        )
         mod._INVOCATION_COUNTS.clear()
 
         result = mod.run({
@@ -1573,19 +1420,11 @@ class TestSchemaEvidenceBehavioralCritic:
         """Diagnoses schema mismatch from parser output without verifying producer shape."""
         import Stop_semantic_critic as mod
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
-            return {
-                "ok": True,
-                "model": model,
-                "text": '{"ok": false, "reason": "Diagnoses schema mismatch from parser output '
-                       'without verifying the producer\'s current record shape or checking a real artifact."}',
-                "status": "ok",
-                "error_type": "",
-                "ttfb_ms": 100,
-                "total_ms": 400,
-            }
-
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        _patch_backends(
+            monkeypatch, mod,
+            '{"ok": false, "reason": "Diagnoses schema mismatch from parser output '
+            'without verifying the producer\'s current record shape or checking a real artifact."}',
+        )
         mod._INVOCATION_COUNTS.clear()
 
         result = mod.run({
@@ -1606,19 +1445,11 @@ class TestSchemaEvidenceBehavioralCritic:
         """A diagnostic answer that verifies producer, inspects artifact, and checks consumer alignment should pass."""
         import Stop_semantic_critic as mod
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
-            return {
-                "ok": True,
-                "model": model,
-                "text": '{"ok": true, "reason": "Adequate. Producer identified, artifact inspected, '
-                       'consumer/parser alignment verified."}',
-                "status": "ok",
-                "error_type": "",
-                "ttfb_ms": 100,
-                "total_ms": 400,
-            }
-
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        _patch_backends(
+            monkeypatch, mod,
+            '{"ok": true, "reason": "Adequate. Producer identified, artifact inspected, '
+            'consumer/parser alignment verified."}',
+        )
         mod._INVOCATION_COUNTS.clear()
 
         result = mod.run({
@@ -1643,19 +1474,11 @@ class TestSchemaEvidenceBehavioralCritic:
         """Answer that distinguishes intermediate from terminal failure should pass."""
         import Stop_semantic_critic as mod
 
-        def fake_bifrost_call(model, prompt, correlation_id, compare_id, system=None):
-            return {
-                "ok": True,
-                "model": model,
-                "text": '{"ok": true, "reason": "Adequate. Event-level records examined, '
-                       'intermediate vs terminal failure distinguished."}',
-                "status": "ok",
-                "error_type": "",
-                "ttfb_ms": 100,
-                "total_ms": 400,
-            }
-
-        monkeypatch.setattr(mod, "bifrost_call", fake_bifrost_call)
+        _patch_backends(
+            monkeypatch, mod,
+            '{"ok": true, "reason": "Adequate. Event-level records examined, '
+            'intermediate vs terminal failure distinguished."}',
+        )
         mod._INVOCATION_COUNTS.clear()
 
         result = mod.run({

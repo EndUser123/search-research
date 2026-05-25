@@ -471,7 +471,7 @@ def run_hooks(
                         if unknown_hooks:
                             print(
                                 f"Warning: Hook {name} suppressing unknown hooks: {unknown_hooks}",
-                                file=sys.stdout,
+                                file=sys.stderr,
                             )
                         suppressed_hooks.update(suppress_list)
                 results.append(result)
@@ -493,7 +493,7 @@ def run_hooks(
             import traceback
 
             exc_info = sys.exc_info()
-            print(f"Hook {name} failed: {exc_info}", file=sys.stdout)
+            print(f"Hook {name} failed: {exc_info}", file=sys.stderr)
 
             # Log execution trace (failure path)
             _log_execution_trace(

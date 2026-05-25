@@ -10,7 +10,27 @@ from __future__ import annotations
 
 # --- plugin bootstrap ---
 import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "lib"
+
+def _normalize_stdout(data: dict) -> dict:
+    """Normalize hook output to Claude Code Zod-valid schema."""
+    if data.get('decision') == 'allow':
+        return {'decision': 'approve'}
+    if data.get('decision') == 'block':
+        return {'decision': 'block', 'reason': data.get('reason', '')}
+    if 'allow' in data:
+        if data['allow'] is False:
+            return {'decision': 'block', 'reason': data.get('reason', '')}
+        return {'decision': 'approve'}
+    if 'continue' in data:
+        if data['continue'] is False:
+            return {'decision': 'block', 'reason': data.get('reason', '')}
+        return {'decision': 'approve'}
+    if 'ok' in data:
+        return {'decision': 'approve'}
+    return data
+
+
+_l = _P(__file__).resolve().parent.parent.parent / "__lib"
 if str(_l) not in _s.path: _s.path.insert(0, str(_l))
 from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
@@ -27,6 +47,54 @@ from state import detect_terminal_id, read_state
 from file_patterns import is_structured_file, extract_facts_from_content
 from contamination import detect_contamination
 from provenance import record_edit_provenance
+
+
+
+def _get_exempt_facts(target_file: str) -> set:
+    """Read exempt_facts from the active skill's SKILL.md frontmatter.
+    
+    Returns a set of "entity.field" strings that are exempt from provenance checking.
+    """
+    import re
+    try:
+        skill_dir = None
+        # Walk up from target file to find a SKILL.md
+        fpath = Path(target_file).resolve()
+        for parent in fpath.parents:
+            skill_md = parent / "SKILL.md"
+            if skill_md.exists():
+                skill_dir = parent
+                break
+        if not skill_dir:
+            return set()
+        
+        # Read frontmatter
+        text = skill_dir.joinpath("SKILL.md").read_text(encoding="utf-8")
+        match = re.match(r"^---
+(.*?)
+---", text, re.DOTALL)
+        if not match:
+            return set()
+        
+        # Parse exempt_facts list
+        exempt = set()
+        for line in match.group(1).splitlines():
+            if line.startswith("exempt_facts:"):
+                # Collect list items (may span multiple lines)
+                rest = line[14:].strip()
+                if rest.startswith("["):
+                    rest = rest[1:]
+                if rest.endswith("]"):
+                    rest = rest[:-1]
+                for item in rest.split(","):
+                    item = item.strip().strip("'"").strip()
+                    if item:
+                        exempt.add(item)
+                break
+        return exempt
+    except Exception:
+        return set()
+
 
 
 def main() -> None:
@@ -96,7 +164,12 @@ def main() -> None:
                 sys.exit(2)
 
         # Check for unsupported concrete values (no provenance, not contamination, not placeholder)
+        # Skip exempt entity.field pairs per active skill's exempt_facts frontmatter
+        exempt_facts = _get_exempt_facts(target_file)
         for proposed in proposed_facts:
+            ef = f"{proposed.get("entity")}.{proposed.get("field")}"
+            if ef in exempt_facts:
+                continue
             value = proposed.get("value", "")
             if value.lower() not in ("none", "null", "unknown", "todo", "n/a", ""):
                 has_provenance = any(

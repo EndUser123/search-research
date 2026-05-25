@@ -23,6 +23,7 @@ triggers:
   - /think
 suggest:
   - /genius
+  - /probe
   - /s
 ---
 

@@ -18,7 +18,7 @@ The hooks are imported as Python modules and executed directly
 instead of spawning subprocess.run() for each hook.
 
 Author: CSF NIP
-Version: 2.1.0 (Added tool sequence tracking for empirical claims validation)
+Version: 2.1.1 (Fix auto-commit stdout pollution causing invalid JSON)
 """
 
 import json
@@ -143,7 +143,7 @@ log_file = log_dir / "hook_errors.jsonl"
 def log(msg: str) -> None:
     """Log debug messages to stdout (not stderr - only real errors go to stderr)."""
     if ROUTER_DEBUG:
-        print(f"[PostToolUse_router] {msg}", file=sys.stdout)
+        _logger.warning(f"Router: {msg}")
 
 
 def _resolve_session_from_payload(data: dict[str, object]) -> str:
@@ -258,31 +258,26 @@ def _handle_tracking_error(error: Exception, tool_name: str, command: str) -> No
 
         # Also log to stdout for ROUTER_DEBUG mode
         if ROUTER_DEBUG:
-            print(f"\n{'='*70}", file=sys.stdout)
-            print(f"[{hook_name}] Tool tracking error (non-fatal)", file=sys.stdout)
-            print(f"{'='*70}", file=sys.stdout)
-            print(f"Hook: {hook_name}", file=sys.stdout)
-            print(f"Hook file: {hook_file}", file=sys.stdout)
-            print(f"Tool: {tool_name}", file=sys.stdout)
-            print(f"Command: {command[:100]}{'...' if len(command) > 100 else ''}", file=sys.stdout)
-            print(f"Error: {error_type}: {error_msg}", file=sys.stdout)
-            print(
-                f"Occurrence: #{count} (first seen: {ERROR_CACHE[error_key]['first_seen']})",
-                file=sys.stdout,
-            )
-            print(
-                "\nSuggestion: Run hook directly with --test flag for diagnostics:", file=sys.stdout
-            )
-            print(f"  python {hook_file} --test", file=sys.stdout)
-            print("\nTraceback (last 50 lines):", file=sys.stdout)
-            print(f"{'-'*70}", file=sys.stdout)
+            _logger.warning(f"\n{'='*70}")
+            _logger.warning(f"Tool tracking error in {hook_name}")
+            _logger.warning("="*70)
+            _logger.warning(f"Hook: {hook_name}")
+            _logger.warning(f"Hook file: {hook_file}")
+            _logger.warning(f"Tool: {tool_name}")
+            _logger.warning(f"Command: {command[:100]}...")
+            _logger.warning(f"Error: {error_type}: {error_msg}")
+            _logger.warning(f"Occurrence: #{count} (first seen: {ERROR_CACHE[error_key]['first_seen']})")
+            _logger.warning("Run hook directly with --test flag for diagnostics")
+            _logger.warning(f"  python {hook_file} --test")
+            _logger.warning("\nTraceback (last 50 lines):")
+            _logger.warning("-"*70)
 
             # Get last 50 lines of traceback
             tb_lines = traceback.format_exc().splitlines()
             for line in tb_lines[-50:]:
-                print(line, file=sys.stdout)
+                _logger.warning(line)
 
-            print(f"{'='*70}\n", file=sys.stdout)
+            _logger.warning(f"{'='*70}\n")
     else:
         log(f"Tool tracking error (occurrence #{count}, suppressed): {error}")
 
@@ -425,11 +420,14 @@ def _run_auto_commit(data: dict) -> None:
             import io
 
             old_stdin = sys.stdin
+            old_stdout = sys.stdout
             sys.stdin = io.StringIO(json.dumps(data))
+            sys.stdout = io.StringIO()  # Suppress auto-commit output from polluting JSON response
             try:
                 _auto_commit_module.main()
             finally:
                 sys.stdin = old_stdin
+                sys.stdout = old_stdout
     except Exception:
         pass  # Side-effect hooks are best-effort
 
@@ -459,7 +457,7 @@ def main() -> None:
     """
     input_text = sys.stdin.read().strip()
     if not input_text:
-        print(json.dumps({"ok": True}))
+        print(json.dumps({"decision": "approve"}))
         sys.exit(0)
 
     # Parse input data - handle malformed JSON gracefully
@@ -484,11 +482,11 @@ def main() -> None:
                     )
             except OSError:
                 pass
-        print(json.dumps({"ok": True}))
+        print(json.dumps({"decision": "approve"}))
         sys.exit(0)
 
     if not isinstance(data, dict):
-        print(json.dumps({"ok": True}))
+        print(json.dumps({"decision": "approve"}))
         sys.exit(0)
 
     # Normalize input field names
@@ -502,7 +500,7 @@ def main() -> None:
 
     tool_name_raw = data.get("tool_name")
     if not isinstance(tool_name_raw, str) or not tool_name_raw.strip():
-        print(json.dumps({"ok": True}))
+        print(json.dumps({"decision": "approve"}))
         sys.exit(0)
 
     tool_name_raw = tool_name_raw.strip()
@@ -669,7 +667,7 @@ def main() -> None:
         print(json.dumps(result))
     else:
         # Return ok:true for newer Claude Code schema validation
-        print(json.dumps({"ok": True}))
+        print(json.dumps({"decision": "approve"}))
 
 
 if __name__ == "__main__":

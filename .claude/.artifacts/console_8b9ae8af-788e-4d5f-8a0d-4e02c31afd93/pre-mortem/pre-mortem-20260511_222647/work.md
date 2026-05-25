@@ -1,1 +1,0 @@
-wiki SKILL.md v1.3.0 — YouTube URL auto-detection + yt-is pipeline with Gemini CLI failover

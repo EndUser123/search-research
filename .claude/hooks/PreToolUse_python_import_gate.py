@@ -164,23 +164,23 @@ def is_critical_missing_import(name: str) -> bool:
 def main() -> int:
     """Main entry point."""
     if not ENABLED:
-        print(json.dumps({"continue": True}))
+        print(json.dumps({"decision": "approve"}))
         return 0
 
     try:
         input_text = sys.stdin.read().strip()
         if not input_text:
-            print(json.dumps({"continue": True}))
+            print(json.dumps({"decision": "approve"}))
             return 0
 
         data = json.loads(input_text)
     except json.JSONDecodeError:
-        print(json.dumps({"continue": True}))
+        print(json.dumps({"decision": "approve"}))
         return 0
 
     tool_name = data.get("tool_name", "")
     if tool_name not in ("Write", "Edit"):
-        print(json.dumps({"continue": True}))
+        print(json.dumps({"decision": "approve"}))
         return 0
 
     tool_input = data.get("tool_input", {})
@@ -188,12 +188,12 @@ def main() -> int:
 
     # Skip non-Python files
     if not file_path.endswith(".py"):
-        print(json.dumps({"continue": True}))
+        print(json.dumps({"decision": "approve"}))
         return 0
 
     # Skip non-hook directories
     if not is_hook_directory(file_path):
-        print(json.dumps({"continue": True}))
+        print(json.dumps({"decision": "approve"}))
         return 0
 
     # Get content to validate
@@ -203,7 +203,7 @@ def main() -> int:
         content = tool_input.get("content", "")
 
     if not content:
-        print(json.dumps({"continue": True}))
+        print(json.dumps({"decision": "approve"}))
         return 0
 
     # Validate syntax
@@ -246,12 +246,12 @@ def main() -> int:
                 return 0
 
         # All checks passed
-        print(json.dumps({"continue": True}))
+        print(json.dumps({"decision": "approve"}))
         return 0
 
     except Exception:
         # Fail open on unexpected errors
-        print(json.dumps({"continue": True}))
+        print(json.dumps({"decision": "approve"}))
         return 0
 
 

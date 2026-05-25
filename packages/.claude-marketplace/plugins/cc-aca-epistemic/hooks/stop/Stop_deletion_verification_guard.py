@@ -45,7 +45,27 @@ from __future__ import annotations
 
 # --- plugin bootstrap ---
 import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "lib"
+
+def _normalize_stdout(data: dict) -> dict:
+    """Normalize hook output to Claude Code Zod-valid schema."""
+    if data.get('decision') == 'allow':
+        return {'decision': 'approve'}
+    if data.get('decision') == 'block':
+        return {'decision': 'block', 'reason': data.get('reason', '')}
+    if 'allow' in data:
+        if data['allow'] is False:
+            return {'decision': 'block', 'reason': data.get('reason', '')}
+        return {'decision': 'approve'}
+    if 'continue' in data:
+        if data['continue'] is False:
+            return {'decision': 'block', 'reason': data.get('reason', '')}
+        return {'decision': 'approve'}
+    if 'ok' in data:
+        return {'decision': 'approve'}
+    return data
+
+
+_l = _P(__file__).resolve().parent.parent.parent / "__lib"
 if str(_l) not in _s.path: _s.path.insert(0, str(_l))
 from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
@@ -161,7 +181,7 @@ OBVIOUS_ALLOWLIST = re.compile(
     r"|\bdeleted\s+following\s+(?:transcription|ingestion|processing|conversion)\b"
     # Content-change contexts — "removed the X" where X is NOT a file/directory
     # These are config/entry/line changes, not filesystem deletions
-    r"|\bremoved?\s+(?:the\s+)?(?:duplicate|entry|alias|line|item|value|setting|parameter|option|argument|flag)\b"
+    r"|\bremoved?\s+(?:the\s+)?(?:duplicate|entry|alias|line|item|value|setting|parameter|option|argument|flag|reference|mention|usage|call|import|dependency|statement|variable|declaration|definition|occurrence|instance|clause|expression|assertion|invocation)\b"
     r"|\bremoved?\s+.*(?:from\s+[\w-]+|in\s+[\w-]+)\b"
     # Code-refactoring contexts — "removed unused/dead/obsolete code" (not file deletion)
     # Requires explicit code-related term to avoid false positives
@@ -181,7 +201,13 @@ OBVIOUS_ALLOWLIST = re.compile(
     #   "Removed marker from Stop.py" → allowlist (no extension, not a path)
     r"|\bremoved?\s+(?:the\s+)?(?:marker|condition|check|guard|rule|flag|qualifier|constraint)\b"
     r"|\bremoved?\s+(?:the\s+)?(?:section|comment|docstring|block|stanza)\b"
-    r"|\bremoved?\s+.*(?:from\s+the\s+(?:markers?|list|pattern|regex|constraint|gate|hook|section))\b",
+    r"|\bremoved?\s+.*(?:from\s+the\s+(?:markers?|list|pattern|regex|constraint|gate|hook|section))\b"
+    # Git-index operations (not filesystem deletions)
+    # These describe git tracking/index/staging changes, not file deletion
+    r"|\b(?:deleted|removed)\s+from\s+(?:git\s+)?(?:tracking|index|staging)\b"
+    r"|\bremoved?\s+.*from\s+(?:git\s+)?(?:tracking|index|staging)\b"
+    r"|\bun(?:tracked|staged)\b"
+    r"|\bgit\s+rm\s",
     re.IGNORECASE,
 )
 
@@ -554,7 +580,7 @@ def main() -> None:
 
     result = check(data)
     if result:
-        print(json.dumps(result))
+        print(json.dumps(_normalize_stdout(result)))
         if result.get("decision") == "block":
             sys.exit(2)
 

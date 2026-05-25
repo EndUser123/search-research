@@ -1,14 +1,15 @@
-# Solo-Dev Context Configuration
+# Solo Director + SOTA AI-Coder Context Configuration
 # This file defines project context that filters enterprise-style findings
 # Skills (/q, /r, /s) use this to avoid generating findings that don't apply
 
-version: "1.0"
+version: "1.1"
 
 context:
-  development_model: "director"  # Director Model: User directs, AI implements
+  development_model: "director_ai_coder"  # Director Model: User directs, SOTA AI-coder implements
+  reliability_target: "99%"  # Production-grade without enterprise bloat
   team_size: 1
   deployment_target: "local"
-  quality_priority: "thoroughness_over_speed"
+  quality_priority: "first_delivery_correctness"
 
 constraints:
   # Patterns to NEVER suggest in this codebase
@@ -37,7 +38,7 @@ constraints:
 filtering_examples:
   - original: "Add team approval gates for production deployment"
     filtered: true
-    reason: "Team approval gates not applicable for solo developer"
+    reason: "Team approval gates not applicable for solo director + AI-coder"
   - original: "Implement real-time metrics dashboard for monitoring"
     filtered: true
     reason: "Real-time monitoring dashboards are enterprise anti-patterns"
@@ -46,4 +47,4 @@ filtering_examples:
     reason: "Self-healing systems require autonomous execution (prohibited)"
   - original: "Implement comprehensive test coverage"
     filtered: false
-    reason: "Quality-first testing is appropriate for solo dev"
+    reason: "Quality-first testing is appropriate for solo director + AI-coder"

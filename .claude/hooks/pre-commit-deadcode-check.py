@@ -14,6 +14,17 @@ from __future__ import annotations
 import subprocess
 import sys
 from pathlib import Path
+import logging as _li
+
+_HOOKS_DIR = Path(__file__).resolve().parent
+_LOG_DIR = _HOOKS_DIR / "logs" / "diagnostics"
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_logger = _li.getLogger(__name__)
+_handler = _li.FileHandler(_LOG_DIR / "hook_stderr.log", encoding="utf-8")
+_handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
+
 
 
 def check_dead_code_with_grep(root_path: Path) -> list[tuple[str, int, str]]:
@@ -149,8 +160,8 @@ def main() -> int:
             all_issues.extend(file_issues)
 
     if all_issues:
-        print("❌ Dead code detected - commit blocked", file=sys.stderr)
-        print("\nFound potential dead code issues:\n", file=sys.stderr)
+        _logger.info("❌ Dead code detected - commit blocked")
+        _logger.info("\nFound potential dead code issues:\n")
 
         # Group by file
         by_file: dict[str, list[tuple[int, str]]] = {}
@@ -162,13 +173,13 @@ def main() -> int:
         # Print issues grouped by file
         for file_path, issues in sorted(by_file.items()):
             rel_path = Path(file_path).relative_to(repo_root) if file_path.startswith(str(repo_root)) else file_path
-            print(f"  {rel_path}:", file=sys.stderr)
+            _logger.info(f"  {rel_path}:")
             for line_number, pattern in sorted(set(issues)):
-                print(f"    Line {line_number}: {pattern}", file=sys.stderr)
+                _logger.info(f"    Line {line_number}: {pattern}")
 
-        print("\nTo fix:", file=sys.stderr)
-        print("  1. Remove unused imports or variables", file=sys.stderr)
-        print("  2. Or verify the code is actually used and update the hook", file=sys.stderr)
+        _logger.info("\nTo fix:")
+        _logger.info("  1. Remove unused imports or variables")
+        _logger.info("  2. Or verify the code is actually used and update the hook")
         print("\nTo bypass (not recommended): git commit --no-verify", file=sys.stderr)
         return 1
 

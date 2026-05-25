@@ -1454,3 +1454,29 @@ Source: YouTube — "[CLAUDE CODE] Senior Dev AI Workflow"
 SHA256: 9ef70aa643de3c99e60585996f9ad6703dc1e9f212690f066790403d6056a3bf
 Content: Parallel worktrees + PR review + Karpathy KB. 5 pillars with self-healing layer. Claude Code hooks: SessionStart/PreCompact/SessionEnd.
 Page: wiki/sources/spec-t1bWyk9qVa4.md
+## [2026-05-24] ingest | YouTube Ingestion Throughput Bottleneck Analysis
+Source: C:\Users\brsth\Downloads\YouTube Ingestion Throughput Bottleneck Analysis.md
+SHA256: 01016b208ba9cac989bfea5ca7c4da5515af3bc05c08e2abb51a478ae0b0e484
+Content: Root cause analysis of yt-is NotebookLM pipeline bottleneck — warm-worker strategy counterproductive, profile contention on Windows, non-linear vector re-indexing, metric aggregation artifacts, ephemeral worker recommendation.
+Page: wiki/concepts/youtube-ingestion-throughput-bottleneck.md
+
+
+## [2026-05-24] ingest | Popular Claude Code Plugins and Skills
+Source: C:/Users/brsth/Downloads/what are very popular plugins or skills or repos f.md
+SHA256: 6377631270fe8b022d3ab132be293fc1efac77182ed863961095201afa44c26e
+Content: Popular Mermaid and diagram plugins/skills for Claude Code -- Mermaid skill (johnlarkin1), Mermaid Tools (daymade), veelenga/claude-mermaid MCP, awesome lists, 6 theme presets, making diagrams attractive guide.
+Page: wiki/concepts/popular-plugins-skills-repos.md
+
+## [2026-05-24] ingest | Frustrating Experience RCA
+Source: C:\Users\brsth\Downloads\This is an rca about a frustrating experience with.md
+SHA256: b8f5b82fdf0f6fb8008247020662aa1a4d9a84c80890edf037d49633bafa35c8
+Content: RCA for 11-minute session where LLM fixed intra-section padding without detecting root cause (3-space cross-section indent offset in cc-bifrost.ps1). Root cause: missing reasoning-depth enforcement gate in Stop.py IN_PROCESS_GATES; response_too_short early-return at line 2705 allows shallow micro-turns.
+Page: wiki/concepts/frustrating-experience-rca.md
+
+## [2026-05-24] ingest | LLM Inference Providers List
+Source: C:\Users\brsth\Downloads\Here's a list of inference providers for LLMs.  Sh.md
+SHA256: ba821f33ff191949718f142443fff67eb13033e20087adf394b9f3479696aa4b
+Content: Curated list of 19 LLM inference providers with model IDs, SDK docs, cookbooks, and implementation repos. Plus 27 essential SDKs for local knowledge store.
+Page: wiki/concepts/llm-inference-providers-list.md
+
+nSource: chain_20260524_115434.mdn

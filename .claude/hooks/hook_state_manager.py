@@ -19,6 +19,17 @@ import re
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
+import logging as _li
+from pathlib import Path
+
+_HOOKS_DIR = Path(__file__).resolve().parent
+_LOG_DIR = _HOOKS_DIR / "logs" / "diagnostics"
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_logger = _li.getLogger(__name__)
+_handler = _li.FileHandler(_LOG_DIR / "hook_stderr.log", encoding="utf-8")
+_handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -473,4 +484,4 @@ if __name__ == "__main__":
     assert escalation_level(tid, sid, "lazy_fix", (1, 2, 3)) == "block"
     clear_state(tid, "lazy_fix_count.json")
 
-    print("All hook_state_manager.py self-tests passed.", file=sys.stderr)
+    _logger.info("All hook_state_manager.py self-tests passed.")

@@ -38,6 +38,18 @@ from pathlib import Path
 # Import auto-logging decorator
 from __lib.hook_base import hook_main
 
+import logging as _li
+_HOOKS_DIR = Path(__file__).resolve().parent
+_LOG_DIR = _HOOKS_DIR / "logs" / "diagnostics"
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_logger = _li.getLogger(__name__)
+_handler = _li.FileHandler(_LOG_DIR / "hook_stderr.log", encoding="utf-8")
+_handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
+
+
+
 def _is_enabled() -> bool:
     """Check if the hook is enabled (runtime evaluation, not module load time)."""
     return os.environ.get("PYTEST_TIMEOUT_GUARD_ENABLED", "true").lower() in ("1", "true")
@@ -157,11 +169,9 @@ def run(data: dict) -> dict:
     message = _generate_block_message(mode)
 
     if mode == "block":
-        print(message, file=sys.stderr)
-        return {"continue": False, "reason": "Missing --timeout flag"}
+            _logger.debug(message,)        return {"continue": False, "reason": "Missing --timeout flag"}
     else:  # warn mode
-        print(message, file=sys.stderr)
-        return {"continue": True, "reason": "Warning issued (advisory mode)"}
+            _logger.debug(message,)        return {"continue": True, "reason": "Warning issued (advisory mode)"}
 
 
 if __name__ == "__main__":

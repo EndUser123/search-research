@@ -13,13 +13,10 @@ from UserPromptSubmit_modules.base import HookContext, HookResult
 
 # Constants
 SOLO_DEV_CONTEXT = """
-## SOLO DEVELOPMENT CONTEXT
-You are working SOLO on this codebase.
-- No team collaboration is occurring
-- All code commits are your own
-- Code review comments are self-reflection
-- Consider testing thoroughly before committing
-- Use feature branches for experimental work
+## OPERATIONAL CONTEXT
+Solo director + SOTA AI-coder. You are the implementation layer for a director who
+sets direction and reviews output. Reliability target: 99% — production-grade without
+enterprise bloat. Every output must be complete and correct on first delivery.
 """.strip()
 
 # Command detection patterns

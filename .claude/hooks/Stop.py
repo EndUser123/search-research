@@ -76,6 +76,14 @@ import time
 from pathlib import Path
 
 HOOKS_DIR = Path(__file__).resolve().parent
+
+# ACA plugin paths — resolve Stop hooks directly from plugin directories
+# instead of via wrapper stubs in HOOKS_DIR. Inserted FIRST so plugin
+# versions take precedence over local wrapper stubs.
+_EPISTEMIC_STOP = Path("P:/packages/cc-aca-epistemic/hooks/stop")
+if _EPISTEMIC_STOP.exists() and str(_EPISTEMIC_STOP) not in sys.path:
+    sys.path.insert(0, str(_EPISTEMIC_STOP))
+
 sys.path.insert(0, str(HOOKS_DIR))
 ANTI_SYCOPHANCY_LOG = HOOKS_DIR / "logs" / "anti_sycophancy_violations.jsonl"
 SKILL_FIRST_LOG = HOOKS_DIR / "logs" / "skill_first_enforcement.jsonl"
@@ -316,7 +324,7 @@ def _run_safety_gate(data: dict) -> dict | None:
         return None
     except Exception as e:
         # Safety gate fails OPEN
-        print(f"[Stop] safety_gate error: {e}", file=sys.stderr)
+        _logger.warning(f"safety_gate error: {e}")
         return None
 
 
@@ -704,7 +712,7 @@ def _run_epistemic_contract(data: dict) -> dict | None:
         # allow — nothing to do
         return None
     except Exception as e:
-        print(f"[Stop] epistemic_contract error: {e}", file=sys.stderr)
+        _logger.warning(f"epistemic_contract error: {e}")
         return None
 
 
@@ -742,7 +750,7 @@ def _run_behavior_audit(data: dict) -> dict | None:
 
         return None
     except Exception as e:
-        print(f"[Stop] behavior_audit telemetry error: {e}", file=sys.stderr)
+        _logger.warning(f"behavior_audit telemetry error: {e}")
         return None
 
 
@@ -883,7 +891,7 @@ def _run_cross_validator(data: dict) -> dict | None:
             }
         return None
     except Exception as e:
-        print(f"[Stop] cross_validator error: {e}", file=sys.stderr)
+        _logger.warning(f"cross_validator error: {e}")
         return None
 
 
@@ -921,7 +929,7 @@ def _run_unverified_stance(data: dict) -> dict | None:
         # telemetry fires (otherwise log_gate_event skips this gate).
         return {"decision": "allow", "allow": True}
     except Exception as e:
-        print(f"[Stop] unverified_stance error: {e}", file=sys.stderr)
+        _logger.warning(f"unverified_stance error: {e}")
         return None
 
 
@@ -948,7 +956,7 @@ def _run_correction_acknowledgment(data: dict) -> dict | None:
             }
         return None
     except Exception as e:
-        print(f"[Stop] correction_acknowledgment error: {e}", file=sys.stderr)
+        _logger.warning(f"correction_acknowledgment error: {e}")
         return None
 
 
@@ -981,7 +989,7 @@ def _run_cited_content_guard(data: dict) -> dict | None:
             return {"systemMessage": warning}
         return None
     except Exception as e:
-        print(f"[Stop] cited_content_guard error: {e}", file=sys.stderr)
+        _logger.warning(f"cited_content_guard error: {e}")
         return None
 
 
@@ -1011,7 +1019,7 @@ def _run_dependency_chain_guard(data: dict) -> dict | None:
             }
         )
     except Exception as e:
-        print(f"[Stop] dependency_chain_guard error: {e}", file=sys.stderr)
+        _logger.warning(f"dependency_chain_guard error: {e}")
         return None
 
 
@@ -1051,7 +1059,7 @@ def _run_comparative_claim_guard(data: dict) -> dict | None:
             }
         return None
     except Exception as e:
-        print(f"[Stop] comparative_claim_guard error: {e}", file=sys.stderr)
+        _logger.warning(f"comparative_claim_guard error: {e}")
         return None
 
 
@@ -1077,7 +1085,7 @@ def _run_narrative_intent(data: dict) -> dict | None:
         return None
     except Exception as e:
         # Narrative detector fails OPEN
-        print(f"[Stop] narrative_intent error: {e}", file=sys.stderr)
+        _logger.warning(f"narrative_intent error: {e}")
         return None
 
 
@@ -1253,7 +1261,7 @@ def _run_anti_sycophancy_quality(data: dict) -> dict | None:
             return {"systemMessage": "\n\n".join(messages)}
         return None
     except Exception as e:
-        print(f"[Stop] anti_sycophancy_quality error: {e}", file=sys.stderr)
+        _logger.warning(f"anti_sycophancy_quality error: {e}")
         return None
 
 
@@ -1283,7 +1291,7 @@ def _run_command_execution_validator(data: dict) -> dict | None:
             }
         return None
     except Exception as e:
-        print(f"[Stop] command_execution_validator error: {e}", file=sys.stderr)
+        _logger.warning(f"command_execution_validator error: {e}")
         return None
 
 
@@ -1316,7 +1324,7 @@ def _run_behavior_gates_agreement(data: dict) -> dict | None:
         return None
     except Exception as e:
         # Fails OPEN
-        print(f"[Stop] behavior_gates_agreement error: {e}", file=sys.stderr)
+        _logger.warning(f"behavior_gates_agreement error: {e}")
         return None
 
 
@@ -1348,7 +1356,7 @@ def _run_behavior_gates_guidance(data: dict) -> dict | None:
             }
         return None
     except Exception as e:
-        print(f"[Stop] behavior_gates_guidance error: {e}", file=sys.stderr)
+        _logger.warning(f"behavior_gates_guidance error: {e}")
         return None
 
 
@@ -1380,7 +1388,7 @@ def _run_behavior_gates_blacklist(data: dict) -> dict | None:
             }
         return None
     except Exception as e:
-        print(f"[Stop] behavior_gates_blacklist error: {e}", file=sys.stderr)
+        _logger.warning(f"behavior_gates_blacklist error: {e}")
         return None
 
 
@@ -1403,7 +1411,7 @@ def _run_advisory(data: dict) -> dict | None:
             return {"systemMessage": "".join(messages)}
         return None
     except Exception as e:
-        print(f"[Stop] advisory error: {e}", file=sys.stderr)
+        _logger.warning(f"advisory error: {e}")
         return None
 
 
@@ -1770,7 +1778,7 @@ def _is_execution_skill(skill_name: str) -> bool:
 
     except ModuleNotFoundError as e:
         # skill-guard package not installed — log as non-blocking, fail open
-        print(f"[Stop] skill_guard import skipped (non-blocking): {e}", file=sys.stderr)
+        _logger.warning(f"skill_guard import skipped (non-blocking): {e}")
         return False
     except Exception:
         # Other errors — fail open to avoid cascading blocks
@@ -1787,7 +1795,7 @@ def _run_reflect_integration(data: dict) -> dict | None:
 
         return Stop_reflect_integration.run_reflect_hook(data)
     except Exception as e:
-        print(f"[Stop] reflect_integration error: {e}", file=sys.stderr)
+        _logger.warning(f"reflect_integration error: {e}")
         return None
 
 
@@ -1845,7 +1853,7 @@ def _run_recommendation_gate(data: dict) -> dict | None:
             return None
         return Stop_recommendation_gate.check_recommendation(response, data)
     except Exception as e:
-        print(f"[Stop] recommendation_gate error: {e}", file=sys.stderr)
+        _logger.warning(f"recommendation_gate error: {e}")
         return None
 
 
@@ -1908,7 +1916,7 @@ def _run_reasoning_quality_gate(data: dict) -> dict | None:
         return None
     except Exception as e:
         # Fail open - don't block on reasoning quality gate errors
-        print(f"[Stop] reasoning_quality_gate error: {e}", file=sys.stderr)
+        _logger.warning(f"reasoning_quality_gate error: {e}")
         return None
 
 
@@ -1969,7 +1977,7 @@ def _run_reasoning_enhanced(data: dict) -> dict | None:
         return None
     except Exception as e:
         # Fail open - don't block on enhanced reasoning errors
-        print(f"[Stop] reasoning_enhanced error: {e}", file=sys.stderr)
+        _logger.warning(f"reasoning_enhanced error: {e}")
         return None
 
 
@@ -2017,7 +2025,7 @@ def _run_verification_enforcement(data: dict) -> dict | None:
             from skill_guard.breadcrumb.tracker import get_active_breadcrumb_trails
         except ModuleNotFoundError as e:
             # skill-guard not installed — log as non-blocking, skip silently
-            print(f"[Stop] skill_guard import skipped (non-blocking): {e}", file=sys.stderr)
+            _logger.warning(f"skill_guard import skipped (non-blocking): {e}")
             return None
 
         # Get all active breadcrumb trails for this terminal
@@ -2157,13 +2165,9 @@ def _run_deletion_verification_guard(data: dict) -> dict | None:
 
 def _run_git_diff_reground(data: dict) -> dict | None:
     """Git-diff regrounding - warns when investigation files have changed from git HEAD."""
-    try:
-        from Stop_git_diff_reground import check_git_diff_reground
-        return check_git_diff_reground(data)
-    except Exception as e:
-        # Fails open
-        print(f"[Stop] git_diff_reground error: {e}", file=sys.stderr)
-        return None
+    # Stop_git_diff_reground.py was deleted; module removed.
+    # Stub kept to avoid breaking callers; returns None (no-op).
+    return None
 
 
 def _run_acknowledgment_loop(data: dict) -> dict | None:
@@ -2631,7 +2635,7 @@ def _run_task_contract_fit_gate_v1(data: dict) -> dict | None:
             "blocking_hook": "Stop.py:task_contract_fit",
         }
     except Exception as e:
-        print(f"[Stop] task_contract_fit error: {e}", file=sys.stderr)
+        _logger.warning(f"task_contract_fit error: {e}")
         return None
 
 
@@ -2771,7 +2775,7 @@ def _run_judge_evaluation(data: dict) -> dict | None:
             }
         return None
     except Exception as e:
-        print(f"[Stop] external_judge error: {e}", file=sys.stderr)
+        _logger.warning(f"external_judge error: {e}")
         return None
 
 
@@ -3025,7 +3029,7 @@ def _run_task_contract_fit_gate_v2(data: dict) -> dict | None:
         return None
 
     except Exception as e:
-        print(f"[Stop] task_contract_fit_v2 error: {e}", file=sys.stderr)
+        _logger.warning(f"task_contract_fit_v2 error: {e}")
         return None
 
 
@@ -3841,13 +3845,7 @@ IN_PROCESS_GATES = [
     ("unverified_stance", _run_unverified_stance),
     ("dependency_chain_guard", _run_dependency_chain_guard),
     ("comparative_claim_guard", _run_comparative_claim_guard),
-    ("behavior_gates_agreement", _run_behavior_gates_agreement),
-    ("behavior_gates_guidance", _run_behavior_gates_guidance),
-    ("behavior_gates_blacklist", _run_behavior_gates_blacklist),
-    ("narrative_intent", _run_narrative_intent),
-    ("anti_sycophancy_quality", _run_anti_sycophancy_quality),
     ("command_execution_validator", _run_command_execution_validator),
-    ("advisory", _run_advisory),
     ("reflect_integration", _run_reflect_integration),
     ("reasoning_quality_gate", _run_reasoning_quality_gate),
     ("lazy_workaround_gate", _run_lazy_workaround_gate),
@@ -3876,10 +3874,8 @@ IN_PROCESS_GATES = [
     ("cks_correction_anchor", _run_cks_correction_anchor),
     ("phase0_depends_on_skills", _run_phase0_depends_on_skills),
     ("tool_sanity", _run_tool_sanity_check),
-    ("acknowledgment_loop", _run_acknowledgment_loop),
     ("repetition_blocker", _run_repetition_blocker),
     ("fake_done", _run_fake_done_detector),
-    ("meta_analysis_trap", _run_meta_analysis_trap),
     ("subagent_opportunity", _run_subagent_opportunity),  # Advisory for delegation opportunities
 ]
 
@@ -3909,8 +3905,8 @@ def run_side_effect(hook_name: str, input_data: str) -> None:
             except json.JSONDecodeError:
                 return  # Can't parse input — skip
 
-        # Auto-commit needs more time for multi-repo git operations
-        timeout = 30.0 if "auto_commit" in hook_name else 5.0
+        # Auto-commit and CKS decision capture need more time
+        timeout = 30.0 if ("auto_commit" in hook_name or "cks_decision" in hook_name) else 5.0
         creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
         result = subprocess.run(
             [sys.executable, str(hook_path)],
@@ -3922,9 +3918,9 @@ def run_side_effect(hook_name: str, input_data: str) -> None:
         if result.returncode != 0:
             stderr = result.stderr.decode(errors="replace").strip()
             if stderr:
-                print(f"[Stop side-effect error] {hook_name}: {stderr}", file=sys.stderr)
+                _logger.warning(f"side-effect error {hook_name}: {stderr}")
     except Exception as e:
-        print(f"[Stop side-effect exception] {hook_name}: {e}", file=sys.stderr)
+        _logger.warning(f"side-effect exception {hook_name}: {e}")
 
 
 CRITICAL_STOP_GATES = frozenset((
@@ -3982,7 +3978,7 @@ def _run_gate_safe(name: str, gate_fn, data: dict) -> dict | None:
     try:
         return gate_fn(data)
     except Exception as e:
-        print(f"[Stop] gate {name} crashed: {e}", file=sys.stderr)
+        _logger.warning(f"gate {name} crashed: {e}")
         _critical_gate_failed_this_turn = True
         if name in CRITICAL_STOP_GATES:
             # Fail closed: surface the failure so the model is aware

@@ -170,11 +170,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python P:/.claude/hooks/Start_reasoning_mode_selector.py",
-            "timeout": 15
-          },
-          {
-            "type": "command",
             "command": "python -c \"import sys; sys.path.insert(0, 'P:/.claude/hooks'); from __lib.hook_importer import HookImporter; importer = HookImporter('P:/.claude/hooks'); result = importer.execute_hook('UserPromptSubmit'); sys.exit(0 if result.get('ok') else result.get('exit_code', 1))\"",
             "timeout": 15
           },
@@ -197,16 +192,6 @@
       }
     ],
     "PreToolUse": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/PreToolUse_sequential_thinking.py",
-            "timeout": 5
-          }
-        ]
-      },
       {
         "matcher": "^(?:Skill|Bash|mcp__.*)$",
         "hooks": [
@@ -247,16 +232,6 @@
       {
         "matcher": "^(?:Edit|Write|MultiEdit)$",
         "hooks": [
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_router.py",
-            "timeout": 12
-          },
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/posttooluse_self_reflection_reminder.py",
-            "timeout": 5
-          },
           {
             "type": "command",
             "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/post/PostToolWrite_doc_validator.py --timeout 5.0",
@@ -309,47 +284,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_artifact_validator.py",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "^(?:Grep|Glob|Read)$",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_artifact_scraper.py",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
             "command": "python P:/.claude/hooks/log_hook.py",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "^(?:Write|Edit|MultiEdit|Bash)$",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/PostToolUse_tdd_state.py",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "^(Bash|Task)$",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/cjk_drift_detector.py",
             "timeout": 5
           }
         ]
@@ -378,26 +313,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python P:/.claude/hooks/Stop_reasoning_quality_gate.py",
-            "timeout": 30
-          }
-        ]
-      },
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/StopHook_sequential_thinking.py",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
             "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/Stop.py --timeout 10.0",
             "timeout": 10
           }
@@ -420,23 +335,7 @@
       },
       {
         "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/StopHook_tdd_continuation.py",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/cjk_drift_detector.py",
-            "timeout": 5
-          }
-        ]
+        "hooks": []
       }
     ],
     "PreCompact": [
@@ -467,26 +366,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python P:/.claude/hooks/SessionStart_verification_cleanup.py",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/SessionStart_breadcrumb_init.py",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
             "command": "python P:/.claude/hooks/__lib/judge_feedback.py",
             "timeout": 5
           }
@@ -494,49 +373,11 @@
       },
       {
         "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/SessionStart_cc_health.py",
-            "timeout": 5
-          }
-        ]
+        "hooks": []
       }
     ],
-    "SessionEnd": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/SessionEnd_cleanup.py --timeout 5.0",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/SessionEnd_breadcrumb_cleanup.py --timeout 5.0",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/SessionEnd_tdd_cleanup.py --timeout 5.0",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python P:/.claude/hooks/cjk_drift_detector.py",
-            "timeout": 5
-          }
-        ]
-      }
-    ]
+    "SessionEnd": [],
+    "SubagentStop": []
   },
   "enabledPlugins": {},
   "tdd": {

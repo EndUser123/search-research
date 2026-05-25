@@ -3,7 +3,7 @@
 Stop_semantic_critic.py - Semantic quality gate for diagnostic/analytical responses.
 
 Python Stop hook (in-process gate) that judges whether analytical responses
-adequately address the diagnostic question at hand via Bifrost.
+adequately address the diagnostic question at hand via parallel MiniMax + Mistral calls.
 
 Early exits (skip entirely):
 - stop_hook_active circuit breaker
@@ -15,8 +15,8 @@ Scope gate (conservative keyword + >50 words):
 - Only fires critic when scope is detected
 
 External critic:
-- Bifrost "semantic-critic" route with dedicated system prompt
-- Hard timeout 8-10s
+- Parallel MiniMax + Mistral direct calls with conservative combination
+- Hard timeout per backend (MiniMax 10s, Mistral 30s)
 - Strict JSON parsing with fence-stripping
 - Fail-open on any error
 
@@ -34,6 +34,7 @@ import os
 import re
 import sys
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -41,12 +42,7 @@ from typing import Optional
 HOOKS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(HOOKS_DIR))
 
-# Add tools/mcp to path for bf_agent import
-_TOOLS_MCP = Path("P:/tools/mcp")
-if str(_TOOLS_MCP) not in sys.path:
-    sys.path.insert(0, str(_TOOLS_MCP))
-
-from bf_agent import bifrost_call
+import requests
 
 # Track which sessions have opted out or hit the cap
 _INVOCATION_COUNTS: dict[str, int] = {}
@@ -56,17 +52,76 @@ _logger = logging.getLogger(__name__)
 # Per-session cap for critic invocations
 SEMANTIC_CRITIC_CAP: int = int(os.environ.get("SEMANTIC_CRITIC_CAP", "5"))
 
-# Route constant — used as model so Bifrost routes externally
-SEMANTIC_CRITIC_ROUTE: str = os.environ.get("SEMANTIC_CRITIC_ROUTE", "M27")
+# MiniMax direct call config
+SEMANTIC_CRITIC_MODEL: str = os.environ.get("SEMANTIC_CRITIC_MODEL", "MiniMax-M2.7")
+SEMANTIC_CRITIC_TIMEOUT_SEC: int = int(os.environ.get("SEMANTIC_CRITIC_TIMEOUT_SEC", "10"))
 
-# Timeout for Bifrost call in seconds
-BIFROST_TIMEOUT_SEC: int = int(os.environ.get("SEMANTIC_CRITIC_TIMEOUT_SEC", "9"))
+# Mistral direct call config
+MISTRAL_MODEL: str = os.environ.get("MISTRAL_MODEL", "mistral-medium-3.5")
+MISTRAL_TIMEOUT_SEC: int = int(os.environ.get("MISTRAL_TIMEOUT_SEC", "30"))
+
+# Cached API keys (loaded once, reused across invocations)
+_MINIMAX_API_KEY: str | None = None
+_MISTRAL_API_KEY: str | None = None
 
 
 @dataclass
 class SemanticCriticResult:
     ok: bool
     reason: str
+
+
+def _load_minimax_key() -> str | None:
+    """Load MiniMax API key from env or P:/.env."""
+    global _MINIMAX_API_KEY
+    if _MINIMAX_API_KEY is not None:
+        return _MINIMAX_API_KEY or None
+
+    key = os.environ.get("MINIMAX_API_KEY", "").strip().strip('"')
+    if key:
+        _MINIMAX_API_KEY = key
+        return key
+    env_path = Path("P:/.env")
+    if env_path.exists():
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            if line.startswith("MINIMAX_API_KEY="):
+                key = line.split("=", 1)[1].strip().strip('"')
+                _MINIMAX_API_KEY = key
+                return key
+    _MINIMAX_API_KEY = ""  # sentinel: tried and failed
+    return None
+
+
+def _load_mistral_key() -> str | None:
+    """Load Mistral API key from env or P:/.env."""
+    global _MISTRAL_API_KEY
+    if _MISTRAL_API_KEY is not None:
+        return _MISTRAL_API_KEY or None
+
+    key = os.environ.get("MISTRAL_API_KEY", "").strip().strip('"')
+    if key:
+        _MISTRAL_API_KEY = key
+        return key
+    env_path = Path("P:/.env")
+    if env_path.exists():
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            if line.startswith("MISTRAL_API_KEY="):
+                key = line.split("=", 1)[1].strip().strip('"')
+                _MISTRAL_API_KEY = key
+                return key
+    _MISTRAL_API_KEY = ""  # sentinel: tried and failed
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Veridical integrity config (behavioral sycophancy detection)
+# ---------------------------------------------------------------------------
+
+VERIDICAL_GATE_CAP: int = int(os.environ.get("VERIDICAL_GATE_CAP", "5"))
+_VERIDICAL_COUNTS: dict[str, int] = {}
+_VERIDICAL_FAILURE_STREAK: dict[str, int] = {}
+VERIDICAL_CIRCUIT_BREAKER_LIMIT = 3
+VERIDICAL_COOLDOWN_SEC = 300
 
 
 def _session_key(data: dict) -> str:
@@ -566,19 +621,190 @@ def parse_semantic_critic_response(raw_text: str) -> Optional[SemanticCriticResu
         return None
 
 
+# =============================================================================
+# Backend call functions — MiniMax and Mistral
+# =============================================================================
+
+
+def _call_minimax_critic(
+    system_prompt: str,
+    user_message: str,
+    session_key: str,
+    critic_profile: str,
+) -> Optional[SemanticCriticResult]:
+    """Call MiniMax API directly with the semantic critic prompt.
+
+    Uses requests.post to the Anthropic-compatible endpoint.
+    Returns None on any failure (timeout, transport, parse, schema).
+    """
+    api_key = _load_minimax_key()
+    if not api_key:
+        _logger.info("semantic_critic minimax_skip: no API key session=%s", session_key)
+        return None
+
+    correlation_id = str(uuid.uuid4())
+    _logger.info(
+        "semantic_critic minimax_call_start: correlation=%s session=%s profile=%s model=%s",
+        correlation_id, session_key, critic_profile, SEMANTIC_CRITIC_MODEL,
+    )
+
+    try:
+        resp = requests.post(
+            "https://api.minimax.io/anthropic/v1/messages",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "anthropic-version": "2023-06-01",
+            },
+            json={
+                "model": SEMANTIC_CRITIC_MODEL,
+                "max_tokens": 196608,
+                "system": system_prompt,
+                "messages": [{"role": "user", "content": user_message}],
+            },
+            timeout=SEMANTIC_CRITIC_TIMEOUT_SEC,
+        )
+
+        if resp.status_code != 200:
+            _logger.warning(
+                "semantic_critic minimax_http_error: correlation=%s status=%d body=%s",
+                correlation_id, resp.status_code, resp.text[:200],
+            )
+            return None
+
+        data = resp.json()
+        raw_text = ""
+        for block in data.get("content", []):
+            if block.get("type") == "text":
+                raw_text += block.get("text", "")
+        raw_text = raw_text.strip()
+
+        if not raw_text:
+            _logger.warning(
+                "semantic_critic minimax_empty: correlation=%s", correlation_id,
+            )
+            return None
+
+        _logger.info(
+            "semantic_critic minimax_call_end: correlation=%s response_chars=%d",
+            correlation_id, len(raw_text),
+        )
+
+        result = parse_semantic_critic_response(raw_text)
+        if result is not None:
+            _logger.info(
+                "semantic_critic minimax_verdict: ok=%s profile=%s correlation=%s",
+                result.ok, critic_profile, correlation_id,
+            )
+        return result
+
+    except requests.Timeout:
+        _logger.warning(
+            "semantic_critic minimax_timeout: correlation=%s timeout=%ds",
+            correlation_id, SEMANTIC_CRITIC_TIMEOUT_SEC,
+        )
+        return None
+    except Exception as e:
+        _logger.warning(
+            "semantic_critic minimax_error: unexpected=%s session=%s", e, session_key,
+        )
+        return None
+
+
+def _call_mistral_critic(
+    system_prompt: str,
+    user_message: str,
+    session_key: str,
+    critic_profile: str,
+) -> Optional[SemanticCriticResult]:
+    """Call Mistral API via mistralai SDK with the semantic critic prompt.
+
+    Uses reasoning_effort="high" for deep analysis.
+    Returns None on any failure (timeout, transport, parse, schema).
+    """
+    api_key = _load_mistral_key()
+    if not api_key:
+        _logger.info("semantic_critic mistral_skip: no API key session=%s", session_key)
+        return None
+
+    correlation_id = str(uuid.uuid4())
+    _logger.info(
+        "semantic_critic mistral_call_start: correlation=%s session=%s profile=%s model=%s",
+        correlation_id, session_key, critic_profile, MISTRAL_MODEL,
+    )
+
+    try:
+        from mistralai.client import Mistral
+
+        client = Mistral(api_key=api_key)
+        response = client.chat.complete(
+            model=MISTRAL_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            temperature=0.2,
+            reasoning_effort="high",
+            timeout_ms=MISTRAL_TIMEOUT_SEC * 1000,
+        )
+
+        if not response or not response.choices:
+            _logger.warning(
+                "semantic_critic mistral_empty: correlation=%s", correlation_id,
+            )
+            return None
+
+        raw_text = response.choices[0].message.content
+        if raw_text:
+            raw_text = raw_text.strip()
+
+        if not raw_text:
+            _logger.warning(
+                "semantic_critic mistral_empty_text: correlation=%s", correlation_id,
+            )
+            return None
+
+        _logger.info(
+            "semantic_critic mistral_call_end: correlation=%s response_chars=%d",
+            correlation_id, len(raw_text),
+        )
+
+        result = parse_semantic_critic_response(raw_text)
+        if result is not None:
+            _logger.info(
+                "semantic_critic mistral_verdict: ok=%s profile=%s correlation=%s",
+                result.ok, critic_profile, correlation_id,
+            )
+        return result
+
+    except Exception as e:
+        _logger.warning(
+            "semantic_critic mistral_error: unexpected=%s session=%s", e, session_key,
+        )
+        return None
+
+
+# =============================================================================
+# Parallel orchestration — MiniMax + Mistral with conservative combination
+# =============================================================================
+
+
 def call_semantic_critic_via_bifrost(
     original_user_prompt: str, assistant_response: str, session_key: str
 ) -> Optional[SemanticCriticResult]:
     """
-    Call Bifrost with the semantic critic prompt and parse the result.
+    Call both MiniMax and Mistral in parallel with conservative combination.
 
-    Uses bifrost_call directly for explicit timeout control.
-    Returns None on any failure (timeout, transport, parse, schema).
+    Combination logic:
+    - Both ok=true -> ok=true
+    - Any ok=false -> ok=false (conservative)
+    - One None -> use the other
+    - Both None -> None (fail-open)
+
+    Returns None on any complete failure (both backends failed).
     Logs structured events for observability.
     """
-    # Build messages
     user_message = _build_critic_user_message(original_user_prompt, assistant_response)
-    correlation_id = str(uuid.uuid4())
     response_len = len(assistant_response)
     critic_profile = _detect_critic_profile(original_user_prompt, assistant_response)
     system_prompt = CRITIC_PROMPTS[critic_profile]
@@ -614,89 +840,95 @@ def call_semantic_critic_via_bifrost(
     )
 
     _logger.info(
-        "semantic_critic call_start: route=%s session=%s profile=%s response_chars=%d",
-        SEMANTIC_CRITIC_ROUTE,
+        "semantic_critic parallel_call_start: session=%s profile=%s response_chars=%d "
+        "minimax_model=%s mistral_model=%s",
         session_key,
         critic_profile,
         response_len,
+        SEMANTIC_CRITIC_MODEL,
+        MISTRAL_MODEL,
     )
 
+    # Call both backends in parallel
+    overall_timeout = max(MISTRAL_TIMEOUT_SEC, SEMANTIC_CRITIC_TIMEOUT_SEC) + 2
+
+    minimax_result: Optional[SemanticCriticResult] = None
+    mistral_result: Optional[SemanticCriticResult] = None
+
     try:
-        result = bifrost_call(
-            model=SEMANTIC_CRITIC_ROUTE,
-            prompt=user_message,
-            correlation_id=correlation_id,
-            compare_id="",
-            system=system_prompt,
-        )
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            futures = {
+                executor.submit(
+                    _call_minimax_critic, system_prompt, user_message, session_key, critic_profile
+                ): "minimax",
+                executor.submit(
+                    _call_mistral_critic, system_prompt, user_message, session_key, critic_profile
+                ): "mistral",
+            }
 
-        total_ms = result.get("total_ms", 0)
-        ttfb_ms = result.get("ttfb_ms", 0)
-        status = result.get("status", "")
-        error_type = result.get("error_type", "")
+            for future in as_completed(futures, timeout=overall_timeout):
+                backend = futures[future]
+                try:
+                    result = future.result()
+                except Exception as e:
+                    _logger.warning(
+                        "semantic_critic %s_exception: %s session=%s",
+                        backend, e, session_key,
+                    )
+                    result = None
 
-        # Check timeout
-        if status == "timeout" or error_type == "Timeout":
-            _logger.warning(
-                "semantic_critic timeout: correlation=%s total_ms=%d",
-                correlation_id,
-                total_ms,
-            )
-            return None
-
-        # Check call failure
-        if not result.get("ok", False) or error_type:
-            error_msg = result.get("error", error_type or "unknown")
-            _logger.warning(
-                "semantic_critic bifrost_call_error: correlation=%s error=%s status=%s",
-                correlation_id,
-                error_msg,
-                status,
-            )
-            return None
-
-        raw_text = result.get("text", "").strip()
-        if not raw_text:
-            _logger.warning(
-                "semantic_critic bifrost_call_error: empty text correlation=%s",
-                correlation_id,
-            )
-            return None
-
-        # Log call end
-        _logger.info(
-            "semantic_critic call_end: correlation=%s ttfb_ms=%d total_ms=%d response_chars=%d",
-            correlation_id,
-            ttfb_ms,
-            total_ms,
-            len(raw_text),
-        )
-
-        critic_result = parse_semantic_critic_response(raw_text)
-        if critic_result is None:
-            # parse failure already logged inside parse_semantic_critic_response
-            return None
-
-        # Log verdict
-        resp_hash = hashlib.md5(assistant_response.encode()).hexdigest()[:8]
-        verdict_str = "ok=true" if critic_result.ok else "ok=false"
-        _logger.info(
-            "semantic_critic verdict: %s resp_hash=%s profile=%s reason_len=%d",
-            verdict_str,
-            resp_hash,
-            critic_profile,
-            len(critic_result.reason),
-        )
-
-        return critic_result
+                if backend == "minimax":
+                    minimax_result = result
+                else:
+                    mistral_result = result
 
     except Exception as e:
         _logger.warning(
-            "semantic_critic bifrost_call_error: unexpected=%s session=%s",
-            e,
-            session_key,
+            "semantic_critic parallel_executor_error: %s session=%s", e, session_key,
+        )
+
+    # Conservative combination logic
+    # Both None -> fail-open
+    if minimax_result is None and mistral_result is None:
+        _logger.info(
+            "semantic_critic both_backends_failed: session=%s profile=%s",
+            session_key, critic_profile,
         )
         return None
+
+    # One None -> use the other
+    if minimax_result is None:
+        _logger.info(
+            "semantic_critic fallback_mistral: session=%s ok=%s",
+            session_key, mistral_result.ok,
+        )
+        return mistral_result
+    if mistral_result is None:
+        _logger.info(
+            "semantic_critic fallback_minimax: session=%s ok=%s",
+            session_key, minimax_result.ok,
+        )
+        return minimax_result
+
+    # Both returned results — conservative: any ok=false wins
+    if not minimax_result.ok or not mistral_result.ok:
+        # Return whichever flagged the issue; prefer the false one
+        combined_result = SemanticCriticResult(
+            ok=False,
+            reason=minimax_result.reason if not minimax_result.ok else mistral_result.reason,
+        )
+        _logger.info(
+            "semantic_critic conservative_veto: minimax_ok=%s mistral_ok=%s session=%s profile=%s",
+            minimax_result.ok, mistral_result.ok, session_key, critic_profile,
+        )
+        return combined_result
+
+    # Both ok=true
+    _logger.info(
+        "semantic_critic consensus_ok: session=%s profile=%s",
+        session_key, critic_profile,
+    )
+    return minimax_result
 
 
 def _is_diagnostic_scope(prompt_text: str, response_text: str) -> bool:
@@ -809,6 +1041,29 @@ def run(data: dict) -> dict | None:
     if _is_non_substantive(response_text):
         return None
 
+    # Veridical integrity gate (epistemic sycophancy detection)
+    try:
+        from _veridical_gate import check_veridical_integrity
+        transcript_str = data.get('transcript', '')
+        if isinstance(transcript_str, list):
+            parts = []
+            for msg in transcript_str:
+                role = msg.get('role', '')
+                content_val = msg.get('content', '')
+                if isinstance(content_val, str) and content_val.strip():
+                    parts.append(f'[{role}] {content_val}')
+            transcript_str = chr(10) + chr(10).join(parts)
+        veridical_result = check_veridical_integrity(
+            response_text=response_text,
+            transcript=transcript_str,
+            session_key=session_key,
+            mistral_api_key=_load_mistral_key() or '',
+        )
+        if veridical_result is not None:
+            return veridical_result
+    except Exception as exc:
+        _logger.warning('veridical_gate integration error, failing open: %s', exc)
+
     # Diagnostic scope gate
     if not _is_diagnostic_scope(user_prompt, response_text):
         return None
@@ -851,7 +1106,7 @@ if __name__ == "__main__":
     data = json.loads(sys.stdin.read())
     result = run(data)
     if result:
-        print(json.dumps(result), file=sys.stdout)
+        print(json.dumps(result), file=sys.stderr)
         sys.exit(0)
     else:
         sys.exit(0)

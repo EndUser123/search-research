@@ -205,7 +205,7 @@ def run(data: dict) -> dict | None:
         if blocking in ("1", "true", "yes"):
             return {"decision": "block", "reason": reason}
         # Advisory mode: warn but allow
-        print(reason, file=sys.stderr)
+        _logger.warning("%s", reason)
         return {"decision": "modify", "tool_input": corrected}
 
     is_valid, reason = _validate_task_doc(tool_input, tool_name)
@@ -218,7 +218,7 @@ def run(data: dict) -> dict | None:
         return {"decision": "block", "reason": reason}
     else:
         # Advisory mode: write warning to stderr and allow
-        print(reason, file=sys.stderr)
+        _logger.warning("%s", reason)
         return None
 
 
@@ -228,7 +228,7 @@ def main() -> int:
     try:
         data = json.load(sys.stdin)
     except (json.JSONDecodeError, EOFError):
-        print("Invalid JSON input", file=sys.stderr)
+        _logger.warning("Invalid JSON input")
         return 2  # Block with error
     result = run(data)
 
@@ -236,7 +236,7 @@ def main() -> int:
         return 0  # Allow
 
     if result.get("decision") == "block":
-        print(result["reason"], file=sys.stderr)
+        _logger.warning("%s", result["reason"])
         return 2  # Block
 
     return 0  # Allow

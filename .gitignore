@@ -590,3 +590,4 @@ backups/
 
 # Personal command stubs (not source packages)
 .claude/commands/
+.claude/.artifacts/
