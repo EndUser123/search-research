@@ -222,7 +222,8 @@
       "Bash(cp 'P:/.claude/hooks/cjk_drift_detector.py' 'P:/packages/cc-aca-observability/hooks/posttool/cjk_drift_detector.py')",
       "Bash(cp 'P:/.claude/hooks/SessionStart_cc_health.py' 'P:/packages/cc-aca-observability/hooks/sessionstart/SessionStart_cc_health.py')",
       "Bash(rm -rf 'C:/Users/brsth/.claude/plugins/cache/local/cc-skills-analysis/1.0.12')",
-      "Bash(powershell -c \"Remove-Item -Recurse -Force 'C:\\\\Users\\\\brsth\\\\.claude\\\\plugins\\\\cache\\\\local\\\\cc-skills-analysis\\\\1.0.12'\")"
+      "Bash(powershell -c \"Remove-Item -Recurse -Force 'C:\\\\Users\\\\brsth\\\\.claude\\\\plugins\\\\cache\\\\local\\\\cc-skills-analysis\\\\1.0.12'\")",
+      "Agent"
     ],
     "deny": [],
     "ask": []

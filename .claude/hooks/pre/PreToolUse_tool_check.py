@@ -19,11 +19,17 @@ Enforced Protocols (from MEMORY.md):
 
 import json
 import sys
+from pathlib import Path
 
 import logging as _li
 _logger = _li.getLogger(__name__)
+_hook_log_dir = Path(__file__).resolve().parent.parent / 'logs' / 'diagnostics'
+_hook_log_dir.mkdir(parents=True, exist_ok=True)
+_handler = _li.FileHandler(_hook_log_dir / 'hook_stderr.log', encoding='utf-8')
+_handler.setFormatter(_li.Formatter('%(asctime)s %(levelname)s %(message)s'))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
 
-from pathlib import Path
 
 # Tool parameter validation rules
 TOOL_VALIDATION_RULES = {

@@ -106,83 +106,97 @@ def _safe_id_str(s: str) -> str:
 
 
 def _is_compaction_scenario(state: InvestigationState, input_data: dict) -> bool:
-    """Detect if we're in a post-compaction scenario with lost state.
+    """Detect if we're in a post-compaction or new-session scenario with lost state.
 
-    Compaction indicators:
+    Returns True when:
     - State has no files_read (fresh or cleared)
-    - Transcript entries exist in input (compaction preserves transcript context)
-    - State timestamp is recent (within current session window)
-
-    Returns:
-        True if compaction detected and transcript has prior tool calls
+    - transcript_path exists and contains tool calls
     """
     if input_data is None:
         return False
     if state.get("files_read"):
         return False
 
-    transcript_entries = input_data.get("transcript_entries", [])
-    if not transcript_entries:
+    transcript_path = input_data.get("transcript_path", "")
+    if not transcript_path:
         return False
 
-    # Check for tool calls that predate the state (compaction preserved them)
-    state_ts = state.get("timestamp", 0)
-    for entry in transcript_entries:
-        if not isinstance(entry, dict):
-            continue
-        if entry.get("type") == "tool":
-            entry_ts = entry.get("timestamp", 0)
-            if entry_ts and entry_ts < state_ts:
-                return True
-
-    return False
+    try:
+        path = Path(transcript_path)
+        if not path.exists():
+            return False
+        content = path.read_text(encoding="utf-8")
+        return '"tool_use"' in content
+    except OSError:
+        return False
 
 
 def _reconstruct_files_read_from_input(input_data: dict) -> list[str]:
-    """Reconstruct files_read from transcript entries in hook input.
+    """Reconstruct files_read from transcript_path JSONL.
 
-    After session compaction, the transcript preserves tool call history.
-    This function extracts Read/Grep/Glob file paths from transcript entries
-    to reconstruct investigation coverage.
+    Reads the transcript JSONL to extract file paths from Read/Glob/Grep/Bash
+    tool calls, recovering investigation coverage after compaction or in new sessions.
 
     Args:
-        input_data: Hook input dict with transcript_entries
+        input_data: Hook input dict with transcript_path
 
     Returns:
-        List of file paths that were read before compaction
+        List of file paths that were read
 
     Note:
-        WebFetch and WebSearch are intentionally excluded from file path extraction
-        because they produce URLs, not file paths. They remain in the broader
-        "investigation activity" concept but don't contribute to files_read.
+        WebFetch and WebSearch are intentionally excluded because they produce
+        URLs, not file paths.
     """
     if input_data is None:
         return []
+
+    transcript_path = input_data.get("transcript_path", "")
+    if not transcript_path:
+        return []
+
     READ_TOOLS = {
-        "read_file", "View", "cat", "grep", "find",
-        "search_files", "Bash", "Read", "Glob", "Grep",
+        "Read", "Glob", "Grep", "Bash",
+        "read_file", "View", "cat", "grep", "find", "search_files",
     }
-    transcript_entries = input_data.get("transcript_entries", [])
     files: list[str] = []
 
-    for entry in transcript_entries:
-        if not isinstance(entry, dict):
+    try:
+        path = Path(transcript_path)
+        if not path.exists():
+            return []
+        content = path.read_text(encoding="utf-8")
+    except OSError:
+        return []
+
+    for line in content.strip().split("\n"):
+        if not line.strip():
             continue
-        if entry.get("type") != "tool":
-            continue
-        # Schema fallback: 'name' or 'tool_name', 'input' or 'args'
-        tool_name = entry.get("name") or entry.get("tool_name", "")
-        if tool_name not in READ_TOOLS:
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
             continue
 
-        tool_input = entry.get("input") or entry.get("args") or {}
-        path = (
-            tool_input.get("file_path")
-            or tool_input.get("path")
-            or ""
-        )
-        if path and path not in files:
-            files.append(path)
+        message = entry.get("message", entry)
+        message_content = message.get("content", entry.get("content", []))
+        if not isinstance(message_content, list):
+            continue
+
+        for block in message_content:
+            if not isinstance(block, dict) or block.get("type") != "tool_use":
+                continue
+            tool_name = block.get("name", "")
+            if tool_name not in READ_TOOLS:
+                continue
+            tool_input = block.get("input", {})
+            if not isinstance(tool_input, dict):
+                continue
+            file_path = (
+                tool_input.get("file_path")
+                or tool_input.get("path")
+                or ""
+            )
+            if file_path and file_path not in files:
+                files.append(file_path)
 
     return files
 
@@ -345,7 +359,7 @@ INVESTIGATION_EXEMPT_DIRS = {
     s.strip()
     for s in os.environ.get(
         "CSF_INVESTIGATION_EXEMPT_DIRS",
-        ".staging,tmp,temp,.tmp,test_fixtures,__pycache__",
+        ".staging,tmp,temp,.tmp,test_fixtures,__pycache__,memory",
     ).split(",")
     if s.strip()
 }
@@ -1420,7 +1434,7 @@ def check_write_permission(
         f"EXPLICIT_DISCOVERY_REQUIRED: discovery must be explicit at this risk level\n\n"
         f"Target: {filepath}\n"
         f"Risk tier: {risk_tier}\n"
-        f"Coverage: {related_reads}/{required_reads} related files read\n\n"
+        f"Context: {related_reads} related files read (target read required at {risk_tier} risk)\n\n"
         f"Required before editing:\n"
         f"1. Read: {sanitize_path(filepath)}\n"
         f"2. Read the dependency surface or adjacent implementation files\n"
@@ -1512,6 +1526,12 @@ def process_hook(
 
         if reason.startswith("[AUTO-READ"):
             return True, reason
+
+        if tool_name == "Write":
+            fp = tool_input.get("path") or tool_input.get("file_path")
+            if fp and fp not in state["files_read"]:
+                state["files_read"].append(fp)
+            save_state(state, terminal_id)
 
         return True, message_to_return
 

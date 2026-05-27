@@ -307,19 +307,16 @@ function Start-BifrostDaemon {
         Write-Host "   Bifrost already running (Job/PID $id)" -ForegroundColor Yellow
         return
     }
-    $bifrostBin = "$env:LOCALAPPDATA\bifrost\v1.5.4\bin\bifrost-http.exe-0"
-    if (-not (Test-Path $bifrostBin)) {
-        $bifrostBin = "$env:LOCALAPPDATA\bifrost\v1.5.2\bin\bifrost-http.exe-0"
-    }
-    if (-not (Test-Path $bifrostBin)) {
-        $bifrostBin = "$env:LOCALAPPDATA\bifrost\v1.5.0-prerelease8\bin\bifrost-http.exe-0"
-    }
-    if (-not (Test-Path $bifrostBin)) {
-        $bifrostBin = "$env:LOCALAPPDATA\bifrost\v1.5.0-prerelease7\bin\bifrost-http.exe-0"
-    }
-    if (-not (Test-Path $bifrostBin)) {
-        $bifrostBin = "$env:LOCALAPPDATA\bifrost\v1.5.0-prerelease6\bin\bifrost-http.exe-0"
-    }
+    # Auto-discover latest Bifrost binary: prefer bifrost-http.exe, fall back to bifrost-http.exe-0
+    $bfBase = "$env:LOCALAPPDATA\bifrost"
+    $bfCandidates = @(
+        "$bfBase\v1.5.5\bin\bifrost-http.exe"
+        "$bfBase\v1.5.5\bin\bifrost-http.exe-0"
+        "$bfBase\v1.5.4\bin\bifrost-http.exe"
+        "$bfBase\v1.5.4\bin\bifrost-http.exe-0"
+        "$bfBase\v1.5.2\bin\bifrost-http.exe-0"
+    )
+    $bifrostBin = $bfCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
     if (-not (Test-Path $bifrostBin)) {
         Write-Host "   [ERROR] Bifrost binary not found at expected paths" -ForegroundColor Red
         return

@@ -42,9 +42,21 @@ import yaml
 # Configuration
 # ---------------------------------------------------------------------------
 
-_HOOKS_DIR = Path(__file__).resolve().parent.parent
+_HOOKS_DIR = Path(__file__).resolve().parent.parent  # hooks/ root
 _HOOKS_ROOT_DIR = _HOOKS_DIR.parent
 _EVIDENCE_ROOT = Path.home() / ".claude" / ".evidence"
+
+# ---------------------------------------------------------------------------
+# Shared library imports
+# ---------------------------------------------------------------------------
+
+import sys as _sys
+
+_sys.path.insert(0, str(_HOOKS_DIR / "__lib"))
+try:
+    from transcript_reader import get_user_messages as _get_user_messages_from_transcript
+except ImportError:
+    _get_user_messages_from_transcript = None
 
 
 # ---------------------------------------------------------------------------
@@ -58,28 +70,18 @@ def _is_enabled(env_var: str, default_enabled: bool) -> bool:
     return raw.strip().lower() not in {"0", "false", "no", "off"}
 
 
-def _detect_skill_from_transcript(transcript_entries: list[dict[str, Any]]) -> str | None:
-    """Scan transcript for skill invocation patterns like /retro, /gto, etc.
-
-    Transcript entries have structure:
-        {"type": "user", "message": {"role": "user", "content": "..."}}
-    where content contains XML-style command tags:
-        <command-name>/skillname</command-name>
-        <command-args>args</command-args>
-    """
+def _detect_skill_from_transcript_path(data: dict[str, Any]) -> str | None:
+    """Detect skill from transcript_path JSONL user messages."""
+    if _get_user_messages_from_transcript is None:
+        return None
     command_pattern = re.compile(r"<command-name>(/[^<]+)</command-name>")
-    for entry in reversed(transcript_entries[-10:]):  # Last 10 entries
-        entry_text = ""
-        if "text" in entry:
-            entry_text = entry["text"]
-        elif isinstance(entry.get("message"), dict):
-            content = entry["message"].get("content", "")
-            if isinstance(content, str):
-                entry_text = content
-        match = command_pattern.search(entry_text)
+    for text in reversed(_get_user_messages_from_transcript(data)):
+        match = command_pattern.search(text)
         if match:
             return match.group(1).lstrip("/")
     return None
+
+
 
 
 def _get_depends_on_skills(skill_name: str) -> list[str] | None:
@@ -142,7 +144,7 @@ def run(data: dict[str, Any]) -> dict[str, Any] | None:
     """Phase 0 gate: verify step-1 evidence exists for depends_on_skills skills.
 
     Input contract:
-        transcript_entries: list of dicts (from Stop.py payload)
+        transcript_path: str — path to session transcript JSONL
         terminal_id: str (from Stop.py payload)
 
     Returns None (pass) if:
@@ -166,11 +168,7 @@ def run(data: dict[str, Any]) -> dict[str, Any] | None:
     if not _is_enabled("DEPENDS_ON_SKILLS_GATE_ENABLED", True):
         return None
 
-    transcript_entries: list[dict[str, Any]] = data.get("transcript_entries", [])
-    if not transcript_entries:
-        return None
-
-    skill_name = _detect_skill_from_transcript(transcript_entries)
+    skill_name = _detect_skill_from_transcript_path(data)
     if not skill_name:
         return None
 

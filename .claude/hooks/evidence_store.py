@@ -22,6 +22,12 @@ from typing import Any
 
 import logging as _li
 _logger = _li.getLogger(__name__)
+_hook_log_dir = Path(__file__).resolve().parent / "logs" / "diagnostics"
+_hook_log_dir.mkdir(parents=True, exist_ok=True)
+_handler = _li.FileHandler(_hook_log_dir / "hook_stderr.log", encoding="utf-8")
+_handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
 
 HOOKS_DIR = Path(__file__).resolve().parent
 STATE_DIR = HOOKS_DIR / "state"

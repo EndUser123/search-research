@@ -84,6 +84,14 @@ _EPISTEMIC_STOP = Path("P:/packages/cc-aca-epistemic/hooks/stop")
 if _EPISTEMIC_STOP.exists() and str(_EPISTEMIC_STOP) not in sys.path:
     sys.path.insert(0, str(_EPISTEMIC_STOP))
 
+_AUTHORITY_STOP = Path("P:/packages/cc-aca-authority/hooks/stop")
+if _AUTHORITY_STOP.exists() and str(_AUTHORITY_STOP) not in sys.path:
+    sys.path.insert(0, str(_AUTHORITY_STOP))
+
+_REASONING_STOP = Path("P:/packages/cc-aca-reasoning/hooks/stop")
+if _REASONING_STOP.exists() and str(_REASONING_STOP) not in sys.path:
+    sys.path.insert(0, str(_REASONING_STOP))
+
 sys.path.insert(0, str(HOOKS_DIR))
 ANTI_SYCOPHANCY_LOG = HOOKS_DIR / "logs" / "anti_sycophancy_violations.jsonl"
 SKILL_FIRST_LOG = HOOKS_DIR / "logs" / "skill_first_enforcement.jsonl"
@@ -93,6 +101,9 @@ try:
     from cc_diagnostic_logger import log_hook_invocation as _log_hook_invocation
 except Exception:  # pragma: no cover - observability must fail open
     _log_hook_invocation = None
+
+import logging as _logging
+_logger = _logging.getLogger("Stop")
 
 from __lib.turn_mode import (
     classify as _classify_turn_mode,
@@ -120,8 +131,7 @@ from __lib.claim_type import _read_claim_type
 
 from Stop_aggregator import aggregate_and_render as _aggregate_and_render
 from Stop_artifact_enforcement import run as _run_artifact_enforcement
-from Stop_approval_gate import run as _run_approval_gate
-from Stop_commit_gate import run as _run_commit_gate
+# approval_gate, commit_gate moved to cc-aca-authority plugin — dispatched via router
 from Stop_subagent_opportunity import run as _run_subagent_opportunity
 
 # Referent coverage (Stop advisory) removed 2026-05-10.
@@ -280,52 +290,7 @@ def _append_anti_sycophancy_log(
 # Each returns: dict with decision/reason/systemMessage, or None to pass through.
 
 
-def _run_safety_gate(data: dict) -> dict | None:
-    """Stop_safety_gate.py logic - regex-based safety checks."""
-    try:
-        from Stop_safety_gate import check_forbidden, check_protocol, check_secrets, check_catch_block_hygiene
-
-        response = data.get("response", "")
-        if not response:
-            return None
-
-        secret = check_secrets(response)
-        if secret:
-            return {
-                "decision": "block",
-                "reason": f"SAFETY VIOLATION: {secret}",
-                "blocking_hook": "Stop.py:safety_gate",
-            }
-
-        forbidden = check_forbidden(response)
-        if forbidden:
-            return {
-                "decision": "block",
-                "reason": f"POLICY VIOLATION: {forbidden}",
-                "blocking_hook": "Stop.py:safety_gate",
-            }
-
-        protocol = check_protocol(response, data)
-        if protocol:
-            return {
-                "decision": "block",
-                "reason": f"PROTOCOL VIOLATION: {protocol}",
-                "blocking_hook": "Stop.py:safety_gate",
-            }
-
-        catch_hygiene = check_catch_block_hygiene(response)
-        if catch_hygiene:
-            return {
-                "decision": "warn",
-                "reason": f"CATCH-BLOCK HYGIENE: {catch_hygiene}",
-                "blocking_hook": "Stop.py:safety_gate",
-            }
-
-        return None
-    except Exception as e:
-        # Safety gate fails OPEN
-        _logger.warning(f"safety_gate error: {e}")
-        return None
+# _run_safety_gate removed — handled by cc-aca-authority plugin Stop_safety_gate.py via subprocess router
 
 
 def _is_analytical_response(response: str) -> bool:
@@ -3830,7 +3795,7 @@ IN_PROCESS_GATES = [
     #       strategy moved to unified_claim_verifier via _run_behavior_audit)
     #     reasoning_enhanced: Stop_reasoning_enhanced.py missing from disk
     #     correction_acknowledgment: CORRECTION_GATE_ENABLED=false (flag disables gate)
-    ("safety_gate", _run_safety_gate),
+
     (
         "frameguard_stop",
         _run_frameguard_stop,
@@ -3858,8 +3823,7 @@ IN_PROCESS_GATES = [
         "deletion_verification_guard",
         _run_deletion_verification_guard,
     ),  # NEW 2026-03-24: Deletion verification - checks actual file system state
-    ("approval_gate", _run_approval_gate),  # NEW 2026-05-10: Implementation approval gate (minimal patterns)
-    ("commit_gate", _run_commit_gate),  # NEW 2026-05-10: Git commit/push approval gate
+
     (
         "artifact_enforcement",
         _run_artifact_enforcement,
@@ -3978,7 +3942,7 @@ def _run_gate_safe(name: str, gate_fn, data: dict) -> dict | None:
     try:
         return gate_fn(data)
     except Exception as e:
-        _logger.warning(f"gate {name} crashed: {e}")
+        print(f"[STOP_GATE_ERROR] gate {name} crashed: {e}", file=sys.stderr)
         _critical_gate_failed_this_turn = True
         if name in CRITICAL_STOP_GATES:
             # Fail closed: surface the failure so the model is aware

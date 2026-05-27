@@ -22,6 +22,12 @@ from typing import Any
 
 import logging as _li
 _logger = _li.getLogger(__name__)
+_hook_log_dir = hooks_dir / 'logs' / 'diagnostics'
+_hook_log_dir.mkdir(parents=True, exist_ok=True)
+_handler = _li.FileHandler(_hook_log_dir / 'hook_stderr.log', encoding='utf-8')
+_handler.setFormatter(_li.Formatter('%(asctime)s %(levelname)s %(message)s'))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
 
 
 class ViolationReporter:
@@ -55,7 +61,7 @@ class ViolationReporter:
 
         policy_path = Path(__file__).resolve().parent / "config" / "directory_policy.json"
         try:
-            with open(policy_path) as f:
+            with open(policy_path, encoding='utf-8') as f:
                 policy = json.load(f)
             root_config = policy.get("workspace_root", {})
             patterns = root_config.get("allowed_root_patterns", [])
@@ -236,10 +242,11 @@ class ViolationReporter:
             "Hook: deny_root_write.py",
         ]
 
+        _SENSITIVE_KEYS = {"api_key", "token", "secret", "password", "credential", "auth", "private_key"}
         if tool_input:
             evidence_parts.append("Tool Input Details:")
             for key, value in tool_input.items():
-                if key != "file_path":
+                if key != "file_path" and not any(s in key.lower() for s in _SENSITIVE_KEYS):
                     evidence_parts.append(f"  {key}: {value}")
 
         if user_context:

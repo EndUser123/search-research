@@ -220,7 +220,7 @@
     },
     {
       "name": "cc-aca-investigation",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "description": "ACA Investigation plugin - discovery-first enforcement, observe-before-act gating, breadcrumb progression tracking, and evidence-grounded reasoning prompts.",
       "source": "./plugins/cc-aca-investigation",
       "keywords": [

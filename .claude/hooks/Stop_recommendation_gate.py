@@ -22,6 +22,11 @@ try:
 except Exception:  # pragma: no cover - fail open if helper unavailable
     prompt_session_state = None
 
+try:
+    from __lib.transcript_reader import get_latest_user_text as _get_latest_user_text_from_transcript
+except ImportError:
+    _get_latest_user_text_from_transcript = None
+
 # Any of these signals a recommendation is already present → PASS
 RECOMMENDATION_PATTERNS = [
     r"\brecommend\b",
@@ -244,22 +249,10 @@ def _extract_latest_user_text(data: dict | None) -> str:
         except Exception:
             pass
 
-    entries = payload.get("transcript_entries")
-    if not isinstance(entries, list):
-        entries = payload.get("transcript")
-    if isinstance(entries, list):
-        for entry in reversed(entries):
-            if not isinstance(entry, dict):
-                continue
-            if str(entry.get("type", "")).lower() == "user":
-                msg = entry.get("message")
-                if isinstance(msg, dict):
-                    content = msg.get("content")
-                    if isinstance(content, str) and content.strip():
-                        return content.strip()
-                text = entry.get("text")
-                if isinstance(text, str) and text.strip():
-                    return text.strip()
+    if _get_latest_user_text_from_transcript is not None:
+        text = _get_latest_user_text_from_transcript(payload)
+        if text:
+            return text
     return ""
 
 

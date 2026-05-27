@@ -77,6 +77,7 @@ def build_pretooluse_block_entry(
     raw_stderr: object = "",
     artifact_path: str = "",
     active_turn_id: str = "",
+    correlation_id: str | None = None,
 ) -> dict:
     tool_name = str(data.get("tool_name", "") or "")
     tool_fields = extract_tool_fields(data.get("tool_input"))
@@ -99,6 +100,7 @@ def build_pretooluse_block_entry(
         "cwd": str(data.get("cwd", "") or ""),
         "active_turn_id": active_turn_id,
         "artifact_path": artifact_path,
+        "correlation_id": correlation_id,
         "reason": truncate_text(reason, 4000),
         "reason_preview": truncate_text(reason, 300),
         "raw_stdout_preview": truncate_text(raw_stdout, 1200),

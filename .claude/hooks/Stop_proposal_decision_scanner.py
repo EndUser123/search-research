@@ -46,6 +46,11 @@ try:
 except ImportError:
     from hook_base import hook_main
 
+try:
+    from __lib.transcript_reader import get_user_messages as _get_user_messages_from_transcript
+except ImportError:
+    _get_user_messages_from_transcript = None
+
 # --- Configuration -------------------------------------------------------
 
 ENABLED = os.environ.get("PROPOSAL_DECISION_SCANNER_ENABLED", "true").lower() == "true"
@@ -107,7 +112,7 @@ def _normalize_option(option: str) -> str:
     return option.upper()
 
 
-def _check_response_for_conflation(response: str, transcript_entries: list[dict]) -> dict | None:
+def _check_response_for_conflation(response: str, transcript_texts: list[str]) -> dict | None:
     """Check if response claims a rejected option is correct.
 
     Returns warning dict if contradiction detected, None otherwise.
@@ -119,24 +124,7 @@ def _check_response_for_conflation(response: str, transcript_entries: list[dict]
 
     # Extract rejections from conversation history
     all_rejected: set[str] = set()
-    for entry in transcript_entries:
-        entry_text = ""
-        # New format: {"type": "user", "message": {"role": "user", "content": "..."}}
-        if isinstance(entry, dict):
-            msg = entry.get("message", {})
-            if isinstance(msg, dict):
-                content = msg.get("content", "")
-                if isinstance(content, list):
-                    entry_text = " ".join(
-                        b.get("text", "") for b in content if isinstance(b, dict)
-                    )
-                else:
-                    entry_text = str(content)
-            elif "text" in entry:
-                entry_text = str(entry.get("text", ""))
-        elif isinstance(entry, str):
-            entry_text = entry
-
+    for entry_text in transcript_texts:
         rejected = _extract_rejections(entry_text)
         for opt in rejected:
             all_rejected.add(_normalize_option(opt))
@@ -199,11 +187,12 @@ def check(data: dict) -> dict | None:
     if not response:
         return None
 
-    transcript_entries = data.get("transcript_entries", [])
-    if not isinstance(transcript_entries, list):
-        transcript_entries = []
+    # transcript_entries is never populated in Stop hooks; use transcript_path
+    transcript_texts: list[str] = []
+    if _get_user_messages_from_transcript is not None:
+        transcript_texts = _get_user_messages_from_transcript(data)
 
-    return _check_response_for_conflation(response, transcript_entries)
+    return _check_response_for_conflation(response, transcript_texts)
 
 
 def run(data: dict) -> dict | None:

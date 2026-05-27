@@ -138,12 +138,21 @@ def _write_state(
     session_id: str | None,
     bypass_scope: bool = False,
 ) -> None:
-    # Don't overwrite active anchors with no_anchors — subsequent messages
-    # without tables shouldn't erase anchor terms from a prior message.
-    if anchor_terms is None:
-        existing = _read_state(terminal_id)
-        if existing and existing.get("anchor_terms") and "status" not in existing:
-            return  # Preserve existing active anchors
+    existing = _read_state(terminal_id)
+
+    # Session boundary: if session_id changed (compaction, new session),
+    # discard stale anchors from the previous session. Anchors are only valid
+    # within the session that created them — after compaction the context they
+    # reference no longer exists in full.
+    if existing and existing.get("anchor_terms") and session_id:
+        prev_session = existing.get("session_id", "")
+        if prev_session and prev_session != session_id:
+            existing = None  # Fall through to write fresh state
+
+    # Don’t overwrite active anchors with no_anchors — subsequent messages
+    # without tables shouldn’t erase anchor terms from a prior message.
+    if anchor_terms is None and existing and existing.get("anchor_terms") and "status" not in existing:
+        return  # Preserve existing active anchors (same session, no new list)
 
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     state_file = STATE_DIR / f"referent_anchors_{terminal_id}.json"

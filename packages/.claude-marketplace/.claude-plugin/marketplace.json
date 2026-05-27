@@ -283,6 +283,20 @@
         "health",
         "session"
       ]
+    },
+    {
+      "name": "cc-aca-investigation",
+      "version": "0.2.2",
+      "description": "ACA Investigation plugin - discovery-first enforcement, observe-before-act gating, breadcrumb progression tracking, and evidence-grounded reasoning prompts. Part of the Agent Control Architecture.",
+      "source": "./plugins/cc-aca-investigation",
+      "keywords": [
+        "aca",
+        "investigation",
+        "discovery",
+        "observe-before-act",
+        "evidence-grounding",
+        "breadcrumb"
+      ]
     }
   ]
 }

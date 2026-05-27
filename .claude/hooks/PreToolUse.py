@@ -37,6 +37,7 @@ import re
 import subprocess
 import sys
 import time
+import uuid
 from datetime import datetime
 from pathlib import Path
 
@@ -155,6 +156,32 @@ _STALE_TERMINAL_INTENT_SECONDS = 15 * 60
 # That round-trip is measured in seconds, not minutes. 90s is generous for any
 # realistic slow-model / heavy-hook scenario while still recovering quickly from
 # crashes. Override with SKILL_FIRST_INTENT_TTL_SECONDS env var if needed.
+
+
+def _skill_names_match(a: str, b: str) -> bool:
+    """Check if two skill names refer to the same skill.
+
+    Handles namespace prefix mismatches: "cc-skills-sdlc:design" should match
+    "design" since the short name is the suffix after the colon separator.
+    Also handles cases where one side has the prefix and the other doesn't.
+    """
+    a_lower = a.strip().lower()
+    b_lower = b.strip().lower()
+    if a_lower == b_lower:
+        return True
+    # Suffix match: strip namespace prefix from whichever side has one
+    # "cc-skills-sdlc:design" matches "design" (suffix after colon)
+    # "design" matches "cc-skills-sdlc:design" (shorter is suffix of longer)
+    for name in (a_lower, b_lower):
+        if ":" in name:
+            short = name.rsplit(":", 1)[1]
+            other = b_lower if name == a_lower else a_lower
+            if short == other:
+                return True
+            if other.endswith(":" + short):
+                return True
+    return False
+
 
 
 def _validate_intent_ttl(value: str | None) -> int:
@@ -609,7 +636,7 @@ def _check_skill_first_gate(data: dict) -> dict | None:
         from skill_execution_state import read_pending_state
 
         state = read_pending_state()
-        if state and str(state.get("skill", "")).lower() == skill_name.lower():
+        if state and _skill_names_match(str(state.get("skill", "")), skill_name):
             skill_loaded = True
     except Exception:
         # skill_execution_state unavailable — fail CLOSED (skill_loaded stays False →
@@ -800,6 +827,7 @@ def _log_pretooluse_block_event(
     raw_stdout: object = "",
     raw_stderr: object = "",
     artifact_path: str = "",
+    correlation_id: str | None = None,
 ) -> None:
     try:
         entry = build_pretooluse_block_entry(
@@ -813,6 +841,7 @@ def _log_pretooluse_block_event(
             raw_stderr=raw_stderr,
             artifact_path=artifact_path,
             active_turn_id=active_turn_id,
+            correlation_id=correlation_id,
         )
         append_observability_jsonl(
             HOOKS_DIR / "logs" / "diagnostics" / "pretooluse_blocks.jsonl",
@@ -822,7 +851,7 @@ def _log_pretooluse_block_event(
         pass
 
 
-def run_hook(hook_name: str, data: dict) -> dict | None:
+def run_hook(hook_name: str, data: dict, correlation_id: str | None = None) -> dict | None:
     # 0. Content-based filter: skip if command doesn't match hook's trigger patterns
     if hook_name in HOOK_CONTENT_FILTERS:
         command = data.get("tool_input", {}).get("command", "")
@@ -942,6 +971,7 @@ def run_hook(hook_name: str, data: dict) -> dict | None:
                         raw_stderr=result.stderr.decode(errors="replace").strip()
                         if result.stderr
                         else "",
+                        correlation_id=correlation_id,
                     )
                     return payload
 
@@ -966,6 +996,7 @@ def run_hook(hook_name: str, data: dict) -> dict | None:
                         raw_stderr=result.stderr.decode(errors="replace").strip()
                         if result.stderr
                         else "",
+                        correlation_id=correlation_id,
                     )
                     return {"decision": "block", "reason": out, "blocking_hook": hook_name}
                 stderr_content = result.stderr.decode(errors="replace").strip()
@@ -979,6 +1010,7 @@ def run_hook(hook_name: str, data: dict) -> dict | None:
                         child_exit_code=result.returncode,
                         raw_stdout=out,
                         raw_stderr=stderr_content,
+                        correlation_id=correlation_id,
                     )
                     return {
                         "decision": "block",
@@ -1121,6 +1153,7 @@ def main():
     ).strip()
     session_id = _resolve_session_id_from_utils(data)
     active_turn_id = get_active_evidence_turn(session_id, terminal_id) if terminal_id else None
+    correlation_id = str(uuid.uuid4()) if active_turn_id else None
     tool_input_payload = (
         data.get("tool_input", {}) if isinstance(data.get("tool_input"), dict) else {}
     )
@@ -1185,9 +1218,9 @@ def main():
                                         _intent_candidate.read_text(encoding="utf-8")
                                     )
                                     # Verify skill matches before deleting
-                                    if (
-                                        str(_intent_data.get("skill", "")).strip().lower()
-                                        == _skill_being_loaded
+                                    if _skill_names_match(
+                                        str(_intent_data.get("skill", "")),
+                                        _skill_being_loaded,
                                     ):
                                         _intent_candidate.unlink(missing_ok=True)
                                     break  # Read succeeded (match or mismatch); done.
@@ -1241,6 +1274,7 @@ def main():
             reason=_msg,
             event_kind="router_gate_block",
             active_turn_id=str(active_turn_id or ""),
+            correlation_id=correlation_id,
         )
         print(json.dumps(response))
         sys.exit(0)
@@ -1250,7 +1284,7 @@ def main():
     hooks_to_run.extend(COMPAT_POST_ROUTER_HOOKS)
 
     for hook in hooks_to_run:
-        res = run_hook(hook, data)
+        res = run_hook(hook, data, correlation_id=correlation_id)
         if not res:
             continue
 
@@ -1331,6 +1365,7 @@ def main():
                 active_turn_id=str(active_turn_id or ""),
                 source_hook=hook,
                 artifact_path=artifact_path,
+                correlation_id=correlation_id,
             )
             if active_turn_id:
                 append_ledger_event(

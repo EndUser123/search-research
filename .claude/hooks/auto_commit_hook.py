@@ -5,10 +5,16 @@ import subprocess
 import sys
 from collections import Counter
 from datetime import datetime
+from pathlib import Path
+
 import logging as _li
 _logger = _li.getLogger(__name__)
-
-from pathlib import Path
+_hook_log_dir = Path(__file__).resolve().parent / "logs" / "diagnostics"
+_hook_log_dir.mkdir(parents=True, exist_ok=True)
+_handler = _li.FileHandler(_hook_log_dir / "hook_stderr.log", encoding="utf-8")
+_handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
+_logger.addHandler(_handler)
+_logger.setLevel(_li.WARNING)
 
 # Setup path for local imports BEFORE importing local modules
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -113,7 +119,8 @@ def run_git_command(args: list[str], cwd: Path) -> subprocess.CompletedProcess:
     # Add CREATE_NO_WINDOW on Windows to prevent console flash
     creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
     return subprocess.run(
-        ["git"] + args, capture_output=True, text=True, cwd=str(cwd), creationflags=creation_flags
+        ["git"] + args, capture_output=True, text=True, cwd=str(cwd), creationflags=creation_flags,
+        timeout=30,
     )
 
 
@@ -359,7 +366,7 @@ def auto_commit_all() -> bool:
 
     Returns True if any changes were committed.
     """
-    root = Path.cwd().parent.parent  # From hooks/ to P:/
+    root = PROJECT_ROOT
 
     repos_with_changes = find_repos_with_changes(root)
 

@@ -185,6 +185,11 @@
           },
           {
             "type": "command",
+            "command": "python P:/packages/cc-aca-authority/__lib/router.py UserPromptSubmit",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "python P:/.claude/hooks/log_hook.py",
             "timeout": 5
           }
@@ -218,6 +223,11 @@
           {
             "type": "command",
             "command": "python P:/packages/skill-guard/src/skill_guard/__lib/router.py PreToolUse",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python P:/packages/cc-aca-authority/__lib/router.py PreToolUse",
             "timeout": 10
           },
           {
@@ -324,6 +334,11 @@
           {
             "type": "command",
             "command": "python P:/packages/skill-guard/src/skill_guard/__lib/router.py Stop",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python P:/packages/cc-aca-authority/__lib/router.py Stop",
             "timeout": 10
           },
           {
