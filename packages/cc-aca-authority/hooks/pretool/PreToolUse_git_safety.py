@@ -313,6 +313,12 @@ def check_worktree_cross_contamination(
         if is_test_file_operation(file_path):
             return {"continue": True, "decision": "allow"}
 
+        # MEMORY FILE EXEMPTION: memory files are session-persistent,
+        # not worktree-scoped — always allow writes
+        normalized = file_path.replace(chr(92), '/').lower()
+        if '/.claude/projects/' in normalized and '/memory/' in normalized:
+            return {"continue": True, "decision": "allow"}
+
         try:
             cwd = Path.cwd().resolve()
             worktree = get_current_worktree(cwd)

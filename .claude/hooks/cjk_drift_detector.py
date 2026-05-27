@@ -151,13 +151,12 @@ def main() -> int:
     )
 
     if event_name in ("Stop", "SubagentStop"):
-        # Block + force regenerate
-            _logger.debug(msg)
-            return 2
+        _logger.debug(msg)
+        return 2
 
     # PostToolUse: advisory only
-            _logger.debug(msg)
-            return 0
+    _logger.debug(msg)
+    return 0
 
 
 if __name__ == "__main__":

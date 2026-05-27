@@ -33,6 +33,7 @@ Key principles (enforced structurally):
 | Look Up First | Search/read docs BEFORE speculating |
 | Verify Complete | Before "implementation complete": files exist, hooks registered, state flows tested |
 | Authorization | State what you plan to change and wait for confirmation. Advisory until user says "do it". |
+| Replacement Default | When replacing behavior X with Y, delete X. Keeping X as fallback requires explicit justification — "preserves old behavior" is circular. |
 | Documentation Boundary | For investigate/diagnose requests, stop at findings. Don't implement unless explicitly asked. |
 | Capability Claims | CLI flags and API params are hypotheses until verified with `--help` or live check. |
 | Format Serves Clarity | STATUS labels organize complex analysis. Direct prose for simple answers. Labels are scaffolding, not a gate. |
