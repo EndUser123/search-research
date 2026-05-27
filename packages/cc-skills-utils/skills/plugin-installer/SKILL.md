@@ -54,6 +54,18 @@ The audit script uses **quality-aware conflict resolution** when both sides have
    python3 "P:/packages/cc-skills-utils/scripts/plugin-audit-and-fix.py" --packages-root "P:/packages" --drift
    ```
 
+   If drift detected, **auto-bump** each drifted plugin to propagate source changes to cache:
+   ```bash
+   python3 "P:/packages/cc-skills-utils/scripts/plugin-audit-and-fix.py" --bump <name> --marketplace-root "P:/packages/.claude-marketplace"
+   ```
+
+   After bumping all drifted plugins:
+   ```bash
+   claude plugin marketplace update local
+   ```
+
+   Skip bump only for plugins with **conflicts** (flagged during step 1) — those need manual review first.
+
 4. **Validate** all marketplace plugins:
    ```bash
    python3 "P:/packages/cc-skills-utils/scripts/plugin-audit-and-fix.py" --validate --marketplace-root "P:/packages/.claude-marketplace"

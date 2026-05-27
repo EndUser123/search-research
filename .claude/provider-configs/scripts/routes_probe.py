@@ -479,20 +479,18 @@ else:
 
     lat_history = load_latency_history()
 
-    ok_probe_count = 0
-    err_probe_count = 0
-    for i, rule in enumerate(rules, 1):
+    def probe_route(idx, rule):
+        """Probe a single route. Returns (idx, rule, result_dict)."""
         mn = extract_model(rule["cel"])
         quota = MODEL_QUOTA.get(mn, "")
         if not mn:
-            print(f"  {pad_to(str(i), 3)} {pad_to(rule['id'], max_model)} [no model in CEL]")
-            continue
+            return (idx, rule, {"skip": True})
         payload = json.dumps({
             "model": mn,
             "messages": [{"role": "user", "content": "test"}],
             "max_tokens": 1,
         }).encode("utf-8")
-        def probe_once():
+        def _probe():
             req2 = urllib.request.Request(
                 f"{bifrost_url}/v1/chat/completions",
                 data=payload,
@@ -501,38 +499,54 @@ else:
             )
             return urllib.request.urlopen(req2, timeout=15)
 
-        try:
-            resp = probe_once()
-        except Exception as e:
-            err_raw = str(e).splitlines()[0]
-            err_str = short_error(err_raw)
-            if err_str in ("Timeout", "500 Server Error"):
-                try:
-                    resp = probe_once()
-                except Exception as e2:
-                    err_raw = str(e2).splitlines()[0]
-                    err_str = short_error(err_raw)
-                    err_col = f"\033[91m{err_str}\033[0m"
-                    avg_str = avg_latency_str(lat_history, mn)
-                    print(f"   {pad_to(str(i), 3)} {pad_to(mn, max_model)} {pad_ansi(err_col, prov_w)} {'':>9} {pad_to(quota, quota_w)} {pad_to(avg_str, avg_w)}")
-                    err_probe_count += 1
+        retries = 0
+        while True:
+            try:
+                resp = _probe()
+                break
+            except Exception as e:
+                err_raw = str(e).splitlines()[0]
+                err_str = short_error(err_raw)
+                if err_str in ("Timeout", "500 Server Error") and retries < 1:
+                    retries += 1
                     continue
-            else:
-                err_col = f"\033[91m{err_str}\033[0m"
-                avg_str = avg_latency_str(lat_history, mn)
-                print(f"   {pad_to(str(i), 3)} {pad_to(mn, max_model)} {pad_ansi(err_col, prov_w)} {'':>9} {pad_to(quota, quota_w)} {pad_to(avg_str, avg_w)}")
-                err_probe_count += 1
-                continue
+                return (idx, rule, {"error": err_str, "quota": quota})
         body = json.loads(resp.read().decode("utf-8"))
         extra = body.get("extra_fields", {})
         prov = extra.get("provider", "UNKNOWN")
         lat  = extra.get("latency", 0)
-        lat_str = f"{int(lat):,}ms"
-        record_latency(lat_history, mn, lat)
+        return (idx, rule, {"provider": prov, "latency": lat, "quota": quota})
+
+    import concurrent.futures
+    results = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(rules), 16)) as pool:
+        futures = {pool.submit(probe_route, i, r): i for i, r in enumerate(rules, 1)}
+        for fut in concurrent.futures.as_completed(futures):
+            idx, rule, res = fut.result()
+            results[idx] = (rule, res)
+            if "latency" in res:
+                mn = extract_model(rule["cel"]) or ""
+                record_latency(lat_history, mn, res["latency"])
+
+    ok_probe_count = 0
+    err_probe_count = 0
+    for i in sorted(results.keys()):
+        rule, res = results[i]
+        mn = extract_model(rule["cel"]) or rule["cel"]
+        quota = res.get("quota", MODEL_QUOTA.get(mn, ""))
+        if res.get("skip"):
+            print(f"   {pad_to(str(i), 3)} {pad_to(rule['id'], max_model)} [no model in CEL]")
+            continue
         avg_str = avg_latency_str(lat_history, mn)
-        prov_col = f"\033[92m{prov}\033[0m" if prov == rule["provider"] else f"\033[93m{prov}\033[0m"
-        print(f"   {pad_to(str(i), 3)} {pad_to(mn, max_model)} {pad_ansi(prov_col, prov_w)} {lat_str:>9} {pad_to(quota, quota_w)} {pad_to(avg_str, avg_w)}")
-        ok_probe_count += 1
+        if "error" in res:
+            err_col = f"\033[91m{res['error']}\033[0m"
+            print(f"   {pad_to(str(i), 3)} {pad_to(mn, max_model)} {pad_ansi(err_col, prov_w)} {'':>9} {pad_to(quota, quota_w)} {pad_to(avg_str, avg_w)}")
+            err_probe_count += 1
+        else:
+            lat_str = f"{int(res['latency']):,}ms"
+            prov_col = f"\033[92m{res['provider']}\033[0m" if res["provider"] == rule["provider"] else f"\033[93m{res['provider']}\033[0m"
+            print(f"   {pad_to(str(i), 3)} {pad_to(mn, max_model)} {pad_ansi(prov_col, prov_w)} {lat_str:>9} {pad_to(quota, quota_w)} {pad_to(avg_str, avg_w)}")
+            ok_probe_count += 1
 
     save_latency_history(lat_history)
     if err_probe_count == 0:

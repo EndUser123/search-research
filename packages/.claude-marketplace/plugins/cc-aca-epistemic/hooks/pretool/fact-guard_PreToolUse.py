@@ -70,9 +70,7 @@ def _get_exempt_facts(target_file: str) -> set:
         
         # Read frontmatter
         text = skill_dir.joinpath("SKILL.md").read_text(encoding="utf-8")
-        match = re.match(r"^---
-(.*?)
----", text, re.DOTALL)
+        match = re.match(r"^---\n(.*?)\n---", text, re.DOTALL)
         if not match:
             return set()
         
@@ -87,7 +85,7 @@ def _get_exempt_facts(target_file: str) -> set:
                 if rest.endswith("]"):
                     rest = rest[:-1]
                 for item in rest.split(","):
-                    item = item.strip().strip("'"").strip()
+                    item = item.strip().strip("'\"").strip()
                     if item:
                         exempt.add(item)
                 break

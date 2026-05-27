@@ -72,8 +72,10 @@ class HookImporter:
         self.hooks_dir = Path(hooks_dir)
         self._cache: dict[str, Any] = {}
         self._diag_dir = self.hooks_dir / "logs" / "diagnostics"
-        # Track source file mtimes to proactively clear stale bytecode before import failures.
-        # Cleared when source mtime advances — covers both subprocess and in-process invocations.
+        # Layer 1 of 4-layer bytecode integrity defense.
+        # Layers: (1) mtime tracking here (2) PYTHONDONTWRITEBYTECODE in hook_runner.py
+        # (3) PostToolUse_hook_bytecode_guard.py for in-session edits (4) path_sanitizer.py
+        # CKS decision: "Bytecode Integrity: Four-Layer Defense Architecture"
         self._source_mtimes: dict[str, float] = {}
 
     def _fallback_log_diag(self, filename: str, payload: dict[str, Any]) -> None:
