@@ -2335,7 +2335,7 @@ def _clear_referent_anchors(data: dict) -> None:
                 sys.path.insert(0, lib_path)
             from terminal_detection import detect_terminal_id
             tid = detect_terminal_id()
-        state_file = Path(__file__).resolve().parent / "state" / f"referent_anchors_{tid}.json"
+        state_file = Path.home() / ".claude" / ".artifacts" / str(tid) / "referent_anchors.json"
         if state_file.exists():
             state_file.unlink()
     except Exception:

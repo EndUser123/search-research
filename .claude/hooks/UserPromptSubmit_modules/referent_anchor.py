@@ -22,7 +22,8 @@ from pathlib import Path
 from UserPromptSubmit_modules.base import HookContext, HookResult
 from UserPromptSubmit_modules.registry import register_hook
 
-STATE_DIR = Path(__file__).resolve().parent.parent / "state"
+def _state_path(terminal_id: str) -> Path:
+    return Path.home() / ".claude" / ".artifacts" / terminal_id / "referent_anchors.json"
 
 _REFERENTIAL_PRONOUNS = re.compile(
     r"\b(?:those|them|any\s+of\s+(?:those|these)|these|which\s+of\s+those)\b",
@@ -112,7 +113,7 @@ def _get_terminal_id(context: HookContext) -> str:
 
 
 def _read_state(terminal_id: str) -> dict | None:
-    state_file = STATE_DIR / f"referent_anchors_{terminal_id}.json"
+    state_file = _state_path(terminal_id)
     if not state_file.exists():
         return None
     try:
@@ -139,8 +140,8 @@ def _write_state(
 
     # Single-turn lifecycle: always write current state.
     # Anchors are cleared at Stop, so no cross-turn preservation needed.
-    STATE_DIR.mkdir(parents=True, exist_ok=True)
-    state_file = STATE_DIR / f"referent_anchors_{terminal_id}.json"
+    state_file = _state_path(terminal_id)
+    state_file.parent.mkdir(parents=True, exist_ok=True)
     data = {
         "anchor_terms": anchor_terms or [],
         "source_type": source_type,
@@ -209,6 +210,6 @@ def referent_anchor_hook(context: HookContext) -> HookResult:
 #   Set when user says "and anything else", "also check", "or other",
 #   "plus any" — signals they want broader coverage beyond explicit items.
 #
-# State file: state/referent_anchors_{terminal_id}.json
-#   Per-terminal isolation prevents cross-terminal anchor contamination.
+# State file: ~/.claude/.artifacts/{terminal_id}/referent_anchors.json
+#   Follows artifacts path convention for per-terminal isolation.
 # ---------------------------------------------------------------------------

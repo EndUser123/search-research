@@ -37,8 +37,9 @@ class TestSessionBoundaryAnchorClearing:
         self.state_dir = Path(self.tmpdir)
 
     def _patch_state_dir(self, monkeypatch):
-        import referent_anchor
-        monkeypatch.setattr(referent_anchor, "STATE_DIR", self.state_dir)
+        # _state_path uses Path.home() / .claude / .artifacts / {tid} / referent_anchors.json
+        # Patch Path.home() so state files land in our tmpdir
+        monkeypatch.setattr("pathlib.Path.home", lambda: self.state_dir)
 
     def test_anchors_cleared_on_session_change(self, monkeypatch):
         """Anchors from session A are discarded when session B writes."""
@@ -176,43 +177,34 @@ class TestSkillNamesMatch:
 # ---------------------------------------------------------------------------
 
 class TestStopSideAnchorClearing:
-    """_clear_referent_anchors in Stop.py deletes anchor state files."""
+    """_clear_referent_anchors in Stop.py deletes anchor state files from artifacts path."""
 
     def test_clears_existing_anchor_file(self, monkeypatch, tmp_path):
-        """Stop gate deletes the anchor state file if it exists."""
-        state_dir = tmp_path / "state"
-        state_dir.mkdir()
-        state_file = state_dir / "referent_anchors_console_test.json"
+        """Stop gate deletes the anchor state file from artifacts/{terminal_id}/."""
+        artifacts_dir = tmp_path / ".claude" / ".artifacts" / "console_test"
+        artifacts_dir.mkdir(parents=True)
+        state_file = artifacts_dir / "referent_anchors.json"
         state_file.write_text('{"anchor_terms": ["foo"]}', encoding="utf-8")
         assert state_file.exists()
 
-        # Import Stop.py's _clear_referent_anchors
         import importlib
         stop_mod = importlib.import_module("Stop")
-        # Patch __file__ so the function resolves to our tmp state dir
-        monkeypatch.setattr(stop_mod, "__file__", str(tmp_path / "Stop.py"))
+        monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
         stop_mod._clear_referent_anchors({"terminal_id": "console_test"})
 
         assert not state_file.exists()
 
     def test_no_error_when_no_anchor_file(self, monkeypatch, tmp_path):
         """Stop gate silently succeeds when no anchor file exists."""
-        state_dir = tmp_path / "state"
-        state_dir.mkdir()
-
         import importlib
         stop_mod = importlib.import_module("Stop")
-        monkeypatch.setattr(stop_mod, "__file__", str(tmp_path / "Stop.py"))
-        # Should not raise
+        monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
         stop_mod._clear_referent_anchors({"terminal_id": "console_noanchor"})
 
     def test_returns_none(self, monkeypatch, tmp_path):
         """Gate returns None (non-blocking, always allows)."""
-        state_dir = tmp_path / "state"
-        state_dir.mkdir()
-
         import importlib
         stop_mod = importlib.import_module("Stop")
-        monkeypatch.setattr(stop_mod, "__file__", str(tmp_path / "Stop.py"))
+        monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
         result = stop_mod._clear_referent_anchors({"terminal_id": "console_test"})
         assert result is None

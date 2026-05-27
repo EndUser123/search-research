@@ -8,7 +8,7 @@ extracted by UserPromptSubmit_referent_anchor.py from the user's message.
 Problem: LLM investigates wrong entities when user message listed specific
 items in a table/list with referential language ("those", "them").
 
-State file: .claude/state/referent_anchors_{terminal_id}.json
+State file: ~/.claude/.artifacts/{terminal_id}/referent_anchors.json
 Written by: UserPromptSubmit_referent_anchor.py
 Cleared by: _clear_referent_anchors in Stop.py (single-turn lifecycle)
 
@@ -26,7 +26,8 @@ import sys
 import time
 from pathlib import Path
 
-STATE_DIR = Path(__file__).resolve().parent / "state"
+def _state_path(terminal_id: str) -> Path:
+    return Path.home() / ".claude" / ".artifacts" / terminal_id / "referent_anchors.json"
 GATED_TOOLS = {"Bash", "Grep", "Glob"}
 EXEMPT_TOOLS_FOR_EXPLORATION = {"Read", "Glob"}  # First Read/Glob allowed without overlap
 
@@ -50,7 +51,7 @@ def _get_terminal_id(data: dict) -> str:
 
 
 def _read_state(terminal_id: str) -> dict | None:
-    state_file = STATE_DIR / f"referent_anchors_{terminal_id}.json"
+    state_file = _state_path(terminal_id)
     if not state_file.exists():
         return None
     try:
@@ -60,8 +61,8 @@ def _read_state(terminal_id: str) -> dict | None:
 
 
 def _write_state(terminal_id: str, state: dict) -> None:
-    STATE_DIR.mkdir(parents=True, exist_ok=True)
-    state_file = STATE_DIR / f"referent_anchors_{terminal_id}.json"
+    state_file = _state_path(terminal_id)
+    state_file.parent.mkdir(parents=True, exist_ok=True)
     state_file.write_text(json.dumps(state, ensure_ascii=False), encoding="utf-8")
 
 
