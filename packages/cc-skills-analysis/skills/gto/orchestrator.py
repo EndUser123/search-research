@@ -341,26 +341,23 @@ def run(argv: list[str] | None = None) -> int:
     verification_findings = detect_missing_verification_evidence(root, args.terminal_id, args.session_id, settings.git_sha)
     findings.extend(verification_findings)
 
-    # Phase 1.4: Changelog detection — files changed since previous GTO run
-    changelog_findings = detect_changelog_findings(
-        root, prev_git_sha, settings.git_sha,
-        args.terminal_id, args.session_id, settings.git_sha,
-    )
-    findings.extend(changelog_findings)
-
-    # Capture changed files for carryover decay check
-    from .__lib.changelog import get_changed_files as _get_changed_files
-    changed_files_for_decay = (
-        _get_changed_files(root, prev_git_sha, settings.git_sha)
-        if prev_git_sha and settings.git_sha and prev_git_sha != settings.git_sha
-        else []
-    )
-
     # Phase 1.5: Resolve transcript from identity.json (hook-captured, no scanning)
     transcript_path = _resolve_transcript_from_identity(args.terminal_id)
 
     # Phase 1.6: Extract files edited this session from transcript tool calls
     session_edited_files = extract_edited_files(transcript_path, root) if transcript_path else []
+
+    # Phase 1.4: Changelog detection — files edited in session, mapped to skills
+    changelog_findings = detect_changelog_findings(
+        session_edited_files,
+        terminal_id=args.terminal_id,
+        session_id=args.session_id,
+        git_sha=settings.git_sha,
+    )
+    findings.extend(changelog_findings)
+
+    # Session-edited files used for carryover decay and gap reviewer handoff
+    changed_files_for_decay = session_edited_files
 
     # Phase 1.7: Build session chain from session registry
     chain = _load_session_chain(args.terminal_id)
@@ -418,9 +415,12 @@ def run(argv: list[str] | None = None) -> int:
     )
     findings.extend(hook_error_findings)
 
-    # Phase 1.15: Workflow hygiene — uncommitted changes in working tree
+    # Phase 1.15: Workflow hygiene — session-edited files from transcript
     hygiene_findings = detect_workflow_hygiene(
-        root, args.terminal_id, args.session_id, settings.git_sha,
+        session_edited_files,
+        terminal_id=args.terminal_id,
+        session_id=args.session_id,
+        git_sha=settings.git_sha,
     )
     findings.extend(hygiene_findings)
 
