@@ -393,7 +393,7 @@ class CHSSearch:
     def _search_jsonl_deep(
         self, query: str, workspace: str | None, branch: str | None, tool: str | None, limit: int
     ) -> list[dict[str, Any]]:
-        """Deep search of JSONL content."""
+        """Deep search of JSONL content — streams line-by-line to avoid loading full files."""
         results = []
         projects_path = Path.home() / ".claude" / "projects"
         if not projects_path.exists():
@@ -407,17 +407,20 @@ class CHSSearch:
                         continue
                 for jsonl_file in project_dir.glob("*.jsonl"):
                     try:
+                        match_count = 0
                         with open(jsonl_file, encoding="utf-8") as f:
-                            content = f.read()
-                            if query_lower in content.lower():
-                                results.append(
-                                    {
-                                        "session_id": jsonl_file.stem,
-                                        "workspace": project_dir.name,
-                                        "file": str(jsonl_file),
-                                        "match_count": content.lower().count(query_lower),
-                                    }
-                                )
+                            for line in f:
+                                if query_lower in line.lower():
+                                    match_count += 1
+                        if match_count > 0:
+                            results.append(
+                                {
+                                    "session_id": jsonl_file.stem,
+                                    "workspace": project_dir.name,
+                                    "file": str(jsonl_file),
+                                    "match_count": match_count,
+                                }
+                            )
                     except OSError:
                         continue
         return sorted(results, key=lambda x: x["match_count"], reverse=True)[:limit]
@@ -989,9 +992,25 @@ def main():
                 output_path=Path(args.output) if args.output else None,
                 max_sessions=args.max_sessions,
             )
+            file_size = out.stat().st_size
             text = out.read_text(encoding="utf-8")
             session_count = text.count("\n## Session ")
-            print(f"Exported {session_count} session(s) to: {out}")
+            # Rough token estimate: ~4 chars per token
+            est_tokens = file_size // 4
+            metadata = {
+                "path": str(out),
+                "session_count": session_count,
+                "file_size_bytes": file_size,
+                "file_size_kb": round(file_size / 1024, 1),
+                "estimated_tokens": est_tokens,
+                "context_safe": est_tokens < 20_000,
+                "recommendation": (
+                    "read_file" if est_tokens < 20_000
+                    else "delegate_to_subagent" if est_tokens < 100_000
+                    else "export_is_too_large_use_filters"
+                ),
+            }
+            print(json.dumps(metadata, indent=2))
         except ValueError as exc:
             print(f"Export failed: {exc}", file=sys.stderr)
             return 1

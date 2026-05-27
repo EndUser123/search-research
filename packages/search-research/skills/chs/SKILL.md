@@ -224,12 +224,25 @@ python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --ses
 - `--output` is optional; if omitted, the CLI writes to `~/.claude/exports/chain_<timestamp>.md`
 - `--exclude-thinking` removes thinking blocks from the export
 - `--include-tool-results` keeps raw tool results in the export
+- `--max-sessions` limits chain length (default 30, recommend 5 for context-safe exports)
+
+**Context protection rules:**
+
+The CLI returns JSON metadata with `context_safe` and `recommendation` fields. Follow the recommendation:
+
+| `recommendation` | Action |
+|---|---|
+| `read_file` | Safe to read the export into context (<20K tokens) |
+| `delegate_to_subagent` | Too large for main context. Spawn a subagent to read, summarize, and return key findings |
+| `export_is_too_large_use_filters` | >100K tokens. Re-export with `--max-sessions 3 --exclude-thinking` or targeted `--session-id` |
+
+**Default behavior:** Report the export path and metadata. Do NOT read the file into context unless `context_safe` is true.
 
 **Examples:**
 
 ```bash
-# Export the current session chain
-python P://packages/search-research/skills/chs/scripts/chs_cli.py --export
+# Export the current session chain (bounded for context safety)
+python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --max-sessions 5 --exclude-thinking
 
 # Export a specific session chain
 python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id abc123
@@ -237,6 +250,36 @@ python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --ses
 # Export to a specific file
 python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id abc123 --output P://tmp/chs-export.md
 ```
+
+### 7.5. Subagent Delegation for Summarization
+
+When using summarization modes (`--mode documentation`, `--mode debug-postmortem`, etc.) or processing large exports, delegate to a subagent to protect main context:
+
+**When to delegate:**
+- Export metadata shows `context_safe: false`
+- Using `--mode documentation` or `--mode debug-postmortem` on sessions with >50 messages
+- User asks to "analyze" or "summarize" a session chain
+
+**Delegation pattern:**
+
+```python
+Agent(
+    subagent_type="general-purpose",
+    description="CHS summarization",
+    prompt="""Read the chat history export at: {export_path}
+
+Produce a {mode} summary following the /chs format.
+
+Rules:
+- Extract key decisions, changes, and patterns
+- List files modified with descriptions
+- Note any dead ends, abandoned approaches, or deferred items
+- Keep output under 2000 tokens
+- Return ONLY the summary, no meta-commentary"""
+)
+```
+
+**For search results:** If a search returns >5 results or the user asks for deep analysis, delegate processing to a subagent rather than reading all results into main context.
 
 ### 8. Branch-Based Filtering
 
