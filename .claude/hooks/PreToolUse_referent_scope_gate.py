@@ -10,7 +10,7 @@ items in a table/list with referential language ("those", "them").
 
 State file: .claude/state/referent_anchors_{terminal_id}.json
 Written by: UserPromptSubmit_referent_anchor.py
-Cleared by: Stop_referent_coverage (in Stop.py)
+Cleared by: _clear_referent_anchors in Stop.py (single-turn lifecycle)
 
 Three-state contract:
 1. State file with anchor_terms -> gate active, enforce overlap

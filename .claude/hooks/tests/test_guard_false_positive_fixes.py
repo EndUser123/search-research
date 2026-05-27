@@ -54,8 +54,8 @@ class TestSessionBoundaryAnchorClearing:
         assert state.get("anchor_terms") == []
         assert state.get("status") == "no_anchors"
 
-    def test_anchors_preserved_same_session(self, monkeypatch):
-        """Anchors persist when follow-up message has same session_id."""
+    def test_no_anchors_overwrites_same_session(self, monkeypatch):
+        """Single-turn lifecycle: no_anchors always overwrites, even same session."""
         from referent_anchor import _write_state, _read_state
         self._patch_state_dir(monkeypatch)
 
@@ -65,8 +65,8 @@ class TestSessionBoundaryAnchorClearing:
 
         state = _read_state(tid)
         assert state is not None
-        assert state.get("anchor_terms") == ["foo", "bar"]
-        assert "status" not in state
+        assert state.get("anchor_terms") == []
+        assert state.get("status") == "no_anchors"
 
     def test_new_anchors_overwrite_on_session_change(self, monkeypatch):
         """New anchors from session B overwrite stale session A anchors."""
@@ -82,8 +82,8 @@ class TestSessionBoundaryAnchorClearing:
         assert state.get("anchor_terms") == ["new_item"]
         assert state.get("source_type") == "list"
 
-    def test_no_session_id_preserves_existing(self, monkeypatch):
-        """When session_id is None, existing anchors are preserved (backward compat)."""
+    def test_no_session_id_always_overwrites(self, monkeypatch):
+        """Single-turn lifecycle: no_anchors overwrites even without session_id."""
         from referent_anchor import _write_state, _read_state
         self._patch_state_dir(monkeypatch)
 
@@ -93,10 +93,11 @@ class TestSessionBoundaryAnchorClearing:
 
         state = _read_state(tid)
         assert state is not None
-        assert state.get("anchor_terms") == ["foo"]
+        assert state.get("anchor_terms") == []
+        assert state.get("status") == "no_anchors"
 
-    def test_empty_session_id_preserves_existing(self, monkeypatch):
-        """When session_id is empty string, existing anchors are preserved."""
+    def test_empty_session_id_always_overwrites(self, monkeypatch):
+        """Single-turn lifecycle: no_anchors overwrites even with empty session_id."""
         from referent_anchor import _write_state, _read_state
         self._patch_state_dir(monkeypatch)
 
@@ -106,7 +107,8 @@ class TestSessionBoundaryAnchorClearing:
 
         state = _read_state(tid)
         assert state is not None
-        assert state.get("anchor_terms") == ["foo"]
+        assert state.get("anchor_terms") == []
+        assert state.get("status") == "no_anchors"
 
 
 # ---------------------------------------------------------------------------
@@ -167,3 +169,50 @@ class TestSkillNamesMatch:
         """Two different plugins with same short name should match (correct behavior
         since they resolve to the same skill at runtime)."""
         assert _skill_names_match("plugin-a:design", "plugin-b:design") is True
+
+
+# ---------------------------------------------------------------------------
+# 3. SINGLE-TURN LIFECYCLE: Stop-side anchor clearing
+# ---------------------------------------------------------------------------
+
+class TestStopSideAnchorClearing:
+    """_clear_referent_anchors in Stop.py deletes anchor state files."""
+
+    def test_clears_existing_anchor_file(self, monkeypatch, tmp_path):
+        """Stop gate deletes the anchor state file if it exists."""
+        state_dir = tmp_path / "state"
+        state_dir.mkdir()
+        state_file = state_dir / "referent_anchors_console_test.json"
+        state_file.write_text('{"anchor_terms": ["foo"]}', encoding="utf-8")
+        assert state_file.exists()
+
+        # Import Stop.py's _clear_referent_anchors
+        import importlib
+        stop_mod = importlib.import_module("Stop")
+        # Patch __file__ so the function resolves to our tmp state dir
+        monkeypatch.setattr(stop_mod, "__file__", str(tmp_path / "Stop.py"))
+        stop_mod._clear_referent_anchors({"terminal_id": "console_test"})
+
+        assert not state_file.exists()
+
+    def test_no_error_when_no_anchor_file(self, monkeypatch, tmp_path):
+        """Stop gate silently succeeds when no anchor file exists."""
+        state_dir = tmp_path / "state"
+        state_dir.mkdir()
+
+        import importlib
+        stop_mod = importlib.import_module("Stop")
+        monkeypatch.setattr(stop_mod, "__file__", str(tmp_path / "Stop.py"))
+        # Should not raise
+        stop_mod._clear_referent_anchors({"terminal_id": "console_noanchor"})
+
+    def test_returns_none(self, monkeypatch, tmp_path):
+        """Gate returns None (non-blocking, always allows)."""
+        state_dir = tmp_path / "state"
+        state_dir.mkdir()
+
+        import importlib
+        stop_mod = importlib.import_module("Stop")
+        monkeypatch.setattr(stop_mod, "__file__", str(tmp_path / "Stop.py"))
+        result = stop_mod._clear_referent_anchors({"terminal_id": "console_test"})
+        assert result is None

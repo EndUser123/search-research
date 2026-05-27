@@ -6,12 +6,9 @@ lists/tables combined with referential language ("those", "them", etc.).
 Writes anchor terms to a terminal-scoped state file consumed by
 PreToolUse_referent_scope_gate.py.
 
-Problem: When a user lists items in a table/bullet list and says
-"investigate those", the LLM sometimes investigates unrelated entities
-from prior sessions instead of the explicitly listed items.
-
-Solution: Extract the listed entities as anchor terms so the PreToolUse
-gate can block off-topic tool calls.
+Lifecycle: Single-turn. Anchors are created on UserPromptSubmit, used
+during PreToolUse gating, and cleared by Stop.py at end of turn.
+No cross-turn persistence — prevents stale-anchor lock after topic shifts.
 """
 
 from __future__ import annotations
@@ -52,14 +49,12 @@ _BULLET_ITEM = re.compile(r"^[ \t]*[-*]\s+(.+)$", re.MULTILINE)
 def _extract_table_rows(text: str) -> list[str]:
     """Extract first-column text from markdown table rows, skipping headers."""
     lines = text.splitlines()
-    # First pass: identify header rows (line immediately before a separator)
     header_indices: set[int] = set()
     for i, raw_line in enumerate(lines):
         if re.match(r"^\s*\|[\s\-:|]+\|\s*$", raw_line):
             if i > 0:
                 header_indices.add(i - 1)
 
-    # Second pass: extract cells, skipping headers and separators
     rows: list[str] = []
     for i, raw_line in enumerate(lines):
         line = raw_line.strip()
@@ -99,11 +94,6 @@ def _has_expansion_language(text: str) -> bool:
 
 
 def _has_investigative_verb(text: str) -> bool:
-    """Check if text contains an investigative verb (investigate, check, etc.).
-
-    Reduces false positives when a table/list appears without a clear investigation
-    intent (e.g. 'here's the output: | foo | bar |' should not trigger anchor creation).
-    """
     return bool(_INVESTIGATIVE_VERBS.search(text))
 
 
@@ -141,19 +131,14 @@ def _write_state(
     existing = _read_state(terminal_id)
 
     # Session boundary: if session_id changed (compaction, new session),
-    # discard stale anchors from the previous session. Anchors are only valid
-    # within the session that created them — after compaction the context they
-    # reference no longer exists in full.
+    # discard stale anchors from the previous session.
     if existing and existing.get("anchor_terms") and session_id:
         prev_session = existing.get("session_id", "")
         if prev_session and prev_session != session_id:
-            existing = None  # Fall through to write fresh state
+            existing = None
 
-    # Don’t overwrite active anchors with no_anchors — subsequent messages
-    # without tables shouldn’t erase anchor terms from a prior message.
-    if anchor_terms is None and existing and existing.get("anchor_terms") and "status" not in existing:
-        return  # Preserve existing active anchors (same session, no new list)
-
+    # Single-turn lifecycle: always write current state.
+    # Anchors are cleared at Stop, so no cross-turn preservation needed.
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     state_file = STATE_DIR / f"referent_anchors_{terminal_id}.json"
     data = {
@@ -176,7 +161,6 @@ def referent_anchor_hook(context: HookContext) -> HookResult:
     prompt = context.prompt or ""
     terminal_id = _get_terminal_id(context)
 
-    # Short-circuit: no structural content markers AND no referential pronouns
     has_table = "|" in prompt
     has_bullets = bool(_BULLET_ITEM.search(prompt))
     has_referential = _has_referential_language(prompt)
@@ -185,7 +169,6 @@ def referent_anchor_hook(context: HookContext) -> HookResult:
         _write_state(terminal_id, None, "none", context.session_id)
         return HookResult.empty()
 
-    # Extract anchor terms from whichever structured format is present
     anchor_terms_raw: list[str] = []
     source_type = "none"
 
@@ -201,16 +184,12 @@ def referent_anchor_hook(context: HookContext) -> HookResult:
             anchor_terms_raw = bullet_items
             source_type = "list"
 
-    # Need ALL THREE: structured content AND referential language AND investigative verb
-    # to activate. This prevents false positives when a table/list appears without
-    # a clear investigation intent (e.g. "here's the output: | foo | bar |").
     if not anchor_terms_raw or not has_referential or not _has_investigative_verb(prompt):
         _write_state(terminal_id, None, source_type, context.session_id)
         return HookResult.empty()
 
-    # Normalize terms for matching
     anchor_terms = [_normalize_term(t) for t in anchor_terms_raw]
-    anchor_terms = [t for t in anchor_terms if t]  # Remove empty
+    anchor_terms = [t for t in anchor_terms if t]
 
     bypass_scope = _has_expansion_language(prompt)
     _write_state(terminal_id, anchor_terms, source_type, context.session_id, bypass_scope)
@@ -219,25 +198,16 @@ def referent_anchor_hook(context: HookContext) -> HookResult:
 
 
 # ---------------------------------------------------------------------------
-# Self-check: referent_anchor behavior summary
-# ---------------------------------------------------------------------------
+# Lifecycle: Single-turn (created on UPS, cleared at Stop).
+#
 # Activation conditions (ALL must be true):
 #   1. ≥3 table rows OR ≥3 bullet items in the user message
 #   2. Referential pronoun present ("those", "them", "these", etc.)
 #   3. Investigative verb nearby ("investigate", "check", "analyze", etc.)
 #
-# Anchor terms are normalized (lowercase, stripped of punctuation) before
-# storage to improve match reliability in Stop.py's _run_referent_coverage.
-#
 # bypass_scope flag:
 #   Set when user says "and anything else", "also check", "or other",
 #   "plus any" — signals they want broader coverage beyond explicit items.
-#   _run_referent_coverage skips its advisory when bypass_scope is True.
-#
-# List-level engagement suppression (Stop.py):
-#   Phrases like "these items", "those hooks" suppress the advisory even if
-#   no specific anchor term matched — signals the LLM is engaging with the
-#   list conceptually, not ignoring it.
 #
 # State file: state/referent_anchors_{terminal_id}.json
 #   Per-terminal isolation prevents cross-terminal anchor contamination.

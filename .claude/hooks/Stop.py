@@ -2316,11 +2316,32 @@ def _run_phase0_depends_on_skills(data: dict) -> dict | None:
         return None
 
 
-# _run_referent_coverage removed 2026-05-10.
-# Reason: Lexical anchor-matching is not a reliable proxy for task completion.
-# False positives from stale anchors across topic shifts outweigh the signal.
-# The PreToolUse scope gate (PreToolUse_referent_scope_gate.py) still blocks
-# off-topic tool calls during active investigations using the same anchors.
+def _clear_referent_anchors(data: dict) -> None:
+    """Single-turn lifecycle: clear anchor state at end of every turn.
+
+    Anchors are created by UPS referent_anchor.py, enforced by
+    PreToolUse_referent_scope_gate.py, and cleared here unconditionally.
+    No cross-turn persistence — prevents stale-anchor lock after topic shifts.
+    """
+    try:
+        tid = (
+            data.get("terminal_id")
+            or data.get("terminalId")
+            or os.environ.get("CLAUDE_TERMINAL_ID")
+        )
+        if not tid:
+            lib_path = str(Path(__file__).resolve().parent / "__lib")
+            if lib_path not in sys.path:
+                sys.path.insert(0, lib_path)
+            from terminal_detection import detect_terminal_id
+            tid = detect_terminal_id()
+        state_file = Path(__file__).resolve().parent / "state" / f"referent_anchors_{tid}.json"
+        if state_file.exists():
+            state_file.unlink()
+    except Exception:
+        pass
+
+
 # ---------------------------------------------------------------------------
 #
 # ── task_contract_fit gate ────────────────────────────────────────────────────
@@ -3841,6 +3862,7 @@ IN_PROCESS_GATES = [
     ("repetition_blocker", _run_repetition_blocker),
     ("fake_done", _run_fake_done_detector),
     ("subagent_opportunity", _run_subagent_opportunity),  # Advisory for delegation opportunities
+    ("clear_referent_anchors", _clear_referent_anchors),  # Single-turn lifecycle: clear anchors at end of turn
 ]
 
 # Non-Blocking Side Effects (still subprocess for isolation)
