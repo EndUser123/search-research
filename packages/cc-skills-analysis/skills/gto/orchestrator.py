@@ -48,6 +48,9 @@ from .__lib.stuckness import detect_stuckness
 from .__lib.hook_health import detect_hook_errors
 from .__lib.workflow_hygiene import detect_workflow_hygiene
 from .__lib.verification_debt import detect_verification_debt
+from .__lib.evidence_map import write_evidence_map
+from .__lib.prompt_quality import validate_prompt_output
+from .__lib.structural_analysis import write_structural_summary
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -240,6 +243,17 @@ def _run_merge_only(
         all_findings = [f for f in all_findings if f.id not in gap_ids]
         all_findings.extend(gap_result.findings)
 
+    # Prompt quality validation (warnings only, non-blocking)
+    for agent_name, agent_result in [
+        ("domain_analyzer", domain_result),
+        ("gap_reviewer", gap_result),
+    ]:
+        if agent_result.success and agent_result.findings:
+            dicts = [f.to_dict() if hasattr(f, "to_dict") else f for f in agent_result.findings]
+            violations = validate_prompt_output(agent_name, dicts)
+            for v in violations:
+                print(f"PROMPT_QUALITY: {v}", file=sys.stderr)
+
     # Post-processing pipeline
     all_findings = route_findings(all_findings)
     all_findings = order_findings(all_findings)
@@ -274,6 +288,10 @@ def _run_merge_only(
         "health": health,
     }
     write_artifact(artifact_path, artifact, all_findings)
+
+    # Write evidence map
+    write_evidence_map(paths.outputs_dir / "evidence_map.json", all_findings)
+    write_structural_summary(paths.outputs_dir / "structural_summary.json", all_findings)
 
     # Update state
     state.phase = "completed"
@@ -509,6 +527,16 @@ def run(argv: list[str] | None = None) -> int:
         all_findings = [f for f in all_findings if f.id not in gap_ids]
         all_findings.extend(gap_result.findings)
 
+    # Prompt quality validation (warnings only, non-blocking)
+    for _aq_name, _aq_result in [
+        ("domain_analyzer", domain_result),
+        ("gap_reviewer", gap_result),
+    ]:
+        if _aq_result.success and _aq_result.findings:
+            _aq_dicts = [f.to_dict() if hasattr(f, "to_dict") else f for f in _aq_result.findings]
+            for _aq_v in validate_prompt_output(_aq_name, _aq_dicts):
+                print(f"PROMPT_QUALITY: {_aq_v}", file=sys.stderr)
+
     # Write findings_reviewer and action_normalizer handoffs for next agent pass
     if all_findings:
         from .agents.findings_reviewer import write_handoff as write_reviewer_handoff
@@ -542,6 +570,9 @@ def run(argv: list[str] | None = None) -> int:
             {"category": getattr(i, "category", ""), "content": getattr(i, "content", "")}
             for i in (outcome_result.items if outcome_result else [])
         ]
+        # Compute structural patterns for gap reviewer context
+        from .__lib.structural_analysis import analyze_structure
+        _structural_patterns = analyze_structure(all_findings)
         write_gap_handoff(
             paths.artifacts_dir / "gap_reviewer_handoff.json",
             all_findings,
@@ -555,6 +586,7 @@ def run(argv: list[str] | None = None) -> int:
             },
             detectors_ran=detectors_ran,
             detectors_empty=detectors_empty,
+            structural_patterns=_structural_patterns,
         )
 
     all_findings = route_findings(all_findings)
@@ -636,6 +668,10 @@ def run(argv: list[str] | None = None) -> int:
 
     artifact_path = paths.outputs_dir / "artifact.json"
     write_artifact(artifact_path, artifact, all_findings)
+
+    # Phase 7.5: Write evidence map (provenance index alongside artifact)
+    write_evidence_map(paths.outputs_dir / "evidence_map.json", all_findings)
+    structural_summary = write_structural_summary(paths.outputs_dir / "structural_summary.json", all_findings)
 
     # Phase 8: Save carryover for future runs (includes resolved for dedup)
     save_carryover(paths.artifacts_dir, carryover_findings)

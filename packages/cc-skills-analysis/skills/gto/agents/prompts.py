@@ -64,6 +64,7 @@ You receive a handoff JSON with:
 - detected_facts: concrete observations from deterministic detectors (findings, changed files, session outcomes)
 - signals_absent: detectors that ran but found nothing (absence as evidence)
 - session_context: terminal_id, session_id, git_sha, files edited this session
+- structural_patterns: cross-cutting pattern analysis (root cause clusters, domain concentrations, cross-domain files, carryover patterns, detector coverage). Use these to inform inferences — when multiple findings share a root cause or cluster in a domain, that's a systemic signal worth surfacing.
 
 Your job is to produce a structured review in this exact format:
 
