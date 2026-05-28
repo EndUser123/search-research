@@ -516,126 +516,102 @@ class CHSExporter:
         self.exclude_thinking = exclude_thinking
         self.include_tool_results = include_tool_results
 
-    def _detect_terminal_id_inline(self) -> str:
-        """Detect terminal ID inline (mirrors skill-guard's detect_terminal_id)."""
-        import ctypes
-        import os
+    def _resolve_from_identity(self) -> dict | None:
+        """Read identity.json for current terminal (same source as /id).
 
-        # Priority 1: Explicit environment variables
-        for env_var in ("CLAUDE_TERMINAL_ID", "TERMINAL_ID", "TERM_ID", "SESSION_TERMINAL"):
-            value = os.environ.get(env_var)
-            if value:
-                source = "env"
-                safe_id = value.replace("/", "-").replace("\\", "-").replace(":", "-")
-                return f"{source}_{safe_id}"
-
-        # Priority 2: WT_SESSION (Windows Terminal UUID - stable per terminal)
-        wt_session = os.environ.get("WT_SESSION")
-        if wt_session:
-            return f"console_{wt_session}"
-
-        # Priority 3: GetConsoleWindow() handle
-        if sys.platform == "win32":
-            try:
-                handle = ctypes.windll.kernel32.GetConsoleWindow()
-                if handle:
-                    hex_handle = hex(handle)[2:]
-                    return f"console_{hex_handle}"
-            except Exception:
-                pass
-
-        # Priority 4: Return empty string — PID fallback is forbidden by skill-guard
-        # contract (terminal ID must be stable across subprocesses). Returning ""
-        # allows get_current_session_id() to fall through to SDK/mtime fallbacks.
-        return ""
-
-    def get_current_session_id(self) -> str | None:
-        """Get current Claude Code session UUID.
-
-        Detection hierarchy (most reliable first):
-        1. active-session file written by SessionStart hook (per-terminal, no ambiguity).
-           Written by: P:\\\\\\packages/handoff/scripts/hooks/SessionStart_handoff_restore.py (symlinked).
-        2. SDK list_sessions() + file_size cross-reference + last_modified tiebreaker.
-           Works reliably in single-terminal environments. In multi-terminal
-           environments (concurrent Claude Code sessions in the same project dir),
-           may return a sibling session with higher last_modified.
-        3. Mtime-based fallback: picks most recently modified transcript.
-
-        For reliable detection in multi-terminal environments, pass --session-id
-        explicitly, or use /status to determine the current session first.
+        Returns parsed identity dict or None if unavailable.
         """
-        # Priority 1: Check active-session file (written by SessionStart hook)
-        terminal_id = self._detect_terminal_id_inline()
-        if terminal_id:
-            active_session_file = Path.home() / ".claude" / f"active-session-{terminal_id}.txt"
-            if active_session_file.exists():
-                try:
-                    session_id = active_session_file.read_text().strip()
-                    if session_id:
-                        # Verify the transcript exists before returning
-                        transcript_path = (
-                            Path.home() / ".claude" / "projects" / "P--" / f"{session_id}.jsonl"
-                        )
-                        if transcript_path.exists():
-                            return session_id
-                except Exception:
-                    pass
-
-        # Priority 2: SDK list_sessions() with file_size cross-reference
+        wt = os.environ.get("WT_SESSION", "")
+        if not wt:
+            return None
+        path = Path(f"P:/.claude/.artifacts/console_{wt}/identity.json")
+        if not path.exists():
+            return None
         try:
-            from claude_agent_sdk import list_sessions
+            return json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return None
 
-            projects_dir = Path.home() / ".claude" / "projects"
-            p_dir = projects_dir / "P--"
+    def _resolve_from_registry(self, session_id: str) -> list[tuple[str, str]] | None:
+        """Query session_registry.jsonl for session chain (cross-terminal source of truth).
 
-            sessions = list_sessions(limit=10)
-            size_matches: list[tuple[int, str]] = []  # (last_modified, session_id)
-            for s in sessions:
-                if not s.file_size:
-                    continue
-                transcript = p_dir / f"{s.session_id}.jsonl"
-                if not transcript.exists():
-                    continue
-                if s.file_size == transcript.stat().st_size:
-                    size_matches.append((s.last_modified or 0, s.session_id))
+        Returns list of (session_id, transcript_path) tuples sorted chronologically,
+        or None if session not found in registry.
+        """
+        registry_path = Path("P:/.claude/.artifacts/session_registry.jsonl")
+        if not registry_path.exists():
+            return None
 
-            if size_matches:
-                return max(size_matches)[1]
-        except Exception:
-            pass
+        entries = []
+        try:
+            with open(registry_path, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entry = json.loads(line)
+                        if entry.get("session_id") == session_id:
+                            entries.append(entry)
+                    except json.JSONDecodeError:
+                        continue
+        except OSError:
+            return None
 
-        # Priority 3: Mtime-based detection (last resort, may be wrong in multi-terminal)
+        if not entries:
+            return None
+
+        # Sort by timestamp and extract unique transcript_paths
+        entries.sort(key=lambda e: e.get("ts", ""))
+        seen = set()
+        paths = []
+        for e in entries:
+            tp = e.get("transcript_path", "")
+            sid = e.get("session_id", "")
+            if tp and tp not in seen:
+                seen.add(tp)
+                paths.append((sid, tp))
+
+        return paths if paths else None
+
+    def _resolve_from_direct_scan(self, session_id: str) -> list[tuple[str, str]] | None:
+        """Direct file scan of projects directory (last resort, immune to cache/stale).
+
+        Searches ~/.claude/projects/**/ for {session_id}.jsonl (recursive scan).
+        Returns list with single (session_id, full_path) tuple if found, else None.
+        """
         projects_dir = Path.home() / ".claude" / "projects"
         if not projects_dir.exists():
             return None
-        candidates = list((projects_dir / "P--").glob("*.jsonl")) if (
-            projects_dir / "P--"
-        ).exists() else []
-        if not candidates:
-            return None
-        most_recent = max(candidates, key=lambda f: f.stat().st_mtime)
-        return most_recent.stem
 
-    @staticmethod
-    def _registry_entries_to_chain_paths(
-        registry_entries: list[dict],
-        max_sessions: int,
-    ) -> list[tuple[str, str]]:
-        """Convert registry entries (queried by session_id) to chain_paths format.
+        # Direct path check (legacy location: directly under projects/)
+        direct_path = projects_dir / f"{session_id}.jsonl"
+        if direct_path.exists():
+            return [(session_id, str(direct_path))]
 
-        Returns list of (session_id, transcript_path) tuples, oldest-first,
-        deduplicated by transcript_path.
+        # Recursive scan: check all project subdirectories
+        # Handles P--/{session_id}.jsonl structure
+        try:
+            for path in projects_dir.glob("**/*.jsonl"):
+                if path.stem == session_id:
+                    return [(session_id, str(path))]
+        except OSError:
+            pass
+
+        return None
+
+    def get_current_session_id(self) -> str | None:
+        """Get current Claude Code session UUID from identity.json.
+
+        Uses the same authoritative source as /id — identity.json written by
+        SessionStart hook. No heuristic fallbacks.
         """
-        seen: set[str] = set()
-        chain: list[tuple[str, str]] = []
-        for entry in registry_entries:
-            tp = entry.get("transcript_path")
-            if not tp or tp in seen:
-                continue
-            seen.add(tp)
-            chain.append((entry.get("session_id", ""), tp))
-        chain = chain[-max_sessions:]
-        return chain
+        identity = self._resolve_from_identity()
+        if identity:
+            session_id = identity.get("claude", {}).get("session_id", "")
+            if session_id:
+                return session_id
+        return None
 
     def _export_from_chain_paths(
         self,
@@ -693,9 +669,8 @@ class CHSExporter:
     ) -> Path:
         """Walk the session chain and write all transcripts to one markdown file.
 
-        Strategy:
-        1. Try session_registry.jsonl (queried by session_id) — covers cross-terminal chains
-        2. Fall back to sessions-index.json for pre-registry data
+        Multi-terminal isolation: Uses three strategies with fallbacks.
+        Each terminal works independently without requiring shared state.
         """
         if session_id is None:
             session_id = self.get_current_session_id()
@@ -705,80 +680,41 @@ class CHSExporter:
                     "Pass --session-id explicitly or ensure current_session.json exists."
                 )
 
-        # Strategy 1: Registry by session_id (cross-terminal chain)
-        registry_path = Path("P:/.claude/.artifacts/session_registry.jsonl")
-        if registry_path.exists():
-            sys.path.insert(0, str(Path("P:/packages/snapshot/scripts/hooks/__lib")))
-            try:
-                from session_registry import query_registry
+        # Strategy 0: identity.json (authoritative for current terminal)
+        identity = self._resolve_from_identity()
+        if identity:
+            claude = identity.get("claude", {})
+            current_path = claude.get("transcript_path", "")
+            chain = claude.get("transcript_chain", [])
+            if current_path:
+                paths = [(Path(p).stem, p) for p in chain if p]
+                paths.append((Path(current_path).stem, current_path))
+                # Trim to max_sessions (keep most recent)
+                if len(paths) > max_sessions:
+                    paths = paths[-max_sessions:]
+                if paths:
+                    return self._export_from_chain_paths(session_id, paths, output_path)
 
-                entries = query_registry(session_id=session_id, limit=10_000, registry_path=registry_path)
-                if entries:
-                    chain_paths = self._registry_entries_to_chain_paths(entries, max_sessions)
-                    if chain_paths:
-                        return self._export_from_chain_paths(session_id, chain_paths, output_path)
-            except Exception:
-                pass
-            finally:
-                sys.path.pop(0)
+        # Strategy 1: session_registry.jsonl (cross-terminal source of truth)
+        # Immune to single-terminal state loss, survives compacts
+        paths = self._resolve_from_registry(session_id)
+        if paths:
+            if len(paths) > max_sessions:
+                paths = paths[-max_sessions:]
+            return self._export_from_chain_paths(session_id, paths, output_path)
 
-        # Strategy 2: sessions-index.json (fallback for pre-registry data)
-        from importlib.util import spec_from_file_location, module_from_spec
+        # Strategy 2: Direct file scan (last resort, immune to all cache/stale issues)
+        # Works even if registry is empty or identity.json never existed
+        paths = self._resolve_from_direct_scan(session_id)
+        if paths:
+            if len(paths) > max_sessions:
+                paths = paths[-max_sessions:]
+            return self._export_from_chain_paths(session_id, paths, output_path)
 
-        history_chain_path = Path(__file__).parent.parent.parent.parent / "core" / "history_chain.py"
-
-        def _load_history_chain():
-            """Load history_chain directly from file, bypassing core/__init__."""
-            _spec = spec_from_file_location("core.history_chain", str(history_chain_path))
-            if _spec is None or _spec.loader is None:
-                raise ImportError(f"Cannot load history_chain from {history_chain_path}")
-            _mod = module_from_spec(_spec)
-            _loaded_modules = sys.modules.get("core.history_chain")
-            if _loaded_modules:
-                sys.modules.pop("core.history_chain")
-            sys.modules["core.history_chain"] = _mod
-            try:
-                _spec.loader.exec_module(_mod)
-            finally:
-                if _loaded_modules:
-                    sys.modules["core.history_chain"] = _loaded_modules
-                else:
-                    sys.modules.pop("core.history_chain", None)
-            return _mod
-
-        try:
-            _history_chain = _load_history_chain()
-            load_sessions_index = _history_chain.load_sessions_index
-        except Exception as exc:
-            raise ValueError(f"history_chain module not importable: {exc}") from exc
-
-        try:
-            sessions_index = load_sessions_index()
-        except (json.JSONDecodeError, OSError) as exc:
-            raise ValueError(f"Failed to load sessions-index.json: {exc}") from exc
-
-        target_entry = sessions_index.get(session_id)
-        if not target_entry:
-            raise ValueError(f"Session {session_id} not found in sessions-index.json")
-
-        target_started = target_entry.get("startedAt", 0)
-
-        valid_entries = []
-        for sid, entry in sessions_index.items():
-            started = entry.get("startedAt", 0)
-            if started <= target_started:
-                valid_entries.append((sid, entry, started))
-
-        valid_entries.sort(key=lambda x: x[2], reverse=True)
-        recent_entries = valid_entries[:max_sessions]
-        recent_entries.sort(key=lambda x: x[2])
-
-        chain_paths = [(sid, entry.get("fullPath")) for sid, entry, _ in recent_entries if entry.get("fullPath")]
-
-        if not chain_paths:
-            raise ValueError(f"No transcript files found for session {session_id}")
-
-        return self._export_from_chain_paths(session_id, chain_paths, output_path)
+        raise ValueError(
+            f"Cannot resolve session chain for {session_id}: "
+            "No transcript found in identity.json, session_registry, or projects directory."
+        )
 
     def _format_transcript(self, transcript_path: Path) -> list[str]:
         """Parse a .jsonl transcript and return formatted markdown lines."""
@@ -795,11 +731,11 @@ class CHSExporter:
                         continue
                     entry_type = entry.get("type", "")
                     if entry_type == "user":
-                        text = self._extract_content(entry, role="user")
+                        text = self._extract_content(entry)
                         if text:
                             result.append(f"**User:** {text}\n\n")
                     elif entry_type == "assistant":
-                        text = self._extract_content(entry, role="assistant")
+                        text = self._extract_content(entry)
                         if text:
                             result.append(f"**Assistant:** {text}\n\n")
         except (OSError, FileNotFoundError) as exc:
@@ -824,17 +760,17 @@ class CHSExporter:
                         continue
                     entry_type = entry.get("type", "")
                     if entry_type == "user":
-                        text = self._extract_content(entry, role="user")
+                        text = self._extract_content(entry)
                         if text:
                             out.write(f"**User:** {text}\n\n")
                     elif entry_type == "assistant":
-                        text = self._extract_content(entry, role="assistant")
+                        text = self._extract_content(entry)
                         if text:
                             out.write(f"**Assistant:** {text}\n\n")
         except (OSError, FileNotFoundError) as exc:
             out.write(f"*[Error reading {transcript_path.name}: {exc}]*\n\n")
 
-    def _extract_content(self, entry: dict[str, Any], role: str) -> str:
+    def _extract_content(self, entry: dict[str, Any]) -> str:
         """Extract readable text from a message entry."""
         content = entry.get("message", {}).get("content", "")
         if isinstance(content, str):
@@ -893,7 +829,7 @@ class CHSContext:
                 prefix = "[MATCH] " if i == match_line else ""
                 try:
                     data = json.loads(lines[i])
-                    role = data.get("message", {}).get("role", "unknown")
+                    role = data.get("message", {}).get("role") or data.get("type", "unknown")
                     content_field = data.get("message", {}).get("content", "")
                     if isinstance(content_field, str):
                         content = content_field[:100]
@@ -981,11 +917,11 @@ def main():
     metrics = CHSMetrics()
     summarizer = CHSSummarizer()
     context_viewer = CHSContext()
+    exporter = CHSExporter(
+        exclude_thinking=args.exclude_thinking,
+        include_tool_results=args.include_tool_results,
+    )
     if args.export:
-        exporter = CHSExporter(
-            exclude_thinking=args.exclude_thinking,
-            include_tool_results=args.include_tool_results,
-        )
         try:
             out = exporter.export_chain(
                 session_id=args.session_id,
@@ -1042,16 +978,17 @@ def main():
     if args.show:
         session_path = Path(args.show)
         if not session_path.exists():
-            projects_path = Path.home() / ".claude" / "projects"
-            found = False
-            for project_dir in projects_path.iterdir():
-                potential = project_dir / f"{args.show}.jsonl"
-                if potential.exists():
-                    session_path = potential
-                    found = True
-                    break
-            if not found:
-                print(f"Session not found: {args.show}")
+            # Priority: identity.json → projects dir scan
+            identity = exporter._resolve_from_identity()
+            if identity:
+                tp = identity.get("claude", {}).get("transcript_path", "")
+                if tp and Path(tp).exists() and Path(tp).stem == args.show:
+                    session_path = Path(tp)
+                else:
+                    print(f"Session not found via identity.json: {args.show}")
+                    return 1
+            else:
+                print(f"No identity.json available. Cannot resolve session: {args.show}")
                 return 1
         if args.context:
             output = context_viewer.show_context(session_path, 0, args.context)

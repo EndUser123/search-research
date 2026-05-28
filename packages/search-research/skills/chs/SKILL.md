@@ -1,6 +1,15 @@
 ---
 name: chs
 description: Dedicated chat history search with summarization, workspace aliases, tool filtering, context preview, session stats, and branch filtering
+enforcement: strict
+workflow_steps:
+  - Parse query and extract filters
+  - Stage 1: Lightweight index-only search (firstPrompt, summary fields)
+  - Check results sufficiency, trigger Stage 2 if needed
+  - Stage 2: Deep JSONL content scan
+  - Apply filters (tool, branch, workspace, date)
+  - Generate output (summary, context preview, or full details)
+  - Optional: Apply summarization mode
 ---
 # Chat History Search (/chs)
 
@@ -21,6 +30,28 @@ Dedicated search for Claude Code chat history with advanced features: summarizat
 - **Storage**: SQLite metrics database at `P://packages/search-research/data/chs_metrics.db`
 - **FTS5 bootstrap**: `python -m core.chs.scripts.reindex_from_jsonl --db-path "P://__csf/data/chat_history.db" --history-path "~/.claude/history.jsonl"`
 - **Bootstrap rule**: If `chat_history.db` exists but schema/FTS tables are missing, reindex from `history.jsonl` before trusting search results
+
+### Session Resolution (Registry-Only)
+
+**Source of truth:** `P:/.claude/.artifacts/session_registry.jsonl` — append-only JSONL written by `PreCompact` hook.
+
+**How it works:**
+1. **Find current session:** Query registry by `terminal_id` (WT_SESSION env var) → get most recent `session_id`
+2. **Build full chain:** Query registry by `session_id` → aggregate all entries across terminals → extract unique `transcript_path` values in chronological order
+3. **Result:** Complete `transcript_chain` array spanning all compactions and terminal switches
+
+**Why registry instead of identity.json:**
+- Registry is the source of truth (written by PreCompact)
+- Identity.json was just a cache (written by SessionStart, deleted at compaction)
+- Registry contains cross-terminal session history (identity.json is single-terminal only)
+- Registry always works (identity.json doesn't exist for fresh sessions)
+
+**Data structure:**
+```json
+{"ts": "2026-05-27T12:00:00", "terminal_id": "console_abc", "session_id": "uuid-123", "transcript_path": "C:\\Users\\...\\uuid-123.jsonl", ...}
+```
+
+Each `session_id` appears multiple times (once per terminal/compaction). Aggregating by `session_id` reconstructs the full chain.
 
 ### Consolidation History
 - Previously part of `/search` (consolidated old `/chs`, `/recent`, `/search-more`)
