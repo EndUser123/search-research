@@ -1693,9 +1693,33 @@ def main(argv: list[str]) -> int:
             shutil.rmtree(str(old_cache))
             print(f"  {C_GREEN}Removed stale cache: {pkg_name}/{old_ver}{C_RESET}")
 
-        print(f"\n{C_CYAN}=== Next Steps ==={C_RESET}")
-        print(f"  1. /plugin marketplace update local")
-        print(f"  2. /reload-plugins")
+        # Post-bump: update marketplace index and verify zero drift
+        print(f"\n{C_CYAN}=== Marketplace Sync ==={C_RESET}")
+        mp_update = subprocess.run(
+            ["claude", "plugin", "marketplace", "update", "local"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if mp_update.returncode == 0:
+            print(f"  {C_GREEN}Marketplace updated.{C_RESET}")
+        else:
+            print(f"  {C_YELLOW}Marketplace update failed: {mp_update.stderr.strip() or mp_update.stdout.strip()}{C_RESET}")
+
+        # Verify zero drift for the bumped plugin
+        drift = audit_source_cache_drift(plugins_dir.parent if plugins_dir.name == "plugins" else plugins_dir)
+        drift = [f for f in drift if f["plugin"] == pkg_name and f["type"] == "source_modified"]
+        if drift:
+            print(f"  {C_YELLOW}Drift detected after bump — re-syncing...{C_RESET}")
+            for f in drift:
+                version_dir = cache_root / pkg_name / f["cache_version"]
+                src_path = plugins_dir / pkg_name
+                if src_path.exists() and version_dir.exists():
+                    bidir_sync(src_path, version_dir)
+                    print(f"  {C_GREEN}Re-synced {pkg_name}.{C_RESET}")
+        else:
+            print(f"  {C_GREEN}Zero drift confirmed for {pkg_name}.{C_RESET}")
+
+        print(f"\n{C_CYAN}=== Done ==={C_RESET}")
+        print(f"  Run {C_CYAN}/reload-plugins{C_RESET} to activate {pkg_name} {new_ver}.")
         return 0
     if args.validate:
         print("Validating plugins...")

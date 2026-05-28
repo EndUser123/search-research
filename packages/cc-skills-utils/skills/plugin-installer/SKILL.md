@@ -59,10 +59,7 @@ The audit script uses **quality-aware conflict resolution** when both sides have
    python3 "P:/packages/cc-skills-utils/scripts/plugin-audit-and-fix.py" --bump <name> --marketplace-root "P:/packages/.claude-marketplace"
    ```
 
-   After bumping all drifted plugins:
-   ```bash
-   claude plugin marketplace update local
-   ```
+   `--bump` runs marketplace update and drift verification automatically — no manual sync needed.
 
    Skip bump only for plugins with **conflicts** (flagged during step 1) — those need manual review first.
 
@@ -302,15 +299,17 @@ Bumps the patch version (e.g., `2.0.0` → `2.0.1`) in all version files AND upd
 python3 "P:/packages/cc-skills-utils/scripts/plugin-audit-and-fix.py" --bump <name> --marketplace-root "P:/packages/.claude-marketplace"
 ```
 
-After bumping, reload:
-```
-/reload-plugins
-```
-
 **What --bump does automatically:**
 1. Increments patch version in `plugin.json` and both `marketplace.json` files
 2. Syncs source → new cache dir (removes stale cache dir)
 3. Updates `installed_plugins.json` version and `lastUpdated` timestamp
+4. Runs `claude plugin marketplace update local` automatically
+5. Verifies zero drift for the bumped plugin
+
+After bumping, reload:
+```
+/reload-plugins
+```
 
 **When to use**: After editing any plugin source files under `P:/packages/<name>/` that should propagate to the running session. The plugin system loads from version-keyed cache, not source — without a version bump, changes are invisible.
 
