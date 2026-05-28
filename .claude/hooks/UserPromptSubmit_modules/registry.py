@@ -629,6 +629,7 @@ def _load_hooks() -> None:
         "frameguard_classifier",  # NEW 2026-03-18: FrameGuard - systemic frame detection
         "intent_classifier",
         "intent_extractor",
+        "language_lock",  # NEW 2026-05-27: Inject English-only constraint every 5th turn (CJK drift prevention)
         "claim_risk_router",  # NEW 2026-04-11: Evidence-first routing tree for disputed claims and root-cause prompts
         "memory_size",
         "operating_rules",

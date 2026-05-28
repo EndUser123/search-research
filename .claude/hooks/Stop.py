@@ -2713,81 +2713,12 @@ def _run_runtime_claim_gate(data: dict) -> dict | None:
 
 
 # ---------------------------------------------------------------------------------------
-# Phase 4: External Judge Evaluation Gate
+# Phase 4: External Judge Evaluation Gate - DISABLED
+# Removed: Judge produced no actionable value. Override already demoted blocks
+# to advisory; 24h summary disabled in judge_feedback.py; first-query advisory
+# disabled in judge_first_query_advisory.py.
 # ---------------------------------------------------------------------------------------
 
-def _run_judge_evaluation(data: dict) -> dict | None:
-    """Evaluate response quality using external judge.
-
-    Uses the judge rubric to score responses on Directness, Evidence,
-    Completeness, Actionability, and Honesty. Quality gate — suppressed on
-    control/exploration turns.
-
-    Design principles:
-    - Terminal-scoped: Each terminal maintains isolated state
-    - Stale data immune: Reads fresh from files each evaluation
-    - Compact event immune: Uses file-based state, no in-memory caching
-    - Fail-open: Judge errors or unavailability don't block the response
-    """
-    try:
-        from __lib.external_judge import evaluate_response
-
-        response = data.get("response", "")
-        user_prompt = data.get("prompt", "")
-        turn_mode = _classify_turn_mode(data)
-
-        # Quality gate: suppressed on control/exploration turns
-        if is_quality_mode_suppressed(turn_mode, "stop"):
-            return None
-
-        # Short-circuit trivial responses
-        if len(response) < 100:
-            return None
-
-        verdict = evaluate_response(response, user_prompt, turn_mode)
-
-        # Log verdict for telemetry
-        _log_judge_verdict(verdict, turn_mode)
-
-        if not verdict.passes:
-            issues_str = "; ".join(verdict.issues[:3]) if verdict.issues else "Quality below threshold"
-            return {
-                "verdict": "block",
-                "gate": "external_judge",
-                "reason": f"Quality gate: score={verdict.score:.2f}, issues: {issues_str}",
-                "score": verdict.score,
-                "issues": verdict.issues,
-                "suggestions": verdict.suggestions[:3],
-            }
-        return None
-    except Exception as e:
-        _logger.warning(f"external_judge error: {e}")
-        return None
-
-
-def _log_judge_verdict(verdict, turn_mode: str) -> None:
-    """Append judge verdict telemetry to diagnostics."""
-    try:
-        log_path = HOOKS_DIR / "logs" / "diagnostics" / "judge_verdicts.jsonl"
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        entry = {
-            "timestamp": time.time(),
-            "gate": "external_judge",
-            "score": verdict.score,
-            "passes": verdict.passes,
-            "confidence": verdict.confidence,
-            "model_used": verdict.model_used,
-            "latency_ms": verdict.latency_ms,
-            "turn_mode": turn_mode,
-            "issues": verdict.issues,
-            "n_issues": len(verdict.issues),
-            "n_suggestions": len(verdict.suggestions),
-            "error": verdict.error,
-        }
-        with log_path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(entry, ensure_ascii=True) + "\n")
-    except Exception:
-        pass
 
 
 # ---------------------------------------------------------------------------------------
@@ -3292,8 +3223,8 @@ GATE_CLASSES: dict[str, str] = {
     "repetition_blocker": "policy",
     "fake_done": "policy",
     "meta_analysis_trap": "quality",
-    # Phase 4: External judge evaluation
-    "external_judge": "quality",
+    # Phase 4: External judge evaluation — DISABLED (no actionable value)
+    # "external_judge": "quality",
 }
 
 # === Phase 1+2: Gate Metadata Registry ===
@@ -3853,7 +3784,8 @@ IN_PROCESS_GATES = [
         "runtime_claim_enforcement",
         _run_runtime_claim_gate,
     ),  # Phase 3: Runtime claim artifact verification
-    ("external_judge", _run_judge_evaluation),  # Phase 4: External judge quality gate
+    # ("external_judge", _run_judge_evaluation),  # DISABLED: Judge produced no actionable value.
+    # Override already demoted blocks to advisory; 24h summary disabled in judge_feedback.py.
     ("git_diff_reground", _run_git_diff_reground),
     ("skill_dir_correlation", _run_skill_dir_correlation_gate),
     ("cks_correction_anchor", _run_cks_correction_anchor),

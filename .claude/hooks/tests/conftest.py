@@ -10,6 +10,11 @@ _hooks_dir = Path(__file__).resolve().parent.parent
 if str(_hooks_dir) not in sys.path:
     sys.path.insert(0, str(_hooks_dir))
 
+# Add plugin stop dirs for hooks that import from siblings in plugin directories
+for _plugin_stop in Path("P:/packages").glob("*/hooks/stop"):
+    if str(_plugin_stop) not in sys.path:
+        sys.path.insert(0, str(_plugin_stop))
+
 # Ignore deprecated and legacy test directories
 # _legacy: tests for permanently removed features, source modules no longer exist.
 # _legacy_stop_router: tests for Stop_router.py (deleted in 2026-05-07 consolidation)
