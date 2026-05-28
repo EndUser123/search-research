@@ -1131,6 +1131,18 @@ def check_library_awareness(
     if not new_functions:
         return True, ""  # No functions being defined
 
+    # Exclude functions that already exist in the target file (rewrites, not new code)
+    target = Path(target_path)
+    if target.exists():
+        try:
+            existing_content = target.read_text(encoding="utf-8")
+            existing_functions = set(re.findall(r"def\s+([a-z][a-z0-9_]*)\s*\(", existing_content))
+            new_functions = [f for f in new_functions if f not in existing_functions]
+            if not new_functions:
+                return True, ""  # All functions already exist in target — this is a rewrite
+        except OSError:
+            pass  # Can't read existing file, proceed with all functions
+
     # Get target directory for search scope
     target_dir = Path(target_path).parent
 

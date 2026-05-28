@@ -207,7 +207,13 @@ OBVIOUS_ALLOWLIST = re.compile(
     r"|\b(?:deleted|removed)\s+from\s+(?:git\s+)?(?:tracking|index|staging)\b"
     r"|\bremoved?\s+.*from\s+(?:git\s+)?(?:tracking|index|staging)\b"
     r"|\bun(?:tracked|staged)\b"
-    r"|\bgit\s+rm\s",
+    r"|\bgit\s+rm\s"
+    # Conditional/hypothetical contexts — "If the cull removed too much"
+    # These are speculative, not completion claims
+    r"|\bIf\b[^.]*\bremoved?\b"
+    # Quantifier modifiers — "removed too much/little/many"
+    # These describe degree, not filesystem operations
+    r"|\bremoved?\s+(?:too\s+)?(?:much|little|many|few|less|more)\b",
     re.IGNORECASE,
 )
 

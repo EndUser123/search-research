@@ -8,7 +8,6 @@ advisory injection based on recent patterns.
 from __future__ import annotations
 
 import json
-import os
 import sys
 import time
 from collections import Counter
@@ -552,8 +551,14 @@ def check_threshold_effectiveness_escalation(
 
 
 def main() -> int:
-    """Main entry point for standalone execution."""
-    try:
+    """Main entry point for standalone execution.
+
+    Session start output disabled — verdicts kept as raw telemetry but
+    no longer surfaced. Stop hooks enforce behavior directly; the Judge
+    was a redundant post-hoc scoring layer with no consumer.
+    """
+    return 0
+    try:  # noqa: unreachable — preserved for potential re-enablement
         verdicts = load_recent_judge_verdicts(hours=24)
         summary = summarize_judge_activity(verdicts)
         output = format_session_start_judge_summary(summary)
@@ -569,28 +574,8 @@ def main() -> int:
             if integration_note:
                 output += integration_note
 
-            # Append effectiveness note if persistent degradation detected
-            # Need 5-day window for multi-window detection
-            all_verdicts = load_recent_judge_verdicts(hours=120)
-            effectiveness_note = check_automation_effectiveness(all_verdicts)
-            if effectiveness_note:
-                output += effectiveness_note
-
-            # Append threshold effectiveness note if advisories are failing to improve quality
-            session_id = os.environ.get("CLAUDE_SESSION_ID", "").strip()
-            if not session_id:
-                import hashlib
-                session_id = f"auto-{hashlib.sha256(str(time.time()).encode()).hexdigest()[:12]}"
-            if session_id:
-                avg_score = summary.get("avg_score", 0.0)
-                blocks = summary.get("blocks", 0)
-                total = summary.get("total", 0)
-                block_rate = blocks / total if total > 0 else 0.0
-                threshold_note = check_threshold_effectiveness_escalation(
-                    session_id, avg_score, block_rate
-                )
-                if threshold_note:
-                    output += threshold_note
+            # 5-day effectiveness check and session quality escalation removed.
+            # The 24h summary above is sufficient. Functions remain in module.
 
             print(json.dumps({
                 "hookSpecificOutput": {

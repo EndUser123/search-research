@@ -49,6 +49,10 @@ except ImportError:
 
 
 def _process_prompt_impl(context: HookContext) -> HookResult:
+    """DISABLED: Judge produced no actionable value. Module preserved for reference."""
+    return HookResult.empty()
+
+def _process_prompt_impl_disabled(context: HookContext) -> HookResult:
     """Process first-query for judge advisory conditions.
 
     Args:
