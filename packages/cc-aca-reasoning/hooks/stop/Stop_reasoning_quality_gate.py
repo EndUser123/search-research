@@ -9,7 +9,6 @@ Applies Generate→Critique→Improve loop to Claude's responses:
 - Fail-open design: errors don't block responses
 
 This is the authoritative source file.
-Symlink from: P:\\\\\\.claude/hooks/Stop_reasoning_quality_gate.py
 """
 
 from __future__ import annotations
@@ -23,70 +22,19 @@ from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
-import asyncio
 import json
 import os
 import re
 import sys
-import traceback
 from pathlib import Path
 
 
-def _resolve_reasoning_package() -> Path | None:
-    """Find the reasoning package regardless of hook install location."""
-    env_path = os.environ.get("REASONING_PKG_PATH", "").strip()
-    candidates = []
-    if env_path:
-        candidates.append(Path(env_path))
-    candidates.extend([
-        Path(__file__).resolve().parent.parent,
-        Path("P:\\\\\\packages/reasoning"),
-    ])
-
-    for candidate in candidates:
-        if (candidate / "reasoning" / "config.py").exists():
-            return candidate
-    return None
-
-
-_reasoning_pkg = _resolve_reasoning_package()
-if _reasoning_pkg is None:
-    print(
-        "[Stop_reasoning_quality_gate] ERROR: Could not locate reasoning package. "
-        "Checked: REASONING_PKG_PATH env var, parent directories, P:\\\\\\packages/reasoning. "
-        "Hook will pass-through (fail-open).",
-        file=sys.stderr,
-    )
-    REASONING_PKG = None
-else:
-    REASONING_PKG = _reasoning_pkg
-    sys.path.insert(0, str(REASONING_PKG))
-
-# Conditional imports - only load if reasoning package was found
-if REASONING_PKG is not None:
-    try:
-        from reasoning.config import Mode, ReasoningConfig
-        from reasoning.modes.sequential import SequentialMode
-        REASONING_MODE_AVAILABLE = True
-    except Exception as e:
-        print(
-            f"[Stop_reasoning_quality_gate] WARNING: Could not import reasoning modules: {e}. "
-            "Hook will pass-through (fail-open).",
-            file=sys.stderr,
-        )
-        REASONING_MODE_AVAILABLE = False
-else:
-    REASONING_MODE_AVAILABLE = False
-
-def _resolve_log_path(reasoning_pkg: Path | None) -> Path:
-    """Resolve log path to project-local .claude/logs/ directory."""
-    project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "").strip()
-    if project_dir and reasoning_pkg:
-        return Path(project_dir) / ".claude" / "logs" / "reasoning" / "hook_usage.log"
-    return Path("P:\\\\\\packages/reasoning/hook_usage.log")
-
-
-LOG_FILE = _resolve_log_path(REASONING_PKG)
+_project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "").strip()
+LOG_FILE = (
+    Path(_project_dir) / ".claude" / "logs" / "reasoning" / "hook_usage.log"
+    if _project_dir
+    else Path("P:/") / ".claude" / "logs" / "reasoning" / "hook_usage.log"
+)
 filter_stats = {"applied": 0, "skipped": 0, "improved": 0, "errors": 0}
 
 
@@ -217,43 +165,145 @@ def should_apply_reflection(response: str) -> tuple[bool, str]:
     return False, "no_reasoning_indicators"
 
 
-def apply_self_reflection(response: str) -> str | None:
-    """Apply self-reflection to improve response quality."""
-    global filter_stats
+def _detect_reasoning_depth_mismatch(
+    response: str, tool_use_history: list | None = None
+) -> str | None:
+    """Detect overthinking or underthinking relative to task complexity.
 
-    if not REASONING_MODE_AVAILABLE:
+    Uses two signals:
+    1. Response length vs tool-history complexity ratio (primary)
+    2. Tool diversity and file count (secondary)
+
+    Returns an issue string if mismatch detected, None otherwise.
+    """
+    if not tool_use_history:
         return None
 
-    try:
-        config = ReasoningConfig(mode=Mode.SEQUENTIAL)
-        mode = SequentialMode(config)
+    response_len = len(response.strip())
 
+    investigation_tools = {"Read", "Grep", "Glob", "LS", "LSP"}
+    implementation_tools = {"Edit", "Write", "MultiEdit"}
+    all_tools: set[str] = set()
+    unique_files: set[str] = set()
+
+    for entry in tool_use_history:
+        tool_name = entry.get("tool_name", "")
+        all_tools.add(tool_name)
+        file_path = (
+            entry.get("tool_input", {}).get("file_path")
+            or entry.get("tool_input", {}).get("filePath", "")
+        )
+        if file_path:
+            unique_files.add(file_path)
+
+    inv_count = sum(1 for t in all_tools if t in investigation_tools)
+    tool_diversity = len(all_tools)
+
+    # Task complexity score: more tools, more files, more investigation = more complex
+    complexity = tool_diversity + len(unique_files) * 0.5 + inv_count * 0.3
+
+    # Response words for ratio calculation
+    response_words = len(response.split())
+
+    # Overthinking: low complexity but verbose response
+    # Threshold: <3 unique tools and <3 files but >300 words per unit of complexity
+    if complexity < 3 and response_words > 400:
+        return (
+            f"Overthinking detected: {response_words}-word response for "
+            f"{tool_diversity} tools and {len(unique_files)} files. "
+            "Consider whether a shorter answer suffices."
+        )
+
+    # Underthinking: high complexity but terse response
+    # Threshold: >5 unique tools or >4 files but <100 words
+    if complexity > 5 and response_words < 100:
+        return (
+            f"Underthinking detected: {response_words}-word response for "
+            f"{tool_diversity} tools and {len(unique_files)} files. "
+            "A more thorough analysis may be warranted."
+        )
+
+    # Ratio check: words-per-complexity-unit
+    if complexity > 0:
+        ratio = response_words / complexity
+        if ratio > 300:
+            return (
+                f"Response-to-complexity ratio high ({ratio:.0f} words/unit). "
+                "Consider whether detail level matches task scope."
+            )
+
+    return None
+
+
+def _detect_logical_gaps(response: str) -> list[str]:
+    """Detect logical gaps in reasoning via pattern matching."""
+    issues = []
+
+    # Causal claim without evidence reference
+    if re.search(r'\b(caused by|because of|due to)\b', response, re.IGNORECASE):
+        if not re.search(r'(evidence|data|test|log|file|output|result|pytest|traceback)', response, re.IGNORECASE):
+            issues.append("Causal claim without supporting evidence reference")
+
+    # Recommendation without alternatives or tradeoffs
+    if re.search(r'\b(recommend|suggest|should)\b', response, re.IGNORECASE):
+        if not re.search(r'\balternative\b|\btrade.?off\b|\bdownside\b|\bhowever\b|\b(?:but|although)\b', response, re.IGNORECASE):
+            issues.append("Recommendation without discussing alternatives or tradeoffs")
+
+    # Over-scoped universal quantifiers
+    scope_words = re.findall(r'\b(always|never|every|all|none|entire|completely)\b', response, re.IGNORECASE)
+    if len(scope_words) >= 3:
+        issues.append(f"Over-scoped language ({len(scope_words)} universal quantifiers)")
+
+    # Predictive claim without verification plan
+    if re.search(r'\b(will|should|must)\s+(?:fix|resolve|solve|prevent|work)\b', response, re.IGNORECASE):
+        if not re.search(r'(verify|test|check|confirm|falsif)', response, re.IGNORECASE):
+            issues.append("Predictive claim without verification plan")
+
+    # Conclusion without visible reasoning chain
+    if re.search(r'\b(therefore|thus|hence|so)\b', response, re.IGNORECASE):
+        if not re.search(r'\b(because|since|given|assuming|from|based on)\b', response, re.IGNORECASE):
+            issues.append("Conclusion without visible reasoning chain")
+
+    return issues
+
+
+def apply_self_reflection(
+    response: str, tool_use_history: list | None = None
+) -> str | None:
+    """Self-contained Generate-Critique-Improve loop using pattern matching."""
+    global filter_stats
+
+    try:
         import time
         start_time = time.time()
 
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            result = loop.run_until_complete(mode.process(response))
-        finally:
-            loop.close()
+        issues = _detect_logical_gaps(response)
+
+        depth_issue = _detect_reasoning_depth_mismatch(response, tool_use_history)
+        if depth_issue:
+            issues.append(depth_issue)
 
         elapsed_ms = (time.time() - start_time) * 1000
-        _log_usage(len(response), elapsed_ms, result)
 
-        if result and result.conclusion and result.conclusion != response:
-            filter_stats["improved"] += 1
-            return result.conclusion
+        if not issues:
+            _log_usage(len(response), elapsed_ms, False)
+            return None
 
-        return None
+        improvement = "**Reasoning Quality Review**\n"
+        for issue in issues:
+            improvement += f"- {issue}\n"
+        improvement += "\nConsider addressing these gaps before finalizing."
+
+        _log_usage(len(response), elapsed_ms, True)
+        filter_stats["improved"] += 1
+        return improvement
 
     except Exception as e:
         filter_stats["errors"] += 1
-        print(f"[Stop_reasoning_quality_gate] Error: {e}", file=sys.stderr)
+        sys.stderr.write(f"[Stop_reasoning_quality_gate] Error in self-reflection: {e}\n")
         return None
 
-
-def _log_usage(response_length: int, elapsed_ms: float, result) -> None:
+def _log_usage(response_length: int, elapsed_ms: float, improved: bool) -> None:
     """Log hook usage for tracking."""
     try:
         import time
@@ -262,8 +312,7 @@ def _log_usage(response_length: int, elapsed_ms: float, result) -> None:
             "hook": "Stop_reasoning_quality_gate",
             "response_length": response_length,
             "elapsed_ms": round(elapsed_ms, 2),
-            "quality_score": getattr(result, 'quality_score', None),
-            "result": "improved" if result and result.conclusion else "no_improvement",
+            "improved": improved,
         }
         LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
         with LOG_FILE.open("a", encoding="utf-8") as f:
@@ -305,6 +354,7 @@ def main():
         return 0
 
     response = data.get("response", "")
+    tool_use_history = data.get("tool_use_history", [])
     if not response:
         print("{}")
         return 0
@@ -335,7 +385,7 @@ def main():
             print("{}")
         return 0
 
-    improvement = apply_self_reflection(response)
+    improvement = apply_self_reflection(response, tool_use_history)
     if improvement:
         output = {"systemMessage": f"**Enhanced Reasoning Applied**\n\n{improvement}"}
         if os.environ.get("SELF_REFLECTION_DEBUG") == "true":
@@ -354,6 +404,6 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except Exception as e:
-        print(f"[Reasoning quality gate error: {e}]", file=sys.stderr)
+        sys.stderr.write(f"[Reasoning quality gate error: {e}]\n")
         print("{}")
         sys.exit(0)

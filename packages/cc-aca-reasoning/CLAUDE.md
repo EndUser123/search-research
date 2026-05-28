@@ -40,11 +40,12 @@ cc-aca-reasoning/
 
 ## Hook Inventory
 
-### PreToolUse (1 hook)
+### PreToolUse (2 hooks)
 
 | Hook | Purpose |
 |------|---------|
 | `PreToolUse_sequential_thinking.py` | Mode enforcement (initial/critique/improve) via iteration state |
+| `PreToolUse_investigation_boundary_gate.py` | One-time reflection prompt at investigation-to-implementation transition |
 
 ### PostToolUse (1 hook)
 

@@ -22,10 +22,8 @@ from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
 
 
 import json
-import os
 import re
 import sys
-from pathlib import Path
 from typing import Any
 
 
@@ -48,52 +46,12 @@ def _normalize_stdout(data: dict) -> dict:
     return data
 
 
-def _resolve_reasoning_package() -> Path:
-    """Find the reasoning package regardless of hook install location."""
-    env_path = os.environ.get("REASONING_PKG_PATH", "").strip()
-    candidates = []
-    if env_path:
-        candidates.append(Path(env_path))
-    candidates.extend([
-        Path(__file__).resolve().parent.parent,
-        Path("P:\\\\\\packages/reasoning"),
-    ])
-
-    for candidate in candidates:
-        if (candidate / "reasoning" / "config.py").exists():
-            return candidate
-
-    raise RuntimeError("Could not locate reasoning package")
-
-
-# Add reasoning package to path
-REASONING_PKG = _resolve_reasoning_package()
-sys.path.insert(0, str(REASONING_PKG))
-
-
 
 def analyze_query(query: str | None) -> dict[str, Any]:
-    """Analyze query to determine optimal reasoning mode.
-
-    Args:
-        query: User query string (may be None or non-string)
-
-    Returns:
-        Dictionary with:
-        - mode: Selected reasoning mode ('sequential', 'multi_agent', 'graph', 'two_stage')
-        - confidence: Number of matching keywords (0-N)
-        - reasoning_required: Whether complex reasoning is needed
-    """
-    # Default safe values
+    """Analyze query to determine optimal reasoning mode."""
     if not query or not isinstance(query, str):
-        return {
-            "mode": "sequential",
-            "confidence": 0,
-            "reasoning_required": False
-        }
+        return {"mode": "sequential", "confidence": 0, "reasoning_required": False}
 
-    # Complexity indicators for each mode
-    # Using regex patterns with word boundaries for flexible matching
     complexity_indicators = {
         'multi_agent': [
             r'\balternatives\b', r'\bcompare\b', r'\bvs\b', r'\bversus\b',
@@ -114,15 +72,11 @@ def analyze_query(query: str | None) -> dict[str, Any]:
         ]
     }
 
-    # Score each mode by keyword matches (using regex with word boundaries)
     query_lower = query.lower()
     scores = {}
-
     for mode, patterns in complexity_indicators.items():
-        score = sum(1 for pattern in patterns if re.search(pattern, query_lower))
-        scores[mode] = score
+        scores[mode] = sum(1 for p in patterns if re.search(p, query_lower))
 
-    # Select highest-scoring mode, default to sequential
     if scores and max(scores.values()) > 0:
         best_mode = max(scores, key=scores.get)
         confidence = scores[best_mode]
@@ -130,69 +84,38 @@ def analyze_query(query: str | None) -> dict[str, Any]:
         best_mode = "sequential"
         confidence = 0
 
-    # Determine if reasoning is required
-    # Very short queries or low confidence don't need special reasoning
-    reasoning_required = (
-        len(query) > 20 and  # Has minimal substance
-        confidence > 0  # Has clear complexity indicators
-    )
-
     return {
         "mode": best_mode,
         "confidence": confidence,
-        "reasoning_required": reasoning_required
+        "reasoning_required": len(query) > 20 and confidence > 0
     }
 
 
 def process_prompt(data: dict) -> dict:
-    """Process prompt and inject reasoning mode into context.
-
-    Args:
-        data: Dictionary with 'query' field (user's prompt)
-
-    Returns:
-        Dictionary with 'additionalContext' to inject selected mode
-
-    Example:
-        >>> data = {"query": "Should we use Redis or Memcached?"}
-        >>> result = process_prompt(data)
-        >>> assert result["additionalContext"].startswith("Reasoning mode: multi_agent")
-    """
+    """Process prompt and inject reasoning mode into context."""
     try:
         query = data.get("query", "")
         result = analyze_query(query)
 
-        # Confidence threshold: skip low-confidence selections
-        confidence_threshold = 2
-        if result["confidence"] < confidence_threshold:
-            return {}  # Skip injection, fail silent
+        if result["confidence"] < 2:
+            return {}
 
-        # Inject reasoning mode into context
         mode_name = result["mode"]
         confidence = result["confidence"]
-
         context = (
             f"Reasoning mode: {mode_name}\n"
             f"Confidence: {confidence}/4\n"
             f"Using {mode_name} reasoning approach for this query.\n\n"
             f"Keep the active reasoning mode internal. Do not surface mode tags in the response."
         )
-
-        return {
-            "additionalContext": context,
-            "tokens": len(context.split())
-        }
-
+        return {"additionalContext": context, "tokens": len(context.split())}
     except Exception as e:
-        # Fail open - don't break on errors
-        _logger.error(f"[Start_reasoning_mode_selector] Error: {e}")
+        sys.stderr.write(f"[Start_reasoning_mode_selector] Error: {e}\n")
         return {}
 
 
 if __name__ == "__main__":
-    # For manual testing
     import sys
-
     test_input = json.loads(sys.stdin.read())
     result = process_prompt(test_input)
     print(json.dumps(_normalize_stdout(result)))
