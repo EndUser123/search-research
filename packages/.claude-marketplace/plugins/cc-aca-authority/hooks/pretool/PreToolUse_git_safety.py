@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations
+
+
 # --- plugin bootstrap ---
 import sys as _s; from pathlib import Path as _P
 _l = _P(__file__).resolve().parent.parent.parent / "__lib"
 if str(_l) not in _s.path: _s.path.insert(0, str(_l))
 from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
-
-from __future__ import annotations
 
 # Import auto-logging decorator
 from __lib.hook_base import hook_main
@@ -88,7 +89,6 @@ SAFE_PATTERNS = [
     "schema", "database", "config",
 ]
 
-
 def ensure_fresh_index(repo_root: Path | None = None) -> None:
     """
     Remove stale .git/index.lock files (main + worktrees) if older than 30 seconds.
@@ -156,7 +156,6 @@ def ensure_fresh_index(repo_root: Path | None = None) -> None:
                 # If we can't remove it, that's fine - let the actual git command fail
                 pass
 
-
 def run_git_cmd(cmd: list[str]) -> tuple[str, str, int]:
     """Run git command and return stdout, stderr, exit code."""
     import subprocess
@@ -169,7 +168,6 @@ def run_git_cmd(cmd: list[str]) -> tuple[str, str, int]:
     creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, creationflags=creation_flags)
     return result.stdout, result.stderr, result.returncode
-
 
 def get_git_status() -> dict:
     """Get git status information."""
@@ -198,7 +196,6 @@ def get_git_status() -> dict:
 
     return status
 
-
 def check_forgettables(files: list[str]) -> dict[str, list[str]]:
     """Check if files match forgettable patterns."""
     found = {}
@@ -215,7 +212,6 @@ def check_forgettables(files: list[str]) -> dict[str, list[str]]:
                 break
 
     return found
-
 
 def check_suspicious(files: list[str]) -> dict[str, list[str]]:
     """Check for suspicious file patterns."""
@@ -238,7 +234,6 @@ def check_suspicious(files: list[str]) -> dict[str, list[str]]:
 
     return found
 
-
 def check_untracked_tests(untracked: list[str]) -> list[str]:
     """Find untracked test files."""
     test_patterns = ["test_", "_test.py", "/tests/", "/test/"]
@@ -250,7 +245,6 @@ def check_untracked_tests(untracked: list[str]) -> list[str]:
             tests.append(file_path)
 
     return tests
-
 
 def format_check_message(checks: dict) -> str:
     """Format check results into a message."""
@@ -270,7 +264,6 @@ def format_check_message(checks: dict) -> str:
     lines.append("")
 
     return "\n".join(lines)
-
 
 def check_worktree_cross_contamination(
     tool_name: str,
@@ -318,6 +311,12 @@ def check_worktree_cross_contamination(
 
         # TEST FILE EXEMPTION: test files can write anywhere
         if is_test_file_operation(file_path):
+            return {"continue": True, "decision": "allow"}
+
+        # MEMORY FILE EXEMPTION: memory files are session-persistent,
+        # not worktree-scoped — always allow writes
+        normalized = file_path.replace(chr(92), '/').lower()
+        if '/.claude/projects/' in normalized and '/memory/' in normalized:
             return {"continue": True, "decision": "allow"}
 
         try:
@@ -379,7 +378,6 @@ def check_worktree_cross_contamination(
 
     # No violations - allow command
     return {"continue": True, "decision": "allow"}
-
 
 def suggest_git_restore(
     tool_name: str,
@@ -453,7 +451,6 @@ def suggest_git_restore(
 
     # No legacy pattern detected
     return {"continue": True, "decision": "allow"}
-
 
 @track_hook_performance("PreToolUse")
 @hook_main
@@ -560,7 +557,6 @@ def main():
 
     print(json.dumps(output))
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())
