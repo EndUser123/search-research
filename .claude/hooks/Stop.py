@@ -92,6 +92,13 @@ _REASONING_STOP = Path("P:/packages/cc-aca-reasoning/hooks/stop")
 if _REASONING_STOP.exists() and str(_REASONING_STOP) not in sys.path:
     sys.path.insert(0, str(_REASONING_STOP))
 
+# ACA plugin __lib paths — for shared modules like anti_sycophancy
+# Inserted after hooks directories but before HOOKS_DIR so plugin modules
+# take precedence over local copies during migration.
+_EPISTEMIC_LIB = Path("P:/packages/cc-aca-epistemic/__lib")
+if _EPISTEMIC_LIB.exists() and str(_EPISTEMIC_LIB) not in sys.path:
+    sys.path.insert(0, str(_EPISTEMIC_LIB))
+
 sys.path.insert(0, str(HOOKS_DIR))
 ANTI_SYCOPHANCY_LOG = HOOKS_DIR / "logs" / "anti_sycophancy_violations.jsonl"
 SKILL_FIRST_LOG = HOOKS_DIR / "logs" / "skill_first_enforcement.jsonl"

@@ -46,6 +46,12 @@ HIGH_STAKES_PATTERNS = [
     # Direct contradiction of AI output
     r"(?:but|except)\s+(?:we|I|it)\s+(?:already|never|always|actually)",
     r"why\s+did\s+(?:you|our\s+hooks?|the\s+system)\s+(?:fail|miss|not)",
+    # Investigative challenges — questions about prior decisions or verification
+    r"did\s+you\s+(?:actually\s+)?(?:check|verify|run|test|sync|validate|confirm|look\s+at)",
+    r"why\s+(?:is|are|was|were)\s+.+?\s+(?:the\s+)?(?:best|right|correct|optimal|necessary|only)\b",
+    r"(?:is|are)\s+(?:this|that|it|you)\s+(?:really\s+|truly\s+|actually\s+)?(?:the\s+)?(?:best|right|correct|only)\s+(?:way|choice|approach|option|solution)",
+    r"what\s+makes\s+(?:this|that|it)\s+(?:the\s+)?(?:best|right|correct)",
+    r"how\s+do\s+you\s+know\s+(?:that|this|it)",
 ]
 
 LOW_STAKES_PATTERNS = [

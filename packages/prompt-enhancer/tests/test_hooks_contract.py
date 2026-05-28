@@ -24,8 +24,7 @@ from conftest import (
 
 # Absolute path to the hook script (independent of sys.path during subprocess call).
 PLUGIN_ROOT = Path(__file__).parent.parent
-HOOK_PATH = PLUGIN_ROOT / "scripts" / "hooks" / "prompt_enhancer_hook.py"
-PRECOMPACT_PATH = PLUGIN_ROOT / "scripts" / "hooks" / "prompt_enhancer_precompact_hook.py"
+HOOK_PATH = PLUGIN_ROOT / "hooks" / "prompt-enhancer_UserPromptSubmit.py"
 
 
 class TestHookBypass:
