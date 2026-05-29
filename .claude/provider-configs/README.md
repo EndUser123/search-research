@@ -38,6 +38,58 @@ Bifrost proxies to multiple providers via a local gateway at `http://localhost:8
 | `cc-bf gemma` | OpenRouter | gemma-4-31b-it:free all tiers |
 | `cc-bf qwen` | OpenRouter | qwen3-coder:free all tiers |
 
+### Troubleshooting: `failed to get config for provider: not found` (or 404)
+
+**Symptom (in Claude Code, after `cc-bf`):**
+```
+API Error: 500 failed to get config for provider: not found
+```
+or requests silently 404 with `extra_fields.provider = cerebras`.
+
+**Root cause:** the model string `cc-bifrost.ps1` injects into Claude Code
+(`ANTHROPIC_DEFAULT_{SONNET,OPUS,HAIKU}_MODEL`) must match a Bifrost routing
+rule's CEL expression **exactly and case-sensitively**. When it doesn't, the
+request matches no rule and falls through to the empty-CEL `cerebras` catch-all,
+which has no usable config → `not found` / 404.
+
+This happened because the CEL rules in the Bifrost DB were migrated to a
+prefixed/lowercase key scheme (`mx:…`, `nv:…`, `or:…`, `ms:…`, lowercase
+`glm-5.1`) but the script still injected old display names (`MiniMax-M2.7`,
+`GLM-5.1`).
+
+**The invariant:** `ANTHROPIC_DEFAULT_*_MODEL` value === a route key returned by
+`bifrost_db.py --get-routes` === the literal in the rule's `cel_expression`.
+
+**How to diagnose (independent evidence sources, no guessing):**
+```powershell
+# 1. Daemon up + provider keys aligned?
+& "P:\.claude\provider-configs\cc-bifrost.ps1" --status
+
+# 2. What CEL string does each rule actually require? (live API, authoritative)
+curl -s http://localhost:8080/api/governance/routing-rules | `
+  python -c "import sys,json;[print(r['name'],r.get('cel_expression')) for r in json.load(sys.stdin)['rules']]"
+
+# 3. Reproduce: does the exact injected string route? (definitive)
+curl -s http://localhost:8080/v1/chat/completions -H "Content-Type: application/json" `
+  -d '{\"model\":\"glm-5.1\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":1}'
+# OK  -> extra_fields.provider = Z.AI        (string matches a rule)
+# bad -> extra_fields.provider = cerebras    (fell through; string matches NO rule)
+```
+
+**The fix (already applied 2026-05-28):** `cc-bifrost.ps1` now injects
+CEL-matching keys directly and no longer rewrites them. See:
+- Defaults block (~line 55): Sonnet/Haiku = `mx:minimax/MiniMax-M2.7`, Opus = `glm-5.1`
+- `$modelOverride` block: passes the DB route key through unchanged (no normalization)
+- `c=` custom-slot block: same passthrough
+- The dead `Resolve-ModelName` function (stale name-rewriting) was deleted
+
+**If it recurs:** the rule keys drifted again. Run step 2, then set the defaults
+in `cc-bifrost.ps1` to whatever `cel_expression` literals the rules now require.
+Do NOT reintroduce a normalization/alias-rewrite layer in the override path —
+that is exactly what caused this; `$routes` is already keyed by the live CEL keys.
+A `--status` "ALL ALIGNED" is **not** sufficient — that check lowercases provider
+names, so it can hide case drift; only the step-3 probe is conclusive.
+
 ### GLM and MiniMax (Direct API)
 
 ```powershell

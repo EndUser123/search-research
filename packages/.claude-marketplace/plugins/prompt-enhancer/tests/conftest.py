@@ -33,6 +33,7 @@ def _isolated_home(monkeypatch, tmp_path):
     monkeypatch.setenv("CLAUDE_TERMINAL_ID", terminal_id)
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("USERPROFILE", str(tmp_path))
+    monkeypatch.delenv("CLAUDE_PLUGIN_ROOT", raising=False)
     yield tmp_path, terminal_id
 
 
@@ -63,7 +64,7 @@ def _seed_enhancement(
     confidence: float = 0.9,
     **extra_fields,
 ) -> Path:
-    """Write a controlled active_enhancement.json for hook / PreCompact tests."""
+    """Write a controlled active_enhancement.json for hook tests."""
     data = {
         "clarified_intent": clarified_intent,
         "missing_details": missing_details,

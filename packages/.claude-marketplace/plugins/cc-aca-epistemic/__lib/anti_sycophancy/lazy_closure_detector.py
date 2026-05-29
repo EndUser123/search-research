@@ -201,7 +201,7 @@ ASSUMED_COMPLIANCE_PHRASES = [
     r"\bframework\s+(?:ensures|guarantees|handles)\b",
 ]
 
-# Lazy fix language - proposes bandaids over proper solutions
+# Lazy fix language - proposes superficial fixes over proper solutions
 LAZY_FIX_PHRASES = [
     r"\bquick\s+fix\b",
     r"\bsimple\s+(?:fix|patch|edit)\b",
@@ -213,8 +213,8 @@ LAZY_FIX_PHRASES = [
     r"\buse\s+(?:a\s+)?workaround\b",
     r"\bimplement\s+(?:a\s+)?workaround\b",
     r"\bregardless\s+of\b",  # "regardless of task name" - ignoring design
-    r"\bbandaid\b",
-    r"\bband-aid\b",
+    # removed: false-positive rate too high when analyzing existing fixes
+    # "workaround" patterns already cover the same intent with fewer FP.
     r"\bjust\s+(?:add|patch|fix|use)\b",
     r"\beasier\s+to\s+just\b",
 ]
@@ -387,7 +387,9 @@ SYCOPHANCY_CAPITULATION_PHRASES = [
     r"\bNow\s+I\s+(?:see|understand)\b",
     r"\bSo\s+(?:the\s+|this\s+|it\s+)?\w+\s+simply\b",
     r"\bThat\s+makes\s+sense[.—]\s+[A-Z]",
-    r"\bYou(?:'re|\s+are)\s+right[,.]",
+    # "You're right" with optional intensifier or continuation (not just comma/period)
+    r"\bYou(?:'re|\s+are)\s+(?:absolutely\s+|completely\s+|totally\s+)?right\b",
+    r"\bYou(?:'re|\s+are)\s+right\s+to\s+\w+",
     r"\bI\s+(?:mis|was\s+mis)understood\b",
     r"\bI\s+(?:was\s+)?wrong\s+about\b",
 ]
@@ -595,6 +597,26 @@ def _find_verifiable_state_claim(text_lower: str, text_original: str) -> str | N
     return None
 
 
+def _is_inside_quoted_content(text: str, match: re.Match) -> bool:
+    """Check if a regex match falls inside markdown code blocks, blockquotes, or tables.
+
+    Prevents false positives when capitulation phrases appear in quoted transcript
+    evidence, code examples, or data tables rather than the model's own assertions.
+    """
+    pos = match.start()
+    # Check if inside a fenced code block (``` ... ```)
+    before = text[:pos]
+    fence_opens = before.count("```")
+    if fence_opens % 2 == 1:
+        return True
+    # Check if inside a blockquote line (starts with > or |)
+    line_start = before.rfind("\n") + 1
+    line_prefix = text[line_start:pos].lstrip()
+    if line_prefix.startswith(("> ", "| ", "|")):
+        return True
+    return False
+
+
 def _has_bash_evidence(text: str) -> bool:
     """Check if text contains markers from actual Bash/terminal execution.
 
@@ -725,8 +747,10 @@ def detect_lazy_closure(response: str, user_prompt: str = "") -> LazyClosureMatc
 
     # Sycophancy capitulation — checked before the general evidence exemption,
     # because only Bash execution output (not Skill/Read docs) clears this pattern.
+    # Also exempted when the match falls inside quoted content (code blocks,
+    # blockquotes) to prevent false positives from cited transcript evidence.
     match = _find_pattern(text, _SYCOPHANCY_CAPITULATION)
-    if match and not _has_bash_evidence(text):
+    if match and not _has_bash_evidence(text) and not _is_inside_quoted_content(text, match):
         escalated = _check_capitulation_escalation()
         if escalated:
             return LazyClosureMatch(

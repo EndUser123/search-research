@@ -232,35 +232,46 @@ When invoked without arguments, `/recap` produces a **handoff document** suitabl
 # Session Handoff
 
 ## Context
-- **Project**: {project_path}
-- **Terminal**: {terminal_id}
-- **Sessions in chain**: {count}
+- **Project**: {project.project_root}
+- **Terminal**: {project.terminal_id}
+- **Sessions in chain**: {session_count}
 - **Time span**: {earliest_session} → {latest_session}
-- **Current session**: {session_id}
+- **Current session**: {current_session_id}
 
 ## Completed
-- {what was accomplished, with file references and test status}
+{completed_section}
 
 ## In Progress
-- {active work with current state, modified files, and next step}
+{in_progress_section}
 
 ## Blocked
-- {blockers with reason and what would unblock them}
+{blocked_section}
 
-## Next Actions (ordered)
-1. {most important next step with file reference}
-2. {second priority}
-3. {third priority}
+## Next Actions
+{next_actions_rns}
 
 ## Risks
-- **{risk description}** — *Mitigation*: {what would prevent it}
-- **{assumption}** — *Invalidates if wrong*: {what breaks}
+{risks_section}
 
 ## Decisions Made
-- **{decision}** — *Rationale*: {why} — *Impact*: {scope}
+{decisions_section}
+
+## Enrichment Signals
+
+### GTO Findings
+{gto_findings_section}
+
+### Friction Patterns
+{friction_patterns_section}
+
+### Behave Hypotheses
+{behave_hypotheses_section}
+
+### Trace Findings
+{trace_findings_section}
 
 ## Key Files
-- `{file_path}` — {role in session chain}
+{key_files_section}
 ```
 
 The handoff format replaces the per-session narrative as the **default output**. Use `/recap full` for the detailed session-by-session view with origin tags and confidence labels. Use `/recap brief` for a quick one-paragraph catch-up.

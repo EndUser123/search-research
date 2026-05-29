@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "snapshot",
-      "version": "0.5.12",
+      "version": "0.5.14",
       "description": "Session snapshot capture and restore system for Claude Code sessions",
       "source": "./plugins/snapshot",
       "keywords": [
@@ -38,18 +38,6 @@
         "ai",
         "api",
         "integration"
-      ]
-    },
-    {
-      "name": "cc-skills-ai-cli",
-      "version": "1.0.0",
-      "description": "AI CLI skills for Claude Code \u2014 parallel LLM execution, provider routing, and coding agents.",
-      "source": "./plugins/cc-skills-ai-cli",
-      "keywords": [
-        "ai",
-        "cli",
-        "llm",
-        "coding"
       ]
     },
     {
@@ -86,7 +74,7 @@
     },
     {
       "name": "search-research",
-      "version": "0.1.13",
+      "version": "0.1.16",
       "description": "Unified search and research system with async concurrent execution and 11 web providers.",
       "source": "./plugins/search-research",
       "keywords": [
@@ -132,7 +120,7 @@
     },
     {
       "name": "cc-skills-analysis",
-      "version": "1.0.19",
+      "version": "1.0.21",
       "description": "Analysis plugin",
       "source": "./plugins/cc-skills-analysis",
       "keywords": []
@@ -151,7 +139,7 @@
     },
     {
       "name": "prompt-enhancer",
-      "version": "0.1.5",
+      "version": "0.2.3",
       "description": "Prompt Clarification & Context Augmentation \u2014 ambiguous prompt detection, enhancement, and multi-turn context preservation via UserPromptSubmit + PreCompact hooks.",
       "source": "./plugins/prompt-enhancer",
       "keywords": [
@@ -181,7 +169,7 @@
     },
     {
       "name": "cc-aca-session",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "description": "ACA Session plugin - session lifecycle hooks (cleanup, breadcrumb init, snapshot). Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-session",
       "keywords": [
@@ -195,7 +183,7 @@
     },
     {
       "name": "cc-aca-epistemic",
-      "version": "0.2.8",
+      "version": "0.2.11",
       "description": "ACA Epistemic plugin - evidence verification, claim validation, provenance tracking, anti-fabrication enforcement, and anti-sycophancy detection. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-epistemic",
       "keywords": [
@@ -272,7 +260,7 @@
     },
     {
       "name": "cc-aca-observability",
-      "version": "0.1.8",
+      "version": "0.1.11",
       "description": "ACA Observability plugin \u2014 session health monitoring, drift detection, artifact scraping, and PostToolUse tracker orchestration. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-observability",
       "keywords": [

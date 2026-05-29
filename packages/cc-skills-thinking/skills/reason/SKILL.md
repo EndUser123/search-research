@@ -113,10 +113,10 @@ Assign models to **cognitive roles**, not task categories. Any model can play an
 | `/bf run_compare` | Parallel multi-model comparison with LangGraph synthesis | `python -c "from bf_agent import run_compare; result = run_compare(prompt, models=[...]); print(result['synthesis'])"` |
 | `/ai-pcli` | Multi-CLI parallel execution (gemini, codex, opencode, pi) with aggregation | `python "P:/packages//cc-skills-ai-cli//skills//ai-pcli//ai_cli.py" "<prompt>" <options>` |
 
-**Bifrost (`/bf`) defaults:** Model=`DSv4-flash`, mode=`brainstorm` (or per role: design for architecture, plan for sequencing, review for critique, explore for investigation).
+**Bifrost (`/bf`) defaults:** Use PI routing (see `/ai-cli --pi-model`), mode=`brainstorm` (or per role: design for architecture, plan for sequencing, review for critique, explore for investigation).
 
 **Routing decision logic:**
-- Low confidence → `/bf run_compare` for breadth (M27, GLM-5.1, DSv4-flash)
+- Low confidence → `/bf run_compare` for breadth (use PI routing, see `/ai-cli --pi-model`)
 - Single role (Verifier/Red Team) → `/ai-pcli --gemini-only` or `/ai-pcli --pi-only`
 - Parallel diverse roles → `/ai-pcli` with multiple CLIs
 - Code-heavy task → `/bf run_code` with tool loop

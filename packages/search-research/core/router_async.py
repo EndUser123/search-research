@@ -228,6 +228,11 @@ class AsyncSearchRouter:
             logger.debug(f"Claude History backend not available: {e}")
 
         try:
+            backends["vault"] = local.create_vault_backend()
+        except Exception as e:
+            logger.debug(f"Vault backend not available: {e}")
+
+        try:
             backends["notebooklm"] = local.create_notebooklm_backend()
         except Exception as e:
             logger.debug(f"NotebookLM backend not available: {e}")

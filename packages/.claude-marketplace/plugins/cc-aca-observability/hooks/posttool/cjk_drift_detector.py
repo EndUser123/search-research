@@ -54,6 +54,7 @@ def _strip_quoted(text: str) -> str:
     and stripped entirely - the CJK in channel names should not trigger drift detection.
     """
     text = re.sub(r"```[\s\S]*?```", "", text)
+    text = re.sub(r"```[\s\S]*$", "", text)
     text = re.sub(r"`[^`\n]+`", "", text)
     text = re.sub(r"^.*\([^\)]*https?://[^\)]*\).*$", "", text, flags=re.MULTILINE)
     return text
@@ -122,6 +123,7 @@ def main() -> int:
 
     if event_name in ("Stop", "SubagentStop"):
         _logger.warning(msg)
+        print(msg, file=sys.stderr)
         try:
             from cc_diagnostic_logger import log_hook_invocation
             log_hook_invocation(

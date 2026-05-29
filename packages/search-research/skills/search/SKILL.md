@@ -17,7 +17,7 @@ Single entry point to search across all CSF NIP data stores in parallel - **loca
 - **Efficiency over complexity**: Parallel execution, fast responses
 - **Evidence-based**: Search results provide citation context
 - **Canonical CLI**: `P://packages/search-research/core/cli.py`
-- **Backends**: CKS, CHS (claude-history/Rust+FTS5), CDS, Code/Grep, DOCS, SKILLS
+- **Backends**: CKS, CHS (claude-history/Rust+FTS5), VAULT (claude-vault/FTS5), CDS, Code/Grep, DOCS, SKILLS
 - **Search methods**: FTS5 (~10ms), Hybrid (~50ms), Semantic (~200ms)
 - **Output formats**: Human-readable (default), JSON for scripting
 - **CHS bootstrap**: If `chat_history.db` exists but FTS5 tables are missing, build it with `python -m core.chs.scripts.reindex_from_jsonl --db-path "P://__csf/data/chat_history.db" --history-path "~/.claude/history.jsonl"`
@@ -183,6 +183,7 @@ Manual flags are available for precise control:
 | Backend | Description | Content |
 |---------|-------------|---------|
 | **CHS** | Chat History (claude-history/FTS5; bootstrap with reindex_from_jsonl.py) | Sessions and messages |
+| **VAULT** | Archived Sessions (claude-vault/FTS5) | Archived Claude Code sessions |
 | **CKS** | Knowledge (FAISS) | Patterns, lessons, docs |
 | **CDS** | Discovery Findings | Code analysis findings |
 | **Code/Grep** | Source Code | File content search |

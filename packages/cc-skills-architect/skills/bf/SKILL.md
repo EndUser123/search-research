@@ -64,8 +64,8 @@ This skill handles Bifrost daemon lifecycle, catalog browsing, and route managem
 /bf routes                            # probe all configured routes
 /bf routes --new-only                 # find unrouted catalog models
 /bf list-routes                       # list all rules
-/bf add DSv4-flash deepseek deepseek-ai/deepseek-v4-flash
-/bf delete 5
+/bf add <model> <provider> <target>   # add routing rule (use PI model routing)
+/bf delete <rule-id>                   # delete routing rule
 ```
 
 ## bf_agent Library (introspection)
@@ -94,12 +94,14 @@ CEL routing not matching. Check `/bf status` — ensure `enabled=1` for the rule
 
 | Old /bf usage | New /ai-api equivalent |
 |---------------|------------------------|
-| `/bf brainstorm M27 prompt` | `/ai-api brainstorm M27 prompt` |
-| `/bf design DSv4-flash prompt` | `/ai-api design DSv4-flash prompt` |
-| `/bf compare M27,GLM-5.1,DSv4-flash prompt` | `/ai-api compare M27,GLM-5.1,DSv4-flash prompt` |
-| `/bf code DSv4-flash prompt` | `/ai-api code DSv4-flash prompt` |
-| `/bf review M27 prompt` | `/ai-api review M27 prompt` |
-| `/bf explore GLM-5.1 prompt` | `/ai-api explore GLM-5.1 prompt` |
+| `/bf brainstorm <model> prompt` | `/ai-api brainstorm <model> prompt` |
+| `/bf design <model> prompt` | `/ai-api design <model> prompt` |
+| `/bf compare <models> prompt` | `/ai-api compare <models> prompt` |
+| `/bf code <model> prompt` | `/ai-api code <model> prompt` |
+| `/bf review <model> prompt` | `/ai-api review <model> prompt` |
+| `/bf explore <model> prompt` | `/ai-api explore <model> prompt` |
+
+**Note:** Use `/ai-cli --pi-model --list-models` to discover available models via PI routing.
 
 ## Evidence-First Principles
 

@@ -52,10 +52,12 @@ if (-not $env:ANTHROPIC_AUTH_TOKEN) {
     $env:ANTHROPIC_AUTH_TOKEN = "sk-cp-KaSmY8e9E1Pw9XbCWOiVexNvnLGwmKJ8fBGf57gEvA3fb95gq73n7AGVyIL3zBrjvFzxRQFyocfa8QdgborzQoupFzI0UX5cjw7MCkIY3DCy5-kAFVza5z8"
 }
 
-# Default: all tiers to MiniMax-M2.7 (Bifrost routing key -> MiniMax/MiniMax-M2.7)
-$env:ANTHROPIC_DEFAULT_SONNET_MODEL = "MiniMax-M2.7"
-$env:ANTHROPIC_DEFAULT_OPUS_MODEL = "GLM-5.1"
-$env:ANTHROPIC_DEFAULT_HAIKU_MODEL = "MiniMax-M2.7"
+# Default: model strings MUST match a Bifrost CEL routing rule exactly (case-sensitive).
+#   Sonnet/Haiku -> rule mx-minimax-m2.7 (model == "mx:minimax/MiniMax-M2.7")
+#   Opus         -> rule zai-glm-5.1     (model == "glm-5.1")
+$env:ANTHROPIC_DEFAULT_SONNET_MODEL = "mx:minimax/MiniMax-M2.7"
+$env:ANTHROPIC_DEFAULT_OPUS_MODEL = "glm-5.1"
+$env:ANTHROPIC_DEFAULT_HAIKU_MODEL = "mx:minimax/MiniMax-M2.7"
 
 $doSync = $false
 $doStart = $false
@@ -626,29 +628,15 @@ foreach ($alias in $aliasMap.Keys) {
     }
 }
 
-function Resolve-ModelName($name) {
-    $normalized = $name -replace "^glm-5.1$", "GLM-5.1" `
-                       -replace "^MiniMax-M2.7$", "M27" `
-                       -replace "^Nvidia-Deepseek-v4-flash$", "DSv4-flash" `
-                       -replace "^DSv4-flash$", "DSv4"
-    if ($routes.ContainsKey($normalized)) {
-        return $routes[$normalized][3]  # display name (provider/model)
-    }
-    return $name
-}
-
 if ($modelOverride) {
-    $normalizedKey = $modelOverride -replace "^glm-5.1$", "GLM-5.1" `
-                                    -replace "^MiniMax-M2.7$", "M27" `
-                                    -replace "^Nvidia-Deepseek-v4-flash$", "DSv4-flash" `
-                                    -replace "^DSv4-flash$", "DSv4"
-
-    if ($routes.ContainsKey($normalizedKey)) {
-        $route = $routes[$normalizedKey]
-        $env:ANTHROPIC_DEFAULT_SONNET_MODEL = $normalizedKey  # routing key — ensures CEL rule fires
-        $env:ANTHROPIC_DEFAULT_OPUS_MODEL = $normalizedKey
-        $env:ANTHROPIC_DEFAULT_HAIKU_MODEL = $normalizedKey
-        $displayName = "$normalizedKey → $($route[3])"
+    # $routes is keyed by the DB route key, which IS the exact CEL-matching string.
+    # Pass it through unchanged so the routing rule fires; no normalization needed.
+    if ($routes.ContainsKey($modelOverride)) {
+        $route = $routes[$modelOverride]
+        $env:ANTHROPIC_DEFAULT_SONNET_MODEL = $modelOverride
+        $env:ANTHROPIC_DEFAULT_OPUS_MODEL = $modelOverride
+        $env:ANTHROPIC_DEFAULT_HAIKU_MODEL = $modelOverride
+        $displayName = "$modelOverride → $($route[3])"
     } else {
         # Unknown model — pass through as-is (Bifrost will reject or route as-is)
         $env:ANTHROPIC_DEFAULT_SONNET_MODEL = $modelOverride
@@ -670,14 +658,9 @@ if ($tierOverrides.ContainsKey("h")) {
 }
 if ($tierOverrides.ContainsKey("c")) {
     $customModel = $tierOverrides["c"]
-    # Normalize only for the API model name
-    $normalizedC = $customModel -replace "^glm-5.1$", "GLM-5.1" `
-                                -replace "^MiniMax-M2.7$", "M27" `
-                                -replace "^Nvidia-Deepseek-v4-flash$", "DSv4-flash" `
-                                -replace "^DSv4-flash$", "DSv4"
-    $env:ANTHROPIC_CUSTOM_MODEL_OPTION = $normalizedC
-    $env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME = $customModel  # show original name
-    # Check routes using the original input key (DB stores N-DSv4-flash, not DSv4)
+    # Route key IS the CEL-matching string — pass through unchanged.
+    $env:ANTHROPIC_CUSTOM_MODEL_OPTION = $customModel
+    $env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME = $customModel
     if ($routes.ContainsKey($customModel)) {
         $env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION = "Bifrost: $($routes[$customModel][3])"
     } else {

@@ -55,6 +55,11 @@ from .lsp_backend import LSPSymbolBackend, create_lsp_backend, BACKEND_LSP_SYMBO
 from .dependency_backend import DependencyBackend, DEP_GRAPH_AVAILABLE
 from .qmd_wiki_backend import QMDWikiBackend
 from .yt_is_backend import YtIsBackend
+from .vault_backend import (
+    BACKEND_VAULT,
+    VaultBackend,
+    create_vault_backend,
+)
 
 BACKEND_QMD_WIKI = "QMD_WIKI"
 BACKEND_YT_IS = "yt-is"
@@ -72,6 +77,7 @@ __all__ = [
     "RLMBackend",
     "ClaudeHistoryBackend",
     "NotebookLMBackend",
+    "VaultBackend",
     # Extended backends (graceful degradation)
     "ASTCodeBackend",
     "CallGraphBackend",
@@ -89,6 +95,7 @@ __all__ = [
     "BACKEND_MULTILANG",
     "BACKEND_RLM",
     "BACKEND_CLAUDE_HISTORY",
+    "BACKEND_VAULT",
     "BACKEND_AST_CODE",
     "BACKEND_LSP_SYMBOL",
     "BACKEND_NAME_CALL_GRAPH",
@@ -101,6 +108,7 @@ __all__ = [
     "create_multilang_backend",
     "create_rlm_backend",
     "create_claude_history_backend",
+    "create_vault_backend",
     "create_ast_backend",
     "create_lsp_backend",
     # Availability flags
