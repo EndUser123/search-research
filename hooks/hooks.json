@@ -1,3 +1,28 @@
 {
-  "hooks": {}
+  "hooks": {
+    "PreCompact": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PLUGIN_ROOT/hooks/search-research_PreCompact.py\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \\\"$CLAUDE_PLUGIN_ROOT/hooks/search-research_SessionEnd.py\\\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
 }

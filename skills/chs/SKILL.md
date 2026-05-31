@@ -1,6 +1,15 @@
 ---
 name: chs
 description: Dedicated chat history search with summarization, workspace aliases, tool filtering, context preview, session stats, and branch filtering
+enforcement: strict
+workflow_steps:
+  - Parse query and extract filters
+  - Stage 1: Lightweight index-only search (firstPrompt, summary fields)
+  - Check results sufficiency, trigger Stage 2 if needed
+  - Stage 2: Deep JSONL content scan
+  - Apply filters (tool, branch, workspace, date)
+  - Generate output (summary, context preview, or full details)
+  - Optional: Apply summarization mode
 ---
 # Chat History Search (/chs)
 
@@ -21,6 +30,28 @@ Dedicated search for Claude Code chat history with advanced features: summarizat
 - **Storage**: SQLite metrics database at `P://packages/search-research/data/chs_metrics.db`
 - **FTS5 bootstrap**: `python -m core.chs.scripts.reindex_from_jsonl --db-path "P://__csf/data/chat_history.db" --history-path "~/.claude/history.jsonl"`
 - **Bootstrap rule**: If `chat_history.db` exists but schema/FTS tables are missing, reindex from `history.jsonl` before trusting search results
+
+### Session Resolution (Registry-Only)
+
+**Source of truth:** `P:/.claude/.artifacts/session_registry.jsonl` — append-only JSONL written by `PreCompact` hook.
+
+**How it works:**
+1. **Find current session:** Query registry by `terminal_id` (WT_SESSION env var) → get most recent `session_id`
+2. **Build full chain:** Query registry by `session_id` → aggregate all entries across terminals → extract unique `transcript_path` values in chronological order
+3. **Result:** Complete `transcript_chain` array spanning all compactions and terminal switches
+
+**Why registry instead of identity.json:**
+- Registry is the source of truth (written by PreCompact)
+- Identity.json was just a cache (written by SessionStart, deleted at compaction)
+- Registry contains cross-terminal session history (identity.json is single-terminal only)
+- Registry always works (identity.json doesn't exist for fresh sessions)
+
+**Data structure:**
+```json
+{"ts": "2026-05-27T12:00:00", "terminal_id": "console_abc", "session_id": "uuid-123", "transcript_path": "C:\\Users\\...\\uuid-123.jsonl", ...}
+```
+
+Each `session_id` appears multiple times (once per terminal/compaction). Aggregating by `session_id` reconstructs the full chain.
 
 ### Consolidation History
 - Previously part of `/search` (consolidated old `/chs`, `/recent`, `/search-more`)
@@ -224,12 +255,25 @@ python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --ses
 - `--output` is optional; if omitted, the CLI writes to `~/.claude/exports/chain_<timestamp>.md`
 - `--exclude-thinking` removes thinking blocks from the export
 - `--include-tool-results` keeps raw tool results in the export
+- `--max-sessions` limits chain length (default 30, recommend 5 for context-safe exports)
+
+**Context protection rules:**
+
+The CLI returns JSON metadata with `context_safe` and `recommendation` fields. Follow the recommendation:
+
+| `recommendation` | Action |
+|---|---|
+| `read_file` | Safe to read the export into context (<20K tokens) |
+| `delegate_to_subagent` | Too large for main context. Spawn a subagent to read, summarize, and return key findings |
+| `export_is_too_large_use_filters` | >100K tokens. Re-export with `--max-sessions 3 --exclude-thinking` or targeted `--session-id` |
+
+**Default behavior:** Report the export path and metadata. Do NOT read the file into context unless `context_safe` is true.
 
 **Examples:**
 
 ```bash
-# Export the current session chain
-python P://packages/search-research/skills/chs/scripts/chs_cli.py --export
+# Export the current session chain (bounded for context safety)
+python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --max-sessions 5 --exclude-thinking
 
 # Export a specific session chain
 python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id abc123
@@ -237,6 +281,36 @@ python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --ses
 # Export to a specific file
 python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id abc123 --output P://tmp/chs-export.md
 ```
+
+### 7.5. Subagent Delegation for Summarization
+
+When using summarization modes (`--mode documentation`, `--mode debug-postmortem`, etc.) or processing large exports, delegate to a subagent to protect main context:
+
+**When to delegate:**
+- Export metadata shows `context_safe: false`
+- Using `--mode documentation` or `--mode debug-postmortem` on sessions with >50 messages
+- User asks to "analyze" or "summarize" a session chain
+
+**Delegation pattern:**
+
+```python
+Agent(
+    subagent_type="general-purpose",
+    description="CHS summarization",
+    prompt="""Read the chat history export at: {export_path}
+
+Produce a {mode} summary following the /chs format.
+
+Rules:
+- Extract key decisions, changes, and patterns
+- List files modified with descriptions
+- Note any dead ends, abandoned approaches, or deferred items
+- Keep output under 2000 tokens
+- Return ONLY the summary, no meta-commentary"""
+)
+```
+
+**For search results:** If a search returns >5 results or the user asks for deep analysis, delegate processing to a subagent rather than reading all results into main context.
 
 ### 8. Branch-Based Filtering
 

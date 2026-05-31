@@ -1,0 +1,12 @@
+{
+  "terminal": {
+    "id": "env_d980217e0012",
+    "source": "WT_SESSION"
+  },
+  "claude": {
+    "session_id": "99ddca1b-59bc-4d90-b583-ea647b4d910d",
+    "transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--\\99ddca1b-59bc-4d90-b583-ea647b4d910d.jsonl",
+    "cwd": "P:\\packages\\search-research"
+  },
+  "captured_at": "2026-05-27T21:50:11.323285+00:00"
+}

@@ -92,9 +92,28 @@
 Export the full conversation history for the current session chain (all sessions
 linked via handoff files) to a single readable markdown file.
 
+The CLI returns JSON metadata with size estimates and a `recommendation` field:
+
+```json
+{
+  "path": "~/.claude/exports/chain_20260527_143000.md",
+  "session_count": 5,
+  "file_size_kb": 42.3,
+  "estimated_tokens": 10800,
+  "context_safe": true,
+  "recommendation": "read_file"
+}
+```
+
+| recommendation | Action |
+|---|---|
+| `read_file` | Safe to read into context (<20K tokens) |
+| `delegate_to_subagent` | Spawn subagent to summarize (20-100K tokens) |
+| `export_is_too_large_use_filters` | Re-export with filters (>100K tokens) |
+
 ```bash
-# Export current session's chain (auto-detects session ID)
-/chs --export
+# Export current session's chain (bounded for context safety)
+/chs --export --max-sessions 5 --exclude-thinking
 
 # Export a specific session chain
 /chs --export --session-id <uuid>
