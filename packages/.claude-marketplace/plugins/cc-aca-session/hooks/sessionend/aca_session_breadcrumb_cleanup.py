@@ -23,9 +23,10 @@ if str(_PLUGIN_LIB) not in sys.path:
     sys.path.insert(0, str(_PLUGIN_LIB))
 from state_paths import get_hooks_dir
 
-_skill_guard_src = get_hooks_dir().parent.parent / "packages" / "skill-guard" / "src"
+_marketplace_plugins = get_hooks_dir().parent.parent / "plugins"
+_skill_guard_src = _marketplace_plugins / "skill-guard" / "src"
 if not _skill_guard_src.exists():
-    _skill_guard_src = Path("P:/packages/skill-guard/src")
+    _skill_guard_src = get_hooks_dir().parent.parent / "skill-guard" / "src"
 sys.path.insert(0, str(_skill_guard_src))
 from skill_guard.breadcrumb import cleanup_session_breadcrumbs
 from skill_guard.breadcrumb.log import cleanup_old_log_dirs

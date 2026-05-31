@@ -24,10 +24,14 @@ from __future__ import annotations
 
 
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
@@ -48,7 +52,6 @@ from UserPromptSubmit_modules.unified_detection import (
 # ---------------------------------------------------------------------------
 # Single-source profile definition (dataclass pattern)
 # ---------------------------------------------------------------------------
-
 
 @dataclass(frozen=True)
 class ThinkProfile:
@@ -73,7 +76,6 @@ class ThinkProfile:
     weak_patterns: list[str] | None
     """Ambiguous keyword patterns (2+ matches trigger), or None if not applicable."""
 
-
 # ---------------------------------------------------------------------------
 # Keyword-based auto-detection (strong=1 match, weak=2+ matches)
 # ---------------------------------------------------------------------------
@@ -85,7 +87,6 @@ _THINK_PREFIX_RE = re.compile(
     re.IGNORECASE,
 )
 
-
 def _stem(root: str, suffixes: str = "ed|ing|s|es") -> str:
     """Build a stemming regex pattern from a root word.
 
@@ -93,7 +94,6 @@ def _stem(root: str, suffixes: str = "ed|ing|s|es") -> str:
     _stem("fail", "ed|ing|s|ure|ures") -> r"fail(?:ed|ing|s|ure|ures)?"
     """
     return re.escape(root) + r"(?:" + suffixes + r")?"
-
 
 # Self-referential prompt patterns: questions about the model's own reasoning/decisions.
 # These should NOT trigger debug_rca — the model knows its own mind, it's not an external bug.
@@ -121,7 +121,6 @@ _META_THINK_DIRECT_RE = re.compile(
 )
 _THINK_COMMAND_MENTION_RE = re.compile(r"(?i)(?:^|[\s`'\"(])/(?:think)\b")
 
-
 def _is_self_referential_prompt(prompt: str) -> bool:
     """Detect prompts that ask the model to explain its own prior decisions/reasoning.
 
@@ -130,7 +129,6 @@ def _is_self_referential_prompt(prompt: str) -> bool:
     epistemically wrong and produces the verbose hedging observed in the transcript.
     """
     return bool(_SELF_REFERENTIAL_PROMPT_RE.search(prompt))
-
 
 def _is_meta_think_prompt(prompt: str) -> bool:
     """Detect prompts that are about the /think mechanism instead of the real subject.
@@ -146,7 +144,6 @@ def _is_meta_think_prompt(prompt: str) -> bool:
         return True
 
     return bool(_META_THINK_CONTEXT_RE.search(prompt_clean))
-
 
 # Strong keywords: unambiguous signals, 1 match is enough.
 # Each entry is a raw regex pattern with word boundaries added at compile time.
@@ -526,11 +523,9 @@ _PROFILE_ALIASES: dict[str, str] = {
     "premortem": "pre_commit_risk",
 }
 
-
 # ---------------------------------------------------------------------------
 # Derived dictionaries (backward compatibility)
 # ---------------------------------------------------------------------------
-
 
 # Extract pattern dictionaries from dataclass definitions for backward compat
 _STRONG_PATTERNS: dict[str, list[str]] = {
@@ -544,7 +539,6 @@ _WEAK_PATTERNS: dict[str, list[str]] = {
 # Pre-compile all patterns with word boundaries
 _COMPILED_STRONG: dict[str, list[re.Pattern]] = {}
 _COMPILED_WEAK: dict[str, list[re.Pattern]] = {}
-
 
 for _profile in _STRONG_PATTERNS:
     _COMPILED_STRONG[_profile] = [
@@ -572,7 +566,6 @@ __all__ = [
     "_STRONG_PATTERNS",
     "_WEAK_PATTERNS",
 ]
-
 
 def _detect_profile(
     prompt: str,
@@ -631,7 +624,6 @@ def _detect_profile(
             best_profile = profile
 
     return best_profile
-
 
 # ---------------------------------------------------------------------------
 # Reasoning profile templates
@@ -693,7 +685,6 @@ Use this for an explicit but lightweight THINK prompt.
 3. Ask at most one clarifying question if needed""",
 }
 
-
 def _parse_think(prompt: str) -> tuple[str | None, str]:
     """Parse explicit THINK-style prompts into a profile and remainder."""
     stripped = prompt.strip()
@@ -715,7 +706,6 @@ def _parse_think(prompt: str) -> tuple[str | None, str]:
         return "quick", remainder
     return profile, remainder
 
-
 def _select_profile_from_unified_result(
     unified_result: UnifiedDetectionResult | None,
 ) -> str | None:
@@ -728,7 +718,6 @@ def _select_profile_from_unified_result(
             return profile
 
     return None
-
 
 def _build_think_alignment_block(
     profile: str,
@@ -775,7 +764,6 @@ if __debug__:  # Only runs in dev/test, optimized out in production
             f"  Missing patterns: {missing_patterns}\n"
             f"  _PROFILES has {len(_PROFILES)} profiles, _COMPILED_STRONG has {len(_COMPILED_STRONG)}"
         )
-
 
 @register_hook("think_trigger", priority=6.0)
 def think_trigger(context: HookContext) -> HookResult:

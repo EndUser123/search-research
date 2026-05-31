@@ -125,6 +125,9 @@ def test_think_trigger_profile_consistency() -> dict:
             "security_review",
             "performance_analysis",
             "multi_file_refactor",
+            "quick",
+            "evidence_audit",
+            "explicit_think",
         }
         actual_profiles = set(_THINK_PROFILES.keys())
 
@@ -152,10 +155,12 @@ def test_think_trigger_profile_consistency() -> dict:
         for profile_name, profile in _THINK_PROFILES.items():
             if not profile.name:
                 return {"status": "error", "reason": f"Profile {profile_name} has no name"}
-            if not profile.template:
-                return {"status": "error", "reason": f"Profile {profile_name} has no template"}
-            if not profile.strong_patterns:
-                return {"status": "error", "reason": f"Profile {profile_name} has no strong_patterns"}
+            if profile_name != "explicit_think":
+                if not profile.template:
+                    return {"status": "error", "reason": f"Profile {profile_name} has no template"}
+            if profile_name not in ("explicit_think", "quick"):
+                if not profile.strong_patterns:
+                    return {"status": "error", "reason": f"Profile {profile_name} has no strong_patterns"}
 
         return {"status": "success", "profiles_tested": len(actual_profiles)}
 

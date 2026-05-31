@@ -19,12 +19,15 @@ from enum import Enum
 from typing import Any
 
 # Snapshot plugin handoff (V2 format — no fallback to compaction_state.json)
-_SNAPSHOT_PLUGIN_ROOT = pathlib.Path(os.environ.get(
-    "SNAPSHOT_PLUGIN_ROOT",
-    "P:/packages/snapshot",
-))
-_snapshot_lib_path = _SNAPSHOT_PLUGIN_ROOT / "scripts" / "hooks" / "__lib"
-_snapshot_hooks_path = _SNAPSHOT_PLUGIN_ROOT / "scripts" / "hooks"
+# Dynamic resolution: use env var or infer from plugin location
+_snapshot_env = os.environ.get("SNAPSHOT_PLUGIN_ROOT", "")
+if _snapshot_env:
+    _SNAPSHOT_PLUGIN_ROOT = pathlib.Path(_snapshot_env)
+else:
+    # Infer from: .../skills/prospect/scripts/phase2_scan.py -> .../snapshot
+    _SNAPSHOT_PLUGIN_ROOT = pathlib.Path(__file__).resolve().parent.parent.parent.parent.parent.parent / 'snapshot'
+
+_snapshot_lib_path = _SNAPSHOT_PLUGIN_ROOT / 'scripts' / 'hooks' / '__lib'
 for _p in (_snapshot_lib_path, _snapshot_hooks_path):
     if _p.exists() and str(_p) not in sys.path:
         sys.path.insert(0, str(_p))

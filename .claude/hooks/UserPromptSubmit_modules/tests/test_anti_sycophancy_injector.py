@@ -1,4 +1,4 @@
-"""Tests for anti_sycophancy_injector registry module."""
+"""Tests for anti_sycophancy_injector in cc-aca-epistemic plugin."""
 
 from __future__ import annotations
 
@@ -7,11 +7,25 @@ import sys
 import tempfile
 from pathlib import Path
 
-from UserPromptSubmit.base import HookContext
+# Add plugin paths FIRST (so plugin modules take precedence)
+def _find_epistemic_plugin():
+    paths = [
+        Path("P:/packages/cc-aca-epistemic"),
+        Path("P:/packages/.claude-marketplace/plugins/cc-aca-epistemic")
+    ]
+    for p in paths:
+        if p.exists():
+            return p
+    return paths[0]
 
-_hooks_dir = Path(__file__).resolve().parent.parent.parent
-if str(_hooks_dir) not in sys.path:
-    sys.path.insert(0, str(_hooks_dir))
+EPISTEMIC_PLUGIN = _find_epistemic_plugin()
+EPISTEMIC_HOOKS_UPS = EPISTEMIC_PLUGIN / "hooks" / "userpromptsubmit"
+EPISTEMIC_LIBS = [str(EPISTEMIC_HOOKS_UPS), str(EPISTEMIC_PLUGIN / "__lib")]
+for lib_path in EPISTEMIC_LIBS:
+    if Path(lib_path).exists() and lib_path not in sys.path:
+        sys.path.insert(0, lib_path)
+
+from UserPromptSubmit_modules.base import HookContext
 
 
 def _state_file(session_id: str, terminal_id: str) -> Path:

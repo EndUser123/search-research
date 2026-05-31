@@ -19,7 +19,23 @@ from pathlib import Path
 # sys.path setup
 # ---------------------------------------------------------------------------
 
-_SKILL_GUARD_SRC = Path("P:/packages/skill-guard/src")
+import json as _json
+def _skill_guard_src() -> Path:
+    local_path = Path("P:/packages/skill-guard/src")
+    if local_path.exists():
+        return local_path
+    try:
+        installed = Path.home() / ".claude" / "plugins" / "installed_plugins.json"
+        if installed.exists():
+            data = _json.loads(installed.read_text(encoding="utf-8"))
+            entries = data.get("plugins", data).get("skill-guard@local", [])
+            if entries:
+                return Path(entries[0]["installPath"]) / "src"
+    except Exception:
+        pass
+    return local_path
+
+_SKILL_GUARD_SRC = _skill_guard_src()
 if _SKILL_GUARD_SRC.exists() and str(_SKILL_GUARD_SRC) not in sys.path:
     sys.path.insert(0, str(_SKILL_GUARD_SRC))
 
@@ -46,7 +62,14 @@ from skill_guard.skill_enforcer import (  # noqa: E402
     log_command_intent_telemetry,
     should_block_command,
     _safe_id,
+    _health_report_paths,
+    _hook_health_report,
+    _fallback_hook_health_report,
+    _load_enforcement_config,
 )
+
+HOOK_HEALTH_REPORT = _hook_health_report()
+FALLBACK_HOOK_HEALTH_REPORT = _fallback_hook_health_report()
 
 __all__ = [
     "COMMAND_BLOCKLIST",
@@ -61,4 +84,8 @@ __all__ = [
     "is_topic_inquiry",
     "log_command_intent_telemetry",
     "should_block_command",
+    "_health_report_paths",
+    "HOOK_HEALTH_REPORT",
+    "FALLBACK_HOOK_HEALTH_REPORT",
+    "_load_enforcement_config",
 ]

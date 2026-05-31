@@ -131,9 +131,9 @@ def tdd_contract_auto_gate(context: HookContext) -> HookResult:
     if _is_tdd_bypassed(context.prompt):
         return HookResult.empty()
 
-    # Extract command name (reuse skill_enforcer logic)
-    from UserPromptSubmit_modules.skill_enforcer import extract_command_name
-    command = extract_command_name(context.prompt)
+    # Extract command name inline (avoid fragile cross-module import chain)
+    command_match = re.match(r"^/(\w+)", context.prompt.strip())
+    command = command_match.group(1) if command_match else None
 
     if not command or command.lower() not in TDD_REQUIRED_SKILLS:
         return HookResult.empty()

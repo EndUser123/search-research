@@ -1,3 +1,16 @@
+
+
+# --- plugin bootstrap ---
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
+# --- end bootstrap ---
+
 #!/usr/bin/env python3
 """
 PreToolUse_risk_tier_gate.py
@@ -11,14 +24,6 @@ Created: 2026-03-01
 Updated: 2026-03-02 - Added ADVISORY_SHOW_MODE configuration
 Updated: 2026-03-02 - Phase 1: Pre-compiled regex patterns (40-60% faster)
 """
-
-# --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
-# --- end bootstrap ---
-
 
 import json
 import os

@@ -598,10 +598,10 @@ def _find_verifiable_state_claim(text_lower: str, text_original: str) -> str | N
 
 
 def _is_inside_quoted_content(text: str, match: re.Match) -> bool:
-    """Check if a regex match falls inside markdown code blocks, blockquotes, or tables.
+    """Check if a regex match falls inside markdown code blocks, blockquotes, inline backticks, or tables.
 
     Prevents false positives when capitulation phrases appear in quoted transcript
-    evidence, code examples, or data tables rather than the model's own assertions.
+    evidence, code examples, inline code, or data tables rather than the model's own assertions.
     """
     pos = match.start()
     # Check if inside a fenced code block (``` ... ```)
@@ -614,7 +614,19 @@ def _is_inside_quoted_content(text: str, match: re.Match) -> bool:
     line_prefix = text[line_start:pos].lstrip()
     if line_prefix.startswith(("> ", "| ", "|")):
         return True
+    # Check if inside an inline backtick span on the same line.
+    # Extract the current line and count backticks before match position.
+    line_end = text.find("\n", pos)
+    if line_end == -1:
+        line_end = len(text)
+    current_line = text[line_start:line_end]
+    pos_in_line = pos - line_start
+    backticks_before = current_line[:pos_in_line].count("`")
+    # If odd number of backticks before match, match is inside an inline code span
+    if backticks_before % 2 == 1:
+        return True
     return False
+
 
 
 def _has_bash_evidence(text: str) -> bool:
@@ -661,7 +673,9 @@ def _find_pattern(text: str, patterns: list[re.Pattern]) -> re.Match | None:
     return None
 
 
-def detect_lazy_closure(response: str, user_prompt: str = "") -> LazyClosureMatch | None:
+def detect_lazy_closure(
+    response: str, user_prompt: str = "", has_bash_evidence: bool | None = None
+) -> LazyClosureMatch | None:
     """
     Detect lazy closure and work avoidance patterns.
 
@@ -670,12 +684,17 @@ def detect_lazy_closure(response: str, user_prompt: str = "") -> LazyClosureMatc
     Args:
         response: The assistant's response text to analyze.
         user_prompt: The user prompt (used for topic-scoped ledger check).
+        has_bash_evidence: Optional explicit flag for Bash execution evidence.
+                          If None, defaults to prose-based detection via _has_bash_evidence().
+                          If True/False, overrides prose check for sycophancy_capitulation gate.
     """
     if not response:
         return None
 
-    # Normalize whitespace for matching
-    text = " ".join(response.split())
+    # Normalize whitespace for matching.
+    # Preserve newlines so _is_inside_quoted_content() can detect blockquote/table
+    # line prefixes ("> " and "| ") via rfind(newline). Collapse only horizontal whitespace.
+    text = re.sub(r"[ 	]+", " ", response)
 
     # Deferral — "I'll leave that for now" without formal tracking is unacceptable.
     # Exemption: spawn_task was called (debt formally tracked).
@@ -750,7 +769,8 @@ def detect_lazy_closure(response: str, user_prompt: str = "") -> LazyClosureMatc
     # Also exempted when the match falls inside quoted content (code blocks,
     # blockquotes) to prevent false positives from cited transcript evidence.
     match = _find_pattern(text, _SYCOPHANCY_CAPITULATION)
-    if match and not _has_bash_evidence(text) and not _is_inside_quoted_content(text, match):
+    _bash_ok = has_bash_evidence if has_bash_evidence is not None else _has_bash_evidence(text)
+    if match and not _bash_ok and not _is_inside_quoted_content(text, match):
         escalated = _check_capitulation_escalation()
         if escalated:
             return LazyClosureMatch(
@@ -947,7 +967,9 @@ def detect_all_lazy_closure(response: str, user_prompt: str = "") -> list[LazyCl
         return []
 
     results = []
-    text = " ".join(response.split())
+    # Preserve newlines so _is_inside_quoted_content() can detect blockquote/table
+    # line prefixes. See detect_lazy_closure() for the same rationale.
+    text = re.sub(r"[ 	]+", " ", response)
 
     # Deferral — untracked debt is always flagged unless spawn_task was called.
     text_lower = text.lower()

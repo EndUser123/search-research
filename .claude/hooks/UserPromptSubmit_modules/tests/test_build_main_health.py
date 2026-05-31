@@ -37,7 +37,7 @@ class TestCommandContextBuilding:
 
         # Mock _health_report_paths to return empty list
         with patch(
-            "UserPromptSubmit.skill_enforcer._health_report_paths",
+            "skill_guard.skill_enforcer._health_report_paths",
             return_value=[]
         ):
             result = build_main_health_context()

@@ -7,65 +7,23 @@ Output: exit 0 (allow) or exit 2 (block) with reason on stderr.
 from __future__ import annotations
 
 
-
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
+import sys
+from pathlib import Path
 
-def _normalize_stdout(data: dict) -> dict:
-    """Normalize hook output to Claude Code Zod-valid schema."""
-    if data.get('decision') == 'allow':
-        return {'decision': 'approve'}
-    if data.get('decision') == 'block':
-        return {'decision': 'block', 'reason': data.get('reason', '')}
-    if 'allow' in data:
-        if data['allow'] is False:
-            return {'decision': 'block', 'reason': data.get('reason', '')}
-        return {'decision': 'approve'}
-    if 'continue' in data:
-        if data['continue'] is False:
-            return {'decision': 'block', 'reason': data.get('reason', '')}
-        return {'decision': 'approve'}
-    if 'ok' in data:
-        return {'decision': 'approve'}
-    return data
-
-
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
-import json
-import os
+
+
+# --- plugin bootstrap ---
 import sys
-import uuid
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-
-import requests
-
-from state import detect_terminal_id, read_state
-from file_patterns import is_structured_file, extract_facts_from_content
-from contamination import detect_contamination
-from provenance import record_edit_provenance
-
-
-# --- Dual-LLM verifier constants ---
-MINIMAX_MODEL = "MiniMax-M2.7"
-MISTRAL_MODEL = "mistral-medium-3.5"
-VERIFIER_TIMEOUT_SEC = 10
-VERIFIER_CAP = 5  # max LLM verifier calls per session
-_VERIFIER_COUNTS: dict[str, int] = {}
-
-VERIFIER_SYSTEM_PROMPT = (
-    "You are a provenance verifier for structured data files. "
-    "Your job: determine whether a proposed edit contains adjacent-entry "
-    "contamination — a value copied from a neighboring entry without "
-    "entity-specific evidence.\n\n"
-    "Respond ONLY with JSON:\n"
-    '{"contamination_confirmed": true|false, "confidence": 0.0-1.0, "reason": "..."}'
-)
 
 
 def _load_minimax_key() -> str | None:

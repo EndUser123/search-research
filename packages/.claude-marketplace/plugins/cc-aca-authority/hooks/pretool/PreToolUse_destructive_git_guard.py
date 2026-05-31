@@ -1,3 +1,16 @@
+
+
+# --- plugin bootstrap ---
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
+# --- end bootstrap ---
+
 #!/usr/bin/env python3
 """
 PreToolUse: Git Safety Guard
@@ -11,14 +24,6 @@ Requires explicit confirmation with --i-understand-irreversible flag.
 Protects both local git operations and GitHub CLI (gh) operations.
 """
 
-# --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
-# --- end bootstrap ---
-
-
 import json
 import sys
 
@@ -28,7 +33,6 @@ try:
     SHARED_CONFIG = True
 except ImportError:
     SHARED_CONFIG = False
-
 
 def check_bash_command(command: str) -> dict | None:
     """Check if bash command is destructive git or GitHub operation."""
@@ -40,7 +44,6 @@ def check_bash_command(command: str) -> dict | None:
         return check_gh_command(command.strip())
 
     return None
-
 
 def check_git_command(command: str) -> dict | None:
     """Check if command is destructive or inappropriate local git operation."""
@@ -58,7 +61,7 @@ def check_git_command(command: str) -> dict | None:
     # Shared config covers reset, clean, stash at CRITICAL/HIGH severity
     _shared = {}
     if SHARED_CONFIG:
-        from __lib.git_guard_config import DESTRUCTIVE_GIT_OPS as _shared_ops
+        from __lib.git_guard_config import DESTRUCTIVE_GIT_OPS
         for _sub, _op in _shared_ops.items():
             _shared[_sub] = {
                 "danger_flags": list(_op.danger_flags) if _op.danger_flags else [],
@@ -172,7 +175,6 @@ def check_git_command(command: str) -> dict | None:
         "target": target,
         "operation_type": "git"
     }
-
 
 def check_gh_command(command: str) -> dict | None:
     """Check if command is destructive GitHub CLI operation."""
@@ -343,7 +345,6 @@ def main():
 
     sys.exit(0)
 
-
 def run(data: dict) -> dict | None:
     """In-process execution entry point for PreToolUse router.
 
@@ -381,7 +382,6 @@ def run(data: dict) -> dict | None:
         "reason": block_msg,
         "blocking_hook": "PreToolUse_destructive_git_guard.py",
     }
-
 
 if __name__ == "__main__":
     main()

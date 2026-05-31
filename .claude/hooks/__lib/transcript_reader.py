@@ -37,8 +37,7 @@ def read_transcript(data: dict[str, Any]) -> list[dict[str, str]]:
 
     entries: list[dict[str, str]] = []
 
-    for line in content.strip().split("
-"):
+    for line in content.strip().splitlines():
         if not line.strip():
             continue
         try:

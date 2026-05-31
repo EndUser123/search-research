@@ -16,10 +16,14 @@ from __future__ import annotations
 
 
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
@@ -32,16 +36,13 @@ from pathlib import Path
 
 HOOKS_DIR = Path(__file__).resolve().parent
 
-
 def _get_suggestion_path() -> Path:
     """Get path to global suggestion file (accumulates across all terminals/sessions)."""
     return Path.home() / ".claude" / "state" / "reflect" / "suggestions.json"
 
-
 def _get_lock_path() -> Path:
     """Get path to lock file for concurrent write protection."""
     return Path.home() / ".claude" / "state" / "reflect" / "suggestions.lock"
-
 
 def _acquire_lock(timeout: float = 5.0) -> bool:
     """
@@ -68,7 +69,6 @@ def _acquire_lock(timeout: float = 5.0) -> bool:
 
     return False
 
-
 def _release_lock() -> None:
     """Release the lock file."""
     lock_path = _get_lock_path()
@@ -76,7 +76,6 @@ def _release_lock() -> None:
         lock_path.unlink()
     except OSError:
         pass  # Lock already released or doesn't exist
-
 
 def _log(message: str) -> None:
     """Append message to reflect log file."""
@@ -88,7 +87,6 @@ def _log(message: str) -> None:
             f.write(f"[{timestamp}] {message}\n")
     except OSError:
         pass  # Logging failures should not break hook
-
 
 def _merge_signals(existing: dict, new_signals: dict) -> dict:
     """
@@ -104,7 +102,6 @@ def _merge_signals(existing: dict, new_signals: dict) -> dict:
         merged[skill_name].extend(signal_list)
 
     return merged
-
 
 def _extract_signals_fast(transcript_path: str, suggestion_path: Path) -> None:
     """
@@ -188,7 +185,6 @@ def _extract_signals_fast(transcript_path: str, suggestion_path: Path) -> None:
         _log("Signal extraction timed out after 5 seconds")
     except Exception as e:
         _log(f"Signal extraction failed: {e}")
-
 
 def run_reflect_hook(data: dict) -> dict | None:
     """

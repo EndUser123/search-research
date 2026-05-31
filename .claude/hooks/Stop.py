@@ -81,14 +81,20 @@ HOOKS_DIR = Path(__file__).resolve().parent
 # instead of via wrapper stubs in HOOKS_DIR. Inserted FIRST so plugin
 # versions take precedence over local wrapper stubs.
 _EPISTEMIC_STOP = Path("P:/packages/cc-aca-epistemic/hooks/stop")
+if not _EPISTEMIC_STOP.exists():
+    _EPISTEMIC_STOP = Path("P:/packages/.claude-marketplace/plugins/cc-aca-epistemic/hooks/stop")
 if _EPISTEMIC_STOP.exists() and str(_EPISTEMIC_STOP) not in sys.path:
     sys.path.insert(0, str(_EPISTEMIC_STOP))
 
 _AUTHORITY_STOP = Path("P:/packages/cc-aca-authority/hooks/stop")
+if not _AUTHORITY_STOP.exists():
+    _AUTHORITY_STOP = Path("P:/packages/.claude-marketplace/plugins/cc-aca-authority/hooks/stop")
 if _AUTHORITY_STOP.exists() and str(_AUTHORITY_STOP) not in sys.path:
     sys.path.insert(0, str(_AUTHORITY_STOP))
 
 _REASONING_STOP = Path("P:/packages/cc-aca-reasoning/hooks/stop")
+if not _REASONING_STOP.exists():
+    _REASONING_STOP = Path("P:/packages/.claude-marketplace/plugins/cc-aca-reasoning/hooks/stop")
 if _REASONING_STOP.exists() and str(_REASONING_STOP) not in sys.path:
     sys.path.insert(0, str(_REASONING_STOP))
 
@@ -96,6 +102,8 @@ if _REASONING_STOP.exists() and str(_REASONING_STOP) not in sys.path:
 # Inserted after hooks directories but before HOOKS_DIR so plugin modules
 # take precedence over local copies during migration.
 _EPISTEMIC_LIB = Path("P:/packages/cc-aca-epistemic/__lib")
+if not _EPISTEMIC_LIB.exists():
+    _EPISTEMIC_LIB = Path("P:/packages/.claude-marketplace/plugins/cc-aca-epistemic/__lib")
 if _EPISTEMIC_LIB.exists() and str(_EPISTEMIC_LIB) not in sys.path:
     sys.path.insert(0, str(_EPISTEMIC_LIB))
 
@@ -774,6 +782,18 @@ def _log_epistemic_telemetry(data: dict, verdict, mode: str, repair_bypass: bool
             "tool_transcript_len": len(data.get("tool_transcript") or ""),
             "tool_transcript_present": bool(data.get("tool_transcript")),
         }
+        # Per-issue detail for block decisions — enables true-positive/false-positive analysis.
+        # Not written on allow/warn to keep the log compact; block is the only decision
+        # that matters for precision measurement.
+        if verdict.decision == "block" and verdict.issues:
+            entry["issues"] = [
+                {
+                    "type": i.type,
+                    "section": i.section,
+                    "message": str(i.message)[:200],  # truncate long claim text
+                }
+                for i in verdict.issues[:10]  # cap at 10 to bound entry size
+            ]
         with log_path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(entry) + "\n")
     except Exception:
@@ -4582,6 +4602,16 @@ def main():
         # systemMessage gates emit warnings by default
         if res and res.get("systemMessage"):
             _raw_messages.append((name, "warn", res["systemMessage"]))
+
+    # Stop-side shadow: observe-only recommendation compliance telemetry.
+    # NEVER blocks — import is local to avoid circular dependency at module load.
+    try:
+        from UserPromptSubmit_modules.recommendation_compliance_recorder import (
+            _run_recommendation_compliance_recorder,
+        )
+        _run_recommendation_compliance_recorder(data)
+    except Exception:
+        pass  # Shadow recorder must never disrupt Stop processing
 
     # Merge quality messages based on turn mode and enforcement mode
     _merge_quality_messages(system_messages, quality_messages, turn_mode, quality_mode)

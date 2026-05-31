@@ -2,6 +2,19 @@
 """Stop gate: Block implementation intent without explicit /approve."""
 from __future__ import annotations
 
+
+# --- plugin bootstrap ---
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
+# --- end bootstrap ---
+
+
 import json
 import os
 import re
@@ -22,7 +35,6 @@ _IMPLEMENT_PATTERNS = [
     re.compile(r"(?i)\bwant me to implement\b"),
 ]
 
-
 def _terminal_id() -> str:
     tid = os.environ.get("CLAUDE_TERMINAL_ID", "").strip()
     if tid:
@@ -30,20 +42,11 @@ def _terminal_id() -> str:
     tid = os.environ.get("WT_SESSION", "").strip()
     return tid if tid else "default"
 
-
 def _approval_file() -> Path:
     return ARTIFACTS_BASE / _terminal_id() / "approval.json"
 
-
 def _check_approval() -> tuple[bool, dict]:
     """Check approval state. Returns (approved, state) tuple."""
-
-# --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
-# --- end bootstrap ---
 
     path = _approval_file()
     if not path.exists():
@@ -62,11 +65,9 @@ from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
     except (json.JSONDecodeError, OSError):
         return False, {}
 
-
 def _block(reason: str) -> dict:
     """Create block response."""
     return {"decision": "block", "reason": reason}
-
 
 def run(data: dict) -> dict | None:
     response = data.get("response", "")
@@ -101,7 +102,6 @@ def run(data: dict) -> dict | None:
         )
 
     return None  # Approved
-
 
 if __name__ == "__main__":
     raw = sys.stdin.read()

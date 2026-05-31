@@ -9,15 +9,20 @@ The topic-scoped investigation check is shared with lazy_closure_detector (Stop)
 __lib/anti_lazy_policy.py — both modules import from the same canonical source.
 """
 
+from __future__ import annotations
+
+
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
-
-from __future__ import annotations
 
 import json
 import os
@@ -33,7 +38,6 @@ from __lib.anti_lazy_policy import (
 
 HOOKS_DIR = Path(__file__).resolve().parent
 
-
 def _safe_id_str(s: str) -> str:
     """Sanitize string for use in filenames."""
     if not s or not s.strip():
@@ -42,7 +46,6 @@ def _safe_id_str(s: str) -> str:
     result = result.replace(" ", "_")
     return result[:64]
 
-
 def _get_terminal_id() -> str:
     """Detect terminal ID for state isolation."""
     raw = os.environ.get("WT_SESSION", "")
@@ -50,11 +53,9 @@ def _get_terminal_id() -> str:
         return f"console_{raw}"
     return "unknown"
 
-
 # Delegation signal patterns — PreToolUse-specific (not shared with Stop)
 # _is_diagnostic_topic() and check_topic_relevant_investigation() imported from
 # __lib.anti_lazy_policy — canonical source shared with lazy_closure_detector.
-
 
 def _has_user_delegation_signal(user_prompt: str) -> bool:
     """Return True if prompt contains user-delegation signal phrases.
@@ -76,7 +77,6 @@ def _has_user_delegation_signal(user_prompt: str) -> bool:
         if re.search(pattern, user_prompt, re.IGNORECASE):
             return True
     return False
-
 
 def run(data: dict) -> dict | None:
     """PreToolUse gate: block ask-user delegation when investigation is insufficient.
@@ -129,7 +129,6 @@ def run(data: dict) -> dict | None:
         "reason": reason,
         "blocking_hook": "PreToolUse_user_delegation_gate.py",
     }
-
 
 if __name__ == "__main__":
     import sys as _sys

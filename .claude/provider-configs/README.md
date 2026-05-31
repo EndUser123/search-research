@@ -19,24 +19,39 @@ All providers expose an Anthropic-compatible API, so Claude Code needs no modifi
 
 ### Bifrost Routes
 
-Bifrost proxies to multiple providers via a local gateway at `http://localhost:8081/anthropic`.
+Bifrost proxies to multiple providers via a local gateway at `http://localhost:8080/anthropic` by default.
+Override the origin with `BIFROST_BASE_URL` or the port with `BIFROST_HTTP_PORT` if needed.
 
 | Command | Provider | Sonnet/Opus/Haiku |
 |---------|----------|-----------------|
 | `cc-bf` | Default (M27 + GLM-5.1) | M27 / GLM-5.1 / M27 |
-| `cc-bf M27` | MiniMax | MiniMax-M2.7 all tiers |
-| `cc-bf GLM-5.1` | Z.AI | glm-5.1 / glm-5.1 / glm-4.5-air |
-| `cc-bf DeepSeek` or `cc-bf DSv4` | Nvidia | DSv4-flash all tiers |
-| `cc-bf or-ling` or `cc-bf ling` | OpenRouter | ling-2.6-1t:free all tiers |
-| `cc-bf hy3` | OpenRouter | hy3-preview:free all tiers |
-| `cc-bf mistral` | OpenRouter | devstral-latest all tiers |
-| `cc-bf step` | Nvidia | step-3.5-flash all tiers |
+| `cc-bf MiniMax-M2.7` | MiniMax | MiniMax-M2.7 all tiers |
+| `cc-bf glm-5.1` | Z.AI | glm-5.1 / glm-5.1 / glm-4.5-air |
+| `cc-bf glm-4.7` | Z.AI | glm-4.7 all tiers |
+| `cc-bf glm-4.5-air` | Z.AI | glm-4.5-air all tiers |
+| `cc-bf deepseek-v4-flash` | Nvidia | deepseek-v4-flash all tiers |
+| `cc-bf deepseek-v4-pro` | Nvidia | deepseek-v4-pro all tiers |
+| `cc-bf ling-2.6-1t` | OpenRouter | ling-2.6-1t:free all tiers |
+| `cc-bf devstral` | Mistral | devstral-latest all tiers |
+| `cc-bf magistral` | Mistral | magistral-medium-latest all tiers |
+| `cc-bf mistral` | Mistral | mistral-medium-latest all tiers |
+| `cc-bf step-3.5-flash` | Nvidia | step-3.5-flash all tiers |
 | `cc-bf gemini-lite` | Gemini | gemini-3.1-flash-lite-preview all tiers |
 | `cc-bf gemini` | Gemini | gemini-3.1-flash-live-preview all tiers |
 | `cc-bf gemini-pro` | Gemini | gemini-3.1-pro-preview all tiers |
-| `cc-bf gpt5` or `cc-bf gh` | GitHub | gpt-5-mini all tiers |
-| `cc-bf gemma` | OpenRouter | gemma-4-31b-it:free all tiers |
-| `cc-bf qwen` | OpenRouter | qwen3-coder:free all tiers |
+| `cc-bf qwen3` | Nvidia | qwen3-coder-480b all tiers |
+
+### Route Aliases and Display Optimization
+
+The route list is optimized for discoverability: short, memorable aliases like `qwen3`, `devstral`, `deepseek-v4-flash` are shown as primary commands, with verbose provider-prefixed keys like `nv:nvidia/qwen/qwen3-coder-480b-a35b-instruct` displayed in parentheses. This is achieved through:
+
+1. **Manual aliases** — curated short names defined in cc-bifrost.ps1 are prioritized as canonical commands
+2. **Auto-generated aliases** — last path segment extracted from provider-prefixed keys  
+3. **Priority selection** — canonical selection prefers manual aliases > short names (< 15 chars) > longest key
+
+The manualAliasMap in cc-bifrost.ps1 (lines ~634–647) defines explicit short names. Route list display (lines ~785–843) groups all keys pointing to the same model, then picks the shortest/best as the primary command.
+
+**For next maintainer:** If new models are added to Bifrost, add corresponding short aliases to `$manualAliasMap` to improve CLI discoverability. The display list will automatically use them as canonical commands.
 
 ### Troubleshooting: `failed to get config for provider: not found` (or 404)
 

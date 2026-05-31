@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
@@ -148,7 +153,6 @@ except ImportError:
     EVIDENCE_AVAILABLE = False
     EvidenceManager = None  # type: ignore
 
-
 def handle_test_file_write(file_path: str, config: TDDConfig) -> dict | None:
     """Handle test file creation/modification."""
     debug_log(f"handle_test_file_write: checking {file_path}")
@@ -190,7 +194,6 @@ def handle_test_file_write(file_path: str, config: TDDConfig) -> dict | None:
         debug_log("handle_test_file_write: updated test_file reference")
 
     return None
-
 
 def handle_test_run(command: str, exit_code: int, stdout: str, stderr: str) -> dict | None:
     """Handle test command execution results."""
@@ -465,7 +468,6 @@ def handle_test_run(command: str, exit_code: int, stdout: str, stderr: str) -> d
     tdd.save(state)
     return None
 
-
 def handle_impl_file_write(file_path: str, config: TDDConfig) -> dict | None:
     """Handle implementation file write - track association."""
     if config.is_test_file(file_path):
@@ -548,11 +550,9 @@ def handle_impl_file_write(file_path: str, config: TDDConfig) -> dict | None:
 
     return None
 
-
 # ============================================================================
 # EVIDENCE TRACKING INTEGRATION (TASK-001)
 # ============================================================================
-
 
 def log_tdd_phase_transition(
     from_phase: str,
@@ -605,7 +605,6 @@ def log_tdd_phase_transition(
     except Exception as e:
         debug_log(f"log_tdd_phase_transition: Error logging transition: {e}")
 
-
 def get_phase_enforcement_tier(phase: str) -> str:
     """Get enforcement tier for a TDD phase.
 
@@ -624,7 +623,6 @@ def get_phase_enforcement_tier(phase: str) -> str:
     except Exception:
         return "none"
 
-
 def is_evidence_tracking_enabled() -> bool:
     """Check if TDD evidence tracking is enabled via feature flag."""
     if not EVIDENCE_AVAILABLE:
@@ -632,7 +630,6 @@ def is_evidence_tracking_enabled() -> bool:
 
     # Check environment variable
     return os.environ.get("TDD_EVIDENCE_TRACKING_ENABLED", "false").lower() == "true"
-
 
 def get_terminal_id() -> str:
     """Get terminal ID for evidence tracking."""
@@ -647,7 +644,6 @@ def get_terminal_id() -> str:
     hostname = socket.gethostname()
     pid = os.getpid()
     return f"{hostname}_{pid}"
-
 
 def record_tdd_evidence(task_id: str, tdd_state: dict, terminal_id: str | None = None) -> dict:
     """Record TDD state snapshot as evidence.
@@ -723,7 +719,6 @@ def record_tdd_evidence(task_id: str, tdd_state: dict, terminal_id: str | None =
         debug_log(f"record_tdd_evidence: Error recording evidence: {e}")
         return {"success": False, "reason": str(e)}
 
-
 def generate_evidence_artifact(
     task_id: str, phase: str, evidence: dict, terminal_id: str | None = None
 ) -> Path | None:
@@ -781,7 +776,6 @@ Phase: {phase}
         debug_log(f"generate_evidence_artifact: Error generating artifact: {e}")
         return None
 
-
 def cleanup_old_evidence(evidence_dir: Path, max_days: int = 7) -> int:
     """Clean up evidence artifacts older than max_days.
 
@@ -813,11 +807,9 @@ def cleanup_old_evidence(evidence_dir: Path, max_days: int = 7) -> int:
         debug_log(f"cleanup_old_evidence: Error during cleanup: {e}")
         return 0
 
-
 # ============================================================================
 # MAIN HOOK ENTRY POINT
 # ============================================================================
-
 
 @track_hook_performance("PostToolUse")
 @hook_main
@@ -872,7 +864,6 @@ def main():
         print(json.dumps(result))
     else:
         print(json.dumps({}))
-
 
 if __name__ == "__main__":
     main()

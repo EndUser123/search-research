@@ -12,10 +12,14 @@ from __future__ import annotations
 
 
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
@@ -73,7 +77,6 @@ _MIN_RESPONSE_CHARS = max(80, int(os.environ.get("DRIFT_SENTINEL_MIN_RESPONSE_CH
 _MIN_SOURCE_COUNT = max(1, int(os.environ.get("DRIFT_SENTINEL_MIN_SOURCE_COUNT", "2")))
 _MAX_RESPONSE_CHARS = max(_MIN_RESPONSE_CHARS, int(os.environ.get("DRIFT_SENTINEL_MAX_RESPONSE_CHARS", "4000")))
 
-
 def load_tool_events(session_id: str, limit: int = 25) -> list[dict[str, Any]]:
     """Compatibility wrapper for recent session evidence."""
     if load_scoped_tool_events is None:
@@ -83,7 +86,6 @@ def load_tool_events(session_id: str, limit: int = 25) -> list[dict[str, Any]]:
         scope=SCOPE_SESSION_FRESH,
         limit=limit,
     )
-
 
 def _load_source_texts(session_id: str) -> list[str]:
     """Load source file content from Read tool events.
@@ -108,7 +110,6 @@ def _load_source_texts(session_id: str) -> list[str]:
 
     return texts
 
-
 def _should_run_drift_check(response: str, source_texts: list[str]) -> bool:
     """Cheap gating to keep the TF-IDF path off the common Stop path."""
     if len(response.strip()) < _MIN_RESPONSE_CHARS:
@@ -117,14 +118,12 @@ def _should_run_drift_check(response: str, source_texts: list[str]) -> bool:
         return False
     return True
 
-
 def _detect_drift(response: str, source_texts: list[str]) -> dict[str, Any]:
     """Lazy import to avoid paying sklearn startup cost on every Stop invocation."""
     from __lib__.drift_sentinel import detect_drift
 
     truncated_response = response[:_MAX_RESPONSE_CHARS]
     return detect_drift(truncated_response, source_texts)
-
 
 def run(input_data: dict[str, Any]) -> dict[str, Any]:
     """Main entry point for the drift sentinel hook.
@@ -193,11 +192,9 @@ def run(input_data: dict[str, Any]) -> dict[str, Any]:
     except Exception:
         pass
     return {
-        "allow": False,
+        "decision": "block",
         "reason": reason,
-        "blocking_hook": "StopHook_drift_sentinel.py",
     }
-
 
 if __name__ == "__main__":
     input_text = sys.stdin.read()

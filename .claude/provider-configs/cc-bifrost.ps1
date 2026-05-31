@@ -312,6 +312,8 @@ function Start-BifrostDaemon {
     # Auto-discover latest Bifrost binary: prefer bifrost-http.exe, fall back to bifrost-http.exe-0
     $bfBase = "$env:LOCALAPPDATA\bifrost"
     $bfCandidates = @(
+        "$bfBase\v1.5.7\bin\bifrost-http.exe"
+        "$bfBase\v1.5.7\bin\bifrost-http.exe-0"
         "$bfBase\v1.5.5\bin\bifrost-http.exe"
         "$bfBase\v1.5.5\bin\bifrost-http.exe-0"
         "$bfBase\v1.5.4\bin\bifrost-http.exe"
@@ -609,22 +611,91 @@ if ($doRoutes) {
 }
 
 # Build the $routes hashtable for alias resolution
-$routes = @{}
+# Filter to enabled routes only from the Bifrost rules database
+$rulesData = Get-BifrostRulesFromDb
+$enabledCelExpressions = @()
+foreach ($rule in $rulesData) {
+    if ($rule.enabled -eq 1 -and $rule.cel_expression -and $rule.cel_expression.Trim() -ne "") {
+        # Extract model keys from CEL expressions like: model == "glm-5.1"
+        if ($rule.cel_expression -match 'model == "(.*?)"') {
+            $enabledCelExpressions += $matches[1]
+        }
+    }
+}
 
+$routes = @{}
 foreach ($modelName in $routingTable.Keys) {
     $entry = $routingTable[$modelName]
-    $routes[$modelName] = @($modelName, $modelName, $modelName, $entry.display)
+    # Only include routes where the model name matches an enabled CEL expression
+    if ($modelName -in $enabledCelExpressions) {
+        $routes[$modelName] = @($modelName, $modelName, $modelName, $entry.display)
+    }
 }
 
-$aliasMap = @{
+# Manual aliases for backward compatibility and convenience
+# These are simple, memorable short names for commonly used models
+$manualAliasMap = @{
+    # Existing aliases
     "DSv4"      = "DSv4-flash"
     "DeepSeek"  = "DSv4-flash"
+    # Mistral (auto-extraction not working well due to dict ordering)
+    "devstral"  = "ms:mistral/devstral-latest"
+    "magistral" = "ms:mistral/magistral-medium-latest"
+    "mistral"   = "ms:mistral/mistral-medium-latest"
+    # Qwen (short alias)
+    "qwen3"     = "nv:nvidia/qwen/qwen3-coder-480b-a35b-instruct"
+    # DeepSeek (short aliases)
+    "deepseek-v4-flash" = "nv:nvidia/deepseek-ai/deepseek-v4-flash"
+    "deepseek-v4-pro"   = "nv:nvidia/deepseek-ai/deepseek-v4-pro"
 }
-foreach ($alias in $aliasMap.Keys) {
-    $target = $aliasMap[$alias]
+# Track which keys are manually-created aliases for canonical selection priority
+$manualAliasKeys = @{}
+foreach ($alias in $manualAliasMap.Keys) {
+    $target = $manualAliasMap[$alias]
+    # Try routingTable first, then filtered $routes
+    $found = $false
     if ($routingTable.ContainsKey($target)) {
         $entry = $routingTable[$target]
         $routes[$alias] = @($target, $target, $target, $entry.display)
+        $manualAliasKeys[$alias] = $true
+        $found = $true
+    } elseif ($routes.ContainsKey($target)) {
+        $entry = $routes[$target]
+        $routes[$alias] = @($target, $target, $target, $entry[3])
+        $manualAliasKeys[$alias] = $true
+        $found = $true
+    } else {
+        # If not found by exact key, search for a route key containing the target
+        foreach ($rkey in $routes.Keys) {
+            if ($rkey.Contains($target)) {
+                $entry = $routes[$rkey]
+                $routes[$alias] = @($rkey, $rkey, $rkey, $entry[3])
+                $manualAliasKeys[$alias] = $true
+                $found = $true
+                break
+            }
+        }
+    }
+}
+
+# Auto-generate short aliases for all routes from their keys
+# Extract the last meaningful segment (model name after provider prefix)
+foreach ($key in $routingTable.Keys) {
+    $shortAlias = $null
+    if ($key -match ':') {
+        # Has provider prefix: extract last segment after final /
+        $shortAlias = $key -split '/' | Select-Object -Last 1
+        # Remove trailing :free or similar suffixes for brevity
+        $shortAlias = $shortAlias -replace ':.*$', ''
+    } else {
+        # Already short
+        $shortAlias = $key
+    }
+    
+    # Skip if already a manual alias or would conflict
+    if ($shortAlias -and $shortAlias -ne $key -and -not $routes.ContainsKey($shortAlias) -and -not $manualAliasMap.ContainsKey($shortAlias)) {
+        $entry = $routingTable[$key]
+        $routes[$shortAlias] = @($key, $key, $key, $entry.display)
     }
 }
 
@@ -720,17 +791,28 @@ if ($routes.Count -eq 0) {
         $aliasKeys += $alias
     }
     # Collect canonical names for each unique target
-    $seen = @{}
+    # Process each unique display name once, picking the shortest/best alias for each
+    $displayNames = @($targetGroups.Keys | Where-Object { $_ })
     $canonicalNames = @()
-    foreach ($key in $routes.Keys) {
-        $route = $routes[$key]
-        $desc = $route[3]
-        if ([string]::IsNullOrWhiteSpace($desc)) { continue }
-        if ($seen.ContainsKey($desc)) { continue }
-        $seen[$desc] = $true
+    foreach ($desc in $displayNames) {
         $group = $targetGroups[$desc]
-        $canonicals = @($group | Where-Object { $_ -notin $aliasKeys } | Sort-Object { $_.Length } -Descending)
-        $canonical = if ($canonicals.Count -gt 0) { $canonicals[0] } else { @($group | Sort-Object { $_.Length } -Descending)[0] }
+        if ($group.Count -eq 0) { continue }
+        
+        # Priority 1: Prefer manual aliases (explicitly defined short names)
+        $manualAliases = @($group | Where-Object { $manualAliasKeys.ContainsKey($_) } | Sort-Object { $_.Length })
+        if ($manualAliases.Count -gt 0) {
+            $canonical = $manualAliases[0]  # shortest manual alias
+        } else {
+            # Priority 2: Prefer short names (< 15 chars) as canonical
+            $shortCandidates = @($group | Where-Object { $_.Length -lt 15 } | Sort-Object { $_.Length })
+            if ($shortCandidates.Count -gt 0) {
+                $canonical = $shortCandidates[0]  # shortest short name
+            } else {
+                # Priority 3: Fall back to longest key (usually the source key)
+                $canonicals = @($group | Sort-Object { $_.Length } -Descending)
+                $canonical = $canonicals[0]
+            }
+        }
         $canonicalNames += $canonical
     }
 
@@ -766,7 +848,9 @@ if ($routes.Count -eq 0) {
         $desc = $route[3]
         if ([string]::IsNullOrWhiteSpace($desc)) { continue }
         $group = $targetGroups[$desc]
-        $aliases = @($group | Where-Object { $_ -ne $canonical })
+        # Collect aliases: only show longer/verbose keys as aliases for the short canonical name
+        # This avoids redundant display of provider-prefixed keys when short aliases exist
+        $aliases = @($group | Where-Object { $_ -ne $canonical -and $_.Length -ge 15 })
         $aliasStr = if ($aliases.Count -gt 0) { "  ($($aliases -join ', '))" } else { "" }
         [PSCustomObject]@{
             Command = "cc-bf $canonical"

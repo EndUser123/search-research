@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+"""cc-aca-reasoning router — dispatches to plugin hooks based on event type.
+
+Registered in settings.json. Works around GitHub issue #16288
+(plugin hooks.json not loaded from external files).
+
+Usage:
+    python router.py <EventName>
+"""
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+PLUGIN_ROOT = Path(__file__).resolve().parent.parent
+HOOKS_DIR = PLUGIN_ROOT / "hooks"
+
+PHASE_DIR = {'PreToolUse': 'pretool', 'PostToolUse': 'posttool', 'SessionStart': 'start', 'Stop': 'stop', 'UserPromptSubmit': 'userpromptsubmit'}
+
+PRETOOLUSE_HOOKS = ['PreToolUse_sequential_thinking.py', 'PreToolUse_investigation_boundary_gate.py']
+POSTTOOLUSE_HOOKS = ['PostToolUse_self_reflection_reminder.py']
+SESSIONSTART_HOOKS = ['Start_reasoning_mode_selector.py']
+STOP_HOOKS = ['StopHook_sequential_thinking.py', 'StopHook_drift_sentinel.py', 'StopHook_rca_reflector.py', 'Stop_self_reflection_gate.py', 'Stop_reflect_integration.py', 'Stop_reasoning_quality_gate.py']
+USERPROMPTSUBMIT_HOOKS = ['UserPromptSubmit_cognitive_tags.py']
+
+DISPATCH = {
+    "PreToolUse": PRETOOLUSE_HOOKS,
+    "PostToolUse": POSTTOOLUSE_HOOKS,
+    "SessionStart": SESSIONSTART_HOOKS,
+    "Stop": STOP_HOOKS,
+    "UserPromptSubmit": USERPROMPTSUBMIT_HOOKS
+}
+
+
+def main() -> None:
+    if len(sys.argv) < 2:
+        sys.exit(0)
+
+    event = sys.argv[1]
+    hooks = DISPATCH.get(event)
+    if not hooks:
+        sys.exit(0)
+
+    phase = PHASE_DIR.get(event, "")
+    input_data = sys.stdin.buffer.read()
+
+    for hook_name in hooks:
+        hook_path = HOOKS_DIR / phase / hook_name if phase else HOOKS_DIR / hook_name
+        if not hook_path.exists():
+            continue
+
+        try:
+            flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+            result = subprocess.run(
+                [sys.executable, str(hook_path)],
+                input=input_data,
+                capture_output=True,
+                timeout=10,
+                creationflags=flags,
+            )
+
+            if result.returncode == 2:
+                out = result.stdout.decode(errors="replace").strip()
+                if out:
+                    print(out)
+                else:
+                    stderr_msg = result.stderr.decode(errors="replace").strip()
+                    reason = stderr_msg if stderr_msg else f"Blocked by {hook_name}"
+                    print(json.dumps({"decision": "block", "reason": reason}))
+                sys.exit(2)
+
+            out = result.stdout.decode(errors="replace").strip()
+            if out:
+                try:
+                    parsed = json.loads(out)
+                    if isinstance(parsed, dict) and parsed.get("decision") == "block":
+                        print(out)
+                        sys.exit(2)
+                except json.JSONDecodeError:
+                    pass
+        except subprocess.TimeoutExpired:
+            pass
+        except Exception:
+            pass
+
+    print(json.dumps({"decision": "approve"}))
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except SystemExit:
+        raise
+    except Exception as _e:
+        import sys, traceback as _tb
+        from pathlib import Path as _P
+        try:
+            _lib = _P(__file__).resolve().parent.parent.parent / "__lib"
+            if str(_lib) not in sys.path:
+                sys.path.insert(0, str(_lib))
+            from hook_error_sink import log_hook_error
+            log_hook_error(__file__, str(_e), _tb.format_exc())
+        except Exception:
+            pass
+        sys.exit(1)

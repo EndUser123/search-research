@@ -15,10 +15,14 @@ from __future__ import annotations
 
 
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
@@ -38,15 +42,6 @@ from UserPromptSubmit_modules.unified_detection import (
     ensure_unified_detection_result,
 )
 
-# Add reasoning package and hooks to path
-REASONING_PKG = Path("P:/packages/reasoning")
-REASONING_HOOKS = REASONING_PKG / "hooks"
-if str(REASONING_PKG) not in sys.path:
-    sys.path.insert(0, str(REASONING_PKG))
-if str(REASONING_HOOKS) not in sys.path:
-    sys.path.insert(0, str(REASONING_HOOKS))
-
-
 def _map_unified_result_to_legacy_format(
     unified_result: UnifiedDetectionResult,
 ) -> dict[str, object]:
@@ -62,7 +57,6 @@ def _map_unified_result_to_legacy_format(
         "confidence": confidence,
         "reasoning_required": reasoning_required,
     }
-
 
 def reasoning_mode_selector(context: HookContext) -> HookResult:
     """Select optimal reasoning mode based on query analysis.
@@ -88,11 +82,6 @@ def reasoning_mode_selector(context: HookContext) -> HookResult:
             context.data.setdefault("skipped_budget", []).append(_mod_name)
             return HookResult.empty()
 
-        # Import the reasoning mode selector
-        # Path: P:/packages/reasoning/hooks/Start_reasoning_mode_selector.py
-        import Start_reasoning_mode_selector as selector_module
-        analyze_query = selector_module.analyze_query
-
         prompt = context.prompt
         if not prompt or len(prompt.strip()) < 20:
             # Skip very short prompts — decrement budget for analysis work done
@@ -112,7 +101,7 @@ def reasoning_mode_selector(context: HookContext) -> HookResult:
             else:
                 fallback_used = True
                 # Fall back to the legacy analyzer for any remaining edge cases.
-                analysis = analyze_query(prompt)
+                analysis = {"mode": "sequential", "confidence": 0, "reasoning_required": False}
 
         if not analysis.get("reasoning_required"):
             # No complex reasoning needed
@@ -184,11 +173,10 @@ def reasoning_mode_selector(context: HookContext) -> HookResult:
     except Exception as e:
         # Fail open - don't break on errors
         # Log error for debugging
-        _logger.error(f"[reasoning_mode_selector] Error: {e}")
+        pass  # error swallowed; traceback below
         import traceback
         traceback.print_exc(file=sys.stderr)
         return HookResult.empty()
-
 
 # Register with UserPromptSubmit registry
 from UserPromptSubmit_modules.registry import register_hook

@@ -9,10 +9,14 @@ from __future__ import annotations
 
 
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
@@ -106,7 +110,6 @@ Do NOT eliminate a hypothesis until you have strong evidence against it.""",
 This is your final answer - make it comprehensive and well-reasoned.""",
 }
 
-
 # ── Phase templates ──────────────────────────────────────────────────────────
 # Single-source dict replacing the three dicts above.
 _PHASE_TEMPLATES = {
@@ -169,7 +172,6 @@ _PHASE_TEMPLATES = {
     )},
 }
 
-
 def _resolve_phase_key(is_hypothesis_mode: bool, is_investigation: bool, iteration: int) -> str:
     """Return the phase key to use given current session state and iteration."""
     if is_hypothesis_mode:
@@ -179,7 +181,6 @@ def _resolve_phase_key(is_hypothesis_mode: bool, is_investigation: bool, iterati
     else:
         order = ["critique", "improvement"]
     return order[min(iteration, len(order) - 1)]
-
 
 def _extract_hypotheses_from_response(response_output: str) -> list:
     """Extract hypotheses from LLM response output.
@@ -225,7 +226,6 @@ def _extract_hypotheses_from_response(response_output: str) -> list:
                 extracted.append({"id": f"H{i}", "claim": claim, "status": "active"})
 
     return extracted[:3]  # Max 3 hypotheses
-
 
 def _format_investigation_feedback(
     phase: str,
@@ -286,7 +286,6 @@ def _format_investigation_feedback(
 
     return "\n".join(lines)
 
-
 def _strip_seq_blocks(text: str) -> str:
     """Strip <sequential_thinking>...</sequential_thinking> blocks from text.
 
@@ -315,7 +314,6 @@ def _strip_seq_blocks(text: str) -> str:
             start_idx = m_start.end()
 
     return "".join(result)
-
 
 def stop(data: dict) -> dict:
     terminal_id = data.get("terminal_id", "")

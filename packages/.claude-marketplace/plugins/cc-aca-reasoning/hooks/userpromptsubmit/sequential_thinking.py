@@ -27,10 +27,14 @@ from __future__ import annotations
 
 
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
@@ -61,7 +65,6 @@ def _find_hooks_dir() -> Path:
             return candidate
     return source_path.parent.parent
 
-
 _HOOKS_DIR = _find_hooks_dir()
 if str(_HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(_HOOKS_DIR))
@@ -87,7 +90,6 @@ from UserPromptSubmit_modules.sequential_thinking_semantic_client import (  # no
 
 _SEMANTIC_SIMILARITY_THRESHOLD = 0.70  # Trigger on strong match
 _SEMANTIC_PARTIAL_THRESHOLD = 0.50  # Use as secondary signal
-
 
 def _should_trigger_semantic(prompt: str) -> tuple[bool | None, Optional[str]]:
     """Determine if prompt should trigger sequential thinking via semantic similarity.
@@ -116,7 +118,6 @@ def _should_trigger_semantic(prompt: str) -> tuple[bool | None, Optional[str]]:
         return None, matched_phrase  # Signal that semantic similarity is available
 
     return False, None
-
 
 # Thresholds for multi-signal gating
 _HARD_FLOOR = 15  # Never trigger below this
@@ -209,11 +210,9 @@ _INVESTIGATION_INSTRUCTIONS = (
     "3) State root cause only after at least 2 hypotheses are tested."
 )
 
-
 def _extract_trigger_phrase(prompt: str, pattern: str) -> str:
     match = re.search(pattern, prompt, re.IGNORECASE)
     return match.group(0) if match else pattern
-
 
 def _matches_negative_pattern(prompt: str) -> bool:
     """Check if prompt matches any negative pattern (should not trigger)."""
@@ -223,12 +222,10 @@ def _matches_negative_pattern(prompt: str) -> bool:
             return True
     return False
 
-
 def _has_technical_depth(prompt: str) -> bool:
     """Check if prompt contains technical depth indicators."""
     prompt_lower = prompt.lower()
     return any(indicator in prompt_lower for indicator in _TECHNICAL_INDICATORS)
-
 
 def _create_sequential_state(
     session_id: uuid.UUID,
@@ -244,7 +241,6 @@ def _create_sequential_state(
     except Exception:
         # Fail open: sequential thinking should still inject guidance even if state storage is unavailable.
         pass
-
 
 def _shared_sequential_signal(
     unified_result: UnifiedDetectionResult | None,
@@ -291,7 +287,6 @@ def _shared_sequential_signal(
     )
     return True, is_investigation, trigger_phrase
 
-
 def _sequential_addendum() -> str:
     """Return the minimal sequential-thinking addendum when the base contract is already active."""
     return (
@@ -300,7 +295,6 @@ def _sequential_addendum() -> str:
         "- Name the smallest discriminating check before concluding.\n"
         "- Preserve rollback or fallback notes only if the prompt has real blast radius."
     )
-
 
 @register_hook("sequential_thinking", priority=8.5)
 def sequential_thinking_hook(context: HookContext) -> HookResult:

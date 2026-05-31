@@ -9,15 +9,20 @@ Single-source enforcement for:
 3. Protocol Integrity (Command execution vs description)
 """
 
+from __future__ import annotations
+
+
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
-
-from __future__ import annotations
 
 import json
 import re
@@ -74,7 +79,6 @@ def check_protocol(response: str, data: dict) -> str | None:
             return "Protocol violation: Describing a command instead of executing it."
     return None
 
-
 # Patterns that indicate a bare except or missing import for exception classes
 # Detects: "except UndefinedErrorName:" where the error name looks like a custom
 # exception that hasn't been imported. Does NOT flag standard library exceptions.
@@ -98,7 +102,6 @@ _STANDARD_LIBRARY_ERRORS = {
     "FileNotFoundError", "IsADirectoryError", "NotADirectoryError",
     "ProcessLookupError", "ChildProcessError", "InvalidStateError",
 }
-
 
 def check_catch_block_hygiene(response: str) -> str | None:
     """Detect suspicious except blocks that reference undefined or unimported error classes."""

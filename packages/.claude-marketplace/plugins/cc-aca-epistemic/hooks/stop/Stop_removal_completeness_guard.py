@@ -27,9 +27,30 @@ LIFECYCLE: Stop (blocking guard -- exits with code 2 to block)
 from __future__ import annotations
 
 
+# --- plugin bootstrap ---
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
+# --- end bootstrap ---
+
+
+
 
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
+# --- end bootstrap ---
 
 def _normalize_stdout(data: dict) -> dict:
     if data.get('decision') == 'allow':
@@ -48,10 +69,8 @@ def _normalize_stdout(data: dict) -> dict:
         return {'decision': 'approve'}
     return data
 
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
-# --- end bootstrap ---
+
+
 
 
 import json
@@ -62,8 +81,9 @@ import sys
 from pathlib import Path
 
 # Import path extraction from sibling guard (same directory, same plugin)
-_stop_dir = _P(__file__).resolve().parent
-if str(_stop_dir) not in _s.path: _s.path.insert(0, str(_stop_dir))
+_stop_dir = Path(__file__).resolve().parent
+if str(_stop_dir) not in sys.path:
+    sys.path.insert(0, str(_stop_dir))
 from Stop_deletion_verification_guard import _extract_file_paths
 
 # --- Configuration Constants -------------------------------------------------

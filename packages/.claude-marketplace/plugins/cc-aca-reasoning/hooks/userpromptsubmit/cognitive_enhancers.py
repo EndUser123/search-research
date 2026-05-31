@@ -23,17 +23,24 @@ from __future__ import annotations
 
 
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
 import copy
 import json
+import logging
 import re
 import sys
+
+_logger = logging.getLogger(__name__)
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -56,7 +63,6 @@ CONFIG_PATH = Path(__file__).resolve().parent.parent / "cognitive_enhancers_conf
 
 # Rough character-to-token ratio for estimation
 CHARS_PER_TOKEN = 4
-
 
 @dataclass(frozen=True)
 class Enhancer:
@@ -110,7 +116,6 @@ _DEFAULT_CONFIG = {
     },
 }
 
-
 def _load_config() -> dict:
     """Load config with defaults. Fail open on any error."""
     config = copy.deepcopy(_DEFAULT_CONFIG)
@@ -127,12 +132,10 @@ def _load_config() -> dict:
         pass
     return config
 
-
 def _validate_config(config: dict) -> None:
     """Validate config schema. Emits warnings to stdout, never raises."""
     if "enabled" not in config:
         _logger.warning("[cognitive_enhancers] Config warning: Missing 'enabled' key - defaulting to true")
-
 
 # ---------------------------------------------------------------------------
 # Intent detection patterns
@@ -243,7 +246,6 @@ INVESTIGATION_TRIGGERS = [
 # Escape hatch pattern for Phase 2.1
 _SINGLE_RC_ESCAPE_RE = re.compile(r"\[SINGLE ROOT CAUSE CONFIRMED\]", re.IGNORECASE)
 
-
 # ---------------------------------------------------------------------------
 # Enhancer definitions
 # ---------------------------------------------------------------------------
@@ -316,17 +318,14 @@ _ENHANCERS: list[Enhancer] = [
     ),
 ]
 
-
 # ---------------------------------------------------------------------------
 # Intent detection functions
 # ---------------------------------------------------------------------------
-
 
 def _extract_skill_name(prompt: str) -> str | None:
     if not _SLASH_RE.match(prompt.strip()):
         return None
     return prompt.strip().lstrip("/").split()[0] if prompt.strip() else None
-
 
 def _is_actionable_prompt(prompt: str, config: dict) -> bool:
     """Check if prompt should receive cognitive enhancement.
@@ -345,7 +344,6 @@ def _is_actionable_prompt(prompt: str, config: dict) -> bool:
     # Pure questions without implementation/diagnostic keywords: still enhance
     # (assumption_surfacing and question_check are useful for all questions)
     return True
-
 
 def _detect_intent(prompt: str) -> dict[str, bool]:
     if _NEGATION_IMPL_RE.search(prompt) and not _MULTI_INTENT_RESCUE_RE.search(prompt):
@@ -380,7 +378,6 @@ def _detect_intent(prompt: str) -> dict[str, bool]:
 
     return intent
 
-
 def _select_enhancers(intent: dict[str, bool], config: dict) -> list[Enhancer]:
     selected = []
     enabled_topics = config.get("topics", {})
@@ -402,7 +399,6 @@ def _select_enhancers(intent: dict[str, bool], config: dict) -> list[Enhancer]:
 
     return selected[:max_enhancers]
 
-
 def _get_rationale(intent: dict[str, bool], enhancers: list[Enhancer], prompt_length: int = 0) -> str:
     if intent.get("meta_rca"): return "meta_rca topic detected (root cause analysis mode)"
     if intent.get("implementation_diagnostic"): return "implementation + diagnostic intent detected"
@@ -411,7 +407,6 @@ def _get_rationale(intent: dict[str, bool], enhancers: list[Enhancer], prompt_le
     if intent.get("question"): return "question intent detected (verify understanding before answering)"
     if intent.get("implementation"): return "implementation intent detected"
     return f"matched {len(enhancers)} intent topics"
-
 
 def _build_injection(enhancers: list[Enhancer], intent: dict[str, bool] | None = None, prompt_length: int = 0) -> str:
     if not enhancers: return ""
@@ -446,7 +441,6 @@ def _build_injection(enhancers: list[Enhancer], intent: dict[str, bool] | None =
         f"Tags: {tag_line}\n"
         f"</cognitive-tags>"
     )
-
 
 @register_hook("cognitive_enhancers", priority=11.0)
 def cognitive_enhancers(context: HookContext) -> HookResult:

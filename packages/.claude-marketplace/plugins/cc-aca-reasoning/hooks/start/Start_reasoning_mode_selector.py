@@ -12,12 +12,15 @@ Registers with UserPromptSubmit router to inject selected mode into context.
 
 from __future__ import annotations
 
-
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
@@ -25,7 +28,6 @@ import json
 import re
 import sys
 from typing import Any
-
 
 def _normalize_stdout(data: dict) -> dict:
     """Normalize hook output to Claude Code Zod-valid schema."""
@@ -44,8 +46,6 @@ def _normalize_stdout(data: dict) -> dict:
     if 'ok' in data:
         return {'decision': 'approve'}
     return data
-
-
 
 def analyze_query(query: str | None) -> dict[str, Any]:
     """Analyze query to determine optimal reasoning mode."""
@@ -90,7 +90,6 @@ def analyze_query(query: str | None) -> dict[str, Any]:
         "reasoning_required": len(query) > 20 and confidence > 0
     }
 
-
 def process_prompt(data: dict) -> dict:
     """Process prompt and inject reasoning mode into context."""
     try:
@@ -113,9 +112,7 @@ def process_prompt(data: dict) -> dict:
         sys.stderr.write(f"[Start_reasoning_mode_selector] Error: {e}\n")
         return {}
 
-
 if __name__ == "__main__":
-    import sys
     test_input = json.loads(sys.stdin.read())
     result = process_prompt(test_input)
     print(json.dumps(_normalize_stdout(result)))

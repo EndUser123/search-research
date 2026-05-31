@@ -42,7 +42,7 @@ class TestCommandBlocking:
             "enforced_skills": ["test"],
         }
         with patch(
-            "UserPromptSubmit.skill_enforcer._load_enforcement_config", return_value=mock_config
+            "skill_guard.skill_enforcer._load_enforcement_config", return_value=mock_config
         ):
             assert should_block_command("test") is False
 

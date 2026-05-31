@@ -13,7 +13,15 @@ if (Test-Path $envPath) {
     }
 }
 $apiKey = $env:BIFROST_API_KEY ?? "sk-bf-99f7318e-ad10-4ae0-8669-d9e874661853"
-$baseUrl = "http://localhost:8081/anthropic"
+$port = if ($env:BIFROST_HTTP_PORT) { $env:BIFROST_HTTP_PORT } else { "8080" }
+if ($env:BIFROST_BASE_URL) {
+    $baseUrl = $env:BIFROST_BASE_URL.TrimEnd('/')
+    if ($baseUrl -notmatch '/anthropic$') {
+        $baseUrl = "$baseUrl/anthropic"
+    }
+} else {
+    $baseUrl = "http://localhost:$port/anthropic"
+}
 
 $routes = @(
     @{ Name = "M27";                    Model = "MiniMax-M2.7" },
@@ -48,7 +56,7 @@ $results = $routes | ForEach-Object -Parallel {
     } | ConvertTo-Json -Compress
 
     $headers = @{
-        "Authorization" = "Bearer $($using:apiKey)"
+        "x-api-key" = $using:apiKey
         "Content-Type" = "application/json"
         "anthropic-version" = "2023-06-01"
     }

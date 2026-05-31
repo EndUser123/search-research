@@ -139,7 +139,7 @@ class TestRealIncident:
         # Should write state file (returns empty HookResult - no injection needed)
         assert result.is_empty() or result.context is None
 
-        state_file = Path(HOOKS_DIR) / "state" / "referent_anchors_test_terminal_real.json"
+        state_file = Path.home() / ".claude" / ".artifacts" / "test_terminal_real" / "referent_anchors.json"
         assert state_file.exists()
         state = json.loads(state_file.read_text(encoding="utf-8"))
         assert state["extraction_attempted"] is True
@@ -160,7 +160,7 @@ class TestNoAnchorsCase:
         )
         referent_anchor_hook(ctx)
 
-        state_file = Path(HOOKS_DIR) / "state" / "referent_anchors_test_terminal_no_anchors.json"
+        state_file = Path.home() / ".claude" / ".artifacts" / "test_terminal_no_anchors" / "referent_anchors.json"
         assert state_file.exists()
         state = json.loads(state_file.read_text(encoding="utf-8"))
         assert state["status"] == "no_anchors"
@@ -183,7 +183,7 @@ class TestExpansionBypass:
         )
         referent_anchor_hook(ctx)
 
-        state_file = Path(HOOKS_DIR) / "state" / "referent_anchors_test_terminal_bypass.json"
+        state_file = Path.home() / ".claude" / ".artifacts" / "test_terminal_bypass" / "referent_anchors.json"
         state = json.loads(state_file.read_text(encoding="utf-8"))
         assert state["bypass_scope"] is True
         # Cleanup
@@ -194,9 +194,8 @@ class TestAnchorPreservation:
     def test_preserves_active_anchors_on_followup_message(self):
         """Second message without a table should NOT overwrite active anchors."""
         tid = "test_terminal_preserve"
-        state_dir = Path(HOOKS_DIR) / "state"
-        state_dir.mkdir(parents=True, exist_ok=True)
-        state_file = state_dir / f"referent_anchors_{tid}.json"
+        state_file = Path.home() / ".claude" / ".artifacts" / tid / "referent_anchors.json"
+        state_file.parent.mkdir(parents=True, exist_ok=True)
 
         # First message: table with referential language creates active anchors
         ctx1 = HookContext(
@@ -233,7 +232,7 @@ class TestAnchorPreservation:
             terminal_id="test_terminal_fresh_no_anchors",
         )
         referent_anchor_hook(ctx)
-        state_file = Path(HOOKS_DIR) / "state" / "referent_anchors_test_terminal_fresh_no_anchors.json"
+        state_file = Path.home() / ".claude" / ".artifacts" / "test_terminal_fresh_no_anchors" / "referent_anchors.json"
         assert state_file.exists()
         state = json.loads(state_file.read_text(encoding="utf-8"))
         assert state["status"] == "no_anchors"
@@ -244,9 +243,8 @@ class TestAnchorPreservation:
 
 class TestPreToolUseGate:
     def _write_anchor_state(self, terminal_id: str, anchor_terms: list[str], bypass: bool = False):
-        state_dir = Path(HOOKS_DIR) / "state"
-        state_dir.mkdir(parents=True, exist_ok=True)
-        state_file = state_dir / f"referent_anchors_{terminal_id}.json"
+        state_file = Path.home() / ".claude" / ".artifacts" / terminal_id / "referent_anchors.json"
+        state_file.parent.mkdir(parents=True, exist_ok=True)
         state = {
             "anchor_terms": anchor_terms,
             "source_type": "table",
@@ -280,7 +278,7 @@ class TestPreToolUseGate:
         assert result["decision"] == "block"
         assert "REFERENT SCOPE MISMATCH" in result["reason"]
         # Cleanup
-        (Path(HOOKS_DIR) / "state" / f"referent_anchors_{tid}.json").unlink(missing_ok=True)
+        (Path.home() / ".claude" / ".artifacts" / tid / "referent_anchors.json").unlink(missing_ok=True)
 
     def test_allows_overlap(self):
         from PreToolUse_referent_scope_gate import run as gate_run
@@ -296,7 +294,7 @@ class TestPreToolUseGate:
         result = gate_run(data)
         assert result["decision"] == "allow"
         # Cleanup
-        (Path(HOOKS_DIR) / "state" / f"referent_anchors_{tid}.json").unlink(missing_ok=True)
+        (Path.home() / ".claude" / ".artifacts" / tid / "referent_anchors.json").unlink(missing_ok=True)
 
     def test_allows_no_state_file(self):
         from PreToolUse_referent_scope_gate import run as gate_run
@@ -324,7 +322,7 @@ class TestPreToolUseGate:
         result = gate_run(data)
         assert result["decision"] == "allow"
         # Cleanup
-        (Path(HOOKS_DIR) / "state" / f"referent_anchors_{tid}.json").unlink(missing_ok=True)
+        (Path.home() / ".claude" / ".artifacts" / tid / "referent_anchors.json").unlink(missing_ok=True)
 
     def test_allows_non_gated_tool(self):
         from PreToolUse_referent_scope_gate import run as gate_run
@@ -340,7 +338,7 @@ class TestPreToolUseGate:
         result = gate_run(data)
         assert result["decision"] == "allow"
         # Cleanup
-        (Path(HOOKS_DIR) / "state" / f"referent_anchors_{tid}.json").unlink(missing_ok=True)
+        (Path.home() / ".claude" / ".artifacts" / tid / "referent_anchors.json").unlink(missing_ok=True)
 
 
 # --- Stop hook tests (referent_coverage) ---

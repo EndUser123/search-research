@@ -19,11 +19,16 @@ STATE: Reads task state file but maintains no durable state
 
 from __future__ import annotations
 
+
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
@@ -53,7 +58,6 @@ STATE_DIR = Path(
         "TASK_TRACKER_STATE_DIR", str(HOOKS_DIR.parent / ".claude" / "state" / "task_tracker")
     )
 )
-
 
 def _get_task_state_path(terminal_id: str | None = None) -> Path | None:
     """Get the path to the task state file for a terminal.
@@ -96,7 +100,6 @@ def _get_task_state_path(terminal_id: str | None = None) -> Path | None:
 
     return None
 
-
 def _load_task_data(task_id: str | int) -> dict[str, Any] | None:
     """Load task data from the task state file.
 
@@ -135,7 +138,6 @@ def _load_task_data(task_id: str | int) -> dict[str, Any] | None:
     except (json.JSONDecodeError, OSError):
         return None
 
-
 def _is_task_completion(tool_events: list[dict]) -> tuple[bool, dict | None, str | None]:
     """Check if any tool event is a TaskUpdate to completed status.
 
@@ -158,7 +160,6 @@ def _is_task_completion(tool_events: list[dict]) -> tuple[bool, dict | None, str
             return True, input_data, task_id
 
     return False, None, None
-
 
 def check(data: dict) -> dict | None:
     """Core guard logic. Returns block dict or None (allow).
@@ -246,7 +247,6 @@ def check(data: dict) -> dict | None:
         "blocking_hook": "Stop_task_completion_gate",
     }
 
-
 def run(data: dict) -> dict | None:
     """In-process validator protocol for Stop_router.
 
@@ -265,9 +265,7 @@ def run(data: dict) -> dict | None:
         }
     return result
 
-
 # --- Main (subprocess mode) ---
-
 
 def main() -> None:
     """Entry point for subprocess mode."""
@@ -286,7 +284,6 @@ def main() -> None:
             sys.exit(2)
     else:
         print(json.dumps({}))
-
 
 if __name__ == "__main__":
     main()

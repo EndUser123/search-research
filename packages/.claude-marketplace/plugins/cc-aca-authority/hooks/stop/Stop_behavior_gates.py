@@ -1,3 +1,16 @@
+
+
+# --- plugin bootstrap ---
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
+# --- end bootstrap ---
+
 """
 Behavioral Gate Functions for Stop System
 
@@ -24,14 +37,6 @@ Created: 2025-03-01
 Updated: 2025-03-01 (v2 - reduced false positives, added telemetry)
 """
 
-# --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
-# --- end bootstrap ---
-
-
 import json
 import os
 import re
@@ -44,7 +49,7 @@ _HOOKS_DIR = Path(__file__).resolve().parents[1]
 if str(_HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(_HOOKS_DIR))
 
-from __lib.turn_mode import classify as _classify_turn_mode
+from __lib.turn_mode import classify
 
 # ============================================================================
 # CONFIGURATION
@@ -63,7 +68,6 @@ def _are_gates_enabled() -> bool:
     env_value = os.environ.get("BEHAVIOR_GATES_ENABLED", "true").lower()
     return env_value == "true"
 
-
 def _get_gates_mode() -> str:
     """
     Get the gates mode (blocking or advisory).
@@ -77,7 +81,6 @@ def _get_gates_mode() -> str:
     """
     env_value = os.environ.get("BEHAVIOR_GATES_MODE", "blocking").lower()
     return env_value if env_value in ("blocking", "advisory") else "blocking"
-
 
 def _load_project_blacklist(working_dir: Path | None = None) -> list[str]:
     """
@@ -116,14 +119,12 @@ def _load_project_blacklist(working_dir: Path | None = None) -> list[str]:
         print(f"Warning: Failed to load project blacklist from {blacklist_file}: {e}")
         return []
 
-
 # ============================================================================
 # TELEMETRY (Hook Audit Integration)
 # ============================================================================
 
 # Startup verification flag
 _telemetry_verified = False
-
 
 def _verify_telemetry_dirs() -> None:
     """
@@ -151,7 +152,6 @@ def _verify_telemetry_dirs() -> None:
         print(f"[Stop] behavior_gates telemetry directory verification failed: {e}", file=sys.stderr)
 
     _telemetry_verified = True
-
 
 def _log_gate_violation(
     gate_name: str,
@@ -210,7 +210,6 @@ def _log_gate_violation(
         # Log to stderr for visibility (doesn't break hook)
         print(f"[Stop] behavior_gates telemetry error: {e}", file=sys.stderr)
 
-
 # ============================================================================
 # HELPER UTILITIES
 # ============================================================================
@@ -251,7 +250,6 @@ def _extract_tools_used(tools_data: str | list | dict) -> list[str]:
 
     return []
 
-
 def _normalize_text(text: str) -> str:
     """
     Normalize text for consistent pattern matching.
@@ -268,13 +266,11 @@ def _normalize_text(text: str) -> str:
     text = text.strip()
     return text
 
-
 def _strip_region(text: str, start: int, end: int) -> str:
     """Remove a region from text, replacing with spaces to preserve position."""
     if start < 0 or end > len(text) or start >= end:
         return text
     return text[:start] + " " * (end - start) + text[end:]
-
 
 def _strip_quoted_regions(text: str) -> tuple[str, bool]:
     # DESIGN NOTE: QUOTE / META STRIPPING CONTRACT
@@ -385,7 +381,6 @@ def _strip_quoted_regions(text: str) -> tuple[str, bool]:
 
     return text, had_meta or (original != text)
 
-
 def _load_indicators(file_path: Path | None = None, working_dir: Path | None = None) -> dict[str, list[str]]:
     """
     Load behavioral indicator phrases from config file.
@@ -436,7 +431,6 @@ def _load_indicators(file_path: Path | None = None, working_dir: Path | None = N
 
     return indicators
 
-
 # ============================================================================
 # GATE 3: Agreement Detection (BLOCKING)
 # ============================================================================
@@ -485,7 +479,6 @@ def _has_tool_mention_in_same_sentence(text: str, tools: list[str]) -> bool:
 
     return False
 
-
 def _is_question_format(text: str) -> bool:
     """
     Check if text is in question format (should not trigger agreement gate).
@@ -516,7 +509,6 @@ def _is_question_format(text: str) -> bool:
             return True
 
     return False
-
 
 def check_gate3_agreement(text: str, tools_used: list[str], working_dir: Path | None = None, user_prompt: str | None = None) -> tuple[bool, str]:
     """
@@ -706,7 +698,6 @@ def check_gate3_agreement(text: str, tools_used: list[str], working_dir: Path | 
 
     return (True, reason)
 
-
 # ============================================================================
 # GATE 1: Guidance Detection (ADVISORY)
 # ============================================================================
@@ -838,7 +829,6 @@ def check_gate1_guidance(text: str, tools_used: list[str], working_dir: Path | N
     # Guidance detected and verified with Read tool
     return (False, "")
 
-
 # ============================================================================
 # GATE 2: Tool Blacklist (ADVISORY)
 # ============================================================================
@@ -933,7 +923,6 @@ def check_gate2_tools(text: str, tools_used: list[str], working_dir: Path | None
     # No blacklisted tools used
     return (False, "")
 
-
 # ============================================================================
 # GATE ORCHESTRATION
 # ============================================================================
@@ -967,7 +956,6 @@ def run_all_gates(text: str, tools_used: list[str], working_dir: Path | None = N
         "gate1_guidance": check_gate1_guidance(text, tools_used, working_dir),
         "gate2_tools": check_gate2_tools(text, tools_used, working_dir),
     }
-
 
 def check_blocking_gates(text: str, tools_used: list[str], working_dir: Path | None = None) -> tuple[bool, str | None]:
     """
@@ -1006,7 +994,6 @@ def check_blocking_gates(text: str, tools_used: list[str], working_dir: Path | N
         return (True, reason)
 
     return (False, None)
-
 
 def check_advisory_gates(text: str, tools_used: list[str], working_dir: Path | None = None) -> list[tuple[str, str]]:
     """

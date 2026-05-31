@@ -11,10 +11,14 @@ from __future__ import annotations
 
 
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
@@ -89,7 +93,6 @@ TRACE IT YOURSELF — DO NOT ASK THE USER TO CHECK, PASTE, OR DESCRIBE.
 Only after verifying all four checks above may you proceed to diagnosis.
 If any check reveals something missing, trace its current location before concluding.""",
 }
-
 
 def pre_tool_use(data: dict) -> dict:
     """PreToolUse hook to inject sequential thinking mode messages.
@@ -197,9 +200,7 @@ def pre_tool_use(data: dict) -> dict:
         "tokens": 200,  # Estimated token count for injection
     }
 
-
 _SESSION_TTL_SECONDS = 7200  # 2 hours — prevents stale sessions from poisoning context
-
 
 def _format_hypothesis_context(hypotheses: list) -> str:
     """Format hypotheses for injection into mode messages.
@@ -219,7 +220,6 @@ def _format_hypothesis_context(hypotheses: list) -> str:
         lines.append(f"  {status_emoji} {h['id']}: {h['claim']}")
 
     return "\n".join(lines)
-
 
 def _find_active_session(terminal_id: str) -> dict | None:
     """Find the active sequential thinking session for this terminal.
@@ -258,10 +258,8 @@ def _find_active_session(terminal_id: str) -> dict | None:
 
     return None
 
-
 if __name__ == "__main__":
     import json
-    import sys
 
     try:
         data = json.loads(sys.stdin.read())

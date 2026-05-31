@@ -8,7 +8,7 @@ PreToolUse_referent_scope_gate.py.
 
 Lifecycle: Single-turn. Anchors are created on UserPromptSubmit, used
 during PreToolUse gating, and cleared by Stop.py at end of turn.
-No cross-turn persistence — prevents stale-anchor lock after topic shifts.
+No cross-turn persistence -- prevents stale-anchor lock after topic shifts.
 """
 
 from __future__ import annotations
@@ -45,6 +45,29 @@ _EXPANSION_LANGUAGE = re.compile(
 
 _TABLE_ROW = re.compile(r"\|\s*([^|\n]+?)\s*\|")
 _BULLET_ITEM = re.compile(r"^[ \t]*[-*]\s+(.+)$", re.MULTILINE)
+
+# Strip pasted/quoted content before anchor extraction -- these are user-supplied
+# context, not directives, and anchoring on them causes false scope locks.
+_FENCED_BLOCK = re.compile(r"```.*?```", re.DOTALL)
+_BLOCKQUOTE_LINE = re.compile(r"^>.*$", re.MULTILINE)
+_HANDOFF_MARKER = re.compile(
+    r'\b(?:handoff|RCA|root\s+cause|incident|closure)\b.*?\n["“]',
+    re.IGNORECASE | re.DOTALL,
+)
+_LARGE_QUOTED_BLOCK = re.compile(
+    r'["“](?:[^"“\n]{100,}["“]|'
+    r'[^"“]*\n(?:(?!["“]).)*["“])',
+    re.DOTALL,
+)
+
+
+def _strip_pasted_content(text: str) -> str:
+    """Remove pasted/quoted blocks so extraction keys only on the user's own words."""
+    text = _FENCED_BLOCK.sub("", text)
+    text = _BLOCKQUOTE_LINE.sub("", text)
+    text = _HANDOFF_MARKER.sub("", text)
+    text = _LARGE_QUOTED_BLOCK.sub("", text)
+    return text
 
 
 def _extract_table_rows(text: str) -> list[str]:
@@ -159,7 +182,8 @@ def _write_state(
 
 @register_hook("referent_anchor", priority=6.0)
 def referent_anchor_hook(context: HookContext) -> HookResult:
-    prompt = context.prompt or ""
+    # Strip pasted/quoted blocks first so anchors only key on the user's own words.
+    prompt = _strip_pasted_content(context.prompt or "")
     terminal_id = _get_terminal_id(context)
 
     has_table = "|" in prompt
@@ -186,6 +210,12 @@ def referent_anchor_hook(context: HookContext) -> HookResult:
             source_type = "list"
 
     if not anchor_terms_raw or not has_referential or not _has_investigative_verb(prompt):
+        # No new anchors detected. If state already has anchors, preserve them
+        # (second message with "those" but no investigative verb should not
+        # overwrite an active investigation started with a table/list).
+        existing = _read_state(terminal_id)
+        if existing and existing.get("anchor_terms"):
+            return HookResult.empty()  # anchors still active -- don't overwrite
         _write_state(terminal_id, None, source_type, context.session_id)
         return HookResult.empty()
 
@@ -202,13 +232,13 @@ def referent_anchor_hook(context: HookContext) -> HookResult:
 # Lifecycle: Single-turn (created on UPS, cleared at Stop).
 #
 # Activation conditions (ALL must be true):
-#   1. ≥3 table rows OR ≥3 bullet items in the user message
+#   1. >=3 table rows OR >=3 bullet items in the user message
 #   2. Referential pronoun present ("those", "them", "these", etc.)
 #   3. Investigative verb nearby ("investigate", "check", "analyze", etc.)
 #
 # bypass_scope flag:
 #   Set when user says "and anything else", "also check", "or other",
-#   "plus any" — signals they want broader coverage beyond explicit items.
+#   "plus any" -- signals they want broader coverage beyond explicit items.
 #
 # State file: ~/.claude/.artifacts/{terminal_id}/referent_anchors.json
 #   Follows artifacts path convention for per-terminal isolation.

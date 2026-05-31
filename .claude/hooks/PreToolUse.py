@@ -1452,4 +1452,16 @@ def process_tool_use(event_data: dict) -> dict:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit:
+        raise
+    except Exception as _e:
+        import traceback as _tb
+        try:
+            sys.path.insert(0, str(Path(__file__).resolve().parent / "__lib"))
+            from hook_error_sink import log_hook_error
+            log_hook_error(__file__, str(_e), _tb.format_exc())
+        except Exception:
+            pass
+        sys.exit(1)

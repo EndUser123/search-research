@@ -4,11 +4,16 @@ from __future__ import annotations
 
 
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
+
 
 # Import auto-logging decorator
 from __lib.hook_base import hook_main
@@ -159,7 +164,6 @@ def ensure_fresh_index(repo_root: Path | None = None) -> None:
 def run_git_cmd(cmd: list[str]) -> tuple[str, str, int]:
     """Run git command and return stdout, stderr, exit code."""
     import subprocess
-    import sys
     # Insert --no-optional-locks after 'git' to prevent index.lock creation
     # This allows hooks to run read-only git commands without blocking actual git operations
     if len(cmd) > 0 and cmd[0] == "git":

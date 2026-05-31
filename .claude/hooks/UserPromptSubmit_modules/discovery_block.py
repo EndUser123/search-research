@@ -4,11 +4,18 @@ import importlib.util
 import sys
 from pathlib import Path
 
-_plugin_hook = Path("P:/packages/cc-aca-investigation/hooks/userpromptsubmit/discovery_block.py")
-if not _plugin_hook.exists():
-    raise ImportError(f"Plugin hook not found: {_plugin_hook}")
+def _find_hook():
+    paths = [
+        Path("P:/packages/cc-aca-investigation/hooks/userpromptsubmit/discovery_block.py"),
+        Path("P:/packages/.claude-marketplace/plugins/cc-aca-investigation/hooks/userpromptsubmit/discovery_block.py")
+    ]
+    for p in paths:
+        if p.exists():
+            return p
+    raise ImportError("discovery_block.py not found in cc-aca-investigation plugin")
 
-_lib = str(Path("P:/packages/cc-aca-investigation/__lib"))
+_plugin_hook = _find_hook()
+_lib = str(_plugin_hook.parent.parent.parent / "__lib")
 if _lib not in sys.path:
     sys.path.insert(0, _lib)
 
@@ -16,5 +23,7 @@ _spec = importlib.util.spec_from_file_location("discovery_block", _plugin_hook)
 _mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_mod)
 
-# Re-export the register_hook decorator so UPS framework finds it
-register_hook = _mod.register_hook
+# Re-export module-level names for UPS framework and tests
+for _k, _v in vars(_mod).items():
+    if _k not in ("__name__", "__file__", "__package__", "__loader__", "__spec__", "__doc__"):
+        globals()[_k] = _v

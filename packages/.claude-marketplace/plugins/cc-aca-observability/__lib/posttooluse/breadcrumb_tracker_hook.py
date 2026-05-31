@@ -22,7 +22,11 @@ from pathlib import Path
 from typing import Any
 
 # Add skill-guard to path
-SKILL_GUARD = Path("P:/packages/skill-guard/src")
+_plugin_root = Path(__file__).resolve().parent.parent.parent.parent
+_marketplace_plugins = _plugin_root.parent.parent / "plugins"
+SKILL_GUARD = _marketplace_plugins / "skill-guard" / "src"
+if not SKILL_GUARD.exists():
+    SKILL_GUARD = _plugin_root.parent / "skill-guard" / "src"
 if SKILL_GUARD.exists():
     sys.path.insert(0, str(SKILL_GUARD))
 

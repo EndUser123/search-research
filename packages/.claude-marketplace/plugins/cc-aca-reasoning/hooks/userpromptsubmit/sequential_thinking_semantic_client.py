@@ -16,10 +16,14 @@ from __future__ import annotations
 
 
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
@@ -80,7 +84,6 @@ _trigger_embeddings_cache: Optional[list[list[float]]] = None
 _trigger_phrases_cache: list[str] = []
 _daemon_client: Optional[DaemonClient] = None
 
-
 def _get_daemon_client() -> DaemonClient:
     """Get or create the DaemonClient singleton."""
     global _daemon_client
@@ -89,7 +92,6 @@ def _get_daemon_client() -> DaemonClient:
 
         _daemon_client = DaemonClient(auto_start=True, enable_fallback=True)
     return _daemon_client
-
 
 def _get_trigger_embeddings() -> tuple[list[list[float]], list[str]]:
     """Get cached trigger phrase embeddings, computing if needed.
@@ -118,7 +120,6 @@ def _get_trigger_embeddings() -> tuple[list[list[float]], list[str]]:
 
     return _trigger_embeddings_cache, _trigger_phrases_cache
 
-
 def _compute_embedding_via_daemon(text: str) -> Optional[list[float]]:
     """Compute embedding for text via daemon IPC.
 
@@ -145,7 +146,6 @@ def _compute_embedding_via_daemon(text: str) -> Optional[list[float]]:
 
     return embedding
 
-
 def _compute_embedding_direct(text: str) -> Optional[list[float]]:
     """Compute embedding for text via direct SentenceTransformer.
 
@@ -164,7 +164,6 @@ def _compute_embedding_direct(text: str) -> Optional[list[float]]:
     except Exception as e:
         logger.debug(f"Direct SentenceTransformer failed: {e}")
         return None
-
 
 def _compute_trigger_embeddings_direct() -> tuple[list[list[float]], list[str]]:
     """Compute trigger embeddings directly via SentenceTransformer (fallback).
@@ -185,7 +184,6 @@ def _compute_trigger_embeddings_direct() -> tuple[list[list[float]], list[str]]:
 
     return embeddings, phrases
 
-
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
     """Compute cosine similarity between two vectors.
 
@@ -198,7 +196,6 @@ def _cosine_similarity(a: list[float], b: list[float]) -> float:
     """
     dot_product = sum(x * y for x, y in zip(a, b))
     return dot_product
-
 
 def _compute_prompt_embedding(prompt: str) -> Optional[list[float]]:
     """Compute embedding for a user prompt.
@@ -216,7 +213,6 @@ def _compute_prompt_embedding(prompt: str) -> Optional[list[float]]:
 
     # Fall back to direct model
     return _compute_embedding_direct(prompt)
-
 
 def compute_similarity(prompt: str) -> tuple[float, Optional[str]]:
     """Compute semantic similarity between prompt and trigger phrases.

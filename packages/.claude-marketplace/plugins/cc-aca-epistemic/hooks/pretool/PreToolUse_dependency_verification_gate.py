@@ -49,13 +49,18 @@ State Management:
 from __future__ import annotations
 
 
-
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
+
+
 
 
 import json
@@ -68,7 +73,14 @@ import time
 from pathlib import Path
 
 # Import terminal_detection for session isolation (aligns with hooks codebase pattern)
-sys.path.insert(0, str(Path("P:/packages/skill-guard/src")))
+_marketplace_plugins = _hooks_dir.parent.parent.parent
+_skill_guard_path = _marketplace_plugins / "skill-guard" / "src"
+if _skill_guard_path.exists():
+    sys.path.insert(0, str(_skill_guard_path))
+else:
+    _skill_guard_path = _marketplace_plugins.parent / "skill-guard" / "src"
+    if _skill_guard_path.exists():
+        sys.path.insert(0, str(_skill_guard_path))
 from __lib.terminal_detection import detect_terminal_id
 
 # Logging
@@ -249,7 +261,7 @@ def get_terminal_id(tool_input: dict) -> str:
     # fallback identity, because that risks cross-terminal bleed.
     if "detect_terminal_id" not in globals():
         try:
-            from __lib.terminal_detection import detect_terminal_id as _dt
+            from __lib.terminal_detection import detect_terminal_id
 
             return (_dt() or "").strip()
         except ImportError:

@@ -74,10 +74,19 @@ class ImplementationVerifier(PostToolUseHook):
             {"passed": True, "metadata": {"reason": "no_file_path"}}
         """
         # Extract file path from tool_input (accept both snake_case and camelCase)
-        file_path = tool_input.get("file_path") or tool_input.get("filePath")
+        file_path = tool_input.get("file_path")
+        if file_path is None:
+            file_path = tool_input.get("filePath")
+
+        # If tool is not matched, skip verification
+        if not self.matches_tool(tool_name):
+            return {
+                "passed": True,
+                "metadata": {"reason": "tool_mismatch", "tool": tool_name}
+            }
 
         # No file path to verify - skip gracefully
-        if not file_path:
+        if file_path is None:
             return {
                 "passed": True,
                 "metadata": {"reason": "no_file_path", "tool": tool_name}
@@ -87,7 +96,7 @@ class ImplementationVerifier(PostToolUseHook):
         path = Path(file_path)
 
         # Verify file exists on disk
-        if path.exists():
+        if file_path != "" and path.exists():
             return {
                 "passed": True,
                 "metadata": {

@@ -1,3 +1,16 @@
+
+
+# --- plugin bootstrap ---
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
+# --- end bootstrap ---
+
 #!/usr/bin/env python3
 """
 Authorization Gate Hook (PreToolUse - Bash)
@@ -16,14 +29,6 @@ Constitutional basis:
 - CLAUDE Constitution Part D: Plan-Then-Act (wait for approval)
 - "Do not combine planning and execution in the same response"
 """
-
-# --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
-# --- end bootstrap ---
-
 
 import hashlib
 import json
@@ -53,13 +58,11 @@ except ImportError:
     CKS_CACHE_ENABLED = False
 
 # Import hybrid clock-safe TTL utilities
-from __lib.ttl_utils import is_expired as _is_expired
-
+from __lib.ttl_utils import is_expired
 
 def _model_ready_fallback() -> bool:
     """Fallback function when CKS preload is unavailable."""
     return False
-
 
 hooks_dir = Path(__file__).resolve().parent
 
@@ -182,7 +185,6 @@ BARE_AFFIRMATIVES = {"yes", "yep", "yeah", "yup", "sure", "ok", "okay", "k", "ri
 # Compiled regex patterns for performance
 PYTHON_C_PATTERN = re.compile(r'python\s*-c\s+["\'](.+?)["\']', re.IGNORECASE | re.DOTALL)
 
-
 def _remove_shell_comments(line: str) -> str:
     """Remove shell comments from a single line, respecting quotes.
 
@@ -205,7 +207,6 @@ def _remove_shell_comments(line: str) -> str:
 
     return line
 
-
 def _extract_python_c_match(command: str) -> re.Match | None:
     """Extract Python -c pattern match from command.
 
@@ -216,7 +217,6 @@ def _extract_python_c_match(command: str) -> re.Match | None:
         Regex match object if Python -c pattern found, else None.
     """
     return PYTHON_C_PATTERN.search(command)
-
 
 def _contains_subprocess_call(code: str) -> bool:
     """Check if Python code contains subprocess calls.
@@ -231,7 +231,6 @@ def _contains_subprocess_call(code: str) -> bool:
         if re.search(pattern, code, re.IGNORECASE):
             return True
     return False
-
 
 def extract_actual_command(command: str) -> str:
     """Extract the actual command by removing wrappers that contain false positives.
@@ -266,7 +265,6 @@ def extract_actual_command(command: str) -> str:
 
     return "\n".join(code_lines).strip()
 
-
 def _check_destructive_patterns(text: str) -> str | None:
     """Check if text matches any destructive command patterns.
 
@@ -281,7 +279,6 @@ def _check_destructive_patterns(text: str) -> str | None:
         if re.search(pattern, text_lower, re.IGNORECASE):
             return pattern
     return None
-
 
 def _check_python_c_destructive(command: str) -> str | None:
     """Check if Python -c command contains destructive patterns.
@@ -300,7 +297,6 @@ def _check_python_c_destructive(command: str) -> str | None:
 
     # Check inside the Python code content for destructive patterns
     return _check_destructive_patterns(python_code)
-
 
 def is_destructive_command(command: str) -> str | None:
     """Check if command matches destructive patterns. Returns matched pattern.
@@ -329,7 +325,6 @@ def is_destructive_command(command: str) -> str | None:
 
     return None
 
-
 def _log_block_decision(command: str, working_dir: str, reason: str, pattern: str = "") -> None:
     """Log authorization gate block decisions for analysis and pattern refinement.
 
@@ -345,7 +340,6 @@ def _log_block_decision(command: str, working_dir: str, reason: str, pattern: st
     try:
         import json
         from datetime import datetime
-        from pathlib import Path
 
         # Create logs directory
         hooks_dir = Path(__file__).resolve().parent
@@ -378,7 +372,6 @@ def _log_block_decision(command: str, working_dir: str, reason: str, pattern: st
         if verbose:
             print(f"Warning: Could not log block decision: {e}")
 
-
 def has_explicit_authorization(text: str, command: str = "", working_dir: str = "") -> bool:
     """Check if text contains explicit authorization language.
 
@@ -402,7 +395,6 @@ def has_explicit_authorization(text: str, command: str = "", working_dir: str = 
             return True
     return False
 
-
 def is_project_safe_operation(command: str, working_dir: str) -> bool:
     """Check if command is a safe cache cleanup operation under project tree.
 
@@ -415,7 +407,6 @@ def is_project_safe_operation(command: str, working_dir: str) -> bool:
     """
     # Must match safe pattern AND be under project tree (P:/)
     import re
-    from pathlib import Path
 
     matched_pattern = ""
     for pattern in PROJECT_SAFE_PATTERNS:
@@ -470,7 +461,6 @@ def is_project_safe_operation(command: str, working_dir: str) -> bool:
 
     return True
 
-
 def _is_bare_affirmative(text: str) -> bool:
     """Check if text is a bare affirmative without action verbs.
 
@@ -486,7 +476,6 @@ def _is_bare_affirmative(text: str) -> bool:
     first_word = text.split()[0] if text.split() else ""
     return first_word.rstrip(".,!") in BARE_AFFIRMATIVES
 
-
 def _matches_confirmatory_pattern(line: str) -> bool:
     """Check if a line matches any confirmatory pattern.
 
@@ -500,7 +489,6 @@ def _matches_confirmatory_pattern(line: str) -> bool:
         if re.match(pattern, line, re.IGNORECASE):
             return True
     return False
-
 
 def is_confirmatory_only(text: str) -> bool:
     """Check if text is ONLY confirmatory (no action intent).
@@ -534,7 +522,6 @@ def is_confirmatory_only(text: str) -> bool:
 
     return False
 
-
 def _extract_text_from_content_block(block: dict) -> str | None:
     """Extract text from a message content block.
 
@@ -549,7 +536,6 @@ def _extract_text_from_content_block(block: dict) -> str | None:
     if isinstance(block, str):
         return block
     return None
-
 
 def _extract_text_from_message(msg: dict) -> str | None:
     """Extract text content from a conversation message.
@@ -572,7 +558,6 @@ def _extract_text_from_message(msg: dict) -> str | None:
         return "\n".join(texts)
 
     return None
-
 
 def get_last_user_message(input_data: dict) -> str:
     """Extract the last user message from conversation context.
@@ -646,14 +631,12 @@ def get_last_user_message(input_data: dict) -> str:
 
     return ""
 
-
 # =============================================================================
 # Authorization State Management - Fix for assistant response caching
 # =============================================================================
 
 STATE_DIR = Path("P:/.claude/state")
 STATE_TTL = 300  # 5 minutes
-
 
 def _resolve_state_identifiers(input_data: dict) -> tuple:
     """Resolve session_id and terminal_id for state file naming.
@@ -680,7 +663,6 @@ def _resolve_state_identifiers(input_data: dict) -> tuple:
 
     return session_id, terminal_id
 
-
 def _get_state_file_path(session_id: str, terminal_id: str) -> Path:
     """Get the path to the authorization state file.
 
@@ -694,7 +676,6 @@ def _get_state_file_path(session_id: str, terminal_id: str) -> Path:
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     filename = f"auth_gate_{session_id}_{terminal_id}.json"
     return STATE_DIR / filename
-
 
 def check_authorization_state(input_data: dict, command: str) -> dict | None:
     """Check if there's a pending authorization awaiting user response.
@@ -737,7 +718,6 @@ def check_authorization_state(input_data: dict, command: str) -> dict | None:
         state_file.unlink(missing_ok=True)
         return None
 
-
 def write_awaiting_state(input_data: dict, command: str) -> None:
     """Write state file indicating awaiting user response to authorization prompt.
 
@@ -764,7 +744,6 @@ def write_awaiting_state(input_data: dict, command: str) -> None:
     except OSError:
         pass  # Graceful degradation - state file is optional
 
-
 def cleanup_awaiting_state(input_data: dict) -> None:
     """Remove authorization state file after successful authorization.
 
@@ -775,11 +754,9 @@ def cleanup_awaiting_state(input_data: dict) -> None:
     state_file = _get_state_file_path(session_id, terminal_id)
     state_file.unlink(missing_ok=True)
 
-
 # NOTE: get_last_assistant_message removed - was checking wrong message source
 # After a block, the user responds "1" in their message, not the assistant's.
 # The fix: Check last_user_msg instead of last_assistant_msg for authorization.
-
 
 def main():
     try:
@@ -968,7 +945,6 @@ def main():
 
     # Ambiguous - allow but could add warning
     print(json.dumps({"decision": "approve"}))
-
 
 if __name__ == "__main__":
     main()

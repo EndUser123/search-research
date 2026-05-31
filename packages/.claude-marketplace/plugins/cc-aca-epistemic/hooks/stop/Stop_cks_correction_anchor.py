@@ -14,13 +14,31 @@ When both fire, write a CKS 'correction' entry capturing:
 from __future__ import annotations
 
 
+# --- plugin bootstrap ---
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
+# --- end bootstrap ---
+
+
+
 
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
+
 
 
 import os
@@ -30,7 +48,8 @@ from pathlib import Path
 # --------------------------------------------------------------------------- #
 # Path setup                                                                  #
 # --------------------------------------------------------------------------- #
-__csf_src = Path("P:/packages/search-research/core")
+_marketplace_plugins = _hooks_dir.parent.parent.parent
+__csf_src = _marketplace_plugins / "search-research" / "core"
 sys.path.insert(0, str(__csf_src))
 
 # --------------------------------------------------------------------------- #
@@ -54,7 +73,8 @@ _ingest_memory: MagicMock | None = None
 def _get_ingest():
     global _ingest_memory
     if _ingest_memory is None:
-        __csf_src = Path("P:/packages/search-research/core")
+        _marketplace_plugins = _hooks_dir.parent.parent.parent
+        __csf_src = _marketplace_plugins / "search-research" / "core"
         sys.path.insert(0, str(__csf_src))
         from cks.unified import ingest_correction as _ic
 
@@ -77,7 +97,7 @@ def _get_write_signal_client():
     if _write_signal_client is None:
         try:
             # Add semantic_daemon path
-            semantic_daemon_path = Path("P:/packages/search-research/contrib/semantic_daemon")
+            semantic_daemon_path = _marketplace_plugins / "search-research" / "contrib" / "semantic_daemon"
             if str(semantic_daemon_path) not in sys.path:
                 sys.path.insert(0, str(semantic_daemon_path))
             from daemons.daemon_client import DaemonClient

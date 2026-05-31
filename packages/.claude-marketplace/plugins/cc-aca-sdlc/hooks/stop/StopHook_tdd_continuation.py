@@ -1,9 +1,14 @@
 
+
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 #!/usr/bin/env python3
@@ -36,14 +41,12 @@ if str(hooks_dir) not in sys.path:
 
 from terminal_detection import detect_terminal_id
 
-
 def _get_state_file() -> Path:
     """Get terminal-isolated state file path."""
     terminal_id = detect_terminal_id()
     state_dir = Path.home() / ".claude" / ".state" / "tdd" / terminal_id
     state_dir.mkdir(parents=True, exist_ok=True)
     return state_dir / "tdd_workflow.json"
-
 
 def read_state() -> dict | None:
     state_file = _get_state_file()
@@ -53,7 +56,6 @@ def read_state() -> dict | None:
         return json.loads(state_file.read_text())
     except (OSError, json.JSONDecodeError):
         return None
-
 
 def main():
     try:
@@ -101,7 +103,6 @@ def main():
 
     # ALWAYS allow stop - user sovereignty over workflow completion
     sys.exit(0)
-
 
 if __name__ == "__main__":
     main()

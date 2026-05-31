@@ -206,26 +206,27 @@ tests = [
      "ALLOW"),  # Low severity = reminder only
 ]
 
-results = []
-for name, items, expected_tier in tests:
-    try:
-        results.append(run_test_case(name, items, expected_tier))
-    except Exception as e:
-        print(f"  ⚠ SKIP: {e}")
-        results.append(True)
+if __name__ == "__main__":
+    results = []
+    for name, items, expected_tier in tests:
+        try:
+            results.append(run_test_case(name, items, expected_tier))
+        except Exception as e:
+            print(f"  ⚠ SKIP: {e}")
+            results.append(True)
 
-# Summary
-print("\n" + "=" * 60)
-passed = sum(results)
-total = len(results)
-print(f"Results: {passed}/{total} passed")
+    # Summary
+    print("\n" + "=" * 60)
+    passed = sum(results)
+    total = len(results)
+    print(f"Results: {passed}/{total} passed")
 
-print("\nNOTE: Stop_artifact_gate.py requires artifacts.db SQLite database")
-print("with proper schema and age-based enforcement logic.")
+    print("\nNOTE: Stop_artifact_gate.py requires artifacts.db SQLite database")
+    print("with proper schema and age-based enforcement logic.")
 
-if passed == total:
-    print("✓ Tests completed (environment limitations noted)")
-    sys.exit(0)
-else:
-    print("✗ Some tests failed")
-    sys.exit(1)
+    if passed == total:
+        print("✓ Tests completed (environment limitations noted)")
+        sys.exit(0)
+    else:
+        print("✗ Some tests failed")
+        sys.exit(1)

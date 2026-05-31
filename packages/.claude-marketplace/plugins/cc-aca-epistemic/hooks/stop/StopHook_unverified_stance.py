@@ -38,9 +38,30 @@ claims, while this hook requires precise uncertainty language for "unverified" c
 from __future__ import annotations
 
 
+# --- plugin bootstrap ---
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
+# --- end bootstrap ---
+
+
+
 
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
+# --- end bootstrap ---
 
 def _normalize_stdout(data: dict) -> dict:
     """Normalize hook output to Claude Code Zod-valid schema."""
@@ -61,10 +82,8 @@ def _normalize_stdout(data: dict) -> dict:
     return data
 
 
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
-# --- end bootstrap ---
+
+
 
 
 import json
@@ -1372,7 +1391,15 @@ To disable enforcement: Set UNVERIFIED_STANCE_ENABLED=false
             violations.append(("Phase 2 (Unverified Stance)", msg, severity))
 
         # Lazy closure check (unique to this hook)
-        lazy_match = detect_lazy_closure(response_text)
+        # FIX 1c: Compute bash_ran from tool_events and pass to detector
+        bash_ran = False
+        if isinstance(tool_events, list):
+            for event in tool_events:
+                # Presence of a Bash event this turn = bash ran (event only exists if invoked).
+                if isinstance(event, dict) and event.get("name") == "Bash":
+                    bash_ran = True
+                    break
+        lazy_match = detect_lazy_closure(response_text, has_bash_evidence=bash_ran)
         if lazy_match:
             msg = (
                 f"⚠️ Lazy closure pattern detected: **{lazy_match.pattern_type}**\n\n"

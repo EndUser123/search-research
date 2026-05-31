@@ -1,3 +1,16 @@
+
+
+# --- plugin bootstrap ---
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
+# --- end bootstrap ---
+
 """
 Lazy Workaround Detection Gate
 
@@ -8,14 +21,6 @@ Example: "Accept duplicate task bars as 'visible logging'"
 
 This is LAZY and UNACCEPTABLE. Fix the actual problem.
 """
-
-# --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
-# --- end bootstrap ---
-
 
 import json
 import os
@@ -56,7 +61,7 @@ LAZY_PATTERNS = [
     (r"bypass(?:ed)?\s+(?:the\s+)?(?:check|validation)", "bypassing_checks"),
 ]
 
-from __lib.stop_gate_telemetry import log_gate_event as _log_gate_event
+from __lib.stop_gate_telemetry import log_gate_event
 
 # Non-regex duplicate detection: proximity-based keyword matching
 # Replaces the brittle (duplicates?|redundant|extra|double).*(is\s+)?(fine|acceptable|expected|normal|ok)
@@ -68,7 +73,6 @@ _PROXIMITY_TOKENS = 8  # Must be within this many tokens of each other
 
 # Module-level punctuation table (cached, created once)
 _PUNCTUATION_TABLE = str.maketrans("", "", string.punctuation.replace("'", ""))
-
 
 def _check_duplicate_acceptance_proximity(text: str) -> tuple[bool, list[str]]:
     """
@@ -110,11 +114,9 @@ ROOT_CAUSE_PHRASES = [
     r"(?:tracing|investigating|finding|debugging|identifying)\s+(?:where|why|what|how)",
 ]
 
-
 def _has_investigation_intent(text: str) -> bool:
     """Check if text contains a root-cause investigation phrase (bypass pattern)."""
     return any(re.search(phrase, text) for phrase in ROOT_CAUSE_PHRASES)
-
 
 def _strip_quoted_blocks(text: str) -> str:
     """Remove quoted/attributed sections that are not the LLM's own words.
@@ -167,7 +169,6 @@ def _strip_quoted_blocks(text: str) -> str:
 
     return "\n".join(result)
 
-
 def check_lazy_workarounds(response: str) -> dict:
     """
     Check if response contains lazy workaround suggestions.
@@ -202,7 +203,7 @@ def check_lazy_workarounds(response: str) -> dict:
             if any(re.search(p, clean_lower) for p in _REPORT_ALLOW_PATTERNS):
                 continue  # Describing intended behavior, not accepting a bug
 
-            _log_gate_event(
+            log_gate_event(
                 gate_name="lazy_workaround_gate",
                 classification="lazy",
                 profile=os.environ.get("CLAUDE_PROFILE", "default"),
@@ -233,9 +234,9 @@ def check_lazy_workarounds(response: str) -> dict:
     matched, words = _check_duplicate_acceptance_proximity(clean_lower)
     if matched:
         if _has_investigation_intent(clean_lower):
-            return {"decision": "allow"}  # Proper investigation, not lazy acceptance
+            return {"decision": "approve"}  # Proper investigation, not lazy acceptance
 
-        _log_gate_event(
+        log_gate_event(
             gate_name="lazy_workaround_gate",
             classification="lazy",
             profile=os.environ.get("CLAUDE_PROFILE", "default"),
@@ -263,8 +264,7 @@ def check_lazy_workarounds(response: str) -> dict:
                       f"Fix the problem, don't document the workaround."
         }
 
-    return {"decision": "allow"}
-
+    return {"decision": "approve"}
 
 def main():
     """Main entry point for command-line testing"""

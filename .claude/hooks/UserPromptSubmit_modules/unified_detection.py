@@ -231,6 +231,7 @@ _REASONING_MODES: dict[str, list[str]] = {
         r"evaluate from",
         r"opinion",
         r"stakeholder",
+        r"should we (?:use|choose|pick)",
     ],
     "graph": [
         r"explore",

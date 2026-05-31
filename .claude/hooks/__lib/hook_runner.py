@@ -286,6 +286,14 @@ def _normalize_stop_protocol(
         )
         return 1, json.dumps({"ok": False, "error": error_msg}), stderr_text
 
+    # Non-compliant: "decision": "allow" not in schema -- normalize to "approve".
+    if parsed and parsed.get("decision") == "allow":
+        normalized = {"decision": "approve"}
+        for k, v in parsed.items():
+            if k != "decision":
+                normalized[k] = v
+        return exit_code, json.dumps(normalized), stderr_text
+
     return exit_code, stdout_text, stderr_text
 
 

@@ -12,10 +12,14 @@ from __future__ import annotations
 
 
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
@@ -24,7 +28,6 @@ from UserPromptSubmit_modules.base import HookContext
 _HEADER = "**REASONING CONTRACT**"
 _STATE_KEY = "reasoning_contract_applied"
 _SOURCE_KEY = "reasoning_contract_source"
-
 
 def _contract_lines(
     *,
@@ -82,7 +85,6 @@ def _contract_lines(
 
     return lines
 
-
 def build_reasoning_contract(
     *,
     include_verification: bool = True,
@@ -115,7 +117,6 @@ def build_reasoning_contract(
             include_fix_closure_check=include_fix_closure_check,
         )
     )
-
 
 def append_reasoning_contract(
     text: str,
@@ -152,11 +153,9 @@ def append_reasoning_contract(
         return text
     return f"{stripped}\n\n{contract}"
 
-
 def contract_clauses() -> tuple[str, ...]:
     """Return the canonical contract clauses for test assertions."""
     return tuple(_contract_lines())
-
 
 def mark_reasoning_contract_applied(context: HookContext, source: str) -> None:
     """Record that a reasoning contract has already been injected upstream."""
@@ -165,7 +164,6 @@ def mark_reasoning_contract_applied(context: HookContext, source: str) -> None:
         return
     data[_STATE_KEY] = True
     data[_SOURCE_KEY] = source
-
 
 def reasoning_contract_already_applied(context: HookContext) -> bool:
     """Return True when a prior hook has already primed the reasoning contract."""

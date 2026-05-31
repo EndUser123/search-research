@@ -39,7 +39,6 @@ _EXECUTION_TRACE_LOG = (
 # while being imported by the router
 _package_dirs = [
     Path("P:/packages"),
-    Path("P:/packages/handoff"),  # hooks live at handoff/scripts/hooks/
     Path.home() / ".claude" / "hooks" / "_packages",
 ]
 for pkg_dir in _package_dirs:
@@ -608,7 +607,6 @@ def _load_hooks() -> None:
         "unified_detection",  # Runs FIRST to populate context data
         "abstraction_clarity_gate",
         "handoff_context_injector",  # NEW 2026-03-21: Inject handoff V2 context (transcript_path, session_id)
-        "handoff_task_injector",  # NEW 2026-03-18: Inject current task after intra-session compaction
         "analysis_protocol_gate",
         "anti_sycophancy_injector",
         # "breadcrumb_init",  # DEPRECATED 2026-03-11: Superseded by workflow_tier_tagging
@@ -638,6 +636,7 @@ def _load_hooks() -> None:
         "plan_mode_schema",  # Inject [PLAN]/[RATIONALE] schema for planning-style prompts
         "behavior_contract",  # NEW 2026-04-13: Keep responses grounded and concise before generation
         "reasoning_mode_selector",
+        "recommendation_rubric_injector",  # NEW 2026-05-31: Inject rubric reminder on recommendation/optimal/best-ROI prompts
         # "skill_compliance_indicator",  # DEPRECATED 2026-03-11: Pre-run indicator redundant with step headers
         "sequential_thinking",
         "skill_context_writer",  # NEW 2026-04-25: Write expected skill dir to state file (Phase 2)
@@ -695,13 +694,6 @@ def _load_hooks() -> None:
         # Module self-registers via @register_hook decorator
     )
 
-    # Load handoff_task_injector from handoff package
-    # Package structure: P:/packages/handoff/scripts/hooks/userpromptsubmit_task_injector.py
-    _try_import_hook(
-        module_name="handoff_task_injector",
-        module_path="scripts.hooks.userpromptsubmit_task_injector",
-        # Module self-registers via @register_hook decorator
-    )
 
     # Load skill_forced_eval from skill-guard package
     # Package structure: P:/packages/skill-guard/src/skill_guard/skill_forced_eval.py

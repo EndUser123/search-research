@@ -2,6 +2,19 @@
 """Stop gate: Block git commit/push without explicit /approve commit."""
 from __future__ import annotations
 
+
+# --- plugin bootstrap ---
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
+# --- end bootstrap ---
+
+
 import datetime
 import json
 import os
@@ -21,7 +34,6 @@ _GIT_ACTION_PATTERNS = [
     re.compile(r"\b(?:commit\s+(?:-m|--message))"),
 ]
 
-
 def _terminal_id() -> str:
     tid = os.environ.get("CLAUDE_TERMINAL_ID", "").strip()
     if tid:
@@ -29,20 +41,11 @@ def _terminal_id() -> str:
     tid = os.environ.get("WT_SESSION", "").strip()
     return tid if tid else "default"
 
-
 def _approval_file() -> Path:
     return ARTIFACTS_BASE / _terminal_id() / "approval.json"
 
-
 def _check_commit_approval() -> tuple[bool, dict | None]:
     """Check if commit approval exists."""
-
-# --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
-# --- end bootstrap ---
 
     path = _approval_file()
     if not path.exists():
@@ -62,7 +65,6 @@ from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
         return True, data
     except (json.JSONDecodeError, OSError):
         return False, None
-
 
 def run(data: dict) -> dict | None:
     response = data.get("response", "")
@@ -145,7 +147,6 @@ def run(data: dict) -> dict | None:
         }
 
     return None
-
 
 if __name__ == "__main__":
     raw = sys.stdin.read()

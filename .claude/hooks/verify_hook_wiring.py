@@ -21,6 +21,8 @@ def _extract_python_target(command: str) -> Path | None:
     # Expected pattern:
     # python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/<Hook>.py ...
     if len(parts) >= 3 and parts[0].lower().endswith("python"):
+        if parts[1] == "-c":
+            return None
         # If hook_runner is used, actual target is 3rd token.
         if parts[1].replace("\\", "/").endswith("/hook_runner.py"):
             return Path(parts[2])

@@ -175,12 +175,7 @@
           },
           {
             "type": "command",
-            "command": "python P:/packages/skill-guard/src/skill_guard/__lib/router.py UserPromptSubmit",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "python P:/packages/cc-aca-authority/__lib/router.py UserPromptSubmit",
+            "command": "python P:/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/__lib/router.py UserPromptSubmit",
             "timeout": 10
           },
           {
@@ -217,12 +212,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python P:/packages/skill-guard/src/skill_guard/__lib/router.py PreToolUse",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "python P:/packages/cc-aca-authority/__lib/router.py PreToolUse",
+            "command": "python P:/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/__lib/router.py PreToolUse",
             "timeout": 10
           },
           {
@@ -328,12 +318,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python P:/packages/skill-guard/src/skill_guard/__lib/router.py Stop",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "python P:/packages/cc-aca-authority/__lib/router.py Stop",
+            "command": "python P:/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/__lib/router.py Stop",
             "timeout": 10
           },
           {

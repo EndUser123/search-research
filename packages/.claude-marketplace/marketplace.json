@@ -46,7 +46,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.40",
+      "version": "1.0.44",
       "description": "Software development lifecycle AI skills for Claude Code.",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -58,7 +58,7 @@
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.1.28",
+      "version": "1.1.32",
       "description": "Utility AI skills for Claude Code.",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
@@ -192,7 +192,7 @@
     },
     {
       "name": "cc-aca-epistemic",
-      "version": "0.2.11",
+      "version": "0.2.15",
       "description": "ACA Epistemic plugin - evidence verification, claim validation, provenance tracking, anti-fabrication enforcement, and anti-sycophancy detection. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-epistemic",
       "keywords": [

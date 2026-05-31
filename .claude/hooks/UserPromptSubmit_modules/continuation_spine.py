@@ -112,15 +112,7 @@ def is_concrete_proposal(text: str) -> bool:
 # Continuation Spine Hook
 # ---------------------------------------------------------------------------
 
-# Cognitive enhancers to suppress when spine fires
-_COGNITIVE_ENHANCERS = [
-    "assumption_surfacing",
-    "outcome_anchoring",
-    "inversion_prompting",
-    "chestertons_fence",
-    "calibrated_confidence",
-    "socratic_decomposition",
-]
+
 
 _SPINE_TEXT = "Restate the goal and planned steps before proceeding."
 
@@ -152,7 +144,7 @@ def continuation_spine(context: HookContext) -> HookResult:
     return HookResult(
         context={
             "additionalContext": _SPINE_TEXT,
-            "suppress": _COGNITIVE_ENHANCERS,
+            "suppress": [],  # all cognitive enhancers now hook-scoped
         },
         tokens=len(_SPINE_TEXT) // 4,
         priority=10.0,

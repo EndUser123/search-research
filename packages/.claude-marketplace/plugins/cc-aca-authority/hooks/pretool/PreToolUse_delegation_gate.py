@@ -9,14 +9,20 @@ State location: .claude/.artifacts/{terminal_id}/hook_state/delegation_expected.
 Terminal-scoped for multi-terminal isolation.
 """
 
+from __future__ import annotations
+
+
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
-from __future__ import annotations
 
 import json
 import os
@@ -30,7 +36,6 @@ HOOKS_DIR = Path(__file__).resolve().parent
 # State goes in .artifacts/{terminal_id}/hook_state/
 DELEGATION_TTL_SECONDS = 300  # 5 minutes
 
-
 def _get_artifacts_dir(terminal_id_override: str | None = None) -> Path:
     """Get .artifacts directory for this terminal.
 
@@ -42,7 +47,6 @@ def _get_artifacts_dir(terminal_id_override: str | None = None) -> Path:
     # Use override if provided (from input data), otherwise detect
     terminal_id = terminal_id_override or _detect_terminal_id()
     return claude_root / ".artifacts" / terminal_id / "hook_state"
-
 
 def _detect_terminal_id() -> str:
     """Detect terminal ID for state isolation.
@@ -68,15 +72,13 @@ def _detect_terminal_id() -> str:
     terminal_hash = hashlib.md5(hash_input.encode()).hexdigest()[:12]
     return f"unknown_{terminal_hash}"
 
-
 def _is_expired(timestamp: float, now: float | None = None) -> bool:
     """Check if state has expired."""
     if now is None:
         now = time.time()
     return (now - timestamp) >= DELEGATION_TTL_SECONDS
 
-
-def _load_delegation_state(terminal_id: str | None = None) -> dict | None:
+def _load_delegation_state(terminal_id: str | None = None, session_id: str | None = None) -> dict | None:
     """Load delegation state from terminal-scoped state file.
 
     Args:
@@ -104,10 +106,15 @@ def _load_delegation_state(terminal_id: str | None = None) -> dict | None:
             if stored_terminal_id and stored_terminal_id != terminal_id:
                 state_file.unlink(missing_ok=True)
                 return None
+        # Validate session_id: state written by a prior session is unconditionally stale
+        if session_id:
+            stored_session_id = state.get("session_id", "")
+            if stored_session_id and stored_session_id != session_id:
+                state_file.unlink(missing_ok=True)
+                return None
         return state
     except (json.JSONDecodeError, OSError):
         return None
-
 
 def _clear_delegation_state(terminal_id: str | None = None) -> None:
     """Clear delegation state.
@@ -121,7 +128,6 @@ def _clear_delegation_state(terminal_id: str | None = None) -> None:
         state_file.unlink(missing_ok=True)
     except OSError:
         pass
-
 
 def _log_gate_event(event_type: str, tool_name: str, detail: str = "") -> None:
     """Log gate events to telemetry."""
@@ -143,13 +149,32 @@ def _log_gate_event(event_type: str, tool_name: str, detail: str = "") -> None:
         import warnings
         warnings.warn(f"delegation_gate: failed to log event to file: {entry}", RuntimeWarning)
 
+def _read_last_user_message(transcript_path: str) -> str:
+    """Read last user message text from transcript JSONL."""
+    if not transcript_path:
+        return ""
+    try:
+        lines = Path(transcript_path).read_text(encoding="utf-8", errors="replace").splitlines()
+        for line in reversed(lines[-30:]):
+            try:
+                entry = json.loads(line)
+                if entry.get("role") == "user":
+                    content = entry.get("content", "")
+                    if isinstance(content, list):
+                        for block in content:
+                            if isinstance(block, dict) and block.get("type") == "text":
+                                return block.get("text", "")
+                    return str(content)
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return ""
 
-def _is_bypass_flagged(prompt: str) -> bool:
-    """Check if user message contains bypass flag."""
-    if not prompt:
-        return False
-    # Only exact --allow-inline flag (not similar text)
-    return bool(re.search(r"--allow-inline\b", prompt, re.IGNORECASE))
+def _is_bypass_flagged(data: dict) -> bool:
+    """Check if user message contains bypass flag (reads transcript, not tool input)."""
+    user_msg = _read_last_user_message(data.get("transcript_path", ""))
+    return bool(re.search(r"--allow-inline\b", user_msg, re.IGNORECASE))
 
 
 def _build_block_message(tool_name: str, state: dict) -> str:
@@ -167,7 +192,6 @@ You MUST use the Agent/Task tool to delegate this work.
 To bypass this gate: Add --allow-inline to your message.
 """
 
-
 def main() -> int:
     """Run the delegation gate."""
     data = _load_data()
@@ -181,17 +205,18 @@ def main() -> int:
     terminal_id = _detect_terminal_id_from_data(data)
 
     # Check for bypass flag
-    if _is_bypass_flagged(prompt):
+    if _is_bypass_flagged(data):
         _log_gate_event("bypass_used", tool_name)
         return 0  # Allow
 
     # Load delegation state (terminal-scoped, with input-data terminal_id for validation)
-    state = _load_delegation_state(terminal_id)
+    session_id = _extract_session_id_from_data(data)
+    state = _load_delegation_state(terminal_id, session_id)
     if not state:
         return 0  # No delegation expected, allow
 
     # Task or Agent tool clears state (delegation occurred)
-    if tool_name in ("Task", "Agent"):
+    if tool_name in ("Task", "Agent", "Skill"):
         _clear_delegation_state(terminal_id)
         _log_gate_event("delegation_occurred_state_cleared", tool_name)
         return 0  # Allow
@@ -201,7 +226,6 @@ def main() -> int:
     print(block_msg, file=sys.stderr)
     _log_gate_event("blocked", tool_name, state.get("matched_pattern", ""))
     return 2  # Block
-
 
 def _load_data() -> dict | None:
     """Load PreToolUse input data from stdin."""
@@ -214,6 +238,13 @@ def _load_data() -> dict | None:
         return None
 
 
+def _extract_session_id_from_data(data: dict) -> str | None:
+    """Extract session_id from PreToolUse input data."""
+    for key in ("session_id", "sessionId", "CLAUDE_SESSION_ID"):
+        if key in data and data[key]:
+            return str(data[key])
+    return None
+
 def _detect_terminal_id_from_data(data: dict) -> str | None:
     """Extract terminal_id from input data if available.
 
@@ -225,7 +256,6 @@ def _detect_terminal_id_from_data(data: dict) -> str | None:
         if key in data and data[key]:
             return str(data[key])
     return None
-
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -17,6 +17,7 @@ import logging
 import sys
 import hashlib
 from pathlib import Path
+from urllib.parse import urlparse
 from typing import Annotated, TypedDict, List, Optional, Literal
 from operator import add
 
@@ -29,7 +30,30 @@ from langgraph.types import Send
 # Config
 # --------------------------------------------------------------------
 
-BIFROST_BASE_URL = os.getenv("BIFROST_BASE_URL", "http://localhost:8081")
+def _resolve_bifrost_base_url() -> str:
+    """Return the Bifrost origin, defaulting to localhost:8080.
+
+    BIFROST_BASE_URL may be set to either an origin or an origin + path.
+    We normalize to the origin because this module appends /v1 and /anthropic
+    paths itself.
+    """
+    raw = os.getenv("BIFROST_BASE_URL", "").strip()
+    if raw:
+        candidate = raw if "://" in raw else f"http://{raw}"
+        parsed = urlparse(candidate)
+        if parsed.scheme and parsed.netloc:
+            host = parsed.hostname or "localhost"
+            if parsed.port:
+                return f"{parsed.scheme}://{host}:{parsed.port}"
+            port_text = os.getenv("BIFROST_HTTP_PORT", "8080").strip() or "8080"
+            return f"{parsed.scheme}://{host}:{int(port_text)}"
+        return raw.rstrip("/")
+
+    port_text = os.getenv("BIFROST_HTTP_PORT", "8080").strip() or "8080"
+    return f"http://localhost:{int(port_text)}"
+
+
+BIFROST_BASE_URL = _resolve_bifrost_base_url()
 BIFROST_VK = os.getenv("BIFROST_VK") or os.getenv("ANTHROPIC_API_KEY", "")
 DEFAULT_MODELS = [
     m.strip()
@@ -233,7 +257,14 @@ def code_protocol_system_prompt() -> str:
 # Bifrost catalog — dynamic model discovery
 # --------------------------------------------------------------------
 
-BIFROST_HTTP_PORT = int(os.getenv("BIFROST_HTTP_PORT", "8080"))
+def _resolve_bifrost_http_port(base_url: str) -> int:
+    parsed = urlparse(base_url)
+    if parsed.port:
+        return parsed.port
+    return int(os.getenv("BIFROST_HTTP_PORT", "8080"))
+
+
+BIFROST_HTTP_PORT = _resolve_bifrost_http_port(BIFROST_BASE_URL)
 
 
 def list_catalog_models(
@@ -249,7 +280,7 @@ def list_catalog_models(
     Returns:
         List of dicts with keys: id, provider, model_id, context_length, label.
     """
-    url = f"http://localhost:{BIFROST_HTTP_PORT}/v1/models"
+    url = f"{BIFROST_BASE_URL}/v1/models"
     headers = {"Authorization": f"Bearer {BIFROST_VK}"}
     try:
         r = requests.get(url, headers=headers, timeout=15)
@@ -302,7 +333,7 @@ def probe_model(model: str) -> dict:
     Returns:
         dict with keys: ok, provider, latency_ms, model_requested, error.
     """
-    url = f"http://localhost:{BIFROST_HTTP_PORT}/v1/chat/completions"
+    url = f"{BIFROST_BASE_URL}/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {BIFROST_VK}",
         "Content-Type": "application/json",
@@ -848,9 +879,10 @@ def bifrost_call(
 
     url = f"{BIFROST_BASE_URL}/anthropic/v1/messages"
     headers = {
-        "Authorization": f"Bearer {BIFROST_VK}",
+        "x-api-key": BIFROST_VK,
         "Content-Type": "application/json",
         "X-Correlation-ID": correlation_id,
+        "anthropic-version": "2023-06-01",
     }
     payload = {
         "model": model,

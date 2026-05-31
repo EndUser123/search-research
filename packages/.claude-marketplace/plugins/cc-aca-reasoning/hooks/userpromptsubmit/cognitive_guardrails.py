@@ -11,10 +11,14 @@ from __future__ import annotations
 
 
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
@@ -73,7 +77,6 @@ COGNITIVE_GUARDRAILS_INJECTION = append_reasoning_contract(
     include_evidence=True,
 )
 
-
 @register_hook("cognitive_guardrails", priority=2.0)
 def cognitive_guardrails(context: HookContext) -> HookResult:
     """
@@ -103,7 +106,6 @@ def cognitive_guardrails(context: HookContext) -> HookResult:
 
     return HookResult.empty()
 
-
 # For direct invocation (legacy compatibility)
 def process_prompt(data: dict[str, Any]) -> dict[str, Any]:
     """Legacy entry point for direct invocation."""
@@ -124,7 +126,6 @@ def process_prompt(data: dict[str, Any]) -> dict[str, Any]:
     ):
         return {"additionalContext": result.context["additionalContext"]}
     return {}
-
 
 if __name__ == "__main__":
     # Direct invocation for testing

@@ -11,15 +11,20 @@ Triggered when ALL of:
 SKILL.md: allowed_first_tools: Grep, Glob, Read, Task, WebSearch
 """
 
+from __future__ import annotations
+
+
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
-
-from __future__ import annotations
 
 import os
 import re
@@ -42,11 +47,9 @@ BLOCKED_EXECUTION_TOOLS = frozenset({
     "Agent",
 })
 
-
 def _is_ask_invocation(user_message: str) -> bool:
     """Return True if the user message is an /ask invocation."""
     return bool(re.match(r"^\s*/ask\b", user_message, re.IGNORECASE))
-
 
 def _has_routing_decision(user_message: str) -> bool:
     """Return True if the message already contains a routing signal.
@@ -68,11 +71,9 @@ def _has_routing_decision(user_message: str) -> bool:
 
     return False
 
-
 def _is_first_tool_blocked(tool_name: str) -> bool:
     """Return True if tool_name is a blocked execution tool."""
     return tool_name in BLOCKED_EXECUTION_TOOLS
-
 
 def evaluate(
     user_message: str,

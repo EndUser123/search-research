@@ -1,3 +1,16 @@
+
+
+# --- plugin bootstrap ---
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
+# --- end bootstrap ---
+
 #!/usr/bin/env python3
 """
 Self-Reflection Reminder Hook (v3.1 - Count All History)
@@ -25,15 +38,6 @@ Author: CSF NIP
 Version: 3.1.0
 """
 
-
-
-# --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
-# --- end bootstrap ---
-
 import json
 import re
 import sys
@@ -47,7 +51,6 @@ RISKY_PATTERNS = {
 }
 
 MULTI_FILE_THRESHOLD = 3
-
 
 def count_session_writes(tool_use_history: list) -> int:
     """Count ALL Write/Edit operations in this session."""
@@ -69,7 +72,6 @@ def count_session_writes(tool_use_history: list) -> int:
 
     return len(seen_files)
 
-
 def check_risky_patterns(tool_name: str, tool_input: dict) -> list[str]:
     """Check if tool input matches risky operation patterns."""
     if tool_name != "Bash":
@@ -85,7 +87,6 @@ def check_risky_patterns(tool_name: str, tool_input: dict) -> list[str]:
             risks.append(risk_name)
 
     return risks
-
 
 def generate_advisor(risks: list[str], file_count: int = 0) -> str:
     """Generate advisory message based on detected risks."""
@@ -115,7 +116,6 @@ def generate_advisor(risks: list[str], file_count: int = 0) -> str:
 
     return "\n".join(lines)
 
-
 def main():
     """Main hook entry point."""
     # Read hook input from stdin
@@ -138,7 +138,6 @@ def main():
     else:
         # No risks, output empty JSON
         print(json.dumps({}))
-
 
 if __name__ == "__main__":
     main()

@@ -24,10 +24,14 @@ from __future__ import annotations
 
 
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
@@ -37,7 +41,6 @@ import sys
 from typing import Any
 
 SELF_REFLECTION_ENABLED = os.environ.get("SELF_REFLECTION_ENABLED", "true").lower() == "true"
-
 
 # ── 1. Response-level evidence gate ──────────────────────────────────────────
 
@@ -64,7 +67,6 @@ def _response_has_evidence(text: str) -> bool:
         return True
     return False
 
-
 # ── 2. Unsupported definitive claim detection ─────────────────────────────────
 
 # Sentence makes a definitive assertion about a named system artifact
@@ -83,7 +85,6 @@ _QUALIFIER = re.compile(
     re.IGNORECASE,
 )
 
-
 def _extract_unsupported_claims(response: str, has_evidence: bool = False) -> list[dict[str, Any]]:
     """Find definitive unhedged claims in prose-only (no-evidence) responses."""
     if has_evidence:
@@ -100,7 +101,6 @@ def _extract_unsupported_claims(response: str, has_evidence: bool = False) -> li
             claims.append({"type": "unsupported_claim", "text": sentence[:120]})
 
     return claims[:3]  # Cap — prevent noise flooding
-
 
 # ── 3. Within-paragraph contradiction detection ───────────────────────────────
 
@@ -133,7 +133,6 @@ _EXEMPT_CONTEXT = re.compile(
     re.IGNORECASE,
 )
 
-
 def _find_contradictions(response: str) -> list[dict[str, Any]]:
     """Find genuine within-paragraph contradictions about system facts."""
     found: list[dict[str, Any]] = []
@@ -160,7 +159,6 @@ def _find_contradictions(response: str) -> list[dict[str, Any]]:
                 break  # One finding per paragraph
     return found
 
-
 # ── 4. Incomplete promise detection ──────────────────────────────────────────
 
 _PROMISE = re.compile(
@@ -170,7 +168,6 @@ _PROMISE = re.compile(
     re.IGNORECASE,
 )
 _LIST_ITEM = re.compile(r'^\s*[-*\d+\.]\s+\S', re.MULTILINE)
-
 
 def _find_incomplete_promises(response: str) -> list[dict[str, Any]]:
     """Flag promises followed by exactly 1 item (0=cutoff, ≥2=delivered)."""
@@ -183,7 +180,6 @@ def _find_incomplete_promises(response: str) -> list[dict[str, Any]]:
                 "text": f"'{match.group().strip()}' followed by only 1 item",
             })
     return incomplete
-
 
 # ── 5. Noise reduction ─────────────────────────────────────────────────────────
 
@@ -200,11 +196,9 @@ _SKIP_HEADINGS = {
 }
 _MAX_VISIBLE_CONTRADICTIONS = 5
 
-
 def _normalize(text: str) -> str:
     """Normalize text for deduplication: lowercase, whitespace-collapse."""
     return re.sub(r'\s+', ' ', text.lower().strip())
-
 
 def _is_from_doc_block(text: str, heading: str) -> bool:
     """Return True if text is near a documentation heading."""
@@ -217,7 +211,6 @@ def _is_from_doc_block(text: str, heading: str) -> bool:
         if text_words[:2] == heading_words[:2]:
             return True
     return False
-
 
 def _deduplicate_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Deduplicate near-identical findings, skip doc-block contradictions, cap."""
@@ -254,16 +247,15 @@ def _deduplicate_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]
 
     return non_contradictions + contradictions
 
-
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 def run(data: dict) -> dict | None:
     if not SELF_REFLECTION_ENABLED:
-        return {"allow": True, "reason": "disabled"}
+        return {"decision": "approve"}
 
     response = data.get("response", "")
     if not response or len(response) < 20:
-        return {"allow": True, "reason": "no response"}
+        return {"decision": "approve"}
 
     has_evidence = _response_has_evidence(response)
     # Contradiction detection is only meaningful in prose-only responses
@@ -281,7 +273,7 @@ def run(data: dict) -> dict | None:
     findings = _deduplicate_findings(findings)
 
     if not findings:
-        return {"allow": True, "reason": "no issues"}
+        return {"decision": "approve"}
 
     visible = findings[:10]  # Keep full list for logging, show first 10 to user
     lines = [f"Self-reflection ({len(findings)} finding(s)):"]
@@ -295,14 +287,13 @@ def run(data: dict) -> dict | None:
         for t in ("unsupported_claim", "contradiction", "incomplete")
     }
     return {
-        "allow": True,
+        "decision": "approve",
         "reason": (
             f"advisory: {counts['unsupported_claim']} unsupported, "
             f"{counts['contradiction']} contradictions, "
             f"{counts['incomplete']} incomplete"
         ),
     }
-
 
 if __name__ == "__main__":
     import json

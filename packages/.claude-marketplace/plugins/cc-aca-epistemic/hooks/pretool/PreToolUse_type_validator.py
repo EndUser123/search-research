@@ -9,55 +9,21 @@ from __future__ import annotations
 
 
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-
-def _normalize_stdout(data: dict) -> dict:
-    """Normalize hook output to Claude Code Zod-valid schema."""
-    if data.get('decision') == 'allow':
-        return {'decision': 'approve'}
-    if data.get('decision') == 'block':
-        return {'decision': 'block', 'reason': data.get('reason', '')}
-    if 'allow' in data:
-        if data['allow'] is False:
-            return {'decision': 'block', 'reason': data.get('reason', '')}
-        return {'decision': 'approve'}
-    if 'continue' in data:
-        if data['continue'] is False:
-            return {'decision': 'block', 'reason': data.get('reason', '')}
-        return {'decision': 'approve'}
-    if 'ok' in data:
-        return {'decision': 'approve'}
-    return data
-
-
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
-# --- end bootstrap ---
-
-
-import json
-import os
 import sys
 from pathlib import Path
 
-# Add hooks dir to path for imports
-hooks_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, hooks_dir)
-sys.path.insert(0, os.path.join(hooks_dir, "__lib"))
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
+# --- end bootstrap ---
 
-from type_validator import get_file_category
 
-POLICY_PATH = "P:/.claude/hooks/config/directory_policy.json"
 
-# Code extensions that should be blocked at workspace root
-# (double-extension bypass detection)
-CODE_EXTENSIONS = frozenset({
-    ".py", ".pyi", ".pyc", ".pyo", ".pyw",
-    ".js", ".mjs", ".cjs",
-    ".exe", ".bat", ".ps1", ".sh", ".bash",
-    ".rb", ".go", ".rs", ".java", ".cpp", ".c", ".h",
-})
+# --- plugin bootstrap ---
+import sys
+from pathlib import Path
 
 
 def _get_workspace_root() -> str:

@@ -15,10 +15,14 @@ from __future__ import annotations
 
 
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
@@ -47,8 +51,6 @@ def _normalize_stdout(data: dict) -> dict:
         return {'decision': 'approve'}
     return data
 
-
-
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 logger = logging.getLogger(__name__)
@@ -57,14 +59,12 @@ logger.addHandler(logging.NullHandler())
 STATE_DIR = Path(r"$CLAUDE_ROOT/state")
 STATE_TTL_SECONDS = 2 * 3600  # 2 hours
 
-
 def _get_state_file(session_id: str, terminal_id: str) -> Path:
     """Return path to state file for this session/terminal."""
     # Sanitize to prevent path traversal
     safe_session = re.sub(r"[^a-zA-Z0-9_\-]", "", session_id)
     safe_terminal = re.sub(r"[^a-zA-Z0-9_\-]", "", terminal_id)
     return STATE_DIR / f"rca_reflector_{safe_terminal}_{safe_session}.json"
-
 
 def _load_state(session_id: str, terminal_id: str) -> dict:
     """Load state, returning empty dict if missing or stale."""
@@ -81,7 +81,6 @@ def _load_state(session_id: str, terminal_id: str) -> dict:
     except (OSError, json.JSONDecodeError):
         return {}
 
-
 def _save_state(session_id: str, terminal_id: str, state: dict) -> None:
     """Save state to disk."""
     state_file = _get_state_file(session_id, terminal_id)
@@ -91,7 +90,6 @@ def _save_state(session_id: str, terminal_id: str, state: dict) -> None:
             json.dump(state, f, indent=2, default=str)
     except OSError:
         pass
-
 
 def _cleanup_stale_state_files() -> None:
     """Delete all rca_reflector state files older than TTL on load."""
@@ -107,7 +105,6 @@ def _cleanup_stale_state_files() -> None:
     except OSError:
         pass
 
-
 def _detect_premature_convergence(response: str, alt_count: int) -> str | None:
     """Return advisory if Root Cause declared with fewer than 3 hypotheses."""
     if alt_count >= 3:
@@ -120,7 +117,6 @@ def _detect_premature_convergence(response: str, alt_count: int) -> str | None:
         )
     return None
 
-
 def _is_catch22_spiral(state: dict, tool_name: str, error: str) -> bool:
     """Return True if same tool+error 3+ consecutive times."""
     if (
@@ -130,7 +126,6 @@ def _is_catch22_spiral(state: dict, tool_name: str, error: str) -> bool:
     ):
         return True
     return False
-
 
 def _update_catch22_state(state: dict, tool_name: str, error: str) -> dict:
     """Update catch-22 tracking state."""
@@ -143,7 +138,6 @@ def _update_catch22_state(state: dict, tool_name: str, error: str) -> dict:
         "last_error": error,
         "consecutive_count": new_count,
     }
-
 
 def _has_evidence_free_fix(response: str) -> bool:
     """Return True if Fix declared without Evidence content."""
@@ -164,7 +158,6 @@ def _has_evidence_free_fix(response: str) -> bool:
     evidence_content = evidence_match.group(1).strip()
     return len(evidence_content) == 0
 
-
 def _detect_zero_plan(response: str, tool_event_count: int) -> str | None:
     """Return advisory if no Executed Path after 3+ tool calls."""
     if tool_event_count < 3:
@@ -182,7 +175,6 @@ def _detect_zero_plan(response: str, tool_event_count: int) -> str | None:
             "Document the path taken to reach the Root Cause."
         )
     return None
-
 
 def check(data: dict) -> dict | None:
     """Main guard — advisory only, never blocks."""
@@ -250,12 +242,11 @@ def check(data: dict) -> dict | None:
 
     if advisories:
         return {
-            "allow": True,
+            "decision": "approve",
             "systemMessage": " | ".join(advisories),
         }
 
     return None
-
 
 def run(data: dict) -> dict | None:
     """Router entry point — delegates to check()."""

@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 
 # Simulate stdin input
 test_json = {"tool_name": "Bash", "tool_input": {"command": "python -c \"print({=*60})\""}}
@@ -22,7 +23,7 @@ _logger.setLevel(_li.WARNING)
 
 
 print(f"DEBUG: Pattern exists = {hasattr(validator, 'PYTHON_C_PATTERN')}", file=sys.stderr)
-            _logger.debug(f"DEBUG: Pattern = {validator.PYTHON_C_PATTERN.pattern}",)
+_logger.debug(f"DEBUG: Pattern = {validator.PYTHON_C_PATTERN.pattern}")
 # Test the pattern
 command = test_json.get('tool_input', {}).get('command', '')
 match = validator.PYTHON_C_PATTERN.search(command)
@@ -30,4 +31,4 @@ if match:
     print(f"DEBUG: Pattern matched! Groups = {match.groups()}", file=sys.stderr)
     print(f"DEBUG: Code to validate: {match.group(2)}", file=sys.stderr)
 else:
-            _logger.debug('DEBUG: Pattern did NOT match',)
+    _logger.debug('DEBUG: Pattern did NOT match')

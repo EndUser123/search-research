@@ -10,10 +10,14 @@ from __future__ import annotations
 
 
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
@@ -35,7 +39,6 @@ except Exception:
         return []
     def format_tags_for_instruction(tags: list[str]) -> str:
         return ""
-
 
 # Skip non-substantive turns (greetings, meta, control commands)
 def _is_non_substantive_turn(prompt: str) -> bool:
@@ -72,7 +75,6 @@ def _is_non_substantive_turn(prompt: str) -> bool:
                 return True
 
     return False
-
 
 @register_hook("cognitive_tags", priority=15.0)
 def cognitive_tags(context: HookContext) -> HookResult:

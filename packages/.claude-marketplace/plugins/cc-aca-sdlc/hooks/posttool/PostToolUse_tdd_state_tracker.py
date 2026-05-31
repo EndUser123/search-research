@@ -1,9 +1,14 @@
 
+
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 #!/usr/bin/env python3
@@ -28,7 +33,6 @@ if str(hooks_dir) not in sys.path:
 
 from terminal_detection import detect_terminal_id
 
-
 def _get_state_file() -> Path:
     """Get terminal-isolated state file path.
 
@@ -38,7 +42,6 @@ def _get_state_file() -> Path:
     state_dir = Path.home() / ".claude" / ".state" / "tdd" / terminal_id
     state_dir.mkdir(parents=True, exist_ok=True)
     return state_dir / "tdd_workflow.json"
-
 
 EVIDENCE_RULES = {
     1: {
@@ -84,7 +87,6 @@ STAGE_NAMES = {
 
 MAX_STAGE = 6
 
-
 def check_explicit_marker(output: str):
     """Check for explicit completion markers (highest priority)."""
     match = re.search(r"✅\s*STAGE\s*(\d+(?:\.\d+)?)\s*COMPLETE", output, re.I)
@@ -98,7 +100,6 @@ def check_explicit_marker(output: str):
             return stage_num
 
     return None
-
 
 def check_evidence(stage_num: int, command: str, output: str, exit_code: int) -> bool:
     """Check if evidence satisfies stage completion criteria."""
@@ -127,7 +128,6 @@ def check_evidence(stage_num: int, command: str, output: str, exit_code: int) ->
 
     return True
 
-
 def read_state() -> dict:
     state_file = _get_state_file()
     if state_file.exists():
@@ -149,13 +149,11 @@ def read_state() -> dict:
         "updated_at": datetime.now().isoformat(),
     }
 
-
 def write_state(state: dict):
     state_file = _get_state_file()
     state_file.parent.mkdir(parents=True, exist_ok=True)
     state["updated_at"] = datetime.now().isoformat()
     state_file.write_text(json.dumps(state, indent=2))
-
 
 def main():
     try:
@@ -216,7 +214,6 @@ def main():
 
     print(json.dumps({}))
     sys.exit(0)
-
 
 if __name__ == "__main__":
     main()

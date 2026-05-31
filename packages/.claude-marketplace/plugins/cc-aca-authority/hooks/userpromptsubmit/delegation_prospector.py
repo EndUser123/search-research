@@ -4,15 +4,20 @@ Detects multi-surface work patterns that could benefit from subagent delegation.
 Writes blocking state for PreToolUse_delegation_gate to enforce the pattern.
 """
 
+from __future__ import annotations
+
+
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
-
-from __future__ import annotations
 
 import json
 import os
@@ -129,7 +134,6 @@ Tip: You can use the Agent tool to spawn parallel subagents. Each should return
 only: (1) verified facts, (2) exact file/function references, (3) concise implications.
 """.strip()
 
-
 def _extract_skill_name(prompt: str) -> str | None:
     """Extract skill name from prompt if it's a slash command."""
     stripped = prompt.strip()
@@ -143,30 +147,24 @@ def _extract_skill_name(prompt: str) -> str | None:
             return after_slash.split(sep)[0]
     return after_slash.split()[0] if after_slash else None
 
-
 def _detect_delegation_opportunity(prompt: str) -> tuple[bool, str | None]:
-    """Detect delegation opportunity via skill invocation (priority) or pattern matching."""
+    """Detect implicit delegation opportunities via pattern matching only.
+
+    Skill invocations (/code, /go, etc.) are NOT flagged: they already route
+    through the Skill tool, and the gate would block that Skill tool call itself.
+    """
     if not prompt:
         return False, None
-
-    # Priority 1: Check for delegation-heavy skill invocations
-    skill_name = _extract_skill_name(prompt)
-    if skill_name and skill_name in _DELEGATION_HEAVY_SKILLS:
-        return True, f"skill:/{skill_name}"
-
-    # Priority 2: Fallback to pattern matching for implicit delegation hints
     for pattern in _DELEGATION_PATTERNS:
         if pattern.search(prompt):
             return True, f"matched: {pattern.pattern[:50]}..."
     return False, None
-
 
 def _get_terminal_id_from_context(context: HookContext) -> str:
     return (context.data.get("terminal_id") or context.data.get("terminalId") or context.data.get("CLAUDE_TERMINAL_ID") or os.environ.get("CLAUDE_TERMINAL_ID") or "default")
 
 def _get_session_id(context: HookContext) -> str:
     return (context.data.get("session_id") or context.data.get("sessionId") or context.session_id or "unknown")
-
 
 def _log_delegation_event(event_type: str, terminal_id: str, session_id: str, matched_pattern: str | None, prompt_snippet: str) -> None:
     try:
@@ -185,14 +183,14 @@ def _log_delegation_event(event_type: str, terminal_id: str, session_id: str, ma
         import warnings
         warnings.warn(f"delegation_prospector: failed to log: {e}")
 
-
-def _write_delegation_state(terminal_id: str, matched_pattern: str | None, prompt_snippet: str) -> None:
+def _write_delegation_state(terminal_id: str, session_id: str, matched_pattern: str | None, prompt_snippet: str) -> None:
     """Write blocking state for PreToolUse_delegation_gate (terminal-scoped)."""
     state_dir = _get_state_dir()
     state_dir.mkdir(parents=True, exist_ok=True)
     state_file = state_dir / "delegation_expected.json"
     state_data = {
         "terminal_id": terminal_id,
+        "session_id": session_id,
         "detected_at": time.time(),
         "matched_pattern": _redact_sensitive(matched_pattern) if matched_pattern else None,
         "prompt_snippet": _redact_sensitive(prompt_snippet)[:200] if prompt_snippet else "",
@@ -208,7 +206,6 @@ def _write_delegation_state(terminal_id: str, matched_pattern: str | None, promp
     import stat as _stat
     os.chmod(state_file, _stat.S_IRUSR | _stat.S_IWUSR)
 
-
 def _clear_delegation_state() -> None:
     """Clear delegation state after Task tool invocation."""
     state_dir = _get_state_dir()
@@ -218,20 +215,27 @@ def _clear_delegation_state() -> None:
     except OSError:
         pass
 
-
 @register_hook("delegation_prospector", priority=_PROSPECTOR_PRIORITY)
 def delegation_prospector_hook(context: HookContext) -> HookResult:
     prompt = context.prompt
-    is_opportunity, matched_pattern = _detect_delegation_opportunity(prompt)
     terminal_id = _get_terminal_id_from_context(context)
+
+    # --allow-inline in current message clears any pending delegation state so
+    # PreToolUse_delegation_gate doesn't fire on the new turn.
+    if re.search(r"--allow-inline", prompt or "", re.IGNORECASE):
+        _clear_delegation_state()
+        _log_delegation_event("bypass_clear", terminal_id, "", None, prompt)
+        return HookResult.empty()
+
+    is_opportunity, matched_pattern = _detect_delegation_opportunity(prompt)
     _log_delegation_event("delegation_opportunity_detected" if is_opportunity else "no_opportunity", terminal_id, "", matched_pattern, prompt)
     if not is_opportunity:
         return HookResult.empty()
     # Write blocking state for PreToolUse_delegation_gate (terminal-scoped)
-    _write_delegation_state(terminal_id, matched_pattern, prompt)
+    session_id = _get_session_id(context)
+    _write_delegation_state(terminal_id, session_id, matched_pattern, prompt)
     tokens = len(_DELEGATION_ADVISORY.split())
     return HookResult(context=_DELEGATION_ADVISORY, tokens=tokens, priority=_PROSPECTOR_PRIORITY)
-
 
 def clear_delegation_state() -> None:
     """Public API for PostToolUse hook to clear state after Task invocation."""

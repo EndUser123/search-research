@@ -11,7 +11,18 @@
       "SlashCommand(*)",
       "Skill(*)",
       "mcp__*",
-      "Agent"
+      "Agent",
+      "WebFetch(domain:simonwillison.net)",
+      "WebFetch(domain:zenn.dev)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:akitaonrails.com)",
+      "mcp__plugin_serena_serena__activate_project",
+      "mcp__plugin_serena_serena__replace_content",
+      "mcp__plugin_serena_serena__list_dir",
+      "mcp__plugin_serena_serena__execute_shell_command",
+      "Bash(mkdir -p \"P:/.claude/.artifacts/console_ac792dcb-bb0b-45b4-9fec-c537c6768d65/pre-mortem/pre-mortem-20260531_113336/specialists\")",
+      "Bash(cp \"P:/packages/.claude-marketplace/plugins/cc-skills-utils/specialists_temp.json\" \"P:/.claude/.artifacts/console_ac792dcb-bb0b-45b4-9fec-c537c6768d65/pre-mortem/pre-mortem-20260531_113336/specialists/adversarial-logic-findings.json\")"
     ],
     "deny": [],
     "ask": []

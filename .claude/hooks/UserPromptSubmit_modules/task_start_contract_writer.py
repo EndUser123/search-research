@@ -441,6 +441,22 @@ def _summarize_prompt(prompt: str) -> str:
 
 # ── Hook registration ─────────────────────────────────────────────────────────
 
+def _fallback_terminal_id() -> str:
+    """Fallback terminal ID when context.terminal_id is empty (no WT_SESSION).
+
+    Mirrors PreToolUse_delegation_gate._detect_terminal_id() fallback chain:
+    WT_SESSION -> CLAUDE_TERMINAL_ID -> hash(PID+cwd).
+    """
+    import hashlib
+    import os as _os
+    fallback = _os.environ.get("CLAUDE_TERMINAL_ID", "")
+    if fallback:
+        return f"console_{fallback}"
+    pid = _os.getpid()
+    cwd = _os.getcwd()
+    return f"unknown_{hashlib.md5(f'{pid}:{cwd}'.encode()).hexdigest()[:12]}"
+
+
 @register_hook("task_start_contract_writer", priority=4.0)
 def task_start_contract_writer(context: HookContext) -> HookResult:
     """UserPromptSubmit hook that auto-creates task contracts on substantive prompts.
@@ -454,13 +470,8 @@ def task_start_contract_writer(context: HookContext) -> HookResult:
     - If ambiguous phrasing BUT active contract exists from recent turns → update
     - If ambiguous AND no active contract → skip as now
     """
-    # Extract terminal_id
-    terminal_id = context.terminal_id or ""
-    if not terminal_id:
-        _log_telemetry("contract_skip", terminal_id, {
-            "reason": "no_terminal_id",
-        })
-        return HookResult.empty()
+    # Extract terminal_id; fall back to PID+cwd hash when WT_SESSION is absent
+    terminal_id = context.terminal_id or _fallback_terminal_id()
 
     prompt = context.prompt or ""
     prompt_lower = prompt.lower()

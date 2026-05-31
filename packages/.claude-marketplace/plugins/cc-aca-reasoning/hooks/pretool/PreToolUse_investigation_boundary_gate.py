@@ -10,12 +10,18 @@ No LLM calls, no persistence, fully stateless (uses tool_use_history).
 
 from __future__ import annotations
 
+
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
+
 
 import json
 import sys
@@ -23,7 +29,6 @@ import sys
 INVESTIGATION_TOOLS = frozenset({"Read", "Grep", "Glob", "LS", "LSP"})
 IMPLEMENTATION_TOOLS = frozenset({"Edit", "Write", "MultiEdit"})
 MIN_INVESTIGATION_COUNT = 2
-
 
 def detect_investigation_to_impl_transition(
     tool_name: str, tool_use_history: list | None
@@ -45,7 +50,6 @@ def detect_investigation_to_impl_transition(
             return False
 
     return investigation_count >= MIN_INVESTIGATION_COUNT
-
 
 def main() -> int:
     input_data = sys.stdin.read()
@@ -77,7 +81,6 @@ def main() -> int:
         print("{}")
 
     return 0
-
 
 if __name__ == "__main__":
     try:

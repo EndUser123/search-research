@@ -16,11 +16,16 @@ ADR: P:/docs/adrs/ADR-20260324-clean-room-tdd-loop.md
 
 from __future__ import annotations
 
+
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
@@ -41,7 +46,6 @@ MAX_ITERATIONS = 10
 
 # Warning threshold (80% of max)
 WARNING_THRESHOLD = int(MAX_ITERATIONS * 0.8)
-
 
 def process_hook(
     input_data: dict[str, Any],
@@ -143,7 +147,6 @@ def process_hook(
         )
 
     return True, reason, context
-
 
 if __name__ == "__main__":
     import json

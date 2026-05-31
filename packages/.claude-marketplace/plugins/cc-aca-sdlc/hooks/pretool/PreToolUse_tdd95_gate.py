@@ -26,11 +26,16 @@ Decision Flow:
 
 from __future__ import annotations
 
+
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
@@ -66,7 +71,6 @@ from tdd95_core import (
     path_from_posix,
 )
 
-
 def _extract_function_names_from_code(code: str) -> list[str]:
     """
     Extract function and method names from Python code using AST.
@@ -91,7 +95,6 @@ def _extract_function_names_from_code(code: str) -> list[str]:
             functions.append(node.name)
     return functions
 
-
 def _extract_function_names_regex(code: str) -> list[str]:
     """
     Fallback regex-based function extraction for partial code.
@@ -106,7 +109,6 @@ def _extract_function_names_regex(code: str) -> list[str]:
     pattern = r"(?:async\s+)?def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\("
     matches = re.findall(pattern, code)
     return matches
-
 
 def _extract_function_from_edit(edit_content: str) -> str | None:
     """
@@ -126,7 +128,6 @@ def _extract_function_from_edit(edit_content: str) -> str | None:
         # Return the first function defined (most likely the one being edited)
         return functions[0]
     return None
-
 
 def _get_functions_tested_by_file(test_path: Path) -> set[str]:
     """
@@ -174,7 +175,6 @@ def _get_functions_tested_by_file(test_path: Path) -> set[str]:
 
     return tested_functions
 
-
 def _check_function_coverage(
     impl_path: Path, test_path: Path, edited_function: str
 ) -> tuple[bool, str | None]:
@@ -216,7 +216,6 @@ def _check_function_coverage(
 
     return False, suggestion
 
-
 def _find_best_test_path(impl_path: Path, config: dict) -> Path | None:
     """
     Find the best test path for scaffolding.
@@ -245,7 +244,6 @@ def _find_best_test_path(impl_path: Path, config: dict) -> Path | None:
             return valid_candidates[0]
 
     return candidates[0]
-
 
 def _scaffold_test_for_impl(impl_path: Path, config: dict) -> dict[str, Any]:
     """
@@ -293,7 +291,6 @@ def _scaffold_test_for_impl(impl_path: Path, config: dict) -> dict[str, Any]:
             "test_file": str(test_path),
             "error": str(e),
         }
-
 
 def check_file_path(
     file_path_str: str, tool_input: dict[str, Any]
@@ -493,7 +490,6 @@ def check_file_path(
 
     return True, "tests characterized", {"characterized": True, "tdd_state": "CHARACTERIZED"}
 
-
 def _extract_function_from_edit_content(tool_input: dict[str, Any]) -> str | None:
     """
     Extract the function name being edited from tool_input.
@@ -518,7 +514,6 @@ def _extract_function_from_edit_content(tool_input: dict[str, Any]) -> str | Non
         return _extract_function_from_edit(content)
 
     return None
-
 
 def process_hook(input_data: dict[str, Any]) -> tuple[bool, str | None, dict[str, Any] | None]:
     """
@@ -603,7 +598,6 @@ def process_hook(input_data: dict[str, Any]) -> tuple[bool, str | None, dict[str
     # Main check
     return check_file_path(file_path_str, tool_input)
 
-
 def main():
     """
     Hook entry point.
@@ -655,7 +649,6 @@ def main():
             error_output["error"]["tdd_state"] = context["tdd_state"]
         print(json.dumps(error_output))
         sys.exit(1)  # Exit with error code to block
-
 
 if __name__ == "__main__":
     main()

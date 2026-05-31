@@ -18,15 +18,20 @@ Author: Stop System Team
 Created: 2026-05-12
 """
 
+from __future__ import annotations
+
+
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
-
-from __future__ import annotations
 
 import json
 import os
@@ -42,7 +47,6 @@ _STATE_SUBDIR = "stop_permission_stall"
 _GRACE_TURNS = 3
 _TTL_SECONDS = 60 * 60  # 1 hour
 
-
 # Permission-seeking patterns — phrases that seek re-authorization
 # after the user has already authorized via /command or skill invocation.
 _PERMISSION_SEEKING_PATTERNS = [
@@ -55,15 +59,12 @@ _PERMISSION_SEEKING_PATTERNS = [
     r"\bmay\s+I\s+(?:proceed|implement|fix)\b",
 ]
 
-
 def _get_state_dir() -> Path:
     base = Path(os.environ.get("CSF_STATE_DIR", "P:/.claude/state"))
     return base / _STATE_SUBDIR
 
-
 def _state_path(terminal_id: str) -> Path:
     return _get_state_dir() / f"{terminal_id}.json"
-
 
 def _load_state(path: Path) -> dict:
     if not path.exists():
@@ -73,7 +74,6 @@ def _load_state(path: Path) -> dict:
     except (OSError, json.JSONDecodeError):
         return {"grace_remaining": 0, "authorization_ts": 0, "updated_at": 0}
 
-
 def _save_state(path: Path, state: dict) -> None:
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -81,14 +81,12 @@ def _save_state(path: Path, state: dict) -> None:
     except OSError:
         pass
 
-
 def _has_permission_seeking(text: str) -> bool:
     """Return True if text contains permission-seeking phrases."""
     for pattern in _PERMISSION_SEEKING_PATTERNS:
         if re.search(pattern, text, re.IGNORECASE):
             return True
     return False
-
 
 def _has_authorization_signal(user_prompt: str) -> bool:
     """Return True if user prompt contains an authorization signal."""
@@ -106,14 +104,12 @@ def _has_authorization_signal(user_prompt: str) -> bool:
         return True
     return False
 
-
 def _has_bash_evidence(tool_events: list[dict]) -> bool:
     """Return True if any Bash tool was used this turn."""
     for event in tool_events:
         if event.get("name") == "Bash":
             return True
     return False
-
 
 def _detect_permission_stall(data: dict) -> dict | None:
     """Detect permission-seeking stall after authorization.
@@ -174,7 +170,6 @@ def _detect_permission_stall(data: dict) -> dict | None:
             "Take action now: Edit, Write, or Bash. Do not seek re-authorization."
         ),
     }
-
 
 # ---------------------------------------------------------------------------
 # Self-test

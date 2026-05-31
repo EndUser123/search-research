@@ -2,6 +2,19 @@
 """UserPromptSubmit hook: Handle /approve command, write approval state."""
 from __future__ import annotations
 
+
+# --- plugin bootstrap ---
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
+# --- end bootstrap ---
+
+
 import json
 import os
 import re
@@ -13,25 +26,15 @@ HOOKS_DIR = Path(__file__).resolve().parent
 ARTIFACTS_BASE = Path(os.environ.get("CLAUDE_ARTIFACTS_DIR", str(HOOKS_DIR.parent / ".artifacts")))
 TERMINAL_ID = os.environ.get("CLAUDE_TERMINAL_ID", os.environ.get("WT_SESSION", "default"))
 
-
 def _approval_file() -> Path:
     return ARTIFACTS_BASE / TERMINAL_ID / "approval.json"
-
 
 def _register_hooks():
     """Self-register hook for registry loading."""
 
-# --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
-# --- end bootstrap ---
-
     from UserPromptSubmit_modules.registry import register_hook
 
     register_hook("approval", priority=9.0)
-
 
 def process_prompt(data: dict) -> dict | None:
     prompt = data.get("prompt", "")
@@ -57,7 +60,6 @@ def process_prompt(data: dict) -> dict | None:
 
     return None  # Silent pass-through
 
-
 if __name__ == "__main__":
     raw = sys.stdin.read()
     try:
@@ -67,7 +69,6 @@ if __name__ == "__main__":
     result = process_prompt(input_data)
     print(json.dumps(result or {}))
     sys.exit(0)
-
 
 # Auto-register hook on module import
 _register_hooks()

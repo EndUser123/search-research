@@ -15,10 +15,14 @@ from __future__ import annotations
 
 
 # --- plugin bootstrap ---
-import sys as _s; from pathlib import Path as _P
-_l = _P(__file__).resolve().parent.parent.parent / "__lib"
-if str(_l) not in _s.path: _s.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+import sys
+from pathlib import Path
+
+_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from _bootstrap import bootstrap
+_hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
@@ -28,7 +32,6 @@ import re
 import sys
 from pathlib import Path
 
-
 _project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "").strip()
 LOG_FILE = (
     Path(_project_dir) / ".claude" / "logs" / "reasoning" / "hook_usage.log"
@@ -36,7 +39,6 @@ LOG_FILE = (
     else Path("P:/") / ".claude" / "logs" / "reasoning" / "hook_usage.log"
 )
 filter_stats = {"applied": 0, "skipped": 0, "improved": 0, "errors": 0}
-
 
 # ============================================================================
 # WORKAROUND vs STRUCTURAL FIX DETECTION
@@ -84,7 +86,6 @@ EVIDENCE_PRESENT_PATTERNS = [
     r"(?i)pytest\s+output",         # test output citation
 ]
 
-
 def detect_overconfidence_without_evidence(response: str) -> tuple[bool, str | None]:
     """Check for high-confidence claims without supporting evidence.
 
@@ -112,7 +113,6 @@ def detect_overconfidence_without_evidence(response: str) -> tuple[bool, str | N
         "Add source citations or use tentative language."
     )
 
-
 def detect_workaround(response: str) -> tuple[bool, str | None]:
     """Detect if response treats a workaround as a root-cause fix."""
     for pattern, explanation in WORKAROUND_PATTERNS:
@@ -128,7 +128,6 @@ def detect_workaround(response: str) -> tuple[bool, str | None]:
             return True, "Claims fix without structural indicators — verify root-cause not symptom"
 
     return False, None
-
 
 def should_apply_reflection(response: str) -> tuple[bool, str]:
     """Determine if self-reflection would be useful."""
@@ -163,7 +162,6 @@ def should_apply_reflection(response: str) -> tuple[bool, str]:
 
     filter_stats["skipped"] += 1
     return False, "no_reasoning_indicators"
-
 
 def _detect_reasoning_depth_mismatch(
     response: str, tool_use_history: list | None = None
@@ -234,7 +232,6 @@ def _detect_reasoning_depth_mismatch(
 
     return None
 
-
 def _detect_logical_gaps(response: str) -> list[str]:
     """Detect logical gaps in reasoning via pattern matching."""
     issues = []
@@ -265,7 +262,6 @@ def _detect_logical_gaps(response: str) -> list[str]:
             issues.append("Conclusion without visible reasoning chain")
 
     return issues
-
 
 def apply_self_reflection(
     response: str, tool_use_history: list | None = None
@@ -320,7 +316,6 @@ def _log_usage(response_length: int, elapsed_ms: float, improved: bool) -> None:
     except Exception:
         pass
 
-
 def _normalize_stdout(data: dict) -> dict:
     """Normalize hook output to Claude Code Zod-valid schema."""
     if data.get('decision') == 'allow':
@@ -338,7 +333,6 @@ def _normalize_stdout(data: dict) -> dict:
     if 'ok' in data:
         return {'decision': 'approve'}
     return data
-
 
 def main():
     """Main hook entry point."""
@@ -398,7 +392,6 @@ def main():
             print("{}")
 
     return 0
-
 
 if __name__ == "__main__":
     try:

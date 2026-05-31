@@ -29,9 +29,11 @@ try:
     ensure_skill_guard_in_syspath()
 except ImportError:
     # Fallback: direct path resolution
-    _skill_guard_src = _hooks_dir.parent.parent / "packages" / "skill-guard" / "src"
+    _marketplace_plugins = _hooks_dir.parent.parent / "plugins"
+    _skill_guard_src = _marketplace_plugins / "skill-guard" / "src"
     if not _skill_guard_src.exists():
-        _skill_guard_src = Path("P:/packages/skill-guard/src")
+        # Try source location
+        _skill_guard_src = _hooks_dir.parent.parent / "skill-guard" / "src"
     sys.path.insert(0, str(_skill_guard_src))
 
 from skill_guard.breadcrumb.tracker import initialize_breadcrumb_trail

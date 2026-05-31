@@ -4,6 +4,29 @@ import ast
 import sys
 from pathlib import Path
 
+# Resolve Stop and PreToolUse hooks directly from plugin directories for pytest
+import glob
+for pattern in [
+    "P:/packages/.claude-marketplace/plugins/cc-aca-*/hooks/*",
+    "P:/packages/.claude-marketplace/plugins/cc-aca-*/__lib",
+    "P:/packages/.claude-marketplace/plugins/*/src",
+    "P:/packages/cc-aca-*/hooks/*",
+    "P:/packages/cc-aca-*/__lib",
+    "P:/packages/*/src",
+]:
+    for p in glob.glob(pattern):
+        path_obj = Path(p)
+        if path_obj.is_dir() and str(path_obj) not in sys.path:
+            sys.path.insert(0, str(path_obj))
+
+# Ensure the global hooks directory and its library take precedence over plugin directories
+global_hooks = "P:/.claude/hooks"
+global_hooks_lib = "P:/.claude/hooks/__lib"
+for p in (global_hooks_lib, global_hooks):
+    if p in sys.path:
+        sys.path.remove(p)
+    sys.path.insert(0, p)
+
 import UserPromptSubmit_modules as _ups_modules
 
 
