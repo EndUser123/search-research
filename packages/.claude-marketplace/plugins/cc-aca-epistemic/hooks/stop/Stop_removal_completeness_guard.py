@@ -150,8 +150,10 @@ def _extract_module_names(response: str) -> list[str]:
             seen.add(stem)
             names.append(stem)
 
-    # Source 2: Explicit module/system/plugin mentions
-    for match in MODULE_EXPLICIT_PATTERNS.finditer(response):
+    # Source 2: Explicit module/system/plugin mentions (use/mention exemption)
+    from quote_exemption import finditer_unquoted
+
+    for match in finditer_unquoted(MODULE_EXPLICIT_PATTERNS, response):
         name = match.group(1).replace("-", "_")
         if name not in seen and len(name) >= 3:
             seen.add(name)
@@ -232,7 +234,10 @@ def check(data: dict) -> dict | None:
         _logger.debug("matched completion allowlist - skipping")
         return None
 
-    if not REMOVAL_COMPLETION_PATTERNS.search(response):
+    # Use/mention exemption: skip quoted completion claims
+    from quote_exemption import has_unquoted_match
+
+    if not has_unquoted_match(REMOVAL_COMPLETION_PATTERNS, response):
         return None
 
     _logger.info("removal completion claim detected")

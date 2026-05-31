@@ -162,12 +162,12 @@ def _detect_perf_claims(text: str) -> bool:
     if not text.strip():
         return False
 
-    # Check each perf pattern
+    # Check each perf pattern (use/mention exemption: skip quoted matches)
+    from quote_exemption import search_unquoted
+
     for pattern in PERF_CLAIM_PATTERNS:
-        if pattern.search(text):
-            # Found a perf claim - check if it's hedged
-            # Get the matching segment for hedge detection
-            match = pattern.search(text)
+        match = search_unquoted(pattern, text)
+        if match:
             if match:
                 # Get surrounding context (50 chars before and after)
                 start = max(0, match.start() - 50)

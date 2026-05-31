@@ -475,8 +475,10 @@ def _detect_deletion_claims(response: str) -> list[tuple[str, list[str]]]:
 
     claims = []
 
-    # Check deletion completion patterns
-    for match in DELETION_CLAIM_PATTERNS.finditer(response):
+    # Check deletion completion patterns (use/mention exemption)
+    from quote_exemption import finditer_unquoted
+
+    for match in finditer_unquoted(DELETION_CLAIM_PATTERNS, response):
         matched_text = match.group(0)
 
         # Extract file paths from the FULL response (not a windowed slice)

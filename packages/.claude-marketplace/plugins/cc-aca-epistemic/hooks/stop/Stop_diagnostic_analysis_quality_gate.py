@@ -192,11 +192,13 @@ def _is_diagnostic_turn(response: str) -> bool:
         return False
 
     # Must contain BOTH causal language AND diagnostic intent
-    has_causal = bool(_CAUSAL_PHRASES.search(stripped))
-    has_diagnostic = bool(_DIAGNOSTIC_PHRASES.search(stripped))
+    from quote_exemption import has_unquoted_match, finditer_unquoted
+
+    has_causal = has_unquoted_match(_CAUSAL_PHRASES, stripped)
+    has_diagnostic = has_unquoted_match(_DIAGNOSTIC_PHRASES, stripped)
 
     # Also count causal phrases — need at least 2 distinct causal assertions
-    causal_matches = _CAUSAL_PHRASES.findall(stripped.lower())
+    causal_matches = list(finditer_unquoted(_CAUSAL_PHRASES, stripped.lower()))
 
     # Single causal phrase with diagnostic context also qualifies
     if has_causal and has_diagnostic:

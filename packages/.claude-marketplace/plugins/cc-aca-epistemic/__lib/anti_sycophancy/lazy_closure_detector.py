@@ -28,6 +28,7 @@ import time
 from pathlib import Path
 from typing import NamedTuple
 
+from quote_exemption import is_inside_quoted_content as _is_inside_quoted_content  # shared module
 from __lib.anti_lazy_policy import check_investigation_in_ledger, check_topic_relevant_investigation
 
 __all__ = ["detect_lazy_closure", "detect_all_lazy_closure", "LazyClosureMatch"]
@@ -595,37 +596,6 @@ def _find_verifiable_state_claim(text_lower: str, text_original: str) -> str | N
         if m:
             return m.group(0)
     return None
-
-
-def _is_inside_quoted_content(text: str, match: re.Match) -> bool:
-    """Check if a regex match falls inside markdown code blocks, blockquotes, inline backticks, or tables.
-
-    Prevents false positives when capitulation phrases appear in quoted transcript
-    evidence, code examples, inline code, or data tables rather than the model's own assertions.
-    """
-    pos = match.start()
-    # Check if inside a fenced code block (``` ... ```)
-    before = text[:pos]
-    fence_opens = before.count("```")
-    if fence_opens % 2 == 1:
-        return True
-    # Check if inside a blockquote line (starts with > or |)
-    line_start = before.rfind("\n") + 1
-    line_prefix = text[line_start:pos].lstrip()
-    if line_prefix.startswith(("> ", "| ", "|")):
-        return True
-    # Check if inside an inline backtick span on the same line.
-    # Extract the current line and count backticks before match position.
-    line_end = text.find("\n", pos)
-    if line_end == -1:
-        line_end = len(text)
-    current_line = text[line_start:line_end]
-    pos_in_line = pos - line_start
-    backticks_before = current_line[:pos_in_line].count("`")
-    # If odd number of backticks before match, match is inside an inline code span
-    if backticks_before % 2 == 1:
-        return True
-    return False
 
 
 

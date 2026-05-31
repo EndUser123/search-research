@@ -340,16 +340,18 @@ def _find_comparisons(response: str) -> list[str]:
                 continue
             found.append(cell)
 
-    # 2. vs/versus phrases
-    for m in VS_PHRASE_RE.finditer(response):
+    # 2. vs/versus phrases (use/mention exemption: skip quoted matches)
+    from quote_exemption import finditer_unquoted
+
+    for m in finditer_unquoted(VS_PHRASE_RE, response):
         g1, g2 = m.group(1), m.group(2)
         if g1.lower() not in skip_words and _is_file_reference(g1) and not _is_markdown_artifact(g1) and _is_plausible_path(g1):
             found.append(g1)
         if g2.lower() not in skip_words and _is_file_reference(g2) and not _is_markdown_artifact(g2) and _is_plausible_path(g2):
             found.append(g2)
 
-    # 3. Prose comparison keywords
-    for m in PROSE_COMPARE_RE.finditer(response):
+    # 3. Prose comparison keywords (use/mention exemption)
+    for m in finditer_unquoted(PROSE_COMPARE_RE, response):
         item = m.group(2)
         if item.lower() not in skip_words and _is_file_reference(item) and _is_plausible_path(item):
             found.append(item)
