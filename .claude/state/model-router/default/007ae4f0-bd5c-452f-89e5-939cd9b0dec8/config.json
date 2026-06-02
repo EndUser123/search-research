@@ -1,0 +1,33 @@
+{
+  "terminal_id": "default",
+  "session_id": "007ae4f0-bd5c-452f-89e5-939cd9b0dec8",
+  "current_model": "sonnet",
+  "current_tier": "sonnet",
+  "config": {
+    "tiers": {
+      "haiku": {
+        "max_lines": 100,
+        "max_file_size": 10,
+        "max_tools": 5
+      },
+      "sonnet": {
+        "max_lines": 500,
+        "max_file_size": 50,
+        "max_tools": 20
+      },
+      "opus": {
+        "max_lines": null,
+        "max_file_size": null,
+        "max_tools": null
+      }
+    },
+    "thresholds": {
+      "opus_word_count": 200,
+      "opus_question_word_count": 100,
+      "haiku_max_word_count": 60
+    },
+    "action": "autoswitch",
+    "log_file": "~/.claude/logs/model-router.ndjson"
+  },
+  "written_at": "2026-06-01T15:26:29.171678"
+}

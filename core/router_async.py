@@ -26,6 +26,7 @@ from .backend_health import BackendHealthRegistry
 from .cache import QueryCache
 from .chs.utils import escape_fts5_query
 from .config import config
+from .domain_detector import detect_domain
 from .hyde import apply_hyde
 from .metrics import MetricsLogger, ComponentName  # TASK-3: Instrumented metrics
 from .models import SearchResult  # CANONICAL import (Q-ARCH-001 fix)
@@ -287,6 +288,12 @@ class AsyncSearchRouter:
         except Exception as e:
             logger.debug(f"yt-is backend not available: {e}")
 
+        # Domain constraint backend — proactive constraint surfacing
+        try:
+            backends["domain_constraint"] = local.create_domain_constraint_backend()
+        except Exception as e:
+            logger.debug(f"domain_constraint backend not available: {e}")
+
         self._backends = backends
         self._backends_initialized = True
 
@@ -364,6 +371,31 @@ class AsyncSearchRouter:
         # operators like '.', ',', etc. Centralizing escaping here protects all backends.
         search_query = escape_fts5_query(search_query)
 
+        # DOMAIN-CONSTRAINT: Detect domain tags and look up matching constraint entries.
+        # Runs concurrently with normal backends. Results are injected as a separate
+        # high-priority band (score >= 0.9) before result fusion.
+        constraint_results: list[SearchResult] = []
+        domain_class = detect_domain(search_query)
+
+        if domain_class.has_constraints and domain_class.confidence >= 0.6:
+            dc_backend = self._backends.get("domain_constraint")
+            if dc_backend:
+                try:
+                    raw = dc_backend.search(domain_class.domains, limit=5)
+                    for r in raw:
+                        constraint_results.append(
+                            SearchResult(
+                                source=r["source"],
+                                title=r["title"],
+                                content=r["content"],
+                                score=r["score"],
+                                url="",
+                                metadata=r.get("metadata", {}),
+                            )
+                        )
+                except Exception:
+                    pass  # Non-blocking — constraints are advisory only
+
         # Check cache first
         if self.enable_cache:
             # If HyDE was applied, check cache with enhanced query first (more specific)
@@ -430,6 +462,12 @@ class AsyncSearchRouter:
             if isinstance(result, tuple):
                 backend, results = result
                 all_results.extend(results)
+
+        # DOMAIN-CONSTRAINT: Prepend constraint results as high-priority band.
+        # Constraint results have fixed score 0.95; normal results are ranked.
+        # This keeps constraints visible without polluting the ranked results.
+        if constraint_results:
+            all_results = constraint_results + all_results
 
         # Rank and limit results
         ranked_results = self._rank_results(all_results)[:limit]

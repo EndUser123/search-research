@@ -1,0 +1,12 @@
+{
+  "terminal": {
+    "id": "env_6034cfdd5d96",
+    "source": "WT_SESSION"
+  },
+  "claude": {
+    "session_id": "d50005da-2fd8-46c1-aced-c7dda2958832",
+    "transcript_path": "C:\\Users\\brsth\\.claude\\projects\\P--packages--claude-marketplace-plugins-search-research\\d50005da-2fd8-46c1-aced-c7dda2958832.jsonl",
+    "cwd": "P:\\packages\\.claude-marketplace\\plugins\\search-research"
+  },
+  "captured_at": "2026-06-01T21:31:59.621509+00:00"
+}

@@ -1,0 +1,10 @@
+{
+  "recommended_model": "claude-opus-4-8",
+  "recommended_tier": "opus",
+  "current_model": "",
+  "current_tier": "unknown",
+  "action_mode": "warn",
+  "written_at": "2026-06-01T15:16:00.228419",
+  "turn_counter": 0,
+  "consumed": false
+}

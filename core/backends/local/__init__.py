@@ -55,6 +55,11 @@ from .lsp_backend import LSPSymbolBackend, create_lsp_backend, BACKEND_LSP_SYMBO
 from .dependency_backend import DependencyBackend, DEP_GRAPH_AVAILABLE
 from .qmd_wiki_backend import QMDWikiBackend
 from .yt_is_backend import YtIsBackend
+from .domain_constraint_backend import (
+    BACKEND_DOMAIN_CONSTRAINT,
+    DomainConstraintBackend,
+    create_domain_constraint_backend,
+)
 from .vault_backend import (
     BACKEND_VAULT,
     VaultBackend,
