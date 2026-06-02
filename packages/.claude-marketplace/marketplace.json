@@ -58,7 +58,7 @@
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.1.32",
+      "version": "1.1.35",
       "description": "Utility AI skills for Claude Code.",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
@@ -178,7 +178,7 @@
     },
     {
       "name": "cc-aca-session",
-      "version": "0.1.5",
+      "version": "0.1.7",
       "description": "ACA Session plugin - session lifecycle hooks (cleanup, breadcrumb init, snapshot). Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-session",
       "keywords": [
@@ -192,7 +192,7 @@
     },
     {
       "name": "cc-aca-epistemic",
-      "version": "0.2.15",
+      "version": "0.2.29",
       "description": "ACA Epistemic plugin - evidence verification, claim validation, provenance tracking, anti-fabrication enforcement, and anti-sycophancy detection. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-epistemic",
       "keywords": [
@@ -221,7 +221,7 @@
     },
     {
       "name": "cc-aca-authority",
-      "version": "0.1.2",
+      "version": "0.1.5",
       "description": "ACA Authority plugin - permission enforcement, approval flow control, delegation gating, risk tiering, and git safety guards.",
       "source": "./plugins/cc-aca-authority",
       "keywords": [
@@ -251,7 +251,7 @@
     },
     {
       "name": "cc-aca-sdlc",
-      "version": "0.1.5",
+      "version": "0.1.7",
       "description": "ACA SDLC plugin - TDD enforcement, test-state tracking, implementation verification, completion gates, and development workflow discipline.",
       "source": "./plugins/cc-aca-sdlc",
       "keywords": [
@@ -292,6 +292,34 @@
         "drift-detection",
         "health",
         "session"
+      ]
+    },
+    {
+      "name": "cc-lazy-closure-debt",
+      "version": "0.1.2",
+      "description": "Persistent technical-debt tracker. Stop hook records deferral phrases to JSONL; UserPromptSubmit hook surfaces them as additionalContext. Ships with /debt skill for listing/clearing/formalizing.",
+      "source": "./plugins/cc-lazy-closure-debt",
+      "keywords": [
+        "aca",
+        "debt",
+        "deferral",
+        "lazy-closure",
+        "session-continuity"
+      ]
+    },
+    {
+      "name": "cc-model-router",
+      "version": "0.1.4",
+      "description": "Automatic model-tier routing (haiku/sonnet/opus) based on prompt complexity heuristics with dual-mode operation (warn plus autoswitch)",
+      "source": "./plugins/cc-model-router",
+      "keywords": [
+        "model",
+        "router",
+        "tier",
+        "haiku",
+        "sonnet",
+        "opus",
+        "routing"
       ]
     }
   ]
