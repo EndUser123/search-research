@@ -1,4 +1,5 @@
 {
+  "model": "claude-sonnet-4-6",
   "env": {
     "TDD_AUTOSCAFFOLD": "0",
     "TDD_BYPASS": "0",
@@ -102,12 +103,12 @@
     "GIT_COMMIT_TEST_GATE_MODE": "block",
     "AGENT_CONTRACT_VALIDATOR_ENABLED": "true",
     "PERF_ATTRIBUTION_GATE_ENABLED": "true",
-    "CLAUDE_PLUGIN_ROOT": "C:/Users/brsth/.claude/plugins/reason_openai",
     "CLAUDE_PROJECT_DIR": "P:/",
     "EPISTEMIC_CONTRACT_MODE": "warn",
     "EPISTEMIC_CAUSAL_MODE": "warn",
     "EPISTEMIC_COMPARATIVE_MODE": "warn",
-    "STOP_TELEMETRY": "1"
+    "STOP_TELEMETRY": "1",
+    "ANTI_DODGE_JUDGE_ENABLED": "true"
   },
   "includeCoAuthoredBy": true,
   "permissions": {
@@ -134,7 +135,9 @@
       "mcp__exa__web_search_exa",
       "mcp__plugin_context7_context7__resolve-library-id",
       "Bash(git -C *)",
-      "Bash(curl -s *)"
+      "Bash(curl -s *)",
+      "Write(P:/.claude/.artifacts/**)",
+      "Edit(P:/.claude/.artifacts/**)"
     ],
     "deny": [
       "Bash(rm -rf /)",
@@ -171,6 +174,11 @@
           {
             "type": "command",
             "command": "python -c \"import sys; sys.path.insert(0, 'P:/.claude/hooks'); from __lib.hook_importer import HookImporter; importer = HookImporter('P:/.claude/hooks'); result = importer.execute_hook('UserPromptSubmit'); sys.exit(0 if result.get('ok') else result.get('exit_code', 1))\"",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "python P:/packages/.claude-marketplace/plugins/cc-model-router/hooks/userpromptsubmit/model_router_classify.py",
             "timeout": 15
           },
           {
@@ -241,6 +249,11 @@
             "type": "command",
             "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/self_verification_gate.py",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_hook_import_health.py",
+            "timeout": 15
           }
         ]
       },
@@ -310,6 +323,11 @@
             "type": "command",
             "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/Stop.py --timeout 10.0",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python P:/packages/.claude-marketplace/plugins/cc-model-router/hooks/stop/stop_model_router_autoswitch.py",
+            "timeout": 15
           }
         ]
       },
@@ -341,6 +359,11 @@
             "type": "command",
             "command": "python -c \"import sys; sys.path.insert(0, 'P:/.claude/hooks'); from __lib.hook_importer import HookImporter; importer = HookImporter('P:/.claude/hooks'); result = importer.execute_hook('SessionStart', timeout=45.0); sys.exit(0 if result.get('ok') else result.get('exit_code', 1))\"",
             "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "python P:/packages/.claude-marketplace/plugins/cc-model-router/hooks/sessionstart/model_router_init.py",
+            "timeout": 15
           }
         ]
       }
