@@ -65,6 +65,8 @@ STARTUP_PROBE_LOG = LOGS_DIR / "startup_probe.log"  # Trace invocations
 # This helps debug "silent" errors where Python fails to start
 try:
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    import time as _probe_time
+    _probe_start = _probe_time.perf_counter()
     with open(STARTUP_PROBE_LOG, "a", encoding="utf-8") as _f:
         _ts = datetime.now(UTC).isoformat()
         _args = " ".join(sys.argv[1:3]) if len(sys.argv) > 1 else "(no args)"
@@ -425,6 +427,18 @@ def safe_run(hook_path: str | Path, timeout: float | None = None) -> int:
                 runpy.run_path(str(hook_path), run_name="__main__")
             except SystemExit as e:
                 exit_code = e.code if isinstance(e.code, int) else (1 if e.code else 0)
+
+        # END marker for startup_probe.log: a START-without-END is itself a
+        # hang/timeout signal. Best-effort; never fail the hook.
+        try:
+            import time as _t
+            _dur_ms = int((_t.perf_counter() - _probe_start) * 1000)
+            with open(STARTUP_PROBE_LOG, "a", encoding="utf-8") as _ef:
+                _ef.write(
+                    f"[{datetime.now(UTC).isoformat()}] END: {_args} RC={exit_code} dur={_dur_ms}ms\n"
+                )
+        except Exception:
+            pass
 
         stdout_text = captured_stdout.getvalue()
         stderr_text = captured_stderr.getvalue()

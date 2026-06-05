@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -34,6 +35,12 @@ _EXECUTION_TRACE_LOG = (
     Path(__file__).resolve().parent.parent / "logs" / "diagnostics" / "ups_execution_trace.jsonl"
 )
 
+# Tier-skip telemetry: one line per turn that suppressed >=1 injector by model tier.
+# Lets the rubric-theater cut be measured (adoption + which injectors), not asserted.
+_TIER_SKIP_LOG = (
+    Path(__file__).resolve().parent.parent / "logs" / "diagnostics" / "ups_tier_skip.jsonl"
+)
+
 # Add package directories to sys.path for importing hook modules from packages
 # This allows hooks to live in packages (e.g., P:/packages/prompt-enhancement/)
 # while being imported by the router
@@ -54,6 +61,107 @@ HOOK_PRIORITY: dict[str, float] = {}
 
 # Model name cache to avoid re-parsing transcript paths
 _MODEL_NAME_CACHE: dict[str, str | None] = {}
+
+# Two independent injector cuts, because the model label is only half-trustworthy:
+#
+# 1. CEREMONY skip (UNCONDITIONAL, _DEFAULT_CEREMONY_SKIP). The four ceremony emitters
+#    get reproduced as visible boilerplate ("This would be wrong if …", framework
+#    lists, THINK/REASONING-CONTRACT addenda) instead of driving action. That failure
+#    is model-independent, so the cut must NOT depend on knowing the model — and it
+#    can't: `message.model` reads `claude-*` even when Claude Code CLI aliases a cheaper
+#    backend, so "strong" is unknowable. We skip these for every turn (env override).
+#
+# 2. WEAK extras (_DEFAULT_WEAK_MODEL_SKIP), gated on is_weak_model(). The weak signal
+#    is reliable in the one direction that matters: Bifrost writes the LITERAL provider
+#    name (MiniMax-M3, glm-5.1), never aliased to "claude-". So a non-Claude label is
+#    trustworthy; these extra suppressions (behavior_contract, anti_sycophancy, …) apply
+#    only when we positively see a weak model. Fail-open: import error / gating off /
+#    unknown model → weak extras not applied (ceremony skip still applies).
+try:
+    from __lib.model_tier import (
+        is_weak_model as _is_weak_model,
+        _gating_enabled as _tier_gating_enabled,
+    )
+    _TIER_AVAILABLE = True
+except Exception:  # pragma: no cover - resolve __lib by path, else degrade to no-op
+    try:
+        _lib_dir = str(Path(__file__).resolve().parent.parent / "__lib")
+        if _lib_dir not in sys.path:
+            sys.path.insert(0, _lib_dir)
+        from model_tier import (  # type: ignore[no-redef]
+            is_weak_model as _is_weak_model,
+            _gating_enabled as _tier_gating_enabled,
+        )
+        _TIER_AVAILABLE = True
+    except Exception:
+        def _is_weak_model(data: dict) -> bool:  # type: ignore[misc]
+            return False
+
+        def _tier_gating_enabled() -> bool:  # type: ignore[misc]
+            return False
+
+        _TIER_AVAILABLE = False
+
+
+# Ceremony emitters skipped on EVERY turn (model-independent — see note above):
+# the THINK frame + "This would be wrong if …" (think_trigger), the Hypotheses→Testing
+# block (sequential_thinking), the framework list (cognitive_enhancers), and the
+# REASONING CONTRACT (reasoning_mode_selector). Deliberately EXCLUDES behavior_contract
+# (direct-answer/concision) and recommendation_rubric_injector (targeted closed-loop
+# correction), which carry value. Override via CEREMONY_SKIP_HOOKS (comma-separated;
+# explicit empty string "" disables the ceremony skip entirely — the rollback switch).
+_DEFAULT_CEREMONY_SKIP: frozenset[str] = frozenset({
+    "think_trigger",
+    "sequential_thinking",
+    "cognitive_enhancers",
+    "reasoning_mode_selector",
+})
+
+
+def _ceremony_skip_set() -> frozenset[str]:
+    raw = os.environ.get("CEREMONY_SKIP_HOOKS")
+    if raw is not None:
+        # Explicit override, including "" -> skip no ceremony injectors (feature off).
+        return frozenset(s.strip() for s in raw.split(",") if s.strip())
+    return _DEFAULT_CEREMONY_SKIP
+
+
+
+# Injectors suppressed for weak models. Override via WEAK_MODEL_SKIP_HOOKS
+# (comma-separated registered hook names). Names verified against registry.HOOKS.
+_DEFAULT_WEAK_MODEL_SKIP: frozenset[str] = frozenset({
+    "anti_sycophancy_injector",
+    "behavior_contract",
+    "recommendation_rubric_injector",
+    "reasoning_mode_selector",
+    "cognitive_guardrails",
+    "plan_mode_schema",
+    "sequential_thinking",
+    "think_trigger",
+})
+
+
+def _weak_model_skip_set() -> frozenset[str]:
+    raw = os.environ.get("WEAK_MODEL_SKIP_HOOKS")
+    if raw:
+        return frozenset(s.strip() for s in raw.split(",") if s.strip())
+    return _DEFAULT_WEAK_MODEL_SKIP
+
+
+def _tier_skip_set(data: dict) -> frozenset[str]:
+    """Resolve the per-turn injector skip set: ceremony (always) + weak extras (gated).
+
+    Ceremony skip is model-independent (the `message.model` label is unreliable under
+    CLI aliasing — "strong" is unknowable), so it applies every turn unless disabled via
+    CEREMONY_SKIP_HOOKS="". Weak extras are added ONLY when we positively detect a weak
+    (literal non-Claude) model AND tier gating is available + enabled — the one signal
+    that is trustworthy. Fail-open: import error / gating off / unknown model → ceremony
+    only (no weak extras).
+    """
+    skip = set(_ceremony_skip_set())
+    if _TIER_AVAILABLE and _tier_gating_enabled() and _is_weak_model(data):
+        skip |= _weak_model_skip_set()
+    return frozenset(skip)
 
 # Log rotation settings
 _MAX_ERROR_LOG_ENTRIES = 1000
@@ -334,6 +442,31 @@ def _log_final_results(
         pass  # Fail silently if logging fails
 
 
+def _log_tier_skip(context: HookContext, tier_skip: frozenset[str]) -> None:
+    """Record tier-based injector suppression so the cut is measured, not asserted.
+
+    Writes one JSONL line per turn that actually suppressed >=1 *registered* injector,
+    capturing the tier and which injectors were skipped. Fail-silent: telemetry must
+    never break injection.
+    """
+    try:
+        registered_skipped = sorted(tier_skip & set(HOOKS.keys()))
+        if not registered_skipped:
+            return
+        _TIER_SKIP_LOG.parent.mkdir(parents=True, exist_ok=True)
+        entry = {
+            "ts": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "session_id": context.session_id,
+            "terminal_id": context.terminal_id,
+            "tier": "weak" if _is_weak_model(context.data) else "strong",
+            "skipped": registered_skipped,
+        }
+        with open(_TIER_SKIP_LOG, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception:
+        pass  # Fail silently if logging fails
+
+
 def register_hook(name: str, priority: float = 10.0):
     """Decorator to register a UserPromptSubmit hook.
 
@@ -413,11 +546,20 @@ def run_hooks(
     # Extract transcript_path once for all hooks (from context.data)
     transcript_path = context.data.get("transcript_path")
 
+    # Resolve the per-turn injector skip set by model tier (weak and strong each skip
+    # a different rubric-theater subset; fail-open to none). Logged once so the cut is
+    # measured, not asserted.
+    tier_skip = _tier_skip_set(context.data)
+    if tier_skip:
+        _log_tier_skip(context, tier_skip)
+
     for name, _ in sorted_hooks:
         if name not in HOOKS:
             continue
         if name in suppressed_hooks:
             continue  # Skip suppressed hooks
+        if name in tier_skip:
+            continue  # Tier skip: model-tier-inappropriate rubric/ceremony injector
         hook_func = HOOKS[name]
 
         # Track execution time
@@ -637,6 +779,7 @@ def _load_hooks() -> None:
         "behavior_contract",  # NEW 2026-04-13: Keep responses grounded and concise before generation
         "reasoning_mode_selector",
         "recommendation_rubric_injector",  # NEW 2026-05-31: Inject rubric reminder on recommendation/optimal/best-ROI prompts
+        "lazy_closure_debt",  # NEW 2026-06-02: Surface deduped technical debt + workflow review
         # "skill_compliance_indicator",  # DEPRECATED 2026-03-11: Pre-run indicator redundant with step headers
         "sequential_thinking",
         "skill_context_writer",  # NEW 2026-04-25: Write expected skill dir to state file (Phase 2)
