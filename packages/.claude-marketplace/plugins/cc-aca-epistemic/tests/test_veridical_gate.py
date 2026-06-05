@@ -238,3 +238,110 @@ class TestMainEntryPoint:
             mistral_api_key="",
         )
         assert result is None
+
+
+class TestProductionWiring:
+    """Regression for the ~2-week silent death (May 23 -> 2026-06-05).
+
+    The gate was dead at two levels while the unit tests above passed:
+      1. Stop_semantic_critic.py imported a never-created `from _veridical_gate
+         import ...` shim -> ModuleNotFoundError -> fail-open at except.
+      2. The gate shelled out to a relocated `bf_agent.py` path -> EXIT=2 ->
+         fail-open.
+    The unit tests imported `vg` directly, so they never exercised the production
+    call site. These tests assert the production wiring AND the enabled block path
+    that the default-OFF short-circuit hides in TestMainEntryPoint.
+    """
+
+    _CRITIC = Path("P:/.claude/hooks/Stop_semantic_critic.py")
+
+    def setup_method(self):
+        vg._VERIDICAL_COUNTS.clear()
+        vg._CIRCUIT_FAILURES.clear()
+
+    def test_production_import_path_resolves(self):
+        """The exact symbol Stop_semantic_critic.py imports must resolve.
+
+        The dead `_veridical_gate` shim would raise ModuleNotFoundError here.
+        """
+        from anti_sycophancy.veridical_gate import check_veridical_integrity
+
+        assert callable(check_veridical_integrity)
+
+    def test_call_site_uses_live_module_not_dead_shim(self):
+        """Guard against regression to the dead shim or the dead subprocess path."""
+        critic = self._CRITIC.read_text(encoding="utf-8")
+        assert (
+            "from anti_sycophancy.veridical_gate import check_veridical_integrity"
+            in critic
+        )
+        assert "from _veridical_gate import" not in critic
+
+    def test_enabled_gate_blocks_on_sycophancy_verdict(self, monkeypatch):
+        """Enabled gate + mocked Mistral ok:false must return a block dict.
+
+        Exercises enable -> scope -> in-process SDK call -> parse -> block, the
+        path the default-OFF short-circuit hides in the other entry-point tests.
+        """
+        monkeypatch.setenv("VERIDICAL_GATE_ENABLED", "1")
+
+        class _Msg:
+            content = '{"ok": false, "reason": "unverified agreement"}'
+
+        class _Choice:
+            message = _Msg()
+
+        class _Resp:
+            choices = [_Choice()]
+
+        class _FakeMistral:
+            def __init__(self, *a, **k):
+                self.chat = self
+
+            def complete(self, *a, **k):
+                return _Resp()
+
+        import mistralai.client as _mc
+
+        monkeypatch.setattr(_mc, "Mistral", _FakeMistral)
+
+        result = vg.check_veridical_integrity(
+            "You're absolutely right, that must be the bug.",
+            "[user] it's definitely the bug\n[assistant] You're absolutely right, that must be the bug.",
+            "sess_wire",
+            mistral_api_key="fake-key",
+        )
+        assert result is not None
+        assert result.get("allow") is False
+
+    def test_enabled_gate_allows_on_clean_verdict(self, monkeypatch):
+        """Enabled gate + mocked Mistral ok:true must return None (no wrongful block)."""
+        monkeypatch.setenv("VERIDICAL_GATE_ENABLED", "1")
+
+        class _Msg:
+            content = '{"ok": true, "reason": null}'
+
+        class _Choice:
+            message = _Msg()
+
+        class _Resp:
+            choices = [_Choice()]
+
+        class _FakeMistral:
+            def __init__(self, *a, **k):
+                self.chat = self
+
+            def complete(self, *a, **k):
+                return _Resp()
+
+        import mistralai.client as _mc
+
+        monkeypatch.setattr(_mc, "Mistral", _FakeMistral)
+
+        result = vg.check_veridical_integrity(
+            "You're right -- I ran pytest and it fails on line 40, confirming it.",
+            "[tool:Bash] pytest -> fail line 40\n[assistant] You're right -- confirmed.",
+            "sess_wire_ok",
+            mistral_api_key="fake-key",
+        )
+        assert result is None
