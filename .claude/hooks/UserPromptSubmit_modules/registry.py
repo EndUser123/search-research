@@ -751,7 +751,6 @@ def _load_hooks() -> None:
         "handoff_context_injector",  # NEW 2026-03-21: Inject handoff V2 context (transcript_path, session_id)
         "analysis_protocol_gate",
         "anti_sycophancy_injector",
-        # "breadcrumb_init",  # DEPRECATED 2026-03-11: Superseded by workflow_tier_tagging
         "coach_note_reader",
         "cognitive_guardrails",  # NEW 2026-04-07: Inject discovery mandate and generalization check before design/implementation
         "cognitive_enhancers",
@@ -779,7 +778,6 @@ def _load_hooks() -> None:
         "reasoning_mode_selector",
         "recommendation_rubric_injector",  # NEW 2026-05-31: Inject rubric reminder on recommendation/optimal/best-ROI prompts
         "lazy_closure_debt",  # NEW 2026-06-02: Surface deduped technical debt + workflow review
-        # "skill_compliance_indicator",  # DEPRECATED 2026-03-11: Pre-run indicator redundant with step headers
         "sequential_thinking",
         "skill_context_writer",  # NEW 2026-04-25: Write expected skill dir to state file (Phase 2)
         # "skill_enforcer",  # REMOVED: enforcement runs via skill-guard plugin UPS subprocess hook
