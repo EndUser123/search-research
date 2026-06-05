@@ -4,6 +4,8 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 HOOKS_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(HOOKS_DIR))
 
@@ -79,6 +81,52 @@ def test_live_full_flow():
     print("\n✅ Full flow smoke test PASSED", file=sys.stderr)
 
 
+def test_second_backend_config_coherent():
+    """Invariant: the second OR-veto backend (GLM, formerly M3) is wired to the
+    Anthropic-protocol endpoint -- NOT z.ai's OpenAI coding endpoint -- with a key
+    env name set and a model set. Catches the silent fail-open class (wrong endpoint
+    / missing key) with no network call. Regression guard for the 2026-06-05 M3->GLM
+    swap; mirrors the veridical-gate TestProductionWiring lesson (a fail-open gate can
+    die silently when nothing asserts its wiring)."""
+    import Stop_semantic_critic as mod
+
+    assert "/anthropic" in mod.SEMANTIC_CRITIC_URL, mod.SEMANTIC_CRITIC_URL
+    assert "/coding/paas" not in mod.SEMANTIC_CRITIC_URL, (
+        "second backend must use z.ai Anthropic endpoint, not the OpenAI coding endpoint"
+    )
+    assert mod.SEMANTIC_CRITIC_MODEL.strip(), "second-backend model must be set"
+    assert mod.SEMANTIC_CRITIC_KEY_ENV.strip(), "second-backend key env name must be set"
+
+
+def test_second_backend_live_verdict():
+    """Real smoke: the SECOND backend ALONE must return a parseable verdict.
+
+    The combined live test (test_live_bifrost_call) stays green even if the second
+    backend silently fail-opens, as long as Mistral works -- so it cannot detect the
+    second backend dying. This isolates it. Skips when no key is configured (offline/CI).
+    """
+    import Stop_semantic_critic as mod
+
+    if not mod._load_second_critic_key():
+        pytest.skip("no second-backend key configured (Z_AI_API_KEY)")
+
+    up = "Why does the API return 502 intermittently under load?"
+    ar = "It is probably a temporary network blip, it should resolve itself."
+    profile = mod._detect_critic_profile(up, ar)
+    result = mod._call_minimax_critic(
+        mod.CRITIC_PROMPTS[profile],
+        mod._build_critic_user_message(up, ar),
+        "live-second-backend-test",
+        profile,
+    )
+    assert result is not None, (
+        "second backend returned None -- wiring dead / fail-open (endpoint, key, or model)"
+    )
+    assert isinstance(result.ok, bool)
+
+
 if __name__ == "__main__":
     test_live_bifrost_call()
     test_live_full_flow()
+    test_second_backend_config_coherent()
+    test_second_backend_live_verdict()
