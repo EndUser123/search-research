@@ -42,8 +42,10 @@ if str(_LIB) not in sys.path:
 from anti_dodge_judge import JUDGE_SYSTEM  # noqa: E402
 
 
+# NOTE: the "second backend" caller (ssc._call_minimax_critic) now targets z.ai
+# GLM-5.1, not MiniMax-M3 (M3 quota exhausted 2026-06-05). Label updated to GLM.
 _CALLERS = {
-    "M3": ssc._call_minimax_critic,
+    "GLM": ssc._call_minimax_critic,
     "mistral": ssc._call_mistral_critic,
 }
 
@@ -133,12 +135,12 @@ def run_one(name: str, caller) -> None:
 
 
 def main() -> None:
-    have_mm = bool(ssc._load_minimax_key())
+    have_mm = bool(ssc._load_second_critic_key())
     have_mistral = bool(ssc._load_mistral_key())
     if have_mm:
-        run_one("M3", ssc._call_minimax_critic)
+        run_one("GLM", ssc._call_minimax_critic)
     else:
-        print("NO MINIMAX KEY — skipping M3")
+        print("NO SECOND-BACKEND KEY — skipping GLM")
     if have_mistral:
         run_one("mistral", ssc._call_mistral_critic)
     else:

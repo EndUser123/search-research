@@ -42,6 +42,17 @@ from typing import Optional
 HOOKS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(HOOKS_DIR))
 
+# cc-aca-epistemic __lib — for shared anti_sycophancy modules (veridical_gate).
+# Mirrors Stop.py's _EPISTEMIC_LIB setup so the veridical import resolves whether
+# this hook runs standalone or imported by Stop.py.
+_EPISTEMIC_LIB = Path("P:/packages/cc-aca-epistemic/__lib")
+if not _EPISTEMIC_LIB.exists():
+    _EPISTEMIC_LIB = Path(
+        "P:/packages/.claude-marketplace/plugins/cc-aca-epistemic/__lib"
+    )
+if _EPISTEMIC_LIB.exists():
+    sys.path.insert(0, str(_EPISTEMIC_LIB))
+
 import requests
 
 # Track which sessions have opted out or hit the cap
@@ -52,8 +63,17 @@ _logger = logging.getLogger(__name__)
 # Per-session cap for critic invocations
 SEMANTIC_CRITIC_CAP: int = int(os.environ.get("SEMANTIC_CRITIC_CAP", "5"))
 
-# MiniMax direct call config
-SEMANTIC_CRITIC_MODEL: str = os.environ.get("SEMANTIC_CRITIC_MODEL", "MiniMax-M2.7")
+# Second critic backend (Anthropic-protocol direct call). Was MiniMax-M3; M3 quota
+# exhausted 2026-06-05, swapped to z.ai GLM-5.1. Configurable so the fallover backend
+# can change without code edits (e.g., point at another Anthropic-protocol provider).
+# NOTE: SEMANTIC_CRITIC_URL must be the Anthropic endpoint (/api/anthropic), NOT z.ai's
+# OpenAI coding endpoint that Z_AI_URL points at (/api/coding/paas/v4).
+SEMANTIC_CRITIC_MODEL: str = os.environ.get("SEMANTIC_CRITIC_MODEL", "glm-5.1")
+SEMANTIC_CRITIC_URL: str = os.environ.get(
+    "SEMANTIC_CRITIC_URL", "https://api.z.ai/api/anthropic/v1/messages"
+)
+SEMANTIC_CRITIC_KEY_ENV: str = os.environ.get("SEMANTIC_CRITIC_KEY_ENV", "Z_AI_API_KEY")
+SEMANTIC_CRITIC_MAX_TOKENS: int = int(os.environ.get("SEMANTIC_CRITIC_MAX_TOKENS", "8192"))
 SEMANTIC_CRITIC_TIMEOUT_SEC: int = int(os.environ.get("SEMANTIC_CRITIC_TIMEOUT_SEC", "10"))
 
 # Mistral direct call config
@@ -71,20 +91,23 @@ class SemanticCriticResult:
     reason: str
 
 
-def _load_minimax_key() -> str | None:
-    """Load MiniMax API key from env or P:/.env."""
+def _load_second_critic_key() -> str | None:
+    """Load the second-backend API key (env name from SEMANTIC_CRITIC_KEY_ENV) from
+    process env or P:/.env. Default key env is Z_AI_API_KEY (z.ai GLM)."""
     global _MINIMAX_API_KEY
     if _MINIMAX_API_KEY is not None:
         return _MINIMAX_API_KEY or None
 
-    key = os.environ.get("MINIMAX_API_KEY", "").strip().strip('"')
+    key_env = SEMANTIC_CRITIC_KEY_ENV
+    key = os.environ.get(key_env, "").strip().strip('"')
     if key:
         _MINIMAX_API_KEY = key
         return key
     env_path = Path("P:/.env")
     if env_path.exists():
+        prefix = f"{key_env}="
         for line in env_path.read_text(encoding="utf-8").splitlines():
-            if line.startswith("MINIMAX_API_KEY="):
+            if line.startswith(prefix):
                 key = line.split("=", 1)[1].strip().strip('"')
                 _MINIMAX_API_KEY = key
                 return key
@@ -632,12 +655,13 @@ def _call_minimax_critic(
     session_key: str,
     critic_profile: str,
 ) -> Optional[SemanticCriticResult]:
-    """Call MiniMax API directly with the semantic critic prompt.
+    """Call the second critic backend directly with the semantic critic prompt.
 
-    Uses requests.post to the Anthropic-compatible endpoint.
+    Backend is configurable (SEMANTIC_CRITIC_URL / _MODEL / _KEY_ENV); default is
+    z.ai GLM-5.1 via the Anthropic-protocol endpoint. Uses requests.post.
     Returns None on any failure (timeout, transport, parse, schema).
     """
-    api_key = _load_minimax_key()
+    api_key = _load_second_critic_key()
     if not api_key:
         _logger.info("semantic_critic minimax_skip: no API key session=%s", session_key)
         return None
@@ -650,7 +674,7 @@ def _call_minimax_critic(
 
     try:
         resp = requests.post(
-            "https://api.minimax.io/anthropic/v1/messages",
+            SEMANTIC_CRITIC_URL,
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
@@ -658,7 +682,7 @@ def _call_minimax_critic(
             },
             json={
                 "model": SEMANTIC_CRITIC_MODEL,
-                "max_tokens": 196608,
+                "max_tokens": SEMANTIC_CRITIC_MAX_TOKENS,
                 "system": system_prompt,
                 "messages": [{"role": "user", "content": user_message}],
             },
@@ -711,6 +735,28 @@ def _call_minimax_critic(
         return None
 
 
+def _normalize_mistral_content(content: object) -> str:
+    """Normalize a Mistral ``message.content`` to plain text.
+
+    Mistral returns ``content`` as a plain ``str`` for normal completions, but as a
+    LIST of content chunks when reasoning is enabled (``reasoning_effort="high"``).
+    Chunks may be objects with a ``.text`` attribute or dicts with a ``"text"`` key.
+    Returns the concatenated, stripped text (empty string if none).
+    """
+    if isinstance(content, list):
+        parts = []
+        for chunk in content:
+            t = getattr(chunk, "text", None)
+            if t is None and isinstance(chunk, dict):
+                t = chunk.get("text")
+            if t:
+                parts.append(str(t))
+        text = "".join(parts)
+    else:
+        text = content if isinstance(content, str) else ""
+    return text.strip() if text else ""
+
+
 def _call_mistral_critic(
     system_prompt: str,
     user_message: str,
@@ -754,9 +800,21 @@ def _call_mistral_critic(
             )
             return None
 
-        raw_text = response.choices[0].message.content
-        if raw_text:
-            raw_text = raw_text.strip()
+        # Mistral content may be a plain str OR a list of content chunks (reasoning
+        # models / reasoning_effort="high" return chunked content). Normalize both.
+        _content = response.choices[0].message.content
+        if isinstance(_content, list):
+            _parts = []
+            for _chunk in _content:
+                _t = getattr(_chunk, "text", None)
+                if _t is None and isinstance(_chunk, dict):
+                    _t = _chunk.get("text")
+                if _t:
+                    _parts.append(str(_t))
+            raw_text = "".join(_parts)
+        else:
+            raw_text = _content or ""
+        raw_text = raw_text.strip() if raw_text else ""
 
         if not raw_text:
             _logger.warning(
@@ -1043,7 +1101,7 @@ def run(data: dict) -> dict | None:
 
     # Veridical integrity gate (epistemic sycophancy detection)
     try:
-        from _veridical_gate import check_veridical_integrity
+        from anti_sycophancy.veridical_gate import check_veridical_integrity
         transcript_str = data.get('transcript', '')
         if isinstance(transcript_str, list):
             parts = []

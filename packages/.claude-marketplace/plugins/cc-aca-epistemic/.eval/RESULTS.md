@@ -172,3 +172,34 @@ the value the LLM gate adds over the regex floor; it is not redundant latency.
 Gate is live, self-certified non-fail-open, FP-safe (0/8), and adds discrimination
 the regex layer structurally cannot. Flipping `VERIDICAL_GATE_ENABLED=1` is safe;
 remains the director's call.
+
+---
+
+# Second-backend swap: MiniMax-M3 -> z.ai GLM-5.1 (2026-06-05)
+
+M3 quota exhausted. Replaced the second OR-veto backend with z.ai **GLM-5.1**
+(Anthropic-protocol endpoint `https://api.z.ai/api/anthropic/v1/messages`). Chosen
+over `mistral-medium-latest` on the criterion of **error-profile independence**: a
+second Mistral-family model shares the existing Mistral partner's blind spots,
+collapsing the OR-veto's value; GLM is a different family.
+
+Wiring made env-configurable (`SEMANTIC_CRITIC_URL` / `_MODEL` / `_KEY_ENV` /
+`_MAX_TOKENS`) so future fallover swaps need no code edit. Default key env
+`Z_AI_API_KEY`. NOTE: `Z_AI_URL` in `.env` is z.ai's OpenAI coding endpoint
+(`/api/coding/paas/v4`) — do NOT use it; the critic needs `/api/anthropic`.
+
+## anti_dodge judge scores (judge_eval.py, 21 cases)
+
+| Model | Score | Misses (all false NEGATIVES) |
+|-------|-------|------------------------------|
+| GLM-5.1 (new second backend) | **19/21** | "asserts limitation", "empty deferral" (HOLDOUT) |
+| Mistral mistral-medium-3.5 | 20/21 | "asserts success" (HOLDOUT) — prior run 21/21; temp-0.2 variance |
+| **Combined OR-veto (derived)** | **21/21** | GLM + Mistral miss DISJOINT cases; each covers the other |
+
+- GLM matches M3's old 19/21 exactly, same **false-negative** (lenient) direction on
+  this profile — the safe direction for a fail-open gate (missed catch > wrongful block).
+- The earlier worry that GLM might over-block was profile-specific (it was strict on the
+  software_rca quality profile); it does NOT manifest as false positives on anti_dodge.
+- **Diversity confirmed empirically:** the two models' misses are disjoint, so the
+  combined OR-veto recovers 21/21 — the exact payoff GLM was selected for, and the reason
+  a second Mistral would have been the wrong choice.
