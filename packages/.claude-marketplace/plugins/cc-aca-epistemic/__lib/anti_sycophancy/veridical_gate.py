@@ -19,7 +19,6 @@ import json
 import logging
 import os
 import re
-import sys
 import time
 from pathlib import Path
 from typing import Optional
@@ -181,7 +180,18 @@ def _increment_cap(session_id: str) -> None:
 # Main entry point
 # ---------------------------------------------------------------------------
 
-_BF_AGENT_PATH = Path(r"P:\packages\cc-skills-architect\skills\bf\bf_agent.py")
+VERIDICAL_MODEL: str = os.environ.get("VERIDICAL_MODEL", "mistral-medium-3.5")
+
+
+def _gate_enabled() -> bool:
+    """Resurrected behind a flag (default OFF). Flip VERIDICAL_GATE_ENABLED=1 to
+    enforce in production. Benchmark the false-positive rate first
+    (.eval/RESULTS.md). Read at call time so tests/benchmarks can toggle it."""
+    return os.environ.get("VERIDICAL_GATE_ENABLED", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
 
 
 def check_veridical_integrity(
@@ -195,6 +205,10 @@ def check_veridical_integrity(
     Returns None to allow (no opinion), or a dict with allow/reason.
     Called by Stop_semantic_critic.py before the diagnostic scope gate.
     """
+    # Disabled by default -- inert until benchmarked and explicitly enabled.
+    if not _gate_enabled():
+        return None
+
     # Missing input -- nothing to check
     if not response_text or not response_text.strip():
         return None
@@ -228,48 +242,52 @@ def check_veridical_integrity(
         default=str,
     )
 
-    # Call Mistral via bf_agent.py subprocess with --stdin
+    # Call Mistral in-process via the mistralai SDK. (The previous bf_agent
+    # subprocess path was relocated and lost its --stdin contract, leaving this
+    # gate silently fail-open; see .eval/RESULTS.md.) The API key is supplied by
+    # the caller (Stop_semantic_critic.py), so no reverse dependency is created.
+    if not mistral_api_key:
+        _logger.debug("veridical gate: no mistral key, failing open")
+        return None
     try:
-        import subprocess
+        from mistralai.client import Mistral
 
-        cmd = [
-            sys.executable,
-            str(_BF_AGENT_PATH),
-            "--stdin",
-            "--model",
-            "mistral-large-latest",
-            "--timeout",
-            str(VERIDICAL_TIMEOUT_SEC),
-        ]
-        stdin_payload = json.dumps(
-            {
-                "system": system_prompt,
-                "user": user_payload,
-                "api_key": mistral_api_key,
-            }
+        client = Mistral(api_key=mistral_api_key)
+        response = client.chat.complete(
+            model=VERIDICAL_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_payload},
+            ],
+            temperature=0.2,
+            reasoning_effort="high",
+            timeout_ms=VERIDICAL_TIMEOUT_SEC * 1000,
         )
 
-        _logger.debug(
-            "veridical gate: calling bf_agent for session %s", session_key
-        )
-        result = subprocess.run(
-            cmd,
-            input=stdin_payload,
-            capture_output=True,
-            text=True,
-            timeout=VERIDICAL_TIMEOUT_SEC + 5,
-        )
-
-        if result.returncode != 0:
-            _logger.warning(
-                "veridical gate: bf_agent exited %d: %s",
-                result.returncode,
-                result.stderr[:200],
-            )
+        if not response or not response.choices:
             _record_failure(session_key)
             return None
 
-        parsed = _parse_llm_response(result.stdout)
+        # Content may be a plain str or a list of chunks (reasoning models).
+        _content = response.choices[0].message.content
+        if isinstance(_content, list):
+            _parts = []
+            for _chunk in _content:
+                _t = getattr(_chunk, "text", None)
+                if _t is None and isinstance(_chunk, dict):
+                    _t = _chunk.get("text")
+                if _t:
+                    _parts.append(str(_t))
+            raw_text = "".join(_parts)
+        else:
+            raw_text = _content or ""
+        raw_text = raw_text.strip() if raw_text else ""
+
+        if not raw_text:
+            _record_failure(session_key)
+            return None
+
+        parsed = _parse_llm_response(raw_text)
         if parsed is None:
             _logger.debug("veridical gate: could not parse LLM response")
             _record_failure(session_key)
@@ -284,14 +302,11 @@ def check_veridical_integrity(
         # LLM said ok or unsure -- allow
         return None
 
-    except subprocess.TimeoutExpired:
-        _logger.warning("veridical gate: bf_agent timed out for session %s", session_key)
-        _record_failure(session_key)
-        return None
     except Exception as exc:
         _logger.warning(
             "veridical gate: fail-open on exception for session %s: %s",
             session_key,
             exc,
         )
+        _record_failure(session_key)
         return None
