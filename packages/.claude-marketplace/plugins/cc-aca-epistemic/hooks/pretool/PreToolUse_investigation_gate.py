@@ -745,6 +745,34 @@ _candidate_module_paths = candidate_module_paths
 _resolve_local_imports = resolve_local_imports
 
 
+def _compute_post_edit_text(tool_name: str, tool_input: ToolDict, source_text: str) -> str:
+    """Best-effort reconstruction of file content AFTER the pending edit applies.
+
+    Used to scope import-resolution to what the edit actually changes. Returns the
+    new full content for Write, the substituted text for Edit/MultiEdit, or the
+    unchanged source when the edit can't be applied cleanly (so net-new == none).
+    """
+    if tool_name in ("Write",):
+        return str(tool_input.get("content") or tool_input.get("code") or source_text)
+    if tool_name in ("Edit", "str_replace_editor", "edit_file", "patch"):
+        old = str(tool_input.get("old_string") or "")
+        new = str(tool_input.get("new_string") or "")
+        if old and old in source_text:
+            return source_text.replace(old, new)
+        return source_text  # can't locate anchor -> treat as no net-new imports
+    if tool_name == "MultiEdit":
+        text = source_text
+        for edit in tool_input.get("edits", []) or []:
+            if not isinstance(edit, dict):
+                continue
+            o = str(edit.get("old_string") or "")
+            n = str(edit.get("new_string") or "")
+            if o and o in text:
+                text = text.replace(o, n)
+        return text
+    return source_text
+
+
 def _paths_match(a: str | Path, b: str | Path) -> bool:
     try:
         return Path(a).resolve(strict=False) == Path(b).resolve(strict=False)
@@ -816,6 +844,24 @@ def _build_risk_context(
     source_text = _read_text_file(target_path) if target_path.exists() else ""
     git_snapshot = _parse_git_status(repo_root, target_path)
     dependency_context = _resolve_local_imports(target_path, repo_root, git_snapshot["status_map"], source_text)
+    # Scope unresolved/deleted import detection to imports THIS edit introduces.
+    # The pre-edit file may contain imports that resolve at runtime (bootstrap sys.path)
+    # but not under static resolution; flagging those on an unrelated edit is a
+    # deterministic false positive. Compare against post-edit content; keep net-new only.
+    _post_text = _compute_post_edit_text(tool_name, tool_input, source_text)
+    _post_ctx = (
+        _resolve_local_imports(target_path, repo_root, git_snapshot["status_map"], _post_text)
+        if _post_text and _post_text != source_text
+        else dependency_context
+    )
+    _pre_unresolved = set(dependency_context.get("unresolved_local_imports", []))
+    _pre_deleted = set(dependency_context.get("deleted_or_staged_import_targets", []))
+    dependency_context["unresolved_local_imports"] = [
+        s for s in _post_ctx.get("unresolved_local_imports", []) if s not in _pre_unresolved
+    ]
+    dependency_context["deleted_or_staged_import_targets"] = [
+        s for s in _post_ctx.get("deleted_or_staged_import_targets", []) if s not in _pre_deleted
+    ]
     workspace_state = {
         "available": git_snapshot["available"],
         "has_deleted_files": git_snapshot["has_deleted_files"],
@@ -1114,6 +1160,28 @@ def check_problem_statement_verification(user_message: str, files_read: list[str
 LIBRARY_AWARE_ENABLED = os.environ.get("CSF_LIBRARY_AWARE_GATE", "true").lower() in ("1", "true")
 
 
+def _is_test_file(filepath: str) -> bool:
+    """Return True if filepath is a test or fixture file.
+
+    The library-aware gate (check_library_awareness) is irrelevant for test
+    files: test methods are inherently new, non-shared code; searching for
+    prior implementations of 'def test_foo' would always be a no-op.
+    Also suppresses false positives on test-method renames via Edit/MultiEdit.
+    """
+    if not filepath:
+        return False
+    path = Path(filepath)
+    name = path.name.lower()
+    parts = [p.lower() for p in path.parts]
+    return (
+        name.startswith("test_")
+        or name.endswith("_test.py")
+        or name == "conftest.py"
+        or "tests" in parts
+        or "test" in parts
+    )
+
+
 def check_library_awareness(
     code_content: str, target_path: str, searches_performed: list[str]
 ) -> CheckResult:
@@ -1366,6 +1434,9 @@ def check_write_permission(
 
     # NEW FILE exemption - if creating a file that doesn't exist yet
     if not Path(filepath).exists():
+        # Test files: always exempt — you can't "read first" a file you're creating.
+        if _is_test_file(filepath):
+            return True, "New test file creation"
         parent = Path(filepath).parent
         if not parent.exists() or not any(parent.iterdir()):
             return True, "New file in empty/new directory"
@@ -1378,11 +1449,11 @@ def check_write_permission(
         if sibling_reads >= 1:
             return True, f"New file in known directory ({sibling_reads} sibling(s) read)"
 
-    # Library-aware check for utility code
+    # Library-aware check for utility code (skip for test files)
     code_content = (
         tool_input.get("content") or tool_input.get("code") or tool_input.get("new_string") or ""
     )
-    if code_content and filepath.endswith(".py"):
+    if code_content and filepath.endswith(".py") and not _is_test_file(filepath):
         searches = state.get("searches_performed", [])
         lib_allowed, lib_msg = check_library_awareness(code_content, filepath, searches)
         if not lib_allowed:
