@@ -748,7 +748,6 @@ def _load_hooks() -> None:
     core_hook_modules = [
         "unified_detection",  # Runs FIRST to populate context data
         "abstraction_clarity_gate",
-        "handoff_context_injector",  # NEW 2026-03-21: Inject handoff V2 context (transcript_path, session_id)
         "analysis_protocol_gate",
         "anti_sycophancy_injector",
         "coach_note_reader",

@@ -16,8 +16,8 @@ HOOKS_DIR = Path(__file__).resolve().parent
 
 # Symlinks that should exist and point to valid targets
 EXPECTED_SYMLINKS = {
-    "PreCompact_handoff_capture.py": "/p/packages/handoff/scripts/hooks/",
-    "SessionStart_handoff_restore.py": "/p/packages/handoff/scripts/hooks/",
+    # handoff hooks were consolidated into the snapshot plugin (no longer local
+    # symlinks); the former packages/handoff/ source dir no longer exists.
     "StopHook_rca_contract.py": "/p/packages/cc-skills-sdlc/skills/rca/hooks/",
     "StopHook_rca_reflector.py": "/p/packages/cc-skills-sdlc/skills/rca/hooks/",
     "StopHook_skill_execution_gate.py": "/p/packages/skill-guard/src/skill_guard/",
