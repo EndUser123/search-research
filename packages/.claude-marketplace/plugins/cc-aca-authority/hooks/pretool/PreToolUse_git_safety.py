@@ -323,6 +323,19 @@ def check_worktree_cross_contamination(
         if '/.claude/projects/' in normalized and '/memory/' in normalized:
             return {"continue": True, "decision": "allow"}
 
+        # GLOBAL CONFIG EXEMPTION: files under the user's home ~/.claude/ tree
+        # (CLAUDE.md, settings.json, hooks, plugins, cache) are permanent global
+        # config, NOT worktree-scoped. Editing them from any worktree is legitimate;
+        # home is on a different drive than the project worktree, so the cross-worktree
+        # check would otherwise always flag them as a false positive.
+        try:
+            home_claude = (Path.home() / '.claude').resolve()
+            target_resolved = Path(file_path).resolve()
+            if home_claude == target_resolved or home_claude in target_resolved.parents:
+                return {"continue": True, "decision": "allow", "reason": "Global ~/.claude config (not worktree-scoped)"}
+        except (OSError, ValueError, RuntimeError):
+            pass
+
         try:
             cwd = Path.cwd().resolve()
             worktree = get_current_worktree(cwd)
@@ -493,6 +506,10 @@ def main():
 
     command = tool_input.get("command", "")
 
+    # Clean up stale index.lock before ANY git command (not just commits/merges)
+    if command.lstrip().startswith("git "):
+        ensure_fresh_index()
+
     # Check if this is a git commit
     is_git_commit = (
         "git commit" in command or
@@ -512,9 +529,6 @@ def main():
         else:
             print(json.dumps({"decision": "approve"}))
             return 0
-
-    # Clean up stale index.lock before running any git commands
-    ensure_fresh_index()
 
     # Get git status
     status = get_git_status()
