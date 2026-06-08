@@ -135,7 +135,7 @@ def main():
 
     if recommendation == 'haiku' and current_tier in ('sonnet', 'opus'):
         new_model = TIER_TO_MODEL['haiku']
-    elif recommendation == 'sonnet' and current_tier == 'opus':
+    elif recommendation == 'sonnet' and current_tier in ('haiku', 'opus'):
         suffix = re.search(r'(\[.+?\])$', current_model)
         new_model = TIER_TO_MODEL['sonnet'] + (suffix.group(1) if suffix else '')
     elif recommendation == 'opus' and current_tier in ('sonnet', 'haiku'):
