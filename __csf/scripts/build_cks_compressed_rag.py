@@ -9,7 +9,7 @@ Usage:
     python -m scripts.build_cks_compressed_rag
     python -m scripts.build_cks_compressed_rag --entry-type pattern
 
-The index is saved to P:/__csf/data/cks_compressed_rag.{index,json}
+The index is saved under P:/.data/cks/
 """
 
 import argparse
@@ -31,7 +31,7 @@ from cks.memory_efficient_rag import CKSMemoryEfficientRAG
 
 def get_database_path() -> Path:
     """Get path to CKS SQLite database."""
-    return Path(__file__).parent.parent / "data" / "cks.db"
+    return Path(__file__).resolve().parents[2] / ".data" / "cks.db"
 
 
 def get_index_path() -> Path:
@@ -39,8 +39,8 @@ def get_index_path() -> Path:
 
     Note: CKS unified.py expects the index at .data/cks/memory_efficient_rag
     """
-    # Create .data/cks directory (where CKS unified.py looks for the index)
-    index_dir = Path(__file__).parent.parent / ".data" / "cks"
+    # Create the canonical shared .data/cks directory.
+    index_dir = Path(__file__).resolve().parents[2] / ".data" / "cks"
     return index_dir / "memory_efficient_rag"
 
 
