@@ -20,8 +20,8 @@ EXPECTED_SYMLINKS = {
     # symlinks); the former packages/handoff/ source dir no longer exists.
     "StopHook_rca_contract.py": "/p/packages/cc-skills-sdlc/skills/rca/hooks/",
     "StopHook_rca_reflector.py": "/p/packages/cc-skills-sdlc/skills/rca/hooks/",
-    "StopHook_skill_execution_gate.py": "/p/packages/skill-guard/src/skill_guard/",
-    "skill_execution_state.py": "/p/packages/skill-guard/src/skill_guard/",
+    "StopHook_skill_execution_gate.py": "/p/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/",
+    "skill_execution_state.py": "/p/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/",
 }
 
 def main():
