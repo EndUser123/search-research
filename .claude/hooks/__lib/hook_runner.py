@@ -280,13 +280,15 @@ def _normalize_stop_protocol(
         ).strip()
         return 2, stdout_text, stderr_text
 
-    # Non-compliant legacy payload should never silently pass as allow.
+    # hookSpecificOutput.additionalContext is the modern channel for delivering
+    # Stop feedback to the MODEL ONLY (not surfaced to the user). The current
+    # Claude Code CLI honors it; an earlier build of this runner wrongly rejected
+    # it as "legacy" and forced the user-visible decision/reason path. Pass it
+    # through. Block-decision exit semantics are already enforced above
+    # (exit 1 + decision==block -> exit 2), so a block here is never silently
+    # downgraded to allow.
     if parsed and "hookSpecificOutput" in parsed:
-        error_msg = (
-            f"HOOK_PROTOCOL_ERROR: {hook_name} returned legacy hookSpecificOutput payload "
-            f"on Stop hook. Use decision/systemMessage payload."
-        )
-        return 1, json.dumps({"ok": False, "error": error_msg}), stderr_text
+        return exit_code, stdout_text, stderr_text
 
     # Non-compliant: "decision": "allow" not in schema -- normalize to "approve".
     if parsed and parsed.get("decision") == "allow":

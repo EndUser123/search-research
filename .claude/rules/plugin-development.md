@@ -42,13 +42,23 @@ if str(_l) not in _s.path: _s.path.insert(0, str(_l))
 from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
 ```
 
-## hooks.json Format
+## Hook Registration (CRITICAL)
 
-Must use nested `{matcher, hooks: [{type, command, timeout}]}` format.
-See `packages/CLAUDE.md` for full specification.
+Plugin `hooks/hooks.json` has a known bug ([anthropics/claude-code#16288](https://github.com/anthropics/claude-code/issues/16288)):
+it does NOT fire for non-SessionStart events because `loadPluginHooks()` is not awaited before dispatch.
+
+**Plugin hooks MUST be registered in `settings.json`** via a router.py dispatch pattern:
+`settings.json` → `router.py` → sub-hooks. The plugin `hooks.json` file should contain only `{"hooks": {}}` as a placeholder.
 
 ## Marketplace
 
-Plugins are junctioned: source at `P:/packages/<name>/`,
-junction at `P:/packages/.claude-marketplace/plugins/<name>`.
-Changes auto-pick up via junctions after cache refresh.
+Plugins live directly at `P:/packages/.claude-marketplace/plugins/<name>/`.
+No junctions, no separate source directory. Changes to source take effect after cache refresh (version bump + `/reload-plugins`).
+
+## hooks.json Format
+
+If you must write to `hooks.json` (e.g., for a plugin that legitimately only uses SessionStart hooks),
+use the nested `{matcher, hooks: [{type, command, timeout}]}` format.
+See `packages/CLAUDE.md` for the full specification.
+
+For all other events: use `settings.json` registration only.

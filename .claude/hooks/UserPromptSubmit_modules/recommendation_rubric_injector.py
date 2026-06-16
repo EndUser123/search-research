@@ -1,14 +1,15 @@
-"""UserPromptSubmit hook: injects recommendation rubric reminder when recommendation prompt detected.
+"""UserPromptSubmit hook: inject the pending recommendation-rubric correction (closed loop).
 
-This hook is the UPS-side injector for the recommendation-rubric enforcement system.
+This is the injection side of the recommendation closed-loop system. The Stop side
+(recommendation_loop.record_at_stop, dispatched from Stop.py) judges the previous turn with
+an LLM and, if a genuine recommendation missed the rubric, persists a one-line correction to
+a terminal-scoped state file. This hook reads + clears that correction next turn and injects
+it as a specific, escalated reminder.
 
-Pattern:
-  - is_recommendation_request(prompt)  <- from recommendation_intent
-  - If True: inject reminder text via HookResult
-  - If False: return HookResult.empty()
-
-The companion Stop-side shadow (recommendation_compliance_recorder.py) observes
-whether the response actually follows the rubric, but NEVER blocks.
+Design history: replaced the prior static regex-triggered reminder. A MiniMax-judged base
+rate of 48% non-compliance (2026-06-01) showed the static reminder was not producing
+compliant comparative recommendations; a specific post-hoc correction is the actual lift.
+The baseline rubric remains always-on in CLAUDE.md ("Recommendation Rule").
 """
 
 from __future__ import annotations
@@ -16,25 +17,21 @@ from __future__ import annotations
 from UserPromptSubmit_modules.base import HookContext, HookResult
 from UserPromptSubmit_modules.registry import register_hook
 
-# Single source of truth for the injected reminder text.
-# Kept here (not in recommendation_intent.py) so the injector stays self-contained.
-_RECOMMENDATION_RUBRIC = (
-    "Reminder: when recommending, name at least 2 viable options, the selection "
-    "criterion, and why the chosen option wins on that axis. 'Optimal' is a claim "
-    "about a comparison — show the comparison."
-)
-
 
 @register_hook("recommendation_rubric_injector", priority=5.0)
 def recommendation_rubric_injector(context: HookContext) -> HookResult:
-    """Inject recommendation rubric reminder when prompt asks for a recommendation."""
-    # Local import to avoid circular dependency at module load time.
-    from recommendation_intent import is_recommendation_request
+    """Inject a pending rubric correction from the prior recommendation turn, if any."""
+    # Local import keeps module load cheap and avoids import-time coupling.
+    from UserPromptSubmit_modules.recommendation_loop import consume_pending_correction, scope_key
 
-    if is_recommendation_request(context.prompt):
+    # Scope the lookup to THIS conversation/terminal (payload session_id), so a correction
+    # produced by one terminal can never be injected into another, and a prior session's
+    # correction is never read by a new one (different key -> different file).
+    correction = consume_pending_correction(scope_key(context.data))
+    if correction:
         return HookResult(
-            context=_RECOMMENDATION_RUBRIC,
-            tokens=len(_RECOMMENDATION_RUBRIC.split()),
+            context=correction,
+            tokens=len(correction.split()),
             priority=5.0,
         )
     return HookResult.empty()

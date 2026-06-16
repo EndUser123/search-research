@@ -31,14 +31,27 @@ from __lib.hook_base import hook_main
 HOOKS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(HOOKS_DIR))
 
-# Import TaskIdentityManager from CKS location
-CKS_MODULE_PATH = HOOKS_DIR.parent.parent / "__csf" / "src"
-sys.path.insert(0, str(CKS_MODULE_PATH))
+# Import TaskIdentityManager from CKS location or local fallback
+_resolved = False
+for _path in [
+    HOOKS_DIR.parent.parent / "packages/.claude-marketplace/plugins/quickstop/skills",
+    HOOKS_DIR.parent.parent / "__csf" / "src",
+]:
+    if _path.exists():
+        if str(_path) not in sys.path:
+            sys.path.insert(0, str(_path))
+        try:
+            from knowledge.systems.cks.integration.adapters.project_context.task_identity_manager import (
+                TaskIdentityManager,
+            )
+            _resolved = True
+            break
+        except ImportError:
+            if str(_path) in sys.path:
+                sys.path.remove(str(_path))
 
-# Use new import path to avoid DeprecationWarning
-from knowledge.systems.cks.integration.adapters.project_context.task_identity_manager import (
-    TaskIdentityManager,
-)
+if not _resolved:
+    from __lib.task_identity_manager import TaskIdentityManager
 from __lib.terminal_detection import detect_terminal_id
 
 
@@ -79,9 +92,9 @@ def _get_git_executable() -> str:
 
     # Fallback to common Git for Windows installation paths
     common_paths = [
-        r"C:\Program Files\Git\mingw64\bin\git.exe",
-        r"C:\Program Files\Git\cmd\git.exe",
-        r"C:\Program Files\Git\bin\git.exe",
+        "C:/Program Files/Git/mingw64/bin/git.exe",
+        "C:/Program Files/Git/cmd/git.exe",
+        "C:/Program Files/Git/bin/git.exe",
     ]
     for path in common_paths:
         if Path(path).exists():

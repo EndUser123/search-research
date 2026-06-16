@@ -395,6 +395,10 @@
       {
         "path": "config",
         "purpose": "Configuration files and settings"
+      },
+      {
+        "path": "scripts",
+        "purpose": "Claude-authored audit and utility scripts"
       }
     ],
     "allowed_root_files": [
@@ -1340,6 +1344,7 @@
     ],
     "exact_paths": [
       "C:/Users/brsth/.claude/projects/",
+      "C:/Users/brsth/.claude/.mcp.json",
       "C:/Users/brsth/.gemini/antigravity/brain/",
       "C:/Users/brsth/.claude/skills/",
       "C:/Users/brsth/.claude/CLAUDE.md",

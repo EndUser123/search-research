@@ -588,7 +588,7 @@ class TestSkillInvocationLogger:
 
     def test_show_skill_invocations_tool_exists(self):
         """Verify show_skill_invocations tool file exists."""
-        tool_path = Path(r"P:\.claude\skills\debugRCA\tools\show_skill_invocations.py")
+        tool_path = Path("P:/.claude/skills/debugRCA/tools/show_skill_invocations.py")
         assert tool_path.exists(), \
             "Missing show_skill_invocations.py tool"
         assert tool_path.is_file(), \
@@ -598,7 +598,7 @@ class TestSkillInvocationLogger:
         """Verify show_skill_invocations tool can be imported."""
         try:
             import sys
-            tools_dir = r"P:\.claude\skills\debugRCA\tools"
+            tools_dir = "P:/.claude/skills/debugRCA/tools"
             if tools_dir not in sys.path:
                 sys.path.insert(0, tools_dir)
 
@@ -612,7 +612,7 @@ class TestSkillInvocationLogger:
 
     def test_show_skill_invocations_has_main_function(self):
         """Verify show_skill_invocations tool has main() function."""
-        tool_path = Path(r"P:\.claude\skills\debugRCA\tools\show_skill_invocations.py")
+        tool_path = Path("P:/.claude/skills/debugRCA/tools/show_skill_invocations.py")
         content = tool_path.read_text()
 
         assert "def main()" in content, \

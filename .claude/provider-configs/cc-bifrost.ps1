@@ -9,12 +9,6 @@
 # Usage: cc-bf [model | --flag ...]
 #
 #   cc-bf                 show config + available routes
-#   cc-bf <model>         switch all tiers to <model>
-#   cc-bf -m <model>      same as above
-#   cc-bf -m o=<model>   switch Opus only
-#   cc-bf -m s=<model>   switch Sonnet only
-#   cc-bf -m h=<model>   switch Haiku only
-#   cc-bf -m c=<model>   set custom /model slot
 #   cc-bf --start         start Bifrost daemon + re-enable rules
 #   cc-bf --shutdown      stop Bifrost daemon
 #   cc-bf --restart       stop + start + verify routing chain
@@ -23,12 +17,31 @@
 #   cc-bf --routes              probe all routes (DB + runtime latency)
 #   cc-bf --routes --only mistral          routed + unrouted for provider(s)
 #   cc-bf --routes yes --only mistral      routed only for provider(s)
-#   cc-bf --routes no --only mistral       unrouted only for provider(s)
+#   cc-bf --routes no --only mistral       unrouted for provider(s)
 #   cc-bf --routes no                      show all unrouted catalog models
 #   cc-bf --routes no --latest-only        hide superseded versions
 #   cc-bf --routes no --exclude X,Y        exclude models containing X or Y
 #   cc-bf --routes --only all --exclude hugging  all providers except one
 #   cc-bf --sync                backup + sync rules AND provider keys from config.json
+#
+# DEPRECATED (still works but bypasses Bifrost model-aliasing layer):
+#   cc-bf <model>         [was] switch all tiers to <model>
+#   cc-bf -m <model>      [was] same as above
+#   cc-bf -m o=<model>   [was] switch Opus only
+#   cc-bf -m s=<model>   [was] switch Sonnet only
+#   cc-bf -m h=<model>   [was] switch Haiku only
+#   cc-bf -m c=<model>   [was] set custom /model slot
+#
+#   These set ANTHROPIC_DEFAULT_*_MODEL in the current shell, which makes
+#   Claude Code (and the cc-model-router plugin) write that exact string
+#   to settings.json and bypass Bifrost routing rules. To change which
+#   external model answers for an Anthropic native name (e.g. switch
+#   'claude-sonnet-4-6' from Minimax/M3 to a different provider), edit
+#   the routing_rules table in:
+#     C:/Users/brsth/AppData/Roaming/bifrost/config.db
+#   Use 'cc-bf --routes' to see current mappings. Bifrost own management
+#   tooling (or the bifrost_db.py helper) is the right way to add or
+#   modify rules.
 #
 # Available routes are dynamically loaded from the Bifrost DB at runtime.
 
@@ -42,22 +55,59 @@ if (Test-Path $envPath) {
     Write-Host "[WARN] No .env file found at $envPath. Using fallbacks." -ForegroundColor Yellow
 }
 
-$env:ANTHROPIC_BASE_URL = "http://localhost:8080/anthropic"
+$env:ANTHROPIC_BASE_URL = "http://localhost:3005/anthropic"
+$env:CLAUDE_CODE_DISABLE_1M_CONTEXT = "1"
+
+# Self-heal: clear any pre-existing ANTHROPIC_DEFAULT_*_MODEL env vars left
+# over from a prior cc-bf invocation. Model aliasing is Bifrost's job, not
+# this script's -- if the user's shell already has M3 or glm-5.1 in env,
+# the cc-model-router plugin will write that exact string to settings.json
+# and bypass Bifrost's routing rules. Removing the vars here makes the new
+# clean design effective for shells that ran cc-bf before this change.
+foreach ($var in @(
+    'ANTHROPIC_DEFAULT_HAIKU_MODEL',
+    'ANTHROPIC_DEFAULT_SONNET_MODEL',
+    'ANTHROPIC_DEFAULT_OPUS_MODEL',
+    'ANTHROPIC_DEFAULT_OPUS_MODEL_NAME',
+    'ANTHROPIC_DEFAULT_OPUS_MODEL_DESCRIPTION'
+)) {
+    if (Test-Path "env:$var") {
+        Remove-Item "env:$var" -ErrorAction SilentlyContinue
+    }
+}
+
+# Bifrost gateway key. MUST be set in P:/.env. No hardcoded fallback -- a
+# tracked .ps1 file with a plaintext secret is a leak vector. If unset,
+# fail fast with a clear message rather than silently substituting.
 if (-not $env:BIFROST_API_KEY) {
-    $env:BIFROST_API_KEY = "sk-bf-49998d75-3b06-4e72-8547-741cb81b497e"
+    Write-Host "[ERROR] BIFROST_API_KEY not set. Add it to P:\.env or export it before invoking cc-bf." -ForegroundColor Red
+    $host.SetShouldExit(2)
+    return 2
 }
-$env:ANTHROPIC_API_KEY = $env:BIFROST_API_KEY
+$env:ANTHROPIC_AUTH_TOKEN = $env:BIFROST_API_KEY
+Remove-Item Env:ANTHROPIC_API_KEY -ErrorAction SilentlyContinue
 
-if (-not $env:ANTHROPIC_AUTH_TOKEN) {
-    $env:ANTHROPIC_AUTH_TOKEN = "sk-cp-KaSmY8e9E1Pw9XbCWOiVexNvnLGwmKJ8fBGf57gEvA3fb95gq73n7AGVyIL3zBrjvFzxRQFyocfa8QdgborzQoupFzI0UX5cjw7MCkIY3DCy5-kAFVza5z8"
-}
+# Bifrost's Claude Code integration uses ANTHROPIC_AUTH_TOKEN so Claude Code
+# sends the virtual key as Authorization: Bearer <sk-bf-*>. Provider keys such
+# as MINIMAX_API_KEY belong in Bifrost provider config, not Claude Code auth.
 
-# Default: model strings MUST match a Bifrost CEL routing rule exactly (case-sensitive).
-#   Sonnet/Haiku -> rule mx-minimax-m2.7 (model == "mx:minimax/MiniMax-M2.7")
-#   Opus         -> rule zai-glm-5.1     (model == "glm-5.1")
-$env:ANTHROPIC_DEFAULT_SONNET_MODEL = "mx:minimax/MiniMax-M2.7"
-$env:ANTHROPIC_DEFAULT_OPUS_MODEL = "glm-5.1"
-$env:ANTHROPIC_DEFAULT_HAIKU_MODEL = "mx:minimax/MiniMax-M2.7"
+# Model-name aliasing is Bifrost's job, not this script's. Do NOT set
+# ANTHROPIC_DEFAULT_*_MODEL here. If you do, you short-circuit Bifrost's
+# routing rules: Claude Code (or its plugins) will write that exact string
+# to settings.json, Bifrost will see it as the incoming model name, and
+# any rule mismatches become opaque 4xx errors instead of being catchable
+# in the Bifrost rule DB.
+#
+# Layer ownership for the claude-router + Bifrost integration:
+#   cc-bf        -- Bifrost daemon lifecycle, shim lifecycle, ANTHROPIC_BASE_URL, auth keys
+#   cc-router    -- when to autoswitch between Haiku/Sonnet/Opus tiers
+#   Bifrost DB   -- which external model answers for each Anthropic native name
+#   /model picker -- user override of the autoswitched tier (display only;
+#                    the underlying model string is still whatever the
+#                    plugin or the user wrote to settings.json)
+#
+# For the canonical aliasing surface, see `cc-bf --routes` and the
+# routing_rules table in C:/Users/<user>/AppData/Roaming/bifrost/config.db.
 
 $doSync = $false
 $doStart = $false
@@ -66,6 +116,8 @@ $doShutdown = $false
 $doDashboard = $false
 $doRoutes = $false
 $doStatus = $false
+$doValidate = $false
+$doHelp = $false
 $newOnly = $false
 $latestOnly = $true  # default: hide superseded versions
 $modelOverride = $null
@@ -92,6 +144,8 @@ while ($i -lt $Args.Count) {
         }
     } elseif ($arg -eq "--status") {
         $doStatus = $true
+    } elseif ($arg -eq "--validate") {
+        $doValidate = $true
     } elseif ($arg -eq "--new-only") {
         $newOnly = $true
     } elseif ($arg -eq "--latest-only") {
@@ -121,6 +175,10 @@ while ($i -lt $Args.Count) {
         }
     } elseif ($arg -match "^--model=(.+)$") {
         $modelOverride = $matches[1]
+    } elseif ($arg -eq "--help" -or $arg -eq "-h") {
+        # Help requested -- the script prints usage info via the trailing
+        # Write-HelpRow section, so just suppress model-name capture below.
+        $doHelp = $true
     } elseif ($arg -match "^[a-zA-Z0-9_.\-]+$") {
         if (-not $modelOverride) { $modelOverride = $arg }
     }
@@ -172,6 +230,80 @@ function Get-BifrostRulesFromDb {
     return @()
 }
 
+# Case-insensitive canonical-key resolver. Bifrost CEL routing matches `model` strings
+# byte-for-byte, so the script must normalize user input (any case) to the DB-stored
+# canonical key before forwarding to the gateway. Exact match wins; then -ieq fallback.
+function Resolve-CanonicalModel {
+    param([string]$UserInput)
+    if ([string]::IsNullOrWhiteSpace($UserInput)) { return $null }
+    # PowerShell hashtables are case-insensitive by default for ContainsKey, so
+    # we must walk keys explicitly with -ceq (case-sensitive) for the exact-match
+    # path, then -ieq (case-insensitive) for the canonicalization fallback.
+    # Iterate in deterministic order (longest-key-first) so two DB keys that
+    # case-collide (e.g. a hypothetical "M3" and "MiniMax-M3" -- both would
+    # -ieq match "m3") resolve to the more specific key. Without this sort,
+    # PowerShell hashtable enumeration order is implementation-defined.
+    $sortedKeys = $routingTable.Keys | Sort-Object { $_.Length } -Descending
+    foreach ($key in $sortedKeys) {
+        if ($key -ceq $UserInput) { return $key }   # exact wins (preserves canonical case)
+        if ($key -ieq $UserInput) { return $key }   # case-insensitive canonicalization
+    }
+    return $null
+}
+
+# Returns all known routing keys from the DB, sorted, for the hard-fail error message.
+function Get-ValidModelKeys {
+    return @($routingTable.Keys | Sort-Object)
+}
+
+# Warn when a rule looks like it is trying to express failover with zero-weight
+# alternates but does not declare an explicit fallback chain. Those alternates
+# are easy to miss in review and are not a durable failover contract.
+function Get-BifrostFallbackWarnings {
+    param([object[]]$Rules)
+
+    $warnings = @()
+    foreach ($rule in @($Rules)) {
+        if (-not $rule -or -not $rule.targets) { continue }
+
+        $targets = @($rule.targets)
+        if ($targets.Count -lt 2) { continue }
+
+        $hasZeroWeightAlternate = $false
+        foreach ($target in $targets) {
+            $weight = 1.0
+            if ($null -ne $target.weight) {
+                try {
+                    $weight = [double]$target.weight
+                } catch {
+                    $weight = 1.0
+                }
+            }
+            if ($weight -le 0) {
+                $hasZeroWeightAlternate = $true
+                break
+            }
+        }
+
+        if (-not $hasZeroWeightAlternate) { continue }
+
+        $fallbacks = @()
+        if ($null -ne $rule.fallbacks) {
+            if ($rule.fallbacks -is [System.Collections.IEnumerable] -and $rule.fallbacks -isnot [string]) {
+                $fallbacks = @($rule.fallbacks)
+            } elseif ($rule.fallbacks -is [string] -and $rule.fallbacks.Trim() -ne "") {
+                $fallbacks = @($rule.fallbacks)
+            }
+        }
+
+        if ($fallbacks.Count -eq 0) {
+            $warnings += "Rule '$($rule.name)' has zero-weight alternates but no explicit fallbacks."
+        }
+    }
+
+    return $warnings
+}
+
 # Known catalog provider names (case-sensitive — Bifrost catalog uses exact spelling)
 $CATALOG_PROVIDERS = @{
     "cerebras" = $true
@@ -182,10 +314,13 @@ $CATALOG_PROVIDERS = @{
     "Minimax"  = $true   # custom (capital M)
     "Nvidia"   = $true   # custom (capital N)
     "Z.AI"     = $true   # custom (with dot)
+    "OpenCodeGoOpenAI" = $true
+    "OpenCodeGoAnthropic" = $true
+    "OpenCodeZenOpenAI" = $true
 }
 
 function Test-BifrostRuleTarget {
-    param([hashtable]$rule)
+    param([object]$rule)
     foreach ($target in @($rule.targets)) {
         $provider = $target.provider
         if ($provider -and -not $CATALOG_PROVIDERS.ContainsKey($provider)) {
@@ -197,6 +332,42 @@ function Test-BifrostRuleTarget {
         }
     }
     return $true
+}
+
+function Convert-BifrostRuleForConfig {
+    param([object]$rule)
+
+    $normalizedTargets = @()
+    foreach ($target in @($rule.targets)) {
+        if (-not $target) { continue }
+
+        $normalizedTargets += [ordered]@{
+            provider = $target.provider
+            model    = $target.model
+            weight   = if ($null -ne $target.weight) { [double]$target.weight } else { 1.0 }
+        }
+    }
+
+    $normalizedFallbacks = @()
+    if ($null -ne $rule.fallbacks) {
+        if ($rule.fallbacks -is [System.Collections.IEnumerable] -and $rule.fallbacks -isnot [string]) {
+            $normalizedFallbacks = @($rule.fallbacks)
+        } elseif ($rule.fallbacks -is [string] -and $rule.fallbacks.Trim() -ne "") {
+            $normalizedFallbacks = @($rule.fallbacks)
+        }
+    }
+
+    return [ordered]@{
+        id            = $rule.id
+        name          = $rule.name
+        cel_expression = $rule.cel_expression
+        scope         = $rule.scope
+        priority      = [int]$rule.priority
+        enabled       = [bool]$rule.enabled
+        fallbacks     = $normalizedFallbacks
+        chain_rule    = [bool]$rule.chain_rule
+        targets       = $normalizedTargets
+    }
 }
 
 function Sync-BifrostConfig {
@@ -232,7 +403,7 @@ function Sync-BifrostConfig {
     $skipped = 0
     foreach ($rule in $rules) {
         if (Test-BifrostRuleTarget $rule) {
-            $cleanRules += $rule
+            $cleanRules += (Convert-BifrostRuleForConfig $rule)
         } else {
             $skipped++
             $p = $rule.targets | ForEach-Object { $_.provider } | Sort-Object -Unique
@@ -254,7 +425,8 @@ function Sync-BifrostConfig {
     }
 
     $cleanConfig = $config | ConvertTo-Json -Depth 10
-    [System.IO.File]::WriteAllText($configPath, $cleanConfig, [System.Text.Encoding]::UTF8)
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($configPath, $cleanConfig, $utf8NoBom)
 
     # Read-back verification to confirm write succeeded and Bifrost can parse it
     if (-not (Test-Path $configPath)) {
@@ -277,6 +449,73 @@ function Sync-BifrostConfig {
 
 # --- ORCHESTRATION: Strict PID Management ---
 $pidFile = "$env:APPDATA\bifrost\bifrost.pid"
+$shimPidFile = "$env:APPDATA\bifrost\bifrost-tool-shim.pid"
+$shimScript = "$PSScriptRoot\scripts\bifrost_tool_shim.js"
+$shimPort = 3005
+$shimBaseUrl = "http://localhost:$shimPort/anthropic"
+$bifrostOrigin = "http://localhost:8080"
+
+function Get-BifrostToolShimProcess {
+    if (Test-Path $shimPidFile) {
+        $savedPid = Get-Content $shimPidFile -ErrorAction SilentlyContinue
+        $proc = Get-Process -Id $savedPid -ErrorAction SilentlyContinue
+        if ($proc -and $proc.ProcessName -like "node*") {
+            try {
+                $cim = Get-CimInstance Win32_Process -Filter "ProcessId = $($proc.Id)" -ErrorAction SilentlyContinue
+                if ($cim -and $cim.CommandLine -and $cim.CommandLine.Contains("bifrost_tool_shim.js")) {
+                    return $proc
+                }
+            } catch {
+                return $proc
+            }
+        }
+        Remove-Item $shimPidFile -Force -ErrorAction SilentlyContinue
+    }
+    return $null
+}
+
+function Start-BifrostToolShim {
+    $proc = Get-BifrostToolShimProcess
+    if ($proc) {
+        Write-Host "   Bifrost tool shim already running (PID $($proc.Id)) on port $shimPort" -ForegroundColor Yellow
+        return
+    }
+    if (-not (Test-Path $shimScript)) {
+        Write-Host "   [ERROR] Bifrost tool shim script not found at $shimScript" -ForegroundColor Red
+        return
+    }
+
+    $shimLog = "$env:APPDATA\bifrost\tool-shim.log"
+    $shimOut = "$env:APPDATA\bifrost\tool-shim.stdout.log"
+    $shimErr = "$env:APPDATA\bifrost\tool-shim.stderr.log"
+    New-Item -ItemType Directory -Path "$env:APPDATA\bifrost" -Force | Out-Null
+
+    $env:BIFROST_TOOL_SHIM_PORT = "$shimPort"
+    $env:BIFROST_TOOL_SHIM_UPSTREAM = $bifrostOrigin
+    $env:BIFROST_TOOL_SHIM_MODE = "normalize"
+    $env:BIFROST_TOOL_SHIM_LOG = $shimLog
+    $env:BIFROST_TOOL_SHIM_DEEPSEEK_MODELS = "claude-haiku-4-5,claude-haiku-4-5-20251001,claude-sonnet-4-6,deepseek-v4-flash,deepseek-v4-pro,opencode-go/deepseek-v4-flash,opencode-go/deepseek-v4-pro"
+
+    $proc = Start-Process -FilePath "node" -ArgumentList $shimScript -WindowStyle Hidden -PassThru -RedirectStandardOutput $shimOut -RedirectStandardError $shimErr
+    Start-Sleep -Milliseconds 300
+    if ($proc.HasExited) {
+        Write-Host "   [ERROR] Failed to start Bifrost tool shim. Check $shimErr" -ForegroundColor Red
+    } else {
+        $proc.Id | Out-File $shimPidFile -Encoding UTF8
+        Write-Host "   Started Bifrost tool shim (PID $($proc.Id)) on port $shimPort" -ForegroundColor Green
+    }
+}
+
+function Stop-BifrostToolShim {
+    $proc = Get-BifrostToolShimProcess
+    if (-not $proc) {
+        Write-Host "   Bifrost tool shim is not running" -ForegroundColor Yellow
+        return
+    }
+    Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    Remove-Item $shimPidFile -Force -ErrorAction SilentlyContinue
+    Write-Host "   Stopped Bifrost tool shim (PID $($proc.Id))" -ForegroundColor Green
+}
 
 function Get-BifrostProcess {
     # Check for active PowerShell job first (primary mechanism after sync-call change)
@@ -307,6 +546,7 @@ function Start-BifrostDaemon {
     if ($proc) {
         $id = if ($proc.Id) { $proc.Id } else { $proc.InstanceId }
         Write-Host "   Bifrost already running (Job/PID $id)" -ForegroundColor Yellow
+        Start-BifrostToolShim
         return
     }
     # Auto-discover latest Bifrost binary: prefer bifrost-http.exe, fall back to bifrost-http.exe-0
@@ -336,10 +576,12 @@ function Start-BifrostDaemon {
         $proc.Id | Out-File $pidFile -Encoding UTF8
         Write-Host "   Started Bifrost (PID $($proc.Id)) on port 8080" -ForegroundColor Green
         try { python $_db_script --enable-rules 2>$null | Out-Null } catch {}
+        Start-BifrostToolShim
     }
 }
 
 function Stop-BifrostDaemon {
+    Stop-BifrostToolShim
     $proc = Get-BifrostProcess
     if (-not $proc) {
         Write-Host "   Bifrost is not running" -ForegroundColor Yellow
@@ -380,9 +622,10 @@ function Restart-BifrostDaemon {
     }
     if ($ready) {
         Write-Host "   Bifrost API ready" -ForegroundColor Green
+        Start-BifrostToolShim
     } else {
         Write-Host "   [ERROR] Bifrost API not responding after 70s -- restart failed" -ForegroundColor Red
-        exit 1
+        return 1
     }
     Verify-BifrostRouting
 }
@@ -432,6 +675,13 @@ function Show-BifrostStatus {
         Write-Host "   Daemon:            NOT RUNNING" -ForegroundColor Red
     }
 
+    $shimProc = Get-BifrostToolShimProcess
+    if ($shimProc) {
+        Write-Host "   Tool shim:         RUNNING (PID $($shimProc.Id), endpoint=$shimBaseUrl)" -ForegroundColor Green
+    } else {
+        Write-Host "   Tool shim:         NOT RUNNING" -ForegroundColor Yellow
+    }
+
     # DB summary via bifrost_db.py
     try {
         $jsonOut = python $_db_script --status 2>$null
@@ -476,6 +726,18 @@ function Show-BifrostStatus {
                 $name = $_[0]; $prefix = $_[1]
                 Write-Host "     ${name}: ${prefix}..." -ForegroundColor DarkGray
             }
+
+            $fallbackWarnings = Get-BifrostFallbackWarnings (Get-BifrostRulesFromDb)
+            if ($fallbackWarnings.Count -eq 0) {
+                Write-Host ""
+                Write-Host "   Fallbacks:         ALL RULES HAVE EXPLICIT FALLBACKS" -ForegroundColor Green
+            } else {
+                Write-Host ""
+                Write-Host "   Fallbacks:         WARN $($fallbackWarnings.Count) rule(s) need explicit fallback chains" -ForegroundColor Yellow
+                $fallbackWarnings | ForEach-Object {
+                    Write-Host "     $_" -ForegroundColor Yellow
+                }
+            }
         } catch {
             Write-Host "   [WARN] Could not parse DB output: $_" -ForegroundColor Yellow
         }
@@ -489,7 +751,7 @@ function Show-BifrostStatus {
     $probeCode = @'
 import urllib.request, json, sys
 
-models = ['M27', 'GLM-5.1']
+models = ['M3', 'glm-5.1', 'opencode-go/deepseek-v4-flash', 'opencode-go/minimax-m3']
 for model in models:
     try:
         payload = json.dumps({
@@ -560,12 +822,125 @@ function Verify-BifrostRouting {
     }
 }
 
+# Validate-BifrostConfig: probes the current tier env vars against the live gateway
+# and exits with a meaningful code. Use this as a gate: `cc-bf --validate && claude`.
+function Invoke-BifrostValidation {
+    Write-Host ""
+    Write-Host "=== BIFROST VALIDATION ===" -ForegroundColor Yellow
+
+    # Daemon must be running
+    $proc = Get-BifrostProcess
+    if (-not $proc) {
+        Write-Host "   [FAIL] Daemon not running -- start it with: cc-bf --start" -ForegroundColor Red
+        return 2
+    }
+    Write-Host "   Daemon:            RUNNING (PID $($proc.Id))" -ForegroundColor Green
+
+    # Capture current tier selections (post-canonicalization, so this reflects what
+    # Claude Code will actually send)
+    $tierNames  = @('Sonnet','Opus','Haiku')
+    $tierModels = @(
+        $env:ANTHROPIC_DEFAULT_SONNET_MODEL
+        $env:ANTHROPIC_DEFAULT_OPUS_MODEL
+        $env:ANTHROPIC_DEFAULT_HAIKU_MODEL
+    )
+    $modelsJson = ($tierModels | ConvertTo-Json -Compress)
+    $namesJson  = ($tierNames  | ConvertTo-Json -Compress)
+
+    # Call the extracted Python probe in scripts/bifrost_validate.py. Tier/model
+    # values are passed via argv as JSON, NOT interpolated into Python source,
+    # so a model name containing a quote or backslash cannot break the probe.
+    $probeScript = "$PSScriptRoot/scripts/bifrost_validate.py"
+    if (-not (Test-Path $probeScript)) {
+        Write-Host "   [FAIL] scripts/bifrost_validate.py not found at $probeScript" -ForegroundColor Red
+        return 2
+    }
+    # Build JSON payload and pipe via stdin (avoids argv comma-splitting by
+    # the Windows python launcher that mangles JSON arrays). Capture output
+    # to a string by piping through Out-String and splitting on newlines.
+    # The | Out-String | ForEach-Object pattern gives us clean per-line
+    # iteration without duplicating output.
+    $payload = @{ tiers = $tierNames; models = $tierModels } | ConvertTo-Json -Compress
+    $captured = ($payload | python $probeScript 2>&1 | Out-String).Trim()
+    foreach ($line in ($captured -split "`r?`n")) {
+        if (-not $line) { continue }
+        if ($line -match ": OK|: SKIP") { Write-Host "   $line" -ForegroundColor Green }
+        elseif ($line -match ": HTTP 4") { Write-Host "   $line" -ForegroundColor Yellow }
+        else { Write-Host "   $line" -ForegroundColor Red }
+    }
+    $out | ForEach-Object {
+        if ($_ -match ": OK|: SKIP") { Write-Host "   $_" -ForegroundColor Green }
+        elseif ($_ -match ": HTTP 4") { Write-Host "   $_" -ForegroundColor Yellow }
+        else { Write-Host "   $_" -ForegroundColor Red }
+    }
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host ""
+        Write-Host "   [FAIL] At least one tier did not return 200" -ForegroundColor Red
+        return 1
+    }
+    Write-Host ""
+    Write-Host "   [PASS] All configured tiers reachable" -ForegroundColor Green
+    $host.SetShouldExit(0)
+    return 0
+}
+
 # Load routes from DB
 $routingTable = Get-BifrostRoutesFromDb
 
 if ($doSync) {
     Sync-BifrostConfig
     $routingTable = Get-BifrostRoutesFromDb
+}
+
+# Canonicalize user-supplied model strings against the live DB. Bifrost CEL matches
+# model strings case-sensitively, so we resolve any-case input to the DB's canonical
+# key. Unknown keys (typos, truly custom routing) hard-fail with a clear list of
+# valid keys -- exit 2 so callers can distinguish from generic failures.
+# Skipped when --help/-h is requested so help text prints without model lookup.
+if (-not $doHelp -and $modelOverride) {
+    $resolved = Resolve-CanonicalModel $modelOverride
+    if ($null -eq $resolved) {
+        Write-Host ""
+        Write-Host "[ERROR] Unknown model: '$modelOverride'" -ForegroundColor Red
+        Write-Host "Valid keys (case-insensitive):" -ForegroundColor Yellow
+        foreach ($k in (Get-ValidModelKeys)) { Write-Host "  - $k" -ForegroundColor White }
+        Write-Host "Tip: run 'cc-bf' with no args to see the route table." -ForegroundColor DarkGray
+        return 2
+    }
+    $modelOverride = $resolved
+}
+
+foreach ($tier in @('o','s','h','c')) {
+    if ($tierOverrides.ContainsKey($tier)) {
+        $resolved = Resolve-CanonicalModel $tierOverrides[$tier]
+        if ($null -eq $resolved) {
+            Write-Host "[ERROR] Unknown model for tier '$tier': '$($tierOverrides[$tier])'" -ForegroundColor Red
+            Write-Host "Valid keys: $([string]::Join(', ', (Get-ValidModelKeys)))" -ForegroundColor Yellow
+            return 2
+        }
+        $tierOverrides[$tier] = $resolved
+    }
+}
+
+# --help/-h: print help and exit BEFORE any env-var assignment. The trailing
+# Write-HelpRow section prints the help text unconditionally; without this
+# early-return, falling through to the dispatch block and then to the
+# env-var assignment block would mutate ANTHROPIC_DEFAULT_*_MODEL in the
+# parent shell -- undocumented side effect for "just show help".
+# We call Write-Host "Bifrost Configuration:" etc. directly here so the user
+# sees the same output they would get by running without --help, minus the
+# env-var side effects. The full "Commands:" section is at the bottom of
+# the script and is reached by direct script invocation only.
+if ($doHelp) {
+    Write-Host ""
+    Write-Host "Bifrost Configuration:" -ForegroundColor Yellow
+    Write-Host "   - Provider:       Bifrost AI Gateway"
+    Write-Host "   - Endpoint:       $shimBaseUrl"
+    Write-Host "   - 1M Context:     disabled"
+    Write-Host "   - Use 'cc-bf' (no args) to see available routes and the full Commands: section."
+    $host.SetShouldExit(0)
+    return 0
 }
 
 if ($doStart) {
@@ -593,6 +968,11 @@ if ($doStatus) {
     return
 }
 
+if ($doValidate) {
+    $code = Invoke-BifrostValidation
+    return $code
+}
+
 if ($doRoutes) {
     $scriptPath = "$PSScriptRoot\scripts\routes_probe.py"
     if (-not (Test-Path $scriptPath)) {
@@ -609,6 +989,8 @@ if ($doRoutes) {
     $output | ForEach-Object { Write-Host $_ }
     return
 }
+
+Start-BifrostToolShim
 
 # Build the $routes hashtable for alias resolution
 # Filter to enabled routes only from the Bifrost rules database
@@ -732,15 +1114,11 @@ if ($tierOverrides.ContainsKey("c")) {
     # Route key IS the CEL-matching string — pass through unchanged.
     $env:ANTHROPIC_CUSTOM_MODEL_OPTION = $customModel
     $env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME = $customModel
-    if ($routes.ContainsKey($customModel)) {
-        $env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION = "Bifrost: $($routes[$customModel][3])"
-    } else {
-        $env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION = "Custom route via Bifrost"
-    }
+    Remove-Item Env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION -ErrorAction SilentlyContinue
 }
 
 if (-not $modelOverride -and $tierOverrides.Count -eq 0) {
-    $displayName = "Default (M27)"
+    $displayName = "Default (M3)"
 } elseif ($tierOverrides.Count -gt 0) {
     $displayName = "Custom tiers"
 }
@@ -754,14 +1132,12 @@ $baseRows = @(
 )
 $configRows = @(
     @{ Label = "   - Provider:"; Value = "Bifrost AI Gateway" },
-    @{ Label = "   - Endpoint:"; Value = "http://localhost:8080/anthropic" }
+    @{ Label = "   - Endpoint:"; Value = $shimBaseUrl },
+    @{ Label = "   - Upstream:"; Value = $bifrostOrigin },
+    @{ Label = "   - 1M Context:"; Value = "disabled" }
 )
 $customName = if ($env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME) { $env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME } elseif ($env:ANTHROPIC_CUSTOM_MODEL_OPTION) { $env:ANTHROPIC_CUSTOM_MODEL_OPTION } else { "—" }
-$customDesc = if ($env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION) { $env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION } else { "" }
 $configRows += @{ Label = "   - Custom:"; Value = $customName }
-if ($customDesc) {
-    $configRows += @{ Label = "     Description:"; Value = $customDesc }
-}
 foreach ($row in $baseRows) { $configRows += $row }
 $configRows | ForEach-Object {
     $row = $_

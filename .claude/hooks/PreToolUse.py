@@ -101,13 +101,14 @@ except ImportError:
 
 
 # Hooks that must never fail open.
-CRITICAL_HOOKS = {
-    "PreToolUse_path_validator.py",
-    "PreToolUse_authorization_gate.py",
-    "PreToolUse_deny_root_write.py",
-    "PreToolUse_risk_tier_gate.py",
-    "PreToolUse_protected_file_recovery_gate.py",  # Fail-closed: block edits on broken protected files
-}
+# 2026-06-07: All critical hooks migrated to plugins (cc-aca-authority, cc-aca-safety).
+# Local CRITICAL_HOOKS list is now empty. Plugin routers enforce fail-closed for:
+# - path_validator (cc-aca-safety)
+# - authorization_gate (cc-aca-authority)
+# - risk_tier_gate (cc-aca-authority)
+# - protected_file_recovery_gate (cc-aca-safety)
+# deny_root_write was removed (no migration found).
+CRITICAL_HOOKS = set()
 
 HOOK_TIMEOUTS = {
     "pre/PreToolUse_tool_check.py": 5.0,
@@ -685,8 +686,8 @@ UNIVERSAL = [
     "PreToolUse_session_id_capture.py",  # Session ID capture for git integration
     "PreToolUse_context_sufficiency_gate.py",  # Skill autonomy classification
     "PreToolUse_skill_question_gate.py",  # One-question-max enforcement
-    # ACA hooks moved to plugin hooks.json: path_validator, risk_tier_gate,
-    # ownership_colocation_gate, delegation_gate, user_delegation_gate
+    # Delegation and authority gates are owned by the plugin routers now;
+    # this local router only keeps the remaining shared non-delegation hooks.
 ]
 
 # Legacy top-level PreToolUse entries are routed here now so Claude only has to
@@ -714,8 +715,7 @@ TOOL_HOOKS = {
         "PreToolUse_import_deletion_guard.py",
         "recursive_failure_detector.py",
         "PreToolUse_settings_backup.py",
-        # ACA hooks moved to plugin hooks.json: win32_path_gate, directory_policy,
-        # git_safety, protected_file_recovery_gate, git_auto_stage, tdd95_gate
+        # Delegation and authority gates are owned elsewhere now.
     ],
     "Edit": [
         "PreToolUse_syntax_gate.py",
@@ -723,12 +723,11 @@ TOOL_HOOKS = {
         "PreToolUse_import_deletion_guard.py",
         "recursive_failure_detector.py",
         "PreToolUse_settings_backup.py",
-        # ACA hooks moved to plugin hooks.json: win32_path_gate, directory_policy,
-        # git_safety, protected_file_recovery_gate, tdd95_gate
+        # Delegation and authority gates are owned elsewhere now.
     ],
     "MultiEdit": [
         "PreToolUse_import_deletion_guard.py",
-        # ACA hooks moved to plugin hooks.json: win32_path_gate, directory_policy
+        # Delegation and authority gates are owned elsewhere now.
     ],
     "Glob": [
         "PreToolUse_skill_dir_gate.py",
@@ -746,73 +745,51 @@ TOOL_HOOKS = {
         "PreToolUse_pytest_timeout_guard.py",
         "PreToolUse_git_commit_test_gate.py",
         "PreToolUse_referent_scope_gate.py",
-        # ACA hooks moved to plugin hooks.json: directory_policy, destructive_git_guard,
-        # authorization_gate, bulk_delete_gate, repo_visibility_guard, git_auto_stage
+        # Delegation and authority gates are owned elsewhere now.
     ],
     "Task": [
         "PreToolUse_task_self_doc_gate.py",
-        # ACA hooks moved to plugin hooks.json: authorization_gate
+        # Authority-owned gating is routed elsewhere now.
     ],
     "mcp__web-reader__webReader": [
         "PreToolUse_mcp_full_read_guard.py",
     ],
 }
 
-# Map hook filenames to in-process functions for speed
-try:
-    sys.path.insert(0, str(HOOKS_DIR / "__lib"))
+# In-process fast path was removed 2026-06-01 (RCA Option C).
+# The 6 skill-guard gates imported below were never wired into the
+# subprocess path (handle_pre_tool_use only does contract enforcement),
+# so removing this block changes no observed behavior — the gates were
+# dead code. Skill-guard enforcement now runs entirely through the
+# subprocess path: skill_guard/__lib/router.py PreToolUse, registered
+# in user settings.json.
+# See plan: C:/Users/brsth/.claude/plans/iridescent-mixing-wirth.md
+IN_PROCESS_HOOKS = {}
 
-    # Plugin import path for skill-guard hooks (hardcoded — CLAUDE_PLUGIN_ROOT is per-plugin, not usable here)
-    _PLUGIN_SRC = Path("P:/packages/skill-guard/src")
-    if _PLUGIN_SRC.exists():
-        sys.path.insert(1, str(_PLUGIN_SRC))  # position 1 preserves __lib at position 0
 
-    import pre_tool_use_logic
-    import PreToolUse_bash_syntax_validator
-    import PreToolUse_git_remote_check_order_guard
-    import PreToolUse_task_self_doc_gate
-    # ACA imports removed — hooks now in plugin hooks.json:
-    # bulk_delete_gate, destructive_git_guard, directory_policy,
-    # git_auto_stage, path_validator, protected_file_recovery_gate
+def _block_payload(reason: object) -> dict:
+    """Single source for every PreToolUse block emission to Claude Code.
 
-    # skill-guard hooks imported from plugin (single source of truth)
-    from skill_guard.PreToolUse.PreToolUse_import_deletion_guard import run as _import_deletion_run
-    from skill_guard.PreToolUse.PreToolUse_skill_script_path_gate import run as _skill_script_path_run
-    from skill_guard.PreToolUse.PreToolUse_skill_dir_gate import run as _skill_dir_gate_run
-    from skill_guard.PreToolUse.PreToolUse_skill_question_gate import run as _skill_question_gate_run
-    from skill_guard.PreToolUse.PreToolUse_context_sufficiency_gate import run as _context_sufficiency_run
-    from skill_guard.PreToolUse.PreToolUse_workflow_step_gate import run as _workflow_step_gate_run
-    # NOTE: PreToolUse_skill_pattern_gate.py REMOVED from IN_PROCESS_HOOKS.
-    # execution_hooks.py (skill-guard subprocess via hooks.json) is the sole contract gate.
-    from artifact_grounder import ground_blocked_command, ground_git_safety_block
-    from pretooluse_observability import (
-        append_jsonl as append_observability_jsonl,
-    )
-    from pretooluse_observability import (
-        build_pretooluse_block_entry,
-    )
+    Always attaches ``hookSpecificOutput.permissionDecisionReason`` so the block
+    reason reaches the model. The legacy ``{"decision":"block","reason":...}``
+    shape renders in the UI as a generic "denied this tool" with the reason
+    dropped, leaving the model with no fix instruction (e.g. "call Skill()
+    first"). Route EVERY block emission through this helper so a new emission
+    site cannot silently reintroduce the opaque-message bug.
 
-    IN_PROCESS_HOOKS = {
-        "PreToolUse_syntax_gate.py": pre_tool_use_logic.check_syntax,
-        "recursive_failure_detector.py": pre_tool_use_logic.check_recursive_failure,
-        "PreToolUse_bash_syntax_validator.py": PreToolUse_bash_syntax_validator.run,
-        "PreToolUse_git_remote_check_order_guard.py": PreToolUse_git_remote_check_order_guard.run,
-        "PreToolUse_import_deletion_guard.py": _import_deletion_run,
-        "PreToolUse_skill_script_path_gate.py": _skill_script_path_run,
-        "PreToolUse_skill_dir_gate.py": _skill_dir_gate_run,
-        "PreToolUse_skill_question_gate.py": _skill_question_gate_run,
-        "PreToolUse_context_sufficiency_gate.py": _context_sufficiency_run,
-        "PreToolUse_workflow_step_gate.py": _workflow_step_gate_run,
-        "PreToolUse_task_self_doc_gate.py": PreToolUse_task_self_doc_gate.run,
-        "check_external_path_consent": pre_tool_use_logic.check_external_path_consent,
-        # ACA hooks moved to plugin hooks.json: path_validator, directory_policy,
-        # bulk_delete_gate, destructive_git_guard, git_auto_stage,
-        # protected_file_recovery_gate
+    Enforced by ``tests/test_pretooluse_block_emission.py`` (invariant: no bare
+    ``print(json.dumps({"decision": "block"...}))`` without permissionDecisionReason).
+    """
+    msg = reason if reason is not None else "blocked"
+    return {
+        "decision": "block",
+        "reason": reason,
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": str(msg),
+        },
     }
-except ImportError:
-    # Claude Code treats stderr as hook error - silence this
-    # print(f"⚠️ Optimization Warning: Could not import in-process hooks: {e}", file=sys.stderr)
-    IN_PROCESS_HOOKS = {}
 
 
 def _log_pretooluse_block_event(
@@ -880,41 +857,10 @@ def run_hook(hook_name: str, data: dict, correlation_id: str | None = None) -> d
                 pass  # Logging failure is non-fatal
             return None  # Content not relevant to this hook
 
-    # 1. Try In-Process Execution (Ultra-fast)
-    if hook_name in IN_PROCESS_HOOKS:
-        try:
-            res = IN_PROCESS_HOOKS[hook_name](data)
-            if res == "subprocess":
-                pass  # Force subprocess fallback for complex logic
-            else:
-                return res
-        except Exception as e:
-            # DIAGNOSTIC: Log in-process hook failures
-            try:
-                _diag_dir = HOOKS_DIR / "logs" / "diagnostics"
-                _diag_dir.mkdir(parents=True, exist_ok=True)
-                import time as _t
-
-                with open(_diag_dir / "in_process_errors.jsonl", "a", encoding="utf-8") as _df:
-                    _df.write(
-                        json.dumps(
-                            {
-                                "ts": _t.strftime("%Y-%m-%dT%H:%M:%S"),
-                                "hook": hook_name,
-                                "error": f"{type(e).__name__}: {str(e)}",
-                                "command": data.get("tool_input", {}).get("command", "")[:200],
-                            }
-                        )
-                        + "\n"
-                    )
-            except Exception:
-                pass  # Never block on diagnostic logging
-            # Claude Code treats stderr as hook error - silence this
-            # print(f"In-process error {hook_name}: {e}", file=sys.stderr)
-            # Fall back to subprocess on failure
-            pass
-
-    # 2. Subprocess Execution (Standard isolation)
+    # 1. Subprocess Execution (sole execution path as of 2026-06-01)
+    #    In-process fast path removed (RCA Option C); the skill-guard
+    #    subprocess router (skill_guard/__lib/router.py PreToolUse) is the
+    #    sole contract gate.
     try:
         hook_path = HOOKS_DIR / hook_name
         if not hook_path.exists():
@@ -1264,10 +1210,7 @@ def main():
             except json.JSONDecodeError:
                 pass  # Use original _msg
 
-        response = {
-            "decision": "block",
-            "reason": _msg,
-        }
+        response = _block_payload(_msg)
         _log_pretooluse_block_event(
             data,
             blocking_hook="PreToolUse.py:skill_first_gate",
@@ -1311,7 +1254,7 @@ def main():
                             "reason": _msg,
                         },
                     )
-                print(json.dumps({"decision": "block", "reason": _msg}))
+                print(json.dumps(_block_payload(_msg)))
                 sys.exit(0)
 
         # NEW: Handle hookSpecificOutput.advisory - display to user
@@ -1380,7 +1323,8 @@ def main():
                         "artifact_path": artifact_path,
                     },
                 )
-            print(json.dumps({"decision": "block", "reason": _msg}))
+            block_response = _block_payload(_msg)
+            print(json.dumps(block_response))
             sys.exit(0)
 
     # All hooks passed

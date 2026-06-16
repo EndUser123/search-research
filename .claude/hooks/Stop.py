@@ -107,6 +107,15 @@ if not _EPISTEMIC_LIB.exists():
 if _EPISTEMIC_LIB.exists() and str(_EPISTEMIC_LIB) not in sys.path:
     sys.path.insert(0, str(_EPISTEMIC_LIB))
 
+# ACA observability plugin — posttool dir for cjk_drift_detector
+_OBSERVABILITY_POSTTOOL = Path("P:/packages/cc-aca-observability/hooks/posttool")
+if not _OBSERVABILITY_POSTTOOL.exists():
+    _OBSERVABILITY_POSTTOOL = Path(
+        "P:/packages/.claude-marketplace/plugins/cc-aca-observability/hooks/posttool"
+    )
+if _OBSERVABILITY_POSTTOOL.exists() and str(_OBSERVABILITY_POSTTOOL) not in sys.path:
+    sys.path.insert(0, str(_OBSERVABILITY_POSTTOOL))
+
 sys.path.insert(0, str(HOOKS_DIR))
 ANTI_SYCOPHANCY_LOG = HOOKS_DIR / "logs" / "anti_sycophancy_violations.jsonl"
 SKILL_FIRST_LOG = HOOKS_DIR / "logs" / "skill_first_enforcement.jsonl"
@@ -131,6 +140,16 @@ from __lib.turn_mode import (
     TurnMode,
     SessionMode,
 )
+
+# Model-tier gating: weak (non-Claude / Bifrost-routed) models cannot satisfy the
+# epistemic/rubric contract and get trapped in capitulation loops. is_weak_model()
+# reads the active model from the transcript and lets quality gates self-suppress
+# while policy/safety gates stay active. Fails open to strong on any error.
+try:
+    from __lib.model_tier import is_weak_model
+except Exception:  # pragma: no cover - never let a missing helper break Stop
+    def is_weak_model(data: dict) -> bool:  # type: ignore[misc]
+        return False
 
 from __lib.epistemic_applicability import (
     is_substantive_reasoning_turn,
@@ -505,7 +524,7 @@ def _run_epistemic_contract(data: dict) -> dict | None:
         # CONTROL mode: allow validation to run (CONTROL schema enforces no substantive claims).
         # Session mode: debug_gates = skip all quality gates; audit = treat all as CONTROL.
         session_mode = get_session_mode(user_prompt)
-        if is_quality_gate_disabled(session_mode):
+        if is_quality_gate_disabled(session_mode) or is_weak_model(data):
             return None
         effective_mode = get_effective_turn_mode_for_gate(turn_mode, session_mode)
         if not strict_override and effective_mode in ("exploration", "meta") and is_quality_mode_suppressed(effective_mode, quality_mode):
@@ -1491,27 +1510,51 @@ def _run_skill_first_stop_gate(data: dict) -> dict | None:
 
     # Check if there's still a pending skill intent (not cleared by PostToolUse)
     #
-    # NOTE: UserPromptSubmit writes terminal-scoped files (compact-proof).
-    # Format: pending_command_intent_{terminal_id}.json
-    # Legacy format with session_id is cleaned up by skill_enforcer.py.
+    # IMPORTANT: The lookup order MUST mirror PreToolUse._check_skill_first_gate()
+    # and the deletion logic in PreToolUse (Skill-tool handler). skill_enforcer.py
+    # (UserPromptSubmit) writes the per-terminal NESTED format and actively deletes
+    # the flat format, so the nested path must be checked FIRST. A prior version of
+    # this gate read only the flat path, which UPS no longer writes — that made this
+    # backstop silently dead, letting prose-only responses to slash commands stand
+    # unblocked (the persistent-halt bug).
+    #
+    # Current format (TASK-005+): terminals/{terminal_id}/pending_command_intent.json
+    # Legacy flat terminal:       pending_command_intent_{terminal_id}.json
+    # Legacy flat session:        pending_command_intent_{session_id}.json
+    state_dir = HOOKS_DIR / "state"
+    fallback_dir = Path(os.environ.get("TEMP", "/tmp")) / "claude_hooks" / "state"
     intent_file = None
-    for base_dir in (
-        HOOKS_DIR / "state",
-        Path(os.environ.get("TEMP", "/tmp")) / "claude_hooks" / "state",
-    ):
-        # Primary: terminal-scoped format (what UserPromptSubmit actually writes)
-        candidate = base_dir / f"pending_command_intent_{safe_terminal}.json"
-        if candidate.exists():
-            intent_file = candidate
-            break
 
-    # Fallback: legacy session-scoped format (for backwards compatibility)
+    # Primary: per-terminal nested directory format (what UPS actually writes today)
+    if terminal_id:
+        for base in (state_dir, fallback_dir):
+            candidate = base / "terminals" / terminal_id / "pending_command_intent.json"
+            if candidate.exists():
+                intent_file = candidate
+                break
+
+        # Dash-stripped fallback for terminal-id normalization drift
+        if not intent_file and terminal_id.startswith("console_"):
+            stripped = f"console_{terminal_id[8:].replace('-', '')}"
+            if stripped != terminal_id:
+                for base in (state_dir, fallback_dir):
+                    candidate = base / "terminals" / stripped / "pending_command_intent.json"
+                    if candidate.exists():
+                        intent_file = candidate
+                        break
+
+    # Secondary: legacy flat terminal-scoped format
     if not intent_file:
-        for base_dir in (
-            HOOKS_DIR / "state",
-            Path(os.environ.get("TEMP", "/tmp")) / "claude_hooks" / "state",
-        ):
-            candidate = base_dir / f"pending_command_intent_{safe_session}.json"
+        for base in (state_dir, fallback_dir):
+            candidate = base / f"pending_command_intent_{safe_terminal}.json"
+            if candidate.exists():
+                intent_file = candidate
+                break
+
+    # Tertiary: legacy session-scoped format (for backwards compatibility)
+    if not intent_file:
+        for base in (state_dir, fallback_dir):
+            candidate = base / f"pending_command_intent_{safe_session}.json"
             if candidate.exists():
                 intent_file = candidate
                 break
@@ -1533,19 +1576,27 @@ def _run_skill_first_stop_gate(data: dict) -> dict | None:
         if mode == "monitor":
             return None
 
+        # Silent steering: deliver the directive to the MODEL only via
+        # hookSpecificOutput.additionalContext (CLI honors it as a system
+        # reminder), NOT via `reason` which renders to the user as a
+        # "Stop hook error" banner. decision=block still forces the retry.
+        directive = (
+            f"[E_SKILL_FIRST_INLINE_BYPASS]\n"
+            f"SLASH COMMAND IGNORED\n\n"
+            f"You typed /{skill_name} but responded with prose without calling the Skill tool.\n\n"
+            f"You MUST:\n"
+            f'1. Call Skill(skill="{skill_name}") to load the skill\n'
+            f"2. Follow the skill's workflow instructions\n"
+            f"3. READ THE LAST 10-20 MESSAGES of conversation to infer context before asking clarifying questions\n\n"
+            f"Do NOT read the SKILL.md file manually or improvise your own version.\n"
+            f"Do NOT bypass this by returning inline analysis text without Skill(...)."
+        )
         return {
             "decision": "block",
-            "reason": (
-                f"[E_SKILL_FIRST_INLINE_BYPASS]\n"
-                f"SLASH COMMAND IGNORED\n\n"
-                f"You typed /{skill_name} but responded with prose without calling the Skill tool.\n\n"
-                f"You MUST:\n"
-                f'1. Call Skill(skill="{skill_name}") to load the skill\n'
-                f"2. Follow the skill's workflow instructions\n"
-                f"3. READ THE LAST 10-20 MESSAGES of conversation to infer context before asking clarifying questions\n\n"
-                f"Do NOT read the SKILL.md file manually or improvise your own version.\n"
-                f"Do NOT bypass this by returning inline analysis text without Skill(...)."
-            ),
+            "hookSpecificOutput": {
+                "hookEventName": "Stop",
+                "additionalContext": directive,
+            },
             "blocking_hook": "Stop.py:skill_first_stop_gate",
         }
     except Exception:
@@ -1858,8 +1909,9 @@ def _run_reasoning_quality_gate(data: dict) -> dict | None:
 
         user_prompt = data.get("user_prompt") or data.get("prompt") or ""
         # DEBUG_GATES session mode: disable all quality gates (including reasoning quality).
+        # Weak (non-Claude) models also skip reasoning-quality nagging.
         gate_session_mode = get_session_mode(user_prompt)
-        if is_quality_gate_disabled(gate_session_mode):
+        if is_quality_gate_disabled(gate_session_mode) or is_weak_model(data):
             return None
 
         response = data.get("response", "")
@@ -2187,6 +2239,87 @@ def _run_fake_done_detector(data: dict) -> dict | None:
         return run_fake_done_detector(data)
     except Exception:
         return None
+
+
+def _run_perf_attribution_gate(data: dict) -> dict | None:
+    """Performance-attribution gate.
+
+    Migrated 2026-06-14 from cc-aca-epistemic plugin hooks.json (subprocess) to
+    local in-process dispatch as part of the split-dispatch consolidation. Imports
+    the canonical plugin logic (epistemic stop dir is on sys.path). Blocks
+    unverified performance claims when timing code was not read this turn.
+    Plugin run() returns {"continue": bool, "stopReason": str}; normalize to the
+    in-process {"decision": "block", ...} contract.
+    """
+    try:
+        from StopHook_perf_attribution_gate import run as _perf_run
+    except ImportError:
+        return None
+    result = _perf_run(data)
+    if result and result.get("continue") is False:
+        return {
+            "decision": "block",
+            "reason": result.get("stopReason", ""),
+            "blocking_hook": "StopHook_perf_attribution_gate",
+        }
+    return None
+
+
+def _run_removal_completeness_guard(data: dict) -> dict | None:
+    """Removal-completeness guard.
+
+    Migrated 2026-06-14 from cc-aca-epistemic plugin hooks.json (subprocess) to
+    local in-process dispatch. check() already returns the in-process
+    {"decision": "block", ...} / None contract.
+    """
+    try:
+        from Stop_removal_completeness_guard import check as _removal_check
+    except ImportError:
+        return None
+    return _removal_check(data)
+
+
+def _run_diagnostic_analysis_quality_gate(data: dict) -> dict | None:
+    """Diagnostic-analysis quality gate.
+
+    Migrated 2026-06-14 from cc-aca-epistemic plugin hooks.json (subprocess) to
+    local in-process dispatch. run() already returns the in-process
+    {"decision": "block"|"warn", ...} / None contract and applies its own
+    env-driven enable/mode logic.
+    """
+    try:
+        from Stop_diagnostic_analysis_quality_gate import run as _diag_run
+    except ImportError:
+        return None
+    return _diag_run(data)
+
+
+def _run_cjk_drift_detector(data: dict) -> dict | None:
+    """Block CJK text drift in agent responses.
+
+    Migrated 2026-06-15 from cc-aca-observability plugin hooks.json (subprocess) to
+    local in-process dispatch (split-dispatch consolidation). Imports detect_cjk()
+    from the canonical plugin file (observability posttool dir is on sys.path).
+    """
+    try:
+        from cjk_drift_detector import detect_cjk
+    except ImportError:
+        return None
+    text = data.get("response", "")
+    sample = detect_cjk(text)
+    if not sample:
+        return None
+    msg = (
+        f"[CJK drift detected] Output contains non-English characters "
+        f'(sample: "{sample}"). The underlying model drifted from English. '
+        f"Respond in English only - no Chinese, Japanese, or Korean under any "
+        f"circumstances, even when source content contains them."
+    )
+    return {
+        "decision": "block",
+        "reason": msg,
+        "blocking_hook": "Stop.py:cjk_drift_detector",
+    }
 
 
 def _run_meta_analysis_trap(data: dict) -> dict | None:
@@ -3232,6 +3365,14 @@ GATE_CLASSES: dict[str, str] = {
     "tool_sanity": "quality",
     "artifact_enforcement": "policy",  # Block unverified mechanism claims
     "runtime_claim_enforcement": "policy",  # Phase 3: Runtime claim artifact verification
+    # Migrated 2026-06-14 from cc-aca-epistemic plugin hooks.json (subprocess) to
+    # local in-process dispatch. "policy" = always-fire, preserving the prior
+    # unconditional subprocess behavior (each gate keeps its own internal gating).
+    "perf_attribution": "policy",
+    "removal_completeness": "policy",
+    "diagnostic_analysis_quality": "policy",
+    # Migrated 2026-06-15 from cc-aca-observability plugin hooks.json (subprocess).
+    "cjk_drift_detector": "policy",
     # Quality gates — suppressed on control turns in normal mode
     "epistemic_contract": "quality",
     "behavior_audit": "quality",
@@ -3820,6 +3961,14 @@ IN_PROCESS_GATES = [
     ("tool_sanity", _run_tool_sanity_check),
     ("repetition_blocker", _run_repetition_blocker),
     ("fake_done", _run_fake_done_detector),
+    # Migrated 2026-06-14 from cc-aca-epistemic plugin hooks.json (subprocess) to
+    # local in-process dispatch (split-dispatch consolidation). Logic stays in the
+    # plugin stop dir (on sys.path); these wrappers import + normalize it.
+    ("perf_attribution", _run_perf_attribution_gate),
+    ("removal_completeness", _run_removal_completeness_guard),
+    ("diagnostic_analysis_quality", _run_diagnostic_analysis_quality_gate),
+    # Migrated 2026-06-15 from cc-aca-observability plugin hooks.json (subprocess).
+    ("cjk_drift_detector", _run_cjk_drift_detector),
     ("subagent_opportunity", _run_subagent_opportunity),  # Advisory for delegation opportunities
     ("clear_referent_anchors", _clear_referent_anchors),  # Single-turn lifecycle: clear anchors at end of turn
 ]
@@ -3937,6 +4086,32 @@ def _run_gate_safe(name: str, gate_fn, data: dict) -> dict | None:
         return None
 
 
+def _log_regen_iteration(data: dict, gate_name: str, count: int, tripped: bool) -> None:
+    """Append one regen-cap data point for threshold tuning. Best-effort, never raises.
+
+    Stream: logs/diagnostics/regen_cap_telemetry.jsonl — one row per QUALITY-gate block.
+    Fields: ts, gate, count (repair iterations so far this continuation chain),
+            tripped (True when the cap fired -> allow+surface), stop_hook_active,
+            terminal_id. Query/notify via scripts/regen_cap_stats.py.
+    """
+    try:
+        import time as _t
+        rec = {
+            "ts": _t.time(),
+            "gate": gate_name,
+            "count": int(count),
+            "tripped": bool(tripped),
+            "stop_hook_active": bool(data.get("stop_hook_active", False)),
+            "terminal_id": data.get("terminal_id") or data.get("session_id") or "",
+        }
+        p = HOOKS_DIR / "logs" / "diagnostics" / "regen_cap_telemetry.jsonl"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        with p.open("a", encoding="ascii") as f:
+            f.write(json.dumps(rec, ensure_ascii=True) + "\n")
+    except Exception:
+        pass
+
+
 def _process_gate_result(
     res: dict, name: str, system_messages: list[str],
     quality_messages: list[str], data: dict,
@@ -3962,11 +4137,51 @@ def _process_gate_result(
         gate_class = GATE_CLASSES.get(name, "policy")
         # DEBUG_GATES session mode: disable ALL quality gates.
         # AUDIT session mode: treat all as CONTROL (already reflected in effective_mode).
+        # Weak (non-Claude) models: suppress quality blocks; policy blocks still fire.
         if gate_class == "quality" and (
             is_quality_gate_disabled(session_mode)
             or is_quality_mode_suppressed(turn_mode, quality_mode)
+            or is_weak_model(data)
         ):
             return False
+
+        # Regeneration cap (NBM-3 circuit breaker): bound how many times a QUALITY
+        # gate can block-and-force-regenerate within one continuation chain. Once the
+        # threshold of repair iterations is reached, surface the unresolved verdict as
+        # an advisory instead of blocking again — turning an unbounded block->regenerate
+        # loop into a bounded one. Policy gates are exempt (real violations keep blocking).
+        # Fail-open: any breaker error must never disable gate enforcement.
+        if gate_class == "quality":
+            try:
+                from __lib.circuit_breaker import (
+                    should_allow_continue,
+                    increment_iteration,
+                    get_iteration_count,
+                )
+                _cb_key = (
+                    data.get("terminal_id") or data.get("session_id")
+                    or data.get("sessionId") or "default"
+                )
+                _cb_active = bool(data.get("stop_hook_active", False))
+                if should_allow_continue(_cb_key, _cb_active):
+                    # Breaker tripped: already blocked >= threshold times this chain.
+                    # Allow the response, surface the unresolved gate verdict to the user.
+                    _capped_reason = str(res.get("reason", "")).strip()
+                    quality_messages.append(
+                        f"[unresolved after repeated attempts — {name}] {_capped_reason}"
+                    )
+                    _log_stop_block_event(
+                        data, name, {**res, "decision": "regen_capped"}
+                    )
+                    _log_regen_iteration(data, name, get_iteration_count(_cb_key), tripped=True)
+                    return False
+                if _cb_active:
+                    # Still below threshold and actively continuing: count this block.
+                    increment_iteration(_cb_key)
+                # Record the per-block iteration count for threshold tuning.
+                _log_regen_iteration(data, name, get_iteration_count(_cb_key), tripped=False)
+            except Exception:
+                pass
 
         # Phase 2 policy block arbitration: only surface the highest-priority block.
         # Higher priority = lower numeric value (0 is highest).
@@ -4422,6 +4637,20 @@ def main():
 
     _pin_scope_env(data)
 
+    # Regen cap: a fresh stop (not a stop-hook-driven continuation) resets the
+    # circuit-breaker iteration counter, so quality-gate block counts never bleed
+    # across unrelated turns. Fail-open. Paired with the cap in _process_gate_result.
+    try:
+        if not data.get("stop_hook_active", False):
+            from __lib.circuit_breaker import reset_iteration
+            _cb_key = (
+                data.get("terminal_id") or data.get("session_id")
+                or data.get("sessionId") or "default"
+            )
+            reset_iteration(_cb_key)
+    except Exception:
+        pass
+
     # user_prompt is used by gate functions inside the loop — extract once here
     user_prompt = data.get("user_prompt", "") or data.get("prompt", "")
 
@@ -4603,15 +4832,22 @@ def main():
         if res and res.get("systemMessage"):
             _raw_messages.append((name, "warn", res["systemMessage"]))
 
-    # Stop-side shadow: observe-only recommendation compliance telemetry.
-    # NEVER blocks — import is local to avoid circular dependency at module load.
+    # Stop-side recommendation closed loop: gate the prior turn and (if it looks like a
+    # recommendation) spawn a DETACHED LLM judge subprocess that persists a one-line
+    # correction for next turn's UserPromptSubmit. NEVER blocks Stop; fail-open on any error.
     try:
-        from UserPromptSubmit_modules.recommendation_compliance_recorder import (
-            _run_recommendation_compliance_recorder,
-        )
-        _run_recommendation_compliance_recorder(data)
+        from UserPromptSubmit_modules.recommendation_loop import record_at_stop
+        record_at_stop(data)
     except Exception:
-        pass  # Shadow recorder must never disrupt Stop processing
+        pass  # Recommendation loop must never disrupt Stop processing
+
+    # Stop-side technical-debt recorder: persist deduped lazy-closure items for the
+    # /debt workflow and next-turn review. Fail-open so it never blocks Stop.
+    try:
+        from Stop_lazy_closure_debt import record_at_stop as record_debt_at_stop
+        record_debt_at_stop(data)
+    except Exception:
+        pass  # Debt recorder must never disrupt Stop processing
 
     # Merge quality messages based on turn mode and enforcement mode
     _merge_quality_messages(system_messages, quality_messages, turn_mode, quality_mode)
@@ -4656,14 +4892,17 @@ def main():
     if system_messages:
         output["systemMessage"] = "\n".join(system_messages)
 
-    # Contract System Status (side-effect, non-blocking)
-    # Renders after aggregation so contract status appears after other messages
-    _contract_status = _get_contract_status_output()
-    if _contract_status:
-        if "systemMessage" in output:
-            output["systemMessage"] = output["systemMessage"] + "\n\n" + _contract_status
-        else:
-            output["systemMessage"] = _contract_status
+    # Contract System Status — only surface when a gate is already blocking.
+    # systemMessage in Stop hooks always triggers a resend regardless of continue,
+    # so injecting unconditionally halts the LLM on every turn with telemetry data.
+    _is_blocking = output.get("continue") is False or output.get("decision") == "block"
+    if _is_blocking:
+        _contract_status = _get_contract_status_output()
+        if _contract_status:
+            if "systemMessage" in output:
+                output["systemMessage"] = output["systemMessage"] + "\n\n" + _contract_status
+            else:
+                output["systemMessage"] = _contract_status
 
     # Hook Health Summary (NEW)
     session_id = data.get("session_id") or data.get("sessionId") or data.get("CLAUDE_SESSION_ID")
@@ -4703,6 +4942,13 @@ def main():
             output["systemMessage"] = output["systemMessage"] + "\n\n" + alert_message
         else:
             output["systemMessage"] = alert_message
+
+    # Ensure advisory-only responses never misread as blocks.
+    # A Stop hook returning {"systemMessage": "..."} with no continue/decision
+    # is treated by Claude Code as a soft block, halting the LLM every turn
+    # that has contract telemetry. Explicitly approve when no gate fired.
+    if "continue" not in output and "decision" not in output:
+        output["continue"] = True
 
     print(json.dumps(output))
 

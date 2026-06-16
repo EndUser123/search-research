@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Tests for PreToolUse_delegation_gate.py and delegation_prospector state wiring."""
+"""Legacy compatibility tests for local delegation wrappers and state wiring.
+
+Canonical behavior now lives in the package test suite under
+P:/packages/.claude-marketplace/plugins/cc-aca-authority/tests/.
+"""
 
 from __future__ import annotations
 
@@ -10,6 +14,13 @@ import time
 from pathlib import Path
 
 import pytest
+
+pytestmark = pytest.mark.skip(
+    reason=(
+        "Legacy compatibility coverage; canonical delegation tests live in "
+        "P:/packages/.claude-marketplace/plugins/cc-aca-authority/tests/"
+    )
+)
 
 # Import the module being tested
 import sys

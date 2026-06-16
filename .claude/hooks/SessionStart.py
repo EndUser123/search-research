@@ -138,14 +138,46 @@ def run_setup_task(hook_name: str, input_data: str) -> tuple[list[str], float]:
                 pass  # Diagnostics failures must not break session start
 
         if result.returncode != 0:
-            # NOTE: stderr output suppressed - any stderr is treated as "hook error" by Claude Code
-            # Setup task failures are logged but don't block session start
-            pass
+            # Capture stderr in the diagnostics DB so the next occurrence
+            # is self-diagnosing. Stderr is still NOT re-emitted to stdout —
+            # Claude Code treats any stderr as a "hook error" and the user's
+            # silence is what we are trying to preserve here.
+            if DIAGNOSTICS_AVAILABLE and log_hook_invocation:
+                try:
+                    log_hook_invocation(
+                        hook_name=f"SessionStart.{hook_name}",
+                        event_type="SessionStart",
+                        action="warn",
+                        reason=(
+                            f"Sub-hook returned non-zero. RC={result.returncode} "
+                            f"stderr_len={len(stderr_text)}. "
+                            f"stderr[:500]={stderr_text[:500]!r}"
+                        ),
+                        duration_ms=duration_ms,
+                    )
+                except Exception:
+                    pass
         return _extract_contexts(stdout_text), duration_ms
-    except Exception:
+    except Exception as e:
         duration_ms = (time.perf_counter() - start_time) * 1000
         # NOTE: stderr output suppressed - any stderr is treated as "hook error" by Claude Code
         # Errors are logged but don't block session start
+        # DIAGNOSTIC PATCH (2026-06-01): surface the suppressed exception so the failing
+        # sub-hook is identifiable in diagnostics.db instead of appearing as a generic
+        # "SessionStart:resume hook error" to the user.
+        if DIAGNOSTICS_AVAILABLE and log_hook_invocation:
+            try:
+                import traceback
+                tb_text = "".join(traceback.format_exception(type(e), e, e.__traceback__))
+                log_hook_invocation(
+                    hook_name=f"SessionStart.{hook_name}",
+                    event_type="SessionStart",
+                    action="warn",
+                    reason=f"Sub-hook failed: {type(e).__name__}: {e}. Traceback: {tb_text[:1500]}",
+                    duration_ms=duration_ms,
+                )
+            except Exception:
+                pass  # Diagnostics failures must not break session start
         return [], duration_ms
 
 
@@ -197,6 +229,26 @@ def main():
         task_timings[task] = duration_ms
 
     total_duration_ms = (time.perf_counter() - total_start) * 1000
+
+    # Write last_session_diagnostics.json: a one-file forensic record of the
+    # most recent SessionStart. Best-effort; never block session start.
+    # Overwritten each session. The next "what just happened" investigation
+    # reads this single file instead of grepping JSONL.
+    try:
+        import datetime as _dt_mod
+        last_diag_path = Path("P:/.claude/state/last_session_diagnostics.json")
+        last_diag_path.parent.mkdir(parents=True, exist_ok=True)
+        last_diag = {
+            "timestamp": _dt_mod.datetime.now(_dt_mod.timezone.utc).isoformat(),
+            "total_duration_ms": round(total_duration_ms, 1),
+            "sub_hooks": [
+                {"name": name, "duration_ms": round(dur, 1)}
+                for name, dur in task_timings.items()
+            ],
+        }
+        last_diag_path.write_text(json.dumps(last_diag, indent=2), encoding="utf-8")
+    except Exception:
+        pass
 
     # Log total SessionStart duration to diagnostics
     if DIAGNOSTICS_AVAILABLE and log_hook_invocation:

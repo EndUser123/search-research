@@ -53,7 +53,7 @@ except ImportError:
 # Configure logging
 logger = logging.getLogger(__name__)
 if not logger.handlers:
-    handler = logging.StreamHandler()
+    handler = logging.StreamHandler(stream=sys.stdout)
     handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
@@ -66,7 +66,7 @@ LATENCY_WARNING_THRESHOLD_MS = 100  # Warn if state read takes >100ms
 # Paths
 HOOKS_DIR = Path(__file__).resolve().parent
 STATE_DIR = HOOKS_DIR / "state"
-LOGS_DIR = HOOKS_DIR / "logs"
+LOGS_DIR = HOOKS_DIR.parent / "logs"
 STATE_FILE = STATE_DIR / "dreaming-daemon-state.json"
 EVENTS_FILE = LOGS_DIR / "principle-events.jsonl"
 

@@ -128,7 +128,7 @@ def _get_active_turn_scope() -> tuple[str, str]:
         return "", ""
     try:
         # Add hooks directory to path for evidence_store import
-        hooks_dir = Path(r"P:\\\\\\.claude/hooks")
+        hooks_dir = Path("P:/.claude/hooks")
         if hooks_dir.exists() and str(hooks_dir) not in sys.path:
             sys.path.insert(0, str(hooks_dir))
         from evidence_store import get_active_turn

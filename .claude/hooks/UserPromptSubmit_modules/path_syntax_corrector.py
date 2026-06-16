@@ -72,10 +72,8 @@ def fix_windows_path(path: str) -> str:
     # Check if path is already well-formed (has separators between components)
     # If path has backslashes beyond the drive letter separator, it's likely already correct
     # Example: P:\.claude\hooks has \ at positions 2 and 10 - skip processing
-    if len(path) > 3 and path[1] == ":" and path[2] in ("\\", "/"):
-        # Check for additional backslashes in the path (beyond position 2)
-        if "\\" in path[3:]:
-            return path  # Already well-formed, skip processing
+    if len(path) >= 3 and path[1] == ":" and path[2] in ("\\", "/"):
+        return path  # Separator at position 2 — path root is well-formed
 
     # Extract drive letter and rest of path
     if len(path) >= 2 and path[1] == ":":

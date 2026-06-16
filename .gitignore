@@ -525,6 +525,7 @@ System Volume Information
 
 # Git worktrees (parallel branch working directories)
 /worktrees/
+/.worktrees/
 projects/*-fixes/
 tmpclaude*
 secrets/
@@ -591,3 +592,7 @@ backups/
 # Personal command stubs (not source packages)
 .claude/commands/
 .claude/.artifacts/
+
+# Local session export scratch artifacts
+/session_export/
+.claude/settings.json.bak.*

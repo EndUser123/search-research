@@ -1,6 +1,7 @@
 import ast
 import json
 import sys
+from pathlib import Path
 
 import logging as _li
 _HOOKS_DIR = Path(__file__).resolve().parent
@@ -41,11 +42,13 @@ def main():
         filename = file_path.replace("\\", "/").split("/")[-1]
         lineno = e.lineno or "?"
         msg = e.msg or "syntax error"
-            _logger.error(f"⛔ Python syntax error in {filename}:{lineno} — {msg}",)        if e.text:
+        _logger.error(f"⛔ Python syntax error in {filename}:{lineno} — {msg}")
+        if e.text:
             print(f"  → {e.text.strip()}", file=sys.stderr)
         sys.exit(2)
     except Exception as ex:
-            _logger.error(f"⛔ Python parse error in {file_path}: {ex}",)        sys.exit(2)
+        _logger.error(f"⛔ Python parse error in {file_path}: {ex}")
+        sys.exit(2)
 
     sys.exit(0)
 

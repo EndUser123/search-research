@@ -7,8 +7,7 @@ This test file verifies the end-to-end behavior:
 4. Normal commands still trigger enforcement
 """
 
-from UserPromptSubmit.intent_classifier import is_topic_inquiry
-from UserPromptSubmit.skill_enforcer import is_command_directive
+from UserPromptSubmit_modules.skill_enforcer import is_topic_inquiry, is_command_directive
 
 
 class TestIntentClassifierIntegration:

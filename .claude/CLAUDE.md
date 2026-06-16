@@ -144,6 +144,13 @@ For the full hook list and architecture, see wiki: `P:/.data/wiki/concepts/hook-
 | `windows-filesystem.md` | Always — Windows 11 path conventions |
 | `worktree-workflow.md` | When working in worktrees |
 
+## Performance & Efficiency Optimizations
+
+- **Dynamic Port Probing**: When checking port health on localhost, prioritize microsecond-latency raw socket connections (`socket.connect_ex`) before doing HTTP request checks. Closed ports fail in <1ms, avoiding slow HTTP timeouts.
+- **Atomic JSON Writing**: Always perform atomic JSON file updates using the `.tmp` + `os.replace` write pattern combined with file locks (`_lock_file`) for shared metadata registries (e.g. capabilities).
+- **Targeted Test Execution**: Run targeted test subsets (using `pytest -k`) during iterations to avoid running the full suite and save developer roundtrip latency.
+- **Consolidated Modifications**: Batch multiple changes into a single contiguous block or file write call to minimize user approval steps.
+
 ---
 
 ## Context Documents

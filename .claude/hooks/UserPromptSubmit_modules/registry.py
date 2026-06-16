@@ -850,14 +850,44 @@ def _load_hooks() -> None:
         # Module self-registers via @register_hook decorator
     )
 
+    # Add epistemic plugin __lib so local UserPromptSubmit_claim_classifier.py
+    # can import claim_layer_map.  UPS dir is NOT added here — if it were, importlib
+    # would find the plugin's claim_classifier before our local wrapper.
+    _EPISTEMIC_LIB = Path(
+        "P:/packages/.claude-marketplace/plugins/cc-aca-epistemic/__lib"
+    )
+    if str(_EPISTEMIC_LIB) not in sys.path:
+        sys.path.append(str(_EPISTEMIC_LIB))  # append = low priority, local wins
+
     # Load claim classifier for conditional hook routing
     # This hook runs FIRST (priority 0.5) to classify the prompt type
-    # claim_type is written to .state/claim_type_{terminal}.json for downstream gates
+    # claim_type is written to .state/claim_type_{terminal}.json for downstream gates.
+    # Local wrapper at UserPromptSubmit_claim_classifier.py writes to P:/.claude/hooks/.state/
+    # (the path claim_type.py reads) instead of the plugin's own dir.
     _try_import_hook(
         module_name="claim_classifier",
         module_path="UserPromptSubmit_claim_classifier",
         # Module self-registers via @register_hook decorator
         priority=0.5,
+    )
+
+    # Add epistemic plugin UPS dir for domain_constraint gate (after claim_classifier
+    # so the local wrapper is already imported and won't be shadowed).
+    _EPISTEMIC_UPS = Path(
+        "P:/packages/.claude-marketplace/plugins/cc-aca-epistemic/hooks/userpromptsubmit"
+    )
+    if str(_EPISTEMIC_UPS) not in sys.path:
+        sys.path.append(str(_EPISTEMIC_UPS))  # append = local modules still win
+
+    # Load domain_constraint gate from cc-aca-epistemic plugin.
+    # Detects domain context (hook/plugin engineering) and injects constraint context.
+    # Plugin file uses _hooks_dir = bootstrap(__file__) which resolves to global hooks dir,
+    # so state files land in P:/.claude/hooks/.state/ (correct location).
+    _try_import_hook(
+        module_name="domain_constraint",
+        module_path="UserPromptSubmit_domain_constraint_gate",
+        # Module self-registers via @register_hook decorator
+        priority=0.4,
     )
 
     # Load approval handler for /approve command detection

@@ -69,6 +69,15 @@ class TestGetAllowedExternalPaths:
         assert expected in result["exact_paths"], \
             f"Expected '{expected}' in exact_paths. Got: {result['exact_paths']}"
 
+    def test_exact_paths_contains_mcp_config(self):
+        """Test that exact_paths contains the Claude MCP config file."""
+        policy = DirectoryPolicy()
+        result = policy.get_allowed_external_paths()
+
+        expected = "C:/Users/brsth/.claude/.mcp.json"
+        assert expected in result["exact_paths"], \
+            f"Expected '{expected}' in exact_paths. Got: {result['exact_paths']}"
+
     def test_patterns_contains_site_packages_patterns(self):
         """Test that patterns contains site-packages wildcard patterns."""
         policy = DirectoryPolicy()

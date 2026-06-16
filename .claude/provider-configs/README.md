@@ -19,12 +19,15 @@ All providers expose an Anthropic-compatible API, so Claude Code needs no modifi
 
 ### Bifrost Routes
 
-Bifrost proxies to multiple providers via a local gateway at `http://localhost:8080/anthropic` by default.
-Override the origin with `BIFROST_BASE_URL` or the port with `BIFROST_HTTP_PORT` if needed.
+Bifrost proxies to multiple providers via a local gateway at `http://localhost:8080`. Claude Code is pointed at the local tool-normalizer shim at `http://localhost:3005/anthropic`, which forwards to Bifrost after fixing DeepSeek-incompatible function-tool envelopes.
+Override the Bifrost origin with `BIFROST_BASE_URL` or the port with `BIFROST_HTTP_PORT` if needed.
 
 | Command | Provider | Sonnet/Opus/Haiku |
 |---------|----------|-----------------|
-| `cc-bf` | Default (M27 + GLM-5.1) | M27 / GLM-5.1 / M27 |
+| `cc-bf` | Default 1M-safe split | Haiku/Sonnet: `OpenCodeGoAnthropic/deepseek-v4-flash -> qwen3.7-plus -> OpenCodeZenOpenAI/mimo-v2.5-free -> ...`; Opus: `Minimax/MiniMax-M3 -> OpenCodeGoAnthropic/qwen3.7-plus -> OpenCodeZenOpenAI/mimo-v2.5-free -> ...` |
+| `cc-bf claude-haiku-4-5` | OpenCode Go + Zen fallback | `OpenCodeGoAnthropic/deepseek-v4-flash` with fallback to `OpenCodeGoAnthropic/qwen3.7-plus`, then keyless OpenCode Zen free models |
+| `cc-bf claude-sonnet-4-6` | OpenCode Go + Zen fallback | `OpenCodeGoAnthropic/deepseek-v4-flash` with fallback to `OpenCodeGoAnthropic/qwen3.7-plus`, then keyless OpenCode Zen free models |
+| `cc-bf claude-opus-4-8` | OpenCode Go | `Minimax/MiniMax-M3` with fallback to `OpenCodeGoAnthropic/qwen3.7-plus` |
 | `cc-bf MiniMax-M2.7` | MiniMax | MiniMax-M2.7 all tiers |
 | `cc-bf glm-5.1` | Z.AI | glm-5.1 / glm-5.1 / glm-4.5-air |
 | `cc-bf glm-4.7` | Z.AI | glm-4.7 all tiers |
@@ -50,6 +53,33 @@ The route list is optimized for discoverability: short, memorable aliases like `
 3. **Priority selection** — canonical selection prefers manual aliases > short names (< 15 chars) > longest key
 
 The manualAliasMap in cc-bifrost.ps1 (lines ~634–647) defines explicit short names. Route list display (lines ~785–843) groups all keys pointing to the same model, then picks the shortest/best as the primary command.
+
+For Claude Code failover, keep the automatic fallback set in the 1M pool. The live policy now routes the Claude tiers as follows:
+
+- `claude-haiku-4-5` -> `OpenCodeGoAnthropic/deepseek-v4-flash` with fallback to `OpenCodeGoAnthropic/qwen3.7-plus`, `OpenCodeZenOpenAI/mimo-v2.5-free`, `OpenCodeZenOpenAI/nemotron-3-super-free`, `OpenCodeZenOpenAI/nemotron-3-ultra-free`, `OpenCodeZenOpenAI/big-pickle`, then `z.ai/glm-5.1`
+- `claude-sonnet-4-6` -> same fallback chain as Haiku
+- `claude-opus-4-8` -> `Minimax/MiniMax-M3` with fallback to `OpenCodeGoAnthropic/qwen3.7-plus`, `OpenCodeZenOpenAI/mimo-v2.5-free`, `OpenCodeZenOpenAI/nemotron-3-super-free`, `OpenCodeZenOpenAI/nemotron-3-ultra-free`, `OpenCodeZenOpenAI/big-pickle`, then `z.ai/glm-5.1`
+
+The OpenCode Go DeepSeek OpenAI-compatible routes still 404 on `responses` in this environment, so if you point Claude Code at DeepSeek as a fallback, use the Anthropic-compatible OpenCode Go DeepSeek routes instead.
+
+OpenCode Zen free models are not OpenCode Go models. They use a separate keyless OpenAI-compatible provider:
+
+- Provider: `OpenCodeZenOpenAI`
+- Base URL: `https://opencode.ai/zen`
+- Active free routes: `opencode-zen/mimo-v2.5-free`, `opencode-zen/nemotron-3-super-free`, `opencode-zen/nemotron-3-ultra-free`, `opencode-zen/big-pickle`
+- Do not route `minimax-m3-free`: direct API probes return `Free promotion has ended for MiniMax M3 Free`
+
+### Bifrost Tool Shim
+
+`cc-bifrost.ps1` starts `scripts/bifrost_tool_shim.js` on `127.0.0.1:3005` and sets `ANTHROPIC_BASE_URL` to `http://localhost:3005/anthropic`. The shim is zero-dependency Node.js and forwards requests to `http://localhost:8080` with the original path preserved.
+
+For DeepSeek-targeted Claude routes, the shim normalizes OpenAI-shaped function tools before Bifrost dispatch:
+
+- fills missing `tool.function.name` from a top-level `tool.name`
+- drops empty `{"type":"function","function":{}}` tool entries
+- downgrades forced object `tool_choice` values to `"auto"`
+
+The shim deliberately does not rewrite native Anthropic `input_schema` tools. Logs are written to `%APPDATA%\bifrost\tool-shim.log`, and the PID is stored in `%APPDATA%\bifrost\bifrost-tool-shim.pid`.
 
 **For next maintainer:** If new models are added to Bifrost, add corresponding short aliases to `$manualAliasMap` to improve CLI discoverability. The display list will automatically use them as canonical commands.
 

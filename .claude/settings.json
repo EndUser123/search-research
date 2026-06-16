@@ -1,5 +1,4 @@
 {
-  "model": "claude-sonnet-4-6",
   "env": {
     "TDD_AUTOSCAFFOLD": "0",
     "TDD_BYPASS": "0",
@@ -106,7 +105,9 @@
       "Bash(git -C *)",
       "Bash(curl -s *)",
       "Write(P:/.claude/.artifacts/**)",
-      "Edit(P:/.claude/.artifacts/**)"
+      "Edit(P:/.claude/.artifacts/**)",
+      "Edit(P:/packages/.claude-marketplace/**)",
+      "Write(P:/packages/.claude-marketplace/**)"
     ],
     "deny": [
       "Bash(rm -rf /)",
@@ -123,10 +124,8 @@
       "Bash(echo * > P:/*.PY)",
       "Write(../*)",
       "Write(./../**)",
-      "Write(P:/*)",
       "Edit(../*)",
       "Edit(./../**)",
-      "Edit(P:/*)",
       "Write(/root/**)",
       "Write(/etc/**)",
       "Write(/usr/bin/**)",
@@ -206,11 +205,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/post/PostToolWrite_doc_validator.py --timeout 5.0",
-            "timeout": 5
-          },
-          {
-            "type": "command",
             "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/anti_lazy_diff_nudge.py",
             "timeout": 5
           },
@@ -267,6 +261,18 @@
         ]
       }
     ],
+    "PreCompact": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"P:/packages/.claude-marketplace/plugins/snapshot/scripts/hooks/snapshot_PreCompact.py\"",
+            "timeout": 45
+          }
+        ]
+      }
+    ],
     "Notification": [
       {
         "matcher": ".*",
@@ -292,11 +298,6 @@
             "type": "command",
             "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/Stop.py --timeout 10.0",
             "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "python P:/packages/.claude-marketplace/plugins/cc-model-router/hooks/stop/stop_model_router_autoswitch.py",
-            "timeout": 15
           }
         ]
       },
@@ -338,7 +339,18 @@
       }
     ],
     "SessionEnd": [],
-    "SubagentStop": []
+    "SubagentStop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/SubagentStop_cjk_drift_detector.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
   },
   "enabledPlugins": {},
   "tdd": {

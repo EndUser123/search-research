@@ -169,9 +169,11 @@ def run(data: dict) -> dict:
     message = _generate_block_message(mode)
 
     if mode == "block":
-            _logger.debug(message,)        return {"continue": False, "reason": "Missing --timeout flag"}
+        _logger.debug(message)
+        return {"continue": False, "reason": "Missing --timeout flag"}
     else:  # warn mode
-            _logger.debug(message,)        return {"continue": True, "reason": "Warning issued (advisory mode)"}
+        _logger.debug(message)
+        return {"continue": True, "reason": "Warning issued (advisory mode)"}
 
 
 if __name__ == "__main__":

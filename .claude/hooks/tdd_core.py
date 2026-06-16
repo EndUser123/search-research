@@ -100,14 +100,16 @@ def _lock_file_lockfile(lock_file_path: Path, timeout: float = 5.0) -> Iterator[
                     time.sleep(retry_delay)
                     retry_delay = min(
                         retry_delay * LOCK_TIMEOUT_MULTIPLIER,
-                        MAX_LOCK_RETRY_DELAY_MS / 1000.0),
+                        MAX_LOCK_RETRY_DELAY_MS / 1000.0,
+                    )
 
             except OSError:
                 # Can't check stat, just wait and retry
                 time.sleep(retry_delay)
                 retry_delay = min(
                     retry_delay * LOCK_TIMEOUT_MULTIPLIER,
-                    MAX_LOCK_RETRY_DELAY_MS / 1000.0),
+                    MAX_LOCK_RETRY_DELAY_MS / 1000.0,
+                )
 
         except OSError:
             # Other error, wait and retry
@@ -172,7 +174,8 @@ if sys.platform == "win32":
                 time.sleep(current_delay)
                 retry_delay = min(
                     retry_delay * LOCK_TIMEOUT_MULTIPLIER,
-                    MAX_LOCK_RETRY_DELAY_MS / 1000.0),
+                    MAX_LOCK_RETRY_DELAY_MS / 1000.0,
+                )
 
         try:
             yield
@@ -203,7 +206,8 @@ if sys.platform == "win32":
                 time.sleep(current_delay)
                 retry_delay = min(
                     retry_delay * LOCK_TIMEOUT_MULTIPLIER,
-                    MAX_LOCK_RETRY_DELAY_MS / 1000.0),
+                    MAX_LOCK_RETRY_DELAY_MS / 1000.0,
+                )
 
     def unlock_file(f: Any) -> None:
         """Legacy function - use file_lock context manager instead."""
@@ -1437,6 +1441,7 @@ def run_regression_tests(
                         "count": len(related_tests),
                     }
                 )
+
         except subprocess.TimeoutExpired:
             all_passed = False
             results.append(
@@ -1447,6 +1452,7 @@ def run_regression_tests(
                     "count": len(related_tests),
                 }
             )
+
         except Exception as e:
             all_passed = False
             results.append(

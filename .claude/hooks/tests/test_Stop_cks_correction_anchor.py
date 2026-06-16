@@ -174,7 +174,7 @@ class TestCksCorrectionAnchor:
         Stop_cks_correction_anchor must use ingest_correction, not ingest_memory.
         """
         import sys
-        cks_path = Path("P:/packages/search-research/core")
+        cks_path = Path("P:/packages/.claude-marketplace/plugins/search-research/core")
         if str(cks_path) not in sys.path:
             sys.path.insert(0, str(cks_path))
 

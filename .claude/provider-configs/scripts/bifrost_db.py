@@ -16,6 +16,17 @@ from pathlib import Path
 DB_PATH = Path.home() / "AppData" / "Roaming" / "bifrost" / "config.db"
 
 
+def _parse_json_list(raw_value):
+    """Parse a JSON list stored as text, returning [] on empty/malformed input."""
+    if not raw_value:
+        return []
+    try:
+        parsed = json.loads(raw_value)
+    except (TypeError, json.JSONDecodeError, ValueError):
+        return []
+    return parsed if isinstance(parsed, list) else []
+
+
 def get_routes() -> dict:
     """Return routing table as {model_name: {display, sonnet, opus, haiku}}."""
     conn = sqlite3.connect(DB_PATH)
@@ -51,7 +62,8 @@ def get_rules() -> list[dict]:
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
-        SELECT r.id, r.name, r.cel_expression, r.scope, r.priority, r.enabled, rt.provider, rt.model, rt.weight
+        SELECT r.id, r.name, r.cel_expression, r.scope, r.priority, r.enabled, r.fallbacks, r.chain_rule,
+               rt.provider, rt.model, rt.weight
         FROM routing_rules r
         LEFT JOIN routing_targets rt ON rt.rule_id = r.id
         ORDER BY r.priority DESC
@@ -65,8 +77,10 @@ def get_rules() -> list[dict]:
             "scope": row[3] or "global",
             "priority": row[4],
             "enabled": row[5],
-            "targets": [] if (row[6] is None or row[7] is None)
-                       else [{"provider": row[6], "model": row[7], "weight": row[8] or 1.0}],
+            "fallbacks": _parse_json_list(row[6]),
+            "chain_rule": bool(row[7]) if row[7] is not None else False,
+            "targets": [] if (row[8] is None or row[9] is None)
+                       else [{"provider": row[8], "model": row[9], "weight": row[10] or 1.0}],
         })
     conn.close()
     return {"rules": rules}
@@ -106,7 +120,26 @@ def get_status() -> dict:
     """)
     all_keys = [[row[0], row[1]] for row in c.fetchall()]
     all_keys_lower = [k[0].lower() for k in all_keys]
-    missing = [p for p in providers_with_rules if p.lower() not in all_keys_lower]
+
+    c.execute("""
+        SELECT name, custom_provider_config_json
+        FROM config_providers
+        WHERE custom_provider_config_json IS NOT NULL
+          AND custom_provider_config_json != ''
+    """)
+    keyless_providers = set()
+    for name, raw_config in c.fetchall():
+        try:
+            provider_config = json.loads(raw_config)
+        except (TypeError, json.JSONDecodeError, ValueError):
+            continue
+        if provider_config.get("is_key_less") is True:
+            keyless_providers.add(name.lower())
+
+    missing = [
+        p for p in providers_with_rules
+        if p.lower() not in all_keys_lower and p.lower() not in keyless_providers
+    ]
 
     conn.close()
     return {

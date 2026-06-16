@@ -16,47 +16,51 @@ from typing import Any
 # Configure logging
 logger = logging.getLogger(__name__)
 if not logger.handlers:
-    handler = logging.StreamHandler()
+    handler = logging.StreamHandler(stream=sys.stdout)
     handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
 
 # Constants
 DAEMON_MUTEX_NAME = "Global\\CSF_Semantic_Daemon_Startup"
-DAEMON_DISCOVERY_FILE = "data/semantic_daemon_discovery.json"
-# PROJECT_ROOT marker files (search upward from hook to find)
+# Canonical discovery file: the daemon (unified_semantic_daemon.py) writes it and
+# all clients (daemon_client.py) read it at this absolute path, independent of cwd.
+# Do NOT derive this from project_root — the daemon hardcodes _csf_root=P:/__csf.
+DAEMON_DISCOVERY_FILE = Path("P:/__csf/data/semantic_daemon_discovery.json")
+# Marketplace plugin that owns the daemon module + contrib package (post-migration).
+SEARCH_RESEARCH_ROOT = Path("P:/packages/.claude-marketplace/plugins/search-research")
+# Module spawned to launch the daemon. The src/daemons wrapper has NO __main__ block,
+# so spawning it does nothing; the inner contrib module has __main__ + correct paths.
+DAEMON_MODULE = "contrib.semantic_daemon.unified_semantic_daemon"
 
 
 def get_project_root() -> Path:
-    """Find project root by searching for marker files.
+    """Find the search-research plugin root that owns the daemon module.
 
-    For the semantic daemon, we specifically look for search-research projects.
-    Uses hardcoded paths since this hook is specifically for the search-research daemon.
+    The daemon lives in the marketplace plugin after migration. We resolve to the
+    directory that actually contains the daemon module so the spawn cwd is correct.
     """
 
-    # For this specific daemon, we know it's for search-research package
-    # The daemon discovery file is at P:/__csf/data/semantic_daemon_discovery.json
-    # So we look for the project that has src/daemons/unified_semantic_daemon.py
+    # The daemon module is launched as `contrib.semantic_daemon...` with this as cwd.
     possible_roots = [
-        Path("P:/packages/search-research"),
+        SEARCH_RESEARCH_ROOT,
+        Path("P:/packages/search-research"),  # legacy pre-migration location
         Path("P:/__csf"),
     ]
 
     for candidate in possible_roots:
-        src_daemon = candidate / "src" / "daemons" / "unified_semantic_daemon.py"
-        if src_daemon.exists():
+        inner_daemon = candidate / "contrib" / "semantic_daemon" / "unified_semantic_daemon.py"
+        if inner_daemon.exists():
             return candidate
 
-    # Fallback: use script's parent.parent.parent (hook -> .claude -> project)
-    script_path = Path(__file__).resolve()
-    return script_path.parent.parent.parent
+    # Fallback: marketplace root (most likely correct even if marker check failed).
+    return SEARCH_RESEARCH_ROOT
 
 
 def is_daemon_running() -> bool:
     """Check if daemon is already running via discovery file."""
     try:
-        project_root = get_project_root()
-        discovery_file = project_root / DAEMON_DISCOVERY_FILE
+        discovery_file = DAEMON_DISCOVERY_FILE
 
         if not discovery_file.exists():
             return False
@@ -103,8 +107,7 @@ def kill_stale_daemons(current_pid: int | None = None) -> None:
         # CRITICAL: Read discovery file FIRST to get canonical PID
         if current_pid is None:
             try:
-                project_root = get_project_root()
-                discovery_file = project_root / DAEMON_DISCOVERY_FILE
+                discovery_file = DAEMON_DISCOVERY_FILE
                 if discovery_file.exists():
                     data = json.loads(discovery_file.read_text(encoding="utf-8"))
                     current_pid = data.get("pid")
@@ -153,7 +156,7 @@ def start_daemon(project_root: Path) -> int | None:
         )
 
         proc = subprocess.Popen(
-            [python_exe, "-m", "src.daemons.unified_semantic_daemon"],
+            [python_exe, "-m", DAEMON_MODULE],
             cwd=project_root,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
@@ -178,8 +181,8 @@ def check_daemon_health(project_root: Path) -> bool:
     try:
         import sys
 
-        sys.path.insert(0, str(project_root))
-        from daemons.daemon_client import DaemonClient
+        sys.path.insert(0, str(project_root / "contrib"))
+        from semantic_daemon.daemon_client import DaemonClient
 
         client = DaemonClient(auto_start=False, timeout=1.0)
         result = client.search("cks", "test", limit=1)
@@ -189,11 +192,17 @@ def check_daemon_health(project_root: Path) -> bool:
         return False
 
 
-def wait_for_daemon_discovery(project_root: Path, timeout: float = 5.0) -> bool:
-    """Wait for daemon to write discovery file."""
+def wait_for_daemon_discovery(project_root: Path, timeout: float = 8.0) -> bool:
+    """Wait for daemon to write discovery file.
+
+    Note: cold start loads FAISS + SentenceTransformer (~30s) before the daemon
+    writes its discovery file, so this short wait usually times out on the session
+    that first launches the daemon. That is acceptable: the hook is fail-open and
+    the daemon persists, so subsequent sessions find it via is_daemon_running().
+    """
     import time
 
-    discovery_file = project_root / DAEMON_DISCOVERY_FILE
+    discovery_file = DAEMON_DISCOVERY_FILE
     start = time.time()
 
     while time.time() - start < timeout:

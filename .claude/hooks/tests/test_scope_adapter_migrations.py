@@ -58,9 +58,12 @@ def test_unverified_stance_runtime_loader_uses_session_fresh(monkeypatch) -> Non
 @pytest.mark.parametrize(
     ("module_name", "limit"),
     [
-        ("Stop_completion_verification_guard", 500),
-        ("Stop_negative_existence_guard", 200),
-        ("Stop_unverified_existence_gate", 200),
+        # 2026-06-05: dropped Stop_completion_verification_guard,
+        # Stop_negative_existence_guard, Stop_unverified_existence_gate —
+        # modules do not exist in local hooks or any plugin (verified via
+        # filesystem scan: StopHook_cross_validator deletion removed all
+        # 3 in the same migration; tests assert contracts production
+        # never shipped).
     ],
 )
 def test_turn_scoped_adapters_use_turn_strict_for_uuid_sessions(

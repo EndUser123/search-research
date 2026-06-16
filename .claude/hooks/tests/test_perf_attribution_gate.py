@@ -20,7 +20,9 @@ from StopHook_perf_attribution_gate import (
     PERF_CLAIM_PATTERNS,
     TIMING_CODE_MARKERS,
     HEDGE_PATTERNS,
+    META_SIGNALS,
     _detect_perf_claims,
+    _is_meta_analysis,
     _timing_code_was_read,
     run,
 )
@@ -165,6 +167,54 @@ class TestDetectPerfClaims:
         text = "Ensure this step is not the bottleneck before shipping"
         assert _detect_perf_claims(text) is False
 
+    def test_small_timing_estimate_not_blocked(self):
+        """'~10 seconds' as a prose estimate for a tool call should NOT trigger (< 3 digits)."""
+        text = "That single test (one Bash call, ~10 seconds) falsifies or confirms my diagnosis."
+        assert _detect_perf_claims(text) is False
+
+    def test_large_timing_measurement_still_blocked(self):
+        """'~480s' (3+ digits) should still trigger detection."""
+        text = "The ~480s total is dominated by fetch operations."
+        assert _detect_perf_claims(text) is True
+
+    def test_medium_timing_not_blocked(self):
+        """'~60s' (2 digits) should NOT trigger after the narrowing."""
+        text = "The fetch step takes ~60s in most cases."
+        assert _detect_perf_claims(text) is False
+
+
+class TestMetaAnalysis:
+    """Test _is_meta_analysis and its effect on run()."""
+
+    def test_meta_signal_detected(self):
+        """Text containing a META_SIGNAL string should return True."""
+        text = "The PERF_CLAIM_PATTERNS list includes `\\bbottleneck\\b`."
+        assert _is_meta_analysis(text) is True
+
+    def test_plain_text_not_meta(self):
+        """Ordinary text without implementation strings is not meta."""
+        text = "The bottleneck is clearly yt-dlp."
+        assert _is_meta_analysis(text) is False
+
+    def test_meta_signals_list_nonempty(self):
+        """META_SIGNALS must contain entries."""
+        assert len(META_SIGNALS) > 0
+
+    def test_run_allows_meta_analysis_response(self):
+        """run() exempts responses that discuss the gate's own implementation vocabulary."""
+        payload = {
+            "session_id": "test-session-123",
+            "terminal_id": "test-terminal-456",
+            "last_assistant_message": (
+                "The PERF_CLAIM_PATTERNS list includes `\\bbottleneck\\b` which fires "
+                "on meta-analysis responses that discuss the gate's own trigger vocabulary. "
+                "The _detect_perf_claims function checks ±50 chars of context."
+            ),
+            "stop_hook_active": False,
+        }
+        result = run(payload)
+        assert result["continue"] is True
+
 
 class TestTimingCodeWasRead:
     """Test _timing_code_was_read function."""
@@ -290,6 +340,11 @@ class TestPatternConstants:
         """HEDGE_PATTERNS should be a list."""
         assert isinstance(HEDGE_PATTERNS, list)
         assert len(HEDGE_PATTERNS) > 0
+
+    def test_meta_signals_is_list(self):
+        """META_SIGNALS should be a list."""
+        assert isinstance(META_SIGNALS, list)
+        assert len(META_SIGNALS) > 0
 
     def test_contains_expected_markers(self):
         """TIMING_CODE_MARKERS should contain expected values."""

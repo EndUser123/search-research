@@ -54,220 +54,18 @@ def _check_file(path: Path) -> str | None:
     return None
 
 
-# Subdirectories that contain non-hook utilities (not actual orphan hooks)
-_ORPHAN_EXCLUDE_SUBDIRS = frozenset(
-    [
-        "damage-control",
-        "docs",
-        "analysis",
-        "baselines",
-        "evidence",
-        "competence",
-        "scripts",
-        "_archive",
-        "tests",
-    ]
-)
-
-# File-name prefixes for known non-hook utilities (standalone analyzers, not registered hooks)
-# Covers infrastructure support modules that are imported by hooks but are NOT hooks themselves.
-# These are top-level utility modules (e.g., artifact_claims.py, assumption_audit_v2.py,
-# cc_diagnostic_logger.py, shared_utils.py) that live in hooks/ but are never registered
-# as hooks in any router or settings.json.
-#
-# Two matching modes:
-# - startswith: for prefixes WITHOUT trailing underscore (e.g., "dreaming_", "debug_")
-#   applied via name.startswith(prefix)
-# - underscore: for prefixes WITH trailing underscore (e.g., "artifact_", "clean_")
-#   applied via name.startswith(prefix) — the underscore is part of the prefix string
-_ORPHAN_EXCLUDE_PREFIXES = (
-    # Infrastructure / support modules (underscore-delimited)
-    "artifact_",
-    "assumption_",
-    "auto_",
-    "autonomy_",
-    "backup_",
-    "block_",
-    "cc_",
-    "change_",
-    "check_",
-    "clean_",
-    "cleanup_",
-    "command_",
-    "commit_",
-    "claim_",
-    "compatibility_",
-    "config_",
-    "constraint_",
-    "context_",
-    "conversational_",
-    "credential_",
-    "cross_",
-    "db_",
-    "decision_",
-    "delegate_",
-    "demand_",
-    "diagnostic_",
-    "discovery_",
-    "domain_",
-    "edit_",
-    "empirical_",
-    "enforcement_",
-    "evidence_",
-    "execution_",
-    "exploration_",
-    "failure_",
-    "feedback_",
-    "find_",
-    "focus_",
-    "forward_",
-    "framework_",
-    "generic_",
-    "governance_",
-    "graph_",
-    "grounded_",
-    "guard_",
-    "handoff_",
-    "health_",
-    "heuristic_",
-    "hypothesis_",
-    "idea_",
-    "identity_",
-    "impact_",
-    "ingest_",
-    "inspect_",
-    "intent_",
-    "internal_",
-    "invalidate_",
-    "journal_",
-    "knowledge_",
-    "ledger_",
-    "library_",
-    "lint_",
-    "logic_",
-    "loss_",
-    "manifest_",
-    "memory_",
-    "merge_",
-    "model_",
-    "monitor_",
-    "motivation_",
-    "naming_",
-    "narrative_",
-    "norm_",
-    "novelty_",
-    "observation_",
-    "opinion_",
-    "ordering_",
-    "origin_",
-    "outcome_",
-    "overlap_",
-    "ownership_",
-    "pairing_",
-    "parsing_",
-    "patch_",
-    "path_",
-    "pattern_",
-    "phase_",
-    "placement_",
-    "policy_",
-    "predict_",
-    "preference_",
-    "priority_",
-    "problem_",
-    "process_",
-    "prompt_",
-    "provenance_",
-    "quality_",
-    "query_",
-    "rank_",
-    "rating_",
-    "reasoning_",
-    "recommendation_",
-    "recovery_",
-    "refinement_",
-    "reflection_",
-    "region_",
-    "relevance_",
-    "render_",
-    "report_",
-    "requirement_",
-    "resolve_",
-    "resource_",
-    "restore_",
-    "result_",
-    "retrieval_",
-    "rollback_",
-    "root_",
-    "routing_",
-    "safety_",
-    "saliency_",
-    "schema_",
-    "scope_",
-    "scratch_",
-    "search_",
-    "segment_",
-    "self_",
-    "semantic_",
-    "sensation_",
-    "sequence_",
-    "session_",
-    "severity_",
-    "signal_",
-    "similarity_",
-    "skill_",
-    "sleuth_",
-    "smart_",
-    "snapshot_",
-    "source_",
-    "span_",
-    "spec_",
-    "stage_",
-    "state_",
-    "status_",
-    "storage_",
-    "story_",
-    "strategy_",
-    "structural_",
-    "subagent_",
-    "suggestion_",
-    "summary_",
-    "suppression_",
-    "synchronization_",
-    "syntax_",
-    "tag_",
-    "tactic_",
-    "taxonomy_",
-    "template_",
-    "terminal_",
-    "test_",
-    "theory_",
-    "thinking_",
-    "thread_",
-    "throughput_",
-    "timestamp_",
-    "tool_",
-    "topic_",
-    "tracking_",
-    "trade_",
-    "transformation_",
-    "trigger_",
-    "truth_",
-    "type_",
-    "upstream_",
-    "utterance_",
-    "validation_",
-    "value_",
-    "version_",
-    "violation_",
-    "visibility_",
-    "warning_",
-    "weight_",
-    "workflow_",
-    "worktree_",
-    # Explicit standalone analyzers and scripts
-    "analyze_",
-    "adversarial_",
+# Hook event name prefixes — only files matching these patterns are actual hooks.
+# Invert the approach: instead of excluding non-hooks via deny-list (always has gaps),
+# only include files that follow hook naming conventions. This is self-maintaining.
+_HOOK_EVENT_PREFIXES = (
+    "PreToolUse_",
+    "PostToolUse_",
+    "StopHook_",
+    "Stop_",
+    "SessionStart_",
+    "UserPromptSubmit_",
+    "PreCompact_",
+    "SubAgentStop_",
 )
 
 # Router files that should be excluded from orphan detection
@@ -353,12 +151,14 @@ def _collect_wired_hook_files() -> list[Path]:
 def _collect_router_hooks() -> set[str]:
     """Collect all hooks registered via router patterns.
 
-    Scans five registration mechanisms:
+    Scans six registration mechanisms:
     1. SETUP_SEQUENCE in SessionStart.py
     2. UNIVERSAL + TOOL_HOOKS in PreToolUse.py
     3. HOOK_SEQUENCE in Stop_router.py
     4. create_registry() in posttooluse/__init__.py
     5. core_hook_modules in UserPromptSubmit_modules/registry.py
+    6. Inline `from X import Y` / `import X` statements inside any router file
+       (so library modules imported at runtime are not flagged as orphans)
     """
     import re
 
@@ -447,13 +247,46 @@ def _collect_router_hooks() -> set[str]:
         except Exception:
             pass
 
+    # ── 6. Inline imports inside router files ──────────────────────────────
+    # A hook .py file in HOOKS_DIR may be a library module that is imported
+    # by a registered router at runtime (e.g. PostToolUse_router.py does
+    # `from PostToolUse_artifact_access_tracker import track_tool_use`).
+    # Treat any module name that any router imports as wired.
+    router_paths = [
+        HOOKS_DIR / "PostToolUse_router.py",
+        HOOKS_DIR / "PreToolUse.py",
+        HOOKS_DIR / "Stop_router.py",
+        HOOKS_DIR / "SessionStart.py",
+        HOOKS_DIR / "UserPromptSubmit_router.py",
+    ]
+    # Match: `from <name> import ...` and `import <name>` (top-level only, no dots)
+    import_re = re.compile(
+        r"^\s*(?:from\s+(\w+)\s+import|import\s+(\w+))(?:\s|$)",
+        re.MULTILINE,
+    )
+    for router_path in router_paths:
+        if not router_path.exists():
+            continue
+        try:
+            src = router_path.read_text(encoding="utf-8")
+            for match in import_re.finditer(src):
+                mod_name = match.group(1) or match.group(2)
+                if not mod_name:
+                    continue
+                # Skip stdlib / third-party imports — only count imports that
+                # resolve to a sibling .py file in HOOKS_DIR
+                if (HOOKS_DIR / f"{mod_name}.py").exists():
+                    router_hooks.add(f"{mod_name}.py")
+        except Exception:
+            pass
+
     return router_hooks
 
 
 def _collect_orphan_hooks(wired: list[Path]) -> list[Path]:
     """Find hook .py files not in any wired registry.
 
-    Cross-checks settings.json direct entries AND all five router patterns.
+    Cross-checks settings.json direct entries AND all six router patterns.
     """
     wired_names = {p.name.lower() for p in wired}
     router_hooks = _collect_router_hooks()
@@ -480,6 +313,23 @@ def _collect_orphan_hooks(wired: list[Path]) -> list[Path]:
         if "/" in name:
             if name.split("/")[-1].lower() in wired_names:
                 return True
+        # Handle EventName-prefixed bare names (e.g., "PostToolUse_adversarial_aggregate.py")
+        # Cross-check against both flat and path-style router entries
+        name_without_event = name
+        for prefix in _HOOK_EVENT_PREFIXES:
+            if name.startswith(prefix):
+                name_without_event = name[len(prefix):]
+                break
+        if name_without_event != name:
+            # Check the event-prefix-stripped name against flat_names (snake_case.py)
+            snake_lower = name_without_event.lower()
+            if snake_lower in flat_names:
+                return True
+            # Also check path-style: "posttooluse/adversarial_aggregate.py"
+            for subdir in ["posttooluse", "stop", "PreToolUse", "UserPromptSubmit_modules"]:
+                path_style = f"{subdir.lower()}/{snake_lower}"
+                if path_style in path_names:
+                    return True
         return False
 
     orphans: list[Path] = []
@@ -500,13 +350,8 @@ def _collect_orphan_hooks(wired: list[Path]) -> list[Path]:
         # Exclude subdirectory packages (hooks inside them are tracked via path_names)
         if item.is_dir() and name.lower() in {s.lower() for s in _HOOK_SUBDIRS}:
             continue
-        # Exclude known non-hook subdirectory contents
-        if item.is_dir() and name.lower() in {s.lower() for s in _ORPHAN_EXCLUDE_SUBDIRS}:
-            continue
-
-        # Exclude known non-hook utility files by prefix (analyzers, standalone scripts)
-        # FIX: Use case-insensitive comparison since _ORPHAN_EXCLUDE_PREFIXES is all-lowercase
-        if item.is_file() and any(name.lower().startswith(p) for p in _ORPHAN_EXCLUDE_PREFIXES):
+        # Only scan files that match hook naming conventions (allow-list approach)
+        if item.is_file() and not any(name.startswith(p) for p in _HOOK_EVENT_PREFIXES):
             continue
 
         # For files in HOOK_SUBDIRS, construct the path-style name and check
@@ -608,7 +453,7 @@ def main() -> int:
     # Orphan detection: warn about hook files not in any registry
     orphans = _collect_orphan_hooks(files)
     for orphan in orphans:
-        failures.append(f"ORPHAN: {orphan.name} (wired but not registered)")
+        failures.append(f"ORPHAN: {orphan.name} (not in router registry)")
 
     report_path = None
     report_write_error = None

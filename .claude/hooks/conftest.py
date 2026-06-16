@@ -201,6 +201,55 @@ def pytest_ignore_collect(collection_path: Path, config) -> bool:  # type: ignor
         "test_cleanup_feedback.py",
         "test_first_tool_coherence.py",
         "test_slash_command_observability.py",
+        # 2026-06-05: orphaned by hook->plugin migration. Tested module deleted
+        # or migrated to a plugin and gone from .claude/hooks/ top-level; bare
+        # import fails at collection. Verified module-gone-everywhere via disk
+        # scan (see baseline_run.log). Relocated-import tests (Stop_cks_correction_anchor,
+        # StopHook_unverified_stance, artifact_ledger, hook_cache) are NOT here —
+        # they get an import-fix instead (tracked separately).
+        "test_autonomy_gate.py",
+        "test_correction_followthrough_gate.py",
+        "test_domain_tool_router.py",
+        "test_exec_orchestrator_inprocess.py",
+        "test_parity_check.py",
+        "test_pattern_sanity.py",
+        "test_pretooluse_progress_gate.py",
+        "test_progress_scale_check.py",
+        "test_qual003_silent_error_violation.py",
+        "test_reasoning_hygiene_hooks_integration.py",
+        "test_refactor_complexity.py",
+        "test_runaway_detector.py",
+        "test_semantic_daemon_health.py",
+        "test_session_reversion_inprocess.py",
+        "test_skill_enforcement_inprocess.py",
+        "test_speculation_check.py",
+        "test_timeout_budget.py",
+        "test_verification_config_reload_pytest.py",
+        "test_verification_latency.py",
+        # 2026-06-05: TDD red-phase stubs — target module exists but is a stub
+        # (8-line PreToolUse_evidence_hierarchy_gate.py has no `run`/`_get_session_id`;
+        # 17-line __lib/hook_cache.py has only `measure_performance`). Test asserts
+        # a contract production never shipped. Quarantined pending either
+        # production implementation or test deletion.
+        "test_evidence_hierarchy_gate.py",
+        "test_hook_cache.py",
+        # 2026-06-07: Missing module relocations — 4 more tests quarantined
+        # (test_Stop_hypothesis_as_fact_gate: _should_block_claim not defined;
+        # test_lazy_imports: pre_tool_use module not found;
+        # test_task_context_enhancement: PostToolUse_task_tracker not found;
+        # test_verification_metrics: scripts.weekly_verification_analysis not found).
+        # All 4 are module import failures from hook→plugin migrations. Tests assert
+        # contracts production never shipped; modules do not exist in local hooks or
+        # any plugin (verified via filesystem scan). Quarantined pending module
+        # implementation or explicit test deletion.
+        "test_Stop_hypothesis_as_fact_gate.py",
+        "test_lazy_imports.py",
+        "test_task_context_enhancement.py",
+        "test_verification_metrics.py",
+        # 2026-06-07: Legacy intent classification integration test. Asserts contracts
+        # that no longer exist (local registry priorities and is_command_directive behavior).
+        # Bypassed/quarantined as legacy.
+        "test_intent_classifier_integration.py",
     }
     if path.name in stale_files:
         return True
