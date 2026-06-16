@@ -29,7 +29,7 @@ class Config:
     )
 
     # CKS (Constitutional Knowledge System) path
-    CKS_DB_PATH: str = os.getenv("SEARCH_RESEARCH_CKS_DB_PATH", "P:\\\\\\__csf/data/cks.db")
+    CKS_DB_PATH: str = os.getenv("SEARCH_RESEARCH_CKS_DB_PATH", "P:/.data/cks.db")
 
     # Source code search paths
     SOURCE_ROOTS: list[str] = (

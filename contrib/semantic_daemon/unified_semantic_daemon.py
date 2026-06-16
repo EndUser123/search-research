@@ -121,6 +121,13 @@ STARTUP_TIMEOUT = 6.0
 IDLE_WORK_SHORT = 5.0
 IDLE_WORK_LONG = 900.0
 CHS_REINDEX_INTERVAL = 300.0  # Re-index CHS every 5 minutes (300 seconds) when idle
+# CHS background indexing is DISABLED by default: its subsystem still has unmigrated
+# imports (search_research.backends.local.chs_incremental fails with "No module named
+# 'core'", and faiss_vector_store / chat_history_search were not migrated), so the
+# background thread pins ~11 cores without completing. The daemon's hook-critical value
+# (CKS retrieval + compute_embedding) does NOT need CHS indexing. Re-enable once the CHS
+# subsystem is migrated:  CSF_DAEMON_CHS_INDEX_ENABLED=1
+CHS_BACKGROUND_INDEX_ENABLED = os.environ.get("CSF_DAEMON_CHS_INDEX_ENABLED", "0").lower() in ("1", "true", "yes")
 FAISS_UPDATE_INTERVAL = 600.0  # Update FAISS index every 10 minutes idle
 FAISS_MAX_AGE = 86400.0  # Force full rebuild if FAISS index is older than 24 hours (86400 seconds)
 FAISS_INDEX_PATH = _csf_root / "data" / "chat_history_faiss_424k"
@@ -203,9 +210,12 @@ SKILL_COMMAND_EXAMPLES = {
 # Memory Management Constants
 # =============================================================================
 # Memory limits and thresholds for daemon startup and operation
-MAX_MEMORY_MB = (
-    8192  # 8GB cap per daemon instance (self-termination) - increased to handle CKS+FAISS+overhead
-)
+MAX_MEMORY_MB = int(
+    os.environ.get("CSF_DAEMON_MAX_MEMORY_MB", "16384")
+)  # 16GB default cap per daemon (self-termination). Was 8192, which sat BELOW the real
+# working set (FAISS 424k + mpnet CKS ~4GB + MiniLM + torch/cuda ≈ 8-12GB) and caused a
+# self-terminate -> respawn -> reload thrash (224 self-terminations observed). Override
+# via CSF_DAEMON_MAX_MEMORY_MB. Machine has 64GB, so 16GB leaves ample headroom.
 STARTUP_MEMORY_HEADROOM_MB = 1024  # 1GB headroom for model loading
 FAISS_ESTIMATED_MEMORY_MB = 350  # Estimated FAISS index memory (116k vectors @ 768 dim)
 CKS_MODEL_MEMORY_MB = (
@@ -553,7 +563,7 @@ class UnifiedSemanticDaemon:
         self._last_heavy_task_time = 0
         self._last_chs_reindex_time = 0  # Track last CHS re-index
         self._last_faiss_update_time = 0  # Track last FAISS update
-        self._faiss_update_enabled = True  # Enable/disable FAISS updates
+        self._faiss_update_enabled = CHS_BACKGROUND_INDEX_ENABLED  # gated by CSF_DAEMON_CHS_INDEX_ENABLED
         self._faiss_updating = False  # Flag to prevent concurrent FAISS updates
         self._faiss_dirty = False  # Flag set by write-signal to trigger immediate FAISS update
         self._staleness_cache = {"entries": {}, "last_updated": 0}
@@ -970,12 +980,26 @@ class UnifiedSemanticDaemon:
                 existing_pipe = data.get("pipe_name", "")
 
                 if existing_pid and existing_pid != self.pid:
-                    logger.warning(
-                        f"Another daemon is already running (pid={existing_pid}, pipe={existing_pipe}). "
-                        f"This instance (pid={self.pid}) will NOT start server loop."
+                    # Only defer if that PID is ACTUALLY still alive. A stale
+                    # discovery file left behind by a crashed daemon must not block
+                    # startup. We already acquired the OS singleton mutex above
+                    # ("this IS the canonical daemon"), so if existing_pid is dead
+                    # the file is simply stale and we should take it over. Without
+                    # this liveness check, a crashed daemon's leftover discovery
+                    # file permanently blocked every restart (observed: daemon
+                    # 1087188 died from thread exhaustion, then no new daemon could
+                    # start because its discovery file still named the dead pid).
+                    if psutil.pid_exists(existing_pid):
+                        logger.warning(
+                            f"Another daemon is already running (pid={existing_pid}, pipe={existing_pipe}). "
+                            f"This instance (pid={self.pid}) will NOT start server loop."
+                        )
+                        self._running = False
+                        return False
+                    logger.info(
+                        f"Discovery file names a dead daemon (pid={existing_pid}); "
+                        f"treating it as stale and taking over as pid={self.pid}."
                     )
-                    self._running = False
-                    return False
             except (OSError, ValueError, json.JSONDecodeError):
                 # Corrupted discovery file - treat as no daemon running
                 pass
@@ -1296,7 +1320,7 @@ class UnifiedSemanticDaemon:
         self._log_to_file(
             f"[IDLE] Time since re-index: {time_since_reindex:.0f}s / {CHS_REINDEX_INTERVAL:.0f}s"
         )
-        if time_since_reindex > CHS_REINDEX_INTERVAL:
+        if CHS_BACKGROUND_INDEX_ENABLED and time_since_reindex > CHS_REINDEX_INTERVAL:
             self._log_to_file("[IDLE] CHS re-index triggered - calling _ensure_chs_indexed()...")
             try:
                 self._ensure_chs_indexed()
@@ -1378,76 +1402,6 @@ class UnifiedSemanticDaemon:
             "time_since_reindex": (
                 time.time() - self._last_chs_reindex_time if self._last_chs_reindex_time > 0 else 0
             ),
-        }
-
-    def get_health_status(self) -> dict[str, Any]:
-        """Get unified health status for CKS/CHS/FAISS subsystems.
-
-        Returns:
-            Dict with health status for all subsystems and overall status.
-        """
-        import time
-
-        # FAISS staleness check
-        faiss_stale_secs = (
-            time.time() - self._last_faiss_update_time if self._last_faiss_update_time > 0 else 0
-        )
-        faiss_stale_days = faiss_stale_secs / 86400
-
-        # Determine FAISS status based on staleness
-        if faiss_stale_days < 1:
-            faiss_status = "fresh"
-        elif faiss_stale_days < 7:
-            faiss_status = "stale"
-        else:
-            faiss_status = "critical"
-
-        # Get FAISS vector count
-        faiss_vector_count = 0
-        faiss_healthy = True
-        try:
-            from src.core.faiss_vector_store import FAISSVectorStore
-
-            store = FAISSVectorStore(index_path=str(FAISS_INDEX_PATH))
-            if store._loaded:
-                info = store.get_collection_info()
-                faiss_vector_count = info.get("vectors_count", 0)
-            else:
-                faiss_healthy = False
-        except Exception:
-            faiss_healthy = False
-
-        # Determine overall status
-        overall = "healthy"
-        if faiss_status == "critical" or not faiss_healthy:
-            overall = "degraded"
-        elif faiss_status == "stale":
-            overall = "degraded"
-
-        # Get CKS entry count
-        cks_entries_count = 0
-        if self._cks is not None:
-            try:
-                stats = self._cks.get_statistics()
-                cks_entries_count = stats.get("total_entries", 0)
-            except Exception:
-                cks_entries_count = 0
-
-        return {
-            "faiss": {
-                "healthy": faiss_healthy,
-                "index_exists": FAISS_INDEX_PATH.exists(),
-                "vector_count": faiss_vector_count,
-                "last_update": self._last_faiss_update_time,
-                "staleness_days": faiss_stale_days,
-                "status": faiss_status,
-            },
-            "chs": self.get_chs_index_status(),
-            "cks": {
-                "healthy": self._cks is not None,
-                "entries_count": cks_entries_count,
-            },
-            "overall": overall,
         }
 
     def handle_shutdown_signal(self, signal_name: str) -> None:
@@ -2482,34 +2436,15 @@ class UnifiedSemanticDaemon:
             import_error = None
             # Try multiple import strategies
             self._log_to_file("[CKS] Attempting CKS import...")
+            # Canonical module path: the editable package maps `search_research` -> core/,
+            # so CKS lives at search_research.cks.unified (core/cks/unified.py). The former
+            # cascade (search_research.core..., knowledge.systems..., relative, and a dead
+            # _csf_root/src/cks/unified.py importlib path) was all wrong post-migration and
+            # only masked the real error, causing repeated failed loads every idle cycle.
             try:
-                from search_research.core.cks.unified import CKS
-            except ImportError as e1:
+                from search_research.cks.unified import CKS
+            except Exception as e1:
                 import_error = e1
-                try:
-                    # Try direct import from src (when __csf is in sys.path)
-                    from knowledge.systems.cks.unified import CKS
-                except ImportError as e2:
-                    import_error = e2
-                    try:
-                        # Try relative import
-                        from ..cks.unified import CKS
-                    except (ImportError, ValueError) as e3:
-                        import_error = e3
-                        try:
-                            # Last resort: import using importlib
-                            import importlib.util
-
-                            spec = importlib.util.spec_from_file_location(
-                                "cks_unified",
-                                str(_csf_root / "src" / "cks" / "unified.py"),
-                            )
-                            if spec and spec.loader:
-                                module = importlib.util.module_from_spec(spec)
-                                spec.loader.exec_module(module)
-                                CKS = module.CKS
-                        except Exception as e4:
-                            import_error = e4
             if CKS is not None:
                 self._log_to_file("[CKS] Import successful, instantiating CKS()...")
                 self._cks = CKS()
@@ -2858,7 +2793,7 @@ class UnifiedSemanticDaemon:
             import time
 
             # Access module-level _model_loading flag to properly synchronize
-            from src.cks.unified import _model_loading
+            from search_research.cks.unified import _model_loading
 
             while main_cks._model is None and waited < max_wait:
                 # Trigger model loading if not started
@@ -2885,7 +2820,7 @@ class UnifiedSemanticDaemon:
 
             # Create a thread-local CKS instance for SQLite operations
             # But reuse the already-loaded model from main thread to avoid slow re-loading
-            from knowledge.systems.cks.unified import CKS as CKSClass
+            from search_research.cks.unified import CKS as CKSClass
 
             # Create a new CKS instance but inject the already-loaded model
             # This avoids SQLite threading issues while reusing the model
@@ -2993,122 +2928,24 @@ class UnifiedSemanticDaemon:
                 logger.debug("Failed to close thread_cks connection", error=str(e))
 
     def _update_faiss_index(self) -> None:
-        """Incrementally update FAISS index with new messages.
+        """No-op: FAISS incremental indexing was never migrated.
 
-        Fail-fast: If FAISS index doesn't exist, daemon will crash.
-        Use file-based lock to prevent concurrent updates across multiple terminals.
-        Includes memory guards to prevent OOM during index updates.
+        The ``src.core.faiss_vector_store`` module is absent and this subsystem is
+        gated off (``CSF_DAEMON_CHS_INDEX_ENABLED``). Chat-history retrieval is served
+        by FTS5/BM25 (router ``claude_history_backend``) and the daemon's embedding
+        endpoint, so incremental FAISS indexing is intentionally a no-op. Retained as a
+        stub because the gated idle loop and write-signal path still call it.
         """
-        lock_file = None
-        try:
-            import torch
-            from sentence_transformers import SentenceTransformer
-
-            from src.core.faiss_vector_store import FAISSVectorStore
-
-            # Prevent concurrent updates within same daemon instance
-            if self._faiss_updating:
-                logger.debug("FAISS update already in progress (instance lock)")
-                return
-
-            # Memory check: Pre-load validation for FAISS + model
-            if not _check_memory_before_load(
-                "FAISS update", FAISS_ESTIMATED_MEMORY_MB + CKS_MODEL_MEMORY_MB
-            ):
-                logger.warning("FAISS update skipped: insufficient memory")
-                return
-
-            # Acquire cross-terminal file lock (fail-fast if lock held)
-            FAISS_LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
-            try:
-                # Windows: exclusive access, fails immediately if locked
-                lock_file = open(FAISS_LOCK_PATH, "xb")
-                lock_file.write(str(os.getpid()).encode())
-            except FileExistsError:
-                # Lock file exists - another terminal holds the lock
-                logger.debug("FAISS update locked by another terminal")
-                return
-
-            # Check FAISS index age - force full rebuild if too old (> 24 hours)
-            if FAISS_INDEX_PATH.exists():
-                index_age = time.time() - FAISS_INDEX_PATH.stat().st_mtime
-                if index_age > FAISS_MAX_AGE:
-                    logger.warning(
-                        f"FAISS index is {index_age / 3600:.1f} hours old "
-                        f"(> {FAISS_MAX_AGE / 3600:.1f} hours) - forcing full rebuild"
-                    )
-                    # Clear incremental state to force full rebuild
-                    if FAISS_STATE_PATH.exists():
-                        FAISS_STATE_PATH.unlink()
-                        logger.info("Cleared FAISS incremental state for full rebuild")
-
-            # Load new messages (reuse existing incremental loader)
-            messages = self._load_chs_messages_incremental(batch_size=1000)
-            if not messages:
-                logger.debug("No new messages for FAISS update")
-                return
-
-            self._faiss_updating = True
-            logger.info(f"Starting FAISS update for {len(messages)} messages")
-
-            # Generate embeddings - assume GPU always available (fail-fast if not)
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-            logger.debug(f"Using device: {device} for FAISS embeddings")
-            model = SentenceTransformer("all-mpnet-base-v2", device=device)
-            texts = [m.get("content", "")[:4000] for m in messages]
-            embeddings = model.encode(texts, normalize_embeddings=True)
-
-            # Memory check: After loading model and embeddings
-            if not _check_memory_after_load("FAISS model + embeddings"):
-                logger.warning("FAISS update aborted: memory cap exceeded after model load")
-                return
-
-            # Incremental update - will fail-fast if FAISS index missing
-            store = FAISSVectorStore(index_path=str(FAISS_INDEX_PATH))
-            result = store.incremental_update(messages, embeddings, backup=True, validate=True)
-
-            if result["success"]:
-                logger.info(
-                    f"FAISS updated: {result['vectors_added']} vectors, {result['total_vectors']} total"
-                )
-            else:
-                logger.warning(f"FAISS update reported failure: {result.get('error', 'unknown')}")
-
-            # Final memory check after FAISS update
-            if not _check_memory_after_load("FAISS update complete"):
-                logger.critical("FAISS update completed but exceeded memory cap - self-terminating")
-                self._running = False
-
-        except Exception as e:
-            logger.error(f"FAISS update failed: {e}")
-            raise
-        finally:
-            self._faiss_updating = False
-            # Release cross-terminal lock
-            if lock_file:
-                lock_file.close()
-                try:
-                    FAISS_LOCK_PATH.unlink()
-                except FileNotFoundError:
-                    pass
+        return
 
     def _get_chs(self):
         """Legacy CHS loader - deprecated, using CKS-based approach."""
         # For backward compatibility, still support ChatHistorySearcher
         # but prefer CKS-based approach to avoid lock conflicts
-        if self._chs is None:
-            try:
-                with self._chs_lock:
-                    if self._chs is None:
-                        from modules.analysis.chat_search.src.chat_history_search import (
-                            ChatHistorySearcher,
-                        )
-
-                        # Use default paths, but DON'T auto-index (avoid Qdrant conflict)
-                        self._chs = ChatHistorySearcher(enable_rag=False)  # Disable RAG
-                        logger.info("CHS initialized for daemon (legacy mode)")
-            except ImportError as e:
-                logger.error(f"Failed to import CHS: {e}")
+        # The legacy ChatHistorySearcher (modules.analysis.chat_search) was never
+        # migrated and its module is absent, so this loader always returned None.
+        # The live CHS path uses FTS5 (router) + the daemon embedding endpoint, not
+        # this loader; _search_chs falls back to CKS-based semantic search when None.
         return self._chs
 
     def _search_chs(self, query: str, limit: int, params: dict[str, Any]) -> list[dict[str, Any]]:
@@ -4144,7 +3981,11 @@ def main() -> int:
     process that survives the parent (hook) process exit.
 
     Usage:
-        python -m lib.daemons.unified_semantic_daemon
+        python -m contrib.semantic_daemon.unified_semantic_daemon
+
+    Note: This module can also be reached via the load-bearing wrapper at
+    src.daemons.unified_semantic_daemon, which patches _csf_root and path
+    constants before delegating to the real entry point below.
     """
     import argparse
     import signal
@@ -4172,7 +4013,29 @@ def main() -> int:
         action="store_true",
         help="Enable verbose logging",
     )
+    parser.add_argument(
+        "--health",
+        action="store_true",
+        help="Query the running daemon's health status as JSON and exit",
+    )
     args = parser.parse_args()
+
+    # --health: query the running daemon over the pipe and exit (does not start one).
+    if args.health:
+        import json as _json
+
+        try:
+            try:
+                from contrib.semantic_daemon.daemon_client import DaemonClient
+            except ImportError:
+                from daemon_client import DaemonClient
+            client = DaemonClient(auto_start=False, enable_fallback=False, timeout=10.0)
+            result = client.query("health", {})
+            print(_json.dumps(result, indent=2, default=str))
+            return 0
+        except Exception as e:
+            print(_json.dumps({"status": "error", "error": str(e), "daemon_running": False}))
+            return 1
 
     # Use command-line idle timeout if specified (0 = no auto-shutdown)
     idle_timeout = float(args.idle_timeout) if args.idle_timeout > 0 else None

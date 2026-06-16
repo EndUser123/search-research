@@ -45,6 +45,7 @@ Thumbs.db
 # Claude plugin specific
 *.local.md
 .claude/state*.json
+.claude/state/
 .claude/checkpoints/*.json
 
 # Backup directory (kept for rollback)
