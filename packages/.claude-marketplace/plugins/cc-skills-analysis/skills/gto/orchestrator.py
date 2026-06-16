@@ -35,6 +35,8 @@ from .__lib.dependency_order import order_findings
 from .__lib.freshness import classify_freshness
 from .__lib.targeting import resolve_target
 from .__lib.coverage import compute_coverage, compute_health_score
+from .__lib.scoring import score_findings
+from .__lib.machine_render import build_triage
 from .__lib.evidence import write_artifact
 from .__lib.state import RunState, load_state, save_state, sync_to_execution_state
 from .__lib.verify import verify_artifact
@@ -54,6 +56,10 @@ from .__lib.structural_analysis import write_structural_summary
 from .__lib import friction
 from .__lib.stale_detector import detect_stale_docs
 
+# Session registry access for session resolution
+sys.path.insert(0, "P:/packages/.claude-marketplace/plugins/snapshot/scripts/hooks/__lib")
+from session_registry import query_registry
+
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="GTO Gap Analysis Orchestrator")
@@ -62,50 +68,217 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--session-id", default="")
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--merge-only", action="store_true", help="Skip detectors, only merge agent results into existing artifact")
+    parser.add_argument(
+        "--transcript", type=Path, default=None,
+        help="Explicit JSONL transcript file to analyze (bypasses session registry lookup). "
+             "Use when the session is not registered — e.g. an archived session or a /chs export "
+             "produced with --format jsonl.",
+    )
+    parser.add_argument(
+        "--top-n", type=int, default=3,
+        help="Size of the leverage-ranked 'Top N by leverage' triage list in the "
+             "artifact summary (the 'Do ALL' footer is always retained). 0 disables triage.",
+    )
     return parser.parse_args(argv)
 
 
-def _resolve_session_id_from_identity(terminal_id: str) -> str:
-    """Extract session_id from identity.json when CLI arg is empty."""
-    artifacts_root = Path(os.environ.get("CLAUDE_ARTIFACTS_ROOT", "P:\\\\\\.claude/.artifacts"))
-    identity_file = artifacts_root / terminal_id / "identity.json"
-    if not identity_file.exists():
-        return ""
-    try:
-        data = json.loads(identity_file.read_text(encoding="utf-8"))
-        return data.get("claude", {}).get("session_id", "")
-    except (json.JSONDecodeError, OSError):
-        return ""
+def _read_prev_health_score(artifact_path: Path) -> int | None:
+    """Read the previous run's health score from an existing artifact, if any.
 
-
-def _resolve_transcript_from_identity(terminal_id: str) -> Path | None:
-    """Resolve transcript path from identity.json (hook-captured, no scanning)."""
-    artifacts_root = Path(os.environ.get("CLAUDE_ARTIFACTS_ROOT", "P:\\\\\\.claude/.artifacts"))
-    identity_file = artifacts_root / terminal_id / "identity.json"
-    if not identity_file.exists():
+    Used to compute the run-over-run health trend. Returns None when there is
+    no prior artifact or the score cannot be read, so the first run reports no
+    trend rather than failing.
+    """
+    if not artifact_path.exists():
         return None
     try:
-        data = json.loads(identity_file.read_text(encoding="utf-8"))
-        tp = data.get("claude", {}).get("transcript_path", "")
-        if tp and Path(tp).exists():
-            return Path(tp)
-    except (json.JSONDecodeError, OSError):
+        data = json.loads(artifact_path.read_text(encoding="utf-8"))
+        score = data.get("summary", {}).get("health", {}).get("score")
+        return int(score) if score is not None else None
+    except (OSError, ValueError, json.JSONDecodeError, AttributeError):
+        return None
+
+
+def _normalize_terminal_id_for_registry(terminal_id: str) -> tuple[str, ...]:
+    """Return candidate keys to try for session_registry lookup.
+
+    The session_registry keys are prefixed with the surface they came from
+    (e.g. "console_<uuid>", "env_<uuid>") while $WT_SESSION passes the bare
+    UUID. Try the literal first, then strip the prefix if present.
+    """
+    if not terminal_id:
+        return ()
+    candidates = [terminal_id]
+    for prefix in ("console_", "env_", "wt_", "tmux_"):
+        if terminal_id.startswith(prefix):
+            stripped = terminal_id[len(prefix):]
+            if stripped and stripped not in candidates:
+                candidates.append(stripped)
+            break
+    return tuple(candidates)
+
+
+def _resolve_session_id_from_registry(terminal_id: str) -> str:
+    """Extract session_id from session_registry for this terminal (most recent entry)."""
+    for key in _normalize_terminal_id_for_registry(terminal_id):
+        try:
+            entries = query_registry(terminal_id=key, limit=1)
+            if entries:
+                return entries[-1].get("session_id", "")
+        except Exception:
+            continue
+    return ""
+
+
+def _resolve_terminal_id_via_session_id(session_id: str) -> str:
+    """Reverse-lookup: given a Claude session_id, find the terminal_id that owns it.
+
+    Returns the terminal_id from the most recent registry entry matching session_id.
+    Used as a fallback when the per-invocation terminal_id passed via $WT_SESSION
+    does not match the registry key (which is keyed by Claude session_id).
+    """
+    if not session_id:
+        return ""
+    try:
+        entries = query_registry(session_id=session_id, limit=1)
+        if entries:
+            return entries[-1].get("terminal_id", "")
+    except Exception:
         pass
+    return ""
+
+
+def _session_id_from_transcript_path(transcript_path: Path | None) -> str:
+    """Extract Claude session_id from a transcript JSONL filename.
+
+    The transcript filename is the session_id: `de62c888-1196-4d53-a2b0-...jsonl`.
+    Used when $CLAUDE_SESSION_ID is unset but we have an explicit --transcript
+    or can discover the latest transcript via cwd.
+    """
+    if not transcript_path:
+        return ""
+    return transcript_path.stem
+
+
+def _resolve_transcript_from_registry(terminal_id: str, session_id: str = "") -> Path | None:
+    """Resolve transcript path from session_registry.
+
+    Tries terminal_id first (primary), then falls back to session_id (cross-terminal
+    chain) when the per-invocation terminal_id does not resolve.
+    """
+    # Primary: terminal_id lookup (try literal, then strip surface prefix)
+    for key in _normalize_terminal_id_for_registry(terminal_id):
+        try:
+            entries = query_registry(terminal_id=key, limit=1)
+            if entries:
+                tp = entries[-1].get("transcript_path", "")
+                if tp and Path(tp).exists():
+                    return Path(tp)
+        except Exception:
+            continue
+    # Fallback: session_id lookup (per-invocation terminal_id may not match registry key)
+    if session_id:
+        try:
+            entries = query_registry(session_id=session_id, limit=1)
+            if entries:
+                tp = entries[-1].get("transcript_path", "")
+                if tp and Path(tp).exists():
+                    return Path(tp)
+        except Exception:
+            pass
     return None
+
+
+def _session_resolution_status(terminal_id: str, session_id: str = "") -> str:
+    """Classify whether a real session was resolved for this terminal_id.
+
+    Uses session_registry.jsonl as the primary source of truth. Primary lookup
+    is by terminal_id; if that returns no entries, falls back to session_id
+    (the Claude session UUID, which IS the registry key in practice).
+
+    Returns: "unresolved" (no registry entries, no identity.json),
+             "stale" (identity.json exists but transcript gone),
+             or "resolved" (registry has entries with transcript_path).
+    """
+    if not terminal_id or terminal_id == "default":
+        return "unresolved"
+
+    # Primary: check registry for entries with transcript_path
+    # (try literal terminal_id, then strip surface prefix like "console_")
+    for key in _normalize_terminal_id_for_registry(terminal_id):
+        try:
+            entries = query_registry(terminal_id=key, limit=1)
+            if entries:
+                latest = entries[-1]
+                if latest.get("transcript_path") and Path(latest["transcript_path"]).exists():
+                    return "resolved"
+        except Exception:
+            continue
+
+    # Fallback A: check registry by session_id (the Claude session UUID)
+    # This is the actual registry key in practice; terminal_id from $WT_SESSION
+    # is a per-invocation artifact UUID that does not match the key.
+    if session_id:
+        try:
+            entries = query_registry(session_id=session_id, limit=1)
+            if entries:
+                latest = entries[-1]
+                if latest.get("transcript_path") and Path(latest["transcript_path"]).exists():
+                    return "resolved"
+        except Exception:
+            pass
+
+    # Fallback B: identity.json (only for supplemental data)
+    artifacts_root = Path(os.environ.get("CLAUDE_ARTIFACTS_ROOT", "P:/.claude/.artifacts"))
+    identity_file = artifacts_root / terminal_id / "identity.json"
+    if not identity_file.exists():
+        return "unresolved"
+    if _resolve_transcript_from_registry(terminal_id, session_id) is None:
+        return "stale"
+    return "resolved"
+
+def _make_unresolved_finding(terminal_id: str, session_id: str, git_sha: str) -> Finding:
+    """HIGH finding emitted when GTO could not resolve a real session.
+
+    Replaces the silent "0 findings" hollow success with an explicit, actionable
+    failure: nothing was analyzed, and the operator must resolve the REAL
+    terminal-id instead of inventing one.
+    """
+    return Finding(
+        id="GTO-SESSION-UNRESOLVED",
+        title="GTO analyzed NO session -- terminal-id did not resolve",
+        description=(
+            f"terminal-id {terminal_id!r} has no session_registry entry, "
+            "so no session transcript was resolved and every session-aware "
+            "detector was skipped. A low/zero finding count here is NOT a clean bill "
+            "of health -- it means nothing was analyzed. Resolve the REAL terminal-id "
+            "and re-run. Do not pass fabricated IDs like 'local', 'default', or 'test'."
+        ),
+        source_type="detector",
+        source_name="session_resolution_guard",
+        domain="other",
+        gap_type="session_unresolved",
+        severity="high",
+        evidence_level="verified",
+        action="recover",
+        priority="high",
+        status="open",
+        terminal_id=terminal_id,
+        session_id=session_id,
+        git_sha=git_sha,
+    )
 
 
 def _load_session_chain(terminal_id: str) -> list[str]:
     """Load session transcript paths from session registry for this terminal."""
-    registry_path = Path("P:\\\\\\.claude/.artifacts/session_registry.jsonl")
-    if not registry_path.exists():
-        return []
-    try:
-        import sys as _sys
-        sys.path.insert(0, "P:\\\\\\packages/snapshot/scripts/hooks/__lib")
-        from session_registry import query_registry
-    except ImportError:
-        return []
-    entries = query_registry(terminal_id=terminal_id, limit=20)
+    entries: list[dict] = []
+    for key in _normalize_terminal_id_for_registry(terminal_id):
+        try:
+            entries = query_registry(terminal_id=key, limit=20)
+            if entries:
+                break
+        except Exception:
+            continue
     # Deduplicate by session_id, keep most recent per session, oldest-first order
     seen: set[str] = set()
     result: list[str] = []
@@ -256,12 +429,14 @@ def _run_merge_only(
             for v in violations:
                 print(f"PROMPT_QUALITY: {v}", file=sys.stderr)
 
-    # Post-processing pipeline
+    # Post-processing pipeline. Score after impact_radius enrichment so the
+    # leverage score is populated, then order by it (same contract as run()).
     all_findings = route_findings(all_findings)
-    all_findings = order_findings(all_findings)
     all_findings = enrich_with_impact_radius(settings.root, all_findings)
     all_findings = cluster_findings(all_findings)
     all_findings = adjust_for_branch(settings.root, all_findings)
+    all_findings = score_findings(all_findings)
+    all_findings = order_findings(all_findings)
 
     # Compute coverage + health
     coverage = compute_coverage(all_findings)
@@ -271,7 +446,8 @@ def _run_merge_only(
         artifact_target=state.current_target,
         current_target=state.current_target,
     )
-    health = compute_health_score(all_findings, freshness)
+    prev_score = _read_prev_health_score(artifact_path)
+    health = compute_health_score(all_findings, freshness, prev_score=prev_score)
 
     # Write artifact
     artifact = GTOArtifact.empty(
@@ -288,6 +464,7 @@ def _run_merge_only(
         "by_severity": coverage.get("by_severity", {}),
         "by_domain": coverage.get("by_domain", {}),
         "health": health,
+        "triage": build_triage(all_findings, args.top_n),
     }
     write_artifact(artifact_path, artifact, all_findings)
 
@@ -316,9 +493,42 @@ def run(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     root = args.root.resolve()
 
-    # Resolve session_id: CLI arg → identity.json fallback
+    # --transcript override: explicit JSONL bypasses registry lookup entirely.
+    # Validate the path early so we fail fast before touching any state.
+    explicit_transcript: Path | None = None
+    if args.transcript is not None:
+        explicit_transcript = Path(args.transcript).resolve()
+        if not explicit_transcript.exists():
+            print(f"GTO: --transcript path does not exist: {explicit_transcript}", file=sys.stderr)
+            return 1
+        # Detect likely-wrong file type: markdown chs exports silently produce 0 turns.
+        # Check the first non-empty line — JSONL starts with '{', markdown starts with '#' or text.
+        try:
+            with open(explicit_transcript, encoding="utf-8", errors="ignore") as _f:
+                _first = next((ln.strip() for ln in _f if ln.strip()), "")
+            if _first and not _first.startswith("{"):
+                print(
+                    f"GTO: --transcript file does not look like JSONL (first line: {_first[:60]!r}).\n"
+                    "GTO requires a Claude Code JSONL transcript, not a markdown export.\n"
+                    "If you used /chs export, re-run with --format jsonl:\n"
+                    "  python .../chs_cli.py --export --format jsonl --output session.jsonl\n"
+                    "Then pass: --transcript session.jsonl",
+                    file=sys.stderr,
+                )
+                return 1
+        except (OSError, StopIteration):
+            pass
+
+    # Resolve session_id: CLI arg → registry fallback → transcript-filename fallback
     if not args.session_id:
-        args.session_id = _resolve_session_id_from_identity(args.terminal_id)
+        args.session_id = _resolve_session_id_from_registry(args.terminal_id)
+    if not args.session_id and explicit_transcript:
+        # Last resort: the transcript JSONL filename IS the session_id
+        args.session_id = _session_id_from_transcript_path(explicit_transcript)
+
+    # Session resolution guard: detect a fabricated/empty terminal-id up front.
+    # Suppressed when an explicit transcript is provided — the caller owns the source.
+    session_status = "resolved" if explicit_transcript else _session_resolution_status(args.terminal_id, args.session_id)
 
     settings = GTOSettings(
         terminal_id=args.terminal_id,
@@ -352,6 +562,13 @@ def run(argv: list[str] | None = None) -> int:
     # Phase 1: Deterministic detectors
     findings = run_basic_detectors(root, args.terminal_id, args.session_id, settings.git_sha)
 
+    # Session resolution guard: an unresolved terminal-id means every
+    # session-aware detector below is skipped, so a "0 findings" result would be
+    # a hollow success. Surface it as a HIGH finding instead.
+    if session_status == "unresolved":
+        findings.append(_make_unresolved_finding(
+            args.terminal_id, args.session_id, settings.git_sha))
+
     # Phase 1.2: Marker staleness — detect stale session markers from prior runs
     from .__lib.detectors import detect_marker_staleness, detect_missing_verification_evidence
     marker_findings = detect_marker_staleness(root, args.terminal_id, args.session_id, settings.git_sha)
@@ -361,8 +578,20 @@ def run(argv: list[str] | None = None) -> int:
     verification_findings = detect_missing_verification_evidence(root, args.terminal_id, args.session_id, settings.git_sha)
     findings.extend(verification_findings)
 
-    # Phase 1.5: Resolve transcript from identity.json (hook-captured, no scanning)
-    transcript_path = _resolve_transcript_from_identity(args.terminal_id)
+    # Phase 1.5: Resolve transcript — explicit --transcript overrides registry lookup.
+    transcript_path = explicit_transcript or _resolve_transcript_from_registry(args.terminal_id, args.session_id)
+
+    # Last-resort terminal_id repair: if the per-invocation terminal_id didn't
+    # resolve to a transcript but the session_id did (via the registry fallback
+    # above), reverse-look-up the canonical terminal_id for downstream phases
+    # that key by terminal_id (e.g., carryover, state).
+    if not explicit_transcript and transcript_path:
+        # If the primary terminal_id lookup returned no entries but the session_id
+        # fallback succeeded, swap args.terminal_id to the canonical one so all
+        # downstream lookups are consistent.
+        canonical_tid = _resolve_terminal_id_via_session_id(args.session_id)
+        if canonical_tid and canonical_tid != args.terminal_id:
+            args.terminal_id = canonical_tid
 
     # Phase 1.6: Extract files edited this session from transcript tool calls
     session_edited_files = extract_edited_files(transcript_path, root) if transcript_path else []
@@ -609,7 +838,8 @@ def run(argv: list[str] | None = None) -> int:
         )
 
     all_findings = route_findings(all_findings)
-    all_findings = order_findings(all_findings)
+    # Ordering is deferred to after enrichment + stuckness so the final written
+    # list is leverage-score ordered (see Phase 4.12 below).
 
     # Phase 4.7.5: Staleness re-check — suppress findings with stale git evidence
     # (e.g., workflow_hygiene detected uncommitted files that were committed before this point)
@@ -655,6 +885,12 @@ def run(argv: list[str] | None = None) -> int:
     )
     all_findings.extend(stuckness_findings)
 
+    # Phase 4.12: Score then order — leverage (value/effort) drives final order.
+    # Scoring runs after impact_radius enrichment (which feeds the score) and
+    # after all findings are collected, so the written list is correctly ranked.
+    all_findings = score_findings(all_findings)
+    all_findings = order_findings(all_findings)
+
     # Phase 5: Compute coverage + health score
     coverage = compute_coverage(all_findings)
 
@@ -666,7 +902,9 @@ def run(argv: list[str] | None = None) -> int:
         current_target=state.current_target,
     )
 
-    health = compute_health_score(all_findings, freshness)
+    artifact_path = paths.outputs_dir / "artifact.json"
+    prev_score = _read_prev_health_score(artifact_path)
+    health = compute_health_score(all_findings, freshness, prev_score=prev_score)
 
     # Phase 7: Build and write artifact
     artifact = GTOArtifact.empty(
@@ -683,9 +921,9 @@ def run(argv: list[str] | None = None) -> int:
         "by_severity": coverage.get("by_severity", {}),
         "by_domain": coverage.get("by_domain", {}),
         "health": health,
+        "triage": build_triage(all_findings, args.top_n),
     }
 
-    artifact_path = paths.outputs_dir / "artifact.json"
     write_artifact(artifact_path, artifact, all_findings)
 
     # Phase 7.5: Write evidence map (provenance index alongside artifact)
@@ -711,10 +949,21 @@ def run(argv: list[str] | None = None) -> int:
     sync_to_execution_state(state, paths.artifacts_dir)
 
     # Output summary
+    if session_status == "unresolved":
+        print(
+            "GTO SESSION UNRESOLVED: terminal-id "
+            f"{args.terminal_id!r} resolved no session_registry entry -- NO session was "
+            "analyzed. The findings are NOT a clean bill of health. Resolve the "
+            "real terminal-id and re-run. Never pass "
+            "fabricated IDs like 'local'/'default'/'test'.",
+            file=sys.stderr,
+        )
     print(f"GTO complete: {len(all_findings)} findings", file=sys.stderr)
     print(f"Artifact: {artifact_path}", file=sys.stderr)
     print(f"Freshness: {freshness}", file=sys.stderr)
 
+    if session_status == "unresolved":
+        return 3  # distinct from 0 (ok) and 1 (verification fail)
     return 0 if verification["valid"] else 1
 
 
