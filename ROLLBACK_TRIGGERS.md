@@ -46,7 +46,7 @@ git revert cleanup-pre-task-019-YYYYMMDD-HHMM
 
 # 2. Verify tests pass
 pytest P://__csf/tests/lib/search/ -v
-pytest P://packages/search-research/tests/ -v
+pytest P://packages/.claude-marketplace/plugins/search-research/tests/ -v
 
 # 3. Verify CLI works
 python P://__csf/src/cli/nip/search_enhanced.py "test query"
@@ -142,7 +142,7 @@ python -c "from search_research import AsyncSearchRouter, UnifiedAsyncRouter"
 python P://__csf/src/cli/nip/search_enhanced.py "test query"
 
 # 4. Run full integration tests
-pytest P://packages/search-research/tests/integration/ -v
+pytest P://packages/.claude-marketplace/plugins/search-research/tests/integration/ -v
 
 # 5. Notify stakeholders
 ```
@@ -181,7 +181,7 @@ git revert cleanup-pre-task-022-YYYYMMDD-HHMM
 pytest P://__csf/tests/lib/search/ --collect-only
 
 # 3. Verify coverage
-pytest P://packages/search-research/tests/ --cov=search_research --cov-report=term
+pytest P://packages/.claude-marketplace/plugins/search-research/tests/ --cov=search_research --cov-report=term
 
 # 4. Notify stakeholders
 ```
@@ -221,7 +221,7 @@ cleanup-pre-task-022-YYYYMMDD-HHMM
 git revert migration-complete-YYYYMMDD
 
 # 2. Run full test suite
-pytest P://packages/search-research/tests/ -v
+pytest P://packages/.claude-marketplace/plugins/search-research/tests/ -v
 pytest P://__csf/tests/lib/search/ -v
 
 # 3. Verify all CLI tools
@@ -303,7 +303,7 @@ Examples:
 
 ## References
 
-- Migration Plan: `P://packages/search-research/MIGRATION.md`
-- API Differences: `P://packages/search-research/API_DIFFERENCES.md`
-- Test Suite: `P://packages/search-research/tests/`
+- Migration Plan: `P://packages/.claude-marketplace/plugins/search-research/MIGRATION.md`
+- API Differences: `P://packages/.claude-marketplace/plugins/search-research/API_DIFFERENCES.md`
+- Test Suite: `P://packages/.claude-marketplace/plugins/search-research/tests/`
 - CLI Tool: `P://__csf/src/cli/nip/search_enhanced.py`

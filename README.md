@@ -28,7 +28,7 @@ pip install search-research
 pip install search-research[all]
 
 # Development installation
-pip install -e "P://packages/search-research[all]"
+pip install -e "P://packages/.claude-marketplace/plugins/search-research[all]"
 
 # Migrating from unified-search?
 # See "Migrating from unified-search" section below
@@ -81,7 +81,7 @@ If you're currently using `EnhancedUnifiedSearchRouter` from `__csf`, here's how
 pip install search-research[all]
 
 # Or for development
-pip install -e "P://packages/search-research[all]"
+pip install -e "P://packages/.claude-marketplace/plugins/search-research[all]"
 ```
 
 ### Code Changes

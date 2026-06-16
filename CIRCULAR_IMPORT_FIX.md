@@ -14,7 +14,7 @@ ImportError: cannot import name 'ResearchConfig' from 'research_skill.models'
 
 There were TWO `search_research` packages:
 
-1. **P://packages/search-research/src/search_research/** - NEW standalone package (correct)
+1. **P://packages/.claude-marketplace/plugins/search-research/src/search_research/** - NEW standalone package (correct)
 2. **P://packages/research/src/search_research/** - OLD compatibility layer (incorrect)
 
 When Python tried to import `search_research`, it found the OLD package first (because it's in the same package as the test), causing a circular import.
@@ -116,7 +116,7 @@ pytest src/research_skill/providers/test_claude_provider.py -v
 
 ### Correct Package Structure
 
-**search-research package** (P://packages/search-research/):
+**search-research package** (P://packages/.claude-marketplace/plugins/search-research/):
 - Web search providers (TavilyBackend, SerperBackend, ExaBackend, etc.)
 - Core search functionality
 - HyDE engines

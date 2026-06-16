@@ -14,7 +14,7 @@ MCP (Model Context Protocol) server for unified search across local codebase and
 ### 1. Install Dependencies
 
 ```bash
-cd P://packages/search-research
+cd P://packages/.claude-marketplace/plugins/search-research
 uv pip install mcp fastmcp pydantic
 ```
 
@@ -30,7 +30,7 @@ Add to `C:\Users\brsth\.claude.json` (for Claude Code CLI):
       "command": "uv",
       "args": [
         "--directory",
-        "P://packages/search-research",
+        "P://packages/.claude-marketplace/plugins/search-research",
         "run",
         "python",
         "-m",
@@ -112,7 +112,7 @@ Claude: [automatically uses mcp__search_research__web_search]
 
 ```bash
 # Run server directly
-cd P://packages/search-research
+cd P://packages/.claude-marketplace/plugins/search-research
 uv run python -m search_research.mcp_server
 
 # Test with MCP inspector
@@ -161,7 +161,7 @@ uv pip install mcp fastmcp pydantic
 **Check**: Python path in MCP config
 ```bash
 # Test command works
-uv --directory P://packages/search-research run python -m search_research.mcp_server
+uv --directory P://packages/.claude-marketplace/plugins/search-research run python -m search_research.mcp_server
 ```
 
 ### Tools Not Available

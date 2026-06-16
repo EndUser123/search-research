@@ -16,7 +16,7 @@ All critical backends (grep, cds, skills, kg, rlm) have **compatible APIs**. The
 
 ### Location
 - **Legacy**: `P://__csf/src/search/backends/grep_backend.py`
-- **New**: `P://packages/search-research/core/backends/local/grep_backend.py`
+- **New**: `P://packages/.claude-marketplace/plugins/search-research/core/backends/local/grep_backend.py`
 
 ### API Differences
 
@@ -48,7 +48,7 @@ backend = GrepBackend(root_paths=["P://src"])
 
 ### Location
 - **Legacy**: `P://__csf/src/search/backends/cds_backend.py`
-- **New**: `P://packages/search-research/core/backends/local/cds_backend.py`
+- **New**: `P://packages/.claude-marketplace/plugins/search-research/core/backends/local/cds_backend.py`
 
 ### API Differences
 
@@ -79,7 +79,7 @@ backend = CDSBackend(root_paths=["P://src"])
 
 ### Location
 - **Legacy**: `P://__csf/src/search/backends/kg_backend.py`
-- **New**: `P://packages/search-research/core/backends/local/kg_backend.py`
+- **New**: `P://packages/.claude-marketplace/plugins/search-research/core/backends/local/kg_backend.py`
 
 ### API Differences
 
@@ -110,7 +110,7 @@ backend = KGBackend()
 
 ### Location
 - **Legacy**: `P://__csf/src/search/backends/skills_backend.py`
-- **New**: `P://packages/search-research/core/backends/local/skills_backend.py`
+- **New**: `P://packages/.claude-marketplace/plugins/search-research/core/backends/local/skills_backend.py`
 
 ### API Differences
 
@@ -158,7 +158,7 @@ backend = SkillsBackend()
 
 ### Location
 - **Legacy**: `P://__csf/src/search/backends/rlm_backend.py`
-- **New**: `P://packages/search-research/core/backends/local/rlm_backend.py`
+- **New**: `P://packages/.claude-marketplace/plugins/search-research/core/backends/local/rlm_backend.py`
 
 ### API Differences
 
@@ -232,7 +232,7 @@ backend = MultiLangCodeBackend(root_paths=["P://src"])
 ## BaseLocalBackend (New Shared Infrastructure)
 
 ### Location
-- **New**: `P://packages/search-research/core/backends/local/base_local_backend.py`
+- **New**: `P://packages/.claude-marketplace/plugins/search-research/core/backends/local/base_local_backend.py`
 
 ### Purpose
 Provides shared functionality for local search backends:

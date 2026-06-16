@@ -45,7 +45,7 @@ pip install search-research
 pip install search-research[all]
 
 # Development installation
-pip install -e "P://packages/search-research[all,dev]"
+pip install -e "P://packages/.claude-marketplace/plugins/search-research[all,dev]"
 ```
 
 ### Verify Installation
