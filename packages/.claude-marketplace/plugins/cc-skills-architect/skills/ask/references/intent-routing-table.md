@@ -22,6 +22,8 @@ Complete mapping of user intent patterns to target commands.
 | Challenge assumptions, critical analysis                       | `/design --challenge` | Thoughtful disagreement                |
 | Get multiple perspectives, debate                              | `/llm-debate`       | Decision alignment                     |
 | Build feature, new feature, implement feature                  | `/build`            | Feature development workflow           |
+| Mutation testing — planning (add/introduce mutation testing, mutation score, kill mutants, mutmut, test strength) | `/t --mode mutation` | Test planning with mutation mode (umbrella #744) |
+| Mutation testing — execution (add mutation gate, wire into /go, enable in build/CI/pipeline) | `/go`               | Orchestrator with STEP 6.5 mutation gate (umbrella #744) |
 | Modernize, upgrade, tech debt, refactor codebase               | `/evolve`           | Codebase modernization workflow        |
 | QA, certify, test feature, e2e test                            | `/qa`               | Feature certification workflow         |
 

@@ -42,7 +42,7 @@ All plugin hook scripts MUST use the `{plugin_name}_{event}.py` naming conventio
       "matcher": "^(?:Edit|Write|MultiEdit)$",
       "hooks": [{
         "type": "command",
-        "command": "python \"$CLAUDE_PLUGIN_ROOT/hooks/fact-guard_PreToolUse.py\"",
+        "command": "python \"C:/Users/brsth/.claude/plugins/reason_openai/hooks/fact-guard_PreToolUse.py\"",
         "timeout": 5
       }]
     }]
@@ -68,7 +68,7 @@ Must use nested `{matcher, hooks: [{type, command, timeout}]}` format. See `plug
 
 ## Marketplace
 
-All plugins are junctioned — source at `P:/packages/<name>/`, junction at `P:/packages/.claude-marketplace/plugins/<name>`. Changes to source auto-pick up via junctions; version bumps required for cache refresh.
+Plugins live directly in `P:/packages/.claude-marketplace/plugins/<name>/`. After editing plugin files, bump the version and reload to propagate changes to the version-keyed cache.
 
 ## Artifacts Convention
 

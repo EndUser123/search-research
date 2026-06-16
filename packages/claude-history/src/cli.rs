@@ -148,8 +148,8 @@ pub fn default_jsonl_path() -> PathBuf {
 }
 
 pub fn default_db_path() -> PathBuf {
-    // Use __csf data directory
-    PathBuf::from("P:/__csf/data/chat_history.db")
+    // Use the canonical shared data root.
+    PathBuf::from("P:/.data/chat_history.db")
 }
 
 // Command handlers

@@ -4,9 +4,23 @@ description: Convert documentation into Claude Skills using automated scraping a
 version: "1.0.0"
 status: "stable"
 category: generation
+enforcement: advisory
 triggers:
 aliases:
 suggest:
+workflow_steps:
+  - id: configure
+    name: Configure source + selectors
+    description: User selects source type (website, GitHub, PDF, local) and configures selectors or config file
+  - id: convert
+    name: Convert + enhance
+    description: Run conversion with optional enhancement (local LLM or Anthropic API)
+  - id: portability
+    name: Portability pass
+    description: Apply the 6 output-pitfall guards before validation. See PHASE 2.5 below.
+  - id: validate
+    name: Validate generated skill
+    description: Run scripts/_validate.py (from template) and confirm all checks pass
 ---
 # Documentation to Skill Converter
 
@@ -186,15 +200,33 @@ PHASE 1: CONFIGURE + SCRAPE (Generation) — Select source type, configure selec
     ↓ STOP: Present source configuration before conversion
 PHASE 2: CONVERT + ENHANCE (Generation) — Run conversion with optional enhancement
     ↓ STOP: Present converted skill preview before validation
+PHASE 2.5: PORTABILITY PASS (Generation) — Apply the 6 output-pitfall guards
+    ↓ STOP: Confirm portability pass report before validation
 PHASE 3: VALIDATE (Validation) — Validate YAML, categorization, structure compliance
 ```
 
 **STOP conditions:**
 - Between PHASE 1 and PHASE 2: STOP after source configured (confirm before scraping)
-- Between PHASE 2 and PHASE 3: STOP after conversion completes (present preview before validation)
+- Between PHASE 2 and PHASE 2.5: STOP after conversion completes (present preview before portability pass)
+- Between PHASE 2.5 and PHASE 3: STOP after portability report (user confirms before validation)
 - Between PHASE 3 and end: STOP after validation report (user confirms before test)
 
-**Key separation**: Configuration and scraping is Generation. Conversion and enhancement is Generation. Validation is Validation.
+**Key separation**: Configuration and scraping is Generation. Conversion and enhancement is Generation. Portability pass is Generation. Validation is Validation.
+
+## PHASE 2.5 — Portability Pass (mandatory)
+
+Before running Phase 3 validation, apply the 6 output-pitfall guards. Each guard has a single mechanical action. Skip none.
+
+| # | Pitfall | Action |
+|---|---------|--------|
+| 1 | Frontmatter `script:` keys for inlined body | If a phase's body inlines code, drop the `script:` key from that `workflow_steps[]` entry. Don't ship a script path that doesn't exist on disk. |
+| 2 | Body code-block header drift | Inline body code blocks must NOT have a `# scripts/foo.py` header comment that disagrees with the actual file on disk. Either strip the header, or rename the file to match. |
+| 3 | Validator blind spot | Always include `scripts/_validate.py` (copy from `scripts/_validate_template.py` in this skill) and run it. The template has the cross-check loop and structural anti-pattern check. |
+| 4 | `output/` is not a registered slot | Output a `REGISTRATION.md` next to `SKILL.md` listing the 5 actions required to ship (move to `skills/<plugin>/skills/<name>/`, create `plugin.json`, register in `marketplace.json`, bump + reload). |
+| 5 | Session-provenance leakage | Run a portability pass: replace absolute paths with env vars or CLI args; drop session UUIDs from helper-script docstrings (keep only in frontmatter `metadata.source_session`); abstract concrete filenames in body prose to generic principles. |
+| 6 | Anti-patterns table is brittle | Use a structural anti-patterns table (Trap | Symptom | Mitigation columns) instead of a keyword-substring check. The structural check is robust to rephrasing. |
+
+**Portability pass report** — emit a short markdown report after Phase 2.5 listing what was parameterized, what was abstracted, and what was registered. The user must confirm before Phase 3.
 
 ## Quality Gates
 
@@ -204,3 +236,5 @@ Generated skills validated for:
 - Content quality
 - Enhancement completion
 - File structure compliance
+- Phase 2.5 portability pass applied (all 6 guards)
+- `scripts/_validate.py` passes (uses template)

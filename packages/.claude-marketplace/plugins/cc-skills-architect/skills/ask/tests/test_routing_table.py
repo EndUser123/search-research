@@ -84,6 +84,17 @@ class TestIntentBasedRouting:
             # QA
             ("run QA on this feature", "/qa"),
             ("end to end test", "/qa"),
+            # Mutation testing — gateway routing
+            # (planning-side: /t --mode mutation)
+            ("add mutation testing to this project", "/t --mode mutation"),
+            ("introduce mutation testing", "/t --mode mutation"),
+            ("how strong are my tests", "/t --mode mutation"),
+            ("improve mutation score", "/t --mode mutation"),
+            ("kill mutants with mutmut", "/t --mode mutation"),
+            # (execution-side: /go orchestrator with STEP 6.5 mutation gate)
+            ("add a mutation gate to the pipeline", "/go"),
+            ("wire mutation testing into /go", "/go"),
+            ("enable mutation testing in the build", "/go"),
         ],
     )
     def test_intent_routing(self, input_text: str, expected: str) -> None:
