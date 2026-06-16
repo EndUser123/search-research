@@ -88,12 +88,52 @@ def get_current_model():
 
 
 def write_state(state_path, data):
-    """Write state file atomically."""
+    """Write state file atomically with retry on Windows sharing violations.
+
+    On Windows, os.replace fails with WinError 32 (PermissionError) when
+    another process holds the target file without FILE_SHARE_DELETE
+    (e.g. antivirus, file indexers, or concurrent Claude Code processes
+    opening the same config.json). The replace is intended to be
+    atomic; the OS cannot always deliver that across all share modes,
+    so we retry with backoff. POSIX does not need this.
+    """
+    import time as _time
+    import random as _random
+    import shutil as _shutil
+
     state_path.parent.mkdir(parents=True, exist_ok=True)
     tmp = state_path.with_suffix('.tmp')
     with open(tmp, 'w') as f:
         json.dump(data, f, indent=2)
-    tmp.replace(state_path)
+        f.flush()
+    max_attempts = 8
+    base_delay = 0.02
+    for attempt in range(max_attempts):
+        try:
+            tmp.replace(state_path)
+            return
+        except PermissionError:
+            if attempt == max_attempts - 1:
+                # Final attempt: try shutil.move (falls back to copy+unlink).
+                # shutil.move handles cross-device and some share modes that
+                # os.replace rejects, at the cost of atomicity.
+                try:
+                    _shutil.move(str(tmp), str(state_path))
+                    return
+                except Exception as e:
+                    # Clean up the tmp file so we don't leak it.
+                    try:
+                        tmp.unlink(missing_ok=True)
+                    except Exception:
+                        pass
+                    raise PermissionError(
+                        f"Could not replace {state_path} after {max_attempts} "
+                        f"attempts: {e}"
+                    ) from e
+            # Exponential backoff with jitter: ~20ms, 40ms, 80ms, ... up to ~2.5s
+            delay = min(base_delay * (2 ** attempt), 2.0)
+            delay += _random.uniform(0, delay * 0.25)
+            _time.sleep(delay)
 
 
 def main():

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Provenance verifier using external M2.7 LLM.
+"""Provenance verifier using external M3 LLM.
 
 Standalone script that can be called from PreToolUse.py or other hooks.
 
@@ -15,10 +15,10 @@ import subprocess
 import sys
 
 
-def verify_with_m2_7(
+def verify_with_m3(
     contamination_hits: list, proposed_facts: list, file_path: str
 ) -> dict:
-    """Call M2.7 to verify contamination risk."""
+    """Call M3 to verify contamination risk."""
     prompt = (
         "You are a code review provenance expert. Analyze whether the following "
         "proposed edit represents adjacent-entry contamination.\n\n"
@@ -38,7 +38,7 @@ def verify_with_m2_7(
 
     try:
         result = subprocess.run(
-            ["ai-pcli", "m2.7", "--json-mode", prompt],
+            ["ai-pcli", "m3", "--json-mode", prompt],
             capture_output=True,
             text=True,
             timeout=30,
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     if args.payload:
         try:
             data = json.loads(args.payload)
-            result = verify_with_m2_7(
+            result = verify_with_m3(
                 data.get("contamination_hits", []),
                 data.get("proposed_facts", []),
                 data.get("file_path", ""),

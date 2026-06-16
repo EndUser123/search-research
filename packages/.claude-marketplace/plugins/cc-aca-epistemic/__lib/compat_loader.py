@@ -23,7 +23,7 @@ def delegate(wrapper_path: str) -> None:
     # Map wrapper filename to plugin hook path
     # Wrappers use namespaced format: {hook}_{event}_{gate}.py
     # Plugin hooks are in hooks/{event}/{hook}_{event}_{gate}.py
-    plugin_root = Path("P:/packages/cc-aca-epistemic")
+    plugin_root = Path(__file__).resolve().parent.parent
 
     # Extract hook type from wrapper name
     # StopHook_cross_validator.py -> stop/StopHook_cross_validator.py

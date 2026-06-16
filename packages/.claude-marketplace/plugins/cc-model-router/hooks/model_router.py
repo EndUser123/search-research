@@ -189,7 +189,7 @@ def main():
     new_model = None
 
     if recommendation == "haiku" and (is_opus or is_sonnet):
-        new_model = "haiku"
+        new_model = "claude-haiku-4-5-20251001"
     elif recommendation == "sonnet" and is_opus:
         suffix = re.search(r"(\[.+?\])$", settings.get("model", ""))
         new_model = "sonnet" + (suffix.group(1) if suffix else "")

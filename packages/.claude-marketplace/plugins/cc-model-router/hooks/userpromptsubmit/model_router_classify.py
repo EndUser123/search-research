@@ -5,7 +5,7 @@ Reads state from config.json, classifies prompt, writes recommendation.json
 to .claude/state/model-router/{terminal_id}/{session_id}/
 
 warn mode: injects systemMessage, exits 0
-autoswitch mode: writes recommendation, exits 0 (Stop hook handles exit 2)
+autoswitch mode: writes recommendation, exits 0 (apply hook handles switching)
 """
 
 import json
@@ -125,7 +125,7 @@ def main():
         sys.exit(0)
 
     TIER_TO_MODEL = {
-        'haiku': 'claude-haiku-4-5',
+        'haiku': 'claude-haiku-4-5-20251001',
         'sonnet': 'claude-sonnet-4-6',
         'opus': 'claude-opus-4-8',
     }

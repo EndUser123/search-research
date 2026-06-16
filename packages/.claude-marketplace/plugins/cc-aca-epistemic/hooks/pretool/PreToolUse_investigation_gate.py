@@ -1440,14 +1440,15 @@ def check_write_permission(
         parent = Path(filepath).parent
         if not parent.exists() or not any(parent.iterdir()):
             return True, "New file in empty/new directory"
-        # New file in existing directory: exempt if sibling files were read
-        # (indicates familiarity with the directory's purpose)
+        # New file in existing directory: prefer sibling context, but never block.
+        # The gate enforces "read before modify" — new files have nothing to read yet.
         sibling_reads = sum(
             1 for r in state["files_read"]
             if Path(r).resolve().parent == parent.resolve()
         )
         if sibling_reads >= 1:
             return True, f"New file in known directory ({sibling_reads} sibling(s) read)"
+        return True, "New file creation (no prior read required)"
 
     # Library-aware check for utility code (skip for test files)
     code_content = (

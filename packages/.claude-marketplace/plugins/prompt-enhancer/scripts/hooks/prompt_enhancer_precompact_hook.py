@@ -13,7 +13,6 @@ Registered via hook_runner.py in settings.json:
 from __future__ import annotations
 
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -21,7 +20,9 @@ from pathlib import Path
 _plugin_root = Path(__file__).parents[2]
 sys.path.insert(0, str(_plugin_root))
 
-TERMINAL_ID = os.environ.get("CLAUDE_TERMINAL_ID", "default")
+from context import _terminal_id
+
+TERMINAL_ID = _terminal_id()
 ARTIFACT_DIR = Path.home() / ".claude" / ".artifacts" / TERMINAL_ID / "prompt-enhancer"
 ACTIVE_ENHANCEMENT = ARTIFACT_DIR / "active_enhancement.json"
 

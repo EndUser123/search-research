@@ -71,8 +71,8 @@ def main() -> None:
         contamination_hits = detect_contamination(proposed_facts, existing_content, observed_list)
 
         if contamination_hits:
-            # Call M2.7 verifier for confirmation
-            verified_blocks = _call_m2_7_verifier(
+            # Call M3 verifier for confirmation
+            verified_blocks = _call_m3_verifier(
                 target_file, proposed_facts, contamination_hits, terminal_id
             )
 
@@ -122,13 +122,13 @@ def main() -> None:
         sys.exit(2)
 
 
-def _call_m2_7_verifier(
+def _call_m3_verifier(
     target_file: str,
     proposed_facts: list,
     contamination_hits: list,
     terminal_id: str,
 ) -> list:
-    """Call ai-pcli M2.7 to verify contamination risk.
+    """Call ai-pcli M3 to verify contamination risk.
 
     Conservative: if verifier fails, don't block (prefer false negatives during pilot).
     """
@@ -154,7 +154,7 @@ def _call_m2_7_verifier(
         )
 
         result = subprocess.run(
-            ["ai-pcli", "m2.7", "--model", "minimax-m2.7", "--json-mode", prompt],
+            ["ai-pcli", "m3", "--model", "minimax/MiniMax-M3", "--json-mode", prompt],
             capture_output=True,
             text=True,
             timeout=30,

@@ -91,6 +91,7 @@ import logging
 import os
 import re
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -176,9 +177,72 @@ def _get_gate_mode() -> str:
     return os.environ.get("UNVERIFIED_STANCE_MODE", "warn").lower()
 
 
+def _adjudicate_candidate(response_text: str, tool_events: Any, phrase: str) -> str:
+    """Semantic precision filter for a regex-flagged anti-dodge candidate.
+
+    The surface-form regex is high-recall but high-false-positive (it fires on
+    reasoning-about / quoting the system, not just genuine dodges). When enabled,
+    the M3+Mistral adjudicator decides whether the matched candidate is a real
+    work-dodge ('block') or a false positive ('allow').
+
+    Fail-safe policy — fail OPEN, not closed (root-cause fix 2026-06-03):
+      * disabled         -> 'block'  (preserve the legacy gate when the feature is off)
+      * judge 'allow'    -> 'allow'  (confirmed false positive)
+      * judge 'block'    -> 'block'  (confirmed genuine dodge — enforcement preserved)
+      * judge 'unknown'  -> 'allow'  (providers timed out / rate-limited / keys missing)
+      * judge-side error -> 'allow'
+
+    Why fail OPEN on 'unknown'/error: this path is a HIGH-false-positive candidate by
+    construction (the regex over-fires on use/mention). Failing CLOSED during a transient
+    judge outage re-introduces exactly the false positive the judge exists to remove —
+    which is what produced the wrongful 'self_referential_evasion' block on 2026-06-03
+    when both providers were rate-limited. Capitulation-under-challenge is NOT routed here
+    (it stays POLICY/block), so the strongest anti-sycophancy enforcement is unaffected.
+    Every decision is logged (anti_dodge_decisions.jsonl) so a silent-off outage is
+    observable instead of invisible. Default OFF via ANTI_DODGE_JUDGE_ENABLED.
+    """
+    if os.environ.get("ANTI_DODGE_JUDGE_ENABLED", "false").lower() != "true":
+        return "block"
+    verdict = "unknown"
+    t0 = time.monotonic()
+    try:
+        from anti_dodge_judge import adjudicate as _adj
+
+        events = tool_events if isinstance(tool_events, list) else []
+        verdict = _adj(response_text, events, phrase)
+    except Exception as e:  # judge-side failure (import/runtime) — fail open, logged
+        verdict = f"error:{type(e).__name__}"
+    # Fail-OPEN: only an explicit 'block' blocks; 'allow'/'unknown'/error all pass.
+    decision = "block" if verdict == "block" else "allow"
+    _log_adjudication(phrase, verdict, decision, (time.monotonic() - t0) * 1000.0, len(response_text or ""))
+    return decision
+
+
 # Logging configuration for verification engine decisions
 LOG_DIR = HOOKS_DIR / "state" / "logs"
 LOG_FILE = LOG_DIR / "unverified_stance.jsonl"
+# Anti-dodge adjudication decision log — makes a silent judge-outage fail-open
+# observable (verdict='unknown'/'error' with decision='allow' = enforcement was bypassed).
+ADJUDICATION_LOG_FILE = LOG_DIR / "anti_dodge_decisions.jsonl"
+
+
+def _log_adjudication(phrase: str, verdict: str, decision: str, latency_ms: float, text_len: int) -> None:
+    """Append one adjudication decision to anti_dodge_decisions.jsonl (best-effort, never raises)."""
+    try:
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
+        rec = {
+            "ts": time.time(),
+            "phrase": (phrase or "")[:120],
+            "verdict": verdict,  # 'allow' | 'block' | 'unknown' | 'error:<Type>'
+            "decision": decision,  # 'allow' | 'block' (what the gate actually did)
+            "fail_open": verdict not in ("allow", "block"),  # True => judge was unavailable
+            "latency_ms": round(latency_ms, 1),
+            "text_len": text_len,
+        }
+        with ADJUDICATION_LOG_FILE.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
 
 
 def load_tool_events_for_context(
@@ -415,6 +479,42 @@ UNFOUNDED_SYSTEM_CLAIM_PATTERNS = [
 ]
 
 
+# Relay attribution patterns — user attestation is authoritative per verification stack.
+# When agent relays user-provided facts ("per your message, X is fixed"), no tool
+# evidence should be required because the user is the authoritative source.
+_RELAY_ATTRIBUTION_PATTERNS: list[re.Pattern] = [
+    re.compile(r"\bper\s+your\s+(?:message|report|note|update|description|prior\s+message)\b", re.I),
+    re.compile(r"\byou(?:'ve|r?\s+have)\s+(?:indicated|said|noted|reported|mentioned|confirmed|told\s+me)\b", re.I),
+    re.compile(r"\bas\s+you(?:'ve)?\s+(?:noted|said|indicated|reported|mentioned|confirmed)\b", re.I),
+    re.compile(r"\baccording\s+to\s+you(?:r\s+(?:message|report|description))?\b", re.I),
+    re.compile(r"\byou\s+(?:said|noted|reported|mentioned|confirmed|told\s+me)\s+(?:that\s+)?", re.I),
+    re.compile(r"\byou'?ve\s+(?:indicated|confirmed|noted|reported|said|mentioned)\b", re.I),
+    re.compile(r"\byou\s+(?:report|indicat|confirm)(?:ed|)(?:\s+that)?\b", re.I),
+]
+
+_RELAY_SENTENCE_SPLITTER = re.compile(r"(?<=[.!?\n])\s+")
+
+
+def _is_relay_attributed(claim_text: str, full_response: str) -> bool:
+    """Return True if claim_text appears in a relay-attributed sentence.
+
+    Per CLAUDE.md verification stack: user-provided statements are authoritative
+    evidence. When the agent relays what the user said, no tool evidence is required.
+    """
+    if not claim_text:
+        return False
+    key = claim_text[:60].lower().strip()
+    if not key:
+        return False
+    sentences = _RELAY_SENTENCE_SPLITTER.split(full_response)
+    for sentence in sentences:
+        if key in sentence.lower():
+            for pat in _RELAY_ATTRIBUTION_PATTERNS:
+                if pat.search(sentence):
+                    return True
+    return False
+
+
 def _strip_quoted_blocks(text: str) -> str:
     """Strip quoted/artifact blocks before pattern matching to prevent
     meta-discussion from self-retriggering the unfounded-claims detector.
@@ -575,6 +675,8 @@ def _distinguish_valid_explanation(response: str, data: dict) -> bool:
         re.compile(r"according\s+to\s+[\w/\.]+", re.IGNORECASE),
         re.compile(r"from\s+the\s+(?:file|code|docs)", re.IGNORECASE),
         re.compile(r"reading\s+\w+\s+(?:shows|reveals|indicates)", re.IGNORECASE),
+        # User attribution is authoritative evidence per verification stack
+        *_RELAY_ATTRIBUTION_PATTERNS,
     ]
 
     for pattern in evidence_patterns:
@@ -1215,6 +1317,10 @@ def run(data: dict[str, Any]) -> dict[str, Any] | None:
             # Extract claims using verification engine
             claims = extract_claims(response_text)
 
+            # Exempt relay-attributed claims — user attestation is authoritative
+            # per the CLAUDE.md verification stack ("User Context: Always").
+            claims = [c for c in claims if not _is_relay_attributed(c.text, response_text)]
+
             if claims:
                 # Load tool events for context (terminal-scoped)
                 # If tool_events provided in data, merge with session-scoped events
@@ -1375,13 +1481,16 @@ To disable enforcement: Set UNVERIFIED_STANCE_ENABLED=false
         # System claim check (unique to this hook) — with evidence discrimination
         system_claim = _check_unfounded_system_claims(response_text, detector_input)
         if system_claim and not _distinguish_valid_explanation(response_text, detector_input):
-            severity = "block" if (UNVERIFIED_STANCE_MODE == "block" and not rca_turn) else "warn"
-            msg = (
-                format_system_claim_block(system_claim)
-                if severity == "block"
-                else format_system_claim_advisory(system_claim)
-            )
-            violations.append(("Phase 2 (System Claims)", msg, severity))
+            if _adjudicate_candidate(response_text, tool_events, system_claim) == "allow":
+                pass  # M3 judge confirmed false positive (reasoning / quote / evidence-backed)
+            else:
+                severity = "block" if (UNVERIFIED_STANCE_MODE == "block" and not rca_turn) else "warn"
+                msg = (
+                    format_system_claim_block(system_claim)
+                    if severity == "block"
+                    else format_system_claim_advisory(system_claim)
+                )
+                violations.append(("Phase 2 (System Claims)", msg, severity))
 
         # Unverified stance detection (unique to this hook)
         result = detect_unverified_stance(response_text, detector_input)
@@ -1401,22 +1510,31 @@ To disable enforcement: Set UNVERIFIED_STANCE_ENABLED=false
                     break
         lazy_match = detect_lazy_closure(response_text, has_bash_evidence=bash_ran)
         if lazy_match:
-            msg = (
-                f"⚠️ Lazy closure pattern detected: **{lazy_match.pattern_type}**\n\n"
-                f"Matched: `{lazy_match.matched}`\n\n"
-                f"{lazy_match.suggestion}"
-            )
-            effective_severity = lazy_match.severity
-            if lazy_match.pattern_type == "sycophancy_capitulation" and challenge_active:
-                effective_severity = "block"
-            # Fix 2: sycophancy_capitulation blocks when challenge is active regardless of mode.
-            # Other pattern types still respect UNVERIFIED_STANCE_MODE.
-            severity = (
-                "block"
-                if effective_severity == "block"
-                else ("block" if UNVERIFIED_STANCE_MODE == "block" else "warn")
-            )
-            violations.append(("Phase 2 (Lazy Closure)", msg, severity))
+            _is_capitulation = lazy_match.pattern_type == "sycophancy_capitulation"
+            # Precision filter for NON-capitulation patterns (declaration etc.), which have a
+            # high false-positive rate on use/mention. Capitulation-under-challenge stays
+            # POLICY and is never adjudicated away.
+            if (not _is_capitulation) and _adjudicate_candidate(
+                response_text, tool_events, lazy_match.matched
+            ) == "allow":
+                pass  # M3 judge confirmed false positive (quote / mention / fulfilled work)
+            else:
+                msg = (
+                    f"⚠️ Lazy closure pattern detected: **{lazy_match.pattern_type}**\n\n"
+                    f"Matched: `{lazy_match.matched}`\n\n"
+                    f"{lazy_match.suggestion}"
+                )
+                effective_severity = lazy_match.severity
+                if _is_capitulation and challenge_active:
+                    effective_severity = "block"
+                # Fix 2: sycophancy_capitulation blocks when challenge is active regardless of mode.
+                # Other pattern types still respect UNVERIFIED_STANCE_MODE.
+                severity = (
+                    "block"
+                    if effective_severity == "block"
+                    else ("block" if UNVERIFIED_STANCE_MODE == "block" else "warn")
+                )
+                violations.append(("Phase 2 (Lazy Closure)", msg, severity))
 
         # Fix 3: Enforce ADVOCATE_PROTOCOL adherence when a challenge is active.
         # The injector requires STATUS: labels on every claim after a challenge. This gate

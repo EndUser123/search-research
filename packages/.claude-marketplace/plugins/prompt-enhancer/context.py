@@ -25,11 +25,26 @@ from pathlib import Path
 # Module-level constants — keep simple to avoid hook false-positives on literals.
 _CONTEXT_FILENAME = "session_context.json"
 _MAX_TURN_HISTORY = 5  # how many recent turns we keep
+# How far back last_subject may reach. A continuation ("yes please") almost always
+# refers to the immediately prior subject; reaching further risks resurrecting a
+# stale subject from an unrelated earlier task. Bounded to the 2 newest turns.
+_SUBJECT_LOOKBACK = 2
 _DEFAULT_TERMINAL = "default"
 
 
 def _terminal_id() -> str:
-    return os.environ.get("CLAUDE_TERMINAL_ID", _DEFAULT_TERMINAL)
+    """Isolation key for the per-session context file.
+
+    CLAUDE_TERMINAL_ID is not set by Claude Code in this environment, so the old
+    fallback collapsed every concurrent session onto a single "default" file —
+    causing subjects to bleed across unrelated terminals. CLAUDE_CODE_SESSION_ID
+    is set per session and stable within it, so it is the correct isolation key.
+    """
+    return (
+        os.environ.get("CLAUDE_TERMINAL_ID")
+        or os.environ.get("CLAUDE_CODE_SESSION_ID")
+        or _DEFAULT_TERMINAL
+    )
 
 
 def _context_path() -> Path:
@@ -58,8 +73,12 @@ class SessionContext:
 
     @property
     def last_subject(self) -> str | None:
-        """Most recent non-empty subject across the history (newest first)."""
-        for turn in reversed(self.turns):
+        """Most recent non-empty subject within the recency window (newest first).
+
+        Bounded to _SUBJECT_LOOKBACK turns so a continuation does not resurrect a
+        stale subject from an unrelated earlier task.
+        """
+        for turn in reversed(self.turns[-_SUBJECT_LOOKBACK:]):
             if turn.subject:
                 return turn.subject
         return None

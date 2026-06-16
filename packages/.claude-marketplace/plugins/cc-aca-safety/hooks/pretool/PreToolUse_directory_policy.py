@@ -153,7 +153,12 @@ def _validate_directory_policy_schema(policy: dict, policy_path: str) -> list[st
 
 
 try:
-    _policy_path = PathLib(hooks_dir) / "config" / "directory_policy.json"
+    # Use _hooks_dir (bootstrap-resolved GLOBAL hooks dir), not hooks_dir
+    # (this file's own dir). After the plugin migration this hook lives in
+    # hooks/pretool/, so dirname(__file__) no longer points at the global
+    # hooks dir where config/ lives — using it left the allowlist empty and
+    # blocked every external path (memory, plans, state) as "path traversal".
+    _policy_path = PathLib(_hooks_dir) / "config" / "directory_policy.json"
     if _policy_path.exists():
         with open(_policy_path, encoding="utf-8") as _f:
             _policy = json.load(_f)

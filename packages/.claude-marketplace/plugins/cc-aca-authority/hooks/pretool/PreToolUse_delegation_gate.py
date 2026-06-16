@@ -35,6 +35,23 @@ HOOKS_DIR = Path(__file__).resolve().parent
 # Three levels up: hooks/ -> .claude/ -> P:/
 # State goes in .artifacts/{terminal_id}/hook_state/
 DELEGATION_TTL_SECONDS = 300  # 5 minutes
+_READ_ONLY_TOOLS = {"Read", "Grep", "Glob", "LS"}
+_DELEGATION_TOOLS = {"Task", "Agent", "Skill"}
+_IMPLEMENTATION_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
+_ALLOWED_DIAGNOSTIC_BASH_PATTERNS = [
+    re.compile(r"^\s*python(?:3)?\s+-c\s+.+", re.IGNORECASE),
+    re.compile(r"^\s*python(?:3)?\s+-m\s+py_compile\b", re.IGNORECASE),
+    re.compile(r"^\s*git\s+(?:status|diff|show|log)\b", re.IGNORECASE),
+    re.compile(r"^\s*rg\b", re.IGNORECASE),
+    re.compile(r"^\s*Get-Content\b", re.IGNORECASE),
+    re.compile(r"^\s*Select-String\b", re.IGNORECASE),
+]
+_BLOCKED_BASH_PATTERNS = [
+    re.compile(r"\b(?:rm|del|Remove-Item)\b", re.IGNORECASE),
+    re.compile(r"\bgit\s+(?:commit|push|reset|checkout|clean|merge|rebase)\b", re.IGNORECASE),
+    re.compile(r"\bpytest\b(?:\s*$|\s+(?!.*::))", re.IGNORECASE),
+    re.compile(r"\bpython(?:3)?\s+[^;&|]*apply", re.IGNORECASE),
+]
 
 def _get_artifacts_dir(terminal_id_override: str | None = None) -> Path:
     """Get .artifacts directory for this terminal.
@@ -177,19 +194,48 @@ def _is_bypass_flagged(data: dict) -> bool:
     return bool(re.search(r"--allow-inline\b", user_msg, re.IGNORECASE))
 
 
+def _is_allowed_diagnostic_bash(command: str) -> bool:
+    """Allow narrow commands that gather evidence but do not change state."""
+    if not command.strip():
+        return False
+    if any(pattern.search(command) for pattern in _BLOCKED_BASH_PATTERNS):
+        return False
+    return any(pattern.search(command) for pattern in _ALLOWED_DIAGNOSTIC_BASH_PATTERNS)
+
+
+def _should_block_tool(tool_name: str, tool_input: dict) -> bool:
+    """Return True only for tools that can mutate or broadly execute work."""
+    if tool_name in _DELEGATION_TOOLS:
+        return False
+    if tool_name in _READ_ONLY_TOOLS:
+        return False
+    if tool_name == "Bash":
+        command = str(tool_input.get("command", ""))
+        return not _is_allowed_diagnostic_bash(command)
+    if tool_name in _IMPLEMENTATION_TOOLS:
+        return True
+    return True
+
+
 def _build_block_message(tool_name: str, state: dict) -> str:
     """Build descriptive block message."""
     matched = state.get("matched_pattern", "unknown pattern")
     snippet = state.get("prompt_snippet", "")[:100]
-    return f"""⛔ DELEGATION REQUIRED
+    return f"""DELEGATION REQUIRED
 
 A delegation opportunity was detected: {matched}
 
 Snippet: {snippet}...
 
-You MUST use the Agent/Task tool to delegate this work.
+This gate blocks implementation or broad execution until delegation happens.
+Allowed now: Read, Grep, Glob, and narrow diagnostic Bash commands.
+Blocked now: {tool_name}
 
-To bypass this gate: Add --allow-inline to your message.
+Next action:
+- Use Agent/Task to delegate the independent work packets, or
+- Gather read-only evidence first with Read/Grep/Glob/narrow Bash, then delegate before editing.
+
+User override for the next turn: send --allow-inline.
 """
 
 def main() -> int:
@@ -221,7 +267,14 @@ def main() -> int:
         _log_gate_event("delegation_occurred_state_cleared", tool_name)
         return 0  # Allow
 
-    # Block all other tools
+    tool_input = data.get("tool_input", {})
+    if not isinstance(tool_input, dict):
+        tool_input = {}
+
+    if not _should_block_tool(tool_name, tool_input):
+        _log_gate_event("allowed_evidence_gathering", tool_name, state.get("matched_pattern", ""))
+        return 0
+
     block_msg = _build_block_message(tool_name, state)
     print(block_msg, file=sys.stderr)
     _log_gate_event("blocked", tool_name, state.get("matched_pattern", ""))

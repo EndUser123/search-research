@@ -269,6 +269,38 @@ def format_check_message(checks: dict) -> str:
 
     return "\n".join(lines)
 
+def _get_last_user_message(input_data: dict) -> str:
+    """Read last user message from transcript JSONL (user_message field is always empty)."""
+    transcript_path = input_data.get("transcript_path", "")
+    if not transcript_path:
+        return ""
+    try:
+        with open(transcript_path, "rb") as f:
+            f.seek(0, 2)
+            size = f.tell()
+            f.seek(max(0, size - 4096))
+            tail = f.read().decode("utf-8", errors="replace")
+        for line in reversed(tail.splitlines()):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if entry.get("type") == "user":
+                content = entry.get("message", {}).get("content", "")
+                if isinstance(content, list):
+                    for block in content:
+                        if isinstance(block, dict) and block.get("type") == "text":
+                            return block.get("text", "")
+                elif isinstance(content, str):
+                    return content
+    except (OSError, IOError):
+        pass
+    return ""
+
+
 def check_worktree_cross_contamination(
     tool_name: str,
     tool_input: dict,
@@ -297,8 +329,8 @@ def check_worktree_cross_contamination(
     if tool_name not in ("Bash", "Edit", "Write"):
         return {"continue": True, "decision": "allow"}
 
-    # Check for bypass flag in user message
-    user_message = input_data.get("user_message", "")
+    # Check for bypass flag in last user message (user_message field is always empty)
+    user_message = _get_last_user_message(input_data)
     if "--allow-cross-worktree" in user_message:
         return {"continue": True, "decision": "allow", "reason": "Cross-worktree check bypassed"}
 
@@ -322,6 +354,11 @@ def check_worktree_cross_contamination(
         normalized = file_path.replace(chr(92), '/').lower()
         if '/.claude/projects/' in normalized and '/memory/' in normalized:
             return {"continue": True, "decision": "allow"}
+
+        # PLANS EXEMPTION: plan files under .claude/plans/ are session-wide artifacts,
+        # not worktree-scoped. Skills write plans from any worktree.
+        if '/.claude/plans/' in normalized:
+            return {"continue": True, "decision": "allow", "reason": "Session plan (not worktree-scoped)"}
 
         # GLOBAL CONFIG EXEMPTION: files under the user's home ~/.claude/ tree
         # (CLAUDE.md, settings.json, hooks, plugins, cache) are permanent global
@@ -424,8 +461,8 @@ def suggest_git_restore(
     if tool_name != "Bash":
         return {"continue": True, "decision": "allow"}
 
-    # Check for bypass flag in user message
-    user_message = input_data.get("user_message", "")
+    # Check for bypass flag in last user message (user_message field is always empty)
+    user_message = _get_last_user_message(input_data)
     if "--allow-legacy-checkout" in user_message:
         return {"continue": True, "decision": "allow", "reason": "Legacy checkout suggestion suppressed"}
 

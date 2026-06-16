@@ -403,12 +403,19 @@ SYCOPHANCY_CAPITULATION_PHRASES = [
 # "I verified X" (no tools) + "but Y is also possible" = BLOCK (decision without evidence)
 SELF_REFERENTIAL_EVASION_PATTERNS = [
     r"\bROOT\s+CAUSE\s+CANDIDATE\b",
-    r"\bhypothes[ei]s\b.*?(?:(?:yet|still|also|may|might|could)\s+)?(?:be|apply|explain)",
+    # Require an actual hedge modal within the same clause (no sentence cross via [^.]).
+    # Prevents FP on injected reasoning-contract text ("hypotheses, note what would
+    # confirm or falsify each. Test be...") and on "hypothesis" used as a plain
+    # technical noun ("single hypothesis, no discriminating test - would now be").
+    r"\bhypothes[ei]s\b[^.]{0,40}?(?:yet|still|also|may|might|could)\s+(?:be|apply|explain)\b",
     r"(?:yet|still|also)\s+(?:might|may|could)\s+(?:be|explain|apply)",
     r"(?<!`)(?<!\[)\bhedge[s]?\b(?!`)(?!\])",
-    r"(?<!`)(?<!\[)\bunverified\b(?!`)(?!\])",
+    # Exclude structured-field forms (status=unverified, "status":"unverified",
+    # status:unverified) and bracket/backtick-wrapped markers ([UNVERIFIED], `unverified`)
+    # — these are field values, not a hedged stance claim. Bare prose 'unverified' still fires.
+    r"(?<!`)(?<!\[)(?<!=)(?<!:)(?<!\")\bunverified\b(?!`)(?!\])",
     r"\b(?:this|that)\s+(?:still\s+)?(?:might|may|could)\s+(?:be|require)\b",
-    r"\b(?:competing|ruling\s+out)\s+hypotheses\b",
+    r"\bruling\s+out\s+hypotheses\b",
     r"\b(?:candidate|hypothesis)\s+(?:for|of|is)\s+\w+\b",
 ]
 
@@ -431,6 +438,53 @@ BASH_ONLY_EVIDENCE_MARKERS = frozenset(
         "traceback (most recent",  # Python traceback = real execution
     ]
 )
+
+# Empirical behavior-claim tokens - words asserting how code/system BEHAVES (vs
+# design/preference judgments). sycophancy_capitulation fires only when the agreement
+# ("you're right") sits near such a claim, restoring the detector's documented design
+# ("agreeing ... then makes a confident claim about external behavior"). Bare social or
+# preference agreement ("you're right, Option B is cleaner") has no such token.
+# Pruned 2026-06-01 (FP-replay over 51 capitulation blocks, second pass).
+# Removed pure topic-words that fire on any technical discussion: "the hook",
+# "the function", "the script", "the implementation", "the command", "behaves",
+# "as intended". In epistemic-analysis sessions these appear as topic words in
+# ~all turns within 220 chars of an agreement phrase, causing capitulation to
+# fire regardless of whether a real behavioral claim was made.
+# Kept: tokens that ASSERT a testable behavioral state.
+# Matching uses simple substring (`tok in region`) so multi-word tokens like
+# "is working" and "not a bug" require that phrase to appear as a substring.
+EMPIRICAL_CLAIM_TOKENS = frozenset([
+    # State-change assertions
+    "fixed", "not a bug",
+    # Runtime behavior assertions
+    "works", "working", "is working", "doesn't work", "does not work",
+    # Test outcome assertions
+    "passes", "passed", "fails", "failing",
+    # Function-call behavior descriptions
+    "delegates", "displays", "handles",
+    # REMOVED 2026-06-01 (second pass): topic words that fire on any analysis turn
+    # "bug", "the fix", "behaves", "as intended", "the command", "the hook",
+    # "the function", "the script", "the implementation"
+])
+
+
+def _has_empirical_claim_near(text: str, match: "re.Match", window: int = 220) -> bool:
+    """True if an empirical behavior-claim token appears near the capitulation match.
+
+    Window starts shortly before the match (to catch claim-then-agreement ordering)
+    and runs `window` chars past it. Social/preference agreement with no behavior
+    claim returns False and is not flagged.
+    """
+    start = max(0, match.start() - 40)
+    end = min(len(text), match.end() + window)
+    region = text[start:end].lower()
+    # Word-boundary match: prevents substring bleed where a token is a fragment
+    # of an unrelated word ("works" in "frameworks", "correctly" in "incorrectly").
+    for tok in EMPIRICAL_CLAIM_TOKENS:
+        if re.search(r"(?<![a-z])" + re.escape(tok) + r"(?![a-z])", region):
+            return True
+    return False
+
 
 # Template file patterns (for validation)
 TEMPLATE_FILE_PATTERNS = [
@@ -671,15 +725,19 @@ def detect_lazy_closure(
     text_lower = text.lower()
     hit = _find_deferral(text_lower)
     if hit and not _has_deferral_tracking(text_lower):
-        return LazyClosureMatch(
-            matched=hit,
-            pattern_type="deferral",
-            suggestion=(
-                "Untracked debt detected. Either fix it now, or use spawn_task to formally "
-                "track it. 'I'll leave that for now' without tracking creates invisible debt."
-            ),
-            severity="flag",
-        )
+        # Skip if the match phrase is inside quoted/code content — the text is
+        # mentioning/explaining the phrase, not making an actual deferral claim.
+        _dm = re.search(re.escape(hit), text, re.IGNORECASE)
+        if not (_dm and _is_inside_quoted_content(text, _dm)):
+            return LazyClosureMatch(
+                matched=hit,
+                pattern_type="deferral",
+                suggestion=(
+                    "Untracked debt detected. Either fix it now, or use spawn_task to formally "
+                    "track it. 'I'll leave that for now' without tracking creates invisible debt."
+                ),
+                severity="flag",
+            )
 
     # Verifiable state claims — env vars / flags / settings asserted without checking.
     # Checked unconditionally: having done other verification elsewhere doesn't excuse
@@ -740,7 +798,12 @@ def detect_lazy_closure(
     # blockquotes) to prevent false positives from cited transcript evidence.
     match = _find_pattern(text, _SYCOPHANCY_CAPITULATION)
     _bash_ok = has_bash_evidence if has_bash_evidence is not None else _has_bash_evidence(text)
-    if match and not _bash_ok and not _is_inside_quoted_content(text, match):
+    if (
+        match
+        and not _bash_ok
+        and not _is_inside_quoted_content(text, match)
+        and _has_empirical_claim_near(text, match)
+    ):
         escalated = _check_capitulation_escalation()
         if escalated:
             return LazyClosureMatch(
@@ -775,7 +838,7 @@ def detect_lazy_closure(
     #   OK:    "I should investigate X" + no tools used = investigation hedge
     #   BLOCK: "I verified X" + no tools used + "but might still be Y" = decision evasion
     match = _find_pattern(text, _SELF_REFERENTIAL_EVASION)
-    if match and _has_tool_usage_marker(text):
+    if match and _has_tool_usage_marker(text) and not _is_inside_quoted_content(text, match):
         return LazyClosureMatch(
             matched=match.group(0),
             pattern_type="self_referential_evasion",
@@ -863,15 +926,24 @@ def detect_lazy_closure(
             severity="flag",
         )
 
-    # 6. Check for premature offer
+    # 6. Check for premature offer - only premature when NO prior investigation.
+    # Offering to implement AFTER investigation is the correct authorization-seeking
+    # step (CLAUDE.md: "state what you plan to change and wait for confirmation"), not
+    # lazy closure. Reuses the same ledger check as user_delegation.
     match = _find_pattern(text, _PREMATURE_OFFER)
     if match:
-        return LazyClosureMatch(
-            matched=match.group(0),
-            pattern_type="premature_offer",
-            suggestion="Offering to implement before understanding. Have you completed Investigation Gate?",
-            severity="flag",
+        had_investigation = (
+            check_topic_relevant_investigation(user_prompt)
+            if user_prompt
+            else check_investigation_in_ledger()
         )
+        if not had_investigation:
+            return LazyClosureMatch(
+                matched=match.group(0),
+                pattern_type="premature_offer",
+                suggestion="Offering to implement before understanding. Have you completed Investigation Gate?",
+                severity="flag",
+            )
 
     # 7. Check for literalist framing - "that's the extent of what you asked" with no diagnosis
     match = _find_pattern(text, _LITERALIST_FRAMING)
@@ -1003,6 +1075,8 @@ def detect_all_lazy_closure(response: str, user_prompt: str = "") -> list[LazyCl
     if not _has_bash_evidence(text):
         for pattern in _SYCOPHANCY_CAPITULATION:
             for match in pattern.finditer(text):
+                if not _has_empirical_claim_near(text, match):
+                    continue
                 results.append(
                     LazyClosureMatch(
                         matched=match.group(0),

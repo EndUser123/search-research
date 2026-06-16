@@ -148,7 +148,7 @@ def process_hook(
     if bypass_env == "1":
         return True, "TDD contract bypass enabled", {"bypassed": True}
 
-    tool_name = input_data.get("name", "")
+    tool_name = input_data.get("tool_name", "") or input_data.get("name", "")
     tool_input = input_data.get("tool_input", {})
     file_path_str = tool_input.get("file_path", "")
 
@@ -225,7 +225,7 @@ if __name__ == "__main__":
     allow, reason, context = process_hook(input_data)
 
     result = {
-        "decision": "allow" if allow else "deny",
+        "decision": "approve" if allow else "deny",
         "reason": reason,
     }
     if context:

@@ -1,3 +1,24 @@
+---
+name: cc-model-router
+version: "0.2.0"
+status: "stable"
+description: Automatic model-tier routing (haiku/sonnet/opus) based on prompt complexity heuristics
+category: infrastructure
+enforcement: advisory
+workflow_steps:
+  - name: Classify
+    trigger: "UserPromptSubmit"
+    description: "model_router_classify.py scores the prompt and writes recommendation.json"
+  - name: Apply
+    trigger: "UserPromptSubmit"
+    description: "model_router_apply.py consumes the recommendation and rewrites settings.json before the next response is generated (v0.2.0+)"
+triggers:
+  - autoswitch
+  - model-router
+aliases:
+  - model-router
+---
+
 # cc-model-router
 
 Automatic model-tier routing (haiku/sonnet/opus) based on prompt complexity heuristics.
@@ -29,7 +50,17 @@ SystemMessage injected into prompt when complexity threshold exceeded.
 }
 ```
 
-Stop hook exits 2 to block response, settings.json updated atomically.
+UserPromptSubmit apply hook (v0.2.0+) rewrites `settings.json` before
+generation, so the new model is in effect for the **current** turn.
+Autoswitch is handled entirely in that apply step.
+
+Set `MODEL_ROUTER_APPLY_DRY_RUN=1` in the environment to log the would-be
+switch to `apply_audit.jsonl` without touching `settings.json`. Use this
+for 3+ sessions to verify the harness actually picks up the per-turn
+rewrite (the falsification test the design identifies) before flipping
+to live mode.
+
+Audit log: `.claude/state/model-router/apply_audit.jsonl`
 
 ## Configuration
 

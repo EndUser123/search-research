@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-PLUGIN_ROOT = Path("P:/packages/cc-aca-epistemic")
-PLUGIN_LIB = PLUGIN_ROOT / "lib"
+PLUGIN_ROOT = Path(__file__).resolve().parents[1]
+PLUGIN_LIB = PLUGIN_ROOT / "__lib"
 GLOBAL_HOOKS_DIR = Path("P:/.claude/hooks")
 GLOBAL_HOOKS_LIB = GLOBAL_HOOKS_DIR / "__lib__"
 

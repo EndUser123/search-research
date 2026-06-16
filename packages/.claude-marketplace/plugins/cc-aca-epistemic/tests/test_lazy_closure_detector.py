@@ -14,9 +14,10 @@ import re
 import pytest
 
 # Import the compiled patterns directly to avoid full module import chain.
-_PATTERNS_SOURCE = (
-    "P:/packages/cc-aca-epistemic/__lib/anti_sycophancy/lazy_closure_detector.py"
-)
+from pathlib import Path as _Path
+
+_PLUGIN_ROOT = _Path(__file__).resolve().parents[1]
+_PATTERNS_SOURCE = str(_PLUGIN_ROOT / "__lib" / "anti_sycophancy" / "lazy_closure_detector.py")
 
 
 def _read_patterns() -> list[str]:

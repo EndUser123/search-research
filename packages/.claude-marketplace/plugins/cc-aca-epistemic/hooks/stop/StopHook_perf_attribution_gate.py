@@ -36,23 +36,6 @@ from _bootstrap import bootstrap
 _hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
-def _normalize_stdout(data: dict) -> dict:
-    """Normalize hook output to Claude Code Zod-valid schema."""
-    if data.get('decision') == 'allow':
-        return {'decision': 'approve'}
-    if data.get('decision') == 'block':
-        return {'decision': 'block', 'reason': data.get('reason', '')}
-    if 'allow' in data:
-        if data['allow'] is False:
-            return {'decision': 'block', 'reason': data.get('reason', '')}
-        return {'decision': 'approve'}
-    if 'continue' in data:
-        if data['continue'] is False:
-            return {'decision': 'block', 'reason': data.get('reason', '')}
-        return {'decision': 'approve'}
-    if 'ok' in data:
-        return {'decision': 'approve'}
-    return data
 
 
 
@@ -82,7 +65,7 @@ PERF_CLAIM_PATTERNS: list[re.Pattern] = [
     re.compile(r"\bthroughput\b.*\b(is|was|dominate|explain|cause)\b", re.IGNORECASE),
     re.compile(r"\blatency\b.*\b(is|was|dominate|explain|cause)\b", re.IGNORECASE),
     # Duration patterns paired with causal claims
-    re.compile(r"~\d+\s*s", re.IGNORECASE),  # ~480s
+    re.compile(r"~\d{3,}\s*s", re.IGNORECASE),  # ~480s (require 3+ digits; small estimates like ~10s are prose, not measurements)
     re.compile(r"\b\d+\s*seconds?\b.*(?:because|due to|caused by|explains|is the reason)", re.IGNORECASE),
     # Specific workflow terms paired with timing
     re.compile(r"yt-dlp.*(?:fetch|download|processing).*~?\d+\s*s", re.IGNORECASE),
@@ -138,6 +121,20 @@ TIMING_CODE_MARKERS: list[str] = [
 ]
 
 # ----------------------------------------------------------------------
+# Meta-Analysis Signals
+# ----------------------------------------------------------------------
+
+# Implementation-specific strings that only appear when a response is analyzing
+# the gate itself, not making performance claims. Exempt these responses entirely.
+META_SIGNALS: list[str] = [
+    "PERF_CLAIM_PATTERNS",
+    "HEDGE_PATTERNS",
+    "StopHook_perf_attribution_gate",
+    "search_unquoted",
+    "_detect_perf_claims",
+    "evidence_scope",
+]
+
 # Block Message
 # ----------------------------------------------------------------------
 
@@ -156,6 +153,11 @@ This prevents confident causal claims that invent a plausible story without chec
 # ----------------------------------------------------------------------
 # Helper Functions
 # ----------------------------------------------------------------------
+
+def _is_meta_analysis(text: str) -> bool:
+    """Response is analyzing the perf-attribution gate itself — exempt from detection."""
+    return any(signal in text for signal in META_SIGNALS)
+
 
 def _detect_perf_claims(text: str) -> bool:
     """Check if text contains confident performance attribution patterns."""
@@ -240,6 +242,10 @@ def run(data: dict[str, Any]) -> dict[str, Any]:
     response_text = _get_response_text(data)
     stop_hook_active = _get_stop_hook_active(data)
 
+    # Meta-analysis exemption: response is discussing the gate itself
+    if _is_meta_analysis(response_text):
+        return {"continue": True}
+
     # Case 1: No perf claims detected -> allow
     if not _detect_perf_claims(response_text):
         return {"continue": True}
@@ -295,10 +301,11 @@ def main() -> int:
         return 0
 
     result = run(payload)
-    output = {"decision": "approve" if result.get("allow", True) else "block", "reason": result.get("reason", "")}
-    if not result.get("allow", True):
-        output = {"decision": "block", "reason": result.get("reason", "")}
-    print(json.dumps(_normalize_stdout(output)))
+    if not result.get("continue", True):
+        output = {"decision": "block", "reason": result.get("stopReason", "")}
+    else:
+        output = {"decision": "approve"}
+    print(json.dumps(output))
     return 0
 
 

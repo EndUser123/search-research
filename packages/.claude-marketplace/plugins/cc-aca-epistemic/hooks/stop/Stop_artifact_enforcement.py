@@ -23,20 +23,6 @@ from _bootstrap import bootstrap
 _hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
-
-
-
-# --- plugin bootstrap ---
-import sys
-from pathlib import Path
-
-_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
-if str(_lib) not in sys.path:
-    sys.path.insert(0, str(_lib))
-from _bootstrap import bootstrap
-_hooks_dir = bootstrap(__file__)
-# --- end bootstrap ---
-
 def _normalize_stdout(data: dict) -> dict:
     """Normalize hook output to Claude Code Zod-valid schema."""
     if data.get('decision') == 'allow':
@@ -66,9 +52,10 @@ import re
 import sys
 from pathlib import Path
 
-_HOOKS_DIR = Path(__file__).resolve().parent
+_HOOKS_DIR = _hooks_dir  # from bootstrap — resolves to P:/.claude/hooks/
 _STATE_DIR = _HOOKS_DIR / ".state"
-sys.path.insert(0, str(_HOOKS_DIR))
+if str(_HOOKS_DIR) not in sys.path:
+    sys.path.insert(0, str(_HOOKS_DIR))
 
 from claim_layer_map import CLAIM_LAYER_MAP, get_block_message
 from __lib.claim_type import _read_claim_type, _safe_id

@@ -114,6 +114,35 @@ _DELEGATION_PATTERNS = [
     re.compile(r"(?:grep|search|find)\s+all\b", re.IGNORECASE),
 ]
 
+
+def _strip_non_actionable_prompt_content(prompt: str) -> str:
+    """Remove quoted/example content before matching action-intent regexes."""
+    if not prompt:
+        return ""
+
+    kept: list[str] = []
+    in_fence = False
+    for raw_line in prompt.splitlines():
+        line = raw_line.rstrip()
+        stripped = line.strip()
+
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        if stripped.startswith(">"):
+            continue
+        if stripped.startswith("|"):
+            continue
+        if stripped.startswith("- **") or stripped.startswith("* **"):
+            continue
+
+        kept.append(line)
+
+    return "\n".join(kept)
+
+
 _DELEGATION_ADVISORY = """
 [SUBAGENT DELEGATION OPPORTUNITY]
 
@@ -153,10 +182,11 @@ def _detect_delegation_opportunity(prompt: str) -> tuple[bool, str | None]:
     Skill invocations (/code, /go, etc.) are NOT flagged: they already route
     through the Skill tool, and the gate would block that Skill tool call itself.
     """
-    if not prompt:
+    normalized = _strip_non_actionable_prompt_content(prompt)
+    if not normalized.strip():
         return False, None
     for pattern in _DELEGATION_PATTERNS:
-        if pattern.search(prompt):
+        if pattern.search(normalized):
             return True, f"matched: {pattern.pattern[:50]}..."
     return False, None
 
@@ -222,7 +252,7 @@ def delegation_prospector_hook(context: HookContext) -> HookResult:
 
     # --allow-inline in current message clears any pending delegation state so
     # PreToolUse_delegation_gate doesn't fire on the new turn.
-    if re.search(r"--allow-inline", prompt or "", re.IGNORECASE):
+    if re.search(r"--allow-inline\b", prompt or "", re.IGNORECASE):
         _clear_delegation_state()
         _log_delegation_event("bypass_clear", terminal_id, "", None, prompt)
         return HookResult.empty()

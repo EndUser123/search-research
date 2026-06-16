@@ -1,26 +1,46 @@
 # cc-lazy-closure-debt
 
-Persistent technical-debt tracker built on the cc-aca-epistemic lazy_closure
-detector. Records untracked deferral phrases ("I'll leave that for now",
-"we can address this later", etc.) to a per-terminal JSONL store, then
-surfaces them as `additionalContext` on the next prompt so the model is
-aware of untracked debt from previous turns.
+Deferral auto-promotion plugin (Phase 1+2, 2026-06-03). The Stop hook
+detects untracked deferral phrases ("I'll leave that for now", "we can
+address that later", etc.) via the shared `lazy_closure_detector` in
+cc-aca-epistemic and appends them to a per-terminal JSONL audit log.
+The UserPromptSubmit hook reads that log and injects a `TaskCreate`
+directive so each deferral lands in the real task list on the next turn.
+The JSONL is now a debug/audit log, not a user-facing concept.
 
 ## Responsibility
 
 - **Stop hook** detects deferral phrases via the shared detector and
-  appends JSONL lines to the debt store. Never blocks; the existing
-  detector in cc-aca-epistemic already surfaces the user-facing message.
-- **UserPromptSubmit hook** reads the JSONL store, filters to items
-  newer than 24h, and emits a compact "You have N pending deferral items
-  from previous turns" message as `additionalContext`.
-- **/debt skill** lists, clears, and (on explicit user Y) formalizes
-  items as tasks via the TaskCreate tool.
+  appends JSONL lines to the audit log. Never blocks; the detector in
+  cc-aca-epistemic already surfaces the user-facing message.
+- **UserPromptSubmit hook** reads the JSONL audit log, filters to items
+  newer than 24h, dedupes by fingerprint, and emits a directive that
+  prompts the model to call `TaskCreate` (one per unique phrase) on the
+  next turn. After auto-promotion, the detector's
+  `DEFERRAL_TRACKING_MARKERS` exemption prevents the same phrase from
+  re-firing the same turn.
+- **/debt skill** is a read-only debug view: list, clear, list-all.
+  It does NOT call `TaskCreate` (that path was removed in Phase 2).
+  The "Press Y to formalize" prompt has been deleted from the skill.
 - **Workflow review** can summarize whether the last supervised turn is
   better handled locally, by a subagent, or by an external LLM review.
-  It also appends a lightweight per-terminal review log so production
-  frequency can be inspected without changing the task flow. The visible
-  stats line is opt-in and only appears for `/debt review`.
+  It appends a lightweight per-terminal review log so production
+  frequency can be inspectable without changing the task flow. The
+  visible stats line is opt-in and only appears for `/debt review`.
+
+## Phase History
+
+- **Phase 1 (2026-06-03)**: UserPromptSubmit hook now injects a
+  `TaskCreate` directive on the next turn, replacing the manual
+  `Run /debt to formalize` flow. Audit log is preserved verbatim.
+- **Phase 2 (2026-06-03)**: `/debt` skill demoted to a read-only debug
+  view. The `Press Y to formalize` prompt is gone; the skill no
+  longer offers to create tasks.
+- **Phase 3 (this change)**: Plugin description and CLAUDE.md updated
+  to match the new scope. A future rename (e.g. to
+  `cc-deferral-to-task`) is a follow-up if/when the name is causing
+  real confusion; it has cross-system blast radius (marketplace,
+  hooks.json, any docs that grep for the old name) and is deferred.
 
 ## Hooks
 

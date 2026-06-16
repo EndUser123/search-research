@@ -21,9 +21,10 @@ from context import (
     read_session_context,
     write_session_context,
     extract_subject,
+    _terminal_id,
 )
 
-TERMINAL_ID = os.environ.get("CLAUDE_TERMINAL_ID", "default")
+TERMINAL_ID = _terminal_id()
 ARTIFACT_DIR = Path.home() / ".claude" / ".artifacts" / TERMINAL_ID / "prompt-enhancer"
 ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
 ACTIVE_ENHANCEMENT = ARTIFACT_DIR / "active_enhancement.json"

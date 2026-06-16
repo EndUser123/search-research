@@ -236,6 +236,17 @@ OBVIOUS_ALLOWLIST = re.compile(
     re.IGNORECASE,
 )
 
+# Stopword tokens immediately after a deletion verb. These tokens indicate
+# analytical/linguistic context rather than filesystem-deletion completion
+# claims. Examples: "removed from config", "deleted in the process",
+# "dropped when condition", "removed — here's what changed".
+_DELETION_VERB_STOPWORDS = re.compile(
+    r"(?:deleted|removed|cleaned\s+up|dropped?)\s+"
+    r"(?:from|in|of|to|at|by|for|via|into|onto|"
+    r"when|since|because|if|while|as|after|before|too|also|[—–(])",
+    re.IGNORECASE,
+)
+
 
 # --- Path extraction -----------------------------------------------------------
 
@@ -317,6 +328,16 @@ def _extract_file_paths(text: str) -> list[str]:
         if path not in seen:
             seen.add(path)
             unique_paths.append(path)
+
+    # Filter root-only paths (e.g. "P:\\", "C:/", "P:") — these are always-
+    # existing directories that appear in context strings but are never valid
+    # deletion targets.  They cause false "file still exists" blocks whenever
+    # a response mentions any P:\ path prefix.
+    # Check: len 2-3, second char is ':', rest is optional slash only.
+    unique_paths = [
+        p for p in unique_paths
+        if not (len(p) <= 3 and ':' in p)
+    ]
 
     return unique_paths
 
@@ -480,6 +501,14 @@ def _detect_deletion_claims(response: str) -> list[tuple[str, list[str]]]:
 
     for match in finditer_unquoted(DELETION_CLAIM_PATTERNS, response):
         matched_text = match.group(0)
+
+        # FP filter: skip if the token immediately after the verb is a
+        # stopword/preposition/conjunction — that indicates analytical context
+        # ("removed from config", "deleted in process", "dropped when X")
+        # rather than a filesystem-deletion completion claim.
+        if _DELETION_VERB_STOPWORDS.search(matched_text):
+            _logger.debug("stopword post-verb — not a file deletion: %r", matched_text)
+            continue
 
         # Extract file paths from the FULL response (not a windowed slice)
         # Rationale: deletion claims always precede the paths they reference

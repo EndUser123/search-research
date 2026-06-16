@@ -29,11 +29,27 @@ import re
 import sys
 
 # === CONFIGURATION ===
-# Patterns indicating secrets (PII)
-SECRET_PATTERNS = [
-    r"sk-[a-zA-Z0-9]{32,}",  # OpenAI/API Keys
-    r"(?:password|passwd|secret|token|key)\s*[:=]\s*['\"][^'\"]{8,}['\"]",
-]
+# Secret detection reuses the canonical detector at
+# P:/.claude/hooks/PreToolUse/secret_scanner.py (single source of truth for what a real
+# token looks like) via a two-tier scheme — see check_secrets() below.
+#
+# Tier 1: format-prefixed secret keys (sk-, AKIA, ghp_, ...). Near-zero false positive;
+#         scanned on the FULL response (a real token is a leak even inside a code fence).
+_FORMAT_SECRET_KEYS = (
+    "openai_key", "aws_access_key", "github_token", "slack_token",
+    "firebase_key", "private_key_header", "bearer_token",
+)
+# Tier 2: generic `keyword = "value"`. FP-prone, so scanned only OUTSIDE code fences,
+#         skipped on the placeholder whitelist, and requires a >=20-char value
+#         (real-secret length). The prior single regex matched any keyword="8+chars"
+#         (e.g. `token = "example"`), which drove a Stop block -> regenerate loop.
+_GENERIC_SECRET_RE = re.compile(
+    # Optional identifier prefix (internal_, client_, access_, my…) so compound names
+    # like `internal_token` / `client_secret` match, while the trailing \b before the
+    # assignment keeps `tokenizer=` or `broken_secret_handler=` from matching.
+    r"(?i)\b[A-Za-z0-9]*[_-]?(?:password|passwd|secret|secret[_-]?key|api[_-]?key|apikey|token|auth[_-]?token)\b"
+    r"\s*[:=]\s*['\"]?([A-Za-z0-9_\-]{20,})['\"]?"
+)
 
 # Patterns indicating forbidden autonomous behavior (Part C.1)
 # Catches: suggesting new background/daemon services, autonomous self-healing/auto-correct as prescriptive actions
@@ -57,10 +73,49 @@ DESCRIPTION_PATTERNS = [
     r"\blet\s+me\s+(?:explain|describe|summarize)\s+(?:what|how|the)\b",
 ]
 
+def _load_secret_scanner():
+    """Import the canonical secret detector from the global hooks dir.
+
+    secret_scanner.py lives in <hooks_dir>/PreToolUse/. ``_hooks_dir`` comes from the
+    plugin bootstrap above; add its PreToolUse subdir to sys.path on demand.
+    """
+    pre = _hooks_dir / "PreToolUse"
+    if str(pre) not in sys.path:
+        sys.path.insert(0, str(pre))
+    from secret_scanner import get_secret_patterns, remove_code_blocks, is_whitelisted
+    return get_secret_patterns, remove_code_blocks, is_whitelisted
+
+
 def check_secrets(response: str) -> str | None:
-    for pattern in SECRET_PATTERNS:
-        if re.search(pattern, response, re.IGNORECASE):
+    """Two-tier secret detection over the assistant response (reuses secret_scanner).
+
+    A Stop hook cannot redact emitted text, only block (-> regenerate). So the goal is:
+    block real secret leaks, never false-positive on code/security discussion (which
+    would loop the regenerate). Tier 1 = format-prefixed secrets on full text; Tier 2 =
+    generic keyword=value, outside code fences, non-placeholder, value >= 20 chars.
+    """
+    try:
+        get_secret_patterns, remove_code_blocks, is_whitelisted = _load_secret_scanner()
+    except Exception:
+        # Canonical detector unreachable: keep a minimum security floor with the
+        # highest-confidence formats only. Justification: a missing shared detector must
+        # not silently disable secret blocking, and format-only is still zero-FP.
+        for pat in (r"sk-[a-zA-Z0-9]{32,}", r"AKIA[0-9A-Z]{16}",
+                    r"ghp_[a-zA-Z0-9]{36}", r"-----BEGIN (?:RSA )?PRIVATE KEY-----"):
+            if re.search(pat, response):
+                return "Possible Secret/API Key detected in output."
+        return None
+
+    patterns = get_secret_patterns()
+    # Tier 1 — format-prefixed secrets on the full text (catch even inside code fences).
+    for key in _FORMAT_SECRET_KEYS:
+        pat = patterns.get(key)
+        if pat and re.search(pat, response):
             return "Possible Secret/API Key detected in output."
+    # Tier 2 — generic keyword=value, outside code fences, non-placeholder, value >= 20.
+    outside_code = remove_code_blocks(response)
+    if not is_whitelisted(outside_code) and _GENERIC_SECRET_RE.search(outside_code):
+        return "Possible Secret/API Key detected in output."
     return None
 
 def check_forbidden(response: str) -> str | None:

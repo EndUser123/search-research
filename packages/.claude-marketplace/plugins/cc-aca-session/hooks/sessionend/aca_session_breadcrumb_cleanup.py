@@ -3,81 +3,21 @@
 Breadcrumb Trail Cleanup (SessionEnd Hook)
 ==========================================
 
-Cleans up all breadcrumb trails for the current session when it ends.
-
-This prevents stale breadcrumb trails from littering the filesystem.
-
-Configuration:
-- BREADCRUMB_CLEANUP_ENABLED (default: true)
+Cleanup was previously delegated to skill_guard (a library, which is the
+wrong model for a plugin). This hook is now a no-op: any breadcrumb state
+cleanup is the responsibility of the owning skill's own SessionEnd/PreCompact
+hooks, not cc-aca-session.
 """
 
 import json
-import os
 import sys
-from pathlib import Path
-
-# Import breadcrumb tracker from skill_guard package
-# Resolve skill-guard from marketplace junction (works from any install location)
-_PLUGIN_LIB = Path(__file__).resolve().parent.parent.parent / "lib"
-if str(_PLUGIN_LIB) not in sys.path:
-    sys.path.insert(0, str(_PLUGIN_LIB))
-from state_paths import get_hooks_dir
-
-_marketplace_plugins = get_hooks_dir().parent.parent / "plugins"
-_skill_guard_src = _marketplace_plugins / "skill-guard" / "src"
-if not _skill_guard_src.exists():
-    _skill_guard_src = get_hooks_dir().parent.parent / "skill-guard" / "src"
-sys.path.insert(0, str(_skill_guard_src))
-from skill_guard.breadcrumb import cleanup_session_breadcrumbs
-from skill_guard.breadcrumb.log import cleanup_old_log_dirs
-
-# =============================================================================
-# CONFIGURATION
-# =============================================================================
-
-ENABLED = os.environ.get("BREADCRUMB_CLEANUP_ENABLED", "true").lower() == "true"
-
-
-# =============================================================================
-# MAIN HOOK LOGIC
-# =============================================================================
 
 
 def run(data: dict) -> dict:
-    """Clean up breadcrumb trails for this session.
+    return {"cleaned": 0, "reason": "No-op: skill_guard library usage removed"}
 
-    Args:
-        data: SessionEnd hook input dict
-
-    Returns:
-        {"cleaned": int} dict with count of trails cleaned
-    """
-    # Check if enabled
-    if not ENABLED:
-        return {"cleaned": 0, "reason": "Breadcrumb cleanup disabled"}
-
-    # Clean up all breadcrumb trails for this session
-    cleaned_count = cleanup_session_breadcrumbs()
-
-    # Also clean up old log directories (opportunistic, runs on every session end)
-    log_result = cleanup_old_log_dirs(age_days=7)
-    removed_dirs = len(log_result["removed"])
-
-    return {
-        "cleaned": cleaned_count,
-        "removed_dirs": removed_dirs,
-        "reason": f"Cleaned {cleaned_count} trails, removed {removed_dirs} old log dirs",
-    }
-
-
-# =============================================================================
-# HOOK ENTRY POINT
-# =============================================================================
 
 if __name__ == "__main__":
-    # Read SessionEnd hook input from stdin
     input_data = json.loads(sys.stdin.read())
     result = run(input_data)
-
-    # Output result as JSON
     print(json.dumps(result, indent=2))
