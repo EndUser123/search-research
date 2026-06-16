@@ -18,7 +18,7 @@ from pathlib import Path
 # Setup                                                                       #
 # --------------------------------------------------------------------------- #
 HOOKS_ROOT = Path("P:/.claude/hooks")
-CKS_CORE = Path("P:/packages/search-research/core")
+CKS_CORE = Path("P:/packages/.claude-marketplace/plugins/search-research/core")
 DB_PATH = Path("P:/__csf/data/cks.db")
 
 # Add CKS to path

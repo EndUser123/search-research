@@ -461,7 +461,7 @@ def detect_terminal_id_from_payload(data: dict[str, Any] | None = None) -> str:
         return env_value
 
     try:
-        skill_guard_src = Path("P:/packages/skill-guard/src")
+        skill_guard_src = Path("P:/packages/.claude-marketplace/plugins/skill-guard/src")
         if skill_guard_src.exists() and str(skill_guard_src) not in sys.path:
             sys.path.insert(0, str(skill_guard_src))
         from __lib.terminal_detection import detect_terminal_id

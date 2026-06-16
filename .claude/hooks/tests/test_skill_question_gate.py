@@ -18,7 +18,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent / "__lib"))
 
 # Plugin src for skill-guard hooks (single source of truth)
-_PLUGIN_SRC = Path("P:/packages/skill-guard/src")
+_PLUGIN_SRC = Path("P:/packages/.claude-marketplace/plugins/skill-guard/src")
 if _PLUGIN_SRC.exists():
     sys.path.insert(1, str(_PLUGIN_SRC))
 

@@ -418,8 +418,8 @@ class TestSelfVerifiedClaims:
 
         claim = StubClaim(
             id="claim-010",
-            text="P:/packages/search-research/core/backends/local/: absent (verified this session: ls → 21 files, NO qmd_wiki_backend.py)",
-            targets=["P:/packages/search-research/core/backends/local/"],
+            text="P:/packages/.claude-marketplace/plugins/search-research/core/backends/local/: absent (verified this session: ls → 21 files, NO qmd_wiki_backend.py)",
+            targets=["P:/packages/.claude-marketplace/plugins/search-research/core/backends/local/"],
             type="ABSENCE",
             confidence=0.9
         )

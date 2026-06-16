@@ -35,7 +35,7 @@ echo "" | tee -a "$LOG_FILE"
 echo "TEST 2: Check detect_terminal_id function" | tee -a "$LOG_FILE"
 python3 -c "
 import sys
-sys.path.insert(0, 'P:/packages/skill-guard/src')
+sys.path.insert(0, 'P:/packages/.claude-marketplace/plugins/skill-guard/src')
 try:
     from skill_guard.utils.terminal_detection import detect_terminal_id
     print('✓ Can import detect_terminal_id from skill_guard')
@@ -45,7 +45,7 @@ except ImportError as e:
     print(f'✗ Cannot import from skill_guard: {e}')
     print('Checking skill-guard package location...')
     import os
-    skill_guard_path = 'P:/packages/skill-guard/src'
+    skill_guard_path = 'P:/packages/.claude-marketplace/plugins/skill-guard/src'
     if os.path.exists(skill_guard_path):
         print(f'✓ Path exists: {skill_guard_path}')
         files = os.listdir(skill_guard_path)

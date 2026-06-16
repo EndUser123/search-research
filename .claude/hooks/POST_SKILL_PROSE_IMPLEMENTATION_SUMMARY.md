@@ -344,4 +344,4 @@ tail -20 P:/.claude/hooks/skill_first_enforcement.jsonl | jq .
 - Architecture Decision: `P:\.claude\arch_decisions\2026-03-13_post_skill_prose_detection.md`
 - Gap Analysis: `P:\.claude\hooks\docs\skill-enforcement-gap-analysis.md`
 - Stop Hook: `P:\.claude\hooks\Stop.py` (lines 630-729, 818-958)
-- Skill Guard: `P:/packages/skill-guard/src/skill_guard/breadcrumb/tracker.py`
+- Skill Guard: `P:/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/breadcrumb/tracker.py`

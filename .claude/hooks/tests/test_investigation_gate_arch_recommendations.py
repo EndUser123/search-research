@@ -99,7 +99,7 @@ def test_01_block_recommendation_without_reading():
     """Test 1: Block architectural recommendation without reading architecture files."""
     user_message = "move Persona Memory to cognitive-stack"
     tool_input = {
-        "path": "P:/packages/search-research/core/backends/local/persona_memory_backend.py",
+        "path": "P:/packages/.claude-marketplace/plugins/search-research/core/backends/local/persona_memory_backend.py",
         "old_string": "# old code",
         "new_string": "# new code"
     }
@@ -118,7 +118,7 @@ def test_02_allow_after_investigation():
     """Test 2: Allow recommendation after reading architecture files."""
     user_message = "move Persona Memory to /s"
     tool_input = {
-        "path": "P:/packages/search-research/core/backends/local/persona_memory_backend.py",
+        "path": "P:/packages/.claude-marketplace/plugins/search-research/core/backends/local/persona_memory_backend.py",
         "old_string": "# old code",
         "new_string": "# new code"
     }
@@ -141,7 +141,7 @@ def test_03_bypass_flag():
     """Test 3: Bypass flag allows recommendation without investigation."""
     user_message = "move Persona Memory to cognitive-stack --allow-arch-rec"
     tool_input = {
-        "path": "P:/packages/search-research/core/backends/local/persona_memory_backend.py",
+        "path": "P:/packages/.claude-marketplace/plugins/search-research/core/backends/local/persona_memory_backend.py",
         "old_string": "# old code",
         "new_string": "# new code"
     }
@@ -163,14 +163,14 @@ def test_04_false_positive_legitimate_refactoring():
     """Test 4: Don't block legitimate refactoring within same project."""
     user_message = "move this function to utils.py for better organization"  # No skill destination
     tool_input = {
-        "path": "P:/packages/search-research/src/utils.py",
+        "path": "P:/packages/.claude-marketplace/plugins/search-research/src/utils.py",
         "old_string": "# old code",
         "new_string": "# new code"
     }
 
     # Create state with target file read
     state = gate.fresh_state()
-    state["files_read"].append("P:/packages/search-research/src/utils.py")
+    state["files_read"].append("P:/packages/.claude-marketplace/plugins/search-research/src/utils.py")
 
     # Pass preloaded state to the hook
     allowed, message = run_hook_input("Edit", tool_input, user_message, reset_state=False, preloaded_state=state)

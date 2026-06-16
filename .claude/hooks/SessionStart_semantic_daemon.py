@@ -44,7 +44,7 @@ def get_project_root() -> Path:
     # The daemon module is launched as `contrib.semantic_daemon...` with this as cwd.
     possible_roots = [
         SEARCH_RESEARCH_ROOT,
-        Path("P:/packages/search-research"),  # legacy pre-migration location
+        Path("P:/packages/.claude-marketplace/plugins/search-research"),  # legacy pre-migration location
         Path("P:/__csf"),
     ]
 

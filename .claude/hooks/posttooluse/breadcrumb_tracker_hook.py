@@ -22,13 +22,13 @@ from pathlib import Path
 from typing import Any
 
 # Add skill-guard to path
-# Original location was P:/packages/skill-guard/src; plugin moved to
+# Original location was P:/packages/.claude-marketplace/plugins/skill-guard/src; plugin moved to
 # P:/packages/.claude-marketplace/plugins/skill-guard/src during the
 # marketplace consolidation. Check both so the hook works regardless of
 # which layout is present.
 for _candidate in (
     Path("P:/packages/.claude-marketplace/plugins/skill-guard/src"),
-    Path("P:/packages/skill-guard/src"),  # legacy location
+    Path("P:/packages/.claude-marketplace/plugins/skill-guard/src"),  # legacy location
 ):
     if _candidate.exists():
         sys.path.insert(0, str(_candidate))

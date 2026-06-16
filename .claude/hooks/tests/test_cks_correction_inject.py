@@ -34,7 +34,7 @@ class TestReadPathRelevanceFiltering:
 
     def _write_correction(self, title: str, content: str) -> str:
         """Write a live correction to the real DB and return its ID."""
-        cks_path = Path("P:/packages/search-research/core")
+        cks_path = Path("P:/packages/.claude-marketplace/plugins/search-research/core")
         if str(cks_path) not in sys.path:
             sys.path.insert(0, str(cks_path))
         from cks.unified import CKS

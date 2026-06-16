@@ -64,7 +64,7 @@ These imports are part of Phase 1-6 migration (wrappers re-exporting from search
 - Maintains API compatibility
 
 **Steps**:
-1. Copy `P:/__csf/src/search/health_status.py` to `P:/packages/search-research/core/health_status.py`
+1. Copy `P:/__csf/src/search/health_status.py` to `P:/packages/.claude-marketplace/plugins/search-research/core/health_status.py`
 2. Update import in `rlm_backend.py` line 628:
    ```python
    # OLD

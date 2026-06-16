@@ -6,15 +6,15 @@ Solo developer monorepo for Claude Code plugins, skills, hooks, and workflow aut
 
 | Package | Description |
 |---------|-------------|
-| [skill-guard](packages/skill-guard/) | Universal skill auto-discovery and enforcement |
-| [snapshot](packages/snapshot/) | Session snapshot capture and restore across compaction |
-| [cc-skills-meta](packages/cc-skills-meta/) | Meta-cognitive skills — retrospectives, gap analysis, reasoning |
-| [cc-skills-sdlc](packages/cc-skills-sdlc/) | SDLC skills — architecture, planning, code quality, RCA |
-| [cc-skills-utils](packages/cc-skills-utils/) | Utility skills — discovery, git operations, plugin management, search |
-| [cc-skills-ai-api](packages/cc-skills-ai-api/) | Multi-provider LLM access and API gateway skills |
-| [cc-skills-ai-cli](packages/cc-skills-ai-cli/) | CLI integration skills for external AI tools |
-| [cc-skills-media](packages/cc-skills-media/) | NotebookLM, YouTube, and media processing skills |
-| [search-research](packages/search-research/) | Unified search with async execution and HyDE enhancement |
+| [skill-guard](packages/.claude-marketplace/plugins/skill-guard/) | Universal skill auto-discovery and enforcement |
+| [snapshot](packages/.claude-marketplace/plugins/snapshot/) | Session snapshot capture and restore across compaction |
+| [cc-skills-meta](packages/.claude-marketplace/plugins/cc-skills-meta/) | Meta-cognitive skills — retrospectives, gap analysis, reasoning |
+| [cc-skills-sdlc](packages/.claude-marketplace/plugins/cc-skills-sdlc/) | SDLC skills — architecture, planning, code quality, RCA |
+| [cc-skills-utils](packages/.claude-marketplace/plugins/cc-skills-utils/) | Utility skills — discovery, git operations, plugin management, search |
+| [cc-skills-ai-api](packages/.claude-marketplace/plugins/cc-skills-ai-api/) | Multi-provider LLM access and API gateway skills |
+| [cc-skills-ai-cli](packages/.claude-marketplace/plugins/cc-skills-ai-cli/) | CLI integration skills for external AI tools |
+| [cc-skills-media](packages/.claude-marketplace/plugins/cc-skills-media/) | NotebookLM, YouTube, and media processing skills |
+| [search-research](packages/.claude-marketplace/plugins/search-research/) | Unified search with async execution and HyDE enhancement |
 | [prompting-toolkit](packages/prompting-toolkit/) | Prompt engineering and optimization tools |
 | [csf](packages/csf/) | Claude Skills Framework — constitutional docs and standards |
 

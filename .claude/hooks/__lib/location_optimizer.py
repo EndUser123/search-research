@@ -18,7 +18,7 @@ from typing import Any
 # Optional search backend import - fail-fast if unavailable
 try:
     import sys as _sys
-    _search_path = Path("P:/packages/search-research")
+    _search_path = Path("P:/packages/.claude-marketplace/plugins/search-research")
     if _search_path.exists():
         _sys.path.insert(0, str(_search_path))
         from core.unified_router import UnifiedAsyncRouter

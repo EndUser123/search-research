@@ -394,35 +394,35 @@ If conversion fails:
 ### Step 1: Fix skill-guard Code Issues (Priority: CRITICAL)
 
 **Task 1.1**: Fix hardcoded path in `skill_auto_discovery.py`
-- **File**: `P:/packages/skill-guard/src/skill_guard/skill_auto_discovery.py`
+- **File**: `P:/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/skill_auto_discovery.py`
 - **Line**: 46
 - **Change**: Replace `"P:/.claude/skills"` with environment variable
 - **Acceptance**: Path resolution works on Windows, macOS, Linux
 - **Verification**: Test with `CLAUDE_SKILLS_DIR` environment variable
 
 **Task 1.2**: Replace regex YAML with pyyaml
-- **File**: `P:/packages/skill-guard/src/skill_guard/skill_auto_discovery.py`
+- **File**: `P:/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/skill_auto_discovery.py`
 - **Lines**: 89-139
 - **Change**: Use `yaml.safe_load()` instead of regex
 - **Acceptance**: Parses complex YAML (lists, multiline strings)
 - **Verification**: Unit tests with various YAML formats
 
 **Task 1.3**: Add logging for error handling
-- **File**: `P:/packages/skill-guard/src/skill_guard/skill_auto_discovery.py`
+- **File**: `P:/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/skill_auto_discovery.py`
 - **Lines**: 138-139
 - **Change**: Replace silent exception with logger calls
 - **Acceptance**: Parse errors log with context
 - **Verification**: Trigger parse error, check logs
 
 **Task 1.4**: Make KNOWLEDGE_SKILLS configurable
-- **File**: `P:/packages/skill-guard/src/skill_guard/skill_auto_discovery.py`
+- **File**: `P:/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/skill_auto_discovery.py`
 - **Lines**: 25-41, 126
 - **Change**: Add `get_knowledge_skills()` function with env override
 - **Acceptance**: `SKILL_GUARD_KNOWLEDGE` env variable works
 - **Verification**: Set env variable, test override
 
 **Task 1.5**: Complete type hints
-- **File**: `P:/packages/skill-guard/src/skill_guard/skill_auto_discovery.py`
+- **File**: `P:/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/skill_auto_discovery.py`
 - **Lines**: 18-21
 - **Change**: Add SkillConfig TypedDict
 - **Acceptance**: All functions have complete type annotations
@@ -431,19 +431,19 @@ If conversion fails:
 ### Step 2: Expand Test Coverage (Priority: HIGH)
 
 **Task 2.1**: Create comprehensive unit tests
-- **File**: `P:/packages/skill-guard/tests/test_skill_auto_discovery.py` (NEW)
+- **File**: `P:/packages/.claude-marketplace/plugins/skill-guard/tests/test_skill_auto_discovery.py` (NEW)
 - **Content**: 10+ test cases covering edge cases
 - **Acceptance**: 80%+ code coverage
 - **Verification**: `pytest --cov=src/skill_guard`
 
 **Task 2.2**: Add error handling tests
-- **File**: `P:/packages/skill-guard/tests/test_skill_auto_discovery.py`
+- **File**: `P:/packages/.claude-marketplace/plugins/skill-guard/tests/test_skill_auto_discovery.py`
 - **Content**: Test malformed YAML, missing files, permission errors
 - **Acceptance**: All error paths tested
 - **Verification**: `pytest tests/test_skill_auto_discovery.py -v`
 
 **Task 2.3**: Add integration tests
-- **File**: `P:/packages/skill-guard/tests/test_conversion.py` (NEW)
+- **File**: `P:/packages/.claude-marketplace/plugins/skill-guard/tests/test_conversion.py` (NEW)
 - **Content**: Test `src/` → `core/` import migration
 - **Acceptance**: Tests verify post-conversion imports work
 - **Verification**: Run tests after conversion
@@ -591,7 +591,7 @@ If conversion fails:
 ### Step 4: Validate Before Conversion (Priority: CRITICAL)
 
 **Task 4.1**: Run full test suite
-- **Command**: `pytest P:/packages/skill-guard/tests/ -v --cov=src/skill_guard`
+- **Command**: `pytest P:/packages/.claude-marketplace/plugins/skill-guard/tests/ -v --cov=src/skill_guard`
 - **Acceptance**: All tests pass, 80%+ coverage
 - **Verification**: Review test output
 
@@ -601,7 +601,7 @@ If conversion fails:
 - **Verification**: Review lint output
 
 **Task 4.3**: Test portable path resolution
-- **File**: `P:/packages/skill-guard/src/skill_guard/skill_auto_discovery.py`
+- **File**: `P:/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/skill_auto_discovery.py`
 - **Commands**:
   - Windows: `python -c "from src.skill_guard import discover_all_skills; discover_all_skills()"` (with default path)
   - macOS/Linux: `CLAUDE_SKILLS_DIR=/tmp/test python -c "from src.skill_guard import discover_all_skills; discover_all_skills()"`
@@ -612,7 +612,7 @@ If conversion fails:
 ### Step 5: Execute Brownfield Conversion (Priority: CRITICAL)
 
 **Task 5.1**: Run /package brownfield conversion
-- **Command**: `/package P:/packages/skill-guard`
+- **Command**: `/package P:/packages/.claude-marketplace/plugins/skill-guard`
 - **Action**: Confirm conversion when prompted
 - **Acceptance**: Backup created, `src/` → `core/` migration complete
 - **Verification**: Check `core/` directory exists
@@ -620,7 +620,7 @@ If conversion fails:
 **Task 5.2**: Verify plugin structure
 - **Files**: `.claude-plugin/plugin.json`, `hooks/hooks.json`, `README.md`
 - **Acceptance**: All plugin files created
-- **Verification**: `ls -la P:/packages/skill-guard/`
+- **Verification**: `ls -la P:/packages/.claude-marketplace/plugins/skill-guard/`
 
 **Task 5.3**: Test imports from core/
 - **Command**: `python -c "from core.skill_auto_discovery import discover_all_skills"`
@@ -628,12 +628,12 @@ If conversion fails:
 - **Verification**: Test in Python REPL
 
 **Task 5.4**: Run post-conversion tests
-- **Command**: `pytest P:/packages/skill-guard/tests/ -v`
+- **Command**: `pytest P:/packages/.claude-marketplace/plugins/skill-guard/tests/ -v`
 - **Acceptance**: All tests pass with new structure
 - **Verification**: Review test output
 
 **Task 5.5**: Create compatibility shim for existing hooks
-- **File**: `P:/packages/skill-guard/src/skill_guard/__init__.py` (NEW after conversion)
+- **File**: `P:/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/__init__.py` (NEW after conversion)
 - **Content**:
   ```python
   """
@@ -671,20 +671,20 @@ If conversion fails:
 ### Step 6: Update Documentation (Priority: MEDIUM)
 
 **Task 6.1**: Update skill-guard README
-- **File**: `P:/packages/skill-guard/README.md`
+- **File**: `P:/packages/.claude-marketplace/plugins/skill-guard/README.md`
 - **Sections**: Installation, Usage
 - **Change**: Replace pip install with plugin installation
 - **Acceptance**: README describes plugin installation
 - **Verification**: Read README, check accuracy
 
 **Task 6.2**: Create CHANGELOG.md
-- **File**: `P:/packages/skill-guard/CHANGELOG.md` (NEW)
+- **File**: `P:/packages/.claude-marketplace/plugins/skill-guard/CHANGELOG.md` (NEW)
 - **Content**: Migration from library to plugin
 - **Acceptance**: Documents all changes and breaking changes
 - **Verification**: Review CHANGELOG
 
 **Task 6.3**: Add migration notice to README
-- **File**: `P:/packages/skill-guard/README.md`
+- **File**: `P:/packages/.claude-marketplace/plugins/skill-guard/README.md`
 - **Section**: Migration Notice (new section at top)
 - **Content**: Explain v1.0 → v2.0 plugin migration
 - **Acceptance**: Clear migration path for existing users

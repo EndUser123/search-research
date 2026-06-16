@@ -6,7 +6,7 @@ Breadcrumb Initialization Hook for UserPromptSubmit
 This is a redirect to the actual implementation in the skill-guard package.
 
 The implementation lives at:
-P:/packages/skill-guard/src/skill_guard/breadcrumb/hooks/UserPromptSubmit_breadcrumb_init.py
+P:/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/breadcrumb/hooks/UserPromptSubmit_breadcrumb_init.py
 
 This redirect pattern is used because Windows symlinks require admin privileges.
 """
@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 # Add skill-guard to path
-SKILL_GUARD = Path("P:/packages/skill-guard/src")
+SKILL_GUARD = Path("P:/packages/.claude-marketplace/plugins/skill-guard/src")
 if SKILL_GUARD.exists():
     sys.path.insert(0, str(SKILL_GUARD))
 

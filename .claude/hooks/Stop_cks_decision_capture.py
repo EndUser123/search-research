@@ -35,7 +35,7 @@ _logger.addHandler(_handler)
 _logger.setLevel(_li.WARNING)
 
 # Add CSF src to path for CKS import
-csf_src = Path("P:/packages/search-research/core")
+csf_src = Path("P:/packages/.claude-marketplace/plugins/search-research/core")
 if str(csf_src) not in sys.path:
     sys.path.insert(0, str(csf_src))
 

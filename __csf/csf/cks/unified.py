@@ -2,8 +2,15 @@
 import sys
 from pathlib import Path
 
-# Navigate from csf/cks/unified.py -> csf -> P:/__csf -> packages/search-research/core
-_packages_root = Path(__file__).parent.parent.parent.parent / "packages" / "search-research" / "core"
+# Navigate from csf/cks/unified.py -> csf -> P:/__csf -> marketplace search-research/core
+_packages_root = (
+    Path(__file__).parent.parent.parent.parent
+    / "packages"
+    / ".claude-marketplace"
+    / "plugins"
+    / "search-research"
+    / "core"
+)
 
 if str(_packages_root) not in sys.path:
     sys.path.insert(0, str(_packages_root))

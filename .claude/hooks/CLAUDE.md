@@ -1721,7 +1721,7 @@ client.send_write_signal(
 **Write-signal mechanism**:
 After Stop hooks ingest to CKS (corrections, decisions), they send an advisory `cks_write` signal via `send_write_signal()`. The daemon sets `_faiss_dirty = True` and triggers immediate FAISS refresh — new entries queryable within ~2 seconds instead of the 10-minute time-based window.
 
-**See also**: `P:/packages/search-research/contrib/semantic_daemon/CLAUDE.md` for complete daemon documentation.
+**See also**: `P:/packages/.claude-marketplace/plugins/search-research/contrib/semantic_daemon/CLAUDE.md` for complete daemon documentation.
 
 ### Hook Output Formats
 

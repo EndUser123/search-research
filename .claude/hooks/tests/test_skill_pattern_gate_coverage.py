@@ -33,7 +33,7 @@ def run_hook(test_input: dict) -> dict:
     Returns:
         Hook result dict (block decision + reason if blocked)
     """
-    hook_path = Path("P:/packages/skill-guard/src/skill_guard/PreToolUse/PreToolUse_skill_pattern_gate.py")
+    hook_path = Path("P:/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/PreToolUse/PreToolUse_skill_pattern_gate.py")
 
     # Run hook with test input
     env = {
@@ -563,7 +563,7 @@ def test_edge_cases():
 
     # This tests the RISK:9 mitigation we just added
     # Use plugin path for skill-guard hooks (single source of truth)
-    _plugin_src = Path("P:/packages/skill-guard/src")
+    _plugin_src = Path("P:/packages/.claude-marketplace/plugins/skill-guard/src")
     if str(_plugin_src) not in sys.path:
         sys.path.insert(0, str(_plugin_src))
     from skill_guard.PreToolUse.PreToolUse_skill_pattern_gate import SKILL_EXECUTION_REGISTRY

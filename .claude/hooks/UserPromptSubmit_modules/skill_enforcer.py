@@ -21,7 +21,7 @@ from pathlib import Path
 
 import json as _json
 def _skill_guard_src() -> Path:
-    local_path = Path("P:/packages/skill-guard/src")
+    local_path = Path("P:/packages/.claude-marketplace/plugins/skill-guard/src")
     if local_path.exists():
         return local_path
     try:

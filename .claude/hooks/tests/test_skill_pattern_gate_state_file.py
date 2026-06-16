@@ -189,7 +189,7 @@ def test_state_file_layer_blocks_when_skill_pending():
         }
 
         result = subprocess.run(
-            [sys.executable, "P:/packages/skill-guard/src/skill_guard/PreToolUse/PreToolUse_skill_pattern_gate.py"],
+            [sys.executable, "P:/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/PreToolUse/PreToolUse_skill_pattern_gate.py"],
             input=json.dumps(test_input),
             capture_output=True,
             text=True,
@@ -250,7 +250,7 @@ def test_state_file_layer_allows_skill_call():
         }
 
         result = subprocess.run(
-            [sys.executable, "P:/packages/skill-guard/src/skill_guard/PreToolUse/PreToolUse_skill_pattern_gate.py"],
+            [sys.executable, "P:/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/PreToolUse/PreToolUse_skill_pattern_gate.py"],
             input=json.dumps(test_input),
             capture_output=True,
             text=True,
@@ -310,7 +310,7 @@ def test_investigation_tools_not_blocked():
             }
 
             result = subprocess.run(
-                [sys.executable, "P:/packages/skill-guard/src/skill_guard/PreToolUse/PreToolUse_skill_pattern_gate.py"],
+                [sys.executable, "P:/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/PreToolUse/PreToolUse_skill_pattern_gate.py"],
                 input=json.dumps(test_input),
                 capture_output=True,
                 text=True,

@@ -592,6 +592,7 @@ backups/
 # Personal command stubs (not source packages)
 .claude/commands/
 .claude/.artifacts/
+.claude/hooks/session_data/evidence_spool/
 
 # Local session export scratch artifacts
 /session_export/

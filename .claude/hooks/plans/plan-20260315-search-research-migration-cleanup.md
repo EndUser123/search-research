@@ -12,7 +12,7 @@
 
 The search infrastructure is split between two locations:
 1. **Legacy**: `P:/__csf/src/search/` (82 files, deprecated)
-2. **New**: `P:/packages/search-research/core/` (90+ files, active)
+2. **New**: `P:/packages/.claude-marketplace/plugins/search-research/core/` (90+ files, active)
 
 The legacy code has deprecation warnings with end-of-life Q3 2026, but the migration is only ~50% complete. This creates:
 - Maintenance burden (two codebases to update)
@@ -159,7 +159,7 @@ except ImportError:
 ### Phase 1: Preparation (3-4 hours)
 
 ### TASK-001: Create Migration Inventory
-- File: `P:/packages/search-research/MIGRATION_INVENTORY.md`
+- File: `P:/packages/.claude-marketplace/plugins/search-research/MIGRATION_INVENTORY.md`
 - Action: Document all backends, their status, and migration order
 - Acceptance: Complete inventory with migration priority for each backend
 - Effort: S
@@ -167,7 +167,7 @@ except ImportError:
 - **Maps to**: REQ-001 (Complete migration before Q3 2026)
 
 ### TASK-002: Create Baseline Test Suite
-- File: `P:/packages/search-research/tests/test_migration_parity.py`
+- File: `P:/packages/.claude-marketplace/plugins/search-research/tests/test_migration_parity.py`
 - Action: Create tests that verify legacy and new backends produce equivalent results
 - Acceptance: Tests pass with current migrated backends
 - Effort: M
@@ -175,7 +175,7 @@ except ImportError:
 - **Maps to**: REQ-002 (No regressions in functionality)
 
 ### TASK-003: Document API Differences [BLOCKING PREREQUISITE]
-- File: `P:/packages/search-research/API_DIFFERENCES.md`
+- File: `P:/packages/.claude-marketplace/plugins/search-research/API_DIFFERENCES.md`
 - Action: Document any API differences between legacy and new backends with migration guidance for each
 - Acceptance: All differences documented with specific code examples and migration steps
 - Effort: S
@@ -184,7 +184,7 @@ except ImportError:
 - **Maps to**: REQ-002 (No regressions in functionality)
 
 ### TASK-002A: Create Performance Baseline Suite [NEW]
-- File: `P:/packages/search-research/tests/test_performance_baselines.py`
+- File: `P:/packages/.claude-marketplace/plugins/search-research/tests/test_performance_baselines.py`
 - Action: Create performance tests that establish baseline metrics for each legacy backend
 - Acceptance: Baseline metrics recorded for all 6 critical backends (multilang, grep, cds, skills, kg, rlm)
 - Effort: M
@@ -193,7 +193,7 @@ except ImportError:
 - **Maps to**: REQ-003 (No performance regression > 10%)
 
 ### TASK-002B: Create Parity Test Templates [NEW]
-- File: `P:/packages/search-research/tests/parity/`
+- File: `P:/packages/.claude-marketplace/plugins/search-research/tests/parity/`
 - Action: Create test templates for validating legacy vs new backend equivalence
 - Acceptance: Templates exist for each backend type with example queries
 - Effort: S
@@ -213,7 +213,7 @@ except ImportError:
 3. Integration tests
 
 ### TASK-004: Migrate multilang_backend.py with Per-Backend Validation
-- File: `P:/packages/search-research/core/backends/local/multilang_backend.py`
+- File: `P:/packages/.claude-marketplace/plugins/search-research/core/backends/local/multilang_backend.py`
 - Action: Copy and adapt tree-sitter multilang backend, run parity and performance tests
 - Acceptance:
   - Backend works with new router
@@ -224,7 +224,7 @@ except ImportError:
 - **Validation**: Run `pytest tests/parity/test_multilang_parity.py` and compare to TASK-002A baseline
 
 ### TASK-005: Migrate grep_backend.py with Per-Backend Validation
-- File: `P:/packages/search-research/core/backends/local/grep_backend.py`
+- File: `P:/packages/.claude-marketplace/plugins/search-research/core/backends/local/grep_backend.py`
 - Action: Verify existing migration, run parity and performance tests
 - Acceptance:
   - All grep tests pass with new backend
@@ -235,7 +235,7 @@ except ImportError:
 - **Validation**: Run `pytest tests/parity/test_grep_parity.py` and compare to TASK-002A baseline
 
 ### TASK-006: Migrate cds_backend.py with Per-Backend Validation
-- File: `P:/packages/search-research/core/backends/local/cds_backend.py`
+- File: `P:/packages/.claude-marketplace/plugins/search-research/core/backends/local/cds_backend.py`
 - Action: Verify existing migration, run parity and performance tests
 - Acceptance:
   - All CDS tests pass with new backend
@@ -246,7 +246,7 @@ except ImportError:
 - **Validation**: Run `pytest tests/parity/test_cds_parity.py` and compare to TASK-002A baseline
 
 ### TASK-007: Migrate skills_backend.py with Per-Backend Validation
-- File: `P:/packages/search-research/core/backends/local/skills_backend.py`
+- File: `P:/packages/.claude-marketplace/plugins/search-research/core/backends/local/skills_backend.py`
 - Action: Verify existing migration, run parity and performance tests
 - Acceptance:
   - Skills search works with new backend
@@ -257,7 +257,7 @@ except ImportError:
 - **Validation**: Run `pytest tests/parity/test_skills_parity.py` and compare to TASK-002A baseline
 
 ### TASK-008: Migrate kg_backend.py with Per-Backend Validation
-- File: `P:/packages/search-research/core/backends/local/kg_backend.py`
+- File: `P:/packages/.claude-marketplace/plugins/search-research/core/backends/local/kg_backend.py`
 - Action: Verify existing migration, run parity and performance tests
 - Acceptance:
   - Knowledge graph search works with new backend
@@ -268,7 +268,7 @@ except ImportError:
 - **Validation**: Run `pytest tests/parity/test_kg_parity.py` and compare to TASK-002A baseline
 
 ### TASK-009A: Fix RLM Backend Sandbox Security [NEW - SECURITY]
-- File: `P:/__csf/src/search/backends/rlm_backend.py` (legacy) and `P:/packages/search-research/core/backends/local/rlm_backend.py` (new)
+- File: `P:/__csf/src/search/backends/rlm_backend.py` (legacy) and `P:/packages/.claude-marketplace/plugins/search-research/core/backends/local/rlm_backend.py` (new)
 - Action: Replace `__import__` sandbox bypass with secure import mechanism (use `importlib.import_module` with allowlist)
 - Acceptance:
   - No `__import__` calls in RLM backend code
@@ -280,7 +280,7 @@ except ImportError:
 - **Security Issue**: `__import__` allows arbitrary code execution, must be fixed before migration
 
 ### TASK-009: Migrate rlm_backend.py with Per-Backend Validation
-- File: `P:/packages/search-research/core/backends/local/rlm_backend.py`
+- File: `P:/packages/.claude-marketplace/plugins/search-research/core/backends/local/rlm_backend.py`
 - Action: Migrate ONLY after TASK-009A security fix, run parity and performance tests
 - Acceptance:
   - RLM search works with new backend
@@ -355,14 +355,14 @@ except ImportError:
 ### Phase 4: Testing (2-3 hours)
 
 ### TASK-014: Run Full Integration Tests
-- File: `P:/packages/search-research/tests/test_full_integration.py`
+- File: `P:/packages/.claude-marketplace/plugins/search-research/tests/test_full_integration.py`
 - Action: Test all backends with real queries
 - Acceptance: All backends return expected results
 - Effort: M
 - Prerequisites: TASK-010, TASK-011, TASK-012, TASK-013
 
 ### TASK-015: Performance Regression Testing
-- File: `P:/packages/search-research/tests/test_performance.py`
+- File: `P:/packages/.claude-marketplace/plugins/search-research/tests/test_performance.py`
 - Action: Compare performance of legacy vs new backends
 - Acceptance: No performance regression > 10%
 - Effort: S
@@ -400,7 +400,7 @@ except ImportError:
 **CRITICAL**: Each cleanup task has explicit rollback decision triggers. Do NOT proceed without verifying rollback conditions.
 
 ### TASK-018A: Define Rollback Decision Triggers [NEW - CRITICAL]
-- File: `P:/packages/search-research/ROLLBACK_TRIGGERS.md`
+- File: `P:/packages/.claude-marketplace/plugins/search-research/ROLLBACK_TRIGGERS.md`
 - Action: Document explicit rollback decision criteria for each cleanup task
 - Acceptance:
   - Rollback triggers defined for all cleanup tasks
@@ -720,45 +720,45 @@ graph TD
 ```
 ### Phase 1: Preparation (3-4h)
 ├── TASK-001: Create Migration Inventory
-│   ├── 📁 P:/packages/search-research/MIGRATION_INVENTORY.md
+│   ├── 📁 P:/packages/.claude-marketplace/plugins/search-research/MIGRATION_INVENTORY.md
 │   ├── ⏱️  Small (1-2h)
 │   └── 🔗 Depends on: None
 ├── TASK-002: Create Baseline Test Suite
-│   ├── 📁 P:/packages/search-research/tests/test_migration_parity.py
+│   ├── 📁 P:/packages/.claude-marketplace/plugins/search-research/tests/test_migration_parity.py
 │   ├── ⏱️  Medium (2-4h)
 │   └── 🔗 Depends on: TASK-001
 ├── TASK-002A: Create Performance Baseline Suite [NEW]
-│   ├── 📁 P:/packages/search-research/tests/test_performance_baselines.py
+│   ├── 📁 P:/packages/.claude-marketplace/plugins/search-research/tests/test_performance_baselines.py
 │   ├── ⏱️  Medium (2-4h)
 │   └── 🔗 Depends on: TASK-001
 ├── TASK-002B: Create Parity Test Templates [NEW]
-│   ├── 📁 P:/packages/search-research/tests/parity/
+│   ├── 📁 P:/packages/.claude-marketplace/plugins/search-research/tests/parity/
 │   ├── ⏱️  Small (1-2h)
 │   └── 🔗 Depends on: TASK-002
 └── TASK-003: Document API Differences [BLOCKING]
-    ├── 📁 P:/packages/search-research/API_DIFFERENCES.md
+    ├── 📁 P:/packages/.claude-marketplace/plugins/search-research/API_DIFFERENCES.md
     ├── ⏱️  Small (1-2h)
     └── 🔗 Depends on: TASK-001
 
 ### Phase 2: Critical Backend Migration (6-8h)
 ├── TASK-004: Migrate multilang with Per-Backend Validation
-│   ├── 📁 P:/packages/search-research/core/backends/local/multilang_backend.py
+│   ├── 📁 P:/packages/.claude-marketplace/plugins/search-research/core/backends/local/multilang_backend.py
 │   ├── ⏱️  Large (4-8h)
 │   └── 🔗 Depends on: TASK-002, TASK-002A, TASK-002B, TASK-003
 ├── TASK-005: Migrate grep with Per-Backend Validation
-│   ├── 📁 P:/packages/search-research/core/backends/local/grep_backend.py
+│   ├── 📁 P:/packages/.claude-marketplace/plugins/search-research/core/backends/local/grep_backend.py
 │   ├── ⏱️  Medium (2-4h)
 │   └── 🔗 Depends on: TASK-002, TASK-002A, TASK-002B, TASK-003
 ├── TASK-006: Migrate cds with Per-Backend Validation
-│   ├── 📁 P:/packages/search-research/core/backends/local/cds_backend.py
+│   ├── 📁 P:/packages/.claude-marketplace/plugins/search-research/core/backends/local/cds_backend.py
 │   ├── ⏱️  Medium (2-4h)
 │   └── 🔗 Depends on: TASK-002, TASK-002A, TASK-002B, TASK-003
 ├── TASK-007: Migrate skills with Per-Backend Validation
-│   ├── 📁 P:/packages/search-research/core/backends/local/skills_backend.py
+│   ├── 📁 P:/packages/.claude-marketplace/plugins/search-research/core/backends/local/skills_backend.py
 │   ├── ⏱️  Medium (2-4h)
 │   └── 🔗 Depends on: TASK-002, TASK-002A, TASK-002B, TASK-003
 ├── TASK-008: Migrate kg with Per-Backend Validation
-│   ├── 📁 P:/packages/search-research/core/backends/local/kg_backend.py
+│   ├── 📁 P:/packages/.claude-marketplace/plugins/search-research/core/backends/local/kg_backend.py
 │   ├── ⏱️  Medium (2-4h)
 │   └── 🔗 Depends on: TASK-002, TASK-002A, TASK-002B, TASK-003
 ├── TASK-009A: Fix RLM Backend Sandbox Security [NEW - SECURITY]
@@ -766,7 +766,7 @@ graph TD
 │   ├── ⏱️  Medium (2-4h)
 │   └── 🔗 Depends on: TASK-003
 └── TASK-009: Migrate rlm with Per-Backend Validation
-    ├── 📁 P:/packages/search-research/core/backends/local/rlm_backend.py
+    ├── 📁 P:/packages/.claude-marketplace/plugins/search-research/core/backends/local/rlm_backend.py
     ├── ⏱️  Medium (2-4h)
     └── 🔗 Depends on: TASK-002, TASK-002A, TASK-002B, TASK-003, TASK-009A
 
@@ -790,11 +790,11 @@ graph TD
 
 ### Phase 4: Testing (2-3h)
 ├── TASK-014: Run Full Integration Tests
-│   ├── 📁 P:/packages/search-research/tests/test_full_integration.py
+│   ├── 📁 P:/packages/.claude-marketplace/plugins/search-research/tests/test_full_integration.py
 │   ├── ⏱️  Medium (2-4h)
 │   └── 🔗 Depends on: TASK-010-TASK-013
 ├── TASK-015: Performance Regression Testing
-│   ├── 📁 P:/packages/search-research/tests/test_performance.py
+│   ├── 📁 P:/packages/.claude-marketplace/plugins/search-research/tests/test_performance.py
 │   ├── ⏱️  Small (1-2h)
 │   └── 🔗 Depends on: TASK-014
 └── TASK-016: End-to-End CLI Testing
@@ -812,7 +812,7 @@ graph TD
 │   ├── ⏱️  Small (<1h)
 │   └── 🔗 Depends on: TASK-017
 └── TASK-018A: Define Rollback Decision Triggers [NEW - CRITICAL]
-    ├── 📁 P:/packages/search-research/ROLLBACK_TRIGGERS.md
+    ├── 📁 P:/packages/.claude-marketplace/plugins/search-research/ROLLBACK_TRIGGERS.md
     ├── ⏱️  Small (<1h)
     └── 🔗 Depends on: TASK-017, TASK-018
 

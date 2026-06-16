@@ -9,11 +9,11 @@ import sys
 from pathlib import Path
 
 HOOKS_DIR = Path(__file__).resolve().parent.parent
-HOOK_FILE = Path("P:/packages/skill-guard/src/skill_guard/PreToolUse/PreToolUse_import_deletion_guard.py")
+HOOK_FILE = Path("P:/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/PreToolUse/PreToolUse_import_deletion_guard.py")
 sys.path.insert(0, str(HOOKS_DIR))
 
 # Plugin src for skill-guard hooks (single source of truth)
-_PLUGIN_SRC = Path("P:/packages/skill-guard/src")
+_PLUGIN_SRC = Path("P:/packages/.claude-marketplace/plugins/skill-guard/src")
 if _PLUGIN_SRC.exists():
     sys.path.insert(1, str(_PLUGIN_SRC))
 

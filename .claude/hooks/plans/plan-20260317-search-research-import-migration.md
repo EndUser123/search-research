@@ -365,7 +365,7 @@ graph TD
 
 - **Parent Plan**: `plan-20260315-search-research-migration-cleanup.md`
 - **Inventory**: 94 legacy imports found during audit (2026-03-17)
-- **search-research Package**: `P:/packages/search-research/`
+- **search-research Package**: `P:/packages/.claude-marketplace/plugins/search-research/`
 - **Legacy Directory**: `P:/__csf/src/search/` (to be cleaned up after Phase 7B)
 
 ---
