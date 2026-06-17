@@ -41,6 +41,11 @@ SETUP_SEQUENCE = [
     "SessionStart_contract_health.py",
     # 3. Log Rotation (throttled to once per day)
     "SessionStart_log_rotation.py",
+    # 3b. Observability rollup — rebuild hook_events_rollup from telemetry sources
+    #     (throttled to once per 24h internally; ~0.2s when it runs). Restores the
+    #     unified observability view that went stale on 2026-05-05 when its trigger
+    #     was created but never registered.
+    "SessionStart_observability_rollup.py",
     # 4. State Restore (Session Continuity)
     # "SessionStart_handoff_restore.py",  # REMOVED: file deleted, snapshot plugin handles handoff
     # 4. Memory & Daemons (Long-term context)
