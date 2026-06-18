@@ -10,7 +10,7 @@ cc-aca-authority/
   __lib/
     _bootstrap.py          # Path setup and hooks_dir resolution
     hooks_resolver.py      # Global hooks dir discovery
-    response_intent.py     # Intent classification (plugin-local, authority-only consumer)
+    response_intent.py     # Intent classification (orphaned 2026-06-18; only test-consumed)
   hooks/
     hooks.json
     pretool/
@@ -23,9 +23,7 @@ cc-aca-authority/
       PreToolUse_git_safety.py
     stop/
       Stop_safety_gate.py
-      Stop_approval_gate.py
       Stop_behavior_gates.py
-      Stop_commit_gate.py
       Stop_lazy_workaround_gate.py
       stop_permission_stall.py
     userpromptsubmit/
@@ -48,14 +46,12 @@ cc-aca-authority/
 | `PreToolUse_destructive_git_guard.py` | Blocks destructive git operations |
 | `PreToolUse_git_safety.py` | Worktree cross-checks, git restore suggestions |
 
-### Stop (5 hooks)
+### Stop (4 hooks)
 
 | Hook | Purpose |
 |------|---------|
-| `Stop_safety_gate.py` | Secret/PII leakage, forbidden patterns, protocol integrity |
-| `Stop_approval_gate.py` | Blocks implementation without explicit /approve |
+| `Stop_safety_gate.py` | Secret/PII leakage, forbidden patterns |
 | `Stop_behavior_gates.py` | Behavioral policy enforcement |
-| `Stop_commit_gate.py` | Commit message and staging validation |
 | `Stop_lazy_workaround_gate.py` | Detects lazy workaround suggestions |
 | `stop_permission_stall.py` | Detects permission-seeking stall patterns |
 
@@ -70,7 +66,7 @@ cc-aca-authority/
 
 | Module | Location | Why |
 |--------|----------|-----|
-| `response_intent.py` | Plugin-local `__lib/` | Only consumed by authority hooks (Stop_approval_gate, Stop_commit_gate) |
+| `response_intent.py` | Plugin-local `__lib/` | Consumers (Stop_approval_gate, Stop_commit_gate) deleted 2026-06-18; now only test-consumed — orphan-cleanup candidate |
 | `ttl_utils` | Global `__lib/` | Shared with PreToolUse.py router |
 | `hook_base` | Global `__lib/` | 41+ consumers across all domains |
 | `turn_mode` | Global `__lib/` | Shared across epistemic, session, authority |
@@ -99,3 +95,22 @@ from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
 ```
 
 Must be placed after `from __future__ import annotations` and before regular imports.
+
+## Stop-Block Logging
+
+The `__lib/router.py` module logs every Stop block via the shared `stop_block_log` module. All authority Stop blocks (safety_gate, behavior_gates, lazy_workaround_gate, stop_permission_stall) write structured rows to the canonical log.
+
+**Log location:** `logs/diagnostics/stop_blocks.jsonl`
+
+**Row schema:**
+- `timestamp`: ISO 8601 UTC
+- `event`: "Stop"
+- `gate_name`: Hook filename (e.g., "Stop_safety_gate")
+- `reason`: Block reason text
+- `matched_span`: Text span that triggered the block
+- `response_hash`: Hash of blocked response
+- `session_id`: Session UUID
+- `terminal_id`: Terminal UUID
+- `transcript_path`: Path to session transcript JSONL
+
+**Reader CLI:** `python stop_blocks_report.py` (from project root)

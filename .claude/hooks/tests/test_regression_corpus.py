@@ -13,8 +13,6 @@ HOOKS_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(HOOKS_DIR))
 
 from __lib.response_intent import classify_response_intent, IntentClass, is_meta_or_quoted_context
-from Stop_approval_gate import run as approval_run
-from Stop_commit_gate import run as commit_run
 
 
 def check(classifier_fn, text, gate_name, expected_intent, should_block, description):

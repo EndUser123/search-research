@@ -287,6 +287,10 @@ Keep diagnostics separated by value and failure mode:
   This is the canonical flat-file block log for router and child-hook block events.
   Also written by `PreToolUse_ownership_colocation_gate.py` (_log_block): each
   blocked write attempt is appended with timestamp, hook, tool, and path fields.
+- `logs/diagnostics/stop_blocks.jsonl`:
+  append-only canonical flat-file log of Stop blocks (the symmetric analog of pretooluse_blocks.jsonl).
+  One row per blocked Stop, written by __lib/stop_block_log.py from all Stop block sources.
+  Read with python stop_blocks_report.py. Fields: timestamp, event, gate_name, reason, matched_span, response_hash, session_id, terminal_id, transcript_path.
 - `logs/diagnostics/hook_runner_stderr.jsonl`:
   failsafe stderr capture from the universal runner.
   Use when a hook emitted stderr or when SQLite coverage is insufficient.

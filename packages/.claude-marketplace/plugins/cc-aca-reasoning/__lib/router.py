@@ -14,6 +14,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+_SHARED_LIB = Path(__file__).resolve().parent.parent.parent.parent.parent.parent / ".claude" / "hooks" / "__lib"
+if str(_SHARED_LIB) not in sys.path:
+    sys.path.insert(0, str(_SHARED_LIB))
+from stop_block_log import _extract_block_ctx, _log_stop_block  # noqa: E402
+
 PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 HOOKS_DIR = PLUGIN_ROOT / "hooks"
 
@@ -34,7 +39,7 @@ DISPATCH = {
 }
 
 
-def _emit_block(out: str, hook_name: str, child_stderr: str = "") -> None:
+def _emit_block(out: str, hook_name: str, child_stderr: str = "", ctx: dict | None = None) -> None:
     """Emit a block on both channels, then exit(2).
 
     The harness surfaces ONLY stderr for exit-2 blocks; stdout JSON is ignored
@@ -55,6 +60,7 @@ def _emit_block(out: str, hook_name: str, child_stderr: str = "") -> None:
         reason = child_stderr.strip() or f"Blocked by {hook_name}"
         if not out:
             print(json.dumps({"decision": "block", "reason": reason}))
+    _log_stop_block(hook_name, reason, child_stderr, ctx)
     msg = f"BLOCKED [{hook_name}]: {reason}\n"
     try:
         sys.stderr.write(msg)
@@ -74,6 +80,7 @@ def main() -> None:
 
     phase = PHASE_DIR.get(event, "")
     input_data = sys.stdin.buffer.read()
+    block_ctx = _extract_block_ctx(event, input_data)
 
     for hook_name in hooks:
         hook_path = HOOKS_DIR / phase / hook_name if phase else HOOKS_DIR / hook_name
@@ -93,14 +100,14 @@ def main() -> None:
             if result.returncode == 2:
                 out = result.stdout.decode(errors="replace").strip()
                 child_stderr = result.stderr.decode(errors="replace")
-                _emit_block(out, hook_name, child_stderr)
+                _emit_block(out, hook_name, child_stderr, block_ctx)
 
             out = result.stdout.decode(errors="replace").strip()
             if out:
                 try:
                     parsed = json.loads(out)
                     if isinstance(parsed, dict) and parsed.get("decision") == "block":
-                        _emit_block(out, hook_name)
+                        _emit_block(out, hook_name, "", block_ctx)
                 except json.JSONDecodeError:
                     pass
         except subprocess.TimeoutExpired:

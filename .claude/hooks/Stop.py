@@ -77,9 +77,13 @@ from pathlib import Path
 
 HOOKS_DIR = Path(__file__).resolve().parent
 
-# ACA plugin paths — resolve Stop hooks directly from plugin directories
-# instead of via wrapper stubs in HOOKS_DIR. Inserted FIRST so plugin
-# versions take precedence over local wrapper stubs.
+# ACA plugin Stop-hook dirs on sys.path. PRECEDENCE NOTE: HOOKS_DIR is inserted
+# LAST (line ~119) so it has the HIGHEST import priority — a local module wins
+# over these plugin dirs. This is by design: the local HOOKS_DIR entries for
+# these gates are thin SHIMS that import + normalize the canonical plugin logic
+# (see StopHook_cross_validator.py). A local FULL copy that drifts from the
+# plugin canonical is a silent stale-shadow bug. The plugin audit's in-process
+# module-shadow check flags divergent same-name modules across these dirs.
 _EPISTEMIC_STOP = Path("P:/packages/cc-aca-epistemic/hooks/stop")
 if not _EPISTEMIC_STOP.exists():
     _EPISTEMIC_STOP = Path("P:/packages/.claude-marketplace/plugins/cc-aca-epistemic/hooks/stop")
@@ -98,9 +102,10 @@ if not _REASONING_STOP.exists():
 if _REASONING_STOP.exists() and str(_REASONING_STOP) not in sys.path:
     sys.path.insert(0, str(_REASONING_STOP))
 
-# ACA plugin __lib paths — for shared modules like anti_sycophancy
-# Inserted after hooks directories but before HOOKS_DIR so plugin modules
-# take precedence over local copies during migration.
+# ACA plugin __lib on sys.path (shared modules like anti_sycophancy). Same
+# precedence caveat as above: HOOKS_DIR (line ~119) outranks this, so a local
+# __lib module of the same name wins. Keep local copies as shims OR byte-
+# identical to the plugin canonical — divergence = silent stale-shadow.
 _EPISTEMIC_LIB = Path("P:/packages/cc-aca-epistemic/__lib")
 if not _EPISTEMIC_LIB.exists():
     _EPISTEMIC_LIB = Path("P:/packages/.claude-marketplace/plugins/cc-aca-epistemic/__lib")
@@ -165,7 +170,8 @@ from __lib.claim_type import _read_claim_type
 
 from Stop_aggregator import aggregate_and_render as _aggregate_and_render
 from Stop_artifact_enforcement import run as _run_artifact_enforcement
-# approval_gate, commit_gate moved to cc-aca-authority plugin — dispatched via router
+# approval_gate, commit_gate deleted 2026-06-18 — orphaned post plugin->in-process
+# migration (router unwired) and redundant with the live PreToolUse authority/git guards.
 from Stop_subagent_opportunity import run as _run_subagent_opportunity
 
 # Referent coverage (Stop advisory) removed 2026-05-10.
@@ -3860,22 +3866,6 @@ GATE_METADATA: dict[str, dict] = {
         "required_artifact_classes": frozenset(),
         "rollout_mode": RolloutMode.ADVISORY,
     },
-    "approval_gate": {
-        "class": "policy", "trivial_suppressible": False, "priority": 10,
-        "description": "Approval gate for design skill implementation control",
-        "relevant_turn_kinds": _ALL_TURN_KINDS,
-        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
-        "required_artifact_classes": frozenset(),
-        "rollout_mode": RolloutMode.BLOCK,
-    },
-    "commit_gate": {
-        "class": "policy", "trivial_suppressible": False, "priority": 20,
-        "description": "Auto-commit gate",
-        "relevant_turn_kinds": _ALL_TURN_KINDS,
-        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
-        "required_artifact_classes": frozenset(),
-        "rollout_mode": RolloutMode.BLOCK,
-    },
     "subagent_opportunity": {
         "class": "quality", "trivial_suppressible": True, "priority": 71,
         "description": "Subagent opportunity detection",
@@ -4623,6 +4613,14 @@ def main():
         print("{}")
         sys.exit(0)
 
+    # Build per-turn block context for stop_blocks.jsonl diagnostic logging.
+    # Encoding raw_input as bytes matches the subprocess-router contract.
+    try:
+        from __lib.stop_block_log import _extract_block_ctx as _sbl_extract
+        _stop_block_ctx = _sbl_extract("Stop", raw_input.encode("utf-8", "replace"))
+    except Exception:
+        _stop_block_ctx = None
+
     # CC passes last_assistant_message, not response. Normalize so all
     # downstream gates (anti-sycophancy, overconfidence, lazy closure, etc.)
     # can read data["response"] as they expect.
@@ -4826,6 +4824,14 @@ def main():
         # --- End telemetry ---
 
         if blocked:
+            try:
+                from __lib.stop_block_log import _log_stop_block as _sbl_log
+                _block_reason = ""
+                if res:
+                    _block_reason = str(res.get("reason") or res.get("systemMessage") or "")
+                _sbl_log(name, _block_reason, "", _stop_block_ctx)
+            except Exception:
+                pass
             sys.exit(0)
         # Collect raw messages for aggregation: (hook_name, severity, message)
         # systemMessage gates emit warnings by default

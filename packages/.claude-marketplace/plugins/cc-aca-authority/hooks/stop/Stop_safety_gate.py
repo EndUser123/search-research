@@ -6,7 +6,10 @@ Stop_safety_gate.py - Consolidated Safety & Protocol Validator
 Single-source enforcement for:
 1. Secret/PII Leakage (sk- keys, credentials)
 2. Forbidden Execution Patterns (Daemons, Background tasks, autonomous fixes)
-3. Protocol Integrity (Command execution vs description)
+
+Reads the assistant text from data["response"], falling back to
+data["last_assistant_message"] — the field the live CC Stop payload actually
+carries. Without that fallback this gate read "" and never scanned.
 """
 
 from __future__ import annotations
@@ -66,13 +69,6 @@ FORBIDDEN_PATTERNS = [
     r"\bshould\s+(?:self.?heal|auto.?correct)\b",
 ]
 
-# Patterns that indicate describing a command instead of executing it
-DESCRIPTION_PATTERNS = [
-    r"\bthis\s+command\s+(?:provides|offers|enables|allows|supports)\b",
-    r"\bthe\s+/\w+\s+command\s+(?:is|does|provides|will)\b",
-    r"\blet\s+me\s+(?:explain|describe|summarize)\s+(?:what|how|the)\b",
-]
-
 def _load_secret_scanner():
     """Import the canonical secret detector from the global hooks dir.
 
@@ -124,16 +120,6 @@ def check_forbidden(response: str) -> str | None:
             return "Forbidden autonomous/background pattern detected (Part C.1)."
     return None
 
-def check_protocol(response: str, data: dict) -> str | None:
-    # Look for active command state (Turnover-turn logic)
-    # Check if a slash command was active in this session
-    # This logic is simplified from command_execution_validator.py
-    response_lower = response.lower()
-    for pattern in DESCRIPTION_PATTERNS:
-        if re.search(pattern, response_lower):
-            return "Protocol violation: Describing a command instead of executing it."
-    return None
-
 # Patterns that indicate a bare except or missing import for exception classes
 # Detects: "except UndefinedErrorName:" where the error name looks like a custom
 # exception that hasn't been imported. Does NOT flag standard library exceptions.
@@ -177,7 +163,10 @@ def main():
             sys.exit(0)
 
         data = json.loads(raw_input)
-        response = data.get("response", "")
+        # Live CC Stop payload carries the assistant text as last_assistant_message,
+        # not response (Stop.py normalizes the same way). Without this fallback the
+        # gate read "" every turn and the secret-leak scan was a dead no-op.
+        response = data.get("response") or data.get("last_assistant_message", "")
 
         if not response:
             sys.exit(0)
@@ -198,17 +187,6 @@ def main():
             print(json.dumps({
                 "decision": "block",
                 "reason": f"POLICY VIOLATION: {forbidden_violation}",
-                "blocking_hook": "Stop_safety_gate.py",
-            }))
-            sys.exit(2)
-
-        # 3. Check Protocol
-        protocol_violation = check_protocol(response, data)
-        if protocol_violation:
-            # We treat this as a block to force execution
-            print(json.dumps({
-                "decision": "block",
-                "reason": f"PROTOCOL VIOLATION: {protocol_violation}",
                 "blocking_hook": "Stop_safety_gate.py",
             }))
             sys.exit(2)
