@@ -117,7 +117,7 @@ _logger = logging.getLogger("deletion_verification_guard")
 _handler = logging.FileHandler(LOG_DIR / "deletion_verification_guard.log", encoding="utf-8")
 _handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
 _logger.addHandler(_handler)
-_logger.setLevel(logging.DEBUG)
+_logger.setLevel(logging.INFO)  # PROBE/allowlist traces are debug-level (suppressed by default)
 
 
 # --- Patterns: Deletion Completion Claims ------------------------------------
@@ -246,6 +246,132 @@ _DELETION_VERB_STOPWORDS = re.compile(
     r"when|since|because|if|while|as|after|before|too|also|[—–(])",
     re.IGNORECASE,
 )
+
+
+# --- Deletion-operation evidence gate ----------------------------------------
+# ROOT-CAUSE FP FIX (2026-06-18): This guard's only legitimate trigger is
+# verifying a deletion the assistant *actually performed this turn*. Prose that
+# merely mentions "deleted/removed X" — code reviews, session recaps,
+# recommendations, code-edit descriptions — never runs a deletion command, yet
+# the prose-only pattern matcher was hard-blocking those turns (757 firings in
+# the block log; blocked legitimate review turns repeatedly). Gating on real
+# tool evidence collapses that entire false-positive class while preserving the
+# true positive: a genuine `rm`/`Remove-Item`/`os.remove` still routes to disk
+# verification.
+# Command-boundary prefix: a shell deletion verb only counts when it actually
+# STARTS a command — at string start, after a shell separator (newline ; & | ` ( ) { }
+# $( ), or after xargs / -exec. This kills the mention-FP class where a deletion
+# idiom appears as data inside another command (grep "rm -rf" log, echo "run rm",
+# a pytest fixture containing "rm") while still catching real pipelines like
+# `cd x && rm -rf y`, `find . -exec rm {}`, and `... | xargs rm`.
+_CMD_BOUNDARY = r"(?:^|[\n;&|`(){}]|\$\(|\bxargs\s+|-exec\s+)\s*"
+DELETION_COMMAND_PATTERNS = re.compile(
+    _CMD_BOUNDARY + r"(?:sudo\s+)?rm\b(?:\s+-[a-zA-Z]+)*(?:\s+\S|\s*$)"  # rm [flags] [<path>|xargs rm]
+    r"|" + _CMD_BOUNDARY + r"git\s+rm\b"
+    r"|" + _CMD_BOUNDARY + r"unlink\s+\S"
+    r"|" + _CMD_BOUNDARY + r"rmdir\b"
+    r"|" + _CMD_BOUNDARY + r"rd\s+/"
+    r"|" + _CMD_BOUNDARY + r"del\s+[/\"']?\S"                    # Windows del
+    r"|\bRemove-Item\b"                                          # distinctive cmdlet
+    r"|\bos\.remove\s*\(|\bos\.unlink\s*\(|\bshutil\.rmtree\s*\("  # python call-sites
+    r"|\.unlink\s*\(",                                           # pathlib Path.unlink()
+    re.IGNORECASE,
+)
+
+
+# Bounded tail read for transcript parsing — one turn's tail is small; never
+# load a multi-MB transcript in full on a latency-sensitive Stop.
+_TRANSCRIPT_TAIL_BYTES = 1_000_000
+
+
+def _transcript_turn_has_deletion(transcript_path: str) -> bool:
+    """Detect a filesystem-deletion command in the CURRENT turn via the transcript.
+
+    Real Stop payloads omit ``tool_events`` (verified via PROBE: the live key set
+    is response/transcript_path/session_id/... with no tool_events) but DO include
+    ``transcript_path``, which is authoritative. Reads a bounded tail of the JSONL,
+    walks backward collecting assistant ``tool_use`` command strings until the last
+    real user prompt (the turn boundary), and tests them against the deletion
+    patterns. Fail-open on any error.
+    """
+    import json
+
+    try:
+        p = Path(transcript_path)
+        if not p.exists():
+            return False
+        size = p.stat().st_size
+        with p.open("rb") as fh:
+            if size > _TRANSCRIPT_TAIL_BYTES:
+                fh.seek(size - _TRANSCRIPT_TAIL_BYTES)
+                raw = fh.read().split(b"\n", 1)[-1]  # drop partial first line
+            else:
+                raw = fh.read()
+        lines = raw.decode("utf-8", errors="ignore").splitlines()
+        for ln in reversed(lines):
+            ln = ln.strip()
+            if not ln:
+                continue
+            try:
+                obj = json.loads(ln)
+            except Exception:
+                continue
+            msg = obj.get("message")
+            content = msg.get("content") if isinstance(msg, dict) else None
+            if obj.get("type") == "user":
+                # Stop at the current turn's real prompt; skip tool_result-only
+                # user entries (those belong to this same turn).
+                is_tool_result = isinstance(content, list) and any(
+                    isinstance(b, dict) and b.get("type") == "tool_result" for b in content
+                )
+                if not is_tool_result:
+                    break
+            if obj.get("type") == "assistant" and isinstance(content, list):
+                for b in content:
+                    if isinstance(b, dict) and b.get("type") == "tool_use":
+                        inp = b.get("input", {}) or {}
+                        cmd = inp.get("command", "") if isinstance(inp, dict) else ""
+                        if cmd and DELETION_COMMAND_PATTERNS.search(str(cmd)):
+                            return True
+    except Exception:
+        return False
+    return False
+
+
+def _turn_performed_deletion(data: dict) -> bool:
+    """True if this turn actually executed a filesystem-deletion command.
+
+    Signal priority:
+      1. ``tool_events`` / ``tool_calls`` in ``data`` — used by unit tests and any
+         caller that populates them (the real Claude Code Stop payload does NOT).
+      2. ``transcript_path`` — the authoritative source present in real payloads;
+         parsed for the current turn's tool_use commands.
+
+    Deletions go through shell tools (Bash/PowerShell), never Edit/Write, so only
+    command strings are inspected. Fail-open: on any error returns False (claim
+    allowed), consistent with this guard's documented fail-open stance.
+    """
+    try:
+        events = data.get("tool_events", []) or []
+        for ev in events:
+            if not isinstance(ev, dict):
+                continue
+            tool_input = ev.get("input", {}) or ev.get("tool_input", {}) or {}
+            cmd = ""
+            if isinstance(tool_input, dict):
+                cmd = str(tool_input.get("command", "") or tool_input.get("cmd", ""))
+            if cmd and DELETION_COMMAND_PATTERNS.search(cmd):
+                return True
+        tc = data.get("tool_calls", "")
+        if isinstance(tc, str) and tc and DELETION_COMMAND_PATTERNS.search(tc):
+            return True
+        # Real-payload path: tool_events is absent at Stop time; transcript is truth.
+        tpath = data.get("transcript_path", "")
+        if tpath and _transcript_turn_has_deletion(str(tpath)):
+            return True
+    except Exception:
+        return False
+    return False
 
 
 # --- Path extraction -----------------------------------------------------------
@@ -539,6 +665,33 @@ def check(data: dict) -> dict | None:
     """
     response = data.get("assistant_response", "") or data.get("response", "")
     if not response:
+        return None
+
+    # Tool-evidence gate (ROOT-CAUSE FP FIX): only engage when THIS turn actually
+    # ran a filesystem-deletion command. Prose that merely mentions deletion
+    # (reviews, recaps, recommendations, code-edit notes) never executed one, so
+    # it must not be blocked. A genuine rm/Remove-Item/os.remove this turn still
+    # routes to the disk-verification path below.
+    _te = data.get("tool_events", [])
+    _did_delete = _turn_performed_deletion(data)
+
+    # PROBE (debug-level diagnostic): record the Stop payload key set and signal
+    # shape. The schema question is settled (real payloads carry transcript_path,
+    # not tool_events); kept at debug so it's silent in normal operation but
+    # re-enablable by setting the logger to DEBUG. Keys only — never values.
+    _logger.debug(
+        "PROBE keys=%s tool_events_len=%s tool_calls_present=%s deletion_detected=%s",
+        sorted(data.keys()),
+        (len(_te) if isinstance(_te, list) else "non-list"),
+        bool(data.get("tool_calls")),
+        _did_delete,
+    )
+
+    if not _did_delete:
+        # SUPPRESSED branch instrumentation: this is the FP-reduction path. Logging
+        # it makes the narrowing measurable and surfaces over-suppression (a real
+        # deletion claim allowed because no deletion command was detected).
+        _logger.info("SUPPRESSED: no deletion command this turn; deletion-claim block skipped")
         return None
 
     # Detect deletion claims
