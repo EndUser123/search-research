@@ -667,18 +667,24 @@ def check(data: dict) -> dict | None:
     if not response:
         return None
 
-    # Tool-evidence gate (ROOT-CAUSE FP FIX): only engage when THIS turn actually
-    # ran a filesystem-deletion command. Prose that merely mentions deletion
-    # (reviews, recaps, recommendations, code-edit notes) never executed one, so
-    # it must not be blocked. A genuine rm/Remove-Item/os.remove this turn still
-    # routes to the disk-verification path below.
-    _te = data.get("tool_events", [])
+    # Cheap first (PERF): does the response even contain a deletion-completion
+    # claim? The overwhelming majority of turns do not — return before touching
+    # any tool/transcript evidence. This keeps the transcript read (measured
+    # ~3-5ms on a 20MB transcript) OFF the hot path of every Stop and pays it
+    # only when a claim is actually present.
+    claims = _detect_deletion_claims(response)
+    if not claims:
+        return None
+
+    # A deletion CLAIM exists. Now consult evidence (ROOT-CAUSE FP FIX): did THIS
+    # turn actually run a filesystem-deletion command? Prose that merely mentions
+    # deletion (reviews, recaps, code-edit notes) never executed one and must not
+    # be blocked; a real rm/Remove-Item/os.remove routes to disk verification.
     _did_delete = _turn_performed_deletion(data)
 
-    # PROBE (debug-level diagnostic): record the Stop payload key set and signal
-    # shape. The schema question is settled (real payloads carry transcript_path,
-    # not tool_events); kept at debug so it's silent in normal operation but
-    # re-enablable by setting the logger to DEBUG. Keys only — never values.
+    # PROBE (debug-level): payload key set + signal shape, logged only when a
+    # claim is present. Keys only — never values.
+    _te = data.get("tool_events", [])
     _logger.debug(
         "PROBE keys=%s tool_events_len=%s tool_calls_present=%s deletion_detected=%s",
         sorted(data.keys()),
@@ -688,15 +694,10 @@ def check(data: dict) -> dict | None:
     )
 
     if not _did_delete:
-        # SUPPRESSED branch instrumentation: this is the FP-reduction path. Logging
-        # it makes the narrowing measurable and surfaces over-suppression (a real
-        # deletion claim allowed because no deletion command was detected).
-        _logger.info("SUPPRESSED: no deletion command this turn; deletion-claim block skipped")
-        return None
-
-    # Detect deletion claims
-    claims = _detect_deletion_claims(response)
-    if not claims:
+        # SUPPRESSED branch instrumentation (FP-reduction path): a deletion claim
+        # appeared in prose but no deletion command ran this turn. Logged so the
+        # narrowing stays measurable and over-suppression is visible.
+        _logger.info("SUPPRESSED: deletion claim in prose but no deletion command this turn; allowed")
         return None  # No deletion patterns - allow
 
     _logger.info(
