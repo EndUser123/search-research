@@ -86,21 +86,16 @@ class ChangePropagationHook(PostToolUseHook):
         self,
         tool_name: str,
         tool_input: dict[str, Any],
-        tool_response: dict[str, Any],
+        tool_response: dict[str, Any],  # noqa: ARG002 — not used; detection is source-only
     ) -> dict[str, Any]:
         try:
-            tool_response_str = (
-                json.dumps(tool_response) if isinstance(tool_response, dict)
-                else str(tool_response)
-            )
-
             state = _load_state()
             # Check if this satisfies pending verifications
             self._record_verification(tool_name, tool_input, state)
 
             # Detect new structural changes
             if tool_name in _MODIFY_TOOLS or tool_name in {"Bash", "bash"}:
-                change = self._detect_change(tool_name, tool_input, tool_response_str)
+                change = self._detect_change(tool_name, tool_input)
                 if change:
                     reqs = _VERIFICATION_REQUIREMENTS.get(change["type"], ["cache_clear"])
                     state["pending_verifications"].append(
@@ -134,7 +129,7 @@ class ChangePropagationHook(PostToolUseHook):
 
     # -- private helpers --
 
-    def _detect_change(self, tool_name: str, tool_input: dict, output: str) -> dict | None:
+    def _detect_change(self, tool_name: str, tool_input: dict) -> dict | None:
         """Detect a structural change from the RIGHT field per tool.
 
         Source-aware by design: shell deletions come from the Bash *command*,
@@ -145,7 +140,7 @@ class ChangePropagationHook(PostToolUseHook):
         A Write creates new content; the prior file state is unknown, so no
         deletion is inferred from it.
         """
-        from structural_change import deletions_in_command, lines_removed, removed_symbols
+        from __lib.structural_change import deletions_in_command, lines_removed, removed_symbols
 
         filepath = tool_input.get("path") or tool_input.get("file_path")
         now = datetime.now().timestamp()
