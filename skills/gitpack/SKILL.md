@@ -109,7 +109,7 @@ def resolve_skill_path(skill_ref: str) -> Path | None:
 
 ```bash
 # Pack a directory — outputs go to P://.claude/.artifacts/
-/gitpack P://packages/cc-skills-meta
+/gitpack P://packages/.claude-marketplace/plugins/cc-skills-analysis
 
 # Pack with exclusions
 /gitpack ./my-project --exclude __pycache__,*.pyc
