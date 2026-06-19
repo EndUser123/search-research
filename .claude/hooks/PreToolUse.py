@@ -710,6 +710,7 @@ COMPAT_POST_ROUTER_HOOKS = [
 TOOL_HOOKS = {
     "Write": [
         "PreToolUse_parent_directory_creator.py",
+        "PreToolUse_existence_gate.py",
         "PreToolUse_syntax_gate.py",
         "PreToolUse_python_import_gate.py",
         "PreToolUse_import_deletion_guard.py",
@@ -719,6 +720,7 @@ TOOL_HOOKS = {
         # Delegation and authority gates are owned elsewhere now.
     ],
     "Edit": [
+        "PreToolUse_existence_gate.py",
         "PreToolUse_syntax_gate.py",
         "PreToolUse_python_import_gate.py",
         "PreToolUse_import_deletion_guard.py",

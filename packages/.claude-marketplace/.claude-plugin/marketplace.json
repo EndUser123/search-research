@@ -17,19 +17,6 @@
       ]
     },
     {
-      "name": "cc-skills-meta",
-      "version": "1.1.0",
-      "description": "Meta-cognitive and workflow skills for Claude Code \u2014 retrospectives, gap analysis, learning, self-improvement, and orchestration.",
-      "source": "./plugins/cc-skills-meta",
-      "keywords": [
-        "meta",
-        "workflow",
-        "retrospective",
-        "orchestration",
-        "skill-craft"
-      ]
-    },
-    {
       "name": "cc-skills-ai-api",
       "version": "1.0.4",
       "description": "AI API integration skills for Claude Code",
@@ -64,7 +51,7 @@
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.1.50",
+      "version": "1.2.1",
       "description": "Utility skills for Claude Code",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
@@ -99,7 +86,7 @@
     },
     {
       "name": "cc-skills-architect",
-      "version": "1.0.10",
+      "version": "1.0.11",
       "description": "Architect plugin",
       "source": "./plugins/cc-skills-architect",
       "keywords": []

@@ -75,8 +75,8 @@ def run(data: dict) -> dict | None:
 
     # Safe permission candidate - emit recovery metadata
     return {
-        "permissionDecision": "approve_if_user_confirmed",
-        "permissionDecisionReason": (
+        "decision": "block",
+        "reason": (
             f"🔍 PERMISSION GAP DETECTED\n\n"
             f"Write operation blocked, but Read permission exists:\n"
             f"  Read:  {matching_read}\n"
