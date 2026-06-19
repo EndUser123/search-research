@@ -360,16 +360,23 @@ def check_worktree_cross_contamination(
         if '/.claude/plans/' in normalized:
             return {"continue": True, "decision": "allow", "reason": "Session plan (not worktree-scoped)"}
 
-        # GLOBAL CONFIG EXEMPTION: files under the user's home ~/.claude/ tree
+        # GLOBAL CONFIG EXEMPTION: files under ~/.claude/ tree OR P:/.claude/
         # (CLAUDE.md, settings.json, hooks, plugins, cache) are permanent global
         # config, NOT worktree-scoped. Editing them from any worktree is legitimate;
-        # home is on a different drive than the project worktree, so the cross-worktree
+        # these are on different drives from the project worktree, so the cross-worktree
         # check would otherwise always flag them as a false positive.
         try:
-            home_claude = (Path.home() / '.claude').resolve()
             target_resolved = Path(file_path).resolve()
+
+            # Check home ~/.claude directory
+            home_claude = (Path.home() / '.claude').resolve()
             if home_claude == target_resolved or home_claude in target_resolved.parents:
                 return {"continue": True, "decision": "allow", "reason": "Global ~/.claude config (not worktree-scoped)"}
+
+            # Check P:/.claude directory (P: drive global config)
+            p_claude = Path('P:/.claude').resolve()
+            if p_claude == target_resolved or p_claude in target_resolved.parents:
+                return {"continue": True, "decision": "allow", "reason": "Global P:/.claude config (not worktree-scoped)"}
         except (OSError, ValueError, RuntimeError):
             pass
 

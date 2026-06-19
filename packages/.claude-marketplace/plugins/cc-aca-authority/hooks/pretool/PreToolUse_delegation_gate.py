@@ -240,6 +240,10 @@ User override for the next turn: send --allow-inline.
 
 def main() -> int:
     """Run the delegation gate."""
+    # Check env var to disable gate
+    if os.environ.get("DELEGATION_GATE_ENABLED", "true").lower() not in ("1", "true", "yes"):
+        return 0  # Gate disabled via env
+
     data = _load_data()
     if not data:
         return 0  # Allow on parse error (fail-open)

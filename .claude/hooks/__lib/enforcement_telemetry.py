@@ -32,7 +32,7 @@ import json
 import logging
 import os
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from threading import Lock
 from typing import Any
@@ -43,6 +43,12 @@ logger.addHandler(logging.NullHandler())
 # Thread-safe singleton
 _db_lock = Lock()
 _db_path: Path | None = None
+
+ENFORCEMENT_RETENTION_DAYS = int(os.environ.get("CC_ENFORCEMENT_RETENTION_DAYS", "30"))
+_CLEANUP_STATE_FILE = (
+    Path(os.environ.get("CSF_HOOKS_STATE_DIR", "P:/.claude/hooks/state"))
+    / "enforcement_last_cleanup.txt"
+)
 
 
 def _get_db_path() -> Path:
@@ -58,12 +64,20 @@ def _get_db_path() -> Path:
     return _db_path
 
 
+def _open_db(db_path) -> sqlite3.Connection:
+    """Open diagnostics DB with WAL mode and busy timeout."""
+    conn = sqlite3.connect(str(db_path), timeout=5.0)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=5000")
+    return conn
+
+
 def _ensure_table() -> None:
     """Create enforcement_events table if it doesn't exist."""
     db_path = _get_db_path()
     with _db_lock:
         try:
-            conn = sqlite3.connect(str(db_path), timeout=5.0)
+            conn = _open_db(db_path)
             cursor = conn.cursor()
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS enforcement_events (
@@ -134,7 +148,7 @@ def log_enforcement_event(
 
     with _db_lock:
         try:
-            conn = sqlite3.connect(str(db_path), timeout=5.0)
+            conn = _open_db(db_path)
             cursor = conn.cursor()
             cursor.execute(
                 """
@@ -174,7 +188,7 @@ def get_advisory_compliance_rate(skill_name: str | None = None, days: int = 7) -
 
     with _db_lock:
         try:
-            conn = sqlite3.connect(str(db_path), timeout=5.0)
+            conn = _open_db(db_path)
             cursor = conn.cursor()
 
             if skill_name:
@@ -252,7 +266,7 @@ def detect_warning_fatigue(session_id: str, threshold: int = 3) -> list[dict[str
 
     with _db_lock:
         try:
-            conn = sqlite3.connect(str(db_path), timeout=5.0)
+            conn = _open_db(db_path)
             cursor = conn.cursor()
 
             cursor.execute(
@@ -286,6 +300,37 @@ def reset_db_path() -> None:
     """
     global _db_path
     _db_path = None
+
+
+def _maybe_cleanup_enforcement_events() -> None:
+    """Prune old enforcement events, at most once per 24 hours."""
+    try:
+        if _CLEANUP_STATE_FILE.exists():
+            last = datetime.fromisoformat(_CLEANUP_STATE_FILE.read_text().strip())
+            if (datetime.now(timezone.utc) - last).total_seconds() < 86400:
+                return
+    except Exception:
+        pass
+
+    _ensure_table()
+    db_path = _get_db_path()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=ENFORCEMENT_RETENTION_DAYS)).isoformat()
+    with _db_lock:
+        try:
+            conn = _open_db(db_path)
+            conn.execute("DELETE FROM enforcement_events WHERE timestamp < ?", (cutoff,))
+            conn.commit()
+            conn.close()
+            _CLEANUP_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+            _CLEANUP_STATE_FILE.write_text(datetime.now(timezone.utc).isoformat())
+        except Exception:
+            pass
+
+
+try:
+    _maybe_cleanup_enforcement_events()
+except Exception:
+    pass
 
 
 # Self-test

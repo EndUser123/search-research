@@ -1,0 +1,108 @@
+"""Tests for source-aware structural-change detection (no mocks).
+
+Two layers, per the test-strategy contract:
+  - UNIT: structural_change pure functions (mention-vs-operation, symbol removal).
+  - REGRESSION/INTEGRATION: ChangePropagationHook.process() over realistic
+    tool payloads. The historical false positive lived at the tool-input
+    boundary (a Write whose *body* contained "rm old.py" was flagged as deleting
+    old.py); a pure-logic unit test would miss that the hook fed it file content.
+    The integration layer proves the real payload no longer creates a pending.
+"""
+from __future__ import annotations
+
+import importlib
+import sys
+from pathlib import Path
+
+import pytest
+
+_HOOKS = Path(__file__).resolve().parent.parent  # .claude/hooks
+for _p in (str(_HOOKS), str(_HOOKS / "__lib")):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+import structural_change as sc  # noqa: E402
+
+
+# ── UNIT: structural_change ──────────────────────────────────────────────────
+
+@pytest.mark.parametrize("cmd,expected", [
+    ("rm old.py", ["old.py"]),
+    ("rm -rf build/", ["build/"]),
+    ("cd a && rm -f x.py", ["x.py"]),
+    ("git rm mod.py", ["mod.py"]),
+])
+def test_real_deletions_detected(cmd, expected):
+    assert sc.deletions_in_command(cmd) == expected
+
+
+@pytest.mark.parametrize("cmd", [
+    'grep "rm old.py" log.txt',          # mention in a search
+    'echo "to clean, run rm x.py"',       # mention in echo
+    "python -c \"s = 'rm old.py'\"",      # mention as a string literal
+    "cat a | grep rm",                     # the word rm, not a deletion
+    "ls | xargs rm",                       # real deletion but no nameable target
+])
+def test_mentions_and_unnamed_return_empty(cmd):
+    assert sc.deletions_in_command(cmd) == []
+
+
+def test_removed_symbols():
+    assert sc.removed_symbols("def foo():\n  pass\ndef bar(): pass", "def bar(): pass") == [("def", "foo")]
+    assert sc.removed_symbols("def a(): pass", "def a(): pass\ndef b(): pass") == []
+
+
+def test_lines_removed():
+    assert sc.lines_removed("a\nb\nc\nd", "a") == 3
+    assert sc.lines_removed("a", "a\nb\nc") == 0
+
+
+# ── REGRESSION/INTEGRATION: the hook over real payloads ──────────────────────
+
+@pytest.fixture
+def hook(tmp_path, monkeypatch):
+    monkeypatch.setenv("CSF_STATE_DIR", str(tmp_path))
+    sys.modules.pop("posttooluse.change_propagation_hook", None)
+    mod = importlib.import_module("posttooluse.change_propagation_hook")
+    mod = importlib.reload(mod)  # re-run module top-level so _STATE_FILE uses tmp
+    return mod.ChangePropagationHook(), mod
+
+
+def _pending(mod):
+    return mod._load_state().get("pending_verifications", [])
+
+
+def test_write_with_deletion_string_in_body_creates_no_pending(hook):
+    """REGRESSION: the exact failure — deletion-shaped string in a file body."""
+    h, mod = hook
+    h.process("Write", {"file_path": "t.py", "content": "cmd = 'rm old.py'  # fixture\n"}, {})
+    assert _pending(mod) == []
+
+
+def test_bash_grep_mention_creates_no_pending(hook):
+    h, mod = hook
+    h.process("Bash", {"command": 'grep "rm old.py" log.txt'}, {})
+    assert _pending(mod) == []
+
+
+def test_bash_real_rm_creates_pending(hook):
+    """True positive preserved: a real rm still records a verification."""
+    h, mod = hook
+    h.process("Bash", {"command": "rm real_module.py"}, {})
+    p = _pending(mod)
+    assert len(p) == 1
+    assert p[0]["type"] == "file_deletion" and p[0]["affected"] == "real_module.py"
+
+
+def test_edit_removing_def_creates_pending(hook):
+    h, mod = hook
+    h.process("Edit", {"file_path": "m.py", "old_string": "def foo():\n    return 1\n", "new_string": "\n"}, {})
+    p = _pending(mod)
+    assert len(p) == 1
+    assert p[0]["type"] == "function_removal" and p[0]["affected"] == "foo"
+
+
+def test_edit_adding_code_creates_no_pending(hook):
+    h, mod = hook
+    h.process("Edit", {"file_path": "m.py", "old_string": "x = 1", "new_string": "x = 1\ndef bar(): pass"}, {})
+    assert _pending(mod) == []

@@ -454,7 +454,7 @@ def _cleanup_logs(stats: dict) -> None:
                 pass
 
 
-def _cleanup_databases(stats: dict) -> None:
+def _cleanup_databases() -> None:
     """VACUUM SQLite databases that exceed size threshold."""
     db_paths = [
         SESSION_DATA / "evidence.db",
@@ -470,6 +470,8 @@ def _cleanup_databases(stats: dict) -> None:
 
             # Try to connect and prune old rows, then VACUUM
             conn = sqlite3.connect(str(db_path), timeout=2.0)
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA busy_timeout=5000")
             try:
                 # Delete rows older than MAX_AGE_DAYS
                 cutoff = time.time() - MAX_AGE_SECS
@@ -486,9 +488,8 @@ def _cleanup_databases(stats: dict) -> None:
                         except sqlite3.OperationalError:
                             continue
 
-                conn.execute("VACUUM")
-                conn.commit()
-                stats["db_vacuumed"] += 1
+                # VACUUM removed: rewrites entire DB file, corrupts under concurrent access.
+                # WAL mode reuses freed pages without compaction.
             finally:
                 conn.close()
         except (sqlite3.Error, OSError):
@@ -640,7 +641,6 @@ def cleanup(force: bool = False) -> dict[str, int]:
         "session_data": 0,
         "truncated": 0,
         "log_files": 0,
-        "db_vacuumed": 0,
     }
 
     try:
@@ -649,7 +649,7 @@ def cleanup(force: bool = False) -> dict[str, int]:
         _cleanup_per_terminal_state(stats)  # TASK-005: Clean new per-terminal state
         _cleanup_session_data(stats)
         _cleanup_logs(stats)
-        _cleanup_databases(stats)
+        _cleanup_databases()
     finally:
         _release_cleanup_lock()
 

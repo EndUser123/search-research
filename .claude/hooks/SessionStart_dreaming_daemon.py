@@ -60,7 +60,6 @@ if not logger.handlers:
 
 # Constants
 HEARTBEAT_HEALTHY_THRESHOLD_SECONDS = 90  # Daemon is healthy if heartbeat < 90s old
-UPSTREAM_IDLE_WARNING_MINUTES = 10  # Warn if no new events for >10 minutes
 LATENCY_WARNING_THRESHOLD_MS = 100  # Warn if state read takes >100ms
 
 # Paths
@@ -68,7 +67,6 @@ HOOKS_DIR = Path(__file__).resolve().parent
 STATE_DIR = HOOKS_DIR / "state"
 LOGS_DIR = HOOKS_DIR.parent / "logs"
 STATE_FILE = STATE_DIR / "dreaming-daemon-state.json"
-EVENTS_FILE = LOGS_DIR / "principle-events.jsonl"
 
 
 def get_project_root() -> Path:
@@ -173,41 +171,6 @@ def is_daemon_healthy(state_path: Path) -> bool:
     except Exception as e:
         logger.error(f"Error checking daemon health: {e}")
         return False
-
-
-def check_upstream_health(events_path: Path) -> dict[str, Any]:
-    """
-    Check upstream data source health (principle-events.jsonl).
-
-    Args:
-        events_path: Path to principle-events.jsonl.
-
-    Returns:
-        Dict with status ("healthy", "stale", "missing") and age_minutes if stale.
-    """
-    try:
-        if not events_path.exists():
-            logger.warning(f"Upstream data source missing: {events_path}")
-            return {"status": "missing", "age_minutes": None}
-
-        # Check file modification time
-        stat = events_path.stat()
-        age_seconds = time.time() - stat.st_mtime
-        age_minutes = age_seconds / 60
-
-        if age_minutes > UPSTREAM_IDLE_WARNING_MINUTES:
-            logger.warning(
-                f"Upstream data source stale: {age_minutes:.1f} minutes old "
-                f"(exceeds {UPSTREAM_IDLE_WARNING_MINUTES}min threshold)"
-            )
-            return {"status": "stale", "age_minutes": age_minutes}
-        else:
-            logger.debug(f"Upstream data source healthy: {age_minutes:.1f} minutes old")
-            return {"status": "healthy", "age_minutes": age_minutes}
-
-    except Exception as e:
-        logger.error(f"Error checking upstream health: {e}")
-        return {"status": "error", "age_minutes": None}
 
 
 def acquire_startup_mutex() -> Any | None:
@@ -392,14 +355,6 @@ def main() -> dict[str, Any]:
     if is_daemon_healthy(STATE_FILE):
         logger.debug("Daemon is healthy - no action needed")
 
-        # Check upstream data source health (warning only)
-        upstream_health = check_upstream_health(EVENTS_FILE)
-        if upstream_health["status"] == "stale":
-            logger.warning(
-                f"Upstream idle: {upstream_health['age_minutes']:.1f} minutes "
-                f"(threshold: {UPSTREAM_IDLE_WARNING_MINUTES}min)"
-            )
-
         hook_latency = (time.perf_counter() - hook_start) * 1000
 
         # Log to diagnostics
@@ -422,7 +377,6 @@ def main() -> dict[str, Any]:
             "status": "healthy",
             "project_root": str(project_root),
             "hook_latency_ms": hook_latency,
-            "upstream_status": upstream_health["status"],
         }
 
     # Daemon is unhealthy or missing - start it with coordination
@@ -439,9 +393,6 @@ def main() -> dict[str, Any]:
         if mutex_handle is not None:
             release_startup_mutex(mutex_handle)
 
-        # Check upstream data source health (warning only)
-        upstream_health = check_upstream_health(EVENTS_FILE)
-
         hook_latency = (time.perf_counter() - hook_start) * 1000
         logger.debug(f"Hook completed in {hook_latency:.2f}ms")
 
@@ -452,7 +403,6 @@ def main() -> dict[str, Any]:
             "status": "healthy",
             "project_root": str(project_root),
             "hook_latency_ms": hook_latency,
-            "upstream_status": upstream_health["status"],
         }
 
     # Start daemon (mutex_handle will be released inside start_daemon)
@@ -465,8 +415,6 @@ def main() -> dict[str, Any]:
             logger.info(
                 "Daemon is healthy despite startup failure - likely started by another terminal"
             )
-            upstream_health = check_upstream_health(EVENTS_FILE)
-
             hook_latency = (time.perf_counter() - hook_start) * 1000
             print({})
 
@@ -474,7 +422,6 @@ def main() -> dict[str, Any]:
                 "status": "healthy",
                 "project_root": str(project_root),
                 "hook_latency_ms": hook_latency,
-                "upstream_status": upstream_health["status"],
             }
 
         return {
@@ -484,9 +431,6 @@ def main() -> dict[str, Any]:
         }
 
     logger.info(f"Daemon started successfully (PID {pid})")
-
-    # Check upstream data source health
-    upstream_health = check_upstream_health(EVENTS_FILE)
 
     hook_latency = (time.perf_counter() - hook_start) * 1000
     logger.debug(f"Hook completed in {hook_latency:.2f}ms")
@@ -499,7 +443,6 @@ def main() -> dict[str, Any]:
         "pid": pid,
         "project_root": str(project_root),
         "hook_latency_ms": hook_latency,
-        "upstream_status": upstream_health["status"],
     }
 
 

@@ -210,6 +210,20 @@ Each action MUST cite evidence (file:line or Finding ID). This matches GTO skill
 
 See `references/cks-integration.md` for finding types (PATTERN/REFACTOR/DEBT/DOC/OPT), metadata schema, category mapping, and auto-save workflow.
 
+## Evidence-First Principles
+
+### E1 — Evidence before claims
+Before claiming a pattern is absent, unchanged, or non-existent in the transcript — verify with Read/Grep tools first. Claims of absence are only valid after confirmed transcript read failures.
+
+### E4 — Investigate before asking
+Do NOT answer reflection questions without reading transcript files first. Do not ask the user for transcript content you can obtain yourself via Read or Grep.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without reading transcript files
+- Claiming a signal doesn't exist without confirmed Read/Grep failure
+- Skipping transcript reads because pattern seems obvious
+
 ## References
 
 - **`references/output-template.md`**: Exact output format for all reflection reports (MANDATORY)

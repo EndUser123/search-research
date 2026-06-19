@@ -348,8 +348,7 @@ def principles(days: int, terminal_filter: str = None, show_all: bool = False):
 
     log_file = Path("P:/.claude/logs/principle-events.jsonl")
     if not log_file.exists():
-        print("  No principle events logged yet.")
-        print("  Monitor: principle_monitor.py Stop hook")
+        print("  principle-events.jsonl not found (feature removed).")
         return
 
     import json

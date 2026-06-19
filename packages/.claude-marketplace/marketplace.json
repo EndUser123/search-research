@@ -33,18 +33,6 @@
       ]
     },
     {
-      "name": "cc-skills-meta",
-      "version": "1.1.0",
-      "description": "Metadata and utility skills for Claude Code.",
-      "source": "./plugins/cc-skills-meta",
-      "keywords": [
-        "meta",
-        "utilities",
-        "skills",
-        "metadata"
-      ]
-    },
-    {
       "name": "cc-skills-sdlc",
       "version": "1.0.60",
       "description": "Software development lifecycle AI skills for Claude Code.",
@@ -70,7 +58,7 @@
     },
     {
       "name": "snapshot",
-      "version": "0.5.19",
+      "version": "0.5.20",
       "description": "Snapshot plugin for Claude Code.",
       "source": "./plugins/snapshot",
       "keywords": [
@@ -282,7 +270,7 @@
     },
     {
       "name": "cc-aca-observability",
-      "version": "0.1.16",
+      "version": "0.1.18",
       "description": "ACA Observability plugin \u2014 session health monitoring, drift detection, artifact scraping, and PostToolUse tracker orchestration. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-observability",
       "keywords": [

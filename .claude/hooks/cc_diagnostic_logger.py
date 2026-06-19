@@ -72,13 +72,6 @@ BUSY_TIMEOUT_MS = 5000  # Wait up to 5 seconds for database lock
 IMPORTER_RETENTION_DAYS = max(
     1, int(os.environ.get("CC_IMPORTER_RETENTION_DAYS", "14"))
 )
-IMPORTER_VACUUM_INTERVAL_HOURS = max(
-    1, int(os.environ.get("CC_IMPORTER_VACUUM_INTERVAL_HOURS", "24"))
-)
-IMPORTER_VACUUM_THRESHOLD_BYTES = max(
-    0, int(os.environ.get("CC_IMPORTER_VACUUM_THRESHOLD_BYTES", str(50 * 1024 * 1024)))
-)
-
 # Ensure log directory exists
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -307,24 +300,10 @@ def _maybe_cleanup_importer_diagnostics() -> None:
     except Exception:
         return
 
-    try:
-        last_vacuum_raw = _meta_get("importer_diag_last_vacuum")
-        if last_vacuum_raw:
-            last_vacuum = datetime.fromisoformat(last_vacuum_raw)
-            if (now - last_vacuum).total_seconds() < IMPORTER_VACUUM_INTERVAL_HOURS * 3600:
-                return
-    except Exception:
-        pass
-
-    if deleted_rows <= 0:
-        return
-
-    try:
-        if DB_PATH.exists() and DB_PATH.stat().st_size >= IMPORTER_VACUUM_THRESHOLD_BYTES:
-            conn.execute("VACUUM")
-            _meta_set("importer_diag_last_vacuum", now.isoformat())
-    except Exception:
-        pass
+    # VACUUM intentionally omitted: VACUUM rewrites the entire DB file and,
+    # when interrupted mid-write during concurrent multi-terminal access,
+    # corrupts the main DB header. WAL mode reuses free pages from deleted
+    # rows without compaction, so file growth stays bounded after cleanup.
 
 
 # Initialize schema on module load when diagnostics are enabled.

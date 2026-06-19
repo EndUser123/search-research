@@ -76,6 +76,7 @@
     "EPISTEMIC_COMPARATIVE_MODE": "warn",
     "STOP_TELEMETRY": "1",
     "ANTI_DODGE_JUDGE_ENABLED": "true",
+    "DELEGATION_GATE_ENABLED": "false",
     "VERIDICAL_GATE_ENABLED": "true"
   },
   "includeCoAuthoredBy": true,
@@ -259,6 +260,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/packages/.claude-marketplace/plugins/cc-aca-observability/__lib/router.py PostToolUse",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PreCompact": [
@@ -334,6 +345,16 @@
             "type": "command",
             "command": "python P:/packages/.claude-marketplace/plugins/cc-model-router/hooks/sessionstart/model_router_init.py",
             "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/packages/.claude-marketplace/plugins/cc-aca-observability/__lib/router.py SessionStart",
+            "timeout": 60
           }
         ]
       }

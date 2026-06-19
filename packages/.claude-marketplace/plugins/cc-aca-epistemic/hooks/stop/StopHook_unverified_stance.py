@@ -270,6 +270,31 @@ def load_tool_events(session_id: str, limit: int = 100) -> list[dict[str, Any]]:
     )
 
 
+# Discourse/hypothetical exemption — falsification conditionals and meta-commentary
+# about the dialogue/contract are not verifiable factual claims and must not be gated
+# as "ungrounded confident claims". Mirrors the ANALYSIS/MECHANISM type exemptions.
+_DISCOURSE_EXEMPT = re.compile(
+    r"\b(?:would|could|might)\s+be\s+(?:wrong|incorrect|a\s+mistake|false|invalid)\s+if\b"
+    r"|\bwhat\s+would\s+(?:invalidate|falsify|change|disprove)\b"
+    r"|\bby\s+design\b"
+    r"|\bhypothetical(?:ly)?\b"
+    r"|\bthe\s+(?:contract|rubric|protocol|instruction|guideline|spec)s?\s+(?:asks?|require|say|want)"
+    r"|\bfor\s+the\s+record\b",
+    re.IGNORECASE,
+)
+
+
+def _is_discourse_or_hypothetical(claim_text: str) -> bool:
+    """Return True if the claim text is a falsification conditional or meta-discourse.
+
+    These are statements ABOUT the dialogue/process or hypotheticals (e.g.
+    "this would be wrong if ...", "the contract asks me to name ...") rather than
+    empirical claims about code, the filesystem, or system behavior. They have no
+    tool evidence to ground because there is nothing factual to verify.
+    """
+    return bool(claim_text and _DISCOURSE_EXEMPT.search(claim_text))
+
+
 def _should_block_claim(
     claim: Claim,
     verdict: Any,
@@ -301,6 +326,10 @@ def _should_block_claim(
 
     # Low confidence claims pass
     if claim.confidence < 0.7:
+        return False
+
+    # Discourse/hypothetical exemption — falsification conditionals and meta-commentary
+    if _is_discourse_or_hypothetical(claim.text):
         return False
 
     # Check verification status
@@ -370,6 +399,10 @@ def _should_block_enriched_claim(
     if claim.has_hedge:
         return False
     if claim.confidence < 0.7:
+        return False
+
+    # Discourse/hypothetical exemption — falsification conditionals and meta-commentary
+    if _is_discourse_or_hypothetical(claim.text):
         return False
 
     verdict = enriched.verdict

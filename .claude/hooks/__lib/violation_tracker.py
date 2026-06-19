@@ -87,6 +87,8 @@ class ViolationTracker:
         self.storage_path.mkdir(parents=True, exist_ok=True)
         db_path = self.storage_path / "violations.db"
         with sqlite3.connect(str(db_path)) as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA busy_timeout=5000")
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS violations (
                     violation_id TEXT PRIMARY KEY,
@@ -157,6 +159,8 @@ class ViolationTracker:
         db_path = self.storage_path / "violations.db"
         try:
             with sqlite3.connect(str(db_path)) as conn:
+                conn.execute("PRAGMA journal_mode=WAL")
+                conn.execute("PRAGMA busy_timeout=5000")
                 conn.execute(
                     """
                     INSERT INTO violations (
@@ -192,6 +196,8 @@ class ViolationTracker:
         violations = []
         try:
             with sqlite3.connect(str(db_path)) as conn:
+                conn.execute("PRAGMA journal_mode=WAL")
+                conn.execute("PRAGMA busy_timeout=5000")
                 cursor = conn.execute(
                     """
                     SELECT violation_id, severity, category, title, description,

@@ -251,6 +251,8 @@ def ingest_diagnostics_db(conn: sqlite3.Connection) -> int:
         return 0
     count = 0
     diag_conn = sqlite3.connect(str(db_path))
+    diag_conn.execute("PRAGMA journal_mode=WAL")
+    diag_conn.execute("PRAGMA busy_timeout=5000")
     try:
         cur = diag_conn.execute(
             "SELECT id, timestamp, hook_name, phase, session_id, "
@@ -1007,6 +1009,8 @@ def main():
     if args.command == "ingest":
         # Open or create rollup DB
         conn = sqlite3.connect(str(ROLLUP_DB))
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=5000")
         try:
             if args.reset:
                 conn.execute("DELETE FROM hook_events_rollup")
@@ -1027,6 +1031,8 @@ def main():
             sys.exit(1)
 
         conn = sqlite3.connect(str(ROLLUP_DB))
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=5000")
         try:
             cur = conn.execute("SELECT COUNT(*) FROM hook_events_rollup")
             total = cur.fetchone()[0]

@@ -104,17 +104,27 @@ def _normalize_terminal_id_for_registry(terminal_id: str) -> tuple[str, ...]:
 
     The session_registry keys are prefixed with the surface they came from
     (e.g. "console_<uuid>", "env_<uuid>") while $WT_SESSION passes the bare
-    UUID. Try the literal first, then strip the prefix if present.
+    UUID. Try the literal first, then strip the prefix if present, then try adding
+    each prefix (for cases where $WT_SESSION is bare but registry has prefixed ID).
     """
     if not terminal_id:
         return ()
     candidates = [terminal_id]
+
+    # Try stripping prefix if present (registry might have bare ID)
     for prefix in ("console_", "env_", "wt_", "tmux_"):
         if terminal_id.startswith(prefix):
             stripped = terminal_id[len(prefix):]
             if stripped and stripped not in candidates:
                 candidates.append(stripped)
             break
+    else:
+        # No prefix in terminal_id, try adding each prefix (registry might have prefixed ID)
+        for prefix in ("console_", "env_", "wt_", "tmux_"):
+            prefixed = f"{prefix}{terminal_id}"
+            if prefixed not in candidates:
+                candidates.append(prefixed)
+
     return tuple(candidates)
 
 

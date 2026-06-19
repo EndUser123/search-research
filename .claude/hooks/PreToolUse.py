@@ -715,6 +715,7 @@ TOOL_HOOKS = {
         "PreToolUse_import_deletion_guard.py",
         "recursive_failure_detector.py",
         "PreToolUse_settings_backup.py",
+        "PreToolUse_permission_pair_validator.py",
         # Delegation and authority gates are owned elsewhere now.
     ],
     "Edit": [
@@ -723,6 +724,7 @@ TOOL_HOOKS = {
         "PreToolUse_import_deletion_guard.py",
         "recursive_failure_detector.py",
         "PreToolUse_settings_backup.py",
+        "PreToolUse_permission_pair_validator.py",
         # Delegation and authority gates are owned elsewhere now.
     ],
     "MultiEdit": [

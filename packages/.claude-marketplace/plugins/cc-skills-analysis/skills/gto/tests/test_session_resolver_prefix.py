@@ -7,7 +7,7 @@ so registry lookups failed and GTO emitted a spurious GTO-SESSION-UNRESOLVED
 finding for every real run.
 
 Fix: _normalize_terminal_id_for_registry() returns candidate keys to try
-(literal first, then prefix-stripped). All 4 terminal_id-keyed call sites
+(literal first, then prefix-stripped or prefix-added). All 4 terminal_id-keyed call sites
 in orchestrator.py iterate over the candidates.
 """
 from __future__ import annotations
@@ -41,9 +41,16 @@ class TestNormalizeTerminalIdForRegistry:
         # Guard: be tolerant of None even though the type hint is str.
         assert _normalize_terminal_id_for_registry(None) == ()  # type: ignore[arg-type]
 
-    def test_bare_uuid_returns_single_candidate(self):
+    def test_bare_uuid_returns_candidates_with_prefixes(self):
         # The most common case: $WT_SESSION passes a bare UUID.
-        assert _normalize_terminal_id_for_registry("abc-123") == ("abc-123",)
+        # Try bare first, then each prefix (registry might have prefixed ID).
+        assert _normalize_terminal_id_for_registry("abc-123") == (
+            "abc-123",
+            "console_abc-123",
+            "env_abc-123",
+            "wt_abc-123",
+            "tmux_abc-123",
+        )
 
     def test_console_prefix_strips_to_bare(self):
         # SessionRegistry convention: console_<uuid> for console-originated sessions.
@@ -68,9 +75,16 @@ class TestNormalizeTerminalIdForRegistry:
         assert "" not in result
         assert result == ("console_",)
 
-    def test_unknown_prefix_unchanged(self):
-        # No prefix in our set -> single candidate unchanged.
-        assert _normalize_terminal_id_for_registry("foo_bar") == ("foo_bar",)
+    def test_unknown_prefix_returns_candidates_with_prefixes(self):
+        # No prefix in our set -> try bare first, then each prefix (registry might have prefixed ID).
+        # Same behavior as bare UUID case.
+        assert _normalize_terminal_id_for_registry("foo_bar") == (
+            "foo_bar",
+            "console_foo_bar",
+            "env_foo_bar",
+            "wt_foo_bar",
+            "tmux_foo_bar",
+        )
 
 
 class TestResolveSessionIdPrefixStripping:

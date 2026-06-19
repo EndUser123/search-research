@@ -54,6 +54,9 @@ TRIGGER_PHRASES = [
 # === Auto-correction injection for analysis/final-answer turns ===
 
 CORRECTION_INJECTION_MODES = ("analysis", "final-answer", "meta")
+CORRECTION_RELEVANCE_THRESHOLD = 0.7
+KNOWLEDGE_RELEVANCE_THRESHOLD = 0.7
+MAX_INJECTION_TOKENS = 500
 
 # Hybrid semantic retrieval: merges CKS.search() vector results with keyword scoring
 CKS_SEMANTIC_ENABLED = os.environ.get("CKS_CORRECTION_SEMANTIC", "false").lower() in ("1", "true", "yes")
@@ -179,7 +182,7 @@ def _query_recent_corrections(prompt: str, max_results: int = 3, hours: int = 24
         return []
 
 
-def _query_hybrid_corrections(prompt: str, max_results: int = 3, hours: int = 24) -> list[dict]:
+def _query_hybrid_corrections(prompt: str, max_results: int = 5, hours: int = 24) -> list[dict]:
     """Merge keyword and semantic correction results for hybrid retrieval.
 
     Strategy: keyword results first (high precision), then semantic-only results
@@ -198,7 +201,16 @@ def _query_hybrid_corrections(prompt: str, max_results: int = 3, hours: int = 24
     semantic_only = [r for r in semantic_results if r["id"] not in keyword_ids]
 
     merged = keyword_results + semantic_only[:max_results - len(keyword_results)]
-    return merged[:max_results]
+
+    # Add relevance scores for filtering (default to 0.5 for keyword-only results)
+    scored = []
+    for r in merged:
+        # Keyword results don't have semantic similarity, default to 0.5
+        score = r.get("similarity", 0.5)
+        scored.append((score, r))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [r for _, r in scored]
 
 
 HOOK_KNOWLEDGE_TYPES = ("knowledge", "pattern", "decision", "insight", "learning")
@@ -415,17 +427,21 @@ def cks_context_hook(context: HookContext) -> HookResult:
             if formatted:
                 parts.append(formatted)
 
-    # 2. Auto-inject recent corrections on analysis/final-answer turns
+    # 2. Auto-inject recent corrections on analysis/final-answer turns (with relevance gating)
     if _should_inject_recent_corrections(context.prompt):
-        corrections = _query_hybrid_corrections(context.prompt, max_results=3, hours=24)
+        corrections = _query_hybrid_corrections(context.prompt, max_results=5, hours=24)
+        # Filter by relevance threshold
+        corrections = [c for c in corrections if c.get("similarity", 0) >= CORRECTION_RELEVANCE_THRESHOLD]
         if corrections:
             formatted = _format_recent_corrections(corrections, context.prompt)
             if formatted:
                 parts.append(formatted)
 
-    # 3. Auto-inject relevant knowledge on analysis/final-answer turns
+    # 3. Auto-inject relevant knowledge on analysis/final-answer turns (with relevance gating)
     if _should_inject_recent_corrections(context.prompt):
-        knowledge = _query_knowledge_base(context.prompt, max_results=2)
+        knowledge = _query_knowledge_base(context.prompt, max_results=3)
+        # Filter by relevance threshold
+        knowledge = [k for k in knowledge if k.get("similarity", 0) >= KNOWLEDGE_RELEVANCE_THRESHOLD]
         if knowledge:
             formatted = _format_knowledge_context(knowledge, context.prompt)
             if formatted:
@@ -434,7 +450,12 @@ def cks_context_hook(context: HookContext) -> HookResult:
     if not parts:
         return HookResult.empty()
 
+    # Token budgeting: truncate if exceeds MAX_INJECTION_TOKENS
     combined = "\n\n".join(parts)
+    if len(combined) > MAX_INJECTION_TOKENS:
+        # Simple truncation: keep as much as possible under budget
+        combined = combined[:MAX_INJECTION_TOKENS - 50] + "\n... [truncated]"
+
     return HookResult.context_injection(combined)
 
 

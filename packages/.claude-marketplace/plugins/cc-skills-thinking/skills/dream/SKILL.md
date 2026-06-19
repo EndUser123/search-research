@@ -136,11 +136,16 @@ Return a brief summary of what was consolidated:
 | Topic files | `C:\Users\brsth\.claude\projects\P--\memory\*.md` |
 | Daily logs | `memory/logs/YYYY/MM/YYYY-MM-DD.md` |
 
-## Integration
+## Evidence-First Principles
 
-**SessionStart hook** (`SessionStart_memory_monitor.py`) warns when MEMORY.md > 180 lines. Consider running `/dream` when you see this warning.
+### E1 — Evidence before claims
+Before claiming a memory is absent, unchanged, or non-existent — search the memory directory and verify with Glob/Read tools first. Claims of absence are only valid after confirmed file read failures.
 
-**Related skills:**
-- `/reflect` — Captures session learnings to CKS
-- `/learn` — Novelty-weighted lesson capture
-- `/gto` — Gap analysis for projects
+### E4 — Investigate before asking
+Do NOT answer memory questions without reading memory files first. Do not ask the user for memory content you can obtain yourself via Read or Glob.
+
+### E5 — Anti-lazy escape hatch
+Prohibited:
+- "I assume", "I think", "probably" without reading memory files
+- Claiming a memory doesn't exist without confirmed Glob/Read failure
+- Skipping memory file reads because consolidation seems obvious

@@ -20,7 +20,7 @@ HOOKS_DIR = PLUGIN_ROOT / "hooks"
 PHASE_DIR = {'PostToolUse': 'posttool', 'SessionStart': 'sessionstart'}
 
 POSTTOOLUSE_HOOKS = ['PostToolUse_router.py', 'PostToolUse_artifact_scraper.py', 'cjk_drift_detector.py']
-SESSIONSTART_HOOKS = ['SessionStart_cc_health.py']
+SESSIONSTART_HOOKS = ['SessionStart_cc_health.py', 'SessionStart_observability_rollup.py']
 
 DISPATCH = {
     "PostToolUse": POSTTOOLUSE_HOOKS,

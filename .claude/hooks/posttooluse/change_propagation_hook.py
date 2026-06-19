@@ -5,6 +5,8 @@ from __future__ import annotations
 
 Absorbs the standalone subprocess into the PostToolUse router.
 Detects structural file changes and tracks verification requirements.
+
+State is terminal-scoped via CSF_STATE_DIR env var.
 """
 
 import json
@@ -16,20 +18,10 @@ from typing import Any
 
 from posttooluse.base import PostToolUseHook
 
-# Tools that modify files
-_MODIFY_TOOLS = {"write_file", "str_replace_editor", "edit_file", "Write", "patch"}
-
-_STRUCTURAL_PATTERNS = [
-    (r"(?s)^-\s*(def|class|async def)\s+(\w+)", "function_removal"),
-    (r"(?s)removed?\s+(function|class|method)\s+['\"]?(\w+)", "function_removal"),
-    (r"^-\s*(from|import)\s+", "import_removal"),
-    (r"removed?\s+import", "import_removal"),
-    (r"\brm\s+(-rf?\s+)?['\"]?([^\s'\"]+\.py)", "file_deletion"),
-    (r"\bmv\s+['\"]?([^\s'\"]+\.py)", "file_rename"),
-    (r"git\s+rm", "file_deletion"),
-    (r"deleted?\s+\d+\s+lines?", "large_deletion"),
-    (r"removed?\s+\d+\s+lines?", "large_deletion"),
-]
+# Tools that modify files. Must include Edit/MultiEdit so the Edit-diff branch
+# of _detect_change is actually reachable (the class tool_matcher already routes
+# them here; this gate previously excluded them, making Edit detection dead).
+_MODIFY_TOOLS = {"write_file", "str_replace_editor", "edit_file", "Write", "Edit", "MultiEdit", "patch"}
 
 _VERIFICATION_REQUIREMENTS = {
     "function_removal": ["execution_test"],
@@ -39,10 +31,16 @@ _VERIFICATION_REQUIREMENTS = {
     "large_deletion": ["execution_test"],
 }
 
-_STATE_FILE = (
-    Path(os.environ.get("CSF_STATE_DIR", "P:/.claude/state"))
-    / "propagation_state.json"
-)
+def _get_state_file() -> Path:
+    """Get terminal-scoped state file path."""
+    if "CSF_STATE_DIR" in os.environ:
+        return Path(os.environ["CSF_STATE_DIR"]) / "propagation_state.json"
+
+    # Terminal-scoped default: .claude/state/{terminal_id}/propagation_state.json
+    terminal_id = os.environ.get("TERMINAL_ID", "unknown")
+    return Path("P:/.claude/state") / terminal_id / "propagation_state.json"
+
+_STATE_FILE = _get_state_file()
 
 
 def _load_state() -> dict:
@@ -137,28 +135,47 @@ class ChangePropagationHook(PostToolUseHook):
     # -- private helpers --
 
     def _detect_change(self, tool_name: str, tool_input: dict, output: str) -> dict | None:
+        """Detect a structural change from the RIGHT field per tool.
+
+        Source-aware by design: shell deletions come from the Bash *command*,
+        symbol/line removals from the Edit *diff* (old_string vs new_string).
+        File content and tool output are NEVER scanned as operations — that
+        conflates string literals / test fixtures with real changes (the
+        historical false-positive class, e.g. a test body containing "rm x.py").
+        A Write creates new content; the prior file state is unknown, so no
+        deletion is inferred from it.
+        """
+        from structural_change import deletions_in_command, lines_removed, removed_symbols
+
         filepath = tool_input.get("path") or tool_input.get("file_path")
-        combined = f"{json.dumps(tool_input)} {output}"
-        for pattern, change_type in _STRUCTURAL_PATTERNS:
-            m = re.search(pattern, combined, re.MULTILINE)
-            if m:
-                affected = m.group(2) if len(m.groups()) >= 2 else m.group(1)
-                return {
-                    "type": change_type,
-                    "affected": affected,
-                    "filepath": filepath,
-                    "timestamp": datetime.now().timestamp(),
-                }
-        # Large deletions heuristic
-        if output:
-            dels = len(re.findall(r"^-[^-]", output, re.MULTILINE))
-            if dels > 10:
-                return {
-                    "type": "large_deletion",
-                    "affected": f"{dels} lines",
-                    "filepath": filepath,
-                    "timestamp": datetime.now().timestamp(),
-                }
+        now = datetime.now().timestamp()
+
+        if tool_name in {"Bash", "bash"}:
+            paths = deletions_in_command(tool_input.get("command", ""))
+            if paths:
+                return {"type": "file_deletion", "affected": paths[0],
+                        "filepath": filepath, "timestamp": now}
+            return None
+
+        if tool_name in {"Edit", "MultiEdit", "str_replace_editor", "edit_file", "patch"}:
+            edits = tool_input.get("edits")
+            if isinstance(edits, list):  # MultiEdit
+                old = "\n".join(str(e.get("old_string", "")) for e in edits if isinstance(e, dict))
+                new = "\n".join(str(e.get("new_string", "")) for e in edits if isinstance(e, dict))
+            else:
+                old = str(tool_input.get("old_string", "") or "")
+                new = str(tool_input.get("new_string", "") or "")
+            syms = removed_symbols(old, new)
+            if syms:
+                return {"type": "function_removal", "affected": syms[0][1],
+                        "filepath": filepath, "timestamp": now}
+            removed = lines_removed(old, new)
+            if removed > 10:
+                return {"type": "large_deletion", "affected": f"{removed} lines",
+                        "filepath": filepath, "timestamp": now}
+            return None
+
+        # Write (new content; prior state unknown) and everything else: no deletion.
         return None
 
     def _record_verification(self, tool_name: str, tool_input: dict, state: dict) -> None:
