@@ -16,16 +16,16 @@ class Config:
 
     # KG Backend
     DEFAULT_KG_PATH: str = os.getenv(
-        "SEARCH_RESEARCH_KG_PATH", "P:\\\\\\projects/kg_builder/knowledge_graph_output"
+        "SEARCH_RESEARCH_KG_PATH", "P:/projects/kg_builder/knowledge_graph_output"
     )
 
     # CHS (Chat History) paths
-    CHS_DB_PATH: str = os.getenv("SEARCH_RESEARCH_CHS_DB_PATH", "P:\\\\\\__csf/data/chat_history.db")
+    CHS_DB_PATH: str = os.getenv("SEARCH_RESEARCH_CHS_DB_PATH", "P:/__csf/data/chat_history.db")
     CHS_INDEX_PATH: str = os.getenv(
-        "SEARCH_RESEARCH_CHS_INDEX_PATH", "P:\\\\\\__csf/data/chat_history_faiss_424k/faiss_index.bin"
+        "SEARCH_RESEARCH_CHS_INDEX_PATH", "P:/__csf/data/chat_history_faiss_424k/faiss_index.bin"
     )
     CHS_STATE_PATH: str = os.getenv(
-        "SEARCH_RESEARCH_CHS_STATE_PATH", "P:\\\\\\__csf/data/chs_index_state.json"
+        "SEARCH_RESEARCH_CHS_STATE_PATH", "P:/__csf/data/chs_index_state.json"
     )
 
     # CKS (Constitutional Knowledge System) path
@@ -40,12 +40,12 @@ class Config:
 
     # Obsidian vault path for QMD wiki search
     OBSIDIAN_VAULT_PATH: str = os.getenv(
-        "SEARCH_RESEARCH_OBSIDIAN_VAULT_PATH", "P:\\\\\\wiki"
+        "SEARCH_RESEARCH_OBSIDIAN_VAULT_PATH", "P:/wiki"
     )
 
     # Skills and commands directories
-    SKILLS_DIR: str = os.getenv("SEARCH_RESEARCH_SKILLS_DIR", "P:\\\\\\.claude/skills")
-    COMMANDS_DIR: str = os.getenv("SEARCH_RESEARCH_COMMANDS_DIR", "P:\\\\\\.claude/commands")
+    SKILLS_DIR: str = os.getenv("SEARCH_RESEARCH_SKILLS_DIR", "P:/.claude/skills")
+    COMMANDS_DIR: str = os.getenv("SEARCH_RESEARCH_COMMANDS_DIR", "P:/.claude/commands")
 
     # Web search providers (comma-separated list or environment variable)
     # Available providers: tavily, serper, exa, bing, brave, google, kagi, mojeek, you
@@ -58,8 +58,8 @@ class Config:
 
     # Environment files
     ENV_FILES: list[str] = [
-        os.getenv("SEARCH_RESEARCH_ENV_FILE", "P:\\\\\\.env"),
-        os.getenv("SEARCH_RESEARCH_PROJECT_ENV", "P:\\\\\\__csf/.env"),
+        os.getenv("SEARCH_RESEARCH_ENV_FILE", r"P:\.env"),
+        os.getenv("SEARCH_RESEARCH_PROJECT_ENV", r"P:\__csf\.env"),
     ]
 
     @property
@@ -126,127 +126,111 @@ from dataclasses import dataclass, field
 
 @dataclass
 class ResearchConfig:
-    """Configuration for ResearchEngine.
+    """Configuration for research operations.
 
-    Attributes:
-        default_providers: List of default search provider names.
-        fallback_providers: List of fallback provider names when defaults fail.
-        hyde_enabled: Whether Hypothetical Document Embeddings is enabled.
-        hyde_mode: The HyDE mode to use (e.g., "confidence", "multi-gen").
-        fetch_urls_enabled: Whether to fetch full content from result URLs.
-        max_urls_to_fetch: Maximum number of URLs to fetch content from.
-        multi_hyde_enabled: Whether multi-HyDE (multiple perspectives) is enabled.
-        multi_hyde_perspectives: List of perspectives for multi-HyDE.
-        chapters_enabled: Whether chapter-based research is enabled.
-        chapters_num: Number of chapters to generate.
-        chapters_detail_level: Detail level for chapters (low, medium, high).
-        query_expansion_enabled: Whether query expansion is enabled.
-        query_expansion_max_variants: Maximum number of query variants to generate.
-        auto_learning_enabled: Whether auto-learning from results is enabled.
-        enable_ensemble: Whether ensemble methods are enabled.
-        ensemble_method: The ensemble method to use.
-        enable_mmr_reranking: Whether MMR (Maximal Marginal Relevance) reranking is enabled.
-        mmr_lambda: The lambda parameter for MMR (0=relevance, 1=diversity).
-        temporal_boosting: Whether temporal boosting is enabled.
-        temporal_half_life_days: Half-life in days for temporal decay.
-        enable_rlm: Whether RLM (Recursive Language Model) backend is enabled.
-        enable_persona: Whether Persona Memory backend is enabled.
-        enable_kg: Whether Knowledge Graph backend is enabled.
-        using_default_providers: Whether using default websearch/webfetch providers (tavily/serper) instead of claude.
+    Provides environment variable overrides and sensible defaults
+    for research engine parameters.
     """
 
-    default_providers: list[str] = field(default_factory=lambda: ["claude", "tavily", "serper"])
-    fallback_providers: list[str] = field(default_factory=lambda: ["glm"])
-    hyde_enabled: bool = True
-    hyde_mode: str = "confidence"
-    fetch_urls_enabled: bool = True
-    max_urls_to_fetch: int = 5
-    multi_hyde_enabled: bool = False
-    multi_hyde_perspectives: list[str] | None = None
-    chapters_enabled: bool = False
-    chapters_num: int = 3
-    chapters_detail_level: str = "medium"
-    query_expansion_enabled: bool = True
-    query_expansion_max_variants: int = 5
-    auto_learning_enabled: bool = True
-    enable_ensemble: bool = False
-    ensemble_method: str = "reciprocal_rank_fusion"
-    enable_mmr_reranking: bool = True
-    mmr_lambda: float = 0.5
-    temporal_boosting: bool = False
-    temporal_half_life_days: int = 180
-    enable_rlm: bool = False
-    enable_persona: bool = False
-    enable_kg: bool = False
+    # Output paths
+    OUTPUT_DIR: str = "P:/__csf/research_output"
+    RESULT_FILE: str = "result.md"
+    JSON_FILE: str = "result.json"
 
-    # Check if using default websearch/webfetch providers
-    using_default_providers: bool = False
+    # Search parameters
+    MAX_RESULTS: int = 10
+    MAX_FETCH_URLS: int = 5
+    TIMEOUT: int = 30
 
-    # Two-phase research with novelty-based saturation
-    enable_two_phase: bool = False
-    budget: float = 1.0
-    max_iterations: int = 5
-    novelty_threshold: float = 0.05
-    results_per_iteration: int = 20
+    # Provider configuration
+    PRIMARY_PROVIDER: str = "tavily"
+    FALLBACK_PROVIDERS: list[str] = field(default_factory=lambda: ["exa", "serpapi"])
 
-    def __post_init__(self):
-        """Handle None and string values for multi_hyde_perspectives."""
-        if self.multi_hyde_perspectives is None:
-            self.multi_hyde_perspectives = []
-        elif isinstance(self.multi_hyde_perspectives, str):
-            # Handle both empty string and comma-separated values
-            if self.multi_hyde_perspectives == "":
-                self.multi_hyde_perspectives = []
-            else:
-                self.multi_hyde_perspectives = self.multi_hyde_perspectives.split(",")
+    # Saturation detection
+    ENABLE_SATURATION: bool = True
+    SIMILARITY_THRESHOLD: float = 0.85
+    MIN_RESULTS_FOR_SATURATION: int = 5
 
-    def validate(self) -> list[str]:
-        """Validate configuration and return list of issues.
+    # HyDE (Hypothetical Document Embeddings)
+    ENABLE_HYDE: bool = True
+    HYDE_QUERIES_PER_RESULT: int = 3
+    HYDE_MAX_QUERIES: int = 15
+
+    # Rate limiting
+    MAX_REQUESTS_PER_MINUTE: int = 60
+
+    # Cache configuration
+    ENABLE_CACHE: bool = True
+    CACHE_TTL_HOURS: int = 24
+
+    # Logging
+    LOG_LEVEL: str = "INFO"
+
+    @classmethod
+    def from_env(cls) -> "ResearchConfig":
+        """Create ResearchConfig from environment variables.
 
         Returns:
-            A list of validation issue strings. Empty list indicates valid config.
+            ResearchConfig with environment variable overrides applied
         """
-        issues: list[str] = []
+        return cls(
+            OUTPUT_DIR=os.getenv("RESEARCH_OUTPUT_DIR", cls.OUTPUT_DIR),
+            RESULT_FILE=os.getenv("RESEARCH_RESULT_FILE", cls.RESULT_FILE),
+            JSON_FILE=os.getenv("RESEARCH_JSON_FILE", cls.JSON_FILE),
+            MAX_RESULTS=int(os.getenv("RESEARCH_MAX_RESULTS", str(cls.MAX_RESULTS))),
+            MAX_FETCH_URLS=int(os.getenv("RESEARCH_MAX_FETCH_URLS", str(cls.MAX_FETCH_URLS))),
+            TIMEOUT=int(os.getenv("RESEARCH_TIMEOUT", str(cls.TIMEOUT))),
+            PRIMARY_PROVIDER=os.getenv("RESEARCH_PRIMARY_PROVIDER", cls.PRIMARY_PROVIDER),
+            ENABLE_SATURATION=os.getenv("RESEARCH_ENABLE_SATURATION", str(cls.ENABLE_SATURATION)) == "true",
+            SIMILARITY_THRESHOLD=float(os.getenv("RESEARCH_SIMILARITY_THRESHOLD", str(cls.SIMILARITY_THRESHOLD))),
+            MIN_RESULTS_FOR_SATURATION=int(os.getenv("RESEARCH_MIN_RESULTS_FOR_SATURATION", str(cls.MIN_RESULTS_FOR_SATURATION))),
+            ENABLE_HYDE=os.getenv("RESEARCH_ENABLE_HYDE", str(cls.ENABLE_HYDE)) == "true",
+            HYDE_QUERIES_PER_RESULT=int(os.getenv("RESEARCH_HYDE_QUERIES_PER_RESULT", str(cls.HYDE_QUERIES_PER_RESULT))),
+            HYDE_MAX_QUERIES=int(os.getenv("RESEARCH_HYDE_MAX_QUERIES", str(cls.HYDE_MAX_QUERIES))),
+            MAX_REQUESTS_PER_MINUTE=int(os.getenv("RESEARCH_MAX_REQUESTS_PER_MINUTE", str(cls.MAX_REQUESTS_PER_MINUTE))),
+            ENABLE_CACHE=os.getenv("RESEARCH_ENABLE_CACHE", str(cls.ENABLE_CACHE)) == "true",
+            CACHE_TTL_HOURS=int(os.getenv("RESEARCH_CACHE_TTL_HOURS", str(cls.CACHE_TTL_HOURS))),
+            LOG_LEVEL=os.getenv("RESEARCH_LOG_LEVEL", cls.LOG_LEVEL),
+        )
 
-        # Validate provider lists are non-empty
-        if not self.default_providers:
-            issues.append("default_providers cannot be empty")
-        if not self.fallback_providers:
-            issues.append("fallback_providers cannot be empty")
+    def validate(self) -> list[str]:
+        """Validate configuration and return list of warnings.
 
-        # Validate hyde_mode
-        valid_hyde_modes = {"confidence", "multi-gen"}
-        if self.hyde_mode not in valid_hyde_modes:
-            issues.append(f"hyde_mode must be one of {valid_hyde_modes}, got '{self.hyde_mode}'")
+        Returns:
+            List of validation warnings (empty if valid)
+        """
+        warnings = []
 
-        # Validate numeric bounds
-        if self.budget < 0:
-            issues.append(f"budget must be >= 0, got {self.budget}")
-        if self.max_iterations <= 0:
-            issues.append(f"max_iterations must be > 0, got {self.max_iterations}")
-        if not 0 < self.novelty_threshold <= 1:
-            issues.append(f"novelty_threshold must be in (0, 1], got {self.novelty_threshold}")
-        if self.results_per_iteration <= 0:
-            issues.append(f"results_per_iteration must be > 0, got {self.results_per_iteration}")
-        if not 0 <= self.mmr_lambda <= 1:
-            issues.append(f"mmr_lambda must be in [0, 1], got {self.mmr_lambda}")
-        if self.max_urls_to_fetch < 0:
-            issues.append(f"max_urls_to_fetch must be >= 0, got {self.max_urls_to_fetch}")
+        if self.MAX_RESULTS < 1:
+            warnings.append("MAX_RESULTS must be at least 1")
 
-        # Validate enum-like fields
-        valid_detail_levels = {"low", "medium", "high"}
-        if self.chapters_detail_level not in valid_detail_levels:
-            issues.append(
-                f"chapters_detail_level must be one of {valid_detail_levels}, "
-                f"got '{self.chapters_detail_level}'"
-            )
+        if self.MAX_FETCH_URLS < 1:
+            warnings.append("MAX_FETCH_URLS must be at least 1")
 
-        # Validate ensemble_method
-        valid_ensemble_methods = {"reciprocal_rank_fusion", "weighted_average"}
-        if self.ensemble_method not in valid_ensemble_methods:
-            issues.append(
-                f"ensemble_method must be one of {valid_ensemble_methods}, "
-                f"got '{self.ensemble_method}'"
-            )
+        if self.SIMILARITY_THRESHOLD < 0 or self.SIMILARITY_THRESHOLD > 1:
+            warnings.append("SIMILARITY_THRESHOLD must be between 0 and 1")
 
-        return issues
+        if self.MIN_RESULTS_FOR_SATURATION < 1:
+            warnings.append("MIN_RESULTS_FOR_SATURATION must be at least 1")
+
+        if self.HYDE_QUERIES_PER_RESULT < 1:
+            warnings.append("HYDE_QUERIES_PER_RESULT must be at least 1")
+
+        if self.HYDE_MAX_QUERIES < self.HYDE_QUERIES_PER_RESULT:
+            warnings.append("HYDE_MAX_QUERIES must be >= HYDE_QUERIES_PER_RESULT")
+
+        if self.MAX_REQUESTS_PER_MINUTE < 1:
+            warnings.append("MAX_REQUESTS_PER_MINUTE must be at least 1")
+
+        if self.CACHE_TTL_HOURS < 0:
+            warnings.append("CACHE_TTL_HOURS must be non-negative")
+
+        if self.PRIMARY_PROVIDER not in self.FALLBACK_PROVIDERS + [self.PRIMARY_PROVIDER]:
+            warnings.append(f"PRIMARY_PROVIDER '{self.PRIMARY_PROVIDER}' not in known providers")
+
+        return warnings
+
+
+# Export research config for backward compatibility
+research_config = ResearchConfig.from_env()
+__all__.extend(["ResearchConfig", "research_config"])

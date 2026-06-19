@@ -83,7 +83,7 @@ logger = logging.getLogger(__name__)
 try:
     from dotenv import load_dotenv
 
-    load_dotenv(config.ENV_PATHS[0], override=False)
+    load_dotenv(config.ENV_PATHS[0], override=True)
     load_dotenv(config.ENV_PATHS[1], override=True)
 except ImportError:
     pass
