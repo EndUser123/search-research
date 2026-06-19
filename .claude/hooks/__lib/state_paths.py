@@ -28,8 +28,22 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-# State directory structure
-STATE_DIR = Path(os.environ.get("PROJECT_ROOT", ".")) / ".claude" / "state"
+# State directory structure.
+#
+# Root resolution is cwd-INDEPENDENT by design. PROJECT_ROOT (if set) wins so
+# tests can redirect to a tmp dir; otherwise we derive the project root from this
+# module's own location (<root>/.claude/hooks/__lib/state_paths.py → parents[3])
+# rather than the prior `"."` fallback. A cwd-relative root silently scattered
+# state across worktrees/odd cwds and was a latent multi-terminal isolation bug.
+def _resolve_project_root() -> Path:
+    env_root = os.environ.get("PROJECT_ROOT")
+    if env_root:
+        return Path(env_root)
+    # state_paths.py lives at <root>/.claude/hooks/__lib/state_paths.py
+    return Path(__file__).resolve().parents[3]
+
+
+STATE_DIR = _resolve_project_root() / ".claude" / "state"
 TERMINALS_DIR = STATE_DIR / "terminals"
 SESSIONS_DIR = STATE_DIR / "sessions"
 SHARED_DIR = STATE_DIR / "shared"

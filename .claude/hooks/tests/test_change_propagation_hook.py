@@ -61,15 +61,26 @@ def test_lines_removed():
 
 @pytest.fixture
 def hook(tmp_path, monkeypatch):
-    monkeypatch.setenv("CSF_STATE_DIR", str(tmp_path))
+    # State now lives under the canonical contract at
+    # {PROJECT_ROOT}/.claude/state/sessions/{session_id}/. Redirect the contract
+    # root to tmp via PROJECT_ROOT and reload the module the hook actually imports
+    # (__lib.state_paths) so STATE_DIR is recomputed under tmp.
+    monkeypatch.setenv("PROJECT_ROOT", str(tmp_path))
+    import __lib.state_paths as sp
+    importlib.reload(sp)
+    sp.clear_path_cache()
     sys.modules.pop("posttooluse.change_propagation_hook", None)
     mod = importlib.import_module("posttooluse.change_propagation_hook")
-    mod = importlib.reload(mod)  # re-run module top-level so _STATE_FILE uses tmp
+    mod = importlib.reload(mod)
     return mod.ChangePropagationHook(), mod
 
 
-def _pending(mod):
-    return mod._load_state().get("pending_verifications", [])
+def _pending(mod, session_id: str = "unknown"):
+    """Read pending verifications for a session (default 'unknown' = direct
+    process() calls that bypass run())."""
+    h = mod.ChangePropagationHook()
+    h._session_id = session_id
+    return h._load_state().get("pending_verifications", [])
 
 
 def test_write_with_deletion_string_in_body_creates_no_pending(hook):
@@ -106,3 +117,29 @@ def test_edit_adding_code_creates_no_pending(hook):
     h, mod = hook
     h.process("Edit", {"file_path": "m.py", "old_string": "x = 1", "new_string": "x = 1\ndef bar(): pass"}, {})
     assert _pending(mod) == []
+
+
+# ── ISOLATION / STALENESS REGRESSION ─────────────────────────────────────────
+# These pin the fix for the bug that bit twice: state was written to ONE shared
+# file (CSF_STATE_DIR), so concurrent terminals clobbered each other and a prior
+# session's records bled in as "stale false positives". State is now scoped to
+# .claude/state/sessions/{session_id}/, driven by run() resolving the session id.
+
+def test_two_sessions_are_isolated(hook):
+    """A deletion recorded in session A must not appear in session B."""
+    h, mod = hook
+    h.run({"tool_name": "Bash", "tool_input": {"command": "rm a_only.py"},
+           "session_id": "sessionA"})
+    assert _pending(mod, "sessionA") and _pending(mod, "sessionA")[0]["affected"] == "a_only.py"
+    # A different concurrent session sees nothing from session A.
+    assert _pending(mod, "sessionB") == []
+
+
+def test_state_path_is_session_scoped_not_shared_root(hook):
+    """The state file lives under sessions/{id}/, never at the shared state root."""
+    h, mod = hook
+    h._session_id = "sessionX"
+    p = h._state_path()
+    assert p.parent.name == "sessionX"
+    assert p.parent.parent.name == "sessions"
+    assert p.name == "propagation_state.json"

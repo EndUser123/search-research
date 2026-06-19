@@ -6,11 +6,18 @@ from __future__ import annotations
 Absorbs the standalone subprocess into the PostToolUse router.
 Detects structural file changes and tracks verification requirements.
 
-State is terminal-scoped via CSF_STATE_DIR env var.
+State is SESSION-scoped via the canonical state contract (__lib/state_paths.py),
+i.e. .claude/state/sessions/{session_id}/propagation_state.json. Session scoping
+gives both properties this hook needs:
+  - multi-terminal isolation: concurrent terminals are distinct CC sessions, so
+    they never share a state file (the old CSF_STATE_DIR path resolved to ONE
+    shared file across all terminals);
+  - staleness immunity: a new session starts from a fresh directory, so records
+    from a prior session (or a prior detector version) can never bleed in — the
+    "stale false positive" class that bit this hook twice.
 """
 
 import json
-import os
 import re
 from datetime import datetime
 from pathlib import Path
@@ -31,48 +38,25 @@ _VERIFICATION_REQUIREMENTS = {
     "large_deletion": ["execution_test"],
 }
 
-def _get_state_file() -> Path:
-    """Get terminal-scoped state file path."""
-    if "CSF_STATE_DIR" in os.environ:
-        return Path(os.environ["CSF_STATE_DIR"]) / "propagation_state.json"
 
-    # Terminal-scoped default: .claude/state/{terminal_id}/propagation_state.json
-    terminal_id = os.environ.get("TERMINAL_ID", "unknown")
-    return Path("P:/.claude/state") / terminal_id / "propagation_state.json"
+def _resolve_session_id(data: dict) -> str:
+    """Resolve the CC session id from a PostToolUse payload.
 
-_STATE_FILE = _get_state_file()
-
-
-def _load_state() -> dict:
-    if _STATE_FILE.exists():
-        try:
-            with open(_STATE_FILE) as f:
-                state = json.load(f)
-            if state.get("pending_verifications"):
-                cutoff = datetime.now().timestamp() - 3600
-                state["pending_verifications"] = [
-                    p for p in state["pending_verifications"]
-                    if p.get("timestamp", 0) > cutoff
-                ]
-            return state
-        except (json.JSONDecodeError, KeyError, OSError, PermissionError):
-            pass
-    return {
-        "pending_verifications": [],
-        "completed_verifications": [],
-        "structural_changes": [],
-        "session_start": datetime.now().timestamp(),
-    }
-
-
-def _save_state(state: dict) -> None:
-    try:
-        _STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(_STATE_FILE, "w") as f:
-            json.dump(state, f, indent=2)
-    except (OSError, PermissionError):
-        # Fail open: state persistence issues should not surface as hook errors.
-        return
+    Mirrors PostToolUse.py's resolution (nested `session.*` then flat keys) so
+    the state file is scoped to the same session the rest of the router sees.
+    Falls back to "unknown" — never to a shared global path.
+    """
+    session_obj = data.get("session")
+    if isinstance(session_obj, dict):
+        for key in ("id", "session_id", "sessionId"):
+            value = session_obj.get(key)
+            if value:
+                return str(value)
+    for key in ("session_id", "sessionId"):
+        value = data.get(key)
+        if value:
+            return str(value)
+    return "unknown"
 
 
 class ChangePropagationHook(PostToolUseHook):
@@ -82,6 +66,52 @@ class ChangePropagationHook(PostToolUseHook):
     env_var = "CSF_CHANGE_PROPAGATION"
     default_enabled = True
 
+    # Default for direct process() calls (e.g. unit tests) that bypass run().
+    _session_id: str = "unknown"
+
+    def run(self, data: dict[str, Any]) -> dict[str, Any]:
+        # Capture the session id before the base class strips data down to
+        # tool_name/tool_input/tool_response for process().
+        self._session_id = _resolve_session_id(data if isinstance(data, dict) else {})
+        return super().run(data)
+
+    def _state_path(self) -> Path:
+        from __lib.state_paths import get_session_state_path
+
+        return get_session_state_path(self._session_id, "propagation_state.json")
+
+    def _load_state(self) -> dict:
+        state_file = self._state_path()
+        if state_file.exists():
+            try:
+                with open(state_file) as f:
+                    state = json.load(f)
+                if state.get("pending_verifications"):
+                    cutoff = datetime.now().timestamp() - 3600
+                    state["pending_verifications"] = [
+                        p for p in state["pending_verifications"]
+                        if p.get("timestamp", 0) > cutoff
+                    ]
+                return state
+            except (json.JSONDecodeError, KeyError, OSError, PermissionError):
+                pass
+        return {
+            "pending_verifications": [],
+            "completed_verifications": [],
+            "structural_changes": [],
+            "session_start": datetime.now().timestamp(),
+        }
+
+    def _save_state(self, state: dict) -> None:
+        try:
+            state_file = self._state_path()
+            state_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(state_file, "w") as f:
+                json.dump(state, f, indent=2)
+        except (OSError, PermissionError):
+            # Fail open: state persistence issues should not surface as hook errors.
+            return
+
     def process(
         self,
         tool_name: str,
@@ -89,7 +119,7 @@ class ChangePropagationHook(PostToolUseHook):
         tool_response: dict[str, Any],  # noqa: ARG002 — not used; detection is source-only
     ) -> dict[str, Any]:
         try:
-            state = _load_state()
+            state = self._load_state()
             # Check if this satisfies pending verifications
             self._record_verification(tool_name, tool_input, state)
 
@@ -102,10 +132,10 @@ class ChangePropagationHook(PostToolUseHook):
                         {**change, "remaining": list(reqs), "original_requirements": list(reqs)}
                     )
                     state["structural_changes"].append(change)
-                    _save_state(state)
+                    self._save_state(state)
                     return {"passed": True, "injection": self._format_warning(change, reqs)}
 
-            _save_state(state)
+            self._save_state(state)
 
             # Report outstanding verifications
             outstanding = [
