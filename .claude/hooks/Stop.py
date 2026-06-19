@@ -441,7 +441,13 @@ def _run_intent_artifact_alignment(data: dict) -> dict | None:
     from intent_artifact_alignment import check_alignment
 
     prompt = data.get("user_prompt") or data.get("prompt") or ""
-    tool_events = data.get("tool_events", [])
+    # Real Stop payloads carry no tool_events; fall back to transcript-derived
+    # events so this gate can see what was actually modified (else every target
+    # reads as "missed" → false misalignment). See memory stop-payload-no-tool-events.
+    tool_events = data.get("tool_events")
+    if not tool_events:
+        from __lib.turn_tool_events import build_turn_tool_events
+        tool_events = build_turn_tool_events(data.get("transcript_path", ""))
     response = data.get("response", "")
     return check_alignment(prompt, tool_events, response)
 
@@ -1158,7 +1164,13 @@ def _run_anti_sycophancy_quality(data: dict) -> dict | None:
             "true",
             "yes",
         ):
-            tool_events = data.get("tool_events", [])
+            # Real Stop payloads carry no tool_events; fall back to transcript so
+            # the comparison-evidence exemption can apply (else structural claims
+            # backed by real comparison work are falsely flagged).
+            tool_events = data.get("tool_events")
+            if not tool_events:
+                from __lib.turn_tool_events import build_turn_tool_events
+                tool_events = build_turn_tool_events(data.get("transcript_path", ""))
             overconfidence = detect_all_overconfidence(response, tool_events=tool_events)
             if overconfidence:
                 block_matches = [m for m in overconfidence if m.severity == "block"]

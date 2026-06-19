@@ -237,9 +237,16 @@ def _has_comparison_evidence(
                 scope_roots = _infer_enum_scope_roots(command)
                 enumeration_scope_roots.update(scope_roots)
 
-        # Read: track distinct files (normalize preserving sibling context)
+        # Read: track distinct files (normalize preserving sibling context).
+        # `command` is the command string for Bash; the Read path lives in the
+        # event's file_path (flat schema) or input.file_path (nested). Fall back
+        # to output_excerpt only when no path is present.
         if tool_name == "Read":
-            path = command.get("file_path") if isinstance(command, dict) else ""
+            inp = event.get("input")
+            path = (
+                event.get("file_path", "")
+                or (inp.get("file_path", "") if isinstance(inp, dict) else "")
+            )
             if not path and output_excerpt:
                 path = output_excerpt
             if path:
