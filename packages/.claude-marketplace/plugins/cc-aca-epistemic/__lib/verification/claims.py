@@ -52,6 +52,16 @@ _FOLDER_CREATE_PATTERNS = [
     (re.compile(r"\bmade\s+an?\s+(\S*\.\w+)", re.IGNORECASE), "folder_path"),
 ]
 
+# PONYTAIL_TAG_PATTERNS — audit tool findings with specific verification requirements
+# Map Ponytail tags to ClaimType values
+_PONYTAIL_TAG_PATTERNS = [
+    (re.compile(r"\bdelete:\s+(.+?)(?=\n|$)", re.IGNORECASE), "delete"),
+    (re.compile(r"\byagni:\s+(.+?)(?=\n|$)", re.IGNORECASE), "yagni"),
+    (re.compile(r"\bstdlib:\s+(.+?)(?=\n|$)", re.IGNORECASE), "stdlib"),
+    (re.compile(r"\bnative:\s+(.+?)(?=\n|$)", re.IGNORECASE), "native"),
+    (re.compile(r"\bshrink:\s+(.+?)(?=\n|$)", re.IGNORECASE), "shrink"),
+]
+
 
 # ASCII art strip: remove box-drawing characters before pattern matching.
 # These characters appear in diagrams and cause spurious claim detection.
@@ -97,7 +107,7 @@ def _detect_outcome_attribution_claims(response_text: str) -> List[Claim]:
     for sentence in sentences:
         if len(sentence.strip()) < 10:
             continue
-        for pattern, pattern_name in _OUTCOME_ATTRIBUTION_PATTERNS:
+        for pattern, _pattern_name in _OUTCOME_ATTRIBUTION_PATTERNS:
             match = pattern.search(sentence)
             if match:
                 # Extract the actor (what followed "by")
@@ -133,7 +143,7 @@ def _detect_folder_create_claims(response_text: str) -> List[Claim]:
     for sentence in sentences:
         if len(sentence.strip()) < 10:
             continue
-        for pattern, pattern_name in _FOLDER_CREATE_PATTERNS:
+        for pattern, _pattern_name in _FOLDER_CREATE_PATTERNS:
             match = pattern.search(sentence)
             if match:
                 folder_path = match.group(1)
@@ -148,6 +158,50 @@ def _detect_folder_create_claims(response_text: str) -> List[Claim]:
                 )
                 claims.append(claim)
                 break
+    return claims
+
+
+def _detect_ponytail_claims(response_text: str) -> List[Claim]:
+    """Detect Ponytail audit findings with specific verification requirements.
+
+    Ponytail tags map to ClaimType enum values and require specialized
+    verification logic (consumer counts, stdlib checks, platform features).
+
+    delete: → USAGE_VERIFICATION → consumer-count check
+    yagni: → USAGE_VERIFICATION → single-consumer check
+    stdlib: → COMPARISON_VERIFICATION → stdlib equivalence (advisory)
+    native: → COMPARISON_VERIFICATION → platform-native equivalence (advisory)
+    shrink: → TRANSFORMATION_VERIFICATION → semantic preservation (advisory)
+    """
+    claims: List[Claim] = []
+    stripped = _strip_ascii_art(response_text)
+
+    for pattern, tag_type in _PONYTAIL_TAG_PATTERNS:
+        for match in pattern.finditer(stripped):
+            claim_text = match.group(0).strip()
+            targets = [match.group(1).strip()] if match.group(1) else []
+
+            # Map Ponytail tag to ClaimType
+            claim_type_map = {
+                "delete": "USAGE_VERIFICATION",
+                "yagni": "USAGE_VERIFICATION",
+                "stdlib": "COMPARISON_VERIFICATION",
+                "native": "COMPARISON_VERIFICATION",
+                "shrink": "TRANSFORMATION_VERIFICATION",
+            }
+            claim_type = claim_type_map.get(tag_type, "UNKNOWN")
+
+            claim = Claim(
+                id=str(uuid.uuid4()),
+                text=claim_text,
+                targets=targets,
+                type=claim_type,
+                confidence=0.8,
+                risk_domain="FS_CRITICAL",
+                has_hedge=False,
+            )
+            claims.append(claim)
+
     return claims
 
 
@@ -194,6 +248,9 @@ def extract_claims(response_text: str) -> List[Claim]:
 
     # OUTCOME_ATTRIBUTION claims: from overconfidence patterns (not in HypothesisAsFactDetector)
     claims.extend(_detect_outcome_attribution_claims(response_text))
+
+    # Ponytail tags: audit tool findings with specific verification requirements
+    claims.extend(_detect_ponytail_claims(response_text))
 
     return claims
 

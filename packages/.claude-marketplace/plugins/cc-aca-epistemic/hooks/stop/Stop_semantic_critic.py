@@ -33,6 +33,7 @@ import logging
 import os
 import re
 import sys
+import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
@@ -64,21 +65,68 @@ _logger = logging.getLogger(__name__)
 SEMANTIC_CRITIC_CAP: int = int(os.environ.get("SEMANTIC_CRITIC_CAP", "5"))
 
 # Second critic backend (Anthropic-protocol direct call). Was MiniMax-M3; M3 quota
-# exhausted 2026-06-05, swapped to z.ai GLM-5.1. Configurable so the fallover backend
-# can change without code edits (e.g., point at another Anthropic-protocol provider).
+# exhausted 2026-06-05, swapped to z.ai GLM-5.1. Updated 2026-06-20 to glm-5.2. Configurable so
+# the fallover backend can change without code edits (e.g., point at another Anthropic-protocol provider).
 # NOTE: SEMANTIC_CRITIC_URL must be the Anthropic endpoint (/api/anthropic), NOT z.ai's
 # OpenAI coding endpoint that Z_AI_URL points at (/api/coding/paas/v4).
-SEMANTIC_CRITIC_MODEL: str = os.environ.get("SEMANTIC_CRITIC_MODEL", "glm-5.1")
+SEMANTIC_CRITIC_MODEL: str = os.environ.get("SEMANTIC_CRITIC_MODEL", "glm-5.2")
 SEMANTIC_CRITIC_URL: str = os.environ.get(
     "SEMANTIC_CRITIC_URL", "https://api.z.ai/api/anthropic/v1/messages"
 )
 SEMANTIC_CRITIC_KEY_ENV: str = os.environ.get("SEMANTIC_CRITIC_KEY_ENV", "Z_AI_API_KEY")
 SEMANTIC_CRITIC_MAX_TOKENS: int = int(os.environ.get("SEMANTIC_CRITIC_MAX_TOKENS", "8192"))
-SEMANTIC_CRITIC_TIMEOUT_SEC: int = int(os.environ.get("SEMANTIC_CRITIC_TIMEOUT_SEC", "10"))
+
+# --- Coherent hook-wide LLM budget (TWO sequential Mistral gates share one hook)
+# This Stop hook is hard-killed by Claude Code at STOP_HOOK_TIMEOUT_SEC. When the
+# veridical gate is enabled (VERIDICAL_GATE_ENABLED=1, which it is in this env),
+# TWO reasoning-LLM gates run SEQUENTIALLY on the hook and their wall times ADD:
+#   (1) veridical_gate -> one Mistral call (runs FIRST, in run())
+#   (2) this critic    -> z.ai + Mistral IN PARALLEL (+2s join overhead)
+# The earlier single-gate clamp ignored (1): the veridical call's own 15s default
+# alone exceeded the 10s outer, so a Mistral outage — the exact trigger for the
+# subagent fallback — could hard-kill the subprocess in the veridical call before
+# BACKENDS_UNAVAILABLE -> delegation ever ran, defeating the gate on its own
+# trigger condition.
+#
+# Fix: derive BOTH gate budgets from the single outer timeout and guarantee
+#   veridical_budget + critic_overall + local_margin <= STOP_HOOK_TIMEOUT_SEC
+# for ANY outer value. A budget MISS is safe: call_semantic_critic_via_bifrost
+# returns BACKENDS_UNAVAILABLE and run() delegates to a review subagent in the
+# (untimed) continuation turn. So these values only trade fast-path latency vs
+# how often we delegate — never correctness. To give the LLMs a wider fast-path
+# (rarer delegation), raise STOP_HOOK_TIMEOUT_SEC *and* the settings.json Stop
+# "timeout" together; the split below auto-scales.
+STOP_HOOK_TIMEOUT_SEC: int = int(os.environ.get("STOP_HOOK_TIMEOUT_SEC", "10"))
+_LOCAL_GATE_MARGIN_SEC: int = 2     # non-LLM gate work + safety before the hard kill
+_CRITIC_JOIN_OVERHEAD_SEC: int = 2  # ThreadPoolExecutor as_completed join slack
+# Wall budget shared by the two sequential LLM gates, then the splittable pool
+# after reserving the critic's parallel-join overhead.
+_SEQ_LLM_BUDGET: int = max(0, STOP_HOOK_TIMEOUT_SEC - _LOCAL_GATE_MARGIN_SEC)
+_SPLITTABLE_SEC: int = max(0, _SEQ_LLM_BUDGET - _CRITIC_JOIN_OVERHEAD_SEC)
+# Veridical gets the smaller share (secondary gate); the critic gets the rest.
+VERIDICAL_BUDGET_SEC: int = max(1, _SPLITTABLE_SEC // 3)
+_CRITIC_BACKEND_BUDGET: int = max(1, _SPLITTABLE_SEC - VERIDICAL_BUDGET_SEC)
+# Below this, there isn't enough wall time to attempt an LLM gate coherently —
+# skip the external fast-path entirely and delegate straight to a subagent. This
+# keeps the invariant true for ALL outer values (incl. degenerate small ones).
+_MIN_VIABLE_LLM_SEC: int = 3
+LLM_FASTPATH_VIABLE: bool = (
+    _CRITIC_BACKEND_BUDGET >= _MIN_VIABLE_LLM_SEC
+    and (VERIDICAL_BUDGET_SEC + _CRITIC_BACKEND_BUDGET + _CRITIC_JOIN_OVERHEAD_SEC)
+    <= _SEQ_LLM_BUDGET
+)
+
+SEMANTIC_CRITIC_TIMEOUT_SEC: int = min(
+    int(os.environ.get("SEMANTIC_CRITIC_TIMEOUT_SEC", str(_CRITIC_BACKEND_BUDGET))),
+    _CRITIC_BACKEND_BUDGET,
+)
 
 # Mistral direct call config
-MISTRAL_MODEL: str = os.environ.get("MISTRAL_MODEL", "mistral-medium-3.5")
-MISTRAL_TIMEOUT_SEC: int = int(os.environ.get("MISTRAL_TIMEOUT_SEC", "30"))
+MISTRAL_MODEL: str = os.environ.get("MISTRAL_MODEL", "mistral-medium-latest")
+MISTRAL_TIMEOUT_SEC: int = min(
+    int(os.environ.get("MISTRAL_TIMEOUT_SEC", str(_CRITIC_BACKEND_BUDGET))),
+    _CRITIC_BACKEND_BUDGET,
+)
 
 # Cached API keys (loaded once, reused across invocations)
 _MINIMAX_API_KEY: str | None = None
@@ -89,6 +137,20 @@ _MISTRAL_API_KEY: str | None = None
 class SemanticCriticResult:
     ok: bool
     reason: str
+
+
+class _BackendsUnavailable:
+    """Sentinel: BOTH external critic backends failed/timed out within the
+    fast-path budget. Distinct from None (no veto) and from a verdict — it tells
+    run() to delegate the review to a subagent instead of failing open."""
+
+    __slots__ = ()
+
+
+# Singleton sentinel returned by call_semantic_critic_via_bifrost when neither
+# backend produced a verdict in time. run() converts this into a subagent-review
+# directive (block-worthy for high-signal profiles) rather than allowing silently.
+BACKENDS_UNAVAILABLE = _BackendsUnavailable()
 
 
 def _load_second_critic_key() -> str | None:
@@ -667,6 +729,7 @@ def _call_minimax_critic(
         return None
 
     correlation_id = str(uuid.uuid4())
+    start_time = time.time()
     _logger.info(
         "semantic_critic minimax_call_start: correlation=%s session=%s profile=%s model=%s",
         correlation_id, session_key, critic_profile, SEMANTIC_CRITIC_MODEL,
@@ -709,9 +772,10 @@ def _call_minimax_critic(
             )
             return None
 
+        elapsed_ms = (time.time() - start_time) * 1000
         _logger.info(
-            "semantic_critic minimax_call_end: correlation=%s response_chars=%d",
-            correlation_id, len(raw_text),
+            "semantic_critic minimax_call_end: correlation=%s response_chars=%d elapsed_ms=%d",
+            correlation_id, len(raw_text), int(elapsed_ms),
         )
 
         result = parse_semantic_critic_response(raw_text)
@@ -774,6 +838,7 @@ def _call_mistral_critic(
         return None
 
     correlation_id = str(uuid.uuid4())
+    start_time = time.time()
     _logger.info(
         "semantic_critic mistral_call_start: correlation=%s session=%s profile=%s model=%s",
         correlation_id, session_key, critic_profile, MISTRAL_MODEL,
@@ -822,9 +887,10 @@ def _call_mistral_critic(
             )
             return None
 
+        elapsed_ms = (time.time() - start_time) * 1000
         _logger.info(
-            "semantic_critic mistral_call_end: correlation=%s response_chars=%d",
-            correlation_id, len(raw_text),
+            "semantic_critic mistral_call_end: correlation=%s response_chars=%d elapsed_ms=%d",
+            correlation_id, len(raw_text), int(elapsed_ms),
         )
 
         result = parse_semantic_critic_response(raw_text)
@@ -849,7 +915,7 @@ def _call_mistral_critic(
 
 def call_semantic_critic_via_bifrost(
     original_user_prompt: str, assistant_response: str, session_key: str
-) -> Optional[SemanticCriticResult]:
+) -> "Optional[SemanticCriticResult] | _BackendsUnavailable":
     """
     Call both MiniMax and Mistral in parallel with conservative combination.
 
@@ -862,6 +928,16 @@ def call_semantic_critic_via_bifrost(
     Returns None on any complete failure (both backends failed).
     Logs structured events for observability.
     """
+    # Not enough wall time on this hook to attempt the external fast-path
+    # coherently (degenerate/small outer timeout). Skip the backends and delegate
+    # straight to a subagent rather than risk a mid-call hard kill.
+    if not LLM_FASTPATH_VIABLE:
+        _logger.info(
+            "semantic_critic fastpath_not_viable: session=%s seq_budget=%ds",
+            session_key, _SEQ_LLM_BUDGET,
+        )
+        return BACKENDS_UNAVAILABLE
+
     user_message = _build_critic_user_message(original_user_prompt, assistant_response)
     response_len = len(assistant_response)
     critic_profile = _detect_critic_profile(original_user_prompt, assistant_response)
@@ -946,13 +1022,14 @@ def call_semantic_critic_via_bifrost(
         )
 
     # Conservative combination logic
-    # Both None -> fail-open
+    # Both None -> backends unavailable. Do NOT fail open: signal the caller to
+    # delegate the review to a subagent (run() handles BACKENDS_UNAVAILABLE).
     if minimax_result is None and mistral_result is None:
         _logger.info(
             "semantic_critic both_backends_failed: session=%s profile=%s",
             session_key, critic_profile,
         )
-        return None
+        return BACKENDS_UNAVAILABLE
 
     # One None -> use the other
     if minimax_result is None:
@@ -1099,28 +1176,34 @@ def run(data: dict) -> dict | None:
     if _is_non_substantive(response_text):
         return None
 
-    # Veridical integrity gate (epistemic sycophancy detection)
-    try:
-        from anti_sycophancy.veridical_gate import check_veridical_integrity
-        transcript_str = data.get('transcript', '')
-        if isinstance(transcript_str, list):
-            parts = []
-            for msg in transcript_str:
-                role = msg.get('role', '')
-                content_val = msg.get('content', '')
-                if isinstance(content_val, str) and content_val.strip():
-                    parts.append(f'[{role}] {content_val}')
-            transcript_str = chr(10) + chr(10).join(parts)
-        veridical_result = check_veridical_integrity(
-            response_text=response_text,
-            transcript=transcript_str,
-            session_key=session_key,
-            mistral_api_key=_load_mistral_key() or '',
-        )
-        if veridical_result is not None:
-            return veridical_result
-    except Exception as exc:
-        _logger.warning('veridical_gate integration error, failing open: %s', exc)
+    # Veridical integrity gate (epistemic sycophancy detection). This is the
+    # FIRST of two sequential Mistral gates on this time-boxed hook, so it is
+    # given the hook-coherent VERIDICAL_BUDGET_SEC (not its own 15s default) and
+    # is skipped entirely when there is no viable LLM wall budget — otherwise it
+    # could hard-kill the subprocess before the critic's subagent fallback runs.
+    if LLM_FASTPATH_VIABLE:
+        try:
+            from anti_sycophancy.veridical_gate import check_veridical_integrity
+            transcript_str = data.get('transcript', '')
+            if isinstance(transcript_str, list):
+                parts = []
+                for msg in transcript_str:
+                    role = msg.get('role', '')
+                    content_val = msg.get('content', '')
+                    if isinstance(content_val, str) and content_val.strip():
+                        parts.append(f'[{role}] {content_val}')
+                transcript_str = chr(10) + chr(10).join(parts)
+            veridical_result = check_veridical_integrity(
+                response_text=response_text,
+                transcript=transcript_str,
+                session_key=session_key,
+                mistral_api_key=_load_mistral_key() or '',
+                timeout_sec=VERIDICAL_BUDGET_SEC,
+            )
+            if veridical_result is not None:
+                return veridical_result
+        except Exception as exc:
+            _logger.warning('veridical_gate integration error, failing open: %s', exc)
 
     # Diagnostic scope gate
     if not _is_diagnostic_scope(user_prompt, response_text):
@@ -1145,6 +1228,33 @@ def run(data: dict) -> dict | None:
         assistant_response=response_text,
         session_key=session_key,
     )
+
+    # Both external reviewers unavailable within the fast-path budget. Do NOT
+    # fail open: emit a delegation directive so a review subagent critiques the
+    # response in the (untimed) continuation turn. Stop.py escalates this to a
+    # one-shot block for high-signal profiles; lower-signal turns get an advisory
+    # nudge. The blocking decision still rode the cheap, deterministic scope +
+    # profile checks above — no LLM was needed to decide that review is warranted.
+    if critic_result is BACKENDS_UNAVAILABLE:
+        critic_profile = _detect_critic_profile(user_prompt, response_text)
+        _logger.info(
+            "semantic_critic delegate_to_subagent: session=%s profile=%s",
+            session_key, critic_profile,
+        )
+        return {
+            "allow": True,
+            "systemMessage": (
+                "Semantic critic [reviewers-unavailable]: the external review "
+                "backends were unreachable, so this response was NOT independently "
+                "checked. Before finalizing, spawn a review subagent (Agent / Task "
+                "tool) to critique it against the original request — look for "
+                "ignored user constraints, premature absence/impossibility claims, "
+                "missing alternatives, and conclusions unsupported by the body — "
+                "then revise if the subagent finds a material gap."
+            ),
+            "_critic_profile": critic_profile,
+            "_backends_unavailable": True,
+        }
 
     # No judgment available — fail open, allow
     if critic_result is None:

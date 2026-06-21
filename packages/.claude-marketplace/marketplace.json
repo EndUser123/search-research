@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "cc-skills-ai-api",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "description": "AI provider skills for Claude Code \u2014 multi-provider LLM access, API gateways, usage monitoring, and quota management.",
       "source": "./plugins/cc-skills-ai-api",
       "keywords": [
@@ -34,7 +34,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.60",
+      "version": "1.0.61",
       "description": "Software development lifecycle AI skills for Claude Code.",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -58,7 +58,7 @@
     },
     {
       "name": "snapshot",
-      "version": "0.5.20",
+      "version": "0.5.21",
       "description": "Snapshot plugin for Claude Code.",
       "source": "./plugins/snapshot",
       "keywords": [
@@ -117,14 +117,14 @@
     },
     {
       "name": "cc-skills-analysis",
-      "version": "1.0.25",
+      "version": "1.0.27",
       "description": "Analysis plugin",
       "source": "./plugins/cc-skills-analysis",
       "keywords": []
     },
     {
       "name": "prompt-enhancer",
-      "version": "0.2.4",
+      "version": "0.2.5",
       "description": "Prompt Clarification & Context Augmentation \u2014 ambiguous prompt detection, enhancement, and multi-turn context preservation via UserPromptSubmit + PreCompact hooks.",
       "source": "./plugins/prompt-enhancer",
       "keywords": [
@@ -180,7 +180,7 @@
     },
     {
       "name": "cc-aca-epistemic",
-      "version": "0.2.43",
+      "version": "0.2.52",
       "description": "ACA Epistemic plugin - evidence verification, claim validation, provenance tracking, anti-fabrication enforcement, and anti-sycophancy detection. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-epistemic",
       "keywords": [
@@ -239,7 +239,7 @@
     },
     {
       "name": "cc-aca-sdlc",
-      "version": "0.1.7",
+      "version": "0.1.8",
       "description": "ACA SDLC plugin - TDD enforcement, test-state tracking, implementation verification, completion gates, and development workflow discipline.",
       "source": "./plugins/cc-aca-sdlc",
       "keywords": [
@@ -254,7 +254,7 @@
     },
     {
       "name": "cc-aca-safety",
-      "version": "0.1.5",
+      "version": "0.1.6",
       "description": "ACA Safety plugin -- filesystem protection, path policy enforcement, bulk delete safety, Windows path correctness, protected file recovery, and git auto-staging for deletion safety.",
       "source": "./plugins/cc-aca-safety",
       "keywords": [
@@ -284,7 +284,7 @@
     },
     {
       "name": "cc-lazy-closure-debt",
-      "version": "0.1.2",
+      "version": "0.1.5",
       "description": "Persistent technical-debt tracker. Stop hook records deferral phrases to JSONL; UserPromptSubmit hook surfaces them as additionalContext. Ships with /debt skill for listing/clearing/formalizing.",
       "source": "./plugins/cc-lazy-closure-debt",
       "keywords": [

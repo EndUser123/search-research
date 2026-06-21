@@ -33,6 +33,9 @@ class ClaimType(Enum):
     MECHANISM = "mechanism"  # Claims about internal code mechanism/behavior without reading code
     ANALYSIS = "analysis"  # Value judgments and architectural opinions (no verification required)
     SESSION_BEHAVIOR = "session_behavior"  # Self-referential claims about LLM's own session output/actions
+    USAGE_VERIFICATION = "usage_verification"  # delete: / yagni: consumer-count checks
+    COMPARISON_VERIFICATION = "comparison_verification"  # stdlib: / native: equivalence
+    TRANSFORMATION_VERIFICATION = "transformation_verification"  # shrink: semantic preservation
 
 
 class RiskDomain(Enum):

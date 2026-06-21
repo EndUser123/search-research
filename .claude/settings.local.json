@@ -36,7 +36,9 @@
       "Bash(sed -i 's|Sort-Object { \\\\[version\\\\]\\(\\\\$_.Name -replace '\\\\''-'\\\\'',\\\\.'\\\\''\\) } -Descending | Select-Object -First 1|Sort-Object Name -Descending | Select-Object -First 1|' P:/.claude/regen_mcp_allow.ps1)",
       "Bash(sed -n '44,46p' \"P:/.claude/regen_mcp_allow.ps1\")",
       "Bash(python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/Stop.py --timeout 15.0)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(mv \"P://.claude/.artifacts/8bc0b7b5-0c12-4c3d-b606-6394598408d2/gto/temp_marker.txt\" \"P://.claude/.artifacts/8bc0b7b5-0c12-4c3d-b606-6394598408d2/gto/write_result.py\")",
+      "Bash(python3 \"P://.claude/.artifacts/8bc0b7b5-0c12-4c3d-b606-6394598408d2/gto/write_result.py\")"
     ],
     "deny": [],
     "ask": []

@@ -63,6 +63,37 @@ except ImportError:
 
 from __lib.ttl_utils import is_expired as _is_expired
 
+# Observability imports for block logging
+try:
+    from __lib.pretooluse_observability import (
+        append_jsonl as append_observability_jsonl,
+        build_pretooluse_block_entry,
+    )
+except ImportError:
+
+    def append_observability_jsonl(*_args: object, **_kwargs: object) -> None:
+        """Fallback: silently fail if observability module unavailable."""
+        pass
+
+    def build_pretooluse_block_entry(*_args: object, **_kwargs: object) -> dict:
+        """Fallback: return minimal entry if observability module unavailable."""
+        return {}
+
+# Artifact grounder imports
+try:
+    from __lib.artifact_grounder import (
+        ground_blocked_command,
+        ground_git_safety_block,
+    )
+except ImportError:
+
+    def ground_blocked_command(data: dict, _blocking_hook: str, _reason: str) -> dict:
+        """Fallback: return minimal artifact if grounder unavailable."""
+        return {"schema": "blocked_command", "tool_name": data.get("tool_name", "")}
+
+    def ground_git_safety_block(data: dict, _blocking_hook: str, _reason: str) -> dict:
+        """Fallback: return minimal artifact if grounder unavailable."""
+        return {"schema": "git_safety_block", "tool_name": data.get("tool_name", "")}
 
 try:
     from shared_utils import resolve_session_id as _resolve_session_id_from_utils
@@ -86,7 +117,7 @@ try:
     from evidence_store import get_active_turn as get_active_evidence_turn
 except ImportError:
 
-    def get_active_evidence_turn(session_id: str, terminal_id: str) -> str | None:
+    def get_active_evidence_turn(_session_id: str, _terminal_id: str) -> str | None:
         return None
 
 
@@ -143,10 +174,10 @@ HOOK_CONTENT_FILTERS: dict[str, list[str]] = {
 # Expired files are cleaned up opportunistically.
 
 # Tools allowed BEFORE Skill() is called.
-# TIGHT: Only Skill itself and harmless metadata tools.
-# Read/Grep/Glob/Edit/Write are NOT allowed — the LLM must call Skill() first,
-# not read the SKILL.md and improvise its own version.
-_SKILL_FIRST_ALLOWED = {"Skill", "AskUserQuestion", "TodoWrite"}
+# BALANCED: Allow investigation tools (Read/Grep/Glob) for diagnostic work,
+# but still require Skill() before Edit/Write/Bash.
+# This prevents the LLM from improvising skill behavior while enabling debugging.
+_SKILL_FIRST_ALLOWED = {"Skill", "AskUserQuestion", "TodoWrite", "Read", "Grep", "Glob"}
 _SKILL_FIRST_MODES = {"off", "monitor", "soft_block", "hard_block", "read_only"}
 _SKILL_FIRST_LOG = HOOKS_DIR / "logs" / "skill_first_enforcement.jsonl"
 _STALE_TERMINAL_INTENT_SECONDS = 15 * 60
@@ -1407,8 +1438,7 @@ if __name__ == "__main__":
     except Exception as _e:
         import traceback as _tb
         try:
-            sys.path.insert(0, str(Path(__file__).resolve().parent / "__lib"))
-            from hook_error_sink import log_hook_error
+            from __lib.hook_error_sink import log_hook_error
             log_hook_error(__file__, str(_e), _tb.format_exc())
         except Exception:
             pass

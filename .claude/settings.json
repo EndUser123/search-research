@@ -105,10 +105,26 @@
       "mcp__plugin_context7_context7__resolve-library-id",
       "Bash(git -C *)",
       "Bash(curl -s *)",
+      "Write(P:/.claude/.evidence/**)",
+      "Write(P:/.claude/.staging/**)",
+      "Write(P:/.claude/plans/**)",
       "Write(P:/.claude/.artifacts/**)",
       "Edit(P:/.claude/.artifacts/**)",
       "Edit(P:/packages/.claude-marketplace/**)",
-      "Write(P:/packages/.claude-marketplace/**)"
+      "Write(P:/packages/.claude-marketplace/**)",
+      "Read(C:/Users/brsth/Downloads/**)",
+      "Write(C:/Users/brsth/Downloads/**)",
+      "Edit(C:/Users/brsth/Downloads/**)",
+      "Read(P:/.claude/**/__pycache__/**)",
+      "Write(P:/.claude/**/__pycache__/**)",
+      "Edit(P:/.claude/**/__pycache__/**)",
+      "Read(P:/packages/**/__pycache__/**)",
+      "Write(P:/packages/**/__pycache__/**)",
+      "Edit(P:/packages/**/__pycache__/**)",
+      "Bash(rm -f P:/.claude/**/__pycache__/**)",
+      "Bash(rm -rf P:/.claude/**/__pycache__/**)",
+      "Bash(rm -f P:/packages/**/__pycache__/**)",
+      "Bash(rm -rf P:/packages/**/__pycache__/**)"
     ],
     "deny": [
       "Bash(rm -rf /)",
@@ -374,6 +390,7 @@
     ]
   },
   "enabledPlugins": {},
+  "mcpServers": {},
   "tdd": {
     "enforcement_mode": "enforced",
     "level": 1,

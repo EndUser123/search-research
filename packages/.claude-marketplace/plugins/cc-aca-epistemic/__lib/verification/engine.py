@@ -154,6 +154,14 @@ def match_claim_to_events(
     if "FOLDER_CREATE" in claim_type_upper:
         return _verify_folder_create_claim(claim, relevant_events)
 
+    # Ponytail claims: specialized verification
+    if "USAGE_VERIFICATION" in claim_type_upper:
+        return _verify_usage_claim(claim, relevant_events)
+    elif "COMPARISON_VERIFICATION" in claim_type_upper:
+        return _verify_comparison_claim(claim, relevant_events)
+    elif "TRANSFORMATION_VERIFICATION" in claim_type_upper:
+        return _verify_transformation_claim(claim, relevant_events)
+
     # Default: SILENT for unsupported claim types
     return VerificationStatus.SILENT
 
@@ -448,6 +456,119 @@ def _verify_folder_create_claim(
             if claimed_path in output:
                 return VerificationStatus.SUPPORTED
 
+    return VerificationStatus.SILENT
+
+
+def _verify_usage_claim(claim: Any, events: List[Dict[str, Any]]) -> VerificationStatus:
+    """Verify delete: and yagni: claims with consumer-count checks.
+
+    delete: claims require proof that code has 0 active references.
+    yagni: claims require proof that code has exactly 1 consumer (definition only).
+
+    Consumer-count verification:
+    - Strips whitespace from grep output
+    - Treats as supported only when grep count output is exactly 0 or clearly states no matches
+    - Does NOT use loose "0" substring checks (would match "10", "20", etc.)
+
+    yagni: import filtering:
+    - When counting consumers, ignores lines containing "import " to prevent
+      package exports in __init__.py from counting as active consumer calls.
+
+    Args:
+        claim: Claim with type USAGE_VERIFICATION
+        events: Relevant tool events
+
+    Returns:
+        SUPPORTED if consumer count matches claim (0 for delete:, 0-1 for yagni:),
+        REFUTED if consumers exceed threshold, SILENT if no evidence
+    """
+    target = claim.targets[0] if claim.targets else ""
+    if not target:
+        return VerificationStatus.SILENT
+
+    # Check if claim is delete: or yagni: based on claim text
+    claim_text_lower = claim.text.lower()
+    is_delete = "delete:" in claim_text_lower
+    is_yagni = "yagni:" in claim_text_lower
+
+    # Scan grep events for consumer count evidence
+    for event in events:
+        tool_name = event.get("name", "").lower()
+        output = str(event.get("output", ""))
+        command = str(event.get("command", "").lower())
+
+        # Only consider grep events that search for the target
+        if tool_name == "bash" and "grep" in command and target.lower() in command:
+            lines = output.strip().split("\n")
+
+            if is_delete:
+                # delete: requires 0 consumers
+                for line in lines:
+                    stripped = line.strip()
+                    if not stripped:
+                        continue
+                    # Check for explicit "0" count or "no matches" indicator
+                    # Must be exact match or explicit phrase, not substring
+                    if stripped == "0":
+                        return VerificationStatus.SUPPORTED
+                    if "no matches" in stripped.lower() and "no matches found" in stripped.lower():
+                        return VerificationStatus.SUPPORTED
+                    if "no results" in stripped.lower():
+                        return VerificationStatus.SUPPORTED
+                # If grep returned non-empty output without explicit zero/no-match indicators, REFUTED
+                if any(line.strip() for line in lines if line.strip()):
+                    return VerificationStatus.REFUTED
+
+            elif is_yagni:
+                # yagni: requires 0 or 1 consumers, ignoring import lines
+                consumer_lines = []
+                for line in lines:
+                    stripped = line.strip()
+                    if not stripped:
+                        continue
+                    # Skip import lines (package exports in __init__.py)
+                    if "import " in stripped:
+                        continue
+                    consumer_lines.append(stripped)
+
+                # Count consumers (0 or 1 = SUPPORTED, >1 = REFUTED)
+                if len(consumer_lines) <= 1:
+                    return VerificationStatus.SUPPORTED
+                else:
+                    return VerificationStatus.REFUTED
+
+    return VerificationStatus.SILENT
+
+
+def _verify_comparison_claim(claim: Any, events: List[Dict[str, Any]]) -> VerificationStatus:
+    """Verify stdlib: and native: claims (advisory until local comparison artifact exists).
+
+    Phase 0: No hard verification without local comparison artifact.
+    These claims remain advisory (SILENT) to prevent false hard-fail behavior.
+
+    Args:
+        claim: Claim with type COMPARISON_VERIFICATION
+        events: Relevant tool events
+
+    Returns:
+        SILENT (advisory, no hard verification without local comparison artifact)
+    """
+    return VerificationStatus.SILENT
+
+
+def _verify_transformation_claim(claim: Any, events: List[Dict[str, Any]]) -> VerificationStatus:
+    """Verify shrink: claims (advisory by default).
+
+    Phase 0: No hard verification - semantic preservation cannot be proven by grep alone.
+    These claims remain advisory (SILENT).
+
+    Args:
+        claim: Claim with type TRANSFORMATION_VERIFICATION
+        events: Relevant tool events
+
+    Returns:
+        SILENT (advisory, semantic preservation requires human review)
+    """
     return VerificationStatus.SILENT
 
 

@@ -1,12 +1,14 @@
 # cc-lazy-closure-debt
 
-Deferral auto-promotion plugin (Phase 1+2, 2026-06-03). The Stop hook
-detects untracked deferral phrases ("I'll leave that for now", "we can
-address that later", etc.) via the shared `lazy_closure_detector` in
+Deferral auto-promotion plugin (Phase 1+2, 2026-06-03; Phase 4, 2026-06-19).
+The Stop hook detects untracked deferral phrases ("I'll leave that for now",
+"we can address that later", etc.) via the shared `lazy_closure_detector` in
 cc-aca-epistemic and appends them to a per-terminal JSONL audit log.
-The UserPromptSubmit hook reads that log and injects a `TaskCreate`
-directive so each deferral lands in the real task list on the next turn.
-The JSONL is now a debug/audit log, not a user-facing concept.
+The UserPromptSubmit hook reads that log and injects a `TaskCreate` directive
+so each deferral lands in the real task list on the next turn. The PostToolUse
+hook watches for `TaskCreate(subject="Deferral: <phrase>")` and appends a
+tombstone so the deferral stops re-surfacing after it has been formalized.
+Dispatch is via `__lib/router.py` registered in `settings.json` (not hooks.json).
 
 ## Responsibility
 
@@ -36,11 +38,17 @@ The JSONL is now a debug/audit log, not a user-facing concept.
 - **Phase 2 (2026-06-03)**: `/debt` skill demoted to a read-only debug
   view. The `Press Y to formalize` prompt is gone; the skill no
   longer offers to create tasks.
-- **Phase 3 (this change)**: Plugin description and CLAUDE.md updated
+- **Phase 3 (2026-06-03)**: Plugin description and CLAUDE.md updated
   to match the new scope. A future rename (e.g. to
   `cc-deferral-to-task`) is a follow-up if/when the name is causing
   real confusion; it has cross-system blast radius (marketplace,
   hooks.json, any docs that grep for the old name) and is deferred.
+- **Phase 4 (2026-06-19)**: Tombstone mechanism added to break the
+  duplicate-task loop. PostToolUse hook watches `TaskCreate` with
+  "Deferral: " subject and writes a tombstone fingerprint so
+  `recent_deferrals()` filters that phrase permanently. Dispatch
+  migrated from `hooks.json` to `__lib/router.py` + `settings.json`
+  (router-XOR-hooks.json invariant; `hooks/hooks.json` stays `{"hooks": {}}`).
 
 ## Hooks
 
@@ -48,6 +56,15 @@ The JSONL is now a debug/audit log, not a user-facing concept.
 |------|-----------|---------|
 | `hooks/stop/cc_lazy_closure_debt_Stop.py` | Stop | Detect deferrals, append JSONL |
 | `hooks/userpromptsubmit/cc_lazy_closure_debt_UserPromptSubmit.py` | UserPromptSubmit | Surface recent items as context |
+| `hooks/posttooluse/cc_lazy_closure_debt_PostToolUse.py` | PostToolUse | Tombstone deferrals when TaskCreate fires |
+
+## Dispatch
+
+All three hooks are dispatched via `__lib/router.py`, registered in
+`C:/Users/brsth/.claude/settings.json` under Stop, UserPromptSubmit, and
+PostToolUse event groups (matcher `.*`, timeout 10). The source
+`hooks/hooks.json` is `{"hooks": {}}` and must stay empty — the
+router-XOR-hooks.json invariant means populating both causes double-dispatch.
 
 ## Library
 
@@ -82,14 +99,21 @@ Override via env var `CC_LAZY_CLOSURE_DEBT_STATE_DIR` (used by tests).
 - **Deduped view**: repeated matches of the same phrase are grouped into a
   single taskable item with an occurrence count, so the same debt does not
   spawn duplicate follow-up tasks.
-- **No subprocess for task creation**: the prior design called
-  `claude task add` as a subprocess. That CLI subcommand does not exist.
-  The skill's "formalize as tasks" path uses the TaskCreate tool only
-  after explicit user confirmation.
+- **Tombstone resolution**: `resolve_deferral(terminal_id, fingerprint)` and
+  `resolve_deferral_by_phrase(terminal_id, phrase)` in `debt_store.py` append
+  a `{"kind": "tombstone", "resolved_fingerprint": "<fp>"}` record to the
+  same JSONL. `recent_deferrals()` collects all tombstone fingerprints on
+  read and filters matching deferrals before returning. Append-only, so
+  concurrent Stop-hook writes never race. Tombstones are honored regardless
+  of age — a resolved phrase never re-surfaces even if its deferral record
+  is still within the 24h window.
 
 ## Tests
 
 `tests/test_debt_store.py` covers the store layer (round-trip, filtering,
-truncation, isolation, clear). `tests/test_stop_hook.py` and
-`tests/test_userpromptsubmit.py` cover the hook layers with mocked
-dependencies so they are hermetic.
+truncation, isolation, clear, and tombstone resolution via `TestResolve`).
+`tests/test_stop_hook.py` and `tests/test_userpromptsubmit.py` cover the
+hook layers with mocked dependencies so they are hermetic. The PostToolUse
+hook bootstrap chain is verified by smoke test (subprocess invocation with
+a `TaskCreate` payload confirms exit 0 + tombstone written + 0 deferrals
+after).

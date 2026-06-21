@@ -461,31 +461,75 @@ def _run_semantic_critic(data: dict) -> dict | None:
     from Stop_semantic_critic import run as _semantic_critic_run
 
     result = _semantic_critic_run(data)
-    # Surface profile in result dict so Stop can log it via telemetry
-    if result is not None:
-        try:
-            from Stop_semantic_critic import _detect_critic_profile
+    # None = critic allowed (or skipped/failed open). Nothing to surface or escalate.
+    if result is None:
+        return None
 
-            user_prompt = ""
-            response_text = ""
-            if "transcript" in data:
-                for msg in reversed(data.get("transcript", [])):
-                    content = msg.get("content", "")
-                    if isinstance(content, str):
-                        if msg.get("role") == "user" and not user_prompt:
-                            user_prompt = content
-                        elif msg.get("role") == "assistant" and not response_text:
-                            response_text = content
-            if not user_prompt:
-                user_prompt = data.get("user_prompt", data.get("prompt", ""))
-            if not response_text:
-                response_text = data.get("response", data.get("raw_response", ""))
-            profile = _detect_critic_profile(user_prompt, response_text)
-            result = dict(result)
-            result["_critic_profile"] = profile
-        except Exception:
-            pass
+    # Surface the critic profile so Stop can log it via telemetry, and decide
+    # whether to escalate this veto from advisory to a one-shot block.
+    profile = ""
+    try:
+        from Stop_semantic_critic import _detect_critic_profile
+
+        user_prompt = ""
+        response_text = ""
+        if "transcript" in data:
+            for msg in reversed(data.get("transcript", [])):
+                content = msg.get("content", "")
+                if isinstance(content, str):
+                    if msg.get("role") == "user" and not user_prompt:
+                        user_prompt = content
+                    elif msg.get("role") == "assistant" and not response_text:
+                        response_text = content
+        if not user_prompt:
+            user_prompt = data.get("user_prompt", data.get("prompt", ""))
+        if not response_text:
+            response_text = data.get("response", data.get("raw_response", ""))
+        profile = _detect_critic_profile(user_prompt, response_text)
+    except Exception:
+        profile = ""
+
+    result = dict(result)
+    if profile:
+        result["_critic_profile"] = profile
+
+    # Scoped self-critique enforcement. When the gate's rollout is BLOCK and the
+    # critic vetoed a HIGH-SIGNAL turn (a recommendation/decision, or a software
+    # root-cause answer), convert the advisory note into a one-shot block so the
+    # self-critique forces a revision BEFORE the user sees the flawed proposal.
+    # Lower-signal general_diagnostic vetoes stay advisory. The block is
+    # quality-class, so _process_gate_result still applies turn-mode suppression,
+    # weak-model suppression, and the regen circuit breaker — bounding it to a
+    # finite block->regenerate loop instead of a per-turn nag. Fail-open is
+    # inherited: the critic returns None (no veto) on any backend error.
+    _enforce_profiles = {"evaluative_recommendation", "software_rca"}
+    _default_rollout = GATE_METADATA.get("semantic_critic", {}).get(
+        "rollout_mode", RolloutMode.ADVISORY
+    )
+    _rollout = _get_rollout_mode("semantic_critic", _default_rollout)
+    _veto_msg = str(result.get("systemMessage", "")).strip()
+    if _rollout == RolloutMode.BLOCK and profile in _enforce_profiles and _veto_msg:
+        return {
+            "decision": "block",
+            "reason": _veto_msg,
+            "_critic_profile": profile,
+        }
     return result
+
+
+def _run_proposal_critique_gate(data: dict) -> dict | None:
+    """Block a proposal/recommendation turn that carries NO self-critique.
+
+    Deterministic presence check (not a quality judgment): if the response makes
+    a recommendation but contains zero failure-mode/falsification markers, block
+    so the self-critique is added before the user sees it. Measured 2026-06-20:
+    53% of the user's "please critically review" reminders were zero-critique
+    proposals. Quality-class + BLOCK → Stop.py applies turn-mode suppression and
+    the regen circuit breaker, so it cannot nag on control turns or livelock.
+    """
+    from proposal_critique_gate import run as _proposal_critique_run
+
+    return _proposal_critique_run(data)
 
 
 def _run_epistemic_contract(data: dict) -> dict | None:
@@ -595,9 +639,10 @@ def _run_epistemic_contract(data: dict) -> dict | None:
         # Substantial final-answers (>100 words) are analytical and should use
         # [FACT]/[INFERENCE]/[UNKNOWN]/[RECOMMENDATION] sections.
         if effective_mode == "final-answer":
-            cfg_dict = cfg.__dict__.copy()
-            cfg_dict["sectional_response_required"] = True
-            cfg = EpistemicConfig(**cfg_dict)
+            # Set as dynamic attribute (read via getattr in epistemic_validator);
+            # it is not an EpistemicConfig __init__ field. ponytail: matches how
+            # tool_transcript is assigned below.
+            cfg.sectional_response_required = True
         # Assemble tool_transcript from tool_events if not already populated.
         # This feeds the local-summary bypass predicate in epistemic_validator.
         if not data.get("tool_transcript"):
@@ -3403,6 +3448,7 @@ GATE_CLASSES: dict[str, str] = {
     "existence_gate": "quality",
     "lazy_workaround_gate": "quality",
     "semantic_critic": "quality",
+    "proposal_critique_gate": "quality",
     "task_contract_fit": "quality",
     "phase0_depends_on_skills": "quality",
     "acknowledgment_loop": "policy",
@@ -3534,6 +3580,15 @@ def is_gate_applicable(
 _ALL_TURN_KINDS = frozenset(TurnKind)
 # Quality gates: primarily analysis and final-answer (high-stakes reasoning).
 _ANALYSIS_TURN_KINDS = frozenset({TurnKind.ANALYSIS, TurnKind.FINAL_ANSWER})
+# semantic_critic also evaluates turns that classify as UNKNOWN. turn_mode's
+# "meta"/"query"/"unknown" modes all collapse to TurnKind.UNKNOWN (see
+# _turn_mode_to_turn_kind), which the bare _ANALYSIS_TURN_KINDS set excluded —
+# silently skipping the critic on exactly the proposal/recommendation turns it
+# exists to catch. The critic self-scopes internally via _is_diagnostic_scope
+# (>50 words + diagnostic/evaluative keywords), so including UNKNOWN closes the
+# hole without making it fire on greetings/control turns and without widening
+# any other analysis-class gate.
+_ANALYSIS_OR_UNKNOWN_TURN_KINDS = _ANALYSIS_TURN_KINDS | frozenset({TurnKind.UNKNOWN})
 _ALL_CLAIM_KINDS = frozenset(ClaimKind)
 
 GATE_METADATA: dict[str, dict] = {
@@ -3792,10 +3847,29 @@ GATE_METADATA: dict[str, dict] = {
     "semantic_critic": {
         "class": "quality", "trivial_suppressible": True, "priority": 60,
         "description": "Semantic critic",
-        "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
+        "relevant_turn_kinds": _ANALYSIS_OR_UNKNOWN_TURN_KINDS,
         "relevant_claim_kinds": _ALL_CLAIM_KINDS,
         "required_artifact_classes": frozenset(),
-        "rollout_mode": RolloutMode.ADVISORY,
+        # BLOCK = scoped self-critique enforcement. _run_semantic_critic only
+        # escalates the high-signal profiles (evaluative_recommendation,
+        # software_rca) to a one-shot block; general_diagnostic stays advisory.
+        # Revert to pure advisory without code change:
+        #   STOP_GATE_ROLLOUT_SEMANTIC_CRITIC=advisory
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "proposal_critique_gate": {
+        "class": "quality", "trivial_suppressible": True, "priority": 72,
+        "description": "Block proposals presented with no self-critique (presence check)",
+        # Includes PLAN: proposals frequently arrive on plan turns ("what should we
+        # do?" → "I recommend X"). Verified 2026-06-21 that such a turn classified
+        # as PLAN and was silently skipped under the analysis/unknown-only set.
+        "relevant_turn_kinds": _ANALYSIS_OR_UNKNOWN_TURN_KINDS | frozenset({TurnKind.PLAN}),
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        # BLOCK = deterministic presence enforcement. Quality-class, so turn-mode
+        # suppression + regen circuit breaker bound it. Disable without code:
+        #   PROPOSAL_CRITIQUE_GATE_ENABLED=false  (one-turn: --skip-critique-gate)
+        "rollout_mode": RolloutMode.BLOCK,
     },
     "task_contract_fit": {
         "class": "quality", "trivial_suppressible": True, "priority": 61,
@@ -3939,6 +4013,7 @@ IN_PROCESS_GATES = [
     ("recommendation_gate", _run_recommendation_gate),
     ("intent_artifact_alignment", _run_intent_artifact_alignment),
     ("semantic_critic", _run_semantic_critic),
+    ("proposal_critique_gate", _run_proposal_critique_gate),
     ("task_contract_fit", _run_task_contract_fit_gate),
     ("task_contract_fit_v2", _run_task_contract_fit_gate_v2),  # shadow mode by default
     (
@@ -4471,144 +4546,6 @@ def _is_known_fixed_legacy(err_type: str, err_msg: str) -> bool:
     return False
 
 
-def get_hook_health_summary(session_id: str | None = None) -> dict | None:
-    """Get hook health summary for display.
-
-    Args:
-        session_id: Optional session ID for alert deduplication
-
-    Returns:
-        Dict with health summary or None if no issues
-    """
-    hooks_dir = HOOKS_DIR
-    health_file = hooks_dir / "logs" / "diagnostics" / "hook_health.json"
-    cc_errors_log = hooks_dir / "logs" / "diagnostics" / "cc_errors.jsonl"
-
-    # Check health file for current failures
-    failing_hooks = 0
-    failures = []
-    if health_file.exists():
-        try:
-            health_data = json.loads(health_file.read_text())
-            if health_data.get("status") == "fail":
-                failures = health_data.get("failures", [])
-                failing_hooks = len(failures)
-        except Exception:
-            pass
-
-    # Check cc_errors for last hour error count
-    # Classify events: timeouts are expected operational events, not failures.
-    # Real failures = hook load/execute/runtime errors (not timeout events).
-    errors_last_hour, real_failures_last_hour, expected_ops_last_hour, known_fixed_last_hour = _classify_error_events(
-        cc_errors_log
-    )
-    error_threshold = int(os.environ.get("CC_ERRORS_THRESHOLD", "5"))
-
-    # Return summary if there are issues
-    # Alert on real failures (load/execute/runtime), not expected timeouts.
-    # `errors_last_hour` is total for display; `real_failures_last_hour` drives alert.
-    if failing_hooks > 0 or real_failures_last_hour > error_threshold:
-        summary = {
-            "failing_hooks": failing_hooks,
-            "errors_last_hour": errors_last_hour,
-            "real_failures_last_hour": real_failures_last_hour,
-            "expected_timeouts_last_hour": expected_ops_last_hour,
-            "known_fixed_last_hour": known_fixed_last_hour,
-            "alert": True,
-            "failures": failures[:3],  # Show first 3 failures
-        }
-
-        # Alert deduplication: check if this alert was already shown in session
-        if session_id:
-            alert_signature = _compute_alert_signature(summary)
-            if _was_alert_already_shown(session_id, alert_signature):
-                # Alert already shown, suppress it
-                return None
-            # Mark this alert as shown
-            _mark_alert_shown(session_id, alert_signature)
-
-        return summary
-
-    return None
-
-
-def _compute_alert_signature(summary: dict) -> str:
-    """Compute a signature for alert deduplication.
-
-    Args:
-        summary: Health summary dict
-
-    Returns:
-        Signature string for this alert
-    """
-    # Signature based on failing hooks and error count
-    # Two alerts are identical if they have the same failing hooks and error count
-    failures = summary.get("failures", [])
-    failures_str = ",".join(sorted(failures))
-    errors = summary.get("errors_last_hour", 0)
-    return f"{failures_str}|{errors}"
-
-
-def _get_alert_state_path(session_id: str) -> Path:
-    """Get state file path for alert deduplication.
-
-    Args:
-        session_id: Session identifier
-
-    Returns:
-        Path to state file
-    """
-    state_dir = HOOKS_DIR / "state"
-    state_dir.mkdir(parents=True, exist_ok=True)
-    return state_dir / f"shown_health_alerts_{session_id}.json"
-
-
-def _was_alert_already_shown(session_id: str, alert_signature: str) -> bool:
-    """Check if alert was already shown in this session.
-
-    Args:
-        session_id: Session identifier
-        alert_signature: Alert signature to check
-
-    Returns:
-        True if alert was already shown
-    """
-    state_file = _get_alert_state_path(session_id)
-    if not state_file.exists():
-        return False
-
-    try:
-        state_data = json.loads(state_file.read_text())
-        shown_alerts = state_data.get("shown_alerts", [])
-        return alert_signature in shown_alerts
-    except Exception:
-        return False
-
-
-def _mark_alert_shown(session_id: str, alert_signature: str) -> None:
-    """Mark an alert as shown in this session.
-
-    Args:
-        session_id: Session identifier
-        alert_signature: Alert signature to mark
-    """
-    state_file = _get_alert_state_path(session_id)
-    try:
-        if state_file.exists():
-            state_data = json.loads(state_file.read_text())
-        else:
-            state_data = {"shown_alerts": []}
-
-        shown_alerts = state_data.get("shown_alerts", [])
-        if alert_signature not in shown_alerts:
-            shown_alerts.append(alert_signature)
-            state_data["shown_alerts"] = shown_alerts
-            state_file.write_text(json.dumps(state_data, indent=2))
-    except Exception:
-        # Fail silently - state tracking is optional
-        pass
-
-
 def main():
     global _critical_gate_failed_this_turn, _policy_block_this_turn
     _critical_gate_failed_this_turn = False  # reset per turn
@@ -4922,44 +4859,38 @@ def main():
             else:
                 output["systemMessage"] = _contract_status
 
-    # Hook Health Summary (NEW)
-    session_id = data.get("session_id") or data.get("sessionId") or data.get("CLAUDE_SESSION_ID")
-    health_summary = get_hook_health_summary(session_id=session_id)
-    if health_summary and health_summary.get("alert"):
-        real_fails = health_summary.get("real_failures_last_hour", 0)
-        exp_timeouts = health_summary.get("expected_timeouts_last_hour", 0)
-        total_err = health_summary.get("errors_last_hour", 0)
-        alert_lines = [
-            "=" * 60,
-            "⚠️  HOOK HEALTH ALERT",
-            "=" * 60,
-            f"Failing hooks: {health_summary['failing_hooks']}",
-            f"Real failures (1h): {real_fails}  |  "
-            f"Expected timeouts (1h): {exp_timeouts}  |  "
-            f"Total logged errors: {total_err}",
-        ]
 
-        if health_summary.get("failures"):
-            alert_lines.append("\nFailing hooks:")
-            for failure in health_summary["failures"]:
-                alert_lines.append(f"  • {failure}")
-
-        alert_lines.extend(
-            [
-                "\nNext steps:",
-                "  Run: python P:/.claude/hooks/hook_audit_dashboard.py health",
-                "  Or:  python P:/.claude/hooks/hook_diagnostics.py",
-                "=" * 60,
-            ]
-        )
-
-        alert_message = "\n".join(alert_lines)
-
-        # Append to existing system message or create new one
-        if "systemMessage" in output:
-            output["systemMessage"] = output["systemMessage"] + "\n\n" + alert_message
-        else:
-            output["systemMessage"] = alert_message
+    # Runtime failure alert: inject on blocks if real failures exceeded threshold.
+    # Only reads cc_errors.jsonl (runtime telemetry), never hook_health.json (startup data).
+    if _is_blocking:
+        cc_errors_log = HOOKS_DIR / "logs" / "diagnostics" / "cc_errors.jsonl"
+        try:
+            errors_last_hour, real_failures_last_hour, expected_ops_last_hour, known_fixed_last_hour = _classify_error_events(
+                cc_errors_log
+            )
+            error_threshold = int(os.environ.get("CC_ERRORS_THRESHOLD", "5"))
+            if real_failures_last_hour > error_threshold:
+                alert_lines = [
+                    "=" * 60,
+                    "⚠️  HOOK HEALTH ALERT",
+                    "=" * 60,
+                    f"Real failures (1h): {real_failures_last_hour}",
+                    f"Expected timeouts (1h): {expected_ops_last_hour}",
+                    f"Total logged errors: {errors_last_hour}",
+                    "",
+                    "Next steps:",
+                    "  Run: python P:/.claude/hooks/hook_audit_dashboard.py health",
+                    "  Or:  python P:/.claude/hooks/hook_diagnostics.py",
+                    "=" * 60,
+                ]
+                alert_message = "\n".join(alert_lines)
+                if "systemMessage" in output:
+                    output["systemMessage"] = output["systemMessage"] + "\n\n" + alert_message
+                else:
+                    output["systemMessage"] = alert_message
+        except Exception:
+            # Fail open — runtime alert injection should never block processing
+            pass
 
     # Ensure advisory-only responses never misread as blocks.
     # A Stop hook returning {"systemMessage": "..."} with no continue/decision

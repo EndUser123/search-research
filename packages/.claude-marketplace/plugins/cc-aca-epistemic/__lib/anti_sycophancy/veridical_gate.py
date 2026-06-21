@@ -199,11 +199,18 @@ def check_veridical_integrity(
     transcript: str,
     session_key: str,
     mistral_api_key: str = "",
+    timeout_sec: Optional[int] = None,
 ) -> Optional[dict]:
     """Main entry point for veridical integrity checking.
 
     Returns None to allow (no opinion), or a dict with allow/reason.
     Called by Stop_semantic_critic.py before the diagnostic scope gate.
+
+    timeout_sec: caller-supplied Mistral budget. The critic passes its
+      hook-coherent VERIDICAL_BUDGET_SEC here so this gate (which runs FIRST,
+      sequentially, on the same time-boxed Stop hook) cannot consume the whole
+      outer timeout and hard-kill the subprocess before the critic's subagent
+      fallback runs. Falls back to the module default only for standalone use.
     """
     # Disabled by default -- inert until benchmarked and explicitly enabled.
     if not _gate_enabled():
@@ -261,7 +268,7 @@ def check_veridical_integrity(
             ],
             temperature=0.2,
             reasoning_effort="high",
-            timeout_ms=VERIDICAL_TIMEOUT_SEC * 1000,
+            timeout_ms=(timeout_sec if timeout_sec is not None else VERIDICAL_TIMEOUT_SEC) * 1000,
         )
 
         if not response or not response.choices:

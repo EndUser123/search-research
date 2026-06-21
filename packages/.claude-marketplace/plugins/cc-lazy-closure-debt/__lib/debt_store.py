@@ -115,6 +115,51 @@ def append_deferral(
         os.fsync(f.fileno())
 
 
+def resolve_deferral(
+    terminal_id: str,
+    fingerprint: str,
+    state_root: Optional[Path] = None,
+) -> None:
+    """Mark a deferral fingerprint as formalized by appending a tombstone.
+
+    Append-only, mirroring append_deferral's concurrency model (no rewrite of
+    existing lines, so concurrent Stop-hook appends never race). Once a tombstone
+    exists for a fingerprint, recent_deferrals() filters out the matching
+    deferral, so a phrase that has been turned into a task stops re-surfacing on
+    every UserPromptSubmit (the duplicate-task root cause).
+    """
+    tid = _safe_id(terminal_id or _get_terminal_id())
+    path = _get_state_path(tid, state_root)
+    now = int(time.time())
+    record = {
+        "ts": now,
+        "ts_ms": int(time.time() * 1000),
+        "seq": _next_seq(),
+        "terminal_id": tid,
+        "kind": "tombstone",
+        "resolved_fingerprint": str(fingerprint),
+    }
+    with open(path, "a", encoding="utf-8") as f:
+        f.write(json.dumps(record, ensure_ascii=True))
+        f.write("\n")
+        f.flush()
+        os.fsync(f.fileno())
+
+
+def resolve_deferral_by_phrase(
+    terminal_id: str,
+    phrase: str,
+    state_root: Optional[Path] = None,
+) -> None:
+    """Resolve a deferral by its phrase (fingerprints it first).
+
+    Convenience for callers that only have the human phrase (e.g. the
+    PostToolUse hook reading a "Deferral: <phrase>" task subject). Normalization
+    is deterministic, so the fingerprint matches the one stored at append time.
+    """
+    resolve_deferral(terminal_id, _fingerprint_phrase(phrase), state_root)
+
+
 def recent_deferrals(
     terminal_id: str,
     max_age_h: float = 24.0,
@@ -133,6 +178,7 @@ def recent_deferrals(
     cutoff = int(time.time()) - int(max_age_h * 3600)
 
     items: list[dict] = []
+    resolved: set[str] = set()
     try:
         with open(path, "r", encoding="utf-8") as f:
             for line in f:
@@ -145,6 +191,13 @@ def recent_deferrals(
                     continue
                 if not isinstance(obj, dict):
                     continue
+                # Tombstone records mark a deferral as formalized (turned into a
+                # task). Honor them regardless of age so a resolved phrase never
+                # re-surfaces, even if its original line is still inside the window.
+                fp_resolved = obj.get("resolved_fingerprint")
+                if fp_resolved:
+                    resolved.add(str(fp_resolved))
+                    continue
                 ts = int(obj.get("ts", 0))
                 if ts >= cutoff:
                     items.append(obj)
@@ -152,6 +205,16 @@ def recent_deferrals(
         return []
 
     grouped = _dedupe_deferrals(items)
+    if resolved:
+        grouped = [
+            g
+            for g in grouped
+            if str(
+                g.get("fingerprint")
+                or _fingerprint_phrase(str(g.get("phrase", "")))
+            )
+            not in resolved
+        ]
     # Newest first; use last_ts_ms for sub-second precision, then seq as tiebreaker
     grouped.sort(
         key=lambda r: (

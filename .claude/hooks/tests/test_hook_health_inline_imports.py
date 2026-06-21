@@ -19,6 +19,7 @@ import unittest
 from SessionStart_hook_health_check import (  # noqa: E402
     _collect_router_hooks,
     _collect_orphan_hooks,
+    _exempt_stop_imports,
 )
 
 
@@ -112,6 +113,48 @@ class TestOrphanFalsePositiveRepro:
         # The two genuinely dead files MUST still appear as orphan.
         assert "PostToolUse_adversarial_aggregate.py" in orphan_names
         assert "PostToolUse_artifact_scraper.py" in orphan_names
+
+
+class TestStopDirectImportExemption(unittest.TestCase):
+    """Stop.py directly imports Stop_* modules; they are not ORPHAN."""
+
+    def test_stop_aggregator_exempted(self):
+        """Stop_aggregator.py is imported directly in Stop.py.
+        It must be removed from the orphan list by _exempt_stop_imports().
+        """
+        # Sample orphan names (simulating _collect_orphan_hooks output)
+        orphan_names = [
+            "Stop_aggregator.py",
+            "Stop_artifact_enforcement.py",
+            "Stop_subagent_opportunity.py",
+            "PostToolUse_foo.py",  # Not a Stop_* module
+        ]
+
+        # Apply exemption
+        exempted = _exempt_stop_imports(orphan_names)
+
+        # Stop_* direct imports should be removed
+        assert "Stop_aggregator.py" not in exempted
+        assert "Stop_artifact_enforcement.py" not in exempted
+        assert "Stop_subagent_opportunity.py" not in exempted
+
+        # Non-Stop_* modules should remain
+        assert "PostToolUse_foo.py" in exempted
+
+    def test_non_stop_orphans_unaffected(self):
+        """Non-Stop_* orphans should not be affected by exemption."""
+        orphan_names = [
+            "PostToolUse_dead.py",
+            "PreToolUse_unused.py",
+            "SessionStart_old.py",
+        ]
+
+        exempted = _exempt_stop_imports(orphan_names)
+
+        # All should remain (none are direct Stop.py imports)
+        assert len(exempted) == len(orphan_names)
+        for name in orphan_names:
+            assert name in exempted
 
 
 if __name__ == "__main__":

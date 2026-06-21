@@ -18,6 +18,8 @@ from __lib.debt_store import (  # noqa: E402  # __lib__ is the plugin's lib pack
     recent_deferrals,
     clear_terminal,
     list_terminals,
+    resolve_deferral,
+    resolve_deferral_by_phrase,
 )
 
 
@@ -111,3 +113,39 @@ class TestClear:
         terms = list_terminals(state_root=tmp_path)
         assert "termA" in terms
         assert "termB" in terms
+
+
+class TestResolve:
+    """Tombstone-based resolution — the fix for duplicate-task re-firing."""
+
+    def test_resolve_by_phrase_stops_resurfacing(self, tmp_path: Path):
+        append_deferral("termR", "defer that", "", state_root=tmp_path)
+        assert len(recent_deferrals("termR", state_root=tmp_path)) == 1
+        resolve_deferral_by_phrase("termR", "defer that", state_root=tmp_path)
+        assert recent_deferrals("termR", state_root=tmp_path) == []
+
+    def test_resolve_only_clears_matching_phrase(self, tmp_path: Path):
+        append_deferral("termR", "defer that", "", state_root=tmp_path)
+        append_deferral("termR", "look into caching later", "", state_root=tmp_path)
+        resolve_deferral_by_phrase("termR", "defer that", state_root=tmp_path)
+        items = recent_deferrals("termR", state_root=tmp_path, max_count=10)
+        assert [it["phrase"] for it in items] == ["look into caching later"]
+
+    def test_resolve_survives_phrase_normalization(self, tmp_path: Path):
+        # Stored phrase and the task-subject phrase differ only by surrounding
+        # quotes/whitespace/case; normalization must collapse them to one fp.
+        append_deferral("termR", "Defer That", "", state_root=tmp_path)
+        resolve_deferral_by_phrase("termR", '  "defer that"  ', state_root=tmp_path)
+        assert recent_deferrals("termR", state_root=tmp_path) == []
+
+    def test_resolve_by_fingerprint_directly(self, tmp_path: Path):
+        from __lib.debt_store import _fingerprint_phrase
+        append_deferral("termR", "we can address that later", "", state_root=tmp_path)
+        fp = _fingerprint_phrase("we can address that later")
+        resolve_deferral("termR", fp, state_root=tmp_path)
+        assert recent_deferrals("termR", state_root=tmp_path) == []
+
+    def test_tombstone_does_not_count_as_deferral(self, tmp_path: Path):
+        # Resolving a phrase that was never appended must not itself surface.
+        resolve_deferral_by_phrase("termR", "never deferred", state_root=tmp_path)
+        assert recent_deferrals("termR", state_root=tmp_path) == []

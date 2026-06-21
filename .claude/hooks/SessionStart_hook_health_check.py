@@ -85,6 +85,29 @@ _ROUTER_FILES = frozenset(
 _HOOK_SUBDIRS = frozenset(["PreToolUse", "stop", "posttooluse", "UserPromptSubmit_modules"])
 
 
+def _exempt_stop_imports(orphan_names: list[str]) -> list[str]:
+    """Remove Stop.py direct imports from orphan list.
+
+    Stop.py imports modules directly (e.g., Stop_aggregator, Stop_artifact_enforcement).
+    These are not registered in router.json but are wired via import, not false orphans.
+    """
+    stop_py = HOOKS_DIR / "Stop.py"
+    if not stop_py.exists():
+        return orphan_names
+
+    try:
+        stop_content = stop_py.read_text(encoding="utf-8")
+        # Match: "from Stop_foo import" or "import Stop_foo"
+        import_pattern = re.compile(r"from\s+(Stop_\w+)|import\s+(Stop_\w+)", re.MULTILINE)
+        direct_imports = set(m.group(1) or m.group(2) for m in import_pattern.finditer(stop_content))
+
+        # Remove orphans that match direct imports
+        return [name for name in orphan_names
+                if not any(imp in name for imp in direct_imports)]
+    except Exception:
+        return orphan_names  # Fail open
+
+
 def _snake_to_filename(snake_case: str) -> str:
     """Convert snake_case to PascalCase filename convention.
 
@@ -452,8 +475,10 @@ def main() -> int:
 
     # Orphan detection: warn about hook files not in any registry
     orphans = _collect_orphan_hooks(files)
-    for orphan in orphans:
-        failures.append(f"ORPHAN: {orphan.name} (not in router registry)")
+    orphan_names = [o.name for o in orphans]
+    orphan_names = _exempt_stop_imports(orphan_names)  # Exempt Stop.py direct imports
+    for name in orphan_names:
+        failures.append(f"ORPHAN: {name} (not in router registry)")
 
     report_path = None
     report_write_error = None
