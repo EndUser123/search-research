@@ -102,7 +102,7 @@ credential_filter: REDACT → "****" in output
 | `PreToolUse_tdd_gate.py` | PreToolUse | Requires tests before implementation | Writing code without test coverage |
 | `PreToolUse_hook_edit_gate.py` | PreToolUse | Requires testing before editing hooks | Modifying hook files without verification |
 | `PreToolUse_skill_pattern_gate.py` | PreToolUse | Validates skill execution patterns | Running skills with deprecated syntax |
-| `StopHook_skill_execution_gate.py` | Stop | Late violation safety net for skills | Skill execution bypassed earlier checks |
+| `skill-guard plugin: StopHook_skill_execution_gate.py` | Stop | Late violation safety net for skills (plugin-hosted) | Skill execution bypassed earlier checks |
 
 **Typical Flow**:
 ```

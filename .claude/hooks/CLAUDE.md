@@ -159,7 +159,7 @@ grep -n "UNIVERSAL\|TOOL_HOOKS" P:/.claude/hooks/PreToolUse.py | grep -i "your_f
 - If partial blocking → fire Stop hook (genuine bypass or partial success)
 - If no tool attempts → fire Stop hook (genuine bypass)
 
-**Implementation**: See `P:/.claude/hooks/StopHook_skill_execution_gate.py` lines 854-873
+**Implementation**: See `packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/StopHook_skill_execution_gate.py` (the local `P:/.claude/hooks/` delegator wrapper was deleted; the live hook runs from the skill-guard plugin via its router)
 
 **Key invariant**: `len(_invoked) > 0` ensures we only suppress when tools were actually attempted. A turn with no tool attempts still triggers the block normally.
 
@@ -488,7 +488,7 @@ Source: plan-20260312-anti-laziness-arch-verification.md
 | `PreToolUse_credential_filter.py`      | Credential leakage prevention        | safety-hooks    | ❌ None |
 | `recursive_failure_detector.py`        | Catch-22 detection                   | CLAUDE.md       | ❌ None |
 | `runaway_session_detector.py`          | Runaway session detection (Stop)      | safety-hooks    | ❌ None |
-| `StopHook_skill_execution_gate.py`     | **Skill execution v3.5 - Three-layer defense with instruction format + bypass detection** | plan-20260312 | ❌ None |
+| `skill-guard plugin: StopHook_skill_execution_gate.py`     | **Skill execution v3.5 - Three-layer defense with instruction format + bypass detection** (runs from skill-guard plugin via its router, not a local hook) | plan-20260312 | ❌ None |
 | `StopHook_spec_compliance.py`          | Spec deviation detection             | CLAUDE.md       | ❌ None |
 | `StopHook_reality_check.py`            | Reality verification, dead code      | CLAUDE.md       | ❌ None |
 | `StopHook_cross_validator.py`          | Empirical verification for "fixed" claims | Settings  | ❌ None |
@@ -986,7 +986,7 @@ All tests pass: 25/25 tests in 0.68s
 - **Effectiveness**: ~50% improvement over suggestion format (based on Scott Spense testing)
 
 **Layer 2: Bypass Detection** (Stop)
-- **Implementation**: `StopHook_skill_execution_gate.py` (v3.4 from archive)
+- **Implementation**: `packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/StopHook_skill_execution_gate.py` (lives in the skill-guard plugin; the local delegator wrapper was deleted)
 - **Mechanism**: Detects when user types `/command` but AI responds with prose instead of executing
 - **Detection**: Extracts user prompt from transcript, checks if slash command was ignored
 - **Two-Strike Pattern**: Advisory on first bypass, hard block on second

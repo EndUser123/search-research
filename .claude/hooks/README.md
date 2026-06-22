@@ -628,7 +628,7 @@ Detailed architectural patterns for these hooks (Regex, TAV, AST, etc.) are docu
 | `architecture_evidence_gate.py` | 5s | **Block architecture proposals without evidence** |
 | `StopHook_cross_validator.py` | 5s | **Enforce empirical verification for "fixed" claims** |
 | `StopHook_unverified_stance.py` | 5s | **Detect skeptical language without verification evidence** (anti-sycophancy: "that sounds high", "let me verify" without actual verification) |
-| `Stop/StopHook_skill_execution_gate.py` | 5s | **Skill Enforcement v3.2: Late violation safety net** |
+| `skill-guard plugin: StopHook_skill_execution_gate.py` | 5s | **Skill Enforcement v3.2: Late violation safety net** (plugin-hosted; local delegator wrapper deleted) |
 | `Stop_router.py` | 5s | Route to validation sub-hooks |
 | `assumption_audit_v2.py` | 10s | **Audit retrospective claims without evidence (session/terminal-filtered tool evidence)** |
 | `auto_commit_hook.py` | 10s | Auto-commit successful changes |
@@ -719,7 +719,7 @@ CONFIDENCE_VALIDATOR_ENABLED=false # Enable confidence ceiling validation
 - `PreToolUse/PreToolUse_skill_pattern_gate.py` (PRIMARY)
 - `skill_enforcement_gate.py` (general gate)
 - `posttooluse/v_state_tracker_hook.py` (state tracking)
-- `Stop/StopHook_skill_execution_gate.py` (SAFETY NET)
+- `skill-guard plugin: StopHook_skill_execution_gate.py` (SAFETY NET)
 
 **Plan:** [skill_execution_enforcement_v3.2.md](skill_execution_enforcement_v3.2.md)
 

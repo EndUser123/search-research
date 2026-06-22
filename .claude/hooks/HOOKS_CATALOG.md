@@ -189,7 +189,7 @@ Consolidates write-specific validation hooks
 | `architecture_evidence_gate.py` | Yes | - | -1 | Conditional block: architecture proposals without this-turn observation tools |
 | `StopHook_cross_validator.py` | Yes | - | -1 | Block 'fixed' claims without empirical verification |
 | `StopHook_unverified_stance.py` | Yes | - | -1 | Detect skeptical language without verification evidence (anti-sycophancy) |
-| `Stop/StopHook_skill_execution_gate.py` | Yes | - | -3 | Skill execution verification (prevents substitution) |
+| `skill-guard plugin: StopHook_skill_execution_gate.py` | Yes | Plugin router | -3 | Skill execution verification (prevents substitution) — runs from the skill-guard plugin; local delegator wrapper deleted |
 | `StopHook_duplicate_next_steps.py` | Yes | Router | 0 | Detect and warn about duplicate "Next Steps" sections in output |
 | `Stop_router.py` | Yes | Router v1.1 | 0 | **Consolidated router** - See details below |
 | `assumption_audit_v2.py` | Yes | - | 5 | Assumption audit comparison (session/terminal-filtered evidence window) |
@@ -200,7 +200,7 @@ Consolidates 20+ hooks in priority order:
 
 | Hook Module | Env Var Toggle | Default | Description |
 |-------------|----------------|---------|-------------|
-| `StopHook_skill_execution_gate.py` | SKILL_EXECUTION_GATE_ENABLED | true | Skill execution verification (prevents substitution) |
+| `skill-guard plugin: StopHook_skill_execution_gate.py` | SKILL_EXECUTION_GATE_ENABLED | true | Skill execution verification (prevents substitution) — plugin-hosted |
 | `assumption_audit_v2.py` | ASSUMPTION_AUDIT_V2_ENABLED | true | Blocking assumption audit (v2) |
 | `StopHook_reflexion_validator.py` | REFLEXION_VALIDATOR_ENABLED | true | Multi-pass verification loop |
 | `Stop_pre_clarification_gate.py` | PRE_CLARIFICATION_GATE_ENABLED | true | Pre-response clarification |
@@ -592,7 +592,7 @@ To register a module in `UserPromptSubmit_router.py`:
 |------|-------|---------|
 | `skill_enforcement_gate.py` | PreToolUse | Block non-Skill tools when slash command pending |
 | `UserPromptSubmit/router.py` (skill_enforcement) | UserPromptSubmit | Slash command detection with pre-execution (loads skill file directly) |
-| `Stop/StopHook_skill_execution_gate.py` | Stop | Skill execution verification (prevents substitution) |
+| `skill-guard plugin: StopHook_skill_execution_gate.py` | Stop | Skill execution verification (prevents substitution) — plugin-hosted |
 | `PreToolUse/PreToolUse_skill_pattern_gate.py` | PreToolUse | **Skill pattern gate v3.2** - Parallel regex + daemon validation |
 | `skills/v/hooks/PostToolUse_v_session_marker.py` | PostToolUse | Create session marker when /v skill invoked |
 | `skills/v/hooks/PostToolUse_v_init.py` | PostToolUse | Initialize /v workflow state |
@@ -788,7 +788,7 @@ graph TD
 
 | Env Var | Hook | Default |
 |---------|------|---------|
-| `SKILL_EXECUTION_GATE_ENABLED` | StopHook_skill_execution_gate.py | true |
+| `SKILL_EXECUTION_GATE_ENABLED` | skill-guard plugin: StopHook_skill_execution_gate.py | true |
 | `ASSUMPTION_AUDIT_V2_ENABLED` | assumption_audit_v2.py | true |
 | `REFLEXION_VALIDATOR_ENABLED` | StopHook_reflexion_validator.py | false |
 | `PRE_CLARIFICATION_GATE_ENABLED` | Stop_pre_clarification_gate.py | true |
@@ -880,7 +880,7 @@ P:\.claude\hooks\
 │   ├── doc_cks_ingester.py
 │   └── ...
 ├── Stop/                            # Stop-specific hooks
-│   └── StopHook_skill_execution_gate.py
+│   └── (skill_execution_gate moved to skill-guard plugin)
 ├── session_data/                    # Runtime state
 │   ├── hook_decisions_*.jsonl       # Decision logs
 │   └── ...
