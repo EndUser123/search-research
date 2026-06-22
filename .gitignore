@@ -387,6 +387,9 @@ Desktop.ini
 
 # Plugin development (any project)
 *_plugin.py
+# ...but keep plugin test files under version control (the *_plugin.py
+# glob above would otherwise swallow tests like test_epistemic_plugin.py).
+!**/tests/test_*_plugin.py
 */plugins/custom/
 
 # Test files and temporary data
