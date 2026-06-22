@@ -2,24 +2,15 @@
 """Delegates to cc-aca-epistemic plugin. Exposes run() for in-process callers.
 
 Loaded by Stop.py via `from StopHook_cross_validator import run as cross_validate`.
-The shim is also a registered in Stop.py's in-process gate pipeline; standalone
-script invocation (the old hook_runner.py path) is no longer wired in settings.
+Path resolution is shared with the subprocess stub wrappers
+(compat_loader.resolve_plugin_hook), so a plugin move/rename updates one place
+instead of a hardcoded absolute path here. Standalone script invocation (the old
+hook_runner.py path) is no longer wired in settings.
 """
-import importlib.util
 import sys
-from pathlib import Path
 
-_PLUGIN_HOOK = Path(
-    "P:/packages/.claude-marketplace/plugins/cc-aca-epistemic/hooks/stop/StopHook_cross_validator.py"
-)
-_spec = importlib.util.spec_from_file_location(
-    "cc_aca_epistemic_cross_validator", _PLUGIN_HOOK
-)
-assert _spec is not None and _spec.loader is not None, (
-    f"Failed to build import spec for {_PLUGIN_HOOK}"
-)
-_mod = importlib.util.module_from_spec(_spec)
-sys.modules[_spec.name] = _mod
-_spec.loader.exec_module(_mod)
+sys.path.insert(0, "P:/packages/.claude-marketplace/plugins/cc-aca-epistemic/__lib")
+from compat_loader import load_module
 
-run = _mod.run  # re-export for `from StopHook_cross_validator import run`
+# Re-export for `from StopHook_cross_validator import run`.
+run = load_module(__file__).run

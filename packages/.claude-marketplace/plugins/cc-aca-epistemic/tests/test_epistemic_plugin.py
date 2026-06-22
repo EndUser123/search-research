@@ -129,18 +129,20 @@ class TestCompatibilityWrappers:
     def test_wrapper_loadable(self, wrapper_path: Path) -> None:
         """Load the wrapper via importlib and verify it delegates to the plugin hook.
 
-        Two valid delegation patterns exist:
+        Two valid delegation patterns exist, each with a specific entry symbol
+        (checked precisely per wrapper via _EXPECTED_ENTRY):
         - Subprocess-stub wrappers import ``compat_loader.delegate`` (runpy the
           plugin hook as __main__, reading stdin). Most wrappers use this.
         - In-process gate wrappers re-export ``run`` from the plugin hook because
           Stop.py imports them directly (``from StopHook_cross_validator import run``).
-          The compat_loader stub cannot be used here: it exposes no ``run`` and
-          would execute the script at import time. StopHook_cross_validator.py is
-          this case.
+          The compat_loader.delegate stub cannot be used here: it exposes no ``run``
+          and would execute the script at import time. Such wrappers instead use
+          ``compat_loader.load_module`` to import the plugin hook and re-export run.
+          StopHook_cross_validator.py is this case.
 
-        We verify the wrapper exposes one of these (delegate or run) and do NOT
-        call it (calling would execute the hook script which reads stdin - blocked
-        by pytest capture).
+        We verify the wrapper exposes its expected entry symbol and do NOT call it
+        (calling would execute the hook script which reads stdin - blocked by
+        pytest capture).
 
         Known gap: PreToolUse_evidence_hierarchy_gate imports artifact_ledger
         from __lib__/ but the plugin hook path setup does not add __lib__/ to
@@ -171,17 +173,17 @@ class TestCompatibilityWrappers:
                 )
             raise
 
-        # Verify the wrapper delegates: either via compat_loader.delegate (stub
-        # pattern) or by re-exporting run (in-process gate pattern). We do NOT
-        # call either - that would execute the hook script which reads stdin,
-        # triggering pytest's capture protection.
-        entry = next(
-            (name for name in ("delegate", "run") if callable(getattr(mod, name, None))),
-            None,
-        )
-        assert entry is not None, (
-            f"Wrapper {wrapper_path.name} must delegate via compat_loader.delegate "
-            f"or re-export a callable run(). Attributes: {dir(mod)}"
+        # Verify the wrapper exposes its expected delegation entry. We do NOT call
+        # it - that would execute the hook script which reads stdin, triggering
+        # pytest's capture protection.
+        # In-process gate wrappers re-export run(); subprocess stubs expose delegate.
+        _EXPECTED_ENTRY = {
+            "StopHook_cross_validator.py": "run",
+        }
+        entry = _EXPECTED_ENTRY.get(wrapper_path.name, "delegate")
+        assert callable(getattr(mod, entry, None)), (
+            f"Wrapper {wrapper_path.name} must expose a callable {entry!r}. "
+            f"Attributes: {dir(mod)}"
         )
 
 
