@@ -4,7 +4,7 @@ Detects whether a regex match in text falls inside quoted content (fenced code
 blocks, blockquotes, inline backticks, or prose double-quotes). Used by Stop gates
 that match prose patterns to filter out use/mention false positives: when the model
 discusses a trigger phrase (e.g., "deletes files") inside quotes, it's not asserting
-the trigger — just discussing it.
+the trigger -- just discussing it.
 
 Pattern types exempt:
 - Fenced code blocks (triple backtick markers)
@@ -14,6 +14,12 @@ Pattern types exempt:
 """
 import re
 from typing import Iterator, Match, Pattern
+
+# Balanced single-line double-quote spans: ASCII "..." or curly U+201C...U+201D.
+# Matched LOCALLY (not via global open/close parity) so one stray/unbalanced quote
+# cannot mis-bracket the rest of the document. Bounded to a single line ([^...\n]):
+# multi-line prose quotes are rare; long quotes use blockquotes/fences (handled).
+_QUOTED_SPAN_RE = re.compile('"[^"\n]*"|“[^”\n]*”')
 
 
 def is_inside_quoted_content(text: str, match: Match) -> bool:
@@ -42,16 +48,13 @@ def is_inside_quoted_content(text: str, match: Match) -> bool:
         if bt_m.start() <= pos < bt_m.end():
             return True
 
-    # Prose double-quotes (ASCII " and Unicode U+201C/U+201D)
-    quote_pairs = []
-    for q_m in re.finditer(r'["""]', text):
-        if not quote_pairs or quote_pairs[-1][1] is not None:
-            quote_pairs.append([q_m.start(), None])
-        else:
-            quote_pairs[-1][1] = q_m.end()
-
-    for q_start, q_end in quote_pairs:
-        if q_end and q_start <= pos < q_end:
+    # Prose double-quotes: match BALANCED single-line spans LOCALLY, instead of the
+    # old global open/close parity. The parity scan paired quotes across the whole
+    # text, so a single stray/unbalanced quote earlier in the response flipped parity
+    # and exposed every later quoted span as "unquoted" (false positive). A span that
+    # forms no balanced pair is simply ignored and cannot corrupt the rest of the text.
+    for q_m in _QUOTED_SPAN_RE.finditer(text):
+        if q_m.start() <= pos < q_m.end():
             return True
 
     return False

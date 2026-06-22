@@ -18,7 +18,7 @@
     },
     {
       "name": "cc-skills-ai-api",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "description": "AI API integration skills for Claude Code",
       "source": "./plugins/cc-skills-ai-api",
       "keywords": [
@@ -170,7 +170,7 @@
     },
     {
       "name": "cc-aca-epistemic",
-      "version": "0.2.52",
+      "version": "0.2.56",
       "description": "ACA Epistemic plugin - evidence verification, claim validation, provenance tracking, anti-fabrication enforcement, and anti-sycophancy detection. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-epistemic",
       "keywords": [

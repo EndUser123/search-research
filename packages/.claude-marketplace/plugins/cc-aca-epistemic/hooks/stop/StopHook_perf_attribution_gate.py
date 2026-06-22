@@ -61,9 +61,12 @@ PERF_CLAIM_PATTERNS: list[re.Pattern] = [
     re.compile(r"\bdominates?\b", re.IGNORECASE),
     re.compile(r"\bdominated\s+by\b", re.IGNORECASE),
     re.compile(r"\bbottleneck\b", re.IGNORECASE),
-    # Throughput/latency language (when followed by confident attribution)
-    re.compile(r"\bthroughput\b.*\b(is|was|dominate|explain|cause)\b", re.IGNORECASE),
-    re.compile(r"\blatency\b.*\b(is|was|dominate|explain|cause)\b", re.IGNORECASE),
+    # Throughput/latency as the SUBJECT of an attribution verb. Verb must be
+    # ADJACENT (\s+), not separated by greedy .* — otherwise "...latency/tokens, so a
+    # heuristic that fires on everything is worse" matches "latency"..."is" across an
+    # unrelated clause (false positive on meta-discussion about performance).
+    re.compile(r"\bthroughput\s+(?:is|was|dominates?|explains?|causes?|caused)\b", re.IGNORECASE),
+    re.compile(r"\blatency\s+(?:is|was|dominates?|explains?|causes?|caused)\b", re.IGNORECASE),
     # Duration patterns paired with causal claims
     re.compile(r"~\d{3,}\s*s", re.IGNORECASE),  # ~480s (require 3+ digits; small estimates like ~10s are prose, not measurements)
     re.compile(r"\b\d+\s*seconds?\b.*(?:because|due to|caused by|explains|is the reason)", re.IGNORECASE),

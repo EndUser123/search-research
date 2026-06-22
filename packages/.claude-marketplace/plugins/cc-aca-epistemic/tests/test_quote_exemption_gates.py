@@ -59,11 +59,22 @@ class TestSharedPrimitive:
     def test_finditer_unquoted_counts_only_unquoted(self):
         p = re.compile("root cause", re.I)
         text = 'it said "root cause" but the real root cause is timeout'
-        assert len(finditer_unquoted(p, text)) == 1
+        assert len(list(finditer_unquoted(p, text))) == 1
 
     def test_has_unquoted_match_false_when_all_quoted(self):
         p = re.compile("root cause", re.I)
         assert has_unquoted_match(p, 'only "root cause" here') is False
+
+    def test_stray_quote_does_not_leak_across_lines(self):
+        # Regression (parity robustness): a lone unbalanced quote on an earlier
+        # line must NOT flip quote pairing for a genuinely-quoted citation on a
+        # later line. The old global-parity scan exposed the citation as unquoted;
+        # single-line balanced-span matching bounds the stray's effect to its line.
+        t, m = self._m(
+            'a stray " quote on line one\nthe survey says "root cause" clearly',
+            "root cause",
+        )
+        assert is_inside_quoted_content(t, m)
 
 
 class TestDiagnosticGate:

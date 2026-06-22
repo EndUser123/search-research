@@ -374,19 +374,175 @@ def _is_mcp_tool(tool_name: str) -> bool:
     return isinstance(tool_name, str) and tool_name.startswith("mcp__")
 
 
+def _resolve_terminal_id(data: dict) -> str:
+    """Resolve terminal_id from payload or environment."""
+    return str(
+        data.get("terminal_id")
+        or data.get("terminalId")
+        or os.environ.get("CLAUDE_TERMINAL_ID", "")
+    ).strip()
+
+
+def _is_block_decision(payload: dict) -> bool:
+    """Check if payload represents a block decision."""
+    return (
+        payload.get("decision") == "block"
+        or payload.get("block") is True
+        or payload.get("continue") is False
+        or (isinstance(payload.get("hookSpecificOutput"), dict)
+            and payload["hookSpecificOutput"].get("permissionDecision") == "deny")
+    )
+
+
+def _extract_nested_message(msg: str, blocking_hook: str = "") -> tuple[str, str]:
+    """Extract reason and blocking_hook from nested JSON message."""
+    if isinstance(msg, str) and msg.strip().startswith("{"):
+        try:
+            parsed = json.loads(msg)
+            if isinstance(parsed, dict):
+                msg = str(parsed.get("reason") or msg)
+                blocking_hook = str(parsed.get("blocking_hook") or blocking_hook)
+        except json.JSONDecodeError:
+            pass
+    return msg, blocking_hook
+
+
+def _decode_stderr(stderr: bytes) -> str:
+    """Decode subprocess stderr with error handling."""
+    return stderr.decode(errors="replace").strip() if stderr else ""
+
+
+def _get_state_dirs() -> tuple[Path, Path]:
+    """Return primary and fallback state directories."""
+    state_dir = HOOKS_DIR / "state"
+    fallback_dir = Path(os.environ.get("TEMP", "/tmp")) / "claude_hooks" / "state"
+    return state_dir, fallback_dir
+
+
+class IntentFileLookup:
+    """Finds pending skill intent files with format evolution support."""
+
+    # Format specification: (template, requires_session, description)
+    FORMATS = [
+        ("terminals/{tid}/pending_command_intent.json", False, "TASK-005+ per-terminal"),
+        ("terminals/{tid_stripped}/pending_command_intent.json", False, "TASK-005+ dash-stripped"),
+        ("pending_command_intent_{tid}.json", False, "flat terminal-scoped"),
+        ("pending_command_intent_{tid}_{sid}.json", True, "legacy session-scoped"),
+    ]
+
+    def __init__(self, state_dir: Path, fallback_dir: Path):
+        self.state_dir = state_dir
+        self.fallback_dir = fallback_dir
+
+    def _safe_terminals(self, terminal_id: str) -> list[str]:
+        """Return terminal_id variants for dash-stripped fallback."""
+        variants = [terminal_id]
+        if terminal_id.startswith("console_"):
+            hex_part = terminal_id[8:]  # strip "console_" prefix
+            stripped = f"console_{hex_part.replace('-', '')}"
+            if stripped != terminal_id:
+                variants.append(stripped)
+        return variants
+
+    def _candidates(self, terminal_id: str, session_id: str) -> list[tuple[Path, str]]:
+        """Generate all candidate (path, format_desc) tuples in priority order."""
+        candidates = []
+        safe_terminal = _safe_id(terminal_id or "unknown")
+        safe_session = _safe_id(session_id) if session_id else None
+
+        for tid_variant in self._safe_terminals(terminal_id):
+            for format_template, requires_session, format_desc in self.FORMATS:
+                if requires_session and not safe_session:
+                    continue
+                path_template = format_template.replace("{tid}", tid_variant)
+                for base in (self.state_dir, self.fallback_dir):
+                    candidates.append((base / path_template, format_desc))
+        return candidates
+
+    def find(self, terminal_id: str, session_id: str, max_retries: int = 4) -> tuple[Path | None, str]:
+        """Find the first existing intent file. Returns (path, format_desc)."""
+        for candidate_path, format_desc in self._candidates(terminal_id, session_id):
+            # Retry the entire exists-check-and-read cycle for TOCTOU protection
+            for attempt in range(max_retries):
+                try:
+                    # First check: does file exist?
+                    if not candidate_path.exists():
+                        # File doesn't exist, try next candidate
+                        break
+
+                    # File exists: try to read and validate
+                    content = candidate_path.read_text(encoding="utf-8")
+                    json.loads(content)  # Validate JSON
+                    return candidate_path, format_desc
+                except (FileNotFoundError, PermissionError):
+                    # TOCTOU race: file disappeared between exists() and read_text()
+                    # If we have retries left, try again. Otherwise, try next candidate.
+                    if attempt < max_retries - 1:
+                        time.sleep((100 * (2 ** attempt)) / 1000.0)
+                    else:
+                        break  # Exhausted retries, try next candidate
+                except (json.JSONDecodeError, OSError):
+                    # Corrupted file, skip to next candidate immediately
+                    break
+
+        return None, ""
+
+
+class IntentFileCleanup:
+    """Deletes pending skill intent files with skill-name verification."""
+
+    def __init__(self, state_dir: Path, fallback_dir: Path):
+        self.state_dir = state_dir
+        self.fallback_dir = fallback_dir
+        self.lookup = IntentFileLookup(state_dir, fallback_dir)
+
+    def delete_for_skill(self, terminal_id: str, session_id: str, skill_name: str) -> int:
+        """Delete intent files matching the specified skill. Returns count deleted."""
+        deleted = 0
+        safe_terminal = _safe_id(terminal_id or "unknown")
+        safe_session = _safe_id(session_id) if session_id else None
+
+        for candidate_path, _format_desc in self.lookup._candidates(terminal_id, session_id):
+            # Retry exists-check and read/delete cycle for TOCTOU protection
+            for attempt in range(4):  # Same retry count as find()
+                try:
+                    # Check if file exists
+                    if not candidate_path.exists():
+                        break  # File doesn't exist, try next candidate
+
+                    # File exists: read and verify skill
+                    content = candidate_path.read_text(encoding="utf-8")
+                    intent = json.loads(content)
+                    file_skill = str(intent.get("skill", "")).strip()
+
+                    if _skill_names_match(file_skill, skill_name):
+                        candidate_path.unlink(missing_ok=True)
+                        deleted += 1
+                        break  # Deletion succeeded, try next candidate
+                    else:
+                        break  # Wrong skill, don't delete, try next candidate
+                except (FileNotFoundError, PermissionError):
+                    # TOCTOU race: file disappeared during read/unlink
+                    if attempt < 3:
+                        time.sleep((100 * (2 ** attempt)) / 1000.0)
+                    else:
+                        break  # Exhausted retries, try next candidate
+                except (json.JSONDecodeError, OSError):
+                    # Corrupted file, skip to next candidate immediately
+                    break
+
+        return deleted
+
+
 def _write_grounded_artifact(data: dict, artifact: dict) -> str:
     """Write grounded artifact to terminal-scoped and session-scoped state file."""
     session_id = _resolve_session_id(data)
     safe_session = _safe_id(session_id or "unknown")
 
-    terminal_id = str(
-        data.get("terminal_id")
-        or data.get("terminalId")
-        or os.environ.get("CLAUDE_TERMINAL_ID", "")
-    ).strip()
+    terminal_id = _resolve_terminal_id(data)
     safe_terminal = _safe_id(terminal_id or "unknown")
 
-    state_dir = HOOKS_DIR / "state"
+    state_dir, _fallback_dir = _get_state_dirs()
     state_dir.mkdir(parents=True, exist_ok=True)
 
     artifact_path = state_dir / f"grounded_artifact_{safe_terminal}_{safe_session}.json"
@@ -397,8 +553,7 @@ def _write_grounded_artifact(data: dict, artifact: dict) -> str:
 def _degraded_state_paths(session_id: str, terminal_id: str = "") -> tuple[Path, Path]:
     safe_session = _safe_id(session_id or "unknown")
     safe_terminal = _safe_id(terminal_id or "unknown")
-    state_dir = HOOKS_DIR / "state"
-    fallback_dir = Path(os.environ.get("TEMP", "/tmp")) / "claude_hooks" / "state"
+    state_dir, fallback_dir = _get_state_dirs()
     return (
         state_dir / f"pretool_degraded_{safe_terminal}_{safe_session}.json",
         fallback_dir / f"pretool_degraded_{safe_terminal}_{safe_session}.json",
@@ -408,11 +563,7 @@ def _degraded_state_paths(session_id: str, terminal_id: str = "") -> tuple[Path,
 def _record_degraded_mode_once(data: dict, hook_name: str, reason: str) -> None:
     """Record degraded safety mode once per session and emit one concise warning."""
     session_id = _resolve_session_id(data) or "unknown"
-    terminal_id = str(
-        data.get("terminal_id")
-        or data.get("terminalId")
-        or os.environ.get("CLAUDE_TERMINAL_ID", "")
-    ).strip()
+    terminal_id = _resolve_terminal_id(data)
 
     payload = {
         "session_id": session_id,
@@ -482,9 +633,12 @@ def _check_skill_first_gate(data: dict) -> dict | None:
     # EXEMPTION: Allow editing SKILL.md files — legitimate documentation work
     if tool_name in ("Edit", "Write", "MultiEdit"):
         file_path = data.get("tool_input", {}).get("file_path", "")
-        if isinstance(file_path, str) and re.search(r"\.claude/skills/[^/]+/SKILL\.md$", file_path):
-            # Allow SKILL.md edits even when slash command is pending
-            return None
+        if isinstance(file_path, str):
+            # Normalize path separators for cross-platform regex matching
+            normalized_path = re.sub(r"[/\\]+", "/", file_path)
+            if re.search(r"\.claude/skills/[^/]+/SKILL\.md$", normalized_path):
+                # Allow SKILL.md edits even when slash command is pending
+                return None
 
     # read_only mode: allow read tools (Read/Grep/Glob), block writes and Bash
     if mode == "read_only":
@@ -497,11 +651,7 @@ def _check_skill_first_gate(data: dict) -> dict | None:
     # truth is the terminal-scoped pending intent file. Do not disable the gate
     # just because session_id is absent from the payload.
     session_id = _resolve_session_id(data)
-    terminal_id = str(
-        data.get("terminal_id")
-        or data.get("terminalId")
-        or os.environ.get("CLAUDE_TERMINAL_ID", "")
-    ).strip()
+    terminal_id = _resolve_terminal_id(data)
     if not session_id and not terminal_id:
         return None
 
@@ -518,48 +668,9 @@ def _check_skill_first_gate(data: dict) -> dict | None:
     # Current format (TASK-005+): terminals/{terminal_id}/pending_command_intent.json
     # Legacy format:              pending_command_intent_{terminal_id}.json
     # Both are checked below to support files written by either version.
-    state_dir = HOOKS_DIR / "state"
-    fallback_dir = Path(os.environ.get("TEMP", "/tmp")) / "claude_hooks" / "state"
-
-    intent_file = None
-
-    # Primary: new per-terminal directory format written by skill_enforcer.py (TASK-005+)
-    # Format: state/terminals/{terminal_id}/pending_command_intent.json
-    if terminal_id:
-        for base in (state_dir, fallback_dir):
-            candidate = base / "terminals" / terminal_id / "pending_command_intent.json"
-            if candidate.exists():
-                intent_file = candidate
-                break
-
-        # Fallback: try dash-stripped terminal ID (handles normalization drift from
-        # WT_SESSION format changes). Old directories were created with dashes removed.
-        if not intent_file and terminal_id.startswith("console_"):
-            hex_part = terminal_id[8:]  # strip "console_" prefix
-            stripped = f"console_{hex_part.replace('-', '')}"
-            if stripped != terminal_id:
-                for base in (state_dir, fallback_dir):
-                    candidate = base / "terminals" / stripped / "pending_command_intent.json"
-                    if candidate.exists():
-                        intent_file = candidate
-                        break
-
-    # Secondary: flat terminal-scoped format (legacy, written before TASK-005)
-    # Format: state/pending_command_intent_{terminal_id}.json
-    if not intent_file:
-        for base in (state_dir, fallback_dir):
-            candidate = base / f"pending_command_intent_{safe_terminal}.json"
-            if candidate.exists():
-                intent_file = candidate
-                break
-
-    # Fallback: legacy session-scoped format (for backwards compatibility)
-    if not intent_file:
-        for base in (state_dir, fallback_dir):
-            candidate = base / f"pending_command_intent_{safe_terminal}_{safe_session}.json"
-            if candidate.exists():
-                intent_file = candidate
-                break
+    state_dir, fallback_dir = _get_state_dirs()
+    lookup = IntentFileLookup(state_dir, fallback_dir)
+    intent_file, _format_desc = lookup.find(terminal_id, session_id)
 
     if not intent_file:
         return None
@@ -608,7 +719,14 @@ def _check_skill_first_gate(data: dict) -> dict | None:
             ).timestamp()
         except (TypeError, ValueError):
             pass
-    if _intent_created_at and _is_expired(_intent_created_at, _INTENT_TTL_SECONDS):
+
+    # Fail-closed: if no valid timestamp, treat intent as expired and delete it.
+    # This prevents corrupted/malformed intents from blocking indefinitely.
+    if not _intent_created_at:
+        intent_file.unlink(missing_ok=True)
+        return None
+
+    if _is_expired(_intent_created_at, _INTENT_TTL_SECONDS):
         intent_file.unlink(missing_ok=True)
         return None
 
@@ -926,13 +1044,7 @@ def run_hook(hook_name: str, data: dict, correlation_id: str | None = None) -> d
             try:
                 payload = json.loads(out)
                 # Check for both "decision": "block" and "block": True formats
-                is_block = (
-                    payload.get("decision") == "block"
-                    or payload.get("block") is True
-                    or payload.get("continue") is False
-                    or (isinstance(payload.get("hookSpecificOutput"), dict)
-                        and payload["hookSpecificOutput"].get("permissionDecision") == "deny")
-                )
+                is_block = _is_block_decision(payload)
 
                 # FIXED: Preserve hookSpecificOutput for non-blocking hooks (e.g., advisories)
                 has_advisory = "hookSpecificOutput" in payload and "advisory" in payload["hookSpecificOutput"]
@@ -949,9 +1061,7 @@ def run_hook(hook_name: str, data: dict, correlation_id: str | None = None) -> d
                         source_hook=hook_name,
                         child_exit_code=result.returncode,
                         raw_stdout=out,
-                        raw_stderr=result.stderr.decode(errors="replace").strip()
-                        if result.stderr
-                        else "",
+                        raw_stderr=_decode_stderr(result.stderr),
                         correlation_id=correlation_id,
                     )
                     return payload
@@ -974,13 +1084,11 @@ def run_hook(hook_name: str, data: dict, correlation_id: str | None = None) -> d
                         source_hook=hook_name,
                         child_exit_code=result.returncode,
                         raw_stdout=out,
-                        raw_stderr=result.stderr.decode(errors="replace").strip()
-                        if result.stderr
-                        else "",
+                        raw_stderr=_decode_stderr(result.stderr),
                         correlation_id=correlation_id,
                     )
                     return {"decision": "block", "reason": out, "blocking_hook": hook_name}
-                stderr_content = result.stderr.decode(errors="replace").strip()
+                stderr_content = _decode_stderr(result.stderr)
                 if stderr_content:
                     _log_pretooluse_block_event(
                         data,
@@ -1063,7 +1171,7 @@ def run_hook(hook_name: str, data: dict, correlation_id: str | None = None) -> d
                 }
 
             except Exception:
-                stderr_content = result.stderr.decode(errors="replace").strip()
+                stderr_content = _decode_stderr(result.stderr)
                 if stderr_content:
                     return {
                         "decision": "block",
@@ -1124,14 +1232,10 @@ def main():
     tool_name = data.get("tool_name", "")
 
     # Track original tool_input for modify detection
-    original_tool_input = data.get("tool_input", {}).copy() if "tool_input" in data else {}
+    original_tool_input = (data.get("tool_input", {}) or {}).copy() if "tool_input" in data else {}
 
     _pin_terminal_env(data)
-    terminal_id = str(
-        data.get("terminal_id")
-        or data.get("terminalId")
-        or os.environ.get("CLAUDE_TERMINAL_ID", "")
-    ).strip()
+    terminal_id = _resolve_terminal_id(data)
     session_id = _resolve_session_id_from_utils(data)
     active_turn_id = get_active_evidence_turn(session_id, terminal_id) if terminal_id else None
     correlation_id = str(uuid.uuid4()) if active_turn_id else None
@@ -1168,8 +1272,7 @@ def main():
             _skill_being_loaded = str(_skill_input.get("skill", "")).strip().lower()
             if _skill_being_loaded:
                 _safe_term = _safe_id(terminal_id)
-                _state_dir = HOOKS_DIR / "state"
-                _fallback_dir = Path(os.environ.get("TEMP", "/tmp")) / "claude_hooks" / "state"
+                _state_dir, _fallback_dir = _get_state_dirs()
 
                 # Candidates in priority order (newest → oldest format).
                 # Must mirror the lookup order in _check_skill_first_gate() so that
@@ -1237,13 +1340,7 @@ def main():
         _msg = gate_result.get("reason", "Blocked by skill-first gate")
 
         # If _msg is already JSON (from subprocess hook), extract the reason
-        if isinstance(_msg, str) and _msg.strip().startswith("{"):
-            try:
-                parsed = json.loads(_msg)
-                if isinstance(parsed, dict) and "reason" in parsed:
-                    _msg = parsed["reason"]
-            except json.JSONDecodeError:
-                pass  # Use original _msg
+        _msg, _ = _extract_nested_message(_msg)
 
         response = _block_payload(_msg)
         _log_pretooluse_block_event(
@@ -1301,28 +1398,14 @@ def main():
             # Continue processing other hooks (don't break loop)
 
         # Check for both "decision": "block" and "block": True formats
-        is_block = (
-            res.get("decision") == "block"
-            or res.get("block") is True
-            or res.get("continue") is False
-            or (isinstance(res.get("hookSpecificOutput"), dict)
-                and res["hookSpecificOutput"].get("permissionDecision") == "deny")
-        )
+        is_block = _is_block_decision(res)
         if is_block:
             # Hard block - exit with code 2
             _msg = res.get("message") or res.get("reason")
             _blocking_hook = res.get("blocking_hook", hook)
 
             # If _msg is already JSON (from subprocess hook), extract the reason
-            if isinstance(_msg, str) and _msg.strip().startswith("{"):
-                try:
-                    parsed = json.loads(_msg)
-                    if isinstance(parsed, dict) and "reason" in parsed:
-                        _msg = parsed["reason"]
-                    if isinstance(parsed, dict) and "blocking_hook" in parsed:
-                        _blocking_hook = parsed["blocking_hook"]
-                except json.JSONDecodeError:
-                    pass  # Use original _msg
+            _msg, _blocking_hook = _extract_nested_message(_msg, _blocking_hook)
 
             # Ground the artifact (best-effort, never block the block)
             artifact_path = ""

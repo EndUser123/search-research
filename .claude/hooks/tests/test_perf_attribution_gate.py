@@ -143,9 +143,25 @@ class TestDetectPerfClaims:
         assert _detect_perf_claims(text) is True
 
     def test_latency_claim(self):
-        """'latency is' should trigger detection."""
+        """'latency is' (adjacent) should trigger detection."""
         text = "The latency is caused by download operations"
         assert _detect_perf_claims(text) is True
+
+    def test_latency_clause_spanning_not_blocked(self):
+        """FP regression: 'latency' + a distant 'is' in an unrelated clause should NOT trigger.
+
+        The verb must be adjacent to the noun; greedy .* previously matched across clauses.
+        """
+        text = (
+            "The panel costs real latency/tokens, so a heuristic that fires on "
+            "everything is worse than none."
+        )
+        assert _detect_perf_claims(text) is False
+
+    def test_throughput_clause_spanning_not_blocked(self):
+        """FP regression: 'throughput' with a non-adjacent 'is' should NOT trigger."""
+        text = "Throughput matters here, and the design is clean."
+        assert _detect_perf_claims(text) is False
 
     def test_no_longer_dominates(self):
         """'no longer dominates' should NOT trigger (negated)."""

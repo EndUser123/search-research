@@ -339,6 +339,21 @@ def _has_behavioral_assertion(text: str) -> bool:
     return False
 
 
+def _any_unquoted(patterns: list, text: str) -> bool:
+    """True if any pattern matches OUTSIDE quoted/code/blockquote spans.
+
+    Routes claim detection through the shared quote-exemption so a trigger the
+    model is *quoting* or *citing* (use/mention) is not counted as asserting it
+    -- the same use/mention false-positive class fixed in the perf gate. Fail-open
+    to plain matching if the exemption module is unavailable (never crash a gate).
+    """
+    try:
+        from quote_exemption import has_unquoted_match
+    except Exception:
+        return any(re.search(p, text) for p in patterns)
+    return any(has_unquoted_match(re.compile(p), text) for p in patterns)
+
+
 def has_document_claim(response_text: Any) -> bool:
     """
     Check if response contains document claims requiring Read tool evidence.
@@ -381,7 +396,7 @@ def has_document_claim(response_text: Any) -> bool:
     if any(re.search(p, response_lower) for p in tentative_patterns):
         return False
 
-    return any(re.search(p, response_lower) for p in DOCUMENT_CLAIM_PATTERNS)
+    return _any_unquoted(DOCUMENT_CLAIM_PATTERNS, response_lower)
 
 
 def has_action_claim(response_text: Any) -> bool:
@@ -426,7 +441,7 @@ def has_action_claim(response_text: Any) -> bool:
         return False
 
     return (
-        any(re.search(p, response_lower) for p in ACTION_CLAIM_PATTERNS)
+        _any_unquoted(ACTION_CLAIM_PATTERNS, response_lower)
         or _has_behavioral_assertion(response_lower)
     )
 
@@ -451,7 +466,7 @@ def has_external_claim(response_text: Any) -> bool:
         return False
 
     response_lower = response_text.lower()
-    return any(re.search(p, response_lower) for p in EXTERNAL_CLAIM_PATTERNS)
+    return _any_unquoted(EXTERNAL_CLAIM_PATTERNS, response_lower)
 
 
 def has_error_characterization(response_text: Any) -> bool:
@@ -472,7 +487,7 @@ def has_error_characterization(response_text: Any) -> bool:
     ]
     if any(re.search(p, response_lower) for p in tentative):
         return False
-    return any(re.search(p, response_lower) for p in ERROR_CHARACTERIZATION_PATTERNS)
+    return _any_unquoted(ERROR_CHARACTERIZATION_PATTERNS, response_lower)
 
 
 if __name__ == "__main__":

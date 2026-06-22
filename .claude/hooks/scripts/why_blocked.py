@@ -18,12 +18,19 @@ Usage:
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 _DB = Path(__file__).resolve().parent.parent / "logs" / "diagnostics" / "diagnostics.db"
+# Canonical Stop-block log (flat file, written by __lib/stop_block_log.py from ALL Stop
+# block sources, incl. the cc-aca-authority router). diagnostics.db only captures blocks
+# logged by the main Stop.py path, so reading the DB alone MISSES authority-router Stop
+# blocks (e.g. Stop_lazy_workaround_gate) -> the bare "Blocked by hook" with no findable
+# reason. Merge both sinks. See hooks/CLAUDE.md "Observability Storage Policy".
+_JSONL = _DB.parent / "stop_blocks.jsonl"
 
 # A block logged for the CURRENT turn is seconds old. Anything older than this is
 # from a prior turn and almost certainly NOT the "Blocked by hook" you just saw.
@@ -56,27 +63,84 @@ def _age(ts: str, now: datetime) -> tuple[float, str]:
     return secs, f"{hrs}h{rem:02d}m ago"
 
 
+def _read_db_blocks(stop_only: bool) -> list[tuple]:
+    """Block rows from diagnostics.db (main Stop.py path + PreToolUse blocks)."""
+    if not _DB.exists():
+        return []
+    where = "action='block'"
+    if stop_only:
+        where += " AND event_type='Stop'"
+    try:
+        conn = sqlite3.connect(str(_DB))
+        try:
+            return [
+                (ts, ev, hk, rs)
+                for ts, ev, hk, rs in conn.execute(
+                    f"""SELECT timestamp, event_type, hook_name, reason
+                        FROM hooks WHERE {where}
+                        ORDER BY id DESC LIMIT 500"""
+                ).fetchall()
+            ]
+        finally:
+            conn.close()
+    except sqlite3.Error:
+        return []
+
+
+def _read_jsonl_blocks() -> list[tuple]:
+    """Block rows from stop_blocks.jsonl (canonical Stop-block log, all sources)."""
+    if not _JSONL.exists():
+        return []
+    out: list[tuple] = []
+    try:
+        for line in _JSONL.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                r = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            out.append(
+                (
+                    str(r.get("timestamp", "")),
+                    str(r.get("event", "Stop") or "Stop"),
+                    str(r.get("gate_name", "") or "(unknown gate)"),
+                    str(r.get("reason", "") or ""),
+                )
+            )
+    except OSError:
+        return []
+    return out
+
+
+def _load_blocks(stop_only: bool, limit: int) -> list[tuple]:
+    """Merge both block sinks, dedup, sort newest-first, apply limit."""
+    merged = _read_db_blocks(stop_only) + _read_jsonl_blocks()
+    seen: set = set()
+    deduped: list[tuple] = []
+    for ts, ev, hk, rs in merged:
+        # A block can be logged to both sinks; key on time + hook + reason head.
+        key = (ts, hk, (rs or "")[:80])
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append((ts, ev, hk, rs))
+    # ISO-8601 UTC timestamps sort lexicographically by time.
+    deduped.sort(key=lambda r: r[0], reverse=True)
+    return deduped[:limit]
+
+
 def main() -> int:
     args = list(sys.argv[1:])
     stop_only = "--stop" in args
     limit = next((int(a) for a in args if a.isdigit()), 10)
 
-    if not _DB.exists():
-        print(f"diagnostics.db not found at {_DB}", file=sys.stderr)
+    if not _DB.exists() and not _JSONL.exists():
+        print(f"No block logs found ({_DB} / {_JSONL})", file=sys.stderr)
         return 1
 
-    where = "action='block'"
-    if stop_only:
-        where += " AND event_type='Stop'"
-
-    conn = sqlite3.connect(str(_DB))
-    rows = conn.execute(
-        f"""SELECT timestamp, event_type, hook_name, reason
-            FROM hooks WHERE {where}
-            ORDER BY id DESC LIMIT ?""",
-        (limit,),
-    ).fetchall()
-
+    rows = _load_blocks(stop_only, limit)
     if not rows:
         print("No block events found.")
         return 0
