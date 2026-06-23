@@ -182,6 +182,12 @@ def _write_state(
 
 @register_hook("referent_anchor", priority=6.0)
 def referent_anchor_hook(context: HookContext) -> HookResult:
+    # ponytail: disabled per P3 proposal — referent-scope gate has produced
+    # 126 false blocks on ls/find/Get-ChildItem in one session. Killing the
+    # producer kills the consumer (no anchors = no overlap checks = no blocks).
+    # Set REFERENT_SCOPE_DISABLED=0 to re-enable.
+    if os.environ.get("REFERENT_SCOPE_DISABLED", "1") != "0":
+        return HookResult.empty()
     # Strip pasted/quoted blocks first so anchors only key on the user's own words.
     prompt = _strip_pasted_content(context.prompt or "")
     terminal_id = _get_terminal_id(context)

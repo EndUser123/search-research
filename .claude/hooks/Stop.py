@@ -2545,7 +2545,14 @@ def _clear_referent_anchors(data: dict) -> None:
     Anchors are created by UPS referent_anchor.py, enforced by
     PreToolUse_referent_scope_gate.py, and cleared here unconditionally.
     No cross-turn persistence — prevents stale-anchor lock after topic shifts.
+
+    ponytail: disabled per P3 proposal — referent-scope gate has produced
+    126 false blocks on ls/find/Get-ChildItem in one session. The UPS writer
+    and PreToolUse gate are both disabled; this clearer is no-op when no
+    state file exists, but skipping it entirely is the cleanest reversal.
     """
+    if os.environ.get("REFERENT_SCOPE_DISABLED", "1") != "0":
+        return
     try:
         tid = (
             data.get("terminal_id")

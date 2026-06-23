@@ -113,6 +113,13 @@ def _build_block_message(anchor_terms: list[str], tool_text: str) -> str:
 
 def run(data: dict) -> dict:
     """Main hook entry point. Returns {'decision': 'allow'|'block', 'reason': str}."""
+    # ponytail: disabled per P3 proposal — referent-scope gate has produced
+    # 126 false blocks on ls/find/Get-ChildItem in one session. With the UPS
+    # writer also disabled, no anchors will be written and the consumer would
+    # early-return "no state file" anyway. Bail out earlier as defense in depth.
+    # Set REFERENT_SCOPE_DISABLED=0 to re-enable (also re-enable UPS writer).
+    if os.environ.get("REFERENT_SCOPE_DISABLED", "1") != "0":
+        return {"decision": "allow", "reason": "referent_scope: disabled (P3)"}
     tool_name = data.get("tool_name", "")
 
     terminal_id = _get_terminal_id(data)

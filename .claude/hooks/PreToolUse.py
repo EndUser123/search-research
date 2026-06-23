@@ -897,7 +897,11 @@ TOOL_HOOKS = {
         "recursive_failure_detector.py",
         "PreToolUse_pytest_timeout_guard.py",
         "PreToolUse_git_commit_test_gate.py",
-        "PreToolUse_referent_scope_gate.py",
+        # P3 2026-06-23: referent-scope gate disabled — 126 false blocks on
+        # ls/find/Get-ChildItem in one session. Gate itself also checks the
+        # REFERENT_SCOPE_DISABLED env var as defense in depth. Re-enable by
+        # uncommenting this line AND setting REFERENT_SCOPE_DISABLED=0.
+        # "PreToolUse_referent_scope_gate.py",
         # Delegation and authority gates are owned elsewhere now.
     ],
     "Task": [
