@@ -22,6 +22,17 @@ _hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
+# --- dependency imports (restored from 8616e64~1) ---
+import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+import requests
+
+from state import detect_terminal_id, read_state
+from file_patterns import is_structured_file, extract_facts_from_content
+from contamination import detect_contamination
+from provenance import record_edit_provenance
+
 
 
 # --- plugin bootstrap ---
