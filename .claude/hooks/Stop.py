@@ -4150,6 +4150,16 @@ def _run_gate_safe(name: str, gate_fn, data: dict) -> dict | None:
         return gate_fn(data)
     except Exception as e:
         print(f"[STOP_GATE_ERROR] gate {name} crashed: {e}", file=sys.stderr)
+        # Persistent dead-gate log: stderr flickers and is gone; this surfaces at
+        # the next SessionStart via gate_health.read_recent_faults(). Before this,
+        # a swallowed gate exception was invisible across the whole session.
+        try:
+            if str(HOOKS_DIR / "__lib") not in sys.path:
+                sys.path.insert(0, str(HOOKS_DIR / "__lib"))
+            from gate_health import record_fault
+            record_fault("Stop", name, repr(e), terminal_id=str(data.get("terminal_id", "")))
+        except Exception:
+            pass  # never let the alarm itself become a fault source
         _critical_gate_failed_this_turn = True
         if name in CRITICAL_STOP_GATES:
             # Fail closed: surface the failure so the model is aware

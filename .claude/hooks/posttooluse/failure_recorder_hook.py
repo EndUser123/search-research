@@ -19,6 +19,29 @@ from posttooluse.base import PostToolUseHook
 _hooks_dir = Path(__file__).resolve().parent.parent
 
 
+def is_tool_failure(tool_response: dict[str, Any]) -> bool:
+    """Classify a tool_response as a failure worth recording for loop detection.
+
+    Claude Code signals failure via exit_code (Bash/python), is_error, error, or
+    output containing a traceback/error line. The previous check only scanned the
+    first 100 chars of output, which misses Python tracebacks — the actual error
+    type appears well after the 'Traceback (most recent call last):' header.
+    That left the Catch-22 detector with no data for repeated failed commands.
+    """
+    if not tool_response:
+        return False
+    if tool_response.get("is_error"):
+        return True
+    if tool_response.get("error"):
+        return True
+    exit_code = tool_response.get("exit_code")
+    if isinstance(exit_code, int) and exit_code != 0:
+        return True
+    output = str(tool_response.get("output", "")).lower()
+    # Scan full output: tracebacks surface the error type past 100 chars.
+    return any(sig in output for sig in ("traceback", "error:", "exception"))
+
+
 class FailureRecorderHook(PostToolUseHook):
     """Records tool failures for Catch-22 detection."""
 
@@ -57,11 +80,7 @@ class FailureRecorderHook(PostToolUseHook):
         is_read_only_tool = tool_name in read_only_tools
 
         # Check if this is an error (for Catch-22 detection)
-        is_error = (
-            tool_response.get("is_error") or
-            tool_response.get("error") or
-            ("error" in str(tool_response.get("output", "")).lower()[:100])
-        )
+        is_error = is_tool_failure(tool_response)
 
         # Record if: (1) read-only tool, OR (2) error occurred
         if not (is_read_only_tool or is_error):

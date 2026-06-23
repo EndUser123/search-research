@@ -109,7 +109,8 @@ def run_fake_done_detector(data: dict) -> dict | None:
         return None
 
     # Check if output claims completion without evidence
-    if not check_fake_done(output_text):
+    workspace = Path(data.get("cwd") or os.getcwd())
+    if not check_fake_done(output_text, workspace=workspace):
         return None
 
     # Fake done detected — check repetition count
@@ -164,15 +165,35 @@ if __name__ == "__main__":
     tid = "test_terminal_fake"
     sid = "test_session_fake"
 
-    # Test 1: Fake done with evidence → pass
-    data = {
-        "terminal_id": tid,
-        "session_id": sid,
-        "output_text": "Implementation complete. Here's the diff:\n```diff\na-b\n+new code\n```",
-        "all_violations": [],
-    }
-    result = run_fake_done_detector(data)
-    assert result is None, f"Expected None with evidence, got {result}"
+    # Test 1: done-claim with a REAL file on disk → pass (grounded evidence).
+    # A bare code-block diff no longer counts — the model can fabricate those.
+    import tempfile
+    from pathlib import Path
+    with tempfile.TemporaryDirectory() as td:
+        (Path(td) / "engine.py").write_text("x=1\n", encoding="utf-8")
+        data = {
+            "terminal_id": tid,
+            "session_id": sid,
+            "cwd": td,
+            "output_text": "Implementation complete. Wrote engine.py",
+            "all_violations": [],
+        }
+        result = run_fake_done_detector(data)
+        assert result is None, f"Expected None with grounded evidence, got {result}"
+
+        # Test 1b: done-claim referencing a MISSING file → fake (transcript case)
+        clear_state(tid, "last_violations.json")
+        clear_state(tid, "fake_done_count.json")
+        data = {
+            "terminal_id": tid,
+            "session_id": sid,
+            "cwd": td,
+            "output_text": "Implementation complete. Wrote council_core/engine/council.py",
+            "all_violations": [],
+        }
+        result = run_fake_done_detector(data)
+        assert result is not None, "Expected warning on fabricated-evidence done claim"
+        assert result["severity"] == "warning"
 
     # Test 2: Fake done without evidence → WARNING
     clear_state(tid, "last_violations.json")

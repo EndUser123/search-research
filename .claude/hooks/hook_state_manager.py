@@ -393,40 +393,56 @@ def check_tool_hallucination(output_text: str, raw_data: str | None = None) -> b
 # Fake done detection
 # ---------------------------------------------------------------------------
 
-def check_fake_done(output_text: str) -> bool:
-    """Return True if output claims completion without evidence."""
+# ponytail: this remains a weak lexical detector. The durable fix is a hard
+# verify-before-claim gate (a successful Write/Edit/Bash result in the same turn),
+# not text matching. This change just stops the detector being trivially defeated
+# by substring false-positives ("pass", "test", "git") and by fabricated file
+# trees in backticks: evidence is now a referenced path that exists on disk.
+_DONE_CLAIM_PHRASES = (
+    "implementation complete",
+    "done.",
+    "fixed.",
+    "complete.",
+    "all files pass",
+    "tests passed",
+    "verified working",
+)
+# File-path-like tokens: zero or more dir components (with separator) then a
+# dotted extension. Directory part is optional so a bare filename (engine.py)
+# still counts. Version numbers (v1.0.0, 3.14) don't match because the part
+# after the dot must be letters.
+_CLAIMED_PATH_RE = re.compile(r'(?:[\w\-.]+[\/])*[\w\-.]+\.[A-Za-z]{1,6}')
+
+
+def _extract_claimed_paths(output_text: str) -> list[str]:
+    """File paths the response references as evidence of work done."""
+    return _CLAIMED_PATH_RE.findall(output_text)
+
+
+def check_fake_done(output_text: str, workspace: "Path | None" = None) -> bool:
+    """Return True if output claims completion without verifiable evidence.
+
+    Evidence is grounded: a referenced file path that exists on disk. A bare
+    code block no longer counts — the model can fabricate those (the cc-council
+    transcript shipped a file tree in backticks for files that didn't exist).
+    """
     if not output_text:
         return False
 
-    done_phrases = [
-        "implementation complete",
-        "done.",
-        "fixed.",
-        "complete.",
-        "all files pass",
-        "tests passed",
-        "verified working",
-    ]
-
     lower = output_text.lower()
-    has_claim = any(phrase in lower for phrase in done_phrases)
+    has_claim = any(phrase in lower for phrase in _DONE_CLAIM_PHRASES)
     if not has_claim:
         return False
 
-    # Check for evidence markers
-    evidence_markers = [
-        "```",       # Code block
-        "file:",      # File reference
-        "line ",      # Line reference
-        "test",       # Test mention
-        "diff",       # Diff output
-        "git",        # Git command
-        "pytest",     # Test runner
-        "pass",       # Test pass
-    ]
+    paths = _extract_claimed_paths(output_text)
+    if paths:
+        base = workspace if workspace else Path.cwd()
+        existing = [p for p in paths if Path(p).exists() or (base / p).exists()]
+        # Claimed files but none exist -> fabricated evidence -> fake done.
+        return len(existing) == 0
 
-    has_evidence = any(marker in output_text for marker in evidence_markers)
-    return has_claim and not has_evidence
+    # No file paths referenced at all: a completion claim with no artifact is fake.
+    return True
 
 # ---------------------------------------------------------------------------
 # Workaround escalation tracking
@@ -478,7 +494,15 @@ if __name__ == "__main__":
 
     # Fake done test
     assert check_fake_done("Implementation complete. Done.")
-    assert not check_fake_done("Implementation complete. Here's the diff:\n```")
+    # A bare code block is NOT evidence — the model can fabricate it.
+    assert check_fake_done("Implementation complete. Here's the diff:\n```")
+    # A referenced file that exists IS evidence; a referenced file that's missing is fake.
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        real = Path(td) / "engine.py"
+        real.write_text("x = 1\n", encoding="utf-8")
+        assert not check_fake_done("Implementation complete. Wrote engine.py", workspace=Path(td))
+        assert check_fake_done("Implementation complete. Wrote missing.py", workspace=Path(td))
 
     # Escalation level test
     assert escalation_level(tid, sid, "lazy_fix", (1, 2, 3)) == "block"

@@ -1393,25 +1393,15 @@ def check_write_permission(
         auto_read_targets = []
         state["targets_auto_read_once"] = auto_read_targets
 
-    unresolved_local_imports = dependency_context.get("unresolved_local_imports", []) or []
-    deleted_or_staged_import_targets = dependency_context.get("deleted_or_staged_import_targets", []) or []
-
-    if unresolved_local_imports:
-        return (
-            False,
-            "MISSING_DEPENDENCY_DISCOVERY: unresolved local import(s) "
-            + ", ".join(str(item) for item in unresolved_local_imports),
-        )
-
-    if deleted_or_staged_import_targets:
-        return (
-            False,
-            "IMPORT_TARGET_DELETED_OR_STAGED: "
-            + ", ".join(str(item) for item in deleted_or_staged_import_targets),
-        )
-
-    if workspace_state.get("has_conflicts"):
-        return False, "SUSPICIOUS_WORKSPACE_STATE: merge conflict markers present"
+    # --- Policy exemptions: run BEFORE dependency heuristics ---
+    # Explicit bypasses and new-file creation are policy decisions and must never
+    # be overridden by the static import resolver. The resolver false-positives on
+    # bootstrap sys.path imports and on packages whose sibling modules don't exist
+    # yet (the normal case when writing package __init__.py first). Dependency
+    # discovery stays useful for EDITS to existing files; gating new-file creation
+    # on it blocked every plugin bootstrap (see cc-council transcript).
+    # ponytail: ceiling — static import resolution is fundamentally lossy for
+    # dynamic sys.path code; upgrade path is runtime-aware resolution, not more gates.
 
     # Greenfield exemption
     if state.get("greenfield_declared"):
@@ -1449,6 +1439,28 @@ def check_write_permission(
         if sibling_reads >= 1:
             return True, f"New file in known directory ({sibling_reads} sibling(s) read)"
         return True, "New file creation (no prior read required)"
+
+    # --- Workspace safety (applies to edits of existing files) ---
+    if workspace_state.get("has_conflicts"):
+        return False, "SUSPICIOUS_WORKSPACE_STATE: merge conflict markers present"
+
+    # --- Dependency heuristics (only meaningful for EXISTING files) ---
+    unresolved_local_imports = dependency_context.get("unresolved_local_imports", []) or []
+    deleted_or_staged_import_targets = dependency_context.get("deleted_or_staged_import_targets", []) or []
+
+    if unresolved_local_imports:
+        return (
+            False,
+            "MISSING_DEPENDENCY_DISCOVERY: unresolved local import(s) "
+            + ", ".join(str(item) for item in unresolved_local_imports),
+        )
+
+    if deleted_or_staged_import_targets:
+        return (
+            False,
+            "IMPORT_TARGET_DELETED_OR_STAGED: "
+            + ", ".join(str(item) for item in deleted_or_staged_import_targets),
+        )
 
     # Library-aware check for utility code (skip for test files)
     code_content = (
@@ -1766,30 +1778,40 @@ if __name__ == "__main__":
         sys.exit(0)  # Allow
 
     except json.JSONDecodeError as e:
-        # Fail FAST (fail closed) on protocol/input errors.
-        err_msg = f"⛔ investigation_gate_json_parse_error: {e}"
-        print(
-            json.dumps(
-                {
-                    "decision": "block",
-                    "reason": err_msg,
-                    "blocking_hook": "PreToolUse_investigation_gate.py",
-                }
-            ),
-            file=sys.stderr,
-        )
-        sys.exit(2)
+        # Fail OPEN with alarm: a parse error is a hook/environment fault, not an
+        # intentional block. Previously this exited 2 (block), so a malformed
+        # stdin payload blocked EVERY write this turn. Log the fault so it surfaces
+        # at SessionStart; allow the operation so the model keeps working.
+        err_msg = f"investigation_gate_json_parse_error: {e}"
+        try:
+            from pathlib import Path as _P
+            import sys as _sys
+            _lib = _P(__file__).resolve().parents[3] / "hooks" / "__lib"
+            # Fall back to local hooks __lib if plugin-local path differs
+            for _candidate in (_P("P:/.claude/hooks/__lib"), _lib):
+                if _candidate.exists() and str(_candidate) not in _sys.path:
+                    _sys.path.insert(0, str(_candidate))
+            from gate_health import record_fault  # type: ignore
+            record_fault("PreToolUse", "investigation_gate", err_msg)
+        except Exception:
+            pass  # alarm failure must never become a new fault source
+        print(json.dumps({"decision": "approve", "reason": "investigation_gate: parse error, fail-open"}))
+        sys.exit(0)
     except Exception as e:
-        # Fail FAST (fail closed) to surface enforcement/runtime faults immediately.
-        err_msg = f"⛔ investigation_gate_runtime_error: {e}"
-        print(
-            json.dumps(
-                {
-                    "decision": "block",
-                    "reason": err_msg,
-                    "blocking_hook": "PreToolUse_investigation_gate.py",
-                }
-            ),
-            file=sys.stderr,
-        )
-        sys.exit(2)
+        # Fail OPEN with alarm: a runtime crash in the gate is NOT an intentional
+        # block. Previously this exited 2, disguising every internal bug as a
+        # deliberate block (the cc-council transcript: resolver bug blocked all
+        # writes for the whole session). Log + allow so the model keeps working.
+        err_msg = f"investigation_gate_runtime_error: {e}"
+        try:
+            from pathlib import Path as _P
+            import sys as _sys
+            for _candidate in (_P("P:/.claude/hooks/__lib"), _P(__file__).resolve().parents[3] / "hooks" / "__lib"):
+                if _candidate.exists() and str(_candidate) not in _sys.path:
+                    _sys.path.insert(0, str(_candidate))
+            from gate_health import record_fault  # type: ignore
+            record_fault("PreToolUse", "investigation_gate", err_msg)
+        except Exception:
+            pass
+        print(json.dumps({"decision": "approve", "reason": "investigation_gate: runtime error, fail-open"}))
+        sys.exit(0)

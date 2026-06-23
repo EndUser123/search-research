@@ -210,6 +210,11 @@
           },
           {
             "type": "command",
+            "command": "python P:/packages/.claude-marketplace/plugins/cc-aca-epistemic/__lib/router.py PreToolUse",
+            "timeout": 15
+          },
+          {
+            "type": "command",
             "command": "python P:/.claude/hooks/log_hook.py",
             "timeout": 5
           }

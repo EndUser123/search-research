@@ -269,6 +269,36 @@ def main():
         except Exception:
             pass  # Diagnostics failures must not break session start
 
+    # Dead-gate alarm: surface runtime faults recorded by _run_gate_safe (Stop.py)
+    # and the investigation gate's except blocks since the last session. Cheap: one
+    # file read, no subprocess, no AST scan. This is the channel that makes
+    # swallowed gate exceptions visible — without it, a dead gate stays dead
+    # across sessions and the human cannot tell (transcript 2026-06-22).
+    try:
+        if str(HOOKS_DIR / "__lib") not in sys.path:
+            sys.path.insert(0, str(HOOKS_DIR / "__lib"))
+        from gate_health import read_recent_faults
+
+        faults = read_recent_faults(since_hours=24.0)
+        if faults:
+            lines = [
+                f"- [{f.get('event', '?')}] {f.get('gate', '?')}: "
+                f"{str(f.get('error', ''))[:120]} (at {f.get('ts', '?')})"
+                for f in faults[:12]
+            ]
+            suffix = (
+                f"\n...and {len(faults) - 12} more" if len(faults) > 12 else ""
+            )
+            contexts.append(
+                "⚠️ Gate faults in the last 24h (a gate crashed and was "
+                "fail-opened; investigate before trusting its output):\n"
+                + "\n".join(lines)
+                + suffix
+                + f"\nLog: {HOOKS_DIR / 'logs' / 'diagnostics' / 'gate_faults.jsonl'}"
+            )
+    except Exception:
+        pass  # Alarm failure must never block session start
+
     if contexts:
         print(
             json.dumps(
