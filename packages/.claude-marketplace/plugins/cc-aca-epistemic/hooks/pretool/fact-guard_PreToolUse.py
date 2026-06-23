@@ -196,17 +196,6 @@ def main() -> None:
 
         # Check for unsupported concrete values
         exempt_facts = _get_exempt_facts(target_file)
-        # If no producer has populated observations yet, skip the unsupported-literal
-        # block. This makes the gate effectively a no-op until a PostToolUse hook
-        # writes to observed_facts.json. Without this guard, a missing producer
-        # would cause fact-guard to block EVERY structured edit in a real session
-        # (every concrete value would have no provenance). Once observations are
-        # populated, this guard naturally becomes active. ponytail: this is a
-        # missing-producer safety net, not a permanent behavioral change — remove
-        # the guard when fact-guard_PostToolUse is wired into settings.json.
-        if not observed_list:
-            record_edit_provenance(target_file, True, "no observations yet, gate inactive", terminal_id)
-            sys.exit(0)
         for proposed in proposed_facts:
             entity = proposed.get("entity", "")
             field = proposed.get("field", "")
