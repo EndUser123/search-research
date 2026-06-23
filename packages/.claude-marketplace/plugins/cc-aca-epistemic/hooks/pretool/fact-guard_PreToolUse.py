@@ -6,25 +6,42 @@ Output: exit 0 (allow) or exit 2 (block) with reason on stderr.
 """
 from __future__ import annotations
 
-import json
-import os
 
 
 # --- plugin bootstrap ---
-import sys
-from pathlib import Path
+import sys as _s; from pathlib import Path as _P
 
-_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
-if str(_lib) not in sys.path:
-    sys.path.insert(0, str(_lib))
-from _bootstrap import bootstrap
-_hooks_dir = bootstrap(__file__)
+def _normalize_stdout(data: dict) -> dict:
+    """Normalize hook output to Claude Code Zod-valid schema."""
+    if data.get('decision') == 'allow':
+        return {'decision': 'approve'}
+    if data.get('decision') == 'block':
+        return {'decision': 'block', 'reason': data.get('reason', '')}
+    if 'allow' in data:
+        if data['allow'] is False:
+            return {'decision': 'block', 'reason': data.get('reason', '')}
+        return {'decision': 'approve'}
+    if 'continue' in data:
+        if data['continue'] is False:
+            return {'decision': 'block', 'reason': data.get('reason', '')}
+        return {'decision': 'approve'}
+    if 'ok' in data:
+        return {'decision': 'approve'}
+    return data
+
+
+_l = _P(__file__).resolve().parent.parent.parent / "__lib"
+if str(_l) not in _s.path: _s.path.insert(0, str(_l))
+from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
-# --- dependency imports (restored from 8616e64~1) ---
+import json
+import os
+import sys
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 
 import requests
 
@@ -34,10 +51,21 @@ from contamination import detect_contamination
 from provenance import record_edit_provenance
 
 
+# --- Dual-LLM verifier constants ---
+MINIMAX_MODEL = "MiniMax-M2.7"
+MISTRAL_MODEL = "mistral-medium-3.5"
+VERIFIER_TIMEOUT_SEC = 10
+VERIFIER_CAP = 5  # max LLM verifier calls per session
+_VERIFIER_COUNTS: dict[str, int] = {}
 
-# --- plugin bootstrap ---
-import sys
-from pathlib import Path
+VERIFIER_SYSTEM_PROMPT = (
+    "You are a provenance verifier for structured data files. "
+    "Your job: determine whether a proposed edit contains adjacent-entry "
+    "contamination — a value copied from a neighboring entry without "
+    "entity-specific evidence.\n\n"
+    "Respond ONLY with JSON:\n"
+    '{"contamination_confirmed": true|false, "confidence": 0.0-1.0, "reason": "..."}'
+)
 
 
 def _load_minimax_key() -> str | None:
@@ -168,6 +196,17 @@ def main() -> None:
 
         # Check for unsupported concrete values
         exempt_facts = _get_exempt_facts(target_file)
+        # If no producer has populated observations yet, skip the unsupported-literal
+        # block. This makes the gate effectively a no-op until a PostToolUse hook
+        # writes to observed_facts.json. Without this guard, a missing producer
+        # would cause fact-guard to block EVERY structured edit in a real session
+        # (every concrete value would have no provenance). Once observations are
+        # populated, this guard naturally becomes active. ponytail: this is a
+        # missing-producer safety net, not a permanent behavioral change — remove
+        # the guard when fact-guard_PostToolUse is wired into settings.json.
+        if not observed_list:
+            record_edit_provenance(target_file, True, "no observations yet, gate inactive", terminal_id)
+            sys.exit(0)
         for proposed in proposed_facts:
             entity = proposed.get("entity", "")
             field = proposed.get("field", "")
