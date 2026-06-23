@@ -6,6 +6,9 @@ Output: exit 0 (allow) or exit 2 (block) with reason on stderr.
 """
 from __future__ import annotations
 
+import json
+import os
+
 
 # --- plugin bootstrap ---
 import sys
@@ -181,14 +184,44 @@ def main() -> None:
         sys.exit(0)
 
     except PermissionError as e:
-        print(json.dumps({"error": f"Permission denied: {e}"}), file=sys.stderr)
-        sys.exit(2)
+        _fail_open("PermissionError", e)
     except OSError as e:
-        print(json.dumps({"error": f"OS error: {e}"}), file=sys.stderr)
-        sys.exit(2)
+        _fail_open("OSError", e)
     except Exception as e:
-        print(json.dumps({"error": f"PreToolUse error: {e}"}), file=sys.stderr)
-        sys.exit(2)
+        _fail_open("Exception", e)
+
+
+def _fail_open(error_class: str, exc: BaseException) -> None:
+    """Convert a runtime crash into fail-OPEN with a dead-gate alarm.
+
+    Previously these three except blocks all called sys.exit(2), which the
+    epistemic router (router.py:107) propagates as a hard block. An internal
+    bug in fact-guard (a permission error reading a file, an OOM, anything)
+    was indistinguishable from an intentional block. Same fail-closed hazard
+    we fixed in PreToolUse_investigation_gate last session.
+
+    Now: log the fault to gate_faults.jsonl (surfaced at next SessionStart),
+    print an approve JSON, exit 0. The model keeps working; the human sees
+    the alarm on the next session.
+    # ponytail: ceiling — if the alarm itself fails, it must never become a
+    # new fault source. Hence the try/except wrapping the record_fault call.
+    """
+    try:
+        from pathlib import Path as _P
+        import sys as _sys
+        _candidate = _P("P:/.claude/hooks/__lib")
+        if _candidate.exists() and str(_candidate) not in _sys.path:
+            _sys.path.insert(0, str(_candidate))
+        from gate_health import record_fault  # type: ignore
+        record_fault(
+            "PreToolUse",
+            "fact-guard_PreToolUse",
+            f"{error_class}: {type(exc).__name__}: {exc}",
+        )
+    except Exception:
+        pass  # alarm failure must never block the fail-open
+    print(json.dumps({"decision": "approve", "reason": "fact-guard: internal error, fail-open"}))
+    sys.exit(0)
 
 
 # =============================================================================
