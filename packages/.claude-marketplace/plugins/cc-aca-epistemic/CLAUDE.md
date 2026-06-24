@@ -1,10 +1,10 @@
 # cc-aca-epistemic
 
-ACA Epistemic plugin — evidence verification, claim validation, provenance tracking, anti-fabrication, and anti-sycophancy enforcement.
+ACA Epistemic plugin — evidence verification, claim validation, and anti-sycophancy enforcement.
 
 ## Responsibility
 
-All hooks that enforce epistemic discipline: claim verification, evidence hierarchy gating, provenance tracking, contamination prevention, anti-fabrication, and anti-sycophancy detection. Also absorbs the fact-guard plugin (PreToolUse/PostToolUse structured-edit guards).
+All hooks that enforce epistemic discipline: claim verification, evidence hierarchy gating, and anti-sycophancy detection.
 
 ## Directory Structure
 
@@ -15,8 +15,6 @@ hooks/
   posttool/          # PostToolUse validators
   userpromptsubmit/  # UserPromptSubmit classifiers
 __lib/
-  provenance.py      # Claim provenance tracking (from fact-guard)
-  contamination.py   # Contamination detection (from fact-guard)
   evidence_store.py  # Evidence accumulation and scope
   evidence_scope.py  # Scope-aware evidence tracking
   hooks_resolver.py  # Resolves global hooks dir for shared __lib__ access
@@ -40,7 +38,6 @@ __lib/
 | PreToolUse_file_existence_guard | Block edits to nonexistent files |
 | PreToolUse_command_intent_gate | Validate command intent before execution |
 | PreToolUse_type_validator | Type-check tool inputs |
-| fact-guard_PreToolUse | Block unsupported literals and contamination in structured edits |
 
 ### Stop (hooks/stop/)
 
@@ -64,7 +61,6 @@ __lib/
 | Hook | Purpose |
 |------|---------|
 | PostToolUse_artifact_validator | Validate artifacts after tool use |
-| fact-guard_PostToolUse | Post-edit contamination and provenance check |
 
 ### UserPromptSubmit (hooks/userpromptsubmit/)
 
@@ -91,7 +87,7 @@ from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 ```
 
-`_bootstrap.py` adds plugin `lib/` and the global hooks dir to `sys.path`. This ensures hooks can import both plugin-local modules (`provenance`, `contamination`) and shared modules from `P:/.claude/hooks/__lib__/`. Hooks that need `HOOKS_DIR` use `_hooks_dir` from the bootstrap return value.
+`_bootstrap.py` adds plugin `lib/` and the global hooks dir to `sys.path`. This ensures hooks can import both plugin-local modules and shared modules from `P:/.claude/hooks/__lib__/`. Hooks that need `HOOKS_DIR` use `_hooks_dir` from the bootstrap return value.
 
 ### Compatibility Wrappers
 
@@ -107,17 +103,6 @@ delegate(__file__)
 ```
 
 `compat_loader.py` resolves the wrapper filename to the correct plugin `hooks/<phase>/` subdirectory and loads the plugin hook. It also uses `_bootstrap.py` for path setup (no duplicated resolver logic).
-
-## Fact-Guard Integration
-
-Absorbed from the standalone fact-guard plugin:
-
-- **provenance.py** — claim provenance tracking (moved here)
-- **contamination.py** — contamination detection (moved here)
-- **fact-guard_PreToolUse.py** — PreToolUse structured-edit guard (kept as-is in pretool/)
-- **fact-guard_PostToolUse.py** — PostToolUse contamination check (kept as-is in posttool/)
-
-Modules that remain separate: `state.py`, `fact_extraction.py`, `file_patterns.py` (in `P:/.claude/hooks/__lib__/`).
 
 ### Moved from shared to plugin-canonical
 

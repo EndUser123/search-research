@@ -188,28 +188,6 @@ class TestCompatibilityWrappers:
 
 
 # ===========================================================================
-# 4. Fact-guard integration
-# ===========================================================================
-class TestFactGuardIntegration:
-    """Verify provenance.py and contamination.py can be imported from plugin lib/."""
-
-    @pytest.mark.xfail(
-        reason="provenance.py imports from 'state' module which is not on sys.path "
-        "in the plugin lib context. The plugin hook path setup does not add "
-        "__lib__/ to sys.path, so 'from state import detect_terminal_id' fails. "
-        "Tracked as a migration gap.",
-        raises=ImportError,
-    )
-    def test_import_provenance(self) -> None:
-        mod = importlib.import_module("provenance")
-        assert mod is not None
-
-    def test_import_contamination(self) -> None:
-        mod = importlib.import_module("contamination")
-        assert mod is not None
-
-
-# ===========================================================================
 # 5. Path resolution — HOOKS_DIR in evidence_store
 # ===========================================================================
 class TestPathResolution:
@@ -256,16 +234,6 @@ class TestDirectoryStructure:
     def test_lib_contains_evidence_store(self) -> None:
         assert (PLUGIN_LIB / "evidence_store.py").is_file(), (
             "evidence_store.py must exist in plugin lib/"
-        )
-
-    def test_lib_contains_provenance(self) -> None:
-        assert (PLUGIN_LIB / "provenance.py").is_file(), (
-            "provenance.py must exist in plugin lib/"
-        )
-
-    def test_lib_contains_contamination(self) -> None:
-        assert (PLUGIN_LIB / "contamination.py").is_file(), (
-            "contamination.py must exist in plugin lib/"
         )
 
     def test_verification_subpackage_has_init(self) -> None:
