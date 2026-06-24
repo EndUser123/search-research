@@ -163,6 +163,19 @@ def main() -> int:
     transcript_copy = home / "claude-log.transcript.jsonl"
     transcript_path_file = home / "claude-log.transcript_path.txt"
 
+    # ponytail: hard size cap, truncate when exceeded. Without this the file
+    # grew to 435GB and append-open started failing with [Errno 22] on Windows,
+    # surfacing as a hook error on every event. Truncate (not rotate) so we
+    # actually free disk instead of keeping a second giant generation.
+    _MAX_LOG_BYTES = 512 * 1024 * 1024  # 512 MB
+    try:
+        if log_jsonl.exists() and log_jsonl.stat().st_size > _MAX_LOG_BYTES:
+            log_jsonl.unlink()
+            # Reset diff state so transcript tracking restarts cleanly.
+            transcript_copy.unlink(missing_ok=True)
+    except OSError as e:
+        _logger.warning(f"WARNING: log size-cap check failed: {e}")
+
     # Lock file - use temp dir (works on Windows)
     tmp_dir = Path(os.environ.get("TMPDIR", os.environ.get("TEMP", str(Path.home() / "AppData" / "Local" / "Temp"))))
     if not tmp_dir.is_dir() or not os.access(tmp_dir, os.W_OK):
@@ -285,11 +298,12 @@ def main() -> int:
     except json.JSONDecodeError as e:
         _logger.warning(f"WARNING: failed to parse stdin as JSON: {e}")
     except LockRetryExhausted as e:
+        # ponytail: best-effort logger — never surface as a hook error.
+        # Returning non-zero here spammed "non-blocking status code: No stderr
+        # output" on every one of the 5 wired events.
         _logger.error(f"ERROR: lock retry exhausted after {e.attempts} attempts: {e.last_error}")
-        return 1
     except Exception as e:
         _logger.error(f"ERROR in log-hook.py: {e}")
-        return 1
     finally:
         release_lock(lock_path)
 
