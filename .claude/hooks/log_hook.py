@@ -156,6 +156,32 @@ def _append_log(entry: dict, log_path: Path) -> None:
     _retry_on_locked(_write)
 
 
+# ponytail: 512MB is a generous cap for a personal append log; raise it only
+# if you actually consult deep history. The file grew to 435GB unbounded.
+_MAX_LOG_BYTES = 512 * 1024 * 1024  # 512 MB
+
+
+def _enforce_size_cap(log_jsonl: Path, max_bytes: int = _MAX_LOG_BYTES) -> bool:
+    """Delete the log if it exceeds max_bytes. Returns True if truncated.
+
+    Truncate (not rotate) so we free disk instead of keeping a second giant
+    copy. Do NOT touch the transcript diff baseline (claude-log.transcript.jsonl):
+    resetting it makes the very next run re-dump the entire transcript, which
+    re-inflates the file — the opposite of capping it.
+
+    ponytail: best-effort. Concurrent terminals may race the unlink, or another
+    process may hold the file open (Windows sharing violation). Both raise
+    OSError, caught here; the cap re-applies on the next invocation.
+    """
+    try:
+        if log_jsonl.exists() and log_jsonl.stat().st_size > max_bytes:
+            log_jsonl.unlink()
+            return True
+    except OSError as e:
+        _logger.warning(f"WARNING: log size-cap check failed: {e}")
+    return False
+
+
 def main() -> int:
     # Determine paths
     home = Path.home()
@@ -163,18 +189,7 @@ def main() -> int:
     transcript_copy = home / "claude-log.transcript.jsonl"
     transcript_path_file = home / "claude-log.transcript_path.txt"
 
-    # ponytail: hard size cap, truncate when exceeded. Without this the file
-    # grew to 435GB and append-open started failing with [Errno 22] on Windows,
-    # surfacing as a hook error on every event. Truncate (not rotate) so we
-    # actually free disk instead of keeping a second giant generation.
-    _MAX_LOG_BYTES = 512 * 1024 * 1024  # 512 MB
-    try:
-        if log_jsonl.exists() and log_jsonl.stat().st_size > _MAX_LOG_BYTES:
-            log_jsonl.unlink()
-            # Reset diff state so transcript tracking restarts cleanly.
-            transcript_copy.unlink(missing_ok=True)
-    except OSError as e:
-        _logger.warning(f"WARNING: log size-cap check failed: {e}")
+    _enforce_size_cap(log_jsonl)
 
     # Lock file - use temp dir (works on Windows)
     tmp_dir = Path(os.environ.get("TMPDIR", os.environ.get("TEMP", str(Path.home() / "AppData" / "Local" / "Temp"))))
