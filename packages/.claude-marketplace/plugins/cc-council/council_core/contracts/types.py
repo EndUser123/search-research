@@ -175,15 +175,14 @@ class ProviderHealth:
 class ProviderAdapter(ABC):
     """Abstract interface for LLM providers.
 
-    Design is transport-agnostic. Concrete implementations:
-    - Ollama (local HTTP API)
-    - LM Studio (local HTTP API)
-    - Direct GGUF/llama.cpp bindings
-    - vLLM REST API
-    - OpenRouter (cloud with resource constraints)
+    Design is transport-agnostic. Concrete implementations wrap external
+    transport layers (e.g., ai-api SDK clients for z.ai, MiniMax, opencode-go).
 
-    Local providers are treated as resource-constrained systems,
-    not quota-limited APIs.
+    Providers handle:
+    - Health status monitoring
+    - Model capability discovery
+    - Resource-aware scheduling (concurrency limits)
+    - Error handling and retries
     """
 
     provider_id: str

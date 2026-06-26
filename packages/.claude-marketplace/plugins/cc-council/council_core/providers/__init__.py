@@ -1,17 +1,13 @@
 """Providers module."""
 
-from council_core.providers.ollama import (
-    DEFAULT_OLLAMA_BASE_URL,
-    DEFAULT_CONCURRENCY,
-    DEFAULT_TIMEOUT_MS,
-    OllamaConfig,
-    OllamaProvider,
+from council_core.providers.aiapi import (
+    AIAPIConfig,
+    AIAPIProvider,
+    create_provider,
 )
 
 __all__ = [
-    "DEFAULT_OLLAMA_BASE_URL",
-    "DEFAULT_CONCURRENCY",
-    "DEFAULT_TIMEOUT_MS",
-    "OllamaConfig",
-    "OllamaProvider",
+    "AIAPIConfig",
+    "AIAPIProvider",
+    "create_provider",
 ]

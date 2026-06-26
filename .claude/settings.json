@@ -399,7 +399,9 @@
       }
     ]
   },
-  "enabledPlugins": {},
+  "enabledPlugins": {
+    "snapshot@local": true
+  },
   "mcpServers": {},
   "tdd": {
     "enforcement_mode": "enforced",

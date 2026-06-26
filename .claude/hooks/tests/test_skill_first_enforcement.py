@@ -72,18 +72,22 @@ class TestPreToolUseSkillFirstGate:
     """Test that PreToolUse blocks non-Skill tools when a slash command is pending."""
 
     def test_allowed_tools_are_tight(self):
-        """Verify _SKILL_FIRST_ALLOWED only contains Skill and metadata tools."""
+        """Verify _SKILL_FIRST_ALLOWED contains Skill, metadata, and diagnostic tools."""
         from PreToolUse import _SKILL_FIRST_ALLOWED
 
         assert "Skill" in _SKILL_FIRST_ALLOWED
         assert "AskUserQuestion" in _SKILL_FIRST_ALLOWED
         assert "TodoWrite" in _SKILL_FIRST_ALLOWED
 
-        assert "Read" not in _SKILL_FIRST_ALLOWED
-        assert "Grep" not in _SKILL_FIRST_ALLOWED
-        assert "Glob" not in _SKILL_FIRST_ALLOWED
+        # Diagnostic tools are allowed for investigation before Skill()
+        assert "Read" in _SKILL_FIRST_ALLOWED
+        assert "Grep" in _SKILL_FIRST_ALLOWED
+        assert "Glob" in _SKILL_FIRST_ALLOWED
+
+        # Execution/modification tools are still blocked
         assert "Edit" not in _SKILL_FIRST_ALLOWED
         assert "Write" not in _SKILL_FIRST_ALLOWED
+        assert "Bash" not in _SKILL_FIRST_ALLOWED
         assert "WebSearch" not in _SKILL_FIRST_ALLOWED
         assert "WebFetch" not in _SKILL_FIRST_ALLOWED
 
@@ -95,8 +99,8 @@ class TestPreToolUseSkillFirstGate:
         result = _check_skill_first_gate(data)
         assert result is None
 
-    def test_read_blocked_when_intent_pending(self, temp_state_dir):
-        """Read tool is blocked when a slash command is pending and mode is not off."""
+    def test_bash_blocked_when_intent_pending(self, temp_state_dir):
+        """Bash tool is blocked when a slash command is pending and mode is not off."""
         ctx = temp_state_dir
         fallback_state = ctx["tmp_path"] / "claude_hooks" / "state"
         fallback_state.mkdir(parents=True, exist_ok=True)
@@ -116,9 +120,9 @@ class TestPreToolUseSkillFirstGate:
         from PreToolUse import _check_skill_first_gate
 
         with patch.dict(os.environ, {"CLAUDE_TERMINAL_ID": "console_default"}):
-            result = _check_skill_first_gate({"tool_name": "Read"})
+            result = _check_skill_first_gate({"tool_name": "Bash"})
 
-        assert result is not None, "Gate should have blocked Read with pending intent"
+        assert result is not None, "Gate should have blocked Bash with pending intent"
         assert result["decision"] == "block"
         assert "hod" in result["reason"]
         assert "Skill" in result["reason"]
@@ -300,8 +304,11 @@ class TestStopSkillFirstGate:
         result = _run_skill_first_stop_gate({})
         assert result is not None
         assert result["decision"] == "block"
-        assert "hod" in result["reason"]
-        assert "Skill" in result["reason"]
+        # Stop gate uses hookSpecificOutput for silent steering, not reason
+        assert "hookSpecificOutput" in result
+        assert "additionalContext" in result["hookSpecificOutput"]
+        assert "hod" in result["hookSpecificOutput"]["additionalContext"]
+        assert "Skill" in result["hookSpecificOutput"]["additionalContext"]
         assert not intent_file.exists()
 
     def test_intent_file_monitor_mode_allows(self, temp_state_dir):

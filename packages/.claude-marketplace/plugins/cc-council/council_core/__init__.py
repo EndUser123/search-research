@@ -17,12 +17,10 @@ from council_core.contracts.types import (
     ProviderAdapter,
 )
 
-from council_core.providers.ollama import (
-    DEFAULT_OLLAMA_BASE_URL,
-    DEFAULT_CONCURRENCY,
-    DEFAULT_TIMEOUT_MS,
-    OllamaConfig,
-    OllamaProvider,
+from council_core.providers.aiapi import (
+    AIAPIConfig,
+    AIAPIProvider,
+    create_provider,
 )
 
 from council_core.persistence.store import CouncilStore, get_connection, init_schema
@@ -49,11 +47,9 @@ __all__ = [
     "ProviderHealth",
     "ProviderAdapter",
     # Providers
-    "DEFAULT_OLLAMA_BASE_URL",
-    "DEFAULT_CONCURRENCY",
-    "DEFAULT_TIMEOUT_MS",
-    "OllamaConfig",
-    "OllamaProvider",
+    "AIAPIConfig",
+    "AIAPIProvider",
+    "create_provider",
     # Persistence
     "CouncilStore",
     "get_connection",

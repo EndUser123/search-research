@@ -12,7 +12,7 @@ cc-council/
 ├── council_core/                   # Transport-agnostic core (NO Claude Code deps)
 │   ├── contracts/                  # Data contracts and types
 │   ├── engine/                     # Deliberation engine and state machine
-│   ├── providers/                  # Provider adapters (Ollama, future)
+│   ├── providers/                  # ai-api transport adapter
 │   ├── persistence/                # SQLite state management
 │   └── policy/                     # Consensus and gating policies
 ├── commands/                       # CLI commands (council-plan, etc.)
@@ -105,20 +105,12 @@ class ProviderAdapter(ABC):
     def get_concurrency_limit() -> int
 ```
 
-### Ollama Adapter (providers/ollama.py)
-- Base URL: `http://localhost:11434`
-- Endpoints:
-  - `GET /api/version` - Health check
-  - `GET /api/tags` - Model list
-  - `POST /api/generate` - Text generation
+### ai-api Adapter (providers/aiapi.py)
+- Wraps cc-skills-ai-api transport layer
+- Uses SDK clients for configured providers (z.ai, MiniMax, opencode-go, etc.)
+- Resolves provider from model name via `_provider_hint_for_model()`
 - Concurrency: 3 (configurable)
 - Resource constraints modeled via capability flags
-
-### Future Adapters
-- LM Studio (HTTP API, similar to Ollama)
-- Direct GGUF/llama.cpp bindings
-- vLLM REST API
-- OpenRouter (cloud) with resource constraints
 
 ## Claude Code Integration
 
@@ -154,7 +146,7 @@ class ProviderAdapter(ABC):
 1. **Single-round deliberation**: v1 implements one draft → review → synthesis cycle. Multi-round debate deferred.
 2. **Simple contradiction detection**: Keyword-based only. LLM-based semantic contradiction detection in v2.
 3. **Heuristic gating**: No learned classifier. Fixed keywords and length thresholds.
-4. **Ollama-only**: Only Ollama provider implemented. No other local providers tested.
+4. **Transport dependency**: Requires cc-skills-ai-api plugin for SDK access.
 5. **Windows 11 only**: Path handling and process management untested on macOS/Linux.
 6. **No distributed execution**: All models must be on localhost. No remote model support.
 7. **Synthesis model selection**: Fixed to third model. No adaptive selection logic.

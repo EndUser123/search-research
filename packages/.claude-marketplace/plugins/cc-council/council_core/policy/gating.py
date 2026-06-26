@@ -48,7 +48,7 @@ def classify_task(prompt: str, *, force_council: bool = False) -> tuple[bool, st
         return True, "explicit @council prefix"
 
     # Check for gating keywords
-    prompt_lower = prompt_lowered = prompt_stripped.lower()
+    prompt_lower = prompt_stripped.lower()
     matched_keywords = [kw for kw in _GATING_KEYWORDS if kw in prompt_lower]
     if matched_keywords:
         return True, f"keyword match: {', '.join(matched_keywords)}"

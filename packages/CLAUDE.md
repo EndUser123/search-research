@@ -30,7 +30,6 @@ All plugin hook scripts MUST use the `{plugin_name}_{event}.py` naming conventio
 
 | Plugin | Event | Standard name |
 |--------|-------|---------------|
-| fact-guard | PreToolUse | `fact-guard_PreToolUse.py` |
 | snapshot | PreCompact | `snapshot_PreCompact.py` |
 | skill-guard | Stop | `skill-guard_Stop.py` |
 
@@ -42,7 +41,7 @@ All plugin hook scripts MUST use the `{plugin_name}_{event}.py` naming conventio
       "matcher": "^(?:Edit|Write|MultiEdit)$",
       "hooks": [{
         "type": "command",
-        "command": "python \"C:/Users/brsth/.claude/plugins/reason_openai/hooks/fact-guard_PreToolUse.py\"",
+        "command": "python \"C:/Users/brsth/.claude/plugins/snapshot/hooks/snapshot_PreCompact.py\"",
         "timeout": 5
       }]
     }]

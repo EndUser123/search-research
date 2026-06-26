@@ -16,8 +16,8 @@ Check council system health and state database status.
 
 ## Behavior
 
-- Checks Ollama provider health
-- Lists available models
+- Checks ai-api provider health
+- Lists available models from configured SDK providers
 - Shows session count by state
 - Identifies stale sessions
 - Reports database status

@@ -3440,7 +3440,7 @@ GATE_CLASSES: dict[str, str] = {
     # unconditional subprocess behavior (each gate keeps its own internal gating).
     "perf_attribution": "policy",
     "removal_completeness": "policy",
-    "diagnostic_analysis_quality": "policy",
+    "diagnostic_analysis_quality": "quality",
     # Migrated 2026-06-15 from cc-aca-observability plugin hooks.json (subprocess).
     "cjk_drift_detector": "policy",
     # Quality gates — suppressed on control turns in normal mode
@@ -3862,6 +3862,14 @@ GATE_METADATA: dict[str, dict] = {
         # software_rca) to a one-shot block; general_diagnostic stays advisory.
         # Revert to pure advisory without code change:
         #   STOP_GATE_ROLLOUT_SEMANTIC_CRITIC=advisory
+        "rollout_mode": RolloutMode.BLOCK,
+    },
+    "diagnostic_analysis_quality": {
+        "class": "quality", "trivial_suppressible": True, "priority": 58,
+        "description": "Diagnostic analysis quality gate",
+        "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
+        "relevant_claim_kinds": frozenset({ClaimKind.CAUSAL, ClaimKind.FACTUAL}),
+        "required_artifact_classes": frozenset(),
         "rollout_mode": RolloutMode.BLOCK,
     },
     "proposal_critique_gate": {

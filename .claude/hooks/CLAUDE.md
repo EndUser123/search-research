@@ -51,7 +51,6 @@ Plugin hook scripts must use `{plugin_name}_{event}.py` naming. Generic names (`
 
 | Plugin | File | Standard name |
 |--------|------|---------------|
-| fact-guard | `PreToolUse.py` | `fact-guard_PreToolUse.py` |
 | snapshot | `PreCompact.py` | `snapshot_PreCompact.py` |
 | skill-guard | `execution_hooks.py` | `skill-guard_PreToolUse.py` (per entry) |
 

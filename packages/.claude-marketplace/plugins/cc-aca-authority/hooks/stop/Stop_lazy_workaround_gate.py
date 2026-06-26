@@ -218,7 +218,7 @@ def check_lazy_workarounds(response: str) -> dict:
             )
             return {
                 "decision": "block",
-                "message": f"LAZY WORKAROUND DETECTED: {label.replace('_', ' ')}\n\n"
+                "reason": f"LAZY WORKAROUND DETECTED: {label.replace('_', ' ')}\n\n"
                           f"⚠️  This suggests accepting a problem instead of fixing the root cause.\n\n"
                           f"Required approach:\n"
                           f"1. TRACE: Find where the problem originates\n"
@@ -251,7 +251,7 @@ def check_lazy_workarounds(response: str) -> dict:
         )
         return {
             "decision": "block",
-            "message": f"LAZY WORKAROUND DETECTED: ignoring duplication\n\n"
+            "reason": f"LAZY WORKAROUND DETECTED: ignoring duplication\n\n"
                       f"⚠️  This suggests accepting a problem instead of fixing the root cause.\n\n"
                       f"Matched: {words[0]!r} near {words[1]!r}\n\n"
                       f"Required approach:\n"

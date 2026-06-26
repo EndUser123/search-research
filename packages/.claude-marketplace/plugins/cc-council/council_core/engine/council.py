@@ -21,7 +21,7 @@ from council_core.contracts.types import (
     SynthesisResult,
 )
 from council_core.persistence.store import CouncilStore
-from council_core.providers.ollama import OllamaProvider
+from council_core.providers.aiapi import AIAPIProvider
 
 
 class CouncilEngine:
@@ -33,7 +33,7 @@ class CouncilEngine:
     def __init__(
         self,
         db_path: Path,
-        provider: OllamaProvider,
+        provider: AIAPIProvider,
         consensus_policy: ConsensusPolicy,
     ) -> None:
         """Initialize the council engine.
@@ -80,13 +80,13 @@ class CouncilEngine:
 
 def create_council(
     db_path: Path,
-    provider: OllamaProvider | None = None,
+    provider: AIAPIProvider | None = None,
 ) -> CouncilEngine:
     """Factory function to create a council engine.
     
     Args:
         db_path: Path to SQLite database
-        provider: Optional provider (creates default OllamaProvider if None)
+        provider: Optional provider (creates default AIAPIProvider if None)
         
     Returns:
         Configured CouncilEngine instance
@@ -94,7 +94,8 @@ def create_council(
     from council_core.contracts.types import ConsensusPolicy, ConsensusStrategy
     
     if provider is None:
-        provider = OllamaProvider()
+        from council_core.providers.aiapi import create_provider
+        provider = create_provider()
     
     policy = ConsensusPolicy(
         strategy=ConsensusStrategy.RANKED_PEER_REVIEW,
