@@ -1,0 +1,34 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "^.*$",
+        "hooks": [
+          {
+            "command": "python \"$CLAUDE_PLUGIN_ROOT/hooks/sessionstart/model_router_init.py\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "^.*$",
+        "hooks": [
+          {
+            "command": "python \"$CLAUDE_PLUGIN_ROOT/hooks/userpromptsubmit/model_router_classify.py\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "^.*$",
+        "hooks": [
+          {
+            "command": "python \"$CLAUDE_PLUGIN_ROOT/hooks/stop/stop_model_router_autoswitch.py\""
+          }
+        ]
+      }
+    ]
+  }
+}
