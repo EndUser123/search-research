@@ -18,7 +18,7 @@ export function synthesizePlanText(assessment: RiskAssessment): string {
 	const paths = assessment.candidatePaths.length > 0
 		? assessment.candidatePaths.slice(0, 5).join(", ")
 		: "(no candidate paths)";
-	let verifyHint = "npm test";
+	let verifyHint = "(none)";
 	if (assessment.candidatePaths.length > 0) {
 		const first = assessment.candidatePaths[0]!;
 		const cmds = suggestVerifyCommandsForPath(first);

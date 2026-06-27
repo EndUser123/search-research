@@ -42,8 +42,10 @@ export function summarizePrompt(prompt: string): string {
 	return cleaned.slice(0, 117) + "...";
 }
 
+// ponytail: trim first so isSafeTextPath can match "  README.md  " correctly.
+// Without trim, a trailing-space suffix would break the .endsWith('.md') check.
 function normalizePath(p: string): string {
-	return p.replace(/\\/g, "/").replace(/^\.\//, "").replace(/^\/+/, "");
+	return p.trim().replace(/\\/g, "/").replace(/^\.\//, "").replace(/^\/+/, "");
 }
 
 export function classifyRisk(input: {
@@ -131,6 +133,22 @@ export function classifyRisk(input: {
 			tier: "LOW",
 			reasons: ["Only low-risk paths targeted"],
 			matchedRules: ["LOW_PATHS_ONLY"],
+			candidatePaths: normalizedPaths,
+			proposedCommands: normalizedCommands,
+			promptSummary: summarizePrompt(input.prompt ?? ""),
+			overridden: false,
+		};
+	}
+
+	// Fallback for queries with no extracted paths and no proposed commands.
+	// Placed after LOW_PATHS_ONLY so that any future path-inference step
+	// (e.g. extracting paths from a screenshot or file content) gets caught by
+	// the safe-path check before this fires.
+	if (normalizedPaths.length === 0 && normalizedCommands.length === 0) {
+		return {
+			tier: "LOW",
+			reasons: ["Read-only query"],
+			matchedRules: ["QUERY_ONLY"],
 			candidatePaths: normalizedPaths,
 			proposedCommands: normalizedCommands,
 			promptSummary: summarizePrompt(input.prompt ?? ""),

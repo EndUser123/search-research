@@ -20,9 +20,9 @@ const TABLE: Record<string, string[]> = {
 	".tf": TF,
 	".tf.json": TF,
 	".hcl": TF,
-	".md": ["head -1 __FILE__", "wc -l __FILE__"],
-	".markdown": ["head -1 __FILE__", "wc -l __FILE__"],
-	".txt": ["head -1 __FILE__", "wc -l __FILE__"],
+	".md": [],
+	".markdown": [],
+	".txt": [],
 };
 
 export function suggestVerifyCommandsForPath(path: string): string[] | null {

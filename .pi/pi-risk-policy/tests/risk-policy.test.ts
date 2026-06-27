@@ -17,7 +17,7 @@ import {
 	missingRequirements,
 } from "../extensions/verification-state.ts";
 import { POLICY_BY_TIER } from "../extensions/risk-policy.ts";
-import { RiskStateStore } from "../extensions/risk-state.ts";
+import { RiskStateStore, type StoredFinding } from "../extensions/risk-state.ts";
 import { extractBashExitCode } from "../extensions/bash-result.ts";
 import { autoRecordPlanIfNeeded, evaluateAutoDiff, buildAutoDiffSummary, buildAutoDiffProbeLog } from "../extensions/auto-record.ts";
 import { getSessionChangeSet, buildChangeSetPrompt } from "../extensions/session-changeset.ts";
@@ -229,9 +229,27 @@ describe("classifyRisk", () => {
 		assert.deepEqual(a.candidatePaths, ["infra/x.tf"]);
 	});
 
+	it("classifies a read-only query (no paths, no commands) as LOW", () => {
+		const a = classifyRisk({
+			...base,
+			prompt: "does PI have a thinking mode like Claude Code?",
+			candidatePaths: [],
+			proposedCommands: [],
+		});
+		assert.equal(a.tier, "LOW");
+		assert.ok(a.matchedRules.includes("QUERY_ONLY"));
+		assert.ok(a.reasons.includes("Read-only query"));
+	});
+
 	it("never returns empty reasons", () => {
 		const a = classifyRisk({ ...base, prompt: "", candidatePaths: [] });
 		assert.ok(a.reasons.length > 0);
+	it("normalizePath trims whitespace so padded paths match isSafeTextPath", () => {
+		// "README.md  " with trailing spaces failed isSafeTextPath (ends with "  ", not ".md").
+		// trim() in normalizePath fixes this.
+		const a = classifyRisk({ ...base, prompt: "review", candidatePaths: ["  README.md  ", "  docs/notes.txt  "], proposedCommands: [] });
+		assert.equal(a.tier, "LOW"); // safe-text extensions, correctly matched after trim
+	});
 	});
 });
 
@@ -1673,23 +1691,14 @@ describe("suggestVerifyCommandsForPath", () => {
 		assert.ok(cmds!.some((c) => c.includes("pytest") || c.includes("ruff")));
 	});
 
-	it("returns doc-intactness probes for .md paths", () => {
+	it("returns empty array for .md paths (no-op probes removed)", () => {
 		const cmds = suggestVerifyCommandsForPath("README.md");
-		assert.ok(cmds);
-		assert.equal(cmds!.length, 2);
-		assert.ok(cmds!.some((c) => c.includes("head -1")));
-		assert.ok(cmds!.some((c) => c.includes("wc -l")));
-		// Both should reference the actual file path.
-		for (const c of cmds!) {
-			assert.match(c, /README\.md/);
-		}
+		assert.deepEqual(cmds, []);
 	});
 
-	it("returns doc-intactness probes for .txt paths", () => {
+	it("returns empty array for .txt paths (no-op probes removed)", () => {
 		const cmds = suggestVerifyCommandsForPath("notes.txt");
-		assert.ok(cmds);
-		assert.ok(cmds!.some((c) => c.includes("head -1")));
-		assert.ok(cmds!.some((c) => c.includes("wc -l")));
+		assert.deepEqual(cmds, []);
 	});
 
 	it("returns null for unknown extensions", () => {
@@ -1714,6 +1723,64 @@ describe("RiskStateStore — lastPrompt accessor (R17)", () => {
 		store.setLastPrompt("first");
 		store.setLastPrompt("second");
 		assert.equal(store.getLastPrompt(), "second");
+	});
+});
+
+describe("Findings dedup across turns", () => {
+	// Mirror the keyOf + merge logic from risk-policy-extension.ts.
+	// Dedup key: path:severity:kind:message. runReviewPass resets its counter each
+	// turn, so "S1" in turn 1 and "S1" in turn 2 are different ids for the same
+	// finding — using id as the dedup key would never catch cross-turn duplicates.
+	const keyOf = (f: { path: string; severity: string; kind: string; message: string }) =>
+		`${f.path}:${f.severity}:${f.kind}:${f.message}`;
+
+	const mkFinding = (id: string, path: string, kind: "simplify" | "review" = "review", severity = "med", message = "test") =>
+		({ id, path, kind, severity, message });
+
+	it("same content, different id: filtered by path+severity+message", () => {
+		// Counter resets each turn: "S1" in turn 1, "S1" in turn 2.
+		// Dedup must catch this using content key, not id.
+		const existing = [mkFinding("S1", "src/a.ts", "review", "med", "unused var")];
+		const newFindings = [mkFinding("S2", "src/a.ts", "review", "med", "unused var")];
+		const existingKeys = new Set(existing.map(keyOf));
+		const toAdd = newFindings.filter((f) => !existingKeys.has(keyOf(f)));
+		assert.equal(toAdd.length, 0);
+	});
+
+	it("same path+severity but different message: treated as different finding", () => {
+		const existing = [mkFinding("S1", "src/a.ts", "review", "med", "unused var")];
+		const newFindings = [mkFinding("S2", "src/a.ts", "review", "med", "different msg")];
+		const existingKeys = new Set(existing.map(keyOf));
+		const toAdd = newFindings.filter((f) => !existingKeys.has(keyOf(f)));
+		assert.equal(toAdd.length, 1);
+	});
+
+	it("RiskStateStore: disposition persists across setFindings calls", () => {
+		const store = new RiskStateStore();
+		const f = { kind: "review" as const, path: "src/a.ts", severity: "med" as const, message: "x", turnId: "t1", id: "R1", storedAt: "2024-01-01" };
+		store.setFindings([f]);
+		store.recordDisposition({ id: "R1", disposition: "addressed" });
+		assert.equal(store.getFindings().length, 1);
+		assert.equal(store.getFindings()[0]?.disposition, "addressed");
+		// Next turn with no new findings: merge is a no-op
+		store.setFindings(store.getFindings());
+		assert.equal(store.getFindings().length, 1);
+		assert.equal(store.getFindings()[0]?.disposition, "addressed");
+	});
+
+	it("RiskStateStore: dispositioned finding is not re-added by merge on next turn", () => {
+		const store = new RiskStateStore();
+		const f = { kind: "review" as const, path: "src/a.ts", severity: "med" as const, message: "x", turnId: "t1", id: "R1", storedAt: "2024-01-01" };
+		store.setFindings([f]);
+		store.recordDisposition({ id: "R1", disposition: "addressed" });
+		// Simulate next turn: review generates the same finding (new id)
+		const existing = store.getFindings();
+		const newFindings = [{ ...f, storedAt: "2024-01-02" }];
+		const existingKeys = new Set(existing.map(keyOf));
+		const toAdd = newFindings.filter((f) => !existingKeys.has(keyOf(f)));
+		store.setFindings([...existing, ...toAdd]);
+		assert.equal(store.getFindings().length, 1); // no re-add
+		assert.equal(store.getFindings()[0]?.disposition, "addressed"); // disposition preserved
 	});
 });
 

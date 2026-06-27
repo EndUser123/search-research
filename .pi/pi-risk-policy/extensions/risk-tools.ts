@@ -104,15 +104,18 @@ export function registerRiskTools(
 			const config = getConfig();
 			const current = store.getSnapshot();
 			const existingPaths = current?.assessment.candidatePaths ?? [];
-			const existingCommands = current?.assessment.proposedCommands ?? [];
 			const prompt = args.prompt ?? getLastPrompt();
 
 			// Read-only: classify but do not store.
+			// candidatePaths merges the active snapshot's paths so the user can call
+			// evaluate_change_risk with additional paths without re-specifying the current ones.
+			// proposedCommands is always [] in the active snapshot (nothing populates it), so
+			// we pass args.commands directly rather than merging a dead empty array.
 			const assessment: RiskAssessment = classifyRisk({
 				prompt,
 				cwd: ctx.cwd,
 				candidatePaths: [...existingPaths, ...(args.paths ?? [])],
-				proposedCommands: [...existingCommands, ...(args.commands ?? [])],
+				proposedCommands: args.commands ?? [],
 				config,
 				overrideTier: null, // evaluation is independent of active override
 			});

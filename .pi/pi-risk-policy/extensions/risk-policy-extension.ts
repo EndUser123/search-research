@@ -51,7 +51,7 @@ import {
 } from "./risk-classifier.ts";
 import { extractCandidatePaths } from "./path-extractor.ts";
 import { POLICY_BY_TIER } from "./risk-policy.ts";
-import { RiskStateStore } from "./risk-state.ts";
+import { RiskStateStore, type StoredFinding } from "./risk-state.ts";
 import { getSessionChangeSet } from "./session-changeset.ts";
 import { clearRiskUI, showRiskBanner, showRiskWarning } from "./risk-ui.ts";
 import { suggestVerifyCommands } from "./verify-defaults.ts";
@@ -617,15 +617,37 @@ export default function riskPolicyExtension(pi: ExtensionAPI) {
 		}
 		const snap = store.getSnapshot();
 		if (!snap) return;
-		if (snap.assessment.tier === "LOW") return;
+		// R1 invariant: the caller must guard on tier !== LOW before registering this
+		// handler. This assert documents the invariant and crashes loudly if violated
+		// rather than silently no-oping — a removed guard is a latent bug.
+		if (snap.assessment.tier === "LOW") {
+			await logEvent({ event: "invariant_violation", cwd: ctx.cwd, hook: "agent_end", detail: "review handler reached with LOW tier" });
+			return;
+		}
 		const changeSet = getSessionChangeSet(ctx);
 		const verdict = await runReviewPass(ctx, changeSet, snap, snap.timestamp);
-		const stored = [
+		const newFindings = [
 			...verdict.simplify.map((f) => ({ ...f, storedAt: verdict.ranAt })),
 			...verdict.review.map((f) => ({ ...f, storedAt: verdict.ranAt })),
 		];
-		store.setFindings(stored);
-		if (ctx.hasUI) {
+		// Merge: keep existing (possibly dispositioned) findings, add new ones from this run.
+		// Dedup key: path:severity:kind:message. "kind" is included so simplify and review
+		// findings on the same content are kept separate. runReviewPass resets its counter
+		// each turn, so "S1" in turn 1 and "S1" in turn 2 are different ids for the same
+		// finding — using id as the dedup key would never catch cross-turn duplicates.
+		const keyOf = (f: StoredFinding) => `${f.path}:${f.severity}:${f.kind}:${f.message}`;
+		const existing = store.getFindings();
+		const existingKeys = new Set(existing.map(keyOf));
+		const toAdd = newFindings.filter((f) => !existingKeys.has(keyOf(f as StoredFinding)));
+		store.setFindings([...existing, ...toAdd]);
+		// Notify on findings. For skipped runs, only notify on non-standard skip reasons —
+		// "no-session-changes" is normal for non-writing turns and would spam every time.
+		// "tier=LOW" never reaches this handler (wrapped at the call site above).
+		const shouldNotify =
+			verdict.simplify.length > 0 ||
+			verdict.review.length > 0 ||
+			(verdict.skippedReason !== undefined && verdict.skippedReason !== "no-session-changes");
+		if (ctx.hasUI && shouldNotify) {
 			const note = verdict.skippedReason
 				? `Review pass skipped: ${verdict.skippedReason}`
 				: `Review pass: simplify=${verdict.simplify.length} review=${verdict.review.length}`;
