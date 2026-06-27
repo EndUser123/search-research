@@ -3867,7 +3867,12 @@ GATE_METADATA: dict[str, dict] = {
     "diagnostic_analysis_quality": {
         "class": "quality", "trivial_suppressible": True, "priority": 58,
         "description": "Diagnostic analysis quality gate",
-        "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
+        # Include UNKNOWN: RCA turns often classify as 'query' → TurnKind.UNKNOWN
+        # (e.g. "what's the root cause?" bare-question turns), which the bare
+        # _ANALYSIS_TURN_KINDS set excluded, silently skipping the gate. The
+        # gate's own _is_diagnostic_turn() still self-gates on text, so widening
+        # eligibility here does not fire on non-diagnostic unknown turns.
+        "relevant_turn_kinds": _ANALYSIS_OR_UNKNOWN_TURN_KINDS,
         "relevant_claim_kinds": frozenset({ClaimKind.CAUSAL, ClaimKind.FACTUAL}),
         "required_artifact_classes": frozenset(),
         "rollout_mode": RolloutMode.BLOCK,

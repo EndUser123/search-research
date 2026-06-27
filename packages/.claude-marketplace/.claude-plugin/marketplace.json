@@ -18,7 +18,7 @@
     },
     {
       "name": "cc-skills-ai-api",
-      "version": "1.0.6",
+      "version": "1.0.7",
       "description": "AI API integration skills for Claude Code",
       "source": "./plugins/cc-skills-ai-api",
       "keywords": [
@@ -40,7 +40,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.61",
+      "version": "1.0.62",
       "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -51,7 +51,7 @@
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.2.2",
+      "version": "1.2.3",
       "description": "Utility skills for Claude Code",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
@@ -61,7 +61,7 @@
     },
     {
       "name": "search-research",
-      "version": "0.1.16",
+      "version": "0.1.17",
       "description": "Unified search and research system with async concurrent execution and 11 web providers.",
       "source": "./plugins/search-research",
       "keywords": [
@@ -73,7 +73,7 @@
     },
     {
       "name": "skill-guard",
-      "version": "2.1.29",
+      "version": "2.1.30",
       "description": "Universal skill auto-discovery and enforcement for Claude Code",
       "source": "./plugins/skill-guard",
       "keywords": [
@@ -93,7 +93,7 @@
     },
     {
       "name": "cc-skills-thinking",
-      "version": "1.0.11",
+      "version": "1.0.12",
       "description": "Thinking plugin",
       "source": "./plugins/cc-skills-thinking",
       "keywords": []
@@ -107,7 +107,7 @@
     },
     {
       "name": "cc-skills-analysis",
-      "version": "1.0.27",
+      "version": "1.0.28",
       "description": "Analysis plugin",
       "source": "./plugins/cc-skills-analysis",
       "keywords": []
@@ -158,7 +158,7 @@
     },
     {
       "name": "cc-aca-epistemic",
-      "version": "0.2.60",
+      "version": "0.2.62",
       "description": "ACA Epistemic plugin - evidence verification, claim validation, provenance tracking, anti-fabrication enforcement, and anti-sycophancy detection. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-epistemic",
       "keywords": [
@@ -174,7 +174,7 @@
     },
     {
       "name": "cc-aca-authority",
-      "version": "0.1.15",
+      "version": "0.1.16",
       "description": "ACA Authority plugin - permission enforcement, approval flow control, delegation gating, risk tiering, and git safety guards. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-authority",
       "keywords": [
@@ -189,7 +189,7 @@
     },
     {
       "name": "cc-aca-reasoning",
-      "version": "0.1.12",
+      "version": "0.1.13",
       "description": "ACA Reasoning plugin - sequential thinking, cognitive enhancement, reasoning mode selection, reflection triggers, drift detection, and reasoning quality gates.",
       "source": "./plugins/cc-aca-reasoning",
       "keywords": [
@@ -235,7 +235,7 @@
     },
     {
       "name": "cc-aca-observability",
-      "version": "0.1.19",
+      "version": "0.1.21",
       "description": "ACA Observability plugin \u2014 session health monitoring, drift detection, artifact scraping, and PostToolUse tracker orchestration. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-observability",
       "keywords": [
@@ -276,7 +276,7 @@
     },
     {
       "name": "cc-model-router",
-      "version": "0.2.5",
+      "version": "0.2.6",
       "description": "Automatic model-tier routing (haiku/sonnet/opus) based on prompt complexity heuristics with dual-mode operation (warn plus autoswitch)",
       "source": "./plugins/cc-model-router",
       "keywords": []

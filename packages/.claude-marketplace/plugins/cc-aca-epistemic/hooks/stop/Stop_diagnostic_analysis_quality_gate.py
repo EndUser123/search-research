@@ -539,12 +539,20 @@ def run(data: dict) -> dict | None:
             "blocking_hook": "Stop_diagnostic_analysis_quality_gate.py",
         }
 
-    if mode == "block" and warn_findings:
-        return {
-            "decision": "block",
-            "reason": warn_findings[0].message,
-            "blocking_hook": "Stop_diagnostic_analysis_quality_gate.py",
-        }
+    # Class A block: only a missing discriminating test / falsifier justifies a
+    # hard block. competing_hypotheses / baseline / mechanism are softer
+    # discipline nags — blocking on them overfires on legitimate focused
+    # single-cause RCA that has evidence + a falsifier but lists no alternatives.
+    # Verified against 30-day corpus: every Class A RCA case (7,8,11,22) fired
+    # discriminating_test; none failed for lacking competing hypotheses.
+    if mode == "block":
+        dt = [f for f in findings if f.check == "discriminating_test"]
+        if dt:
+            return {
+                "decision": "block",
+                "reason": dt[0].message,
+                "blocking_hook": "Stop_diagnostic_analysis_quality_gate.py",
+            }
 
     # Warn mode: return advisory systemMessage
     if warn_findings:
