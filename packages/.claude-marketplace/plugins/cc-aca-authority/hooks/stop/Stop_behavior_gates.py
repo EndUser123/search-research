@@ -44,12 +44,14 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-# Add hooks dir to path for turn_mode import
-_HOOKS_DIR = Path(__file__).resolve().parents[1]
-if str(_HOOKS_DIR) not in sys.path:
-    sys.path.insert(0, str(_HOOKS_DIR))
-
-from __lib.turn_mode import classify
+# NOTE: `from __lib.turn_mode import classify` was removed 2026-06-27.
+# The `__lib.turn_mode` module does not exist (verified via Glob across
+# P:/packages and C:/Users/brsth/.claude). The imported `classify` was
+# never called in this file. The call site at the original line ~600 used
+# `_classify_turn_mode` (a different identifier), which was wrapped in
+# try/except: pass and was effectively dead. Both blocks are removed in
+# the Gate 4 commit. Plan-mode bypass in Gate 3 was silently fail-open
+# already; this removal makes the dead code path visible rather than hidden.
 
 # ============================================================================
 # CONFIGURATION
@@ -594,17 +596,11 @@ def check_gate3_agreement(text: str, tools_used: list[str], working_dir: Path | 
         # Agent mentioned tools in text → likely implementing → no violation
         return (False, "")
 
-    # Plan-mode check: skip if turn is plan or execution-report
-    # (future commitments like "I'll do X next" are legitimate planning language)
-    try:
-        turn_mode = _classify_turn_mode({
-            "user_prompt": user_prompt or "",
-            "response": text,
-        })
-        if turn_mode in ("plan", "execution-report"):
-            return (False, "")
-    except Exception:
-        pass  # Fail open — gate fires if classification fails
+    # Plan-mode bypass removed 2026-06-27 (Gate 4 commit): _classify_turn_mode
+    # is undefined and __lib.turn_mode does not exist. The try/except wrapper
+    # made this silently fail-open, masking the dead-code path. Plan-mode
+    # bypass is now removed; if a future commit reintroduces turn_mode, this
+    # block should be restored from git history.
 
     # ========================================================================
     # PATTERN MATCHING (only if tools not found)
@@ -924,6 +920,155 @@ def check_gate2_tools(text: str, tools_used: list[str], working_dir: Path | None
     return (False, "")
 
 # ============================================================================
+# GATE 4: Unverified Confident Claim Detection (ADVISORY)
+# ============================================================================
+
+# Confident verdict patterns that should be backed by tool-call verification.
+# Sourced from CLAUDE.md "Claim Verification" rule + bad-thinking-cases.md
+# (17 of 25 verified bad-thinking cases broke this rule).
+_CLAIM_PATTERNS = [
+    # Root Cause header
+    r"\bRoot\s+Cause\s*:",
+    # The fix is / The solution is / The issue is header
+    r"\b(?:The\s+)?(?:fix|solution|issue|problem)\s+is\s*:",
+    # Standalone confident verdict (line-anchored to avoid false positives mid-sentence)
+    r"(?<![A-Za-z])(?:Fixed|Done|Verified|Confirmed)(?![A-Za-z])",
+    # "This works because" / "This will work because"
+    r"\bThis\s+(?:works|will\s+work|fails|fails\s+because)\s+because",
+    # "X is the root cause" declarative
+    r"\bis\s+the\s+root\s+cause\b",
+    # "confirmed that" followed by claim
+    r"\bconfirmed\s+that\s+(?:the|this|it)",
+]
+
+# Investigation-intent phrases — if present, the response is doing real work,
+# not making a lazy claim. Same bypass pattern as Stop_lazy_workaround_gate.
+_INVESTIGATION_BYPASS = [
+    r"(?:should|will|need\s+to|going\s+to|planning\s+to)\s+(?:trace|investigate|find\s+root|debug|verify|check|run)",
+    r"(?:let\s+me|let\s+us|i'll|i\s+will|i'm\s+going\s+to)\s+(?:trace|investigate|find\s+root|debug|verify|check|run)",
+    r"(?:tracing|investigating|debugging|verifying|checking|running)\s+(?:where|why|what|how|the)",
+    r"running\s+now",
+    r"haven't\s+(?:verified|confirmed|checked)\s+yet",
+]
+
+# Tools that count as verification (matching CLAUDE.md "tool calls from the last 3 turns" rule).
+_VERIFICATION_TOOLS = {"Read", "Bash", "Glob", "Grep", "WebFetch", "WebSearch"}
+
+
+def _has_investigation_intent_gate4(text: str) -> bool:
+    """Return True if response shows active investigation, not lazy claim."""
+    text_lower = text.lower()
+    return any(re.search(p, text_lower) for p in _INVESTIGATION_BYPASS)
+
+
+def check_gate4_unverified_claim(
+    text: str,
+    tools_used: list[str],
+    working_dir: Path | None = None,
+) -> tuple[bool, str]:
+    """
+    Check if assistant emitted a confident verdict (Root Cause / Fixed / etc.)
+    without using a verification tool in the same response.
+
+    Gate Type: ADVISORY (warns but allows continuation)
+
+    Behavioral Pattern:
+    - Assistant emits a confident verdict phrase (Root Cause:, Fixed., etc.)
+    - But response contains no verification tool (Read/Bash/Glob/Grep)
+    - Indicates: Confident claim without the discriminating test
+
+    This is the mechanical backstop for the CLAUDE.md "Claim Verification" rule.
+    Without this, A-class failures (verified root causes without the verifying
+    tool call) ship unchallenged. See bad-thinking-cases.md cases 1, 2, 3, 4, 5,
+    7, 8, 11, 14, 21, 22, 23, 25 (17 of 25 verified cases broke this rule).
+
+    Examples of Violations:
+        "Root Cause: The PowerShell profile is corrupted."
+        (with no Read/Bash/Glob/Grep in tools_used)
+
+        "Fixed. The script now handles the timeout."
+        (with no verification tool)
+
+    Examples of Non-Violations:
+        "Root Cause: The PowerShell profile is corrupted. Let me trace this."
+        (investigation-intent bypass — proper work, not lazy claim)
+
+        "I haven't verified yet — running now."
+        (explicit uncertainty marker)
+
+        "Fixed." after Read of the relevant file
+        (Read is in tools_used — claim verified)
+
+    Args:
+        text: Assistant response text to analyze
+        tools_used: List of tool names used in response
+        working_dir: Working directory (optional, for telemetry)
+
+    Returns:
+        Tuple of (is_violation, reason):
+        - is_violation: True if advisory gate triggered
+        - reason: Human-readable explanation
+
+    Environment Variables:
+        BEHAVIOR_GATES_ENABLED: "false" disables this gate (returns False, "")
+    """
+    # Check if gates are enabled
+    if not _are_gates_enabled():
+        return (False, "")
+
+    # Investigation-intent bypass: if the response shows active investigation,
+    # the claim is in-progress, not lazy. Same pattern as Stop_lazy_workaround_gate.
+    if _has_investigation_intent_gate4(text):
+        return (False, "")
+
+    # Strip quoted regions to avoid false positives on:
+    # - Quoted user feedback (e.g., user pasted Stop-hook output containing "Root Cause:")
+    # - Code blocks showing trigger examples
+    # - Markdown blockquotes with trigger phrases
+    stripped_text, _ = _strip_quoted_regions(text)
+
+    # Check for claim patterns on stripped text
+    has_claim = False
+    matched_pattern = None
+    for pattern in _CLAIM_PATTERNS:
+        if re.search(pattern, stripped_text, re.IGNORECASE | re.MULTILINE):
+            has_claim = True
+            matched_pattern = pattern
+            break
+
+    if not has_claim:
+        return (False, "")
+
+    # Claim detected — check for verification tool
+    tools_set = set(tools_used)
+    has_verification = bool(tools_set & _VERIFICATION_TOOLS)
+
+    if has_verification:
+        return (False, "")
+
+    # Claim without verification → VIOLATION (advisory)
+    reason = (
+        f"Confident verdict (matched pattern: {matched_pattern}) "
+        f"emitted without verification tool. "
+        f"Verification tools: {', '.join(sorted(_VERIFICATION_TOOLS))}. "
+        f"Tools used: {', '.join(sorted(tools_used)) if tools_used else 'none'}. "
+        f"Either run the discriminating test (Read/Bash/Glob/Grep), or hedge the claim "
+        f"with explicit uncertainty markers."
+    )
+
+    _log_gate_violation(
+        gate_name="gate4_unverified_claim",
+        severity="advisory",
+        reason=reason,
+        text=text,
+        tools_used=tools_used,
+        working_dir=working_dir,
+    )
+
+    return (True, reason)
+
+
+# ============================================================================
 # GATE ORCHESTRATION
 # ============================================================================
 
@@ -1031,6 +1176,11 @@ def check_advisory_gates(text: str, tools_used: list[str], working_dir: Path | N
     is_violation, reason = check_gate2_tools(text, tools_used, working_dir)
     if is_violation:
         violations.append(("gate2_tools", reason))
+
+    # Check Gate 4 (always advisory — unverified confident claim detection)
+    is_violation, reason = check_gate4_unverified_claim(text, tools_used, working_dir)
+    if is_violation:
+        violations.append(("gate4_unverified_claim", reason))
 
     # Check Gate 3 (advisory only when mode is set)
     mode = _get_gates_mode()

@@ -197,7 +197,7 @@
     },
     {
       "name": "cc-aca-authority",
-      "version": "0.1.10",
+      "version": "0.1.15",
       "description": "ACA Authority plugin - permission enforcement, approval flow control, delegation gating, risk tiering, and git safety guards.",
       "source": "./plugins/cc-aca-authority",
       "keywords": [
@@ -258,7 +258,7 @@
     },
     {
       "name": "cc-aca-observability",
-      "version": "0.1.18",
+      "version": "0.1.19",
       "description": "ACA Observability plugin \u2014 session health monitoring, drift detection, artifact scraping, and PostToolUse tracker orchestration. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-observability",
       "keywords": [
