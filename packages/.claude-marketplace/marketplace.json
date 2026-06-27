@@ -242,7 +242,7 @@
     },
     {
       "name": "cc-aca-safety",
-      "version": "0.1.6",
+      "version": "0.1.8",
       "description": "ACA Safety plugin -- filesystem protection, path policy enforcement, bulk delete safety, Windows path correctness, protected file recovery, and git auto-staging for deletion safety.",
       "source": "./plugins/cc-aca-safety",
       "keywords": [
