@@ -129,6 +129,14 @@
       "Bash(rm -f P:/packages/**/__pycache__/**)",
       "Bash(rm -rf P:/packages/**/__pycache__/**)"
     ],
+    "ask": [
+      "Bash(powershell*)",
+      "Bash(pwsh*)",
+      "Bash(cmd /*)",
+      "Bash(perl*)",
+      "Bash(ruby*)",
+      "Bash(php*)"
+    ],
     "deny": [
       "Bash(rm -rf /)",
       "Bash(del /f /q C:\\*)",
@@ -150,7 +158,10 @@
       "Write(/etc/**)",
       "Write(/usr/bin/**)",
       "Write(C:/Windows/**)",
-      "Write(C:/Program Files/**)"
+      "Write(C:/Program Files/**)",
+      "Bash(rm -rf .git*)",
+      "Bash(npm publish*)",
+      "Bash(cat .env*)"
     ]
   },
   "enabledMcpjsonServers": [],
