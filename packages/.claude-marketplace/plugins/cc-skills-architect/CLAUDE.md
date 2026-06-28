@@ -26,7 +26,6 @@ Tools used to grow and maintain the skill ecosystem.
 | doc-compiler | Multi-module documentation aggregator | `doc-compiler/` |
 | doc-to-skill | Bootstraps a skill from Markdown documentation | `doc-to-skill/` |
 | gitready | Scaffolding and asset readiness | `gitready/` |
-| standards | Solo-dev architectural standard enforcement | `standards/` |
 | usm | Master skill/plugin coordinator | `usm/` |
 | garden | Knowledge cleanup and pattern pruning | `garden/` |
 | evolve | Modernization and technical debt refactoring | `evolve/` |

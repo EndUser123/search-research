@@ -12,7 +12,6 @@ aliases:
 
 suggest:
   - /nse
-  - /standards
   - /design
 
 workflow_steps:
@@ -52,7 +51,7 @@ Executable prompt specification system with constitutional compliance and cognit
 
 ### Architecture Alignment
 - Integrates with `/nse` for intelligent recommendations
-- Works alongside `/standards` and `/design` for comprehensive workflow
+- Works alongside `/design` for comprehensive workflow
 
 ## Your Workflow
 

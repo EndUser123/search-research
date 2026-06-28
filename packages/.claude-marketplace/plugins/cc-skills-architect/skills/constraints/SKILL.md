@@ -11,7 +11,6 @@ aliases:
 
 suggest:
   - /comply
-  - /standards
   - /nse
 ---
 
@@ -35,7 +34,7 @@ Display active project constraints extracted from CLAUDE.md constitution, provid
 - Returns structured constraint data
 
 ### Architecture Alignment
-- Works with `/comply`, `/standards`, `/nse`
+- Works with `/comply`, `/nse`
 - Reference for constitutional compliance
 
 ## Your Workflow

@@ -15,7 +15,6 @@ aliases:
 
 suggest:
   - /comply
-  - /standards
   - /nse
 ---
 

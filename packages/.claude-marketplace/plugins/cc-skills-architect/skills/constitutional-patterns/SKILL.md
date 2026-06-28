@@ -13,7 +13,6 @@ aliases:
 
 suggest:
   - /comply
-  - /standards
   - /validate-safety-patterns
 ---
 
@@ -41,7 +40,7 @@ suggest:
 - **Pattern Recognition Consistency**: 94%
 
 ### Architecture Alignment
-- Integrates with `/comply`, `/standards`, `/validate-safety-patterns`
+- Integrates with `/comply`, `/validate-safety-patterns`
 - Supports `/retro` for lesson integration
 - Main documentation in `P://__csf/docs/constitutional_patterns/`
 
