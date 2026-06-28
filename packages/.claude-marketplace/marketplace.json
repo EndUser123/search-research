@@ -58,7 +58,7 @@
     },
     {
       "name": "snapshot",
-      "version": "0.5.22",
+      "version": "0.5.23",
       "description": "Snapshot plugin for Claude Code.",
       "source": "./plugins/snapshot",
       "keywords": [
@@ -70,7 +70,7 @@
     },
     {
       "name": "search-research",
-      "version": "0.1.17",
+      "version": "0.1.18",
       "description": "Unified search and research system with async concurrent execution and 11 web providers.",
       "source": "./plugins/search-research",
       "keywords": [
@@ -83,7 +83,7 @@
     },
     {
       "name": "skill-guard",
-      "version": "2.1.30",
+      "version": "2.1.31",
       "description": "Universal skill auto-discovery and enforcement for Claude Code",
       "source": "./plugins/skill-guard",
       "keywords": [
@@ -117,7 +117,7 @@
     },
     {
       "name": "cc-skills-analysis",
-      "version": "1.0.28",
+      "version": "1.0.29",
       "description": "Analysis plugin",
       "source": "./plugins/cc-skills-analysis",
       "keywords": []
