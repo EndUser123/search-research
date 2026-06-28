@@ -679,6 +679,12 @@ def run(data: dict, verbose: bool = False) -> dict | None:
     tool_name = data.get("tool_name", "")
     tool_input = data.get("tool_input", {})
 
+    # Surgical bypass: Read is never blocked by directory policy.
+    # Per session requirement (2026-06-26): "read anything, anywhere, anywhen"
+    # applies only to Read; Write/Edit/Bash retain all five policy layers.
+    if tool_name == "Read":
+        return None
+
     # Determine the working directory for resolving relative paths
     # For bash commands, use os.getcwd() to get the actual working directory
     # For other tools, use CLAUDE_PROJECT_DIR (or fall back to P:/)
