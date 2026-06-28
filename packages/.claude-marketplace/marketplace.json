@@ -34,7 +34,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.62",
+      "version": "1.0.65",
       "description": "Software development lifecycle AI skills for Claude Code.",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -46,7 +46,7 @@
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.2.5",
+      "version": "1.2.12",
       "description": "Utility AI skills for Claude Code.",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
@@ -96,7 +96,7 @@
     },
     {
       "name": "cc-skills-architect",
-      "version": "1.0.11",
+      "version": "1.0.13",
       "description": "Architect plugin",
       "source": "./plugins/cc-skills-architect",
       "keywords": []
@@ -168,7 +168,7 @@
     },
     {
       "name": "cc-aca-epistemic",
-      "version": "0.2.68",
+      "version": "0.2.69",
       "description": "ACA Epistemic plugin - evidence verification, claim validation, provenance tracking, anti-fabrication enforcement, and anti-sycophancy detection. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-epistemic",
       "keywords": [
@@ -242,7 +242,7 @@
     },
     {
       "name": "cc-aca-safety",
-      "version": "0.1.10",
+      "version": "0.1.12",
       "description": "ACA Safety plugin -- filesystem protection, path policy enforcement, bulk delete safety, Windows path correctness, protected file recovery, and git auto-staging for deletion safety.",
       "source": "./plugins/cc-aca-safety",
       "keywords": [
