@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 _l = Path(__file__).resolve().parent.parent.parent / "__lib"
 if str(_l) not in sys.path: sys.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+from _bootstrap import bootstrap, state_root; _hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 """
@@ -28,7 +28,7 @@ from pathlib import Path
 from __lib.runtime_env import get_terminal_id as canonical_get_terminal_id
 
 # State directory for declaration tracking (must match declaration_reminder.py)
-STATE_DIR = Path(__file__).resolve().parent / "state"
+STATE_DIR = state_root()
 
 # Bypass flag
 BYPASS_FLAG = "--allow-skip-arch-update"

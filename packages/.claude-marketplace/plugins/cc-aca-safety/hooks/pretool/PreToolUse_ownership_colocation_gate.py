@@ -60,7 +60,7 @@ ADVISORY_PATHS: list[re.Pattern[str]] = [
 
 BYPASS_FLAG = "--allow-shared-infra"
 
-_BLOCK_LOG = Path(__file__).parent / "logs" / "diagnostics" / "pretooluse_blocks.jsonl"
+_BLOCK_LOG = _hooks_dir.parent / "logs" / "diagnostics" / "pretooluse_blocks.jsonl"
 
 
 def _log_block(file_path: str, tool_name: str) -> None:

@@ -41,19 +41,40 @@ DISPATCH = {
 
 
 def _emit_block(out: str, hook_name: str, child_stderr: str = "") -> None:
+    """Emit a block on both channels, then exit(2).
+
+    Harness surfaces stderr for exit-2 blocks (user terminal) AND reads
+    hookSpecificOutput.permissionDecision (model tool_result). Safety hooks
+    emit legacy {decision:block, message:...}; that schema was invisible to
+    the model (forced cc_errors.jsonl archeology) and the field mismatch
+    (hook emits message, old code read reason) dropped the reason entirely.
+    Re-emit the canonical deny schema so the reason reaches the model.
+    """
     reason = ""
     if out:
-        print(out)
         try:
             parsed = json.loads(out)
             if isinstance(parsed, dict):
-                reason = str(parsed.get("reason") or parsed.get("systemMessage") or "").strip()
+                hso = parsed.get("hookSpecificOutput")
+                if isinstance(hso, dict):
+                    reason = str(hso.get("permissionDecisionReason") or "").strip()
+                reason = reason or str(
+                    parsed.get("reason")
+                    or parsed.get("message")
+                    or parsed.get("systemMessage")
+                    or ""
+                ).strip()
         except json.JSONDecodeError:
             reason = out.strip()
     if not reason:
         reason = child_stderr.strip() or f"Blocked by {hook_name}"
-        if not out:
-            print(json.dumps({"decision": "block", "reason": reason}))
+    print(json.dumps({
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": f"[{hook_name}] {reason}",
+        }
+    }))
     sys.stderr.write(f"BLOCKED [{hook_name}]: {reason}\n")
     sys.exit(2)
 

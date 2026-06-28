@@ -156,7 +156,7 @@ def _log_gate_event(event_type: str, tool_name: str, detail: str = "") -> None:
         "detail": detail,
     }
     try:
-        log_dir = HOOKS_DIR / "logs" / "diagnostics"
+        log_dir = Path("P:/") / ".claude" / "logs" / "diagnostics"
         log_dir.mkdir(parents=True, exist_ok=True)
         log_file = log_dir / "delegation_gate.jsonl"
         with open(log_file, "a", encoding="utf-8") as f:

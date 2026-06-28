@@ -126,6 +126,9 @@ def content_matches(existing: str, new: str) -> bool:
     return hashlib.md5(existing.encode()).hexdigest() == hashlib.md5(new.encode()).hexdigest()
 
 
+STATE_DIR = Path(__import__("os").environ.get("CSF_STATE_DIR") or str(Path("P:/") / ".claude" / "state")) / "cc-aca-epistemic"
+
+
 def write_state_file(session_id: str, file_path: str, decision: str, reason: str) -> None:
     """Write state file for coordination with other hooks."""
     try:

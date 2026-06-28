@@ -141,8 +141,8 @@ def _verify_telemetry_dirs() -> None:
 
     try:
         # Test both log paths
-        blocking_log = Path(__file__).parent / ".claude" / "logs" / "hook_blocks.jsonl"
-        advisory_log = Path(__file__).parent / ".claude" / "hooks" / "session_data" / "enforcement_events.jsonl"
+        blocking_log = _hooks_dir.parent / "logs" / "hook_blocks.jsonl"
+        advisory_log = _hooks_dir.parent / "hooks" / "session_data" / "enforcement_events.jsonl"
 
         for log_path in (blocking_log, advisory_log):
             log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -185,10 +185,10 @@ def _log_gate_violation(
 
         # Determine log file based on severity
         if severity == "blocking":
-            log_file = Path(__file__).parent / ".claude" / "logs" / "hook_blocks.jsonl"
+            log_file = _hooks_dir.parent / "logs" / "hook_blocks.jsonl"
         else:
             # Advisory events go to enforcement events for replay analysis
-            log_file = Path(__file__).parent / ".claude" / "hooks" / "session_data" / "enforcement_events.jsonl"
+            log_file = _hooks_dir.parent / "hooks" / "session_data" / "enforcement_events.jsonl"
 
         # Ensure parent directory exists
         log_file.parent.mkdir(parents=True, exist_ok=True)
@@ -606,7 +606,7 @@ def check_gate3_agreement(text: str, tools_used: list[str], working_dir: Path | 
     # PATTERN MATCHING (only if tools not found)
     # ========================================================================
     # Load agreement patterns from config
-    config_path = Path(__file__).parent / ".claude" / "skills" / "code" / "behavior_gates_config.json"
+    config_path = _hooks_dir.parent / "skills" / "code" / "behavior_gates_config.json"
     indicators = _load_indicators(config_path)
 
     # Get agreement patterns, or use defaults if config missing
@@ -745,7 +745,7 @@ def check_gate1_guidance(text: str, tools_used: list[str], working_dir: Path | N
         return (False, "")
 
     # Load guidance patterns from config
-    config_path = Path(__file__).parent / ".claude" / "skills" / "code" / "behavior_gates_config.json"
+    config_path = _hooks_dir.parent / "skills" / "code" / "behavior_gates_config.json"
     indicators = _load_indicators(config_path)
 
     # Get guidance patterns, or use defaults if config missing
@@ -871,7 +871,7 @@ def check_gate2_tools(text: str, tools_used: list[str], working_dir: Path | None
         return (False, "")
 
     # Load tool blacklist from config (with project blacklist merge)
-    config_path = Path(__file__).parent / ".claude" / "skills" / "code" / "behavior_gates_config.json"
+    config_path = _hooks_dir.parent / "skills" / "code" / "behavior_gates_config.json"
     indicators = _load_indicators(config_path, working_dir)
 
     # Get tool blacklist, or use defaults if config missing

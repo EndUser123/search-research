@@ -28,3 +28,10 @@ def bootstrap(hook_file: str | Path) -> Path:
         sys.path.insert(0, str(hooks_lib))
 
     return hooks_dir
+
+
+def state_root() -> Path:
+    """External state dir for this plugin; never inside source/cache."""
+    import os
+    base = os.environ.get("CSF_STATE_DIR") or str(Path("P:/") / ".claude" / "state")
+    return Path(base) / "cc-aca-investigation"

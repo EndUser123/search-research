@@ -67,10 +67,51 @@ sys.path.insert(0, str(_Hook_Dir))
 
 from hook_state_manager import (
     check_fake_done,
-    check_violation_repeated,
-    get_violation_count,
-    increment_violation_count,
+    _extract_claimed_paths,
 )
+
+# CHANGE-007 read-side: optional dependency on the investigation-ledger.
+# Fail-OPEN: if the ledger module is unavailable, Tier 1.5 is skipped entirely
+# rather than warning on every verification claim. _hooks_dir is the global
+# hooks dir (P:/.claude/hooks/) resolved by the plugin bootstrap.
+_LEDGER_AVAILABLE = False
+try:
+    _IL_DIR = _hooks_dir / "investigation-ledger"
+    if str(_IL_DIR) not in sys.path:
+        sys.path.insert(0, str(_IL_DIR))
+    from ledger import is_verified as _is_verified  # type: ignore[import-not-found]
+    _LEDGER_AVAILABLE = True
+except Exception:
+    _is_verified = None  # type: ignore[assignment]
+
+# Verification-specific claims (subset of _DONE_CLAIM_PHRASES). Generic
+# "done"/"fixed" is NOT here — editing is not testing. This tier fires only
+# when the model asserts verification that the ledger cannot corroborate.
+_VERIFICATION_CLAIM_PHRASES = (
+    "tests passed",
+    "verified working",
+    "all files pass",
+    "test suite passes",
+    "tests pass",
+)
+
+
+def _has_verification_claim(output_text: str) -> bool:
+    lower = output_text.lower()
+    return any(phrase in lower for phrase in _VERIFICATION_CLAIM_PHRASES)
+
+
+def _exists(path_str: str, base: Path) -> bool:
+    return Path(path_str).exists() or (base / path_str).exists()
+
+
+def _resolve(path_str: str, base: Path) -> Path:
+    """Absolute path for a claimed token: prefer base-relative when relative."""
+    p = Path(path_str)
+    if p.is_absolute():
+        return p
+    rel = base / p
+    return rel if rel.exists() else p
 
 # ---------------------------------------------------------------------------
 # Gate registration
@@ -91,15 +132,38 @@ _DONE_CLAIM_PHRASES = (
     "the fix is complete",
 )
 
+# Ungrounded superlatives — strong un-hedged claims not backed by present evidence even
+# when files exist. OQ-1 WARN tier: satisfied grounding + superlative -> warn (the claim
+# overshoots what the evidence supports).
+import re as _re
+_SUPERLATIVE_RE = _re.compile(
+    r"\b(?:flawless(?:ly)?|perfect(?:ly|ion)?|bulletproof|airtight|comprehensively|"
+    r"production-ready|rock\s*solid|guaranteed|zero[- ]?defect|fully\s+fixed|"
+    r"completely\s+fixed|100%|ironclad)\b",
+    _re.IGNORECASE,
+)
+
+
+def _has_done_claim(output_text: str) -> bool:
+    lower = output_text.lower()
+    return any(phrase in lower for phrase in _DONE_CLAIM_PHRASES)
+
 
 def run_fake_done_detector(data: dict) -> dict | None:
-    """
-    Detect fake done claims without evidence.
+    """Detect fake done claims without evidence — block-first, narrow trigger (OQ-1).
+
+    Posture (director decision 2026-06-27):
+      - BLOCK on the first fabricated evidence-existence claim (a referenced file that
+        does not exist, or a done-claim with no file referenced at all). Replaces the
+        former advisory-first/block-on-repeat: a disposable coder that hallucinates a
+        completion once never reaches a repeat counter.
+      - WARN on ungrounded superlatives WITH satisfied file grounding (files exist, but
+        the strong claim isn't backed by evidence).
+      - PASS on satisfied grounding without a superlative issue.
 
     Returns None (pass) or a warning/block dict.
     """
     terminal_id = data.get("terminal_id") or os.environ.get("TERMINAL_ID", "")
-    session_id = data.get("session_id") or ""
 
     if not terminal_id:
         return None
@@ -108,42 +172,71 @@ def run_fake_done_detector(data: dict) -> dict | None:
     if not output_text:
         return None
 
-    # Check if output claims completion without evidence
     workspace = Path(data.get("cwd") or os.getcwd())
-    if not check_fake_done(output_text, workspace=workspace):
-        return None
 
-    # Fake done detected — check repetition count
-    count = get_violation_count(terminal_id, session_id, "fake_done")
-    is_repeated, _ = check_violation_repeated(terminal_id, session_id, "fake_done")
-
-    if is_repeated and count >= 1:
+    # Tier 1 — fabricated evidence-existence / no-evidence claim: BLOCK (first occurrence).
+    if check_fake_done(output_text, workspace=workspace):
         return {
             "type": "block",
             "severity": "block",
             "gate": GATE_NAME,
             "error": (
-                "FAKE DONE DETECTED\n\n"
-                "You claimed completion without showing evidence.\n"
-                "Show the actual changes: diffs, file paths, test results.\n"
-                "Don't just claim it's done."
+                "FAKE DONE — completion claimed without verifiable evidence.\n\n"
+                "You asserted a done/fix/verification, but the referenced file does "
+                "not exist (or no file was referenced). Show the actual change: a real "
+                "file path you wrote, a diff, or test output.\n"
+                "Block-first (OQ-1): a single fabricated completion claim blocks."
             ),
             "violations": ["fake_done"],
         }
 
-    # First occurrence — warning
-    return {
-        "type": "warning",
-        "severity": "warning",
-        "gate": GATE_NAME,
-        "error": (
-            "COMPLETION CLAIM WITHOUT EVIDENCE\n\n"
-            "You claimed completion without showing actual changes.\n"
-            "Show: code diffs, file paths modified, or test results.\n"
-            "Evidence is required for completion claims."
-        ),
-        "violations": ["fake_done"],
-    }
+    # Tier 1.5 — claimed verification the ledger cannot corroborate (CHANGE-007
+    # read-side). Fires ONLY on verification claims ("tests passed", "verified
+    # working"), not generic done/fixed, and only when a claimed file EXISTS
+    # but is_verified() is False (no fresh verification record vs current
+    # content). WARN ceiling: the write-side captures most runners but misses
+    # bare scripts / already-committed code, so a False here can be a capture
+    # gap. The CHANGE-003(b) tool-event rescue that would discriminate true
+    # fake-done from capture gaps is deferred — see plan CHANGE-007.
+    if _LEDGER_AVAILABLE and _is_verified is not None and _has_verification_claim(output_text):
+        claimed = _extract_claimed_paths(output_text)
+        existing = [p for p in claimed if _exists(p, workspace)]
+        if existing:
+            unverified = [p for p in existing if not _is_verified(str(_resolve(p, workspace)), mode="strict")]
+            if unverified:
+                shown = unverified[0] if len(unverified) == 1 else f"{len(unverified)} files"
+                return {
+                    "type": "warning",
+                    "severity": "warning",
+                    "gate": GATE_NAME,
+                    "error": (
+                        "UNVERIFIED COMPLETION — you claim tests/verification "
+                        f"passed, but the ledger has no fresh verification record "
+                        f"for {shown} against its current content. If you ran a "
+                        "verifying command, name it; otherwise run it (pytest/"
+                        "python -m pytest/etc.) so the record is captured."
+                    ),
+                    "violations": ["unverified_completion"],
+                }
+
+    # Tier 2 — ungrounded superlative with satisfied grounding: WARN.
+    if _has_done_claim(output_text) and _SUPERLATIVE_RE.search(output_text):
+        return {
+            "type": "warning",
+            "severity": "warning",
+            "gate": GATE_NAME,
+            "error": (
+                "UNGROUNDED SUPERLATIVE — the completion claim uses an un-hedged "
+                "superlative (flawless / perfect / bulletproof / production-ready / ...). "
+                "Files exist, but the strong claim overshoots the evidence. Hedge it "
+                "('should', 'appears to', scope the claim) or show the evidence that "
+                "justifies the superlative."
+            ),
+            "violations": ["ungrounded_superlative"],
+        }
+
+    # Tier 3 — satisfied grounding, no superlative issue: PASS.
+    return None
 
 
 def on_load() -> None:
@@ -157,72 +250,89 @@ if __name__ == "__main__":
 
     print("Running Stop_fake_done_detector.py self-test...", file=sys.stderr)
 
-    from hook_state_manager import (
-        clear_state, set_last_violations,
-        get_violation_count, increment_violation_count
-    )
+    from hook_state_manager import clear_state
 
     tid = "test_terminal_fake"
     sid = "test_session_fake"
 
-    # Test 1: done-claim with a REAL file on disk → pass (grounded evidence).
-    # A bare code-block diff no longer counts — the model can fabricate those.
+    # Test 1: done-claim with a REAL file on disk → PASS (grounded evidence).
     import tempfile
     from pathlib import Path
     with tempfile.TemporaryDirectory() as td:
         (Path(td) / "engine.py").write_text("x=1\n", encoding="utf-8")
         data = {
-            "terminal_id": tid,
-            "session_id": sid,
-            "cwd": td,
+            "terminal_id": tid, "session_id": sid, "cwd": td,
             "output_text": "Implementation complete. Wrote engine.py",
             "all_violations": [],
         }
-        result = run_fake_done_detector(data)
-        assert result is None, f"Expected None with grounded evidence, got {result}"
+        assert run_fake_done_detector(data) is None, "grounded evidence must pass"
 
-        # Test 1b: done-claim referencing a MISSING file → fake (transcript case)
-        clear_state(tid, "last_violations.json")
-        clear_state(tid, "fake_done_count.json")
+        # Test 1b: done-claim referencing a MISSING file → BLOCK (block-first, first occurrence).
         data = {
-            "terminal_id": tid,
-            "session_id": sid,
-            "cwd": td,
+            "terminal_id": tid, "session_id": sid, "cwd": td,
             "output_text": "Implementation complete. Wrote council_core/engine/council.py",
             "all_violations": [],
         }
         result = run_fake_done_detector(data)
-        assert result is not None, "Expected warning on fabricated-evidence done claim"
-        assert result["severity"] == "warning"
+        assert result is not None and result["severity"] == "block", (
+            f"block-first: fabricated evidence must BLOCK on first occurrence, got {result}"
+        )
 
-    # Test 2: Fake done without evidence → WARNING
-    clear_state(tid, "last_violations.json")
-    clear_state(tid, "fake_done_count.json")
+        # Test B: done-claim + real file + ungrounded superlative → WARN.
+        data = {
+            "terminal_id": tid, "session_id": sid, "cwd": td,
+            "output_text": "Implementation complete. Flawless, bulletproof fix. Wrote engine.py",
+            "all_violations": [],
+        }
+        result = run_fake_done_detector(data)
+        assert result is not None and result["severity"] == "warning", (
+            f"ungrounded superlative + satisfied grounding must WARN, got {result}"
+        )
 
+        # --- CHANGE-007 read-side (Tier 1.5) ---
+        # Guard: only meaningful when the ledger dependency loaded.
+        if _LEDGER_AVAILABLE:
+            import ledger as _ledger
+            from pathlib import Path as _P
+            _ledger.reset_ledger()
+            try:
+                eng = _P(td) / "engine.py"
+
+                # Test C: verification-claim + file exists + NOT verified → WARN.
+                data = {
+                    "terminal_id": tid, "session_id": sid, "cwd": td,
+                    "output_text": "Tests passed. Wrote engine.py",
+                    "all_violations": [],
+                }
+                result = run_fake_done_detector(data)
+                assert result is not None and result["severity"] == "warning", (
+                    f"unverified completion claim must WARN, got {result}"
+                )
+
+                # Test D: after record_verification, same claim → PASS (is_verified True).
+                _ledger.record_verification(str(eng), mode="strict",
+                                            command="pytest", exit_code=0)
+                data = {
+                    "terminal_id": tid, "session_id": sid, "cwd": td,
+                    "output_text": "Tests passed. Wrote engine.py",
+                    "all_violations": [],
+                }
+                assert run_fake_done_detector(data) is None, (
+                    "verified completion claim must PASS"
+                )
+            finally:
+                _ledger.reset_ledger()
+
+    # Test 2: done-claim with NO evidence → BLOCK (block-first, first occurrence).
     data = {
-        "terminal_id": tid,
-        "session_id": sid,
+        "terminal_id": tid, "session_id": sid,
         "output_text": "Implementation complete.",
         "all_violations": [],
     }
     result = run_fake_done_detector(data)
-    assert result is not None, "Expected warning on first fake done"
-    assert result["severity"] == "warning"
-
-    # Test 3: Repeated fake done → BLOCK
-    increment_violation_count(tid, sid, "fake_done")  # count becomes 1
-    set_last_violations(tid, sid, turn_number=2, violations=["fake_done"],
-                        user_corrected=False, acknowledged=False)
-
-    data = {
-        "terminal_id": tid,
-        "session_id": sid,
-        "output_text": "Implementation complete. All files are updated.",
-        "all_violations": [],
-    }
-    result = run_fake_done_detector(data)
-    assert result is not None, "Expected block on repeated fake done"
-    assert result["severity"] == "block"
+    assert result is not None and result["severity"] == "block", (
+        f"block-first: no-evidence claim must BLOCK on first occurrence, got {result}"
+    )
 
     # Clean up
     clear_state(tid, "last_violations.json")

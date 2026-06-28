@@ -17,7 +17,7 @@ import time
 from pathlib import Path
 
 # Telemetry log path
-_LOG_DIR = Path(__file__).resolve().parent / "logs" / "diagnostics"
+_LOG_DIR = Path("P:/") / ".claude" / "logs" / "diagnostics"
 _LOG_FILE = _LOG_DIR / "subagent_opportunity.jsonl"
 
 # Advisory threshold: number of file operations before surfacing advisory

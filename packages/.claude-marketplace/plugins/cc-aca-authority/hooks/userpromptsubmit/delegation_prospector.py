@@ -31,7 +31,7 @@ from UserPromptSubmit_modules.base import HookContext, HookResult
 from UserPromptSubmit_modules.registry import register_hook
 
 # Telemetry log path
-_LOG_DIR = Path(__file__).resolve().parent.parent / "logs" / "diagnostics"
+_LOG_DIR = _hooks_dir.parent / "logs" / "diagnostics"
 _LOG_FILE = _LOG_DIR / "delegation_prospector.jsonl"
 
 # State directory for cross-hook communication
@@ -47,7 +47,7 @@ def _get_terminal_id() -> str:
 
 def _get_state_dir() -> Path:
     """Get terminal-scoped state directory."""
-    claude_root = Path(__file__).resolve().parent.parent.parent  # .claude
+    claude_root = _hooks_dir.parent
     return claude_root / ".artifacts" / _get_terminal_id() / "hook_state"
 _DELEGATION_TTL_SECONDS = 300  # 5 minutes
 

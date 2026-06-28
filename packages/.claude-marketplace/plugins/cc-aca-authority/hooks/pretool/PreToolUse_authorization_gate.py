@@ -343,7 +343,7 @@ def _log_block_decision(command: str, working_dir: str, reason: str, pattern: st
 
         # Create logs directory
         hooks_dir = Path(__file__).resolve().parent
-        logs_dir = hooks_dir / "logs"
+        logs_dir = Path("P:/") / ".claude" / "logs"
         logs_dir.mkdir(parents=True, exist_ok=True)
 
         # Log file path

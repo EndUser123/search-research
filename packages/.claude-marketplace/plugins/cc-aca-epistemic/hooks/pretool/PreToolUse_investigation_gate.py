@@ -354,7 +354,7 @@ def _state_file_candidates(terminal_id: str = "") -> list[Path]:
         / f"investigation_state_{safe_terminal}.json"
     )
     local_fallback = (
-        hooks_dir / "session_data" / f"investigation_state_{safe_terminal}.json"
+        (Path(os.environ.get("CSF_STATE_DIR") or str(Path("P:/") / ".claude" / "state")) / "cc-aca-epistemic") / "session_data" / f"investigation_state_{safe_terminal}.json"
     )
     temp_fallback = (
         Path(tempfile.gettempdir())

@@ -44,7 +44,7 @@ except ImportError:
     SCOPE_SESSION_FRESH = ""
     load_scoped_tool_events = None  # type: ignore
 
-LOG_DIR = HOOKS_DIR / "state" / "logs"
+LOG_DIR = Path("P:/") / ".claude" / "logs" / "diagnostics"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 log_file = LOG_DIR / "drift_sentinel.log"

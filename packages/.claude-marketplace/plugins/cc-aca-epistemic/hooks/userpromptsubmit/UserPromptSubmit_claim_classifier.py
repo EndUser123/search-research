@@ -49,7 +49,7 @@ def _safe_id(value: str | None) -> str:
 
 def _get_claim_type_path(terminal_id: str) -> Path:
     """Return path to claim type state file."""
-    state_dir = _HOOKS_DIR / ".state"
+    state_dir = Path(os.environ.get("CSF_STATE_DIR") or str(Path("P:/") / ".claude" / "state")) / "cc-aca-epistemic"
     state_dir.mkdir(parents=True, exist_ok=True)
     safe_id = _safe_id(terminal_id)
     return state_dir / f"claim_type_{safe_id}.json"

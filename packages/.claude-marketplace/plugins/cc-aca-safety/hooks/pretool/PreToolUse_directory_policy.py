@@ -28,7 +28,7 @@ import re
 import logging as _li
 
 _POLICY_DIR = Path(__file__).resolve().parent
-_LOG_DIR = _POLICY_DIR.parent.parent / "logs" / "diagnostics"
+_LOG_DIR = Path("P:/") / ".claude" / "logs" / "diagnostics"
 _LOG_DIR.mkdir(parents=True, exist_ok=True)
 _logger = _li.getLogger(__name__)
 _handler = _li.FileHandler(_LOG_DIR / "hook_stderr.log", encoding="utf-8")

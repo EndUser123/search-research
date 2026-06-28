@@ -237,7 +237,7 @@ def _get_last_user_message(input_data: dict[str, Any]) -> str:
 
 # Log sink for block telemetry — appended to pretooluse_blocks.jsonl
 # so hook_observability_rollup.py can ingest it.
-_BLOCK_LOG = _HOOKS_DIR / "logs" / "diagnostics" / "pretooluse_blocks.jsonl"
+_BLOCK_LOG = Path("P:/") / ".claude" / "logs" / "diagnostics" / "pretooluse_blocks.jsonl"
 
 
 def _log_block_event(

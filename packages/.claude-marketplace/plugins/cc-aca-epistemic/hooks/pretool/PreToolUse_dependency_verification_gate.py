@@ -93,7 +93,7 @@ VERIFICATION_TTL = 5 * 60  # 5 minutes in seconds
 
 # State directory
 HOOK_DIR = Path(__file__).resolve().parent
-STATE_DIR = HOOK_DIR / "state"
+STATE_DIR = Path(os.environ.get("CSF_STATE_DIR") or str(Path("P:/") / ".claude" / "state")) / "cc-aca-epistemic"
 
 # Ensure state directory exists once at module load (PERF-002 fix)
 STATE_DIR.mkdir(exist_ok=True)

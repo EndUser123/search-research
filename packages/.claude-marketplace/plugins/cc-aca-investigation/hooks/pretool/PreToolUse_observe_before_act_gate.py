@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 _l = Path(__file__).resolve().parent.parent.parent / "__lib"
 if str(_l) not in sys.path: sys.path.insert(0, str(_l))
-from _bootstrap import bootstrap; _hooks_dir = bootstrap(__file__)
+from _bootstrap import bootstrap, state_root; _hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 # PreToolUse_observe_before_act_gate.py
@@ -30,7 +30,7 @@ from typing import Any
 # =============================================================================
 
 MAX_STATE_AGE_SECONDS = 7200  # 2 hours
-STATE_DIR = Path(__file__).resolve().parent / "state" / "observe_before_act"
+STATE_DIR = state_root() / "observe_before_act"
 
 
 # =============================================================================
