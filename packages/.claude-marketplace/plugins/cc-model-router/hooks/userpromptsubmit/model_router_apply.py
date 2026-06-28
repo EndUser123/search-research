@@ -40,9 +40,7 @@ TTL_SECONDS = 300
 
 def get_state_path(terminal_id: str, session_id: str) -> pathlib.Path:
     return (
-        pathlib.Path.cwd()
-        / ".claude"
-        / "state"
+        pathlib.Path(os.environ.get("CSF_STATE_DIR") or str(pathlib.Path("P:/") / ".claude" / "state"))
         / "model-router"
         / terminal_id
         / session_id

@@ -11,13 +11,14 @@ autoswitch mode: writes recommendation, exits 0 (apply hook handles switching)
 import json
 import sys
 import re
+import os
 import pathlib
 from datetime import datetime
 
 
 def get_state_path(terminal_id, session_id):
     """Compute state directory path."""
-    return pathlib.Path.cwd() / '.claude' / 'state' / 'model-router' / terminal_id / session_id
+    return pathlib.Path(os.environ.get("CSF_STATE_DIR") or str(pathlib.Path("P:/") / ".claude" / "state")) / 'model-router' / terminal_id / session_id
 
 
 def load_session_config(state_path):

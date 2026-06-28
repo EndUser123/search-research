@@ -16,7 +16,7 @@ from datetime import datetime
 
 def get_state_path(terminal_id, session_id):
     """Compute state directory path."""
-    state_root = pathlib.Path.cwd() / '.claude' / 'state' / 'model-router' / terminal_id / session_id
+    state_root = pathlib.Path(os.environ.get("CSF_STATE_DIR") or str(pathlib.Path("P:/") / ".claude" / "state")) / 'model-router' / terminal_id / session_id
     return state_root
 
 
