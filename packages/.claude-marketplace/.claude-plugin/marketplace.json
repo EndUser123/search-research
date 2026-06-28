@@ -51,7 +51,7 @@
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.2.3",
+      "version": "1.2.5",
       "description": "Utility skills for Claude Code",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
@@ -158,7 +158,7 @@
     },
     {
       "name": "cc-aca-epistemic",
-      "version": "0.2.62",
+      "version": "0.2.68",
       "description": "ACA Epistemic plugin - evidence verification, claim validation, provenance tracking, anti-fabrication enforcement, and anti-sycophancy detection. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-epistemic",
       "keywords": [
@@ -174,7 +174,7 @@
     },
     {
       "name": "cc-aca-authority",
-      "version": "0.1.16",
+      "version": "0.1.18",
       "description": "ACA Authority plugin - permission enforcement, approval flow control, delegation gating, risk tiering, and git safety guards. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-authority",
       "keywords": [
@@ -189,7 +189,7 @@
     },
     {
       "name": "cc-aca-reasoning",
-      "version": "0.1.13",
+      "version": "0.1.15",
       "description": "ACA Reasoning plugin - sequential thinking, cognitive enhancement, reasoning mode selection, reflection triggers, drift detection, and reasoning quality gates.",
       "source": "./plugins/cc-aca-reasoning",
       "keywords": [
@@ -204,7 +204,7 @@
     },
     {
       "name": "cc-aca-sdlc",
-      "version": "0.1.8",
+      "version": "0.1.9",
       "description": "ACA SDLC plugin - TDD enforcement, test-state tracking, implementation verification, completion gates, and development workflow discipline.",
       "source": "./plugins/cc-aca-sdlc",
       "keywords": [
@@ -219,7 +219,7 @@
     },
     {
       "name": "cc-aca-safety",
-      "version": "0.1.8",
+      "version": "0.1.10",
       "description": "ACA Safety plugin -- filesystem protection, path policy enforcement, bulk delete safety, Windows path correctness, protected file recovery, and git auto-staging for deletion safety.",
       "source": "./plugins/cc-aca-safety",
       "keywords": [
@@ -249,7 +249,7 @@
     },
     {
       "name": "cc-aca-investigation",
-      "version": "0.2.6",
+      "version": "0.2.8",
       "description": "ACA Investigation plugin - discovery-first enforcement, observe-before-act gating, breadcrumb progression tracking, and evidence-grounded reasoning prompts. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-investigation",
       "keywords": [

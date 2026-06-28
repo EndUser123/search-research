@@ -33,10 +33,12 @@ PRETOOLUSE_HOOKS = [
     "PreToolUse_command_intent_gate.py",
     "PreToolUse_type_validator.py",
     "PreToolUse_dependency_verification_gate.py",
+    "PreToolUse_recent_evidence_gate.py",
 ]
 
 POSTTOOLUSE_HOOKS = [
     "PostToolUse_artifact_validator.py",
+    "PostToolUse_recent_evidence_tracker.py",
 ]
 
 DISPATCH = {
