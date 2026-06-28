@@ -7,6 +7,8 @@ Integrates with Claude Code hook system via JSON stdin/stdout.
 
 import json
 import os
+import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -14,7 +16,32 @@ from pathlib import Path
 HOOK_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(HOOK_DIR))
 
-from ledger import record_execution, record_file_read, record_search
+from ledger import record_execution, record_file_read, record_search, record_verification
+
+# CHANGE-007 write-side: a passing verification command records the files it
+# covered so is_verified() can later detect edits made after this point.
+# Pattern-gated so an unrelated passing command (ls, git status) does not mark
+# files verified. ponytail: git diff is the cheapest correct source of "what
+# changed" — import-resolution from test names would be heavier and wrong-often.
+_VERIFICATION_CMD_RE = re.compile(
+    r"\b(?:pytest|python\s+-m\s+pytest|python\s+-m\s+unittest|"
+    r"npm\s+(?:test|run\s+test)|yarn\s+test|pnpm\s+test|"
+    r"cargo\s+test|make\s+test|go\s+test)\b"
+)
+
+
+def _git_changed_files() -> list[str]:
+    """Files changed vs HEAD (staged + unstaged). Fail-open: [] on any error."""
+    try:
+        out = subprocess.run(
+            ["git", "diff", "--name-only", "HEAD"],
+            capture_output=True, text=True, timeout=2,
+        )
+        if out.returncode == 0:
+            return [f for f in out.stdout.splitlines() if f.strip()]
+    except Exception:
+        pass
+    return []
 
 
 def extract_tool_data(hook_input: dict) -> tuple:
@@ -85,7 +112,22 @@ def handle_execution(tool_input: dict, tool_result: dict) -> bool:
             if "error" not in tool_result.lower() and "failed" not in tool_result.lower():
                 exit_code = 0
 
-        return record_execution(command, exit_code)
+        ok = record_execution(command, exit_code)
+
+        # CHANGE-007 write-side: a successful verification command stamps
+        # the changed files as verified-at-this-hash. is_verified() then
+        # answers "did the model edit after verifying?" — the read-side
+        # detector (Stop_fake_done_detector) consumes that.
+        if exit_code == 0 and _VERIFICATION_CMD_RE.search(command):
+            for f in _git_changed_files():
+                try:
+                    record_verification(f, mode="strict",
+                                        command=command[:500],
+                                        exit_code=exit_code)
+                except Exception:
+                    pass
+
+        return ok
 
     return False
 

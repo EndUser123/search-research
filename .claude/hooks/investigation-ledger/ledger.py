@@ -12,6 +12,7 @@ Addresses critique concerns:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -166,6 +167,7 @@ def _get_empty_ledger() -> LedgerDict:
         "files_read": [],
         "searches": [],
         "executions": [],
+        "verifications": [],
         "topics": [],
     }
 
@@ -459,3 +461,63 @@ def get_files_read() -> list[str]:
     with file_lock(LOCK_PATH) as locked:
         ledger = _load_ledger()
         return [f["path"] for f in ledger.get("files_read", [])]
+
+
+
+def _compute_file_hash(path: str) -> str:
+    """SHA-256 hexdigest of file contents, or '' if unreadable/missing."""
+    try:
+        return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    except OSError:
+        return ""
+
+
+def record_verification(
+    filepath: str, mode: str = "strict", command: str = "", exit_code: int = 0
+) -> bool:
+    """Record a verification event for filepath under mode.
+
+    Stores the file's current content hash so is_verified() can detect later
+    divergence (edit, git checkout/restore/stash, deletion). mode is 'strict'
+    (default) or 'fast'; records never cross modes (L-003), so a fast record
+    cannot satisfy a strict check.
+    """
+    if mode not in ("strict", "fast"):
+        mode = "strict"
+    with file_lock(LOCK_PATH) as locked:
+        ledger = _load_ledger()
+        ledger.setdefault("verifications", []).append(
+            {
+                "path": filepath,
+                "mode": mode,
+                "command": command[:500],
+                "exit_code": exit_code,
+                "content_hash": _compute_file_hash(filepath),
+                "timestamp": datetime.now().isoformat(),
+                "terminal_id": _TERMINAL_ID,
+            }
+        )
+        return _save_ledger(ledger)
+
+
+def is_verified(filepath: str, mode: str = "strict") -> bool:
+    """True iff filepath's current content hash equals its LATEST stored hash.
+
+    Consults only records in the requested mode (no cross-mode laundering, L-003).
+    Latest = max (timestamp, terminal_id) lexicographic tiebreak. Fail-closed:
+    no record, missing file, or hash mismatch all return False.
+    """
+    with file_lock(LOCK_PATH) as locked:
+        ledger = _load_ledger()
+        records = [
+            r
+            for r in ledger.get("verifications", [])
+            if r.get("path") == filepath and r.get("mode") == mode
+        ]
+        if not records:
+            return False
+        latest = max(records, key=lambda r: (r.get("timestamp", ""), r.get("terminal_id", "")))
+        stored_hash = latest.get("content_hash", "")
+        if not stored_hash:
+            return False
+        return _compute_file_hash(filepath) == stored_hash

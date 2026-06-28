@@ -19,9 +19,11 @@ from ledger import (
     calculate_confidence_ceiling,
     get_files_read,
     get_investigation_stats,
+    is_verified,
     record_execution,
     record_file_read,
     record_search,
+    record_verification,
     reset_ledger,
 )
 from validate_claims import validate_claims
@@ -31,6 +33,11 @@ TEST_TERMINAL_ID = "pytest_investigation_ledger"
 ledger_module._TERMINAL_ID = TEST_TERMINAL_ID
 ledger_module.LEDGER_PATH = ledger_module.LEDGER_DIR / f"session_ledger_{TEST_TERMINAL_ID}.json"
 ledger_module.LOCK_PATH = ledger_module.LEDGER_DIR / f"session_ledger_{TEST_TERMINAL_ID}.lock"
+
+# Inherit into os.environ so multiprocessing (Windows 'spawn') children re-resolve
+# the same LEDGER_PATH/LOCK_PATH when they re-import ledger fresh.
+os.environ["CLAUDE_TERMINAL_ID"] = TEST_TERMINAL_ID
+os.environ["CLAUDE_PROJECT_DIR"] = str(HOOK_DIR.parents[2])
 
 
 def _hook_env() -> dict[str, str]:
@@ -305,6 +312,168 @@ class TestHookIntegration:
 
         output = json.loads(result.stdout)
         assert output.get("continue") is True
+
+
+def _concurrent_verification_worker(record_id: int) -> None:
+    """Module-level worker for the multiprocessing two-writer test.
+
+    Each writer records a verification for a distinct target file against the
+    shared session ledger. The shared ledger file is the contention point.
+    """
+    import sys
+    from pathlib import Path
+
+    hook_dir = Path(__file__).resolve().parent
+    if str(hook_dir) not in sys.path:
+        sys.path.insert(0, str(hook_dir))
+    import ledger as worker_ledger
+
+    target = hook_dir / f"_mp_verify_target_{os.getpid()}_{record_id}.py"
+    target.write_text(f"# verification content {record_id}\n", encoding="utf-8")
+    worker_ledger.record_verification(
+        str(target), mode="strict", command=f"echo {record_id}", exit_code=0
+    )
+
+
+class TestVerificationRecords:
+    """CHANGE-007: record_verification + is_verified (content-hash idempotency)."""
+
+    def setup_method(self):
+        reset_ledger()
+
+    def _write(self, content: str = "original content\n") -> Path:
+        path = HOOK_DIR / "_verify_target_tmp.py"
+        path.write_text(content, encoding="utf-8")
+        return path
+
+    def test_no_record_is_verified_false(self):
+        """is_verified must fail-closed when no record exists."""
+        path = self._write()
+        assert is_verified(str(path), mode="strict") is False
+
+    def test_record_then_unchanged_is_verified_true(self):
+        """Unchanged content after record_verification verifies True."""
+        path = self._write()
+        record_verification(str(path), mode="strict", command="pytest", exit_code=0)
+        assert is_verified(str(path), mode="strict") is True
+
+    def test_content_change_invalidates(self):
+        """Modified content (git checkout/restore/stash analog) invalidates."""
+        path = self._write("v1\n")
+        record_verification(str(path), mode="strict", command="pytest", exit_code=0)
+        path.write_text("v2 — diverges from stored hash\n", encoding="utf-8")
+        assert is_verified(str(path), mode="strict") is False
+
+    def test_missing_file_is_verified_false(self):
+        """Record present but file gone (deletion/checkout removed it) -> False."""
+        path = self._write()
+        record_verification(str(path), mode="strict", command="pytest", exit_code=0)
+        path.unlink()
+        assert is_verified(str(path), mode="strict") is False
+
+    def test_strict_not_satisfied_by_fast_record(self):
+        """L-003: a fast-mode record must NOT satisfy a strict check."""
+        path = self._write()
+        record_verification(str(path), mode="fast", command="ls", exit_code=0)
+        assert is_verified(str(path), mode="strict") is False
+
+    def test_fast_record_satisfies_fast_check(self):
+        """A fast-mode record satisfies a fast-mode check (same mode only)."""
+        path = self._write()
+        record_verification(str(path), mode="fast", command="ls", exit_code=0)
+        assert is_verified(str(path), mode="fast") is True
+
+    def test_latest_record_wins(self):
+        """Two records, latest content-hash wins; restoring older content fails."""
+        path = self._write("a\n")
+        record_verification(str(path), mode="strict", command="pytest", exit_code=0)
+        path.write_text("b\n", encoding="utf-8")
+        record_verification(str(path), mode="strict", command="pytest", exit_code=0)
+        # File is at 'b' == latest stored hash -> verified.
+        assert is_verified(str(path), mode="strict") is True
+        # Restore to older 'a' -> diverges from LATEST stored hash -> not verified.
+        path.write_text("a\n", encoding="utf-8")
+        assert is_verified(str(path), mode="strict") is False
+
+    def test_concurrent_writers_no_corruption(self):
+        """multiprocessing two-writer test: file_lock must serialize writes.
+
+        GIL masks the race under threading, so this MUST use multiprocessing.
+        Asserts the ledger JSON stays valid and both records land.
+        """
+        import json as _json
+        import multiprocessing as _mp
+
+        procs = [_mp.Process(target=_concurrent_verification_worker, args=(i,)) for i in range(2)]
+        for p in procs:
+            p.start()
+        for p in procs:
+            p.join(timeout=30)
+            assert p.exitcode == 0, f"worker exited {p.exitcode}"
+
+        # Ledger must still be valid JSON (no interleaved/corrupt writes).
+        ledger = _json.loads(ledger_module.LEDGER_PATH.read_text(encoding="utf-8"))
+        verifications = ledger.get("verifications", [])
+        assert len(verifications) >= 2, f"expected >=2 records, got {len(verifications)}"
+
+        # Cleanup worker target files.
+        for f in HOOK_DIR.glob("_mp_verify_target_*.py"):
+            f.unlink(missing_ok=True)
+
+
+class TestHandleExecutionVerificationWiring:
+    """CHANGE-007 write-side: handle_execution stamps a verification record
+    on a passing verification command, and stays silent on non-verification
+    commands. Guards the regex-gate + git-diff resolution path."""
+
+    def setup_method(self):
+        reset_ledger()
+
+    def teardown_method(self):
+        (HOOK_DIR / "_exec_target_tmp.py").unlink(missing_ok=True)
+
+    def _write(self, content: str = "original content\n") -> Path:
+        path = HOOK_DIR / "_exec_target_tmp.py"
+        path.write_text(content, encoding="utf-8")
+        return path
+
+    def test_passing_verification_command_stamps_record(self, monkeypatch):
+        import PostToolUse_investigation_tracker as tracker
+
+        path = self._write()
+        monkeypatch.setattr(tracker, "_git_changed_files", lambda: [str(path)])
+
+        ok = tracker.handle_execution(
+            {"command": "python -m pytest -q"}, {"exit_code": 0}
+        )
+        assert ok is not None
+        assert is_verified(str(path), mode="strict") is True
+
+    def test_non_verification_command_records_nothing(self, monkeypatch):
+        """A passing but non-verification command (git status) must NOT mark
+        files verified — otherwise every successful command launders freshness."""
+        import PostToolUse_investigation_tracker as tracker
+
+        path = self._write()
+        monkeypatch.setattr(tracker, "_git_changed_files", lambda: [str(path)])
+
+        tracker.handle_execution(
+            {"command": "git status --short"}, {"exit_code": 0}
+        )
+        assert is_verified(str(path), mode="strict") is False
+
+    def test_failing_verification_command_records_nothing(self, monkeypatch):
+        """A FAILED verification command must not stamp freshness — the file
+        is not actually verified. The exit_code==0 gate is load-bearing."""
+        import PostToolUse_investigation_tracker as tracker
+
+        path = self._write()
+        monkeypatch.setattr(tracker, "_git_changed_files", lambda: [str(path)])
+
+        tracker.handle_execution(
+            {"command": "pytest -q"}, {"exit_code": 1}
+        )
+        assert is_verified(str(path), mode="strict") is False
 
 
 if __name__ == "__main__":
