@@ -39,6 +39,7 @@ export class RiskStateStore {
 	private verification: VerificationState = createEmptyVerificationState();
 	private override: RiskTier | null = null;
 	private findings: StoredFinding[] = [];
+	private deletedPaths: Set<string> = new Set();
 	private worktree: WorktreeSnapshot | null = null;
 	private haPatch: HaPatchSnapshot = { status: "unchecked", checkedAt: "", details: [] };
 	private lastPrompt: string = "";
@@ -94,6 +95,26 @@ export class RiskStateStore {
 
 	clearFindings(): void {
 		this.findings = [];
+	}
+
+	/** Record a path that was deleted (e.g. via rm, git rm, git checkout --).
+	 *  Stored in normalized form (forward slashes, no leading ./). */
+	addDeletedPath(path: string): void {
+		const normalized = path.replace(/\\/g, "/").replace(/^\.\//, "");
+		this.deletedPaths.add(normalized);
+	}
+
+	/** Returns true if the given normalized path matches a known-deletion path exactly,
+	 *  or if it is nested under a deleted directory path. */
+	isDeletedPath(path: string): boolean {
+		const p = path.replace(/\\/g, "/").replace(/^\.\//, "");
+		if (this.deletedPaths.has(p)) return true;
+		// Check nested: p starts with a deleted directory path (stored with trailing /)
+		return [...this.deletedPaths].some((d) => d.endsWith("/") && (p.startsWith(d) || p === d.replace(/\/$/, "")));
+	}
+
+	clearDeletedPaths(): void {
+		this.deletedPaths.clear();
 	}
 
 	recordDisposition(input: {

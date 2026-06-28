@@ -26,6 +26,62 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import { createHash } from "node:crypto";
 
+/**
+ * Extract file paths from a deletion command.
+ *
+ * Handles: rm <paths>, git rm <paths>, git checkout -- <paths>,
+ * git restore -- <paths>, git clean -fd <paths>,
+ * Remove-Item <paths> (PowerShell, incl. -Recurse/-Force),
+ * del/erase <paths> (cmd), and the PowerShell alias `ri`.
+ *
+ * Cross-platform: the original Unix-only matcher (rm/git rm/git checkout/
+ * git restore) silently missed every Windows/PowerShell deletion, so deleted
+ * files kept producing stale review findings. Removing a file via Remove-Item
+ * on Windows now tracks the same way `rm` does on Unix.
+ *
+ * ponytail: simple argument extraction. Ignores flags. Handles quoted args.
+ * Does not validate that paths exist — any path-looking argument after the
+ * delete verb is treated as potentially deleted. Upgrade path: call
+ * fs.existsSync if the runtime supports it.
+ */
+export function extractDeletionPaths(command: string): string[] {
+	// Strip known delete verbs + their flags to get to the path args.
+	// "rm -rf src/foo bar/" -> tail = "src/foo bar/"
+	// "git rm src/foo.ts" -> tail = "src/foo.ts"
+	// "git checkout -- src/foo.ts" -> tail = "src/foo.ts"
+	// "git clean -fd src/" -> tail = "src/"
+	// "Remove-Item -Recurse -Force foo.ps1" -> tail = "foo.ps1"
+	// "del foo.ps1" -> tail = "foo.ps1"
+	let tail = command
+		.replace(
+			/^(?:rm|ri|del|erase|Remove-Item|git\s+(?:rm|checkout|restore|clean))(?:\s+-[A-Za-z]+)*\s*(?:--(?:recursive|dry-run|force))?/i,
+			"",
+		)
+		.replace(/^\s*--\S*/i, "")
+		.trimStart();
+
+	// Split on whitespace, strip trailing slashes (dir → "src/", stored as "src" for child matching).
+	const paths: string[] = [];
+	for (const token of tail.split(/\s+/)) {
+		if (!token || token === "--") continue;
+		// Remove surrounding quotes.
+		const cleaned = token.replace(/^['"]|['"]$/g, "");
+		if (!cleaned || cleaned.startsWith("-")) continue;
+		// Skip common non-path args that rm/git rm sometimes carry.
+		if (/^(.*\/)?\.[a-z]+$/i.test(cleaned)) continue; // e.g. ".gitignore"
+		// Normalize: backslash → slash, strip leading ./, collapse leading slashes.
+		const normalized = cleaned.replace(/\\/g, "/").replace(/^\.\//, "").replace(/^\/+/, "").replace(/\/+$/, "");
+		if (normalized) paths.push(normalized);
+	}
+
+	// For directory deletions (rm -r dir/), store both "dir/" and "dir" so that
+	// "dir/foo.ts" matches under both forms.
+	return paths.flatMap((p) => {
+		const noSlash = p.endsWith("/") ? p.slice(0, -1) : p;
+		return p.endsWith("/") ? [noSlash, p] : [noSlash];
+	});
+}
+
 // R12: tiny helper so non-Node runtimes (e.g. Deno workers, Bun edge) where
 // process.env access throws don't crash the extension. The check is also
 // done once at factory load via the IIFE below, but the helper is used in
@@ -337,6 +393,7 @@ export default function riskPolicyExtension(pi: ExtensionAPI) {
 	};
 
 	pi.on("session_start", async (_event, ctx) => {
+		store.clearDeletedPaths();
 		if (debugProbesEnabled) {
 			await safeProbeLog({ event: "hook_seen", cwd: ctx.cwd, hook: "session_start", at: new Date().toISOString() });
 		}
@@ -517,6 +574,26 @@ export default function riskPolicyExtension(pi: ExtensionAPI) {
 		if (!isBashToolResult(event)) return;
 		const command = (event.input?.command as string | undefined) ?? "";
 		if (!command) return;
+
+		// Detect file deletions across shells: Unix (rm/git rm/git checkout/git
+		// restore/git clean) and Windows (Remove-Item, del, erase, the `ri` alias).
+		// Deleted paths are excluded from findings in the next agent_end merge so
+		// that findings for a deleted file don't persist forever without a
+		// disposition. Windows support matters: a Remove-Item deletion that isn't
+		// matched here leaves stale findings (regression seen this session).
+		const isDeleteCommand = /^\s*rm\b/i.test(command)
+			|| /^\s*(?:ri|del|erase|Remove-Item)\b/i.test(command)
+			|| /^\s*git\s+(?:rm|checkout|restore|clean)\b/i.test(command);
+		if (isDeleteCommand && !event.isError) {
+			const deleted = extractDeletionPaths(command);
+			for (const p of deleted) {
+				store.addDeletedPath(p);
+			}
+			if (deleted.length > 0) {
+				await logEvent({ event: "deleted_paths_detected", cwd: ctx.cwd, paths: deleted });
+			}
+		}
+
 		if (!isVerificationCommand(command, config)) return;
 
 		try {
@@ -638,8 +715,14 @@ export default function riskPolicyExtension(pi: ExtensionAPI) {
 		const keyOf = (f: StoredFinding) => `${f.path}:${f.severity}:${f.kind}:${f.message}`;
 		const existing = store.getFindings();
 		const existingKeys = new Set(existing.map(keyOf));
-		const toAdd = newFindings.filter((f) => !existingKeys.has(keyOf(f as StoredFinding)));
-		store.setFindings([...existing, ...toAdd]);
+		// ponytail: filter out findings for deleted files so they don't persist forever.
+		// Upgrade: validate deletions against the filesystem instead of inferring from
+		// command patterns (rm/git rm don't always delete, e.g. "rm --help").
+		const toAdd = newFindings.filter(
+			(f) => !existingKeys.has(keyOf(f as StoredFinding)) && !store.isDeletedPath(f.path),
+		);
+		const filteredExisting = existing.filter((f) => !store.isDeletedPath(f.path));
+		store.setFindings([...filteredExisting, ...toAdd]);
 		// Notify on findings. For skipped runs, only notify on non-standard skip reasons —
 		// "no-session-changes" is normal for non-writing turns and would spam every time.
 		// "tier=LOW" never reaches this handler (wrapped at the call site above).

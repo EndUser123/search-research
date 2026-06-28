@@ -58,8 +58,6 @@ export function classifyRisk(input: {
 }): RiskAssessment {
 	const normalizedPaths = [...new Set(input.candidatePaths.map(normalizePath))].filter(Boolean);
 	const normalizedCommands = [...new Set(input.proposedCommands.map((v) => v.trim()))].filter(Boolean);
-	const promptLower = (input.prompt ?? "").toLowerCase();
-
 	if (input.overrideTier) {
 		return {
 			tier: input.overrideTier,
@@ -86,16 +84,24 @@ export function classifyRisk(input: {
 
 	if (
 		normalizedCommands.some((cmd) =>
+			// Word-boundary match (same remedy as PRODUCTION_KEYWORD): 'kubectl' must
+			// not fire on 'kubectlen', 'helm upgrade' must not fire inside a larger
+			// token. Patterns are lowercased and matched case-insensitively.
 			input.config.highCommandPatterns.some((pattern) =>
-				cmd.toLowerCase().includes(pattern.toLowerCase()),
-			),
+				new RegExp(`\\b${pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(cmd)
+			)
 		)
 	) {
 		reasons.add("Uses high-risk command");
 		matchedRules.add("HIGH_COMMAND");
 	}
 
-	if (input.config.productionKeywords.some((keyword) => promptLower.includes(keyword))) {
+	if (input.config.productionKeywords.some((keyword) =>
+		// Word-boundary match so "prod" no longer fires on "reproduce"/"reprod",
+		// and "deploy" doesn't fire on substrings inside other words. Keywords
+		// are matched case-insensitively against the original prompt.
+		new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(input.prompt ?? "")
+	)) {
 		reasons.add("Prompt mentions production or sensitive operations");
 		matchedRules.add("PRODUCTION_KEYWORD");
 	}

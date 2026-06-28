@@ -1,57 +1,33 @@
 /**
  * Extract candidate paths from a user prompt.
  *
- * Deterministic: pulls out slash-delimited paths and filenames with
- * known code/doc extensions. Ignores URLs. Returns unique normalized
+ * Deterministic: pulls out slash-delimited paths and filenames with a
+ * code-shaped extension. Ignores URLs. Returns unique normalized
  * forward-slash paths only.
+ *
+ * Extension matching is a SHAPE check, not an allowlist. The old allowlist
+ * silently dropped whole languages (.ps1, .php, .lua, .dart, .ex, .zig,
+ * .pl, .r, .clj, ...) which degraded classification with no signal. A
+ * token is treated as a path-bearing file if its extension matches
+ * [a-zA-Z][a-zA-Z0-9]{1,5} — letter-first, 2-6 chars. That excludes prose
+ * ("e.g" -> 1-char ext, "v1.2" -> digit-first) while covering every
+ * real code/doc extension without maintenance.
  */
 
-const FILE_EXTENSIONS = [
-	"ts",
-	"tsx",
-	"js",
-	"jsx",
-	"mjs",
-	"cjs",
-	"py",
-	"rb",
-	"go",
-	"rs",
-	"java",
-	"kt",
-	"swift",
-	"cpp",
-	"hpp",
-	"md",
-	"mdx",
-	"json",
-	"yml",
-	"yaml",
-	"toml",
-	"ini",
-	"sh",
-	"bash",
-	"zsh",
-	"tf",
-	"sql",
-	"html",
-	"css",
-	"scss",
-	"vue",
-	"svelte",
-];
-
-const EXT_PATTERN = FILE_EXTENSIONS.join("|");
+// Code-shaped extension: letter-first, 2-6 alphanumeric chars. Deliberately
+// not an allowlist so newly-used languages (powershell, php, lua, ...)
+// classify without a code change.
+const EXT_PATTERN = "[a-zA-Z][a-zA-Z0-9]{1,5}";
 
 // Slash-delimited path segments (incl. dotfiles like .github/workflows/ci.yml).
 // Stops at whitespace, quotes, parens, brackets, commas, semicolons, pipes.
 const PATH_TOKEN_RE = new RegExp(
-	`(?:\\.{0,2}/)?(?:\\.{1,2}/|[\\w.\\-]+/)+[\\w.\\-]*\\.(?:${EXT_PATTERN})\\b`,
+	`(?:\\.{0,2}/)?(?:\\.{1,2}/|[\\w.\\-]+/)+[\\w.\\-]*\\.${EXT_PATTERN}\\b`,
 	"g",
 );
 
-// Bare filename (no slash) with a known extension.
-const BARE_FILENAME_RE = new RegExp(`\\b[\\w.\\-]+\\.(?:${EXT_PATTERN})\\b`, "g");
+// Bare filename (no slash) with a code-shaped extension.
+const BARE_FILENAME_RE = new RegExp(`\\b[\\w.\\-]+\\.${EXT_PATTERN}\\b`, "g");
 
 // URL detector: skip anything that looks like http(s)://, ftp://, file://, etc.
 const URL_RE = /\b[a-z][a-z0-9+.-]*:\/\/[^\s<>"'`)\]]+/gi;

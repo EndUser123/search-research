@@ -20,10 +20,11 @@ import { POLICY_BY_TIER } from "../extensions/risk-policy.ts";
 import { RiskStateStore, type StoredFinding } from "../extensions/risk-state.ts";
 import { extractBashExitCode } from "../extensions/bash-result.ts";
 import { autoRecordPlanIfNeeded, evaluateAutoDiff, buildAutoDiffSummary, buildAutoDiffProbeLog } from "../extensions/auto-record.ts";
-import { getSessionChangeSet, buildChangeSetPrompt } from "../extensions/session-changeset.ts";
+import { getSessionChangeSet, buildChangeSetPrompt, type ChangeSet } from "../extensions/session-changeset.ts";
 import { suggestVerifyCommandsForPath } from "../extensions/verify-defaults.ts";
 import riskPolicyExtensionFactory from "../extensions/risk-policy-extension.ts";
-import { runReviewPass } from "../extensions/review-pass.ts";
+import { extractDeletionPaths } from "../extensions/risk-policy-extension.ts";
+import { runReviewPass, type ReviewCallFn } from "../extensions/review-pass.ts";
 import type { RiskAssessment, RiskStateSnapshot } from "../extensions/risk-types.ts";
 
 // R11: find a registered handler by its function name. Avoids hardcoded
@@ -171,6 +172,18 @@ describe("classifyRisk", () => {
 		assert.equal(a.tier, "HIGH");
 	});
 
+	it("does NOT fire HIGH_COMMAND on a pattern that is a substring of a larger token", () => {
+		// Word-boundary regression guard (same bug class as PRODUCTION_KEYWORD):
+		// 'kubectlen' contains 'kubectl' but is a different word. Before the fix,
+		// unanchored String.includes matched it and escalated a benign command.
+		const a = classifyRisk({ ...base, prompt: "x", proposedCommands: ["kubectlen get pods"] });
+		assert.notEqual(a.tier, "HIGH");
+		assert.ok(!a.matchedRules.includes("HIGH_COMMAND"));
+		// Backward-compat: the real token still fires.
+		const b = classifyRisk({ ...base, prompt: "x", proposedCommands: ["kubectl get pods"] });
+		assert.ok(b.matchedRules.includes("HIGH_COMMAND"));
+	});
+
 	it("classifies a prompt with production keyword as HIGH", () => {
 		const a = classifyRisk({
 			...base,
@@ -184,6 +197,23 @@ describe("classifyRisk", () => {
 	it("classifies a prompt with secret/credential keyword as HIGH", () => {
 		const a = classifyRisk({ ...base, prompt: "rotate the credential" });
 		assert.equal(a.tier, "HIGH");
+	});
+
+	it("does NOT fire PRODUCTION_KEYWORD on substring matches inside words", () => {
+		// 'reprod' contains 'prod' but is not the word 'prod'. Word-boundary
+		// matching must reject this, or any mention of reproducing a bug
+		// escalates to HIGH. Regression guard for the unanchored-includes bug.
+		const a = classifyRisk({ ...base, prompt: "reproduce the failing test", candidatePaths: ["src/app.ts"] });
+		assert.notEqual(a.tier, "HIGH");
+		assert.ok(!a.matchedRules.includes("PRODUCTION_KEYWORD"));
+	});
+
+	it("still fires PRODUCTION_KEYWORD on a real word-boundary match", () => {
+		// Backward-compat: a genuine 'deploy' or 'production' mention still
+		// escalates. The word-boundary fix only rejects in-word substrings.
+		const a = classifyRisk({ ...base, prompt: "ship the deploy now", candidatePaths: ["src/app.ts"] });
+		assert.equal(a.tier, "HIGH");
+		assert.ok(a.matchedRules.includes("PRODUCTION_KEYWORD"));
 	});
 
 	it("manual override returns that tier with overridden=true", () => {
@@ -302,6 +332,26 @@ describe("extractCandidatePaths", () => {
 		assert.ok(got.includes("infra/main.tf"));
 		assert.ok(got.includes("data.json"));
 		assert.ok(got.includes("schema.yaml"));
+	});
+
+	it("extracts scripting-language extensions the old allowlist missed (.ps1/.php/.lua/.dart)", () => {
+		// Regression guard: the extension matcher is a SHAPE check
+		// ([a-zA-Z][a-zA-Z0-9]{1,5}), not a hardcoded allowlist. Before this,
+		// .ps1/.psm1/.bat/.cmd/.php/.lua/.dart/.ex/.zig/.pl/.r/.clj files were
+		// invisible to the classifier — target files in those languages produced
+		// no candidate paths, so highPaths/lowPaths silently couldn't match.
+		const got = extractCandidatePaths("edit scripts/run.ps1 src/app.php and lib/util.lua");
+		assert.ok(got.includes("scripts/run.ps1"), `got ${JSON.stringify(got)}`);
+		assert.ok(got.includes("src/app.php"), `got ${JSON.stringify(got)}`);
+		assert.ok(got.includes("lib/util.lua"), `got ${JSON.stringify(got)}`);
+	});
+
+	it("does not over-match prose with short or digit-first suffixes", () => {
+		// "e.g" / "i.e" (1-char ext), "v1.2" (digit-first) must NOT be treated
+		// as paths. This is the boundary that stops the denylist from matching
+		// ordinary English. If this regresses, every sentence mentioning "e.g."
+		// would inject phantom paths.
+		assert.deepEqual(extractCandidatePaths("see e.g. the docs, use v1.2 or later"), []);
 	});
 });
 
@@ -1726,6 +1776,159 @@ describe("RiskStateStore — lastPrompt accessor (R17)", () => {
 	});
 });
 
+describe("RiskStateStore \u2014 deleted paths", () => {
+	it("isDeletedPath: exact file match", () => {
+		const store = new RiskStateStore();
+		store.addDeletedPath("src/foo.ts");
+		assert.equal(store.isDeletedPath("src/foo.ts"), true);
+		assert.equal(store.isDeletedPath("src/bar.ts"), false);
+	});
+
+	it("isDeletedPath: nested child of deleted directory", () => {
+		const store = new RiskStateStore();
+		store.addDeletedPath("src/");
+		assert.equal(store.isDeletedPath("src/foo.ts"), true);
+		assert.equal(store.isDeletedPath("src/deep/nested.ts"), true);
+		assert.equal(store.isDeletedPath("other/foo.ts"), false);
+	});
+
+	it("isDeletedPath: normalizes backslashes", () => {
+		const store = new RiskStateStore();
+		store.addDeletedPath("src\\foo.ts");
+		assert.equal(store.isDeletedPath("src/foo.ts"), true);
+	});
+
+	it("isDeletedPath: strips leading ./", () => {
+		const store = new RiskStateStore();
+		store.addDeletedPath("./src/foo.ts");
+		assert.equal(store.isDeletedPath("src/foo.ts"), true);
+	});
+
+	it("clearDeletedPaths: resets all tracked deletions", () => {
+		const store = new RiskStateStore();
+		store.addDeletedPath("src/foo.ts");
+		assert.equal(store.isDeletedPath("src/foo.ts"), true);
+		store.clearDeletedPaths();
+		assert.equal(store.isDeletedPath("src/foo.ts"), false);
+	});
+});
+
+describe("extractDeletionPaths \u2014 from risk-policy-extension.ts", () => {
+	it("rm single file", () => {
+		assert.deepEqual(extractDeletionPaths("rm src/foo.ts"), ["src/foo.ts"]);
+	});
+
+	it("rm multiple files", () => {
+		assert.deepEqual(extractDeletionPaths("rm src/foo.ts src/bar.ts"), ["src/foo.ts", "src/bar.ts"]);
+	});
+
+	it("rm -rf directory", () => {
+		assert.deepEqual(extractDeletionPaths("rm -rf src/"), ["src"]);
+	});
+
+	it("rm -r with glob", () => {
+		assert.deepEqual(extractDeletionPaths("rm -r src/*.ts"), ["src/*.ts"]);
+	});
+
+	it("git rm file", () => {
+		assert.deepEqual(extractDeletionPaths("git rm src/foo.ts"), ["src/foo.ts"]);
+	});
+
+	it("git rm --cached", () => {
+		assert.deepEqual(extractDeletionPaths("git rm --cached src/foo.ts"), ["src/foo.ts"]);
+	});
+
+	it("git checkout -- file", () => {
+		assert.deepEqual(extractDeletionPaths("git checkout -- src/foo.ts"), ["src/foo.ts"]);
+	});
+
+	it("git restore -- file", () => {
+		assert.deepEqual(extractDeletionPaths("git restore -- src/foo.ts"), ["src/foo.ts"]);
+	});
+
+	it("ignores flags and non-path args", () => {
+		assert.deepEqual(extractDeletionPaths("rm -rf -- src/foo.ts"), ["src/foo.ts"]);
+		assert.deepEqual(extractDeletionPaths("rm -r -f src/foo.ts"), ["src/foo.ts"]);
+		assert.deepEqual(extractDeletionPaths("rm --help"), []);
+		assert.deepEqual(extractDeletionPaths("git rm -f src/foo.ts"), ["src/foo.ts"]);
+	});
+
+	it("handles quoted paths", () => {
+		assert.deepEqual(extractDeletionPaths('"src/foo.ts"'), ["src/foo.ts"]);
+		assert.deepEqual(extractDeletionPaths("'src/foo.ts'"), ["src/foo.ts"]);
+	});
+
+	it("normalizes backslashes and leading dots", () => {
+		assert.deepEqual(extractDeletionPaths("rm src\\foo.ts"), ["src/foo.ts"]);
+		assert.deepEqual(extractDeletionPaths("rm ./src/foo.ts"), ["src/foo.ts"]);
+	});
+});
+
+
+describe("extractDeletionPaths — cross-shell / Windows support", () => {
+	// Regression guard: the original Unix-only matcher (rm/git rm/git checkout/
+	// git restore) silently missed every Windows/PowerShell deletion, so files
+	// deleted via Remove-Item kept producing stale review findings. These cases
+	// lock in that Remove-Item, del, erase, git clean, and the `ri` alias all
+	// track deletions the same way `rm` does.
+
+	it("extracts paths from PowerShell Remove-Item with flags", () => {
+		assert.deepEqual(extractDeletionPaths("Remove-Item -Recurse -Force scripts/run.ps1"), ["scripts/run.ps1"]);
+		assert.deepEqual(extractDeletionPaths("Remove-Item src/foo.ts"), ["src/foo.ts"]);
+	});
+
+	it("extracts paths from cmd del / erase", () => {
+		assert.deepEqual(extractDeletionPaths("del src/foo.ts"), ["src/foo.ts"]);
+		assert.deepEqual(extractDeletionPaths("erase src/foo.ts"), ["src/foo.ts"]);
+	});
+
+	it("extracts paths from git clean", () => {
+		assert.deepEqual(extractDeletionPaths("git clean -fd src/"), ["src"]);
+	});
+
+	it("extracts paths from the PowerShell ri alias", () => {
+		assert.deepEqual(extractDeletionPaths("ri src/foo.ts"), ["src/foo.ts"]);
+	});
+});
+
+
+describe("RiskStateStore \u2014 deleted paths", () => {
+	it("isDeletedPath: exact file match", () => {
+		const store = new RiskStateStore();
+		store.addDeletedPath("src/foo.ts");
+		assert.equal(store.isDeletedPath("src/foo.ts"), true);
+		assert.equal(store.isDeletedPath("src/bar.ts"), false);
+	});
+
+	it("isDeletedPath: nested child of deleted directory", () => {
+		const store = new RiskStateStore();
+		store.addDeletedPath("src/");
+		assert.equal(store.isDeletedPath("src/foo.ts"), true);
+		assert.equal(store.isDeletedPath("src/deep/nested.ts"), true);
+		assert.equal(store.isDeletedPath("other/foo.ts"), false);
+	});
+
+	it("isDeletedPath: normalizes backslashes", () => {
+		const store = new RiskStateStore();
+		store.addDeletedPath("src\\foo.ts");
+		assert.equal(store.isDeletedPath("src/foo.ts"), true);
+	});
+
+	it("isDeletedPath: strips leading ./", () => {
+		const store = new RiskStateStore();
+		store.addDeletedPath("./src/foo.ts");
+		assert.equal(store.isDeletedPath("src/foo.ts"), true);
+	});
+
+	it("clearDeletedPaths: resets all tracked deletions", () => {
+		const store = new RiskStateStore();
+		store.addDeletedPath("src/foo.ts");
+		assert.equal(store.isDeletedPath("src/foo.ts"), true);
+		store.clearDeletedPaths();
+		assert.equal(store.isDeletedPath("src/foo.ts"), false);
+	});
+});
+
 describe("Findings dedup across turns", () => {
 	// Mirror the keyOf + merge logic from risk-policy-extension.ts.
 	// Dedup key: path:severity:kind:message. runReviewPass resets its counter each
@@ -1763,7 +1966,7 @@ describe("Findings dedup across turns", () => {
 		assert.equal(store.getFindings().length, 1);
 		assert.equal(store.getFindings()[0]?.disposition, "addressed");
 		// Next turn with no new findings: merge is a no-op
-		store.setFindings(store.getFindings());
+		store.setFindings([...store.getFindings()]);
 		assert.equal(store.getFindings().length, 1);
 		assert.equal(store.getFindings()[0]?.disposition, "addressed");
 	});
@@ -1954,5 +2157,86 @@ describe("runReviewPass — turn-count derivation", () => {
 		// changeSet is empty so verdict is skippedReason='no-session-changes'.
 		const verdict = await runReviewPass(ctx as never, cs, snap, "turn-1");
 		assert.match(verdict.skippedReason ?? "", /no-session-changes/);
+	});
+});
+
+describe("runReviewPass — failure propagation (no silent \"clean\" on model/parse failure)", () => {
+	// Regression guard: callModel previously returned null on EVERY failure mode
+	// (throw, truncated JSON, no-model) and the caller treated null as "clean."
+	// The first multi-file refactor would silently produce an unreviewed verdict.
+	// These cases inject a callFn that fails and assert the verdict surfaces a
+	// review-failed skip reason with zero findings, instead of looking clean.
+
+	function makeSnapshot(): RiskStateSnapshot {
+		const assessment: RiskAssessment = {
+			tier: "MED",
+			reasons: ["test"],
+			matchedRules: ["TEST"],
+			candidatePaths: ["tmp/foo.ts"],
+			proposedCommands: [],
+			promptSummary: "test",
+			overridden: false,
+		};
+		return {
+			assessment,
+			policy: { requirePlan: true, requireVerification: true, manualApplyOnly: false, allowDestructiveShell: false, allowInfraChanges: false, uiLabel: "MED" },
+			verification: { planned: true, verificationRan: false, verificationPassed: false, diffSummarized: false, manualApprovalRecorded: false },
+			timestamp: new Date().toISOString(),
+		};
+	}
+
+	// ctx WITH a model + apikey so callModel gets past the no-model guard and
+	// reaches the callFn. The injected callFn is what produces the failure.
+	function makeCtxWithModel(): { sessionManager: { getBranch: () => unknown[] }; model: { provider: string }; modelRegistry: { getApiKeyForProvider: () => Promise<string> } } {
+		return {
+			sessionManager: { getBranch: () => [] },
+			model: { provider: "fake" },
+			modelRegistry: { getApiKeyForProvider: async () => "fake-key" },
+		};
+	}
+
+	// A single-entry changeset with content so buildChangeSetPrompt is non-empty
+	// and the review pass actually invokes callFn.
+	function singleEntryChangeSet(): ChangeSet {
+		return {
+			entries: [{ toolName: "write", path: "tmp/foo.ts", before: undefined, after: "x", entryId: "e1", entryTimestamp: 1 }],
+			distinctPaths: ["tmp/foo.ts"],
+			source: "session-ledger",
+			note: "test",
+		};
+	}
+
+	it("surfaces review-failed when the model returns truncated/unparseable JSON", async () => {
+		// Simulates the original bug: maxTokens too small, model output truncated
+		// mid-JSON. Greedy \{[\s\S]*\} matches a dangling fragment, JSON.parse
+		// throws -> must surface as review-failed, NOT zero findings + clean.
+		const truncatedCallFn: ReviewCallFn = async () => '{"findings":[{"path":"tmp/foo.ts","severity":"med","mes';
+		const verdict = await runReviewPass(makeCtxWithModel() as never, singleEntryChangeSet(), makeSnapshot(), "turn-1", truncatedCallFn);
+		assert.match(verdict.skippedReason ?? "", /review-failed/);
+		assert.deepEqual(verdict.simplify, []);
+		assert.deepEqual(verdict.review, []);
+	});
+
+	it("surfaces review-failed when the model call throws", async () => {
+		// Network/provider failure mid-call. Previously swallowed by catch -> null
+		// -> clean verdict. Must now surface as review-failed.
+		const throwingCallFn: ReviewCallFn = async () => { throw new Error("connect ECONNREFUSED"); };
+		const verdict = await runReviewPass(makeCtxWithModel() as never, singleEntryChangeSet(), makeSnapshot(), "turn-1", throwingCallFn);
+		assert.match(verdict.skippedReason ?? "", /review-failed/);
+		assert.deepEqual(verdict.simplify, []);
+		assert.deepEqual(verdict.review, []);
+	});
+
+	it("still reports clean when the model returns valid empty findings", async () => {
+		// Backward-compat: a genuinely clean change-set still produces no findings
+		// and no review-failed signal. (With a single-file changeset the review
+		// pass is separately skipped as not-eligible — that's correct behavior,
+		// not a failure. The assertion is specifically that we don't surface
+		// review-failed, which would mean a healthy model call was misclassified.)
+		const cleanCallFn: ReviewCallFn = async () => '{"findings":[]}';
+		const verdict = await runReviewPass(makeCtxWithModel() as never, singleEntryChangeSet(), makeSnapshot(), "turn-1", cleanCallFn);
+		assert.doesNotMatch(verdict.skippedReason ?? "", /review-failed/);
+		assert.deepEqual(verdict.simplify, []);
+		assert.deepEqual(verdict.review, []);
 	});
 });
