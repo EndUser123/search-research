@@ -34,7 +34,8 @@ _csf_nip_src = _hooks_dir.parent.parent / "__csf" / "src" / "core"
 if str(_csf_nip_src) not in sys.path:
     sys.path.insert(0, str(_csf_nip_src))
 
-SESSION_STATE_FILE = _hooks_dir / ".state" / "debug_session_state.json"
+from _bootstrap import state_root
+SESSION_STATE_FILE = state_root() / "debug_session_state.json"
 
 ERROR_PATTERNS: Final = [
     (r"(?i)command not found", "command_not_found"),

@@ -41,7 +41,8 @@ class ChangeVerification(PostToolUseHook):
         # Instance isolation: use current working directory hash
         self._instance_id = hashlib.md5(str(Path.cwd()).encode()).hexdigest()[:8]
         # State file is shared, but filtering happens in UserPromptSubmit_verification_reminder.py
-        self.session_file = self.hooks_dir / "session_data" / "pending_verifications.json"
+        from _bootstrap import state_root
+        self.session_file = state_root() / "pending_verifications.json"
         self.session_file.parent.mkdir(parents=True, exist_ok=True)
 
     def process(self, tool_name: str, tool_input: dict[str, Any], tool_response: dict[str, Any]) -> dict[str, Any]:

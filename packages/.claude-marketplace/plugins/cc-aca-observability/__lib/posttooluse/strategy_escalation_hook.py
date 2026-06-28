@@ -28,7 +28,8 @@ from typing import Any
 
 from posttooluse.base import PostToolUseHook
 
-STATE_DIR = Path(__file__).resolve().parent.parent / ".state"
+from _bootstrap import state_root
+STATE_DIR = state_root()
 STATE_FILE = STATE_DIR / "strategy_escalation_state.json"
 
 RING_SIZE = 5       # Max failures tracked

@@ -92,8 +92,8 @@ def _get_state_dir() -> Path:
     # -> P:/.claude/hooks/posttooluse
     # -> P:/.claude/hooks
     # -> P:/.claude
-    claude_root = hook_file.parent.parent.parent
-    state_dir = claude_root / "state" / "sqa_phase"
+    from _bootstrap import state_root
+    state_dir = state_root() / "sqa_phase"
     state_dir.mkdir(parents=True, exist_ok=True)
     return state_dir
 

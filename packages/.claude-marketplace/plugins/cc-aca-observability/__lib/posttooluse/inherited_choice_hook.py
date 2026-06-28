@@ -23,7 +23,8 @@ _hooks_dir = Path(__file__).resolve().parent.parent
 if str(_hooks_dir) not in sys.path:
     sys.path.insert(0, str(_hooks_dir))
 
-STATE_DIR = Path(__file__).resolve().parent.parent / ".state"
+from _bootstrap import state_root
+STATE_DIR = state_root()
 STATE_FILE = STATE_DIR / "inherited_choice_patterns.json"
 VERSION_RE = re.compile(r"\b(v?\d+\.\d+(?:\.\d+)?)\b|\b(python\s*\d(?:\.\d+)?)\b", re.IGNORECASE)
 

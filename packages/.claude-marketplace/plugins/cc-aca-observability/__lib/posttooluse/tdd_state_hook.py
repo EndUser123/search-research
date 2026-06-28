@@ -25,7 +25,8 @@ if str(_hooks_dir) not in sys.path:
 
 
 # State directory checked before importing tdd_core (avoids 80ms import cost)
-_TDD_STATE_DIR = _hooks_dir.parent / ".state" / "tdd-state"
+from _bootstrap import state_root
+_TDD_STATE_DIR = state_root() / "tdd-state"
 
 # Cheap test-command keywords checked before importing tdd_core
 _TEST_KEYWORDS = ("pytest", "unittest", "test_", "_test.py")

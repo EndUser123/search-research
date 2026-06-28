@@ -13,8 +13,9 @@ from typing import Any
 from posttooluse.base import PostToolUseHook
 
 _hooks_dir = Path(__file__).resolve().parent.parent
-_SESSION_STATE_FILE = _hooks_dir / ".state" / "debug_session_state.json"
-_CAUSAL_STATE_FILE = _hooks_dir / ".state" / "causal_learning.json"
+from _bootstrap import state_root
+_SESSION_STATE_FILE = state_root() / "debug_session_state.json"
+_CAUSAL_STATE_FILE = state_root() / "causal_learning.json"
 
 _MIN_PROB = 0.01
 _MAX_PROB = 0.99

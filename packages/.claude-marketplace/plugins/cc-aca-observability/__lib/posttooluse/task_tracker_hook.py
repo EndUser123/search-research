@@ -80,7 +80,7 @@ def _get_delegation_state_dir() -> Path:
         import os as _os
         import hashlib as _hashlib
 
-        claude_root = Path(__file__).resolve().parent.parent.parent
+        claude_root = Path("P:/") / ".claude"
 
         # Primary: WT_SESSION
         raw = _os.environ.get("WT_SESSION", "")
@@ -137,8 +137,8 @@ def get_state_dir() -> Path:
     # -> P:/.claude/hooks
     # -> P:/.claude (this is what we want)
     # Go up THREE levels: hooks/posttooluse/task_tracker_hook.py -> hooks/posttooluse -> hooks -> .claude
-    claude_root = hook_file.parent.parent.parent
-    return claude_root / "state" / "task_tracker"
+    from _bootstrap import state_root
+    return state_root() / "task_tracker"
 
 
 def log(msg: str) -> None:

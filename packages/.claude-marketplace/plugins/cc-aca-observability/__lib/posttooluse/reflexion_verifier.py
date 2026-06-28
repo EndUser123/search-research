@@ -80,7 +80,8 @@ class ReflexionVerifier(PostToolUseHook):
     def __init__(self):
         super().__init__()
         self.hooks_dir = Path(__file__).resolve().parent.parent
-        self.session_dir = self.hooks_dir / "session_data"
+        from _bootstrap import state_root
+        self.session_dir = state_root()
         self.session_dir.mkdir(parents=True, exist_ok=True)
         # Per-file retry tracking
         self.retry_file = self.session_dir / "reflexion_retries.json"

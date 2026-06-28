@@ -5,11 +5,18 @@ Single point of change for path resolution logic.
 """
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
 PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 PLUGIN_LIB = PLUGIN_ROOT / "__lib"
+
+
+def state_root() -> Path:
+    """External state dir for this plugin; never inside source/cache."""
+    base = os.environ.get("CSF_STATE_DIR") or str(Path("P:/") / ".claude" / "state")
+    return Path(base) / "cc-aca-observability"
 
 
 def bootstrap(hook_file: str | Path) -> Path:

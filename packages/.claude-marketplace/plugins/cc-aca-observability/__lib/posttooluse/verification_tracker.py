@@ -24,8 +24,9 @@ from typing import Any
 
 from posttooluse.base import PostToolUseHook
 
-STATE_DIR = Path(__file__).resolve().parent.parent / ".state"
-STATE_DIR.mkdir(exist_ok=True)
+from _bootstrap import state_root
+STATE_DIR = state_root()
+STATE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # === TERMINAL DETECTION ===

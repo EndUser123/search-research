@@ -16,7 +16,8 @@ from typing import Any
 from posttooluse.base import PostToolUseHook
 
 _hooks_dir = Path(__file__).resolve().parent.parent
-_COMMITMENT_FLAG = _hooks_dir / "session_data" / "commitment_pending.json"
+from _bootstrap import state_root
+_COMMITMENT_FLAG = state_root() / "commitment_pending.json"
 
 # Add hooks dir to path for tool_sequence_manager
 if str(_hooks_dir) not in sys.path:
