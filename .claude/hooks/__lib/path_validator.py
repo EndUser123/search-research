@@ -377,6 +377,12 @@ class PathValidator:
         if self._is_safe_claude_config(abs_path_str):
             return True, "SAFE_CLAUDE_CONFIG"
 
+        # Worktree exemption: paths inside any git worktree are sandboxed
+        # checkouts (P:/.claude/worktrees/, packages/worktrees/, P:/worktrees/),
+        # not authoritative .claude/ infrastructure. Allow full CRUD inside them.
+        if "/worktrees/" in abs_path_str:
+            return True, "WORKTREE"
+
         # Check .claude sensitive paths after safe root config allowlist.
         # Exception: Bypass during active hook development session
         if abs_path_str.startswith("p:/.claude/") and self._is_claude_sensitive_path(abs_path_str):

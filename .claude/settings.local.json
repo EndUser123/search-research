@@ -65,7 +65,12 @@
       "Bash(printf '\\\\n```\\\\n\\\\n## YOUR OUTPUT\\\\n\\\\nProduce a prioritized list \\(P0 ship-blockers / P1 should-fix / P2 nice-to-have\\). For each: the specific TASK/section/line, what is wrong, why it matters, and the concrete fix or simpler alternative. End with a one-paragraph verdict: is this plan safe to execute as-is, safe after the P0 fixes, or needs a redesign? Be terse and specific — no flattery, no hedging.\\\\n')",
       "Bash(cp \"C:/Users/brsth/.codex/config.toml\" \"C:/Users/brsth/.codex/config.toml.bak-20260629\")",
       "Read(//c/Users/brsth/.codex/**)",
-      "Bash(curl -sL -o gitleaks_x64.zip \"https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_windows_x64.zip\")"
+      "Bash(curl -sL -o gitleaks_x64.zip \"https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_windows_x64.zip\")",
+      "Bash(go version *)",
+      "Bash(winget search *)",
+      "Bash(pip index *)",
+      "Bash(uv pip *)",
+      "Bash(choco install *)"
     ],
     "deny": [],
     "ask": []
