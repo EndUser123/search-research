@@ -46,7 +46,7 @@
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.2.14",
+      "version": "1.2.15",
       "description": "Utility AI skills for Claude Code.",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
