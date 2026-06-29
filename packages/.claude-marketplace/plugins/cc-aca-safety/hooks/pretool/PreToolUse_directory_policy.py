@@ -803,6 +803,13 @@ def run(data: dict, verbose: bool = False) -> dict | None:
         if any(normalized_for_check.startswith(p.lower()) for p in hook_infra_paths):
             continue  # Allow hook infrastructure paths
 
+        # Worktree exemption: allow full CRUD inside any git worktree directory.
+        # Worktrees (P:/.claude/worktrees/, packages/worktrees/, P:/worktrees/, etc.)
+        # are isolated checkouts whose entire purpose is safe sandboxed editing, so
+        # the file-placement rules in later layers do not apply inside them.
+        if "/worktrees/" in normalized_for_check or normalized_for_check.startswith("worktrees/"):
+            continue  # Allow all operations inside worktree directories
+
         # SECURITY BOUNDARY LAYER 1: Policy enforcement (project root writes blocked)
         # This check runs FIRST to establish clear policy boundary before security checks
         normalized = path.replace("\\", "/").lower()
