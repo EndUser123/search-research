@@ -60,7 +60,9 @@
       "Bash(cp C:/Users/brsth/.claude/settings.json C:/Users/brsth/.claude/settings.json.bak.autocommit)",
       "Read(//c/Users/brsth/.claude/**)",
       "Bash(rm -fv P:/.claude/.artifacts/console_go_47649/go/active-task_go_20260628-055410.json P:/.claude/.artifacts/console_go_47649/go/env.json P:/.claude/.artifacts/console_go_47649/go/.verified_go_20260628-055410)",
-      "Bash(rm -rfv \"P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/.claude/.artifacts/console_resume_binding_run\")"
+      "Bash(rm -rfv \"P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/.claude/.artifacts/console_resume_binding_run\")",
+      "Bash(cat \"C:/Users/brsth/.claude/plans/plan-hook-discrimination-audit.md\")",
+      "Bash(printf '\\\\n```\\\\n\\\\n## YOUR OUTPUT\\\\n\\\\nProduce a prioritized list \\(P0 ship-blockers / P1 should-fix / P2 nice-to-have\\). For each: the specific TASK/section/line, what is wrong, why it matters, and the concrete fix or simpler alternative. End with a one-paragraph verdict: is this plan safe to execute as-is, safe after the P0 fixes, or needs a redesign? Be terse and specific — no flattery, no hedging.\\\\n')"
     ],
     "deny": [],
     "ask": []
