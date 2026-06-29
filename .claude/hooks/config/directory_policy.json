@@ -1,7 +1,7 @@
 {
   "_meta": {
-    "version": "3.1.0",
-    "updated": "2026-02-13",
+    "version": "3.2.0",
+    "updated": "2026-06-29",
     "description": "Single source of truth for directory structure policy - RESTORED & OPTIMIZED",
     "enforced_by": "P:/.claude\\hooks\\PreToolUse_directory_policy.py",
     "validated_by": "P:/.claude\\hooks\\path_validator.py --validate",
@@ -1343,6 +1343,7 @@
       "p:/standalone/*"
     ],
     "exact_paths": [
+      "C:/Users/brsth/.claude/",
       "C:/Users/brsth/.claude/projects/",
       "C:/Users/brsth/.claude/.mcp.json",
       "C:/Users/brsth/.gemini/antigravity/brain/",
