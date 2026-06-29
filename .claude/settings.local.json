@@ -58,7 +58,9 @@
       "Read(//c/Users/brsth/.claude/plans/**)",
       "Read(//c/Users/brsth/.claude/plans/reviews/**)",
       "Bash(cp C:/Users/brsth/.claude/settings.json C:/Users/brsth/.claude/settings.json.bak.autocommit)",
-      "Read(//c/Users/brsth/.claude/**)"
+      "Read(//c/Users/brsth/.claude/**)",
+      "Bash(rm -fv P:/.claude/.artifacts/console_go_47649/go/active-task_go_20260628-055410.json P:/.claude/.artifacts/console_go_47649/go/env.json P:/.claude/.artifacts/console_go_47649/go/.verified_go_20260628-055410)",
+      "Bash(rm -rfv \"P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/.claude/.artifacts/console_resume_binding_run\")"
     ],
     "deny": [],
     "ask": []
