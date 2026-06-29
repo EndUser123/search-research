@@ -72,7 +72,11 @@
       "Bash(uv pip *)",
       "Bash(choco install *)",
       "Bash(rm -rf /p/tmp/pctest /p/tmp/gltest2)",
-      "Bash(ls /p/tmp/pctest)"
+      "Bash(ls /p/tmp/pctest)",
+      "Bash(mkdir -p /p/tmp/glhook-test/.claude)",
+      "Bash(chmod +x /p/tmp/glhook-test/.git/hooks/pre-commit)",
+      "Bash(wc -c)",
+      "Read(//tmp/**)"
     ],
     "deny": [],
     "ask": []
