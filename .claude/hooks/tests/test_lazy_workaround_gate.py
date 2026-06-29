@@ -7,7 +7,7 @@ from pathlib import Path
 HOOKS_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(HOOKS_DIR))
 
-from Stop_lazy_workaround_gate import check_lazy_workarounds
+from Stop_lazy_workaround_gate import check_lazy_workarounds, _strip_quoted_blocks
 from __lib.stop_gate_telemetry import clear_test_telemetry, read_telemetry
 
 
@@ -20,8 +20,8 @@ class TestLazyWorkaroundDetection(unittest.TestCase):
         result = check_lazy_workarounds(response)
 
         self.assertEqual(result["decision"], "block")
-        self.assertIn("lazy workaround", result["message"].lower())
-        self.assertIn("accepting bug as feature", result["message"].lower())
+        self.assertIn("lazy workaround", result["reason"].lower())
+        self.assertIn("accepting bug as feature", result["reason"].lower())
 
     def test_live_with_bug_blocked(self):
         """'Live with it' suggestions should be blocked"""
@@ -29,7 +29,7 @@ class TestLazyWorkaroundDetection(unittest.TestCase):
         result = check_lazy_workarounds(response)
 
         self.assertEqual(result["decision"], "block")
-        self.assertIn("technical debt", result["message"].lower())
+        self.assertIn("technical debt", result["reason"].lower())
 
     def test_duplicate_is_fine_blocked(self):
         """'Duplicate is fine' should be blocked"""
@@ -37,7 +37,7 @@ class TestLazyWorkaroundDetection(unittest.TestCase):
         result = check_lazy_workarounds(response)
 
         self.assertEqual(result["decision"], "block")
-        self.assertIn("ignoring duplication", result["message"].lower())
+        self.assertIn("ignoring duplication", result["reason"].lower())
 
     def test_cosmetic_bug_dismissal_blocked(self):
         """Calling functional bugs 'cosmetic' should be blocked"""
@@ -45,7 +45,7 @@ class TestLazyWorkaroundDetection(unittest.TestCase):
         result = check_lazy_workarounds(response)
 
         self.assertEqual(result["decision"], "block")
-        self.assertIn("dismissing", result["message"].lower())
+        self.assertIn("dismissing", result["reason"].lower())
 
     def test_proper_investigation_allowed(self):
         """Root cause investigation should be allowed"""
@@ -414,6 +414,52 @@ class TestSelfTriggerRegression(unittest.TestCase):
         response = "We should accept the duplication as visible logging"
         result = check_lazy_workarounds(response)
         self.assertEqual(result["decision"], "block")
+
+
+class TestDismissalProximityS2(unittest.TestCase):
+    """S-2 fix: whole-token dismissal proximity replaces the unbounded regex.
+
+    Old `(cosmetic|minor|trivial).*(bug|issue|problem|error)` matched the
+    'trivial' SUBSTRING inside identifiers like `_is_trivial_run`. Whole-token
+    set membership rejects that, while still blocking genuine dismissals.
+    """
+
+    def test_symbol_discussion_allowed(self):
+        """Discussing `_is_trivial_run` near 'bug' must NOT block.
+
+        Punctuation stripping merges the identifier into one token
+        (`istrivialrun`) that never equals a bare adjective.
+        """
+        response = (
+            "`_is_trivial_run` is the symbol that flagged the run; "
+            "there's a bug in how it counts whitespace tokens."
+        )
+        result = check_lazy_workarounds(response)
+        self.assertEqual(result["decision"], "allow", f"Should allow: {response!r}")
+
+    def test_genuine_dismissal_blocked(self):
+        """Genuine adjective+defect dismissals block across orderings."""
+        cases = [
+            "This cosmetic bug doesn't need fixing",      # adjective-before-defect
+            "The bug is purely cosmetic, leave it",       # defect-before-adjective
+            "It's a trivial issue we can ignore",         # trivial + issue
+            "minor problem, skip it for now",             # minor + problem
+        ]
+        for response in cases:
+            result = check_lazy_workarounds(response)
+            self.assertEqual(result["decision"], "block",
+                             f"Should block: {response!r}")
+
+    def test_strip_output_pinned_on_literal_dismissal_pattern(self):
+        """Strip output is pinned: factoring strip-boundary patterns into
+        _STRIP_BOUNDARY_PATTERNS must not change _strip_quoted_blocks output."""
+        response = (
+            "Let me trace the source.\n"
+            "Stop hook feedback:\n"
+            "> (cosmetic|minor|trivial).*(bug|issue|problem|error)\n"
+            "I'll investigate the root cause."
+        )
+        self.assertEqual(_strip_quoted_blocks(response), "Let me trace the source.")
 
 
 if __name__ == "__main__":
