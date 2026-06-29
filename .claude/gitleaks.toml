@@ -1,0 +1,37 @@
+# Custom gitleaks config — token shapes actually used in this environment.
+# Default config has no Anthropic rule; generic-api-key only fires on
+# high-entropy values whose variable name is in its keyword allowlist, so
+# short/medium bare .env values fall through with no provider attribution.
+# Each rule below is verified against a high-entropy fixture.
+#
+# useDefault = true keeps the built-in rules (gcp-api-key, github-pat, etc.);
+# the rules below ADD provider-specific prefix coverage.
+
+title = "csf"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "anthropic-api-key"
+description = "Anthropic API key (sk-ant-)"
+regex = '''(sk-ant-api03-[A-Za-z0-9_\-]{80,})'''
+secretGroup = 1
+keywords = ["sk-ant-api03"]
+entropy = 3.5
+
+[[rules]]
+id = "claude-proxy-key"
+description = "Claude proxy / custom-prefix key (sk-cp-)"
+regex = '''(sk-cp-[A-Za-z0-9_\-]{40,})'''
+secretGroup = 1
+keywords = ["sk-cp-"]
+entropy = 3.0
+
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI API key (sk-proj-/sk-)"
+regex = '''(sk-(?:proj-[A-Za-z0-9_\-]{40,}|[A-Za-z0-9]{40,}))'''
+secretGroup = 1
+keywords = ["sk-proj-", "sk-"]
+entropy = 3.5

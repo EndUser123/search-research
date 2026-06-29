@@ -70,7 +70,9 @@
       "Bash(winget search *)",
       "Bash(pip index *)",
       "Bash(uv pip *)",
-      "Bash(choco install *)"
+      "Bash(choco install *)",
+      "Bash(rm -rf /p/tmp/pctest /p/tmp/gltest2)",
+      "Bash(ls /p/tmp/pctest)"
     ],
     "deny": [],
     "ask": []
