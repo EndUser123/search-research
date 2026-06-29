@@ -634,6 +634,109 @@ class CHSExporter:
         chain = chain[-max_sessions:]
         return chain
 
+    def _resolve_chain_from_handoff(
+        self,
+        session_id: str,
+        registry_path: Path,
+        max_sessions: int,
+    ) -> list[tuple[str, str]] | None:
+        """Reconstruct the full transcript chain by walking parent links.
+
+        Builds sid->{ts, transcript_path} and sid->[handoff_path] maps from the
+        whole registry, then walks backward from session_id through parent edges
+        found in handoff resume_snapshots: n_2/n_1_transcript_path (full paths),
+        source_session_id, and session_chain (session IDs). Parent links are
+        UNIONED across ALL of a session's handoffs — older handoffs often carry
+        ancestor edges the freshest one dropped. Cycle-guarded, deduped, ordered
+        oldest-first by ts. Returns None only when the session is unknown to the
+        registry (caller falls back to Strategy 1/2).
+        """
+        try:
+            from session_registry import query_registry
+        except ImportError:
+            return None
+
+        try:
+            all_entries = query_registry(limit=100_000, registry_path=registry_path)
+        except Exception:
+            return None
+
+        meta: dict[str, tuple[Any, str]] = {}   # sid -> (ts, transcript_path)
+        handoffs: dict[str, list[str]] = {}     # sid -> [handoff_path, ...]
+        for e in all_entries:
+            sid = e.get("session_id")
+            if not sid:
+                continue
+            ts = e.get("ts")
+            tp = e.get("transcript_path")
+            if tp:
+                prev = meta.get(sid)
+                if prev is None or (ts is not None and (prev[0] is None or ts > prev[0])):
+                    meta[sid] = (ts, tp)
+            hp = e.get("handoff_path")
+            if hp and Path(hp).exists():
+                handoffs.setdefault(sid, []).append(hp)
+
+        if session_id not in meta and session_id not in handoffs:
+            return None
+
+        def _parent_paths(sid: str) -> list[str]:
+            """Parent transcript paths for sid, unioned across all its handoffs."""
+            found: list[str] = []
+            for hp in handoffs.get(sid, []):
+                try:
+                    with open(hp, encoding="utf-8") as f:
+                        rs = json.load(f).get("resume_snapshot", {})
+                except (OSError, json.JSONDecodeError):
+                    continue
+                for key in ("n_2_transcript_path", "n_1_transcript_path"):
+                    p = rs.get(key)
+                    if isinstance(p, str) and p and Path(p).stem != sid:
+                        found.append(p)
+                src = rs.get("source_session_id")
+                if isinstance(src, str) and src != sid:
+                    m = meta.get(src)
+                    if m and m[1] and Path(m[1]).stem != sid:
+                        found.append(m[1])
+                sc = rs.get("session_chain")
+                if isinstance(sc, list):
+                    for s in sc:
+                        if isinstance(s, str) and s != sid:
+                            m = meta.get(s)
+                            if m and m[1] and Path(m[1]).stem != sid:
+                                found.append(m[1])
+            return found
+
+        root_path = meta.get(session_id, (None, ""))[1]
+        chain_paths: list[str] = [root_path] if root_path else []
+        seen: set[str] = {root_path} if root_path else set()
+        visited_sids: set[str] = {session_id}
+        queue: list[str] = [session_id]
+        while queue and len(chain_paths) < max_sessions:
+            cur = queue.pop(0)
+            for p in _parent_paths(cur):
+                if p in seen:
+                    continue
+                seen.add(p)
+                chain_paths.append(p)
+                if len(chain_paths) >= max_sessions:
+                    break
+                child_sid = Path(p).stem
+                if child_sid and child_sid not in visited_sids:
+                    visited_sids.add(child_sid)
+                    queue.append(child_sid)
+
+        if not chain_paths:
+            return None
+
+        def _ts_of(path: str) -> Any:
+            m = meta.get(Path(path).stem)
+            return (m[0] if m and m[0] else "") or ""
+
+        chain_paths.sort(key=_ts_of)
+        chain_paths = chain_paths[:max_sessions]
+        return [(Path(p).stem, p) for p in chain_paths]
+
     def _export_from_chain_paths(
         self,
         session_id: str,
@@ -702,13 +805,22 @@ class CHSExporter:
                     "Pass --session-id explicitly or ensure current_session.json exists."
                 )
 
-        # Strategy 1: Registry by session_id (cross-terminal chain)
+        # session_registry.jsonl (queried by session_id) — cross-terminal chain.
+        # Strategy 0: handoff transcript_chain (freshness-authoritative newest-first chain).
+        # Strategy 1: registry bipartite fallback (entries joined by parent links).
         registry_path = Path("P:/.claude/.artifacts/session_registry.jsonl")
         if registry_path.exists():
-            sys.path.insert(0, str(Path("P:/packages/.claude-marketplace/plugins/snapshot/scripts/hooks/__lib")))
+            lib_dir = Path("P:/packages/.claude-marketplace/plugins/snapshot/scripts/hooks/__lib")
+            sys.path.insert(0, str(lib_dir))
             try:
-                from session_registry import query_registry
+                from session_registry import query_registry  # noqa: F401  (also used by Strategy 1)
 
+                # Strategy 0: handoff transcript_chain.
+                chain_paths = self._resolve_chain_from_handoff(session_id, registry_path, max_sessions)
+                if chain_paths:
+                    return self._export_from_chain_paths(session_id, chain_paths, output_path)
+
+                # Strategy 1: registry bipartite fallback.
                 entries = query_registry(session_id=session_id, limit=10_000, registry_path=registry_path)
                 if entries:
                     chain_paths = self._registry_entries_to_chain_paths(entries, max_sessions)
@@ -810,6 +922,7 @@ class CHSExporter:
         Streaming version avoids O(N²) memory behavior (PERF-002 fix).
         """
         try:
+            cycle = 0
             with open(transcript_path, encoding="utf-8", errors="replace") as f:
                 for raw_line in f:
                     raw_line = raw_line.strip()
@@ -819,6 +932,15 @@ class CHSExporter:
                         entry = json.loads(raw_line)
                     except json.JSONDecodeError:
                         continue
+                    # Compaction boundary marker (isCompactSummary at entry or message level).
+                    is_compact = bool(entry.get("isCompactSummary"))
+                    if not is_compact:
+                        msg = entry.get("message")
+                        if isinstance(msg, dict) and msg.get("isCompactSummary"):
+                            is_compact = True
+                    if is_compact:
+                        cycle += 1
+                        out.write(f"\n--- *compaction cycle {cycle}* ---\n\n")
                     entry_type = entry.get("type", "")
                     if entry_type == "user":
                         text = self._extract_content(entry, role="user")
