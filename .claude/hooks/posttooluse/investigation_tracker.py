@@ -10,6 +10,8 @@ Lazy-imports ledger module to avoid ~64ms import cost on non-matching tools.
 
 from __future__ import annotations
 
+import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -18,6 +20,35 @@ from posttooluse.base import PostToolUseHook
 
 # Path setup at module level (cheap), actual import deferred to process()
 _LEDGER_DIR = Path(__file__).resolve().parent.parent / "investigation-ledger"
+
+# CHANGE-007 write-side: a passing verification command records the files it
+# covered so is_verified() can later detect edits made after this point.
+# Pattern-gated so an unrelated passing command (ls, git status) does not mark
+# files verified. ponytail: git diff is the cheapest correct source of "what
+# changed" — import-resolution from test names would be heavier and wrong-often.
+# ponytail: over-stamping ceiling — git diff lists ALL changed files, not just
+# the ones this runner executed, so an untested-but-changed sibling gets stamped
+# too (a false negative at the consumer, not a nag). Accept until a measured FN
+# rate justifies per-runner output parsing; narrow the trigger then, not now.
+_VERIFICATION_CMD_RE = re.compile(
+    r"\b(?:pytest|python\s+-m\s+pytest|python\s+-m\s+unittest|"
+    r"npm\s+(?:test|run\s+test)|yarn\s+test|pnpm\s+test|"
+    r"cargo\s+test|make\s+test|go\s+test)\b"
+)
+
+
+def _git_changed_files() -> list[str]:
+    """Files changed vs HEAD (staged + unstaged). Fail-open: [] on any error."""
+    try:
+        out = subprocess.run(
+            ["git", "diff", "--name-only", "HEAD"],
+            capture_output=True, text=True, timeout=2,
+        )
+        if out.returncode == 0:
+            return [f for f in out.stdout.splitlines() if f.strip()]
+    except Exception:
+        pass
+    return []
 
 
 class InvestigationTracker(PostToolUseHook):
@@ -43,11 +74,17 @@ class InvestigationTracker(PostToolUseHook):
             sys.path.insert(0, str(_LEDGER_DIR))
 
         try:
-            from ledger import record_execution, record_file_read, record_search
+            from ledger import (
+                record_execution,
+                record_file_read,
+                record_search,
+                record_verification,
+            )
             self._ledger_funcs = {
                 "file_read": record_file_read,
                 "search": record_search,
                 "execution": record_execution,
+                "verification": record_verification,
             }
             return self._ledger_funcs
         except ImportError:
@@ -93,6 +130,20 @@ class InvestigationTracker(PostToolUseHook):
                     if isinstance(tool_response, dict):
                         exit_code = tool_response.get("exit_code", tool_response.get("exitCode", -1))
                     recorded = ledger["execution"](command, exit_code)
+
+                    # CHANGE-007 write-side: a successful verification command
+                    # stamps the changed files as verified-at-this-hash.
+                    # is_verified() then answers "did the model edit after
+                    # verifying?" — Stop_fake_done_detector consumes that.
+                    stamp = ledger.get("verification")
+                    if exit_code == 0 and stamp and _VERIFICATION_CMD_RE.search(command):
+                        for f in _git_changed_files():
+                            try:
+                                stamp(f, mode="strict",
+                                      command=command[:500],
+                                      exit_code=exit_code)
+                            except Exception:
+                                pass
 
             return {"passed": True, "recorded": recorded, "tool": tool_name}
         except Exception:

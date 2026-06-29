@@ -1,20 +1,48 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
+
+def _resolve_fleet_root() -> Path:
+    """Location-independent fleet root.
+
+    Priority: ``AUTO_COMMIT_ROOT`` env override -> walk up from cwd to the first
+    directory containing a ``.git`` -> fallback to cwd. The git walk-up at
+    resolver time (rather than leaving it to git) gives a stable root for state
+    files regardless of where the hook is invoked from. Preserves the historical
+    single-repo commit behavior; the package scan is gated behind
+    ``AUTO_COMMIT_SCAN_PACKAGES`` (off by default) so the "main repo only"
+    outcome is unchanged regardless of where this file lives.
+    """
+    env_root = os.environ.get("AUTO_COMMIT_ROOT")
+    if env_root:
+        return Path(env_root).resolve()
+    cwd = Path.cwd().resolve()
+    for candidate in [cwd, *cwd.parents]:
+        if (candidate / ".git").exists():
+            return candidate
+    return cwd
+
+
+PROJECT_ROOT = _resolve_fleet_root()
+
 import logging as _li
 _logger = _li.getLogger(__name__)
-_hook_log_dir = Path(__file__).resolve().parent / "logs" / "diagnostics"
-_hook_log_dir.mkdir(parents=True, exist_ok=True)
-_handler = _li.FileHandler(_hook_log_dir / "hook_stderr.log", encoding="utf-8")
-_handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
-_logger.addHandler(_handler)
-_logger.setLevel(_li.WARNING)
+try:
+    _hook_log_dir = PROJECT_ROOT / ".claude" / "logs" / "diagnostics"
+    _hook_log_dir.mkdir(parents=True, exist_ok=True)
+    _handler = _li.FileHandler(_hook_log_dir / "hook_stderr.log", encoding="utf-8")
+    _handler.setFormatter(_li.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    _logger.addHandler(_handler)
+    _logger.setLevel(_li.WARNING)
+except OSError:
+    pass  # External log dir unavailable; FileHandler logging is best-effort.
 
 # Setup path for local imports BEFORE importing local modules
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -27,9 +55,6 @@ try:
     HAS_GIT_HELPER = HAS_GITPYTHON
 except ImportError:
     HAS_GIT_HELPER = False
-
-# Import auto-logging decorator
-from __lib.hook_base import hook_main
 
 # Import session manager for session ID retrieval
 try:
@@ -85,14 +110,21 @@ try:
 except ImportError:
     HAS_COMMIT_MESSAGE_PARSER = False
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+# Sibling-module anchor (local imports); not used for runtime state.
 HOOKS_DIR = Path(__file__).resolve().parent
 
 # Constants
 DEFAULT_COMMIT_MESSAGE = "auto-commit: session end"
 MERGE_COMMIT_MESSAGE = "auto-commit: merge resolution"
 SESSION_LINK_COMMIT_MESSAGE = "auto-commit: [{session_id}] {message}"
-OPPORTUNITIES_FILE = HOOKS_DIR / "logs/opportunities.md"
+# External state (plugin contract): opportunities log lives under the fleet
+# root's .claude/logs, not inside the hooks tree. Override via env if needed.
+OPPORTUNITIES_FILE = Path(
+    os.environ.get(
+        "AUTO_COMMIT_OPPORTUNITIES_FILE",
+        str(PROJECT_ROOT / ".claude" / "logs" / "opportunities.md"),
+    )
+)
 MIN_FILES_FOR_REFACTOR_SUGGESTION = 3
 
 """
@@ -348,13 +380,18 @@ def find_repos_with_changes(root: Path) -> list[Path]:
     if has_uncommitted_changes(root):
         repos.append(root)
 
-    # Check package repos
-    packages_dir = root / "packages"
-    if packages_dir.exists():
-        for package_dir in packages_dir.iterdir():
-            if package_dir.is_dir() and (package_dir / ".git").exists():
-                if has_uncommitted_changes(package_dir):
-                    repos.append(package_dir)
+    # Check package repos. Default OFF: historically PROJECT_ROOT pointed at
+    # P:/.claude (so "packages" never resolved) and only the main repo committed.
+    # The location-independent resolver now finds the real fleet root, so without
+    # this gate the hook would start committing package repos too — a behavior
+    # change. Set AUTO_COMMIT_SCAN_PACKAGES=1 to opt into multi-repo commit.
+    if os.environ.get("AUTO_COMMIT_SCAN_PACKAGES", "").lower() in ("1", "true", "yes"):
+        packages_dir = root / "packages"
+        if packages_dir.exists():
+            for package_dir in packages_dir.iterdir():
+                if package_dir.is_dir() and (package_dir / ".git").exists():
+                    if has_uncommitted_changes(package_dir):
+                        repos.append(package_dir)
 
     # Sort: main repo last (so hooks are finalized last)
     repos.sort(key=lambda r: r == root)
@@ -387,6 +424,94 @@ def auto_commit_all() -> bool:
     return committed
 
 
+def _is_in_merge(cwd: Path) -> bool:
+    """True if a merge is in progress (MERGE_HEAD exists)."""
+    return run_git_command(["rev-parse", "--verify", "MERGE_HEAD"], cwd).returncode == 0
+
+
+def _get_changed_paths(cwd: Path) -> list[str]:
+    """All changed paths (staged + unstaged + untracked), repo-root relative."""
+    # -uall expands untracked directories so each file maps to its own group.
+    result = run_git_command(["status", "--porcelain", "--untracked-files=all"], cwd)
+    paths: list[str] = []
+    for line in result.stdout.splitlines():
+        if len(line) < 4:
+            continue
+        raw = line[3:].strip()
+        if " -> " in raw:  # rename: take destination
+            raw = raw.split(" -> ", 1)[1]
+        raw = raw.strip().strip('"')
+        if raw:
+            paths.append(raw)
+    return paths
+
+
+def _commit_group_key(path: str) -> str:
+    """Subsystem boundary for grouping: plugins/<name>, else top-level dir.
+
+    Bare root-level files (no directory) share a single "root" group so they
+    don't each become their own commit.
+    """
+    parts = Path(path).parts
+    try:
+        idx = parts.index("plugins")
+        if idx + 1 < len(parts):
+            return f"plugins/{parts[idx + 1]}"
+    except ValueError:
+        pass
+    if len(parts) > 1:
+        return parts[0]
+    return "root"
+
+
+def _stage_paths(cwd: Path, paths: list[str]) -> bool:
+    """Stage a list of repo-root-relative paths. Returns True on success."""
+    if HAS_GIT_HELPER:
+        try:
+            GitHelper(cwd).add(paths)
+            return True
+        except Exception:
+            pass
+    return run_git_command(["add", "--"] + paths, cwd).returncode == 0
+
+
+def _commit_grouped(cwd: Path, groups: dict[str, list[str]]) -> bool:
+    """Commit each subsystem group as its own scoped commit.
+
+    Reuses generate_semantic_commit_message per group: after staging only that
+    group's paths, `git diff --staged` is scoped to the group, so the message
+    generator (unchanged) produces a correct single-scope message.
+    """
+    session_id = get_session_id_for_commit()
+    committed_any = False
+    for group_key in sorted(groups):
+        if not _stage_paths(cwd, groups[group_key]):
+            continue
+        msg = DEFAULT_COMMIT_MESSAGE
+        if HAS_COMMIT_MESSAGE_PARSER:
+            try:
+                msg = generate_semantic_commit_message(str(cwd))
+            except Exception:
+                pass
+        if msg == DEFAULT_COMMIT_MESSAGE:
+            msg = f"auto-commit: {group_key} session changes"
+        if session_id != "unknown":
+            msg = f"[{session_id}] {msg}"
+        ok = False
+        if HAS_GIT_HELPER:
+            try:
+                ok = bool(GitHelper(cwd).commit(msg))
+            except Exception:
+                ok = False
+        if not ok:  # subprocess fallback (mirrors _stage_paths)
+            ok = run_git_command(["commit", "-m", msg], cwd).returncode == 0
+        if ok:
+            committed_any = True
+    if committed_any:
+        analyze_opportunities(cwd)
+    return committed_any
+
+
 def auto_commit(cwd: Path, do_push: bool = False) -> bool:
     """
     Auto-commit and push uncommitted changes.
@@ -409,6 +534,15 @@ def auto_commit(cwd: Path, do_push: bool = False) -> bool:
     # Check for uncommitted changes
     if not has_uncommitted_changes(cwd):
         return False
+
+    # Group changes by subsystem; commit each separately when heterogeneous.
+    # Merge state and single-subsystem sets fall through to the original path.
+    if not _is_in_merge(cwd):
+        groups: dict[str, list[str]] = {}
+        for p in _get_changed_paths(cwd):
+            groups.setdefault(_commit_group_key(p), []).append(p)
+        if len(groups) > 1:
+            return _commit_grouped(cwd, groups)
 
     # Stage all changes FIRST - commit message generation needs staged diff
     if HAS_GIT_HELPER:
@@ -469,13 +603,13 @@ def auto_commit(cwd: Path, do_push: bool = False) -> bool:
         commit_msg = f"[{session_id}] {commit_msg}"
 
     # Commit with generated message (CHANGELOG already staged if notable)
+    commit_success = False
     if HAS_GIT_HELPER:
         try:
-            git = GitHelper(cwd)
-            commit_success = git.commit(commit_msg)
+            commit_success = bool(GitHelper(cwd).commit(commit_msg))
         except Exception:
             commit_success = False
-    else:
+    if not commit_success:  # subprocess fallback (mirrors _stage_paths/_commit_grouped)
         commit_result = run_git_command(["commit", "-m", commit_msg], cwd)
         commit_success = commit_result.returncode == 0
 
@@ -514,20 +648,40 @@ def run(data: dict) -> dict | None:
 
     Runs auto-commit for all repos with uncommitted changes.
     Designed to be fast when nothing needs committing.
+
+    Fail-open: a best-effort side-effect hook must never block the session.
     """
-    auto_commit_all()
+    try:
+        auto_commit_all()
+    except Exception:
+        pass
     return {"continue": True}
 
 
-@hook_main
 def main() -> int:
     """
-    CLI entry point for standalone invocation.
+    CLI entry point for standalone invocation. Fail-open: exit 0 on any error.
     """
-    if auto_commit_all():
-        print("[auto-commit] All repos committed and pushed")
+    try:
+        if auto_commit_all():
+            print("[auto-commit] All repos committed and pushed")
+    except Exception:
+        pass
+    return 0
+
+
+def _self_check() -> int:
+    """Smoke check: resolver returns an absolute root; state file is external."""
+    root = _resolve_fleet_root()
+    assert root.is_absolute(), f"resolver returned non-absolute root: {root}"
+    assert not str(OPPORTUNITIES_FILE).startswith(
+        str(HOOKS_DIR)
+    ), f"OPPORTUNITIES_FILE still inside hooks tree: {OPPORTUNITIES_FILE}"
+    print(f"[self-check] OK  PROJECT_ROOT={root}  OPPORTUNITIES_FILE={OPPORTUNITIES_FILE}")
     return 0
 
 
 if __name__ == "__main__":
+    if "--self-check" in sys.argv:
+        sys.exit(_self_check())
     sys.exit(main())

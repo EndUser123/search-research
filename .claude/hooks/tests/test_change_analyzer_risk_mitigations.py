@@ -99,8 +99,16 @@ def test_worktree_detection_prevents_changelog_conflicts():
         worktree = main_repo / "worktree"
         subprocess.run(["git", "worktree", "add", str(worktree)], cwd=main_repo, capture_output=True)
 
-        # Import is_worktree from auto_commit_hook
-        from auto_commit_hook import is_worktree
+        # Import is_worktree from the plugin hook (auto_commit now lives in cc-skills-utils)
+        import importlib.util
+
+        _hook_path = Path(
+            "P:/packages/.claude-marketplace/plugins/cc-skills-utils/hooks/cc-skills-utils_Stop_auto_commit.py"
+        )
+        _spec = importlib.util.spec_from_file_location("auto_commit_plugin", _hook_path)
+        _mod = importlib.util.module_from_spec(_spec)
+        _spec.loader.exec_module(_mod)
+        is_worktree = _mod.is_worktree
 
         # Verify worktree detection
         assert is_worktree(main_repo) is False, "Main repo should not be detected as worktree"

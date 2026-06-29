@@ -284,9 +284,6 @@ def _handle_tracking_error(error: Exception, tool_name: str, command: str) -> No
 
 SIGNAL_DIR = Path("P:/.claude/state/signals")
 
-# Cache for auto-commit module
-_auto_commit_module = None
-
 
 def _resolve_session_id_for_intent(data: dict[str, object]) -> str:
     """Resolve session id from nested/flat payload first, then env."""
@@ -398,38 +395,6 @@ def _write_error_signal(tool_name: str, tool_input: dict, tool_result: object) -
         )
     except Exception:
         pass
-
-
-def _run_auto_commit(data: dict) -> None:
-    """Run auto-commit hook in-process (best-effort, never blocks)."""
-    global _auto_commit_module
-    try:
-        if _auto_commit_module is None:
-            import importlib.util
-
-            hook_path = HOOKS_DIR / "auto_commit_hook.py"
-            if not hook_path.exists():
-                return
-            spec = importlib.util.spec_from_file_location("auto_commit_hook", hook_path)
-            if spec and spec.loader:
-                mod = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(mod)
-                _auto_commit_module = mod
-
-        if _auto_commit_module and hasattr(_auto_commit_module, "main"):
-            import io
-
-            old_stdin = sys.stdin
-            old_stdout = sys.stdout
-            sys.stdin = io.StringIO(json.dumps(data))
-            sys.stdout = io.StringIO()  # Suppress auto-commit output from polluting JSON response
-            try:
-                _auto_commit_module.main()
-            finally:
-                sys.stdin = old_stdin
-                sys.stdout = old_stdout
-    except Exception:
-        pass  # Side-effect hooks are best-effort
 
 
 @hook_main
@@ -631,10 +596,6 @@ def main() -> None:
         _write_error_signal(tool_name_raw, tool_input_raw, data.get("tool_response", ""))
     except Exception:
         pass  # Best-effort, never block
-
-    # C. Auto-commit side effect (non-read-only tools only)
-    if tool_name_raw not in ("Read", "Glob", "Grep", "ls", "dir"):
-        _run_auto_commit(data)
 
     # Create hook registry and run all hooks
     router_start = time.perf_counter()

@@ -53,7 +53,12 @@
       "Bash(cp \"P:/packages/.github_repos/pi-plugin-cc/plugins/pi/skills/pi-cross-verify/SKILL.md\" \"C:/Users/brsth/.claude/plugins/cache/pi-plugin-cc/pi/0.1.0/skills/pi-cross-verify/SKILL.md\")",
       "Bash(cp \"P:/packages/.github_repos/pi-plugin-cc/plugins/pi/commands/cross-verify.md\" \"C:/Users/brsth/.claude/plugins/marketplaces/pi-plugin-cc/plugins/pi/commands/cross-verify.md\")",
       "Bash(cp \"P:/packages/.github_repos/pi-plugin-cc/plugins/pi/skills/pi-cross-verify/SKILL.md\" \"C:/Users/brsth/.claude/plugins/marketplaces/pi-plugin-cc/plugins/pi/skills/pi-cross-verify/SKILL.md\")",
-      "Bash(ps -W)"
+      "Bash(ps -W)",
+      "Bash(mkdir -p \"C:/Users/brsth/.claude/plans/reviews/gto-finding-lifecycle-refactor\")",
+      "Read(//c/Users/brsth/.claude/plans/**)",
+      "Read(//c/Users/brsth/.claude/plans/reviews/**)",
+      "Bash(cp C:/Users/brsth/.claude/settings.json C:/Users/brsth/.claude/settings.json.bak.autocommit)",
+      "Read(//c/Users/brsth/.claude/**)"
     ],
     "deny": [],
     "ask": []

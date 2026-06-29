@@ -4071,8 +4071,8 @@ IN_PROCESS_GATES = [
 ]
 
 # Non-Blocking Side Effects (still subprocess for isolation)
+# Note: auto-commit now dispatches via the cc-skills-utils plugin Stop router.
 SIDE_EFFECTS = [
-    "auto_commit_hook.py",
     "Stop_cks_decision_capture.py",
     "Stop_cleanup_verifier.py",
     "Stop_contract_status.py",  # Auto-surfaces contract dashboard at turn end
@@ -4086,18 +4086,8 @@ def run_side_effect(hook_name: str, input_data: str) -> None:
         if not hook_path.exists():
             return
 
-        # Skip auto_commit_hook if input is invalid (missing prompt/response).
-        # The hook does git operations that can hang on malformed session context.
-        if "auto_commit" in hook_name:
-            try:
-                parsed = json.loads(input_data)
-                if not parsed.get("prompt") or not parsed.get("response"):
-                    return  # Invalid input — skip this side effect
-            except json.JSONDecodeError:
-                return  # Can't parse input — skip
-
-        # Auto-commit and CKS decision capture need more time
-        timeout = 30.0 if ("auto_commit" in hook_name or "cks_decision" in hook_name) else 5.0
+        # CKS decision capture needs more time
+        timeout = 30.0 if "cks_decision" in hook_name else 5.0
         creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
         result = subprocess.run(
             [sys.executable, str(hook_path)],
