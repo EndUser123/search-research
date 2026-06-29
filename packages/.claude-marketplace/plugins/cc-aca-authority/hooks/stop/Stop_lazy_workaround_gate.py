@@ -97,9 +97,10 @@ def _check_duplicate_acceptance_proximity(text: str) -> tuple[bool, list[str]]:
 
 # Dismissal detection: whole-token proximity matching (S-2).
 # Replaces the unbounded `(cosmetic|minor|trivial).*(bug|issue|problem|error)` regex,
-# which matched the substring inside identifiers like `_is_trivial_run`. Underscores
-# are neither whitespace nor in string.punctuation, so the symbol is ONE whitespace
-# token and never equals "trivial" as a whole token — set membership fixes the FP.
+# which matched the "trivial" SUBSTRING inside identifiers like `_is_trivial_run`.
+# Whole-token set membership fixes it: punctuation stripping merges the identifier
+# into one token (`istrivialrun`), never equal to a bare adjective — so proximity
+# never fires on a symbol that merely contains the adjective as a substring.
 _DISMISSAL_ADJECTIVES = frozenset({"cosmetic", "cosmetics", "minor", "trivial"})
 _DEFECT_WORDS = frozenset({"bug", "bugs", "issue", "issues", "problem", "problems", "error", "errors"})
 
@@ -214,7 +215,7 @@ def check_lazy_workarounds(response: str) -> dict:
         response: The assistant's response text
 
     Returns:
-        dict with 'decision' ('allow' or 'block') and optional 'message'
+        dict with 'decision' ('allow' or 'block') and optional 'reason'
     """
     # Preprocess: strip quoted blocks and Stop-hook artifacts
     clean = _strip_quoted_blocks(response)
@@ -267,11 +268,45 @@ def check_lazy_workarounds(response: str) -> dict:
                           f"Fix the problem, don't document the workaround."
             }
 
+    # Dismissal detection: whole-token proximity (S-2). Replaces the unbounded regex.
+    matched, words = _check_dismissal_proximity(clean_lower)
+    if matched:
+        if _has_investigation_intent(clean_lower):
+            return {"decision": "allow"}  # Proper investigation, not lazy dismissal
+
+        log_gate_event(
+            gate_name="lazy_workaround_gate",
+            classification="lazy",
+            profile=os.environ.get("CLAUDE_PROFILE", "default"),
+            decision="block",
+            session_id=os.environ.get("CLAUDE_SESSION_ID", ""),
+            terminal_id=os.environ.get("CLAUDE_TERMINAL_ID", ""),
+            extra={
+                "matched_pattern": f"dismissal_proximity:{words[0]!r}+{words[1]!r}",
+                "investigation_bypass": False,
+                "response_snippet": response[-200:] if response else "",
+            },
+        )
+        return {
+            "decision": "block",
+            "reason": f"LAZY WORKAROUND DETECTED: dismissing functional bug\n\n"
+                      f"⚠️  This suggests accepting a problem instead of fixing the root cause.\n\n"
+                      f"Matched: {words[0]!r} near {words[1]!r}\n\n"
+                      f"Required approach:\n"
+                      f"1. TRACE: Find where the problem originates\n"
+                      f"2. IDENTIFY: What's causing it\n"
+                      f"3. FIX: Address the actual root cause\n"
+                      f"4. VERIFY: Confirm the fix works\n\n"
+                      f"Detection method: whole-token proximity matching\n\n"
+                      f"Remember: 'Accepting bugs as features' creates technical debt.\n"
+                      f"Fix the problem, don't document the workaround."
+        }
+
     # Non-regex duplicate detection: check proximity-based matching
     matched, words = _check_duplicate_acceptance_proximity(clean_lower)
     if matched:
         if _has_investigation_intent(clean_lower):
-            return {"decision": "approve"}  # Proper investigation, not lazy acceptance
+            return {"decision": "allow"}  # Proper investigation, not lazy acceptance
 
         log_gate_event(
             gate_name="lazy_workaround_gate",
@@ -301,7 +336,7 @@ def check_lazy_workarounds(response: str) -> dict:
                       f"Fix the problem, don't document the workaround."
         }
 
-    return {"decision": "approve"}
+    return {"decision": "allow"}
 
 def main():
     """Main entry point for command-line testing"""
