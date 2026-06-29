@@ -78,7 +78,9 @@
       "Bash(wc -c)",
       "Read(//tmp/**)",
       "Bash(mkdir -p P:/tmp/glhook-test/.claude)",
-      "Bash(grep -E \"SECRET|claude-proxy|SKIPPED|not found\" /tmp/o1)"
+      "Bash(grep -E \"SECRET|claude-proxy|SKIPPED|not found\" /tmp/o1)",
+      "Bash(cp P:/.git/hooks/pre-commit C:/Users/brsth/.claude/.git/hooks/pre-commit)",
+      "Bash(chmod +x C:/Users/brsth/.claude/.git/hooks/pre-commit)"
     ],
     "deny": [],
     "ask": []
