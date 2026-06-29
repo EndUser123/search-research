@@ -37,9 +37,6 @@ LAZY_PATTERNS = [
     # "Live with it" patterns (regex - specific verb phrase)
     (r"live\s+with\s+((the|this)\s+)?(bug|issue|problem|limitation|behavior|race\s+condition)", "accepting_technical_debt"),
 
-    # "Cosmetic" dismissal of functional issues (regex - specific adjective)
-    (r"(cosmetic|minor|trivial).*(bug|issue|problem|error)", "dismissing_functional_bug"),
-
     # "Not worth fixing" - lazy prioritization (regex - specific phrase)
     (r"n[o']t\s+worth\s+(fixing|addressing|investigating)", "avoiding_necessary_work"),
 
@@ -97,6 +94,46 @@ def _check_duplicate_acceptance_proximity(text: str) -> tuple[bool, list[str]]:
                     return True, [w, token]
 
     return False, []
+
+# Dismissal detection: whole-token proximity matching (S-2).
+# Replaces the unbounded `(cosmetic|minor|trivial).*(bug|issue|problem|error)` regex,
+# which matched the substring inside identifiers like `_is_trivial_run`. Underscores
+# are neither whitespace nor in string.punctuation, so the symbol is ONE whitespace
+# token and never equals "trivial" as a whole token — set membership fixes the FP.
+_DISMISSAL_ADJECTIVES = frozenset({"cosmetic", "cosmetics", "minor", "trivial"})
+_DEFECT_WORDS = frozenset({"bug", "bugs", "issue", "issues", "problem", "problems", "error", "errors"})
+
+def _check_dismissal_proximity(text: str) -> tuple[bool, list[str]]:
+    """
+    Detect 'cosmetic/minor/trivial <defect>' dismissal via whole-token proximity.
+    Mirrors _check_duplicate_acceptance_proximity: adjective and defect-word tokens
+    must co-occur within _PROXIMITY_TOKENS. Returns (matched, [adjective, defect]).
+    """
+    tokens = [t.translate(_PUNCTUATION_TABLE).lower() for t in text.split()]
+
+    for i, token in enumerate(tokens):
+        if token in _DISMISSAL_ADJECTIVES:
+            end = min(i + _PROXIMITY_TOKENS + 1, len(tokens))
+            window = tokens[i+1:end]
+            for w in window:
+                if w in _DEFECT_WORDS:
+                    return True, [token, w]
+
+            start = max(0, i - _PROXIMITY_TOKENS)
+            window = tokens[start:i]
+            for w in window:
+                if w in _DEFECT_WORDS:
+                    return True, [w, token]
+
+    return False, []
+
+# Strip-boundary patterns for _strip_quoted_blocks. This is the ORIGINAL dismissal
+# regex retained ONLY for end-of-block detection (P1-4): removing the entry from
+# LAZY_PATTERNS would otherwise change which quoted lines terminate a Stop-feedback
+# block. Detection uses whole-token proximity above; stripping still needs the regex
+# set to stay byte-identical.
+_DISMISSAL_STRIP_PATTERN = r"(cosmetic|minor|trivial).*(bug|issue|problem|error)"
+_STRIP_BOUNDARY_PATTERNS = [pat for pat, _ in LAZY_PATTERNS] + [_DISMISSAL_STRIP_PATTERN]
 
 # Root cause phrases that signal proper investigation
 ROOT_CAUSE_PHRASES = [
@@ -160,7 +197,7 @@ def _strip_quoted_blocks(text: str) -> str:
             # After stop-block marker lines, the next line often contains the literal
             # regex pattern text (e.g. "accept\s+.+?\s+as\s+(?:a\s+)?...").
             # Strip it — it's gate output being quoted, not a new proposal.
-            if any(re.search(pat, stripped, re.IGNORECASE) for pat, _ in LAZY_PATTERNS):
+            if any(re.search(pat, stripped, re.IGNORECASE) for pat in _STRIP_BOUNDARY_PATTERNS):
                 skip = False  # End of this stop block
                 continue
             skip = False  # End of stop block — keep this line
