@@ -705,7 +705,7 @@ class CHSExporter:
         # Strategy 1: Registry by session_id (cross-terminal chain)
         registry_path = Path("P:/.claude/.artifacts/session_registry.jsonl")
         if registry_path.exists():
-            sys.path.insert(0, str(Path("P:/packages/snapshot/scripts/hooks/__lib")))
+            sys.path.insert(0, str(Path("P:/packages/.claude-marketplace/plugins/snapshot/scripts/hooks/__lib")))
             try:
                 from session_registry import query_registry
 
