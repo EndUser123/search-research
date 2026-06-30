@@ -1009,18 +1009,21 @@ class CoreResearchCommand:
         region = "cn" if "minimaxi.com" in host else "global"
         try:
             env = {**os.environ, "MINIMAX_API_KEY": api_key}
-            # ponytail: resolve npm's official mmx explicitly on Windows — a broken
-            # third-party Python `mmx.exe` shim (minimax-web-mcp) shadows it because
-            # PATHEXT ranks .EXE ahead of .CMD. Bare `mmx` is the fallback elsewhere.
+            # Invoke node + mmx's .mjs entry directly. `node <file.mjs>` passes argv
+            # verbatim via CreateProcess (no shell), so query metachars (& | < > %) are
+            # NOT re-parsed — the `cmd /c mmx.cmd` form let cmd.exe split/inject them.
+            # Also sidesteps WinError 2 (CreateProcess can't exec .cmd directly).
             if os.name == "nt":
-                npm_mmx = os.path.join(os.environ.get("APPDATA", ""), "npm", "mmx.cmd")
-                mmx_bin = ["cmd", "/c", npm_mmx] if os.path.isfile(npm_mmx) else ["mmx"]
+                mmx_mjs = os.path.join(
+                    os.environ.get("APPDATA", ""), "npm",
+                    "node_modules", "mmx-cli", "dist", "mmx.mjs")
+                mmx_bin = ["node", mmx_mjs] if os.path.isfile(mmx_mjs) else ["mmx"]
             else:
                 mmx_bin = ["mmx"]
             proc = await asyncio.create_subprocess_exec(
                 *mmx_bin, "search", "query", query,
                 "--region", region, "--output", "json",
-                "--non-interactive", "--no-color",
+                "--non-interactive", "--no-color", "--quiet",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 env=env,
