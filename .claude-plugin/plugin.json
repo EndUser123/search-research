@@ -5,7 +5,7 @@
     "name": "CSF Development Team",
     "email": "bruce.thomson@example.com"
   },
-  "version": "0.1.26",
+  "version": "0.1.27",
   "license": "MIT",
   "keywords": [
     "search",
@@ -19,9 +19,9 @@
   "homepage": "https://github.com/EndUser123/search-research",
   "mcpServers": {
     "sr": {
-      "command": "node",
+      "command": "P:/packages/.claude-marketplace/plugins/search-research/.venv/Scripts/python.exe",
       "args": [
-        "${CLAUDE_PLUGIN_ROOT}/mcp-start.mjs"
+        "P:/packages/.claude-marketplace/plugins/search-research/run_mcp.py"
       ]
     }
   }
