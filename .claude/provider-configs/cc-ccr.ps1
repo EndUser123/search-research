@@ -28,6 +28,7 @@ param(
     [switch]$Config,
     [switch]$Tui,
     [switch]$Test,
+    [switch]$Usage,
     [switch]$Restart
 )
 
@@ -338,6 +339,45 @@ if ($phaseLocalApply)  { Write-Host "  local-apply:  requested (verify model loa
 else                   { Write-Host "  local-apply:  off" -ForegroundColor DarkGray }
 if ($phaseCompactHook) { Write-Host "  compact-hook: requested (verify hook file present)" -ForegroundColor Yellow }
 else                   { Write-Host "  compact-hook: off" -ForegroundColor DarkGray }
+
+# --- Subscription usage (opt-in via -Usage). z.ai and MiniMax expose quota APIs
+# authenticated by the inference key itself; opencode-go has none (dashboard-only).
+# Mirrors -Test's opt-in pattern so normal launches pay zero extra latency.
+if ($Usage) {
+    Write-Host ""
+    Write-Host "Usage (remaining quota):" -ForegroundColor Cyan
+    # z.ai / GLM Coding Plan — Authorization: <raw key>, NO Bearer
+    try {
+        $zaiKey = $ccrEnvVars["ZAI_API_KEY"]
+        if (-not $zaiKey) { throw "ZAI_API_KEY missing in .env" }
+        $zHeaders = @{ "Authorization" = $zaiKey; "Accept-Language" = "en-US,en"; "Content-Type" = "application/json" }
+        $z = Invoke-RestMethod -Uri "https://api.z.ai/api/monitor/usage/quota/limit" -Headers $zHeaders -TimeoutSec 15 -ErrorAction Stop
+        $level = $z.data.level
+        $tLimit = $z.data.limits | Where-Object { $_.type -eq "TIME_LIMIT" }  | Select-Object -First 1
+        $wLimit = $z.data.limits | Where-Object { $_.type -eq "TOKENS_LIMIT" } | Select-Object -First 1
+        $tStr = if ($tLimit) { "$(100 - [int]$tLimit.percentage)% left ($($tLimit.currentValue)/$($tLimit.usage) used)" } else { "n/a" }
+        $wStr = if ($wLimit) { "$(100 - [int]$wLimit.percentage)% left" } else { "n/a" }
+        Write-Host "  z.ai    [$level]  5h: $tStr  ·  weekly: $wStr"
+    } catch {
+        Write-Host "  z.ai    error: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+    # MiniMax Coding Plan — Authorization: Bearer <sk-cp key>
+    try {
+        $mmKey = $ccrEnvVars["MINIMAX_API_KEY"]
+        if (-not $mmKey) { throw "MINIMAX_API_KEY missing in .env" }
+        $mmHeaders = @{ "Authorization" = "Bearer $mmKey"; "Accept-Language" = "en-US,en"; "Content-Type" = "application/json" }
+        $mm = Invoke-RestMethod -Uri "https://api.minimax.io/v1/api/openplatform/coding_plan/remains" -Headers $mmHeaders -TimeoutSec 15 -ErrorAction Stop
+        $g = $mm.model_remains | Where-Object { $_.model_name -eq "general" } | Select-Object -First 1
+        if ($g) {
+            Write-Host "  minimax [general]  interval: $($g.current_interval_remaining_percent)% left  ·  weekly: $($g.current_weekly_remaining_percent)% left"
+        } else {
+            Write-Host "  minimax [general]  (no 'general' entry in response)" -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Host "  minimax error: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+    Write-Host "  opencode-go        n/a (no quota API; dashboard only)" -ForegroundColor DarkGray
+}
 
 # --- Foundation self-test: prove ONE real request succeeds through CCR ---
 # This is the check the reviewers were right to demand. Runs only with -Test.

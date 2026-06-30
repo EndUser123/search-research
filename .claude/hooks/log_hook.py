@@ -157,6 +157,52 @@ def _append_log(entry: dict, log_path: Path) -> None:
     _retry_on_locked(_write)
 
 
+def _append_log_batch(entries: list, log_path: Path) -> None:
+    """Append many JSON entries in one open/write/close.
+
+    Replaces the prior per-line _append_log loop, which opened the file (and
+    contended the OS file lock) once per transcript line — 50k opens on a
+    lost-offset run, the actual cause of the 10s wall that blew the 5s timeout.
+    """
+    if not entries:
+        return
+    blob = "".join(json.dumps(e) + "\n" for e in entries)
+    def _write():
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(blob)
+    _retry_on_locked(_write)
+
+
+def _atomic_write_text(path: Path, data: str) -> None:
+    """Persist a small state file atomically: write sibling tmp, os.replace.
+
+    The byte-offset design hinges on transcript.offset surviving between runs.
+    A bare write_text silently loses the offset on a single WinError 32 sharing
+    violation (concurrent terminals), which resets the next run to a full
+    transcript re-read. tmp+replace + retry makes that loss vanishingly rare;
+    the _MAX_EMIT_LINES guard below contains the damage if it ever does.
+    """
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    def _write():
+        tmp.write_text(data, encoding="utf-8")
+        os.replace(tmp, path)
+    try:
+        _retry_on_locked(_write)
+    finally:
+        try:
+            if tmp.exists():
+                tmp.unlink()
+        except OSError:
+            pass
+
+
+# ponytail: ceiling on per-run TRANSCRIPT_ITEM emit. Normal fires add <50 lines;
+# a lost offset re-reads the whole file (tens of thousands of lines). Capping emit
+# at 5000 turns the lost-offset cliff into a sub-second recovery (read + count +
+# single TRUNCATED marker + advance offset) instead of a 10s re-dump.
+_MAX_EMIT_LINES = 5000
+
+
 # ponytail: 512MB is a generous cap for a personal append log; raise it only
 # if you actually consult deep history. The file grew to 435GB unbounded.
 _MAX_LOG_BYTES = 512 * 1024 * 1024  # 512 MB
@@ -245,7 +291,7 @@ def main() -> int:
 
         # Save current transcript path
         if transcript_path_str:
-            _retry_on_locked(transcript_path_file.write_text, transcript_path_str, encoding="utf-8")
+            _atomic_write_text(transcript_path_file, transcript_path_str)
 
         # Incremental tail read via byte offset — O(new bytes) per run instead of
         # O(transcript size). The offset lands on a line boundary because we store
@@ -255,7 +301,14 @@ def main() -> int:
         # ponytail: drops TRANSCRIPT_PRUNE removal-count — detecting removals needs
         # a full-file compare, which is the O(total) step this eliminates, and the
         # count was noisy under compaction anyway.
-        if transcript_path and transcript_path.exists():
+        # Fail-closed: the offset is a read-modify-write cursor shared across every
+        # hook firing. Running it without the cross-process lock races a sibling
+        # firing reading the same offset and emitting duplicate TRANSCRIPT_ITEMs
+        # (corrupts the CHS ingestion stream). If get_lock() failed open, skip the
+        # whole block — emit nothing and do NOT advance the offset — so the next
+        # locked run re-reads this same delta and emits it exactly once. The HOOK
+        # event below is a unique per-firing append and stays unconditional.
+        if lock_acquired and transcript_path and transcript_path.exists():
             size = transcript_path.stat().st_size
 
             offset = 0
@@ -283,22 +336,44 @@ def main() -> int:
                 with open(transcript_path, "rb") as f:
                     f.seek(offset)
                     tail = f.read()
-                for line in tail.decode("utf-8", errors="replace").splitlines():
-                    if not line.strip():
-                        continue
-                    try:
-                        item = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-                    entry = {
-                        "logEvent": "TRANSCRIPT_ITEM",
-                        "logTimestamp": log_timestamp,
-                        "logDate": log_date,
-                    }
-                    entry.update(item)
-                    _append_log(entry, log_jsonl)
+                lines = tail.decode("utf-8", errors="replace").splitlines()
 
-            transcript_offset_file.write_text(str(size), encoding="utf-8")
+                if len(lines) > _MAX_EMIT_LINES:
+                    # Lost-offset recovery: re-reading tens of thousands of lines
+                    # and re-emitting each one is what re-inflated claude-log.jsonl
+                    # and blew the hook timeout. Advance the offset and emit a
+                    # single marker; the transcript file remains source-of-truth.
+                    _append_log(
+                        {
+                            "logEvent": "TRANSCRIPT_TRUNCATED",
+                            "logTimestamp": log_timestamp,
+                            "logDate": log_date,
+                            "lineCount": len(lines),
+                        },
+                        log_jsonl,
+                    )
+                else:
+                    entries = []
+                    for line in lines:
+                        if not line.strip():
+                            continue
+                        try:
+                            item = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+                        entry = {
+                            "logEvent": "TRANSCRIPT_ITEM",
+                            "logTimestamp": log_timestamp,
+                            "logDate": log_date,
+                        }
+                        entry.update(item)
+                        entries.append(entry)
+                    _append_log_batch(entries, log_jsonl)
+
+            # Always advance the offset so the next run is incremental — even
+            # when we skipped per-line emit above. Atomic + retried so a single
+            # sharing violation can't silently reset the next run to a full read.
+            _atomic_write_text(transcript_offset_file, str(size))
 
         # HOOK event - log the full hook payload
         entry = {
