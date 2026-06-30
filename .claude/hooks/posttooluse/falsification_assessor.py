@@ -70,6 +70,10 @@ class FalsificationAssessor(PostToolUseHook):
         "Bash": "Verify the output matches your intent (check exit code, stdout)",
     }
 
+    # Whole-token error patterns for the post-action verification trigger.
+    # Pre-lowered so _indicator_match can run against lowercased output directly.
+    ERROR_PATTERNS = ["error", "exception", "failed", "traceback"]
+
     def __init__(self):
         super().__init__()
         self.orchestrator = get_orchestrator() if _ORCHESTRATOR_AVAILABLE else None
@@ -188,14 +192,27 @@ class FalsificationAssessor(PostToolUseHook):
         output_lower = output_content.lower()
 
         for indicator_type, patterns in self.UNEXPECTED_INDICATORS.items():
-            for pattern in patterns:
-                # ponytail: word-boundary anchor — bare substring match fired on
-                # any path containing "error" (e.g. error_attribution_hook.py);
-                # \berror\b skips error_attribution (underscore = word char) but
-                # still catches "Error:" / "an error occurred".
-                if re.search(rf"\b{re.escape(pattern)}\b", output_lower):
-                    return (indicator_type, pattern)
+            matched = self._indicator_match(output_lower, patterns)
+            if matched:
+                return (indicator_type, matched)
 
+        return None
+
+    @staticmethod
+    def _indicator_match(text_lower: str, patterns: list[str]) -> str | None:
+        """Return the first pattern present as a whole token, else None.
+
+        Lookaround (?<!\\w)...(?!\\w) instead of \\b: \\b requires a word char
+        at the pattern edge, so non-word-edge patterns like '[]' silently fail
+        to match. Underscore is a word char, so 'error_attribution_hook.py'
+        does NOT match 'error'; 'an error occurred' does. A literal 'error.py'
+        filename still matches (dot is non-word) — accepted residual, tested
+        as xfail. Shared by _detect_unexpected_outcome and
+        _should_show_verification so the two paths cannot drift again.
+        """
+        for pattern in patterns:
+            if re.search(rf"(?<!\w){re.escape(pattern)}(?!\w)", text_lower):
+                return pattern
         return None
 
     def _extract_expected_outcome(self, tool_name: str, tool_input: dict[str, Any]) -> str:
@@ -273,7 +290,6 @@ class FalsificationAssessor(PostToolUseHook):
             return True
 
         # 3. If tool_response contains error patterns -> return True
-        error_patterns = ["error", "exception", "failed", "traceback", "ERROR"]
         if tool_response:
             parts = []
             # Check all relevant fields for error patterns
@@ -282,10 +298,12 @@ class FalsificationAssessor(PostToolUseHook):
                     parts.append(str(tool_response[key]))
             output_content = " ".join(parts)
 
-            output_lower = output_content.lower()
-            for pattern in error_patterns:
-                if pattern.lower() in output_lower:
-                    return True
+            # ponytail: shared whole-token matcher — bare substring 'error' in
+            # output fired VERIFICATION on benign paths like
+            # error_attribution_hook.py. Same defect shape as
+            # _detect_unexpected_outcome; one helper so they cannot diverge.
+            if self._indicator_match(output_content.lower(), self.ERROR_PATTERNS):
+                return True
 
         # 4. Otherwise -> return False
         return False
