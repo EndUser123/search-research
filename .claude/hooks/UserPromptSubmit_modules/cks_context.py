@@ -215,7 +215,13 @@ def _query_hybrid_corrections(prompt: str, max_results: int = 5, hours: int = 24
 
 HOOK_KNOWLEDGE_TYPES = ("knowledge", "pattern", "decision", "insight", "learning")
 
-KNOWLEDGE_SEMANTIC_ENABLED = os.environ.get("CKS_KNOWLEDGE_SEMANTIC", "true").lower() in ("1", "true", "yes")
+# ponytail: default OFF. The semantic path opens CKS(enable_semantic=True) inline,
+# loading torch+FAISS+model in a fresh subprocess every analysis-turn firing (~9s,
+# returns empty, blew the UserPromptSubmit 15s ceiling). Keyword CKS over 78 rows is
+# sub-ms and returns the same empty result today. Re-enable by setting
+# CKS_KNOWLEDGE_SEMANTIC=true in settings.json — but only AFTER the semantic daemon
+# is reliable (#669 broken FAISS imports, #934 pipe-busy health-check).
+KNOWLEDGE_SEMANTIC_ENABLED = os.environ.get("CKS_KNOWLEDGE_SEMANTIC", "false").lower() in ("1", "true", "yes")
 KNOWLEDGE_AUTO_INJECT_ENABLED = os.environ.get("CKS_KNOWLEDGE_AUTO_INJECT", "true").lower() in ("1", "true", "yes")
 
 

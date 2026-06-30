@@ -79,7 +79,8 @@
     "STOP_TELEMETRY": "1",
     "ANTI_DODGE_JUDGE_ENABLED": "true",
     "DELEGATION_GATE_ENABLED": "false",
-    "VERIDICAL_GATE_ENABLED": "true"
+    "VERIDICAL_GATE_ENABLED": "true",
+    "CKS_KNOWLEDGE_SEMANTIC": "false"
   },
   "includeCoAuthoredBy": true,
   "permissions": {
