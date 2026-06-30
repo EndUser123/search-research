@@ -113,10 +113,16 @@ def log_gate_event(
 
 
 def clear_test_telemetry() -> None:
-    """Remove telemetry log. For use in tests only."""
+    """Remove telemetry log (base + rotated). For use in tests only."""
     try:
         if _LOG_FILE.exists():
             _LOG_FILE.unlink()
+        # read_telemetry() reads base + rotated (.1, .2, ...); clear must match.
+        for rotated in _LOG_FILE.parent.glob(_LOG_FILE.name + ".*"):
+            try:
+                rotated.unlink()
+            except Exception:
+                pass
     except Exception:
         pass
 

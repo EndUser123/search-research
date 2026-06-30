@@ -108,6 +108,30 @@ def _clear_pending_skill_intent(data: dict) -> None:
                 return
 
 
+_EMPTY_RESULT_GRAMMARS = ("no files found", "0 matches", "no matches found")
+
+
+def _grep_glob_result_is_empty(tool_result) -> bool:
+    """True only when a Grep/Glob result is genuinely empty.
+
+    Structured-first (dict results/matches list), then anchored string grammar.
+    Avoids substring FPs on populated results that merely contain '0 matches'.
+    Mirrors PostToolUse_investigation_tracker.py structured-count handling.
+    """
+    if isinstance(tool_result, dict):
+        results = tool_result.get("results", tool_result.get("matches"))
+        if isinstance(results, list):
+            return len(results) == 0
+        text = str(results if results is not None else tool_result)
+    else:
+        text = str(tool_result) if tool_result else ""
+
+    text = text.strip().lower()
+    if not text:
+        return True
+    return text.startswith(_EMPTY_RESULT_GRAMMARS)
+
+
 def main():
     raw_input = sys.stdin.read().strip()
     if not raw_input:
@@ -200,10 +224,9 @@ def main():
             f"Tool `{tool_name}` returned an error. "
             "State your revised hypothesis in 1 sentence before your next action."
         )
-    # Empty results case for diagnostic tools
+    # Empty results case for diagnostic tools (structured-first, anchored grammar)
     elif tool_name in ("Grep", "Glob"):
-        result_str = str(tool_result).strip() if tool_result else ""
-        if not result_str or "0 matches" in result_str or "No files found" in result_str:
+        if _grep_glob_result_is_empty(tool_result):
             injection_message = (
                 f"Tool `{tool_name}` returned no results. "
                 "Your search assumption may be wrong. Revise your approach before retrying."

@@ -33,7 +33,7 @@ STATE_DIR = HOOKS_DIR.parent / "state" / "chs_delta_reindex"
 HISTORY_JSONL = Path.home() / ".claude" / "history.jsonl"
 
 # Target: Project-managed derived data
-DEFAULT_DB_PATH = Path("P:/__csf/data/chat_history.db")
+DEFAULT_DB_PATH = Path("P:/.data/chat_history.db")
 
 # Project label for Claude Code history
 CLAUDE_CODE_PROJECT_LABEL = "Claude Code"

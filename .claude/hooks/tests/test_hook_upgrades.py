@@ -89,3 +89,46 @@ def test_posttooluse_glob_no_results():
     }
     output = _run_posttooluse(data)
     assert "hookSpecificOutput" in output
+
+
+def test_posttooluse_populated_grep_no_injection():
+    """Populated Grep whose output merely contains '0 matches' must NOT inject.
+
+    Regression for the substring-FP under audit: the old predicate fired on
+    any result containing '0 matches' / 'No files found' as a substring.
+    """
+    data = {
+        "tool_name": "Grep",
+        "tool_input": {"pattern": "matches"},
+        "tool_result": "src/foo.py:42: shows 0 matches for legacy token\nsrc/bar.py:1: real hit",
+        "session_id": "test_session",
+        "terminal_id": "test_terminal",
+    }
+    output = _run_posttooluse(data)
+    assert not output.get("hookSpecificOutput"), "Populated Grep must not trigger no-results injection"
+
+
+def test_posttooluse_structured_empty_results_injects():
+    """Structured empty results list ({'results': []}) must inject."""
+    data = {
+        "tool_name": "Glob",
+        "tool_input": {"pattern": "*.x"},
+        "tool_result": {"results": []},
+        "session_id": "test_session",
+        "terminal_id": "test_terminal",
+    }
+    output = _run_posttooluse(data)
+    assert "hookSpecificOutput" in output
+
+
+def test_posttooluse_structured_populated_no_injection():
+    """Structured populated results list must NOT inject."""
+    data = {
+        "tool_name": "Grep",
+        "tool_input": {"pattern": "x"},
+        "tool_result": {"results": ["src/a.py", "src/b.py"]},
+        "session_id": "test_session",
+        "terminal_id": "test_terminal",
+    }
+    output = _run_posttooluse(data)
+    assert not output.get("hookSpecificOutput")
