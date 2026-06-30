@@ -654,7 +654,7 @@ class CoreResearchCommand:
         elif mode == "zai":
             return await self._zai_mcp_search(query, kwargs)
         elif mode == "minimax":
-            return await self._minimax_mcp_search(query, kwargs)
+            return await self._minimax_search(query, kwargs)
         elif mode == "serpapi":
             return await self._serpapi_search(
                 query, kwargs.get("max_results", 10), kwargs.get("timeout", 30)
@@ -988,8 +988,13 @@ class CoreResearchCommand:
         except Exception:
             raise
 
-    async def _minimax_mcp_search(self, query: str, kwargs: dict) -> dict[str, Any]:
-        """Search via the MiniMax Coding Plan MCP server (local stdio)."""
+    async def _minimax_search(self, query: str, kwargs: dict) -> dict[str, Any]:
+        """Search via the MiniMax CLI (``mmx search query``) — official Token-Plan path.
+
+        Replaces the ``uvx minimax-coding-plan-mcp`` stdio bridge: mmx is MiniMax's
+        own CLI, already installed, reads ``MINIMAX_API_KEY`` from env, and emits the
+        same ``{organic:[...]}`` JSON the normalizer already handles.
+        """
         start_time = time.perf_counter()
         api_key = os.getenv("MINIMAX_API_KEY")
         if not api_key:
@@ -1000,33 +1005,41 @@ class CoreResearchCommand:
                 "minimax", duration_ms,
             )
         max_results = kwargs.get("max_results", 10)
+        host = os.getenv("MINIMAX_API_HOST", "https://api.minimax.io")
+        region = "cn" if "minimaxi.com" in host else "global"
         try:
-            from mcp import ClientSession, StdioServerParameters
-            from mcp.client.stdio import stdio_client
-        except ImportError as e:
-            duration_ms = (time.perf_counter() - start_time) * 1000
-            return _create_timing_result(
-                {"results": [], "sources_used": ["minimax"], "error": f"mcp SDK not installed: {e}"},
-                "minimax", duration_ms,
+            env = {**os.environ, "MINIMAX_API_KEY": api_key}
+            # ponytail: resolve npm's official mmx explicitly on Windows — a broken
+            # third-party Python `mmx.exe` shim (minimax-web-mcp) shadows it because
+            # PATHEXT ranks .EXE ahead of .CMD. Bare `mmx` is the fallback elsewhere.
+            if os.name == "nt":
+                npm_mmx = os.path.join(os.environ.get("APPDATA", ""), "npm", "mmx.cmd")
+                mmx_bin = ["cmd", "/c", npm_mmx] if os.path.isfile(npm_mmx) else ["mmx"]
+            else:
+                mmx_bin = ["mmx"]
+            proc = await asyncio.create_subprocess_exec(
+                *mmx_bin, "search", "query", query,
+                "--region", region, "--output", "json",
+                "--non-interactive", "--no-color",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=env,
             )
-        try:
-            env = {
-                "MINIMAX_API_KEY": api_key,
-                "MINIMAX_API_HOST": os.getenv("MINIMAX_API_HOST", "https://api.minimax.io"),
-                "PATH": os.environ.get("PATH", ""),
-                "SYSTEMROOT": os.environ.get("SYSTEMROOT", ""),
-            }
-            params = StdioServerParameters(command="uvx", args=["minimax-coding-plan-mcp"], env=env)
-            async with stdio_client(params) as (read, write):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    res = await session.call_tool("web_search", {"query": query})
-            txt = getattr(res.content[0], "text", "") if res.content else ""
+            stdout, stderr = await proc.communicate()
+            txt = stdout.decode("utf-8", errors="replace") if stdout else ""
+            if proc.returncode != 0:
+                err = stderr.decode("utf-8", errors="replace").strip()[:300]
+                duration_ms = (time.perf_counter() - start_time) * 1000
+                return _create_timing_result(
+                    {"results": [], "sources_used": ["minimax"],
+                     "error": f"mmx exit {proc.returncode}: {err}"},
+                    "minimax", duration_ms,
+                )
             results = _extract_mcp_search_results(txt, "minimax", max_results)
             duration_ms = (time.perf_counter() - start_time) * 1000
             return _create_timing_result(
                 {"results": results, "sources_used": ["minimax"],
-                 "synthesis": f"{len(results)} grounded results from minimax web_search"},
+                 "synthesis": f"{len(results)} grounded results from minimax (mmx)"},
                 "minimax", duration_ms,
             )
         except Exception:
