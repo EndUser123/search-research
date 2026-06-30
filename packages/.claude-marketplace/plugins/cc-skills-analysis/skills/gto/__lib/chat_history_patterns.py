@@ -93,6 +93,10 @@ class ChatHistoryPatterns:
         (r"(?:refactored|rewrote)\s+([^\.\n]{5,30})", r"(?:regression\s+test|backwards\s+compatib)"),
     ]
 
+    # Human-facing label per DEPENDENCY_PATTERNS entry (same index); keeps raw
+    # regex out of user-facing fields. Drives output labels and priority.
+    _DEPENDENCY_LABELS = ["tests", "docs", "verification", "regression tests"]
+
     # Work trajectory patterns
     TRAJECTORY_PATTERNS = [
         (
@@ -116,7 +120,6 @@ class ChatHistoryPatterns:
     REFLECTION_PATTERNS = {
         "goals_audit": r"(?:implemented|built|created|added)\s+([^\.\n]{10,50})\s+(?:feature|capability|function)",
         "boundary_uncertainty": r"(?:not\s+sure|uncertain|could\s+be)\s+([^\.\n]{10,50})",
-        "failure_mode_first": r"(?:fixed|fixed\s+the|resolved)\s+([^\.\n]{10,50})",
         "implementation_vs_capability": r"(?:can't|unable|doesn't)\s+(?:handle|support|do)\s+([^\.\n]{10,50})",
     }
 
@@ -314,49 +317,80 @@ class ChatHistoryPatterns:
         # Build conversation history as text
         conversation_text = "\n".join([t.content for t in user_turns + assistant_turns])
 
-        # Check dependency patterns
-        for completed_pattern, dependency_pattern in self.DEPENDENCY_PATTERNS:
-            completed_match = re.search(completed_pattern, conversation_text, re.IGNORECASE)
-            if completed_match:
+        # Completion set: structured file edits are the POSITIVE source.
+        # Prior logic used file_edits as a NEGATIVE filter (suppressed gaps when
+        # a file was edited) — inverted, it hid the real signal. Structured edits
+        # now drive the "module completed without tests" gap directly; prose is
+        # only a low-confidence fallback when no edits are available.
+        _NON_SOURCE_EXT = {".md", ".json", ".toml", ".yaml", ".yml", ".ini",
+                           ".cfg", ".conf", ".txt", ".lock", ".csv"}
+        _SKIP_STEMS = {"__init__", "conftest", "setup"}
+
+        def _stem(f: str | Path) -> str:
+            p = Path(f) if not isinstance(f, Path) else f
+            return p.stem.lower()
+
+        if file_edits:
+            # Structured path: one precise gap per edited source module that
+            # lacks a co-edited test file. Only "tests" is emitted here because
+            # it's the one dependency type structurally detectable from edits;
+            # docs/verification/regression would be pure guessing.
+            edited_stems = [_stem(f) for f in file_edits]
+            test_targets = {
+                re.sub(r"^test[_-]+", "", s)
+                for s in edited_stems
+                if s.startswith("test_") or s.startswith("test-") or s == "conftest"
+            }
+            seen: set[str] = set()
+            for f in file_edits:
+                p = Path(f) if not isinstance(f, Path) else f
+                if p.suffix.lower() in _NON_SOURCE_EXT:
+                    continue
+                stem = p.stem.lower()
+                if stem in _SKIP_STEMS or stem.startswith("test_") or stem.startswith("test-"):
+                    continue
+                if stem in test_targets or stem in seen:
+                    continue
+                seen.add(stem)
+                gaps.append(
+                    DependencyGap(
+                        completed_action=f"Completed: edited {p.name}",
+                        missing_dependency=f"Missing: tests for {stem}",
+                        priority="high",
+                        confidence=0.8,
+                        evidence=f"'{p.name}' edited this session with no co-edited test file",
+                    )
+                )
+        else:
+            # Prose fallback (low confidence): regex-extract completed actions,
+            # check each dependency type via prose mention near the completion.
+            for idx, (completed_pattern, dependency_pattern) in enumerate(self.DEPENDENCY_PATTERNS):
+                completed_match = re.search(completed_pattern, conversation_text, re.IGNORECASE)
+                if not completed_match:
+                    continue
                 completed = completed_match.group(1).strip()
-
-                # If file_edits provided, check if the completed item was actually edited
-                if file_edits:
-                    completed_lower = completed.lower()
-                    # Handle both str and Path types
-                    file_edits_lower = [
-                        f.lower() if isinstance(f, str) else str(f).lower()
-                        for f in file_edits
-                    ]
-                    # If completed mentions a file/module that wasn't edited, skip this gap
-                    if any(f in completed_lower for f in file_edits_lower):
-                        continue
-
-                # Check if dependency was mentioned/fulfilled
                 dependency_check = re.search(
                     dependency_pattern + r"[^\.\n]{0,30}" + re.escape(completed),
                     conversation_text,
                     re.IGNORECASE,
                 )
-
-                if not dependency_check:
-                    priority = "medium"
-                    if "test" in dependency_pattern.lower():
-                        priority = "high"
-                    elif "verify" in dependency_pattern.lower():
-                        priority = "high"
-                    elif "doc" in dependency_pattern.lower():
-                        priority = "low"
-
-                    gaps.append(
-                        DependencyGap(
-                            completed_action=f"Completed: {completed}",
-                            missing_dependency=f"Missing: {dependency_pattern} for {completed}",
-                            priority=priority,
-                            confidence=0.7,
-                            evidence=f"Found '{completed}' completed but no '{dependency_pattern}' mentioned",
-                        )
+                if dependency_check:
+                    continue
+                label = self._DEPENDENCY_LABELS[idx]
+                priority = (
+                    "high" if label in ("tests", "verification", "regression tests")
+                    else "low" if label == "docs"
+                    else "medium"
+                )
+                gaps.append(
+                    DependencyGap(
+                        completed_action=f"Completed: {completed}",
+                        missing_dependency=f"Missing: {label} for {completed}",
+                        priority=priority,
+                        confidence=0.4,
+                        evidence=f"Found '{completed}' in prose but no {label} mentioned (low-confidence prose path)",
                     )
+                )
 
         return gaps
 
@@ -429,6 +463,31 @@ class ChatHistoryPatterns:
         turns = read_turns(transcript_path)
         conversation_text = "\n".join([t.content for t in turns])
 
+        # failure_mode_first is gated on a STRUCTURED task-close marker, not the
+        # broad prose regex. The prose pattern fired on meta-discussion of the
+        # word "resolved" (14/14 FP on real transcript 5cb99096...). Derive
+        # context from the marker so the reflection attaches to a real completion.
+        closed_tasks: set[str] = set()
+        for m in re.finditer(
+            r"#(\d+)\s*(?:resolved|done|completed|fixed|closed)",
+            conversation_text,
+            re.IGNORECASE,
+        ):
+            closed_tasks.add(m.group(1))
+        for task_num in sorted(closed_tasks):
+            triggers.append(
+                ReflectionTrigger(
+                    trigger_type="failure_mode_first",
+                    context=f"task #{task_num}",
+                    suggested_reflection=(
+                        f"Before celebrating the fix to task #{task_num}, ask: "
+                        f"what is the likely failure mode? What discriminating "
+                        f"test would falsify it? Could this overfire?"
+                    ),
+                    priority="high",
+                )
+            )
+
         for trigger_type, pattern in self.REFLECTION_PATTERNS.items():
             matches = list(re.finditer(pattern, conversation_text, re.IGNORECASE))
 
@@ -448,14 +507,6 @@ class ChatHistoryPatterns:
                         f"What is the smallest discriminating check that would "
                         f"resolve uncertainty about '{context}'? Name the "
                         f"falsification condition."
-                    )
-                    priority = "high"
-
-                elif trigger_type == "failure_mode_first":
-                    suggested = (
-                        f"Before celebrating the fix to '{context}', ask: what "
-                        f"is the likely failure mode? What discriminating test "
-                        f"would falsify it? Could this overfire?"
                     )
                     priority = "high"
 
