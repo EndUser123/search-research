@@ -72,6 +72,36 @@ class TestGetCurrentWorktree:
         except ValueError:
             pytest.fail(f"Result {result} should be ancestor of {deep_dir}")
 
+    def test_ascends_through_nested_repo_to_parent_worktree(self):
+        """
+        Regression: a nested repo (own .git directory) living inside the main
+        worktree must NOT be treated as a worktree boundary.
+
+        Given: cwd is inside packages/.../cc-skills-sdlc (has its own .git dir)
+        When: get_current_worktree() is called
+        Then: Should return the parent worktree (P:/), not the nested repo —
+              otherwise cross-plugin edits get misclassified as cross-worktree.
+        """
+        nested_repo = (
+            HOOKS_DIR.parent.parent
+            / "packages"
+            / ".claude-marketplace"
+            / "plugins"
+            / "cc-skills-sdlc"
+        )
+        if not (nested_repo / ".git").is_dir():
+            pytest.skip("cc-skills-sdlc nested-repo fixture not available")
+
+        main_worktree = worktree_helper.get_current_worktree(HOOKS_DIR)
+        result = worktree_helper.get_current_worktree(nested_repo)
+
+        assert result.resolve() == main_worktree.resolve(), (
+            f"Nested repo should resolve to parent worktree {main_worktree}, got {result}"
+        )
+        assert result.resolve() != nested_repo.resolve(), (
+            "Nested repo must not be treated as the worktree boundary"
+        )
+
     def test_raises_error_outside_git_repo(self, tmp_path):
         """
         Test that get_current_worktree raises ValueError when outside git repo.

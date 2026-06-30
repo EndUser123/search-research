@@ -151,10 +151,31 @@ def extract_text_content(message) -> str:
 
 
 def parse_claude_timestamp(ts) -> int:
-    """Parse Claude timestamp (milliseconds since epoch) to Unix seconds."""
-    if ts and isinstance(ts, (int, float)):
-        return int(ts / 1000)
-    return 0
+    """Parse a Claude timestamp to Unix seconds.
+
+    Accepts ISO-8601 strings (Claude Code transcript format, e.g.
+    "2026-06-30T00:29:31.559Z"), numeric milliseconds (>1e12) or seconds,
+    or numeric strings. Returns 0 on failure.
+    """
+    if ts is None:
+        return 0
+    if isinstance(ts, (int, float)):
+        return int(ts / 1000) if ts > 1e12 else int(ts)
+    s = str(ts).strip()
+    if not s:
+        return 0
+    try:
+        val = float(s)
+    except ValueError:
+        val = None
+    if val is not None:
+        return int(val / 1000) if val > 1e12 else int(val)
+    try:
+        from datetime import datetime
+
+        return int(datetime.fromisoformat(s.replace("Z", "+00:00")).timestamp())
+    except (ValueError, TypeError):
+        return 0
 
 
 class DeltaReindexer:

@@ -48,123 +48,37 @@ def get_current_worktree(cwd: Optional[Path] = None) -> Path:
     """
     if cwd is None:
         cwd = Path.cwd()
+    cwd = cwd.resolve()
 
-    # Check if we're in a git repository
-    if not (cwd / ".git").exists():
-        # Try traversing up to find repo root
-        for parent in [cwd, *cwd.parents]:
-            if (parent / ".git").exists():
-                cwd = parent
-                break
-        else:
-            raise ValueError(f"Not in a git repository: {cwd}")
-
-    # Check if we're in main repo (has .git directory, not .git file)
-    git_dir = cwd / ".git"
-    if git_dir.is_dir():
-        # We're in the main repository (has .git directory, not .git file)
-        # Traverse up to find the repo root (in case we're in a subdirectory)
-        repo_root = cwd
-        while repo_root != repo_root.parent and (repo_root.parent / ".git").exists():
-            repo_root = repo_root.parent
-
-        return repo_root
-
-    # Check if we're in a worktree (has .git file)
-    if git_dir.is_file():
-        try:
-            # .git file contains: "gitdir: <path>"
-            content = git_dir.read_text().strip()
-            if content.startswith("gitdir:"):
-                # Note: gitdir path extracted but not used - we traverse up instead
-                # This preserves the gitdir parsing logic for potential future use
-
-                # The gitdir is relative to .git file location
-                # Worktree root is the parent of the .git file
-                worktree_root = cwd
-
-                # Traverse up until we find .git file (which marks worktree root)
-                while worktree_root != worktree_root.parent:
-                    if (worktree_root / ".git").is_file():
-                        return worktree_root
-                    worktree_root = worktree_root.parent
-
-                # Fallback: use git worktree list
-                return _get_worktree_from_git_list(cwd)
-
-        except OSError as e:
-            raise RuntimeError(f"Failed to read .git file: {e}")
-
-    # Fallback: use git worktree list
-    return _get_worktree_from_git_list(cwd)
-
-
-def _get_worktree_from_git_list(cwd: Path) -> Path:
-    """Get worktree path by parsing 'git worktree list' output.
-
-    Args:
-        cwd: Current working directory.
-
-    Returns:
-        Path to the worktree containing cwd.
-
-    Raises:
-        RuntimeError: If worktree cannot be determined.
-    """
-    try:
-        result = subprocess.run(
-            ["git", "worktree", "list", "--porcelain"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-            cwd=cwd
-        )
-
-        if result.returncode != 0:
-            raise RuntimeError(f"git worktree list failed: {result.stderr}")
-
-        # Parse porcelain output
-        # Format: "worktree /path/to/worktree\nHEAD <commit>\nbranch refs/heads/branch\n..."
-        current_worktree = None
-        worktree_path = None
-
-        for line in result.stdout.split("\n"):
-            if not line:
+    # Walk up the ancestor chain tracking the topmost .git-DIRECTORY root and
+    # stopping at the first real linked worktree. A .git DIRECTORY marks the
+    # main repo or a nested repo (submodule / standalone clone living inside the
+    # parent checkout); we ascend through these so cross-plugin edits inside one
+    # checkout are NOT misclassified as cross-worktree. A .git FILE is a linked
+    # worktree boundary — except when it points into .git/modules/ (a submodule),
+    # which is also not a real worktree boundary and must be ascended past.
+    topmost_dir_root: Optional[Path] = None
+    for ancestor in [cwd, *cwd.parents]:
+        git = ancestor / ".git"
+        if git.is_file():
+            try:
+                target = git.read_text().strip().replace("\\", "/")
+            except OSError:
+                target = ""
+            if "/modules/" in target or target.endswith("/modules"):
+                # Submodule gitdir pointer — not a real worktree boundary.
                 continue
+            # Linked worktree (.git/worktrees/) — this is the real boundary.
+            return ancestor
+        if git.is_dir():
+            # Main repo or nested clone. Keep ascending so a parent worktree
+            # (if any) wins; the topmost .git-directory ancestor is the main repo.
+            topmost_dir_root = ancestor
 
-            if line.startswith("worktree "):
-                # New worktree entry
-                worktree_path = Path(line.split(" ", 1)[1].strip())
+    if topmost_dir_root is not None:
+        return topmost_dir_root
 
-                # Check if cwd is within this worktree
-                try:
-                    cwd.resolve().relative_to(worktree_path.resolve())
-                    current_worktree = worktree_path
-                except ValueError:
-                    # cwd is not within this worktree
-                    pass
-
-        if current_worktree:
-            return current_worktree
-
-        # Default: return git root (main repo)
-        result = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-            cwd=cwd
-        )
-
-        if result.returncode == 0:
-            return Path(result.stdout.strip())
-
-        raise RuntimeError("Cannot determine worktree path")
-
-    except subprocess.TimeoutExpired:
-        raise RuntimeError("git worktree list timed out")
-    except OSError as e:
-        raise RuntimeError(f"Failed to run git worktree list: {e}")
+    raise ValueError(f"Not in a git repository: {cwd}")
 
 
 def list_all_worktrees(repo_root: Optional[Path] = None) -> list[dict[str, str]]:
