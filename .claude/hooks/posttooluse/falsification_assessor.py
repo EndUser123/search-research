@@ -21,6 +21,7 @@ PRINCIPLE: Verify actions worked before assuming success.
 Extracted from PostToolUse_falsification_assessor.py for in-process execution.
 """
 
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -188,7 +189,11 @@ class FalsificationAssessor(PostToolUseHook):
 
         for indicator_type, patterns in self.UNEXPECTED_INDICATORS.items():
             for pattern in patterns:
-                if pattern in output_lower:
+                # ponytail: word-boundary anchor — bare substring match fired on
+                # any path containing "error" (e.g. error_attribution_hook.py);
+                # \berror\b skips error_attribution (underscore = word char) but
+                # still catches "Error:" / "an error occurred".
+                if re.search(rf"\b{re.escape(pattern)}\b", output_lower):
                     return (indicator_type, pattern)
 
         return None

@@ -145,7 +145,11 @@ def main():
 
     tool_name = data.get("tool_name", "")
     tool_input = data.get("tool_input", {})
-    tool_result = data.get("tool_result", "")
+    # ponytail: Claude Code delivers results under tool_response (tool_result is
+    # the Messages-API field). base.py:138 and write_tool_error_signal.py use the
+    # same fallback order.
+    _raw = data.get("tool_response")
+    tool_result = _raw if _raw not in (None, {}, "") else data.get("tool_result", "")
     session_id = data.get("session_id") or data.get("sessionId", "unknown")
 
     # 0. Registry preflight: block before any side effects run.
