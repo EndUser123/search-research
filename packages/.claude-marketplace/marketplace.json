@@ -34,7 +34,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.67",
+      "version": "1.0.69",
       "description": "Software development lifecycle AI skills for Claude Code.",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -46,7 +46,7 @@
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.2.19",
+      "version": "1.2.21",
       "description": "Utility AI skills for Claude Code.",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
@@ -70,7 +70,7 @@
     },
     {
       "name": "search-research",
-      "version": "0.1.18",
+      "version": "0.1.23",
       "description": "Unified search and research system with async concurrent execution and 11 web providers.",
       "source": "./plugins/search-research",
       "keywords": [
@@ -83,7 +83,7 @@
     },
     {
       "name": "skill-guard",
-      "version": "2.1.31",
+      "version": "2.1.32",
       "description": "Universal skill auto-discovery and enforcement for Claude Code",
       "source": "./plugins/skill-guard",
       "keywords": [
