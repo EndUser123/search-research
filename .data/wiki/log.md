@@ -1480,3 +1480,13 @@ Content: Curated list of 19 LLM inference providers with model IDs, SDK docs, co
 Page: wiki/concepts/llm-inference-providers-list.md
 
 nSource: chain_20260524_115434.mdn
+
+## [2026-06-30] ingest | Coding-Plan Subscription Quota APIs
+Source: chat-session 2026-06-30
+SHA256: 62ee3c8b6804ce6fc689fac52f606100964bb785b87713804a9da8c977c9bf2f
+File: concepts/coding-plan-quota-apis.md
+
+## [2026-06-30] ingest | CDP-Attached Browsers Blocked at Google OAuth Consent
+Source: chat-session 2026-06-30
+SHA256: d900f4e02bf213e32fa85fe25b6658922d52d1aeb88677e4880ded91cc734fc1
+File: concepts/cdp-google-oauth-automation-block.md
