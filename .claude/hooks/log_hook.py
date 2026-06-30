@@ -114,6 +114,7 @@ def get_lock(lock_file: Path) -> Path | None:
         try:
             fd = os.open(str(lock_file), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
             os.write(fd, str(os.getpid()).encode())
+            os.close(fd)
             return lock_file
         except FileExistsError:
             if fd is not None:
@@ -186,7 +187,7 @@ def main() -> int:
     # Determine paths
     home = Path.home()
     log_jsonl = home / "claude-log.jsonl"
-    transcript_copy = home / "claude-log.transcript.jsonl"
+    transcript_offset_file = home / "claude-log.transcript.offset"
     transcript_path_file = home / "claude-log.transcript_path.txt"
 
     _enforce_size_cap(log_jsonl)
@@ -233,72 +234,71 @@ def main() -> int:
         if transcript_path_file.exists():
             prev_transcript_path = transcript_path_file.read_text().strip()
 
-        # TRANSCRIPT_RENEW - new transcript file
-        if transcript_path_str != prev_transcript_path:
-            entry = {
-                "logEvent": "TRANSCRIPT_RENEW",
-                "logTimestamp": log_timestamp,
-                "logDate": log_date,
-            }
-            _append_log(entry, log_jsonl)
-            # Reset transcript copy
-            if transcript_copy.exists():
-                _retry_on_locked(transcript_copy.unlink)
+        transcript_changed = transcript_path_str != prev_transcript_path
 
-        # Ensure transcript copy exists
-        if not transcript_copy.exists():
-            _retry_on_locked(transcript_copy.write_text, "", encoding="utf-8")
+        # TRANSCRIPT_RENEW - new transcript file
+        if transcript_changed:
+            _append_log(
+                {"logEvent": "TRANSCRIPT_RENEW", "logTimestamp": log_timestamp, "logDate": log_date},
+                log_jsonl,
+            )
 
         # Save current transcript path
         if transcript_path_str:
             _retry_on_locked(transcript_path_file.write_text, transcript_path_str, encoding="utf-8")
 
-        # Diff transcript against stored copy
+        # Incremental tail read via byte offset — O(new bytes) per run instead of
+        # O(transcript size). The offset lands on a line boundary because we store
+        # the prior EOF and JSONL grows by appending whole lines; splitlines on the
+        # tail therefore yields only complete new lines. On compaction (file
+        # shrinks/rewrites) we reset to 0 once and re-emit RENEW.
+        # ponytail: drops TRANSCRIPT_PRUNE removal-count — detecting removals needs
+        # a full-file compare, which is the O(total) step this eliminates, and the
+        # count was noisy under compaction anyway.
         if transcript_path and transcript_path.exists():
-            current_content = _retry_on_locked(transcript_path.read_text, encoding="utf-8")
-            stored_content = _retry_on_locked(transcript_copy.read_text, encoding="utf-8")
+            size = transcript_path.stat().st_size
 
-            current_lines = current_content.splitlines()
-            stored_lines = stored_content.splitlines()
+            offset = 0
+            if transcript_changed:
+                offset = 0  # new session: ingest the (small) new transcript from start
+            elif transcript_offset_file.exists():
+                try:
+                    offset = int(transcript_offset_file.read_text(encoding="utf-8").strip() or "0")
+                except (ValueError, OSError):
+                    offset = 0
+            else:
+                # First run after install/upgrade: skip the backlog rather than
+                # one-time dump the whole history. claude-log.jsonl is an event
+                # stream, not a store; the transcript file remains source-of-truth.
+                offset = size
 
-            # Count removals
-            log_removals = 0
-            max_compare = min(len(stored_lines), len(current_lines))
-            for i in range(max_compare):
-                if stored_lines[i] != current_lines[i]:
-                    log_removals += 1
-            log_removals += max(0, len(stored_lines) - len(current_lines))
+            if size < offset:  # compaction rewrote a smaller file
+                offset = 0
+                _append_log(
+                    {"logEvent": "TRANSCRIPT_RENEW", "logTimestamp": log_timestamp, "logDate": log_date},
+                    log_jsonl,
+                )
 
-            if log_removals > 0:
-                entry = {
-                    "logEvent": "TRANSCRIPT_PRUNE",
-                    "logRemovals": log_removals,
-                    "logTimestamp": log_timestamp,
-                    "logDate": log_date,
-                }
-                _append_log(entry, log_jsonl)
-
-            # Find additions (new lines at end of current vs stored)
-            additions = []
-            if len(current_lines) > len(stored_lines):
-                additions = current_lines[len(stored_lines):]
-
-            for line in additions:
-                if line.strip():
+            if size > offset:
+                with open(transcript_path, "rb") as f:
+                    f.seek(offset)
+                    tail = f.read()
+                for line in tail.decode("utf-8", errors="replace").splitlines():
+                    if not line.strip():
+                        continue
                     try:
                         item = json.loads(line)
-                        entry = {
-                            "logEvent": "TRANSCRIPT_ITEM",
-                            "logTimestamp": log_timestamp,
-                            "logDate": log_date,
-                        }
-                        entry.update(item)
-                        _append_log(entry, log_jsonl)
                     except json.JSONDecodeError:
-                        pass
+                        continue
+                    entry = {
+                        "logEvent": "TRANSCRIPT_ITEM",
+                        "logTimestamp": log_timestamp,
+                        "logDate": log_date,
+                    }
+                    entry.update(item)
+                    _append_log(entry, log_jsonl)
 
-            # Update stored copy
-            _retry_on_locked(transcript_copy.write_text, current_content, encoding="utf-8")
+            transcript_offset_file.write_text(str(size), encoding="utf-8")
 
         # HOOK event - log the full hook payload
         entry = {
