@@ -2552,9 +2552,9 @@ class UnifiedSemanticDaemon:
     def _get_chs_db_path(self) -> Path:
         """Get path to chat history SQLite database.
 
-        Database located at __csf/data/chat_history.db.
+        Database located at P:/.data/chat_history.db.
         """
-        return _csf_root / "data" / "chat_history.db"
+        return Path("P:/.data/chat_history.db")
 
     def _load_chs_messages(self, limit: int | None = None) -> list[dict[str, Any]]:
         """Load chat messages from SQLite database.
