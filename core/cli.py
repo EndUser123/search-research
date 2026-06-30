@@ -219,6 +219,58 @@ class SaturationDetector:
         }
 
 
+def _extract_mcp_search_results(content_text: str, source: str, max_results: int) -> list[dict]:
+    """Normalize an MCP web_search tool response into result dicts.
+
+    Handles JSON that may be single- OR double-encoded: z.ai returns a JSON
+    string whose value is itself a JSON array. z.ai items carry ``link`` +
+    ``content``; MiniMax items carry ``link`` + ``snippet``.
+    """
+    data: Any = None
+    try:
+        data = json.loads(content_text)
+        while isinstance(data, str):
+            data = json.loads(data)
+    except (ValueError, TypeError):
+        data = None
+    # z.ai returns a bare list; MiniMax wraps results under e.g. "organic".
+    items: list = []
+    if isinstance(data, list):
+        items = data
+    elif isinstance(data, dict):
+        for k in ("organic", "organic_results", "results", "web_results", "data"):
+            v = data.get(k)
+            if isinstance(v, list):
+                items = v
+                break
+        if not items:
+            for v in data.values():
+                if isinstance(v, list) and v and isinstance(v[0], dict) and any(
+                    f in v[0] for f in ("link", "url", "href")
+                ):
+                    items = v
+                    break
+    results: list[dict] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        url = item.get("link") or item.get("url") or item.get("href") or ""
+        body = item.get("content") or item.get("snippet") or item.get("summary") or ""
+        if not url and not body:
+            continue
+        results.append(
+            {
+                "title": item.get("title") or url or "Untitled",
+                "url": url,
+                "content": body,
+                "source": source,
+            }
+        )
+        if len(results) >= max_results:
+            break
+    return results
+
+
 class CoreResearchCommand:
     """Core search research command with search providers only."""
 
@@ -241,6 +293,8 @@ class CoreResearchCommand:
             "tavily",
             "exa",
             "glm",
+            "zai",  # z.ai web_search_prime MCP (remote HTTP, Coding Plan)
+            "minimax",  # MiniMax Coding Plan MCP (local stdio)
             "serpapi",
             "webreader",  # Direct URL fetching via webReader adapter
             "fetch",  # Alias for webreader
@@ -597,6 +651,10 @@ class CoreResearchCommand:
             return await self._glm_search(
                 query, kwargs.get("max_results", 10), kwargs.get("timeout", 180)
             )
+        elif mode == "zai":
+            return await self._zai_mcp_search(query, kwargs)
+        elif mode == "minimax":
+            return await self._minimax_mcp_search(query, kwargs)
         elif mode == "serpapi":
             return await self._serpapi_search(
                 query, kwargs.get("max_results", 10), kwargs.get("timeout", 30)
@@ -619,8 +677,8 @@ class CoreResearchCommand:
         elif mode == "webreader_mcp":
             return await self._webreader_mcp_search(query, kwargs.get("max_results", 10), kwargs)
         else:
-            # Default fallback
-            return await self._glm_search(query, 10, 180)
+            # Default fallback: z.ai MCP (grounded). glm chat is opt-in via --mode glm.
+            return await self._zai_mcp_search(query, kwargs)
 
     async def _web_search(self, query: str, **kwargs) -> dict[str, Any]:
         """Web search mode: try multiple web search providers in parallel.
@@ -650,8 +708,8 @@ class CoreResearchCommand:
             )
 
         if not tasks:
-            # Fallback to glm if no web search API keys
-            return await self._glm_search(query, kwargs.get("max_results", 10), 180)
+            # No Tavily/Exa keys: fall back to z.ai MCP (grounded), not glm chat.
+            return await self._zai_mcp_search(query, kwargs)
 
         # Execute in parallel and combine results
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -684,8 +742,8 @@ class CoreResearchCommand:
         Returns:
             Research results.
         """
-        # Use glm for quick searches
-        return await self._glm_search(query, 5, 60)
+        # z.ai MCP for quick searches (glm chat returned ungrounded prose).
+        return await self._zai_mcp_search(query, kwargs)
 
     # Provider methods
 
@@ -885,6 +943,92 @@ class CoreResearchCommand:
             }
             return _create_timing_result(result, "glm", duration_ms)
 
+        except Exception:
+            raise
+
+    async def _zai_mcp_search(self, query: str, kwargs: dict) -> dict[str, Any]:
+        """Search via the z.ai web_search_prime MCP server (remote HTTP)."""
+        start_time = time.perf_counter()
+        api_key = os.getenv("ZAI_API_KEY") or os.getenv("ZHIPU_API_KEY") or os.getenv("GLM_API_KEY")
+        if not api_key:
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            return _create_timing_result(
+                {"results": [], "sources_used": ["zai"],
+                 "error": "ZAI_API_KEY not set (z.ai Coding Plan required)."},
+                "zai", duration_ms,
+            )
+        max_results = kwargs.get("max_results", 10)
+        try:
+            from mcp import ClientSession
+            from mcp.client.streamable_http import streamablehttp_client
+        except ImportError as e:
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            return _create_timing_result(
+                {"results": [], "sources_used": ["zai"], "error": f"mcp SDK not installed: {e}"},
+                "zai", duration_ms,
+            )
+        try:
+            url = "https://api.z.ai/api/mcp/web_search_prime/mcp"
+            headers = {"Authorization": f"Bearer {api_key}"}
+            async with streamablehttp_client(url, headers=headers) as (read, write, _):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    res = await session.call_tool(
+                        "web_search_prime",
+                        {"search_query": query, "content_size": "high"},
+                    )
+            txt = getattr(res.content[0], "text", "") if res.content else ""
+            results = _extract_mcp_search_results(txt, "zai", max_results)
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            return _create_timing_result(
+                {"results": results, "sources_used": ["zai"],
+                 "synthesis": f"{len(results)} grounded results from z.ai web_search_prime"},
+                "zai", duration_ms,
+            )
+        except Exception:
+            raise
+
+    async def _minimax_mcp_search(self, query: str, kwargs: dict) -> dict[str, Any]:
+        """Search via the MiniMax Coding Plan MCP server (local stdio)."""
+        start_time = time.perf_counter()
+        api_key = os.getenv("MINIMAX_API_KEY")
+        if not api_key:
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            return _create_timing_result(
+                {"results": [], "sources_used": ["minimax"],
+                 "error": "MINIMAX_API_KEY not set."},
+                "minimax", duration_ms,
+            )
+        max_results = kwargs.get("max_results", 10)
+        try:
+            from mcp import ClientSession, StdioServerParameters
+            from mcp.client.stdio import stdio_client
+        except ImportError as e:
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            return _create_timing_result(
+                {"results": [], "sources_used": ["minimax"], "error": f"mcp SDK not installed: {e}"},
+                "minimax", duration_ms,
+            )
+        try:
+            env = {
+                "MINIMAX_API_KEY": api_key,
+                "MINIMAX_API_HOST": os.getenv("MINIMAX_API_HOST", "https://api.minimax.io"),
+                "PATH": os.environ.get("PATH", ""),
+                "SYSTEMROOT": os.environ.get("SYSTEMROOT", ""),
+            }
+            params = StdioServerParameters(command="uvx", args=["minimax-coding-plan-mcp"], env=env)
+            async with stdio_client(params) as (read, write):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    res = await session.call_tool("web_search", {"query": query})
+            txt = getattr(res.content[0], "text", "") if res.content else ""
+            results = _extract_mcp_search_results(txt, "minimax", max_results)
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            return _create_timing_result(
+                {"results": results, "sources_used": ["minimax"],
+                 "synthesis": f"{len(results)} grounded results from minimax web_search"},
+                "minimax", duration_ms,
+            )
         except Exception:
             raise
 
