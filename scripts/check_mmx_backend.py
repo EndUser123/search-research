@@ -3,10 +3,9 @@
 (MiniMax Token-Plan), which core/cli.py:_minimax_search shells out to for
 `--mode minimax`.
 
-LOCAL + deterministic (no network): safe to run anytime. Catches the three
-real failure modes — mmx uninstalled, shadowed by a broken third-party
-mmx.exe shim, or redesigned so `search query` is gone. It does NOT verify
-live groundedness; run that on demand:
+LOCAL + deterministic (no network): safe to run anytime. Catches the two
+real failure modes — mmx uninstalled, or redesigned so `search query` is
+gone. It does NOT verify live groundedness; run that on demand:
 
     mmx search query "test" --region global --output json --non-interactive
     # assert: exit 0 AND response JSON has organic[] with >= 1 link
@@ -31,14 +30,15 @@ TIMEOUT_S = 15
 def _mmx_argv(extra: list[str]) -> list[str]:
     """Resolve the official npm mmx exactly as core/cli.py does.
 
-    Windows: npm ships only mmx.cmd (CreateProcess can't exec .cmd directly, and
-    a stale third-party mmx.exe shim can shadow it via PATHEXT), so use
-    `cmd /c <npm mmx.cmd>`. Bare `mmx` is the non-Windows fallback.
+    Windows: invoke `node <npm>/node_modules/mmx-cli/dist/mmx.mjs` directly —
+    passes argv verbatim (no shell → no metachar injection) and sidesteps
+    WinError 2 (CreateProcess can't exec .cmd). Bare `mmx` is the non-Windows
+    fallback.
     """
     if os.name == "nt":
-        npm_mmx = Path(os.environ.get("APPDATA", "")) / "npm" / "mmx.cmd"
-        if npm_mmx.is_file():
-            return ["cmd", "/c", str(npm_mmx)] + extra
+        mjs = Path(os.environ.get("APPDATA", "")) / "npm" / "node_modules" / "mmx-cli" / "dist" / "mmx.mjs"
+        if mjs.is_file():
+            return ["node", str(mjs)] + extra
     return ["mmx"] + extra
 
 
@@ -63,9 +63,9 @@ def run() -> dict:
         return _exit(2, {
             "name": "mmx_backend",
             "status": "critical",
-            "message": "mmx CLI not runnable (uninstalled, shadowed by a broken shim, or not on PATH)",
+            "message": "mmx CLI not runnable (uninstalled, node missing, or not on PATH)",
             "details": [f"argv: {' '.join(argv)}", f"rc={rc}", f"output: {out.strip()[:200]}",
-                        "Fix: npm install -g mmx-cli  (on Windows also remove any broken Python mmx.exe shim)"],
+                        "Fix: npm install -g mmx-cli"],
         })
 
     version = out.strip().splitlines()[-1] if out.strip() else "unknown"
