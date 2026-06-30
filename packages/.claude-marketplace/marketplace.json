@@ -3,82 +3,85 @@
   "owner": {
     "name": "Bruce Thomson"
   },
-  "metadata": {
-    "description": "Local marketplace for development plugins"
-  },
   "plugins": [
+    {
+      "name": "snapshot",
+      "version": "0.5.23",
+      "description": "Session snapshot capture and restore system for Claude Code sessions",
+      "source": "./plugins/snapshot",
+      "keywords": [
+        "snapshot",
+        "session",
+        "compaction",
+        "multi-terminal"
+      ]
+    },
+    {
+      "name": "glm-plan-usage",
+      "version": "0.1.0",
+      "description": "GLM Coding Plan usage query (local fork: reads ZAI_API_KEY directly, bypassing cc-ccr proxy env)",
+      "source": "./plugins/glm-plan-usage",
+      "keywords": [
+        "glm",
+        "zai",
+        "quota",
+        "usage",
+        "fork"
+      ]
+    },
     {
       "name": "cc-skills-ai-api",
       "version": "1.0.7",
-      "description": "AI provider skills for Claude Code \u2014 multi-provider LLM access, API gateways, usage monitoring, and quota management.",
+      "description": "AI API integration skills for Claude Code",
       "source": "./plugins/cc-skills-ai-api",
       "keywords": [
         "ai",
-        "llm",
-        "providers",
-        "quota",
-        "monitoring"
+        "api",
+        "integration"
       ]
     },
     {
       "name": "cc-skills-media",
       "version": "1.0.4",
-      "description": "Media-related AI skills for Claude Code.",
+      "description": "Media processing and generation skills for Claude Code",
       "source": "./plugins/cc-skills-media",
       "keywords": [
         "media",
-        "audio",
-        "video",
-        "content"
+        "processing",
+        "generation"
       ]
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.69",
-      "description": "Software development lifecycle AI skills for Claude Code.",
+      "version": "1.0.70",
+      "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
         "sdlc",
-        "devops",
-        "quality",
+        "development",
         "lifecycle"
       ]
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.2.21",
-      "description": "Utility AI skills for Claude Code.",
+      "version": "1.2.22",
+      "description": "Utility skills for Claude Code",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
-        "utils",
-        "tooling",
-        "helpers",
-        "automation"
-      ]
-    },
-    {
-      "name": "snapshot",
-      "version": "0.5.23",
-      "description": "Snapshot plugin for Claude Code.",
-      "source": "./plugins/snapshot",
-      "keywords": [
-        "snapshot",
-        "backup",
-        "state",
-        "archive"
+        "utilities",
+        "tools"
       ]
     },
     {
       "name": "search-research",
-      "version": "0.1.26",
+      "version": "0.1.28",
       "description": "Unified search and research system with async concurrent execution and 11 web providers.",
       "source": "./plugins/search-research",
       "keywords": [
         "search",
         "research",
-        "code search",
-        "knowledge search",
-        "web search"
+        "web search",
+        "code search"
       ]
     },
     {
@@ -183,22 +186,9 @@
       ]
     },
     {
-      "name": "cc-aca-investigation",
-      "version": "0.2.8",
-      "description": "ACA Investigation plugin - discovery-first enforcement, observe-before-act gating, breadcrumb progression tracking, and evidence-grounded reasoning prompts.",
-      "source": "./plugins/cc-aca-investigation",
-      "keywords": [
-        "aca",
-        "investigation",
-        "discovery",
-        "observe-before-act",
-        "breadcrumb"
-      ]
-    },
-    {
       "name": "cc-aca-authority",
       "version": "0.1.19",
-      "description": "ACA Authority plugin - permission enforcement, approval flow control, delegation gating, risk tiering, and git safety guards.",
+      "description": "ACA Authority plugin - permission enforcement, approval flow control, delegation gating, risk tiering, and git safety guards. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-authority",
       "keywords": [
         "aca",
@@ -271,6 +261,20 @@
       ]
     },
     {
+      "name": "cc-aca-investigation",
+      "version": "0.2.8",
+      "description": "ACA Investigation plugin - discovery-first enforcement, observe-before-act gating, breadcrumb progression tracking, and evidence-grounded reasoning prompts. Part of the Agent Control Architecture.",
+      "source": "./plugins/cc-aca-investigation",
+      "keywords": [
+        "aca",
+        "investigation",
+        "discovery",
+        "observe-before-act",
+        "evidence-grounding",
+        "breadcrumb"
+      ]
+    },
+    {
       "name": "cc-lazy-closure-debt",
       "version": "0.1.5",
       "description": "Persistent technical-debt tracker. Stop hook records deferral phrases to JSONL; UserPromptSubmit hook surfaces them as additionalContext. Ships with /debt skill for listing/clearing/formalizing.",
@@ -288,15 +292,7 @@
       "version": "0.2.6",
       "description": "Automatic model-tier routing (haiku/sonnet/opus) based on prompt complexity heuristics with dual-mode operation (warn plus autoswitch)",
       "source": "./plugins/cc-model-router",
-      "keywords": [
-        "model",
-        "router",
-        "tier",
-        "haiku",
-        "sonnet",
-        "opus",
-        "routing"
-      ]
+      "keywords": []
     },
     {
       "name": "cc-council",
