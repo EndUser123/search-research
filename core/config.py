@@ -20,7 +20,7 @@ class Config:
     )
 
     # CHS (Chat History) paths
-    CHS_DB_PATH: str = os.getenv("SEARCH_RESEARCH_CHS_DB_PATH", "P:/__csf/data/chat_history.db")
+    CHS_DB_PATH: str = os.getenv("SEARCH_RESEARCH_CHS_DB_PATH", "P:/.data/chat_history.db")
     CHS_INDEX_PATH: str = os.getenv(
         "SEARCH_RESEARCH_CHS_INDEX_PATH", "P:/__csf/data/chat_history_faiss_424k/faiss_index.bin"
     )
