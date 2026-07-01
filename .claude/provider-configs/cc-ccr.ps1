@@ -474,13 +474,13 @@ if ($Usage) {
             }
         }
         if ($ogRows.Count -gt 0) {
-            Write-Host "  opencode-go      [go]" -ForegroundColor White
+            Write-Host "  opencode-go     [go]" -ForegroundColor White
             $ogRows | ForEach-Object { Write-Host $_ }
         } else {
-            Write-Host "  opencode-go      (no usage data scraped — cookie expired or page layout changed)" -ForegroundColor Yellow
+            Write-Host "  opencode-go     (no usage data scraped — cookie expired or page layout changed)" -ForegroundColor Yellow
         }
     } catch {
-        Write-Host "  opencode-go      error: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "  opencode-go     error: $($_.Exception.Message)" -ForegroundColor Yellow
     }
     # Local LM Studio — reachability + which model is actually loaded. Catches the
     # case where the custom route points at a model LM Studio isn't serving.
