@@ -61,7 +61,7 @@ DISPATCH = {
 
 
 def _emit_block(
-    out: str, hook_name: str, child_stderr: str = "", ctx: dict | None = None
+    out: str, hook_name: str, child_stderr: str = "", ctx: dict | None = None, event: str = ""
 ) -> None:
     """Emit a block on both channels, then exit(2).
 
@@ -72,7 +72,6 @@ def _emit_block(
     """
     reason = ""
     if out:
-        print(out)
         try:
             parsed = json.loads(out)
             if isinstance(parsed, dict):
@@ -81,8 +80,15 @@ def _emit_block(
             reason = out.strip()
     if not reason:
         reason = child_stderr.strip() or f"Blocked by {hook_name}"
-        if not out:
-            print(json.dumps({"decision": "block", "reason": reason}))
+    # Stop-hook stdout must use the {"continue": false, ...} shape; the
+    # PreToolUse {"decision": ...} object is schema-invalid for Stop and the
+    # harness rejects it ("JSON validation failed").
+    if event == "Stop":
+        print(json.dumps({"continue": False, "stopReason": hook_name, "stopTipContent": reason}))
+    elif out:
+        print(out)
+    else:
+        print(json.dumps({"decision": "block", "reason": reason}))
     _log_stop_block(hook_name, reason, child_stderr, ctx)
     msg = f"BLOCKED [{hook_name}]: {reason}\n"
     try:
@@ -90,6 +96,13 @@ def _emit_block(
     except UnicodeEncodeError:
         sys.stderr.buffer.write(msg.encode("utf-8", "replace"))
     sys.exit(2)
+
+
+def _emit_approve(event: str) -> None:
+    # Stop has no "approve" object — empty stdout is the universal allow. The
+    # {"decision": "approve"} shape is PreToolUse-only and schema-invalid for Stop.
+    if event != "Stop":
+        print(json.dumps({"decision": "approve"}))
 
 
 def main() -> None:
@@ -124,7 +137,7 @@ def main() -> None:
             if result.returncode == 2:
                 out = result.stdout.decode(errors="replace").strip()
                 child_stderr = result.stderr.decode(errors="replace")
-                _emit_block(out, hook_name, child_stderr, block_ctx)
+                _emit_block(out, hook_name, child_stderr, block_ctx, event)
 
             # Check for block in JSON output (child exits 0 with block decision)
             out = result.stdout.decode(errors="replace").strip()
@@ -132,7 +145,7 @@ def main() -> None:
                 try:
                     parsed = json.loads(out)
                     if isinstance(parsed, dict) and parsed.get("decision") == "block":
-                        _emit_block(out, hook_name, "", block_ctx)
+                        _emit_block(out, hook_name, "", block_ctx, event)
                 except json.JSONDecodeError:
                     pass
         except subprocess.TimeoutExpired:
@@ -141,7 +154,7 @@ def main() -> None:
             pass  # Fail open
 
     # All hooks passed
-    print(json.dumps({"decision": "approve"}))
+    _emit_approve(event)
 
 
 if __name__ == "__main__":
