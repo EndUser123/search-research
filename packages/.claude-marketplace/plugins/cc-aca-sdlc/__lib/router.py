@@ -54,10 +54,9 @@ DISPATCH = {
 }
 
 
-def _emit_block(out: str, hook_name: str, child_stderr: str = "", ctx: dict | None = None) -> None:
+def _emit_block(out: str, hook_name: str, child_stderr: str = "", ctx: dict | None = None, event: str = "") -> None:
     reason = ""
     if out:
-        print(out)
         try:
             parsed = json.loads(out)
             if isinstance(parsed, dict):
@@ -66,11 +65,25 @@ def _emit_block(out: str, hook_name: str, child_stderr: str = "", ctx: dict | No
             reason = out.strip()
     if not reason:
         reason = child_stderr.strip() or f"Blocked by {hook_name}"
-        if not out:
-            print(json.dumps({"decision": "block", "reason": reason}))
+    # Stop-hook stdout must use the {"continue": false, ...} shape; the
+    # PreToolUse {"decision": ...} object is schema-invalid for Stop and the
+    # harness rejects it ("JSON validation failed").
+    if event == "Stop":
+        print(json.dumps({"continue": False, "stopReason": hook_name, "stopTipContent": reason}))
+    elif out:
+        print(out)
+    else:
+        print(json.dumps({"decision": "block", "reason": reason}))
     _log_stop_block(hook_name, reason, child_stderr, ctx)
     sys.stderr.write(f"BLOCKED [{hook_name}]: {reason}\n")
     sys.exit(2)
+
+
+def _emit_approve(event: str) -> None:
+    # Stop has no "approve" object — empty stdout is the universal allow. The
+    # {"decision": "approve"} shape is PreToolUse-only and schema-invalid for Stop.
+    if event != "Stop":
+        print(json.dumps({"decision": "approve"}))
 
 
 def main() -> None:
@@ -101,12 +114,12 @@ def main() -> None:
             )
             out = result.stdout.decode(errors="replace").strip()
             if result.returncode == 2:
-                _emit_block(out, hook_name, result.stderr.decode(errors="replace"), block_ctx)
+                _emit_block(out, hook_name, result.stderr.decode(errors="replace"), block_ctx, event)
             if out:
                 try:
                     parsed = json.loads(out)
                     if isinstance(parsed, dict) and parsed.get("decision") == "block":
-                        _emit_block(out, hook_name, "", block_ctx)
+                        _emit_block(out, hook_name, "", block_ctx, event)
                 except json.JSONDecodeError:
                     pass
         except subprocess.TimeoutExpired:
@@ -114,7 +127,7 @@ def main() -> None:
         except Exception:
             pass
 
-    print(json.dumps({"decision": "approve"}))
+    _emit_approve(event)
 
 
 if __name__ == "__main__":
