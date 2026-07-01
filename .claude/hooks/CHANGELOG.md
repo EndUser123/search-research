@@ -1,3 +1,8 @@
+
+### Added
+
+- .claude/hooks/analysis/stop_gate_retirement_candidates_20260701.md: new hook
+
 # Hooks CHANGELOG
 
 ## 2026-02-07
