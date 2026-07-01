@@ -1,6 +1,6 @@
 ---
 name: doc-to-skill
-description: Convert documentation into Claude Skills using automated scraping and AI enhancement
+description: Run scripts/_validate.py (from template) and confirm all checks pass
 version: "1.0.0"
 status: "stable"
 category: generation
@@ -9,18 +9,7 @@ triggers:
 aliases:
 suggest:
 workflow_steps:
-  - id: configure
-    name: Configure source + selectors
-    description: User selects source type (website, GitHub, PDF, local) and configures selectors or config file
-  - id: convert
-    name: Convert + enhance
-    description: Run conversion with optional enhancement (local LLM or Anthropic API)
-  - id: portability
-    name: Portability pass
-    description: Apply the 6 output-pitfall guards before validation. See PHASE 2.5 below.
-  - id: validate
-    name: Validate generated skill
-    description: Run scripts/_validate.py (from template) and confirm all checks pass
+- id: validate
 ---
 # Documentation to Skill Converter
 
