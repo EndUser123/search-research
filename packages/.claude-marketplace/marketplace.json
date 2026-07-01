@@ -187,7 +187,7 @@
     },
     {
       "name": "cc-aca-authority",
-      "version": "0.1.19",
+      "version": "0.1.20",
       "description": "ACA Authority plugin - permission enforcement, approval flow control, delegation gating, risk tiering, and git safety guards. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-authority",
       "keywords": [
@@ -202,7 +202,7 @@
     },
     {
       "name": "cc-aca-reasoning",
-      "version": "0.1.15",
+      "version": "0.1.16",
       "description": "ACA Reasoning plugin - sequential thinking, cognitive enhancement, reasoning mode selection, reflection triggers, drift detection, and reasoning quality gates.",
       "source": "./plugins/cc-aca-reasoning",
       "keywords": [
@@ -217,7 +217,7 @@
     },
     {
       "name": "cc-aca-sdlc",
-      "version": "0.1.9",
+      "version": "0.1.10",
       "description": "ACA SDLC plugin - TDD enforcement, test-state tracking, implementation verification, completion gates, and development workflow discipline.",
       "source": "./plugins/cc-aca-sdlc",
       "keywords": [
