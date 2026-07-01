@@ -39,7 +39,7 @@ DISPATCH = {
 }
 
 
-def _emit_block(out: str, hook_name: str, child_stderr: str = "", ctx: dict | None = None, event: str = "") -> None:
+def _emit_block(out: str, hook_name: str, child_stderr: str = "", ctx: dict | None = None) -> None:
     """Emit a block on both channels, then exit(2).
 
     The harness surfaces ONLY stderr for exit-2 blocks; stdout JSON is ignored
@@ -57,12 +57,10 @@ def _emit_block(out: str, hook_name: str, child_stderr: str = "", ctx: dict | No
             reason = out.strip()
     if not reason:
         reason = child_stderr.strip() or f"Blocked by {hook_name}"
-    # Stop-hook stdout must use the {"continue": false, ...} shape; the
-    # PreToolUse {"decision": ...} object is schema-invalid for Stop and the
-    # harness rejects it ("JSON validation failed").
-    if event == "Stop":
-        print(json.dumps({"continue": False, "stopReason": hook_name, "stopTipContent": reason}))
-    elif out:
+    # exit 2 → harness discards stdout and feeds stderr to Claude, so this
+    # JSON is for downstream consumers/logging only. {"decision":"block",...}
+    # is the canonical Stop block shape per the hooks reference.
+    if out:
         print(out)
     else:
         print(json.dumps({"decision": "block", "reason": reason}))
@@ -113,14 +111,14 @@ def main() -> None:
             if result.returncode == 2:
                 out = result.stdout.decode(errors="replace").strip()
                 child_stderr = result.stderr.decode(errors="replace")
-                _emit_block(out, hook_name, child_stderr, block_ctx, event)
+                _emit_block(out, hook_name, child_stderr, block_ctx)
 
             out = result.stdout.decode(errors="replace").strip()
             if out:
                 try:
                     parsed = json.loads(out)
                     if isinstance(parsed, dict) and parsed.get("decision") == "block":
-                        _emit_block(out, hook_name, "", block_ctx, event)
+                        _emit_block(out, hook_name, "", block_ctx)
                 except json.JSONDecodeError:
                     pass
         except subprocess.TimeoutExpired:
