@@ -154,7 +154,10 @@ try {
     $cfg.Router | Add-Member -NotePropertyName "claude-sonnet-4-6"         -NotePropertyValue $actualSonnet -Force
     $cfg.Router | Add-Member -NotePropertyName "claude-haiku-4-5"          -NotePropertyValue $actualHaiku  -Force
     $cfg.Router | Add-Member -NotePropertyName "claude-haiku-4-5-20251001" -NotePropertyValue $actualHaiku  -Force
-    $cfg.Router | Add-Member -NotePropertyName "claude-local-gemma"        -NotePropertyValue "lmstudio,gemma-4-12b-coder-fable5-composer2.5-v1" -Force
+    # Local slot via LM Studio. Renamed from claude-local-gemma (the old gemma-4-12b-coder
+    # fine-tune is no longer in LM Studio). Drop the stale key so config.json stays clean.
+    try { $cfg.Router.PSObject.Properties.Remove("claude-local-gemma") } catch {}
+    $cfg.Router | Add-Member -NotePropertyName "claude-local-ornith"        -NotePropertyValue "lmstudio,ornith-1.0-9b@q4_k_m" -Force
 
     # ROLE keys in lockstep with slot keys (both routing layers agree)
     $cfg.Router | Add-Member -NotePropertyName "think"       -NotePropertyValue $actualOpus   -Force
@@ -234,6 +237,33 @@ function Start-Headroom {
     return $false
 }
 
+# --- Helper: Format an epoch-ms quota reset as a countdown + local timestamp ---
+# z.ai returns nextResetTime; minimax returns end_time / weekly_end_time. Both epoch-ms.
+# Smart units: <1h = "Xm", <72h = "Xh Ym", >=72h = "Xd Yh". Returns "countdown · ddd HH:mm".
+function Format-QuotaReset {
+    param([long]$EpochMs)
+    if (-not $EpochMs -or $EpochMs -le 0) { return "" }
+    try {
+        $reset = [DateTimeOffset]::FromUnixTimeMilliseconds($EpochMs).LocalDateTime
+        $remaining = $reset - (Get-Date)
+        if ($remaining -le [TimeSpan]::Zero) { return "pending" }
+        $totHr = [int][Math]::Floor($remaining.TotalHours)
+        $cd = if     ($totHr -ge 72) { "{0}d {1}h" -f [int][Math]::Floor($totHr/24), ($totHr % 24) }
+              elseif ($totHr -ge 1)  { "{0}h {1}m" -f $totHr, $remaining.Minutes }
+              else                   { "{0}m" -f [int][Math]::Floor($remaining.TotalMinutes) }
+        return "{0} · {1}" -f $cd, $reset.ToString("ddd HH:mm")
+    } catch { return "" }
+}
+
+# --- Helper: render one aligned usage window row (window | remaining | resets) ---
+function Format-UsageRow {
+    param([string]$Window, [string]$Remaining, [string]$Reset)
+    $w = $Window.PadRight(15)
+    $r = $Remaining.PadRight(26)
+    $tail = if ($Reset) { "resets $Reset" } else { "" }
+    return "                  $w$r$tail"
+}
+
 # --- Start CCR if not already running (Headroom needs upstream) ---
 $ccrRunning = $false
 try {
@@ -289,10 +319,10 @@ foreach ($var in @(
     Remove-Item "env:$var" -ErrorAction SilentlyContinue
 }
 
-# 4th model slot — local Gemma via LM Studio
-$env:ANTHROPIC_CUSTOM_MODEL_OPTION             = "claude-local-gemma"
-$env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME        = "Gemma 4 12B Coder (Local)"
-$env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION = "LM Studio · gemma-4-12b-coder-fable5-composer2.5-v1"
+# 4th model slot — local Ornith via LM Studio (qwen35-arch, tool_use capable)
+$env:ANTHROPIC_CUSTOM_MODEL_OPTION             = "claude-local-ornith"
+$env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME        = "Ornith 1.0 9B (Local)"
+$env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION = "LM Studio · ornith-1.0-9b@q4_k_m"
 
 # --- Health monitoring removed ---
 # PowerShell job scoping prevents cross-scope variable updates.
@@ -323,9 +353,11 @@ try {
     $opusDisplay   = $ccrCfg.Router."claude-opus-4-8"
     $sonnetDisplay = $ccrCfg.Router."claude-sonnet-4-6"
     $haikuDisplay  = $ccrCfg.Router."claude-haiku-4-5"
+    $customDisplay = $ccrCfg.Router."claude-local-ornith"
     Write-Host "  opus:   $opusDisplay"
     Write-Host "  sonnet: $sonnetDisplay"
     Write-Host "  haiku:  $haikuDisplay"
+    if ($customDisplay) { Write-Host "  custom: $customDisplay" }
 } catch {
     Write-Host "  opus:   $actualOpus"
     Write-Host "  sonnet: $actualSonnet"
@@ -353,13 +385,22 @@ if ($Usage) {
         $zHeaders = @{ "Authorization" = $zaiKey; "Accept-Language" = "en-US,en"; "Content-Type" = "application/json" }
         $z = Invoke-RestMethod -Uri "https://api.z.ai/api/monitor/usage/quota/limit" -Headers $zHeaders -TimeoutSec 15 -ErrorAction Stop
         $level = $z.data.level
-        $tLimit = $z.data.limits | Where-Object { $_.type -eq "TIME_LIMIT" }  | Select-Object -First 1
-        $wLimit = $z.data.limits | Where-Object { $_.type -eq "TOKENS_LIMIT" } | Select-Object -First 1
-        $tStr = if ($tLimit) { "$(100 - [int]$tLimit.percentage)% left ($($tLimit.currentValue)/$($tLimit.usage) used)" } else { "n/a" }
-        $wStr = if ($wLimit) { "$(100 - [int]$wLimit.percentage)% left" } else { "n/a" }
-        Write-Host "  z.ai    [$level]  5h: $tStr  ·  weekly: $wStr"
+        # Canonical field mapping (per glm-plan-usage fork: query-usage.mjs):
+        #   TOKENS_LIMIT = "Token usage (5 Hour)" — the rolling 5h GLM-model token window (percentage only)
+        #   TIME_LIMIT   = "MCP usage (1 Month)"  — monthly tool/MCP budget (search-prime/web-reader/zread; has currentValue/usage)
+        # The previous labels swapped these ("5h"=TIME_LIMIT, "weekly"=TOKENS_LIMIT), which made the
+        # nextResetTime countdowns read as nonsense (a "5h" window resetting in 20 days).
+        $tokensLimit = $z.data.limits | Where-Object { $_.type -eq "TOKENS_LIMIT" } | Select-Object -First 1
+        $mcpLimit    = $z.data.limits | Where-Object { $_.type -eq "TIME_LIMIT" }   | Select-Object -First 1
+        $tokStr   = if ($tokensLimit) { "$(100 - [int]$tokensLimit.percentage)% left" } else { "n/a" }
+        $tokReset = if ($tokensLimit -and $tokensLimit.nextResetTime) { Format-QuotaReset ([long]$tokensLimit.nextResetTime) } else { "" }
+        $mcpStr   = if ($mcpLimit) { "$(100 - [int]$mcpLimit.percentage)% left ($($mcpLimit.currentValue)/$($mcpLimit.usage))" } else { "n/a" }
+        $mcpReset = if ($mcpLimit -and $mcpLimit.nextResetTime) { Format-QuotaReset ([long]$mcpLimit.nextResetTime) } else { "" }
+        Write-Host "  z.ai            [$level]" -ForegroundColor White
+        Write-Host (Format-UsageRow "tokens 5h" $tokStr $tokReset)
+        Write-Host (Format-UsageRow "MCP month"  $mcpStr $mcpReset)
     } catch {
-        Write-Host "  z.ai    error: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "  z.ai            error: $($_.Exception.Message)" -ForegroundColor Yellow
     }
     # MiniMax Coding Plan — Authorization: Bearer <sk-cp key>
     try {
@@ -369,14 +410,36 @@ if ($Usage) {
         $mm = Invoke-RestMethod -Uri "https://api.minimax.io/v1/api/openplatform/coding_plan/remains" -Headers $mmHeaders -TimeoutSec 15 -ErrorAction Stop
         $g = $mm.model_remains | Where-Object { $_.model_name -eq "general" } | Select-Object -First 1
         if ($g) {
-            Write-Host "  minimax [general]  interval: $($g.current_interval_remaining_percent)% left  ·  weekly: $($g.current_weekly_remaining_percent)% left"
+            $iStr   = "$($g.current_interval_remaining_percent)% left"
+            $iReset = if ($g.end_time)        { Format-QuotaReset ([long]$g.end_time) }        else { "" }
+            $wStr   = "$($g.current_weekly_remaining_percent)% left"
+            $wReset = if ($g.weekly_end_time) { Format-QuotaReset ([long]$g.weekly_end_time) } else { "" }
+            Write-Host "  minimax         [general]" -ForegroundColor White
+            Write-Host (Format-UsageRow "interval" $iStr $iReset)
+            Write-Host (Format-UsageRow "weekly"   $wStr $wReset)
         } else {
-            Write-Host "  minimax [general]  (no 'general' entry in response)" -ForegroundColor Yellow
+            Write-Host "  minimax         [general]  (no 'general' entry in response)" -ForegroundColor Yellow
         }
     } catch {
-        Write-Host "  minimax error: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "  minimax         error: $($_.Exception.Message)" -ForegroundColor Yellow
     }
-    Write-Host "  opencode-go        n/a (no quota API; dashboard only)" -ForegroundColor DarkGray
+    Write-Host "  opencode-go     (no API)  →  https://opencode.ai/usage" -ForegroundColor DarkGray
+    # Local LM Studio — reachability + which model is actually loaded. Catches the
+    # case where the custom route points at a model LM Studio isn't serving.
+    # NOTE: CCR's router matches by keyword (opus/sonnet/haiku → role); a custom name
+    # like claude-local-ornith matches none, so it falls back to default (minimax). The
+    # local slot is therefore informational until CCR is configured to route it.
+    try {
+        $lm = Invoke-RestMethod -Uri "http://127.0.0.1:1234/api/v0/models" -TimeoutSec 3 -ErrorAction Stop
+        $loaded = $lm.data | Where-Object { $_.state -eq "loaded" } | Select-Object -First 1
+        if ($loaded) {
+            Write-Host "  local           LM Studio     loaded: $($loaded.id)"
+        } else {
+            Write-Host "  local           LM Studio     up, no model loaded" -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Host "  local           LM Studio     offline (127.0.0.1:1234)" -ForegroundColor DarkGray
+    }
 }
 
 # --- Foundation self-test: prove ONE real request succeeds through CCR ---
