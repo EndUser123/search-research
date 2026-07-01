@@ -10,7 +10,14 @@ still needs per-gate confirmation.
 | Source | Window | Rows | What it proves |
 |--------|--------|------|----------------|
 | `logs/diagnostics/stop_blocks.jsonl` | 2026-06-18 → 07-01 (13 days) | 149 blocks / 13 gates | Which gates actually **blocked** |
-| `.state/stop_gate_telemetry.jsonl` (+rotated) | recent (~this session, small n) | 571 events / 37 gates | Per-gate **decision** distribution (allow/warn/block) |
+| `.state/stop_gate_telemetry.jsonl` (+rotated) | **2026-07-01 only — 1 day** | 579 events / 37 gates | Per-gate **decision** distribution (allow/warn/block) |
+
+> **DATA-WINDOW WARNING (added after cross-review):** the telemetry column is a SINGLE
+> day. Only the `stop_blocks.jsonl` **block** column spans 13 days. Therefore the Tier-1
+> table below is **hypothesis-generating, not decision-ready**: a quality gate that advises
+> often but rarely blocks would show 0 blocks (13d) AND its warns would be undersampled in
+> a 1-day telemetry window. **Do not demote any gate until ≥7 days of telemetry confirm the
+> warn column.** `STOP_TELEMETRY=1` is already live, so this accrues passively — just wait.
 
 **Method:** join per-gate `block` count (13d) + telemetry `warn`/`block` (recent) + `GATE_CLASSES`
 (policy vs quality, parsed from `Stop.py`). A gate that never blocked in 13 days AND never
@@ -24,14 +31,21 @@ warned/blocked in telemetry is a retirement candidate.
 `epistemic_contract`(1), `safety_gate`(1), `diagnostic_analysis_quality`(1 block + 2 warn).
 (numbers = blocks in 13 days)
 
-## CAVEAT — the one thing this data cannot see
+## CAVEAT — sampling, not blindness (corrected after cross-review)
 
-Advisory-only gates that emit via the `_raw_messages` side channel (not `res.systemMessage`)
-log as `decision=allow` in telemetry — `semantic_critic`'s `general_diagnostic` profile is the
-proven example. So **"0 warn" in telemetry undercounts advisory activity.** The 13-day *block*
-history is the reliable signal; treat telemetry `warn` as a floor. This is why every candidate
-below is framed as **demote-to-telemetry-and-monitor**, not **delete** — a 30-day telemetry
-watch with the advisory-visibility fix (see companion note) confirms before removal.
+An earlier draft of this doc claimed advisories are *structurally invisible* to telemetry via
+a `_raw_messages` side channel. **That was wrong and is retracted.** Verified: `Stop.py` has
+exactly 3 `_raw_messages.append` sites (4732/4736/4808), all in the same gate-loop iteration
+on the same `res`; the telemetry `decision` is computed at 4745 from `res["systemMessage"]`,
+which is the *same* field the 4808 advisory append requires. So an advisory reaches the model
+**iff** telemetry already recorded it as `warn`. Advisories are visible.
+
+The real limitation is **sampling**: the telemetry window is 1 day, so a gate that advises
+rarely may show 0 warn simply because it didn't fire in that day. Treat the telemetry `warn`
+column as **undersampled**, not as a floor-of-zero. The 13-day *block* history is the only
+multi-day signal here. Every candidate is therefore **demote-to-telemetry-and-monitor**, not
+**delete** — a ≥7-day (ideally 30-day) telemetry watch confirms before removal. No code change
+is needed to enable this; `STOP_TELEMETRY=1` already logs warns correctly.
 
 ## Tier 1 — strongest retire/demote candidates (quality class, ran ≥15×, never fired)
 

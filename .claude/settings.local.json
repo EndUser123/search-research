@@ -139,7 +139,9 @@
       "Bash(echo '  \"summary\":{\"total_findings\":10,\"critical\":3,\"high\":4,\"medium\":2,\"low\":1,')",
       "Bash(echo '    \"overall_assessment\":\"3C+4H I/O issues\"},')",
       "Bash(echo '  \"findings\":[')",
-      "Read(//p/packages/.claude-marketplace/plugins/cc-skills-utils/**)"
+      "Read(//p/packages/.claude-marketplace/plugins/cc-skills-utils/**)",
+      "Bash(mkdir -p \"P:/.claude/.artifacts/nlm-medium\")",
+      "Bash(nlm --version)"
     ],
     "deny": [],
     "ask": []
