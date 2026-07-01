@@ -263,6 +263,16 @@ function Format-QuotaReset {
     } catch { return "" }
 }
 
+# --- Helper: format a reset-by seconds-from-now countdown. opencode-go reports
+# resetInSec (a duration), not an absolute epoch, so no "· ddd HH:mm" tail.
+function Format-ResetInSec {
+    param([long]$Sec)
+    if (-not $Sec -or $Sec -le 0) { return "" }
+    if ($Sec -lt 3600)  { return "{0}m" -f [int][Math]::Floor($Sec / 60) }
+    if ($Sec -lt 86400) { return "{0}h {1}m" -f [int][Math]::Floor($Sec / 3600), [int][Math]::Floor(($Sec % 3600) / 60) }
+    return "{0}d {1}h" -f [int][Math]::Floor($Sec / 86400), [int][Math]::Floor(($Sec % 86400) / 3600)
+}
+
 # --- Helper: render one aligned usage window row (window | remaining | resets) ---
 function Format-UsageRow {
     param([string]$Window, [string]$Remaining, [string]$Reset)
@@ -381,8 +391,9 @@ if ($phaseCompactHook) { Write-Host "  compact-hook: requested (verify hook file
 else                   { Write-Host "  compact-hook: off" -ForegroundColor DarkGray }
 
 # --- Subscription usage (opt-in via -Usage). z.ai and MiniMax expose quota APIs
-# authenticated by the inference key itself; opencode-go has none (dashboard-only).
-# Mirrors -Test's opt-in pattern so normal launches pay zero extra latency.
+# authenticated by the inference key itself; opencode-go has no API, so its block
+# scrapes the workspace page with the browser `auth` cookie. Mirrors -Test's
+# opt-in pattern so normal launches pay zero extra latency.
 if ($Usage) {
     Write-Host ""
     Write-Host "Usage (remaining quota):" -ForegroundColor Cyan
@@ -431,7 +442,46 @@ if ($Usage) {
     } catch {
         Write-Host "  minimax         error: $($_.Exception.Message)" -ForegroundColor Yellow
     }
-    Write-Host "  opencode-go     (no API)  →  https://opencode.ai/workspace/wrk_01KRA5GPCFPQ4FZZ99809PXX9D/go" -ForegroundColor DarkGray
+    # opencode-go — no inference-key-scoped quota API. The workspace page itself
+    # embeds rollingUsage/weeklyUsage/monthlyUsage server-side (React stream);
+    # auth is the browser `auth` session cookie (Iron-sealed), NOT the chat key.
+    # Same scrape approach as the ridho9/opencode-go-usage plugin. The cookie is a
+    # full session credential → keep it ONLY in .env (gitignored).
+    try {
+        $ogWs     = $ccrEnvVars["OPENCODE_GO_WORKSPACE_ID"]
+        $ogCookie = $ccrEnvVars["OPENCODE_GO_AUTH_COOKIE"]
+        if (-not $ogWs -or -not $ogCookie) { throw "set OPENCODE_GO_WORKSPACE_ID + OPENCODE_GO_AUTH_COOKIE in .env" }
+        $ogHeaders = @{
+            "Cookie"     = "auth=$ogCookie"
+            "User-Agent" = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"
+            "Accept"     = "text/html,application/xhtml+xml,*/*;q=0.8"
+        }
+        $ogRes  = Invoke-WebRequest -Uri "https://opencode.ai/workspace/$ogWs/go" -Headers $ogHeaders -TimeoutSec 15 -UseBasicParsing -ErrorAction Stop
+        $ogHtml = $ogRes.Content
+        $ogRows = @()
+        foreach ($pair in @(
+            @{ Label = 'rolling'; Pat = 'rollingUsage:\$R\[\d+\]=(\{[^}]+\})' },
+            @{ Label = 'weekly';  Pat = 'weeklyUsage:\$R\[\d+\]=(\{[^}]+\})' },
+            @{ Label = 'monthly'; Pat = 'monthlyUsage:\$R\[\d+\]=(\{[^}]+\})' }
+        )) {
+            if ($ogHtml -match $pair.Pat) {
+                # JS object literal → JSON: quote the bare keys, then parse.
+                $lit = $Matches[1] -replace '(?<=[{,])\s*([A-Za-z_][A-Za-z0-9_]*)\s*:', '"$1":'
+                try {
+                    $obj   = $lit | ConvertFrom-Json
+                    $ogRows += Format-UsageRow $pair.Label ("{0}% used" -f [int]$obj.usagePercent) (Format-ResetInSec ([long]$obj.resetInSec))
+                } catch { $ogRows += Format-UsageRow $pair.Label "(parse failed)" "" }
+            }
+        }
+        if ($ogRows.Count -gt 0) {
+            Write-Host "  opencode-go      [go]" -ForegroundColor White
+            $ogRows | ForEach-Object { Write-Host $_ }
+        } else {
+            Write-Host "  opencode-go      (no usage data scraped — cookie expired or page layout changed)" -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Host "  opencode-go      error: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
     # Local LM Studio — reachability + which model is actually loaded. Catches the
     # case where the custom route points at a model LM Studio isn't serving.
     # NOTE: the local slot is routed by ccr-custom-router.js (CUSTOM_ROUTER_PATH),
