@@ -274,24 +274,35 @@ function Format-ResetInSec {
     return $cd.PadRight(8)
 }
 
-# --- Helper: write one aligned usage row with color-coded remaining column ---
+# --- Helper: draw a micro gauge bar like [████████░░] from 0-100 ---
+function Write-GaugeBar {
+    param([int]$Percent)
+    $filled = [Math]::Floor([Math]::Min(100, [Math]::Max(0, $Percent)) / 10)
+    $empty  = 10 - $filled
+    $barColor = if     ($Percent -gt 50) { 'Green' }
+                elseif ($Percent -ge 20) { 'Yellow' }
+                else                     { 'Red' }
+    Write-Host "[" -NoNewline
+    if ($filled -gt 0) { Write-Host ("█" * $filled) -NoNewline -ForegroundColor $barColor }
+    if ($empty -gt 0)  { Write-Host ("░" * $empty) -NoNewline -ForegroundColor DarkGray }
+    Write-Host "] " -NoNewline
+}
+
+# --- Helper: write one aligned usage row with color-coded gauge + remaining ---
 function Write-UsageRow {
     param([string]$Window, [string]$Remaining, [string]$Reset)
     $w = $Window.PadRight(15)
-    $r = $Remaining.PadRight(26)
+    $r = $Remaining.PadRight(22)
     $tail = if ($Reset) { "resets $Reset" } else { "" }
-    # Determine remaining-percentage for color: "X% left" = as-is, "X% used" = inverted
-    $color = if ($Remaining -match '(\d+)%\s*(left|used)') {
-        $pct = [int]$Matches[1]
-        if ($Matches[2] -eq 'used') { $pct = 100 - $pct }
-        if     ($pct -gt 50) { 'Green' }
-        elseif ($pct -ge 20) { 'Yellow' }
-        else                 { 'Red' }
+    $pct = if ($Remaining -match '(\d+)%\s*(left|used)') {
+        $p = [int]$Matches[1]
+        if ($Matches[2] -eq 'used') { 100 - $p } else { $p }
     } else { $null }
+    if ($null -ne $pct) { $color = if ($pct -gt 50) { 'Green' } elseif ($pct -ge 20) { 'Yellow' } else { 'Red' } }
     Write-Host "                  " -NoNewline
     Write-Host $w -NoNewline
-    if ($color) { Write-Host $r -NoNewline -ForegroundColor $color }
-    else        { Write-Host $r -NoNewline }
+    if ($null -ne $pct) { Write-GaugeBar $pct }
+    if ($color) { Write-Host $r -NoNewline -ForegroundColor $color } else { Write-Host $r -NoNewline }
     Write-Host $tail
 }
 
@@ -422,7 +433,7 @@ else                   { Write-Host "  compact-hook: off" -ForegroundColor DarkG
 if ($Usage) {
     Write-Host ""
     Write-Host "Usage (remaining quota):" -ForegroundColor Cyan
-    # z.ai / GLM Coding Plan — Authorization: <raw key>, NO Bearer
+    # ── z.ai / GLM Coding Plan ──
     try {
         $zaiKey = $ccrEnvVars["ZAI_API_KEY"]
         if (-not $zaiKey) { throw "ZAI_API_KEY missing in .env" }
@@ -447,7 +458,7 @@ if ($Usage) {
     } catch {
         Write-Host "  z.ai            error: $($_.Exception.Message)" -ForegroundColor Yellow
     }
-    # MiniMax Coding Plan — Authorization: Bearer <sk-cp key>
+    # ── MiniMax Coding Plan ──
     try {
         $mmKey = $ccrEnvVars["MINIMAX_API_KEY"]
         if (-not $mmKey) { throw "MINIMAX_API_KEY missing in .env" }
@@ -469,11 +480,8 @@ if ($Usage) {
     } catch {
         Write-Host "  minimax         error: $($_.Exception.Message)" -ForegroundColor Yellow
     }
-    # opencode-go — no inference-key-scoped quota API. The workspace page itself
-    # embeds rollingUsage/weeklyUsage/monthlyUsage server-side (React stream);
-    # auth is the browser `auth` session cookie (Iron-sealed), NOT the chat key.
-    # Same scrape approach as the ridho9/opencode-go-usage plugin. The cookie is a
-    # full session credential → keep it ONLY in .env (gitignored).
+    # ── opencode-go quota (scraped) ──
+    # Cookie-scraped from workspace page (no API). Only in .env.
     try {
         $ogWs     = $ccrEnvVars["OPENCODE_GO_WORKSPACE_ID"]
         $ogCookie = $ccrEnvVars["OPENCODE_GO_AUTH_COOKIE"]
@@ -503,7 +511,7 @@ if ($Usage) {
         if ($ogRows.Count -gt 0) {
             Write-Host "  opencode-go     [go]" -ForegroundColor White
             $ogRows | ForEach-Object {
-                $str = if ($_.Pct -ge 0) { "{0}% used" -f $_.Pct } else { "(parse failed)" }
+                $str = if ($_.Pct -ge 0) { "{0}% left" -f (100 - $_.Pct) } else { "(parse failed)" }
                 Write-UsageRow $_.Label $str $_.Reset
             }
         } else {
