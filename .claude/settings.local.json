@@ -143,11 +143,7 @@
       "Bash(mkdir -p \"P:/.claude/.artifacts/nlm-medium\")",
       "Bash(nlm --version)",
       "Bash(tasklist)",
-      "Bash(wmic baseboard *)",
-      "Bash(rm -f C:/Users/brsth/.claude/plugins/cache/local/cc-skills-sdlc/1.0.72/skills/go/scripts/preflight_propose.py)",
-      "Bash(rm -f C:/Users/brsth/.claude/plugins/cache/local/cc-skills-sdlc/1.0.72/skills/go/tests/test_orchestrate_dispatch.py.bak)",
-      "Bash(ls C:/Users/brsth/.claude/plugins/cache/local/cc-skills-sdlc/1.0.72/skills/go/scripts/preflight_propose.py)",
-      "Bash(grep -l 'preflight_only\\\\|PREFLIGHT_ONLY\\\\|preflight_propose' C:/Users/brsth/.claude/plugins/cache/local/cc-skills-sdlc/1.0.72/skills/go/scripts/orchestrate.py C:/Users/brsth/.claude/plugins/cache/local/cc-skills-sdlc/1.0.72/skills/go/tests/test_orchestrate_dispatch.py)"
+      "Bash(wmic baseboard *)"
     ],
     "deny": [],
     "ask": []
