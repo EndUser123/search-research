@@ -259,7 +259,7 @@ function Format-QuotaReset {
         $cd = if     ($totHr -ge 72) { "{0}d {1}h" -f [int][Math]::Floor($totHr/24), ($totHr % 24) }
               elseif ($totHr -ge 1)  { "{0}h {1}m" -f $totHr, $remaining.Minutes }
               else                   { "{0}m" -f [int][Math]::Floor($remaining.TotalMinutes) }
-        return "{0} · {1}" -f $cd, $reset.ToString("ddd HH:mm")
+        return "{0} · {1}" -f $cd.PadRight(8), $reset.ToString("ddd HH:mm")
     } catch { return "" }
 }
 
@@ -365,6 +365,15 @@ Write-Host "✓ Infrastructure Ready" -ForegroundColor Green
 Write-Host ""
 Write-Host "  CCR: $ccrUrl (PID $ccrPid)"
 Write-Host ""
+# --- Helper: format a CCR route string (provider1,model1,provider2,model2 → provider1/model1 → provider2/model2) ---
+function Format-Route { param([string]$s)
+    $parts = $s -split ','
+    $pairs = for ($i = 0; $i -lt $parts.Length; $i += 2) {
+        if ($i + 1 -lt $parts.Length) { "$($parts[$i])/$($parts[$i+1])" }
+        else { $parts[$i] }
+    }
+    $pairs -join " → "
+}
 Write-Host "Route configuration:"
 try {
     $ccrCfg = Get-Content $ccrConfigPath -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json
@@ -372,14 +381,14 @@ try {
     $sonnetDisplay = $ccrCfg.Router."claude-sonnet-4-6"
     $haikuDisplay  = $ccrCfg.Router."claude-haiku-4-5"
     $customDisplay = $ccrCfg.Router."claude-local-ornith"
-    Write-Host "  opus:   $opusDisplay"
-    Write-Host "  sonnet: $sonnetDisplay"
-    Write-Host "  haiku:  $haikuDisplay"
-    if ($customDisplay) { Write-Host "  custom: $customDisplay" }
+    Write-Host "  opus:   $(Format-Route $opusDisplay)"
+    Write-Host "  sonnet: $(Format-Route $sonnetDisplay)"
+    Write-Host "  haiku:  $(Format-Route $haikuDisplay)"
+    if ($customDisplay) { Write-Host "  custom: $(Format-Route $customDisplay)" }
 } catch {
-    Write-Host "  opus:   $actualOpus"
-    Write-Host "  sonnet: $actualSonnet"
-    Write-Host "  haiku:  $actualHaiku"
+    Write-Host "  opus:   $(Format-Route $actualOpus)"
+    Write-Host "  sonnet: $(Format-Route $actualSonnet)"
+    Write-Host "  haiku:  $(Format-Route $actualHaiku)"
 }
 Write-Host ""
 # --- Phase status banner ---
