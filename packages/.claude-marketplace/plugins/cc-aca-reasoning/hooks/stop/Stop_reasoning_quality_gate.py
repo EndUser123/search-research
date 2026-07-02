@@ -86,6 +86,21 @@ EVIDENCE_PRESENT_PATTERNS = [
     r"(?i)pytest\s+output",         # test output citation
 ]
 
+# Verified-claim patterns: explicit verification markers the model uses to
+# flag its own claims as confirmed. These deserve tool-bounded evidence.
+_VERIFIED_CLAIM_PATTERNS = [
+    r"\[VERIFIED\]",
+    r"\[CONFIRMED\]",
+    r"\[PROVEN\]",
+    r"(?i)\bI\s+(?:have\s+)?verified\s+",
+    r"(?i)\bI\s+(?:have\s+)?confirmed\s+(?:that\s+)?",
+    r"(?i)\bverified\s+(?:working|passed|fixed|tested)",
+    r"(?i)\bconfirmed\s+(?:working|passed|fixed|tested)",
+]
+
+# Tool names that count as evidence-gathering for verification claims.
+_EVIDENCE_TOOLS = {"Read", "Grep", "Glob", "Bash"}
+
 def detect_overconfidence_without_evidence(response: str) -> tuple[bool, str | None]:
     """Check for high-confidence claims without supporting evidence.
 
