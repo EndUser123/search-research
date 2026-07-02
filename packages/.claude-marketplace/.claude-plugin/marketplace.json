@@ -140,7 +140,7 @@
     },
     {
       "name": "quickstop",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "description": "Claude Code utilities: audit configs (claudit), auto-documentation (inkwell), and skill building (skillet)",
       "source": "./plugins/quickstop",
       "keywords": [
