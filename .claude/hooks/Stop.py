@@ -4574,12 +4574,20 @@ def _enrich_user_prompt(data: dict) -> None:
     gate that reads data["user_prompt"] (semantic critic, turn-mode flags,
     agreement gate, meta-analysis trap) sees the actual prompt instead of "".
     Fail-open: enrichment errors leave the payload unchanged.
+
+    Skipped on stop-hook continuations: there the latest transcript user entry
+    is the hook's synthetic feedback, not the user's prompt, so regen turns
+    keep the pre-enrichment behavior (empty prompt).
     """
     if data.get("user_prompt") or data.get("prompt"):
         return
+    if data.get("stop_hook_active"):
+        return
     try:
         from __lib.transcript_reader import get_latest_user_text
-        latest_user = get_latest_user_text(data)
+        # Tail-read: the latest user message lives at the end; transcripts
+        # grow unbounded and a full read would sit on every Stop's critical path.
+        latest_user = get_latest_user_text(data, tail_bytes=1_048_576)
         if latest_user:
             data["user_prompt"] = latest_user
     except Exception:

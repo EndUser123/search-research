@@ -15,13 +15,20 @@ from pathlib import Path
 from typing import Any
 
 
-def read_transcript(data: dict[str, Any]) -> list[dict[str, str]]:
+def read_transcript(
+    data: dict[str, Any], tail_bytes: int | None = None
+) -> list[dict[str, str]]:
     """Parse transcript_path JSONL into a flat list of entries.
 
     Each entry has:
         role: "user" | "assistant" | "system"
         type: "message" | "system-reminder" | "tool_result" | "tool_use"
         text: extracted text content (empty string if none found)
+
+    tail_bytes: when set and the file is larger, read only the trailing
+    tail_bytes (dropping the first partial line). Transcripts grow unbounded
+    (285MB observed on this machine); callers on a hook's critical path that
+    only need recent entries must not pay a full-file read.
     """
     transcript_path = data.get("transcript_path", "")
     if not transcript_path:
@@ -31,7 +38,14 @@ def read_transcript(data: dict[str, Any]) -> list[dict[str, str]]:
         path = Path(transcript_path)
         if not path.exists():
             return []
-        content = path.read_text(encoding="utf-8")
+        if tail_bytes is not None and path.stat().st_size > tail_bytes:
+            with open(path, "rb") as fh:
+                fh.seek(-tail_bytes, 2)
+                raw_tail = fh.read()
+            # Drop the first (almost certainly partial) line.
+            content = raw_tail.split(b"\n", 1)[-1].decode("utf-8", "replace")
+        else:
+            content = path.read_text(encoding="utf-8")
     except OSError:
         return []
 
@@ -47,11 +61,12 @@ def read_transcript(data: dict[str, Any]) -> list[dict[str, str]]:
 
         msg_type = raw.get("type", "")
         message = raw.get("message", raw)
+        if not isinstance(message, dict):
+            # Malformed entry; one bad line must not kill the whole parse.
+            continue
         # Real transcript entries carry role only in message.role (verified
         # against live session JSONL 2026-07-02); top-level role is absent.
-        role = raw.get("role", "")
-        if not role and isinstance(message, dict):
-            role = message.get("role", "")
+        role = raw.get("role", "") or message.get("role", "")
         message_content = message.get("content", raw.get("content", []))
 
         is_assistant = (
@@ -119,18 +134,20 @@ def read_transcript(data: dict[str, Any]) -> list[dict[str, str]]:
     return entries
 
 
-def get_user_messages(data: dict[str, Any]) -> list[str]:
+def get_user_messages(
+    data: dict[str, Any], tail_bytes: int | None = None
+) -> list[str]:
     """Return all real user message texts from transcript, in order."""
     return [
         e["text"]
-        for e in read_transcript(data)
+        for e in read_transcript(data, tail_bytes=tail_bytes)
         if e["role"] == "user" and e["type"] == "message" and e.get("text")
     ]
 
 
-def get_latest_user_text(data: dict[str, Any]) -> str:
+def get_latest_user_text(data: dict[str, Any], tail_bytes: int | None = None) -> str:
     """Return the most recent user message text, or empty string."""
-    messages = get_user_messages(data)
+    messages = get_user_messages(data, tail_bytes=tail_bytes)
     return messages[-1] if messages else ""
 
 

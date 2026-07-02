@@ -335,7 +335,13 @@ def get_conversational_context(transcript_path: Path | str | None) -> dict:
         # Exclude: "I mentioned /arch" (narrative mention — word immediately before slash)
         # The preceding-word check catches narrative refs like "mentioned /arch", "said /arch"
         narrative_triggers = {"mentioned", "said", "told", "referenced", "called", "named"}
-        skill_matches = re.findall(r'(?:^|[\s])/([' + ''.join(re.escape(k) for k in skill_patterns.keys()) + r']\w*)', content)
+        if skill_patterns:
+            skill_matches = re.findall(r'(?:^|[\s])/([' + ''.join(re.escape(k) for k in skill_patterns.keys()) + r']\w*)', content)
+        else:
+            # No skill_patterns configured (context_keywords.json absent) -> nothing to detect.
+            # Guard required: an empty pattern would build a `[]` character class, which
+            # Python 3.14 rejects (re.PatternError: unterminated character set).
+            skill_matches = []
         for match in skill_matches:
             slash_pos = content.find(f"/{match}")
             if slash_pos > 1:

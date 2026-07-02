@@ -87,6 +87,44 @@ def test_enrichment_fails_open_on_missing_transcript():
     assert "user_prompt" not in data
 
 
+def test_enrichment_skipped_on_stop_hook_continuation(tmp_path):
+    """Regen turns: the latest transcript user entry is hook feedback, not the
+    user's prompt — enrichment must preserve pre-fix behavior (no prompt)."""
+    data = _real_stop_payload(_write_fixture_transcript(tmp_path))
+    data["stop_hook_active"] = True
+    Stop._enrich_user_prompt(data)
+    assert "user_prompt" not in data
+
+
+def test_enrichment_tolerates_non_dict_message(tmp_path):
+    """A malformed entry with a string message must not crash the reader."""
+    p = tmp_path / "t.jsonl"
+    lines = [
+        {"type": "user", "message": "not a dict"},
+        {"type": "user", "message": {"role": "user", "content": [
+            {"type": "text", "text": USER_TEXT}]}},
+    ]
+    p.write_text("\n".join(json.dumps(x) for x in lines), encoding="utf-8")
+    data = _real_stop_payload(p)
+    Stop._enrich_user_prompt(data)
+    assert data.get("user_prompt") == USER_TEXT
+
+
+def test_tail_read_returns_latest_user_text_on_large_transcript(tmp_path):
+    """Transcripts grow unbounded (285MB observed); the enrichment tail-read
+    must still find the last user message without a full-file read."""
+    from __lib.transcript_reader import get_latest_user_text
+    p = tmp_path / "big.jsonl"
+    filler = {"type": "assistant", "message": {"role": "assistant", "content": [
+        {"type": "text", "text": "x" * 500}]}}
+    lines = [json.dumps(filler)] * 50
+    lines.append(json.dumps({"type": "user", "message": {"role": "user", "content": [
+        {"type": "text", "text": USER_TEXT}]}}))
+    p.write_text("\n".join(lines), encoding="utf-8")
+    # tail_bytes far smaller than the file forces the seek path
+    assert get_latest_user_text({"transcript_path": str(p)}, tail_bytes=2048) == USER_TEXT
+
+
 def test_semantic_critic_fallback_sees_enriched_prompt(tmp_path):
     """Integration invariant: the critic's extraction fallback
     (data.get("user_prompt", ...)) now yields the real prompt on the real
