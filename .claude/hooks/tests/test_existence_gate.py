@@ -368,20 +368,168 @@ class TestEdgeCases:
 
 
 class TestMultiEdit:
-    """Verify MultiEdit is handled (skipped or appropriate behavior)."""
+    """MultiEdit extracts paths from both tool_input.file_path and
+    tool_input.edits[].file_path, deduplicates, and enforces read-before-edit
+    on every touched file_path (telemetry-only by default; blocks when
+    EXISTENCE_GATE_BLOCK=1 is set in the env).
 
-    def test_multiedit_allows_for_now(self):
-        """MultiEdit is allowed for now (implementation note)."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            data = {
-                "tool_name": "MultiEdit",
-                "session_id": "test_session",
-                "tool_input": {"path": f"{tmpdir}/test.txt"},  # Simplified
-                "message": "edit multiple",
-            }
+    Invocation style mirrors test_existence_gate_repair.py — direct in-process
+    eg.run() call, with pytest.raises(SystemExit) for the block path
+    (which calls sys.exit(2)). Direct calls avoid the script-without-main
+    gap in PreToolUse_existence_gate.py (the file defines run() but has no
+    `if __name__ == "__main__":` block, so subprocess invocation does nothing).
+    """
 
-            result = run(data)
-            assert result is None  # Allow for now
+    def _make_file(self, tmp_path: Path, name: str = "f.py", body: str = "x = 1\n") -> Path:
+        p = tmp_path / name
+        p.write_text(body, encoding="utf-8")
+        return p
+
+    def _nested(self, session_id: str, **kw) -> dict:
+        """Real nested session payload shape."""
+        payload = {"session": {"id": session_id}}
+        payload.update(kw)
+        return payload
+
+    def _enable_block(self, monkeypatch):
+        """Flip the in-process constant to True by directly mutating the module
+        attribute (avoids importlib.reload, which would re-evaluate the
+        module's top-level `STATE_DIR = Path.home() / ".claude" / "state"` and
+        wipe any monkeypatched STATE_DIR)."""
+        import PreToolUse_existence_gate as eg
+        monkeypatch.setattr(eg, "_BLOCK_ENABLED", True)
+
+    def test_multiedit_top_level_file_path_blocks_when_not_read(self, monkeypatch, tmp_path):
+        """Top-level tool_input.file_path goes through the gate. With the block
+        flag set, the gate raises SystemExit(2) because the file was never read."""
+        self._enable_block(monkeypatch)
+        path = self._make_file(tmp_path)
+        import PreToolUse_existence_gate as eg
+
+        data = self._nested(
+            "multi-top-1",
+            tool_name="MultiEdit",
+            tool_input={"file_path": str(path)},
+            message="",
+        )
+        with pytest.raises(SystemExit) as exc_info:
+            eg.run(data)
+        assert exc_info.value.code == 2
+
+    def test_multiedit_top_level_file_path_allows_after_read(self, monkeypatch, tmp_path):
+        """Top-level file_path with a prior Read returns None (allow), even when
+        the block flag is set, because the read happened first."""
+        path = self._make_file(tmp_path)
+        # Point the sidecar at a temp dir so reads/blocks don't pollute real state.
+        import PreToolUse_existence_gate as eg
+        monkeypatch.setattr(eg, "STATE_DIR", tmp_path)
+
+        # Prior Read for the same session
+        eg.run_read_tracker(self._nested(
+            "multi-top-2",
+            tool_name="Read",
+            tool_input={"file_path": str(path)},
+            message="",
+        ))
+
+        self._enable_block(monkeypatch)
+        # MultiEdit on the same path with same session — must allow.
+        result = eg.run(self._nested(
+            "multi-top-2",
+            tool_name="MultiEdit",
+            tool_input={"file_path": str(path)},
+            message="",
+        ))
+        assert result is None
+
+    def test_multiedit_edits_array_blocks_all_files(self, monkeypatch, tmp_path):
+        """When edits[] carries per-edit file_paths, every unique path goes
+        through the gate. One unread path in the list should block all."""
+        path_a = self._make_file(tmp_path, "a.py")
+        path_b = self._make_file(tmp_path, "b.py")
+        import PreToolUse_existence_gate as eg
+        monkeypatch.setattr(eg, "STATE_DIR", tmp_path)
+
+        # Read only path_a
+        eg.run_read_tracker(self._nested(
+            "multi-edits-1",
+            tool_name="Read",
+            tool_input={"file_path": str(path_a)},
+            message="",
+        ))
+
+        self._enable_block(monkeypatch)
+        data = self._nested(
+            "multi-edits-1",
+            tool_name="MultiEdit",
+            tool_input={
+                "file_path": str(path_a),
+                "edits": [
+                    {"file_path": str(path_b), "old_text": "y", "new_text": "z"},
+                    {"file_path": str(path_a), "old_text": "x = 1", "new_text": "x = 2"},
+                ],
+            },
+            message="",
+        )
+        with pytest.raises(SystemExit) as exc_info:
+            eg.run(data)
+        assert exc_info.value.code == 2
+
+    def test_multiedit_mixed_paths_dedupes(self, monkeypatch, tmp_path):
+        """If edits[] contains the top-level file_path as one of its entries,
+        it is deduplicated and only checked once (no double-block, no error)."""
+        path = self._make_file(tmp_path)
+        import PreToolUse_existence_gate as eg
+        monkeypatch.setattr(eg, "STATE_DIR", tmp_path)
+        self._enable_block(monkeypatch)
+
+        data = self._nested(
+            "multi-dedup-1",
+            tool_name="MultiEdit",
+            tool_input={
+                "file_path": str(path),
+                "edits": [
+                    {"file_path": str(path)},
+                    {"file_path": str(path)},
+                ],
+            },
+            message="",
+        )
+        with pytest.raises(SystemExit) as exc_info:
+            eg.run(data)
+        assert exc_info.value.code == 2
+
+    def test_multiedit_missing_path_shape_fails_open(self, monkeypatch, tmp_path):
+        """No file_path, no edits → unrecognized shape → fail-open (return None),
+        block flag irrelevant. Mirrors Write/Edit no-file-path fail-open."""
+        import PreToolUse_existence_gate as eg
+        self._enable_block(monkeypatch)
+
+        data = self._nested(
+            "multi-no-1",
+            tool_name="MultiEdit",
+            tool_input={},
+            message="",
+        )
+        assert eg.run(data) is None
+
+    def test_multiedit_telemetry_only_default_allows_unread(self, monkeypatch, tmp_path):
+        """Without EXISTENCE_GATE_BLOCK=1, MultiEdit on an unread file does NOT
+        block — it returns None (allow) per the gate's telemetry-first design."""
+        path = self._make_file(tmp_path)
+        import PreToolUse_existence_gate as eg
+        monkeypatch.setattr(eg, "STATE_DIR", tmp_path)
+        # Force block OFF — direct attribute mutation (matches _enable_block),
+        # avoids importlib.reload which would reset STATE_DIR.
+        monkeypatch.setattr(eg, "_BLOCK_ENABLED", False)
+
+        data = self._nested(
+            "multi-telemetry-1",
+            tool_name="MultiEdit",
+            tool_input={"file_path": str(path)},
+            message="",
+        )
+        assert eg.run(data) is None
 
 
 # =============================================================================

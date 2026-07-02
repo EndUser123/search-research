@@ -905,6 +905,7 @@ TOOL_HOOKS = {
     ],
     "MultiEdit": [
         "PreToolUse_import_deletion_guard.py",
+        "PreToolUse_existence_gate.py",
         # Delegation and authority gates are owned elsewhere now.
     ],
     "Glob": [

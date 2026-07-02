@@ -114,12 +114,23 @@ def run(data: dict) -> dict | None:
 
     # Handle different tools
     if tool_name == "MultiEdit":
-        # MultiEdit has multiple file paths
-        # The tool_input format varies, so we need to handle it
+        # MultiEdit payload contract (verified from test_import_deletion_guard.py):
+        #   tool_input.file_path   — top-level path (when edits span a single file)
+        #   tool_input.edits[].file_path — per-edit path (when edits span multiple files)
         file_paths = []
         if isinstance(tool_input, dict):
-            # MultiEdit structure is complex, skip for now
-            return None
+            top_path = tool_input.get("file_path", "")
+            if top_path:
+                file_paths.append(top_path)
+            edits = tool_input.get("edits") or []
+            if isinstance(edits, list):
+                for edit in edits:
+                    if isinstance(edit, dict):
+                        p = edit.get("file_path", "")
+                        if p and p not in file_paths:
+                            file_paths.append(p)
+        if not file_paths:
+            return None  # unrecognized shape — fail-open, same posture as Write/Edit
     else:
         # Write and Edit have single file_path
         file_path = tool_input.get("file_path", "")
