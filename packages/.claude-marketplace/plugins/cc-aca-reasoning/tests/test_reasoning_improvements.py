@@ -4,6 +4,7 @@
 Covers:
 - PreToolUse_investigation_boundary_gate: investigation-to-implementation transition
 - Stop_reasoning_quality_gate._detect_reasoning_depth_mismatch: overthinking/underthinking
+- think_trigger: ULTRATHINK keyword binding + 4-lens profile routing
 """
 
 from __future__ import annotations
@@ -30,6 +31,10 @@ boundary_gate = _load_module(
 quality_gate = _load_module(
     "quality_gate",
     REASONING_ROOT / "hooks" / "stop" / "Stop_reasoning_quality_gate.py",
+)
+think_trigger = _load_module(
+    "think_trigger",
+    REASONING_ROOT / "hooks" / "userpromptsubmit" / "think_trigger.py",
 )
 
 
@@ -198,3 +203,62 @@ class TestEdgeCases:
         ]
         result = quality_gate._detect_reasoning_depth_mismatch(" ".join(["w"] * 300), history)
         assert isinstance(result, str | type(None))
+
+
+# ============================================================================
+# ULTRATHINK keyword binding + 4-lens profile routing (think_trigger)
+# ============================================================================
+
+
+class TestUltrathinkProfile:
+    """Verify the ULTRATHINK keyword is bound to the 4-lens 'ultrathink' profile.
+
+    Bug being fixed: before this change, `ULTRATHINK build a feature` silently
+    fell through to the 'quick' profile because the alias was not in the map.
+    """
+
+    def test_bare_ultrathink_routes_to_ultrathink_profile(self):
+        assert think_trigger._detect_profile("ULTRATHINK") == "ultrathink"
+
+    def test_ultrathink_with_task_preserves_remainder(self):
+        profile, remainder = think_trigger._parse_think("ULTRATHINK build a feature")
+        assert profile == "ultrathink"
+        assert "build a feature" in remainder
+
+    def test_lowercase_ultrathink_works(self):
+        assert think_trigger._detect_profile("ultrathink build X") == "ultrathink"
+
+    def test_mixed_case_ultrathink_works(self):
+        assert think_trigger._detect_profile("UltraThink mixed case") == "ultrathink"
+
+    def test_ultrathink_with_colon_works(self):
+        assert think_trigger._detect_profile("ULTRATHINK: build a thing") == "ultrathink"
+
+    def test_ultrathink_does_not_match_bare_think_path(self):
+        # \bTHINK\b must NOT match ULTRATHINK (word-boundary excludes it).
+        # Confirms the new branch in _detect_profile runs first, not the bare-THINK path.
+        import re
+        assert re.search(r"\bTHINK\b", "ULTRATHINK") is None
+
+    def test_think_ultrathink_alias_form_routes_to_ultrathink(self):
+        # Defensive: THINK <ALIAS> with alias=ultrathink must resolve to the profile.
+        profile, _ = think_trigger._parse_think("THINK ULTRATHINK do thing")
+        assert profile == "ultrathink"
+
+    def test_existing_think_architect_alias_still_works(self):
+        # Regression guard: existing THINK <ALIAS> behavior must be unchanged.
+        profile, _ = think_trigger._parse_think("THINK ARCH plan migration")
+        assert profile == "architecture"
+
+    def test_ultrathink_profile_registered_in_definitions(self):
+        # Frozen dataclass invariant: ultrathink must be in both _PROFILE_DEFINITIONS
+        # and _PROFILES, otherwise the __debug__ guard at module-load fires.
+        assert "ultrathink" in think_trigger._PROFILE_DEFINITIONS
+        assert "ultrathink" in think_trigger._PROFILES
+
+    def test_ultrathink_template_contains_four_lenses(self):
+        template = think_trigger._PROFILES["ultrathink"]
+        # All four King Mode lenses must appear in the template body.
+        for lens in ("PSYCHOLOGICAL", "TECHNICAL", "ACCESSIBILITY", "SCALABILITY"):
+            assert lens in template, f"Missing lens: {lens}"
+
