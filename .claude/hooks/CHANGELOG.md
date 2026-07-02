@@ -1,4 +1,10 @@
 
+### Added
+
+- .claude/context/RELIABILITY_2026_07_02_POST_MERGE.md
+- .claude/hooks/tests/test_stop_user_prompt_enrichment.py: new hook
+
+
 ### Removed
 
 - packages/.claude-marketplace/plugins/quickstop/agents/audit-ecosystem.md

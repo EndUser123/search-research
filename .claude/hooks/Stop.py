@@ -4566,6 +4566,26 @@ def _is_known_fixed_legacy(err_type: str, err_msg: str) -> bool:
     return False
 
 
+def _enrich_user_prompt(data: dict) -> None:
+    """Populate data["user_prompt"] from the transcript_path JSONL.
+
+    The real Stop payload has no user_prompt/prompt/transcript fields — user
+    text lives only in the transcript_path JSONL. Enrich once at entry so every
+    gate that reads data["user_prompt"] (semantic critic, turn-mode flags,
+    agreement gate, meta-analysis trap) sees the actual prompt instead of "".
+    Fail-open: enrichment errors leave the payload unchanged.
+    """
+    if data.get("user_prompt") or data.get("prompt"):
+        return
+    try:
+        from __lib.transcript_reader import get_latest_user_text
+        latest_user = get_latest_user_text(data)
+        if latest_user:
+            data["user_prompt"] = latest_user
+    except Exception:
+        pass
+
+
 def main():
     global _critical_gate_failed_this_turn, _policy_block_this_turn
     _critical_gate_failed_this_turn = False  # reset per turn
@@ -4601,6 +4621,8 @@ def main():
     # instead of response. Alias it here so they work without modification.
     if "output_text" not in data:
         data["output_text"] = data.get("response", "")
+
+    _enrich_user_prompt(data)
 
     _pin_scope_env(data)
 

@@ -45,9 +45,13 @@ def read_transcript(data: dict[str, Any]) -> list[dict[str, str]]:
         except json.JSONDecodeError:
             continue
 
-        role = raw.get("role", "")
         msg_type = raw.get("type", "")
         message = raw.get("message", raw)
+        # Real transcript entries carry role only in message.role (verified
+        # against live session JSONL 2026-07-02); top-level role is absent.
+        role = raw.get("role", "")
+        if not role and isinstance(message, dict):
+            role = message.get("role", "")
         message_content = message.get("content", raw.get("content", []))
 
         is_assistant = (
