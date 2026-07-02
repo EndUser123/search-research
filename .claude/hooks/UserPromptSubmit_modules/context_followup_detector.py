@@ -34,11 +34,11 @@ _KEYWORDS_PATH = Path(__file__).resolve().parent.parent.parent / "skills" / "con
 # NEGATIVE patterns indicate NEW topic (not a follow-up) - checked first
 NEGATIVE_PATTERNS = [
     re.compile(
-        r"^\s*What\s+about\s+[A-Z]", re.IGNORECASE
-    ),  # "What about Paris..." (capital = specific entity)
+        r"^\s*[Ww]hat\s+[Aa]bout\s+[A-Z]"
+    ),  # "What about Paris..." (capital = specific entity). NOT re.IGNORECASE: [A-Z] must stay case-sensitive, else lowercase words match and "what about the other hooks" is wrongly rejected as a new topic.
     re.compile(
-        r"^\s*How\s+about\s+", re.IGNORECASE
-    ),  # "How about we..." = suggestion for new topic
+        r"^\s*[Hh]ow\s+about\s+(?:we|I)\b"
+    ),  # "How about we/I..." = suggestion for new topic. Scoped to we/I (NOT re.IGNORECASE) so "how about the other approach" — which refers back — stays a follow-up instead of being rejected.
     re.compile(r"^\s*I\s+want\s+to\s+", re.IGNORECASE),  # "I want to..." = new task
     re.compile(r"^\s*I\s+need\s+to\s+", re.IGNORECASE),  # "I need to..." = new task
     re.compile(r"^\s*Can\s+you\s+", re.IGNORECASE),  # "Can you..." = new request
