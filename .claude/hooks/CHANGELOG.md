@@ -1,4 +1,19 @@
 
+### Removed
+
+- packages/.claude-marketplace/plugins/quickstop/agents/audit-ecosystem.md
+- packages/.claude-marketplace/plugins/quickstop/agents/audit-global.md
+- packages/.claude-marketplace/plugins/quickstop/agents/audit-project.md
+- packages/.claude-marketplace/plugins/quickstop/agents/research-core.md
+- packages/.claude-marketplace/plugins/quickstop/agents/research-ecosystem.md
+- packages/.claude-marketplace/plugins/quickstop/agents/research-optimization.md
+- packages/.claude-marketplace/plugins/quickstop/references/cache-check-protocol.md
+- packages/.claude-marketplace/plugins/quickstop/references/decision-memory-protocol.md
+- packages/.claude-marketplace/plugins/quickstop/skills/cks-status/SKILL.md
+- packages/.claude-marketplace/plugins/quickstop/skills/knowledge/SKILL.md
+- packages/.claude-marketplace/plugins/quickstop/skills/refresh/SKILL.md
+
+
 ### Added
 
 - .claude/hooks/analysis/stop_gate_retirement_candidates_20260701.md: new hook
