@@ -98,3 +98,35 @@ gates absent from `GATE_CLASSES` — classify them before any pass.
 2. Land the advisory-visibility fix so side-channel advisories become countable.
 3. Watch 30 days. Any gate still at zero warn+block → remove (with `git mv`, per repo rule).
 4. Re-run this join monthly; it is cheap and self-updating.
+
+## Addendum 2026-07-01 (evening): dead plugin dispatch trees (pi audit, spot-verified)
+
+pi/MiniMax-M3 liveness audit of 15 files emitting invalid `{"decision":"approve"}`
+(CORRECTION 2026-07-01 late: that grep was truncated at head_limit=15 — the full
+count is 82 files. All 6 registered entry points are now verified/fixed: skill-guard
+2.1.34, cc-aca-epistemic 0.2.70, cc-aca-observability 0.1.22, snapshot 0.5.25,
+cc-model-router clean. The remaining ~74 files are unregistered-or-internal and fold
+into the July 8 liveness triage — do NOT fix before liveness check.);
+Claude spot-verified the settings.json registration claims (only cc-aca-epistemic
+L227/L307 + cc-aca-observability are registered among cc-aca plugins; all plugin
+hooks.json are `{"hooks":{}}`).
+
+DEAD (no dispatch path — retirement candidates, delete needs per-item approval):
+- cc-aca-authority/__lib/router.py + hooks/pretool/PreToolUse_authorization_gate.py
+- cc-aca-sdlc/__lib/router.py
+- cc-aca-reasoning/__lib/router.py
+- cc-aca-safety/__lib/router.py + hooks/pretool/PreToolUse_ownership_colocation_gate.py
+- cc-aca-investigation/__lib/router.py + hooks/pretool/PreToolUse_arch_first_enforcer.py
+- cc-skills-analysis/skills/gto/hooks/common.py (+ sibling gto hook files, all unregistered)
+- skill-guard: skill_forced_eval.py, StopHook_skill_execution_gate.py (from morning sweep)
+
+FIXED 2026-07-01 (live files, approve→{}): skill-guard 2.1.34 (3 events),
+cc-aca-epistemic 0.2.70 (router fallback + PreToolUse_investigation_gate).
+Inert approve strings remain in in-process Stop gates (never printed) and in
+unregistered __main__ paths (perf_attribution L303, deletion_guard L793) — clean
+up only if those files survive retirement.
+
+NOTE: cc-aca-safety/PreToolUse_ownership_colocation_gate DEAD contradicts
+hooks/CLAUDE.md which documents it as active — but a local copy exists at
+P:/.claude/hooks/PreToolUse_ownership_colocation_gate.py (dispatched via local
+PreToolUse.py); verify which is canonical before deleting either.

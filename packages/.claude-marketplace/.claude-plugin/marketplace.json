@@ -86,7 +86,7 @@
     },
     {
       "name": "skill-guard",
-      "version": "2.1.32",
+      "version": "2.1.34",
       "description": "Universal skill auto-discovery and enforcement for Claude Code",
       "source": "./plugins/skill-guard",
       "keywords": [
@@ -120,7 +120,7 @@
     },
     {
       "name": "cc-skills-analysis",
-      "version": "1.0.43",
+      "version": "1.0.45",
       "description": "Analysis plugin",
       "source": "./plugins/cc-skills-analysis",
       "keywords": []

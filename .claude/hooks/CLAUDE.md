@@ -1728,12 +1728,17 @@ After Stop hooks ingest to CKS (corrections, decisions), they send an advisory `
 
 ### Hook Output Formats
 
-| Event            | Output Format                         |
-| ---------------- | ------------------------------------- |
-| UserPromptSubmit | Raw text (injected into context)      |
-| PreToolUse       | `{"continue": bool, "reason": "..."}` |
-| PostToolUse      | `{"warning": "..."}` or `{}`          |
-| Stop             | `{"allow": bool, "reason": "..."}`    |
+**Allow = emit `{}` (or nothing).** `{"decision": "approve"}`, `{"allow": true}`, and
+`{"continue": true}` are NOT valid schema for any event — "approve" on Stop causes
+"JSON validation failed" (see memory `stop_hook_output_schema`). This table was wrong
+until 2026-07-01 and the invalid shapes were copy-pasted into 15+ plugin hooks from it.
+
+| Event            | Block                                              | Allow / advisory                                                                 |
+| ---------------- | -------------------------------------------------- | -------------------------------------------------------------------------------- |
+| UserPromptSubmit | `{"decision": "block", "reason": "..."}`           | `{}`; inject context via raw stdout text or `{"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": "..."}}` |
+| PreToolUse       | `{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "..."}}` (legacy `decision: block` deprecated — reason not shown to model) | `{}` or `permissionDecision: "allow"/"ask"` |
+| PostToolUse      | `{"decision": "block", "reason": "..."}` (feeds reason back to model) | `{}` or `{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": "..."}}` |
+| Stop             | `{"decision": "block", "reason": "..."}` (forces continuation) | `{}`; since CC 2.1.186 `{"hookSpecificOutput": {"hookEventName": "Stop", "additionalContext": "..."}}` gives the MODEL feedback without blocking — prefer this over `systemMessage` (user-facing only) for advisories |
 
 > **Reference:** See `PROTOCOL.md` for complete specifications.
 
