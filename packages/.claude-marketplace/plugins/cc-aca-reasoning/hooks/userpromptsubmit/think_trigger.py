@@ -743,6 +743,12 @@ def _parse_think(prompt: str) -> tuple[str | None, str]:
     if not stripped:
         return None, ""
 
+    # ULTRATHINK is a depth trigger, not a profile selector — its whole body
+    # is the task, so it routes directly to the "ultrathink" profile.
+    ultra_match = _ULTRATHINK_PREFIX_RE.match(stripped)
+    if ultra_match:
+        return "ultrathink", (ultra_match.group("remainder") or "").strip()
+
     match = _THINK_PREFIX_RE.match(stripped)
     if not match:
         return None, prompt
