@@ -1,6 +1,6 @@
 ---
 name: crawl
-description: |
+description: Ingest websites into QMD wiki collections for semantic search via /search and /explore. Crawls with crawl4ai, dedupes by SHA256, injects [[wikilinks]] to related pages, logs to log.md, and rebuilds the qmd index. Use when adding web docs or articles to the searchable vault.
 ---
 # Crawl-Ingest
 

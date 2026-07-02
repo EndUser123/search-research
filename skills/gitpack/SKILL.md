@@ -1,6 +1,6 @@
 ---
 name: gitpack
-description: >
+description: Pack a Python directory into compact LLM-context files using only stdlib AST parsing — deterministic, no external deps. Emits <name>_sig.md (signatures + indexes) and <name>_full.md (+ full source appendix) to .claude/.artifacts/. Use when preparing a focused code context for an LLM.
 ---
 # /gitpack - LLM-Ready Code Packer
 
