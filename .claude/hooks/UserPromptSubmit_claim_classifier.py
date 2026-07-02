@@ -18,7 +18,9 @@ _EPISTEMIC_LIB = Path("P:/packages/.claude-marketplace/plugins/cc-aca-epistemic/
 if str(_EPISTEMIC_LIB) not in sys.path:
     sys.path.insert(0, str(_EPISTEMIC_LIB))
 
-# State files go to the global hooks dir so claim_type.py can read them
+# State files resolve via the shared state_paths contract (terminal-scoped) so
+# claim_type.py reads from the same out-of-tree location. See memory:
+# plugin_state_log_contract.
 _HOOKS_DIR = Path(__file__).resolve().parent  # P:/.claude/hooks/
 
 
@@ -28,10 +30,20 @@ def _safe_id(value: str | None) -> str:
     return re.sub(r"[^a-zA-Z0-9_.-]+", "_", value)
 
 
+def _terminal_state_path(terminal_id: str, filename: str) -> Path:
+    """Resolve a terminal-scoped state path via state_paths, with legacy fallback."""
+    try:
+        sys.path.insert(0, str(_HOOKS_DIR / "__lib"))
+        from state_paths import get_terminal_state_path  # type: ignore[import-not-found]
+        return get_terminal_state_path(terminal_id, filename)
+    except Exception:
+        state_dir = _HOOKS_DIR / ".state"
+        state_dir.mkdir(parents=True, exist_ok=True)
+        return state_dir / filename
+
+
 def _get_claim_type_path(terminal_id: str) -> Path:
-    state_dir = _HOOKS_DIR / ".state"
-    state_dir.mkdir(parents=True, exist_ok=True)
-    return state_dir / f"claim_type_{_safe_id(terminal_id)}.json"
+    return _terminal_state_path(terminal_id, f"claim_type_{_safe_id(terminal_id)}.json")
 
 
 def _run(context):

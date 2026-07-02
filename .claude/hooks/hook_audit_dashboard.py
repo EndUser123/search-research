@@ -40,6 +40,16 @@ sys.path.insert(0, str(HOOKS_DIR))
 from cc_diagnostic_logger import query_hook_invocations
 
 
+def _resolve_telemetry_path(hooks_dir: Path) -> Path:
+    """Resolve telemetry path via shared state_paths contract (state lives outside code tree)."""
+    try:
+        sys.path.insert(0, str(hooks_dir / "__lib"))
+        from state_paths import SHARED_DIR  # type: ignore[import-not-found]
+        return SHARED_DIR / "stop_gate_telemetry.jsonl"
+    except Exception:
+        return hooks_dir / ".state" / "stop_gate_telemetry.jsonl"
+
+
 def get_current_terminal_id() -> str:
     """Get current terminal ID for filtering."""
     try:
@@ -666,7 +676,7 @@ def loop_fix(days: int, terminal_filter: str = None, show_all: bool = False):
     print(f"Period: Last {days} days")
     print()
 
-    telemetry_path = HOOKS_DIR / ".state" / "stop_gate_telemetry.jsonl"
+    telemetry_path = _resolve_telemetry_path(HOOKS_DIR)
     epistemic_path = HOOKS_DIR / "logs" / "diagnostics" / "epistemic_telemetry.jsonl"
     unverified_path = HOOKS_DIR / "logs" / "diagnostics" / "unverified_stance_decisions.jsonl"
 

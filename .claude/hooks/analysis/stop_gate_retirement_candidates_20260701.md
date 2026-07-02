@@ -9,8 +9,16 @@ still needs per-gate confirmation.
 
 | Source | Window | Rows | What it proves |
 |--------|--------|------|----------------|
-| `logs/diagnostics/stop_blocks.jsonl` | 2026-06-18 → 07-01 (13 days) | 149 blocks / 13 gates | Which gates actually **blocked** |
-| `.state/stop_gate_telemetry.jsonl` (+rotated) | **2026-07-01 only — 1 day** | 579 events / 37 gates | Per-gate **decision** distribution (allow/warn/block) |
+| `logs/diagnostics/stop_blocks.jsonl` | 2026-06-18 → 07-02 (15 days) | 163 blocks / 12 gates | Which gates actually **blocked** |
+| `.claude/state/shared/stop_gate_telemetry.jsonl` (+rotated) | **2026-07-02 only — 1 day** | 494 events / 37 gates | Per-gate **decision** distribution (allow/warn/block) |
+
+> **PATH NOTE (2026-07-02):** telemetry was relocated out of the code tree
+> (`hooks/.state/`) to the external shared-state contract
+> (`P:/.claude/state/shared/`, via `__lib/state_paths.SHARED_DIR`). Three
+> consumers now resolve via `state_paths`: `__lib/stop_gate_telemetry.py`,
+> `monitor.py`, `hook_audit_dashboard.py`. The prior in-tree path was the
+> recurring source of "wrong path" false claims in the original session —
+> readers must use `state_paths.SHARED_DIR`, never hardcode `hooks/.state/`.
 
 > **DATA-WINDOW WARNING (added after cross-review):** the telemetry column is a SINGLE
 > day. Only the `stop_blocks.jsonl` **block** column spans 13 days. Therefore the Tier-1

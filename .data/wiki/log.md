@@ -1490,3 +1490,18 @@ File: concepts/coding-plan-quota-apis.md
 Source: chat-session 2026-06-30
 SHA256: d900f4e02bf213e32fa85fe25b6658922d52d1aeb88677e4880ded91cc734fc1
 File: concepts/cdp-google-oauth-automation-block.md
+
+## [2026-07-01] ingest | llama.cpp CUDA Build for Blackwell RTX 5070 (sm_120)
+Source: session-wiki-ingest-2026-07-01
+SHA256: newly-created-2026-07-01
+File: concepts/llama-cpp-blackwell-build.md
+
+## [2026-07-01] ingest | llama.cpp --cpu-moe MoE Expert Offloading
+Source: session-wiki-ingest-2026-07-01
+SHA256: newly-created-2026-07-01
+File: concepts/llama-cpp-moe-cpu-offload.md
+
+## [2026-07-01] ingest | Local LLM System RAM Exhaustion on 64GB Windows 11
+Source: session-wiki-ingest-2026-07-01
+SHA256: newly-created-2026-07-01
+File: concepts/local-llm-system-ram-impact.md

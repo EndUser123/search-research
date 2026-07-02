@@ -21,7 +21,19 @@ except ImportError:
 
 
 HOOKS_DIR = Path(__file__).resolve().parent
-TELEMETRY_FILE = HOOKS_DIR / ".state" / "stop_gate_telemetry.jsonl"
+
+
+def _resolve_telemetry_file() -> Path:
+    """Resolve telemetry path via shared state_paths contract (state lives outside code tree)."""
+    try:
+        sys.path.insert(0, str(HOOKS_DIR / "__lib"))
+        from state_paths import SHARED_DIR  # type: ignore[import-not-found]
+        return SHARED_DIR / "stop_gate_telemetry.jsonl"
+    except Exception:
+        return HOOKS_DIR / ".state" / "stop_gate_telemetry.jsonl"
+
+
+TELEMETRY_FILE = _resolve_telemetry_file()
 ARTIFACTS_BASE = Path(os.environ.get("CLAUDE_ARTIFACTS_DIR", str(HOOKS_DIR.parent / ".artifacts")))
 
 

@@ -6,7 +6,7 @@ wired: false (off by default)
 review: TBD
 
 Usage:
-    STOP_TELEMETRY=1  # Enable telemetry to .state/stop_gate_telemetry.jsonl
+    STOP_TELEMETRY=1  # Enable telemetry to .claude/state/shared/stop_gate_telemetry.jsonl
 
 Log format (one JSON object per line):
     {
@@ -40,7 +40,23 @@ from pathlib import Path
 from typing import Any
 
 _TELEMETRY_ENABLED = os.environ.get("STOP_TELEMETRY", "0") not in {"0", "false", "no", "off"}
-_STATE_DIR = Path(__file__).resolve().parent.parent / ".state"
+
+
+def _resolve_state_dir() -> Path:
+    """Resolve telemetry state dir via the shared state_paths contract.
+
+    Falls back to the legacy in-tree ``hooks/.state/`` only if state_paths cannot
+    be imported (keeps the hook running even under partial-install/test pathing).
+    State must live outside the code tree — see memory: plugin_state_log_contract.
+    """
+    try:
+        from state_paths import SHARED_DIR  # type: ignore[import-not-found]
+        return SHARED_DIR
+    except Exception:
+        return Path(__file__).resolve().parent.parent / ".state"
+
+
+_STATE_DIR = _resolve_state_dir()
 _LOG_FILE = _STATE_DIR / "stop_gate_telemetry.jsonl"
 
 # Rotation defaults

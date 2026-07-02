@@ -142,7 +142,8 @@
       "Read(//p/packages/.claude-marketplace/plugins/cc-skills-utils/**)",
       "Bash(mkdir -p \"P:/.claude/.artifacts/nlm-medium\")",
       "Bash(nlm --version)",
-      "Bash(tasklist)"
+      "Bash(tasklist)",
+      "Bash(wmic baseboard *)"
     ],
     "deny": [],
     "ask": []
