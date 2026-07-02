@@ -7,11 +7,61 @@ but wasn't read.
 Bypass: Add --allow-overwrite to your message to override.
 
 State tracking: .claude/state/read_files_{session_id}.json
+
+Repair 2026-07-02: session_id is delivered nested under data["session"]["id"],
+not top-level. Two prior bugs made this gate silently inert in production:
+  (1) run()/run_read_tracker() read data.get("session_id") which is empty in the
+      real payload -> early-returned None every time.
+  (2) run_read_tracker was never wired into PostToolUse -> sidecar never written,
+      so even with session_id fixed the read set was always empty.
+Fix: use pre_tool_use_logic.resolve_session_id (checks nested first), and wire
+run_read_tracker inline in PostToolUse.py main() (the registry skips Read).
+
+Rollout: telemetry-only by default. Detect logs an event and ALLOWS. To flip to
+hard blocking once telemetry shows acceptable FP rate, set EXISTENCE_GATE_BLOCK=1.
 """
 
 import json
+import os
 import sys
 from pathlib import Path
+
+try:
+    from __lib.pre_tool_use_logic import resolve_session_id
+except Exception:  # pragma: no cover - fallback keeps hook runnable
+    def resolve_session_id(data: dict | None = None) -> str:  # type: ignore[no-redef]
+        payload = data or {}
+        session_obj = payload.get("session")
+        if isinstance(session_obj, dict):
+            for key in ("id", "session_id", "sessionId"):
+                value = session_obj.get(key)
+                if isinstance(value, str) and value.strip():
+                    return value.strip()
+        for key in ("session_id", "sessionId", "CLAUDE_SESSION_ID"):
+            value = payload.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        return os.environ.get("CLAUDE_SESSION_ID", "").strip()
+
+
+def _telemetry(event: str, session_id: str, decision: str, extra: dict | None = None) -> None:
+    """Log a reliability event. Fail-open; never disrupts the hook."""
+    try:
+        from __lib.agentic_reliability_telemetry import log_event
+
+        log_event(
+            category="read_before_edit",
+            event=event,
+            gate="existence_gate",
+            session_id=session_id or None,
+            decision=decision,
+            extra=extra,
+        )
+    except Exception:
+        pass
+
+
+_BLOCK_ENABLED = os.environ.get("EXISTENCE_GATE_BLOCK", "0") not in {"0", "false", "no", "off"}
 
 # Session state directory
 STATE_DIR = Path.home() / ".claude" / "state"
@@ -54,8 +104,8 @@ def run(data: dict) -> dict | None:
     if tool_name not in ("Write", "Edit", "MultiEdit"):
         return None
 
-    # Extract session_id from data
-    session_id = data.get("session_id", "")
+    # Extract session_id — real payload nests it under data["session"]["id"].
+    session_id = resolve_session_id(data)
     if not session_id:
         return None  # Can't track without session_id
 
@@ -93,6 +143,17 @@ def run(data: dict) -> dict | None:
                 blocked_files.append(file_path)
 
     if blocked_files:
+        # Telemetry-first: log the detect and (by default) ALLOW. Block path is
+        # gated behind EXISTENCE_GATE_BLOCK until telemetry proves low FP rate.
+        _telemetry(
+            "missing_read",
+            session_id,
+            "block" if _BLOCK_ENABLED else "telemetry",
+            extra={"files": blocked_files, "tool": tool_name, "block_enabled": _BLOCK_ENABLED},
+        )
+        if not _BLOCK_ENABLED:
+            return None  # allow — telemetry only
+
         print(
             f"\n⛔ EXISTENCE CHECK REQUIRED\n\n",
             file=sys.stderr
@@ -139,7 +200,7 @@ def run_read_tracker(data: dict) -> dict | None:
     if tool_name != "Read":
         return None
 
-    session_id = data.get("session_id", "")
+    session_id = resolve_session_id(data)
     if not session_id:
         return None
 
@@ -149,4 +210,5 @@ def run_read_tracker(data: dict) -> dict | None:
         return None
 
     _record_read_file(session_id, file_path)
+    _telemetry("sidecar_write", session_id, "allow", extra={"file": file_path})
     return None
