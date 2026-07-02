@@ -118,7 +118,7 @@
     },
     {
       "name": "cc-skills-thinking",
-      "version": "1.0.12",
+      "version": "1.0.13",
       "description": "Thinking plugin",
       "source": "./plugins/cc-skills-thinking",
       "keywords": []
