@@ -180,6 +180,10 @@ HOOK_CONTENT_FILTERS: dict[str, list[str]] = {
 _SKILL_FIRST_ALLOWED = {"Skill", "AskUserQuestion", "TodoWrite", "Read", "Grep", "Glob"}
 _SKILL_FIRST_MODES = {"off", "monitor", "soft_block", "hard_block", "read_only"}
 _SKILL_FIRST_LOG = HOOKS_DIR / "logs" / "skill_first_enforcement.jsonl"
+
+# ponytail: bleed-diagnostic probe — logs only when a pending intent is FOUND
+# (the cross-terminal-bleed suspect event). Zero IO on the common no-intent path.
+_SKILL_FIRST_INTENT_READ_PROBE = HOOKS_DIR / "logs" / "diagnostics" / "skill_first_intent_reads.jsonl"
 _STALE_TERMINAL_INTENT_SECONDS = 15 * 60
 # Hard TTL: intent files older than this are discarded unconditionally.
 # Covers crash/force-kill where SessionEnd never fires, and abandoned slash commands.
@@ -672,6 +676,26 @@ def _check_skill_first_gate(data: dict) -> dict | None:
     lookup = IntentFileLookup(state_dir, fallback_dir)
     intent_file, _format_desc = lookup.find(terminal_id, session_id)
 
+    # ponytail: bleed-diagnostic — capture identity + resolved intent path whenever a
+    # pending intent is found. Lets the next cross-terminal false-block self-document
+    # whose intent file this terminal read (path's <tid> vs this terminal_id).
+    if intent_file is not None:
+        try:
+            _SKILL_FIRST_INTENT_READ_PROBE.parent.mkdir(parents=True, exist_ok=True)
+            with _SKILL_FIRST_INTENT_READ_PROBE.open("a", encoding="utf-8") as _pf:
+                _pf.write(json.dumps({
+                    "ts": datetime.now().isoformat(timespec="milliseconds"),
+                    "pid": os.getpid(),
+                    "tool": data.get("tool_name", ""),
+                    "session_id": session_id or "",
+                    "terminal_id_raw": terminal_id or "",
+                    "safe_terminal": safe_terminal,
+                    "resolved_path": str(intent_file),
+                    "format": _format_desc,
+                }, ensure_ascii=False) + "\n")
+        except Exception:
+            pass  # probe must never break the gate
+
     if not intent_file:
         return None
 
@@ -866,6 +890,7 @@ TOOL_HOOKS = {
         "recursive_failure_detector.py",
         "PreToolUse_settings_backup.py",
         "PreToolUse_permission_pair_validator.py",
+        "PreToolUse_search_before_create.py",
         # Delegation and authority gates are owned elsewhere now.
     ],
     "Edit": [

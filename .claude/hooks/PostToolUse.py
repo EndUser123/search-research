@@ -175,6 +175,16 @@ def main():
         except Exception as e:
             logger.debug(f"read_tracker error: {e}")
 
+    # 0c. Search-before-create sidecar: record Grep/Glob so the search_before_create
+    # telemetry probe can tell whether discovery preceded a new-helper Write.
+    if tool_name in ("Grep", "Glob"):
+        try:
+            from PreToolUse_search_before_create import run_search_tracker
+
+            run_search_tracker(data)
+        except Exception as e:
+            logger.debug(f"search_tracker error: {e}")
+
     # 0. Skill-first gate: clear pending intent when Skill() is called
     if tool_name == "Skill":
         _clear_pending_skill_intent(data)
