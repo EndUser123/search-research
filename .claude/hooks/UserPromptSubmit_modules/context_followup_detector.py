@@ -76,70 +76,62 @@ OPTIMIZATION_FOLLOWUP_PATTERNS = [
 _FOLLOWUP_CONTEXT_TTL_SECONDS = 4 * 60 * 60
 
 
-def _get_terminal_id(data: dict) -> str:
-    """Resolve terminal_id from data or environment."""
-    terminal_id = (
-        data.get("terminal_id")
-        or data.get("terminalId")
-        or os.environ.get("CLAUDE_TERMINAL_ID")
-        or ""
-    )
-    return str(terminal_id).strip() if terminal_id else ""
+def _session_key(session_id: str | None, transcript_path: str | None) -> str | None:
+    """Filename-safe per-session key for the follow-up state file.
 
-
-def _normalize_terminal_id(terminal_id: str) -> str:
-    """Normalize terminal_id for state file path, with cross-prefix fallback.
-
-    If terminal_id starts with 'env_' and state file not found, retry with 'console_'.
-    If starts with 'console_' and not found, retry with 'env_'.
+    The isolation boundary is the Claude Code SESSION, not the terminal:
+    terminal_id is derived from WT_SESSION, which is shared across concurrent
+    sessions opened in one Windows Terminal — that bled one session's prior
+    context into another's prompt (verified in ups_execution_trace.jsonl: three
+    distinct session_ids all sharing one terminal_id). session_id is unique per
+    Claude session; if it is absent, fall back to the session UUID parsed from
+    transcript_path (also per-session). Returns None when neither is available
+    so the caller skips load/save entirely instead of collapsing to a shared key.
     """
-    if not terminal_id:
-        return "unknown"
-    return re.sub(r"[^a-zA-Z0-9_.-]+", "_", terminal_id)
+    raw = session_id.strip() if isinstance(session_id, str) else ""
+    if not raw and transcript_path:
+        m = re.match(
+            r"([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})",
+            Path(str(transcript_path)).stem,
+        )
+        if m:
+            raw = m.group(1)
+    if not raw:
+        return None
+    return re.sub(r"[^a-zA-Z0-9_.-]+", "_", raw)
 
 
-def _get_state_file_path(terminal_id: str) -> Path:
+def _get_state_file_path(key: str) -> Path:
     """Get absolute state file path using __file__ resolution."""
-    return _STATE_DIR / f"followup_context_{terminal_id}.json"
+    return _STATE_DIR / f"followup_context_{key}.json"
 
 
-def _load_prior_context(terminal_id: str) -> dict | None:
-    """Load prior context from state file with cross-prefix fallback.
+def _load_prior_context(key: str) -> dict | None:
+    """Load prior context from this session's state file.
 
-    Returns None if file missing or corrupted (fail-open).
+    Returns None if the file is missing, corrupted, or older than the TTL
+    (fail-open). Keyed by session_id, so there is no cross-session read.
     """
-    normalized = _normalize_terminal_id(terminal_id)
-    state_file = _get_state_file_path(normalized)
-
-    # Cross-prefix fallback: try alternate prefix if primary not found
-    if not state_file.exists():
-        if normalized.startswith("env_"):
-            alt_normalized = "console_" + normalized[4:]
-        elif normalized.startswith("console_"):
-            alt_normalized = "env_" + normalized[7:]
-        else:
-            alt_normalized = None
-
-        if alt_normalized:
-            alt_path = _get_state_file_path(alt_normalized)
-            if alt_path.exists():
-                state_file = alt_path
-
+    state_file = _get_state_file_path(key)
     if not state_file.exists():
         return None
 
     try:
         with open(state_file, encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
     except (json.JSONDecodeError, OSError):
-        # Corrupted or unreadable - fail-open, proceed as standalone
+        return None  # Corrupted or unreadable - fail-open
+
+    # Stale prior context must not attach to fresh work.
+    ts = data.get("timestamp") if isinstance(data, dict) else None
+    if isinstance(ts, (int, float)) and (time.time() - ts) > _FOLLOWUP_CONTEXT_TTL_SECONDS:
         return None
+    return data
 
 
-def _save_prior_context(terminal_id: str, context: dict) -> None:
+def _save_prior_context(key: str, context: dict) -> None:
     """Save context to state file atomically via temp file + os.replace()."""
-    normalized = _normalize_terminal_id(terminal_id)
-    state_file = _get_state_file_path(normalized)
+    state_file = _get_state_file_path(key)
 
     try:
         state_file.parent.mkdir(parents=True, exist_ok=True)
@@ -431,18 +423,21 @@ def process_prompt(context: HookContext) -> HookResult:
     if not prompt:
         return HookResult.empty()
 
-    terminal_id = _get_terminal_id(context.data.get("raw_input", {}))
-    if not terminal_id:
+    # Key prior context by Claude SESSION, not terminal: terminal_id (WT_SESSION)
+    # is shared across concurrent sessions in one Windows Terminal, which bled
+    # one session's context into another. session_id is unique per session.
+    transcript_path = (
+        context.data.get("transcript_path") if isinstance(context.data, dict) else None
+    )
+    session_key = _session_key(context.session_id, transcript_path)
+    if not session_key:
         return HookResult.empty()
-
-    # Get transcript path from input_data
-    transcript_path = context.data.get("transcript_path")
 
     # Extract conversational context from transcript
     conv_context = get_conversational_context(transcript_path)
 
     # Load prior context first (needed for topic-change detection)
-    prior_context = _load_prior_context(terminal_id)
+    prior_context = _load_prior_context(session_key)
 
     # Detect follow-up query (pass prior_context for topic-change detection)
     is_followup, _ = _is_followup_query(prompt, prior_context)
@@ -451,7 +446,7 @@ def process_prompt(context: HookContext) -> HookResult:
     enhanced_prompt = _inject_conversational_context(prompt, conv_context)
 
     if is_followup and prior_context:
-        # Also inject prior terminal context
+        # Also inject prior session context
         enhanced_prompt = _inject_prior_context(enhanced_prompt, prior_context)
 
     # Save current prompt as context for future follow-ups
@@ -462,7 +457,7 @@ def process_prompt(context: HookContext) -> HookResult:
             "summary": prompt[:200],
             "timestamp": time.time(),
         }
-        _save_prior_context(terminal_id, context_data)
+        _save_prior_context(session_key, context_data)
 
     # Return empty if no context was added (preserve original prompt)
     if enhanced_prompt == prompt:
