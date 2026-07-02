@@ -12,6 +12,7 @@ Verifies:
 """
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -220,6 +221,7 @@ class TestHookBlocks:
                 ],
                 capture_output=True,
                 text=True,
+                env={**os.environ, "EXISTENCE_GATE_BLOCK": "1"},
             )
 
             assert result.returncode == 2  # Blocked
@@ -252,6 +254,7 @@ class TestHookBlocks:
                 ],
                 capture_output=True,
                 text=True,
+                env={**os.environ, "EXISTENCE_GATE_BLOCK": "1"},
             )
 
             assert result.returncode == 2  # Blocked
@@ -301,6 +304,7 @@ class TestSessionIsolation:
                     ],
                     capture_output=True,
                     text=True,
+                    env={**os.environ, "EXISTENCE_GATE_BLOCK": "1"},
                 )
 
                 assert result.returncode == 2  # Blocked

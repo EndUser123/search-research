@@ -164,6 +164,17 @@ def main():
         print(json.dumps(registry_result))
         sys.exit(0)
 
+    # 0b. Read-before-edit sidecar: record Read so PreToolUse_existence_gate can
+    # enforce discovery-before-edit. The registry above intentionally skips Read,
+    # so the tracker must run inline here. Fail-isolated — never blocks the hook.
+    if tool_name == "Read":
+        try:
+            from PreToolUse_existence_gate import run_read_tracker
+
+            run_read_tracker(data)
+        except Exception as e:
+            logger.debug(f"read_tracker error: {e}")
+
     # 0. Skill-first gate: clear pending intent when Skill() is called
     if tool_name == "Skill":
         _clear_pending_skill_intent(data)
