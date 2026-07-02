@@ -55,20 +55,27 @@ type CheckResult = tuple[bool, str]
 
 def _normalize_stdout(data: dict) -> dict:
     """Normalize hook output to Claude Code Zod-valid schema."""
+    def _allow() -> dict:
+        # ponytail: "approve" is invalid/legacy schema; on allow emit {} but
+        # keep any additionalContext (see hooks/CLAUDE.md Hook Output Formats).
+        out: dict = {}
+        if data.get('additionalContext'):
+            out['additionalContext'] = data['additionalContext']
+        return out
     if data.get('decision') == 'allow':
-        return {'decision': 'approve'}
+        return _allow()
     if data.get('decision') == 'block':
         return {'decision': 'block', 'reason': data.get('reason', '')}
     if 'allow' in data:
         if data['allow'] is False:
             return {'decision': 'block', 'reason': data.get('reason', '')}
-        return {'decision': 'approve'}
+        return _allow()
     if 'continue' in data:
         if data['continue'] is False:
             return {'decision': 'block', 'reason': data.get('reason', '')}
-        return {'decision': 'approve'}
+        return _allow()
     if 'ok' in data:
-        return {'decision': 'approve'}
+        return _allow()
     return data
 
 
@@ -1374,7 +1381,7 @@ if __name__ == "__main__":
             sys.exit(2)  # Block
 
         # Output explicit approval JSON (Claude Code requires this)
-        output = {"decision": "approve", "reason": "Investigation gate passed"}
+        output = {}
         print(json.dumps(_normalize_stdout(output)))
         sys.exit(0)  # Allow
 
@@ -1396,7 +1403,7 @@ if __name__ == "__main__":
             record_fault("PreToolUse", "investigation_gate", err_msg)
         except Exception:
             pass  # alarm failure must never become a new fault source
-        print(json.dumps({"decision": "approve", "reason": "investigation_gate: parse error, fail-open"}))
+        print(json.dumps({}))
         sys.exit(0)
     except Exception as e:
         # Fail OPEN with alarm: a runtime crash in the gate is NOT an intentional
@@ -1414,5 +1421,5 @@ if __name__ == "__main__":
             record_fault("PreToolUse", "investigation_gate", err_msg)
         except Exception:
             pass
-        print(json.dumps({"decision": "approve", "reason": "investigation_gate: runtime error, fail-open"}))
+        print(json.dumps({}))
         sys.exit(0)

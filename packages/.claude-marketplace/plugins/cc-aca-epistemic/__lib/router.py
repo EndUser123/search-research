@@ -124,7 +124,7 @@ def main() -> None:
             pass  # Fail open
 
     # All hooks passed
-    print(json.dumps({"decision": "approve"}))
+    print(json.dumps({}))
 
 
 if __name__ == "__main__":
