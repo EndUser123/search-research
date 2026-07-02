@@ -268,19 +268,35 @@ function Format-QuotaReset {
 function Format-ResetInSec {
     param([long]$Sec)
     if (-not $Sec -or $Sec -le 0) { return "" }
-    if ($Sec -lt 3600)  { return "{0}m" -f [int][Math]::Floor($Sec / 60) }
-    if ($Sec -lt 86400) { return "{0}h {1}m" -f [int][Math]::Floor($Sec / 3600), [int][Math]::Floor(($Sec % 3600) / 60) }
-    return "{0}d {1}h" -f [int][Math]::Floor($Sec / 86400), [int][Math]::Floor(($Sec % 86400) / 3600)
+    $cd = if     ($Sec -lt 3600)  { "{0}m" -f [int][Math]::Floor($Sec / 60) }
+          elseif ($Sec -lt 86400) { "{0}h {1}m" -f [int][Math]::Floor($Sec / 3600), [int][Math]::Floor(($Sec % 3600) / 60) }
+          else                    { "{0}d {1}h" -f [int][Math]::Floor($Sec / 86400), [int][Math]::Floor(($Sec % 86400) / 3600) }
+    return $cd.PadRight(8)
 }
 
-# --- Helper: render one aligned usage window row (window | remaining | resets) ---
-function Format-UsageRow {
+# --- Helper: write one aligned usage row with color-coded remaining column ---
+function Write-UsageRow {
     param([string]$Window, [string]$Remaining, [string]$Reset)
     $w = $Window.PadRight(15)
     $r = $Remaining.PadRight(26)
     $tail = if ($Reset) { "resets $Reset" } else { "" }
-    return "                  $w$r$tail"
+    # Determine remaining-percentage for color: "X% left" = as-is, "X% used" = inverted
+    $color = if ($Remaining -match '(\d+)%\s*(left|used)') {
+        $pct = [int]$Matches[1]
+        if ($Matches[2] -eq 'used') { $pct = 100 - $pct }
+        if     ($pct -gt 50) { 'Green' }
+        elseif ($pct -ge 20) { 'Yellow' }
+        else                 { 'Red' }
+    } else { $null }
+    Write-Host "                  " -NoNewline
+    Write-Host $w -NoNewline
+    if ($color) { Write-Host $r -NoNewline -ForegroundColor $color }
+    else        { Write-Host $r -NoNewline }
+    Write-Host $tail
 }
+
+# --- Helper: draw a thin separator between provider sections ---
+function Write-SectionSep { Write-Host "  ───────────────────────────────────────────────────" -ForegroundColor DarkGray }
 
 # --- Start CCR if not already running (Headroom needs upstream) ---
 $ccrRunning = $false
@@ -425,8 +441,9 @@ if ($Usage) {
         $mcpStr   = if ($mcpLimit) { "$(100 - [int]$mcpLimit.percentage)% left ($($mcpLimit.currentValue)/$($mcpLimit.usage))" } else { "n/a" }
         $mcpReset = if ($mcpLimit -and $mcpLimit.nextResetTime) { Format-QuotaReset ([long]$mcpLimit.nextResetTime) } else { "" }
         Write-Host "  z.ai            [$level]" -ForegroundColor White
-        Write-Host (Format-UsageRow "tokens 5h" $tokStr $tokReset)
-        Write-Host (Format-UsageRow "MCP month"  $mcpStr $mcpReset)
+        Write-UsageRow "tokens 5h" $tokStr $tokReset
+        Write-UsageRow "MCP month"  $mcpStr $mcpReset
+        Write-SectionSep
     } catch {
         Write-Host "  z.ai            error: $($_.Exception.Message)" -ForegroundColor Yellow
     }
@@ -443,8 +460,9 @@ if ($Usage) {
             $wStr   = "$($g.current_weekly_remaining_percent)% left"
             $wReset = if ($g.weekly_end_time) { Format-QuotaReset ([long]$g.weekly_end_time) } else { "" }
             Write-Host "  minimax         [general]" -ForegroundColor White
-            Write-Host (Format-UsageRow "interval" $iStr $iReset)
-            Write-Host (Format-UsageRow "weekly"   $wStr $wReset)
+            Write-UsageRow "interval" $iStr $iReset
+            Write-UsageRow "weekly"   $wStr $wReset
+            Write-SectionSep
         } else {
             Write-Host "  minimax         [general]  (no 'general' entry in response)" -ForegroundColor Yellow
         }
@@ -478,13 +496,16 @@ if ($Usage) {
                 $lit = $Matches[1] -replace '(?<=[{,])\s*([A-Za-z_][A-Za-z0-9_]*)\s*:', '"$1":'
                 try {
                     $obj   = $lit | ConvertFrom-Json
-                    $ogRows += Format-UsageRow $pair.Label ("{0}% used" -f [int]$obj.usagePercent) (Format-ResetInSec ([long]$obj.resetInSec))
-                } catch { $ogRows += Format-UsageRow $pair.Label "(parse failed)" "" }
+                    $ogRows += @{ Label = $pair.Label; Pct = [int]$obj.usagePercent; Reset = Format-ResetInSec ([long]$obj.resetInSec) }
+                } catch { $ogRows += @{ Label = $pair.Label; Pct = -1; Reset = "(parse failed)" } }
             }
         }
         if ($ogRows.Count -gt 0) {
             Write-Host "  opencode-go     [go]" -ForegroundColor White
-            $ogRows | ForEach-Object { Write-Host $_ }
+            $ogRows | ForEach-Object {
+                $str = if ($_.Pct -ge 0) { "{0}% used" -f $_.Pct } else { "(parse failed)" }
+                Write-UsageRow $_.Label $str $_.Reset
+            }
         } else {
             Write-Host "  opencode-go     (no usage data scraped — cookie expired or page layout changed)" -ForegroundColor Yellow
         }
