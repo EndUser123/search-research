@@ -202,7 +202,7 @@
     },
     {
       "name": "cc-aca-reasoning",
-      "version": "0.1.16",
+      "version": "0.1.18",
       "description": "ACA Reasoning plugin - sequential thinking, cognitive enhancement, reasoning mode selection, reflection triggers, drift detection, and reasoning quality gates.",
       "source": "./plugins/cc-aca-reasoning",
       "keywords": [
