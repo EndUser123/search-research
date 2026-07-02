@@ -1,5 +1,6 @@
 ---
 name: probe
+description: Performance/run-data hypothesis engine — turns ambiguous gaps into ranked, testable hypotheses via quantile analysis, cross-correlated attribution, parallel-efficiency computation, and LLM-judge failure clustering. Reads RUN_INDEX.json and benchmark metrics. Use when something is slow or unexplained and you can't pinpoint where, or when "I don't know what I don't know about this data."
 version: 1.2.0
 status: stable
 category: meta

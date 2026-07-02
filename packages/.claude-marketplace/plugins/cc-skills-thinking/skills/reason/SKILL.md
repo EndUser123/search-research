@@ -1,5 +1,6 @@
 ---
 name: reason
+description: Unified reasoning engine — routes by epistemic state (your confidence level), blending internal Reflexion (Generate→Critique→Improve) with external multi-LLM challenge via bf_agent. Routes to local_only / single_challenger / parallel_challengers / human_review. Use for the strongest analysis when confidence is low, something feels off, or an answer seems too neat. Replaces /think, /reason_ppx, /reason_grok, /reason_openai.
 version: 2.2.0
 status: stable
 category: meta

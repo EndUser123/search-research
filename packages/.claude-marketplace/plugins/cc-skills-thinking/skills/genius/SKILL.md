@@ -1,5 +1,6 @@
 ---
 name: genius
+description: Strategic thought partner — maps the problem before committing, challenges your premises, draws cross-domain analogies (physics/biology/economics/systems), and surfaces what you haven't considered. Use for high-stakes framing, creative reframes, or when you suspect you're solving the wrong problem. Not a reasoning engine; an opinionated senior colleague who'll tell you your premise is wrong.
 version: 1.1.0
 status: stable
 category: meta
