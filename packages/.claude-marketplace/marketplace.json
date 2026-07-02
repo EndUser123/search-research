@@ -32,7 +32,7 @@
     {
       "name": "skill-creator",
       "version": "1.0.0",
-      "description": "LOCAL FORK of Anthropic's skill-creator — eval-driven skill authoring loop. Forked so customizations survive upstream updates. See FORK_RATIONALE.md.",
+      "description": "LOCAL FORK of Anthropic's skill-creator \u2014 eval-driven skill authoring loop. Forked so customizations survive upstream updates. See FORK_RATIONALE.md.",
       "source": "./plugins/skill-creator",
       "keywords": [
         "skill",
@@ -65,7 +65,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.71",
+      "version": "1.0.72",
       "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
