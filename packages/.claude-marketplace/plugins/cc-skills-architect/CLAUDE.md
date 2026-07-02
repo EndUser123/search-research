@@ -19,8 +19,6 @@ Tools used to grow and maintain the skill ecosystem.
 
 | Skill | Purpose | Home |
 |-------|---------|------|
-| /skill-creator| Standardized skill creation (Subscription-first) | `skill-creator/` |
-| /skill-craft | Advanced auditing and Mermaid generation | `skill-craft/` |
 | /skill-to-page | Generates HTML documentation from SKILL.md | `skill-to-page/` |
 | /write-a-skill | Quick-start skill authoring workflow | `write-a-skill/` |
 | doc-compiler | Multi-module documentation aggregator | `doc-compiler/` |
@@ -29,6 +27,8 @@ Tools used to grow and maintain the skill ecosystem.
 | usm | Master skill/plugin coordinator | `usm/` |
 | garden | Knowledge cleanup and pattern pruning | `garden/` |
 | evolve | Modernization and technical debt refactoring | `evolve/` |
+
+**Note on `/skill-creator`:** The skill body was removed in favor of Anthropic's canonical `skill-creator@claude-plugins-official`. The local fork of helper scripts remains under `scripts/skill_creator/` (eval runner, description optimizer, sync_check for upstream drift, etc.) and is invoked directly via the script paths — not via a slash command.
 
 ### 3. Implementation Planning
 Advanced logic for high-stakes technical sessions.
