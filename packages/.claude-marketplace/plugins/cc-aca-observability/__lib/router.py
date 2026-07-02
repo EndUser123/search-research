@@ -102,7 +102,8 @@ def main() -> None:
         except Exception:
             pass
 
-    print(json.dumps({"decision": "approve"}))
+    # ponytail: "approve" is invalid schema; on allow emit {} (see hooks/CLAUDE.md)
+    print(json.dumps({}))
 
 
 if __name__ == "__main__":
