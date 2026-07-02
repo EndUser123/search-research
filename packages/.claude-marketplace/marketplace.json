@@ -30,6 +30,18 @@
       ]
     },
     {
+      "name": "skill-creator",
+      "version": "1.0.0",
+      "description": "LOCAL FORK of Anthropic's skill-creator — eval-driven skill authoring loop. Forked so customizations survive upstream updates. See FORK_RATIONALE.md.",
+      "source": "./plugins/skill-creator",
+      "keywords": [
+        "skill",
+        "creator",
+        "eval",
+        "fork"
+      ]
+    },
+    {
       "name": "cc-skills-ai-api",
       "version": "1.0.9",
       "description": "AI API integration skills for Claude Code",
