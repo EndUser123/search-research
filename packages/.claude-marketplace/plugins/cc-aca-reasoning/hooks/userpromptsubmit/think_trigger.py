@@ -82,8 +82,16 @@ class ThinkProfile:
 
 # Regex to strip inline code spans before keyword matching
 _CODE_SPAN_RE = re.compile(r"`[^`]+`")
+# Matches "THINK <ALIAS> <remainder>" (alias optional, e.g. "THINK ARCH plan migration").
 _THINK_PREFIX_RE = re.compile(
     r"^\s*THINK(?:\s+(?P<alias>[A-Z][A-Z0-9_-]*))?(?:\s*:\s*|\s+)?(?P<remainder>.*)$",
+    re.IGNORECASE,
+)
+# Matches "ULTRATHINK <remainder>" (no alias — the whole post-keyword text is the task).
+# ULTRATHINK is a depth trigger, not a profile selector; consuming the next word as an
+# alias would eat the user's task (e.g. "ULTRATHINK build a feature" would lose "build").
+_ULTRATHINK_PREFIX_RE = re.compile(
+    r"^\s*ULTRATHINK\b\s*:?\s*(?P<remainder>.*)$",
     re.IGNORECASE,
 )
 
@@ -441,6 +449,12 @@ Big-O analysis:
         strong_patterns=[],
         weak_patterns=None,
     ),
+    "ultrathink": ThinkProfile(
+        name="ultrathink",
+        template="",  # Filled inline in _PROFILES below (longer than the dataclass default).
+        strong_patterns=[],
+        weak_patterns=None,
+    ),
     "quick": ThinkProfile(
         name="quick",
         template="""\
@@ -511,6 +525,7 @@ _PROFILE_ALIASES: dict[str, str] = {
     "confirm": "evidence_audit",
     "validate": "evidence_audit",
     "quick": "quick",
+    "ultrathink": "ultrathink",  # alias form: "THINK ULTRATHINK ..." or "THINK ultrathink ..."
     "why": "debug_rca",
     "debug": "debug_rca",
     "rca": "debug_rca",
@@ -581,6 +596,11 @@ def _detect_profile(
     explicit_profile, _ = _parse_think(prompt)
     if explicit_profile is not None:
         return explicit_profile
+
+    # ULTRATHINK trigger — depth mode, 4-lens analysis.
+    # \bTHINK\b below does NOT match ULTRATHINK (word boundary), so this branch is exclusive.
+    if _ULTRATHINK_PREFIX_RE.match(prompt):
+        return "ultrathink"
 
     # Uppercase THINK keyword — intentional explicit reasoning request (case-sensitive)
     if re.search(r"\bTHINK\b", prompt):
@@ -683,6 +703,38 @@ Use this for an explicit but lightweight THINK prompt.
 1. Restate the problem in one sentence
 2. Identify the smallest safe next step
 3. Ask at most one clarifying question if needed""",
+    "ultrathink": """\
+THINK PROFILE: ULTRATHINK (4-LENS MULTI-DIMENSIONAL ANALYSIS)
+
+Override Zero Fluff. Suspend brevity rules. Reason exhaustively across ALL four lenses below
+— do not stop at the first plausible answer. If reasoning feels easy, dig deeper until the
+logic is irrefutable.
+
+Apply these four lenses to the task, in order:
+
+1. PSYCHOLOGICAL — User intent, sentiment, cognitive load, friction points. Who is the user,
+   what do they actually need vs. what they asked for, what mental model do they have,
+   what would confuse them, what would delight them?
+
+2. TECHNICAL — Rendering performance, repaint/reflow, state complexity, edge cases, failure
+   modes. What's the algorithmic cost? What breaks under load? What are the silent
+   assumptions? What does the smallest correct implementation look like?
+
+3. ACCESSIBILITY (WCAG AAA strictness) — Perceivable, operable, understandable, robust.
+   Color contrast, keyboard navigation, screen reader semantics, motion sensitivity,
+   cognitive accessibility, focus management. Would this work for someone using assistive
+   technology? At 200% zoom?
+
+4. SCALABILITY — Long-term maintenance, modularity, future change cost. How does this age?
+   What coupling is being introduced? Can it be replaced without rewriting? Does it
+   constrain future options? What does the codebase look like in 6 months?
+
+Discipline:
+- NEVER use surface-level logic. If a conclusion feels obvious, you haven't started.
+- Surface the assumption under each lens. Mark each as [VERIFIED] or [ASSUMED].
+- State what evidence would falsify your conclusion under each lens.
+- For trivial changes (one-line edits, renames) — ULTRATHINK is overkill. Use plain THINK.
+  The depth-ratchet only applies to substantive tasks.""",
 }
 
 def _parse_think(prompt: str) -> tuple[str | None, str]:
