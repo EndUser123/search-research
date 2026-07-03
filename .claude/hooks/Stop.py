@@ -173,6 +173,7 @@ from Stop_artifact_enforcement import run as _run_artifact_enforcement
 # approval_gate, commit_gate deleted 2026-06-18 — orphaned post plugin->in-process
 # migration (router unwired) and redundant with the live PreToolUse authority/git guards.
 from Stop_subagent_opportunity import run as _run_subagent_opportunity
+from Stop_claim_gap_telemetry_probe import run as _run_claim_gap_telemetry_probe
 
 # Referent coverage (Stop advisory) removed 2026-05-10.
 # Lexical anchor-matching is not a reliable proxy for task completion.
@@ -3464,6 +3465,10 @@ GATE_CLASSES: dict[str, str] = {
     "meta_analysis_trap": "quality",
     # Phase 4: External judge evaluation — DISABLED (no actionable value)
     # "external_judge": "quality",
+    # Telemetry-only probe (never blocks, never warns). Classified as "observability"
+    # so it is not subject to policy/quality arbitration logic; run() returns {}
+    # unconditionally, so the result path is a no-op regardless of class.
+    "claim_gap_telemetry_probe": "observability",
 }
 
 # === Phase 1+2: Gate Metadata Registry ===
@@ -3980,6 +3985,17 @@ GATE_METADATA: dict[str, dict] = {
         "required_artifact_classes": frozenset(),
         "rollout_mode": RolloutMode.ADVISORY,
     },
+    # Claim/validation gap telemetry probe. Always allow (returns {}); emits to
+    # the existing agentic_reliability_telemetry sink. Trivial-suppressible=False
+    # ensures it fires on every turn (telemetry only — no enforcement).
+    "claim_gap_telemetry_probe": {
+        "class": "observability", "trivial_suppressible": False, "priority": 99,
+        "description": "Claim/validation gap telemetry (telemetry-only, never blocks)",
+        "relevant_turn_kinds": _ALL_TURN_KINDS,
+        "relevant_claim_kinds": _ALL_CLAIM_KINDS,
+        "required_artifact_classes": frozenset(),
+        "rollout_mode": RolloutMode.DISABLED,
+    },
 }
 
 # Policy block arbitration: when multiple policy gates block, use priority ordering.
@@ -4068,6 +4084,9 @@ IN_PROCESS_GATES = [
     ("cjk_drift_detector", _run_cjk_drift_detector),
     ("subagent_opportunity", _run_subagent_opportunity),  # Advisory for delegation opportunities
     ("clear_referent_anchors", _clear_referent_anchors),  # Single-turn lifecycle: clear anchors at end of turn
+    # Claim/validation gap telemetry probe (telemetry-only, never blocks).
+    # run() returns {} unconditionally; emitting to agentic_reliability_telemetry.jsonl.
+    ("claim_gap_telemetry_probe", _run_claim_gap_telemetry_probe),
 ]
 
 # Non-Blocking Side Effects (still subprocess for isolation)

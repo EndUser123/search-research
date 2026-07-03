@@ -266,14 +266,13 @@ function Format-QuotaReset {
 }
 
 # --- Helper: format a reset-by seconds-from-now countdown. opencode-go reports
-# resetInSec (a duration), not an absolute epoch, so no "· ddd HH:mm" tail.
+# resetInSec (a duration), not an absolute epoch. Convert to epoch-ms by adding
+# "now" so the display matches z.ai/minimax ("Xd Yh · ddd HH:mm").
 function Format-ResetInSec {
     param([long]$Sec)
     if (-not $Sec -or $Sec -le 0) { return "" }
-    $cd = if     ($Sec -lt 3600)  { "{0}m" -f [int][Math]::Floor($Sec / 60) }
-          elseif ($Sec -lt 86400) { "{0}h {1}m" -f [int][Math]::Floor($Sec / 3600), [int][Math]::Floor(($Sec % 3600) / 60) }
-          else                    { "{0}d {1}h" -f [int][Math]::Floor($Sec / 86400), [int][Math]::Floor(($Sec % 86400) / 3600) }
-    return $cd.PadRight(8)
+    $epochMs = [long]((Get-Date).ToUniversalTime() - [DateTime]::new(1970,1,1,0,0,0,[DateTimeKind]::Utc)).TotalMilliseconds + ($Sec * 1000)
+    return Format-QuotaReset $epochMs
 }
 
 # --- Helper: draw a micro gauge bar like [████████░░] from 0-100 ---

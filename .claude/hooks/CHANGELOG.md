@@ -1,6 +1,11 @@
 
 ### Added
 
+- .claude/hooks/tests/test_claim_gap_telemetry_probe.py: new hook
+
+
+### Added
+
 - .claude/context/RELIABILITY_2026_07_02_POST_MERGE.md
 - .claude/hooks/tests/test_stop_user_prompt_enrichment.py: new hook
 
