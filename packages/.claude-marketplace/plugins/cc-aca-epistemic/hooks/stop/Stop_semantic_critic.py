@@ -76,44 +76,36 @@ SEMANTIC_CRITIC_URL: str = os.environ.get(
 SEMANTIC_CRITIC_KEY_ENV: str = os.environ.get("SEMANTIC_CRITIC_KEY_ENV", "Z_AI_API_KEY")
 SEMANTIC_CRITIC_MAX_TOKENS: int = int(os.environ.get("SEMANTIC_CRITIC_MAX_TOKENS", "8192"))
 
-# --- Coherent hook-wide LLM budget (TWO sequential Mistral gates share one hook)
+# --- Coherent hook-wide LLM budget (veridical + critic run in PARALLEL)
 # This Stop hook is hard-killed by Claude Code at STOP_HOOK_TIMEOUT_SEC. When the
 # veridical gate is enabled (VERIDICAL_GATE_ENABLED=1, which it is in this env),
-# TWO reasoning-LLM gates run SEQUENTIALLY on the hook and their wall times ADD:
-#   (1) veridical_gate -> one Mistral call (runs FIRST, in run())
+# TWO LLM gates share the hook, now on one executor so wall time = MAX, not sum:
+#   (1) veridical_gate -> one Mistral call
 #   (2) this critic    -> z.ai + Mistral IN PARALLEL (+2s join overhead)
-# The earlier single-gate clamp ignored (1): the veridical call's own 15s default
-# alone exceeded the 10s outer, so a Mistral outage — the exact trigger for the
-# subagent fallback — could hard-kill the subprocess in the veridical call before
-# BACKENDS_UNAVAILABLE -> delegation ever ran, defeating the gate on its own
-# trigger condition.
-#
-# Fix: derive BOTH gate budgets from the single outer timeout and guarantee
-#   veridical_budget + critic_overall + local_margin <= STOP_HOOK_TIMEOUT_SEC
+# Both budgets derive from the single outer timeout with the invariant
+#   max(veridical_budget, critic_overall) + local_margin <= STOP_HOOK_TIMEOUT_SEC
 # for ANY outer value. A budget MISS is safe: call_semantic_critic_via_bifrost
 # returns BACKENDS_UNAVAILABLE and run() delegates to a review subagent in the
 # (untimed) continuation turn. So these values only trade fast-path latency vs
 # how often we delegate — never correctness. To give the LLMs a wider fast-path
 # (rarer delegation), raise STOP_HOOK_TIMEOUT_SEC *and* the settings.json Stop
 # "timeout" together; the split below auto-scales.
+# Measured latencies (probe 2026-07-03): mistral-medium-latest ~1s (no
+# reasoning), glm-5.2 ~5s — both fit the 6s slice this yields at outer=10.
 STOP_HOOK_TIMEOUT_SEC: int = int(os.environ.get("STOP_HOOK_TIMEOUT_SEC", "10"))
 _LOCAL_GATE_MARGIN_SEC: int = 2     # non-LLM gate work + safety before the hard kill
 _CRITIC_JOIN_OVERHEAD_SEC: int = 2  # ThreadPoolExecutor as_completed join slack
-# Wall budget shared by the two sequential LLM gates, then the splittable pool
-# after reserving the critic's parallel-join overhead.
-_SEQ_LLM_BUDGET: int = max(0, STOP_HOOK_TIMEOUT_SEC - _LOCAL_GATE_MARGIN_SEC)
-_SPLITTABLE_SEC: int = max(0, _SEQ_LLM_BUDGET - _CRITIC_JOIN_OVERHEAD_SEC)
-# Veridical gets the smaller share (secondary gate); the critic gets the rest.
-VERIDICAL_BUDGET_SEC: int = max(1, _SPLITTABLE_SEC // 3)
-_CRITIC_BACKEND_BUDGET: int = max(1, _SPLITTABLE_SEC - VERIDICAL_BUDGET_SEC)
+# Wall budget shared by BOTH parallel LLM gates (each may use all of it).
+_PAR_LLM_BUDGET: int = max(0, STOP_HOOK_TIMEOUT_SEC - _LOCAL_GATE_MARGIN_SEC)
+_CRITIC_BACKEND_BUDGET: int = max(1, _PAR_LLM_BUDGET - _CRITIC_JOIN_OVERHEAD_SEC)
+VERIDICAL_BUDGET_SEC: int = _CRITIC_BACKEND_BUDGET
 # Below this, there isn't enough wall time to attempt an LLM gate coherently —
 # skip the external fast-path entirely and delegate straight to a subagent. This
 # keeps the invariant true for ALL outer values (incl. degenerate small ones).
 _MIN_VIABLE_LLM_SEC: int = 3
 LLM_FASTPATH_VIABLE: bool = (
     _CRITIC_BACKEND_BUDGET >= _MIN_VIABLE_LLM_SEC
-    and (VERIDICAL_BUDGET_SEC + _CRITIC_BACKEND_BUDGET + _CRITIC_JOIN_OVERHEAD_SEC)
-    <= _SEQ_LLM_BUDGET
+    and (_CRITIC_BACKEND_BUDGET + _CRITIC_JOIN_OVERHEAD_SEC) <= _PAR_LLM_BUDGET
 )
 
 SEMANTIC_CRITIC_TIMEOUT_SEC: int = min(
@@ -934,8 +926,8 @@ def call_semantic_critic_via_bifrost(
     # straight to a subagent rather than risk a mid-call hard kill.
     if not LLM_FASTPATH_VIABLE:
         _logger.info(
-            "semantic_critic fastpath_not_viable: session=%s seq_budget=%ds",
-            session_key, _SEQ_LLM_BUDGET,
+            "semantic_critic fastpath_not_viable: session=%s par_budget=%ds",
+            session_key, _PAR_LLM_BUDGET,
         )
         return BACKENDS_UNAVAILABLE
 
@@ -1177,12 +1169,32 @@ def run(data: dict) -> dict | None:
     if _is_non_substantive(response_text):
         return None
 
-    # Veridical integrity gate (epistemic sycophancy detection). This is the
-    # FIRST of two sequential Mistral gates on this time-boxed hook, so it is
-    # given the hook-coherent VERIDICAL_BUDGET_SEC (not its own 15s default) and
-    # is skipped entirely when there is no viable LLM wall budget — otherwise it
-    # could hard-kill the subprocess before the critic's subagent fallback runs.
-    if LLM_FASTPATH_VIABLE:
+    # Deterministic scope + cap gates run FIRST (microseconds) so no critic call
+    # is spent on an out-of-scope turn.
+    in_critic_scope = _is_diagnostic_scope(user_prompt, response_text)
+    if in_critic_scope:
+        current_count = _INVOCATION_COUNTS.get(session_key, 0)
+        if current_count >= SEMANTIC_CRITIC_CAP:
+            _logger.info(
+                "semantic_critic cap_reached: session=%s count=%d cap=%d",
+                session_key,
+                current_count,
+                SEMANTIC_CRITIC_CAP,
+            )
+            in_critic_scope = False
+        else:
+            _INVOCATION_COUNTS[session_key] = current_count + 1
+
+    # Veridical integrity gate (epistemic sycophancy detection) and the critic
+    # run in PARALLEL on one executor: wall = max, not sum, which is what lets
+    # both budgets be the full _PAR_LLM_BUDGET window. Veridical is skipped
+    # entirely when there is no viable LLM wall budget (its 15s SDK default
+    # could otherwise hard-kill the subprocess before the critic's subagent
+    # fallback runs); the critic handles non-viability itself by returning the
+    # BACKENDS_UNAVAILABLE sentinel without any network call. Arbitration keeps
+    # the old serial semantics: a veridical violation wins. The only delta vs
+    # serial: when veridical blocks, one cheap critic call was spent in parallel.
+    def _veridical_task() -> Optional[dict]:
         try:
             from anti_sycophancy.veridical_gate import check_veridical_integrity
             transcript_str = data.get('transcript', '')
@@ -1194,41 +1206,62 @@ def run(data: dict) -> dict | None:
                     if isinstance(content_val, str) and content_val.strip():
                         parts.append(f'[{role}] {content_val}')
                 transcript_str = chr(10) + chr(10).join(parts)
-            veridical_result = check_veridical_integrity(
+            return check_veridical_integrity(
                 response_text=response_text,
                 transcript=transcript_str,
                 session_key=session_key,
                 mistral_api_key=_load_mistral_key() or '',
                 timeout_sec=VERIDICAL_BUDGET_SEC,
             )
-            if veridical_result is not None:
-                return veridical_result
         except Exception as exc:
             _logger.warning('veridical_gate integration error, failing open: %s', exc)
+            return None
 
-    # Diagnostic scope gate
-    if not _is_diagnostic_scope(user_prompt, response_text):
+    veridical_result: Optional[dict] = None
+    critic_result = None
+    run_veridical = LLM_FASTPATH_VIABLE
+    if run_veridical or in_critic_scope:
+        executor = ThreadPoolExecutor(max_workers=2)
+        try:
+            vfut = executor.submit(_veridical_task) if run_veridical else None
+            cfut = (
+                executor.submit(
+                    call_semantic_critic_via_bifrost,
+                    original_user_prompt=user_prompt,
+                    assistant_response=response_text,
+                    session_key=session_key,
+                )
+                if in_critic_scope
+                else None
+            )
+            # One shared deadline for both joins so worst-case wall stays within
+            # the parallel budget (each task also self-limits internally).
+            deadline = time.monotonic() + _PAR_LLM_BUDGET
+            if vfut is not None:
+                try:
+                    veridical_result = vfut.result(
+                        timeout=max(1.0, deadline - time.monotonic())
+                    )
+                except Exception as exc:
+                    _logger.warning('veridical_gate join error, failing open: %s', exc)
+            if cfut is not None:
+                try:
+                    critic_result = cfut.result(
+                        timeout=max(1.0, deadline - time.monotonic())
+                    )
+                except Exception as exc:
+                    _logger.warning('semantic_critic join error: %s', exc)
+                    critic_result = BACKENDS_UNAVAILABLE
+        finally:
+            # Never block on stragglers: their own network timeouts end them.
+            executor.shutdown(wait=False, cancel_futures=True)
+
+    # Veridical violation wins (preserves the previous serial arbitration).
+    if veridical_result is not None:
+        return veridical_result
+
+    if not in_critic_scope:
         return None
-
-    # --- Per-session cap ---
-    current_count = _INVOCATION_COUNTS.get(session_key, 0)
-    if current_count >= SEMANTIC_CRITIC_CAP:
-        _logger.info(
-            "semantic_critic cap_reached: session=%s count=%d cap=%d",
-            session_key,
-            current_count,
-            SEMANTIC_CRITIC_CAP,
-        )
-        return None
-
-    # --- Call the critic ---
-    _INVOCATION_COUNTS[session_key] = current_count + 1
-
-    critic_result = call_semantic_critic_via_bifrost(
-        original_user_prompt=user_prompt,
-        assistant_response=response_text,
-        session_key=session_key,
-    )
 
     # Both external reviewers unavailable within the fast-path budget. Do NOT
     # fail open: emit a delegation directive so a review subagent critiques the
