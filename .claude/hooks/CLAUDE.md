@@ -578,13 +578,24 @@ Use advisory or telemetry-only hooks for:
 
 ### Legacy Test Exclusion
 
-Tests for permanently removed features live in `tests/_legacy/`. Excluded from collection at four points:
-- `pytest.ini:norecursedirs`
-- `conftest.py:ignored_dirs`
-- `conftest.py:stale_files` set
-- `tests/conftest.py:collect_ignore`
+Tests for permanently removed features live in `tests/_legacy/`. Excluded from collection at:
+- `pytest.ini:norecursedirs` — the single source of truth for directory-level exclusion.
+- `conftest.py:stale_files` set — per-file exclusions that aren't directory-scoped.
+- `tests/conftest.py:collect_ignore` — redundant with `norecursedirs`, harmless to keep.
 
 Do not remove `_legacy` tests — they document removed features for historical reference.
+
+**2026-07-03 regression (fixed)**: root `conftest.py` used to also define a hand-rolled
+`ignored_dirs` set duplicating `norecursedirs`. Because `pytest_ignore_collect` is a
+`firstresult` hook, pytest calls conftest-registered implementations (this one) *before*
+its own `norecursedirs`/`collect_ignore` handling for the same path — so the hand-rolled
+set was the ONLY thing actually excluding any directory; `norecursedirs` and
+`collect_ignore` were silently dead the whole time. When `"_quarantine"` was dropped from
+the hand-rolled set, the correct-looking `pytest.ini` entry did nothing, reopening the
+collection-abort bug for quarantined tests. Fix: `conftest.py`'s `pytest_ignore_collect`
+now reads `config.getini("norecursedirs")` at runtime instead of duplicating the list —
+`pytest.ini` is the only place a human ever edits this again. Regression-locked by
+`tests/test_conftest_ignore_collect.py`.
 
 ### Integration Verifier
 
