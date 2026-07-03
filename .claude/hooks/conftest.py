@@ -127,7 +127,6 @@ def pytest_ignore_collect(collection_path: Path, config) -> bool:  # type: ignor
         # NOT a hiding mechanism — these tests fail because their source modules no longer exist.
         # See tests/_legacy/ for the test files and their obsolescence reasons.
         "_legacy",
-        "_quarantine",
     }
     if any(part in ignored_dirs for part in relative_parts):
         return True
