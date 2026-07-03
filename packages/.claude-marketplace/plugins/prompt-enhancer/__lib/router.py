@@ -45,7 +45,7 @@ def main() -> None:
             pass
         except Exception:
             pass
-    print(json.dumps({"decision": "approve"}))
+    print("{}")
 
 
 if __name__ == "__main__":
