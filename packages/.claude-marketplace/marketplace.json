@@ -54,7 +54,7 @@
     },
     {
       "name": "cc-skills-media",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "description": "Media processing and generation skills for Claude Code",
       "source": "./plugins/cc-skills-media",
       "keywords": [
@@ -65,7 +65,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.74",
+      "version": "1.0.75",
       "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -76,7 +76,7 @@
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.2.30",
+      "version": "1.2.33",
       "description": "Utility skills for Claude Code",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
@@ -111,7 +111,7 @@
     },
     {
       "name": "cc-skills-architect",
-      "version": "1.0.14",
+      "version": "1.0.15",
       "description": "Architect plugin",
       "source": "./plugins/cc-skills-architect",
       "keywords": []
@@ -125,7 +125,7 @@
     },
     {
       "name": "cc-skills-lab",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "description": "Lab plugin",
       "source": "./plugins/cc-skills-lab",
       "keywords": []
@@ -260,7 +260,7 @@
     },
     {
       "name": "cc-aca-observability",
-      "version": "0.1.23",
+      "version": "0.1.24",
       "description": "ACA Observability plugin \u2014 session health monitoring, drift detection, artifact scraping, and PostToolUse tracker orchestration. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-observability",
       "keywords": [
@@ -308,7 +308,7 @@
     },
     {
       "name": "cc-council",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "description": "Multi-LLM council system for Claude Code. Implements Karpathy-style deliberation: independent drafts, anonymized peer review, chairman synthesis. Uses ai-api transport layer for all configured providers.",
       "source": "./plugins/cc-council",
       "keywords": [
