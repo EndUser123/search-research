@@ -93,6 +93,22 @@ def classify_prompt(prompt, config):
     if any(re.search(p, prompt_lower) for p in sonnet_patterns):
         return 'sonnet'
 
+    # Local: very short prompts that don't match haiku patterns — safe for small model
+    local_patterns = [
+        r'^(yes|no|ok|okay|sure|yep|nope|y|n)$',
+        r'^(thanks|thank you|thx|ty)$',
+        r'^(continue|go on|next|done|stop|quit|exit)$',
+        r'^(show|print|list|tell me about|what is|where is) \w{0,20}$',
+        r'^(rename|move|copy|delete|remove) \w+ to \w+$',
+        r'^(format|lint|check)\s+\w+$',
+        r'^~\s+\w{0,20}$',
+    ]
+    is_local_task = word_count <= 8 and any(
+        re.search(p, prompt_lower) for p in local_patterns
+    )
+    if is_local_task:
+        return 'local'
+
     return None
 
 
@@ -129,6 +145,7 @@ def main():
         'haiku': 'claude-haiku-4-5-20251001',
         'sonnet': 'claude-sonnet-4-6',
         'opus': 'claude-opus-4-8',
+        'local': 'claude-local-ornith',
     }
 
     new_model = None
