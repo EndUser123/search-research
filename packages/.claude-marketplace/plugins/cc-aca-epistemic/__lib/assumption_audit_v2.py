@@ -2499,7 +2499,7 @@ def main():
     start_time = time.time()
 
     if not ENABLED:
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         sys.exit(0)
 
     try:
@@ -2589,7 +2589,7 @@ def main():
     if has_meta_or_self and not has_ext:
         # Pure meta/process/self-report → skip this hook entirely
         debug_log("Meta-conversation/self-referential gate: skipping claim verification")
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         sys.exit(0)
 
     # === EDIT-RESULT CLAIM GATE ===

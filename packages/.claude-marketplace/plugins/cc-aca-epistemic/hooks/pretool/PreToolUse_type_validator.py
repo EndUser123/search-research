@@ -176,19 +176,19 @@ def main() -> None:
         data = json.load(sys.stdin)
     except (json.JSONDecodeError, OSError):
         # Fail-open on transient stdin error
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         return
 
     tool_name = data.get("tool_name", "")
     if tool_name not in ("Write", "Edit"):
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         return
 
     tool_input = data.get("tool_input", {})
     file_path = tool_input.get("file_path", "")
 
     if not file_path:
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         return
 
     result = check_type_mismatch(file_path)

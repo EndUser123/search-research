@@ -300,7 +300,7 @@ def main() -> int:
 
     if not payload:
         # Empty payload - allow
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         return 0
 
     result = run(payload)
