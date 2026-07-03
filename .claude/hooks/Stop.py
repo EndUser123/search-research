@@ -4963,6 +4963,50 @@ def main():
             # Fail open — runtime alert injection should never block processing
             pass
 
+    # Stop JSON validation failure guard: warn if the current session has a
+    # recent "JSON validation failed" entry in hook_runner_stderr.jsonl.
+    # Advisory only — adds a systemMessage warning, never blocks.
+    try:
+        _stderr_log = HOOKS_DIR / "logs" / "diagnostics" / "hook_runner_stderr.jsonl"
+        _session = data.get("session_id", "")
+        if _stderr_log.exists() and _session:
+            _now = datetime.now(timezone.utc)
+            _found = False
+            for _line in _stderr_log.read_text(encoding="utf-8", errors="replace").splitlines():
+                _line = _line.strip()
+                if not _line:
+                    continue
+                try:
+                    _entry = json.loads(_line)
+                except json.JSONDecodeError:
+                    continue
+                if _entry.get("session_id") != _session:
+                    continue
+                if "JSON validation failed" not in str(_entry.get("stderr", "")):
+                    continue
+                _ts_str = str(_entry.get("ts", ""))
+                try:
+                    _ts = datetime.fromisoformat(_ts_str)
+                    if _ts.tzinfo is None:
+                        _ts = _ts.replace(tzinfo=timezone.utc)
+                except (ValueError, TypeError):
+                    continue
+                if (_now - _ts).total_seconds() < 300:
+                    _found = True
+                    break
+            if _found:
+                _warn = (
+                    "Stop hook JSON validation failure detected in this session "
+                    "(last 5 minutes). Do not claim clean DONE — verify the "
+                    "actual hook-runner output is schema-valid first."
+                )
+                if "systemMessage" in output:
+                    output["systemMessage"] = output["systemMessage"] + "\n\n" + _warn
+                else:
+                    output["systemMessage"] = _warn
+    except Exception:
+        pass
+
     # Ensure advisory-only responses never misread as blocks.
     # A Stop hook returning {"systemMessage": "..."} with no continue/decision
     # is treated by Claude Code as a soft block, halting the LLM every turn

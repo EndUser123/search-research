@@ -593,12 +593,12 @@ if ($Usage) {
         $lm = Invoke-RestMethod -Uri "http://127.0.0.1:1234/api/v0/models" -TimeoutSec 3 -ErrorAction Stop
         $loaded = $lm.data | Where-Object { $_.state -eq "loaded" } | Select-Object -First 1
         if ($loaded) {
-            Write-Host "  local           LM Studio     loaded: $($loaded.id)"
+            Write-Host "  local           llama.cpp      loaded: $($loaded.id)"
         } else {
-            Write-Host "  local           LM Studio     up, no model loaded" -ForegroundColor Yellow
+            Write-Host "  local           llama.cpp      up, no model loaded" -ForegroundColor Yellow
         }
     } catch {
-        Write-Host "  local           LM Studio     offline (127.0.0.1:1234)" -ForegroundColor DarkGray
+        Write-Host "  local           llama.cpp      offline (127.0.0.1:8010)" -ForegroundColor DarkGray
     }
 }
 

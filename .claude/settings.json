@@ -178,11 +178,6 @@
           },
           {
             "type": "command",
-            "command": "python P:/packages/.claude-marketplace/plugins/cc-model-router/hooks/userpromptsubmit/model_router_classify.py",
-            "timeout": 15
-          },
-          {
-            "type": "command",
             "command": "python P:/packages/.claude-marketplace/plugins/skill-guard/src/skill_guard/__lib/router.py UserPromptSubmit",
             "timeout": 10
           },
@@ -376,11 +371,6 @@
             "type": "command",
             "command": "python -c \"import sys; sys.path.insert(0, 'P:/.claude/hooks'); from __lib.hook_importer import HookImporter; importer = HookImporter('P:/.claude/hooks'); result = importer.execute_hook('SessionStart', timeout=45.0); sys.exit(0 if result.get('ok') else result.get('exit_code', 1))\"",
             "timeout": 60
-          },
-          {
-            "type": "command",
-            "command": "python P:/packages/.claude-marketplace/plugins/cc-model-router/hooks/sessionstart/model_router_init.py",
-            "timeout": 15
           }
         ]
       },
