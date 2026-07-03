@@ -82,22 +82,30 @@ def _budget_under_env(env_overrides: dict) -> dict:
 
 
 class TestBudgetCoherence:
-    def test_two_sequential_gates_fit_outer_at_default(self):
-        # The REAL invariant: veridical + critic_overall + local margin must fit
-        # under the outer hook timeout, because both run sequentially on one hook.
+    def test_two_parallel_gates_fit_outer_at_default(self):
+        # The REAL invariant: max(veridical, critic_overall) + local margin must
+        # fit under the outer hook timeout — the gates run in PARALLEL, so the
+        # hook's wall time is the slower of the two, not their sum.
         b = _budget_under_env({"STOP_HOOK_TIMEOUT_SEC": "10"})
         assert b["viable"] is True
-        assert b["veridical"] + b["critic_overall"] + b["margin"] <= b["outer"], b
+        assert max(b["veridical"], b["critic_overall"]) + b["margin"] <= b["outer"], b
+
+    def test_parallel_budgets_wider_than_serial_split(self):
+        # The point of parallelizing: at outer=10 the critic backend slice must
+        # fit glm-5.2's measured ~5s latency (the serial split's 4s did not).
+        b = _budget_under_env({"STOP_HOOK_TIMEOUT_SEC": "10"})
+        assert b["critic_backend"] >= 6, b
+        assert b["veridical"] >= 6, b
 
     def test_stale_large_env_cannot_break_invariant(self):
-        # Stale 30s values must not reintroduce the incoherence; the sum still fits.
+        # Stale 30s values must not reintroduce the incoherence; the max still fits.
         b = _budget_under_env({
             "STOP_HOOK_TIMEOUT_SEC": "10",
             "MISTRAL_TIMEOUT_SEC": "30",
             "SEMANTIC_CRITIC_TIMEOUT_SEC": "30",
             "VERIDICAL_TIMEOUT_SEC": "30",
         })
-        assert b["veridical"] + b["critic_overall"] + b["margin"] <= b["outer"], b
+        assert max(b["veridical"], b["critic_overall"]) + b["margin"] <= b["outer"], b
 
     def test_degenerate_small_outer_fails_safe_to_delegation(self):
         # Too-small outer → not viable → skip LLMs entirely (delegate), never an
@@ -110,7 +118,10 @@ class TestBudgetCoherence:
         small = _budget_under_env({"STOP_HOOK_TIMEOUT_SEC": "10"})
         large = _budget_under_env({"STOP_HOOK_TIMEOUT_SEC": "20"})
         assert large["critic_backend"] > small["critic_backend"], (small, large)
-        assert large["veridical"] + large["critic_overall"] + large["margin"] <= large["outer"]
+        assert (
+            max(large["veridical"], large["critic_overall"]) + large["margin"]
+            <= large["outer"]
+        )
 
 
 class TestViabilityShortCircuit:
@@ -154,6 +165,44 @@ class TestVeridicalBudgetPassthrough:
         sc.run(_evaluative_data())
         assert seen.get("timeout_sec") == sc.VERIDICAL_BUDGET_SEC, seen
         assert sc.VERIDICAL_BUDGET_SEC < sc.STOP_HOOK_TIMEOUT_SEC
+
+
+class TestParallelArbitration:
+    def test_veridical_violation_wins_over_concurrent_critic_ok(self, monkeypatch):
+        # Gates now run in parallel; a veridical violation must still win the
+        # arbitration even when the critic returns ok on the same turn.
+        violation = {"decision": "block", "reason": "veridical violation"}
+        stub = types.ModuleType("anti_sycophancy.veridical_gate")
+        stub.check_veridical_integrity = lambda **kw: violation
+        monkeypatch.setitem(sys.modules, "anti_sycophancy.veridical_gate", stub)
+        monkeypatch.setattr(sc, "LLM_FASTPATH_VIABLE", True)
+        ok = sc.SemanticCriticResult(ok=True, reason="Adequate.")
+        monkeypatch.setattr(sc, "_call_minimax_critic", lambda *a, **k: ok)
+        monkeypatch.setattr(sc, "_call_mistral_critic", lambda *a, **k: ok)
+
+        res = sc.run(_evaluative_data())
+        assert res is violation
+
+    def test_out_of_scope_turn_still_runs_veridical(self, monkeypatch):
+        # Scope-gating the critic must not silence the veridical gate.
+        violation = {"decision": "block", "reason": "veridical violation"}
+        stub = types.ModuleType("anti_sycophancy.veridical_gate")
+        stub.check_veridical_integrity = lambda **kw: violation
+        monkeypatch.setitem(sys.modules, "anti_sycophancy.veridical_gate", stub)
+        monkeypatch.setattr(sc, "LLM_FASTPATH_VIABLE", True)
+        monkeypatch.setattr(sc, "_is_diagnostic_scope", lambda *a, **k: False)
+        critic_called = {"n": 0}
+
+        def _critic(*a, **k):
+            critic_called["n"] += 1
+            return None
+
+        monkeypatch.setattr(sc, "_call_minimax_critic", _critic)
+        monkeypatch.setattr(sc, "_call_mistral_critic", _critic)
+
+        res = sc.run(_evaluative_data())
+        assert res is violation
+        assert critic_called["n"] == 0, "critic must not be spent on out-of-scope turns"
 
 
 class TestBifrostSentinel:
