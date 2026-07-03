@@ -64,9 +64,9 @@ if (Test-Path $envPath) {
 
 # --- Model route overrides (environment variables) ---
 # Use these to override the default routing without editing files:
-#   $env:CC_CCR_OPUS_ROUTE = "zai,glm-5.2"
-#   $env:CC_CCR_SONNET_ROUTE = "minimax,MiniMax-M2.7"
-#   $env:CC_CCR_HAIKU_ROUTE = "opencode-go,deepseek-v4-flash"
+#   $env:CC_CCR_OPUS_ROUTE   = "zai,glm-5.2[1m]"
+#   $env:CC_CCR_SONNET_ROUTE = "minimax,MiniMax-M3[1m]"
+#   $env:CC_CCR_HAIKU_ROUTE  = "opencode-go,deepseek-v4-flash"
 #   $env:CC_CCR_CUSTOM_ROUTE = "provider,model"
 $overrideOpus = $env:CC_CCR_OPUS_ROUTE
 $overrideSonnet = $env:CC_CCR_SONNET_ROUTE
@@ -157,10 +157,9 @@ try {
     $cfg.Router | Add-Member -NotePropertyName "claude-sonnet-4-6"         -NotePropertyValue $actualSonnet -Force
     $cfg.Router | Add-Member -NotePropertyName "claude-haiku-4-5"          -NotePropertyValue $actualHaiku  -Force
     $cfg.Router | Add-Member -NotePropertyName "claude-haiku-4-5-20251001" -NotePropertyValue $actualHaiku  -Force
-    # Local slot via LM Studio. Renamed from claude-local-gemma (the old gemma-4-12b-coder
-    # fine-tune is no longer in LM Studio). Drop the stale key so config.json stays clean.
+    # Local slot via llama.cpp (run-ornith-server.ps1 on port 8010).
     try { $cfg.Router.PSObject.Properties.Remove("claude-local-gemma") } catch {}
-    $cfg.Router | Add-Member -NotePropertyName "claude-local-ornith"        -NotePropertyValue "lmstudio,ornith-1.0-9b@q4_k_m" -Force
+    $cfg.Router | Add-Member -NotePropertyName "claude-local-ornith"        -NotePropertyValue "llama-cpp,ornith-1.0-9b" -Force
 
     # ROLE keys in lockstep with slot keys (both routing layers agree)
     $cfg.Router | Add-Member -NotePropertyName "think"       -NotePropertyValue $actualOpus   -Force
@@ -173,7 +172,7 @@ try {
     }
 
     # Custom router: makes the local slot (claude-local-ornith) actually serve
-    # from LM Studio. CCR's default router keys off opus/sonnet/haiku keywords
+    # from llama.cpp. CCR's default router keys off opus/sonnet/haiku keywords
     # and the six named role keys, so the custom name would otherwise fall back
     # to default (minimax). The script below runs first and intercepts it.
     # Source-of-truth: ccr-custom-router.js, co-located here and version-controlled.
@@ -366,10 +365,10 @@ foreach ($var in @(
     Remove-Item "env:$var" -ErrorAction SilentlyContinue
 }
 
-# 4th model slot — local Ornith via LM Studio (qwen35-arch, tool_use capable)
+# 4th model slot — local Ornith via llama.cpp (run-ornith-server.ps1, port 8010)
 $env:ANTHROPIC_CUSTOM_MODEL_OPTION             = "claude-local-ornith"
 $env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME        = "Ornith 1.0 9B (Local)"
-$env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION = "LM Studio · ornith-1.0-9b@q4_k_m"
+$env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION = "llama.cpp · ornith-1.0-9b@q4_k_m"
 
 # --- Health monitoring removed ---
 # PowerShell job scoping prevents cross-scope variable updates.
@@ -407,7 +406,7 @@ Write-Host "Route configuration:"
 try {
     $ccrCfg = Get-Content $ccrConfigPath -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json
     $opusDisplay   = $ccrCfg.Router."claude-opus-4-8"
-    $sonnetDisplay = $ccrCfg.Router."claude-sonnet-4-6"
+    $sonnetDisplay = if ($ccrCfg.Router."claude-sonnet-5") { $ccrCfg.Router."claude-sonnet-5" } else { $ccrCfg.Router."claude-sonnet-4-6" }
     $haikuDisplay  = $ccrCfg.Router."claude-haiku-4-5"
     $customDisplay = $ccrCfg.Router."claude-local-ornith"
     $fb = $ccrCfg.fallback
