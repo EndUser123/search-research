@@ -455,7 +455,7 @@ def main() -> None:
     """
     input_text = sys.stdin.read().strip()
     if not input_text:
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         sys.exit(0)
 
     # Parse input data - handle malformed JSON gracefully
@@ -480,11 +480,11 @@ def main() -> None:
                     )
             except OSError:
                 pass
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         sys.exit(0)
 
     if not isinstance(data, dict):
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         sys.exit(0)
 
     # Normalize input field names
@@ -498,7 +498,7 @@ def main() -> None:
 
     tool_name_raw = data.get("tool_name")
     if not isinstance(tool_name_raw, str) or not tool_name_raw.strip():
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         sys.exit(0)
 
     tool_name_raw = tool_name_raw.strip()
@@ -665,7 +665,7 @@ def main() -> None:
         print(json.dumps(result))
     else:
         # Return ok:true for newer Claude Code schema validation
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
 
 
 if __name__ == "__main__":
