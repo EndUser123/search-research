@@ -28,8 +28,16 @@ HOOK_PATH = pathlib.Path(
 
 @pytest.fixture
 def tmp_state_dir(tmp_path, monkeypatch):
-    """Point CWD at tmp_path so the hook's get_state_path() resolves there."""
+    """Point the hook's get_state_path() at tmp_path, not the real state dir.
+
+    get_state_path() reads CSF_STATE_DIR first and falls back to a hardcoded
+    P:/.claude/state — chdir alone does NOT redirect it. Without this setenv,
+    CSF_STATE_DIR (set globally in this environment) leaks through and the
+    subprocess reads/writes the real state dir instead of this fixture's
+    tmp_path, which was silently failing 3 of the tests below.
+    """
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("CSF_STATE_DIR", str(tmp_path / ".claude" / "state"))
     (tmp_path / ".claude" / "state" / "model-router" / "term1" / "sess1").mkdir(
         parents=True
     )
@@ -109,6 +117,45 @@ def test_apply_switches_model_before_response(
     # Recommendation must be marked consumed so a replay won't re-apply it.
     rec = json.loads((state_dir / "recommendation.json").read_text())
     assert rec["consumed"] is True
+
+
+def test_apply_refreshes_state_tier_to_stop_thrash(tmp_state_dir, fake_home):
+    """Regression for the thrash bug: after a real apply, config.json's
+    current_tier/current_model must advance to the new model. Before this
+    fix, only SessionStart ever wrote that file, so classify.py kept
+    comparing every later prompt against the session's original tier and
+    re-triggered the same switch forever (10+ applies/session in the wild).
+    """
+    state_dir = (
+        tmp_state_dir / ".claude" / "state" / "model-router" / "term1" / "sess1"
+    )
+    (state_dir / "config.json").write_text(
+        json.dumps({"current_tier": "sonnet", "current_model": "claude-sonnet-4-6"}),
+        encoding="utf-8",
+    )
+    _write_rec(
+        state_dir,
+        {
+            "recommended_model": "claude-opus-4-8",
+            "current_model": "claude-sonnet-4-6",
+            "action_mode": "autoswitch",
+            "written_at": datetime.now().isoformat(),
+            "consumed": False,
+        },
+    )
+
+    result = _run_hook(
+        {"prompt": "architect a redesign", "terminal_id": "term1", "session_id": "sess1"}
+    )
+    assert result.returncode == 0
+
+    state = json.loads((state_dir / "config.json").read_text())
+    assert state["current_tier"] == "opus", (
+        f"config.json current_tier was {state.get('current_tier')!r}; "
+        "classify.py will keep comparing against the stale baseline and "
+        "re-trigger this same switch on every later prompt"
+    )
+    assert state["current_model"] == "claude-opus-4-8"
 
 
 # ----------------------------- branch unit tests -----------------------------

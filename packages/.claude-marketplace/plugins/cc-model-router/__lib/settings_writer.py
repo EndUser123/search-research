@@ -67,6 +67,23 @@ def atomic_write_json(
             time.sleep(delay)
 
 
+def derive_tier(model: str) -> str:
+    """Classify a model string into haiku/sonnet/opus/unknown by substring.
+
+    Shared by model_router_init.py (SessionStart snapshot) and
+    model_router_apply.py (post-switch state refresh) so both writers of
+    current_tier agree on the same classification.
+    """
+    model_lower = model.lower()
+    if "haiku" in model_lower:
+        return "haiku"
+    if "sonnet" in model_lower:
+        return "sonnet"
+    if "opus" in model_lower:
+        return "opus"
+    return "unknown"
+
+
 def read_settings(home: pathlib.Path | None = None) -> dict[str, Any]:
     """Read ~/.claude/settings.json; return {} if missing or unparseable."""
     base = pathlib.Path(home) if home else pathlib.Path.home()

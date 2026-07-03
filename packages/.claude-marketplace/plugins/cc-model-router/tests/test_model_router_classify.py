@@ -17,8 +17,15 @@ HOOK_PATH = pathlib.Path(
 
 @pytest.fixture
 def tmp_state_dir(tmp_path, monkeypatch):
-    """Point CWD at tmp_path so the hook's get_state_path() resolves there."""
+    """Point the hook's get_state_path() at tmp_path, not the real state dir.
+
+    get_state_path() reads CSF_STATE_DIR first and falls back to a hardcoded
+    P:/.claude/state — chdir alone does NOT redirect it. Without this setenv,
+    a globally-set CSF_STATE_DIR leaks through and the subprocess reads/
+    writes the real state dir instead of this fixture's tmp_path.
+    """
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("CSF_STATE_DIR", str(tmp_path / ".claude" / "state"))
     (tmp_path / ".claude" / "state" / "model-router" / "term1" / "sess1").mkdir(
         parents=True
     )

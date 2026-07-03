@@ -13,6 +13,12 @@ import sys
 import pathlib
 from datetime import datetime
 
+PLUGIN_ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
+if str(PLUGIN_ROOT / "__lib") not in sys.path:
+    sys.path.insert(0, str(PLUGIN_ROOT / "__lib"))
+
+from settings_writer import derive_tier  # type: ignore[import-not-found]  # noqa: E402
+
 
 def get_state_path(terminal_id, session_id):
     """Compute state directory path."""
@@ -157,14 +163,7 @@ def main():
     current_model = get_current_model()
 
     # Determine current tier
-    model_lower = current_model.lower()
-    current_tier = 'unknown'
-    if 'haiku' in model_lower:
-        current_tier = 'haiku'
-    elif 'sonnet' in model_lower:
-        current_tier = 'sonnet'
-    elif 'opus' in model_lower:
-        current_tier = 'opus'
+    current_tier = derive_tier(current_model)
 
     # Build state
     state = {

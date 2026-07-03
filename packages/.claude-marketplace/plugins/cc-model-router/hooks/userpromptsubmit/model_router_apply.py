@@ -33,7 +33,7 @@ PLUGIN_ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
 if str(PLUGIN_ROOT / "__lib") not in sys.path:
     sys.path.insert(0, str(PLUGIN_ROOT / "__lib"))
 
-from settings_writer import atomic_write_json, read_settings, write_settings  # type: ignore[import-not-found]  # noqa: E402
+from settings_writer import atomic_write_json, derive_tier, read_settings, write_settings  # type: ignore[import-not-found]  # noqa: E402
 
 TTL_SECONDS = 300
 
@@ -80,6 +80,32 @@ def mark_consumed(state_path: pathlib.Path) -> None:
         data["consumed_at"] = datetime.now().isoformat()
         with open(p, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
+    except Exception:
+        pass
+
+
+# NOTE: no existing update_state_tier() found (grep confirmed) — this is the
+# missing feedback edge: apply.py never wrote back to config.json before,
+# only model_router_init.py (SessionStart-only) touched current_tier.
+def update_state_tier(state_path: pathlib.Path, new_model: str) -> None:
+    """Refresh config.json's current_tier/current_model after a real apply.
+
+    Without this, classify.py keeps comparing every new prompt against the
+    stale tier written once at SessionStart, so it re-recommends (and this
+    hook re-applies) the same switch on every qualifying prompt forever.
+    """
+    config_path = state_path / "config.json"
+    if not config_path.exists():
+        return
+    try:
+        with open(config_path, encoding="utf-8") as f:
+            state = json.load(f)
+    except Exception:
+        return
+    state["current_model"] = new_model
+    state["current_tier"] = derive_tier(new_model)
+    try:
+        atomic_write_json(config_path, state)
     except Exception:
         pass
 
@@ -150,6 +176,7 @@ def main() -> None:
                 },
             )
             sys.exit(0)
+        update_state_tier(state_path, recommended)
 
     # Signal to any harness / child process that the new model is intended.
     os.environ["ANTHROPIC_MODEL"] = recommended
