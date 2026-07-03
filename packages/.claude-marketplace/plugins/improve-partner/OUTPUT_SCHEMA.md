@@ -10,8 +10,22 @@ and this file should be updated to match.
 actions. Only a deterministic safety/contract guard would justify `strict`, and
 none exists in this plugin.
 
+## Depth default
+`mode=analyze` defaults to **complete, deep analysis** (SKILL.md Operating
+Principle 7). All sections receive substantive content where evidence exists —
+no empty placeholders. A lighter scan is used only when the user explicitly
+requests one or the artifact is tiny and self-contained; in either case the
+output must state the reason and still carry provenance tags, at least one
+recommendation, and a falsification condition. When in doubt, err toward too
+thorough.
+
 ## Output = these headings, in order (`mode=analyze`)
 
+0. **Inferred target** *(required opening line)* — one-line statement of what is
+   being reviewed, preceded by `Inferred target:` if the target was inferred from
+   session context, or the explicit artifact path/name if the user provided one.
+   This is the handoff between target acquisition and analysis; every output
+   must start here.
 1. **Domain Classification** — `DOMAIN`, `CONFIDENCE`, `RATIONALE`, `ALTERNATIVE`.
 2. **Verified Facts (with provenance)** — one fact per bullet; every bullet ends
    with a provenance tag (see below).
