@@ -1,4 +1,9 @@
 
+### Removed
+
+- packages/.claude-marketplace/plugins/cc-model-router/pack.py
+
+
 ### Added
 
 - packages/.claude-marketplace/plugins/cc-model-router/pack.py: consolidated router
