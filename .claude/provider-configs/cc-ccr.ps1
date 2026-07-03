@@ -423,9 +423,8 @@ try {
         $indent = ' ' * ($labelWidth + 2)
         Write-Host "  $($paddedLabel): $(Format-Route $r.Primary)"
         if ($r.Chain -and $r.Chain.Count -gt 0) {
-            $primaryPair = Format-Route $r.Primary
             $rest = ($r.Chain | ForEach-Object { Format-Route $_ }) -join ' → '
-            Write-Host "${indent}└─ if ${primaryPair} fails → ${rest}" -ForegroundColor DarkGray
+            Write-Host "${indent}└─ ${rest}" -ForegroundColor DarkGray
         } elseif ($r.Label -ne 'custom') {
             Write-Host ("$indent+-- (no fallback configured)") -ForegroundColor DarkGray
         }
