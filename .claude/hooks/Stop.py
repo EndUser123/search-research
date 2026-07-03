@@ -4615,6 +4615,56 @@ def _enrich_user_prompt(data: dict) -> None:
         pass
 
 
+def _apply_json_validation_guard(
+    output: dict, data: dict, hooks_dir: "Path",
+) -> None:
+    """Warn if the current session has a recent JSON validation failure in stderr log.
+
+    Advisory only — adds to systemMessage, never blocks.
+    Reads hooks_dir/logs/diagnostics/hook_runner_stderr.jsonl and checks
+    for "JSON validation failed" entries matching the current session_id
+    within the last 5 minutes.
+    """
+    from datetime import datetime as _dt, timezone as _tz
+
+    stderr_log = hooks_dir / "logs" / "diagnostics" / "hook_runner_stderr.jsonl"
+    session = data.get("session_id", "")
+    if not stderr_log.exists() or not session:
+        return
+
+    now = _dt.now(_tz.utc)
+    for line in stderr_log.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if entry.get("session_id") != session:
+            continue
+        if "JSON validation failed" not in str(entry.get("stderr", "")):
+            continue
+        ts_str = str(entry.get("ts", ""))
+        try:
+            ts = _dt.fromisoformat(ts_str)
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=_tz.utc)
+        except (ValueError, TypeError):
+            continue
+        if (now - ts).total_seconds() < 300:
+            warn = (
+                "Stop hook JSON validation failure detected in this session "
+                "(last 5 minutes). Do not claim clean DONE — verify the "
+                "actual hook-runner output is schema-valid first."
+            )
+            if "systemMessage" in output:
+                output["systemMessage"] = output["systemMessage"] + "\n\n" + warn
+            else:
+                output["systemMessage"] = warn
+            return
+
+
 def main():
     global _critical_gate_failed_this_turn, _policy_block_this_turn
     _critical_gate_failed_this_turn = False  # reset per turn
@@ -4967,43 +5017,7 @@ def main():
     # recent "JSON validation failed" entry in hook_runner_stderr.jsonl.
     # Advisory only — adds a systemMessage warning, never blocks.
     try:
-        _stderr_log = HOOKS_DIR / "logs" / "diagnostics" / "hook_runner_stderr.jsonl"
-        _session = data.get("session_id", "")
-        if _stderr_log.exists() and _session:
-            _now = datetime.now(timezone.utc)
-            _found = False
-            for _line in _stderr_log.read_text(encoding="utf-8", errors="replace").splitlines():
-                _line = _line.strip()
-                if not _line:
-                    continue
-                try:
-                    _entry = json.loads(_line)
-                except json.JSONDecodeError:
-                    continue
-                if _entry.get("session_id") != _session:
-                    continue
-                if "JSON validation failed" not in str(_entry.get("stderr", "")):
-                    continue
-                _ts_str = str(_entry.get("ts", ""))
-                try:
-                    _ts = datetime.fromisoformat(_ts_str)
-                    if _ts.tzinfo is None:
-                        _ts = _ts.replace(tzinfo=timezone.utc)
-                except (ValueError, TypeError):
-                    continue
-                if (_now - _ts).total_seconds() < 300:
-                    _found = True
-                    break
-            if _found:
-                _warn = (
-                    "Stop hook JSON validation failure detected in this session "
-                    "(last 5 minutes). Do not claim clean DONE — verify the "
-                    "actual hook-runner output is schema-valid first."
-                )
-                if "systemMessage" in output:
-                    output["systemMessage"] = output["systemMessage"] + "\n\n" + _warn
-                else:
-                    output["systemMessage"] = _warn
+        _apply_json_validation_guard(output, data, HOOKS_DIR)
     except Exception:
         pass
 
