@@ -92,43 +92,73 @@ docs/en/hooks) before trusting." Contents:
 - def make_transcript_line(role: str, text: str, is_meta: bool = False) -> dict
   producing the real nested shape: {"type": role, "message": {"role": role,
   "content": [{"type": "text", "text": text}]}} plus "isMeta": True when set.
-- def make_tool_result_line(content: str) -> dict with content type tool_result.
+- def make_tool_result_line(content: str, tool_use_id: str = "t1") -> dict:
+  {"type": "user", "message": {"role": "user", "content": [{"type":
+  "tool_result", "tool_use_id": tool_use_id, "content": content}]}}.
+Defaults for make_stop_payload: session_id="test-session",
+hook_event_name="Stop", stop_hook_active=False, last_assistant_message="",
+cwd="P:/", terminal_id="test", output_text="", response="",
+permission_mode="default", effort={"level": "high"}, background_tasks=[],
+session_crons=[]. ValueError message must list the offending keys.
 Pilot migration: rewrite ONLY P:/.claude/hooks/tests/
 test_stop_user_prompt_enrichment.py to build its payloads/transcript lines via
 these factories. Behavior must not change: all 9 tests pass before AND after
-(run both, paste outputs). Fences: exactly two files (new module + that test).
-[STANDARD FOOTER]
+(run both, paste outputs). Also required: `python -m py_compile` on the new
+module, and one unit test asserting make_stop_payload(tp, bogus_key=1) raises
+ValueError naming "bogus_key". Fences: exactly two files (new module + that
+test) plus one new test file test_stop_payload_schema.py if you prefer separate
+tests. [STANDARD FOOTER]
 
 ## Phase 5 — /why-blocked turn RCA script (glm-4.7)
 
-Read first: P:/.claude/hooks/why_blocked.py (existing reader),
-P:/.claude/hooks/CLAUDE.md "Observability Storage Policy" section
-(stop_blocks.jsonl fields: timestamp, event, gate_name, reason, matched_span,
-response_hash, session_id, terminal_id, transcript_path; diagnostics.db table
-importer_diagnostics; hook_runner_stderr.jsonl). Create
-P:/.claude/hooks/scripts/why_blocked_turn.py: args --session <id> | --last <N>;
-joins rows from the three sources for that session into one chronological
-report: time, source, gate/hook name, decision, first line of reason.
-Missing/locked sources must degrade gracefully (report "source unavailable",
-never crash — the DB may be locked by a live session). Stdlib only.
-Tests: synthetic jsonl + sqlite fixtures in tmp_path; do not read real logs in
-tests. Acceptance on real data: `--last 1` against the most recent session
-prints at least one Stop block from 2026-07-02 (several exist).
-Fences: net-new files only; read-only on logs and DB (open sqlite with
-mode=ro URI).
-[STANDARD FOOTER]
+Read first: P:/.claude/hooks/scripts/why_blocked.py (existing reader — note the
+scripts/ subdir) and P:/.claude/hooks/CLAUDE.md "Observability Storage Policy"
+section. Sources to join (inspect each schema before writing code):
+1. P:/.claude/hooks/logs/diagnostics/stop_blocks.jsonl — fields: timestamp,
+   event, gate_name, reason, matched_span, response_hash, session_id,
+   terminal_id, transcript_path.
+2. diagnostics.db — query the `hooks` table (primary hook-event log) AND
+   `importer_diagnostics` (importer failures); read each table's columns via
+   PRAGMA table_info first and map what exists; not every row has a
+   decision/reason — print "-" for absent fields, never invent them.
+3. P:/.claude/hooks/logs/diagnostics/hook_runner_stderr.jsonl — stderr capture;
+   has no decision field; report its `error_text`-like payload as the reason
+   column.
+Open the DB read-only with EXACTLY this form (verified working on this
+machine): sqlite3.connect("file:P:/.claude/hooks/logs/diagnostics/"
+"diagnostics.db?mode=ro", uri=True).
+"--last N" means: take the N most recently modified *.jsonl files in
+C:/Users/brsth/.claude/projects/P--/ and use their filename stems as
+session_ids. Normalize all timestamps to UTC-aware datetimes before sorting
+(some sources are naive — assume naive = UTC). Unavailable/locked sources
+appear as one in-report row "SOURCE UNAVAILABLE: <name>: <error>" (stdout, not
+stderr; exit 0). Stdlib only. Tests: synthetic jsonl + sqlite fixtures in
+tmp_path, including one mixed naive/aware timestamp ordering test; do not read
+real logs in tests. Required: `python -m py_compile` on the script.
+Acceptance on real data: `--last 1` prints at least one stop_blocks.jsonl row
+from 2026-07-02 (several exist). Fences: net-new files only; read-only on logs
+and DB. [STANDARD FOOTER]
 
 ## Phase 6 — Hook latency profile (agy flash)
 
 Read the PreToolUse hook command lists in P:/.claude/settings.json and
 C:/Users/brsth/.claude/settings.json. Deduplicate identical command strings
-(Claude Code dedupes them too). For each unique command, run it 3 times with
-this stdin payload: {"session_id":"perf","hook_event_name":"PreToolUse",
-"tool_name":"Read","tool_input":{"file_path":"x"}} — measure wall-clock ms via
-Python subprocess + time.perf_counter (not shell built-ins). Write
-P:/.claude/.artifacts/hook_latency_profile.md: per-command median, event-total
-median, top-3 slowest, and this caveat verbatim: "Measures process spawn +
-import + hook body for a trivial payload; in-conversation latency may differ."
+(Claude Code dedupes them too). For each unique command, run it 3 times via
+Python: subprocess.run(shlex.split(cmd, posix=False), input=PAYLOAD,
+capture_output=True, text=True, timeout=30) — stdin is always provided and
+closed by subprocess.run's input=, so hooks cannot hang on stdin; the timeout
+catches everything else. PAYLOAD = '{"session_id":"perf","hook_event_name":
+"PreToolUse","tool_name":"Read","tool_input":{"file_path":"x"}}'. Measure
+wall-clock ms with time.perf_counter around each run. Record exit codes:
+non-zero or timeout rows are marked FAILED and EXCLUDED from medians but shown
+in the report. Definitions: per-command latency = median of its 3 runs;
+event-total = SUM of per-command medians (models sequential worst case; note
+that CC runs hooks in parallel, so also report max(per-command median) as the
+parallel estimate). Report format: one markdown table (command, median ms,
+exits), then top-3 slowest as table rows, then this caveat verbatim: "Measures
+process spawn + import + hook body for a trivial payload; in-conversation
+latency may differ." Write to P:/.claude/.artifacts/hook_latency_profile.md and
+verify by reading the file back and confirming the caveat string is present.
 Fences: read-only; the only file you may write is the report.
 [STANDARD FOOTER]
 
