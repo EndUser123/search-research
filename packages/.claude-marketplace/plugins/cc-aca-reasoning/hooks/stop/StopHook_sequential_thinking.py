@@ -429,4 +429,4 @@ if __name__ == "__main__":
     try: data = json.loads(sys.stdin.read())
     except: sys.exit(0)
     result = stop(data) or {}
-    print(json.dumps({"decision": "approve"}))
+    print("{}")

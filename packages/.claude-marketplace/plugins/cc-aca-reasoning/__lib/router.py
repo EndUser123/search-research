@@ -77,7 +77,7 @@ def _emit_approve(event: str) -> None:
     # Stop has no "approve" object — empty stdout is the universal allow. The
     # {"decision": "approve"} shape is PreToolUse-only and schema-invalid for Stop.
     if event != "Stop":
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
 
 
 def main() -> None:

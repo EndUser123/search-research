@@ -387,7 +387,7 @@ def main():
         print(json.dumps(_normalize_stdout(output)))
     else:
         if os.environ.get("SELF_REFLECTION_DEBUG") == "true":
-            print(json.dumps({"decision": "approve"}))
+            print("{}")
         else:
             print("{}")
 

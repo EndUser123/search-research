@@ -301,4 +301,4 @@ if __name__ == "__main__":
         result = run(json.loads(sys.stdin.read()))
         print(json.dumps(result, indent=2))
     except json.JSONDecodeError:
-        print(json.dumps({"decision": "approve"}))
+        print("{}")

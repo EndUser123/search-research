@@ -133,7 +133,7 @@ def main():
     # Generate advisory if risks detected
     if risks or multi_file:
         advisor = generate_advisor(risks, file_count)
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         sys.stderr.write(f"[advisory] {advisor}\n")
     else:
         # No risks, output empty JSON
