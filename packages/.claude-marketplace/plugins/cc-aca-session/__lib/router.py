@@ -102,7 +102,9 @@ def main() -> None:
         except Exception:
             pass
 
-    print(json.dumps({"decision": "approve"}))
+    # Allow = emit {} — "decision: approve" is not a valid hook output enum
+    # (see stop_hook_output_schema memory / hooks CLAUDE.md output table).
+    print("{}")
 
 
 if __name__ == "__main__":

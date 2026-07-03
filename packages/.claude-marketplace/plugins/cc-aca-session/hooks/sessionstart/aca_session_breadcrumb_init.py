@@ -11,7 +11,7 @@ import sys
 
 
 def main():
-    print(json.dumps({"decision": "approve"}))
+    print("{}")
     sys.exit(0)
 
 
