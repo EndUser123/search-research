@@ -829,7 +829,6 @@ def _call_mistral_critic(
 ) -> Optional[SemanticCriticResult]:
     """Call Mistral API via mistralai SDK with the semantic critic prompt.
 
-    Uses reasoning_effort="high" for deep analysis.
     Returns None on any failure (timeout, transport, parse, schema).
     """
     api_key = _load_mistral_key()
@@ -855,7 +854,9 @@ def _call_mistral_critic(
                 {"role": "user", "content": user_message},
             ],
             temperature=0.2,
-            reasoning_effort="high",
+            # No reasoning_effort: "high" measured at ~16s wall vs 0.7s without,
+            # which can never fit the ~4s backend budget derived from the 10s
+            # Stop-hook outer timeout (probe 2026-07-03).
             timeout_ms=MISTRAL_TIMEOUT_SEC * 1000,
         )
 

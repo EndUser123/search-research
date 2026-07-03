@@ -267,7 +267,8 @@ def check_veridical_integrity(
                 {"role": "user", "content": user_payload},
             ],
             temperature=0.2,
-            reasoning_effort="high",
+            # No reasoning_effort: "high" measured at ~16s wall vs 0.7s without,
+            # which can never fit this gate's ~2s budget (probe 2026-07-03).
             timeout_ms=(timeout_sec if timeout_sec is not None else VERIDICAL_TIMEOUT_SEC) * 1000,
         )
 
