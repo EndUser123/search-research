@@ -243,6 +243,8 @@ Metrics and insights about chat history.
 
 When the user asks for `export`, interpret it as a full session-chain export, not a search-result export.
 
+**Shortcut:** `/export-session` is the task-centric entry point for this same pipeline — prefer it when the user's intent is purely "export this session." `/chs export` remains the in-skill alias. Both call `chs_cli.py --export`.
+
 **Exact CLI mapping:**
 
 ```bash
