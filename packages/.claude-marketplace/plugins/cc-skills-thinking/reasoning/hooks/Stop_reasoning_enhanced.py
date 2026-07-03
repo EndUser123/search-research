@@ -244,7 +244,7 @@ def main():
     if not should_apply:
         # Debug mode: include stats even when skipping
         if os.environ.get("ENHANCED_REFLECTION_DEBUG") == "true":
-            print(json.dumps({"decision": "approve"}))
+            print("{}")
         else:
             print("{}")
         return 0
@@ -263,7 +263,7 @@ def main():
     else:
         # No improvement - pass through
         if os.environ.get("ENHANCED_REFLECTION_DEBUG") == "true":
-            print(json.dumps({"decision": "approve"}))
+            print("{}")
         else:
             print("{}")
 

@@ -290,7 +290,7 @@ def main():
 
     if not _env_enabled("MULTI_AGENT_ENABLED", default=True):
         if os.environ.get("MULTI_AGENT_DEBUG") == "true":
-            print(json.dumps({"decision": "approve"}))
+            print("{}")
         else:
             print("{}")
         return 0
@@ -310,7 +310,7 @@ def main():
     if not should_apply:
         # Debug mode: include stats even when skipping
         if os.environ.get("MULTI_AGENT_DEBUG") == "true":
-            print(json.dumps({"decision": "approve"}))
+            print("{}")
         else:
             print("{}")
         return 0
@@ -339,7 +339,7 @@ def main():
     else:
         # No agent outputs - pass through
         if os.environ.get("MULTI_AGENT_DEBUG") == "true":
-            print(json.dumps({"decision": "approve"}))
+            print("{}")
         else:
             print("{}")
 
