@@ -1,7 +1,7 @@
 ---
 name: debrief
-description: "This skill is used when the user points at a transcript or chat-history file and asks to mine it for unfinished work, open issues, origin-anchored tasks, or to trace symptoms back to code. Trigger phrases include 'debrief this transcript', 'mine the chat history', 'transcript to tasks', 'turn this session into tasks', 'victim log', and 'why is this broken'. Recursively walks symptom → cause → origin chains, calls /friction and /truth from inside the loop, and writes cold-start tasks to the tracker with the source file tagged. Distinct from /recap (summarizes) and /top-problems (lists, never creates tasks); /retro is the multi-session chain mode."
-version: 1.0.46
+description: "This skill is used when the user points at a transcript or chat-history file and asks to mine it for unfinished work, open issues, origin-anchored tasks, or to trace symptoms back to code. Trigger phrases include 'debrief this transcript', 'mine the chat history', 'transcript to tasks', 'turn this session into tasks', 'victim log', and 'why is this broken'. Recursively walks symptom → cause → origin chains, calls /friction and /truth from inside the loop, and writes cold-start tasks to the tracker with the source file tagged. Distinct from /recap (summarizes) and /top-problems (lists, never creates tasks); handles multi-session chain exports (`chain_*.md`) directly — `/retro` is the legacy chain surface being migrated in."
+version: 1.0.47
 status: stable
 category: analysis
 enforcement: advisory
@@ -68,7 +68,7 @@ So a task written by `/debrief` is a **memory-transfer device anchored at the co
 **Do NOT use for:**
 - Live session summarization with no file (that's `/recap`).
 - Listing problems without creating tasks (that's `/top-problems`).
-- A multi-session chain analysis (use `/retro` — it calls `/debrief`'s `debrief_core` for the per-session extraction step).
+- A multi-session chain analysis with no export file — `/debrief` handles chain exports (`chain_*.md`) directly; only fall back to `/retro` if you have loose per-session transcripts that haven't been chained yet.
 
 ## Two surfaces of /debrief
 
@@ -125,4 +125,4 @@ Rules — the export tool's auto-generated stem (`2026-07-01-145732-cusersbrsthd
 
 A debriefer running `/debrief` does, in order: (1) `debrief.py plan --path <file>` to get chunks + theme hints, (2) `debrief.py run --path <file> --findings <dedup.json> --truth-mode contract` to route the deduped findings through the enforced state machine (the only path to `WRITTEN` tasks — `contract` mode leaves un-/truth-stamped findings at LOCATED with a `MUST RE-VERIFY` note), (3) call `/truth` on every layer transition the run surfaced, (4) gap-analyze the `WRITTEN` findings against `TaskList` and TaskCreate each + invoke `rename_tag.py --apply`, (5) `debrief.py close --path <file> --breadcrumb-task N --tracker-snapshot <dump>` as the closure gate — it refuses exit 0 unless the source file is tagged AND a non-completed breadcrumb task exists. The loop in (2) does the heavy lifting; the gate in (5) is what stops "done" from being a judgment call. Pass `--wiki` to (5) to emit a `/wiki ingest <tagged-file>` directive — the B/C/D accounting buckets (verified-fixed, deferred, external) are durable knowledge, not tasks, and `/wiki` ingests the tagged transcript with automatic SHA256 dedup (re-ingest of an already-logged file is a no-op, so it's safe to run every close).
 
-`/debrief` and `/retro` share `debrief_core` — `/debrief` for files, `/retro` for session chains (it walks the chain first, then runs `debrief_core` per session, then aggregates). Same state machine, same victim-log detection, same /truth gate, same task template.
+`/debrief` handles both single-transcript files and multi-session chain exports (`chain_*.md`) — the victim-log detector, recursion budget, and `--truth-mode contract` gate all scale to chain length. `/retro` is the legacy chain surface being migrated into `/debrief`; both share `debrief_core` (same state machine, victim-log detection, /truth gate, task template), so prefer `/debrief` for chain inputs and do not route `chain_*.md` files to `/retro`.
