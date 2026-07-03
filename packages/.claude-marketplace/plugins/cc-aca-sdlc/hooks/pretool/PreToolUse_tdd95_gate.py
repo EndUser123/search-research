@@ -611,7 +611,7 @@ def main():
         input_data = json.loads(sys.stdin.read())
     except json.JSONDecodeError:
         # No valid input, allow
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         return
 
     allow, reason, context = process_hook(input_data)

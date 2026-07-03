@@ -156,7 +156,7 @@ if __name__ == "__main__":
         input_text = sys.stdin.read()
         input_data = json.loads(input_text) if input_text.strip() else {}
     except json.JSONDecodeError:
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         sys.exit(0)
 
     allow, reason, context = process_hook(input_data)

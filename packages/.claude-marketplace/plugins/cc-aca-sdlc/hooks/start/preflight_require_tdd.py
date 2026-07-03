@@ -39,7 +39,7 @@ def main() -> None:
 
     # Already using /tdd or a session is active — allow
     if "/tdd" in prompt or ACTIVE_PTR.exists():
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         return
 
     if _TDD_PATTERNS.search(prompt):
@@ -59,7 +59,7 @@ def main() -> None:
         )
         return
 
-    print(json.dumps({"decision": "approve"}))
+    print("{}")
 
 if __name__ == "__main__":
     main()
