@@ -13,13 +13,20 @@ Non-blocking phases; run in any order or parallel. Each prompt is self-contained
 
 ---
 
-## Phase 1 — RETIRED (premise refuted)
+## Phase 1 — RETIRED (premise refuted; cross-scope confirmed 2026-07-03)
 
 The double-fire hypothesis was refuted by the official hooks reference:
 "identical handlers are deduplicated automatically. Command hooks are
-deduplicated by command string and `args`." Dual-scope registrations with
-identical command strings fire once. Remaining (Low impact, director-optional):
-remove the redundant duplicate lines from ONE scope for readability only.
+deduplicated by command string and `args`." Grounded follow-up (agy web
+search, 2026-07-03) confirmed the dedup applies ACROSS settings scopes:
+code.claude.com/docs/en/settings — "Arrays: Arrays are concatenated and
+de-duplicated" during scope merge — plus a changelog entry "deduplicated —
+the local config wins." Dual-scope registrations with identical command
+strings fire once. Remaining (Low impact, director-optional): remove the
+redundant duplicate lines from ONE scope for readability only. Caveat: dedup
+keys on the EXACT command string — a path-case or argument difference between
+scopes would defeat it; the Phase 3 manifest makes such near-duplicates
+visible.
 
 ---
 
