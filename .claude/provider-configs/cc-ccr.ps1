@@ -410,11 +410,13 @@ try {
     $haikuDisplay  = $ccrCfg.Router."claude-haiku-4-5"
     $customDisplay = $ccrCfg.Router."claude-local-ornith"
     $fb = $ccrCfg.fallback
+    $longContextPrimary = if ($ccrCfg.Router.longContext) { $ccrCfg.Router.longContext } else { 'minimax,MiniMax-M3[1m]' }
     $routes = @(
-        @{ Label = 'opus';   Primary = $opusDisplay;   Chain = if ($fb) { $fb.think }      else { $null } },
-        @{ Label = 'sonnet'; Primary = $sonnetDisplay; Chain = if ($fb) { $fb.default }    else { $null } },
-        @{ Label = 'haiku';  Primary = $haikuDisplay;  Chain = if ($fb) { $fb.background } else { $null } },
-        @{ Label = 'custom'; Primary = $customDisplay; Chain = $null }
+        @{ Label = 'opus';        Primary = $opusDisplay;       Chain = if ($fb) { $fb.think }       else { $null } },
+        @{ Label = 'sonnet';      Primary = $sonnetDisplay;     Chain = if ($fb) { $fb.default }     else { $null } },
+        @{ Label = 'haiku';       Primary = $haikuDisplay;      Chain = if ($fb) { $fb.background }  else { $null } },
+        @{ Label = 'longContext'; Primary = $longContextPrimary; Chain = if ($fb) { $fb.longContext } else { $null } },
+        @{ Label = 'custom';      Primary = $customDisplay;     Chain = $null }
     )
     $labelWidth = ($routes | ForEach-Object { $_.Label.Length } | Measure-Object -Maximum).Maximum
     foreach ($r in $routes) {
