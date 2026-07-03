@@ -9,6 +9,26 @@
 >
 > See tracker task **#1052** for the enable/refactor/delete decision.
 
+## Posture: advisory by default
+
+`/improve` and its hooks are **suggest-only by default**. This matches
+`SKILL.md` `enforcement: advisory`:
+
+- `/improve` itself never blocks actions; it produces review artifacts and
+  recommendations.
+- The hooks, **if ever enabled**, default to `config.json` `mode: "suggest"`
+  (allow + emit a suggestion), not `force`. `allow_force_mode: true` exists but
+  is gated by `force_only_when` (explicit opt-in only) — there is no path where
+  they block without an explicit user action.
+- No strict/blocking guard is warranted here because there is no deterministic
+  safety or contract condition these hooks test. (`stop_review_gate.py`'s
+  suggestion message is `/improve` self-promotion — flagged for cleanup as part
+  of the #1052 decision, not enabled today.)
+
+Hooks left inert (not wired, `hooks.enabled: false`) — see #1052 before
+changing this. No active hook was removed in the hardening pass because none are
+active.
+
 ## What ships live now
 - `/improve` skill (`skills/improve/SKILL.md`) — manual improvement/thought-partner.
 - 3 specialist agents (`agents/*.md`) — prompt, workflow, hook/plugin.

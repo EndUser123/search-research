@@ -24,7 +24,7 @@ workflow_steps:
   - persist_and_verify
 metadata:
   plugin: improve-partner
-  version: "0.3.5"
+  version: "0.3.6"
 ---
 
 # /improve — High-Rigor Improvement Partner
@@ -108,10 +108,19 @@ If no mode is specified, use `mode=analyze`.
 
 For any `/improve` invocation (in `mode=analyze` unless a Mode above says otherwise):
 
-1. **Clarify the slice (if needed)**
-   - If the user did not specify artifacts, ask for a file path, diff, config,
-     transcript, or hook list.
-   - Keep the slice narrow enough to be reviewable.
+1. **Clarify the slice (do not analyze nothing)**
+   - A slice is a concrete artifact: a file path, diff, config, task/issue ID,
+     export, transcript, or hook list. `/improve` does not review "everything."
+   - If the user supplied one, proceed.
+   - If exactly one candidate is unambiguously implied by immediate context, you
+     may infer it — but label it `INFERENCE` and state it in one line before
+     reading. Treat it as a hypothesis, not a fact.
+   - If no artifact and no unambiguous candidate exists, **stop and ask** for a
+     slice in one short, concrete prompt (e.g., "Which file/diff/config should
+     I review?"). Do not begin analysis until a slice is clarified.
+   - A "run on everything" pass is allowed only as artifact-enumeration: build an
+     explicit list of concrete artifacts first, then review that list as a slice.
+     Never substitute a vague global review for an artifact list.
 
 2. **Read and classify**
    - Read the artifacts.
@@ -122,6 +131,13 @@ For any `/improve` invocation (in `mode=analyze` unless a Mode above says otherw
 3. **Collect verified facts (with provenance)**
    - List only what you can support from artifacts and specialist outputs.
    - Tag each line with `FACT(self-verified)` or `FACT(delegated-specialist)`.
+   - For any decision-grade `FACT(delegated-specialist)` claim, run at least one
+     self-verification pass (re-read the cited artifact, or run the smallest
+     discriminating check) before treating it as load-bearing. If you cannot
+     verify it, downgrade to `RISK` and name the check that would confirm it.
+   - While delegates are still running, you may emit interim output, but it must
+     be prefixed `Interim facts, recommendation pending delegation` — never fill
+     the Recommendation section early.
 
 4. **Identify the binding constraint**
    - State what is truly limiting quality, reliability, or maintainability.
