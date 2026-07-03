@@ -409,29 +409,24 @@ try {
     $sonnetDisplay = $ccrCfg.Router."claude-sonnet-4-6"
     $haikuDisplay  = $ccrCfg.Router."claude-haiku-4-5"
     $customDisplay = $ccrCfg.Router."claude-local-ornith"
-    Write-Host "  opus:   $(Format-Route $opusDisplay)"
-    Write-Host "  sonnet: $(Format-Route $sonnetDisplay)"
-    Write-Host "  haiku:  $(Format-Route $haikuDisplay)"
-    if ($customDisplay) { Write-Host "  custom: $(Format-Route $customDisplay)" }
-    # ── Fallback chains ── CCR's actual failover path: comma-separated provider,model
-    # strings in config.fallback.<role>. The top-level Router value is single-pair only;
-    # fallbacks fire only from this dedicated key.
     $fb = $ccrCfg.fallback
-    if ($fb) {
-        $roleMap = @{
-            'opus'   = 'think'
-            'sonnet' = 'default'
-            'haiku'  = 'background'
-        }
-        foreach ($roleKey in 'opus','sonnet','haiku') {
-            $chainRole = $roleMap[$roleKey]
-            $chain = $fb.$chainRole
-            if ($chain -and $chain.Count -gt 0) {
-                $formatted = ($chain | ForEach-Object { Format-Route $_ }) -join ' → '
-                Write-Host "           fallback: $formatted" -ForegroundColor DarkGray
-            } else {
-                Write-Host "           fallback: (none configured)" -ForegroundColor DarkGray
-            }
+    $routes = @(
+        @{ Label = 'opus';   Primary = $opusDisplay;   Chain = if ($fb) { $fb.think }      else { $null } },
+        @{ Label = 'sonnet'; Primary = $sonnetDisplay; Chain = if ($fb) { $fb.default }    else { $null } },
+        @{ Label = 'haiku';  Primary = $haikuDisplay;  Chain = if ($fb) { $fb.background } else { $null } },
+        @{ Label = 'custom'; Primary = $customDisplay; Chain = $null }
+    )
+    $labelWidth = ($routes | ForEach-Object { $_.Label.Length } | Measure-Object -Maximum).Maximum
+    foreach ($r in $routes) {
+        if (-not $r.Primary) { continue }
+        $paddedLabel = $r.Label.PadRight($labelWidth)
+        Write-Host "  $($paddedLabel): $(Format-Route $r.Primary)"
+        if ($r.Chain -and $r.Chain.Count -gt 0) {
+            $primaryPair = Format-Route $r.Primary
+            $rest = ($r.Chain | ForEach-Object { Format-Route $_ }) -join ' → '
+            Write-Host ("  {0}  └─ {1}" -f (' ' * $labelWidth, "if $primaryPair fails → $rest")) -ForegroundColor DarkGray
+        } elseif ($r.Label -ne 'custom') {
+            Write-Host ("  {0}  └─ (no fallback configured)" -f (' ' * $labelWidth)) -ForegroundColor DarkGray
         }
     }
 } catch {

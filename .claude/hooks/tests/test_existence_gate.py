@@ -12,13 +12,9 @@ Verifies:
 """
 
 import json
-import os
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
-
-import pytest
 
 # Add hooks directory to path
 HOOKS_DIR = Path(__file__).resolve().parent.parent
@@ -59,7 +55,7 @@ class TestStateManagement:
             # Monkey _get_state_file to return our temp file
             import PreToolUse_existence_gate as eg
             original = eg._get_state_file
-            eg._get_state_file = lambda sid: state_file
+            eg._get_state_file = lambda sid: __import__("pathlib").Path(state_file)
 
             try:
                 result = _load_read_files("test_session")
@@ -76,7 +72,7 @@ class TestStateManagement:
             # Monkey _get_state_file
             import PreToolUse_existence_gate as eg
             original = eg._get_state_file
-            eg._get_state_file = lambda sid: state_file
+            eg._get_state_file = lambda sid: __import__("pathlib").Path(state_file)
 
             try:
                 # Record read
@@ -124,7 +120,7 @@ class TestHookAllows:
             import PreToolUse_existence_gate as eg
             original = eg._get_state_file
             state_file = Path(tmpdir) / "read_files_test.json"
-            eg._get_state_file = lambda sid: state_file
+            eg._get_state_file = lambda sid: __import__("pathlib").Path(state_file)
 
             try:
                 # Record that file was read
@@ -167,7 +163,7 @@ class TestHookAllows:
             import PreToolUse_existence_gate as eg
             original = eg._get_state_file
             state_file = Path(tmpdir) / "read_files_test.json"
-            eg._get_state_file = lambda sid: state_file
+            eg._get_state_file = lambda sid: __import__("pathlib").Path(state_file)
 
             try:
                 _record_read_file("test_session_4", str(test_file))
@@ -194,7 +190,7 @@ class TestHookBlocks:
     """Verify hook blocks operations that should fail."""
 
     def test_blocks_write_without_read(self):
-        """Write to existing file without Read is blocked."""
+        """Write to existing file without Read returns a warn/block decision."""
         with tempfile.TemporaryDirectory() as tmpdir:
             test_file = Path(tmpdir) / "test.txt"
             test_file.touch()  # Create file
@@ -206,29 +202,15 @@ class TestHookBlocks:
                 "message": "update file",
             }
 
-            # Run in subprocess to catch sys.exit(2)
-            import subprocess
-
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    "-c",
-                    f"import sys; sys.path.insert(0, '{HOOKS_DIR}'); "
-                    f"from PreToolUse_existence_gate import run; "
-                    f"data={json.dumps(data)}; "
-                    f"run(data); "
-                    f"assert False, 'Should have exited'",
-                ],
-                capture_output=True,
-                text=True,
-                env={**os.environ, "EXISTENCE_GATE_BLOCK": "1"},
-            )
-
-            assert result.returncode == 2  # Blocked
-            assert "EXISTENCE CHECK REQUIRED" in result.stderr
+            # New policy: in-process call returns decision payload (warn for normal
+            # path; block for high-risk). This test uses a normal-path file.
+            result = run(data)
+            assert result is not None
+            assert result.get("decision") == "warn"
+            assert "Read-before-edit" in result.get("systemMessage", "")
 
     def test_blocks_edit_without_read(self):
-        """Edit to existing file without Read is blocked."""
+        """Edit to existing file without Read returns a warn decision."""
         with tempfile.TemporaryDirectory() as tmpdir:
             test_file = Path(tmpdir) / "test.txt"
             test_file.touch()
@@ -240,25 +222,10 @@ class TestHookBlocks:
                 "message": "edit file",
             }
 
-            import subprocess
-
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    "-c",
-                    f"import sys; sys.path.insert(0, '{HOOKS_DIR}'); "
-                    f"from PreToolUse_existence_gate import run; "
-                    f"data={json.dumps(data)}; "
-                    f"run(data); "
-                    f"assert False, 'Should have exited'",
-                ],
-                capture_output=True,
-                text=True,
-                env={**os.environ, "EXISTENCE_GATE_BLOCK": "1"},
-            )
-
-            assert result.returncode == 2  # Blocked
-            assert "EXISTENCE CHECK REQUIRED" in result.stderr
+            result = run(data)
+            assert result is not None
+            assert result.get("decision") == "warn"
+            assert "Read-before-edit" in result.get("systemMessage", "")
 
 
 # =============================================================================
@@ -270,21 +237,27 @@ class TestSessionIsolation:
     """Verify Read tracking is session-scoped."""
 
     def test_read_in_session_doesnt_affect_other_session(self):
-        """Read in session A doesn't allow Write in session B."""
+        """Read in session A doesn't allow Write in session B.
+
+        The STATE_DIR module attribute is what controls session-scoped state-file
+        keying. We patch STATE_DIR (not _get_state_file) so each session_id still
+        resolves to its own per-session sidecar under the temp dir — otherwise
+        the test would defeat session isolation by collapsing all reads into one
+        shared file.
+        """
         with tempfile.TemporaryDirectory() as tmpdir:
             test_file = Path(tmpdir) / "test.txt"
             test_file.touch()
 
             import PreToolUse_existence_gate as eg
-            original = eg._get_state_file
-            state_file = Path(tmpdir) / "read_files_test.json"
-            eg._get_state_file = lambda sid: state_file
+            original_state_dir = eg.STATE_DIR
+            eg.STATE_DIR = Path(tmpdir)
 
             try:
                 # Record read in session A
                 _record_read_file("session_A", str(test_file))
 
-                # Write in session B should block (different session_id)
+                # Write in session B should warn (different session_id).
                 data = {
                     "tool_name": "Write",
                     "session_id": "session_B",
@@ -292,24 +265,11 @@ class TestSessionIsolation:
                     "message": "update file",
                 }
 
-                result = subprocess.run(
-                    [
-                        sys.executable,
-                        "-c",
-                        f"import sys; sys.path.insert(0, '{HOOKS_DIR}'); "
-                        f"from PreToolUse_existence_gate import run; "
-                        f"data={json.dumps(data)}; "
-                        f"run(data); "
-                        f"assert False, 'Should have blocked'",
-                    ],
-                    capture_output=True,
-                    text=True,
-                    env={**os.environ, "EXISTENCE_GATE_BLOCK": "1"},
-                )
-
-                assert result.returncode == 2  # Blocked
+                result = run(data)
+                assert result is not None
+                assert result.get("decision") == "warn"
             finally:
-                eg._get_state_file = original
+                eg.STATE_DIR = original_state_dir
 
 
 # =============================================================================
@@ -370,14 +330,11 @@ class TestEdgeCases:
 class TestMultiEdit:
     """MultiEdit extracts paths from both tool_input.file_path and
     tool_input.edits[].file_path, deduplicates, and enforces read-before-edit
-    on every touched file_path (telemetry-only by default; blocks when
-    EXISTENCE_GATE_BLOCK=1 is set in the env).
+    on every touched file_path.
 
-    Invocation style mirrors test_existence_gate_repair.py — direct in-process
-    eg.run() call, with pytest.raises(SystemExit) for the block path
-    (which calls sys.exit(2)). Direct calls avoid the script-without-main
-    gap in PreToolUse_existence_gate.py (the file defines run() but has no
-    `if __name__ == "__main__":` block, so subprocess invocation does nothing).
+    Invocation style: direct in-process eg.run() call. The gate returns a
+    decision payload (warn for normal paths, block for high-risk paths);
+    it does not call sys.exit() anymore.
     """
 
     def _make_file(self, tmp_path: Path, name: str = "f.py", body: str = "x = 1\n") -> Path:
@@ -391,20 +348,10 @@ class TestMultiEdit:
         payload.update(kw)
         return payload
 
-    def _enable_block(self, monkeypatch):
-        """Flip the in-process constant to True by directly mutating the module
-        attribute (avoids importlib.reload, which would re-evaluate the
-        module's top-level `STATE_DIR = Path.home() / ".claude" / "state"` and
-        wipe any monkeypatched STATE_DIR)."""
-        import PreToolUse_existence_gate as eg
-        monkeypatch.setattr(eg, "_BLOCK_ENABLED", True)
-
-    def test_multiedit_top_level_file_path_blocks_when_not_read(self, monkeypatch, tmp_path):
-        """Top-level tool_input.file_path goes through the gate. With the block
-        flag set, the gate raises SystemExit(2) because the file was never read."""
-        self._enable_block(monkeypatch)
+    def test_multiedit_top_level_file_path_warns_when_not_read(self, monkeypatch, tmp_path):
+        """Top-level tool_input.file_path on an unread file returns a warn
+        decision (normal path; this file is not in the high-risk list)."""
         path = self._make_file(tmp_path)
-        import PreToolUse_existence_gate as eg
 
         data = self._nested(
             "multi-top-1",
@@ -412,13 +359,13 @@ class TestMultiEdit:
             tool_input={"file_path": str(path)},
             message="",
         )
-        with pytest.raises(SystemExit) as exc_info:
-            eg.run(data)
-        assert exc_info.value.code == 2
+        result = run(data)
+        assert result is not None
+        assert result.get("decision") == "warn"
+        assert "Read-before-edit" in result.get("systemMessage", "")
 
     def test_multiedit_top_level_file_path_allows_after_read(self, monkeypatch, tmp_path):
-        """Top-level file_path with a prior Read returns None (allow), even when
-        the block flag is set, because the read happened first."""
+        """Top-level file_path with a prior Read returns None (allow)."""
         path = self._make_file(tmp_path)
         # Point the sidecar at a temp dir so reads/blocks don't pollute real state.
         import PreToolUse_existence_gate as eg
@@ -432,8 +379,6 @@ class TestMultiEdit:
             message="",
         ))
 
-        self._enable_block(monkeypatch)
-        # MultiEdit on the same path with same session — must allow.
         result = eg.run(self._nested(
             "multi-top-2",
             tool_name="MultiEdit",
@@ -442,9 +387,9 @@ class TestMultiEdit:
         ))
         assert result is None
 
-    def test_multiedit_edits_array_blocks_all_files(self, monkeypatch, tmp_path):
+    def test_multiedit_edits_array_warns_for_unread_path(self, monkeypatch, tmp_path):
         """When edits[] carries per-edit file_paths, every unique path goes
-        through the gate. One unread path in the list should block all."""
+        through the gate. One unread path in the list produces a warn."""
         path_a = self._make_file(tmp_path, "a.py")
         path_b = self._make_file(tmp_path, "b.py")
         import PreToolUse_existence_gate as eg
@@ -458,7 +403,6 @@ class TestMultiEdit:
             message="",
         ))
 
-        self._enable_block(monkeypatch)
         data = self._nested(
             "multi-edits-1",
             tool_name="MultiEdit",
@@ -471,9 +415,11 @@ class TestMultiEdit:
             },
             message="",
         )
-        with pytest.raises(SystemExit) as exc_info:
-            eg.run(data)
-        assert exc_info.value.code == 2
+        result = eg.run(data)
+        assert result is not None
+        assert result.get("decision") == "warn"
+        # Both paths are reported in the message.
+        assert "Read-before-edit" in result.get("systemMessage", "")
 
     def test_multiedit_mixed_paths_dedupes(self, monkeypatch, tmp_path):
         """If edits[] contains the top-level file_path as one of its entries,
@@ -481,7 +427,6 @@ class TestMultiEdit:
         path = self._make_file(tmp_path)
         import PreToolUse_existence_gate as eg
         monkeypatch.setattr(eg, "STATE_DIR", tmp_path)
-        self._enable_block(monkeypatch)
 
         data = self._nested(
             "multi-dedup-1",
@@ -495,15 +440,13 @@ class TestMultiEdit:
             },
             message="",
         )
-        with pytest.raises(SystemExit) as exc_info:
-            eg.run(data)
-        assert exc_info.value.code == 2
+        result = eg.run(data)
+        assert result is not None
+        assert result.get("decision") == "warn"
 
     def test_multiedit_missing_path_shape_fails_open(self, monkeypatch, tmp_path):
-        """No file_path, no edits → unrecognized shape → fail-open (return None),
-        block flag irrelevant. Mirrors Write/Edit no-file-path fail-open."""
+        """No file_path, no edits → unrecognized shape → fail-open (return None)."""
         import PreToolUse_existence_gate as eg
-        self._enable_block(monkeypatch)
 
         data = self._nested(
             "multi-no-1",
@@ -513,15 +456,11 @@ class TestMultiEdit:
         )
         assert eg.run(data) is None
 
-    def test_multiedit_telemetry_only_default_allows_unread(self, monkeypatch, tmp_path):
-        """Without EXISTENCE_GATE_BLOCK=1, MultiEdit on an unread file does NOT
-        block — it returns None (allow) per the gate's telemetry-first design."""
+    def test_multiedit_default_allows_unread(self, monkeypatch, tmp_path):
+        """Default: MultiEdit on an unread file returns a warn (not None, not block)."""
         path = self._make_file(tmp_path)
         import PreToolUse_existence_gate as eg
         monkeypatch.setattr(eg, "STATE_DIR", tmp_path)
-        # Force block OFF — direct attribute mutation (matches _enable_block),
-        # avoids importlib.reload which would reset STATE_DIR.
-        monkeypatch.setattr(eg, "_BLOCK_ENABLED", False)
 
         data = self._nested(
             "multi-telemetry-1",
@@ -529,7 +468,9 @@ class TestMultiEdit:
             tool_input={"file_path": str(path)},
             message="",
         )
-        assert eg.run(data) is None
+        result = eg.run(data)
+        assert result is not None
+        assert result.get("decision") == "warn"
 
 
 # =============================================================================
@@ -548,7 +489,7 @@ class TestErrorHandling:
 
             import PreToolUse_existence_gate as eg
             original = eg._get_state_file
-            eg._get_state_file = lambda sid: state_file
+            eg._get_state_file = lambda sid: __import__("pathlib").Path(state_file)
 
             try:
                 # Should fail open gracefully, return empty set

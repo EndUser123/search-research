@@ -146,7 +146,9 @@
       "Bash(wmic baseboard *)",
       "Bash(gh api *)",
       "Bash(Select-Object -String -Skip 3)",
-      "Bash(Select-Object -First 12)"
+      "Bash(Select-Object -First 12)",
+      "Bash(Select-String -Pattern '^Route|^  ' -Context 0,0)",
+      "Bash(ForEach-Object '{' '$_.Line' '}')"
     ],
     "deny": [],
     "ask": []

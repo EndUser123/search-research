@@ -17,13 +17,14 @@ not top-level. Two prior bugs made this gate silently inert in production:
 Fix: use pre_tool_use_logic.resolve_session_id (checks nested first), and wire
 run_read_tracker inline in PostToolUse.py main() (the registry skips Read).
 
-Rollout: telemetry-only by default. Detect logs an event and ALLOWS. To flip to
-hard blocking once telemetry shows acceptable FP rate, set EXISTENCE_GATE_BLOCK=1.
+Rollout (2026-07-02): warn for normal paths, soft-block for high-risk paths.
+High-risk detection: Edit/Write to .claude/hooks/, .claude/settings*.json, plugin
+manifests, __lib/router.py, plugin audit/cache scripts, or /go orchestrator files
+without prior Read returns a block decision. Bypass with --allow-overwrite.
 """
 
 import json
 import os
-import sys
 from pathlib import Path
 
 try:
@@ -60,8 +61,6 @@ def _telemetry(event: str, session_id: str, decision: str, extra: dict | None = 
     except Exception:
         pass
 
-
-_BLOCK_ENABLED = os.environ.get("EXISTENCE_GATE_BLOCK", "0") not in {"0", "false", "no", "off"}
 
 # High-risk paths: soft-block (not just warn) when modified without prior Read.
 # Promoted from telemetry-only to active protection 2026-07-02.
@@ -219,50 +218,6 @@ def run(data: dict) -> dict | None:
             "Consider Reading first; add --allow-overwrite to bypass."
         ),
     }
-
-    if blocked_files:
-        # Telemetry-first: log the detect and (by default) ALLOW. Block path is
-        # gated behind EXISTENCE_GATE_BLOCK until telemetry proves low FP rate.
-        _telemetry(
-            "missing_read",
-            session_id,
-            "block" if _BLOCK_ENABLED else "telemetry",
-            extra={"files": blocked_files, "tool": tool_name, "block_enabled": _BLOCK_ENABLED},
-        )
-        if not _BLOCK_ENABLED:
-            return None  # allow — telemetry only
-
-        print(
-            f"\n⛔ EXISTENCE CHECK REQUIRED\n\n",
-            file=sys.stderr
-        )
-        if len(blocked_files) == 1:
-            print(
-                f"File exists but hasn't been read this session:\n"
-                f"  {blocked_files[0]}\n\n"
-                f"Before modifying, you MUST:\n"
-                f"1. Read the file to understand current state\n"
-                f"2. Then proceed with Write/Edit\n\n"
-                f"Bypass: Add --allow-overwrite to your message",
-                file=sys.stderr,
-            )
-        else:
-            print(
-                f"Files exist but haven't been read this session:\n",
-                file=sys.stderr,
-            )
-            for fp in blocked_files:
-                print(f"  - {fp}\n", file=sys.stderr)
-            print(
-                f"\nBefore modifying, you MUST:\n"
-                f"1. Read each file to understand current state\n"
-                f"2. Then proceed with Write/Edit\n\n"
-                f"Bypass: Add --allow-overwrite to your message",
-                file=sys.stderr,
-            )
-        sys.exit(2)
-
-    return None
 
 
 def run_read_tracker(data: dict) -> dict | None:
