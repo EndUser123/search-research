@@ -406,6 +406,58 @@ def test_clean_response_produces_valid_stop_output(monkeypatch):
     }), "clean output path must produce valid Stop schema"
 
 
+# ---- 7c. end-to-end: invoke the actual safe_run() path the hook runner uses ----
+
+def test_safe_run_end_to_end_emits_valid_stop_json(monkeypatch):
+    """End-to-end: invoke the full hook_runner.safe_run() path with a payload
+    that triggers the validation warn path. The captured stdout must be exactly
+    one line of Zod-valid JSON with continue=True and no decision=warn leakage.
+
+    This is the test that would have failed when the user saw
+    'Stop hook error: JSON validation failed' before this fix.
+    """
+    import importlib.util
+    hr_spec = importlib.util.spec_from_file_location("hr", "P:/.claude/hooks/__lib/hook_runner.py")
+    hr = importlib.util.module_from_spec(hr_spec); hr_spec.loader.exec_module(hr)
+
+    # Payload that triggers BOTH a structural + validation claim gap.
+    # In the failing run, the live runner output an invalid shape.
+    payload = (
+        '{"response":"I added the new claim-gap-telemetry-probe registered in the dispatch chain. '
+        "All tests pass after the patch. The fix is verified and working."
+        '","session_id":"e2e-rca-4-6","terminal_id":"t-e2e-rca-4-6",'
+        '"stop_hook_active":false,"turn_mode":"analysis","user_prompt":"fix the parser",'
+        '"transcript_path":"","tool_events":[],"session":{"id":"e2e-rca-4-6"}}'
+    )
+
+    import io
+    old_stdin, old_stdout = sys.stdin, sys.stdout
+    try:
+        sys.stdin = io.StringIO(payload)
+        sys.stdout = io.StringIO()
+        try:
+            rc = hr.safe_run("Stop.py", timeout=10.0)
+        except SystemExit as e:
+            rc = e.code
+        raw = sys.stdout.getvalue()
+    finally:
+        sys.stdin, sys.stdout = old_stdin, old_stdout
+
+    # Exit code 0 + single line of valid JSON
+    assert rc == 0, f"safe_run must return 0, got {rc}"
+    lines = [line for line in raw.splitlines() if line.strip()]
+    assert len(lines) == 1, f"safe_run must emit exactly one line, got {len(lines)}: {lines!r}"
+    out = json.loads(lines[0])
+    # Zod-valid: no decision=warn, no decision=approve, must have continue=True
+    assert "decision" not in out, f"output must not contain 'decision' key (Zod-invalid): {out}"
+    assert "approve" not in out.get("decision", "none"), f"output must not be 'approve': {out}"
+    assert out.get("continue") is True, f"output.continue must be True: {out}"
+    # systemMessage must be a non-empty string when present
+    if "systemMessage" in out:
+        assert isinstance(out["systemMessage"], str)
+        assert len(out["systemMessage"]) > 0
+
+
 # ---- 8. integration: probe is wired into Stop.IN_PROCESS_GATES ------------------
 
 def _load_stop_module():
