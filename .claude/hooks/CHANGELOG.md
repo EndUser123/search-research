@@ -1,6 +1,11 @@
 
 ### Added
 
+- .claude/hooks/Stop_sound_hook.py: new hook
+
+
+### Added
+
 - .claude/hooks/tests/test_claim_gap_telemetry_probe.py: new hook
 
 
