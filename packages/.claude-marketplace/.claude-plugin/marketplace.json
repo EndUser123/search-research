@@ -169,7 +169,7 @@
     },
     {
       "name": "cc-aca-session",
-      "version": "0.1.12",
+      "version": "0.1.13",
       "description": "ACA Session plugin - session lifecycle hooks (cleanup, breadcrumb init, snapshot). Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-session",
       "keywords": [
