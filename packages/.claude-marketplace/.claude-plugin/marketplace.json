@@ -65,7 +65,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.73",
+      "version": "1.0.74",
       "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -86,7 +86,7 @@
     },
     {
       "name": "search-research",
-      "version": "0.1.31",
+      "version": "0.1.32",
       "description": "Unified search and research system with async concurrent execution and 11 web providers.",
       "source": "./plugins/search-research",
       "keywords": [
@@ -169,7 +169,7 @@
     },
     {
       "name": "cc-aca-session",
-      "version": "0.1.13",
+      "version": "0.1.14",
       "description": "ACA Session plugin - session lifecycle hooks (cleanup, breadcrumb init, snapshot). Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-session",
       "keywords": [
@@ -183,7 +183,7 @@
     },
     {
       "name": "cc-aca-epistemic",
-      "version": "0.2.70",
+      "version": "0.2.71",
       "description": "ACA Epistemic plugin - evidence verification, claim validation, provenance tracking, anti-fabrication enforcement, and anti-sycophancy detection. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-epistemic",
       "keywords": [
@@ -199,7 +199,7 @@
     },
     {
       "name": "cc-aca-authority",
-      "version": "0.1.20",
+      "version": "0.1.21",
       "description": "ACA Authority plugin - permission enforcement, approval flow control, delegation gating, risk tiering, and git safety guards. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-authority",
       "keywords": [
@@ -214,7 +214,7 @@
     },
     {
       "name": "cc-aca-reasoning",
-      "version": "0.1.21",
+      "version": "0.1.22",
       "description": "ACA Reasoning plugin - sequential thinking, cognitive enhancement, reasoning mode selection, reflection triggers, drift detection, and reasoning quality gates.",
       "source": "./plugins/cc-aca-reasoning",
       "keywords": [
@@ -229,7 +229,7 @@
     },
     {
       "name": "cc-aca-sdlc",
-      "version": "0.1.10",
+      "version": "0.1.11",
       "description": "ACA SDLC plugin - TDD enforcement, test-state tracking, implementation verification, completion gates, and development workflow discipline.",
       "source": "./plugins/cc-aca-sdlc",
       "keywords": [
@@ -244,7 +244,7 @@
     },
     {
       "name": "cc-aca-safety",
-      "version": "0.1.14",
+      "version": "0.1.15",
       "description": "ACA Safety plugin -- filesystem protection, path policy enforcement, bulk delete safety, Windows path correctness, protected file recovery, and git auto-staging for deletion safety.",
       "source": "./plugins/cc-aca-safety",
       "keywords": [
@@ -260,7 +260,7 @@
     },
     {
       "name": "cc-aca-observability",
-      "version": "0.1.22",
+      "version": "0.1.23",
       "description": "ACA Observability plugin \u2014 session health monitoring, drift detection, artifact scraping, and PostToolUse tracker orchestration. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-observability",
       "keywords": [
@@ -274,7 +274,7 @@
     },
     {
       "name": "cc-aca-investigation",
-      "version": "0.2.8",
+      "version": "0.2.9",
       "description": "ACA Investigation plugin - discovery-first enforcement, observe-before-act gating, breadcrumb progression tracking, and evidence-grounded reasoning prompts. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-investigation",
       "keywords": [
@@ -301,7 +301,7 @@
     },
     {
       "name": "cc-model-router",
-      "version": "0.2.8",
+      "version": "0.2.9",
       "description": "Automatic model-tier routing (haiku/sonnet/opus) based on prompt complexity heuristics with dual-mode operation (warn plus autoswitch)",
       "source": "./plugins/cc-model-router",
       "keywords": []
