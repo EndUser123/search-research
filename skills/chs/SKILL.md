@@ -255,7 +255,7 @@ python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --ses
 - `--output` is optional; if omitted, the CLI writes to `~/.claude/exports/chain_<timestamp>.md`
 - `--exclude-thinking` removes thinking blocks from the export
 - `--include-tool-results` keeps raw tool results in the export
-- `--max-sessions` limits chain length (default 30, recommend 5 for context-safe exports)
+- `--max-sessions` limits chain length (default 30). Leave unset for full chain — `--exclude-thinking` is the lever that actually controls export size, since one logical session typically maps to a single transcript file regardless of compaction count
 
 **Context protection rules:**
 
@@ -265,15 +265,15 @@ The CLI returns JSON metadata with `context_safe` and `recommendation` fields. F
 |---|---|
 | `read_file` | Safe to read the export into context (<20K tokens) |
 | `delegate_to_subagent` | Too large for main context. Spawn a subagent to read, summarize, and return key findings |
-| `export_is_too_large_use_filters` | >100K tokens. Re-export with `--max-sessions 3 --exclude-thinking` or targeted `--session-id` |
+| `export_is_too_large_use_filters` | >100K tokens. Re-export with `--exclude-thinking` (if not already set) or a targeted `--session-id` |
 
 **Default behavior:** Report the export path and metadata. Do NOT read the file into context unless `context_safe` is true.
 
 **Examples:**
 
 ```bash
-# Export the current session chain (bounded for context safety)
-python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --max-sessions 5 --exclude-thinking
+# Export the current session chain (full chain, thinking excluded)
+python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --exclude-thinking
 
 # Export a specific session chain
 python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id abc123

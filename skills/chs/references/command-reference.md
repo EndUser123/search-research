@@ -112,8 +112,8 @@ The CLI returns JSON metadata with size estimates and a `recommendation` field:
 | `export_is_too_large_use_filters` | Re-export with filters (>100K tokens) |
 
 ```bash
-# Export current session's chain (bounded for context safety)
-/chs --export --max-sessions 5 --exclude-thinking
+# Export current session's chain (full chain, thinking excluded)
+/chs --export --exclude-thinking
 
 # Export a specific session chain
 /chs --export --session-id <uuid>
