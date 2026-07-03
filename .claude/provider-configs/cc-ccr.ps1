@@ -141,12 +141,12 @@ $ccrConfigPath = "$env:USERPROFILE\.claude-code-router\config.json"
 $phaseLocalApply  = ($env:CC_PHASE_LOCAL_APPLY  -eq "1")
 $phaseCompactHook = ($env:CC_PHASE_COMPACT_HOOK -eq "1")
 
-# Base routes with fallback chains (env override wins).
-# Format: primaryProvider,primaryModel,fallbackProvider,fallbackModel
-# Fallbacks fire on HTTP error or quota exhaustion (CCR retries next pair).
-$actualOpus   = if ($overrideOpus)   { $overrideOpus }   else { "zai,glm-5.2,minimax,MiniMax-M3[1m]" }
-$actualSonnet = if ($overrideSonnet) { $overrideSonnet } else { "minimax,MiniMax-M3[1m],zai,glm-5.2" }
-$actualHaiku  = if ($overrideHaiku)  { $overrideHaiku }  else { "opencode-go,deepseek-v4-flash,zai,glm-4.5-air" }
+# Base routes (single provider,model pairs — fallback chains are in the config's
+# `fallback` key, not in the Router value. Verified: comma-separated pairs in Router
+# values do NOT create fallback chains; CCR treats the value as one provider,model pair.
+$actualOpus   = if ($overrideOpus)   { $overrideOpus }   else { "zai,glm-5.2" }
+$actualSonnet = if ($overrideSonnet) { $overrideSonnet } else { "minimax,MiniMax-M3[1m]" }
+$actualHaiku  = if ($overrideHaiku)  { $overrideHaiku }  else { "opencode-go,deepseek-v4-flash" }
 
 try {
     $cfg = Get-Content $ccrConfigPath -Raw | ConvertFrom-Json
