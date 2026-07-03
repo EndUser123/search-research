@@ -33,7 +33,7 @@ PLUGIN_ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
 if str(PLUGIN_ROOT / "__lib") not in sys.path:
     sys.path.insert(0, str(PLUGIN_ROOT / "__lib"))
 
-from settings_writer import read_settings, write_settings  # type: ignore[import-not-found]  # noqa: E402
+from settings_writer import atomic_write_json, read_settings, write_settings  # type: ignore[import-not-found]  # noqa: E402
 
 TTL_SECONDS = 300
 
