@@ -413,6 +413,27 @@ try {
     Write-Host "  sonnet: $(Format-Route $sonnetDisplay)"
     Write-Host "  haiku:  $(Format-Route $haikuDisplay)"
     if ($customDisplay) { Write-Host "  custom: $(Format-Route $customDisplay)" }
+    # ── Fallback chains ── CCR's actual failover path: comma-separated provider,model
+    # strings in config.fallback.<role>. The top-level Router value is single-pair only;
+    # fallbacks fire only from this dedicated key.
+    $fb = $ccrCfg.fallback
+    if ($fb) {
+        $roleMap = @{
+            'opus'   = 'think'
+            'sonnet' = 'default'
+            'haiku'  = 'background'
+        }
+        foreach ($roleKey in 'opus','sonnet','haiku') {
+            $chainRole = $roleMap[$roleKey]
+            $chain = $fb.$chainRole
+            if ($chain -and $chain.Count -gt 0) {
+                $formatted = ($chain | ForEach-Object { Format-Route $_ }) -join ' → '
+                Write-Host "           fallback: $formatted" -ForegroundColor DarkGray
+            } else {
+                Write-Host "           fallback: (none configured)" -ForegroundColor DarkGray
+            }
+        }
+    }
 } catch {
     Write-Host "  opus:   $(Format-Route $actualOpus)"
     Write-Host "  sonnet: $(Format-Route $actualSonnet)"

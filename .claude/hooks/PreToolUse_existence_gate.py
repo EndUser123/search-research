@@ -63,6 +63,24 @@ def _telemetry(event: str, session_id: str, decision: str, extra: dict | None = 
 
 _BLOCK_ENABLED = os.environ.get("EXISTENCE_GATE_BLOCK", "0") not in {"0", "false", "no", "off"}
 
+# High-risk paths: soft-block (not just warn) when modified without prior Read.
+# Promoted from telemetry-only to active protection 2026-07-02.
+_HIGH_RISK_PATH_FRAGMENTS: tuple[str, ...] = (
+    ".claude/hooks/",
+    ".claude/settings.json",
+    ".claude/settings.local.json",
+    ".claude-plugin/plugin.json",
+    "/__lib/router.py",
+    "plugins/audit",
+    "plugins/cache",
+    "/skills/go/scripts/",
+)
+
+
+def _is_high_risk_path(file_path: str) -> bool:
+    norm = file_path.replace("\\", "/").lower()
+    return any(frag in norm for frag in _HIGH_RISK_PATH_FRAGMENTS)
+
 # Session state directory
 STATE_DIR = Path.home() / ".claude" / "state"
 STATE_DIR.mkdir(parents=True, exist_ok=True)
@@ -145,6 +163,7 @@ def run(data: dict) -> dict | None:
         return None  # Bypassed
 
     blocked_files = []
+    high_risk_files = []
     for file_path in file_paths:
         # Check if file exists
         if Path(file_path).exists():
@@ -152,6 +171,54 @@ def run(data: dict) -> dict | None:
             read_files = _load_read_files(session_id)
             if file_path not in read_files:
                 blocked_files.append(file_path)
+                if _is_high_risk_path(file_path):
+                    high_risk_files.append(file_path)
+
+    if not blocked_files:
+        return None
+
+    # High-risk path: soft-block (escalated). Existing --allow-overwrite bypass
+    # still applies. Telemetry records the high-risk soft-block event for
+    # later calibration.
+    if high_risk_files:
+        _telemetry(
+            "missing_read_high_risk",
+            session_id,
+            "soft_block",
+            extra={"files": blocked_files, "high_risk_files": high_risk_files, "tool": tool_name},
+        )
+        return {
+            "decision": "block",
+            "reason": (
+                f"Read-before-edit (high-risk): {', '.join(high_risk_files)} "
+                "not read this session. Add --allow-overwrite to bypass."
+            ),
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": (
+                    f"High-risk file modified without prior Read: {', '.join(high_risk_files)}. "
+                    "Read the file first to understand current state, "
+                    "or add --allow-overwrite to bypass."
+                ),
+            },
+        }
+
+    # Normal (non-high-risk) path: warn only. Telemetry still records the detect.
+    # Surfaced as a systemMessage so the model sees the hint, but does not block.
+    _telemetry(
+        "missing_read",
+        session_id,
+        "warn",
+        extra={"files": blocked_files, "tool": tool_name},
+    )
+    return {
+        "decision": "warn",
+        "systemMessage": (
+            f"Read-before-edit: {', '.join(blocked_files)} was not Read this session. "
+            "Consider Reading first; add --allow-overwrite to bypass."
+        ),
+    }
 
     if blocked_files:
         # Telemetry-first: log the detect and (by default) ALLOW. Block path is

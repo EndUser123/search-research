@@ -39,7 +39,7 @@ def temp_plan_dir():
 @pytest.fixture
 def set_plan_dir(temp_plan_dir):
     """Fixture to patch PLAN_DIR with temp directory."""
-    with patch("SessionStart_verification_cleanup.PLAN_DIR", temp_plan_dir):
+    with patch("aca_session_verification_cleanup.PLAN_DIR", temp_plan_dir):
         yield temp_plan_dir
 
 
@@ -173,7 +173,7 @@ class TestPlanFileCleanup:
 
     def test_nonexistent_directory(self, caplog):
         """Nonexistent plan directory should return 0 removed."""
-        with patch("SessionStart_verification_cleanup.PLAN_DIR", Path("/nonexistent/plans")):
+        with patch("aca_session_verification_cleanup.PLAN_DIR", Path("/nonexistent/plans")):
             with caplog.at_level(logging.INFO):
                 removed = cleanup_old_plan_files(max_age_days=7)
 

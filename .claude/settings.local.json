@@ -144,7 +144,9 @@
       "Bash(nlm --version)",
       "Bash(tasklist)",
       "Bash(wmic baseboard *)",
-      "Bash(gh api *)"
+      "Bash(gh api *)",
+      "Bash(Select-Object -String -Skip 3)",
+      "Bash(Select-Object -First 12)"
     ],
     "deny": [],
     "ask": []
