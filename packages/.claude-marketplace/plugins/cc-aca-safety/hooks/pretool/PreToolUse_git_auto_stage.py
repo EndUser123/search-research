@@ -356,7 +356,7 @@ def main() -> int:
             "additionalContext": result["additionalContext"],
         }))
     else:
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
 
     return 0
 

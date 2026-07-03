@@ -175,33 +175,33 @@ def main() -> None:
         data = json.loads(raw)
     except (json.JSONDecodeError, ValueError):
         # Malformed input — fail open
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         sys.exit(0)
 
     tool_name = data.get("tool_name", "")
     if tool_name not in ("Write", "Edit", "MultiEdit"):
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         sys.exit(0)
 
     tool_input = data.get("tool_input", {})
     if not isinstance(tool_input, dict):
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         sys.exit(0)
 
     file_path = _extract_path(tool_name, tool_input)
     if not file_path:
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         sys.exit(0)
 
     # Advisory paths — UPS nudge already fired; allow silently
     if _matches(file_path, ADVISORY_PATHS):
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         sys.exit(0)
 
     # Strict paths — block unless bypass flag present
     if _matches(file_path, STRICT_PATHS):
         if _prompt_has_bypass(data):
-            print(json.dumps({"decision": "approve"}))
+            print("{}")
             sys.exit(0)
 
         _log_block(file_path, tool_name)
@@ -230,7 +230,7 @@ To bypass: Run the grep above, confirm N consumers, then add to your message:
         sys.exit(2)
 
     # No match — allow
-    print(json.dumps({"decision": "approve"}))
+    print("{}")
     sys.exit(0)
 
 
