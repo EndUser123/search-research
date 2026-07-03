@@ -16,11 +16,11 @@ from pathlib import Path
 from shared_utils import resolve_session_id as _resolve_session_id_from_utils
 
 # Plugin lib for shared state paths (works from source or cache)
-_PLUGIN_LIB = Path(__file__).resolve().parent.parent.parent / "lib"
+_PLUGIN_LIB = Path(__file__).resolve().parent.parent.parent / "__lib"
 if str(_PLUGIN_LIB) not in sys.path:
     sys.path.insert(0, str(_PLUGIN_LIB))
 
-from state_paths import get_hooks_dir, safe_id as _safe_id_from_paths
+from aca_state_paths import get_hooks_dir, safe_id as _safe_id_from_paths
 
 HOOKS_DIR = get_hooks_dir()
 sys.path.insert(0, str(HOOKS_DIR / "__lib"))

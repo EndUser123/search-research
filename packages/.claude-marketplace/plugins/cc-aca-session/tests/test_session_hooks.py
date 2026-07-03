@@ -11,7 +11,7 @@ import pytest
 
 # Ensure plugin lib is importable
 PLUGIN_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PLUGIN_ROOT / "lib"))
+sys.path.insert(0, str(PLUGIN_ROOT / "__lib"))
 sys.path.insert(0, str(PLUGIN_ROOT))
 
 
@@ -19,32 +19,32 @@ class TestStatePaths:
     """Test state path resolution works from any install location."""
 
     def test_get_hooks_dir_finds_project(self):
-        from state_paths import get_hooks_dir
+        from aca_state_paths import get_hooks_dir
         hooks_dir = get_hooks_dir()
         assert hooks_dir.name == "hooks"
         assert hooks_dir.exists()
 
     def test_get_state_dir_under_hooks(self):
-        from state_paths import get_state_dir, get_hooks_dir
+        from aca_state_paths import get_state_dir, get_hooks_dir
         state_dir = get_state_dir()
         assert state_dir == get_hooks_dir() / "state"
 
     def test_get_plan_dir_under_home(self):
-        from state_paths import get_plan_dir
+        from aca_state_paths import get_plan_dir
         plan_dir = get_plan_dir()
         assert plan_dir == Path.home() / ".claude" / "plans"
 
     def test_safe_id_sanitizes(self):
-        from state_paths import safe_id
+        from aca_state_paths import safe_id
         assert safe_id(None) == "unknown"
         assert safe_id("") == "unknown"
         assert safe_id("console_abc123") == "console_abc123"
         assert safe_id("a/b\\c") == "a_b_c"
 
     def test_get_plugin_lib_dir(self):
-        from state_paths import get_plugin_lib_dir
+        from aca_state_paths import get_plugin_lib_dir
         lib_dir = get_plugin_lib_dir()
-        assert lib_dir.name == "lib"
+        assert lib_dir.name == "__lib"
         assert lib_dir.exists()
 
 
@@ -210,11 +210,11 @@ class TestPluginStructure:
         assert p.exists()
 
     def test_lib_init_exists(self):
-        p = PLUGIN_ROOT / "lib" / "__init__.py"
+        p = PLUGIN_ROOT / "__lib" / "__init__.py"
         assert p.exists()
 
-    def test_lib_state_paths_exists(self):
-        p = PLUGIN_ROOT / "lib" / "state_paths.py"
+    def test_lib_aca_state_paths_exists(self):
+        p = PLUGIN_ROOT / "__lib" / "aca_state_paths.py"
         assert p.exists()
 
     def test_hook_files_exist(self):

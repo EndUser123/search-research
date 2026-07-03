@@ -143,7 +143,8 @@
       "Bash(mkdir -p \"P:/.claude/.artifacts/nlm-medium\")",
       "Bash(nlm --version)",
       "Bash(tasklist)",
-      "Bash(wmic baseboard *)"
+      "Bash(wmic baseboard *)",
+      "Bash(gh api *)"
     ],
     "deny": [],
     "ask": []

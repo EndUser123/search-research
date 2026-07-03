@@ -13,11 +13,11 @@ import time
 from pathlib import Path
 
 # Plugin lib for shared state paths (works from source or cache)
-_PLUGIN_LIB = Path(__file__).resolve().parent.parent.parent / "lib"
+_PLUGIN_LIB = Path(__file__).resolve().parent.parent.parent / "__lib"
 if str(_PLUGIN_LIB) not in sys.path:
     sys.path.insert(0, str(_PLUGIN_LIB))
 
-from state_paths import get_hooks_dir
+from aca_state_paths import get_hooks_dir
 
 # Add global hooks directory to path for __lib imports
 hooks_dir = get_hooks_dir()

@@ -31,4 +31,4 @@ Compatibility wrappers in `P:/.claude/hooks/` delegate to this plugin via import
 
 ## State Paths
 
-Shared state path constants in `lib/state_paths.py`.
+Shared state path constants in `__lib/aca_state_paths.py`.

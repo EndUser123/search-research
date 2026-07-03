@@ -34,13 +34,13 @@ import time
 from pathlib import Path
 
 # Plugin lib for shared state paths (works from source or cache)
-_PLUGIN_LIB = Path(__file__).resolve().parent.parent.parent / "lib"
+_PLUGIN_LIB = Path(__file__).resolve().parent.parent.parent / "__lib"
 if str(_PLUGIN_LIB) not in sys.path:
     sys.path.insert(0, str(_PLUGIN_LIB))
 
-from state_paths import get_state_dir, get_evidence_dir, get_plan_dir, get_hooks_dir
+from aca_state_paths import get_state_dir, get_evidence_dir, get_plan_dir, get_hooks_dir
 
-# Resolve paths via state_paths (not hardcoded)
+# Resolve paths via aca_state_paths (not hardcoded)
 HOOK_DIR = get_hooks_dir()
 STATE_DIR = get_state_dir()
 PLAN_DIR = get_plan_dir()
@@ -68,7 +68,7 @@ TDD_CONTRACT_RETENTION_DAYS = int(
     os.environ.get("TDD_CONTRACT_RETENTION_DAYS", "7")
 )  # TDD evidence cleanup (ADR-20260324)
 
-# STATE_DIR, PLAN_DIR, EVIDENCE_DIR resolved above via state_paths
+# STATE_DIR, PLAN_DIR, EVIDENCE_DIR resolved above via aca_state_paths
 
 
 def cleanup_old_file_existence_decisions(max_age_hours: int = 24) -> int:
