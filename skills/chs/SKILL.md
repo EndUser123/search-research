@@ -253,9 +253,9 @@ python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --ses
 - `--export` writes the full linked session chain to a markdown file
 - `--session-id` is optional; if omitted, the current session is used
 - `--output` is optional; if omitted, the CLI writes to `~/.claude/exports/chain_<timestamp>.md`
-- `--fidelity {context-safe,analysis}` selects a rendering preset (default: `context-safe`, byte-identical to legacy). `analysis` enables full tool results (with `tool_use`↔`tool_result` id back-refs), uncapped thinking, per-entry ISO timestamps, per-session git branch, export-time HEAD sha, and compaction-boundary markers — use this for analysis consumers (/debrief, /gto, /learn)
-- `--exclude-thinking` removes thinking blocks (maps onto the `context-safe` preset)
-- `--include-tool-results` keeps tool results in the export (maps onto `context-safe`; legacy 400-char truncated form)
+- `--fidelity {context-safe,analysis}` selects a rendering preset (default: `analysis` — full tool results with `tool_use`↔`tool_result` id back-refs, uncapped thinking, per-entry ISO timestamps, per-session git branch, export-time HEAD sha, compaction-boundary markers). Use `--fidelity context-safe` for a compact, byte-identical-to-legacy export
+- `--exclude-thinking` removes thinking blocks (forces the `context-safe` preset's thinking-off)
+- `--include-tool-results` keeps tool results in the export (legacy 400-char truncated form; with the default `analysis` preset it is a no-op since analysis already renders full tool results)
 - `--max-sessions` limits chain length (default 30). Leave unset for full chain — `--exclude-thinking` (or `--fidelity context-safe`) is the lever that actually controls export size, since one logical session typically maps to a single transcript file regardless of compaction count
 
 **Provenance note on sha:** transcripts do not record `gitSha` per session (always null). In `analysis` mode the export stamps the **export-time** `git rev-parse HEAD`, labeled as such — it is not the session-time commit. Per-session `gitBranch` is authentic.

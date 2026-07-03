@@ -1132,10 +1132,11 @@ def main():
     parser.add_argument(
         "--fidelity",
         choices=("context-safe", "analysis"),
-        default="context-safe",
-        help="Export fidelity preset (default: context-safe, byte-identical to legacy). "
-        "'analysis' enables full tool results, uncapped thinking, per-entry timestamps, "
-        "git branch, export-time HEAD sha, and compaction-boundary markers.",
+        default="analysis",
+        help="Export fidelity preset (default: analysis — full tool results, uncapped "
+        "thinking, per-entry timestamps, git branch, export-time HEAD sha, and "
+        "compaction-boundary markers). Use --fidelity context-safe for a compact, "
+        "byte-identical-to-legacy export.",
     )
     args = parser.parse_args()
     config = CHSConfig()

@@ -113,14 +113,15 @@ The CLI returns JSON metadata with size estimates and a `recommendation` field:
 
 ### Fidelity presets
 
-`--fidelity` selects a bundle of rendering knobs. The default `context-safe` is
-byte-identical to the legacy export. `analysis` is the rich mode for consumers
-that need full signal (/debrief, /gto, /learn).
+`--fidelity` selects a bundle of rendering knobs. The default is `analysis` —
+the rich mode for consumers that need full signal (/debrief, /gto, /learn, and
+ad-hoc analysis). Use `context-safe` for a compact, byte-identical-to-legacy
+export when you intend to read it directly into context.
 
 | Preset | Thinking | Tool calls/results | Timestamps | Branch | HEAD sha | Compaction |
 |---|---|---|---|---|---|---|
-| `context-safe` (default) | capped 300 chars | off | no | no | no | no |
-| `analysis` | uncapped | full, with `tool_use.id`↔`tool_result.tool_use_id` back-refs | per-entry ISO | per-session | export-time | markers |
+| `context-safe` | capped 300 chars | off | no | no | no | no |
+| `analysis` (default) | uncapped | full, with `tool_use.id`↔`tool_result.tool_use_id` back-refs | per-entry ISO | per-session | export-time | markers |
 
 **Provenance note on sha:** transcripts do not record `gitSha` per session (the
 field is always null). The `analysis` preset stamps the **export-time** `git
@@ -134,14 +135,14 @@ rendering to the legacy truncated (400-char, no id) form. Passing either with
 `--fidelity analysis` overrides that preset on the corresponding knob.
 
 ```bash
-# Default export — context-safe, byte-identical to legacy
+# Default export — analysis mode (full tool results, timestamps, branch, sha)
 /chs --export
 
-# Rich export for analysis consumers (full tool results, timestamps, branch, sha)
-/chs --export --fidelity analysis
+# Compact export, byte-identical to legacy (when reading directly into context)
+/chs --export --fidelity context-safe
 
 # Bounded rich export (limit chain length for context safety)
-/chs --export --fidelity analysis --max-sessions 5
+/chs --export --max-sessions 5
 
 # Export a specific session chain
 /chs --export --session-id <uuid>
