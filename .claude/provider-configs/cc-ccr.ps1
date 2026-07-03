@@ -144,7 +144,7 @@ $phaseCompactHook = ($env:CC_PHASE_COMPACT_HOOK -eq "1")
 # Base routes (single provider,model pairs — fallback chains are in the config's
 # `fallback` key, not in the Router value. Verified: comma-separated pairs in Router
 # values do NOT create fallback chains; CCR treats the value as one provider,model pair.
-$actualOpus   = if ($overrideOpus)   { $overrideOpus }   else { "zai,glm-5.2" }
+$actualOpus   = if ($overrideOpus)   { $overrideOpus }   else { "zai,glm-5.2[1m]" }
 $actualSonnet = if ($overrideSonnet) { $overrideSonnet } else { "minimax,MiniMax-M3[1m]" }
 $actualHaiku  = if ($overrideHaiku)  { $overrideHaiku }  else { "opencode-go,deepseek-v4-flash" }
 
@@ -153,6 +153,7 @@ try {
 
     # SLOT keys (Claude Code calls these by name; must be mapped or it errors)
     $cfg.Router | Add-Member -NotePropertyName "claude-opus-4-8"           -NotePropertyValue $actualOpus   -Force
+    $cfg.Router | Add-Member -NotePropertyName "claude-sonnet-5"           -NotePropertyValue $actualSonnet -Force
     $cfg.Router | Add-Member -NotePropertyName "claude-sonnet-4-6"         -NotePropertyValue $actualSonnet -Force
     $cfg.Router | Add-Member -NotePropertyName "claude-haiku-4-5"          -NotePropertyValue $actualHaiku  -Force
     $cfg.Router | Add-Member -NotePropertyName "claude-haiku-4-5-20251001" -NotePropertyValue $actualHaiku  -Force
@@ -165,7 +166,7 @@ try {
     $cfg.Router | Add-Member -NotePropertyName "think"       -NotePropertyValue $actualOpus   -Force
     $cfg.Router | Add-Member -NotePropertyName "default"     -NotePropertyValue $actualSonnet -Force
     $cfg.Router | Add-Member -NotePropertyName "background"  -NotePropertyValue $actualHaiku  -Force
-    $cfg.Router | Add-Member -NotePropertyName "longContext" -NotePropertyValue "minimax,MiniMax-M3[1m]" -Force
+    $cfg.Router | Add-Member -NotePropertyName "longContext" -NotePropertyValue "opencode-go,mimo-v2.5" -Force
 
     if ($overrideCustom) {
         $cfg.Router | Add-Member -NotePropertyName "claude-custom" -NotePropertyValue $overrideCustom -Force

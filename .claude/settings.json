@@ -344,16 +344,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python P:/.claude/hooks/Stop_sound_hook.py",
-            "timeout": 3
-          }
-        ]
-      },
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
             "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/Stop.py --timeout 10.0",
             "timeout": 10
           }
