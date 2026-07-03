@@ -2,7 +2,7 @@
 
 Unified search and research package for Claude Code — local code/knowledge search, web research, and repository ingestion.
 
-## Skills (11)
+## Skills (12)
 
 | Skill | Purpose | Home |
 |-------|---------|------|
@@ -10,6 +10,7 @@ Unified search and research package for Claude Code — local code/knowledge sea
 | /search | Fast local-only search (CHS, CKS, Code, Docs) | `search/` |
 | /research | Comprehensive web research with multiple providers | `research/` |
 | /chs | Chat History Search | `chs/` |
+| /export-session | Export session chain to markdown (thin wrapper over /chs export) | `export-session/` |
 | /discover | Intelligent codebase pattern discovery (ML-enhanced) | `discover/` |
 | /aid | AI-Distiller wrapper for deep code analysis | `aid/` |
 | /crawl | Ingest websites into QMD for semantic search | `crawl/` |
