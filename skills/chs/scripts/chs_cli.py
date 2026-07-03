@@ -507,11 +507,67 @@ class CHSSummarizer:
 
 
 class CHSExporter:
-    """Export full session chain transcripts to a single readable file."""
+    """Export full session chain transcripts to a single readable file.
 
-    def __init__(self, exclude_thinking: bool = False, include_tool_results: bool = False):
-        self.exclude_thinking = exclude_thinking
-        self.include_tool_results = include_tool_results
+    Fidelity is controlled by independent rendering knobs (the stable internal
+    surface). Presets bundle knob settings for convenience; a new consumer
+    (/debrief, /gto, /learn) adds a preset rather than reworking the renderer.
+    Legacy --exclude-thinking / --include-tool-results map onto the context-safe
+    preset and remain byte-identical to pre-fidelity output.
+    """
+
+    # Independent rendering channels. To add a consumer preset, add an entry
+    # here and a CLI choice — the renderer already speaks every channel.
+    _FIDELITY_PRESETS = {
+        # Default. Byte-identical to pre-fidelity export output.
+        "context-safe": {
+            "show_thinking": True,
+            "thinking_cap": 300,
+            "tool_mode": "off",        # off | legacy | full
+            "show_timestamp": False,
+            "show_branch": False,
+            "show_sha": False,
+            "show_compaction": False,
+        },
+        # Full signal for downstream analysis (/debrief, /gto, /learn).
+        "analysis": {
+            "show_thinking": True,
+            "thinking_cap": None,      # None = uncapped
+            "tool_mode": "full",
+            "show_timestamp": True,
+            "show_branch": True,
+            "show_sha": True,
+            "show_compaction": True,
+        },
+    }
+
+    def __init__(
+        self,
+        exclude_thinking: bool = False,
+        include_tool_results: bool = False,
+        *,
+        fidelity: str = "context-safe",
+    ):
+        if fidelity not in self._FIDELITY_PRESETS:
+            raise ValueError(f"Unknown fidelity: {fidelity!r}")
+        preset = dict(self._FIDELITY_PRESETS[fidelity])
+        # Legacy flag back-compat (applies under any preset; the pre-fidelity
+        # flags were only ever used with the context-safe shape):
+        #   --exclude-thinking     -> drop thinking entirely
+        #   --include-tool-results -> render tool calls/results, legacy truncated
+        if exclude_thinking:
+            preset["show_thinking"] = False
+            preset["thinking_cap"] = 0
+        if include_tool_results and preset["tool_mode"] == "off":
+            preset["tool_mode"] = "legacy"
+        self.fidelity = fidelity
+        self.show_thinking = preset["show_thinking"]
+        self.thinking_cap = preset["thinking_cap"]
+        self.tool_mode = preset["tool_mode"]
+        self.show_timestamp = preset["show_timestamp"]
+        self.show_branch = preset["show_branch"]
+        self.show_sha = preset["show_sha"]
+        self.show_compaction = preset["show_compaction"]
 
     def _detect_terminal_id_inline(self) -> str:
         """Detect terminal ID inline (mirrors skill-guard's detect_terminal_id)."""
@@ -820,19 +876,96 @@ class CHSExporter:
                     except json.JSONDecodeError:
                         continue
                     entry_type = entry.get("type", "")
+                    ts = (
+                        f"[{entry.get('timestamp')}] "
+                        if self.show_timestamp and entry.get("timestamp")
+                        else ""
+                    )
                     if entry_type == "user":
                         text = self._extract_content(entry, role="user")
                         if text:
-                            out.write(f"**User:** {text}\n\n")
+                            out.write(f"{ts}**User:** {text}\n\n")
                     elif entry_type == "assistant":
                         text = self._extract_content(entry, role="assistant")
                         if text:
-                            out.write(f"**Assistant:** {text}\n\n")
+                            out.write(f"{ts}**Assistant:** {text}\n\n")
+                    elif entry_type == "system" and self.show_compaction:
+                        self._render_system_entry(entry, out)
         except (OSError, FileNotFoundError) as exc:
             out.write(f"*[Error reading {transcript_path.name}: {exc}]*\n\n")
 
+    # System subtypes that carry continuity signal for gap-analysis consumers.
+    # Other subtypes (stop_hook_summary, turn_duration, local_command, …) are
+    # runtime noise and are intentionally not rendered.
+    _SYSTEM_SECTION_LABEL = {
+        "compact_boundary": "Compaction Boundary",
+        "away_summary": "Away Summary",
+    }
+
+    def _render_system_entry(self, entry: dict, out) -> None:
+        """Render a continuity-bearing system entry (compaction/away) as a labeled section."""
+        subtype = entry.get("subtype", "")
+        label = self._SYSTEM_SECTION_LABEL.get(subtype)
+        if label is None:
+            return
+        ts = entry.get("timestamp", "")
+        ts_tag = f" ({ts})" if ts else ""
+        out.write(f"### {label}{ts_tag}\n\n")
+        content = entry.get("content")
+        if isinstance(content, str) and content.strip():
+            out.write(f"{content.strip()}\n\n")
+        else:
+            out.write("*[no summary content recorded]*\n\n")
+
+    def _capture_export_sha(self) -> str:
+        """Best-effort export-time HEAD sha of cwd.
+
+        The transcript records no per-session gitSha (verified: the field is
+        always null), so per-session sha is unrecoverable. This stamps the
+        export-time sha instead — clearly provenance-labeled in the header so
+        downstream consumers (/gto stale-data checks) cannot mistake it for a
+        session-time sha.
+        """
+        import subprocess
+        try:
+            rev = subprocess.run(
+                ["git", "-C", str(Path.cwd()), "rev-parse", "HEAD"],
+                capture_output=True, text=True, timeout=3,
+            ).stdout.strip()
+            return rev[:12] if rev else ""
+        except Exception:
+            return ""
+
+    def _peek_branch(self, transcript_path: Path) -> str:
+        """First non-null gitBranch from a transcript (best-effort, bounded read)."""
+        try:
+            with open(transcript_path, encoding="utf-8", errors="replace") as f:
+                for _, raw in zip(range(200), f):
+                    raw = raw.strip()
+                    if not raw or raw[0] != "{":
+                        continue
+                    try:
+                        entry = json.loads(raw)
+                    except json.JSONDecodeError:
+                        continue
+                    branch = entry.get("gitBranch")
+                    if branch:
+                        return str(branch)
+        except (OSError, FileNotFoundError):
+            pass
+        return ""
+
     def _extract_content(self, entry: dict[str, Any], role: str) -> str:
-        """Extract readable text from a message entry."""
+        """Extract readable text from a message entry.
+
+        Honors the rendering knobs:
+        - text always renders
+        - thinking renders when show_thinking, capped at thinking_cap (None = full)
+        - tool_use / tool_result render when tool_mode != "off":
+          - "legacy": truncated to 400 chars, no ids (pre-fidelity format)
+          - "full":   untruncated; tool_use emits its id, tool_result emits
+                      its tool_use_id (back-reference for downstream pairing)
+        """
         content = entry.get("message", {}).get("content", "")
         if isinstance(content, str):
             return content.strip()
@@ -848,30 +981,42 @@ class CHSExporter:
                 text = item.get("text", "").strip()
                 if text:
                     parts.append(text)
-            elif item_type == "thinking" and not self.exclude_thinking:
+            elif item_type == "thinking" and self.show_thinking:
                 thinking = item.get("thinking", "").strip()
-                if thinking:
-                    # Truncate long thinking blocks
-                    preview = thinking[:300] + ("…" if len(thinking) > 300 else "")
-                    parts.append(f"\n> *[Thinking]* {preview}\n")
-            elif item_type == "tool_use" and self.include_tool_results:
+                if not thinking:
+                    continue
+                if self.thinking_cap:
+                    thinking = thinking[: self.thinking_cap] + (
+                        "…" if len(thinking) > self.thinking_cap else ""
+                    )
+                parts.append(f"\n> *[Thinking]* {thinking}\n")
+            elif item_type == "tool_use" and self.tool_mode != "off":
                 name = item.get("name", "?")
                 inp = json.dumps(item.get("input", {}), indent=2)
-                inp_preview = inp[:400] + ("…" if len(inp) > 400 else "")
-                parts.append(f"\n*[Tool call: {name}]*\n```json\n{inp_preview}\n```\n")
-            elif item_type == "tool_result" and self.include_tool_results:
+                if self.tool_mode == "full":
+                    tool_id = item.get("id", "")
+                    id_tag = f" `{tool_id}`" if tool_id else ""
+                    parts.append(f"\n*[Tool call: {name}{id_tag}]*\n```json\n{inp}\n```\n")
+                else:  # legacy
+                    preview = inp[:400] + ("…" if len(inp) > 400 else "")
+                    parts.append(f"\n*[Tool call: {name}]*\n```json\n{preview}\n```\n")
+            elif item_type == "tool_result" and self.tool_mode != "off":
                 tc = item.get("content", "")
                 if isinstance(tc, list):
                     tc = " ".join(
                         i.get("text", "") for i in tc if isinstance(i, dict)
                     )
-                preview = str(tc)[:400] + ("…" if len(str(tc)) > 400 else "")
-                parts.append(f"\n*[Tool result]*\n```\n{preview}\n```\n")
-        # Stream join to avoid O(N²) behavior
+                body = str(tc)
+                if self.tool_mode == "full":
+                    tool_id = item.get("tool_use_id", "")
+                    id_tag = f" for `{tool_id}`" if tool_id else ""
+                    parts.append(f"\n*[Tool result{id_tag}]*\n```\n{body}\n```\n")
+                else:  # legacy
+                    preview = body[:400] + ("…" if len(body) > 400 else "")
+                    parts.append(f"\n*[Tool result]*\n```\n{preview}\n```\n")
         if not parts:
             return ""
-        result = "\n".join(parts)
-        return result.strip()
+        return "\n".join(parts).strip()
 
 
 class CHSContext:
