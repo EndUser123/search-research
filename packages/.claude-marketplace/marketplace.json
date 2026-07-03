@@ -5,6 +5,18 @@
   },
   "plugins": [
     {
+      "name": "improve-partner",
+      "version": "0.3.3",
+      "description": "Improvement partner plugin with /improve as the central manual workflow. Hooks ship inert + unwired (config-gated); see HOOKS_AVAILABLE.md. Local fork.",
+      "source": "./plugins/improve-partner",
+      "keywords": [
+        "improve",
+        "review",
+        "thought-partner",
+        "fork"
+      ]
+    },
+    {
       "name": "snapshot",
       "version": "0.5.26",
       "description": "Session snapshot capture and restore system for Claude Code sessions",
@@ -65,7 +77,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.75",
+      "version": "1.0.78",
       "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
