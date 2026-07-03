@@ -144,7 +144,7 @@ $phaseCompactHook = ($env:CC_PHASE_COMPACT_HOOK -eq "1")
 # Base routes (single provider,model pairs — fallback chains are in the config's
 # `fallback` key, not in the Router value. Verified: comma-separated pairs in Router
 # values do NOT create fallback chains; CCR treats the value as one provider,model pair.
-$actualOpus   = if ($overrideOpus)   { $overrideOpus }   else { "zai,glm-5.2[1m]" }
+$actualOpus   = if ($overrideOpus)   { $overrideOpus }   else { "zai,glm-5.2" }
 $actualSonnet = if ($overrideSonnet) { $overrideSonnet } else { "minimax,MiniMax-M3[1m]" }
 $actualHaiku  = if ($overrideHaiku)  { $overrideHaiku }  else { "opencode-go,deepseek-v4-flash" }
 
@@ -403,37 +403,83 @@ function Format-Route { param([string]$s)
     $pairs -join " → "
 }
 Write-Host "Route configuration:"
+function Format-Route {
+    param([string]$s)
+    if (-not $s) { return "(none)" }
+    $parts = $s -split ','
+    $pairs = for ($i = 0; $i -lt $parts.Length; $i += 2) {
+        if ($i + 1 -lt $parts.Length) { "$($parts[$i])/$($parts[$i+1])" }
+        else { $parts[$i] }
+    }
+    $pairs -join " → "
+}
+
 try {
     $ccrCfg = Get-Content $ccrConfigPath -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json
-    $opusDisplay   = $ccrCfg.Router."claude-opus-4-8"
-    $sonnetDisplay = if ($ccrCfg.Router."claude-sonnet-5") { $ccrCfg.Router."claude-sonnet-5" } else { $ccrCfg.Router."claude-sonnet-4-6" }
-    $haikuDisplay  = $ccrCfg.Router."claude-haiku-4-5"
-    $customDisplay = $ccrCfg.Router."claude-local-ornith"
     $fb = $ccrCfg.fallback
-    $longContextPrimary = if ($ccrCfg.Router.longContext) { $ccrCfg.Router.longContext } else { 'minimax,MiniMax-M3[1m]' }
-    $routes = @(
-        @{ Label = 'opus';        Primary = $opusDisplay;       Chain = if ($fb) { $fb.think }       else { $null } },
-        @{ Label = 'sonnet';      Primary = $sonnetDisplay;     Chain = if ($fb) { $fb.default }     else { $null } },
-        @{ Label = 'haiku';       Primary = $haikuDisplay;      Chain = if ($fb) { $fb.background }  else { $null } },
-        @{ Label = 'longContext'; Primary = $longContextPrimary; Chain = if ($fb) { $fb.longContext } else { $null } },
-        @{ Label = 'custom';      Primary = $customDisplay;     Chain = $null }
-    )
-    $labelWidth = ($routes | ForEach-Object { $_.Label.Length } | Measure-Object -Maximum).Maximum
-    foreach ($r in $routes) {
-        if (-not $r.Primary) { continue }
-        $paddedLabel = $r.Label.PadRight($labelWidth)
-        $indent = ' ' * ($labelWidth + 2)
-        Write-Host "  $($paddedLabel): $(Format-Route $r.Primary)"
-        if ($r.Chain -and $r.Chain.Count -gt 0) {
-            $r.Chain | ForEach-Object { Write-Host "${indent}└─ $(Format-Route $_)" -ForegroundColor DarkGray }
-        } elseif ($r.Label -ne 'custom') {
-            Write-Host ("${indent}└─ (no fallback configured)") -ForegroundColor DarkGray
+
+    # Build a list of all router keys (slots + roles)
+    $routerProps = $ccrCfg.Router.PSObject.Properties
+    $routes = @()
+
+    foreach ($prop in $routerProps) {
+        $name  = $prop.Name
+        $value = $prop.Value
+
+        # Derive a label and which fallback chain (if any) to show
+        $label = $name
+        $chain = $null
+
+        switch ($name) {
+            "claude-opus-4-8"           { $label = "opus";        $chain = if ($fb) { $fb.think }       else { $null } }
+            "claude-sonnet-5"
+            { $label = "sonnet";      $chain = if ($fb) { $fb.default }     else { $null } }
+            "claude-sonnet-4-6"
+            { $label = "sonnet(4.6)"; $chain = if ($fb) { $fb.default }     else { $null } }
+            "claude-haiku-4-5"
+            { $label = "haiku";       $chain = if ($fb) { $fb.background }  else { $null } }
+            "claude-haiku-4-5-20251001"
+            { $label = "haiku(2025)"; $chain = if ($fb) { $fb.background }  else { $null } }
+            "claude-local-ornith"      { $label = "custom";      $chain = $null }
+            "think"                    { $label = "think";       $chain = if ($fb) { $fb.think }       else { $null } }
+            "default"                  { $label = "default";     $chain = if ($fb) { $fb.default }     else { $null } }
+            "background"               { $label = "background";  $chain = if ($fb) { $fb.background }  else { $null } }
+            "longContext"              { $label = "longContext"; $chain = if ($fb) { $fb.longContext } else { $null } }
+        }
+
+        $routes += @{
+            Label  = $label
+            Name   = $name
+            Primary = $value
+            Chain   = $chain
         }
     }
-} catch {
-    Write-Host "  opus:   $(Format-Route $actualOpus)"
-    Write-Host "  sonnet: $(Format-Route $actualSonnet)"
-    Write-Host "  haiku:  $(Format-Route $actualHaiku)"
+
+    # Sort by label then name so it's stable and readable
+    $routes = $routes | Sort-Object Label, Name
+    $labelWidth = ($routes | ForEach-Object { $_.Label.Length } | Measure-Object -Maximum).Maximum
+
+    foreach ($r in $routes) {
+        if (-not $r.Primary -or $r.Primary -notmatch ',') { continue }
+        $paddedLabel = $r.Label.PadRight($labelWidth)
+        $indent = ' ' * ($labelWidth + 2)
+
+        Write-Host ("  {0}: {1}" -f $paddedLabel, (Format-Route $r.Primary))
+
+        if ($r.Chain -and $r.Chain.Count -gt 0) {
+            $r.Chain | ForEach-Object {
+                Write-Host ("{0}└─ {1}" -f $indent, (Format-Route $_)) -ForegroundColor DarkGray
+            }
+        } elseif ($r.Label -notin @('custom')) {
+            Write-Host ("{0}└─ (no fallback configured)" -f $indent) -ForegroundColor DarkGray
+        }
+    }
+}
+catch {
+    # Fallback: just print the base routes if parsing failed
+    Write-Host ("  opus:   {0}" -f (Format-Route $actualOpus))
+    Write-Host ("  sonnet: {0}" -f (Format-Route $actualSonnet))
+    Write-Host ("  haiku:  {0}" -f (Format-Route $actualHaiku))
 }
 Write-Host ""
 # --- Phase status banner ---
