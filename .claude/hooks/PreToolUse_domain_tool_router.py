@@ -180,7 +180,7 @@ def main() -> None:
         query = extract_query(tool_name, tool_input)
         if not query or len(query) < 3:
             # No meaningful query, allow without suggestion
-            print(json.dumps({"decision": "approve"}))
+            print("{}")
             return
 
         # Classify query and build suggestion
@@ -188,10 +188,10 @@ def main() -> None:
         if classification:
             advisory = build_suggestion(classification, query)
             _logger.warning(f"[advisory] {advisory}")
-            print(json.dumps({"decision": "approve"}))
+            print("{}")
         else:
             # No specific recommendation
-            print(json.dumps({"decision": "approve"}))
+            print("{}")
 
     except Exception as e:
         # Fail open - don't block on errors

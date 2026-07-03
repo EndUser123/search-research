@@ -925,7 +925,7 @@ def main() -> int:
     """CLI fallback for subprocess execution and manual debugging."""
     raw = sys.stdin.read().strip()
     if not raw:
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         return 0
 
     try:

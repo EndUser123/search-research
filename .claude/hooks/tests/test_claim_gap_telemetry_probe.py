@@ -340,14 +340,11 @@ def test_probe_runs_through_in_process_loop_without_changing_decision(monkeypatc
         "stop_hook_active": False,
     }
     # Use the same code path main() uses: read payload from stdin, write stdout.
-    import io, json, sys
+    import io, json, os as _os, sys
     old_stdin, old_stdout = sys.stdin, sys.stdout
     try:
         sys.stdin = io.StringIO(json.dumps(payload))
         sys.stdout = io.StringIO()
-        # Drive main() with a minimal set of mocks so the rest of the loop is fast.
-        # We only need to confirm the probe runs and does not affect the final
-        # decision; other gates' exact behavior is out of scope.
         try:
             stop.main()
         except SystemExit:
@@ -355,6 +352,10 @@ def test_probe_runs_through_in_process_loop_without_changing_decision(monkeypatc
         output = json.loads(sys.stdout.getvalue() or "{}")
     finally:
         sys.stdin, sys.stdout = old_stdin, old_stdout
+        # stop.main() -> _pin_scope_env(data) sets CLAUDE_SESSION_ID in os.environ
+        # (even though it was not set before). Clean up unconditionally so subsequent
+        # tests don't see a leaked session_id via the resolve_session_id() env fallback.
+        _os.environ.pop("CLAUDE_SESSION_ID", None)
 
     # The probe must not have caused a block. main()'s final step (line 4950) sets
     # continue=True when no gate fired a block. So if the probe ran, it must have

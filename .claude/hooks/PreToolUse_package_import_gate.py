@@ -296,7 +296,7 @@ if __name__ == "__main__":
                     print(json.dumps(result))
                     sys.exit(2 if not result.get("continue", True) else 0)
                 else:
-                    print(json.dumps({"decision": "approve"}))
+                    print("{}")
                     sys.exit(0)
         except json.JSONDecodeError:
             # If JSON parsing fails, fall through to command-line mode

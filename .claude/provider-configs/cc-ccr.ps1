@@ -258,9 +258,9 @@ function Format-QuotaReset {
         $remaining = $reset - (Get-Date)
         if ($remaining -le [TimeSpan]::Zero) { return "pending" }
         $totHr = [int][Math]::Floor($remaining.TotalHours)
-        $cd = if     ($totHr -ge 72) { "{0}d {1}h" -f [int][Math]::Floor($totHr/24), ($totHr % 24) }
-              elseif ($totHr -ge 1)  { "{0}h {1}m" -f $totHr, $remaining.Minutes }
-              else                   { "{0}m" -f [int][Math]::Floor($remaining.TotalMinutes) }
+        $cd = if     ($totHr -ge 72) { "{0,2}d {1,2}h" -f [int][Math]::Floor($totHr/24), ($totHr % 24) }
+              elseif ($totHr -ge 1)  { "{0,2}h {1,2}m" -f $totHr, $remaining.Minutes }
+              else                   { " 0h {0,2}m" -f [int][Math]::Floor($remaining.TotalMinutes) }
         return "{0} · {1}" -f $cd.PadRight(8), $reset.ToString("ddd HH:mm")
     } catch { return "" }
 }
@@ -424,8 +424,8 @@ try {
         Write-Host "  $($paddedLabel): $(Format-Route $r.Primary)"
         if ($r.Chain -and $r.Chain.Count -gt 0) {
             $primaryPair = Format-Route $r.Primary
-            $rest = ($r.Chain | ForEach-Object { Format-Route $_ }) -join ' -> '
-            Write-Host ("$indent+-- if {0} fails -> {1}" -f $primaryPair, $rest) -ForegroundColor DarkGray
+            $rest = ($r.Chain | ForEach-Object { Format-Route $_ }) -join ' → '
+            Write-Host "${indent}└─ if ${primaryPair} fails → ${rest}" -ForegroundColor DarkGray
         } elseif ($r.Label -ne 'custom') {
             Write-Host ("$indent+-- (no fallback configured)") -ForegroundColor DarkGray
         }

@@ -416,7 +416,7 @@ def main():
     stdin_content = sys.stdin.read()
     if not stdin_content.strip():
         _logger.info("recursive_failure_detector: empty stdin, allowing")
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         sys.exit(0)
     input_data = json.loads(stdin_content)
     tool_name = input_data.get("tool_name", "")
