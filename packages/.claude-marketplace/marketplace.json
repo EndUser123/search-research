@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "snapshot",
-      "version": "0.5.25",
+      "version": "0.5.26",
       "description": "Session snapshot capture and restore system for Claude Code sessions",
       "source": "./plugins/snapshot",
       "keywords": [
@@ -65,7 +65,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.71",
+      "version": "1.0.73",
       "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -86,7 +86,7 @@
     },
     {
       "name": "search-research",
-      "version": "0.1.30",
+      "version": "0.1.31",
       "description": "Unified search and research system with async concurrent execution and 11 web providers.",
       "source": "./plugins/search-research",
       "keywords": [
@@ -98,7 +98,7 @@
     },
     {
       "name": "skill-guard",
-      "version": "2.1.41",
+      "version": "2.1.42",
       "description": "Universal skill auto-discovery and enforcement for Claude Code",
       "source": "./plugins/skill-guard",
       "keywords": [
@@ -118,7 +118,7 @@
     },
     {
       "name": "cc-skills-thinking",
-      "version": "1.0.13",
+      "version": "1.0.14",
       "description": "Thinking plugin",
       "source": "./plugins/cc-skills-thinking",
       "keywords": []
@@ -139,7 +139,7 @@
     },
     {
       "name": "prompt-enhancer",
-      "version": "0.2.5",
+      "version": "0.2.6",
       "description": "Prompt Clarification & Context Augmentation \u2014 ambiguous prompt detection, enhancement, and multi-turn context preservation via UserPromptSubmit + PreCompact hooks.",
       "source": "./plugins/prompt-enhancer",
       "keywords": [
