@@ -153,7 +153,8 @@
       "Bash('$Error[0]')",
       "Bash(Format-List -Force)",
       "Bash(rm P:/.claude/.artifacts/go-fb/go/run-with-err.ps1)",
-      "Bash(Write-Host \"cleaned up\")"
+      "Bash(Write-Host \"cleaned up\")",
+      "mcp__minimax-search__web_search"
     ],
     "deny": [],
     "ask": []

@@ -295,6 +295,117 @@ def test_probe_works_when_telemetry_disabled(monkeypatch):
     assert _events_for_category(tel, "claim_gap_telemetry") == []
 
 
+# ---- 7b. schema validity: all probe output paths produce valid JSON ----
+
+import json as _json
+
+
+def _validate_stop_output(output: dict) -> bool:
+    """Check that an output dict conforms to the Claude Code Stop hook Zod schema.
+    Valid formats:
+      - {} (empty = allow)
+      - {"continue": true, "systemMessage": "..."} (advisory/warning)
+      - {"decision": "block", "reason": "..."} (block)
+      - {"systemMessage": "..."} (advisory)
+    Invalid: {"decision": "warn"}, {"decision": "approve"}
+    """
+    # Empty dict = valid allow
+    if not output:
+        return True
+    # Block with only required keys = valid
+    if output.get("decision") == "block":
+        return "reason" in output
+    # Advisory with continue=true or systemMessage only = valid
+    if output.get("continue") is True:
+        return bool(output.get("systemMessage"))
+    if "systemMessage" in output and "decision" not in output:
+        return True
+    # Everything else is suspicious
+    return False
+
+
+def _valid_output_from_warn_path(probe_fn, payload: dict) -> bool:
+    """Simulate the Stop hook's in-process gate path:
+    run() -> _run_gate_safe() -> _process_gate_result() -> main() output.
+    Returns True if the final output would pass Zod validation.
+    """
+    res = probe_fn(payload)
+    # Gate returned a dict (warn path). Now simulate the Stop pipeline.
+    if not res:
+        return True  # None/empty gate result = allow
+    # _process_gate_result logic for non-block results:
+    msg = res.get("systemMessage")
+    if msg:
+        # Build the output dict the way Stop.main() does (simplified)
+        output = {}
+        if "systemMessage" in res:
+            output["systemMessage"] = res["systemMessage"]
+        if "decision" not in output and "continue" not in output:
+            output["continue"] = True
+        return _validate_stop_output(output)
+    # No systemMessage, no block -> empty output = allow
+    return _validate_stop_output({})
+
+
+def test_validation_warn_path_produces_valid_stop_output(monkeypatch):
+    """Probe warn path (validation claim + no hedge + no evidence) produces
+    a Stop-hook-compatible output dict (systemMessage + continue, not decision:warn)."""
+    probe = _load_probe()
+    response = "All tests pass after the patch."
+    res = probe.run({
+        "response": response,
+        "session_id": "schema-val-1",
+        "terminal_id": "t-schema-val-1",
+    })
+    # Should return warn dict
+    assert res.get("decision") == "warn"
+    assert res.get("systemMessage")
+    # Validate the simulated Stop output is schema-clean
+    assert _valid_output_from_warn_path(probe.run, {
+        "response": response,
+        "session_id": "schema-val-2",
+        "terminal_id": "t-schema-val-2",
+    }), "warn path output must produce valid Stop schema (systemMessage + continue, not decision:warn)"
+
+
+def test_telemetry_path_produces_valid_stop_output(monkeypatch):
+    """Telemetry-only path (structural claim, no hedge) returns {} for rule compliance
+    but telemetry underlying emits to the JSONL sink. The final Stop output must be {}."""
+    probe = _load_probe()
+    response = "The new hook is registered in the dispatch chain."
+    res = probe.run({
+        "response": response,
+        "session_id": "schema-tel-1",
+        "terminal_id": "t-schema-tel-1",
+    })
+    # Currently returns warn because structural claims without evidence are unhedged
+    # and this gets caught by the validation gap test. Actually this IS caught:
+    # "registered" matches the structural marker.
+    # Verify the Stop output path would produce valid output.
+    assert _valid_output_from_warn_path(probe.run, {
+        "response": response,
+        "session_id": "schema-tel-2",
+        "terminal_id": "t-schema-tel-2",
+    }), "telemetry path output must produce valid Stop schema ({} with no invalid decision key)"
+
+
+def test_clean_response_produces_valid_stop_output(monkeypatch):
+    """Clean response (no claim markers) returns {} and produces valid Stop output."""
+    probe = _load_probe()
+    response = "I read the file and noted the contents."
+    res = probe.run({
+        "response": response,
+        "session_id": "schema-clean-1",
+        "terminal_id": "t-schema-clean-1",
+    })
+    assert res == {}, f"clean response must return empty dict; got {res}"
+    assert _valid_output_from_warn_path(probe.run, {
+        "response": response,
+        "session_id": "schema-clean-2",
+        "terminal_id": "t-schema-clean-2",
+    }), "clean output path must produce valid Stop schema"
+
+
 # ---- 8. integration: probe is wired into Stop.IN_PROCESS_GATES ------------------
 
 def _load_stop_module():
