@@ -716,6 +716,14 @@ class CHSExporter:
                 out.write(f"# Session Chain Export\n\n")
                 out.write(f"**Root session:** {session_id}  \n")
                 out.write(f"**Exported:** {now.strftime('%Y-%m-%d %H:%M:%S')}  \n")
+                if self.show_sha:
+                    sha = self._capture_export_sha()
+                    if sha:
+                        out.write(
+                            f"**Export-time HEAD:** `{sha}` "
+                            f"_(captured at export; per-session gitSha is not recorded "
+                            f"in transcripts — do not treat as session-time)_  \n"
+                        )
                 out.write(f"**Sessions in chain:** {len(chain_paths)}\n\n")
                 out.write("---\n\n")
 
@@ -730,6 +738,10 @@ class CHSExporter:
                         continue
 
                     out.write(f"## Session {i} — `{path.stem}`\n\n")
+                    if self.show_branch:
+                        branch = self._peek_branch(path)
+                        if branch:
+                            out.write(f"**Branch:** `{branch}`  \n\n")
                     self._format_transcript_to_file(path, out)
                     out.write("\n---\n\n")
 
@@ -1117,6 +1129,14 @@ def main():
     parser.add_argument("--export", action="store_true", help="Export full session chain to file")
     parser.add_argument("--session-id", help="Session ID for session export (default: current session)")
     parser.add_argument("--max-sessions", type=int, default=30, help="Maximum sessions to include in chain (default: 30)")
+    parser.add_argument(
+        "--fidelity",
+        choices=("context-safe", "analysis"),
+        default="context-safe",
+        help="Export fidelity preset (default: context-safe, byte-identical to legacy). "
+        "'analysis' enables full tool results, uncapped thinking, per-entry timestamps, "
+        "git branch, export-time HEAD sha, and compaction-boundary markers.",
+    )
     args = parser.parse_args()
     config = CHSConfig()
     search = CHSSearch(config)
@@ -1127,6 +1147,7 @@ def main():
         exporter = CHSExporter(
             exclude_thinking=args.exclude_thinking,
             include_tool_results=args.include_tool_results,
+            fidelity=args.fidelity,
         )
         try:
             out = exporter.export_chain(

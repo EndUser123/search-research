@@ -253,9 +253,12 @@ python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --ses
 - `--export` writes the full linked session chain to a markdown file
 - `--session-id` is optional; if omitted, the current session is used
 - `--output` is optional; if omitted, the CLI writes to `~/.claude/exports/chain_<timestamp>.md`
-- `--exclude-thinking` removes thinking blocks from the export
-- `--include-tool-results` keeps raw tool results in the export
-- `--max-sessions` limits chain length (default 30). Leave unset for full chain — `--exclude-thinking` is the lever that actually controls export size, since one logical session typically maps to a single transcript file regardless of compaction count
+- `--fidelity {context-safe,analysis}` selects a rendering preset (default: `context-safe`, byte-identical to legacy). `analysis` enables full tool results (with `tool_use`↔`tool_result` id back-refs), uncapped thinking, per-entry ISO timestamps, per-session git branch, export-time HEAD sha, and compaction-boundary markers — use this for analysis consumers (/debrief, /gto, /learn)
+- `--exclude-thinking` removes thinking blocks (maps onto the `context-safe` preset)
+- `--include-tool-results` keeps tool results in the export (maps onto `context-safe`; legacy 400-char truncated form)
+- `--max-sessions` limits chain length (default 30). Leave unset for full chain — `--exclude-thinking` (or `--fidelity context-safe`) is the lever that actually controls export size, since one logical session typically maps to a single transcript file regardless of compaction count
+
+**Provenance note on sha:** transcripts do not record `gitSha` per session (always null). In `analysis` mode the export stamps the **export-time** `git rev-parse HEAD`, labeled as such — it is not the session-time commit. Per-session `gitBranch` is authentic.
 
 **Context protection rules:**
 
@@ -274,6 +277,9 @@ The CLI returns JSON metadata with `context_safe` and `recommendation` fields. F
 ```bash
 # Export the current session chain (full chain, thinking excluded)
 python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --exclude-thinking
+
+# Rich export for analysis consumers (full tool results, timestamps, branch, sha)
+python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --fidelity analysis
 
 # Export a specific session chain
 python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id abc123
