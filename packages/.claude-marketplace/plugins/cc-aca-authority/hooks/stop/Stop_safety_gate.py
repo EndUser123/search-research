@@ -191,11 +191,11 @@ def main():
             }))
             sys.exit(2)
 
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
 
     except Exception as e:
         # Safety gate fails OPEN on error to prevent deadlock during refactor
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         sys.exit(0)
 
 if __name__ == "__main__":

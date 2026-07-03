@@ -545,7 +545,7 @@ def main():
 
     # Only check git commit commands
     if tool_name != "Bash":
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         return 0
 
     command = tool_input.get("command", "")
@@ -571,7 +571,7 @@ def main():
             }))
             return 0
         else:
-            print(json.dumps({"decision": "approve"}))
+            print("{}")
             return 0
 
     # Get git status

@@ -179,7 +179,7 @@ def main():
 
         if suggestions:
             print("[advisory] " + " | ".join(suggestions), file=sys.stderr)
-            print(json.dumps({"decision": "approve"}))
+            print("{}")
         else:
             print("{}")
 

@@ -762,7 +762,7 @@ def main():
     try:
         input_data = json.load(sys.stdin)
     except json.JSONDecodeError:
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         return
 
     # Get the command being executed
@@ -770,19 +770,19 @@ def main():
     command = tool_input.get("command", "")
 
     if not command:
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         return
 
     # Respect risk_tier_gate's classification - if already checked, allow
     if input_data.get("tier_checked"):
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         return
 
     # Check if destructive
     destructive_match = is_destructive_command(command)
 
     if not destructive_match:
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         return
 
     # Destructive command detected - check authorization
@@ -798,7 +798,7 @@ def main():
         if has_explicit_authorization(last_user_msg, command, input_data.get("cwd", "")):
             # Explicit action words like "proceed", "do it", "delete it", or "0" / "1"
             cleanup_awaiting_state(input_data)
-            print(json.dumps({"decision": "approve"}))
+            print("{}")
             return
 
         # When pending auth exists, bare affirmatives ("yes", "yeah", "sure") ARE authorization
@@ -806,7 +806,7 @@ def main():
         text_lower = last_user_msg.lower().strip()
         if text_lower in BARE_AFFIRMATIVES:
             cleanup_awaiting_state(input_data)
-            print(json.dumps({"decision": "approve"}))
+            print("{}")
             return
         # Fall through to re-prompt if no authorization in user response
 
@@ -874,7 +874,7 @@ def main():
 
     # Check for explicit authorization
     if has_explicit_authorization(last_user_msg):
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         return
 
     # Check if confirmatory-only
@@ -944,7 +944,7 @@ def main():
         return
 
     # Ambiguous - allow but could add warning
-    print(json.dumps({"decision": "approve"}))
+    print("{}")
 
 if __name__ == "__main__":
     main()
