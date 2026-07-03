@@ -301,7 +301,7 @@
     },
     {
       "name": "cc-model-router",
-      "version": "0.2.9",
+      "version": "0.2.11",
       "description": "Automatic model-tier routing (haiku/sonnet/opus) based on prompt complexity heuristics with dual-mode operation (warn plus autoswitch)",
       "source": "./plugins/cc-model-router",
       "keywords": []
