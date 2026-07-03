@@ -119,7 +119,7 @@ def main():
     # Check for bypass flag in prompt
     prompt = data.get("prompt", "")
     if BYPASS_FLAG in prompt:
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         sys.exit(0)
 
     # Use canonical terminal ID detection (includes hook_ledger detection)
@@ -128,7 +128,7 @@ def main():
     # Only process if there's an active declaration
     declaration_state = _load_declaration_state(terminal_id)
     if not declaration_state:
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         sys.exit(0)
 
     declared_path = declaration_state.get("path", "")
@@ -139,7 +139,7 @@ def main():
         if _is_arch_file(read_path):
             # Reading an arch file - clear state and allow
             _clear_declaration_state(terminal_id)
-            print(json.dumps({"decision": "approve"}))
+            print("{}")
             sys.exit(0)
         # Reading non-arch file while declaration exists - block
         # (must read arch file first to complete declaration)
@@ -150,7 +150,7 @@ def main():
         if _is_arch_file(edit_path):
             # Updating an arch file - clear state
             _clear_declaration_state(terminal_id)
-            print(json.dumps({"decision": "approve"}))
+            print("{}")
             sys.exit(0)
 
     # Block other tools until template is updated

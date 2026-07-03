@@ -45,25 +45,25 @@ COMPLETION_TOOLS = {
 def main() -> int:
     """Main entry point."""
     if not ENABLED:
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         return 0
 
     try:
         input_text = sys.stdin.read().strip()
         if not input_text:
-            print(json.dumps({"decision": "approve"}))
+            print("{}")
             return 0
 
         data = json.loads(input_text)
     except json.JSONDecodeError:
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         return 0
 
     tool_name = data.get("tool_name", "")
 
     # Only check on specific tools (not every tool execution)
     if tool_name not in COMPLETION_TOOLS:
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         return 0
 
     try:
@@ -77,7 +77,7 @@ def main() -> int:
 
         if not trails:
             # No active breadcrumb trails
-            print(json.dumps({"decision": "approve"}))
+            print("{}")
             return 0
 
         # Check each active trail
@@ -94,7 +94,7 @@ def main() -> int:
 
         if not incomplete_trails:
             # All trails complete
-            print(json.dumps({"decision": "approve"}))
+            print("{}")
             return 0
 
         # Some trails are incomplete
@@ -132,13 +132,13 @@ def main() -> int:
         # skill_guard not available, skip verification
         if DEBUG:
             print("[BREADCRUMB DEBUG] skill_guard not available", file=sys.stdout)
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         return 0
     except Exception as e:
         # Fail open on unexpected errors
         if DEBUG:
             print(f"[BREADCRUMB DEBUG] Error: {e}", file=sys.stdout)
-        print(json.dumps({"decision": "approve"}))
+        print("{}")
         return 0
 
 
