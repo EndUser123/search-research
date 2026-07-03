@@ -125,15 +125,15 @@ def classify_prompt(prompt, config):
         r'^(yes|no|ok|okay|sure|yep|nope|y|n)$',
         r'^(thanks|thank you|thx|ty)$',
         r'^(continue|go on|next|done|stop|quit|exit)$',
-        r'^(show|print|list|tell me about|what is|where is) \w{0,20}$',
+        r'^(show|print|list|tell me about|what is|where is)\s+\w{0,20}$',
         r'^(format|lint|check)\s+\w+$',
         r'^~\s+\w{0,20}$',
-        # Mechanical edits — single-file operations
-        r'^(rename|move|copy|delete|remove|insert|replace|add)\s+\w+',
-        r'^(extract|inline|convert|wrap|unwrap)\s+\w+',
-        r'^(update|change|set)\s+(the\s+)?\w+\s+(to|in|on)\s+\w+',
-        r'^(sort|reorder|alphabetize)\s+\w+',
-        r'^(strip|trim|clean|dedupe|dedup)\s+\w+',
+        # Mechanical edits — short, single-file operations, all anchored
+        r'^(rename|move|copy|delete|remove|insert|replace|add)\s+\w+$',
+        r'^(extract|inline|convert|wrap|unwrap)\s+\w+$',
+        r'^(update|change|set)\s+(the\s+)?\w+\s+(to|in|on)\s+\w+$',
+        r'^(sort|reorder|alphabetize)\s+\w+$',
+        r'^(strip|trim|clean|dedupe|dedup)\s+\w+$',
     ]
     is_local_task = word_count <= 12 and any(
         re.search(p, prompt_lower) for p in local_patterns
