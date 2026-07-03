@@ -106,29 +106,25 @@ def _has_script_style_top_level(tree: ast.Module) -> bool:
 
 
 def pytest_ignore_collect(collection_path: Path, config) -> bool:  # type: ignore[no-untyped-def]
+    # `pytest_ignore_collect` is a firstresult hook: pytest calls conftest-registered
+    # implementations (this one) BEFORE its own built-in norecursedirs/collect_ignore
+    # handling for the same hook, so once this function returns non-None for a path,
+    # pytest's own config-driven exclusion never runs for it. A hardcoded directory-name
+    # set used to live here, duplicating pytest.ini's `norecursedirs`; it silently
+    # regressed on 2026-07-03 (a "_quarantine" removal here reopened the collection-abort
+    # bug for quarantined tests), and removing it outright (2026-07-03, same day) just
+    # generalized the same bug to `_legacy` and every other norecursedirs entry, because
+    # norecursedirs/collect_ignore were themselves NEVER actually reached — this hookimpl
+    # always answers first. So: read norecursedirs from `config` at runtime instead of
+    # duplicating it, making pytest.ini the single source of truth that's actually live.
     path = Path(str(collection_path))
     try:
         relative_parts = path.relative_to(Path(__file__).parent).parts
     except ValueError:
         relative_parts = path.parts
 
-    ignored_dirs = {
-        ".temp",
-        "_archive",
-        "_archived",
-        "__pycache__",
-        ".mypy_cache",
-        "deprecated",
-        "logs",
-        "state",
-        ".state",
-        "sessions",
-        # _legacy: tests for permanently removed features (cleanup skill, old module paths).
-        # NOT a hiding mechanism — these tests fail because their source modules no longer exist.
-        # See tests/_legacy/ for the test files and their obsolescence reasons.
-        "_legacy",
-    }
-    if any(part in ignored_dirs for part in relative_parts):
+    norecursedirs = set(config.getini("norecursedirs")) if config is not None else set()
+    if any(part in norecursedirs for part in relative_parts):
         return True
 
     if path.suffix != ".py" or not path.name.startswith("test_"):
