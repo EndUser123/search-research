@@ -148,7 +148,12 @@
       "Bash(Select-Object -String -Skip 3)",
       "Bash(Select-Object -First 12)",
       "Bash(Select-String -Pattern '^Route|^  ' -Context 0,0)",
-      "Bash(ForEach-Object '{' '$_.Line' '}')"
+      "Bash(ForEach-Object '{' '$_.Line' '}')",
+      "Bash(Out-Null)",
+      "Bash('$Error[0]')",
+      "Bash(Format-List -Force)",
+      "Bash(rm P:/.claude/.artifacts/go-fb/go/run-with-err.ps1)",
+      "Bash(Write-Host \"cleaned up\")"
     ],
     "deny": [],
     "ask": []

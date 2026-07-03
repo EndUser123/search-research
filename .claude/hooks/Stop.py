@@ -3990,11 +3990,11 @@ GATE_METADATA: dict[str, dict] = {
     # ensures it fires on every turn (telemetry only — no enforcement).
     "claim_gap_telemetry_probe": {
         "class": "observability", "trivial_suppressible": False, "priority": 99,
-        "description": "Claim/validation gap telemetry (telemetry-only, never blocks)",
+        "description": "Claim/validation gap telemetry + warn (warn for validation, telemetry for structural)",
         "relevant_turn_kinds": _ALL_TURN_KINDS,
         "relevant_claim_kinds": _ALL_CLAIM_KINDS,
         "required_artifact_classes": frozenset(),
-        "rollout_mode": RolloutMode.DISABLED,
+        "rollout_mode": RolloutMode.ADVISORY,
     },
 }
 

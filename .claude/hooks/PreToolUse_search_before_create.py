@@ -40,8 +40,21 @@ STATE_DIR.mkdir(parents=True, exist_ok=True)
 
 # ponytail: heuristic — telemetry-only, so we accept some noise. These signal
 # "new shared/utility code" where reusing an existing helper is the likely intent.
-_HELPER_MARKERS = ("/__lib/", "/hooks/", "/lib/", "/utils/", "/shared/")
+# NOTE: the __lib__ marker uses double underscores to match the Python
+# name-mangling convention used by `__pycache__`, `__init__.py`, etc.
+_HELPER_MARKERS = ("/__lib__/", "/hooks/", "/lib/", "/utils/", "/shared/")
 _HELPER_NAME_TOKENS = ("helper", "util", "common", "shared", "_lib")
+
+# High-risk extension points. Creating a new one of these without prior search
+# soft-blocks the edit. Promoted from telemetry-only 2026-07-02 in Phase 2
+# of the /go reliability ladder.
+# Lowercase — _is_high_risk_extension_point lowercases the path before matching.
+_HIGH_RISK_PATH_FRAGMENTS = (
+    "/pretooluse_", "/posttooluse_", "/stop_", "/sessionstart_",
+    "/sessionend_", "/userpromptsubmit_", "/subagentstop_",
+    "/skill.md", "/__lib__", "/__lib__/",
+    "/plugin-audit", "/cache-mutation",
+)
 
 
 def _telemetry(event: str, session_id: str, extra: dict | None = None) -> None:
@@ -84,8 +97,21 @@ def _looks_like_helper(file_path: str) -> bool:
     return any(tok in name for tok in _HELPER_NAME_TOKENS)
 
 
+def _is_high_risk_extension_point(file_path: str) -> bool:
+    # Normalize to lowercase so filesystem case-sensitivity doesn't defeat the
+    # marker match. The markers themselves are already lowercase.
+    norm = file_path.replace("\\", "/").lower()
+    return any(frag in norm for frag in _HIGH_RISK_PATH_FRAGMENTS)
+
+
 def run(data: dict) -> dict | None:
-    """PreToolUse probe. Telemetry-only; always returns None (allow)."""
+    """PreToolUse probe. Promoted from telemetry-only 2026-07-02:
+    - High-risk extension points (PreToolUse_*, PostToolUse_*, Stop_*, etc.):
+      soft-block with explicit bypass.
+    - Normal helper/utility paths: warn with the existing message.
+    - Trivial paths (no helper marker, no high-risk): allow.
+    Bypass: --allow-no-search in the user message.
+    """
     if data.get("tool_name") != "Write":
         return None
     session_id = resolve_session_id(data)
@@ -98,17 +124,54 @@ def run(data: dict) -> dict | None:
     # Only new files (creates) are in scope — editing existing is existence_gate's job.
     if Path(file_path).exists():
         return None
-    if not _looks_like_helper(file_path):
+    high_risk = _is_high_risk_extension_point(file_path)
+    looks_like_helper = _looks_like_helper(file_path)
+    if not (high_risk or looks_like_helper):
         return None
     searches = _load_searches(session_id)
     if searches:
         return None  # discovery happened — no signal
+    # Bypass: explicit user opt-out.
+    message = data.get("message", "")
+    if "--allow-no-search" in message:
+        _telemetry(
+            "create_without_search_bypass",
+            session_id,
+            extra={"file": file_path, "high_risk": high_risk},
+        )
+        return None
+    # Emit telemetry in all cases.
     _telemetry(
         "create_without_search",
         session_id,
-        extra={"file": file_path, "searches_recorded": 0},
+        extra={"file": file_path, "high_risk": high_risk, "searches_recorded": 0},
     )
-    return None
+    if high_risk:
+        return {
+            "decision": "block",
+            "reason": (
+                f"New high-risk extension point {file_path} created without prior Grep/Glob. "
+                "Search for existing equivalents first, or add --allow-no-search to bypass."
+            ),
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": (
+                    f"Search-before-create: {file_path} is a high-risk extension point. "
+                    "Run a Grep/Glob to find existing equivalents first, "
+                    "or add --allow-no-search to bypass."
+                ),
+            },
+        }
+    # Normal helper/utility path: warn, not block.
+    return {
+        "decision": "warn",
+        "systemMessage": (
+            f"Search-before-create: new helper/utility file {file_path} was created without "
+            "a prior Grep/Glob in this session. Consider searching for existing equivalents first; "
+            "add --allow-no-search to bypass."
+        ),
+    }
 
 
 def run_search_tracker(data: dict) -> dict | None:

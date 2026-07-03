@@ -320,7 +320,7 @@ def test_probe_is_registered_in_in_process_gates():
     meta = stop.GATE_METADATA["claim_gap_telemetry_probe"]
     assert meta["class"] == "observability"
     # Rollout disabled because run() never blocks; rollout would otherwise be irrelevant.
-    assert meta["rollout_mode"].value == "disabled"
+    assert meta["rollout_mode"].value == "advisory"
 
 
 def test_probe_runs_through_in_process_loop_without_changing_decision(monkeypatch, tmp_path):

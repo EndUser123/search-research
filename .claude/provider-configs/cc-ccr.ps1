@@ -420,13 +420,14 @@ try {
     foreach ($r in $routes) {
         if (-not $r.Primary) { continue }
         $paddedLabel = $r.Label.PadRight($labelWidth)
+        $indent = ' ' * ($labelWidth + 2)
         Write-Host "  $($paddedLabel): $(Format-Route $r.Primary)"
         if ($r.Chain -and $r.Chain.Count -gt 0) {
             $primaryPair = Format-Route $r.Primary
-            $rest = ($r.Chain | ForEach-Object { Format-Route $_ }) -join ' → '
-            Write-Host ("  {0}  └─ {1}" -f (' ' * $labelWidth, "if $primaryPair fails → $rest")) -ForegroundColor DarkGray
+            $rest = ($r.Chain | ForEach-Object { Format-Route $_ }) -join ' -> '
+            Write-Host ("$indent+-- if {0} fails -> {1}" -f $primaryPair, $rest) -ForegroundColor DarkGray
         } elseif ($r.Label -ne 'custom') {
-            Write-Host ("  {0}  └─ (no fallback configured)" -f (' ' * $labelWidth)) -ForegroundColor DarkGray
+            Write-Host ("$indent+-- (no fallback configured)") -ForegroundColor DarkGray
         }
     }
 } catch {

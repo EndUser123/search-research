@@ -305,6 +305,20 @@ def run(data: dict[str, Any]) -> dict[str, Any]:
             # Telemetry sink failures must never block Stop.
             pass
 
+    # Phase 2 promotion: user-visible warn for high-confidence claim gaps.
+    # Validation claims ("tests pass", "verified", etc.) without command evidence
+    # and without hedge terms are high-confidence enough to produce a visible
+    # warning. Structural claims stay telemetry-only for now.
+    has_validation_gap = any(g["claim_type"] == "validation" for g in gaps)
+    if has_validation_gap:
+        return {
+            "decision": "warn",
+            "systemMessage": (
+                "Claim/validation honesty: found unverified validation claims "
+                "(e.g. 'tests pass'/'verified' without command evidence). "
+                "Include command evidence or explicitly say 'not run'/'not verified'."
+            ),
+        }
     return {}  # never block, never warn, never alter existing decision
 
 
