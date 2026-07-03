@@ -103,6 +103,12 @@ def read_transcript(
                 })
 
         elif is_user:
+            # Synthetic entries (Stop-hook feedback, interruption notices) carry
+            # isMeta: true; real user prompts don't (verified against live
+            # session JSONL 2026-07-02). Exclude them from user messages.
+            if raw.get("isMeta"):
+                entries.append({"role": "system", "type": "meta", "text": ""})
+                continue
             is_tool_result = msg_type == "tool_result" or (
                 isinstance(message_content, list)
                 and any(

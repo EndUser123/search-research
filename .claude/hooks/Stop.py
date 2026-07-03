@@ -4594,21 +4594,23 @@ def _enrich_user_prompt(data: dict) -> None:
     agreement gate, meta-analysis trap) sees the actual prompt instead of "".
     Fail-open: enrichment errors leave the payload unchanged.
 
-    Skipped on stop-hook continuations: there the latest transcript user entry
-    is the hook's synthetic feedback, not the user's prompt, so regen turns
-    keep the pre-enrichment behavior (empty prompt).
+    Works on stop-hook continuations too: synthetic "Stop hook feedback" user
+    entries carry isMeta and are excluded by transcript_reader, so the last
+    REAL user prompt is returned even on regen turns.
     """
     if data.get("user_prompt") or data.get("prompt"):
         return
-    if data.get("stop_hook_active"):
-        return
     try:
         from __lib.transcript_reader import get_latest_user_text
-        # Tail-read: the latest user message lives at the end; transcripts
-        # grow unbounded and a full read would sit on every Stop's critical path.
-        latest_user = get_latest_user_text(data, tail_bytes=1_048_576)
-        if latest_user:
-            data["user_prompt"] = latest_user
+        # Tail-read: the latest user message lives near the end; transcripts
+        # grow unbounded and a full read would sit on every Stop's critical
+        # path. A single >1MB trailing tool_result can push the prompt out of
+        # the first window, so escalate once before giving up (fail-open).
+        for _tail in (1_048_576, 16_777_216):
+            latest_user = get_latest_user_text(data, tail_bytes=_tail)
+            if latest_user:
+                data["user_prompt"] = latest_user
+                return
     except Exception:
         pass
 

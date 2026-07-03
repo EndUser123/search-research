@@ -87,13 +87,45 @@ def test_enrichment_fails_open_on_missing_transcript():
     assert "user_prompt" not in data
 
 
-def test_enrichment_skipped_on_stop_hook_continuation(tmp_path):
-    """Regen turns: the latest transcript user entry is hook feedback, not the
-    user's prompt — enrichment must preserve pre-fix behavior (no prompt)."""
-    data = _real_stop_payload(_write_fixture_transcript(tmp_path))
+def test_enrichment_skips_ismeta_hook_feedback_on_regen(tmp_path):
+    """Regen turns: the latest transcript user entry is synthetic Stop-hook
+    feedback (isMeta: true, verified against live session JSONL 2026-07-02).
+    Enrichment must skip it and return the last REAL user prompt."""
+    p = tmp_path / "t.jsonl"
+    lines = [
+        {"type": "user", "message": {"role": "user", "content": [
+            {"type": "text", "text": USER_TEXT}]}},
+        {"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "text", "text": "first attempt"}]}},
+        {"type": "user", "isMeta": True, "message": {"role": "user", "content": [
+            {"type": "text", "text": "Stop hook feedback:\nSemantic critic: fix X"}]}},
+    ]
+    p.write_text("\n".join(json.dumps(x) for x in lines), encoding="utf-8")
+    data = _real_stop_payload(p)
     data["stop_hook_active"] = True
     Stop._enrich_user_prompt(data)
-    assert "user_prompt" not in data
+    assert data.get("user_prompt") == USER_TEXT
+
+
+def test_enrichment_escalates_tail_when_prompt_pushed_out(tmp_path):
+    """A trailing tool_result larger than the first tail window must not make
+    the prompt invisible — the escalated window must find it."""
+    from __lib.transcript_reader import get_latest_user_text
+    p = tmp_path / "big_tool_result.jsonl"
+    big = "y" * 2_000_000  # 2MB tool output pushes prompt out of the 1MB window
+    lines = [
+        json.dumps({"type": "user", "message": {"role": "user", "content": [
+            {"type": "text", "text": USER_TEXT}]}}),
+        json.dumps({"type": "user", "message": {"role": "user", "content": [
+            {"type": "tool_result", "tool_use_id": "t1", "content": big}]}}),
+    ]
+    p.write_text("\n".join(lines), encoding="utf-8")
+    data = _real_stop_payload(p)
+    # First window misses it...
+    assert get_latest_user_text({"transcript_path": str(p)}, tail_bytes=1_048_576) == ""
+    # ...enrichment escalation finds it.
+    Stop._enrich_user_prompt(data)
+    assert data.get("user_prompt") == USER_TEXT
 
 
 def test_enrichment_tolerates_non_dict_message(tmp_path):
