@@ -1158,7 +1158,25 @@ def main():
             )
             text = out.read_text(encoding="utf-8")
             session_count = text.count("\n## Session ")
-            print(f"Exported {session_count} session(s) to: {out}")
+            size_bytes = out.stat().st_size
+            estimated_tokens = size_bytes // 4
+            if estimated_tokens < 20_000:
+                recommendation = "read_file"
+                context_safe = True
+            elif estimated_tokens < 100_000:
+                recommendation = "delegate_to_subagent"
+                context_safe = False
+            else:
+                recommendation = "export_is_too_large_use_filters"
+                context_safe = False
+            print(json.dumps({
+                "path": str(out),
+                "session_count": session_count,
+                "file_size_kb": round(size_bytes / 1024, 1),
+                "estimated_tokens": estimated_tokens,
+                "context_safe": context_safe,
+                "recommendation": recommendation,
+            }))
         except ValueError as exc:
             print(f"Export failed: {exc}", file=sys.stderr)
             return 1
