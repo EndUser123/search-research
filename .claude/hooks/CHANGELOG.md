@@ -1,6 +1,11 @@
 
 ### Added
 
+- packages/.claude-marketplace/plugins/cc-model-router/pack.py: consolidated router
+
+
+### Added
+
 - .claude/hooks/Stop_sound_hook.py: new hook
 
 
