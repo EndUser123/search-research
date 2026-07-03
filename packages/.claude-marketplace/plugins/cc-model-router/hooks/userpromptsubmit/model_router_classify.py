@@ -42,6 +42,36 @@ def write_recommendation(state_path, data):
     tmp.replace(state_path / 'recommendation.json')
 
 
+# NOTE: resolve_list/safe_regex_match ported from hooks/model_router.py (dead code,
+# unregistered in settings.json). Original loaded config but never consumed patterns —
+# classify hook hardcoded defaults instead. Porting here makes config-driven pattern
+# lists actually functional (extend/replace/remove modes per tier in claude-model-router.json).
+def resolve_list(config, tier, field, defaults):
+    """Resolve final keyword/pattern list for a tier based on mode."""
+    tier_config = config.get(tier, {})
+    mode = tier_config.get("mode", "extend")
+    if mode == "replace":
+        return tier_config.get(field, [])
+    result = list(defaults)
+    result.extend(tier_config.get(field, []))
+    remove_key = f"remove_{field}"
+    for item in tier_config.get(remove_key, []):
+        if item in result:
+            result.remove(item)
+    return result
+
+
+def safe_regex_match(patterns, text):
+    """Test if any pattern matches text, silently skipping invalid regexes."""
+    for p in patterns:
+        try:
+            if re.search(p, text):
+                return True
+        except re.error:
+            pass
+    return False
+
+
 def classify_prompt(prompt, config):
     """Classify prompt complexity and return recommended tier."""
     prompt_lower = prompt.lower()
@@ -74,16 +104,45 @@ def classify_prompt(prompt, config):
         r'\bstyle\b', r'\bcss\b', r'\broute\b', r'\bapi\b', r'\bfunction\b'
     ]
 
-    opus_keywords = default_opus_keywords
-    haiku_patterns = default_haiku_patterns
-    sonnet_patterns = default_sonnet_patterns
+    opus_keywords = resolve_list(config, 'opus', 'keywords', default_opus_keywords)
+    haiku_patterns = resolve_list(config, 'haiku', 'patterns', default_haiku_patterns)
+    sonnet_patterns = resolve_list(config, 'sonnet', 'patterns', default_sonnet_patterns)
 
     has_opus_keyword = any(kw in prompt_lower for kw in opus_keywords)
-    has_opus_signal = has_opus_keyword or (word_count > opus_question_word_count and '?' in prompt) or word_count > opus_word_count
+
+    # Opus: complexity keyword + length (not bare word count alone)
+    # 200+ words with a complexity keyword → opus
+    # 100+ words with '?' + complexity keyword → opus
+    # Bare long prompt without complexity keywords → stays on current model
+    has_opus_signal = has_opus_keyword and (word_count > opus_word_count or (word_count > opus_question_word_count and '?' in prompt))
 
     if has_opus_signal:
         return 'opus'
 
+    # Local: mechanical edits + trivial interactions — prefer over haiku
+    # when both match, local saves paid API cost
+    local_patterns = [
+        r'^(yes|no|ok|okay|sure|yep|nope|y|n)$',
+        r'^(thanks|thank you|thx|ty)$',
+        r'^(continue|go on|next|done|stop|quit|exit)$',
+        r'^(show|print|list|tell me about|what is|where is) \w{0,20}$',
+        r'^(format|lint|check)\s+\w+$',
+        r'^~\s+\w{0,20}$',
+        # Mechanical edits — single-file operations
+        r'^(rename|move|copy|delete|remove|insert|replace|add)\s+\w+',
+        r'^(extract|inline|convert|wrap|unwrap)\s+\w+',
+        r'^(update|change|set)\s+(the\s+)?\w+\s+(to|in|on)\s+\w+',
+        r'^(sort|reorder|alphabetize)\s+\w+',
+        r'^(strip|trim|clean|dedupe|dedup)\s+\w+',
+    ]
+    is_local_task = word_count <= 12 and any(
+        re.search(p, prompt_lower) for p in local_patterns
+    )
+    if is_local_task:
+        return 'local'
+
+    # Haiku: routine operations (git, lint, format, version bump)
+    # Only when word count is short — local takes priority for trivial tasks
     is_haiku_task = word_count < haiku_max_word_count and any(
         re.search(p, prompt_lower) for p in haiku_patterns
     )
@@ -92,22 +151,6 @@ def classify_prompt(prompt, config):
 
     if any(re.search(p, prompt_lower) for p in sonnet_patterns):
         return 'sonnet'
-
-    # Local: very short prompts that don't match haiku patterns — safe for small model
-    local_patterns = [
-        r'^(yes|no|ok|okay|sure|yep|nope|y|n)$',
-        r'^(thanks|thank you|thx|ty)$',
-        r'^(continue|go on|next|done|stop|quit|exit)$',
-        r'^(show|print|list|tell me about|what is|where is) \w{0,20}$',
-        r'^(rename|move|copy|delete|remove) \w+ to \w+$',
-        r'^(format|lint|check)\s+\w+$',
-        r'^~\s+\w{0,20}$',
-    ]
-    is_local_task = word_count <= 8 and any(
-        re.search(p, prompt_lower) for p in local_patterns
-    )
-    if is_local_task:
-        return 'local'
 
     return None
 
