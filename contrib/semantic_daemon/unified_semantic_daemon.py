@@ -60,8 +60,8 @@ class IntentClassificationResult(TypedDict, total=True):
 
 
 # Project root for path resolution (used for FAISS, database paths)
-# Daemon lives in packages/search-research but serves P:\\\\\\__csf/
-_csf_root = Path("P:\\\\\\__csf")
+# Daemon lives in packages/search-research but serves P:/.data/daemon/
+_csf_root = Path("P:/.data/daemon")
 
 # JSON logging configuration (Python 2025 standard)
 import structlog
@@ -110,13 +110,13 @@ from search_research.cache import QueryCache
 
 PIPE_NAME = r"\\.\pipe\csf_semantic"  # Fallback/legacy name
 WRITE_SIGNAL_PIPE_NAME = r"\\.\pipe\csf_semantic_write_signal"  # Advisory write-signal pipe
-DISCOVERY_FILE = Path("P:\\\\\\__csf/data/semantic_daemon_discovery.json")
-PID_FILE = Path("P:\\\\\\__csf/data/semantic_daemon.pid")
+DISCOVERY_FILE = Path("P:/.data/daemon/data/semantic_daemon_discovery.json")
+PID_FILE = Path("P:/.data/daemon/data/semantic_daemon.pid")
 MAX_DAEMON_AGE = 3600  # Maximum daemon age in seconds (1 hour) before old non-canonical daemons should self-terminate
 # Windows Mutex for atomic single-instance daemon determination
 # Using "Global\" prefix ensures mutex works across terminal sessions
 DAEMON_MUTEX_NAME = r"Global\CSF_SemanticDaemon_Instance"
-DAEMON_LOG_FILE = Path("P:\\\\\\__csf/data/semantic_daemon.log")  # Debug log for silent crashes
+DAEMON_LOG_FILE = Path("P:/.data/daemon/data/semantic_daemon.log")  # Debug log for silent crashes
 STARTUP_TIMEOUT = 6.0
 IDLE_WORK_SHORT = 5.0
 IDLE_WORK_LONG = 900.0
@@ -132,8 +132,8 @@ FAISS_UPDATE_INTERVAL = 600.0  # Update FAISS index every 10 minutes idle
 FAISS_MAX_AGE = 86400.0  # Force full rebuild if FAISS index is older than 24 hours (86400 seconds)
 FAISS_INDEX_PATH = _csf_root / "data" / "chat_history_faiss_424k"
 FAISS_STATE_PATH = _csf_root / "data" / "chs_index_state.json"
-FAISS_LOCK_PATH = _csf_root / ".data" / "daemon" / "faiss_update.lock"
-STATE_LOCK_PATH = _csf_root / ".data" / "daemon" / "index_state.lock"
+FAISS_LOCK_PATH = _csf_root / "data" / "faiss_update.lock"
+STATE_LOCK_PATH = _csf_root / "data" / "index_state.lock"
 # Time-based idle timeout: Disabled until 9pm local time, then 30 minutes (1800 seconds)
 IDLE_SHUTDOWN_TIMEOUT = None  # Will be set dynamically based on time of day
 REQUEST_TIMEOUT = 5.0
