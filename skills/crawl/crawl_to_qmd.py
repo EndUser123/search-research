@@ -91,6 +91,33 @@ def _find_related_pages(title: str, collection: str, limit: int = 5) -> list[str
         return []
 
 
+def _extract_internal_links(result, domain: str, visited: set) -> list:
+    """Normalize crawl4ai's result.links into same-domain href strings.
+
+    Handles both shapes: list-of-strings (old API) and
+    {"internal": [...], "external": [...]} where each entry is a
+    dict like {"href": "...", "text": "..."} (current API).
+    Dedups against `visited` (seed + already-crawled URLs).
+    """
+    raw = result.links
+    if isinstance(raw, dict):
+        raw = raw.get("internal", [])
+    if not isinstance(raw, list):
+        return []
+    domain = domain.replace("www.", "")
+    out, seen = [], set()
+    for entry in raw:
+        href = entry if isinstance(entry, str) else (entry.get("href") if isinstance(entry, dict) else None)
+        if not href:
+            continue
+        netloc = urlparse(href).netloc.replace("www.", "")
+        if netloc != domain or href in visited or href in seen:
+            continue
+        seen.add(href)
+        out.append(href)
+    return out
+
+
 class CrawlIngestError(Exception):
     """Raised when crawl-ingest fails."""
     pass
@@ -214,6 +241,7 @@ async def crawl_site(
         delay_before_return_html=1.0,
     )
 
+    visited = {root_url}
     async with AsyncWebCrawler() as crawler:
         # Initial crawl
         result = await crawler.arun(url=root_url, config=config)
@@ -225,15 +253,13 @@ async def crawl_site(
             elif saved is None:
                 stats["pages_skipped"] += 1
 
-            # Follow internal links (limit to domain)
-            urls_to_crawl = [
-                link for link in result.links
-                if urlparse(link).netloc == domain
-            ][: max_pages - 1]
+            # Follow internal links (limit to domain + dedup visited)
+            urls_to_crawl = _extract_internal_links(result, domain, visited)[: max_pages - 1]
 
             for i, url in enumerate(urls_to_crawl):
                 if stats["pages_fetched"] >= max_pages:
                     break
+                visited.add(url)
                 try:
                     result = await crawler.arun(url=url, config=config)
                     if result.success:
