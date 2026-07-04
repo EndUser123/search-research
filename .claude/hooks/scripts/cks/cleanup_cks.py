@@ -58,7 +58,7 @@ def calculate_entry_quality(entry: dict) -> float:
 
 def find_low_quality_entries(min_quality: float = 0.3, days: int = 30) -> list:
     """Find low-quality CKS entries below threshold."""
-    cks_db = Path("P:/__csf/data/cks.db")
+    cks_db = Path("P:/packages/.claude-marketplace/plugins/search-research/data/cks.db")
 
     if not cks_db.exists():
         return []
@@ -105,7 +105,7 @@ def delete_entries(entry_ids: list) -> int:
     if not entry_ids:
         return 0
 
-    cks_db = Path("P:/__csf/data/cks.db")
+    cks_db = Path("P:/packages/.claude-marketplace/plugins/search-research/data/cks.db")
     if not cks_db.exists():
         return 0
 

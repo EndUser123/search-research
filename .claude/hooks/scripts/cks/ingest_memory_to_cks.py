@@ -195,7 +195,7 @@ def _purge_prior_chunks(filename: str) -> None:
     """Delete previously ingested chunks for this memory file (by source_file metadata)."""
     import sqlite3
 
-    db = Path("P:/__csf/data/cks.db")
+    db = Path("P:/packages/.claude-marketplace/plugins/search-research/data/cks.db")
     if not db.exists():
         return
     conn = sqlite3.connect(db)

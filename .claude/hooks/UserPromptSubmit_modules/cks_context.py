@@ -103,7 +103,7 @@ def _query_semantic_corrections(prompt: str, max_results: int = 3, hours: int = 
     try:
         from cks.unified import CKS
 
-        cks_db_path = Path("P:/__csf/data/cks.db")
+        cks_db_path = Path("P:/packages/.claude-marketplace/plugins/search-research/data/cks.db")
         if not cks_db_path.exists():
             return []
 
@@ -132,7 +132,7 @@ def _query_semantic_corrections(prompt: str, max_results: int = 3, hours: int = 
 def _query_recent_corrections(prompt: str, max_results: int = 3, hours: int = 24) -> list[dict]:
     """Query CKS for recent corrections matching the user prompt keywords."""
     try:
-        cks_db_path = Path("P:/__csf/data/cks.db")
+        cks_db_path = Path("P:/packages/.claude-marketplace/plugins/search-research/data/cks.db")
         if not cks_db_path.exists():
             return []
 
@@ -320,7 +320,7 @@ def _query_cks(prompt: str, max_results: int = 5) -> list[dict]:
     multi-word prompt as a single substring.
     """
     try:
-        cks_db_path = Path("P:/__csf/data/cks.db")
+        cks_db_path = Path("P:/packages/.claude-marketplace/plugins/search-research/data/cks.db")
 
         if not cks_db_path.exists():
             return []

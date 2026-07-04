@@ -13,6 +13,21 @@ Log format (one JSON object per line):
     {"ts","category","event","gate","session_id","terminal_id","decision","extra"}
 
 Enable: AGENTIC_RELIABILITY_TELEMETRY=1 (default off, like STOP_TELEMETRY).
+
+Category vocabulary (CATEGORIES is the canonical set — producers should pass one
+of these; the sink itself is untyped, the constant is for discoverability/tests):
+    read_before_edit        — existence_gate: did the model read before editing?
+    search_before_create    — search_before_create: did it search before creating?
+    dispatch_decision       — a router/dispatcher chose a target. event in
+                              {routed, delegated, blocked_dispatch, fallback};
+                              extra: {source, target, worker_scope?}.
+                              Producers: go_delegation_enforce_PreToolUse,
+                              skill_pattern_gate (enforcement tier), model_router.
+    complexity_model_source — complexity tier + which model handled it. event in
+                              {classified, model_selected, tier_overridden};
+                              extra: {tier, complexity_score?, model, model_source}.
+                              Producers: classify_complexity, pi/local dispatch.
+    self_check              — module self-roundtrip (see __main__).
 """
 
 from __future__ import annotations
@@ -29,6 +44,17 @@ _ENABLED = os.environ.get("AGENTIC_RELIABILITY_TELEMETRY", "0") not in {
     "no",
     "off",
 }
+
+# Canonical category vocabulary. The sink is untyped (category is a free-form
+# str at the log_event boundary); this constant exists for discoverability and
+# so the self-check can assert every declared category round-trips.
+CATEGORIES = frozenset({
+    "read_before_edit",
+    "search_before_create",
+    "dispatch_decision",
+    "complexity_model_source",
+    "self_check",
+})
 
 
 def _resolve_state_dir() -> Path:
@@ -143,11 +169,16 @@ def clear_test_log() -> None:
 
 
 if __name__ == "__main__":
-    # ponytail self-check: round-trip a record when enabled.
+    # ponytail self-check: round-trip one record per declared category when
+    # enabled. Proves every entry in CATEGORIES is writable+readable, so adding
+    # a category without wiring it still fails loudly here.
     os.environ["AGENTIC_RELIABILITY_TELEMETRY"] = "1"
     globals()["_ENABLED"] = True
     before = len(read_events())
-    log_event("self_check", "roundtrip", gate="self", session_id="self")
+    for cat in CATEGORIES:
+        log_event(cat, "self_roundtrip", gate="self", session_id="self")
     after = len(read_events())
-    assert after == before + 1, f"round-trip failed: {before} -> {after}"
-    print("agentic_reliability_telemetry: round-trip OK")
+    added = after - before
+    assert added == len(CATEGORIES), (
+        f"round-trip failed: expected {len(CATEGORIES)} records, wrote {added}")
+    print(f"agentic_reliability_telemetry: round-trip OK ({added}/{len(CATEGORIES)} categories)")

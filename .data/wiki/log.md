@@ -1510,3 +1510,9 @@ File: concepts/local-llm-system-ram-impact.md
 Source: 2026-07-03 [chs #1060 #1062 · plugin-audit #1061 · docs #1058 · detector #983].md
 SHA256: sha256:9e242ff357e0cdbd308e3fccab1c4c09dd5702a8c0aa44e195ee79e9da33aeb1
 File: concepts/debrief-2026-07-03-chs-plugin-audit-router.md
+
+
+## [2026-07-04] ingest | ADR: Derived-Data Location Policy — daemon relocation to P:/.data/daemon
+Source: session-2026-07-04-daemon-relocation
+SHA256: newly-created-2026-07-04
+File: concepts/adr-derived-data-location-policy-20260704.md

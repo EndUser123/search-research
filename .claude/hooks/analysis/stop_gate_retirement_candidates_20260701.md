@@ -138,3 +138,39 @@ NOTE: cc-aca-safety/PreToolUse_ownership_colocation_gate DEAD contradicts
 hooks/CLAUDE.md which documents it as active — but a local copy exists at
 P:/.claude/hooks/PreToolUse_ownership_colocation_gate.py (dispatched via local
 PreToolUse.py); verify which is canonical before deleting either.
+
+---
+
+## 2026-07-04 — unverified_stance demoted to telemetry-first (measured)
+
+TP/FP labeling of all 79 recent (7-day) blocks from the top-4 Stop gates
+(pi-labeled, Claude spot-verified 6/6): corpus at
+`P:/__csf/.staging/fp_labels.jsonl` + `fp_labels_summary.md`; input corpus with
+blocked-response text in the session scratchpad (fp_corpus.jsonl).
+
+| Gate | TP | FP | UNCLEAR | FP-rate |
+|---|---|---|---|---|
+| unverified_stance | 3 | 12 | 0 | 80% |
+| perf_attribution | 10 | 8 | 0 | 44% |
+| epistemic_contract | 5 | 4 | 8 | 44% |
+| Stop_lazy_workaround_gate | 20 | 9 | 0 | 31% |
+
+Changes shipped:
+1. `settings.json`: `UNVERIFIED_STANCE_MODE` block → warn (demotes Phase 1
+   ungrounded-claim blocks: 5 FP / 1 TP).
+2. `cc-aca-epistemic` 0.2.77 `lazy_closure_detector.py`: intrinsic severity
+   block → flag for `sycophancy_capitulation` (first offense) and
+   `self_referential_evasion` (2 FP / 0 TP; bare-substring matches on
+   "You're right" / "unverified" — same defect class as #882).
+   KEPT as block: 2nd+ capitulation within 10 min, challenge-active
+   capitulation (StopHook escalation), `user_delegation`,
+   `status_quo_defense` (no measured FPs).
+   Note: Stop.py:1249 runs detect_all_lazy_closure directly and blocks on
+   intrinsic severity with no mode check — severity-at-source demotion was
+   required; a StopHook-only mode fix would have leaked through that path.
+
+Smoke (cache 0.2.77, warn mode): id13-shape allows (warn note),
+id12-shape first-offense warns, repeat-offense still blocks.
+Next FP target: perf_attribution (task #1089; 10 TPs worth keeping →
+discrimination fix, not demotion). Reverting: flip env back + restore
+severities + re-bump.

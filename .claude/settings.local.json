@@ -158,7 +158,10 @@
       "Bash(echo '{\"current_tier\":\"sonnet\",\"current_model\":\"claude-sonnet-4-6\"}')",
       "Bash(echo '{\"model\":\"claude-sonnet-4-6\"}')",
       "Read(//c/Users/brsth/AppData/Local/Temp/claude/P--/ea34007a-aadb-43c2-b949-845332bff751/scratchpad/smoketest/state/model-router/smoketest/sess1/**)",
-      "mcp__reddit__search_reddit"
+      "mcp__reddit__search_reddit",
+      "Read(//p//**)",
+      "Read(//c/Users/brsth/.claude-code-router/**)",
+      "Bash(grep -n '\\\\$actual\\\\|\\\\$override\\\\|CC_CCR_' P:/.claude/provider-configs/cc-ccr.ps1)"
     ],
     "deny": [],
     "ask": []

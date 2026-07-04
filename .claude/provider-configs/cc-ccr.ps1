@@ -6,14 +6,11 @@
 #   . .\cc-ccr.ps1 -Stop              # kill CCR process
 #   . .\cc-ccr.ps1 -Config            # launch TUI to configure model routes
 #
-# Model route overrides (environment variables):
-#   $env:CC_CCR_OPUS_ROUTE = "zai,glm-5.2"
-#   $env:CC_CCR_SONNET_ROUTE = "minimax,MiniMax-M2.7"
-#   $env:CC_CCR_HAIKU_ROUTE = "opencode-go,deepseek-v4-flash"
-#   $env:CC_CCR_CUSTOM_ROUTE = "provider,model"
-#   cc-ccr
-#
-# Or use the interactive TUI: . .\cc-ccr.ps1 -Config
+# Routing source of truth: C:\Users\brsth\.claude-code-router\config.json
+# (Providers, Router, fallback, CUSTOM_ROUTER_PATH). This script does NOT
+# overwrite routing — edit config.json directly, or use the TUI: cc-ccr -Config.
+# The only routing logic outside config.json is ccr-custom-router.js, which
+# intercepts claude-local-ornith (CCR's built-in router can't match that name).
 #
 # Architecture:
 #   Claude Code → CCR (3456) → external models
@@ -32,8 +29,6 @@ param(
     [switch]$Restart
 )
 
-$headroomPort = 8787
-$headroomUrl  = "http://localhost:$headroomPort"
 $ccrPort      = 3456
 $ccrUrl       = "http://localhost:$ccrPort"
 $ccrCmd       = "$env:APPDATA\npm\ccr.cmd"
@@ -62,22 +57,6 @@ if (Test-Path $envPath) {
     Write-Warning "[cc-ccr] No .env file at $envPath"
 }
 
-# --- Model route overrides (environment variables) ---
-# Use these to override the default routing without editing files:
-#   $env:CC_CCR_OPUS_ROUTE   = "zai,glm-5.2[1m]"
-#   $env:CC_CCR_SONNET_ROUTE = "minimax,MiniMax-M3[1m]"
-#   $env:CC_CCR_HAIKU_ROUTE  = "opencode-go,deepseek-v4-flash"
-#   $env:CC_CCR_CUSTOM_ROUTE = "provider,model"
-$overrideOpus = $env:CC_CCR_OPUS_ROUTE
-$overrideSonnet = $env:CC_CCR_SONNET_ROUTE
-$overrideHaiku = $env:CC_CCR_HAIKU_ROUTE
-$overrideCustom = $env:CC_CCR_CUSTOM_ROUTE
-
-if ($overrideOpus) { Write-Host "[CCR] Opus override: $overrideOpus" -ForegroundColor Cyan }
-if ($overrideSonnet) { Write-Host "[CCR] Sonnet override: $overrideSonnet" -ForegroundColor Cyan }
-if ($overrideHaiku) { Write-Host "[CCR] Haiku override: $overrideHaiku" -ForegroundColor Cyan }
-if ($overrideCustom) { Write-Host "[CCR] Custom override: $overrideCustom" -ForegroundColor Cyan }
-
 # --- TUI mode: Launch configuration UI ---
 if ($Config -or $Tui) {
     & "$PSScriptRoot\cc-ccr-tui.ps1" -SkipRestart
@@ -93,29 +72,12 @@ if ($Restart -and -not $Test) {
 
 # --- Stop mode ---
 if ($Stop) {
-    # Stop Headroom
-    Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object {
-        try { (Get-CimInstance Win32_Process -Filter "ProcessId=$($_.Id)" | Select-Object -ExpandProperty CommandLine) -match 'headroom.*proxy' } catch { $false }
-    } | Stop-Process -Force -ErrorAction SilentlyContinue
-
     # Stop CCR
     Get-Process -Name "node" -ErrorAction SilentlyContinue | Where-Object {
         try { (Get-CimInstance Win32_Process -Filter "ProcessId=$($_.Id)" | Select-Object -ExpandProperty CommandLine) -match 'claude-code-router' } catch { $false }
     } | Stop-Process -Force -ErrorAction SilentlyContinue
 
-    # Cleanup health job if running
-    Get-Job -Name "headroom-health" -ErrorAction SilentlyContinue | ForEach-Object {
-        Stop-Job -Id $_.Id -ErrorAction SilentlyContinue
-        Remove-Job -Id $_.Id -Force -ErrorAction SilentlyContinue
-    }
-
-    Write-Host "[cc-ccr] Stopped Headroom and CCR." -ForegroundColor Yellow
-
-    # Restore ANTHROPIC_BASE_URL if it was pointing at Headroom
-    if ($env:ANTHROPIC_BASE_URL -eq $headroomUrl) {
-        Remove-Item Env:ANTHROPIC_BASE_URL -ErrorAction SilentlyContinue
-        Write-Host "[cc-ccr] ANTHROPIC_BASE_URL cleared." -ForegroundColor Yellow
-    }
+    Write-Host "[cc-ccr] Stopped CCR." -ForegroundColor Yellow
     return
 }
 
@@ -128,70 +90,17 @@ if (-not (Test-Path $ccrCmd)) {
 # --- Hint: TUI available for easy model configuration ---
 Write-Host "[cc-ccr] Tip: Run 'cc-ccr -Config' to launch the TUI for interactive model route configuration" -ForegroundColor DarkGray
 
-# --- Static balanced routing (rotation REMOVED) ---
-# Each role pinned to its BEST model every session. Quota spreads by workload type
-# (heavy reasoning -> Z.ai; high-volume default/background -> MiniMax) and by the
-# fallback chains in config.json (verified: CCR retries next chain entry on HTTP/quota
-# error). Best-model-every-session AND quota spreading, no rotation downgrade.
-# THE SCRIPT OWNS THE ROUTER SECTION. Do NOT hand-edit config.json Router keys -
-# they are overwritten here every launch. Change routes here or via CC_CCR_*_ROUTE.
+# --- Routing source of truth: config.json ---
+# Providers, Router (slot + role keys), fallback chains, and CUSTOM_ROUTER_PATH all
+# live in config.json. This script does NOT rewrite routing on launch — edit
+# config.json directly (or via `cc-ccr -Config`). CCR hot-reloads config.json.
+# Quota spreading comes from the fallback chains in config.json (verified: CCR
+# retries the next chain entry on HTTP/quota error).
 $ccrConfigPath = "$env:USERPROFILE\.claude-code-router\config.json"
 
 # Phase toggles (independent, default OFF). Set before launch.
 $phaseLocalApply  = ($env:CC_PHASE_LOCAL_APPLY  -eq "1")
 $phaseCompactHook = ($env:CC_PHASE_COMPACT_HOOK -eq "1")
-
-# Base routes (single provider,model pairs — fallback chains are in the config's
-# `fallback` key, not in the Router value. Verified: comma-separated pairs in Router
-# values do NOT create fallback chains; CCR treats the value as one provider,model pair.
-$actualOpus   = if ($overrideOpus)   { $overrideOpus }   else { "zai,glm-5.2" }
-$actualSonnet = if ($overrideSonnet) { $overrideSonnet } else { "minimax,MiniMax-M3[1m]" }
-$actualHaiku  = if ($overrideHaiku)  { $overrideHaiku }  else { "opencode-go,deepseek-v4-flash" }
-
-try {
-    $cfg = Get-Content $ccrConfigPath -Raw | ConvertFrom-Json
-
-    # SLOT keys (Claude Code calls these by name; must be mapped or it errors)
-    $cfg.Router | Add-Member -NotePropertyName "claude-opus-4-8"           -NotePropertyValue $actualOpus   -Force
-    $cfg.Router | Add-Member -NotePropertyName "claude-sonnet-5"           -NotePropertyValue $actualSonnet -Force
-    $cfg.Router | Add-Member -NotePropertyName "claude-sonnet-4-6"         -NotePropertyValue $actualSonnet -Force
-    $cfg.Router | Add-Member -NotePropertyName "claude-haiku-4-5"          -NotePropertyValue $actualHaiku  -Force
-    $cfg.Router | Add-Member -NotePropertyName "claude-haiku-4-5-20251001" -NotePropertyValue $actualHaiku  -Force
-    # Local slot via llama.cpp (run-ornith-server.ps1 on port 8010).
-    try { $cfg.Router.PSObject.Properties.Remove("claude-local-gemma") } catch {}
-    $cfg.Router | Add-Member -NotePropertyName "claude-local-ornith"        -NotePropertyValue "llama-cpp,ornith-1.0-9b" -Force
-
-    # ROLE keys in lockstep with slot keys (both routing layers agree)
-    $cfg.Router | Add-Member -NotePropertyName "think"       -NotePropertyValue $actualOpus   -Force
-    $cfg.Router | Add-Member -NotePropertyName "default"     -NotePropertyValue $actualSonnet -Force
-    $cfg.Router | Add-Member -NotePropertyName "background"  -NotePropertyValue $actualHaiku  -Force
-    $cfg.Router | Add-Member -NotePropertyName "longContext" -NotePropertyValue "opencode-go,mimo-v2.5" -Force
-
-    if ($overrideCustom) {
-        $cfg.Router | Add-Member -NotePropertyName "claude-custom" -NotePropertyValue $overrideCustom -Force
-    }
-
-    # Custom router: makes the local slot (claude-local-ornith) actually serve
-    # from llama.cpp. CCR's default router keys off opus/sonnet/haiku keywords
-    # and the six named role keys, so the custom name would otherwise fall back
-    # to default (minimax). The script below runs first and intercepts it.
-    # Source-of-truth: ccr-custom-router.js, co-located here and version-controlled.
-    $customRouterPath = (Join-Path $PSScriptRoot 'ccr-custom-router.js') -replace '\\', '/'
-    $cfg | Add-Member -NotePropertyName 'CUSTOM_ROUTER_PATH' -NotePropertyValue $customRouterPath -Force
-
-    $tmpPath = $ccrConfigPath + ".tmp"
-    ($cfg | ConvertTo-Json -Depth 10) | Set-Content $tmpPath -Encoding UTF8
-    Move-Item $tmpPath $ccrConfigPath -Force
-
-    Start-Sleep -Milliseconds 500
-    try {
-        Invoke-WebRequest -Uri "$ccrUrl/health" -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop | Out-Null
-    } catch {
-        Write-Warning "[CCR] Config updated but health check failed. CCR may need manual restart."
-    }
-} catch {
-    Write-Warning "[CCR] Routing update failed — using existing config: $_"
-}
 
 # --- Helper: Stop CCR (kills the claude-code-router node process) ---
 function Stop-CCRProcess {
@@ -239,12 +148,6 @@ function Start-CCRProcess {
         Write-Warning "[CCR] Failed to start — check that ccr is installed"
         return $false
     }
-}
-
-# --- Helper: Start Headroom ---
-function Start-Headroom {
-    # DISABLED: Headroom removed - routing directly to CCR
-    return $false
 }
 
 # --- Helper: Format an epoch-ms quota reset as a countdown + local timestamp ---
@@ -310,7 +213,8 @@ function Write-UsageRow {
 # --- Helper: draw a thin separator between provider sections ---
 function Write-SectionSep { Write-Host "  ───────────────────────────────────────────────────" -ForegroundColor DarkGray }
 
-# --- Start CCR if not already running (Headroom needs upstream) ---
+# --- Start CCR if not already running ---
+$ccrFreshlyStarted = $false
 $ccrRunning = $false
 try {
     $r = Invoke-WebRequest -Uri "$ccrUrl/health" -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
@@ -320,18 +224,15 @@ try {
     Write-Host "[CCR] Starting..." -ForegroundColor Cyan
     $ccrRunning = Start-CCRProcess
     if (-not $ccrRunning) { return }
+    $ccrFreshlyStarted = $true
 }
 
 if (-not $ccrRunning) {
     return
 }
 
-# --- Headroom REMOVED ---
-# Headroom compression removed — routing directly to CCR
-$headroomRunning = $false
-
 # --- Wire this shell's Claude Code ---
-# Claude → CCR → external (Headroom removed)
+# Claude → CCR → external models
 $env:ANTHROPIC_BASE_URL = $ccrUrl
 $proxyLabel = "CCR"
 
@@ -370,15 +271,31 @@ $env:ANTHROPIC_CUSTOM_MODEL_OPTION             = "claude-local-ornith"
 $env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME        = "Ornith 1.0 9B (Local)"
 $env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION = "llama.cpp · ornith-1.0-9b@q4_k_m"
 
-# --- Health monitoring removed ---
-# PowerShell job scoping prevents cross-scope variable updates.
-# Use manual health checks if Headroom degradation suspected.
+# --- Post-start smoke probe (FRESH START ONLY) ---
+# ccr-custom-router.js is require()-cached at CCR startup and is NOT hot-reloaded
+# with config.json (config.json IS hot-reloaded). If the custom router was edited
+# and CCR restarted, a stale module can route claude-local-ornith to a dead provider
+# — surfacing only when a user selects that model. Probe the local slot once after a
+# fresh start so staleness is caught now. Local slot only: it is the one routable
+# entity that depends on the require()-cached file AND has no fallback chain. Free
+# (hits local llama.cpp, no provider quota) and ~1s. External routes (opus/sonnet/
+# haiku) have fallback chains and are audited via `cc-ccr -Test`.
+if ($ccrFreshlyStarted) {
+    try {
+        $probeHeaders = @{ "Authorization" = "Bearer $env:ANTHROPIC_AUTH_TOKEN"; "anthropic-version" = "2023-06-01"; "Content-Type" = "application/json" }
+        $probeBody = @{ model = "claude-local-ornith"; max_tokens = 8; messages = @(@{ role = "user"; content = "hi" }) } | ConvertTo-Json -Depth 5 -Compress
+        $probe = Invoke-RestMethod -Uri "$ccrUrl/v1/messages" -Method Post -Headers $probeHeaders -Body $probeBody -TimeoutSec 20 -ErrorAction Stop
+        if ($probe.error) { throw ($probe.error | ConvertTo-Json -Compress -Depth 5) }
+        Write-Host "[CCR] Post-start probe OK: claude-local-ornith routed (custom router live, not stale)." -ForegroundColor Green
+    } catch {
+        $probeMsg = $_.ErrorDetails.Message
+        if (-not $probeMsg) { $probeMsg = $_.Exception.Message }
+        Write-Warning "[CCR] Post-start probe FAILED for claude-local-ornith: $probeMsg"
+        Write-Warning "[CCR]   Likely: stale ccr-custom-router.js (did you edit it? the require() cache only clears on restart) or llama.cpp (port 8010) is down."
+    }
+}
 
-# --- Stats section removed (Headroom disabled) ---
-$stats = @{}
-
-# --- Get PIDs for display ---
-$headroomPid = "N/A"
+# --- Get PID for display ---
 
 $ccrPid = try {
     $ccrPortCheck = Get-NetTCPConnection -LocalPort $ccrPort -State Listen -ErrorAction SilentlyContinue
@@ -476,10 +393,7 @@ try {
     }
 }
 catch {
-    # Fallback: just print the base routes if parsing failed
-    Write-Host ("  opus:   {0}" -f (Format-Route $actualOpus))
-    Write-Host ("  sonnet: {0}" -f (Format-Route $actualSonnet))
-    Write-Host ("  haiku:  {0}" -f (Format-Route $actualHaiku))
+    Write-Host "  (could not read routes from config.json — check $ccrConfigPath)" -ForegroundColor Yellow
 }
 Write-Host ""
 # --- Phase status banner ---
@@ -637,7 +551,6 @@ if ($Test) {
             -Body $body -TimeoutSec 30 -ErrorAction Stop
         $text = ($resp.content | Where-Object { $_.type -eq "text" } | Select-Object -First 1).text
         Write-Host "  PASS - CCR routed a real request via Bearer (Claude Code's auth path). Model replied: '$text'" -ForegroundColor Green
-        Write-Host "  (sonnet route = $actualSonnet)" -ForegroundColor DarkGray
     } catch {
         # Fallback: try x-api-key (CCR also accepts this; some plugin code paths use it).
         try {
@@ -647,7 +560,6 @@ if ($Test) {
                 -Body $body -TimeoutSec 30 -ErrorAction Stop
             $text = ($resp.content | Where-Object { $_.type -eq "text" } | Select-Object -First 1).text
             Write-Host "  PASS - CCR routed via x-api-key fallback. Model replied: '$text'" -ForegroundColor Green
-            Write-Host "  (sonnet route = $actualSonnet)" -ForegroundColor DarkGray
             return
         } catch {
             Write-Host "  FAIL - Both Bearer and x-api-key rejected." -ForegroundColor Red

@@ -829,7 +829,10 @@ def detect_lazy_closure(
                     "evidence. Run the disputed behavior with Bash first, then agree or "
                     "disagree based on real output."
                 ),
-                severity="block",
+                # 2026-07-04: demoted block->flag; measured 80% FP rate on 7-day
+                # corpus (P:/__csf/.staging/fp_labels_summary.md). Challenge-active
+                # capitulation still blocks via StopHook_unverified_stance escalation.
+                severity="flag",
             )
 
     # Self-referential evasion — model treats its own decisions/reasoning as
@@ -849,7 +852,10 @@ def detect_lazy_closure(
                 "(2) If you genuinely have not verified something, say so plainly without "
                 "framing it as competing hypotheses or unverified candidates."
             ),
-            severity="block",
+            # 2026-07-04: demoted block->flag; 2 FP / 0 TP on 7-day corpus
+            # (P:/__csf/.staging/fp_labels_summary.md) — matched bare word
+            # 'unverified' inside reported/quoted prose.
+            severity="flag",
         )
 
     # If evidence or verification markers present, other patterns are acceptable
@@ -1082,7 +1088,8 @@ def detect_all_lazy_closure(response: str, user_prompt: str = "") -> list[LazyCl
                         matched=match.group(0),
                         pattern_type="sycophancy_capitulation",
                         suggestion="Run the disputed behavior with Bash before agreeing.",
-                        severity="block",
+                        # 2026-07-04: demoted block->flag (see single-detect path)
+                        severity="flag",
                     )
                 )
 
@@ -1100,7 +1107,8 @@ def detect_all_lazy_closure(response: str, user_prompt: str = "") -> list[LazyCl
                             "say plainly without hedging phrases like 'candidate' or "
                             "'hypothesis'."
                         ),
-                        severity="block",
+                        # 2026-07-04: demoted block->flag (see single-detect path)
+                        severity="flag",
                     )
                 )
 

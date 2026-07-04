@@ -25,8 +25,8 @@ if not logger.handlers:
 DAEMON_MUTEX_NAME = "Global\\CSF_Semantic_Daemon_Startup"
 # Canonical discovery file: the daemon (unified_semantic_daemon.py) writes it and
 # all clients (daemon_client.py) read it at this absolute path, independent of cwd.
-# Do NOT derive this from project_root — the daemon hardcodes _csf_root=P:/__csf.
-DAEMON_DISCOVERY_FILE = Path("P:/__csf/data/semantic_daemon_discovery.json")
+# Do NOT derive this from project_root — the daemon hardcodes _csf_root=P:/.data/daemon.
+DAEMON_DISCOVERY_FILE = Path("P:/.data/daemon/data/semantic_daemon_discovery.json")
 # Marketplace plugin that owns the daemon module + contrib package (post-migration).
 SEARCH_RESEARCH_ROOT = Path("P:/packages/.claude-marketplace/plugins/search-research")
 # Module spawned to launch the daemon. The src/daemons wrapper has NO __main__ block,
@@ -45,7 +45,6 @@ def get_project_root() -> Path:
     possible_roots = [
         SEARCH_RESEARCH_ROOT,
         Path("P:/packages/.claude-marketplace/plugins/search-research"),  # legacy pre-migration location
-        Path("P:/__csf"),
     ]
 
     for candidate in possible_roots:
