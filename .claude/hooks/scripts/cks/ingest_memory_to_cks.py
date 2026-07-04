@@ -13,10 +13,10 @@ Usage:
 import sys
 from pathlib import Path
 
-# Add CSF to path
-_csf_src = Path("P:/__csf/src")
+# Add CKS core to path (CSF migrated from P:/__csf/src to the search-research plugin)
+_csf_src = Path("P:/packages/.claude-marketplace/plugins/search-research/core")
 if not _csf_src.exists():
-    print("❌ CSF src not found at P:/__csf/src")
+    print(f"❌ CKS core not found at {_csf_src}")
     sys.exit(1)
 
 sys.path.insert(0, str(_csf_src))
@@ -24,7 +24,7 @@ sys.path.insert(0, str(_csf_src))
 try:
     from cks.unified import CKS
 except ImportError:
-    print("❌ Cannot import CKS from P:/__csf/src/cks/unified.py")
+    print(f"❌ Cannot import CKS from {_csf_src}/cks/unified.py")
     sys.exit(1)
 
 
