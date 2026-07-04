@@ -1,6 +1,14 @@
 
 ### Added
 
+- .claude/agents/red-team-critic.md
+- .claude/agents/red-team-gate-reviewer.md
+- .claude/agents/red-team-planner.md
+- .claude/agents/red-team-workflow-reviewer.md
+
+
+### Added
+
 - __csf/.staging/rank_hook_costs.py: new hook
 
 
