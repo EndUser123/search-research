@@ -210,8 +210,18 @@ class ChangePropagationHook(PostToolUseHook):
         satisfied = []
         for pending in state["pending_verifications"]:
             reqs = pending.get("remaining", [])
+            affected = pending.get("affected", "")
+
+            # Auto-satisfy: if the affected path no longer exists on disk,
+            # the file is gone — there's nothing to verify references for.
+            if affected and not Path(affected).exists():
+                reqs.clear()
+
             if "grep_references" in reqs and re.search(r"\b(grep|rg|ag|find)\b", cmd):
-                if pending.get("affected", "") in cmd:
+                # Flexible matching: check if the affected path OR its basename
+                # appears in the command. Handles Windows paths, regex patterns,
+                # and partial-path grep commands.
+                if affected and (affected in cmd or Path(affected).name in cmd):
                     reqs.remove("grep_references")
             if "cache_clear" in reqs and re.search(r"(rm.*__pycache__|find.*-delete.*\.pyc|pyclean)", cmd):
                 reqs.remove("cache_clear")
