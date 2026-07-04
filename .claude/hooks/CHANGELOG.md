@@ -1,6 +1,11 @@
 
 ### Added
 
+- __csf/.staging/rank_hook_costs.py: new hook
+
+
+### Added
+
 - .claude/hooks/tests/test_stop_json_validation_guard.py: new hook
 
 ### Removed
