@@ -4092,9 +4092,9 @@ IN_PROCESS_GATES = [
 # Non-Blocking Side Effects (still subprocess for isolation)
 # Note: auto-commit now dispatches via the cc-skills-utils plugin Stop router.
 SIDE_EFFECTS = [
-    # "Stop_cks_decision_capture.py",  # DISABLED 2026-07-04: extractor writes fragment
-    # titles ("(req 6)"); DB purged same day (backup: cks.db.bak-20260704-decision-purge).
-    # Re-enable via task #1078 after the extraction logic is fixed.
+    # Re-enabled 2026-07-04 BEHIND the calibrated quality gate (scripts/cks/quality_gate.py,
+    # measured 109/109 junk rejected). Extractor quality fix still tracked as #1078.
+    "Stop_cks_decision_capture.py",
     "Stop_cleanup_verifier.py",
     "Stop_contract_status.py",  # Auto-surfaces contract dashboard at turn end
 ]

@@ -106,16 +106,20 @@ def main() -> int:
     try:
         from cks.unified import CKS
 
-        # CKS database location
-        db_path = Path(__file__).resolve().parent.parent.parent / "__csf" / "data" / "cks.db"
+        # Quality gate (calibrated 2026-07-04: 109/109 junk rejected, 0 missed).
+        # Rejected candidates are logged to cks_quality_gate_rejects.jsonl.
+        sys.path.insert(0, str(Path(__file__).resolve().parent / "scripts" / "cks"))
+        from quality_gate import gate_entry
 
         session_id = f"S-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}"
 
-        with CKS(str(db_path)) as cks:
+        # CKS() default resolves to the plugin data dir (single source of truth)
+        with CKS() as cks:
             result = cks.extract_and_ingest_decisions(
                 transcript=transcript,
                 min_confidence=0.60,
                 session_id=session_id,
+                quality_gate=gate_entry,
             )
 
         # Send write signal to daemon for immediate FAISS refresh (fire-and-forget)
