@@ -212,9 +212,12 @@ class ChangePropagationHook(PostToolUseHook):
             reqs = pending.get("remaining", [])
             affected = pending.get("affected", "")
 
-            # Auto-satisfy: if the affected path no longer exists on disk,
-            # the file is gone — there's nothing to verify references for.
-            if affected and not Path(affected).exists():
+            # Auto-satisfy: if a deleted FILE's path no longer exists on disk,
+            # there's nothing to verify references for. Type-gated to
+            # file_deletion — other change types carry a symbol name or
+            # "N lines" as `affected`, which never resolves to a real path
+            # and would otherwise silently drop execution_test.
+            if pending.get("type") == "file_deletion" and affected and not Path(affected).exists():
                 reqs.clear()
 
             if "grep_references" in reqs and re.search(r"\b(grep|rg|ag|find)\b", cmd):

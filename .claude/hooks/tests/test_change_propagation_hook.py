@@ -143,3 +143,51 @@ def test_state_path_is_session_scoped_not_shared_root(hook):
     assert p.parent.name == "sessionX"
     assert p.parent.parent.name == "sessions"
     assert p.name == "propagation_state.json"
+
+
+# ── AUTO-SATISFY TYPE-GATE REGRESSION ─────────────────────────────────────────
+# Pins the fix for the over-broad auto-satisfy that dropped execution_test for
+# change types whose `affected` is NOT a filesystem path. `function_removal`
+# carries a symbol name; `large_deletion` carries "N lines". Neither resolves
+# to a real path, so a type-agnostic `not Path(affected).exists()` cleared the
+# WHOLE requirement set on the very next Bash — silently losing execution_test,
+# the most important verification for those change types.
+
+def test_function_removal_keeps_execution_test_after_unrelated_bash(hook):
+    """REGRESSION: symbol-name `affected` must not auto-satisfy execution_test."""
+    h, mod = hook
+    h.process("Edit", {"file_path": "m.py",
+                       "old_string": "def foo():\n    return 1\n",
+                       "new_string": "\n"}, {})
+    h.process("Bash", {"command": "ls"}, {})  # unrelated; no python/pytest
+    p = _pending(mod)
+    assert len(p) == 1 and p[0]["type"] == "function_removal"
+    assert "execution_test" in p[0]["remaining"], (
+        "execution_test was wrongly cleared — symbol name is not a path"
+    )
+
+
+def test_large_deletion_keeps_execution_test_after_unrelated_bash(hook):
+    """REGRESSION: 'N lines' `affected` must not auto-satisfy execution_test."""
+    h, mod = hook
+    old = "\n".join(f"line{i}" for i in range(15)) + "\n"
+    h.process("Edit", {"file_path": "big.py", "old_string": old, "new_string": ""}, {})
+    h.process("Bash", {"command": "ls"}, {})
+    p = _pending(mod)
+    assert len(p) == 1 and p[0]["type"] == "large_deletion"
+    assert "execution_test" in p[0]["remaining"], (
+        "execution_test was wrongly cleared — 'N lines' is not a path"
+    )
+
+
+def test_file_deletion_still_auto_satisfies_when_path_gone(hook, tmp_path):
+    """The #1059 fix must still work: deleted-file path gone → grep_references cleared."""
+    h, mod = hook
+    victim = tmp_path / "victim.py"
+    victim.write_text("x = 1\n")
+    h.process("Bash", {"command": f"rm {victim}"}, {})
+    assert _pending(mod) and _pending(mod)[0]["type"] == "file_deletion"
+    victim.unlink()  # ensure it's gone
+    h.process("Bash", {"command": "ls"}, {})  # unrelated Bash
+    # file gone → auto-satisfy cleared all reqs → pending removed
+    assert _pending(mod) == [], "file_deletion should auto-satisfy when path is gone"
