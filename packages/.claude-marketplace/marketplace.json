@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "improve-partner",
-      "version": "0.3.9",
+      "version": "0.3.10",
       "description": "Improvement partner plugin with /improve as the central manual workflow. Hooks ship inert + unwired (config-gated); see HOOKS_AVAILABLE.md. Local fork.",
       "source": "./plugins/improve-partner",
       "keywords": [
@@ -98,7 +98,7 @@
     },
     {
       "name": "search-research",
-      "version": "0.1.36",
+      "version": "0.1.37",
       "description": "Unified search and research system with async concurrent execution and 11 web providers.",
       "source": "./plugins/search-research",
       "keywords": [
