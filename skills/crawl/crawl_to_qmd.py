@@ -50,18 +50,8 @@ def _get_wiki_log_path() -> Path:
     return _get_wiki_root() / "log.md"
 
 
-def _check_already_ingested(content_hash: str) -> bool:
-    """Check if hash already exists in log.md."""
-    try:
-        log_path = _get_wiki_log_path()
-        with open(log_path, "r", encoding="utf-8") as f:
-            return content_hash in f.read()
-    except OSError:
-        return False
-
-
-def _log_ingest(title: str, url: str, filepath: str, content_hash: str, collection: str) -> None:
-    """Append entry to wiki log.md."""
+def _log_ingest(title: str, url: str, filepath: str, content_hash: str, collection: str, action: str = "ingested") -> None:
+    """Append entry to wiki log.md. action ∈ {ingested, revised, skipped}."""
     try:
         log_path = _get_wiki_log_path()
         with open(log_path, "a", encoding="utf-8") as f:
@@ -69,7 +59,7 @@ def _log_ingest(title: str, url: str, filepath: str, content_hash: str, collecti
             f.write(f"- **{title}** ({filepath})\n")
             f.write(f"  - URL: {url}\n")
             f.write(f"  - SHA256: {content_hash}\n")
-            f.write(f"  - Source: crawl-ingest\n")
+            f.write(f"  - Source: crawl-ingest ({action})\n")
     except OSError as e:
         print(f"Warning: Could not log to log.md: {e}", file=sys.stderr)
 
@@ -91,31 +81,98 @@ def _find_related_pages(title: str, collection: str, limit: int = 5) -> list[str
         return []
 
 
-def _extract_internal_links(result, domain: str, visited: set) -> list:
-    """Normalize crawl4ai's result.links into same-domain href strings.
+# --- crawl4ai API shim + content normalization ---------------------------
 
-    Handles both shapes: list-of-strings (old API) and
-    {"internal": [...], "external": [...]} where each entry is a
-    dict like {"href": "...", "text": "..."} (current API).
-    Dedups against `visited` (seed + already-crawled URLs).
+def _normalize_result(result) -> dict:
+    """Stable shape across crawl4ai API versions.
+
+    Returns {url, title, markdown, internal_links, external_links, response_headers}.
+    The dict-vs-list drift in result.links and any future reshaping of result.*
+    is absorbed here so the crawl loop never touches raw attributes.
     """
-    raw = result.links
-    if isinstance(raw, dict):
-        raw = raw.get("internal", [])
-    if not isinstance(raw, list):
-        return []
+    links = getattr(result, "links", {}) or {}
+    if isinstance(links, dict):
+        internal = links.get("internal", []) or []
+        external = links.get("external", []) or []
+    elif isinstance(links, list):
+        internal, external = links, []
+    else:
+        internal, external = [], []
+
+    def _href(e):
+        if isinstance(e, str):
+            return e
+        if isinstance(e, dict):
+            return e.get("href")
+        return None
+
+    metadata = getattr(result, "metadata", None) or {}
+    md = getattr(result, "markdown", None) or getattr(result, "extracted_content", "") or ""
+    headers = getattr(result, "response_headers", None) or {}
+    return {
+        "url": getattr(result, "url", "") or "",
+        "title": metadata.get("title") if isinstance(metadata, dict) else None,
+        "markdown": md,
+        "internal_links": [h for h in (_href(e) for e in internal) if h],
+        "external_links": [h for h in (_href(e) for e in external) if h],
+        "response_headers": headers if isinstance(headers, dict) else {},
+    }
+
+
+def _extract_internal_links(norm: dict, domain: str, visited: set) -> list:
+    """Filter normalized internal_links to same-domain, not-yet-visited hrefs."""
     domain = domain.replace("www.", "")
     out, seen = [], set()
-    for entry in raw:
-        href = entry if isinstance(entry, str) else (entry.get("href") if isinstance(entry, dict) else None)
-        if not href:
+    for href in norm["internal_links"]:
+        if urlparse(href).netloc.replace("www.", "") != domain:
             continue
-        netloc = urlparse(href).netloc.replace("www.", "")
-        if netloc != domain or href in visited or href in seen:
+        if href in visited or href in seen:
             continue
         seen.add(href)
         out.append(href)
     return out
+
+
+def _normalize_content(md: str) -> str:
+    """Drift-invariant fingerprint of page body.
+
+    ponytail: Markdown generator already stripped most HTML chrome, so this is a
+    light pass — drop analytics query strings (utm/cache-busters) and collapse
+    whitespace. Upgrade to DOM-aware stripping if drift still fires on real revisions.
+    """
+    # Strip query strings on URLs embedded in markdown
+    md = re.sub(r"\?[^\s)\]]*", "", md)
+    # Collapse whitespace runs to one space
+    md = re.sub(r"\s+", " ", md).strip()
+    return md
+
+
+# --- per-domain URL registry ---------------------------------------------
+
+REGISTRY_NAME = "index.json"
+
+
+def _registry_path(domain_dir: Path) -> Path:
+    return domain_dir / REGISTRY_NAME
+
+
+def _load_registry(domain_dir: Path) -> dict:
+    try:
+        with open(_registry_path(domain_dir), "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _save_registry(domain_dir: Path, registry: dict) -> None:
+    """Atomic write so a mid-crawl crash can't corrupt the registry."""
+    domain_dir.mkdir(parents=True, exist_ok=True)
+    p = _registry_path(domain_dir)
+    tmp = p.with_suffix(".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(registry, f, indent=2, sort_keys=True)
+    tmp.replace(p)
 
 
 class CrawlIngestError(Exception):
@@ -300,39 +357,58 @@ async def crawl_site(
 
 
 async def _save_md(
-    result,
+    norm: dict,
     output_dir: Path,
     domain: str,
     index: int,
     collection: str,
     stats: dict,
 ) -> str | None:
-    """Save filtered Markdown with frontmatter to file.
+    """Save normalized Markdown with frontmatter, registry-driven dedup.
 
-    Returns file path on success, None on failure (crawl/no-content/already-ingested).
-    Write errors are logged but don't abort the loop.
+    Decision (URL is the primary key, in sources/{domain}/index.json):
+      - URL unseen              → ingest (revisions=1)
+      - URL seen, etag matches  → skip (server says unchanged)
+      - URL seen, hash matches  → skip (drift-invariant body unchanged)
+      - URL seen, neither match → revise (overwrite same file, revisions += 1)
+
+    Returns filepath on ingest/revise, None on skip or no-content.
     """
-    url = result.url
-    metadata = result.metadata or {}
-    title = metadata.get("title", url.split("/")[-1] or "Untitled")
-    md_content = result.markdown or result.extracted_content or ""
+    url = norm["url"] or ""
+    title = norm["title"] or (url.split("/")[-1] or "Untitled")
+    md_content = norm["markdown"]
+    headers = norm["response_headers"]
 
     if not md_content:
         return None
 
-    # Compute SHA256 for deduplication
-    content_hash = hashlib.sha256(md_content.encode()).hexdigest()
+    domain_dir = output_dir / domain
+    domain_dir.mkdir(parents=True, exist_ok=True)
+    registry = _load_registry(domain_dir)
+    entry = registry.get(url)
 
-    # Check if already ingested
-    if _check_already_ingested(content_hash):
-        print(f"Skipping (already ingested): {url}")
-        return None
+    # Drift-invariant hash + cheap header fingerprint
+    content_hash = hashlib.sha256(_normalize_content(md_content).encode()).hexdigest()
+    etag = headers.get("etag") or headers.get("ETag")
+    last_modified = headers.get("last-modified") or headers.get("Last-Modified")
 
-    # Slugify URL for filename
-    slug = re.sub(r"[^\w\-]", "-", urlparse(url).path.strip("/"))[:50]
-    filename = f"{index:03d}-{slug}.md"
-    filepath = output_dir / domain / filename
-    filepath.parent.mkdir(parents=True, exist_ok=True)
+    if entry:
+        if etag and entry.get("etag") == etag:
+            print(f"Skipping (etag unchanged): {url}")
+            _log_ingest(title, url, entry.get("file", ""), content_hash, collection, action="skipped")
+            return None
+        if entry.get("hash") == content_hash:
+            print(f"Skipping (content unchanged): {url}")
+            _log_ingest(title, url, entry.get("file", ""), content_hash, collection, action="skipped")
+            return None
+        action = "revised"
+        filename = entry.get("file") or f"{index:03d}-{_slug_from_url(url)}.md"
+    else:
+        action = "ingested"
+        # Reuse any pre-existing file for this URL (pre-registry bootstrapping)
+        filename = entry.get("file") if entry and entry.get("file") else f"{index:03d}-{_slug_from_url(url)}.md"
+
+    filepath = domain_dir / filename
 
     # Find related pages for wikilinks
     related = _find_related_pages(title, collection)
@@ -341,7 +417,6 @@ async def _save_md(
         related_links = "\n".join(f"[[{t}]]@related" for t in related)
         related_section = f"\n\n## Related\n{related_links}\n"
 
-    # Frontmatter with hash
     today = datetime.now().strftime("%Y-%m-%d")
     frontmatter = f"""---
 source:
@@ -357,16 +432,27 @@ tags:
 
     try:
         filepath.write_text(frontmatter + md_content + related_section, encoding="utf-8")
-        print(f"Saved: {filename} ({len(md_content)} chars)")
+        print(f"{action.capitalize()}: {filename} ({len(md_content)} chars)")
         stats["files_written"].append(str(filepath))
     except OSError as e:
         stats["write_errors"].append(f"{filepath.name}: {str(e)}")
         print(f"Write failed: {filepath.name} — {e}", file=sys.stderr)
         return None
 
-    # Log to wiki log.md
-    _log_ingest(title, url, str(filepath), content_hash, collection)
+    # Update registry (URL → stable identity + change tracking)
+    registry[url] = {
+        "hash": content_hash,
+        "etag": etag,
+        "last_modified": last_modified,
+        "title": title,
+        "file": filename,
+        "crawled_at": today,
+        "revised_at": today if action == "revised" else None,
+        "revisions": (entry.get("revisions", 1) if entry else 1) + (1 if action == "revised" else 0),
+    }
+    _save_registry(domain_dir, registry)
 
+    _log_ingest(title, url, str(filepath), content_hash, collection, action=action)
     return str(filepath)
 
 
