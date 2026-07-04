@@ -247,16 +247,10 @@ def _query_knowledge_base(prompt: str, max_results: int = 2) -> list[dict]:
     if not KNOWLEDGE_AUTO_INJECT_ENABLED:
         return []
     try:
-        from cks.unified import CKS
-
-        cks_db_path = Path("P:/__csf/data/cks.db")
-        if not cks_db_path.exists():
-            return []
-
-        with CKS(db_path=cks_db_path, enable_semantic=KNOWLEDGE_SEMANTIC_ENABLED) as cks:
-            results = cks.search(query=prompt, limit=max_results * 3)
-
-        # Filter to durable knowledge types only
+        # Local keyword-overlap scoring (same scorer as _query_cks). CKS.search()
+        # keyword mode returns 0 for multi-word prompts (whole-query matching),
+        # and the semantic path is disabled (~9s torch load, see #669/#934).
+        results = _query_cks(prompt, max_results=max_results * 3)
         filtered = [r for r in results if r.get("type") in HOOK_KNOWLEDGE_TYPES]
         return filtered[:max_results]
 

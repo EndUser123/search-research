@@ -155,6 +155,12 @@ def ingest_memory_file(filepath: Path, cks: CKS, test_run: bool = False) -> dict
     try:
         content = filepath.read_text(encoding="utf-8")
 
+        # Idempotency: purge prior chunks of this file before re-ingesting.
+        # ingest_pattern() is a plain INSERT with no dedupe — without this,
+        # every re-ingest duplicates all chunks (hook re-ingests on any change).
+        if not test_run:
+            _purge_prior_chunks(filename)
+
         # Check file size
         if len(content) < 500:
             # Small file - ingest as single entry
@@ -182,6 +188,24 @@ def ingest_memory_file(filepath: Path, cks: CKS, test_run: bool = False) -> dict
 
     except Exception as e:
         return {"error": str(e), "type": entry_type}
+
+
+def _purge_prior_chunks(filename: str) -> None:
+    """Delete previously ingested chunks for this memory file (by source_file metadata)."""
+    import sqlite3
+
+    db = Path("P:/__csf/data/cks.db")
+    if not db.exists():
+        return
+    conn = sqlite3.connect(db)
+    try:
+        conn.execute(
+            "DELETE FROM entries WHERE metadata LIKE '%source_file%' AND metadata LIKE ?",
+            (f"%{filename}%",),
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def main():
