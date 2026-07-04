@@ -144,7 +144,7 @@
     },
     {
       "name": "cc-skills-analysis",
-      "version": "1.0.61",
+      "version": "1.0.63",
       "description": "Analysis plugin",
       "source": "./plugins/cc-skills-analysis",
       "keywords": []
