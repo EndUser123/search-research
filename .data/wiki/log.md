@@ -1582,3 +1582,63 @@ File: concepts/adr-derived-data-location-policy-20260704.md
   - URL: https://claudelog.com/mechanics/you-are-the-main-thread
   - SHA256: 2808416f8beeb915734f56694686871b3fc82c15c322404bdc5a5e50092a915a
   - Source: crawl-ingest
+
+## 2026-07-04
+- **Claude Code Docs, Guides & Best Practices | ClaudeLog** (P:\.data\wiki\sources\claudelog.com\000-.md)
+  - URL: https://claudelog.com/
+  - SHA256: 71c1ee6e7f4fdb2e81c2717c122842457fcdc058163b5553bd34ee94d296b8be
+  - Source: crawl-ingest (ingested)
+
+## 2026-07-04
+- **Support ClaudeLog | ClaudeLog** (P:\.data\wiki\sources\claudelog.com\001-support-claudelog.md)
+  - URL: https://claudelog.com/support-claudelog
+  - SHA256: f08cf06b758bbf8318149ab16c4ec7f3b630332ba15867c9542ff852d45c6009
+  - Source: crawl-ingest (ingested)
+
+## 2026-07-04
+- **Install Claude Code | ClaudeLog** (P:\.data\wiki\sources\claudelog.com\002-install-claude-code.md)
+  - URL: https://claudelog.com/install-claude-code
+  - SHA256: f5377074307291230ca4bbfa6a189feb75803746db1976457618264465cfd6b5
+  - Source: crawl-ingest (ingested)
+
+## 2026-07-04
+- **Tutorial | ClaudeLog** (P:\.data\wiki\sources\claudelog.com\003-claude-code-tutorial.md)
+  - URL: https://claudelog.com/claude-code-tutorial
+  - SHA256: 6257b10b5b2b43bc2683cc5372aba4cb463c4f8300426002382249dbb9e41b10
+  - Source: crawl-ingest (ingested)
+
+## 2026-07-04
+- **Claude Code Docs, Guides & Best Practices | ClaudeLog** (P:\.data\wiki\sources\claudelog.com\000-.md)
+  - URL: https://claudelog.com/
+  - SHA256: 458281b72247a95b3176a1210800cfc052c801b6a37efac91971d99a0c2c3623
+  - Source: crawl-ingest (revised)
+
+## 2026-07-04
+- **Support ClaudeLog | ClaudeLog** (P:\.data\wiki\sources\claudelog.com\001-support-claudelog.md)
+  - URL: https://claudelog.com/support-claudelog
+  - SHA256: 279e864f0577c7adb6162cdcf5feda9d39ee7554e15f9be5bf74abc4b7a8faae
+  - Source: crawl-ingest (revised)
+
+## 2026-07-04
+- **Install Claude Code | ClaudeLog** (P:\.data\wiki\sources\claudelog.com\002-install-claude-code.md)
+  - URL: https://claudelog.com/install-claude-code
+  - SHA256: e185e8a5f17b2bb56132d3ae08ac6bcfc91bb6453ad446ee5a28c9354834a216
+  - Source: crawl-ingest (revised)
+
+## 2026-07-04
+- **Tutorial | ClaudeLog** (P:\.data\wiki\sources\claudelog.com\003-claude-code-tutorial.md)
+  - URL: https://claudelog.com/claude-code-tutorial
+  - SHA256: 5a14f82013fd5dc0b1c4f440fd3a19c23f484436a165cf8a96459f50612cf125
+  - Source: crawl-ingest (revised)
+
+## 2026-07-04
+- **T** (C:\Users\brsth\AppData\Local\Temp\tmp2qj5qt3k\test.example\000-x.md)
+  - URL: https://test.example/x
+  - SHA256: 9f077ab94fe81c3adeebc85d35320e5eb9633ccee674255763eefebe645ab964
+  - Source: crawl-ingest (ingested)
+
+## 2026-07-04
+- **T** (000-x.md)
+  - URL: https://test.example/x
+  - SHA256: 9f077ab94fe81c3adeebc85d35320e5eb9633ccee674255763eefebe645ab964
+  - Source: crawl-ingest (skipped)
