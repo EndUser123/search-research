@@ -1522,3 +1522,63 @@ File: concepts/adr-derived-data-location-policy-20260704.md
   - URL: https://claudelog.com/
   - SHA256: 4d12ef6e6aa0f52d12a53863f50d28a7565f168ff25e4678b07f26cdd94a243f
   - Source: crawl-ingest
+
+## 2026-07-04
+- **Claude Code Docs, Guides & Best Practices | ClaudeLog** (P:\.data\wiki\sources\claudelog.com\000-.md)
+  - URL: https://claudelog.com/
+  - SHA256: e4f2890caf2d0ed56e6725cf6e21c4da26fcac1a85681d2d987ab569d0f64dcc
+  - Source: crawl-ingest
+
+## 2026-07-04
+- **Support ClaudeLog | ClaudeLog** (P:\.data\wiki\sources\claudelog.com\001-support-claudelog.md)
+  - URL: https://claudelog.com/support-claudelog
+  - SHA256: 8e8289e7e256c8455895a85942f98efd86cd918f9d5c600a7055f2763ab5b970
+  - Source: crawl-ingest
+
+## 2026-07-04
+- **Install Claude Code | ClaudeLog** (P:\.data\wiki\sources\claudelog.com\002-install-claude-code.md)
+  - URL: https://claudelog.com/install-claude-code
+  - SHA256: 2e9062c1eab1f80bb901de400214527d1480df9c04df5d0c9086094fc18a7d9d
+  - Source: crawl-ingest
+
+## 2026-07-04
+- **Tutorial | ClaudeLog** (P:\.data\wiki\sources\claudelog.com\003-claude-code-tutorial.md)
+  - URL: https://claudelog.com/claude-code-tutorial
+  - SHA256: 634beaebdc29b3df5e76cf0ea011628e4b303175d18033599e687db4f7653621
+  - Source: crawl-ingest
+
+## 2026-07-04
+- **Claude Code Configuration Guide | ClaudeLog** (P:\.data\wiki\sources\claudelog.com\004-configuration.md)
+  - URL: https://claudelog.com/configuration
+  - SHA256: 763aa954874ce6099a05f81ae1a5c56daadd15f39357cc43b92cf24e17a37def
+  - Source: crawl-ingest
+
+## 2026-07-04
+- **Claude Code Pricing | ClaudeLog** (P:\.data\wiki\sources\claudelog.com\005-claude-code-pricing.md)
+  - URL: https://claudelog.com/claude-code-pricing
+  - SHA256: e0ff4311c663d024a2cbc01c993ef893f08df05c5da3d745662a31f007210386
+  - Source: crawl-ingest
+
+## 2026-07-04
+- **Claude News | ClaudeLog** (P:\.data\wiki\sources\claudelog.com\006-claude-news.md)
+  - URL: https://claudelog.com/claude-news
+  - SHA256: c750d53573dcc5815c84d418454f5460eb89cf14fba44fbd7b2aa5047ebbbeba
+  - Source: crawl-ingest
+
+## 2026-07-04
+- **Claude Code Changelog | ClaudeLog** (P:\.data\wiki\sources\claudelog.com\007-claude-code-changelog.md)
+  - URL: https://claudelog.com/claude-code-changelog
+  - SHA256: 9af5a69013530408ac7e0a06fc5e006fa25df78866b304dfa51ec55aa410f5b9
+  - Source: crawl-ingest
+
+## 2026-07-04
+- **Credyt | ClaudeLog** (P:\.data\wiki\sources\claudelog.com\008-credyt.md)
+  - URL: https://claudelog.com/credyt
+  - SHA256: eb25e09ce2d6dc256564a5774b6e15ecc10adb4fd2ac690eb841274f01bf8b51
+  - Source: crawl-ingest
+
+## 2026-07-04
+- **You are the Main Thread | ClaudeLog** (P:\.data\wiki\sources\claudelog.com\009-mechanics-you-are-the-main-thread.md)
+  - URL: https://claudelog.com/mechanics/you-are-the-main-thread
+  - SHA256: 2808416f8beeb915734f56694686871b3fc82c15c322404bdc5a5e50092a915a
+  - Source: crawl-ingest
