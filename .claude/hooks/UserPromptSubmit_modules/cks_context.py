@@ -51,12 +51,31 @@ TRIGGER_PHRASES = [
     "in a previous session", "before this session",
 ]
 
+def _normalize(text: str) -> set[str]:
+    """Strip punctuation for robust keyword matching.
+
+    "authentication," -> "authentication", "web-app" -> {"web", "app"}
+    """
+    import re
+
+    if not text:
+        return set()
+    normalized = re.sub(r"[-_/]", " ", text.lower())
+    words = [w.strip().strip(".,!?;:\"'()[]{}") for w in normalized.split()]
+    return set(w for w in words if w)
+
+
 # === Auto-correction injection for analysis/final-answer turns ===
 
 CORRECTION_INJECTION_MODES = ("analysis", "final-answer", "meta")
-CORRECTION_RELEVANCE_THRESHOLD = 0.7
-KNOWLEDGE_RELEVANCE_THRESHOLD = 0.7
-MAX_INJECTION_TOKENS = 500
+# Thresholds calibrated to reality: keyword results carry a hardcoded 0.5,
+# and empirical max semantic similarity is ~0.47 (unified.py:67). 0.7 filtered
+# out 100% of results — the hook was silently dead.
+CORRECTION_RELEVANCE_THRESHOLD = 0.4
+KNOWLEDGE_RELEVANCE_THRESHOLD = 0.4
+# Character budget (~300 tokens). Deliberately small: flood-avoidance is the
+# priority; empty injection is the correct default.
+MAX_INJECTION_CHARS = 1200
 
 # Hybrid semantic retrieval: merges CKS.search() vector results with keyword scoring
 CKS_SEMANTIC_ENABLED = os.environ.get("CKS_CORRECTION_SEMANTIC", "false").lower() in ("1", "true", "yes")
@@ -141,18 +160,6 @@ def _query_recent_corrections(prompt: str, max_results: int = 3, hours: int = 24
         if not rows:
             return []
 
-        import re
-
-        # Strip punctuation for robust keyword matching
-        # "authentication," → "authentication", "web-app" → "web app"
-        def _normalize(text: str) -> set[str]:
-            if not text:
-                return set()
-            # Replace common separators with spaces, then split and strip remaining punctuation
-            normalized = re.sub(r'[-_/]', ' ', text.lower())
-            words = [w.strip().strip('.,!?;:"\'()[]{}') for w in normalized.split()]
-            return set(w for w in words if w)
-
         prompt_words = _normalize(prompt)
         scored = []
         for row in rows:
@@ -163,9 +170,10 @@ def _query_recent_corrections(prompt: str, max_results: int = 3, hours: int = 24
         # Sort by overlap desc, then created_at desc
         scored.sort(key=lambda x: (x[0], x[1][5]), reverse=True)
 
-        # Filter: only return results with at least 1 keyword overlap
-        # (name promises "matching", so don't return non-matching entries)
-        relevant = [(score, row) for score, row in scored if score > 0]
+        # Filter: require >=2 keyword overlaps. One shared word is noise on
+        # short prompts; two is the cheapest precision floor that survived
+        # corpus review (flood-avoidance directive, 2026-07-03).
+        relevant = [(score, row) for score, row in scored if score >= 2]
         return [
             {
                 "id": row[0],
@@ -213,7 +221,10 @@ def _query_hybrid_corrections(prompt: str, max_results: int = 5, hours: int = 24
     return [r for _, r in scored]
 
 
-HOOK_KNOWLEDGE_TYPES = ("knowledge", "pattern", "decision", "insight", "learning")
+# Curated types only. "decision" excluded on purpose: 104 auto-captured decision
+# rows are mostly sentence fragments (measured 2026-07-03); re-admit only after
+# the Stop_cks_decision_capture extractor is fixed and rows are backfilled.
+HOOK_KNOWLEDGE_TYPES = ("knowledge", "pattern", "insight", "learning")
 
 # ponytail: default OFF. The semantic path opens CKS(enable_semantic=True) inline,
 # loading torch+FAISS+model in a fresh subprocess every analysis-turn firing (~9s,
@@ -310,10 +321,11 @@ def _should_trigger_cks(prompt: str) -> bool:
 def _query_cks(prompt: str, max_results: int = 5) -> list[dict]:
     """Query CKS database for relevant entries.
 
-    Uses keyword search only (semantic search too slow for hooks).
+    Keyword-overlap scoring over all entries (few hundred rows, sub-ms).
+    Replaces the old `LIKE '%<entire prompt>%'` which could never match a
+    multi-word prompt as a single substring.
     """
     try:
-        # Import CKS database path
         cks_db_path = Path("P:/__csf/data/cks.db")
 
         if not cks_db_path.exists():
@@ -321,35 +333,38 @@ def _query_cks(prompt: str, max_results: int = 5) -> list[dict]:
 
         import sqlite3
 
-        # Keyword search via SQL (fast, no model loading)
         conn = sqlite3.connect(cks_db_path)
         cursor = conn.cursor()
-
-        # Search in title and content
-        query = f"%{prompt}%"
         cursor.execute(
             """
             SELECT id, type, title, content, metadata
             FROM entries
-            WHERE title LIKE ? OR content LIKE ?
             ORDER BY usage_count DESC, created_at DESC
-            LIMIT ?
-            """,
-            (query, query, max_results)
+            """
         )
+        rows = cursor.fetchall()
+        conn.close()
 
-        results = []
-        for row in cursor.fetchall():
-            results.append({
+        prompt_words = _normalize(prompt)
+        scored = []
+        for row in rows:
+            entry_words = _normalize((row[2] or "") + " " + (row[3] or ""))
+            overlap = len(prompt_words & entry_words)
+            # >=2 overlaps: same precision floor as the corrections path
+            if overlap >= 2:
+                scored.append((overlap, row))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [
+            {
                 "id": row[0],
                 "type": row[1],
                 "title": row[2],
                 "content": row[3],
                 "metadata": row[4],
-            })
-
-        conn.close()
-        return results
+            }
+            for _, row in scored[:max_results]
+        ]
 
     except Exception as e:
         # Fail silently - CKS unavailable shouldn't break hook
@@ -392,7 +407,7 @@ def _format_cks_context(results: list[dict], prompt: str) -> str:
         ""
     ]
 
-    for i, result in enumerate(filtered[:3], 1):  # Max 3 results
+    for i, result in enumerate(filtered[:2], 1):  # Max 2 results (flood-avoidance)
         entry_type = result.get("type", "memory")
         title = result.get("title", "") or f"Entry {result.get('id')}"
         content = result.get("content", "")
@@ -414,6 +429,42 @@ def _format_cks_context(results: list[dict], prompt: str) -> str:
     return "\n".join(lines)
 
 
+def _injected_ids_file(session_id: str) -> Path:
+    state_dir = Path(os.environ.get("CSF_STATE_DIR", "P:/.claude/state")) / "cks_context_injected"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    return state_dir / f"{session_id}.json"
+
+
+def _load_injected_ids(session_id: str | None) -> set:
+    """Entry ids already injected this session (dedupe). Fail-open to empty."""
+    if not session_id:
+        return set()
+    try:
+        import json
+
+        return set(json.loads(_injected_ids_file(session_id).read_text(encoding="utf-8")))
+    except Exception:
+        return set()
+
+
+def _mark_injected(session_id: str | None, ids: set) -> None:
+    if not session_id or not ids:
+        return
+    try:
+        import json
+
+        f = _injected_ids_file(session_id)
+        existing = _load_injected_ids(session_id)
+        f.write_text(json.dumps(sorted(existing | ids)), encoding="utf-8")
+    except Exception:
+        pass  # Dedupe is best-effort; never block injection
+
+
+def _dedupe(results: list[dict], seen: set) -> list[dict]:
+    """Drop entries already injected this session (entries without id pass through)."""
+    return [r for r in results if r.get("id") is None or r["id"] not in seen]
+
+
 def cks_context_hook(context: HookContext) -> HookResult:
     """Inject CKS context when trigger phrases detected, plus recent corrections on analysis/final-answer turns.
 
@@ -424,44 +475,59 @@ def cks_context_hook(context: HookContext) -> HookResult:
         return HookResult.empty()
 
     parts = []
+    seen_ids = _load_injected_ids(context.session_id)
+    new_ids: set = set()
+
+    def _track(results: list[dict]) -> None:
+        new_ids.update(r["id"] for r in results if r.get("id") is not None)
 
     # 1. Existing trigger-phrase logic (unchanged)
     if _should_trigger_cks(context.prompt):
-        results = _query_cks(context.prompt, max_results=5)
+        results = _dedupe(_query_cks(context.prompt, max_results=5), seen_ids)
         if results:
             formatted = _format_cks_context(results, context.prompt)
             if formatted:
                 parts.append(formatted)
+                _track(results)
 
     # 2. Auto-inject recent corrections on analysis/final-answer turns (with relevance gating)
     if _should_inject_recent_corrections(context.prompt):
         corrections = _query_hybrid_corrections(context.prompt, max_results=5, hours=24)
         # Filter by relevance threshold
         corrections = [c for c in corrections if c.get("similarity", 0) >= CORRECTION_RELEVANCE_THRESHOLD]
+        corrections = _dedupe(corrections, seen_ids)
         if corrections:
             formatted = _format_recent_corrections(corrections, context.prompt)
             if formatted:
                 parts.append(formatted)
+                _track(corrections)
 
     # 3. Auto-inject relevant knowledge on analysis/final-answer turns (with relevance gating)
     if _should_inject_recent_corrections(context.prompt):
-        knowledge = _query_knowledge_base(context.prompt, max_results=3)
-        # Filter by relevance threshold
-        knowledge = [k for k in knowledge if k.get("similarity", 0) >= KNOWLEDGE_RELEVANCE_THRESHOLD]
+        knowledge = _query_knowledge_base(context.prompt, max_results=2)
+        # Threshold applies only when a similarity score exists (semantic path).
+        # Keyword-path results carry no score; they already passed keyword match.
+        knowledge = [
+            k for k in knowledge
+            if k.get("similarity") is None or k["similarity"] >= KNOWLEDGE_RELEVANCE_THRESHOLD
+        ]
+        knowledge = _dedupe(knowledge, seen_ids)
         if knowledge:
             formatted = _format_knowledge_context(knowledge, context.prompt)
             if formatted:
                 parts.append(formatted)
+                _track(knowledge)
 
     if not parts:
         return HookResult.empty()
 
-    # Token budgeting: truncate if exceeds MAX_INJECTION_TOKENS
+    # Character budgeting (~300 tokens). The old code compared len() in chars
+    # against a 500-"token" constant — a units bug that capped output at ~125 tokens.
     combined = "\n\n".join(parts)
-    if len(combined) > MAX_INJECTION_TOKENS:
-        # Simple truncation: keep as much as possible under budget
-        combined = combined[:MAX_INJECTION_TOKENS - 50] + "\n... [truncated]"
+    if len(combined) > MAX_INJECTION_CHARS:
+        combined = combined[:MAX_INJECTION_CHARS - 50] + "\n... [truncated]"
 
+    _mark_injected(context.session_id, new_ids)
     return HookResult.context_injection(combined)
 
 

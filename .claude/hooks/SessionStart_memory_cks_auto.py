@@ -40,7 +40,7 @@ MEMORY_DIR = Path("C:/Users/brsth/.claude/projects/P--/memory")
 STATE_DIR = Path(os.environ.get("CSF_STATE_DIR", "P:/.claude/state"))
 STATE_FILE = STATE_DIR / "memory_cks_timestamp.json"
 LOCK_FILE = STATE_DIR / "memory_cks_ingest.lock"
-INGEST_SCRIPT = HOOKS_DIR / "scripts" / "ingest_memory_to_cks.py"
+INGEST_SCRIPT = HOOKS_DIR / "scripts" / "cks" / "ingest_memory_to_cks.py"
 
 # Configuration
 LOCK_TIMEOUT = timedelta(minutes=5)  # Stale locks older than this are cleaned up

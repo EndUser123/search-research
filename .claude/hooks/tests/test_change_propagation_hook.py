@@ -212,6 +212,21 @@ def test_producers_match_requirements_keys():
     assert set(m._PRODUCERS) == set(m._VERIFICATION_REQUIREMENTS)
 
 
+def test_producer_inputs_cover_every_live_producer():
+    """Fail-closed coverage: the matrix fixture set must cover every live
+    producer AND every declared type. Without this, adding a producer without
+    a fixture silently skips its coverage test (the parametrized matrix only
+    iterates _PRODUCER_INPUTS keys). Three-way equality closes that hole at
+    collection time — a new producer/requirement with no fixture fails CI
+    before any test body runs."""
+    m = _cph()
+    assert set(_PRODUCER_INPUTS) == set(m._PRODUCERS) == set(m._VERIFICATION_REQUIREMENTS), {
+        "inputs": set(_PRODUCER_INPUTS),
+        "producers": set(m._PRODUCERS),
+        "requirements": set(m._VERIFICATION_REQUIREMENTS),
+    }
+
+
 def test_every_live_type_declares_valid_affected_kind():
     m = _cph()
     for ctype, meta in m._VERIFICATION_REQUIREMENTS.items():
