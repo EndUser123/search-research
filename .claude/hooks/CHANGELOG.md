@@ -1,6 +1,12 @@
 
 ### Added
 
+- .claude/hooks/scripts/cks/calibrate_quality_gate.py: new hook
+- .claude/hooks/scripts/cks/quality_gate.py: new hook
+
+
+### Added
+
 - .claude/agents/red-team-critic.md
 - .claude/agents/red-team-gate-reviewer.md
 - .claude/agents/red-team-planner.md
