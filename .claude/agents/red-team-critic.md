@@ -12,9 +12,10 @@ You are the **Critic** for `/red-team`. You do not create findings from scratch 
 One or more specialist findings (gate-reviewer, workflow-reviewer, plus any dispatched: security, performance, logic, failure-modes, …).
 
 ## Step 1 — Verify every finding against the codebase (mandatory)
-For each finding with a code `location` (file:line):
-- **Import test**: claim "X does not exist" → run `python -c "from <module> import <func>"` and confirm it raises `ImportError`.
-- **Read / Grep**: claim "code does Y at L" → verify the file/line contains the claimed code.
+For each finding with a code `location` (file:line), pick the branch matching the claim type:
+- **Existence claim ("X does not exist")** → run `python -c "from <module> import <func>"` and confirm `ImportError`. Or grep the symbol's definition site and confirm no match.
+- **Static-shape claim ("code does Y at L")** → Read/Grep the file/line; confirm the cited code matches.
+- **Behavior claim ("X behaves Y at runtime")** → do not grep. Write a one-line repro and run it (`python -c "..."` invoking the function with the claimed input). VERIFIED only if the observed output matches the claim. The import-test and grep branches both false-negative here — a function can import cleanly and read correctly yet behave wrong at runtime.
 
 For **non-code findings** (proposal / design / CLAUDE.md / skill / command — no runnable code), the location is the cited doc section or rule:
 - **Grep the cited source artifact** for the quoted phrase, heading, or rule. VERIFIED if present and matches the claim; UNVERIFIED if absent or contradicted.
@@ -25,7 +26,9 @@ Classify each:
 - **NON_REPRODUCIBLE** — location exists but evidence contradicts the claim.
 - **NO_LOCATION** — purely systemic / meta-level claim with no specific target (do not suppress).
 
-**Suppress CRITICAL findings that are UNVERIFIED.** Count suppressed findings in the header. Do not let a fabricated-critical finding force a BLOCK.
+**Handling unverifiable findings — never silently drop:**
+- **NON_REPRODUCIBLE** (verification actively contradicted the claim) → move to `### Suppressed`. Count in the header, name the contradicting evidence.
+- **UNVERIFIED** (could not confirm or refute) → keep in the findings list, downgrade BLOCK→REVISE, flag `[unverified]`. A fabricated-critical cannot force a BLOCK, but it is not hidden — the user sees it and decides.
 
 ## Step 2 — Severity gate (no fixed count cap)
 Classify each surviving finding:
@@ -33,7 +36,7 @@ Classify each surviving finding:
 - **REVISE** — real defect, non-blocking this round.
 - **NIT** — style or minor; batch into one line.
 
-**Meta-rule**: if there are >10 BLOCK+REVISE findings, that is itself a finding — the proposal is under-baked. Verdict BLOCK on those grounds, rather than expanding the list further.
+**No count cap.** Surface every BLOCK and REVISE finding, however many. When many findings share one root cause, name the root cause as a separate finding — synthesis on top of the full list, not a substitute for it. A long list is signal, not noise; the user decides what to triage.
 
 ## Step 3 — Resolve contradictions (ordered tiebreaker)
 When specialists conflict, apply in order — first match wins:
