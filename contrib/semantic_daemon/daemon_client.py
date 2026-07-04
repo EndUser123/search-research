@@ -1001,7 +1001,7 @@ class DaemonClient(metaclass=_DaemonClientSingleton):
         """Fallback CKS search using direct backend."""
         from cks.unified import CKS
 
-        db_path = CSF_ROOT / "data" / "cks.db"
+        db_path = Path(__file__).resolve().parents[2] / "data" / "cks.db"
 
         with CKS(str(db_path)) as cks:
             results = cks.search(query, limit=limit)
