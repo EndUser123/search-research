@@ -7,7 +7,7 @@ No external AI tools required — uses AST parsing (Python) and direct file read
 Workflow:
   python gitpack.py <target_dir> [--exclude <patterns>]
 
-Produces two files in .aid/<name>/:
+Produces two files in P:/.claude/.artifacts/:
   - <name>_sig.md  — SIGNATURE TOC + DIRECTORY/FILE INDEX (compact, scannable)
   - <name>_full.md — same + APPENDIX with full source read from disk
 
@@ -620,7 +620,7 @@ def main() -> None:
         exclude = sys.argv[idx + 1] if idx + 1 < len(sys.argv) else ""
 
     name = target.name
-    out_dir = target / ".aid" / name
+    out_dir = Path("P:/.claude/.artifacts")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     files = discover_files(target, exclude)
