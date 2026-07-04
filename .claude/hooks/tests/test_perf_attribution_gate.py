@@ -102,9 +102,21 @@ class TestDetectPerfClaims:
         text = "The dominant factor in the ~480s timing is yt-dlp fetching."
         assert _detect_perf_claims(text) is True
 
-    def test_bottleneck_claim(self):
-        """'bottleneck' should trigger detection."""
+    def test_bottleneck_claim_without_measurement_does_not_trigger(self):
+        """Bare 'bottleneck' with no measured quantity is ROI reasoning, not
+        a measured attribution — must not fire (#1089 FP fix)."""
         text = "The bottleneck is clearly yt-dlp processing."
+        assert _detect_perf_claims(text) is False
+
+    def test_qualitative_roi_prose_without_measurement_allows(self):
+        """#1089 FP fix: qualitative ROI words with NO measurement must not fire."""
+        text = ("The plugin reload is the bottleneck for session start, and reload "
+                "dominates startup cost. Highest-leverage fix; no timing measured yet.")
+        assert _detect_perf_claims(text) is False
+
+    def test_qualitative_term_promoted_by_nearby_measurement_fires(self):
+        """#1089: a qualitative term + a measurement quantity DOES fire (promotion)."""
+        text = "The bottleneck is the yt-dlp step, which costs 7 seconds of wall time."
         assert _detect_perf_claims(text) is True
 
     def test_duration_pattern(self):

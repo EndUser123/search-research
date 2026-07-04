@@ -55,12 +55,18 @@ HOOKS_DIR = _hooks_dir  # from bootstrap
 # Pattern Constants (extensible)
 # ----------------------------------------------------------------------
 
-PERF_CLAIM_PATTERNS: list[re.Pattern] = [
-    # Dominant factor language
+# Qualitative ROI words — only a perf claim when a measured quantity is also
+# present (see _MEASUREMENT_SIGNAL). Bare "X is the bottleneck" with no number
+# is ROI reasoning, not a measured attribution (#1089 false-positive class).
+PERF_QUALITATIVE_PATTERNS: list[re.Pattern] = [
     re.compile(r"\bdominant\s+factor\b", re.IGNORECASE),
     re.compile(r"\bdominates?\b", re.IGNORECASE),
     re.compile(r"\bdominated\s+by\b", re.IGNORECASE),
     re.compile(r"\bbottleneck\b", re.IGNORECASE),
+]
+
+# Quantitative attribution — sufficient to block on its own.
+PERF_QUANTITATIVE_PATTERNS: list[re.Pattern] = [
     # Throughput/latency as the SUBJECT of an attribution verb. Verb must be
     # ADJACENT (\s+), not separated by greedy .* — otherwise "...latency/tokens, so a
     # heuristic that fires on everything is worse" matches "latency"..."is" across an
@@ -68,7 +74,7 @@ PERF_CLAIM_PATTERNS: list[re.Pattern] = [
     re.compile(r"\bthroughput\s+(?:is|was|dominates?|explains?|causes?|caused)\b", re.IGNORECASE),
     re.compile(r"\blatency\s+(?:is|was|dominates?|explains?|causes?|caused)\b", re.IGNORECASE),
     # Duration patterns paired with causal claims
-    re.compile(r"~\d{3,}\s*s", re.IGNORECASE),  # ~480s (require 3+ digits; small estimates like ~10s are prose, not measurements)
+    re.compile(r"~\d{3,}\s*s", re.IGNORECASE),  # ~480s (3+ digits; ~10s is prose)
     re.compile(r"\b\d+\s*seconds?\b.*(?:because|due to|caused by|explains|is the reason)", re.IGNORECASE),
     # Specific workflow terms paired with timing
     re.compile(r"yt-dlp.*(?:fetch|download|processing).*~?\d+\s*s", re.IGNORECASE),
@@ -77,6 +83,17 @@ PERF_CLAIM_PATTERNS: list[re.Pattern] = [
     re.compile(r"nlm\s+source\s+add.*wait", re.IGNORECASE),
     re.compile(r"NotebookLM.*timing", re.IGNORECASE),
 ]
+
+# A measured quantity anywhere in the (unquoted) text. Promotes a qualitative
+# term into a blocking claim.
+_MEASUREMENT_SIGNAL: re.Pattern = re.compile(
+    r"~\d+\s*s|\b\d+\s*(?:ms|millisecond|seconds?)\b|\belapsed_s\b"
+    r"|\bp(?:50|95|99)\b|\b\d{3,}\s*ms\b",
+    re.IGNORECASE,
+)
+
+# Backward-compat union (tests import PERF_CLAIM_PATTERNS).
+PERF_CLAIM_PATTERNS: list[re.Pattern] = PERF_QUALITATIVE_PATTERNS + PERF_QUANTITATIVE_PATTERNS
 
 # Terms that indicate hedging (not confident claims)
 HEDGE_PATTERNS: list[re.Pattern] = [
@@ -170,23 +187,30 @@ def _detect_perf_claims(text: str) -> bool:
     # Check each perf pattern (use/mention exemption: skip quoted matches)
     from quote_exemption import search_unquoted
 
-    for pattern in PERF_CLAIM_PATTERNS:
+    # Qualitative terms (bottleneck/dominates) only count when a measured
+    # quantity is also present. Without one they are ROI reasoning, not
+    # attribution — the #1089 false-positive class.
+    has_measurement = bool(search_unquoted(_MEASUREMENT_SIGNAL, text))
+    ordered = PERF_QUANTITATIVE_PATTERNS
+    if has_measurement:
+        ordered = PERF_QUANTITATIVE_PATTERNS + PERF_QUALITATIVE_PATTERNS
+
+    for pattern in ordered:
         match = search_unquoted(pattern, text)
         if match:
-            if match:
-                # Get surrounding context (50 chars before and after)
-                start = max(0, match.start() - 50)
-                end = min(len(text), match.end() + 50)
-                context = text[start:end]
+            # Get surrounding context (50 chars before and after)
+            start = max(0, match.start() - 50)
+            end = min(len(text), match.end() + 50)
+            context = text[start:end]
 
-                # Check if context contains hedging
-                for hedge in HEDGE_PATTERNS:
-                    if hedge.search(context):
-                        # Hedged claim - not blocking
-                        return False
+            # Check if context contains hedging
+            for hedge in HEDGE_PATTERNS:
+                if hedge.search(context):
+                    # Hedged claim - not blocking
+                    return False
 
-                # Confident claim - should be blocked if no timing code read
-                return True
+            # Confident claim - should be blocked if no timing code read
+            return True
 
     return False
 

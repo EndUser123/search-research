@@ -108,8 +108,11 @@ class TestPerfGate:
 
     def test_unquoted_perf_claim_fires(self):
         g = self._gate()
+        # Includes a measurement (~480s) so "dominant factor" is promoted by
+        # _MEASUREMENT_SIGNAL — the invariant under test is that an UNQUOTED
+        # perf claim fires (vs the quoted variant in the next test).
         assert g._detect_perf_claims(
-            "The dominant factor is the idle_wait loop and throughput collapsed as a result."
+            "The dominant factor is the idle_wait loop, causing the ~480s total."
         ) is True
 
     def test_quoted_perf_claim_exempt(self):

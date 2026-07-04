@@ -195,7 +195,7 @@
     },
     {
       "name": "cc-aca-epistemic",
-      "version": "0.2.77",
+      "version": "0.2.79",
       "description": "ACA Epistemic plugin - evidence verification, claim validation, provenance tracking, anti-fabrication enforcement, and anti-sycophancy detection. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-epistemic",
       "keywords": [
