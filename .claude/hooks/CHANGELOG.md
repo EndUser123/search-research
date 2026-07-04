@@ -1,6 +1,11 @@
 
 ### Added
 
+- .claude/hooks/UserPromptSubmit_modules/mechanism_manifest.py: new hook
+
+
+### Added
+
 - .claude/hooks/scripts/cks/calibrate_quality_gate.py: new hook
 - .claude/hooks/scripts/cks/quality_gate.py: new hook
 

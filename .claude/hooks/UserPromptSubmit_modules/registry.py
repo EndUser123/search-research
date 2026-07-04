@@ -799,6 +799,7 @@ def _load_hooks() -> None:
         "unified_injector",
         "workflow_tier_tagging",
         "delegation_prospector",  # NEW 2026-05-10: Surface delegation opportunity advisory before task execution
+        "mechanism_manifest",  # NEW 2026-07-04: Inject existing-mechanism pointer list to counter inventory blindness
     ]
 
     # Try loading core hooks via relative import (batch import for efficiency)
