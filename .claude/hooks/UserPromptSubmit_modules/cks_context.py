@@ -454,6 +454,48 @@ def _mark_injected(session_id: str | None, ids: set) -> None:
         pass  # Dedupe is best-effort; never block injection
 
 
+def _log_telemetry(
+    session_id: str | None,
+    prompt: str,
+    paths: list[str],
+    entries: list[dict],
+    combined: str,
+    truncated: bool,
+) -> None:
+    """Append-only injection-event log for #942 measurement. Fail-open; never block."""
+    if os.environ.get("CKS_TELEMETRY_ENABLED", "true").lower() not in ("1", "true", "yes"):
+        return
+    try:
+        import hashlib
+        import json
+        import time
+
+        log_dir = Path(os.environ.get("CSF_STATE_DIR", "P:/.claude/state"))
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_path = log_dir / "cks_context_telemetry.jsonl"
+        event = {
+            "ts": int(time.time()),
+            "session_id": session_id,
+            "paths": sorted(paths),
+            "prompt_digest": hashlib.sha256(prompt.lower().encode("utf-8")).hexdigest()[:12],
+            "prompt_tokens_approx": len(prompt.split()),
+            "entries": [
+                {
+                    "id": e.get("id"),
+                    "type": e.get("type"),
+                    "title": (e.get("title") or "")[:80],
+                }
+                for e in entries
+            ],
+            "chars": len(combined),
+            "truncated": truncated,
+        }
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(event) + "\n")
+    except Exception:
+        pass
+
+
 def _dedupe(results: list[dict], seen: set) -> list[dict]:
     """Drop entries already injected this session (entries without id pass through)."""
     return [r for r in results if r.get("id") is None or r["id"] not in seen]
@@ -471,9 +513,14 @@ def cks_context_hook(context: HookContext) -> HookResult:
     parts = []
     seen_ids = _load_injected_ids(context.session_id)
     new_ids: set = set()
+    injected_entries: list[dict] = []
+    paths_fired: list[str] = []
 
-    def _track(results: list[dict]) -> None:
+    def _track(results: list[dict], path: str) -> None:
         new_ids.update(r["id"] for r in results if r.get("id") is not None)
+        injected_entries.extend(results)
+        if path not in paths_fired:
+            paths_fired.append(path)
 
     # 1. Existing trigger-phrase logic (unchanged)
     if _should_trigger_cks(context.prompt):
@@ -482,7 +529,7 @@ def cks_context_hook(context: HookContext) -> HookResult:
             formatted = _format_cks_context(results, context.prompt)
             if formatted:
                 parts.append(formatted)
-                _track(results)
+                _track(results, "trigger")
 
     # 2. Auto-inject recent corrections on analysis/final-answer turns (with relevance gating)
     if _should_inject_recent_corrections(context.prompt):
@@ -494,7 +541,7 @@ def cks_context_hook(context: HookContext) -> HookResult:
             formatted = _format_recent_corrections(corrections, context.prompt)
             if formatted:
                 parts.append(formatted)
-                _track(corrections)
+                _track(corrections, "corrections")
 
     # 3. Auto-inject relevant knowledge on analysis/final-answer turns (with relevance gating)
     if _should_inject_recent_corrections(context.prompt):
@@ -510,7 +557,7 @@ def cks_context_hook(context: HookContext) -> HookResult:
             formatted = _format_knowledge_context(knowledge, context.prompt)
             if formatted:
                 parts.append(formatted)
-                _track(knowledge)
+                _track(knowledge, "knowledge")
 
     if not parts:
         return HookResult.empty()
@@ -518,9 +565,11 @@ def cks_context_hook(context: HookContext) -> HookResult:
     # Character budgeting (~300 tokens). The old code compared len() in chars
     # against a 500-"token" constant — a units bug that capped output at ~125 tokens.
     combined = "\n\n".join(parts)
-    if len(combined) > MAX_INJECTION_CHARS:
+    truncated = len(combined) > MAX_INJECTION_CHARS
+    if truncated:
         combined = combined[:MAX_INJECTION_CHARS - 50] + "\n... [truncated]"
 
+    _log_telemetry(context.session_id, context.prompt, paths_fired, injected_entries, combined, truncated)
     _mark_injected(context.session_id, new_ids)
     return HookResult.context_injection(combined)
 

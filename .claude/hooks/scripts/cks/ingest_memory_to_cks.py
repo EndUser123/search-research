@@ -166,7 +166,7 @@ def ingest_memory_file(filepath: Path, cks: CKS, test_run: bool = False) -> dict
             # Small file - ingest as single entry
             title = f"{filename}: {filepath.stem.replace('_', ' ').title()}"
             if not test_run:
-                cks.ingest_pattern(title, content, metadata={"source_file": str(filepath)})
+                cks.ingest_pattern(title, content, entry_type=entry_type, metadata={"source_file": str(filepath)})
             return {"chunks": 1, "type": entry_type}
 
         # Large file - chunk by headers
@@ -181,6 +181,7 @@ def ingest_memory_file(filepath: Path, cks: CKS, test_run: bool = False) -> dict
                 cks.ingest_pattern(
                     full_title,
                     chunk_content,
+                    entry_type=entry_type,
                     metadata={"source_file": str(filepath), "chunk_title": chunk_title}
                 )
 
