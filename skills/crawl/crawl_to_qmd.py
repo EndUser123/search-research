@@ -304,14 +304,15 @@ async def crawl_site(
         result = await crawler.arun(url=root_url, config=config)
         if result.success:
             stats["pages_fetched"] += 1
-            saved = await _save_md(result, output_dir, domain, 0, collection, stats)
+            norm = _normalize_result(result)
+            saved = await _save_md(norm, output_dir, domain, 0, collection, stats)
             if saved:
                 stats["pages_saved"] += 1
             elif saved is None:
                 stats["pages_skipped"] += 1
 
             # Follow internal links (limit to domain + dedup visited)
-            urls_to_crawl = _extract_internal_links(result, domain, visited)[: max_pages - 1]
+            urls_to_crawl = _extract_internal_links(norm, domain, visited)[: max_pages - 1]
 
             for i, url in enumerate(urls_to_crawl):
                 if stats["pages_fetched"] >= max_pages:
@@ -321,7 +322,8 @@ async def crawl_site(
                     result = await crawler.arun(url=url, config=config)
                     if result.success:
                         stats["pages_fetched"] += 1
-                        saved = await _save_md(result, output_dir, domain, i + 1, collection, stats)
+                        norm = _normalize_result(result)
+                        saved = await _save_md(norm, output_dir, domain, i + 1, collection, stats)
                         if saved:
                             stats["pages_saved"] += 1
                         elif saved is None and not any(e.startswith(url) for e in stats["crawl_errors"]):
@@ -392,6 +394,9 @@ async def _save_md(
     etag = headers.get("etag") or headers.get("ETag")
     last_modified = headers.get("last-modified") or headers.get("Last-Modified")
 
+    # Path-only slug keeps filenames stable across runs and matches pre-registry files
+    slug = re.sub(r"[^\w\-]", "-", urlparse(url).path.strip("/"))[:50]
+
     if entry:
         if etag and entry.get("etag") == etag:
             print(f"Skipping (etag unchanged): {url}")
@@ -402,11 +407,11 @@ async def _save_md(
             _log_ingest(title, url, entry.get("file", ""), content_hash, collection, action="skipped")
             return None
         action = "revised"
-        filename = entry.get("file") or f"{index:03d}-{_slug_from_url(url)}.md"
+        # Reuse the existing filename so revisions overwrite, not orphan
+        filename = entry.get("file") or f"{index:03d}-{slug}.md"
     else:
         action = "ingested"
-        # Reuse any pre-existing file for this URL (pre-registry bootstrapping)
-        filename = entry.get("file") if entry and entry.get("file") else f"{index:03d}-{_slug_from_url(url)}.md"
+        filename = f"{index:03d}-{slug}.md"
 
     filepath = domain_dir / filename
 
