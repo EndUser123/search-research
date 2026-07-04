@@ -58,3 +58,7 @@ src/
 .aid/
 
 .venv/
+
+# Runtime databases (CKS/CHS) — never commit
+data/*.db
+data/*.db.*
