@@ -1516,3 +1516,9 @@ File: concepts/debrief-2026-07-03-chs-plugin-audit-router.md
 Source: session-2026-07-04-daemon-relocation
 SHA256: newly-created-2026-07-04
 File: concepts/adr-derived-data-location-policy-20260704.md
+
+## 2026-07-04
+- **Claude Code Docs, Guides & Best Practices | ClaudeLog** (P:\.data\wiki\sources\claudelog.com\000-.md)
+  - URL: https://claudelog.com/
+  - SHA256: 4d12ef6e6aa0f52d12a53863f50d28a7565f168ff25e4678b07f26cdd94a243f
+  - Source: crawl-ingest
