@@ -1,7 +1,7 @@
 ---
 name: debrief
 description: "This skill is used when the user points at a transcript or chat-history file and asks to mine it for unfinished work, open issues, origin-anchored tasks, or to trace symptoms back to code. Trigger phrases include 'debrief this transcript', 'mine the chat history', 'transcript to tasks', 'turn this session into tasks', 'victim log', and 'why is this broken'. Recursively walks symptom → cause → origin chains, calls /friction and /truth from inside the loop, and writes cold-start tasks to the tracker with the source file tagged. Distinct from /recap (summarizes) and /top-problems (lists, never creates tasks); handles multi-session chain exports (`chain_*.md`) directly — `/retro` is the legacy chain surface being migrated in."
-version: 1.0.48
+version: 1.0.49
 status: stable
 category: analysis
 enforcement: advisory
@@ -98,7 +98,7 @@ The full Phase 0 → Phase 9 diagram lives in [`references/loop-diagram.md`](ref
 - **Confirm before mutating live state.** Phases 6/8 are side-effecting. State the plan (N creates, M updates, old → new filename) and proceed. Pause for confirmation if the rename target is outside Downloads or if the plan creates more than ~8 tasks.
 - **Mark every cross-session claim with its evidence level.** `MUST RE-VERIFY` is mandatory for any claim the recursion couldn't reach verified-origin level on.
 - **When recursion hits the budget without verifying origin, write the task with `MUST RE-VERIFY: <next-session-action>` so the breadcrumb tells the next LLM exactly where to pick up.**
-- **Every finding must be accounted for.** Group findings into task groups freely (fewer, well-scoped tasks beat tracker bloat), but none may be orphaned. The accounting: (1) **open/un-tasked** → one task each or folded into a group task that lists them; (2) **verified-fixed** → recorded in the breadcrumb task, no separate task; (3) **already-tracked** → cite the existing `#<id>` in the breadcrumb; (4) **explicitly deferred** → one PARKED group task with the deferral gate (see #989); (5) **external / not-our-code** → one documentation-only task. Before `close`, state the count: "N findings → A tasked, B fixed-in-breadcrumb, C deferred, D external" so nothing is silently dropped.
+- **Every finding must be accounted for.** Group findings into task groups freely (fewer, well-scoped tasks beat tracker bloat), but none may be orphaned. The accounting: (1) **open/un-tasked** → one task each or folded into a group task that lists them; (2) **verified-fixed** → recorded in the breadcrumb task, no separate task; (3) **already-tracked** → cite the existing `#<id>` in the breadcrumb; (4) **explicitly deferred** → one PARKED group task with the deferral gate (see #989); (5) **external / not-our-code** → one documentation-only task. Before `close`, state the count **in the breadcrumb task body** using this exact sentinel (the `close` gate regex-matches it as a structure-invariant — it refuses exit 0 without it): `ACCOUNTING: <N> findings -> <A> tasked, <B> fixed-in-breadcrumb, <C> deferred, <D> external`. The sentinel proves accounting *happened*; the gate deliberately does not validate the numbers.
 - Per the global Destructive Action rules, confirm before deleting or overwriting anything other than the task tracker entries and the single source-file rename.
 
 ## Source-file naming standard (Phase 8)
