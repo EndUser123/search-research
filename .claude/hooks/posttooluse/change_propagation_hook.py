@@ -29,13 +29,109 @@ from posttooluse.base import PostToolUseHook
 # of _detect_change is actually reachable (the class tool_matcher already routes
 # them here; this gate previously excluded them, making Edit detection dead).
 _MODIFY_TOOLS = {"write_file", "str_replace_editor", "edit_file", "Write", "Edit", "MultiEdit", "patch"}
+_BASH_TOOLS = {"Bash", "bash"}
+_EDIT_TOOLS = {"Edit", "MultiEdit", "str_replace_editor", "edit_file", "patch"}
+_AFFECTED_KINDS = ("path", "symbol", "magnitude")
 
+# Single source of truth for change-type contracts. Each live type declares
+# its `affected_kind` (the semantic shape of `affected`) and the requirement
+# keys a producer of this type must verify. The producer registry
+# (`_PRODUCERS`) and the consumer metadata (`_REQUIREMENT_META`) are kept in
+# lock-step with this table by invariant tests — adding a type or requirement
+# without matching producer/consumer coverage fails CI.
+#
+# Dead keys removed vs. the pre-hardening table (no detector emitted them):
+#   - "import_removal": never produced; "file_rename": never produced.
+#     "file_rename"'s requirement "import_update" had no consumer handler
+#     either, so both halves of the pair were dead config.
 _VERIFICATION_REQUIREMENTS = {
-    "function_removal": ["execution_test"],
-    "import_removal": [],
-    "file_deletion": ["grep_references"],
-    "file_rename": ["import_update"],
-    "large_deletion": ["execution_test"],
+    "file_deletion": {
+        "affected_kind": "path",
+        "requirements": ["grep_references"],
+    },
+    "function_removal": {
+        "affected_kind": "symbol",
+        "requirements": ["execution_test"],
+    },
+    "large_deletion": {
+        "affected_kind": "magnitude",
+        "requirements": ["execution_test"],
+    },
+}
+
+# Per-requirement consumer metadata. Drives `_record_verification` so the
+# consumer has no independent if/elif branch set that can drift from the
+# requirements table. Symmetric invariant (locked by tests):
+#   union(requirements across _VERIFICATION_REQUIREMENTS) == _REQUIREMENT_META.keys()
+#
+# Dead consumer branches removed vs. pre-hardening (no type declared them):
+#   - "cache_clear": only reached via the unknown-type fallback, never hit.
+#   - "registry_check": never declared by any type.
+_REQUIREMENT_META = {
+    "grep_references": {
+        # A deleted file has nothing left to grep — path absence legitimately
+        # satisfies this requirement. Path-kind records only; gated by
+        # affected_kind so symbol/magnitude records can never trip it.
+        "path_absence_satisfies": True,
+        "command_match": r"\b(grep|rg|ag|find)\b",
+        "requires_affected_in_cmd": True,
+    },
+    "execution_test": {
+        # Never auto-satisfied by path absence: a function removal or large
+        # deletion needs a test run regardless of any path's existence.
+        "path_absence_satisfies": False,
+        "command_match": r"(python|pytest|\.py)",
+        "requires_affected_in_cmd": False,
+    },
+}
+
+
+# -- Producer registry -------------------------------------------------------
+# Keys MUST equal `_VERIFICATION_REQUIREMENTS.keys()` (locked by invariant
+# test). A producer cannot emit a type the requirements table doesn't know
+# about, because the table is the only source of `affected_kind`.
+
+def _extract_edit_diff(tool_input):
+    edits = tool_input.get("edits")
+    if isinstance(edits, list):
+        old = "\n".join(str(e.get("old_string", "")) for e in edits if isinstance(e, dict))
+        new = "\n".join(str(e.get("new_string", "")) for e in edits if isinstance(e, dict))
+    else:
+        old = str(tool_input.get("old_string", "") or "")
+        new = str(tool_input.get("new_string", "") or "")
+    return old, new
+
+
+def _detect_file_deletion(tool_name, tool_input):
+    if tool_name not in _BASH_TOOLS:
+        return None
+    from __lib.structural_change import deletions_in_command
+    paths = deletions_in_command(tool_input.get("command", ""))
+    return paths[0] if paths else None
+
+
+def _detect_function_removal(tool_name, tool_input):
+    if tool_name not in _EDIT_TOOLS:
+        return None
+    from __lib.structural_change import removed_symbols
+    old, new = _extract_edit_diff(tool_input)
+    syms = removed_symbols(old, new)
+    return syms[0][1] if syms else None
+
+
+def _detect_large_deletion(tool_name, tool_input):
+    if tool_name not in _EDIT_TOOLS:
+        return None
+    from __lib.structural_change import lines_removed
+    old, new = _extract_edit_diff(tool_input)
+    removed = lines_removed(old, new)
+    return f"{removed} lines" if removed > 10 else None
+
+
+_PRODUCERS = {
+    "file_deletion": _detect_file_deletion,
+    "function_removal": _detect_function_removal,
+    "large_deletion": _detect_large_deletion,
 }
 
 
@@ -124,12 +220,13 @@ class ChangePropagationHook(PostToolUseHook):
             self._record_verification(tool_name, tool_input, state)
 
             # Detect new structural changes
-            if tool_name in _MODIFY_TOOLS or tool_name in {"Bash", "bash"}:
+            if tool_name in _MODIFY_TOOLS or tool_name in _BASH_TOOLS:
                 change = self._detect_change(tool_name, tool_input)
                 if change:
-                    reqs = _VERIFICATION_REQUIREMENTS.get(change["type"], ["cache_clear"])
+                    meta = _VERIFICATION_REQUIREMENTS[change["type"]]
+                    reqs = list(meta["requirements"])
                     state["pending_verifications"].append(
-                        {**change, "remaining": list(reqs), "original_requirements": list(reqs)}
+                        {**change, "remaining": reqs, "original_requirements": list(reqs)}
                     )
                     state["structural_changes"].append(change)
                     self._save_state(state)
@@ -160,7 +257,10 @@ class ChangePropagationHook(PostToolUseHook):
     # -- private helpers --
 
     def _detect_change(self, tool_name: str, tool_input: dict) -> dict | None:
-        """Detect a structural change from the RIGHT field per tool.
+        """Detect a structural change via the producer registry.
+
+        Returns a change dict stamped with `affected_kind` drawn from
+        `_VERIFICATION_REQUIREMENTS` (single source of truth), or None.
 
         Source-aware by design: shell deletions come from the Bash *command*,
         symbol/line removals from the Edit *diff* (old_string vs new_string).
@@ -170,68 +270,61 @@ class ChangePropagationHook(PostToolUseHook):
         A Write creates new content; the prior file state is unknown, so no
         deletion is inferred from it.
         """
-        from __lib.structural_change import deletions_in_command, lines_removed, removed_symbols
-
         filepath = tool_input.get("path") or tool_input.get("file_path")
         now = datetime.now().timestamp()
-
-        if tool_name in {"Bash", "bash"}:
-            paths = deletions_in_command(tool_input.get("command", ""))
-            if paths:
-                return {"type": "file_deletion", "affected": paths[0],
-                        "filepath": filepath, "timestamp": now}
-            return None
-
-        if tool_name in {"Edit", "MultiEdit", "str_replace_editor", "edit_file", "patch"}:
-            edits = tool_input.get("edits")
-            if isinstance(edits, list):  # MultiEdit
-                old = "\n".join(str(e.get("old_string", "")) for e in edits if isinstance(e, dict))
-                new = "\n".join(str(e.get("new_string", "")) for e in edits if isinstance(e, dict))
-            else:
-                old = str(tool_input.get("old_string", "") or "")
-                new = str(tool_input.get("new_string", "") or "")
-            syms = removed_symbols(old, new)
-            if syms:
-                return {"type": "function_removal", "affected": syms[0][1],
-                        "filepath": filepath, "timestamp": now}
-            removed = lines_removed(old, new)
-            if removed > 10:
-                return {"type": "large_deletion", "affected": f"{removed} lines",
-                        "filepath": filepath, "timestamp": now}
-            return None
-
-        # Write (new content; prior state unknown) and everything else: no deletion.
+        for ctype, detector in _PRODUCERS.items():
+            affected = detector(tool_name, tool_input)
+            if affected is None:
+                continue
+            meta = _VERIFICATION_REQUIREMENTS[ctype]
+            return {
+                "type": ctype,
+                "affected": affected,
+                "affected_kind": meta["affected_kind"],
+                "filepath": filepath,
+                "timestamp": now,
+            }
         return None
 
     def _record_verification(self, tool_name: str, tool_input: dict, state: dict) -> None:
-        if tool_name not in {"Bash", "bash"}:
+        if tool_name not in _BASH_TOOLS:
             return
         cmd = tool_input.get("command", "")
         satisfied = []
         for pending in state["pending_verifications"]:
             reqs = pending.get("remaining", [])
             affected = pending.get("affected", "")
+            kind = pending.get("affected_kind", "")
 
-            # Auto-satisfy: if a deleted FILE's path no longer exists on disk,
-            # there's nothing to verify references for. Type-gated to
-            # file_deletion — other change types carry a symbol name or
-            # "N lines" as `affected`, which never resolves to a real path
-            # and would otherwise silently drop execution_test.
-            if pending.get("type") == "file_deletion" and affected and not Path(affected).exists():
-                reqs.clear()
+            # Fail safe: missing/malformed kind → no auto-satisfy. This also
+            # covers stale records written by older hook versions (no
+            # affected_kind field) — they will not auto-satisfy until the
+            # run that created them re-stamps them.
+            if kind not in _AFFECTED_KINDS:
+                continue
 
-            if "grep_references" in reqs and re.search(r"\b(grep|rg|ag|find)\b", cmd):
-                # Flexible matching: check if the affected path OR its basename
-                # appears in the command. Handles Windows paths, regex patterns,
-                # and partial-path grep commands.
-                if affected and (affected in cmd or Path(affected).name in cmd):
-                    reqs.remove("grep_references")
-            if "cache_clear" in reqs and re.search(r"(rm.*__pycache__|find.*-delete.*\.pyc|pyclean)", cmd):
-                reqs.remove("cache_clear")
-            if "execution_test" in reqs and re.search(r"(python|pytest|\.py)", cmd):
-                reqs.remove("execution_test")
-            if "registry_check" in reqs and re.search(r"grep.*(\.json|\.yaml|\.toml|config)", cmd):
-                reqs.remove("registry_check")
+            for req in list(reqs):
+                meta = _REQUIREMENT_META.get(req)
+                if meta is None:
+                    continue  # undeclared requirement: no handler, never auto-satisfy
+
+                # Path-absence auto-satisfy: path-kind + eligible requirement only.
+                # Symbol/magnitude records can never trip this (kind != "path"),
+                # and execution_test is never path-eligible regardless of kind.
+                if (kind == "path" and affected
+                        and meta.get("path_absence_satisfies")
+                        and not Path(affected).exists()):
+                    reqs.remove(req)
+                    continue
+
+                # Command-match auto-satisfy (metadata-driven).
+                pattern = meta.get("command_match")
+                if pattern and re.search(pattern, cmd):
+                    if meta.get("requires_affected_in_cmd", False):
+                        if affected and (affected in cmd or Path(affected).name in cmd):
+                            reqs.remove(req)
+                    else:
+                        reqs.remove(req)
             pending["remaining"] = reqs
             if not reqs:
                 satisfied.append(pending)

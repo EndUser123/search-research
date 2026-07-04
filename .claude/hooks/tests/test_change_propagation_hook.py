@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import importlib
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -191,3 +192,128 @@ def test_file_deletion_still_auto_satisfies_when_path_gone(hook, tmp_path):
     h.process("Bash", {"command": "ls"}, {})  # unrelated Bash
     # file gone → auto-satisfy cleared all reqs → pending removed
     assert _pending(mod) == [], "file_deletion should auto-satisfy when path is gone"
+
+
+# ── STRUCTURAL INVARIANTS: lock the single source of truth ───────────────────
+# These pin the hardening so producer, requirements table, and consumer metadata
+# cannot drift. Adding a type or requirement on one side without the other
+# fails one of these assertions at collection time.
+
+def _cph():
+    """Fresh reference to the hook module (literals are stable across the
+    session-fixture's reloads, so this always sees current constants)."""
+    import importlib
+    return importlib.import_module("posttooluse.change_propagation_hook")
+
+
+def test_producers_match_requirements_keys():
+    """Every producer entry is a declared type and vice versa."""
+    m = _cph()
+    assert set(m._PRODUCERS) == set(m._VERIFICATION_REQUIREMENTS)
+
+
+def test_every_live_type_declares_valid_affected_kind():
+    m = _cph()
+    for ctype, meta in m._VERIFICATION_REQUIREMENTS.items():
+        assert meta["affected_kind"] in m._AFFECTED_KINDS, ctype
+        assert isinstance(meta["requirements"], list), ctype
+
+
+def test_declared_requirements_equal_consumer_meta_keys():
+    """Symmetric drift invariant: every declared requirement has a consumer
+    handler, and every consumer handler is reachable from some declared type."""
+    m = _cph()
+    declared = set()
+    for meta in m._VERIFICATION_REQUIREMENTS.values():
+        declared.update(meta["requirements"])
+    assert declared == set(m._REQUIREMENT_META), (
+        declared.symmetric_difference(m._REQUIREMENT_META)
+    )
+
+
+# ── PRODUCER COVERAGE MATRIX ─────────────────────────────────────────────────
+
+_PRODUCER_INPUTS = {
+    "file_deletion": ("Bash", {"command": "rm x.py"}),
+    "function_removal": ("Edit", {"file_path": "m.py",
+                                  "old_string": "def foo():\n    return 1\n",
+                                  "new_string": "\n"}),
+    "large_deletion": ("Edit", {"file_path": "b.py",
+                                "old_string": "\n".join(f"l{i}" for i in range(15)) + "\n",
+                                "new_string": ""}),
+}
+
+
+@pytest.mark.parametrize("ctype", list(_PRODUCER_INPUTS))
+def test_producer_emits_each_live_type(ctype):
+    """Every live type is producible, and the record carries affected_kind
+    stamped from the table (not duplicated logic)."""
+    m = _cph()
+    tool, inp = _PRODUCER_INPUTS[ctype]
+    h = m.ChangePropagationHook()
+    change = h._detect_change(tool, inp)
+    assert change is not None and change["type"] == ctype
+    assert change["affected_kind"] == m._VERIFICATION_REQUIREMENTS[ctype]["affected_kind"]
+
+
+def test_producer_cannot_emit_undeclared_type():
+    """The producer registry is keyed by declared types, so _detect_change
+    cannot return a type the requirements table doesn't know about."""
+    m = _cph()
+    for ctype in m._PRODUCERS:
+        assert ctype in m._VERIFICATION_REQUIREMENTS
+
+
+# ── PENDING RECORD CARRIES affected_kind (integration smoke) ─────────────────
+
+def test_pending_record_carries_affected_kind_from_table(hook):
+    h, mod = hook
+    h.process("Bash", {"command": "rm gone.py"}, {})
+    p = _pending(mod)
+    assert len(p) == 1
+    assert p[0]["affected_kind"] == "path"
+    assert p[0]["remaining"] == ["grep_references"]
+
+
+# ── PER-REQUIREMENT (NOT PER-TYPE) AUTO-SATISFY ELIGIBILITY ───────────────────
+
+def test_path_kind_execution_test_not_cleared_by_path_absence(hook, tmp_path):
+    """execution_test is never path-eligible, even on a path-kind record.
+    Locks per-requirement semantics so a future file_deletion variant carrying
+    execution_test cannot regress the #1059 bug class."""
+    h, mod = hook
+    state = h._load_state()
+    state["pending_verifications"].append({
+        "type": "file_deletion",
+        "affected": str(tmp_path / "does_not_exist.py"),
+        "affected_kind": "path",
+        "remaining": ["execution_test"],
+        "original_requirements": ["execution_test"],
+        "timestamp": time.time(),  # fresh, so _load_state's staleness filter keeps it
+    })
+    h._save_state(state)
+    h.process("Bash", {"command": "ls"}, {})
+    p = _pending(mod)
+    assert len(p) == 1 and "execution_test" in p[0]["remaining"], (
+        "execution_test was cleared by path absence on a path-kind record"
+    )
+
+
+def test_stale_record_without_affected_kind_fails_safe(hook, tmp_path):
+    """A pending record missing affected_kind (e.g. written by an older hook
+    version) must not auto-satisfy, even when its path is gone."""
+    h, mod = hook
+    state = h._load_state()
+    state["pending_verifications"].append({
+        "type": "file_deletion",
+        "affected": str(tmp_path / "gone.py"),
+        "remaining": ["grep_references"],
+        "original_requirements": ["grep_references"],
+        "timestamp": time.time(),  # fresh, so _load_state's staleness filter keeps it
+    })
+    h._save_state(state)
+    h.process("Bash", {"command": "ls"}, {})
+    p = _pending(mod)
+    assert len(p) == 1 and "grep_references" in p[0]["remaining"], (
+        "stale record without affected_kind was auto-satisfied"
+    )
