@@ -1,5 +1,6 @@
 {
   "env": {
+    "PYTHONPATH": "P:/.claude/hooks/__lib",
     "TDD_AUTOSCAFFOLD": "0",
     "TDD_BYPASS": "0",
     "CLAUDE_CODE_ENABLE_AWAY_SUMMARY": "true",
