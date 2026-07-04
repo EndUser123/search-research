@@ -1561,6 +1561,7 @@ class CKS:
         transcript: str,
         min_confidence: float = 0.60,
         session_id: str | None = None,
+        quality_gate=None,
     ) -> dict:
         """Extract decisions from transcript and ingest to CKS.
 
@@ -1614,6 +1615,7 @@ class CKS:
         total_confidence = 0.0
         with_hypotheses = 0
         oppia_complete_count = 0
+        gated_count = 0
 
         for decision in decisions:
             # Decide entry type based on decision content
@@ -1621,6 +1623,16 @@ class CKS:
                 entry_type = "learning"  # Verified debugging = lesson learned
             else:
                 entry_type = "decision"
+
+            # Quality gate (calibrated 2026-07-04: 109/109 junk rejected on the
+            # purged-decision corpus). gate(title, content, entry_type) -> bool.
+            if quality_gate is not None:
+                try:
+                    if not quality_gate(decision.title, decision.to_cks_content(), entry_type):
+                        gated_count += 1
+                        continue
+                except Exception:
+                    pass  # gate failure must never block capture (fail-open)
 
             # Build metadata
             metadata = decision.to_cks_metadata()
@@ -1645,6 +1657,7 @@ class CKS:
 
         return {
             "count": len(entry_ids),
+            "gated": gated_count,
             "entry_ids": entry_ids,
             "avg_confidence": total_confidence / len(decisions) if decisions else 0.0,
             "hypothesis_coverage": with_hypotheses / len(decisions) if decisions else 0.0,
