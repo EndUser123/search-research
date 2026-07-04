@@ -17,11 +17,10 @@ Signatures are extracted via Python's `ast` module — exact, deterministic, no 
 ## Workflow
 
 ```
-python -c "...inline AST packer..." <target_dir>
+python "<skill-dir>/scripts/gitpack.py" <target_dir> [--exclude <patterns>]
 ```
-Or run manually — the packer is a simple inline script (no gitpack.py in this repo).
 
-1. **DISCOVER** — Glob for all `.py` files in `<target_dir>`, applying exclusions
+1. **DISCOVER** — Glob for all supported files in `<target_dir>`, applying exclusions
 2. **EXTRACT** — Parse each file with `ast`, collect function/class signatures with type annotations
 3. **BUILD** — Write two markdown files to `P://.claude/.artifacts/`:
    - `_sig.md` — signatures + indexes only
@@ -119,7 +118,15 @@ def resolve_skill_path(skill_ref: str) -> Path | None:
 
 ## Architecture
 
-No `gitpack.py` in this repo — the packer is a simple inline Python script using `ast`. Run it directly from Bash with `python -c "..."` or copy the pattern into a temp script.
+The packer is `scripts/gitpack.py` — a standalone AST-based Python script. Run it directly:
+
+```bash
+python "<skill-dir>/scripts/gitpack.py" <target_dir> [--exclude <patterns>]
+```
+
+Produces `P:/.claude/.artifacts/<name>_sig.md` and `<name>_full.md`.
+
+**Fallback:** If the script is unreachable, the inline AST packer pattern in the examples section can be used, but it lacks fallback regex extraction and multi-language support that `gitpack.py` provides.
 
 ## See Also
 
