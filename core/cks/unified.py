@@ -180,7 +180,7 @@ class CKS:
 
         if db_path is None:
             # Default to main __csf data directory (absolute path for consistency)
-            db_path = Path("P:\\\\\\__csf/data/cks.db")
+            db_path = Path(__file__).resolve().parents[2] / "data" / "cks.db"
         else:
             db_path = Path(db_path)
 
