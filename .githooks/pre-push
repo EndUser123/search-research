@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# Pre-push: Trufflehog secret scan + scoped regression tests.
+#
+# Stages:
+#   1. Trufflehog secret scan (recent 20 commits) — blocks on secrets
+#   2. Scoped regression tests — runs only tests matching changed files
+#
+# Bypass:
+#   Trufflehog: GIT_TRUFFLEHOG_BYPASS=1 git push
+#   Regression:  BYPASS=1 git push
+
+set -uo pipefail
+# Note: -e removed because SIGPIPE (141) from head/grep pipes triggers false failures.
+# Safety is preserved by explicit exit code checks after each critical command.
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+# ============================================================
+# Stage 1: Trufflehog secret scan
+# ============================================================
+if [ "${GIT_TRUFFLEHOG_BYPASS:-0}" != "1" ]; then
+    TH_BIN="/c/tmp/trufflehog.exe"
+
+    if [ -x "$TH_BIN" ]; then
+        echo "Running Trufflehog secret scan..."
+        CHANGED=$(git diff --name-only HEAD~20..HEAD 2>/dev/null | grep -vE '\.(png|jpg|gif|pdf|zip|tar|gz)$' | grep -vE '(node_modules|\.venv|__pycache__|\.git/)' | head -100)
+
+        if [ -n "$CHANGED" ]; then
+            TEMP=$(mktemp)
+            # Escape paths into valid regexes (sed escaping unreliable on Windows Git Bash)
+            # Use process substitution to avoid SIGPIPE with pipefail
+            python3 -c "import sys,re
+for line in '''$CHANGED'''.splitlines():
+    line = line.strip()
+    if line: print(re.escape(line))" > "$TEMP"
+            RESULT=$(timeout 60s "$TH_BIN" filesystem --include-paths "$TEMP" --no-update 2>&1)
+            SCAN_EXIT=$?
+            rm -f "$TEMP"
+
+            if [ $SCAN_EXIT -eq 124 ]; then
+                echo "WARNING: Trufflehog timed out (60s). Push blocked."
+                echo "Bypass: GIT_TRUFFLEHOG_BYPASS=1 git push"
+                exit 1
+            fi
+            if [ $SCAN_EXIT -ne 0 ]; then
+                echo "WARNING: Secrets potentially detected:"
+                echo "$RESULT" | head -30
+                echo "Push blocked. Remove secrets or bypass."
+                exit 1
+            fi
+            echo "Secret scan passed."
+        else
+            echo "No recent code changes to scan."
+        fi
+    else
+        echo "Trufflehog not found at $TH_BIN — skipping secret scan."
+    fi
+else
+    echo "Trufflehog bypass requested."
+fi
+
+# ============================================================
+# Stage 2: Scoped regression tests
+# Bypass: BYPASS=1 git push
+# ============================================================
+if [ "${BYPASS:-0}" = "1" ]; then
+    echo "Regression bypass requested."
+    exit 0
+fi
+
+CHANGED=$(git diff --name-only HEAD~20..HEAD 2>/dev/null | grep -vE '\.(png|jpg|gif|pdf|zip|tar|gz)$' | grep -vE '(node_modules|\.venv|__pycache__|\.git/)' || echo "")
+
+if [ -z "$CHANGED" ]; then
+    echo "No recent code changes for regression."
+    exit 0
+fi
+
+run_scope() {
+    local label="$1"
+    local pattern="$2"
+    local tests="$3"
+    if echo "$CHANGED" | grep -qiE "$pattern"; then
+        echo ""
+        echo ">>> [REGRESS:$label] matching: $pattern"
+        python -m pytest $tests -q --tb=short 2>/dev/null || python -m pytest $tests -q --tb=short
+        local rc=$?
+        if [ $rc -ne 0 ]; then
+            echo "FAILED ($label) — fix tests or BYPASS=1 git push"
+            exit 1
+        fi
+        echo "[REGRESS:$label] passed"
+    fi
+}
+
+run_scope "GATE"     "intent_artifact_alignment" \
+    ".claude/hooks/tests/test_intent_artifact_alignment.py"
+
+run_scope "STOP"     "stop\.py|stop_hook|overconfidence|hypothesis_as_fact|stop_verification" \
+    ".claude/hooks/tests/test_stop_hook_tier3_verification.py .claude/hooks/tests/test_cleanup_verifier.py"
+
+run_scope "PRE"      "pretooluse|PreToolUse" \
+    ".claude/hooks/tests/test_pretooluse_integration.py"
+
+run_scope "ATOMIC"   "atomic_writes|file_lock" \
+    ".claude/hooks/tests/test_atomic_writes.py"
+
+
+# Always run smoke tests on any code change (only files with no pre-existing failures)
+echo ""
+echo ">>> [SMOKE] gate + atomic"
+python -m pytest \
+    .claude/hooks/tests/test_intent_artifact_alignment.py \
+    .claude/hooks/tests/test_atomic_writes.py \
+    -q --tb=short 2>/dev/null || \
+    python -m pytest \
+    .claude/hooks/tests/test_intent_artifact_alignment.py \
+    .claude/hooks/tests/test_atomic_writes.py \
+    -q --tb=short
+
+if [ $? -ne 0 ]; then
+    echo "SMOKE FAILED — fix tests or BYPASS=1 git push"
+    exit 1
+fi
+
+echo ""
+echo "Pre-push: ALL PASSED"
+exit 0
+

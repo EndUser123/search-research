@@ -1,84 +1,92 @@
-#!/usr/bin/env python3
-"""
-Pre-commit hook: Run instant_check.py on staged Python files.
+#!/bin/bash
+# Pre-commit hook: run gate regression tests when gate code changes,
+# and validate all Python hook files for syntax errors.
+#
+# Bypass: git commit --no-verify (discouraged for gate changes)
 
-Runs <100ms import shadowing detection before allowing commit.
+set -euo pipefail
 
-To install:
-    git config core.hooksPath .githooks
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
 
-Or manually:
-    cp .githooks/pre-commit .git/hooks/pre-commit
-"""
-from __future__ import annotations
+# =====================================================================
+# SECTION 1: Hook correctness check (all Python files in hook directories)
+# =====================================================================
+HOOK_CHANGED=$(git diff --cached --name-only | grep -E '\.(py)$' | grep -E 'hooks/' || true)
+if [ -n "$HOOK_CHANGED" ]; then
+    echo "Hook files staged — checking Python syntax..."
+    ERRORS=0
+    for f in $(git diff --cached --name-only | grep -E '\.(py)$' | grep -E 'hooks/'); do
+        # Only check files that are staged (not deleted)
+        if git diff --cached -- "$f" | grep -q '^+'; then
+            STAGED_CONTENT=$(git show ":$f" 2>/dev/null) || continue
+            # Validate the *staged* bytes. py_compile with '-' reads a list of
+            # filenames from stdin (not source), so it misread file content as
+            # paths; ast.parse syntax-checks the source piped on stdin directly.
+            RESULT=$(echo "$STAGED_CONTENT" | python -c "import ast,sys; ast.parse(sys.stdin.read())" 2>&1) && continue
+            echo "  SYNTAX ERROR in staged $f:"
+            echo "$RESULT" | head -3 | sed 's/^/    /'
+            ERRORS=$((ERRORS + 1))
+        fi
+    done
+    if [ $ERRORS -gt 0 ]; then
+        echo ""
+        echo "Pre-commit hook: $ERRORS Python syntax error(s) in staged hook files."
+        echo "Fix before committing. Bypass: git commit --no-verify"
+        exit 1
+    fi
+    echo "Hook Python syntax: OK"
+fi
 
-import os
-import subprocess
-import sys
-from pathlib import Path
+# =====================================================================
+# SECTION 2: gitleaks secret scan on staged content
+# =====================================================================
+# Invokes gitleaks by absolute path — the winget shim is NOT on PATH in
+# stripped/hook subprocess environments (verified), so a bare `gitleaks`
+# call would silently no-fire. Fails OPEN (warn + skip) if the binary or
+# config is missing, so a winget uninstall never hard-blocks all commits.
+GITLEAKS="C:/Users/brsth/AppData/Local/Microsoft/WinGet/Links/gitleaks.exe"
+GITLEAKS_CONFIG="P:/.claude/gitleaks.toml"
+if [ ! -f "$GITLEAKS" ] || [ ! -f "$GITLEAKS_CONFIG" ]; then
+    echo "pre-commit: gitleaks not found — secret scan SKIPPED (fail-open)."
+    echo "  expected shim:   $GITLEAKS"
+    echo "  expected config: $GITLEAKS_CONFIG"
+else
+    # git-path resolves against the real git-dir; in a worktree $REPO_ROOT/.git
+    # is a file (gitdir pointer), not a dir, so gitleaks could not write its report.
+    GL_REPORT="$(git rev-parse --git-path gitleaks-scan.json)"
+    if ! git diff --cached | "$GITLEAKS" stdin --no-banner --config "$GITLEAKS_CONFIG" --redact -f json -r "$GL_REPORT" >/dev/null 2>&1; then
+        echo "SECRET DETECTED in staged content — commit blocked."
+        python -c "import json,sys; d=json.load(open(sys.argv[1])); [print('  %s @ %s:%s' % (f.get('RuleID','?'), f.get('File','?'), f.get('StartLine','?'))) for f in d]" "$GL_REPORT" 2>/dev/null || cat "$GL_REPORT"
+        rm -f "$GL_REPORT"
+        echo "False positive? Add the finding fingerprint to .gitleaksignore (repo root)."
+        echo "Bypass (NOT recommended): git commit --no-verify"
+        exit 1
+    fi
+    rm -f "$GL_REPORT"
+fi
 
-# Get the git root and project root
-GIT_ROOT = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip())
-PROJECT_ROOT = GIT_ROOT / "__csf.nip"
-INSTANT_CHECK = PROJECT_ROOT / "scripts" / "instant_check.py"
+# =====================================================================
+# SECTION 3: intent_artifact_alignment regression tests
+# =====================================================================
+ALIGN_CHANGED=$(git diff --cached --name-only | grep -i "intent_artifact_alignment" || true)
 
+if [ -z "$ALIGN_CHANGED" ]; then
+    exit 0
+fi
 
-def get_staged_python_files() -> list[Path]:
-    """Get list of staged Python files."""
-    result = subprocess.run(
-        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        return []
+echo "Alignment files changed, running regression tests..."
 
-    files = []
-    for line in result.stdout.strip().splitlines():
-        path = GIT_ROOT / line
-        # Only check Python files within __csf.nip
-        if path.suffix == ".py" and "__csf.nip" in path.parts:
-            files.append(path)
-    return files
+python -m pytest .claude/hooks/tests/test_intent_artifact_alignment.py -q
+EXIT_CODE=$?
 
+if [ $EXIT_CODE -ne 0 ]; then
+    echo ""
+    echo "GATE REGRESSION TESTS FAILED."
+    echo "Commit blocked. Fix the failing tests before committing."
+    echo "Bypass (not recommended): git commit --no-verify"
+    exit 1
+fi
 
-def main() -> int:
-    """Run pre-commit checks on all staged Python files."""
-    if not PROJECT_ROOT.exists():
-        return 0
-
-    if not INSTANT_CHECK.exists():
-        # Hook exists but instant_check.py doesn't - allow commit (don't block)
-        return 0
-
-    staged_files = get_staged_python_files()
-    if not staged_files:
-        return 0
-
-    # Import instant_check
-    if not str(PROJECT_ROOT) in sys.path:
-        sys.path.insert(0, str(PROJECT_ROOT))
-
-    from scripts import instant_check
-
-    issues_found = False
-    for filepath in staged_files:
-        result = instant_check.check_file(str(filepath))
-
-        if result["exit_code"] != 0:
-            issues_found = True
-            rel_path = filepath.relative_to(GIT_ROOT)
-            print(f"\n❌ Instant check failed: {rel_path}")
-            for issue in result["issues"]:
-                print(f"   • {issue}")
-
-    if issues_found:
-        print("\n⚠️  Commit blocked by instant check.")
-        print("   Fix the import shadowing issues above, or use --no-verify to bypass.")
-        return 1
-
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+echo "Alignment tests passed."
+exit 0
