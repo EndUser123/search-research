@@ -91,10 +91,12 @@ def _normalize_stdout(data: dict) -> dict:
 
 
 import concurrent.futures
+import glob
 import json
 import logging
 import os
 import re
+import shlex
 import sys
 from pathlib import Path
 
@@ -284,22 +286,18 @@ DELETION_COMMAND_PATTERNS = re.compile(
 _TRANSCRIPT_TAIL_BYTES = 1_000_000
 
 
-def _transcript_turn_has_deletion(transcript_path: str) -> bool:
-    """Detect a filesystem-deletion command in the CURRENT turn via the transcript.
+def _iter_transcript_turn_commands(transcript_path: str):
+    """Yield assistant ``tool_use`` command strings from the CURRENT turn.
 
-    Real Stop payloads omit ``tool_events`` (verified via PROBE: the live key set
-    is response/transcript_path/session_id/... with no tool_events) but DO include
-    ``transcript_path``, which is authoritative. Reads a bounded tail of the JSONL,
-    walks backward collecting assistant ``tool_use`` command strings until the last
-    real user prompt (the turn boundary), and tests them against the deletion
-    patterns. Fail-open on any error.
+    Real Stop payloads omit ``tool_events`` but include ``transcript_path``
+    (authoritative). Reads a bounded tail of the JSONL, walks backward yielding
+    assistant tool_use ``command`` strings until the last real user prompt
+    (the turn boundary). Fail-open: yields nothing on any error.
     """
-    import json
-
     try:
         p = Path(transcript_path)
         if not p.exists():
-            return False
+            return
         size = p.stat().st_size
         with p.open("rb") as fh:
             if size > _TRANSCRIPT_TAIL_BYTES:
@@ -325,17 +323,21 @@ def _transcript_turn_has_deletion(transcript_path: str) -> bool:
                     isinstance(b, dict) and b.get("type") == "tool_result" for b in content
                 )
                 if not is_tool_result:
-                    break
+                    return
             if obj.get("type") == "assistant" and isinstance(content, list):
                 for b in content:
                     if isinstance(b, dict) and b.get("type") == "tool_use":
                         inp = b.get("input", {}) or {}
                         cmd = inp.get("command", "") if isinstance(inp, dict) else ""
-                        if cmd and DELETION_COMMAND_PATTERNS.search(str(cmd)):
-                            return True
+                        if cmd:
+                            yield str(cmd)
     except Exception:
-        return False
-    return False
+        return
+
+
+def _transcript_turn_has_deletion(transcript_path: str) -> bool:
+    """Detect a filesystem-deletion command in the CURRENT turn via the transcript."""
+    return any(DELETION_COMMAND_PATTERNS.search(c) for c in _iter_transcript_turn_commands(transcript_path))
 
 
 def _turn_performed_deletion(data: dict) -> bool:
@@ -372,6 +374,150 @@ def _turn_performed_deletion(data: dict) -> bool:
     except Exception:
         return False
     return False
+
+
+# --- Literal deletion-target extraction (v2 ROOT-CAUSE FP FIX) ---------------
+# When a deletion command ran this turn, verify the LITERAL targets of THAT
+# command (transcript-authoritative) — NOT prose-paths lifted from the full
+# response. Prose-paths ("CLAUDE.md" in a review, a parent dir mentioned in
+# context) are not deletion targets; verifying them caused the false
+# "file still exists" blocks (e.g. the 2026-07-03 pointer-cleanup block that
+# flagged CLAUDE.md and P:\.claude\.artifacts/ which were never rm'd).
+
+_GLOB_CHARS = ("*", "?", "[")
+
+# Constructs whose targets are determined at runtime by another command's
+# output (xargs, find -exec) or shell substitution ($(), backticks, ${var}).
+# The literal command text does not name the targets, so disk verification
+# cannot be anchored to the command → fail-open advisory instead.
+_UNVERIFIABLE_CONSTRUCT_RE = re.compile(
+    r"\bxargs\s+(?:sudo\s+)?(?:rm|git\s+rm)\b"
+    r"|`[^`]*`"
+    r"|\$\([^)]*\)"
+    r"|\$\{[A-Za-z_]\w*\}"
+    r"|(?<![\w-])-exec(?:\s|$)"  # find -exec
+)
+
+# Deletion verbs: only these set ``seen_verb`` (everything after one of them,
+# up to the next shell operator, is a candidate target).
+_DELETION_VERBS = {
+    "rm", "rmdir", "rd", "del", "unlink",
+    "Remove-Item", "remove-item", "trash", "trash-put",
+}
+
+# Context tokens: skipped silently (do NOT set seen_verb). These precede the
+# deletion verb (``sudo rm``, ``git rm``) or wrap it (``find . -exec rm``,
+# ``... | xargs rm``). Paths appearing before the deletion verb — e.g. a
+# ``find`` search root — must not be captured as targets.
+_SHELL_CONTEXT_TOKENS = {"sudo", "git", "find", "xargs"}
+
+# Shell operators / terminators to skip when tokenizing.
+_SHELL_OPERATOR_TOKENS = {";", "&", "|", "&&", "||", ">", "<", ">>", "<<", "(", ")"}
+
+# Path-like discriminator: a token is a candidate deletion target if it has a
+# path separator, a trailing file extension, or a leading relative-path dot.
+_PATH_LIKE_RE = re.compile(r"[/\\]|\.[A-Za-z0-9]{1,4}$|^\.")
+
+
+def _collect_turn_deletion_commands(data: dict) -> list[str]:
+    """Return THIS turn's deletion-command strings (deduped, order-preserving).
+
+    Source priority mirrors ``_turn_performed_deletion``: tool_events →
+    tool_calls → transcript_path (authoritative for real Stop payloads).
+    Only commands matching ``DELETION_COMMAND_PATTERNS`` are returned.
+    """
+    cmds: list[str] = []
+    try:
+        for ev in data.get("tool_events", []) or []:
+            if not isinstance(ev, dict):
+                continue
+            ti = ev.get("input", {}) or ev.get("tool_input", {}) or {}
+            if isinstance(ti, dict):
+                cmd = str(ti.get("command", "") or ti.get("cmd", ""))
+                if cmd and cmd not in cmds:
+                    cmds.append(cmd)
+        tc = data.get("tool_calls", "")
+        if isinstance(tc, str) and tc.strip() and tc not in cmds:
+            cmds.append(tc)
+        tpath = data.get("transcript_path", "")
+        if tpath:
+            for cmd in _iter_transcript_turn_commands(str(tpath)):
+                if cmd not in cmds:
+                    cmds.append(cmd)
+    except Exception:
+        return []
+    return [c for c in cmds if DELETION_COMMAND_PATTERNS.search(c)]
+
+
+def _strip_surrounding_quotes(tok: str) -> str:
+    """Strip one matching surrounding quote pair (shlex posix=False keeps them)."""
+    if len(tok) >= 2 and tok[0] in ('"', "'") and tok[-1] == tok[0]:
+        return tok[1:-1]
+    return tok
+
+
+def _parse_deletion_targets(cmd: str) -> tuple[list[str], bool]:
+    """Parse literal deletion-target paths from one deletion command string.
+
+    Returns ``(targets, unverifiable)``:
+      * ``targets`` — literal path-like tokens that appear after the deletion
+        verb (flags, command names, and shell operators excluded).
+      * ``unverifiable`` — True if the command uses a construct whose targets
+        are not literally present (xargs rm, find -exec, $(), backticks,
+        ${var}) or the command is unparseable by shlex.
+
+    Fail-safe: when in doubt, returns ``([], True)`` so the caller fails open
+    rather than verifying against the wrong artifact.
+    """
+    unverifiable = bool(_UNVERIFIABLE_CONSTRUCT_RE.search(cmd))
+    try:
+        tokens = shlex.split(cmd, posix=False)
+    except ValueError:
+        return [], True  # unparseable → treat as unverifiable (fail-open)
+
+    targets: list[str] = []
+    seen_verb = False
+    for tok in tokens:
+        tok = _strip_surrounding_quotes(tok)
+        if tok.startswith("-"):
+            continue  # flag
+        if tok == "{}" or tok in _SHELL_OPERATOR_TOKENS:
+            continue
+        if tok in _SHELL_CONTEXT_TOKENS:
+            continue  # sudo/git/find/xargs — precede or wrap the deletion verb
+        if tok in _DELETION_VERBS:
+            seen_verb = True
+            continue
+        if tok.startswith("$") or tok.startswith("`"):
+            continue  # command-substitution residue
+        if not seen_verb:
+            continue
+        if _PATH_LIKE_RE.search(tok) and tok not in targets:
+            targets.append(tok)
+    return targets, unverifiable
+
+
+def _extract_deletion_targets(data: dict) -> tuple[list[str], bool]:
+    """Aggregate literal deletion targets across this turn's deletion commands.
+
+    Returns ``(targets, unverifiable)``. ``targets`` is the deduped union of
+    literal path-like args; ``unverifiable`` is True if ANY deletion command
+    used a construct whose targets are not literally present.
+    """
+    all_targets: list[str] = []
+    any_unverifiable = False
+    for cmd in _collect_turn_deletion_commands(data):
+        targets, unverifiable = _parse_deletion_targets(cmd)
+        for t in targets:
+            if t not in all_targets:
+                all_targets.append(t)
+        any_unverifiable = any_unverifiable or unverifiable
+    return all_targets, any_unverifiable
+
+
+def _advisory(message: str) -> dict:
+    """Non-blocking Stop advisory (fail-open with model-facing context)."""
+    return {"hookSpecificOutput": {"hookEventName": "Stop", "additionalContext": message}}
 
 
 # --- Path extraction -----------------------------------------------------------
@@ -540,6 +686,29 @@ def _verify_deletion_claim(paths: list[str]) -> tuple[bool, str]:
 
     for path_str in paths:
         try:
+            # Glob-aware: a target with wildcard chars is expanded rather than
+            # treated as a literal. Any existing match ⇒ the deletion did NOT
+            # remove everything matched (block); zero matches ⇒ deleted (allow).
+            if any(c in path_str for c in _GLOB_CHARS):
+                glob_pattern = path_str
+                if not Path(glob_pattern).is_absolute():
+                    glob_pattern = str(
+                        Path(os.environ.get("CLAUDE_PROJECT_DIR", ".")) / glob_pattern
+                    )
+                matches = glob.glob(glob_pattern)
+                if matches:
+                    for m in matches:
+                        display = _sanitize_for_log(m)
+                        if Path(m).is_dir():
+                            confirmed_existing.append(f"{display}/ (directory)")
+                        else:
+                            confirmed_existing.append(display)
+                else:
+                    log_messages.append(
+                        f"No glob matches (deleted): {_sanitize_for_log(path_str)}"
+                    )
+                continue
+
             path = _normalize_path(path_str)
 
             # SEC-002: Boundary validation - ensure path stays within project root
@@ -706,61 +875,49 @@ def check(data: dict) -> dict | None:
         [claim for claim, _ in claims],
     )
 
-    # Verify each claim
-    for claim_text, file_paths in claims:
-        if not file_paths:
-            # No specific files mentioned - can't verify UNLESS response contains ANY path-like string
-            # This allows "removed the kimi alias from ai_cli.py" to pass (path in response)
-            # while still blocking bare "removed X" claims without any file context
-            response_has_paths = _extract_file_paths(response)
-            if response_has_paths:
-                _logger.debug(
-                    "deletion claim has no paths near match but response contains %d path(s) - allowing",
-                    len(response_has_paths),
-                )
-                continue  # Allow: response contains paths that can be verified
+    # v2 (ROOT-CAUSE FP FIX): verify the LITERAL targets of the deletion
+    # command that ran this turn — NOT prose-paths lifted from the full
+    # response. Prose-paths ("CLAUDE.md" in a review, a parent directory
+    # mentioned in context) are not deletion targets; verifying them caused
+    # false "file still exists" blocks. See module notes.
+    targets, unverifiable = _extract_deletion_targets(data)
 
-            # Truly bare deletion claim - block
-            _logger.warning("deletion claim without file paths: %s", claim_text)
-            lines = ["**Unverified Deletion Claim Detected**\n"]
-            lines.append(f'Claim: "{claim_text}"\n')
-            lines.append(
-                "No specific files mentioned to verify.\n"
-                "Before claiming deletion, specify which files were deleted "
-                "so verification can occur."
-            )
-            return {
-                "decision": "block",
-                "reason": "\n".join(lines),
-                "blocking_hook": "Stop_deletion_verification_guard",
-            }
+    if not targets:
+        why = (
+            "unverifiable construct (xargs/find-exec/$()/backtick)"
+            if unverifiable
+            else "no path-like argument parsed from the command"
+        )
+        _logger.info("deletion command ran but %s; advisory fail-open", why)
+        return _advisory(
+            "Deletion claim could not be tied to specific on-disk targets "
+            f"({why}). The deletion may have succeeded; verify manually with "
+            "Read/Glob/Bash if uncertain."
+        )
 
-        # Verify files actually don't exist
-        verified, reason = _verify_deletion_claim(file_paths)
+    verified, reason = _verify_deletion_claim(targets)
+    if not verified:
+        _logger.warning(
+            "BLOCK: %d unverified deletion target(s) - still exist", len(targets)
+        )
+        claim_text = claims[0][0]
+        lines = ["**Unverified Deletion Claim Detected**\n"]
+        lines.append(f'Claim: "{claim_text}"\n')
+        lines.append("\n")
+        lines.append(reason)
+        lines.append("\n")
+        lines.append(
+            "Before claiming files are deleted, verify they actually "
+            "don't exist on the file system. Use Read, Glob, or Bash to "
+            "confirm the deletion succeeded."
+        )
+        return {
+            "decision": "block",
+            "reason": "\n".join(lines),
+            "blocking_hook": "Stop_deletion_verification_guard",
+        }
 
-        if not verified:
-            _logger.warning(
-                "BLOCK: %d unverified deletion claim(s) - files still exist",
-                len(file_paths),
-            )
-            lines = ["**Unverified Deletion Claim Detected**\n"]
-            lines.append(f'Claim: "{claim_text}"\n')
-            lines.append("\n")
-            lines.append(reason)
-            lines.append("\n")
-            lines.append(
-                "Before claiming files are deleted, verify they actually "
-                "don't exist on the file system. Use Read, Glob, or Bash to "
-                "confirm the deletion succeeded."
-            )
-            return {
-                "decision": "block",
-                "reason": "\n".join(lines),
-                "blocking_hook": "Stop_deletion_verification_guard",
-            }
-
-    # All claims verified
-    _logger.info("deletion claims verified - files actually deleted")
+    _logger.info("deletion targets verified - files actually deleted")
     return None
 
 
