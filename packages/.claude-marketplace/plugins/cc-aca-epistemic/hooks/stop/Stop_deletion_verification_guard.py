@@ -395,6 +395,7 @@ _UNVERIFIABLE_CONSTRUCT_RE = re.compile(
     r"|`[^`]*`"
     r"|\$\([^)]*\)"
     r"|\$\{[A-Za-z_]\w*\}"
+    r"|\$[A-Za-z_]\w*"  # bare $VAR (no braces)
     r"|(?<![\w-])-exec(?:\s|$)"  # find -exec
 )
 
@@ -479,9 +480,29 @@ def _parse_deletion_targets(cmd: str) -> tuple[list[str], bool]:
     seen_verb = False
     for tok in tokens:
         tok = _strip_surrounding_quotes(tok)
+        # Embedded command boundary (`a;`, `x|y`, `rm&&rm`): shlex with
+        # posix=False keeps `a;` as ONE token, so the standalone-operator
+        # check below can't see the `;`. Split here — the prefix stays in
+        # the current verb's scope, the suffix starts a new command. Without
+        # this, `rm a; ls b.py` mis-captures b.py as an rm target.
+        split_at = -1
+        for op in ("&&", "||", ";", "|", "&"):
+            i = tok.find(op)
+            if i != -1 and (split_at == -1 or i < split_at):
+                split_at = i
+        if split_at != -1:
+            prefix = tok[:split_at]
+            if (seen_verb and len(prefix) > 1
+                    and _PATH_LIKE_RE.search(prefix) and prefix not in targets):
+                targets.append(prefix)
+            seen_verb = False
+            continue
         if tok.startswith("-"):
             continue  # flag
-        if tok == "{}" or tok in _SHELL_OPERATOR_TOKENS:
+        if tok == "{}":
+            continue
+        if tok in _SHELL_OPERATOR_TOKENS:
+            seen_verb = False  # command boundary: stop collecting targets
             continue
         if tok in _SHELL_CONTEXT_TOKENS:
             continue  # sudo/git/find/xargs — precede or wrap the deletion verb
@@ -690,6 +711,17 @@ def _verify_deletion_claim(paths: list[str]) -> tuple[bool, str]:
             # treated as a literal. Any existing match ⇒ the deletion did NOT
             # remove everything matched (block); zero matches ⇒ deleted (allow).
             if any(c in path_str for c in _GLOB_CHARS):
+                # A literal file whose NAME contains glob chars (e.g.
+                # `file[1].txt`) exists as-is; only expand as a wildcard if
+                # the literal path does NOT exist. Prevents `[1]` being read
+                # as a character class and falsely logging a real file as
+                # deleted.
+                literal = _normalize_path(path_str)
+                if project_root is None or _validate_path_boundary(literal, project_root):
+                    lexists, _, _ = _check_path_with_timeout(literal)
+                    if lexists:
+                        confirmed_existing.append(_sanitize_for_log(str(literal)))
+                        continue
                 glob_pattern = path_str
                 if not Path(glob_pattern).is_absolute():
                     glob_pattern = str(
@@ -882,17 +914,25 @@ def check(data: dict) -> dict | None:
     # false "file still exists" blocks. See module notes.
     targets, unverifiable = _extract_deletion_targets(data)
 
-    if not targets:
-        why = (
-            "unverifiable construct (xargs/find-exec/$()/backtick)"
-            if unverifiable
-            else "no path-like argument parsed from the command"
+    # Unverifiable constructs (xargs/find-exec/$()/backtick/${var}/$var) name
+    # no literal target — disk verification cannot be anchored to the command,
+    # so emit an advisory (fail-open) regardless of any tokens parsed. Without
+    # this, `find . -exec rm {} \;` would parse `\;` as a garbage target,
+    # silently verify it as non-existent, and lose the unverifiable signal.
+    if unverifiable:
+        _logger.info("deletion command uses unverifiable construct; advisory fail-open")
+        return _advisory(
+            "Deletion command used a construct whose targets are not literally "
+            "present (xargs/find-exec/$()/backtick/${var}/$var). The deletion "
+            "may have succeeded; verify manually with Read/Glob/Bash if uncertain."
         )
-        _logger.info("deletion command ran but %s; advisory fail-open", why)
+
+    if not targets:
+        _logger.info("deletion command ran but no path-like argument parsed; advisory fail-open")
         return _advisory(
             "Deletion claim could not be tied to specific on-disk targets "
-            f"({why}). The deletion may have succeeded; verify manually with "
-            "Read/Glob/Bash if uncertain."
+            "(no path-like argument parsed from the command). The deletion "
+            "may have succeeded; verify manually with Read/Glob/Bash if uncertain."
         )
 
     verified, reason = _verify_deletion_claim(targets)
