@@ -605,6 +605,38 @@ def resolve_skill_path(skill_ref: str) -> Path | None:
     return None
 
 
+def _skill_companions(skill_dir: Path) -> list[str]:
+    """Files/dirs that support reviewing a skill but live at its plugin root:
+    top-level docs (README, OUTPUT_SCHEMA, HOOKS_AVAILABLE, CLAUDE.md,
+    AGENTS.md, config.json, .mcp.json) plus sibling agents/ and commands/ dirs.
+
+    Returns existing paths the caller adds to the pack. Returns [] when the
+    skill is not nested under a plugin <skills/> root (a lone skill dir), so
+    self-contained skills are unaffected. Sibling skills/, hooks/, scripts/,
+    and __lib/ are intentionally excluded — pass the plugin root explicitly
+    (e.g. `/gitpack <plugin>`) when implementation files are needed.
+    """
+    parent = skill_dir.parent  # .../skills/
+    if parent.name != "skills":
+        return []
+    plugin_root = parent.parent  # cache <plugin>/<version>/ or marketplace <plugin>/
+    if not plugin_root.is_dir():
+        return []
+    companions: list[str] = []
+    for name in (
+        "README.md", "OUTPUT_SCHEMA.md", "HOOKS_AVAILABLE.md",
+        "CLAUDE.md", "AGENTS.md", "config.json", ".mcp.json",
+    ):
+        cand = plugin_root / name
+        if cand.exists():
+            companions.append(str(cand))
+    for name in ("agents", "commands"):
+        cand = plugin_root / name
+        if cand.is_dir():
+            companions.append(str(cand))
+    return companions
+
+
 
 # ---------------------------------------------------------------------------
 # Main
@@ -732,6 +764,11 @@ def main() -> None:
                   file=sys.stderr)
             sys.exit(2)
         positional.append(str(resolved))
+        # Auto-include plugin-root docs + agents/ + commands/ so a skill whose
+        # schema, hook inventory, or specialists live at the plugin root (e.g.
+        # improve-partner) is reviewable without a second manual path. No-op for
+        # self-contained skills.
+        positional.extend(_skill_companions(resolved))
         if not name:
             name = resolved.name
 
