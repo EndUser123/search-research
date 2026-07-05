@@ -1642,3 +1642,9 @@ File: concepts/adr-derived-data-location-policy-20260704.md
   - URL: https://test.example/x
   - SHA256: 9f077ab94fe81c3adeebc85d35320e5eb9633ccee674255763eefebe645ab964
   - Source: crawl-ingest (skipped)
+
+## [2026-07-04] ingest | Confabulated Ignorance and the Source-Fabrication Stop Gate
+Source: session-2026-07-04-research (web + in-repo source verification)
+SHA256: newly-created-2026-07-04
+Content: Maps confabulation/source-amnesia/sycophantic-false-ignorance failure modes to Claude Code enforcement. Verified StopHook_cross_validator.py::verify_document_claim trigger + quote_exemption gap (Task #1123 FP). Corrects earlier wrong hypothesis (gate never sees user prompt). Confabulated-ignorance detector = named-but-unstudied gap.
+Page: wiki/concepts/confabulated-ignorance-and-source-fabrication-gate.md
