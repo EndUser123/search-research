@@ -28,7 +28,6 @@ MAX_FILE_READ = 1024 * 1024  # 1MB
 VAULT_MTIME_CACHE_TTL = 5.0  # seconds
 REBUILD_FAILURE_LIMIT = 3
 REBUILD_COOLDOWN = 60.0  # seconds
-MAX_QUERY_LENGTH = 500
 
 # Locale env for QMD subprocess calls
 _QMD_LOCALE_ENV = {"LANG": "en_US.UTF-8", "LC_ALL": "en_US.UTF-8"}
@@ -170,19 +169,10 @@ class QMDWikiBackend(BaseLocalBackend):
         """Constraint 10: Empty vault guard in _get_vault_mtime()."""
         return self._get_vault_mtime_cached()
 
-    def _sanitize_query(self, query: str, max_length: int = MAX_QUERY_LENGTH) -> str:
-        """FTS5-aware sanitizer for qmd.
-
-        qmd passes the query raw to SQLite FTS5 MATCH, which treats `-`, `*`,
-        `()`, `"`, etc. as query syntax — so a hyphenated term like
-        ``two-levers`` parses as ``two NOT levers`` and returns zero hits
-        (#1064). The base sanitizer only strips non-printables + truncates;
-        it does not neutralize FTS5 operators. Strip operator punctuation
-        here, keeping Unicode word chars so Latin/CJK/Cyrillic survive.
-        """
-        cleaned = super()._sanitize_query(query, max_length)
-        cleaned = re.sub(r"[^\w\s]", " ", cleaned)
-        return re.sub(r"\s+", " ", cleaned).strip()
+    # FTS5 operator stripping (#1064) is handled at the root in our forked
+    # qmd.build_fts5_query — see cc-skills-utils/__lib/qmd_fts5_patch.patch.
+    # The parent _sanitize_query (non-printable strip + length truncation) is
+    # sufficient; no caller-side FTS5 override needed.
 
     async def search_batch_async(
         self, queries: list[str], limit: int = 10
