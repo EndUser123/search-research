@@ -1265,23 +1265,35 @@ def main():
     # file immediately. _check_skill_first_gate() blocks when the intent file
     # exists; deleting it here allows all subsequent tools in the same turn
     # without waiting for skill_execution_state to be written externally.
-    if tool_name == "Skill" and terminal_id:
+    if tool_name == "Skill" and (terminal_id or session_id):
         _skill_input = data.get("tool_input", {})
         if isinstance(_skill_input, dict):
             _skill_being_loaded = str(_skill_input.get("skill", "")).strip().lower()
             if _skill_being_loaded:
-                _safe_term = _safe_id(terminal_id)
+                _safe_term = _safe_id(terminal_id or "unknown")
                 _state_dir, _fallback_dir = _get_state_dirs()
 
                 # Candidates in priority order (newest → oldest format).
                 # Must mirror the lookup order in _check_skill_first_gate() so that
                 # whichever path the intent file was written to, we delete it here.
-                _candidate_paths_per_base = [
-                    # TASK-005+ format: terminals/{terminal_id}/pending_command_intent.json
-                    lambda base: base / "terminals" / terminal_id / "pending_command_intent.json",
-                    # Legacy flat format: pending_command_intent_{terminal_id}.json
-                    lambda base: base / f"pending_command_intent_{_safe_term}.json",
-                ]
+                _candidate_paths_per_base = []
+                # STATE-01 (2026-07-05): sessions/{session_id}/pending_command_intent.json
+                # Writer (skill_enforcer.log_command_intent_telemetry) prefers this path
+                # when session_id is present; gate reads it first. MUST be first here too
+                # or Skill() fires, the file survives, and the next Bash call re-blocks.
+                if session_id:
+                    _candidate_paths_per_base.append(
+                        lambda base: base / "sessions" / session_id / "pending_command_intent.json"
+                    )
+                # TASK-005+ format: terminals/{terminal_id}/pending_command_intent.json
+                if terminal_id:
+                    _candidate_paths_per_base.append(
+                        lambda base: base / "terminals" / terminal_id / "pending_command_intent.json"
+                    )
+                # Legacy flat format: pending_command_intent_{terminal_id}.json
+                _candidate_paths_per_base.append(
+                    lambda base: base / f"pending_command_intent_{_safe_term}.json"
+                )
 
                 # TASK-022 FIX: Retry loop with exponential backoff for TOCTOU race
                 # Problem: exists() and read_text() are not atomic on concurrent terminals
