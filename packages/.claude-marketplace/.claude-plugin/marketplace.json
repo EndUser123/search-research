@@ -77,7 +77,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.104",
+      "version": "1.0.106",
       "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -98,7 +98,7 @@
     },
     {
       "name": "search-research",
-      "version": "0.1.41",
+      "version": "0.1.45",
       "description": "Unified search and research system with async concurrent execution and 11 web providers.",
       "source": "./plugins/search-research",
       "keywords": [

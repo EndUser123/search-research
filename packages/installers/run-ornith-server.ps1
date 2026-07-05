@@ -14,7 +14,7 @@ Write-Host "Starting llama-server with Ornith-1.0-9B on http://127.0.0.1:8010"
 Write-Host "Press Ctrl+C to stop."
 
 try {
-  & "$bin\llama-server.exe" -m "$model" -ngl 99 -c 32768 -t 6 --parallel 1 -fa on -ctk q8_0 -ctv q8_0 -b 2048 -ub 1024 --reasoning-preserve --jinja --temp 0.6 --top-p 0.95 --top-k 20 --host 127.0.0.1 --port 8010
+  & "$bin\llama-server.exe" -m "$model" -ngl 99 -c 65536 -t 6 --parallel 1 -fa on -ctk q4_0 -ctv q4_0 -b 2048 -ub 1024 --reasoning-preserve --jinja --temp 0.6 --top-p 0.95 --top-k 20 --host 127.0.0.1 --port 8010
 }
 finally {
   # Stop watcher when server exits
