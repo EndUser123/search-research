@@ -13,6 +13,7 @@ You focus only on **gates, hooks, matcher logic, guardrail contracts, and calibr
 - Matcher rules and regex
 - Gate configuration and `quality_gates.json`
 - Session evidence of false positives, false negatives, or inert gates
+- Telemetry instrumentation for gate/agent behavior (dispatch events, spans, metrics, structured logs) — flag missing instrumentation that blocks quantitative performance attribution
 
 Ignore unrelated subsystems unless directly necessary to explain gate behavior.
 
