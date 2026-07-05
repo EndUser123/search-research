@@ -25,7 +25,7 @@ Stress-test a proposal / solution / design / implementation / plan before commit
 
 The orchestrator never holds specialist findings in its own context — only file paths. This keeps the long-lived orchestrator context small; findings load into the critic's ephemeral context instead. (Proven necessary: the adversarial-review family hit token walls under prose-paste and adopted this same disk-backed contract to fix it.)
 
-**run_dir** — generate at the start of every run: `P:/.claude/.artifacts/red-team/{YYYYMMDD-HHMMSS}/`. Create the directory before dispatching specialists. The timestamp makes concurrent runs (same or other terminals) naturally non-colliding.
+**run_dir** — generate at the start of every run: `P:/.claude/.artifacts/{session_id}/red-team/{YYYYMMDD-HHMMSS}/`. Create the directory before dispatching specialists. Use the **full session_id** (the runtime session UUID from `$CLAUDE_SESSION_ID` or the transcript filename stem) — NOT `terminal_id`/`$WT_SESSION`, which is shared across concurrent sessions in one Windows Terminal. The `session_id` segment makes concurrent runs in the same terminal non-colliding; the timestamp orders runs within a session. (Deviates from the monorepo's `{terminal_id}/{skill_name}/` convention deliberately — terminal_id collides; see plugin CLAUDE.md.)
 
 **Per-specialist path:** `{run_dir}/{specialist-name}.json` (e.g. `{run_dir}/security.json`).
 
@@ -33,6 +33,7 @@ The orchestrator never holds specialist findings in its own context — only fil
 ```json
 {
   "specialist": "<name>",
+  "writer_session": "<session_id — proves which session wrote this>",
   "meta": { "angles_covered": ["..."], "gaps": ["could not assess ..."] },
   "findings": [
     {
@@ -50,7 +51,7 @@ The orchestrator never holds specialist findings in its own context — only fil
   ]
 }
 ```
-Required: `id, severity, location, title, detail, evidence, fix`. Optional: `category, confidence, claim_type, meta`. `claim_type` tags which verification branch the critic should use (saves re-classification).
+Required: `id, severity, location, title, detail, evidence, fix, writer_session`. Optional: `category, confidence, claim_type, meta`. `claim_type` tags which verification branch the critic should use (saves re-classification). Schema is codified in `__lib/findings_schema.py` (unit-tested).
 
 ## Agent flow
 
@@ -61,6 +62,10 @@ Invoke the `red-team-planner` agent.
 
 ### 2. Specialists
 Generate the `run_dir` (see Findings handoff above), create it, then dispatch the angles the Planner identified. Run applicable specialists **in parallel**.
+
+**Crash-recovery contract (FM-1):** before dispatching any specialist, write `{run_dir}/_run.json` with `{started_at, session_id, status: "in-progress"}`. After synthesis, rewrite it with `status: "complete", verdict: <v>`. A run_dir whose `_run.json` shows `status: "in-progress"` older than `RED_TEAM_RUN_TTL` seconds (default 86400) is orphaned — a later session may archive it.
+
+**Specialist timeout (PERF-5):** each specialist dispatch carries a wall-clock budget. If a specialist has not returned its file path within `RED_TEAM_SPECIALIST_TIMEOUT` seconds (default 300), mark it `DEFERRED — timeout` in the dispatch manifest and continue. Do not wait indefinitely; one stalled specialist must not block synthesis.
 
 Each specialist dispatch includes: the proposal under review (or pointer to it), the `run_dir`, and the instruction — *"Write your findings to `{run_dir}/<your-name>.json` per the schema in the orchestrator skill. Your response text must contain ONLY the file path — no prose, no findings inline."* If `{run_dir}/prospect.md` exists (planner fired the prospect pass), specialists Read it before attacking and weigh its priors.
 

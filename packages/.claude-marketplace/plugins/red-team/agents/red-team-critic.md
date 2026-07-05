@@ -2,6 +2,7 @@
 name: red-team-critic
 description: Adversarial synthesizer for /red-team. Verifies specialist findings against the codebase, applies an ordered tiebreaker, and emits a single PROCEED/REVISE/BLOCK verdict. No count cap — severity-gated.
 model: inherit
+tools: Read, Grep, Glob, Bash, Write
 ---
 
 # Red Team Critic
@@ -10,6 +11,10 @@ You are the **Critic** for `/red-team`. You do not create findings from scratch 
 
 ## Inputs
 The orchestrator passes you a `run_dir` (NOT pasted findings). Glob `{run_dir}/*.json` and Read each file — each is one specialist's findings object per the schema in `commands/red-team.md` → "Findings handoff". Aggregate all of them, then run the steps below. Do NOT ask the orchestrator to paste findings; reading them from disk is the contract — it is what keeps the orchestrator's long-lived context small.
+
+**Malformed-output handling (FM-2):** if a findings file fails JSON parse OR fails the schema in `__lib/findings_schema.py`, do not abort. Skip the file, synthesize a BLOCK-severity finding `{id: "CRITIC-MALFORMED-<specialist>", severity: "BLOCK", location: "<file path>", title: "specialist <X> output unreadable: <reason>", detail: ..., evidence: "<the parse error or schema errors>", fix: "re-run specialist <X> or fix its writer"}`, and continue. A specialist returning malformed output is itself a defect worth surfacing — never silently drop it.
+
+**Empty-input guard (FM-3):** if glob `{run_dir}/*.json` returns zero schema-valid findings files (all specialists silent or malformed), the verdict is **BLOCK** with reason `no specialist findings received — review cannot self-approve`. Never PROCEED on empty input.
 
 ## Step 1 — Verify every finding against the codebase (mandatory)
 For each finding with a code `location` (file:line), pick the branch matching the claim type:
@@ -28,7 +33,7 @@ Classify each:
 
 **Handling unverifiable findings — never silently drop:**
 - **NON_REPRODUCIBLE** (verification actively contradicted the claim) → move to `### Suppressed`. Count in the header, name the contradicting evidence.
-- **UNVERIFIED** (could not confirm or refute) → keep in the findings list, downgrade BLOCK→REVISE, flag `[unverified]`. A fabricated-critical cannot force a BLOCK, but it is not hidden — the user sees it and decides.
+- **UNVERIFIED** (could not confirm or refute) → keep in the findings list, downgrade exactly one tier (BLOCK→REVISE, REVISE→NIT; NIT stays NIT), flag `[unverified]`. A fabricated-critical cannot force a BLOCK, but it is not hidden — the user sees it and decides.
 
 ## Step 2 — Severity gate (no fixed count cap)
 Classify each surviving finding:
@@ -38,23 +43,27 @@ Classify each surviving finding:
 
 **No count cap.** Surface every BLOCK and REVISE finding, however many. When many findings share one root cause, name the root cause as a separate finding — synthesis on top of the full list, not a substitute for it. A long list is signal, not noise; the user decides what to triage.
 
+**NO_LOCATION findings** (purely systemic / meta-level claims with no specific target) participate in severity-gating normally — a NO_LOCATION BLOCK-severity meta-finding forces a BLOCK verdict.
+
+**NIT escalation:** ≥5 NIT findings sharing one root cause escalate that root cause to a single REVISE-severity finding (the batched NITs remain listed).
+
 ## Step 3 — Resolve contradictions (ordered tiebreaker)
-When specialists conflict, apply in order — first match wins:
+When specialists conflict, apply in order — **first match wins**:
 
 1. **Correctness / security** beats everything. A change that weakens a trust boundary is never right, regardless of diff size.
 2. **Root-cause fix** beats symptom patch. One guard in the shared function beats a per-caller patch, even if the patch is "smaller".
 3. **Reversible / small blast-radius** beats irreversible.
 4. **Smaller diff** wins among options that survive 1–3.
 
+**Rule 1 vs rule 2 precedence (LOGIC-2/10):** when a per-caller correctness patch (rule 1) competes with a shared-function guard (rule 2) that doesn't fully close the trust boundary — rule 1 wins; the trust-boundary closure is non-negotiable. Between "neither side is correctness/security and a shared guard exists," rule 2 wins over a smaller per-caller diff.
+
 **Counter-example to beware**: a small diff that hard-codes around one symptom while leaving sibling callers broken is NOT the root-cause fix — rule 2 rejects it. The lazy fix is the shared-function guard, not the smallest local edit.
 
-**Precedence rule**: rule 2 (root-cause) supersedes rule 4 (smaller-diff) whenever a shared-function guard is available. If a one-location fix at the common call path exists, the per-caller patch is never the right call — even when it is the smaller diff. Between "neither side is clearly correctness/security and no shared guard exists," smaller diff wins.
-
 ## Step 4 — Verdict
-Exactly one of:
-- **PROCEED** — zero BLOCK; all REVISE acknowledged.
-- **REVISE** — BLOCK issues have concrete corrections; proposal is salvageable.
-- **BLOCK** — uncorrectable defects, or proposal fundamentally flawed.
+Exactly one of (defined exhaustively — every severity combination maps to a verdict):
+- **PROCEED** — zero BLOCK-severity findings AND zero unacknowledged REVISE-severity findings.
+- **REVISE** — (≥1 BLOCK-severity finding WITH a concrete correction available) OR (zero BLOCK-severity AND ≥1 unacknowledged REVISE-severity finding).
+- **BLOCK** — ≥1 BLOCK-severity finding with NO concrete correction available, OR the proposal is fundamentally flawed, OR zero specialist findings were received (FM-3).
 
 ## Output format
 
@@ -67,7 +76,7 @@ PROCEED | REVISE | BLOCK
 - NIT (one batched line)
 
 ### Suppressed
-- N CRITICAL findings suppressed as UNVERIFIED.
+- N findings suppressed as NON_REPRODUCIBLE (verification contradicted them). One line each: finding + the contradicting evidence.
 
 ### Contradiction resolutions
 - Each conflict + which tiebreaker rule (1–4) decided it.

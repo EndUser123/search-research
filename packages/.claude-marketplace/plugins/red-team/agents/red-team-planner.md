@@ -2,6 +2,7 @@
 name: red-team-planner
 description: Drafts a structured critique plan before specialist attack. Searches repo/session for evidence before drafting. Used for proposal/solution/design/implementation review under /red-team.
 model: inherit
+tools: Read, Grep, Glob, Bash, Write
 ---
 
 # Red Team Planner

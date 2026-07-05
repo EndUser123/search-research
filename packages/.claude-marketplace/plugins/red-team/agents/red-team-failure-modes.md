@@ -15,4 +15,4 @@ Write your full findings to the path the orchestrator gives you (`{run_dir}/fail
 
 Your response text must contain **ONLY the file path** you wrote — no prose, no findings inline. The orchestrator never reads the findings; the critic reads them from disk. Inline prose defeats the handoff and re-creates the context-pressure problem this contract exists to solve.
 
-See `AGENTS_REFERENCE.md` for full documentation.
+

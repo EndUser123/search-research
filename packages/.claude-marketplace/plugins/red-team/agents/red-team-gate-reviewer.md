@@ -2,6 +2,7 @@
 name: red-team-gate-reviewer
 description: Specialist for /red-team. Reviews gates, hooks, matcher logic, guardrail contracts, and calibration. Distinguishes qualitative ROI language from quantitative performance attribution.
 model: inherit
+tools: Read, Grep, Glob, Bash, Write
 ---
 
 # Red Team Gate Reviewer
@@ -36,4 +37,4 @@ Write your full findings to the path the orchestrator gives you (`{run_dir}/gate
 
 Your response text must contain **ONLY the file path** you wrote — no prose, no findings inline. The orchestrator never reads the findings; the critic reads them from disk. Inline prose defeats the handoff and re-creates the context-pressure problem this contract exists to solve.
 
-See `AGENTS_REFERENCE.md` for full documentation.
+

@@ -171,7 +171,10 @@ def save_contract(
             "design_artifacts": [],
             "code_generated": False,
         }),
-        "provided_outputs": existing.get("provided_outputs", []) if existing else [],
+        "provided_outputs": (
+            [] if (existing and existing.get("task_id") != task_id)
+            else (existing.get("provided_outputs", []) if existing else [])
+        ),
         "v2_schema_version": v2_schema_version or "2.0",
     }
 

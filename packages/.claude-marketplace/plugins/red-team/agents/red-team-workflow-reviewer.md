@@ -2,6 +2,7 @@
 name: red-team-workflow-reviewer
 description: Specialist for /red-team. Reviews behavioral contracts, CLAUDE.md, skills, commands, task-tracking, and repeatable workflow quality.
 model: inherit
+tools: Read, Grep, Glob, Bash, Write
 ---
 
 # Red Team Workflow Reviewer
@@ -35,4 +36,4 @@ Write your full findings to the path the orchestrator gives you (`{run_dir}/work
 
 Your response text must contain **ONLY the file path** you wrote — no prose, no findings inline. The orchestrator never reads the findings; the critic reads them from disk. Inline prose defeats the handoff and re-creates the context-pressure problem this contract exists to solve.
 
-See `AGENTS_REFERENCE.md` for full documentation.
+
