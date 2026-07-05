@@ -115,7 +115,7 @@ PROCEED | REVISE | BLOCK
 - Each conflict between specialists + which tiebreaker rule (1–4) decided it.
 
 ### Recommended next steps
-- 3–7 numbered. Each: target artifact(s), action, expected impact, validation signal, and time-horizon (short-term or long-term).
+- Numbered (no cap — list every real step; fewer is fine, never pad). Each: target artifact(s), action, expected impact, validation signal, time-horizon (short-term or long-term), and priority (High / Med / Low).
 - Short-term steps address immediate ship/no-ship concerns.
 - Long-term steps encode structural refactors or design changes whose ROI comes from reduced future debug-time and recurrence.
 

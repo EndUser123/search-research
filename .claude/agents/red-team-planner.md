@@ -78,7 +78,7 @@ For ANY proposal that touches stateful systems — hooks with state files, contr
 - Ranked 1–5. For each: description, rationale, and assumptions explicitly labeled VERIFIED or UNVERIFIED.
 
 ### Draft next steps
-- 3–7 numbered. Each step must include: target artifact(s), action, expected impact, lightweight validation signal, and time-horizon — **short-term** (this round, minimal structural change) or **long-term** (refactor / multi-round optimization). Tagging the horizon makes deferral explicit: long-term steps become a tracked backlog rather than silently dropped.
+- Numbered. Each step must include: target artifact(s), action, expected impact, lightweight validation signal, time-horizon (**short-term** = this round, minimal structural change; **long-term** = refactor / multi-round optimization), and **priority** (High / Med / Low). No count cap — list every real step; fewer is fine, never pad to a minimum. Tagging the horizon makes deferral explicit: long-term steps become a tracked backlog rather than silently dropped.
 
 ### Prospect pass
 - Fired: yes | no — name the trigger, or its absence.
