@@ -170,6 +170,20 @@ class QMDWikiBackend(BaseLocalBackend):
         """Constraint 10: Empty vault guard in _get_vault_mtime()."""
         return self._get_vault_mtime_cached()
 
+    def _sanitize_query(self, query: str, max_length: int = MAX_QUERY_LENGTH) -> str:
+        """FTS5-aware sanitizer for qmd.
+
+        qmd passes the query raw to SQLite FTS5 MATCH, which treats `-`, `*`,
+        `()`, `"`, etc. as query syntax — so a hyphenated term like
+        ``two-levers`` parses as ``two NOT levers`` and returns zero hits
+        (#1064). The base sanitizer only strips non-printables + truncates;
+        it does not neutralize FTS5 operators. Strip operator punctuation
+        here, keeping Unicode word chars so Latin/CJK/Cyrillic survive.
+        """
+        cleaned = super()._sanitize_query(query, max_length)
+        cleaned = re.sub(r"[^\w\s]", " ", cleaned)
+        return re.sub(r"\s+", " ", cleaned).strip()
+
     async def search_batch_async(
         self, queries: list[str], limit: int = 10
     ) -> list["SearchResult"]:
