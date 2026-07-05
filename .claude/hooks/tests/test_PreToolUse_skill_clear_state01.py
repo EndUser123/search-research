@@ -20,10 +20,13 @@ HARD REQUIREMENTS covered:
     no leakage into real session state.
 
 ISOLATION NOTE: PreToolUse.py hardcodes `HOOKS_DIR = Path(__file__).resolve().parent`
-(line 44) and does NOT honor CLAUDE_PROJECT_DIR. So the test must write to the
-REAL state dir at P:/.claude/hooks/state/. We use a `pytest_skillclear_<uuid>`
-session_id prefix (cannot collide with real CC sessions) and remove every path
-we create in teardown.
+(line 44) and does NOT honor CLAUDE_PROJECT_DIR. _get_state_dirs() returns the
+canonical P:/.claude/state/ as primary and P:/.claude/hooks/state/ as legacy
+fallback, so the Skill-clear branch deletes from BOTH. We test BOTH paths:
+  - legacy base (STATE_DIR): existing T1-T3 prove no-break on the migration
+  - canonical base (CANONICAL_DIR): T4 proves the forward path clears too
+A `pytest_skillclear_<uuid>` session_id prefix cannot collide with real CC
+sessions; every path we create is removed in teardown.
 """
 import json
 import shutil
@@ -35,7 +38,8 @@ from pathlib import Path
 import pytest
 
 HOOK_FILE = Path("P:/.claude/hooks/PreToolUse.py")
-STATE_DIR = Path("P:/.claude/hooks/state")
+STATE_DIR = Path("P:/.claude/hooks/state")        # legacy fallback base
+CANONICAL_DIR = Path("P:/.claude/state")           # primary base (state_paths contract)
 TEST_SID_PREFIX = "pytest_skillclear_"
 
 
@@ -56,17 +60,18 @@ def isolated_sessions():
             shutil.rmtree(p, ignore_errors=True)
     # Belt-and-suspenders: scrub any pytest_skillclear_* session dirs left behind
     # by a crashed prior run, so stale state can never arm the gate against a
-    # real (or future test) invocation.
-    sessions_root = STATE_DIR / "sessions"
-    if sessions_root.exists():
-        for d in sessions_root.iterdir():
-            if d.is_dir() and d.name.startswith(TEST_SID_PREFIX):
-                shutil.rmtree(d, ignore_errors=True)
+    # real (or future test) invocation. Covers BOTH bases.
+    for root in (STATE_DIR, CANONICAL_DIR):
+        sessions_root = root / "sessions"
+        if sessions_root.exists():
+            for d in sessions_root.iterdir():
+                if d.is_dir() and d.name.startswith(TEST_SID_PREFIX):
+                    shutil.rmtree(d, ignore_errors=True)
 
 
-def _write_state01_intent(track, session_id: str, skill: str = "wiki") -> Path:
+def _write_state01_intent(track, session_id: str, skill: str = "wiki", base: Path = STATE_DIR) -> Path:
     """Write a STATE-01 session-scoped intent file the way the writer does."""
-    intent_path = STATE_DIR / "sessions" / session_id / "pending_command_intent.json"
+    intent_path = base / "sessions" / session_id / "pending_command_intent.json"
     intent_path.parent.mkdir(parents=True, exist_ok=True)
     intent_path.write_text(
         json.dumps(
@@ -165,6 +170,27 @@ class TestSkillClearState01:
 
         assert intent_path.exists() is True, (
             "Skill() for a different skill name must NOT clear an unrelated intent"
+        )
+
+    def test_skill_tool_deletes_canonical_path_intent(self, isolated_sessions):
+        """Forward: Skill-tool cleanup must also find+delete intent written to
+        the canonical P:/.claude/state/ primary base. _get_state_dirs() returns
+        (canonical, legacy) and the clearer iterates both."""
+        if not HOOK_FILE.exists():
+            pytest.skip("PreToolUse.py not found")
+
+        sid = f"{TEST_SID_PREFIX}{uuid.uuid4().hex[:8]}"
+        intent_path = CANONICAL_DIR / "sessions" / sid / "pending_command_intent.json"
+        isolated_sessions(CANONICAL_DIR / "sessions" / sid)
+        _write_state01_intent(isolated_sessions, sid, skill="wiki", base=CANONICAL_DIR)
+
+        assert intent_path.exists(), "fixture: canonical intent file must exist before Skill()"
+
+        result = _run_pretooluse(skill="wiki", session_id=sid, terminal_id="tid_shared")
+
+        assert intent_path.exists() is False, (
+            f"REGRESSION: Skill() did not delete canonical-path intent. "
+            f"stdout={result.stdout[:300]!r} stderr={result.stderr[:300]!r}"
         )
 
 

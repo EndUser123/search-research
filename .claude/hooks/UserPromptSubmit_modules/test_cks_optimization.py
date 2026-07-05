@@ -34,7 +34,7 @@ import cks_context
 
 
 def test_relevance_threshold_filters_low_similarity_corrections():
-    """Verify corrections below 0.7 similarity are filtered out."""
+    """Verify corrections below 0.4 similarity are filtered out."""
     # Mock results with varying similarity scores
     corrections = [
         {"id": 1, "similarity": 0.9, "title": "High relevance", "content": "Important correction"},
@@ -46,16 +46,15 @@ def test_relevance_threshold_filters_low_similarity_corrections():
     # Apply the threshold filter (same logic as in cks_context_hook)
     filtered = [c for c in corrections if c.get("similarity", 0) >= cks_context.CORRECTION_RELEVANCE_THRESHOLD]
 
-    # Should only include items with similarity >= 0.7
-    assert len(filtered) == 2
-    assert all(c["similarity"] >= 0.7 for c in filtered)
+    # Should include items with similarity >= 0.4 (threshold was 0.7, lowered to 0.4)
+    assert len(filtered) == 3
+    assert all(c["similarity"] >= 0.4 for c in filtered)
     filtered_ids = [c["id"] for c in filtered]
-    assert 3 not in filtered_ids
     assert 4 not in filtered_ids
 
 
 def test_relevance_threshold_filters_low_similarity_knowledge():
-    """Verify knowledge entries below 0.7 similarity are filtered out."""
+    """Verify knowledge entries below 0.4 similarity are filtered out."""
     knowledge = [
         {"id": 1, "similarity": 0.85, "title": "Very relevant knowledge", "content": "Key insight"},
         {"id": 2, "similarity": 0.72, "title": "Relevant knowledge", "content": "Useful pattern"},
@@ -66,25 +65,25 @@ def test_relevance_threshold_filters_low_similarity_knowledge():
     # Apply the threshold filter
     filtered = [k for k in knowledge if k.get("similarity", 0) >= cks_context.KNOWLEDGE_RELEVANCE_THRESHOLD]
 
-    # Should only include items with similarity >= 0.7
-    assert len(filtered) == 2
-    assert all(k["similarity"] >= 0.7 for k in filtered)
+    # Should include items with similarity >= 0.4 (threshold lowered from 0.7 to 0.4)
+    assert len(filtered) == 4
+    assert all(k["similarity"] >= 0.4 for k in filtered)
 
 
 def test_token_budgeting_truncates_long_content():
-    """Verify injection is truncated when exceeding MAX_INJECTION_TOKENS."""
-    # Create content that exceeds 500 chars
-    long_content = "A" * 600
+    """Verify injection is truncated when exceeding MAX_INJECTION_CHARS."""
+    # Create content that exceeds 1200 chars
+    long_content = "A" * 1500
     parts = [long_content]
 
-    # Apply token budgeting (same logic as in cks_context_hook)
+    # Apply token budgeting (same logic as in cks_context)
     combined = "\n\n".join(parts)
-    if len(combined) > cks_context.MAX_INJECTION_TOKENS:
-        combined = combined[:cks_context.MAX_INJECTION_TOKENS - 50] + "\n... [truncated]"
+    if len(combined) > cks_context.MAX_INJECTION_CHARS:
+        combined = combined[:cks_context.MAX_INJECTION_CHARS - 50] + "\n... [truncated]"
 
-    # Should be truncated to under 500 chars (450 chars content + 16 chars truncation marker)
-    assert len(combined) <= cks_context.MAX_INJECTION_TOKENS
-    assert len(combined) == 466  # 450 chars content + 16 chars truncation marker
+    # Should be truncated to under 1200 chars
+    assert len(combined) <= cks_context.MAX_INJECTION_CHARS
+    assert len(combined) == 1166  # 1150 chars content + 16 chars truncation marker
     assert combined.endswith("\n... [truncated]")
 
 
@@ -95,8 +94,8 @@ def test_token_budgeting_preserves_short_content():
 
     # Apply token budgeting
     combined = "\n\n".join(parts)
-    if len(combined) > cks_context.MAX_INJECTION_TOKENS:
-        combined = combined[:cks_context.MAX_INJECTION_TOKENS - 50] + "\n... [truncated]"
+    if len(combined) > cks_context.MAX_INJECTION_CHARS:
+        combined = combined[:cks_context.MAX_INJECTION_CHARS - 50] + "\n... [truncated]"
 
     # Should not be truncated
     assert len(combined) == 300
@@ -105,17 +104,17 @@ def test_token_budgeting_preserves_short_content():
 
 def test_multiple_parts_combined_and_budgeted():
     """Verify multiple parts are combined and budgeted together."""
-    part1 = "A" * 250
-    part2 = "B" * 250
+    part1 = "A" * 700
+    part2 = "B" * 700
     parts = [part1, part2]
 
     # Combine and apply budgeting
     combined = "\n\n".join(parts)
-    if len(combined) > cks_context.MAX_INJECTION_TOKENS:
-        combined = combined[:cks_context.MAX_INJECTION_TOKENS - 50] + "\n... [truncated]"
+    if len(combined) > cks_context.MAX_INJECTION_CHARS:
+        combined = combined[:cks_context.MAX_INJECTION_CHARS - 50] + "\n... [truncated]"
 
-    # Combined length (500 + 2 for newline separator) should be truncated
-    assert len(combined) <= cks_context.MAX_INJECTION_TOKENS
+    # Combined length (1400 + 2 for newline separator) should be truncated
+    assert len(combined) <= cks_context.MAX_INJECTION_CHARS
     assert combined.endswith("\n... [truncated]")
 
 
@@ -123,11 +122,11 @@ def test_constants_are_defined():
     """Verify the optimization constants are defined correctly."""
     assert hasattr(cks_context, 'CORRECTION_RELEVANCE_THRESHOLD')
     assert hasattr(cks_context, 'KNOWLEDGE_RELEVANCE_THRESHOLD')
-    assert hasattr(cks_context, 'MAX_INJECTION_TOKENS')
+    assert hasattr(cks_context, 'MAX_INJECTION_CHARS')
 
-    assert cks_context.CORRECTION_RELEVANCE_THRESHOLD == 0.7
-    assert cks_context.KNOWLEDGE_RELEVANCE_THRESHOLD == 0.7
-    assert cks_context.MAX_INJECTION_TOKENS == 500
+    assert cks_context.CORRECTION_RELEVANCE_THRESHOLD == 0.4
+    assert cks_context.KNOWLEDGE_RELEVANCE_THRESHOLD == 0.4
+    assert cks_context.MAX_INJECTION_CHARS == 1200
 
 
 def test_empty_results_produce_empty_injection():
@@ -135,8 +134,8 @@ def test_empty_results_produce_empty_injection():
     parts = []
 
     combined = "\n\n".join(parts)
-    if len(combined) > cks_context.MAX_INJECTION_TOKENS:
-        combined = combined[:cks_context.MAX_INJECTION_TOKENS - 50] + "\n... [truncated]"
+    if len(combined) > cks_context.MAX_INJECTION_CHARS:
+        combined = combined[:cks_context.MAX_INJECTION_CHARS - 50] + "\n... [truncated]"
 
     result = HookResult.context_injection(combined) if combined else HookResult.empty()
 

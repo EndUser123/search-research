@@ -385,9 +385,14 @@ def _decode_stderr(stderr: bytes) -> str:
 
 
 def _get_state_dirs() -> tuple[Path, Path]:
-    """Return primary and fallback state directories."""
-    state_dir = HOOKS_DIR / "state"
-    fallback_dir = Path(os.environ.get("TEMP", "/tmp")) / "claude_hooks" / "state"
+    """Return primary (canonical) and fallback (legacy) state directories.
+
+    Legacy fallback preserves intent files written before the STATE-01 path
+    migration so they are still found and cleared; see
+    test_state_migration_dual_base.py for the no-orphan proof.
+    """
+    state_dir = HOOKS_DIR.parent / "state"
+    fallback_dir = HOOKS_DIR / "state"
     return state_dir, fallback_dir
 
 
