@@ -161,7 +161,8 @@
       "mcp__reddit__search_reddit",
       "Read(//p//**)",
       "Read(//c/Users/brsth/.claude-code-router/**)",
-      "Bash(grep -n '\\\\$actual\\\\|\\\\$override\\\\|CC_CCR_' P:/.claude/provider-configs/cc-ccr.ps1)"
+      "Bash(grep -n '\\\\$actual\\\\|\\\\$override\\\\|CC_CCR_' P:/.claude/provider-configs/cc-ccr.ps1)",
+      "Bash(where.exe pwsh *)"
     ],
     "deny": [],
     "ask": []
