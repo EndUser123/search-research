@@ -73,7 +73,7 @@ Proposing a new gate/retriever? Grep this repo first.
 ## 5. What the reviewer should actually check (ranked)
 
 1. **Are the glosses accurate?** Each gloss is inferred from reading the mechanism's source this session, not from authoritative doc. Verify each against the actual source:
-   - `epistemic_validator` → `Stop.py:418` (`build_local_summary_guidance`)
+   - `epistemic_validator` → `Stop.py:554` (`_run_epistemic_contract`, the unified gate). NOTE: gloss corrected from "Stop claim check" to "Stop warn-mode structural/causal/claim checks" after verifying `Stop.py:779` ("owns structural, citation, causal, and comparative checks") and `test_epistemic_validator.py:14-16` (default mode = warn). `Stop.py:418` is only `build_local_summary_guidance`, one helper inside the contract flow.
    - `semantic_critic` → `Stop.py:456` (`_run_semantic_critic`, M3+Mistral per repo docs)
    - `anti_dodge_judge` → `P:/packages/.claude-marketplace/plugins/cc-aca-epistemic/__lib/anti_dodge_judge.py`
    - `cks_quality_gate` → `P:/.claude/hooks/scripts/cks/quality_gate.py` (built earlier this session, per handoff context)
