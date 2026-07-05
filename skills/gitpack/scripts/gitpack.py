@@ -500,6 +500,39 @@ def build_appendix(filepaths: list[str]) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
+# Multi-path input collection
+# ---------------------------------------------------------------------------
+
+def collect_files(paths: list[str], exclude_patterns: str = "") -> list[str]:
+    """Collect files from a mix of files and directories.
+
+    Directly-listed files are included regardless of extension (the caller
+    asked for them explicitly). Directories are recursed with extension
+    filtering via ``discover_files``.
+    """
+    collected: list[str] = []
+    for raw in paths:
+        p = Path(raw).resolve()
+        if not p.exists():
+            print(f"WARN: path does not exist, skipping: {p}", file=sys.stderr)
+            continue
+        if p.is_file():
+            collected.append(str(p))
+        elif p.is_dir():
+            collected.extend(discover_files(p, exclude_patterns))
+    return sorted(set(collected))
+
+
+def common_parent(files: list[str]) -> Path:
+    """Deepest directory common to all files — used as the relative-path root."""
+    if not files:
+        return Path.cwd()
+    parents = [str(Path(f).resolve().parent) for f in files]
+    common = os.path.commonpath(parents) if len(parents) > 1 else parents[0]
+    return Path(common)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
