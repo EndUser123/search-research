@@ -253,7 +253,7 @@ python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --ses
 
 **Behavior:**
 - `--export` writes the full linked session chain to a markdown file
-- `--session-id` is optional; if omitted, the current session is used
+- `--session-id` is **REQUIRED in practice**. The CLI accepts its omission and tries to auto-detect "current session", but the detection (terminal-keyed `active-session-*.txt`, then SDK size-match, then mtime) is unsafe under concurrent Claude sessions in one Windows Terminal — WT_SESSION is shared, so the file is last-writer-wins and can silently point to a sibling session. Always derive `--session-id` from the live transcript path stem (from the most recent hook payload's `transcript_path`, or `/status` at first prompt of a session) and pass it explicitly. Verified FP: omitting it has exported the wrong session chain.
 - `--output` is optional; if omitted, the CLI writes to `~/.claude/exports/chain_<timestamp>.md`
 - `--fidelity {context-safe,analysis}` selects a rendering preset (default: `analysis` — full tool results with `tool_use`↔`tool_result` id back-refs, uncapped thinking, per-entry ISO timestamps, per-session git branch, export-time HEAD sha, compaction-boundary markers). Use `--fidelity context-safe` for a compact, byte-identical-to-legacy export
 - `--exclude-thinking` removes thinking blocks (forces the `context-safe` preset's thinking-off)
@@ -277,8 +277,8 @@ The CLI returns JSON metadata with `context_safe` and `recommendation` fields. F
 **Examples:**
 
 ```bash
-# Export the current session chain (full chain, thinking excluded)
-python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --exclude-thinking
+# Export the current session chain (ALWAYS pass --session-id; thinking excluded)
+python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id <live-session-id> --exclude-thinking
 
 # Rich export for analysis consumers (full tool results, timestamps, branch, sha)
 python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --fidelity analysis
@@ -420,10 +420,10 @@ Search conversations by git branch.
 /chs "query" --output results.json    # Save to file
 /chs "query" --clipboard              # Copy to clipboard
 
-# Session chain export
-/chs export                           # Export full session chain
+# Session chain export (ALWAYS pass --session-id — auto-detect is unsafe under concurrent sessions)
+/chs export --session-id <live-id>    # Export full session chain
 /chs export --session-id abc123       # Export specific session chain
-/chs export --output P://tmp/out.md    # Write export to a specific file
+/chs export --session-id abc123 --output P://tmp/out.md    # Write export to a specific file
 ```
 
 ## Configuration

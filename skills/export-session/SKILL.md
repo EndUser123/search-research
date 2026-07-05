@@ -3,7 +3,7 @@ name: export-session
 description: Export the current (or specified) Claude Code session chain to a markdown file. Trigger when the user says "export session", "export conversation", "export chat", "export transcript", "save session", "dump session", or types /export-session. Produces a cross-terminal, cross-compaction session-chain markdown export for analysis consumers (/debrief, /gto, /learn) or archival.
 enforcement: advisory
 workflow_steps:
-  - Resolve target session (current session unless --session-id is given)
+  - Resolve target session (ALWAYS pass --session-id explicitly — see "Session resolution" below)
   - Invoke chs_cli.py --export with the chosen fidelity and bounds
   - Report the export path and metadata; honor the context-safety recommendation
 ---
@@ -34,7 +34,7 @@ python "P:/packages/.claude-marketplace/plugins/search-research/skills/chs/scrip
   timestamps, per-session git branch, export-time HEAD sha, and compaction-boundary
   markers. Use `--fidelity context-safe` for a compact, byte-identical-to-legacy
   export when reading the file directly into context.
-- **Session:** the current session when `--session-id` is omitted.
+- **Session:** ALWAYS pass `--session-id` explicitly — see **Session resolution** below. The CLI's "current session" auto-detection is unsafe under concurrent Claude sessions in one Windows Terminal (WT_SESSION is shared; the resolution file is last-writer-wins and can point to a sibling session).
 - **Output:** `~/.claude/exports/chain_<timestamp>.md` when `--output` is omitted.
 - **Max sessions:** the 30 most-recent transcripts in the chain (newest kept,
   oldest silently dropped). Raise with `--max-sessions N` for very long-lived
@@ -46,6 +46,30 @@ The chain is reconstructed from `P:/.claude/.artifacts/session_registry.jsonl`
 (written by the PreCompact hook), aggregated by `session_id` across **all**
 terminals. Resumes and compactions are all included — every transcript segment in
 the session's lifetime is reassembled, deduplicated by transcript path.
+
+## Session resolution (MANDATORY: always pass --session-id)
+
+**Always derive and pass `--session-id` explicitly.** Do not rely on the CLI's
+"current session" auto-detection — it reads a terminal-keyed file
+(`~/.claude/active-session-{terminal_id}.txt`) that is shared across concurrent
+Claude sessions in one Windows Terminal and is last-writer-wins. The same flaw
+affects `~/.claude/.artifacts/{terminal_id}/identity.json` and the mtime/size
+fallbacks. Empirically verified: omitting `--session-id` has produced exports of
+the wrong session chain.
+
+**How to derive your session_id:**
+
+1. **From the live transcript path** (preferred). Your most recent hook payload's
+   `transcript_path` looks like `C:\Users\<user>\.claude\projects\P--\<session_id>.jsonl`
+   (or `<session_id>-<model>.jsonl` on some setups). The stem minus the optional
+   `-<model>` suffix is the session_id.
+2. **If no hook payload is in context** (first prompt of a session), run `/status`
+   or inspect `~/.claude/projects/P--/` for the `.jsonl` whose mtime is newest and
+   whose content includes your current first message — its stem is your session_id.
+   Do NOT guess from memory or from the active-session file.
+
+Pass it as `--session-id <id>` on every invocation, including the "export this
+session" case.
 
 ## Context protection
 

@@ -634,6 +634,18 @@ class CHSExporter:
                 except Exception:
                     pass
 
+            # Defense-in-depth: Priority 1 missed (or no terminal_id). The
+            # fallbacks below are racy under concurrent Claude sessions in one
+            # Windows Terminal — WT_SESSION is shared, so mtime/size can pick a
+            # sibling session. Warn loudly so silent wrong-chain exports surface.
+            import sys as _sys
+            print(
+                "warning: --session-id not provided and the terminal-keyed resolution "
+                "file did not resolve; falling back to racy SDK/mtime detection. Pass "
+                "--session-id explicitly to guarantee the correct chain.",
+                file=_sys.stderr,
+            )
+
         # Priority 2: SDK list_sessions() with file_size cross-reference
         try:
             from claude_agent_sdk import list_sessions
