@@ -25,7 +25,10 @@ thorough.
    being reviewed, preceded by `Inferred target:` if the target was inferred from
    session context, or the explicit artifact path/name if the user provided one.
    This is the handoff between target acquisition and analysis; every output
-   must start here.
+   must start here. For a large artifact processed under SKILL.md's
+   large-artifact protocol (transcript/JSONL/chat-history/log), append the
+   chunking heuristic in one phrase (e.g., `chunked by session_id, 500-line
+   windows`) so the run is reproducible.
 1. **Domain Classification** — `DOMAIN`, `CONFIDENCE`, `RATIONALE`, `ALTERNATIVE`.
 2. **Verified Facts (with provenance)** — one fact per bullet; every bullet ends
    with a provenance tag (see below).
