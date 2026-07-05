@@ -14,6 +14,7 @@ Features:
 import argparse
 import json
 import os
+import re
 import sqlite3
 import sys
 from datetime import datetime, timedelta
@@ -1169,7 +1170,8 @@ def main():
                 max_sessions=args.max_sessions,
             )
             text = out.read_text(encoding="utf-8")
-            session_count = text.count("\n## Session ")
+            _m = re.search(r"^\*\*Sessions in chain:\*\* (\d+)", text, re.MULTILINE)
+            session_count = int(_m.group(1)) if _m else 0
             size_bytes = out.stat().st_size
             estimated_tokens = size_bytes // 4
             if estimated_tokens < 20_000:
