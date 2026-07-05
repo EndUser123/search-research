@@ -1,7 +1,7 @@
 ---
 name: ask
 description: Universal CLI router for intelligent command discovery, prompt enhancement, and orchestration
-version: "3.6"
+version: "3.7"
 status: stable
 category: consultation
 enforcement: advisory
@@ -60,14 +60,13 @@ Primary entry point for all CLI operations with intelligent command discovery, r
 - **Evidence-based routing**: Understand context before routing, don't guess
 
 ### Technical Context
-- **Skill registry**: `$CLAUDE_ROOT/hooks\skill_registry.py` for command discovery
-- **Search integration**: `/search --backend skills` for command discovery
+- **Skill discovery**: read SKILL.md frontmatter directly under `P:/packages/.claude-marketplace/plugins/`. No registry, no index — files are the source of truth. Glob `**/SKILL.md`, Grep frontmatter (`name`, `description`, `triggers`, `aliases`), then Read the shortlisted candidate(s).
 - **Triage levels**: FAST (<2s), STANDARD (<15s), CAREFUL (<60s)
 - **Evidence tiers**: Tier 1 (95%), Tier 2 (85%), Tier 3 (75%), Tier 4 (50%)
 
 ### Architecture Alignment
-- Universal router for 192+ commands/skills
-- Integrates with CHS (session context), CKS (patterns), skill_registry
+- Universal router for marketplace plugins
+- Integrates with CHS (session context), CKS (patterns)
 - Links to /orchestrator, /nse, /search for related operations
 
 ## Your Workflow
@@ -84,7 +83,7 @@ Primary entry point for all CLI operations with intelligent command discovery, r
 
 - **Before routing**: Understand request context, don't route blindly
 - **Before accepting claims**: Apply evidence-based scoring, block if truth_score < 0.7
-- **Before command discovery**: Use /search with skills backend, don't guess
+- **Before command discovery**: Read candidate SKILL.md frontmatter (Glob + Grep + Read), don't guess from names
 - **Ambiguous requests**: Ask one clarifying question, don't fabricate route
 
 ### Prohibited Actions
@@ -224,9 +223,9 @@ IF request references specific files or code:
     → Map dependencies before proposing route
 
 IF request asks "what [category] command would help..." or seeks command discovery:
-    → Use /search with skills backend FIRST
-    → Execute: cd "P://__csf" && python src/csf/cli/nip/search.py "query" --backend skills --layer 3
-    → Review results and route to best match
+    → Glob: P:/packages/.claude-marketplace/plugins/**/SKILL.md
+    → Grep frontmatter (name, description, triggers, aliases) for intent keywords
+    → Read full SKILL.md for shortlisted candidates (≤5), then route to best match
 
 IF request is ambiguous:
     → Ask one clarifying question before routing
@@ -267,7 +266,7 @@ _See `references/intent-routing-table.md` for the complete intent-to-command map
 
 ### 4.3 Command Discovery Integration
 
-Commands are sourced from the `skill_registry`.
+Commands are discovered by reading SKILL.md frontmatter directly under the marketplace root (`P:/packages/.claude-marketplace/plugins/`). There is no registry — Glob, Grep, Read.
 
 ### 4.4 Ambiguous Request Handling
 

@@ -38,9 +38,9 @@ IF no command matches:
 
 ## Command Registry
 
-- All commands registered in `skill_registry`
-- Auto-discovery via `skill_registry` loading
-- Metadata includes: aliases, category, handles, description
+- No central registry. Commands are discovered dynamically by reading SKILL.md frontmatter under `P:/packages/.claude-marketplace/plugins/`.
+- Metadata lives in each skill's frontmatter: `name`, `description`, `aliases`, `triggers`, `category`.
+- Discovery procedure: Glob `**/SKILL.md` → Grep frontmatter for intent keywords → Read shortlisted candidates.
 
 ## Workflow Integration
 

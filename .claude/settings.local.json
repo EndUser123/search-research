@@ -169,7 +169,8 @@
       "Bash(python P:/packages/.claude-marketplace/plugins/cc-skills-utils/skills/plugin-installer/scripts/plugin-audit-and-fix.py --bump cc-skills-utils --marketplace-root P:/packages/.claude-marketplace)",
       "Bash(python P:/packages/.claude-marketplace/plugins/cc-skills-utils/skills/plugin-installer/scripts/plugin-audit-and-fix.py --bump cc-skills-sdlc --marketplace-root P:/packages/.claude-marketplace)",
       "Bash(python \"P:/packages/.claude-marketplace/plugins/cc-skills-utils/scripts/plugin-audit-and-fix.py\" --packages-root \"P:/packages/.claude-marketplace/plugins\" --auto-fix --summarize)",
-      "Bash(echo \"[exit:$?]\")"
+      "Bash(echo \"[exit:$?]\")",
+      "mcp__web-search-prime__web_search_prime"
     ],
     "deny": [],
     "ask": []
