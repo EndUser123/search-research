@@ -20,9 +20,9 @@ Two-part hook system:
 When a slash command is detected, `UserPromptSubmit_router.py` stores:
 - The skill name
 - The user's original prompt
-- Expiry timestamp (5 minutes)
+- Expiry timestamp (90s, plus explicit clear at next non-slash single-line UserPromptSubmit)
 
-Location: `P:/.claude/hooks/state/pending_command_intent.json`
+Location: `P:/.claude/hooks/state/sessions/{session_id}/pending_command_intent.json`
 
 ### 2. PreToolUse (validation)
 

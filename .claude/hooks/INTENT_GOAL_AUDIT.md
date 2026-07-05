@@ -16,9 +16,9 @@ Audit of all intent/goal tracking files in the codebase. Found **4 actively wire
 **Registration:** Registered in `PreToolUse.py`
 **Purpose:** Validates that bash commands match user intent when executing slash commands
 **Architecture:**
-- State file: `P:/.claude/hooks/state/pending_command_intent_{session_id}.json`
+- State file: `P:/.claude/hooks/state/sessions/{session_id}/pending_command_intent.json` (STATE-01, 2026-07-05; was `terminals/{terminal_id}/...` — WT_SESSION is shared across concurrent sessions in one Windows Terminal, so terminal_id is not a per-session key)
 - Stores: `{skill, prompt}` when slash command detected
-- TTL: 5 minutes, auto-cleanup
+- TTL: 90s hard cap at gate read (`_INTENT_TTL_SECONDS` in PreToolUse.py); intent is also cleared at UserPromptSubmit for non-slash single-line prompts (per-turn semantics, FM-2 multiline guard)
 - Used by: UserPromptSubmit_router.py (sets), PreToolUse_command_intent_gate.py (consumes)
 
 **Example Problem Solved:**

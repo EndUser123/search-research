@@ -36,6 +36,15 @@ STATE_DIR / f"observe_gate_{safe_terminal}_{safe_session}.json"
 **Session IDs**: UUID4, collision-free (~10^-18), BUT change during compaction
 **Terminal IDs**: Persist across compaction, unique per terminal instance
 
+**NOTE (2026-07-05, STATE-01):** `pending_command_intent.json` is now keyed by
+`session_id` (`state/sessions/{session_id}/...`), not `terminals/{terminal_id}/...`.
+WT_SESSION (terminal_id) is shared across concurrent Claude sessions in one Windows
+Terminal, so it must not be the per-session isolation key. The directory survives
+compaction, but the intent record no longer does — it is cleared at the next non-slash
+single-line UserPromptSubmit (per-turn coercion window only). Compaction-mid-turn
+recovery regression is accepted (FM-3); the skill_execution_state fallback is inert
+when Skill() never fired pre-compaction, which is the regression's precondition.
+
 **Compaction Event**:
 - Session ID: `abc-123` → `xyz-789` (CHANGES)
 - Terminal ID: `ConsoleHost_4` → `ConsoleHost_4` (PERSISTS)

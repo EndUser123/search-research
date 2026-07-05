@@ -184,7 +184,6 @@ _SKILL_FIRST_LOG = HOOKS_DIR / "logs" / "skill_first_enforcement.jsonl"
 # ponytail: bleed-diagnostic probe — logs only when a pending intent is FOUND
 # (the cross-terminal-bleed suspect event). Zero IO on the common no-intent path.
 _SKILL_FIRST_INTENT_READ_PROBE = HOOKS_DIR / "logs" / "diagnostics" / "skill_first_intent_reads.jsonl"
-_STALE_TERMINAL_INTENT_SECONDS = 15 * 60
 # Hard TTL: intent files older than this are discarded unconditionally.
 # Covers crash/force-kill where SessionEnd never fires, and abandoned slash commands.
 #
@@ -330,37 +329,6 @@ def _safe_id(value: str) -> str:
     return re.sub(r"[^a-zA-Z0-9_.-]+", "_", value)
 
 
-def _parse_iso_timestamp(value: object) -> datetime | None:
-    """Parse ISO 8601 timestamps emitted by the slash-intent writer."""
-    if not isinstance(value, str):
-        return None
-    text = value.strip()
-    if not text:
-        return None
-    try:
-        return datetime.fromisoformat(text.replace("Z", "+00:00"))
-    except ValueError:
-        return None
-
-
-def _terminal_scoped_intent_is_stale(intent: dict) -> bool:
-    """Return True when a terminal-scoped intent is old enough to ignore."""
-    age_limit = _STALE_TERMINAL_INTENT_SECONDS
-    raw_limit = os.environ.get("SKILL_FIRST_STALE_INTENT_SECONDS", "").strip()
-    if raw_limit:
-        try:
-            age_limit = max(0, int(raw_limit))
-        except ValueError:
-            age_limit = _STALE_TERMINAL_INTENT_SECONDS
-
-    timestamp = _parse_iso_timestamp(intent.get("timestamp"))
-    if timestamp is None:
-        return False
-
-    now = datetime.now(timestamp.tzinfo) if timestamp.tzinfo else datetime.now()
-    return (now - timestamp).total_seconds() > age_limit
-
-
 def _resolve_session_id(data: dict) -> str:
     """Resolve session id from hook payload first, then environment.
 
@@ -428,6 +396,7 @@ class IntentFileLookup:
 
     # Format specification: (template, requires_session, description)
     FORMATS = [
+        ("sessions/{sid}/pending_command_intent.json", True, "STATE-01 per-session"),
         ("terminals/{tid}/pending_command_intent.json", False, "TASK-005+ per-terminal"),
         ("terminals/{tid_stripped}/pending_command_intent.json", False, "TASK-005+ dash-stripped"),
         ("pending_command_intent_{tid}.json", False, "flat terminal-scoped"),
@@ -459,6 +428,8 @@ class IntentFileLookup:
                 if requires_session and not safe_session:
                     continue
                 path_template = format_template.replace("{tid}", tid_variant)
+                if "{sid}" in path_template:
+                    path_template = path_template.replace("{sid}", session_id or "")
                 for base in (self.state_dir, self.fallback_dir):
                     candidates.append((base / path_template, format_desc))
         return candidates
@@ -701,6 +672,10 @@ def _check_skill_first_gate(data: dict) -> dict | None:
 
     try:
         intent = json.loads(intent_file.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        # STATE-04: race with the UPS per-turn clearer / PostToolUse Skill() clearer —
+        # the file vanished between exists() and read_text(). Treat as no intent.
+        return None
     except Exception as exc:
         return {
             "decision": "block",
@@ -754,26 +729,20 @@ def _check_skill_first_gate(data: dict) -> dict | None:
         intent_file.unlink(missing_ok=True)
         return None
 
-    # Terminal-scoped intent files are intentionally compact-proof, but they can
-    # linger after the originating session is gone. Ignore old mismatched-session
-    # intents so they do not block unrelated later work in the same terminal.
+    # Foreign-terminal guard (LOGIC-1/STATE-02): a legacy terminal-scoped file
+    # carrying a different terminal_id is an orphan (WT_SESSION recycling, crash).
+    # Unlink so it does not arm the gate against an unrelated later run.
+    # Session-scoped files (sessions/{sid}/...) do not enter this branch — the
+    # path itself encodes the session, so the lookup never returns another session's file.
     terminal_scoped_name = f"pending_command_intent_{safe_terminal}.json"
     is_new_terminal_scoped_intent = (
         intent_file.name == "pending_command_intent.json"
         and intent_file.parent.name == (terminal_id or intent_file.parent.name)
         and intent_file.parent.parent.name == "terminals"
     )
-    intent_session_id = str(intent.get("session_id", "")).strip()
     intent_terminal_id = str(intent.get("terminal_id", "")).strip()
     if intent_file.name == terminal_scoped_name or is_new_terminal_scoped_intent:
         if intent_terminal_id and _safe_id(intent_terminal_id) != safe_terminal:
-            intent_file.unlink(missing_ok=True)
-            return None
-        if (
-            intent_session_id
-            and intent_session_id != session_id
-            and _terminal_scoped_intent_is_stale(intent)
-        ):
             intent_file.unlink(missing_ok=True)
             return None
 
