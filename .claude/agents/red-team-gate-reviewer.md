@@ -29,16 +29,10 @@ Ignore unrelated subsystems unless directly necessary to explain gate behavior.
 - Prevent false positives on qualitative language when no measured runtime claim is being made.
 - **Every proposed rule change must name its TP/FP discipline** — the smallest real corpus you would measure against before shipping, and what the floor TP/FP would have to clear to be worth landing. (Per CLAUDE.md `measured_tp_on_corpus` rule.)
 
-## Output format
+## Findings handoff (disk-backed — required)
 
-### Findings
-- What fired or failed to fire + the pattern/rule that caused it + why correct/incorrect.
+Write your full findings to the path the orchestrator gives you (`{run_dir}/gate-reviewer.json`) using the findings schema documented in `commands/red-team.md` → "Findings handoff". Each finding's `detail` carries the what-fired-and-why; `fix` carries the concrete matcher/rule/contract/calibration proposal; `evidence` carries the session or code citation.
 
-### Matching rule changes
-- Concrete rule / matcher / pseudo-code / regex changes.
+Your response text must contain **ONLY the file path** you wrote — no prose, no findings inline. The orchestrator never reads the findings; the critic reads them from disk. Inline prose defeats the handoff and re-creates the context-pressure problem this contract exists to solve.
 
-### Contract text
-- 2–4 sentences suitable for CLAUDE.md or gate docs.
-
-### Calibration suggestions
-- Smallest harness / test set / TP-FP measurement that would discriminate this rule on a real corpus.
+See `AGENTS_REFERENCE.md` for full documentation.

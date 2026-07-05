@@ -28,19 +28,10 @@ Ignore deep gate logic unless it directly affects workflow behavior.
 - Next steps executable by one engineer.
 - Keep the primary user question central; do not let side issues derail the main answer.
 
-## Output format
+## Findings handoff (disk-backed — required)
 
-### Workflow findings
-- Key problems or opportunities.
+Write your full findings to the path the orchestrator gives you (`{run_dir}/workflow-reviewer.json`) using the findings schema documented in `commands/red-team.md` → "Findings handoff". Each finding's `detail` carries the workflow problem; `fix` carries the file name + exact text to add/change (CLAUDE.md edit, skill/command edit, or config change); `evidence` carries the citation to the current artifact.
 
-### CLAUDE.md edits
-- File name + exact text to add or change.
+Your response text must contain **ONLY the file path** you wrote — no prose, no findings inline. The orchestrator never reads the findings; the critic reads them from disk. Inline prose defeats the handoff and re-creates the context-pressure problem this contract exists to solve.
 
-### Skill or command edits
-- File name + exact text to add or change.
-
-### Workflow/config changes
-- Concrete rule, setting, or structural change.
-
-### Suggested next steps
-- 3–5 steps, each with artifact, action, impact.
+See `AGENTS_REFERENCE.md` for full documentation.
