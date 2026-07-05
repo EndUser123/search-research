@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 _CONTRACT_FILENAME = "task_contract.json"
+_CONTRACT_TTL_HOURS = 2  # Auto-expire active contracts older than this
 
 VALID_OUTPUTS = frozenset({
     "root_cause",
@@ -49,6 +50,7 @@ def load_contract(terminal_id: str) -> dict[str, Any] | None:
     """Load the active task contract for this terminal.
 
     Auto-migrates v1 contracts to v2 schema on load (no embeddings in v2).
+    Auto-expires active contracts older than _CONTRACT_TTL_HOURS.
     Returns None if no contract exists or it is not active.
     """
     path = _contract_path(terminal_id)
@@ -58,6 +60,21 @@ def load_contract(terminal_id: str) -> dict[str, Any] | None:
         data = json.loads(path.read_text(encoding="utf-8"))
         if data.get("status") != "active":
             return None
+
+        # TTL expiry: auto-expire active contracts older than threshold
+        created_at = data.get("created_at", "")
+        if created_at:
+            try:
+                from datetime import datetime, timezone
+                created_dt = datetime.fromisoformat(created_at)
+                age_hours = (datetime.now(timezone.utc) - created_dt).total_seconds() / 3600
+                if age_hours > _CONTRACT_TTL_HOURS:
+                    data["status"] = "expired"
+                    _save_raw(terminal_id, data)
+                    return None
+            except (ValueError, OSError):
+                pass  # Malformed created_at → skip expiry check (fail-open)
+
         # Migrate v1 → v2 if needed (adds phase/evidence without embeddings)
         if "v2_schema_version" not in data:
             data = _migrate_to_v2(terminal_id, data)
