@@ -50,6 +50,10 @@ dist/,build/,out/,target/,egg-info/,*.egg-info/
 **Output location:** `P://.claude/.artifacts/` — always, never inside the target directory.
 This prevents polluting source trees (especially skills/plugin cache) with temp files. |
 
+## Reporting (model must do — do not skip)
+
+After the run completes, **always report the full Windows paths** of the produced `_sig.md` and `_full.md` to the user — verbatim from the script's final `ARTIFACT PATHS` banner. Do not paraphrase, abbreviate, or omit. The user cannot open what they cannot point to. If you report anything about the run, the paths are the first thing to surface.
+
 ## Features
 
 - **Multi-language** — `ast` for Python; regex signatures for JS/TS/HTML/CSS/SQL/YAML/JSON/PowerShell; **Markdown is first-class** (headings + frontmatter keys extracted as the signature TOC)

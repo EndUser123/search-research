@@ -647,9 +647,13 @@ def main() -> None:
     full_content = build_full_pack(files, name)
     full_path.write_text(full_content, encoding="utf-8")
 
-    print(f"Signatures: {sig_path} — {len(sig_content):,} chars")
-    print(f"Full:       {full_path} — {len(full_content):,} chars")
-    print(f"Files: {len(files)} files")
+    bar = "=" * 64
+    print(bar)
+    print("ARTIFACT PATHS — report these full Windows paths to the user:")
+    print(f"  sig  -> {sig_path}")
+    print(f"  full -> {full_path}")
+    print(bar)
+    print(f"Packed {len(files)} files.   sig: {len(sig_content):,} chars   full: {len(full_content):,} chars")
 
 
 if __name__ == "__main__":
