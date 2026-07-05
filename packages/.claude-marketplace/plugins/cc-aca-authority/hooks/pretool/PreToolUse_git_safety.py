@@ -32,7 +32,9 @@ It does NOT block the commit - it just prompts reflection.
 """
 
 import json
+import os
 import re
+import site
 import sys
 import time
 from pathlib import Path
@@ -93,6 +95,20 @@ SAFE_PATTERNS = [
     "test_", "_test.py", "/tests/", "/test/", "mock", "fixture", "fake",
     "schema", "database", "config",
 ]
+
+# Owned out-of-tree edit targets — paths outside the worktree that are
+# legitimate Edit/Write targets (install-site patches we maintain, vendored
+# fixes). The default covers the qmd install site whose build_fts5_query
+# patch (#1064) is lost on every qmd reinstall; derived from
+# site.getusersitepackages() so it survives Python upgrades and user changes.
+# Override or extend via CSF_WORKTREE_ALLOWLIST="path1;path2".
+_user_site = site.getusersitepackages()  # e.g. .../Python314/site-packages
+_DEFAULT_ALLOWLIST = f"{_user_site}/qmd" if _user_site else ""
+OWNED_OUT_OF_TREE_PREFIXES = tuple(
+    Path(p).resolve()
+    for p in os.environ.get("CSF_WORKTREE_ALLOWLIST", _DEFAULT_ALLOWLIST).split(";")
+    if p.strip()
+)
 
 def ensure_fresh_index(repo_root: Path | None = None) -> None:
     """
@@ -377,6 +393,15 @@ def check_worktree_cross_contamination(
             p_claude = Path('P:/.claude').resolve()
             if p_claude == target_resolved or p_claude in target_resolved.parents:
                 return {"continue": True, "decision": "allow", "reason": "Global P:/.claude config (not worktree-scoped)"}
+
+            # OWNED OUT-OF-TREE ALLOWLIST — install-site patches, vendored fixes
+            # we maintain (e.g. the qmd build_fts5_query patch, #1064). These
+            # are owned paths outside the worktree; without this they trip the
+            # cross-worktree guard on every Edit/Write.
+            for allowed in OWNED_OUT_OF_TREE_PREFIXES:
+                if allowed == target_resolved or allowed in target_resolved.parents:
+                    return {"continue": True, "decision": "allow",
+                            "reason": "Owned out-of-tree path (CSF_WORKTREE_ALLOWLIST)"}
         except (OSError, ValueError, RuntimeError):
             pass
 
@@ -620,5 +645,27 @@ def main():
     print(json.dumps(output))
     return 0
 
+def _selfcheck() -> int:
+    """Ponytail self-check: verify allowlist derivation + prefix matching.
+
+    Fails loud if site-packages derivation regresses, the env override breaks,
+    or the `in .parents` match logic flips. Run: python PreToolUse_git_safety.py selfcheck
+    """
+    assert OWNED_OUT_OF_TREE_PREFIXES, "allowlist empty — site.getusersitepackages() returned falsy?"
+    allowed = OWNED_OUT_OF_TREE_PREFIXES[0]
+    assert "site-packages" in str(allowed).lower() and allowed.name == "qmd", (
+        f"derived default unexpected: {allowed}")
+    # Prefix-match: target inside qmd matches; sibling site-package does not.
+    inside = (allowed / "core" / "retrieval.py").resolve()
+    assert allowed in inside.parents, f"inside-qmd target not matched: {inside}"
+    sibling = allowed.parent / "some_other_pkg" / "x.py"
+    assert allowed not in sibling.resolve().parents and allowed != sibling.resolve(), (
+        f"non-qmd site-package wrongly matched: {sibling}")
+    print(f"OK: allowlist={[str(p) for p in OWNED_OUT_OF_TREE_PREFIXES]}")
+    return 0
+
+
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "selfcheck":
+        sys.exit(_selfcheck())
     sys.exit(main())
