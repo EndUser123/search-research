@@ -64,9 +64,10 @@ Generate the `run_dir` (see Findings handoff above), create it, then dispatch th
 
 Each specialist dispatch includes: the proposal under review (or pointer to it), the `run_dir`, and the instruction — *"Write your findings to `{run_dir}/<your-name>.json` per the schema in the orchestrator skill. Your response text must contain ONLY the file path — no prose, no findings inline."* If `{run_dir}/prospect.md` exists (planner fired the prospect pass), specialists Read it before attacking and weigh its priors.
 
-Project-local specialists (under `P:/.claude/agents/`). Always-consider first two; dispatch the rest when the Planner identifies the angle:
-- `red-team-gate-reviewer` — always-consider. Gates, hooks, matchers, guardrails, calibration.
-- `red-team-workflow-reviewer` — always-consider. CLAUDE.md, skills, commands, task-tracking, workflow quality.
+Project-local specialists (under `P:/.claude/agents/`). The two **always-consider** specialists are NON-OPTIONAL — they run on every /red-team invocation regardless of how narrow the proposal seems, regardless of ponytail/auto-mode/decision-phase framing. Skipping an always-consider specialist invalidates the synthesis. Dispatch the conditional specialists whenever the planner identifies their angle — and when uncertain whether an angle applies, **dispatch it** (over-dispatch is cheap; under-dispatch silently misses whole failure classes).
+
+- `red-team-gate-reviewer` — **always-consider (non-optional)**. Gates, hooks, matchers, guardrails, calibration.
+- `red-team-workflow-reviewer` — **always-consider (non-optional)**. CLAUDE.md, skills, commands, task-tracking, workflow quality.
 - `red-team-security` — data leaks, access control, injection, trust boundaries.
 - `red-team-performance` — timeouts, bottlenecks, N+1, races, resource exhaustion.
 - `red-team-logic` — off-by-one, inverted conditionals, wrong operators, ambiguous precedence, category overlap.
@@ -74,6 +75,8 @@ Project-local specialists (under `P:/.claude/agents/`). Always-consider first tw
 - `red-team-failure-modes` — "imagine it failed catastrophically, why?" with web research for domain anti-patterns.
 - `red-team-plugin` — dispatch on plugin/tool/MCP proposals: manifests, dispatch double-fire, source-vs-cache drift, version-bump/cache hygiene, integration guardrails.
 - `red-team-testing` — dispatch on gate/agent/critical-path changes: tests, evals, harnesses, regression + entry-point-launch coverage.
+
+**Every dispatch carries the full context bundle** — no bare one-liner prompts. Each specialist prompt MUST include: (a) the **absolute** `run_dir` path (never the literal `{run_dir}` placeholder — bind it), (b) the proposal pointer (`{run_dir}/prospect.md` and/or `{run_dir}/proposal.md`), (c) the specific target under review (file paths, hook names, session evidence), (d) the specialist's concrete task, (e) the output-path instruction and the "response text = file path only" rule. A specialist that receives only an output path cannot do its job and will return empty.
 
 Collect only the path each specialist returns. Do not Read the findings files yourself — that defeats the handoff.
 
@@ -96,6 +99,9 @@ Produce one final user-visible output **only after** the Critic completes.
 Qualitative ROI is allowed. Quantitative performance attribution requires actual timing / telemetry / profiling evidence — never invent measurements.
 
 ## Final output format
+
+### Specialist dispatch manifest
+- Lists every specialist in the skill (`gate-reviewer`, `workflow-reviewer`, `security`, `performance`, `logic`, `state`, `failure-modes`, `plugin`, `testing`) with one of: **DISPATCHED** (ran, findings in critic) or **DEFERRED — <one-line reason>**. The two always-consider specialists may not be DEFERRED; if one is, the synthesis is invalid and must say so explicitly at the top. This makes omission visible in the user-facing output instead of silent.
 
 ### Proposal restated
 - One paragraph.
