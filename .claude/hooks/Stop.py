@@ -871,10 +871,11 @@ def _log_epistemic_telemetry(data: dict, verdict, mode: str, repair_bypass: bool
                 }
                 for i in verdict.issues[:10]  # cap at 10 to bound entry size
             ]
-        with log_path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(entry) + "\n")
-    except Exception:
-        pass
+        from file_lock import append_jsonl
+        append_jsonl(log_path, entry)
+    except TimeoutError:
+        import sys
+        print(f"[telemetry] lock timeout writing {log_path.name}", file=sys.stderr)
 
 
 def _log_non_critical_advisory(
@@ -930,10 +931,11 @@ def _log_non_critical_advisory(
             entry["repeat_key"] = repeat_key
         if retry_count is not None:
             entry["retry_count"] = retry_count
-        with log_path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(entry) + "\n")
-    except Exception:
-        pass
+        from file_lock import append_jsonl
+        append_jsonl(log_path, entry)
+    except TimeoutError:
+        import sys
+        print(f"[advisory] lock timeout writing {log_path.name}", file=sys.stderr)
 
 
 def _run_cross_validator(data: dict) -> dict | None:

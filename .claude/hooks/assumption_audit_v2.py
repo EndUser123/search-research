@@ -2285,10 +2285,11 @@ def log_event(event_type: str, data: dict):
             "version": "2.4.2",
             **data,
         }
-        with open(LOG_FILE, "a") as f:
-            f.write(json.dumps(entry) + "\n")
-    except Exception:
-        pass
+        from file_lock import append_jsonl
+        append_jsonl(LOG_FILE, entry)
+    except TimeoutError:
+        import sys
+        print(f"[assumption_audit] lock timeout writing {LOG_FILE.name}", file=sys.stderr)
 
 
 # =============================================================================

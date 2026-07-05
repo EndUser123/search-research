@@ -690,8 +690,8 @@ class ReflexionVerifier(PostToolUseHook):
             }
 
             # Log to evidence file
-            with open(self.evidence_log, "a", encoding="utf-8") as f:
-                f.write(json.dumps(evidence) + "\n")
+            from file_lock import append_jsonl
+            append_jsonl(self.evidence_log, evidence)
 
             return [evidence]
         except Exception:
@@ -790,7 +790,7 @@ class ReflexionVerifier(PostToolUseHook):
             log_file = self.hooks_dir / "data" / "reflexion_verifications.jsonl"
             log_file.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(log_file, "a", encoding="utf-8") as f:
-                f.write(json.dumps(log_entry) + "\n")
-        except Exception:
+            from file_lock import append_jsonl
+            append_jsonl(log_file, log_entry)
+        except (Exception, TimeoutError):
             pass  # Don't fail hook if logging fails

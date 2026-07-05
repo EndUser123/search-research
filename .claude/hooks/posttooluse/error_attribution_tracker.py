@@ -253,10 +253,11 @@ class ErrorAttributionTracker(PostToolUseHook):
                 "source_type": error_info["source_type"],
                 "context": error_info["context"][:150],
             }
-            with open(LOG_FILE, "a") as f:
-                f.write(json.dumps(entry) + "\n")
-        except Exception:
-            pass  # Non-critical
+            from file_lock import append_jsonl
+            append_jsonl(LOG_FILE, entry)
+        except TimeoutError:
+            import sys
+            print(f"[error_tracker] lock timeout writing {LOG_FILE.name}", file=sys.stderr)
 
     def _write_state(self, error_info: dict) -> None:
         """Write state for potential Stop gate validation."""

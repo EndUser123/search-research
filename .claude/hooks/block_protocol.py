@@ -71,10 +71,11 @@ def block_response(reason: str, hook: str, guidance: str = None) -> None:
     }
 
     try:
-        with open(BLOCK_LOG, "a") as f:
-            f.write(json.dumps(audit_entry) + "\n")
-    except Exception:
-        pass  # Don't fail blocking due to logging issues
+        from file_lock import append_jsonl
+        append_jsonl(BLOCK_LOG, audit_entry)
+    except TimeoutError:
+        import sys
+        print(f"[block_protocol] lock timeout writing {BLOCK_LOG.name}", file=sys.stderr)
 
     # Output reason to stderr (Stop_router reads this on exit code 2)
     _logger.warning(full_reason)
