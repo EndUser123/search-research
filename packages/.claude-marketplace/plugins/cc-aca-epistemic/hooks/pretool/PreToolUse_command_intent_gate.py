@@ -27,6 +27,16 @@ FAIL-SAFE BEHAVIOR:
 - Missing state file → Allow (no slash command active)
 - Expired state → Allow (cleaned up automatically)
 - psutil unavailable → Falls back to os.getppid() → os.getpid()
+
+CONTRACT NOTE (2026-07-05, FM-5): Under per-turn intent semantics
+(STATE-01 + Change 1), the skill-guard UPS hook clears pending_command_intent
+at the first non-slash single-line UserPromptSubmit. This gate's restriction-
+validation window therefore ends at that same boundary: any user follow-up
+disarms this gate as well as the skill-first gate. Accepted widening of the
+existing fail-open (missing-file → Allow) — NOT a regression. Migrating this
+gate to skill_execution_state would not restore the restriction window,
+because skill_execution_state answers "did Skill() fire" (the model's act),
+not "what did the user just intend" (this gate's signal).
 """
 
 
