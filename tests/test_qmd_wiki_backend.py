@@ -81,6 +81,23 @@ class TestQuerySanitization:
         assert "\x00" not in result
         assert "\x01" not in result
 
+    def test_fts5_hyphen_split(self, temp_vault):
+        """#1064: hyphenated term must NOT reach FTS5 as NOT operator."""
+        backend = QMDWikiBackend(vault_path=str(temp_vault))
+        assert backend._sanitize_query("two-levers") == "two levers"
+
+    def test_fts5_operators_neutralized(self, temp_vault):
+        """#1064: FTS5 operator chars (*, (), \", /) stripped to spaces."""
+        backend = QMDWikiBackend(vault_path=str(temp_vault))
+        assert backend._sanitize_query('foo*bar(baz)/"qux"') == "foo bar baz qux"
+
+    def test_fts5_unicode_preserved(self, temp_vault):
+        """#1064: Unicode word chars survive (Latin, CJK, Cyrillic)."""
+        backend = QMDWikiBackend(vault_path=str(temp_vault))
+        result = backend._sanitize_query("café- naïve 你好 — Москва")
+        assert "café" in result and "你好" in result and "Москва" in result
+        assert "-" not in result
+
 
 class TestVaultMtimeCache:
     """Tests for vault mtime caching (Constraint 11)."""
