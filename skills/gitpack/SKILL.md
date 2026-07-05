@@ -56,6 +56,15 @@ This prevents polluting source trees (especially skills/plugin cache) with temp 
 
 After the run completes, **always report the full Windows paths** of the produced `_sig.md` and `_full.md` to the user — verbatim from the script's final `ARTIFACT PATHS` banner. Do not paraphrase, abbreviate, or omit. The user cannot open what they cannot point to. If you report anything about the run, the paths are the first thing to surface.
 
+## Code vs LLM split (the design principle)
+
+`gitpack` deliberately separates the two layers of a skill:
+
+- **Deterministic code owns the code-shaped work** — file discovery, recursion, exclusion, signature extraction (AST/regex), appendix reads, path/skill resolution. These are exact, reproducible, and have no judgment component. They live in `gitpack.py` (pure stdlib). The `--skill` resolver is the canonical example: name→path resolution was a model hand-step (error-prone cache-vs-source guessing) and is now one deterministic flag.
+- **LLM owns the non-code-shaped work** — orientation, summarization, "what should I read first." Use `--overview`: the script emits a marked `## OVERVIEW (LLM-generated)` placeholder into both outputs. The workflow (you, the model) then fills it via an LLM call (`/ai-cli` or `/ai-api`) — 1–3 sentences on what the pack is, its entry points, and the 2–3 files a reader should open first. The script never calls an LLM; it structures the slot the LLM fills.
+
+Rule of thumb when extending gitpack: if the new step has a single correct answer, it belongs in `gitpack.py` (code). If it has no single correct answer — prose, ranking, judgment — it belongs behind `--overview`-style placeholders the model+LLM fill.
+
 ## Features
 
 - **Multi-language** — `ast` for Python; regex signatures for JS/TS/HTML/CSS/SQL/YAML/JSON/PowerShell; **Markdown is first-class** (headings + frontmatter keys extracted as the signature TOC)
