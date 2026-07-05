@@ -1659,3 +1659,9 @@ SHA256: a23f6d5acf429d323c59942dd09357e50e84ff0b23e7b1e0e55ff69be4fcba9c
 ## [2026-07-05] ingest | Subagent Model Diversity — Two Independent Levers
 Source: session-derived (red-team model-fit review)
 SHA256: session-synthesis-no-source-file
+Ready. What do you need?nSource: sessionn
+
+## [2026-07-05] ingest | Claude Code Goal Writing Best Practices
+Source: session
+Transcript: P:/Users/brsth/.claude/projects/P--/2026-07-05.jsonl
+
