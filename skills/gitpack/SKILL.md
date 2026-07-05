@@ -17,13 +17,15 @@ Python signatures are extracted via `ast`; other languages via language-specific
 ## Workflow
 
 ```
-python "<skill-dir>/scripts/gitpack.py" <path>... [--name <pack-name>] [--exclude <patterns>]
+python "<skill-dir>/scripts/gitpack.py" <path>... [--skill <name>] [--name <pack-name>] [--exclude <patterns>] [--overview]
 ```
 
 - `<path>...` — one or more files or directories. A directory is **recursed fully** (all nested subdirectories, depth-unlimited). A directly-listed file is included regardless of extension. Use multiple paths to pack a skill scattered across `commands/` + `agents/`, or pass one plugin/skill root and let recursion collect the whole tree.
+- `--skill <name>` — **deterministic skill-name resolution.** Resolves `/improve`, `improve`, or `plugin:improve` to its installed directory (plugin cache first, marketplace source second) and packs it. Removes the model's cache-vs-source hand-resolution step — prefer this over guessing paths.
 - `--name <pack-name>` — output basename (`<pack-name>_sig.md` / `<pack-name>_full.md`). Defaults to the common-parent directory name.
+- `--overview` — emit an `## OVERVIEW (LLM-generated)` placeholder section at the top of both outputs. See "Code vs LLM split" below.
 
-1. **DISCOVER** — Collect files from every input path (files included as-is; directories globbed with exclusions)
+1. **DISCOVER** — Collect files from every input path (files included as-is; directories recursed with component-wise exclusion)
 2. **EXTRACT** — Per file: `ast` (Python), language regex (JS/TS/HTML/CSS/SQL/YAML/JSON/PowerShell), or heading+frontmatter (Markdown)
 3. **BUILD** — Write two markdown files to `P://.claude/.artifacts/`:
    - `_sig.md` — signatures + indexes only

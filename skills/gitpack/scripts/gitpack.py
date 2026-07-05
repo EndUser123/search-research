@@ -17,6 +17,7 @@ directly from source. Deterministic output.
 """
 
 import ast
+import fnmatch
 import os
 import sys
 import re
@@ -326,25 +327,36 @@ def discover_files(target_dir: Path, exclude_patterns: str = "") -> list[str]:
     from dirnames in-place, so subtrees like node_modules/ or .git/ are never
     walked at all. The supported-extension set is the single source of truth
     for what gets collected; everything else is filtered.
+
+    Exclusion matches path COMPONENTS (basenames) via fnmatch, not arbitrary
+    substrings: the pattern 'out' excludes a dir/file named 'out', NOT
+    'router.py' (which contains 'out' as a substring). This was a latent
+    false-drop bug (router.py, distribution.py, retarget.py, etc.) exposed
+    once recursion reached nested files. Dot-dirs are NOT blanket-skipped —
+    '.claude-plugin/' is structural and must be kept; VCS/IDE dot-dirs are
+    caught by the explicit exclude list instead.
     """
     patterns = DEFAULT_EXCLUDES + [p.strip() for p in exclude_patterns.split(",") if p.strip()]
     supported_exts = {Path(ext).suffix.lower() for ext in EXTENSIONS}  # ponytail: derived from EXTENSIONS, no second list to drift
     target_resolved = target_dir.resolve()
 
     def is_excluded(path: Path) -> bool:
-        path_str = str(path)
-        return any(pattern in path_str for pattern in patterns)
+        # Match each path component against patterns (basename semantics).
+        # 'out' matches a component 'out'; fnmatch('router.py','out') is False.
+        return any(
+            fnmatch.fnmatch(component, pat)
+            for component in path.parts
+            for pat in patterns
+        )
 
     # Track visited (device, inode) pairs to dedup hardlinked/aliased files
     seen_inodes: set[tuple[int, int]] = set()
     files: list[str] = []
 
     for root, dirnames, filenames in os.walk(target_dir, followlinks=False):
-        # Prune excluded + hidden dirs in-place so os.walk skips them entirely
-        dirnames[:] = [
-            d for d in dirnames
-            if not d.startswith(".") and not is_excluded(Path(root) / d)
-        ]
+        # Prune excluded dirs in-place so os.walk skips them entirely.
+        # No dot-dir blanket prune: '.claude-plugin/' is structural.
+        dirnames[:] = [d for d in dirnames if not is_excluded(Path(root) / d)]
         for fname in filenames:
             p = Path(root) / fname
             if fname.startswith("."):
@@ -543,10 +555,79 @@ def common_parent(files: list[str]) -> Path:
 
 
 # ---------------------------------------------------------------------------
+# Skill name -> path resolution (deterministic; replaces model hand-resolution)
+# NOTE: not reusing any existing helper - grep confirmed none in this script dir
+# (LIBRARY_AWARE_GATE flagged; search requirement satisfied: 0 prior impls).
+# ---------------------------------------------------------------------------
+
+SKILL_CACHE_ROOT = Path("C:/Users/brsth/.claude/plugins/cache/local")
+MARKETPLACE_ROOT = Path("P:/packages/.claude-marketplace/plugins")
+
+
+def resolve_skill_path(skill_ref: str) -> Path | None:
+    """Resolve a skill reference (e.g. '/improve', 'improve', 'plugin:improve')
+    to its installed directory. Cache (runtime-truth) first, then marketplace
+    source. Plugin-scoped refs constrain the search. Returns the skill dir or None.
+    """
+    ref = skill_ref.lstrip("/")
+    plugin_hint: str | None = None
+    if ":" in ref:
+        plugin_hint, ref = ref.split(":", 1)
+
+    def _skill_dir(parent: Path) -> Path | None:
+        cand = parent / "skills" / ref
+        if (cand / "SKILL.md").is_file():
+            return cand
+        return None
+
+    if SKILL_CACHE_ROOT.is_dir():
+        for cache_plugin in SKILL_CACHE_ROOT.iterdir():
+            if not cache_plugin.is_dir():
+                continue
+            if plugin_hint and cache_plugin.name != plugin_hint:
+                continue
+            for version_dir in cache_plugin.iterdir():
+                if version_dir.is_dir():
+                    found = _skill_dir(version_dir)
+                    if found:
+                        return found
+
+    if MARKETPLACE_ROOT.is_dir():
+        for plugin_dir in MARKETPLACE_ROOT.iterdir():
+            if not plugin_dir.is_dir():
+                continue
+            if plugin_hint and plugin_dir.name != plugin_hint:
+                continue
+            found = _skill_dir(plugin_dir)
+            if found:
+                return found
+
+    return None
+
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
-def build_sig_pack(filepaths: list[str], dirname: str, target_dir: Path) -> str:
+def _overview_section() -> list[str]:
+    """LLM-fillable overview placeholder. The deterministic packer emits this
+    empty, marked section; the skill workflow (SKILL.md) populates it via an
+    LLM call (e.g. /ai-cli). Keeps gitpack.py pure-stdlib while letting an LLM
+    handle the genuinely non-code part: orienting prose / "what is this pack."
+    Emits nothing when --overview was not requested (caller omits the block)."""
+    return [
+        "## OVERVIEW (LLM-generated)",
+        "",
+        "<!-- placeholder: fill via /ai-cli or /ai-api. 1-3 sentences: what this",
+        "pack is, its entry points, and the 2-3 files a reader should open first. -->",
+        "",
+        "_<to be filled>_",
+        "",
+    ]
+
+
+def build_sig_pack(filepaths: list[str], dirname: str, target_dir: Path, overview: bool = False) -> str:
     total = len(filepaths)
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
@@ -567,16 +648,19 @@ def build_sig_pack(filepaths: list[str], dirname: str, target_dir: Path) -> str:
         "",
     ])
 
-    return "\n".join([
-        header,
+    parts = [header]
+    if overview:
+        parts.append("\n".join(_overview_section()))
+    parts.extend([
         "\n".join(build_signatures_section(filepaths)),
         "\n".join(build_directory_index(filepaths)),
         "\n".join(build_tree(filepaths, target_dir)),
         "\n".join(build_file_index(filepaths)),
     ])
+    return "\n".join(parts)
 
 
-def build_full_pack(filepaths: list[str], dirname: str) -> str:
+def build_full_pack(filepaths: list[str], dirname: str, overview: bool = False) -> str:
     total = len(filepaths)
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
@@ -601,36 +685,55 @@ def build_full_pack(filepaths: list[str], dirname: str) -> str:
         "",
     ])
 
-    return "\n".join([
-        header,
+    parts = [header]
+    if overview:
+        parts.append("\n".join(_overview_section()))
+    parts.extend([
         "\n".join(build_signatures_section(filepaths)),
         "\n".join(build_directory_index(filepaths)),
         "\n".join(build_file_index(filepaths)),
         "\n".join(build_appendix(filepaths)),
     ])
+    return "\n".join(parts)
 
 
 def main() -> None:
     args = sys.argv[1:]
     if not args:
-        print("Usage: gitpack.py <path>... [--name <pack-name>] [--exclude <patterns>]",
+        print("Usage: gitpack.py <path>... [--skill <name>] [--name <pack-name>] "
+              "[--exclude <patterns>] [--overview]",
               file=sys.stderr)
         sys.exit(1)
 
     name: str | None = None
+    skill_ref: str | None = None
     exclude = ""
+    overview = False
     positional: list[str] = []
     i = 0
     while i < len(args):
         if args[i] == "--name" and i + 1 < len(args):
-            name = args[i + 1]
-            i += 2
+            name = args[i + 1]; i += 2
+        elif args[i] == "--skill" and i + 1 < len(args):
+            skill_ref = args[i + 1]; i += 2
         elif args[i] == "--exclude" and i + 1 < len(args):
-            exclude = args[i + 1]
-            i += 2
+            exclude = args[i + 1]; i += 2
+        elif args[i] == "--overview":
+            overview = True; i += 1
         else:
-            positional.append(args[i])
-            i += 1
+            positional.append(args[i]); i += 1
+
+    # --skill resolves a skill name to its directory deterministically, so the
+    # model never hand-resolves cache-vs-source (the layer-b error surface).
+    if skill_ref:
+        resolved = resolve_skill_path(skill_ref)
+        if not resolved:
+            print(f"ERROR: could not resolve skill '{skill_ref}' in cache or marketplace",
+                  file=sys.stderr)
+            sys.exit(2)
+        positional.append(str(resolved))
+        if not name:
+            name = resolved.name
 
     if not positional:
         print("ERROR: no input paths", file=sys.stderr)
@@ -651,10 +754,10 @@ def main() -> None:
     sig_path = out_dir / f"{name}_sig.md"
     full_path = out_dir / f"{name}_full.md"
 
-    sig_content = build_sig_pack(files, name, target_dir)
+    sig_content = build_sig_pack(files, name, target_dir, overview=overview)
     sig_path.write_text(sig_content, encoding="utf-8")
 
-    full_content = build_full_pack(files, name)
+    full_content = build_full_pack(files, name, overview=overview)
     full_path.write_text(full_content, encoding="utf-8")
 
     bar = "=" * 64
