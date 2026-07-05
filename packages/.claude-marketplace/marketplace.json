@@ -77,7 +77,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.131",
+      "version": "1.0.133",
       "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -110,7 +110,7 @@
     },
     {
       "name": "skill-guard",
-      "version": "2.1.49",
+      "version": "2.1.50",
       "description": "Universal skill auto-discovery and enforcement for Claude Code",
       "source": "./plugins/skill-guard",
       "keywords": [
