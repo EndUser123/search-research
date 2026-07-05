@@ -20,7 +20,7 @@ Python signatures are extracted via `ast`; other languages via language-specific
 python "<skill-dir>/scripts/gitpack.py" <path>... [--name <pack-name>] [--exclude <patterns>]
 ```
 
-- `<path>...` — one or more files or directories. A directory is recursed one level (top-level supported files). A directly-listed file is included regardless of extension. Use multiple paths to pack a skill scattered across `commands/` + `agents/`.
+- `<path>...` — one or more files or directories. A directory is **recursed fully** (all nested subdirectories, depth-unlimited). A directly-listed file is included regardless of extension. Use multiple paths to pack a skill scattered across `commands/` + `agents/`, or pass one plugin/skill root and let recursion collect the whole tree.
 - `--name <pack-name>` — output basename (`<pack-name>_sig.md` / `<pack-name>_full.md`). Defaults to the common-parent directory name.
 
 1. **DISCOVER** — Collect files from every input path (files included as-is; directories globbed with exclusions)

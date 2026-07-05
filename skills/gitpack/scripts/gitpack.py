@@ -20,7 +20,6 @@ import ast
 import os
 import sys
 import re
-import glob as glob_module
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -320,27 +319,41 @@ EXTENSIONS = ["*.py", "*.pyw", "*.js", "*.mjs", "*.cjs", "*.jsx", "*.ts", "*.tsx
 
 
 def discover_files(target_dir: Path, exclude_patterns: str = "") -> list[str]:
-    """Find all supported files in target_dir, excluding patterns."""
+    """Recursively find all supported files under target_dir, excluding patterns.
+
+    Uses os.walk with followlinks=False so symlinked directories are never
+    descended into (no symlink-loop hazard). Excluded directories are pruned
+    from dirnames in-place, so subtrees like node_modules/ or .git/ are never
+    walked at all. The supported-extension set is the single source of truth
+    for what gets collected; everything else is filtered.
+    """
     patterns = DEFAULT_EXCLUDES + [p.strip() for p in exclude_patterns.split(",") if p.strip()]
+    supported_exts = {Path(ext).suffix.lower() for ext in EXTENSIONS}  # ponytail: derived from EXTENSIONS, no second list to drift
+    target_resolved = target_dir.resolve()
 
     def is_excluded(path: Path) -> bool:
         path_str = str(path)
-        for pattern in patterns:
-            if pattern in path_str:
-                return True
-        return False
+        return any(pattern in path_str for pattern in patterns)
 
-    # Track visited (device, inode) pairs to prevent symlink loops
+    # Track visited (device, inode) pairs to dedup hardlinked/aliased files
     seen_inodes: set[tuple[int, int]] = set()
-
     files: list[str] = []
-    for pattern in EXTENSIONS:
-        for p in target_dir.glob(pattern):
-            if is_excluded(p) or p.name.startswith("."):
+
+    for root, dirnames, filenames in os.walk(target_dir, followlinks=False):
+        # Prune excluded + hidden dirs in-place so os.walk skips them entirely
+        dirnames[:] = [
+            d for d in dirnames
+            if not d.startswith(".") and not is_excluded(Path(root) / d)
+        ]
+        for fname in filenames:
+            p = Path(root) / fname
+            if fname.startswith("."):
+                continue
+            if p.suffix.lower() not in supported_exts:
+                continue
+            if is_excluded(p):
                 continue
             if p.is_symlink():
-                continue
-            if not p.is_file():
                 continue
             try:
                 stat = p.stat()
@@ -348,13 +361,10 @@ def discover_files(target_dir: Path, exclude_patterns: str = "") -> list[str]:
                 if inode_key in seen_inodes:
                     continue
                 seen_inodes.add(inode_key)
-            except OSError:
-                continue
-            resolved = p.resolve()
-            # Skip files that resolve outside target_dir (symlinks to other trees)
-            try:
-                resolved.relative_to(target_dir.resolve())
-            except ValueError:
+                resolved = p.resolve()
+                # Skip files that resolve outside target_dir (symlinks to other trees)
+                resolved.relative_to(target_resolved)
+            except (ValueError, OSError):
                 continue
             files.append(str(resolved))
 
