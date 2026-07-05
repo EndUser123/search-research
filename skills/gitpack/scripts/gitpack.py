@@ -17,6 +17,7 @@ directly from source. Deterministic output.
 """
 
 import ast
+import os
 import sys
 import re
 import glob as glob_module
@@ -498,44 +499,6 @@ def build_appendix(filepaths: list[str]) -> list[str]:
     return lines
 
 
-def append_markdown_files(content: str, target_dir: Path, included_filepaths: list[str] | None = None) -> str:
-    """Append top-level markdown files from target directory, skipping already-included files."""
-    md_files: list[Path] = []
-    for p in target_dir.glob("*.md"):
-        md_files.append(p)
-    for p in target_dir.glob("*.MD"):
-        md_files.append(p)
-
-    if not md_files:
-        return content
-
-    # Skip markdown files already included in the appendix (identified by filename match)
-    skip_names: set[str] = set()
-    if included_filepaths:
-        for fp in included_filepaths:
-            skip_names.add(Path(fp).name.lower())
-
-    md_lines = ["", "---", "", "## ADDITIONAL FILES (markdown)"]
-    for md_path in sorted(md_files):
-        if md_path.name.lower() in skip_names:
-            continue
-        md_lines.append("")
-        md_lines.append(f"### {md_path.name}")
-        md_lines.append("```markdown")
-        try:
-            md_lines.append(md_path.read_text(encoding="utf-8"))
-        except UnicodeDecodeError:
-            md_lines.append(f"# <binary file — skipped>")
-        except OSError as ex:
-            md_lines.append(f"# Error reading file: {ex}")
-        md_lines.append("```")
-
-    if len(md_lines) == 5:  # only the header was added, nothing to append
-        return content
-
-    return content + "\n" + "\n".join(md_lines)
-
-
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -605,38 +568,50 @@ def build_full_pack(filepaths: list[str], dirname: str) -> str:
 
 
 def main() -> None:
-    if len(sys.argv) < 2:
-        print("Usage: gitpack.py <target_dir> [--exclude <patterns>]", file=sys.stderr)
+    args = sys.argv[1:]
+    if not args:
+        print("Usage: gitpack.py <path>... [--name <pack-name>] [--exclude <patterns>]",
+              file=sys.stderr)
         sys.exit(1)
 
-    target = Path(sys.argv[1]).resolve()
-    if not target.is_dir():
-        print(f"ERROR: Not a directory: {target}", file=sys.stderr)
-        sys.exit(1)
-
+    name: str | None = None
     exclude = ""
-    if "--exclude" in sys.argv:
-        idx = sys.argv.index("--exclude")
-        exclude = sys.argv[idx + 1] if idx + 1 < len(sys.argv) else ""
+    positional: list[str] = []
+    i = 0
+    while i < len(args):
+        if args[i] == "--name" and i + 1 < len(args):
+            name = args[i + 1]
+            i += 2
+        elif args[i] == "--exclude" and i + 1 < len(args):
+            exclude = args[i + 1]
+            i += 2
+        else:
+            positional.append(args[i])
+            i += 1
 
-    name = target.name
-    out_dir = Path("P:/.claude/.artifacts")
-    out_dir.mkdir(parents=True, exist_ok=True)
+    if not positional:
+        print("ERROR: no input paths", file=sys.stderr)
+        sys.exit(1)
 
-    files = discover_files(target, exclude)
+    files = collect_files(positional, exclude)
     if not files:
         print("ERROR: No supported files found", file=sys.stderr)
         sys.exit(1)
 
+    target_dir = common_parent(files)
+    if not name:
+        name = target_dir.name or "pack"
+
+    out_dir = Path("P:/.claude/.artifacts")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
     sig_path = out_dir / f"{name}_sig.md"
     full_path = out_dir / f"{name}_full.md"
 
-    sig_content = build_sig_pack(files, name, target)
-    sig_content = append_markdown_files(sig_content, target, files)
+    sig_content = build_sig_pack(files, name, target_dir)
     sig_path.write_text(sig_content, encoding="utf-8")
 
     full_content = build_full_pack(files, name)
-    full_content = append_markdown_files(full_content, target, files)
     full_path.write_text(full_content, encoding="utf-8")
 
     print(f"Signatures: {sig_path} — {len(sig_content):,} chars")

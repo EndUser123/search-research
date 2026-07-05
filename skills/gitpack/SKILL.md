@@ -1,31 +1,33 @@
 ---
 name: gitpack
-description: Pack a Python directory into compact LLM-context files using only stdlib AST parsing — deterministic, no external deps. Emits <name>_sig.md (signatures + indexes) and <name>_full.md (+ full source appendix) to .claude/.artifacts/. Use when preparing a focused code context for an LLM.
+description: Pack a code or markdown directory (or a scattered set of files) into compact LLM-context files using only stdlib — AST for Python, regex signatures for JS/TS/HTML/CSS/SQL/YAML/JSON/PowerShell, and heading+frontmatter extraction for Markdown. Deterministic, no external deps. Emits <name>_sig.md (signatures + indexes) and <name>_full.md (+ full source appendix) to .claude/.artifacts/. Use when preparing a focused code or skill context for an LLM.
 ---
-# /gitpack - LLM-Ready Code Packer
+# /gitpack - LLM-Ready Code & Markdown Packer
 
-Pack a Python directory into a compact context file using only Python's stdlib (AST parsing + direct file reads). No external AI tools, no corruption, deterministic output.
+Pack a codebase **or markdown tree** — or a scattered set of files (e.g. a skill whose command lives in `commands/` and agents in `agents/`) — into a compact context file using only Python's stdlib (AST parsing for Python, regex signatures for other languages, heading+frontmatter extraction for Markdown, direct file reads for the appendix). No external AI tools, no corruption, deterministic output.
 
 ## What This Does
 
-Takes a Python codebase and produces two output files:
+Takes one or more input paths (files and/or directories) and produces two output files:
 - **`<name>_sig.md`** — SIGNATURE TOC + DIRECTORY/FILE INDEX (compact, scannable)
 - **`<name>_full.md`** — same + APPENDIX with full source code read directly from disk
 
-Signatures are extracted via Python's `ast` module — exact, deterministic, no LLM involvement.
+Python signatures are extracted via `ast`; other languages via language-specific regex schemas; **markdown** via headings (`#`-`######`) + YAML frontmatter keys + list items. All exact, deterministic, no LLM involvement.
 
 ## Workflow
 
 ```
-python "<skill-dir>/scripts/gitpack.py" <target_dir> [--exclude <patterns>]
+python "<skill-dir>/scripts/gitpack.py" <path>... [--name <pack-name>] [--exclude <patterns>]
 ```
 
-1. **DISCOVER** — Glob for all supported files in `<target_dir>`, applying exclusions
-2. **EXTRACT** — Parse each file with `ast`, collect function/class signatures with type annotations
+- `<path>...` — one or more files or directories. A directory is recursed one level (top-level supported files). A directly-listed file is included regardless of extension. Use multiple paths to pack a skill scattered across `commands/` + `agents/`.
+- `--name <pack-name>` — output basename (`<pack-name>_sig.md` / `<pack-name>_full.md`). Defaults to the common-parent directory name.
+
+1. **DISCOVER** — Collect files from every input path (files included as-is; directories globbed with exclusions)
+2. **EXTRACT** — Per file: `ast` (Python), language regex (JS/TS/HTML/CSS/SQL/YAML/JSON/PowerShell), or heading+frontmatter (Markdown)
 3. **BUILD** — Write two markdown files to `P://.claude/.artifacts/`:
    - `_sig.md` — signatures + indexes only
    - `_full.md` — signatures + indexes + full source appendix
-4. **APPEND** — Top-level `.md` files from `<target_dir>` appended to both outputs
 
 **Default exclusions** — always applied unless user overrides with `--exclude`:
 ```
@@ -50,10 +52,11 @@ This prevents polluting source trees (especially skills/plugin cache) with temp 
 
 ## Features
 
-- **Pure Python** — uses `ast` for signature extraction, no external dependencies
+- **Multi-language** — `ast` for Python; regex signatures for JS/TS/HTML/CSS/SQL/YAML/JSON/PowerShell; **Markdown is first-class** (headings + frontmatter keys extracted as the signature TOC)
+- **Multi-path** — pass any mix of files and directories; a scattered skill (command + agents in different dirs) packs into one pair via `--name`
+- **Pure stdlib** — no external dependencies
 - **No corruption** — source read directly from disk for appendix, no LLM processing
 - **Deterministic** — same input always produces same output
-- **Markdown included** — top-level `.md` files appended automatically
 - **Type annotations preserved** — return types and arg types shown when present
 
 ## Scope and Related Files
@@ -112,16 +115,22 @@ def resolve_skill_path(skill_ref: str) -> Path | None:
 
 # Pack with exclusions
 /gitpack ./my-project --exclude __pycache__,*.pyc
+
+# Pack a scattered skill (command in commands/, agents in agents/) into one named pair
+/gitpack P://.claude/commands/red-team.md P://.claude/agents/red-team-planner.md P://.claude/agents/red-team-critic.md --name red-team
+
+# Pack a markdown-only directory (headings + frontmatter become the signature TOC)
+/gitpack P://.data/wiki/concepts --name wiki-concepts
 ```
 
 **Output:** `P://.claude/.artifacts/<name>_sig.md` and `_full.md`
 
 ## Architecture
 
-The packer is `scripts/gitpack.py` — a standalone AST-based Python script. Run it directly:
+The packer is `scripts/gitpack.py` — a standalone stdlib script. Run it directly:
 
 ```bash
-python "<skill-dir>/scripts/gitpack.py" <target_dir> [--exclude <patterns>]
+python "<skill-dir>/scripts/gitpack.py" <path>... [--name <pack-name>] [--exclude <patterns>]
 ```
 
 Produces `P:/.claude/.artifacts/<name>_sig.md` and `<name>_full.md`.
