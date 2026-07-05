@@ -498,18 +498,18 @@ if ($Usage) {
     } catch {
         Write-Host "  opencode-go     error: $($_.Exception.Message)" -ForegroundColor Yellow
     }
-    # Local LM Studio — reachability + which model is actually loaded. Catches the
-    # case where the custom route points at a model LM Studio isn't serving.
+    # Local llama.cpp (port 8010) — reachability + which model is loaded. Catches
+    # the case where the custom route points at a model the server isn't serving.
     # NOTE: the local slot is routed by ccr-custom-router.js (CUSTOM_ROUTER_PATH),
-    # not the default keyword router. Reachability check below confirms LM Studio is
-    # actually serving the model the router points at.
+    # not the default keyword router. llama-server exposes GET /v1/models
+    # (OpenAI shape {data:[{id:...}]}), not LM Studio's /api/v0/models.
     try {
-        $lm = Invoke-RestMethod -Uri "http://127.0.0.1:1234/api/v0/models" -TimeoutSec 3 -ErrorAction Stop
-        $loaded = $lm.data | Where-Object { $_.state -eq "loaded" } | Select-Object -First 1
+        $lm = Invoke-RestMethod -Uri "http://127.0.0.1:8010/v1/models" -TimeoutSec 3 -ErrorAction Stop
+        $loaded = $lm.data | Select-Object -First 1
         if ($loaded) {
-            Write-Host "  local           llama.cpp      loaded: $($loaded.id)"
+            Write-Host "  local           llama.cpp      up: $($loaded.id)" -ForegroundColor Green
         } else {
-            Write-Host "  local           llama.cpp      up, no model loaded" -ForegroundColor Yellow
+            Write-Host "  local           llama.cpp      up, no model reported" -ForegroundColor Yellow
         }
     } catch {
         Write-Host "  local           llama.cpp      offline (127.0.0.1:8010)" -ForegroundColor DarkGray

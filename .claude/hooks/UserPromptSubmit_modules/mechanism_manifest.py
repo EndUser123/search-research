@@ -33,7 +33,8 @@ from UserPromptSubmit_modules.registry import register_hook
 # than growing the list. Do not just keep appending — past the cliff the list itself
 # becomes the bug.
 _MANIFEST = """## MECHANISM INVENTORY — check before proposing new gates/detectors
-Non-regex detection: epistemic_validator (Stop warn-mode structural/causal/claim checks), semantic_critic (cheap-model reasoning review), anti_dodge_judge (external judge for hook answers)
+Non-regex detection — rule-based (no LLM): epistemic_validator (Stop warn-mode structural/causal/claim checks)
+Non-regex detection — LLM-based: semantic_critic (cheap-model reasoning review), anti_dodge_judge (external judge for hook answers)
 Claim gates: cross_validator (evidence for "fixed"/"done"), unverified_stance (empty hedges/doubt), fabrication_detector (fake tool-use), cks_quality_gate (LLM gate on CKS ingest)
 Adversarial reviews: /red-team, /pre-mortem, /adversarial-review, /code-review
 Search before assuming unreachable: /search, /prospect, sr MCP
