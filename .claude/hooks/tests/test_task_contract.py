@@ -2032,21 +2032,76 @@ class TestContractExpiry:
         assert result is not None and result['status'] == 'active'
 
 class TestNarrowedPatterns:
+    """Tests for the 3 narrowed RCA-specific patterns added to _OUTPUT_PATTERNS."""
 
     def _detect(self, response):
         from Stop import _detect_provided_outputs
         return _detect_provided_outputs(response, ['root_cause', 'fix', 'verification_commands'])
 
-    def test_too_broad_cause_rejected(self):
-        resp = 'The test failed because of a dependency version mismatch. ' * 10
+    # --- Pattern: the (issue|problem) originates ---
+    def test_issue_originates_detected(self):
+        resp = 'The issue originates from the connection pool configuration being set too low. ' * 10
+        assert 'root_cause' in self._detect(resp)
+
+    def test_issue_originates_in_generic_context(self):
+        resp = 'The issue originates from a misunderstanding of the requirements document. ' * 10
+        assert 'root_cause' in self._detect(resp)
+
+    # --- Pattern: trace[d]? (to|back|from) ---
+    def test_trace_to_detected(self):
+        resp = 'I traced to the connection pool configuration and found the pool size was too low. ' * 10
+        assert 'root_cause' in self._detect(resp)
+
+    def test_trace_from_detected(self):
+        resp = 'We traced from the log output back to the config file that was overwritten. ' * 10
+        assert 'root_cause' in self._detect(resp)
+
+    def test_pasted_stack_trace_not_detected(self):
+        resp = ('Traceback (most recent call last):\n  File "app.py", line 42\n'
+                '    raise ValueError("bad input")\nValueError: bad input\n') * 10
         assert 'root_cause' not in self._detect(resp)
 
-    def test_hypothesis_language_rejected(self):
-        resp = 'My hypothesis is that the timeout is caused by the default 30s limit. ' * 10
-        detected = self._detect(resp)
-        # Hypothesis is tentative; must not count as root_cause provided
+    # --- Pattern: the (call|import) chain ---
+    def test_call_chain_detected(self):
+        resp = 'The call chain shows the request flows through auth → handler → db, and the timeout occurs in db. ' * 10
+        assert 'root_cause' in self._detect(resp)
 
-    def test_investigation_process_rejected(self):
+    def test_import_chain_detected(self):
+        resp = 'The import chain reveals that module A imports module B which imports the broken module C. ' * 10
+        assert 'root_cause' in self._detect(resp)
+
+    # --- Existing pattern: root cause ---
+    def test_root_cause_detected(self):
+        resp = '## Root Cause\nThe gateway failed because the provider was renamed but the cache was stale. ' * 10
+        assert 'root_cause' in self._detect(resp)
+
+    # --- Existing pattern: caused by ---
+    def test_caused_by_detected(self):
+        resp = 'The timeout is caused by a misconfigured connection pool limit. ' * 10
+        assert 'root_cause' in self._detect(resp)
+
+    # --- Non-RCA: false positive rejection ---
+    def test_because_not_root_cause(self):
+        resp = 'The test failed because of a dependency version mismatch in CI. ' * 10
+        assert 'root_cause' not in self._detect(resp)
+
+    def test_hypothesis_not_root_cause(self):
+        resp = 'My hypothesis is that the timeout stems from the default 30s limit. ' * 10
+        assert 'root_cause' not in self._detect(resp)
+
+    def test_investigation_not_root_cause(self):
         resp = 'The investigation revealed the files were missing from the deployment. ' * 10
-        detected = self._detect(resp)
-        # Investigation describes the process, not the cause itself
+        assert 'root_cause' not in self._detect(resp)
+
+    def test_reason_is_not_root_cause(self):
+        resp = 'The reason is simple: we forgot to update the config file. ' * 10
+        assert 'root_cause' not in self._detect(resp)
+
+    def test_stack_trace_not_root_cause(self):
+        resp = ('Traceback (most recent call last):\n  File "app.py", line 42\n'
+                '    raise ValueError("bad input")\n') * 10
+        assert 'root_cause' not in self._detect(resp)
+
+    def test_follow_path_not_root_cause(self):
+        resp = 'Following the path of least resistance, we decided to skip the migration. ' * 10
+        assert 'root_cause' not in self._detect(resp)

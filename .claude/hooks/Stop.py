@@ -3219,6 +3219,9 @@ _OUTPUT_PATTERNS: dict[str, list[str]] = {
         r"(?i)\bcaused\s+by\b",
         r"(?i)\bthe\s+(?:underlying|actual|real)\s+(?:issue|problem|cause|bug)\b",
         r"(?i)\bwhat\s+(?:went\s+wrong|caused|broke)\b",
+        r"(?i)\bthe\s+(?:issue|problem)\s+originates\b",
+        r"(?i)\btraced?\s+(?:to|back|from)\b",
+        r"(?i)\bthe\s+(?:call|import)\s+chain\b",
     ],
     "fix": [
         r"(?i)\bfix(?:ed|es)?\b",

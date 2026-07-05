@@ -62,6 +62,12 @@ Resolve the target path:
 For the default and `score` subcommands, run all four checks:
 
 1. **Rubric scoring** — apply `${SKILL_ROOT}/references/scoring-rubric.md` (8 categories, weights).
+   Includes the **adaptive-pathing** sub-check under Instruction Quality: for any skill with 3+
+   phases or `workflow_steps`, grep the SKILL.md body for escape-hatch signals (`--skip-`,
+   `--quick`, `--no-`, `--force`, `--dry-run`, `--legacy`, `--minimal`) and conditional-routing
+   prose (`if ... fails`, `fallback`, `otherwise`, `when X`, `unless`, `on error`). Zero hits →
+   apply the "Brittle single-path workflow" -10 deduction; hits → consider the +5 adaptive bonus.
+   Single-purpose / knowledge / meta / <3-phase skills are exempt.
 2. **Prompt pattern coverage** — grep SKILL.md and scripts for P1-P8 markers per the
    `prompt-patterns-catalog.md` at `P:/packages/cc-skills-sdlc/prompt-patterns-catalog.md`.
 3. **Contract compliance** — invoke

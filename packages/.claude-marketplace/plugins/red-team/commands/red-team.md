@@ -98,6 +98,17 @@ Produce one final user-visible output **only after** the Critic completes.
 - Incorporate or explicitly resolve every REVISE issue.
 - Do not show intermediate drafts unless the user asks.
 
+**Telemetry emission (non-optional — the directive's loop starts here):** after the verdict is produced, write one telemetry line so the run is observable by the self-improvement layer:
+
+```
+python "<plugin_root>/__lib/telemetry.py" commit \
+  --run-dir <run_dir> --session-id <id> --verdict <verdict> \
+  --dispatched <comma-list> --deferred <comma-list> \
+  [--duration-s <seconds>] [--operator-outcome accepted|partial|overridden|unknown]
+```
+
+The writer derives `counts`/`critic_conflicts_resolved`/`top_categories` from `{run_dir}/critic.json` defensively (a missing critic produces a partial line with `parse_error`, never an exception). If the command itself fails, note it in the Review note section; **do not abort the run** — the verdict is the user-facing deliverable, telemetry is best-effort. `operator_outcome` defaults to `unknown`; update it later if the operator accepts/overrides the verdict (`python telemetry.py recent` reads back; manual edit of `P:/.claude/state/red-team/telemetry.jsonl` to amend `operator_outcome` is acceptable).
+
 ## ROI frame
 `ROI ≈ (debug-time saved) × (recurrence frequency) ÷ (effort to land)`
 
@@ -141,3 +152,28 @@ PROCEED | REVISE | BLOCK
 - `/code-review` — routine code review (file:line shaped).
 - `/pre-mortem` — adaptive adversarial critique, 3-phase (triage+specialist → meta-critique → synthesis). `/red-team` differs by: planner-first pass, explicit proposal / non-code framing, single PROCEED/REVISE/BLOCK verdict, and the ordered tiebreaker at synthesis.
 - `/adversarial-review` agent — parallel code review (file:line shaped).
+
+## Self-Improvement Directive (Phase 3, observe layer)
+
+`/red-team` improves through **eval-driven feedback loops**, not live autonomous rewriting. The system gets better by observing outcomes, capturing failures, converting them to evals, proposing targeted changes, and shipping only changes that improve a measured baseline.
+
+**Non-negotiable invariants:**
+- `/red-team` does **not** rewrite its own production prompts, verdict rules, or policy at runtime.
+- Production behavior changes come from the offline improvement workflow (Phase 3b `/red-team-improve`), not runtime reflection.
+- Real incidents are converted into durable evals whenever feasible.
+- Improvement is judged by measured outcomes, not by self-description of being "better."
+
+**Mandatory telemetry:** every run appends one structured line to `P:/.claude/state/red-team/telemetry.jsonl` (see §4 Synthesis). The schema, writer, and CLI live in `__lib/telemetry.py` + `__lib/telemetry_schema.py`. Override path with `RED_TEAM_STATE_DIR`.
+
+**Incident capture:** when a run misses an issue, overfires, routes poorly, wastes time, or returns malformed output, record it:
+```
+python "<plugin_root>/__lib/incidents.py" add --category <routing|formatting|critic-calibration|specialist-miss|stale-state|latency|other> \
+  --run-id <run_id> --summary "..." [--expected ... --observed ... --impact ... --evidence ... --root-cause ...]
+```
+Incidents live at `P:/.claude/state/red-team/incidents.jsonl`. The improvement workflow (Phase 3b) reads them, clusters repeats, and proposes changes.
+
+**Safe automation vs human-gated:**
+- *Automatable:* collecting telemetry, clustering incidents, drafting candidate fixes, generating eval cases, running offline regression.
+- *Human-gated (never auto-applied):* critic policy changes, severity-rule changes, prompt/routing modifications, anything that weakens evidence or verification standards.
+
+**Phase status:** 3a (this layer — telemetry + incidents) ships now. 3b (`/red-team-improve` workflow + eval corpus) lands after ≥5 real runs emit telemetry, so the loop is designed against observed data, not imagined patterns.

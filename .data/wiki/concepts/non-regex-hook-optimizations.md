@@ -153,5 +153,5 @@ Is the hook called on every tool invocation?
 
 - [[Lazy Closure Detector]]
 - [[Deferral Detection Pattern]]
-- [[Hook Architecture]]
+- [[hook-architecture]]
 - [[Stop Hook Backstop Pattern]]

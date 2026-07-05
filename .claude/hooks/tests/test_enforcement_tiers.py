@@ -258,6 +258,52 @@ enforcement: strict
         assert result["valid"] is False
         assert "workflow_steps" in result["warning"].lower()
 
+    def test_workflow_steps_present_empty_inline(self, validator) -> None:
+        """Regression: `workflow_steps: []` is present, NOT missing.
+
+        Previous regex `^workflow_steps:\\s*$` only matched the empty-value
+        form, so `workflow_steps: []` was wrongly flagged missing. Empty list
+        is valid — it means "no workflow to enforce".
+        """
+        content = """---
+name: test-skill
+enforcement: strict
+workflow_steps: []
+---
+# Content
+"""
+        result = validator("test/SKILL.md", content)
+
+        assert result["valid"] is True
+        assert result["tier"] == "strict"
+
+    def test_workflow_steps_present_empty_block(self, validator) -> None:
+        """`workflow_steps:` with no value (block empty) is also present."""
+        content = """---
+name: test-skill
+enforcement: strict
+workflow_steps:
+---
+# Content
+"""
+        result = validator("test/SKILL.md", content)
+
+        assert result["valid"] is True
+
+    def test_workflow_steps_present_non_empty_inline(self, validator) -> None:
+        """`workflow_steps: [a, b]` inline non-empty list is present."""
+        content = """---
+name: test-skill
+enforcement: advisory
+workflow_steps: [analyze, execute, verify]
+---
+# Content
+"""
+        result = validator("test/SKILL.md", content)
+
+        assert result["valid"] is True
+        assert result["tier"] == "advisory"
+
     def test_invalid_tier_value(self, validator) -> None:
         """Test invalid tier value."""
         content = """---

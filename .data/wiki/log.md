@@ -1648,3 +1648,14 @@ Source: session-2026-07-04-research (web + in-repo source verification)
 SHA256: newly-created-2026-07-04
 Content: Maps confabulation/source-amnesia/sycophantic-false-ignorance failure modes to Claude Code enforcement. Verified StopHook_cross_validator.py::verify_document_claim trigger + quote_exemption gap (Task #1123 FP). Corrects earlier wrong hypothesis (gate never sees user prompt). Confabulated-ignorance detector = named-but-unstudied gap.
 Page: wiki/concepts/confabulated-ignorance-and-source-fabrication-gate.md
+## [2026-07-05] ingest | DSpark, MTP Speculative Decoding, and Ornith-1.0-9B Benchmarks
+Source: wiki-source-dspark-mtp-ornith.txt
+SHA256: ff95fcfafda3616fad1a6afe2fd7320c01c14940670d341aa16f78309c0c2e82
+
+## [2026-07-05] ingest | cc-ccr Local Liveness Probe Fix
+Source: wiki-source-ccr-probe-fix.txt
+SHA256: a23f6d5acf429d323c59942dd09357e50e84ff0b23e7b1e0e55ff69be4fcba9c
+
+## [2026-07-05] ingest | Subagent Model Diversity — Two Independent Levers
+Source: session-derived (red-team model-fit review)
+SHA256: session-synthesis-no-source-file
