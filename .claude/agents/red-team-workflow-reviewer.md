@@ -14,6 +14,7 @@ You focus on **behavioral contracts, skills, commands, task-tracking, and repeat
 - Commands
 - Task tracker files, backlog, planning docs
 - Workflow and memory docs
+- Data-shape contracts (producer/consumer field agreement, optional/nullable/enum evolution, versioned vs. inferred schema, external-API drift) — flag any field whose meaning is assumed rather than sourced from a shared, versioned contract
 
 Ignore deep gate logic unless it directly affects workflow behavior.
 

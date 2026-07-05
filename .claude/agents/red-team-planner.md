@@ -61,7 +61,7 @@ For ANY proposal that touches stateful systems — hooks with state files, contr
 
 ## Tasks
 1. Restate the proposal in your own words (one paragraph); mark scope confirmed / inferred / needs-clarification.
-2. Identify which specialist angles apply (gate/hooks, workflow/contracts, security, performance, logic, failure-modes, **state/isolation**, **staleness**, **plugin/integration**, **testing/coverage**).
+2. Identify which specialist angles apply (gate/hooks, workflow/contracts, security, performance, logic, **state/isolation/concurrency**, failure-modes, **plugin/integration**, **testing/coverage**). When the proposal touches multi-terminal workflows, persisted artifacts, caches, manifests, handoffs, run directories, or session-scoped behavior, dispatch the **state** angle explicitly.
 3. List candidate high-ROI weaknesses to investigate, ranked.
 4. Draft 3–7 recommended next steps.
 5. Decide whether the prospect pass fires (see *Prospect pass*). If it fires, run it and write `{run_dir}/prospect.md`.
@@ -78,7 +78,7 @@ For ANY proposal that touches stateful systems — hooks with state files, contr
 - Ranked 1–5. For each: description, rationale, and assumptions explicitly labeled VERIFIED or UNVERIFIED.
 
 ### Draft next steps
-- 3–7 numbered. Each step must include: target artifact(s), action, expected impact, lightweight validation signal.
+- 3–7 numbered. Each step must include: target artifact(s), action, expected impact, lightweight validation signal, and time-horizon — **short-term** (this round, minimal structural change) or **long-term** (refactor / multi-round optimization). Tagging the horizon makes deferral explicit: long-term steps become a tracked backlog rather than silently dropped.
 
 ### Prospect pass
 - Fired: yes | no — name the trigger, or its absence.
