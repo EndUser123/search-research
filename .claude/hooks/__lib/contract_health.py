@@ -442,10 +442,13 @@ def get_health_summary(
         stop_events = _load_jsonl(stop_log)
         recent_stop = _last_n(stop_events, stop_window)
 
-        count, msg = _check_missing_enforcement_outcomes(stop_events, stop_window)
-        if msg:
-            alerts.append(msg)
-        metrics["missing_enforcement_outcomes"] = count
+        # ponytail: enforcement-outcomes detector disabled on request — alert was noisy
+        # and the underlying "missed enforcement" model had weak signal. Function and its
+        # unit tests are retained in case the detector is revived with better calibration.
+        # count, msg = _check_missing_enforcement_outcomes(stop_events, stop_window)
+        # if msg:
+        #     alerts.append(msg)
+        # metrics["missing_enforcement_outcomes"] = count
 
         count, msg = _check_trivial_analysis_skip_problem(stop_events, stop_window)
         if msg:

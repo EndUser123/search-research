@@ -167,7 +167,9 @@
       "Bash(cp -r \"C:/Users/brsth/.claude/.artifacts/da985404-8b0f-4ebb-9989-5551a3ba59cd/red-team/20260705-070000/.\" \"P:/.claude/.artifacts/da985404-8b0f-4ebb-9989-5551a3ba59cd/red-team/20260705-070000/\")",
       "Bash(rm P:/.claude/.artifacts/_main/wiki_autofix_last_run.txt)",
       "Bash(python P:/packages/.claude-marketplace/plugins/cc-skills-utils/skills/plugin-installer/scripts/plugin-audit-and-fix.py --bump cc-skills-utils --marketplace-root P:/packages/.claude-marketplace)",
-      "Bash(python P:/packages/.claude-marketplace/plugins/cc-skills-utils/skills/plugin-installer/scripts/plugin-audit-and-fix.py --bump cc-skills-sdlc --marketplace-root P:/packages/.claude-marketplace)"
+      "Bash(python P:/packages/.claude-marketplace/plugins/cc-skills-utils/skills/plugin-installer/scripts/plugin-audit-and-fix.py --bump cc-skills-sdlc --marketplace-root P:/packages/.claude-marketplace)",
+      "Bash(python \"P:/packages/.claude-marketplace/plugins/cc-skills-utils/scripts/plugin-audit-and-fix.py\" --packages-root \"P:/packages/.claude-marketplace/plugins\" --auto-fix --summarize)",
+      "Bash(echo \"[exit:$?]\")"
     ],
     "deny": [],
     "ask": []

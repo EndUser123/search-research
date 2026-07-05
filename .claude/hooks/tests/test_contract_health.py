@@ -351,7 +351,9 @@ class TestMissingEnforcementOutcomes:
 
         summary = get_health_summary(hooks_dir=tmp_path)
         alert_text = " ".join(summary.alerts)
-        assert "enforcement outcomes missing" in alert_text
+        # Detector disabled at the get_health_summary() call site on request;
+        # the function itself is still covered by test_below_min_evals_no_assessment.
+        assert "enforcement outcomes missing" not in alert_text
 
     def test_below_min_evals_no_assessment(self, tmp_path):
         """Fewer than 30 effective opportunities → no assessment."""
@@ -389,9 +391,9 @@ class TestMissingEnforcementOutcomes:
         # → alert fires (the alert doesn't distinguish benign silences from the enforcement check,
         # only that enforcement rate is low overall)
         alert_text = " ".join(summary.alerts)
-        # This fires because 5 blocks / 30 checks = 16.7% < 30% threshold
-        # The benign silences are noted but don't suppress this particular alert
-        assert "enforcement outcomes missing" in alert_text
+        # Detector disabled at the get_health_summary() call site on request;
+        # function-level coverage remains via test_below_min_evals_no_assessment.
+        assert "enforcement outcomes missing" not in alert_text
 
 
 # =============================================================================
@@ -578,7 +580,8 @@ class TestMultipleAnomalies:
         alert_text = " ".join(summary.alerts)
         assert "contract lookup failures" in alert_text
         assert "writer underperformance" in alert_text
-        assert "enforcement outcomes missing" in alert_text
+        # Enforcement-outcomes detector disabled at the call site on request.
+        assert "enforcement outcomes missing" not in alert_text
 
 
 if __name__ == "__main__":
