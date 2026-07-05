@@ -81,20 +81,18 @@ class TestQuerySanitization:
         assert "\x00" not in result
         assert "\x01" not in result
 
-    def test_fts5_hyphen_split(self, temp_vault):
-        """#1064: hyphenated term must NOT reach FTS5 as NOT operator."""
-        backend = QMDWikiBackend(vault_path=str(temp_vault))
-        assert backend._sanitize_query("two-levers") == "two levers"
+    def test_fts5_root_patch_in_place(self, temp_vault):
+        """#1064: FTS5 escaping lives at the root in our forked qmd.build_fts5_query.
 
-    def test_fts5_operators_neutralized(self, temp_vault):
-        """#1064: FTS5 operator chars (*, (), \", /) stripped to spaces."""
-        backend = QMDWikiBackend(vault_path=str(temp_vault))
-        assert backend._sanitize_query('foo*bar(baz)/"qux"') == "foo bar baz qux"
-
-    def test_fts5_unicode_preserved(self, temp_vault):
-        """#1064: Unicode word chars survive (Latin, CJK, Cyrillic)."""
-        backend = QMDWikiBackend(vault_path=str(temp_vault))
-        result = backend._sanitize_query("café- naïve 你好 — Москва")
+        Caller-side sanitize was removed; this asserts the install-site patch
+        (cc-skills-utils/__lib/qmd_fts5_patch.patch) is actually applied.
+        If this fails, qmd was reinstalled/upgraded and the patch was lost —
+        re-apply from the .patch file.
+        """
+        from qmd.core.retrieval import build_fts5_query as f
+        assert f("two-levers") == "two levers"
+        assert f('foo*bar(baz)/"qux"') == "foo bar baz qux"
+        result = f("café- naïve 你好 — Москва")
         assert "café" in result and "你好" in result and "Москва" in result
         assert "-" not in result
 
