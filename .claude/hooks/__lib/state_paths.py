@@ -21,6 +21,37 @@ Usage:
     # Session-scoped state (unique per CC session)
     session_dir = get_session_state_dir(session_id)
     log_file = get_session_state_path(session_id, "actions.log")
+
+MIGRATION PATTERN — moving an ad-hoc state path onto this contract
+  When a hook/plugin writes state to an invented location (e.g. `hooks/state/`,
+  a CSF_STATE_DIR subdir, or `<dir> / "state"`), migrate it with the DUAL-BASE
+  pattern so the cutover cannot orphan in-flight files or disarm the gate during
+  the cache-timing window (cached plugin writer vs live local reader).
+
+  Step 1 — READER (gain NEW primary, keep LEGACY fallback):
+      primary, legacy = _get_state_dirs()  # (state_paths.STATE_DIR, old hooks/state)
+      for base in (primary, legacy):
+          candidate = base / "sessions" / session_id / "intent.json"
+          ...                                  # lookup/clear iterates BOTH bases
+
+  Step 2 — WRITER (write NEW primary first, then LEGACY for transition):
+      for base in (canonical_state_dir, legacy_state_dir):
+          try:
+              (base / "sessions" / session_id / "intent.json").write_text(...)
+              wrote = True; break
+          except OSError:
+              continue
+
+  Step 3 — TESTS (forward + no-break + isolation + precedence):
+      T1 NEW-path file is found/cleared (forward compat)
+      T2 LEGACY-path file is STILL found/cleared (no break)
+      T3 sibling-session isolation holds at the NEW path (WT_SESSION shared)
+      T4 when BOTH exist, NEW primary wins (deterministic precedence)
+
+  Reference implementation: PreToolUse._get_state_dirs() + skill_enforcer's
+  _intent_state_dir()/_fallback_state_dir() (STATE-01 migration, 2026-07-05).
+  Tests: hooks/tests/test_state_migration_dual_base.py + test_PreToolUse_skill_clear_state01.py.
+  Once all callers migrate, drop the legacy base + LEGACY tests (T2) together.
 """
 
 from __future__ import annotations
