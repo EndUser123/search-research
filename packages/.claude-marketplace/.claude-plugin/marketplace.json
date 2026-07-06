@@ -55,7 +55,7 @@
     },
     {
       "name": "cc-skills-ai-api",
-      "version": "1.0.9",
+      "version": "1.0.10",
       "description": "AI API integration skills for Claude Code",
       "source": "./plugins/cc-skills-ai-api",
       "keywords": [
@@ -77,7 +77,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.139",
+      "version": "1.0.140",
       "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -334,7 +334,7 @@
     },
     {
       "name": "red-team",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "description": "Multi-agent adversarial review pipeline. Planner -> specialists -> critic -> single PROCEED/REVISE/BLOCK verdict. Disk-backed findings handoff keeps the orchestrator context small. Phase 3: telemetry + incident self-improvement layer.",
       "source": "./plugins/red-team",
       "keywords": [
