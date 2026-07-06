@@ -63,7 +63,7 @@ class Config:
     WEB_PROVIDERS: list[str] = (
         os.getenv("SEARCH_RESEARCH_WEB_PROVIDERS", "tavily,serper,exa").split(",")
         if os.getenv("SEARCH_RESEARCH_WEB_PROVIDERS")
-        else ["tavily", "exa", "brave", "duckduckgo", "minimax"]
+        else ["tavily", "exa", "brave", "duckduckgo", "minimax", "zai"]
     )
 
     # Environment files

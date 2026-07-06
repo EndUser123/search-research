@@ -1001,7 +1001,7 @@ class AsyncSearchRouter:
         Returns:
             List of results from provider
         """
-        from .providers import BraveBackend, DDGsBackend, ExaBackend, MMXBackend, SerperBackend, TavilyBackend
+        from .providers import BraveBackend, DDGsBackend, ExaBackend, MMXBackend, SerperBackend, TavilyBackend, ZAIBackend
 
         # Map provider names to backend classes
         provider_map = {
@@ -1011,6 +1011,7 @@ class AsyncSearchRouter:
             "brave": BraveBackend,
             "duckduckgo": DDGsBackend,
             "minimax": MMXBackend,
+            "zai": ZAIBackend,
         }
 
         backend_class = provider_map.get(provider)
