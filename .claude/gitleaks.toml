@@ -12,6 +12,16 @@ title = "csf"
 [extend]
 useDefault = true
 
+# Path-level allowlist for known false positives.
+# The marketplace catalog cache lists public plugin *names* (e.g.
+# "sourcegraph"), which trips the built-in sourcegraph-access-token keyword
+# rule even though no real sgp_ token is present. The file is regenerable
+# marketplace metadata, never a secret carrier.
+[allowlist]
+paths = [
+  '''plugins/plugin-catalog-cache\.json$''',
+]
+
 [[rules]]
 id = "anthropic-api-key"
 description = "Anthropic API key (sk-ant-)"
