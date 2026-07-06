@@ -1,5 +1,5 @@
 ---
-description: Multi-agent adversarial review of any proposal/solution/design/implementation before commitment. Planner → specialists (gate, workflow, + dispatched) → critic → PROCEED/REVISE/BLOCK verdict.
+description: "Multi-agent adversarial review of any proposal/solution/design/implementation before commitment. Modes: default (planner → specialists → critic → PROCEED/REVISE/BLOCK), pre-mortem (3-phase adaptive critique + Health Score + RNS + blinded consumer review), adversarial (external-LLM harness divergence for B-class blind spots). Trigger phrases: 'red-team this', 'stress-test this proposal', 'pre-mortem', 'adversarial review'. Absorbs /pre-mortem + /adv-review."
 ---
 
 # /red-team
@@ -14,7 +14,20 @@ Stress-test a proposal / solution / design / implementation / plan before commit
 ## When to use
 - An important proposal, solution, architecture decision, CLAUDE.md / skill / command edit, hook / gate change, or implementation plan.
 - **Not** for routine code review — use `/code-review`.
-- **Not** for post-hoc failure imagination as a standalone exercise — use `/pre-mortem` (full 3-phase pipeline) when you want that alone.
+
+## Modes
+
+`/red-team` is one entry point with three review depths. Pick by what the user pointed at.
+
+| Mode | Invocation | When | What it does |
+|---|---|---|---|
+| **default** | `/red-team <proposal>` | An important proposal/design/implementation before commitment | Planner → specialists → critic → PROCEED/REVISE/BLOCK. The full flow below. |
+| **pre-mortem** | `/red-team pre-mortem <target>` (or `/pre-mortem`) | Post-hoc failure imagination as a standalone exercise, or a target needing the 3-phase adaptive pipeline + blinded consumer-contract review | Triage + specialist dispatch → cross-agent meta-critique → synthesis, with Health Score (0–100) + RNS-format output + the "0 — Do ALL" execution directive. Absorbs `/pre-mortem`. |
+| **adversarial** | `/red-team adversarial <response>` (or `/adv-review`) | B-class reliability — confident/architectural/public-facing responses needing external-LLM divergence check | Dispatch to N external harnesses (agy / glm-5.2 / MiniMax-M3 / kimi-k2.7-code) in parallel, surface divergences, emit per-harness verdicts + divergence synthesis. Calibration mode (`--cases <corpus>`) runs the bad-thinking corpus. Absorbs `/adv-review`. This is also the backend for `/improve external-second-opinion`. |
+
+**The unifying rule across all modes:** every finding flows through the disk-backed findings schema (`{run_dir}/{specialist}.json`) and the critic's verify / severity-gate / tiebreaker / verdict logic. No mode bypasses the gate. The difference is *what attack pattern seeds the findings*: default uses planner-first specialist dispatch, pre-mortem uses the 3-phase adaptive pipeline with blinded consumer review, adversarial uses external-LLM divergence.
+
+**Engines stay canonical.** `/pre-mortem`'s 3-phase pipeline + references/phases/ + `__lib/premortem_io.py` + `.codex/` + `.pi/` adapters remain at `cc-skills-sdlc/skills/pre-mortem/`. `/adv-review`'s harness roster + verdict schema remain at `cc-skills-ai-api/skills/adv-review/`. `/red-team` routes to them; it does not vendor.
 
 ## Context rules
 - You have the full session transcript and repository via tools.
@@ -189,8 +202,17 @@ When this section is empty or no opportunities were identified, omit the heading
 
 ## Adjacent systems (do not duplicate)
 - `/code-review` — routine code review (file:line shaped).
-- `/pre-mortem` — adaptive adversarial critique, 3-phase (triage+specialist → meta-critique → synthesis). `/red-team` differs by: planner-first pass, explicit proposal / non-code framing, single PROCEED/REVISE/BLOCK verdict, and the ordered tiebreaker at synthesis.
-- `/adversarial-review` agent — parallel code review (file:line shaped).
+- `/pre-mortem` → now `/red-team pre-mortem` (3-phase adaptive critique with Health Score + RNS). The standalone entry is a deprecation stub; the engine (`cc-skills-sdlc/skills/pre-mortem/`) is the source of truth for the phase prompts, blinded consumer-contract review, and `.codex`/`.pi` adapters. `/red-team` default mode differs from pre-mortem mode by: planner-first pass, explicit proposal / non-code framing, single PROCEED/REVISE/BLOCK verdict, and the ordered tiebreaker at synthesis (no Health Score, no RNS).
+- `/adversarial-review` agent → parallel code review (file:line shaped). Distinct from `/red-team adversarial` mode, which dispatches to **external LLM harnesses** for B-class divergence checks, not internal agents.
+
+## Suggest
+
+`/red-team` cross-suggests (post-verdict, not mid-attack):
+- `/review` — when findings touch implementation quality the user should run a structured review on.
+- `/improve` — when the verdict surfaces a design or process improvement (not a defect).
+- `/claude-audit` — when findings implicate runtime env (settings.json, hooks, MCP).
+- `/skill-audit` — when findings implicate skill design (systemic, not one-off).
+- `/wiki` — when the Long-Term Opportunities section produces a durable candidate worth persisting.
 
 ## Self-Improvement Directive (Phase 3, observe layer)
 
