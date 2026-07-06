@@ -15,17 +15,27 @@ Ingest websites into QMD collections for semantic search via `/search` and `/exp
 
 ## Pipeline
 
-Complete workflow with 9 steps:
+Two phases. Related-link discovery runs **after** the qmd index rebuilds, so every
+freshly-saved page is searchable — and each page's own record is excluded so it never
+links to itself.
+
+**Phase 1 — during crawl:**
 
 1. **Check dependencies** — Verify crawl4ai and qmd are installed (fail-fast)
-2. **Fetch** — Crawl4AI extracts content as Markdown
+2. **Fetch** — Crawl4AI extracts content as Markdown (bare `github.com/<owner>/<repo>` URLs fetch raw README, skipping browser chrome)
 3. **Compute hash** — SHA256 of content for deduplication
-4. **Check dedup** — Skip if hash exists in log.md
-5. **Save** — Write to `wiki/sources/{domain}/{slug}.md` with frontmatter
-6. **Find related** — QMD search for semantically similar pages
-7. **Inject wikilinks** — Add `[[Page]]@related` links to related pages
-8. **Log ingest** — Append entry to `log.md` with SHA256 for traceability
-9. **Update index** — Run `qmd update <collection>` to rebuild search index
+4. **Check dedup** — Skip if hash/etag matches the per-domain registry
+5. **Save** — Write to `wiki/sources/{domain}/{slug}.md` with frontmatter (no Related section yet)
+6. **Log ingest** — Append entry to `log.md` with SHA256 for traceability
+
+**Phase 2 — post-index (only if `qmd update` succeeded and the index is fresh):**
+
+7. **Update index** — Run `qmd update <collection>` to rebuild the search index
+8. **Find related** — For each saved page, qmd search against the freshly-rebuilt index
+9. **Inject wikilinks** — Drop the page's own record (identity = file path), append a `## Related` block of `[[Page]]@related` links. Frontmatter (incl. dedup hash) and the registry are never touched in this pass.
+
+If `qmd update` fails or any saved file postdates the index, Phase 2 is skipped and a
+`NOTE: Related-link injection skipped` line appears in the summary.
 
 ## Usage
 
