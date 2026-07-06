@@ -55,7 +55,7 @@
     },
     {
       "name": "cc-skills-ai-api",
-      "version": "1.0.10",
+      "version": "1.0.11",
       "description": "AI API integration skills for Claude Code",
       "source": "./plugins/cc-skills-ai-api",
       "keywords": [
@@ -77,7 +77,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.145",
+      "version": "1.0.146",
       "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -123,7 +123,7 @@
     },
     {
       "name": "cc-skills-architect",
-      "version": "1.0.18",
+      "version": "1.0.19",
       "description": "Architect plugin",
       "source": "./plugins/cc-skills-architect",
       "keywords": []
@@ -144,7 +144,7 @@
     },
     {
       "name": "cc-skills-analysis",
-      "version": "1.0.78",
+      "version": "1.0.79",
       "description": "Analysis plugin",
       "source": "./plugins/cc-skills-analysis",
       "keywords": []
