@@ -93,21 +93,44 @@ def _log_ingest(title: str, url: str, filepath: str, content_hash: str, collecti
         print(f"Warning: Could not log to log.md: {e}", file=sys.stderr)
 
 
-def _find_related_pages(title: str, collection: str, limit: int = 5) -> list[str]:
-    """Find related wiki pages via QMD search."""
+def _qmd_search(title: str, collection: str, limit: int) -> list[dict] | None:
+    """Query qmd search. Returns [{title, file}] records, [] for no hits, None on timeout/error.
+
+    qmd's JSON record exposes a `file` path (verified) but no URL, so callers discriminate
+    identity by file basename, never title.
+    """
     try:
         result = subprocess.run(
             [sys.executable, "-m", "qmd", "search", title, "--collection", collection,
-             "--format", "json", "--limit", str(limit * 2)],
+             "--format", "json", "--limit", str(limit)],
             capture_output=True,
             timeout=10,
         )
-        if result.returncode != 0:
-            return []
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    try:
         data = json.loads(result.stdout.decode())
-        return [r["title"][:60] for r in data[:limit]]
     except (OSError, json.JSONDecodeError):
-        return []
+        return None
+    return [{"title": (r.get("title") or "")[:60], "file": r.get("file") or ""} for r in data]
+
+
+def _exclude_self(records: list[dict], own_file_basename: str) -> list[dict]:
+    """Drop the page's own record. Identity = file basename; title is an attribute, not
+    identity — two siblings sharing a title must not be dropped (LOGIC-1)."""
+    return [r for r in records if Path(r["file"]).name != own_file_basename]
+
+
+# Matches only a script-injected block: `## Related` followed solely by [[x]]@related lines.
+# A source-authored `## Related` with prose body is left intact. Idempotent.
+_RELATED_BLOCK_RE = re.compile(r"\n\n## Related\n(?:\[\[[^\]]+\]\]@related\n)+")
+
+
+def _strip_related(body: str) -> str:
+    """Remove a script-injected ## Related wikilink block from the body."""
+    return _RELATED_BLOCK_RE.sub("", body)
 
 
 # --- crawl4ai API shim + content normalization ---------------------------
@@ -259,19 +282,7 @@ def _get_vault_path(collection: str) -> Path:
     except (OSError, ValueError, AttributeError):
         pass
 
-    return VAULT_BASE / collection
-
-
-def _slug_from_url(url: str) -> str:
-    """Create URL-safe slug from URL."""
-    parsed = urlparse(url)
-    path = parsed.path.strip("/").replace("/", "-") or "index"
-    domain = parsed.netloc.replace(":", "-").replace(".", "-")
-
-    slug = f"{domain}-{path}"
-    slug = "".join(c if c.isalnum() or c in "-_" else "_" for c in slug)
-    slug = slug[:100].strip("-_")
-    return slug or "page"
+    return Path("P:/.data/wiki") / collection
 
 
 async def crawl_site(
