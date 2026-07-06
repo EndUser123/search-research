@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 def _claude_base() -> Path:
     # On Windows, Claude Code may store state on a project drive (P:)
     # before the user home directory. Check P:\\\\\\.claude first.
-    p_drive_claude = Path("P:") / ".claude"
+    p_drive_claude = Path("P:/") / ".claude"
     if p_drive_claude.exists():
         return p_drive_claude
     return Path.home() / ".claude"
