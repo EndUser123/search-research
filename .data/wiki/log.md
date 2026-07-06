@@ -1669,3 +1669,5 @@ Transcript: P:/Users/brsth/.claude/projects/P--/2026-07-05.jsonl
 ## [2026-07-05] ingest | improve-partner novel ideas (preserved from hook deletion)
 Source: session
 Task: #1052
+
+- 2026-07-06 | https://github.com/jacob-bd/perplexity-web-mcp | sources/github.com/jacob-bd__perplexity-web-mcp.md | SHA256: 8ab09acd550c9b7a3f61586e374b72dbb1c5be82986bdb76c71b816e124190e6
