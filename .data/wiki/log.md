@@ -1665,3 +1665,7 @@ Ready. What do you need?nSource: sessionn
 Source: session
 Transcript: P:/Users/brsth/.claude/projects/P--/2026-07-05.jsonl
 
+
+## [2026-07-05] ingest | improve-partner novel ideas (preserved from hook deletion)
+Source: session
+Task: #1052
