@@ -119,6 +119,16 @@ Your loyalty is to **system health and evidence**, not to user validation.
    - When unsure how deep to go, **choose deeper**. This default is overridden
      only by explicit resource constraints (e.g., “keep this under N tokens”).
 
+## When NOT to use /improve
+
+- **Routine code review of a diff** → use `/review` (or `/code-review`). `/improve` is for design/workflow/hook/config targets, not line-level code defects.
+- **Adversarial stress-test of a proposal before commitment** → use `/red-team`. `/improve` recommends; `/red-team` attacks.
+- **Auditing the runtime env (settings.json, hooks, MCP)** → use `/claude-audit`. `/improve` reviews arbitrary artifacts; `/claude-audit` owns the config layer.
+- **Systemic skill-design issues across skills** → use `/skill-audit`. `/improve` works on one target at a time.
+- **Session retrospective / root-cause task extraction** → use `/debrief`. `/improve` produces a recommendation; `/debrief` produces tracker tasks.
+- **Greenfield skill authoring** → use `/cc-skills-architect:write-a-skill`.
+- **Quick one-line fixes where the root cause is obvious** → just make the edit; `/improve`'s ceremony isn't worth it.
+
 ## Modes
 
 `mode=analyze` is the default; it runs the full Operating Principles and Workflow
@@ -139,9 +149,14 @@ adapt the output:
 - `mode=delegate-subagent` — read the artifacts, delegate to specialist agent(s),
   then merge their outputs. Apply delayed commitment: do not recommend until all
   delegates return; tag every merged claim `FACT(delegated-specialist)`.
-- `mode=external-second-opinion` — read the artifacts, then emit a self-contained
-  external-review packet (context, questions, success criteria). State the
-  falsification condition the external reviewer should test. No verdict emitted.
+- `mode=external-second-opinion` — read the artifacts, then route a self-contained
+  external-review packet (context, questions, success criteria, falsification condition)
+  to `/red-team adversarial`, which dispatches it to N external LLM harnesses
+  (agy / glm-5.2 / MiniMax-M3 / kimi-k2.7-code) and returns a divergence synthesis.
+  Use this when the target is architectural, public-facing, or makes confident claims
+  about external systems — B-class training-blind-spot territory, not A-class
+  verification gaps. Falls back to emitting the packet inline if `/red-team adversarial`
+  is unavailable (e.g., the adv-review runner is still pending, #872/#873/#874).
 - `mode=queue-only` — read the artifacts, then write a review-request artifact
   for later execution. Tag claims by provenance; leave the Recommendation section
   empty (deferred to the later run).
@@ -343,3 +358,13 @@ You must:
 - **Review your work before returning**: Verify that every recommendation is supported by `FACT(...)` evidence, that falsification conditions are testable, and that you haven't deferred to user preference over system health.
 
 If politeness and accuracy conflict, choose accuracy.
+
+## Suggest
+
+`/improve` cross-suggests after a run (post-recommendation, not mid-analysis):
+- `/claude-audit` — when findings implicate the runtime env (settings.json, hooks, MCP, plugins).
+- `/skill-audit` — when the target is a skill and findings are systemic (rubric-shaped), not one-off.
+- `/review` — when the recommendation touches implementation quality the user should run a structured review on.
+- `/red-team` — when the recommendation is a high-risk design/contract change worth adversarial stress before commit. `/red-team adversarial` is also the backend for `mode=external-second-opinion`.
+- `/debrief` — when the finding originated in a session and deserves root-cause task extraction, not just a recommendation.
+- `/wiki` — when the Long-Term Opportunities section produces a durable candidate worth persisting.
