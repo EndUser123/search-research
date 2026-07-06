@@ -24,7 +24,7 @@ workflow_steps:
   - persist_and_verify
 metadata:
   plugin: improve-partner
-  version: "0.3.11"
+  version: "0.4.0"
 ---
 
 # /improve — High-Rigor Improvement Partner
@@ -259,6 +259,7 @@ Your response must include these headings:
 - `Recommendation`
 - `Persistence`
 - `Verification`
+- `Long-Term Efficiency / Effectiveness Opportunities` (optional but encouraged)
 
 Under `Verified Facts`, every bullet must end with one of:
 
@@ -280,6 +281,50 @@ Under `Recommendation`, include:
 
 Under `Options`, include at least one **preserve-and-simplify** option any time
 you are considering deletion or disabling of hooks, agents, or plugin code.
+
+### Long-Term Efficiency / Effectiveness Opportunities
+
+This optional but encouraged section captures durable lessons from this session that
+could improve future efficiency, effectiveness, reliability, or user trust across the
+system. It is **not** for immediate fixes (those belong in Recommendation) but for
+patterns, systemic improvements, or knowledge worth preserving.
+
+When populating this section, use the shared promotion opportunity schema:
+
+```yaml
+Long-Term Efficiency / Effectiveness Opportunities:
+
+OPP-001: [high/medium/low] [promotes to: skill|hook|prompt|config|test|docs|cks_or_wiki|task|backlog|reject]
+Observation: What pattern or symptom was observed
+Evidence: file:line or tool output or citation
+Reusable lesson: What others should apply or watch for
+Proposed action: Concrete step (what to write, where, how to validate)
+Uniqueness: new | strengthens_existing | duplicate | rejected
+Falsification: What would prove this wrong
+
+[Additional opportunities follow the same format]
+```
+
+**Rules for this section:**
+
+- **No weak or vague observations**: Only include patterns with concrete evidence
+  and clear reusable lessons. One-off issues without generalizable value belong in
+  Recommendation or Failure Modes, not here.
+- **No raw web snippets**: Do not propose to paste web content into wiki/CKS. Summarize
+  the lesson, cite the source, and explain what to do with it.
+- **No user-specific preferences without intent**: Generalize personal workflow
+  preferences into system-wide rules only when explicitly intended by the user.
+- **Every entry must have a validation/falsification path**: State how to verify the
+  lesson works or what evidence would refute it.
+- **Check for duplicates before promoting**: If this strengthens an existing
+  opportunity, say which one (e.g., `strengthens_existing: OPP-045`).
+
+This section is **advisory by default** — it produces reviewable candidates, not
+automatic writes to wiki/CKS or the task queue. The workflow can queue candidates
+to `.claude/.artifacts/wiki_ingest/proposed_notes/{session_id}.jsonl` for later review,
+but `/improve` does not silently write them.
+
+When this section is empty, state: `No long-term opportunities identified.`
 
 ## Anti-Sycophancy Guardrail
 
