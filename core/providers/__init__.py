@@ -17,6 +17,7 @@ All providers implement BaseWebBackend protocol for consistent interface.
 from .base_web import BaseWebBackend, ProviderError, ProviderNotAvailableError
 from .bing import BingBackend
 from .brave import BraveBackend
+from .ddgs_backend import DDGsBackend
 from .exa import ExaBackend
 from .google import GoogleBackend
 from .kagi import KagiBackend
@@ -33,6 +34,7 @@ __all__ = [
     "SerperBackend",
     "ExaBackend",
     "BraveBackend",
+    "DDGsBackend",
     "BingBackend",
     "GoogleBackend",
     "KagiBackend",
