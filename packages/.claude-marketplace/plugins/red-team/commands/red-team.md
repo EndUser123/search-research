@@ -144,6 +144,45 @@ PROCEED | REVISE | BLOCK
 ### Review note
 - One line: the critic verdict + whether revisions were applied.
 
+### Long-Term Efficiency / Effectiveness Opportunities
+
+This optional section captures lessons from this review that could improve future
+reviews, gates, skills, workflows, or context retrieval — beyond the immediate
+ship/no-ship decision. It is **not** for BLOCK/REVISE defects (those belong in Verified
+findings) but for systemic patterns worth preserving.
+
+When populating this section, use the shared promotion opportunity schema:
+
+```
+OPP-XXX: [high/medium/low] [promotes to: skill|hook|prompt|config|test|docs|cks_or_wiki|task|backlog|reject]
+Observation: What pattern or failure mode was observed
+Evidence: Finding ID or file:line or specialist output
+Reusable lesson: What future reviews or skills should apply
+Proposed action: Concrete improvement step
+Uniqueness: new | strengthens_existing | duplicate | rejected
+Falsification: What would prove this lesson wrong
+```
+
+**Rules:**
+
+- **Must not derail the verdict**: The verdict (PROCEED/REVISE/BLOCK) is based on
+  proposal correctness and risk. Opportunity capture is a separate durable-learning
+  path and does not affect the go/no-go decision.
+- **No weak or vague observations**: Only patterns with concrete evidence and clear
+  reusable lessons. One-off issues without generalizable value belong in Verified
+  findings or NITs, not here.
+- **Every entry must have a validation/falsification path**: State how to verify the
+  improvement works or what evidence would refute it.
+- **Check for duplicates before promoting**: If this strengthens an existing
+  opportunity, say which one (e.g., `strengthens_existing: OPP-047`).
+
+This section is **advisory by default** — it produces reviewable candidates, not
+automatic writes to wiki/CKS or the task queue. The workflow can queue candidates
+to `.claude/.artifacts/wiki_ingest/proposed_notes/{session_id}.jsonl` for later review,
+but `/red-team` does not silently write them.
+
+When this section is empty or no opportunities were identified, omit the heading entirely.
+
 ## Implementation note for the model
 - If named agents exist in the environment, call them (preferred).
 - If they do not, emulate the same flow with separate internal passes using the same roles — but flag this: single-context emulation tends to soften the critic, because the same context drafted the plan it is now reviewing.
