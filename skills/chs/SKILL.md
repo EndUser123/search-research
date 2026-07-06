@@ -24,10 +24,10 @@ Dedicated search for Claude Code chat history with advanced features: summarizat
 ## Project Context
 
 ### Technical Architecture
-- **Primary CLI**: `P://packages/search-research/skills/chs/scripts/chs_cli.py`
+- **Primary CLI**: `P://packages/.claude-marketplace/plugins/search-research/skills/chs/scripts/chs_cli.py`
 - **CHS Backend**: Reuses existing CHS infrastructure from `/search`
 - **Two-Stage Search**: Lightweight index → Deep content scan (on-demand)
-- **Storage**: SQLite metrics database at `P://packages/search-research/data/chs_metrics.db`
+- **Storage**: SQLite metrics database at `P://packages/.claude-marketplace/plugins/search-research/data/chs_metrics.db`
 - **FTS5 bootstrap**: `python -m core.chs.scripts.reindex_from_jsonl --db-path "P://__csf/data/chat_history.db" --history-path "~/.claude/history.jsonl"`
 - **Bootstrap rule**: If `chat_history.db` exists but schema/FTS tables are missing, reindex from `history.jsonl` before trusting search results
 
@@ -248,7 +248,7 @@ When the user asks for `export`, interpret it as a full session-chain export, no
 **Exact CLI mapping:**
 
 ```bash
-python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id <session-id> --output <path>
+python P://packages/.claude-marketplace/plugins/search-research/skills/chs/scripts/chs_cli.py --export --session-id <session-id> --output <path>
 ```
 
 **Behavior:**
@@ -278,16 +278,16 @@ The CLI returns JSON metadata with `context_safe` and `recommendation` fields. F
 
 ```bash
 # Export the current session chain (ALWAYS pass --session-id; thinking excluded)
-python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id <live-session-id> --exclude-thinking
+python P://packages/.claude-marketplace/plugins/search-research/skills/chs/scripts/chs_cli.py --export --session-id <live-session-id> --exclude-thinking
 
 # Rich export for analysis consumers (full tool results, timestamps, branch, sha)
-python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --fidelity analysis
+python P://packages/.claude-marketplace/plugins/search-research/skills/chs/scripts/chs_cli.py --export --fidelity analysis
 
 # Export a specific session chain
-python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id abc123
+python P://packages/.claude-marketplace/plugins/search-research/skills/chs/scripts/chs_cli.py --export --session-id abc123
 
 # Export to a specific file
-python P://packages/search-research/skills/chs/scripts/chs_cli.py --export --session-id abc123 --output P://tmp/chs-export.md
+python P://packages/.claude-marketplace/plugins/search-research/skills/chs/scripts/chs_cli.py --export --session-id abc123 --output P://tmp/chs-export.md
 ```
 
 ### 7.5. Subagent Delegation for Summarization
@@ -442,7 +442,7 @@ Create `~/.claude/chs_config.json`:
     "stage": "auto"
   },
   "paths": {
-    "metrics_db": "P://packages/search-research/data/chs_metrics.db"
+    "metrics_db": "P://packages/.claude-marketplace/plugins/search-research/data/chs_metrics.db"
   }
 }
 ```

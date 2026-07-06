@@ -16,7 +16,7 @@ Single entry point to search across all CSF NIP data stores in parallel - **loca
 - **No external dependencies**: All search is local, privacy-preserving
 - **Efficiency over complexity**: Parallel execution, fast responses
 - **Evidence-based**: Search results provide citation context
-- **Canonical CLI**: `P://packages/search-research/core/cli.py`
+- **Canonical CLI**: `P://packages/.claude-marketplace/plugins/search-research/core/cli.py`
 - **Backends**: CKS, CHS (claude-history/Rust+FTS5), VAULT (claude-vault/FTS5), CDS, Code/Grep, DOCS, SKILLS
 - **Search methods**: FTS5 (~10ms), Hybrid (~50ms), Semantic (~200ms)
 - **Output formats**: Human-readable (default), JSON for scripting
