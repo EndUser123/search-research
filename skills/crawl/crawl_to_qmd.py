@@ -28,8 +28,37 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
+from urllib.request import Request, urlopen
 
 import yaml
+
+_GITHUB_REPO_RE = re.compile(r"^https?://github\.com/([^/]+)/([^/]+)/?$")
+
+
+def _github_readme_markdown(url: str) -> str | None:
+    """Return raw README markdown for a bare github.com/<owner>/<repo> URL, else None.
+
+    crawl4ai renders GitHub's nav/menu/footer chrome around the README; fetching
+    raw.githubusercontent.com yields clean markdown. Tries main then master,
+    README.md then readme.md. Returns None on any miss so the caller falls back
+    to the full browser crawl (private repo, non-default branch, sub-path, etc.).
+    """
+    m = _GITHUB_REPO_RE.match(url.split("#", 1)[0].rstrip("/"))
+    if not m:
+        return None
+    owner, repo = m.group(1), m.group(2)
+    for branch in ("main", "master"):
+        for name in ("README.md", "readme.md"):
+            raw = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{name}"
+            try:
+                req = Request(raw, headers={"User-Agent": "crawl-to-qmd"})
+                with urlopen(req, timeout=15) as resp:
+                    if getattr(resp, "status", 200) == 200:
+                        return resp.read().decode("utf-8", errors="replace")
+            except Exception:
+                continue
+    return None
+
 
 QMD_CONFIG_PATH = Path.home() / ".config" / "qmd" / "index.yml"
 def _get_wiki_root() -> Path:
@@ -298,38 +327,58 @@ async def crawl_site(
         delay_before_return_html=1.0,
     )
 
-    visited = {root_url}
-    async with AsyncWebCrawler() as crawler:
-        # Initial crawl
-        result = await crawler.arun(url=root_url, config=config)
-        if result.success:
-            stats["pages_fetched"] += 1
-            norm = _normalize_result(result)
-            saved = await _save_md(norm, output_dir, domain, 0, collection, stats)
-            if saved:
-                stats["pages_saved"] += 1
-            elif saved is None:
-                stats["pages_skipped"] += 1
+    # ponytail: bare github.com/<owner>/<repo> → raw README beats browser crawl
+    # (crawl4ai renders GitHub nav chrome around the README). Falls back below.
+    readme_md = _github_readme_markdown(root_url)
+    if readme_md is not None:
+        owner_repo = root_url.split("github.com/", 1)[-1].rstrip("/")
+        norm = {
+            "url": root_url,
+            "title": owner_repo,
+            "markdown": readme_md,
+            "internal_links": [],
+            "external_links": [],
+            "response_headers": {},
+        }
+        stats["pages_fetched"] += 1
+        saved = await _save_md(norm, output_dir, domain, 0, collection, stats)
+        if saved:
+            stats["pages_saved"] += 1
+        elif saved is None:
+            stats["pages_skipped"] += 1
+    else:
+        visited = {root_url}
+        async with AsyncWebCrawler() as crawler:
+            # Initial crawl
+            result = await crawler.arun(url=root_url, config=config)
+            if result.success:
+                stats["pages_fetched"] += 1
+                norm = _normalize_result(result)
+                saved = await _save_md(norm, output_dir, domain, 0, collection, stats)
+                if saved:
+                    stats["pages_saved"] += 1
+                elif saved is None:
+                    stats["pages_skipped"] += 1
 
-            # Follow internal links (limit to domain + dedup visited)
-            urls_to_crawl = _extract_internal_links(norm, domain, visited)[: max_pages - 1]
+                # Follow internal links (limit to domain + dedup visited)
+                urls_to_crawl = _extract_internal_links(norm, domain, visited)[: max_pages - 1]
 
-            for i, url in enumerate(urls_to_crawl):
-                if stats["pages_fetched"] >= max_pages:
-                    break
-                visited.add(url)
-                try:
-                    result = await crawler.arun(url=url, config=config)
-                    if result.success:
-                        stats["pages_fetched"] += 1
-                        norm = _normalize_result(result)
-                        saved = await _save_md(norm, output_dir, domain, i + 1, collection, stats)
-                        if saved:
-                            stats["pages_saved"] += 1
-                        elif saved is None and not any(e.startswith(url) for e in stats["crawl_errors"]):
-                            stats["pages_skipped"] += 1
-                except Exception as e:
-                    stats["crawl_errors"].append(f"{url}: {str(e)}")
+                for i, url in enumerate(urls_to_crawl):
+                    if stats["pages_fetched"] >= max_pages:
+                        break
+                    visited.add(url)
+                    try:
+                        result = await crawler.arun(url=url, config=config)
+                        if result.success:
+                            stats["pages_fetched"] += 1
+                            norm = _normalize_result(result)
+                            saved = await _save_md(norm, output_dir, domain, i + 1, collection, stats)
+                            if saved:
+                                stats["pages_saved"] += 1
+                            elif saved is None and not any(e.startswith(url) for e in stats["crawl_errors"]):
+                                stats["pages_skipped"] += 1
+                    except Exception as e:
+                        stats["crawl_errors"].append(f"{url}: {str(e)}")
 
     # Update QMD index
     try:
