@@ -8,7 +8,17 @@ import logging
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 logger = logging.getLogger(__name__)
+
+# Load .env files early so MCP subprocess picks up API keys.
+# Keys set in the parent process are NOT inherited by child processes
+# spawned by Claude Code's MCP client — this ensures web providers work.
+for _env_path in [r"P:\.env", r"P:\__csf\.env"]:
+    _p = Path(_env_path)
+    if _p.exists():
+        load_dotenv(_p, override=False)
 
 
 class Config:
