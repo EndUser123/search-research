@@ -170,7 +170,11 @@
       "Bash(python P:/packages/.claude-marketplace/plugins/cc-skills-utils/skills/plugin-installer/scripts/plugin-audit-and-fix.py --bump cc-skills-sdlc --marketplace-root P:/packages/.claude-marketplace)",
       "Bash(python \"P:/packages/.claude-marketplace/plugins/cc-skills-utils/scripts/plugin-audit-and-fix.py\" --packages-root \"P:/packages/.claude-marketplace/plugins\" --auto-fix --summarize)",
       "Bash(echo \"[exit:$?]\")",
-      "mcp__web-search-prime__web_search_prime"
+      "mcp__web-search-prime__web_search_prime",
+      "Bash(rm .git/index.lock)",
+      "Bash(python P:/packages/.claude-marketplace/plugins/cc-skills-utils/skills/git/sync.py)",
+      "Bash(cp \"P:/.claude/hooks/scripts/cks/quality_gate.py\" \"P:/packages/.claude-marketplace/plugins/search-research/core/cks/quality_gate.py\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('P:/packages/.claude-marketplace/plugins/search-research/core/cks/quality_gate.py', doraise=True\\); print\\('SYNTAX OK'\\)\")"
     ],
     "deny": [],
     "ask": []
