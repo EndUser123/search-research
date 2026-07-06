@@ -50,15 +50,13 @@ Produce the table above with columns `instruction | status | evidence | gap | fi
 
 ---
 
-# Proposed follow-up modes (NOT IMPLEMENTED in this task)
+# Where the split material lands (no new user-facing commands)
 
-These are proposals for separate scoping. Recorded here so the material split (#1195 acceptance vs. reusable audit) is auditable. Default-on per project convention; a mode is off-by-default only with a stated reason.
+**Constraint:** the retained top-level command set is fixed — `/improve`, `/red-team`, `/review` (or `/code-review`), `/debrief`, `/claude-audit`, `/skill-audit`, `/wiki`. No new commands or visible modes are created from this material. Everything below is internalized into existing skills, or stays in this checklist.
 
-## Proposal A — `/debrief behavior-audit` (default-on)
+## 1. Reusable transcript bad-behavior detection → internal rubric in `/debrief`
 
-**Intent:** reusable transcript audit for standard LLM bad-behavior patterns, decoupled from any one consolidation task. Fits `/debrief`'s existing transcript → findings rubric (origin tags + `[FACT]/[INFERENCE]/[UNKNOWN]`).
-
-**Rubric (short):** for the supplied transcript(s), classify observed behavior into:
+When `/debrief` runs over a transcript/chain, it applies this rubric as an internal check (not a separate mode, not a separate command). Findings ride the existing /debrief finding shape (`[FACT]/[INFERENCE]/[UNKNOWN]` + origin tags).
 
 | behavior_type | fires on |
 |---------------|----------|
@@ -71,29 +69,37 @@ These are proposals for separate scoping. Recorded here so the material split (#
 | `rubber_stamp` | specialist/external output accepted without verification |
 | `over_engineering` | new commands/schemas/hooks added when the task was reduction |
 
-**Finding shape (reuses /debrief's existing fields):** `id`, `behavior_type`, `severity (BLOCK/REVISE/NIT)`, `transcript_evidence (quote + turn)`, `source_evidence (file:line, if relevant)`, `why_it_matters`, `correction`, `verification_step`.
+Finding shape (reuses /debrief's existing fields): `id`, `behavior_type`, `severity (BLOCK/REVISE/NIT)`, `transcript_evidence (quote + turn)`, `source_evidence (file:line, if relevant)`, `why_it_matters`, `correction`, `verification_step`.
 
-**Default-on reason:** cheap-model pass over a transcript the skill already loads; cost is bounded by transcript size. Skip path only when the transcript is shorter than a stated threshold (e.g. <20 user turns) — and the threshold is the recorded reason.
+**Why internal, not a mode:** the goal is fewer visible commands. A user typing `/debrief` already expects transcript analysis; the rubric is just /debrief doing its job more thoroughly, not a new surface to learn.
 
-**Non-overlap with live gates:** this is *post-hoc transcript audit*, not inline enforcement. `semantic_critic`, `fabrication_detector`, `cross_validator` fire during the work; this audits the record afterward and catches patterns the inline gates missed (e.g. name-based inference, sycophancy — which the live gates do not target). That gap is the reason this mode exists rather than relying on the gates alone.
+## 2. Compact-event goal drift → internal check in `/debrief`
 
-## Proposal B — `/debrief compact-drift` (default-on, conditional fire)
+When the walked chain contains compaction/handoff markers, `/debrief` runs an internal drift check: compare pre-compact goal/constraints → what the compact summary preserved → what the post-compact session actually optimized for. Emit a finding when post-compact behavior diverges from the pre-compact goal without an explicit decision in the transcript.
 
-**Intent:** detect goal/constraint loss across compaction boundaries in the session chain. Compaction rewrites the transcript and routinely drops constraints; this mode compares pre-compact goal → compact summary → post-compact behavior.
+Mechanism reuses `session_chain.walk_session_chain()` (shipped, #1176). Natural no-op when the chain has no compaction events — so it costs nothing outside its trigger condition, and there is no reason to gate it behind a flag.
 
-**Mechanism:** walk the chain via `session_chain.walk_session_chain()` (already shipped, #1176). Identify compaction-boundary markers. For each boundary, extract: (a) stated goal/constraints before, (b) what the compact summary preserved, (c) what the post-compact session actually optimized for. Emit a drift finding when (c) diverges from (a) without an explicit decision in the transcript.
+## 3. Consolidation-specific compliance → this checklist only
 
-**Default-on reason:** natural no-op when the chain has no compaction events (no boundaries ⇒ no findings ⇒ zero cost). No reason to default-off.
+The 13-row acceptance table above. Not wired into any skill. Phase 7 (#1196, #1199) runs it as a one-shot gate against the post-consolidation codebase.
 
-**Non-overlap:** no existing gate or skill detects constraint loss across compaction. This is genuinely novel surface.
+## 4. Instruction-compliance ("did the implementer follow instructions?") → `/red-team` critic behavior
 
-## Proposal C — `/improve` routing note (small, in-scope to add)
+When `/red-team` reviews an implementation, its critic/acceptance pass applies an instruction-compliance check: for each instruction in the originating spec/plan, mark `PASS | FAIL | PARTIAL | NOT VERIFIED | N/A` with `evidence`, `gap`, `fix` columns. Any BLOCK or unresolved FAIL ⇒ `/red-team` does not emit PROCEED.
 
-Add one paragraph to `skills/improve/SKILL.md`:
+This is internal critic behavior, not a new `/red-team-improve` or `/compliance` command. It activates when `/red-team` is reviewing a shipped implementation against a spec — its existing job, with a structured acceptance layer.
 
-> If the user asks about transcript/session bad behavior, goal drift, compact drift, false claims, lazy thinking, or instruction compliance, **route to `/debrief behavior-audit`** (and `/debrief compact-drift` for compaction-boundary questions). `/improve` is the thought-partner for improving work; it is not the auditor of past-session behavior. Keeping auditor and implementer separate prevents the goal-drift failure mode where a consolidation/improvement skill silently absorbs the audit role.
+## 5. `/improve` routing note (the only `/improve` change)
 
-This is the only change `/improve` gets from this material split.
+One paragraph in `skills/improve/SKILL.md`:
+
+> If the user asks about transcript/session bad behavior, instruction compliance, false claims, lazy reasoning, or compact drift, **route instead of absorbing**: `/debrief` for historical transcript review, `/red-team` for pre-ship implementation verification. `/improve` is the thought-partner for improving work; it is not the auditor of past sessions or the verifier of shipped code.
+
+This is the entire `/improve` change. No new mode, no absorbed audit role.
+
+## 6. `/wiki` unchanged
+
+`/wiki` remains the downstream long-term memory ingest tool, approval-gated. No `/wiki-ingest`. Criterion 5 in the acceptance table enforces this.
 
 ---
 
@@ -104,4 +110,4 @@ The primary prevention mechanisms for false completion, unsupported claims, and 
 - `semantic_critic` (reasoning review), `fabrication_detector` (fake tool-use), `cross_validator` (evidence for "done"), `unverified_stance` (empty hedges), `cks_quality_gate` (CKS ingest).
 - `/red-team`, `/pre-mortem`, `/adversarial-review`, `/code-review` for adversarial passes.
 
-Proposals A/B are *additive transcript audit*, not replacements. Do not re-implement these as long inline prompt ceremony. If a future gap is identified that the gates cannot cover, name the gap and the discriminating corpus evidence before adding a new gate (per the gate-discrimination rule, `feedback_gate_discrimination_rule`).
+The /debrief internal rubric (item 1) and compact-drift check (item 2) are *post-hoc transcript audit*, not replacements for the inline gates. They catch patterns the inline gates do not target (name-based inference, sycophancy, constraint loss across compaction). That gap is the reason they live in /debrief at all. Do not re-implement them as long inline prompt ceremony elsewhere. If a future gap is identified that the gates cannot cover, name the gap and the discriminating corpus evidence before adding a new gate (per `feedback_gate_discrimination_rule`).
