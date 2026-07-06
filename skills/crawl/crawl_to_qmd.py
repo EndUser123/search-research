@@ -415,6 +415,14 @@ async def crawl_site(
     except subprocess.CalledProcessError as e:
         stats["crawl_errors"].append(f"QMD index update failed: {e.stderr.decode()}")
 
+    # Post-index related-link injection (Change A). Gated on a fresh index (STATE-1): if
+    # qmd update failed or any saved file postdates the index, skip rather than inject
+    # links computed against stale state.
+    if stats.get("index_updated") and not stats.get("index_stale"):
+        _inject_related_links(stats, collection)
+    else:
+        stats["related_skipped_stale_index"] = True
+
     return stats
 
 
@@ -475,13 +483,6 @@ async def _save_md(
 
     filepath = domain_dir / filename
 
-    # Find related pages for wikilinks
-    related = _find_related_pages(title, collection)
-    related_section = ""
-    if related:
-        related_links = "\n".join(f"[[{t}]]@related" for t in related)
-        related_section = f"\n\n## Related\n{related_links}\n"
-
     today = datetime.now().strftime("%Y-%m-%d")
     frontmatter = f"""---
 source:
@@ -496,7 +497,7 @@ tags:
 """
 
     try:
-        filepath.write_text(frontmatter + md_content + related_section, encoding="utf-8")
+        filepath.write_text(frontmatter + md_content, encoding="utf-8")
         print(f"{action.capitalize()}: {filename} ({len(md_content)} chars)")
         stats["files_written"].append(str(filepath))
     except OSError as e:
@@ -519,6 +520,55 @@ tags:
 
     _log_ingest(title, url, str(filepath), content_hash, collection, action=action)
     return str(filepath)
+
+
+_FM_RE = re.compile(r"\A---\n.*?\n---\n", re.DOTALL)
+_FM_TITLE_RE = re.compile(r"\ntitle:\s*(.+?)\s*$", re.MULTILINE)
+
+
+def _split_frontmatter(content: str) -> tuple[str, str]:
+    """Return (frontmatter_block_incl_fences, body). frontmatter_block is '' if absent."""
+    m = _FM_RE.match(content)
+    if not m:
+        return "", content
+    return m.group(0), content[m.end():]
+
+
+def _inject_related_links(stats: dict, collection: str, limit: int = 5) -> None:
+    """Post-index pass: for each saved file, query the freshly-rebuilt qmd index, drop the
+    page's own record, inject a ## Related wikilink section.
+
+    STATE-3 invariant: the frontmatter block (including the dedup hash) is preserved
+    byte-for-byte and the registry is never touched — only the body's trailing ## Related
+    section changes. Dedup safety follows because the next crawl recomputes the hash from
+    fresh crawl content, never from this file's body.
+    """
+    for fpath_str in stats["files_written"]:
+        fpath = Path(fpath_str)
+        try:
+            content = fpath.read_text(encoding="utf-8")
+        except OSError as e:
+            stats["write_errors"].append(f"related-read {fpath.name}: {e}")
+            continue
+
+        fm, body = _split_frontmatter(content)
+        title_match = _FM_TITLE_RE.search(fm)
+        if not title_match:
+            continue
+        title = title_match.group(1).strip()
+
+        records = _qmd_search(title, collection, limit + 2)
+        if records is None:
+            stats["related_lookup_timeouts"] = stats.get("related_lookup_timeouts", 0) + 1
+            continue
+        related = _exclude_self(records, fpath.name)[:limit]
+        if not related:
+            continue
+
+        body = _strip_related(body)
+        related_links = "\n".join(f"[[{r['title']}]]@related" for r in related)
+        new_body = f"{body.rstrip()}\n\n## Related\n{related_links}\n"
+        fpath.write_text(fm + new_body, encoding="utf-8")
 
 
 async def main():
