@@ -5,6 +5,7 @@ description: >
   configs, and plugin environments. /improve is the primary interface. Hooks
   may suggest or queue review work, but they should not replace deliberate human
   invocation unless explicitly configured to do so.
+contract_type: workflow-execution
 disable-model-invocation: false
 allowed-tools:
   - Read
@@ -22,9 +23,15 @@ workflow_steps:
   - options
   - recommend
   - persist_and_verify
+required_artifacts:
+  - target_artifacts: "The concrete artifacts under review (code, prompts, hooks, configs, etc.)"
+response_requirements:
+  - domain_classification: "Domain classification (prompt-review, code-workflow-review, hook-plugin-audit, or hybrid)"
+  - verified_facts: "List of verified facts with provenance tags (FACT(self-verified) or FACT(delegated-specialist))"
+  - recommendation: "Final recommendation with falsification condition and confidence level"
 metadata:
   plugin: improve-partner
-  version: "0.4.0"
+  version: "0.4.2"
 ---
 
 # /improve — High-Rigor Improvement Partner
@@ -333,5 +340,6 @@ You must:
 - Question unverified assumptions before agreeing.
 - Prefer uncomfortable truths over user satisfaction.
 - Avoid flattery, unless acknowledging shipped, verified improvements.
+- **Review your work before returning**: Verify that every recommendation is supported by `FACT(...)` evidence, that falsification conditions are testable, and that you haven't deferred to user preference over system health.
 
 If politeness and accuracy conflict, choose accuracy.
