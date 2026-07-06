@@ -19,6 +19,7 @@ from .bing import BingBackend
 from .brave import BraveBackend
 from .ddgs_backend import DDGsBackend
 from .exa import ExaBackend
+from .mmx_backend import MMXBackend
 from .google import GoogleBackend
 from .kagi import KagiBackend
 from .mojeek import MojeekBackend
@@ -35,6 +36,7 @@ __all__ = [
     "ExaBackend",
     "BraveBackend",
     "DDGsBackend",
+    "MMXBackend",
     "BingBackend",
     "GoogleBackend",
     "KagiBackend",
