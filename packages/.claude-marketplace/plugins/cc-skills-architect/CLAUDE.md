@@ -41,7 +41,7 @@ Advanced logic for high-stakes technical sessions.
 | constraints | Project-level constraint enforcement | `constraints/` |
 | decision-tree | Complex tradeoff visualization | `decision-tree/` |
 | solo-dev-authority | Implementation authority for solo dev | `solo-dev-authority/` |
-| prompt-refiner | Automated prompt engineering for skills | `prompt-refiner/` |
+| prompt-refiner | *DEPRECATED stub → /improve generate-prompt* (Q1-Q3 triage + scoring heuristics + 6 cognitive-technique templates; engine retained) | `prompt-refiner/` |
 
 ## Artifacts Convention
 
