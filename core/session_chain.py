@@ -3,21 +3,31 @@
 Provides a unified interface for finding all session transcript files in a
 session chain, given any session ID.
 
-Single strategy: identity.json scan.
+Strategy 1 — session_registry.jsonl (cross-terminal + cross-compaction):
+  1. Query P:/.claude/.artifacts/session_registry.jsonl by session_id
+     (written by the PreCompact hook; same session_id aggregates across all
+     terminals and all compactions in the session's lifetime).
+  2. Deduplicate by transcript_path; emit oldest-first (append order).
 
-Algorithm:
+Strategy 2 — identity.json scan (fallback for pre-registry data):
   1. Scan all identity.json files under .claude/.artifacts/
   2. Build index: session_id -> [identity_records]
   3. For the target session_id:
      - If any record has transcript_chain (from snapshot restore), use it
      - Otherwise, return single-entry chain (session itself)
   4. Resolve each session_id to its .jsonl transcript path
+
+The registry strategy is authoritative when present — it is the only source
+that links a session across terminals and compaction boundaries. The identity
+scan is retained because the registry only contains rows the PreCompact hook
+wrote (sessions that predate the hook, or ran without it wired, are absent).
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import sys
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -127,16 +137,99 @@ def _resolve_transcript_path(session_id: str) -> Path | None:
     return None
 
 
+# ---------------------------------------------------------------------------
+# Registry strategy (cross-terminal + cross-compaction)
+# ---------------------------------------------------------------------------
+
+_REGISTRY_LIB = Path(
+    "P:/packages/.claude-marketplace/plugins/snapshot/scripts/hooks/__lib"
+)
+
+
+def _walk_via_registry(
+    session_id: str,
+    max_depth: int,
+) -> list[SessionChainEntry] | None:
+    """Query session_registry.jsonl for the cross-terminal chain.
+
+    Returns entries oldest-first (registry append order), deduplicated by
+    transcript_path, or None if the registry has no rows for this session
+    (caller falls back to identity.json scan).
+
+    Mirrors chs_cli.py:export_chain Strategy 1 — same source, same query, so
+    /recap (via walk_session_chain) and /export-session see the same chain.
+    """
+    registry_path = _claude_base() / ".artifacts" / "session_registry.jsonl"
+    if not registry_path.exists() or not _REGISTRY_LIB.exists():
+        return None
+
+    sys.path.insert(0, str(_REGISTRY_LIB))
+    try:
+        from session_registry import query_registry  # type: ignore[import-not-found]
+    except ImportError:
+        return None
+    finally:
+        sys.path.pop(0)
+
+    try:
+        raw_entries = query_registry(
+            session_id=session_id, limit=10_000, registry_path=registry_path
+        )
+    except Exception:
+        return None
+
+    if not raw_entries:
+        return None
+
+    projects_root = _projects_dir().resolve()
+    seen: set[str] = set()
+    entries: list[SessionChainEntry] = []
+    for raw in raw_entries:
+        tp = raw.get("transcript_path")
+        if not tp or tp in seen:
+            continue
+        path = Path(tp)
+        try:
+            path.resolve().relative_to(projects_root)
+        except (ValueError, OSError):
+            continue
+        if not path.exists():
+            continue
+        seen.add(tp)
+        entries.append(
+            SessionChainEntry(
+                session_id=raw.get("session_id", session_id),
+                transcript_path=path,
+                parent_transcript_path=None,
+                created=None,
+            )
+        )
+
+    if not entries:
+        return None
+
+    entries = entries[:max_depth]
+    for i, entry in enumerate(entries):
+        if i > 0:
+            entry.parent_transcript_path = entries[i - 1].transcript_path
+    return entries
+
+
+# ---------------------------------------------------------------------------
+# Identity.json scan strategy
+# ---------------------------------------------------------------------------
+
+
 def walk_session_chain(
     session_id: str,
     project_path: Path | None = None,
     max_depth: int = 50,
     newest_first: bool = False,
 ) -> SessionChainResult:
-    """Walk session chain using identity.json scan.
+    """Walk the session chain for the given session_id.
 
-    Scans all identity.json files to find terminal associations and
-    pre-computed transcript chains (from snapshot restore).
+    Strategy 1: session_registry.jsonl (cross-terminal + cross-compaction).
+    Strategy 2 (fallback): identity.json scan with snapshot-restore chains.
 
     Args:
         session_id: The target session ID to find the chain for.
@@ -147,6 +240,19 @@ def walk_session_chain(
     Returns:
         SessionChainResult with ordered chain entries.
     """
+    # Strategy 1: registry
+    registry_entries = _walk_via_registry(session_id, max_depth)
+    if registry_entries:
+        entries = registry_entries
+        if newest_first:
+            entries = list(reversed(entries))
+        return SessionChainResult(
+            entries=entries,
+            depth=len(entries),
+            origin_session_id=entries[0].session_id,
+        )
+
+    # Strategy 2: identity.json scan
     index = _scan_identity_files()
 
     # Find the transcript_chain from any identity record for this session
