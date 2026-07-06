@@ -596,6 +596,10 @@ async def main():
         print(f"Index updated: {stats.get('index_updated', False)}")
         if stats.get("index_stale"):
             print("WARNING: Index may be stale — some files are newer than index")
+        if stats.get("related_skipped_stale_index"):
+            print("NOTE: Related-link injection skipped (index stale or update failed)")
+        if stats.get("related_lookup_timeouts"):
+            print(f"Related lookups timed out: {stats['related_lookup_timeouts']}")
         if stats["crawl_errors"]:
             print(f"Crawl errors ({len(stats['crawl_errors'])}):")
             for err in stats["crawl_errors"][:5]:
