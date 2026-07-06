@@ -1439,6 +1439,17 @@ class CKS:
         # Validate entry content quality
         self._validate_entry_content(title=title, content=content)
 
+        # Quality gate for correction entries (blocks junk before INSERT).
+        # Calibrated on decision corpus (109/109 junk rejected); correction
+        # domain TP/FP is unmeasured — gate fires but logs unknown as accept.
+        if entry_type == "correction":
+            try:
+                from .quality_gate import gate_entry
+                if not gate_entry(title, content, entry_type="correction", source="ingest_pattern"):
+                    return ""
+            except Exception:
+                pass  # gate failure must not block ingest
+
         entry_id = f"pat_{uuid4().hex[:16]}"
 
         # Use source_chunk for embedding if provided, otherwise fall back to content
