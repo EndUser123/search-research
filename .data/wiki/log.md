@@ -1670,4 +1670,15 @@ Transcript: P:/Users/brsth/.claude/projects/P--/2026-07-05.jsonl
 Source: session
 Task: #1052
 
-- 2026-07-06 | https://github.com/jacob-bd/perplexity-web-mcp | sources/github.com/jacob-bd__perplexity-web-mcp.md | SHA256: 8ab09acd550c9b7a3f61586e374b72dbb1c5be82986bdb76c71b816e124190e6
+
+## 2026-07-06
+- **jacob-bd/perplexity-web-mcp** (P:\.data\wiki\sources\github.com\000-jacob-bd-perplexity-web-mcp.md)
+  - URL: https://github.com/jacob-bd/perplexity-web-mcp
+  - SHA256: 98227681106a73c5a4cb1fe2c7c1e0fad968027a6a4f7c54f5b0b5228f0b1053
+  - Source: crawl-ingest (ingested)
+
+## 2026-07-06
+- **jacob-bd/perplexity-web-mcp** (000-jacob-bd-perplexity-web-mcp.md)
+  - URL: https://github.com/jacob-bd/perplexity-web-mcp
+  - SHA256: 98227681106a73c5a4cb1fe2c7c1e0fad968027a6a4f7c54f5b0b5228f0b1053
+  - Source: crawl-ingest (skipped)
