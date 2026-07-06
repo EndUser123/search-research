@@ -60,9 +60,8 @@ def extract_tool_fields(tool_input: object) -> dict[str, str]:
 
 
 def append_jsonl(log_path: Path, entry: dict) -> None:
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    with log_path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    from file_lock import append_jsonl as _locked_append
+    _locked_append(log_path, entry)
 
 
 def build_pretooluse_block_entry(
