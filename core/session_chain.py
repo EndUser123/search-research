@@ -150,14 +150,25 @@ def _walk_via_registry(
     session_id: str,
     max_depth: int,
 ) -> list[SessionChainEntry] | None:
-    """Query session_registry.jsonl for the cross-terminal chain.
+    """Query session_registry.jsonl for the terminal-wide session chain.
 
-    Returns entries oldest-first (registry append order), deduplicated by
-    transcript_path, or None if the registry has no rows for this session
-    (caller falls back to identity.json scan).
+    Two-step expansion (session → terminal → all sibling sessions):
+      1. Query by session_id to find the terminal_id.
+      2. Query by terminal_id to find ALL sessions that ran in that terminal.
+      3. Bound to sessions whose first appearance is at or before the current
+         session's first appearance (excludes sessions started after the
+         current one — e.g. a later parallel invocation in the same terminal).
+      4. Emit oldest-first (registry append order), deduplicated by
+         transcript_path.
 
-    Mirrors chs_cli.py:export_chain Strategy 1 — same source, same query, so
-    /recap (via walk_session_chain) and /export-session see the same chain.
+    This is the terminal-chain semantics /recap and /export-session need
+    ("every session that ran in this terminal, leading up to the current
+    one"). A single session_id query is insufficient because compaction
+    rewrites the same transcript file — all rows for one session_id dedup to
+    a single transcript, yielding depth=1.
+
+    Returns None if the registry has no rows for this session (caller falls
+    back to identity.json scan).
     """
     registry_path = _claude_base() / ".artifacts" / "session_registry.jsonl"
     if not registry_path.exists() or not _REGISTRY_LIB.exists():
@@ -171,22 +182,61 @@ def _walk_via_registry(
     finally:
         sys.path.pop(0)
 
+    # Step 1: find terminal_id(s) for this session.
     try:
-        raw_entries = query_registry(
+        seed = query_registry(
             session_id=session_id, limit=10_000, registry_path=registry_path
         )
     except Exception:
         return None
-
-    if not raw_entries:
+    if not seed:
         return None
 
+    terminal_ids = {r.get("terminal_id") for r in seed if r.get("terminal_id")}
+    if not terminal_ids:
+        return None
+
+    # Bound: the current session's first appearance timestamp.
+    current_first_ts = min(
+        (r.get("ts") or "" for r in seed if r.get("ts")), default=""
+    )
+
+    # Step 2: gather every row across the session's terminal(s).
+    all_rows: list[dict[str, Any]] = []
+    try:
+        for tid in terminal_ids:
+            all_rows.extend(
+                query_registry(
+                    terminal_id=tid, limit=10_000, registry_path=registry_path
+                )
+            )
+    except Exception:
+        return None
+
+    # Step 3: classify in-bounds sessions (first appearance <= current first).
+    sessions_first: dict[str, str] = {}
+    for raw in all_rows:
+        sid = raw.get("session_id")
+        ts = raw.get("ts") or ""
+        if sid and ts:
+            if sid not in sessions_first or ts < sessions_first[sid]:
+                sessions_first[sid] = ts
+    in_bounds = {
+        sid
+        for sid, ts in sessions_first.items()
+        if not current_first_ts or ts <= current_first_ts
+    }
+
+    # Step 4: collect transcript paths oldest-first (all_rows is append-order).
     projects_root = _projects_dir().resolve()
-    seen: set[str] = set()
+    seen_paths: set[str] = set()
     entries: list[SessionChainEntry] = []
-    for raw in raw_entries:
+    for raw in all_rows:
+        sid = raw.get("session_id")
+        if sid not in in_bounds:
+            continue
         tp = raw.get("transcript_path")
-        if not tp or tp in seen:
+        if not tp or tp in seen_paths:
             continue
         path = Path(tp)
         try:
@@ -195,10 +245,10 @@ def _walk_via_registry(
             continue
         if not path.exists():
             continue
-        seen.add(tp)
+        seen_paths.add(tp)
         entries.append(
             SessionChainEntry(
-                session_id=raw.get("session_id", session_id),
+                session_id=sid or session_id,
                 transcript_path=path,
                 parent_transcript_path=None,
                 created=None,
