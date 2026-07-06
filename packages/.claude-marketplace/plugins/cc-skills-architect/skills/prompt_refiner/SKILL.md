@@ -1,5 +1,6 @@
 ---
 name: prompt_refiner
+disable-model-invocation: true
 description: "DEPRECATED entry — use /improve generate-prompt. Executable prompt specification system: Q1-Q3 triage, complexity/domain/ambiguity/multi-faceted scoring, and 6 cognitive-technique templates (CoT/Socratic/Self-Refine/Chain-of-Verification/Tree-of-Thoughts/QueryFanout)."
 version: "2.1.0"
 status: "stable"
