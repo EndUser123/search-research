@@ -34,6 +34,9 @@ from core.unified_router import (
     UnifiedAsyncRouter,
 )
 
+# HTTP client (used by web providers via `from search_research.http_client import ...`)
+from core import http_client  # noqa: F401 — re-export so `search_research.http_client` resolves
+
 __all__ = [
     # Models
     "SearchResult",
