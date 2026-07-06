@@ -23,8 +23,17 @@ The orchestrator holds only file paths; specialist findings load into the critic
 
 Promoting this to a plugin changed invocation from `/red-team` (standalone) to `/red-team:red-team` (namespaced). Agents resolve as `red-team:red-team-{role}`.
 
+## Modes (Phase 4 absorption)
+
+`commands/red-team.md` exposes three review depths behind one entry point:
+
+- **default** (`/red-team <proposal>`) — planner → specialists → critic → PROCEED/REVISE/BLOCK. The flow documented in this file.
+- **pre-mortem** (`/red-team pre-mortem <target>`) — selects the 3-phase adaptive critique engine at `cc-skills-sdlc/skills/pre-mortem/` (Health Score + RNS + blinded consumer-contract review). The standalone `/pre-mortem` is now a deprecation stub.
+- **adversarial** (`/red-team adversarial <response>`) — selects the external-LLM harness roster at `cc-skills-ai-api/skills/adv-review/` (agy / glm-5.2 / MiniMax-M3 / kimi-k2.7-code; calibration mode `--cases <corpus>`). The standalone `/adv-review` is now a deprecation stub. Also the backend for `/improve external-second-opinion`.
+
+`/red-team` routes; it does not vendor. The two engine directories remain the source of truth for their phase prompts / harness schema.
+
 ## Adjacent systems (do not duplicate)
 
 - `/code-review` — routine code review (file:line shaped).
-- `/pre-mortem` — 3-phase adaptive adversarial critique.
-- `/adversarial-review` — parallel code review.
+- `/adversarial-review` agent — parallel code review (file:line shaped). Distinct from `/red-team adversarial` mode, which dispatches to **external LLM harnesses** for B-class divergence, not internal agents.
