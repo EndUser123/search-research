@@ -1,6 +1,6 @@
 ---
 name: debrief
-description: "This skill is used when the user points at a transcript or chat-history file and asks to mine it for unfinished work, open issues, origin-anchored tasks, or to trace symptoms back to code. Trigger phrases include 'debrief this transcript', 'mine the chat history', 'transcript to tasks', 'turn this session into tasks', 'victim log', and 'why is this broken'. Recursively walks symptom → cause → origin chains, calls /friction and /truth from inside the loop, and writes cold-start tasks to the tracker with the source file tagged. Distinct from /recap (summarizes) and /top-problems (lists, never creates tasks); handles multi-session chain exports (`chain_*.md`) directly — `/retro` is the legacy chain surface being migrated in."
+description: "Unified analysis hub — mines transcripts for unfinished work + origin-anchored tasks. Modes: default (transcript → root-cause tasks), chain (multi-session retrospective: /recap→gaps→/friction→/red-team→/rns + SCORES), gaps (deterministic gap detectors + mandatory haiku gap reviewer + RNS + artifact contract), top (6-source problem scan → ranked tasks). Trigger phrases: 'debrief this transcript', 'mine the chat history', 'victim log', 'why is this broken', 'run a retro', 'top problems', 'what gaps remain'. Absorbs /retro, /gto, /top-problems."
 version: 1.0.50
 status: stable
 category: analysis
@@ -10,7 +10,17 @@ triggers:
   - "debrief this transcript"
   - "victim log"
   - "why is this broken"
-suggest: []
+  - /retro
+  - /gto
+  - /top-problems
+  - "run a retro"
+  - "top problems"
+  - "what gaps remain"
+suggest:
+  - /improve
+  - /wiki
+  - /review
+  - /red-team
 do_not:
   - write a finding as a task without running /truth on it (UNVERIFIED claims don't ship)
   - state a verified fact without a file:line citation
@@ -67,8 +77,23 @@ So a task written by `/debrief` is a **memory-transfer device anchored at the co
 
 **Do NOT use for:**
 - Live session summarization with no file (that's `/recap`).
-- Listing problems without creating tasks (that's `/top-problems`).
-- A multi-session chain analysis with no export file — `/debrief` handles chain exports (`chain_*.md`) directly; only fall back to `/retro` if you have loose per-session transcripts that haven't been chained yet.
+- A pure bug fix on a known root cause (that's `/rca` or `/debug`).
+- A multi-session chain analysis with no export file — `/debrief chain` handles chain exports (`chain_*.md`) directly. If you only have loose per-session transcripts that haven't been chained yet, run `/recap` on each first to build the chain.
+
+## Modes
+
+`/debrief` is four entry points sharing one state machine. Pick by what the user pointed at.
+
+| Mode | Invocation | When | What it does |
+|---|---|---|---|
+| **default** | `/debrief <file>` | A single transcript or session export | Victim-log detection → recursive origin-trace → VERIFIED tasks + source-file rename. The full Phase 0–9 loop. |
+| **chain** | `/debrief chain <chain_*.md>` (or `/retro`) | A multi-session chain export | Walks the chain through the retrospective protocol: recap → gaps → `/friction` → `/red-team` (pre-mortem) → `/rns`, then emits a SCORES summary. Absorbs `/retro`. |
+| **gaps** | `/debrief gaps <path>` (or `/gto`) | Want deterministic first-pass detectors before recursion | Runs `/gto`'s session-goal/outcome detectors + carryover registry + leverage scoring + mandatory haiku gap-reviewer, seeds the findings into `debrief_core.run()`. Artifact contract enforced. Absorbs `/gto`. |
+| **top** | `/debrief top <path>` (or `/top-problems`) | Want a ranked architectural-problem scan across the 6 sources | 6-source scan + veto checks + X-Y detection + fix-level classification → **ranked tasks** (findings become tasks; debrief creates them just like in default mode). Absorbs `/top-problems`. |
+
+**Modes compose.** `/debrief gaps top <path>` runs deterministic detectors AND the 6-source scan, merging both finding sets before the recursive state machine. `/debrief chain <file>` implies `gaps` (chain mode always runs the deterministic detectors on each session segment).
+
+**The unifying rule across all modes:** every finding flows through `debrief_core.run()` — the enforced CLASSIFIED → LOCATED → VERIFIED → WRITTEN state machine with `/truth` verification at every layer. No mode bypasses the gate. The difference is *what seeds the findings*: default relies on LLM extraction, gaps adds deterministic detectors, top adds the 6-source ranked scan, chain sequences it across sessions.
 
 ## Two surfaces of /debrief
 
