@@ -405,6 +405,81 @@ class TestWalkSessionChain:
 
 
 # ---------------------------------------------------------------------------
+# Registry strategy — terminal-wide chain expansion (#1176)
+# ---------------------------------------------------------------------------
+
+
+def _write_registry_row(
+    registry_path: Path,
+    *,
+    ts: str,
+    terminal_id: str,
+    session_id: str,
+    transcript_path: str,
+) -> None:
+    """Append one row to session_registry.jsonl."""
+    row = {
+        "ts": ts,
+        "terminal_id": terminal_id,
+        "session_id": session_id,
+        "transcript_path": transcript_path,
+    }
+    with registry_path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(row) + "\n")
+
+
+class TestRegistryTerminalChain:
+    """Two-step expansion: session_id → terminal_id → all sibling sessions."""
+
+    def test_terminal_chain_aggregates_sibling_sessions(
+        self, mock_artifacts_dir: Path, mock_projects_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Three sessions ran in the same terminal, oldest → newest.
+        for sid in ("sess-old", "sess-mid", "sess-new"):
+            _write_transcript(mock_projects_dir, "P--", sid)
+
+        registry = mock_artifacts_dir / "session_registry.jsonl"
+        tps = lambda sid: str(mock_projects_dir / "P--" / f"{sid}.jsonl")
+        _write_registry_row(registry, ts="2026-07-03T10:00:00+00:00", terminal_id="con1", session_id="sess-old", transcript_path=tps("sess-old"))
+        _write_registry_row(registry, ts="2026-07-04T10:00:00+00:00", terminal_id="con1", session_id="sess-mid", transcript_path=tps("sess-mid"))
+        _write_registry_row(registry, ts="2026-07-05T10:00:00+00:00", terminal_id="con1", session_id="sess-new", transcript_path=tps("sess-new"))
+        # A compaction row for sess-mid (same transcript → must dedup, not inflate depth).
+        _write_registry_row(registry, ts="2026-07-04T11:00:00+00:00", terminal_id="con1", session_id="sess-mid", transcript_path=tps("sess-mid"))
+
+        monkeypatch.setattr("core.session_chain._projects_dir", lambda: mock_projects_dir)
+
+        with patch("core.session_chain._claude_base", return_value=mock_artifacts_dir.parent):
+            result = walk_session_chain("sess-new")
+
+        assert result.depth == 3
+        assert [e.session_id for e in result.entries] == ["sess-old", "sess-mid", "sess-new"]
+        # Parent links chain oldest → newest.
+        assert result.entries[0].parent_transcript_path is None
+        assert result.entries[1].parent_transcript_path == result.entries[0].transcript_path
+        assert result.entries[2].parent_transcript_path == result.entries[1].transcript_path
+
+    def test_excludes_sessions_started_after_current(
+        self, mock_artifacts_dir: Path, mock_projects_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        for sid in ("sess-a", "sess-b", "sess-c"):
+            _write_transcript(mock_projects_dir, "P--", sid)
+
+        registry = mock_artifacts_dir / "session_registry.jsonl"
+        tps = lambda sid: str(mock_projects_dir / "P--" / f"{sid}.jsonl")
+        _write_registry_row(registry, ts="2026-07-03T10:00:00+00:00", terminal_id="con1", session_id="sess-a", transcript_path=tps("sess-a"))
+        _write_registry_row(registry, ts="2026-07-04T10:00:00+00:00", terminal_id="con1", session_id="sess-b", transcript_path=tps("sess-b"))
+        # sess-c started AFTER sess-b — a later parallel invocation, must be excluded.
+        _write_registry_row(registry, ts="2026-07-05T10:00:00+00:00", terminal_id="con1", session_id="sess-c", transcript_path=tps("sess-c"))
+
+        monkeypatch.setattr("core.session_chain._projects_dir", lambda: mock_projects_dir)
+
+        with patch("core.session_chain._claude_base", return_value=mock_artifacts_dir.parent):
+            result = walk_session_chain("sess-b")
+
+        assert [e.session_id for e in result.entries] == ["sess-a", "sess-b"]
+
+
+# ---------------------------------------------------------------------------
 # get_all_chain_files
 # ---------------------------------------------------------------------------
 
