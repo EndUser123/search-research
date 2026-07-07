@@ -325,6 +325,53 @@ Prohibited:
 - Claiming something doesn't exist without confirmed tool failure
 - Skipping evidence gathering because the answer seems obvious
 
+## Deeper Abstraction Check
+
+`/ask` owns cross-skill/plugin inspection — when discovery surfaces a **local
+concept** (a rule, field, classification, or contract that lives in one skill
+or command), answer this question before closing:
+
+> **What deeper abstraction does this local concept imply?**
+
+The discipline is to look *past* the local instance to the reusable class. Do
+**not** ask "where should we paste this rule?" — that question anchors on
+copying prose. Ask "what reusable abstraction or ownership model does this rule
+reveal?" — that question surfaces whether the concept belongs in a shared
+reference, a pointer pattern, a runtime hook, or correctly stays local.
+
+Emit one Deeper Abstraction Check artifact when a local concept is non-trivial
+(recurring shape, multi-command relevance, or a fixed vocabulary that could
+drift). Fields:
+
+| Field | Required | Definition |
+|---|---|---|
+| `local_concept` | yes | The rule/field/classification as it exists today, with its file:line. |
+| `deeper_abstraction` | yes | One sentence: the reusable abstraction or ownership model this concept implies. |
+| `affected_surfaces` | yes | Commands/skills/hooks that already have (or would need) the same shape. Cite file:line. |
+| `current_owner` | yes | The command/skill that owns the concept today. |
+| `disposition` | yes | One of: `should_be_shared_reference`, `pointer_only`, `runtime_hook`, `test`, `backlog`, `do_nothing`. |
+| `evidence` | yes | file:line citations proving the concept is local and proving the affected surfaces. **No vibes.** |
+| `recommended_action` | yes | The smallest change that moves the concept toward the chosen disposition. |
+
+### Disposition guide
+
+- `should_be_shared_reference` — the concept is a compliance vocabulary emitted
+  by multiple commands → make it a report contract
+  (see `debrief/references/report-contracts.md`).
+- `pointer_only` — the abstraction already has a canonical home; other surfaces
+  need a one-line pointer, not a copy.
+- `runtime_hook` — the concept is a behavior that prose cannot enforce → wire a
+  hook/gate, do not just document it.
+- `test` — the concept is an invariant a static test can pin → add a pytest test.
+- `backlog` — real abstraction, not worth moving now → create a tracker task.
+- `do_nothing` — the concept is genuinely local with no deeper class → say so
+  explicitly so the next reader does not re-litigate.
+
+This check is **prompt-advisory**. `/ask` emits the artifact; nothing at
+runtime forces it. If a discovered abstraction should become a runtime gate,
+say so in `disposition: runtime_hook` and route the wiring to the command that
+owns that surface.
+
 ## ERROR HANDLING
 
 _See `references/integration-notes.md` for error handling, session context, command registry, and workflow integration details._
