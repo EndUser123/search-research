@@ -86,17 +86,22 @@ Evidence Packet: analysis/phase_0_5_critical_tier_evidence_packet_20260707.md
 (per-site table, raw parallel-test output through stop_gate_telemetry +
 hook_runner paths, #906 auto-commit SHAs f4addf6/16966a4).
 
-### Phase 1 — Gold replay corpus + runner [READY — fixtures located]
-5-transcript set from stop_blocks.jsonl metadata: 4897f5bd (epistemic
-triple-fire + recovery), a07ff025 (deletion_verification), e1960aff
-(lazy_workaround FP, self-referential), 0f183615 (perf_attribution re-fire),
-b2014a6e (unverified_stance empty-hedge). Known gap: no fake_done fixture
-(0 blocks in corpus) — first misses.jsonl entry.
+### Phase 1 — Gold replay corpus + runner [DONE 2026-07-07]
+4-transcript gold corpus built from stop_blocks.jsonl: 4897f5bd (epistemic
+triple-fire + partial recovery, 3 turns, live gate), a07ff025
+(deletion_verification), 0f183615 (perf_attribution re-fire), b2014a6e
+(unverified_stance empty-hedge). e1960aff (lazy_workaround FP) shipped as a
+misses.jsonl seed instead — 0 stop_blocks rows; #1214 removed the producing
+path; only self_referen rows are a different gate (see decisions ledger).
 Build: evals/gold/ fixtures (excerpt, expected behavior_type classes,
 earliest-cause turn, disallowed conclusions, expected destination) +
 replay_eval.py mirroring cc-aca-epistemic/.eval/judge_eval.py holdout
-discipline. Verify: green on expected; corrupt-one-fixture test shows
-mismatch detection.
+discipline (single-source live validate() import, no hand-copied prompt) +
+extract_fixtures.py provenance tool + test_replay_eval_corrupt.py.
+Verify bar MET: green on expected (STRUCTURAL 6/6, LIVE 3/3) + corrupt-one-
+fixture mismatch detection (4/4, three modes). 3 DRIFT findings surfaced on
+4897f5bd (post-#1215 block→allow/warn downgrades) — reported not asserted.
+Evidence Packet: analysis/phase_1_gold_replay_evidence_packet_20260707.md.
 
 ### Phase 2 — Freshness-ruled runtime ground truth [PENDING]
 runtime-ground-truth.md: fact | source | verification command |
@@ -165,3 +170,16 @@ user approval. Note: any other "Phase 1+2 measurement (55d after
   pattern should become the recommended shape for any log where loss is
   later shown to matter. It is the stronger primitive (zero-loss vs
   dropped-trace). Revisit at Phase 6 yield review (earliest ~2026-07-21).
+- 2026-07-07: Phase 1 — 4 fixtures shipped, not 5. e1960aff (lazy_workaround
+  self-referential FP) has 0 stop_blocks rows; #1214 removed the producing
+  code path and historical blocks rotated out of the log. Substituting a
+  different behavior class would violate Rule 7 (replay evidence before
+  promotion) — shipped as misses.jsonl seed for Phase 5 instead. Real
+  gate-block transcripts beat imported chat transcripts (decision stands).
+- 2026-07-07: Phase 1 — two-layer drift-aware corpus design. Each fixture
+  encodes historical intent (block record) AND live expected (current
+  validate()) separately; replay_eval asserts structural hash + live
+  expected only, REPORTS recorded-vs-live delta as a finding. Rationale:
+  a drifted gate must not silently rewrite corpus history; the delta IS the
+  signal the program exists to surface. 3 post-#1215 downgrades caught on
+  4897f5bd.

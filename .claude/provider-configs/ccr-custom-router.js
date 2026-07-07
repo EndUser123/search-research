@@ -72,6 +72,87 @@ function getRoutingPolicy() {
   return readJsonSafe(ROUTING_POLICY_FILE);
 }
 
+// --- Local model availability probe (live > state file) ---
+// The state file written by run-ornith-server.ps1 persists across server restarts
+// and can be stale if the server was started independently. A live HTTP probe is
+// authoritative: CC-ccr.ps1 uses /health; this mirrors that check with a cache
+// so we don't probe on every request.
+const LOCAL_HEALTH_URL = "http://127.0.0.1:8010/health";
+const LOCAL_INFERENCE_URL = "http://127.0.0.1:8010/v1/chat/completions";
+const PROBE_TIMEOUT_MS = 1500;
+const CACHE_WINDOW_MS = 10000;
+const DEFAULT_LOCAL_CTX = 65536; // matches llama.cpp -c flag in run-ornith-server.ps1
+
+let _probeCache = { lastCheckedAt: 0, available: false, reason: null };
+
+async function isLocalModelAvailable() {
+  const now = Date.now();
+  if (now - _probeCache.lastCheckedAt < CACHE_WINDOW_MS) {
+    if (_probeCache.available) {
+      try { process.stderr.write("[CCR-route] local probe cache hit (available)\n"); } catch {}
+    }
+    return _probeCache.available;
+  }
+
+  // Primary: /health endpoint (same check as cc-ccr.ps1)
+  try {
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), PROBE_TIMEOUT_MS);
+    const resp = await fetch(LOCAL_HEALTH_URL, { signal: ac.signal });
+    clearTimeout(t);
+    if (resp.ok) {
+      _probeCache = { lastCheckedAt: Date.now(), available: true, reason: null };
+      try { process.stderr.write("[CCR-route] /health OK — local available\n"); } catch {}
+      return true;
+    }
+  } catch { /* fall through */ }
+
+  // Fallback: minimal inference probe (tiny prompt, no quota cost)
+  try {
+    const body = JSON.stringify({
+      model: "ornith-1.0-9b",
+      messages: [{ role: "user", content: "hi" }],
+      max_tokens: 1,
+    });
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), PROBE_TIMEOUT_MS);
+    const resp = await fetch(LOCAL_INFERENCE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      signal: ac.signal,
+    });
+    clearTimeout(t);
+    if (resp.ok) {
+      _probeCache = { lastCheckedAt: Date.now(), available: true, reason: null };
+      try { process.stderr.write("[CCR-route] inference probe OK — local available\n"); } catch {}
+      return true;
+    }
+  } catch (e) {
+    _probeCache = { lastCheckedAt: Date.now(), available: false, reason: e.message };
+  }
+
+  try { process.stderr.write("[CCR-route] local unavailable — both probes failed\n"); } catch {}
+  return false;
+}
+
+async function getLocalModelProbed() {
+  const fromFile = getLocalModelState();
+  if (fromFile && fromFile.maxContextTokens) return fromFile;
+
+  // State file missing or stale — live probe is authoritative
+  const live = await isLocalModelAvailable();
+  if (live) {
+    try {
+      process.stderr.write(
+        "[CCR-route] state file missing/stale — using live-probe default ctx (" + DEFAULT_LOCAL_CTX + ")\n"
+      );
+    } catch {}
+    return { id: "ornith-1.0-9b", maxContextTokens: DEFAULT_LOCAL_CTX };
+  }
+  return null;
+}
+
 function logRoutingEvent(entry) {
   try {
     fs.mkdirSync(path.dirname(ROUTING_LOG_FILE), { recursive: true });
@@ -217,7 +298,7 @@ module.exports = async function router(req, config) {
   }
 
   // --- Coding tasks: local-first (aggressive) or M3-first (conservative) ---
-  const localModel = getLocalModelState();
+  const localModel = await getLocalModelProbed();
   const mode = getRoutingMode(config);
   const threshold = getThreshold(config, mode);
 
