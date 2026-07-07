@@ -21,6 +21,15 @@
     "opus_question_word_count": 100,
     "haiku_max_word_count": 60
   },
+  "classifier": {
+    "backend": "tfidf",
+    "semantic_threshold": 0.55,
+    "low_confidence_margin": 0.10,
+    "background_threshold": 0.50,
+    "reasoning_threshold": 0.60,
+    "trivial_coding_max_words": 15,
+    "followup_context_boost": 0.15
+  },
   "action": "autoswitch",
   "log_file": "~/.claude/logs/model-router.ndjson"
 }

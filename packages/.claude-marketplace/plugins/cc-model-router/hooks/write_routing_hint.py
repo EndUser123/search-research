@@ -23,7 +23,7 @@ PIN_FILE = os.path.join(STATE_DIR, "ccr-pin-state.json")
 VALID_TASK_TYPES = {"coding", "reasoning", "background", "trivial-coding", "local-coding"}
 
 
-def write_hint(task_type: str, session_id: str = "") -> None:
+def write_hint(task_type: str, session_id: str = "", **extra) -> None:
     if task_type not in VALID_TASK_TYPES:
         print(f"warning: unknown task_type '{task_type}', accepting anyway", file=sys.stderr)
     os.makedirs(STATE_DIR, exist_ok=True)
@@ -32,9 +32,10 @@ def write_hint(task_type: str, session_id: str = "") -> None:
         "sessionId": session_id,
         "ts": datetime.now(timezone.utc).isoformat(),
     }
+    hint.update(extra)
     with open(HINT_FILE, "w", encoding="utf-8") as f:
         json.dump(hint, f, indent=2)
-    print(f"[routing-hint] taskType={task_type}")
+    print(f"[routing-hint] taskType={task_type} confidence={extra.get('confidence', 'n/a')}")
 
 
 def write_pin(model: str, session_id: str = "") -> None:
