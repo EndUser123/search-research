@@ -16,10 +16,19 @@ sys.modules.setdefault("redis", None)
 
 try:
     import portalocker
-    from portalocker.exceptions import LockException
+    from portalocker.exceptions import BaseLockException, LockException
     _PORTALOCKER_AVAILABLE = True
 except ImportError:
     _PORTALOCKER_AVAILABLE = False
+
+# Exception family that lock/IO contention surfaces as. TimeoutError (raised by
+# FileLock.__enter__ on contention) is an OSError subclass, so OSError covers the
+# normal path. BaseLockException covers non-timeout lock-family failures (e.g.
+# AlreadyLocked) that the LockException->TimeoutError conversion does NOT catch --
+# without it those leak past `except OSError` and crash the caller.
+_LOCK_FAILURES: tuple[type[BaseException], ...] = (OSError,)
+if _PORTALOCKER_AVAILABLE:
+    _LOCK_FAILURES = (OSError, BaseLockException)
 
 
 class FileLock:
