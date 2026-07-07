@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "improve-partner",
-      "version": "0.4.11",
+      "version": "0.4.12",
       "description": "Improvement partner plugin with /improve as the central manual workflow. Hooks ship inert + unwired (config-gated); see HOOKS_AVAILABLE.md. Local fork.",
       "source": "./plugins/improve-partner",
       "keywords": [
@@ -98,7 +98,7 @@
     },
     {
       "name": "search-research",
-      "version": "0.1.69",
+      "version": "0.1.72",
       "description": "Unified search and research system with async concurrent execution and 11 web providers.",
       "source": "./plugins/search-research",
       "keywords": [
@@ -144,7 +144,7 @@
     },
     {
       "name": "cc-skills-analysis",
-      "version": "1.0.92",
+      "version": "1.0.93",
       "description": "Analysis plugin",
       "source": "./plugins/cc-skills-analysis",
       "keywords": []
@@ -313,7 +313,7 @@
     },
     {
       "name": "cc-model-router",
-      "version": "0.2.19",
+      "version": "0.2.20",
       "description": "Automatic model-tier routing (haiku/sonnet/opus) based on prompt complexity heuristics with dual-mode operation (warn plus autoswitch)",
       "source": "./plugins/cc-model-router",
       "keywords": []
@@ -334,7 +334,7 @@
     },
     {
       "name": "red-team",
-      "version": "0.2.9",
+      "version": "0.2.10",
       "description": "Multi-agent adversarial review pipeline. Planner -> specialists -> critic -> single PROCEED/REVISE/BLOCK verdict. Disk-backed findings handoff keeps the orchestrator context small. Phase 3: telemetry + incident self-improvement layer.",
       "source": "./plugins/red-team",
       "keywords": [
