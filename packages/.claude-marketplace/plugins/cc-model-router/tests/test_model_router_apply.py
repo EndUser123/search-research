@@ -296,7 +296,7 @@ def test_apply_dry_run_records_but_does_not_write(
     )
     assert result.returncode == 0
     settings = json.loads((fake_home / ".claude" / "settings.json").read_text())
-    assert settings["model"] == "claude-sonnet-5", "dry_run must not rewrite settings.json"
+    assert settings["model"] == "claude-sonnet-4-6", "dry_run must not rewrite settings.json"
 
 
 def test_apply_idempotent_under_repeat_calls(
