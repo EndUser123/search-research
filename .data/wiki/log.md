@@ -1682,3 +1682,11 @@ Task: #1052
   - URL: https://github.com/jacob-bd/perplexity-web-mcp
   - SHA256: 98227681106a73c5a4cb1fe2c7c1e0fad968027a6a4f7c54f5b0b5228f0b1053
   - Source: crawl-ingest (skipped)
+## [2026-07-05] ingest | search-research Plugin: Provider Stack Fix and Expansion
+Source: session
+Transcript: session-2026-07-05
+
+## [2026-07-05] ingest | /go Capability-Claim Audit for Consolidation/Deprecation/Routing Tasks
+Source: session
+Transcript: session-2026-07-05
+
