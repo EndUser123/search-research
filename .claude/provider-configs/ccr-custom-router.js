@@ -39,6 +39,8 @@ const LOCAL_MODEL_STATE = path.join(STATE_DIR, "local-model-state.json");
 const HINT_FILE = path.join(STATE_DIR, "ccr-routing-hint.json");
 const PIN_FILE = path.join(STATE_DIR, "ccr-pin-state.json");
 const ROUTE_STATE_FILE = path.join(STATE_DIR, "ccr-route-state.json");
+const ROUTING_LOG_FILE = path.join(STATE_DIR, "routing-log.jsonl");
+const ROUTING_POLICY_FILE = path.join(STATE_DIR, "routing-policy.json");
 
 // --- Helpers ---
 
@@ -64,6 +66,17 @@ function getLocalModelState() {
   if (!state || !state.active_model || !state.models?.length) return null;
   const active = state.models.find((m) => m.id === state.active_model);
   return active || null;
+}
+
+function getRoutingPolicy() {
+  return readJsonSafe(ROUTING_POLICY_FILE);
+}
+
+function logRoutingEvent(entry) {
+  try {
+    fs.mkdirSync(path.dirname(ROUTING_LOG_FILE), { recursive: true });
+    fs.appendFileSync(ROUTING_LOG_FILE, JSON.stringify(entry) + "\n");
+  } catch {}
 }
 
 function getRoutingHint() {
