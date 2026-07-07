@@ -398,6 +398,21 @@ Canonical fields + worked examples at
 `debrief/references/cross-skill-transfer-check.md`. Do not generalize from
 vibes; cite `file:line` or mark `unsure_needs_audit`.
 
+## Deeper Abstraction Check
+
+When `/improve` surfaces a local rule, field, classification, or contract that
+looks like it might recur across commands, answer this before closing:
+
+> **What deeper abstraction does this local concept imply?**
+
+Do **not** ask "where should we paste this rule?" — that anchors on copying
+prose. Ask "what reusable abstraction or ownership model does this rule
+reveal?" The full check (required question, fields, and disposition enum) is
+owned by `/ask` at `cc-skills-architect/skills/ask/SKILL.md` ("Deeper
+Abstraction Check" section). `/improve` emits the pointer when its
+durable-improvement work discovers a candidate abstraction; it does not
+re-define the fields. Prompt-advisory.
+
 ## Completion Evidence Contract — routing-only
 
 `/improve` does NOT enforce the Completion Evidence Contract. When the
