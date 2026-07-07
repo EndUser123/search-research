@@ -442,3 +442,26 @@ Full classification rule at
 - `/red-team` — when the recommendation is a high-risk design/contract change worth adversarial stress before commit. `/red-team adversarial` is also the backend for `mode=external-second-opinion`.
 - `/debrief` — when the finding originated in a session and deserves root-cause task extraction, not just a recommendation.
 - `/wiki` — when the Long-Term Opportunities section produces a durable candidate worth persisting.
+
+## Thought Partner Addendum
+
+`/improve` is the **canonical owner** of the Thought Partner Addendum (TPA) —
+a trailing section that surfaces material observations the user did not ask
+for, when those would change priority, risk, sequencing, scope, confidence,
+cost, maintainability, or long-term value. Full contract (definition, fields,
+seven rules, per-command placement, worked examples, negative example,
+falsification) lives at `debrief/references/thought-partner-addendum.md`.
+
+Emit a TPA at the end of any non-trivial `/improve` turn (after the
+recommendation / persistence / suggest block) when there is at least one
+genuinely material unasked observation. Each item carries exactly:
+`observation`, `why_it_matters`, `evidence` (mark `INFERENCE`/`RISK` if not
+direct), `recommended_action`, and `urgency: now | later | watch`.
+
+Hard rules (full list in the reference): include only when ≥1 material item;
+omit generic caveats ("be careful with scope", "more tests may be useful",
+"consider documentation") unless tied to a specific decision-changing risk;
+say plainly when an action is advisory and not runtime-enforced; never
+displace the primary recommendation, verdict, or CEC ledger; keep it to 1–5
+items. Trivial turns get no TPA. The TPA is `prompt_advisory` — no runtime
+hook enforces it; a static test pins the contract invariants only.
