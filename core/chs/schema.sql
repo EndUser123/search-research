@@ -20,11 +20,13 @@ CREATE TABLE IF NOT EXISTS sessions (
     ended_at INTEGER,
     is_closed INTEGER NOT NULL DEFAULT 0,
     message_count INTEGER NOT NULL DEFAULT 0,
+    first_prompt TEXT,
     summary_short TEXT,
     summary_long TEXT,
     embedding BLOB,
     embedding_model TEXT,
     embedding_dim INTEGER,
+    embedding_run_id TEXT,
     last_turn_built_message_id INTEGER,
     last_message_timestamp INTEGER,
     created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
@@ -68,6 +70,7 @@ CREATE TABLE IF NOT EXISTS turns (
     embedding BLOB,
     embedding_model TEXT,
     embedding_dim INTEGER,
+    embedding_run_id TEXT,
     created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
     UNIQUE(session_id, start_message_id, end_message_id)
 );
@@ -141,6 +144,24 @@ CREATE TABLE IF NOT EXISTS embeddings_config (
     embedding_dim INTEGER NOT NULL,
     created_at TEXT DEFAULT (datetime('now')),
     is_active INTEGER DEFAULT 1
+);
+
+-- Embedding Runs: run-level provenance for every (re-)embedding pass.
+-- Rows in sessions/turns reference embedding_run_id, so mixed states are
+-- detectable and any embedding batch can be traced to model + source digest.
+CREATE TABLE IF NOT EXISTS embedding_runs (
+    run_id TEXT PRIMARY KEY,
+    model_name TEXT NOT NULL,
+    embedding_dim INTEGER NOT NULL,
+    distance TEXT NOT NULL DEFAULT 'cosine',
+    target_table TEXT NOT NULL,
+    source_digest TEXT NOT NULL,
+    params_json TEXT,
+    started_at TEXT NOT NULL,
+    finished_at TEXT,
+    row_count INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'running'
+        CHECK(status IN ('running', 'complete', 'failed'))
 );
 
 -- Triggers for FTS5 synchronization

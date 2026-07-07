@@ -5,14 +5,39 @@ Splits documents at semantic boundaries rather than arbitrary token limits
 using distance-weighted scoring to find optimal break points within
 a target window.
 
+Chunk identity is content-addressed: chunk IDs derive from
+sha256(doc_id | char_start | char_end | text_sha256), so a rebuild over
+unchanged text yields identical IDs. Golden eval sets and cross-store
+references remain valid across re-index and re-embed runs.
+
 Target: ~900 tokens per chunk with 15% overlap
 """
 
 from __future__ import annotations
 
+import hashlib
 import re
 from enum import IntEnum
-from typing import List, Tuple
+from typing import List, Tuple, TypedDict
+
+CHUNKER_NAME = "smart_chunker"
+# Bump when chunk boundaries or ID derivation change. A version change means
+# chunk IDs from prior runs are NOT comparable to new runs.
+CHUNKER_VERSION = "1.1.0"
+
+
+class ChunkRecord(TypedDict):
+    """Content-addressed chunk with provenance metadata (kb.chunk.v1 style)."""
+
+    chunk_id: str
+    doc_id: str
+    char_start: int
+    char_end: int
+    text: str
+    text_sha256: str
+    chunker_name: str
+    chunker_version: str
+    chunker_params: dict
 
 
 class BreakPointScore(IntEnum):
@@ -27,11 +52,15 @@ class BreakPointScore(IntEnum):
     LINE_BREAK = 1
 
 
+def _sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
 class SmartChunker:
     """Split documents at semantic boundaries rather than arbitrary token limits.
 
     Uses distance-weighted scoring to find optimal break points within
-    a target window, preserving semantic units (sections, code blocks).
+    a search window, preserving semantic units (sections, code blocks).
 
     Target: ~900 tokens per chunk with 15% overlap
     """
@@ -48,6 +77,16 @@ class SmartChunker:
         """
         self.overlap = overlap
 
+    @property
+    def params(self) -> dict:
+        """Chunking parameters, recorded per chunk for reproducibility."""
+        return {
+            "target_tokens": self.TARGET_TOKENS,
+            "overlap_ratio": self.OVERLAP_RATIO,
+            "search_window": self.SEARCH_WINDOW,
+            "overlap": self.overlap,
+        }
+
     def chunk(self, text: str) -> List[str]:
         """Split text into semantically coherent chunks.
 
@@ -57,13 +96,60 @@ class SmartChunker:
         Returns:
             List of text chunks with semantic boundaries preserved
         """
-        # Find all break points with scores
+        return [text[start:end] for start, end in self._chunk_spans(text)]
+
+    def chunk_with_metadata(self, text: str, doc_id: str = "") -> List[ChunkRecord]:
+        """Split text into chunks with stable, content-addressed identity.
+
+        The chunk_id is sha256(doc_id | char_start | char_end | text_sha256):
+        independent of embedding model, vector store, and run order. Rebuilding
+        from identical source text yields identical IDs; any change to the
+        text or boundaries produces new IDs.
+
+        Args:
+            text: Input markdown or code
+            doc_id: Stable logical document identifier (e.g. canonical path
+                or source hash). Empty string is allowed but IDs are then
+                only unique within this document.
+
+        Returns:
+            List of ChunkRecord dicts with identity and provenance metadata
+        """
+        records: List[ChunkRecord] = []
+        for start, end in self._chunk_spans(text):
+            chunk_text = text[start:end]
+            text_sha = _sha256_text(chunk_text)
+            chunk_id = hashlib.sha256(
+                f"{doc_id}|{start}|{end}|{text_sha}".encode("utf-8")
+            ).hexdigest()
+            records.append(
+                ChunkRecord(
+                    chunk_id=chunk_id,
+                    doc_id=doc_id,
+                    char_start=start,
+                    char_end=end,
+                    text=chunk_text,
+                    text_sha256=text_sha,
+                    chunker_name=CHUNKER_NAME,
+                    chunker_version=CHUNKER_VERSION,
+                    chunker_params=self.params,
+                )
+            )
+        return records
+
+    def _chunk_spans(self, text: str) -> List[Tuple[int, int]]:
+        """Compute (char_start, char_end) spans for all chunks.
+
+        Single source of truth for boundary selection; chunk() and
+        chunk_with_metadata() both derive from these spans.
+        """
+        if not text:
+            return []
+
         break_points = self._find_break_points(text)
 
-        # Select optimal break points
-        chunks = []
+        spans: List[Tuple[int, int]] = []
         position = 0
-        chunk_id = 0
 
         while position < len(text):
             # Target end position for this chunk
@@ -71,7 +157,7 @@ class SmartChunker:
 
             if target_end >= len(text):
                 # Final chunk - take remaining text
-                chunks.append(text[position:])
+                spans.append((position, len(text)))
                 break
 
             # Search window for optimal break point
@@ -85,14 +171,13 @@ class SmartChunker:
 
             # Extract chunk
             chunk_end = best_break if best_break > position else target_end
-            chunks.append(text[position:chunk_end])
+            spans.append((position, chunk_end))
 
             # Calculate overlap for next chunk
             overlap_tokens = int(self.TARGET_TOKENS * self.OVERLAP_RATIO)
             position = chunk_end - overlap_tokens if self.overlap else chunk_end
-            chunk_id += 1
 
-        return chunks
+        return spans
 
     def _find_break_points(self, text: str) -> List[Tuple[int, int]]:
         """Find all semantic break points with scores.
@@ -173,4 +258,10 @@ class SmartChunker:
         return best_pos
 
 
-__all__ = ["SmartChunker", "BreakPointScore"]
+__all__ = [
+    "SmartChunker",
+    "BreakPointScore",
+    "ChunkRecord",
+    "CHUNKER_NAME",
+    "CHUNKER_VERSION",
+]

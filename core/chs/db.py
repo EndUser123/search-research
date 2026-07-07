@@ -64,6 +64,38 @@ def database_is_initialized(db_path: Path | str) -> bool:
         return False
 
 
+def ensure_embedding_run_schema(conn: sqlite3.Connection) -> None:
+    """Migrate an existing database to support embedding run provenance.
+
+    Idempotent. Adds the embedding_runs table and the embedding_run_id
+    column on sessions/turns when missing. New databases get these from
+    schema.sql; this helper covers databases initialized before the
+    embedding-run schema existed.
+    """
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS embedding_runs (
+            run_id TEXT PRIMARY KEY,
+            model_name TEXT NOT NULL,
+            embedding_dim INTEGER NOT NULL,
+            distance TEXT NOT NULL DEFAULT 'cosine',
+            target_table TEXT NOT NULL,
+            source_digest TEXT NOT NULL,
+            params_json TEXT,
+            started_at TEXT NOT NULL,
+            finished_at TEXT,
+            row_count INTEGER NOT NULL DEFAULT 0,
+            status TEXT NOT NULL DEFAULT 'running'
+                CHECK(status IN ('running', 'complete', 'failed'))
+        )"""
+    )
+    for table in ("sessions", "turns"):
+        cursor = conn.execute(f"PRAGMA table_info({table})")
+        columns = {row[1] for row in cursor.fetchall()}
+        if columns and "embedding_run_id" not in columns:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN embedding_run_id TEXT")
+    conn.commit()
+
+
 def init_db(db_path: Path | str) -> None:
     """Initialize the database schema from schema.sql.
 
