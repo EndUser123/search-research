@@ -23,10 +23,7 @@
   },
   "classifier": {
     "backend": "tfidf",
-    "semantic_threshold": 0.55,
-    "low_confidence_margin": 0.10,
-    "background_threshold": 0.50,
-    "reasoning_threshold": 0.60,
+    "low_confidence_margin": 0.02,
     "trivial_coding_max_words": 15,
     "followup_context_boost": 0.15
   },
