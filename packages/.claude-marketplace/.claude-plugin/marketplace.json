@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "improve-partner",
-      "version": "0.4.10",
+      "version": "0.4.11",
       "description": "Improvement partner plugin with /improve as the central manual workflow. Hooks ship inert + unwired (config-gated); see HOOKS_AVAILABLE.md. Local fork.",
       "source": "./plugins/improve-partner",
       "keywords": [
@@ -77,7 +77,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.154",
+      "version": "1.0.155",
       "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -144,7 +144,7 @@
     },
     {
       "name": "cc-skills-analysis",
-      "version": "1.0.88",
+      "version": "1.0.89",
       "description": "Analysis plugin",
       "source": "./plugins/cc-skills-analysis",
       "keywords": []
