@@ -101,6 +101,49 @@ def test_malformed_date_treated_as_fresh():
     assert "- X  [last_verified not-a-date]" in out
 
 
+def test_load_and_render_default_self_caps_on_real_file():
+    """Fork-resolution condition: the injector calls `load_and_render()` with NO
+    explicit budget. The default must self-cap at BUDGET_PROTECTED_CHARS so the
+    SessionStart injection stream can never overflow its protected slot — the
+    cross-injector budget arbiter is deferred precisely because this self-cap
+    holds. test_budget_hard_cap proves the cap mechanism with budget_chars=400;
+    this test proves the DEFAULT (800) binds the real shipped file via the real
+    entry point the injector uses.
+    """
+    p = Path("P:/.claude/hooks/analysis/runtime-ground-truth.md")
+    if not p.exists():
+        pytest.skip("ground-truth file not present in this env")
+    out = rgt.load_and_render(p, today=datetime.date(2026, 7, 7))
+    assert len(out) <= rgt.BUDGET_PROTECTED_CHARS, (
+        f"load_and_render() default cap not enforced on real file: "
+        f"{len(out)} > {rgt.BUDGET_PROTECTED_CHARS}"
+    )
+
+
+def test_load_and_render_default_cap_engages_under_overflow(tmp_path):
+    """The default cap is not just a number the output happens to stay under —
+    its truncation mechanism must engage via load_and_render() (no explicit
+    budget) when the source file exceeds BUDGET_PROTECTED_CHARS. Proves the
+    cap is wired to the default entry point, not merely honored in render().
+    """
+    big_rows = "\n".join(
+        f"| fact-{i} " + ("x" * 80) + " | s | `cmd` | 2026-07-07 | 30 d |"
+        for i in range(30)
+    )
+    src = f"# header\n\n| fact | source | verification_command | last_verified | expiry_trigger |\n|------|--------|----------------------|---------------|----------------|\n{big_rows}\n"
+    f = tmp_path / "gt.md"
+    f.write_text(src, encoding="utf-8")
+    out = rgt.load_and_render(f, today=datetime.date(2026, 7, 7))
+    assert len(out) <= rgt.BUDGET_PROTECTED_CHARS, (
+        f"default cap did not engage under overflow: {len(out)} > "
+        f"{rgt.BUDGET_PROTECTED_CHARS}"
+    )
+    assert "cap;" in out or "…" in out, (
+        "truncation marker missing — cap held without engaging the mechanism "
+        "(test may need more rows to force overflow)"
+    )
+
+
 def test_load_real_ground_truth_file():
     """End-to-end: parse the actual file shipped with the deliverable."""
     p = Path("P:/.claude/hooks/analysis/runtime-ground-truth.md")
