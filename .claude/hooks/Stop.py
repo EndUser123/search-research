@@ -1172,15 +1172,15 @@ def _run_anti_sycophancy_quality(data: dict) -> dict | None:
         try:
             import time as _t
             _pp = HOOKS_DIR / "logs" / "lam_truncation_probe.jsonl"
-            with open(_pp, "a", encoding="utf-8") as _f:
-                _f.write(json.dumps({
-                    "ts": _t.time(),
-                    "lam_len": len(response),
-                    "lam_words": len(response.split()) if response else 0,
-                    "first_60": response[:60] if response else "",
-                    "last_60": response[-60:] if response else "",
-                }) + "\n")
-        except Exception:
+            from file_lock import append_jsonl_safe
+            append_jsonl_safe(_pp, {
+                "ts": _t.time(),
+                "lam_len": len(response),
+                "lam_words": len(response.split()) if response else 0,
+                "first_60": response[:60] if response else "",
+                "last_60": response[-60:] if response else "",
+            })
+        except OSError:
             pass
 
         if not response:
@@ -1802,9 +1802,9 @@ def _log_post_skill_prose_event(
     }
 
     try:
-        with open(log_path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(log_entry) + "\n")
-    except Exception:
+        from file_lock import append_jsonl_safe
+        append_jsonl_safe(log_path, log_entry)
+    except OSError:
         # Fail open - logging errors don't break the gate
         pass
 
@@ -2864,9 +2864,9 @@ def _log_task_contract_telemetry(
             "terminal_id": terminal_id,
             **fields,
         }
-        with log_path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(entry, ensure_ascii=True) + "\n")
-    except Exception:
+        from file_lock import append_jsonl_safe
+        append_jsonl_safe(log_path, entry, ensure_ascii=True)
+    except OSError:
         pass  # Observability must never change hook behavior
 
 
@@ -3189,9 +3189,9 @@ def _log_task_contract_v2_telemetry(
             "terminal_id": terminal_id,
             **fields,
         }
-        with log_path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(entry, ensure_ascii=True) + "\n")
-    except Exception:
+        from file_lock import append_jsonl_safe
+        append_jsonl_safe(log_path, entry, ensure_ascii=True)
+    except OSError:
         pass
 
 
