@@ -27,8 +27,17 @@ def search_semantic_sessions(
     embed_client,
     limit: int = 10,
     threshold: float = 0.65,
+    expected_model: str | None = None,
 ) -> list[dict]:
     """Search sessions by semantic similarity using sessions.embedding.
+
+    Model/dim aware: the query dimension is inferred from the query embedding
+    (bytes / 4, float32) instead of a hardcoded 384. Rows whose embedding_dim
+    differs from the query dim — or whose embedding_model differs from
+    expected_model when given — are excluded with a WARNING (cosine over
+    mismatched spaces is meaningless, not just inaccurate). If rows exist but
+    ALL are mismatched, raises ValueError: that is a misconfiguration, not an
+    empty result.
 
     Args:
         db: Database connection
@@ -36,24 +45,43 @@ def search_semantic_sessions(
         embed_client: EmbedClient instance for encoding query
         limit: Max results
         threshold: Minimum cosine similarity
+        expected_model: If set, only score rows tagged with this
+            embedding_model (rows with NULL embedding_model are scored on
+            dim match alone, for pre-provenance legacy rows)
 
     Returns:
         List of dicts with session_id, first_prompt, summary_short, score
+
+    Raises:
+        ValueError: embedded rows exist but none match the query dim /
+            expected model — the store and the query model are incompatible.
     """
     if not query or not query.strip():
         return []
 
     query_embedding_bytes = embed_client.embed_texts([query])[0]
-    query_vector = bytes_to_vector(query_embedding_bytes, dim=384)
+    query_dim = len(query_embedding_bytes) // 4  # float32
+    query_vector = bytes_to_vector(query_embedding_bytes, dim=query_dim)
 
     cursor = db.execute(
-        "SELECT id, first_prompt, summary_short, embedding FROM sessions WHERE embedding IS NOT NULL"
+        "SELECT id, first_prompt, summary_short, embedding, embedding_model, embedding_dim"
+        " FROM sessions WHERE embedding IS NOT NULL"
     )
     scored = []
-    for session_id, first_prompt, summary_short, embedding_blob in cursor.fetchall():
+    usable = 0
+    mismatched = 0
+    for session_id, first_prompt, summary_short, embedding_blob, row_model, row_dim in cursor.fetchall():
         if embedding_blob is None:
             continue
-        session_vector = bytes_to_vector(embedding_blob, dim=384)
+        effective_dim = row_dim or len(embedding_blob) // 4
+        if effective_dim != query_dim:
+            mismatched += 1
+            continue
+        if expected_model and row_model and row_model != expected_model:
+            mismatched += 1
+            continue
+        usable += 1
+        session_vector = bytes_to_vector(embedding_blob, dim=effective_dim)
         score = cosine_similarity(query_vector, session_vector)
         if score >= threshold:
             scored.append({
@@ -62,6 +90,21 @@ def search_semantic_sessions(
                 "summary_short": summary_short,
                 "score": score,
             })
+
+    if mismatched and usable == 0:
+        raise ValueError(
+            f"All {mismatched} embedded sessions mismatch the query embedding "
+            f"(query dim {query_dim}, expected model {expected_model!r}). "
+            f"The store needs a re-embed (backfill_embeddings --re-embed) or "
+            f"the query is using the wrong model."
+        )
+    if mismatched:
+        logger.warning(
+            "search_semantic_sessions skipped %d/%d embedded sessions with "
+            "mismatched embedding model/dim (query dim %d, expected model %r) "
+            "— mixed embedding state, re-embed pending?",
+            mismatched, mismatched + usable, query_dim, expected_model,
+        )
 
     scored.sort(key=lambda x: x["score"], reverse=True)
     return scored[:limit]

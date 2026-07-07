@@ -47,6 +47,7 @@ class GoldenCase:
     query: str
     required_message_ids: set = field(default_factory=set)
     required_content_sha256: set = field(default_factory=set)
+    required_session_keys: set = field(default_factory=set)
     k: int = DEFAULT_K
     notes: str = ""
 
@@ -57,13 +58,16 @@ class GoldenCase:
             query=d["query"],
             required_message_ids=set(d.get("required_message_ids", [])),
             required_content_sha256=set(d.get("required_content_sha256", [])),
+            required_session_keys=set(d.get("required_session_keys", [])),
             k=int(d.get("k", DEFAULT_K)),
             notes=d.get("notes", ""),
         )
-        if not case.required_message_ids and not case.required_content_sha256:
+        if not (case.required_message_ids or case.required_content_sha256
+                or case.required_session_keys):
             raise ValueError(
                 f"Golden case {case.id!r} pins no required results: set "
-                "required_message_ids and/or required_content_sha256"
+                "required_message_ids, required_content_sha256, and/or "
+                "required_session_keys"
             )
         return case
 
@@ -94,10 +98,13 @@ def _content_sha(text: str) -> str:
     return hashlib.sha256((text or "").encode("utf-8")).hexdigest()
 
 
-def _stable_keys_for_results(conn: sqlite3.Connection, results: list) -> tuple[set, set]:
-    """Map search results to stable keys: (message_ids, content_hashes)."""
+def _stable_keys_for_results(
+    conn: sqlite3.Connection, results: list
+) -> tuple[set, set, set]:
+    """Map search results to stable keys: (message_ids, content_hashes, session_keys)."""
     message_ids: set = set()
     content_hashes: set = set()
+    session_keys: set = set()
     row_ids = [r["id"] for r in results if r.get("id") is not None]
     if row_ids:
         try:
@@ -109,9 +116,20 @@ def _stable_keys_for_results(conn: sqlite3.Connection, results: list) -> tuple[s
             message_ids = {row[1] for row in cursor.fetchall() if row[1]}
         except sqlite3.OperationalError:
             pass  # legacy schema without messages.message_id
+    session_row_ids = [r["session_id"] for r in results if r.get("session_id") is not None]
+    if session_row_ids:
+        try:
+            placeholders = ",".join("?" for _ in session_row_ids)
+            cursor = conn.execute(
+                f"SELECT id, session_key FROM sessions WHERE id IN ({placeholders})",
+                session_row_ids,
+            )
+            session_keys = {row[1] for row in cursor.fetchall() if row[1]}
+        except sqlite3.OperationalError:
+            pass  # legacy schema without sessions.session_key
     for r in results:
         content_hashes.add(_content_sha(r.get("content", "")))
-    return message_ids, content_hashes
+    return message_ids, content_hashes, session_keys
 
 
 def evaluate(
@@ -121,14 +139,18 @@ def evaluate(
     results = []
     for case in cases:
         retrieved = search_fn(conn, case.query, case.k)
-        found_ids, found_hashes = _stable_keys_for_results(conn, retrieved)
+        found_ids, found_hashes, found_session_keys = _stable_keys_for_results(conn, retrieved)
 
-        required_total = len(case.required_message_ids) + len(case.required_content_sha256)
+        required_total = (len(case.required_message_ids)
+                          + len(case.required_content_sha256)
+                          + len(case.required_session_keys))
         hit_ids = case.required_message_ids & found_ids
         hit_hashes = case.required_content_sha256 & found_hashes
-        found_count = len(hit_ids) + len(hit_hashes)
+        hit_sessions = case.required_session_keys & found_session_keys
+        found_count = len(hit_ids) + len(hit_hashes) + len(hit_sessions)
         missing = sorted(
             (case.required_message_ids - hit_ids)
+            | (case.required_session_keys - hit_sessions)
             | {h[:12] + "…" for h in (case.required_content_sha256 - hit_hashes)}
         )
         results.append(
@@ -148,6 +170,36 @@ def _default_fts_search(conn: sqlite3.Connection, query: str, limit: int) -> lis
     from ..search import search_fts_messages
 
     return search_fts_messages(conn, query, limit)
+
+
+def make_semantic_sessions_search(
+    embed_client, threshold: float = 0.0, expected_model: str | None = None
+) -> SearchFn:
+    """Build a semantic search_fn over sessions.embedding.
+
+    This is the mode that actually validates a re-embed: FTS recall is
+    lexical and does not change when vectors change. Threshold defaults to
+    0.0 so recall@k is measured on ranking, not on a similarity cutoff
+    calibrated to the previous model. Pass expected_model to exclude rows
+    from other models (mixed-state protection).
+    """
+
+    def _search(conn: sqlite3.Connection, query: str, limit: int) -> list:
+        from ..search import search_semantic_sessions
+
+        results = search_semantic_sessions(
+            conn, query, embed_client, limit=limit, threshold=threshold,
+            expected_model=expected_model,
+        )
+        # Normalize: harness maps session_id -> sessions.session_key
+        return [
+            {"id": None, "session_id": r["session_id"],
+             "content": r.get("summary_short") or r.get("first_prompt") or "",
+             "score": r["score"]}
+            for r in results
+        ]
+
+    return _search
 
 
 def report(results: list[CaseResult]) -> float:

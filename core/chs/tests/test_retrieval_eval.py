@@ -105,6 +105,29 @@ def test_k_limits_retrieval(conn):
     assert results[0].recall == 0.5
 
 
+def test_session_key_matching(conn):
+    """Semantic-sessions results (session_id only) match via sessions.session_key."""
+    conn.execute(
+        "CREATE TABLE sessions (id INTEGER PRIMARY KEY, session_key TEXT)"
+    )
+    conn.execute("INSERT INTO sessions (id, session_key) VALUES (7, 'sess-alpha')")
+    conn.commit()
+
+    def semantic_like_search(conn_, query, limit):
+        return [{"id": None, "session_id": 7, "content": "summary text", "score": 0.9}]
+
+    cases = [GoldenCase(id="c6", query="anything",
+                        required_session_keys={"sess-alpha"})]
+    results = evaluate(conn, cases, semantic_like_search)
+    assert results[0].recall == 1.0
+
+    cases = [GoldenCase(id="c7", query="anything",
+                        required_session_keys={"sess-missing"})]
+    results = evaluate(conn, cases, semantic_like_search)
+    assert results[0].recall == 0.0
+    assert "sess-missing" in results[0].missing
+
+
 def test_load_cases_rejects_unpinned(tmp_path):
     path = tmp_path / "cases.jsonl"
     path.write_text(json.dumps({"id": "bad", "query": "q"}) + "\n", encoding="utf-8")
