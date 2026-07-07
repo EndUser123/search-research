@@ -2382,3 +2382,1358 @@ Source file: C:\Users\brsth\Downloads\chain_20260704_230335.md
 ## [2026-07-07] ingest | Rubric scoring breaks for trace-only skills
 Source: downloads-extract-w2-rubric-scoring-breaks-for-trace-only-skills
 Source file: C:\Users\brsth\Downloads\chain_82946cce.md
+
+## [2026-07-07] signal-extract | The fixes resolved the test failures: Summary of Fixes Root 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\03-16-2026 handoff.txt
+Novelty: 12%
+
+## [2026-07-07] signal-extract | Solution: Add ruff format to the PostToolUse hook so formatt
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\03-17-2005 - auto-formatting.txt
+Novelty: 7%
+
+## [2026-07-07] signal-extract | The GitHub provider imports from non-existent research_flash
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\03-17-2005 - openrouter 0.txt
+Novelty: 8%
+
+## [2026-07-07] signal-extract | No github.py exists in the providers directory. ● Summary Ta
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\03-17-2005 - openrouter 0.txt
+Novelty: 7%
+
+## [2026-07-07] signal-extract | cli.py:1122 imports non-existent research_flash.sources.gith
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\03-17-2005 - openrouter 0.txt
+Novelty: 22%
+
+## [2026-07-07] signal-extract | ❌ No named pipe server (SemanticClient/SemanticDaemon classe
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\03-17-2005 - search-research 4.txt
+Novelty: 12%
+
+## [2026-07-07] signal-extract | Change Stop hook to run at different point in response lifec
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\03-20-2025 - not smart 0.txt
+Novelty: 8%
+
+## [2026-07-07] signal-extract | Implication: The implementation plan must be revised to use 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\03-20-2025 - not smart 4.txt
+Novelty: 7%
+
+## [2026-07-07] signal-extract | Table-formatted implementation details (| file.py |, | Class
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\03-21-2025 - really annoying not using the skills 1.txt
+Novelty: 6%
+
+## [2026-07-07] signal-extract | Transient Edit-block on settings.json — root cause never fou
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-01 [CHS #917 · dream-cycle #976 · gate #942 · plugin-audit #982 #988 · opportunity #983 #989 #1001 · hooks #986 #987 · model #990 #991 · friction #992 #993 #994].txt
+Novelty: 14%
+
+## [2026-07-07] signal-extract | #945 Cleanup: stale hook_ledger.db (485MB) + orphan worktree
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-01 [CHS #917 · dream-cycle #976 · gate #942 · plugin-audit #982 #988 · opportunity #983 #989 #1001 · hooks #986 #987 · model #990 #991 · friction #992 #993 #994].txt
+Novelty: 11%
+
+## [2026-07-07] signal-extract | The `local` tier now switches to the local llama.cpp model f
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-03 [chs #1060 #1062 · plugin-audit #1061 · docs #1058 · detector #983].md
+Novelty: 9%
+
+## [2026-07-07] signal-extract | Root cause: PowerShell's `-f` operator tries to parse the Un
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-03 [chs #1060 #1062 · plugin-audit #1061 · docs #1058 · detector #983].md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | Root cause: line 1130 `key_patterns = ["**/*.py", "**/*.json
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-03 [chs #1060 #1062 · plugin-audit #1061 · docs #1058 · detector #983].md
+Novelty: 14%
+
+## [2026-07-07] signal-extract | **Export verification**: Confirmed `da9b9573` transcript (13
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-03 [chs #1060 #1062 · plugin-audit #1061 · docs #1058 · detector #983].md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | Fixed by abandoning delegation and running WebSearch directl
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-03 [chs #1060 #1062 · plugin-audit #1061 · docs #1058 · detector #983].md
+Novelty: 12%
+
+## [2026-07-07] signal-extract | Fixed by running WebSearch/webReader directly in main contex
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-03 [chs #1060 #1062 · plugin-audit #1061 · docs #1058 · detector #983].md
+Novelty: 14%
+
+## [2026-07-07] signal-extract | Confirmed `_format_transcript` (non-streaming twin, line 780
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-03 [chs #1060 #1062 · plugin-audit #1061 · docs #1058 · detector #983].md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | The [dev.to "190 Things Hooks Cannot Enforce"](https://www.d
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-03 [go #1067 #1068 #1069 · stop #1066 · telemetry #1070].md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | Registry skips Read so it must be inline.", "activeForm": "W
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-03 [go #1067 #1068 #1069 · stop #1066 · telemetry #1070].md
+Novelty: 23%
+
+## [2026-07-07] signal-extract | The diagnostics are pre-existing in PreToolUse.py (parameter
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-03 [go #1067 #1068 #1069 · stop #1066 · telemetry #1070].md
+Novelty: 7%
+
+## [2026-07-07] signal-extract | Root cause: it read top-level `session_id` while the real pa
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-03 [go #1067 #1068 #1069 · stop #1066 · telemetry #1070].md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | The prior session's identified root cause (line 9635): the `
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-03 [go #1067 #1068 #1069 · stop #1066 · telemetry #1070].md
+Novelty: 14%
+
+## [2026-07-07] signal-extract | The stdin piping approach documented in the fix is the corre
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\ai-gemini questions 1.txt
+Novelty: 9%
+
+## [2026-07-07] signal-extract | The local tier now switches to the local llama.cpp model for
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\ccr dashboard redesign.txt
+Novelty: 9%
+
+## [2026-07-07] signal-extract | Root cause: `user_prompt` variable undefined at line 4540 of
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260527_151412.md
+Novelty: 9%
+
+## [2026-07-07] signal-extract | **Root cause**: During cc-aca-authority migration (task #552
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260527_151412.md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | The Stop.py crash is caused by two broken imports (lines 123
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260527_151412.md
+Novelty: 17%
+
+## [2026-07-07] signal-extract | Root cause: _run_referent_coverage was removed from Stop.py 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260527_151412.md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | **Asymmetric cleanup removal**: Root cause — `_run_referent_
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260527_151412.md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | Never authored by hand — PluginMarketplaceSchema rewrites un
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260527_151412.md
+Novelty: 13%
+
+## [2026-07-07] signal-extract | The root cause (snapshot hooks.json disabled, no settings.js
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260527_151412.md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | Did the block happen before or after my SessionStart changes
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260529_091750.md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | **Director decisions (cannot auto-close)**: OQ-1 (advisory v
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260629_084915.md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | + `systemMessage` + `permissionDecisionReason` — so all 8 ho
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260629_084915.md
+Novelty: 7%
+
+## [2026-07-07] signal-extract | — standalone, settings.json empty, not in class registry | y
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260629_084915.md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | RC#5's V-loop is inert; the fix is a ~10-line port into the 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260629_084915.md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | The registered `InvestigationTracker` calls only `record_exe
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260629_084915.md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | (1) REGISTERED `posttooluse/investigation_tracker.py` — clas
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260629_084915.md
+Novelty: 17%
+
+## [2026-07-07] signal-extract | The 05:54 run was an orphan fluke — a correctly-orchestrated
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260629_084915.md
+Novelty: 25%
+
+## [2026-07-07] signal-extract | (CHANGE-007 verification stamper) after compaction — answer 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260629_084915.md
+Novelty: 5%
+
+## [2026-07-07] signal-extract | SOLVED: Diagnosed root cause, traced origin to commit 634d2a
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260630_160635.md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | "The stack frames are separate errors" (user's prior read): 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260630_160635.md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | Root cause restated: `terminal_detection` was loaded under t
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260630_160635.md
+Novelty: 7%
+
+## [2026-07-07] signal-extract | (orphaned settings.json vars, wikilink warning) and **Q2 exe
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_002157.md
+Novelty: 14%
+
+## [2026-07-07] signal-extract | **Q1 orphaned settings.json vars + wikilink warning**: Still
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_002157.md
+Novelty: 14%
+
+## [2026-07-07] signal-extract | The suspected root cause remains the `claim_gap_telemetry_pr
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_002527.md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | The two tracebacks are just `mutmut` and `cosmic_ray` not be
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_135445.md
+Novelty: 36%
+
+## [2026-07-07] signal-extract | COMMITMENT: YES — those tracebacks are `ModuleNotFoundError:
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_135445.md
+Novelty: 25%
+
+## [2026-07-07] signal-extract | I really want an answer." — I owned that I flagged `owner_sk
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_135445.md
+Novelty: 11%
+
+## [2026-07-07] signal-extract | The test suite never executes: `tests/conftest.py:20` does `
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_135445.md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | if `/go` SKILL execution provably always sets CWD to the use
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_135445.md
+Novelty: 5%
+
+## [2026-07-07] signal-extract | If the SKILL passes `--root-dir <user-repo>` explicitly, the
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_135445.md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | SELF-IDENTIFIED GAP (via /improve): the fix is partial — orc
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_135445.md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | had polluted the real `go-sessions/` pointer store — `test_o
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_135445.md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | The UserPromptSubmit injection could be sharpened: "CRITICAL
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_154324.md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | The risk is a future `claude plugin update` clobbering it — 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_154324.md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | — the fix was to suppress the visible window; the empty Main
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_154324.md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | Contradiction resolutions: (1) default mode `warn` per code 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_225650.md
+Novelty: 5%
+
+## [2026-07-07] signal-extract | Retract proposal item (c) — don't delete shared claim_patter
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_225650.md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | The tradeoff: red-team is already 8 agents, and `red-team-fa
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_231217.md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | `P:/.data/wiki/concepts/auto-stage-commit-strategies.md` (20
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_231217.md
+Novelty: 7%
+
+## [2026-07-07] signal-extract | Plugin specialist done — notable finding PLUGIN-1: the cc-sk
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_231217.md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | `plugin.json` \u2014 PLUGIN-1 (Path B silently never fires: 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_231217.md
+Novelty: 18%
+
+## [2026-07-07] signal-extract | Fix via STATE-1's per-session keying + SessionStart TTL swee
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_231217.md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | Request size ~794KB. 13 14 **Root Cause:*
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_133206.md
+Novelty: 20%
+
+## [2026-07-07] signal-extract | No official response from Anthropic is visible in the provid
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_133206.md
+Novelty: 7%
+
+## [2026-07-07] signal-extract | The reporter found 20+ orphaned subagent processes consuming
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_133206.md
+Novelty: 12%
+
+## [2026-07-07] signal-extract | semantic_critic escalates software_rca to BLOCK; Option B (b
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_133206.md
+Novelty: 12%
+
+## [2026-07-07] signal-extract | Root Cause ^ SyntaxError: unterminated string literal (detec
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_133206.md
+Novelty: 27%
+
+## [2026-07-07] signal-extract | Root Cause\\nThe running...'\n# These have actual newlines i
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_133206.md
+Novelty: 11%
+
+## [2026-07-07] signal-extract | Orphaned env var (no active hook reads it): PROBLEM_STMT_VER
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_192919.md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | 20% cap-hit; most loops resolve within budget ⚠️ WIKI [333ms
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_192919.md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | SessionStart may surface the reclaimable count but must not 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_192919.md
+Novelty: 17%
+
+## [2026-07-07] signal-extract | Fixed by using `SimpleNamespace(name='wiki', fixable=[{...}]
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_192919.md
+Novelty: 17%
+
+## [2026-07-07] signal-extract | both check orphaned junctions (plugin-installer line 231-238
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_192919.md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | Identity handshake (checks `identity.json` matches session I
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_192919.md
+Novelty: 7%
+
+## [2026-07-07] signal-extract | gate caught {blocks} premature RCA claim(s); spot-check a bl
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_192919.md
+Novelty: 27%
+
+## [2026-07-07] signal-extract | 20% cap-hit; most loops resolve within budget ⚠️ WIKI [275ms
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_192919.md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | Deliberately not next: fixing the ~74 unregistered approve-e
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170541.md
+Novelty: 7%
+
+## [2026-07-07] signal-extract | The root cause (PLUGIN_SLASH_EXECUTION_LANE exemption + inte
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170541.md
+Novelty: 7%
+
+## [2026-07-07] signal-extract | A static settings list rots. claude-audit already audits set
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170541.md
+Novelty: 7%
+
+## [2026-07-07] signal-extract | Gate the ceremony on it: `investigate`/`validate`/`decide` s
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170621.md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | **Worker-mode window is semantically wrong**: worker mode sh
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170621.md
+Novelty: 5%
+
+## [2026-07-07] signal-extract | The fix is test-only (conftest fixture); the polluter was pr
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170621.md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | SessionStart may surface reclaimable count but must not dele
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170621.md
+Novelty: 12%
+
+## [2026-07-07] signal-extract | SessionStart may surface the reclaimable count but must not 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170621.md
+Novelty: 22%
+
+## [2026-07-07] signal-extract | Never auto-delete; SessionStart may surface reclaimable coun
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170621.md
+Novelty: 12%
+
+## [2026-07-07] signal-extract | SessionStart may surface the reclaimable count but must not 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170621.md
+Novelty: 22%
+
+## [2026-07-07] signal-extract | Mode-invariance bug: both branches of `if is_mutation:` at p
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170621.md
+Novelty: 7%
+
+## [2026-07-07] signal-extract | GO_LOCAL_LLM was dead code. scripts\orchestrate.py:1065: # R
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170621.md
+Novelty: 12%
+
+## [2026-07-07] signal-extract | Hook script naming convention — `{plugin}_{event}.py` Per `P
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170622.md
+Novelty: 7%
+
+## [2026-07-07] signal-extract | The user's observed skips happen on skills that DO declare `
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170622.md
+Novelty: 9%
+
+## [2026-07-07] signal-extract | There's a `TestExtractSlashCommand` class with tests for the
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170622.md
+Novelty: 5%
+
+## [2026-07-07] signal-extract | Runs BEFORE the run-state check, so\n# it fires even when th
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170622.md
+Novelty: 5%
+
+## [2026-07-07] signal-extract | user-authored and must be stripped before directive detectio
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170622.md
+Novelty: 9%
+
+## [2026-07-07] signal-extract | `P:\tmp\scan_transcripts.py` → `P:\\tmp\\tmpscan_transcripts
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_175856.md
+Novelty: 30%
+
+## [2026-07-07] signal-extract | Then non-fatal PermissionError rmtree-ing old 1.0.55 cache `
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_82946cce.md
+Novelty: 5%
+
+## [2026-07-07] signal-extract | That means EITHER the state dir is elsewhere, OR the hook ha
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_82946cce.md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | The user's "please fix the tests" was specifically about my 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_82946cce.md
+Novelty: 5%
+
+## [2026-07-07] signal-extract | Flagged re.PatternError issue: FIXED (12 tests, root cause =
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_82946cce.md
+Novelty: 14%
+
+## [2026-07-07] signal-extract | ## Root cause `chs_cli.py:1172`: ```python session_count = t
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_cache_smoke.md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | SessionStart_chs_delta_reindex.py — completely orphaned (not
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\failed to look up documentation⠐ SELF_REFLECTION.txt
+Novelty: 12%
+
+## [2026-07-07] signal-extract | [The Real Reason Your OpenClaw Skills Fail... (the fix)
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\filtered-tabs.md
+Novelty: 17%
+
+## [2026-07-07] signal-extract | TestSingleRootCauseEscapeHatch — verifies [SINGLE ROOT CAUSE
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\gemini.txt
+Novelty: 11%
+
+## [2026-07-07] signal-extract | TestEdgeCases — empty responses, None handling, non-RCA turn
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\gemini.txt
+Novelty: 8%
+
+## [2026-07-07] signal-extract | assess_recommendation(claim) -> RecommendationAssessment — c
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\Here's a chat history we've been having.  Please s.md
+Novelty: 12%
+
+## [2026-07-07] signal-extract | No current criticals; VSCode extension stalls rare (heap-rel
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\Here's the end conversation from a previous thread (1).md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | ``` Root cause: H1 — classifier priority 5.0, fires after 8 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\Here's the end conversation from a previous thread (1).md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | The likely truth is: **late claim_type write is the root cau
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\Here's the end conversation from a previous thread (1).md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | ```python # In Stop.py gate_name = "frameguard_stop" # Exact
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\Here's the end conversation from a previous thread (1).md
+Novelty: 12%
+
+## [2026-07-07] signal-extract | Prose-only turns: PreToolUse never fires → no receipt → Stop
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\Here's the end conversation from a previous thread (1).md
+Novelty: 9%
+
+## [2026-07-07] signal-extract | The visited set fix (line 255-257 in session_chain.py) alrea
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\hook pain 0.txt
+Novelty: 8%
+
+## [2026-07-07] signal-extract | ```markdown All setTimeout/setInterval calls must be tracked
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\How can I describe the problems with this page to.md
+Novelty: 30%
+
+## [2026-07-07] signal-extract | If `Stop_router.py` contains a second, newer validator unive
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\I'm working in claude code and we have hooks that.md
+Novelty: 7%
+
+## [2026-07-07] signal-extract | Exposes a Phase 0 gate (_run_phase0_depends_on_skills_gate) 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\I'm working in claude code and we have hooks that.md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | Stop_router.py is orphaned — delete it, migrate its unique v
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\I'm working in claude code and we have hooks that.md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | Result: Stop_router.py is dead code living in a parallel uni
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\I'm working in claude code and we have hooks that.md
+Novelty: 12%
+
+## [2026-07-07] signal-extract | Orphan detection script — Fixed ValueError: 'P:\\...' is not
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\I'm working in claude code and we have hooks that.md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | Problem: your orphan-detection script raised `ValueError: 'P
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\I'm working in claude code and we have hooks that.md
+Novelty: 19%
+
+## [2026-07-07] signal-extract | Here’s why it’s not strange and what they represent: ## What
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\I'm working in claude code and we have hooks that.md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | UserPromptSubmit_modules/tests/test_behavior_contract.py:34 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\I'm working in claude code and we have hooks that.md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | The serial part is the veridical gate at line 1197-1205: if 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\improve-chat-history.md
+Novelty: 31%
+
+## [2026-07-07] signal-extract | Only the veridical gate is serial: it runs first and short-c
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\improve-chat-history.md
+Novelty: 23%
+
+## [2026-07-07] signal-extract | Dead code in main loop (line 2030) turn_kind = _detect_turn_
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\in Claude Code Is it really impossible to have sil (1).md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | CKS write path verified end-to-end (before=16 → after=17, ty
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\in claude code, I'm trying to create a useful cont (1).md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | but **cold-start must be solved before default enablement**.
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\in claude code, I'm trying to create a useful cont (1).md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | Deduplicate assumption_audit_v2.py line 2519-2520 (goal: eli
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\In claude code, we are a little stuck.  How can we.md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | BLOCKER (run() untested) → FIXED via TestRunProtocol (6 test
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\inefficient gto 1.txt
+Novelty: 20%
+
+## [2026-07-07] signal-extract | SyntaxError: (unicode error) 'unicodeescape' codec can't dec
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\lazy 0 ⠂ Claude Code.txt
+Novelty: 5%
+
+## [2026-07-07] signal-extract | Bug 1 (NameError) → Stop hook crashes on _materialize_snapsh
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\mm multi-terminal isolation and data consistency 1.txt
+Novelty: 10%
+
+## [2026-07-07] signal-extract | If any claim is marked `DISPROVEN` or `UNCLEAR`, do not pres
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\My design skill made some lazy errors.  __❯ _think (1).md
+Novelty: 11%
+
+## [2026-07-07] signal-extract | Root Cause #3 (Why Errors Are Non-Blocking) The hook_runner.
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\narattion without execution.txt
+Novelty: 16%
+
+## [2026-07-07] signal-extract | Root cause (reframed): The guard hook at Stop_deletion_verif
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\not a good thinker LLM 3.txt
+Novelty: 11%
+
+## [2026-07-07] signal-extract | Root cause (proven from the code, not guessed) turn_start in
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\npm view @juicesharprpiv-advisor version.txt
+Novelty: 6%
+
+## [2026-07-07] signal-extract | The PowerShell profile doesn't have [ha-debug] directly — mu
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\npm view pi-loop-police version.txt
+Novelty: 10%
+
+## [2026-07-07] signal-extract | The fix is a procedural heuristic, not code. ● Background co
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\temp oauth ✳ IS.txt
+Novelty: 13%
+
+## [2026-07-07] signal-extract | Tradeoff: Router adds single-point maintenance but enables c
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\The attached file is for background info. Here's a (1).md
+Novelty: 9%
+
+## [2026-07-07] signal-extract | StopHook_drift_sentinel.py:87 — limit=50 hardcoded at call s
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\the llm is guessing again 0.txt
+Novelty: 8%
+
+## [2026-07-07] signal-extract | 4 new TestPhaseAwareApplicability tests: impl contracts sile
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\We are accepting a handoff from another LLM__text.md
+Novelty: 7%
+
+## [2026-07-07] signal-extract | Root cause (preliminary): The additionalContext scaffolding 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\We are working in claude code on windows 11, with (1).md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | Root Cause 2: PLAN MODE bypass checks string prefix, not sch
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\We are working in claude code on windows 11, with (1).md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | > PreToolUse must be the primary blocking layer for “investi
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\We are working in claude code on windows 11, with (1).md
+Novelty: 5%
+
+## [2026-07-07] signal-extract | Policy routing (confirmed from code) at epistemic_validator.
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\We are working in claude code on windows 11, with (1).md
+Novelty: 9%
+
+## [2026-07-07] signal-extract | Returns False if response lacks analytical markers (because,
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\You can see towards the end of this conversation, (1).md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | Fixed /resume silently dropping sessions when the first mess
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\yt-fts1.txt
+Novelty: 11%
+
+## [2026-07-07] signal-extract | (`core/chs/db.py:35`). `INSERT OR IGN +ORE` therefore silent
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\[CHS #917 #918 · pi #914 · go #916 #939 · gate #942 #943 #944 #945].txt
+Novelty: 6%
+
+## [2026-07-07] signal-extract | hook ingests `>0` messages on a session who -se transcript h
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\[CHS #917 #918 · pi #914 · go #916 #939 · gate #942 #943 #944 #945].txt
+Novelty: 11%
+
+## [2026-07-07] signal-extract | That prevents the classic failure mode where “principles” tu
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\_In claude code, I found this conversation super a.md
+Novelty: 12%
+
+## [2026-07-07] signal-extract | Each is engineered to output structured tasks (hypothesis, s
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\__❯ So I need to ask you questions because you can (1).md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | When a contract run is active, PreToolUse must treat `allowe
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\__❯ what should skill-guard do___● Skill-guard enf.md
+Novelty: 12%
+
+## [2026-07-07] signal-extract | `contract_type` in `ExecutionRun` must be derived from SKILL
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\__❯ what should skill-guard do___● Skill-guard enf.md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | With an active ExecutionRun, PreToolUse must treat allowed_t
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\__❯ what should skill-guard do___● Skill-guard enf.md
+Novelty: 7%
+
+## [2026-07-07] signal-extract | The Stop hook must be a pure contract checker for an Executi
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\__❯ what should skill-guard do___● Skill-guard enf.md
+Novelty: 14%
+
+## [2026-07-07] signal-extract | ExecutionRun.contract_type and ExecutionRun.response_require
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\__❯ what should skill-guard do___● Skill-guard enf.md
+Novelty: 7%
+
+## [2026-07-07] signal-extract | However, when writing or reading files that exceed a certain
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\π - .txt
+Novelty: 8%
+
+## [2026-07-07] signal-extract | Add a discriminating test (e.g., 'This would be wrong if...'
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Claude Code.txt
+Novelty: 6%
+
+## [2026-07-07] signal-extract | Root cause: During cc-aca-authority migration (task #552-#55
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Complete wrapper elimination for epistemic and investigation plugins.txt
+Novelty: 10%
+
+## [2026-07-07] signal-extract | UNGUARDED INJECTION ROOT CAUSE: Stop.py lines 4968-5005 inje
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Fix Chrome DevTools MCP response halts.txt
+Novelty: 24%
+
+## [2026-07-07] signal-extract | ORPHAN exemption: SessionStart_hook_health_check.py learns S
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Fix Chrome DevTools MCP response halts.txt
+Novelty: 9%
+
+## [2026-07-07] signal-extract | Dead Code Left Behind _classify_error_events() is now dead c
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Fix Chrome DevTools MCP response halts.txt
+Novelty: 15%
+
+## [2026-07-07] signal-extract | The issues are: NullPointerException doesn't match null (dif
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ global-reasoning.txt
+Novelty: 12%
+
+## [2026-07-07] signal-extract | **What I did wrong**: Emitted "**Root cause analysis: Primar
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Improve single-LLM response quality.txt
+Novelty: 6%
+
+## [2026-07-07] signal-extract | **Evidence**: 107 > L11834 assistant: "**Root cause analysis
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Improve single-LLM response quality.txt
+Novelty: 10%
+
+## [2026-07-07] signal-extract | StopHook_unverified_stance.py:592 — explicitly catches "Root
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Research solutions for Claude Code issues.txt
+Novelty: 8%
+
+## [2026-07-07] signal-extract | Reconstructing the 3 === Case1-PowerShell-RCA === user_promp
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Research solutions for Claude Code issues.txt
+Novelty: 12%
+
+## [2026-07-07] signal-extract | with pytest.raises(HandoffValidationError, match="must be a 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ snapshot.txt
+Novelty: 20%
+
+## [2026-07-07] signal-extract | with pytest.raises(HandoffValidationError, match="must be a 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ snapshot.txt
+Novelty: 18%
+
+## [2026-07-07] signal-extract | with pytest.raises(HandoffValidationError, match="must be a 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ snapshot.txt
+Novelty: 15%
+
+## [2026-07-07] signal-extract | with pytest.raises(HandoffValidationError, match="missing re
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ snapshot.txt
+Novelty: 12%
+
+## [2026-07-07] signal-extract | with pytest.raises(HandoffValidationError, match="resume_sna
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ snapshot.txt
+Novelty: 12%
+
+## [2026-07-07] signal-extract | HandoffValidationError, match="decision_register must be a l
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ snapshot.txt
+Novelty: 14%
+
+## [2026-07-07] signal-extract | with pytest.raises(HandoffValidationError, match="must be an
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ snapshot.txt
+Novelty: 12%
+
+## [2026-07-07] signal-extract | with pytest.raises(HandoffValidationError, match="must be be
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ snapshot.txt
+Novelty: 12%
+
+## [2026-07-07] signal-extract | with pytest.raises(HandoffValidationError, match="must be be
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ snapshot.txt
+Novelty: 17%
+
+## [2026-07-07] signal-extract | Hypothesis: Recent changes caused this — Rejected because li
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Solve coding problem.txt
+Novelty: 8%
+
+## [2026-07-07] signal-extract | Hypothesis: turn_mode.py suppression is broken — Rejected be
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Solve coding problem.txt
+Novelty: 6%
+
+## [2026-07-07] signal-extract | verified) Root Cause Single root cause: Line 3443 in Stop.py
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Solve coding problem.txt
+Novelty: 14%
+
+## [2026-07-07] signal-extract | "PostToolUse:TaskCreate hook error" from another terminal Ro
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Terminal Issues.txt
+Novelty: 11%
+
+## [2026-07-07] signal-extract | Before I act, I need to find the actual reason rather than g
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\⠐ Install hermes-agent on Windows 11.txt
+Novelty: 33%
+
+## [2026-07-07] signal-extract | **Cost**: YouTube Data API has quota limits; must use free a
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\⠐ int-stream.txt
+Novelty: 10%
+
+## [2026-07-07] signal-extract | BREADCRUMB_VERIFIER_ENABLED — NOT orphaned: read in cc-aca-i
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\⠐ main.txt
+Novelty: 11%
+
+## [2026-07-07] signal-extract | BREADCRUMB_VERIFIER_MODE — NOT orphaned: read in cc-aca-inve
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\⠐ main.txt
+Novelty: 11%
+
+## [2026-07-07] signal-extract | The fix and Phase 5 should be decided by the user based on t
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-03 [go #1067 #1068 #1069 · stop #1066 · telemetry #1070].md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | A prior session's guess ("the fil +e is 2.7 GB", "the root c
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-01 [CHS #917 · dream-cycle #976 · gate #942 · plugin-audit #982 #988 · opportunity #983 #989 #1001 · hooks #986 #987 · model #990 #991 · friction #992 #993 #994].txt
+Novelty: 10%
+
+## [2026-07-07] signal-extract | For example: # You run in Claude Code: echo "test" # Behind 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\PreToolUse0.txt
+Novelty: 7%
+
+## [2026-07-07] signal-extract | Behavior must not change: all 9 tests pass before AND after.
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-03 [go #1067 #1068 #1069 · stop #1066 · telemetry #1070].md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | Windows API calls require ctypes (error-prone if misused) Co
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\example of stupid9.txt
+Novelty: 10%
+
+## [2026-07-07] signal-extract | Single-file, ~10 lines.\n\n## Falsification\nThis fix is wro
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170622.md
+Novelty: 12%
+
+## [2026-07-07] signal-extract | Single-file, ~10 lines. 75 76 ## Falsification 77 This fix i
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170622.md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | Confidence: 75% — Evidence basis: Direct code analysis (drea
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\example of stupid9.txt
+Novelty: 8%
+
+## [2026-07-07] signal-extract | compression_first_stage: 30007ms is hardcoded in Headroom, n
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ headroom.txt
+Novelty: 12%
+
+## [2026-07-07] signal-extract | Root cause: commit `634d2a2` (2026-06-28 14:07:51 MST, "fix(
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260630_160635.md
+Novelty: 9%
+
+## [2026-07-07] signal-extract | The root cause was that .PadRight() on .NET strings uses cod
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ cc-bf.txt
+Novelty: 6%
+
+## [2026-07-07] signal-extract | Worse: `STOP_CROSS_VALIDATOR_ENABLED` defaults `false` (line
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_225650.md
+Novelty: 12%
+
+## [2026-07-07] signal-extract | Orphaned env var (no active hook reads it): CLAUDE_CODE_TASK
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_002157.md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | Orphaned env var (no active hook reads it): CLAUDE_CODE_TASK
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_002157.md
+Novelty: 11%
+
+## [2026-07-07] signal-extract | (1) REGISTERED `P:/.claude/hooks/posttooluse/investigation_t
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260629_084915.md
+Novelty: 15%
+
+## [2026-07-07] signal-extract | 2 name: mcp-config-location-fix 3 description: "MCP servers 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_154324.md
+Novelty: 29%
+
+## [2026-07-07] signal-extract | GTO v4.2 — 10 findings | Health: F (20) | Fresh 1 🔧 QUALITY 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\⠐ Fix GTO PostToolUse hooks.txt
+Novelty: 6%
+
+## [2026-07-07] signal-extract | The fix is not to "disable" the hook — it's to satisfy it on
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-01 [CHS #917 · dream-cycle #976 · gate #942 · plugin-audit #982 #988 · opportunity #983 #989 #1001 · hooks #986 #987 · model #990 #991 · friction #992 #993 #994].txt
+Novelty: 6%
+
+## [2026-07-07] signal-extract | Root cause:F-string contains % character**" 162 > 163 > User
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Improve single-LLM response quality.txt
+Novelty: 9%
+
+## [2026-07-07] signal-extract | Lines 1205-1230 that call them Root cause fix for /yt-channe
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\why did we switch topics ✳ skill-guard.txt
+Novelty: 9%
+
+## [2026-07-07] signal-extract | So the fix is adding a guard inside each hook that short-cir
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ rca(g).txt
+Novelty: 7%
+
+## [2026-07-07] signal-extract | Worse: STOP_CROSS_VALIDATOR_ENABLED defaults false (line 113
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Debug LLM session export and context handling.txt
+Novelty: 6%
+
+## [2026-07-07] signal-extract | Orphaned env var (no active hook reads it): CLAUDE_CODE_TASK
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_002157.md
+Novelty: 11%
+
+## [2026-07-07] signal-extract | Orphaned env var (no active hook reads it): CLAUDE_CODE_TASK
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_192919.md
+Novelty: 11%
+
+## [2026-07-07] signal-extract | ⚠️ Wiki vault: 2 broken wikilink(s); 2 orphan page(s) (100% 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_192919.md
+Novelty: 19%
+
+## [2026-07-07] signal-extract | `"the bug is"`, `"the issue is"`, `"root cause"`, `"caused b
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\We are working in claude code on windows 11, with (1).md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | Fix 3 — Dead code removal: Removed the unreachable return Ep
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\We are working in claude code on windows 11, with (1).md
+Novelty: 21%
+
+## [2026-07-07] signal-extract | Let me check the orphan-detection code in main_health.py and
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_192919.md
+Novelty: 19%
+
+## [2026-07-07] signal-extract | The accompanying SKILL.md (v4.0.0) 3 is a thin dispatcher th
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ bifrost.txt
+Novelty: 7%
+
+## [2026-07-07] signal-extract | WriteError: P:\.claude\provider-configs\test_headroom_zombie
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ headroom.txt
+Novelty: 18%
+
+## [2026-07-07] signal-extract | Let me look at what I found after line 9418 — was there a re
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-03 [go #1067 #1068 #1069 · stop #1066 · telemetry #1070].md
+Novelty: 20%
+
+## [2026-07-07] signal-extract | The _check_skill_first_gate() at line 1227 still runs first 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\__❯ what should skill-guard do___● Skill-guard enf.md
+Novelty: 7%
+
+## [2026-07-07] signal-extract | The fix is to call _detect_critic_profile in the telemetry t
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\I'm working in claude code and we have hooks that.md
+Novelty: 9%
+
+## [2026-07-07] signal-extract | The root cause is clear: `_run_referent_coverage` was remove
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260527_151412.md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | GO_LOCAL_LLM was dead code. skills\go\scripts\orchestrate.py
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170621.md
+Novelty: 12%
+
+## [2026-07-07] signal-extract | # " Root cause: The orthogonal check at line 2437 had if not
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\The attached file is for background info. Here's a (1).md
+Novelty: 9%
+
+## [2026-07-07] signal-extract | The root cause is confirmed: line 3443 in Stop.py incorrectl
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Solve coding problem.txt
+Novelty: 8%
+
+## [2026-07-07] signal-extract | A prior session's g -uess ("the file is 2.7 GB", "the root c
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-01 [CHS #917 · dream-cycle #976 · gate #942 · plugin-audit #982 #988 · opportunity #983 #989 #1001 · hooks #986 #987 · model #990 #991 · friction #992 #993 #994].txt
+Novelty: 12%
+
+## [2026-07-07] signal-extract | Here's what was done: Root cause: Commit 754030b371 added fr
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\Implement multi-terminal isolation and data consistency 1.txt
+Novelty: 6%
+
+## [2026-07-07] signal-extract | Root Cause (Layered) Primary: claim_patterns.py has no patte
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\llm can't tell what a task is and maybe a handoff issue ⠂ IS.txt
+Novelty: 8%
+
+## [2026-07-07] signal-extract | Root cause: The refactor in commit 754030b371 added from sha
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\mm multi-terminal isolation and data consistency 1.txt
+Novelty: 6%
+
+## [2026-07-07] signal-extract | external / not-our-code: native /goal evaluator (#994), glm-
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_002527.md
+Novelty: 5%
+
+## [2026-07-07] signal-extract | Confirmed root cause in `run_context.py:216-222`: `_resolve_
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_135445.md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | Root cause is model_router_classify.py:129 hardcoding claude
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Check plugin docs and GitHub repo.txt
+Novelty: 5%
+
+## [2026-07-07] signal-extract | marketplace\plugins\cc-aca-epist emic\hooks\pretool\fact-gua
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Complete wrapper elimination for epistemic and investigation plugins.txt
+Novelty: 14%
+
+## [2026-07-07] signal-extract | Let me check what happened AFTER line 9418 — did I actually 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-03 [go #1067 #1068 #1069 · stop #1066 · telemetry #1070].md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | Trade-off noted in the changelog: "may cause some flicker du
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\npm view pi-loop-police version.txt
+Novelty: 11%
+
+## [2026-07-07] signal-extract | **Skipped Registration Check**: Real root cause—SessionStart
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\LLM_1 says this about LLM_2_ ___● Based on the cha.md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | Actual Root Cause (pre-existing issue) Headroom's compressio
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Research token cost saving strategies for LLMs.txt
+Novelty: 9%
+
+## [2026-07-07] signal-extract | ```json { "file_path": "P:\\.claude\\hooks\\tests\\test_epis
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170720.md
+Novelty: 12%
+
+## [2026-07-07] signal-extract | [H3] A complete fix requires storing S_OLD's path BEFORE S_N
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\temp ⠐ ClaudeChainMiner.txt
+Novelty: 8%
+
+## [2026-07-07] signal-extract | The key insight is that the proposal mis-attributed the root
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_231217.md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | This converted newl' Traceback (most recent call last): File
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Research solutions for Claude Code issues.txt
+Novelty: 6%
+
+## [2026-07-07] signal-extract | Let me fix that: ● Update(.claude\skills\design\SKILL.md) ⎿ 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\⠐ Claude Code2.txt
+Novelty: 8%
+
+## [2026-07-07] signal-extract | Turn mode invariant assertion — Stop.py:618-626 File: P:\\.c
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\We are working in claude code on windows 11, with (1).md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | Dispatch flows through the local `P:/.claude/hooks/Stop.py` 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_225650.md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | ".claude/hooks/Stop_router.py" 2>/dev/null | head -10) ⎿ 52c
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\Implement multi-terminal isolation and data consistency 0.txt
+Novelty: 8%
+
+## [2026-07-07] signal-extract | ```json { "taskId": "977", "subject": "Universal skill-first
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170622.md
+Novelty: 5%
+
+## [2026-07-07] signal-extract | Let me check what "40 failing hooks" refers to and find the 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Fix Chrome DevTools MCP response halts.txt
+Novelty: 6%
+
+## [2026-07-07] signal-extract | G4 (go_continuation_gate.py, direct-entry in settings.json) 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170621.md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | The fix is to make PreToolUse Layer 0 universal (block non-`
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260706_170622.md
+Novelty: 9%
+
+## [2026-07-07] signal-extract | the proper fix by adding a file handler to logging.basicConf
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\daemon1.txt
+Novelty: 11%
+
+## [2026-07-07] signal-extract | P:\\.claude\\hooks\\Stop.py — removed orphaned if anomalies:
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\We are accepting a handoff from another LLM__text.md
+Novelty: 12%
+
+## [2026-07-07] signal-extract | Import from search_research.config instead.", DeprecationWar
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\03-19-2025 - sychopath 0.txt
+Novelty: 22%
+
+## [2026-07-07] signal-extract | Found the root cause: `Stop._pin_scope_env(data)` at line 15
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\2026-07-03 [go #1067 #1068 #1069 · stop #1066 · telemetry #1070].md
+Novelty: 7%
+
+## [2026-07-07] signal-extract | packages\.claude-marketplace\plugins\cc-skills-utils\skills\
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_192919.md
+Novelty: 5%
+
+## [2026-07-07] signal-extract | This is a systematic schema issue, not plugin-specific.[^8_2
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\and claude code, How do we register a local plugin.md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | Both _check_skill_first_gate() (PreToolUse.py:1131) and skil
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\llm doesn't like to check requirements for it's own solutions resulting in garbage solutions that don't work⠐ skill-guard.txt
+Novelty: 8%
+
+## [2026-07-07] signal-extract | Correctly identified ModuleNotFoundError: No module named '_
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\narattion without execution.txt
+Novelty: 14%
+
+## [2026-07-07] signal-extract | Add it explicitly. ● Bash(powershell.exe -NoProfile -Command
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\⠐ Install hermes-agent on Windows 11.txt
+Novelty: 8%
+
+## [2026-07-07] signal-extract | FIXED the root cause of the re.PatternError (12 tests now pa
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_82946cce.md
+Novelty: 10%
+
+## [2026-07-07] signal-extract | Orphaned env var (no active hook reads it): STOP_HYPOTHESIS_
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_192919.md
+Novelty: 12%
+
+## [2026-07-07] signal-extract | User smoke test: Run /reload-plugins, verify recap doesn't t
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Solve coding problem.txt
+Novelty: 6%
+
+## [2026-07-07] signal-extract | ```json { "-A": 3, "-B": 3, "-n": true, "output_mode": "cont
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_154324.md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | Let me check how Stop.py constructs its config: Searched for
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\Here's a chat with claude code.  Any ideas for a s.md
+Novelty: 17%
+
+## [2026-07-07] signal-extract | I halt/bake for extended periods (lines 137, 161, 171, 173, 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Fix Chrome DevTools MCP response halts.txt
+Novelty: 6%
+
+## [2026-07-07] signal-extract | Thought for 16s, searched for 1 pattern, read 1 file (ctrl+o
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\[CHS #917 #918 · pi #914 · go #916 #939 · gate #942 #943 #944 #945].txt
+Novelty: 10%
+
+## [2026-07-07] signal-extract | `/bf compare ...` → LangGraph multi-model fan-out + synthesi
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\how do I install bifrost to work with claude code_ (1).md
+Novelty: 8%
+
+## [2026-07-07] signal-extract | Root cause: win32api.CreateMutex doesn't exist in pywin32
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Terminal Issues.txt
+Novelty: 43%
+
+## [2026-07-07] signal-extract | CONVENTION claims must NOT bypass even with hedge words sinc
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\Here's a chat history we've been having.  Please s.md
+Novelty: 9%
+
+## [2026-07-07] signal-extract | Line 1428-1430: for MEDIUM/HIGH risk, it checks target_read 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Complete wrapper elimination for epistemic and investigation plugins.txt
+Novelty: 6%
+
+## [2026-07-07] signal-extract | The root cause is that turn_mode is never passed into Episte
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\We are working in claude code on windows 11, with (1).md
+Novelty: 11%
+
+## [2026-07-07] signal-extract | — DEFERRED — not a plugin change ### Proposal restated Add 5
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_133206.md
+Novelty: 7%
+
+## [2026-07-07] signal-extract | Here's what I found and what I recommend. ## Q2 — root cause
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260704_221306.md
+Novelty: 6%
+
+## [2026-07-07] signal-extract | Let me add it properly. ● Update(packages\.claude-marketplac
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\ccr dashboard redesign.txt
+Novelty: 6%
+
+## [2026-07-07] signal-extract | Once conversation history exceeds capacity, the oldest 10,00
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\What is _  ❯ ◯ remember · claude-plugins-official.md
+Novelty: 5%
+
+## [2026-07-07] signal-extract | Searched for 1 pattern, read 1 file (ctrl+o to expand) ⎿ Pos
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\✳ Check plugin docs and GitHub repo.txt
+Novelty: 6%
+
+## [2026-07-07] signal-extract | `task_contract_fit` Stop gate in `P:/.claude/hooks/Stop.py` 
+Source: downloads-signal-extract
+Source file: C:\Users\brsth\Downloads\chain_20260705_133206.md
+Novelty: 6%
