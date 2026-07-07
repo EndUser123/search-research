@@ -19,7 +19,7 @@ HOOKS_DIR = PLUGIN_ROOT / "hooks"
 
 PHASE_DIR = {'SessionStart': 'sessionstart', 'SessionEnd': 'sessionend'}
 
-SESSIONSTART_HOOKS = ['aca_session_verification_cleanup.py', 'aca_session_breadcrumb_init.py']
+SESSIONSTART_HOOKS = ['aca_session_verification_cleanup.py', 'aca_session_breadcrumb_init.py', 'aca_session_ground_truth_inject.py']
 SESSIONEND_HOOKS = ['aca_session_cleanup.py', 'aca_session_breadcrumb_cleanup.py', 'aca_session_tdd_cleanup.py']
 
 DISPATCH = {
@@ -69,6 +69,7 @@ def main() -> None:
     phase = PHASE_DIR.get(event, "")
     input_data = sys.stdin.buffer.read()
 
+    completed_children: list[tuple[str, subprocess.CompletedProcess]] = []
     for hook_name in hooks:
         hook_path = HOOKS_DIR / phase / hook_name if phase else HOOKS_DIR / hook_name
         if not hook_path.exists():
@@ -97,10 +98,43 @@ def main() -> None:
                         _emit_block(out, hook_name)
                 except json.JSONDecodeError:
                     pass
+            completed_children.append((hook_name, result))
         except subprocess.TimeoutExpired:
             pass
         except Exception:
             pass
+
+    # FORWARDING BRANCH (Phase 2 of close-the-loop).
+    # Cloned from cc-model-router __lib/router.py:80-90 (systemMessage
+    # forwarding). One delta: this branch forwards additionalContext from
+    # the SessionStart hookSpecificOutput envelope, not systemMessage.
+    # Block-decision parsing above is byte-identical to the prior router.
+    additional_contexts: list[str] = []
+    for hook_name, result in completed_children:
+        out = result.stdout.decode(errors="replace").strip()
+        if not out:
+            continue
+        try:
+            parsed = json.loads(out)
+            if not isinstance(parsed, dict):
+                continue
+            hso = parsed.get("hookSpecificOutput")
+            ctx = hso.get("additionalContext") if isinstance(hso, dict) else None
+            if ctx:
+                additional_contexts.append(str(ctx))
+        except json.JSONDecodeError:
+            pass
+
+    if additional_contexts:
+        # SessionStart additionalContext envelope. Mirror cc-model-router's
+        # ` | `.join(msgs) merge; same shape, different key.
+        print(json.dumps({
+            "hookSpecificOutput": {
+                "hookEventName": "SessionStart",
+                "additionalContext": "\n\n".join(additional_contexts),
+            }
+        }))
+        sys.exit(0)
 
     # Allow = emit {} — "decision: approve" is not a valid hook output enum
     # (see stop_hook_output_schema memory / hooks CLAUDE.md output table).

@@ -1563,13 +1563,13 @@ def _export_for_handoff(state: RecapV2State) -> dict[str, Any]:
         # import it without turning __lib__ into a package. Resolves relative
         # to this file so it works from either the marketplace source or the
         # installed plugin cache.
-        _lib_dir = str(Path(__file__).resolve().parent / "__lib__")
+        _lib_dir = str(Path(__file__).resolve().parent / "__lib")
         if _lib_dir not in sys.path:
             sys.path.insert(0, _lib_dir)
         from render_rns import render_actions, RenderOptions
 
         actions = _to_rns_actions(state)
-        next_actions_rns = render_actions(actions, RenderOptions(show_effort=True, show_file_ref=True))
+        next_actions_rns = render_actions(actions, None, RenderOptions(show_effort=True, show_file_refs=True))
     except Exception:
         next_actions_rns = "RNS rendering unavailable — show verification_queue directly:\n" + "\n".join(
             f"- [{v.priority}] {v.suggested_action or v.target}" for v in state.verification_queue[:5]

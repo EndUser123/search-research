@@ -289,6 +289,24 @@ function routeToAlias(route, fallback) {
   return route;
 }
 
+// Sonnet-5 1M-context safety classifier outage detection.
+// When the upstream "claude-sonnet-5[1m] is temporarily unavailable" pattern
+// is observed, an out-of-band signal writes a flag file; CCR reads it per
+// request and tags the log so routing decisions are auditable. This is the
+// "tag the current run as toolSafetyClassifierDown = true" surface; the
+// actual fallback behavior (inline emulation, /ai-api review, etc.) lives in
+// Agent/tool wiring, not in CCR.
+const SAFETY_OUTAGE_FILE = path.join(STATE_DIR, "ccr-safety-outage.json");
+const SAFETY_OUTAGE_TTL_MS = 600000; // 10 min — auto-clear
+function getSonnetSafetyOutage() {
+  let s;
+  try { s = JSON.parse(fs.readFileSync(SAFETY_OUTAGE_FILE, "utf-8")); } catch { return false; }
+  if (!s || !s.active) return false;
+  const ts = Date.parse(s.detected_at || "");
+  if (!ts || Date.now() - ts > SAFETY_OUTAGE_TTL_MS) return false;
+  return true;
+}
+
 // "minimax,MiniMax-M3[1m]" -> { provider: "minimax", model: "MiniMax-M3[1m]" }
 function splitRoute(route) {
   if (!route) return { provider: null, model: null };
@@ -309,6 +327,32 @@ function routeByTier(tier) {
   if (tier === "haiku") return "opencode-go,deepseek-v4-flash";
   if (tier === "opus") return "zai,glm-5.2";
   return "minimax,MiniMax-M3[1m]"; // sonnet / unknown
+}
+
+// Reasoning guardrail: detect meta-reasoning / pipeline-critique prompts that
+// the classifier may have miscategorized as background or trivial coding.
+// The classifier owns "what kind of task"; this guardrail is a safety net that
+// catches diagnostic / option-compare / routing-critique turns so they never
+// land on Haiku or local. Runs BEFORE classifier recommendation is honored
+// (per routing order: pin → local-first → guardrail → classifier → default).
+// Threshold: 1 marker trips on long (>=120 char) prompts; short prompts need
+// 2+ markers. Keeps "fix the typo" / "rename foo to bar" on Haiku/coding.
+const REASONING_MARKERS = [
+  /\bwhy\b/i, /\bwhat happened\b/i, /\bshould we\b/i, /\btradeoff\b/i,
+  /\boptions\b/i, /\brecommendation\b/i, /\broot cause\b/i, /\bdiagnos/i,
+  /\bcritique\b/i, /\bcompare\b/i, /\bpipeline\b/i, /\bfilter\b/i,
+  /\bclassifier\b/i, /\bingest\b/i, /\bfalse positive\b/i, /\bfalse negative\b/i,
+  /\bcalibration\b/i, /\bcorpus\b/i, /\brouting\b/i, /\bmodel choice\b/i,
+  /\bare you sure\b/i, /\buseful\b/i, /\bverify\b/i, /\bmissed\b/i,
+];
+function isReasoningGuardrail(messages) {
+  const text = (messages || []).filter((m) => m.role === "user")
+    .map((m) => typeof m.content === "string" ? m.content : "")
+    .join("\n");
+  if (!text) return false;
+  let hits = 0;
+  for (const re of REASONING_MARKERS) if (re.test(text)) hits++;
+  return text.length >= 120 ? hits >= 1 : hits >= 2;
 }
 
 // --- Routing logic ---
@@ -344,7 +388,7 @@ module.exports = async function router(req, config) {
   const rec = getRecommendation();
 
   // decide(): log the full effective-route field set, emit route change, return route.
-  const decide = (route, reason, decisionSource) => {
+  const decide = (route, reason, decisionSource, guardrailOverride = false) => {
     const backend = splitRoute(route);
     logRoutingEvent({
       ts: new Date().toISOString(),
@@ -360,12 +404,18 @@ module.exports = async function router(req, config) {
       backend_model: backend.model,
       local_used: backend.provider === "llama-cpp",
       decision_source: decisionSource,
+      guardrail_override: guardrailOverride,
       token_count: tokenCount,
       reason,
     });
     emitRouteChange(route, reason, req);
     return route;
   };
+
+  // Pre-decision guardrail signal: meta-reasoning turns must NOT land on haiku/local.
+  // Detection runs once per request, before any tier branch. Pin already handled above;
+  // if a pin was set, guardrail is irrelevant.
+  const guardrailTripped = isReasoningGuardrail(messages);
 
   // --- 1. Pin override (per task type; legacy global `model` pin = wildcard) ---
   const pinKey = pinKeyForTask(taskType);
@@ -375,6 +425,19 @@ module.exports = async function router(req, config) {
     if (pinRoute) {
       return decide(pinRoute, `pin ${pin[pinKey] ? pinKey : "global"}: ${pinnedAlias}`, "pin");
     }
+  }
+
+  // --- 1.5. Reasoning guardrail: meta-reasoning turns bypass haiku/local,
+  //         regardless of classifier recommendation. Route to Opus-tier
+  //         (claude-opus-4-8 -> zai,glm-5.2). Sonnet 5's 1M-context safety
+  //         classifier is unreliable for tool-safety gating on these turns,
+  //         so we deliberately skip it. ---
+  if (guardrailTripped) {
+    const opusRoute = "zai,glm-5.2";
+    const reasonParts = ["reasoning-guardrail"];
+    if (rec?.recommended_tier) reasonParts.push(`classifier-said=${rec.recommended_tier}`);
+    if (getSonnetSafetyOutage()) reasonParts.push("sonnet-safety-outage");
+    return decide(opusRoute, reasonParts.join("; "), "guardrail", true);
   }
 
   // --- 2. Background: classifier haiku rec if present, else fall through ---

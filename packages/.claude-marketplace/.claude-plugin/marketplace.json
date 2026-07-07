@@ -88,7 +88,7 @@
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.2.75",
+      "version": "1.2.77",
       "description": "Utility skills for Claude Code",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
@@ -144,7 +144,7 @@
     },
     {
       "name": "cc-skills-analysis",
-      "version": "1.0.93",
+      "version": "1.0.95",
       "description": "Analysis plugin",
       "source": "./plugins/cc-skills-analysis",
       "keywords": []
