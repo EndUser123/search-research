@@ -178,7 +178,11 @@ class TestEnforcementTelemetry:
 
 
 class TestEnforcementTierValidator:
-    """Test enforcement tier validation in SKILL.md files."""
+    """Test frontmatter validation in SKILL.md files.
+
+    enforcement field removed 2026-07-07 (dead concept per user directive —
+    all manually-invoked skills are enforced). Only workflow_steps is validated.
+    """
 
     @pytest.fixture
     def validator(self):
@@ -186,70 +190,29 @@ class TestEnforcementTierValidator:
 
         return validate_enforcement_tier
 
-    def test_valid_strict_tier(self, validator) -> None:
-        """Test valid strict tier."""
+    def test_enforcement_not_required(self, validator) -> None:
+        """Regression: enforcement field is NOT required (dead concept).
+
+        A SKILL.md with workflow_steps but NO enforcement field must pass
+        validation. This is the user's directive: "I REALLY don't want
+        enforcement in the skills frontmatter."
+        """
         content = """---
 name: test-skill
 workflow_steps:
   - step_one: Description
-enforcement: strict
 ---
 # Content
 """
         result = validator("test/SKILL.md", content)
 
         assert result["valid"] is True
-        assert result["tier"] == "strict"
-
-    def test_valid_advisory_tier(self, validator) -> None:
-        """Test valid advisory tier."""
-        content = """---
-name: test-skill
-workflow_steps:
-  - step_one: Description
-enforcement: advisory
----
-# Content
-"""
-        result = validator("test/SKILL.md", content)
-
-        assert result["valid"] is True
-        assert result["tier"] == "advisory"
-
-    def test_valid_none_tier(self, validator) -> None:
-        """Test valid none tier."""
-        content = """---
-name: test-skill
-workflow_steps:
-  - step_one: Description
-enforcement: none
----
-# Content
-"""
-        result = validator("test/SKILL.md", content)
-
-        assert result["valid"] is True
-        assert result["tier"] == "none"
-
-    def test_missing_enforcement_field(self, validator) -> None:
-        """Test missing enforcement field (but workflow_steps present)."""
-        content = """---
-name: test-skill
-workflow_steps:
-  - step_one: Description
----
-# Content
-"""
-        result = validator("test/SKILL.md", content)
-
-        assert result["valid"] is False
-        assert "enforcement" in result["warning"].lower()
+        assert result["tier"] is None
 
     def test_missing_workflow_steps_field(self, validator) -> None:
-        """Test missing workflow_steps field (but enforcement present)."""
+        """Test missing workflow_steps field."""
         content = """---
 name: test-skill
-enforcement: strict
 ---
 # Content
 """
@@ -267,7 +230,6 @@ enforcement: strict
         """
         content = """---
 name: test-skill
-enforcement: strict
 workflow_steps: []
 ---
 # Content
@@ -275,13 +237,11 @@ workflow_steps: []
         result = validator("test/SKILL.md", content)
 
         assert result["valid"] is True
-        assert result["tier"] == "strict"
 
     def test_workflow_steps_present_empty_block(self, validator) -> None:
         """`workflow_steps:` with no value (block empty) is also present."""
         content = """---
 name: test-skill
-enforcement: strict
 workflow_steps:
 ---
 # Content
@@ -294,7 +254,6 @@ workflow_steps:
         """`workflow_steps: [a, b]` inline non-empty list is present."""
         content = """---
 name: test-skill
-enforcement: advisory
 workflow_steps: [analyze, execute, verify]
 ---
 # Content
@@ -302,38 +261,6 @@ workflow_steps: [analyze, execute, verify]
         result = validator("test/SKILL.md", content)
 
         assert result["valid"] is True
-        assert result["tier"] == "advisory"
-
-    def test_invalid_tier_value(self, validator) -> None:
-        """Test invalid tier value."""
-        content = """---
-name: test-skill
-workflow_steps:
-  - step_one: Description
-enforcement: invalid
----
-# Content
-"""
-        result = validator("test/SKILL.md", content)
-
-        assert result["valid"] is False
-        # Validator treats unknown values as missing field with default strict
-        assert "missing" in result["warning"].lower() or "valid values" in result["warning"].lower()
-
-    def test_quoted_tier_value(self, validator) -> None:
-        """Test quoted tier values."""
-        content = """---
-name: test-skill
-workflow_steps:
-  - step_one: Description
-enforcement: "advisory"
----
-# Content
-"""
-        result = validator("test/SKILL.md", content)
-
-        assert result["valid"] is True
-        assert result["tier"] == "advisory"
 
 
 class TestAdvisoryVsStrictBehavior:

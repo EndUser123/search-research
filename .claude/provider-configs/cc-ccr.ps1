@@ -238,7 +238,7 @@ $localModelEndpoint = "http://127.0.0.1:8010"
 $localModelStatePath = "P:\.claude\state\local-model-state.json"
 
 try {
-    $test = Invoke-WebRequest -Uri "$localModelEndpoint/health" -TimeoutSec 2 -ErrorAction Stop
+    $test = Invoke-WebRequest -Uri "$localModelEndpoint/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
     $localModelHealth = $true
 } catch {
     $localModelHealth = $false
@@ -258,7 +258,7 @@ if ($localModelHealth) {
         for ($i = 0; $i -lt 30; $i++) {
             Start-Sleep -Seconds 1
             try {
-                $health = Invoke-WebRequest -Uri "$localModelEndpoint/health" -TimeoutSec 2 -ErrorAction Stop
+                $health = Invoke-WebRequest -Uri "$localModelEndpoint/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
                 if ($health.StatusCode -eq 200) { $ready = $true; break }
             } catch {}
         }
