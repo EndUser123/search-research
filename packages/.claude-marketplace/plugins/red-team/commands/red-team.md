@@ -129,6 +129,12 @@ Invoke the `red-team-planner` agent.
 - Produces: proposal restatement, specialist angles to dispatch, candidate weaknesses, draft next steps.
 - **Prospect pass (conditional)** — when the proposal references an external system or resembles a wiki-captured decision, the planner searches `P:/.data/wiki/` first (then the web) and writes `{run_dir}/prospect.md`. Specialists Read it before attacking. The planner decides if it fires; not always-on.
 
+### 1.5 Claim-refute pass (per-claim verification — plugs self-preference)
+
+After the planner, extract the proposal's factual/technical claims into `{run_dir}/claims.json` — each tagged `claim_type`: `existence` (X exists / is registered / is wired), `static-shape` (X has field Y / matches Z), `behavior` (X does Y when Z), or `non-code` (factual statement about an external system/library). Then dispatch the `red-team-claim-refuter` agent with the full context bundle (absolute `run_dir`, proposal pointer, `claims.json` path). It verifies each claim against the real source and writes `{run_dir}/claim-refute.json` per the findings schema — one finding per claim that fails or is unverifiable; `findings: []` (with `meta` counts) if all verify.
+
+**This pass is strictly additive.** Its output flows through the same disk-backed schema the specialists use, so the critic (§3) globs and consumes `{run_dir}/claim-refute.json` unchanged — no change to the severity gate, tiebreaker, or verdict logic. Skip ONLY for pure-design-taste reviews with no factual claims; when in doubt, run it (under-verification is the exact failure mode this pass counters).
+
 ### 2. Specialists
 Generate the `run_dir` (see Findings handoff above), create it, then dispatch the angles the Planner identified. Run applicable specialists **in parallel**.
 
