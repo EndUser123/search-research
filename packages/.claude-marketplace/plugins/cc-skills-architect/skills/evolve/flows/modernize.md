@@ -21,7 +21,7 @@ A 4-phase process to transform legacy/working code into high-standard production
 2. **Explore Context:**
 
    ```bash
-   /complexity <target> --threshold 10
+   /refactor <target> --churn --top 10     # churn x complexity hotspots
    ```
 
    - Get a quick debt map before committing to full audit.
@@ -43,7 +43,7 @@ A 4-phase process to transform legacy/working code into high-standard production
 
 1.  **Run Complexity Scan:**
     ```bash
-    /complexity <target> --threshold 10
+    /refactor <target> --churn --top 10     # churn x complexity hotspots
     ```
 2.  **Run Quality & Dependency Scan:**
     ```bash

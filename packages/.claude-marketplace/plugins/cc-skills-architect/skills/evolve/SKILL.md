@@ -48,7 +48,7 @@ Unified modernization workflow to transform working code into high-standard syst
 
 ### Technical Context
 - **4-phase process**: AUDIT (measure debt) → STRATEGY (design abstraction) → EXECUTE (transform code) → HARDEN (certify excellence)
-- **Key tools**: /complexity, /analyze, /profile, /design, /refactor, /aid, /checkpoint, //p-2025, /verify, /learn
+- **Key tools**: /refactor (--churn hotspots, --complexity scan), /analyze, /profile, /design, /aid, /checkpoint, //p-2025, /verify, /learn
 - **Success criteria**: All CC > 10 functions refactored, Python 2025 compliance, performance measured, dead-code purged, CKS updated
 - **Flow spec**: flows/modernize.md
 
@@ -79,7 +79,7 @@ PHASE 4: HARDEN (Validation) — Certify excellence, verify
 **Key separation**: AUDIT (Validation) is separate from STRATEGY (Generation). EXECUTE (Generation) is separate from HARDEN (Validation).
 
 1. **READ FLOW** — Load flows/modernize.md for detailed workflow
-2. **AUDIT (Phase 1)** — Measure debt: /complexity, /analyze --focus quality, /profile --baseline
+2. **AUDIT (Phase 1)** — Measure debt: /refactor --churn (hotspots) + --complexity (high-CC scan), /analyze --focus quality, /profile --baseline
 3. **STRATEGY (Phase 2)** — Design abstraction: /design, /plan, ADR auto-draft
 4. **EXECUTE (Phase 3)** — Transform code: /refactor, /aid refactor, /checkpoint, /analyze --focus dead-code
 5. **HARDEN (Phase 4)** — Certify excellence: //p-2025, /verify, /audit, /profile --compare, /learn
@@ -113,16 +113,15 @@ PHASE 4: HARDEN (Validation) — Certify excellence, verify
 
 | Phase           | Goal               | Key Tools                                                                 |
 | --------------- | ------------------ | ------------------------------------------------------------------------- |
-| **1. AUDIT**    | Measure Debt       | `/complexity`, `/analyze --focus quality`, `/profile --baseline`          |
+| **1. AUDIT**    | Measure Debt       | `/refactor --churn`, `/analyze --focus quality`, `/profile --baseline`    |
 | **2. STRATEGY** | Design Abstraction | `/design`, `/plan`, ADR Auto-draft                                          |
 | **3. EXECUTE**  | Transform Code     | `/refactor`, `/aid refactor`, `/checkpoint`, `/analyze --focus dead-code` |
 | **4. HARDEN**   | Certify Excellence | `//p-2025`, `/verify`, `/audit`, `/profile --compare`, `/learn`  |
 
-**⚠️ MISSING TOOL**: `/profile` command is referenced throughout this workflow but **does not exist**. Current workaround: Use `/perf` (detects anti-patterns) or manual timing. The `/profile` command should provide:
+**Note**: `/profile` is not a standalone command. Baseline/compare live under `/refactor` (`--churn` hotspots, `--complexity` high-CC scan) and `/perf` (anti-pattern detection). The original `/profile <target> --baseline|--compare` intent maps to:
 - `/profile <target> --baseline` - Establish performance baseline (resource usage, timing)
 - `/profile <target> --compare` - Compare before/after modernization metrics
 
-This is a **gap in tooling** that prevents complete workflow execution.
 
 ---
 
@@ -155,7 +154,7 @@ This is a **gap in tooling** that prevents complete workflow execution.
 
 | Don't                       | Do Instead                                                   |
 | --------------------------- | ------------------------------------------------------------ |
-| Refactor without a baseline | Run `/complexity` and `/profile --baseline` FIRST (Phase 1). |
+| Refactor without a baseline | Run `/refactor --churn` and `/profile --baseline` FIRST (Phase 1). |
 | **Only refactor "new code"** | **CC threshold applies to ALL code — legacy functions with CC > 10 must also be refactored.** |
 | Guess the new pattern       | Use `/design` to validate Strategy (Phase 2).                  |
 | Edit without safety         | Run `/checkpoint` BEFORE any multi-file change.              |
@@ -207,7 +206,7 @@ Modernization suggestions are high-risk for enterprise bloat:
 
 ## NEXT STEPS
 
-1. `/complexity` — Find hotspots
+1. `/refactor --churn` — Find churn x complexity hotspots
 2. `/profile --baseline` — Establish baseline
 3. `/design` — Validate patterns (if CC > 10)
 4. `/refactor` — Apply synergies (if CC > 10)
@@ -222,7 +221,7 @@ Highest CC: [value] | Average: [value]
 
 ---
 ## NEXT STEPS
-1. `/complexity` — Find hotspots ✓
+1. `/refactor --churn` — Find churn x complexity hotspots ✓
 2. `/profile --baseline` — Establish baseline
 3. `/design` — Validate patterns (if CC > 10)
 4. `/refactor` — Apply synergies (if CC > 10)
