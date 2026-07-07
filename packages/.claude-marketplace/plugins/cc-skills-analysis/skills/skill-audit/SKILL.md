@@ -426,6 +426,18 @@ Any one missing → `NOT_PROVEN`. Two or more missing → BLOCK. The
 review's job is to demand the four pieces of evidence, not to accept a
 "documented absorption" claim alone.
 
+## Thought Partner Addendum
+
+At the end of a non-trivial `/skill-audit` run, emit a Thought Partner
+Addendum (TPA) when the audit surfaced something material the user did not ask
+about — command/skill drift, duplicate mechanisms, advisory-vs-runtime gaps,
+or consolidation risk the rubric did not center. Each item carries
+`observation`, `why_it_matters`, `evidence`, `recommended_action`,
+`urgency: now | later | watch`. Omit the section when nothing material was
+found; never displace the audit verdict or the CEC ledger. Canonical contract
++ worked examples at `debrief/references/thought-partner-addendum.md`
+(canonical owner: `/improve`). The TPA is prompt-advisory only.
+
 ## Source-first classification rule
 
 For skill/command classification, consolidation, aliasing, stub
