@@ -24,9 +24,6 @@ from posttooluse.edit_verifier import EditVerifier
 
 # E2E tracker - for end-to-end workflow tracking
 from posttooluse.e2e_tracker_hook import E2ETrackerHook
-
-# Enforcement tier validator - validates enforcement field in SKILL.md frontmatter
-from posttooluse.enforcement_tier_validator import EnforcementTierValidator
 from posttooluse.error_attribution_hook import ErrorAttributionHook
 from posttooluse.error_attribution_tracker import ErrorAttributionTracker
 
@@ -174,8 +171,6 @@ def create_registry() -> HookRegistry:
     registry.register("cleanup_tracker", CleanupTrackerHook())
     # Skill invocation logger - logs Skill() tool invocations for verification
     registry.register("skill_invocation_logger", SkillInvocationLoggerHook())
-    # Enforcement tier validator - validates enforcement field in SKILL.md frontmatter
-    registry.register("enforcement_tier_validator", EnforcementTierValidator())
     # Workflow completion tracker - tracks phase transitions and completion criteria
     registry.register("workflow_completion_tracker", WorkflowCompletionTracker())
     # SQA Phase Tracker - tracks layer-specific tool invocations during SQA execution
