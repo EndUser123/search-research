@@ -16,8 +16,14 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
+
+_LIB = Path(__file__).resolve().parent
+if str(_LIB) not in sys.path:
+    sys.path.insert(0, str(_LIB))
+from file_lock import _LOCK_FAILURES, append_jsonl_safe
 
 
 def _diag_dir() -> Path:
@@ -119,7 +125,8 @@ def _log_stop_block(
         }
         diag = _diag_dir()
         diag.mkdir(parents=True, exist_ok=True)
-        with open(diag / "stop_blocks.jsonl", "a", encoding="utf-8") as fh:
-            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
-    except Exception:
-        pass  # Never let logging break the block path.
+        append_jsonl_safe(diag / "stop_blocks.jsonl", row, ensure_ascii=False)
+    except _LOCK_FAILURES:
+        # append_jsonl_safe already wrote a dropped-trace sidecar; this is
+        # defense-in-depth so a future helper change can't crash the block path.
+        pass

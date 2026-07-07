@@ -189,6 +189,12 @@ def _env_bool(name: str, default: bool = False) -> bool:
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _append_jsonl_safe(log_path, entry) -> bool:
+    """Lazy wrapper so module-top writers don't require an import-time file_lock dep."""
+    from file_lock import append_jsonl_safe
+    return append_jsonl_safe(log_path, entry)
+
+
 def _skill_first_mode_stop() -> str:
     if not _env_bool("ENFORCE_SKILL_FIRST_STOP_FALLBACK", default=False):
         return "off"
@@ -210,7 +216,6 @@ def _log_skill_first_stop_event(event: str, session_id: str, skill_name: str, mo
         "skill_name": skill_name or "",
         "mode": mode,
     }
-    line = json.dumps(payload, ensure_ascii=True) + "\n"
     for path in (
         SKILL_FIRST_LOG,
         Path(os.environ.get("TEMP", "/tmp"))
@@ -218,13 +223,8 @@ def _log_skill_first_stop_event(event: str, session_id: str, skill_name: str, mo
         / "logs"
         / "skill_first_enforcement.jsonl",
     ):
-        try:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            with path.open("a", encoding="utf-8") as fh:
-                fh.write(line)
+        if _append_jsonl_safe(path, payload):
             return
-        except OSError:
-            continue
 
 
 def _log_stop_block_event(data: dict, gate_name: str, result: dict) -> None:
@@ -314,17 +314,9 @@ def _append_anti_sycophancy_log(
             or ""
         ),
     }
-    line = json.dumps(entry, ensure_ascii=True) + "\n"
     for log_path in _anti_sycophancy_log_candidates():
-        try:
-            log_path.parent.mkdir(parents=True, exist_ok=True)
-            with log_path.open("a", encoding="utf-8") as f:
-                f.write(line)
+        if _append_jsonl_safe(log_path, entry):
             return
-        except OSError:
-            continue
-    # Observability should never break hook execution.
-    return
 
 
 # === IN-PROCESS BLOCKING GATES ===

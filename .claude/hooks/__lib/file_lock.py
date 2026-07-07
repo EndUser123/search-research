@@ -66,7 +66,7 @@ class FileLock:
             self._thread_lock = None
 
 
-def append_jsonl(log_path: Path, entry: dict) -> None:
+def append_jsonl(log_path: Path, entry: dict, *, ensure_ascii: bool = True) -> None:
     """Thread/process-safe JSONL append using portalocker cross-process lock.
 
     Acquires FileLock on a sidecar .lock file, then appends one JSON line.
@@ -75,4 +75,39 @@ def append_jsonl(log_path: Path, entry: dict) -> None:
     log_path.parent.mkdir(parents=True, exist_ok=True)
     with FileLock(log_path.with_suffix(".lock")):
         with open(log_path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(entry) + "\n")
+            f.write(json.dumps(entry, ensure_ascii=ensure_ascii) + "\n")
+
+
+# NOTE: no existing dropped-sidecar helper in __lib/ (grep verified 2026-07-07:
+# hook_error_sink.py has a SQLite->JSONL tiered write, not a per-write dropped
+# trace). Centralizing here keeps the dropped-trace schema consistent across
+# the ~25 migration sites instead of inlining 5 lines at each call site.
+def append_jsonl_safe(
+    log_path: Path, entry: dict, *, ensure_ascii: bool = True
+) -> bool:
+    """Append one JSONL row, never propagating lock/IO contention into the caller.
+
+    Returns True if the main write landed, False if it failed and a dropped-trace
+    was written instead. Callers with a fallback path can branch on the return
+    value to try the next candidate.
+    """
+    try:
+        append_jsonl(log_path, entry, ensure_ascii=ensure_ascii)
+        return True
+    except _LOCK_FAILURES as exc:
+        try:
+            from datetime import UTC, datetime
+
+            dropped = log_path.with_suffix(log_path.suffix + ".dropped.jsonl")
+            dropped.parent.mkdir(parents=True, exist_ok=True)
+            trace = {
+                "ts": datetime.now(UTC).isoformat(),
+                "reason": f"{type(exc).__name__}: {exc}",
+                "orig_path": str(log_path),
+                "entry_keys": sorted(entry.keys()) if isinstance(entry, dict) else None,
+            }
+            with open(dropped, "a", encoding="utf-8") as f:
+                f.write(json.dumps(trace, ensure_ascii=True) + "\n")
+        except Exception:
+            pass
+        return False

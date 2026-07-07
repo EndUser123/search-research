@@ -23,6 +23,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+_LIB_DIR = Path(__file__).resolve().parent
+if str(_LIB_DIR) not in sys.path:
+    sys.path.insert(0, str(_LIB_DIR))
+from file_lock import _LOCK_FAILURES, append_jsonl_safe
+
 STATE_DIR = Path("P:/.claude/state")
 LOG_DIR = Path("P:/.claude/logs")
 DB_PATH = STATE_DIR / "hook_ledger.db"
@@ -61,20 +66,15 @@ def _safe_terminal_key(terminal_id: str) -> str:
 
 def _log_anomaly(event: str, payload: dict[str, Any]) -> None:
     try:
-        ANOMALY_LOG.parent.mkdir(parents=True, exist_ok=True)
-        with ANOMALY_LOG.open("a", encoding="utf-8") as fh:
-            fh.write(
-                json.dumps(
-                    {
-                        "ts": _utcnow(),
-                        "event": event,
-                        **payload,
-                    },
-                    ensure_ascii=True,
-                )
-                + "\n"
-            )
-    except OSError:
+        append_jsonl_safe(
+            ANOMALY_LOG,
+            {
+                "ts": _utcnow(),
+                "event": event,
+                **payload,
+            },
+        )
+    except _LOCK_FAILURES:
         pass
 
 
@@ -334,14 +334,12 @@ def _build_spool_record(
 
 def _append_spool_record(record: dict[str, Any]) -> bool:
     try:
-        SPOOL_DIR.mkdir(parents=True, exist_ok=True)
         spool_path = (
             SPOOL_DIR / f"events_{_safe_terminal_key(str(record.get('terminal_id', '')))}.jsonl"
         )
-        with spool_path.open("a", encoding="utf-8", newline="\n") as fh:
-            fh.write(json.dumps(record, ensure_ascii=True, separators=(",", ":")) + "\n")
+        append_jsonl_safe(spool_path, record)
         return True
-    except OSError:
+    except _LOCK_FAILURES:
         return False
 
 
