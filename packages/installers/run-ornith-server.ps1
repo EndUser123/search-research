@@ -91,6 +91,23 @@ function Update-LocalModelState {
   Write-Host "[local-model-state] Written to $modelStateFile"
 }
 
+# --- Idempotency guard: never launch a duplicate llama-server on :8010 ---
+# If a healthy server is already bound (manual launch, prior cc-ccr session, or
+# a cc-ccr probe false-negative that re-invoked this script), report it and
+# exit 0 WITHOUT spawning a second process or poisoning local-model-state.json.
+# A blind second launch fails to bind :8010, crashes, and its finally{} block
+# would mark the (still-running) original as stopped.
+try {
+  $existing = Invoke-WebRequest -Uri "$endpoint/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
+  if ($existing.StatusCode -eq 200) {
+    Write-Host "[run-ornith] llama-server already healthy at $endpoint — not launching a duplicate." -ForegroundColor Green
+    Update-LocalModelState
+    exit 0
+  }
+} catch {
+  # Port not serving /health yet — fall through to normal launch.
+}
+
 # Start system-watcher in background (hidden PowerShell window)
 Remove-Item $watcherLog -ErrorAction SilentlyContinue
 Remove-Item $llamaLog -ErrorAction SilentlyContinue
@@ -122,7 +139,7 @@ try {
   for ($i = 0; $i -lt 30; $i++) {
     Start-Sleep -Seconds 1
     try {
-      $r = Invoke-WebRequest -Uri "$endpoint/health" -TimeoutSec 1 -ErrorAction Stop
+      $r = Invoke-WebRequest -Uri "$endpoint/health" -UseBasicParsing -TimeoutSec 1 -ErrorAction Stop
       if ($r.StatusCode -eq 200) {
         $ready = $true
         Write-Host "llama-server health OK after ${i}s"
