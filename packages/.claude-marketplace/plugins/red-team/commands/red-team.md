@@ -8,12 +8,68 @@ User goal: $ARGUMENTS
 
 You are the **Orchestrator** for `/red-team`.
 
+## Pre-check 0 — Completion Evidence Ledger present?
+
+**BEFORE** the routing pre-check below, scan the target artifact for a
+Completion Evidence Ledger block. The full contract lives at
+`cc-skills-analysis/skills/debrief/references/completion-evidence-contract.md`.
+
+When the target is one of:
+
+- An implementation report (any "done" / "fixed" / "verified" / "shipped" claim)
+- A plugin change (bump, new hooks, manifest edit)
+- A skill change (SKILL.md / command file / agent edit)
+- A hook change (any hooks.json / hooks/ source edit)
+- A consolidation claim (absorbed / stubbed / deprecated / aliased)
+
+then the target MUST include a ledger with one row per completion claim,
+each carrying `claim`, `claim_type`, `authority_required`, `evidence_provided`,
+`status`, `protection_level`, `remaining_gap`, `next_action`.
+
+**If the ledger is absent:** HALT with the literal verdict:
+
+> BLOCK — ledger required. See `debrief/references/completion-evidence-contract.md`.
+> Target: <one-line description>. Missing evidence rows prevent the verdict
+> from being derived from the contract.
+
+**If the ledger is present but rows are mis-classified** (e.g. a row claims
+`status: PROVEN` but the evidence is a doc edit, or `claim_type:
+guardrail_runtime_enforced` for a prompt-only mechanism): treat each
+mis-classified row as a finding, downgrade the affected status(es), and
+re-derive the verdict from the corrected ledger.
+
+**If the ledger is present and rows are honestly classified:** proceed to
+the routing pre-check below. The verdict you emit must match the verdict
+the contract derives from the ledger rows — no exceptions.
+
+## Pre-check — is `/red-team` the right command?
+
+`/red-team` is a **trust/adversarial** workflow. Before dispatching specialists,
+verify the target actually requires an adversarial verdict. If the work is
+better classified elsewhere, **route instead of dispatching**:
+
+| If the work is actually... | Use | Why not `/red-team` here |
+|---|---|---|
+| Routine code/diff review with file:line findings (no trust verdict needed) | `/review` | File:line review machinery, not adversarial specialist dispatch. |
+| A skill/command/agent/prompt capability-preservation question (consolidation, absorbed command, stub claim) | `/skill-audit` | Has 8-category rubric + capability-preservation check; the question is design-audit, not adversarial. |
+| A hook/gate/plugin/runtime/config/context-injection issue | `/claude-audit` | Owns the runtime/config surface; `/red-team` would burn specialists on a config-layer problem. |
+| Transcript mining for bad-LLM-behavior and durable lesson candidates | `/debrief` | Has transcript extraction + bad-behavior rubric + task schema. |
+| Improving a concrete artifact (prompt, hook config, code slice) | `/improve` | Review-with-recommendation machinery, not adversarial verdict. |
+
+Only proceed with `/red-team` when the target needs a *trust* verdict:
+proposal before commitment, architectural decision under uncertainty, claim
+that something is safe/secure/complete when it might not be, design choice
+with downstream blast radius, or external-facing behavior.
+
+**Anti-pattern.** Running `/red-team` on every "important" edit. Not every
+important edit is adversarial; many are routine review. Use the pre-check.
+
 ## Mission
 Stress-test a proposal / solution / design / implementation / plan before commitment, then produce one refined output: ranked weaknesses, verified findings, concrete fixes, and a single go/no-go verdict.
 
 ## When to use
 - An important proposal, solution, architecture decision, CLAUDE.md / skill / command edit, hook / gate change, or implementation plan.
-- **Not** for routine code review — use `/code-review`.
+- **Not** for routine code review — use `/code-review` or `/review`.
 
 ## Modes
 
@@ -201,6 +257,54 @@ When this section is empty or no opportunities were identified, omit the heading
 ## Implementation note for the model
 - If named agents exist in the environment, call them (preferred).
 - If they do not, emulate the same flow with separate internal passes using the same roles — but flag this: single-context emulation tends to soften the critic, because the same context drafted the plan it is now reviewing.
+
+## Completion Evidence Contract — mandatory acceptance criterion
+
+When the target is an implementation report, consolidation work, plugin
+change, skill change, hook change, or any "done" / "fixed" / "verified" /
+"shipped" / "capability absorbed" / "guardrail enforced" claim, the
+**Completion Evidence Contract** is a mandatory acceptance criterion.
+The full contract lives at
+`cc-skills-analysis/skills/debrief/references/completion-evidence-contract.md`.
+
+`/red-team`'s job here:
+
+- The target report MUST include a Completion Evidence Ledger — one row
+  per completion claim, each with `claim`, `claim_type`, `authority_required`,
+  `evidence_provided`, `status`, `protection_level`, `remaining_gap`,
+  `next_action`.
+- Every "done," "tests green," "zero drift," "constraints satisfied,"
+  "no new commands," "guardrail enforced," "capability preserved" claim
+  must have a row whose `status` matches the evidence.
+- If any non-`NOT_APPLICABLE` row is `NOT_PROVEN`, the verdict is **REVISE**,
+  not PROCEED. Reporting ✅ under "constraints satisfied" while rows are
+  `NOT_PROVEN` is itself a finding the contract catches.
+- A SKILL.md / reference doc edit is NOT runtime enforcement. If the
+  report claims `protection_level: runtime_enforced` for an advisory-only
+  guardrail, that is an overclaim — flag it.
+- A `plugin-audit-and-fix.py --bump` exit code is NOT user-visible command
+  activation. If the report claims "no new commands," require a structural
+  `triggers:` diff OR `claude plugin list` before/after — a token-regex
+  test is PARTIAL.
+
+`/red-team` BLOCKs reports that lack a ledger, mis-classify protection
+levels, or hide unresolved items under a "constraints satisfied" header.
+A BLOCK verdict is the correct outcome when any non-`NOT_APPLICABLE`
+ledger row is `NOT_PROVEN` (per the contract's rule 9).
+
+## Cross-Skill Transfer Check (XSTC)
+
+**Advisory status:** XSTC discipline is currently prompt-advisory only.
+No runtime hook enforces XSTC emission. The CEC's BLOCK authority
+(Pre-check 0 above) is the operational counterpart; XSTC itself does not
+yet have a runtime equivalent. Treat any claim that XSTC is "enforced" or
+"runtime-gated" as `NOT_PROVEN` in the CEC ledger.
+
+In `Recommended Next Steps`, after the verdict, emit one XSTC artifact
+identifying reusable review-system failure classes. The verdict is the
+primary output; the XSTC is a structured aside — don't let it delay or
+dilute the verdict. Canonical template + worked examples at
+`debrief/references/cross-skill-transfer-check.md`.
 
 ## Adjacent systems (do not duplicate)
 - `/code-review` — routine code review (file:line shaped).

@@ -77,7 +77,7 @@ hypothesis:
   is likely understated — the discriminator between meta-discussion and lazy prose
   isn't tight.
 
-## New finding from this session — third FP mechanism on invisible gates
+## Third FP mechanism on the staleness re-reader (NOT NEW — see task #1218)
 
 The user surfaced a concrete third FP mechanism on the staleness re-reader block,
 beyond the two already in scope (firing on unrelated turns, re-firing after
@@ -85,27 +85,38 @@ satisfaction per #1059's shape):
 
 **Mechanism 3 — tool-type selectivity in the staleness flag**: the block fires
 even after Grep re-verifies the same file, because the flag's "edited-after-read"
-bit clears only on a `Read` tool call, not on Grep/Glob. So a model that does the
-right thing (re-greps the same path to confirm a deletion landed) still gets
+bit clears only on a `Read` tool call, not on Grep/Glob. So a model that does
+the right thing (re-greps the same path to confirm a deletion landed) still gets
 flagged as "no recent evidence for this claim" on the next turn.
 
-This belongs in the same telemetry-add task as the other two mechanisms — they
-are all bugs in how the staleness tracker credits re-verification, not three
-unrelated problems. The single discriminator that catches all three is "did this
-turn produce fresh evidence for the claim that's flagged?" — and the tracker
-currently only credits `Read`, missing `Grep` and `Glob`.
+**Status: already covered.** This is the same gate surface addressed by
+task #1218 ("Add telemetry to 3 invisible Stop gates — staleness/commitment/
+task-list"), with the source-of-truth handoff at
+`P:/.claude/.artifacts/friction-reduction-handoff-20260706.md` section 2B. All
+three mechanisms (unrelated-turn firing, post-satisfaction re-fire, tool-type
+selectivity) are invisible-gate FP shapes on the same staleness-tracker, not
+three separate fixes. The single discriminator is "did this turn produce fresh
+evidence for the claim that's flagged?" — and the tracker currently only credits
+`Read`, missing `Grep` and `Glob`.
 
-**Status**: no code yet. The grep for `edited_after_read` / `staleness_re_reader`
-/ `last_verified_at` returned nothing in `P:/.claude/hooks/` (only one hit on
-`content_filter_skips.jsonl`, which is the skip log, not the implementation).
-So this is a proposed mechanism pending code-level verification — must locate the
-actual staleness tracker before fixing. Likely candidates: a Stop hook using
-`last_assistant_message` mtime, or `__lib/evidence_scope.py` turn-eviction logic.
+**Where the implementation actually lives**: a grep for `edited_after_read` /
+`staleness_re_reader` / `last_verified_at` returned nothing in `P:/.claude/hooks/`
+(only one hit on `content_filter_skips.jsonl`, which is the skip log, not the
+implementation). Per the handoff section 2B, the staleness re-reader "fires via
+injected text, not a recorded block event" — so the flag is in the injection
+source, not in a Stop gate. Likely candidates: a UserPromptSubmit or PostToolUse
+injector whose freshness check uses `Read` mtime only.
 
-**Recommended shape for the unified task**: "Audit stale-evidence gates that fire
-despite fresh re-verification" — covers all three mechanisms (unrelated-turn firing,
-post-satisfaction re-fire, tool-type selectivity). Spawns three sub-investigations,
-not three fixes, until the root cause is located per mechanism.
+**Recommended shape** (matches task #1218 step 1–4 verbatim, just enriched with
+the third mechanism): one investigation, not three fixes. Step 1: locate each
+gate's source file + emission site. Step 2: add one-line diagnostics.db logging
+gated by `STOP_TELEMETRY`. Step 3: run ≥7 days, measure. Step 4: classify each
+gate and demote/fix/remove per retirement-doc procedure.
+
+**Addendum to #1218**: when telemetry lands, count fires that follow a
+Grep/Glob re-verification of the same path. That count is the FP-mechanism-3
+evidence base — separate from the unrelated-turn and post-satisfaction counts.
+Update task #1218 description to include this third mechanism explicitly.
 
 ## Other carryover items from the prior session (decisions deferred, not lost)
 

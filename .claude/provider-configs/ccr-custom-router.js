@@ -206,11 +206,13 @@ function resolveModelToRoute(modelName) {
   // Direct route strings
   if (modelName.includes(",")) return modelName;
 
-  // CC model label → CCR route mapping (matches config.json Router keys)
+  // CC model label → CCR route mapping (matches config.json Router keys).
+  // CANONICAL primary key is claude-sonnet-5; claude-sonnet-4-6 retained
+  // for backward compat only (do NOT add new mainline route expansions on 4-6).
   const routeMap = {
     "claude-opus-4-8": "zai,glm-5.2",
-    "claude-sonnet-5": "minimax,MiniMax-M3[1m]",
-    "claude-sonnet-4-6": "minimax,MiniMax-M3[1m]",
+    "claude-sonnet-5": "minimax,MiniMax-M3[1m]",   // CANONICAL primary
+    "claude-sonnet-4-6": "minimax,MiniMax-M3[1m]", // BACKWARD COMPAT ONLY
     "claude-haiku-4-5": "opencode-go,deepseek-v4-flash",
     "claude-haiku-4-5-20251001": "opencode-go,deepseek-v4-flash",
     "claude-local-ornith": "llama-cpp,ornith-1.0-9b",

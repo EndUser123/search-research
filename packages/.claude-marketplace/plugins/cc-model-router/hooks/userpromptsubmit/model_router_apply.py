@@ -27,7 +27,7 @@ import json
 import os
 import pathlib
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 PLUGIN_ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
 if str(PLUGIN_ROOT / "__lib") not in sys.path:
@@ -63,7 +63,12 @@ def is_expired(rec: dict, ttl: int = TTL_SECONDS) -> bool:
     if not written:
         return True
     try:
-        age = (datetime.now() - datetime.fromisoformat(written)).total_seconds()
+        written_dt = datetime.fromisoformat(written)
+        # Backward compat: legacy rows are naive local time. Assume UTC for those
+        # (TTL is 300s, so any tz misinterpretation expires the row quickly either way).
+        if written_dt.tzinfo is None:
+            written_dt = written_dt.replace(tzinfo=timezone.utc)
+        age = (datetime.now(timezone.utc) - written_dt).total_seconds()
     except Exception:
         return True
     return age > ttl

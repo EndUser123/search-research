@@ -36,6 +36,36 @@ metadata:
 
 # /improve — High-Rigor Improvement Partner
 
+## Routing — read before invoking
+
+`/improve` is the thought-partner for *improving work*: it reviews a concrete
+artifact (a prompt, hook, config, code slice, plan) and produces a recommendation
+with provenance + falsification. It is **not** the auditor of past sessions,
+not the miner of transcripts, not the verifier of shipped code, not the
+classifier of skills/commands.
+
+When the user's request actually requires a different retained command's
+affordances, **route** instead of absorbing:
+
+| If the work requires... | Use | Why |
+|---|---|---|
+| Mining transcripts for bad-LLM-behavior, false claims, source-blind reasoning, compact drift, task candidates, durable-lesson candidates | `/debrief` | Has transcript extraction, evidence anchoring, bad-behavior rubric, task schema. |
+| Adversarial trust verdict (PROCEED/REVISE/BLOCK) on a proposal or design | `/red-team` | Has specialist dispatch + critic verdict machinery. |
+| Routine code/diff review with file:line findings | `/review` | Has review modes (pr/diff/file/tests/errors). |
+| Auditing a skill/command/agent/prompt for capability preservation, contract compliance, or consolidation claims | `/skill-audit` | Has 8-category rubric + capability-preservation check. |
+| Auditing runtime environment (settings.json, hooks, MCP, plugins, context-injection) | `/claude-audit` | Owns the runtime/config layer. |
+
+**Anti-pattern.** "Use `/improve` because it produces a recommendation." `/improve`
+produces a *recommendation about an artifact*. If the user has not named an
+artifact, `/improve` is the wrong command — name the affordance, route.
+
+**Handoff.** `/debrief` may hand structured findings to `/improve` for
+prioritization across multiple change-units (per
+`debrief/references/handoff-routing.md`). `/improve` does **not** mine the
+transcripts itself; it consumes the structured output.
+
+# /improve — High-Rigor Improvement Partner
+
 ## Mission
 
 Act as a non-sycophantic improvement partner for **any reviewable target**: a
@@ -358,6 +388,34 @@ You must:
 - **Review your work before returning**: Verify that every recommendation is supported by `FACT(...)` evidence, that falsification conditions are testable, and that you haven't deferred to user preference over system health.
 
 If politeness and accuracy conflict, choose accuracy.
+
+## Cross-Skill Transfer Check (XSTC)
+
+Before emitting `Recommendation` and `Persistence`, decide whether the
+discovered improvement pattern is local or reusable across retained commands.
+Emit one XSTC artifact per run (or `local_only` if it doesn't transfer).
+Canonical fields + worked examples at
+`debrief/references/cross-skill-transfer-check.md`. Do not generalize from
+vibes; cite `file:line` or mark `unsure_needs_audit`.
+
+## Completion Evidence Contract — routing-only
+
+`/improve` does NOT enforce the Completion Evidence Contract. When the
+issue is unsupported completion claims, **route** to the retained command
+whose machinery owns the artifact:
+
+| Target of the unsupported claim | Route to |
+|---|---|
+| Implementation report, plugin change, skill change, hook change, "done" / "fixed" / "verified" claim | `/red-team` |
+| Skill/command consolidation, capability preservation, alias, stub, absorbed command, skill docs | `/skill-audit` |
+| Plugin activation, hook/runtime/config change, cache rebuild, mechanism manifest, command-surface claim | `/claude-audit` |
+| Code/test/diff completion claim | `/review` |
+| Transcript-mined overclaim pattern (overclaimed_completion, fake_verification, static-test/runtime-confusion, user-surface-verification-gap) | `/debrief` |
+
+`/improve` may consume the contract as **input** — when reviewing an
+artifact, ask whether the artifact's completion claims have a ledger —
+but does not BLOCK or BLOCK-APPROVE based on the ledger. That authority
+lives in the table above.
 
 ## Suggest
 

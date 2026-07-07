@@ -1690,3 +1690,335 @@ Transcript: session-2026-07-05
 Source: session
 Transcript: session-2026-07-05
 
+
+## [2026-07-06] ingest | ACTIVE_RUNTIME_HOOKS allowlist makes orphan hooks inert
+Source: downloads-extract-router-active-runtime-hooks-allowlist-inertness
+Source file: C:\Users\brsth\Downloads\ralph.txt
+
+## [2026-07-06] ingest | Windows Git Bash ${HOME} must be overridden for fixed paths
+Source: downloads-extract-windows-git-bash-home-path-override
+Source file: C:\Users\brsth\Downloads\ACTUAL-ACTION-REQUIRED.md
+
+## [2026-07-06] ingest | Default risk classifier excludes auth from production keywords
+Source: downloads-extract-risk-classifier-auth-default-exclusion
+Source file: C:\Users\brsth\Downloads\pi-risk-policy-wording-blocks.md
+
+## [2026-07-06] ingest | ROI formula for ranking meta-engineering levers
+Source: downloads-extract-meta-engineering-roi-ranking-frame
+Source file: C:\Users\brsth\Downloads\meta-planner.md
+
+## [2026-07-06] ingest | Phased rollout meta-planner meta-critic first
+Source: downloads-extract-orchestrate-meta-phased-rollout
+Source file: C:\Users\brsth\Downloads\IMPLEMENTATION_GUIDE.md
+
+## [2026-07-06] ingest | Claim verifier taxonomy hard vs advisory by tag
+Source: downloads-extract-claim-verifier-hard-vs-advisory-routing
+Source file: C:\Users\brsth\Downloads\pony_tail_claim_phase0_plan_final.md
+
+## [2026-07-06] ingest | File-anchored memory relevance filtering for PostCompact
+Source: downloads-extract-postcompact-memory-relevance-filtering
+Source file: C:\Users\brsth\Downloads\memory_md_test_setup.txt
+
+## [2026-07-06] ingest | Detector prompts need structured JSON with signals_for/against
+Source: downloads-extract-notebooklm-detector-prompt-template
+Source file: C:\Users\brsth\Downloads\notebooklm-youtube-scam-prompts.md
+
+## [2026-07-06] ingest | NLM source relocation via text download + re-upload
+Source: downloads-extract-nlm-source-relocation-text-download
+Source file: C:\Users\brsth\Downloads\multi-llm llm was wrong about moving sources 0.txt
+
+## [2026-07-06] ingest | SessionStart hooks do NOT fire on intra-session compaction
+Source: downloads-extract-sessionstart-vs-compaction-event-fire
+Source file: C:\Users\brsth\Downloads\03-22-2025 - bad thinking, bad solutions 0.txt
+
+## [2026-07-06] ingest | Complexity-tier routing A0-E with auto-escalation
+Source: downloads-extract-complexity-tier-routing-auto-escalation
+Source file: C:\Users\brsth\Downloads\the transcript recommends using smaller &amp;amp; chea.md
+
+## [2026-07-06] ingest | stop-gate artifacts-are-invocation inversion
+Source: downloads-extract-stop-gate-invocation-vs-completion-causality
+Source file: C:\Users\brsth\Downloads\fix_invocation_detection_prompt.txt
+
+## [2026-07-06] ingest | stop-gate cannot distinguish invoke from mention
+Source: downloads-extract-stop-gate-invocation-vs-mention-discriminator
+Source file: C:\Users\brsth\Downloads\fix_enforce_gate_prompt.txt
+
+## [2026-07-06] ingest | asyncio.subprocess.SubprocessError does not exist
+Source: downloads-extract-asyncio-subprocess-subprocesserror-typo
+Source file: C:\Users\brsth\Downloads\edit didn't persist 0.txt
+
+## [2026-07-06] ingest | hook scope cannot solve constitutional-layer pattern
+Source: downloads-extract-hook-layer-vs-constitutional-layer-pattern-promotion
+Source file: C:\Users\brsth\Downloads\cognitive-enhancers1.txt
+
+## [2026-07-06] ingest | debrief rubric tightening measured numbers
+Source: downloads-extract-skill-description-trim-budget-measured
+Source file: C:\Users\brsth\Downloads\Fusion - -debrief- is a skill that analysis - Jun 30 7.48pm.md
+
+## [2026-07-06] ingest | phase-1 step-0 gates discrimination-first
+Source: downloads-extract-phase-1-step-0-discrimination-gates
+Source file: C:\Users\brsth\Downloads\phase-1-implementation-packet-v2-hardened.md
+
+## [2026-07-06] ingest | state file verification before by-design claims
+Source: downloads-extract-debugrca-state-file-verification-step
+Source file: C:\Users\brsth\Downloads\handoff problem again.txt
+
+## [2026-07-06] ingest | Mutex leak self-detection after zombie cleanup
+Source: downloads-extract-daemon-mutex-leak-after-zombie-cleanup
+Source file: C:\Users\brsth\Downloads\notebooklm-debug-1776784907263.txt
+
+## [2026-07-06] ingest | yt-dlp Python API path switches when cookies present
+Source: downloads-extract-ytdlp-python-api-vs-cli-cookie-divergence
+Source file: C:\Users\brsth\Downloads\media-pipeline.txt
+
+## [2026-07-06] ingest | PreToolUse gate has prose-only bypass blind spot
+Source: downloads-extract-skill-first-gate-prose-only-bypass
+Source file: C:\Users\brsth\Downloads\skill-guard-gto.txt
+
+## [2026-07-06] ingest | Silent exception swallow reproduces the bug it guards
+Source: downloads-extract-silent-exception-swallow-bypasses-critical-guard
+Source file: C:\Users\brsth\Downloads\think_handoff1.txt
+
+## [2026-07-06] ingest | Always-on priming causes LLM habituation
+Source: downloads-extract-hook-always-on-priming-causes-habituation
+Source file: C:\Users\brsth\Downloads\review.txt
+
+## [2026-07-06] ingest | Claim-aware gate short-circuit cuts gate fires 80%
+Source: downloads-extract-claim-aware-gate-short-circuit-measurement
+Source file: C:\Users\brsth\Downloads\claim_aware_validation_corrected.txt
+
+## [2026-07-06] ingest | Brain iron RLS ADHD fatigue cluster
+Source: downloads-extract-adhd-fatigue-iron-rls-cluster
+Source file: C:\Users\brsth\Downloads\ADHD_Fatigue_1Pager.txt
+
+## [2026-07-06] ingest | Two-stage honesty gate prevents prose violations
+Source: downloads-extract-two-stage-honesty-gate-pattern
+Source file: C:\Users\brsth\Downloads\honesty.txt
+
+## [2026-07-06] ingest | Detector-level filter beats downstream filter
+Source: downloads-extract-filter-at-detector-not-downstream
+Source file: C:\Users\brsth\Downloads\ltos 0.txt
+
+## [2026-07-06] ingest | GTO suggests skill based on findings not project type
+Source: downloads-extract-gto-finding-driven-skill-suggestions
+Source file: C:\Users\brsth\Downloads\not a good thinker LLM 1.txt
+
+## [2026-07-06] ingest | EJS challenge solving needs deno runtime
+Source: downloads-extract-ytdlp-ejs-cookie-selenium-fallback-chain
+Source file: C:\Users\brsth\Downloads\media-pipeline.txt
+
+## [2026-07-06] ingest | SessionStart PreCompact payload lacks terminalId
+Source: downloads-extract-sessionstart-precompact-payload-shape
+Source file: C:\Users\brsth\Downloads\handoff major problem..txt
+
+## [2026-07-06] ingest | Stop output schema decision block vs approve
+Source: downloads-extract-stop-hook-output-schema
+Source file: C:\Users\brsth\Downloads\ccr-fable-routing-architecture-v3.md
+
+## [2026-07-06] ingest | Three-way model tier semantics for gate policy
+Source: downloads-extract-three-way-model-tier-gate-policy
+Source file: C:\Users\brsth\Downloads\ccr-fable-routing-architecture-v3.md
+
+## [2026-07-06] ingest | Identity contract for Stop hooks session_id only
+Source: downloads-extract-stop-hook-identity-contract
+Source file: C:\Users\brsth\Downloads\go_reliability_handoff.md
+
+## [2026-07-06] ingest | Coverage means attempt succeeded not hits returned
+Source: downloads-extract-search-coverage-attempt-not-hits
+Source file: C:\Users\brsth\Downloads\claude-search-implementing-llm-final-prompt.md
+
+## [2026-07-06] ingest | Token cost estimator with hard floor 15
+Source: downloads-extract-token-cost-estimator-floor-15
+Source file: C:\Users\brsth\Downloads\claude-search-implementing-llm-final-prompt.md
+
+## [2026-07-06] ingest | Ack repetition counter thresholds for escalation
+Source: downloads-extract-ack-repetition-counter-thresholds
+Source file: C:\Users\brsth\Downloads\prompt_agent_viability_pilot_prompt.txt
+
+## [2026-07-06] ingest | Adjacent-entry contamination detection pattern
+Source: downloads-extract-adjacent-entry-contamination-detection
+Source file: C:\Users\brsth\Downloads\prompt_agent_viability_pilot_prompt.txt
+
+## [2026-07-06] ingest | Native /goal emits JSON validation error
+Source: downloads-extract-native-goal-json-validation-error
+Source file: C:\Users\brsth\Downloads\go_reliability_handoff.md
+
+## [2026-07-06] ingest | Reminder injection size caps and dedup rules
+Source: downloads-extract-reminder-injection-size-and-dedup
+Source file: C:\Users\brsth\Downloads\claude_code_reminder_recovery_implementation_prompt.txt
+
+## [2026-07-06] ingest | In-process gates bypassed on trivial responses
+Source: downloads-extract-stoppy-inprocess-gates-bypass-trivial
+Source file: C:\Users\brsth\Downloads\This is an rca about a frustrating experience with.md
+
+## [2026-07-06] ingest | Route-class-first CCR routing
+Source: downloads-extract-ccr-route-class-first-routing
+Source file: C:\Users\brsth\Downloads\ccr-fable-routing-design-doc (1).md
+
+## [2026-07-06] ingest | Diagram-router for documentation compilers
+Source: downloads-extract-doc-compiler-diagram-router-stages
+Source file: C:\Users\brsth\Downloads\skill_to_page_refactor_prompt.md
+
+## [2026-07-06] ingest | Acknowledgment-loop stop hook pattern
+Source: downloads-extract-stop-hook-acknowledgment-loop-blocker
+Source file: C:\Users\brsth\Downloads\repetition_prevention_hardening_prompt.txt
+
+## [2026-07-06] ingest | Pre-curated packets beat raw yt-dlp JSON
+Source: downloads-extract-nblm-precurated-source-packets
+Source file: C:\Users\brsth\Downloads\notebooklm-yt-dlp-quality-playbook.md
+
+## [2026-07-06] ingest | Handoff dir derived from __file__ not cwd
+Source: downloads-extract-hook-state-dir-from-__file__
+Source file: C:\Users\brsth\Downloads\handoff and lazy problems1.txt
+
+## [2026-07-06] ingest | MiniMax Token Plan endpoints
+Source: downloads-extract-minimax-token-plan-endpoints
+Source file: C:\Users\brsth\Downloads\I want to use my minimax token plan with bifrost a.md
+
+## [2026-07-06] ingest | is_opportunity must be inlined before use
+Source: downloads-extract-loop-derived-bool-inline-not-hoist
+Source file: C:\Users\brsth\Downloads\03-21-2025 - bad coding logic 0.txt
+
+## [2026-07-06] ingest | Reusable add_skill_path helper pattern
+Source: downloads-extract-skill-pathlib-autopath-helper
+Source file: C:\Users\brsth\Downloads\critique.txt
+
+## [2026-07-06] ingest | attnroute reduces 50K-200K tokens to ~2K at 309ms
+Source: downloads-extract-attnroute-context-reduction-90pct
+Source file: C:\Users\brsth\Downloads\Claude Code Model Routing — Alternatives, Features &amp; Ideas Worth Adopting.md
+
+## [2026-07-06] ingest | Three-question anti-bloat hook invariant
+Source: downloads-extract-three-question-anti-bloat-hook-invariants
+Source file: C:\Users\brsth\Downloads\crud-operations-redesign-with-interfaces.md
+
+## [2026-07-06] ingest | Control-turn gate bypass prevents hijacking
+Source: downloads-extract-control-turn-quality-gate-bypass
+Source file: C:\Users\brsth\Downloads\optimal_implementation_prompt.txt
+
+## [2026-07-06] ingest | HIGH_CONFidence_PATTERNS at 54% false positive
+Source: downloads-extract-high-confidence-pattern-false-positives
+Source file: C:\Users\brsth\Downloads\history1.txt
+
+## [2026-07-06] ingest | Model switching breaks prompt cache
+Source: downloads-extract-model-switch-cache-penalty
+Source file: C:\Users\brsth\Downloads\Claude Code Model Routing — Alternatives, Features &amp; Ideas Worth Adopting.md
+
+## [2026-07-06] ingest | Proxy-level routing decoupled from hook context
+Source: downloads-extract-proxy-router-rejected-for-claude-only
+Source file: C:\Users\brsth\Downloads\Claude Code Model Routing — Alternatives, Features &amp; Ideas Worth Adopting.md
+
+## [2026-07-06] ingest | SubagentStart tier injection beats SessionStart
+Source: downloads-extract-subagent-start-tier-injection
+Source file: C:\Users\brsth\Downloads\Claude Code Model Routing — Alternatives, Features &amp; Ideas Worth Adopting.md
+
+## [2026-07-06] ingest | Version-keyed cache hides source edits
+Source: downloads-extract-version-keyed-cache-hides-source-edits
+Source file: C:\Users\brsth\Downloads\crud-operations-redesign-with-interfaces.md
+
+## [2026-07-06] ingest | rename to plan-relevant name corrupts intent
+Source: downloads-extract-session-name-intent-misread
+Source file: C:\Users\brsth\Downloads\handoff rca.txt
+
+## [2026-07-06] ingest | fail-closed verification guard reversed to fail-warn
+Source: downloads-extract-fail-closed-to-fail-warn-completion-guard
+Source file: C:\Users\brsth\Downloads\implemented without approval, thinking code is for features when it's for all coding.txt
+
+## [2026-07-06] ingest | Hook timeout only logs never kills
+Source: downloads-extract-hook-timeout-warning-only-no-kill
+Source file: C:\Users\brsth\Downloads\task-hook.txt
+
+## [2026-07-06] ingest | Evidence check matches text not execution
+Source: downloads-extract-evidence-check-text-not-execution
+Source file: C:\Users\brsth\Downloads\inefficient gto 1.txt
+
+## [2026-07-06] ingest | Discard unverified-edge-case options don't append
+Source: downloads-extract-edge-case-filter-not-append
+Source file: C:\Users\brsth\Downloads\meta-cognitive.txt
+
+## [2026-07-06] ingest | Clear sys.modules AND pycache on import fix
+Source: downloads-extract-sys-modules-pycache-both-required
+Source file: C:\Users\brsth\Downloads\03-25-2025 poor thinking &amp; doesn't read skills 0.txt
+
+## [2026-07-06] ingest | Test fixture referenced nonexistent class forever
+Source: downloads-extract-broken-import-silent-green-tests
+Source file: C:\Users\brsth\Downloads\plan visualizer.txt
+
+## [2026-07-06] ingest | Evidence dir hardcoded to home not project
+Source: downloads-extract-evidence-dir-hardcoded-home
+Source file: C:\Users\brsth\Downloads\03-27-2025 gto not formatting 0.txt
+
+## [2026-07-06] ingest | Manual override is rule zero
+Source: downloads-extract-override-tier-rule-zero
+Source file: C:\Users\brsth\Downloads\pi-risk-policy-implementation-spec.md
+
+## [2026-07-06] ingest | Hard-anchor verbatim last user turn
+Source: downloads-extract-compact-anchor-last-turn-verbatim
+Source file: C:\Users\brsth\Downloads\Conversation with claude code about handoff pre-co.md
+
+## [2026-07-06] ingest | Hooks enforce gaps not reasoning
+Source: downloads-extract-hooks-boundary-not-reasoning-fixers
+Source file: C:\Users\brsth\Downloads\The diagnosis is correct.md
+
+## [2026-07-06] ingest | Premise propagation cascades across parallel agents
+Source: downloads-extract-premise-propagation-parallel-fp
+Source file: C:\Users\brsth\Downloads\I don't know what to call this behavior.txt
+
+## [2026-07-06] ingest | Multiple hook emitters concatenate JSON
+Source: downloads-extract-multi-hook-stdout-concat-broken-json
+Source file: C:\Users\brsth\Downloads\main.txt
+
+## [2026-07-06] ingest | User-directive obligation tracker is missing
+Source: downloads-extract-user-directive-obligation-tracker
+Source file: C:\Users\brsth\Downloads\blocked phrases.txt
+
+## [2026-07-06] ingest | Terminal registry beats PID fallback
+Source: downloads-extract-terminal-registry-over-pid-fallback
+Source file: C:\Users\brsth\Downloads\verify0.txt
+
+## [2026-07-06] ingest | PreCompact handoff self-load bug
+Source: downloads-extract-precompact-handoff-self-load
+Source file: C:\Users\brsth\Downloads\inefficient commitment 0.txt
+
+## [2026-07-06] ingest | Stop router skips close_turn on block
+Source: downloads-extract-stop-router-close-turn-on-block
+Source file: C:\Users\brsth\Downloads\Implement multi-terminal isolation and data consistency 2.txt
+
+## [2026-07-06] ingest | Phase hooks must read artifacts not strings
+Source: downloads-extract-artifact-backed-phase-evidence
+Source file: C:\Users\brsth\Downloads\Refactor Skill v2  Design Rationale &amp; Upgrade Guide.md
+
+## [2026-07-06] ingest | SQA layers parallelize with one gate
+Source: downloads-extract-sqa-layer-parallelization-with-gate
+Source file: C:\Users\brsth\Downloads\sqa.txt
+
+## [2026-07-06] ingest | Hook pattern blind spot for imminent-action
+Source: downloads-extract-imminent-action-claim-blind-spot
+Source file: C:\Users\brsth\Downloads\03-25-2025 poor thinking and self-imposed constraints 0.txt
+
+## [2026-07-06] ingest | Lazy enumerates one item at a time
+Source: downloads-extract-enumerate-all-not-one-at-a-time
+Source file: C:\Users\brsth\Downloads\inefficient is 0.txt
+
+## [2026-07-06] ingest | Tool-call evidence trumps skill metadata
+Source: downloads-extract-skill-loaded-doesnt-mean-skill-executed
+Source file: C:\Users\brsth\Downloads\inefficient commitment 0.txt
+
+## [2026-07-06] ingest | Handoff must store disk state not transcript
+Source: downloads-extract-handoff-must-store-disk-state
+Source file: C:\Users\brsth\Downloads\✳ Task List.txt
+
+## [2026-07-06] ingest | gitready inline course loses quality
+Source: downloads-extract-re-delegate-not-port-for-shared-quality
+Source file: C:\Users\brsth\Downloads\hooks_implementation_plan 1.md
+
+## [2026-07-06] ingest | Hook advice layer cannot enforce honesty
+Source: downloads-extract-advisory-vs-enforcing-hooks-limits
+Source file: C:\Users\brsth\Downloads\Untitled.txt
+
+## [2026-07-06] ingest | Skill execution gate fires mid-response
+Source: downloads-extract-stop-hook-timing-mid-response
+Source file: C:\Users\brsth\Downloads\Implement multi-terminal isolation and data consistency 2.txt
+
+## [2026-07-06] ingest | Maintainability Index is opaque and gameable
+Source: downloads-extract-maintainability-index-not-headline
+Source file: C:\Users\brsth\Downloads\page-2026-04-19-11-13-22.md

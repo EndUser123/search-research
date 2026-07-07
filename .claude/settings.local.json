@@ -183,7 +183,8 @@
       "PowerShell(python P:/tmp/run_full_epistemic.py)",
       "PowerShell(python P:/tmp/verify_renames.py)",
       "PowerShell(python P:/tmp/retirement_join.py)",
-      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\brsth\\\\Downloads\\\\history2.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\pre-mortem thoughts.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\poor solution planning.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\cc-glm.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\03-16-2026 handoff.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\Claude Code1.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\advesarial.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\advesarial1-lots of good info.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\debugRCA.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\⠐ ralph.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\03-21-2025 - did not show all RNS when they should have 0.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\03-18-2005 - plan-workflow 0.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\03-26-2025 bad lazy thinking 0.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\verify0.txt\" | ForEach-Object { \"{0}: {1} lines\" -f $_.Name, \\(Get-Content $_ | Measure-Object -Line\\).Lines })"
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\brsth\\\\Downloads\\\\history2.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\pre-mortem thoughts.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\poor solution planning.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\cc-glm.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\03-16-2026 handoff.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\Claude Code1.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\advesarial.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\advesarial1-lots of good info.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\debugRCA.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\⠐ ralph.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\03-21-2025 - did not show all RNS when they should have 0.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\03-18-2005 - plan-workflow 0.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\03-26-2025 bad lazy thinking 0.txt\",\"C:\\\\Users\\\\brsth\\\\Downloads\\\\verify0.txt\" | ForEach-Object { \"{0}: {1} lines\" -f $_.Name, \\(Get-Content $_ | Measure-Object -Line\\).Lines })",
+      "Bash(qmd collection *)"
     ],
     "deny": [],
     "ask": []
@@ -193,6 +194,6 @@
   ],
   "hooks": {},
   "disableAllHooks": false,
-  "outputStyle": "signal",
+  "outputStyle": "default",
   "prefersReducedMotion": false
 }

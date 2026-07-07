@@ -379,17 +379,13 @@ try {
 
         switch ($name) {
             "claude-opus-4-8"           { $label = "opus";        $chain = if ($fb) { $fb.think }       else { $null } }
-            "claude-sonnet-5"
-            { $label = "sonnet";      $chain = if ($fb) { $fb.default }     else { $null } }
-            "claude-sonnet-4-6"
-            { $label = "sonnet(4.6)"; $chain = if ($fb) { $fb.default }     else { $null } }
-            "claude-haiku-4-5"
-            { $label = "haiku";       $chain = if ($fb) { $fb.background }  else { $null } }
-            "claude-haiku-4-5-20251001"
-            { $label = "haiku(2025)"; $chain = if ($fb) { $fb.background }  else { $null } }
-            "claude-local-ornith"      { $label = "custom";      $chain = $null }
-            "think"                    { $label = "think";       $chain = if ($fb) { $fb.think }       else { $null } }
-            "default"                  { $label = "default";     $chain = if ($fb) { $fb.default }     else { $null } }
+            "claude-sonnet-5"           { $label = "sonnet";      $chain = if ($fb) { $fb.default }     else { $null } }
+            "claude-sonnet-4-6"         { $label = "sonnet(4.6)"; $chain = if ($fb) { $fb.default }     else { $null } }
+            "claude-haiku-4-5"          { $label = "haiku";       $chain = if ($fb) { $fb.background }  else { $null } }
+            "claude-haiku-4-5-20251001" { $label = "haiku(2025)"; $chain = if ($fb) { $fb.background }  else { $null } }
+            "claude-local-ornith"       { $label = "custom";      $chain = $null }
+            "think"                     { $label = "think";       $chain = if ($fb) { $fb.think }       else { $null } }
+            "default"                   { $label = "default";     $chain = if ($fb) { $fb.default }     else { $null } }
             "background"               { $label = "background";  $chain = if ($fb) { $fb.background }  else { $null } }
             "longContext"              { $label = "longContext"; $chain = if ($fb) { $fb.longContext } else { $null } }
         }
@@ -565,7 +561,7 @@ if ($Test) {
     }
     Write-Host "Running end-to-end test through CCR..." -ForegroundColor Cyan
     $body = @{
-        model = "claude-sonnet-4-6"
+        model = "claude-sonnet-5"
         max_tokens = 16
         messages = @(@{ role = "user"; content = "Reply with exactly: OK" })
     } | ConvertTo-Json -Depth 5
@@ -601,7 +597,7 @@ if ($Test) {
             $resolvedCcrLocalKey = [System.Environment]::GetEnvironmentVariable('CCR_LOCAL_KEY', 'Process')
             Write-Host "  Process CCR_LOCAL_KEY: $resolvedCcrLocalKey" -ForegroundColor Yellow
             Write-Host "  Running direct CCR probes..." -ForegroundColor Yellow
-            $curlBody = '{"model":"claude-sonnet-4-6","max_tokens":16,"messages":[{"role":"user","content":"Reply OK"}]}'
+            $curlBody = '{"model":"claude-sonnet-5","max_tokens":16,"messages":[{"role":"user","content":"Reply OK"}]}'
             $headerValues = @($env:ANTHROPIC_AUTH_TOKEN, $env:ANTHROPIC_API_KEY, $resolvedCcrLocalKey)
             foreach ($headerValue in $headerValues | Select-Object -Unique) {
                 Write-Host "  Probe Bearer header value: $headerValue" -ForegroundColor Yellow
