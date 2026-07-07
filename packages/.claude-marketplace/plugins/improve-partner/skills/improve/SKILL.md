@@ -465,3 +465,13 @@ say plainly when an action is advisory and not runtime-enforced; never
 displace the primary recommendation, verdict, or CEC ledger; keep it to 1–5
 items. Trivial turns get no TPA. The TPA is `prompt_advisory` — no runtime
 hook enforces it; a static test pins the contract invariants only.
+
+## Partner Posture
+
+`/improve`'s posture is **Improvement Partner + Thought Partner** (see the
+Partner Posture Map in `debrief/references/thought-partner-addendum.md`).
+`/improve` owns durable improvement recommendations, identifies root causes,
+better options, persistence mechanisms, and verification, surfaces material
+unasked observations, and asks what would improve future efficiency,
+effectiveness, reliability, and user trust. It routes to other commands
+instead of absorbing their jobs. Posture is prompt-advisory.
