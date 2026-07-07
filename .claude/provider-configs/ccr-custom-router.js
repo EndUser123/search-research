@@ -39,8 +39,12 @@ const LOCAL_MODEL_STATE = path.join(STATE_DIR, "local-model-state.json");
 const HINT_FILE = path.join(STATE_DIR, "ccr-routing-hint.json");
 const PIN_FILE = path.join(STATE_DIR, "ccr-pin-state.json");
 const ROUTE_STATE_FILE = path.join(STATE_DIR, "ccr-route-state.json");
-const ROUTING_LOG_FILE = path.join(STATE_DIR, "routing-log.jsonl");
+const ROUTING_LOG_FILE = path.join(STATE_DIR, "ccr-route-log.jsonl");
 const ROUTING_POLICY_FILE = path.join(STATE_DIR, "routing-policy.json");
+
+// cc-model-router writes recommendation.json per (terminal, session).
+const MODEL_ROUTER_STATE_DIR = path.join(STATE_DIR, "model-router");
+const RECOMMENDATION_TTL_MS = 300000; // 5 min — stale recs must not leak across tasks
 
 // --- Helpers ---
 
@@ -236,6 +240,77 @@ function injectSystemMessage(req, text) {
   }
 }
 
+// --- Recommendation (cc-model-router) consumption ---
+// CCR is process-scoped (one CCR instance per terminal via cc-ccr.ps1), so the
+// freshest non-consumed, non-expired recommendation.json across the
+// (terminal, session) tree is the right per-request signal. recommendation.json
+// is the source of truth; the ccr-routing-hint.json file is a secondary task-type
+// hint. TTL + consumed guard prevent stale recs from leaking into new tasks.
+function getRecommendation() {
+  let terminals = [];
+  try { terminals = fs.readdirSync(MODEL_ROUTER_STATE_DIR); } catch { return null; }
+  const now = Date.now();
+  let best = null;
+  let bestTs = 0;
+  for (const terminal of terminals) {
+    let sessions = [];
+    try { sessions = fs.readdirSync(path.join(MODEL_ROUTER_STATE_DIR, terminal)); } catch { continue; }
+    for (const session of sessions) {
+      const p = path.join(MODEL_ROUTER_STATE_DIR, terminal, session, "recommendation.json");
+      let rec;
+      try { rec = JSON.parse(fs.readFileSync(p, "utf-8")); } catch { continue; }
+      if (rec.consumed) continue;
+      const written = Date.parse(rec.written_at || "");
+      if (!written) continue;
+      if (now - written > RECOMMENDATION_TTL_MS) continue;
+      if (written > bestTs) { bestTs = written; best = rec; }
+    }
+  }
+  return best;
+}
+
+// task-type bucket → pin key (spec: coding_pin / thinking_pin / background_pin)
+function pinKeyForTask(taskType) {
+  if (taskType === "reasoning") return "thinking_pin";
+  if (taskType === "background") return "background_pin";
+  return "coding_pin"; // coding | trivial-coding | local-coding
+}
+
+// Reverse-map a CCR route string to a CC alias for logging.
+function routeToAlias(route, fallback) {
+  if (!route) return fallback || null;
+  const m = {
+    "zai,glm-5.2": "claude-opus-4-8",
+    "minimax,MiniMax-M3[1m]": "claude-sonnet-5",
+    "opencode-go,deepseek-v4-flash": "claude-haiku-4-5-20251001",
+  };
+  if (m[route]) return m[route];
+  if (route.startsWith("llama-cpp,")) return "claude-local-ornith";
+  return route;
+}
+
+// "minimax,MiniMax-M3[1m]" -> { provider: "minimax", model: "MiniMax-M3[1m]" }
+function splitRoute(route) {
+  if (!route) return { provider: null, model: null };
+  const i = route.indexOf(",");
+  return i < 0 ? { provider: route, model: null } : { provider: route.slice(0, i), model: route.slice(i + 1) };
+}
+
+function describePins(pin) {
+  if (!pin) return "none";
+  const parts = [];
+  for (const k of ["coding_pin", "thinking_pin", "background_pin"]) if (pin[k]) parts.push(`${k}=${pin[k]}`);
+  if (pin.model) parts.push(`global=${pin.model}`); // legacy wildcard
+  return parts.length ? parts.join(",") : "none";
+}
+
+// tier → default cloud route (used when local unavailable / over budget)
+function routeByTier(tier) {
+  if (tier === "haiku") return "opencode-go,deepseek-v4-flash";
+  if (tier === "opus") return "zai,glm-5.2";
+  return "minimax,MiniMax-M3[1m]"; // sonnet / unknown
+}
+
 // --- Routing logic ---
 
 // Map CC model labels to task-type heuristics when no hook hint is available.
@@ -262,79 +337,94 @@ module.exports = async function router(req, config) {
   const messages = req?.body?.messages || [];
   const tokenCount = req?.tokenCount || 0;
 
-  // --- Pin override check ---
-  const pin = getPinState();
-  if (pin && pin.model) {
-    // Pin is active — route to the pinned model, ignoring automatic logic
-    const pinRoute = resolveModelToRoute(pin.model);
-    if (pinRoute) {
-      emitRouteChange(pinRoute, `pin: ${pin.model}`, req);
-      return pinRoute;
-    }
-  }
-
-  // --- Get routing hints ---
+  // Decision order: pin (per task type) → local-first → classifier rec → default.
   const hint = getRoutingHint();
   const taskType = hint?.taskType || inferTaskType(model, messages);
+  const pin = getPinState() || {};
+  const rec = getRecommendation();
 
-  // --- Background tasks: fall through to CCR Router.background ---
-  if (taskType === "background") {
-    emitRouteChange(null, "background — fall through to CCR Router.background", req);
-    return null; // CCR's default Router handles background slot
+  // decide(): log the full effective-route field set, emit route change, return route.
+  const decide = (route, reason, decisionSource) => {
+    const backend = splitRoute(route);
+    logRoutingEvent({
+      ts: new Date().toISOString(),
+      terminal_id: rec?.terminal_id || "unknown",
+      session_id: rec?.session_id || hint?.sessionId || "unknown",
+      task_type: taskType,
+      session_model_alias: model || null,
+      pin_state: describePins(pin),
+      recommended_tier: rec?.recommended_tier || null,
+      recommended_model: rec?.recommended_model || null,
+      effective_route_alias: routeToAlias(route, model),
+      backend_provider: backend.provider,
+      backend_model: backend.model,
+      local_used: backend.provider === "llama-cpp",
+      decision_source: decisionSource,
+      token_count: tokenCount,
+      reason,
+    });
+    emitRouteChange(route, reason, req);
+    return route;
+  };
+
+  // --- 1. Pin override (per task type; legacy global `model` pin = wildcard) ---
+  const pinKey = pinKeyForTask(taskType);
+  const pinnedAlias = pin[pinKey] || pin.model;
+  if (pinnedAlias) {
+    const pinRoute = resolveModelToRoute(pinnedAlias);
+    if (pinRoute) {
+      return decide(pinRoute, `pin ${pin[pinKey] ? pinKey : "global"}: ${pinnedAlias}`, "pin");
+    }
   }
 
-  // --- Reasoning/planning: GLM-5.2 (with token-budget check) ---
+  // --- 2. Background: classifier haiku rec if present, else fall through ---
+  if (taskType === "background") {
+    if (rec?.recommended_tier === "haiku" && rec.recommended_model) {
+      const r = resolveModelToRoute(rec.recommended_model);
+      if (r) return decide(r, "background — classifier haiku rec", "classifier");
+    }
+    return decide(null, "background — fall through to CCR Router.background", "default");
+  }
+
+  // --- 3. Reasoning: classifier opus rec, else default GLM-5.2 (token-budget gated) ---
   if (taskType === "reasoning") {
-    const route = "zai,glm-5.2";
+    let route = "zai,glm-5.2";
+    let source = "default";
+    if (rec?.recommended_tier === "opus" && rec.recommended_model) {
+      const r = resolveModelToRoute(rec.recommended_model);
+      if (r) { route = r; source = "classifier"; }
+    }
     const budget = getTokenBudget(config, route);
     if (budget && tokenCount > budget) {
-      // Too large for GLM-5.2 — fall back to M3 with a logged reason
-      const fallbackRoute = "minimax,MiniMax-M3[1m]";
-      emitRouteChange(fallbackRoute, `token-budget: ${tokenCount} > ${budget} for ${route}, fell back to M3`, req);
-      return fallbackRoute;
+      return decide("minimax,MiniMax-M3[1m]", `token-budget: ${tokenCount} > ${budget} for ${route}, fell back to M3`, source);
     }
-    emitRouteChange(route, `reasoning — GLM-5.2 (tokenCount=${tokenCount}, budget=${budget})`, req);
-    return route;
+    return decide(route, `reasoning — ${route} (tokenCount=${tokenCount}, budget=${budget})`, source);
   }
 
-  // --- Coding tasks: local-first (aggressive) or M3-first (conservative) ---
+  // --- 4. Coding: local-first → classifier tier fallback → default M3 ---
   const localModel = await getLocalModelProbed();
   const mode = getRoutingMode(config);
   const threshold = getThreshold(config, mode);
+  const tierRoute = rec?.recommended_tier ? routeByTier(rec.recommended_tier) : "minimax,MiniMax-M3[1m]";
+  const tierSource = rec?.recommended_tier ? "classifier" : "default";
 
   if (localModel && localModel.maxContextTokens) {
     const effectiveCtx = Math.floor(localModel.maxContextTokens * threshold);
+    const wantLocal = mode === "aggressive" || model === "claude-local-ornith" || taskType === "trivial-coding";
 
-    // Local-first in aggressive mode (or if CC already targets local)
-    if (mode === "aggressive" || model === "claude-local-ornith") {
-      if (tokenCount <= effectiveCtx) {
-        const route = `llama-cpp,${localModel.id}`;
-        emitRouteChange(route, `local-first (${taskType}, ${tokenCount} tokens <= ${effectiveCtx} effective ctx)`, req);
-        return route;
-      }
-      // Over threshold — escalate to M3
-      const route = "minimax,MiniMax-M3[1m]";
-      emitRouteChange(route, `escalated: ${tokenCount} tokens > ${effectiveCtx} local ctx (aggressive)`, req);
-      return route;
+    if (wantLocal && tokenCount <= effectiveCtx) {
+      return decide(`llama-cpp,${localModel.id}`, `local-first (${taskType}, ${tokenCount} <= ${effectiveCtx})`, "local-first");
     }
-
-    // Conservative mode: M3-first, local only for very small tasks
-    if (taskType === "trivial-coding" && tokenCount <= effectiveCtx) {
-      const route = `llama-cpp,${localModel.id}`;
-      emitRouteChange(route, `conservative-local (${taskType}, ${tokenCount} tokens <= ${effectiveCtx})`, req);
-      return route;
+    if (wantLocal) {
+      // Over local ctx — escalate by classifier tier (or M3 default)
+      return decide(tierRoute, `escalated: ${tokenCount} > ${effectiveCtx} local ctx; tier=${rec?.recommended_tier || "none"}`, tierSource);
     }
-
-    // Conservative coding: M3
-    const route = "minimax,MiniMax-M3[1m]";
-    emitRouteChange(route, `conservative-cloud (${taskType}, ${tokenCount} tokens)`, req);
-    return route;
+    // Conservative non-trivial coding: tier/M3
+    return decide(tierRoute, `conservative-cloud (${taskType}, ${tokenCount}); tier=${rec?.recommended_tier || "none"}`, tierSource);
   }
 
-  // --- No local model available: M3 for coding ---
-  const route = "minimax,MiniMax-M3[1m]";
-  emitRouteChange(route, `no-local-model (${taskType})`, req);
-  return route;
+  // --- No local model: classifier tier or M3 ---
+  return decide(tierRoute, `no-local-model (${taskType}); tier=${rec?.recommended_tier || "none"}`, tierSource);
 };
 
 // --- Model name to CCR route resolution ---

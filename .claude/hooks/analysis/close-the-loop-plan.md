@@ -26,7 +26,15 @@ existing mechanism can cover.
 3. PERMISSION SCOPE. Pause only before: destructive actions, shared-helper
    edits, scope changes, budget overruns. "May I run a grep?" is never a
    valid question.
-4. ONE PHASE PER RUN. Finish the phase, emit its Evidence Packet, stop.
+4. BATCHED PHASES PER RUN. Multiple phases may run in one session, subject to:
+   a. Each phase still emits its own Evidence Packet section; a phase is
+      DONE only when its packet section exists. No merged "all done" claims.
+   b. HARD PAUSE (report + wait) remains before: live-injection changes,
+      shared-helper edits, anything that alters behavior for concurrent
+      sessions. Shadow-mode, warn-mode, docs, fixtures, and eval code
+      proceed without pause.
+   c. Rule 6 (bounded-branch) unchanged — any scope surprise or new shape
+      still pauses the run regardless of batch authorization.
 5. EVIDENCE PACKET = git status --short + git diff --stat (or commit SHAs if
    auto-committed — record them), per-site table (write path AND exception
    path), RAW test output (not summarized counts), unresolved items
@@ -183,3 +191,10 @@ user approval. Note: any other "Phase 1+2 measurement (55d after
   a drifted gate must not silently rewrite corpus history; the delta IS the
   signal the program exists to surface. 3 post-#1215 downgrades caught on
   4897f5bd.
+- 2026-07-07: Rule 4 amended ONE-PHASE-PER-RUN → BATCHED-PHASES-PER-RUN.
+  Batch scope earned after Phases 0 / 0.5 / 1 each shipped a clean Evidence
+  Packet with no scope creep or premature "all done" claims. Guardrails
+  retained: per-phase packet sections (4a), hard-pause before live-injection /
+  shared-helper / concurrent-session-impacting changes (4b), Rule 6 scope-surprise
+  pause unchanged (4c). First authorized batch = Phase 1.5 leftovers + Phase 2
+  (pause at router.py registration) + Phase 3 (shadow-only).
