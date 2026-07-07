@@ -88,7 +88,7 @@ function getThreshold(config, mode) {
   return thresholds[mode] || (mode === "aggressive" ? 0.90 : 0.65);
 }
 
-function emitRouteChange(newRoute, reason) {
+function emitRouteChange(newRoute, reason, req, extras) {
   const prev = readJsonSafe(ROUTE_STATE_FILE);
   if (prev && prev.route === newRoute) return; // No change, no emission
 
@@ -96,12 +96,42 @@ function emitRouteChange(newRoute, reason) {
     route: newRoute,
     reason,
     ts: new Date().toISOString(),
+    ...(extras || {}),
   };
   writeJsonSafe(ROUTE_STATE_FILE, state);
 
-  // Emit system message via CCR's systemMessage injection (best effort)
-  // The systemMessage field on the request body is what CCR forwards
-  // to the LLM as a system-level annotation.
+  // CCR does not expose a UI-channel for proxy-injected messages, so the most
+  // truthful "system message on route change" is to annotate req.body.system
+  // (the model sees it; the user sees it indirectly via the model's response).
+  // The annotation is also surfaced to stderr so the user can tail the CCR
+  // log and observe routing in real time.
+  const notice = `[CCR-route] ${newRoute ?? "fall-through"} — ${reason}`;
+  if (req) injectSystemMessage(req, notice);
+  try {
+    process.stderr.write(`[CCR-route] ${notice}\n`);
+  } catch {}
+}
+
+// Append a text block to req.body.system (string-or-array form per Anthropic
+// API). Idempotent w.r.t. existing entries: only adds if not already present.
+function injectSystemMessage(req, text) {
+  if (!req || !req.body) return;
+  const annot = { type: "text", text };
+  if (req.body.system === undefined || req.body.system === null) {
+    req.body.system = [annot];
+  } else if (typeof req.body.system === "string") {
+    req.body.system = [
+      { type: "text", text: req.body.system },
+      annot,
+    ];
+  } else if (Array.isArray(req.body.system)) {
+    // Dedupe: if the most recent entry already contains this notice, skip.
+    const last = req.body.system[req.body.system.length - 1];
+    if (last && last.type === "text" && last.text === text) return;
+    req.body.system.push(annot);
+  } else {
+    req.body.system = [annot]; // unknown shape — fall back
+  }
 }
 
 // --- Routing logic ---
@@ -136,7 +166,7 @@ module.exports = async function router(req, config) {
     // Pin is active — route to the pinned model, ignoring automatic logic
     const pinRoute = resolveModelToRoute(pin.model);
     if (pinRoute) {
-      emitRouteChange(pinRoute, `pin: ${pin.model}`);
+      emitRouteChange(pinRoute, `pin: ${pin.model}`, req);
       return pinRoute;
     }
   }
@@ -147,14 +177,14 @@ module.exports = async function router(req, config) {
 
   // --- Background tasks: fall through to CCR Router.background ---
   if (taskType === "background") {
-    emitRouteChange(null, "background — fall through to CCR Router.background");
+    emitRouteChange(null, "background — fall through to CCR Router.background", req);
     return null; // CCR's default Router handles background slot
   }
 
   // --- Reasoning/planning: GLM-5.2 ---
   if (taskType === "reasoning") {
     const route = "zai,glm-5.2";
-    emitRouteChange(route, "reasoning — GLM-5.2");
+    emitRouteChange(route, "reasoning — GLM-5.2", req);
     return route;
   }
 
@@ -170,31 +200,31 @@ module.exports = async function router(req, config) {
     if (mode === "aggressive" || model === "claude-local-ornith") {
       if (tokenCount <= effectiveCtx) {
         const route = `llama-cpp,${localModel.id}`;
-        emitRouteChange(route, `local-first (${taskType}, ${tokenCount} tokens <= ${effectiveCtx} effective ctx)`);
+        emitRouteChange(route, `local-first (${taskType}, ${tokenCount} tokens <= ${effectiveCtx} effective ctx)`, req);
         return route;
       }
       // Over threshold — escalate to M3
       const route = "minimax,MiniMax-M3[1m]";
-      emitRouteChange(route, `escalated: ${tokenCount} tokens > ${effectiveCtx} local ctx (aggressive)`);
+      emitRouteChange(route, `escalated: ${tokenCount} tokens > ${effectiveCtx} local ctx (aggressive)`, req);
       return route;
     }
 
     // Conservative mode: M3-first, local only for very small tasks
     if (taskType === "trivial-coding" && tokenCount <= effectiveCtx) {
       const route = `llama-cpp,${localModel.id}`;
-      emitRouteChange(route, `conservative-local (${taskType}, ${tokenCount} tokens <= ${effectiveCtx})`);
+      emitRouteChange(route, `conservative-local (${taskType}, ${tokenCount} tokens <= ${effectiveCtx})`, req);
       return route;
     }
 
     // Conservative coding: M3
     const route = "minimax,MiniMax-M3[1m]";
-    emitRouteChange(route, `conservative-cloud (${taskType}, ${tokenCount} tokens)`);
+    emitRouteChange(route, `conservative-cloud (${taskType}, ${tokenCount} tokens)`, req);
     return route;
   }
 
   // --- No local model available: M3 for coding ---
   const route = "minimax,MiniMax-M3[1m]";
-  emitRouteChange(route, `no-local-model (${taskType})`);
+  emitRouteChange(route, `no-local-model (${taskType})`, req);
   return route;
 };
 
