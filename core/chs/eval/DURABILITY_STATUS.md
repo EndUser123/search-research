@@ -50,8 +50,11 @@ paths. This file states exactly what is and isn't operative, so nobody
   default of 384. The config-resolution order in `backfill_embeddings.py`
   sidesteps this for the backfill path only; other readers of
   `config.py` still see 768.
-- `golden_cases.jsonl` is **not yet populated** — the harness measures
-  nothing until ~50 real cases exist (see `golden_cases.example.jsonl`).
+- `golden_cases.jsonl` is **populated** (50 real cases from 20 session
+  transcripts, round-robin across sessions, March–July 2026), filtered
+  to substantive multi-turn queries. Re-run the generator when the
+  transcript corpus significantly changes:
+  `python -m core.chs.eval.generate_golden_cases [--sessions N]`.
 - Nothing runs the eval automatically outside `--golden-cases`; there is no
   hook or scheduled check.
 

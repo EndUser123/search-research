@@ -12,14 +12,28 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 
 PROJECT_DIR = Path.home() / ".claude" / "projects" / "P--"
 OUTPUT = Path(__file__).parent / "golden_cases.jsonl"
-MAX_USER_LEN = 300  # cap query text to keep cases readable
-MAX_CONTENT_HASH_LEN = 500  # chars to sha256 for response content
+MAX_USER_LEN = 300
+MAX_CONTENT_HASH_LEN = 500
 CASE_COUNT = 50
+MIN_QUERY_LEN = 15
+
+_SKIP_PATTERNS = re.compile(
+    r"^\s*(yes|no|ok|thanks|done|nope|yep|sure|please|ty|got it|"
+    r"restarted claude code|accepted|"
+    r"<local-command-caveat>|"
+    r"This session is being continued|"
+    r"I won't rememmber|"
+    r"<system-reminder>|"
+    r"<command-message>.*</command-message>\s*$"
+    r")\s*$",
+    re.IGNORECASE,
+)
 
 
 def _content_sha(text: str) -> str:
@@ -27,7 +41,6 @@ def _content_sha(text: str) -> str:
 
 
 def _extract_text(content_blocks: list) -> str:
-    """Extract text from assistant content blocks."""
     parts = []
     for block in content_blocks or []:
         if not isinstance(block, dict):
@@ -37,15 +50,13 @@ def _extract_text(content_blocks: list) -> str:
             parts.append(block.get("text", ""))
         elif t == "thinking":
             parts.append(block.get("thinking", ""))
-        elif t == "tool_use":
-            parts.append(f"[Tool: {block.get('name', '')}]")
     return " ".join(parts)
 
 
 def extract_user_queries(transcript_path: Path
-                         ) -> list[tuple[str, str, str, str]]:
-    """Return (session_id, query_text, response_text, response_msg_id)."""
-    session_id = transcript_path.stem  # filename without .jsonl
+                         ) -> list[tuple[str, str, str]]:
+    """Return (session_id, query_text, response_text)."""
+    session_id = transcript_path.stem
     entries: list[dict] = []
     with open(transcript_path, encoding="utf-8") as f:
         for line in f:
@@ -54,7 +65,7 @@ def extract_user_queries(transcript_path: Path
                 continue
             entries.append(json.loads(line))
 
-    results: list[tuple[str, str, str, str]] = []
+    results: list[tuple[str, str, str]] = []
     user_texts: list[str] = []
     for entry in entries:
         t = entry.get("type")
@@ -67,22 +78,22 @@ def extract_user_queries(transcript_path: Path
         elif t == "assistant":
             if user_texts:
                 query = user_texts.pop(0)
+                if _SKIP_PATTERNS.match(query):
+                    user_texts.clear()
+                    continue
                 msg = entry.get("message", {})
                 if isinstance(msg, dict):
                     blocks = msg.get("content", [])
                     resp_text = _extract_text(blocks)
-                    msg_id = msg.get("id", "")
-                    if resp_text.strip() and query:
-                        results.append((session_id, query, resp_text, msg_id))
-            user_texts.clear()  # consume all pending user texts
-        else:
-            continue
+                    if resp_text.strip() and len(query) >= MIN_QUERY_LEN:
+                        results.append((session_id, query, resp_text))
+            user_texts.clear()
     return results
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate CHS golden cases")
-    parser.add_argument("--sessions", type=int, default=10,
+    parser.add_argument("--sessions", type=int, default=15,
                         help="Number of session transcripts to scan")
     args = parser.parse_args()
 
@@ -90,49 +101,59 @@ def main() -> int:
         print(f"Session directory not found: {PROJECT_DIR}", file=sys.stderr)
         return 1
 
-    # Collect the N largest transcripts (most content → most queries)
     transcripts = sorted(
         [p for p in PROJECT_DIR.iterdir() if p.suffix == ".jsonl" and p.is_file()],
         key=lambda p: p.stat().st_size, reverse=True,
     )[:args.sessions]
 
-    cases: list[dict] = []
-    case_id = 0
-
+    # Extract all query pairs from all sessions
+    session_pairs: dict[str, list[tuple[str, str, str]]] = {}
     for tp in transcripts:
         pairs = extract_user_queries(tp)
-        for session_id, query, resp_text, msg_id in pairs:
-            if case_id >= CASE_COUNT:
-                break
-            # Truncate query for readability
-            short_query = query[:MAX_USER_LEN].rstrip()
+        if pairs:
+            session_pairs[tp.stem] = pairs
 
-            # Content hash of response start (stable across DB rebuilds)
-            resp_hash = _content_sha(resp_text[:MAX_CONTENT_HASH_LEN])
-
-            case = {
-                "id": f"case-{case_id + 1:03d}",
-                "query": short_query,
-                "required_session_keys": [session_id],
-                "required_content_sha256": [resp_hash],
-                "k": 10,
-                "notes": f"session {session_id[:8]}…",
-            }
-            cases.append(case)
-            case_id += 1
-        if case_id >= CASE_COUNT:
-            break
-
-    if not cases:
+    if not session_pairs:
         print("No golden cases extracted.", file=sys.stderr)
         return 1
+
+    # Round-robin across sessions for diversity
+    cases: list[dict] = []
+    case_id = 0
+    iters = {sid: iter(pairs) for sid, pairs in session_pairs.items()}
+    session_order = list(iters.keys())
+    exhausted = set()
+
+    while case_id < CASE_COUNT and len(exhausted) < len(session_order):
+        for sid in session_order:
+            if sid in exhausted:
+                continue
+            try:
+                _, query, resp_text = next(iters[sid])
+            except StopIteration:
+                exhausted.add(sid)
+                continue
+
+            short_query = query[:MAX_USER_LEN].rstrip()
+            resp_hash = _content_sha(resp_text[:MAX_CONTENT_HASH_LEN])
+            cases.append({
+                "id": f"case-{case_id + 1:03d}",
+                "query": short_query,
+                "required_session_keys": [sid],
+                "required_content_sha256": [resp_hash],
+                "k": 10,
+                "notes": f"session {sid[:8]}…",
+            })
+            case_id += 1
+            if case_id >= CASE_COUNT:
+                break
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     with open(OUTPUT, "w", encoding="utf-8") as f:
         for case in cases:
             f.write(json.dumps(case, ensure_ascii=False) + "\n")
 
-    print(f"Wrote {len(cases)} golden cases to {OUTPUT}")
+    print(f"Wrote {len(cases)} golden cases from {len(session_pairs)} sessions")
     return 0
 
 
