@@ -138,16 +138,14 @@ def main():
     write_observability(result, prompt, session_id, terminal_id, prev_task_type)
 
     if tier != current_tier and recommended_model and recommended_model != current_model:
-        action_mode = config.get('action', 'warn')
         rec_data = {'recommended_model': recommended_model, 'recommended_tier': tier,
                     'current_model': current_model, 'current_tier': current_tier,
-                    'action_mode': action_mode, 'written_at': datetime.now(timezone.utc).isoformat(),
+                    'written_at': datetime.now(timezone.utc).isoformat(),
                     'turn_counter': data.get('turn_counter', 0), 'consumed': False}
         write_recommendation(state_path, rec_data)
-        if action_mode == 'warn':
-            base = recommended_model.split('[')[0]
-            msg = f'[model-router-hook] Recommended {base} (current: {current_model}). Run /model {base} to switch.'
-            print(json.dumps({'systemMessage': msg}))
+        base = recommended_model.split('[')[0]
+        msg = f'[model-router-hook] Recommended {base} (current: {current_model}). CCR routes; this is informational.'
+        print(json.dumps({'systemMessage': msg}))
 
     try:
         log_file = pathlib.Path.home() / '.claude' / 'logs' / 'model-router.ndjson'

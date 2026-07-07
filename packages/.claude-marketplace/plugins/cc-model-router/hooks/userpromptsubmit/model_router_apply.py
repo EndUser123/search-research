@@ -1,26 +1,22 @@
 #!/usr/bin/env python3
-"""UserPromptSubmit hook: consume a stale autoswitch recommendation and switch
-the model BEFORE the next response is generated.
+"""UserPromptSubmit hook: consume a classify recommendation and record it.
 
-The old post-response autoswitch path forced a wasted turn + manual
-"press Up Enter" resend. This hook runs on UserPromptSubmit — before
-generation — so the new model is in effect for the *current* turn. This is
-the only autoswitch path.
+This hook no longer rewrites settings.json or changes the active model.
+CCR (ccr-custom-router.js) is the sole routing authority.  The apply hook
+exists only to:
+  - mark the recommendation as consumed (prevent double-fire)
+  - append an audit row for offline analysis / telemetry
+  - update the per-session config.json current_tier feedback
 
 States:
-  - no recommendation.json          -> no-op
-  - recommendation expired (>300s)   -> no-op
-  - recommendation already consumed -> no-op
-  - action_mode != autoswitch       -> no-op (warn path is owned by classify)
-  - recommended == current          -> no-op
-  - dry_run env var set             -> audit row only, no rewrite
-  - else                            -> atomic settings.json write + audit row
+  - no recommendation.json   -> no-op
+  - recommendation expired   -> no-op
+  - recommendation consumed  -> no-op
+  - recommended == current   -> no-op
+  - else                    -> consume + audit (no model change)
 
 Exit codes:
   0  always. We must NOT block the user prompt.
-
-Env vars:
-  MODEL_ROUTER_APPLY_DRY_RUN=1  -> audit only, no settings.json write.
 """
 
 import json
@@ -33,7 +29,7 @@ PLUGIN_ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
 if str(PLUGIN_ROOT / "__lib") not in sys.path:
     sys.path.insert(0, str(PLUGIN_ROOT / "__lib"))
 
-from settings_writer import atomic_write_json, derive_tier, read_settings, write_settings  # type: ignore[import-not-found]  # noqa: E402
+from settings_writer import atomic_write_json, derive_tier  # type: ignore[import-not-found]  # noqa: E402
 
 TTL_SECONDS = 300
 
@@ -151,33 +147,17 @@ def main() -> None:
     if rec.get("consumed"):
         sys.exit(0)
 
-    if rec.get("action_mode") != "autoswitch":
-        sys.exit(0)
-
     recommended = rec.get("recommended_model", "")
     current = rec.get("current_model", "")
     if not recommended or recommended == current:
         sys.exit(0)
 
-    dry_run = os.environ.get("MODEL_ROUTER_APPLY_DRY_RUN") == "1"
-
     base_recommended = recommended.split("[")[0]
     base_current = current.split("[")[0]
     if base_recommended == base_current:
-        # Suffix-only change (e.g. reasoning effort) is also a no-op.
         sys.exit(0)
 
     ts = datetime.now().isoformat()
-
-    # DISABLED: settings.json write removed (CCR is the single routing authority).
-    # CC reads settings.json["model"] once at session start and is not re-read
-    # mid-session, making this write inert for same-turn routing.  CCR's
-    # ccr-custom-router.js now handles all per-request routing via the
-    # task-bucket policy.
-    #
-    # Previous code atomically wrote settings.json["model"] here.  Removing
-    # it eliminates the independent model-switching path.  Telemetry and audit
-    # logging are preserved.
 
     mark_consumed(state_path)
 
@@ -185,18 +165,17 @@ def main() -> None:
         state_path,
         {
             "ts": ts,
-            "action_taken": "dry_run" if dry_run else "routing-delegated-to-CCR",
+            "action_taken": "logging-only",
             "current_model": current,
             "new_model": recommended,
             "terminal_id": terminal_id,
             "session_id": session_id,
-            "dry_run": dry_run,
         },
     )
 
     print(
         f"[model-router-apply] model={current} -> {recommended} "
-        f"(settings.json rewritten; dry_run={dry_run})",
+        f"(log-only, no settings.json write)",
         file=sys.stderr,
     )
     sys.exit(0)
