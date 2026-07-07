@@ -188,7 +188,9 @@
       "Bash(python)",
       "PowerShell(python \"P:/packages/.claude-marketplace/plugins/cc-skills-utils/scripts/plugin-audit-and-fix.py\" --bump cc-skills-sdlc 2>&1 | Select-Object -First 40)",
       "PowerShell(python \"P:/packages/.claude-marketplace/plugins/cc-skills-utils/scripts/plugin-audit-and-fix.py\" --bump cc-skills-sdlc --marketplace-root \"P:/packages/.claude-marketplace\" 2>&1 | Select-Object -First 40)",
-      "PowerShell(\\(Get-Content \"P:\\\\tmp\\\\goal_compact.txt\" -Raw\\).Length)"
+      "PowerShell(\\(Get-Content \"P:\\\\tmp\\\\goal_compact.txt\" -Raw\\).Length)",
+      "PowerShell(python P:/tmp/check_layer_placement.py)",
+      "PowerShell(python P:/tmp/check_discovery_merge.py)"
     ],
     "deny": [],
     "ask": []
