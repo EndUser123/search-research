@@ -103,6 +103,7 @@
       "mcp__plugin_context7_context7__resolve-library-id",
       "Bash(git -C *)",
       "Bash(curl -s *)",
+      "Bash(python3 *)",
       "Write(P:/.claude/.evidence/**)",
       "Write(P:/.claude/.staging/**)",
       "Write(P:/.claude/plans/**)",
@@ -122,11 +123,11 @@
       "Bash(rm -f P:/.claude/**/__pycache__/**)",
       "Bash(rm -rf P:/.claude/**/__pycache__/**)",
       "Bash(rm -f P:/packages/**/__pycache__/**)",
-      "Bash(rm -rf P:/packages/**/__pycache__/**)"
+      "Bash(rm -rf P:/packages/**/__pycache__/**)",
+      "Bash(powershell*)",
+      "Bash(pwsh*)"
     ],
     "ask": [
-      "Bash(powershell*)",
-      "Bash(pwsh*)",
       "Bash(cmd /*)",
       "Bash(perl*)",
       "Bash(ruby*)",

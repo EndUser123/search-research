@@ -192,7 +192,10 @@
       "PowerShell(python P:/tmp/check_layer_placement.py)",
       "PowerShell(python P:/tmp/check_discovery_merge.py)",
       "PowerShell(python P:/tmp/check_dryrun_trigger.py)",
-      "PowerShell(python P:/tmp/check_completion_authority.py)"
+      "PowerShell(python P:/tmp/check_completion_authority.py)",
+      "PowerShell(python \"P:/packages/.claude-marketplace/plugins/cc-skills-utils/scripts/plugin-audit-and-fix.py\" --bump cc-skills-sdlc --marketplace-root \"P:/packages/.claude-marketplace\" 2>&1)",
+      "PowerShell(Select-String -Path \"C:\\\\Users\\\\brsth\\\\.claude\\\\plugins\\\\cache\\\\local\\\\cc-skills-sdlc\\\\1.0.168\\\\skills\\\\go\\\\scripts\\\\preflight_propose.py\" -Pattern \"def apply_discovery_evidence_merge\" | ForEach-Object { $_.Line })",
+      "PowerShell(Select-String -Path \"C:\\\\Users\\\\brsth\\\\.claude\\\\plugins\\\\cache\\\\local\\\\cc-skills-sdlc\\\\1.0.168\\\\skills\\\\go\\\\scripts\\\\orchestrate.py\" -Pattern \"_apply_discovery_merge\" | ForEach-Object { $_.Line })"
     ],
     "deny": [],
     "ask": []

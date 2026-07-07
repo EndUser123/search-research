@@ -69,18 +69,22 @@ Evidence: parallel 8×50 → 400/400; baseline 1600/1600 ×2; fault-injection
 drop-branch 6/6 + BaseLockException injection 7/7. ensure_ascii kwarg added
 (stop_block_log uses False).
 
-### Phase 0.5 — Critical-tier expansion [IN PROGRESS]
-Scope: Option B — CRITICAL tier only, ~12 files: stop_gate_telemetry,
+### Phase 0.5 — Critical-tier expansion [DONE 2026-07-07]
+Scope: Option B — CRITICAL tier only. Migrated: stop_gate_telemetry,
 hook_runner, hook_error_sink, hook_importer, unified_evidence_enforcer,
-agentic_reliability_telemetry, gate_health, quality_log, evidence_store,
-verification_audit_logger, Stop.py (6 sites), PreToolUse.py (4 sites).
-Accepted variants: .open("a") method form (collapses to existing shapes);
-newline="\n" (evidence_store); encoding="ascii" → ensure_ascii=True
-(Stop.py:4232 — confirm no ascii-codec reader assumption).
+agentic_reliability_telemetry, gate_health, quality_log,
+verification_audit_logger, Stop.py (6 sites), PreToolUse.py (3 JSONL
+sites + 1 plain-text canary, debug, excluded).
+Accepted variants: .open("a") method form (collapses to existing shapes).
+Scoped OUT (see decisions ledger): evidence_store (TASK-010 zero-loss
+strategy strictly stronger); Stop.py:4232 ascii (sole reader
+regen_cap_stats.py:39 uses read_text utf-8/replace — ascii-safe,
+ensure_ascii=True confirmed correct).
 DEBUG tier: deferred task, gated on evidence (Phase 6 yield data or a
 dropped-trace investigation implicating a debug log). Not scheduled.
-Gate: read-verify each site pre-edit; one Evidence Packet; parallel test
-re-run through stop_gate_telemetry + hook_runner paths.
+Evidence Packet: analysis/phase_0_5_critical_tier_evidence_packet_20260707.md
+(per-site table, raw parallel-test output through stop_gate_telemetry +
+hook_runner paths, #906 auto-commit SHAs f4addf6/16966a4).
 
 ### Phase 1 — Gold replay corpus + runner [READY — fixtures located]
 5-transcript set from stop_blocks.jsonl metadata: 4897f5bd (epistemic
@@ -144,3 +148,20 @@ user approval. Note: any other "Phase 1+2 measurement (55d after
   on evidence, not calendar.
 - 2026-07-07: Phase 1 fixture substitution accepted — real gate-block
   transcripts beat imported chat transcripts.
+- 2026-07-07: PreToolUse.py count corrected — 3 JSONL sites migrated +
+  1 plain-text canary (L1215, `pretooluse_canary.log`, env-gated debug)
+  excluded. JSON-encoding the timestamped plain-text line would break the
+  canary's purpose. Scope read-down, not a missed site.
+- 2026-07-07: evidence_store scoped OUT — its temp-file zero-loss strategy
+  (TASK-010: FileLock(0.5s) + unique-per-ms-per-pid temp-file fallback at
+  evidence_store.py:484-513) is strictly stronger than append_jsonl_safe's
+  dropped-sidecar (lossy by design). Migration would regress a documented
+  fix. Scope-out, not a missed site.
+- 2026-07-07: Stop.py:4232 `ensure_ascii=True` confirmed safe — sole reader
+  `scripts/regen_cap_stats.py:39` uses `read_text(encoding="utf-8",
+  errors="replace")`; UTF-8 is a strict superset of ASCII so 7-bit-clean
+  output reads back losslessly. Grep-verified single reader.
+- 2026-07-07: Phase 6 note — evaluate whether evidence_store's temp-file
+  pattern should become the recommended shape for any log where loss is
+  later shown to matter. It is the stronger primitive (zero-loss vs
+  dropped-trace). Revisit at Phase 6 yield review (earliest ~2026-07-21).

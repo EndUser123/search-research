@@ -59,7 +59,7 @@ POC shapes matched (no fourth pattern introduced):
 
 | Site | Reason |
 |------|--------|
-| `__lib/evidence_store.py:490,509` (`newline='\n'`) | Defense-in-depth superior to `append_jsonl_safe`; newline kwarg shape is accepted variant, not the `open("a")` target. |
+| `__lib/evidence_store.py:490,509` | Temp-file zero-loss strategy (TASK-010: FileLock + unique-per-ms-per-pid fallback) strictly stronger than `append_jsonl_safe`'s dropped-sidecar; migration would regress a documented fix. See plan decisions ledger 2026-07-07. |
 | `Stop.py:4232` `encoding='ascii'` | Same write migrated; `encoding` collapses onto `ensure_ascii=True` (already passed). |
 | `PreToolUse.py:1218` canary | Plain-text `.log`, non-JSON — excluded from CRITICAL scope (debug tier). |
 | `hook_runner.py:70/88/438`, `PreToolUse.py:1221` | Plain-text writes — debug tier. |
