@@ -135,12 +135,15 @@ def main() -> int:
                 continue
 
             short_query = query[:MAX_USER_LEN].rstrip()
-            resp_hash = _content_sha(resp_text[:MAX_CONTENT_HASH_LEN])
+            # Pin session_key ONLY. The --golden-cases gate runs in
+            # semantic-sessions mode, where retrieved "content" is the session
+            # summary — a hash of the assistant response (let alone a truncated
+            # one) can never match, and an unmatchable required key caps every
+            # case at recall < 1.0, making the gate permanently red.
             cases.append({
                 "id": f"case-{case_id + 1:03d}",
                 "query": short_query,
                 "required_session_keys": [sid],
-                "required_content_sha256": [resp_hash],
                 "k": 10,
                 "notes": f"session {sid[:8]}…",
             })
