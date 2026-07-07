@@ -420,7 +420,7 @@ try {
         switch ($name) {
             "claude-opus-4-8"           { $label = "opus";        $chain = if ($fb) { $fb.think }       else { $null } }
             "claude-sonnet-5"           { $label = "sonnet";      $chain = if ($fb) { $fb.default }     else { $null } }
-            "claude-sonnet-4-6"         { $label = "sonnet(4.6)"; $chain = if ($fb) { $fb.default }     else { $null } }
+            "claude-sonnet-4-6"         { $label = "sonnet-5(legacy)"; $chain = $null }  # backward-compat alias; routes via claude-sonnet-5
             "claude-haiku-4-5"          { $label = "haiku";       $chain = if ($fb) { $fb.background }  else { $null } }
             "claude-haiku-4-5-20251001" { $label = "haiku(2025)"; $chain = if ($fb) { $fb.background }  else { $null } }
             "claude-local-ornith"       { $label = "custom";      $chain = $null }

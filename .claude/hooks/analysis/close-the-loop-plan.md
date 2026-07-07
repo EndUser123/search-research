@@ -23,6 +23,16 @@ existing mechanism can cover.
    - USER-ONLY (preference, approval, credential, intent): output
      `NEED: <exact question>` and stop.
    Read-only operations never require permission. Only mutations do.
+   2a. CROSS-SESSION/CONCURRENT STATE IS NOT AUTOMATICALLY USER-ONLY. Before
+   escalating "another session touched X" or "is the move done?": attempt
+   read-only disambiguation against a known manifest or expected inventory
+   (ls both locations, diff against the deliverable list). Escalate ONLY when
+   the observation is genuinely ambiguous — partial state, both locations
+   populated, inventory mismatch — and then report what the check SHOWED,
+   not just that you're blocked. "Another session touched X" triggers a
+   verification step, not a question. (Added 2026-07-07 after the evals-
+   relocation pause was over-applied: the move was fully discoverable by
+   ls + manifest match.)
 3. PERMISSION SCOPE. Pause only before: destructive actions, shared-helper
    edits, scope changes, budget overruns. "May I run a grep?" is never a
    valid question.
@@ -66,6 +76,16 @@ existing mechanism can cover.
 - Auto-commit hook #906 commits mid-session without authorization —
   task #1256 filed (evidence: 1a82d79, 7f4b9dc; recurring_pattern,
   BLOCK severity). Until fixed: record auto-commit SHAs in packets.
+- **Gold corpus canonical path: `P:/.data/evals/`** (verified 2026-07-07).
+  Phase 1 corpus relocated from `P:/.claude/hooks/evals/` → `P:/.data/evals/`
+  to escape Claude Code's hardcoded `.claude` write-protection. Verification:
+  ls target = 4 gold fixtures (0f183615, 4897f5bd, a07ff025, b2014a6e) +
+  extract_fixtures.py + replay_eval.py + test_replay_eval_corrupt.py +
+  misses.jsonl (8/8 manifest items); ls source = absent. .claude subtree is
+  write-protected; relocation is the only fix. Future reference convention:
+  evals → `P:/.data/evals/`, never under `.claude/`. Expiry-on-relocation
+  applies to any subsequent move — re-run the manifest check + update this
+  fact on every move.
 
 ## Phases and status
 
@@ -118,6 +138,11 @@ last-verified | expiry trigger. Sessionstart injection via cc-aca-session
 `[STALE — reverify: <cmd>]`, never dropped or silently trusted. Add
 cumulative injection budget across injectors (ground truth +
 mechanism_manifest protected; recall segments truncate first).
+
+**Seed entry (first row of the ground-truth table):**
+| fact | source | verification command | last-verified | expiry trigger |
+|------|--------|----------------------|---------------|----------------|
+| Gold corpus canonical path = `P:/.data/evals/` | `ls P:/.data/evals/` + manifest match (4 fixtures + 3 .py + misses.jsonl) | `ls P:/.data/evals/ P:/.data/evals/gold/` | 2026-07-07 | any `evals/` relocation — re-run manifest check + update this row + the verified-facts block |
 
 ### Phase 3 — External-fact claim shape [PENDING]
 In verification/engine.py + claims.py (TASK-012 pattern). NO new gate file.
