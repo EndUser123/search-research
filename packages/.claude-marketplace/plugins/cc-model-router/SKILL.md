@@ -1,7 +1,7 @@
 ---
 name: cc-model-router
-version: "0.2.0"
-status: "stable"
+version: "0.2.13"
+status: "active"
 description: Automatic model-tier routing (haiku/sonnet/opus) based on prompt complexity heuristics
 category: infrastructure
 enforcement: advisory
@@ -11,7 +11,7 @@ workflow_steps:
     description: "model_router_classify.py scores the prompt and writes recommendation.json"
   - name: Apply
     trigger: "UserPromptSubmit"
-    description: "model_router_apply.py consumes the recommendation and rewrites settings.json before the next response is generated (v0.2.0+)"
+    description: "model_router_apply.py consumes the recommendation and rewrites settings.json. NON-COMPLIANT for same-turn switching — see 'Routing contract' below."
 triggers:
   - autoswitch
   - model-router
@@ -50,17 +50,68 @@ SystemMessage injected into prompt when complexity threshold exceeded.
 }
 ```
 
-UserPromptSubmit apply hook (v0.2.0+) rewrites `settings.json` before
-generation, so the new model is in effect for the **current** turn.
-Autoswitch is handled entirely in that apply step.
+UserPromptSubmit apply hook rewrites `settings.json["model"]`. This is
+**non-compliant for same-turn switching** — see the routing contract
+below. The hook still ships because the audit path and classify logic
+are reused by the redesign; the write itself is inert mid-session.
 
-Set `MODEL_ROUTER_APPLY_DRY_RUN=1` in the environment to log the would-be
-switch to `apply_audit.jsonl` without touching `settings.json`. Use this
-for 3+ sessions to verify the harness actually picks up the per-turn
-rewrite (the falsification test the design identifies) before flipping
-to live mode.
+## Routing contract (read before reasoning about this plugin)
 
-Audit log: `.claude/state/model-router/apply_audit.jsonl`
+Hard fact from CC docs ([code.claude.com/docs/en/settings](https://code.claude.com/docs/en/settings)):
+
+- CC reads `settings.json["model"]` **once at session start**. `model` is a
+  documented hot-reload **exception** — edits apply on next restart, not
+  mid-session. `/model` and `ANTHROPIC_MODEL` are the live mid-session
+  controls (in-memory override / startup env), not the file.
+
+CC vs CCR authority split (stable mental model):
+
+- **CC** caches `model` at session start and sends it as `req.body.model` —
+  a *label*, not the final route.
+- **CCR** (Claude Code Router, `~/.claude-code-router/config.json`) is the
+  per-request routing authority. It maps that label (and `default` /
+  `background` / `think` / `longContext` slots, `longContextThreshold`) to a
+  backend provider+model. A `CUSTOM_ROUTER_PATH` module runs before the
+  default Router and can return a different route per request.
+- Hooks (this plugin) produce **hints / config writes**, never an override
+  of CCR's Router rules. If a hook writes a model CCR has no slot for, CCR's
+  `default` slot decides — always work that gate question.
+
+Design requirement for any same-turn autoswitch:
+
+- Place the decision **at request time, inside CCR** (`CUSTOM_ROUTER_PATH`),
+  not in a file CC only reads at startup. Treat hook outputs (tier hints,
+  signal files) as **inputs to CCR's router function**, not standalone
+  routing decisions.
+- "Fast enough" = decision at `UserPromptSubmit`, effect on the **next**
+  request CCR builds. Never propose mid-request swaps, and never claim
+  "current turn" without source or a falsification test.
+
+Two load-bearing **hypotheses** (unverified — require tests before any
+"meets the goal" claim):
+
+- **H-A:** CC never re-reads `settings.json["model"]` mid-session → the
+  current apply path is inert for same-turn routing.
+- **H-B:** CCR invokes `CUSTOM_ROUTER_PATH` on every request **including
+  intra-turn tool-call round-trips** (not once-per-turn with a cached
+  result). If CCR caches the route per turn, a persistent "background" hint
+  poisons every tool call in the turn (STATE-3 turn-poisoning).
+
+Falsification tests (gates — no success claim until these run):
+
+1. **Settings cadence (H-A):** set `MODEL_ROUTER_APPLY_DRY_RUN=1` for ≥3
+   sessions; join `apply_audit.jsonl` (`new_model`) against CCR's request
+   log (the model actually routed). Match → write reaches the turn;
+   mismatch → inert, apply path must move into CCR.
+2. **CCR cadence (H-B):** add an entry counter to `ccr-custom-router.js`'s
+   `router()`; confirm per-turn `router()` call count equals per-turn
+   request count. If fewer, CCR caches per turn and the hint must be
+   consume-once-per-prompt (unlink-after-read) inside the router.
+
+Current code is **non-compliant with the same-turn goal** until
+`ccr-custom-router.js` v2 (hint-read + tier→provider map +
+consume-on-read) exists and both tests pass. Audit log:
+`.claude/state/model-router/apply_audit.jsonl`.
 
 ## Configuration
 
