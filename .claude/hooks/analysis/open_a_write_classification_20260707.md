@@ -6,8 +6,24 @@ that contains an `open(..., "a")` write into **critical / debug / evidence-scrat
 so the Phase 0 POC and Phase 0.5 expansion have a committed target list — not a
 re-derived one.
 
-**Source list:** 63 files matched by `grep 'open([^)]*["'\'']a["'\''])'` over
-`P:/.claude/hooks/` on 2026-07-07. This doc is that list, classified.
+**Scan methodology (re-verified 2026-07-07):**
+
+| Metric | String-scan (undercount) | AST + method-call (committed) |
+|--------|--------------------------|-------------------------------|
+| Files matched | 63 | **75** unique call-sites across all `.py` files |
+| Forms covered | `open("...")` builtin only | `open("a")` builtin + `.open("a")` Path-method |
+
+The 63-file string-scan missed the `.open("a", ...)` method-form (the AST scan
+captures 14 method-form sites alone). The committed total of 75 sites is the
+AST+method-call scan — that is the source of truth for this classification.
+
+**Scan logic (verified via direct execution):** `python -c "..."` over
+`pathlib.Path('.').rglob('*.py')`, excluding `__pycache__` and `.git`; for each
+`ast.Call` node, flag as `a`-append if either:
+1. `func` is `ast.Name` `open` AND any positional arg OR `mode=` kwarg is the
+   string literal `'a'`, OR
+2. `func` is `ast.Attribute` `.open` AND first positional arg is the string
+   literal `'a'`.
 
 **Evidence-level key** (Language Precision Rules apply):
 - **[READ]** = the write site was opened and the `open("a")` line + its enclosing
@@ -22,12 +38,22 @@ re-derived one.
   Cross-process-safe via `portalocker` `FileLock` on a `.lock` sidecar. Raises
   `TimeoutError` (a subclass of `OSError`) on lock-exhaustion — callers narrow
   enclosing handlers to `OSError`, NOT to a bespoke `LockRetryExhausted`.
+- `append_jsonl_safe(log_path, entry, *, ensure_ascii=True) -> bool` lives at
+  `__lib/file_lock.py:85-113`. Wraps `append_jsonl` with a dropped-trace sidecar
+  at `<log>.dropped.jsonl`, returns True/False.
 - `log_hook.py` lives at the **hook root** (`P:/.claude/hooks/log_hook.py`), NOT
   under `__lib/`. It carries its OWN retry scheme (`_retry_on_locked` +
   `LockRetryExhausted` + `O_EXCL` `get_lock`), distinct from `append_jsonl`.
   It is a migration candidate, not a reference implementation.
-- Scope is **~25 critical sites across ~25 files**, not the "6" the original plan
-  stated. The POC migrates 3; Phase 0.5 migrates the remainder.
+- Scope is **19 critical sites across 10 files**, not the "6" the original plan
+  stated. The POC migrates 4; Phase 0.5 migrates the remaining 15.
+
+**Misses-ledger:**
+- The original 63-file count used `grep 'open([^)]*"a'[^)])' )'` — a string scan
+  limited to the `open("...")` builtin form. The `Path.open("a", ...)` method form
+  (used in `stop_gate_telemetry.py`, `Stop.py`, `verification_audit_logger.py`,
+  and other files) is invisible to that pattern. Fixed by adopting the AST +
+  method-call scan above.
 
 ---
 

@@ -317,9 +317,9 @@ def _log_skill_first_event(
     for path in candidates:
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
-            with path.open("a", encoding="utf-8") as fh:
-                fh.write(line)
-            return
+            from file_lock import append_jsonl_safe
+            if append_jsonl_safe(path, payload, ensure_ascii=True):
+                return
         except OSError:
             continue
 
@@ -658,18 +658,18 @@ def _check_skill_first_gate(data: dict) -> dict | None:
     if intent_file is not None:
         try:
             _SKILL_FIRST_INTENT_READ_PROBE.parent.mkdir(parents=True, exist_ok=True)
-            with _SKILL_FIRST_INTENT_READ_PROBE.open("a", encoding="utf-8") as _pf:
-                _pf.write(json.dumps({
-                    "ts": datetime.now().isoformat(timespec="milliseconds"),
-                    "pid": os.getpid(),
-                    "tool": data.get("tool_name", ""),
-                    "session_id": session_id or "",
-                    "terminal_id_raw": terminal_id or "",
-                    "safe_terminal": safe_terminal,
-                    "resolved_path": str(intent_file),
-                    "format": _format_desc,
-                }, ensure_ascii=False) + "\n")
-        except Exception:
+            from file_lock import append_jsonl_safe
+            append_jsonl_safe(_SKILL_FIRST_INTENT_READ_PROBE, {
+                "ts": datetime.now().isoformat(timespec="milliseconds"),
+                "pid": os.getpid(),
+                "tool": data.get("tool_name", ""),
+                "session_id": session_id or "",
+                "terminal_id_raw": terminal_id or "",
+                "safe_terminal": safe_terminal,
+                "resolved_path": str(intent_file),
+                "format": _format_desc,
+            }, ensure_ascii=False)
+        except OSError:
             pass  # probe must never break the gate
 
     if not intent_file:
@@ -997,20 +997,14 @@ def run_hook(hook_name: str, data: dict, correlation_id: str | None = None) -> d
 
                 _diag_dir = HOOKS_DIR / "logs" / "diagnostics"
                 _diag_dir.mkdir(parents=True, exist_ok=True)
-                with open(_diag_dir / "content_filter_skips.jsonl", "a", encoding="utf-8") as _f:
-                    _f.write(
-                        json.dumps(
-                            {
-                                "ts": _t.strftime("%Y-%m-%dT%H:%M:%S"),
-                                "hook": hook_name,
-                                "command_preview": command[:80] if command else "",
-                                "patterns": patterns,
-                            },
-                            ensure_ascii=False,
-                        )
-                        + "\n"
-                    )
-            except Exception:
+                from file_lock import append_jsonl_safe
+                append_jsonl_safe(_diag_dir / "content_filter_skips.jsonl", {
+                    "ts": _t.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "hook": hook_name,
+                    "command_preview": command[:80] if command else "",
+                    "patterns": patterns,
+                }, ensure_ascii=False)
+            except OSError:
                 pass  # Logging failure is non-fatal
             return None  # Content not relevant to this hook
 

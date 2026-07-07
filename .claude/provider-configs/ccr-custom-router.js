@@ -88,6 +88,14 @@ function getThreshold(config, mode) {
   return thresholds[mode] || (mode === "aggressive" ? 0.90 : 0.65);
 }
 
+function getTokenBudget(config, route) {
+  // Per-model token budget (approx). Defined in config.tokenBudgets.
+  // Falls back to defaultFallback if no per-route budget configured.
+  if (!config || !config.tokenBudgets) return null;
+  const budgets = config.tokenBudgets;
+  return budgets[route] ?? budgets.defaultFallback ?? null;
+}
+
 function emitRouteChange(newRoute, reason, req, extras) {
   const prev = readJsonSafe(ROUTE_STATE_FILE);
   if (prev && prev.route === newRoute) return; // No change, no emission
@@ -181,10 +189,17 @@ module.exports = async function router(req, config) {
     return null; // CCR's default Router handles background slot
   }
 
-  // --- Reasoning/planning: GLM-5.2 ---
+  // --- Reasoning/planning: GLM-5.2 (with token-budget check) ---
   if (taskType === "reasoning") {
     const route = "zai,glm-5.2";
-    emitRouteChange(route, "reasoning — GLM-5.2", req);
+    const budget = getTokenBudget(config, route);
+    if (budget && tokenCount > budget) {
+      // Too large for GLM-5.2 — fall back to M3 with a logged reason
+      const fallbackRoute = "minimax,MiniMax-M3[1m]";
+      emitRouteChange(fallbackRoute, `token-budget: ${tokenCount} > ${budget} for ${route}, fell back to M3`, req);
+      return fallbackRoute;
+    }
+    emitRouteChange(route, `reasoning — GLM-5.2 (tokenCount=${tokenCount}, budget=${budget})`, req);
     return route;
   }
 

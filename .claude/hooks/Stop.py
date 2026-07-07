@@ -4229,9 +4229,9 @@ def _log_regen_iteration(data: dict, gate_name: str, count: int, tripped: bool) 
         }
         p = HOOKS_DIR / "logs" / "diagnostics" / "regen_cap_telemetry.jsonl"
         p.parent.mkdir(parents=True, exist_ok=True)
-        with p.open("a", encoding="ascii") as f:
-            f.write(json.dumps(rec, ensure_ascii=True) + "\n")
-    except Exception:
+        from file_lock import append_jsonl_safe
+        append_jsonl_safe(p, rec, ensure_ascii=True)
+    except OSError:
         pass
 
 
