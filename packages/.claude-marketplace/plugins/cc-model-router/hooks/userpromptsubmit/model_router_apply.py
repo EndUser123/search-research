@@ -168,26 +168,16 @@ def main() -> None:
         sys.exit(0)
 
     ts = datetime.now().isoformat()
-    if not dry_run:
-        settings = read_settings()
-        settings["model"] = recommended
-        try:
-            write_settings(settings)
-        except Exception as e:
-            append_audit(
-                state_path,
-                {
-                    "ts": ts,
-                    "action_taken": "error",
-                    "current_model": current,
-                    "new_model": recommended,
-                    "error": str(e),
-                    "terminal_id": terminal_id,
-                    "session_id": session_id,
-                },
-            )
-            sys.exit(0)
-        update_state_tier(state_path, recommended)
+
+    # DISABLED: settings.json write removed (CCR is the single routing authority).
+    # CC reads settings.json["model"] once at session start and is not re-read
+    # mid-session, making this write inert for same-turn routing.  CCR's
+    # ccr-custom-router.js now handles all per-request routing via the
+    # task-bucket policy.
+    #
+    # Previous code atomically wrote settings.json["model"] here.  Removing
+    # it eliminates the independent model-switching path.  Telemetry and audit
+    # logging are preserved.
 
     mark_consumed(state_path)
 
@@ -195,7 +185,7 @@ def main() -> None:
         state_path,
         {
             "ts": ts,
-            "action_taken": "would_have_applied" if dry_run else "applied",
+            "action_taken": "dry_run" if dry_run else "routing-delegated-to-CCR",
             "current_model": current,
             "new_model": recommended,
             "terminal_id": terminal_id,

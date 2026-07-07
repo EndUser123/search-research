@@ -1,6 +1,6 @@
 {
   "name": "cc-model-router",
-  "version": "0.2.18",
+  "version": "0.2.19",
   "description": "Model router: classify prompts and auto-switch between haiku/sonnet/opus",
   "keywords": [
     "model",
