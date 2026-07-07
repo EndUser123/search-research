@@ -5,79 +5,139 @@ $model = "P:\packages\models\ornith-1.0-9b-Q4_K_M.gguf"
 $watcherScript = "P:\packages\installers\watch-system.ps1"
 $watcherLog   = "P:\packages\installers\system_watch.log"
 $modelStateFile = "P:\.claude\state\local-model-state.json"
+$llamaLog      = "P:\packages\installers\ornith-server.log"
 $endpoint = "http://127.0.0.1:8010"
 $modelId = "ornith-1.0-9b"
 
-# --- Parse n_ctx_slot from llama-server stdout and write local-model-state.json ---
-# Called by Start-CCRProcess / cc-ccr.ps1 after llama-server is known to be up.
-# Reads the server log (or health endpoint) to extract runtime context size,
-# then writes a multi-model-ready JSON file for ccr-custom-router.js.
+# --- Update local-model-state.json from llama-server's actual runtime output ---
+# llama-server prints startup log lines including the EFFECTIVE `n_ctx_slot`
+# (after n_parallel division). That value is the routing truth, not the
+# `-c` flag (which sets total n_ctx). We capture the log and parse it.
+#
+# Sources of n_ctx (in priority order):
+#   1. llama-server stdout (captured to $llamaLog) — printed as "n_ctx_slot = 65536"
+#   2. llama-server /health structured endpoint (if available)
+#   3. process command line `-c N` or `--ctx-size N` (proxy only)
 function Update-LocalModelState {
   param([string]$ServerUrl = $endpoint)
 
-  # Try /health first (fast, structured)
-  try {
-    $health = Invoke-RestMethod -Uri "$ServerUrl/health" -TimeoutSec 3 -ErrorAction Stop
-    # llama-server /health returns { status: "ok", slots: [...] } or similar
-    # The exact schema varies by build; fall through to log parsing if missing
-  } catch {}
+  $nCtxSlot = $null
+  $source = "none"
 
-  # Parse from llama-server process output (most reliable for n_ctx_slot)
-  $nCtx = $null
-  $proc = Get-Process -Name "llama-server" -ErrorAction SilentlyContinue |
-    Where-Object {
-      try {
-        $cmd = (Get-CimInstance Win32_Process -Filter "ProcessId=$($_.Id)" -ErrorAction Stop).CommandLine
-        $cmd -match "ornith|8010"
-      } catch { $false }
-    } | Select-Object -First 1
-
-  if ($proc) {
-    # Read stderr/stdout log if redirected; otherwise parse from command line -c value
+  # Source 1: parse from captured llama-server log (most authoritative)
+  if ((Test-Path $llamaLog) -and ((Get-Item $llamaLog).Length -gt 0)) {
     try {
-      $cmdLine = (Get-CimInstance Win32_Process -Filter "ProcessId=$($proc.Id)").CommandLine
-      if ($cmdLine -match '(?:-c|--ctx-size)\s+(\d+)') {
-        $nCtx = [int]$Matches[1]
+      # llama-server typically prints:
+      #   "slot 0: prompt eval time =     x ms /    N tokens (   0.0 tokens per request)"
+      # and the context size is reported as "n_ctx" or "n_ctx_slot".
+      # Match the literal substring exactly.
+      $logContent = Get-Content $llamaLog -Raw -ErrorAction Stop
+      # Look for "n_ctx = N", "n_ctx_slot = N", or "context size = N"
+      $patterns = @(
+        'n_ctx_slot\s*=\s*(\d+)',
+        'n_ctx\s*=\s*(\d+)\s',
+        'context size\s*=\s*(\d+)',
+        'set\s+threads,\s*n_ctx\s*=\s*(\d+)'
+      )
+      foreach ($pat in $patterns) {
+        if ($logContent -match $pat) {
+          $nCtxSlot = [int]$Matches[1]
+          $source = "llama-server log: $pat"
+          break
+        }
+      }
+    } catch {}
+  }
+
+  # Source 2: process command line as fallback (proxy only, may mislead if --parallel > 1)
+  if (-not $nCtxSlot) {
+    try {
+      $proc = Get-Process -Name "llama-server" -ErrorAction SilentlyContinue | Select-Object -First 1
+      if ($proc) {
+        $cmdLine = (Get-CimInstance Win32_Process -Filter "ProcessId=$($proc.Id)" -ErrorAction Stop).CommandLine
+        if ($cmdLine -match '(?:-c|--ctx-size)\s+(\d+)') {
+          $nCtxSlot = [int]$Matches[1]
+          $source = "process command line (proxy)"
+        }
       }
     } catch {}
   }
 
   # Write state file (multi-model-ready schema)
   $now = (Get-Date).ToString("o")
-  $state = if ($nCtx) {
-    @{
+  if ($nCtxSlot) {
+    $state = @{
       models = @(@{
         id = $modelId
         endpoint = $endpoint
-        maxContextTokens = $nCtx
+        maxContextTokens = $nCtxSlot
+        source = $source
         started_at = $now
       })
       active_model = $modelId
       updated_at = $now
     }
   } else {
-    @{
+    $state = @{
       models = @()
       active_model = $null
       updated_at = $now
-      error = "n_ctx_slot not detected — llama-server may not be running"
+      error = "n_ctx not detected — checked llama-server log and process command line"
     }
   }
 
   $state | ConvertTo-Json -Depth 5 | Set-Content -Path $modelStateFile -Encoding UTF8
-  Write-Host "[local-model-state] Written to $modelStateFile (maxContextTokens=$nCtx)"
+  Write-Host "[local-model-state] maxContextTokens=$nCtxSlot (source: $source)"
+  Write-Host "[local-model-state] Written to $modelStateFile"
 }
 
 # Start system-watcher in background (hidden PowerShell window)
 Remove-Item $watcherLog -ErrorAction SilentlyContinue
+Remove-Item $llamaLog -ErrorAction SilentlyContinue
 $watcher = Start-Process powershell.exe -ArgumentList "-NoProfile -File `"$watcherScript`"" -WindowStyle Hidden -PassThru
 Write-Host "System watcher started (PID $($watcher.Id)) — log: $watcherLog"
 
 Write-Host "Starting llama-server with Ornith-1.0-9B on $endpoint"
+Write-Host "Log: $llamaLog"
 Write-Host "Press Ctrl+C to stop."
 
+# Launch llama-server in background with stdout/stderr captured to file.
+# Run in foreground would lose the log; tee via Start-Process preserves both.
+$llamaArgs = @("-m", "$model", "-ngl", "99", "-c", "65536", "-t", "6",
+               "--parallel", "1", "-fa", "on", "-ctk", "q4_0", "-ctv", "q4_0",
+               "-b", "2048", "-ub", "1024", "--reasoning-preserve", "--jinja",
+               "--temp", "0.6", "--top-p", "0.95", "--top-k", "20",
+               "--host", "127.0.0.1", "--port", "8010")
+
 try {
-  & "$bin\llama-server.exe" -m "$model" -ngl 99 -c 65536 -t 6 --parallel 1 -fa on -ctk q4_0 -ctv q4_0 -b 2048 -ub 1024 --reasoning-preserve --jinja --temp 0.6 --top-p 0.95 --top-k 20 --host 127.0.0.1 --port 8010
+  $procHandle = Start-Process -FilePath "$bin\llama-server.exe" `
+                              -ArgumentList $llamaArgs `
+                              -RedirectStandardOutput $llamaLog `
+                              -RedirectStandardError "$llamaLog.err" `
+                              -NoNewWindow -PassThru -WorkingDirectory (Split-Path $bin)
+  Write-Host "llama-server started (PID $($procHandle.Id))"
+
+  # Wait for the server to be reachable, then update local-model-state
+  $ready = $false
+  for ($i = 0; $i -lt 30; $i++) {
+    Start-Sleep -Seconds 1
+    try {
+      $r = Invoke-WebRequest -Uri "$endpoint/health" -TimeoutSec 1 -ErrorAction Stop
+      if ($r.StatusCode -eq 200) {
+        $ready = $true
+        Write-Host "llama-server health OK after ${i}s"
+        break
+      }
+    } catch {}
+  }
+  if ($ready) {
+    Update-LocalModelState
+  } else {
+    Write-Warning "[local-model-state] llama-server did not respond within 30s — state file not updated"
+  }
+
+  # Block until llama-server exits
+  Wait-Process -Id $procHandle.Id -ErrorAction SilentlyContinue
 }
 finally {
   # Update local model state on exit (mark as stopped)
@@ -85,6 +145,7 @@ finally {
     models = @()
     active_model = $null
     updated_at = (Get-Date).ToString("o")
+    error = "llama-server stopped"
   }
   $stopState | ConvertTo-Json -Depth 5 | Set-Content -Path $modelStateFile -Encoding UTF8
   Write-Host "[local-model-state] Cleared (server stopped)"
