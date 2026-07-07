@@ -298,6 +298,18 @@ levels, or hide unresolved items under a "constraints satisfied" header.
 A BLOCK verdict is the correct outcome when any non-`NOT_APPLICABLE`
 ledger row is `NOT_PROVEN` (per the contract's rule 9).
 
+## Thought Partner Addendum
+
+After the verdict, emit a Thought Partner Addendum (TPA) when the review
+surfaced a residual risk that would change trust, sequencing, or scope and
+that the user did not raise. Each item carries `observation`, `why_it_matters`,
+`evidence`, `recommended_action`, `urgency: now | later | watch`. Do NOT
+displace the PROCEED / REVISE / BLOCK verdict or the mandatory CEC ledger —
+the TPA is a trailing aside. Omit it when there is nothing material beyond the
+verdict. Canonical contract + worked examples at
+`debrief/references/thought-partner-addendum.md` (canonical owner: `/improve`).
+The TPA is prompt-advisory only.
+
 ## Cross-Skill Transfer Check (XSTC)
 
 **Advisory status:** XSTC discipline is currently prompt-advisory only.
