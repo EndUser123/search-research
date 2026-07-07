@@ -86,6 +86,7 @@
       "Edit",
       "MultiEdit",
       "Read(P:/**)",
+      "PowerShell(python *)",
       "Write(P:/.claude/**)",
       "Edit(P:/.claude/**)",
       "mcp__plugin_serena_serena__find_symbol",
