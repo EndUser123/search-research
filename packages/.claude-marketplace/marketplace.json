@@ -43,7 +43,7 @@
     },
     {
       "name": "skill-creator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "description": "LOCAL FORK of Anthropic's skill-creator \u2014 eval-driven skill authoring loop. Forked so customizations survive upstream updates. See FORK_RATIONALE.md.",
       "source": "./plugins/skill-creator",
       "keywords": [
