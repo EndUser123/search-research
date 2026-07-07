@@ -43,7 +43,7 @@ decisions, or multi-terminal turn-state correctness. **Phase 0 + Phase 0.5 scope
 | 1 | `__lib/stop_block_log.py:122` | `stop_blocks.jsonl` — THE canonical Stop-block log; sole source for retirement decisions per the 2026-07-06 addendum | `except Exception: pass` at L124 — **broad swallow, must narrow to `except OSError: pass`** (Amendment 1) | **[READ]** |
 | 2 | `__lib/hook_ledger.py:65` | `hook_ledger_anomalies.jsonl` (`_log_anomaly`) | `except OSError: pass` at L77 — **already narrow** (`TimeoutError` ⊂ `OSError`); write-path migration only | **[READ]** |
 | 2 | `__lib/hook_ledger.py:341` | `hook_ledger_spool/events_*.jsonl` (`_append_spool_record`) — turn-event fallback when SQLite unavailable | `except OSError: return False` at L344 — **already narrow**; write-path migration only | **[READ]** |
-| 3 | `Stop.py:223` | `skill_first_enforcement.jsonl` (`_log_skill_first_inline_bypass`) — records each inline-bypass verdict | `except OSError: continue` in candidate loop at L226 — **already narrow**; write-path migration only | **[READ]** |
+| 3 | `Stop.py:223` | `skill_first_enforcement.jsonl` (`_log_skill_first_stop_event`) — records each inline-bypass verdict (reason_code `E_SKILL_FIRST_INLINE_BYPASS`) | `except OSError: continue` in candidate loop at L226 — **already narrow**; write-path migration only | **[READ]** |
 | 3 | `Stop.py:321` | `anti_sycophancy_violations.jsonl` (`_append_anti_sycophancy_log`) — records each anti-sycophancy verdict | `except OSError: continue` at L324 — **already narrow**; write-path migration only | **[READ]** |
 
 **POC note:** Stop.py's `_log_stop_block_event` (def L230) does NOT use `open("a")` —
@@ -149,6 +149,13 @@ For each migrated site, the Evidence Packet shows BOTH:
 `ensure_ascii=False` (deliberate — preserves UTF-8 in `reason`/`matched_span`).
 `hook_ledger` sites use `ensure_ascii=True`. Stop.py POC sites use
 `ensure_ascii=True`. Resolution decided at POC time (see plan handoff).
+
+**Spool byte-size change (item 3, accepted 2026-07-07):** migrating
+`hook_ledger._append_spool_record` to `append_jsonl_safe` dropped the prior
+`separators=(",", ":")` (compact) and explicit `newline="\n"`. The helper uses
+`json.dumps()` default separators (with ascii whitespace) + `"\n"`, so spool
+rows are slightly larger bytes. Functionally equivalent for JSONL parsing. If a
+future "spool got bigger / disk usage spiked" investigation starts, start here.
 
 ## Integration proof
 
