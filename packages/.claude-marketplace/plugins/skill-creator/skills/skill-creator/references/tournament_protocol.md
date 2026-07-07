@@ -57,3 +57,19 @@ call the comparator as the per-match judge.
 - The ranking is deterministic (a measurable score exists) — sort, don't judge.
 - The decision is hard to reverse and architectural — get a second opinion
   blind to the framing first (Recommendation Rule), then tournament the survivors.
+
+## Verification (cold-start)
+
+```bash
+# 1) Pin the bracket invariant (N items -> exactly N-1 real matches, 1 champion):
+python -m pytest plugins/skill-creator/skills/skill-creator/tests/test_tournament.py -q
+# expect: 8 passed
+
+# 2) The CLI selfcheck (no pytest):
+python plugins/skill-creator/skills/skill-creator/scripts/tournament.py selfcheck
+
+# 3) Print a first-round pairing + match budget for N candidates:
+python plugins/skill-creator/skills/skill-creator/scripts/tournament.py 5
+# expect: "N=5  budget=4 real matches" and 3 pairs (last is a BYE).
+```
+
