@@ -77,13 +77,11 @@ def _run_hook(stdin_json: dict) -> subprocess.CompletedProcess:
 # ----------------------------- regression test -----------------------------
 
 
-def test_apply_switches_model_before_response(
+def test_apply_logs_and_consumes_recommendation(
     tmp_state_dir, fake_home
 ):
-    """Regression: a stale autoswitch recommendation must rewrite settings.json
-    during UserPromptSubmit, not after Stop. If the hook only runs at Stop, the
-    user pays a wasted turn — this is the failure the new design fixes.
-    """
+    """A valid recommendation is consumed and logged, but settings.json is untouched
+    (CCR is the sole routing authority)."""
     state_dir = (
         tmp_state_dir / ".claude" / "state" / "model-router" / "term1" / "sess1"
     )
@@ -105,26 +103,30 @@ def test_apply_switches_model_before_response(
     # The hook must NOT block the prompt.
     assert result.returncode == 0, f"hook blocked the prompt: {result.stderr}"
 
-    # settings.json must already reflect the new model — this is the load-bearing
-    # assertion: the model is in effect for the *current* turn.
+    # CCR is the sole routing authority — settings.json is NEVER rewritten.
     settings = json.loads((fake_home / ".claude" / "settings.json").read_text())
-    assert settings["model"] == "claude-haiku-4-5", (
-        f"settings.json model was {settings.get('model')!r}; "
-        "UPS hook failed to switch before generation — would force Stop-resend"
+    assert settings["model"] == "claude-sonnet-4-6", (
+        f"settings.json was modified to {settings.get('model')!r}; "
+        "apply hook must not rewrite settings.json"
     )
 
     # Recommendation must be marked consumed so a replay won't re-apply it.
     rec = json.loads((state_dir / "recommendation.json").read_text())
     assert rec["consumed"] is True
 
+    # Audit log must contain an entry.
+    audit = tmp_state_dir / ".claude" / "state" / "model-router" / "apply_audit.jsonl"
+    assert audit.exists(), "audit log should exist"
+    lines = audit.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) >= 1, f"audit log is empty: {audit}"
+    entry = json.loads(lines[-1])
+    assert entry.get("action_taken") == "logging-only"
+    assert entry.get("new_model") == "claude-haiku-4-5"
 
-def test_apply_refreshes_state_tier_to_stop_thrash(tmp_state_dir, fake_home):
-    """Regression for the thrash bug: after a real apply, config.json's
-    current_tier/current_model must advance to the new model. Before this
-    fix, only SessionStart ever wrote that file, so classify.py kept
-    comparing every later prompt against the session's original tier and
-    re-triggered the same switch forever (10+ applies/session in the wild).
-    """
+
+def test_apply_does_not_write_state_tier(tmp_state_dir, fake_home):
+    """Apply hook does NOT update config.json state tier — CCR is the sole
+    routing authority. The state tier is a SessionStart-only snapshot."""
     state_dir = (
         tmp_state_dir / ".claude" / "state" / "model-router" / "term1" / "sess1"
     )
@@ -148,13 +150,21 @@ def test_apply_refreshes_state_tier_to_stop_thrash(tmp_state_dir, fake_home):
     )
     assert result.returncode == 0
 
+    # State tier is NOT updated by apply — CCR owns routing.
     state = json.loads((state_dir / "config.json").read_text())
-    assert state["current_tier"] == "opus", (
+    assert state["current_tier"] == "sonnet", (
         f"config.json current_tier was {state.get('current_tier')!r}; "
-        "classify.py will keep comparing against the stale baseline and "
-        "re-trigger this same switch on every later prompt"
+        "apply hook must not rewrite state tier"
     )
-    assert state["current_model"] == "claude-opus-4-8"
+    assert state["current_model"] == "claude-sonnet-4-6"
+
+    # Audit log must exist for offline analysis.
+    audit = tmp_state_dir / ".claude" / "state" / "model-router" / "apply_audit.jsonl"
+    assert audit.exists()
+    lines = audit.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) >= 1
+    entry = json.loads(lines[-1])
+    assert entry.get("action_taken") == "logging-only"
 
 
 # ----------------------------- branch unit tests -----------------------------
@@ -317,3 +327,8 @@ def test_apply_idempotent_under_repeat_calls(
     # First call consumed the rec; second should be a no-op.
     rec = json.loads((state_dir / "recommendation.json").read_text())
     assert rec["consumed"] is True
+
+    # Audit log has exactly one entry (second call was no-op).
+    audit = tmp_state_dir / ".claude" / "state" / "model-router" / "apply_audit.jsonl"
+    lines = audit.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) == 1
