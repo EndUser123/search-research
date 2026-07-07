@@ -3737,3 +3737,15 @@ Novelty: 6%
 Source: downloads-signal-extract
 Source file: C:\Users\brsth\Downloads\chain_20260705_133206.md
 Novelty: 6%
+
+## [2026-07-07] ingest | Completion Evidence Contract — typed ledger to prevent overclaiming
+Source: session
+Transcript: session-2026-07-07
+
+## [2026-07-07] ingest | Affordance-based routing — choose commands by machinery fit, not by quoting docs
+Source: session
+Transcript: session-2026-07-07
+
+## [2026-07-07] ingest | Discoverable-fact-offloading split — asking the user for discoverable facts = inventing them
+Source: session
+Transcript: session-2026-07-07
