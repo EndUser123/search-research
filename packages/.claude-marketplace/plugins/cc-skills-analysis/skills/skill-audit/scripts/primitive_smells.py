@@ -155,7 +155,10 @@ def _selfcheck() -> None:
     # A two-tool skill must NOT be flagged as a wrapper.
     sk2 = d / "multi" / "SKILL.md"
     sk2.parent.mkdir(parents=True)
-    sk2.write_text("```bash\nnlm x\nmmx y\n```\n", encoding="utf-8")
+    sk2.write_text(
+        "---\nname: multi\nrequired_first_command_patterns:\n  - '^nlm\\s+login'\n  - '^mmx\\s'\n---\n# multi\n",
+        encoding="utf-8",
+    )
     res2 = run(str(d))
     names = {f["skill"] for f in res2["findings"]}
     assert "wrap" in names and "multi" not in names, res2
