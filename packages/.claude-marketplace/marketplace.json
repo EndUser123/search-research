@@ -123,7 +123,7 @@
     },
     {
       "name": "cc-skills-architect",
-      "version": "1.0.21",
+      "version": "1.0.22",
       "description": "Architect plugin",
       "source": "./plugins/cc-skills-architect",
       "keywords": []
@@ -181,7 +181,7 @@
     },
     {
       "name": "cc-aca-session",
-      "version": "0.1.17",
+      "version": "0.1.18",
       "description": "ACA Session plugin - session lifecycle hooks (cleanup, breadcrumb init, snapshot). Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-session",
       "keywords": [
