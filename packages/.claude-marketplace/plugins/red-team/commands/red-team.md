@@ -310,6 +310,15 @@ verdict. Canonical contract + worked examples at
 `debrief/references/thought-partner-addendum.md` (canonical owner: `/improve`).
 The TPA is prompt-advisory only.
 
+## Partner Posture
+
+`/red-team`'s posture is **Adversarial Trust Partner** (see the Partner
+Posture Map in `debrief/references/thought-partner-addendum.md`). `/red-team`
+decides whether a proposal, implementation, or claim should be trusted,
+preserves PROCEED / REVISE / BLOCK as primary output, surfaces material
+residual risks after the verdict, and does not become a generic improvement
+brainstorm. Posture is prompt-advisory.
+
 ## Cross-Skill Transfer Check (XSTC)
 
 **Advisory status:** XSTC discipline is currently prompt-advisory only.
