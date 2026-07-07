@@ -311,6 +311,9 @@ def test_apply_idempotent_under_repeat_calls(
     second = _run_hook(stdin)
     assert first.returncode == 0
     assert second.returncode == 0
-    # First call switched to haiku; second call must not flip-flop.
+    # CCR is the sole routing authority: apply hook does NOT rewrite settings.json
     settings = json.loads((fake_home / ".claude" / "settings.json").read_text())
-    assert settings["model"] == "claude-haiku-4-5"
+    assert settings["model"] == "claude-sonnet-4-6"  # unchanged
+    # First call consumed the rec; second should be a no-op.
+    rec = json.loads((state_dir / "recommendation.json").read_text())
+    assert rec["consumed"] is True
