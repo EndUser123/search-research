@@ -200,3 +200,33 @@ If no expectations were provided, omit the `expectation_results` field entirely.
 - **Be objective**: Don't favor outputs based on style preferences; focus on correctness and completeness.
 - **Explain your reasoning**: The reasoning field should make it clear why you chose the winner.
 - **Handle edge cases**: If both outputs fail, pick the one that fails less badly. If both are excellent, pick the one that's marginally better.
+
+---
+
+## Tournament Mode — ranking N candidates (pairwise single-elimination)
+
+When the caller needs to **rank** (not just compare A vs B), use the tournament
+protocol at `references/tournament_protocol.md`. The bracket logic lives in
+`scripts/tournament.py` (pure, deterministic, unit-tested).
+
+**How it works here**: you (the Blind Comparator) are called **once per match**.
+The orchestrator feeds you exactly two items plus the shared rubric — the same
+inputs as A-vs-B above. You do not see the rest of the bracket or the prior
+rounds (fresh context, no carry-over bias).
+
+Your **per-match output contract stays identical** (`{"winner": "A"|"B"|"TIE",
+...}`). The orchestrator calls `winner_of(pair, decision)` from
+`scripts/tournament.py` to advance the winner, then dispatches you again for the
+next match — until one champion remains.
+
+**What you must NOT see** (the orchestrator enforces this):
+- The full bracket, other matches' results, or which round this is — you judge
+  the pair in isolation.
+- Any meta-info about how the items were generated or ranked — judge blind.
+
+**When to use tournament vs direct comparison**:
+- **2-3 candidates** → direct A-vs-B (no bracket needed).
+- **4+ candidates** → tournament (avoids context bloat, goal drift, recency bias).
+- **Deterministic measurable score exists** → sort, not judge.
+- **Architectural decision** → get a blind second opinion first (Recommendation
+  Rule), then tournament the survivors.
