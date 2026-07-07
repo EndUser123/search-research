@@ -122,10 +122,20 @@ def test_pipeline_semantic_background():
 
 
 def test_pipeline_semantic_low_confidence():
+    """Low confidence fires when margin < low_confidence_margin (0.02)."""
+    # Margin 0.03 > 0.02 → not low confidence (pipeline correctly returns False)
     scorer = MockScorer({"background": 0.1, "coding": 0.45, "reasoning": 0.42})
     result = classify_pipeline("some ambiguous prompt", scorer, {})
-    assert result.low_confidence is True
-    assert result.task_type in ("coding", "reasoning")
+    assert result.low_confidence is False  # margin 0.03 > threshold 0.02
+    assert result.task_type == "coding"    # coding wins (0.45 > 0.42)
+    assert round(result.margin, 4) == 0.0300
+
+    # Margin 0.01 < 0.02 → low confidence (pipeline correctly returns True)
+    scorer_tight = MockScorer({"background": 0.1, "coding": 0.45, "reasoning": 0.44})
+    result_tight = classify_pipeline("another prompt", scorer_tight, {})
+    assert result_tight.low_confidence is True
+    assert result_tight.task_type == "coding"  # still coding (0.45 > 0.44), just low-conf
+    assert round(result_tight.margin, 4) == 0.0100
 
 
 def test_pipeline_context_boost():
