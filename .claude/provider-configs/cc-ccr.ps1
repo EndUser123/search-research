@@ -231,26 +231,66 @@ if (-not $ccrRunning) {
     return
 }
 
-# --- Read local model state (written by run-ornith-server.ps1) ---
+# --- Check local model health, start if not running ---
+$localModelHealth = $false
+$localModelId = "ornith-1.0-9b"
+$localModelEndpoint = "http://127.0.0.1:8010"
 $localModelStatePath = "P:\.claude\state\local-model-state.json"
-$localModelInfo = ""
-if (Test-Path $localModelStatePath) {
-    try {
-        $lms = Get-Content $localModelStatePath -Raw | ConvertFrom-Json
-        if ($lms.active_model) {
-            $active = $lms.models | Where-Object { $_.id -eq $lms.active_model } | Select-Object -First 1
-            if ($active) {
-                $localModelInfo = "local: $($active.id) ctx=$($active.maxContextTokens)"
-                Write-Host "[CCR] $localModelInfo" -ForegroundColor Green
-            }
-        } else {
-            Write-Host "[CCR] No active local model (llama-server may not be running)" -ForegroundColor DarkGray
-        }
-    } catch {
-        Write-Host "[CCR] Could not read local-model-state.json" -ForegroundColor DarkGray
-    }
+
+try {
+    $test = Invoke-WebRequest -Uri "$localModelEndpoint/health" -TimeoutSec 2 -ErrorAction Stop
+    $localModelHealth = $true
+} catch {
+    $localModelHealth = $false
+}
+
+if ($localModelHealth) {
+    Write-Host "[CCR] local model running (llama-server: $localModelEndpoint)" -ForegroundColor Green
 } else {
-    Write-Host "[CCR] local-model-state.json not found — run-ornith-server.ps1 not started yet" -ForegroundColor DarkGray
+    Write-Host "[CCR] local model not detected — starting llama-server..." -ForegroundColor Cyan
+    $launcherScript = "P:\packages\installers\run-ornith-server.ps1"
+    if (Test-Path $launcherScript) {
+        Start-Process -FilePath "powershell.exe" `
+            -ArgumentList @("-NoProfile", "-NoLogo", "-NonInteractive", "-File", $launcherScript) `
+            -WindowStyle Hidden
+        # Wait for health (up to 30s, polling every 1s)
+        $ready = $false
+        for ($i = 0; $i -lt 30; $i++) {
+            Start-Sleep -Seconds 1
+            try {
+                $health = Invoke-WebRequest -Uri "$localModelEndpoint/health" -TimeoutSec 2 -ErrorAction Stop
+                if ($health.StatusCode -eq 200) { $ready = $true; break }
+            } catch {}
+        }
+        if ($ready) {
+            $localModelHealth = $true
+            Write-Host "[CCR] llama-server started (PID from launcher, ready in ~$($i + 1)s)" -ForegroundColor Green
+        } else {
+            Write-Host "[CCR] llama-server did not respond in 30s — continuing without local model" -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "[CCR] run-ornith-server.ps1 not found at $launcherScript" -ForegroundColor Yellow
+    }
+}
+
+# --- Report local model state ---
+$localModelInfo = ""
+if ($localModelHealth) {
+    $localModelInfo = "local: $localModelId | endpoint: $localModelEndpoint"
+    if (Test-Path $localModelStatePath) {
+        try {
+            $lms = Get-Content $localModelStatePath -Raw | ConvertFrom-Json
+            if ($lms.active_model) {
+                $active = $lms.models | Where-Object { $_.id -eq $lms.active_model } | Select-Object -First 1
+                if ($active -and $active.maxContextTokens) {
+                    $localModelInfo += " | ctx: $($active.maxContextTokens)"
+                }
+            }
+        } catch {}
+    }
+    Write-Host "[CCR] $localModelInfo" -ForegroundColor Green
+} else {
+    Write-Host "[CCR] local model unavailable (aggressive mode fallback to M3 for coding)" -ForegroundColor DarkGray
 }
 
 # --- Log routing mode ---
