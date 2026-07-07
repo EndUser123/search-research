@@ -38,6 +38,7 @@ Key principles (enforced structurally):
 | Documentation Boundary | For investigate/diagnose requests, stop at findings. Don't implement unless explicitly asked. |
 | Capability Claims | CLI flags and API params are hypotheses until verified with `--help` or live check. |
 | Format Serves Clarity | STATUS labels organize complex analysis. Direct prose for simple answers. Labels are scaffolding, not a gate. |
+| Long Commands → Temp Scripts | If a shell command is long, multiline, contains embedded Python/PowerShell/here-doc code, or risks exceeding the command parser limit, write the script to a temporary file and execute the file with a short command. Never send oversized inline commands through the approval/parser layer. Treat parser-limit prompts as a tooling issue, not a user decision. |
 
 ---
 
