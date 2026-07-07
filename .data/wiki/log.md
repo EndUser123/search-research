@@ -2022,3 +2022,363 @@ Source file: C:\Users\brsth\Downloads\Implement multi-terminal isolation and dat
 ## [2026-07-06] ingest | Maintainability Index is opaque and gameable
 Source: downloads-extract-maintainability-index-not-headline
 Source file: C:\Users\brsth\Downloads\page-2026-04-19-11-13-22.md
+
+## [2026-07-07] ingest | directory_policy.json enforces via missing hook filename
+Source: downloads-extract-w2-directory-policy-enforcer-filename-mismatch
+Source file: C:\Users\brsth\Downloads\PreToolUse0.txt
+
+## [2026-07-07] ingest | Handoff naive string search fails on JSON transcript
+Source: downloads-extract-w2-handoff-naive-transcript-search-fails-json
+Source file: C:\Users\brsth\Downloads\03-19-2025 - handoff idea 0.txt
+
+## [2026-07-07] ingest | Handoff truncation loses task context
+Source: downloads-extract-w2-handoff-truncation-loses-task-context
+Source file: C:\Users\brsth\Downloads\handoff and lazy problems3.txt
+
+## [2026-07-07] ingest | Missing EXECUTION DIRECTIVE causes LLM to reformat script output
+Source: downloads-extract-w2-skill-missing-exec-directive-llm-reinterpretation
+Source file: C:\Users\brsth\Downloads\03-22-2025 - bad thinking, bad solutions 1.txt
+
+## [2026-07-07] ingest | Stop gate false-positive on verified negative existence claims
+Source: downloads-extract-w2-stop-gate-false-positive-verified-negative-claim
+Source file: C:\Users\brsth\Downloads\conflated two different things.txt
+
+## [2026-07-07] ingest | First-hit confirmation bias bypasses multi-hypothesis gates
+Source: downloads-extract-w2-first-hit-confirmation-bias-bypasses-rca-gates
+Source file: C:\Users\brsth\Downloads\Prevent First Plausible Explanation Anti-Pattern.txt
+
+## [2026-07-07] ingest | Adversarial agent output directory mismatch causes false missing
+Source: downloads-extract-w2-adversarial-agent-output-directory-mismatch
+Source file: C:\Users\brsth\Downloads\03-17-2005 - search-research 0.txt
+
+## [2026-07-07] ingest | YouTube CLI URL-as-text mode hangs >90s transcript-only reliable
+Source: downloads-extract-w2-youtube-cli-url-mode-hang-transcript-fallback
+Source file: C:\Users\brsth\Downloads\⠂ int-stream.txt
+
+## [2026-07-07] ingest | Coverage-before-claims forbids absence without full search
+Source: downloads-extract-w2-coverage-before-claims-absence-forbidden
+Source file: C:\Users\brsth\Downloads\claude-search-implementation-package (1).md
+
+## [2026-07-07] ingest | Mermaid plugin ecosystem generation extraction live-render tiers
+Source: downloads-extract-w2-mermaid-plugin-ecosystem-three-tiers
+Source file: C:\Users\brsth\Downloads\what are very popular plugins or skills or repos f.md
+
+## [2026-07-07] ingest | Daemon stale PID accumulation causes cross-terminal hook errors
+Source: downloads-extract-w2-daemon-stale-pid-accumulation-cross-terminal-errors
+Source file: C:\Users\brsth\Downloads\✳ Terminal Issues.txt
+
+## [2026-07-07] ingest | Derive architecture map don't maintain it
+Source: downloads-extract-w2-derive-architecture-map-sessionstart
+Source file: C:\Users\brsth\Downloads\chain_20260706_170546.md
+
+## [2026-07-07] ingest | Seven-layer SQA framework Godelian bound
+Source: downloads-extract-w2-seven-layer-sqa-godelian-bound
+Source file: C:\Users\brsth\Downloads\03-25-2025 sqa 0.txt
+
+## [2026-07-07] ingest | Drift framing wrong verify constraints not change
+Source: downloads-extract-w2-architecture-constraint-vs-drift-reframe
+Source file: C:\Users\brsth\Downloads\03-25-2025 sqa 0.txt
+
+## [2026-07-07] ingest | Solo-dev rejects git hooks and continuous checks
+Source: downloads-extract-w2-solo-dev-rejects-continuous-checks
+Source file: C:\Users\brsth\Downloads\03-25-2025 sqa 0.txt
+
+## [2026-07-07] ingest | Cognitive enhancers trigger patterns miss questions
+Source: downloads-extract-w2-cognitive-enhancers-miss-question-triggers
+Source file: C:\Users\brsth\Downloads\why can't llms think properly  1 ✳ ai-gemini.txt
+
+## [2026-07-07] ingest | CKS relevance-gated injection score > 0.7
+Source: downloads-extract-w2-cks-relevance-threshold-injection
+Source file: C:\Users\brsth\Downloads\⠂ Document stop-block logging system.txt
+
+## [2026-07-07] ingest | UEEA blanket-grace gap per-evidence linkage needed
+Source: downloads-extract-w2-ueea-per-evidence-linkage-gap
+Source file: C:\Users\brsth\Downloads\⠐ ltos.txt
+
+## [2026-07-07] ingest | YouTube RSS only gives recent API for full history
+Source: downloads-extract-w2-youtube-channel-enumeration-rss-vs-api
+Source file: C:\Users\brsth\Downloads\⠐ int-stream.txt
+
+## [2026-07-07] ingest | claudish session-level vs seifghazi subagent-only routing
+Source: downloads-extract-w2-claudish-vs-seifghazi-subagent-routing
+Source file: C:\Users\brsth\Downloads\03-20-2025 - not smart 4.txt
+
+## [2026-07-07] ingest | Skill inline injection Stop hook is correct safety net
+Source: downloads-extract-w2-skill-inline-injection-stop-as-fire-alarm
+Source file: C:\Users\brsth\Downloads\Here's a chat with claude code, and codex, about o.md
+
+## [2026-07-07] ingest | Refactor state-machine key mismatch and substring progress detection
+Source: downloads-extract-w2-refactor-state-machine-key-mismatch
+Source file: C:\Users\brsth\Downloads\deep-research-report (4).md
+
+## [2026-07-07] ingest | Speculative worktree refactor default architecture
+Source: downloads-extract-w2-speculative-worktree-refactor-default
+Source file: C:\Users\brsth\Downloads\deep-research-report (4).md
+
+## [2026-07-07] ingest | pythonw.exe swallows logger calls silently
+Source: downloads-extract-w2-pythonw-swallows-logger-calls
+Source file: C:\Users\brsth\Downloads\daemon1.txt
+
+## [2026-07-07] ingest | Prose rules lose to default reflexes
+Source: downloads-extract-w2-prose-rules-lose-to-tool-call-gates
+Source file: C:\Users\brsth\Downloads\π - .txt
+
+## [2026-07-07] ingest | LLM-suggested npm packages may not exist
+Source: downloads-extract-w2-verify-llm-recommended-npm-packages
+Source file: C:\Users\brsth\Downloads\π - .txt
+
+## [2026-07-07] ingest | Per-backend validation before migration not after
+Source: downloads-extract-w2-per-backend-validation-before-migration
+Source file: C:\Users\brsth\Downloads\page-2026-07-07-04-30-28.md
+
+## [2026-07-07] ingest | Subagent merge protocol must be explicit
+Source: downloads-extract-w2-explicit-subagent-merge-protocol
+Source file: C:\Users\brsth\Downloads\advesarial0-lots of good info.txt
+
+## [2026-07-07] ingest | Memory index tool observations not conversation text
+Source: downloads-extract-w2-memory-index-tool-observations-not-conversation
+Source file: C:\Users\brsth\Downloads\What is _  ❯ ◯ remember · claude-plugins-official.md
+
+## [2026-07-07] ingest | Mock call-count tests setup before patching
+Source: downloads-extract-w2-mock-call-count-setup-before-patch
+Source file: C:\Users\brsth\Downloads\⠐ Test Execution2.txt
+
+## [2026-07-07] ingest | Prevention hooks must fire pre-response not post
+Source: downloads-extract-w2-prevention-hooks-must-fire-pre-response
+Source file: C:\Users\brsth\Downloads\design and discovery didn't find existing solutions ✳ bad-rca.txt
+
+## [2026-07-07] ingest | Prompt hooks inject into current session free
+Source: downloads-extract-w2-prompt-hooks-use-session-llm-free
+Source file: C:\Users\brsth\Downloads\03-22-2025 - verbose pre-mortem 0.txt
+
+## [2026-07-07] ingest | LLMs fabricate bugs in uncommitted files
+Source: downloads-extract-w2-llm-fabricates-bugs-in-uncommitted-files
+Source file: C:\Users\brsth\Downloads\LLM_1 says this about LLM_2_ ___● Based on the cha.md
+
+## [2026-07-07] ingest | except-pass hides undefined functions called at 7 sites
+Source: downloads-extract-w2-except-pass-hides-undefined-function
+Source file: C:\Users\brsth\Downloads\not a good thinker LLM 4 hook loops.txt
+
+## [2026-07-07] ingest | cc-model-router hardcodes Anthropic tier IDs
+Source: downloads-extract-w2-cc-model-router-hardcoded-tier-env-override
+Source file: C:\Users\brsth\Downloads\✳ claude-router.txt
+
+## [2026-07-07] ingest | AI-API benchmark planning domain saturates 1.0/1.0
+Source: downloads-extract-w2-ai-api-benchmark-saturation-stdev-ranking
+Source file: C:\Users\brsth\Downloads\✳ Review AI API handoff document.txt
+
+## [2026-07-07] ingest | Skill-first gate has documented design drift
+Source: downloads-extract-w2-skill-first-gate-telemetry-comment-drift
+Source file: C:\Users\brsth\Downloads\✳ Debug Hook Loop.txt
+
+## [2026-07-07] ingest | Skill-first gate chicken-and-egg deadlock
+Source: downloads-extract-w2-skill-first-gate-three-layer-deadlock
+Source file: C:\Users\brsth\Downloads\✳ hooking0.txt
+
+## [2026-07-07] ingest | Diagnostic gate block scope discriminating_test only
+Source: downloads-extract-w2-diagnostic-gate-block-scope-discriminating-test-only
+Source file: C:\Users\brsth\Downloads\✳ Research solutions for Claude Code issues.txt
+
+## [2026-07-07] ingest | /refactor is Python library with CC thresholds
+Source: downloads-extract-w2-refactor-python-library-cc-thresholds-not-loc
+Source file: C:\Users\brsth\Downloads\✳ adv-review-skill.txt
+
+## [2026-07-07] ingest | UserPromptSubmit can only append 10k overflow
+Source: downloads-extract-w2-userpromptsubmit-append-only-10k-overflow
+Source file: C:\Users\brsth\Downloads\You are reviewing an architecture decision record.md
+
+## [2026-07-07] ingest | Prose skills have unverifiable routing logic
+Source: downloads-extract-w2-prose-skills-unverifiable-routing-needs-decision-spec
+Source file: C:\Users\brsth\Downloads\__❯ We're trying to achieve an optimal order for t.md
+
+## [2026-07-07] ingest | transcript field excludes current in-progress turn
+Source: downloads-extract-w2-hook-transcript-excludes-current-turn
+Source file: C:\Users\brsth\Downloads\✳ hooking0.txt
+
+## [2026-07-07] ingest | Dead code in RCA confidence must drop to 0
+Source: downloads-extract-w2-rca-dead-code-hypothesis-confidence-must-drop-zero
+Source file: C:\Users\brsth\Downloads\glm multi-terminal isolation and data consistency 2.txt
+
+## [2026-07-07] ingest | Stop.py ORPHAN-imports false positive exemption
+Source: downloads-extract-w2-stop-orphan-imports-exemption
+Source file: C:\Users\brsth\Downloads\✳ Fix Chrome DevTools MCP response halts.txt
+
+## [2026-07-07] ingest | hook_health.json stale-TTL removal
+Source: downloads-extract-w2-hook-health-stale-ttl-removal
+Source file: C:\Users\brsth\Downloads\✳ Fix Chrome DevTools MCP response halts.txt
+
+## [2026-07-07] ingest | chs_cli export requires explicit --session-id
+Source: downloads-extract-w2-chs-cli-export-requires-explicit-session-id
+Source file: C:\Users\brsth\Downloads\✳ Debug LLM session export and context handling.txt
+
+## [2026-07-07] ingest | Document-claim detector scope FP reproduced
+Source: downloads-extract-w2-document-claim-detector-scope-fp-reproduced
+Source file: C:\Users\brsth\Downloads\✳ Debug LLM session export and context handling.txt
+
+## [2026-07-07] ingest | Source-vs-cache reproduction validity check
+Source: downloads-extract-w2-source-vs-cache-reproduction-validity
+Source file: C:\Users\brsth\Downloads\✳ Debug LLM session export and context handling.txt
+
+## [2026-07-07] ingest | Worktree isolation via cwd inheritance
+Source: downloads-extract-w2-worktree-isolation-via-cwd-inheritance
+Source file: C:\Users\brsth\Downloads\__❯ We're trying to achieve an optimal order for t (1).md
+
+## [2026-07-07] ingest | PreCompact hook schema shape
+Source: downloads-extract-w2-precompact-hook-schema-shape
+Source file: C:\Users\brsth\Downloads\✳ prompt-enhancer.txt
+
+## [2026-07-07] ingest | Overconfidence regex misses structural vocabulary
+Source: downloads-extract-w2-overconfidence-structural-vocabulary-blind-spot
+Source file: C:\Users\brsth\Downloads\Why You Hate It.md
+
+## [2026-07-07] ingest | Skills bypass PreToolUse gates via subprocess
+Source: downloads-extract-w2-skill-subprocess-bypasses-pretooluse-gates
+Source file: C:\Users\brsth\Downloads\I don't want the simpliest fix. ⠂ git.txt
+
+## [2026-07-07] ingest | integration_engine.py 7356-line orphan code
+Source: downloads-extract-w2-integration-engine-orphan-code-archaeology
+Source file: C:\Users\brsth\Downloads\✳ Review ponytail audit findings.txt
+
+## [2026-07-07] ingest | Per-tag evidence requirements for audit claims
+Source: downloads-extract-w2-audit-finding-evidence-requirements-by-tag
+Source file: C:\Users\brsth\Downloads\✳ Review ponytail audit findings.txt
+
+## [2026-07-07] ingest | Fable behavior via JSONL distillation Mark Kashef method
+Source: downloads-extract-w2-fable-behavioral-distillation-from-jsonl-history
+Source file: C:\Users\brsth\Downloads\how can I make my current llm act like claude fabl.md
+
+## [2026-07-07] ingest | Skill error loggers must capture stdout JSON not stderr only
+Source: downloads-extract-w2-skill-subprocess-stderr-only-error-masking
+Source file: C:\Users\brsth\Downloads\error logs.txt
+
+## [2026-07-07] ingest | Question+document disambiguation heuristic
+Source: downloads-extract-w2-question-document-role-disambiguation-heuristic
+Source file: C:\Users\brsth\Downloads\error logs.txt
+
+## [2026-07-07] ingest | Cognitive enhancer tag codes are display-only
+Source: downloads-extract-w2-cognitive-enhancer-tag-codes-display-only
+Source file: C:\Users\brsth\Downloads\Here's a chat with claude code.  Any ideas for a s.md
+
+## [2026-07-07] ingest | UserPromptSubmit cannot rewrite user prompt in place
+Source: downloads-extract-w2-userpromptsubmit-no-inplace-rewrite-contract
+Source file: C:\Users\brsth\Downloads\You are reviewing an architecture decision record (1).md
+
+## [2026-07-07] ingest | Task-contract gate deterministic regex limitations
+Source: downloads-extract-w2-task-contract-gate-regex-under-over-fire-limits
+Source file: C:\Users\brsth\Downloads\Please review the handoff.____● ---_  FILES_CHANGE.md
+
+## [2026-07-07] ingest | n_1_transcript_path is single-hop overwrites each compaction
+Source: downloads-extract-w2-n1-transcript-path-single-hop-overwrite-limit
+Source file: C:\Users\brsth\Downloads\Has anyone figured out for claude code, how to cre.md
+
+## [2026-07-07] ingest | Fingerprint parity proves model alias identity
+Source: downloads-extract-w2-fingerprint-parity-model-alias-verification
+Source file: C:\Users\brsth\Downloads\chain_20260706_173325.md
+
+## [2026-07-07] ingest | Agent tool schema leaks ~1600 tokens per turn
+Source: downloads-extract-w2-agent-tool-schema-token-leakage
+Source file: C:\Users\brsth\Downloads\✳ Investigate agent tool definition size.txt
+
+## [2026-07-07] ingest | DELEGATION_GATE bypass via env var or --allow-inline
+Source: downloads-extract-w2-delegation-gate-env-var-bypass
+Source file: C:\Users\brsth\Downloads\✳ Investigate agent tool definition size.txt
+
+## [2026-07-07] ingest | Public /v1/models endpoint masks broken auth headers
+Source: downloads-extract-w2-public-models-endpoint-masks-auth-bugs
+Source file: C:\Users\brsth\Downloads\✳ claude.txt
+
+## [2026-07-07] ingest | Reasoning models emit reasoning_content not content
+Source: downloads-extract-w2-reasoning-models-emit-reasoning-content-key
+Source file: C:\Users\brsth\Downloads\✳ claude.txt
+
+## [2026-07-07] ingest | Three-layer cognitive enforcement architecture
+Source: downloads-extract-w2-three-layer-cognitive-enforcement-architecture
+Source file: C:\Users\brsth\Downloads\✳ Complete wrapper elimination for epistemic and investigation plugins.txt
+
+## [2026-07-07] ingest | Model self-reports of context window are weak evidence
+Source: downloads-extract-w2-model-self-report-context-weak-evidence
+Source file: C:\Users\brsth\Downloads\chain_20260706_173325.md
+
+## [2026-07-07] ingest | Unverified LLM tier rankings must not become routing rosters
+Source: downloads-extract-w2-unverified-llm-rankings-poison-routing-roster
+Source file: C:\Users\brsth\Downloads\✳ claude.txt
+
+## [2026-07-07] ingest | Stop hook health alert lists orphan hooks not in router registry
+Source: downloads-extract-w2-orphan-hook-health-alert-detection
+Source file: C:\Users\brsth\Downloads\✳ Investigate agent tool definition size.txt
+
+## [2026-07-07] ingest | assumption_audit_v2.py is 104KB dead code with zero consumers
+Source: downloads-extract-w2-assumption-audit-v2-dead-code-104kb
+Source file: C:\Users\brsth\Downloads\✳ Complete wrapper elimination for epistemic and investigation plugins.txt
+
+## [2026-07-07] ingest | Headroom zombie auto-recovery design
+Source: downloads-extract-w2-headroom-zombie-port-cmdline-detection
+Source file: C:\Users\brsth\Downloads\✳ headroom.txt
+
+## [2026-07-07] ingest | Self-reflection gate noise reduction recipe
+Source: downloads-extract-w2-self-reflection-contradiction-dedupe-doc-skip-cap
+Source file: C:\Users\brsth\Downloads\✳ epistemic-gate.txt
+
+## [2026-07-07] ingest | Cross-model audit hallucination rate
+Source: downloads-extract-w2-cross-model-audit-hallucination-demand-file-evidence
+Source file: C:\Users\brsth\Downloads\consolidate hooks maybe and skill-guard.txt
+
+## [2026-07-07] ingest | cc-ccr env-var route override recipe
+Source: downloads-extract-w2-cc-ccr-env-var-route-override-per-shell
+Source file: C:\Users\brsth\Downloads\✳ headroom.txt
+
+## [2026-07-07] ingest | Shell-pipe stdin conflict in LLM wrappers
+Source: downloads-extract-w2-shell-pipe-stdin-conflict-llm-wrapper
+Source file: C:\Users\brsth\Downloads\llm defening bad analysis⠐ ai-gemini.txt
+
+## [2026-07-07] ingest | Downloads corpus file-size distribution
+Source: downloads-extract-w2-downloads-corpus-file-size-distribution-three-tier
+Source file: C:\Users\brsth\Downloads\The attached file is for background info.  Here's.md
+
+## [2026-07-07] ingest | YAML workflow_steps parse fails silently
+Source: downloads-extract-w2-yaml-workflow-steps-silent-parse-failure
+Source file: C:\Users\brsth\Downloads\temp⠐ skill-audit.txt
+
+## [2026-07-07] ingest | Content-match fallback bypasses target scoping
+Source: downloads-extract-w2-content-match-fallback-target-bypass-risk
+Source file: C:\Users\brsth\Downloads\llm making stuff up⠐ skill-guard.txt
+
+## [2026-07-07] ingest | CLAIM_PATTERNS misses causal mechanism claims
+Source: downloads-extract-w2-causal-claim-patterns-gap-unified-verifier
+Source file: C:\Users\brsth\Downloads\In claude code, we are a little stuck.  How can we.md
+
+## [2026-07-07] ingest | Orthogonality check must precede bypass heuristics
+Source: downloads-extract-w2-orthogonality-check-ordering-before-bypass
+Source file: C:\Users\brsth\Downloads\We are accepting a handoff from another LLM__text.md
+
+## [2026-07-07] ingest | Channel metadata source capability matrix
+Source: downloads-extract-w2-youtube-channel-metadata-source-capability-matrix
+Source file: C:\Users\brsth\Downloads\⠂ yt-is 0.txt
+
+## [2026-07-07] ingest | skill-craft mixes direct import and subprocess integration
+Source: downloads-extract-w2-skill-craft-direct-import-staleness-subprocess
+Source file: C:\Users\brsth\Downloads\⠂ skill-craft.txt
+
+## [2026-07-07] ingest | SILENT verdict conflates two distinct causes
+Source: downloads-extract-w2-silent-verdict-conflation-filter-by-targets
+Source file: C:\Users\brsth\Downloads\bad thinking ⠂ skill-audit.txt
+
+## [2026-07-07] ingest | system_fingerprint proves model alias identity
+Source: downloads-extract-w2-system-fingerprint-model-alias-identity-evidence
+Source file: C:\Users\brsth\Downloads\Can you validate this information____  opencode-ze.md
+
+## [2026-07-07] ingest | Model self-reported limits are weak evidence
+Source: downloads-extract-w2-model-self-reported-limits-weak-evidence
+Source file: C:\Users\brsth\Downloads\Can you validate this information____  opencode-ze.md
+
+## [2026-07-07] ingest | Investigator-first prompt pattern for fresh LLM
+Source: downloads-extract-w2-investigator-first-prompt-pattern
+Source file: C:\Users\brsth\Downloads\The attachment is a previous conversation.  Here's.md
+
+## [2026-07-07] ingest | Source-fabrication gate FP on pasted-context analysis
+Source: downloads-extract-w2-source-fabrication-gate-pasted-context-false-positive
+Source file: C:\Users\brsth\Downloads\chain_20260704_230335.md
+
+## [2026-07-07] ingest | Rubric scoring breaks for trace-only skills
+Source: downloads-extract-w2-rubric-scoring-breaks-for-trace-only-skills
+Source file: C:\Users\brsth\Downloads\chain_82946cce.md
