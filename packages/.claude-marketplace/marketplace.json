@@ -98,7 +98,7 @@
     },
     {
       "name": "search-research",
-      "version": "0.1.66",
+      "version": "0.1.67",
       "description": "Unified search and research system with async concurrent execution and 11 web providers.",
       "source": "./plugins/search-research",
       "keywords": [
@@ -110,7 +110,7 @@
     },
     {
       "name": "skill-guard",
-      "version": "2.1.50",
+      "version": "2.1.51",
       "description": "Universal skill auto-discovery and enforcement for Claude Code",
       "source": "./plugins/skill-guard",
       "keywords": [
@@ -123,7 +123,7 @@
     },
     {
       "name": "cc-skills-architect",
-      "version": "1.0.19",
+      "version": "1.0.20",
       "description": "Architect plugin",
       "source": "./plugins/cc-skills-architect",
       "keywords": []
@@ -313,7 +313,7 @@
     },
     {
       "name": "cc-model-router",
-      "version": "0.2.11",
+      "version": "0.2.13",
       "description": "Automatic model-tier routing (haiku/sonnet/opus) based on prompt complexity heuristics with dual-mode operation (warn plus autoswitch)",
       "source": "./plugins/cc-model-router",
       "keywords": []
