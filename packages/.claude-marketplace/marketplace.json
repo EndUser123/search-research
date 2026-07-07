@@ -77,7 +77,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.166",
+      "version": "1.0.169",
       "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -88,7 +88,7 @@
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.2.74",
+      "version": "1.2.75",
       "description": "Utility skills for Claude Code",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
@@ -272,7 +272,7 @@
     },
     {
       "name": "cc-aca-observability",
-      "version": "0.1.24",
+      "version": "0.1.25",
       "description": "ACA Observability plugin \u2014 session health monitoring, drift detection, artifact scraping, and PostToolUse tracker orchestration. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-observability",
       "keywords": [
