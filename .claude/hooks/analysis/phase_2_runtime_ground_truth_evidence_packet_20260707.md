@@ -138,15 +138,82 @@ plugin version bump, cache rebuild, or `/reload-plugins`.
 
 ---
 
-## 7. Gate criteria satisfied (Phase 2 partial — render layer)
+## 7. Gate criteria satisfied (Phase 2 complete)
 
 - ✅ runtime-ground-truth.md ships the schema + 6 seed rows (incl. the
   plan's mandated seed entry: Gold corpus canonical path)
 - ✅ Renderer parses the table, marks stale entries with reverify command,
   never silently trusts, never drops
 - ✅ Budget hard-cap enforced (total output, not rows-after-headers)
-- ✅ 8/8 tests green incl. e2e against the shipped file
+- ✅ 8/8 renderer tests green incl. e2e against the shipped file
 - ✅ Session-scoped triggers treated as always-stale (conservative)
-- ⏸️ SessionStart injection NOT yet wired (HARD PAUSE, §5)
-- ⏸️ Cross-injector cumulative budget arbiter NOT yet wired (deferred to
-  injection step)
+- ✅ SessionStart injection WIRED — router forwarding branch landed
+  (cc-aca-session `__lib/router.py` 0.1.17), injector
+  `aca_session_ground_truth_inject.py` registered in SESSIONSTART_HOOKS,
+  end-to-end smoke confirms `additionalContext` arrives in router stdout
+- ✅ 3/3 forwarding tests green (integration + block regression +
+  clone-template comment presence)
+- ⏸️ Cross-injector cumulative budget arbiter NOT yet wired — deferred
+  per user decision (single injection stream = dead ceremony; design
+  captured in task: attaches to whichever router first carries ≥2
+  injection streams)
+
+---
+
+## 8. Router-forwarding landing record
+
+**Decision (resolved by user):** Option A **forwarding-only** — minimal
+additive forwarding branch in cc-aca-session `__lib/router.py`, cloned
+from cc-model-router's `systemMessage` precedent (router.py:80-90) with
+one delta (forwards `additionalContext` from the SessionStart
+`hookSpecificOutput` envelope instead of `systemMessage`). Block-decision
+path byte-identical; forwarding is a new branch AFTER the existing
+per-child block detection.
+
+**Why not budget-at-choke-point (user's prior item 4):** cc-aca-session
+carries ONE injection stream (ground_truth); budget logic over a single
+stream is dead ceremony. The renderer already self-caps at
+`BUDGET_PROTECTED_CHARS=800` (`runtime_ground_truth.py:106, 139`).
+
+**Files (this commit):**
+- `cc-aca-session/__lib/router.py` — `SESSIONSTART_HOOKS` gained
+  `aca_session_ground_truth_inject.py`; new forwarding branch collects
+  child `additionalContext` and emits the SessionStart envelope
+- `cc-aca-session/hooks/sessionstart/aca_session_ground_truth_inject.py`
+  (NEW) — calls `runtime_ground_truth.load_and_render()`, emits the
+  `hookSpecificOutput` envelope, exits 0
+- `cc-aca-session/tests/test_router_forwarding.py` (NEW) — 3 tests
+- `cc-aca-session/.claude-plugin/plugin.json` — version → 0.1.17
+  (cache rebuilt via `plugin-audit-and-fix.py --bump`, zero drift confirmed)
+
+**Commit:** `dd41656` (auto-committed by #906 Stop hook mid-session;
+router.py +36, injector +39, test +148).
+
+**Side-effect restoration (pre-existing dead-text bug, not new feature):**
+`aca_session_verification_cleanup.py:400-404` prints a "TDD SESSION RESUME
+CONTEXT DETECTED" banner that the prior router discarded. The forwarding
+branch RESTORES that expected side-effect — documented here, no separate
+fix needed.
+
+**Smoke (exit 0, JSON contains additionalContext):**
+```
+$ echo '{"session_id":"smoke",...}' | python __lib/router.py SessionStart
+{"hookSpecificOutput": {"hookEventName": "SessionStart",
+  "additionalContext": "## RUNTIME GROUND TRUTH — verified facts (SessionStart)\n..."}}
+```
+
+**Cache/source sync verified:** cache at
+`~/.claude/plugins/cache/local/cc-aca-session/0.1.17/__lib/router.py`
+contains the forwarding branch + injector in SESSIONSTART_HOOKS (source
+== cache, zero drift).
+
+**Out of scope (filed as task):** router forwarding gap exists in 6+
+other plugins (snapshot confirmed at snapshot/__lib/router.py:83-109).
+Template = cc-aca-session branch (this phase) + cc-model-router
+precedent. Budget design attaches to whichever router first carries
+≥2 injection streams.
+
+**Pre-existing test failures (unrelated):** `test_session_hooks.py` has
+14 failures asserting precompact hook + compatibility wrappers in
+`P:/.claude/hooks/` were migrated — they never were. These predate
+Phase 2 and are not in its scope.

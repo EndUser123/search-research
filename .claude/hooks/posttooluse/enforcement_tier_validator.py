@@ -45,18 +45,8 @@ class FrontmatterField:
 
 
 _REQUIRED_FIELDS: tuple[FrontmatterField, ...] = (
-    FrontmatterField(
-        name="enforcement",
-        pattern=re.compile(
-            r"^enforcement:\s*['\"]?(strict|advisory|none)['\"]?\s*$",
-            re.MULTILINE,
-        ),
-        valid_values=("strict", "advisory", "none"),
-        why=(
-            "Determines whether bypassing the skill's workflow blocks (strict), "
-            "warns (advisory), or does nothing (none). Defaults to strict if absent."
-        ),
-    ),
+    # enforcement field removed 2026-07-07 — dead concept per user directive.
+    # All manually-invoked skills are enforced. Only workflow_steps remains.
     FrontmatterField(
         name="workflow_steps",
         # Presence-only: matches `workflow_steps:` followed by anything (or
@@ -96,11 +86,10 @@ def validate_enforcement_tier(skill_path: str, content: str) -> dict:
         content:    Full text of the SKILL.md file.
 
     Returns:
-        Dict with 'valid', 'tier', 'warning'. 'tier' is the captured enforcement
-        value, or None if the field is absent.
+        Dict with 'valid', 'warning'. 'tier' is always None (enforcement
+        field removed 2026-07-07; kept in the return dict for caller compat).
     """
     warnings: list[str] = []
-    tier: str | None = None
 
     for field in _REQUIRED_FIELDS:
         match = field.pattern.search(content)
@@ -109,17 +98,10 @@ def validate_enforcement_tier(skill_path: str, content: str) -> dict:
                 f"SKILL.md at {skill_path} is missing {_field_label(field)}. "
                 f"{field.why}"
             )
-            continue
-        # For fields with enumerated values, the regex captures the value in
-        # group 1 and only matches when it's one of valid_values — so a match
-        # here is already valid by construction. We still surface it as `tier`
-        # for the enforcement field, which is the only enumerated field today.
-        if field.name == "enforcement" and match.lastindex:
-            tier = match.group(1)
 
     if warnings:
-        return {"valid": False, "tier": tier, "warning": "\n\n".join(warnings)}
-    return {"valid": True, "tier": tier, "warning": None}
+        return {"valid": False, "tier": None, "warning": "\n\n".join(warnings)}
+    return {"valid": True, "tier": None, "warning": None}
 
 
 class EnforcementTierValidator(PostToolUseHook):
@@ -142,16 +124,17 @@ class EnforcementTierValidator(PostToolUseHook):
         if not path.exists():
             return {"passed": True}
 
-        # Enforcement field's pattern, for the filesystem-sync retry check below.
-        enforcement = next(f for f in _REQUIRED_FIELDS if f.name == "enforcement")
+        # Workflow_steps pattern for the filesystem-sync retry check.
+        # (enforcement field removed 2026-07-07 — dead concept per user directive.)
+        ws_field = next(f for f in _REQUIRED_FIELDS if f.name == "workflow_steps")
 
         # Read with retry: Edit may not have flushed to disk yet on Windows,
-        # so re-read until the enforcement field is actually parseable.
+        # so re-read until the workflow_steps field is actually parseable.
         content = None
         for _attempt in range(3):
             try:
                 content = path.read_text(encoding="utf-8")
-                if enforcement.pattern.search(content):
+                if ws_field.pattern.search(content):
                     break
                 time.sleep(0.05)
             except OSError:
