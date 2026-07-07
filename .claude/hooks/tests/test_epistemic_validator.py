@@ -584,9 +584,11 @@ def test_no_issues_allows():
 def test_format_issue_blocks_by_default():
     issues = [type("I", (), {"type": "format", "section": "", "message": "", "bullet_index": -1, "code": None})()]
     cfg = EpistemicConfig(mode="block")
-    # Pass response_type="investigation" so the policy layer falls through
-    # to config (no override entry) and format blocks as configured.
-    assert decide_from_issues(issues, cfg, response_type="investigation", raw_response="") == "block"
+    # 2026-07-06: investigation → ANALYSIS turn_kind → policy table now
+    # returns "warn" for FORMAT_ONLY (not None/config-fallthrough). To test
+    # config fallthrough, use an unsupported_fact issue which stays None.
+    fact_issues = [type("I", (), {"type": "unsupported_fact", "section": "", "message": "", "bullet_index": -1, "code": None})()]
+    assert decide_from_issues(fact_issues, cfg, response_type="investigation", raw_response="") == "block"
 
 
 def test_format_issue_warns_when_configured():
@@ -605,6 +607,41 @@ def test_global_mode_allow_overrides_everything():
     issues = [type("I", (), {"type": "format", "section": "", "message": "", "bullet_index": -1, "code": None})()]
     cfg = EpistemicConfig(mode="allow")
     assert decide_from_issues(issues, cfg) == "allow"
+
+
+def test_format_only_analysis_returns_warn_not_block():
+    """Regression: format-only ANALYSIS turns must warn, not block.
+
+    Pins the exact three-block failure from 2026-07-06: ANALYSIS turn with
+    missing-section + lines-outside-sections format issues. Config default
+    treat_format_violation_as="block" must NOT override the policy table,
+    which returns "warn" for (ANALYSIS, FORMAT_ONLY).
+
+    Discrimination rule compliance: STANCE/CAUSAL/FACTUAL entries in the
+    policy table remain None (fall through to config), so substantive
+    violations are unaffected.
+    """
+    format_issues = [
+        type("I", (), {"type": "format", "section": "", "message": "Missing required section", "bullet_index": -1, "code": None})(),
+        type("I", (), {"type": "format", "section": "__GLOBAL__", "message": "Found 3 line(s) outside any section", "bullet_index": -1, "code": None})(),
+    ]
+    cfg = EpistemicConfig(mode="block")  # strict mode — table still overrides
+    assert decide_from_issues(format_issues, cfg, response_type="analytical") == "warn"
+
+
+def test_format_only_unknown_warns():
+    """UNKNOWN turn + format-only issues → warn (kept at warn per original table).
+
+    Reverted from "ignore" on 2026-07-06: UNKNOWN turns are unclassifiable
+    so format compliance is the gate's only signal; removing it lacks the
+    measured-TP justification the retirement doc requires.
+    """
+    format_issues = [
+        type("I", (), {"type": "format", "section": "", "message": "Missing section", "bullet_index": -1, "code": None})(),
+    ]
+    cfg = EpistemicConfig(mode="block")
+    # response_type defaults to "simple" → UNKNOWN turn_kind → "warn"
+    assert decide_from_issues(format_issues, cfg) == "warn"
 
 
 def test_causal_warns_by_default():
@@ -1251,17 +1288,20 @@ def test_validate_explicit_analysis_mode():
     """Explicit analysis mode enforces the 4-section contract for non-status content."""
     from epistemic_validator import validate, EpistemicConfig
 
-    # mode="block" so format violations actually block; responseMode forces analysis.
+    # mode="block" so format violations would block; responseMode forces analysis.
     # Use a phrase that does NOT match is_status_summary_response so it gets
-    # classified as "simple" → no bypass → format block fires.
+    # classified as "simple" → no bypass → format issues found.
+    # 2026-07-06: policy table (ANALYSIS, FORMAT_ONLY) = "warn", so even strict
+    # mode returns "warn" for format-only issues (discrimination rule: FORMAT_ONLY
+    # is definitionally not an epistemic-content violation).
     cfg = EpistemicConfig(responseMode="analysis", mode="block")
     verdict = validate(
         "The root cause investigation identified the control-flow bug as primary. "
         "However, the secondary factor is also relevant.",
         cfg,
     )
-    assert verdict.decision == "block", (
-        f"Expected block for investigation without sections, got: {verdict.decision}, "
+    assert verdict.decision == "warn", (
+        f"Expected warn for investigation without sections, got: {verdict.decision}, "
         f"issues: {verdict.issues}"
     )
     assert any(i.type == "format" for i in verdict.issues)
@@ -2118,8 +2158,15 @@ def test_validate_external_claim_with_wrong_tool_link_not_treated_as_local():
     assert verdict.decision == "warn"
 
 
-def test_validate_real_lazy_proposal_still_blocks():
-    """A genuine lazy workaround proposal adjacent to gate output still blocks."""
+def test_validate_real_lazy_proposal_still_warns():
+    """A lazy workaround proposal adjacent to gate output produces a format warning.
+
+    2026-07-06: validate() runs the epistemic 4-section validator, NOT the
+    lazy-workaround detector. The response has no [FACT]/[INFERENCE]/[UNKNOWN]
+    sections, so the only issues are format violations. Policy table returns
+    "warn" for (UNKNOWN, FORMAT_ONLY). The lazy-workaround detector (which
+    would block) runs separately in Stop.py via Stop_lazy_workaround_gate.py.
+    """
     from epistemic_validator import EpistemicConfig, validate
 
     transcript = "LAZY WORKAROUND DETECTED: accepting bug as feature"
@@ -2130,7 +2177,7 @@ def test_validate_real_lazy_proposal_still_blocks():
     )
     cfg = EpistemicConfig(tool_transcript=transcript)
     verdict = validate(response, cfg)
-    assert verdict.decision == "block"
+    assert verdict.decision == "warn"
 
 
 def test_validate_with_tool_transcript_but_no_link_still_blocks():

@@ -14,7 +14,7 @@ triggers:
   - /bf
 workflow_steps:
   - 'if first arg is start, restart, shutdown, dashboard, status, or sync: run powershell -File P://.claude/provider-configs/cc-bifrost.ps1 --<arg>'
-  - 'if first arg is catalog: run python P://packages/cc-skills-utils/skills/bifrost/scripts/filter_models.py --source local <remaining args>'
+  - 'if first arg is catalog: run python P://packages/.claude-marketplace/plugins/cc-skills-utils/skills/bifrost/scripts/filter_models.py --source local <remaining args>'
   - 'if first arg is routes: import bf_agent, call probe_routes(), format as table'
   - 'if first arg is routes with second arg --new-only: import bf_agent, call list_catalog_models(min_context=128000, free_only=True), format as unrouted list'
   - 'if first arg is list-routes: import bf_agent, call list_routes(), format as table'

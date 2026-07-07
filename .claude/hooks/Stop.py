@@ -3795,7 +3795,9 @@ GATE_METADATA: dict[str, dict] = {
         "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
         "relevant_claim_kinds": _ALL_CLAIM_KINDS,
         "required_artifact_classes": frozenset(),
-        "rollout_mode": RolloutMode.BLOCK,
+        # 2026-07-06: BLOCK→ADVISORY per retirement review (zero blocks in 22d, zero
+        # telemetry warn/block). 30-day watch; remove if still zero at 2026-08-05.
+        "rollout_mode": RolloutMode.ADVISORY,
     },
     "narrative_intent": {
         "class": "quality", "trivial_suppressible": True, "priority": 52,
@@ -3835,7 +3837,8 @@ GATE_METADATA: dict[str, dict] = {
         "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
         "relevant_claim_kinds": _ALL_CLAIM_KINDS,
         "required_artifact_classes": frozenset(),
-        "rollout_mode": RolloutMode.BLOCK,
+        # 2026-07-06: BLOCK→ADVISORY per retirement review (zero blocks in 22d).
+        "rollout_mode": RolloutMode.ADVISORY,
     },
     "reasoning_enhanced": {
         "class": "quality", "trivial_suppressible": True, "priority": 57,
@@ -3907,7 +3910,8 @@ GATE_METADATA: dict[str, dict] = {
         "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
         "relevant_claim_kinds": _ALL_CLAIM_KINDS,
         "required_artifact_classes": frozenset(),
-        "rollout_mode": RolloutMode.BLOCK,
+        # 2026-07-06: BLOCK→ADVISORY per retirement review (zero blocks in 22d).
+        "rollout_mode": RolloutMode.ADVISORY,
     },
     "phase0_depends_on_skills": {
         "class": "quality", "trivial_suppressible": True, "priority": 62,
@@ -3915,7 +3919,8 @@ GATE_METADATA: dict[str, dict] = {
         "relevant_turn_kinds": _ALL_TURN_KINDS,
         "relevant_claim_kinds": _ALL_CLAIM_KINDS,
         "required_artifact_classes": frozenset(),
-        "rollout_mode": RolloutMode.BLOCK,
+        # 2026-07-06: BLOCK→ADVISORY per retirement review (zero blocks in 22d).
+        "rollout_mode": RolloutMode.ADVISORY,
     },
     "dependency_chain_guard": {
         "class": "quality", "trivial_suppressible": True, "priority": 63,
@@ -3923,7 +3928,8 @@ GATE_METADATA: dict[str, dict] = {
         "relevant_turn_kinds": _ALL_TURN_KINDS,
         "relevant_claim_kinds": frozenset({ClaimKind.FACTUAL, ClaimKind.CAUSAL}),
         "required_artifact_classes": frozenset(),
-        "rollout_mode": RolloutMode.BLOCK,
+        # 2026-07-06: BLOCK→ADVISORY per retirement review (zero blocks in 22d).
+        "rollout_mode": RolloutMode.ADVISORY,
     },
     "comparative_claim_guard": {
         "class": "quality", "trivial_suppressible": True, "priority": 64,
@@ -3931,7 +3937,8 @@ GATE_METADATA: dict[str, dict] = {
         "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
         "relevant_claim_kinds": frozenset({ClaimKind.FACTUAL}),
         "required_artifact_classes": frozenset(),
-        "rollout_mode": RolloutMode.BLOCK,
+        # 2026-07-06: BLOCK→ADVISORY per retirement review (zero blocks in 22d).
+        "rollout_mode": RolloutMode.ADVISORY,
     },
     "behavior_gates_guidance": {
         "class": "quality", "trivial_suppressible": True, "priority": 65,
@@ -3947,7 +3954,8 @@ GATE_METADATA: dict[str, dict] = {
         "relevant_turn_kinds": _ANALYSIS_TURN_KINDS,
         "relevant_claim_kinds": frozenset({ClaimKind.FACTUAL, ClaimKind.CAUSAL}),
         "required_artifact_classes": frozenset(),
-        "rollout_mode": RolloutMode.BLOCK,
+        # 2026-07-06: BLOCK→ADVISORY per retirement review (zero blocks in 22d).
+        "rollout_mode": RolloutMode.ADVISORY,
     },
     "intent_artifact_alignment": {
         "class": "quality", "trivial_suppressible": True, "priority": 67,

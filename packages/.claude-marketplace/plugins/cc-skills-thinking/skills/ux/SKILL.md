@@ -5,7 +5,7 @@ version: 1.7
 category: engineering
 mcp_servers: ["web-mcp"]
 allowed_tools: ["Read","Bash","WebFetch","code_exec","search_web"]
-allowed_orchestrators: ["subagents", "generalist", "ai-pcli", "bf"]
+allowed_orchestrators: ["subagents", "generalist", "ai-cli", "bf"]
 metadata:
   author: Gemini CLI
   target_llm: Claude Code / Bifrost
@@ -30,7 +30,7 @@ compatibility: Claude Code v2.1+, Bifrost gateway; Windows 11/PowerShell; multi-
 ## Workflow (Plan-Validate-Execute)
 1. **Metadata Verification**: **MANDATORY.** State the Video Title, Channel, and Duration. Cross-reference with query intent. If mismatch, HALT and re-fetch.
 2. **Analyze**: OCR vision (if page/video); extract verbatim techniques/metrics.
-3. **Context Threshold**: If current context usage > 50%, **MUST** dispatch complex sub-tasks to an orchestrator (`subagent` or `/ai-pcli`).
+3. **Context Threshold**: If current context usage > 50%, **MUST** dispatch complex sub-tasks to an orchestrator (`subagent` or `/ai-cli`).
 3. **Table Components**: Build components table with Cognitive Load scoring (1-5).
 4. **Skeptic**: Cross-check claims vs. evidence using an external orchestrator for deep analysis.
 5. **SOP**: 5-phase Mermaid/JSON tree.
@@ -51,6 +51,6 @@ compatibility: Claude Code v2.1+, Bifrost gateway; Windows 11/PowerShell; multi-
 - [ ] Skeptic challenges claims?
 
 ## Bridge-to-Impl
-- **Discovery**: Use `search_web("github [technique] claude code skill")` or `/ai-pcli web-mcp`.
+- **Discovery**: Use `search_web("github [technique] claude code skill")` or `/ai-cli web-mcp`.
 - **TDD**: Generate `test_plan.md` + automated test boilerplate for the extracted logic.
 - **Next**: Offer `/sdlc:init` on the new spec.

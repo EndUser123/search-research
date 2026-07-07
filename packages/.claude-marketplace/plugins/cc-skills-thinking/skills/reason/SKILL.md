@@ -12,7 +12,7 @@ workflow_steps:
   - step_internal: Internal Reflexion pass (Generate → Critique → Improve) with frame chaining
   - step_external_dispatch: If routing = single_challenger → python -c "import sys; sys.path.insert(0, 'P:/tools/mcp'); from bf_agent import run_simple; print(run_simple(mode, prompt, model)['text'])"
   - step_external_dispatch_compare: If routing = parallel_challengers → python -c "import sys; sys.path.insert(0, 'P:/tools/mcp'); from bf_agent import run_compare; print(run_compare(prompt, models)['synthesis'])"
-  - step_external_dispatch_pcli: If routing = single_challenger with multi-CLI → python "P:/packages//cc-skills-ai-cli//skills//ai-pcli//ai_cli.py" "<prompt>" <options>
+  - step_external_dispatch_pcli: If routing = single_challenger with multi-CLI → python "P:/packages/.claude-marketplace/plugins/cc-skills-ai-api/skills/ai-cli/ai_cli.py" "<prompt>" <options>
   - step_messy: Force unresolved tensions + ambiguities before synthesis (required for low-confidence)
   - step_dedupe: Cluster outputs, anti-majoritarian weighting, preserve minority reports
   - step_synthesize: Final synthesis with decision theory, bias check, second-order effects
@@ -106,20 +106,20 @@ Assign models to **cognitive roles**, not task categories. Any model can play an
 
 **Sharp role differentiation beats same-prompt parallelism.** Don't ask all models the same question.
 
-**Implementation:** External dispatch uses `/bf` and `/ai-pcli` as the two primary methods:
+**Implementation:** External dispatch uses `/bf` and `/ai-cli` as the two primary methods:
 
 | Method | When to Use | How to Invoke |
 |--------|-------------|---------------|
 | `/bf run_simple` | Single-model enhancement, mode-specific (brainstorm/design/plan/review/explore) | `python -c "from bf_agent import run_simple; print(run_simple(mode, prompt, model)['text'])"` |
 | `/bf run_compare` | Parallel multi-model comparison with LangGraph synthesis | `python -c "from bf_agent import run_compare; result = run_compare(prompt, models=[...]); print(result['synthesis'])"` |
-| `/ai-pcli` | Multi-CLI parallel execution (gemini, codex, opencode, pi) with aggregation | `python "P:/packages//cc-skills-ai-cli//skills//ai-pcli//ai_cli.py" "<prompt>" <options>` |
+| `/ai-cli` | Multi-CLI parallel execution (gemini, codex, opencode, pi) with aggregation | `python "P:/packages/.claude-marketplace/plugins/cc-skills-ai-api/skills/ai-cli/ai_cli.py" "<prompt>" <options>` |
 
 **Bifrost (`/bf`) defaults:** Use PI routing (see `/ai-cli --pi-model`), mode=`brainstorm` (or per role: design for architecture, plan for sequencing, review for critique, explore for investigation).
 
 **Routing decision logic:**
 - Low confidence → `/bf run_compare` for breadth (use PI routing, see `/ai-cli --pi-model`)
-- Single role (Verifier/Red Team) → `/ai-pcli --gemini-only` or `/ai-pcli --pi-only`
-- Parallel diverse roles → `/ai-pcli` with multiple CLIs
+- Single role (Verifier/Red Team) → `/ai-cli --gemini-only` or `/ai-cli --pi-only`
+- Parallel diverse roles → `/ai-cli` with multiple CLIs
 - Code-heavy task → `/bf run_code` with tool loop
 
 ### Stage 5: Messy Phase (Required for low-confidence)

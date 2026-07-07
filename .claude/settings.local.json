@@ -174,7 +174,15 @@
       "Bash(rm .git/index.lock)",
       "Bash(python P:/packages/.claude-marketplace/plugins/cc-skills-utils/skills/git/sync.py)",
       "Bash(cp \"P:/.claude/hooks/scripts/cks/quality_gate.py\" \"P:/packages/.claude-marketplace/plugins/search-research/core/cks/quality_gate.py\")",
-      "Bash(python -c \"import py_compile; py_compile.compile\\('P:/packages/.claude-marketplace/plugins/search-research/core/cks/quality_gate.py', doraise=True\\); print\\('SYNTAX OK'\\)\")"
+      "Bash(python -c \"import py_compile; py_compile.compile\\('P:/packages/.claude-marketplace/plugins/search-research/core/cks/quality_gate.py', doraise=True\\); print\\('SYNTAX OK'\\)\")",
+      "PowerShell(New-Item *)",
+      "PowerShell(python P:/tmp/gate_audit.py)",
+      "PowerShell(python P:/tmp/gate_counts.py)",
+      "PowerShell(python P:/tmp/gate_reasons.py)",
+      "PowerShell(python P:/tmp/run_epistemic_tests.py)",
+      "PowerShell(python P:/tmp/run_full_epistemic.py)",
+      "PowerShell(python P:/tmp/verify_renames.py)",
+      "PowerShell(python P:/tmp/retirement_join.py)"
     ],
     "deny": [],
     "ask": []

@@ -363,7 +363,7 @@ If politeness and accuracy conflict, choose accuracy.
 
 `/improve` cross-suggests after a run (post-recommendation, not mid-analysis):
 - `/claude-audit` — when findings implicate the runtime env (settings.json, hooks, MCP, plugins).
-- `/skill-audit` — when the target is a skill and findings are systemic (rubric-shaped), not one-off.
+- `/skill-audit` — when the target is a skill and findings are systemic (rubric-shaped), not one-off. **Consolidation/migration routing:** if the target involves command consolidation, deprecated commands, alias/stub claims, mode absorption, or any "shipped / absorbed / stubbed / deprecated" claim where capability preservation is uncertain, suggest `/skill-audit preserve <path|plan>` (or `/red-team` for adversarial review). `/improve` does not own that audit — it routes to it.
 - `/review` — when the recommendation touches implementation quality the user should run a structured review on.
 - `/red-team` — when the recommendation is a high-risk design/contract change worth adversarial stress before commit. `/red-team adversarial` is also the backend for `mode=external-second-opinion`.
 - `/debrief` — when the finding originated in a session and deserves root-cause task extraction, not just a recommendation.

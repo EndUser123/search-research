@@ -157,13 +157,21 @@ _POLICY_TABLE: dict[tuple[TurnKind, ClaimKind], Optional[Decision]] = {
 
     # ANALYSIS: format may warn but grounded content outside sections is allowed
     # CAUSAL/FACTUAL/STANCE remain strict via config
-    (TurnKind.ANALYSIS, ClaimKind.FORMAT_ONLY): None,  # use config (usually warn)
+    # 2026-07-06: None → "warn" — FORMAT_ONLY is definitionally not an
+    # epistemic-content violation; the 44% FP rate from the labeled corpus
+    # (task #1086/#1122) confirms config default "block" is too strict here.
+    # STANCE/CAUSAL/FACTUAL entries below stay None (fall through to config)
+    # per the hook_quality_vs_policy_severity discrimination rule.
+    (TurnKind.ANALYSIS, ClaimKind.FORMAT_ONLY): "warn",
     (TurnKind.ANALYSIS, ClaimKind.FACTUAL): None,  # use config (usually block)
     (TurnKind.ANALYSIS, ClaimKind.CAUSAL): None,  # use config (usually warn)
     (TurnKind.ANALYSIS, ClaimKind.STANCE): None,  # use config
     (TurnKind.ANALYSIS, ClaimKind.UNKNOWN): None,  # no issues — allow
 
     # UNKNOWN: default to config behavior (no override)
+    # 2026-07-06: kept at "warn" (not "ignore") — UNKNOWN turns are unclassifiable
+    # so the gate's only signal is format compliance; removing it requires a
+    # measured-TP justification the labeled corpus doesn't yet support.
     (TurnKind.UNKNOWN, ClaimKind.FORMAT_ONLY): "warn",
     (TurnKind.UNKNOWN, ClaimKind.FACTUAL): None,
     (TurnKind.UNKNOWN, ClaimKind.CAUSAL): None,

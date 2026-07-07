@@ -12,6 +12,16 @@ still needs per-gate confirmation.
 | `logs/diagnostics/stop_blocks.jsonl` | 2026-06-18 → 07-02 (15 days) | 163 blocks / 12 gates | Which gates actually **blocked** |
 | `.claude/state/shared/stop_gate_telemetry.jsonl` (+rotated) | **2026-07-02 only — 1 day** | 494 events / 37 gates | Per-gate **decision** distribution (allow/warn/block) |
 
+> **DATA-SOURCE DISTINCTION (added 2026-07-06):** `stop_blocks.jsonl` is a flat-file
+> block-only log written by Stop.py. `diagnostics.db` is a separate SQLite database
+> written by the diagnostics importer and **mixes test-fixture rows** (`"synthetic
+> violation"` reason, 250+ rows as of 2026-07-06) with production blocks. Block counts
+> from `diagnostics.db` are inflated and **must not be used** for retirement decisions
+> without filtering test fixtures first. This doc's block counts come exclusively from
+> `stop_blocks.jsonl`. If a future audit reads from `diagnostics.db`, it will see higher
+> numbers (e.g. `epistemic_contract` shows 207 blocks in the db vs. 24 in the flat file)
+> — this is a known data-quality issue, not a contradiction.
+
 > **PATH NOTE (2026-07-02):** telemetry was relocated out of the code tree
 > (`hooks/.state/`) to the external shared-state contract
 > (`P:/.claude/state/shared/`, via `__lib/state_paths.SHARED_DIR`). Three

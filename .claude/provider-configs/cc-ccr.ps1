@@ -231,6 +231,36 @@ if (-not $ccrRunning) {
     return
 }
 
+# --- Read local model state (written by run-ornith-server.ps1) ---
+$localModelStatePath = "P:\.claude\state\local-model-state.json"
+$localModelInfo = ""
+if (Test-Path $localModelStatePath) {
+    try {
+        $lms = Get-Content $localModelStatePath -Raw | ConvertFrom-Json
+        if ($lms.active_model) {
+            $active = $lms.models | Where-Object { $_.id -eq $lms.active_model } | Select-Object -First 1
+            if ($active) {
+                $localModelInfo = "local: $($active.id) ctx=$($active.maxContextTokens)"
+                Write-Host "[CCR] $localModelInfo" -ForegroundColor Green
+            }
+        } else {
+            Write-Host "[CCR] No active local model (llama-server may not be running)" -ForegroundColor DarkGray
+        }
+    } catch {
+        Write-Host "[CCR] Could not read local-model-state.json" -ForegroundColor DarkGray
+    }
+} else {
+    Write-Host "[CCR] local-model-state.json not found — run-ornith-server.ps1 not started yet" -ForegroundColor DarkGray
+}
+
+# --- Log routing mode ---
+$routingMode = "unknown"
+try {
+    $routingConfig = Get-Content $ccrConfigPath -Raw | ConvertFrom-Json
+    $routingMode = $routingConfig.routingMode
+    Write-Host "[CCR] routingMode=$routingMode" -ForegroundColor Cyan
+} catch {}
+
 # --- Wire this shell's Claude Code ---
 # Claude → CCR → external models
 $env:ANTHROPIC_BASE_URL = $ccrUrl
