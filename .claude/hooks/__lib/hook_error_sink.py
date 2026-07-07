@@ -72,7 +72,7 @@ def log_hook_error(
             "traceback": (traceback_text or "")[-1000:],
             "session_id": session_id or os.environ.get("CLAUDE_SESSION_ID"),
         }
-        with open(_FALLBACK_LOG, "a", encoding="utf-8") as f:
-            f.write(json.dumps(entry) + "\n")
-    except Exception:
+        from file_lock import append_jsonl_safe
+        append_jsonl_safe(_FALLBACK_LOG, entry)
+    except OSError:
         pass

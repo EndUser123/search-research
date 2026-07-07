@@ -52,9 +52,9 @@ def record_fault(event: str, gate: str, error: str, *, terminal_id: str = "") ->
             "error": str(error)[:300],
             "terminal_id": str(terminal_id or ""),
         }
-        with open(LOG_PATH, "a", encoding="utf-8") as f:
-            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-    except Exception:
+        from file_lock import append_jsonl_safe
+        append_jsonl_safe(LOG_PATH, entry, ensure_ascii=False)
+    except OSError:
         # Logging must never break the hook. Fail truly silently here — the
         # alternative (raising) would turn the dead-gate alarm into a new
         # source of dead gates.

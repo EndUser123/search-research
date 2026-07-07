@@ -816,9 +816,9 @@ def _log_behavior_audit_telemetry(data: dict, result: dict) -> None:
             "reason": result.get("reason", "")[:500],
             "missing_claims": result.get("missing_claims", [])[:10],
         }
-        with log_path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(entry) + "\n")
-    except Exception:
+        from file_lock import append_jsonl_safe
+        append_jsonl_safe(log_path, entry)
+    except OSError:
         pass
 
 

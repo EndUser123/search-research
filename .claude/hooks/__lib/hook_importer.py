@@ -83,9 +83,9 @@ class HookImporter:
         try:
             self._diag_dir.mkdir(parents=True, exist_ok=True)
             entry = {"timestamp": datetime.now(UTC).isoformat(), **payload}
-            with (self._diag_dir / filename).open("a", encoding="utf-8") as fh:
-                fh.write(json.dumps(entry, ensure_ascii=True) + "\n")
-        except Exception:
+            from file_lock import append_jsonl_safe
+            append_jsonl_safe(self._diag_dir / filename, entry, ensure_ascii=True)
+        except OSError:
             # Diagnostics must never affect hook execution.
             pass
 

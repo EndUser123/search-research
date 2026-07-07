@@ -132,9 +132,9 @@ def log_event(
     try:
         _STATE_DIR.mkdir(parents=True, exist_ok=True)
         _maybe_rotate()
-        with open(_LOG_FILE, "a", encoding="utf-8") as fh:
-            fh.write(json.dumps(record, separators=(",", ":")) + "\n")
-    except Exception:
+        from file_lock import append_jsonl_safe
+        append_jsonl_safe(_LOG_FILE, record)
+    except OSError:
         pass
 
 

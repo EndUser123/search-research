@@ -172,9 +172,9 @@ def _log_error(hook_name: str, error_type: str, error_msg: str, tb: str) -> None
             },
         }
 
-        with open(ERRORS_LOG, "a", encoding="utf-8") as f:
-            f.write(json.dumps(entry) + "\n")
-    except Exception:
+        from file_lock import append_jsonl_safe
+        append_jsonl_safe(ERRORS_LOG, entry)
+    except OSError:
         # Last resort - print to stderr
         _safe_stderr_print(f"[HOOK_RUNNER] Failed to log error: {error_msg}")
 
@@ -458,27 +458,25 @@ def safe_run(hook_path: str | Path, timeout: float | None = None) -> int:
             try:
                 diag_path = HOOKS_DIR / "logs" / "diagnostics" / "hook_runner_stderr.jsonl"
                 diag_path.parent.mkdir(parents=True, exist_ok=True)
-                diag_entry = json.dumps(
-                    {
-                        "ts": datetime.now(UTC).isoformat(),
-                        "hook": hook_name,
-                        "hook_path": str(hook_path),
-                        "session_id": input_metadata.get("session_id", ""),
-                        "terminal_id": input_metadata.get("terminal_id", ""),
-                        "prompt_id": input_metadata.get("prompt_id", ""),
-                        "tool_name": input_metadata.get("tool_name", ""),
-                        "cwd": input_metadata.get("cwd", ""),
-                        "command_preview": input_metadata.get("command", ""),
-                        "file_path": input_metadata.get("file_path", ""),
-                        "event_kind": "blocked" if exit_code == 2 else "stderr",
-                        "stderr_len": len(stderr_text),
-                        "stderr": stderr_text[:2000],
-                        "exit_code": exit_code,
-                    }
-                )
-                with open(diag_path, "a", encoding="utf-8") as df:
-                    df.write(diag_entry + "\n")
-            except Exception:
+                diag_entry = {
+                    "ts": datetime.now(UTC).isoformat(),
+                    "hook": hook_name,
+                    "hook_path": str(hook_path),
+                    "session_id": input_metadata.get("session_id", ""),
+                    "terminal_id": input_metadata.get("terminal_id", ""),
+                    "prompt_id": input_metadata.get("prompt_id", ""),
+                    "tool_name": input_metadata.get("tool_name", ""),
+                    "cwd": input_metadata.get("cwd", ""),
+                    "command_preview": input_metadata.get("command", ""),
+                    "file_path": input_metadata.get("file_path", ""),
+                    "event_kind": "blocked" if exit_code == 2 else "stderr",
+                    "stderr_len": len(stderr_text),
+                    "stderr": stderr_text[:2000],
+                    "exit_code": exit_code,
+                }
+                from file_lock import append_jsonl_safe
+                append_jsonl_safe(diag_path, diag_entry)
+            except OSError:
                 pass
             # DO NOT re-emit stderr — Claude Code treats ANY stderr as "hook error".
             # The diagnostic log above is sufficient for debugging.

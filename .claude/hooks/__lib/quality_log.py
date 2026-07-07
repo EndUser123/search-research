@@ -103,12 +103,8 @@ def log_quality_skill(
     }
 
     # Append to log
-    try:
-        with open(log_path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(entry) + "\n")
-        return True
-    except OSError:
-        return False
+    from file_lock import append_jsonl_safe
+    return append_jsonl_safe(log_path, entry)
 
 
 def read_quality_log(

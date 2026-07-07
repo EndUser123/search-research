@@ -72,8 +72,8 @@ class VerificationAuditLogger:
 
         try:
             # Append to audit log
-            with open(self.log_file, 'a', encoding='utf-8') as f:
-                f.write(json.dumps(log_entry, ensure_ascii=True) + "\n")
+            from __lib.file_lock import append_jsonl_safe
+            append_jsonl_safe(self.log_file, log_entry, ensure_ascii=True)
 
             # Also log to stderr for immediate visibility (bypass won't block)
             print(

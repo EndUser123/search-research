@@ -380,8 +380,8 @@ def _record_observation(data: dict[str, Any], tool_names: list[str] | None = Non
     _grace_cache["timestamp"] = 0
 
     try:
-        with open(STATE_FILE, "a", encoding="utf-8") as f:
-            f.write(json.dumps(record) + "\n")
+        from file_lock import append_jsonl_safe
+        append_jsonl_safe(STATE_FILE, record)
     except OSError:
         return
 
