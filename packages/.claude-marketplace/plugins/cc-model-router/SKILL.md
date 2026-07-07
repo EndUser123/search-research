@@ -1,6 +1,6 @@
 ---
 name: cc-model-router
-version: "0.2.13"
+version: "0.2.14"
 status: "active"
 description: Automatic model-tier routing (haiku/sonnet/opus) based on prompt complexity heuristics
 category: infrastructure

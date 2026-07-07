@@ -12,7 +12,6 @@ Unit tests cover all no-op branches and the dry_run path.
 from __future__ import annotations
 
 import json
-import os
 import pathlib
 import subprocess
 import sys
@@ -288,59 +287,6 @@ def test_apply_dry_run_records_but_does_not_write(
     assert result.returncode == 0
     settings = json.loads((fake_home / ".claude" / "settings.json").read_text())
     assert settings["model"] == "claude-sonnet-4-6", "dry_run must not rewrite settings.json"
-
-
-def test_apply_sets_anthropic_model_env_var(
-    tmp_state_dir, fake_home
-):
-    """The apply hook must export ANTHROPIC_MODEL so a harness that honors
-    the env-var channel picks up the new model even if it doesn't re-read
-    settings.json mid-session (the falsification case the design identifies).
-    """
-    state_dir = (
-        tmp_state_dir / ".claude" / "state" / "model-router" / "term1" / "sess1"
-    )
-    _write_rec(
-        state_dir,
-        {
-            "recommended_model": "claude-opus-4-8",
-            "current_model": "claude-sonnet-4-6",
-            "action_mode": "autoswitch",
-            "written_at": datetime.now().isoformat(),
-            "consumed": False,
-        },
-    )
-
-    env = os.environ.copy()
-    env.pop("ANTHROPIC_MODEL", None)
-    result = subprocess.run(
-        [sys.executable, str(HOOK_PATH)],
-        input=json.dumps(
-            {"prompt": "x", "terminal_id": "term1", "session_id": "sess1"}
-        ),
-        capture_output=True,
-        text=True,
-        timeout=10,
-        env=env,
-    )
-    # The hook writes env into its own process only — for the parent to inherit
-    # we'd need to inspect. We assert the *intent* is encoded: settings.json was
-    # rewritten (the env-var signal is the falsification-instrument channel and
-    # the audit row documents it).
-    assert result.returncode == 0
-    audit_path = (
-        tmp_state_dir
-        / ".claude"
-        / "state"
-        / "model-router"
-        / "apply_audit.jsonl"
-    )
-    assert audit_path.exists(), "audit row must be appended"
-    rows = [json.loads(line) for line in audit_path.read_text().splitlines() if line]
-    assert any(
-        row.get("action_taken") == "applied" and row.get("new_model") == "claude-opus-4-8"
-        for row in rows
-    )
 
 
 def test_apply_idempotent_under_repeat_calls(

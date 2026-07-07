@@ -1,3 +1,4 @@
 {
+  "//": "Intentionally empty. Hook dispatch is handled by __lib/router.py registered in settings.json (one line per event: SessionStart, UserPromptSubmit). This file exists only because some tooling expects it to be present. Do NOT add hook entries here — they will be ignored and create false confidence. Edit __lib/router.py DISPATCH dict instead.",
   "hooks": {}
 }

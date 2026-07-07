@@ -13,7 +13,7 @@ import sys
 import re
 import os
 import pathlib
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def get_state_path(terminal_id, session_id):
@@ -120,7 +120,11 @@ def classify_prompt(prompt, config):
         return 'opus'
 
     # Local: mechanical edits + trivial interactions — prefer over haiku
-    # when both match, local saves paid API cost
+    # when both match, local saves paid API cost.
+    # PRECEDENCE: local_patterns is checked BEFORE haiku_patterns. The two lists
+    # overlap (e.g. rename/format/lint appear in both), so ordering is load-bearing
+    # — do not reorder these blocks. local_patterns is also gated by word_count<=12,
+    # which narrows the overlap to short single-file operations.
     local_patterns = [
         r'^(yes|no|ok|okay|sure|yep|nope|y|n)$',
         r'^(thanks|thank you|thx|ty)$',
@@ -211,11 +215,31 @@ def main():
         'current_model': current_model,
         'current_tier': current_tier,
         'action_mode': action_mode,
-        'written_at': datetime.now().isoformat(),
+        'written_at': datetime.now(timezone.utc).isoformat(),
         'turn_counter': data.get('turn_counter', 0),
         'consumed': False,
     }
     write_recommendation(state_path, rec_data)
+
+    # Write a task-type hint for ccr-custom-router.js (per-request routing authority).
+    # Maps classify tier -> router taskType. Best-effort: on any failure the router
+    # falls back to its own inferTaskType() heuristic, so this never blocks routing.
+    try:
+        hooks_dir = pathlib.Path(__file__).resolve().parent.parent
+        if str(hooks_dir) not in sys.path:
+            sys.path.insert(0, str(hooks_dir))
+        from write_routing_hint import write_hint  # type: ignore[import-not-found]
+        TIER_TO_TASK_TYPE = {
+            'opus': 'reasoning',
+            'sonnet': 'coding',
+            'haiku': 'background',
+            'local': 'local-coding',
+        }
+        task_type = TIER_TO_TASK_TYPE.get(recommendation)
+        if task_type:
+            write_hint(task_type, session_id)
+    except Exception:
+        pass
 
     try:
         log_file = pathlib.Path.home() / '.claude' / 'logs' / 'model-router.ndjson'

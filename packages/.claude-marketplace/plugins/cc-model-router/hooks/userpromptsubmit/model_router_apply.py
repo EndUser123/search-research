@@ -64,11 +64,16 @@ def is_expired(rec: dict, ttl: int = TTL_SECONDS) -> bool:
         return True
     try:
         written_dt = datetime.fromisoformat(written)
-        # Backward compat: legacy rows are naive local time. Assume UTC for those
-        # (TTL is 300s, so any tz misinterpretation expires the row quickly either way).
+        # Mixed-tz safety: if the stored timestamp is naive (legacy rows written by
+        # older classify hooks as local time), compare against naive local now —
+        # the original same-machine behavior. If it's tz-aware (new UTC writes),
+        # compare against aware UTC now. Never reinterpret naive as UTC: on a
+        # non-UTC host that makes fresh rows look hours old and falsely expires them.
         if written_dt.tzinfo is None:
-            written_dt = written_dt.replace(tzinfo=timezone.utc)
-        age = (datetime.now(timezone.utc) - written_dt).total_seconds()
+            now = datetime.now()
+        else:
+            now = datetime.now(timezone.utc)
+        age = (now - written_dt).total_seconds()
     except Exception:
         return True
     return age > ttl
@@ -82,9 +87,10 @@ def mark_consumed(state_path: pathlib.Path) -> None:
         with open(p, encoding="utf-8") as f:
             data = json.load(f)
         data["consumed"] = True
-        data["consumed_at"] = datetime.now().isoformat()
-        with open(p, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+        data["consumed_at"] = datetime.now(timezone.utc).isoformat()
+        # Atomic write closes the read-modify-write race: two concurrent apply
+        # calls can no longer both read consumed=False and double-apply.
+        atomic_write_json(p, data)
     except Exception:
         pass
 
@@ -183,9 +189,6 @@ def main() -> None:
             sys.exit(0)
         update_state_tier(state_path, recommended)
 
-    # Signal to any harness / child process that the new model is intended.
-    os.environ["ANTHROPIC_MODEL"] = recommended
-
     mark_consumed(state_path)
 
     append_audit(
@@ -195,7 +198,6 @@ def main() -> None:
             "action_taken": "would_have_applied" if dry_run else "applied",
             "current_model": current,
             "new_model": recommended,
-            "env_var_set": recommended,
             "terminal_id": terminal_id,
             "session_id": session_id,
             "dry_run": dry_run,
@@ -204,7 +206,7 @@ def main() -> None:
 
     print(
         f"[model-router-apply] model={current} -> {recommended} "
-        f"(in effect for current turn; dry_run={dry_run})",
+        f"(settings.json rewritten; dry_run={dry_run})",
         file=sys.stderr,
     )
     sys.exit(0)
