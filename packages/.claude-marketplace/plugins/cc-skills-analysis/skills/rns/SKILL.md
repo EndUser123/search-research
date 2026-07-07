@@ -99,21 +99,27 @@ Every item must cite a specific tool call from this session (Read, Grep, Glob, B
 
 ### 3. ACTION RANKING & RED TEAM
 
-Rank **at most 4** actions by leverage. Include Blast Radius (`Low` / `Med` / `High`). For each, add a brief Red Team note.
+Rank **at most 4** actions by leverage (highest first). Each line carries compact inline metadata, with a Red Team note beneath. The list ends with a prominent `0 — Do ALL` footer — this is the signature output element, rendered as a visible footer (separator + line), not a bullet.
 
 ```
-1. [Concise action + scope + prereqs] [Blast Radius: X]
+1. [action + scope + prereqs] [Blast Radius: X] [domain/type/priority/effort]
    Red Team: What could go wrong / edge cases / quirks?
-2. ...
-0. Do All Ranked Actions Sequence (Only if all Low/Med risk and safe to batch).
+2. [action + scope + prereqs] [Blast Radius: X] [domain/type/priority/effort]
+   Red Team: ...
+3. ...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+0 — Do ALL Ranked Actions (N items)  [default when all are Low/Med risk]
 ```
 
-Each action should carry inline metadata where applicable:
-- **Domain** (quality / tests / docs / security / performance / git / deps / other)
-- **Action type** (recover / prevent / realize)
-- **Priority** (critical / high / medium / low)
-- **Effort** (~5min / ~15min / ~1hr)
-- **File reference** (`@ file:line`)
+**Inline metadata fields** (compact, bracketed on the action line):
+- **Domain**: quality / tests / docs / security / performance / git / deps / other
+- **Action type**: recover / prevent / realize
+- **Priority**: critical / high / medium / low
+- **Effort**: ~5min / ~15min / ~1hr
+- **File reference**: `@ file:line` (only if verified this session)
+
+**The `0` footer is mandatory** whenever ≥2 ranked actions exist and all are Low/Med blast radius. Omit it only if any action is High blast radius or the set isn't safe to batch — in that case `<selection>` must pick a single number.
 
 ### 4. GUARDRAILS
 
@@ -135,7 +141,10 @@ Specific actions, paths, or optimizations to **avoid** right now and why.
 
 **`<selection>` contract:**
 - Exactly one `<selection>` block per response.
+- **Wrap the block in a ` ```xml ` code fence.** Raw `<option>`/`<rationale>`/`<execution_plan>` tags get stripped or mangled by the markdown renderer (`<option>` is a real HTML element) — fencing is mandatory so the output is both visible and machine-parseable.
 - `<option>` must be one of: `0`, `1`, `2`, `3`, `4`, or `EXIT`.
+- **Default to `0`** when all ranked actions are Low/Med blast radius and the `0` footer is present. The model does not pre-narrow scope — present the full ranked set and let the user pick a single number only if they want surgical scope.
+- Choose a single number (`1`-`4`) only when: a High-risk action is present, the set isn't safe to batch, or one action clearly dominates and the others are no-ops/deferred.
 - If `0` (batch): every step in `<execution_plan>` must include a named verification check.
 - If `EXIT`: `<execution_plan>` contains only "Workspace clean. No action required."
 
