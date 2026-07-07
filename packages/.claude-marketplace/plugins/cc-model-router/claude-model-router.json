@@ -27,6 +27,12 @@
     "trivial_coding_max_words": 15,
     "followup_context_boost": 0.15
   },
+  "tokenBudgets": {
+    "zai,glm-5.2": 1000000,
+    "minimax,MiniMax-M3[1m]": 1000000,
+    "llama-cpp,ornith-1.0-9b": 65536,
+    "defaultFallback": 200000
+  },
   "action": "autoswitch",
   "log_file": "~/.claude/logs/model-router.ndjson"
 }
