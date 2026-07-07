@@ -465,7 +465,7 @@ Write-Host ""
 # --- Phase status banner ---
 Write-Host ""
 Write-Host "Phases:"
-if ($phaseLocalApply)  { Write-Host "  local-apply:  requested (verify model loaded in LM Studio)" -ForegroundColor Yellow }
+if ($phaseLocalApply)  { Write-Host "  local-apply:  requested (verify model loaded in llama.cpp)" -ForegroundColor Yellow }
 else                   { Write-Host "  local-apply:  off" -ForegroundColor DarkGray }
 if ($phaseCompactHook) { Write-Host "  compact-hook: requested (verify hook file present)" -ForegroundColor Yellow }
 else                   { Write-Host "  compact-hook: off" -ForegroundColor DarkGray }
@@ -568,7 +568,7 @@ if ($Usage) {
     # the case where the custom route points at a model the server isn't serving.
     # NOTE: the local slot is routed by ccr-custom-router.js (CUSTOM_ROUTER_PATH),
     # not the default keyword router. llama-server exposes GET /v1/models
-    # (OpenAI shape {data:[{id:...}]}), not LM Studio's /api/v0/models.
+    # (OpenAI shape {data:[{id:...}]}, llama-server exposes this on /v1/models).
     try {
         $lm = Invoke-RestMethod -Uri "http://127.0.0.1:8010/v1/models" -TimeoutSec 3 -ErrorAction Stop
         $loaded = $lm.data | Select-Object -First 1
