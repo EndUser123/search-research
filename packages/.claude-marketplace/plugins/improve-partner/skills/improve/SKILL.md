@@ -417,6 +417,22 @@ artifact, ask whether the artifact's completion claims have a ledger —
 but does not BLOCK or BLOCK-APPROVE based on the ledger. That authority
 lives in the table above.
 
+## Discoverability — route, do not absorb
+
+When the `discoverable_fact_offloading` pattern recurs (agent asks user for
+files/configs/transcripts/line numbers/repo facts it could find via safe
+read-only tools), `/improve` routes to workflow/hook/skill improvement —
+it does NOT absorb `/debrief`'s rubric. Route targets:
+
+- `/debrief` — to mine the transcript for the pushback-test pattern.
+- `/skill-audit` — if a skill's instructions tell the agent to ask the user
+  before attempting local discovery.
+- `/claude-audit` — if known transcript/log/config locations should be
+  injected as runtime ground truth (so agents have fewer excuses to ask).
+
+Full classification rule at
+`debrief/references/discoverability-classification.md`.
+
 ## Suggest
 
 `/improve` cross-suggests after a run (post-recommendation, not mid-analysis):
