@@ -1,12 +1,11 @@
-"""Atomic JSON write with Windows-sharing-violation retry.
+"""Atomic JSON write with Windows-sharing-violation retry + tier derivation.
 
 Shared by:
-  - hooks/sessionstart/model_router_init.py (state file)
-  - hooks/userpromptsubmit/model_router_apply.py (settings.json)
+  - hooks/sessionstart/model_router_init.py (state file; derive_tier)
+  - hooks/userpromptsubmit/model_router_apply.py (recommendation.json; atomic_write_json)
 
-The pattern is identical to the one originally in model_router_init.py:90-136.
-Moved here so the apply hook (UPS, fires before generation) can atomically
-rewrite the model field without re-implementing the retry loop.
+CCR is the sole routing authority — nothing here writes .claude/settings.json.
+The legacy settings.json R/W helpers were removed when autoswitch was retired.
 """
 
 from __future__ import annotations
@@ -82,23 +81,3 @@ def derive_tier(model: str) -> str:
     if "opus" in model_lower:
         return "opus"
     return "unknown"
-
-
-def read_settings(home: pathlib.Path | None = None) -> dict[str, Any]:
-    """Read ~/.claude/settings.json; return {} if missing or unparseable."""
-    base = pathlib.Path(home) if home else pathlib.Path.home()
-    p = base / ".claude" / "settings.json"
-    try:
-        with open(p, encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {}
-
-
-def write_settings(
-    settings: dict[str, Any],
-    home: pathlib.Path | None = None,
-) -> None:
-    """Write settings dict to ~/.claude/settings.json atomically."""
-    base = pathlib.Path(home) if home else pathlib.Path.home()
-    atomic_write_json(base / ".claude" / "settings.json", settings)

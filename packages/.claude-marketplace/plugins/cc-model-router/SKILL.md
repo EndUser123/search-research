@@ -11,7 +11,7 @@ workflow_steps:
     description: "model_router_classify.py scores the prompt and writes recommendation.json"
   - name: Apply
     trigger: "UserPromptSubmit"
-    description: "model_router_apply.py consumes the recommendation and rewrites settings.json. NON-COMPLIANT for same-turn switching — see 'Routing contract' below."
+    description: "model_router_apply.py consumes the recommendation (advisory-only: marks consumed + audit-logs). CCR enforces routing; this hook never rewrites settings.json."
 triggers:
   - autoswitch
   - model-router
@@ -25,7 +25,7 @@ Automatic model-tier routing (haiku/sonnet/opus) based on prompt complexity heur
 
 ## Features
 
-- **Dual-mode operation**: warn (systemMessage injection) or autoswitch (exit 2 + atomic settings.json write)
+- **Advisory-only operation**: classify writes recommendation.json + injects a systemMessage; apply marks consumed + audit-logs. CCR enforces routing; the plugin never rewrites settings.json.
 - **Config walk-up**: plugin-level, global user-level, project-level override
 - **Terminal+session scoped state** at `.claude/state/model-router/`
 - **Python-only hooks** per ARCH-002
@@ -42,7 +42,7 @@ Automatic model-tier routing (haiku/sonnet/opus) based on prompt complexity heur
 
 SystemMessage injected into prompt when complexity threshold exceeded.
 
-### autoswitch mode
+### autoswitch (legacy — retained for audit history, not live-routing)
 
 ```json
 {
@@ -50,10 +50,10 @@ SystemMessage injected into prompt when complexity threshold exceeded.
 }
 ```
 
-UserPromptSubmit apply hook rewrites `settings.json["model"]`. This is
-**non-compliant for same-turn switching** — see the routing contract
-below. The hook still ships because the audit path and classify logic
-are reused by the redesign; the write itself is inert mid-session.
+Historical behavior was: apply hook rewrites `settings.json["model"]` — that
+path is now **non-functional** in production. CCR is the routing authority;
+the apply hook only marks `recommendation.json` as consumed and appends an
+audit row. See "Routing contract" below for the full authority split.
 
 ## Routing contract (read before reasoning about this plugin)
 
