@@ -43,7 +43,7 @@ $Routes = @{
         @{ Provider = "minimax"; Model = "MiniMax-M2.7"; Description = "MiniMax M2.7" }
     )
     "Custom" = @(
-        @{ Provider = "lmstudio"; Model = "gemma-4-12b-coder-fable5-composer2.5-v1"; Description = "LM Studio - Gemma 4 12B Coder" }
+        @{ Provider = "llama-cpp"; Model = "ornith-1.0-9b"; Description = "llama.cpp - Ornith 1.0 9B (local)" }
     )
 }
 
