@@ -89,7 +89,7 @@ from core.unified_router import UnifiedAsyncRouter
 import asyncio
 
 async def search():
-    router = UnifiedAsyncRouter(mode='local-only')
+    router = UnifiedAsyncRouter(mode='auto')
     results = await router.search_async('$query', limit=10)
     for r in results:
         print(f'[{r.score:.2f}] {r.title}')
@@ -135,7 +135,7 @@ from core.unified_router import UnifiedAsyncRouter
 import asyncio
 
 async def search():
-    router = UnifiedAsyncRouter(mode='local-only')
+    router = UnifiedAsyncRouter(mode='auto')
     results = await router.search_async('$query', limit=20)
     for r in results:
         if 'chat' in r.source.lower() or 'chs' in r.source.lower():
