@@ -441,3 +441,38 @@ class TestFts5SyntaxEscape:
 
         result = escape_fts5_syntax("what is this?")
         assert "?" not in result
+
+
+class TestFts5MatchRegression:
+    """Reproduce-first regression: apostrophe query through MATCH ? must hit.
+
+    The escaper unit tests above prove escape_fts5_syntax does not double
+    quotes. This class proves the *bound-parameter path* itself returns
+    results — the actual symptom that was broken when search.py used
+    escape_fts5_query (which doubled ' to '') with MATCH ?.
+
+    Before the escape split, the doubled quote corrupted the FTS5 expression
+    and the query silently returned 0 results. This test would have caught it.
+    """
+
+    def test_apostrophe_query_returns_results(self) -> None:
+        import sqlite3
+
+        from core.chs.utils import escape_fts5_syntax
+
+        db = sqlite3.connect(":memory:")
+        db.execute("CREATE VIRTUAL TABLE fts USING fts5(content)")
+        db.execute("INSERT INTO fts(content) VALUES (?)", ("the cat's mat is warm",))
+        db.execute("INSERT INTO fts(content) VALUES (?)", ("entirely unrelated text",))
+        db.commit()
+
+        escaped = escape_fts5_syntax("cat's mat")
+        rows = db.execute(
+            "SELECT content FROM fts WHERE fts MATCH ? LIMIT 10", (escaped,)
+        ).fetchall()
+
+        assert len(rows) == 1, (
+            f"Apostrophe query returned {len(rows)} rows, expected 1 "
+            f"(escaped={escaped!r}) — bound-parameter path is broken"
+        )
+        assert "cat's mat" in rows[0][0]
