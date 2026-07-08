@@ -79,15 +79,17 @@ class TfidfBackend(SemanticScorer):
             sim = self._cosine(prompt_vec, self.centroids[cls].reshape(1, -1))[0][0]
             scores[cls] = float(sim)
 
-        # Apply context boost if provided (e.g., previous hint was reasoning)
+        # Apply context boost if provided (e.g., previous hint was reasoning).
+        # Floor on base score: boost extends a real signal, never creates one.
+        # When all base scores are ~0 (short prompts: "proceed", "yes please"),
+        # the boost would manufacture a false winner — block it.
         if context and context.get("prev_task_type"):
             prev = context["prev_task_type"]
             boost = context.get("followup_boost", 0.15)
-            # Map prev hint class to scorer class
             boost_map = {"reasoning": "reasoning", "coding": "coding",
                          "background": "background", "local-coding": "coding"}
             target = boost_map.get(prev)
-            if target and target in scores:
+            if target and target in scores and scores[target] >= 0.05:
                 scores[target] += boost
 
         sorted_scores = sorted(scores.items(), key=lambda x: -x[1])

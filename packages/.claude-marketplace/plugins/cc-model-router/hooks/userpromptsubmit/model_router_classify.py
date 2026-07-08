@@ -123,7 +123,7 @@ def main():
     # Gate: only boost when prev classification was confident (margin >= 0.10).
     # Without this, one misclassification latches the feedback loop.
     apply_followup = (prev_task_type and not prev_low_conf
-                      and (prev_margin is None or prev_margin >= 0.10))
+                      and (prev_margin is None or prev_margin >= 0.17))
     context = {"prev_task_type": prev_task_type if apply_followup else None,
                "followup_boost": config.get("classifier", {}).get("followup_context_boost", 0.15)}
 
