@@ -81,7 +81,7 @@ When the query is about architecture, handoffs, resume, stale data, fields, payl
 
 ## Execution Directive
 
-Run local-only search for `/search` requests:
+Run local-first search for `/search` requests (`mode='auto'` — checks local stores, then escalates to web when local results are unsatisfactory):
 
 ```bash
 cd "P://packages/search-research" && python -c "
