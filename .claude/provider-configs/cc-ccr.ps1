@@ -305,12 +305,18 @@ if ($localModelHealth) {
         $triageModel = $models.data[0].id
     } catch {}
 
-    # Inference check — verify model generates output via /v1/chat/completions
+    # Inference check — verify the model generates tokens. For a reasoning model
+    # (--reasoning-preserve), output lands in reasoning_content until the thinking
+    # phase completes; the robust signal is completion_tokens > 0 (it generated
+    # SOMETHING), not whether content is populated.
     try {
         $infBody = '{"model":"ornith-1.0-9b","messages":[{"role":"user","content":"Say hi"}],"max_tokens":200}'
         $inf = Invoke-RestMethod -Uri "$localModelEndpoint/v1/chat/completions" -Method Post `
             -ContentType "application/json" -Body $infBody -TimeoutSec 15 -ErrorAction Stop
-        if ($inf.choices[0].message.content) { $triageInfer = $inf.choices[0].message.content }
+        if ($inf.usage.completion_tokens -gt 0) {
+            $triageInfer = $inf.choices[0].message.content
+            if (-not $triageInfer) { $triageInfer = "[reasoning only, $($inf.usage.completion_tokens) tokens]" }
+        }
     } catch {}
 
     # Status line
@@ -334,7 +340,7 @@ if ($localModelHealth) {
         Write-Host "  WARNING: GGUF not loaded (v1/models returned empty)" -ForegroundColor Yellow
     }
     if (-not $triageInfer) {
-        Write-Host "  WARNING: inference failed (model may need more tokens or is busy)" -ForegroundColor Yellow
+        Write-Host "  WARNING: inference produced no tokens (model hung or GGUF corrupt)" -ForegroundColor Yellow
     }
 } else {
     Write-Host "[CCR] local model unavailable (aggressive mode fallback to M3 for coding)" -ForegroundColor DarkGray
