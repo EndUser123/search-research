@@ -243,11 +243,17 @@ $localModelId = "ornith-1.0-9b"
 $localModelEndpoint = "http://127.0.0.1:8010"
 $localModelStatePath = "P:\.claude\state\local-model-state.json"
 
-try {
-    $test = Invoke-WebRequest -Uri "$localModelEndpoint/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
-    $localModelHealth = $true
-} catch {
-    $localModelHealth = $false
+# Retry loop: the server may still be initializing (model load, KV cache setup)
+# from a prior session. A single-shot probe with a short timeout misses it.
+for ($probeAttempt = 0; $probeAttempt -lt 3; $probeAttempt++) {
+    try {
+        $test = Invoke-WebRequest -Uri "$localModelEndpoint/health" -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
+        if ($test.StatusCode -eq 200) {
+            $localModelHealth = $true
+            break
+        }
+    } catch {}
+    if ($probeAttempt -lt 2) { Start-Sleep -Seconds 2 }
 }
 
 if ($localModelHealth) {
