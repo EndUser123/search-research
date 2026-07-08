@@ -296,9 +296,39 @@ if (-not $localModelHealth) {
     Write-Host "[CCR] local model offline (port 8010 not responding) - starting llama-server..." -ForegroundColor Cyan
     $launcherScript = "P:\packages\installers\run-ornith-server.ps1"
     if (Test-Path $launcherScript) {
-        Start-Process -FilePath "pwsh.exe" `
-            -ArgumentList @("-NoProfile", "-NoLogo", "-NonInteractive", "-File", $launcherScript) `
-            -WindowStyle Minimized
+        # P/Invoke CreateProcess with CREATE_BREAKAWAY_FROM_JOB so the launcher
+        # (and its llama-server grandchild) survive the parent process exiting.
+        # Start-Process doesn't support this flag — raw Win32 API is required.
+        if (-not ([System.Management.Automation.PSTypeName]'CCR_BREAKAWAY').Type) {
+            Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class CCR_BREAKAWAY {
+    const uint CREATE_BREAKAWAY_FROM_JOB = 0x01000000;
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct STARTUPINFO { public int cb; public IntPtr lpReserved; public IntPtr lpDesktop; public IntPtr lpTitle; public int dwX; public int dwY; public int dwXSize; public int dwYSize; public int dwXCountChars; public int dwYCountChars; public int dwFillAttribute; public int dwFlags; public short wShowWindow; public short cbReserved2; public IntPtr lpReserved2; public IntPtr hStdInput; public IntPtr hStdOutput; public IntPtr hStdError; }
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PROCESS_INFORMATION { public IntPtr hProcess; public IntPtr hThread; public uint dwProcessId; public uint dwThreadId; }
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    public static extern bool CreateProcess(string lpApplicationName, string lpCommandLine, IntPtr lpProcessAttributes, IntPtr lpThreadAttributes, bool bInheritHandles, uint dwCreationFlags, IntPtr lpEnvironment, string lpCurrentDirectory, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation);
+    public static bool Launch(string exe, string args) {
+        var si = new STARTUPINFO { cb = Marshal.SizeOf(typeof(STARTUPINFO)) };
+        var pi = new PROCESS_INFORMATION();
+        return CreateProcess(exe, args, IntPtr.Zero, IntPtr.Zero, false, CREATE_BREAKAWAY_FROM_JOB, IntPtr.Zero, null, ref si, out pi);
+    }
+}
+"@
+        }
+        $pwshPath = (Get-Command pwsh.exe -ErrorAction SilentlyContinue).Source
+        if (-not $pwshPath) { $pwshPath = "pwsh.exe" }
+        $launchArgs = "-NoProfile -NoLogo -NonInteractive -File `"$launcherScript`""
+        $launched = [CCR_BREAKAWAY]::Launch($pwshPath, $launchArgs)
+        if (-not $launched) {
+            Write-Host "  CREATE_BREAKAWAY_FROM_JOB failed — falling back to Start-Process" -ForegroundColor Yellow
+            Start-Process -FilePath "pwsh.exe" `
+                -ArgumentList @("-NoProfile", "-NoLogo", "-NonInteractive", "-File", $launcherScript) `
+                -WindowStyle Minimized
+        }
         for ($i = 0; $i -lt 30; $i++) {
             Start-Sleep -Seconds 1
             $tcp = $null
