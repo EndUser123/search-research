@@ -354,6 +354,14 @@ class AsyncSearchRouter:
                     if inspect.iscoroutinefunction(backend.build_index):
                         continue
                     backend.build_index()
+                    # Persist cache after a real build (ast_code keeps an
+                    # on-disk index). build_index() itself stays pure for tests;
+                    # only the warm-up lifecycle writes the cache.
+                    if hasattr(backend, "_persist_cache") and callable(getattr(backend, "_persist_cache")):
+                        try:
+                            backend._persist_cache()
+                        except Exception as pe:
+                            logger.debug(f"Cache persist for {name!r} failed (non-fatal): {pe}")
                     continue
                 if not hasattr(backend, "search"):
                     continue
