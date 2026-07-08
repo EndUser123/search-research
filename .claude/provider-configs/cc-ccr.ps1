@@ -261,15 +261,22 @@ $localModelStatePath = "P:\.claude\state\local-model-state.json"
 # ── Health probe (retry loop) ────────────────────────────────────────────────
 # Server may still be initializing from a prior session (model load, KV cache).
 # Single-shot probe with short timeout misses it. Retry 3x with 2s delays.
+# Use TcpClient on the port (microsecond latency, immune to HTTP-level session
+# state that can break Invoke-WebRequest inside a long-lived dot-sourced profile).
 $localModelHealth = $false
 for ($probeAttempt = 0; $probeAttempt -lt 3; $probeAttempt++) {
     try {
-        $test = Invoke-WebRequest -Uri "$localModelEndpoint/health" -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
-        if ($test.StatusCode -eq 200) {
+        $tcp = [System.Net.Sockets.TcpClient]::new()
+        $tcp.SendTimeout = 1500
+        $tcp.ReceiveTimeout = 1500
+        $tcp.Connect('127.0.0.1', 8010)
+        if ($tcp.Connected) {
             $localModelHealth = $true
+            $tcp.Close()
             break
         }
     } catch {}
+    finally { $tcp.Dispose() }
     if ($probeAttempt -lt 2) { Start-Sleep -Seconds 2 }
 }
 
@@ -284,9 +291,17 @@ if (-not $localModelHealth) {
         for ($i = 0; $i -lt 30; $i++) {
             Start-Sleep -Seconds 1
             try {
-                $health = Invoke-WebRequest -Uri "$localModelEndpoint/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
-                if ($health.StatusCode -eq 200) { $localModelHealth = $true; break }
+                $tcp = [System.Net.Sockets.TcpClient]::new()
+                $tcp.SendTimeout = 1500
+                $tcp.ReceiveTimeout = 1500
+                $tcp.Connect('127.0.0.1', 8010)
+                if ($tcp.Connected) {
+                    $localModelHealth = $true
+                    $tcp.Close()
+                    break
+                }
             } catch {}
+            finally { $tcp.Dispose() }
         }
     } else {
         Write-Host "[CCR] run-ornith-server.ps1 not found at $launcherScript" -ForegroundColor Yellow
