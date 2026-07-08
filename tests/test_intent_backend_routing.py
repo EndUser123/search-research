@@ -78,22 +78,22 @@ class TestIntentToBackendMapping:
             # INFORMATIONAL (fast path: "what is")
             (
                 "what is faiss vector",
-                {"cds", "cks", "claude-history", "qmd_wiki", "skills", "yt_is"},
+                {"cds", "cks", "claude-history", "notebooklm", "qmd_wiki", "skills", "yt_is"},
             ),
             # TECHNICAL (fast path: "def ")
             (
                 "python def example code",
-                {"ast_code", "cds", "cpg", "grep", "lsp", "skills", "yt_is"},
+                {"ast_code", "cds", "cpg", "grep", "lsp", "notebooklm", "skills", "yt_is"},
             ),
             # NAVIGATIONAL (fast path: "how do i")
             (
                 "how do I configure router",
-                {"cds", "claude-history", "grep", "skills", "vault"},
+                {"cds", "claude-history", "grep", "notebooklm", "skills", "vault"},
             ),
             # EXPLORATORY (fast path: "best practices")
             (
                 "best practices for caching",
-                {"ast_code", "cds", "cks", "qmd_wiki", "skills", "vault", "yt_is"},
+                {"ast_code", "cds", "cks", "notebooklm", "qmd_wiki", "skills", "vault", "yt_is"},
             ),
         ],
     )
