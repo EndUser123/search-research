@@ -89,6 +89,17 @@ _EMBEDDING_TO_INTENT: dict[IntentCategory, IntentType] = {
 }
 
 
+# Backend routing: which backends to query for each intent type.
+# Positive list — only listed backends are queried. UNKNOWN = no filter.
+BACKEND_FOR_INTENT: dict[IntentType, set[str]] = {
+    IntentType.NAVIGATIONAL: {"grep", "cds", "skills", "claude-history", "vault"},
+    IntentType.TECHNICAL: {"grep", "cds", "skills", "ast_code", "lsp", "cpg"},
+    IntentType.INFORMATIONAL: {"cks", "qmd_wiki", "cds", "skills", "claude-history"},
+    IntentType.EXPLORATORY: {"cks", "qmd_wiki", "cds", "skills", "vault", "ast_code"},
+    IntentType.UNKNOWN: set(),
+}
+
+
 def classify_query_intent(query: str) -> IntentClassification:
     """Classify the intent of a search query using hybrid classification.
 
