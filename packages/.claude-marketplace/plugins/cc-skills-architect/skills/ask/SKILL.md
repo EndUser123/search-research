@@ -281,7 +281,28 @@ _See `references/integration-notes.md` for ambiguous request handling and fallba
 3. Include context gathered during exploration
 4. Include any truth validation notes
 5. Transfer session context if applicable
+6. If authorized and bounded → complete directly (see Bounded Action Continuation below)
 ```
+
+### Bounded Action Continuation
+
+When all four of the following are true, complete the bounded action directly
+instead of stopping to re-ask the user:
+
+1. The user has clearly authorized the goal (explicit request, not inferred).
+2. The next action is bounded — one file edit, one grep, one test run, one
+   small script execution, no blast radius beyond the stated scope.
+3. The action is reversible or trivially correctable (git-edit, not git-reset).
+4. The action is directly implied — there is no reasonable alternative path that
+   would change the user's intent.
+
+Do **not** continue when: the action is destructive (delete, drop, rm -rf),
+unclear (two valid interpretations), outside stated scope, or when the user's
+prior message signals they want a plan or report rather than execution.
+
+The failure pattern this prevents: "say the word" deferral after bounded work
+is already clearly requested — the user has authorized, the action is small and
+reversible, and asking again wastes a turn.
 
 
 ## QUICK REFERENCE
@@ -325,6 +346,31 @@ Prohibited:
 - Claiming something doesn't exist without confirmed tool failure
 - Skipping evidence gathering because the answer seems obvious
 
+## Abstraction Audit Manifest
+
+Before running a Deeper Abstraction Check or claiming "full coverage" in any
+audit, first run the deterministic manifest generator:
+
+```
+python cc-skills-architect/skills/ask/lib/abstraction_audit_manifest.py \
+  --repo-root <marketplace-root>
+```
+
+The script writes `.artifacts/abstraction-audit/<timestamp>/manifest.json` and
+`manifest.md` with:
+- whole-repo file inventory (skills, commands, references, hooks, tests, evals, registries)
+- 31-term search hits by file
+- risk-flag heuristics (false full-coverage, runtime/advisory confusion, permission deferral, wiki auto-write, telemetry swallowing, missing eval terms)
+- recommended read set ranked by term density
+
+**Use the manifest as evidence, not as the conclusion.** The LLM must inspect
+the recommended read set before making high-confidence cross-skill claims.
+If the script was not run, the audit must say why and classify coverage as
+`sampled` or `targeted` — never `whole_repo_static`.
+
+Coverage authority: `whole_repo_static` only when the manifest generator ran
+from the repo root. Otherwise: `sampled` or `targeted`.
+
 ## Deeper Abstraction Check
 
 `/ask` owns cross-skill/plugin inspection — when discovery surfaces a **local
@@ -351,6 +397,9 @@ drift). Fields:
 | `current_owner` | yes | The command/skill that owns the concept today. |
 | `disposition` | yes | One of: `should_be_shared_reference`, `pointer_only`, `runtime_hook`, `test`, `backlog`, `do_nothing`. |
 | `evidence` | yes | file:line citations proving the concept is local and proving the affected surfaces. **No vibes.** |
+| `coverage_authority` | yes | One of: `whole_repo_static` (file enumeration), `targeted` (named-surface grep/read), `sampled` (subset of named surface), `runtime_surface` (live behavior), `live_behavior` (runtime probe). Required on any audit/claim that would otherwise be tempted to say "full coverage." |
+| `activation_truth_layer` | yes | One of: `source_changed`, `cache_rebuilt`, `plugin_loaded`, `command_resolves`, `behavior_observed`. Required on any claim about a skill/plugin/process being "live" or "active." |
+| `bounded_actions_completed_or_deferred` | yes | List of bounded actions that the audit recommended and whether they were completed in this session or deferred to a tracker task. Required on any audit-style report. |
 | `recommended_action` | yes | The smallest change that moves the concept toward the chosen disposition. |
 
 ### Disposition guide
@@ -366,6 +415,44 @@ drift). Fields:
 - `backlog` — real abstraction, not worth moving now → create a tracker task.
 - `do_nothing` — the concept is genuinely local with no deeper class → say so
   explicitly so the next reader does not re-litigate.
+
+### Coverage Authority
+
+When the Deeper Abstraction Check (or any audit/claim) refers to the breadth of
+its evidence, name the authority. Five values, in increasing strength:
+
+| Authority | Means |
+|---|---|
+| `sampled` | A subset of the named surface was inspected; results may not generalize. |
+| `targeted` | Named surfaces (specific files / skills / hooks) were grep'd or read; non-named surfaces were not. |
+| `whole_repo_static` | The marketplace tree was enumerated (Glob) and every named file was inspected. |
+| `runtime_surface` | A live process or hook dispatch path was exercised; behavior is observed, not inferred. |
+| `live_behavior` | A real user path (slash command → orchestrator → output) was driven end-to-end and observed. |
+
+Prohibited: "full coverage" without an authority label. Prohibited: "the codebase"
+without a Glob result. Prohibited: "every skill has X" without an enumerated
+check. If the authority is `sampled` or `targeted`, say so plainly so the
+reader does not over-trust the conclusion.
+
+### Activation Truth Model
+
+A claim about a skill, plugin, hook, or process being "live" or "active" must
+identify which layer is actually proven. The five layers, in increasing
+strength:
+
+| Layer | Proves |
+|---|---|
+| `source_changed` | A file was edited in source. Nothing more. |
+| `cache_rebuilt` | The version-keyed plugin cache was rebuilt from the new source. |
+| `plugin_loaded` | The plugin is loaded into the running Claude Code session. |
+| `command_resolves` | The slash command resolves to a real implementation (`claude plugin list` / dispatcher output). |
+| `behavior_observed` | The user path (slash command → orchestrator → output) was driven end-to-end and the expected behavior was observed. |
+
+Prohibited: claiming "wired" or "live" from a source edit alone. Prohibited:
+claiming "shipped" from a cache rebuild without confirming plugin load. Each
+layer requires its own evidence; the CEC `claim_type` enum's
+`source_changed` / `plugin_bumped` / `cache_rebuilt` / `runtime_behavior_changed`
+/ `user_visible_behavior_verified` rows map onto this ladder directly.
 
 This check is **prompt-advisory**. `/ask` emits the artifact; nothing at
 runtime forces it. If a discovered abstraction should become a runtime gate,
