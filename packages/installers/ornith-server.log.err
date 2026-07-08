@@ -275,3 +275,8 @@
 234.42.937.788 I slot print_timing: id  0 | task 4047 | n_decoded =  15972, tg =  34.86 t/s, tg_3s =  35.36 t/s
 234.45.973.614 I slot print_timing: id  0 | task 4047 | n_decoded =  16060, tg =  34.82 t/s, tg_3s =  28.99 t/s
 234.48.997.380 I slot print_timing: id  0 | task 4047 | n_decoded =  16149, tg =  34.78 t/s, tg_3s =  29.43 t/s
+234.52.040.662 I slot print_timing: id  0 | task 4047 | n_decoded =  16238, tg =  34.75 t/s, tg_3s =  29.25 t/s
+234.55.052.572 I slot print_timing: id  0 | task 4047 | n_decoded =  16344, tg =  34.75 t/s, tg_3s =  35.19 t/s
+234.58.066.883 I slot print_timing: id  0 | task 4047 | n_decoded =  16452, tg =  34.76 t/s, tg_3s =  35.83 t/s
+235.01.099.218 I slot print_timing: id  0 | task 4047 | n_decoded =  16551, tg =  34.74 t/s, tg_3s =  32.65 t/s
+235.04.114.108 I slot print_timing: id  0 | task 4047 | n_decoded =  16628, tg =  34.69 t/s, tg_3s =  25.54 t/s
