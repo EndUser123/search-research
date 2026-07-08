@@ -257,6 +257,29 @@ def find_claim_gaps(text: str) -> list[dict[str, Any]]:
     return [c for c in unique if not c["hedge_present"] and not c["evidence_seen_nearby"]]
 
 
+_VERIFY_CMD_RE = re.compile(
+    r"(?:pytest|py\.test|npm\s+(?:test|run\s+test)|cargo\s+test|go\s+test|"
+    r"make\s+test|node.*--test|rake\s+test|mvn\s+test|gradle.*test)",
+    re.IGNORECASE,
+)
+
+
+def _has_tool_verification_evidence(data: dict[str, Any]) -> bool:
+    """True if any Bash tool event in the transcript contains a verification
+    command (pytest, npm test, etc.). Uses the shared tool_events_loader —
+    same pattern as cross_validator and unverified_stance."""
+    try:
+        from __lib.tool_events_loader import load_tool_events_from_transcript
+        events = load_tool_events_from_transcript(data)
+    except Exception:
+        return False
+    for event in events:
+        if event.get("name") == "Bash":
+            if _VERIFY_CMD_RE.search(event.get("command", "")):
+                return True
+    return False
+
+
 # -----------------------------------------------------------------------------
 # Probe entry point
 # -----------------------------------------------------------------------------
@@ -309,8 +332,10 @@ def run(data: dict[str, Any]) -> dict[str, Any]:
     # Validation claims ("tests pass", "verified", etc.) without command evidence
     # and without hedge terms are high-confidence enough to produce a visible
     # warning. Structural claims stay telemetry-only for now.
+    # Tool-event evidence: if the transcript shows verification commands were run
+    # this turn (pytest, npm test, etc.), the claims are anchored — suppress warn.
     has_validation_gap = any(g["claim_type"] == "validation" for g in gaps)
-    if has_validation_gap:
+    if has_validation_gap and not _has_tool_verification_evidence(data):
         return {
             "decision": "warn",
             "systemMessage": (

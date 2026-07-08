@@ -191,6 +191,67 @@ def test_validation_claim_with_pytest_command_does_not_emit(monkeypatch):
     assert events == [], f"pytest-anchored claim should NOT emit; got {events}"
 
 
+# ---- 4b. validation claim suppressed when transcript has pytest command --------
+
+def test_validation_claim_suppressed_by_tool_evidence(monkeypatch, tmp_path):
+    """When the transcript shows pytest was run this turn, validation claims
+    like 'tests pass' are anchored — suppress the warn."""
+    probe = _load_probe()
+    tel = _enable_telemetry(monkeypatch)
+    tel.clear_test_log()
+
+    # Create a minimal transcript with a pytest Bash tool_use event.
+    transcript = tmp_path / "session.jsonl"
+    transcript.write_text(
+        json.dumps({
+            "message": {
+                "role": "assistant",
+                "content": [
+                    {"type": "tool_use", "name": "Bash", "input": {"command": "python -m pytest tests/ -q"}},
+                ],
+            },
+        }) + "\n",
+        encoding="utf-8",
+    )
+
+    response = "All tests pass after the patch."
+    result = probe.run({
+        "response": response,
+        "session_id": "sess-tool-1",
+        "terminal_id": "t-tool-1",
+        "transcript_path": str(transcript),
+    })
+
+    # Should NOT warn — pytest was run this turn (tool evidence anchors the claim).
+    assert result == {}, (
+        f"validation claim with tool evidence should NOT warn; got {result}"
+    )
+    # Telemetry should still fire (evidence-in-text is absent; the tool evidence
+    # only suppresses the user-visible warn, not the telemetry emit).
+    events = _events_for_category(tel, "claim_gap_telemetry")
+    assert len(events) >= 1, "telemetry should still emit even when warn is suppressed"
+
+
+def test_validation_claim_warns_when_no_transcript(monkeypatch):
+    """When transcript_path is missing or empty, tool evidence cannot be loaded —
+    warn fires normally (the original behavior)."""
+    probe = _load_probe()
+    tel = _enable_telemetry(monkeypatch)
+    tel.clear_test_log()
+
+    response = "All tests pass after the patch."
+    result = probe.run({
+        "response": response,
+        "session_id": "sess-no-transcript",
+        "terminal_id": "t-no-transcript",
+        # No transcript_path — tool evidence unavailable.
+    })
+
+    assert result.get("decision") == "warn", (
+        f"validation claim without transcript should warn; got {result}"
+    )
+
+
 # ---- 5. validation claim with explicit "not run" suppresses ------------------
 
 def test_validation_claim_with_explicit_not_run_suppresses(monkeypatch):
