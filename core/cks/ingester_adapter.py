@@ -222,11 +222,12 @@ class CKSIngesterAdapter:
             entry_ids.append(entry_id)
 
         # Create entity relationships if we have a database connection
-        if len(chunks) > 1 and hasattr(self.cks, "conn") and self.cks.conn:
+        chunk_count = len(records) if records else len(chunks or [])
+        if chunk_count > 1 and hasattr(self.cks, "conn") and self.cks.conn:
             self._create_entity_relationships(entry_ids, entities, title)
 
         return AdapterIngestResult(
-            chunk_count=len(chunks),
+            chunk_count=chunk_count,
             entities_found=len(entity_names),
             entry_ids=entry_ids,
             parent_title=title,

@@ -17,13 +17,14 @@ Python signatures are extracted via `ast`; other languages via language-specific
 ## Workflow
 
 ```
-python "<skill-dir>/scripts/gitpack.py" <path>... [--skill <name>] [--name <pack-name>] [--exclude <patterns>] [--overview]
+python "<skill-dir>/scripts/gitpack.py" <path>... [--skill <name>] [--name <pack-name>] [--exclude <patterns>] [--overview] [--no-deps]
 ```
 
 - `<path>...` — one or more files or directories. A directory is **recursed fully** (all nested subdirectories, depth-unlimited). A directly-listed file is included regardless of extension. Use multiple paths to pack a skill scattered across `commands/` + `agents/`, or pass one plugin/skill root and let recursion collect the whole tree.
 - `--skill <name>` — **deterministic skill-name resolution.** Resolves `/improve`, `improve`, or `plugin:improve` to its installed directory (plugin cache first, marketplace source second) and packs it. Also auto-includes **plugin-root companions**: top-level docs (`README.md`, `OUTPUT_SCHEMA.md`, `HOOKS_AVAILABLE.md`, `CLAUDE.md`, `AGENTS.md`, `config.json`, `.mcp.json`) plus sibling `agents/` and `commands/` dirs when the skill is nested under a plugin `<skills/>` root. This closes the under-pack gap for skills whose schema/specialists live at the plugin root (e.g. `improve-partner`). Sibling `skills/`, `hooks/`, `scripts/`, `__lib/` are excluded — pass the plugin root explicitly as a path when implementation files are needed. No-op for self-contained skills. Removes the model's cache-vs-source hand-resolution step — prefer this over guessing paths.
 - `--name <pack-name>` — output basename (`<pack-name>_sig.md` / `<pack-name>_full.md`). Defaults to the common-parent directory name.
 - `--overview` — emit an `## OVERVIEW (LLM-generated)` placeholder section at the top of both outputs. See "Code vs LLM split" below.
+- `--no-deps` — disable dependency-following. By default gitpack closes the file set under (a) Python imports (AST-walked: `import x`, `from .y import z`, `__lib__.shared`) and (b) explicit path references in `.md`/`.json`/`.yaml` (e.g. `${SKILL_ROOT}/scripts/run.py`, `../../__lib__/shared.py`, `skills/go/scripts/orchestrate.py`). Only files that exist on disk, live within the pack root, and pass the exclude filter are added — existence-on-disk is the discriminator that skips stdlib/third-party. Bounded (≤150 added files, ≤10 rounds). Use `--no-deps` for a strict only-what-I-listed pack.
 
 1. **DISCOVER** — Collect files from every input path (files included as-is; directories recursed with component-wise exclusion)
 2. **EXTRACT** — Per file: `ast` (Python), language regex (JS/TS/HTML/CSS/SQL/YAML/JSON/PowerShell), or heading+frontmatter (Markdown)
@@ -84,6 +85,8 @@ Rule of thumb when extending gitpack: if the new step has a single correct answe
 - If packing a skill, also pack its backing service, companion scripts, or related config files if they live in `P://tools/`, `P://.claude/`, or other well-known locations
 
 **Rule:** If a file is named in code as a dependency or companion, it belongs in the pack. Err on the side of inclusion.
+
+**Automatic dependency resolution (default ON).** Gitpack closes the file set under Python imports (AST) and explicit path references (markdown/JSON/YAML). It pulls in plugin-level `__lib__` modules a skill imports, sibling modules, scripts referenced by name in docs, and transitive imports of those — bounded to files that exist within the pack root. This automates the "include companion files" rule above without a manual hand-off. Pass `--no-deps` to disable.
 
 ## Skill Name Resolution
 

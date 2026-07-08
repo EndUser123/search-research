@@ -1,6 +1,6 @@
 # KB Durability Status — honest scope
 
-**Date:** 2026-07-07 · **Context:** persistent-KB architecture adoption + red-team REVISE verdict
+**Date:** 2026-07-07 · **Version:** 0.1.75 · **Context:** persistent-KB architecture adoption + red-team REVISE verdict
 
 ## Baseline eval (2026-07-07)
 
@@ -45,13 +45,7 @@ paths. This file states exactly what is and isn't operative, so nobody
 
 ## What is built but DORMANT
 
-- **SmartChunker content-addressed chunk IDs**
-  (`core/chunking/smart_chunker.py`): implemented + tested, but **zero
-  production consumers**. CKS document ingestion uses its own
-  `DocumentChunker` with sequential `chunk_index` — positional identity that
-  breaks silently on any chunker change. Decision needed: wire SmartChunker
-  into CKS ingestion (with a re-chunk migration), or delete it and accept
-  positional identity. Keeping it dormant is the worst option.
+- (none currently)
 
 ## Fixed since the original gap list
 
@@ -97,3 +91,27 @@ paths. This file states exactly what is and isn't operative, so nobody
 1. Copy the DB. 2. `--re-embed --model X --dim N` against the copy.
 3. `--golden-cases` gate must pass. 4. Swap paths by config, keep the old DB.
 Never re-embed the live DB in place.
+
+## Evidence ledger (this session)
+
+| Item | Evidence |
+|------|----------|
+| Embedding coverage | `python3 -c "..."` → 454/2752 embedded, 0 pending |
+| FTS baseline recall | `retrieval_eval.py --mode fts` → 0.115 (3/26 PASS) |
+| FTS MATCH parameterized | `search.py` lines 163/192/197/237: `MATCH ?` with `escape_fts5_syntax()` |
+| Injection resistance | `test_utils.py::TestFts5SyntaxEscape` — 5 tests pass |
+| SmartChunker wired | `ingester_adapter.py::CKSIngesterAdapter(use_smart_chunker=True)` |
+| SmartChunker tests | `test_ingester_adapter_smart_chunker.py` — 5 tests pass |
+| Deprecation drill | 2 `embedding_runs` rows, 2 manifests, `ValueError` on wrong expected_model |
+| `/chs-eval` skill | `skills/chs-eval/SKILL.md` with workflow_steps |
+| Version bumped | `.claude-plugin/plugin.json` → 0.1.75 |
+| Test suite | 76 pass, 1 pre-existing timing failure (run_id collision) |
+
+## Deprecation drill (2026-07-07)
+
+- Re-embedded 454 sessions with `--model all-MiniLM-L6-v2-swap-drill --dim 384`
+- Two `embedding_runs` rows present; two JSON manifests on disk
+- `search_semantic_sessions(expected_model='all-MiniLM-L6-v2')` correctly
+  raises `ValueError` when all rows are from the new model (mixed-state detection works)
+- Gate passes at `--min-recall 0.0`; real semantic recall baseline pending
+  improved golden-case query extraction

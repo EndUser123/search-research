@@ -637,6 +637,224 @@ def _skill_companions(skill_dir: Path) -> list[str]:
     return companions
 
 
+# ---------------------------------------------------------------------------
+# Dependency resolution — include files the target imports or references
+# ---------------------------------------------------------------------------
+# ponytail: resolve only to files that exist on disk within root_scope.
+# Existence-on-disk is the discriminator between local deps (include) and
+# stdlib/third-party (skip) — no sys.modules or pip introspection needed.
+# Bounded by _DEP_MAX_ADDED / _DEP_MAX_ROUNDS so a cyclic or widely-shared
+# dependency can't balloon the pack.
+
+_DEP_MAX_ADDED = 150
+_DEP_MAX_ROUNDS = 10
+
+_PATHREF_EXT = (
+    ".py", ".pyw", ".md", ".markdown", ".json", ".yaml", ".yml",
+    ".ps1", ".psm1", ".psd1", ".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx",
+    ".html", ".htm", ".css", ".scss", ".sql",
+)
+_SUPPORTED_DEP_EXTS = frozenset(_PATHREF_EXT)
+# A path reference must have at least one '/' separator (precision guard so
+# bare words like "router.py" inside prose don't qualify) AND end in a
+# supported extension. Existence-on-disk is the final filter.
+_PATH_REF_RE = re.compile(
+    r"(?:\$\{(?:SKILL_ROOT|CLAUDE_PLUGIN_ROOT|CLAUDE_PROJECT_DIR)\}"
+    r"|\$(?:CLAUDE_PLUGIN_ROOT|CLAUDE_PROJECT_DIR))?"
+    r"(?:[\w./-]+/)"            # at least one path segment
+    r"[\w.-]+"                  # final segment
+    r"(?:\.(?:py|pyw|md|markdown|json|yaml|yml|ps1|psm1|psd1"
+    r"|js|mjs|cjs|jsx|ts|tsx|html|htm|css|scss|sql))"
+)
+
+
+def _is_excluded_path(path: Path, exclude_patterns: str) -> bool:
+    """Same basename-semantics exclusion as discover_files (component fnmatch)."""
+    patterns = DEFAULT_EXCLUDES + [p.strip() for p in exclude_patterns.split(",") if p.strip()]
+    return any(
+        fnmatch.fnmatch(component, pat)
+        for component in path.parts
+        for pat in patterns
+    )
+
+
+def _extract_python_imports(filepath: Path) -> list[tuple[str, str, int, list[str]]]:
+    """Return [(kind, module_or_empty, level, names)] for each Import/ImportFrom.
+
+    kind is 'abs' or 'rel'. For ``from . import x, y`` (relative, no module),
+    names holds the imported names so each can be resolved against the package dir.
+    """
+    try:
+        source = filepath.read_text(encoding="utf-8", errors="replace")
+        tree = ast.parse(source, filename=str(filepath))
+    except Exception:
+        return []
+    out: list[tuple[str, str, int, list[str]]] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                out.append(("abs", alias.name, 0, []))
+        elif isinstance(node, ast.ImportFrom):
+            mod = node.module or ""
+            level = node.level or 0
+            names = [a.name for a in node.names]
+            out.append(("rel" if level > 0 else "abs", mod, level, names))
+    return out
+
+
+def _search_roots(importing_file: Path, root_scope: Path) -> list[Path]:
+    """Dirs to probe for an absolute import: the file's own dir, each ancestor
+    up to and including root_scope. Covers sibling modules (file's dir), package
+    siblings (ancestors), and plugin-level shared code (root_scope/__lib__ etc.)."""
+    roots: list[Path] = []
+    seen: set[str] = set()
+    walker = importing_file.parent
+    while True:
+        key = str(walker.resolve())
+        if key not in seen:
+            seen.add(key)
+            roots.append(walker)
+        if walker == root_scope or walker.parent == walker:
+            break
+        walker = walker.parent
+    root_key = str(root_scope.resolve())
+    if root_key not in seen:
+        roots.append(root_scope)
+    return roots
+
+
+def _resolve_abs_module(module_name: str, importing_file: Path, root_scope: Path) -> list[Path]:
+    """Resolve an absolute import (e.g. 'scripts.foo', 'router', '__lib__.state')
+    to on-disk .py files within the search roots."""
+    if not module_name:
+        return []
+    rel = module_name.replace(".", "/")
+    found: list[Path] = []
+    for base in _search_roots(importing_file, root_scope):
+        cand_file = base / f"{rel}.py"
+        if cand_file.is_file():
+            found.append(cand_file.resolve())
+        cand_pkg = base / rel / "__init__.py"
+        if cand_pkg.is_file():
+            found.append(cand_pkg.resolve())
+    return found
+
+
+def _resolve_rel_module(module_name: str, level: int, names: list[str],
+                        importing_file: Path) -> list[Path]:
+    """Resolve a relative import. module_name may be '' (``from . import X``)."""
+    base = importing_file.parent
+    for _ in range(max(0, level - 1)):
+        if base.parent == base:
+            break
+        base = base.parent
+    found: list[Path] = []
+    targets: list[str] = [module_name] if module_name else list(names)
+    for t in targets:
+        if not t:
+            continue
+        rel = t.replace(".", "/")
+        cand_file = base / f"{rel}.py"
+        if cand_file.is_file():
+            found.append(cand_file.resolve())
+        cand_pkg = base / rel / "__init__.py"
+        if cand_pkg.is_file():
+            found.append(cand_pkg.resolve())
+    return found
+
+
+def _resolve_path_refs(filepath: Path, root_scope: Path,
+                       skill_dir: Path | None, plugin_root: Path | None) -> list[Path]:
+    """Scan a text file for explicit path references (markdown/docs/config) and
+    resolve ${SKILL_ROOT}, ${CLAUDE_PLUGIN_ROOT}, and relative paths. Python deps
+    are handled precisely by AST; this catches doc/config references the AST misses.
+    """
+    try:
+        source = filepath.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return []
+    found: list[Path] = []
+    for match in _PATH_REF_RE.finditer(source):
+        token = match.group(0).replace("\\", "/")
+        candidates: list[Path] = []
+        if "${SKILL_ROOT}" in token or "$SKILL_ROOT" in token:
+            if skill_dir:
+                sub = token.replace("${SKILL_ROOT}", "").replace("$SKILL_ROOT", "")
+                candidates.append(skill_dir / sub.lstrip("/"))
+        elif "${CLAUDE_PLUGIN_ROOT}" in token or "$CLAUDE_PLUGIN_ROOT" in token:
+            if plugin_root:
+                sub = token.replace("${CLAUDE_PLUGIN_ROOT}", "").replace("$CLAUDE_PLUGIN_ROOT", "")
+                candidates.append(plugin_root / sub.lstrip("/"))
+        else:
+            rel = token.lstrip("./")
+            candidates.append(filepath.parent / rel)
+            candidates.append(root_scope / rel)
+        for c in candidates:
+            try:
+                cr = c.resolve()
+            except Exception:
+                continue
+            if cr.is_file():
+                found.append(cr)
+    return found
+
+
+def resolve_dependencies(initial: list[str], root_scope: Path,
+                         skill_dir: Path | None = None,
+                         plugin_root: Path | None = None,
+                         exclude_patterns: str = "") -> list[str]:
+    """Close the file set under Python imports and explicit path references.
+
+    Adds files the target needs to run or directly references. Only files that
+    (a) exist on disk, (b) live within root_scope, (c) pass the exclude filter,
+    and (d) have a supported extension are added. Stops at fixpoint or when
+    _DEP_MAX_ADDED new files have been added / _DEP_MAX_ROUNDS rounds elapsed.
+    """
+    root_scope = root_scope.resolve()
+    accepted: set[str] = set(initial)
+    queue: list[str] = list(initial)
+    added = 0
+    rounds = 0
+    while queue and rounds < _DEP_MAX_ROUNDS and added < _DEP_MAX_ADDED:
+        rounds += 1
+        next_queue: list[str] = []
+        for fp_str in queue:
+            fp = Path(fp_str)
+            ext = fp.suffix.lower()
+            deps: list[Path] = []
+            if ext in (".py", ".pyw"):
+                for kind, mod, level, names in _extract_python_imports(fp):
+                    if kind == "abs":
+                        deps.extend(_resolve_abs_module(mod, fp, root_scope))
+                    else:
+                        deps.extend(_resolve_rel_module(mod, level, names, fp))
+            # Path-reference scan for docs/config (Python deps already covered by AST)
+            if ext in (".md", ".markdown", ".json", ".yaml", ".yml"):
+                deps.extend(_resolve_path_refs(fp, root_scope, skill_dir, plugin_root))
+            for dep in deps:
+                try:
+                    dep_r = dep.resolve()
+                except Exception:
+                    continue
+                if not dep_r.is_file() or dep_r.suffix.lower() not in _SUPPORTED_DEP_EXTS:
+                    continue
+                dep_str = str(dep_r)
+                if dep_str in accepted:
+                    continue
+                try:
+                    dep_r.relative_to(root_scope)
+                except ValueError:
+                    continue
+                if _is_excluded_path(dep_r, exclude_patterns):
+                    continue
+                if added >= _DEP_MAX_ADDED:
+                    break
+                accepted.add(dep_str)
+                next_queue.append(dep_str)
+                added += 1
+        queue = next_queue
+    return sorted(accepted)
+
 
 # ---------------------------------------------------------------------------
 # Main
@@ -733,7 +951,7 @@ def main() -> None:
     args = sys.argv[1:]
     if not args:
         print("Usage: gitpack.py <path>... [--skill <name>] [--name <pack-name>] "
-              "[--exclude <patterns>] [--overview]",
+              "[--exclude <patterns>] [--overview] [--no-deps]",
               file=sys.stderr)
         sys.exit(1)
 
@@ -741,6 +959,9 @@ def main() -> None:
     skill_ref: str | None = None
     exclude = ""
     overview = False
+    no_deps = False
+    skill_dir: Path | None = None
+    plugin_root_dep: Path | None = None
     positional: list[str] = []
     i = 0
     while i < len(args):
@@ -752,6 +973,8 @@ def main() -> None:
             exclude = args[i + 1]; i += 2
         elif args[i] == "--overview":
             overview = True; i += 1
+        elif args[i] == "--no-deps":
+            no_deps = True; i += 1
         else:
             positional.append(args[i]); i += 1
 
@@ -763,6 +986,9 @@ def main() -> None:
             print(f"ERROR: could not resolve skill '{skill_ref}' in cache or marketplace",
                   file=sys.stderr)
             sys.exit(2)
+        skill_dir = resolved
+        if resolved.parent.name == "skills" and resolved.parent.parent.is_dir():
+            plugin_root_dep = resolved.parent.parent
         positional.append(str(resolved))
         # Auto-include plugin-root docs + agents/ + commands/ so a skill whose
         # schema, hook inventory, or specialists live at the plugin root (e.g.
@@ -780,6 +1006,19 @@ def main() -> None:
     if not files:
         print("ERROR: No supported files found", file=sys.stderr)
         sys.exit(1)
+
+    if not no_deps:
+        cp = common_parent(files)
+        root_scope = plugin_root_dep if plugin_root_dep else cp
+        before = set(files)
+        files = resolve_dependencies(
+            files, root_scope, skill_dir=skill_dir,
+            plugin_root=plugin_root_dep, exclude_patterns=exclude,
+        )
+        added_n = len([f for f in files if f not in before])
+        if added_n:
+            print(f"INFO: dependency resolution added {added_n} file(s) "
+                  f"(imports + path refs within {root_scope})", file=sys.stderr)
 
     target_dir = common_parent(files)
     if not name:
