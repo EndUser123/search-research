@@ -213,6 +213,47 @@ PROPOSE ONLY — no gate deleted/merged without gold replay green + explicit
 user approval. Note: any other "Phase 1+2 measurement (55d after
 2026-06-01)" numbering in memory is a DIFFERENT program — do not conflate.
 
+## Phase 6 watch window (2026-07-07 → kickoff ~2026-07-21)
+
+The clock runs on trustworthy telemetry accumulation, not calendar days
+alone. Three cheap checks protect the window from a silently-dead emitter
+discovered too late. All read-only; none mutate state.
+
+**Baseline (captured 2026-07-07 21:03, pre-window):**
+| path | rows | note |
+|---|---|---|
+| `logs/diagnostics/external_fact_shadow.jsonl` | 14 | ALIVE — 7 sessions, 17:32→20:22; shape: `kind=EXTERNAL_FACT`, sample claim "numpy 2.1" |
+| `logs/diagnostics/stop_blocks.jsonl` | 247 | healthy |
+| `logs/diagnostics/behavior_audit_telemetry.jsonl` | 155 | ADVISORY-demoted gate (#1217 watch) |
+| `logs/diagnostics/epistemic_telemetry.jsonl` | 227 | |
+| `logs/diagnostics/regen_cap_telemetry.jsonl` | 205 | |
+| `logs/diagnostics/subagent_enforcer.jsonl` | 170 | |
+| `logs/diagnostics/epistemic_advisories.jsonl` | 112 | |
+
+**Check 1 — 48h data-flow (do this one first; cheap; protects the whole window).**
+Re-run `wc -l` (or `python P:/tmp/baseline_check.py`) on every path above
+after ~2 days of normal sessions. Pass criterion: external_fact_shadow ≥
+baseline + N (where N > 0 from new sessions — it MUST accumulate under
+normal use; a frozen count means the emitter died). If frozen: the Phase 3b
+SHADOW wiring is broken — diagnose before day 14 burns the clock. The other
+paths have much higher flow rates (hundreds/day); any that stop are dead.
+**One `wc -l` per file settles it.**
+
+**Check 2 — mid-window spot check (~day 7, ~2026-07-14).**
+Not a calibration pass — early warning that day-14 data is worth analyzing.
+(1) Eyeball 10 random rows from external_fact_shadow.jsonl for obvious FP
+shapes (claims that were actually grounded but emitted as SILENT — the
+evidence join missed a grounding event). (2) Read the
+`discoverable_fact_offloading` counter in `misses.jsonl` row 4 — still 0?
+Still under threshold? (3) Read row 5 (#906 channel) — closed or still
+in_progress? If closed, supersede per Rule 8.
+
+**Check 3 — Phase 6 kickoff (~2026-07-21). PROPOSE-ONLY yield report**
+per the plan: per-gate fire/FP rates conditioned on the window's data;
+merge proposals (deletion_verification + removal_completeness first
+candidates) and eval-only demotions. Nothing executed without gold replay
+green + explicit user approval.
+
 ## Decisions ledger
 
 - 2026-07-07: Option A ensure_ascii kwarg on append_jsonl (fidelity).

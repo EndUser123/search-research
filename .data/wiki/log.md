@@ -3761,3 +3761,8 @@ Source: session
 Transcript: C:\Users\brsth\.claude\projects\P--\a3a261fd-9218-428a-9986-3ab39794c7f6.jsonl
 Content: Tier A Structured Outputs API (constrained decoding); Tier B synthetic-tool trick (input_schema IS output schema, reuse tool-calling machinery inside Claude Code); Tier C prompt-engineering (format/prefill/examples/retrieval/chain/role). No existing page covered output reliability.
 Page: wiki/concepts/reliable-skill-output-consistency.md
+
+## [2026-07-07] ingest | Python Renderer for Skill Output Consistency
+Source: session
+Transcript: session-2026-07-07-rns
+Pattern: code owns format, model owns content. Demonstrated by RNS (drift) vs recap (render_actions).
