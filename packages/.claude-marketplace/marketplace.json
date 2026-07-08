@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "improve-partner",
-      "version": "0.4.14",
+      "version": "0.4.15",
       "description": "Improvement partner plugin with /improve as the central manual workflow. Hooks ship inert + unwired (config-gated); see HOOKS_AVAILABLE.md. Local fork.",
       "source": "./plugins/improve-partner",
       "keywords": [
@@ -123,7 +123,7 @@
     },
     {
       "name": "cc-skills-architect",
-      "version": "1.0.22",
+      "version": "1.0.23",
       "description": "Architect plugin",
       "source": "./plugins/cc-skills-architect",
       "keywords": []
@@ -144,7 +144,7 @@
     },
     {
       "name": "cc-skills-analysis",
-      "version": "1.0.101",
+      "version": "1.0.102",
       "description": "Analysis plugin",
       "source": "./plugins/cc-skills-analysis",
       "keywords": []
