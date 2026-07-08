@@ -1,4 +1,4 @@
-﻿# cc-ccr.ps1 — Claude Code → CCR proxy launcher
+# cc-ccr.ps1 - Claude Code → CCR proxy launcher
 #
 # Usage:
 #   . .\cc-ccr.ps1                    # start CCR, wire this shell to CCR
@@ -8,7 +8,7 @@
 #
 # Routing source of truth: C:\Users\brsth\.claude-code-router\config.json
 # (Providers, Router, fallback, CUSTOM_ROUTER_PATH). This script does NOT
-# overwrite routing — edit config.json directly, or use the TUI: cc-ccr -Config.
+# overwrite routing - edit config.json directly, or use the TUI: cc-ccr -Config.
 # The only routing logic outside config.json is ccr-custom-router.js, which
 # intercepts claude-local-ornith (CCR's built-in router can't match that name).
 #
@@ -83,7 +83,7 @@ if ($Stop) {
 
 # --- Guard: fail fast if ccr.cmd not found ---
 if (-not (Test-Path $ccrCmd)) {
-    Write-Warning "[cc-ccr] ccr not found at $ccrCmd — run: npm install -g @musistudio/claude-code-router"
+    Write-Warning "[cc-ccr] ccr not found at $ccrCmd - run: npm install -g @musistudio/claude-code-router"
     return
 }
 
@@ -92,7 +92,7 @@ Write-Host "[cc-ccr] Tip: Run 'cc-ccr -Config' to launch the TUI for interactive
 
 # --- Routing source of truth: config.json ---
 # Providers, Router (slot + role keys), fallback chains, and CUSTOM_ROUTER_PATH all
-# live in config.json. This script does NOT rewrite routing on launch — edit
+# live in config.json. This script does NOT rewrite routing on launch - edit
 # config.json directly (or via `cc-ccr -Config`). CCR hot-reloads config.json.
 # Quota spreading comes from the fallback chains in config.json (verified: CCR
 # retries the next chain entry on HTTP/quota error).
@@ -145,7 +145,7 @@ function Start-CCRProcess {
         Write-Host "[CCR] Started at $ccrUrl  (HTTP $($r.StatusCode))" -ForegroundColor Green
         return $true
     } catch {
-        Write-Warning "[CCR] Failed to start — check that ccr is installed"
+        Write-Warning "[CCR] Failed to start - check that ccr is installed"
         return $false
     }
 }
@@ -247,7 +247,7 @@ try {
 if ($localModelHealth) {
     Write-Host "[CCR] local model running (llama-server: $localModelEndpoint)" -ForegroundColor Green
 } else {
-    Write-Host "[CCR] local model not detected — starting llama-server..." -ForegroundColor Cyan
+    Write-Host "[CCR] local model not detected - starting llama-server..." -ForegroundColor Cyan
     $launcherScript = "P:\packages\installers\run-ornith-server.ps1"
     if (Test-Path $launcherScript) {
         Start-Process -FilePath "powershell.exe" `
@@ -266,7 +266,7 @@ if ($localModelHealth) {
             $localModelHealth = $true
             Write-Host "[CCR] llama-server started (PID from launcher, ready in ~$($i + 1)s)" -ForegroundColor Green
         } else {
-            Write-Host "[CCR] llama-server did not respond in 30s — continuing without local model" -ForegroundColor Yellow
+            Write-Host "[CCR] llama-server did not respond in 30s - continuing without local model" -ForegroundColor Yellow
         }
     } else {
         Write-Host "[CCR] run-ornith-server.ps1 not found at $launcherScript" -ForegroundColor Yellow
@@ -336,7 +336,7 @@ foreach ($var in @(
     Remove-Item "env:$var" -ErrorAction SilentlyContinue
 }
 
-# 4th model slot — local Ornith via llama.cpp (run-ornith-server.ps1, port 8010)
+# 4th model slot - local Ornith via llama.cpp (run-ornith-server.ps1, port 8010)
 $env:ANTHROPIC_CUSTOM_MODEL_OPTION             = "claude-local-ornith"
 $env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME        = "Ornith 1.0 9B (Local)"
 $env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION = "llama.cpp · ornith-1.0-9b@q4_k_m"
@@ -345,7 +345,7 @@ $env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION = "llama.cpp · ornith-1.0-9b@q4_
 # ccr-custom-router.js is require()-cached at CCR startup and is NOT hot-reloaded
 # with config.json (config.json IS hot-reloaded). If the custom router was edited
 # and CCR restarted, a stale module can route claude-local-ornith to a dead provider
-# — surfacing only when a user selects that model. Probe the local slot once after a
+# - surfacing only when a user selects that model. Probe the local slot once after a
 # fresh start so staleness is caught now. Local slot only: it is the one routable
 # entity that depends on the require()-cached file AND has no fallback chain. Free
 # (hits local llama.cpp, no provider quota) and ~1s. External routes (opus/sonnet/
@@ -459,7 +459,7 @@ try {
     }
 }
 catch {
-    Write-Host "  (could not read routes from config.json — check $ccrConfigPath)" -ForegroundColor Yellow
+    Write-Host "  (could not read routes from config.json - check $ccrConfigPath)" -ForegroundColor Yellow
 }
 Write-Host ""
 # --- Phase status banner ---
@@ -485,8 +485,8 @@ if ($Usage) {
         $z = Invoke-RestMethod -Uri "https://api.z.ai/api/monitor/usage/quota/limit" -Headers $zHeaders -TimeoutSec 15 -ErrorAction Stop
         $level = $z.data.level
         # Canonical field mapping (per glm-plan-usage fork: query-usage.mjs):
-        #   TOKENS_LIMIT = "Token usage (5 Hour)" — the rolling 5h GLM-model token window (percentage only)
-        #   TIME_LIMIT   = "MCP usage (1 Month)"  — monthly tool/MCP budget (search-prime/web-reader/zread; has currentValue/usage)
+        #   TOKENS_LIMIT = "Token usage (5 Hour)" - the rolling 5h GLM-model token window (percentage only)
+        #   TIME_LIMIT   = "MCP usage (1 Month)"  - monthly tool/MCP budget (search-prime/web-reader/zread; has currentValue/usage)
         # The previous labels swapped these ("5h"=TIME_LIMIT, "weekly"=TOKENS_LIMIT), which made the
         # nextResetTime countdowns read as nonsense (a "5h" window resetting in 20 days).
         $tokensLimit = $z.data.limits | Where-Object { $_.type -eq "TOKENS_LIMIT" } | Select-Object -First 1
@@ -559,12 +559,12 @@ if ($Usage) {
                 Write-UsageRow $_.Label $str $_.Reset
             }
         } else {
-            Write-Host "  opencode-go     (no usage data scraped — cookie expired or page layout changed)" -ForegroundColor Yellow
+            Write-Host "  opencode-go     (no usage data scraped - cookie expired or page layout changed)" -ForegroundColor Yellow
         }
     } catch {
         Write-Host "  opencode-go     error: $($_.Exception.Message)" -ForegroundColor Yellow
     }
-    # Local llama.cpp (port 8010) — reachability + which model is loaded. Catches
+    # Local llama.cpp (port 8010) - reachability + which model is loaded. Catches
     # the case where the custom route points at a model the server isn't serving.
     # NOTE: the local slot is routed by ccr-custom-router.js (CUSTOM_ROUTER_PATH),
     # not the default keyword router. llama-server exposes GET /v1/models

@@ -186,20 +186,23 @@ discipline (same class as the renderer-cap omission, `misses.jsonl` row 2).
 Corrective action: plan + packet split into 3a/3b; deviation row appended to
 `misses.jsonl` (`phase_3a_shipped_as_phase_3_under_delivered_20260707`).
 
-### Phase 4 — Completion contract at report time [PENDING]
-Upgrade debrief/references/completion-evidence-contract.md from after-action
+### Phase 4 — Completion contract at report time [DONE 2026-07-07]
+Upgraded debrief/references/completion-evidence-contract.md from after-action
 mining rubric to report-time requirement: ledger table (claim | claim_type |
 authority_required | evidence_provided | status | remaining_gap) on
-implementation reports. Extend Stop_fake_done_detector for ledger presence
-(warn mode). Do not duplicate cross_validator / artifact_enforcement.
+implementation reports. Extended Stop_fake_done_detector for ledger presence
+(Tier 4, WARN mode). Did NOT duplicate cross_validator / artifact_enforcement
+— Tier 4 is structural (ledger PRESENCE), not per-claim verification. See
+phase_4_completion_contract_evidence_packet_20260707.md.
 
-### Phase 5 — Misses ledger + promotion loop [PENDING]
-/debrief writes misses.jsonl (fixture ref, behavior_type, evidence).
+### Phase 5 — Misses ledger + promotion loop [DONE 2026-07-07]
+/debrief writes misses.jsonl (fixture ref, behavior_type, evidence) — live.
 /improve promotes rubric/gate changes only when: replay evidence exists,
 ≥2 independent occurrences or explicit user confirmation, gold replay green.
-Record Global Rule 7 at top of bad-behavior-rubric.md as amendment protocol.
-Seed entries: (1) missing fake_done fixture; (2) classification-methodology
-miss (string-grep vs AST scan); (3) #906 unsupervised mutation channel.
+Recorded Amendment Protocol (two-factor: frequency × blast-radius) in
+bad-behavior-rubric.md as the amendment threshold header. Seeded open-question
+rows: (1) discoverable_fact_offloading recurrence counter; (2) #906 channel.
+See phase_5_promotion_loop_evidence_packet_20260707.md.
 
 ### Phase 6 — Yield-based refactor [GATED — do not start]
 Requires: Phases 0–5 live PLUS ≥2 weeks of trustworthy telemetry (clock
