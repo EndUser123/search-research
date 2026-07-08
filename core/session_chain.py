@@ -244,8 +244,6 @@ def _walk_via_registry(
             path.resolve().relative_to(projects_root)
         except (ValueError, OSError):
             continue
-        if not path.exists():
-            continue
         seen_paths.add(tp)
         entries.append(
             SessionChainEntry(
@@ -253,6 +251,7 @@ def _walk_via_registry(
                 transcript_path=path,
                 parent_transcript_path=None,
                 created=None,
+                transcript_exists=path.exists(),
             )
         )
 
