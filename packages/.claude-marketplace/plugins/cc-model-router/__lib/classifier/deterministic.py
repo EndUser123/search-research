@@ -32,7 +32,11 @@ BACKGROUND_PATTERNS = [
 LOCAL_PATTERNS = [
     r"^(yes|no|ok|okay|sure|yep|nope|y|n)$",
     r"^(thanks|thank you|thx|ty)$",
-    r"^(continue|go on|next|done|stop|quit|exit)$",
+    # Session-control words (genuinely trivial acknowledgements - cheap model fine).
+    # NOTE: continuation words (continue, go on, next) deliberately REMOVED - they
+    # inherit the previous task's tier via the semantic classifier + followup boost,
+    # since "continue" could be continuing coding, architecture, or research.
+    r"^(done|stop|quit|exit)$",
     r"^(show|print|list|tell me about|what is|where is)\s+\w{0,20}$",
     r"^(format|lint|check)\s+\w+$",
     r"^~\s+\w{0,20}$",
