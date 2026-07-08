@@ -91,6 +91,11 @@ def escape_fts5_syntax(query: str) -> str:
     result = query
     result = result.replace(".", " ")
     result = result.replace(",", " ")
+    # ' opens an unterminated FTS5 string literal → syntax error. Replace with
+    # space so query tokenization stays symmetric with the unicode61 tokenizer
+    # (which treats ' as a separator on indexed content). Not doubled: doubling
+    # is SQL-interpolation escaping and corrupts MATCH ? bound parameters.
+    result = result.replace("'", " ")
     # ? is FTS5 proximity operator — syntax error without following token
     result = result.replace("?", " ")
     result = _FTS5_COMMAND_RE.sub(r"\1 command ", result)

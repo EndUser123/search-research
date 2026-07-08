@@ -394,12 +394,19 @@ class TestFts5SyntaxEscape:
     """Tests for escape_fts5_syntax() — parameterized MATCH safety."""
 
     def test_no_sql_quote_doubling(self) -> None:
-        """escape_fts5_syntax must NOT double single quotes (bound params handle that)."""
+        """escape_fts5_syntax must NOT double single quotes.
+
+        A bare apostrophe opens an unterminated FTS5 string literal → syntax
+        error, so it is replaced with a space (symmetric with the unicode61
+        tokenizer). It must NOT be doubled ('' is SQL-interpolation escaping
+        and corrupts MATCH ? bound parameters).
+        """
         from core.chs.utils import escape_fts5_syntax
 
         result = escape_fts5_syntax("it's a test")
         assert "''" not in result, "Should not double quotes for bound parameters"
-        assert "it's" in result or "its" in result, "Single quote should survive"
+        assert "'" not in result, "Apostrophe must not survive — it breaks FTS5 syntax"
+        assert "it" in result and "test" in result, "Words around apostrophe must survive"
 
     def test_injection_drop_table(self) -> None:
         """SQL injection via FTS MATCH should be harmless when used with MATCH ?.
