@@ -367,11 +367,26 @@ def test_search_hits_jsonl_structure(fixture_repo: Path, tmp_path: Path) -> None
 # ─── Test: no new top-level command created ───────────────────────────────────
 
 def test_no_new_command_in_skill() -> None:
-    """The script must not register any new slash command in any SKILL.md."""
+    """The script must not register any new slash command in any SKILL.md.
+
+    A slash command is `/<name>` at the start of a line (frontmatter trigger) or
+    after a space/bullet in the body. The artifact directory
+    `.artifacts/abstraction-audit/` is a filesystem path, NOT a command — and
+    the test must not flag it.
+    """
+    import re
     skill_text = ASK_SKILL.read_text(encoding="utf-8")
-    # The script's name should not appear as a trigger
-    assert "/abstraction-audit" not in skill_text
-    assert "/audit-manifest" not in skill_text
+
+    # Frontmatter triggers: lines like `  - /foo`
+    frontmatter_triggers = re.findall(r"^\s*-\s*(/[a-z][\w-]*)", skill_text, flags=re.M)
+    # Body commands: `/name` after whitespace (not preceded by `.`)
+    body_commands = re.findall(r"(?:^|[\s,(\[])(/[a-z][\w-]*)", skill_text, flags=re.M)
+
+    all_commands = set(frontmatter_triggers) | set(body_commands)
+    for forbidden in ("/abstraction-audit", "/audit-manifest", "/abstraction-audit-manifest"):
+        assert forbidden not in all_commands, (
+            f"{forbidden} introduced as a slash command — script must not add new commands"
+        )
 
 
 # ─── Test: module selfcheck (if present) ──────────────────────────────────────

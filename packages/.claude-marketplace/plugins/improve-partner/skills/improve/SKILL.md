@@ -441,6 +441,19 @@ artifact, ask whether the artifact's completion claims have a ledger —
 but does not BLOCK or BLOCK-APPROVE based on the ledger. That authority
 lives in the table above.
 
+## Feedback Loop / Harness Calibration — pointer
+
+When durable-improvement work surfaces a feedback-loop-shaped issue —
+overclaim, stale ground truth, gold-corpus miss, calibration gap, or
+"claim vs evidence-breadth authority" mismatch — the canonical reference is
+`debrief/references/report-contracts.md` ("Feedback Loop / Harness
+Calibration Addendum" section). That addendum names the seven mechanisms and
+their honest runtime status; **none is a BLOCK-level gate today.** `/improve`
+emits the pointer, does not redefine the mechanisms, and does not promote
+any of them to BLOCK — promotion authority lives in the Epistemic Hook
+Calibration discipline (`completion-evidence-contract.md` lines 59–62:
+corpus measurement required before WARN → BLOCK). Prompt-advisory.
+
 ## Discoverability — route, do not absorb
 
 When the `discoverable_fact_offloading` pattern recurs (agent asks user for
@@ -456,6 +469,33 @@ it does NOT absorb `/debrief`'s rubric. Route targets:
 
 Full classification rule at
 `debrief/references/discoverability-classification.md`.
+
+## Promotion gate — rubric / gate changes
+
+When a `/improve` run proposes changing a bad-behavior rubric entry or a
+runtime gate (new behavior_type, severity promotion WARN→BLOCK, predicate
+expansion, threshold change), the change MAY NOT ship as a recommendation
+alone. Promotion requires ALL of:
+
+1. **Replay evidence** — at least one concrete transcript/fixture line the
+   current rubric/gate missed (the miss), surfaced in the recommendation.
+2. **Gold replay green** — re-run the gold replay corpus
+   (`P:/.data/evals/`) through the proposed change; the existing TP/FP
+   counts must not regress. Cite the command + the numbers.
+3. **Occurrence threshold OR explicit user confirmation** — EITHER the
+   class has recurred at **≥2 distinct occurrences** (logged in
+   `P:/.data/evals/misses.jsonl`) OR the user explicitly confirms the
+   promotion in-channel. One occurrence is enough ONLY when the
+   two-factor rule (frequency × blast-radius, see
+   `debrief/references/bad-behavior-rubric.md` Amendment Protocol)
+   judges the class rare-and-costly — e.g. fabricated architecture facts
+   that burn days. A frequent cheap class (offloaded questions) waits
+   for yield data, not the threshold floor.
+
+Record the promotion decision (which leg of (3) authorized it) in the
+recommendation's evidence trail. A rubric/gate change proposed without
+these three legs is a HYPOTHESIS, not a promotion — label it as such and
+defer to the next yield review.
 
 ## Suggest
 
