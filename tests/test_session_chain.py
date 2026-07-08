@@ -480,6 +480,81 @@ class TestRegistryTerminalChain:
 
 
 # ---------------------------------------------------------------------------
+# Regression: stale (deleted) transcripts must survive the registry walk
+# ---------------------------------------------------------------------------
+
+
+class TestRegistryStaleTranscripts:
+    """Regression: the registry may reference transcripts that no longer exist
+    (pytest temp dirs cleaned, sessions compacted, etc.). These entries must
+    appear in the chain with transcript_exists=False, NOT be silently dropped.
+    Prior bug: path.exists() check at session_chain.py:246 dropped all rows
+    for deleted transcripts, causing walk_session_chain to return depth=1 even
+    when the registry had multiple rows for the session's terminal."""
+
+    def test_deleted_transcript_survives_registry_walk(
+        self, mock_artifacts_dir: Path, mock_projects_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Regression: session with one deleted transcript returns depth=2, not 1."""
+        # sess-old's transcript will NOT be written (simulates deleted/temp-cleaned)
+        # sess-new's transcript IS written
+        _write_transcript(mock_projects_dir, "P--", "sess-new")
+
+        registry = mock_artifacts_dir / "session_registry.jsonl"
+        tps = lambda sid: str(mock_projects_dir / "P--" / f"{sid}.jsonl")
+        _write_registry_row(registry, ts="2026-07-03T10:00:00+00:00", terminal_id="con1",
+                            session_id="sess-old", transcript_path=tps("sess-old"))
+        _write_registry_row(registry, ts="2026-07-05T10:00:00+00:00", terminal_id="con1",
+                            session_id="sess-new", transcript_path=tps("sess-new"))
+
+        monkeypatch.setattr("core.session_chain._projects_dir", lambda: mock_projects_dir)
+
+        with patch("core.session_chain._claude_base", return_value=mock_artifacts_dir.parent):
+            result = walk_session_chain("sess-new")
+
+        # BEFORE FIX: depth=1 (deleted path silently dropped → None → identity fallback)
+        # AFTER FIX:  depth=2 (stale entry preserved with transcript_exists=False)
+        assert result.depth == 2
+        assert [e.session_id for e in result.entries] == ["sess-old", "sess-new"]
+        assert result.entries[0].transcript_exists is False
+        assert result.entries[1].transcript_exists is True
+
+    def test_mixed_existing_and_deleted(
+        self, mock_artifacts_dir: Path, mock_projects_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Behavior: 4-session chain where middle two transcripts are deleted."""
+        _write_transcript(mock_projects_dir, "P--", "sess-a")
+        # sess-b, sess-c transcripts NOT written (deleted)
+        _write_transcript(mock_projects_dir, "P--", "sess-d")
+
+        registry = mock_artifacts_dir / "session_registry.jsonl"
+        tps = lambda sid: str(mock_projects_dir / "P--" / f"{sid}.jsonl")
+        for i, (sid, ts) in enumerate([
+            ("sess-a", "2026-07-01T10:00:00+00:00"),
+            ("sess-b", "2026-07-02T10:00:00+00:00"),
+            ("sess-c", "2026-07-03T10:00:00+00:00"),
+            ("sess-d", "2026-07-04T10:00:00+00:00"),
+        ]):
+            _write_registry_row(registry, ts=ts, terminal_id="con1",
+                                session_id=sid, transcript_path=tps(sid))
+
+        monkeypatch.setattr("core.session_chain._projects_dir", lambda: mock_projects_dir)
+
+        with patch("core.session_chain._claude_base", return_value=mock_artifacts_dir.parent):
+            result = walk_session_chain("sess-d")
+
+        assert result.depth == 4
+        assert [e.session_id for e in result.entries] == ["sess-a", "sess-b", "sess-c", "sess-d"]
+        assert result.entries[0].transcript_exists is True
+        assert result.entries[1].transcript_exists is False
+        assert result.entries[2].transcript_exists is False
+        assert result.entries[3].transcript_exists is True
+        # Parent links chain correctly even with gaps
+        assert result.entries[1].parent_transcript_path == result.entries[0].transcript_path
+        assert result.entries[3].parent_transcript_path == result.entries[2].transcript_path
+
+
+# ---------------------------------------------------------------------------
 # get_all_chain_files
 # ---------------------------------------------------------------------------
 
