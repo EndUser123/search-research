@@ -60,7 +60,13 @@ class SkillsBackend:
         if skills_dirs:
             self.skills_dirs = [Path(d) for d in skills_dirs]
         elif use_defaults:
-            self.skills_dirs = [Path(config.SKILLS_DIR)]
+            # config.SKILLS_DIR (P:/.claude/skills) is mostly empty. Augment
+            # with the plugins marketplace so the 168 SKILL.md files under
+            # P:/packages/.claude-marketplace/plugins/*/skills/ are searchable.
+            self.skills_dirs = [
+                Path(config.SKILLS_DIR),
+                Path("P:/packages/.claude-marketplace/plugins"),
+            ]
         else:
             self.skills_dirs = []
 

@@ -72,7 +72,11 @@ class ClaudeHistoryBackend(BaseLocalBackend):
         if cli_path is None:
             cli_path = "P:\\\\\\packages/claude-history/target/release/claude-history.exe"
         if db_path is None:
-            db_path = "P:\\\\\\__csf/data/chat_history.db"
+            # Source from Config (P:/.data/chat_history.db) — the hardcoded
+            # P:\\\\\\__csf path predates the __csf→/.data migration and pointed
+            # at a 0-byte stale file. See config.CHS_DB_PATH.
+            from ...config import Config
+            db_path = Config().CHS_DB_PATH
 
         self.cli_path = Path(cli_path)
         self.db_path = Path(db_path)

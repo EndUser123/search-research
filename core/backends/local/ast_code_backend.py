@@ -11,11 +11,23 @@ when full CPG infrastructure is unavailable.
 from __future__ import annotations
 
 import ast
+import hashlib
+import json
 import logging
+import os
+import tempfile
 from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+# Cache schema version. Bump to invalidate all old caches (e.g. on index shape
+# change, new field added, hash algorithm change).
+_CACHE_VERSION = 1
+_CACHE_DIR = Path(os.getenv("SEARCH_RESEARCH_CACHE_DIR", "P:/.data/cache"))
+_CACHE_FILE = _CACHE_DIR / f"ast_code_index_v{_CACHE_VERSION}.json"
+_CACHE_LOCK = _CACHE_FILE.with_suffix(".lock")
+_CACHE_STALE_LOCK_SECS = 60  # dotlock-style: lock older than this is treated as abandoned
 
 # Backend identifier
 BACKEND_AST_CODE = "AST_CODE"
@@ -50,7 +62,21 @@ class ASTCodeBackend:
         logger.info(f"ASTCodeBackend initialized with {len(self.root_paths)} paths")
 
     def build_index(self) -> None:
-        """Build entity index from Python files."""
+        """Build entity index from Python files.
+
+        Tries persistent cache first; falls back to full rebuild on miss.
+        Cache file uses md5 fingerprints per .py file and an atomic temp+rename
+        write so multi-terminal readers never see a torn state.
+        """
+        # Try cache hit (multi-terminal safe — readers don't lock)
+        loaded = self._try_load_cache()
+        if loaded is not None:
+            self._entity_index, self._call_graph, self._reverse_call_graph, self._control_flow_cache = loaded
+            self._indexed = True
+            logger.info(f"ASTCodeBackend loaded {len(self._entity_index)} entities from cache")
+            return
+
+        # Cache miss / stale — full rebuild
         self._entity_index = {}
         self._call_graph = {}
         self._reverse_call_graph = {}
@@ -60,7 +86,174 @@ class ASTCodeBackend:
             self._index_directory(root_path)
 
         self._indexed = True
-        logger.info(f"ASTCodeBackend indexed {len(self._entity_index)} entities")
+        logger.info(f"ASTCodeBackend indexed {len(self._entity_index)} entities (cache rebuilt)")
+
+        # Persist asynchronously — don't block the caller if another terminal
+        # holds the build lock; the next process will benefit from this build.
+        try:
+            self._persist_cache()
+        except Exception as e:
+            logger.debug(f"ASTCodeBackend cache persist failed (non-fatal): {e}")
+
+    def _try_load_cache(self) -> tuple[dict, dict, dict, dict] | None:
+        """Try to load index from disk. Returns None on miss, stale, or corrupt.
+
+        Safety invariants:
+        - Version mismatch → None (cache schema changed)
+        - Per-file md5 mismatch OR mtime_ns/size mismatch → None
+        - Corrupt JSON → None (logged, not raised)
+        """
+        if not _CACHE_FILE.exists():
+            return None
+        try:
+            with open(_CACHE_FILE, encoding="utf-8") as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, OSError) as e:
+            logger.debug(f"ASTCodeBackend cache read failed: {e}")
+            return None
+
+        if data.get("version") != _CACHE_VERSION:
+            logger.debug(f"ASTCodeBackend cache version mismatch (got {data.get('version')}, want {_CACHE_VERSION})")
+            return None
+
+        manifest = data.get("files", {})
+        for file_path, fingerprint in manifest.items():
+            try:
+                st = os.stat(file_path)
+            except OSError:
+                # File deleted since cache was written → cache stale
+                return None
+            if (
+                st.st_mtime_ns != fingerprint.get("mtime_ns")
+                or st.st_size != fingerprint.get("size")
+            ):
+                # mtime/size changed → recheck content hash (handles git
+                # operations that touch files without bumping mtime cleanly)
+                try:
+                    with open(file_path, "rb") as f:
+                        actual_md5 = hashlib.md5(f.read()).hexdigest()
+                except OSError:
+                    return None
+                if actual_md5 != fingerprint.get("md5"):
+                    return None
+
+        # All checks passed — load the dicts
+        return (
+            data.get("entities", {}),
+            {k: set(v) for k, v in data.get("call_graph", {}).items()},
+            {k: set(v) for k, v in data.get("reverse_call_graph", {}).items()},
+            data.get("control_flow_cache", {}),
+        )
+
+    def _persist_cache(self) -> None:
+        """Atomically write the index to disk. Multi-terminal safe via flock.
+
+        Invariants:
+        - Acquire .lock with LOCK_EX + LOCK_NB. If held, skip persist (another
+          terminal will publish). The current build is still in memory and used.
+        - Detect stale lock (mtime > 60s old) → break it.
+        - Write via tempfile.mkstemp + os.replace() for atomic publish.
+        """
+        # Build the manifest: per-file md5 + mtime_ns + size
+        manifest: dict[str, dict[str, int | str]] = {}
+        for root_path in self.root_paths:
+            for py_file in root_path.rglob("*.py"):
+                try:
+                    st = py_file.stat()
+                    with open(py_file, "rb") as f:
+                        md5 = hashlib.md5(f.read()).hexdigest()
+                    manifest[str(py_file)] = {
+                        "mtime_ns": st.st_mtime_ns,
+                        "size": st.st_size,
+                        "md5": md5,
+                    }
+                except OSError:
+                    continue  # file vanished mid-build; ignore
+
+        payload = {
+            "version": _CACHE_VERSION,
+            "root_paths": [str(p) for p in self.root_paths],
+            "files": manifest,
+            "entities": self._entity_index,
+            "call_graph": {k: list(v) for k, v in self._call_graph.items()},
+            "reverse_call_graph": {k: list(v) for k, v in self._reverse_call_graph.items()},
+            "control_flow_cache": self._control_flow_cache,
+        }
+
+        _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+        # Best-effort cross-process lock. The atomic temp+rename below already
+        # protects readers from torn writes — this lock is only build
+        # coordination so two terminals don't both rebuild + race to publish.
+        # POSIX: fcntl.flock. Windows: msvcrt.locking (byte-range, but works on
+        # a 1-byte file for cross-process mutual exclusion). If neither works
+        # (e.g., exotic platform), proceed without coordination.
+        lock_fd = None
+        lock_acquired = False
+        try:
+            lock_fd = os.open(str(_CACHE_LOCK), os.O_CREAT | os.O_RDWR, 0o644)
+            # Detect stale lock: if mtime > threshold, another terminal crashed
+            try:
+                lock_mtime = os.fstat(lock_fd).st_mtime
+                import time as _time
+                if _time.time() - lock_mtime > _CACHE_STALE_LOCK_SECS:
+                    os.ftruncate(lock_fd, 0)
+            except OSError:
+                pass
+            if os.name == "posix":
+                try:
+                    import fcntl as _fcntl
+                    _fcntl.flock(lock_fd, _fcntl.LOCK_EX | _fcntl.LOCK_NB)
+                    lock_acquired = True
+                except (BlockingIOError, OSError):
+                    logger.debug("ASTCodeBackend cache lock held by another process; skipping persist")
+                    return
+            elif os.name == "nt":
+                try:
+                    import msvcrt as _msvcrt
+                    _msvcrt.locking(lock_fd, _msvcrt.LK_NBLCK, 1)
+                    lock_acquired = True
+                except OSError:
+                    logger.debug("ASTCodeBackend cache lock held by another process; skipping persist")
+                    return
+        except OSError:
+            lock_fd = None
+
+        try:
+            # Atomic write: temp file in same dir → os.replace() (atomic on POSIX & Win)
+            fd, tmp_path = tempfile.mkstemp(
+                dir=str(_CACHE_DIR), prefix=".ast_code_", suffix=".tmp"
+            )
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    json.dump(payload, f)
+                    f.flush()
+                    try:
+                        os.fsync(f.fileno())
+                    except OSError:
+                        pass
+                os.replace(tmp_path, _CACHE_FILE)
+                logger.debug(f"ASTCodeBackend cache persisted to {_CACHE_FILE}")
+            except Exception:
+                # Clean up the temp file on failure
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+                raise
+        finally:
+            if lock_fd is not None and lock_acquired:
+                try:
+                    if os.name == "posix":
+                        import fcntl as _fcntl
+                        _fcntl.flock(lock_fd, _fcntl.LOCK_UN)
+                    elif os.name == "nt":
+                        import msvcrt as _msvcrt
+                        _msvcrt.locking(lock_fd, _msvcrt.LK_UNLCK, 1)
+                except OSError:
+                    pass
+            if lock_fd is not None:
+                os.close(lock_fd)
 
     def _index_directory(self, root_path: Path) -> None:
         """Index all Python files in a directory."""
