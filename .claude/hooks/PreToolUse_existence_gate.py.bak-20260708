@@ -21,14 +21,6 @@ Rollout (2026-07-02): warn for normal paths, soft-block for high-risk paths.
 High-risk detection: Edit/Write to .claude/hooks/, .claude/settings*.json, plugin
 manifests, __lib/router.py, plugin audit/cache scripts, or /go orchestrator files
 without prior Read returns a block decision. Bypass with --allow-overwrite.
-
-Extension (2026-07-08): high-risk detection now also matches by filename
-(guard/watchdog/fallback in the stem), not just path fragment, for EXISTING
-files. Additionally, creating a NEW file whose stem matches those fragments
-now requires at least one Read this session -- a proxy for "some investigation
-happened" before reaching for a guard, per "source fixes over guards".
-Limitation: this cannot verify the *right* file was read, only that a Read
-occurred this session. Bypass with --allow-overwrite.
 """
 
 import json
@@ -83,30 +75,10 @@ _HIGH_RISK_PATH_FRAGMENTS: tuple[str, ...] = (
     "/skills/go/scripts/",
 )
 
-# High-risk *names*: guard/watchdog/fallback files get extra scrutiny
-# regardless of where they live, since that pattern showed up as a
-# wrong-premise fix substituted for a source fix. Matched against the
-# filename stem only (not full path) to avoid false positives on unrelated
-# path segments (e.g. "regard", "safeguarded_reports/").
-# Added 2026-07-08.
-_HIGH_RISK_NAME_FRAGMENTS: tuple[str, ...] = (
-    "guard",
-    "watchdog",
-    "fallback",
-)
-
-
-def _is_high_risk_name(file_path: str) -> bool:
-    stem = Path(file_path).stem.lower()
-    return any(frag in stem for frag in _HIGH_RISK_NAME_FRAGMENTS)
-
 
 def _is_high_risk_path(file_path: str) -> bool:
     norm = file_path.replace("\\", "/").lower()
-    if any(frag in norm for frag in _HIGH_RISK_PATH_FRAGMENTS):
-        return True
-    return _is_high_risk_name(file_path)
-
+    return any(frag in norm for frag in _HIGH_RISK_PATH_FRAGMENTS)
 
 # Session state directory
 STATE_DIR = Path.home() / ".claude" / "state"
@@ -149,7 +121,7 @@ def run(data: dict) -> dict | None:
     if tool_name not in ("Write", "Edit", "MultiEdit"):
         return None
 
-    # Extract session_id -- real payload nests it under data["session"]["id"].
+    # Extract session_id — real payload nests it under data["session"]["id"].
     session_id = resolve_session_id(data)
     if not session_id:
         return None  # Can't track without session_id
@@ -160,8 +132,8 @@ def run(data: dict) -> dict | None:
     # Handle different tools
     if tool_name == "MultiEdit":
         # MultiEdit payload contract (verified from test_import_deletion_guard.py):
-        #   tool_input.file_path   -- top-level path (when edits span a single file)
-        #   tool_input.edits[].file_path -- per-edit path (when edits span multiple files)
+        #   tool_input.file_path   — top-level path (when edits span a single file)
+        #   tool_input.edits[].file_path — per-edit path (when edits span multiple files)
         file_paths = []
         if isinstance(tool_input, dict):
             top_path = tool_input.get("file_path", "")
@@ -175,7 +147,7 @@ def run(data: dict) -> dict | None:
                         if p and p not in file_paths:
                             file_paths.append(p)
         if not file_paths:
-            return None  # unrecognized shape -- fail-open, same posture as Write/Edit
+            return None  # unrecognized shape — fail-open, same posture as Write/Edit
     else:
         # Write and Edit have single file_path
         file_path = tool_input.get("file_path", "")
@@ -191,8 +163,8 @@ def run(data: dict) -> dict | None:
 
     blocked_files = []
     high_risk_files = []
-    new_guard_files = []
     for file_path in file_paths:
+        # Check if file exists
         if Path(file_path).exists():
             # Check if read this session
             read_files = _load_read_files(session_id)
@@ -200,44 +172,6 @@ def run(data: dict) -> dict | None:
                 blocked_files.append(file_path)
                 if _is_high_risk_path(file_path):
                     high_risk_files.append(file_path)
-        elif _is_high_risk_name(file_path):
-            # New guard/watchdog/fallback file being created. Not an
-            # overwrite, so the exists-branch above never fires -- this was
-            # the gap: creating a new guard had no read-before-write signal
-            # at all otherwise. Added 2026-07-08.
-            new_guard_files.append(file_path)
-
-    # New guard-named file with zero Reads this session: require at least
-    # one Read before allowing creation. Cannot verify it was the *right*
-    # file -- only that some investigation happened this session.
-    if new_guard_files and not _load_read_files(session_id):
-        _telemetry(
-            "new_guard_no_investigation",
-            session_id,
-            "soft_block",
-            extra={"files": new_guard_files, "tool": tool_name},
-        )
-        return {
-            "decision": "block",
-            "reason": (
-                "Creating new guard/watchdog/fallback file(s) "
-                + ", ".join(new_guard_files)
-                + " with no Read tool calls this session. Investigate the "
-                "failure source first (source fixes over guards). "
-                "Add --allow-overwrite to bypass."
-            ),
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "permissionDecision": "deny",
-                "permissionDecisionReason": (
-                    "No investigation (Read) recorded this session before "
-                    "creating a guard-named file: "
-                    + ", ".join(new_guard_files)
-                    + ". Read the relevant source first, or add "
-                    "--allow-overwrite to bypass."
-                ),
-            },
-        }
 
     if not blocked_files:
         return None
@@ -255,17 +189,15 @@ def run(data: dict) -> dict | None:
         return {
             "decision": "block",
             "reason": (
-                "Read-before-edit (high-risk): "
-                + ", ".join(high_risk_files)
-                + " not read this session. Add --allow-overwrite to bypass."
+                f"Read-before-edit (high-risk): {', '.join(high_risk_files)} "
+                "not read this session. Add --allow-overwrite to bypass."
             ),
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
                 "permissionDecision": "deny",
                 "permissionDecisionReason": (
-                    "High-risk file modified without prior Read: "
-                    + ", ".join(high_risk_files)
-                    + ". Read the file first to understand current state, "
+                    f"High-risk file modified without prior Read: {', '.join(high_risk_files)}. "
+                    "Read the file first to understand current state, "
                     "or add --allow-overwrite to bypass."
                 ),
             },
@@ -282,10 +214,8 @@ def run(data: dict) -> dict | None:
     return {
         "decision": "warn",
         "systemMessage": (
-            "Read-before-edit: "
-            + ", ".join(blocked_files)
-            + " was not Read this session. Consider Reading first; "
-            "add --allow-overwrite to bypass."
+            f"Read-before-edit: {', '.join(blocked_files)} was not Read this session. "
+            "Consider Reading first; add --allow-overwrite to bypass."
         ),
     }
 
