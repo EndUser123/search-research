@@ -412,7 +412,7 @@ class UnifiedAsyncRouter:
             local_results = []
 
         # Phase 2: Quality check (skip web if satisfied)
-        if self._should_skip_web_search(local_results):
+        if self._should_skip_web_search(local_results, query):
             return self._add_topic_alignment_scores(query, local_results[:limit])
 
         # Phase 3: Web search (only if needed)
@@ -429,11 +429,20 @@ class UnifiedAsyncRouter:
 
         return self._add_topic_alignment_scores(query, local_results[:limit])
 
-    def _should_skip_web_search(self, local_results: list[SearchResult]) -> bool:
-        """Determine if web search should be skipped based on mode and quality.
+    def _should_skip_web_search(self, local_results: list[SearchResult], query: str | None = None) -> bool:
+        """Determine if web search should be skipped based on mode, intent, and quality.
+
+        Query-type awareness (when query is provided):
+        - Time-sensitive signals (year, "latest", "current", "release", dates) →
+          always check web; local knowledge is likely stale.
+        - Factual-lookup intent (UNKNOWN) → check web; the corpus may not contain it.
+        - NAVIGATIONAL/TECHNICAL/EXPLORATORY → defer to the quality gate; these
+          are usually answerable from local code/knowledge.
+        - INFORMATIONAL → defer to quality gate with freshness bias.
 
         Args:
             local_results: Results from local search
+            query: The original search query (enables intent-aware gating)
 
         Returns:
             True if web search should be skipped, False otherwise
@@ -451,6 +460,16 @@ class UnifiedAsyncRouter:
         if not local_results:
             return False
 
+        # Intent-aware web gating (when query is provided). Mirrors the intent
+        # filter: some query types should always check web regardless of local
+        # quality, because the right answer isn't in — or is stale in — the
+        # local corpus.
+        if query:
+            skip, reason = self._intent_web_policy(query)
+            if skip is not None:
+                logger.debug(f"Intent web policy for {query!r}: {reason}")
+                return skip
+
         # Check if best local result meets quality thresholds
         best_result = local_results[0]
         result_dict = self._search_result_to_dict(best_result)
@@ -461,6 +480,35 @@ class UnifiedAsyncRouter:
             f"satisfactory={quality_result}"
         )
         return quality_result
+
+    @staticmethod
+    def _intent_web_policy(query: str) -> tuple[bool | None, str]:
+        """Classify query intent and return a web-search policy.
+
+        Returns (skip, reason):
+        - skip=True  -> skip web (query is answerable locally)
+        - skip=False -> force web (query needs fresh/external info)
+        - skip=None  -> defer to the quality gate (no intent-level override)
+        """
+        q = query.lower()
+        time_sensitive = bool(re.search(
+            r"(20\d{2})"
+            r"|latest|current|newest|recent"
+            r"|release|released|version|v\d"
+            r"|changelog|roadmap"
+            r"|today|yesterday|this week|this month",
+            q,
+        ))
+        if time_sensitive:
+            return False, "time-sensitive signal -> force web"
+        try:
+            from .query_intent import classify_query_intent, IntentType
+            result = classify_query_intent(query)
+            if result.intent == IntentType.UNKNOWN:
+                return False, "UNKNOWN intent -> force web"
+            return None, f"{result.intent.value} intent -> quality gate"
+        except Exception:
+            return None, "classifier unavailable -> quality gate"
 
     @staticmethod
     def _is_conceptual_query(query: str) -> bool:
