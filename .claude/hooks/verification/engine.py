@@ -128,6 +128,12 @@ def match_claim_to_events(
     if _is_self_verified_claim(claim):
         return VerificationStatus.SELF_VERIFIED
 
+    # EXTERNAL_FACT claims dispatch BEFORE the path-oriented target pre-filter:
+    # the evidence join needs the FULL event list to detect grounding tools
+    # (WebSearch/WebFetch/MCP API), which the path-oriented pre-filter would drop.
+    if "EXTERNAL_FACT" in claim.type.upper():
+        return _verify_external_fact_claim(claim, events)
+
     if not events:
         return VerificationStatus.SILENT
 
@@ -447,6 +453,114 @@ def _verify_folder_create_claim(
         if tool_name in ("read", "bash") and ("dir" in command or "ls" in command):
             if claimed_path in output:
                 return VerificationStatus.SUPPORTED
+
+    return VerificationStatus.SILENT
+
+
+# --- EXTERNAL_FACT evidence join (Close-the-Loop Phase 3b) -------------------
+#
+# A detected external-fact claim shape (library version, API behavior, entity
+# existence) is not a violation by itself. The agent may have just run a
+# grounding tool (WebSearch/WebFetch/MCP API) covering the subject, or the
+# claim may match an unexpired runtime-ground-truth row. Only UNGROUNDED
+# external-fact claims surface as SILENT verdicts for SHADOW telemetry. Model
+# self-report text is NOT evidence.
+
+_GROUNDING_TOOLS = {"websearch", "webfetch"}
+_GROUND_TRUTH_PATH = r"P:/.claude/hooks/analysis/runtime-ground-truth.md"
+_DATE_RE = re.compile(r"\b(20\d{2})[-/](\d{1,2})\b")
+
+
+def _is_grounding_tool(tool_name: str) -> bool:
+    """WebSearch/WebFetch, or an MCP API tool (mcp__* containing 'api')."""
+    tn = (tool_name or "").lower()
+    if tn in _GROUNDING_TOOLS:
+        return True
+    if tn.startswith("mcp__") and "api" in tn:
+        return True
+    return False
+
+
+def _load_ground_truth_rows() -> List[Dict[str, str]]:
+    """Parse the runtime-ground-truth markdown table into row dicts.
+
+    Returns [] on any parse/IO failure (fail-open — no rows means no
+    SUPPORTED-by-ground-truth verdicts, which yields SILENT, the safe default).
+    """
+    try:
+        with open(_GROUND_TRUTH_PATH, encoding="utf-8") as fh:
+            text = fh.read()
+    except OSError:
+        return []
+
+    rows: List[Dict[str, str]] = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|") or "----" in stripped:
+            continue
+        cells = [c.strip() for c in stripped.strip("|").split("|")]
+        if len(cells) < 5:
+            continue
+        if cells[0].lower() == "fact":
+            continue
+        rows.append({
+            "fact": cells[0],
+            "source": cells[1],
+            "verification_command": cells[2],
+            "last_verified": cells[3],
+            "expiry_trigger": cells[4],
+        })
+    return rows
+
+
+def _ground_truth_row_is_stale(row: Dict[str, str]) -> bool:
+    """A row is stale if its expiry_trigger contains a past YYYY-MM date.
+
+    Event-based triggers ("router.py rewritten") carry no date and are treated
+    as fresh — staleness for those is decided at injection time, not here.
+    """
+    import datetime as _dt
+
+    m = _DATE_RE.search(row.get("expiry_trigger", ""))
+    if not m:
+        return False
+    try:
+        year, month = int(m.group(1)), int(m.group(2))
+        trigger_date = _dt.date(year, month, 1)
+    except ValueError:
+        return False
+    return trigger_date < _dt.date.today().replace(day=1)
+
+
+def _verify_external_fact_claim(
+    claim: Any, events: List[Dict[str, Any]]
+) -> VerificationStatus:
+    """Evidence join for EXTERNAL_FACT claims.
+
+    SUPPORTED if a same-session grounding tool event covers any claim target,
+    or an unexpired runtime-ground-truth row mentions a target. Otherwise
+    SILENT — the SHADOW observation signal (ungrounded external assertion).
+    """
+    targets = [t for t in getattr(claim, "targets", []) if t and len(t) > 1]
+    if not targets:
+        return VerificationStatus.SILENT
+    targets_lower = [t.lower() for t in targets]
+
+    for event in events:
+        if not _is_grounding_tool(event.get("name", "")):
+            continue
+        haystack = (
+            str(event.get("output", "")) + " " + str(event.get("command", ""))
+        ).lower()
+        if any(t in haystack for t in targets_lower):
+            return VerificationStatus.SUPPORTED
+
+    for row in _load_ground_truth_rows():
+        if _ground_truth_row_is_stale(row):
+            continue
+        fact_lower = row["fact"].lower()
+        if any(t in fact_lower for t in targets_lower):
+            return VerificationStatus.SUPPORTED
 
     return VerificationStatus.SILENT
 

@@ -1,12 +1,96 @@
 # Phase 3 Evidence Packet — External-Fact Detector (SHADOW)
 
 **Program:** Close-the-Loop telemetry reliability (6 phases)
-**Phase:** 3 — build + SHADOW calibration
+**Phase:** 3a (predicate + offline calibration) DONE 2026-07-07;
+**Phase:** 3b (integration + evidence join + live SHADOW + re-calibration) DONE 2026-07-07
 **Date:** 2026-07-07
-**Status:** DELIVERED — detector ships as **SHADOW / advisory** (non-blocking)
+**Status:** 3a DELIVERED as **SHADOW / advisory** (non-blocking); 3b DELIVERED — predicate integrated, evidence join live, emitter wired.
 **Auth context:** All checks ran against the gold replay corpus at `P:/.data/evals/`.
 
 ---
+
+## 0. Phase 3b — Integration + Evidence Join + Live SHADOW (DONE 2026-07-07)
+
+3a (§1–§8 below) shipped only the standalone predicate + offline calibration.
+3b closes the gap by making the predicate the single source, gating which
+detections become verdicts, and turning offline calibration into runtime
+telemetry.
+
+### 0.1 Single source (no drift)
+
+- Predicate moved into `P:/.claude/hooks/verification/claims.py`:
+  `_detect_external_fact_claims`, `EXTERNAL_FACT` in `_CLASSIFICATION_MAP`,
+  `extract_claims` extended.
+- `P:/.data/evals/external_fact_detector.py` is now a thin re-export
+  (`from verification.claims import detect, PATTERNS, ...`).
+- Anti_sycophancy `hypothesis_as_fact_detector` import made optional
+  (`_HAS_HYPOTHESIS_DETECTOR` flag, try/except). The source file is missing
+  (only `.pyc` exists) — pre-existing breakage, fixed in-scope so the live
+  emitter doesn't fail-open silently forever.
+
+### 0.2 Evidence join (`verification/engine.py`)
+
+- `_verify_external_fact_claim(claim, events)`:
+  - SUPPORTED if a WebSearch / WebFetch / `mcp__*api*` event's output mentions
+    a claim target;
+  - else SUPPORTED if an unexpired runtime-ground-truth row matches;
+  - else SILENT.
+- Stale detection is date-based (a past YYYY-MM in `expiry_trigger`); event-
+  based triggers are treated as fresh.
+- Wired in `match_claim_to_events` BEFORE the path-oriented target pre-filter
+  (WebSearch events have no path target and would otherwise be filtered out).
+
+### 0.3 Live SHADOW emitter (`Stop.py`)
+
+- `_run_external_fact_shadow(data)` appends one row per SILENT EXTERNAL_FACT
+  verdict to `logs/diagnostics/external_fact_shadow.jsonl` via
+  `append_jsonl_safe`. Non-blocking, no stderr, no additionalContext; gated
+  by `EXTERNAL_FACT_SHADOW_ENABLED` (default true); fail-open. Called from
+  `main()` after the gate sweep.
+- Smoke test: synthetic ungrounded response → 2 rows landed
+  (`numpy 2.1`, `React 19 supports`), Stop exit 0 (no block).
+- Bug caught in smoke: the emitter initially passed `str(log_path)` to
+  `append_jsonl_safe`, but `append_jsonl` does `log_path.parent.mkdir(...)`
+  (requires `Path`). The `except Exception: return` swallowed the
+  `AttributeError` — the "returned clean" with no row written. Fixed: pass
+  `log_path` directly. Other call sites already use the Path form.
+
+### 0.4 Re-calibration through the integrated path
+
+```
+[shadow] corpus hits: {'gold': 1}
+[shadow] seed eval: {'seed_cases': 12, 'tp': 4, 'fp': 0, 'fn': 1,
+                     'precision': 1.0, 'recall': 0.8}
+```
+Numbers identical to 3a — the move + evidence join did not change detection
+shape. Test gates:
+- `test_external_fact_detector.py` → 13/13 PASS (shape unchanged).
+- `test_external_fact_evidence_join.py` → 3/3 PASS (SILENT no grounding;
+  SUPPORTED with WebSearch; STALE never SUPPORTS — anti-mock, real
+  `extract_claims`+`build_verdicts`).
+- `tests/test_verification_engine.py` → 29 passed, 1 skipped (no regression
+  in ABSENCE/RULE/OUTCOME_ATTRIBUTION/FOLDER_CREATE verdicts).
+
+### 0.5 Promotion criteria unchanged
+
+3b stays SHADOW. The corpus has 0 known real TPs (external-fact claims are a
+false-negative surface). Promotion to blocking still requires Phase 6
+real-corpus TP reseeding + the lone FN fix + `measured_tp_on_corpus` re-stamped
+with real numbers (§5 below).
+
+### 0.6 Plan deviation logged
+
+Phase 3 was initially marked "DELIVERED" when only 3a had landed. Staging
+3a-then-3b was reasonable, but shipping staged work under DELIVERED without
+reporting the fork is the same bounded-branch deviation class as the
+renderer-cap omission (`misses.jsonl` row 2). Corrective action: plan +
+packet split into 3a/3b; deviation row
+`phase_3a_shipped_as_phase_3_under_delivered_20260707` appended to
+`P:/.data/evals/misses.jsonl`.
+
+---
+
+## 1. Phase 3a deliverables (predicate + offline calibration)
 
 ## 1. Deliverables
 

@@ -144,14 +144,47 @@ mechanism_manifest protected; recall segments truncate first).
 |------|--------|----------------------|---------------|----------------|
 | Gold corpus canonical path = `P:/.data/evals/` | `ls P:/.data/evals/` + manifest match (4 fixtures + 3 .py + misses.jsonl) | `ls P:/.data/evals/ P:/.data/evals/gold/` | 2026-07-07 | any `evals/` relocation — re-run manifest check + update this row + the verified-facts block |
 
-### Phase 3 — External-fact claim shape [PENDING]
-In verification/engine.py + claims.py (TASK-012 pattern). NO new gate file.
-Patterns: quotas, prices, context windows, model IDs, versions,
-repo/plugin/issue existence, API capability claims. Evidence required:
-same-session WebSearch/WebFetch/API tool event OR unexpired ground-truth
-entry. Model self-report text is NOT evidence. Ship SHADOW mode. Calibrate
-on Phase 1 fixtures: flags fabricated-quota / invented-model-ID turns,
-silent on ≥95% of normal turns.
+### Phase 3a — External-fact claim shape (predicate + offline calibration) [DONE 2026-07-07]
+Pure-text predicate for external-world claims: `ExternalFactKind =
+{version_assertion, api_behavior_claim, entity_existence, ecosystem_fact}`.
+Two name classes (`_CAP_NAME` bare-major only in api_behavior with a verb;
+`_LOW_NAME` requires dotted/v) + `_GENERIC_WORDS` denylist — FP 171→0 on
+stop_blocks.jsonl. Offline calibration: precision 1.0 / recall 0.8 on a
+synthetic 12-row seed; gold corpus = 1 hit (GSM8K 51.7). Shipped as
+`P:/.data/evals/external_fact_detector.py` + `shadow_eval.py` + 13/13 tests.
+SHADOW-only: 0 real TPs in the corpus (external-fact claims are a
+false-negative surface — never caught, absent from stop_blocks), so per the
+gate-discrimination rule it cannot block until Phase 6 reseeds real TPs.
+
+### Phase 3b — Integration + evidence join + live SHADOW + re-calibration [DONE 2026-07-07]
+1. **Single source:** predicate moved into `verification/claims.py`
+   (`_detect_external_fact_claims`, `EXTERNAL_FACT` in `_CLASSIFICATION_MAP`,
+   `extract_claims` extended). `evals/external_fact_detector.py` is now a thin
+   re-export — no drift. (Anti_sycophancy `hypothesis_as_fact_detector` import
+   made optional — source file missing, only `.pyc` exists; pre-existing
+   breakage, fixed in-scope so the emitter doesn't fail-open forever.)
+2. **Evidence join** (`verification/engine.py:_verify_external_fact_claim`):
+   `EXTERNAL_FACT` claim SUPPORTED only if a same-session WebSearch/WebFetch/
+   mcp__*api* event covers a target, or an unexpired runtime-ground-truth row
+   matches; else SILENT. Stale rows (past YYYY-MM in expiry_trigger) never
+   SUPPORT. Wired in `match_claim_to_events` BEFORE the path-oriented pre-filter.
+3. **Live SHADOW emitter** (`Stop.py:_run_external_fact_shadow`): emits one
+   row per SILENT EXTERNAL_FACT verdict to
+   `logs/diagnostics/external_fact_shadow.jsonl` via `append_jsonl_safe`
+   (Path, not str — bug caught in smoke). Non-blocking, no stderr, no
+   additionalContext; gated by `EXTERNAL_FACT_SHADOW_ENABLED` (default true);
+   fail-open. Called from `main()` after the gate sweep.
+4. **Re-calibration through the integrated path:** gold still 1,
+   stop_blocks still 0, seed precision 1.0 / recall 0.8 — numbers hold.
+   13/13 detector tests + 3/3 new evidence-join tests + 29/1skip engine
+   suite (no regression).
+
+**Plan deviation logged:** Phase 3 was initially marked "DELIVERED" when
+only 3a had landed. Staging 3a-then-3b was reasonable, but shipping staged
+work under DELIVERED without reporting the fork violates bounded-branch
+discipline (same class as the renderer-cap omission, `misses.jsonl` row 2).
+Corrective action: plan + packet split into 3a/3b; deviation row appended to
+`misses.jsonl` (`phase_3a_shipped_as_phase_3_under_delivered_20260707`).
 
 ### Phase 4 — Completion contract at report time [PENDING]
 Upgrade debrief/references/completion-evidence-contract.md from after-action

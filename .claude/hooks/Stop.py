@@ -195,6 +195,65 @@ def _append_jsonl_safe(log_path, entry) -> bool:
     return append_jsonl_safe(log_path, entry)
 
 
+# <<< SHADOW_EMITTER_BEGIN >>>
+def _run_external_fact_shadow(data: dict) -> None:
+    """Close-the-Loop Phase 3b — log-only SHADOW emitter for external-fact claims.
+
+    Runs the integrated predicate (verification.claims) + evidence join
+    (verification.engine) against the turn's response and appends one row per
+    UNGROUNDED EXTERNAL_FACT claim (SILENT verdict) to
+    ``logs/diagnostics/external_fact_shadow.jsonl``. Non-blocking, no stderr,
+    no additionalContext — telemetry only. Fail-open: any error returns silently.
+    Gated by ``EXTERNAL_FACT_SHADOW_ENABLED`` (default true).
+    """
+    if not _env_bool("EXTERNAL_FACT_SHADOW_ENABLED", True):
+        return
+    try:
+        response = data.get("response", "") or data.get("last_assistant_message", "") or ""
+        if not response:
+            return
+        import verification.claims  # noqa: E402
+        import verification.engine  # noqa: E402
+        _VS = verification.engine.VerificationStatus
+
+        tool_events = data.get("tool_events")
+        if not tool_events:
+            from __lib.turn_tool_events import build_turn_tool_events
+            tool_events = build_turn_tool_events(data.get("transcript_path", ""))
+
+        claims = [c for c in verification.claims.extract_claims(response) if c.type == "EXTERNAL_FACT"]
+        if not claims:
+            return
+        verdicts = verification.engine.build_verdicts(claims, tool_events)
+
+        import hashlib
+        import datetime as _dt
+        session_id, terminal_id = _resolve_scope_ids(data)
+        transcript_path = data.get("transcript_path", "")
+        response_hash = hashlib.sha256(response.encode("utf-8", "replace")).hexdigest()[:16]
+        log_path = HOOKS_DIR / "logs" / "diagnostics" / "external_fact_shadow.jsonl"
+        tool_events_seen = len(tool_events or [])
+
+        for claim, verdict in zip(claims, verdicts):
+            if verdict.status != _VS.SILENT:
+                continue
+            _append_jsonl_safe(log_path, {
+                "timestamp": _dt.datetime.now().isoformat(timespec="seconds"),
+                "session_id": str(session_id),
+                "terminal_id": str(terminal_id),
+                "transcript_path": transcript_path,
+                "claim_text": claim.text,
+                "claim_targets": list(getattr(claim, "targets", []) or []),
+                "kind": "EXTERNAL_FACT",
+                "verdict": verdict.status.value,
+                "tool_events_seen": tool_events_seen,
+                "response_hash": response_hash,
+            })
+    except Exception:
+        return
+# <<< SHADOW_EMITTER_END >>>
+
+
 def _skill_first_mode_stop() -> str:
     if not _env_bool("ENFORCE_SKILL_FIRST_STOP_FALLBACK", default=False):
         return "off"
@@ -5034,6 +5093,11 @@ def main():
     # that has contract telemetry. Explicitly approve when no gate fired.
     if "continue" not in output and "decision" not in output:
         output["continue"] = True
+
+    try:
+        _run_external_fact_shadow(data)
+    except Exception:
+        pass
 
     print(json.dumps(output))
 
