@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from search_research.core.chs.schema_compat import CHSSchemaCompat
-from search_research.core.chs.utils import escape_fts5_query
+from search_research.core.chs.utils import escape_fts5_syntax
 
 if TYPE_CHECKING:
     import sqlite3
@@ -27,7 +27,7 @@ def search_fts_messages(db: sqlite3.Connection, query: str, limit: int = 10) -> 
     """
     if not query or not query.strip():
         return []
-    escaped_query = escape_fts5_query(query)
+    escaped_query = escape_fts5_syntax(query)
     messages_table = CHSSchemaCompat.get_messages_table(db)
     fts_table = CHSSchemaCompat.get_fts_table(db)
     try:
