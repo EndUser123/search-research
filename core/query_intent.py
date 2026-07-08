@@ -92,10 +92,10 @@ _EMBEDDING_TO_INTENT: dict[IntentCategory, IntentType] = {
 # Backend routing: which backends to query for each intent type.
 # Positive list — only listed backends are queried. UNKNOWN = no filter.
 BACKEND_FOR_INTENT: dict[IntentType, set[str]] = {
-    IntentType.NAVIGATIONAL: {"grep", "cds", "skills", "claude-history", "vault"},
-    IntentType.TECHNICAL: {"grep", "cds", "skills", "ast_code", "lsp", "cpg", "yt_is"},
-    IntentType.INFORMATIONAL: {"cks", "qmd_wiki", "cds", "skills", "claude-history", "yt_is"},
-    IntentType.EXPLORATORY: {"cks", "qmd_wiki", "cds", "skills", "vault", "ast_code", "yt_is"},
+    IntentType.NAVIGATIONAL: {"grep", "cds", "skills", "claude-history", "vault", "notebooklm"},
+    IntentType.TECHNICAL: {"grep", "cds", "skills", "ast_code", "lsp", "cpg", "yt_is", "notebooklm"},
+    IntentType.INFORMATIONAL: {"cks", "qmd_wiki", "notebooklm", "cds", "skills", "claude-history", "yt_is"},
+    IntentType.EXPLORATORY: {"cks", "qmd_wiki", "notebooklm", "cds", "skills", "vault", "ast_code", "yt_is"},
     IntentType.UNKNOWN: set(),
 }
 
