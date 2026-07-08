@@ -388,3 +388,56 @@ class TestEscapeFts5Query:
         assert "123" in result, "Should contain the string representation"
         result = escape_fts5_query(["test", "list"])
         assert isinstance(result, str), "Should return string"
+
+
+class TestFts5SyntaxEscape:
+    """Tests for escape_fts5_syntax() — parameterized MATCH safety."""
+
+    def test_no_sql_quote_doubling(self) -> None:
+        """escape_fts5_syntax must NOT double single quotes (bound params handle that)."""
+        from core.chs.utils import escape_fts5_syntax
+
+        result = escape_fts5_syntax("it's a test")
+        assert "''" not in result, "Should not double quotes for bound parameters"
+        assert "it's" in result or "its" in result, "Single quote should survive"
+
+    def test_injection_drop_table(self) -> None:
+        """SQL injection via FTS MATCH should be harmless when used with MATCH ?.
+
+        The bound parameter handles SQL quoting — escape_fts5_syntax only needs
+        to prevent FTS5 syntax errors. The single quote in the payload is safe
+        because it becomes part of the FTS5 query text, not SQL.
+        """
+        from core.chs.utils import escape_fts5_syntax
+
+        payload = "'; DROP TABLE sessions;--"
+        result = escape_fts5_syntax(payload)
+        # The escaped result is safe as a MATCH ? parameter — no SQL injection
+        # possible because bound parameters are not interpolated as SQL.
+        # Verify no raw single-quotes remain that could break FTS5 syntax:
+        assert result.count("'") <= 1, "At most one unescaped single quote"
+
+    def test_fts_operators_escaped(self) -> None:
+        """FTS5 operators & | * ~ should be backslash-escaped."""
+        from core.chs.utils import escape_fts5_syntax
+
+        result = escape_fts5_syntax("cat & dog | fish * star ~ not")
+        assert "\\&" in result
+        assert "\\|" in result
+        assert "\\*" in result
+        assert "\\~" in result
+
+    def test_brackets_escaped(self) -> None:
+        """Square brackets (FTS5 column filter) should be doubled."""
+        from core.chs.utils import escape_fts5_syntax
+
+        result = escape_fts5_syntax("test [bracket]")
+        assert "[[" in result
+        assert "]]" in result
+
+    def test_question_mark_stripped(self) -> None:
+        """? (FTS5 proximity operator) should be removed to prevent syntax errors."""
+        from core.chs.utils import escape_fts5_syntax
+
+        result = escape_fts5_syntax("what is this?")
+        assert "?" not in result

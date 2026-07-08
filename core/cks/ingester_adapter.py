@@ -7,6 +7,7 @@ persistence of multi-graph documents.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from dataclasses import dataclass, field
@@ -17,6 +18,19 @@ from .document_ingest import (
     DocumentChunker,
     DocumentEntityExtractor,
 )
+
+# Lazy import: SmartChunker is optional — only needed when content-addressed
+# chunking is requested.  Importing at module level pulls sentence-transformers
+# transitively which is expensive.
+_SmartChunker = None
+
+
+def _get_smart_chunker():
+    global _SmartChunker
+    if _SmartChunker is None:
+        from core.chunking.smart_chunker import SmartChunker
+        _SmartChunker = SmartChunker
+    return _SmartChunker
 
 logger = logging.getLogger(__name__)
 
@@ -60,16 +74,21 @@ class CKSIngesterAdapter:
 
     """
 
-    def __init__(self, cks, chunk_size: int = 500, overlap: int = 50) -> None:
+    def __init__(self, cks, chunk_size: int = 500, overlap: int = 50,
+                 use_smart_chunker: bool = False) -> None:
         """Initialize the adapter with a CKS instance.
 
         Args:
             cks: CKS instance for ingestion
             chunk_size: Maximum characters per chunk (default: 500)
             overlap: Character overlap between chunks (default: 50)
+            use_smart_chunker: If True, use SmartChunker for content-addressed
+                chunk IDs (chunk_id, text_sha256, chunker_name/version/params).
+                Falls back to positional DocumentChunker when False.
 
         """
         self.cks = cks
+        self.use_smart_chunker = use_smart_chunker
         self.chunker = DocumentChunker(chunk_size=chunk_size, overlap=overlap)
         self.extractor = DocumentEntityExtractor()
 
@@ -117,26 +136,70 @@ class CKSIngesterAdapter:
         entities = self.extractor.extract(text)
         entity_names = {e.name for e in entities}
 
-        # Chunk the document
-        chunks = chunker.chunk_text(text)
+        # Chunk the document — SmartChunker path or legacy positional
+        if self.use_smart_chunker:
+            smart = _get_smart_chunker()()
+            doc_id = hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+            records = smart.chunk_with_metadata(text, doc_id=doc_id)
+            chunks = None  # not used in SmartChunker path
+        else:
+            chunks = chunker.chunk_text(text)
+            records = None
 
         # Ingest each chunk
         entry_ids = []
-        for chunk in chunks:
-            # Build metadata with chunk info and entities
-            chunk_metadata = {
-                "chunk_index": chunk.index,
-                "chunk_start": chunk.start_char,
-                "chunk_end": chunk.end_char,
-                "parent_id": chunk.parent_id,
-                "total_chunks": len(chunks),
-                "source": source,
-                "entities_in_chunk": [
-                    {
-                        "name": e.name,
-                        "type": e.type.value,
-                        "start_char": e.start_char,
-                        "end_char": e.end_char,
+        if records:
+            # SmartChunker path — content-addressed IDs
+            for rec in records:
+                chunk_metadata = {
+                    "chunk_id": rec["chunk_id"],
+                    "chunk_index": rec["char_start"],  # use char_start as ordinal
+                    "chunk_start": rec["char_start"],
+                    "chunk_end": rec["char_end"],
+                    "parent_id": rec["doc_id"],
+                    "total_chunks": len(records),
+                    "text_sha256": rec["text_sha256"],
+                    "chunker_name": rec["chunker_name"],
+                    "chunker_version": rec["chunker_version"],
+                    "source": source,
+                    "entities_in_chunk": [
+                        {
+                            "name": e.name,
+                            "type": e.type.value,
+                            "start_char": e.start_char,
+                            "end_char": e.end_char,
+                        }
+                        for e in entities
+                        if rec["char_start"] <= e.start_char < rec["char_end"]
+                    ],
+                    "tags": tags or [],
+                }
+                chunk_title = f"{title}"
+                if len(records) > 1:
+                    chunk_title = f"{title} (chunk {rec['chunk_id'][:8]}…)"
+                entry_id = self.cks.ingest_pattern(
+                    title=chunk_title,
+                    content=rec["text"],
+                    **chunk_metadata,
+                )
+                entry_ids.append(entry_id)
+        else:
+            # Legacy DocumentChunker path — positional IDs
+            for chunk in chunks:
+                # Build metadata with chunk info and entities
+                chunk_metadata = {
+                    "chunk_index": chunk.index,
+                    "chunk_start": chunk.start_char,
+                    "chunk_end": chunk.end_char,
+                    "parent_id": chunk.parent_id,
+                    "total_chunks": len(chunks),
+                    "source": source,
+                    "entities_in_chunk": [
+                        {
+                            "name": e.name,
+                            "type": e.type.value,
+                            "start_char": e.start_char,
+                            "end_char": e.end_char,
                     }
                     for e in entities
                     # Include entities that appear in this chunk

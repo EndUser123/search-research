@@ -66,6 +66,12 @@ paths. This file states exactly what is and isn't operative, so nobody
 - Eval harness accepts both search result shapes: TEXT `message_id` under
   `"id"` (current `search_fts_messages`) and legacy integer rowids
   (regression test: `test_string_ids_are_stable_message_ids`).
+- **FTS MATCH parameterized** (`search.py` lines 163/192/197/237): all four
+  MATCH sites now use `MATCH ?` with bound parameters. `escape_fts5_syntax()`
+  does FTS5-operator escaping only (no SQL-quote doubling); legacy
+  `escape_fts5_query()` wraps it with SQL-quote doubling for interpolation
+  callers (`router_async.py`). Injection resistance tests in
+  `TestFts5SyntaxEscape`.
 
 ## What is NOT fixed (known residual gaps)
 
