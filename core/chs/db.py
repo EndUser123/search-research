@@ -67,10 +67,9 @@ def database_is_initialized(db_path: Path | str) -> bool:
 def ensure_embedding_run_schema(conn: sqlite3.Connection) -> None:
     """Migrate an existing database to support embedding run provenance.
 
-    Idempotent. Adds the embedding_runs table and the embedding_run_id
-    column on sessions/turns when missing. New databases get these from
-    schema.sql; this helper covers databases initialized before the
-    embedding-run schema existed.
+    Idempotent. Adds the embedding_runs table, the embedding_run_id column
+    on sessions/turns, and the first_prompt column on sessions when missing.
+    Backfills first_prompt from the first user message per session.
     """
     conn.execute(
         """CREATE TABLE IF NOT EXISTS embedding_runs (
@@ -93,6 +92,23 @@ def ensure_embedding_run_schema(conn: sqlite3.Connection) -> None:
         columns = {row[1] for row in cursor.fetchall()}
         if columns and "embedding_run_id" not in columns:
             conn.execute(f"ALTER TABLE {table} ADD COLUMN embedding_run_id TEXT")
+
+    # Add first_prompt to sessions if missing
+    cursor = conn.execute("PRAGMA table_info(sessions)")
+    sess_cols = {row[1] for row in cursor.fetchall()}
+    if sess_cols and "first_prompt" not in sess_cols:
+        conn.execute("ALTER TABLE sessions ADD COLUMN first_prompt TEXT")
+        # Backfill from first user message per session
+        conn.execute("""
+            UPDATE sessions
+            SET first_prompt = (
+                SELECT m.content FROM messages m
+                WHERE m.session_id = sessions.id AND m.role = 'user'
+                ORDER BY m.timestamp LIMIT 1
+            )
+            WHERE first_prompt IS NULL
+        """)
+
     conn.commit()
 
 
