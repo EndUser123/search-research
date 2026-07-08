@@ -77,7 +77,13 @@ if ($Stop) {
         try { (Get-CimInstance Win32_Process -Filter "ProcessId=$($_.Id)" | Select-Object -ExpandProperty CommandLine) -match 'claude-code-router' } catch { $false }
     } | Stop-Process -Force -ErrorAction SilentlyContinue
 
-    Write-Host "[cc-ccr] Stopped CCR." -ForegroundColor Yellow
+    # Report local model state (independent of CCR — not killed by -Stop)
+    $llAlive = Get-Process llama-server -ErrorAction SilentlyContinue
+    if ($llAlive) {
+        Write-Host "[cc-ccr] Stopped CCR. llama-server still running (PID $($llAlive.Id -join ','))." -ForegroundColor Yellow
+    } else {
+        Write-Host "[cc-ccr] Stopped CCR. llama-server was not running." -ForegroundColor Yellow
+    }
     return
 }
 
@@ -247,7 +253,7 @@ try {
 if ($localModelHealth) {
     Write-Host "[CCR] local model running (llama-server: $localModelEndpoint)" -ForegroundColor Green
 } else {
-    Write-Host "[CCR] local model not detected - starting llama-server..." -ForegroundColor Cyan
+    Write-Host "[CCR] local model offline (port 8010 not responding) - starting llama-server..." -ForegroundColor Cyan
     $launcherScript = "P:\packages\installers\run-ornith-server.ps1"
     if (Test-Path $launcherScript) {
         Start-Process -FilePath "pwsh.exe" `
