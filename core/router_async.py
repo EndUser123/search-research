@@ -417,7 +417,7 @@ class AsyncSearchRouter:
 
         # Determine which backends to use
         if backends is None:
-            backends = self._get_backends_for_mode()
+            backends = self._get_backends_for_mode(query=query)
 
         # TASK-3: Start query trace
         query_id = self._tracer.start_trace(query)
@@ -549,7 +549,7 @@ class AsyncSearchRouter:
 
         # Determine which backends to use
         if backends is None:
-            backends = self._get_backends_for_mode()
+            backends = self._get_backends_for_mode(query=query)
 
         # Filter to available backends only
         available_backends = []
@@ -635,7 +635,7 @@ class AsyncSearchRouter:
 
         # Determine which backends to use
         if backends is None:
-            backends = self._get_backends_for_mode()
+            backends = self._get_backends_for_mode(query=query)
 
         # Filter to available backends only
         available_backends = []
@@ -1068,19 +1068,34 @@ class AsyncSearchRouter:
             logger.error(f"Error calling web provider {provider}: {e}")
             return []
 
-    def _get_backends_for_mode(self) -> list[str]:
-        """Get list of backends for current mode.
+    def _get_backends_for_mode(self, query: str | None = None) -> list[str]:
+        """Get list of backends for current mode, optionally filtered by query intent.
+
+        Args:
+            query: Optional search query. When provided, filters backends by
+                classified intent. UNKNOWN intent or classifier failure falls
+                back to all backends (preserves current behavior).
 
         Returns:
             List of backend names
         """
-        # Ensure backends are initialized (lazy initialization)
         if not self._backends_initialized:
             self._create_backends()
 
-        # Return all available backends
-        # Mode-specific filtering is handled at search time, not registration time
-        return list(self._backends.keys())
+        all_backends = list(self._backends.keys())
+
+        if query is None:
+            return all_backends
+
+        try:
+            from .query_intent import classify_query_intent, BACKEND_FOR_INTENT
+            result = classify_query_intent(query)
+            allowed = BACKEND_FOR_INTENT.get(result.intent, set())
+            if not allowed:
+                return all_backends
+            return [b for b in all_backends if b in allowed]
+        except Exception:
+            return all_backends
 
 
 def create_async_router(
