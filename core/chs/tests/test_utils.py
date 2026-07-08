@@ -231,165 +231,6 @@ class TestAdaptiveLambda:
         assert result <= 1.0, "Should not exceed maximum lambda"
 
 
-class TestEscapeFts5Query:
-    """Tests for escape_fts5_query() function."""
-
-    def test_escapes_double_quotes(self) -> None:
-        """escape_fts5_query() should escape double quote characters."""
-        from core.chs.utils import escape_fts5_query
-
-        query = 'test "quoted" text'
-        result = escape_fts5_query(query)
-        assert '\\"' in result or '""' in result, "Should escape double quotes"
-
-    def test_escapes_single_quotes(self) -> None:
-        """escape_fts5_query() should escape single quote characters."""
-        from core.chs.utils import escape_fts5_query
-
-        query = "test 'single' quoted text"
-        result = escape_fts5_query(query)
-        assert "''" in result or "\\'" in result, "Should escape single quotes"
-
-    def test_escapes_brackets(self) -> None:
-        """escape_fts5_query() should escape square brackets."""
-        from core.chs.utils import escape_fts5_query
-
-        query = "test [bracketed] text"
-        result = escape_fts5_query(query)
-        assert "[" not in result or result.count("[") == 2, "Should handle brackets"
-        assert "]" not in result or result.count("]") == 2, "Should handle brackets"
-
-    def test_escapes_ampersand(self) -> None:
-        """escape_fts5_query() should escape ampersand character."""
-        from core.chs.utils import escape_fts5_query
-
-        query = "test & ampersand"
-        result = escape_fts5_query(query)
-        assert "&" not in result or "\\&" in result, "Should escape ampersand"
-
-    def test_escapes_pipe(self) -> None:
-        """escape_fts5_query() should escape pipe character."""
-        from core.chs.utils import escape_fts5_query
-
-        query = "test | pipe"
-        result = escape_fts5_query(query)
-        assert "|" not in result or "\\|" in result, "Should escape pipe"
-
-    def test_escapes_asterisk(self) -> None:
-        """escape_fts5_query() should escape asterisk wildcard."""
-        from core.chs.utils import escape_fts5_query
-
-        query = "test * wildcard"
-        result = escape_fts5_query(query)
-        assert "*" not in result or "\\*" in result, "Should escape asterisk"
-
-    def test_escapes_tilde(self) -> None:
-        """escape_fts5_query() should escape tilde character."""
-        from core.chs.utils import escape_fts5_query
-
-        query = "test ~ tilde"
-        result = escape_fts5_query(query)
-        assert "~" not in result or "\\~" in result, "Should escape tilde"
-
-    def test_handles_empty_string(self) -> None:
-        """escape_fts5_query() should handle empty string gracefully."""
-        from core.chs.utils import escape_fts5_query
-
-        result = escape_fts5_query("")
-        assert result == "", "Empty string should remain empty"
-
-    def test_preserves_alphanumeric(self) -> None:
-        """escape_fts5_query() should preserve alphanumeric characters."""
-        from core.chs.utils import escape_fts5_query
-
-        query = "test123 ABC xyz"
-        result = escape_fts5_query(query)
-        assert "test123" in result or "test" in result
-        assert "ABC" in result or "abc" in result
-
-    def test_handles_multiple_special_chars(self) -> None:
-        """escape_fts5_query() should handle multiple special characters."""
-        from core.chs.utils import escape_fts5_query
-
-        query = 'test "quotes" & [brackets] | pipe * wildcard'
-        result = escape_fts5_query(query)
-        assert isinstance(result, str)
-
-    def test_returns_safe_query_string(self) -> None:
-        """escape_fts5_query() should return safe-to-use query string."""
-        from core.chs.utils import escape_fts5_query
-
-        query = 'test "dangerous" & [chars]'
-        result = escape_fts5_query(query)
-        assert isinstance(result, str)
-
-    def test_normalizes_slash_commands(self) -> None:
-        """escape_fts5_query() should normalize slash commands to text equivalents."""
-        from core.chs.utils import escape_fts5_query
-
-        query = "/s usage examples"
-        result = escape_fts5_query(query)
-        assert "slash s" in result.lower(), f"Should convert /s to 'slash s', got: {result}"
-        assert "/" not in result, f"Should remove all forward slashes, got: {result}"
-        query = "/search --help"
-        result = escape_fts5_query(query)
-        assert (
-            "search command" in result.lower()
-        ), f"Should convert /search to 'search command', got: {result}"
-        assert "/" not in result, f"Should remove all forward slashes, got: {result}"
-
-    def test_removes_periods(self) -> None:
-        """escape_fts5_query() should remove all periods regardless of position."""
-        from core.chs.utils import escape_fts5_query
-
-        query = "test.example"
-        result = escape_fts5_query(query)
-        assert "." not in result, f"Should remove all periods, got: {result}"
-        assert "test" in result and "example" in result, f"Should preserve words, got: {result}"
-        query = "end."
-        result = escape_fts5_query(query)
-        assert "." not in result, f"Should remove trailing periods, got: {result}"
-        query = ".hidden"
-        result = escape_fts5_query(query)
-        assert "." not in result, f"Should remove leading periods, got: {result}"
-        query = "test.example.multiple."
-        result = escape_fts5_query(query)
-        assert "." not in result, f"Should remove all periods in multiple locations, got: {result}"
-
-    def test_removes_commas(self) -> None:
-        """escape_fts5_query() should remove all commas regardless of position."""
-        from core.chs.utils import escape_fts5_query
-
-        query = "test,example"
-        result = escape_fts5_query(query)
-        assert "," not in result, f"Should remove all commas, got: {result}"
-        assert "test" in result and "example" in result, f"Should preserve words, got: {result}"
-        query = "one, two, three"
-        result = escape_fts5_query(query)
-        assert "," not in result, f"Should remove all commas, got: {result}"
-        assert (
-            "one" in result and "two" in result and ("three" in result)
-        ), f"Should preserve all words, got: {result}"
-        assert len(result) > 0
-
-    def test_handles_none_input(self) -> None:
-        """escape_fts5_query() should return empty string for None input."""
-        from core.chs.utils import escape_fts5_query
-
-        result = escape_fts5_query(None)
-        assert result == "", "Should return empty string for None input"
-
-    def test_handles_non_string_input(self) -> None:
-        """escape_fts5_query() should convert non-string input to string and process."""
-        from core.chs.utils import escape_fts5_query
-
-        result = escape_fts5_query(123)
-        assert isinstance(result, str), "Should return string"
-        assert "123" in result, "Should contain the string representation"
-        result = escape_fts5_query(["test", "list"])
-        assert isinstance(result, str), "Should return string"
-
-
 class TestFts5SyntaxEscape:
     """Tests for escape_fts5_syntax() — parameterized MATCH safety."""
 
@@ -448,6 +289,19 @@ class TestFts5SyntaxEscape:
 
         result = escape_fts5_syntax("what is this?")
         assert "?" not in result
+
+    def test_none_input(self) -> None:
+        from core.chs.utils import escape_fts5_syntax
+        assert escape_fts5_syntax(None) == ""
+
+    def test_non_string_input(self) -> None:
+        from core.chs.utils import escape_fts5_syntax
+        assert escape_fts5_syntax(123) == "123"
+
+    def test_slash_command_rewritten(self) -> None:
+        from core.chs.utils import escape_fts5_syntax
+        assert "search command" in escape_fts5_syntax("/search --help").lower()
+        assert "/" not in escape_fts5_syntax("/search --help")
 
 
 class TestFts5MatchRegression:

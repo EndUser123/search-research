@@ -70,7 +70,7 @@ def adaptive_lambda(query: str) -> float:
     return min(0.9, 0.1 + word_count * 0.04)
 
 
-# Pre-compiled regex patterns for escape_fts5_query (PERF fix: avoid re-compilation per call)
+# Pre-compiled regex patterns for escape_fts5_syntax (PERF fix: avoid re-compilation per call)
 _FTS5_COMMAND_RE = re.compile(r"/(\w+)\b")
 _FTS5_SLASH_S_RE = re.compile(r"\bs command\b", re.IGNORECASE)
 
@@ -111,13 +111,3 @@ def escape_fts5_syntax(query: str) -> str:
     if "-" in result and any(c.isalnum() for c in result.replace("-", "").replace(" ", "")):
         result = f'"{result}"'
     return result
-
-
-def escape_fts5_query(query: str) -> str:
-    """Escape FTS5 + SQL-quote for interpolation-style MATCH '{q}' callers.
-
-    DEPRECATED for new code — use escape_fts5_syntax() with MATCH ? instead.
-    This function doubles single quotes for SQL interpolation safety; that
-    doubling corrupts bound-parameter queries and must not be used with MATCH ?.
-    """
-    return escape_fts5_syntax(query).replace("'", "''")
