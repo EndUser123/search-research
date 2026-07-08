@@ -9,7 +9,7 @@ param(
 )
 
 "Time | llamaWS_GB | FreeRAM_GB | VRAM_MB" | Out-File $OutFile
-Write-Host "Logging to $OutFile every ${IntervalSeconds}s — Ctrl+C to stop"
+Write-Host "Logging to $OutFile every ${IntervalSeconds}s - Ctrl+C to stop"
 
 while ($true) {
   $now = Get-Date -Format "HH:mm:ss"

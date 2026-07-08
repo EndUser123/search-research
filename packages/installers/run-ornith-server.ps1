@@ -15,7 +15,7 @@ $modelId = "ornith-1.0-9b"
 # `-c` flag (which sets total n_ctx). We capture the log and parse it.
 #
 # Sources of n_ctx (in priority order):
-#   1. llama-server stdout (captured to $llamaLog) — printed as "n_ctx_slot = 65536"
+#   1. llama-server stdout (captured to $llamaLog) - printed as "n_ctx_slot = 65536"
 #   2. llama-server /health structured endpoint (if available)
 #   3. process command line `-c N` or `--ctx-size N` (proxy only)
 function Update-LocalModelState {
@@ -82,7 +82,7 @@ function Update-LocalModelState {
       models = @()
       active_model = $null
       updated_at = $now
-      error = "n_ctx not detected — checked llama-server log and process command line"
+      error = "n_ctx not detected - checked llama-server log and process command line"
     }
   }
 
@@ -100,19 +100,19 @@ function Update-LocalModelState {
 try {
   $existing = Invoke-WebRequest -Uri "$endpoint/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
   if ($existing.StatusCode -eq 200) {
-    Write-Host "[run-ornith] llama-server already healthy at $endpoint — not launching a duplicate." -ForegroundColor Green
+    Write-Host "[run-ornith] llama-server already healthy at $endpoint - not launching a duplicate." -ForegroundColor Green
     Update-LocalModelState
     exit 0
   }
 } catch {
-  # Port not serving /health yet — fall through to normal launch.
+  # Port not serving /health yet - fall through to normal launch.
 }
 
 # Start system-watcher in background (hidden PowerShell window)
 Remove-Item $watcherLog -ErrorAction SilentlyContinue
 Remove-Item $llamaLog -ErrorAction SilentlyContinue
 $watcher = Start-Process powershell.exe -ArgumentList "-NoProfile -File `"$watcherScript`"" -WindowStyle Hidden -PassThru
-Write-Host "System watcher started (PID $($watcher.Id)) — log: $watcherLog"
+Write-Host "System watcher started (PID $($watcher.Id)) - log: $watcherLog"
 
 Write-Host "Starting llama-server with Ornith-1.0-9B on $endpoint"
 Write-Host "Log: $llamaLog"
@@ -150,7 +150,7 @@ try {
   if ($ready) {
     Update-LocalModelState
   } else {
-    Write-Warning "[local-model-state] llama-server did not respond within 30s — state file not updated"
+    Write-Warning "[local-model-state] llama-server did not respond within 30s - state file not updated"
   }
 
   # Block until llama-server exits
