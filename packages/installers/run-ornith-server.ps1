@@ -111,7 +111,7 @@ try {
 # Start system-watcher in background (hidden PowerShell window)
 Remove-Item $watcherLog -ErrorAction SilentlyContinue
 Remove-Item $llamaLog -ErrorAction SilentlyContinue
-$watcher = Start-Process powershell.exe -ArgumentList "-NoProfile -File `"$watcherScript`"" -WindowStyle Hidden -PassThru
+$watcher = Start-Process pwsh.exe -ArgumentList "-NoProfile -File `"$watcherScript`"" -WindowStyle Hidden -PassThru
 Write-Host "System watcher started (PID $($watcher.Id)) - log: $watcherLog"
 
 Write-Host "Starting llama-server with Ornith-1.0-9B on $endpoint"
@@ -126,37 +126,68 @@ $llamaArgs = @("-m", "$model", "-ngl", "99", "-c", "65536", "-t", "6",
                "--temp", "0.6", "--top-p", "0.95", "--top-k", "20",
                "--host", "127.0.0.1", "--port", "8010")
 
+$crashCount = 0
+$lastStartTime = $null
 try {
-  $procHandle = Start-Process -FilePath "$bin\llama-server.exe" `
-                              -ArgumentList $llamaArgs `
-                              -RedirectStandardOutput $llamaLog `
-                              -RedirectStandardError "$llamaLog.err" `
-                              -NoNewWindow -PassThru -WorkingDirectory (Split-Path $bin)
-  Write-Host "llama-server started (PID $($procHandle.Id))"
+  while ($true) {
+    # Clear per-restart log so watchdog tail shows only the latest run
+    Remove-Item "$llamaLog.err" -ErrorAction SilentlyContinue
 
-  # Wait for the server to be reachable, then update local-model-state
-  $ready = $false
-  for ($i = 0; $i -lt 30; $i++) {
-    Start-Sleep -Seconds 1
-    try {
-      $r = Invoke-WebRequest -Uri "$endpoint/health" -UseBasicParsing -TimeoutSec 1 -ErrorAction Stop
-      if ($r.StatusCode -eq 200) {
-        $ready = $true
-        Write-Host "llama-server health OK after ${i}s"
+    $procHandle = Start-Process -FilePath "$bin\llama-server.exe" `
+                                -ArgumentList $llamaArgs `
+                                -RedirectStandardOutput $llamaLog `
+                                -RedirectStandardError "$llamaLog.err" `
+                                -NoNewWindow -PassThru -WorkingDirectory (Split-Path $bin)
+    $lastStartTime = Get-Date
+    Write-Host "llama-server started (PID $($procHandle.Id))"
+
+    # Wait for the server to be reachable, then update local-model-state
+    $ready = $false
+    for ($i = 0; $i -lt 30; $i++) {
+      Start-Sleep -Seconds 1
+      try {
+        $r = Invoke-WebRequest -Uri "$endpoint/health" -UseBasicParsing -TimeoutSec 1 -ErrorAction Stop
+        if ($r.StatusCode -eq 200) {
+          $ready = $true
+          Write-Host "llama-server health OK after ${i}s"
+          break
+        }
+      } catch {}
+    }
+    if ($ready) {
+      Update-LocalModelState
+    } else {
+      # Startup failure - do not retry immediately
+      $crashCount++
+      if ($crashCount -ge 3) {
+        Write-Warning "[run-ornith] 3 consecutive startup failures - giving up"
         break
       }
-    } catch {}
-  }
-  if ($ready) {
-    Update-LocalModelState
-  } else {
-    Write-Warning "[local-model-state] llama-server did not respond within 30s - state file not updated"
-  }
+      Write-Warning "[run-ornith] startup failed, retrying in 5s (attempt $($crashCount + 1)/3)"
+      Start-Sleep -Seconds 5
+      continue
+    }
 
-  # Block until llama-server exits
-  Wait-Process -Id $procHandle.Id -ErrorAction SilentlyContinue
-}
-finally {
+    # Block until llama-server exits (crash or manual stop)
+    Wait-Process -Id $procHandle.Id -ErrorAction SilentlyContinue
+
+    # If the server ran for more than 60s, consider it a stable session - reset crash counter
+    $ranSecs = if ($lastStartTime) { ((Get-Date) - $lastStartTime).TotalSeconds } else { 0 }
+    if ($ranSecs -gt 60) {
+      $crashCount = 0
+    } else {
+      $crashCount++
+    }
+
+    if ($crashCount -ge 3) {
+      Write-Warning "[run-ornith] 3 rapid crashes (${ranSecs}s avg) - giving up"
+      break
+    }
+
+    Write-Warning "[run-ornith] llama-server exited after ${ranSecs}s (PID $($procHandle.Id)). Restarting in 3s... (attempt $($crashCount + 1)/3)"
+    Start-Sleep -Seconds 3
+  }
+} finally {
   # Update local model state on exit (mark as stopped)
   $stopState = @{
     models = @()
