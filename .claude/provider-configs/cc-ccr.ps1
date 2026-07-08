@@ -237,14 +237,31 @@ if (-not $ccrRunning) {
     return
 }
 
-# --- Check local model health, start if not running ---
-$localModelHealth = $false
-$localModelId = "ornith-1.0-9b"
+# ══════════════════════════════════════════════════════════════════════════════
+# Local Model — llama.cpp / ornith-1.0-9b (port 8010)
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# CCR routes coding tasks to the local model when:
+#   - llama-server is healthy on port 8010
+#   - Token count fits within effective context window
+#   - routingMode = aggressive OR task = trivial-coding
+#
+# When offline, CCR falls back to MiniMax M3 for coding tasks.
+#
+# Process lifecycle:
+#   cc-ccr.ps1 → pwsh.exe (hidden) → run-ornith-server.ps1 → llama-server.exe
+#                 ↑ detached via cmd /c start /B /MIN (survives parent exit)
+#
+# ────────────────────────────────────────────────────────────────────────────
+
+$localModelId       = "ornith-1.0-9b"
 $localModelEndpoint = "http://127.0.0.1:8010"
 $localModelStatePath = "P:\.claude\state\local-model-state.json"
 
-# Retry loop: the server may still be initializing (model load, KV cache setup)
-# from a prior session. A single-shot probe with a short timeout misses it.
+# ── Health probe (retry loop) ────────────────────────────────────────────────
+# Server may still be initializing from a prior session (model load, KV cache).
+# Single-shot probe with short timeout misses it. Retry 3x with 2s delays.
+$localModelHealth = $false
 for ($probeAttempt = 0; $probeAttempt -lt 3; $probeAttempt++) {
     try {
         $test = Invoke-WebRequest -Uri "$localModelEndpoint/health" -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
@@ -256,38 +273,47 @@ for ($probeAttempt = 0; $probeAttempt -lt 3; $probeAttempt++) {
     if ($probeAttempt -lt 2) { Start-Sleep -Seconds 2 }
 }
 
-if ($localModelHealth) {
-    Write-Host "[CCR] local model running (llama-server: $localModelEndpoint)" -ForegroundColor Green
-} else {
+# ── Launch if offline ────────────────────────────────────────────────────────
+if (-not $localModelHealth) {
     Write-Host "[CCR] local model offline (port 8010 not responding) - starting llama-server..." -ForegroundColor Cyan
     $launcherScript = "P:\packages\installers\run-ornith-server.ps1"
     if (Test-Path $launcherScript) {
         Start-Process -FilePath "pwsh.exe" `
             -ArgumentList @("-NoProfile", "-NoLogo", "-NonInteractive", "-File", $launcherScript) `
             -WindowStyle Minimized
-        # Wait for health (up to 30s, polling every 1s)
-        $ready = $false
         for ($i = 0; $i -lt 30; $i++) {
             Start-Sleep -Seconds 1
             try {
                 $health = Invoke-WebRequest -Uri "$localModelEndpoint/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
-                if ($health.StatusCode -eq 200) { $ready = $true; break }
+                if ($health.StatusCode -eq 200) { $localModelHealth = $true; break }
             } catch {}
-        }
-        if ($ready) {
-            $localModelHealth = $true
-            Write-Host "[CCR] llama-server started (PID from launcher, ready in ~$($i + 1)s)" -ForegroundColor Green
-        } else {
-            Write-Host "[CCR] llama-server did not respond in 30s - continuing without local model" -ForegroundColor Yellow
         }
     } else {
         Write-Host "[CCR] run-ornith-server.ps1 not found at $launcherScript" -ForegroundColor Yellow
     }
 }
 
-# --- Report local model state ---
+# ── Triage: health + model + inference ───────────────────────────────────────
+# Health is confirmed above. Now verify the GGUF loaded and inference works.
 $localModelInfo = ""
+$triageModel    = $null
+$triageInfer    = $null
 if ($localModelHealth) {
+    # Model check — verify GGUF loaded via /v1/models
+    try {
+        $models = Invoke-RestMethod -Uri "$localModelEndpoint/v1/models" -TimeoutSec 3 -ErrorAction Stop
+        $triageModel = $models.data[0].id
+    } catch {}
+
+    # Inference check — verify model generates output via /v1/chat/completions
+    try {
+        $infBody = '{"model":"ornith-1.0-9b","messages":[{"role":"user","content":"Say hi"}],"max_tokens":200}'
+        $inf = Invoke-RestMethod -Uri "$localModelEndpoint/v1/chat/completions" -Method Post `
+            -ContentType "application/json" -Body $infBody -TimeoutSec 15 -ErrorAction Stop
+        if ($inf.choices[0].message.content) { $triageInfer = $inf.choices[0].message.content }
+    } catch {}
+
+    # Status line
     $localModelInfo = "local: $localModelId | endpoint: $localModelEndpoint"
     if (Test-Path $localModelStatePath) {
         try {
@@ -300,7 +326,16 @@ if ($localModelHealth) {
             }
         } catch {}
     }
+
     Write-Host "[CCR] $localModelInfo" -ForegroundColor Green
+
+    # Triage warnings
+    if (-not $triageModel) {
+        Write-Host "  WARNING: GGUF not loaded (v1/models returned empty)" -ForegroundColor Yellow
+    }
+    if (-not $triageInfer) {
+        Write-Host "  WARNING: inference failed (model may need more tokens or is busy)" -ForegroundColor Yellow
+    }
 } else {
     Write-Host "[CCR] local model unavailable (aggressive mode fallback to M3 for coding)" -ForegroundColor DarkGray
 }
