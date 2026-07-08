@@ -1,0 +1,24 @@
+{
+  "schema_version": "chs.embedding_run.v1",
+  "run_id": "all-MiniLM-L6-v2-1783471892",
+  "model": {
+    "provider": "local",
+    "name": "all-MiniLM-L6-v2",
+    "dimensions": 384,
+    "distance": "cosine"
+  },
+  "target_table": "sessions",
+  "db_path": "P:/packages/.claude-marketplace/plugins/search-research/data/chs_eval_work.db",
+  "source_digest": "45453b8d30e88c49269137ccce4c60227074a5e0be863e6430892c79c68f7021",
+  "digest_semantics": "embed_input",
+  "params": {
+    "re_embed": true,
+    "target": "sessions.embedding",
+    "text_source": "COALESCE(summary_short, first_prompt)",
+    "digest_semantics": "embed_input"
+  },
+  "started_at": "2026-07-08T00:51:32.348120+00:00",
+  "finished_at": "2026-07-08T00:59:06.774316+00:00",
+  "row_count": 454,
+  "status": "complete"
+}
