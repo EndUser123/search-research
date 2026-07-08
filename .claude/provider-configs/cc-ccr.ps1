@@ -84,6 +84,14 @@ if ($Stop) {
     } else {
         Write-Host "[cc-ccr] Stopped CCR. llama-server was not running." -ForegroundColor Yellow
     }
+
+    # Clear env vars this script sets (dot-sourced — mutations persist in caller's shell)
+    foreach ($var in @('ANTHROPIC_BASE_URL','ANTHROPIC_API_KEY','ANTHROPIC_AUTH_TOKEN',
+                       'ANTHROPIC_CUSTOM_MODEL_OPTION','ANTHROPIC_CUSTOM_MODEL_OPTION_NAME',
+                       'ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION')) {
+        Remove-Item "env:$var" -ErrorAction SilentlyContinue
+    }
+    Write-Host "[cc-ccr] Cleared ANTHROPIC_* env vars (dot-sourced shell restored to pre-CCR state)." -ForegroundColor DarkGray
     return
 }
 
@@ -249,8 +257,11 @@ if (-not $ccrRunning) {
 # When offline, CCR falls back to MiniMax M3 for coding tasks.
 #
 # Process lifecycle:
-#   cc-ccr.ps1 → pwsh.exe (hidden) → run-ornith-server.ps1 → llama-server.exe
-#                 ↑ detached via cmd /c start /B /MIN (survives parent exit)
+#   cc-ccr.ps1 → pwsh.exe (Minimized) → run-ornith-server.ps1 → llama-server.exe
+#   NOTE: Start-Process creates a separate process but Windows Terminal job
+#   objects may still tear down the tree on WT tab close. The watchdog loop in
+#   run-ornith-server.ps1 auto-restarts on crash; for true job-object breakaway
+#   use CREATE_BREAKAWAY_FROM_JOB via Add-Type (future hardening).
 #
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -265,6 +276,7 @@ $localModelStatePath = "P:\.claude\state\local-model-state.json"
 # state that can break Invoke-WebRequest inside a long-lived dot-sourced profile).
 $localModelHealth = $false
 for ($probeAttempt = 0; $probeAttempt -lt 3; $probeAttempt++) {
+    $tcp = $null
     try {
         $tcp = [System.Net.Sockets.TcpClient]::new()
         $tcp.SendTimeout = 1500
@@ -272,11 +284,10 @@ for ($probeAttempt = 0; $probeAttempt -lt 3; $probeAttempt++) {
         $tcp.Connect('127.0.0.1', 8010)
         if ($tcp.Connected) {
             $localModelHealth = $true
-            $tcp.Close()
             break
         }
     } catch {}
-    finally { $tcp.Dispose() }
+    finally { if ($tcp) { $tcp.Close(); $tcp.Dispose() } }
     if ($probeAttempt -lt 2) { Start-Sleep -Seconds 2 }
 }
 
@@ -290,6 +301,7 @@ if (-not $localModelHealth) {
             -WindowStyle Minimized
         for ($i = 0; $i -lt 30; $i++) {
             Start-Sleep -Seconds 1
+            $tcp = $null
             try {
                 $tcp = [System.Net.Sockets.TcpClient]::new()
                 $tcp.SendTimeout = 1500
@@ -297,11 +309,10 @@ if (-not $localModelHealth) {
                 $tcp.Connect('127.0.0.1', 8010)
                 if ($tcp.Connected) {
                     $localModelHealth = $true
-                    $tcp.Close()
                     break
                 }
             } catch {}
-            finally { $tcp.Dispose() }
+            finally { if ($tcp) { $tcp.Close(); $tcp.Dispose() } }
         }
     } else {
         Write-Host "[CCR] run-ornith-server.ps1 not found at $launcherScript" -ForegroundColor Yellow
