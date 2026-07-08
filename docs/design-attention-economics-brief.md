@@ -172,3 +172,37 @@ behavior" from synthetic fixtures violates the brief.
   one-paragraph clarification, and stop.
 
 ## Do not commit unless explicitly instructed.
+
+---
+
+## Closeout — 2026-07-08 — Status: `NO_CHANGE`
+
+**Verdict:** No source edit. The attention-cost principle is already live in
+the consumed `/design` path under the name **"future user burden"**
+(`SKILL.md:61` "the smallest durable change that reduces future user burden"),
+with parallel qualifiers at `SKILL.md:70` ("prevents recurrence") and
+`audit-first.md:65` ("maximizes reuse"). The ambiguous unqualified "smallest"
+wording I proposed to fix lives only at `references/lean-system-design.md:17`,
+which nothing in the runtime consumed path references.
+
+**Evidence:** `SKILL.md` references only `__lib/architectural_standards.md`,
+`resources/audit-first.md`, `resources/contract-authority-packet.md`, and
+`./resources/{template}.md`. Whole-tree grep for "lean-system-design" hits
+only `LEAN_INTEGRATION_SUMMARY.md` (a Python import example) and the file
+itself. Targeted grep across all consumed template/standard files
+(architectural_standards, base, fast, deep, cli, python, data-pipeline)
+returned no matches. The reviewer's CLARIFY_EXISTING taxonomy pointed at the
+wrong file — the ambiguity is in unconsumed doc, not the live path.
+
+**Applied principle:** the attention-cost rule itself — editing an unread
+file for doc accuracy is zero-runtime-effect work to skip. The principle
+passes its own Step 0. CLOSED.
+
+**Follow-up task created (#1332):** investigate whether
+`references/lean-system-design.md` should be wired into the active path,
+marked archival, or removed/merged. NO work on that task until its own
+verification completes.
+
+**Reusable lesson for /go:** for meta-skill changes, Step 0 must verify the
+*active consumed path*, not just whether a plausible source/reference file
+exists. A file's presence is not evidence of its effect.
