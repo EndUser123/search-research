@@ -81,10 +81,14 @@ def check_overrides(prompt: str) -> str | None:
     prompt_lower = prompt.lower().strip()
     word_count = len(prompt.split())
 
-    # Background: git/build/lint commands
-    for pattern in BACKGROUND_PATTERNS:
-        if re.search(pattern, prompt_lower):
-            return "background"
+    # Background: git/build/lint commands — only for short command-like prompts.
+    # Long prompts (>50 words) mentioning these keywords in passing are diagnostic
+    # discussions, not background tasks. LOCAL_PATTERNS gate at word_count <= 12
+    # establishes this pattern; BACKGROUND_PATTERNS follow suit at 50 words.
+    if word_count <= 50:
+        for pattern in BACKGROUND_PATTERNS:
+            if re.search(pattern, prompt_lower):
+                return "background"
 
     # Local: short mechanical edits (word_count <= 12 gate is load-bearing)
     if word_count <= 12:
