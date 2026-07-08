@@ -88,12 +88,13 @@ class ASTCodeBackend:
         self._indexed = True
         logger.info(f"ASTCodeBackend indexed {len(self._entity_index)} entities (cache rebuilt)")
 
-        # Persist asynchronously — don't block the caller if another terminal
-        # holds the build lock; the next process will benefit from this build.
-        try:
-            self._persist_cache()
-        except Exception as e:
-            logger.debug(f"ASTCodeBackend cache persist failed (non-fatal): {e}")
+        # NOTE: persistence is intentionally NOT called here. build_index() is
+        # the pure build path used by tests; persisting on every call would
+        # double the I/O (full rehash for the manifest) and write an 87MB file
+        # in unit tests. The production warm-up path (_do_warm_up in
+        # router_async.py) calls build_index() then _persist_cache() so the
+        # cache is written once per process on the router lifecycle, not per
+        # build_index call.
 
     def _try_load_cache(self) -> tuple[dict, dict, dict, dict] | None:
         """Try to load index from disk. Returns None on miss, stale, or corrupt.
