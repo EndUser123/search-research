@@ -67,6 +67,7 @@ class SessionChainEntry:
     parent_transcript_path: Path | None  # older -> newer link
     created: datetime | None = None
     first_user_message: str | None = None
+    transcript_exists: bool = True  # False when path was deleted (pytest temp, compaction cleanup, etc.)
 
 
 @dataclass
