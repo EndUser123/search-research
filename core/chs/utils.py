@@ -75,14 +75,14 @@ _FTS5_COMMAND_RE = re.compile(r"/(\w+)\b")
 _FTS5_SLASH_S_RE = re.compile(r"\bs command\b", re.IGNORECASE)
 
 
-def escape_fts5_query(query: str) -> str:
-    """Escape special FTS5 characters in query string.
+def escape_fts5_syntax(query: str) -> str:
+    """Escape FTS5 special characters only — no SQL-quote doubling.
 
-    Args:
-        query: Raw query string
+    Use this with parameterized MATCH ? queries.  Bound parameters handle
+    their own quoting, so doubling quotes here would corrupt the query.
 
-    Returns:
-        Escaped query safe for FTS5
+    FTS5 special characters: " ' [ ] & | * ~  and proximity operator ?
+    Column-filter syntax: column: pattern (not escaped — too aggressive).
     """
     if query is None:
         return ""
@@ -91,18 +91,28 @@ def escape_fts5_query(query: str) -> str:
     result = query
     result = result.replace(".", " ")
     result = result.replace(",", " ")
-    result = result.replace("?", " ")  # FTS5 proximity operator — syntax error without following token
-
+    # ? is FTS5 proximity operator — syntax error without following token
+    result = result.replace("?", " ")
     result = _FTS5_COMMAND_RE.sub(r"\1 command ", result)
     result = _FTS5_SLASH_S_RE.sub("slash s ", result)
-    result = result.replace('"', '""')
-    result = result.replace("'", "''")
-    result = result.replace("[", "[[")
+    result = result.replace('"', '""')   # FTS5 phrase quoting
+    result = result.replace("[", "[[")    # FTS5 column-filter bracket
     result = result.replace("]", "]]")
-    result = result.replace("&", "\\&")
-    result = result.replace("|", "\\|")
-    result = result.replace("*", "\\*")
-    result = result.replace("~", "\\~")
+    result = result.replace("&", "\\&")   # FTS5 AND operator
+    result = result.replace("|", "\\|")   # FTS5 OR operator
+    result = result.replace("*", "\\*")   # FTS5 prefix operator
+    result = result.replace("~", "\\~")   # FTS5 NOT operator
+    # Wrap hyphenated words in quotes to prevent FTS5 treating - as NOT
     if "-" in result and any(c.isalnum() for c in result.replace("-", "").replace(" ", "")):
         result = f'"{result}"'
     return result
+
+
+def escape_fts5_query(query: str) -> str:
+    """Escape FTS5 + SQL-quote for interpolation-style MATCH '{q}' callers.
+
+    DEPRECATED for new code — use escape_fts5_syntax() with MATCH ? instead.
+    This function doubles single quotes for SQL interpolation safety; that
+    doubling corrupts bound-parameter queries and must not be used with MATCH ?.
+    """
+    return escape_fts5_syntax(query).replace("'", "''")

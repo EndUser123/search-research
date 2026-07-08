@@ -13,7 +13,7 @@ from .clustering import ClusteredSearchResults, cluster_results, filter_results_
 from .embeddings import bytes_to_vector, cosine_similarity
 from .schema_compat import CHSSchemaCompat
 from .search_session import SearchSession, SearchSessionManager
-from .utils import adaptive_lambda, escape_fts5_query
+from .utils import adaptive_lambda, escape_fts5_syntax
 
 if TYPE_CHECKING:
     pass
@@ -137,7 +137,7 @@ def search_fts_messages(db: sqlite3.Connection, query: str, limit: int = 10) -> 
     """
     if not query or not query.strip():
         return []
-    escaped_query = escape_fts5_query(query)
+    escaped_query = escape_fts5_syntax(query)
     messages_table = CHSSchemaCompat.get_messages_table(db)
     fts_table = CHSSchemaCompat.get_fts_table(db)
     try:
@@ -160,8 +160,8 @@ def search_fts_messages(db: sqlite3.Connection, query: str, limit: int = 10) -> 
         if messages_table == "chat_messages":
             if is_contentless:
                 cursor.execute(
-                    f"\n                        SELECT -bm25({fts_table}) AS score, content\n                        FROM {fts_table}\n                        WHERE {fts_table} MATCH '{escaped_query}'\n                        LIMIT ?\n                    ",
-                    (limit,),
+                    f"\n                        SELECT -bm25({fts_table}) AS score, content\n                        FROM {fts_table}\n                        WHERE {fts_table} MATCH ?\n                        LIMIT ?\n                    ",
+                    (escaped_query, limit),
                 )
                 fts_results = cursor.fetchall()
                 if not fts_results:
@@ -189,13 +189,13 @@ def search_fts_messages(db: sqlite3.Connection, query: str, limit: int = 10) -> 
                 return results[:limit]
             else:
                 cursor = db.execute(
-                    f"\n                    SELECT\n                        m.message_id,\n                        m.session_id,\n                        m.role,\n                        m.content,\n                        -bm25({fts_table}) AS score\n                    FROM {messages_table} m\n                    INNER JOIN {fts_table} ON m.rowid = {fts_table}.rowid\n                    WHERE {fts_table} MATCH '{escaped_query}'\n                    ORDER BY score DESC\n                    LIMIT ?\n                    ",
-                    (limit,),
+                    f"\n                    SELECT\n                        m.message_id,\n                        m.session_id,\n                        m.role,\n                        m.content,\n                        -bm25({fts_table}) AS score\n                    FROM {messages_table} m\n                    INNER JOIN {fts_table} ON m.rowid = {fts_table}.rowid\n                    WHERE {fts_table} MATCH ?\n                    ORDER BY score DESC\n                    LIMIT ?\n                    ",
+                    (escaped_query, limit),
                 )
         else:
             cursor = db.execute(
-                f"\n                SELECT\n                    m.message_id,\n                    m.session_id,\n                    m.role,\n                    m.content,\n                    -bm25({fts_table}) AS score\n                FROM {messages_table} m\n                INNER JOIN {fts_table} ON m.rowid = {fts_table}.rowid\n                WHERE {fts_table} MATCH '{escaped_query}'\n                ORDER BY score DESC\n                LIMIT ?\n                ",
-                (limit,),
+                f"\n                SELECT\n                    m.message_id,\n                    m.session_id,\n                    m.role,\n                    m.content,\n                    -bm25({fts_table}) AS score\n                FROM {messages_table} m\n                INNER JOIN {fts_table} ON m.rowid = {fts_table}.rowid\n                WHERE {fts_table} MATCH ?\n                ORDER BY score DESC\n                LIMIT ?\n                ",
+                (escaped_query, limit),
             )
         results = []
         for row in cursor.fetchall():
@@ -231,11 +231,11 @@ def search_fts_turns(db: sqlite3.Connection, query: str, limit: int = 10) -> lis
     """
     if not query or not query.strip():
         return []
-    escaped_query = escape_fts5_query(query)
+    escaped_query = escape_fts5_syntax(query)
     try:
         cursor = db.execute(
-            f"\n            SELECT\n                t.id,\n                t.content,\n                -bm25(turns_fts) AS score\n            FROM turns t\n            INNER JOIN turns_fts ON t.rowid = turns_fts.rowid\n            WHERE turns_fts MATCH '{escaped_query}'\n            ORDER BY score DESC\n            LIMIT ?\n            ",
-            (limit,),
+            f"\n            SELECT\n                t.id,\n                t.content,\n                -bm25(turns_fts) AS score\n            FROM turns t\n            INNER JOIN turns_fts ON t.rowid = turns_fts.rowid\n            WHERE turns_fts MATCH ?\n            ORDER BY score DESC\n            LIMIT ?\n            ",
+            (escaped_query, limit),
         )
         results = []
         for row in cursor.fetchall():

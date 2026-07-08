@@ -128,6 +128,19 @@ def test_session_key_matching(conn):
     assert "sess-missing" in results[0].missing
 
 
+def test_string_ids_are_stable_message_ids(conn):
+    """Current search_fts_messages returns TEXT message_id under 'id'.
+    Strings must be treated as the stable key directly (no int lookup)."""
+
+    def new_shape_search(conn_, query, limit):
+        return [{"id": "msg-atomic", "session_id": 1,
+                 "content": DOCS["msg-atomic"], "score": 1.0}]
+
+    cases = [GoldenCase(id="c8", query="q", required_message_ids={"msg-atomic"})]
+    results = evaluate(conn, cases, new_shape_search)
+    assert results[0].recall == 1.0
+
+
 def test_load_cases_rejects_unpinned(tmp_path):
     path = tmp_path / "cases.jsonl"
     path.write_text(json.dumps({"id": "bad", "query": "q"}) + "\n", encoding="utf-8")

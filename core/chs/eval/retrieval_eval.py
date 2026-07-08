@@ -105,7 +105,13 @@ def _stable_keys_for_results(
     message_ids: set = set()
     content_hashes: set = set()
     session_keys: set = set()
-    row_ids = [r["id"] for r in results if r.get("id") is not None]
+    # Result "id" may be the stable TEXT messages.message_id (current
+    # search_fts_messages) or a legacy integer rowid. Strings ARE the stable
+    # key; only integers need a DB lookup. Handling both keeps the harness
+    # correct across search-return-shape changes.
+    raw_ids = [r["id"] for r in results if r.get("id") is not None]
+    message_ids = {i for i in raw_ids if isinstance(i, str)}
+    row_ids = [i for i in raw_ids if isinstance(i, int)]
     if row_ids:
         try:
             placeholders = ",".join("?" for _ in row_ids)
@@ -113,7 +119,7 @@ def _stable_keys_for_results(
                 f"SELECT id, message_id FROM messages WHERE id IN ({placeholders})",
                 row_ids,
             )
-            message_ids = {row[1] for row in cursor.fetchall() if row[1]}
+            message_ids |= {row[1] for row in cursor.fetchall() if row[1]}
         except sqlite3.OperationalError:
             pass  # legacy schema without messages.message_id
     session_row_ids = [r["session_id"] for r in results if r.get("session_id") is not None]
