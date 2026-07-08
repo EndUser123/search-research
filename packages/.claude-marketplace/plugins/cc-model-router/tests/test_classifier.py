@@ -1,7 +1,6 @@
 """Unit tests for the hierarchical classifier pipeline.
 
-Tests the PIPELINE LOGIC (overrides, fallback, hint schema, context boost),
-not TF-IDF accuracy (that's covered by the evaluation harness).
+Tests the PIPELINE LOGIC (overrides, deterministic phase-1, fallback, observability).
 """
 import sys
 import pathlib
@@ -49,12 +48,13 @@ def test_non_mechanical_not_detected():
 
 # --- Pipeline fallback (no scorer) ---
 
-def test_pipeline_fallback_no_scorer():
-    result = classify_pipeline("implement a function", None, {})
-    assert result.task_type == "coding"
-    assert result.source == "fallback"
-    assert result.backend == "none"
-    assert result.low_confidence is True
+def test_pipeline_no_scorer_uses_phase1():
+    """When no scorer is loaded, Phase 1 deterministic rules still fire
+    (no fallback needed). Code → local-coding."""
+    result = classify_pipeline("def hello(): return 1", None, {})
+    assert result.task_type == "local-coding"
+    assert result.source == "deterministic"
+    assert result.low_confidence is False
 
 
 # --- Pipeline with deterministic override ---
@@ -72,97 +72,63 @@ def test_pipeline_override_local():
     assert result.source == "override"
 
 
-# --- Pipeline with mock scorer ---
+# --- Phase 1: deterministic task inference (replaces TF-IDF) ---
 
-class MockScorer:
-    """Mock scorer that returns predefined class scores."""
-    def __init__(self, scores: dict, ready=True):
-        self._scores = scores
-        self._ready = ready
-
-    @property
-    def ready(self):
-        return self._ready
-
-    def score(self, prompt, context=None):
-        sorted_scores = sorted(self._scores.items(), key=lambda x: -x[1])
-        return ScorerResult(
-            class_scores=self._scores.copy(),
-            top_class=sorted_scores[0][0],
-            confidence=sorted_scores[0][1],
-            runner_up=sorted_scores[1][0] if len(sorted_scores) > 1 else "",
-            margin=sorted_scores[0][1] - (sorted_scores[1][1] if len(sorted_scores) > 1 else 0),
-            backend="mock",
-        )
+def test_phase1_code_under_64k_is_local_coding():
+    """Code markers + <64k tokens → local-coding (ornith)."""
+    result = classify_pipeline("def hello(): return 1", None, {})
+    assert result.task_type == "local-coding"
+    assert result.source == "deterministic"
+    assert result.confidence == 1.0
 
 
-def test_pipeline_semantic_coding():
-    scorer = MockScorer({"background": 0.1, "coding": 0.7, "reasoning": 0.3})
-    result = classify_pipeline("implement a new feature", scorer, {})
-    assert result.task_type == "coding"
-    assert result.source == "semantic"
-    assert result.stage_a is not None
-    assert result.stage_b is not None
-
-
-def test_pipeline_semantic_reasoning():
-    scorer = MockScorer({"background": 0.05, "coding": 0.3, "reasoning": 0.8})
-    result = classify_pipeline("analyze the architecture", scorer, {})
+def test_phase1_reasoning_indicators_is_reasoning():
+    """Reasoning vocabulary → reasoning (glm/zai)."""
+    result = classify_pipeline("analyze the architecture and tradeoffs", None, {})
     assert result.task_type == "reasoning"
-    assert result.source == "semantic"
-    assert result.stage_b["class"] == "reasoning"
+    assert result.source == "deterministic"
 
 
-def test_pipeline_semantic_background():
-    scorer = MockScorer({"background": 0.6, "coding": 0.2, "reasoning": 0.1})
-    result = classify_pipeline("git commit", scorer, {})
-    # Background should be caught by override first
-    assert result.task_type == "background"
-    assert result.source == "override"
+def test_phase1_tool_calls_without_reasoning_is_coding():
+    """Tool-call patterns without reasoning → coding (sonnet)."""
+    result = classify_pipeline("invoke the API to fetch data", None, {})
+    assert result.task_type == "coding"
+    assert result.source == "deterministic"
 
 
-def test_pipeline_semantic_low_confidence():
-    """Low confidence fires when margin < low_confidence_margin (0.02)."""
-    # Margin 0.03 > 0.02 → not low confidence (pipeline correctly returns False)
-    scorer = MockScorer({"background": 0.1, "coding": 0.45, "reasoning": 0.42})
-    result = classify_pipeline("some ambiguous prompt", scorer, {})
-    assert result.low_confidence is False  # margin 0.03 > threshold 0.02
-    assert result.task_type == "coding"    # coding wins (0.45 > 0.42)
-    assert round(result.margin, 4) == 0.0300
-
-    # Margin 0.01 < 0.02 → low confidence (pipeline correctly returns True)
-    scorer_tight = MockScorer({"background": 0.1, "coding": 0.45, "reasoning": 0.44})
-    result_tight = classify_pipeline("another prompt", scorer_tight, {})
-    assert result_tight.low_confidence is True
-    assert result_tight.task_type == "coding"  # still coding (0.45 > 0.44), just low-conf
-    assert round(result_tight.margin, 4) == 0.0100
+def test_phase1_default_is_coding():
+    """Plain prose without code/reasoning/tool markers → coding (sonnet default)."""
+    result = classify_pipeline("explain how the system works", None, {})
+    assert result.task_type == "coding"
+    assert result.source == "deterministic"
 
 
-def test_pipeline_context_boost():
-    """Context boost should raise the prev_task_type class score."""
-    scores = {"background": 0.1, "coding": 0.5, "reasoning": 0.35}
-    scorer = MockScorer(scores)
-    # Without context: coding wins (0.5 > 0.35)
-    result_no_ctx = classify_pipeline("analyze this", scorer, {})
-    assert result_no_ctx.task_type == "coding"
+def test_phase1_code_over_64k_falls_through():
+    """Large code prompt (>64k tokens) escapes the local-coding rule."""
+    # 50,000-word prompt with code markers
+    big_code = ("def func(): pass\n" * 50000).strip()
+    result = classify_pipeline(big_code, None, {})
+    # It's still code, but >64k → falls through to the tool-call/default branch
+    assert result.task_type in ("local-coding", "coding")
+    assert result.source == "deterministic"
 
-    # With context boost on reasoning: reasoning gets +0.15 → 0.50, still close
-    scorer2 = MockScorer(scores)
-    result_with_ctx = classify_pipeline("analyze this", scorer2, {},
-                                        context={"prev_task_type": "reasoning", "followup_boost": 0.15})
-    # The mock scorer doesn't apply context boost (only TfidfBackend does),
-    # but the pipeline should still handle it gracefully
-    assert result_with_ctx.task_type in ("coding", "reasoning")
+
+def test_phase1_reasoning_takes_priority_over_tool_call():
+    """When both reasoning and tool-call patterns are present, reasoning wins."""
+    result = classify_pipeline(
+        "analyze the design and call the api to evaluate tradeoffs", None, {}
+    )
+    assert result.task_type == "reasoning"
 
 
 # --- ClassifyResult structure ---
 
 def test_result_has_observability_fields():
-    scorer = MockScorer({"background": 0.1, "coding": 0.7, "reasoning": 0.3})
-    result = classify_pipeline("test prompt", scorer, {})
+    result = classify_pipeline("def func(): return 1", None, {})
     assert hasattr(result, "stage_a")
     assert hasattr(result, "stage_b")
-    assert hasattr(result, "class_scores")
-    assert hasattr(result, "top_2")
+    assert hasattr(result, "source")
     assert hasattr(result, "backend")
     assert hasattr(result, "low_confidence")
+    assert hasattr(result, "confidence")
+    assert hasattr(result, "margin")

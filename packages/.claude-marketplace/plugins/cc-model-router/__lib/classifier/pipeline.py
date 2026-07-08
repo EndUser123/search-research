@@ -1,19 +1,19 @@
-"""Hierarchical classification pipeline.
+"""Hierarchical classification pipeline — Phase 1 (deterministic).
 
 Stage 0: Deterministic overrides (pin, git, background commands)
-Stage A: Background vs active-work (semantic margin comparison)
-Stage B: Reasoning vs coding (semantic margin comparison)
-Stage C: Trivial-coding vs general-coding (word count + mechanical-edit heuristic)
-Fallback: Conservative coding default if semantic layer unavailable
+Phase 1: Deterministic task inference (code markers, reasoning indicators,
+         tool-call patterns, context size). Replaces TF-IDF scorer.
+Fallback: Conservative coding default.
 
-Decision strategy: MARGIN-BASED, not absolute thresholds.
-TF-IDF cosine scores for same-class are ~[0.26, 0.38], cross-class ~[0.00, 0.08].
-We pick the class with the highest score and use the margin between top-1 and top-2
-as the confidence signal. No absolute threshold gates — they don't work with
-cosine similarity scores that top out at ~0.38.
+Decision strategy: DETERMINISTIC RULES, not TF-IDF scoring.
+Code + <64k tokens → local-coding (ornith)
+Reasoning indicators → reasoning (glm/zai)
+Tool-call patterns → coding (sonnet)
+Default → sonnet
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -67,50 +67,70 @@ def classify_pipeline(
             source="override", backend="rules", override=override,
         )
 
-    # ── Fallback if scorer unavailable ─────────────────────────────────
-    if scorer is None or not getattr(scorer, "ready", True):
+    # ── Phase 1: Deterministic task inference ──────────────────────────
+    # Replaces TF-IDF scoring. Runs BEFORE the scorer-None fallback so
+    # deterministic rules fire even when no scorer is loaded.
+    # 1. Code markers + <64k tokens → local-coding (ornith)
+    # 2. Reasoning indicators → reasoning (glm/zai)
+    # 3. Tool-call patterns → coding (sonnet, not local)
+    # 4. Default → sonnet (coding)
+    # 4. Default → sonnet
+
+    # Estimate token count (rough: word_count * 1.3)
+    estimated_tokens = int(word_count * 1.3)
+
+    # Code markers (function definitions, imports, class declarations)
+    code_markers = re.compile(
+        r'\b(def|class|function|const|let|var|fn|pub|import|from|include|export|async|await|return|yield)\b',
+        re.IGNORECASE
+    )
+
+    # Reasoning indicators (design, architecture, tradeoffs, analysis)
+    reasoning_indicators = re.compile(
+        r'\b(design|architecture|tradeoff|tradeoffs|compare|evaluate|plan|strategy|analyze|assess|review|why|how should|should we|what if|consider|recommend)\b',
+        re.IGNORECASE
+    )
+
+    # Tool-call patterns (function calls, API usage, SDK integration)
+    tool_call_patterns = re.compile(
+        r'\b(invoke|call|execute|run|fetch|request|send|post|get|put|delete|api|sdk|library|package|module|method)\b',
+        re.IGNORECASE
+    )
+
+    # Check patterns
+    has_code = bool(code_markers.search(prompt))
+    has_reasoning = bool(reasoning_indicators.search(prompt))
+    has_tool_calls = bool(tool_call_patterns.search(prompt))
+
+    # Decision logic
+    if has_code and estimated_tokens < 64000:
+        # Code + under 64k tokens → local coding (ornith)
         return ClassifyResult(
-            task_type="coding", confidence=0.0, margin=0.0,
-            source="fallback", backend="none", low_confidence=True,
+            task_type="local-coding", confidence=1.0, margin=1.0,
+            source="deterministic", backend="rules",
+            stage_a={"class": "local-coding", "confidence": 1.0},
         )
-
-    # ── Semantic scoring ───────────────────────────────────────────────
-    try:
-        result: ScorerResult = scorer.score(prompt, context)
-    except Exception:
+    elif has_reasoning:
+        # Reasoning indicators → reasoning (glm/zai)
         return ClassifyResult(
-            task_type="coding", confidence=0.0, margin=0.0,
-            source="fallback", backend="none", low_confidence=True,
+            task_type="reasoning", confidence=1.0, margin=1.0,
+            source="deterministic", backend="rules",
+            stage_b={"class": "reasoning", "confidence": 1.0},
         )
-
-    scores = result.class_scores
-    sorted_classes = sorted(scores.keys(), key=lambda k: -scores[k])
-    top_class = sorted_classes[0]
-    runner_up = sorted_classes[1] if len(sorted_classes) > 1 else ""
-    top_score = scores[top_class]
-    runner_up_score = scores.get(runner_up, 0.0)
-    margin = top_score - runner_up_score
-    min_margin = _get_threshold(config, "low_confidence_margin")
-    low_conf = margin < min_margin
-
-    top_2_list = sorted_classes[:2]
-
-    # ── Stage A: Background wins head-to-head ─────────────────────────
-    if top_class == "background" and not low_conf:
+    elif has_tool_calls and not has_reasoning:
+        # Tool-call patterns without reasoning → coding (sonnet)
         return ClassifyResult(
-            task_type="background", confidence=top_score, margin=margin,
-            source="semantic", backend=result.backend,
-            stage_a={"class": "background", "confidence": top_score},
-            class_scores=scores, top_2=top_2_list, low_confidence=low_conf,
+            task_type="coding", confidence=1.0, margin=1.0,
+            source="deterministic", backend="rules",
+            stage_a={"class": "coding", "confidence": 1.0},
         )
-
-    active_score = max(scores.get("coding", 0.0), scores.get("reasoning", 0.0))
-    stage_a_data = {"class": "active-work", "confidence": active_score}
-
-    # ── Stage B: Reasoning vs coding — head-to-head ───────────────────
-    coding_score = scores.get("coding", 0.0)
-    reasoning_score = scores.get("reasoning", 0.0)
-    margin_b = reasoning_score - coding_score
+    else:
+        # Default → sonnet (coding)
+        return ClassifyResult(
+            task_type="coding", confidence=1.0, margin=1.0,
+            source="deterministic", backend="rules",
+            stage_a={"class": "coding", "confidence": 1.0},
+        )
 
     if reasoning_score > coding_score and margin_b > min_margin:
         return ClassifyResult(

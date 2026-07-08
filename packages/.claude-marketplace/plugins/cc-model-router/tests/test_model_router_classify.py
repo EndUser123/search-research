@@ -50,8 +50,9 @@ def _run_hook(stdin_json: dict) -> subprocess.CompletedProcess:
     )
 
 
-def test_classify_autoswitch_uses_versioned_haiku_alias(tmp_state_dir, fake_home):
-    """Haiku autoswitch should preserve the dated model string Claude Code emits."""
+def test_classify_autoswitch_preserves_tier_labeling(tmp_state_dir, fake_home):
+    """Classify a short code-flavored prompt and assert the recommendation
+    uses the dated model string (Phase 1: code → local-coding → ornith)."""
     state_dir = (
         tmp_state_dir / ".claude" / "state" / "model-router" / "term1" / "sess1"
     )
@@ -61,8 +62,8 @@ def test_classify_autoswitch_uses_versioned_haiku_alias(tmp_state_dir, fake_home
                 "config": {
                     "action": "autoswitch",
                 },
-                "current_model": "claude-sonnet-4-6",
-                "current_tier": "sonnet",
+                "current_model": "claude-opus-4-8",
+                "current_tier": "opus",
             }
         ),
         encoding="utf-8",
@@ -70,7 +71,7 @@ def test_classify_autoswitch_uses_versioned_haiku_alias(tmp_state_dir, fake_home
 
     result = _run_hook(
         {
-            "prompt": "rename foo to bar",
+            "prompt": "rename the function foo to bar",
             "terminal_id": "term1",
             "session_id": "sess1",
         }
@@ -81,5 +82,7 @@ def test_classify_autoswitch_uses_versioned_haiku_alias(tmp_state_dir, fake_home
     rec_path = state_dir / "recommendation.json"
     assert rec_path.exists(), "classification should write a recommendation"
     rec = json.loads(rec_path.read_text(encoding="utf-8"))
-    assert rec["recommended_tier"] == "haiku"
-    assert rec["recommended_model"] == "claude-haiku-4-5-20251001"
+    # Phase 1: "rename the function foo to bar" has code-marker ("function") →
+    # code + under 64k tokens → local-coding → ornith
+    assert rec["recommended_tier"] == "local"
+    assert rec["recommended_model"] == "claude-local-ornith"
