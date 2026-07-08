@@ -98,7 +98,7 @@
     },
     {
       "name": "search-research",
-      "version": "0.1.79",
+      "version": "0.1.80",
       "description": "Unified search and research system with async concurrent execution and 11 web providers.",
       "source": "./plugins/search-research",
       "keywords": [
