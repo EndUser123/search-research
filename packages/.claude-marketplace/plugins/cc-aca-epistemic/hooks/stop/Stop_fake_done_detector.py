@@ -132,6 +132,58 @@ _DONE_CLAIM_PHRASES = (
     "the fix is complete",
 )
 
+# --- Phase 4 (Close-the-Loop): CEC ledger-presence tier ---
+# Implementation-report-shaped response: completion claim + concrete artifacts OR
+# a retained-command output shape. The shape heuristic is structural (not
+# semantic) so the detector stays deterministic + fast.
+import re as _re_cec
+_REPORT_SHAPE_ARTIFACT_RE = _re_cec.compile(
+    r"(?ix) \b (?: "
+    r" [A-Za-z0-9_./-]+\.(?:py|md|json|yaml|yml|toml|sh|ps1) "        # file paths
+    r" | / (?: improve | claude-audit | skill-audit | red-team | "        # retained cmds
+    r"           ship | debrief | review ) "
+    r" | phase \s+ \d+ [a-z]? "
+    r" | packet \s+ section "
+    r" | hooks?\.json | plugin\.json | SKILL\.md "
+    r" ) \b"
+)
+_REPORT_SHAPE_COMMAND_RE = _re_cec.compile(
+    r"(?i)^(?:##\s+)?(?:verified\s+facts|domain\s+classification|"
+    r"binding\s+constraint|recommendation|persistence|verification|"
+    r"completion\s+evidence\s+ledger|claim\s+type|status\s+enum|"
+    r"protection\s+level)\b"
+)
+_LEDGER_TABLE_HEADER_RE = _re_cec.compile(
+    r"(?im)^\|.*\bclaim\b.*\|.*\b(?:claim_type|status|evidence)\b.*\|"
+)
+_LEDGER_YAML_BLOCK_RE = _re_cec.compile(
+    r"(?ims)^```ya?ml\s*\n.*?\bclaim_type\s*:[^\n]*\n.*?\bevidence_provided\s*:[^\n]*"
+)
+
+
+def _is_report_shape(output_text: str) -> bool:
+    """True if the output looks like an implementation report.
+
+    Two cues: (a) a concrete artifact token (file path, plugin name, retained
+    command), or (b) a retained-output-section heading. Either is sufficient.
+    """
+    if _REPORT_SHAPE_ARTIFACT_RE.search(output_text):
+        return True
+    return bool(_REPORT_SHAPE_COMMAND_RE.search(output_text))
+
+
+def _has_ledger(output_text: str) -> bool:
+    """True if the report carries a Completion Evidence Ledger.
+
+    Two accepted shapes: a markdown table whose header row contains `claim`
+    plus `claim_type`/`status`/`evidence`, or a fenced yaml block whose body
+    contains `claim_type:` AND `evidence_provided:`. Both are present in the
+    worked examples at completion-evidence-contract.md.
+    """
+    if _LEDGER_TABLE_HEADER_RE.search(output_text):
+        return True
+    return bool(_LEDGER_YAML_BLOCK_RE.search(output_text))
+
 # Ungrounded superlatives — strong un-hedged claims not backed by present evidence even
 # when files exist. OQ-1 WARN tier: satisfied grounding + superlative -> warn (the claim
 # overshoots what the evidence supports).
@@ -235,7 +287,35 @@ def run_fake_done_detector(data: dict) -> dict | None:
             "violations": ["ungrounded_superlative"],
         }
 
-    # Tier 3 — satisfied grounding, no superlative issue: PASS.
+    # Tier 4 (Phase 4, Close-the-Loop) — CEC ledger absence on a report-shaped
+    # response. WARN ceiling: the structural shape heuristic is intentionally
+    # loose (file paths + retained-command headings), so a WARN here is the
+    # contract's "add a ledger" nudge, NOT a per-claim verification. Promotion
+    # to BLOCK requires measured corpus signal — see completion-evidence-contract.md
+    # "Report-time enforcement". Skips: not report-shaped, OR a ledger IS present.
+    if (
+        _has_done_claim(output_text)
+        and _is_report_shape(output_text)
+        and not _has_ledger(output_text)
+    ):
+        return {
+            "type": "warning",
+            "severity": "warning",
+            "gate": GATE_NAME,
+            "error": (
+                "MISSING COMPLETION LEDGER — you claimed completion on an "
+                "implementation-report-shaped response but did not include a "
+                "Completion Evidence Ledger (per completion-evidence-contract.md). "
+                "Add one row per completion claim (markdown table with "
+                "claim|claim_type|authority_required|evidence_provided|status|"
+                "remaining_gap, OR a fenced yaml block with claim_type: + "
+                "evidence_provided:). This tier checks ledger PRESENCE only; "
+                "claim verification stays with /red-team and the claim-coverage gates."
+            ),
+            "violations": ["missing_completion_ledger"],
+        }
+
+    # Tier 3 — satisfied grounding, no superlative issue, ledger present or N/A: PASS.
     return None
 
 
