@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 import logging
+import threading
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -301,38 +302,68 @@ class AsyncSearchRouter:
         # Without this, the first gather call causes all sync backends to call
         # build_index() simultaneously, flooding the thread pool and causing
         # premature timeouts on fast backends (PERF-001).
-        self._warm_up_backends()
+        # Backgrounded (daemon thread) so the ~27s cost does not block the
+        # first search. Backends report _indexed=True when ready; the
+        # per-backend search_async handles an unbuilt backend by triggering
+        # build on first use.
+        self._warm_up_backends_async()
 
         return backends
 
     def _warm_up_backends(self) -> None:
+        """Synchronous warm-up kept for tests and direct callers.
+
+        New code should call _warm_up_backends_async() so the first search is
+        not blocked by the ~27s build cost of ast_code/cds/rlm.
+        """
+        self._do_warm_up(self._backends)
+
+    def _warm_up_backends_async(self) -> None:
+        """Kick off warm-up in a daemon thread; do not block _create_backends.
+
+        First search runs against whatever is ready; the slow builders (ast_code,
+        cds, rlm) join when their build_index() finishes. Search correctness is
+        preserved because each backend's build_index() is idempotent and
+        self._indexed gates search.
+        """
+        t = threading.Thread(
+            target=self._do_warm_up,
+            args=(self._backends,),
+            name="router-warmup",
+            daemon=True,
+        )
+        t.start()
+
+    @staticmethod
+    def _do_warm_up(backends: dict[str, Any]) -> None:
         """Pre-warm sync backends by triggering build_index() with a no-op query.
 
-        Calls search() on each backend to force lazy build_index() to run
-        during router init rather than during the first concurrent gather.
-        Backends that raise exceptions are skipped silently.
-
-        NOTE: This is called synchronously from _create_backends(), which is
-        called lazily from _search_backend_with_timeout(). If any backend
-        hangs during search("", 1), the entire event loop blocks. Backends
-        with known slow init (NotebookLM, CPG) are skipped explicitly.
+        Runs build_index() directly (cheaper than search("", 1)) for backends
+        that expose it. Backends without build_index fall back to search("", 1).
+        Exceptions are caught per-backend so one failure doesn't abort others.
         """
-        for name, backend in self._backends.items():
+        skip_names = {"notebooklm", "kg", "call_graph"}
+        for name, backend in backends.items():
             try:
+                if name in skip_names:
+                    continue
+                # Prefer direct build_index() — avoids a roundtrip through search
+                # and skips the per-backend timeout path. Skip async build_index
+                # here: this warm-up runs in a daemon thread with no event loop.
+                if hasattr(backend, "build_index") and callable(getattr(backend, "build_index")):
+                    if inspect.iscoroutinefunction(backend.build_index):
+                        continue
+                    backend.build_index()
+                    continue
                 if not hasattr(backend, "search"):
                     continue
                 if hasattr(backend, "search_async") or (
                     hasattr(backend, "search") and inspect.iscoroutinefunction(backend.search)
                 ):
                     continue
-                # Skip backends known to be slow or hanging
-                skip_names = {"notebooklm", "kg", "call_graph"}
-                if name in skip_names:
-                    continue
-                # Trigger build_index() with a query that returns no results
                 backend.search("", 1)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Warm-up failed for backend {name!r}: {e}")
 
     async def search_async(
         self,
