@@ -24,7 +24,7 @@ import time as time_module
 
 from .backend_health import BackendHealthRegistry
 from .cache import QueryCache
-from .chs.utils import escape_fts5_query
+from .chs.utils import escape_fts5_syntax
 from .config import config
 from .domain_detector import detect_domain
 from .hyde import apply_hyde
@@ -311,21 +311,27 @@ class AsyncSearchRouter:
         Calls search() on each backend to force lazy build_index() to run
         during router init rather than during the first concurrent gather.
         Backends that raise exceptions are skipped silently.
+
+        NOTE: This is called synchronously from _create_backends(), which is
+        called lazily from _search_backend_with_timeout(). If any backend
+        hangs during search("", 1), the entire event loop blocks. Backends
+        with known slow init (NotebookLM, CPG) are skipped explicitly.
         """
         for name, backend in self._backends.items():
             try:
-                # Skip backends that don't have a sync search method
                 if not hasattr(backend, "search"):
                     continue
-                # Skip async backends (they handle initialization differently)
                 if hasattr(backend, "search_async") or (
                     hasattr(backend, "search") and inspect.iscoroutinefunction(backend.search)
                 ):
                     continue
+                # Skip backends known to be slow or hanging
+                skip_names = {"notebooklm", "kg", "call_graph"}
+                if name in skip_names:
+                    continue
                 # Trigger build_index() with a query that returns no results
                 backend.search("", 1)
             except Exception:
-                # Warm-up failures are non-fatal - backend may not have data yet
                 pass
 
     async def search_async(
@@ -369,7 +375,7 @@ class AsyncSearchRouter:
         # Escape FTS5 special characters before backend dispatch (PERF-001 fix: CAUSE-004)
         # qmd_wiki and yt_is backends use simple _sanitize_query that doesn't escape FTS5
         # operators like '.', ',', etc. Centralizing escaping here protects all backends.
-        search_query = escape_fts5_query(search_query)
+        search_query = escape_fts5_syntax(search_query)
 
         # DOMAIN-CONSTRAINT: Detect domain tags and look up matching constraint entries.
         # Runs concurrently with normal backends. Results are injected as a separate
