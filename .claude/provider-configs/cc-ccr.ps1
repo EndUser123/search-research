@@ -250,7 +250,7 @@ if ($localModelHealth) {
     Write-Host "[CCR] local model not detected - starting llama-server..." -ForegroundColor Cyan
     $launcherScript = "P:\packages\installers\run-ornith-server.ps1"
     if (Test-Path $launcherScript) {
-        Start-Process -FilePath "powershell.exe" `
+        Start-Process -FilePath "pwsh.exe" `
             -ArgumentList @("-NoProfile", "-NoLogo", "-NonInteractive", "-File", $launcherScript) `
             -WindowStyle Hidden
         # Wait for health (up to 30s, polling every 1s)
