@@ -413,6 +413,15 @@ Abstraction Check" section). `/improve` emits the pointer when its
 durable-improvement work discovers a candidate abstraction; it does not
 re-define the fields. Prompt-advisory.
 
+`/improve` recommends, it does not BLOCK; the standard fields include
+`coverage_authority` (named authority for evidence breadth — never bare "full
+coverage"), `activation_truth_layer` (which of source_changed → cache_rebuilt →
+plugin_loaded → command_resolves → behavior_observed is actually proven), and
+`bounded_actions_completed_or_deferred` (audit-style reports must account for
+every bounded action the audit recommended). All three are owned by `/ask`;
+if a discovery implies a runtime gate, route to the surface-owning command
+rather than absorbing the wiring here.
+
 ## Completion Evidence Contract — routing-only
 
 `/improve` does NOT enforce the Completion Evidence Contract. When the
