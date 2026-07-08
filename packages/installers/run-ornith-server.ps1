@@ -97,15 +97,23 @@ function Update-LocalModelState {
 # exit 0 WITHOUT spawning a second process or poisoning local-model-state.json.
 # A blind second launch fails to bind :8010, crashes, and its finally{} block
 # would mark the (still-running) original as stopped.
+# Use TcpClient (not IWR) for consistency with cc-ccr.ps1 — IWR can fail inside
+# dot-sourced profile sessions, causing this guard to falsely fall through.
 try {
-  $existing = Invoke-WebRequest -Uri "$endpoint/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
-  if ($existing.StatusCode -eq 200) {
+  $tcpCheck = [System.Net.Sockets.TcpClient]::new()
+  $tcpCheck.SendTimeout = 1500
+  $tcpCheck.ReceiveTimeout = 1500
+  $tcpCheck.Connect('127.0.0.1', 8010)
+  if ($tcpCheck.Connected) {
+    $tcpCheck.Close(); $tcpCheck.Dispose()
     Write-Host "[run-ornith] llama-server already healthy at $endpoint - not launching a duplicate." -ForegroundColor Green
     Update-LocalModelState
     exit 0
   }
+  $tcpCheck.Dispose()
 } catch {
-  # Port not serving /health yet - fall through to normal launch.
+  if ($tcpCheck) { $tcpCheck.Dispose() }
+  # Port not listening yet - fall through to normal launch.
 }
 
 # Start system-watcher in background (hidden PowerShell window)
@@ -157,7 +165,10 @@ try {
     if ($ready) {
       Update-LocalModelState
     } else {
-      # Startup failure - do not retry immediately
+      # Startup failure - kill the orphaned process before retry to free the port
+      if ($procHandle -and -not $procHandle.HasExited) {
+        Stop-Process -Id $procHandle.Id -Force -ErrorAction SilentlyContinue
+      }
       $crashCount++
       if ($crashCount -ge 3) {
         Write-Warning "[run-ornith] 3 consecutive startup failures - giving up"
