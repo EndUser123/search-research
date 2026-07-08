@@ -69,22 +69,15 @@ paths. This file states exactly what is and isn't operative, so nobody
 
 ## What is NOT fixed (known residual gaps)
 
-- **FTS MATCH uses string interpolation, not bound parameters**
-  (`search.py` ~163/192/197/237: `MATCH '{escaped_query}'`). The change
-  rationale ("FTS5 doesn't support parameterized MATCH") is FALSE — FTS5
-  supports `MATCH ?`; the real conflict is that `escape_fts5_query` doubles
-  quotes (interpolation-style escaping) which corrupts bound parameters.
-  Injection is currently mitigated only by the `''` doubling in the escaper.
-  Correct fix: revert to `MATCH ?` and remove SQL-quote doubling from the
-  escaper (keep FTS5-syntax escaping) — requires auditing all
-  `escape_fts5_query` callers first.
 - 2298/2752 sessions still lack embeddings on the work copy; the semantic
-  gate baseline is not yet meaningful until backfill completes.
+  gate baseline is not yet meaningful until backfill completes. (The 454
+  sessions WITH text are fully embedded — the 2298 have no `first_prompt`
+  and no messages, so there is nothing to embed.)
 - FTS baseline recall 0.115 reflects query quality (XML-heavy
   `first_prompt`), not search health — improve the generator's query
   extraction before treating this number as a regression floor.
-- Nothing runs the eval automatically outside `--golden-cases`; there is no
-  hook or scheduled check (`/chs-eval` skill pending, task #1274).
+- Nothing runs the eval automatically outside `--golden-cases`; the
+  `/chs-eval` skill exists but no hook or scheduled check runs it.
 
 ## Cutover discipline (until the above closes)
 
