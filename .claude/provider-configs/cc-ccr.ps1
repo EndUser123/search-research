@@ -258,7 +258,7 @@ if ($localModelHealth) {
     if (Test-Path $launcherScript) {
         Start-Process -FilePath "pwsh.exe" `
             -ArgumentList @("-NoProfile", "-NoLogo", "-NonInteractive", "-File", $launcherScript) `
-            -WindowStyle Hidden
+            -WindowStyle Minimized
         # Wait for health (up to 30s, polling every 1s)
         $ready = $false
         for ($i = 0; $i -lt 30; $i++) {
