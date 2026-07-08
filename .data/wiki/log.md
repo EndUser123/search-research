@@ -3749,3 +3749,15 @@ Transcript: session-2026-07-07
 ## [2026-07-07] ingest | Discoverable-fact-offloading split — asking the user for discoverable facts = inventing them
 Source: session
 Transcript: session-2026-07-07
+
+## [2026-07-07] ingest | Skill Enforcement Upstream Constraints
+Source: session
+Transcript: C:\Users\brsth\.claude\projects\P--\a3a261fd-9218-428a-9986-3ab39794c7f6.jsonl
+Content: Upstream CC rejects force-invocation (#15136 closed-not-planned); skill-scoped frontmatter hooks unreliable via plugin (#17688 Open, #30874 closed-not-planned); cc-spex state-file phase gate is the one community-validated ordering pattern. Decision-shaping for #1090 Option 1 vs Option 2.
+Page: wiki/concepts/skill-enforcement-upstream-constraints.md
+
+## [2026-07-07] ingest | Reliable Skill Output Consistency: Three Tiers
+Source: session
+Transcript: C:\Users\brsth\.claude\projects\P--\a3a261fd-9218-428a-9986-3ab39794c7f6.jsonl
+Content: Tier A Structured Outputs API (constrained decoding); Tier B synthetic-tool trick (input_schema IS output schema, reuse tool-calling machinery inside Claude Code); Tier C prompt-engineering (format/prefill/examples/retrieval/chain/role). No existing page covered output reliability.
+Page: wiki/concepts/reliable-skill-output-consistency.md
