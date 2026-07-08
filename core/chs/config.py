@@ -22,7 +22,7 @@ class Config:
 
     DEFAULT_DB_PATH = Path("P:/.data/chat_history.db")
     DEFAULT_EMBEDDING_MODEL = "sentence-transformers/all-mpnet-base-v2"
-    DEFAULT_EMBEDDING_DIMENSIONS = 768
+    DEFAULT_EMBEDDING_DIMENSIONS = 384
     DEFAULT_JSONL_DIR = Path("P:\\\\\\__csf/logs/chats")
 
     def __init__(self) -> None:

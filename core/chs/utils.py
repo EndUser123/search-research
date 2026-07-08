@@ -91,6 +91,7 @@ def escape_fts5_query(query: str) -> str:
     result = query
     result = result.replace(".", " ")
     result = result.replace(",", " ")
+    result = result.replace("?", " ")  # FTS5 proximity operator — syntax error without following token
 
     result = _FTS5_COMMAND_RE.sub(r"\1 command ", result)
     result = _FTS5_SLASH_S_RE.sub("slash s ", result)

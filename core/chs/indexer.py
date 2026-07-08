@@ -13,6 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from .db import get_connection
+from .scripts.backfill_embeddings import resolve_model
 from .utils import file_identity, parse_jsonl_line
 
 logger = logging.getLogger(__name__)
@@ -247,10 +248,11 @@ class ChatIndexer:
             # Write embedding from summary
             embed_client = get_embed_client()
             embedding = embed_client.embed_texts([summary])[0]
+            model, dim = resolve_model(self.db_path)
 
             conn.execute(
                 "UPDATE sessions SET summary_short = ?, embedding = ?, embedding_model = ?, embedding_dim = ? WHERE id = ?",
-                (summary, embedding, "all-MiniLM-L6-v2", 384, session_id),
+                (summary, embedding, model, dim, session_id),
             )
             conn.commit()
         except Exception as ex:
