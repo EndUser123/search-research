@@ -1282,3 +1282,5 @@
 259.36.708.976 I slot print_timing: id  0 | task 59354 | n_decoded =   1575, tg =  37.30 t/s, tg_3s =  37.85 t/s
 259.39.725.816 I slot print_timing: id  0 | task 59354 | n_decoded =   1694, tg =  37.45 t/s, tg_3s =  39.45 t/s
 259.42.729.312 I slot print_timing: id  0 | task 59354 | n_decoded =   1822, tg =  37.77 t/s, tg_3s =  42.62 t/s
+259.45.734.052 I slot print_timing: id  0 | task 59354 | n_decoded =   1953, tg =  38.11 t/s, tg_3s =  43.60 t/s
+259.48.734.670 I slot print_timing: id  0 | task 59354 | n_decoded =   2086, tg =  38.45 t/s, tg_3s =  44.32 t/s
