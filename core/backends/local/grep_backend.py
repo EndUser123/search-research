@@ -14,8 +14,13 @@ SearchResult = dict[str, Any]
 logger = logging.getLogger(__name__)
 
 
-class GrepBackend(BaseLocalBackend):
-    """Code Pattern Search using Python AST."""
+class AstNameBackend(BaseLocalBackend):
+    """Python AST function/class NAME lookup.
+
+    Searches function and class definitions by name (exact + partial match).
+    Does NOT search file content — phrase queries return 0 by design.
+    For content search, use GrepBackend (actual grep) or the code/grep backend.
+    """
 
     def __init__(
         self, root_paths: list[str] | None = None, exclude_patterns: set[str] | None = None
@@ -60,7 +65,7 @@ class GrepBackend(BaseLocalBackend):
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef):
                 result = {
-                    "source": "grep",
+                    "source": "ast_name",
                     "type": "function",
                     "name": node.name,
                     "file": str(file_path),
@@ -74,7 +79,7 @@ class GrepBackend(BaseLocalBackend):
 
             elif isinstance(node, ast.ClassDef):
                 result = {
-                    "source": "grep",
+                    "source": "ast_name",
                     "type": "class",
                     "name": node.name,
                     "file": str(file_path),
@@ -148,7 +153,7 @@ class GrepBackend(BaseLocalBackend):
         """Format a result for search routers."""
         return {
             "id": result_id,
-            "source": "grep",
+            "source": "ast_name",
             "title": f"{item['type']}: {item['name']}",
             "content": item.get("signature", f"{item['type']} {item['name']}"),
             "score": score,
