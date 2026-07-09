@@ -1,0 +1,5 @@
+{
+  "unknown_share": 0.0667,
+  "total": 15,
+  "note": "Authored-baseline UNKNOWN share on golden_cases_intent.jsonl. Gate fails when observed share drifts >10pp from this."
+}
