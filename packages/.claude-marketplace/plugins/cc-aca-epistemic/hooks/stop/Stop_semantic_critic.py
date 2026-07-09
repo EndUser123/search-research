@@ -132,6 +132,15 @@ MINIMAX_TIMEOUT_SEC: int = min(
     int(os.environ.get("MINIMAX_TIMEOUT_SEC", str(_CRITIC_BACKEND_BUDGET))),
     _CRITIC_BACKEND_BUDGET,
 )
+# Resolve the Anthropic Messages endpoint. MINIMAX_URL may be configured as the base
+# (https://api.minimax.io/anthropic) without the /v1/messages suffix; a bare base would
+# 404 silently and make the backend look dead. Append the suffix if it's missing.
+# Canonical full URL per hook_external_llm_policy.md.
+MINIMAX_POST_URL: str = (
+    MINIMAX_URL
+    if MINIMAX_URL.rstrip("/").endswith("/v1/messages")
+    else MINIMAX_URL.rstrip("/") + "/v1/messages"
+)
 
 # Cached API keys (loaded once, reused across invocations)
 _GLM_API_KEY: str | None = None
@@ -853,7 +862,7 @@ def _call_minimax_critic(
 
     try:
         resp = requests.post(
-            MINIMAX_URL,
+            MINIMAX_POST_URL,
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
