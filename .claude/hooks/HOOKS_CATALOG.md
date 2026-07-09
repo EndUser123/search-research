@@ -206,7 +206,7 @@ Consolidates 20+ hooks in priority order:
 | `Stop_pre_clarification_gate.py` | PRE_CLARIFICATION_GATE_ENABLED | true | Pre-response clarification |
 | `Stop_artifact_gate.py` | ARTIFACT_GATE_ENABLED | true | Artifact tracking validation |
 | `StopHook_investigation_required.py` | INVESTIGATION_REQUIRED_ENABLED | true | Block claims without investigation |
-| `Stop_investigation_validator.py` | INVESTIGATION_LEDGER_ENABLED | false | Block claims without investigation (ledger-based) [DISABLED by default due to missing unified_claim_verifier module] |
+| `Stop_investigation_validator.py` | INVESTIGATION_LEDGER_ENABLED | false | Block claims without investigation (ledger-based) [disabled: not registered in settings.json/hooks.json; unified_claim_verifier.py EXISTS and is live via assumption_audit_v2 — stale 'missing module' note corrected 2026-07-09] |
 | `StopHook_sycophancy_agreement.py` | SYCOPHANCY_AGREEMENT_ENABLED | true | Detect unwarranted agreement patterns |
 | `Stop.py` (`anti_sycophancy_quality` in-process gate) | OVERCONFIDENCE_DETECTOR_ENABLED | true | Detect overconfident claims without evidence |
 | `Stop.py` (`anti_sycophancy_quality` in-process gate) | LAZY_CLOSURE_DETECTOR_ENABLED | true | Detect work avoidance and premature closure |

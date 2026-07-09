@@ -812,7 +812,8 @@ def _check_skill_first_gate(data: dict) -> dict | None:
             f"[E_SKILL_FIRST_PENDING_INTENT]\n"
             f'⛔ SKILL-FIRST GATE: You typed /{skill_name} but haven\'t called Skill("{skill_name}") yet.\n\n'
             f'Your FIRST action must be:  Skill(skill="{skill_name}")\n\n'
-            f"Do NOT analyze the codebase, run scripts, or provide your own assessment.\n"
+            f"Before Skill() loads: do NOT analyze the codebase, run scripts, or provide your own assessment.\n"
+            f"After Skill() loads: you MUST follow the skill's documented procedure — including any inline Python or Bash it references — rather than substituting your own approach (e.g., falling back to web search).\n"
             f"Do NOT bypass this gate by outputting inline analysis text without calling Skill(...).\n"
             f'Call Skill("{skill_name}") to load the skill, then follow its instructions.'
         ),
