@@ -62,3 +62,6 @@ src/
 # Runtime databases (CKS/CHS) — never commit
 data/*.db
 data/*.db.*
+
+.in_use/
+.aid/
