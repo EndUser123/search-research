@@ -403,6 +403,8 @@ class AsyncSearchRouter:
                 "Please provide a meaningful search query."
             )
 
+        from .query_telemetry import hash_query, log_query_event
+
         # Apply HyDE query enhancement if content provided (no LLM call needed — already generated)
         search_query = query
         hyde_applied = False
@@ -448,10 +450,20 @@ class AsyncSearchRouter:
                 cached = self._cache.get(search_query, limit=limit, backends=backends)
                 if cached is not None:
                     logger.debug(f"Cache hit for HyDE-enhanced query: '{search_query[:50]}...'")
+                    log_query_event(
+                        query_hash=hash_query(query), intent="skipped_cache",
+                        confidence=0.0, all_backends_count=0, filtered_backends_count=0,
+                        classify_ms=0.0, returned_count=len(cached), cache_hit=True,
+                    )
                     return [SearchResult.from_dict(r) for r in cached]
             # Fall back to original query cache
             cached = self._cache.get(query, limit=limit, backends=backends)
             if cached is not None:
+                log_query_event(
+                    query_hash=hash_query(query), intent="skipped_cache",
+                    confidence=0.0, all_backends_count=0, filtered_backends_count=0,
+                    classify_ms=0.0, returned_count=len(cached), cache_hit=True,
+                )
                 return [SearchResult.from_dict(r) for r in cached]
 
         # Determine which backends to use
@@ -541,6 +553,22 @@ class AsyncSearchRouter:
             decision_audit_id=None,
         )
         self._tracer.log_trace(trace)
+
+        # Emit one per-query telemetry record (filter ran → cache_hit=false).
+        # _get_backends_for_mode stashed the classification; here we add returned_count.
+        _ft = getattr(self, "_last_filter_telemetry", None)
+        if _ft is not None:
+            log_query_event(
+                query_hash=_ft["query_hash"],
+                intent=_ft["intent"],
+                confidence=_ft["confidence"],
+                all_backends_count=_ft["all_backends_count"],
+                filtered_backends_count=_ft["filtered_backends_count"],
+                classify_ms=_ft["classify_ms"],
+                returned_count=len(ranked_results),
+                cache_hit=False,
+            )
+            self._last_filter_telemetry = None
 
         return ranked_results
 
@@ -1127,13 +1155,12 @@ class AsyncSearchRouter:
         if query is None:
             return all_backends
 
-        import time as _time_mod
         try:
             from .query_intent import classify_query_intent, BACKEND_FOR_INTENT
             from .query_telemetry import hash_query
-            _t0 = _time_mod.perf_counter()
+            _t0 = time_module.perf_counter()
             result = classify_query_intent(query)
-            _classify_ms = (_time_mod.perf_counter() - _t0) * 1000.0
+            _classify_ms = (time_module.perf_counter() - _t0) * 1000.0
             allowed = BACKEND_FOR_INTENT.get(result.intent, set())
             if not allowed:
                 filtered = all_backends
