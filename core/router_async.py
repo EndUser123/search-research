@@ -403,7 +403,7 @@ class AsyncSearchRouter:
                 "Please provide a meaningful search query."
             )
 
-        from .query_telemetry import hash_query, log_query_event
+        from .query_telemetry import hash_query
 
         # Apply HyDE query enhancement if content provided (no LLM call needed — already generated)
         search_query = query
@@ -450,7 +450,7 @@ class AsyncSearchRouter:
                 cached = self._cache.get(search_query, limit=limit, backends=backends)
                 if cached is not None:
                     logger.debug(f"Cache hit for HyDE-enhanced query: '{search_query[:50]}...'")
-                    log_query_event(
+                    self._emit_query_telemetry(
                         query_hash=hash_query(query), intent="skipped_cache",
                         confidence=0.0, all_backends_count=0, filtered_backends_count=0,
                         classify_ms=0.0, returned_count=len(cached), cache_hit=True,
@@ -459,7 +459,7 @@ class AsyncSearchRouter:
             # Fall back to original query cache
             cached = self._cache.get(query, limit=limit, backends=backends)
             if cached is not None:
-                log_query_event(
+                self._emit_query_telemetry(
                     query_hash=hash_query(query), intent="skipped_cache",
                     confidence=0.0, all_backends_count=0, filtered_backends_count=0,
                     classify_ms=0.0, returned_count=len(cached), cache_hit=True,
@@ -558,7 +558,7 @@ class AsyncSearchRouter:
         # _get_backends_for_mode stashed the classification; here we add returned_count.
         _ft = getattr(self, "_last_filter_telemetry", None)
         if _ft is not None:
-            log_query_event(
+            self._emit_query_telemetry(
                 query_hash=_ft["query_hash"],
                 intent=_ft["intent"],
                 confidence=_ft["confidence"],
@@ -1134,6 +1134,39 @@ class AsyncSearchRouter:
         except Exception as e:
             logger.error(f"Error calling web provider {provider}: {e}")
             return []
+
+    def _emit_query_telemetry(
+        self,
+        *,
+        query_hash: str,
+        intent: str,
+        confidence: float,
+        all_backends_count: int,
+        filtered_backends_count: int,
+        classify_ms: float,
+        returned_count: int,
+        cache_hit: bool,
+    ) -> None:
+        """Emit one per-query telemetry record. Non-blocking (swallows write errors).
+
+        Centralizes the emit so the cache-hit paths and the post-gather tail
+        share one writer + one schema. See core.query_telemetry for the schema.
+        """
+        try:
+            from .query_telemetry import log_query_event
+            log_query_event(
+                query_hash=query_hash,
+                intent=intent,
+                confidence=confidence,
+                all_backends_count=all_backends_count,
+                filtered_backends_count=filtered_backends_count,
+                classify_ms=classify_ms,
+                returned_count=returned_count,
+                cache_hit=cache_hit,
+            )
+        except Exception:
+            # Telemetry must never break a search.
+            return
 
     def _get_backends_for_mode(self, query: str | None = None) -> list[str]:
         """Get list of backends for current mode, optionally filtered by query intent.
