@@ -197,7 +197,8 @@
       "PowerShell(Select-String -Path \"C:\\\\Users\\\\brsth\\\\.claude\\\\plugins\\\\cache\\\\local\\\\cc-skills-sdlc\\\\1.0.168\\\\skills\\\\go\\\\scripts\\\\preflight_propose.py\" -Pattern \"def apply_discovery_evidence_merge\" | ForEach-Object { $_.Line })",
       "PowerShell(Select-String -Path \"C:\\\\Users\\\\brsth\\\\.claude\\\\plugins\\\\cache\\\\local\\\\cc-skills-sdlc\\\\1.0.168\\\\skills\\\\go\\\\scripts\\\\orchestrate.py\" -Pattern \"_apply_discovery_merge\" | ForEach-Object { $_.Line })",
       "PowerShell(python P:/.data/evals/replay_eval.py 2>&1 | Select-Object -First 60)",
-      "PowerShell(python P:/.data/evals/replay_eval.py 2>&1)"
+      "PowerShell(python P:/.data/evals/replay_eval.py 2>&1)",
+      "mcp__perplexity__pplx_smart_query"
     ],
     "deny": [],
     "ask": []
