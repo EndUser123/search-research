@@ -280,7 +280,7 @@ $launcherScript = "P:\packages\installers\run-ornith-server.ps1"
 function Invoke-LocalModelProbe {
     param([switch]$IncludeInference)
     try {
-        $pa = @("-NoProfile", "-NoLogo", "-NonInteractive", "-File", "`"$launcherScript`"", "-Probe")
+        $pa = @("-NoProfile", "-NoLogo", "-NonInteractive", "-File", $launcherScript, "-Probe")
         if ($IncludeInference) { $pa += "-IncludeInference" }
         $out = & pwsh.exe @pa 2>$null
         if ($out) { return ($out | ConvertFrom-Json) }
