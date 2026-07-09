@@ -16,7 +16,7 @@ Single entry point to search across all CSF NIP data stores in parallel - **loca
 - **No external dependencies**: All search is local, privacy-preserving
 - **Efficiency over complexity**: Parallel execution, fast responses
 - **Evidence-based**: Search results provide citation context
-- **Canonical CLI**: `P://packages/.claude-marketplace/plugins/search-research/core/cli.py`
+- **Canonical CLI**: `core/cli.py` (runs from the cache-resolved plugin root; see execution directive below)
 - **Backends**: CKS, CHS (claude-history/Rust+FTS5), VAULT (claude-vault/FTS5), CDS, Code/Grep, DOCS, SKILLS
 - **Search methods**: FTS5 (~10ms), Hybrid (~50ms), Semantic (~200ms)
 - **Output formats**: Human-readable (default), JSON for scripting
@@ -84,7 +84,7 @@ When the query is about architecture, handoffs, resume, stale data, fields, payl
 Run local-first search for `/search` requests (`mode='auto'` — checks local stores, then escalates to web when local results are unsatisfactory):
 
 ```bash
-cd "P:/packages/.claude-marketplace/plugins/search-research" && python -c "
+cd "$(ls -d "$HOME/.claude/plugins/cache/local/search-research/"*/ | sort -V | tail -1)" && python -c "
 from core.unified_router import UnifiedAsyncRouter
 import asyncio
 
@@ -103,7 +103,7 @@ asyncio.run(search())
 **Session-chain queries** (last 7 days):
 
 ```bash
-cd "P:/packages/.claude-marketplace/plugins/search-research" && python -c "
+cd "$(ls -d "$HOME/.claude/plugins/cache/local/search-research/"*/ | sort -V | tail -1)" && python -c "
 from pathlib import Path
 from datetime import datetime, timedelta
 
@@ -130,7 +130,7 @@ for h in handoffs:
 For chat history only:
 
 ```bash
-cd "P:/packages/.claude-marketplace/plugins/search-research" && python -c "
+cd "$(ls -d "$HOME/.claude/plugins/cache/local/search-research/"*/ | sort -V | tail -1)" && python -c "
 from core.unified_router import UnifiedAsyncRouter
 import asyncio
 
