@@ -317,6 +317,22 @@ $localModelHealth = $false
 
 if (-not $lm -or $lm.state -eq "DEAD") {
     Write-Host "[CCR] local model offline (no llama-server) - starting..." -ForegroundColor Cyan
+    # Clean slate: kill any orphaned launchers + llama-server + watchers from
+    # prior runs BEFORE spawning a fresh launcher. cc-ccr -stop deliberately
+    # leaves these running (local model is independent of CCR), so without
+    # this dedup each -start spawns a new launcher while the old one keeps
+    # racing to restart llama-server — observed as 2+ run-ornith-server.ps1
+    # processes + colliding idempotency-guard exits (2026-07-09).
+    # Non-Probe filter: -Probe invocations are transient health checks, not
+    # launchers — don't kill those mid-probe.
+    Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+      Where-Object { $_.CommandLine -match 'run-ornith-server\.ps1' -and $_.CommandLine -notmatch '-Probe' } |
+      ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+      Where-Object { $_.CommandLine -match 'watch-system\.ps1' } |
+      ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    Get-Process llama-server -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Milliseconds 500  # let the port release before the new launcher probes it
     if (Test-Path $launcherScript) {
         # P/Invoke CreateProcess so the launcher (and its llama-server grandchild
         # + watchdog) survive the parent exiting AND run in its OWN console window
