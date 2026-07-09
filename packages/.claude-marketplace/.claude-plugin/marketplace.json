@@ -18,7 +18,7 @@
     },
     {
       "name": "snapshot",
-      "version": "0.5.26",
+      "version": "0.5.27",
       "description": "Session snapshot capture and restore system for Claude Code sessions",
       "source": "./plugins/snapshot",
       "keywords": [
@@ -38,18 +38,6 @@
         "zai",
         "quota",
         "usage",
-        "fork"
-      ]
-    },
-    {
-      "name": "skill-creator",
-      "version": "1.0.1",
-      "description": "LOCAL FORK of Anthropic's skill-creator \u2014 eval-driven skill authoring loop. Forked so customizations survive upstream updates. See FORK_RATIONALE.md.",
-      "source": "./plugins/skill-creator",
-      "keywords": [
-        "skill",
-        "creator",
-        "eval",
         "fork"
       ]
     },
@@ -77,7 +65,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.190",
+      "version": "1.0.192",
       "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -88,7 +76,7 @@
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.2.82",
+      "version": "1.2.83",
       "description": "Utility skills for Claude Code",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
@@ -98,7 +86,7 @@
     },
     {
       "name": "search-research",
-      "version": "0.1.93",
+      "version": "0.1.95",
       "description": "Unified search and research system with async concurrent execution and 11 web providers.",
       "source": "./plugins/search-research",
       "keywords": [
@@ -110,7 +98,7 @@
     },
     {
       "name": "skill-guard",
-      "version": "2.1.55",
+      "version": "2.1.56",
       "description": "Universal skill auto-discovery and enforcement for Claude Code",
       "source": "./plugins/skill-guard",
       "keywords": [
@@ -144,7 +132,7 @@
     },
     {
       "name": "cc-skills-analysis",
-      "version": "1.0.105",
+      "version": "1.0.106",
       "description": "Analysis plugin",
       "source": "./plugins/cc-skills-analysis",
       "keywords": []
@@ -152,7 +140,7 @@
     {
       "name": "prompt-enhancer",
       "version": "0.2.6",
-      "description": "Prompt Clarification & Context Augmentation \u2014 ambiguous prompt detection, enhancement, and multi-turn context preservation via UserPromptSubmit + PreCompact hooks.",
+      "description": "Prompt Clarification & Context Augmentation — ambiguous prompt detection, enhancement, and multi-turn context preservation via UserPromptSubmit + PreCompact hooks.",
       "source": "./plugins/prompt-enhancer",
       "keywords": [
         "prompt",
@@ -273,7 +261,7 @@
     {
       "name": "cc-aca-observability",
       "version": "0.1.25",
-      "description": "ACA Observability plugin \u2014 session health monitoring, drift detection, artifact scraping, and PostToolUse tracker orchestration. Part of the Agent Control Architecture.",
+      "description": "ACA Observability plugin — session health monitoring, drift detection, artifact scraping, and PostToolUse tracker orchestration. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-observability",
       "keywords": [
         "aca",

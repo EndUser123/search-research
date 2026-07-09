@@ -3774,3 +3774,15 @@ Page: P:/.data/wiki/concepts/windows-cross-process-file-locking.md
 Source: session
 Transcript: b8c3e0a4-3c21-4ab7-9fa9-5b8df525d370.jsonl
 Page: P:/.data/wiki/concepts/background-warmup-atomic-publish.md
+## [2026-07-08] ingest | Claude Code auto-mode classifier model is NOT independently configurable
+Source: session-2026-07-08
+Page: P:/.data/wiki/concepts/claude-code-classifier-not-configurable.md
+## [2026-07-08] ingest | Windows P/Invoke CreateProcess: console isolation via CREATE_NEW_CONSOLE
+Source: session-2026-07-08
+Page: P:/.data/wiki/concepts/windows-createprocess-console-isolation.md
+## [2026-07-08] ingest | Local model readiness gate: LOADED is enough, don't probe inference
+Source: session-2026-07-08
+Page: P:/.data/wiki/concepts/local-model-readiness-gate.md
+## [2026-07-08] ingest | llama-server orphan-on-give-up + crash-log archival
+Source: session-2026-07-08
+Page: P:/.data/wiki/concepts/llama-server-orphan-on-give-up.md

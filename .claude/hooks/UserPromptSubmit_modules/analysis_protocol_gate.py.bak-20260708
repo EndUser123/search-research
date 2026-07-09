@@ -588,16 +588,12 @@ def _should_inject_fap(prompt: str, config: dict | None = None) -> bool:
 
 _FAP_INJECTION = (
     "**Failure Analysis Protocol active.**\n"
-    "Before diagnosing: (1) name the specific artifact you're diagnosing from "
-    "(transcript, diff, log, test output) -- if you don't have it, go get it, "
-    "don't infer from a description of it. (2) For every causal claim, cite the "
-    "file:line, command output, or tool-call result that supports it -- an "
-    "uncited causal claim does not go in the analysis. (3) State explicitly what "
-    "you did NOT check, rather than filling the gap with a plausible narrative. "
-    "(4) Classify the fix as delete, source-fix, or gate, in that preference "
-    "order -- a gate requires stating why the source could not be fixed "
-    "directly. (5) The fix is incomplete without a test or reproducible check "
-    "that would have caught the original failure."
+    "Before diagnosing: (1) lock scope to the specific instance, (2) confirm you "
+    "have the artifact (don't proceed on descriptions), (3) build a 3-hop causal chain, "
+    "(4) generalization scan — name ≥1 other system sharing this failure class, "
+    "(5) classify fixes S/D/R, (6) design the failure path (degradation marker), "
+    "(7) codification gate — fix is incomplete without a test invariant.\n"
+    "Full protocol: P:/docs/failure-analysis-protocol.md"
 )
 
 

@@ -298,7 +298,13 @@ function Wait-LocalModelReady {
         $s = Invoke-LocalModelProbe
         if (-not $s) { Start-Sleep -Seconds 2; continue }
         if ($s.state -eq "LOADED" -or $s.state -eq "READY") {
-            return (Invoke-LocalModelProbe -IncludeInference)
+            # LOADED (GGUF in memory, port bound) is sufficient for routing readiness.
+            # Do NOT re-probe with -IncludeInference here: under --parallel 1 the
+            # inference call queues behind real traffic, times out, returns HUNG,
+            # and prints "local model not ready" while the launcher finishes 4s
+            # later (the "terrible" stale-usage race). Same collision the watchdog
+            # deliberately avoids. Drop the double-probe; LOADED == ready.
+            return $s
         }
         if ($s.state -in @("DEAD", "STUCK", "BROKEN", "HUNG")) { return $s }
         Start-Sleep -Seconds 2
@@ -312,24 +318,40 @@ $localModelHealth = $false
 if (-not $lm -or $lm.state -eq "DEAD") {
     Write-Host "[CCR] local model offline (no llama-server) - starting..." -ForegroundColor Cyan
     if (Test-Path $launcherScript) {
-        # P/Invoke CreateProcess with CREATE_BREAKAWAY_FROM_JOB so the launcher
-        # (and its llama-server grandchild + watchdog) survive the parent exiting.
+        # P/Invoke CreateProcess so the launcher (and its llama-server grandchild
+        # + watchdog) survive the parent exiting AND run in its OWN console window
+        # — not the caller's. Without CREATE_NEW_CONSOLE the child shares the
+        # parent's console, so the launcher's Write-Host spills into the terminal
+        # where the user runs cc-ccr/claude (they had to ^C to escape it).
+        #   CREATE_NEW_CONSOLE      -> own window, own stdout (isolation)
+        #   CREATE_BREAKAWAY_FROM_JOB -> survives parent exit
+        #   STARTF_USESHOWWINDOW + SW_SHOWMINNOACTIVE -> start minimized, no focus steal;
+        #     the window is taskbar-visible and its title carries the launcher's
+        #     live-state heartbeat ("llama.cpp: READY • VRAM …").
         if (-not ([System.Management.Automation.PSTypeName]'CCR_BREAKAWAY').Type) {
             Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
 public class CCR_BREAKAWAY {
     const uint CREATE_BREAKAWAY_FROM_JOB = 0x01000000;
+    const uint CREATE_NEW_CONSOLE        = 0x00000010;
+    const uint STARTF_USESHOWWINDOW       = 0x00000001;
+    const short SW_SHOWMINNOACTIVE        = 7;
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    public struct STARTUPINFO { public int cb; public IntPtr lpReserved; public IntPtr lpDesktop; public IntPtr lpTitle; public int dwX; public int dwY; public int dwXSize; public int dwYSize; public int dwXCountChars; public int dwYCountChars; public int dwFillAttribute; public int dwFlags; public short wShowWindow; public short cbReserved2; public IntPtr lpReserved2; public IntPtr hStdInput; public IntPtr hStdOutput; public IntPtr hStdError; }
+    public struct STARTUPINFO { public int cb; public IntPtr lpReserved; public IntPtr lpDesktop; public IntPtr lpTitle; public int dwX; public int dwY; public int dwXSize; public int dwYSize; public int dwXCountChars; public int dwYCountChars; public int dwFillAttribute; public uint dwFlags; public short wShowWindow; public short cbReserved2; public IntPtr lpReserved2; public IntPtr hStdInput; public IntPtr hStdOutput; public IntPtr hStdError; }
     [StructLayout(LayoutKind.Sequential)]
     public struct PROCESS_INFORMATION { public IntPtr hProcess; public IntPtr hThread; public uint dwProcessId; public uint dwThreadId; }
     [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     public static extern bool CreateProcess(string lpApplicationName, string lpCommandLine, IntPtr lpProcessAttributes, IntPtr lpThreadAttributes, bool bInheritHandles, uint dwCreationFlags, IntPtr lpEnvironment, string lpCurrentDirectory, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation);
     public static bool Launch(string exe, string args) {
-        var si = new STARTUPINFO { cb = Marshal.SizeOf(typeof(STARTUPINFO)) };
+        var si = new STARTUPINFO {
+            cb = Marshal.SizeOf(typeof(STARTUPINFO)),
+            dwFlags = STARTF_USESHOWWINDOW,
+            wShowWindow = SW_SHOWMINNOACTIVE
+        };
         var pi = new PROCESS_INFORMATION();
-        return CreateProcess(exe, args, IntPtr.Zero, IntPtr.Zero, false, CREATE_BREAKAWAY_FROM_JOB, IntPtr.Zero, null, ref si, out pi);
+        uint flags = CREATE_BREAKAWAY_FROM_JOB | CREATE_NEW_CONSOLE;
+        return CreateProcess(exe, args, IntPtr.Zero, IntPtr.Zero, false, flags, IntPtr.Zero, null, ref si, out pi);
     }
 }
 "@

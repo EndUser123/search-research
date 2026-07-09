@@ -211,7 +211,12 @@ Write-Host "System watcher started (PID $($watcher.Id)) - log: $watcherLog"
 
 Write-Host "Starting llama-server with Ornith-1.0-9B on $endpoint"
 Write-Host "Log: $llamaLog"
-Write-Host "Press Ctrl+C to stop."
+Write-Host "(Window stays visible+minimized so the taskbar shows live state.)"
+
+# Set the window title once at startup — the heartbeat poll below keeps it
+# current. Title format: "llama.cpp: <state> • VRAM <MB>MB" so the taskbar
+# tooltip alone tells you health + rough activity without expanding the window.
+$host.UI.RawUI.WindowTitle = "llama.cpp: starting…"
 
 # Launch llama-server in background with stdout/stderr captured to file.
 # Run in foreground would lose the log; tee via Start-Process preserves both.
@@ -225,8 +230,18 @@ $crashCount = 0
 $lastStartTime = $null
 try {
   while ($true) {
-    # Clear per-restart log so watchdog tail shows only the latest run
-    Remove-Item "$llamaLog.err" -ErrorAction SilentlyContinue
+    # Archive (don't delete) the prior run's stderr so the watchdog tail shows
+    # only the latest run BUT crash signatures survive for diagnosis. The old
+    # Remove-Item wiped every crash log, making the 3-crash give-up (3.3h→12m→
+    # startup-fail→10s) impossible to root-cause.
+    if (Test-Path "$llamaLog.err") {
+      $arch = "$llamaLog.err.$(Get-Date -Format yyyyMMdd-HHmmss)"
+      Move-Item "$llamaLog.err" $arch -Force -ErrorAction SilentlyContinue
+      # Keep only the newest 5 archives
+      Get-ChildItem "$llamaLog.err.*" -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending | Select-Object -Skip 5 |
+        Remove-Item -Force -ErrorAction SilentlyContinue
+    }
 
     $procHandle = Start-Process -FilePath "$bin\llama-server.exe" `
                                 -ArgumentList $llamaArgs `
@@ -270,10 +285,42 @@ try {
     # (NO inference — a probe mid-generation would false-positive HUNG under
     # --parallel 1 and kill a healthy busy server). Kill+restart on STUCK/BROKEN
     # (zombie / HTTP broken). Leave LOADING/LOADED alone — those are alive.
+    # Same poll also samples VRAM and updates the window title so the taskbar
+    # shows live state ("llama.cpp: READY • VRAM 11451MB" / "…idle" / "…busy").
+    $lastVram = $null
     while (-not $procHandle.HasExited) {
         Start-Sleep -Seconds 15
         if ($procHandle.HasExited) { break }
         $poll = Get-LocalModelState -Endpoint $endpoint
+
+        # VRAM sample for usage signal + taskbar title. Same data source
+        # watch-system.ps1 uses; ~50ms, runs once per 15s cycle.
+        $vram = $null
+        try {
+          $vramRaw = (nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits 2>$null | Select-Object -First 1)
+          if ($vramRaw) { [int]$vram = [int]$vramRaw.Trim() }
+        } catch {}
+
+        # Rising = request in flight (busy), flat = idle, falling = context
+        # released. Only meaningful once the model is loaded (RESIDENT vram).
+        $activity = "—"
+        if ($vram -and $lastVram) {
+          $delta = $vram - $lastVram
+          if ($delta -gt 20) { $activity = "busy ↑" }
+          elseif ($delta -lt -20) { $activity = "idle ↓" }
+          else { $activity = "idle ≈" }
+        }
+        $lastVram = $vram
+
+        # Single heartbeat line — readable when window is expanded; title
+        # carries the headline for the taskbar tooltip.
+        $vramTxt = if ($vram) { "${vram}MB" } else { "n/a" }
+        Write-Host "[run-ornith] $($poll.state.ToLower()) • VRAM $vramTxt • $activity"
+
+        try {
+          $host.UI.RawUI.WindowTitle = "llama.cpp: $($poll.state) • VRAM $vramTxt • $activity"
+        } catch {}
+
         if ($poll.state -eq "STUCK" -or $poll.state -eq "BROKEN") {
             Write-Warning "[run-ornith] watchdog: model $($poll.state) ($($poll.detail)) - killing PID $($procHandle.Id) for restart"
             Stop-Process -Id $procHandle.Id -Force -ErrorAction SilentlyContinue
@@ -299,6 +346,23 @@ try {
     Start-Sleep -Seconds 3
   }
 } finally {
+  # Kill any live llama-server child before we declare "stopped". Without this,
+  # the 3-crash give-up exits the launcher but leaves the most recent PID
+  # running (orphan): GPU still pegged, port still bound, but no watchdog and
+  # local-model-state.json says stopped — cc-ccr thinks local is down.
+  if ($procHandle -and -not $procHandle.HasExited) {
+    Write-Host "[run-ornith] killing live child PID $($procHandle.Id) on exit"
+    Stop-Process -Id $procHandle.Id -Force -ErrorAction SilentlyContinue
+    # Brief wait for the port to release (otherwise a manual relaunch races)
+    $deadline = (Get-Date).AddSeconds(3)
+    while ((Get-Date) -lt $deadline) {
+      try {
+        $t = [System.Net.Sockets.TcpClient]::new(); $t.Connect('127.0.0.1', 8010)
+        if ($t.Connected) { $t.Close(); Start-Sleep -Milliseconds 200; continue }
+        break
+      } catch { break }
+    }
+  }
   # Update local model state on exit (mark as stopped)
   $stopState = @{
     models = @()

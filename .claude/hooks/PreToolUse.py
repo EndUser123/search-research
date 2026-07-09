@@ -906,6 +906,7 @@ TOOL_HOOKS = {
     ],
     "Task": [
         "PreToolUse_task_self_doc_gate.py",
+        "PreToolUse_task_done_evidence_gate.py",
         # Authority-owned gating is routed elsewhere now.
     ],
     "mcp__web-reader__webReader": [

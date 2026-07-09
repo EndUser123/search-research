@@ -364,6 +364,12 @@ module.exports = async function router(req, config) {
       token_count: tokenCount,
       reason,
     });
+    // Strip Anthropic extended-thinking on the opencode-go path BEFORE the
+    // CCR openai transformer adds the rejected `r.reasoning` field. Single
+    // insertion covers every decision path (pin / background / reasoning /
+    // coding / no-local). Idempotent on the body. Stderr-annotated for
+    // CCR log tailers.
+    if (route) stripThinkingForOpencodeGo(req, backend.provider);
     emitRouteChange(route, reason, req);
     return route;
   };
@@ -427,6 +433,41 @@ module.exports = async function router(req, config) {
   // --- No local model: classifier tier or M3 ---
   return decide(tierRoute, `no-local-model (${taskType}); tier=${rec?.recommended_tier || "none"}`, tierSource);
 };
+
+// Pre-transform body patch: when the route is opencode-go AND the request
+// carries Anthropic extended-thinking AND non-empty tools, strip thinking before
+// the CCR openai transformer runs. Without this, the transformer emits
+// `r.reasoning = { effort, enabled }` (dist/cli.js openai transform), which
+// opencode-go's Console Go upstream rejects with 400 invalid_request_error on
+// the {reasoning-model, tools, thinking} triple (musistudio issue #1378:
+// "DeepSeek V4 Pro + thinking mode + tool calls: 400, no working workaround").
+// Tool reinjection is NOT the bug here (the transformer handles it correctly);
+// the rejected field is `reasoning`. Stripping thinking fixes the 400;
+// tools continue to pass through the transform normally.
+function stripThinkingForOpencodeGo(req, backendProvider) {
+  if (backendProvider !== "opencode-go") return false;
+  const body = req?.body;
+  if (!body) return false;
+  const thinking = body.thinking;
+  const thinkingOn = thinking && thinking.type === "enabled";
+  const hasTools = Array.isArray(body.tools) && body.tools.length > 0;
+  if (!thinkingOn || !hasTools) return false;
+  // Drop top-level thinking field; transform will skip the r.reasoning line.
+  delete body.thinking;
+  // Strip any thinking/redacted_thinking content blocks already in messages,
+  // so they don't reach the upstream as malformed shapes.
+  if (Array.isArray(body.messages)) {
+    for (const m of body.messages) {
+      if (!Array.isArray(m?.content)) continue;
+      m.content = m.content.filter((b) => b && b.type !== "thinking" && b.type !== "redacted_thinking");
+    }
+  }
+  try {
+    process.stderr.write("[CCR-route] stripped thinking for opencode-go (tools=" +
+      (body.tools?.length ?? 0) + ") — see #1378\n");
+  } catch {}
+  return true;
+}
 
 // --- Model name to CCR route resolution ---
 
