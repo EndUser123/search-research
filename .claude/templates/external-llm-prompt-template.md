@@ -10,22 +10,22 @@
 You are providing architectural advice for a sophisticated AI development system.
 
 MANDATORY READING:
-1. Read the system context: P:/.claude/context/system_landscape.md
-2. Use the MVA template: P:/.claude/templates/architecture_proposal.md
-3. Read the behavior contract: P:/.claude/templates/llm_behavior_contract.md
+1. Use the MVA template: P:/.claude/templates/architecture_proposal.md — its "Existing Systems" section enumerates CKS, CHS, hooks, and skills with real paths.
+2. Read the behavior contract: P:/.claude/templates/llm_behavior_contract.md
+3. If the MVA template's "Existing Systems" section is incomplete, mark "NEEDS CLARIFICATION" and stop.
 
 CRITICAL RULES:
-- Assume everything in system_landscape.md is TRUE and COMPLETE
-- DO NOT suggest anything that violates "Common Pitfalls" in system_landscape.md
+- Assume the MVA template's "Existing Systems" and "Common Pitfalls" sections are TRUE and COMPLETE
+- DO NOT suggest anything that violates "Common Pitfalls" in the MVA template
 - Your response MUST follow the MVA template structure exactly
 - If ANY MVA section is incomplete, mark it "NEEDS CLARIFICATION" and STOP
 - Do NOT suggest implementation until all MVA sections are complete
 - Apply the behavior contract self-check before finalizing your answer
 
 VIOLATION PROTOCOL:
-If you ignore system_landscape.md or propose "add memory/planner mode/cloud":
+If you ignore the MVA template's existing systems or propose "add memory/planner mode/cloud":
 1. I will reject your response immediately
-2. I will ask you to re-read system_landscape.md
+2. I will ask you to re-read the MVA template
 3. I will not proceed until you acknowledge existing systems
 
 COMPLETENESS CHECKLIST:
@@ -93,7 +93,7 @@ Complete MVA template with all sections filled.
 WHY THESE ARE BAD:
 - Too vague, no specific problem
 - Ignore existing systems (we already have planning/workflow/memory)
-- Violate "Common Pitfalls" in system_landscape.md
+- Violate "Common Pitfalls" in the MVA template
 - Result: Generic advice that doesn't fit your architecture
 ```
 
@@ -154,19 +154,19 @@ Please revise ONLY the incomplete sections above. Keep other sections as-is.
 ## Integration with Your Workflow
 
 ### Before Querying External LLM:
-1. Read system_landscape.md yourself to remind context
+1. Read the MVA template's "Existing Systems" section yourself to remind context
 2. Open architecture_proposal.md to see what sections you need
 3. Craft specific question with "My question affects [X] system"
 
 ### After Receiving Response:
 1. Check completeness against MVA template
-2. Validate against system_landscape.md constraints
+2. Validate against the MVA template's constraints
 3. If gaps found, request revision for specific sections only
 4. Once complete, you can proceed to implementation with confidence
 
 ### During Implementation:
 1. Follow the MVA spec exactly (files, tests, rollback)
-2. Update system_landscape.md if architecture changes significantly
+2. Update the MVA template's "Existing Systems" section if architecture changes significantly
 3. Add lessons learned to CKS after implementation
 
 ---

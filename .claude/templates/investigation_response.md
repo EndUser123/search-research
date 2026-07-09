@@ -98,34 +98,36 @@ enabled = false
 ### GOOD (Verification First)
 
 ```markdown
-## Investigation: Disable pytest-testmon plugin
+## Investigation: [Title — a real question you actually investigated]
 
 ### Issue Description
-pytest hangs indefinitely. Need to disable testmon plugin.
+[1-2 sentences. What you observed, not what you assume caused it.]
 
 ### Discovery Phase
-Read P:\.claude\skills\p\pyproject.toml:
-- Line 61: `addopts = "-v --tb=short"`
-- No testmon configuration visible
+- Read [file:line] — [what you found]
+- Ran [command] — [what it returned]
+- No assumption that a file exists, a flag is supported, or a doc is current.
 
 ### Hypothesis Testing
 
-**Hypothesis**: testmon plugin is causing hang
-**Test**: `pytest tests/ -v -p no:testmon`
-**Result**: Tests complete in 0.15s
-**Conclusion**: CONFIRMED - testmon is the cause
+**Hypothesis**: [What you suspect. State it falsifiably.]
+**Test**: [Command or action that would disconfirm it.]
+**Result**: [Actual output, copied verbatim.]
+**Conclusion**: [RULED OUT / CONFIRMED / INCONCLUSIVE — with the line of evidence.]
 
 ### Evidence Collected
-- pyproject.toml line 61 shows addopts
-- Running with `-p no:testmon` fixes the issue
-- No testmon-specific config found in file
+- file:line — observation
+- command output — observation
+- Each claim backed by something you ran, read, or saw — not by "I think" or "probably."
 
 ### Root Cause
-pytest-testmon plugin (v2.2.0) causes hanging - disabled via `-p no:testmon` flag.
+[One paragraph. What is actually happening, named specifically.]
 
 ### Next Action
-Update pyproject.toml line 61 to include `-p no:testmon` flag
+[Concrete next step. Not "investigate further" — a specific command, file edit, or test run.]
 ```
+
+**Example caution:** if you populate this template with file:line references you have not actually verified, you are reproducing the anti-pattern this template exists to prevent. The template's structure is verified-by-construction; the content is verified by you.
 
 ---
 

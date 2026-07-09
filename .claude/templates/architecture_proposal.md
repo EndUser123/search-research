@@ -9,14 +9,13 @@
 ## 1. Context Understanding
 
 ### Existing Systems
-- **CKS** (Constitutional Knowledge System): `P:/src/knowledge/systems/cks/`
-  - 492 memory entries, SQLite + FAISS vector search
-  - Semantic retrieval of lessons, patterns, fixes
+- **CKS** (Constitutional Knowledge System): persistent memory for lessons, patterns, fixes
+  - Real, in-use. Do not propose adding memory or case recall.
   - Accessed via `/cks` skill
-- **CHS** (Chat History Search): `P:/src/knowledge/systems/chs/`
-  - Semantic search over prior conversations
-  - SQLite + embeddings
-  - Answers "what did we do before" queries
+- **CHS** (Chat History Search): semantic search over prior conversations
+  - Real, in-use. Answers "what did we do before" queries.
+  - Accessed via `/chs` skill
+- *Note:* do not invent on-disk paths. If a proposal requires editing CKS/CHS internals, mark "NEEDS CLARIFICATION" and ask for the real path from the user.
 - **Cognitive Hooks**: `P:/.claude/hooks/`
   - UserPromptSubmit: cognitive framework injection
   - Start: reasoning mode selection
