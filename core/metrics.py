@@ -19,6 +19,7 @@ class ComponentName(str, Enum):
     CONTRADICTION = "CONTRADICTION"
     COVERAGE_GATE = "COVERAGE_GATE"
     CRAG_GRADE = "CRAG_GRADE"
+    INTENT_DISPATCH = "INTENT_DISPATCH"  # query-intent classification latency
 
 
 @dataclass

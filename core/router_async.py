@@ -1122,17 +1122,43 @@ class AsyncSearchRouter:
             self._create_backends()
 
         all_backends = list(self._backends.keys())
+        all_count = len(all_backends)
 
         if query is None:
             return all_backends
 
+        import time as _time_mod
         try:
             from .query_intent import classify_query_intent, BACKEND_FOR_INTENT
+            from .query_telemetry import hash_query
+            _t0 = _time_mod.perf_counter()
             result = classify_query_intent(query)
+            _classify_ms = (_time_mod.perf_counter() - _t0) * 1000.0
             allowed = BACKEND_FOR_INTENT.get(result.intent, set())
             if not allowed:
-                return all_backends
-            return [b for b in all_backends if b in allowed]
+                filtered = all_backends
+            else:
+                filtered = [b for b in all_backends if b in allowed]
+            # Stash for the search_async tail to emit as one per-query record.
+            # Non-breaking: return type unchanged, so wiring guardrail stays green.
+            self._last_filter_telemetry = {
+                "query_hash": hash_query(query),
+                "intent": result.intent.value,
+                "confidence": result.confidence,
+                "all_backends_count": all_count,
+                "filtered_backends_count": len(filtered),
+                "classify_ms": _classify_ms,
+            }
+            try:
+                self._metrics.log_component(
+                    component=ComponentName.INTENT_DISPATCH,
+                    latency_ms=_classify_ms,
+                    tokens_used=0,
+                    quality=result.confidence,
+                )
+            except Exception:
+                pass
+            return filtered
         except Exception:
             return all_backends
 
