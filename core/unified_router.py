@@ -404,11 +404,21 @@ class UnifiedAsyncRouter:
             if semantic_results:
                 return self._add_topic_alignment_scores(query, semantic_results)
 
-        # Phase 1: Fast local search with error handling
+        # Phase 1: Fast local search with error handling.
+        # NOTE: log at WARNING, not DEBUG. A local-search exception is almost always a
+        # real, recurring defect (broken import, bad config, missing DB) that silently
+        # degrades EVERY query to web-only. DEBUG hid a total backend failure for a long
+        # time (the search_research->core import drift, 2026-07). Surface it loudly;
+        # returning [] is still correct so web fallback can run.
         try:
             local_results = await self._local_router.search_async(query, limit=limit * 2)
         except Exception as e:
-            logger.debug(f"Local search failed: {e}. Returning empty results.")
+            logger.warning(
+                "Local search failed (%s: %s); returning empty results. "
+                "If this persists, local backends are broken — investigate.",
+                type(e).__name__,
+                e,
+            )
             local_results = []
 
         # Phase 2: Quality check (skip web if satisfied)
