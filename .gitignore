@@ -601,3 +601,6 @@ backups/
 
 # CC per-load PID markers (runtime, per-terminal — loader writes, nothing reads)
 .in_use/
+
+# Third-party and owned clones — each has its own .git repo
+packages/.github_repos/
