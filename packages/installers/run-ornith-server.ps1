@@ -9,6 +9,11 @@ $modelStateFile = "P:\.claude\state\local-model-state.json"
 $llamaLog      = "P:\packages\installers\ornith-server.log"
 $endpoint = "http://127.0.0.1:8010"
 $modelId = "ornith-1.0-9b"
+# Crash dossiers — one JSON per llama-server exit, written so the next crash is
+# actually investigable. See P:\packages\installers\LLAMA-CRASH-RCA.md.
+$crashDir = "P:\.claude\state\local-model-crashes"
+$routeLog = "P:\.claude\state\ccr-route-log.jsonl"
+$runbookPath = "P:\packages\installers\LLAMA-CRASH-RCA.md"
 
 # --- Readiness probe: 5-rung ladder (cheap -> expensive, short-circuit) -------
 # Single source of truth for "is the local model usable." Returns:
@@ -228,6 +233,81 @@ $llamaArgs = @("-m", "$model", "-ngl", "99", "-c", "65536", "-t", "6",
 
 $crashCount = 0
 $lastStartTime = $null
+
+# Write a crash dossier on every llama-server exit so the next crash is
+# actually investigable. Wrapped in try/catch so a bug here can NEVER kill
+# the launcher (the launcher staying up is more important than a perfect
+# dossier). One JSON per exit: P:\.claude\state\local-model-crashes\<ts>.json
+function Write-CrashDossier {
+  param($Proc, $StartedAt, $Args, $CrashNum)
+  try {
+    $ts = (Get-Date).ToString("yyyyMMdd-HHmmss")
+    if (-not (Test-Path $crashDir)) { New-Item -ItemType Directory -Path $crashDir -Force | Out-Null }
+
+    $uptime = if ($StartedAt) { [math]::Round(((Get-Date) - $StartedAt).TotalSeconds) } else { 0 }
+    $exitCode = $null
+    try { $exitCode = $Proc.ExitCode } catch {}
+
+    # GPU snapshot at crash moment. May fail/hang if GPU is in a faulted state.
+    $gpu = $null
+    try {
+      $gpu = (nvidia-smi --query-gpu=memory.used,memory.total,utilization.gpu,temperature.gpu,power.draw --format=csv,noheader,nounits 2>$null) -split ',' | ForEach-Object { $_.Trim() }
+    } catch {}
+
+    # VRAM trajectory — last 5 watch samples (was VRAM climbing into the crash?)
+    $vramTraj = @()
+    try {
+      if (Test-Path $watcherLog) { $vramTraj = @(Get-Content $watcherLog -Tail 5) }
+    } catch {}
+
+    # Last 3 local-bound requests (what was being processed when it died)
+    $lastReq = @()
+    try {
+      if (Test-Path $routeLog) {
+        $lastReq = @(Get-Content $routeLog -Tail 50 | Where-Object { $_ -match '"local_used":\s*true' } | Select-Object -Last 3)
+      }
+    } catch {}
+
+    # Windows Event Log — GPU driver / TDR events. PRIMARY signal for a
+    # GPU/driver fault (llama-server's .err often doesn't flush on hard crash).
+    # EventID 4101 (source Display) = TDR recovery; 153 = driver error.
+    $events = @()
+    try {
+      $since = (Get-Date).AddMinutes(-5)
+      $events = @(Get-WinEvent -FilterHashtable @{ LogName='System'; StartTime=$since; Level=1,2,3 } -ErrorAction SilentlyContinue |
+        Where-Object { $_.ProviderName -match 'nvlddmkm|Display|nvwmi|Kernel-Power|EventLog' -or $_.Id -in 4101,153,41,6008 } |
+        Select-Object TimeCreated, Id, ProviderName, @{n='msg';e={ $_.Message.Substring(0, [math]::Min(300, $_.Message.Length)) } } |
+        Select-Object -First 10)
+    } catch {}
+
+    # .err tail — secondary; may be empty/truncated on hard crash
+    $errTail = @()
+    try {
+      if (Test-Path "$llamaLog.err") { $errTail = @(Get-Content "$llamaLog.err" -Tail 50) }
+    } catch {}
+
+    $dossier = [ordered]@{
+      crash_ts           = $ts
+      runbook            = $runbookPath
+      pid                = if ($Proc) { $Proc.Id } else { $null }
+      exit_code          = $exitCode
+      uptime_s           = $uptime
+      crash_count_session= $CrashNum
+      args               = ($Args -join ' ')
+      gpu_snapshot       = if ($gpu) { [ordered]@{ vram_used_mb=$gpu[0]; vram_total_mb=$gpu[1]; gpu_util_pct=$gpu[2]; temp_c=$gpu[3]; power_w=$gpu[4] } } else { $null }
+      vram_trajectory    = $vramTraj
+      last_local_requests= $lastReq
+      windows_events     = $events
+      err_tail           = $errTail
+    }
+    $path = Join-Path $crashDir "$ts.json"
+    $dossier | ConvertTo-Json -Depth 5 | Set-Content -Path $path -Encoding UTF8
+    Write-Host "[run-ornith] crash dossier written: $path" -ForegroundColor Yellow
+  } catch {
+    try { Write-Warning "[run-ornith] dossier write failed: $($_.Exception.Message)" } catch {}
+  }
+}
+
 try {
   while ($true) {
     # Archive (don't delete) the prior run's stderr so the watchdog tail shows
@@ -271,9 +351,12 @@ try {
       if ($procHandle -and -not $procHandle.HasExited) {
         Stop-Process -Id $procHandle.Id -Force -ErrorAction SilentlyContinue
       }
+      # Capture the startup-fail dossier (the "startup-fail→10s" crash path).
+      Write-CrashDossier -Proc $procHandle -StartedAt $lastStartTime -Args $llamaArgs -CrashNum $crashCount
       $crashCount++
       if ($crashCount -ge 3) {
         Write-Warning "[run-ornith] 3 consecutive startup failures - giving up"
+        Write-Warning "[run-ornith] see $runbookPath — dossiers in $crashDir"
         break
       }
       Write-Warning "[run-ornith] startup failed, retrying in 5s (attempt $($crashCount + 1)/3)"
@@ -328,6 +411,10 @@ try {
             break
         }
     }
+
+    # llama-server has exited (crash, watchdog kill, or clean). Capture a
+    # dossier BEFORE the restart counter logic so every exit is recorded.
+    Write-CrashDossier -Proc $procHandle -StartedAt $lastStartTime -Args $llamaArgs -CrashNum $crashCount
 
     # If the server ran for more than 60s, consider it a stable session - reset crash counter
     $ranSecs = if ($lastStartTime) { ((Get-Date) - $lastStartTime).TotalSeconds } else { 0 }
