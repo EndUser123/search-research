@@ -208,7 +208,14 @@ try {
   # Port not listening yet - fall through to normal launch.
 }
 
-# Start system-watcher in background (hidden PowerShell window)
+# Start system-watcher in background (hidden PowerShell window).
+# Kill any orphaned watchers from prior launcher runs FIRST — without this,
+# each launcher restart spawns a new watcher while the old one keeps appending
+# to the same file, producing a mixed-encoding corrupt log (UTF-8 header +
+# UTF-16 appends from the orphan, 28% null bytes observed 2026-07-09).
+Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+  Where-Object { $_.CommandLine -match 'watch-system\.ps1' -and $_.ProcessId -ne $PID } |
+  ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 Remove-Item $watcherLog -ErrorAction SilentlyContinue
 Remove-Item $llamaLog -ErrorAction SilentlyContinue
 $watcher = Start-Process pwsh.exe -ArgumentList "-NoProfile -File `"$watcherScript`"" -WindowStyle Hidden -PassThru

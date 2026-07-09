@@ -8,7 +8,7 @@ param(
   [string]$OutFile = "P:\packages\installers\system_watch.log"
 )
 
-"Time | llamaWS_GB | FreeRAM_GB | VRAM_MB" | Out-File $OutFile
+"Time | llamaWS_GB | FreeRAM_GB | VRAM_MB" | Out-File $OutFile -Encoding utf8
 Write-Host "Logging to $OutFile every ${IntervalSeconds}s - Ctrl+C to stop"
 
 while ($true) {
@@ -22,6 +22,6 @@ while ($true) {
 
   $vram = (nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits 2>$null | Select-Object -First 1).Trim()
 
-  "$now  $ws  $free  $vram" | Out-File $OutFile -Append
+  "$now  $ws  $free  $vram" | Out-File $OutFile -Append -Encoding utf8
   Start-Sleep -Seconds $IntervalSeconds
 }
