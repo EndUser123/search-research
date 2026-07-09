@@ -239,7 +239,7 @@ $lastStartTime = $null
 # the launcher (the launcher staying up is more important than a perfect
 # dossier). One JSON per exit: P:\.claude\state\local-model-crashes\<ts>.json
 function Write-CrashDossier {
-  param($Proc, $StartedAt, $Args, $CrashNum)
+  param($Proc, $StartedAt, $LlamaArgs, $CrashNum)
   try {
     $ts = (Get-Date).ToString("yyyyMMdd-HHmmss")
     if (-not (Test-Path $crashDir)) { New-Item -ItemType Directory -Path $crashDir -Force | Out-Null }
@@ -293,7 +293,7 @@ function Write-CrashDossier {
       exit_code          = $exitCode
       uptime_s           = $uptime
       crash_count_session= $CrashNum
-      args               = ($Args -join ' ')
+      args               = ($LlamaArgs -join ' ')
       gpu_snapshot       = if ($gpu) { [ordered]@{ vram_used_mb=$gpu[0]; vram_total_mb=$gpu[1]; gpu_util_pct=$gpu[2]; temp_c=$gpu[3]; power_w=$gpu[4] } } else { $null }
       vram_trajectory    = $vramTraj
       last_local_requests= $lastReq
@@ -352,7 +352,7 @@ try {
         Stop-Process -Id $procHandle.Id -Force -ErrorAction SilentlyContinue
       }
       # Capture the startup-fail dossier (the "startup-fail→10s" crash path).
-      Write-CrashDossier -Proc $procHandle -StartedAt $lastStartTime -Args $llamaArgs -CrashNum $crashCount
+      Write-CrashDossier -Proc $procHandle -StartedAt $lastStartTime -LlamaArgs $llamaArgs -CrashNum $crashCount
       $crashCount++
       if ($crashCount -ge 3) {
         Write-Warning "[run-ornith] 3 consecutive startup failures - giving up"
@@ -414,7 +414,7 @@ try {
 
     # llama-server has exited (crash, watchdog kill, or clean). Capture a
     # dossier BEFORE the restart counter logic so every exit is recorded.
-    Write-CrashDossier -Proc $procHandle -StartedAt $lastStartTime -Args $llamaArgs -CrashNum $crashCount
+    Write-CrashDossier -Proc $procHandle -StartedAt $lastStartTime -LlamaArgs $llamaArgs -CrashNum $crashCount
 
     # If the server ran for more than 60s, consider it a stable session - reset crash counter
     $ranSecs = if ($lastStartTime) { ((Get-Date) - $lastStartTime).TotalSeconds } else { 0 }
@@ -426,6 +426,7 @@ try {
 
     if ($crashCount -ge 3) {
       Write-Warning "[run-ornith] 3 rapid crashes (${ranSecs}s avg) - giving up"
+      Write-Warning "[run-ornith] see $runbookPath — dossiers in $crashDir"
       break
     }
 
