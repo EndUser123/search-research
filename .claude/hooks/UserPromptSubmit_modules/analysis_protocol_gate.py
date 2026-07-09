@@ -140,7 +140,11 @@ def _bump_fap_stat(key: str) -> None:
         if _FAP_STATS_FILE.exists():
             stats = json.loads(_FAP_STATS_FILE.read_text(encoding="utf-8"))
         stats[key] = stats.get(key, 0) + 1
-        _FAP_STATS_FILE.write_text(json.dumps(stats, indent=2), encoding="utf-8")
+        # Atomic write (.tmp + os.replace): a non-atomic write_text here got
+        # interrupted on 2026-07-08 and left the file as truncated JSON.
+        tmp = _FAP_STATS_FILE.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(stats, indent=2), encoding="utf-8")
+        os.replace(tmp, _FAP_STATS_FILE)
     except Exception:
         pass  # Never fail the hook for stats
 

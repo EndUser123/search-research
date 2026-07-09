@@ -771,7 +771,8 @@ def _check_skill_first_gate(data: dict) -> dict | None:
                 f"⛔ SKILL-FIRST GATE: You typed /{skill_name} and attempted MCP tool "
                 f"'{tool_name}' before loading the skill.\n\n"
                 f'Your FIRST action must be:  Skill(skill="{skill_name}")\n\n'
-                "Do not run MCP tools before Skill(...) is loaded for this slash command."
+                f"Before Skill() loads: do NOT call MCP tools.\n"
+                f"After Skill() loads: you MUST follow the skill's documented procedure — including any MCP tools or inline Python it references — rather than substituting your own approach (e.g., falling back to web search)."
             ),
             "blocking_hook": "PreToolUse.py:skill_first_gate",
         }
