@@ -269,36 +269,51 @@ $localModelId       = "ornith-1.0-9b"
 $localModelEndpoint = "http://127.0.0.1:8010"
 $localModelStatePath = "P:\.claude\state\local-model-state.json"
 
-# ── Health probe (retry loop) ────────────────────────────────────────────────
-# Server may still be initializing from a prior session (model load, KV cache).
-# Single-shot probe with short timeout misses it. Retry 3x with 2s delays.
-# Use TcpClient on the port (microsecond latency, immune to HTTP-level session
-# state that can break Invoke-WebRequest inside a long-lived dot-sourced profile).
-$localModelHealth = $false
-for ($probeAttempt = 0; $probeAttempt -lt 3; $probeAttempt++) {
-    $tcp = $null
+# ── Readiness probe (single source of truth: run-ornith-server.ps1 -Probe) ────
+# The launcher owns the model's health definition (5-rung ladder). We query it
+# rather than re-implementing probes, so the gate and the launcher always agree
+# on what "ready" means. Kills the false "GGUF not loaded" warnings that came
+# from gating on TCP port-open (llama-server binds the port before the GGUF
+# finishes loading). State ∈ DEAD|STUCK|BROKEN|LOADING|LOADED|READY|HUNG.
+$launcherScript = "P:\packages\installers\run-ornith-server.ps1"
+
+function Invoke-LocalModelProbe {
+    param([switch]$IncludeInference)
     try {
-        $tcp = [System.Net.Sockets.TcpClient]::new()
-        $tcp.SendTimeout = 1500
-        $tcp.ReceiveTimeout = 1500
-        $tcp.Connect('127.0.0.1', 8010)
-        if ($tcp.Connected) {
-            $localModelHealth = $true
-            break
-        }
+        $pa = @("-NoProfile", "-NoLogo", "-NonInteractive", "-File", "`"$launcherScript`"", "-Probe")
+        if ($IncludeInference) { $pa += "-IncludeInference" }
+        $out = & pwsh.exe @pa 2>$null
+        if ($out) { return ($out | ConvertFrom-Json) }
     } catch {}
-    finally { if ($tcp) { $tcp.Close(); $tcp.Dispose() } }
-    if ($probeAttempt -lt 2) { Start-Sleep -Seconds 2 }
+    return $null
 }
 
-# ── Launch if offline ────────────────────────────────────────────────────────
-if (-not $localModelHealth) {
-    Write-Host "[CCR] local model offline (port 8010 not responding) - starting llama-server..." -ForegroundColor Cyan
-    $launcherScript = "P:\packages\installers\run-ornith-server.ps1"
+function Wait-LocalModelReady {
+    # Poll rungs 1-4 (cheap, no inference) until LOADED, then ONE -IncludeInference
+    # probe to confirm READY. Stops early on a failure state (DEAD/STUCK/BROKEN/HUNG).
+    param([int]$TimeoutSec = 60)
+    $deadline = (Get-Date).AddSeconds($TimeoutSec)
+    $s = $null
+    while ((Get-Date) -lt $deadline) {
+        $s = Invoke-LocalModelProbe
+        if (-not $s) { Start-Sleep -Seconds 2; continue }
+        if ($s.state -eq "LOADED" -or $s.state -eq "READY") {
+            return (Invoke-LocalModelProbe -IncludeInference)
+        }
+        if ($s.state -in @("DEAD", "STUCK", "BROKEN", "HUNG")) { return $s }
+        Start-Sleep -Seconds 2
+    }
+    return $s
+}
+
+$lm = Invoke-LocalModelProbe -IncludeInference
+$localModelHealth = $false
+
+if (-not $lm -or $lm.state -eq "DEAD") {
+    Write-Host "[CCR] local model offline (no llama-server) - starting..." -ForegroundColor Cyan
     if (Test-Path $launcherScript) {
         # P/Invoke CreateProcess with CREATE_BREAKAWAY_FROM_JOB so the launcher
-        # (and its llama-server grandchild) survive the parent process exiting.
-        # Start-Process doesn't support this flag — raw Win32 API is required.
+        # (and its llama-server grandchild + watchdog) survive the parent exiting.
         if (-not ([System.Management.Automation.PSTypeName]'CCR_BREAKAWAY').Type) {
             Add-Type -TypeDefinition @"
 using System;
@@ -324,82 +339,42 @@ public class CCR_BREAKAWAY {
         $launchArgs = "-NoProfile -NoLogo -NonInteractive -File `"$launcherScript`""
         $launched = [CCR_BREAKAWAY]::Launch($pwshPath, $launchArgs)
         if (-not $launched) {
-            Write-Host "  CREATE_BREAKAWAY_FROM_JOB failed — falling back to Start-Process" -ForegroundColor Yellow
+            Write-Host "  CREATE_BREAKAWAY_FROM_JOB failed - falling back to Start-Process" -ForegroundColor Yellow
             Start-Process -FilePath "pwsh.exe" `
                 -ArgumentList @("-NoProfile", "-NoLogo", "-NonInteractive", "-File", $launcherScript) `
                 -WindowStyle Minimized
         }
-        for ($i = 0; $i -lt 30; $i++) {
-            Start-Sleep -Seconds 1
-            $tcp = $null
-            try {
-                $tcp = [System.Net.Sockets.TcpClient]::new()
-                $tcp.SendTimeout = 1500
-                $tcp.ReceiveTimeout = 1500
-                $tcp.Connect('127.0.0.1', 8010)
-                if ($tcp.Connected) {
-                    $localModelHealth = $true
-                    break
-                }
-            } catch {}
-            finally { if ($tcp) { $tcp.Close(); $tcp.Dispose() } }
-        }
+        $lm = Wait-LocalModelReady -TimeoutSec 60
     } else {
         Write-Host "[CCR] run-ornith-server.ps1 not found at $launcherScript" -ForegroundColor Yellow
     }
+} elseif ($lm.state -eq "LOADING") {
+    Write-Host "[CCR] local model loading - waiting..." -ForegroundColor Cyan
+    $lm = Wait-LocalModelReady -TimeoutSec 60
+} elseif ($lm.state -in @("STUCK", "BROKEN", "HUNG")) {
+    Write-Host "[CCR] local model $($lm.state) ($($lm.detail)) - watchdog recovers; or relaunch the launcher" -ForegroundColor Yellow
+} elseif ($lm.state -eq "READY" -or $lm.state -eq "LOADED") {
+    $localModelHealth = $true
 }
 
-# ── Triage: health + model + inference ───────────────────────────────────────
-# Health is confirmed above. Now verify the GGUF loaded and inference works.
-$localModelInfo = ""
-$triageModel    = $null
-$triageInfer    = $null
-if ($localModelHealth) {
-    # Model check — verify GGUF loaded via /v1/models
-    try {
-        $models = Invoke-RestMethod -Uri "$localModelEndpoint/v1/models" -TimeoutSec 3 -ErrorAction Stop
-        $triageModel = $models.data[0].id
-    } catch {}
-
-    # Inference check — verify the model generates tokens. For a reasoning model
-    # (--reasoning-preserve), output lands in reasoning_content until the thinking
-    # phase completes; the robust signal is completion_tokens > 0 (it generated
-    # SOMETHING), not whether content is populated.
-    try {
-        $infBody = '{"model":"ornith-1.0-9b","messages":[{"role":"user","content":"Say hi"}],"max_tokens":200}'
-        $inf = Invoke-RestMethod -Uri "$localModelEndpoint/v1/chat/completions" -Method Post `
-            -ContentType "application/json" -Body $infBody -TimeoutSec 15 -ErrorAction Stop
-        if ($inf.usage.completion_tokens -gt 0) {
-            $triageInfer = $inf.choices[0].message.content
-            if (-not $triageInfer) { $triageInfer = "[reasoning only, $($inf.usage.completion_tokens) tokens]" }
-        }
-    } catch {}
-
-    # Status line
-    $localModelInfo = "local: $localModelId | endpoint: $localModelEndpoint"
+# Report
+if ($lm -and ($lm.state -eq "READY" -or $lm.state -eq "LOADED")) {
+    $ctx = ""
     if (Test-Path $localModelStatePath) {
         try {
             $lms = Get-Content $localModelStatePath -Raw | ConvertFrom-Json
             if ($lms.active_model) {
                 $active = $lms.models | Where-Object { $_.id -eq $lms.active_model } | Select-Object -First 1
-                if ($active -and $active.maxContextTokens) {
-                    $localModelInfo += " | ctx: $($active.maxContextTokens)"
-                }
+                if ($active -and $active.maxContextTokens) { $ctx = " | ctx: $($active.maxContextTokens)" }
             }
         } catch {}
     }
-
-    Write-Host "[CCR] $localModelInfo" -ForegroundColor Green
-
-    # Triage warnings
-    if (-not $triageModel) {
-        Write-Host "  WARNING: GGUF not loaded (v1/models returned empty)" -ForegroundColor Yellow
-    }
-    if (-not $triageInfer) {
-        Write-Host "  WARNING: inference produced no tokens (model hung or GGUF corrupt)" -ForegroundColor Yellow
-    }
+    $tag = if ($lm.state -eq "READY") { "ready" } else { "loaded (inference unverified)" }
+    Write-Host "[CCR] local: $($lm.model) | endpoint: $localModelEndpoint$ctx | $tag" -ForegroundColor Green
 } else {
-    Write-Host "[CCR] local model unavailable (aggressive mode fallback to M3 for coding)" -ForegroundColor DarkGray
+    Write-Host "[CCR] local model not ready (aggressive mode fallback to M3 for coding)" -ForegroundColor DarkGray
+}
+$script:localModelState = $lm
 }
 
 # --- Log routing mode ---
@@ -673,20 +648,14 @@ if ($Usage) {
     } catch {
         Write-Host "  opencode-go     error: $($_.Exception.Message)" -ForegroundColor Yellow
     }
-    # Local llama.cpp (port 8010) - reachability + which model is loaded. Catches
-    # the case where the custom route points at a model the server isn't serving.
-    # NOTE: the local slot is routed by ccr-custom-router.js (CUSTOM_ROUTER_PATH),
-    # not the default keyword router. llama-server exposes GET /v1/models
-    # (OpenAI shape {data:[{id:...}]}, llama-server exposes this on /v1/models).
-    try {
-        $lm = Invoke-RestMethod -Uri "http://127.0.0.1:8010/v1/models" -TimeoutSec 3 -ErrorAction Stop
-        $loaded = $lm.data | Select-Object -First 1
-        if ($loaded) {
-            Write-Host "  local           llama.cpp      up: $($loaded.id)" -ForegroundColor Green
-        } else {
-            Write-Host "  local           llama.cpp      up, no model reported" -ForegroundColor Yellow
-        }
-    } catch {
+    # Local llama.cpp — reuse the readiness probe from above (single source of
+    # truth). Avoids a second independent /v1/models probe that can disagree with
+    # the triage line (the cause of stale "offline" in this block).
+    if ($script:localModelState -and ($script:localModelState.state -eq "READY" -or $script:localModelState.state -eq "LOADED")) {
+        Write-Host "  local           llama.cpp      up: $($script:localModelState.model)" -ForegroundColor Green
+    } elseif ($script:localModelState -and $script:localModelState.state -ne "DEAD") {
+        Write-Host "  local           llama.cpp      $($script:localModelState.state) - $($script:localModelState.detail)" -ForegroundColor Yellow
+    } else {
         Write-Host "  local           llama.cpp      offline (127.0.0.1:8010)" -ForegroundColor DarkGray
     }
 }

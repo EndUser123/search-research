@@ -3770,3 +3770,7 @@ Pattern: code owns format, model owns content. Demonstrated by RNS (drift) vs re
 Source: session
 Transcript: b8c3e0a4-3c21-4ab7-9fa9-5b8df525d370.jsonl
 Page: P:/.data/wiki/concepts/windows-cross-process-file-locking.md
+## [2026-07-08] ingest | Background warm-up atomic publish — daemon-thread build vs concurrent read
+Source: session
+Transcript: b8c3e0a4-3c21-4ab7-9fa9-5b8df525d370.jsonl
+Page: P:/.data/wiki/concepts/background-warmup-atomic-publish.md

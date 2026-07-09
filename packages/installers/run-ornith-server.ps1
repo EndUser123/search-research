@@ -1,4 +1,5 @@
 # Ornith-1.0-9B (Q4_K_M) on llama.cpp + CUDA 12.8 (RTX 5070, sm_120)
+param([switch]$Probe, [switch]$IncludeInference)
 $env:PATH = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\bin;$env:PATH"
 $bin = "P:\packages\.github_repos\llama.cpp\build\bin"
 $model = "P:\packages\models\ornith-1.0-9b-Q4_K_M.gguf"
@@ -8,6 +9,92 @@ $modelStateFile = "P:\.claude\state\local-model-state.json"
 $llamaLog      = "P:\packages\installers\ornith-server.log"
 $endpoint = "http://127.0.0.1:8010"
 $modelId = "ornith-1.0-9b"
+
+# --- Readiness probe: 5-rung ladder (cheap -> expensive, short-circuit) -------
+# Single source of truth for "is the local model usable." Returns:
+#   DEAD     no llama-server process
+#   STUCK    process alive, port not bound (zombie)
+#   BROKEN   port open, /health or /v1/models failing
+#   LOADING  /health ok, GGUF not loaded yet (/v1/models empty)
+#   LOADED   GGUF loaded, inference NOT probed (liveness only)
+#   READY    loaded + inference produces tokens (full readiness)
+#   HUNG     loaded, inference fails / 0 tokens (deadlock, GPU OOM, corruption)
+#
+# -IncludeInference adds rung 5. WITHOUT it, a loaded model returns LOADED —
+# safe for the watchdog to poll without colliding with real requests under
+# --parallel 1 (a 15s inference probe mid-generation would false-positive HUNG
+# and kill a healthy busy server).
+function Get-LocalModelState {
+  param(
+    [string]$Endpoint = $endpoint,
+    [int]$Port = 8010,
+    [int]$TcpMs = 1500,
+    [switch]$IncludeInference
+  )
+
+  # Rung 1: PROCESS
+  $procs = @(Get-Process -Name "llama-server" -ErrorAction SilentlyContinue)
+  if ($procs.Count -eq 0) {
+    return @{ state = "DEAD"; pids = @(); model = $null; detail = "no llama-server process" }
+  }
+
+  # Rung 2: PORT (TCP connect — closed port fails in <1ms)
+  $tcp = $null
+  $portOpen = $false
+  try {
+    $tcp = [System.Net.Sockets.TcpClient]::new()
+    $tcp.SendTimeout = $TcpMs; $tcp.ReceiveTimeout = $TcpMs
+    $tcp.Connect('127.0.0.1', $Port)
+    $portOpen = $tcp.Connected
+  } catch {}
+  finally { if ($tcp) { try { $tcp.Close() } catch {}; try { $tcp.Dispose() } catch {} } }
+  if (-not $portOpen) {
+    return @{ state = "STUCK"; pids = $procs.Id; model = $null; detail = "process alive, port $Port not bound (zombie)" }
+  }
+
+  # Rung 3: HEALTH (/health 2xx)
+  try {
+    Invoke-RestMethod -Uri "$Endpoint/health" -TimeoutSec 3 -ErrorAction Stop | Out-Null
+  } catch {
+    return @{ state = "BROKEN"; pids = $procs.Id; model = $null; detail = "port open, /health failed" }
+  }
+
+  # Rung 4: MODEL (GGUF loaded — /v1/models non-empty). This is the signal /health
+  # can't give: llama-server answers /health while the GGUF is still mmap'ing.
+  $loaded = $null
+  try {
+    $m = Invoke-RestMethod -Uri "$Endpoint/v1/models" -TimeoutSec 3 -ErrorAction Stop
+    if ($m.data) { $loaded = @($m.data)[0].id }
+  } catch {
+    return @{ state = "BROKEN"; pids = $procs.Id; model = $null; detail = "/health ok, /v1/models failed" }
+  }
+  if (-not $loaded) {
+    return @{ state = "LOADING"; pids = $procs.Id; model = $null; detail = "GGUF not loaded yet (/v1/models empty)" }
+  }
+
+  # Rung 5: INFERENCE (opt-in). Gate on completion_tokens > 0, not content —
+  # reasoning-preserve models emit tokens into reasoning_content first.
+  if (-not $IncludeInference) {
+    return @{ state = "LOADED"; pids = $procs.Id; model = $loaded; detail = "loaded (inference not probed)" }
+  }
+  try {
+    $body = @{ model = $loaded; messages = @(@{ role = "user"; content = "hi" }); max_tokens = 8; temperature = 0; stream = $false } | ConvertTo-Json -Compress -Depth 5
+    $inf = Invoke-RestMethod -Uri "$Endpoint/v1/chat/completions" -Method Post -ContentType "application/json" -Body $body -TimeoutSec 15 -ErrorAction Stop
+    if ($inf.usage.completion_tokens -gt 0) {
+      return @{ state = "READY"; pids = $procs.Id; model = $loaded; detail = "ready" }
+    }
+    return @{ state = "HUNG"; pids = $procs.Id; model = $loaded; detail = "loaded, 0 completion_tokens" }
+  } catch {
+    return @{ state = "HUNG"; pids = $procs.Id; model = $loaded; detail = "loaded, inference failed: $($_.Exception.Message)" }
+  }
+}
+
+# -Probe mode: emit state as JSON and exit. Read-only, no side effects. Lets
+# cc-ccr query the launcher's health definition without re-implementing probes.
+if ($Probe) {
+  Get-LocalModelState -IncludeInference:$IncludeInference | ConvertTo-Json -Depth 3
+  exit 0
+}
 
 # --- Update local-model-state.json from llama-server's actual runtime output ---
 # llama-server prints startup log lines including the EFFECTIVE `n_ctx_slot`
@@ -179,8 +266,21 @@ try {
       continue
     }
 
-    # Block until llama-server exits (crash or manual stop)
-    Wait-Process -Id $procHandle.Id -ErrorAction SilentlyContinue
+    # Block until llama-server exits OR goes unhealthy. Polls rungs 1-4 every 15s
+    # (NO inference — a probe mid-generation would false-positive HUNG under
+    # --parallel 1 and kill a healthy busy server). Kill+restart on STUCK/BROKEN
+    # (zombie / HTTP broken). Leave LOADING/LOADED alone — those are alive.
+    while (-not $procHandle.HasExited) {
+        Start-Sleep -Seconds 15
+        if ($procHandle.HasExited) { break }
+        $poll = Get-LocalModelState -Endpoint $endpoint
+        if ($poll.state -eq "STUCK" -or $poll.state -eq "BROKEN") {
+            Write-Warning "[run-ornith] watchdog: model $($poll.state) ($($poll.detail)) - killing PID $($procHandle.Id) for restart"
+            Stop-Process -Id $procHandle.Id -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 1
+            break
+        }
+    }
 
     # If the server ran for more than 60s, consider it a stable session - reset crash counter
     $ranSecs = if ($lastStartTime) { ((Get-Date) - $lastStartTime).TotalSeconds } else { 0 }
