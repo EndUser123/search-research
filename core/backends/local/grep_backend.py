@@ -163,3 +163,7 @@ class AstNameBackend(BaseLocalBackend):
                 "line": item["line"],
             },
         }
+
+
+# Backward-compat alias — migration/parity tests import GrepBackend.
+GrepBackend = AstNameBackend
