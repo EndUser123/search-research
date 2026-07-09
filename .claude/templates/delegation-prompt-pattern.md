@@ -65,6 +65,15 @@ audit-cleanup prompt, git-setup delegate, root-cause conversation).
   judgment call recorded with rationale.
 - Invariants instead of procedure ("no unverified state at handoff"), and
   reversibility-scaled authorization instead of a flat don't-touch list.
+- Cheapest tool that answers the question (extends Cost Tiering):
+  mechanical questions (count, locate, cross-reference, scan) get scripts
+  whose output lands in a file; semantic questions (why, intent,
+  correctness) get targeted reads of the excerpts the scripts point at.
+  GUARDRAIL: token economy changes HOW you look, never WHETHER you look —
+  it can shrink a read, never replace an investigation with an assumption.
+  Anti-overhead: if the script costs more than reading 100 lines, read.
+  Keep analysis scripts until the report ships — script-derived claims are
+  re-runnable at review; context-derived claims are not.
 
 ---
 
@@ -165,6 +174,8 @@ BOUNDARY: stop at findings. No implementation without explicit "do it".
 | Option-list hedging (partner) | partner: mandatory position + falsifier |
 | Sycophantic framing polish (partner) | partner: disagreement is a deliverable |
 | Armchair analysis (partner) | partner: investigation mandatory, evidence-cited |
+| Thrift as laziness ("skipped reading to save tokens") | peer: guardrail — economy shrinks reads, never skips investigation |
+| Script-blindness (semantic question answered mechanically) | peer: question-type rule — why/intent/correctness requires reading |
 
 Origin: 2026-07-09 session. Companion:
 P:/.claude/templates/llm_behavior_contract.md (behavior contract the
