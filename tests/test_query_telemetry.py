@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 
 from search_research import AsyncSearchRouter
-from search_research.core import query_telemetry as qt
+from core import query_telemetry as qt
 
 REAL_BACKEND_NAMES = [
     "cds", "grep", "skills", "cks", "claude-history",
@@ -123,9 +123,7 @@ class TestRouterInstrumentation:
             AsyncSearchRouter, "_search_backend_async", fake_search_backend, raising=True
         )
 
-        results = asyncio.get_event_loop().run_until_complete(
-            stub_router.search_async("what is faiss vector", limit=5)
-        )
+        results = asyncio.run(stub_router.search_async("what is faiss vector", limit=5))
         assert isinstance(results, list)
 
         rows = _read_lines(telemetry_path)
@@ -151,9 +149,7 @@ class TestRouterInstrumentation:
         r._cache.set("what is faiss", cached_payload, limit=5, backends=None)
 
         rows_before = len(_read_lines(telemetry_path))
-        asyncio.get_event_loop().run_until_complete(
-            r.search_async("what is faiss", limit=5)
-        )
+        asyncio.run(r.search_async("what is faiss", limit=5))
         rows = _read_lines(telemetry_path)
         assert len(rows) == rows_before + 1
         assert rows[-1]["cache_hit"] is True
