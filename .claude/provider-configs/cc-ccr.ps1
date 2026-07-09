@@ -375,7 +375,6 @@ if ($lm -and ($lm.state -eq "READY" -or $lm.state -eq "LOADED")) {
     Write-Host "[CCR] local model not ready (aggressive mode fallback to M3 for coding)" -ForegroundColor DarkGray
 }
 $script:localModelState = $lm
-}
 
 # --- Log routing mode ---
 $routingMode = "unknown"
