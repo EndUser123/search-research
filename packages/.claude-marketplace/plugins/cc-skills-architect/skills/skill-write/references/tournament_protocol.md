@@ -62,14 +62,14 @@ call the comparator as the per-match judge.
 
 ```bash
 # 1) Pin the bracket invariant (N items -> exactly N-1 real matches, 1 champion):
-python -m pytest plugins/skill-creator/skills/skill-creator/tests/test_tournament.py -q
+python -m pytest plugins/cc-skills-architect/skills/skill-write/tests/test_tournament.py -q
 # expect: 8 passed
 
 # 2) The CLI selfcheck (no pytest):
-python plugins/skill-creator/skills/skill-creator/scripts/tournament.py selfcheck
+python plugins/cc-skills-architect/skills/skill-write/scripts/tournament.py selfcheck
 
 # 3) Print a first-round pairing + match budget for N candidates:
-python plugins/skill-creator/skills/skill-creator/scripts/tournament.py 5
+python plugins/cc-skills-architect/skills/skill-write/scripts/tournament.py 5
 # expect: "N=5  budget=4 real matches" and 3 pairs (last is a BYE).
 ```
 

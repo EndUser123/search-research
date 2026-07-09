@@ -28,7 +28,7 @@ Tools used to grow and maintain the skill ecosystem.
 | garden | Knowledge cleanup and pattern pruning | `garden/` |
 | evolve | Modernization and technical debt refactoring | `evolve/` |
 
-**Note on `/skill-creator`:** The measure instrument (eval / benchmark / description-optimizer / tournament) lives in the separate `skill-creator@local` plugin — a fork of Anthropic's upstream that carries our tournament customizations. It is enabled; the upstream `skill-creator@claude-plugins-official` is disabled. `skill-write` (above) is the author instrument; `skill-creator` is the measure instrument — the create-side pair. The former architect-local fork of helper scripts was removed (dead, zero callers).
+**Note on `/skill-write`:** This is the single create-side skill — it absorbs the former `skill-creator` plugin's full eval-driven authoring loop (draft → eval → benchmark → iterate), description optimizer, and tournament capability. The `skill-creator@local` and `skill-creator@claude-plugins-official` plugins are both disabled and the plugin removed; all machinery now lives under `skill-write/scripts/`, `skill-write/agents/`, and `skill-write/references/`. One command for the whole create-side lifecycle.
 
 ### 3. Implementation Planning
 Advanced logic for high-stakes technical sessions.

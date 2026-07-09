@@ -42,18 +42,6 @@
       ]
     },
     {
-      "name": "skill-creator",
-      "version": "1.0.1",
-      "description": "LOCAL FORK of Anthropic's skill-creator \u2014 eval-driven skill authoring loop. Forked so customizations survive upstream updates. See FORK_RATIONALE.md.",
-      "source": "./plugins/skill-creator",
-      "keywords": [
-        "skill",
-        "creator",
-        "eval",
-        "fork"
-      ]
-    },
-    {
       "name": "cc-skills-ai-api",
       "version": "1.0.12",
       "description": "AI API integration skills for Claude Code",
@@ -152,7 +140,7 @@
     {
       "name": "prompt-enhancer",
       "version": "0.2.6",
-      "description": "Prompt Clarification & Context Augmentation \u2014 ambiguous prompt detection, enhancement, and multi-turn context preservation via UserPromptSubmit + PreCompact hooks.",
+      "description": "Prompt Clarification & Context Augmentation — ambiguous prompt detection, enhancement, and multi-turn context preservation via UserPromptSubmit + PreCompact hooks.",
       "source": "./plugins/prompt-enhancer",
       "keywords": [
         "prompt",
@@ -273,7 +261,7 @@
     {
       "name": "cc-aca-observability",
       "version": "0.1.25",
-      "description": "ACA Observability plugin \u2014 session health monitoring, drift detection, artifact scraping, and PostToolUse tracker orchestration. Part of the Agent Control Architecture.",
+      "description": "ACA Observability plugin — session health monitoring, drift detection, artifact scraping, and PostToolUse tracker orchestration. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-observability",
       "keywords": [
         "aca",
