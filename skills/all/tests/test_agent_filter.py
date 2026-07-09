@@ -18,7 +18,6 @@ from skills.all.agent_filter import (
     apply_agent_filtering,
     estimate_tokens_from_results,
     get_adaptive_insight_count,
-    is_skill_context,
     parse_agent_response,
     sanitize_for_prompt,
 )
@@ -32,29 +31,6 @@ class MockSearchResult:
         self.content = content
         self.source = source
         self.score = score
-
-
-class TestEnvironmentDetection:
-    """Test environment detection for skill vs CLI context (TASK-001A)."""
-
-    def test_is_skill_context_when_env_var_set(self, monkeypatch):
-        """Test that skill context is detected when CLAUDE_CODE_SKILL_EXECUTION=1."""
-        # This test will fail initially - we need to add is_skill_context() function
-        monkeypatch.setenv("CLAUDE_CODE_SKILL_EXECUTION", "1")
-
-        assert is_skill_context() is True
-
-    def test_is_skill_context_when_env_var_not_set(self, monkeypatch):
-        """Test that skill context returns False when env var not set."""
-        monkeypatch.delenv("CLAUDE_CODE_SKILL_EXECUTION", raising=False)
-
-        assert is_skill_context() is False
-
-    def test_is_skill_context_when_env_var_set_to_wrong_value(self, monkeypatch):
-        """Test that skill context returns False when env var set to wrong value."""
-        monkeypatch.setenv("CLAUDE_CODE_SKILL_EXECUTION", "0")
-
-        assert is_skill_context() is False
 
 
 class TestTokenEstimation:

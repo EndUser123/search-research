@@ -15,24 +15,11 @@ Key Features:
 from __future__ import annotations
 
 import json
-import os
 from typing import Any
 
 # Import existing prompt creation (relative imports for package context)
 from . import layer2_filter
 from . import query_complexity
-
-
-def is_skill_context() -> bool:
-    """Detect if running in Claude Code skill execution context.
-
-    In skill execution context, the Agent tool is available for Layer 2 filtering.
-    In CLI context, fall back to keyword-based filtering.
-
-    Returns:
-        True if CLAUDE_CODE_SKILL_EXECUTION environment variable is set to '1'
-    """
-    return os.environ.get("CLAUDE_CODE_SKILL_EXECUTION") == "1"
 
 
 def sanitize_for_prompt(text: str) -> str:
@@ -264,11 +251,14 @@ def parse_agent_response(response: str, max_depth: int = 3) -> dict[str, Any] | 
 async def apply_agent_filtering(
     query: str, results: list[Any], trigger_reason: str = "auto", complexity_score: int = 50
 ) -> dict[str, Any]:
-    """Apply Layer 2 filtering using Agent tool.
+    """Apply Layer 2 keyword-based context filtering.
 
-    This is the main entry point for Agent-based semantic filtering.
-    In skill execution context, this would call the Agent tool.
-    For now, it falls back to keyword-based filtering until Agent integration.
+    This is the sole Layer 2 path. An earlier version gated on a
+    CLAUDE_CODE_SKILL_EXECUTION env var to invoke the Claude Code Agent tool for an
+    LLM rerank; that call was never implemented (a ``pass``/``return None`` stub)
+    and always fell back to keywords. The Agent tool is model-side and cannot be
+    invoked from Python regardless of context, so the gate was fictional. This
+    is the real behavior that always ran: keyword-based filtering via layer2_filter.
 
     Args:
         query: Original search query
@@ -279,72 +269,19 @@ async def apply_agent_filtering(
     Returns:
         Dict with themes, filtered_count, original_count
     """
-    # Check if we're in skill execution context with Agent tool available
-    in_skill_context = os.environ.get("CLAUDE_CODE_SKILL_EXECUTION") == "1"
-
-    # Estimate tokens
     estimated_tokens = estimate_tokens_from_results(results)
-
-    # Get adaptive insight count
     insight_count = get_adaptive_insight_count(complexity_score, len(results))
 
-    # Log processing info
     print(
         f"[Agent Filter] Complexity: {complexity_score} → {query_complexity.get_complexity_label(complexity_score)}"
     )
     print(f"[Agent Filter] Target insights: {insight_count}")
     print(f"[Agent Filter] Estimated tokens: {estimated_tokens}")
-
-    # Check token limits
     if estimated_tokens > 8000:
         print(f"[Agent Filter] WARNING: High token count ({estimated_tokens}), may truncate")
 
-    if in_skill_context:
-        # In skill execution, use Agent tool with timeout protection (TASK-001B)
-        # Note: enhanced_prompt will be created when Agent tool call is integrated
-
-        # Attempt Agent tool call with 4s timeout
-        import asyncio
-
-        # Use asyncio.timeout for timeout protection
-        async def call_agent_with_timeout() -> str | None:
-            try:
-                async with asyncio.timeout(4.0):
-                    # Agent tool invocation would happen here via Claude Code framework
-                    # For now, we structure the code to support it
-                    # The actual call will be integrated in SKILL.md inline execution
-                    pass
-            except TimeoutError:
-                print("[Agent Filter] Timeout after 4s, falling back to keyword filtering")
-                return None
-            except Exception as e:
-                print(f"[Agent Filter] Agent tool error: {e}, falling back to keyword filtering")
-                return None
-
-            return None
-
-        # Attempt Agent call
-        try:
-            agent_response = await call_agent_with_timeout()
-
-            # If Agent call succeeded, parse response
-            if agent_response:
-                parsed = parse_agent_response(agent_response)
-                if parsed and "themes" in parsed:
-                    print(
-                        f"[Agent Filter] Agent filtering successful: {parsed['filtered_count']} insights from {parsed['original_count']} results"
-                    )
-                    return parsed
-        except Exception as e:
-            print(f"[Agent Filter] Unexpected error during Agent call: {e}")
-
-        # Fall back to keyword filtering if Agent call failed
-        print("[Agent Filter] Agent tool unavailable or failed, using keyword fallback")
-        return await layer2_filter._keyword_based_filtering(results, query)
-    else:
-        # CLI mode: use keyword-based fallback
-        print("[Agent Filter] CLI context, using keyword fallback")
-        return await layer2_filter._keyword_based_filtering(results, query)
+    print("[Agent Filter] Applying keyword-based filtering")
+    return await layer2_filter._keyword_based_filtering(results, query)
 
 
 def create_agent_filter_summary(
@@ -370,7 +307,5 @@ def create_agent_filter_summary(
         "complexity_score": complexity_score,
         "complexity_label": query_complexity.get_complexity_label(complexity_score),
         "trigger_reason": trigger_reason,
-        "filtering_method": "Agent tool (general-purpose subagent)"
-        if os.environ.get("CLAUDE_CODE_SKILL_EXECUTION") == "1"
-        else "Keyword-based fallback",
+        "filtering_method": "Keyword-based",
     }
