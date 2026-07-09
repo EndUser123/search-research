@@ -80,3 +80,14 @@ Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
     layer: enforce on the invocation event itself (skill invoked → enforcement applies), not on
     frontmatter presence. The deleted skill_metadata_advisory hook was a noisy per-prompt patch
     for this same gap; don't recreate it — change the enforcement key.
+
+12. [OPEN] **No coordination between concurrent agents writing the same tree.**
+    Observed 2026-07-09: this session overwrote another LLM's rewrite of
+    delegation-prompt-pattern.md (its 10:22 archive-before-edit implies a
+    successor version existed; clobbered at 12:55 without read-before-write).
+    Read-discipline alone can't close it — check-then-write races survive
+    politeness. Fixes, in order: (a) git at P:\ makes clobbers recoverable
+    (see #10); (b) convention: one writer per directory at a time, or agents
+    claim files in a shared lockfile/manifest before editing.
+    Immediate recovery: other model re-emits its version before its session
+    closes; then merge, don't pick a winner.
