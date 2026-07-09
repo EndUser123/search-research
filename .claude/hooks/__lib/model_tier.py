@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """model_tier.py — classify the model behind a turn as strong (Claude) or weak.
 
-Weak models (MiniMax-*, glm-*, deepseek, kimi, … routed in via the Bifrost
-gateway) cannot satisfy the full epistemic/rubric contract this hook stack
+Weak models (MiniMax-*, glm-*, deepseek, kimi, … routed in via CCR / opencode-go
+/ direct SDK) cannot satisfy the full epistemic/rubric contract this hook stack
 injects. On those models the Stop quality gates (sycophancy, lazy-closure,
 epistemic format) and the heavy UserPromptSubmit rubric injectors produce a
 capitulation doom-loop instead of better answers. This module lets callers
@@ -10,12 +10,12 @@ suppress *quality* enforcement for weak models while leaving all *policy*
 (safety) gates fully active.
 
 Detection: read the last real assistant ``message.model`` from the transcript
-JSONL named by ``data["transcript_path"]``. Bifrost records the true provider
-model — verified empirically: ``MiniMax-M3`` (248 entries in the Hermes-install
-session), ``glm-5.1``, ``MiniMax-M2.7``, alongside genuine ``claude-opus-4-8`` /
-``claude-sonnet-4-6`` — so a ``claude-`` prefix test cleanly separates strong
-from weak. ``<synthetic>`` entries (compaction/injected turns carry no real
-model) are skipped.
+JSONL named by ``data["transcript_path"]``. Claude Code writes ``message.model``
+regardless of transport — originally verified under the now-retired Bifrost
+gateway (``MiniMax-M3``, ``glm-5.1``, ``MiniMax-M2.7``, alongside genuine
+``claude-opus-4-8`` / ``claude-sonnet-4-6``) and still holds under CCR: a
+``claude-`` prefix test cleanly separates strong from weak. ``<synthetic>``
+entries (compaction/injected turns carry no real model) are skipped.
 
 Fail-open to STRONG: on any read/parse error, or when no model can be resolved,
 treat the turn as strong so a real Claude turn never loses its gates. The only
