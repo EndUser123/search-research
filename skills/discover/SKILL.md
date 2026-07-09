@@ -115,7 +115,7 @@ Discover codebase patterns, architecture, technical debt, and implementation opp
 ## Related
 
 - **Architecture**: `/design` (ML enhanced architectural analysis)
-- **Explore**: `/explore` (systematic investigation with ML)
+- **Explore**: `/all` (systematic investigation with ML)
 - **Analyze**: `/analyze` (unified analysis engine)
 
 ## AID Integration (v1.1.0)
