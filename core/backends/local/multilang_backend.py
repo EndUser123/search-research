@@ -15,8 +15,8 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from search_research.backends.base.code_analysis_backend import CodeAnalysisBackend
-from search_research.utils.tree_sitter_utils import (
+from core.backends.base.code_analysis_backend import CodeAnalysisBackend
+from core.utils.tree_sitter_utils import (
     LanguageRegistry,
     TreeSitterParser,
     is_available,
