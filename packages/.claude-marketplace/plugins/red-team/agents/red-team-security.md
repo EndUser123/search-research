@@ -1,7 +1,7 @@
 ---
 name: red-team-security
 description: Specialist for /red-team. Finds data leaks, access control gaps, injection vectors, encryption issues, trust-boundary weakenings.
-tools: Read, Grep, Glob, Bash, Write
+tools: Read, Grep, Glob, Write
 model: inherit
 ---
 

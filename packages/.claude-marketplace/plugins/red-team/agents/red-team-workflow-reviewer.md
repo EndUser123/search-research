@@ -2,7 +2,7 @@
 name: red-team-workflow-reviewer
 description: Specialist for /red-team. Reviews behavioral contracts, CLAUDE.md, skills, commands, task-tracking, and repeatable workflow quality.
 model: inherit
-tools: Read, Grep, Glob, Bash, Write
+tools: Read, Grep, Glob, Write
 ---
 
 # Red Team Workflow Reviewer

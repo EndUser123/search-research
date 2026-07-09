@@ -1,7 +1,7 @@
 ---
 name: red-team-logic
 description: Specialist for /red-team. Finds pure logic errors — off-by-one, wrong operators, inverted conditionals, ambiguous precedence, category-overlap.
-tools: Read, Grep, Glob, Bash, Write
+tools: Read, Grep, Glob, Write
 model: inherit
 ---
 

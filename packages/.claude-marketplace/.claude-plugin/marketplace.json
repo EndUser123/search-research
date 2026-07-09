@@ -88,7 +88,7 @@
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.2.81",
+      "version": "1.2.82",
       "description": "Utility skills for Claude Code",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
@@ -334,7 +334,7 @@
     },
     {
       "name": "red-team",
-      "version": "0.2.12",
+      "version": "0.2.13",
       "description": "Multi-agent adversarial review pipeline. Planner -> specialists -> critic -> single PROCEED/REVISE/BLOCK verdict. Disk-backed findings handoff keeps the orchestrator context small. Phase 3: telemetry + incident self-improvement layer.",
       "source": "./plugins/red-team",
       "keywords": [

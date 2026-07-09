@@ -1,7 +1,7 @@
 ---
 name: red-team-performance
 description: Specialist for /red-team. Finds timeouts, bottlenecks, N+1 patterns, TOCTOU races, resource leaks.
-tools: Read, Grep, Glob, Bash, Write
+tools: Read, Grep, Glob, Write
 model: inherit
 ---
 
