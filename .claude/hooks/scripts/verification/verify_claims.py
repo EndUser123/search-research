@@ -1,0 +1,253 @@
+#!/usr/bin/env python3
+"""
+Deterministic claim verifier — artifact-truth layer.
+
+Fills the gap that unified_claim_verifier.py leaves: that module verifies
+claims against SESSION tool_events (did you run a supporting tool). This one
+verifies claims against the FILESYSTEM/REGISTRY directly (does the path exist,
+is the module importable, is the symbol registered) and emits the RECEIPT —
+the actual tool output — so the verdict is unfakeable.
+
+Input  : claims.json  -> [{"id","claim","claim_type","evidence_source"}, ...]
+Output : [{"id","claim","claim_type","verdict","receipt"}, ...]
+         verdict in {PASS, FAIL, UNVERIFIABLE}
+         UNVERIFIABLE = deterministic check not applicable -> route to LLM tier.
+
+Claim types handled deterministically:
+  existence      -> Path.exists / dir listing / find
+  static-shape   -> read cited lines, return them as the receipt
+  registered     -> grep settings.json + hook routers for the named hook
+  importable     -> importlib check under the production sys.path
+Others (behavior, non-code) -> UNVERIFIABLE.
+
+Why receipts, not booleans: per "Tool Receipts, Not Zero-Knowledge Proofs"
+(arXiv 2603.10060) — agents fabricate tool executions, so require the actual
+output. A verdict without the receipt is just another claim.
+"""
+from __future__ import annotations
+
+import argparse
+import importlib
+import importlib.util
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+HOOKS_ROOT = Path("P:/.claude/hooks")
+SETTINGS_JSON = Path("P:/.claude/settings.json")
+
+# Windows drive path  P:/...  or  C:\\...  , or unix absolute /...
+_PATH_RE = re.compile(
+    r'(?:[A-Za-z]:[\\/][^\s"`\]\|<>]+|/[A-Za-z][^\s"`\]\|<>]*)'
+)
+# backtick-quoted token that looks file-ish  `foo/bar.py`  `__lib/x`
+_TICK_RE = re.compile(r"`([^\s`]+\.[a-z]{2,5}|[^\s`]*[\\/][^\s`]*)`")
+# "lines 589-601" or "line 96"
+_LINES_RE = re.compile(r"lines?\s*(\d+)(?:\s*[-–]\s*(\d+))?", re.IGNORECASE)
+
+DETERMINISTIC_TYPES = {"existence", "static-shape", "registered", "importable"}
+
+
+def _extract_paths(claim: str, evidence_source: str) -> list[str]:
+    blob = f"{evidence_source}\n{claim}"
+    found = set(_PATH_RE.findall(blob))
+    for m in _TICK_RE.findall(blob):
+        found.add(m)
+    # normalize backslashes, strip trailing punctuation
+    out = []
+    for p in found:
+        p = p.rstrip(".,;:)").strip("'\"")
+        if len(p) < 3:
+            continue
+        out.append(p.replace("\\", "/"))
+    return out
+
+
+def _check_exists(path_str: str) -> dict[str, Any]:
+    p = Path(path_str)
+    if p.exists():
+        if p.is_dir():
+            try:
+                children = sorted(c.name for c in p.iterdir())[:20]
+            except OSError:
+                children = []
+            return {"exists": True, "kind": "dir", "sample": children}
+        return {"exists": True, "kind": "file", "size": p.stat().st_size}
+    # maybe the parent exists and the basename is missing -> name the real location
+    for parent in [p.parent, p.parent.parent]:
+        if parent.exists() and parent.is_dir():
+            try:
+                siblings = sorted(c.name for c in parent.iterdir())[:15]
+            except OSError:
+                siblings = []
+            return {"exists": False, "checked": str(p), "nearest_dir": str(parent), "siblings": siblings}
+    return {"exists": False, "checked": str(p)}
+
+
+def _read_lines(path_str: str, lo: int, hi: int) -> dict[str, Any]:
+    p = Path(path_str)
+    if not p.exists():
+        return {"readable": False, "reason": "path not found"}
+    try:
+        lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError as e:
+        return {"readable": False, "reason": str(e)}
+    hi = min(hi, len(lines))
+    lo = max(1, lo)
+    if hi < lo:
+        return {"readable": True, "reason": "line range beyond file", "file_lines": len(lines)}
+    snippet = {str(i): lines[i - 1] for i in range(lo, hi + 1)}
+    return {"readable": True, "file_lines": len(lines), "lines": snippet}
+
+
+def _check_registered(name: str) -> dict[str, Any]:
+    """Grep settings.json + hook routers for a hook/module name."""
+    needle = name.strip("`'\"")
+    hits: list[str] = []
+    targets = [SETTINGS_JSON, HOOKS_ROOT / "__lib", HOOKS_ROOT / "PreToolUse.py"]
+    for t in targets:
+        if not t.exists():
+            continue
+        if t.is_file():
+            try:
+                if needle.lower() in t.read_text(encoding="utf-8", errors="replace").lower():
+                    hits.append(str(t))
+            except OSError:
+                pass
+        else:
+            try:
+                r = subprocess.run(
+                    ["grep", "-rli", needle, str(t)],
+                    capture_output=True, text=True, timeout=10,
+                )
+                hits.extend(r.stdout.strip().splitlines())
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                pass
+    return {"registered": bool(hits), "found_in": hits[:10]}
+
+
+def _check_importable(module_path: str) -> dict[str, Any]:
+    """module_path may be a dotted name or a .py file."""
+    if module_path.endswith(".py"):
+        spec = importlib.util.spec_from_file_location("_probe", module_path)
+        if spec is None or spec.loader is None:
+            return {"importable": False, "reason": "no spec"}
+        try:
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)  # type: ignore[union-attr]
+            return {"importable": True}
+        except Exception as e:
+            return {"importable": False, "error": f"{type(e).__name__}: {e}"}
+    try:
+        importlib.import_module(module_path)
+        return {"importable": True}
+    except Exception as e:
+        return {"importable": False, "error": f"{type(e).__name__}: {e}"}
+
+
+def _classify_action(claim_type: str, evidence_source: str) -> str:
+    es = evidence_source.lower()
+    if "registered" in es or "wired" in es or "settings.json" in claim_type or claim_type == "registered":
+        return "registered"
+    if "import" in es or claim_type == "importable":
+        return "importable"
+    if "line" in es:
+        return "static-shape"
+    return "exists"
+
+
+def verify_claims(claims: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
+    for c in claims:
+        cid = c.get("id", "?")
+        claim = c.get("claim", "")
+        ct = c.get("claim_type", "")
+        es = c.get("evidence_source", "")
+        rec: dict[str, Any] = {"id": cid, "claim": claim, "claim_type": ct}
+
+        if ct not in DETERMINISTIC_TYPES:
+            rec["verdict"] = "UNVERIFIABLE"
+            rec["receipt"] = {"reason": f"claim_type={ct} not deterministic; route to LLM tier"}
+            results.append(rec)
+            continue
+
+        action = _classify_action(ct, es)
+        paths = _extract_paths(claim, es)
+
+        if action == "registered":
+            # the named hook/module is the subject, not necessarily a path
+            subject = paths[0] if paths else claim.split("`")[1] if "`" in claim else claim[:60]
+            rec["receipt"] = _check_registered(Path(subject).name if "/" in subject or "\\" in subject else subject)
+        elif action == "importable" and paths:
+            rec["receipt"] = _check_importable(paths[0])
+        elif action == "static-shape" and paths:
+            lm = _LINES_RE.search(es)
+            lo, hi = (int(lm.group(1)), int(lm.group(2) or lm.group(1))) if lm else (1, 40)
+            rec["receipt"] = _read_lines(paths[0], lo, hi)
+        elif paths:
+            # existence — check every path found
+            rec["receipt"] = {p: _check_exists(p) for p in paths[:5]}
+        else:
+            rec["verdict"] = "UNVERIFIABLE"
+            rec["receipt"] = {"reason": "no path token extractable from claim/evidence"}
+            results.append(rec)
+            continue
+
+        # derive verdict from receipt
+        r = rec["receipt"]
+        if isinstance(r, dict):
+            if r.get("exists") is True or r.get("readable") is True or r.get("registered") is True or r.get("importable") is True:
+                rec["verdict"] = "PASS"
+            elif any(
+                isinstance(v, dict) and v.get("exists") for v in r.values()
+            ):
+                rec["verdict"] = "PASS"
+            else:
+                rec["verdict"] = "FAIL"
+        else:
+            rec["verdict"] = "UNVERIFIABLE"
+        results.append(rec)
+    return results
+
+
+def _self_check() -> None:
+    """Reproduce-first: prove the verifier catches the burn-class error."""
+    burn = [{
+        "id": "BURN-1",
+        "claim": "Stop_investigation_validator.py exists at the hooks root",
+        "claim_type": "existence",
+        "evidence_source": "P:/.claude/hooks/Stop_investigation_validator.py",
+    }]
+    out = verify_claims(burn)[0]
+    assert out["verdict"] == "FAIL", f"expected FAIL on the wrong path, got {out['verdict']}"
+    print("self-check OK: wrong-path claim correctly FAILs")
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description="Deterministic claim verifier (artifact-truth layer).")
+    ap.add_argument("claims_json", nargs="?", help="path to claims.json; omit to read stdin")
+    ap.add_argument("--self-check", action="store_true", help="run reproduce-first self-test, then exit")
+    ap.add_argument("--out", help="write results JSON here; default stdout")
+    args = ap.parse_args()
+
+    if args.self_check:
+        _self_check()
+        return 0
+
+    raw = Path(args.claims_json).read_text(encoding="utf-8") if args.claims_json else sys.stdin.read()
+    claims = json.loads(raw)
+    results = verify_claims(claims)
+    payload = json.dumps(results, indent=2, default=str)
+    if args.out:
+        Path(args.out).write_text(payload, encoding="utf-8")
+        print(f"wrote {len(results)} verdicts -> {args.out}")
+    else:
+        print(payload)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
