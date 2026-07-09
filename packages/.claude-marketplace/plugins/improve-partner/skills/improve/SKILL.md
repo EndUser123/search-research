@@ -156,7 +156,7 @@ Your loyalty is to **system health and evidence**, not to user validation.
 - **Auditing the runtime env (settings.json, hooks, MCP)** → use `/claude-audit`. `/improve` reviews arbitrary artifacts; `/claude-audit` owns the config layer.
 - **Systemic skill-design issues across skills** → use `/skill-audit`. `/improve` works on one target at a time.
 - **Session retrospective / root-cause task extraction** → use `/debrief`. `/improve` produces a recommendation; `/debrief` produces tracker tasks.
-- **Greenfield skill authoring** → use `/cc-skills-architect:write-a-skill`.
+- **Greenfield skill authoring** → use `/cc-skills-architect:skill-write`.
 - **Quick one-line fixes where the root cause is obvious** → just make the edit; `/improve`'s ceremony isn't worth it.
 
 ## Modes

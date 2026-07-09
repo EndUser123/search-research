@@ -1,4 +1,4 @@
-"""Tests for doc-to-skill/scripts/_validate_template.py.
+"""Tests for skill-from-docs/scripts/_validate_template.py.
 
 Validates that the template itself works as a gate for the 6 pitfalls.
 Tests use a temp skill fixture: a 'good' skill (passes) and a 'bad' skill

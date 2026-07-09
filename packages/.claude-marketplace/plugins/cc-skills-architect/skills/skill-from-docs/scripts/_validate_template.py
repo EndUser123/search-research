@@ -1,10 +1,10 @@
-"""doc-to-skill output validator — TEMPLATE.
+"""skill-from-docs output validator — TEMPLATE.
 
 Copy this file into a generated skill's scripts/ directory as `_validate.py`
 and run it from the skill root to verify the output contract holds.
 
 This template is the converter-side defense for the 6 pitfalls documented in
-P:/.data/wiki/lessons/doc-to-skill-output-pitfalls.md. Every doc-to-skill
+P:/.data/wiki/lessons/skill-from-docs-output-pitfalls.md. Every skill-from-docs
 output should include this file (or one derived from it) so the pitfalls
 are caught at validation time, not at runtime.
 

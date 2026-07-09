@@ -150,7 +150,8 @@ def main():
                     'turn_counter': data.get('turn_counter', 0), 'consumed': False}
         write_recommendation(state_path, rec_data)
         base = recommended_model.split('[')[0]
-        msg = f'[model-router-hook] Recommended {base} (current: {current_model}). CCR routes; this is informational.'
+        cur = current_model.split('[')[0]
+        msg = f'[model-router] {task_type} → {base} | now: {cur} | advisory'
         print(json.dumps({'systemMessage': msg}))
 
     try:

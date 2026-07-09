@@ -1,6 +1,6 @@
 ---
-name: doc-to-skill
-description: Run scripts/_validate.py (from template) and confirm all checks pass
+name: skill-from-docs
+description: Convert Markdown docs, PDFs, URLs, or GitHub repos into a Claude Code skill. Use when user wants to generate a skill from existing documentation, a website, a repo, or a PDF.
 version: "1.0.0"
 status: "stable"
 category: generation
@@ -58,9 +58,9 @@ Convert documentation (websites, GitHub repos, PDFs) into production-ready Claud
 ## Quick Usage
 
 ```bash
-/doc-to-skill https://docs.python.org/ --name python-reference
-/doc-to-skill github:owner/repo --name my-library
-/doc-to-skill path/to/document.pdf --name pdf-knowledge
+/skill-from-docs https://docs.python.org/ --name python-reference
+/skill-from-docs github:owner/repo --name my-library
+/skill-from-docs path/to/document.pdf --name pdf-knowledge
 ```
 
 ## What It Does
@@ -82,32 +82,32 @@ pip install skill-seekers>=2.0 beautifulsoup4 requests
 ### Website Documentation
 
 ```bash
-/doc-to-skill https://example.com/docs --name my-docs
-/doc-to-skill https://example.com/docs --name my-docs --selector "article"
-/doc-to-skill https://example.com/docs --name my-docs --include "/api,/reference"
+/skill-from-docs https://example.com/docs --name my-docs
+/skill-from-docs https://example.com/docs --name my-docs --selector "article"
+/skill-from-docs https://example.com/docs --name my-docs --include "/api,/reference"
 ```
 
 ### GitHub Repository
 
 ```bash
-/doc-to-skill github:owner/repo --name repo-skill
-/doc-to-skill github:owner/repo --name repo-skill --detect-conflicts
-/doc-to-skill github:owner/repo --name repo-skill --branch develop
+/skill-from-docs github:owner/repo --name repo-skill
+/skill-from-docs github:owner/repo --name repo-skill --detect-conflicts
+/skill-from-docs github:owner/repo --name repo-skill --branch develop
 ```
 
 ### PDF Document
 
 ```bash
-/doc-to-skill path/to/document.pdf --name pdf-skill
-/doc-to-skill path/to/scanned.pdf --name scanned-docs --ocr-enabled
-/doc-to-skill path/to/document.pdf --name pdf-skill --extract-images --extract-tables
+/skill-from-docs path/to/document.pdf --name pdf-skill
+/skill-from-docs path/to/scanned.pdf --name scanned-docs --ocr-enabled
+/skill-from-docs path/to/document.pdf --name pdf-skill --extract-images --extract-tables
 ```
 
 ### Local Documentation
 
 ```bash
-/doc-to-skill ./docs --name local-docs --format markdown
-/doc-to-skill ./docs/*.md --name combined-docs
+/skill-from-docs ./docs --name local-docs --format markdown
+/skill-from-docs ./docs/*.md --name combined-docs
 ```
 
 ## Configuration
@@ -137,14 +137,14 @@ Create a JSON config file for complex scrapes:
 
 Use the config:
 ```bash
-/doc-to-skill --config my-library.json
+/skill-from-docs --config my-library.json
 ```
 
 ## Enhancement Options
 
 ```bash
-/doc-to-skill https://example.com/docs --name my-docs --enhance-local  # Local LLM
-/doc-to-skill https://example.com/docs --name my-docs --enhance-api     # Anthropic API
+/skill-from-docs https://example.com/docs --name my-docs --enhance-local  # Local LLM
+/skill-from-docs https://example.com/docs --name my-docs --enhance-api     # Anthropic API
 ```
 
 ## Advanced Features
