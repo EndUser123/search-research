@@ -122,8 +122,11 @@ def main() -> int:
         fail("REGISTRATION", f"cannot parse {settings_file}: {e}")
 
     # Plugin hooks.json manifests: commands must exist and use router or namespaced scripts
-    if packages.exists():
-        for hj in packages.glob("**/hooks/hooks.json"):
+    # Convention: plugins live in .claude-marketplace/plugins/<name>/ — do NOT
+    # recursively walk the whole monorepo (.github_repos alone makes that minutes-slow).
+    plugin_root = packages / ".claude-marketplace" / "plugins"
+    if plugin_root.exists():
+        for hj in plugin_root.glob("*/hooks/hooks.json"):
             try:
                 manifest = json.loads(hj.read_text(encoding="utf-8"))
                 for event, matcher, cmd in iter_settings_commands(manifest):
@@ -169,9 +172,13 @@ def main() -> int:
     if catalog.exists():
         text = catalog.read_text(encoding="utf-8", errors="replace")
         on_disk = {p.name for p in py_files}
+        # one pruned pass over plugin dirs only, not the whole monorepo
+        if plugin_root.exists():
+            on_disk |= {p.name for p in plugin_root.glob("*/hooks/*.py")}
+            on_disk |= {p.name for p in plugin_root.glob("*/skills/*/hooks/*.py")}
         for name in set(re.findall(r"`([A-Za-z0-9_\-.]+\.py)`", text)):
-            if name not in on_disk and not any((packages / "").exists() and list(packages.glob(f"**/{name}")) for _ in [0]):
-                fail("CATALOG_DRIFT", f"HOOKS_CATALOG.md names `{name}` — not found in hooks/ or packages/")
+            if name not in on_disk:
+                fail("CATALOG_DRIFT", f"HOOKS_CATALOG.md names `{name}` — not found in hooks/ or plugin dirs")
         for m in re.finditer(r"missing\s+([A-Za-z0-9_]+)\s+module", text, re.IGNORECASE):
             mod = m.group(1)
             if (hooks_dir / f"{mod}.py").exists():
@@ -185,6 +192,12 @@ def main() -> int:
                 stats = json.loads(sf.read_text(encoding="utf-8"))
                 if not isinstance(stats, dict):
                     continue
+            except json.JSONDecodeError as e:
+                # Fail fast, don't skip: a corrupt stats file usually means a
+                # non-atomic writer was interrupted mid-write.
+                fail("STATS_ANOMALY", f"{sf.name}: corrupt JSON ({e}) — check for non-atomic writers")
+                continue
+            try:
                 numeric = {k: v for k, v in stats.items() if isinstance(v, (int, float))}
                 fb = sum(v for k, v in numeric.items() if "fallback" in k.lower())
                 primary = sum(v for k, v in numeric.items() if "fallback" not in k.lower())
