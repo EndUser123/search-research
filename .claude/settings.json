@@ -256,6 +256,11 @@
             "type": "command",
             "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_hook_import_health.py",
             "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "python P:/.claude/hooks/__lib/hook_runner.py P:/.claude/hooks/PostToolUse_py_syntax_gate.py",
+            "timeout": 5
           }
         ]
       },
