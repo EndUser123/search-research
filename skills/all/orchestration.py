@@ -1,39 +1,28 @@
 #!/usr/bin/env python3
-"""Orchestration layer for three-layer search filtering - extracted from inline-execution-code.md.
+"""Orchestration layer for three-layer search filtering (/explore skill).
 
-This module provides the execute_unified_search function that orchestrates:
+Provides execute_unified_search, which orchestrates:
 - Layer 1: Adaptive rule-based filtering (fetch with quality floor)
-- Layer 2: Context-aware semantic filtering (Agent tool or keyword fallback)
+- Layer 2: Context-aware filtering (keyword-based; the Agent-tool rerank in
+  agent_filter.py was never wired and always falls back to keywords)
 - Layer 3: Template-based presentation formatting
 
-Can be imported by both pytest tests and skill execution markdown.
+Runnable as a module from the plugin root:
+    python -m skills.all.orchestration "query" [--mode auto --limit 30]
+Also importable by pytest (skills.all is a package).
 """
 
 from __future__ import annotations
 
 import asyncio
-import sys
-from pathlib import Path
 from typing import Any
 
-# Add paths for imports
-src_path = Path(__file__).parent.parent.parent / "src"
-sys.path.insert(0, str(src_path))
-
-skills_path = Path(__file__).parent
-sys.path.insert(0, str(skills_path))
-
-# Import Layer 1 enhancements (absolute imports for package context)
-import skills.explore.adaptive_limits as adaptive_limits
-import skills.explore.query_complexity as query_complexity
-import skills.explore.semantic_cluster as semantic_cluster
-
-# Import search executor
-import skills.explore.search_executor as search_executor
-
-# Import Layer 2 filtering
-import skills.explore.agent_filter as agent_filter
-import skills.explore.layer2_filter as layer2_filter
+# skills.all is a package (skills/__init__.py + skills/all/__init__.py exist).
+# Relative imports resolve under `python -m skills.all.orchestration` and under
+# pytest collection. No sys.path manipulation needed.
+from . import adaptive_limits, query_complexity, semantic_cluster
+from . import search_executor
+from . import agent_filter, layer2_filter
 
 
 
@@ -185,12 +174,35 @@ async def execute_unified_search(query: str, **kwargs) -> str:
 
 # Main execution entry point
 def main(query: str, **kwargs) -> str:
-    """
-Main entry point for /explore skill execution.
+    """Run the unified search and return formatted results.
 
-This function is called by Claude Code when the /explore skill is invoked.
-    It executes inline (NOT as subprocess), enabling Agent tool access.
+    Invoke via: python -m skills.all.orchestration "query" [--mode auto --limit 30]
     """
-    # Run async search
-    result = asyncio.run(execute_unified_search(query, **kwargs))
-    return result
+    return asyncio.run(execute_unified_search(query, **kwargs))
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Universal search with three-layer filtering (/explore)."
+    )
+    parser.add_argument("query", help="Search query")
+    parser.add_argument("--mode", default="auto",
+                        help="auto | unified | local-only | web-fallback")
+    parser.add_argument("--limit", type=int, default=30)
+    parser.add_argument("--min-score", type=float, default=0.5)
+    parser.add_argument("--context-threshold", type=int, default=20)
+    parser.add_argument("--force-context-filter", action="store_true")
+    parser.add_argument("--no-context-filter", action="store_true")
+    args = parser.parse_args()
+
+    print(main(
+        args.query,
+        mode=args.mode,
+        limit=args.limit,
+        min_score=args.min_score,
+        context_threshold=args.context_threshold,
+        force_context_filter=args.force_context_filter,
+        no_context_filter=args.no_context_filter,
+    ))

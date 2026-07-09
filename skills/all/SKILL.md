@@ -39,9 +39,14 @@ Single entry point to search **EVERYTHING** - your local data (chat history, kno
 
 ## Execution Model
 
-This skill executes inline Python code (no subprocess). The Agent tool is ONLY available in skill execution context.
+Run the orchestrator as a module from the plugin root:
 
-> **Full inline execution code:** See `references/inline-execution-code.md` for the complete Python source that handles three-layer filtering orchestration.
+```bash
+python -m skills.all.orchestration "query" [--mode auto --limit 30 --no-context-filter]
+```
+
+- **Layer 1** (fetch, dedup, semantic clustering, adaptive limits) and **Layer 3** (formatting) are deterministic Python.
+- **Layer 2** is keyword-based relevance filtering. The LLM/Agent rerank sketched in `agent_filter.py` was never wired — it always falls back to keywords. For a true semantic rerank on large result sets, apply the Agent tool to the script's output yourself.
 
 ## Quick Usage
 
@@ -85,7 +90,7 @@ Layer 1 total: <1 second. Layer 2: <5 seconds when triggered.
 
 | File | Contents |
 |------|----------|
-| `references/inline-execution-code.md` | Full Python execution source code |
+| `orchestration.py` | Three-layer search orchestrator (`python -m skills.all.orchestration`) |
 | `references/implementation-details.md` | Layer behavior, trigger conditions, error handling |
 | `references/usage-examples.md` | Usage examples and advanced CLI options |
 | `references/output-format.md` | Output format examples (Layer 1 vs Layer 2) |
