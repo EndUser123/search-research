@@ -76,15 +76,30 @@ class ASTCodeBackend:
             logger.info(f"ASTCodeBackend loaded {len(self._entity_index)} entities from cache")
             return
 
-        # Cache miss / stale — full rebuild
-        self._entity_index = {}
-        self._call_graph = {}
-        self._reverse_call_graph = {}
-        self._control_flow_cache = {}
+        # Cache miss / stale — full rebuild. Build into LOCALS, then publish
+        # atomically at the end. A concurrent reader (search via asyncio.to_thread)
+        # that reads self._entity_index during the build sees the PREVIOUS
+        # complete dict (empty {} on first build, or the prior version) — never
+        # a half-built one. Python attribute assignment under the GIL is atomic.
+        new_entity_index: dict[str, dict[str, Any]] = {}
+        new_call_graph: dict[str, set[str]] = {}
+        new_reverse_call_graph: dict[str, set[str]] = {}
+        new_control_flow_cache: dict[str, dict[str, list[dict]]] = {}
 
         for root_path in self.root_paths:
-            self._index_directory(root_path)
+            self._index_directory(
+                root_path,
+                new_entity_index,
+                new_call_graph,
+                new_reverse_call_graph,
+                new_control_flow_cache,
+            )
 
+        # Atomic publish — readers see old or new, never partial.
+        self._entity_index = new_entity_index
+        self._call_graph = new_call_graph
+        self._reverse_call_graph = new_reverse_call_graph
+        self._control_flow_cache = new_control_flow_cache
         self._indexed = True
         logger.info(f"ASTCodeBackend indexed {len(self._entity_index)} entities (cache rebuilt)")
 
@@ -256,16 +271,32 @@ class ASTCodeBackend:
             if lock_fd is not None:
                 os.close(lock_fd)
 
-    def _index_directory(self, root_path: Path) -> None:
-        """Index all Python files in a directory."""
+    def _index_directory(
+        self,
+        root_path: Path,
+        entity_index: dict,
+        call_graph: dict,
+        reverse_call_graph: dict,
+        control_flow_cache: dict,
+    ) -> None:
+        """Index all Python files in a directory into the passed containers."""
         for py_file in root_path.rglob("*.py"):
             try:
-                self._index_file(py_file)
+                self._index_file(
+                    py_file, entity_index, call_graph, reverse_call_graph, control_flow_cache
+                )
             except Exception as e:
                 logger.debug(f"Failed to index {py_file}: {e}")
 
-    def _index_file(self, file_path: Path) -> None:
-        """Index a single Python file."""
+    def _index_file(
+        self,
+        file_path: Path,
+        entity_index: dict,
+        call_graph: dict,
+        reverse_call_graph: dict,
+        control_flow_cache: dict,
+    ) -> None:
+        """Index a single Python file into the passed containers."""
         try:
             source = file_path.read_text(encoding="utf-8", errors="ignore")
             tree = ast.parse(source, filename=str(file_path))
@@ -286,7 +317,7 @@ class ASTCodeBackend:
                     file_imports.add(node.module)
 
         # Store file entity
-        self._entity_index[file_entity_id] = {
+        entity_index[file_entity_id] = {
             "type": "file",
             "file_path": str(file_path),
             "imports": list(file_imports),
@@ -295,12 +326,27 @@ class ASTCodeBackend:
         # Second pass: index classes and functions
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef):
-                self._index_class(node, file_path, source)
+                self._index_class(
+                    node, file_path, source, entity_index, call_graph,
+                    reverse_call_graph, control_flow_cache,
+                )
             elif isinstance(node, ast.FunctionDef):
-                self._index_function(node, file_path, source)
+                self._index_function(
+                    node, file_path, source, entity_index, call_graph,
+                    reverse_call_graph, control_flow_cache,
+                )
 
-    def _index_class(self, node: ast.ClassDef, file_path: Path, source: str) -> None:
-        """Index a class definition."""
+    def _index_class(
+        self,
+        node: ast.ClassDef,
+        file_path: Path,
+        source: str,
+        entity_index: dict,
+        call_graph: dict,
+        reverse_call_graph: dict,
+        control_flow_cache: dict,
+    ) -> None:
+        """Index a class definition into the passed containers."""
         rel_path = file_path.relative_to(file_path.anchor)
         entity_id = f"class:{rel_path}:{node.name}"
 
@@ -317,9 +363,12 @@ class ASTCodeBackend:
         for item in node.body:
             if isinstance(item, ast.FunctionDef):
                 methods.append(item.name)
-                self._index_function(item, file_path, source, class_name=node.name)
+                self._index_function(
+                    item, file_path, source, entity_index, call_graph,
+                    reverse_call_graph, control_flow_cache, class_name=node.name,
+                )
 
-        self._entity_index[entity_id] = {
+        entity_index[entity_id] = {
             "type": "class",
             "name": node.name,
             "file_path": str(file_path),
@@ -333,9 +382,13 @@ class ASTCodeBackend:
         node: ast.FunctionDef,
         file_path: Path,
         source: str,
+        entity_index: dict,
+        call_graph: dict,
+        reverse_call_graph: dict,
+        control_flow_cache: dict,
         class_name: str | None = None,
     ) -> None:
-        """Index a function definition."""
+        """Index a function definition into the passed containers."""
         rel_path = file_path.relative_to(file_path.anchor)
 
         if class_name:
@@ -355,7 +408,7 @@ class ASTCodeBackend:
         args = [arg.arg for arg in node.args.args]
         signature = f"def {node.name}({', '.join(args)})"
 
-        self._entity_index[entity_id] = {
+        entity_index[entity_id] = {
             "type": "function",
             "name": display_name,
             "file_path": str(file_path),
@@ -365,15 +418,15 @@ class ASTCodeBackend:
         }
 
         # Store control flow
-        self._control_flow_cache[entity_id] = control_flow
+        control_flow_cache[entity_id] = control_flow
 
         # Update call graphs
-        self._call_graph[entity_id] = set()
+        call_graph[entity_id] = set()
         for call in calls:
-            self._call_graph[entity_id].add(call)
-            if call not in self._reverse_call_graph:
-                self._reverse_call_graph[call] = set()
-            self._reverse_call_graph[call].add(entity_id)
+            call_graph[entity_id].add(call)
+            if call not in reverse_call_graph:
+                reverse_call_graph[call] = set()
+            reverse_call_graph[call].add(entity_id)
 
     def _extract_calls(self, node: ast.FunctionDef) -> list[str]:
         """Extract function calls from a function."""
