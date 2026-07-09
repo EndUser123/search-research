@@ -1757,43 +1757,75 @@ def _check_post_skill_prose_response(data: dict) -> dict | None:
         session_id = data.get("session_id", "unknown")
         terminal_id = data.get("terminal_id", "unknown")
 
-        # Determine skill type
-        skill_type = "execution" if _is_execution_skill(skill_name) else "knowledge"
+        # Rekey 2026-07-09: enforcement is keyed off INVOCATION (Skill in
+        # tools_used, already checked above), NOT off workflow_steps presence.
+        # A skill being invoked is what makes it mandatory; workflow_steps,
+        # when present, only adds step-tracking granularity (and tailors the
+        # message below). Its absence no longer means "skip enforcement."
+        #
+        # The sole exemption: explicitly-classified knowledge/reference skills
+        # (KNOWLEDGE_SKILLS in __lib/hook_constants.py), whose correct execution
+        # may legitimately be a prose/reference response. Every other invoked
+        # skill is mandatory — a prose-only response after Skill() (no execution
+        # tools) is the substitution anti-pattern and is blocked.
+        has_workflow_steps = _is_execution_skill(skill_name)
+        is_knowledge = _is_knowledge_skill(skill_name)
+        # skill_type is telemetry-only: "knowledge" = exempt, "execution" = enforced.
+        skill_type = "knowledge" if is_knowledge else "execution"
 
-        # If Skill was called but NO execution tools used → prose response (BLOCK)
-        if not execution_used:
-            # Check if it's an execution skill (has workflow_steps)
-            if skill_type == "execution":
-                # Log block decision with enhanced fields
-                try:
-                    _log_post_skill_prose_event(
-                        decision="block",
-                        skill_name=skill_name,
-                        skill_type=skill_type,
-                        tools_used=list(tools_used),
-                        execution_tools_used=execution_tools_used,
-                        reason="E_POST_SKILL_PROSE_RESPONSE",
-                        session_id=session_id,
-                        terminal_id=terminal_id,
-                    )
-                except Exception:
-                    # Logging failures don't break the gate
-                    pass
+        # If Skill was called but NO execution tools used → prose response (BLOCK).
+        # Applies to ALL invoked skills except the explicit knowledge exemption.
+        if not execution_used and not is_knowledge:
+            # Log block decision with enhanced fields
+            try:
+                _log_post_skill_prose_event(
+                    decision="block",
+                    skill_name=skill_name,
+                    skill_type=skill_type,
+                    tools_used=list(tools_used),
+                    execution_tools_used=execution_tools_used,
+                    reason="E_POST_SKILL_PROSE_RESPONSE",
+                    session_id=session_id,
+                    terminal_id=terminal_id,
+                )
+            except Exception:
+                # Logging failures don't break the gate
+                pass
 
-                return {
-                    "decision": "block",
-                    "reason": (
-                        f"[E_POST_SKILL_PROSE_RESPONSE]\n"
-                        f"WORKFLOW EXECUTION REQUIRED\n\n"
-                        f"You just loaded skill: /{skill_name}\n\n"
-                        f"NEXT STEP: Follow the skill's workflow_steps (from SKILL.md)\n\n"
-                        f"✓ Use Bash/Task/Read tools to execute the workflow\n"
-                        f"✗ Do NOT respond with prose analysis or summaries\n"
-                        f"✗ Do NOT skip steps or improvise your own approach\n\n"
-                        f"The skill has documented workflow_steps for a reason — follow them."
-                    ),
-                    "blocking_hook": "Stop.py:post_skill_workflow_gate",
-                }
+            # Tailor the directive by tier. Tier 1 (workflow_steps present)
+            # references the documented steps; Tier 2 (no workflow_steps) gives
+            # a generic execute-the-skill directive — still mandatory, just no
+            # step list to point at.
+            if has_workflow_steps:
+                next_step_line = (
+                    "NEXT STEP: Follow the skill's workflow_steps (from SKILL.md)"
+                )
+                closing_line = (
+                    "The skill has documented workflow_steps for a reason — follow them."
+                )
+            else:
+                next_step_line = (
+                    "NEXT STEP: Follow the skill's documented procedure (from SKILL.md)"
+                )
+                closing_line = (
+                    "You invoked this skill — execute its procedure rather than "
+                    "substituting your own analysis."
+                )
+
+            return {
+                "decision": "block",
+                "reason": (
+                    f"[E_POST_SKILL_PROSE_RESPONSE]\n"
+                    f"WORKFLOW EXECUTION REQUIRED\n\n"
+                    f"You just loaded skill: /{skill_name}\n\n"
+                    f"{next_step_line}\n\n"
+                    f"✓ Use Bash/Task/Read tools to execute the workflow\n"
+                    f"✗ Do NOT respond with prose analysis or summaries\n"
+                    f"✗ Do NOT skip steps or improvise your own approach\n\n"
+                    f"{closing_line}"
+                ),
+                "blocking_hook": "Stop.py:post_skill_workflow_gate",
+            }
 
         # Log allow decision (Skill used + execution tools, or knowledge skill)
         try:
@@ -1946,6 +1978,35 @@ def _is_execution_skill(skill_name: str) -> bool:
         return False
     except Exception:
         # Other errors — fail open to avoid cascading blocks
+        return False
+
+
+def _is_knowledge_skill(skill_name: str) -> bool:
+    """Check if a skill is an explicitly-classified knowledge/reference skill.
+
+    These skills' correct execution may legitimately be a prose or reference
+    response, so they are exempt from the post-Skill prose-substitution block.
+    Every OTHER invoked skill is mandatory regardless of workflow_steps presence
+    (rekey 2026-07-09: invocation, not frontmatter, is the enforcement key).
+
+    Note: ``_is_execution_skill`` (workflow_steps presence) is now used only to
+    tailor the block message and feed step-tracking gates — it no longer
+    decides whether a skill is enforceable.
+
+    Args:
+        skill_name: Name of the skill (without / prefix)
+
+    Returns:
+        True if the skill is in the KNOWLEDGE_SKILLS exemption set.
+    """
+    try:
+        from hook_constants import KNOWLEDGE_SKILLS
+
+        return (skill_name or "").strip().lower() in KNOWLEDGE_SKILLS
+    except Exception:
+        # Fail CLOSED on the exemption (do NOT exempt): an undeterminable
+        # exemption must not silently disable enforcement. The skill stays
+        # mandatory. This is fail-fast per the rekey policy.
         return False
 
 
