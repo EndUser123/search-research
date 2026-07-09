@@ -1,28 +1,18 @@
-# Hook state files contain high-entropy runtime data
-hooks/state/*.json.1
+# logs (per policy: git everything except log files)
+logs/
+**/logs/
+*.log
+*.jsonl.log
 
-# Session state lock files
-session_data/*.json.lock
-
-# Python cache
+# runtime junk
 __pycache__/
-*.py[cod]
-*$py.class
+*.pyc
+*.tmp
+.artifacts/
 
-# Test cache
-.pytest_cache/
-.coverage
-htmlcov/
+# churning binary state (event streams = logs in db form)
+events.db
+artifacts.db
 
-# Virtual environments
-venv/
-env/
-.venv/
-
-# IDE
-.vscode/
-.idea/
-
-# OS
-.DS_Store
-Thumbs.db
+# secrets-adjacent scanner output
+gitleaks_scan_stderr.txt
