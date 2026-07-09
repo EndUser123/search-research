@@ -1,12 +1,12 @@
 ---
-name: search
-description: Unified intelligent search - searches only local data stores (CKS, CHS, CDS, code, docs, skills)
+name: find
+description: Local intelligent find — searches only local data stores (CKS, CHS, CDS, code, docs, skills). Use when you need to find something in your system (past sessions, knowledge base, code, docs).
 ---
-# Unified Search
+# Unified Find
 
 ## Purpose
 
-Single entry point to search across all CSF NIP data stores in parallel - **local sources only**. For web research, use `/research`.
+Single entry point to find across all CSF NIP data stores in parallel - **local sources only**. For web research, use `/web`.
 
 **Scope**: CKS, CHS, CDS, Code/Grep, DOCS, SKILLS. No external dependencies.
 
@@ -43,10 +43,10 @@ The system **automatically** detects search intent. No flags needed.
 | Query Pattern | Source | Example |
 |---------------|--------|---------|
 | "we discussed", "you mentioned", pronouns | `chat` | "what did we discuss about auth" |
-| "recent", "yesterday", "earlier today" | `chat` | "recent changes to the search skill" |
+| "recent", "yesterday", "earlier today" | `chat` | "recent changes to the find skill" |
 | "how does X work", "tutorial", code terms | `docs` | "how does FAISS work" |
 | "compare X vs Y", "evolved over time" | `chat` + `docs` | "how our auth approach evolved" |
-| URLs (http/https) | Suggest `/research` | direct fetch |
+| URLs (http/https) | Suggest `/web` | direct fetch |
 
 Chat method is also auto-selected: `grep` for recent/exact matches, `vector` for semantic/conceptual queries.
 
@@ -61,7 +61,7 @@ See `references/auto-detection.md` for full detection rules, query indicators, a
 - **Do not invent module paths**: Never call `knowledge.systems.chs.cli` (does not exist)
 - **CHS readiness**: A non-empty `chat_history.db` file is not enough; verify schema/FTS tables or reindex first
 
-When the query is about architecture, handoffs, resume, stale data, fields, payloads, schemas, or consumers, `/search` should preferentially surface:
+When the query is about architecture, handoffs, resume, stale data, fields, payloads, schemas, or consumers, `/find` should preferentially surface:
 
 - existing producers
 - existing consumers
@@ -71,17 +71,17 @@ When the query is about architecture, handoffs, resume, stale data, fields, payl
 
 ## Routing Behavior
 
-`/search` is a discovery skill. It may suggest downstream skills once relevant evidence is surfaced:
+`/find` is a discovery skill. It may suggest downstream skills once relevant evidence is surfaced:
 
 - `/arch` when search shows unresolved contract/state boundaries
 - `/planning` when execution shape is unclear after discovery
 - `/verify` when the main question becomes "does this actually work?"
 
-`/search` should not absorb architecture, planning, or verification responsibilities.
+`/find` should not absorb architecture, planning, or verification responsibilities.
 
 ## Execution Directive
 
-Run local-first search for `/search` requests (`mode='auto'` — checks local stores, then escalates to web when local results are unsatisfactory):
+Run local-first find for `/find` requests (`mode='auto'` — checks local stores, then escalates to web when local results are unsatisfactory):
 
 ```bash
 cd "$(ls -d "$HOME/.claude/plugins/cache/local/search-research/"*/ | sort -V | tail -1)" && python -c "
@@ -151,31 +151,31 @@ asyncio.run(search())
 
 ```bash
 # Chat history - auto-detected
-/search "what did we discuss about authentication"
-/search "recent changes to the search skill"
+/find "what did we discuss about authentication"
+/find "recent changes to the find skill"
 
-# Web sources - auto-detected
-/search "how does FAISS work"
-/search "python async patterns"
+# Local sources - auto-detected
+/find "how does FAISS work"
+/find "python async patterns"
 
 # Session chain - list transcript and handoff files
-/search "session chain files"
-/search "filepaths for session-chain"
-/search "transcript files"
+/find "session chain files"
+/ind "filepaths for session-chain"
+/find "transcript files"
 
 # Hint overrides (when detection gets it wrong)
-/search "authentication [from chat]"
-/search "authentication [from docs]"
-/search "authentication [recent]"
+/find "authentication [from chat]"
+/find "authentication [from docs]"
+/find "authentication [recent]"
 ```
 
 Manual flags are available for precise control:
 
 ```bash
-/search "query" --source chat|web|all
-/search "query" --chat-method vector|grep|auto
-/search "query" --depth summary|full|auto
-/search "query" --explain --cluster topic --session
+/find "query" --source chat|web|all
+/find "query" --chat-method vector|grep|auto
+/find "query" --depth summary|full|auto
+/find "query" --explain --cluster topic --session
 ```
 
 ## Backends
@@ -240,14 +240,14 @@ See `references/advanced-features.md` for: intelligent defaults configuration, e
 
 ## Consolidated Features
 
-This skill absorbs `/chs`, `/recent`, `/search-more`, and `/progressive-search`.
+This skill absorbs `/chs`, `/recent`, `/find-more`, and `/progressive-find`.
 
 | Old Command | New Behavior |
 |-------------|--------------|
-| `/chs "query"` | `/search "query"` (auto-detects chat) |
-| `/recent "query"` | `/search "query"` (auto-detects recent + grep) |
-| `/search-more "id"` | `/search "id" --depth full` |
-| `/progressive-search` | `/search "query"` (auto depth) |
+| `/chs "query"` | `/find "query"` (auto-detects chat) |
+| `/recent "query"` | `/find "query"` (auto-detects recent + grep) |
+| `/find-more "id"` | `/find "id" --depth full` |
+| `/progressive-find` | `/find "query"` (auto depth) |
 
 See `references/consolidated-features.md` for: source control (`--source`), chat search method (`--chat-method`), detail level (`--depth`), progressive disclosure workflow, and recent message search.
 
