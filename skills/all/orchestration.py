@@ -106,7 +106,7 @@ async def execute_unified_search(query: str, **kwargs) -> str:
         complexity_score=complexity_score,
         result_count=limit
     )
-    actual_limit = adaptive_config["limit"]
+    actual_limit = adaptive_config["adaptive_limit"]
 
     print(f"[Layer 1C] Query complexity: {complexity_score}/100 ({query_complexity.get_complexity_label(complexity_score)})")
     print(f"[Layer 1D] Adaptive limit: {actual_limit} (base: {limit})")

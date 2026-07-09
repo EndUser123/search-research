@@ -138,7 +138,7 @@ def get_adaptive_config(
             - should_reduce (bool): Whether to reduce results before Layer 2
             - reduction_target (int|None): Target count if reduction needed
     """
-    from query_complexity import get_complexity_label
+    from skills.all.query_complexity import get_complexity_label
 
     # Get adaptive limit
     adaptive_limit = get_adaptive_limit(complexity_score)

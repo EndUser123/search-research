@@ -13,8 +13,8 @@ from __future__ import annotations
 import pytest
 
 # Use package imports from pytest rootdir (P:\\\\\\.claude)
-# The package is at .claude/skills/explore/, so import as skills.explore
-from skills.explore.agent_filter import (
+# The package is at .claude/skills/explore/, so import as skills.all
+from skills.all.agent_filter import (
     apply_agent_filtering,
     estimate_tokens_from_results,
     get_adaptive_insight_count,

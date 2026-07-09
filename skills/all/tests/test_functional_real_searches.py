@@ -16,8 +16,8 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from skills.explore.search_executor import execute_search, format_results_human
-from skills.explore import agent_filter, layer2_filter, query_complexity
+from skills.all.search_executor import execute_search, format_results_human
+from skills.all import agent_filter, layer2_filter, query_complexity
 
 
 class TestFunctionalLayer1Only:
