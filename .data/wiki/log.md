@@ -3786,3 +3786,7 @@ Page: P:/.data/wiki/concepts/local-model-readiness-gate.md
 ## [2026-07-08] ingest | llama-server orphan-on-give-up + crash-log archival
 Source: session-2026-07-08
 Page: P:/.data/wiki/concepts/llama-server-orphan-on-give-up.md
+
+## [2026-07-09] ingest | Critique artifacts inherit the failure mode they critique
+Source: session
+Transcript: C:/Users/brsth/.claude/projects/P--/07d9d135-72e7-4ace-800a-8a10a5caeed4/
