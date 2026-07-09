@@ -508,7 +508,11 @@ def _run_semantic_critic(data: dict) -> dict | None:
     """Semantic quality gate for diagnostic/analytical responses.
 
     Evaluates whether analytical responses adequately address the diagnostic question.
-    Uses Haiku for semantic evaluation. Quality gate — suppressed on control/exploration.
+    Lives in the cc-aca-epistemic plugin (hooks/stop/Stop_semantic_critic.py), resolved
+    here via the _EPISTEMIC_STOP sys.path entry. Runs two external backends in parallel
+    (Mistral + glm-5.2 by default; second backend configurable via SEMANTIC_CRITIC_*),
+    conservative OR-veto, fail-open/delegate-to-subagent on unavailability.
+    Quality gate — suppressed on control/exploration turns.
     """
     from Stop_semantic_critic import run as _semantic_critic_run
 
