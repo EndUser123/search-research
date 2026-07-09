@@ -1,6 +1,7 @@
 ---
 name: find
 description: Local intelligent find — searches only local data stores (CKS, CHS, CDS, code, docs, skills). Use when you need to find something in your system (past sessions, knowledge base, code, docs).
+workflow_steps: []
 ---
 # Unified Find
 
@@ -160,7 +161,7 @@ asyncio.run(search())
 
 # Session chain - list transcript and handoff files
 /find "session chain files"
-/ind "filepaths for session-chain"
+/find "filepaths for session-chain"
 /find "transcript files"
 
 # Hint overrides (when detection gets it wrong)
