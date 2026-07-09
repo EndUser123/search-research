@@ -3790,3 +3790,11 @@ Page: P:/.data/wiki/concepts/llama-server-orphan-on-give-up.md
 ## [2026-07-09] ingest | Critique artifacts inherit the failure mode they critique
 Source: session
 Transcript: C:/Users/brsth/.claude/projects/P--/07d9d135-72e7-4ace-800a-8a10a5caeed4/
+
+## [2026-07-09] ingest | Preference-Without-Enforcement Pattern
+Source: session-2026-07-09
+Transcript: session be39a5da
+
+## [2026-07-09] ingest | Git Submodule Topology for Plugin Monorepo
+Source: session-2026-07-09
+Transcript: session be39a5da
