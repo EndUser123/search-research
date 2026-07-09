@@ -43,7 +43,7 @@
     },
     {
       "name": "cc-skills-ai-api",
-      "version": "1.0.12",
+      "version": "1.0.13",
       "description": "AI API integration skills for Claude Code",
       "source": "./plugins/cc-skills-ai-api",
       "keywords": [
@@ -111,7 +111,7 @@
     },
     {
       "name": "cc-skills-architect",
-      "version": "1.0.26",
+      "version": "1.0.27",
       "description": "Architect plugin",
       "source": "./plugins/cc-skills-architect",
       "keywords": []
