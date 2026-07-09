@@ -55,7 +55,7 @@
     },
     {
       "name": "cc-skills-ai-api",
-      "version": "1.0.11",
+      "version": "1.0.12",
       "description": "AI API integration skills for Claude Code",
       "source": "./plugins/cc-skills-ai-api",
       "keywords": [
@@ -130,7 +130,7 @@
     },
     {
       "name": "cc-skills-thinking",
-      "version": "1.0.16",
+      "version": "1.0.17",
       "description": "Thinking plugin",
       "source": "./plugins/cc-skills-thinking",
       "keywords": []

@@ -1,6 +1,6 @@
 ---
 name: ux
-description: Reverse-engineers technical videos/transcripts into Zero-Gap Implementation Specifications (skill.md) for Claude Code/Bifrost. Use for /ux [video_url|page:1|transcript]; triggers on "extract spec", "reverse-engineer video", "build skill from transcript".
+description: Reverse-engineers technical videos/transcripts into Zero-Gap Implementation Specifications (skill.md) for Claude Code. Use for /ux [video_url|page:1|transcript]; triggers on "extract spec", "reverse-engineer video", "build skill from transcript".
 version: 1.7
 category: engineering
 mcp_servers: ["web-mcp"]
@@ -8,11 +8,11 @@ allowed_tools: ["Read","Bash","WebFetch","code_exec","search_web"]
 allowed_orchestrators: ["subagents", "generalist", "ai-cli", "bf"]
 metadata:
   author: Gemini CLI
-  target_llm: Claude Code / Bifrost
+  target_llm: Claude Code
   terminal_isolation: false
   hooks: PreToolUse, Stop
 license: MIT
-compatibility: Claude Code v2.1+, Bifrost gateway; Windows 11/PowerShell; multi-terminal safe
+compatibility: Claude Code v2.1+; Windows 11/PowerShell; multi-terminal safe
 ---
 
 # Universal Spec Extractor (/ux)

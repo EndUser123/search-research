@@ -114,7 +114,7 @@ Assign models to **cognitive roles**, not task categories. Any model can play an
 | `/bf run_compare` | Parallel multi-model comparison with LangGraph synthesis | `python -c "from bf_agent import run_compare; result = run_compare(prompt, models=[...]); print(result['synthesis'])"` |
 | `/ai-cli` | Multi-CLI parallel execution (gemini, codex, opencode, pi) with aggregation | `python "P:/packages/.claude-marketplace/plugins/cc-skills-ai-api/skills/ai-cli/ai_cli.py" "<prompt>" <options>` |
 
-**Bifrost (`/bf`) defaults:** Use PI routing (see `/ai-cli --pi-model`), mode=`brainstorm` (or per role: design for architecture, plan for sequencing, review for critique, explore for investigation).
+**`/bf` (Bifrost) is RETIRED** — transport is now CCR / opencode-go / direct SDK via `/ai-api`. For multi-model defaults, use PI routing (see `/ai-cli --pi-model`), mode=`brainstorm` (or per role: design for architecture, plan for sequencing, review for critique, explore for investigation).
 
 **Routing decision logic:**
 - Low confidence → `/bf run_compare` for breadth (use PI routing, see `/ai-cli --pi-model`)
