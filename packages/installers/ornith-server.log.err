@@ -1,26 +1,19 @@
-0.00.029.362 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
-0.00.116.904 I srv    load_model: loading model 'P:\packages\models\ornith-1.0-9b-Q4_K_M.gguf'
-0.04.047.095 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 65536, kv_unified = 'false'
-0.04.105.817 I srv  llama_server: model loaded
-0.04.105.824 I srv  llama_server: listening on http://127.0.0.1:8010
-0.13.858.654 I slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = -1
-0.13.858.769 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
-0.14.028.969 I slot print_timing: id  0 | task 0 | prompt eval time =      78.61 ms /    11 tokens (    7.15 ms per token,   139.94 tokens per second)
-0.14.028.974 I slot print_timing: id  0 | task 0 |        eval time =      91.57 ms /     8 tokens (   11.45 ms per token,    87.37 tokens per second)
-0.14.028.975 I slot print_timing: id  0 | task 0 |       total time =     170.17 ms /    19 tokens
-0.14.028.976 I slot print_timing: id  0 | task 0 |    graphs reused =          7
-0.14.029.020 I slot      release: id  0 | task 0 | stop processing: n_tokens = 18, truncated = 0
-0.16.226.144 I slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = 14003644
-0.16.239.679 I slot launch_slot_: id  0 | task 10 | processing task, is_child = 0
-0.16.423.219 I slot print_timing: id  0 | task 10 | prompt eval time =      94.63 ms /    51 tokens (    1.86 ms per token,   538.92 tokens per second)
-0.16.423.225 I slot print_timing: id  0 | task 10 |        eval time =      88.87 ms /     8 tokens (   11.11 ms per token,    90.02 tokens per second)
-0.16.423.226 I slot print_timing: id  0 | task 10 |       total time =     183.51 ms /    59 tokens
-0.16.423.226 I slot print_timing: id  0 | task 10 |    graphs reused =         13
-0.16.423.275 I slot      release: id  0 | task 10 | stop processing: n_tokens = 58, truncated = 0
-0.42.011.332 I slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = 16397899
-0.42.037.138 I slot launch_slot_: id  0 | task 21 | processing task, is_child = 0
-0.42.164.313 I slot print_timing: id  0 | task 21 | prompt eval time =      36.40 ms /     4 tokens (    9.10 ms per token,   109.88 tokens per second)
-0.42.164.320 I slot print_timing: id  0 | task 21 |        eval time =      90.73 ms /     8 tokens (   11.34 ms per token,    88.18 tokens per second)
-0.42.164.321 I slot print_timing: id  0 | task 21 |       total time =     127.13 ms /    12 tokens
-0.42.164.325 I slot print_timing: id  0 | task 21 |    graphs reused =         19
-0.42.164.379 I slot      release: id  0 | task 21 | stop processing: n_tokens = 18, truncated = 0
+0.00.038.549 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.126.975 I srv    load_model: loading model 'P:\packages\models\ornith-1.0-9b-Q4_K_M.gguf'
+0.04.189.685 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 65536, kv_unified = 'false'
+0.04.259.740 I srv  llama_server: model loaded
+0.04.259.748 I srv  llama_server: listening on http://127.0.0.1:8010
+0.41.127.053 I slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = -1
+0.41.127.161 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+0.41.298.147 I slot print_timing: id  0 | task 0 | prompt eval time =      81.16 ms /    11 tokens (    7.38 ms per token,   135.53 tokens per second)
+0.41.298.154 I slot print_timing: id  0 | task 0 |        eval time =      89.79 ms /     8 tokens (   11.22 ms per token,    89.09 tokens per second)
+0.41.298.155 I slot print_timing: id  0 | task 0 |       total time =     170.95 ms /    19 tokens
+0.41.298.156 I slot print_timing: id  0 | task 0 |    graphs reused =          7
+0.41.298.215 I slot      release: id  0 | task 0 | stop processing: n_tokens = 18, truncated = 0
+0.43.535.119 I slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = 41265521
+0.43.556.053 I slot launch_slot_: id  0 | task 10 | processing task, is_child = 0
+0.43.739.715 I slot print_timing: id  0 | task 10 | prompt eval time =      95.72 ms /    51 tokens (    1.88 ms per token,   532.82 tokens per second)
+0.43.739.721 I slot print_timing: id  0 | task 10 |        eval time =      87.91 ms /     8 tokens (   10.99 ms per token,    91.01 tokens per second)
+0.43.739.722 I slot print_timing: id  0 | task 10 |       total time =     183.62 ms /    59 tokens
+0.43.739.723 I slot print_timing: id  0 | task 10 |    graphs reused =         13
+0.43.739.783 I slot      release: id  0 | task 10 | stop processing: n_tokens = 58, truncated = 0
