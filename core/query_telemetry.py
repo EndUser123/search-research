@@ -89,3 +89,81 @@ def log_query_event(
     except OSError:
         # Telemetry is non-blocking: never propagate into the search path.
         return
+
+
+def log_quality_check(
+    *,
+    query_hash: str,
+    satisfactory: bool,
+    confidence: float,
+    backend_diversity: int,
+    fresh: bool,
+    path: Path | None = None,
+) -> None:
+    """Append a quality-check record for the best result of a /search.
+
+    This is the FM-4 input: a soak over these records yields the
+    is_satisfactory pass-rate on real traffic. Emitted from
+    UnifiedAsyncRouter._should_skip_web (where is_satisfactory is actually
+    called on the best result), which runs AFTER the local router has already
+    emitted its intent_filter record — so it is a SEPARATE line, joined to the
+    filter record by query_hash. Never raises.
+    """
+    record = {
+        "ts": datetime.now().isoformat(),
+        "event": "quality_check",
+        "query_hash": query_hash,
+        "satisfactory": bool(satisfactory),
+        "confidence": round(float(confidence), 4),
+        "backend_diversity": int(backend_diversity),
+        "fresh": bool(fresh),
+    }
+    target = path if path is not None else resolve_path()
+    line = json.dumps(record, ensure_ascii=False)
+    try:
+        with _write_lock:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with open(target, "a", encoding="utf-8") as f:
+                f.write(line + "
+")
+    except OSError:
+        return
+
+
+def log_quality_check(
+    *,
+    query_hash: str,
+    satisfactory: bool,
+    confidence: float,
+    backend_diversity: int,
+    fresh: bool,
+    path: Path | None = None,
+) -> None:
+    """Append a quality-check record for the best result of a /search.
+
+    This is the FM-4 input: a soak over these records yields the
+    is_satisfactory pass-rate on real traffic. Emitted from
+    UnifiedAsyncRouter._should_skip_web (where is_satisfactory is actually
+    called on the best result), which runs AFTER the local router has already
+    emitted its intent_filter record — so it is a SEPARATE line, joined to the
+    filter record by query_hash. Never raises.
+    """
+    record = {
+        "ts": datetime.now().isoformat(),
+        "event": "quality_check",
+        "query_hash": query_hash,
+        "satisfactory": bool(satisfactory),
+        "confidence": round(float(confidence), 4),
+        "backend_diversity": int(backend_diversity),
+        "fresh": bool(fresh),
+    }
+    target = path if path is not None else resolve_path()
+    line = json.dumps(record, ensure_ascii=False)
+    try:
+        with _write_lock:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with open(target, "a", encoding="utf-8") as f:
+                f.write(line + "
+")
+    except OSError:
+        return
