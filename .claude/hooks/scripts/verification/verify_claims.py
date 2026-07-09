@@ -39,9 +39,10 @@ from typing import Any
 HOOKS_ROOT = Path("P:/.claude/hooks")
 SETTINGS_JSON = Path("P:/.claude/settings.json")
 
-# Windows drive path  P:/...  or  C:\\...  , or unix absolute /...
+# Windows drive path  P:/...  or  C:\\...  ; unix absolute /a/b with a real separator chain.
+# Single-segment tokens like /Write or /Edit are NOT paths -> require >=2 segments or a drive letter.
 _PATH_RE = re.compile(
-    r'(?:[A-Za-z]:[\\/][^\s"`\]\|<>]+|/[A-Za-z][^\s"`\]\|<>]*)'
+    r'(?:[A-Za-z]:[\\/][^\s"`\]\|<>]+|/[A-Za-z][^\s"`\]\|<>]*/[^\s"`\]\|<>]+)'
 )
 # backtick-quoted token that looks file-ish  `foo/bar.py`  `__lib/x`
 _TICK_RE = re.compile(r"`([^\s`]+\.[a-z]{2,5}|[^\s`]*[\\/][^\s`]*)`")
@@ -95,38 +96,70 @@ def _read_lines(path_str: str, lo: int, hi: int) -> dict[str, Any]:
         lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError as e:
         return {"readable": False, "reason": str(e)}
+    if lo > len(lines):
+        # cited lines don't exist in the file -> claim about what's AT them is unconfirmable
+        return {"readable": True, "in_range": False, "reason": "cited line range beyond file length", "file_lines": len(lines), "cited_from": lo}
     hi = min(hi, len(lines))
     lo = max(1, lo)
-    if hi < lo:
-        return {"readable": True, "reason": "line range beyond file", "file_lines": len(lines)}
     snippet = {str(i): lines[i - 1] for i in range(lo, hi + 1)}
-    return {"readable": True, "file_lines": len(lines), "lines": snippet}
+    return {"readable": True, "in_range": True, "file_lines": len(lines), "lines": snippet}
 
 
 def _check_registered(name: str) -> dict[str, Any]:
-    """Grep settings.json + hook routers for a hook/module name."""
+    """Is `name` wired into the actual DISPATCH surface?
+
+    Dispatch surface = settings.json + the known dispatch manifests (PreToolUse.py,
+    Stop.py, hooks.json files, __lib/router.py). A name appearing only in __lib
+    helpers, tests, or docs does NOT count as registered — that's a diagnostic
+    mentioning the name, not a live dispatch entry. Returns UNVERIFIABLE in that
+    case so the LLM tier can settle it rather than emitting a false PASS.
+    """
     needle = name.strip("`'\"")
-    hits: list[str] = []
-    targets = [SETTINGS_JSON, HOOKS_ROOT / "__lib", HOOKS_ROOT / "PreToolUse.py"]
-    for t in targets:
-        if not t.exists():
-            continue
-        if t.is_file():
+    dispatch_files = [
+        SETTINGS_JSON,
+        HOOKS_ROOT / "PreToolUse.py",
+        HOOKS_ROOT / "Stop.py",
+        HOOKS_ROOT / "Stop_router.py",
+        HOOKS_ROOT / "UserPromptSubmit_router.py",
+        HOOKS_ROOT / "PostToolUse_router.py",
+    ]
+    dispatch_hits: list[str] = []
+    for t in dispatch_files:
+        if t.exists() and t.is_file():
             try:
                 if needle.lower() in t.read_text(encoding="utf-8", errors="replace").lower():
-                    hits.append(str(t))
+                    dispatch_hits.append(str(t))
             except OSError:
                 pass
-        else:
-            try:
-                r = subprocess.run(
-                    ["grep", "-rli", needle, str(t)],
-                    capture_output=True, text=True, timeout=10,
-                )
-                hits.extend(r.stdout.strip().splitlines())
-            except (subprocess.TimeoutExpired, FileNotFoundError):
-                pass
-    return {"registered": bool(hits), "found_in": hits[:10]}
+    # also scan hooks.json + router.py anywhere under hooks/ (plugin dispatch)
+    try:
+        r = subprocess.run(
+            ["grep", "-rli", "--include=hooks.json", "--include=router.py", needle, str(HOOKS_ROOT)],
+            capture_output=True, text=True, timeout=10,
+        )
+        dispatch_hits.extend(p for p in r.stdout.strip().splitlines() if p)
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+
+    if dispatch_hits:
+        return {"registered": True, "dispatch_surface": dispatch_hits[:10]}
+
+    # not in dispatch — but is it mentioned ANYWHERE (helpers/tests/docs)?
+    nondispatch: list[str] = []
+    try:
+        r = subprocess.run(
+            ["grep", "-rli", needle, str(HOOKS_ROOT)],
+            capture_output=True, text=True, timeout=15,
+        )
+        nondispatch = r.stdout.strip().splitlines()
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+    return {
+        "registered": False,
+        "dispatch_surface": [],
+        "found_only_in_nondispatch": nondispatch[:10],
+        "note": "name appears outside the dispatch surface; cannot confirm registration deterministically",
+    }
 
 
 def _check_importable(module_path: str) -> dict[str, Any]:
@@ -148,11 +181,13 @@ def _check_importable(module_path: str) -> dict[str, Any]:
         return {"importable": False, "error": f"{type(e).__name__}: {e}"}
 
 
-def _classify_action(claim_type: str, evidence_source: str) -> str:
+def _classify_action(claim_type: str, evidence_source: str, claim: str) -> str:
     es = evidence_source.lower()
-    if "registered" in es or "wired" in es or "settings.json" in claim_type or claim_type == "registered":
+    cl = claim.lower()
+    reg_signals = ("registered", "unregistered", "wired", "dispatch", "in settings.json", "in the router")
+    if any(s in es or s in cl for s in reg_signals) or claim_type == "registered":
         return "registered"
-    if "import" in es or claim_type == "importable":
+    if "import" in es or "importable" in cl or claim_type == "importable":
         return "importable"
     if "line" in es:
         return "static-shape"
@@ -174,13 +209,24 @@ def verify_claims(claims: list[dict[str, Any]]) -> list[dict[str, Any]]:
             results.append(rec)
             continue
 
-        action = _classify_action(ct, es)
+        action = _classify_action(ct, es, claim)
         paths = _extract_paths(claim, es)
 
         if action == "registered":
-            # the named hook/module is the subject, not necessarily a path
-            subject = paths[0] if paths else claim.split("`")[1] if "`" in claim else claim[:60]
-            rec["receipt"] = _check_registered(Path(subject).name if "/" in subject or "\\" in subject else subject)
+            # subject is the hook/module NAME, not settings.json. Prefer a backticked
+            # name or a *.py stem from the claim; fall back to a path stem.
+            subject = ""
+            m = re.search(r"`([^`]+)`", claim)
+            if m:
+                subject = m.group(1)
+            elif paths:
+                subject = Path(paths[0]).name
+            else:
+                m2 = re.search(r"([\w\-]+\.py)", claim)
+                subject = m2.group(1) if m2 else claim[:40]
+            # strip a .py extension for a cleaner grep needle
+            needle = subject[:-3] if subject.lower().endswith(".py") else subject
+            rec["receipt"] = _check_registered(needle)
         elif action == "importable" and paths:
             rec["receipt"] = _check_importable(paths[0])
         elif action == "static-shape" and paths:
@@ -199,7 +245,10 @@ def verify_claims(claims: list[dict[str, Any]]) -> list[dict[str, Any]]:
         # derive verdict from receipt
         r = rec["receipt"]
         if isinstance(r, dict):
-            if r.get("exists") is True or r.get("readable") is True or r.get("registered") is True or r.get("importable") is True:
+            # in_range=False (cited lines don't exist) is unconfirmable, not a pass
+            if r.get("in_range") is False:
+                rec["verdict"] = "UNVERIFIABLE"
+            elif r.get("exists") is True or (r.get("readable") is True and r.get("in_range") is not False) or r.get("registered") is True or r.get("importable") is True:
                 rec["verdict"] = "PASS"
             elif any(
                 isinstance(v, dict) and v.get("exists") for v in r.values()
