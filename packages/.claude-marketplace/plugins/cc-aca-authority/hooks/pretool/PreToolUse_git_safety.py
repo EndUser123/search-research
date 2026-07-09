@@ -384,10 +384,26 @@ def check_worktree_cross_contamination(
         try:
             target_resolved = Path(file_path).resolve()
 
-            # Check home ~/.claude directory
-            home_claude = (Path.home() / '.claude').resolve()
-            if home_claude == target_resolved or home_claude in target_resolved.parents:
-                return {"continue": True, "decision": "allow", "reason": "Global ~/.claude config (not worktree-scoped)"}
+            # HOME-DRIVE EXEMPTION (root-cause fix for recurring CROSS-WORKTREE
+            # WRITE false positives on user-home tool config). The cross-worktree
+            # check exists to prevent P:\-internal worktree bleed
+            # (P:\worktrees\ai-X -> P:\main). A path under the user home
+            # (CCR ~/.claude-code-router, MCP ~/.claude.json, ~/.pi, ~/.gemini,
+            # ~/.claude itself) is on a different tree entirely and can never be
+            # a P:\-internal cross-worktree access. Exempt it — but only when the
+            # current worktree is NOT itself under home, so a repo that lives
+            # under home still gets real sibling-worktree enforcement.
+            home = Path.home().resolve()
+            target_under_home = home == target_resolved or home in target_resolved.parents
+            if target_under_home:
+                try:
+                    _wt = get_current_worktree(Path.cwd().resolve())
+                except (ValueError, RuntimeError):
+                    _wt = None
+                _wt_under_home = bool(_wt) and (home == _wt or home in _wt.parents)
+                if not _wt_under_home:
+                    return {"continue": True, "decision": "allow",
+                            "reason": "User-home path (not worktree-scoped; different tree from the worktree)"}
 
             # Check P:/.claude directory (P: drive global config)
             p_claude = Path('P:/.claude').resolve()
