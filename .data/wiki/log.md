@@ -3766,3 +3766,7 @@ Page: wiki/concepts/reliable-skill-output-consistency.md
 Source: session
 Transcript: session-2026-07-07-rns
 Pattern: code owns format, model owns content. Demonstrated by RNS (drift) vs recap (render_actions).
+## [2026-07-08] ingest | Windows cross-process file locking — msvcrt.locking on a 0-byte file
+Source: session
+Transcript: b8c3e0a4-3c21-4ab7-9fa9-5b8df525d370.jsonl
+Page: P:/.data/wiki/concepts/windows-cross-process-file-locking.md
