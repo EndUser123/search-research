@@ -57,10 +57,11 @@ def _extract_paths(claim: str, evidence_source: str) -> list[str]:
     found = set(_PATH_RE.findall(blob))
     for m in _TICK_RE.findall(blob):
         found.add(m)
-    # normalize backslashes, strip trailing punctuation
+    # normalize backslashes, strip trailing punctuation + a trailing :line or :lo-hi suffix
     out = []
     for p in found:
-        p = p.rstrip(".,;:)").strip("'\"")
+        p = p.rstrip(".,;)").strip("'\"")
+        p = re.sub(r":\d+(?:-\d+)?$", "", p)  # "foo.py:280" / "foo.py:589-601" -> "foo.py"
         if len(p) < 3:
             continue
         out.append(p.replace("\\", "/"))
@@ -224,9 +225,15 @@ def verify_claims(claims: list[dict[str, Any]]) -> list[dict[str, Any]]:
             else:
                 m2 = re.search(r"([\w\-]+\.py)", claim)
                 subject = m2.group(1) if m2 else claim[:40]
-            # strip a .py extension for a cleaner grep needle
             needle = subject[:-3] if subject.lower().endswith(".py") else subject
             rec["receipt"] = _check_registered(needle)
+            # Registration receipts are boolean (in-dispatch: yes/no) but claim
+            # polarity varies ("X is registered" vs "X is unregistered"). The
+            # deterministic layer can't parse polarity reliably, so hand the rich
+            # receipt to the LLM tier rather than guessing PASS/FAIL.
+            rec["verdict"] = "UNVERIFIABLE"
+            results.append(rec)
+            continue
         elif action == "importable" and paths:
             rec["receipt"] = _check_importable(paths[0])
         elif action == "static-shape" and paths:
@@ -250,12 +257,19 @@ def verify_claims(claims: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 rec["verdict"] = "UNVERIFIABLE"
             elif r.get("exists") is True or (r.get("readable") is True and r.get("in_range") is not False) or r.get("registered") is True or r.get("importable") is True:
                 rec["verdict"] = "PASS"
-            elif any(
-                isinstance(v, dict) and v.get("exists") for v in r.values()
-            ):
-                rec["verdict"] = "PASS"
             else:
-                rec["verdict"] = "FAIL"
+                # multi-path existence receipt: {path: {exists: bool}, ...}
+                child_results = [v for v in r.values() if isinstance(v, dict) and "exists" in v]
+                if child_results:
+                    exists_count = sum(1 for v in child_results if v.get("exists"))
+                    if exists_count == len(child_results):
+                        rec["verdict"] = "PASS"          # all exist
+                    elif exists_count == 0:
+                        rec["verdict"] = "FAIL"          # none exist
+                    else:
+                        rec["verdict"] = "UNVERIFIABLE"  # mixed — can't reduce to bool without parsing the claim's quantifier
+                else:
+                    rec["verdict"] = "FAIL"
         else:
             rec["verdict"] = "UNVERIFIABLE"
         results.append(rec)
@@ -263,16 +277,31 @@ def verify_claims(claims: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _self_check() -> None:
-    """Reproduce-first: prove the verifier catches the burn-class error."""
-    burn = [{
-        "id": "BURN-1",
-        "claim": "Stop_investigation_validator.py exists at the hooks root",
-        "claim_type": "existence",
-        "evidence_source": "P:/.claude/hooks/Stop_investigation_validator.py",
-    }]
-    out = verify_claims(burn)[0]
-    assert out["verdict"] == "FAIL", f"expected FAIL on the wrong path, got {out['verdict']}"
-    print("self-check OK: wrong-path claim correctly FAILs")
+    """Reproduce-first: prove the verifier catches each known failure class."""
+    cases = [
+        # wrong path -> FAIL (the burn-class error this tool exists for)
+        {"id": "BURN-1", "claim": "Stop_investigation_validator.py exists at the hooks root",
+         "claim_type": "existence", "evidence_source": "P:/.claude/hooks/Stop_investigation_validator.py",
+         "_expect": "FAIL"},
+        # real path -> PASS
+        {"id": "POS-1", "claim": "unified_claim_verifier.py exists",
+         "claim_type": "existence", "evidence_source": "P:/.claude/hooks/unified_claim_verifier.py",
+         "_expect": "PASS"},
+        # path:line notation must not mangle the filename -> real file resolves -> PASS
+        {"id": "PATHLINE-1", "claim": "verify_claims has a self-check",
+         "claim_type": "static-shape", "evidence_source": "P:/.claude/hooks/scripts/verification/verify_claims.py:280",
+         "_expect": "PASS"},
+        # multi-path mixed (one real, one fake) -> UNVERIFIABLE, not PASS
+        {"id": "MIXED-1", "claim": "both exist",
+         "claim_type": "existence",
+         "evidence_source": "P:/.claude/hooks/unified_claim_verifier.py and P:/.claude/hooks/NONEXISTENT_FAKE.py",
+         "_expect": "UNVERIFIABLE"},
+    ]
+    results = {r["id"]: r for r in verify_claims(cases)}
+    for c in cases:
+        got = results[c["id"]]["verdict"]
+        assert got == c["_expect"], f"{c['id']}: expected {c['_expect']}, got {got} — receipt={results[c['id']].get('receipt')}"
+    print(f"self-check OK: {len(cases)} cases passed (FAIL/PASS/path:line/mixed all correct)")
 
 
 def main() -> int:
