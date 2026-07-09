@@ -9,7 +9,8 @@ Decision strategy: DETERMINISTIC RULES, not TF-IDF scoring.
 Code + <64k tokens → local-coding (ornith)
 Reasoning indicators → reasoning (glm/zai)
 Tool-call patterns → coding (sonnet)
-Default → sonnet
+Structured-output (json/schema) → coding (sonnet)  [local 9B fails schema, #991]
+Default free-form → local-coding (ornith, free, high-quality per #991)
 """
 from __future__ import annotations
 
@@ -17,16 +18,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from .scorer import SemanticScorer, ScorerResult
-from .deterministic import check_overrides, is_mechanical_edit
-
-# Default thresholds — tuned for TF-IDF cosine similarity score ranges.
-# These are MARGINS (differences between top scores), not absolute score gates.
-DEFAULTS = {
-    "low_confidence_margin": 0.02,
-    "trivial_coding_max_words": 15,
-    "followup_context_boost": 0.15,
-}
+from .scorer import SemanticScorer
+from .deterministic import check_overrides
 
 
 @dataclass
@@ -44,11 +37,6 @@ class ClassifyResult:
     stage_c: dict | None = None
     class_scores: dict = field(default_factory=dict)
     top_2: list[str] = field(default_factory=list)
-
-
-def _get_threshold(config: dict, key: str) -> float:
-    classifier_cfg = config.get("classifier", {})
-    return classifier_cfg.get(key, DEFAULTS.get(key, 0.0))
 
 
 def classify_pipeline(
@@ -97,14 +85,25 @@ def classify_pipeline(
         re.IGNORECASE
     )
 
+    # Structured-output signals — schema/JSON-constrained requests. The local 9B
+    # returns empty content under json_schema (task #991), so these must escalate
+    # to coding (sonnet) even when the prompt is otherwise free-form.
+    structured_output_indicators = re.compile(
+        r'\b(?:json|schema|response_format|structured\s+output|valid\s+json|as\s+json|in\s+json|json\s+output)\b',
+        re.IGNORECASE
+    )
+
     # Check patterns
     has_code = bool(code_markers.search(prompt))
     has_reasoning = bool(reasoning_indicators.search(prompt))
     has_tool_calls = bool(tool_call_patterns.search(prompt))
+    has_structured = bool(structured_output_indicators.search(prompt))
 
-    # Decision logic
-    if has_code and estimated_tokens < 64000:
-        # Code + under 64k tokens → local coding (ornith)
+    # Decision logic. Structured-output guard: the local 9B returns empty content
+    # under json_schema (task #991), so has_structured excludes local-coding on
+    # every path. Reasoning (glm-5.2) and coding (sonnet) both handle schema fine.
+    if has_code and estimated_tokens < 64000 and not has_structured:
+        # Code + under 64k tokens + free-form → local coding (ornith)
         return ClassifyResult(
             task_type="local-coding", confidence=1.0, margin=1.0,
             source="deterministic", backend="rules",
@@ -124,33 +123,19 @@ def classify_pipeline(
             source="deterministic", backend="rules",
             stage_a={"class": "coding", "confidence": 1.0},
         )
-    else:
-        # Default → sonnet (coding)
+    elif has_structured:
+        # Schema/JSON-constrained output → coding (sonnet); local 9B fails
+        # structured output (task #991).
         return ClassifyResult(
             task_type="coding", confidence=1.0, margin=1.0,
             source="deterministic", backend="rules",
-            stage_a={"class": "coding", "confidence": 1.0},
+            stage_a={"class": "coding", "structured": True},
         )
-
-    if reasoning_score > coding_score and margin_b > min_margin:
+    else:
+        # Default: free-form coding → local (ornith, free). Modern 9B
+        # (Qwen3.5-arch) produces high-quality free-form code (task #991).
         return ClassifyResult(
-            task_type="reasoning", confidence=reasoning_score, margin=margin_b,
-            source="semantic", backend=result.backend,
-            stage_a=stage_a_data,
-            stage_b={"class": "reasoning", "confidence": reasoning_score},
-            class_scores=scores, top_2=top_2_list, low_confidence=low_conf,
+            task_type="local-coding", confidence=1.0, margin=1.0,
+            source="deterministic", backend="rules",
+            stage_a={"class": "local-coding", "confidence": 1.0},
         )
-
-    # ── Stage C: Coding subtype ───────────────────────────────────────
-    trivial_max = int(_get_threshold(config, "trivial_coding_max_words"))
-    is_trivial = word_count <= trivial_max and is_mechanical_edit(prompt)
-    stage_b_data = {"class": "coding", "confidence": coding_score}
-    stage_c_data = {"class": "trivial-coding"} if is_trivial else None
-    task_type = "local-coding" if is_trivial else "coding"
-
-    return ClassifyResult(
-        task_type=task_type, confidence=coding_score, margin=abs(margin_b),
-        source="semantic", backend=result.backend,
-        stage_a=stage_a_data, stage_b=stage_b_data, stage_c=stage_c_data,
-        class_scores=scores, top_2=top_2_list, low_confidence=low_conf,
-    )

@@ -96,11 +96,22 @@ def test_phase1_tool_calls_without_reasoning_is_coding():
     assert result.source == "deterministic"
 
 
-def test_phase1_default_is_coding():
-    """Plain prose without code/reasoning/tool markers → coding (sonnet default)."""
+def test_phase1_default_freeform_is_local():
+    """Plain free-form prose without markers → local-coding (free, high-quality
+    per task #991). This is the cost-saving default."""
     result = classify_pipeline("explain how the system works", None, {})
+    assert result.task_type == "local-coding"
+    assert result.source == "deterministic"
+
+
+def test_phase1_structured_output_escalates_to_coding():
+    """Schema/JSON-constrained requests → coding (sonnet), NOT local. The local
+    9B returns empty content under json_schema (task #991), so these escalate."""
+    result = classify_pipeline("return the result as valid json", None, {})
     assert result.task_type == "coding"
     assert result.source == "deterministic"
+    result2 = classify_pipeline("respond using a json schema", None, {})
+    assert result2.task_type == "coding"
 
 
 def test_phase1_code_over_64k_falls_through():

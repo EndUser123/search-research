@@ -261,8 +261,23 @@ but `/red-team` does not silently write them.
 When this section is empty or no opportunities were identified, omit the heading entirely.
 
 ## Implementation note for the model
-- If named agents exist in the environment, call them (preferred).
-- If they do not, emulate the same flow with separate internal passes using the same roles — but flag this: single-context emulation tends to soften the critic, because the same context drafted the plan it is now reviewing.
+
+**Step 0 (before §1 Planner): dispatch the named agents.** The planner,
+claim-refuter, specialists, and critic (`red-team-planner`,
+`red-team-claim-refuter`, `red-team-<angle>`, `red-team-critic`) are the
+**default execution path** — call them via the Agent tool. The orchestrator
+never holds findings in its own context; that is the disk-backed handoff
+contract in §Findings handoff, and it depends on real dispatch.
+
+Emulation (running the same roles as internal passes in the orchestrator's own
+context) is permitted **only** when an Agent-tool dispatch returns "agent type
+not found" — state that error literally. Single-context emulation softens the
+critic, because the same context drafted the plan it is now reviewing.
+"Flagging" that you emulated is the record of a fallback, not a substitute for
+dispatch and not permission to skip it.
+
+If you emulate without that dispatch-error, the run is invalid and the
+synthesis must say so explicitly at the top.
 
 ## Completion Evidence Contract — mandatory acceptance criterion
 

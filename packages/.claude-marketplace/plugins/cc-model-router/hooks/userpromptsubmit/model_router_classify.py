@@ -18,7 +18,6 @@ PLUGIN_ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
 if str(PLUGIN_ROOT / "__lib") not in sys.path:
     sys.path.insert(0, str(PLUGIN_ROOT / "__lib"))
 
-EXEMPLARS_PATH = PLUGIN_ROOT / "config" / "exemplars.json"
 HINT_FILE = pathlib.Path("P:/.claude/state/ccr-routing-hint.json")
 CLASSIFY_LOG = pathlib.Path("P:/.claude/state/model-router/classify_log.jsonl")
 
@@ -47,17 +46,6 @@ def write_recommendation(state_path, data):
     with open(tmp, 'w') as f:
         json.dump(data, f, indent=2)
     tmp.replace(state_path / 'recommendation.json')
-
-
-def init_scorer(config):
-    backend = config.get("classifier", {}).get("backend", "tfidf")
-    if backend == "tfidf" and EXEMPLARS_PATH.exists():
-        try:
-            from classifier.tfidf_backend import TfidfBackend
-            return TfidfBackend(EXEMPLARS_PATH)
-        except Exception as e:
-            print(f"[model-router-classify] scorer init failed: {e}", file=sys.stderr)
-    return None
 
 
 def read_prev_hint():
@@ -118,20 +106,10 @@ def main():
 
     prev_hint = read_prev_hint()
     prev_task_type = prev_hint.get('taskType') if prev_hint else None
-    prev_margin = prev_hint.get('margin') if prev_hint else None
-    prev_low_conf = prev_hint.get('lowConfidence') if prev_hint else None
-    # Gate: only boost when prev classification was confident (margin >= 0.10).
-    # Without this, one misclassification latches the feedback loop.
-    apply_followup = (prev_task_type and not prev_low_conf
-                      and (prev_margin is None or prev_margin >= 0.17))
-    context = {"prev_task_type": prev_task_type if apply_followup else None,
-               "followup_boost": config.get("classifier", {}).get("followup_context_boost", 0.15)}
-
-    scorer = init_scorer(config)
 
     try:
         from classifier.pipeline import classify_pipeline
-        result = classify_pipeline(prompt, scorer, config, context)
+        result = classify_pipeline(prompt, None, config)
     except Exception as e:
         print(f"[model-router-classify] pipeline failed: {e}", file=sys.stderr)
         sys.exit(0)

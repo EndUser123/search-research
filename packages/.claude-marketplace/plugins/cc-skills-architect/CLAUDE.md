@@ -12,7 +12,7 @@ The central triage for all CLI operations.
 | Skill | Purpose | Home |
 |-------|---------|------|
 | /ask | Universal CLI router for command discovery | `ask/` |
-| /ai-api | Unified LLM API — direct SDK by default, Bifrost via `bf` subcommand | `bf/` |
+| /ai-api | Unified LLM API — direct SDK (Bifrost `bf` route RETIRED — not in use) | `ai-api/` (in cc-skills-ai-api) |
 
 ### 2. Meta-Development Toolbox
 Tools used to grow and maintain the skill ecosystem.
@@ -28,7 +28,7 @@ Tools used to grow and maintain the skill ecosystem.
 | garden | Knowledge cleanup and pattern pruning | `garden/` |
 | evolve | Modernization and technical debt refactoring | `evolve/` |
 
-**Note on `/skill-creator`:** The skill body was removed in favor of Anthropic's canonical `skill-creator@claude-plugins-official`. The local fork of helper scripts remains under `scripts/skill_creator/` (eval runner, description optimizer, sync_check for upstream drift, etc.) and is invoked directly via the script paths — not via a slash command.
+**Note on `/skill-creator`:** The measure instrument (eval / benchmark / description-optimizer / tournament) lives in the separate `skill-creator@local` plugin — a fork of Anthropic's upstream that carries our tournament customizations. It is enabled; the upstream `skill-creator@claude-plugins-official` is disabled. `skill-write` (above) is the author instrument; `skill-creator` is the measure instrument — the create-side pair. The former architect-local fork of helper scripts was removed (dead, zero callers).
 
 ### 3. Implementation Planning
 Advanced logic for high-stakes technical sessions.

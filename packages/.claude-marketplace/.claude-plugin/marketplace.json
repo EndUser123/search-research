@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "improve-partner",
-      "version": "0.4.15",
+      "version": "0.4.16",
       "description": "Improvement partner plugin with /improve as the central manual workflow. Hooks ship inert + unwired (config-gated); see HOOKS_AVAILABLE.md. Local fork.",
       "source": "./plugins/improve-partner",
       "keywords": [
@@ -77,7 +77,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.188",
+      "version": "1.0.190",
       "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -313,7 +313,7 @@
     },
     {
       "name": "cc-model-router",
-      "version": "0.2.22",
+      "version": "0.2.23",
       "description": "Automatic model-tier routing (haiku/sonnet/opus) based on prompt complexity heuristics with dual-mode operation (warn plus autoswitch)",
       "source": "./plugins/cc-model-router",
       "keywords": []
@@ -334,7 +334,7 @@
     },
     {
       "name": "red-team",
-      "version": "0.2.11",
+      "version": "0.2.12",
       "description": "Multi-agent adversarial review pipeline. Planner -> specialists -> critic -> single PROCEED/REVISE/BLOCK verdict. Disk-backed findings handoff keeps the orchestrator context small. Phase 3: telemetry + incident self-improvement layer.",
       "source": "./plugins/red-team",
       "keywords": [
