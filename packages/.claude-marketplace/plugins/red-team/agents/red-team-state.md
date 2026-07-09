@@ -14,7 +14,7 @@ You are the **state** specialist for `/red-team`. Single angle: state integrity 
 - State handoff artifacts and freshness assumptions (run dirs, contract files, plan files, task trackers)
 - Cross-run or cross-terminal contamination
 - Caches, temp files, manifests, and persisted coordination state
-- Concurrency and ordering hazards where multiple runs or actors may touch shared state
+- Concurrency and ordering hazards where multiple runs or actors may touch shared state (isolation, correctness-of-shared-state, ordering — defer pure timing / TOCTOU / resource-exhaustion findings to the **performance** agent)
 - "Looks wired but is inert because runtime state differs from test/setup state"
 
 Ignore unrelated business logic unless it directly affects state integrity.
