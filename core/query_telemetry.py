@@ -1,21 +1,23 @@
 """Per-query telemetry for /search.
 
-Emits ONE structured JSON line per query that reaches the intent filter,
-capturing the inputs and outputs needed to answer "is the intent filter
-load-bearing, and is result-quality actually broken?" from data.
+Emits structured JSON lines that make the question "is the intent filter
+load-bearing, and is result-quality actually broken?" answerable from data.
 
-Schema (one JSON object per line):
-    {
-      "ts": "2026-07-08T19:03:00.123456",      # ISO local time
-      "query_hash": "a1b2c3d4e5f60718",         # sha256(query)[:16], never raw text
-      "intent": "technical",                    # classified IntentType value
-      "confidence": 0.90,                       # classifier confidence 0..1
-      "all_backends_count": 18,                 # fan-out if filter were absent
-      "filtered_backends_count": 8,             # fan-out after intent filter
-      "classify_ms": 9.4,                       # classify_query_intent latency
-      "returned_count": 7,                      # ranked results returned to caller
-      "cache_hit": false                        # whether the query was served from cache
-    }
+Two record shapes share one log file (distinguished by the ``event`` field):
+
+1. ``intent_filter`` (one per /search that reaches the classifier) — the FM-3
+   input. Captures whether the filter narrowed fan-out and what it cost.
+       {ts, event:"intent_filter", query_hash, intent, confidence,
+        all_backends_count, filtered_backends_count, classify_ms,
+        returned_count, cache_hit}
+
+2. ``quality_check`` (one per /search that produced a best result) — the FM-4
+   input. Captures the is_satisfactory verdict on the best result.
+       {ts, event:"quality_check", query_hash, satisfactory, confidence,
+        backend_diversity, fresh}
+
+The two are joined by ``query_hash``. ``cache_hit`` records (cache_hit=true,
+intent="skipped_cache") mark queries the cache served without classification.
 
 Non-blocking by contract: a telemetry write failure MUST NEVER raise into the
 search path. Every public call swallows OSError and returns silently.
@@ -51,6 +53,18 @@ def hash_query(query: str) -> str:
     return hashlib.sha256(query.encode("utf-8")).hexdigest()[:16]
 
 
+def _append(record: dict, target: Path) -> None:
+    """Append one JSON line. Never raises."""
+    line = json.dumps(record, ensure_ascii=False)
+    try:
+        with _write_lock:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with open(target, "a", encoding="utf-8") as f:
+                f.write(line + "\n")
+    except OSError:
+        return
+
+
 def log_query_event(
     *,
     query_hash: str,
@@ -63,13 +77,10 @@ def log_query_event(
     cache_hit: bool = False,
     path: Path | None = None,
 ) -> None:
-    """Append one structured line to the telemetry log. Never raises.
-
-    Args mirror the schema above. ``path`` is for tests; production writes go
-    to resolve_path().
-    """
+    """Append one intent_filter record (FM-3 input). Never raises."""
     record = {
         "ts": datetime.now().isoformat(),
+        "event": "intent_filter",
         "query_hash": query_hash,
         "intent": intent,
         "confidence": round(float(confidence), 4),
@@ -79,16 +90,7 @@ def log_query_event(
         "returned_count": int(returned_count),
         "cache_hit": bool(cache_hit),
     }
-    target = path if path is not None else resolve_path()
-    line = json.dumps(record, ensure_ascii=False)
-    try:
-        with _write_lock:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            with open(target, "a", encoding="utf-8") as f:
-                f.write(line + "\n")
-    except OSError:
-        # Telemetry is non-blocking: never propagate into the search path.
-        return
+    _append(record, path if path is not None else resolve_path())
 
 
 def log_quality_check(
@@ -100,14 +102,12 @@ def log_quality_check(
     fresh: bool,
     path: Path | None = None,
 ) -> None:
-    """Append a quality-check record for the best result of a /search.
+    """Append a quality_check record for the best result of a /search (FM-4 input).
 
-    This is the FM-4 input: a soak over these records yields the
-    is_satisfactory pass-rate on real traffic. Emitted from
-    UnifiedAsyncRouter._should_skip_web (where is_satisfactory is actually
-    called on the best result), which runs AFTER the local router has already
-    emitted its intent_filter record — so it is a SEPARATE line, joined to the
-    filter record by query_hash. Never raises.
+    Emitted from UnifiedAsyncRouter._should_skip_web, where is_satisfactory is
+    actually called on the best result — which runs AFTER the local router has
+    emitted its intent_filter record, so it is a SEPARATE line joined by
+    query_hash. Never raises.
     """
     record = {
         "ts": datetime.now().isoformat(),
@@ -118,52 +118,4 @@ def log_quality_check(
         "backend_diversity": int(backend_diversity),
         "fresh": bool(fresh),
     }
-    target = path if path is not None else resolve_path()
-    line = json.dumps(record, ensure_ascii=False)
-    try:
-        with _write_lock:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            with open(target, "a", encoding="utf-8") as f:
-                f.write(line + "
-")
-    except OSError:
-        return
-
-
-def log_quality_check(
-    *,
-    query_hash: str,
-    satisfactory: bool,
-    confidence: float,
-    backend_diversity: int,
-    fresh: bool,
-    path: Path | None = None,
-) -> None:
-    """Append a quality-check record for the best result of a /search.
-
-    This is the FM-4 input: a soak over these records yields the
-    is_satisfactory pass-rate on real traffic. Emitted from
-    UnifiedAsyncRouter._should_skip_web (where is_satisfactory is actually
-    called on the best result), which runs AFTER the local router has already
-    emitted its intent_filter record — so it is a SEPARATE line, joined to the
-    filter record by query_hash. Never raises.
-    """
-    record = {
-        "ts": datetime.now().isoformat(),
-        "event": "quality_check",
-        "query_hash": query_hash,
-        "satisfactory": bool(satisfactory),
-        "confidence": round(float(confidence), 4),
-        "backend_diversity": int(backend_diversity),
-        "fresh": bool(fresh),
-    }
-    target = path if path is not None else resolve_path()
-    line = json.dumps(record, ensure_ascii=False)
-    try:
-        with _write_lock:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            with open(target, "a", encoding="utf-8") as f:
-                f.write(line + "
-")
-    except OSError:
-        return
+    _append(record, path if path is not None else resolve_path())
