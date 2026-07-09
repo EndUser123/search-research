@@ -1,8 +1,9 @@
 ---
 name: all
-description: "ALWAYS use this skill for explore queries - unified search across your local data (chat history, knowledge base, code, docs) AND the web with intelligent source selection."
+description: "ALWAYS use this skill for unified queries - search across your local data (chat history, knowledge base, code, docs) AND the web with intelligent source selection."
+workflow_steps: []
 ---
-# Explore (`/explore`)
+# All (`/all`)
 
 ## Purpose
 
@@ -12,9 +13,9 @@ Single entry point to search **EVERYTHING** - your local data (chat history, kno
 
 | Command | Searches | Speed | When To Use |
 |---------|----------|-------|-------------|
-| `/search` | Local data only | <1s | "What did we discuss?" |
-| `/research` | Web only | 5-10s | "What's the current best practice?" |
-| **`/explore`** | **Both + merged results** | 1-10s | "I want to see everything" |
+| `/find` | Local data only | <1s | "What did we discuss?" |
+| `/web` | Web only | 5-10s | "What's the current best practice?" |
+| **`/all`** | **Both + merged results** | 1-10s | "I want to see everything" |
 
 ## Three-Layer Filtering Architecture
 
@@ -51,12 +52,12 @@ python -m skills.all.orchestration "query" [--mode auto --limit 30 --no-context-
 ## Quick Usage
 
 ```bash
-/explore "python async patterns"                          # Auto-filtering (default)
-/explore "what did we decide about auth"                   # Context-aware (auto-triggers Layer 2)
-/explore "best practices" --mode unified                   # Force local + web
-/explore "what did we discuss" --mode local-only          # Fast, no web APIs
-/explore "query" --no-context-filter                      # Layer 1 only
-/explore "microservices patterns" --force-context-filter  # Always apply Layer 2
+/all "python async patterns"                          # Auto-filtering (default)
+/all "what did we decide about auth"                   # Context-aware (auto-triggers Layer 2)
+/all "best practices" --mode unified                   # Force local + web
+/all "what did we discuss" --mode local-only           # Fast, no web APIs
+/all "query" --no-context-filter                       # Layer 1 only
+/all "microservices patterns" --force-context-filter   # Always apply Layer 2
 ```
 
 > **More examples and advanced options:** See `references/usage-examples.md`
@@ -94,7 +95,7 @@ Layer 1 total: <1 second. Layer 2: <5 seconds when triggered.
 | `references/implementation-details.md` | Layer behavior, trigger conditions, error handling |
 | `references/usage-examples.md` | Usage examples and advanced CLI options |
 | `references/output-format.md` | Output format examples (Layer 1 vs Layer 2) |
-| `references/migration-notes.md` | Migration from `/search` + `/research` workflow |
+| `references/migration-notes.md` | Migration notes (older `/search`+`/research` workflow → `/find`+`/web`+`/all`) |
 | `references/troubleshooting.md` | Common issues and solutions |
 | `references/performance-tuning.md` | Speed vs coverage tuning guide |
 
