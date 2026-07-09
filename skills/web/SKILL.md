@@ -1,12 +1,13 @@
 ---
-name: research
+name: web
 description: Web research with multiple providers and intelligent result synthesis
+workflow_steps: []
 ---
-# Research Skill
+# Web Skill
 
 ## Purpose
 
-Conduct comprehensive web research using multiple search providers with intelligent result synthesis, saturation detection, and HyDE-powered query expansion.
+Conduct comprehensive web research using multiple search providers with intelligent result synthesis, saturation detection, and HyDE-powered query expansion. For local data, use `/find`.
 
 ## Capabilities
 
@@ -59,28 +60,28 @@ Conduct comprehensive web research using multiple search providers with intellig
 
 ### Basic research
 ```
-/research "async best practices in Python"
+/web "async best practices in Python"
 ```
 
 ### Technical search with specific provider
 ```
-/research "FastAPI vs Flask performance" --mode exa
+/web "FastAPI vs Flask performance" --mode exa
 ```
 (Note: Provider names are used as modes, not as separate --providers flag)
 
 ### Quick search
 ```
-/research "numpy array operations" --mode quick
+/web "numpy array operations" --mode quick
 ```
 
 ### Research with URL fetching
 ```
-/research "microservices architecture" --fetch-urls 10
+/web "microservices architecture" --fetch-urls 10
 ```
 
 ### Code-specific search
 ```
-/research "pytest fixtures tutorial" --mode github
+/web "pytest fixtures tutorial" --mode github
 ```
 (Note: Provider names are used as modes)
 
@@ -110,7 +111,7 @@ When using `--mode github`, the system intelligently routes between **code searc
 
 **Workaround**: Use web providers for repo discovery when you encounter false positives:
 ```
-/research "python async framework" --mode tavily
+/web "python async framework" --mode tavily
 ```
 
 ### Rate Limit Handling
@@ -126,22 +127,22 @@ Warning: "Code search rate limited - showing repositories instead"
 
 **Code search** (finds code files):
 ```
-/research "python function decorator" --mode github
-/research "async def await" --mode github
-/research "setup.py configuration" --mode github
+/web "python function decorator" --mode github
+/web "async def await" --mode github
+/web "setup.py configuration" --mode github
 ```
 
 **Repository search** (finds repos):
 ```
-/research "pytest testing libraries" --mode github
-/research "python web framework" --mode github
-/research "machine learning tools" --mode github
+/web "pytest testing libraries" --mode github
+/web "python web framework" --mode github
+/web "machine learning tools" --mode github
 ```
 
 **Language specifier** (GitHub API syntax):
 ```
-/research "language:python async" --mode github
-/research "language:javascript react" --mode github
+/web "language:python async" --mode github
+/web "language:javascript react" --mode github
 ```
 
 ## Implementation
@@ -201,5 +202,5 @@ Research results can be large — multi-provider synthesis with snippets, and es
 
 - **CHS** - Can search chat history for related research
 - **CKS** - Can query constitutional knowledge for context
-- **/search** - Complementary local search vs web research
+- **/find** - Complementary local search vs web research
 - **NotebookLM** - Can send results to NotebookLM for analysis
