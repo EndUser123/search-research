@@ -27,7 +27,7 @@ from .claude_history_backend import (
     create_claude_history_backend,
 )
 from .enhanced_cds_backend import EnhancedCDSBackend
-from .grep_backend import GrepBackend
+from .grep_backend import GrepBackend, AstNameBackend
 from .kg_backend import BACKEND_KG, KGBackend
 from .multilang_backend import (
     BACKEND_MULTILANG,
