@@ -17,15 +17,15 @@ workflow_steps:
 
 Dedicated search for Claude Code chat history with advanced features: summarization modes, workspace aliases, tool filtering, context preview, session statistics, and branch filtering.
 
-**Why /chs instead of /search?**
-- `/search` = Unified search across all sources (chat + knowledge + code + docs)
+**Why /chs instead of /find?**
+- `/find` = Unified search across all sources (chat + knowledge + code + docs)
 - `/chs` = Chat-specific workflows with dedicated features for conversation analysis
 
 ## Project Context
 
 ### Technical Architecture
 - **Primary CLI**: `P://packages/.claude-marketplace/plugins/search-research/skills/chs/scripts/chs_cli.py`
-- **CHS Backend**: Reuses existing CHS infrastructure from `/search`
+- **CHS Backend**: Reuses existing CHS infrastructure from `/find`
 - **Two-Stage Search**: Lightweight index → Deep content scan (on-demand)
 - **Storage**: SQLite metrics database at `P://packages/.claude-marketplace/plugins/search-research/data/chs_metrics.db`
 - **FTS5 bootstrap**: `python -m core.chs.scripts.reindex_from_jsonl --db-path "P://__csf/data/chat_history.db" --history-path "~/.claude/history.jsonl"`
@@ -54,9 +54,9 @@ Dedicated search for Claude Code chat history with advanced features: summarizat
 Each `session_id` appears multiple times (once per terminal/compaction). Aggregating by `session_id` reconstructs the full chain.
 
 ### Consolidation History
-- Previously part of `/search` (consolidated old `/chs`, `/recent`, `/search-more`)
+- Previously part of `/find` (consolidated old `/chs`, `/recent`, `/search-more`)
 - Now re-extracted as dedicated chat history skill with advanced features
-- `/search` handles unified queries; `/chs` handles chat-specific workflows
+- `/find` handles unified queries; `/chs` handles chat-specific workflows
 
 ## Your Workflow
 
@@ -458,7 +458,7 @@ Create `~/.claude/chs_config.json`:
 ```
 
 **When to use which:**
-- Use `/search` for: General queries, multi-source research, quick lookups
+- Use `/find` for: General queries, multi-source research, quick lookups
 - Use `/chs` for: Chat-specific analysis, summarization, filtering, statistics
 
 ## Examples
@@ -500,7 +500,7 @@ Create `~/.claude/chs_config.json`:
 
 ## Implementation Notes
 
-- **Reuses existing CHS backend** from `/search` for consistency
+- **Reuses existing CHS backend** from `/find` for consistency
 - **Metrics database** tracks usage patterns and sync status
 - **Two-stage architecture** ensures fast initial results
 - **Summarization modes** use LLM templates for structured output
