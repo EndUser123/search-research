@@ -77,6 +77,19 @@ class TestWriter:
             classify_ms=0.0, returned_count=0, cache_hit=False,
         )
 
+    def test_log_quality_check_writes_fm4_record(self, telemetry_path: Path) -> None:
+        qt.log_quality_check(
+            query_hash="deadbeef", satisfactory=True, confidence=0.91,
+            backend_diversity=3, fresh=True,
+        )
+        rows = _read_lines(telemetry_path)
+        assert len(rows) == 1
+        r = rows[0]
+        assert r["event"] == "quality_check"
+        assert r["satisfactory"] is True
+        assert r["backend_diversity"] == 3
+        assert r["query_hash"] == "deadbeef"
+
 
 @pytest.fixture
 def stub_router() -> AsyncSearchRouter:
