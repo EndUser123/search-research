@@ -598,3 +598,6 @@ backups/
 # Local session export scratch artifacts
 /session_export/
 .claude/settings.json.bak.*
+
+# CC per-load PID markers (runtime, per-terminal — loader writes, nothing reads)
+.in_use/
