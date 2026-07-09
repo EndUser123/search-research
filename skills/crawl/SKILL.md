@@ -6,7 +6,7 @@ description: Ingest websites into QMD wiki collections for semantic search via /
 
 ## Purpose
 
-Ingest websites into QMD collections for semantic search via `/search` and `/explore`.
+Ingest websites into QMD collections for semantic search via `/find` and `/all`.
 
 **Requirements:**
 - `crawl4ai` Python package
@@ -133,6 +133,6 @@ See [references/qmd-config.md](references/qmd-config.md) for QMD configuration d
 
 ## Related Skills
 
-- `/search` — Search all backends including QMD_WIKI
-- `/explore` — Unified search with semantic filtering
+- `/find` — Search all backends including QMD_WIKI
+- `/all` — Unified search with semantic filtering
 - `/wiki` — Full wiki ingest workflow with SHA256 logging
