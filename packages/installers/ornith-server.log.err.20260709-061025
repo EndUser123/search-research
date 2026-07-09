@@ -1,0 +1,22 @@
+0.00.037.259 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.132.328 I srv    load_model: loading model 'P:\packages\models\ornith-1.0-9b-Q4_K_M.gguf'
+0.04.176.938 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 65536, kv_unified = 'false'
+0.04.233.958 I srv  llama_server: model loaded
+0.04.233.966 I srv  llama_server: listening on http://127.0.0.1:8010
+0.32.947.178 I slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = -1
+0.32.947.269 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+0.33.112.182 I slot print_timing: id  0 | task 0 | prompt eval time =      75.07 ms /    11 tokens (    6.82 ms per token,   146.54 tokens per second)
+0.33.112.189 I slot print_timing: id  0 | task 0 |        eval time =      89.82 ms /     8 tokens (   11.23 ms per token,    89.07 tokens per second)
+0.33.112.190 I slot print_timing: id  0 | task 0 |       total time =     164.88 ms /    19 tokens
+0.33.112.191 I slot print_timing: id  0 | task 0 |    graphs reused =          7
+0.33.112.238 I slot      release: id  0 | task 0 | stop processing: n_tokens = 18, truncated = 0
+0.39.302.054 I slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = 33078851
+0.39.316.171 I slot launch_slot_: id  0 | task 10 | processing task, is_child = 0
+0.44.729.468 I slot print_timing: id  0 | task 10 | n_decoded =    152, tg =  50.58 t/s, tg_3s =  50.58 t/s
+0.47.741.104 I slot print_timing: id  0 | task 10 | n_decoded =    339, tg =  56.34 t/s, tg_3s =  62.09 t/s
+0.50.746.712 I slot print_timing: id  0 | task 10 | n_decoded =    544, tg =  60.29 t/s, tg_3s =  68.21 t/s
+0.51.441.632 I slot print_timing: id  0 | task 10 | prompt eval time =    2408.17 ms /  8995 tokens (    0.27 ms per token,  3735.20 tokens per second)
+0.51.441.637 I slot print_timing: id  0 | task 10 |        eval time =    9717.24 ms /   592 tokens (   16.41 ms per token,    60.92 tokens per second)
+0.51.441.638 I slot print_timing: id  0 | task 10 |       total time =   12125.42 ms /  9587 tokens
+0.51.441.639 I slot print_timing: id  0 | task 10 |    graphs reused =        595
+0.51.442.086 I slot      release: id  0 | task 10 | stop processing: n_tokens = 9586, truncated = 0
