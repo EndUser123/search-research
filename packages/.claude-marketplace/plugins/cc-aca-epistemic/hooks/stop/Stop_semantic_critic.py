@@ -120,8 +120,22 @@ MISTRAL_TIMEOUT_SEC: int = min(
     _CRITIC_BACKEND_BUDGET,
 )
 
+# MiniMax direct-call config. Restored 2026-07-09: MiniMax was swapped out for glm
+# on 2026-06-05 due to M3 quota exhaustion, but quota is temporary — the backend now
+# skips (returns None, fail-open) when the key/quota is unavailable instead of being
+# deleted. Anthropic-protocol endpoint, Bearer auth (see hook_external_llm_policy.md).
+MINIMAX_URL: str = os.environ.get(
+    "MINIMAX_URL", "https://api.minimax.io/anthropic/v1/messages"
+)
+MINIMAX_MODEL: str = os.environ.get("MINIMAX_MODEL", "MiniMax-M3")
+MINIMAX_TIMEOUT_SEC: int = min(
+    int(os.environ.get("MINIMAX_TIMEOUT_SEC", str(_CRITIC_BACKEND_BUDGET))),
+    _CRITIC_BACKEND_BUDGET,
+)
+
 # Cached API keys (loaded once, reused across invocations)
 _GLM_API_KEY: str | None = None
+_MINIMAX_API_KEY: str | None = None  # legitimately MiniMax now (glm has its own _GLM_API_KEY)
 _MISTRAL_API_KEY: str | None = None
 
 
@@ -166,6 +180,28 @@ def _load_second_critic_key() -> str | None:
                 _GLM_API_KEY = key
                 return key
     _GLM_API_KEY = ""  # sentinel: tried and failed
+    return None
+
+
+def _load_minimax_key() -> str | None:
+    """Load MiniMax API key from env (MINIMAX_API_KEY) or P:/.env. Returns None
+    when absent (caller skips the MiniMax backend — fail-open, not an error)."""
+    global _MINIMAX_API_KEY
+    if _MINIMAX_API_KEY is not None:
+        return _MINIMAX_API_KEY or None
+
+    key = os.environ.get("MINIMAX_API_KEY", "").strip().strip('"')
+    if key:
+        _MINIMAX_API_KEY = key
+        return key
+    env_path = Path("P:/.env")
+    if env_path.exists():
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            if line.startswith("MINIMAX_API_KEY="):
+                key = line.split("=", 1)[1].strip().strip('"')
+                _MINIMAX_API_KEY = key
+                return key
+    _MINIMAX_API_KEY = ""  # sentinel: tried and failed
     return None
 
 
@@ -791,6 +827,94 @@ def _call_glm_critic(
         return None
 
 
+def _call_minimax_critic(
+    system_prompt: str,
+    user_message: str,
+    session_key: str,
+    critic_profile: str,
+) -> Optional[SemanticCriticResult]:
+    """Call the MiniMax critic backend directly (Anthropic-protocol endpoint).
+
+    Restored 2026-07-09. Fail-open: returns None on missing key, quota exhaustion,
+    timeout, transport, or parse failure — the parallel dispatcher treats None as
+    "this backend unavailable" and uses whichever of the other two returned.
+    """
+    api_key = _load_minimax_key()
+    if not api_key:
+        _logger.info("semantic_critic minimax_skip: no API key session=%s", session_key)
+        return None
+
+    correlation_id = str(uuid.uuid4())
+    start_time = time.time()
+    _logger.info(
+        "semantic_critic minimax_call_start: correlation=%s session=%s profile=%s model=%s",
+        correlation_id, session_key, critic_profile, MINIMAX_MODEL,
+    )
+
+    try:
+        resp = requests.post(
+            MINIMAX_URL,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "anthropic-version": "2023-06-01",
+            },
+            json={
+                "model": MINIMAX_MODEL,
+                "max_tokens": SEMANTIC_CRITIC_MAX_TOKENS,
+                "system": system_prompt,
+                "messages": [{"role": "user", "content": user_message}],
+            },
+            timeout=MINIMAX_TIMEOUT_SEC,
+        )
+
+        if resp.status_code != 200:
+            _logger.warning(
+                "semantic_critic minimax_http_error: correlation=%s status=%d body=%s",
+                correlation_id, resp.status_code, resp.text[:200],
+            )
+            return None
+
+        data = resp.json()
+        raw_text = ""
+        for block in data.get("content", []):
+            if block.get("type") == "text":
+                raw_text += block.get("text", "")
+        raw_text = raw_text.strip()
+
+        if not raw_text:
+            _logger.warning(
+                "semantic_critic minimax_empty: correlation=%s", correlation_id,
+            )
+            return None
+
+        elapsed_ms = (time.time() - start_time) * 1000
+        _logger.info(
+            "semantic_critic minimax_call_end: correlation=%s response_chars=%d elapsed_ms=%d",
+            correlation_id, len(raw_text), int(elapsed_ms),
+        )
+
+        result = parse_semantic_critic_response(raw_text)
+        if result is not None:
+            _logger.info(
+                "semantic_critic minimax_verdict: ok=%s profile=%s correlation=%s",
+                result.ok, critic_profile, correlation_id,
+            )
+        return result
+
+    except requests.Timeout:
+        _logger.warning(
+            "semantic_critic minimax_timeout: correlation=%s timeout=%ds",
+            correlation_id, MINIMAX_TIMEOUT_SEC,
+        )
+        return None
+    except Exception as e:
+        _logger.warning(
+            "semantic_critic minimax_error: unexpected=%s session=%s", e, session_key,
+        )
+        return None
+
+
 def _normalize_mistral_content(content: object) -> str:
     """Normalize a Mistral ``message.content`` to plain text.
 
@@ -976,14 +1100,15 @@ def call_semantic_critic_via_bifrost(
         MISTRAL_MODEL,
     )
 
-    # Call both backends in parallel
-    overall_timeout = max(MISTRAL_TIMEOUT_SEC, SEMANTIC_CRITIC_TIMEOUT_SEC) + 2
+    # Call all three backends in parallel. Wall time = max(finishers), not sum;
+    # a slow/unavailable backend returns None within its own timeout (as_completed
+    # cuts off stragglers at overall_timeout) and is treated as "unavailable".
+    overall_timeout = max(MISTRAL_TIMEOUT_SEC, SEMANTIC_CRITIC_TIMEOUT_SEC, MINIMAX_TIMEOUT_SEC) + 2
 
-    glm_result: Optional[SemanticCriticResult] = None
-    mistral_result: Optional[SemanticCriticResult] = None
+    results: dict[str, Optional[SemanticCriticResult]] = {}
 
     try:
-        with ThreadPoolExecutor(max_workers=2) as executor:
+        with ThreadPoolExecutor(max_workers=3) as executor:
             futures = {
                 executor.submit(
                     _call_glm_critic, system_prompt, user_message, session_key, critic_profile
@@ -991,72 +1116,60 @@ def call_semantic_critic_via_bifrost(
                 executor.submit(
                     _call_mistral_critic, system_prompt, user_message, session_key, critic_profile
                 ): "mistral",
+                executor.submit(
+                    _call_minimax_critic, system_prompt, user_message, session_key, critic_profile
+                ): "minimax",
             }
 
             for future in as_completed(futures, timeout=overall_timeout):
                 backend = futures[future]
                 try:
-                    result = future.result()
+                    results[backend] = future.result()
                 except Exception as e:
                     _logger.warning(
                         "semantic_critic %s_exception: %s session=%s",
                         backend, e, session_key,
                     )
-                    result = None
-
-                if backend == "glm":
-                    glm_result = result
-                else:
-                    mistral_result = result
+                    results[backend] = None
 
     except Exception as e:
         _logger.warning(
             "semantic_critic parallel_executor_error: %s session=%s", e, session_key,
         )
 
-    # Conservative combination logic
-    # Both None -> backends unavailable. Do NOT fail open: signal the caller to
-    # delegate the review to a subagent (run() handles BACKENDS_UNAVAILABLE).
-    if glm_result is None and mistral_result is None:
+    # Conservative combination, generalized over whichever backends responded.
+    # Drop None/unavailable; combine the verdicts that actually came back.
+    verdicts = [(name, r) for name, r in results.items() if r is not None]
+
+    if not verdicts:
         _logger.info(
-            "semantic_critic both_backends_failed: session=%s profile=%s",
+            "semantic_critic all_backends_failed: session=%s profile=%s",
             session_key, critic_profile,
         )
         return BACKENDS_UNAVAILABLE
 
-    # One None -> use the other
-    if glm_result is None:
+    if len(verdicts) < len(results):
         _logger.info(
-            "semantic_critic fallback_mistral: session=%s ok=%s",
-            session_key, mistral_result.ok,
+            "semantic_critic partial_backends: responded=%s session=%s",
+            [n for n, _ in verdicts], session_key,
         )
-        return mistral_result
-    if mistral_result is None:
-        _logger.info(
-            "semantic_critic fallback_glm: session=%s ok=%s",
-            session_key, glm_result.ok,
-        )
-        return glm_result
 
-    # Both returned results — conservative: any ok=false wins
-    if not glm_result.ok or not mistral_result.ok:
-        # Return whichever flagged the issue; prefer the false one
-        combined_result = SemanticCriticResult(
-            ok=False,
-            reason=glm_result.reason if not glm_result.ok else mistral_result.reason,
-        )
+    # Conservative: any ok=False wins (reason from the first vetoing backend).
+    vetoed = [r for _, r in verdicts if not r.ok]
+    if vetoed:
+        vname = next(n for n, r in verdicts if not r.ok)
         _logger.info(
-            "semantic_critic conservative_veto: glm_ok=%s mistral_ok=%s session=%s profile=%s",
-            glm_result.ok, mistral_result.ok, session_key, critic_profile,
+            "semantic_critic conservative_veto: vetoed_by=%s verdicts=%s session=%s profile=%s",
+            vname, {n: r.ok for n, r in verdicts}, session_key, critic_profile,
         )
-        return combined_result
+        return SemanticCriticResult(ok=False, reason=vetoed[0].reason)
 
-    # Both ok=true
+    # All responding backends ok=true -> consensus.
     _logger.info(
-        "semantic_critic consensus_ok: session=%s profile=%s",
-        session_key, critic_profile,
+        "semantic_critic consensus_ok: verdicts=%s session=%s profile=%s",
+        {n: r.ok for n, r in verdicts}, session_key, critic_profile,
     )
-    return glm_result
+    return verdicts[0][1]
 
 
 def _is_diagnostic_scope(prompt_text: str, response_text: str) -> bool:
