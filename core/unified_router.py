@@ -38,7 +38,7 @@ from typing import Any
 
 from .hybrid_ensemble import reciprocal_rank_fusion
 from .models import SearchResult  # CANONICAL import (Q-ARCH-001 fix)
-from .quality_checker import QualityConfig, is_satisfactory
+from .quality_checker import QualityConfig, is_satisfactory, _check_freshness
 from .router_async import AsyncSearchRouter
 
 logger = logging.getLogger(__name__)
@@ -479,6 +479,21 @@ class UnifiedAsyncRouter:
             f"score={result_dict.get('confidence', 'N/A')}, "
             f"satisfactory={quality_result}"
         )
+        # FM-4 telemetry: record the is_satisfactory verdict for the soak.
+        # Non-blocking; joined to the intent_filter record by query_hash.
+        if query:
+            try:
+                from .query_telemetry import hash_query, log_quality_check
+                sources = result_dict.get("sources") or []
+                log_quality_check(
+                    query_hash=hash_query(query),
+                    satisfactory=bool(quality_result),
+                    confidence=float(result_dict.get("confidence", 0.0) or 0.0),
+                    backend_diversity=len(set(sources)),
+                    fresh=bool(_check_freshness(result_dict, self.quality_config)),
+                )
+            except Exception:
+                pass
         return quality_result
 
     @staticmethod
