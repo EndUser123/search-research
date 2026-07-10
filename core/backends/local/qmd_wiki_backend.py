@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -34,6 +35,18 @@ _QMD_LOCALE_ENV = {"LANG": "en_US.UTF-8", "LC_ALL": "en_US.UTF-8"}
 
 # QMD config path for reading actual vault locations
 QMD_CONFIG_PATH = Path.home() / ".config" / "qmd" / "index.yml"
+
+
+def _qmd_command() -> list[str]:
+    """Resolve the qmd invocation: prefer the resolvable CLI, fall back to the module form.
+
+    qmd is often installed in the user-site (global) Python, not the plugin venv, so
+    `[sys.executable, "-m", "qmd"]` fails with "No module named qmd". The standalone
+    `qmd` console script is on PATH in that case — use it directly.
+    """
+    if shutil.which("qmd"):
+        return ["qmd"]
+    return [sys.executable, "-m", "qmd"]
 
 
 def _get_vault_from_qmd_config(scope: str) -> Path | None:
@@ -101,7 +114,7 @@ class QMDWikiBackend(BaseLocalBackend):
         # Check qmd availability at init time (fail-fast)
         try:
             result = subprocess.run(
-                [sys.executable, "-m", "qmd", "version"],
+                _qmd_command() + ["version"],
                 capture_output=True,
                 timeout=5,
             )
@@ -224,7 +237,7 @@ class QMDWikiBackend(BaseLocalBackend):
             # Enforce English locale for qmd output
             env = {**os.environ, **_QMD_LOCALE_ENV}
             result = await asyncio.create_subprocess_exec(
-                sys.executable, "-m", "qmd", "search", "--collection", self.qmd_scope.rstrip("/"), "--format", "json", query,
+                *_qmd_command(), "search", "--collection", self.qmd_scope.rstrip("/"), "--format", "json", query,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 env=env,
@@ -290,7 +303,7 @@ class QMDWikiBackend(BaseLocalBackend):
             try:
                 env = {**os.environ, **_QMD_LOCALE_ENV}
                 result = await asyncio.create_subprocess_exec(
-                    sys.executable, "-m", "qmd", "update", self.qmd_scope.rstrip("/"),
+                    *_qmd_command(), "update", self.qmd_scope.rstrip("/"),
                     stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
                     env=env,
                 )
@@ -326,7 +339,7 @@ class QMDWikiBackend(BaseLocalBackend):
         try:
             env = {**os.environ, **_QMD_LOCALE_ENV}
             result = subprocess.run(
-                [sys.executable, "-m", "qmd", "update", self.qmd_scope.rstrip("/")],
+                _qmd_command() + ["update", self.qmd_scope.rstrip("/")],
                 capture_output=True, timeout=self.TIMEOUT * 4,
                 env=env,
             )

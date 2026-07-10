@@ -63,11 +63,52 @@ class NotebookLMBackend(BaseLocalBackend):
         super().__init__(root_paths, exclude_patterns)
         self.notebook_id = notebook_id
 
-    AUTH_ERROR_PATTERNS = ("Authentication Error", "Authentication expired")
+    # Patterns covering the real nlm auth-error wording (see /nlm troubleshooting):
+    # "Cookies have expired", "authentication may have expired", "Authentication Error",
+    # "re-authenticate", plus generic UNAUTHENTICATED / 401 signals.
+    AUTH_ERROR_PATTERNS = (
+        "Authentication Error",
+        "Authentication expired",
+        "Cookies have expired",
+        "may have expired",
+        "re-authenticate",
+        "UNAUTHENTICATED",
+        "401",
+    )
 
     def _is_auth_error(self, stderr: str) -> bool:
         """Check if stderr indicates an authentication failure."""
         return any(pat in stderr for pat in self.AUTH_ERROR_PATTERNS)
+
+    def _check_auth(self) -> bool:
+        """Preflight auth via `nlm login --check` — the /nlm skill's auth-check method.
+
+        Returns True when credentials are valid. Used to distinguish a real auth
+        failure from a transient query error when stderr is empty/non-descriptive.
+        """
+        try:
+            result = subprocess.run(
+                ["nlm", "login", "--check"],
+                capture_output=True,
+                text=True,
+                timeout=NLM_LIST_TIMEOUT,
+            )
+            return result.returncode == 0
+        except Exception:
+            return False
+
+    def _is_auth_failure(self, stderr: str) -> bool:
+        """True if this looks like an auth failure worth a re-login attempt.
+
+        Pattern match first (cheap, specific). Otherwise, when stderr is empty —
+        nlm often exits nonzero with no stderr — preflight with `nlm login --check`;
+        if that also fails, treat the whole thing as auth.
+        """
+        if self._is_auth_error(stderr):
+            return True
+        if not (stderr or "").strip():
+            return not self._check_auth()
+        return False
 
     def _run_nlm_sync(self, args: list[str], timeout: int) -> str | None:
         """Run nlm CLI synchronously. Used by sync search()."""
@@ -80,8 +121,8 @@ class NotebookLMBackend(BaseLocalBackend):
             )
             if result.returncode != 0:
                 stderr = result.stderr
-                if self._is_auth_error(stderr):
-                    # Attempt re-login and retry once
+                if self._is_auth_failure(stderr):
+                    logger.warning("NotebookLM auth failed; running `nlm login` + retry.")
                     login_result = subprocess.run(
                         ["nlm", "login"],
                         capture_output=True,
@@ -98,7 +139,15 @@ class NotebookLMBackend(BaseLocalBackend):
                         )
                         if result.returncode == 0:
                             return result.stdout
-                logger.warning(f"nlm command failed: {stderr}")
+                    logger.warning("NotebookLM re-login/retry failed.")
+                else:
+                    # Auth valid (preflight ok) but query failed — transient (e.g. 60s
+                    # synthesis under load). DEBUG, not WARNING, to avoid polluting every
+                    # /find log with expected occasional NotebookLM query failures.
+                    logger.debug(
+                        "nlm command failed (transient, auth ok): rc=%d stderr=%r",
+                        result.returncode, stderr,
+                    )
                 return None
             return result.stdout
         except FileNotFoundError:
@@ -131,7 +180,8 @@ class NotebookLMBackend(BaseLocalBackend):
 
             if proc.returncode != 0:
                 stderr_str = stderr.decode() if stderr else ''
-                if self._is_auth_error(stderr_str):
+                if self._is_auth_failure(stderr_str):
+                    logger.warning("NotebookLM auth failed; running async `nlm login` + retry.")
                     # Attempt re-login and retry once (cookie-based, non-blocking)
                     login_proc = await asyncio.create_subprocess_exec(
                         "nlm", "login",
@@ -167,7 +217,14 @@ class NotebookLMBackend(BaseLocalBackend):
 
                         if retry_proc.returncode == 0:
                             return stdout.decode() if stdout else ""
-                logger.warning(f"nlm command failed: {stderr_str}")
+                    logger.warning("NotebookLM async re-login/retry failed.")
+                else:
+                    # Auth valid (preflight ok) but query failed — transient. DEBUG to
+                    # avoid polluting every /find log with expected occasional failures.
+                    logger.debug(
+                        "nlm command failed (transient, auth ok): rc=%d stderr=%r",
+                        proc.returncode, stderr_str,
+                    )
                 return None
             return stdout.decode() if stdout else ""
         except FileNotFoundError:
