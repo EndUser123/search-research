@@ -246,7 +246,7 @@ function injectSystemMessage(req, text) {
 // (terminal, session) tree is the right per-request signal. recommendation.json
 // is the source of truth; the ccr-routing-hint.json file is a secondary task-type
 // hint. TTL + consumed guard prevent stale recs from leaking into new tasks.
-function getRecommendation() {
+function getRecommendation(wantSession) {
   let terminals = [];
   try { terminals = fs.readdirSync(MODEL_ROUTER_STATE_DIR); } catch { return null; }
   const now = Date.now();
@@ -256,10 +256,18 @@ function getRecommendation() {
     let sessions = [];
     try { sessions = fs.readdirSync(path.join(MODEL_ROUTER_STATE_DIR, terminal)); } catch { continue; }
     for (const session of sessions) {
+      // Session-scoping: when we have a sessionId from the hint, only read
+      // that session's recommendation. Defensive fallback: if wantSession is
+      // absent (no hint, cold start, classify crash), scan all sessions (the
+      // pre-fix behavior) rather than silently returning nothing.
+      if (wantSession && session !== wantSession) continue;
       const p = path.join(MODEL_ROUTER_STATE_DIR, terminal, session, "recommendation.json");
       let rec;
       try { rec = JSON.parse(fs.readFileSync(p, "utf-8")); } catch { continue; }
-      if (rec.consumed) continue;
+      // Diff 1: the consumed check is removed. apply.py still sets consumed=True
+      // (apply.py:133 mark_consumed), but the flag is inert for routing — CCR
+      // is the sole routing authority and apply is log-only. The 5-min TTL
+      // (below) is the only staleness guard we need.
       const written = Date.parse(rec.written_at || "");
       if (!written) continue;
       if (now - written > RECOMMENDATION_TTL_MS) continue;
@@ -341,7 +349,7 @@ module.exports = async function router(req, config) {
   const hint = getRoutingHint();
   const taskType = hint?.taskType || inferTaskType(model, messages);
   const pin = getPinState() || {};
-  const rec = getRecommendation();
+  const rec = getRecommendation(hint?.sessionId);
 
   // decide(): log the full effective-route field set, emit route change, return route.
   const decide = (route, reason, decisionSource, guardrailOverride = false) => {
