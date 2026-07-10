@@ -38,6 +38,7 @@ Non-regex detection — LLM-based: semantic_critic (cheap-model reasoning review
 Claim gates: cross_validator (evidence for "fixed"/"done"), unverified_stance (empty hedges/doubt), fabrication_detector (fake tool-use), cks_quality_gate (LLM gate on CKS ingest)
 Adversarial reviews: /red-team, /pre-mortem, /adversarial-review, /code-review
 Search before assuming unreachable: /search, /prospect, sr MCP
+Native verify/cleanup (harness-built-in, zero surface): /verify (launch + observe real behavior — use after hook/plugin changes, before any "done" claim), /simplify (applied cleanup of changed code — legacy surface only, review its diff)
 Proposing a new gate/retriever? Grep this repo first.""".strip()
 
 
