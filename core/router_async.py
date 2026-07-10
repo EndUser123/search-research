@@ -540,7 +540,10 @@ class AsyncSearchRouter:
         if backend_hits:
             zero_backends = [k for k, v in backend_hits.items() if v == 0]
             if zero_backends:
-                logger.warning(
+                # DEBUG, not WARNING: most queries legitimately return 0 from several
+                # backends. Actual backend *errors* already surface at WARNING via the
+                # timed_search_backend except block; this is just empty-result bookkeeping.
+                logger.debug(
                     "Backends returning 0 for '%s': %s",
                     search_query[:60], zero_backends,
                 )
