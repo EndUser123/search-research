@@ -207,7 +207,8 @@
       "Bash(mkdir -p P:/.claude/.artifacts/6f9a2e7d-68ed-4bc4-9228-bd8e7dcf2a09/red-team/20260709-211500)",
       "Bash(cp P:/.claude/state/handoff/tier-routing-fix-plan-20260709.md P:/.claude/.artifacts/6f9a2e7d-68ed-4bc4-9228-bd8e7dcf2a09/red-team/20260709-211500/proposal.md)",
       "Bash(echo 'run_dir ready: P:/.claude/.artifacts/6f9a2e7d-68ed-4bc4-9228-bd8e7dcf2a09/red-team/20260709-211500')",
-      "Bash(ls -la P:/.claude/.artifacts/6f9a2e7d-68ed-4bc4-9228-bd8e7dcf2a09/red-team/20260709-211500)"
+      "Bash(ls -la P:/.claude/.artifacts/6f9a2e7d-68ed-4bc4-9228-bd8e7dcf2a09/red-team/20260709-211500)",
+      "Bash(cp \"/c/Users/brsth/.claude/.artifacts/console-doc-ornith-20260710-073624/go/pi-transcript_e8704c63-c20f-4b14-a375-8b28e880dd86.jsonl\" /tmp/pi-transcript-imm.jsonl)"
     ],
     "deny": [],
     "ask": []
