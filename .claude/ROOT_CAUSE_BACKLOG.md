@@ -66,6 +66,12 @@ Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
 9. [OPEN] **~1135 hook files is enterprise-pattern territory for a solo dev.** Each is
    maintenance surface, latency, and a potential silent failure. Use audit telemetry to find
    hooks that never fire, fire constantly, or duplicate each other — cull aggressively.
+   Convergent evidence 2026-07-09: an independent external review (agy/Gemini) reached the
+   same conclusion by a different route ("delete the meta-scripts; reduce surface"). Live cost
+   observed in that same transcript: four gate collisions (skill-first gate, 260-min-stale
+   evidence-window block, directory policy, /dev/stdin failure) before the actual task began,
+   plus an apparent false-positive Stop-hook warning at the end. Keep the telemetry-driven
+   cull form — wholesale deletion is the same blunt instrument in reverse.
 
 10. [PARTIAL 2026-07-09] **Backup/disabled file hygiene + git.** Stale copies archived;
     HYGIENE check now in audit. Git: `P:\.claude\setup_git.ps1` written — must run natively
@@ -91,3 +97,23 @@ Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
     claim files in a shared lockfile/manifest before editing.
     Immediate recovery: other model re-emits its version before its session
     closes; then merge, don't pick a winner.
+
+13. [OPEN] **Edit-as-exploration incentive: diffs are legible, reading is invisible.**
+    Root-cause candidate from the 2026-07-09 churn review (source: agy transcript — external
+    LLM, treat as hypothesis): the harness shows the user diffs but not reads, so the model's
+    exploration budget defaults to edits — editing substitutes for understanding, producing
+    the observed churn (same file edited 6x, each edit followed by "I was wrong about X").
+    Fix direction: make the discovery artifact (system map, files-read ledger, invariants
+    list) a first-class deliverable like diffs are. Mechanism exists in /go and /refactor
+    discovery-first contracts; this is a generalization decision, not an invention. The
+    delegation template already does this for delegates (written-residue element); the
+    default session prompt never got the same treatment.
+    GATED ON MEASUREMENT, prospective not retrospective: the transcript's proposed test
+    (re-run 3 past sessions through the discipline, self-graded) can't work — retrospective
+    counterfactual judged by the model that produced the churn is fake-map theater inside the
+    measurement. Instead: over the next N non-trivial tasks, alternate discovery-map-first vs
+    default; count from git history — edits per file per session, reverted/re-edited files,
+    time-to-stable. Requires #10 (git) — churn measurement needs history.
+    Falsification condition (from the transcript, kept): if maps get written but the edits
+    they precede are unchanged, the artifact requirement isn't the fix — the model lacks a
+    working mental model of the system, which no gate or map requirement can supply.
