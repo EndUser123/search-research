@@ -459,3 +459,62 @@ class TestLiveRegistryDispatch:
         assert loaded is None or loaded.get("status") != "active", (
             f"Original /recap pattern must not create a contract; got: {loaded}"
         )
+
+# =============================================================================
+# V2 disabled-phase regression test
+# =============================================================================
+
+
+class TestV2DisabledPhase:
+    """When V2_PHASE_MACHINE_ENABLED=False, the V2 gate must not raise
+    an unbound-local error. The task_class hoist ensures the variable
+    is always assigned before the envelope gate reads it."""
+
+    def test_v2_disabled_does_not_raise_unbound_local(self, tmp_path, monkeypatch):
+        import __lib.task_contract as _tc
+        monkeypatch.setattr(_tc, "_home", lambda: tmp_path)
+        sys.modules["__lib.task_contract"] = _tc
+
+        _tc.save_contract(
+            "term-v2-disabled",
+            task_id="t-v2",
+            description="Implement the feature",
+            required_outputs=["fix", "tests", "verification_commands"],
+            task_class="implementation",
+        )
+
+        # Temporarily disable V2_PHASE_MACHINE_ENABLED by monkeypatching v2_config
+        import importlib
+        try:
+            import __lib.v2_config as v2cfg
+            monkeypatch.setattr(v2cfg, "V2_ENABLED", True)
+            monkeypatch.setattr(v2cfg, "V2_SHADOW_MODE", True)
+            monkeypatch.setattr(v2cfg, "V2_PHASE_MACHINE_ENABLED", False)
+        except ImportError:
+            pass
+
+        # Load Stop and run the gate — must not raise NameError
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "Stop_v2_test", HOOKS_DIR / "Stop.py"
+        )
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules["Stop_v2_test"] = mod
+        spec.loader.exec_module(mod)
+
+        data = {
+            "response": "Some substantive answer " * 50,
+            "terminal_id": "term-v2-disabled",
+            "session_id": "sess-v2",
+            "user_prompt": "Implement the UserPromptSubmit request envelope.",
+        }
+        # This must not raise NameError: task_class is unbound
+        try:
+            result = mod._run_task_contract_fit_gate(data)
+            # Result can be None (silent) or a dict (block) — either is fine
+            # The test passes as long as no exception is raised
+            assert result is None or isinstance(result, dict)
+        except NameError as e:
+            if "task_class" in str(e):
+                pytest.fail(f"V2 gate raised NameError for task_class: {e}")
+            raise

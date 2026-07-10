@@ -101,13 +101,14 @@ class TestStripQuotedSpans:
         assert spans == []
 
     def test_repl_prompt_not_stripped(self):
-        outer, spans = self._strip()(">>> print('hello')\n>>> x = 1")
-        assert "print" in outer
+        # Use unquoted content to isolate the blockquote test from SQUOTE stripping
+        outer, spans = self._strip()(">>> print hello\n>>> x = 1")
+        assert "print hello" in outer
         assert "x = 1" in outer
         assert spans == []
 
     def test_bare_gt_no_space_not_stripped(self):
-        outer, spans = self._strip(">\n>text")
+        outer, spans = self._strip()(">\n>text")
         assert ">" in outer
         assert ">text" in outer
         assert spans == []
