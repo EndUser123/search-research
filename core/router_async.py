@@ -481,7 +481,16 @@ class AsyncSearchRouter:
         # Wrap each backend call with timing for metrics
         async def timed_search_backend(backend: str) -> tuple[str, list[SearchResult]]:
             start_time = time_module.perf_counter()
-            results = await self._search_backend_async(backend, search_query, limit)
+            try:
+                results = await self._search_backend_async(backend, search_query, limit)
+            except Exception as exc:
+                elapsed_ms = (time_module.perf_counter() - start_time) * 1000
+                logger.warning(
+                    "Backend '%s' failed after %.0fms (%s: %s); returning 0 results.",
+                    backend, elapsed_ms, type(exc).__name__, exc,
+                )
+                backend_hits[backend] = 0
+                return backend, []
             elapsed_ms = (time_module.perf_counter() - start_time) * 1000
             # Log metric for this backend
             if results:
@@ -519,6 +528,17 @@ class AsyncSearchRouter:
             if isinstance(result, tuple):
                 backend, results = result
                 all_results.extend(results)
+
+        # Log per-backend execution summary (diagnoses silent backend failures).
+        # With the try/except in timed_search_backend above, backend_hits always has
+        # every backend — 0 means it errored or returned nothing.
+        if backend_hits:
+            zero_backends = [k for k, v in backend_hits.items() if v == 0]
+            if zero_backends:
+                logger.warning(
+                    "Backends returning 0 for '%s': %s",
+                    search_query[:60], zero_backends,
+                )
 
         # DOMAIN-CONSTRAINT: Prepend constraint results as high-priority band.
         # Constraint results have fixed score 0.95; normal results are ranked.
