@@ -215,13 +215,13 @@ Low Confidence Static Results → ML Analysis → High Confidence Results
             },
             {
                 "id": "explore_command_enhancement",
-                "title": "/explore Command Enhancement Implementation",
+                "title": "/all Command Enhancement Implementation",
                 "content": """
-# /explore Command Enhancement Implementation
+# /all Command Enhancement Implementation
 
 ## Integration Architecture
 ```
-/explore command → Static Analysis → ML Enhancement → Confidence Scoring → Results
+/all command → Static Analysis → ML Enhancement → Confidence Scoring → Results
                     ↓ (85% accuracy)   ↓ (+7% accuracy)     ↓ (calibrated)
                 SimpleDetector → MLEnhancer → HybridScorer → JSON/CLI output
 ```
@@ -266,7 +266,7 @@ class MLEnhancedDeadCodeDetector(SimpleDeadCodeDetector):
 ## Success Metrics
 - Accuracy: 92% dead code detection (minimum 88% viable)
 - Performance: ≥1,000 files/second processing
-- Integration: Seamless /explore command enhancement
+- Integration: Seamless /all command enhancement
 - Quality: 95%+ test coverage for ML components
 
 ## Key Success Factors
@@ -471,7 +471,7 @@ Generated: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')}
 - Hybrid analysis approach can achieve 92% accuracy target
 - Performance constraints achievable with existing GPU acceleration
 - Constitutional compliance requires conservative, user-initiated ML processing
-- /explore command enhancement path clearly defined
+- /all command enhancement path clearly defined
 
 ## Implementation Timeline
 - Week 1: Foundation integration and infrastructure extension
@@ -538,7 +538,7 @@ def main() -> None:
             "performance optimization",
             "constitutional compliance",
             "GPU acceleration",
-            "/explore command",
+            "/all command",
         ]
 
         for query in test_queries:

@@ -271,7 +271,7 @@ class MLKnowledgeProcessor:
                 ],
                 key_insights=[
                     "Extend simple_dead_code_detector.py with ML confidence scoring",
-                    "Maintain backward compatibility with existing /explore command",
+                    "Maintain backward compatibility with existing /all command",
                     "Use existing EmbeddingManager for CodeBERT model serving",
                     "Integrate with vector_manager.py for semantic duplicate detection",
                 ],
@@ -339,7 +339,7 @@ class MLKnowledgeProcessor:
                     "src/features/core_utils/embedding_manager.py",
                     "src/features/cks/core/vector_manager.py",
                 ],
-                "commands_affected": ["/explore", "/learn", "/zen-analyze"],
+                "commands_affected": ["/all", "/learn", "/zen-analyze"],
                 "implementation_patterns": ["singleton", "factory", "lazy_loading"],
             },
             "CODEBERT_INTEGRATION": {
@@ -352,7 +352,7 @@ class MLKnowledgeProcessor:
                     "src/features/modules/code_analysis/",
                     "src/features/core_utils/",
                 ],
-                "commands_affected": ["/explore", "/test-analyzer", "/zen-refactor"],
+                "commands_affected": ["/all", "/test-analyzer", "/zen-refactor"],
                 "implementation_patterns": [
                     "hybrid_approach",
                     "confidence_scoring",
@@ -371,7 +371,7 @@ class MLKnowledgeProcessor:
             "EXPLORE_COMMAND": {
                 "connects_to": ["DEAD_CODE_DETECTION", "SEMANTIC_ANALYSIS", "HYBRID_ANALYSIS"],
                 "csf_nip_integration": ["src/features/modules/code_analysis/hdma_analyzer.py"],
-                "commands_affected": ["/explore"],
+                "commands_affected": ["/all"],
                 "implementation_patterns": ["extension_pattern", "backward_compatibility"],
             },
         }
@@ -756,7 +756,7 @@ class MLEnhancedDeadCodeDetector(SimpleDeadCodeDetector):
 ## Phase 3: Integration and Validation (Week 3)
 
 ### Command Integration
-- Modify /explore command to use ML-enhanced detector
+- Modify /all command to use ML-enhanced detector
 - Add ML confidence indicators to output
 - Implement fallback to pure static analysis
 
@@ -828,10 +828,10 @@ Evidence assessment completed with {entry['evidence_strength']} confidence based
         commands = {}
         for finding in self.findings:
             # Extract command references from implementation impact
-            if "/explore" in finding.implementation_impact.lower():
-                if "/explore" not in commands:
-                    commands["/explore"] = []
-                commands["/explore"].append(finding.title)
+            if "/all" in finding.implementation_impact.lower():
+                if "/all" not in commands:
+                    commands["/all"] = []
+                commands["/all"].append(finding.title)
         return commands
 
     def _assess_complexity(self) -> dict[str, list[str]]:

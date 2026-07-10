@@ -163,7 +163,7 @@ class MLKnowledgeRetrievalSystem:
                     "src/features/modules/code_analysis/hdma_analyzer.py",
                     "Extension pattern maintains backward compatibility",
                 ],
-                implementation_impact="/explore command enhanced by ML confidence scoring",
+                implementation_impact="/all command enhanced by ML confidence scoring",
             ),
             SemanticRelationship(
                 source_concept="Dead_Code_Detection",
@@ -574,7 +574,7 @@ class MLKnowledgeRetrievalSystem:
             },
             "command_specific_patterns": {
                 "explore_command": {
-                    "search_terms": ["/explore", "dead code", "detection", "analysis"],
+                    "search_terms": ["/all", "dead code", "detection", "analysis"],
                     "filters": {"category": "explore_command"},
                     "related_concepts": [
                         "CodeBERT_Integration",
@@ -873,7 +873,7 @@ else:
 4. **Performance Monitoring**: Track ML impact on command performance
 
 ### Candidate Commands
-- **/explore**: ML-enhanced dead code detection
+- **/all**: ML-enhanced dead code detection
 - **/zen-refactor**: ML-suggested refactoring opportunities
 - **/test-analyzer**: ML-generated test case suggestions
 - **/qual-gate**: ML quality prediction and assessment
@@ -885,7 +885,7 @@ else:
 - Implement hybrid analysis pattern framework
 
 ### Phase 2: Command Enhancement (Week 2-3)
-- Enhance /explore command with ML dead code detection
+- Enhance /all command with ML dead code detection
 - Implement semantic duplicate detection
 - Add confidence scoring and validation
 
@@ -905,7 +905,7 @@ else:
                 "ML Infrastructure Readiness Assessment",
                 "CodeBERT Integration Feasibility Analysis",
                 "Constitutional Compliance Framework",
-                "/explore Command Enhancement Implementation",
+                "/all Command Enhancement Implementation",
             ],
             "MEDIUM": [
                 "Performance Optimization Strategies",
@@ -947,7 +947,7 @@ else:
     def _organize_by_command(self) -> dict[str, list[str]]:
         """Organize knowledge by affected commands."""
         return {
-            "/explore": [
+            "/all": [
                 "ML-enhanced dead code detection",
                 "Confidence scoring implementation",
                 "Semantic duplicate detection",
@@ -1092,7 +1092,7 @@ else:
             "phase_3_integration": {
                 "duration": "Week 3",
                 "objectives": ["Command integration", "Comprehensive testing", "Documentation"],
-                "deliverables": ["/explore enhancement", "Test suite", "User documentation"],
+                "deliverables": ["/all enhancement", "Test suite", "User documentation"],
                 "success_criteria": [
                     "Zero breaking changes",
                     "95% test coverage",
