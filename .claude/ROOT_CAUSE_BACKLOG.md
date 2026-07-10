@@ -37,8 +37,8 @@ behavioral — stop building infrastructure, revisit prompts/model routing.
 - **Phase 0 — enablers:** run `setup_git.ps1` natively (#10); pin 3.13
   interpreter for verification (#7); verified-write convention note (#16).
 - **Phase 1 — C1 representations (front of queue):** #1390 manifest (absorbs
-  #6 + remaining #5 audit work); #15 wire `enforcement_telemetry.py` producers
-  (in-flight, task #1391 — do NOT double-build); #14 authorization ledger
+  #6 + remaining #5 audit work); #15 DONE (hook_stats.py ratified, #1391 option
+  (a)); #14 authorization ledger
   (promoted: three blocks on 2026-07-09 alone, one on a system-mandated
   memory write; stalls delegates cold).
 - **Phase 2 — C1 consumers:** #17 `knowledge:` frontmatter (after one week of
@@ -202,14 +202,17 @@ Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
     authorization), stalling the backlog's own remediation work. Confirms fix (1):
     the ledger must record AskUserQuestion answers as grants, not just typed messages.
 
-15. [PARTIAL 2026-07-09] **#9 is unexecutable as specified: gate telemetry is unwired.**
-    PREMISE CORRECTED 2026-07-09 (verified by direct read): telemetry infrastructure
-    EXISTS — `hooks/__lib/enforcement_telemetry.py` (389 lines, SQLite schema, compliance
-    queries) has zero runtime producers (only consumer is its test), and
-    `stop_blocks.jsonl` already logs Stop blocks. Fix is WIRE, NOT BUILD: producers in
-    the dispatchers (hook_runner.py exit path — outcome already classified at line 482 —
-    and the plugin routers). IN-FLIGHT: task #1391 (delegate implementing; see #20 for
-    the scope-cut it almost shipped). Blocks #9; feeds #14's keep/rekey/delete decisions.
+15. [DONE 2026-07-10] **#9 telemetry is wired via hook_stats.py (#1391 option (a)).**
+    LANDED 2026-07-10: `__lib/hook_stats.py` JSONL (`P:/.claude/state/hook_stats.jsonl`,
+    live, ~13k events) IS the ratified dispatcher telemetry spec.
+    `hook_runner.py:487-490` records `hook_runner:<name>` block/fire outcome on every
+    hook exit. The parallel `hooks/__lib/enforcement_telemetry.py` (zero runtime
+    producers — only consumer was its own test) was DELETED along with its test class;
+    `test_enforcement_tiers.py` keeps its unrelated live-module classes. Stop-gate
+    residuals also closed: ledger fallback turn-scoped (`_load_db_events(active_turn_id)`,
+    was terminal-wide), SKILL.md lookup extended to plugin roots via the shared
+    `_resolve_skill_md_path`. OPEN: warn/override outcome capture remains under task
+    #1396 (record() emits block/fire only, not advisory-warn or user-override). Unblocks #9.
 
 16. [OPEN] **Cowork sandbox mount is structurally unreliable; every session inherits it.**
     Observed 2026-07-09: three Write truncations at ~11.6KB, one cp truncation, blocked
