@@ -719,13 +719,24 @@ class CHSExporter:
 
             now = datetime.now()
             timestamp = now.strftime("%Y%m%d_%H%M%S")
-            output_path = exports_dir / f"chain_{timestamp}.md"
+            output_path = exports_dir / f"chain_{session_id}_{timestamp}.md"
 
         projects_dir = Path.home() / ".claude" / "projects"
 
         try:
             with open(output_path, "w", encoding="utf-8", newline="\n") as out:
                 now = datetime.now()
+                exported_at_iso = now.strftime("%Y-%m-%dT%H:%M:%S")
+                # YAML frontmatter — machine-parseable source of truth for
+                # session_id / exported_at / session_count. The **Root session:**
+                # line below is the backward-compat fallback for parsers that
+                # predate frontmatter (e.g. /debrief's legacy regex path).
+                out.write("---\n")
+                out.write(f'session_id: "{session_id}"\n')
+                out.write(f'exported_at: "{exported_at_iso}"\n')
+                out.write(f"session_count: {len(chain_paths)}\n")
+                out.write(f"chain_depth: {len(chain_paths)}\n")
+                out.write("---\n\n")
                 out.write(f"# Session Chain Export\n\n")
                 out.write(f"**Root session:** {session_id}  \n")
                 out.write(f"**Exported:** {now.strftime('%Y-%m-%d %H:%M:%S')}  \n")
