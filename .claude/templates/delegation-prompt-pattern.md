@@ -40,6 +40,23 @@ audit-cleanup prompt, git-setup delegate, root-cause conversation).
 4. **A legitimate "I don't know."** An explicit, non-penalized way to mark
    unknowns and hand items back. Models fabricate hardest when the prompt
    leaves no dignified exit.
+5. **Spec-anchored review.** Before any self-review or scope change, re-quote
+   the original acceptance criteria from this prompt. A scope cut is a SPEC
+   DEVIATION, stated as "spec requires X; propose dropping X because Y" —
+   never folded silently into an "MVP" framing. Minimalism's guard clause
+   applies: never simplify away the explicitly requested thing.
+   (Origin: backlog #20 — a review cut block/warn outcome tracking, the
+   module's entire purpose, and called it discipline.)
+6. **Reproduce-first + risk register.** A fix for a reported symptom must
+   cite the captured failing artifact (rc/stdout/stderr) it is designed
+   against; if you cannot reproduce it, say so and stop — do not hedge.
+   The residue ends with a RISK REGISTER: each open assumption with severity
+   and its smallest falsifier, and a closure pass — close every cheaply
+   closable risk (read-only checks, scoped commits) before handoff.
+   "Expected", "transient", or "known limitation" without a citation is
+   prohibited; the hedge is the tell.
+   (Origin: backlog #21 — an unreproduced fix targeted the wrong output
+   channel and the residual was narrated as "expected".)
 
 ---
 
@@ -176,6 +193,9 @@ BOUNDARY: stop at findings. No implementation without explicit "do it".
 | Armchair analysis (partner) | partner: investigation mandatory, evidence-cited |
 | Thrift as laziness ("skipped reading to save tokens") | peer: guardrail — economy shrinks reads, never skips investigation |
 | Script-blindness (semantic question answered mechanically) | peer: question-type rule — why/intent/correctness requires reading |
+| Scope cut dressed as minimalism | core #5: re-quote spec; cuts are named deviations |
+| Fix designed from assumed model, not the failure | core #6: reproduce-first — cite the captured artifact |
+| Residual failure narrated as "expected" | core #6: risk register — falsifier or silence, never a hedge |
 
 Origin: 2026-07-09 session. Companion:
 P:/.claude/templates/llm_behavior_contract.md (behavior contract the
