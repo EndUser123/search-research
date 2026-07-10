@@ -41,6 +41,7 @@ import ast
 import json
 import re
 import sys
+import time
 from pathlib import Path
 
 PATHLIKE_RE = re.compile(r"""["']([A-Za-z]:/[^"'\s]+?\.(?:md|py|json|yaml|yml|txt))["']""")
