@@ -21,9 +21,10 @@ sys.path.insert(0, str(PLUGIN_ROOT / "hooks" / "userpromptsubmit"))
 
 @pytest.fixture
 def hook(monkeypatch):
-    """Re-import the hook with a mocked debt_store dependency."""
+    """Re-import the hook with mocked debt_store + gate_residue dependencies."""
     fake = types.ModuleType("debt_store")
     fake_review = types.ModuleType("workflow_review")
+    fake_residue = types.ModuleType("gate_residue")
 
     def recent_deferrals(terminal_id, max_age_h=24.0, max_count=5, state_root=None):
         return fake._items
@@ -61,8 +62,16 @@ def hook(monkeypatch):
     fake_review.record_workflow_review = record_workflow_review
     fake_review.summarize_workflow_reviews = summarize_workflow_reviews
     fake_review.format_workflow_review_stats = fake.format_workflow_review_stats
+    # gate_residue stubs (return empty — existing tests don't exercise residues).
+    fake_residue.ingest_new_blocks = lambda terminal_id, state_root=None: []
+    fake_residue.classify_block = lambda block, tools, text: ("unresolved", None)
+    fake_residue.record_classification = lambda *a, **kw: None
+    fake_residue.mark_promoted = lambda *a, **kw: None
+    fake_residue.promoted_ledger_ids = lambda terminal_id, state_root=None: set()
+    fake_residue.recent_residue = lambda terminal_id, max_age_h=24.0, max_count=5, state_root=None: []
     sys.modules["debt_store"] = fake
     sys.modules["workflow_review"] = fake_review
+    sys.modules["gate_residue"] = fake_residue
     sys.modules.pop("cc_lazy_closure_debt_UserPromptSubmit", None)
     return importlib.import_module("cc_lazy_closure_debt_UserPromptSubmit"), fake
 

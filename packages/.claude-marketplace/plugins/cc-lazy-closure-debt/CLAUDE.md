@@ -1,6 +1,12 @@
 # cc-lazy-closure-debt
 
-Deferral auto-promotion plugin (Phase 1+2, 2026-06-03; Phase 4, 2026-06-19).
+Deferral auto-promotion plugin PLUS gate-FP feedback loop (Phase 1+2, 2026-06-03;
+Phase 4, 2026-06-19; Phase 5 / Gate Residue v1, 2026-07-10).
+
+**Mission (updated)**: (1) Detect untracked deferral phrases and auto-promote
+them to tasks. (2) Surface Stop-hook gate blocks as "residue" so the model
+can identify false positives and the developer can inspect the FP rate.
+
 The Stop hook detects untracked deferral phrases ("I'll leave that for now",
 "we can address that later", etc.) via the shared `lazy_closure_detector` in
 cc-aca-epistemic and appends them to a per-terminal JSONL audit log.
@@ -8,6 +14,12 @@ The UserPromptSubmit hook reads that log and injects a `TaskCreate` directive
 so each deferral lands in the real task list on the next turn. The PostToolUse
 hook watches for `TaskCreate(subject="Deferral: <phrase>")` and appends a
 tombstone so the deferral stops re-surfacing after it has been formalized.
+
+**Gate residue (Phase 5 v1)**: The same UserPromptSubmit hook also ingests new
+Stop-block rows from `diagnostics.db` and `stop_blocks.jsonl` (incrementally,
+by watermark), classifies them against the current turn's transcript, and emits
+TaskCreate directives for confirmed_FP blocks. Scope: Stop blocks only
+(PreToolUse is a documented v2 gap — they are NOT in diagnostics.db).
 Dispatch is via `__lib/router.py` registered in `settings.json` (not hooks.json).
 
 ## Responsibility
@@ -49,6 +61,16 @@ Dispatch is via `__lib/router.py` registered in `settings.json` (not hooks.json)
   `recent_deferrals()` filters that phrase permanently. Dispatch
   migrated from `hooks.json` to `__lib/router.py` + `settings.json`
   (router-XOR-hooks.json invariant; `hooks/hooks.json` stays `{"hooks": {}}`).
+- **Phase 5 — Gate Residue v1 (2026-07-10)**: `__lib/gate_residue.py`
+  added. UserPromptSubmit hook now ingests Stop-block rows, classifies
+  them as `confirmed_fp`/`disputed`/`unresolved`, and emits a separate
+  `TaskCreate` directive for confirmed-FP blocks (one-shot per ledger_id
+  via tombstone). Scope: Stop blocks only; PreToolUse blocks are NOT in
+  diagnostics.db and are a documented v2 gap. The plugin name
+  (`cc-lazy-closure-debt`) no longer captures the full scope (which is now
+  BOTH deferral debt AND gate-denial residue), but renaming it at this
+  point has cross-system blast radius (marketplace, hooks.json,
+  settings.json, docs) and is deferred.
 
 ## Hooks
 
@@ -72,6 +94,9 @@ router-XOR-hooks.json invariant means populating both causes double-dispatch.
   `clear_terminal()`, `list_terminals()`. Pure JSONL I/O with fsync.
 - `__lib/workflow_review.py` — workflow classification, review-log append,
   and recent recommendation summary helpers.
+- `__lib/gate_residue.py` — gate-FP feedback loop: incremental ingestion from
+  `diagnostics.db` + `stop_blocks.jsonl`, `classify_block()`, `recent_residue()`,
+  `mark_promoted()`, `promoted_ledger_ids()`. Scope: Stop blocks only. v1.
 
 ## Skill
 

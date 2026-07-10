@@ -19,6 +19,10 @@ JSONL store at `P:/.claude/state/cc-lazy-closure-debt/{terminal_id}.jsonl`.
   The workflow review path also keeps a lightweight per-terminal log so the
   recommendation mix can be inspected in production. The visible stats line
   only appears for `/debt review`.
+- `/debt residue` — read-only surface of recent gate-block residues (FP-feedback
+  loop). Shows unresolved, disputed, and confirmed_FP Stop-block residues from
+  the last 24h. This is a diagnostic view only; confirmed_FP items are
+  auto-promoted to tasks by the UserPromptSubmit hook when they first appear.
 
 If no subcommand is given, default to `list`.
 
