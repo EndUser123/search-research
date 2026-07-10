@@ -64,12 +64,30 @@ def script_paths_from_command(cmd: str) -> list[str]:
 
 
 def to_local(path_str: str, drive_map: dict[str, Path]) -> Path | None:
-    """Map a P:/... style path to a locally readable Path, if possible."""
+    """Map a P:/... style path to a locally readable Path, if possible.
+
+    Picks the longest drive_map prefix whose joined path actually exists on disk
+    (falling back to raw Path() if it exists). Previous version always took the
+    first prefix match, which produced false-positive "script missing" findings
+    whenever a drive_map value was a SUBDIR of the matched prefix (e.g.
+    drive_map["P:/packages"] = P:/packages/.claude-marketplace/plugins -> joining
+    P:/packages/.claude-marketplace/plugins/snapshot_PreCompact.py doubled the
+    marketplace segment to plugins/.claude-marketplace/plugins/snapshot_PreCompact.py).
+    """
     n = norm(path_str)
+    best: Path | None = None
+    best_len = -1
     for prefix, local in drive_map.items():
-        if n.lower().startswith(prefix.lower()):
-            return local / n[len(prefix):].lstrip("/")
-    return Path(n) if Path(n).exists() else None
+        if not n.lower().startswith(prefix.lower()):
+            continue
+        tail = n[len(prefix):].lstrip("/")
+        cand = (local / tail) if tail else local
+        if cand.exists() and len(prefix) > best_len:
+            best, best_len = cand, len(prefix)
+    raw = Path(n)
+    if raw.exists() and best_len < len(n):
+        best = raw
+    return best
 
 
 
