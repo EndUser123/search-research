@@ -66,17 +66,23 @@ def strip_quoted_spans(text: str) -> tuple[str, list[str]]:
 # ── Mode signal patterns (matched against outer_text) ─────────────────────────
 
 # Evaluation / review / appraisal — the user wants an opinion, not an action.
+#
+# Note: bare `\bdo\s+(?:these|this|that)\b` was removed because it false-positives
+# on real implementation requests like "Do this: implement the cache layer"
+# (the word "this" in imperative context is not evaluation). The remaining
+# `does` / "make sense" / "do these enhancements make sense" / "what do you
+# think" arms keep the genuine question signals without the false-negative.
 _EVAL_RE = re.compile(
     r"\bmake\s+sense\b"
-    r"|\b(?:do\s+(?:these|this|that)|does\s+(?:this|that|it))\b"
+    r"|\bdo\s+these\s+\w+\s+make\s+sense\b"
+    r"|\bdoes\s+(?:this|that|it)\s+(?:work|make|look|sound|seem|seem\s+right)\b"
     r"|\bwhat\s+do\s+you\s+think\b"
     r"|\b(?:your|any)\s+thoughts\b"
     r"|\breview\s+(?:this|that|the|these|those|my|our|proposal|it|a|an)\b"
     r"|\btell\s+me\s+what\s+(?:breaks|break|is\s+wrong|you\s+think)\b"
     r"|\bevaluat(?:e|ion)\b"
     r"|\b(?:sound|look)\s+(?:good|right|correct|ok)\b"
-    r"|\bfeedback\b|\bcritique\b|\bsanity\s+check\b"
-    r"|\bdoes\s+this\s+(?:work|make|look|sound|seem)\b",
+    r"|\bfeedback\b|\bcritique\b|\bsanity\s+check\b",
     re.IGNORECASE,
 )
 

@@ -3257,10 +3257,15 @@ def _run_task_contract_fit_gate_v2(data: dict) -> dict | None:
                 "evidence_summary": str(merged_evidence)[:100],
             })
 
-        # Layer 3: Enforcement Decision
+        # Layer 3: Enforcement Decision.
+        # task_class is hoisted out of the V2_PHASE_MACHINE_ENABLED `if` so the
+        # envelope gate below can read it when the phase machine is disabled.
+        # Without the hoist, the gate's `if task_class in _V2_IMPL_DIAG_TASK_CLASSES`
+        # raises NameError → caught by the outer try/except → V2 silently returns
+        # None and the gate never fires (the dead-code failure mode).
+        task_class = contract.get("task_class", "implementation")
         if _cfg.V2_PHASE_MACHINE_ENABLED:
             phase_to_check = inferred_phase or contract.get("phase", "exploration")
-            task_class = contract.get("task_class", "implementation")
             if not should_enforce_outputs(phase_to_check, task_class):
                 _log_task_contract_v2_telemetry(terminal_id, "v2_phase_silent", {
                     "phase": phase_to_check,
