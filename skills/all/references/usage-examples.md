@@ -27,7 +27,7 @@
 # → Layer 2: Auto-enables if >20 results
 ```
 
-## Local-only (like /search)
+## Local-only (like /find)
 ```bash
 /all "what did we discuss" --mode local-only
 # → Fast, no web APIs

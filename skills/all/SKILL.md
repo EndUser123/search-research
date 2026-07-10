@@ -95,7 +95,7 @@ Layer 1 total: <1 second. Layer 2: <5 seconds when triggered.
 | `references/implementation-details.md` | Layer behavior, trigger conditions, error handling |
 | `references/usage-examples.md` | Usage examples and advanced CLI options |
 | `references/output-format.md` | Output format examples (Layer 1 vs Layer 2) |
-| `references/migration-notes.md` | Migration notes (older `/search`+`/research` workflow → `/find`+`/web`+`/all`) |
+| `references/migration-notes.md` | Migration notes (older `/find`+`/web` workflow → `/find`+`/web`+`/all`) |
 | `references/troubleshooting.md` | Common issues and solutions |
 | `references/performance-tuning.md` | Speed vs coverage tuning guide |
 
