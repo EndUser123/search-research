@@ -94,6 +94,61 @@ function Get-LocalModelState {
   }
 }
 
+# --- Slot telemetry for the heartbeat ---------------------------------------
+# /slots is read-only and does not consume the single inference slot. It gives
+# us the actual phase/progress of the current request; VRAM deltas alone cannot
+# distinguish prompt evaluation, generation, and idle cache residency.
+function Get-LocalSlotStatus {
+  param([string]$Endpoint = $endpoint)
+
+  try {
+    $raw = Invoke-RestMethod -Uri "$Endpoint/slots" -TimeoutSec 3 -ErrorAction Stop
+    $slot = if ($raw -is [System.Array]) { @($raw)[0] } elseif ($raw.slots) { @($raw.slots)[0] } else { $raw }
+    if (-not $slot) { return @{ state = "UNKNOWN"; detail = "no slot data"; task = $null } }
+
+    $task = $slot.id_task
+    $next = if ($slot.next_token) { @($slot.next_token)[0] } else { $null }
+    $promptTotal = 0L
+    $promptDone = 0L
+    $decoded = 0L
+    $remaining = 0L
+    try { if ($null -ne $slot.n_prompt_tokens) { $promptTotal = [int64]$slot.n_prompt_tokens } } catch {}
+    try { if ($null -ne $slot.n_prompt_tokens_processed) { $promptDone = [int64]$slot.n_prompt_tokens_processed } } catch {}
+    try { if ($next -and $null -ne $next.n_decoded) { $decoded = [int64]$next.n_decoded } } catch {}
+    try { if ($next -and $null -ne $next.n_remain) { $remaining = [int64]$next.n_remain } } catch {}
+
+    if (-not $slot.is_processing) {
+      return @{ state = "IDLE"; detail = "idle"; task = $task; promptTotal = $promptTotal; promptDone = $promptDone; decoded = $decoded; remaining = $remaining }
+    }
+
+    if ($promptTotal -gt 0 -and $promptDone -lt $promptTotal) {
+      $pct = [math]::Min(100, [math]::Max(0, [math]::Round(($promptDone / $promptTotal) * 100)))
+      return @{ state = "BUSY"; detail = "prompt $promptDone/$promptTotal ($pct%)"; task = $task; promptTotal = $promptTotal; promptDone = $promptDone; decoded = $decoded; remaining = $remaining }
+    }
+
+    $genDetail = if ($decoded -gt 0 -or $remaining -gt 0) { "gen $decoded, remain $remaining" } else { "generation" }
+    return @{ state = "BUSY"; detail = $genDetail; task = $task; promptTotal = $promptTotal; promptDone = $promptDone; decoded = $decoded; remaining = $remaining }
+  } catch {
+    return @{ state = "UNKNOWN"; detail = "telemetry unavailable"; task = $null; promptTotal = 0L; promptDone = 0L; decoded = 0L; remaining = 0L }
+  }
+}
+
+function Format-HeartbeatLine {
+  param(
+    [hashtable]$ModelState,
+    [hashtable]$SlotStatus,
+    [Nullable[int]]$Gpu,
+    [Nullable[int]]$Temperature,
+    [Nullable[int]]$VramMb
+  )
+
+  $gpuTxt = if ($null -ne $Gpu -and $null -ne $Temperature) { "GPU ${Gpu}% ${Temperature}C" } else { "GPU n/a" }
+  $vramTxt = if ($null -ne $VramMb) { "VRAM ${VramMb}MB" } else { "VRAM n/a" }
+  $taskTxt = if ($null -ne $SlotStatus.task -and "$($SlotStatus.task)" -ne "-1") { " task $($SlotStatus.task)" } else { "" }
+  $slotTxt = "$($SlotStatus.state.ToLower())$taskTxt • $($SlotStatus.detail)"
+  return "[run-ornith] $($ModelState.state.ToUpper()) • $gpuTxt • $vramTxt • $slotTxt"
+}
+
 # -Probe mode: emit state as JSON and exit. Read-only, no side effects. Lets
 # cc-ccr query the launcher's health definition without re-implementing probes.
 if ($Probe) {
@@ -377,38 +432,46 @@ try {
     # (zombie / HTTP broken). Leave LOADING/LOADED alone — those are alive.
     # Same poll also samples VRAM and updates the window title so the taskbar
     # shows live state ("llama.cpp: READY • VRAM 11451MB" / "…idle" / "…busy").
-    $lastVram = $null
+    $lastHeartbeatKey = $null
+    $lastHeartbeatAt = [datetime]::MinValue
     while (-not $procHandle.HasExited) {
         Start-Sleep -Seconds 15
         if ($procHandle.HasExited) { break }
         $poll = Get-LocalModelState -Endpoint $endpoint
+        $slot = Get-LocalSlotStatus -Endpoint $endpoint
 
-        # VRAM sample for usage signal + taskbar title. Same data source
+        # GPU sample for usage signal + taskbar title. Same data source
         # watch-system.ps1 uses; ~50ms, runs once per 15s cycle.
+        $gpu = $null
+        $temperature = $null
         $vram = $null
         try {
-          $vramRaw = (nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits 2>$null | Select-Object -First 1)
-          if ($vramRaw) { [int]$vram = [int]$vramRaw.Trim() }
+          $gpuRaw = (nvidia-smi --query-gpu=utilization.gpu,temperature.gpu,memory.used --format=csv,noheader,nounits 2>$null | Select-Object -First 1)
+          if ($gpuRaw) {
+            $parts = $gpuRaw -split ',' | ForEach-Object { $_.Trim() }
+            if ($parts.Count -ge 3) {
+              [int]$gpu = $parts[0]
+              [int]$temperature = $parts[1]
+              [int]$vram = $parts[2]
+            }
+          }
         } catch {}
 
-        # Rising = request in flight (busy), flat = idle, falling = context
-        # released. Only meaningful once the model is loaded (RESIDENT vram).
-        $activity = "—"
-        if ($vram -and $lastVram) {
-          $delta = $vram - $lastVram
-          if ($delta -gt 20) { $activity = "busy ↑" }
-          elseif ($delta -lt -20) { $activity = "idle ↓" }
-          else { $activity = "idle ≈" }
+        # Print on meaningful slot/task/progress changes, plus one keepalive
+        # per minute. This keeps the window useful without repeating identical
+        # idle lines every 15 seconds.
+        $heartbeat = Format-HeartbeatLine -ModelState $poll -SlotStatus $slot -Gpu $gpu -Temperature $temperature -VramMb $vram
+        $heartbeatKey = "$($poll.state)|$($slot.state)|$($slot.task)|$($slot.detail)|$([int]$vram / 100)"
+        $now = Get-Date
+        if ($heartbeatKey -ne $lastHeartbeatKey -or ($now - $lastHeartbeatAt).TotalSeconds -ge 60) {
+          Write-Host $heartbeat
+          $lastHeartbeatKey = $heartbeatKey
+          $lastHeartbeatAt = $now
         }
-        $lastVram = $vram
-
-        # Single heartbeat line — readable when window is expanded; title
-        # carries the headline for the taskbar tooltip.
-        $vramTxt = if ($vram) { "${vram}MB" } else { "n/a" }
-        Write-Host "[run-ornith] $($poll.state.ToLower()) • VRAM $vramTxt • $activity"
 
         try {
-          $host.UI.RawUI.WindowTitle = "llama.cpp: $($poll.state) • VRAM $vramTxt • $activity"
+          $vramTitle = if ($null -ne $vram) { "${vram}MB" } else { "n/a" }
+          $host.UI.RawUI.WindowTitle = "llama.cpp: $($poll.state) • $($slot.state.ToLower()) • VRAM $vramTitle"
         } catch {}
 
         if ($poll.state -eq "STUCK" -or $poll.state -eq "BROKEN") {
