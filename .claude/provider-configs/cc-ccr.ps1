@@ -254,7 +254,8 @@ if (-not $ccrRunning) {
 #   - Token count fits within effective context window
 #   - routingMode = aggressive OR task = trivial-coding
 #
-# When offline, CCR falls back to MiniMax M3 for coding tasks.
+# When offline/busy/over-context, CCR falls back to opencode-go (deepseek-v4-flash)
+# for local-first coding failures — NOT M3. Ordinary non-local M3/GLM routing is unchanged.
 #
 # Process lifecycle:
 #   cc-ccr.ps1 → pwsh.exe (Minimized) → run-ornith-server.ps1 → llama-server.exe
@@ -312,7 +313,12 @@ function Wait-LocalModelReady {
     return $s
 }
 
-$lm = Invoke-LocalModelProbe -IncludeInference
+# Initial one-shot probe: rungs 1-4 only (no inference). A 15s inference probe
+# here races real work under --parallel 1: it queues behind the single slot,
+# times out, and reports HUNG while llama.cpp is alive and making progress.
+# Liveness (LOADED/READY via rungs 1-4) is sufficient for routing readiness;
+# real inference validation stays reserved for the explicit -Test path.
+$lm = Invoke-LocalModelProbe
 $localModelHealth = $false
 
 if (-not $lm -or $lm.state -eq "DEAD") {
@@ -389,7 +395,12 @@ public class CCR_BREAKAWAY {
 } elseif ($lm.state -eq "LOADING") {
     Write-Host "[CCR] local model loading - waiting..." -ForegroundColor Cyan
     $lm = Wait-LocalModelReady -TimeoutSec 60
-} elseif ($lm.state -in @("STUCK", "BROKEN", "HUNG")) {
+} elseif ($lm.state -in @("STUCK", "BROKEN")) {
+    # STUCK/BROKEN: the launcher watchdog detects these (rungs 1-4, no inference)
+    # and kill+restarts, so "watchdog recovers" is accurate HERE. HUNG is excluded:
+    # it only arises from an inference probe, the initial probe no longer runs one,
+    # and the watchdog deliberately does NOT probe inference under --parallel 1 —
+    # so HUNG is neither auto-detected nor auto-recovered. See LLAMA-CRASH-RCA.md.
     Write-Host "[CCR] local model $($lm.state) ($($lm.detail)) - watchdog recovers; or relaunch the launcher" -ForegroundColor Yellow
 } elseif ($lm.state -eq "READY" -or $lm.state -eq "LOADED") {
     $localModelHealth = $true
@@ -410,7 +421,7 @@ if ($lm -and ($lm.state -eq "READY" -or $lm.state -eq "LOADED")) {
     $tag = if ($lm.state -eq "READY") { "ready" } else { "loaded (inference unverified)" }
     Write-Host "[CCR] local: $($lm.model) | endpoint: $localModelEndpoint$ctx | $tag" -ForegroundColor Green
 } else {
-    Write-Host "[CCR] local model not ready (aggressive mode fallback to M3 for coding)" -ForegroundColor DarkGray
+    Write-Host "[CCR] local model not ready (aggressive mode fallback to opencode-go/deepseek-v4-flash for coding)" -ForegroundColor DarkGray
 }
 $script:localModelState = $lm
 

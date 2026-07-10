@@ -12,7 +12,9 @@
 //   packages/.claude-marketplace/plugins/cc-model-router/SKILL.md ("Routing contract").
 //
 // ROUTING POLICY:
-//   - Coding tasks: local llama.cpp first (aggressive), then M3, then GLM-5.2.
+//   - Coding tasks: local llama.cpp first (aggressive). On local-first failure
+//     (busy / unavailable / probe error / over-context) fall to opencode-go
+//     (deepseek-v4-flash) — NOT M3. Ordinary non-local M3/GLM routing unchanged.
 //   - Reasoning/planning: GLM-5.2.
 //   - Background: haiku/background tier (fall through to CCR Router.background).
 //   - Pin state overrides automatic routing until cleared.
@@ -76,85 +78,119 @@ function getRoutingPolicy() {
   return readJsonSafe(ROUTING_POLICY_FILE);
 }
 
-// --- Local model availability probe (live > state file) ---
-// The state file written by run-ornith-server.ps1 persists across server restarts
-// and can be stale if the server was started independently. A live HTTP probe is
-// authoritative: CC-ccr.ps1 uses /health; this mirrors that check with a cache
-// so we don't probe on every request.
+// --- Local model availability + capacity probe (live, cached) ---
+// Under --parallel 1, llama-server holds one slot. Two probes tell us whether
+// automatic local-first routing is safe:
+//
+//   /health  - process responsive, GGUF loaded (rung 3/4 of the launcher probe)
+//   /slots   - any slot currently processing (is_processing=true)
+//
+// We previously used /health with an inference-probe fallback. The inference
+// probe queued behind real work under --parallel 1, timed out at 15s, and
+// false-reported HUNG while llama.cpp was alive — the same race the launcher
+// watchdog deliberately avoids. /slots reports capacity WITHOUT consuming the
+// slot, so it is safe as a probe.
+//
+// CONSERVATIVE POLICY: any probe error → route to cloud. We would rather spill
+// one request to a fallback than queue behind a slot whose state we cannot
+// read. The state file (local-model-state.json) is CONTEXT METADATA ONLY — it
+// does NOT certify availability. A stale state file must never bypass the live
+// check (the pre-fix bug: state file with maxContextTokens short-circuited the
+// probe and produced stale local routing).
+//
+// ponytail: a cached "idle" verdict can admit several requests before /slots
+// flips to busy. Queue growth is NOT fully bounded — admit-then-queue under
+// burst traffic is an accepted limitation. The cache only collapses the
+// per-request HTTP cost; it does not serialize admission. The tests document
+// this; do not claim bounded queues without proof.
 const LOCAL_HEALTH_URL = "http://127.0.0.1:8010/health";
-const LOCAL_INFERENCE_URL = "http://127.0.0.1:8010/v1/chat/completions";
+const LOCAL_SLOTS_URL = "http://127.0.0.1:8010/slots";
 const PROBE_TIMEOUT_MS = 1500;
 const CACHE_WINDOW_MS = 10000;
 const DEFAULT_LOCAL_CTX = 65536; // matches llama.cpp -c flag in run-ornith-server.ps1
 
-let _probeCache = { lastCheckedAt: 0, available: false, reason: null };
+let _probeCache = {
+  lastCheckedAt: 0,
+  available: false,
+  busy: false,
+  reason: "cache cold",
+};
 
-async function isLocalModelAvailable() {
-  const now = Date.now();
-  if (now - _probeCache.lastCheckedAt < CACHE_WINDOW_MS) {
-    if (_probeCache.available) {
-      try { process.stderr.write("[CCR-route] local probe cache hit (available)\n"); } catch {}
-    }
-    return _probeCache.available;
-  }
-
-  // Primary: /health endpoint (same check as cc-ccr.ps1)
+async function probeLocalLive() {
+  // 1. /health must succeed (2xx). Anything else → unavailable.
+  let healthOk = false;
   try {
     const ac = new AbortController();
     const t = setTimeout(() => ac.abort(), PROBE_TIMEOUT_MS);
     const resp = await fetch(LOCAL_HEALTH_URL, { signal: ac.signal });
     clearTimeout(t);
-    if (resp.ok) {
-      _probeCache = { lastCheckedAt: Date.now(), available: true, reason: null };
-      try { process.stderr.write("[CCR-route] /health OK — local available\n"); } catch {}
-      return true;
-    }
-  } catch { /* fall through */ }
+    healthOk = resp.ok;
+  } catch {
+    return { available: false, busy: false, reason: "health probe failed" };
+  }
+  if (!healthOk) {
+    return { available: false, busy: false, reason: "health non-2xx" };
+  }
 
-  // Fallback: minimal inference probe (tiny prompt, no quota cost)
+  // 2. /slots capacity. Fail-closed: any error → busy=true. We cannot prove
+  // idle, so we refuse to admit new automatic work.
+  let busy = true;
+  let reason = "slots not queried";
   try {
-    const body = JSON.stringify({
-      model: "ornith-1.0-9b",
-      messages: [{ role: "user", content: "hi" }],
-      max_tokens: 1,
-    });
     const ac = new AbortController();
     const t = setTimeout(() => ac.abort(), PROBE_TIMEOUT_MS);
-    const resp = await fetch(LOCAL_INFERENCE_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body,
-      signal: ac.signal,
-    });
+    const resp = await fetch(LOCAL_SLOTS_URL, { signal: ac.signal });
     clearTimeout(t);
-    if (resp.ok) {
-      _probeCache = { lastCheckedAt: Date.now(), available: true, reason: null };
-      try { process.stderr.write("[CCR-route] inference probe OK — local available\n"); } catch {}
-      return true;
+    if (!resp.ok) {
+      reason = `slots HTTP ${resp.status}`;
+    } else {
+      // llama.cpp /slots: array of slot objects in current versions; some wrappers
+      // nest as { slots: [...] }. Accept both shapes.
+      const body = await resp.json();
+      const slots = Array.isArray(body) ? body : Array.isArray(body?.slots) ? body.slots : [];
+      if (slots.length === 0) {
+        // No slots means no model loaded (or --parallel 0). Treat as unavailable.
+        return { available: false, busy: false, reason: "slots empty (no model loaded)" };
+      }
+      busy = slots.some((s) => s && s.is_processing === true);
+      reason = busy ? "slot processing" : "idle";
     }
   } catch (e) {
-    _probeCache = { lastCheckedAt: Date.now(), available: false, reason: e.message };
+    busy = true;
+    reason = `slots probe failed: ${e?.message || "unknown"}`;
   }
 
-  try { process.stderr.write("[CCR-route] local unavailable — both probes failed\n"); } catch {}
-  return false;
+  return { available: true, busy, reason };
 }
 
-async function getLocalModelProbed() {
-  const fromFile = getLocalModelState();
-  if (fromFile && fromFile.maxContextTokens) return fromFile;
-
-  // State file missing or stale — live probe is authoritative
-  const live = await isLocalModelAvailable();
-  if (live) {
-    try {
-      process.stderr.write(
-        "[CCR-route] state file missing/stale — using live-probe default ctx (" + DEFAULT_LOCAL_CTX + ")\n"
-      );
-    } catch {}
-    return { id: "ornith-1.0-9b", maxContextTokens: DEFAULT_LOCAL_CTX };
+async function getLocalAvailability() {
+  const now = Date.now();
+  if (now - _probeCache.lastCheckedAt < CACHE_WINDOW_MS) {
+    return _probeCache;
   }
-  return null;
+  const live = await probeLocalLive();
+  _probeCache = { lastCheckedAt: now, ...live };
+  try {
+    process.stderr.write(
+      `[CCR-route] local probe → available=${live.available} busy=${live.busy} reason=${live.reason}\n`,
+    );
+  } catch {}
+  return _probeCache;
+}
+
+// Combines live availability/capacity with context metadata. Metadata comes
+// from the state file (or DEFAULT_LOCAL_CTX fallback) — it never certifies
+// availability; the live check is authoritative for routing.
+async function getLocalModelProbed() {
+  const live = await getLocalAvailability();
+  const fromFile = getLocalModelState();
+  return {
+    available: live.available,
+    busy: live.busy,
+    reason: live.reason,
+    id: (fromFile && fromFile.id) || "ornith-1.0-9b",
+    maxContextTokens: (fromFile && fromFile.maxContextTokens) || DEFAULT_LOCAL_CTX,
+  };
 }
 
 function logRoutingEvent(entry) {
@@ -312,12 +348,18 @@ function describePins(pin) {
   return parts.length ? parts.join(",") : "none";
 }
 
-// tier → default cloud route (used when local unavailable / over budget)
+// tier → default cloud route for ORDINARY non-local routing (conservative-mode
+// coding, reasoning token-budget fallback). NOT used for local-first failures.
 function routeByTier(tier) {
   if (tier === "haiku") return "opencode-go,deepseek-v4-flash";
   if (tier === "opus") return "zai,glm-5.2";
   return "minimax,MiniMax-M3[1m]"; // sonnet / unknown
 }
+
+// Automatic local-first FAILURE route: local busy, local unavailable, probe
+// failure, or request over local context. Contract: opencode-go/deepseek-v4-flash
+// (the background tier), NOT M3. Ordinary non-local M3/GLM routing is unchanged.
+const LOCAL_FAIL_FALLBACK = "opencode-go,deepseek-v4-flash";
 
 // --- Routing logic ---
 
@@ -424,30 +466,41 @@ module.exports = async function router(req, config) {
     return decide(route, `reasoning — ${route} (tokenCount=${tokenCount}, budget=${budget})`, source);
   }
 
-  // --- 4. Coding: local-first → classifier tier fallback → default M3 ---
+  // --- 4. Coding: local-first → LOCAL_FAIL_FALLBACK (opencode-go) on failure ---
+  // getLocalModelProbed() returns {available, busy, reason, id, maxContextTokens}.
+  // Local-first FAILURES (busy slot, unavailable, probe failure, over-context)
+  // fall to LOCAL_FAIL_FALLBACK (opencode-go/deepseek-v4-flash) — NOT M3.
+  // Explicit local selection (model === "claude-local-ornith") bypasses the busy
+  // gate — the user opted in to local. Conservative non-trivial coding (the only
+  // path that never targets local) keeps ordinary tier/M3 routing, unchanged.
   const localModel = await getLocalModelProbed();
   const mode = getRoutingMode(config);
   const threshold = getThreshold(config, mode);
   const tierRoute = rec?.recommended_tier ? routeByTier(rec.recommended_tier) : "minimax,MiniMax-M3[1m]";
   const tierSource = rec?.recommended_tier ? "classifier" : "default";
+  const explicitLocal = model === "claude-local-ornith";
 
-  if (localModel && localModel.maxContextTokens) {
-    const effectiveCtx = Math.floor(localModel.maxContextTokens * threshold);
-    const wantLocal = mode === "aggressive" || model === "claude-local-ornith" || taskType === "trivial-coding";
-
-    if (wantLocal && tokenCount <= effectiveCtx) {
-      return decide(`llama-cpp,${localModel.id}`, `local-first (${taskType}, ${tokenCount} <= ${effectiveCtx})`, "local-first");
-    }
-    if (wantLocal) {
-      // Over local ctx — escalate by classifier tier (or M3 default)
-      return decide(tierRoute, `escalated: ${tokenCount} > ${effectiveCtx} local ctx; tier=${rec?.recommended_tier || "none"}`, tierSource);
-    }
-    // Conservative non-trivial coding: tier/M3
-    return decide(tierRoute, `conservative-cloud (${taskType}, ${tokenCount}); tier=${rec?.recommended_tier || "none"}`, tierSource);
+  // Not available OR busy (and not explicit) → LOCAL_FAIL_FALLBACK. busy means a
+  // real request occupies the single slot; queueing behind it is what we avoid.
+  if (!localModel.available || (localModel.busy && !explicitLocal)) {
+    const why = !localModel.available
+      ? `no-local-model (${localModel.reason})`
+      : `local busy (${localModel.reason}) — admitted to ${LOCAL_FAIL_FALLBACK}`;
+    return decide(LOCAL_FAIL_FALLBACK, `${why}; tier=${rec?.recommended_tier || "none"}`, "local-fail-fallback");
   }
 
-  // --- No local model: classifier tier or M3 ---
-  return decide(tierRoute, `no-local-model (${taskType}); tier=${rec?.recommended_tier || "none"}`, tierSource);
+  const effectiveCtx = Math.floor(localModel.maxContextTokens * threshold);
+  const wantLocal = mode === "aggressive" || explicitLocal || taskType === "trivial-coding";
+
+  if (wantLocal && tokenCount <= effectiveCtx) {
+    return decide(`llama-cpp,${localModel.id}`, `local-first (${taskType}, ${tokenCount} <= ${effectiveCtx})`, "local-first");
+  }
+  if (wantLocal) {
+    // Over local context — local-first failure → LOCAL_FAIL_FALLBACK.
+    return decide(LOCAL_FAIL_FALLBACK, `over-ctx: ${tokenCount} > ${effectiveCtx} local ctx → ${LOCAL_FAIL_FALLBACK}`, "local-fail-fallback");
+  }
+  // Conservative non-trivial coding: ORDINARY non-local cloud (tier/M3). Unchanged.
+  return decide(tierRoute, `conservative-cloud (${taskType}, ${tokenCount}); tier=${rec?.recommended_tier || "none"}`, tierSource);
 };
 
 // Pre-transform body patch: when the route is opencode-go AND the request
