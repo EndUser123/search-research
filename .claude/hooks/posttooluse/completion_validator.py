@@ -27,6 +27,7 @@ Based on proactive-honesty.md memory:
 - Prefer honest uncertainty over confident guessing
 """
 
+import ast
 import re
 from pathlib import Path
 from typing import Any
@@ -164,24 +165,29 @@ class CompletionValidator(PostToolUseHook):
         if self._registry_cache is not None:
             return module_name in self._registry_cache
 
-        # Parse registry.py to extract core_hook_modules list
+        # Parse registry.py via AST to extract core_hook_modules entries.
+        # A non-greedy regex was used here before and truncated at the first
+        # ']' inside the list — a comment containing "[PLAN]/[RATIONALE]"
+        # (registry.py:776) hid every module registered after it, producing
+        # false NOT-REGISTERED warnings for correctly registered modules.
+        # AST parsing ignores comments, so bracket-bearing comments are inert.
         try:
-            content = self.registry_file.read_text(encoding="utf-8")
-
-            # Extract core_hook_modules list using regex
-            # Pattern: core_hook_modules = [ ... ]
-            match = re.search(
-                r"core_hook_modules\s*=\s*\[(.*?)\]",
-                content,
-                re.DOTALL
-            )
-
-            if not match:
-                return False
-
-            # Extract module names from list
-            list_content = match.group(1)
-            module_names = re.findall(r'"([^"]+)"', list_content)
+            tree = ast.parse(self.registry_file.read_text(encoding="utf-8"))
+            module_names: list[str] = []
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Assign):
+                    continue
+                for target in node.targets:
+                    if (
+                        getattr(target, "id", None) == "core_hook_modules"
+                        and isinstance(node.value, (ast.List, ast.Tuple))
+                    ):
+                        module_names.extend(
+                            elt.value
+                            for elt in node.value.elts
+                            if isinstance(elt, ast.Constant)
+                            and isinstance(elt.value, str)
+                        )
 
             # Cache for future use
             self._registry_cache = module_names
@@ -219,7 +225,7 @@ class CompletionValidator(PostToolUseHook):
 
 **To fix this:**
 1. Open `UserPromptSubmit_modules/registry.py`
-2. Find the `core_hook_modules` list (around line 573)
+2. Find the `core_hook_modules` list (search for `core_hook_modules = [`)
 3. Add `"{module_name}",` to the list
 4. Save the file
 
