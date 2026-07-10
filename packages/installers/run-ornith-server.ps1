@@ -103,7 +103,13 @@ function Get-LocalSlotStatus {
 
   try {
     $raw = Invoke-RestMethod -Uri "$Endpoint/slots" -TimeoutSec 3 -ErrorAction Stop
-    $slot = if ($raw -is [System.Array]) { @($raw)[0] } elseif ($raw.slots) { @($raw.slots)[0] } else { $raw }
+    $slot = if ($raw -is [System.Array]) {
+      @($raw)[0]
+    } elseif ($null -ne $raw.slots) {
+      @($raw.slots)[0]
+    } else {
+      $raw
+    }
     if (-not $slot) { return @{ state = "UNKNOWN"; detail = "no slot data"; task = $null } }
 
     $task = $slot.id_task
@@ -145,7 +151,13 @@ function Format-HeartbeatLine {
   $gpuTxt = if ($null -ne $Gpu -and $null -ne $Temperature) { "GPU ${Gpu}% ${Temperature}C" } else { "GPU n/a" }
   $vramTxt = if ($null -ne $VramMb) { "VRAM ${VramMb}MB" } else { "VRAM n/a" }
   $taskTxt = if ($null -ne $SlotStatus.task -and "$($SlotStatus.task)" -ne "-1") { " task $($SlotStatus.task)" } else { "" }
-  $slotTxt = "$($SlotStatus.state.ToLower())$taskTxt • $($SlotStatus.detail)"
+  $slotTxt = if ($SlotStatus.state -eq "IDLE") {
+    "idle$taskTxt"
+  } elseif ($SlotStatus.state -eq "UNKNOWN") {
+    "slot telemetry unavailable"
+  } else {
+    "busy$taskTxt • $($SlotStatus.detail)"
+  }
   return "[run-ornith] $($ModelState.state.ToUpper()) • $gpuTxt • $vramTxt • $slotTxt"
 }
 
