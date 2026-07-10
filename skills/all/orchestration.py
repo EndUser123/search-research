@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Orchestration layer for three-layer search filtering (/explore skill).
+"""Orchestration layer for three-layer search filtering (/all skill).
 
 Provides execute_unified_search, which orchestrates:
 - Layer 1: Adaptive rule-based filtering (fetch with quality floor)
@@ -185,7 +185,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Universal search with three-layer filtering (/explore)."
+        description="Universal search with three-layer filtering (/all)."
     )
     parser.add_argument("query", help="Search query")
     parser.add_argument("--mode", default="auto",

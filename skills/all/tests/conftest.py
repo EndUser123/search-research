@@ -1,4 +1,4 @@
-"""pytest configuration for /explore skill tests.
+"""pytest configuration for /all skill tests.
 
 Sets up the import path so that 'skills.all' can be imported correctly.
 """

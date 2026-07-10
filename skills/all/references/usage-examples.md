@@ -2,7 +2,7 @@
 
 ## Basic universal search (auto-filtering)
 ```bash
-/explore "python async patterns"
+/all "python async patterns"
 # → Layer 1A: Python filters duplicates, quality floor
 # → Layer 1B: Semantic clustering removes near-duplicates
 # → Layer 1C: Complexity score calculated
@@ -13,7 +13,7 @@
 
 ## Context-aware filtering example
 ```bash
-/explore "what did we decide about authentication"
+/all "what did we decide about authentication"
 # → Layer 1: Returns 35 results
 # → Layer 2: Auto-enables (context hint: "what did we decide")
 #   → Agent tool filters to 8 themed results
@@ -22,27 +22,27 @@
 
 ## Force comprehensive search
 ```bash
-/explore "authentication best practices" --mode unified
+/all "authentication best practices" --mode unified
 # → Always searches local + web
 # → Layer 2: Auto-enables if >20 results
 ```
 
 ## Local-only (like /search)
 ```bash
-/explore "what did we discuss" --mode local-only
+/all "what did we discuss" --mode local-only
 # → Fast, no web APIs
 # → Layer 2: Still applies if triggered
 ```
 
 ## Programmatic use (no Layer 2)
 ```bash
-/explore "query" --no-context-filter
+/all "query" --no-context-filter
 # → Layer 1 only (faster, predictable)
 ```
 
 ## Force distillation (always Layer 2)
 ```bash
-/explore "microservices patterns" --force-context-filter
+/all "microservices patterns" --force-context-filter
 # → Layer 2: ALWAYS applies
 # → Extracts key insights, groups by theme
 ```
@@ -51,15 +51,15 @@
 
 ```bash
 # Adjust Layer 2 trigger threshold
-/explore "query" --context-threshold 50
+/all "query" --context-threshold 50
 
 # Custom quality thresholds
-/explore "query" --min-score 0.7 --min-results 5
+/all "query" --min-score 0.7 --min-results 5
 
 # RRF tuning
-/explore "query" --rrf-k 80  # More diversity
+/all "query" --rrf-k 80  # More diversity
 
 # Result limits
-/explore "query" --limit 20
+/all "query" --limit 20
 ```
 

@@ -1,7 +1,7 @@
 """
-/explore skill exports for testing and programmatic use.
+/all skill exports for testing and programmatic use.
 
-This module exports key functions from the /explore skill for:
+This module exports key functions from the /all skill for:
 - Unit testing without subprocess overhead
 - Integration testing with other skills
 - Direct programmatic access to search functionality

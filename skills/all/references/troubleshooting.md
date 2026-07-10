@@ -14,7 +14,7 @@
 **Example:**
 ```bash
 # CLI mode (uses keyword fallback)
-/explore "authentication patterns" --force-context-filter
+/all "authentication patterns" --force-context-filter
 # Output: [Agent Filter] CLI context, using keyword fallback
 
 # Skill execution mode (uses Agent tool if available)
@@ -33,29 +33,29 @@
 1. **Threshold too high:**
    ```bash
    # Check current threshold
-   /explore "query" --context-threshold 20  # Default is 20
+   /all "query" --context-threshold 20  # Default is 20
 
    # Lower threshold to trigger more easily
-   /explore "query" --context-threshold 15
+   /all "query" --context-threshold 15
    ```
 
 2. **User override disabled:**
    ```bash
    # Check if --no-context-filter was used
    # Remove it to enable Layer 2
-   /explore "query"  # Layer 2 auto-enabled
+   /all "query"  # Layer 2 auto-enabled
    ```
 
 3. **Result count below threshold:**
    ```bash
    # Force Layer 2 even for small result sets
-   /explore "query" --force-context-filter
+   /all "query" --force-context-filter
    ```
 
 **Verification:**
 ```bash
 # Check Layer 2 trigger reason
-/explore "query"
+/all "query"
 # Look for: [Layer 2] Trigger check = True (reason: result_count)
 ```
 
@@ -74,19 +74,19 @@
 1. **Reduce input size:**
    ```bash
    # Lower result limit
-   /explore "query" --limit 20  # Default is 30
+   /all "query" --limit 20  # Default is 30
    ```
 
 2. **Increase complexity to reduce insights:**
    ```bash
    # More specific query = fewer results
-   /explore "specific query terms"  # Reduces result count
+   /all "specific query terms"  # Reduces result count
    ```
 
 3. **Accept keyword fallback:**
    ```bash
    # Use keyword filtering for very large result sets
-   /explore "query" --no-context-filter
+   /all "query" --no-context-filter
    ```
 
 **Prevention:**
@@ -105,8 +105,8 @@
 1. **Query complexity variance:**
    ```bash
    # Check complexity scores
-   /explore "simple query"     # May not trigger
-   /explore "complex query with context hints"  # More likely to trigger
+   /all "simple query"     # May not trigger
+   /all "complex query with context hints"  # More likely to trigger
 
    # Complexity scoring is based on:
    # - Term specificity (technical vs generic)
@@ -133,7 +133,7 @@
    # Layer 2 triggers when: result_count > threshold (default 20)
 
    # View result count in output
-   /explore "query"
+   /all "query"
    # Look for: [Layer 1A] → 25 results
    ```
 
@@ -141,10 +141,10 @@
 Use explicit flags for predictable behavior:
 ```bash
 # Always enable Layer 2
-/explore "query" --force-context-filter
+/all "query" --force-context-filter
 
 # Always disable Layer 2
-/explore "query" --no-context-filter
+/all "query" --no-context-filter
 ```
 
 ---
@@ -167,7 +167,7 @@ Use explicit flags for predictable behavior:
 
 1. **Adjust clustering threshold:**
    ```python
-# In skills/explore/semantic_cluster.py
+# In skills/all/semantic_cluster.py
    clustered = semantic_cluster.apply_semantic_clustering(
        results,
        similarity_threshold=0.3,  # Lower = less aggressive

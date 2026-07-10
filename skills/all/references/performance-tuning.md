@@ -4,16 +4,16 @@
 
 ```bash
 # Local-only mode (no web APIs)
-/explore "query" --mode local-only
+/all "query" --mode local-only
 
 # Disable Layer 2
-/explore "query" --no-context-filter
+/all "query" --no-context-filter
 
 # Lower result limit
-/explore "query" --limit 20
+/all "query" --limit 20
 
 # Skip web search even if local quality is low
-/explore "query" --mode local-only --min-score 0.3
+/all "query" --mode local-only --min-score 0.3
 ```
 
 **Expected performance:**
@@ -27,16 +27,16 @@
 
 ```bash
 # Force Layer 2 distillation
-/explore "query" --force-context-filter
+/all "query" --force-context-filter
 
 # Increase result limit
-/explore "query" --limit 40
+/all "query" --limit 40
 
 # Lower quality threshold
-/explore "query" --min-score 0.3 --min-results 5
+/all "query" --min-score 0.3 --min-results 5
 
 # Unified mode (always search both sources)
-/explore "query" --mode unified
+/all "query" --mode unified
 ```
 
 **Expected performance:**
