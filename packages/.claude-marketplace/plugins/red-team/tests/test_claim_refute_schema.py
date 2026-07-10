@@ -110,3 +110,22 @@ def test_scope_completeness_branch_is_in_agent_doc():
     assert "scope-completeness" in text
     assert "monorepo" in text or "repo-wide" in text or "repo wide" in text.lower()
     assert "grep" in text
+
+
+def test_agent_doc_claim_type_enum_matches_schema():
+    """The claim_type values documented in the agent prompt must match
+    VALID_CLAIM_TYPES in the schema exactly — no drift."""
+    import re
+    text = _AGENT.read_text(encoding="utf-8", errors="replace")
+    # Find all claim_type enumerations in the agent doc
+    matches = re.findall(r'"claim_type":\s*"([^"]+)"', text)
+    assert matches, "No claim_type examples found in agent doc"
+    documented = set()
+    for m in matches:
+        for part in m.split("|"):
+            documented.add(part.strip())
+    schema_types = set(__import__("findings_schema").VALID_CLAIM_TYPES)
+    missing_from_doc = schema_types - documented
+    assert not missing_from_doc, (
+        f"VALID_CLAIM_TYPES has types not in agent doc examples: {missing_from_doc}"
+    )
