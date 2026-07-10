@@ -166,9 +166,12 @@ def _extract_text_content(message_content: object) -> str:
 
 
 def _read_post_block_turn(data: dict) -> tuple[list[dict], str]:
-    """Reverse-scan the transcript for the CURRENT turn's tool_use blocks + text.
+    """Reverse-scan transcript TAIL for the current turn's tool_use + text.
 
-    Reuses the proven _parse_transcript_snapshot schema (skill-guard, fact #4).
+    Uses byte-level reverse seek so the cost is O(tail bytes), not O(file).
+    Stops as soon as the turn boundary is found — never reads the whole file.
+    Schema matches skill-guard _parse_transcript_snapshot (fact #4).
+
     Returns (tools, text). Safe: returns empty on any error.
     """
     transcript_path = data.get("transcript_path")
@@ -176,20 +179,34 @@ def _read_post_block_turn(data: dict) -> tuple[list[dict], str]:
         return [], ""
 
     try:
-        transcript = Path(transcript_path)
-        if not transcript.exists():
+        tp = Path(transcript_path)
+        if not tp.exists():
             return [], ""
-        content = transcript.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
+    except OSError:
         return [], ""
+
+    _CHUNK = 65536  # 64 KB — largest plausible last turn in JSONL
 
     all_tools: list[dict] = []
     turn_text: str = ""
     found_assistant = False
+    buf = ""
 
     try:
-        for line in reversed(content.strip().split("\n")):
-            if not line.strip():
+        with tp.open("rb") as f:
+            f.seek(0, 2)  # end
+            end_pos = f.tell()
+            if end_pos == 0:
+                return [], ""
+
+            pos = max(0, end_pos - _CHUNK)
+            f.seek(pos)
+            chunk = f.read(end_pos - pos).decode("utf-8", errors="replace")
+
+        # Process lines from the tail chunk in reverse
+        for line in reversed(chunk.strip().splitlines()):
+            line = line.strip()
+            if not line:
                 continue
             try:
                 entry = json.loads(line)
@@ -224,10 +241,10 @@ def _read_post_block_turn(data: dict) -> tuple[list[dict], str]:
                         break
                     elif found_assistant:
                         break
+
+        return all_tools, turn_text
     except Exception:
         return [], ""
-
-    return all_tools, turn_text
 
 
 def _format_residue_context(residue_rows: list[dict]) -> str:
