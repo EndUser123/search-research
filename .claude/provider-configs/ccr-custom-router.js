@@ -396,6 +396,12 @@ module.exports = async function router(req, config) {
   // decide(): log the full effective-route field set, emit route change, return route.
   const decide = (route, reason, decisionSource, guardrailOverride = false) => {
     const backend = splitRoute(route);
+    // Local-fail-fallback uses opencode-go/deepseek-v4-flash (the same route string
+    // as ordinary Haiku/background). routeToAlias() would map it to the Haiku
+    // alias, which is misleading for a local-failure admission. Emit the raw
+    // route string for that source so the log names what actually happened;
+    // ordinary Haiku/background routing keeps its alias.
+    const alias = decisionSource === "local-fail-fallback" ? route : routeToAlias(route, model);
     logRoutingEvent({
       ts: new Date().toISOString(),
       terminal_id: rec?.terminal_id || "unknown",
@@ -405,7 +411,7 @@ module.exports = async function router(req, config) {
       pin_state: describePins(pin),
       recommended_tier: rec?.recommended_tier || null,
       recommended_model: rec?.recommended_model || null,
-      effective_route_alias: routeToAlias(route, model),
+      effective_route_alias: alias,
       backend_provider: backend.provider,
       backend_model: backend.model,
       local_used: backend.provider === "llama-cpp",

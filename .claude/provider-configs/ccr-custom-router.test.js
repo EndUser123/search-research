@@ -14,8 +14,9 @@
 
 const assert = require("node:assert/strict");
 const test = require("node:test");
+const path = require("path");
 
-const ROUTER_PATH = require.resolve("./ccr-custom-router.js");
+const ROUTER_PATH = path.join(__dirname, "ccr-custom-router.js");
 
 // --- Test harness -----------------------------------------------------------
 
@@ -71,7 +72,7 @@ function makePinRouteCall(pin = {}, rec = null) {
 // fails if /v1/chat/completions or any inference URL appears in the source.
 test("router source contains no inference URL (admission probe must be non-inference)", () => {
   const fs = require("fs");
-  const src = fs.readFileSync(require("path").resolve("./ccr-custom-router.js"), "utf8");
+  const src = fs.readFileSync(ROUTER_PATH, "utf8");
   assert.equal(
     src.includes("/v1/chat/completions"),
     false,
@@ -221,7 +222,7 @@ test("documented limitation: cached idle verdict can admit N requests before /sl
   // requests between samples cannot be serialized without an external lock.
   // The router source must acknowledge this honestly.
   const fs = require("fs");
-  const src = fs.readFileSync(require("path").resolve("./ccr-custom-router.js"), "utf8");
+  const src = fs.readFileSync(ROUTER_PATH, "utf8");
   // Look for the explicit admission-control caveat.
   assert.match(src, /queue growth is NOT fully bounded/i);
   assert.match(src, /ponytail/);
@@ -234,7 +235,7 @@ test("documented limitation: cached idle verdict can admit N requests before /sl
 // as an accepted limitation (see block 6 comment in the router source).
 test("concurrent-request race: documented as limitation", () => {
   const fs = require("fs");
-  const src = fs.readFileSync(require("path").resolve("./ccr-custom-router.js"), "utf8");
+  const src = fs.readFileSync(ROUTER_PATH, "utf8");
   assert.match(src, /admit-then-queue under/i);
 });
 
@@ -300,4 +301,58 @@ test("conservative non-trivial coding keeps ordinary M3 (unchanged)", async () =
   const req = makeReq({ model: "claude-sonnet-5", messages: [{ role: "user", content: longCode }], tokenCount: 1000 });
   const route = await router(req, makeConfig({ routingMode: "conservative" }));
   assert.equal(route, "minimax,MiniMax-M3[1m]", "ordinary non-local conservative coding must stay M3");
+});
+
+// --- 11. Route logging identifies the local fallback accurately ------------
+// local-fail-fallback uses opencode-go/deepseek-v4-flash (same route string as
+// ordinary Haiku). The decide() function in the router must alias it by the
+// raw route string (NOT the Haiku alias) when decisionSource is
+// "local-fail-fallback", or the route log would misleadingly label local-failure
+// admissions as Haiku. The Haiku alias for opencode-go must still exist in
+// routeToAlias() — it wasn't removed, only bypassed for this source.
+test("route logging: local-fail-fallback uses raw route, not Haiku alias", () => {
+  const fs = require("fs");
+  const src = fs.readFileSync(ROUTER_PATH, "utf8");
+  // Guard exists: decide() selects raw route over routeToAlias for local-fail-fallback.
+  assert.match(
+    src,
+    /decisionSource === .local-fail-fallback.*\?.*route\s*:/,
+    "local-fail-fallback must use raw route, not routeToAlias alias",
+  );
+  // The Haiku alias for opencode-go is preserved (not removed).
+  assert.match(
+    src,
+    /"opencode-go,deepseek-v4-flash".*claude-haiku-4-5-20251001/,
+    "routeToAlias must still map opencode-go to Haiku for non-failure routing",
+  );
+});
+
+// --- 12. Architecture review: bounded admission investigation --------------
+// The documented 10-second cached-idle admission race cannot be bounded at the
+// router layer. CCR's custom-router API is a per-request callback (see
+// module.exports = async function router(req, config)). It does NOT expose:
+//   - A request lifecycle hook (onComplete, onAbort)
+//   - Any shared middleware or interceptor API
+//   - A reverse-proxy-style response-affecting hook
+//   - Any per-slot state outside the probe cache
+//
+// Without a completion callback, no release mechanism exists. An in-flight mutex
+// would freeze routing forever if a request never completes (crash, hang, timeout).
+//
+// Therefore bounded admission is BLOCKED — the router lifecycle does not support it.
+// This test verifies the source does NOT claim bounded queues and does NOT
+// implement a fake release mechanism (no release counter, no in-flight decrement).
+test("bounded admission cannot be implemented at the router layer (no lifecycle)", () => {
+  // Verify the source honestly documents the limitation.
+  const fs = require("fs");
+  const A = fs.readFileSync(ROUTER_PATH, "utf8");
+  assert.match(A, /queue growth is NOT fully bounded/i);
+  assert.match(A, /admit-then-queue under/i);
+  // Verify no fake release mechanism exists.
+  assert.ok(!A.includes("inFlight--") && !A.includes("inFlight++") && !A.includes("release"),
+    "router must NOT implement a fake in-flight counter (no lifecycle to release it)");
+  // Verify the module export is a plain async function (not a class with lifecycle hooks).
+  const mod = require(ROUTER_PATH);
+  assert.equal(typeof mod, "function", "router export must be a plain async function");
+  assert.equal(mod.length, 2, "router must accept (req, config) — 2 params");
 });
