@@ -86,7 +86,7 @@
     },
     {
       "name": "search-research",
-      "version": "0.1.108",
+      "version": "0.1.109",
       "description": "Unified search and research system with async concurrent execution and 11 web providers.",
       "source": "./plugins/search-research",
       "keywords": [
@@ -98,7 +98,7 @@
     },
     {
       "name": "skill-guard",
-      "version": "2.1.58",
+      "version": "2.1.59",
       "description": "Universal skill auto-discovery and enforcement for Claude Code",
       "source": "./plugins/skill-guard",
       "keywords": [
@@ -132,7 +132,7 @@
     },
     {
       "name": "cc-skills-analysis",
-      "version": "1.0.110",
+      "version": "1.0.111",
       "description": "Analysis plugin",
       "source": "./plugins/cc-skills-analysis",
       "keywords": []
