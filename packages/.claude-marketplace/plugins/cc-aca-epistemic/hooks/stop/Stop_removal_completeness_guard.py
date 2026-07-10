@@ -137,23 +137,50 @@ MODULE_EXPLICIT_PATTERNS = re.compile(
 # --- Module name extraction -------------------------------------------------
 
 
+def _extract_claim_sentence_text(text: str) -> str:
+    """Return concatenated sentences containing unquoted removal-completion claims.
+
+    Scopes module-name extraction to claim-adjacent context, preventing
+    unrelated prose (e.g. "investigation contracts say") from producing
+    module names via the file-path extractor.
+    """
+    from quote_exemption import search_unquoted
+
+    sentences: list[str] = []
+    # Heuristic sentence split: delimiters that separate independent claims
+    for m in re.finditer(r"[^.!?\n]*[.!?\n]", text):
+        sentence = m.group(0)
+        if search_unquoted(REMOVAL_COMPLETION_PATTERNS, sentence):
+            sentences.append(sentence)
+    return " ".join(sentences)
+
+
 def _extract_module_names(response: str) -> list[str]:
-    """Extract module names from response via file paths and explicit mentions."""
+    """Extract module names from response via file paths and explicit mentions.
+
+    Extraction is scoped to sentences that contain removal-completion claims,
+    so prose fragments in non-claim sentences never produce module names.
+    """
     names: list[str] = []
     seen: set[str] = set()
 
-    # Source 1: File path stems
-    file_paths = _extract_file_paths(response)
+    # Scope: only search within sentences that contain removal-completion claims.
+    claim_text = _extract_claim_sentence_text(response)
+    if not claim_text.strip():
+        return names
+
+    # Source 1: File path stems from claim-adjacent text
+    file_paths = _extract_file_paths(claim_text)
     for fp in file_paths:
         stem = Path(fp).stem
         if stem and len(stem) >= 3 and stem not in seen:
             seen.add(stem)
             names.append(stem)
 
-    # Source 2: Explicit module/system/plugin mentions (use/mention exemption)
+    # Source 2: Explicit module/system/plugin mentions within claim text
     from quote_exemption import finditer_unquoted
 
-    for match in finditer_unquoted(MODULE_EXPLICIT_PATTERNS, response):
+    for match in finditer_unquoted(MODULE_EXPLICIT_PATTERNS, claim_text):
         name = match.group(1).replace("-", "_")
         if name not in seen and len(name) >= 3:
             seen.add(name)
@@ -176,8 +203,12 @@ def _search_remaining_references(
 
     escaped_names = [re.escape(name) for name in module_names]
     combined = "|".join(escaped_names)
+    # Word-boundary lookaround (mirrors _indicator_match from #882 fix) prevents
+    # prefix-matching: "cli" must not match "clip", "clipboard", etc. Submodule
+    # continuation (\.\w+) is allowed so "import foo.bar" still matches when the
+    # removed module is "foo".
     import_re = re.compile(
-        rf"^\s*(?:import\s+(?:{combined})|from\s+(?:{combined})\s+import)",
+        rf"^\s*(?:import\s+(?<!\w)(?:{combined})(?!\w)(?:\.[A-Za-z_]\w*)*|from\s+(?<!\w)(?:{combined})(?!\w)(?:\.[A-Za-z_]\w*)*\s+import)",
         re.IGNORECASE | re.MULTILINE,
     )
 
