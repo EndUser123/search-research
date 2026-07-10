@@ -1892,3 +1892,5 @@
 {"timestamp": "2026-07-09T09:05:48.652098", "component": "SEARCH_PROVIDER", "latency_ms": 3681.6556000267155, "tokens_used": 0, "cache_hit": false, "output_quality": 0.7, "branch": "main"}
 {"timestamp": "2026-07-09T09:05:48.656344", "component": "SEARCH_PROVIDER", "latency_ms": 3685.2686000056565, "tokens_used": 0, "cache_hit": false, "output_quality": 0.85, "branch": "main"}
 {"timestamp": "2026-07-09T09:05:49.119087", "component": "SEARCH_PROVIDER", "latency_ms": 488.215899997158, "tokens_used": 0, "cache_hit": false, "output_quality": 0.95, "branch": "main"}
+{"timestamp": "2026-07-09T19:05:16.791274", "component": "INTENT_DISPATCH", "latency_ms": 0.2361999941058457, "tokens_used": 0, "cache_hit": false, "output_quality": 0.0, "branch": "main"}
+{"timestamp": "2026-07-09T19:05:32.976543", "component": "SEARCH_PROVIDER", "latency_ms": 478.05260005407035, "tokens_used": 0, "cache_hit": false, "output_quality": 0.95, "branch": "main"}
