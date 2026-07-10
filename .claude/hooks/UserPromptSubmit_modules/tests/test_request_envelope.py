@@ -87,6 +87,38 @@ class TestStripQuotedSpans:
         assert "Implement the hook" not in outer
         assert "What do you think" in outer
 
+    def test_diff_line_not_stripped(self):
+        outer, spans = self._strip()("--- a/old.py\n+++ b/new.py\n@@ -1,3 +1,4 @@\n-old line\n+new line")
+        assert "--- a/old.py" in outer
+        assert "+++ b/new.py" in outer
+        assert "@@ -1,3 +1,4 @@" in outer
+        assert spans == []
+
+    def test_comparison_operator_not_stripped(self):
+        outer, spans = self._strip()("a > b and x >> 1")
+        assert "a > b" in outer
+        assert "x >> 1" in outer
+        assert spans == []
+
+    def test_repl_prompt_not_stripped(self):
+        outer, spans = self._strip()(">>> print('hello')\n>>> x = 1")
+        assert "print" in outer
+        assert "x = 1" in outer
+        assert spans == []
+
+    def test_bare_gt_no_space_not_stripped(self):
+        outer, spans = self._strip(">\n>text")
+        assert ">" in outer
+        assert ">text" in outer
+        assert spans == []
+
+    def test_multi_line_blockquote_stripped(self):
+        outer, spans = self._strip()("As the docs say:\n> This is a markdown blockquote\n> spanning two lines\n")
+        assert "This is a markdown blockquote" not in outer
+        assert "spanning two lines" not in outer
+        assert "As the docs say" in outer
+        assert spans
+
     def test_apostrophe_not_treated_as_quote(self):
         # 's contractions must remain; only balanced PAIRS get stripped
         outer, _ = self._strip()("It's a test of the system.")
