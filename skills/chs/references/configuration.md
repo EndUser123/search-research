@@ -41,16 +41,16 @@ Group related workspaces for unified search.
 /chs "auth" --workspace-alias backend
 ```
 
-## Integration with /search
+## Integration with /find
 
 ```bash
-# /search for unified search across all sources
-/search "authentication"
+# /find for unified search across all sources
+/find "authentication"
 
 # /chs for chat-specific workflows with advanced features
 /chs "authentication" --mode documentation --context 10
 ```
 
 **When to use which:**
-- Use `/search` for: General queries, multi-source research, quick lookups
+- Use `/find` for: General queries, multi-source research, quick lookups
 - Use `/chs` for: Chat-specific analysis, summarization, filtering, statistics

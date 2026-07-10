@@ -54,7 +54,7 @@ Dedicated search for Claude Code chat history with advanced features: summarizat
 Each `session_id` appears multiple times (once per terminal/compaction). Aggregating by `session_id` reconstructs the full chain.
 
 ### Consolidation History
-- Previously part of `/find` (consolidated old `/chs`, `/recent`, `/search-more`)
+- Previously part of `/find` (consolidated old `/chs`, `/recent`, `/find-more`)
 - Now re-extracted as dedicated chat history skill with advanced features
 - `/find` handles unified queries; `/chs` handles chat-specific workflows
 
@@ -447,11 +447,11 @@ Create `~/.claude/chs_config.json`:
 }
 ```
 
-## Integration with /search
+## Integration with /find
 
 ```bash
-# /search for unified search across all sources
-/search "authentication"
+# /find for unified search across all sources
+/find "authentication"
 
 # /chs for chat-specific workflows with advanced features
 /chs "authentication" --mode documentation --context 10
