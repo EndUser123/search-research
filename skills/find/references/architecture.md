@@ -65,13 +65,13 @@ When you need comprehensive, citation-backed answers from your curated knowledge
 
 ```bash
 # Search your NotebookLM notebooks
-/search "how does authentication work?" --backend notebooklm
+/find "how does authentication work?" --backend notebooklm
 
 # Get long-form synthesis with sources
-/search "debugRCA architecture patterns" --backend notebooklm
+/find "debugRCA architecture patterns" --backend notebooklm
 
 # Zero-hallucination answers from your uploaded docs
-/search "what did we decide about X?" --backend notebooklm
+/find "what did we decide about X?" --backend notebooklm
 ```
 
 **NotebookLM is ideal for:**

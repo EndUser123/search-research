@@ -33,13 +33,13 @@ Search features automatically enable based on context, query complexity, and res
 
 ```bash
 # Force explain on simple query
-/search "simple" --explain
+/find "simple" --explain
 
 # Disable session in terminal
-/search "query" --no-session
+/find "query" --no-session
 
 # Force clustering on small results
-/search "query" --cluster topic
+/find "query" --cluster topic
 ```
 
 ### Configuration
@@ -64,7 +64,7 @@ config = IntelligentDefaults(
 The `--explain` flag provides detailed insight into how the search system processes your query.
 
 ```bash
-/search "python async patterns" --explain
+/find "python async patterns" --explain
 ```
 
 Output:
@@ -109,7 +109,7 @@ For better results on technical queries, use HyDE enhancement:
 /hyde "python async patterns"
 
 # Standard search with HyDE option
-/search --hyde "query"
+/find --hyde "query"
 ```
 
 HyDE uses hypothetical document generation to improve semantic search relevance.
@@ -122,7 +122,7 @@ Interactive refinement mode for narrowing search results:
 
 ```bash
 # Start refinement mode
-/search "python async" --refine
+/find "python async" --refine
 
 # Example session:
 > Found 47 results. Enter term to filter, 'view N' to see result, or 'done':
@@ -150,7 +150,7 @@ Discover related queries and follow knowledge chains:
 
 ```bash
 # Enable multi-hop suggestions
-/search "scalar quantization" --suggest
+/find "scalar quantization" --suggest
 
 # Output includes:
 === Results ===
@@ -177,19 +177,19 @@ Group search results into thematic clusters for better organization:
 
 ```bash
 # Cluster by semantic topic (uses embeddings)
-/search "python async" --cluster topic
+/find "python async" --cluster topic
 
 # Cluster by source backend
-/search "authentication" --cluster backend
+/find "authentication" --cluster backend
 
 # Cluster by time (recent/older/archived)
-/search "authentication" --cluster temporal
+/find "authentication" --cluster temporal
 
 # Filter to specific cluster
-/search "python async" --cluster topic --filter c1
+/find "python async" --cluster topic --filter c1
 
 # Interactive cluster exploration
-/search "python async" --cluster topic --interactive
+/find "python async" --cluster topic --interactive
 ```
 
 ### Clustering Modes
@@ -230,10 +230,10 @@ After seeing clusters, filter to specific topics:
 
 ```bash
 # Show only cluster c1 results
-/search "python async" --cluster topic --filter c1
+/find "python async" --cluster topic --filter c1
 
 # Combine with other flags
-/search "async" --cluster topic --filter c1 --limit 20 --backend chs
+/find "async" --cluster topic --filter c1 --limit 20 --backend chs
 ```
 
 ### Implementation Notes
@@ -251,18 +251,18 @@ Enable conversational search with context tracking across queries:
 
 ```bash
 # Start session mode
-/search "python async patterns" --session
+/find "python async patterns" --session
 
 # Results show with reference IDs: [1] [2] [3] ...
 
 # Follow-up on specific result
-/search "tell me more about result 3" --session
+/find "tell me more about result 3" --session
 
 # View session summary
-/search --session --summary
+/find --session --summary
 
 # Export session to CKS
-/search --session --export
+/find --session --export
 ```
 
 ### Session Features

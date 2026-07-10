@@ -42,7 +42,7 @@ Task(
 ## Example Workflow
 
 ```
-User: /search "compare async approaches across codebase, docs, and conversations"
+User: /find "compare async approaches across codebase, docs, and conversations"
 
 You: Delegating to parallel subagents...
 

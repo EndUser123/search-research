@@ -15,7 +15,7 @@ Examples:
 "you mentioned something about FAISS"      -> chat only
 ```
 
-## Web Search Detection (routes to `/research`)
+## Web Search Detection (routes to `/web`)
 
 Query patterns that suggest web research needs:
 - **Technical**: "async patterns", "JWT auth", "FAISS index" (code/docs)
@@ -23,13 +23,13 @@ Query patterns that suggest web research needs:
 - **Reference**: "the README", "documentation", "the skill for X"
 - **External**: "python package", "library", "API"
 
-**For web search, use `/research` instead of `/search`.**
+**For web search, use `/web` instead of `/find`.**
 
 Examples:
 ```
-/research "how does FAISS work"                    -> web search
-/research "the search skill documentation"       -> web search
-/research "python async patterns"                  -> web search
+/web "how does FAISS work"                    -> web search
+/web "the search skill documentation"       -> web search
+/web "python async patterns"                  -> web search
 ```
 
 ## Combined Search (`--source all` auto-enabled)
