@@ -16,6 +16,7 @@ Conduct comprehensive web research using multiple search providers with intellig
 - **exa** - High-quality technical/engineering results
 - **glm** - Web search via GLM-4.5-Air model
 - **serpapi** - Google results via serpapi.com (250/month free)
+- **serper** - Google results via serper.dev (requires SERPER_API_KEY; backend registered in router_async, not a direct `--mode`)
 - **webreader** - URL fetching and content extraction (not a search engine)
 - **github** - Code and repository search (requires GITHUB_TOKEN)
 
