@@ -449,6 +449,63 @@ describe("extractInstructionSegment", () => {
 		assert.equal(a.tier, "HIGH");
 		assert.ok(a.matchedRules.includes("PRODUCTION_KEYWORD"));
 	});
+
+	it("code-only input: splitter returns the whole text, classifier scans it fully (no fallback path)", () => {
+		// Edge case: the user pastes only code with no prose. The splitter
+		// treats the whole code as a single paragraph (no blank lines to
+		// split on) and returns it. The classifier then scans the full text
+		// for production keywords. There is no `|| prompt` fallback here
+		// because the splitter never returns empty for non-whitespace input.
+		// The fallback only fires for whitespace-only input.
+		const codeOnly = "import ast\nfrom snapshot_PreCompact import foo\nprint('deploy to production')";
+		const instruction = extractInstructionSegment(codeOnly);
+		assert.equal(instruction, codeOnly, "single-paragraph input returns as-is");
+		const a = classifyRisk({
+			cwd: "/repo",
+			prompt: instruction,
+			candidatePaths: extractCandidatePaths(codeOnly),
+			proposedCommands: [],
+			config: DEFAULT_CONFIG,
+		});
+		// Production keyword in code fires HIGH. This is by design: code
+		// containing a production keyword is treated as a real production
+		// intent unless the user adds prose to isolate an instruction.
+		assert.equal(a.tier, "HIGH");
+		assert.ok(a.matchedRules.includes("PRODUCTION_KEYWORD"));
+	});
+
+	it("LIMITATION: production keyword split across paragraphs is missed by the splitter", () => {
+		// A single thought split across two paragraphs:
+		//   paragraph 1: "I want to deploy"
+		//   paragraph 2: "this to production"
+		// The splitter takes the last paragraph ("this to production") and
+		// the keyword-scan sees it. But the inverse case — the keyword is
+		// in the FIRST paragraph and the second paragraph is the real
+		// instruction — is missed. This test documents the false-negative.
+		const prompt = "I want to deploy\n\nthis to production now. Update the doc.";
+		const instruction = extractInstructionSegment(prompt);
+		// Last paragraph is the instruction. It contains "production" so the
+		// gate fires correctly. This is the easy case.
+		assert.ok(instruction.includes("production"));
+		// The hard case: production keyword is in the FIRST paragraph and
+		// the real instruction is in the second paragraph.
+		const prompt2 = "I want to deploy this to production\n\nUpdate the doc please.";
+		const instruction2 = extractInstructionSegment(prompt2);
+		// Splitter returns the second paragraph; production keyword in the
+		// first paragraph is NOT scanned. This is the false-negative.
+		assert.equal(instruction2, "Update the doc please.");
+		const a = classifyRisk({
+			cwd: "/repo",
+			prompt: instruction2,
+			candidatePaths: [],
+			proposedCommands: [],
+			config: DEFAULT_CONFIG,
+		});
+		// The gate classifies as LOW (no path, no keyword) — a real
+		// production intent is missed. This is the known limitation.
+		assert.equal(a.tier, "LOW");
+		assert.ok(!a.matchedRules.includes("PRODUCTION_KEYWORD"));
+	});
 });
 
 describe("canClaimDone", () => {
