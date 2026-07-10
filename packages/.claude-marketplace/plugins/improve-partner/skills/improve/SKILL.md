@@ -447,7 +447,7 @@ When durable-improvement work surfaces a feedback-loop-shaped issue —
 overclaim, stale ground truth, gold-corpus miss, calibration gap, or
 "claim vs evidence-breadth authority" mismatch — the canonical reference is
 `debrief/references/report-contracts.md` ("Feedback Loop / Harness
-Calibration Addendum" section). That addendum names the seven mechanisms and
+Calibration Addendum" section). That addendum names the nine mechanisms and
 their honest runtime status; **none is a BLOCK-level gate today.** `/improve`
 emits the pointer, does not redefine the mechanisms, and does not promote
 any of them to BLOCK — promotion authority lives in the Epistemic Hook
