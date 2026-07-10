@@ -71,7 +71,7 @@ class TestDetectDomain:
 
     def test_domain_cap_enforced(self):
         """No more than MAX_DOMAINS_PER_QUERY domains returned."""
-        query = "hooks.json pretooluse posttooluse .claude-plugin plugin.json cks decision entry architecture design adr sdlc tdd /search backend refactor technical debt verify validate audit"
+        query = "hooks.json pretooluse posttooluse .claude-plugin plugin.json cks decision entry architecture design adr sdlc tdd /find backend refactor technical debt verify validate audit"
         result = detect_domain(query)
         assert len(result.domains) <= MAX_DOMAINS_PER_QUERY
 
@@ -92,7 +92,7 @@ class TestDetectDomain:
 
     def test_search_domain(self):
         """Slash-search keyword triggers search domain."""
-        result = detect_domain("/search backend FTS5 query")
+        result = detect_domain("/find backend FTS5 query")
         assert "search" in result.domains
 
     def test_sdlc_domain(self):
