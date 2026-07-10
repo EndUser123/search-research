@@ -106,6 +106,32 @@ evidence source. The watchdog doesn't detect HUNG either (it probes rungs
 a deliberate design choice (avoid killing a healthy busy server), but it
 means HUNG requires manual detection via `cc-ccr -start` or `cc-ccr -usage`.
 
+### Distinguishing BUSY, HUNG, and CRASH
+
+A 15-second inference timeout does NOT by itself prove GPU deadlock. The
+probe could simply be queueing behind a real request — exactly the race the
+launcher and ccr-custom-router both deliberately avoid. Read the symptoms
+before assuming the worst:
+
+| State | Signal | Probe behavior | What it means | Recovery |
+|---|---|---|---|---|
+| **BUSY** | `is_processing: true` on `/slots` | `/slots` returns the slot as busy | A valid request is occupying the single slot (--parallel 1). Normal under load. | Wait. Do NOT kill. Do NOT escalate. The next request will get a free slot or the router will admit to cloud (ccr-custom-router admission control). |
+| **HUNG** | `/health` + `/v1/models` OK, but inference produces 0 tokens OR probe times out | No meaningful progress AND inference is unresponsive after the configured stall threshold | GPU compute is stuck (CUDA deadlock, KV cache corruption, OOM with no exit). The `.err` log ends mid-generation with no error line. | Manual restart (`llama-stop; llama-start`). If recurrent within minutes → driver/hardware issue. |
+| **CRASH** | `llama-server` process exits | Watchdog or external observer detects exit. Dossier written to `P:/.claude\state\local-model-crashes\`. | Process-level fault (CUDA error, OOM-killed, assertion, hard segfault). | Read the dossier. See "How to read a dossier" above. Restart handled by watchdog. |
+
+**The 15s inference probe is NOT a HUNG oracle.** Under `--parallel 1`, the
+probe queues behind whatever is in flight, so the same probe that reports
+HUNG can succeed immediately after the in-flight request completes. Treat
+15s timeouts as "investigate," not "GPU is dead." Check `/slots` first; if
+`is_processing: true`, the model is BUSY, not HUNG. Only escalate to
+HUNG/CRASH after the slot has been observed idle and inference still fails.
+
+The CCR custom router (ccr-custom-router.js) gates automatic local-first
+routing on `/health` + `/slots`: busy → admit to cloud fallback. So the
+typical user-facing path under load is "request hits local successfully,
+next request admitted to cloud, next request hits local again" — not
+"queue of requests waiting for the slot."
+
 ## Symptom patches already shipped (NOT the root cause)
 
 These make crashes less painful but don't prevent them:
