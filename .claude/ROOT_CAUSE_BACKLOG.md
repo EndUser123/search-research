@@ -117,3 +117,60 @@ Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
     Falsification condition (from the transcript, kept): if maps get written but the edits
     they precede are unchanged, the artifact requirement isn't the fix — the model lacks a
     working mental model of the system, which no gate or map requirement can supply.
+
+14. [OPEN] **Gates key on turn-local proxies for session-level state.** Generalizes #11.
+    Observed 2026-07-09 (search-research session transcript): (a) ACTION-AUTHORITY gate
+    blocked an already-authorized build because the most recent message was a slash command
+    — grammar of the last turn used as proxy for standing authorization, manufacturing the
+    exact re-ask stall the user was angry about; (b) evidence-window gate blocked writing a
+    NEW handoff file (asserts nothing about existing state) on tool=Write + 274-min-since-
+    Bash — time-since-tool as proxy for claim content; (c) /wiki DEFAULT-TO-SESSION heuristic
+    overrode an explicit /wiki invocation — message shape as proxy for invocation intent;
+    (d) two gates issued contradictory instructions in one turn (authority gate: don't write;
+    intent-misalignment Stop: you didn't write) — direct #9 evidence.
+    Fix: rekey, don't multiply. (1) Session authorization ledger — grants persist until
+    revoked; authority gate consults ledger, not last-message grammar. (2) Evidence-window
+    gate fires on claim content (Fixed/Verified/Root-Cause assertions about existing state),
+    not tool+time; new-artifact writes exempt. (3) Explicit /skill invocation overrides
+    scope heuristics unconditionally. Gives #9's cull its discriminating principle: gates
+    keyed to artifacts/session state stay; gates keyed to turn-shape proxies get rekeyed
+    or deleted.
+    Note: the transcript's gates predate this session's hook changes (FAP gate quieted,
+    py-syntax gate added, unloaded advisory deleted — none fire in that transcript). Open
+    dependency: confirm host Stop.py is not truncated (see rekey verification) before
+    attributing any Stop-gate behavior change.
+
+15. [OPEN] **#9 is unexecutable as specified: no gate telemetry exists.** The FAP fallback
+    was caught only because that one hook kept a stats file; the other ~1,100 hooks have no
+    firing/block/override counters. Predictable: the telemetry-driven cull stalls or degrades
+    into judgment-based deletion. Fix: one shared counter helper in the dispatchers (fire,
+    block, warn, override per hook name, atomic writes) — instrumentation before cull.
+    Blocks #9; feeds #14's keep/rekey/delete decisions with data.
+
+16. [OPEN] **Cowork sandbox mount is structurally unreliable; every session inherits it.**
+    Observed 2026-07-09: three Write truncations at ~11.6KB, one cp truncation, blocked
+    deletes, git config written as NUL bytes, and read views that disagreed across calls
+    (grep saw line 1984 while ast.parse saw a 100-line file). Nothing records this;
+    each session rediscovers it mid-failure. Predictable: silent corruption of files a
+    delegate just verified (rekey files are the live example). Mitigation until platform
+    fix: verified-write protocol as documented convention (checksum + structure check after
+    every mount write), host-native execution for critical files, and a trap-note in the
+    peer-delegation CONTEXT block (already in the template).
+
+17. [OPEN] **Rekey friction wave + manually-maintained KNOWLEDGE_SKILLS set.** ~89 skills
+    became mandatory at once (2026-07-09 rekey); some legitimately answer in prose and are
+    not in the 17-entry frozenset. Predictable within days: prose blocks that feel like #14
+    false positives, each needing a hand-edit to a central hand-maintained list — the #4/#6
+    hand-maintained-metadata-drift pattern rebuilt on purpose (the rekey report itself flags
+    this in Deferrals). Fix: watch the first week's blocks (needs #15 counters); move
+    classification into SKILL.md frontmatter (`knowledge: true`) so it lives with the skill;
+    keep the frozenset only as a migration shim.
+
+18. [OPEN] **Tracking artifacts sprawl with no reconciliation or retirement.** This backlog
+    coexists with the task DB (#1387, #1329, ...), next-steps.txt, plan.md, and wiki pages —
+    multiple hand-maintained views of one truth, the catalog-drift pattern at the planning
+    layer. Session state files also never get GC'd (hooks/state/, session_data/,
+    consultation/followup JSONs, dreaming-daemon-state.json.1 rotation debris). Predictable:
+    trackers disagree about done-ness; a future session reads stale state. Fix: declare one
+    canonical tracker and make others generated-or-deleted (Replacement Default); add a
+    state-file TTL/GC check to hooks_audit.py.

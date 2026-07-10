@@ -202,7 +202,8 @@
       "Bash(python \"P:/tmp/task_done_evidence_gate.py\")",
       "Bash(echo \"exit=$?\")",
       "Bash(rm -f ~/.claude/state/task_tracker/evidence_skips.jsonl)",
-      "Bash(awk '{print $5, $NF}')"
+      "Bash(awk '{print $5, $NF}')",
+      "PowerShell(git *)"
     ],
     "deny": [],
     "ask": []
