@@ -61,21 +61,21 @@ Comprehensive test suite covering:
    - Inserts session metadata + messages
    - Updates FTS5 index for full-text search
 6. Sessions are now preserved in vault.db
-7. VaultBackend (already integrated in router_async.py) makes them searchable via `/search`
+7. VaultBackend (already integrated in router_async.py) makes them searchable via `/find`
 
 ## How to Verify
 
 The backup is now complete. After next Claude Code cleanup:
 1. Old sessions will be archived to vault.db
-2. Query them via: `/search "session keywords" --source vault`
-3. Or integrated with full search: `/search "keywords"` (includes vault results)
+2. Query them via: `/find "session keywords" --source vault`
+3. Or integrated with full search: `/find "keywords"` (includes vault results)
 
 ## Integration Status
 
 - ✅ VaultBackend search (already done in previous session)
 - ✅ VaultArchiver archival (NEW - this session)
 - ✅ PreCompact hook registration (NEW - this session)
-- ✅ Searchable via /search skill
+- ✅ Searchable via `/find` skill
 - ✅ Automatic pre-cleanup archival
 
 The backup system is now FULLY FUNCTIONAL.
