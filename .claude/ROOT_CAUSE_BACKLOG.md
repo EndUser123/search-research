@@ -318,7 +318,10 @@ Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
     Fix (contract + template, NOT a gate): add two required elements to the delegation
     template and report contracts (report-contracts.md, #1287): (a) REPRODUCE-FIRST —
     a fix for a reported symptom must cite the captured failing artifact (rc/stdout/stderr)
-    the fix is designed against; no repro → say so and stop, don't hedge; (b) RISK REGISTER +
+    the fix is designed against; no repro → say so and stop, don't hedge; corollary
+    (added 2026-07-10, external-LLM convergence + corpus Cases 4/14): claims about
+    RENDERED/VISUAL output require the rendered artifact (screenshot/real terminal
+    capture via browser harness or preview), never the code that produces it; (b) RISK REGISTER +
     CLOSURE PASS — every report lists open assumptions with severity + smallest falsifier,
     then attempts closure of the cheap ones before handing off. Existing mechanisms to
     reuse, not duplicate: TEST STRATEGY CONTRACT's regression-first rule (already injected,
