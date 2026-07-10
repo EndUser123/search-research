@@ -5,6 +5,45 @@ One-sentence root cause: the system enforces verification on the model but
 nothing verifies the system, so failures accumulate silently until a
 conversation surfaces four of them at once.
 
+## Problem classes (assign every new item; fold fits into the class fix)
+
+- **C1 — Missing ground-truth representation.** Actors (models, gates, humans)
+  consult memory/testimony where a generated, queryable representation should
+  exist. Sub-forms: code state (→ manifest #1390), session state (→ #14 ledger),
+  task state (→ #20 spec re-anchoring), uncertainty itself (→ #21 risk register).
+- **C2 — Proxy substitution.** When the true criterion is illegible, actors
+  optimize the nearest measurable stand-in (turn grammar for authorization,
+  diff size for value, STATUS labels for evidence). Do NOT fix directly —
+  it dissolves where C1 representations land; policing proxies breeds gates.
+- **C3 — Accumulation without lifecycle.** Additions have owners; deletions
+  don't (hooks, memories, tasks, trackers, workarounds). Fix mechanism: the
+  manifest's deletion license + GC checks; sequenced AFTER C1.
+
+Filing rule: a new item that fits C1/C2/C3 is appended as evidence to the class
+fix, not opened as its own project. Tracker contract (#18): this file is the
+root-cause register; the task DB is the execution tracker; #1390 is the bridge.
+Falsification for the class program: if one week after manifest + ledger are
+live sessions still file C1 instances at 2026-07-09's rate, the residual is
+behavioral — stop building infrastructure, revisit prompts/model routing.
+
+## Roadmap (class-fix waves)
+
+- **Phase 0 — enablers:** run `setup_git.ps1` natively (#10); pin 3.13
+  interpreter for verification (#7); verified-write convention note (#16).
+- **Phase 1 — C1 representations (front of queue):** #1390 manifest (absorbs
+  #6 + remaining #5 audit work); #15 wire `enforcement_telemetry.py` producers
+  (in-flight, task #1391 — do NOT double-build); #14 authorization ledger
+  (promoted: three blocks on 2026-07-09 alone, one on a system-mandated
+  memory write; stalls delegates cold).
+- **Phase 2 — C1 consumers:** #17 `knowledge:` frontmatter (after one week of
+  #15 counters); #20 spec-anchor + #21 risk-register lines in the delegation
+  template and report contracts; #8 folded in as migration direction
+  (rhetoric gates → artifact checks).
+- **Phase 3 — C3 lifecycle (data-gated):** #9 cull via manifest deletion
+  license; #18 tracker consolidation + state GC; workaround sweep (every
+  "do X via Y to avoid gate Z" memory is a pending verdict on gate Z);
+  #13 measurement experiment; #12 parked pending a second clobber post-git.
+
 Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
 
 ## Short term — NEED to fix
@@ -46,7 +85,9 @@ Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
    First run found: 2 router-convention violations (snapshot_PreCompact.py,
    go_continuation_gate.py registered directly), 15 syntax failures (re-verify under prod
    interpreter — sandbox is 3.10), 199 dangling path references, 79 catalog-drift entries.
-   Remaining: fix the findings; schedule the audit.
+   Remaining (narrowed 2026-07-09): fix the 2 router violations (task #1393) + triage
+   dangling paths; catalog generation and orphan/consumer checks move to #1390 (manifest).
+   Schedule the audit via Windows Task Scheduler once #1390 defines its output.
 
 6. [OPEN] **Catalog must be generated, not written.** HOOKS_CATALOG.md should be derived from
    filesystem + registration manifests by the audit script. 79 drift entries prove the point.
@@ -79,7 +120,11 @@ Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
     the script removes first). One repo at P:\ root, logs and packages/.github_repos excluded.
     Remaining: actually run the script, then per-case decisions on embedded-repo warnings.
 
-11. [OPEN] **Skill enforcement keyed on frontmatter presence contradicts policy.** Policy:
+11. [DONE 2026-07-09] **Skill enforcement keyed on frontmatter presence contradicts policy.**
+    → Fixed by delegate session: rekeyed to invocation (Skill in tools_used) with
+    KNOWLEDGE_SKILLS exemption; commit 79bdb0e, 20/20 tests, isolated 2-file commit.
+    Residual tracked in #17 (hand-maintained frozenset) and the doc rewrite that was
+    blocked by the authority gate (see #14 evidence). Original item: Policy:
     all manually invoked skills are mandatory. Reality: `Stop.py:1761` (and breadcrumb/step-header
     /enforcement-tier machinery) only enforce a skill if its SKILL.md has `workflow_steps` —
     104 of 161 plugin skills lack it, so ~65% of skills are silently optional. Fix at the right
@@ -147,12 +192,14 @@ Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
     authorization), stalling the backlog's own remediation work. Confirms fix (1):
     the ledger must record AskUserQuestion answers as grants, not just typed messages.
 
-15. [OPEN] **#9 is unexecutable as specified: no gate telemetry exists.** The FAP fallback
-    was caught only because that one hook kept a stats file; the other ~1,100 hooks have no
-    firing/block/override counters. Predictable: the telemetry-driven cull stalls or degrades
-    into judgment-based deletion. Fix: one shared counter helper in the dispatchers (fire,
-    block, warn, override per hook name, atomic writes) — instrumentation before cull.
-    Blocks #9; feeds #14's keep/rekey/delete decisions with data.
+15. [PARTIAL 2026-07-09] **#9 is unexecutable as specified: gate telemetry is unwired.**
+    PREMISE CORRECTED 2026-07-09 (verified by direct read): telemetry infrastructure
+    EXISTS — `hooks/__lib/enforcement_telemetry.py` (389 lines, SQLite schema, compliance
+    queries) has zero runtime producers (only consumer is its test), and
+    `stop_blocks.jsonl` already logs Stop blocks. Fix is WIRE, NOT BUILD: producers in
+    the dispatchers (hook_runner.py exit path — outcome already classified at line 482 —
+    and the plugin routers). IN-FLIGHT: task #1391 (delegate implementing; see #20 for
+    the scope-cut it almost shipped). Blocks #9; feeds #14's keep/rekey/delete decisions.
 
 16. [OPEN] **Cowork sandbox mount is structurally unreliable; every session inherits it.**
     Observed 2026-07-09: three Write truncations at ~11.6KB, one cp truncation, blocked
@@ -172,6 +219,16 @@ Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
     this in Deferrals). Fix: watch the first week's blocks (needs #15 counters); move
     classification into SKILL.md frontmatter (`knowledge: true`) so it lives with the skill;
     keep the frozenset only as a migration shim.
+
+18. [OPEN] **Tracking artifacts sprawl with no reconciliation or retirement.** This backlog
+    coexists with the task DB (#1387, #1329, ...), next-steps.txt, plan.md, and wiki pages —
+    multiple hand-maintained views of one truth, the catalog-drift pattern at the planning
+    layer. Session state files also never get GC'd (hooks/state/, session_data/,
+    consultation/followup JSONs, dreaming-daemon-state.json.1 rotation debris). Predictable:
+    trackers disagree about done-ness; a future session reads stale state. Fix: declare one
+    canonical tracker and make others generated-or-deleted (Replacement Default); add a
+    state-file TTL/GC check to hooks_audit.py (task #1394 in-flight). Tracker contract now
+    declared in this file's header.
 
 19. [DONE 2026-07-09] **No environment map for delegates → absence claims from
     single-root searches.** Observed: a delegate given "Repo: P:/.claude" searched only
@@ -208,11 +265,29 @@ Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
     spec in view — the transcript's own retrospective ("I had the valuable datum,
     discarded it") says otherwise.
 
-18. [OPEN] **Tracking artifacts sprawl with no reconciliation or retirement.** This backlog
-    coexists with the task DB (#1387, #1329, ...), next-steps.txt, plan.md, and wiki pages —
-    multiple hand-maintained views of one truth, the catalog-drift pattern at the planning
-    layer. Session state files also never get GC'd (hooks/state/, session_data/,
-    consultation/followup JSONs, dreaming-daemon-state.json.1 rotation debris). Predictable:
-    trackers disagree about done-ness; a future session reads stale state. Fix: declare one
-    canonical tracker and make others generated-or-deleted (Replacement Default); add a
-    state-file TTL/GC check to hooks_audit.py.
+21. [OPEN] **Unrepresented uncertainty: residuals get narrated, not registered.** C1 applied
+    to uncertainty itself. Observed 2026-07-09 (search-research /find session): a fix left an
+    unexplained residual (NotebookLM query still failing) and the report papered it with an
+    unverified spec claim — "that's expected" — instead of flagging it as an open risk. The
+    fix itself (#4, auth detection) was designed from an assumed model (errors on stderr)
+    without capturing the failing artifact; the real error was on stdout, so the detection
+    could never fire, and the smoke test only confirmed the code matched the author's model
+    (tautological). One reproduction command would have caught it pre-edit. Root cause:
+    fixes and reports have no required home for open assumptions, so report-completion
+    pressure converts them into confident hedges — the hedge IS the tell.
+    Counter-example, same day (CCR router session, the pattern to institutionalize): an
+    explicit Risks section with severity, a weakest-assumption challenge, the smallest
+    falsifier per risk ("grep one failing reqId's body for 'thinking'"), then a closure
+    pass — close every cheaply-closable risk NOW (read-only checks, scoped commits),
+    leaving only genuinely-blocked ones, each with its discriminating test named.
+    Fix (contract + template, NOT a gate): add two required elements to the delegation
+    template and report contracts (report-contracts.md, #1287): (a) REPRODUCE-FIRST —
+    a fix for a reported symptom must cite the captured failing artifact (rc/stdout/stderr)
+    the fix is designed against; no repro → say so and stop, don't hedge; (b) RISK REGISTER +
+    CLOSURE PASS — every report lists open assumptions with severity + smallest falsifier,
+    then attempts closure of the cheap ones before handing off. Existing mechanisms to
+    reuse, not duplicate: TEST STRATEGY CONTRACT's regression-first rule (already injected,
+    didn't bind — a contract *field* is checkable where prose exhortation is not),
+    /red-team's claim-refute sub-phase (#1248), preflight inversion prompts.
+    Watch condition: "expected", "transient", "known limitation" in a report without a
+    citation is the C2 proxy-signature of this item — cheap to grep for once #15 lands.
