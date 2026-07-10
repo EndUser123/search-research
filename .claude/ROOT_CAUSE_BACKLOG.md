@@ -139,6 +139,13 @@ Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
     py-syntax gate added, unloaded advisory deleted — none fire in that transcript). Open
     dependency: confirm host Stop.py is not truncated (see rekey verification) before
     attributing any Stop-gate behavior change.
+    New evidence 2026-07-09 (skill-enforcement rekey session): ACTION-AUTHORITY gate
+    blocked a doc rewrite that WAS explicitly authorized — the authorization arrived via
+    an AskUserQuestion answer ("Rewrite the doc to reflect the new policy"), which the
+    gate cannot see; it keys only on the last typed user message ("did you do all of
+    it?"). Two identical blocks in a row (retry-blind: no way to consume standing
+    authorization), stalling the backlog's own remediation work. Confirms fix (1):
+    the ledger must record AskUserQuestion answers as grants, not just typed messages.
 
 15. [OPEN] **#9 is unexecutable as specified: no gate telemetry exists.** The FAP fallback
     was caught only because that one hook kept a stats file; the other ~1,100 hooks have no
@@ -165,6 +172,19 @@ Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
     this in Deferrals). Fix: watch the first week's blocks (needs #15 counters); move
     classification into SKILL.md frontmatter (`knowledge: true`) so it lives with the skill;
     keep the frozenset only as a migration shim.
+
+19. [DONE 2026-07-09] **No environment map for delegates → absence claims from
+    single-root searches.** Observed: a delegate given "Repo: P:/.claude" searched only
+    that root, declared two plugin hook files nonexistent (they live under
+    P:/packages/.claude-marketplace/plugins), and nearly rewrote a correct spec. The
+    prompt's "search first" exhortation didn't help — the delegate lacked the topology
+    FACT, not diligence. Same class as #16's trap-note: environment knowledge each
+    session rediscovers mid-failure.
+    → Fixed: "Search Topology" section added to P:/AGENTS.md (auto-read: P:/CLAUDE.md
+    is `@AGENTS.md`; agy reads it via --dir) — root table, absence rule with canonical
+    rg command spanning both live roots, audit-over-hand-search pointer. Delegation
+    prompts should say "read P:/AGENTS.md first" and must list ALL roots a task spans.
+    Residual: P:/AGENTS.md is hand-maintained (#6 pattern); acceptable at ~30 lines.
 
 18. [OPEN] **Tracking artifacts sprawl with no reconciliation or retirement.** This backlog
     coexists with the task DB (#1387, #1329, ...), next-steps.txt, plan.md, and wiki pages —
