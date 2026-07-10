@@ -477,6 +477,10 @@ class AsyncSearchRouter:
         # This is the CRITICAL performance optimization - all backends run in parallel
         # Track backend hits for trace
         backend_hits: dict[str, int] = {}
+        # Backends that errored during this query (transient or cold-start).
+        # Used to skip caching the degraded result set (#2) — without this, the
+        # in-memory cache would serve mid-warm-up 0s as final for the TTL window.
+        errored_backends: set[str] = set()
 
         # Wrap each backend call with timing for metrics
         async def timed_search_backend(backend: str) -> tuple[str, list[SearchResult]]:
@@ -486,10 +490,11 @@ class AsyncSearchRouter:
             except Exception as exc:
                 elapsed_ms = (time_module.perf_counter() - start_time) * 1000
                 logger.warning(
-                    "Backend '%s' failed after %.0fms (%s: %s); returning 0 results.",
+                    "Backend '%s' errored after %.0fms (%s: %s); returning 0 results.",
                     backend, elapsed_ms, type(exc).__name__, exc,
                 )
                 backend_hits[backend] = 0
+                errored_backends.add(backend)
                 return backend, []
             elapsed_ms = (time_module.perf_counter() - start_time) * 1000
             # Log metric for this backend
@@ -549,14 +554,21 @@ class AsyncSearchRouter:
         # Rank and limit results
         ranked_results = self._rank_results(all_results)[:limit]
 
-        # Cache results (convert to dict for cache)
-        if self.enable_cache:
+        # Cache results (convert to dict for cache). Skip caching when any backend
+        # errored this query — a degraded set (e.g. mid-warm-up cold start) must not be
+        # served as final for the TTL window, or transient 0s masquerade as permanent.
+        if self.enable_cache and not errored_backends:
             cache_results = [r.to_dict() for r in ranked_results]
             # Always use escaped search_query as cache key for consistency
             # Previously: HyDE-on used escaped, HyDE-off used raw -- causing unnecessary
             # cache misses since backends always receive escaped query.
             cache_key = search_query
             self._cache.set(cache_key, cache_results, limit=limit, backends=backends)
+        elif errored_backends:
+            logger.debug(
+                "Skipping cache write for '%s': %d backend(s) errored: %s",
+                search_query[:60], len(errored_backends), sorted(errored_backends),
+            )
 
         # TASK-3: Log query trace after search completes
         final_quality = ranked_results[0].score if ranked_results else 0.0
@@ -846,19 +858,18 @@ class AsyncSearchRouter:
             return search_results
 
         except TimeoutError:
-            # Record timeout as failure with helpful context
-            timeout_msg = (
-                f"Backend '{backend}' timed out after {self.backend_timeout}s. "
-                f"Consider using 'comprehensive' mode for longer timeouts, "
-                f"or check if the backend is responding."
-            )
+            # Record + re-raise so timed_search_backend can surface the failure
+            # (visibility) and search_async can skip caching the degraded result.
+            # Returning [] here silently swallowed timeouts as empty results, which
+            # made transient/cold-start failures indistinguishable from genuine 0s.
             self._health.record_result(backend, success=False, error="Timeout")
-            logger.debug(timeout_msg)
-            return []
+            raise
         except Exception as e:
-            # Record error
+            # Record + re-raise (see TimeoutError note). Every caller —
+            # timed_search_backend, search_async_stream, search_async_stream_batch —
+            # already catches this, so the gather never fails wholesale.
             self._health.record_result(backend, success=False, error=str(e))
-            return []
+            raise
 
     def _convert_to_search_result(
         self,
