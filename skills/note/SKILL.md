@@ -2,6 +2,7 @@
 name: note
 description: Add a deliberate entry to your constitutional knowledge system (CKS). Use when you want to remember a decision, pattern, correction, lesson, or insight. Local-only — goes into the searchable CKS corpus, not chat/web.
 ---
+workflow_steps: []
 # Note (`/note`)
 
 Deliberate write into CKS. Use for a decision you just made, a pattern you noticed, a correction worth not repeating, an insight, or a memory. For everything else, just keep going — CKS auto-capture picks up incidental context.
