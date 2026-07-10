@@ -130,6 +130,13 @@ class TestRequestEnvelopeMode:
         env = envelope_mod("Do these make sense?")
         assert env.mode == "evaluation"
 
+    def test_do_this_implement_not_mixed(self, envelope_mod):
+        """Regression: 'Do this: implement X' should classify as implementation,
+        NOT mixed/evaluation. The bare 'do this' was removed from _EVAL_RE because
+        it false-negatives on real implementation requests."""
+        env = envelope_mod("Do this: implement the cache layer")
+        assert env.mode == "implementation"
+
     def test_review_then_implement_is_mixed(self, envelope_mod):
         env = envelope_mod("Review proposal A, then implement proposal B.")
         assert env.mode == "mixed"

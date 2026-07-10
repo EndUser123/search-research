@@ -36,7 +36,9 @@ _CURLY_DQUOTE_RE = re.compile(r"“[^“”\n]*”")
 # Curly single-quote PAIRS only (open ‘ ... close ’). Apostrophes (’
 # used as contractions) are not opening markers, so "don't" is never stripped.
 _CURLY_SQUOTE_RE = re.compile(r"‘[^‘’\n]*’")
-_BLOCKQUOTE_RE = re.compile(r"^[ \t]*>.*$", re.MULTILINE)
+# Blockquote: require "> " (gt + space) to avoid eating diff lines
+# ("- old" / "+ new") or comparison operators ("a > b" / "x >> 1").
+_BLOCKQUOTE_RE = re.compile(r"^[ \t]*> .*$", re.MULTILINE)
 
 
 def strip_quoted_spans(text: str) -> tuple[str, list[str]]:
@@ -74,7 +76,6 @@ def strip_quoted_spans(text: str) -> tuple[str, list[str]]:
 # think" arms keep the genuine question signals without the false-negative.
 _EVAL_RE = re.compile(
     r"\bmake\s+sense\b"
-    r"|\bdo\s+these\s+\w+\s+make\s+sense\b"
     r"|\bdoes\s+(?:this|that|it)\s+(?:work|make|look|sound|seem|seem\s+right)\b"
     r"|\bwhat\s+do\s+you\s+think\b"
     r"|\b(?:your|any)\s+thoughts\b"

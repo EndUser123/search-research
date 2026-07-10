@@ -1015,8 +1015,7 @@ All tests pass: 25/25 tests in 0.68s
 # No configuration needed - uses explicit INSTRUCTION: format
 
 # Layer 2: Bypass detection
-SKILL_BYPASS_DETECTION_ENABLED=true   # Enable/disable bypass detection
-SKILL_BYPASS_DETECTION_MODE=warn       # "warn" (advisory) or "block" (hard blocking)
+SKILL_EXECUTION_GATE_ENABLED=true      # Enable/disable the Stop-gate bypass detection
 
 # Layer 3: Pattern gate (existing)
 SKILL_PATTERN_ENFORCEMENT_ENABLED=true

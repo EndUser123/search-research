@@ -409,3 +409,53 @@ class TestStopEnvelopeModeGate:
         }
         result = mod._run_task_contract_fit_gate(data)
         assert result is None  # review (eval) wins, contract stays active
+
+
+# =============================================================================
+# Live integration: registry.run_hooks() through the full dispatch chain
+# =============================================================================
+
+
+class TestLiveRegistryDispatch:
+    """Live integration test: exercises the real registry.run_hooks() dispatch.
+
+    Calls the actual dispatch entry point (not a hand-constructed
+    HookContext) so that the real hook chain fires end-to-end.
+    """
+
+    def test_run_hooks_full_dispatch_chain_caches_envelope(
+        self, tmp_path, monkeypatch
+    ):
+        """A live dispatch through registry.run_hooks must not create a
+        task contract for an evaluation prompt containing quoted 'implement'.
+        """
+        import __lib.task_contract as _tc
+        monkeypatch.setattr(_tc, "_home", lambda: tmp_path)
+        sys.modules["__lib.task_contract"] = _tc
+
+        from UserPromptSubmit_modules import registry
+
+        data = {
+            "session_id": "sess-live-1",
+            "terminal_id": "term-live-1",
+            "prompt": "for the /recap skill, do these enhancements make sense? 'Every handoff must X'",
+        }
+
+        # Run the real dispatch chain. This is the integration boundary
+        # the smoke-only test missed.
+        results = registry.run_hooks(data, data["prompt"])
+
+        # 1. The registry returned results.
+        assert isinstance(results, list)
+
+        # 2. The envelope classifies this prompt as evaluation.
+        from request_envelope import analyze_prompt
+        env = analyze_prompt(data["prompt"])
+        assert env.mode == "evaluation", f"Expected evaluation, got {env.mode}"
+
+        # 3. No contract was created — the envelope-aware task_start_contract_writer
+        # skips evaluation prompts.
+        loaded = _tc.load_contract("term-live-1")
+        assert loaded is None or loaded.get("status") != "active", (
+            f"Original /recap pattern must not create a contract; got: {loaded}"
+        )

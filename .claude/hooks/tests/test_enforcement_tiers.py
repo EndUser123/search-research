@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """
-Tests for Enforcement Tier System
+Tests for Enforcement Tier System (live modules only).
 
 Validates:
-1. Advisory hooks return warnings, not blocks
-2. Strict hooks return blocks on violations
-3. Telemetry logging works correctly
-4. Warning fatigue detection works
+1. Frontmatter validation in SKILL.md files (enforcement_tier_validator)
+2. Advisory vs strict block behavior
+3. Enforcement rate limiting (enforcement_rate_limiter)
+
+Note: enforcement_telemetry.py was deleted 2026-07-10 (superseded by
+hook_stats.py, decision #1391 option (a)); its test class was removed here.
 """
 
 from __future__ import annotations
@@ -17,164 +19,11 @@ from pathlib import Path
 
 import pytest
 
-# Add hooks directory to path
-# __file__ is in .claude/hooks/tests/, so parent.parent is .claude/hooks/
-HOOKS_DIR = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(HOOKS_DIR))
-
-from __lib.enforcement_telemetry import (  # noqa: E402
-    detect_warning_fatigue,
-    get_advisory_compliance_rate,
-    log_enforcement_event,
-    reset_db_path,
-)
-
-
-@pytest.fixture(autouse=True)
-def reset_database_path() -> None:
-    """
-    Reset the cached database path before each test.
-
-    This ensures test isolation by clearing the global _db_path
-    singleton in enforcement_telemetry.py.
-    """
-    reset_db_path()
-    yield
-    reset_db_path()
-
-
-class TestEnforcementTelemetry:
-    """Test enforcement telemetry functions."""
-
-    def test_log_advisory_event(self, tmp_path: Path) -> None:
-        """Test logging an advisory event."""
-        os.environ["CSF_DIAGNOSTICS_DIR"] = str(tmp_path)
-
-        result = log_enforcement_event(
-            session_id="test_session_1",
-            skill_name="test_skill",
-            tier="advisory",
-            outcome="warned",
-            behavior_changed=False,
-            trigger_context="test_trigger",
-        )
-
-        assert result is True
-
-    def test_log_strict_event(self, tmp_path: Path) -> None:
-        """Test logging a strict event."""
-        os.environ["CSF_DIAGNOSTICS_DIR"] = str(tmp_path)
-
-        result = log_enforcement_event(
-            session_id="test_session_1",
-            skill_name="test_skill",
-            tier="strict",
-            outcome="blocked",
-            behavior_changed=True,
-            trigger_context="missing_skill_call",
-        )
-
-        assert result is True
-
-    def test_invalid_tier_rejected(self, tmp_path: Path) -> None:
-        """Test that invalid tiers are rejected."""
-        os.environ["CSF_DIAGNOSTICS_DIR"] = str(tmp_path)
-
-        result = log_enforcement_event(
-            session_id="test_session_1",
-            skill_name="test_skill",
-            tier="invalid_tier",
-            outcome="allowed",
-        )
-
-        assert result is False
-
-    def test_invalid_outcome_rejected(self, tmp_path: Path) -> None:
-        """Test that invalid outcomes are rejected."""
-        os.environ["CSF_DIAGNOSTICS_DIR"] = str(tmp_path)
-
-        result = log_enforcement_event(
-            session_id="test_session_1",
-            skill_name="test_skill",
-            tier="advisory",
-            outcome="invalid_outcome",
-        )
-
-        assert result is False
-
-    def test_compliance_rate_empty(self, tmp_path: Path) -> None:
-        """Test compliance rate with no events."""
-        os.environ["CSF_DIAGNOSTICS_DIR"] = str(tmp_path)
-
-        rate = get_advisory_compliance_rate()
-
-        assert rate["rate"] == 0
-        assert rate["total_warnings"] == 0
-
-    def test_compliance_rate_with_events(self, tmp_path: Path) -> None:
-        """Test compliance rate calculation."""
-        os.environ["CSF_DIAGNOSTICS_DIR"] = str(tmp_path)
-
-        # Log 4 advisory events: 2 with behavior change, 2 without
-        for _ in range(2):
-            log_enforcement_event(
-                session_id="test_session",
-                skill_name="skill_a",
-                tier="advisory",
-                outcome="warned",
-                behavior_changed=True,
-            )
-        for _ in range(2):
-            log_enforcement_event(
-                session_id="test_session",
-                skill_name="skill_a",
-                tier="advisory",
-                outcome="warned",
-                behavior_changed=False,
-            )
-
-        rate = get_advisory_compliance_rate()
-
-        assert rate["rate"] == 50.0  # 2 out of 4 changed behavior
-        assert rate["total_warnings"] == 4
-
-    def test_warning_fatigue_detection(self, tmp_path: Path) -> None:
-        """Test warning fatigue detection."""
-        os.environ["CSF_DIAGNOSTICS_DIR"] = str(tmp_path)
-
-        # Log 5 warnings for same skill without behavior change
-        for _ in range(5):
-            log_enforcement_event(
-                session_id="test_session",
-                skill_name="fatigued_skill",
-                tier="advisory",
-                outcome="warned",
-                behavior_changed=False,
-            )
-
-        fatigue = detect_warning_fatigue("test_session", threshold=3)
-
-        assert len(fatigue) == 1
-        assert fatigue[0]["skill_name"] == "fatigued_skill"
-        assert fatigue[0]["warning_count"] >= 3
-
-    def test_no_fatigue_below_threshold(self, tmp_path: Path) -> None:
-        """Test no fatigue detected when below threshold."""
-        os.environ["CSF_DIAGNOSTICS_DIR"] = str(tmp_path)
-
-        # Log only 2 warnings (below threshold of 3)
-        for _ in range(2):
-            log_enforcement_event(
-                session_id="test_session",
-                skill_name="not_fatigued_skill",
-                tier="advisory",
-                outcome="warned",
-                behavior_changed=False,
-            )
-
-        fatigue = detect_warning_fatigue("test_session", threshold=3)
-
-        assert len(fatigue) == 0  # Only fatigued_skill from previous test
+# `TestEnforcementTelemetry` (tested `__lib/enforcement_telemetry.py`) was removed
+# 2026-07-10 — that module was superseded by hook_stats.py (decision #1391 option
+# (a)) and deleted. The remaining classes test UNRELATED live modules:
+#   - TestEnforcementTierValidator -> posttooluse.enforcement_tier_validator
+#   - TestEnforcementRateLimiter   -> __lib.enforcement_rate_limiter
 
 
 class TestEnforcementTierValidator:
