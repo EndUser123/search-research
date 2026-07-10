@@ -20,7 +20,13 @@ conversation surfaces four of them at once.
   manifest's deletion license + GC checks; sequenced AFTER C1.
 
 Filing rule: a new item that fits C1/C2/C3 is appended as evidence to the class
-fix, not opened as its own project. Tracker contract (#18): this file is the
+fix, not opened as its own project. A self-review that finds ZERO unowned
+residuals is itself a C2 signal (self-certification proxy) — every self-review
+must name at least one residual or attach an explicit search log (adversarial
+review 2026-07-10 refuted a "none found" claim twice: a mislabeled measurement
+lane file and a gate-blocked mitigation that silently became a deferred task).
+Additions-vs-deletions count is part of any self-review: a session that
+diagnoses C3 and ships ~20 additions / 0 deletions is exhibiting it. Tracker contract (#18): this file is the
 root-cause register; the task DB is the execution tracker; #1390 is the bridge.
 Falsification for the class program: if one week after manifest + ledger are
 live sessions still file C1 instances at 2026-07-09's rate, the residual is
