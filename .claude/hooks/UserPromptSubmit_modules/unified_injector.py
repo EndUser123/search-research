@@ -48,6 +48,11 @@ IMPERATIVE_COMMAND_RE = re.compile(
     rf"^\s*(?:please\s+|can you\s+|go ahead and\s+)?(?P<command>{COMMAND_WORDS_RE})\b",
     re.IGNORECASE,
 )
+# Local quote-stripping regex retained for `detect_command` when called without
+# the canonical envelope (defensive fallback). The canonical span removal lives
+# in `request_envelope.strip_quoted_spans` and is used by `classify_intent`
+# when an envelope is available. Kept here as a substring-only fallback so
+# legacy callers that pass raw prompts still get the old behavior.
 QUOTE_RE = re.compile(r'"[^"\n]*"|\'[^\'\n]*\'')
 SLASH_COMMAND_RE = re.compile(r"^/([a-z0-9-]+)(?:\s+(.*))?$", re.IGNORECASE)
 
@@ -66,15 +71,22 @@ FALSIFICATION_PATTERNS = [
 
 
 def _strip_quoted_text(text: str) -> str:
-    """Remove simple quoted spans to avoid matching commands inside quotes."""
+    """Remove simple quoted spans to avoid matching commands inside quotes.
+
+    Defensive fallback used only when no canonical envelope is available.
+    """
     return QUOTE_RE.sub(" ", text)
 
 
-def detect_command(prompt: str) -> dict[str, str] | None:
+def detect_command(prompt: str, *, _outer_text: str | None = None) -> dict[str, str] | None:
     """Detect if prompt contains a command directive.
 
     Args:
         prompt: User prompt text
+        _outer_text: Optional pre-computed outer text (from request_envelope).
+            When provided, runs against outer text only — quoted/fenced commands
+            do not trigger command injection. When None, falls back to the
+            legacy `_strip_quoted_text` local stripper.
 
     Returns:
         Dict with 'command' and 'args' keys, or None if no command
@@ -91,7 +103,10 @@ def detect_command(prompt: str) -> dict[str, str] | None:
     if "?" in stripped:
         return None
 
-    text = _strip_quoted_text(stripped)
+    if _outer_text is not None:
+        text = _outer_text.strip() if _outer_text.strip() else _strip_quoted_text(stripped)
+    else:
+        text = _strip_quoted_text(stripped)
     sentences = [s.strip() for s in re.split(r"[.!;\n]+", text) if s.strip()]
     for sentence in sentences:
         match = IMPERATIVE_COMMAND_RE.match(sentence)
@@ -250,7 +265,7 @@ DEBUG_PATTERNS = [
 ]
 
 
-def classify_intent(prompt: str) -> str | None:
+def classify_intent(prompt: str, *, _outer_text: str | None = None) -> str | None:
     """Classify user prompt intent.
 
     Categories:
@@ -269,15 +284,20 @@ def classify_intent(prompt: str) -> str | None:
 
     Args:
         prompt: User prompt text
+        _outer_text: Optional pre-computed outer text. When provided, runs
+            against outer text only — quoted/fenced content cannot trigger
+            intent classification.
 
     Returns:
         Intent category string or None for ACTION (no injection needed)
     """
-    prompt_lower = prompt.lower().strip()
-    prompt_clean = prompt.strip()
+    classification_text = _outer_text if _outer_text is not None else prompt
+    prompt_lower = classification_text.lower().strip()
+    prompt_clean = classification_text.strip()
+    raw_prompt_clean = prompt.strip()
 
     # Skip slash commands - they're ACTION by definition
-    if SLASH_COMMAND_RE.match(prompt_clean):
+    if SLASH_COMMAND_RE.match(raw_prompt_clean):
         return None
 
     # Check for CORRECTION (highest priority - user is re-directing)
@@ -415,14 +435,25 @@ def run_unified_injector(context: HookContext) -> HookResult:
     # Solo dev context (always)
     sections.append(SOLO_DEV_CONTEXT)
 
+    # Read the canonical envelope so classification runs against outer text
+    # (quoted/fenced proposal content cannot trigger DEBUG/IMPLEMENTATION
+    # injection). The envelope is cached on context.data by the
+    # unified_detection hook (priority 1.0) or computed lazily here.
+    try:
+        from UserPromptSubmit_modules.unified_detection import ensure_request_envelope
+        envelope = ensure_request_envelope(context)
+        outer = envelope.outer_text if envelope is not None else None
+    except Exception:  # pragma: no cover - envelope is best-effort
+        outer = None
+
     # Intent classification ( QUESTION, CORRECTION, RESEARCH, DEBUG, ACTION)
     # Must come before command detection so we don't double-classify
-    intent = classify_intent(context.prompt)
+    intent = classify_intent(context.prompt, _outer_text=outer)
     if intent:
         sections.append(build_intent_injection(intent))
 
     # Command directive
-    cmd_info = detect_command(context.prompt)
+    cmd_info = detect_command(context.prompt, _outer_text=outer)
     if cmd_info:
         user_args = cmd_info.get("args", "")
         sections.append(build_command_injection(cmd_info, user_args))

@@ -508,18 +508,22 @@ _INTENT_PATTERN_CACHE: dict[str, list[re.Pattern]] = {
 }
 
 
-def _classify_intent(prompt: str) -> str | None:
+def _classify_intent(prompt: str, *, _outer_text: str | None = None) -> str | None:
     """Classify the primary intent of the prompt.
 
     Args:
         prompt: User prompt text
+        _outer_text: Optional pre-computed outer text. When provided, runs against
+            outer text only so quoted/fenced content cannot contribute intent
+            signals. When None, falls back to the raw prompt.
 
     Returns:
         Intent classification (implementation/diagnostic/etc.) or None
     """
+    text = _outer_text if _outer_text is not None else prompt
     for intent, patterns in _INTENT_PATTERN_CACHE.items():
         for pattern in patterns:
-            if pattern.search(prompt):
+            if pattern.search(text):
                 return intent
     return None
 
@@ -554,13 +558,18 @@ def _detect_synergies(
 # =============================================================================#
 
 
-def detect_prompt(prompt: str) -> UnifiedDetectionResult:
+def detect_prompt(prompt: str, *, _outer_text: str | None = None) -> UnifiedDetectionResult:
     """Detect cognitive frameworks, reasoning modes, and think profiles.
 
     Single-pass detection using pre-compiled regex patterns.
 
     Args:
         prompt: User prompt text to analyze
+        _outer_text: Optional pre-computed outer text (from request_envelope). When
+            provided, classification runs against outer text only so quoted/fenced
+            proposal content cannot contribute intent signals. When None, falls
+            back to the raw prompt (legacy behavior — used by callers that
+            have not yet adopted the envelope).
 
     Returns:
         UnifiedDetectionResult with all matches and metadata
@@ -571,12 +580,14 @@ def detect_prompt(prompt: str) -> UnifiedDetectionResult:
     matched_modes = []
     matched_profiles = []
 
+    classification_text = _outer_text if _outer_text is not None else prompt
+
     # Detect cognitive frameworks
     for framework_name in _COGNITIVE_FRAMEWORKS:
         framework_key = framework_name
         if framework_key in _COMPILED_PATTERNS:
             patterns = _COMPILED_PATTERNS[framework_key]["patterns"]
-            if any(pattern.search(prompt) for pattern in patterns):
+            if any(pattern.search(classification_text) for pattern in patterns):
                 matched_frameworks.append(framework_name)
 
     # Detect reasoning modes
@@ -584,7 +595,7 @@ def detect_prompt(prompt: str) -> UnifiedDetectionResult:
         mode_key = f"mode_{mode_name}"
         if mode_key in _COMPILED_PATTERNS:
             patterns = _COMPILED_PATTERNS[mode_key]["patterns"]
-            if any(pattern.search(prompt) for pattern in patterns):
+            if any(pattern.search(classification_text) for pattern in patterns):
                 matched_modes.append(mode_name)
 
     # Detect think profiles (strong + weak pattern matching)
@@ -595,12 +606,12 @@ def detect_prompt(prompt: str) -> UnifiedDetectionResult:
 
             # Check strong patterns (1 match triggers)
             strong_match = any(
-                pattern.search(prompt) for pattern in profile_data["strong_patterns"]
+                pattern.search(classification_text) for pattern in profile_data["strong_patterns"]
             )
 
             # Check weak patterns (threshold matches trigger)
             weak_count = sum(
-                1 for pattern in profile_data["weak_patterns"] if pattern.search(prompt)
+                1 for pattern in profile_data["weak_patterns"] if pattern.search(classification_text)
             )
             weak_threshold = profile_data["weak_threshold"]
             weak_match = weak_count >= weak_threshold
@@ -609,7 +620,7 @@ def detect_prompt(prompt: str) -> UnifiedDetectionResult:
                 matched_profiles.append(profile_name)
 
     # Classify intent
-    intent_classification = _classify_intent(prompt)
+    intent_classification = _classify_intent(classification_text)
 
     # Detect synergies
     synergy_candidates = _detect_synergies(matched_frameworks, matched_modes)
@@ -659,8 +670,14 @@ def unified_detection_hook(context: HookContext) -> HookResult:
     can reuse the detection results without re-running pattern matching.
 
     Priority: 1.0 (runs before all other hooks)
+
+    Classification runs against the envelope's outer_text so quoted/fenced
+    proposal content cannot contribute to routing intent (the canonical
+    request envelope is owned by this module).
     """
-    result = detect_prompt(context.prompt)
+    envelope = ensure_request_envelope(context)
+    outer = envelope.outer_text if envelope is not None else None
+    result = detect_prompt(context.prompt, _outer_text=outer)
 
     # Store in context data for subsequent hooks (side-effect)
     context.data["unified_detection_result"] = result

@@ -2738,6 +2738,30 @@ def _run_task_contract_fit_gate(data: dict) -> dict | None:
 
     return v1_result
 
+def _request_envelope_mode(user_prompt: str) -> tuple[str, str]:
+    """Return (mode, reason) for a user prompt using the canonical envelope parser.
+
+    Best-effort: returns ("ambiguous", "envelope_unavailable") on any failure.
+    Quoted/fenced content never contributes to the mode (see request_envelope).
+    """
+    if not user_prompt:
+        return ("ambiguous", "empty_prompt")
+    try:
+        # Stop.py runs in-process; UserPromptSubmit_modules/ is a sibling dir
+        # of Stop.py. Add to sys.path defensively for the rare case where
+        # the call site has a different path setup.
+        import sys as _sys_re
+        _hooks_dir_re = Path(__file__).resolve().parent
+        _usm_path = _hooks_dir_re / "UserPromptSubmit_modules"
+        if str(_usm_path) not in _sys_re.path:
+            _sys_re.path.insert(0, str(_usm_path))
+        from request_envelope import analyze_prompt as _analyze_request_envelope
+        env = _analyze_request_envelope(user_prompt)
+        return (env.mode, env.reason or "no_reason")
+    except Exception:  # pragma: no cover - envelope is best-effort
+        return ("ambiguous", "envelope_unavailable")
+
+
 
 def _run_task_contract_fit_gate_v1(data: dict) -> dict | None:
     """Check whether the response satisfies the active task contract.
@@ -2786,6 +2810,27 @@ def _run_task_contract_fit_gate_v1(data: dict) -> dict | None:
                 "task_class": task_class,
             })
             return None
+
+        # Request-envelope mode gate: an active implementation/diagnosis contract
+        # stays silent when the current user prompt is itself an evaluation,
+        # research, status, or mixed request. The user is not closing out the
+        # task — they are reviewing/asking. We suppress enforcement for THIS
+        # turn only (do not clear the contract) so a real completion attempt
+        # can fire on a later turn.
+        _IMPL_DIAG_TASK_CLASSES = frozenset({
+            "bug_fix", "implementation", "refactor", "bug_diagnosis",
+        })
+        if task_class in _IMPL_DIAG_TASK_CLASSES:
+            env_mode, env_reason = _request_envelope_mode(
+                data.get("user_prompt") or data.get("prompt") or ""
+            )
+            if env_mode in ("evaluation", "research", "status", "mixed"):
+                _log_task_contract_telemetry(terminal_id, "silent", {
+                    "reason": f"request_envelope_{env_mode}",
+                    "envelope_reason": env_reason,
+                    "task_class": task_class,
+                })
+                return None
 
         if not response:
             _log_task_contract_telemetry(terminal_id, "silent", {
@@ -3221,6 +3266,26 @@ def _run_task_contract_fit_gate_v2(data: dict) -> dict | None:
                     "phase": phase_to_check,
                     "task_class": task_class,
                     "reason": "phase_not_enforcement_ready",
+                })
+                return None
+
+        # Request-envelope mode gate (V2 mirror of V1). An active implementation
+        # /diagnosis contract stays silent on evaluation/research/status/mixed
+        # user turns. We do not write to contract state — V1 owns that — and
+        # we only log a v2-specific telemetry event so the V1/V2 disagreement
+        # ledger sees the suppression.
+        _V2_IMPL_DIAG_TASK_CLASSES = frozenset({
+            "bug_fix", "implementation", "refactor", "bug_diagnosis",
+        })
+        if task_class in _V2_IMPL_DIAG_TASK_CLASSES:
+            v2_env_mode, v2_env_reason = _request_envelope_mode(
+                data.get("user_prompt") or data.get("prompt") or ""
+            )
+            if v2_env_mode in ("evaluation", "research", "status", "mixed"):
+                _log_task_contract_v2_telemetry(terminal_id, "v2_envelope_silent", {
+                    "mode": v2_env_mode,
+                    "envelope_reason": v2_env_reason,
+                    "task_class": task_class,
                 })
                 return None
 

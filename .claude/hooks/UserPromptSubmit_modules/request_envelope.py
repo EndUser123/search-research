@@ -28,7 +28,10 @@ from dataclasses import dataclass, field
 _FENCE_RE = re.compile(r"```.*?```", re.DOTALL)
 _INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
 _DQUOTE_RE = re.compile(r'"[^"\n]*"')
-_SQUOTE_RE = re.compile(r"'[^'\n]*'")
+# Straight single-quote PAIRS only when boundaries are non-alnum.
+# Preserves contractions: What's / user's / John's / don't / can't.
+# Still strips real quoted spans: 'Implement the hook.' / 'foo bar' / 'implement the hook'
+_SQUOTE_RE = re.compile(r"(?<![A-Za-z])'[^'\n]+'(?![A-Za-z'])", re.VERBOSE)
 _CURLY_DQUOTE_RE = re.compile(r"“[^“”\n]*”")
 # Curly single-quote PAIRS only (open ‘ ... close ’). Apostrophes (’
 # used as contractions) are not opening markers, so "don't" is never stripped.
