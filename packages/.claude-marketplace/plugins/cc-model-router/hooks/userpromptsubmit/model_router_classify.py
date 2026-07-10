@@ -121,12 +121,20 @@ def main():
     write_enriched_hint(task_type, session_id, result)
     write_observability(result, prompt, session_id, terminal_id, prev_task_type)
 
+    # Write recommendation.json EVERY prompt (not just on tier transitions).
+    # The transition-only gate caused steady-state TTL gaps: when the tier
+    # didn't change, no rec was written, the old one expired after 5min, and
+    # CCR fell back to M3 default. Writing every prompt keeps the TTL fresh.
+    # apply.py:133 still sets consumed=True, but CCR's getRecommendation() no
+    # longer checks consumed — the flag is alive but inert for routing.
+    rec_data = {'recommended_model': recommended_model, 'recommended_tier': tier,
+                'current_model': current_model, 'current_tier': current_tier,
+                'written_at': datetime.now(timezone.utc).isoformat(),
+                'turn_counter': data.get('turn_counter', 0), 'consumed': False}
+    write_recommendation(state_path, rec_data)
+
+    # Only print the systemMessage on actual tier transitions (not every prompt).
     if tier != current_tier and recommended_model and recommended_model != current_model:
-        rec_data = {'recommended_model': recommended_model, 'recommended_tier': tier,
-                    'current_model': current_model, 'current_tier': current_tier,
-                    'written_at': datetime.now(timezone.utc).isoformat(),
-                    'turn_counter': data.get('turn_counter', 0), 'consumed': False}
-        write_recommendation(state_path, rec_data)
         base = recommended_model.split('[')[0]
         cur = current_model.split('[')[0]
         msg = f'[model-router] {task_type} → {base} | now: {cur} | advisory'

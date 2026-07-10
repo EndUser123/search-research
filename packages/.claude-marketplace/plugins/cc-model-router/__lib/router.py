@@ -8,7 +8,8 @@ Usage:
 
 Where EventName is SessionStart or UserPromptSubmit.
 
-UPS hooks run in sequence: classify writes recommendation, apply consumes it.
+UPS hooks run in sequence: classify writes recommendation.json every prompt,
+apply marks it consumed (audit-only), CCR consumes it at request time.
 classify may emit {"systemMessage": ...} in warn mode — the router forwards it.
 apply only writes to stderr (informational); its stdout is ignored.
 """

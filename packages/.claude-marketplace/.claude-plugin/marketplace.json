@@ -43,7 +43,7 @@
     },
     {
       "name": "cc-skills-ai-api",
-      "version": "1.0.16",
+      "version": "1.0.18",
       "description": "AI API integration skills for Claude Code",
       "source": "./plugins/cc-skills-ai-api",
       "keywords": [
@@ -65,7 +65,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.193",
+      "version": "1.0.194",
       "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -86,7 +86,7 @@
     },
     {
       "name": "search-research",
-      "version": "0.1.103",
+      "version": "0.1.105",
       "description": "Unified search and research system with async concurrent execution and 11 web providers.",
       "source": "./plugins/search-research",
       "keywords": [
@@ -301,7 +301,7 @@
     },
     {
       "name": "cc-model-router",
-      "version": "0.2.23",
+      "version": "0.2.24",
       "description": "Automatic model-tier routing (haiku/sonnet/opus) based on prompt complexity heuristics with dual-mode operation (warn plus autoswitch)",
       "source": "./plugins/cc-model-router",
       "keywords": []
