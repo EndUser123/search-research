@@ -69,6 +69,27 @@ def test_add_and_list_roundtrip(tmp_path):
     assert listed[0]["incident_id"] == rec["incident_id"]
 
 
+def test_self_review_overlook_category_accepted(tmp_path):
+    """The self-review-overlook category must be a valid incident category so
+    that post-verdict overrides (user pushes back after the fact) can be
+    recorded. The override pattern is the single highest-signal indicator that
+    the self-review mode failed its own bias check."""
+    root = tmp_path / "state"
+    rec = add_incident(
+        category="self-review-overlook", run_id="r1",
+        summary="Orchestrator missed dead prompting-toolkit ref in ai_cli.py",
+        expected="claim-refuter to catch via repo-wide grep",
+        observed="claim was unverified; user surfaced it after verdict",
+        evidence="grep -rn prompting_toolkit -> cc-skills-ai-api/ai_cli.py:4532",
+        candidate_root_cause="scope-completeness claim skipped",
+        state_root=root,
+    )
+    assert rec["status"] == "open"
+    listed = list_incidents(category="self-review-overlook", state_root=root)
+    assert len(listed) == 1
+    assert listed[0]["category"] == "self-review-overlook"
+
+
 def test_list_filters_by_status_and_category(tmp_path):
     root = tmp_path / "state"
     add_incident(category="routing", run_id="r1", summary="a", state_root=root)

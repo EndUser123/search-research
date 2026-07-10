@@ -75,6 +75,38 @@ def test_agent_doc_matches_schema_fields():
     for field in ("id", "severity", "location", "title", "detail",
                   "evidence", "fix", "claim_type"):
         assert field in text, f"agent doc missing required field '{field}'"
-    # The four claim_type branches the agent switches on.
-    for ct in ("existence", "static-shape", "behavior", "non-code"):
+    # The claim_type branches the agent switches on — including the
+    # scope-completeness branch added to catch the self-review failure mode
+    # where an author claims "X is untouched" without grepping the monorepo.
+    for ct in ("existence", "static-shape", "behavior", "non-code", "scope-completeness"):
         assert ct in text, f"agent doc missing claim_type branch '{ct}'"
+
+
+def test_scope_completeness_claim_type_accepted():
+    """The scope-completeness branch must pass validation — it is the claim_type
+    that backs 'I checked everywhere' claims and is verified by repo-wide grep,
+    not by reading the file the author named. Catches the self-review failure
+    mode where the same context that drafted the code accepts its own scope
+    claim without scanning the full blast radius."""
+    obj = _obj([{
+        "id": "CLAIM-1", "severity": "REVISE",
+        "category": "unverified-claim",
+        "location": "cc-skills-ai-api/skills/ai-cli/ai_cli.py:4532",
+        "title": "claim: prompting-toolkit refs removed from monorepo",
+        "detail": "summary said refs removed; repo-wide grep shows live import",
+        "evidence": "grep -rn prompting_toolkit P:/packages -> 3 hits incl ai_cli.py",
+        "confidence": "high",
+        "fix": "remove the --prompt-toolkit flag from ai_cli.py or mark pending_backend",
+        "claim_type": "scope-completeness",
+    }])
+    assert validate(obj) == []
+
+
+def test_scope_completeness_branch_is_in_agent_doc():
+    """The agent must document the scope-completeness verification procedure
+    (grep the monorepo, cite the command + hit count), since that is the
+    discriminating step that makes the branch useful."""
+    text = _AGENT.read_text(encoding="utf-8", errors="replace")
+    assert "scope-completeness" in text
+    assert "monorepo" in text or "repo-wide" in text or "repo wide" in text.lower()
+    assert "grep" in text

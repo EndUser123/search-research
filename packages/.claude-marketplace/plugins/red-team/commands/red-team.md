@@ -131,9 +131,11 @@ Invoke the `red-team-planner` agent.
 
 ### 1.5 Claim-refute pass (per-claim verification — plugs self-preference)
 
-After the planner, extract the proposal's factual/technical claims into `{run_dir}/claims.json` — each tagged `claim_type`: `existence` (X exists / is registered / is wired), `static-shape` (X has field Y / matches Z), `behavior` (X does Y when Z), or `non-code` (factual statement about an external system/library). Then dispatch the `red-team-claim-refuter` agent with the full context bundle (absolute `run_dir`, proposal pointer, `claims.json` path). It verifies each claim against the real source and writes `{run_dir}/claim-refute.json` per the findings schema — one finding per claim that fails or is unverifiable; `findings: []` (with `meta` counts) if all verify.
+After the planner, extract the proposal's factual/technical claims into `{run_dir}/claims.json` — each tagged `claim_type`: `existence` (X exists / is registered / is wired), `static-shape` (X has field Y / matches Z), `behavior` (X does Y when Z), `non-code` (factual statement about an external system/library), or **`scope-completeness`** (the claim is "I checked everywhere X could exist" — verified by repo-wide grep, not by reading the file the author named). Then dispatch the `red-team-claim-refuter` agent with the full context bundle (absolute `run_dir`, proposal pointer, `claims.json` path). It verifies each claim against the real source and writes `{run_dir}/claim-refute.json` per the findings schema — one finding per claim that fails or is unverifiable; `findings: []` (with `meta` counts) if all verify.
 
-**This pass is strictly additive.** Its output flows through the same disk-backed schema the specialists use, so the critic (§3) globs and consumes `{run_dir}/claim-refute.json` unchanged — no change to the severity gate, tiebreaker, or verdict logic. Skip ONLY for pure-design-taste reviews with no factual claims; when in doubt, run it (under-verification is the exact failure mode this pass counters).
+**This pass is strictly additive.** Its output flows through the same disk-backed schema the specialists use, so the critic (§3) globs and consumes `{run_dir}/claim-refute.json` unchanged — no change to the severity gate, tiebreaker, or verdict logic.
+
+**MANDATORY when the target is one of:** an implementation report, plugin/skill/hook change, consolidation claim, or **anything the orchestrator itself produced earlier in this session**. The "skip ONLY for pure-design-taste reviews with no factual claims" qualifier is a courtesy that has been over-claimed in practice; the failure mode it breeds is the orchestrator skipping claim-refute on its own recent output, which is exactly the case where this pass is most needed. When in doubt, run it (under-verification is the exact failure mode this pass counters). **Every claim tagged `scope-completeness` MUST be backed by a repo-wide grep, not a read of the file the author named.** A claim that lacks the grep evidence is `UNVERIFIED` and must be emitted as a `REVISE` finding.
 
 ### 2. Specialists
 Generate the `run_dir` (see Findings handoff above), create it, then dispatch the angles the Planner identified. Run applicable specialists **in parallel**.
@@ -259,6 +261,55 @@ to `.claude/.artifacts/wiki_ingest/proposed_notes/{session_id}.jsonl` for later 
 but `/red-team` does not silently write them.
 
 When this section is empty or no opportunities were identified, omit the heading entirely.
+
+## Self-review mode (active when target is the orchestrator's own output)
+
+When the target under review is the orchestrator's own prior implementation, fix,
+or "done" claim, the run is a **self-review**. This is the mode where self-preference
+is strongest: the same context that drafted the code is being asked to critique it.
+
+Self-review mode adds three hard requirements on top of the standard flow:
+
+1. **The claim-refute pass is mandatory**, not optional. The "skip ONLY for
+   pure-design-taste reviews" clause in §1.5 does **not** apply — implementation
+   reports always have factual claims (the ones you verified against the source).
+
+2. **Every `scope-completeness` claim must be backed by a repo-wide grep**, not
+   a read of the file the author named. The claim-refuter must emit a `REVISE`
+   finding for any scope claim that lacks the grep evidence. The failure mode
+   this rule catches: "I checked everywhere X could be" without scanning the
+   full blast radius (e.g. claiming a "prompt-enhancer plugin untouched" without
+   grepping the monorepo for the symbol — the dead reference can sit in an
+   adjacent plugin and slip through).
+
+3. **The specialist manifest must include `gate-reviewer` and `workflow-reviewer`
+   as `DISPATCHED`**, not `DEFERRED`. They catch structural / scope-restriction
+   defects the drafter's context is most likely to miss. (The general
+   "always-consider" rule already says this; self-review mode makes it
+   non-overridable.)
+
+## Override-pattern incident capture (post-verdict)
+
+When the user pushes back on a verdict after the fact (operator_outcome becomes
+`overridden` in the telemetry), the dispatcher — or the operator, manually — must
+record an incident so the self-improvement layer can cluster the failure mode.
+The category is `self-review-overlook` (added in `__lib/telemetry_schema.py`
+alongside `routing` / `specialist-miss` / etc.) and the record captures:
+
+```
+python "<plugin_root>/__lib/incidents.py" add \
+  --category self-review-overlook \
+  --run-id <run_id> --session-id <id> \
+  --summary "Orchestrator missed <X> when reviewing its own prior output" \
+  --expected "claim-refuter to catch <X> via repo-wide grep" \
+  --observed "claim was unverified; user surfaced <X> after verdict" \
+  --evidence "<file:line or quoted chat excerpt>" \
+  --root-cause "<claim_type scope-completeness was missing or skipped>"
+```
+
+The override pattern is the single highest-signal indicator that the
+self-review mode failed. Clustering overrides over time is the only way the
+system gets measurably better at self-review.
 
 ## Implementation note for the model
 

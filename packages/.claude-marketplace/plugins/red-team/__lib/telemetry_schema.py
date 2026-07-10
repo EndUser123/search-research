@@ -23,6 +23,13 @@ REQUIRED_INCIDENT_FIELDS = (
 VALID_INCIDENT_CATEGORIES = (
     "routing", "formatting", "critic-calibration",
     "specialist-miss", "stale-state", "latency", "other",
+    # self-review-overlook: the orchestrator was reviewing its own prior
+    # implementation output and missed a real defect (scope, dead code,
+    # claim mismatch). Captured when the user pushes back and a re-run
+    # surfaces the missed defect. Becomes a high-priority incident because
+    # the same context that drafted the code cannot be trusted to re-review
+    # it without external pressure.
+    "self-review-overlook",
 )
 VALID_INCIDENT_STATUSES = ("open", "triaged", "fixed", "rejected")
 

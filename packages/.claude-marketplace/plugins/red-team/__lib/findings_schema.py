@@ -11,7 +11,18 @@ from typing import Any
 
 REQUIRED_FINDING_FIELDS = ("id", "severity", "location", "title", "detail", "evidence", "fix")
 VALID_SEVERITIES = ("BLOCK", "REVISE", "NIT")
-VALID_CLAIM_TYPES = ("existence", "static-shape", "behavior", "non-code")
+VALID_CLAIM_TYPES = (
+    "existence",
+    "static-shape",
+    "behavior",
+    "non-code",
+    # scope-completeness: the claim is "I checked everywhere X could be" and
+    # verification is "grep the whole monorepo / relevant root, not just the
+    # file the author named". This is the failure mode where a self-review
+    # claims "X is untouched" or "no regressions" without scanning the full
+    # blast radius. See `agents/red-team-claim-refuter.md` for the branch.
+    "scope-completeness",
+)
 
 
 def validate(findings_obj: Any) -> list[str]:

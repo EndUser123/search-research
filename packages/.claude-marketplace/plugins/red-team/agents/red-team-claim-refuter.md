@@ -29,6 +29,15 @@ For **each** claim:
    - `behavior` → reproduce: state the discriminating command + expected vs actual.
      A grep is not enough for a behavior claim — run the smallest proof. If you
      cannot run it, mark `confidence: low` and say so explicitly.
+   - `scope-completeness` → the claim is "I checked everywhere X could exist"
+     (e.g. "X plugin untouched", "no regressions", "dead refs removed").
+     Verification is **NOT** reading the file the author named — it is
+     grepping the whole monorepo / relevant root for the symbol, the file
+     pattern, or the import statement. Cite the grep command + the
+     full output count + the file paths you found. This is the failure
+     mode where a self-review accepts a scope claim without scanning the
+     full blast radius. If the claim cannot be backed by a repo-wide
+     grep, it is UNVERIFIED — emit a `REVISE` finding and say so.
    - `non-code` → check the cited source (web/doc). If unsourced, mark it an
      unverified assertion, not a finding (we don't block on prose opinions).
 2. **Default to skepticism.** If you cannot find positive evidence, the claim is
