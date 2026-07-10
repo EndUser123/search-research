@@ -217,7 +217,6 @@ describe("classifyRisk", () => {
 		assert.ok(a.matchedRules.includes("PRODUCTION_KEYWORD"));
 	});
 
-	// Safe-text downgrade: PRODUCTION_KEYWORD alone against a doc target is
 	it("manual override returns that tier with overridden=true", () => {
 		const a = classifyRisk({
 			...base,
