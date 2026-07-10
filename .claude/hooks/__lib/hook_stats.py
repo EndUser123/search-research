@@ -1,29 +1,22 @@
 #!/usr/bin/env python3
 """Hook firing telemetry - record(hook_name, outcome) -> JSONL append log.
 
-Used by the small number of top-level hook dispatchers (settings.json entry points
-and plugin __lib/router.py files) to count how often each hook fires, blocks,
-warns, or is overridden. NOT used by the ~1100 individual hook files.
+Used by the top-level hook dispatchers to count hook firings AND outcomes
+(fire/block; warn/override are a refinement). NOT the ~1100 individual hooks.
 
-Concurrency: hooks may be invoked from many terminals simultaneously. We append
-one line per event in O_APPEND mode, which is atomic for a single write() of a
-small line on both POSIX and Windows. No temp+os.replace here - that clobbers an
-append log; append is the spec-sanctioned path.
+Outcome is determined by each DISPATCHER at its return path, where it already
+knows the result (e.g. hook_runner maps exit code 2 -> "block"). Passive loggers
+that do not gate (log_hook) record "fire" only - they cannot observe a block.
 
-Storage: $STATE_DIR/hook_stats.jsonl (one JSON object per line). Schema:
-    {"ts": "2026-07-09T12:34:56+00:00", "hook": "<name>",
-     "outcome": "fire|block|warn|override", "session_id": "..."}
+Concurrency: writes go through file_lock.append_jsonl_safe (cross-process lock +
+dropped-trace on contention). Rotation caps growth at MAX_BYTES.
 
-Outcome vocabulary:
-  - fire:     dispatcher entered
-  - block:    hook returned a deny/block decision
-  - warn:     hook returned a non-blocking advisory
-  - override: an external layer (e.g. allowlist) overrode the hook
+Storage: $STATE_DIR/hook_stats.jsonl. Schema:
+    {"ts": "...", "hook": "<name>", "outcome": "fire|block", "session_id": "..."}
 """
 
 from __future__ import annotations
 
-import json
 import os
 import sys
 from datetime import datetime, timezone
@@ -31,36 +24,53 @@ from pathlib import Path
 
 OUTCOMES = frozenset({"fire", "block", "warn", "override"})
 
-# State dir resolution: prefer explicit override, then P:/.claude/state.
 STATE_DIR = Path(os.environ.get("CLAUDE_STATE_DIR") or "P:/.claude/state")
 LOG_PATH = STATE_DIR / "hook_stats.jsonl"
 
+# ponytail: fixed 5 MB ceiling + keep-tail rotation; revisit if telemetry volume
+# grows enough that rotating on the hook hot path shows in a profile.
+MAX_BYTES = 5 * 1024 * 1024
+KEEP_TAIL_LINES = 5000
+
+try:
+    from file_lock import append_jsonl_safe, FileLock
+except ImportError:
+    from __lib.file_lock import append_jsonl_safe, FileLock
+
+
+def _maybe_rotate() -> None:
+    """Cap log growth: when over MAX_BYTES, keep only the tail lines."""
+    try:
+        if not LOG_PATH.exists() or LOG_PATH.stat().st_size < MAX_BYTES:
+            return
+        with FileLock(LOG_PATH.with_suffix(".lock")):
+            if not LOG_PATH.exists() or LOG_PATH.stat().st_size < MAX_BYTES:
+                return
+            lines = LOG_PATH.read_text(encoding="utf-8").splitlines()
+            LOG_PATH.write_text("\n".join(lines[-KEEP_TAIL_LINES:]) + "\n", encoding="utf-8")
+    except Exception:
+        pass
+
 
 def record(hook_name: str, outcome: str, *, session_id: str | None = None) -> None:
-    """Append one telemetry event. Failures are swallowed (never crash a hook).
-
-    Telemetry is best-effort: if the state dir is unwritable we skip silently.
-    """
+    """Append one telemetry event. Failures are swallowed (never crash a hook)."""
     try:
         if outcome not in OUTCOMES:
-            outcome = "fire"  # unknown outcome -> coerce so the counter stays useful
+            outcome = "fire"
         evt = {
             "ts": datetime.now(timezone.utc).isoformat(),
             "hook": str(hook_name),
             "outcome": outcome,
             "session_id": session_id,
         }
-        line = json.dumps(evt, ensure_ascii=False, separators=(",", ":")) + "\n"
-        STATE_DIR.mkdir(parents=True, exist_ok=True)
-        # O_APPEND: single write() of one line is atomic across processes.
-        with open(LOG_PATH, "a", encoding="utf-8") as f:
-            f.write(line)
+        _maybe_rotate()
+        append_jsonl_safe(LOG_PATH, evt)
     except Exception:
-        return  # telemetry must never break a hook
+        return
 
 
 if __name__ == "__main__":
-    # Smoke entrypoints:
+    # Smoke:
     #   python __lib/hook_stats.py                      -> record a smoke fire
     #   python __lib/hook_stats.py record HookName fire -> record one event
     if len(sys.argv) >= 4 and sys.argv[1] == "record":

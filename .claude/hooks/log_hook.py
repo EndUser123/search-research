@@ -263,7 +263,7 @@ def main() -> int:
         # Telemetry: count dispatcher firings (best-effort; never breaks the hook).
         try:
             from __lib.hook_stats import record
-            record(f"log_hook:{stdin_data.get('hook_event_name', 'unknown')}", "fire")
+            record(f"log_hook:{stdin_data.get('hookEventName', 'unknown')}", "fire")
         except Exception:
             pass
 

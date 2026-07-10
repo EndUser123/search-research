@@ -353,16 +353,6 @@ def safe_run(hook_path: str | Path, timeout: float | None = None) -> int:
     hook_path = Path(hook_path).resolve()
     hook_name = hook_path.stem
 
-    # Telemetry: count this hook's firings via the runner (best-effort).
-    try:
-        try:
-            from hook_stats import record
-        except ImportError:
-            from __lib.hook_stats import record
-        record(f"hook_runner:{hook_name}", "fire")
-    except Exception:
-        pass
-
     # Verify hook exists
     if not hook_path.exists():
         error_msg = f"Hook file not found: {hook_path}"
@@ -490,6 +480,16 @@ def safe_run(hook_path: str | Path, timeout: float | None = None) -> int:
                 pass
             # DO NOT re-emit stderr — Claude Code treats ANY stderr as "hook error".
             # The diagnostic log above is sufficient for debugging.
+        # Telemetry: record the real outcome the dispatcher already determined
+        # (block vs fire) — captures block-rate per hook, the high-value signal.
+        try:
+            try:
+                from hook_stats import record
+            except ImportError:
+                from __lib.hook_stats import record
+            record(f"hook_runner:{hook_name}", "block" if exit_code == 2 else "fire")
+        except Exception:
+            pass
         return exit_code
 
     except SyntaxError as e:
