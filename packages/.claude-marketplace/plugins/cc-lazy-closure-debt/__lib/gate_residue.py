@@ -99,21 +99,49 @@ def _append_row(path: Path, record: dict) -> None:
         os.fsync(f.fileno())
 
 
-def _block_tokens(gate_name: str, reason: str) -> set[str]:
-    """Specific identifiers/paths mentioned in the block's reason + gate name.
+def _block_tokens(gate_name: str, reason: str) -> tuple[set[str], set[str]]:
+    """Block-specific tokens, split by why they'd be specific in a tool input.
 
-    Used to decide whether a follow-up tool call references THIS block. Only
-    specific tokens (identifier/path-shaped, len>=5) qualify so generic words
-    don't manufacture a false artifact.
+    Returns (path_tokens, prose_tokens):
+      path_tokens — path/identifier-shaped tokens (>=5 chars, underscore/dot/digit
+        in the token). These can appear in tool inputs and signal a genuine reference
+        to a file/path mentioned in the block reason.
+      prose_tokens — short identifier tokens from reason text (>=3 chars, common
+        English words excluded). These are ONLY used for prose-match (the disputed
+        branch) to avoid false artifact links when e.g. "read" in the block reason
+        is a substring of "README.md" in tool input.
+
+    The split prevents the /rns regression: a tool call on an unrelated path whose
+    name happens to contain an English word from the block reason must NOT count as
+    a referencing artifact.
     """
-    tokens: set[str] = set()
+    _STOPWORDS = frozenset({
+        "the", "and", "for", "was", "are", "has", "had", "but", "not",
+        "you", "all", "any", "can", "use", "used", "may", "see", "say",
+        "set", "get", "put", "run", "via", "its", "per", "out", "one",
+        "two", "new", "old", "too", "how", "why", "now", "far", "end",
+        "yet", "way", "own", "let", "did", "got", "try", "ask", "big",
+        "fpx", "ded", "ref", "xxx", "fix", "bug", "doc", "log", "msg",
+        "claim", "deleted", "before", "removed", "removal", "because",
+        "during", "module", "system", "plugin", "package", "library",
+    })
+    path_tokens: set[str] = set()
+    prose_tokens: set[str] = set()
     text = f"{gate_name}\n{reason or ''}"
+
+    # Path tokens: long, contain a path-specific character
     for m in _SPECIFIC_TOKEN.findall(text):
-        # Require specificity: underscore, dot, or digit — avoids "deleted",
-        # "claim", "before", etc.
         if len(m) >= 5 and any(c in m for c in "_./0123456789"):
-            tokens.add(m.casefold())
-    return tokens
+            path_tokens.add(m.casefold())
+
+    # Prose tokens: short identifiers from reason text (not path tokens).
+    # NOT used for tool-input matching — only for prose rebuttal detection.
+    for m in re.finditer(r"[A-Za-z_][A-Za-z0-9_]{2,}", text):
+        token = m.group(0).casefold()
+        if token not in path_tokens and len(token) >= 3 and token not in _STOPWORDS and not token.startswith("stop"):
+            prose_tokens.add(token)
+
+    return path_tokens, prose_tokens
 
 
 def _tool_input_text(tool_block: dict) -> str:
@@ -143,7 +171,7 @@ def classify_block(
     """
     gate_name = str(block_row.get("gate_name", ""))
     reason = str(block_row.get("block_reason_excerpt", ""))
-    tokens = _block_tokens(gate_name, reason)
+    path_tokens, prose_tokens = _block_tokens(gate_name, reason)
 
     for pos, tool in enumerate(post_block_turn_tools or []):
         if not isinstance(tool, dict):
@@ -154,9 +182,16 @@ def classify_block(
         haystack = _tool_input_text(tool).casefold()
         if not haystack:
             continue
-        # A tool_use references the block specifically if any block-specific
-        # token appears in its input. No token => no artifact (the /rns guard).
-        hit = next((t for t in tokens if t and t in haystack), None)
+        # Path tokens use substring matching (specific identifiers in paths).
+        hit = next((t for t in path_tokens if t and t in haystack), None)
+        # Prose tokens use WORD-BOUNDARY matching only — a common English word
+        # from the block reason must NOT match as a substring of a filename
+        # (e.g. "read" in "README.md").
+        if not hit:
+            hit = next(
+                (t for t in prose_tokens if t and re.search(rf"(?<!\w){re.escape(t)}(?!\w)", haystack)),
+                None,
+            )
         if hit:
             target = hit
             # Prefer a path-like target when present (more actionable).
@@ -179,7 +214,7 @@ def classify_block(
     if text_cf.strip():
         gate_token = re.sub(r"[^a-zA-Z0-9]+", " ", gate_name).split()
         gate_token_cf = [g for g in (w.casefold() for w in gate_token) if len(g) >= 5]
-        if any(t and t in text_cf for t in tokens) or any(
+        if any(t and t in text_cf for t in (path_tokens | prose_tokens)) or any(
             g and g in text_cf for g in gate_token_cf
         ):
             return ("disputed", None)
