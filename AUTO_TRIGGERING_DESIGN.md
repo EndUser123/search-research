@@ -7,8 +7,8 @@ The `/all` skill is the **default search handler** for all search and research q
 ## Problem Statement
 
 Previously, users had to choose between three search tools:
-- `/search` for local-only
-- `/research` for web-only
+- `/find` for local-only
+- `/web` for web-only
 - `/all` for unified
 
 This created cognitive load and friction. Since `/all` already implements intelligent routing via auto mode (local first, web if needed), it should be the default entry point for all search queries.
@@ -44,7 +44,7 @@ triggers:
 1. **Broad "ALWAYS" directive**: `/all` is now the default for ALL search queries
 2. **Broader triggers**: Catches generic search intent ("find X", "search for X")
 3. **Simplified guardrails**: Removed tool-specific `do_not` entries (auto mode handles routing)
-4. **Preserved specialized tools**: `/search` and `/research` still available for explicit use
+4. **Preserved specialized tools**: `/find` and `/web` still available for explicit use
 
 ## Trigger Logic
 
@@ -66,8 +66,8 @@ Users can still explicitly invoke specialized tools:
 
 | When to Use | Tool | Why |
 |-------------|------|-----|
-| "I only want local results, fast" | `/search` | Explicit local-only, guaranteed <1s |
-| "I only want web results" | `/research` | Explicit web-only, no local clutter |
+| "I only want local results, fast" | `/find` | Explicit local-only, guaranteed <1s |
+| "I only want web results" | `/web` | Explicit web-only, no local clutter |
 
 **Note:** These are explicit user choices, not auto-routing decisions.
 
@@ -112,14 +112,14 @@ Explicit local-only request   │ /search   │ "I only want local, fast"
 Explicit web-only request     │ /research │ "I only want web results"
 ```
 
-**Key Change:** `/all` is now the default entry point. `/search` and `/research` become specialized tools for explicit user preferences, not auto-routing decisions.
+**Key Change:** `/all` is now the default entry point. `/find` and `/web` become specialized tools for explicit user preferences, not auto-routing decisions.
 
 ## Performance Implications
 
 ### Local-Only Queries (Fast Path)
 - User: "what did we discuss about auth"
 - Action: `/all` auto mode → local backends → quality check passes → no web search
-- Cost: <1s (same as `/search`)
+- Cost: <1s (same as `/find`)
 - Benefit: Single tool, no mental overhead
 
 ### Code Search Queries (Fast Path)
@@ -168,16 +168,16 @@ These require explicit user choice:
 
 ```bash
 # User explicitly wants local-only
-"/search 'what did we discuss'"  # Guaranteed local-only
+"/find 'what did we discuss'"  # Guaranteed local-only
 
 # User explicitly wants web-only
-"/research 'React patterns'"     # Guaranteed web-only
+"/web 'React patterns'"     # Guaranteed web-only
 ```
 
 ## Fallback Behavior
 
 If `/all` auto-triggers but results are poor:
-1. User can explicitly invoke `/search` or `/research`
+1. User can explicitly invoke `/find` or `/research`
 2. Skill routing respects explicit tool invocation
 3. No permanent state change from auto-triggering
 
@@ -186,7 +186,7 @@ If `/all` auto-triggers but results are poor:
 ### Metrics to Track
 
 1. **Auto-trigger rate**: How often `/all` activates without explicit `/all`
-2. **Fallback rate**: How often users switch to `/search` or `/research` after auto-trigger
+2. **Fallback rate**: How often users switch to `/find` or `/web` after auto-trigger
 3. **User satisfaction**: Implicit via low fallback rate
 
 ### Success Indicators
@@ -202,7 +202,7 @@ If monitoring shows issues:
 | Issue | Symptom | Fix |
 |-------|---------|-----|
 | Under-triggering | Low auto-trigger rate | Add more trigger phrases |
-| Over-triggering | High fallback to `/search` | Narrow "ALWAYS" directive scope |
+| Over-triggering | High fallback to `/find` | Narrow "ALWAYS" directive scope |
 | Code-search collision | Users confused with `/serena` | Add "do_not use for code" in description |
 
 ## Comparison with Serena

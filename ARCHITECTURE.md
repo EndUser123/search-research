@@ -18,8 +18,8 @@ search-research provides a unified search and research system consolidating:
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │                     Consumer Layer                            │
-│  - /search command (SearchRouter - FAST mode)                 │
-│  - /research command (ResearchRouter - COMPREHENSIVE mode)   │
+│  - `/find` command (SearchRouter - FAST mode)                    │
+│  - `/web` command (ResearchRouter - COMPREHENSIVE mode)         │
 │  - Python API (UnifiedRouter - CUSTOM mode)                  │
 └─────────────────────────────┬────────────────────────────────┘
                               │
@@ -786,9 +786,9 @@ timeout = 5
 ### End-to-End Tests
 
 **Test Flows:**
-1. User searches code patterns (`/search "FastAPI patterns"`)
-2. User researches best practices (`/research "FastAPI best practices"`)
-3. User enables web search (`/search "FastAPI" --web`)
+1. User searches code patterns (`/find "FastAPI patterns"`)
+2. User researches best practices (`/web "FastAPI best practices"`)
+3. User enables web search (`/find "FastAPI" --web`)
 4. User with no API keys (graceful degradation)
 
 ---

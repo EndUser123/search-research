@@ -6,9 +6,9 @@ Unified search and research package for Claude Code — local code/knowledge sea
 
 | Skill | Purpose | Home |
 |-------|---------|------|
-| /explore | Universal search (local + web) with three-layer filtering | `all/` |
-| /search | Fast local-only search (CHS, CKS, Code, Docs) | `search/` |
-| /research | Comprehensive web research with multiple providers | `research/` |
+| `/find` | Fast local-only search (CHS, CKS, Code, Docs) | `find/` |
+| `/web` | Comprehensive web research with multiple providers | `web/` |
+| `/all` | Universal search (local + web) with three-layer filtering | `all/` |
 | /chs | Chat History Search | `chs/` |
 | /export-session | Export session chain to markdown (thin wrapper over /chs export) | `export-session/` |
 | /discover | Intelligent codebase pattern discovery (ML-enhanced) | `discover/` |

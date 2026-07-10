@@ -3,7 +3,7 @@
 ## Summary
 ✅ **BACKUP SYSTEM IS COMPLETE AND PRODUCTION-READY**
 
-The session backup system is fully implemented with dual-layer archival, graceful error handling, and integration into `/search`. The system will automatically archive all Claude Code sessions to a searchable SQLite database before the 21-day cleanup cycle deletes them.
+The session backup system is fully implemented with dual-layer archival, graceful error handling, and integration into `/find`. The system will automatically archive all Claude Code sessions to a searchable SQLite database before the 21-day cleanup cycle deletes them.
 
 ## Architecture
 
@@ -21,7 +21,7 @@ The session backup system is fully implemented with dual-layer archival, gracefu
 
 3. **VaultBackend** (`core/backends/local/vault_backend.py`)
    - Already registered in `router_async.py`
-   - Provides `/search --source vault` full-text search over vault.db
+   - Provides `/find --source vault` full-text search over vault.db
    - FTS5 + LIKE fallback for 100% coverage
 
 4. **Hook Registration** (`hooks/hooks.json`)
@@ -38,7 +38,7 @@ The session backup system is fully implemented with dual-layer archival, gracefu
 
 ✅ **99% Availability**: Hooks never block cleanup (exit code 0 on all errors)
 ✅ **Data Integrity**: UUID deduplication prevents duplicates across import cycles
-✅ **Search Integration**: Archived sessions searchable via `/search --source vault`
+✅ **Search Integration**: Archived sessions searchable via `/find --source vault`
 ✅ **Graceful Degradation**: If claude-vault crashes, system continues normally
 ✅ **Silent Operation**: SessionEnd hook doesn't spam logs
 
