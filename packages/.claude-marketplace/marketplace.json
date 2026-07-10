@@ -43,7 +43,7 @@
     },
     {
       "name": "cc-skills-ai-api",
-      "version": "1.0.15",
+      "version": "1.0.16",
       "description": "AI API integration skills for Claude Code",
       "source": "./plugins/cc-skills-ai-api",
       "keywords": [
