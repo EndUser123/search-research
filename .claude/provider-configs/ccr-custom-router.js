@@ -398,6 +398,14 @@ module.exports = async function router(req, config) {
       const r = resolveModelToRoute(rec.recommended_model);
       if (r) return decide(r, "background — classifier haiku rec", "classifier");
     }
+    // #1378: even on the fall-through, CCR routes to config.Router.background
+    // (opencode-go). decide(null) skips the if(route)-guarded strip, but
+    // opencode-go still rejects the reasoning field on {thinking, tools}
+    // payloads — so strip here too.
+    const bgRoute = config?.Router?.background;
+    if (typeof bgRoute === "string" && bgRoute.startsWith("opencode-go")) {
+      stripThinkingForOpencodeGo(req, "opencode-go");
+    }
     return decide(null, "background — fall through to CCR Router.background", "default");
   }
 
