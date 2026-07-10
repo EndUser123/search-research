@@ -275,6 +275,31 @@ Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
     spec in view — the transcript's own retrospective ("I had the valuable datum,
     discarded it") says otherwise.
 
+22. [OPEN] **Reflexivity exemption: the producer certifies its own artifact.** Root cause
+    behind adversarial-review findings F1/F3/F4/F5 (2026-07-10): Claude's own outputs —
+    extraction scripts, measurement scores, self-attributed root causes, "no residuals
+    found" — bypass the evidence standards applied to everything else. Verified instances:
+    a mislabeled lane file certified clean; author-as-judge measurement with post-hoc
+    subset; two flattering root-cause attributions ("salience" for a convenience choice,
+    "couldn't find" for didn't-look).
+    Fix (structural principle, not a gate): PRODUCER ≠ VERIFIER at every level.
+    (a) Measurements: scorer did not author the prompts (now #1398 acceptance criterion;
+    generalize into #1085 gate-discrimination harness). (b) Self-reviews: an external/
+    subagent adversarial pass is part of the review contract, not user-triggered — the
+    2026-07-10 review that found F1-F8 becomes the standing final step; cost ≈ one
+    subagent run, measured discrimination of the external-ask form is 9-10/10.
+    (c) Completion claims: SPAWN_COMPLETION_VERIFIER already in flight (#1352-#1354) —
+    same principle, cite don't duplicate.
+    Companion sub-item — **blocked actions vanish** (finding F2): a gate denial is a
+    machine-visible event with no consumer, so a blocked mitigation silently became a
+    deferred task with no residual filed. Fix by REUSE: stop_blocks.jsonl + PreToolUse
+    denial logs already exist; add a Stop/SessionEnd consumer listing "denied writes
+    with no subsequent successful retry" in the session residue, and extend
+    cc-lazy-closure-debt (whose exact mission is deferral tracking) to ingest
+    gate-denial events as a new input class.
+    This would be wrong if producer≠verifier adds latency/cost exceeding its catch rate
+    — measurable once #15 telemetry counts external-pass findings per session.
+
 21. [OPEN] **Unrepresented uncertainty: residuals get narrated, not registered.** C1 applied
     to uncertainty itself. Observed 2026-07-09 (search-research /find session): a fix left an
     unexplained residual (NotebookLM query still failing) and the report papered it with an
