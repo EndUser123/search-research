@@ -192,3 +192,49 @@ def test_no_claim_text_empty_extraction() -> None:
     response = "The investigation contracts say that refactoring is ongoing."
     names = _extract_module_names_impl(response)
     assert names == [], f"expected empty, got: {names}"
+
+
+# ── Fix (b): real production path + quote-exemption ────────────────────────
+
+
+def test_real_extraction_with_quote_exemption() -> None:
+    """Exercises the real _extract_claim_sentence_text which uses search_unquoted.
+
+    A quoted removal claim ("cleanup complete" inside backtick fences) must NOT
+    be treated as a claim sentence, even though the words match.  The inline
+    test copies above drop this exemption (quote_exemption.search_unquoted vs
+    plain pattern.search), so this test covers the actual production path.
+    """
+    import sys as _sys
+    from pathlib import Path as _Path
+    from importlib import import_module as _import_module
+
+    # Bootstrap path from module root (same as the guard's own bootstrap)
+    _mod_root = _Path(__file__).resolve().parent.parent / "hooks" / "stop"
+    if str(_mod_root) not in _sys.path:
+        _sys.path.insert(0, str(_mod_root))
+    _guard = _import_module("Stop_removal_completeness_guard")
+
+    # Text where the only claim window is inside a fenced quote
+    response = """The system is fully operational.
+
+```
+Cleanup is complete — all temporary files were removed.
+```
+
+Also the migration ran without errors."""
+    result = _guard._extract_claim_sentence_text(response)
+    assert result.strip() == "", (
+        f"Expected empty (claim is inside quotes), got: {result!r}"
+    )
+
+    # Positive control: same text without the fence must extract the sentence
+    response_unquoted = """The system is fully operational.
+
+Cleanup is complete — all temporary files were removed.
+
+Also the migration ran without errors."""
+    result2 = _guard._extract_claim_sentence_text(response_unquoted)
+    assert "Cleanup is complete" in result2, (
+        f"Expected unquoted claim to be extracted, got: {result2!r}"
+    )

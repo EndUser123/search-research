@@ -39,19 +39,6 @@ _hooks_dir = bootstrap(__file__)
 # --- end bootstrap ---
 
 
-
-
-# --- plugin bootstrap ---
-import sys
-from pathlib import Path
-
-_lib = Path(__file__).resolve().parent.parent.parent / "__lib"
-if str(_lib) not in sys.path:
-    sys.path.insert(0, str(_lib))
-from _bootstrap import bootstrap
-_hooks_dir = bootstrap(__file__)
-# --- end bootstrap ---
-
 def _normalize_stdout(data: dict) -> dict:
     if data.get('decision') == 'allow':
         return {'decision': 'approve'}
@@ -144,15 +131,26 @@ def _extract_claim_sentence_text(text: str) -> str:
     unrelated prose (e.g. "investigation contracts say") from producing
     module names via the file-path extractor.
     """
-    from quote_exemption import search_unquoted
+    from quote_exemption import finditer_unquoted
 
-    sentences: list[str] = []
-    # Heuristic sentence split: delimiters that separate independent claims
-    for m in re.finditer(r"[^.!?\n]*[.!?\n]", text):
-        sentence = m.group(0)
-        if search_unquoted(REMOVAL_COMPLETION_PATTERNS, sentence):
-            sentences.append(sentence)
-    return " ".join(sentences)
+    # Collect sentence spans first (full positions in the original text)
+    sentence_spans = list(re.finditer(r"[^.!?\n]*[.!?\n]", text))
+
+    # Find claim matches in the ORIGINAL text via finditer_unquoted, so the
+    # quote-exemption check sees fence markers, blockquotes, and quoted spans
+    # in their full context — not a per-sentence substring that lacks them.
+    seen_spans: set[tuple[int, int]] = set()
+    claim_sentences: list[str] = []
+    for match in finditer_unquoted(REMOVAL_COMPLETION_PATTERNS, text):
+        claim_pos = match.start()
+        for span_m in sentence_spans:
+            span_key = (span_m.start(), span_m.end())
+            if span_key not in seen_spans and span_m.start() <= claim_pos < span_m.end():
+                seen_spans.add(span_key)
+                claim_sentences.append(span_m.group(0))
+                break
+
+    return " ".join(claim_sentences)
 
 
 def _extract_module_names(response: str) -> list[str]:
