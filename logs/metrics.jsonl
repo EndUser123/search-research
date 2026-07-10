@@ -1962,3 +1962,14 @@
 {"timestamp": "2026-07-09T19:37:21.194664", "component": "SEARCH_PROVIDER", "latency_ms": 7329.7857999568805, "tokens_used": 0, "cache_hit": false, "output_quality": 0.85, "branch": "main"}
 {"timestamp": "2026-07-09T19:37:21.653085", "component": "SEARCH_PROVIDER", "latency_ms": 486.7479999666102, "tokens_used": 0, "cache_hit": false, "output_quality": 0.95, "branch": "main"}
 {"timestamp": "2026-07-09T19:37:46.636515", "component": "SEARCH_PROVIDER", "latency_ms": 25474.704699998256, "tokens_used": 0, "cache_hit": false, "output_quality": 0.5, "branch": "main"}
+{"timestamp": "2026-07-09T19:38:18.407304", "component": "INTENT_DISPATCH", "latency_ms": 0.23880001390352845, "tokens_used": 0, "cache_hit": false, "output_quality": 0.0, "branch": "main"}
+{"timestamp": "2026-07-09T19:38:22.796868", "component": "SEARCH_PROVIDER", "latency_ms": 4388.505300041288, "tokens_used": 0, "cache_hit": false, "output_quality": 0.7, "branch": "main"}
+{"timestamp": "2026-07-09T19:38:22.798765", "component": "SEARCH_PROVIDER", "latency_ms": 4386.345500010066, "tokens_used": 0, "cache_hit": false, "output_quality": 0.85, "branch": "main"}
+{"timestamp": "2026-07-09T19:38:23.432210", "component": "SEARCH_PROVIDER", "latency_ms": 639.5308999926783, "tokens_used": 0, "cache_hit": false, "output_quality": 0.95, "branch": "main"}
+{"timestamp": "2026-07-09T19:38:52.488884", "component": "SEARCH_PROVIDER", "latency_ms": 29702.261800004635, "tokens_used": 0, "cache_hit": false, "output_quality": 0.5, "branch": "main"}
+{"timestamp": "2026-07-09T19:38:52.491732", "component": "INTENT_DISPATCH", "latency_ms": 0.32249995274469256, "tokens_used": 0, "cache_hit": false, "output_quality": 0.0, "branch": "main"}
+{"timestamp": "2026-07-09T19:38:52.721429", "component": "INTENT_DISPATCH", "latency_ms": 0.34440000308677554, "tokens_used": 0, "cache_hit": false, "output_quality": 0.0, "branch": "main"}
+{"timestamp": "2026-07-09T19:38:57.515460", "component": "SEARCH_PROVIDER", "latency_ms": 4793.096700042952, "tokens_used": 0, "cache_hit": false, "output_quality": 0.7, "branch": "main"}
+{"timestamp": "2026-07-09T19:38:57.518107", "component": "SEARCH_PROVIDER", "latency_ms": 4795.316100004129, "tokens_used": 0, "cache_hit": false, "output_quality": 0.85, "branch": "main"}
+{"timestamp": "2026-07-09T19:38:58.335656", "component": "SEARCH_PROVIDER", "latency_ms": 822.586499969475, "tokens_used": 0, "cache_hit": false, "output_quality": 0.95, "branch": "main"}
+{"timestamp": "2026-07-09T19:39:31.121877", "component": "SEARCH_PROVIDER", "latency_ms": 33613.35869994946, "tokens_used": 0, "cache_hit": false, "output_quality": 0.5, "branch": "main"}
