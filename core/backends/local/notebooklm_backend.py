@@ -80,35 +80,17 @@ class NotebookLMBackend(BaseLocalBackend):
         """Check if stderr indicates an authentication failure."""
         return any(pat in stderr for pat in self.AUTH_ERROR_PATTERNS)
 
-    def _check_auth(self) -> bool:
-        """Preflight auth via `nlm login --check` — the /nlm skill's auth-check method.
+    def _is_auth_failure(self, stderr: str, stdout: str = "") -> bool:
+        """True if auth-error wording appears in stderr OR stdout.
 
-        Returns True when credentials are valid. Used to distinguish a real auth
-        failure from a transient query error when stderr is empty/non-descriptive.
+        nlm emits auth failures as JSON on STDOUT with empty stderr — e.g. rc=1 and
+        stdout='{"status":"error","error":"Query failed: Authentication expired...
+        re-authenticate..."}'. A stderr-only check misses every real auth failure,
+        and a `nlm login --check` preflight is unreliable (it returns valid even when
+        the query endpoint sees the creds as expired). Inspecting stdout is the only
+        reliable signal, so check both streams.
         """
-        try:
-            result = subprocess.run(
-                ["nlm", "login", "--check"],
-                capture_output=True,
-                text=True,
-                timeout=NLM_LIST_TIMEOUT,
-            )
-            return result.returncode == 0
-        except Exception:
-            return False
-
-    def _is_auth_failure(self, stderr: str) -> bool:
-        """True if this looks like an auth failure worth a re-login attempt.
-
-        Pattern match first (cheap, specific). Otherwise, when stderr is empty —
-        nlm often exits nonzero with no stderr — preflight with `nlm login --check`;
-        if that also fails, treat the whole thing as auth.
-        """
-        if self._is_auth_error(stderr):
-            return True
-        if not (stderr or "").strip():
-            return not self._check_auth()
-        return False
+        return self._is_auth_error(stderr) or self._is_auth_error(stdout)
 
     def _run_nlm_sync(self, args: list[str], timeout: int) -> str | None:
         """Run nlm CLI synchronously. Used by sync search()."""
@@ -121,10 +103,10 @@ class NotebookLMBackend(BaseLocalBackend):
             )
             if result.returncode != 0:
                 stderr = result.stderr
-                if self._is_auth_failure(stderr):
-                    logger.warning("NotebookLM auth failed; running `nlm login` + retry.")
+                if self._is_auth_failure(stderr, result.stdout or ""):
+                    logger.warning("NotebookLM auth failed; running `nlm login --force` + retry.")
                     login_result = subprocess.run(
-                        ["nlm", "login"],
+                        ["nlm", "login", "--force"],
                         capture_output=True,
                         text=True,
                         timeout=30,
@@ -180,11 +162,12 @@ class NotebookLMBackend(BaseLocalBackend):
 
             if proc.returncode != 0:
                 stderr_str = stderr.decode() if stderr else ''
-                if self._is_auth_failure(stderr_str):
-                    logger.warning("NotebookLM auth failed; running async `nlm login` + retry.")
-                    # Attempt re-login and retry once (cookie-based, non-blocking)
+                stdout_str = stdout.decode() if stdout else ''
+                if self._is_auth_failure(stderr_str, stdout_str):
+                    logger.warning("NotebookLM auth failed; running async `nlm login --force` + retry.")
+                    # Attempt re-login (--force clears stale/cross-account creds) and retry once
                     login_proc = await asyncio.create_subprocess_exec(
-                        "nlm", "login",
+                        "nlm", "login", "--force",
                         stdout=asyncio.subprocess.PIPE,
                         stderr=asyncio.subprocess.PIPE,
                     )
