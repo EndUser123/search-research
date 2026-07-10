@@ -76,7 +76,7 @@ schema (`__lib/findings_schema.py`):
       "evidence": "<quoted source / command output — required>",
       "confidence": "high|medium|low",
       "fix": "<correct the claim, or remove it, or add the missing evidence>",
-      "claim_type": "existence|static-shape|behavior|non-code"
+      "claim_type": "existence|static-shape|behavior|non-code|scope-completeness"
     }
   ]
 }

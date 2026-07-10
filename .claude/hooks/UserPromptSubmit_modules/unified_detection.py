@@ -60,7 +60,16 @@ def ensure_unified_detection_result(context: HookContext) -> UnifiedDetectionRes
         if isinstance(result, UnifiedDetectionResult):
             return result
 
-    result = detect_prompt(context.prompt)
+    # Fall back through the envelope-aware path so quoted/fenced content
+    # cannot contribute to detection signals. If the envelope is available
+    # (set by unified_detection_hook or ensure_request_envelope), use its
+    # outer_text; otherwise use the raw prompt for backward compatibility.
+    _outer = None
+    if isinstance(data, dict):
+        _env = data.get("request_envelope")
+        if _env is not None:
+            _outer = getattr(_env, "outer_text", None)
+    result = detect_prompt(context.prompt, _outer_text=_outer)
     if isinstance(data, dict):
         data["unified_detection_result"] = result
         data.setdefault("unified_detection_source", "computed")

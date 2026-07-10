@@ -257,12 +257,24 @@ def synergy_detector_hook(context: HookContext) -> HookResult:
         frameworks = result.matched_frameworks
         modes = result.matched_modes
     else:
-        # Fallback to direct detection if result is missing (for testing/legacy)
-        from UserPromptSubmit_modules.unified_detection import detect_prompt
-
-        detection = detect_prompt(context.prompt)
-        frameworks = detection.matched_frameworks
-        modes = detection.matched_modes
+        # Fallback: use ensure_unified_detection_result which passes through
+        # the envelope-aware outer_text path (preferred over direct
+        # detect_prompt which cannot see the envelope). This should rarely
+        # fire in production because unified_detection_hook (priority 1.0)
+        # caches its result before this hook runs.
+        try:
+            from UserPromptSubmit_modules.unified_detection import ensure_unified_detection_result
+            result = ensure_unified_detection_result(context)
+            frameworks = result.matched_frameworks
+            modes = result.matched_modes
+        except Exception:
+            # Last resort: direct detection with raw prompt (no envelope).
+            # Marked as legacy/test path — real production runs always
+            # have the cached detection result.
+            from UserPromptSubmit_modules.unified_detection import detect_prompt
+            detection = detect_prompt(context.prompt)
+            frameworks = detection.matched_frameworks
+            modes = detection.matched_modes
 
     # Detect synergies using the matrix defined in this module
     match = detect_synergies(frameworks, modes)

@@ -29,6 +29,7 @@ Key principles (enforced structurally):
 | Execution | Subagent-first for non-trivial |
 | Cost Tiering | Use the cheapest model that does the job properly. Default mechanical tasks (search, extraction, formatting, classification) to haiku/local models; escalate to sonnet/opus only when quality demonstrably requires it. Same rule for embeddings and rerankers. |
 | Validation | All components > partial claims |
+| Completion Loop | For implementation/change tasks, complete the work, then run `/verify` against the relevant target and `/simplify` for non-trivial code changes when applicable; state why either is skipped. |
 | Decisiveness | Recommend > options (for trivial) |
 | Context | LLM has conversation history — don't build parsers for what's already in context |
 | Look Up First | Search/read docs BEFORE speculating |

@@ -115,7 +115,7 @@ The orchestrator never holds specialist findings in its own context — only fil
       "evidence": "<quoted code/tool output/citation — required for BLOCK/REVISE>",
       "confidence": "high|medium|low",
       "fix": "<concrete correction>",
-      "claim_type": "existence|static-shape|behavior|non-code"
+      "claim_type": "existence|static-shape|behavior|non-code|scope-completeness"
     }
   ]
 }

@@ -115,7 +115,15 @@ def operating_rules(context: HookContext) -> HookResult:
         return HookResult.empty()
 
     prompt = context.prompt or ""
-    if not _should_fire(prompt):
+    # Use the canonical envelope outer_text so quoted/fenced content
+    # cannot trigger operating-rule injection.
+    try:
+        from UserPromptSubmit_modules.unified_detection import ensure_request_envelope
+        _env = ensure_request_envelope(context)
+        _outer = _env.outer_text if _env is not None else None
+    except Exception:
+        _outer = None
+    if not _should_fire(prompt, _outer_text=_outer):
         return HookResult.empty()
 
     result_context = {

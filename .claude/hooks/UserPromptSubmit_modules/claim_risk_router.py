@@ -105,14 +105,14 @@ _PATH_LAYOUT_RE = re.compile(
 )
 
 
-def _should_fire(prompt: str) -> bool:
+def _should_fire(prompt: str, *, _outer_text: str | None = None) -> bool:
     stripped = prompt.strip()
     if len(stripped) < _MIN_PROMPT_LENGTH:
         return False
     if _SKIP_RE.match(stripped):
         return False
 
-    intent = classify_intent(stripped)
+    intent = classify_intent(stripped, _outer_text=_outer_text)
     if intent in {"CORRECTION", "DEBUG", "RESEARCH"}:
         return True
 
@@ -185,7 +185,15 @@ def _build_injection(prompt: str) -> str:
 @register_hook("claim_risk_router", priority=7.5)
 def claim_risk_router(context: HookContext) -> HookResult:
     prompt = context.prompt or ""
-    if not _should_fire(prompt):
+    # Use the canonical envelope outer_text so quoted/fenced content
+    # cannot trigger claim-risk routing.
+    try:
+        from UserPromptSubmit_modules.unified_detection import ensure_request_envelope
+        _env = ensure_request_envelope(context)
+        _outer = _env.outer_text if _env is not None else None
+    except Exception:
+        _outer = None
+    if not _should_fire(prompt, _outer_text=_outer):
         return HookResult.empty()
 
     injection = _build_injection(prompt)
