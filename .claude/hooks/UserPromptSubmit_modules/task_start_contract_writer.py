@@ -29,6 +29,26 @@ from typing import Any
 from UserPromptSubmit_modules.base import HookContext, HookResult
 from UserPromptSubmit_modules.registry import register_hook
 
+# Quote-aware request envelope (owned by unified_detection). Imported here so
+# detection runs against outer user-authored text only — quoted/fenced proposal
+# content can never contribute implementation/diagnostic intent signals.
+try:
+    from UserPromptSubmit_modules.request_envelope import strip_quoted_spans as _strip_spans
+    from UserPromptSubmit_modules.unified_detection import ensure_request_envelope
+except ImportError:  # pragma: no cover - test/standalone import paths
+    from request_envelope import strip_quoted_spans as _strip_spans  # type: ignore[no-redef]
+
+    def ensure_request_envelope(context):  # type: ignore[misc]
+        return None
+
+
+def _outer_text(prompt: str) -> str:
+    """Return prompt with quoted/fenced/blockquote spans removed (outer text)."""
+    if not prompt:
+        return ""
+    outer, _spans = _strip_spans(prompt)
+    return outer.strip()
+
 # Import the task contract helper (already implemented)
 try:
     from __lib.task_contract import load_contract, save_contract, clear_contract
@@ -102,10 +122,12 @@ _RESEARCH_DESIGN_ALT = (
 )
 _RESEARCH_DESIGN_RE = re.compile(r'\b(' + _RESEARCH_DESIGN_ALT + r')\b', re.IGNORECASE)
 
-# Code change patterns
+# Code change patterns. Bare "make" deliberately excluded — "make sense" / "make
+# sure" must never classify as implementation. Detection runs on outer text
+# (see _outer_text) so quoted proposal content cannot contribute either.
 _CODE_CHANGE_ALT = (
     r'implement|add\s+(?:a\s+)?|create\s+(?:a\s+)?|'
-    r'build|write|develop|introduce|make|fix\s+the?|'
+    r'build|write|develop|introduce|fix\s+the?|'
     r'patch|resolve|repair|update\s+(?:function|module|class|method)|'
     r'add\s+(?:to|into|in)|modify\s+(?:function|module|class|method)|'
     r'change\s+(?:the\s+)?(?:code|function|logic|behavior)|'
@@ -120,33 +142,37 @@ def _classify_task_type(prompt: str) -> TaskType:
 
     Separates 'what kind of task' from 'which contract applies'.
     Only CODE_CHANGE and CODE_DIAGNOSIS get the full code contract.
+
+    Detection runs on outer text (quotes/fences removed) so quoted proposal
+    content cannot signal implementation/diagnosis.
     """
     if not prompt:
         return TaskType.OTHER
 
-    lower = prompt.lower()
     normalized = prompt.strip()
+    outer = _outer_text(prompt)
 
-    # Check for operational/ingest tasks first (highest specificity)
+    # Check for operational/ingest tasks first (highest specificity) — operate
+    # on the raw prompt so slash commands like /crawl still resolve.
     if _OPERATIONAL_INGEST_RE.search(normalized):
         return TaskType.OPERATIONAL_INGEST
 
-    # Check for research/design tasks
-    if _RESEARCH_DESIGN_RE.search(normalized):
+    # Check for research/design tasks — on outer text.
+    if _RESEARCH_DESIGN_RE.search(outer):
         return TaskType.RESEARCH_DESIGN
 
-    # Code diagnosis: explicit diagnostic signals
-    has_diag_kw = any(kw in lower for kw in _BUG_DIAGNOSIS_TRIGGERS)
-    has_diag_q = _BUG_DIAGNOSIS_QUESTION_RE.search(normalized)
+    # Code diagnosis: explicit diagnostic signals (outer text only)
+    has_diag_kw = bool(_BUG_DIAGNOSIS_TRIGGERS_RE.search(outer))
+    has_diag_q = bool(_BUG_DIAGNOSIS_QUESTION_RE.search(outer) or _BUG_DIAGNOSIS_SHORT_QUESTION_RE.match(outer.strip()) or _BUG_DIAGNOSIS_CAUSE_RE.search(outer))
     if has_diag_kw and has_diag_q:
         return TaskType.CODE_DIAGNOSIS
 
-    # Code change: explicit action/creation signals
-    if _CODE_CHANGE_RE.search(normalized):
+    # Code change: explicit action/creation signals (outer text only)
+    if _CODE_CHANGE_RE.search(outer):
         return TaskType.CODE_CHANGE
 
-    # Refactor is a code change
-    if _REFACTOR_RE.search(normalized):
+    # Refactor is a code change (outer text only)
+    if _REFACTOR_RE.search(outer):
         return TaskType.CODE_CHANGE
 
     return TaskType.OTHER
@@ -154,7 +180,17 @@ def _classify_task_type(prompt: str) -> TaskType:
 
 # ── Detection patterns ────────────────────────────────────────────────────────
 
-# Bug diagnosis: diagnostic keywords + question/causal indicators
+# Bug diagnosis: diagnostic keywords + question/causal indicators.
+# Word-boundary regex; no bare substring matches like "crash" inside "crash
+# recovery policy doc". Multi-word phrases use \s+ to avoid "race condition"
+# matching "race" alone.
+_BUG_DIAGNOSIS_TRIGGERS_RE = re.compile(
+    r"\b(?:crash(?:es|ing)?|errors?|fails?|failing|failed|failure|"
+    r"bugs?|issues?|broken|undefined|null|exception|traceback|"
+    r"underflow|overflow|deadlock|race\s+condition|stack\s+trace)\b",
+    re.IGNORECASE,
+)
+# Legacy frozenset retained for any external consumer / introspection.
 _BUG_DIAGNOSIS_TRIGGERS = frozenset({
     "crash", "crashing", "crashes",
     "error", "errors",
@@ -183,7 +219,13 @@ _BUG_DIAGNOSIS_CAUSE_RE = re.compile(
     re.IGNORECASE
 )
 
-# Bug fix: fix keywords but NOT exploration keywords
+# Bug fix: word-boundary regex for fix keywords (not bare substring "fix").
+_FIX_TRIGGERS_RE = re.compile(
+    r"\b(?:fix(?:es|ed|ing)?|patch(?:es|ed|ing)?|resolve[ds]?|"
+    r"resolving|repair(?:s|ed|ing)?|recover(?:s|ed|ing)?|heal(?:s|ed|ing)?)\b",
+    re.IGNORECASE,
+)
+# Legacy frozenset retained for compatibility.
 _FIX_TRIGGERS = frozenset({
     "fix", "fixing", "fixed",
     "patch", "patching",
@@ -199,7 +241,16 @@ _EXPLORATION_RE = re.compile(
     re.IGNORECASE
 )
 
-# Implementation: create/build/write WITHOUT fix
+# Implementation: word-boundary regex. NOTE: bare "make" is intentionally
+# excluded — "make sense", "make sure" must never trigger implementation.
+_IMPL_TRIGGERS_RE = re.compile(
+    r"\b(?:implement(?:s|ed|ing|ation)?|create[ds]?|creating|"
+    r"build(?:s|ing|built)?|writ(?:e|es|ing|ten)?|develop(?:s|ed|ing|ment)?|"
+    r"add(?:s|ed|ing)?|introduce[ds]?|introducing)\b",
+    re.IGNORECASE,
+)
+# Legacy frozenset (for introspection / external callers; not used in
+# detection after the word-boundary migration).
 _IMPL_TRIGGERS = frozenset({
     "implement", "implementation",
     "create", "creating", "created",
@@ -263,39 +314,45 @@ def _detect_task_class(prompt: str) -> str | None:
     Returns:
         One of: "bug_diagnosis", "bug_fix", "implementation", "refactor",
         "architecture_recommendation", or None (not a task start).
+
+    Detection runs against OUTER TEXT (quotes/fences/blockquote stripped) so
+    quoted proposal content cannot contribute intent signals. Word-boundary
+    regexes replace substring `in` checks; bare "make" is intentionally
+    excluded from impl triggers.
     """
     if not prompt:
         return None
 
     normalized = prompt.strip()
-    lower = normalized.lower()
+    outer = _outer_text(prompt)
+    outer_lower = outer.lower()
 
     # Skip control commands
     if _CONTROL_RE.match(normalized):
         return None
 
     # ── bug_diagnosis ──────────────────────────────────────────────────────────
-    has_diag_kw = any(kw in lower for kw in _BUG_DIAGNOSIS_TRIGGERS)
-    has_question_kw = _BUG_DIAGNOSIS_QUESTION_RE.search(normalized)
-    has_short_question = _BUG_DIAGNOSIS_SHORT_QUESTION_RE.match(normalized)
-    has_cause_question = _BUG_DIAGNOSIS_CAUSE_RE.search(normalized)
+    has_diag_kw = bool(_BUG_DIAGNOSIS_TRIGGERS_RE.search(outer))
+    has_question_kw = bool(_BUG_DIAGNOSIS_QUESTION_RE.search(outer))
+    has_short_question = bool(_BUG_DIAGNOSIS_SHORT_QUESTION_RE.match(outer))
+    has_cause_question = bool(_BUG_DIAGNOSIS_CAUSE_RE.search(outer))
     # Must have diagnostic keyword AND (question word OR causal indicator)
     if has_diag_kw and (has_question_kw or has_short_question or has_cause_question):
         return "bug_diagnosis"
 
     # ── bug_fix ───────────────────────────────────────────────────────────────
-    has_fix_kw = any(kw in lower for kw in _FIX_TRIGGERS)
-    has_exploration = _EXPLORATION_RE.search(normalized)
-    has_impl_kw = any(kw in lower for kw in _IMPL_TRIGGERS)
+    has_fix_kw = bool(_FIX_TRIGGERS_RE.search(outer))
+    has_exploration = bool(_EXPLORATION_RE.search(outer))
+    has_impl_kw = bool(_IMPL_TRIGGERS_RE.search(outer))
     # When both fix and impl keywords present, impl takes precedence
     # (e.g., "fix the build script" → impl, "build a fix" → impl)
     if has_fix_kw and not has_exploration and not has_impl_kw:
         # Additional check: must not be a question (bug_diagnosis handles questions)
-        if "?" not in normalized or "fix" in lower:
+        if "?" not in outer or "fix" in outer_lower:
             return "bug_fix"
 
     # ── implementation ────────────────────────────────────────────────────────
-    has_impl_exclude = _IMPL_EXCLUDE_RE.search(normalized)
+    has_impl_exclude = bool(_IMPL_EXCLUDE_RE.search(outer))
     if has_impl_kw and not has_impl_exclude:
         return "implementation"
 
@@ -305,11 +362,11 @@ def _detect_task_class(prompt: str) -> str | None:
         return None
 
     # ── refactor ──────────────────────────────────────────────────────────────
-    if _REFACTOR_RE.search(normalized):
+    if _REFACTOR_RE.search(outer):
         return "refactor"
 
     # ── architecture_recommendation ────────────────────────────────────────────
-    if _ARCH_RE.search(normalized):
+    if _ARCH_RE.search(outer):
         return "architecture_recommendation"
 
     return None
@@ -465,18 +522,41 @@ def task_start_contract_writer(context: HookContext) -> HookResult:
     - AFTER skill detection hooks (so we can avoid conflicts with skill contracts)
     - BEFORE most context injection hooks
 
+    Quote-aware + fail-open: the shared request envelope classifies the prompt
+    into evaluation / implementation / diagnosis / research / status / mixed /
+    ambiguous. Only implementation + diagnosis may create code contracts;
+    evaluation, research, status, mixed, and ambiguous prompts never create a
+    contract — even when implementation/diagnosis words appear inside quoted
+    proposal text.
+
     Context-aware continuation:
     - If explicit task phrasing → create/update as now
     - If ambiguous phrasing BUT active contract exists from recent turns → update
-    - If ambiguous AND no active contract → skip as now
+    - If evaluation/research/status/mixed → never update (fail open).
     """
     # Extract terminal_id; fall back to PID+cwd hash when WT_SESSION is absent
     terminal_id = context.terminal_id or _fallback_terminal_id()
 
     prompt = context.prompt or ""
-    prompt_lower = prompt.lower()
+    outer = _outer_text(prompt)
 
-    # First: try explicit task class detection
+    # Quote-aware request envelope (owned by unified_detection). If unavailable
+    # for any reason, fall through to the legacy behavior below.
+    envelope = ensure_request_envelope(context)
+    if envelope is not None:
+        # Fail-open gate: non-action modes never create a code contract.
+        if envelope.mode in ("evaluation", "research", "status", "mixed"):
+            _log_telemetry("contract_skip", terminal_id, {
+                "reason": f"{envelope.mode}_mode",
+                "envelope_reason": envelope.reason,
+                "outer_preview": outer[:50],
+                "prompt_preview": prompt[:50],
+            })
+            return HookResult.empty()
+        # Ambiguous + no clear action signal: defer to legacy detection below;
+        # if nothing resolves, continue skip path naturally.
+
+    # First: try explicit task class detection (now quote-aware + word-boundary)
     task_class = _detect_task_class(prompt)
 
     if task_class is None:
@@ -484,19 +564,25 @@ def task_start_contract_writer(context: HookContext) -> HookResult:
         # Check for context-aware continuation: ambiguous prompt + active contract + dev keywords
         existing = load_contract(terminal_id)
         if existing and existing.get("status") != "completed":
-            # Only update if existing contract is a code type
-            existing_class = existing.get("task_class", "")
-            code_classes = {"bug_diagnosis", "bug_fix", "implementation", "refactor"}
-            has_dev_keywords = any(kw in prompt_lower for kw in _SOFTWARE_DEV_KEYWORDS)
-            if existing_class in code_classes and has_dev_keywords:
-                # Ambiguous prompt but follows an active code task - update existing contract
-                action = _ensure_contract(terminal_id, existing_class, prompt)
-                _log_telemetry("contract_context_update", terminal_id, {
-                    "action": action,
-                    "reason": "ambiguous_with_active_contract",
-                    "prompt_preview": prompt[:50],
-                })
-                return HookResult.empty()
+            # Only update if existing contract is a code type AND envelope mode
+            # is genuinely ambiguous (not evaluation/research/status/mixed).
+            envelope_allows_continuation = (
+                envelope is None or envelope.mode == "ambiguous"
+            )
+            if envelope_allows_continuation:
+                existing_class = existing.get("task_class", "")
+                code_classes = {"bug_diagnosis", "bug_fix", "implementation", "refactor"}
+                # Dev-keyword check runs on OUTER text so quoted content cannot
+                # manufacture a continuation signal.
+                has_dev_keywords = any(kw in outer.lower() for kw in _SOFTWARE_DEV_KEYWORDS)
+                if existing_class in code_classes and has_dev_keywords:
+                    action = _ensure_contract(terminal_id, existing_class, prompt)
+                    _log_telemetry("contract_context_update", terminal_id, {
+                        "action": action,
+                        "reason": "ambiguous_with_active_contract",
+                        "prompt_preview": prompt[:50],
+                    })
+                    return HookResult.empty()
 
         # No explicit task AND no context for continuation → skip
         _log_telemetry("contract_skip", terminal_id, {

@@ -67,6 +67,39 @@ def ensure_unified_detection_result(context: HookContext) -> UnifiedDetectionRes
     return result
 
 
+# ── Request envelope ownership ────────────────────────────────────────────────
+# unified_detection owns the quote-aware request envelope (see request_envelope.py).
+# Other hooks consume it via ensure_request_envelope(context) instead of
+# re-implementing prompt classification.
+try:
+    from UserPromptSubmit_modules.request_envelope import (
+        RequestEnvelope,
+        analyze_prompt as _analyze_request_envelope,
+    )
+except ImportError:  # pragma: no cover - test/standalone import paths
+    from request_envelope import (  # type: ignore[no-redef]
+        RequestEnvelope,
+        analyze_prompt as _analyze_request_envelope,
+    )
+
+
+def ensure_request_envelope(context: HookContext) -> RequestEnvelope:
+    """Return the shared quote-aware request envelope, computing + caching it.
+
+    Cached on context.data so every hook in a turn sees the same decomposition.
+    Quoted/fenced content never contributes intent signals (see request_envelope).
+    """
+    data = getattr(context, "data", None)
+    if isinstance(data, dict):
+        env = data.get("request_envelope")
+        if isinstance(env, RequestEnvelope):
+            return env
+    env = _analyze_request_envelope(getattr(context, "prompt", "") or "")
+    if isinstance(data, dict):
+        data["request_envelope"] = env
+    return env
+
+
 # =============================================================================
 # COGNITIVE FRAMEWORKS (10 total)
 # =============================================================================

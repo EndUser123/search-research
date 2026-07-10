@@ -827,13 +827,12 @@ def _load_hooks() -> None:
         priority=5.0,
     )
 
-    # Load prompt_enhancement from prompting-toolkit package
-    # Package structure: P:/packages/prompting-toolkit/packages/hook/prompting_toolkit/
-    _try_import_hook(
-        module_name="prompt_enhancement",
-        module_path="prompting_toolkit.enhancement",
-        # Module self-registers via @register_hook decorator
-    )
+    # NOTE: A previous registration loaded `prompt_enhancement` from the
+    # `prompting-toolkit` package at P:/packages/prompting-toolkit/. That package
+    # no longer exists; the canonical prompt-enhancer is a marketplace plugin
+    # (settings.json `prompt-enhancer` -> __lib/router.py UserPromptSubmit). The
+    # dead registration was a silent no-op (_try_import_hook swallowed the
+    # ImportError); removed so the dead reference does not mislead future readers.
 
 
     # Load skill_forced_eval from skill-guard package
