@@ -97,6 +97,10 @@ def main() -> int:
     ap.add_argument("--root", default="P:/.claude")
     ap.add_argument("--packages", default="P:/packages")
     ap.add_argument("--imports", action="store_true", help="also try importing hooks (side effects!)")
+    ap.add_argument("--emit-catalog", action="store_true",
+                    help="WRITE hooks/HOOKS_CATALOG.md from filesystem + registration data (overwrites)")
+    ap.add_argument("--state-gc-days", type=int, default=30,
+                    help="flag state files older than N days (default 30; report-only, never deletes)")
     args = ap.parse_args()
 
     root = Path(args.root)
@@ -233,7 +237,35 @@ def main() -> int:
             if "_archive" not in f.parts:
                 fail("HYGIENE", f"stale copy in live dir: {f.relative_to(root)} (move to hooks/_archive/ or rely on git)")
 
-    # --- 7. IMPORTS (opt-in) ---------------------------------------------------
+    # --- 7. STATE_GC (report-only, never deletes) ----------------------------
+    # Flag files in hooks/state/, hooks/session_data/, and *.json.1 rotation debris
+    # older than --state-gc-days. No mutation; deletion is a separate task.
+    gc_cutoff = time.time() - args.state_gc_days * 86400
+    for sd in (hooks_dir / "state", hooks_dir / "session_data"):
+        if not sd.exists():
+            continue
+        for f in sd.rglob("*"):
+            if not f.is_file() or "__pycache__" in f.parts:
+                continue
+            try:
+                mtime = f.stat().st_mtime
+            except OSError:
+                continue
+            if mtime < gc_cutoff:
+                age_days = (time.time() - mtime) / 86400
+                fail("STATE_GC", f"{f.relative_to(root)}: age {age_days:.1f}d > {args.state_gc_days}d threshold")
+    for f in hooks_dir.rglob("*.json.1"):
+        if "__pycache__" in f.parts or "_archive" in f.parts:
+            continue
+        try:
+            mtime = f.stat().st_mtime
+        except OSError:
+            continue
+        if mtime < gc_cutoff:
+            age_days = (time.time() - mtime) / 86400
+            fail("STATE_GC", f"{f.relative_to(root)}: rotation debris {age_days:.1f}d old")
+
+    # --- 8. IMPORTS (opt-in) ---------------------------------------------------
     if args.imports:
         import importlib.util
         sys.path.insert(0, str(hooks_dir))
@@ -250,9 +282,49 @@ def main() -> int:
                 fail("IMPORTS", f"{py.name}: {type(e).__name__}: {e}")
 
     # --- report -----------------------------------------------------------------
-    checks = ["REGISTRATION", "SYNTAX", "DANGLING_PATHS", "CATALOG_DRIFT", "STATS_ANOMALY", "HYGIENE"]
+    checks = ["REGISTRATION", "SYNTAX", "DANGLING_PATHS", "CATALOG_DRIFT", "STATS_ANOMALY", "HYGIENE", "STATE_GC"]
     if args.imports:
         checks.append("IMPORTS")
+
+    # --- --emit-catalog: regenerate HOOKS_CATALOG.md from ground truth ----------
+    if args.emit_catalog:
+        catalog = hooks_dir / "HOOKS_CATALOG.md"
+        settings_cmds: list = []
+        try:
+            settings = json.loads((root / "settings.json").read_text(encoding="utf-8"))
+            settings_cmds = list(iter_settings_commands(settings))
+        except Exception:
+            pass
+        plugin_py: list = []
+        if plugin_root.exists():
+            plugin_py += [(p, "plugin/hooks") for p in plugin_root.glob("*/hooks/*.py")]
+            plugin_py += [(p, "plugin/skill/hooks") for p in plugin_root.glob("*/skills/*/hooks/*.py")]
+            plugin_py += [(p, "plugin/__lib/router") for p in plugin_root.glob("*/__lib/router.py")]
+        registered = {Path(norm(sp)).name for _, _, cmd in settings_cmds
+                      for sp in script_paths_from_command(cmd)}
+        out = ["# CSF Hooks Catalog", "",
+               "> Regenerated from filesystem + settings.json by `hooks_audit.py --emit-catalog`.",
+               "> Every row is observed, not hand-curated. Hand-curated perspectives",
+               "> (by domain / enforcement / ownership) belong in a separate doc on top of this.",
+               "", f"Last regenerated: {time.strftime('%Y-%m-%d %H:%M:%S')}", "",
+               f"- Hooks on disk: {len(py_files)} in hooks/, {len(plugin_py)} in plugin dirs.",
+               f"- settings.json commands: {len(settings_cmds)}.", "",
+               "## settings.json dispatch", "",
+               "| Event | Matcher | Script |", "|-------|---------|--------|"]
+        for ev, ma, cmd in settings_cmds:
+            for sp in script_paths_from_command(cmd):
+                out.append(f"| {ev} | `{ma}` | `{sp}` |")
+        out += ["", "## Hooks on disk", "", "| Path | In settings? | Where |",
+                "|------|--------------|-------|"]
+        for p, where in sorted([(x, "hooks/") for x in py_files] + plugin_py, key=lambda t: str(t[0])):
+            try:
+                rel = p.relative_to(root)
+            except ValueError:
+                rel = p
+            tag = "yes" if p.name in registered else "-"
+            out.append(f"| `{rel}` | {tag} | {where} |")
+        catalog.write_text("\n".join(out) + "\n", encoding="utf-8")
+        print(f"emitted: {catalog} ({len(py_files) + len(plugin_py)} hooks)")
     print(f"hooks_audit: scanned {len(py_files)} hook files under {hooks_dir}")
     for cat in checks:
         msgs = failures.get(cat, [])
