@@ -1,10 +1,10 @@
-# Explore (`/explore`)
+# Explore (`/all`)
 
 **True universal search across your local data AND the web.**
 
 ## What It Does
 
-The `/explore` command searches **EVERYTHING** in one query:
+The `/all` command searches **EVERYTHING** in one query:
 - ✅ Your chat history (CHS)
 - ✅ Your knowledge base (CKS)
 - ✅ Your source code
@@ -14,7 +14,7 @@ The `/explore` command searches **EVERYTHING** in one query:
 
 Results are **merged and ranked by relevance** so you get the best information from all sources.
 
-## Why Use `/explore`?
+## Why Use `/all`?
 
 ### Problem: Two separate searches
 ```bash
@@ -25,7 +25,7 @@ Results are **merged and ranked by relevance** so you get the best information f
 
 ### Solution: One unified search
 ```bash
-/explore "async patterns"
+/all "async patterns"
 # → Shows your notes + web tutorials, ranked together
 ```
 
@@ -33,19 +33,19 @@ Results are **merged and ranked by relevance** so you get the best information f
 
 ### Basic (auto mode)
 ```bash
-/explore "python async patterns"
+/all "python async patterns"
 # Fast local results first, web search if needed
 ```
 
 ### Comprehensive (unified mode)
 ```bash
-/explore "authentication best practices" --mode unified
+/all "authentication best practices" --mode unified
 # Always searches both local AND web
 ```
 
 ### Local-only (fast, private)
 ```bash
-/explore "what did we discuss" --mode local-only
+/all "what did we discuss" --mode local-only
 # Same as /search, no web API calls
 ```
 
@@ -82,57 +82,57 @@ Results show **source indicators** so you know where each result came from:
 
 **Status:** ✅ Complete
 
-The `/explore` skill uses the `UnifiedAsyncRouter` implementation:
+The `/all` skill uses the `UnifiedAsyncRouter` implementation:
 - **Core:** `P://packages/search-research/core/unified_router.py`
 - **Quality checks:** `P://packages/search-research/core/quality_checker.py`
 - **RRF fusion:** `P://packages/search-research/core/hybrid_ensemble.py`
 
-**Script:** `P://packages/search-research/skills/explore/explore.py`
+**Script:** `P://packages/search-research/skills/all/all.py`
 
 ## Migration from `/search` + `/research`
 
 | Old Way | New Way |
 |---------|---------|
-| `/search "X"` then `/research "X"` | `/explore "X"` |
+| `/search "X"` then `/research "X"` | `/all "X"` |
 | Mental merge required | Automatic merge |
 | Two commands | One command |
 
 **When to still use `/search` or `/research`:**
 - `/search` - Only want local results (faster, private)
 - `/research` - Only want web results (no local clutter)
-- `/explore` - Want everything (recommended for most cases)
+- `/all` - Want everything (recommended for most cases)
 
 ## Examples
 
 ```bash
 # Find everything about async patterns
-/explore "python async patterns"
+/all "python async patterns"
 
 # Comprehensive search with more results
-/explore "authentication" --mode unified --limit 20
+/all "authentication" --mode unified --limit 20
 
 # Fast local-only search
-/explore "what did we discuss about hooks" --mode local-only
+/all "what did we discuss about hooks" --mode local-only
 
 # Verify your local knowledge is current
-/explore "vector database best practices" --mode web-fallback
+/all "vector database best practices" --mode web-fallback
 ```
 
 ## Quick Start
 
 1. **Basic universal search:**
    ```bash
-   /explore "your query here"
+   /all "your query here"
    ```
 
 2. **Force comprehensive search:**
    ```bash
-   /explore "query" --mode unified
+   /all "query" --mode unified
    ```
 
 3. **Local-only (like /search):**
    ```bash
-   /explore "query" --mode local-only
+   /all "query" --mode local-only
    ```
 
 That's it! No need to run `/search` and `/research` separately anymore.
