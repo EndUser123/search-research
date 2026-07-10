@@ -292,6 +292,16 @@ class HookImporter:
             - error: str - Error message if hook failed
             - output: str - Captured stdout from hook
         """
+        # Telemetry: count importer-dispatched hook firings (best-effort).
+        try:
+            try:
+                from hook_stats import record
+            except ImportError:
+                from __lib.hook_stats import record
+            record(f"importer:{hook_name}", "fire")
+        except Exception:
+            pass
+
         input_data = ""
         input_context: dict[str, Any] = {}
 

@@ -260,6 +260,13 @@ def main() -> int:
         stdin_text = sys.stdin.read()
         stdin_data = json.loads(stdin_text)
 
+        # Telemetry: count dispatcher firings (best-effort; never breaks the hook).
+        try:
+            from __lib.hook_stats import record
+            record(f"log_hook:{stdin_data.get('hook_event_name', 'unknown')}", "fire")
+        except Exception:
+            pass
+
         log_timestamp = int(time.time())
         log_date = datetime.now().strftime("%a %b %d %H:%M:%S %Y")
 

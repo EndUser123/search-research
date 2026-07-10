@@ -353,6 +353,16 @@ def safe_run(hook_path: str | Path, timeout: float | None = None) -> int:
     hook_path = Path(hook_path).resolve()
     hook_name = hook_path.stem
 
+    # Telemetry: count this hook's firings via the runner (best-effort).
+    try:
+        try:
+            from hook_stats import record
+        except ImportError:
+            from __lib.hook_stats import record
+        record(f"hook_runner:{hook_name}", "fire")
+    except Exception:
+        pass
+
     # Verify hook exists
     if not hook_path.exists():
         error_msg = f"Hook file not found: {hook_path}"
