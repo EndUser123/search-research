@@ -218,53 +218,6 @@ describe("classifyRisk", () => {
 	});
 
 	// Safe-text downgrade: PRODUCTION_KEYWORD alone against a doc target is
-	// a false positive (the keyword appears in chat context, doc snippets,
-	// or example text). Downgrade to MED so the user has to record a plan
-	// but does not need manual approval.
-	it("downgrades PRODUCTION_KEYWORD + safe-text path to MED", () => {
-		const a = classifyRisk({
-			...base,
-			prompt: "the transcript mentions production but only the doc is changing",
-			candidatePaths: [".claude/templates/foo.md"],
-		});
-		assert.equal(a.tier, "MED");
-		assert.ok(a.matchedRules.includes("PRODUCTION_KEYWORD_SAFE_TEXT"));
-		assert.ok(!a.matchedRules.includes("PRODUCTION_KEYWORD"));
-	});
-
-	it("downgrades PRODUCTION_KEYWORD for .markdown and .txt targets", () => {
-		const a = classifyRisk({
-			...base,
-			prompt: "rotate the credential",
-			candidatePaths: ["CHANGELOG.markdown", "notes.txt"],
-		});
-		assert.equal(a.tier, "MED");
-		assert.ok(a.matchedRules.includes("PRODUCTION_KEYWORD_SAFE_TEXT"));
-	});
-
-	it("does NOT downgrade when a code path accompanies a safe-text path", () => {
-		// Mixed targets: the keyword mention is no longer just a chat-context
-		// artifact — there is a real code change in scope. Keep HIGH.
-		const a = classifyRisk({
-			...base,
-			prompt: "ship the deploy now",
-			candidatePaths: ["README.md", "src/app.ts"],
-		});
-		assert.equal(a.tier, "HIGH");
-		assert.ok(a.matchedRules.includes("PRODUCTION_KEYWORD"));
-		assert.ok(!a.matchedRules.includes("PRODUCTION_KEYWORD_SAFE_TEXT"));
-	});
-
-	it("does NOT downgrade PRODUCTION_KEYWORD with no candidate paths", () => {
-		// No path = uncertain scope; the keyword might be a real production
-		// intent. Keep HIGH so the gate's existing protections apply.
-		const a = classifyRisk({
-			...base,
-			prompt: "rotate the credential",
-		});
-		assert.equal(a.tier, "HIGH");
-	});
-
 	it("manual override returns that tier with overridden=true", () => {
 		const a = classifyRisk({
 			...base,
@@ -467,6 +420,35 @@ describe("extractInstructionSegment", () => {
 		});
 		assert.notEqual(a.tier, "HIGH", `expected MED, got ${a.tier} with reasons ${JSON.stringify(a.reasons)}`);
 		assert.ok(!a.matchedRules.includes("PRODUCTION_KEYWORD"));
+	});
+
+	it("LIMITATION: instruction-before-context returns the context, not the instruction", () => {
+		// Known limitation: the splitter takes the last paragraph. When the
+		// user puts their actual question BEFORE the context, the heuristic
+		// returns the context. The classifier then scans the context (which
+		// may contain production keywords from the chat paste) and may
+		// false-positive. The user-side workaround is to put the instruction
+		// at the end of the message.
+		const prompt = "What do you think about this?\n\nThe previous LLM said: deploy to production now.";
+		const instruction = extractInstructionSegment(prompt);
+		assert.equal(instruction, "The previous LLM said: deploy to production now.");
+	});
+
+	it("LIMITATION: with instruction-before-context, the classifier still HIGH-fires on the context", () => {
+		// Documents the end-to-end behavior for the known limitation. If
+		// this test regresses (e.g., a future heuristic starts handling
+		// instruction-before-context), update or remove this test.
+		const prompt = "What do you think about this?\n\nThe previous LLM said: deploy to production now.";
+		const instruction = extractInstructionSegment(prompt);
+		const a = classifyRisk({
+			cwd: "/repo",
+			prompt: instruction,
+			candidatePaths: [],
+			proposedCommands: [],
+			config: DEFAULT_CONFIG,
+		});
+		assert.equal(a.tier, "HIGH");
+		assert.ok(a.matchedRules.includes("PRODUCTION_KEYWORD"));
 	});
 });
 

@@ -115,34 +115,6 @@ export function classifyRisk(input: {
 	}
 
 	if (matchedRules.size > 0) {
-		// Safe-text downgrade: text files (.md/.markdown/.txt) cannot be
-		// executed, sourced, or imported. PRODUCTION_KEYWORD is a heuristic
-		// that fires on pasted chat context, doc snippets, and example text.
-		// If PRODUCTION_KEYWORD is the SOLE HIGH signal and every candidate
-		// path is a safe text file, downgrade to MED — the user still has to
-		// record a plan, but manual approval (HIGH) is overkill for a doc
-		// edit. Real production damage requires a code path or a command;
-		// the keyword check alone, against a text target, is a false positive.
-		if (
-			matchedRules.size === 1 &&
-			matchedRules.has("PRODUCTION_KEYWORD") &&
-			normalizedPaths.length > 0 &&
-			normalizedPaths.every((p) =>
-				SAFE_TEXT_EXTENSIONS.some((ext) => p.toLowerCase().endsWith(ext)),
-			)
-		) {
-			return {
-				tier: "MED",
-				reasons: [
-					"Production keyword in prompt, but only safe text paths targeted — downgraded from HIGH",
-				],
-				matchedRules: ["PRODUCTION_KEYWORD_SAFE_TEXT"],
-				candidatePaths: normalizedPaths,
-				proposedCommands: normalizedCommands,
-				promptSummary: summarizePrompt(input.prompt ?? ""),
-				overridden: false,
-			};
-		}
 		return {
 			tier: "HIGH",
 			reasons: [...reasons],
