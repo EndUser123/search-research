@@ -62,7 +62,7 @@ def test_definition_extraction() -> bool:
     sample_content = """
     # Research System Enhancements
     ## Overview
-    The /research command has been enhanced with:
+    The /web command has been enhanced with:
     - **HyDE (Hypothetical Document Embeddings)** using GLM-4.7
     - **Query Expansion** using CKS QueryExpander
     """

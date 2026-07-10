@@ -207,7 +207,7 @@ CKS is part of the unified search ecosystem:
 - **Search** (`src/features/search/`) - Unified search router
 - **CDS** - Code Documentation Search (part of search backends)
 
-The `/search` command orchestrates queries across CKS, CHS, CDS, and other backends.
+The `/find` command orchestrates queries across CKS, CHS, CDS, and other backends.
 
 ## Per-File Learning Tracking
 

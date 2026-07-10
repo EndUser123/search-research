@@ -262,7 +262,7 @@ class MLKnowledgeProcessor:
         # Define command-specific findings
         command_findings = [
             MLResearchFinding(
-                title="/explore Command Enhancement Path Identified",
+                title="/all Command Enhancement Path Identified",
                 category=MLKnowledgeCategory.EXPLORE_COMMAND,
                 confidence_level=0.85,
                 evidence_sources=[
