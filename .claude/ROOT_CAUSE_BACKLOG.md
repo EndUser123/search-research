@@ -173,8 +173,12 @@ Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
     overrode an explicit /wiki invocation — message shape as proxy for invocation intent;
     (d) two gates issued contradictory instructions in one turn (authority gate: don't write;
     intent-misalignment Stop: you didn't write) — direct #9 evidence.
-    Fix: rekey, don't multiply. (1) Session authorization ledger — grants persist until
-    revoked; authority gate consults ledger, not last-message grammar. (2) Evidence-window
+    Fix: rekey, don't multiply. (1) Session INSTRUCTION ledger — both GRANTS and
+    PROHIBITIONS persist until revoked; recorded the moment the user issues them;
+    consulted at action time by the model and by the authority gate (not last-message
+    grammar); durable instructions also persisted to memory. Scope widened 2026-07-09:
+    a user prohibition ("no pi for measurements") was violated for path-convenience —
+    prose instructions decay in context salience; ledger rows don't. (2) Evidence-window
     gate fires on claim content (Fixed/Verified/Root-Cause assertions about existing state),
     not tool+time; new-artifact writes exempt. (3) Explicit /skill invocation overrides
     scope heuristics unconditionally. Gives #9's cull its discriminating principle: gates

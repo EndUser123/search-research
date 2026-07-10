@@ -471,7 +471,7 @@ $env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION = "llama.cpp · ornith-1.0-9b@q4_
 # entity that depends on the require()-cached file AND has no fallback chain. Free
 # (hits local llama.cpp, no provider quota) and ~1s. External routes (opus/sonnet/
 # haiku) have fallback chains and are audited via `cc-ccr -Test`.
-if ($ccrFreshlyStarted) {
+if ($ccrFreshlyStarted -and $localModelHealth) {
     try {
         $probeHeaders = @{ "Authorization" = "Bearer $env:ANTHROPIC_AUTH_TOKEN"; "anthropic-version" = "2023-06-01"; "Content-Type" = "application/json" }
         $probeBody = @{ model = "claude-local-ornith"; max_tokens = 8; messages = @(@{ role = "user"; content = "hi" }) } | ConvertTo-Json -Depth 5 -Compress

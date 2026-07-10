@@ -56,6 +56,56 @@ Do not change multiple things at once. Each experiment needs the new logging to 
 
 This whole approach is wrong if the crash is **external** (power blip, Windows update, thermal shutdown, GPU hardware fault). Check `windows_events` for `Kernel-Power` (41) or thermal events before assuming it's a llama.cpp config issue. If those are present, no config change will fix it — it's a hardware/environment problem.
 
+## Diagnostic decision tree (use this BEFORE reading dossiers)
+
+The dossier directory may be **empty** even when the model is down. This happens when the launcher itself exited (not llama-server crashing). Follow this tree:
+
+```
+1. Is there a llama-server process?
+   ├─ YES, running → check inference (HUNG path below)
+   └─ NO, not running →
+      ├─ Is there a run-ornith-server.ps1 (launcher) process?
+      │  ├─ YES → launcher alive but llama-server died → check dossier + .err
+      │  └─ NO → launcher also dead →
+      │     ├─ Check .err log: does it end with an error line?
+      │     │  ├─ YES (CUDA error, assertion) → llama-server crash
+      │     │  └─ NO (ends mid-generation, no error) →
+      │     │     → EXTERNAL KILL: launcher was killed (window closed, OS
+      │     │       process kill, user llama-stop), finally block killed
+      │     │       llama-server. NOT a crash — the model was healthy when
+      │     │       killed. No dossier because the while-loop never detected
+      │     │       the exit (the launcher process itself was dying).
+      │     └─ Check .err archives for prior REAL crash signatures
+```
+
+## HUNG state (loaded but inference times out)
+
+**Symptom:** `cc-ccr -start` reports `local model HUNG (loaded, inference failed:
+The request was canceled due to the configured HttpClient.Timeout of 15 seconds
+elapsing.)`. Port 8010 is bound, /health passes, /v1/models returns the model,
+but actual inference requests hang.
+
+**What this means:** the GGUF is loaded in VRAM, but the GPU compute is stuck.
+Possible causes: CUDA deadlock (uncorrectable), KV cache corruption, or a
+prior massive request consuming the single slot under --parallel 1 (the probe
+queued behind it and timed out).
+
+**What to do:**
+1. Check the `.err` log tail — does it end mid-generation (no error)?
+   That confirms a GPU hang, not a process crash.
+2. `llama-stop; llama-start` — kills and restarts. The fresh process
+   reloads the GGUF cleanly. GPU state resets.
+3. If HUNG recurs rapidly (within minutes), the GPU may need a driver-level
+   reset (`nvidia-smi -r` or system reboot). This is a hardware/driver issue,
+   not a llama.cpp config issue.
+
+**No dossier for HUNG:** the dossier fires on process EXIT. A HUNG model
+hasn't exited — it's alive but not responding. The `.err` log is the only
+evidence source. The watchdog doesn't detect HUNG either (it probes rungs
+1-4 only, no inference, to avoid --parallel 1 slot contention). This is
+a deliberate design choice (avoid killing a healthy busy server), but it
+means HUNG requires manual detection via `cc-ccr -start` or `cc-ccr -usage`.
+
 ## Symptom patches already shipped (NOT the root cause)
 
 These make crashes less painful but don't prevent them:
