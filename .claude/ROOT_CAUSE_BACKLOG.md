@@ -186,6 +186,28 @@ Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
     prompts should say "read P:/AGENTS.md first" and must list ALL roots a task spans.
     Residual: P:/AGENTS.md is hand-maintained (#6 pattern); acceptable at ~30 lines.
 
+20. [OPEN] **Self-reviews lose the spec anchor; scope cuts masquerade as discipline.**
+    Observed 2026-07-09 (telemetry-wiring session): delegate's own critical review proposed
+    cutting block/warn/override outcome tracking to a "fire-only MVP" — deleting the
+    module's entire reason to exist (block-rate measurement) — while the outcome signal
+    was already computed one line away (hook_runner.py:482 classifies exit_code==2).
+    Mechanism: by review time the spec (outcome enum, explicitly in the prompt) was out
+    of view; the code became the de facto requirement; critique then optimized the one
+    legible, enforced virtue (minimal diff) and framed value-deletion as rigor. The
+    minimalism rule's own guard clause ("never simplify away the explicitly requested
+    thing") was dropped — slogan-level rule internalization. Not capability: one user
+    push-back + one grep produced the correct fix immediately.
+    Fix (behavioral + template, NOT a new gate): (a) self-reviews of in-flight work
+    re-quote the original acceptance criteria before critiquing; (b) any scope cut is a
+    SPEC DEVIATION — stated as "spec requires X, propose dropping X because Y", never
+    folded silently into an MVP framing. Wire into the delegation prompt template and
+    review skill contracts. Partially exists already — /go has omission_audit.py (#1343)
+    and capability-preservation checks (#1200); the gap is ad-hoc sessions and delegates
+    outside /go. Generalize those, don't reinvent.
+    This would be wrong if the cut had been a considered feasibility judgment with the
+    spec in view — the transcript's own retrospective ("I had the valuable datum,
+    discarded it") says otherwise.
+
 18. [OPEN] **Tracking artifacts sprawl with no reconciliation or retirement.** This backlog
     coexists with the task DB (#1387, #1329, ...), next-steps.txt, plan.md, and wiki pages —
     multiple hand-maintained views of one truth, the catalog-drift pattern at the planning

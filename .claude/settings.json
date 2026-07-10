@@ -386,7 +386,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/skills/go/scripts/go_continuation_gate.py"
+            "command": "python P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/__lib/router.py Stop"
           }
         ]
       }
