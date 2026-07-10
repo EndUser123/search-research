@@ -253,7 +253,7 @@ results = await router.search_async(
 ### 2. With CLI Commands
 
 ```python
-# /search command
+# /find command
 intent = detector.detect_intent(user_query)
 if intent.intent == ModeIntent.LOCAL_ONLY:
     # Use FAST mode (<1s)

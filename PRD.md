@@ -29,13 +29,13 @@ Create a unified `search-research` package that provides:
 - **Fast local search** for code/knowledge (<1s)
 - **Comprehensive web search** with external providers (5-10s)
 - **Intelligent routing** based on query intent
-- **Unified API** for both `/search` and `/research` commands
+- **Unified API** for both `/find` and `/web` commands
 
 ### 1.3 Success Metrics
 
 - **Performance**: FAST mode <1s, COMPREHENSIVE mode 5-10s
 - **Functionality**: All existing backends work in new package
-- **Integration**: Both `/search` and `/research` use new package
+- **Integration**: Both `/find` and `/web` use new package
 - **Testing**: >90% code coverage, integration tests pass
 - **Adoption**: Migration completed within 4 weeks
 
@@ -204,17 +204,17 @@ class SearchResult:
 
 ### 3.3 CLI Integration
 
-#### FR-10: /search Command
+#### FR-10: /find Command
 
-The `/search` command SHALL:
+The `/find` command SHALL:
 - Use `SearchRouter` by default (FAST mode)
 - Support `--web` flag to include web providers
 - Support `--auto` flag for intelligent routing
 - Maintain backward compatibility with existing flags
 
-#### FR-11: /research Command
+#### FR-11: /web Command
 
-The `/research` command SHALL:
+The `/web` command SHALL:
 - Use `ResearchRouter` (COMPREHENSIVE mode)
 - Support all existing providers and modes
 - Maintain backward compatibility with existing CLI
@@ -283,8 +283,8 @@ The `/research` command SHALL:
 
 #### NFR-9: Backward Compatibility
 
-- Existing `/search` workflows MUST continue working
-- Existing `/research` workflows MUST continue working
+- Existing `/find` workflows MUST continue working
+- Existing `/web` workflows MUST continue working
 - Result format MUST be backward compatible
 
 ---
@@ -387,8 +387,8 @@ The `/research` command SHALL:
 ### 5.5 Phase 5: Consumer Integration (Week 3)
 
 **Deliverables:**
-- `/search` updated to use new package
-- `/research` updated to use new package
+- `/find` updated to use new package
+- `/web` updated to use new package
 - Backward compatibility maintained
 
 **Tasks:**
@@ -400,8 +400,8 @@ The `/research` command SHALL:
 6. Migration testing
 
 **Acceptance Criteria:**
-- ✅ `/search` works with new package
-- ✅ `/research` works with new package
+- ✅ `/find` works with new package
+- ✅ `/web` works with new package
 - ✅ Existing workflows unaffected
 - ✅ No performance regressions
 - ✅ Documentation updated
@@ -461,9 +461,9 @@ The `/research` command SHALL:
 ### 6.4 End-to-End Tests
 
 **Test Flows:**
-1. User searches code patterns (`/search "FastAPI patterns"`)
-2. User researches best practices (`/research "FastAPI best practices"`)
-3. User enables web search (`/search "FastAPI" --web`)
+1. User searches code patterns (`/find "FastAPI patterns"`)
+2. User researches best practices (`/web "FastAPI best practices"`)
+3. User enables web search (`/find "FastAPI" --web`)
 4. User with no API keys (graceful degradation)
 
 ---
@@ -568,7 +568,7 @@ The `/research` command SHALL:
 - ✅ Web backends work with API keys
 - ✅ Graceful degradation without keys
 - ✅ >90% test coverage
-- ✅ Integration with `/search` and `/research`
+- ✅ Integration with `/find` and `/web`
 
 ### 10.2 Should Have (P1)
 

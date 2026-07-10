@@ -5,7 +5,7 @@ Complete session backup and archival system that ensures your Claude Code sessio
 ## Overview
 
 This system automatically archives Claude Code sessions to a local SQLite database (`vault.db`) before cleanup happens, making them:
-- **Searchable** - Find old session content via `/search --source vault`
+- **Searchable** - Find old session content via `/find --source vault`
 - **Persistent** - Sessions are never lost to Claude Code cleanup
 - **Redundant** - Dual hooks (PreCompact + SessionEnd) ensure no data loss
 
@@ -87,10 +87,10 @@ No action needed. Sessions are archived automatically:
 
 ```bash
 # Search specific vault
-/search "your query" --source vault
+/find "your query" --source vault
 
 # Search across all sources (includes vault)
-/search "your query"
+/find "your query"
 
 # List all archived sessions
 claude-vault list
@@ -262,7 +262,7 @@ Write-Host $env:CLAUDE_PLUGIN_ROOT
 claude-vault list
 
 # 4. Search an archived session
-/search "something you remember discussing" --source vault
+/find "something you remember discussing" --source vault
 ```
 
 ### Manual Verification
@@ -280,23 +280,23 @@ sqlite3 ~/.local/share/claude-vault/vault.db "SELECT COUNT(DISTINCT session_id) 
 # 4. List latest sessions
 claude-vault list --limit 5
 
-# 5. Search via /search
-/search "your query" --source vault
+# 5. Search via /find
+/find "your query" --source vault
 ```
 
-## Integration with `/search`
+## Integration with `/find`
 
 Once `claude-vault` is installed, the vault backend is automatically available:
 
 ```bash
 # Direct vault search
-/search "query" --source vault
+/find "query" --source vault
 
 # Included in default multi-source search
-/search "query"  # Returns results from vault + other sources
+/find "query"  # Returns results from vault + other sources
 
 # Search with filters
-/search "query" --source vault --limit 20
+/find "query" --source vault --limit 20
 ```
 
 Results include:
@@ -352,7 +352,7 @@ claude-vault import
 
 ✓ **Non-Invasive** - Doesn't modify any existing Claude Code files
 
-✓ **Searchable** - Integrated with `/search` command
+✓ **Searchable** - Integrated with `/find` command
 
 ✓ **Reversible** - Delete vault.db anytime to reset
 

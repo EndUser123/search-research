@@ -29,7 +29,7 @@ Each cleanup task has:
    - Backend timeout errors > 2% of queries
 
 3. **Critical path failures**:
-   - `/search` CLI command fails
+   - `/find` CLI command fails
    - `/all` skill returns no results
    - CKS/CHS queries fail
 
@@ -45,7 +45,7 @@ Each cleanup task has:
 git revert cleanup-pre-task-019-YYYYMMDD-HHMM
 
 # 2. Verify tests pass
-pytest P://__csf/tests/lib/search/ -v
+pytest P://__csf/tests/lib/find/ -v
 pytest P://packages/.claude-marketplace/plugins/search-research/tests/ -v
 
 # 3. Verify CLI works
@@ -120,7 +120,7 @@ cleanup-pre-task-020-YYYYMMDD-HHMM
    - Mode routing fails
 
 2. **CLI crashes**:
-   - `/search` skill fails completely
+   - `/find` skill fails completely
    - Search returns no results for all queries
    - Timeout errors on all queries
 
@@ -178,7 +178,7 @@ cleanup-pre-task-021-YYYYMMDD-HHMM
 git revert cleanup-pre-task-022-YYYYMMDD-HHMM
 
 # 2. Verify test discovery
-pytest P://__csf/tests/lib/search/ --collect-only
+pytest P://__csf/tests/lib/find/ --collect-only
 
 # 3. Verify coverage
 pytest P://packages/.claude-marketplace/plugins/search-research/tests/ --cov=search_research --cov-report=term
@@ -206,7 +206,7 @@ cleanup-pre-task-022-YYYYMMDD-HHMM
    - Performance tests fail
 
 2. **CLI issues**:
-   - `/search` skill fails
+   - `/find` skill fails
    - `/all` skill fails
    - Any CLI command crashes
 
@@ -222,7 +222,7 @@ git revert migration-complete-YYYYMMDD
 
 # 2. Run full test suite
 pytest P://packages/.claude-marketplace/plugins/search-research/tests/ -v
-pytest P://__csf/tests/lib/search/ -v
+pytest P://__csf/tests/lib/find/ -v
 
 # 3. Verify all CLI tools
 python P://__csf/src/cli/nip/search_enhanced.py "test query"

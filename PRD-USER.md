@@ -8,12 +8,12 @@
 
 ## 1. Executive Summary
 
-**Problem:** Today, developers must choose between `/search` (code only) and `/research` (web only), and can't combine sources in a single query. Results vary between commands, it's unclear which to use for mixed questions, and many powerful features are hidden behind complex flags.
+**Problem:** Today, developers must choose between `/find` (code only) and `/web` (web only), and can't combine sources in a single query. Results vary between commands, it's unclear which to use for mixed questions, and many powerful features are hidden behind complex flags.
 
 **Solution:** A unified search experience that automatically detects whether you need code, web, or both - and returns the best results from all relevant sources in a single, consistent format. Includes intelligent features like typo tolerance, source credibility scoring, and research report generation.
 
 **Success Criteria:**
-- Single command (`/search`) handles all query types intelligently
+- Single command (`/find`) handles all query types intelligently
 - Mixed queries (code + web) return unified, ranked results
 - Results show clear source attribution (codebase vs web vs credibility)
 - Zero performance regression on existing workflows
@@ -49,13 +49,13 @@
 **Description:** As a developer, I want to use a single command for all my searches so I don't have to think about whether I need code or web results.
 
 **Acceptance Criteria:**
-- [ ] `/search "FastAPI patterns"` returns relevant code from my codebase
-- [ ] `/search "FastAPI best practices"` returns relevant web articles
-- [ ] `/search "how to use FastAPI with websockets"` returns both code examples AND web tutorials
+- [ ] `/find "FastAPI patterns"` returns relevant code from my codebase
+- [ ] `/find "FastAPI best practices"` returns relevant web articles
+- [ ] `/find "how to use FastAPI with websockets"` returns both code examples AND web tutorials
 - [ ] Search completes in <1s for code-only queries
 - [ ] Search completes in 5-10s for web or mixed queries
 - [ ] Results clearly indicate source (local codebase vs web URL)
-- [ ] No need to use `/research` command anymore (it becomes an alias)
+- [ ] No need to use `/web` command anymore (it becomes an alias)
 
 ### US-002: Intelligent Source Selection
 
@@ -98,7 +98,7 @@
 
 **Acceptance Criteria:**
 - [ ] Code-only queries return in <1s (same as today)
-- [ ] Web queries return in 5-10s (same as `/research` today)
+- [ ] Web queries return in 5-10s (same as `/web` today)
 - [ ] Mixed queries parallelize sources (not sequential)
 - [ ] Progress indicator shows which sources are being searched
 - [ ] Can cancel long-running queries with Ctrl+C
@@ -130,7 +130,7 @@
 **Description:** As a developer, I want comprehensive research reports with proper citations when I'm exploring complex topics.
 
 **Acceptance Criteria:**
-- [ ] `/search "topic" --report` generates markdown research summary
+- [ ] `/find "topic" --report` generates markdown research summary
 - [ ] Reports include key insights from multiple sources
 - [ ] Proper citations in APA/MLA format included
 - [ ] Source credibility assessment for each citation
@@ -144,7 +144,7 @@
 **Acceptance Criteria:**
 - [ ] Can filter results by time (last day, week, month)
 - [ ] Can limit results per source (`--per-source 5`)
-- [ ] `/search --stats` shows cache hit rate, backend health
+- [ ] `/find --stats` shows cache hit rate, backend health
 - [ ] Can see which backends are enabled/healthy
 - [ ] Debug mode shows query routing decisions
 
@@ -183,7 +183,7 @@
 
 ## 4. Functional Requirements
 
-**FR-1:** Single command `/search` must handle code-only, web-only, and mixed queries
+**FR-1:** Single command `/find` must handle code-only, web-only, and mixed queries
 **FR-2:** System must automatically detect query intent (code vs web vs both)
 **FR-3:** Results from multiple sources must be merged into unified ranked list
 **FR-4:** Results must show clear source attribution (codebase file vs web URL)
@@ -200,7 +200,7 @@
 **FR-15:** System must show source credibility scores for web results
 **FR-16:** System must generate research reports with citations (APA/MLA formats)
 **FR-17:** System must support time-based filtering (day/week/month)
-**FR-18:** System must expose cache stats and backend health via `/search --stats`
+**FR-18:** System must expose cache stats and backend health via `/find --stats`
 **FR-19:** System must support semantic synthesis of results
 **FR-20:** System must detect and flag contradictions in results
 **FR-21:** System must assess temporal quality of results
@@ -284,8 +284,8 @@
 
 ## 5. Non-Functional Requirements
 
-**NFR-1:** Backward Compatibility - Existing `/search` workflows must continue working
-**NFR-2:** Backward Compatibility - Existing `/research` workflows must continue working
+**NFR-1:** Backward Compatibility - Existing `/find` workflows must continue working
+**NFR-2:** Backward Compatibility - Existing `/web` workflows must continue working
 **NFR-3:** Performance - No regression on code-only search speed
 **NFR-4:** Reliability - >99% of searches return results (no hard failures)
 **NFR-5:** Usability - <5 seconds to learn how to use (intuitive interface)
@@ -295,7 +295,7 @@
 
 ## 6. Success Metrics
 
-- **Adoption:** 80% of users switch to unified `/search` within 2 weeks
+- **Adoption:** 80% of users switch to unified `/find` within 2 weeks
 - **Satisfaction:** 90%+ rate results as "relevant" or "very relevant"
 - **Performance:** 95% of code queries <1s, 95% of web queries <10s
 - **Reliability:** <1% of searches fail completely
@@ -381,7 +381,7 @@
 - Track provider uptime and response times
 - Automatic failover to alternative providers
 - Graceful degradation when all providers exhausted
-- Provider health dashboard in `/search --stats`
+- Provider health dashboard in `/find --stats`
 
 **Internal Dependencies:**
 - **sentence-transformers**: Required for CHS/CKS - 1.5GB model download
@@ -536,13 +536,13 @@ def search(
 **CLI Usage:**
 ```bash
 # Filter to code results only
-/search "FastAPI" --filter source_type=code
+/find "FastAPI" --filter source_type=code
 
 # Show high-score results from last week
-/search "websockets" --filter min_score=0.7,time_range=week
+/find "websockets" --filter min_score=0.7,time_range=week
 
 # Sort by date (newest first)
-/search "async" --sort by=date,order=desc
+/find "async" --sort by=date,order=desc
 ```
 
 ### 10.4 Pagination (FR-36)
@@ -576,13 +576,13 @@ def search(
 **CLI Usage:**
 ```bash
 # Get first page (default 20 results)
-/search "FastAPI" --page 1
+/find "FastAPI" --page 1
 
 # Get second page with 50 results per page
-/search "async" --page 2 --per-page 50
+/find "async" --page 2 --per-page 50
 
 # Show pagination metadata
-/search "patterns" --page 1 --per-page 10 --show-pagination
+/find "patterns" --page 1 --per-page 10 --show-pagination
 # Output: "Showing 1-10 of 847 results (page 1 of 85)"
 ```
 
@@ -647,7 +647,7 @@ timeout = 5
 
 [logging]
 level = "INFO"  # DEBUG, INFO, WARNING, ERROR
-file = "~/.search-research/search.log"
+file = "~/.search-research/find.log"
 ```
 
 ### 11.2 Key Validation (FR-38)
@@ -819,7 +819,7 @@ $ search-research validate
 
 ## 12. Open Questions
 
-- Should `/research` remain as separate command or become alias to `/search`?
+- Should `/web` remain as separate command or become alias to `/find`?
 - Should query intent be logged for privacy? (queries may contain sensitive info)
 - Default behavior if user has no API keys configured?
 - Should HyDE be enabled by default or opt-in?
@@ -832,8 +832,8 @@ $ search-research validate
 **Before (confusing):**
 ```bash
 # User must guess which command to use
-/search "FastAPI patterns"              # Returns code examples
-/research "FastAPI best practices"      # Returns web articles
+/find "FastAPI patterns"              # Returns code examples
+/web "FastAPI best practices"      # Returns web articles
 # No way to combine sources
 # No handling of typos
 # No research reports
@@ -842,18 +842,18 @@ $ search-research validate
 **After (unified):**
 ```bash
 # One command, intelligent routing
-/search "FastAPI patterns"              # Returns code (detected local-only)
-/search "FastAPI best practices"       # Returns web + code (detected web-enhanced)
-/search "how to use FastAPI websockets" # Returns BOTH code examples AND web tutorials
+/find "FastAPI patterns"              # Returns code (detected local-only)
+/find "FastAPI best practices"       # Returns web + code (detected web-enhanced)
+/find "how to use FastAPI websockets" # Returns BOTH code examples AND web tutorials
 
 # Typo tolerance
-/search "FastAPII patterns"             # Returns FastAPI results with "Did you mean?"
+/find "FastAPII patterns"             # Returns FastAPI results with "Did you mean?"
 
 # Research reports
-/search "microservices patterns" --report  # Generates markdown report with citations
+/find "microservices patterns" --report  # Generates markdown report with citations
 
 # Stats and debugging
-/search --stats                         # Shows cache hits, backend health
+/find --stats                         # Shows cache hits, backend health
 ```
 
 ---

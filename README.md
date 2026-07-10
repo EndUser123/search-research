@@ -15,7 +15,7 @@
 - **Fast Local Search** (<1s): Code patterns, documentation, chat history, knowledge base
 - **Comprehensive Web Search** (5-10s): Web providers with HyDE query enhancement
 - **Intelligent Routing**: Auto-detects query intent (local vs web vs mixed)
-- **Unified API**: Single package for both `/search` and `/research` commands
+- **Unified API**: Single package for both `/find` and `/web` commands
 - **Graceful Degradation**: Works without API keys, local always available
 
 ## Installation
@@ -683,7 +683,7 @@ If knowledge graph files are missing or invalid:
 
 ## Integration
 
-### With `/search` Command (CSF)
+### With `/find` Command (CSF)
 
 ```python
 from core import SearchRouter
@@ -693,7 +693,7 @@ results = router.search("FastAPI patterns", limit=10)
 # Fast local search, <1s
 ```
 
-### With `/research` Command (research-skill)
+### With `/web` Command (research-skill)
 
 ```python
 from core import ResearchRouter

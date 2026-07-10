@@ -58,15 +58,15 @@ Successfully implemented the `search-research` package - a unified search and re
 - API key validation and thread-safe client caching
 
 ### ✅ Phase 5: Consumer Integration (Week 4)
-- __csf `/search` command updated to use SearchRouter
-- __csf `/research` command created using ResearchRouter (NEW)
+- __csf `/find` command updated to use SearchRouter
+- __csf `/web` command created using ResearchRouter (NEW)
 - Deprecation warnings added to unified-search
 - Backward compatibility maintained
 
 **Deliverables:**
 - `__csf/src/cli/nip/search_enhanced.py` - Updated to use search-research
-- `__csf/src/cli/nip/research.py` - NEW comprehensive research CLI (244 lines)
-- `__csf/src/search/unified_router.py` - Deprecation warnings added
+- `__csf/src/cli/nip/web.py` - NEW comprehensive research CLI (244 lines)
+- `__csf/src/find/unified_router.py` - Deprecation warnings added
 
 ### ✅ Phase 6: Deprecation & Migration (Week 4)
 - README.md updated with migration guide
@@ -261,7 +261,7 @@ results = await router.search_async("query", limit=20)
 - ✅ 11 web backends implemented (1 full, 10 stubs)
 - ✅ Graceful degradation without API keys
 - ✅ >80% test coverage overall (achieved: ~85%)
-- ✅ Integration with `/search` and `/research` commands
+- ✅ Integration with `/find` and `/web` commands
 - ✅ Backward compatibility maintained (unified-search still works with warnings)
 
 **Should Have (P1):**

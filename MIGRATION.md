@@ -218,48 +218,48 @@ results = await asyncio.gather(*tasks)
 
 ## Step 4: Update CLI Commands
 
-### /search Command
+### /find Command
 
 **Before (unified-search):**
 ```bash
-/search "async patterns" --backend cds grep
+/find "async patterns" --backend cds grep
 ```
 
 **After (search-research):**
 ```bash
-/search "async patterns" --mode FAST --backend cds grep
+/find "async patterns" --mode FAST --backend cds grep
 
 # Or use default (FAST mode)
-/search "async patterns"
+/find "async patterns"
 ```
 
 **New Flags:**
 ```bash
 # Mode selection
-/search "async" --mode FAST           # Local backends only
-/search "async" --mode COMPREHENSIVE  # All backends
-/search "async" --mode CUSTOM         # User-specified
+/find "async" --mode FAST           # Local backends only
+/find "async" --mode COMPREHENSIVE  # All backends
+/find "async" --mode CUSTOM         # User-specified
 
 # Intent detection
-/search "async" --auto                # Auto-detect intent
+/find "async" --auto                # Auto-detect intent
 
 # Web search
-/search "async" --web                 # Include web providers
+/find "async" --web                 # Include web providers
 ```
 
-### /research Command
+### /web Command
 
 **Before (research-skill):**
 ```bash
-/research "async best practices" --providers tavily serper
+/web "async best practices" --providers tavily serper
 ```
 
 **After (search-research):**
 ```bash
-/research "async best practices" --mode COMPREHENSIVE
+/web "async best practices" --mode COMPREHENSIVE
 
 # Or specify backends
-/research "async best practices" --backend tavily serper
+/web "async best practices" --backend tavily serper
 ```
 
 ---
@@ -360,7 +360,7 @@ pip install search-research
 ```bash
 # Remove
 sed -i '/unified-search/d' requirements.txt
-sed -i '/research-skill/d' requirements.txt
+sed -i '/web-skill/d' requirements.txt
 
 # Add
 echo "search-research>=0.1.0" >> requirements.txt
@@ -749,7 +749,7 @@ python -c "from research_skill import research; print('OK')"
 ### Related Projects
 
 - **unified-search**: https://github.com/EndUser123/unified-search (deprecated)
-- **research-skill**: https://github.com/EndUser123/research-skill (deprecated)
+- **research-skill**: https://github.com/EndUser123/web-skill (deprecated)
 - **__csf**: https://github.com/EndUser123/csf (consumer)
 
 ---
@@ -764,7 +764,7 @@ python -c "from research_skill import research; print('OK')"
 ### Phase 2: Migration Period (Week 4-8, Mar 27 - Apr 30)
 - 📚 Documentation and migration guides
 - 🐛 Bug fixes and improvements
-- 🔧 unified-search/research-skill in maintenance mode
+- 🔧 unified-search/web-skill in maintenance mode
 
 ### Phase 3: Deprecation (Week 8+, May 2026)
 - ⚠️ unified-search deprecated
@@ -783,7 +783,7 @@ python -c "from research_skill import research; print('OK')"
 ### Pre-Migration
 - [ ] Read this guide
 - [ ] Review breaking changes
-- [ ] Identify all code using unified-search/research-skill
+- [ ] Identify all code using unified-search/web-skill
 - [ ] Plan migration timeline
 - [ ] Create backup of existing code
 
