@@ -4,7 +4,7 @@
 > Every row is observed, not hand-curated. Hand-curated perspectives
 > (by domain / enforcement / ownership) belong in a separate doc on top of this.
 
-Last regenerated: 2026-07-09 23:37:16
+Last regenerated: 2026-07-09 23:38:20
 
 - Hooks on disk: 1137 in hooks/, 0 in plugin dirs.
 - settings.json commands: 29.
