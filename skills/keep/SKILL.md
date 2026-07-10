@@ -2,6 +2,7 @@
 name: keep
 description: Alias for /note — add a deliberate entry to your constitutional knowledge system (CKS). Use when you want to remember a decision, pattern, correction, lesson, or insight. Same behavior as /note; "keep" reads more naturally for "I want to keep this."
 ---
+workflow_steps: []
 # Keep (`/keep`)
 
 Deliberate write into CKS. Identical behavior to `/note`; this command exists because "keep" reads more naturally for "I want to keep this around." Both `/note` and `/keep` route to the same `note_writer.py` module.
