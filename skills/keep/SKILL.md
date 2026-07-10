@@ -25,7 +25,7 @@ Pick the one that best matches the content. The quality gate is strict; junk get
 
 ```bash
 /keep "Use the rename tail only when the new name is actually shorter" --type pattern
-/keep "Decided: /search /research /explore get dropped" --type decision
+/keep "Decided: /find /web /all get dropped" --type decision
 /keep --help
 ```
 
