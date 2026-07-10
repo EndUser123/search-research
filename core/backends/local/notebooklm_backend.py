@@ -63,22 +63,27 @@ class NotebookLMBackend(BaseLocalBackend):
         super().__init__(root_paths, exclude_patterns)
         self.notebook_id = notebook_id
 
-    # Patterns covering the real nlm auth-error wording (see /nlm troubleshooting):
-    # "Cookies have expired", "authentication may have expired", "Authentication Error",
-    # "re-authenticate", plus generic UNAUTHENTICATED / 401 signals.
+    # Auth-error wording (lowercase — _is_auth_error lowercases the text before matching).
+    # Covers nlm's "Authentication expired" / "Cookies have expired" / "re-authenticate"
+    # plus the common variants "unauthorized" / "session expired" / "* required".
     AUTH_ERROR_PATTERNS = (
-        "Authentication Error",
-        "Authentication expired",
-        "Cookies have expired",
+        "authentication error",
+        "authentication expired",
+        "cookies have expired",
         "may have expired",
+        "session expired",
         "re-authenticate",
-        "UNAUTHENTICATED",
+        "unauthenticated",
+        "unauthorized",
+        "authentication required",
+        "login required",
         "401",
     )
 
-    def _is_auth_error(self, stderr: str) -> bool:
-        """Check if stderr indicates an authentication failure."""
-        return any(pat in stderr for pat in self.AUTH_ERROR_PATTERNS)
+    def _is_auth_error(self, text: str) -> bool:
+        """Check if text indicates an authentication failure (case-insensitive)."""
+        lowered = (text or "").lower()
+        return any(pat in lowered for pat in self.AUTH_ERROR_PATTERNS)
 
     def _is_auth_failure(self, stderr: str, stdout: str = "") -> bool:
         """True if auth-error wording appears in stderr OR stdout.
@@ -258,6 +263,10 @@ class NotebookLMBackend(BaseLocalBackend):
 
         try:
             data = json.loads(output)
+            # nlm can exit 0 with an error JSON; don't present it as a valid answer.
+            if isinstance(data, dict) and data.get("status") == "error":
+                logger.debug(f"NotebookLM error JSON on success path: {data.get('error', '')!r}")
+                return []
             # nlm notebook query returns {"value": {"answer": "...", "sources": [...]}}
             if isinstance(data, dict) and "value" in data:
                 data = data["value"]
