@@ -175,6 +175,13 @@ DELIVER: (1) where my framing or question is wrong, if it is;
 BOUNDARY: stop at findings. No implementation without explicit "do it".
 ```
 
+**External reviewers (peer models outside this harness):** prepend
+`P:/docs/external-reviewer-preamble.md` verbatim as the system prompt — it is
+the canonical external-reviewer contract (attention-cost ROI, ≥2-framings
+anti-anchoring, steelman-the-rejection, NO-CHANGE-is-valid,
+inventory-before-propose, cost-it). Do not duplicate its content here;
+this pointer is the single wiring point.
+
 ---
 
 ## Failure modes -> countermeasures
