@@ -150,7 +150,7 @@ Warning: "Code search rate limited - showing repositories instead"
 
 **Backend**: `$CLAUDE_PLUGIN_ROOT/core\cli.py`
 
-**Entry point**: `python -m search_research.cli [query] --mode [auto|web|quick|tavily|serper|exa|...]`
+**Entry point**: `python -m search_research.cli [query] --mode [auto|web|quick|tavily|exa|...]`
 
 **Available modes**: `auto`, `web`, `quick`, `tavily`, `exa`, `glm`, `serpapi`, `webreader`, `fetch`, `github`, `claude`, `webreader_mcp`, `notebooklm`
 
