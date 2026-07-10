@@ -106,6 +106,7 @@ import {
 	type DeepPartial,
 } from "./risk-classifier.ts";
 import { extractCandidatePaths } from "./path-extractor.ts";
+import { extractInstructionSegment } from "./prompt-splitter.ts";
 import { POLICY_BY_TIER } from "./risk-policy.ts";
 import { RiskStateStore, type StoredFinding } from "./risk-state.ts";
 import { getSessionChangeSet } from "./session-changeset.ts";
@@ -349,8 +350,16 @@ export default function riskPolicyExtension(pi: ExtensionAPI) {
 		lastCandidatePaths = extractCandidatePaths(capped);
 		store.setLastPrompt(capped);
 		store.resetVerification();
+		// Scan only the user's actual instruction for production keywords.
+		// Pasted context (chat transcripts, file dumps) goes into lastPrompt
+		// and candidatePaths but not into input.prompt — the path-extractor
+		// still sees the full text by design, but the keyword scan targets
+		// the intent segment so production mentions in pasted context don't
+		// false-positive the gate. Falls back to the full prompt when the
+		// instruction segment is empty (e.g., a code-only paste).
+		const instructionSegment = extractInstructionSegment(prompt) || prompt;
 		const assessment = classifyRisk({
-			prompt,
+			prompt: instructionSegment,
 			cwd: ctx.cwd,
 			candidatePaths: lastCandidatePaths,
 			proposedCommands: [],

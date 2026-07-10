@@ -11,6 +11,7 @@ import {
 	mergeConfig,
 } from "../extensions/risk-classifier.ts";
 import { extractCandidatePaths } from "../extensions/path-extractor.ts";
+import { extractInstructionSegment } from "../extensions/prompt-splitter.ts";
 import {
 	canClaimDone,
 	createEmptyVerificationState,
@@ -400,6 +401,72 @@ describe("extractCandidatePaths", () => {
 		// ordinary English. If this regresses, every sentence mentioning "e.g."
 		// would inject phantom paths.
 		assert.deepEqual(extractCandidatePaths("see e.g. the docs, use v1.2 or later"), []);
+	});
+});
+
+describe("extractInstructionSegment", () => {
+	it("returns the full prompt for a single-paragraph input", () => {
+		assert.equal(extractInstructionSegment("just one paragraph"), "just one paragraph");
+	});
+
+	it("returns the last paragraph when context precedes it", () => {
+		const prompt = "context paragraph 1\n\ncontext paragraph 2\n\nthe actual question?";
+		assert.equal(extractInstructionSegment(prompt), "the actual question?");
+	});
+
+	it("skips trailing empty paragraphs", () => {
+		const prompt = "real content\n\n\n\n";
+		assert.equal(extractInstructionSegment(prompt), "real content");
+	});
+
+	it("skips a trailing code fence and returns the last prose paragraph", () => {
+		const prompt = "first paragraph\n\n```\nsome code\n```\n\nwhat do you think?";
+		assert.equal(extractInstructionSegment(prompt), "what do you think?");
+	});
+
+	it("returns empty string for empty input", () => {
+		assert.equal(extractInstructionSegment(""), "");
+	});
+
+	it("returns empty string for whitespace-only input", () => {
+		assert.equal(extractInstructionSegment("   \n\n   \n  "), "");
+	});
+
+	it("returns the last paragraph for a chat-transcript-style paste", () => {
+		// Mirrors the session scenario: a long pasted transcript with the
+		// user's actual question at the end. The instruction segment is the
+		// last paragraph; the keyword scan then sees the question, not the
+		// transcript, and the gate's false-positive is avoided.
+		const prompt = "Previous LLM: deploy to production now.\n\nPrevious LLM: rotate the credential.\n\nPrevious LLM: yes please\n\nDo you see the principles the chat was exposing?";
+		assert.equal(extractInstructionSegment(prompt), "Do you see the principles the chat was exposing?");
+	});
+
+	it("a session-paste prompt with phantom paths and a clean instruction classifies as MED, not HIGH", () => {
+		// End-to-end: simulates the session's actual scenario through the
+		// classifyNewTask split. The pasted transcript contains "production"
+		// (PRODUCTION_KEYWORD trigger) and the path-extractor pulls phantom
+		// paths from the transcript. With the instruction-segment split, the
+		// keyword scan only sees the user's actual question (which has no
+		// production keyword) and the gate falls through to MED instead of
+		// HIGH.
+		const pastedTranscript =
+			"Previous LLM said: deploy to production now.\n\n" +
+			"Previous LLM said: rotate the credential, then run snapshot_PreCompact.py.\n";
+		const userQuestion = "Do you see the principles the chat was exposing?";
+		const fullPrompt = pastedTranscript + "\n\n" + userQuestion;
+		const instruction = extractInstructionSegment(fullPrompt);
+		assert.equal(instruction, userQuestion);
+		const phantomPaths = extractCandidatePaths(fullPrompt);
+		assert.ok(phantomPaths.length > 0, `path-extractor should pull paths from full prompt; got ${JSON.stringify(phantomPaths)}`);
+		const a = classifyRisk({
+			cwd: "/repo",
+			prompt: instruction,
+			candidatePaths: phantomPaths,
+			proposedCommands: [],
+			config: DEFAULT_CONFIG,
+		});
+		assert.notEqual(a.tier, "HIGH", `expected MED, got ${a.tier} with reasons ${JSON.stringify(a.reasons)}`);
+		assert.ok(!a.matchedRules.includes("PRODUCTION_KEYWORD"));
 	});
 });
 
