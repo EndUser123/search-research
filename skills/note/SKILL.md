@@ -23,7 +23,7 @@ Pick the one that best matches the content. The quality gate is strict; junk get
 
 ```bash
 /note "Use the rename tail only when the new name is actually shorter" --type pattern
-/note "Decided: /search /research /explore get dropped" --type decision
+/note "Decided: /find /web /all get dropped" --type decision
 /note --help
 ```
 
