@@ -43,7 +43,7 @@
     },
     {
       "name": "cc-skills-ai-api",
-      "version": "1.0.13",
+      "version": "1.0.14",
       "description": "AI API integration skills for Claude Code",
       "source": "./plugins/cc-skills-ai-api",
       "keywords": [
@@ -86,7 +86,7 @@
     },
     {
       "name": "search-research",
-      "version": "0.1.102",
+      "version": "0.1.103",
       "description": "Unified search and research system with async concurrent execution and 11 web providers.",
       "source": "./plugins/search-research",
       "keywords": [
