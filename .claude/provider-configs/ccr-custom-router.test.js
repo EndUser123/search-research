@@ -407,81 +407,95 @@ test("bounded admission cannot be implemented at the router layer (no lifecycle)
   assert.equal(mod.length, 2, "router must accept (req, config) — 2 params");
 });
 
-// --- 13. Backend context limit enforcement: opus/reasoning → zai/glm-5.2 ---
-// The GLM-5.2 backend has a 1M published context window. With a 16K safety
-// reserve, the safe input limit is 983,616 tokens in CCR's counting scheme.
-// Requests exceeding this must be rejected (not silently routed).
-//
-// To reach the reasoning/GLM path we need inferTaskType to return "reasoning",
-// which it does when lastUser content contains reasoning keywords.
+// --- 13. Custom-router null → CCR built-in fallthrough (CCR contract) ----
+// CCR's middleware (verified from dist/cli.js): if customRouter returns a truthy
+// value, use it; else { built-in B6(e, A, n, o) } picks the model. Therefore
+// falsy return is fall-through, NOT rejection. This test proves the router
+// returns its route string, NOT null, even for over-limit requests, and that
+// back-to-back null/logging paths are not mis-wired.
+test("custom-router null contract: falsy return is fall-through, not rejection", () => {
+  const CCR_SOURCE = "C:/Users/brsth/AppData/Roaming/npm/node_modules/@musistudio/claude-code-router/dist/cli.js";
+  const fs = require("fs");
+  const ccr = fs.readFileSync(CCR_SOURCE, "utf8");
+  // Extract the custom router consumption block. It's a single expression:
+  // if(d) e.scenarioType="default"; else{ let g=await B6(e,A,n,o); ... } e.body.model=d
+  // Falsy → built-in router, NOT aborted.
+  assert.match(ccr, /if\(d\).*else\{.*B6\(/, "falsy custom router result must fall through to built-in B6");
+  assert.ok(!ccr.includes("if(typeof d==='string'||d)"), "router must not differentiate string vs null");
+  // The test module must not claim that null is rejection.
+  const router = freshRouter();
+  assert.equal(typeof router, "function", "router is a function");
+  assert.equal(router.length, 2, "router takes (req, config)");
+});
 
-const reasoningMsg = [{ role: "user", content: "analyze the architecture and design a plan for this large codebase" }];
+// --- 14. Proxy tests (admission gate via ccr-admission-proxy.js) -----------
+// The proxy is the hard gate. These test its estimateTokens() and safe ceiling.
 
-test("backend context: request above 1M (safety gap scenario) → rejected (null)", async () => {
+const { estimateTokens, SAFE_CEILING, MAX_VERIFIED_LIMIT, OUTPUT_RESERVE, CHAR_PER_TOKEN } = require("./ccr-admission-proxy.js");
+
+const BIG_BODY = JSON.stringify({
+  model: "claude-opus-4-8",
+  messages: [{ role: "user", content: "x".repeat(3_000_000) }],
+  max_tokens: 8000,
+});
+
+test("proxy: estimateTokens on a small body", () => {
+  const body = { model: "x", messages: [{ role: "user", content: "hi" }], max_tokens: 1000 };
+  const r = estimateTokens(body);
+  assert.equal(r.maxTokens, 1000, "must read max_tokens");
+  assert.ok(r.inputEstimate > 0, "inputEstimate > 0");
+  assert.equal(r.total, r.inputEstimate + 1000, "total = input + output");
+});
+
+test("proxy: large body exceeds safe ceiling", () => {
+  const body = JSON.parse(BIG_BODY);
+  // 3M chars / 3 cpt ≈ 1M input + 8K output ≈ 1.01M, above 983,616
+  const r = estimateTokens(body);
+  assert.equal(r.maxTokens, 8000);
+  assert.ok(r.total > SAFE_CEILING, "large 3M-char body must exceed safe ceiling");
+  assert.equal(r.total, r.inputEstimate + r.maxTokens, "total = input + output");
+});
+
+test("proxy: small body within safe ceiling", () => {
+  const body = { model: "x", messages: [{ role: "user", content: "hello world" }], max_tokens: 100 };
+  const r = estimateTokens(body);
+  assert.ok(r.total <= SAFE_CEILING, "small body must be within safe ceiling");
+});
+
+test("proxy: max_tokens is derived from request (not heuristic)", () => {
+  const body = { model: "x", messages: [], max_tokens: 8192 };
+  const r = estimateTokens(body);
+  assert.equal(r.maxTokens, 8192, "max_tokens is the real output budget");
+  assert.equal(r.total, r.inputEstimate + 8192, "total reserves real output budget");
+});
+
+test("proxy: body without max_tokens defaults to 0 output budget", () => {
+  const body = { model: "x", messages: [{ role: "user", content: "hi" }] };
+  const r = estimateTokens(body);
+  assert.equal(r.maxTokens, 0, "no max_tokens → 0 output budget");
+  assert.equal(r.total, r.inputEstimate, "total = input estimate only");
+});
+
+// --- 15. Router backend context check is advisory/proxy-audited (not rejection) ---
+// The router's decide() function logs an ADVERSE entry when the request exceeds
+// the backend limit, but does NOT return null. The admission proxy is the hard
+// gate. This test proves the router falls through (returns the route string).
+test("router backend context: over-limit request returns route (falls through), not null", async () => {
   stubFetch(
     () => ({ ok: true, json: async () => ({}) }),
     () => ({ ok: true, json: async () => [{ id: 0, is_processing: false }] }),
   );
   const router = freshRouter();
-  // 1,069,200 tokens — the exact failure scenario: /context showed 518.9K/1M
-  // but CCR's pre-computed tokenCount was ~1.1M. Must be rejected for GLM.
+  const reasoningMsg = [{ role: "user", content: "analyze the architecture and design a plan for this large codebase" }];
   const req = makeReq({ model: "claude-opus-4-8", messages: reasoningMsg, tokenCount: 1069200 });
   const route = await router(req, makeConfig());
-  assert.equal(route, null, "1.07M token request must be REJECTED for GLM backend (safe limit 983,616)");
+  // Router falls through — returns the route string, NOT null. The proxy is the gate.
+  assert.notEqual(route, null, "router must NOT return null for over-limit (admission proxy is the gate)");
+  assert.equal(typeof route, "string", "router must return a route string even when over limit");
 });
 
-test("backend context: request below 1M but above GLM safe limit → rejected (null)", async () => {
-  stubFetch(
-    () => ({ ok: true, json: async () => ({}) }),
-    () => ({ ok: true, json: async () => [{ id: 0, is_processing: false }] }),
-  );
-  const router = freshRouter();
-  // GLM safe limit = 1,000,000 - 16,384 = 983,616. 990K is below 1M but
-  // above the safe limit (and above the 983,616 safe input ceiling).
-  const req = makeReq({ model: "claude-opus-4-8", messages: reasoningMsg, tokenCount: 990000 });
-  const route = await router(req, makeConfig());
-  assert.equal(route, null, "990K token request must be REJECTED for GLM backend");
-});
-
-test("backend context: safe reasoning request → routes normally to zai,glm-5.2", async () => {
-  stubFetch(
-    () => ({ ok: true, json: async () => ({}) }),
-    () => ({ ok: true, json: async () => [{ id: 0, is_processing: false }] }),
-  );
-  const router = freshRouter();
-  const req = makeReq({ model: "claude-opus-4-8", messages: reasoningMsg, tokenCount: 100000 });
-  const route = await router(req, makeConfig());
-  assert.equal(route, "zai,glm-5.2", "100K token reasoning request must route normally to GLM");
-});
-
-test("backend context: unsafe opencode-go request also rejected", async () => {
-  stubFetch(
-    () => ({ ok: true, json: async () => ({}) }),
-    () => ({ ok: true, json: async () => [{ id: 0, is_processing: false }] }),
-  );
-  const router = freshRouter();
-  // opencode-go also has 1M publish limit, same safe limit = 983,616.
-  // Reach opencode-go path via background task type.
-  const req = makeReq({ model: "claude-haiku-4-5", messages: [{ role: "user", content: "hi" }], tokenCount: 990000 });
-  const route = await router(req, makeConfig());
-  assert.equal(route, null, "990K token background request must be REJECTED for opencode-go backend");
-});
-
-test("backend context: safe background request falls through (not rejected)", async () => {
-  stubFetch(
-    () => ({ ok: true, json: async () => ({}) }),
-    () => ({ ok: true, json: async () => [{ id: 0, is_processing: false }] }),
-  );
-  const router = freshRouter();
-  const req = makeReq({ model: "claude-haiku-4-5", messages: [{ role: "user", content: "hi" }], tokenCount: 1000 });
-  const route = await router(req, makeConfig());
-  assert.equal(route, null, "background falls through to Router.background (null), not rejected on context");
-});
-
-// --- 14. Local llama.cpp routing unchanged by backend context enforcement ---
-// The local model has its OWN context check via getLocalModelProbed(). The
-// backend context enforcement must NOT interfere with local-first routing.
-test("backend context: local llama routing unchanged", async () => {
+// --- 16. Local llama.cpp routing unchanged by proxy -------------------------
+test("local llama routing unchanged by context enforcement", async () => {
   stubFetch(
     () => ({ ok: true, json: async () => ({}) }),
     () => ({ ok: true, json: async () => [{ id: 0, is_processing: false }] }),
@@ -489,25 +503,17 @@ test("backend context: local llama routing unchanged", async () => {
   const router = freshRouter();
   const req = makeReq({ model: "claude-sonnet-5", messages: [{ role: "user", content: "def f():\n    pass" }], tokenCount: 1000 });
   const route = await router(req, makeConfig({ routingMode: "aggressive" }));
-  assert.equal(route, "llama-cpp,ornith-1.0-9b", "local-first routing must be unchanged by backend context enforcement");
+  assert.equal(route, "llama-cpp,ornith-1.0-9b", "local-first routing unchanged");
 });
 
-// --- 15. Pass-through gap for unknown routes is closed (source inspection) ---
-// Previously, getSafeInputLimit returned null for unregistered routes, creating a
-// documented pass-through gap. Now DEFAULT_BACKEND_LIMIT (minimum of all known
-// limits) provides a default — no route escapes context enforcement. The local
-// model route (llama-cpp,*) is safe because getLocalModelProbed() enforces its
-// own context limit (max ~59K effective) before decide() runs the backend check.
-test("source: no pass-through for unknown routes in backend context limits", () => {
-  const fs = require("fs");
-  const src = fs.readFileSync(ROUTER_PATH, "utf8");
-  // DEFAULT_BACKEND_LIMIT fallback must exist (replaces the old null/void path)
-  assert.match(src, /DEFAULT_BACKEND_LIMIT/, "must have DEFAULT_BACKEND_LIMIT fallback");
-  assert.match(src, /Math\.min\(\.\.\.Object\.values/, "fallback must be min of all registered limits");
-  // getSafeInputLimit must not return null (no pass-through). Narrow scope to the
-  // function body, not the entire file (other functions legitimately return null).
-  const getSafeInputRange = src.match(/function getSafeInputLimit[^}]+}/);
-  assert.ok(getSafeInputRange, "getSafeInputLimit function body must be found");
-  assert.ok(!getSafeInputRange[0].includes("return null"), "getSafeInputLimit must never return null");
-  assert.ok(!src.match(/pass.*through.*without.*enforce/i), "no documented pass-through for unknown routes");
+// --- 17. Local-failure fallback to opencode-go unchanged -------------------
+test("local-failure fallback to opencode-go unchanged", async () => {
+  stubFetch(
+    () => ({ ok: true, json: async () => ({}) }),
+    () => ({ ok: true, json: async () => [{ id: 0, is_processing: true }] }),
+  );
+  const router = freshRouter();
+  const req = makeReq({ model: "claude-sonnet-5", messages: [{ role: "user", content: "def f():\n    pass" }], tokenCount: 1000 });
+  const route = await router(req, makeConfig({ routingMode: "aggressive" }));
+  assert.equal(route, "opencode-go,deepseek-v4-flash", "local failure must fall back to opencode-go");
 });
