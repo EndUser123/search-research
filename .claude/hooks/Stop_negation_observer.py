@@ -14,7 +14,7 @@ like "recommend A, however B also works" which is a comparison, not a negation).
 This is the corpus-gatherer, not the gate. Per feedback_gate_discrimination_rule:
 ship no gate until TP/FP is measured on a real corpus.
 
-Output: P:/.claude/hooks/.state/negation_hits_{terminal}.jsonl
+Output: P:/.claude/hooks/.state/negation_hits_{terminal}_{session}.jsonl
   {"ts","recommendation_phrase","negation_phrase","distance_sentences","snippet"}
 
 No stdout on success (Stop allow = silence). Never exit non-zero.
@@ -61,9 +61,11 @@ MAX_SENTENCE_DISTANCE = 5  # negation must be within N sentences of recommendati
 
 
 def _log_path() -> Path:
-    tid = os.environ.get("WT_SESSION") or os.environ.get("CLAUDE_SESSION_ID") or "shared"
-    safe = re.sub(r"[^a-zA-Z0-9_.-]+", "_", tid)[:48]
-    return STATE_DIR / f"negation_hits_{safe}.jsonl"
+    tid = os.environ.get("WT_SESSION") or "shared"
+    sid = os.environ.get("CLAUDE_SESSION_ID") or "nosession"
+    safe_tid = re.sub(r"[^a-zA-Z0-9_.-]+", "_", tid)[:32]
+    safe_sid = re.sub(r"[^a-zA-Z0-9_.-]+", "_", sid)[:32]
+    return STATE_DIR / f"negation_hits_{safe_tid}_{safe_sid}.jsonl"
 
 
 def _split_sentences(text: str) -> list[str]:
