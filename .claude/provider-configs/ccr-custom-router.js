@@ -133,6 +133,33 @@ const PROBE_TIMEOUT_MS = 1500;
 const CACHE_WINDOW_MS = 10000;
 const DEFAULT_LOCAL_CTX = 65536; // matches llama.cpp -c flag in run-ornith-server.ps1
 
+// --- Backend context limits: verified per-actual-backend, NOT nominal Claude tiers ---
+// CCR's tokenCount is a pre-computed estimate (not identical to /context or the
+// backend's own tokenizer output). These limits compare CCR's counting scheme
+// against each backend's published context window, minus a safety reserve.
+// The local model already has its own separate context check via getLocalModelProbed().
+//
+// Sources (verified 2026-07-10):
+//   z.ai/glm-5.2:                  1,000,000 tokens — GLM-5.2 spec
+//   opencode-go/deepseek-v4-flash: 1,000,000 tokens — DeepSeek V4 Flash spec
+//   minimax/MiniMax-M3[1m]:         1,000,000 tokens — "[1m]" in model name
+//   llama-cpp/*:                     handled by getLocalModelProbed()
+//
+// CONSERVATIVE: these apply to the route string (provider,model), not the
+// Claude label. Add new entries when new backends are added. Unknown routes
+// pass through without context enforcement — a documented risk.
+const BACKEND_CONTEXT_LIMITS = {
+  "zai,glm-5.2": 1_000_000,
+  "opencode-go,deepseek-v4-flash": 1_000_000,
+  "minimax,MiniMax-M3[1m]": 1_000_000,
+};
+
+// Safety reserve subtracted from the backend limit to leave room for output
+// tokens, reasoning thinking overhead, and serialization differences between
+// CCR's counting and the backend's tokenizer. Flat conservative default —
+// the router does not have the exact output budget at every decision point.
+const OUTPUT_SAFETY_RESERVE = 16_384; // 16K tokens
+
 let _probeCache = {
   lastCheckedAt: 0,
   available: false,
@@ -252,6 +279,22 @@ function getTokenBudget(config, route) {
   if (!config || !config.tokenBudgets) return null;
   const budgets = config.tokenBudgets;
   return budgets[route] ?? budgets.defaultFallback ?? null;
+}
+
+// Backend-aware context limit check. Returns the max CCR-counted input tokens
+// the backend can accept, inclusive of OUTPUT_SAFETY_RESERVE. Returns null for
+// unknown routes (pass-through, no enforcement). Separate from local-model
+// context checks (getLocalModelProbed).
+function getBackendContextLimit(routeString) {
+  return BACKEND_CONTEXT_LIMITS[routeString] ?? null;
+}
+
+// Safe limit = backend context - output reserve. If the backend limit is null
+// (unknown route), returns null = no enforcement.
+function getSafeInputLimit(routeString) {
+  const limit = getBackendContextLimit(routeString);
+  if (limit === null) return null;
+  return limit - OUTPUT_SAFETY_RESERVE;
 }
 
 function emitRouteChange(newRoute, reason, req, extras) {
@@ -420,6 +463,41 @@ module.exports = async function router(req, config) {
   // decide(): log the full effective-route field set, emit route change, return route.
   const decide = (route, reason, decisionSource, guardrailOverride = false) => {
     const backend = splitRoute(route);
+
+    // Backend context limit enforcement: if the selected route has a known
+    // backend limit, reject requests that exceed the safe input limit (backend
+    // limit minus output reserve). CCR's tokenCount is a pre-computed estimate
+    // and may differ from /context or the backend's own tokenizer — apply the
+    // safety reserve to absorb that delta.
+    const safeLimit = route ? getSafeInputLimit(route) : null;
+    if (safeLimit !== null && tokenCount > safeLimit) {
+      const rejection = {
+        ts: new Date().toISOString(),
+        effective_route_alias: routeToAlias(route, model),
+        backend_provider: backend.provider,
+        backend_model: backend.model,
+        terminal_id: rec?.terminal_id || "unknown",
+        session_id: rec?.session_id || hint?.sessionId || "unknown",
+        task_type: taskType,
+        session_model_alias: model || null,
+        pin_state: describePins(pin),
+        recommended_tier: rec?.recommended_tier || null,
+        recommended_model: rec?.recommended_model || null,
+        token_count: tokenCount,
+        backend_context_limit: getBackendContextLimit(route),
+        output_safety_reserve: OUTPUT_SAFETY_RESERVE,
+        safe_input_limit: safeLimit,
+        decision_source: decisionSource,
+        rejection_reason: `context-exceeded: ${tokenCount} > ${safeLimit} (limit=${getBackendContextLimit(route)}, reserve=${OUTPUT_SAFETY_RESERVE}) for route ${route}`,
+        ...getRequestObservability(req),
+      };
+      logRoutingEvent(rejection);
+      try {
+        process.stderr.write(`[CCR-route] REJECTED: ${rejection.rejection_reason}\n`);
+      } catch {}
+      return null; // CCR fall-through → clear error from upstream
+    }
+
     // Local-fail-fallback uses opencode-go/deepseek-v4-flash (the same route string
     // as ordinary Haiku/background). routeToAlias() would map it to the Haiku
     // alias, which is misleading for a local-failure admission. Emit the raw

@@ -406,3 +406,88 @@ test("bounded admission cannot be implemented at the router layer (no lifecycle)
   assert.equal(typeof mod, "function", "router export must be a plain async function");
   assert.equal(mod.length, 2, "router must accept (req, config) — 2 params");
 });
+
+// --- 13. Backend context limit enforcement: opus/reasoning → zai/glm-5.2 ---
+// The GLM-5.2 backend has a 1M published context window. With a 16K safety
+// reserve, the safe input limit is 983,616 tokens in CCR's counting scheme.
+// Requests exceeding this must be rejected (not silently routed).
+//
+// To reach the reasoning/GLM path we need inferTaskType to return "reasoning",
+// which it does when lastUser content contains reasoning keywords.
+
+const reasoningMsg = [{ role: "user", content: "analyze the architecture and design a plan for this large codebase" }];
+
+test("backend context: request above 1M (safety gap scenario) → rejected (null)", async () => {
+  stubFetch(
+    () => ({ ok: true, json: async () => ({}) }),
+    () => ({ ok: true, json: async () => [{ id: 0, is_processing: false }] }),
+  );
+  const router = freshRouter();
+  // 1,069,200 tokens — the exact failure scenario: /context showed 518.9K/1M
+  // but CCR's pre-computed tokenCount was ~1.1M. Must be rejected for GLM.
+  const req = makeReq({ model: "claude-opus-4-8", messages: reasoningMsg, tokenCount: 1069200 });
+  const route = await router(req, makeConfig());
+  assert.equal(route, null, "1.07M token request must be REJECTED for GLM backend (safe limit 983,616)");
+});
+
+test("backend context: request below 1M but above GLM safe limit → rejected (null)", async () => {
+  stubFetch(
+    () => ({ ok: true, json: async () => ({}) }),
+    () => ({ ok: true, json: async () => [{ id: 0, is_processing: false }] }),
+  );
+  const router = freshRouter();
+  // GLM safe limit = 1,000,000 - 16,384 = 983,616. 990K is below 1M but
+  // above the safe limit (and above the 983,616 safe input ceiling).
+  const req = makeReq({ model: "claude-opus-4-8", messages: reasoningMsg, tokenCount: 990000 });
+  const route = await router(req, makeConfig());
+  assert.equal(route, null, "990K token request must be REJECTED for GLM backend");
+});
+
+test("backend context: safe reasoning request → routes normally to zai,glm-5.2", async () => {
+  stubFetch(
+    () => ({ ok: true, json: async () => ({}) }),
+    () => ({ ok: true, json: async () => [{ id: 0, is_processing: false }] }),
+  );
+  const router = freshRouter();
+  const req = makeReq({ model: "claude-opus-4-8", messages: reasoningMsg, tokenCount: 100000 });
+  const route = await router(req, makeConfig());
+  assert.equal(route, "zai,glm-5.2", "100K token reasoning request must route normally to GLM");
+});
+
+test("backend context: unsafe opencode-go request also rejected", async () => {
+  stubFetch(
+    () => ({ ok: true, json: async () => ({}) }),
+    () => ({ ok: true, json: async () => [{ id: 0, is_processing: false }] }),
+  );
+  const router = freshRouter();
+  // opencode-go also has 1M publish limit, same safe limit = 983,616.
+  // Reach opencode-go path via background task type.
+  const req = makeReq({ model: "claude-haiku-4-5", messages: [{ role: "user", content: "hi" }], tokenCount: 990000 });
+  const route = await router(req, makeConfig());
+  assert.equal(route, null, "990K token background request must be REJECTED for opencode-go backend");
+});
+
+test("backend context: safe background request falls through (not rejected)", async () => {
+  stubFetch(
+    () => ({ ok: true, json: async () => ({}) }),
+    () => ({ ok: true, json: async () => [{ id: 0, is_processing: false }] }),
+  );
+  const router = freshRouter();
+  const req = makeReq({ model: "claude-haiku-4-5", messages: [{ role: "user", content: "hi" }], tokenCount: 1000 });
+  const route = await router(req, makeConfig());
+  assert.equal(route, null, "background falls through to Router.background (null), not rejected on context");
+});
+
+// --- 14. Local llama.cpp routing unchanged by backend context enforcement ---
+// The local model has its OWN context check via getLocalModelProbed(). The
+// backend context enforcement must NOT interfere with local-first routing.
+test("backend context: local llama routing unchanged", async () => {
+  stubFetch(
+    () => ({ ok: true, json: async () => ({}) }),
+    () => ({ ok: true, json: async () => [{ id: 0, is_processing: false }] }),
+  );
+  const router = freshRouter();
+  const req = makeReq({ model: "claude-sonnet-5", messages: [{ role: "user", content: "def f():\n    pass" }], tokenCount: 1000 });
+  const route = await router(req, makeConfig({ routingMode: "aggressive" }));
+  assert.equal(route, "llama-cpp,ornith-1.0-9b", "local-first routing must be unchanged by backend context enforcement");
+});
