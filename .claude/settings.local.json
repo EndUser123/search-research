@@ -212,7 +212,8 @@
       "PowerShell($s=\\(Get-FileHash 'P:\\\\packages\\\\.claude-marketplace\\\\plugins\\\\cc-skills-sdlc\\\\skills\\\\risks\\\\SKILL.md' -Algorithm SHA256\\).Hash; $c=\\(Get-FileHash 'C:\\\\Users\\\\brsth\\\\.claude\\\\plugins\\\\cache\\\\local\\\\cc-skills-sdlc\\\\1.0.198\\\\skills\\\\risks\\\\SKILL.md' -Algorithm SHA256\\).Hash; \"source=$s\"; \"cache =$c\"; if\\($s -eq $c\\){'MATCH'}else{'DRIFT'})",
       "PowerShell(Get-Process *)",
       "PowerShell(Move-Item *)",
-      "Bash(python -c \"import py_compile; py_compile.compile\\(r'P:/.claude/hooks/PreToolUse_task_done_evidence_gate.py', doraise=True\\); print\\('compile OK'\\)\")"
+      "Bash(python -c \"import py_compile; py_compile.compile\\(r'P:/.claude/hooks/PreToolUse_task_done_evidence_gate.py', doraise=True\\); print\\('compile OK'\\)\")",
+      "mcp__perplexity__pplx_sonar"
     ],
     "deny": [],
     "ask": []
