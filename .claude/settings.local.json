@@ -215,7 +215,12 @@
       "Bash(python -c \"import py_compile; py_compile.compile\\(r'P:/.claude/hooks/PreToolUse_task_done_evidence_gate.py', doraise=True\\); print\\('compile OK'\\)\")",
       "mcp__perplexity__pplx_sonar",
       "Bash(break)",
-      "mcp__perplexity__pplx_usage"
+      "mcp__perplexity__pplx_usage",
+      "mcp__perplexity__pplx_deep_research",
+      "mcp__perplexity__pplx_auth_status",
+      "mcp__perplexity__pplx_auth_request_code",
+      "mcp__perplexity__pplx_auth_complete",
+      "mcp__perplexity__pplx_query"
     ],
     "deny": [],
     "ask": []
