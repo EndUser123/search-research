@@ -169,13 +169,13 @@ Commit: `git add packages/codex-external-delegation/src/contract.mjs packages/co
 - `runPacket(packet, options?) -> normalized_result`
 - `runPacket` must use `spawn` without a shell, enforce a timeout, capture stdout/stderr separately, kill the process tree on timeout, and write artifacts before returning.
 
-- [ ] **Step 1: Add mocked-runner tests.** Cover successful PI, successful OpenCode, missing executable, timeout, non-zero exit, malformed result marker, and read-only tool restrictions.
-- [ ] **Step 2: Run the tests and verify failure before implementation.**
-- [ ] **Step 3: Implement command construction.** PI uses `pi -p --no-session --mode json --model <model> --thinking off --tools read,grep,find,ls`; OpenCode uses `opencode run --format json --model <model> --variant minimal --dir <cwd>`. Write mode must require explicit `write_scope` and must not silently broaden tools.
-- [ ] **Step 4: Implement timeout and process-tree cleanup for Windows.** Use `taskkill /T /F /PID` only for the spawned child PID and only after the timeout; preserve the timeout classification even if cleanup fails.
-- [ ] **Step 5: Implement result-marker extraction and artifact capture.** Save `packet.json`, `stdout.log`, `stderr.log`, `result.json`, and `attempt.json` under the packet artifact directory. Redact strings matching known credential shapes before writing logs.
-- [ ] **Step 6: Add one retry only for read-only infrastructure failures.** The retry uses the packet’s `fallback_model` or `fallback_worker`; it is forbidden for `write`, `protocol_error`, `contract_error`, or semantic worker failure.
-- [ ] **Step 7: Run runner tests and commit.**
+- [x] **Step 1: Add mocked-runner tests.** Cover successful PI, successful OpenCode, missing executable, timeout, non-zero exit, malformed result marker, and read-only tool restrictions.
+- [x] **Step 2: Run the tests and verify failure before implementation.**
+- [x] **Step 3: Implement command construction.** PI uses `pi -p --no-session --mode json --model <model> --thinking off --tools read,grep,find,ls`; OpenCode uses `opencode run --format json --model <model> --variant minimal --dir <cwd>`. Write mode must require explicit `write_scope` and must not silently broaden tools.
+- [x] **Step 4: Implement timeout and process-tree cleanup for Windows.** Use `taskkill /T /F /PID` only for the spawned child PID and only after the timeout; preserve the timeout classification even if cleanup fails.
+- [x] **Step 5: Implement result-marker extraction and artifact capture.** Save `packet.json`, `stdout.log`, `stderr.log`, `result.json`, and an attempt manifest under the packet artifact directory. Redact strings matching known credential shapes before writing logs.
+- [x] **Step 6: Add one retry only for read-only infrastructure failures.** The retry uses the packet’s `fallback_model` or `fallback_worker`; it is forbidden for `write`, `protocol_error`, `contract_error`, or semantic worker failure.
+- [x] **Step 7: Run runner tests and commit.**
 
 Run: `node --test P:\packages\codex-external-delegation\tests\runner.test.mjs`
 

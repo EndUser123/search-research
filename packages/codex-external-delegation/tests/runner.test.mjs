@@ -43,6 +43,14 @@ function fakeSpawn({ stdout = "", stderr = "", exitCode = 0, delayMs = 0 } = {})
   };
 }
 
+function sequenceSpawn(configs) {
+  let index = 0;
+  return (command, args, options) => {
+    const config = configs[Math.min(index++, configs.length - 1)];
+    return fakeSpawn(config)(command, args, options);
+  };
+}
+
 test("builds safe read-only commands for PI and OpenCode", () => {
   const pi = buildCommand(basePacket, "do the task");
   assert.equal(pi.command, "pi.cmd");
@@ -89,4 +97,34 @@ test("kills timed-out workers and records timeout", async () => {
   assert.equal(result.status, "failed");
   assert.equal(result.failure_class, "timeout");
   assert.equal(result.timed_out, true);
+});
+
+test("retries one read-only provider failure on the declared fallback", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const result = await runPacket({
+    ...basePacket,
+    fallback_worker: "opencode",
+    fallback_model: "opencode-zen/deepseek-v4-flash-free",
+  }, {
+    artifactDir,
+    spawnImpl: sequenceSpawn([
+      { exitCode: 1, stderr: "connection refused" },
+      { stdout: '<external-delegation-result>{"status":"ok","result_payload":{"value":7}}</external-delegation-result>' },
+    ]),
+  });
+  assert.equal(result.status, "ok");
+  assert.equal(result.attempt, 2);
+  assert.equal(result.result_payload.value, 7);
+});
+
+test("blocks malformed packets before spawning a worker", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  let spawned = false;
+  const result = await runPacket({ task_id: "invalid" }, {
+    artifactDir,
+    spawnImpl: () => { spawned = true; throw new Error("must not spawn"); },
+  });
+  assert.equal(result.status, "blocked");
+  assert.equal(result.failure_class, "contract_error");
+  assert.equal(spawned, false);
 });
