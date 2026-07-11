@@ -24,12 +24,21 @@ class TestRepoStructure:
         assert (PLUGIN_ROOT / "hooks" / "prompt-enhancer_UserPromptSubmit.py").is_file()
 
 
-    def test_hooks_json_valid(self):
+    def test_hooks_json_empty_per_router_invariant(self):
+        """Dispatch is via __lib/router.py registered in settings.json.
+
+        Router-XOR-hooks.json invariant (packages/CLAUDE.md): a plugin with a
+        router MUST keep hooks.json as {"hooks": {}} — populating both
+        double-fires every hook. The old assertion here encoded the pre-router
+        dispatch model and was permanently red.
+        """
         hooks_json = PLUGIN_ROOT / "hooks" / "hooks.json"
         assert hooks_json.is_file()
         data = json.loads(hooks_json.read_text(encoding="utf-8"))
-        assert "hooks" in data
-        assert "UserPromptSubmit" in data["hooks"]
+        assert data == {"hooks": {}}, (
+            f"hooks.json must stay empty (router dispatch), got: {data}"
+        )
+        assert (PLUGIN_ROOT / "__lib" / "router.py").is_file()
 
     def test_schemas_exists(self):
         assert (PLUGIN_ROOT / "schemas.py").is_file()

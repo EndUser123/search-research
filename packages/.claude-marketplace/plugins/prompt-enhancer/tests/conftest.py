@@ -60,7 +60,6 @@ def _seed_enhancement(
     missing_details: list[str],
     *,
     clarified_intent: str = "delete the database",
-    inferred_subject: str | None = None,
     confidence: float = 0.9,
     **extra_fields,
 ) -> Path:
@@ -71,7 +70,6 @@ def _seed_enhancement(
         "analysis": "test analysis",
         "safety_flags": [],
         "estimated_tokens": 5,
-        "inferred_subject": inferred_subject,
         "confidence": confidence,
         **extra_fields,
     }
@@ -95,28 +93,6 @@ def _hook_invoke(hook_script: Path, payload: dict) -> dict:
     return json.loads(result.stdout)
 
 
-def _session_context_path(tmp_path: Path, terminal_id: str) -> Path:
-    """Path to session_context.json inside the isolated HOME."""
-    return (
-        tmp_path
-        / ".claude"
-        / ".artifacts"
-        / terminal_id
-        / "prompt-enhancer"
-        / "session_context.json"
-    )
-
-
-def _seed_session_context(tmp_path: Path, terminal_id: str, prompt: str, subject: str) -> None:
-    """Write a prior turn into session_context.json so referent resolution can fire."""
-    sc_path = _session_context_path(tmp_path, terminal_id)
-    sc_path.parent.mkdir(parents=True, exist_ok=True)
-    import time as _time
-    sc_path.write_text(
-        json.dumps({
-            "turns": [
-                {"prompt": prompt, "subject": subject, "timestamp": _time.time()}
-            ]
-        }, ensure_ascii=False),
-        encoding="utf-8",
-    )
+# Referent resolution and its session-context store were removed 2026-07-11
+# (wrong-anchor injection incident); the _seed_session_context helpers went
+# with them. See tests/test_no_referent_injection.py for the regression lock.

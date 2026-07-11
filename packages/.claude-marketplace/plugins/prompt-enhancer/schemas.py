@@ -17,11 +17,6 @@ class EnhancementResult(BaseModel):
         default=0,
         description="Estimated token count of clarified intent for token budgeting"
     )
-    inferred_subject: str | None = Field(
-        default=None,
-        description="Subject inferred from prior turn context (e.g., 'wiki_manifest.py extraction'). "
-                    "None when no inference was possible.",
-    )
     confidence: float = Field(
         default=_FULL_CONFIDENCE,
         ge=float(0),

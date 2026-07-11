@@ -17,12 +17,21 @@ sys.path.insert(0, str(_plugin_root))
 
 from detect import triage
 from prompt_enhancer import enhance, build_additional_context, DEFAULT_INJECT_THRESHOLD
-from context import (
-    read_session_context,
-    write_session_context,
-    extract_subject,
-    _terminal_id,
-)
+
+
+def _terminal_id() -> str:
+    """Isolation key for per-session artifacts.
+
+    CLAUDE_TERMINAL_ID is not set by Claude Code in this environment;
+    CLAUDE_CODE_SESSION_ID is set per session and stable within it.
+    (Moved from the deleted context.py — sole surviving consumer.)
+    """
+    return (
+        os.environ.get("CLAUDE_TERMINAL_ID")
+        or os.environ.get("CLAUDE_CODE_SESSION_ID")
+        or "default"
+    )
+
 
 TERMINAL_ID = _terminal_id()
 ARTIFACT_DIR = Path.home() / ".claude" / ".artifacts" / TERMINAL_ID / "prompt-enhancer"
@@ -35,20 +44,12 @@ def main() -> None:
     prompt = payload.get("prompt", "")
     result = triage(prompt)
 
-    if result["classification"] in ("bypass", "clear", "ambiguous"):
-        session_ctx = read_session_context()
-        subject_hint = extract_subject(prompt)
-        write_session_context(prompt, subject_hint)
-    else:
-        session_ctx = None
-        subject_hint = None
-
     if result["classification"] in ("bypass", "clear"):
         _clear_active_enhancement()
         output = {}
 
     elif result["classification"] == "ambiguous":
-        er = enhance(prompt, os.getcwd(), ctx=session_ctx)
+        er = enhance(prompt, os.getcwd())
         _save_active_enhancement(er, payload)
         if er.confidence >= DEFAULT_INJECT_THRESHOLD:
             ctx = build_additional_context(er)

@@ -4,28 +4,23 @@ from pathlib import Path
 
 from schemas import EnhancementResult
 from detect import triage
-from context import (
-    SessionContext,
-    read_session_context,
-    resolve_referent,
-)
 
 
 # Confidence floor below which the hook should not inject additionalContext.
-# Tuned to allow Case-1 (continuation + last_subject, 0.75) and Case-2 (pronoun + last_subject, 0.7)
-# to surface, while suppressing weaker inferences (0.5 = prior-prompt-text fallback).
+# Ambiguous prompts return 0.3 and thus inject NOTHING: the consuming model
+# holds the full conversation and resolves referents itself. The deleted
+# referent-inference path (resolve_referent/session context, removed 2026-07-11)
+# injected wrong anchors — first-file-ref in a pasted prior prompt is not the
+# discourse subject.
 DEFAULT_INJECT_THRESHOLD: float = float(7) / float(10)
 
 
-def enhance(prompt: str, cwd: str, ctx: SessionContext | None = None) -> EnhancementResult:
+def enhance(prompt: str, cwd: str) -> EnhancementResult:
     """Triage and enhance a user prompt.
 
     Args:
         prompt: The raw user prompt.
         cwd: Current working directory (reserved for future fs-based disambiguation).
-        ctx: Optional pre-loaded session context. If None, this function reads
-             the persisted context — but callers (hooks) should pass it in to
-             avoid re-reading the file across enhance() and context-write logic.
     """
     result = triage(prompt)
 
@@ -65,27 +60,10 @@ def enhance(prompt: str, cwd: str, ctx: SessionContext | None = None) -> Enhance
             estimated_tokens=_estimate_tokens(prompt),
         )
 
-    # Ambiguous path — attempt referent resolution from session context.
-    if ctx is None:
-        ctx = read_session_context()
-    resolution = resolve_referent(prompt, ctx)
-    if resolution is not None:
-        clarified = f"{prompt}  ← likely means: {resolution.inferred_subject}"
-        return EnhancementResult(
-            clarified_intent=clarified,
-            missing_details=[
-                f"inferred subject: {resolution.inferred_subject}",
-                "correct me if this referent is wrong",
-            ],
-            analysis=f"ambiguous→resolved: {resolution.source}",
-            safety_flags=[],
-            estimated_tokens=_estimate_tokens(clarified),
-            inferred_subject=resolution.inferred_subject,
-            confidence=resolution.confidence,
-        )
-
-    # No inference possible — fall back to the original generic hint, but at
-    # low confidence so the hook can suppress injection if it likes.
+    # Ambiguous path — return the generic hint at low confidence (below the
+    # inject threshold) so the hook injects nothing. Referent resolution was
+    # deliberately removed: the model has the conversation and resolves "it"
+    # natively; a deterministic guess only ever adds a wrong anchor.
     return EnhancementResult(
         clarified_intent=prompt,
         missing_details=["clarify: missing referent or underspecified"],
@@ -101,17 +79,7 @@ def _estimate_tokens(text: str) -> int:
 
 
 def build_additional_context(result: EnhancementResult) -> str:
-    # If we successfully inferred a subject, lead with that — it's the most
-    # actionable signal for the model. Otherwise, fall back to the generic
-    # "Prompt Clarification" header.
-    if result.inferred_subject:
-        lines = [
-            "Prompt Context (inferred from prior turn)",
-            f"• Likely subject: {result.inferred_subject}",
-            f"• Original prompt: {result.clarified_intent}",
-        ]
-    else:
-        lines = ["Prompt Clarification", f"• Intent: {result.clarified_intent}"]
+    lines = ["Prompt Clarification", f"• Intent: {result.clarified_intent}"]
     if result.missing_details:
         lines.append(f"• Clarified: {', '.join(result.missing_details)}")
     if result.safety_flags:

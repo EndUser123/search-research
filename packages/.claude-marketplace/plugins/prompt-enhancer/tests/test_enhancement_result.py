@@ -70,7 +70,6 @@ class TestEnhancementResult:
             analysis="high-impact verb without explicit target",
             safety_flags=["high-impact verb: delete database"],
             estimated_tokens=42,
-            inferred_subject="the database",
             confidence=0.75,
         )
         roundtripped = EnhancementResult.model_validate(original.model_dump())
@@ -79,7 +78,6 @@ class TestEnhancementResult:
         assert roundtripped.analysis == original.analysis
         assert roundtripped.safety_flags == original.safety_flags
         assert roundtripped.estimated_tokens == original.estimated_tokens
-        assert roundtripped.inferred_subject == original.inferred_subject
         assert roundtripped.confidence == original.confidence
 
     def test_extra_field_ignored_by_default(self):

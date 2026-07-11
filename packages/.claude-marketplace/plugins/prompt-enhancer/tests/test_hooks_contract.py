@@ -18,7 +18,6 @@ from conftest import (
     _active_enhancement_path,
     _hook_invoke,
     _seed_enhancement,
-    _seed_session_context,
 )
 
 
@@ -79,31 +78,25 @@ class TestHookProhibited:
 
 
 class TestHookAmbiguous:
-    """ambiguous path: fix it → non-empty additionalContext, artifact written."""
+    """ambiguous path: fix it → NO injection (referent inference removed
+    2026-07-11); artifact still written for observability."""
 
-    def test_ambiguous_has_additional_context(self, _isolated_home):
-        tmp_path, terminal_id = _isolated_home
-        # Seed a prior turn so referent resolution fires and confidence exceeds threshold.
-        _seed_session_context(tmp_path, terminal_id, "fix wiki_manifest.py", "wiki_manifest.py")
+    def test_ambiguous_injects_nothing(self, _isolated_home):
+        # Regression for the wrong-anchor incident: the hook must NOT guess
+        # what "it" means — the model resolves it from conversation history.
         output = _hook_invoke(HOOK_PATH, {"prompt": "fix it"})
-        hso = output.get("hookSpecificOutput", {})
-        ctx = hso.get("additionalContext", "")
-        assert ctx, "ambiguous should produce non-empty additionalContext"
-        # Context should mention the resolved subject or a clarification header.
-        assert "wiki_manifest.py" in ctx or "Prompt" in ctx, (
-            f"additionalContext should reference resolved subject or Prompt: {ctx}"
+        assert output == {}, (
+            f"ambiguous prompt must inject nothing (model resolves referents), got: {output}"
         )
 
     def test_ambiguous_writes_artifact(self, _isolated_home):
         tmp_path, terminal_id = _isolated_home
-        _seed_session_context(tmp_path, terminal_id, "fix wiki_manifest.py", "wiki_manifest.py")
         _hook_invoke(HOOK_PATH, {"prompt": "fix it"})
         artifact_path = _active_enhancement_path(tmp_path, terminal_id)
         assert artifact_path.exists(), "ambiguous should write active_enhancement.json"
 
     def test_ambiguous_artifact_has_required_fields(self, _isolated_home):
         tmp_path, terminal_id = _isolated_home
-        _seed_session_context(tmp_path, terminal_id, "fix wiki_manifest.py", "wiki_manifest.py")
         _hook_invoke(HOOK_PATH, {"prompt": "fix it"})
         artifact_path = _active_enhancement_path(tmp_path, terminal_id)
         data = json.loads(artifact_path.read_text(encoding="utf-8"))
