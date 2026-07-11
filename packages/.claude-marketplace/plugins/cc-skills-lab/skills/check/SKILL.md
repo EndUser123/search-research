@@ -1,7 +1,7 @@
 ---
 name: check
-description: "Post-task loop: verify -> typecheck (auto-detect) -> code-review (strict by default; --apply to force) -> re-verify. Replaces the manual `, /verify + /simplify-enhanced + /code-review --fix` habit."
-version: 1.2.0
+description: "Post-task loop: verify -> typecheck (auto-detect, skip if no config) -> code-review (strict=report-only). --apply to auto-fix. Replaces the manual `, /verify + /simplify-enhanced + /code-review --fix` habit."
+version: 1.3.0
 status: stable
 category: quality
 enforcement: advisory
@@ -23,8 +23,8 @@ tools in the right order.
 ## Usage
 
 ```
-/check              -- full loop (verify, typecheck, code-review, re-verify). STRICT by default: stops before applying if code-review reports high-severity findings.
-/check --apply      -- force-apply all findings (low/med/high) without stopping. Use when you have already reviewed and want auto-fix.
+/check              -- report only (verify, typecheck, code-review, re-verify if --apply). Default: show findings, do NOT auto-apply.
+/check --apply      -- auto-fix findings from code-review. Re-runs verify afterwards (bounded to 1 iteration).
 ```
 
 ## Phase 1: Verify
@@ -33,6 +33,8 @@ Invoke the built-in `/verify` (Skill tool, name `verify`). Let it run to complet
 
 - If `/verify` exits with failures or reports test failures, report the outcome and stop. Do not proceed.
 - If `/verify` passes or is skipped (no test to run), continue.
+- **Note when skipped:** if verify had no test harness to run and `--apply` was passed, emit a warning: 
+  `"verify was skipped (no test harness); applying code-review auto-fix with zero runtime verification."`
 
 ## Phase 1.5: Typecheck (auto-detect)
 
@@ -65,16 +67,12 @@ dedup, run.
 Invoke the built-in `/code-review` (Skill tool, name `code-review`). Let it run to completion --
 it reviews the current diff for correctness bugs, reuse, simplification, and efficiency issues.
 
-**Default (strict):** read code-review output for severity markers. If any issue is rated
-`high` severity (or equivalent -- exact label depends on the built-in), report them and stop. Do
-not auto-apply high-severity findings. Low/medium findings are auto-applied (`--fix`).
+**Default (strict, report-only):** show findings to the user. Do NOT apply them. The user
+reviews and decides what to apply.
 
-**`--apply` mode:** force-apply ALL findings including high-severity, without stopping. Use when
-you have already reviewed the diff and want auto-fix.
-
-**Fail-open:** if severity is unparseable, strict falls back to apply mode (do not guess at a
-gate the output does not support). This makes default-strict safe-or-equal to default-apply:
-identical when severity is unparseable, safer when it is.
+**`--apply` mode:** run code-review with `args: "--fix"` to auto-apply findings. WARNING: if
+verify was skipped (no test harness), the fixes apply with zero runtime verification -- review
+the diff before proceeding.
 
 If the built-in `/code-review` is unavailable or errors, fall back to reviewing `git diff`
 (or `git diff HEAD`) manually for correctness, reuse, simplification, and efficiency; do not
@@ -82,22 +80,24 @@ abort.
 
 ## Phase 2.5: Post-fix Re-Verify
 
-After code-review applies fixes (or reports they were unnecessary), re-run `/verify` once.
+Only runs when `--apply` was passed and code-review actually made changes. Re-runs `/verify` once.
 
 This catches the case where a cleanup fix introduces a regression. Bounded to **one** re-run --
 fail and stop if it regresses, do not loop.
+
+When default (report-only, no apply), re-verify is not needed and does not run.
 
 | Phase outcome | /check behavior |
 |---|---|
 | Verify fails (Phase 1) | Stop. Report the failure. Do not proceed. |
 | Verify passes | Proceed to typecheck (Phase 1.5). |
+| Verify skipped (no harness) | Proceed with warning if `--apply`. |
 | Typecheck fails | Stop. Report errors. Do not proceed. |
 | Typecheck skipped | Continue to code-review. |
-| Code-review: no high-severity (default strict) | Auto-apply low/med, proceed to re-verify (Phase 2.5). |
-| Code-review: high-severity present (default strict) | Stop. Report high-severity findings. |
-| Code-review: `--apply` passed | Auto-apply all findings, proceed to re-verify. |
+| Code-review (default strict) | Show findings. Done. |
+| Code-review (`--apply`) | Apply fixes. Proceed to re-verify (Phase 2.5). |
 | Code-review unavailable | Fall back to manual diff review; proceed. |
-| Re-verify fails (Phase 2.5) | Stop. Report code-review fix introduced a regression. |
+| Re-verify fails (Phase 2.5) | Stop. Report regression introduced by auto-fix. |
 | Re-verify passes | Done. |
 | Re-verify skipped (no changes made) | Done. |
 
@@ -116,8 +116,9 @@ closed.
 
 | Feature | Rejected because |
 |---|---|
+| **Severity-based gating** (/code-review does not emit parseable severity) | Verified 2026-07-10: the built-in outputs no severity field. Strict-by-default is report-only, not severity-gated. |
 | **Pre-flight change assessment** (Phase 0, `git diff`-based scoping) | Git is unreliable in this environment (index-lock re-fires, Git-Bash word-splitting, cross-terminal ambiguity). Skips diff-based gating and lets each built-in see the whole tree -- simpler and more robust. |
-| **Idempotency guard / no-op exit** | Same root cause: auto-commit fires at Stop, not mid-run, so the diff is populated mid-check. Scoping off that diff would be fragile. |
+| **Idempotency guard / no-op exit** | Same root cause: auto-commit fires at Stop, not mid-run. |
 | **Structured machine-parseable output summary** | No consumer. Building an output contract before a consumer exists is speculative. Would also break the stateless design (multi-terminal isolation). |
 | **`/simplify-enhanced` inclusion** | Deliberately removed from the workflow. /code-review already covers reuse/simplification/efficiency. /simplify-enhanced value-add (FP-resistant dup detector) is kept available as a standalone command when needed, not in every loop. |
 
