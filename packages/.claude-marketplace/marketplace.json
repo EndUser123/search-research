@@ -288,7 +288,7 @@
     },
     {
       "name": "cc-lazy-closure-debt",
-      "version": "0.1.8",
+      "version": "0.1.9",
       "description": "Persistent technical-debt tracker. Stop hook records deferral phrases to JSONL; UserPromptSubmit hook surfaces them as additionalContext. Ships with /debt skill for listing/clearing/formalizing.",
       "source": "./plugins/cc-lazy-closure-debt",
       "keywords": [
