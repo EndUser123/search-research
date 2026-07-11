@@ -7,6 +7,8 @@ category: reasoning
 
 # Sequential Thinking with Self-Reflection
 
+> **Where this fits among the thinking skills →** `references/reasoning-mode-routing-table.md`
+
 ## Purpose
 
 Wrap user prompts in a self-reflection loop to improve reasoning quality by 20-60%. No external LLM needed - uses Claude's own mode-switching capability.

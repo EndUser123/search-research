@@ -30,6 +30,8 @@ workflow_steps:
 
 # /s - Strategy
 
+> **Where this fits among the thinking skills →** `references/reasoning-mode-routing-table.md`
+
 ## Purpose
 
 General-purpose strategic thinking engine for any situation requiring multi-perspective analysis.

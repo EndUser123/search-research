@@ -22,6 +22,8 @@ suggest:
 
 # /probe — Data-Analysis Hypothesis Engine
 
+> **Where this fits among the thinking skills →** `references/reasoning-mode-routing-table.md`
+
 ## Purpose
 
 Turns ambiguous performance gaps into ranked, testable hypotheses. Generates concrete analytical questions, then finds the data to answer them — without running new benchmarks.

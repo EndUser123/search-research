@@ -20,6 +20,8 @@ workflow_steps:
 
 # Tree-of-Thoughts Reasoning
 
+> **Where this fits among the thinking skills →** `references/reasoning-mode-routing-table.md`
+
 ## When to Use
 - Complex problems requiring multiple approaches
 - High-stakes decisions where single-point reasoning is risky

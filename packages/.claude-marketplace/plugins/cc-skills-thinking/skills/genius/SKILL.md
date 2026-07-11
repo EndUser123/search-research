@@ -21,6 +21,8 @@ suggest:
 
 # /genius — Super-Genius Thought Partner
 
+> **Where this fits among the thinking skills →** `references/reasoning-mode-routing-table.md`
+
 ## Purpose
 
 A thinking partner that is smarter, not just more thorough. Maps problems before committing, challenges premises, draws cross-domain insights, and follows your direction while surfacing what you haven't considered.

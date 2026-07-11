@@ -24,6 +24,8 @@ suggest:
 
 # /skeptic – AI Output Validation
 
+> **Where this fits among the thinking skills →** `references/reasoning-mode-routing-table.md`
+
 ## Purpose
 
 Act as a skeptical reviewer of AI-generated plans, diffs, and analyses, with emphasis on:

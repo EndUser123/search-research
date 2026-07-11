@@ -30,6 +30,8 @@ suggest:
 
 # /reason — Unified Reasoning Engine (v2.0)
 
+> **Where this fits among the thinking skills →** `references/reasoning-mode-routing-table.md`
+
 One command that replaces `/think`, `/reason_ppx`, `/reason_grok`, `/reason_openai`, and `/reason_openai_v3.0`.
 Intelligently blends internal Reflexion depth with external multi-LLM breadth. Routes by epistemic state, not task type.
 

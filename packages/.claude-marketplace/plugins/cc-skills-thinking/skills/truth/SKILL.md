@@ -17,6 +17,8 @@ suggest:
 
 # /truth - Truth Constitution Command
 
+> **Where this fits among the thinking skills →** `references/reasoning-mode-routing-table.md`
+
 ## Purpose
 
 Verifies claims using actual evidence. Reads files, runs commands, and shows output to prove or disprove assertions.
