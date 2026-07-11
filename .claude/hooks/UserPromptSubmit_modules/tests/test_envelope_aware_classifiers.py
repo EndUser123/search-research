@@ -518,3 +518,37 @@ class TestV2DisabledPhase:
             if "task_class" in str(e):
                 pytest.fail(f"V2 gate raised NameError for task_class: {e}")
             raise
+
+
+class TestEnvelopeAwareCallsites:
+    def test_operating_rules_quoted_implement_does_not_fire(self, tmp_path):
+        from UserPromptSubmit_modules.operating_rules import operating_rules
+        from UserPromptSubmit_modules.base import HookContext
+        prompt = 'I want to "implement the hook" today'
+        ctx = HookContext(prompt=prompt, data={}, session_id='s', terminal_id='t')
+        result = operating_rules(ctx)
+        assert result.is_empty(), f'Expected empty, got context={result.context}'
+
+    def test_operating_rules_outer_implement_still_fires(self, tmp_path):
+        from UserPromptSubmit_modules.operating_rules import operating_rules
+        from UserPromptSubmit_modules.base import HookContext
+        prompt = 'implement the hook now please, I need this done'
+        ctx = HookContext(prompt=prompt, data={}, session_id='s', terminal_id='t2')
+        result = operating_rules(ctx)
+        assert not result.is_empty(), 'Expected non-empty for bare implementation'
+
+    def test_claim_risk_router_quoted_claim_does_not_fire(self, tmp_path):
+        from UserPromptSubmit_modules.claim_risk_router import claim_risk_router
+        from UserPromptSubmit_modules.base import HookContext
+        prompt = 'Help me review this: "the claim is wrong"'
+        ctx = HookContext(prompt=prompt, data={}, session_id='s', terminal_id='t3')
+        result = claim_risk_router(ctx)
+        assert result.is_empty(), f'Expected empty, got context={result.context}'
+
+    def test_claim_risk_router_outer_claim_still_fires(self, tmp_path):
+        from UserPromptSubmit_modules.claim_risk_router import claim_risk_router
+        from UserPromptSubmit_modules.base import HookContext
+        prompt = 'this claim is wrong and I can prove it easily now'
+        ctx = HookContext(prompt=prompt, data={}, session_id='s', terminal_id='t4')
+        result = claim_risk_router(ctx)
+        assert not result.is_empty(), 'Expected non-empty for bare disputed claim'

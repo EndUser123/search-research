@@ -112,17 +112,18 @@ def _should_fire(prompt: str, *, _outer_text: str | None = None) -> bool:
     if _SKIP_RE.match(stripped):
         return False
 
+    text = (_outer_text or stripped).strip()
     intent = classify_intent(stripped, _outer_text=_outer_text)
     if intent in {"CORRECTION", "DEBUG", "RESEARCH"}:
         return True
 
     return bool(
-        _DISPUTED_CLAIM_RE.search(stripped)
-        or _ROOT_CAUSE_RE.search(stripped)
-        or _EXISTENCE_RE.search(stripped)
-        or _IMPLEMENTATION_RE.search(stripped)
-        or _COMPARISON_RE.search(stripped)
-        or _PATH_LAYOUT_RE.search(stripped)
+        _DISPUTED_CLAIM_RE.search(text)
+        or _ROOT_CAUSE_RE.search(text)
+        or _EXISTENCE_RE.search(text)
+        or _IMPLEMENTATION_RE.search(text)
+        or _COMPARISON_RE.search(text)
+        or _PATH_LAYOUT_RE.search(text)
     )
 
 

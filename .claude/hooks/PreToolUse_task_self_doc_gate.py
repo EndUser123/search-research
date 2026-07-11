@@ -21,6 +21,7 @@ Environment variables:
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sys
 from pathlib import Path
@@ -28,6 +29,12 @@ from pathlib import Path
 # Add hooks directory to path for __lib imports
 _HOOKS_DIR = Path(__file__).parent
 sys.path.insert(0, str(_HOOKS_DIR))
+
+# Module logger — advisory-mode warnings go here (NOT stderr, which CC treats as
+# hook error). Previously referenced but never defined → NameError on the advisory
+# path (the "_logger failure in the self-documentation gate").
+_logger = logging.getLogger(__name__)
+_logger.addHandler(logging.NullHandler())
 
 from __lib.task_self_doc_validator import (
     DEFAULT_MIN_DESC_LEN,
@@ -223,23 +230,37 @@ def run(data: dict) -> dict | None:
 
 
 def main() -> int:
-    """Command-line entry point for standalone hook execution."""
-    # IO-001: Wrap json.load in try/except to handle malformed JSON
+    """Command-line entry point for standalone hook execution.
+
+    Emits stdout JSON so PreToolUse.run_hook can propagate block/modify decisions
+    (and surface the block reason to the model). Malformed input fails OPEN — this
+    is a quality gate, not a security gate; a malformed payload must not block
+    legitimate task operations or crash with a traceback.
+    """
+    raw = sys.stdin.read()
     try:
-        data = json.load(sys.stdin)
-    except (json.JSONDecodeError, EOFError):
-        _logger.warning("Invalid JSON input")
-        return 2  # Block with error
-    result = run(data)
+        data = json.loads(raw)
+    except (json.JSONDecodeError, ValueError):
+        # Fail-open: cannot validate a payload we cannot parse. No traceback.
+        _logger.warning("task_self_doc_gate: malformed JSON input, failing open")
+        return 0
+    if not isinstance(data, dict):
+        _logger.warning("task_self_doc_gate: non-dict input, failing open")
+        return 0
+
+    try:
+        result = run(data)
+    except Exception as exc:  # never crash the tool call
+        _logger.warning("task_self_doc_gate: run() raised %s, failing open", exc)
+        return 0
 
     if result is None:
         return 0  # Allow
 
-    if result.get("decision") == "block":
-        _logger.warning("%s", result["reason"])
-        return 2  # Block
-
-    return 0  # Allow
+    # Propagate decision as stdout JSON (run_hook parses stdout first).
+    if result.get("decision") in ("block", "modify"):
+        print(json.dumps(result))
+    return 0
 
 
 if __name__ == "__main__":

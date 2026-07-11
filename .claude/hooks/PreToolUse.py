@@ -906,10 +906,18 @@ TOOL_HOOKS = {
         # "PreToolUse_referent_scope_gate.py",
         # Delegation and authority gates are owned elsewhere now.
     ],
-    "Task": [
+    "TaskCreate": [
+        "PreToolUse_task_self_doc_gate.py",
+    ],
+    "TaskUpdate": [
         "PreToolUse_task_self_doc_gate.py",
         "PreToolUse_task_done_evidence_gate.py",
-        # Authority-owned gating is routed elsewhere now.
+    ],
+    "TaskList": [
+        # No PreToolUse gates needed for read-only listing
+    ],
+    "TaskGet": [
+        # No PreToolUse gates needed for read-only get
     ],
     "mcp__web-reader__webReader": [
         "PreToolUse_mcp_full_read_guard.py",
