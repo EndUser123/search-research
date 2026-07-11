@@ -16,7 +16,6 @@ class TestEnhancementResult:
         result = EnhancementResult(clarified_intent="test", missing_details=[])
         assert result.analysis is None
         assert result.safety_flags == []
-        assert result.estimated_tokens == 0
 
     def test_all_fields_populated(self):
         result = EnhancementResult(
@@ -24,12 +23,10 @@ class TestEnhancementResult:
             missing_details=["target database name"],
             analysis="high-impact verb without explicit target",
             safety_flags=["high-impact verb: delete database"],
-            estimated_tokens=42,
         )
         assert result.clarified_intent == "delete the database"
         assert "target database name" in result.missing_details
         assert "high-impact verb: delete database" in result.safety_flags
-        assert result.estimated_tokens == 42
 
     def test_empty_missing_details_allowed(self):
         result = EnhancementResult(clarified_intent="what is refactoring?", missing_details=[])
@@ -41,13 +38,11 @@ class TestEnhancementResult:
             clarified_intent="x",
             missing_details=["y"],
             safety_flags=["flag"],
-            estimated_tokens=100,
         )
         # All fields should be properly typed and accessible
         assert isinstance(result.clarified_intent, str)
         assert isinstance(result.missing_details, list)
         assert isinstance(result.safety_flags, list)
-        assert isinstance(result.estimated_tokens, int)
 
     def test_model_dump(self):
         """Verify model_dump produces a serializable dict for JSON persistence."""
@@ -55,12 +50,10 @@ class TestEnhancementResult:
             clarified_intent="test",
             missing_details=["detail"],
             safety_flags=["flag"],
-            estimated_tokens=10,
         )
         dumped = result.model_dump()
         assert isinstance(dumped, dict)
         assert dumped["clarified_intent"] == "test"
-        assert dumped["estimated_tokens"] == 10
 
     def test_model_validate_roundtrip(self):
         """model_dump → model_validate produces an equal EnhancementResult."""
@@ -69,7 +62,6 @@ class TestEnhancementResult:
             missing_details=["target database name"],
             analysis="high-impact verb without explicit target",
             safety_flags=["high-impact verb: delete database"],
-            estimated_tokens=42,
             confidence=0.75,
         )
         roundtripped = EnhancementResult.model_validate(original.model_dump())
@@ -77,7 +69,6 @@ class TestEnhancementResult:
         assert roundtripped.missing_details == original.missing_details
         assert roundtripped.analysis == original.analysis
         assert roundtripped.safety_flags == original.safety_flags
-        assert roundtripped.estimated_tokens == original.estimated_tokens
         assert roundtripped.confidence == original.confidence
 
     def test_extra_field_ignored_by_default(self):
@@ -88,7 +79,6 @@ class TestEnhancementResult:
             clarified_intent="x",
             missing_details=[],
             safety_flags=[],
-            estimated_tokens=0,
         )
         dumped = result.model_dump()
         dumped["extra_field"] = "ignored"

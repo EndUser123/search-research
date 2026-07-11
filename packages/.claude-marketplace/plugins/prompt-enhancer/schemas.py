@@ -13,10 +13,6 @@ class EnhancementResult(BaseModel):
         default_factory=list,
         description="High-impact flags, e.g. 'high-impact verb: delete database'"
     )
-    estimated_tokens: int = Field(
-        default=0,
-        description="Estimated token count of clarified intent for token budgeting"
-    )
     confidence: float = Field(
         default=_FULL_CONFIDENCE,
         ge=float(0),
