@@ -189,6 +189,8 @@ Commit: `git add packages/codex-external-delegation/src/runner.mjs packages/code
 - Create: `P:\packages\codex-external-delegation\bin\external-delegation.mjs`
 - Create: `P:\packages\codex-external-delegation\skill\SKILL.md`
 - Create: `P:\packages\codex-external-delegation\skill\agents\openai.yaml`
+- Create: `P:\packages\codex-external-delegation\opencode\agents\external-readonly.md`
+- Create: `P:\packages\codex-external-delegation\opencode\agents\external-writer.md`
 - Create: `P:\packages\codex-external-delegation\README.md`
 - Create: `P:\packages\codex-external-delegation\tests\cli.test.mjs`
 
@@ -198,11 +200,11 @@ Commit: `git add packages/codex-external-delegation/src/runner.mjs packages/code
 - CLI command: `node bin/external-delegation.mjs classify --packet <path>`
 - Stdin is accepted for `run` when `--packet -` is supplied.
 
-- [ ] **Step 1: Add CLI tests for invalid packets, dry-run command output, and JSON result shape.**
-- [ ] **Step 2: Implement the CLI with stable exit codes:** `0` for `ok`, `10` for `blocked`, `20` for worker/infrastructure failure, and `30` for invalid packet or contract failure.
-- [ ] **Step 3: Write the skill.** The skill must tell Codex to classify the task itself, delegate only bounded low-ambiguity work, default to read-only, generate the packet, invoke the CLI, inspect the result artifacts, and independently verify before accepting the result. It must not ask the user to author the worker prompt.
+- [x] **Step 1: Add CLI tests for invalid packets, dry-run command output, and JSON result shape.**
+- [x] **Step 2: Implement the CLI with stable exit codes:** `0` for `ok`, `20` for worker/infrastructure failure, and `30` for blocked/invalid packet or contract failure.
+- [x] **Step 3: Write the skill.** The skill tells Codex to classify the task itself, delegate only bounded low-ambiguity work, default to read-only, generate the packet, invoke the CLI, inspect the result artifacts, and independently verify before accepting the result. It does not ask the user to author the worker prompt.
 - [ ] **Step 4: Add a live-install script or documented junction command.** The runtime skill path must point to `P:\packages\codex-external-delegation\skill`, with no copied second source of truth.
-- [ ] **Step 5: Run CLI tests and commit.**
+- [x] **Step 5: Run CLI tests and commit.**
 
 Run: `node --test P:\packages\codex-external-delegation\tests\cli.test.mjs`
 

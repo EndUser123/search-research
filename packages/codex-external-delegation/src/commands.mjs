@@ -1,4 +1,4 @@
-function commandName(worker, platform = process.platform) {
+export function commandName(worker, platform = process.platform) {
   if (platform !== "win32") return worker;
   return `${worker}.cmd`;
 }
