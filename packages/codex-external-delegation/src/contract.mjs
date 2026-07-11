@@ -1,0 +1,72 @@
+const WORKERS = new Set(["pi", "opencode"]);
+const MODES = new Set(["read_only", "write"]);
+const STATUSES = new Set(["ok", "failed", "blocked"]);
+
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function packetErrors(packet) {
+  const errors = [];
+  const required = [
+    "schema_version",
+    "task_id",
+    "worker",
+    "model",
+    "objective",
+    "cwd",
+    "mode",
+    "output_schema",
+    "verification",
+  ];
+
+  for (const key of required) {
+    if (packet?.[key] === undefined || packet[key] === null || packet[key] === "") {
+      errors.push(`missing_${key}`);
+    }
+  }
+
+  if (packet?.schema_version !== "1") errors.push("unsupported_schema_version");
+  if (!WORKERS.has(packet?.worker)) errors.push("invalid_worker");
+  if (!isNonEmptyString(packet?.model)) errors.push("invalid_model");
+  if (!isNonEmptyString(packet?.objective)) errors.push("invalid_objective");
+  if (!isNonEmptyString(packet?.cwd)) errors.push("invalid_cwd");
+  if (!MODES.has(packet?.mode)) errors.push("invalid_mode");
+
+  if (packet?.mode === "write") {
+    if (!Array.isArray(packet.write_scope) || packet.write_scope.length === 0) {
+      errors.push("missing_write_scope");
+    }
+    if (!isNonEmptyString(packet.isolated_cwd)) {
+      errors.push("missing_isolated_cwd");
+    }
+  }
+
+  if (!Array.isArray(packet?.verification?.commands) || packet.verification.commands.length === 0) {
+    errors.push("missing_verification_commands");
+  }
+
+  if (!Array.isArray(packet?.output_schema?.required)) {
+    errors.push("missing_output_schema_required");
+  }
+
+  return errors;
+}
+
+export function validatePacket(packet) {
+  const errors = packetErrors(packet);
+  return errors.length > 0 ? { ok: false, errors } : { ok: true, packet };
+}
+
+export function validateResult(result) {
+  const errors = [];
+  if (!STATUSES.has(result?.status)) errors.push("invalid_status");
+  if (typeof result?.failure_class !== "string") errors.push("missing_failure_class");
+  if (result?.status === "ok" && (typeof result.result_payload !== "object" || result.result_payload === null)) {
+    errors.push("missing_result_payload");
+  }
+  return errors.length > 0 ? { ok: false, errors } : { ok: true, result };
+}
+
+export const RESULT_MARKER_START = "<external-delegation-result>";
+export const RESULT_MARKER_END = "</external-delegation-result>";
