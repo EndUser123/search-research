@@ -1,11 +1,9 @@
 // node:test + node:assert/strict — matches scripts/bifrost_tool_shim.test.js convention.
 //
 // The router reads from local-model-state.json for context metadata and from
-// P:/.claude/state/ccr-* for hints/pins/recs. All of these are wrapped in
-// readJsonSafe() (returns null on missing/corrupt). For unit tests we point
-// STATE_DIR... no — STATE_DIR is hard-coded to P:/.claude/state. So tests use
-// the real path but the file is absent on test machines → state reads return
-// null. That is the expected "fresh" state.
+// the state directory's ccr-* files for hints/pins/recs. Tests use a fresh
+// temporary state directory so the suite cannot consume live routing hints,
+// pins, recommendations, or append to the production route log.
 //
 // We stub globalThis.fetch to drive /health and /slots responses. The module
 // caches its probe result for CACHE_WINDOW_MS (10s); between tests we reset the
@@ -14,9 +12,17 @@
 
 const assert = require("node:assert/strict");
 const test = require("node:test");
+const fs = require("fs");
+const os = require("os");
 const path = require("path");
 
 const ROUTER_PATH = path.join(__dirname, "ccr-custom-router.js");
+const TEST_STATE_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "ccr-custom-router-test-"));
+process.env.CCR_ROUTER_STATE_DIR = TEST_STATE_DIR;
+test.after(() => {
+  delete process.env.CCR_ROUTER_STATE_DIR;
+  fs.rmSync(TEST_STATE_DIR, { recursive: true, force: true });
+});
 
 // --- Test harness -----------------------------------------------------------
 
@@ -52,8 +58,7 @@ function makeReq({ model = "claude-sonnet-5", messages = [], tokenCount = 0 } = 
 }
 
 function readRouteEvents() {
-  const fs = require("fs");
-  const routeLog = "P:/.claude/state/ccr-route-log.jsonl";
+  const routeLog = path.join(TEST_STATE_DIR, "ccr-route-log.jsonl");
   try {
     return fs.readFileSync(routeLog, "utf8")
       .trim()

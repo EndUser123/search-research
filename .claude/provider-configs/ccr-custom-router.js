@@ -36,7 +36,9 @@
 const fs = require("fs");
 const path = require("path");
 
-const STATE_DIR = "P:/.claude/state";
+// Tests may provide an isolated state directory. Production keeps the
+// workspace state path as the default and does not need this override.
+const STATE_DIR = process.env.CCR_ROUTER_STATE_DIR || "P:/.claude/state";
 const LOCAL_MODEL_STATE = path.join(STATE_DIR, "local-model-state.json");
 const HINT_FILE = path.join(STATE_DIR, "ccr-routing-hint.json");
 const PIN_FILE = path.join(STATE_DIR, "ccr-pin-state.json");
