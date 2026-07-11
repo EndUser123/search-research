@@ -187,10 +187,18 @@ class TestClassify:
         assert cls != "confirmed_fp"
 
 
+def _seed_watermark_zero(tid: str, state_root: Path) -> None:
+    """Explicitly seed a watermark at zero so ingest picks up existing rows."""
+    p = state_root / "cc-lazy-closure-debt" / "cc-gate-residue" / f"{tid}.watermark.json"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps({"db_max_id": 0, "jsonl_byte_offset": 0}), encoding="utf-8")
+
+
 # --- ingest + watermark ------------------------------------------------------
 
 class TestIngest:
     def test_ingest_db_rows_writes_ledger_and_advances_watermark(self, tmp_state):
+        _seed_watermark_zero("console_clip", tmp_state["root"])
         _make_db(tmp_state["db"], [_clip_block_row()])
         rows = gr.ingest_new_blocks("console_clip")
         assert len(rows) == 1
@@ -198,6 +206,7 @@ class TestIngest:
         assert rows[0]["classification"] == "unresolved"
         assert rows[0]["ledger_id"].startswith("Stop_removal_completeness_guard:")
         assert rows[0]["source_ref"]["sink"] == "diagnostics.db"
+        assert rows[0].get("normalized_gate") == "removal_completeness_guard"
         # Ledger file written.
         ledger = tmp_state["root"] / "cc-lazy-closure-debt" / "cc-gate-residue" / "console_clip.jsonl"
         assert ledger.exists()
@@ -209,6 +218,7 @@ class TestIngest:
         assert wm["db_max_id"] == 9001
 
     def test_incremental_second_call_no_reprocess(self, tmp_state):
+        _seed_watermark_zero("console_clip", tmp_state["root"])
         _make_db(tmp_state["db"], [_clip_block_row()])
         first = gr.ingest_new_blocks("console_clip")
         assert len(first) == 1
@@ -221,6 +231,7 @@ class TestIngest:
         assert count == 1
 
     def test_incremental_picks_up_only_new_rows(self, tmp_state):
+        _seed_watermark_zero("console_clip", tmp_state["root"])
         _make_db(tmp_state["db"], [_clip_block_row()])
         gr.ingest_new_blocks("console_clip")
         # Add a second block with a higher id.
@@ -239,6 +250,7 @@ class TestIngest:
         assert rows[0]["source_ref"]["row_id"] == 9002
 
     def test_ingest_jsonl_tail(self, tmp_state):
+        _seed_watermark_zero("tj", tmp_state["root"])
         _append_jsonl(tmp_state["jsonl"], {
             "timestamp": "2026-07-10T12:10:00.000000+00:00",
             "event": "Stop", "gate_name": "deletion_verification_guard",
@@ -279,6 +291,7 @@ class TestIngest:
 
 class TestRecentResidueAndPromotion:
     def test_recent_residue_after_classification(self, tmp_state):
+        _seed_watermark_zero("console_clip", tmp_state["root"])
         _make_db(tmp_state["db"], [_clip_block_row()])
         rows = gr.ingest_new_blocks("console_clip")
         lid = rows[0]["ledger_id"]
@@ -292,6 +305,7 @@ class TestRecentResidueAndPromotion:
         assert residue[0]["artifact"]["target"] == "clip_client.py"
 
     def test_promotion_excludes_row_and_one_shot(self, tmp_state):
+        _seed_watermark_zero("console_clip", tmp_state["root"])
         _make_db(tmp_state["db"], [_clip_block_row()])
         rows = gr.ingest_new_blocks("console_clip")
         lid = rows[0]["ledger_id"]
@@ -300,14 +314,13 @@ class TestRecentResidueAndPromotion:
         assert lid in gr.recent_residue("console_clip")[0].get("ledger_id", "") \
             or any(r["ledger_id"] == lid for r in gr.recent_residue("console_clip"))
         gr.mark_promoted("console_clip", lid)
-        # Promoted => dropped from residue surface.
         assert all(r["ledger_id"] != lid for r in gr.recent_residue("console_clip"))
         assert lid in gr.promoted_ledger_ids("console_clip")
 
     def test_age_filter(self, tmp_state):
+        _seed_watermark_zero("console_clip", tmp_state["root"])
         _make_db(tmp_state["db"], [_clip_block_row()])
         gr.ingest_new_blocks("console_clip")
-        # max_age_h=0 => cutoff is now, ts (older) filtered out.
         assert gr.recent_residue("console_clip", max_age_h=0.0) == []
 
     def test_max_count(self, tmp_state):
@@ -319,5 +332,95 @@ class TestRecentResidueAndPromotion:
                 "hook_name": f"gate_{i}", "action": "block", "reason": f"reason {i}",
             })
         _make_db(tmp_state["db"], rows)
+        _seed_watermark_zero("t", tmp_state["root"])
+
         gr.ingest_new_blocks("t")
         assert len(gr.recent_residue("t", max_count=3)) == 3
+
+
+class TestDedupeAndNormalization:
+    """Regression tests for #1434 (R1-R5): dedupe, fresh-seed, normalization."""
+
+    def test_gold_dual_sink_dedupes_to_one_row(self, tmp_state):
+        """R2: a block in BOTH sinks → ONE ledger row (jsonl primary)."""
+        _seed_watermark_zero("merge", tmp_state["root"])
+
+        _make_db(tmp_state["db"], [{
+            "id": 1001, "timestamp": "2026-07-10T12:30:00.000000+00:00",
+            "session_id": "s1", "terminal_id": "t",
+            "hook_name": "StopHook_cross_validator.py",
+            "action": "block", "reason": "cross valid failed",
+        }])
+
+        jsonl_path = tmp_state["jsonl"]
+        jsonl_path.write_text(
+            json.dumps({
+                "timestamp": "2026-07-10T12:30:00.000000+00:00", "event": "Stop",
+                "gate_name": "cross_validator", "reason": "cross valid from jsonl",
+                "matched_span": "x", "response_hash": "abcd1234abcd",
+                "session_id": "s2", "terminal_id": "", "transcript_path": "P:/t.jsonl",
+            }) + "\n"
+        )
+
+        rows = gr.ingest_new_blocks("merge")
+        assert len(rows) == 1, f"expected 1 deduped row, got {len(rows)}"
+        r = rows[0]
+        assert r["source_ref"]["sink"] == "stop_blocks.jsonl", \
+            "jsonl row should be primary"
+        assert r["source_ref"]["response_hash"] == "abcd1234abcd", \
+            "jsonl response_hash preserved"
+        assert "cross valid from jsonl" in r["block_reason_excerpt"], \
+            "jsonl reason should be primary"
+
+    def test_fresh_terminal_no_history(self, tmp_state):
+        """R3: fresh terminal over populated history → 0 rows."""
+        _make_db(tmp_state["db"], [
+            {"id": 1, "timestamp": "2026-07-09T23:00:00", "session_id": "s_old",
+             "terminal_id": "t", "hook_name": "Stop_deletion_verification_guard",
+             "action": "block", "reason": "old block"},
+        ])
+        assert gr.ingest_new_blocks("fresh-t") == []
+
+    def test_fresh_terminal_ingests_new_blocks_after_seed(self, tmp_state):
+        """R3: new block appended after fresh-terminal seeding IS ingested."""
+        _make_db(tmp_state["db"], [])
+        assert gr.ingest_new_blocks("fresh2") == []
+
+        con = sqlite3.connect(str(tmp_state["db"]))
+        con.execute(
+            "INSERT INTO hooks (id, timestamp, session_id, terminal_id, event, "
+            "hook_name, event_type, action, reason) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (3,
+             "2026-07-10T22:00:00",
+             "s-new", "t",
+             "hook_invoked",
+             "Stop_deletion_verification_guard",
+             "Stop", "block",
+             "fresh block after seeding"),
+        )
+        con.commit()
+        con.close()
+
+        rows = gr.ingest_new_blocks("fresh2")
+        assert len(rows) == 1
+        assert "fresh block" in str(rows[0].get("block_reason_excerpt", ""))
+
+    @pytest.mark.parametrize("v1,v2,expected", [
+        ("StopHook_cross_validator.py", "cross_validator", "cross_validator"),
+        ("Stop.py:epistemic_contract", "epistemic_contract", "epistemic_contract"),
+        ("StopHook_unverified_stance.py", "unverified_stance", "unverified_stance"),
+        ("Stop.py:semantic_critic", "semantic_critic", "semantic_critic"),
+        ("Stop.py:proposal_critique_gate", "proposal_critique_gate",
+         "proposal_critique_gate"),
+        ("Stop.py:cjk_drift_detector", "cjk_drift_detector", "cjk_drift_detector"),
+        ("Stop.py:skill_first_stop_gate", "skill_first_stop_gate",
+         "skill_first_stop_gate"),
+        ("Stop.py:safety_gate", "Stop_safety_gate.py", "safety_gate"),
+        ("skill-guard_Stop:slash_gate", "slash_gate", "slash_gate"),
+    ])
+    def test_name_normalization(self, v1, v2, expected):
+        """R2: every live gate-name variant pair normalizes to same key."""
+        from gate_residue import _normalize_gate_name
+        assert _normalize_gate_name(v1) == expected
+        assert _normalize_gate_name(v2) == expected

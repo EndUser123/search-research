@@ -248,22 +248,36 @@ def _read_post_block_turn(data: dict) -> tuple[list[dict], str]:
 
 
 def _format_residue_context(residue_rows: list[dict]) -> str:
-    """One-line summary of unresolved/disputed blocks (never a TaskCreate)."""
+    """One-line summary of unresolved/disputed blocks (never a TaskCreate).
+
+    R5: collapse entries sharing (normalized_gate, reason-prefix) into one
+    line with a count. The collapsed view keeps the signal without noise.
+    """
     if not residue_rows:
         return ""
-    parts = []
+    # R5: collapse by (normalized_gate, first-40-chars-of-reason)
+    groups: dict[str, list[dict]] = {}
     for r in residue_rows:
-        label = r.get("classification", "unresolved")
-        gate = r.get("gate_name", "?")
+        gate = r.get("normalized_gate") or r.get("gate_name", "?")
+        reason_prefix = (r.get("block_reason_excerpt") or "")[:40]
+        key = f"{gate}|{reason_prefix}"
+        groups.setdefault(key, []).append(r)
+    parts = []
+    for key, rows in groups.items():
+        gate, _, prefix = key.partition("|")
+        label = rows[0].get("classification", "unresolved")
+        count = len(rows)
         part = f"{gate} ({label})"
-        reason = (r.get("block_reason_excerpt") or "")[:80]
-        if reason:
-            part += f": {reason}"
+        if count > 1:
+            part += f" x{count}"
+        if prefix:
+            part += f": {prefix}"
         parts.append(part)
     body = "; ".join(parts)
     return (
         f"[cc-lazy-closure-debt residue] {len(residue_rows)} unsettled "
-        f"gate block{'s' if len(residue_rows) != 1 else ''}: {body}. "
+        f"gate block{'s' if len(residue_rows) != 1 else ''} "
+        f"({len(groups)} unique): {body}. "
         "No action needed for unresolved items."
     )
 
@@ -271,8 +285,9 @@ def _format_residue_context(residue_rows: list[dict]) -> str:
 def _format_fp_directive(fp_rows: list[dict]) -> str:
     """TaskCreate directive for each confirmed_fp block not yet promoted.
 
-    Each unique ledger_id gets one TaskCreate subject. Caller is responsible
-    for filtering to unpromoted rows only.
+    R4: the directive line carries the concrete tool + command/file the
+    refutation ran against + transcript position — not just a tool name.
+    Each unique ledger_id gets one TaskCreate subject.
     """
     if not fp_rows:
         return ""
@@ -280,12 +295,13 @@ def _format_fp_directive(fp_rows: list[dict]) -> str:
     for r in fp_rows:
         gate = r.get("gate_name", "unknown_gate")
         artifact = r.get("artifact") or {}
-        tool = artifact.get("tool", "")
-        target = artifact.get("target", "")
+        tool = artifact.get("tool", "?")
+        target = artifact.get("target", "?")
+        pos = artifact.get("transcript_pos", "?")
         excerpt = (r.get("block_reason_excerpt") or "")[:120]
         parts.append(
             f"- Gate: {gate}" + (f" ({excerpt})" if excerpt else "")
-            + f"\n  Refuted via: {tool} on {target}"
+            + f"\n  Refuted via: {tool} on {target} (transcript pos {pos})"
         )
     detail = "\n".join(parts)
     n = len(fp_rows)
@@ -327,8 +343,6 @@ def run(data: dict) -> dict:
     if new_blocks:
         tools, turn_text = _read_post_block_turn(data)
         already_promoted = promoted_ledger_ids(terminal_id)
-        fp_directive_rows: list[dict] = []
-        residue_rows: list[dict] = []
 
         for block in new_blocks:
             try:
@@ -347,11 +361,23 @@ def run(data: dict) -> dict:
             except Exception:
                 pass
 
-            lid = block.get("ledger_id", "")
+        # Build directive/residue from the folded ledger (which includes
+        # both newly-classified and previously-classified blocks).
+    try:
+        all_residue = recent_residue(terminal_id, max_count=10)
+    except Exception:
+        all_residue = []
+    if all_residue:
+        already_promoted = promoted_ledger_ids(terminal_id)
+        fp_directive_rows: list[dict] = []
+        residue_rows: list[dict] = []
+        for r in all_residue:
+            lid = r.get("ledger_id", "")
+            cls = r.get("classification", "unresolved")
             if cls == "confirmed_fp" and lid and lid not in already_promoted:
-                fp_directive_rows.append(block)
+                fp_directive_rows.append(r)
             elif cls in ("unresolved", "disputed"):
-                residue_rows.append(block)
+                residue_rows.append(r)
 
         if fp_directive_rows:
             # Emit TaskCreate directives and mark promoted.

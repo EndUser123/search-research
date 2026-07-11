@@ -232,12 +232,42 @@ def _make_ledger_id(gate_name: str, response_hash: Optional[str], fallback: str)
     return f"{gate_name}:{safe}"
 
 
+def _normalize_gate_name(raw: str) -> str:
+    """Normalize a gate/hook-name across sink variants for merge-key dedupe.
+
+    Handles every pair found in live data (verified 2026-07-10):
+      StopHook_cross_validator.py ↔ cross_validator  → cross_validator
+      Stop.py:epistemic_contract   ↔ epistemic_contract → epistemic_contract
+      StopHook_unverified_stance.py ↔ unverified_stance  → unverified_stance
+      Stop.py:semantic_critic      ↔ semantic_critic    → semantic_critic
+      Stop.py:proposal_critique_gate ↔ proposal_critique_gate → proposal_critique_gate
+      Stop.py:cjk_drift_detector   ↔ cjk_drift_detector  → cjk_drift_detector
+      Stop.py:skill_first_stop_gate ↔ skill_first_stop_gate → skill_first_stop_gate
+      Stop.py:safety_gate          ↔ Stop_safety_gate.py   → safety_gate
+      Stop_deletion_verification_guard ↔ deletion_verification_guard → deletion_verification_guard
+      skill-guard_Stop:slash_gate                              → slash_gate
+    Non-merging pairs (genuinely different gate names):
+      StopHook_perf_attribution_gate vs perf_attribution  → different names
+      Stop_removal_completeness_guard vs removal_completeness  → different names
+      Stop_diagnostic_analysis_quality_gate.py vs diagnostic_analysis_quality  → different names
+    """
+    name = str(raw or "").strip()
+    for prefix in ["skill-guard_Stop:", "StopHook_", "Stop.py:", "Stop_"]:
+        if name.startswith(prefix):
+            name = name[len(prefix):]
+            break
+    if name.endswith(".py"):
+        name = name[:-3]
+    return name.casefold()
+
+
 def _row_from_db(r: sqlite3.Row, terminal_id: str) -> dict:
     gate_name = str(r["hook_name"] or "unknown_gate")
     reason = str(r["reason"] or "")
     ts_str = str(r["timestamp"] or "")
     ts_ms = _parse_ts_ms(ts_str)
     session_id = str(r["session_id"] or "")
+    normalized = _normalize_gate_name(gate_name)
     # diagnostics.db has no response_hash; use (id, session_id) as the discriminator.
     ledger_id = _make_ledger_id(gate_name, None, f"db-{r['id']}-{session_id}")
     return {
@@ -247,6 +277,12 @@ def _row_from_db(r: sqlite3.Row, terminal_id: str) -> dict:
         "terminal_id": _safe_id(terminal_id),
         "ledger_id": ledger_id,
         "gate_name": gate_name,
+        "normalized_gate": normalized,
+        # R2: event_second rounded to 5s bucket to handle wall-clock drift
+        # between the two write paths (Stop.py:296 → diagnostics.db,
+        # stop_block_log.py:102 → stop_blocks.jsonl). Same block event
+        # recorded in both sinks stays within a couple seconds.
+        "event_second": int(ts_ms // 5000) * 5,
         "block_reason_excerpt": reason[:300],
         "source_ref": {
             "sink": "diagnostics.db",
@@ -264,6 +300,7 @@ def _row_from_jsonl(obj: dict) -> dict:
     gate_name = str(obj.get("gate_name") or "unknown_gate")
     reason = str(obj.get("reason") or "")
     ts_ms = _parse_ts_ms(str(obj.get("timestamp") or ""))
+    normalized = _normalize_gate_name(gate_name)
     ledger_id = _make_ledger_id(
         gate_name, obj.get("response_hash"), str(obj.get("timestamp") or "")
     )
@@ -274,6 +311,12 @@ def _row_from_jsonl(obj: dict) -> dict:
         "terminal_id": _safe_id(obj.get("terminal_id") or "unknown"),
         "ledger_id": ledger_id,
         "gate_name": gate_name,
+        "normalized_gate": normalized,
+        # R2: event_second rounded to 5s bucket to handle wall-clock drift
+        # between the two write paths (Stop.py:296 → diagnostics.db,
+        # stop_block_log.py:102 → stop_blocks.jsonl). Same block event
+        # recorded in both sinks stays within a couple seconds.
+        "event_second": int(ts_ms // 5000) * 5,
         "block_reason_excerpt": reason[:300],
         "source_ref": {
             "sink": "stop_blocks.jsonl",
@@ -306,6 +349,33 @@ def _parse_ts_ms(ts_str: str) -> int:
         return 0
 
 
+def _seed_watermark(terminal_id: str, state_root: Optional[Path] = None) -> dict:
+    """R3: seed a fresh terminal's watermark at the CURRENT max of both sinks.
+
+    A brand-new terminal has no actionable history; blocks of interest happen
+    during live sessions. Returns the seeded watermark and writes it.
+    """
+    db_max = 0
+    jsonl_end = 0
+    if DIAGNOSTICS_DB.exists():
+        try:
+            con = sqlite3.connect(str(DIAGNOSTICS_DB))
+            row = con.execute("SELECT MAX(id) FROM hooks").fetchone()
+            if row and row[0]:
+                db_max = int(row[0])
+            con.close()
+        except sqlite3.Error:
+            pass
+    if STOP_BLOCKS_JSONL.exists():
+        try:
+            jsonl_end = STOP_BLOCKS_JSONL.stat().st_size
+        except OSError:
+            pass
+    wm = {"db_max_id": db_max, "jsonl_byte_offset": jsonl_end}
+    _write_watermark(terminal_id, wm, state_root)
+    return wm
+
+
 def ingest_new_blocks(
     terminal_id: str,
     state_root: Optional[Path] = None,
@@ -314,19 +384,30 @@ def ingest_new_blocks(
     """Incremental ingest of new Stop-blocks for this terminal.
 
     Reads diagnostics.db rows with id > watermark (action='block') and
-    stop_blocks.jsonl bytes > watermark, limited to rows within max_age_h.
-    Writes one FP-ledger row per new block (classification='unresolved'),
-    advances the watermark, returns the new rows.
+    stop_blocks.jsonl bytes > watermark. R3: on first run for a terminal,
+    seeds the watermark at the current max so only FUTURE events are ingested.
 
-    O(new bytes) — no full rescans. Failures are swallowed (advisory): on any
-    source error, that source is skipped and its watermark is not advanced.
+    R2: rows from both sinks are deduped by (normalized_gate, event_second).
+    When a db row and a jsonl row merge, the jsonl row is primary (has
+    response_hash + fuller reason) and is enriched with the db row's session_id.
+
+    O(new bytes) — no full rescans. Failures are swallowed (advisory).
     """
     wm = _load_watermark(terminal_id, state_root)
+    # R3: no watermark file yet = fresh terminal — seed at current sink max
+    # so only future events are ingested. Tests that pre-seed (write a
+    # watermark file with zeros) bypass seeding.
+    wm_file = _watermark_path(terminal_id, state_root)
+    if not wm_file.exists():
+        wm = _seed_watermark(terminal_id, state_root)
+
     ledger = _ledger_path(terminal_id, state_root)
     new_rows: list[dict] = []
     db_max_id = int(wm.get("db_max_id", 0))
-    cutoff_ts = time.time() - max_age_h * 3600
-    cutoff_iso = None
+
+    # Collect raw rows from both sinks, then merge-dedupe by (norm_gate, event_second).
+    db_rows: list[dict] = []
+    jsonl_rows: list[dict] = []
 
     # --- diagnostics.db delta (id > watermark, action='block') ---
     if DIAGNOSTICS_DB.exists():
@@ -334,9 +415,6 @@ def ingest_new_blocks(
             con = sqlite3.connect(str(DIAGNOSTICS_DB))
             con.row_factory = sqlite3.Row
             cur = con.cursor()
-            # Time fence: only ingest blocks newer than max_age_h. This
-            # prevents the first-ever call from scanning years of stale blocks
-            # and producing a multi-KB additionalContext.
             cur.execute(
                 "SELECT id, hook_name, timestamp, session_id, reason "
                 "FROM hooks WHERE id > ? AND action = 'block' "
@@ -346,14 +424,13 @@ def ingest_new_blocks(
             max_id = db_max_id
             for r in cur.fetchall():
                 row = _row_from_db(r, terminal_id)
-                _append_row(ledger, row)
-                new_rows.append(row)
+                db_rows.append(row)
                 if int(r["id"]) > max_id:
                     max_id = int(r["id"])
             con.close()
             db_max_id = max_id
         except (sqlite3.Error, OSError):
-            pass  # fail open; do not advance db watermark on error
+            pass
 
     # --- stop_blocks.jsonl delta (bytes > watermark) ---
     jsonl_offset = int(wm.get("jsonl_byte_offset", 0))
@@ -365,6 +442,7 @@ def ingest_new_blocks(
                 new_offset = f.tell()
             text = chunk.decode("utf-8", errors="replace")
             lines = text.splitlines()
+            cutoff_ts = time.time() - max_age_h * 3600
             for i, line in enumerate(lines):
                 line = line.strip()
                 if not line:
@@ -375,19 +453,35 @@ def ingest_new_blocks(
                     continue
                 if not isinstance(obj, dict):
                     continue
-                # Skip lines older than the time fence for same reason as DB.
                 ts_str = str(obj.get("timestamp") or "")
                 if ts_str:
                     ts_ms = _parse_ts_ms(ts_str)
                     if ts_ms > 0 and ts_ms / 1000 < cutoff_ts:
                         continue
-                obj["line"] = i  # positional hint for source_ref
+                obj["line"] = i
                 row = _row_from_jsonl(obj)
-                _append_row(ledger, row)
-                new_rows.append(row)
+                jsonl_rows.append(row)
             jsonl_offset = new_offset
         except OSError:
             pass
+
+    # --- R2: merge-dedupe by (normalized_gate, event_second) ---
+    merged: dict[str, dict] = {}
+    for row in jsonl_rows + db_rows:  # jsonl first = primary preference
+        key = f"{row.get('normalized_gate', '')}:{row.get('event_second', 0)}"
+        if key not in merged:
+            merged[key] = row
+        else:
+            # Enrich: if jsonl row is primary, add db row's session_id if missing.
+            existing = merged[key]
+            if existing.get("source_ref", {}).get("sink") == "stop_blocks.jsonl":
+                db_sess = row.get("source_ref", {}).get("session_id", "")
+                if db_sess and not existing.get("source_ref", {}).get("session_id"):
+                    existing.setdefault("source_ref", {})["session_id"] = db_sess
+
+    for row in merged.values():
+        _append_row(ledger, row)
+        new_rows.append(row)
 
     _write_watermark(
         terminal_id,
