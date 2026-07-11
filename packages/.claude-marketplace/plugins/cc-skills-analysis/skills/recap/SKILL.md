@@ -1,6 +1,6 @@
 ---
 name: recap
-description: Generate a handoff-ready session recap across the full session chain — what was accomplished, what's incomplete, and what the next developer/PM needs to know
+description: Generate a handoff-ready session recap across the full session chain, with an optional evidence-scoped pre-handoff check
 version: 1.0.43
 status: stable
 category: session
@@ -31,6 +31,7 @@ execution:
   default_args: ""
   examples:
     - "/recap"
+    - "/recap check"
     - "/recap brief"
 ---
 
@@ -223,6 +224,8 @@ Regex extraction remains as fallback for sessions without identifiable file chan
 /recap                    # Generate handoff document (default mode)
 /recap brief              # Show brief catch-up summary only
 /recap full               # Show full detailed session history
+/recap check              # Run the recap-owned pre-handoff check
+/recap check --tier core --size large --kind refactor  # Include explicit risk score
 ```
 
 ## Default Output: Handoff Document
@@ -280,6 +283,24 @@ When invoked without arguments, `/recap` produces a **handoff document** suitabl
 
 The handoff format replaces the per-session narrative as the **default output**. Use `/recap full` for the detailed session-by-session view with origin tags and confidence labels. Use `/recap brief` for a quick one-paragraph catch-up — `brief` mode is **exempt from this template** and stays one section.
 
+### Pre-Handoff Check (`/recap check`)
+
+`/recap check` is the recap-owned successor to the retired `/dne` surface. It
+keeps the useful DUF/NSE behavior at the handoff boundary:
+
+1. **Evidence scope** — report the sessions and modified files actually loaded.
+2. **Priority (Red)** — surface recorded blockers, unresolved tasks, and missing
+   verified outcomes. Absence of a recorded blocker is not proof of safety.
+3. **Maintenance (Yellow)** — prompt blast-radius, rollback, empty/null/zero,
+   and inversion checks.
+4. **Suggestions (Blue)** — list optional follow-up work, including `/debrief`
+   when a recurring failure or durable lesson needs transcript forensics.
+
+The check is advisory and does not infer commit/push state or implement fixes.
+The objective tier × size × kind score is calculated only when all three inputs
+are explicitly supplied; otherwise the output says that risk is uncalculated.
+This keeps the score from becoming a false precision proxy for session safety.
+
 ### Handoff Synthesis Rules
 
 1. **Resume Here** is the only section a future agent must read to keep moving. Status is one word; outcome is one sentence; immediate next action is one concrete step. Resist the urge to over-explain.
@@ -312,7 +333,7 @@ This section is omitted when all sessions belong to the same terminal.
 
 | Intent Detected | Follow-Up Command | When to Suggest |
 |----------------|-------------------|-----------------|
-| Navigation / lost context | `/gto` | Current gaps or stale assumptions are unclear |
+| Navigation / lost context | `/debrief gaps` | Current gaps or stale assumptions are unclear |
 | Architecture decisions | `/design` | Unresolved state or contract decisions in prior sessions |
 | Complexity hotspots | `/tldr-deep` then `/refactor` | Sessions with many modified files or complex changes |
 | Debugging / root cause | `/diagnose` or `/rca` | Sessions with unresolved bugs or error patterns |

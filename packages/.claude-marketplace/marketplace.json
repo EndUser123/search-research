@@ -125,14 +125,14 @@
     },
     {
       "name": "cc-skills-lab",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "description": "Lab plugin",
       "source": "./plugins/cc-skills-lab",
       "keywords": []
     },
     {
       "name": "cc-skills-analysis",
-      "version": "1.0.114",
+      "version": "1.0.117",
       "description": "Analysis plugin",
       "source": "./plugins/cc-skills-analysis",
       "keywords": []

@@ -1,10 +1,10 @@
-"""Adapter bridging /gto's deterministic detectors into /debrief.
+"""Adapter bridging the internal GTO detector engine into /debrief.
 
-Debrief gains gto's session-goal/outcome detection, carryover+resolution
+Debrief gains the GTO engine's session-goal/outcome detection, carryover+resolution
 registry, leverage scoring, and gap-to-skill routing behind the
-``--gto-detectors`` flag. gto stays the source of truth for these modules;
+``--gto-detectors`` flag. The package-owned GTO engine stays the source of truth;
 debrief imports them lazily (in-function) so the base ``run`` path stays
-import-free and never breaks if gto is absent or restructured.
+import-free and never breaks if the engine is absent or restructured.
 
 Finding-model boundary: gto's ``Finding`` (skills/gto/models.py) and
 debrief's ``Finding`` are different dataclasses. gto Findings live only

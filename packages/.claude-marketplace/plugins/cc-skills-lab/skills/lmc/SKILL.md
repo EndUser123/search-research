@@ -14,7 +14,7 @@ aliases:
   - /lmc
 suggest:
   - /mlc
-  - /gto
+  - /debrief gaps
 workflow_steps:
   - analyze_token_usage: Measure tokens in target content
   - identify_essentials: Distinguish must-have from nice-to-have
@@ -223,9 +223,9 @@ Tokens are stored in cookies and validated on each request.
 - **Use /mlc** when: Process matters, rationale needed, documentation critical
 - **Use /lmc** when: Only outcome matters, documentation excessive, maximum efficiency needed
 
-## Integration with /gto
+## Integration with /debrief gaps
 
-/gto may suggest `/lmc` when it detects:
+/debrief gaps may suggest `/lmc` when it detects:
 - Severely bloated files (>3x typical size)
 - Excessive documentation that obscures content
 - Redundant explanations throughout codebase

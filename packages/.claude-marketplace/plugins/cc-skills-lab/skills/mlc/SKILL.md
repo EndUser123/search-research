@@ -14,7 +14,7 @@ aliases:
   - /mlc
 suggest:
   - /lmc
-  - /gto
+  - /debrief gaps
 workflow_steps:
   - analyze_token_usage: Measure tokens in target content
   - identify_inefficiencies: Find redundancy, verbosity, waste
@@ -179,9 +179,9 @@ is named config.yaml. You can edit this file to change settings.
 Settings stored in `config/config.yaml`. Edit to modify application behavior.
 ```
 
-## Integration with /gto
+## Integration with /debrief gaps
 
-/gto may suggest `/mlc` when it detects:
+/debrief gaps may suggest `/mlc` when it detects:
 - Files with excessive token-to-functionality ratio
 - Documentation with redundant sections
 - Code patterns that could be consolidated
@@ -190,5 +190,5 @@ Settings stored in `config/config.yaml`. Edit to modify application behavior.
 ## Related Skills
 
 - **/lmc**: Lossy Maximal Compaction (drops non-essential content)
-- **/gto**: Gap analysis (detects inefficiencies)
+- **/debrief gaps**: Gap analysis (detects inefficiencies)
 - **/r**: Remember/refine (optimization suggestions)

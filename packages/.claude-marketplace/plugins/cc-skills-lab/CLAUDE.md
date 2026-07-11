@@ -22,7 +22,6 @@ New trials for session summary and architectural coordination.
 
 | Skill | Purpose | Home |
 |-------|---------|------|
-| dne | "Do Next Execution" — session summary and routing | `dne/` |
 | csf-nip-integration | CSF to NIP protocol bridge | `csf-nip-integration/` |
 | concept-mapper | Visualizing abstract session concepts | `concept-mapper/` |
 

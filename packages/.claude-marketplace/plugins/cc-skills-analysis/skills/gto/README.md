@@ -1,14 +1,15 @@
-# GTO v4.0 — Gap-to-Opportunity Analysis
+# Internal GTO Engine — Gap-to-Opportunity Analysis
 
-Strategic gap analysis for Claude Code with RNS-compatible output.
+Package-owned detector engine used by `/debrief gaps`. It is not a standalone
+Claude skill or user-facing command.
 
 ## Quick Start
 
 ```
-/gto
+/debrief gaps <path>
 ```
 
-## Modes
+## Engine Modes
 
 | Mode | Description |
 |------|-------------|
@@ -61,7 +62,7 @@ Deterministic Detectors → Merge → Normalize → Dedupe → Route → Order �
 
 ## RNS Compatibility
 
-GTO output uses RNS machine format:
+The engine output uses the shared RNS-compatible machine format:
 
 ```
 RNS|D|1|🔧|QUALITY

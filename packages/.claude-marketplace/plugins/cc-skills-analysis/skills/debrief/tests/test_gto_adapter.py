@@ -1,4 +1,4 @@
-"""Tests for the /gto → /debrief detector adapter.
+"""Tests for the internal GTO → /debrief detector adapter.
 
 Layer justification (which layer proves what):
 - UNIT (gto_findings_to_debrief, attach_score_and_owner): pure transforms, no

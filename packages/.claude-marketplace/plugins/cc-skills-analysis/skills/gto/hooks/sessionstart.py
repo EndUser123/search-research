@@ -77,7 +77,7 @@ def run(data: dict) -> dict | None:
         if resolved:
             msg += f" ({resolved} findings resolved since last run)"
     elif phase in ("initialized", "running"):
-        msg = f"GTO: prior run was '{phase}' for '{target}'. Consider re-running /gto."
+        msg = f"GTO: prior run was '{phase}' for '{target}'. Continue through /debrief gaps."
     else:
         return None
 
