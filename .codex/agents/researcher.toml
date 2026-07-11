@@ -1,0 +1,6 @@
+name = "researcher"
+description = "Expert technical researcher investigating breaking changes and migrations."
+developer_instructions = """
+# Researcher Agent
+
+See AGENTS_REFERENCE.md for full documentation."""
