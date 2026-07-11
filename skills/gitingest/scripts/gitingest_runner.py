@@ -172,6 +172,18 @@ class NLMCLI:
     def login_hint(self) -> str:
         return " ".join(self.cmd) + " login"
 
+    def auto_login(self) -> tuple[bool, str]:
+        """Run nlm login directly (opens browser). Returns (success, message)."""
+        print(f"  Auto-running: {self.login_hint()}")
+        result = subprocess.run(
+            self.cmd + ["login"],
+            timeout=300,  # 5 min for browser auth
+        )
+        if result.returncode != 0:
+            return False, f"login exited {result.returncode}"
+        auth_ok, auth_msg = self.check_auth()
+        return auth_ok, auth_msg
+
     def source_list(self, notebook_id: str) -> tuple[dict[str, str], bool]:
         result = self._run(
             ["source", "list", notebook_id],
@@ -731,11 +743,16 @@ def main() -> None:
         print(f"  ok: {auth_msg}")
     else:
         print(f"  NOT AUTHENTICATED: {auth_msg}")
-        print(f"  Run: {nlm.login_hint()}")
-        if not args.dry_run:
-            print("  Aborting. Use --dry-run to skip auth.")
-            return
-        print("  (continuing in dry-run mode)")
+        if args.dry_run:
+            print("  (continuing in dry-run mode)")
+        else:
+            # Auto-login instead of aborting (opens browser, waits up to 5 min)
+            login_ok, login_msg = nlm.auto_login()
+            if not login_ok:
+                print(f"  X Auto-login failed: {login_msg}")
+                print(f"  Run manually: {nlm.login_hint()}")
+                return
+            print(f"  ok: {login_msg}")
     print()
 
     print(f"gitingest runner")
