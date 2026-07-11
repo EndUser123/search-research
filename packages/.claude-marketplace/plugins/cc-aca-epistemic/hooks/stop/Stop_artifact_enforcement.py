@@ -115,26 +115,40 @@ def _check_claim_keywords(response: str) -> list[str]:
     """Extract claim keywords from response that require artifact verification.
 
     Scans for mechanism-related claims that map to CLAIM_LAYER_MAP entries.
+
+    Match ASSERTIONS that a runtime event happened (verb forms), not
+    meta-discussion. #1444 FP (2026-07-11): the bare substrings "overlap" /
+    "same turn" / noun "co-fire" matched ordinary prose — "Spec Kit (overlaps
+    /go)" was blocked as a co-fire runtime claim, and any sentence discussing
+    this gate ("co-fire claim gate") re-triggered it. Same defect family as
+    #882/#1415 (bare-substring indicator matching).
     """
-    text_lower = response.lower()
     found_claims = []
 
-    # Map keywords to CLAIM_LAYER_MAP keys
-    keyword_map = {
-        "co-fire": "co-fire",
-        "co fire": "co-fire",
-        "same turn": "co-fire",
-        "overlap": "co-fire",
-        "operating_rules_and_behavior_contract": "operating_rules_and_behavior_contract",
-        "age guard": "age_guard_fired",
-        "age_guard": "age_guard_fired",
-        "stop gate warn": "stop_gate_warn_count",
-        "gate fired": "gate_fired",
-        "gate_fired": "gate_fired",
-    }
+    # Claim-form patterns: (compiled regex, CLAIM_LAYER_MAP key).
+    # co-fire requires the past-tense verb form or "mechanism ... fired ...
+    # together/same turn" in one sentence — noun mentions don't assert an event.
+    claim_patterns = [
+        (re.compile(r"\bco-?fired\b", re.IGNORECASE), "co-fire"),
+        (
+            re.compile(
+                r"\b(?:hooks?|gates?|injectors?|contracts?|rules?)\b[^.\n]{0,60}"
+                r"\bfired?\b[^.\n]{0,60}\b(?:together|(?:in\s+the\s+)?same[\s-]turn)\b",
+                re.IGNORECASE,
+            ),
+            "co-fire",
+        ),
+        (
+            re.compile(r"\boperating_rules_and_behavior_contract\b", re.IGNORECASE),
+            "operating_rules_and_behavior_contract",
+        ),
+        (re.compile(r"\bage[\s_]guard\b[^.\n]{0,40}\bfired\b", re.IGNORECASE), "age_guard_fired"),
+        (re.compile(r"\bstop\s+gate\s+warn\b", re.IGNORECASE), "stop_gate_warn_count"),
+        (re.compile(r"\bgate[\s_]fired\b", re.IGNORECASE), "gate_fired"),
+    ]
 
-    for keyword, claim_key in keyword_map.items():
-        if keyword in text_lower:
+    for pattern, claim_key in claim_patterns:
+        if pattern.search(response) and claim_key not in found_claims:
             found_claims.append(claim_key)
 
     return found_claims
