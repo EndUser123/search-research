@@ -372,6 +372,53 @@ class TestDedupeAndNormalization:
         assert "cross valid from jsonl" in r["block_reason_excerpt"], \
             "jsonl reason should be primary"
 
+    def test_boundary_straddle_dedupes(self, tmp_state):
+        """R2 regression: same block straddling a 5s-bucket boundary must dedupe.
+
+        Old fixed-bucket key put 12:30:04.9 in bucket 0 and 12:30:05.1 in
+        bucket 5 → two ledger rows for one block. The ±1s adjacency probe
+        (secs 4 and 5) must merge them.
+        """
+        _seed_watermark_zero("straddle", tmp_state["root"])
+
+        _make_db(tmp_state["db"], [{
+            "id": 2001, "timestamp": "2026-07-10T12:30:04.900000+00:00",
+            "session_id": "s1", "terminal_id": "t",
+            "hook_name": "StopHook_cross_validator.py",
+            "action": "block", "reason": "boundary block",
+        }])
+        _append_jsonl(tmp_state["jsonl"], {
+            "timestamp": "2026-07-10T12:30:05.100000+00:00", "event": "Stop",
+            "gate_name": "cross_validator", "reason": "boundary block jsonl",
+            "matched_span": "x", "response_hash": "beefbeefbeef",
+            "session_id": "s1", "terminal_id": "", "transcript_path": "",
+        })
+
+        rows = gr.ingest_new_blocks("straddle")
+        assert len(rows) == 1, f"boundary straddle must dedupe, got {len(rows)}"
+        assert rows[0]["source_ref"]["sink"] == "stop_blocks.jsonl"
+
+    def test_distinct_blocks_two_plus_seconds_apart_stay_distinct(self, tmp_state):
+        """R2 regression: same gate, blocks ≥2s apart are DISTINCT events.
+
+        Old fixed bucket merged any same-gate blocks inside one 5s window
+        (e.g. 12:30:00 and 12:30:03) into one row, silently dropping a block.
+        """
+        _seed_watermark_zero("distinct", tmp_state["root"])
+
+        for ts, rid in (("2026-07-10T12:30:00.000000+00:00", "aaaa1111"),
+                        ("2026-07-10T12:30:03.000000+00:00", "bbbb2222")):
+            _append_jsonl(tmp_state["jsonl"], {
+                "timestamp": ts, "event": "Stop",
+                "gate_name": "cross_validator", "reason": f"block at {ts}",
+                "matched_span": "x", "response_hash": rid,
+                "session_id": "s1", "terminal_id": "", "transcript_path": "",
+            })
+
+        rows = gr.ingest_new_blocks("distinct")
+        assert len(rows) == 2, \
+            f"blocks 3s apart are distinct events, got {len(rows)} row(s)"
+
     def test_fresh_terminal_no_history(self, tmp_state):
         """R3: fresh terminal over populated history → 0 rows."""
         _make_db(tmp_state["db"], [

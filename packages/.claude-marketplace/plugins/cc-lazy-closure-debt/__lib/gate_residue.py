@@ -278,11 +278,13 @@ def _row_from_db(r: sqlite3.Row, terminal_id: str) -> dict:
         "ledger_id": ledger_id,
         "gate_name": gate_name,
         "normalized_gate": normalized,
-        # R2: event_second rounded to 5s bucket to handle wall-clock drift
-        # between the two write paths (Stop.py:296 → diagnostics.db,
-        # stop_block_log.py:102 → stop_blocks.jsonl). Same block event
-        # recorded in both sinks stays within a couple seconds.
-        "event_second": int(ts_ms // 5000) * 5,
+        # R2: exact second; cross-sink tolerance is handled at merge time
+        # (±1s adjacency probe). Fixed 5s buckets were wrong both ways:
+        # same-block rows straddling a bucket boundary failed to dedupe,
+        # and distinct same-gate blocks inside one bucket falsely merged.
+        # Both sinks log the same event within the same second (verified
+        # on live rows: identical ts across sinks).
+        "event_second": int(ts_ms // 1000),
         "block_reason_excerpt": reason[:300],
         "source_ref": {
             "sink": "diagnostics.db",
@@ -312,11 +314,9 @@ def _row_from_jsonl(obj: dict) -> dict:
         "ledger_id": ledger_id,
         "gate_name": gate_name,
         "normalized_gate": normalized,
-        # R2: event_second rounded to 5s bucket to handle wall-clock drift
-        # between the two write paths (Stop.py:296 → diagnostics.db,
-        # stop_block_log.py:102 → stop_blocks.jsonl). Same block event
-        # recorded in both sinks stays within a couple seconds.
-        "event_second": int(ts_ms // 5000) * 5,
+        # R2: exact second; cross-sink tolerance is handled at merge time
+        # (±1s adjacency probe). See _row_from_db for why 5s buckets were wrong.
+        "event_second": int(ts_ms // 1000),
         "block_reason_excerpt": reason[:300],
         "source_ref": {
             "sink": "stop_blocks.jsonl",
@@ -465,12 +465,22 @@ def ingest_new_blocks(
         except OSError:
             pass
 
-    # --- R2: merge-dedupe by (normalized_gate, event_second) ---
+    # --- R2: merge-dedupe by (normalized_gate, event_second ±1s) ---
+    # Adjacency probe replaces fixed 5s buckets: same block logged in both
+    # sinks lands in the same (usually identical) second; blocks ≥2s apart
+    # from the same gate are distinct events.
     merged: dict[str, dict] = {}
     for row in jsonl_rows + db_rows:  # jsonl first = primary preference
-        key = f"{row.get('normalized_gate', '')}:{row.get('event_second', 0)}"
-        if key not in merged:
-            merged[key] = row
+        gate = row.get("normalized_gate", "")
+        sec = int(row.get("event_second", 0))
+        key = None
+        for probe_sec in (sec, sec - 1, sec + 1):
+            candidate = f"{gate}:{probe_sec}"
+            if candidate in merged:
+                key = candidate
+                break
+        if key is None:
+            merged[f"{gate}:{sec}"] = row
         else:
             # Enrich: if jsonl row is primary, add db row's session_id if missing.
             existing = merged[key]
