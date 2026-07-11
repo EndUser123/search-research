@@ -1,0 +1,6 @@
+name = "architect"
+description = "Senior software architect. Use for system design and architecture planning."
+developer_instructions = """
+# Architect Agent
+
+See AGENTS_REFERENCE.md for full documentation."""

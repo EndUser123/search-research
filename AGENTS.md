@@ -42,6 +42,10 @@ For `yt-is` work under `P:\packages\yt-is`, read:
 Do not rely on a parent-workspace prompt or chat summary when package-local
 instructions, handoffs, or operation docs exist.
 
+For experiments, benchmarks, performance optimization, A/B comparisons,
+live-run decisions, or fresh-agent experiment handoffs, use the installed
+`evidence-driven-experiment-loop` skill and validate its state before action.
+
 ## Review Discipline
 
 For non-trivial analysis, proposals, mechanism investigations, benchmark

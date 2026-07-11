@@ -1,6 +1,6 @@
 """cc-lazy-closure-debt debt store — JSONL persistence for deferral phrases.
 
-State path: P:/.claude/state/cc-lazy-closure-debt/{terminal_id}.jsonl
+State path: P:/.claude/state/cc-lazy-closure-debt/{terminal_id}_{session_id}.jsonl
 Per spec: append_deferral() / recent_deferrals() / clear_terminal().
 
 All public functions are safe under concurrent append from the Stop hook
@@ -70,9 +70,10 @@ def get_state_dir(root: Optional[Path] = None) -> Path:
     return p
 
 
-def _get_state_path(terminal_id: str, root: Optional[Path] = None) -> Path:
-    safe = _safe_id(terminal_id)
-    return get_state_dir(root) / f"{safe}.jsonl"
+def _get_state_path(terminal_id: str, session_id: str = "", root: Optional[Path] = None) -> Path:
+    safe_tid = _safe_id(terminal_id)
+    safe_sid = _safe_id(session_id) if session_id else "nosession"
+    return get_state_dir(root) / f"{safe_tid}_{safe_sid}.jsonl"
 
 
 def _get_terminal_id() -> str:
@@ -83,16 +84,18 @@ def _get_terminal_id() -> str:
 def append_deferral(
     terminal_id: str,
     phrase: str,
+    session_id: str = "",
     transcript_excerpt: str = "",
     state_root: Optional[Path] = None,
 ) -> None:
     """Append a deferral event to the JSONL store.
 
-    Each line is a JSON object with: ts (unix), terminal_id, phrase,
+    Each line is a JSON object with: ts (unix), terminal_id, session_id, phrase,
     transcript_excerpt (first 200 chars of the assistant response).
     """
     tid = _safe_id(terminal_id or _get_terminal_id())
-    path = _get_state_path(tid, state_root)
+    sid = _safe_id(session_id) if session_id else ""
+    path = _get_state_path(tid, sid, state_root)
     now = int(time.time())
     now_ms = int(time.time() * 1000)
     record = {
@@ -100,6 +103,7 @@ def append_deferral(
         "ts_ms": now_ms,  # millisecond precision for sort order
         "seq": _next_seq(),
         "terminal_id": tid,
+        "session_id": sid,
         "phrase": phrase,
         "canonical_phrase": _normalize_phrase(phrase),
         "fingerprint": _fingerprint_phrase(phrase),
@@ -118,6 +122,7 @@ def append_deferral(
 def resolve_deferral(
     terminal_id: str,
     fingerprint: str,
+    session_id: str = "",
     state_root: Optional[Path] = None,
 ) -> None:
     """Mark a deferral fingerprint as formalized by appending a tombstone.
@@ -129,7 +134,8 @@ def resolve_deferral(
     every UserPromptSubmit (the duplicate-task root cause).
     """
     tid = _safe_id(terminal_id or _get_terminal_id())
-    path = _get_state_path(tid, state_root)
+    sid = _safe_id(session_id) if session_id else ""
+    path = _get_state_path(tid, sid, state_root)
     now = int(time.time())
     record = {
         "ts": now,
@@ -149,6 +155,7 @@ def resolve_deferral(
 def resolve_deferral_by_phrase(
     terminal_id: str,
     phrase: str,
+    session_id: str = "",
     state_root: Optional[Path] = None,
 ) -> None:
     """Resolve a deferral by its phrase (fingerprints it first).
@@ -157,13 +164,14 @@ def resolve_deferral_by_phrase(
     PostToolUse hook reading a "Deferral: <phrase>" task subject). Normalization
     is deterministic, so the fingerprint matches the one stored at append time.
     """
-    resolve_deferral(terminal_id, _fingerprint_phrase(phrase), state_root)
+    resolve_deferral(terminal_id, _fingerprint_phrase(phrase), session_id, state_root)
 
 
 def recent_deferrals(
     terminal_id: str,
     max_age_h: float = 24.0,
     max_count: int = 5,
+    session_id: str = "",
     state_root: Optional[Path] = None,
 ) -> list[dict]:
     """Return up to max_count deferrals newer than max_age_h hours.
@@ -172,7 +180,8 @@ def recent_deferrals(
     phrase, transcript_excerpt keys.
     """
     tid = _safe_id(terminal_id or _get_terminal_id())
-    path = _get_state_path(tid, state_root)
+    sid = _safe_id(session_id) if session_id else ""
+    path = _get_state_path(tid, sid, state_root)
     if not path.exists():
         return []
     cutoff = int(time.time()) - int(max_age_h * 3600)
@@ -281,11 +290,13 @@ def _dedupe_deferrals(items: list[dict]) -> list[dict]:
 
 def clear_terminal(
     terminal_id: str,
+    session_id: str = "",
     state_root: Optional[Path] = None,
 ) -> bool:
-    """Delete the per-terminal debt file. Returns True if a file was removed."""
+    """Delete the per-terminal/per-session debt file. Returns True if a file was removed."""
     tid = _safe_id(terminal_id or _get_terminal_id())
-    path = _get_state_path(tid, state_root)
+    sid = _safe_id(session_id) if session_id else ""
+    path = _get_state_path(tid, sid, state_root)
     if path.exists():
         try:
             path.unlink()

@@ -3795,6 +3795,14 @@ Transcript: C:/Users/brsth/.claude/projects/P--/07d9d135-72e7-4ace-800a-8a10a5ca
 Source: session-2026-07-09
 Transcript: session be39a5da
 
+## [2026-07-10] ingest | Deliberation Topology & Ultracode Integration
+Source: session-2026-07-10
+SHA256: e24a85dd35a5d5a514ed57015d891a66a38999461fd7bbbfdcc23fda0a7dc7c4
+
+## [2026-07-11] ingest | ADR: Epistemic Deliberation Architecture
+Source: session-2026-07-10-deliberation-design
+SHA256: n/a (session-authored)
+
 ## [2026-07-09] ingest | Git Submodule Topology for Plugin Monorepo
 Source: session-2026-07-09
 Transcript: session be39a5da

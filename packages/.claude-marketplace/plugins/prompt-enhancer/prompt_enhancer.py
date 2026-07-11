@@ -30,7 +30,6 @@ def enhance(prompt: str, cwd: str) -> EnhancementResult:
             missing_details=[],
             analysis=f"bypass: {result['reason']}",
             safety_flags=[],
-            estimated_tokens=0,
         )
 
     if result["classification"] == "clear":
@@ -39,7 +38,6 @@ def enhance(prompt: str, cwd: str) -> EnhancementResult:
             missing_details=[],
             analysis=f"clear: {result['reason']}",
             safety_flags=[],
-            estimated_tokens=_estimate_tokens(prompt),
         )
 
     if result["classification"] == "prohibited":
@@ -48,7 +46,6 @@ def enhance(prompt: str, cwd: str) -> EnhancementResult:
             missing_details=[],
             analysis=f"prohibited: {result['reason']}",
             safety_flags=["prohibited: destructive without scope"],
-            estimated_tokens=0,
         )
 
     if result["classification"] == "confirm":
@@ -57,7 +54,6 @@ def enhance(prompt: str, cwd: str) -> EnhancementResult:
             missing_details=["confirm target scope before executing"],
             analysis=f"confirm: {result['reason']}",
             safety_flags=["destructive-but-ambiguous"],
-            estimated_tokens=_estimate_tokens(prompt),
         )
 
     # Ambiguous path — return the generic hint at low confidence (below the
@@ -69,13 +65,8 @@ def enhance(prompt: str, cwd: str) -> EnhancementResult:
         missing_details=["clarify: missing referent or underspecified"],
         analysis=f"ambiguous: {result['reason']}",
         safety_flags=[],
-        estimated_tokens=_estimate_tokens(prompt),
         confidence=float(3) / float(10),
     )
-
-
-def _estimate_tokens(text: str) -> int:
-    return len(text.split()) * 4 // 3
 
 
 def build_additional_context(result: EnhancementResult) -> str:
@@ -84,6 +75,4 @@ def build_additional_context(result: EnhancementResult) -> str:
         lines.append(f"• Clarified: {', '.join(result.missing_details)}")
     if result.safety_flags:
         lines.append(f"• Flags: {', '.join(result.safety_flags)}")
-    if result.estimated_tokens:
-        lines.append(f"• Tokens: ~{result.estimated_tokens} (for context budget tracking)")
     return "\n".join(lines)

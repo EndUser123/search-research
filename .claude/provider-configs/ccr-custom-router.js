@@ -155,9 +155,7 @@ const BACKEND_CONTEXT_LIMITS = {
   "minimax,MiniMax-M3[1m]": 1_000_000,
 };
 
-// Fallback for unregistered routes: the minimum known backend limit. Every route
-// gets enforcement; there is no pass-through. Currently 1M (all three known
-// backends are 1M), but auto-adjusts when new entries are added with lower limits.
+// Fallback for unregistered routes: the minimum known backend limit.
 const DEFAULT_BACKEND_LIMIT = Math.min(...Object.values(BACKEND_CONTEXT_LIMITS));
 
 // Safety reserve subtracted from the backend limit to leave room for output
@@ -468,14 +466,16 @@ module.exports = async function router(req, config) {
   const decide = (route, reason, decisionSource, guardrailOverride = false) => {
     const backend = splitRoute(route);
 
-    // Backend context limit enforcement: if the selected route has a known
-    // backend limit, reject requests that exceed the safe input limit (backend
-    // limit minus output reserve). CCR's tokenCount is a pre-computed estimate
-    // and may differ from /context or the backend's own tokenizer — apply the
-    // safety reserve to absorb that delta.
+    // Backend context limit check: if the selected route has a verified limit,
+    // and the request exceeds the safe input limit, log a structured rejection
+    // entry and still proceed with the route. CCR's middleware ignores falsy
+    // returns (fall-through to built-in router B6), so this check is logging
+    // and observability only. The hard gate is the pre-CCR admission proxy
+    // (ccr-admission-proxy.js), which rejects oversized requests with HTTP 413
+    // before CCR is reached. See cc-ccr.ps1 for proxy wiring.
     const safeLimit = route ? getSafeInputLimit(route) : null;
     if (safeLimit !== null && tokenCount > safeLimit) {
-      const rejection = {
+      const adverse = {
         ts: new Date().toISOString(),
         effective_route_alias: routeToAlias(route, model),
         backend_provider: backend.provider,
@@ -492,14 +492,16 @@ module.exports = async function router(req, config) {
         output_safety_reserve: OUTPUT_SAFETY_RESERVE,
         safe_input_limit: safeLimit,
         decision_source: decisionSource,
-        rejection_reason: `context-exceeded: ${tokenCount} > ${safeLimit} (limit=${getBackendContextLimit(route)}, reserve=${OUTPUT_SAFETY_RESERVE}) for route ${route}`,
+        admission_note: `adversarial: ${tokenCount} > ${safeLimit} (limit=${getBackendContextLimit(route)}, reserve=${OUTPUT_SAFETY_RESERVE}) for route ${route} — admission proxy should have caught this`,
         ...getRequestObservability(req),
       };
-      logRoutingEvent(rejection);
+      logRoutingEvent(adverse);
       try {
-        process.stderr.write(`[CCR-route] REJECTED: ${rejection.rejection_reason}\n`);
+        process.stderr.write(`[CCR-route] ADVERSARIAL: ${adverse.admission_note}\n`);
       } catch {}
-      return null; // CCR fall-through → clear error from upstream
+      // Fall through — do NOT return null. Null is fall-through to CCR's built-in
+      // router, which may pick a provider with an even lower limit. The admission
+      // proxy is the hard gate; this log entry is telemetry.
     }
 
     // Local-fail-fallback uses opencode-go/deepseek-v4-flash (the same route string

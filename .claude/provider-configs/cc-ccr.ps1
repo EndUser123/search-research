@@ -77,6 +77,11 @@ if ($Stop) {
         try { (Get-CimInstance Win32_Process -Filter "ProcessId=$($_.Id)" | Select-Object -ExpandProperty CommandLine) -match 'claude-code-router' } catch { $false }
     } | Stop-Process -Force -ErrorAction SilentlyContinue
 
+    # Also stop the admission proxy (pre-CCR context-limit gate)
+    Get-Process -Name "node" -ErrorAction SilentlyContinue | Where-Object {
+        try { (Get-CimInstance Win32_Process -Filter "ProcessId=$($_.Id)" | Select-Object -ExpandProperty CommandLine) -match 'ccr-admission-proxy' } catch { $false }
+    } | Stop-Process -Force -ErrorAction SilentlyContinue
+
     # Report local model state (independent of CCR — not killed by -Stop)
     $llAlive = Get-Process llama-server -ErrorAction SilentlyContinue
     if ($llAlive) {
@@ -433,9 +438,28 @@ try {
     Write-Host "[CCR] routingMode=$routingMode" -ForegroundColor Cyan
 } catch {}
 
+# --- Start admission proxy (pre-CCR context-limit gate) ---
+# The admission proxy sits between Claude Code and CCR. It rejects oversized
+# requests with HTTP 413 before any forwarding. CCR's custom-router API has no
+# structured rejection path (falsy return = built-in router fall-through), so
+# the proxy is the only hard gate. Safe requests pass through to CCR untouched.
+$proxyPort = 3458
+$proxyScript = "P:\.claude\provider-configs\ccr-admission-proxy.js"
+$proxyLog = "P:\.claude\state\ccr-admission-proxy.log"
+$proxyProc = Start-Process pwsh -ArgumentList @("-NoProfile", "-NoLogo", "-NonInteractive", "-Command",
+    "node `"$proxyScript`" 2>&1 | Set-Content -Path `"$proxyLog`"") -WindowStyle Hidden -PassThru
+Start-Sleep -Milliseconds 500
+try {
+    $proxyCheck = Invoke-WebRequest -Uri "http://127.0.0.1:$proxyPort/health" -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
+    Write-Host "[admission-proxy] Started on port $proxyPort (PID $($proxyProc.Id))" -ForegroundColor Green
+} catch {
+    Write-Warning "[admission-proxy] Proxy health check failed — was the node path correct?"
+}
+$script:admissionProxyPid = $proxyProc.Id
+
 # --- Wire this shell's Claude Code ---
-# Claude → CCR → external models
-$env:ANTHROPIC_BASE_URL = $ccrUrl
+# Claude → admission proxy (:3458) → CCR (:3456) → external models
+$env:ANTHROPIC_BASE_URL = "http://127.0.0.1:$proxyPort"
 $proxyLabel = "CCR"
 
 # Auth: CCR accepts the local key via either x-api-key or Authorization: Bearer header.

@@ -1,0 +1,10 @@
+notebooklm_id: "e83b6a68-fedc-4757-b492-3360ae8377a2"
+repos:
+  - url: "https://github.com/alexfazio/plankton"
+    branch: "main"
+  - url: "https://github.com/anomalyco/aidevops"
+    branch: "main"
+  - url: "https://github.com/davesienkowski/gsd-contribution-toolkit"
+    branch: "main"
+  - url: "https://github.com/JustHereToHelp/claude-bouncer"
+    branch: "main"

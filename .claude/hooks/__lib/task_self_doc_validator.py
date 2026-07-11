@@ -26,12 +26,18 @@ DEFAULT_MIN_DESC_LEN = 50
 # Indicator patterns by category
 PROBLEM_INDICATORS = [
     r"\bfix\b",
+    r"\bfixed\b",
+    r"\bfixing\b",
+    r"\bfixes\b",
     r"\bbug\b",
     r"\bissue\b",
     r"\berror\b",
     r"\bcrash\b",
     r"\bbroken\b",
+    r"\bfail\b",
     r"\bfails\b",
+    r"\bfailed\b",
+    r"\bfailing\b",
 ]
 SITUATION_INDICATORS = [
     r"\bwhen\b",
@@ -42,11 +48,28 @@ SITUATION_INDICATORS = [
     r"\bon\b",
 ]
 SYMPTOM_INDICATORS = [
+    r"\bshow\b",
     r"\bshows\b",
+    r"\bshowed\b",
+    r"\bshown\b",
+    r"\bshowing\b",
+    r"\breturn\b",
     r"\breturns\b",
+    r"\breturned\b",
+    r"\breturning\b",
+    r"\bthrow\b",
     r"\bthrows\b",
+    r"\bthrew\b",
+    r"\bthrown\b",
+    r"\bthrowing\b",
+    r"\bproduce\b",
     r"\bproduces\b",
+    r"\bproduced\b",
+    r"\bproducing\b",
+    r"\boutput\b",
     r"\boutputs\b",
+    r"\boutputted\b",
+    r"\boutputting\b",
     r"\berror\b",
     r"\bexception\b",
 ]
@@ -212,5 +235,15 @@ if __name__ == "__main__":
     )
     print(f"Test 3 (empty task): {result.is_valid}")
     assert not result.is_valid
+
+    # Test 4: Past-tense description (regression: #1442 — present-tense-only keywords)
+    # "failed", "produced", "showed" must all be recognized in past tense.
+    result = self_documentation_check(
+        subject="Fixed the restore merge key in gate_residue.py",
+        description="When the 5s-bucket edge fired, the merge wrongly collapsed distinct blocks — the old key failed on straddle cases. The fix produced correct adjacency in all 61 tests.",
+    )
+    print(f"Test 4 (past-tense): {result.is_valid}")
+    assert result.is_valid, f"Past-tense description rejected: {result.missing_categories}"
+    assert not result.missing_categories
 
     print("All self-tests passed.")

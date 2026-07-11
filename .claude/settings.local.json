@@ -213,7 +213,9 @@
       "PowerShell(Get-Process *)",
       "PowerShell(Move-Item *)",
       "Bash(python -c \"import py_compile; py_compile.compile\\(r'P:/.claude/hooks/PreToolUse_task_done_evidence_gate.py', doraise=True\\); print\\('compile OK'\\)\")",
-      "mcp__perplexity__pplx_sonar"
+      "mcp__perplexity__pplx_sonar",
+      "Bash(break)",
+      "mcp__perplexity__pplx_usage"
     ],
     "deny": [],
     "ask": []

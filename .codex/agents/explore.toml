@@ -1,0 +1,6 @@
+name = "explore"
+description = "Fast file search specialist. Read-only - Glob, Grep, Read, Bash only."
+developer_instructions = """
+# Explore Agent
+
+See AGENTS_REFERENCE.md for full documentation."""

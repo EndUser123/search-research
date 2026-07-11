@@ -69,7 +69,6 @@ def _seed_enhancement(
         "missing_details": missing_details,
         "analysis": "test analysis",
         "safety_flags": [],
-        "estimated_tokens": 5,
         "confidence": confidence,
         **extra_fields,
     }

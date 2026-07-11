@@ -59,6 +59,19 @@ else:
 from debt_store import append_deferral  # noqa: E402
 
 
+def _resolve_session_id(data: dict) -> str:
+    """Resolve session_id from Stop hook data."""
+    session_obj = data.get("session") or {}
+    if isinstance(session_obj, dict):
+        sid = session_obj.get("session_id") or session_obj.get("sessionId")
+        if sid:
+            return str(sid)
+    sid = data.get("session_id") or data.get("sessionId")
+    if sid:
+        return str(sid)
+    return os.environ.get("CLAUDE_SESSION_ID", "")
+
+
 def _safe_id(value: str | None) -> str:
     if not value:
         return "unknown"
@@ -143,11 +156,13 @@ def run(data: dict) -> dict:
         return {"continue": True}
 
     terminal_id = _safe_id(_resolve_terminal_id(data))
+    session_id = _resolve_session_id(data)
     excerpt = response[:200]
 
     try:
         append_deferral(
             terminal_id=terminal_id,
+            session_id=session_id,
             phrase=match.matched,
             transcript_excerpt=excerpt,
         )

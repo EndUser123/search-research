@@ -1,0 +1,4 @@
+interface:
+  display_name: "External Delegation"
+  short_description: "Route bounded work to PI or OpenCode"
+  default_prompt: "Use $external-delegation for bounded, verifiable work while keeping reasoning and final judgment in Codex."
