@@ -127,7 +127,11 @@ def _should_fire(prompt: str, *, _outer_text: str | None = None) -> bool:
     )
 
 
-def _build_injection(prompt: str) -> str:
+def _build_injection(prompt: str, *, _outer_text: str | None = None) -> str:
+    # Branch selection runs against the canonical envelope outer text so a
+    # conflicting signal living only inside a quoted/fenced span cannot
+    # inject a branch the outer request did not ask for.
+    text = (_outer_text or prompt).strip()
     sections = [
         "**EVIDENCE-FIRST ROUTING TREE**",
         "1. Identify the claim type first: disputed claim, root cause, missing behavior, implementation status, or comparison/decision.",
@@ -139,36 +143,36 @@ def _build_injection(prompt: str) -> str:
         "- Cite the file, symbol, or tool output that supports the claim.",
     ]
 
-    if _DISPUTED_CLAIM_RE.search(prompt):
+    if _DISPUTED_CLAIM_RE.search(text):
         sections.append(
             "Disputed-claim branch: treat this as an unverified challenge to a prior answer. "
             "Do not agree or disagree yet. Verify the contested fact with tools, and if the dispute concerns removed or missing functionality, search the actual call sites, exports, and references before saying it is absent."
         )
 
-    if _ROOT_CAUSE_RE.search(prompt):
+    if _ROOT_CAUSE_RE.search(text):
         sections.append(
             "Root-cause branch: state the primary hypothesis first, then name the smallest alternative needed to falsify it. "
             "Trace the mechanism, separate symptom from cause, and test the top hypothesis before treating it as a conclusion."
         )
 
-    if _EXISTENCE_RE.search(prompt):
+    if _EXISTENCE_RE.search(text):
         sections.append(
             "Existence branch: treat absence as a hypothesis, not a conclusion. "
             "Search the relevant files, symbols, tests, and adjacent resolution roots with the narrowest path that can falsify the claim."
         )
 
-    if _IMPLEMENTATION_RE.search(prompt):
+    if _IMPLEMENTATION_RE.search(text):
         sections.append(
             "Implementation branch: search existing code first, preserve compatibility unless you confirm no callers depend on it, and explain any behavior change explicitly. "
             "If the code seems missing or broken, test the most likely path before concluding the implementation is absent."
         )
 
-    if _COMPARISON_RE.search(prompt):
+    if _COMPARISON_RE.search(text):
         sections.append(
             "Comparison branch: compare the top options against explicit criteria and the evidence that would distinguish them before recommending one."
         )
 
-    if _PATH_LAYOUT_RE.search(prompt):
+    if _PATH_LAYOUT_RE.search(text):
         sections.append(
             "Path-layout branch: treat the visible path as one candidate only. Inspect the resolved target, the surrounding package root, and the nearest sibling directories before concluding anything is missing."
         )
@@ -197,11 +201,14 @@ def claim_risk_router(context: HookContext) -> HookResult:
     if not _should_fire(prompt, _outer_text=_outer):
         return HookResult.empty()
 
-    injection = _build_injection(prompt)
+    injection = _build_injection(prompt, _outer_text=_outer)
     suppress = [
         "operating_rules",
     ]
     if _DISPUTED_CLAIM_RE.search(prompt) and not _ROOT_CAUSE_RE.search(prompt):
+        # Note: suppression decision uses raw prompt intentionally — the
+        # suppress-rule is about visible user phrasing, not hidden structure,
+        # so quoting a disputed claim should still suppress analysis_protocol_gate.
         suppress.append("analysis_protocol_gate")
     return HookResult(
         context={

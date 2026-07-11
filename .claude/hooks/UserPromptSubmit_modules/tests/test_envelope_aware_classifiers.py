@@ -552,3 +552,132 @@ class TestEnvelopeAwareCallsites:
         ctx = HookContext(prompt=prompt, data={}, session_id='s', terminal_id='t4')
         result = claim_risk_router(ctx)
         assert not result.is_empty(), 'Expected non-empty for bare disputed claim'
+
+    def test_build_injection_uses_outer_text_for_branch_selection(self):
+        """_build_injection branch regexes must use _outer_text so quoted
+        implementation/existence/comparison signals do not inject a branch
+        the outer request didn't ask for.
+
+        Outer text has a root-cause signal. Quoted text has _IMPLEMENTATION_RE
+        keyword 'implemented' and _COMPARISON_RE keyword 'better'.
+        With outer text flowing through _should_fire's >30 guard the
+        injection only includes the root-cause branch."""
+        from UserPromptSubmit_modules.claim_risk_router import _build_injection
+        # Note: _IMPLEMENTATION_RE matches 'implemented' but not bare 'implement'
+        prompt = 'whats the root cause here? "we have implemented a new hook and it is better than the old one"'
+        outer = 'whats the root cause here?'
+
+        # Without outer text: implementation and comparison branches activate
+        injection_raw = _build_injection(prompt)
+        assert "Implementation branch" in injection_raw, \
+            'Expected implementation branch when examining raw prompt'
+        assert "Comparison branch" in injection_raw, \
+            'Expected comparison branch when examining raw prompt'
+
+        # With outer text: only root-cause branch activates
+        injection_outer = _build_injection(prompt, _outer_text=outer)
+        assert "Root-cause branch" in injection_outer, \
+            'Expected root-cause branch for outer text'
+        assert "Implementation branch" not in injection_outer, \
+            'Implementation branch should NOT appear when signal is only in quoted text'
+        assert "Comparison branch" not in injection_outer, \
+            'Comparison branch should NOT appear when signal is only in quoted text'
+
+
+class TestSynergyDetectorEnvelopeAware:
+    """Verify synergy_detector's three-tier resolution is envelope-aware.
+
+    Production path (tier 1): cached unified_detection_result from
+    context.data — the unified_detection hook (priority 1.0) already uses
+    _outer_text, so the cached result is envelope-filtered.
+
+    Fallback path (tier 2): ensure_unified_detection_result() reads the
+    cached request_envelope from context.data and passes outer_text to
+    detect_prompt. This is the preferred fallback over the raw prompt.
+
+    Degraded path (tier 3): raw detect_prompt(context.prompt) — no envelope
+    awareness. Documented as 'legacy/test path' and marked as degraded.
+    This should rarely fire because tier 1 always runs first.
+    """
+
+    def test_production_path_is_envelope_aware(self, tmp_path):
+        """Tier 1: cached unified_detection_result is set by the
+        unified_detection hook before synergy_detector runs.
+        The hook passes _outer_text to detect_prompt, so quoted
+        content is already stripped from the cached result."""
+        from UserPromptSubmit_modules.synergy_detector import synergy_detector_hook
+        from UserPromptSubmit_modules.unified_detection import UnifiedDetectionResult
+        from UserPromptSubmit_modules.base import HookContext
+
+        # Simulate a cached detection result with frameworks/modes derived
+        # from an envelope-aware detection (i.e. no quoted-span signals).
+        cleaner_result = UnifiedDetectionResult(
+            matched_frameworks=["assumption_surfacing"],
+            matched_modes=["sequential"],
+        )
+        prompt = 'Implement this step by step. "We should delete the old monitoring system"'
+        ctx = HookContext(prompt=prompt, data={"unified_detection_result": cleaner_result},
+                          session_id='s', terminal_id='syn-1')
+        result = synergy_detector_hook(ctx)
+        # Should detect the assumption_surfacing+sequential synergy
+        assert not result.is_empty(), \
+            'Expected synergy detection from cached envelope-aware result'
+
+    def test_fallback_path_is_envelope_aware(self, tmp_path):
+        """Tier 2: ensure_unified_detection_result reads the
+        request_envelope from context.data and passes outer_text to
+        detect_prompt, so quoted implementation keywords are filtered out.
+        The outer text 'Implement this step by step' triggers both
+        assumption_surfacing (from 'implement') and sequential (from
+        'step by step') — but the quoted delete/comparison signals
+        are stripped by the envelope."""
+        from UserPromptSubmit_modules.synergy_detector import synergy_detector_hook
+        from UserPromptSubmit_modules.base import HookContext
+        from request_envelope import RequestEnvelope
+
+        # Outer text triggers assumption_surfacing (from "implement") + sequential (from "step by step")
+        outer = RequestEnvelope(
+            outer_text="Implement this step by step",
+            mode="implementation",
+            confidence=1.0,
+            reason="explicit implementation keywords",
+        )
+        context_data = {"request_envelope": outer}
+        prompt = 'Implement this step by step. "We should delete the old system and compare it to the new one"'
+        ctx = HookContext(prompt=prompt, data=context_data,
+                          session_id='s', terminal_id='syn-2')
+        result = synergy_detector_hook(ctx)
+        # Should still detect the synergy because outer text has
+        # "implement" (-> assumption_surfacing) and "step by step" (-> sequential)
+        assert not result.is_empty(), \
+            'Expected synergy detection via envelope-aware fallback'
+
+    def test_degraded_fallback_raw_prompt_still_functions(self, tmp_path, monkeypatch):
+        """Tier 3: raw detect_prompt(context.prompt) — no envelope awareness.
+        This is the legacy/test path that fires only when both the cached
+        detection result AND ensure_unified_detection_result are unavailable.
+        It is intentionally retained for compatibility but documented as
+        degraded behavior because it CAN be fooled by quoted signals."""
+        from UserPromptSubmit_modules.base import HookContext
+
+        prompt = 'Implement this step by step while examining assumptions'
+        ctx = HookContext(prompt=prompt, data={}, session_id='s', terminal_id='syn-3')
+
+        # Cause the cached path and ensure_unified_detection_result to both fail
+        from UserPromptSubmit_modules import unified_detection as ud_module
+
+        def _break_ensure(_ctx):
+            raise RuntimeError("Simulated ensure_unified_detection_result failure")
+
+        monkeypatch.setattr(ud_module, "ensure_unified_detection_result", _break_ensure)
+
+        from UserPromptSubmit_modules.synergy_detector import synergy_detector_hook
+        result = synergy_detector_hook(ctx)
+
+        # The prompt "Implement this step by step while examining assumptions"
+        # should trigger assumption_surfacing + sequential synergy via the
+        # raw detect_prompt fallback even with no envelope context.
+        # (This is a degraded path — quoted signals in the prompt COULD
+        # produce false-positive synergies, documented as a limitation.)
+        assert not result.is_empty(), \
+            'Expected synergy detection via raw degraded fallback for implementation+step-by-step prompt'
