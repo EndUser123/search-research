@@ -35,7 +35,7 @@
 - Modes: `read_only` or `write`.
 - Result statuses: `ok`, `failed`, or `blocked`.
 
-- [ ] **Step 1: Write failing contract tests.**
+- [x] **Step 1: Write failing contract tests.**
 
 ```js
 import test from "node:test";
@@ -81,13 +81,13 @@ test("rejects successful results without the structured result payload", () => {
 });
 ```
 
-- [ ] **Step 2: Run the focused test and verify it fails.**
+- [x] **Step 2: Run the focused test and verify it fails.**
 
 Run: `node --test P:\packages\codex-external-delegation\tests\contract.test.mjs`
 
 Expected: FAIL because `src\contract.mjs` does not exist.
 
-- [ ] **Step 3: Implement the minimal contract validators.**
+- [x] **Step 3: Implement the minimal contract validators.**
 
 ```js
 const WORKERS = new Set(["pi", "opencode"]);
@@ -123,7 +123,7 @@ export function validateResult(result) {
 }
 ```
 
-- [ ] **Step 4: Run the focused tests and commit the contract slice.**
+- [x] **Step 4: Run the focused tests and commit the contract slice.**
 
 Run: `node --test P:\packages\codex-external-delegation\tests\contract.test.mjs`
 
@@ -144,11 +144,11 @@ Commit: `git add docs/superpowers/plans/2026-07-11-codex-external-delegation.md 
 - `classifyFailure({ error, exitCode, timedOut, stdout, stderr }) -> failure_class`
 - Required result marker: `<external-delegation-result>{"status":"ok",...}</external-delegation-result>`.
 
-- [ ] **Step 1: Add tests for prompt safety and failure classes.** Test `timeout`, `command_missing`, `auth_or_quota`, `context_limit`, `provider_unavailable`, `protocol_error`, and `worker_failed`, plus the requirement that rendered prompts include the objective, allowed scope, forbidden actions, output schema, and verification commands.
-- [ ] **Step 2: Run the focused tests and verify the new functions fail before implementation.**
-- [ ] **Step 3: Implement prompt rendering with explicit read-only/write constraints and the result marker.** The renderer must serialize only packet fields, never environment variables or auth files.
-- [ ] **Step 4: Implement deterministic failure classification in precedence order: timeout, command missing, authentication/quota, context limit, provider unavailable, protocol error, non-zero worker exit, unknown.
-- [ ] **Step 5: Run focused tests and commit.**
+- [x] **Step 1: Add tests for prompt safety and failure classes.** Test `timeout`, `command_missing`, `auth_or_quota`, `context_limit`, `provider_unavailable`, `protocol_error`, and `worker_failed`, plus the requirement that rendered prompts include the objective, allowed scope, forbidden actions, output schema, and verification commands.
+- [x] **Step 2: Run the focused tests and verify the new functions fail before implementation.**
+- [x] **Step 3: Implement prompt rendering with explicit read-only/write constraints and the result marker.** The renderer must serialize only packet fields, never environment variables or auth files.
+- [x] **Step 4: Implement deterministic failure classification in precedence order: timeout, command missing, authentication/quota, context limit, provider unavailable, protocol error, non-zero worker exit, unknown.
+- [x] **Step 5: Run focused tests and commit.**
 
 Run: `node --test P:\packages\codex-external-delegation\tests\prompt-failures.test.mjs`
 
