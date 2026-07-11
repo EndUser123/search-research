@@ -61,13 +61,16 @@ _ACTION_VERB_RE = re.compile(
 )
 
 
-def _should_fire(prompt: str) -> bool:
+def _should_fire(prompt: str, *, _outer_text: str | None = None) -> bool:
     """Check if prompt warrants operating rules injection.
 
     Layer 1: classify_intent() catches QUESTION/DEBUG/RESEARCH/CORRECTION.
              This covers diagnostic queries ("what's wrong with X?") that
              verb-only regex misses.
     Layer 2: _ACTION_VERB_RE fallback for ACTION prompts (implement, build…).
+
+    When _outer_text is provided, both layers search the canonical outer
+    text so quoted/fenced content cannot trigger injection.
     """
     stripped = prompt.strip()
     if len(stripped) < _MIN_PROMPT_LENGTH:
@@ -75,11 +78,12 @@ def _should_fire(prompt: str) -> bool:
     # Skip operational slash commands
     if _SKIP_RE.match(stripped):
         return False
+    text = (_outer_text or stripped).strip()
     # Layer 1: unified intent classifier (DEBUG/RESEARCH/QUESTION/CORRECTION)
-    if classify_intent(stripped) is not None:
+    if classify_intent(stripped, _outer_text=_outer_text) is not None:
         return True
-    # Layer 2: ACTION verb fallback
-    return bool(_ACTION_VERB_RE.search(stripped))
+    # Layer 2: ACTION verb fallback — search outer text when available
+    return bool(_ACTION_VERB_RE.search(text))
 
 
 def _is_enabled() -> bool:
