@@ -48,7 +48,24 @@ behavioral — stop building infrastructure, revisit prompts/model routing.
 - **Phase 3 — C3 lifecycle (data-gated):** #9 cull via manifest deletion
   license; #18 tracker consolidation + state GC; workaround sweep (every
   "do X via Y to avoid gate Z" memory is a pending verdict on gate Z);
-  #13 measurement experiment; #12 parked pending a second clobber post-git.
+  #13 measurement experiment; #12 UNPARKED (see amendment).
+
+**Priority amendment 2026-07-11.** Evidence base: one working day produced
+4 gate-FP RCA cycles (#23), 4-of-5 delegated closeouts with real gaps (#24),
+4 index.lock collisions + 1 wrong-branch commit (#12), and the deletion of a
+provably harmful speculative injector (#25) — all first-hand this session,
+not testimony. Re-sequenced queue:
+1. **#23 / task #1085 jumps the queue** — the only fix that changes the
+   PRODUCTION RATE of new problems; everything else reduces stock. The
+   FP-ledger (shipped 2026-07-10/11) is its detection half; the harness is
+   the prevention half.
+2. #1390 manifest stays second (C1 anchor; #23's corpus needs a home anyway).
+3. **#24 closeout receipts** (tasks #1429/#956) third — every delegation
+   currently costs a full director re-verification pass, and 4/5 needed it.
+4. **#25 injection-consumption measurement** (tasks #1100/#1279) fourth —
+   measure BEFORE the Phase 3 cull touches injectors.
+5. **#12 worktree-per-implementer** is a dispatch-policy default, not a
+   build — tooling exists; adopt at next implementer dispatch.
 
 Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
 
@@ -148,6 +165,15 @@ Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
     claim files in a shared lockfile/manifest before editing.
     Immediate recovery: other model re-emits its version before its session
     closes; then merge, don't pick a winner.
+    UNPARKED 2026-07-11 — the "second clobber" arrived as a cluster: 4
+    index.lock collisions in one day (one implementer did a blind `rm`; the
+    diagnosed protocol is age-gate >300s + no live git process older than the
+    lock), plus a commit that landed on codex/external-delegation because
+    another agent switched the SHARED checkout mid-flight. Fix direction
+    sharpened: worktree-per-implementer as the default dispatch convention —
+    tooling already exists (git worktrees + worktree skills); this is policy,
+    not construction. Falsifier: if collisions persist across isolated
+    worktrees, the contention is in shared state files, not the git index.
 
 13. [OPEN] **Edit-as-exploration incentive: diffs are legible, reading is invisible.**
     Root-cause candidate from the 2026-07-09 churn review (source: agy transcript — external
@@ -300,6 +326,16 @@ Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
     with no subsequent successful retry" in the session residue, and extend
     cc-lazy-closure-debt (whose exact mission is deferral tracking) to ingest
     gate-denial events as a new input class.
+    F2 companion SHIPPED 2026-07-10/11: cc-lazy-closure-debt gate-residue loop
+    (gate_residue.py, v0.1.11) ingests both sinks, classifies
+    unresolved/resolved/confirmed_fp/disputed with artifact-backed labels, and
+    promotes confirmed FPs to tasks. Already caught 3 real gate FPs in its first
+    two days (#1415 replay, #1443, #1444). Open ledger defects: confirmed_fp
+    classification not persisted back to the ledger (directive claimed "artifact
+    seen" with no stored row — 2026-07-11), artifact refs still fragmentary.
+    Live specimen 2026-07-11 of the F2 shape itself: an implementer's TaskUpdate
+    was gate-blocked 3x and silently abandoned — tracked closure only happened
+    because the director re-checked.
     This would be wrong if producer≠verifier adds latency/cost exceeding its catch rate
     — measurable once #15 telemetry counts external-pass findings per session.
 
@@ -332,3 +368,60 @@ Status legend: [DONE] completed and verified by execution · [PARTIAL] · [OPEN]
     /red-team's claim-refute sub-phase (#1248), preflight inversion prompts.
     Watch condition: "expected", "transient", "known limitation" in a report without a
     citation is the C2 proxy-signature of this item — cheap to grep for once #15 lands.
+
+23. [OPEN] **Gates ship unmeasured — the FP production line.** The single highest-ROI
+    class fix as of 2026-07-11: it changes the RATE of new problems, not the stock.
+    Evidence (one working day, all first-hand): four independent gates exhibited the
+    identical birth defect — pattern matching shipped with zero TP/FP measurement.
+    (a) removal-completeness guard: `cli` prefix-matched `import clip` (#1415);
+    (b) perf-attribution gate: fired on rhetorical "in 30 seconds" (#1443);
+    (c) artifact-enforcement: bare "overlap" matched product-comparison prose,
+    51 accumulated blocks, self-referential re-trigger on discussing the gate (#1444);
+    (d) task_self_doc_validator: error message demands labels, code matches
+    present-tense keyword indicators (#1442). Every FP costs an opus turn per firing
+    until a full RCA cycle lands; roughly half of this session was that genre.
+    CLAUDE.md already mandates `measured_tp_on_corpus` before a gate can block —
+    but it is prose, unenforced (C2: the mandate is the proxy, the harness is the fix).
+    Fix: task #1085 gate-discrimination calibration harness, promoted to FRONT of the
+    queue (see Priority amendment). The gate-residue FP loop (shipped, see #22) is the
+    detection half; #1085 is the prevention half. Ship-gate form: a new/changed
+    blocking matcher must run against a held-out corpus (seeded from the FP-ledger's
+    accumulated real blocks) and record TP/FP counts before it may block.
+    Falsification: if gates calibrated through #1085 still produce FPs at the current
+    rate, the corpus is unrepresentative — fix the corpus pipeline, don't relax gates.
+
+24. [OPEN] **Delegated closeouts are verified by prose, not receipts.** C2 instance:
+    self-reported completion narrative stands in for machine-checkable state.
+    Evidence 2026-07-10/11: five delegated closeouts re-verified by the director;
+    four had real gaps — "committed and pushed" with 18 unpushed commits; a fix
+    landed only on a side branch (fa7ff6e, #1424); a stale plugin cache left after
+    post-bump source edits (0.2.7 carrying deleted code); a gate-blocked TaskUpdate
+    abandoned without retry; a skipped version bump. The director re-verification
+    pass is currently the only quality mechanism — one full opus pass per delegation.
+    Root cause: the mutation checklist's checkable steps (bump done? cache==source?
+    commit reachable from main? task closed? push state honest?) are exhortations,
+    not checks. Fix by REUSE: receipt-based completion verifier (task #1429, in
+    flight) + pre-commit entry-launch gate (#956). Receipt = deterministic postflight
+    script output attached to the closeout; the report contract requires it the way
+    CEC requires evidence fields. Falsification: if receipted closeouts still show
+    gaps on director re-check, the gaps are in what the receipts measure — extend
+    receipts, don't reinstate prose trust.
+
+25. [OPEN] **The injection surface is speculative — built on hypothesis, never
+    measured for consumption.** C1 applied to the system's own prompt overhead.
+    Evidence 2026-07-11: prompt-enhancer's referent-inference chain injected a
+    confidently WRONG anchor ("fix it" → first filename in a pasted log) — the
+    consuming model already holds the conversation and resolved the referent
+    correctly while paying tokens to refute the injection; its token-estimate line
+    injected ~20 tokens/turn "for context budget tracking" that nothing ever
+    tracked. Both deleted. The external review's diagnosis generalizes: "each piece
+    was imagined to create value; nobody ever added a cursor to find out whether
+    the model actually did anything with it." Every turn carries multiple KB of
+    injected contracts/rubrics/trees; observed double-injection; unknown consumption.
+    Fix: injection-consumption measurement BEFORE the Phase 3 cull — tasks #1100
+    (UPS router injection-cost telemetry) + #1279 (runtime ground truth + injection
+    budget). Measure which injections change behavior (the #983 marker-hit-rate
+    method exists); delete the unconsumed. mechanism_manifest's own docstring
+    documents the scaling cliff — the list itself becomes the bug past ~20 entries.
+    Falsification: if measured-consumed injections are the majority, the surface is
+    earning its cost and the cull premise is wrong — keep and index instead.
