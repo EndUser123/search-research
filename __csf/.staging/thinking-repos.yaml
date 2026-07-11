@@ -1,0 +1,12 @@
+notebooklm_id: "e83b6a68-fedc-4757-b492-3360ae8377a2"
+repos:
+  - url: "https://github.com/froster02/mini-Brain_skills"
+    branch: "main"
+  - url: "https://github.com/shanraisshan/claude-code-best-practice"
+    branch: "main"
+  - url: "https://github.com/openclaw/self-improvement"
+    branch: "main"
+  - url: "https://github.com/anthropics/skills"
+    branch: "main"
+  - url: "https://github.com/jbabin91/super-claude"
+    branch: "main"
