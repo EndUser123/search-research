@@ -15,7 +15,7 @@ Experiments in data compression and logic-maximal reasoning.
 | lmc | Logic-maximal compression and optimization | `lmc/` |
 | mlc | Meta-logic optimization and token trimming | `mlc/` |
 | slc | Specialized logic contracts | `slc/` |
-| simplify | Radical simplification protocols | `simplify/` |
+| simplify-enhanced | Wrapper over built-in /simplify + FP-resistant reuse pass | `simplify-enhanced/` |
 
 ### 2. Emerging Patterns
 New trials for session summary and architectural coordination.

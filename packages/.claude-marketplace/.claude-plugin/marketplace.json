@@ -125,7 +125,7 @@
     },
     {
       "name": "cc-skills-lab",
-      "version": "1.0.1",
+      "version": "1.0.3",
       "description": "Lab plugin",
       "source": "./plugins/cc-skills-lab",
       "keywords": []

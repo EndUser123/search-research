@@ -1,97 +1,74 @@
 ---
-name: simplify
-description: Simplifies and refines code for clarity, consistency, and maintainability while preserving all functionality. Focuses on recently modified code unless instructed otherwise.
-version: 2.0.0
+name: simplify-enhanced
+description: Wrapper around the built-in /simplify that adds a false-positive-resistant code-reuse pass. Invokes the built-in first (reuse + simplification + efficiency + altitude + apply), then runs a discrimination-scale duplicate detector the built-in cannot guarantee.
+version: 3.0.0
 status: stable
 category: quality
 enforcement: advisory
-workflow_steps:
-  - identify_changes
-  - launch_review_agents
-  - fix_issues
 triggers:
-  - /simplify
+  - /simplify-enhanced
+workflow_steps:
+  - builtin_simplify
+  - enhanced_reuse_pass
+  - apply
 ---
 
-# Simplify: Code Review and Cleanup
+# simplify-enhanced
 
-Review all changed files for reuse, quality, and efficiency. Fix any issues found.
+Thin wrapper over the harness-native `/simplify`. Delegates the bulk review to the
+built-in and adds **one** thing it cannot guarantee: a reuse pass engineered to suppress
+the false-positive "duplicate code" flags that naive (grep-driven) reuse review produces.
 
-## Phase 1: Identify Changes
+## Phase 1: Delegate to the built-in
 
-Run `git diff` (or `git diff HEAD` if there are staged changes) to see what changed. If there are no git changes, review the most recently modified files that the user mentioned or that you edited earlier in this conversation.
+Invoke the built-in `/simplify` (Skill tool, name `simplify`). Let it run to completion —
+it reviews the changed code for reuse, simplification, efficiency, and altitude cleanups,
+and applies its own fixes. Do not duplicate that work here.
 
-## Phase 2: Launch Three Review Agents in Parallel
+If the built-in is unavailable or errors, fall back to reviewing `git diff` (or
+`git diff HEAD`) manually for the same four dimensions; do not abort.
 
-Use the Agent tool to launch all three agents concurrently in a single message. Pass each agent the full diff so it has the complete context.
+## Phase 2: Enhanced reuse pass (the only thing this skill adds)
 
-### Agent 1: Code Reuse Review
+After the built-in finishes, run ONE additional reuse-duplicate pass over the diff using
+the discrimination scale below. The built-in's reuse review is keyword/semantic similarity;
+this pass exists to stop the false positives that similarity produces.
 
-**CRITICAL: Use semantic analysis, not keyword grep.**
+**CRITICAL: semantic analysis, not keyword grep.** For each change:
 
-For each change:
+1. **Classify the pattern type** before searching:
+   - **DEFINING** a function/variable (behavior is born here) → cross-file search for duplicates
+   - **USING** a function/variable → check whether an existing utility already covers it (correct usage, not a duplicate)
+   - **MENTION** (reference, import, type hint) → not a duplicate candidate; skip
 
-1. **Determine the pattern type** before searching:
-   - Is this a function/variable **DEFINING** behavior? → cross-file search for duplicates
-   - Is this a function/variable being **USED**? → check if existing utility already covers it
-   - Is this a **MENTION** (reference, not definition)? → skip as duplicate candidate
+2. **Cross-file duplicate detection only** (not same-file):
+   - Flag only where the SAME PATTERN is actually **defined** in multiple places.
+   - Do NOT flag: imports, test usage of production code, wrapper functions calling a shared utility, legitimate cross-references.
 
-2. **Cross-file duplicate detection** (not same-file):
-   - Only flag duplicates where the SAME PATTERN is actually DEFINED in multiple places
-   - Do NOT flag: cross-references, imports, test usage, wrapper functions calling the same utility
-   - Do NOT flag: "references pattern" as "defines pattern" — read the code to verify
+3. **Evidence verification before reporting:**
+   - Before reporting "N files define this," count actual **definitions** by reading the code — not grep hit count.
+   - Keyword matches ≠ definitions. If grep finds N matches but only M are definitions (M < N), report M.
 
-3. **Cross-domain discrimination**:
-   - **Same family** (e.g., two hooks): Cross-reference is legitimate, not duplicate
-   - **Different family** (e.g., hook references skill): Verify the pattern is actually duplicated, not just called
+**Discrimination scale:**
 
-4. **Evidence verification**:
-   - Before reporting "X files define this pattern", count actual DEFINITIONS via file read (not grep)
-   - Keyword matches ≠ definitions — verify with actual code reading
-   - If grep finds N matches but only M are definitions (M < N), report M not N
+| Type | Meaning | Action |
+|------|---------|--------|
+| DEFINES | Another file also defines this same pattern | Flag as duplicate |
+| MENTIONS | References the pattern without defining it | Skip |
+| USES_IN_CONTEXT | Calls an existing utility | Skip (correct usage) |
+| TEST_USAGE | Test file exercises production code | Skip |
+| CROSS_FAMILY | Hook uses a skill utility (or similar cross-boundary) | Skip (legitimate) |
 
-**Duplicate Detection Discrimination Scale:**
-| Type | Action |
-|------|--------|
-| DEFINES | Found another file that also DEFINES this — flag as duplicate |
-| MENTIONS | References the pattern without defining it — skip |
-| USES_IN_CONTEXT | Calls an existing utility — skip, this is correct usage |
-| TEST_USAGE | Test file uses production code — skip |
-| CROSS_FAMILY | Hook uses skill utility — skip, cross-family usage is legitimate |
-
-**Verification checklist before reporting:**
+**Verification checklist before reporting any duplicate:**
 - [ ] Read the actual code in matched files (don't trust grep output alone)
-- [ ] Count only DEFINITIONS, not mentions or usages
+- [ ] Count only DEFINITIONS, not mentions/usages
 - [ ] Distinguish same-family vs cross-family usage
-- [ ] Report: "Found M definitions of pattern X across N files" not "Found N keyword matches"
+- [ ] Report "M definitions across N files," never "N keyword matches"
 
-### Agent 2: Code Quality Review
+## Phase 3: Apply
 
-Review the same changes for hacky patterns:
+Apply only the confirmed duplicates from Phase 2 (consolidate into the shared utility).
+Skip false positives without arguing — note them and move on. Do not re-review the
+dimensions the built-in already covered.
 
-1. **Redundant state**: state that duplicates existing state, cached values that could be derived, observers/effects that could be direct calls
-2. **Parameter sprawl**: adding new parameters to a function instead of generalizing or restructuring existing ones
-3. **Copy-paste with slight variation**: near-duplicate code blocks that should be unified with a shared abstraction
-4. **Leaky abstractions**: exposing internal details that should be encapsulated, or breaking existing abstraction boundaries
-5. **Stringly-typed code**: using raw strings where constants, enums (string unions), or branded types already exist in the codebase
-6. **Unnecessary JSX nesting**: wrapper Boxes/elements that add no layout value — check if inner component props (flexShrink, alignItems, etc.) already provide the needed behavior
-7. **Nested conditionals**: ternary chains (`a ? x : b ? y : ...`), nested if/else, or nested switch 3+ levels deep — flatten with early returns, guard clauses, a lookup table, or an if/else-if cascade
-8. **Unnecessary comments**: comments explaining WHAT the code does (well-named identifiers already do that), narrating the change, or referencing the task/caller — delete; keep only non-obvious WHY (hidden constraints, subtle invariants, workarounds)
-
-### Agent 3: Efficiency Review
-
-Review the same changes for efficiency:
-
-1. **Unnecessary work**: redundant computations, repeated file reads, duplicate network/API calls, N+1 patterns
-2. **Missed concurrency**: independent operations run sequentially when they could run in parallel
-3. **Hot-path bloat**: new blocking work added to startup or per-request/per-render hot paths
-4. **Recurring no-op updates**: state/store updates inside polling loops, intervals, or event handlers that fire unconditionally — add a change-detection guard so downstream consumers aren't notified when nothing changed. Also: if a wrapper function takes an updater/reducer callback, verify it honors same-reference returns (or whatever the "no change" signal is) — otherwise callers' early-return no-ops are silently defeated
-5. **Unnecessary existence checks**: pre-checking file/resource existence before operating (TOCTOU anti-pattern) — operate directly and handle the error
-6. **Memory**: unbounded data structures, missing cleanup, event listener leaks
-7. **Overly broad operations**: reading entire files when only a portion is needed, loading all items when filtering for one
-
-## Phase 3: Fix Issues
-
-Wait for all three agents to complete. Aggregate their findings and fix each issue directly. If a finding is a false positive or not worth addressing, note it and move on — do not argue with the finding, just skip it.
-
-When done, briefly summarize what was fixed (or confirm the code was already clean).
+Summarize what Phase 2 added on top of the built-in (or confirm the reuse was already clean).
