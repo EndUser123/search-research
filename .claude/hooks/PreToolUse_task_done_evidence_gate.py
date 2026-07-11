@@ -1,88 +1,101 @@
 #!/usr/bin/env python3
 """
-PreToolUse task done evidence gate.
+PreToolUse task done-evidence ADVISORY.
 
-Blocks TaskUpdate(status="completed") unless:
-  - commit_hash argument is present, OR
-  - evidence_file argument is present, OR
-  - skip_evidence=true argument is present (logged, not blocked)
+Fires on TaskUpdate(status="completed"). Checks whether a durable completion
+receipt exists for the task and, if not, prints a non-blocking advisory to stderr
+nudging the agent to record evidence via `/task done <id>`.
+
+DESIGN — why advisory (non-blocking), not blocking:
+  The native TaskUpdate tool schema does NOT support custom evidence fields.
+  An earlier version of this gate checked `commit_hash` / `evidence_file` /
+  `skip_evidence` — fields the native tool never accepted, so the gate could
+  only ever block every completion (and it was dead-dispatched under the
+  non-existent tool name "Task" anyway). Completion receipts are written by
+  `/task done` ALONGSIDE the TaskUpdate call, so blocking completion here
+  creates a chicken-and-egg. Deletion safety is enforced deterministically by
+  the receipt-based verifier (`/task clean` only deletes VERIFIED-receipt
+  tasks); this gate never authorizes or blocks anything.
+
+Receipts live in: P:/.claude/state/task_receipts/{task_id}.json
+  (configurable via TASK_RECEIPT_DIR env var, kept in sync with task_receipt.py)
 
 Exit codes:
-  0 = allow
-  2 = block (missing evidence)
+  0 = allow (always — this gate never blocks)
 
 Env vars:
   TASK_DONE_EVIDENCE_ENABLED=true (default: true)
 """
 
+from __future__ import annotations
+
 import json
 import os
+import re
 import sys
-from datetime import UTC, datetime
 from pathlib import Path
 
 _ENABLED = os.environ.get("TASK_DONE_EVIDENCE_ENABLED", "true").lower() == "true"
-_EVIDENCE_LOG = Path(os.path.expanduser("~/.claude/state/task_tracker/evidence_skips.jsonl"))
+_RECEIPT_DIR = Path(
+    os.environ.get(
+        "TASK_RECEIPT_DIR",
+        str(Path(os.path.expanduser("~/.claude/state/task_receipts"))),
+    )
+)
 
 
-def _log_skip(task_id: str, reason: str) -> None:
-    _EVIDENCE_LOG.parent.mkdir(parents=True, exist_ok=True)
-    entry = {
-        "ts": datetime.now(UTC).isoformat(),
-        "task_id": task_id,
-        "reason": reason,
-    }
-    with open(_EVIDENCE_LOG, "a", encoding="utf-8") as f:
-        f.write(json.dumps(entry) + "\n")
+def _safe_task_id(task_id: str) -> str:
+    """Sanitize a task id for use as a filename (defense against path traversal)."""
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", str(task_id)) or "unknown"
+
+
+def receipt_path_for(task_id: str) -> Path:
+    return _RECEIPT_DIR / f"{_safe_task_id(task_id)}.json"
+
+
+def has_receipt(task_id: str) -> bool:
+    p = receipt_path_for(task_id)
+    try:
+        return p.is_file()
+    except OSError:
+        return False
 
 
 def check(tool_input: dict) -> tuple[bool, str]:
-    """Return (allowed, reason)."""
-    status = tool_input.get("status", "")
+    """Return (has_receipt, task_id). Only meaningful when status == "completed"."""
+    status = str(tool_input.get("status", "")).lower()
     if status != "completed":
         return True, ""
 
+    task_id = str(tool_input.get("taskId") or tool_input.get("task_id") or "?")
     if not _ENABLED:
-        return True, "gate disabled"
-
-    task_id = tool_input.get("taskId") or tool_input.get("task_id", "?")
-
-    skip = tool_input.get("skip_evidence", "")
-    if str(skip).lower() in ("true", "1", "yes"):
-        _log_skip(task_id, "skip_evidence=true")
-        return True, ""
-
-    commit = tool_input.get("commit_hash", "")
-    if commit and len(commit.strip()) >= 8:
-        return True, ""
-
-    evidence = tool_input.get("evidence_file", "")
-    if evidence and os.path.exists(evidence):
-        return True, ""
-
-    return (
-        False,
-        f"BLOCKED: Provide commit_hash or evidence_file when marking task #{task_id} completed.\n"
-        f"Examples:\n"
-        f"  TaskUpdate(taskId=\"{task_id}\", status=\"completed\", "
-        f"commit_hash=\"abc12345\", description=\"...\")\n"
-        f"  TaskUpdate(taskId=\"{task_id}\", status=\"completed\", "
-        f"evidence_file=\"P:/tmp/evidence.txt\", description=\"...\")\n"
-        f"Or pass skip_evidence=true for intentional non-evidence completions (logged)."
-    )
+        return True, task_id
+    return has_receipt(task_id), task_id
 
 
 def main():
-    stdin_data = sys.stdin.read()
+    raw = sys.stdin.read()
     try:
-        data = json.loads(stdin_data)
-    except json.JSONDecodeError:
-        return  # malformed input, don't block
+        data = json.loads(raw)
+    except (json.JSONDecodeError, ValueError):
+        return  # malformed — fail open, no advisory
+    if not isinstance(data, dict):
+        return
     tool_input = data.get("tool_input", {})
-    allowed, reason = check(tool_input)
-    if not allowed:
-        print(reason, file=sys.stderr)
-        sys.exit(2)
+    if not isinstance(tool_input, dict):
+        return
+
+    has, task_id = check(tool_input)
+    # Advisory only: never exit non-zero. Print a nudge only when completing
+    # without a receipt.
+    if not has and task_id:
+        print(
+            f"[task-done-evidence] No completion receipt for task #{task_id}. "
+            f"Run `/task done {task_id}` to record durable evidence; "
+            f"this task will NOT be eligible for `/task clean` without a VERIFIED receipt.",
+            file=sys.stderr,
+        )
+    # Always allow.
 
 
 if __name__ == "__main__":
