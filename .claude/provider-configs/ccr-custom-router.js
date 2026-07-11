@@ -78,6 +78,28 @@ function getRoutingPolicy() {
   return readJsonSafe(ROUTING_POLICY_FILE);
 }
 
+// Request correlation metadata for route/provider incident analysis. Keep this
+// deliberately payload-free: the route log may be read after the fact, so it
+// must never contain prompt text, tool arguments, or message content.
+function getRequestObservability(req) {
+  const body = req?.body || {};
+  const messages = Array.isArray(body.messages) ? body.messages : [];
+  const hasThinkingBlocks = messages.some((message) =>
+    Array.isArray(message?.content) && message.content.some((block) =>
+      block?.type === "thinking" || block?.type === "redacted_thinking",
+    ),
+  );
+  return {
+    // Fastify uses req.id; retain the alternate names for CCR/request-shim
+    // variants. Header fallback is metadata only and is not trusted for logic.
+    request_id: req?.id ?? req?.requestId ?? req?.headers?.["x-request-id"] ?? null,
+    body_message_count: messages.length,
+    body_has_tools: Array.isArray(body.tools) && body.tools.length > 0,
+    body_thinking_type: body.thinking?.type ?? null,
+    body_has_thinking_blocks: hasThinkingBlocks,
+  };
+}
+
 // --- Local model availability + capacity probe (live, cached) ---
 // Under --parallel 1, llama-server holds one slot. Two probes tell us whether
 // automatic local-first routing is safe:
@@ -419,6 +441,7 @@ module.exports = async function router(req, config) {
       guardrail_override: guardrailOverride,
       token_count: tokenCount,
       reason,
+      ...getRequestObservability(req),
     });
     // Strip Anthropic extended-thinking on the opencode-go path BEFORE the
     // CCR openai transformer adds the rejected `r.reasoning` field. Single

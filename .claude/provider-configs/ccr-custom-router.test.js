@@ -51,6 +51,20 @@ function makeReq({ model = "claude-sonnet-5", messages = [], tokenCount = 0 } = 
   };
 }
 
+function readRouteEvents() {
+  const fs = require("fs");
+  const routeLog = "P:/.claude/state/ccr-route-log.jsonl";
+  try {
+    return fs.readFileSync(routeLog, "utf8")
+      .trim()
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .map((line) => JSON.parse(line));
+  } catch {
+    return [];
+  }
+}
+
 function makeConfig({ routingMode = "aggressive" } = {}) {
   return {
     routingMode,
@@ -110,6 +124,37 @@ test("idle local + aggressive coding routes to local", async () => {
   const req = makeReq({ model: "claude-sonnet-5", messages: [{ role: "user", content: "def hello():\n    pass" }], tokenCount: 1000 });
   const route = await router(req, makeConfig({ routingMode: "aggressive" }));
   assert.equal(route, "llama-cpp,ornith-1.0-9b", "aggressive + idle must pick local-first");
+});
+
+test("route log includes request correlation and safe request-shape metadata", async () => {
+  stubFetch(
+    () => ({ ok: true, json: async () => ({}) }),
+    () => ({ ok: true, json: async () => [{ id: 0, is_processing: false }] }),
+  );
+  const router = freshRouter();
+  const requestId = `observability-test-${Date.now()}`;
+  const req = makeReq({
+    model: "claude-sonnet-5",
+    messages: [{
+      role: "assistant",
+      content: [{ type: "thinking", thinking: "redacted from logs" }],
+    }],
+    tokenCount: 1234,
+  });
+  req.id = requestId;
+  req.body.tools = [{ name: "example" }];
+  req.body.thinking = { type: "enabled" };
+
+  const route = await router(req, makeConfig({ routingMode: "aggressive" }));
+  assert.equal(route, "llama-cpp,ornith-1.0-9b");
+
+  const event = readRouteEvents().find((candidate) => candidate.request_id === requestId);
+  assert.ok(event, "route event must include the CCR request correlation ID");
+  assert.equal(event.body_message_count, 1);
+  assert.equal(event.body_has_tools, true);
+  assert.equal(event.body_thinking_type, "enabled");
+  assert.equal(event.body_has_thinking_blocks, true);
+  assert.equal(JSON.stringify(event).includes("redacted from logs"), false);
 });
 
 // --- 4. Busy local slot selects cloud fallback ----------------------------
