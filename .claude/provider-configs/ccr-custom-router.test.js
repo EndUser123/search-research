@@ -491,3 +491,23 @@ test("backend context: local llama routing unchanged", async () => {
   const route = await router(req, makeConfig({ routingMode: "aggressive" }));
   assert.equal(route, "llama-cpp,ornith-1.0-9b", "local-first routing must be unchanged by backend context enforcement");
 });
+
+// --- 15. Pass-through gap for unknown routes is closed (source inspection) ---
+// Previously, getSafeInputLimit returned null for unregistered routes, creating a
+// documented pass-through gap. Now DEFAULT_BACKEND_LIMIT (minimum of all known
+// limits) provides a default — no route escapes context enforcement. The local
+// model route (llama-cpp,*) is safe because getLocalModelProbed() enforces its
+// own context limit (max ~59K effective) before decide() runs the backend check.
+test("source: no pass-through for unknown routes in backend context limits", () => {
+  const fs = require("fs");
+  const src = fs.readFileSync(ROUTER_PATH, "utf8");
+  // DEFAULT_BACKEND_LIMIT fallback must exist (replaces the old null/void path)
+  assert.match(src, /DEFAULT_BACKEND_LIMIT/, "must have DEFAULT_BACKEND_LIMIT fallback");
+  assert.match(src, /Math\.min\(\.\.\.Object\.values/, "fallback must be min of all registered limits");
+  // getSafeInputLimit must not return null (no pass-through). Narrow scope to the
+  // function body, not the entire file (other functions legitimately return null).
+  const getSafeInputRange = src.match(/function getSafeInputLimit[^}]+}/);
+  assert.ok(getSafeInputRange, "getSafeInputLimit function body must be found");
+  assert.ok(!getSafeInputRange[0].includes("return null"), "getSafeInputLimit must never return null");
+  assert.ok(!src.match(/pass.*through.*without.*enforce/i), "no documented pass-through for unknown routes");
+});

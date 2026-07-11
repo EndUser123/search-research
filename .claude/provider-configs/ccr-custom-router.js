@@ -145,14 +145,20 @@ const DEFAULT_LOCAL_CTX = 65536; // matches llama.cpp -c flag in run-ornith-serv
 //   minimax/MiniMax-M3[1m]:         1,000,000 tokens — "[1m]" in model name
 //   llama-cpp/*:                     handled by getLocalModelProbed()
 //
-// CONSERVATIVE: these apply to the route string (provider,model), not the
-// Claude label. Add new entries when new backends are added. Unknown routes
-// pass through without context enforcement — a documented risk.
+// Add new entries when new backends are added. Unknown routes fall back to the
+// minimum of all registered limits — there is no pass-through path for unregistered
+// backends. Fallback auto-adjusts as new entries are added (if a 200K backend is
+// registered, unknown routes default to 200K, the new minimum).
 const BACKEND_CONTEXT_LIMITS = {
   "zai,glm-5.2": 1_000_000,
   "opencode-go,deepseek-v4-flash": 1_000_000,
   "minimax,MiniMax-M3[1m]": 1_000_000,
 };
+
+// Fallback for unregistered routes: the minimum known backend limit. Every route
+// gets enforcement; there is no pass-through. Currently 1M (all three known
+// backends are 1M), but auto-adjusts when new entries are added with lower limits.
+const DEFAULT_BACKEND_LIMIT = Math.min(...Object.values(BACKEND_CONTEXT_LIMITS));
 
 // Safety reserve subtracted from the backend limit to leave room for output
 // tokens, reasoning thinking overhead, and serialization differences between
@@ -282,18 +288,16 @@ function getTokenBudget(config, route) {
 }
 
 // Backend-aware context limit check. Returns the max CCR-counted input tokens
-// the backend can accept, inclusive of OUTPUT_SAFETY_RESERVE. Returns null for
-// unknown routes (pass-through, no enforcement). Separate from local-model
-// context checks (getLocalModelProbed).
+// the backend can accept, inclusive of OUTPUT_SAFETY_RESERVE. Falls back to
+// DEFAULT_BACKEND_LIMIT (the minimum of all known backends) for unregistered
+// routes — no pass-through. Separate from local-model context checks.
 function getBackendContextLimit(routeString) {
-  return BACKEND_CONTEXT_LIMITS[routeString] ?? null;
+  return BACKEND_CONTEXT_LIMITS[routeString] ?? DEFAULT_BACKEND_LIMIT;
 }
 
-// Safe limit = backend context - output reserve. If the backend limit is null
-// (unknown route), returns null = no enforcement.
+// Safe limit = backend context - output reserve.
 function getSafeInputLimit(routeString) {
   const limit = getBackendContextLimit(routeString);
-  if (limit === null) return null;
   return limit - OUTPUT_SAFETY_RESERVE;
 }
 
