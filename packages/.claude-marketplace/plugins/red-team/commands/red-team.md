@@ -67,6 +67,25 @@ important edit is adversarial; many are routine review. Use the pre-check.
 ## Mission
 Stress-test a proposal / solution / design / implementation / plan before commitment, then produce one refined output: ranked weaknesses, verified findings, concrete fixes, and a single go/no-go verdict.
 
+## Knowledge and validation provenance
+
+When the target is a plan, design, implementation report, or other artifact
+that claims research, testing, deployment, acceptance, or validation, inspect
+its compact Knowledge / Validation section and Change Record when present. Require:
+
+- explicit `used` / `not used` status for named sources and checks;
+- evidence that supports each claimed source or check;
+- a project `CHANGELOG.md` entry under `## [Unreleased]` when a material source
+  or validation result changed the decision; and
+- an ISO-8601 UTC timestamp and entry ID linking the changelog record to the
+  underlying artifact.
+
+A changelog mention alone does not prove that a source was used or that a claim
+was validated. Missing or unsupported provenance is a `REVISE` finding, and is
+`BLOCK` when the verdict depends on the unsupported claim. Do not require a
+particular knowledge source for every review; require honest disclosure and
+evidence for whichever sources or checks are claimed.
+
 ## When to use
 - An important proposal, solution, architecture decision, CLAUDE.md / skill / command edit, hook / gate change, or implementation plan.
 - **Not** for routine code review — use `/code-review` or `/review`.

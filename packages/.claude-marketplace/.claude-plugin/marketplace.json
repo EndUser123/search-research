@@ -18,7 +18,7 @@
     },
     {
       "name": "snapshot",
-      "version": "0.5.27",
+      "version": "0.5.32",
       "description": "Session snapshot capture and restore system for Claude Code sessions",
       "source": "./plugins/snapshot",
       "keywords": [
@@ -65,7 +65,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.201",
+      "version": "1.0.205",
       "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -76,7 +76,7 @@
     },
     {
       "name": "cc-skills-utils",
-      "version": "1.2.85",
+      "version": "1.2.86",
       "description": "Utility skills for Claude Code",
       "source": "./plugins/cc-skills-utils",
       "keywords": [
@@ -111,7 +111,7 @@
     },
     {
       "name": "cc-skills-architect",
-      "version": "1.0.27",
+      "version": "1.0.28",
       "description": "Architect plugin",
       "source": "./plugins/cc-skills-architect",
       "keywords": []
@@ -125,7 +125,7 @@
     },
     {
       "name": "cc-skills-lab",
-      "version": "1.0.9",
+      "version": "1.0.10",
       "description": "Lab plugin",
       "source": "./plugins/cc-skills-lab",
       "keywords": []
@@ -139,7 +139,7 @@
     },
     {
       "name": "prompt-enhancer",
-      "version": "0.2.8",
+      "version": "0.2.9",
       "description": "Prompt Clarification & Context Augmentation \u2014 ambiguous prompt detection, enhancement, and multi-turn context preservation via UserPromptSubmit + PreCompact hooks.",
       "source": "./plugins/prompt-enhancer",
       "keywords": [
@@ -260,7 +260,7 @@
     },
     {
       "name": "cc-aca-observability",
-      "version": "0.1.25",
+      "version": "0.1.26",
       "description": "ACA Observability plugin \u2014 session health monitoring, drift detection, artifact scraping, and PostToolUse tracker orchestration. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-observability",
       "keywords": [
@@ -288,7 +288,7 @@
     },
     {
       "name": "cc-lazy-closure-debt",
-      "version": "0.1.11",
+      "version": "0.1.12",
       "description": "Persistent technical-debt tracker. Stop hook records deferral phrases to JSONL; UserPromptSubmit hook surfaces them as additionalContext. Ships with /debt skill for listing/clearing/formalizing.",
       "source": "./plugins/cc-lazy-closure-debt",
       "keywords": [
@@ -322,7 +322,7 @@
     },
     {
       "name": "red-team",
-      "version": "0.2.16",
+      "version": "0.2.17",
       "description": "Multi-agent adversarial review pipeline. Planner -> specialists -> critic -> single PROCEED/REVISE/BLOCK verdict. Disk-backed findings handoff keeps the orchestrator context small. Phase 3: telemetry + incident self-improvement layer.",
       "source": "./plugins/red-team",
       "keywords": [

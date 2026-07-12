@@ -64,7 +64,7 @@ class TaskUnresolvedSuggesterHook(PostToolUseHook):
     """
 
     env_var = "TASK_UNRESOLVED_SUGGEST_ENABLED"
-    default_enabled = True
+    default_enabled = False
     tool_matcher = {"TaskList"}
 
     def process(self, tool_name: str, tool_input: dict[str, Any], tool_response: dict[str, Any]) -> dict[str, Any]:

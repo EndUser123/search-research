@@ -2,7 +2,7 @@
 name: gitready
 version: 5.26.0
 status: "stable"
-description: This skill should be used when the user asks to "create a package", "scaffold a Python library", "make a GitHub-ready repo", "generate badges", "convert to plugin", "brownfield conversion", "validate plugin standards", or mentions package scaffolding, portfolio polish, repository structure setup, badge generation, or plugin standards validation. Creates GitHub-ready Python libraries, Claude skills, and Claude Code plugins with badges, coverage metrics, media artifacts, interactive course modules, and automatic plugin standards validation. Includes PHASE 6: GitHub Publication and PHASE 7: Repository Finalization.
+description: "This skill should be used when the user asks to create a package, scaffold a Python library, make a GitHub-ready repo, generate badges, convert to plugin, brownfield conversion, validate plugin standards, or mentions package scaffolding, portfolio polish, repository structure setup, badge generation, or plugin standards validation. Creates GitHub-ready Python libraries, Claude skills, and Claude Code plugins with badges, coverage metrics, media artifacts, interactive course modules, and automatic plugin standards validation. Includes PHASE 6: GitHub Publication and PHASE 7: Repository Finalization."
 category: scaffolding
 enforcement: strict
 triggers:
