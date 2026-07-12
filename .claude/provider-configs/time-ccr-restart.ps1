@@ -1,8 +1,8 @@
 # time-ccr-restart.ps1 — time the CCR stop and start phases with live output
 #
-# Usage:
-#   & P:\.claude\provider-configs\time-ccr-restart.ps1
-#   & P:\.claude\provider-configs\time-ccr-restart.ps1 -Timing
+# Usage (dot-source so ANTHROPIC_* wiring remains in this PowerShell):
+#   . P:\.claude\provider-configs\time-ccr-restart.ps1
+#   . P:\.claude\provider-configs\time-ccr-restart.ps1 -Timing
 #
 # The START measurement includes the normal cc-ccr launcher work, including
 # health checks and quota/status lookups. Unlike Measure-Command, this script
@@ -12,6 +12,11 @@
 param(
     [switch]$Timing
 )
+
+$dotSourced = $MyInvocation.InvocationName -eq '.'
+if (-not $dotSourced) {
+    Write-Warning 'Run this script with dot-sourcing (". P:\.claude\provider-configs\time-ccr-restart.ps1") so ANTHROPIC_* wiring persists in the caller.'
+}
 
 $ccrScript = Join-Path $PSScriptRoot 'cc-ccr.ps1'
 if (-not (Test-Path -LiteralPath $ccrScript)) {
@@ -49,11 +54,11 @@ if ($Timing) {
 }
 
 Invoke-TimedStep -Name 'STOP' -Action {
-    & $ccrScript -Stop
+    . $ccrScript -Stop
 }
 
 Write-Host ""
 
 Invoke-TimedStep -Name 'START' -Action {
-    & $ccrScript
+    . $ccrScript
 }
