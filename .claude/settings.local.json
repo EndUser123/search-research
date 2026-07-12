@@ -225,7 +225,13 @@
       "PowerShell(claude *)",
       "PowerShell(python3 -c \"import json; from pathlib import Path; p = Path\\('P:/packages/.claude-marketplace/plugins/cc-skills-architect/.claude-plugin/plugin.json'\\); print\\(json.loads\\(p.read_text\\(\\)\\)\\)\")",
       "Bash(rm -rf \"P:/.claude/hooks/tests/sessionend_test\")",
-      "PowerShell(Copy-Item *)"
+      "PowerShell(Copy-Item *)",
+      "Bash(mkdir -p P:/.claude/.artifacts/8784e6c7-dee9-4744-b6e2-3ba2072955ca/red-team/20260712-004354)",
+      "Bash(mv P:/.claude/.artifacts/unknown/red-team/20260712-004354/* P:/.claude/.artifacts/8784e6c7-dee9-4744-b6e2-3ba2072955ca/red-team/20260712-004354/)",
+      "Bash(rmdir P:/.claude/.artifacts/unknown/red-team/20260712-004354)",
+      "Bash(rm -rf \"P:/.claude/.artifacts/unknown\")",
+      "Bash(echo P:/.claude/.artifacts/8784e6c7-dee9-4744-b6e2-3ba2072955ca/red-team/20260712-004354)",
+      "PowerShell(tail *)"
     ],
     "deny": [],
     "ask": []

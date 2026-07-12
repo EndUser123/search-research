@@ -60,6 +60,16 @@ not testimony. Re-sequenced queue:
    FP-ledger (shipped 2026-07-10/11) is its detection half; the harness is
    the prevention half.
 2. #1390 manifest stays second (C1 anchor; #23's corpus needs a home anyway).
+   Cross-session evidence 2026-07-11 (worktree-friction retro, separate LLM):
+   three of its five "root causes" — platform ignorance (didn't know
+   `claude --worktree`, worktree_helper.py, live session_registry.jsonl all
+   existed), new-infrastructure-before-extension (proposed a second registry,
+   a new meta-skill, a from-scratch lease gate over three existing modules),
+   and integration blind spots (directory-policy allowlist, auto-commit
+   worktree skip) — are ONE root cause: C1, no queryable representation of
+   what exists. Its proposed fixes were behavioral resolutions ("ask first",
+   "read them first") — the #8 rhetoric anti-pattern; the manifest is the
+   mechanism that makes those questions one lookup instead of one virtue.
 3. **#24 closeout receipts** (tasks #1429/#956) third — every delegation
    currently costs a full director re-verification pass, and 4/5 needed it.
 4. **#25 injection-consumption measurement** (tasks #1100/#1279) fourth —
