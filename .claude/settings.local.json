@@ -221,7 +221,11 @@
       "mcp__perplexity__pplx_auth_request_code",
       "mcp__perplexity__pplx_auth_complete",
       "mcp__perplexity__pplx_query",
-      "Bash(echo '{\"started_at\":\"2026-07-11T16:07:49Z\",\"session_id\":\"62924c87-a6b4-46c3-99a4-f469e78f80c8\",\"status\":\"in-progress\"}')"
+      "Bash(echo '{\"started_at\":\"2026-07-11T16:07:49Z\",\"session_id\":\"62924c87-a6b4-46c3-99a4-f469e78f80c8\",\"status\":\"in-progress\"}')",
+      "PowerShell(claude *)",
+      "PowerShell(python3 -c \"import json; from pathlib import Path; p = Path\\('P:/packages/.claude-marketplace/plugins/cc-skills-architect/.claude-plugin/plugin.json'\\); print\\(json.loads\\(p.read_text\\(\\)\\)\\)\")",
+      "Bash(rm -rf \"P:/.claude/hooks/tests/sessionend_test\")",
+      "PowerShell(Copy-Item *)"
     ],
     "deny": [],
     "ask": []

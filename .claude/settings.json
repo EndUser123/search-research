@@ -413,7 +413,6 @@
         ]
       }
     ],
-    "SessionEnd": [],
     "SubagentStop": [
       {
         "matcher": ".*",
@@ -427,6 +426,10 @@
       }
     ]
   },
+  "worktree": {
+    "baseRef": "fresh"
+  },
+  "cleanupPeriodDays": 7,
   "enabledPlugins": {
     "snapshot@local": true
   },
