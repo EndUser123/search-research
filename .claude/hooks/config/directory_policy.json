@@ -121,6 +121,7 @@
       ".prettierrc.json",
       ".pre-commit-config.yaml",
       ".claudeignore",
+      ".worktreeinclude",
       ".rgignore",
       "CLAUDE.md",
       "claude.local.md",
@@ -1354,6 +1355,7 @@
       "C:/Users/brsth/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.7/hooks/hooks.json",
       "C:/Users/brsth/.claude/plugins/marketplaces/claude-plugins-official/plugins/security-guidance/hooks/hooks.json",
       "C:/Users/brsth/Downloads/",
+      "C:/Users/brsth/.config/opencode/",
       "P:/.staging/"
     ]
   },
