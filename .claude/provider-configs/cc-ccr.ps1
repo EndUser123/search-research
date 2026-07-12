@@ -77,15 +77,19 @@ if ($Restart -and -not $Test) {
 
 # --- Stop mode ---
 if ($Stop) {
-    # Stop CCR
-    Get-Process -Name "node" -ErrorAction SilentlyContinue | Where-Object {
-        try { (Get-CimInstance Win32_Process -Filter "ProcessId=$($_.Id)" | Select-Object -ExpandProperty CommandLine) -match 'claude-code-router' } catch { $false }
-    } | Stop-Process -Force -ErrorAction SilentlyContinue
-
-    # Also stop the admission proxy (pre-CCR context-limit gate)
-    Get-Process -Name "node" -ErrorAction SilentlyContinue | Where-Object {
-        try { (Get-CimInstance Win32_Process -Filter "ProcessId=$($_.Id)" | Select-Object -ExpandProperty CommandLine) -match 'ccr-admission-proxy' } catch { $false }
-    } | Stop-Process -Force -ErrorAction SilentlyContinue
+    # Stop only the dedicated CCR listeners. The previous implementation
+    # enumerated every node.exe process (235 on this workstation) and ran a
+    # separate WMI query for each one, twice. That made -Stop appear frozen
+    # for minutes and could inspect unrelated Node processes. Port ownership
+    # is the precise identity of the two services this launcher owns.
+    foreach ($port in @(3456, 3458)) {
+        $listeners = @(Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)
+        foreach ($listener in $listeners) {
+            if ($listener.OwningProcess) {
+                Stop-Process -Id $listener.OwningProcess -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
 
     # Report local model state (independent of CCR — not killed by -Stop)
     $llAlive = Get-Process llama-server -ErrorAction SilentlyContinue

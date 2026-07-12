@@ -8,8 +8,9 @@
 // This proxy sits BEFORE CCR in the request path:
 //   Claude Code → admission-proxy (:3458) → CCR (:3456) → providers
 //
-// It rejects oversized requests with HTTP 413 before any forwarding. Safe
-// requests pass through to CCR untouched (CCR makes the routing decision).
+// It shapes safe, deterministic context reductions before estimating size,
+// then rejects requests that remain oversized. CCR still makes the routing
+// decision after forwarding.
 //
 // TOKEN ESTIMATE: heuristic — chars / CHAR_PER_TOKEN on the full request body.
 // This is NOT the same as CCR's tiktoken cl100k_base count (which tokenizes
@@ -33,6 +34,7 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const { shapeAnthropicRequest } = require("./ccr-context-shaper");
 
 const PROXY_PORT = parseInt(process.env.CCR_ADMISSION_PORT || "3458", 10);
 const CCR_HOST = process.env.CCR_HOST || "127.0.0.1";
@@ -109,9 +111,42 @@ function estimateTokens(body) {
   return { inputEstimate, maxTokens, total: inputEstimate + maxTokens };
 }
 
+function getSystemScopes() {
+  const raw = process.env.CCR_CONTEXT_SYSTEM_SCOPES || "";
+  return raw.split(",").map((scope) => scope.trim()).filter(Boolean);
+}
+
+function safeJsonBytes(body) {
+  try { return Buffer.byteLength(JSON.stringify(body), "utf8"); } catch { return 0; }
+}
+
+function prepareAdmissionBody(body) {
+  try {
+    return shapeAnthropicRequest(body, { systemScopes: getSystemScopes() });
+  } catch (error) {
+    return {
+      body,
+      changed: false,
+      telemetry: {
+        failed_open: true,
+        failure: error instanceof Error ? error.message : String(error),
+        raw_bytes: safeJsonBytes(body),
+        shaped_bytes: safeJsonBytes(body),
+        bytes_saved: 0,
+        compacted_count: 0,
+        compacted_resources: [],
+        system_blocks_dropped: 0,
+        system_blocks_dropped_hashes: [],
+      },
+    };
+  }
+}
+
 function forwardToCCR(req, bodyBuf, res) {
+  const headers = { ...req.headers, "content-length": String(bodyBuf.length) };
+  delete headers["transfer-encoding"];
   const proxyReq = http.request(
-    { host: CCR_HOST, port: CCR_PORT, method: req.method, path: req.url, headers: req.headers },
+    { host: CCR_HOST, port: CCR_PORT, method: req.method, path: req.url, headers },
     (proxyRes) => {
       res.writeHead(proxyRes.statusCode, proxyRes.headers);
       proxyRes.pipe(res);
@@ -157,7 +192,11 @@ const server = http.createServer((req, res) => {
       return;
     }
 
-    const { inputEstimate, maxTokens, total } = estimateTokens(body);
+    const rawEstimate = estimateTokens(body);
+    const prepared = prepareAdmissionBody(body);
+    const shapedBody = prepared.body;
+    const shapedBuf = Buffer.from(JSON.stringify(shapedBody), "utf8");
+    const { inputEstimate, maxTokens, total } = estimateTokens(shapedBody);
     const requestId = req.headers["x-request-id"] || `proxy-${Date.now()}`;
     const model = body?.model || "unknown";
 
@@ -165,9 +204,12 @@ const server = http.createServer((req, res) => {
       ts: new Date().toISOString(),
       request_id: requestId,
       nominal_model: model,
+      raw_input_token_estimate: rawEstimate.inputEstimate,
+      raw_total_estimate: rawEstimate.total,
       input_token_estimate: inputEstimate,
       output_budget: maxTokens,
       total_estimate: total,
+      context_shaper: prepared.telemetry,
       safe_ceiling: SAFE_CEILING,
       decision: "unknown",
       reason: null,
@@ -192,7 +234,7 @@ const server = http.createServer((req, res) => {
     entry.decision = "FORWARDED";
     entry.reason = `total ${total} <= ceiling ${SAFE_CEILING}`;
     logAdmission(entry);
-    forwardToCCR(req, bodyBuf, res);
+    forwardToCCR(req, shapedBuf, res);
   });
   req.on("error", () => {
     if (!res.headersSent) { res.writeHead(400); res.end("request read error"); }
@@ -226,4 +268,6 @@ module.exports = {
   getConfiguredRoutes,
   getUnverifiedConfiguredRoutes,
   validateConfiguredRoutes,
+  getSystemScopes,
+  prepareAdmissionBody,
 };
