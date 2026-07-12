@@ -37,6 +37,11 @@ $ccrCmd       = "$env:APPDATA\npm\ccr.cmd"
 $envPath = "P:\.env"
 $ccrEnvVars = @{}
 
+$subscriptionUsageHelper = Join-Path $PSScriptRoot 'cc-ccr-subscription-usage.ps1'
+if (Test-Path -LiteralPath $subscriptionUsageHelper) {
+    . $subscriptionUsageHelper
+}
+
 if (Test-Path $envPath) {
     Get-Content $envPath | Where-Object { $_ -match '^([^=]+)=(.*)$' } | ForEach-Object {
         $key = $Matches[1].Trim()
@@ -214,7 +219,7 @@ function Write-GaugeBar {
 # --- Helper: write one aligned usage row with color-coded gauge + remaining ---
 function Write-UsageRow {
     param([string]$Window, [string]$Remaining, [string]$Reset)
-    $w = $Window.PadRight(15)
+    $w = $Window.PadRight(32)
     $r = $Remaining.PadRight(22)
     $tail = if ($Reset) { "resets $Reset" } else { "" }
     $pct = if ($Remaining -match '(\d+)%\s*(left|used)') {
@@ -222,11 +227,16 @@ function Write-UsageRow {
         if ($Matches[2] -eq 'used') { 100 - $p } else { $p }
     } else { $null }
     if ($null -ne $pct) { $color = if ($pct -gt 50) { 'Green' } elseif ($pct -ge 20) { 'Yellow' } else { 'Red' } }
-    Write-Host "                  " -NoNewline
-    Write-Host $w -NoNewline
+    Write-Host ("                  {0}" -f $w) -NoNewline
     if ($null -ne $pct) { Write-GaugeBar $pct }
     if ($color) { Write-Host $r -NoNewline -ForegroundColor $color } else { Write-Host $r -NoNewline }
     Write-Host $tail
+}
+
+function Write-UsageStatus {
+    param([string]$Status)
+    Write-Host ("                  {0}" -f ('{0,-32}' -f 'status')) -NoNewline
+    Write-Host $Status -ForegroundColor Yellow
 }
 
 # --- Helper: draw a thin separator between provider sections ---
@@ -719,6 +729,57 @@ if ($Usage) {
         }
     } catch {
         Write-Host "  opencode-go     error: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+    # ── OpenAI ChatGPT subscription quota ──
+    # Uses the local Codex ChatGPT login. This intentionally does not inspect
+    # API keys, API spend, or purchased credit balances.
+    if (Get-Command Get-OpenAISubscriptionUsage -ErrorAction SilentlyContinue) {
+        $openaiUsage = Get-OpenAISubscriptionUsage
+        if ($openaiUsage.Available) {
+            Write-Host "  openai          [$($openaiUsage.Plan)]" -ForegroundColor White
+            foreach ($window in $openaiUsage.Windows) {
+                $reset = if ($window.ResetEpochMs) { Format-QuotaReset $window.ResetEpochMs } else { "" }
+                Write-UsageRow $window.Name "$($window.Remaining)% left" $reset
+            }
+        } else {
+            Write-Host "  openai          [subscription]" -ForegroundColor White
+            Write-UsageStatus "unavailable - $($openaiUsage.Error)"
+        }
+        Write-SectionSep
+    }
+    # ── Anthropic Claude subscription quota ──
+    # Reads Claude subscription OAuth credentials directly. The statusline
+    # snapshot remains an optional fallback, not a prerequisite.
+    if (Get-Command Get-AnthropicSubscriptionUsage -ErrorAction SilentlyContinue) {
+        $anthropicUsage = Get-AnthropicSubscriptionUsage
+        if ($anthropicUsage.Available) {
+            Write-Host "  anthropic       [$($anthropicUsage.Plan)]" -ForegroundColor White
+            foreach ($window in $anthropicUsage.Windows) {
+                $reset = if ($window.ResetEpochMs) { Format-QuotaReset $window.ResetEpochMs } else { "" }
+                Write-UsageRow $window.Name "$($window.Remaining)% left" $reset
+            }
+        } else {
+            Write-Host "  anthropic       [subscription]" -ForegroundColor White
+            Write-UsageStatus "unavailable - $($anthropicUsage.Error)"
+        }
+        Write-SectionSep
+    }
+    # ── Google Antigravity / Gemini subscription quota ──
+    # antigravity-usage uses its Google-authenticated Cloud Code path directly;
+    # the IDE and language server do not need to be running for -Usage.
+    if (Get-Command Get-GeminiSubscriptionUsage -ErrorAction SilentlyContinue) {
+        $geminiUsage = Get-GeminiSubscriptionUsage
+        if ($geminiUsage.Available) {
+            Write-Host "  antigravity     [$($geminiUsage.Plan)]" -ForegroundColor White
+            foreach ($window in $geminiUsage.Windows) {
+                $reset = if ($window.ResetEpochMs) { Format-QuotaReset $window.ResetEpochMs } else { "" }
+                Write-UsageRow $window.Name "$($window.Remaining)% left" $reset
+            }
+        } else {
+            Write-Host "  antigravity     [$($geminiUsage.Plan)]" -ForegroundColor White
+            Write-UsageStatus "unavailable - $($geminiUsage.Error)"
+        }
+        Write-SectionSep
     }
     # Local llama.cpp — reuse the readiness probe from above (single source of
     # truth). Avoids a second independent /v1/models probe that can disagree with

@@ -1,4 +1,4 @@
-// node:test + node:assert/strict — matches scripts/bifrost_tool_shim.test.js convention.
+// node:test + node:assert/strict.
 //
 // The router reads from local-model-state.json for context metadata and from
 // the state directory's ccr-* files for hints/pins/recs. Tests use a fresh
@@ -431,7 +431,16 @@ test("custom-router null contract: falsy return is fall-through, not rejection",
 // --- 14. Proxy tests (admission gate via ccr-admission-proxy.js) -----------
 // The proxy is the hard gate. These test its estimateTokens() and safe ceiling.
 
-const { estimateTokens, SAFE_CEILING, MAX_VERIFIED_LIMIT, OUTPUT_RESERVE, CHAR_PER_TOKEN } = require("./ccr-admission-proxy.js");
+const {
+  estimateTokens,
+  SAFE_CEILING,
+  GLOBAL_CONTEXT_LIMIT,
+  VERIFIED_ROUTE_LIMITS,
+  OUTPUT_RESERVE,
+  CHAR_PER_TOKEN,
+  getUnverifiedConfiguredRoutes,
+  validateConfiguredRoutes,
+} = require("./ccr-admission-proxy.js");
 
 const BIG_BODY = JSON.stringify({
   model: "claude-opus-4-8",
@@ -474,6 +483,19 @@ test("proxy: body without max_tokens defaults to 0 output budget", () => {
   const r = estimateTokens(body);
   assert.equal(r.maxTokens, 0, "no max_tokens → 0 output budget");
   assert.equal(r.total, r.inputEstimate, "total = input estimate only");
+});
+
+test("proxy: every active CCR route has a verified context limit", () => {
+  assert.equal(GLOBAL_CONTEXT_LIMIT, 1_000_000);
+  assert.deepEqual(getUnverifiedConfiguredRoutes(), [], "config routes must be registered before proxy startup");
+  assert.doesNotThrow(() => validateConfiguredRoutes());
+  assert.equal(VERIFIED_ROUTE_LIMITS["zai,glm-5.2[1m]"], 1_000_000);
+});
+
+test("proxy: rejection diagnostics use the verified global limit", () => {
+  const src = require("fs").readFileSync(ROUTER_PATH.replace("ccr-custom-router.js", "ccr-admission-proxy.js"), "utf8");
+  assert.doesNotMatch(src, /MAX_VERIFIED_LIMIT/);
+  assert.match(src, /backend limit \$\{GLOBAL_CONTEXT_LIMIT\}/);
 });
 
 // --- 15. Router backend context check is advisory/proxy-audited (not rejection) ---

@@ -21,14 +21,11 @@
 // OUTPUT BUDGET: max_tokens from the request body (if present). Added to the
 // input estimate. This is a real derived value, not a heuristic.
 //
-// LIMITS: the proxy applies a blanket ceiling — the maximum verified limit
-// across all configured backends, minus OUTPUT_RESERVE. It does NOT determine
-// the per-request candidate backend (that happens in CCR after forwarding).
-// If the request is below the ceiling, CCR picks the right backend. If above,
-// no configured backend can handle it → reject. This is correct because all
-// configured backends share the same 1M-class limit. If backends with
-// different limits are added, per-backend routing precision in the proxy
-// becomes necessary (see "Remaining limitations" in the report).
+// LIMITS: the proxy applies a blanket ceiling equal to the MINIMUM verified
+// limit across every active CCR route, minus OUTPUT_RESERVE. It does NOT
+// determine the per-request candidate backend (that happens in CCR after
+// forwarding). A new route must be registered below or proxy startup fails
+// closed; otherwise a lower-context backend could be reached accidentally.
 //
 // WIRING: cc-ccr.ps1 sets ANTHROPIC_BASE_URL to this proxy's port (:3458)
 // instead of CCR directly (:3456). The proxy forwards to CCR (:3456).
@@ -42,15 +39,59 @@ const CCR_HOST = process.env.CCR_HOST || "127.0.0.1";
 const CCR_PORT = parseInt(process.env.CCR_PORT || "3456", 10);
 
 // --- Verified backend limits (same source as ccr-custom-router.js) ---
-const MAX_VERIFIED_LIMIT = 1_000_000; // all configured backends are 1M-class
+const VERIFIED_ROUTE_LIMITS = Object.freeze({
+  "zai,glm-5.2[1m]": 1_000_000,
+  "opencode-go,deepseek-v4-flash": 1_000_000,
+  "opencode-go,mimo-v2.5": 1_000_000,
+  "minimax,MiniMax-M3[1m]": 1_000_000,
+  "opencode-zen-free,opencode/minimax-m3-free": 1_000_000,
+});
+// Local llama.cpp has a separate live-context/admission path in the custom
+// router. It must not lower the blanket cloud ceiling for requests that fall
+// back from local to a verified 1M cloud backend.
+const ROUTES_HANDLED_OUTSIDE_CLOUD_PROXY = new Set([
+  "llama-cpp,ornith-1.0-9b",
+]);
+const GLOBAL_CONTEXT_LIMIT = Math.min(...Object.values(VERIFIED_ROUTE_LIMITS));
 const OUTPUT_RESERVE = 16_384; // heuristic reserve for serialization/tokenizer delta
-const SAFE_CEILING = MAX_VERIFIED_LIMIT - OUTPUT_RESERVE;
+const SAFE_CEILING = GLOBAL_CONTEXT_LIMIT - OUTPUT_RESERVE;
 
 // Conservative char-to-token ratio. cl100k_base averages ~4 chars/token for
 // prose, ~3 for code. Using 3 over-counts for prose (safe direction).
 const CHAR_PER_TOKEN = 3;
 
 const LOG_FILE = process.env.CCR_ADMISSION_LOG || "P:/.claude/state/ccr-admission-log.jsonl";
+const CCR_CONFIG_PATH = process.env.CCR_CONFIG_PATH || "C:/Users/brsth/.claude-code-router/config.json";
+
+function collectRoutes(value, routes = new Set()) {
+  if (typeof value === "string" && value.includes(",")) {
+    routes.add(value);
+  } else if (Array.isArray(value)) {
+    for (const item of value) collectRoutes(item, routes);
+  } else if (value && typeof value === "object") {
+    for (const item of Object.values(value)) collectRoutes(item, routes);
+  }
+  return routes;
+}
+
+function getConfiguredRoutes(configPath = CCR_CONFIG_PATH) {
+  const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  const routeConfig = { Router: config.Router, fallback: config.fallback };
+  return [...collectRoutes(routeConfig)].sort();
+}
+
+function getUnverifiedConfiguredRoutes(configPath = CCR_CONFIG_PATH) {
+  return getConfiguredRoutes(configPath).filter((route) =>
+    !(route in VERIFIED_ROUTE_LIMITS) && !ROUTES_HANDLED_OUTSIDE_CLOUD_PROXY.has(route));
+}
+
+function validateConfiguredRoutes(configPath = CCR_CONFIG_PATH) {
+  const unverified = getUnverifiedConfiguredRoutes(configPath);
+  if (unverified.length) {
+    throw new Error(`Unverified CCR routes: ${unverified.join(", ")}`);
+  }
+  return true;
+}
 
 function logAdmission(entry) {
   try {
@@ -134,14 +175,14 @@ const server = http.createServer((req, res) => {
 
     if (total > SAFE_CEILING) {
       entry.decision = "REJECTED";
-      entry.reason = `total ${total} > ceiling ${SAFE_CEILING} (limit=${MAX_VERIFIED_LIMIT}, reserve=${OUTPUT_RESERVE})`;
+      entry.reason = `total ${total} > ceiling ${SAFE_CEILING} (limit=${GLOBAL_CONTEXT_LIMIT}, reserve=${OUTPUT_RESERVE})`;
       logAdmission(entry);
       try { process.stderr.write(`[admission-proxy] REJECTED: ${entry.reason} (model=${model}, req=${requestId})\n`); } catch {}
       res.writeHead(413, { "content-type": "application/json" });
       res.end(JSON.stringify({
         error: {
           type: "admission_proxy_context_exceeded",
-          message: `Request rejected by admission proxy: estimated ${total} tokens (input ${inputEstimate} + output ${maxTokens}) exceeds the safe ceiling of ${SAFE_CEILING} (backend limit ${MAX_VERIFIED_LIMIT} minus ${OUTPUT_RESERVE} reserve). No configured backend can handle this request. Reduce context size.`,
+          message: `Request rejected by admission proxy: estimated ${total} tokens (input ${inputEstimate} + output ${maxTokens}) exceeds the safe ceiling of ${SAFE_CEILING} (backend limit ${GLOBAL_CONTEXT_LIMIT} minus ${OUTPUT_RESERVE} reserve). No configured backend can handle this request. Reduce context size.`,
           admission_details: entry,
         },
       }));
@@ -159,10 +200,30 @@ const server = http.createServer((req, res) => {
 });
 
 if (require.main === module) {
+  try {
+    validateConfiguredRoutes();
+  } catch (error) {
+    process.stderr.write(`[admission-proxy] REFUSING TO START: ${error.message}\n`);
+    process.exitCode = 1;
+    return;
+  }
   server.listen(PROXY_PORT, "127.0.0.1", () => {
     process.stderr.write(`[admission-proxy] listening on :${PROXY_PORT}, forwarding to ${CCR_HOST}:${CCR_PORT}\n`);
-    process.stderr.write(`[admission-proxy] safe ceiling: ${SAFE_CEILING} (limit=${MAX_VERIFIED_LIMIT}, reserve=${OUTPUT_RESERVE})\n`);
+    process.stderr.write(`[admission-proxy] safe ceiling: ${SAFE_CEILING} (global limit=${GLOBAL_CONTEXT_LIMIT}, reserve=${OUTPUT_RESERVE})\n`);
   });
 }
 
-module.exports = { server, estimateTokens, SAFE_CEILING, MAX_VERIFIED_LIMIT, OUTPUT_RESERVE, CHAR_PER_TOKEN };
+module.exports = {
+  server,
+  estimateTokens,
+  SAFE_CEILING,
+  GLOBAL_CONTEXT_LIMIT,
+  VERIFIED_ROUTE_LIMITS,
+  ROUTES_HANDLED_OUTSIDE_CLOUD_PROXY,
+  OUTPUT_RESERVE,
+  CHAR_PER_TOKEN,
+  collectRoutes,
+  getConfiguredRoutes,
+  getUnverifiedConfiguredRoutes,
+  validateConfiguredRoutes,
+};

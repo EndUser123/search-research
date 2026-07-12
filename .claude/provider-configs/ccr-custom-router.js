@@ -140,7 +140,7 @@ const DEFAULT_LOCAL_CTX = 65536; // matches llama.cpp -c flag in run-ornith-serv
 // The local model already has its own separate context check via getLocalModelProbed().
 //
 // Sources (verified 2026-07-10):
-//   z.ai/glm-5.2:                  1,000,000 tokens — GLM-5.2 spec
+//   z.ai/glm-5.2[1m]:              1,000,000 tokens — explicit 1M mode
 //   opencode-go/deepseek-v4-flash: 1,000,000 tokens — DeepSeek V4 Flash spec
 //   minimax/MiniMax-M3[1m]:         1,000,000 tokens — "[1m]" in model name
 //   llama-cpp/*:                     handled by getLocalModelProbed()
@@ -150,7 +150,7 @@ const DEFAULT_LOCAL_CTX = 65536; // matches llama.cpp -c flag in run-ornith-serv
 // backends. Fallback auto-adjusts as new entries are added (if a 200K backend is
 // registered, unknown routes default to 200K, the new minimum).
 const BACKEND_CONTEXT_LIMITS = {
-  "zai,glm-5.2": 1_000_000,
+  "zai,glm-5.2[1m]": 1_000_000,
   "opencode-go,deepseek-v4-flash": 1_000_000,
   "minimax,MiniMax-M3[1m]": 1_000_000,
 };
@@ -393,7 +393,7 @@ function pinKeyForTask(taskType) {
 function routeToAlias(route, fallback) {
   if (!route) return fallback || null;
   const m = {
-    "zai,glm-5.2": "claude-opus-4-8",
+    "zai,glm-5.2[1m]": "claude-opus-4-8",
     "minimax,MiniMax-M3[1m]": "claude-sonnet-5",
     "opencode-go,deepseek-v4-flash": "claude-haiku-4-5-20251001",
   };
@@ -421,7 +421,7 @@ function describePins(pin) {
 // coding, reasoning token-budget fallback). NOT used for local-first failures.
 function routeByTier(tier) {
   if (tier === "haiku") return "opencode-go,deepseek-v4-flash";
-  if (tier === "opus") return "zai,glm-5.2";
+  if (tier === "opus") return "zai,glm-5.2[1m]";
   return "minimax,MiniMax-M3[1m]"; // sonnet / unknown
 }
 
@@ -568,7 +568,7 @@ module.exports = async function router(req, config) {
 
   // --- 3. Reasoning: classifier opus rec, else default GLM-5.2 (token-budget gated) ---
   if (taskType === "reasoning") {
-    let route = "zai,glm-5.2";
+    let route = "zai,glm-5.2[1m]";
     let source = "default";
     if (rec?.recommended_tier === "opus" && rec.recommended_model) {
       const r = resolveModelToRoute(rec.recommended_model);
@@ -665,7 +665,7 @@ function resolveModelToRoute(modelName) {
   // CANONICAL primary key is claude-sonnet-5; claude-sonnet-4-6 retained
   // for backward compat only (do NOT add new mainline route expansions on 4-6).
   const routeMap = {
-    "claude-opus-4-8": "zai,glm-5.2",
+    "claude-opus-4-8": "zai,glm-5.2[1m]",
     "claude-sonnet-5": "minimax,MiniMax-M3[1m]",   // CANONICAL primary
     "claude-sonnet-4-6": "minimax,MiniMax-M3[1m]", // BACKWARD COMPAT ONLY
     "claude-haiku-4-5": "opencode-go,deepseek-v4-flash",
