@@ -7,8 +7,6 @@ import { classifyFailure } from "./failures.mjs";
 import { extractResultPayload, renderPrompt } from "./prompt.mjs";
 
 const DEFAULT_TIMEOUT_MS = 120_000;
-const RETRYABLE_FAILURES = new Set(["timeout", "provider_unavailable", "command_missing", "auth_or_quota"]);
-
 function redactText(value) {
   return String(value)
     .replace(/\bsk-[A-Za-z0-9_-]{16,}\b/g, "[REDACTED_API_KEY]")
@@ -31,10 +29,6 @@ async function killProcessTree(child) {
   } else {
     child.kill("SIGTERM");
   }
-}
-
-function readOnlyRetryAllowed(packet, failureClass) {
-  return packet.mode === "read_only" && RETRYABLE_FAILURES.has(failureClass) && Boolean(packet.fallback_model || packet.fallback_worker);
 }
 
 function createResult(packet, attempt, details) {
@@ -150,21 +144,7 @@ export async function runPacket(packet, { artifactDir, spawnImpl = defaultSpawn 
     return result;
   }
 
-  let currentPacket = { ...inputPacket };
-  const maxAttempts = currentPacket.mode === "read_only" && (currentPacket.fallback_model || currentPacket.fallback_worker)
-    ? Math.min(Math.max(Number(currentPacket.max_attempts || 2), 1), 2)
-    : 1;
-  let result = null;
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    result = await runAttempt(currentPacket, attempt, resolvedArtifactDir, spawnImpl);
-    if (result.status === "ok" || !readOnlyRetryAllowed(currentPacket, result.failure_class) || attempt === maxAttempts) break;
-    currentPacket = {
-      ...currentPacket,
-      worker: currentPacket.fallback_worker || currentPacket.worker,
-      model: currentPacket.fallback_model || currentPacket.model,
-    };
-  }
+  const result = await runAttempt(inputPacket, 1, resolvedArtifactDir, spawnImpl);
 
   await writeFile(join(resolvedArtifactDir, "stdout.log"), await readFile(join(resolvedArtifactDir, `attempt-${result.attempt}.stdout.log`)), "utf8");
   await writeFile(join(resolvedArtifactDir, "stderr.log"), await readFile(join(resolvedArtifactDir, `attempt-${result.attempt}.stderr.log`)), "utf8");

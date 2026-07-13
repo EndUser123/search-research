@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make Codex able to delegate bounded, low-ambiguity work to OpenCode and PI safely, with OpenCode preferred for subscription-backed providers and PI retained for custom/local providers, while generating the handoff packet itself, preserving evidence, classifying failures, and refusing unsafe or unverifiable execution.
+**Goal:** Make Codex able to delegate bounded, low-ambiguity work to OpenCode safely, while retaining PI only for separate explicit invocations, generating the handoff packet itself, preserving evidence, classifying failures, and refusing unsafe or unverifiable execution.
 
-**Architecture:** A tracked Node.js package owns a versioned JSON packet contract, prompt renderer, worker command builder, subprocess runner, retry policy, artifact capture, routing policy, and containment checks. OpenCode is the preferred external worker; PI is an explicit fallback for llama.cpp, unusual APIs, and programmable extensions. Headless full approval is an execution mode, not a containment guarantee.
+**Architecture:** A tracked Node.js package owns a versioned JSON packet contract, prompt renderer, worker command builder, subprocess runner, artifact capture, routing policy, and containment checks. OpenCode is the only automatic external route; PI is available only through a separate explicit invocation. A failed OpenCode attempt halts with evidence rather than launching PI. Headless full approval is an execution mode, not a containment guarantee.
 
 The bridge separates four authorities:
 
@@ -22,7 +22,7 @@ Routing must be explicit. Either the packet names the worker and model, or a rou
 - Do not edit or stage the existing dirty files in `P:\.claude`, `P:\.pi`, `P:\.opencode`, or the repository root unless a task below names the file.
 - Do not read, copy, log, or commit API keys, auth files, `.env` files, or provider credentials.
 - Default worker mode is read-only; the bridge must reject write packets without `write_scope` and `isolated_cwd`.
-- Retry only infrastructure failures for idempotent read-only work; never blindly retry a write or a semantic/contract failure.
+- Do not automatically retry or switch workers in v1; a failed OpenCode attempt halts. A PI retry requires a new explicit invocation, task ID, packet, and authorization.
 - Every invocation writes raw stdout, raw stderr, packet, normalized result, and an attempt manifest under `.codex/state/external-delegation/<task_id>/` unless the caller supplies an alternate artifact directory.
 - A successful worker response must contain the required result marker and a valid JSON object; raw model prose is never accepted as a successful packet.
 
@@ -34,9 +34,9 @@ Routing must be explicit. Either the packet names the worker and model, or a rou
 
 Deliver the packet/result contract, invocation identity, packet hashing, explicit route decisions, deterministic failure classes, and artifact layout. No default routing and no write execution.
 
-### Phase 1: OpenCode-first headless execution
+### Phase 1: OpenCode-only headless execution
 
-Make OpenCode the first external route, retain PI as an explicit fallback, fix Windows launching, pass large prompts through stdin or files, and prove bounded timeout/output behavior. Run a fixed smoke task without changing the primary workspace.
+Make OpenCode the only automatic external route, keep PI available only as a separate explicit invocation, fix Windows launching, pass large prompts through stdin or files, and prove bounded timeout/output behavior. Run a fixed smoke task without changing the primary workspace.
 
 ### Phase 2: Read-only containment and egress policy
 
@@ -218,7 +218,7 @@ Commit: `git add packages/codex-external-delegation/src/contract.mjs packages/co
 - [x] **Step 3: Implement command construction.** PI uses `pi -p --no-session --mode json --model <model> --thinking off --tools read,grep,find,ls`; OpenCode uses `opencode run --format json --model <model> --variant minimal --dir <cwd>`. Write mode must require explicit `write_scope` and must not silently broaden tools.
 - [x] **Step 4: Implement timeout and process-tree cleanup for Windows.** Use `taskkill /T /F /PID` only for the spawned child PID and only after the timeout; preserve the timeout classification even if cleanup fails.
 - [x] **Step 5: Implement result-marker extraction and artifact capture.** Save `packet.json`, `stdout.log`, `stderr.log`, `result.json`, and an attempt manifest under the packet artifact directory. Redact strings matching known credential shapes before writing logs.
-- [x] **Step 6: Add one retry only for read-only infrastructure failures.** The retry uses the packet’s `fallback_model` or `fallback_worker`; it is forbidden for `write`, `protocol_error`, `contract_error`, or semantic worker failure.
+- [x] **Step 6: Halt on the first worker failure.** Legacy `fallback_model` and `fallback_worker` fields do not trigger a second attempt. A PI retry requires a new explicit invocation rather than an automatic fallback.
 - [x] **Step 7: Run runner tests and commit.**
 
 Run: `node --test P:\packages\codex-external-delegation\tests\runner.test.mjs`
@@ -296,7 +296,7 @@ Interfaces:
 Steps:
 
 - [ ] Test spaces, quotes, ampersands, pipes, parentheses, and long prompts on Windows.
-- [ ] Make OpenCode the first external route and PI an explicit fallback; record the route reason.
+- [ ] Make OpenCode the only automatic route and require a new explicit invocation for PI; record the route reason.
 - [ ] Replace direct .cmd plus shell:false launching with safe executable resolution.
 - [ ] Pass large prompts through stdin or a file rather than a Windows command-line argument.
 - [ ] Enforce timeout, output, prompt, and cleanup limits; ensure cleanup failure cannot leave the runner pending.
@@ -368,7 +368,7 @@ Steps:
 
 ### Task 6: Install the live skill and run bounded smoke tests
 
-OpenCode is the primary live smoke path. PI is a compatibility fallback, not the default external runtime.
+OpenCode is the primary live smoke path. PI is a separate explicit invocation, not an automatic fallback.
 
 **Files:**
 - Modify runtime only: `C:\Users\brsth\.agents\skills\external-delegation` and `C:\Users\brsth\.codex\skills\external-delegation`

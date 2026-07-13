@@ -10,8 +10,8 @@ import { buildCommand, runPacket } from "../src/runner.mjs";
 const basePacket = {
   schema_version: "1",
   task_id: "runner-test-001",
-  worker: "pi",
-  model: "minimax/MiniMax-M3",
+  worker: "opencode",
+  model: "opencode-go/deepseek-v4-flash",
   objective: "Return a small structured result.",
   cwd: "P:/repo",
   mode: "read_only",
@@ -43,16 +43,8 @@ function fakeSpawn({ stdout = "", stderr = "", exitCode = 0, delayMs = 0 } = {})
   };
 }
 
-function sequenceSpawn(configs) {
-  let index = 0;
-  return (command, args, options) => {
-    const config = configs[Math.min(index++, configs.length - 1)];
-    return fakeSpawn(config)(command, args, options);
-  };
-}
-
 test("builds safe read-only commands for PI and OpenCode", () => {
-  const pi = buildCommand(basePacket, "do the task");
+  const pi = buildCommand({ ...basePacket, worker: "pi", model: "minimax/MiniMax-M3" }, "do the task");
   assert.equal(pi.command, "pi.cmd");
   assert.ok(pi.args.includes("--tools"));
   assert.ok(pi.args.includes("read,grep,find,ls"));
@@ -99,22 +91,24 @@ test("kills timed-out workers and records timeout", async () => {
   assert.equal(result.timed_out, true);
 });
 
-test("retries one read-only provider failure on the declared fallback", async () => {
+test("halts after an OpenCode failure even when legacy fallback fields are present", async () => {
   const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  let spawnCount = 0;
   const result = await runPacket({
     ...basePacket,
-    fallback_worker: "opencode",
-    fallback_model: "opencode-zen/deepseek-v4-flash-free",
+    fallback_worker: "pi",
+    fallback_model: "minimax/MiniMax-M3",
   }, {
     artifactDir,
-    spawnImpl: sequenceSpawn([
-      { exitCode: 1, stderr: "connection refused" },
-      { stdout: '<external-delegation-result>{"status":"ok","result_payload":{"value":7}}</external-delegation-result>' },
-    ]),
+    spawnImpl: (...args) => {
+      spawnCount += 1;
+      return fakeSpawn({ exitCode: 1, stderr: "connection refused" })(...args);
+    },
   });
-  assert.equal(result.status, "ok");
-  assert.equal(result.attempt, 2);
-  assert.equal(result.result_payload.value, 7);
+  assert.equal(result.status, "failed");
+  assert.equal(result.failure_class, "provider_unavailable");
+  assert.equal(result.attempt, 1);
+  assert.equal(spawnCount, 1);
 });
 
 test("blocks malformed packets before spawning a worker", async () => {
