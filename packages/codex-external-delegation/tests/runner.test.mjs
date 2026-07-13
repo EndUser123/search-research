@@ -5,7 +5,7 @@ import { PassThrough } from "node:stream";
 import { mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildCommand, runPacket } from "../src/runner.mjs";
+import { buildCommand, runPacket, spawnSpec } from "../src/runner.mjs";
 
 const basePacket = {
   schema_version: "1",
@@ -24,6 +24,7 @@ const basePacket = {
 function fakeSpawn({ stdout = "", stderr = "", exitCode = 0, delayMs = 0 } = {}) {
   return (_command, _args, _options) => {
     const child = new EventEmitter();
+    child.stdin = new PassThrough();
     child.stdout = new PassThrough();
     child.stderr = new PassThrough();
     child.killed = false;
@@ -54,6 +55,14 @@ test("builds safe read-only commands for PI and OpenCode", () => {
   assert.ok(opencode.args.includes("--format"));
   assert.ok(opencode.args.includes("json"));
   assert.ok(opencode.args.includes("external-readonly"));
+  assert.equal(opencode.args.includes("do the task"), false);
+  assert.match(opencode.stdin, /do the task/);
+});
+
+test("wraps Windows command files through cmd.exe without enabling a shell", () => {
+  const launch = spawnSpec("opencode.cmd", ["--version"], { platform: "win32", comspec: "C:\\Windows\\System32\\cmd.exe" });
+  assert.equal(launch.command, "C:\\Windows\\System32\\cmd.exe");
+  assert.deepEqual(launch.args, ["/d", "/s", "/c", "call opencode.cmd --version"]);
 });
 
 test("normalizes a successful worker response and preserves artifacts", async () => {
@@ -109,6 +118,20 @@ test("halts after an OpenCode failure even when legacy fallback fields are prese
   assert.equal(result.failure_class, "provider_unavailable");
   assert.equal(result.attempt, 1);
   assert.equal(spawnCount, 1);
+});
+
+test("does not accept a valid payload when OpenCode substituted the requested agent", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const result = await runPacket(basePacket, {
+    artifactDir,
+    spawnImpl: fakeSpawn({
+      stderr: 'agent "external-readonly" is a subagent, not a primary agent. Falling back to default agent',
+      stdout: '{"type":"text","part":{"text":"<external-delegation-result>{\\"status\\":\\"ok\\",\\"result_payload\\":{\\"value\\":42}}</external-delegation-result>"}}',
+    }),
+  });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failure_class, "identity_mismatch");
+  assert.equal(result.result_payload, null);
 });
 
 test("blocks malformed packets before spawning a worker", async () => {

@@ -28,6 +28,12 @@ const PROVIDER_PATTERNS = [
   /timed out/i,
 ];
 
+const IDENTITY_PATTERNS = [
+  /agent .* is a subagent, not a primary agent/i,
+  /falling back to default agent/i,
+  /requested .* agent .* was not used/i,
+];
+
 function contains(patterns, text) {
   return patterns.some((pattern) => pattern.test(text));
 }
@@ -37,6 +43,7 @@ export function classifyFailure({ error = null, exitCode = null, timedOut = fals
   if (error?.code === "ENOENT") return "command_missing";
 
   const combined = `${stderr}\n${stdout}`;
+  if (contains(IDENTITY_PATTERNS, combined)) return "identity_mismatch";
   if (contains(AUTH_PATTERNS, combined)) return "auth_or_quota";
   if (contains(CONTEXT_PATTERNS, combined)) return "context_limit";
   if (contains(PROVIDER_PATTERNS, combined)) return "provider_unavailable";

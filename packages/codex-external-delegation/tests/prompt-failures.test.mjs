@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { renderPrompt, extractResultPayload } from "../src/prompt.mjs";
+import { renderPrompt, extractJsonEventText, extractResultPayload } from "../src/prompt.mjs";
 import { classifyFailure } from "../src/failures.mjs";
 
 const packet = {
@@ -37,6 +37,15 @@ test("returns null for malformed result payload", () => {
   assert.equal(extractResultPayload("<external-delegation-result>not json</external-delegation-result>"), null);
 });
 
+test("extracts text from OpenCode JSON events before parsing the result marker", () => {
+  const events = [
+    { type: "step_start", part: {} },
+    { type: "text", part: { text: '<external-delegation-result>{"status":"ok","value":42}</external-delegation-result>' } },
+    { type: "step_finish", part: {} },
+  ].map((event) => JSON.stringify(event)).join("\n");
+  assert.deepEqual(extractResultPayload(extractJsonEventText(events)), { status: "ok", value: 42 });
+});
+
 test("classifies timeout before generic worker failure", () => {
   assert.equal(classifyFailure({ timedOut: true, exitCode: null, stdout: "", stderr: "" }), "timeout");
 });
@@ -51,4 +60,5 @@ test("classifies missing commands and provider failures", () => {
 test("classifies protocol and worker failures", () => {
   assert.equal(classifyFailure({ exitCode: 0, stdout: "no marker", stderr: "" }), "protocol_error");
   assert.equal(classifyFailure({ exitCode: 2, stdout: "", stderr: "worker failed" }), "worker_failed");
+  assert.equal(classifyFailure({ exitCode: 0, stdout: "result", stderr: 'agent "external-readonly" is a subagent, not a primary agent' }), "identity_mismatch");
 });

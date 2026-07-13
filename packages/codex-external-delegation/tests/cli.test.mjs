@@ -50,3 +50,21 @@ test("invalid packet returns the blocked exit code", async () => {
   assert.equal(result.status, 30);
   assert.equal(JSON.parse(result.stdout).failure_class, "contract_error");
 });
+
+test("classify accepts a packet from stdin", () => {
+  const result = spawnSync(process.execPath, [cli, "classify", "--packet", "-"], {
+    input: JSON.stringify(validPacket),
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 0);
+  assert.equal(JSON.parse(result.stdout).status, "ok");
+});
+
+test("classify accepts a UTF-8 BOM on stdin", () => {
+  const result = spawnSync(process.execPath, [cli, "classify", "--packet", "-"], {
+    input: `\uFEFF${JSON.stringify(validPacket)}`,
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 0);
+  assert.equal(JSON.parse(result.stdout).status, "ok");
+});

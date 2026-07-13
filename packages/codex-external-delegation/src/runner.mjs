@@ -2,9 +2,9 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { spawn as defaultSpawn } from "node:child_process";
 import { join } from "node:path";
 import { validatePacket, validateResult } from "./contract.mjs";
-import { buildCommand } from "./commands.mjs";
+import { buildCommand, spawnSpec } from "./commands.mjs";
 import { classifyFailure } from "./failures.mjs";
-import { extractResultPayload, renderPrompt } from "./prompt.mjs";
+import { extractJsonEventText, extractResultPayload, renderPrompt } from "./prompt.mjs";
 
 const DEFAULT_TIMEOUT_MS = 120_000;
 function redactText(value) {
@@ -44,7 +44,7 @@ function createResult(packet, attempt, details) {
     attempt,
     exit_code: details.exitCode,
     timed_out: details.timedOut,
-    result_payload: payload?.result_payload ?? (status === "ok" ? payload : null),
+    result_payload: status === "ok" ? (payload?.result_payload ?? payload) : null,
     artifact_dir: details.artifactDir,
   };
   const validation = validateResult(result);
@@ -95,20 +95,29 @@ function collectChild(child, timeoutMs, spawnImpl) {
 async function runAttempt(packet, attempt, artifactDir, spawnImpl) {
   const prompt = renderPrompt(packet);
   const command = buildCommand(packet, prompt);
-  const child = spawnImpl(command.command, command.args, {
+  const launch = spawnSpec(command.command, command.args);
+  const child = spawnImpl(launch.command, launch.args, {
     cwd: command.cwd,
     env: { ...process.env, ...(packet.env || {}) },
     shell: false,
     windowsHide: true,
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio: [command.stdin === null ? "ignore" : "pipe", "pipe", "pipe"],
   });
+  if (command.stdin !== null) child.stdin.end(command.stdin);
   const collected = await collectChild(child, packet.timeout_ms || DEFAULT_TIMEOUT_MS, spawnImpl);
-  const payload = collected.timedOut ? null : extractResultPayload(collected.stdout) || extractResultPayload(collected.stderr);
+  const payload = collected.timedOut
+    ? null
+    : extractResultPayload(collected.stdout)
+      || extractResultPayload(extractJsonEventText(collected.stdout))
+      || extractResultPayload(collected.stderr);
+  const classifiedFailure = classifyFailure(collected);
   const failureClass = collected.timedOut
     ? "timeout"
-    : collected.exitCode === 0 && payload
-      ? "none"
-      : classifyFailure(collected);
+    : classifiedFailure !== "protocol_error"
+      ? classifiedFailure
+      : collected.exitCode === 0 && payload
+        ? "none"
+        : classifiedFailure;
   const details = { ...collected, payload, failureClass, artifactDir };
 
   await writeFile(join(artifactDir, `attempt-${attempt}.stdout.log`), redactText(collected.stdout), "utf8");
@@ -153,4 +162,4 @@ export async function runPacket(packet, { artifactDir, spawnImpl = defaultSpawn 
 }
 
 export { redactText };
-export { buildCommand } from "./commands.mjs";
+export { buildCommand, spawnSpec } from "./commands.mjs";

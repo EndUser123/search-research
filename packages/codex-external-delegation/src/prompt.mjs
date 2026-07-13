@@ -50,3 +50,18 @@ export function extractResultPayload(text) {
     return null;
   }
 }
+
+export function extractJsonEventText(text) {
+  if (typeof text !== "string") return "";
+  const parts = [];
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    try {
+      const event = JSON.parse(line);
+      if (event?.type === "text" && typeof event.part?.text === "string") parts.push(event.part.text);
+    } catch {
+      // Preserve the raw parser path for non-JSON workers.
+    }
+  }
+  return parts.join("\n");
+}

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
-import { buildCommand, commandName } from "../src/commands.mjs";
+import { buildCommand, commandName, spawnSpec } from "../src/commands.mjs";
 import { validatePacket } from "../src/contract.mjs";
 import { runPacket } from "../src/runner.mjs";
 
@@ -11,8 +11,15 @@ function option(args, name) {
 }
 
 async function readPacket(value) {
-  const text = value === "-" ? await readFile(0, "utf8") : await readFile(value, "utf8");
-  return JSON.parse(text);
+  let text;
+  if (value === "-") {
+    const chunks = [];
+    for await (const chunk of process.stdin) chunks.push(chunk);
+    text = Buffer.concat(chunks).toString("utf8");
+  } else {
+    text = await readFile(value, "utf8");
+  }
+  return JSON.parse(text.replace(/^\uFEFF/, ""));
 }
 
 function exitCodeFor(result) {
@@ -44,7 +51,8 @@ async function main(argv = process.argv.slice(2)) {
     const workers = requested === "all" ? ["pi", "opencode"] : [requested];
     const checks = workers.map((worker) => {
       const commandNameValue = commandName(worker);
-      const result = spawnSync(commandNameValue, ["--version"], {
+      const launch = spawnSpec(commandNameValue, ["--version"]);
+      const result = spawnSync(launch.command, launch.args, {
         encoding: "utf8",
         windowsHide: true,
         shell: false,
