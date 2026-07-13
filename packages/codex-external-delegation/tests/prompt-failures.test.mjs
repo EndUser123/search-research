@@ -46,6 +46,14 @@ test("extracts text from OpenCode JSON events before parsing the result marker",
   assert.deepEqual(extractResultPayload(extractJsonEventText(events)), { status: "ok", value: 42 });
 });
 
+test("extracts text deltas from PI JSON events before parsing the result marker", () => {
+  const events = [
+    { type: "message_update", assistantMessageEvent: { type: "text_delta", delta: '<external-delegation-result>{"status":"ok",' } },
+    { type: "message_update", assistantMessageEvent: { type: "text_delta", delta: '"value":43}</external-delegation-result>' } },
+  ].map((event) => JSON.stringify(event)).join("\n");
+  assert.deepEqual(extractResultPayload(extractJsonEventText(events)), { status: "ok", value: 43 });
+});
+
 test("classifies timeout before generic worker failure", () => {
   assert.equal(classifyFailure({ timedOut: true, exitCode: null, stdout: "", stderr: "" }), "timeout");
 });

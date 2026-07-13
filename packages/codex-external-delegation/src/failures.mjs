@@ -1,7 +1,8 @@
 const AUTH_PATTERNS = [
   /api\s*key/i,
   /unauthori[sz]ed/i,
-  /forbidden/i,
+  /access denied/i,
+  /permission denied/i,
   /quota/i,
   /billing/i,
   /rate\s*limit/i,

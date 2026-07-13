@@ -30,7 +30,6 @@ export function buildCommand(packet, prompt, { platform = process.platform } = {
     } else {
       args.push("--thinking", packet.thinking || "low");
     }
-    args.push(prompt);
   } else if (packet.worker === "opencode") {
     args.push("run", "--format", "json", "--model", packet.model, "--agent", agent, "--dir", cwd);
     if (packet.variant) args.push("--variant", packet.variant);
@@ -38,5 +37,5 @@ export function buildCommand(packet, prompt, { platform = process.platform } = {
     throw new Error(`Unsupported worker: ${packet.worker}`);
   }
 
-  return { command: commandName(packet.worker, platform), args, cwd, stdin: packet.worker === "opencode" ? prompt : null };
+  return { command: commandName(packet.worker, platform), args, cwd, stdin: prompt };
 }

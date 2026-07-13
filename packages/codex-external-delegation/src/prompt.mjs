@@ -59,6 +59,9 @@ export function extractJsonEventText(text) {
     try {
       const event = JSON.parse(line);
       if (event?.type === "text" && typeof event.part?.text === "string") parts.push(event.part.text);
+      if (event?.type === "message_update" && event.assistantMessageEvent?.type === "text_delta" && typeof event.assistantMessageEvent.delta === "string") {
+        parts.push(event.assistantMessageEvent.delta);
+      }
     } catch {
       // Preserve the raw parser path for non-JSON workers.
     }
