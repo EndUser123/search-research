@@ -11,7 +11,7 @@ Tools for understanding what was missed or deferred.
 
 | Skill | Purpose | Home |
 |-------|---------|------|
-| internal GTO engine | GTO-backed deterministic detectors used only by `/debrief gaps` (orchestrator + detectors + gap reviewer + artifact contract) | `gto/` |
+| gap engine | Debrief-owned deterministic detectors used only by `/debrief gaps` (orchestrator + detectors + gap reviewer + artifact contract) | `debrief/gap_engine/` |
 
 ### 2. Session Behavioral Insight
 Analyzing HOW the work is progressing.
@@ -25,7 +25,7 @@ Analyzing HOW the work is progressing.
 | /trace | Evidence provenance and workflow tracing | `trace/` |
 | /rns | Ranks evidence-backed next actions from any supplied output | `rns/` |
 | /recap | Intelligent session summarization | `recap/` |
-| /debrief | Unified analysis hub — transcript → root-cause tasks (modes: default/chain/gaps/top; uses the internal GTO engine and absorbs /retro + /top-problems) | `debrief/` |
+| /debrief | Unified analysis hub — transcript → root-cause tasks (modes: default/chain/gaps/top; uses its debrief-owned gap engine and absorbs /retro + /top-problems) | `debrief/` |
 | /retro | *DEPRECATED stub → /debrief chain* (multi-session retrospective protocol + SCORES) | `retro/` |
 | /epistemic-check | Validates response quality against contract | `epistemic-check/` |
 | /claude-audit | Audit Claude Code config (CLAUDE.md, rules, hooks, MCP, plugins) + rule-shape fit; consolidates claudit + config-audit | `claude-audit/` |

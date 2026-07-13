@@ -49,6 +49,7 @@ ALLOWED_TRIGGERS = frozenset({
     "/bifrost",
     "/bifrost-models",
     "/cks",
+    "/check",  # cc-skills-lab stable quality gate; allowlist is cross-plugin
     "/claude-audit",
     "/constraints",
     "/csf-nip-integration",
