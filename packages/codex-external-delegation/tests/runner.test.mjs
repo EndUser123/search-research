@@ -54,7 +54,7 @@ test("builds safe read-only commands for PI and OpenCode", () => {
   assert.equal(opencode.command, "opencode.cmd");
   assert.ok(opencode.args.includes("--format"));
   assert.ok(opencode.args.includes("json"));
-  assert.ok(opencode.args.includes("external-readonly"));
+  assert.ok(opencode.args.includes("external-readonly-primary"));
   assert.equal(opencode.args.includes("do the task"), false);
   assert.match(opencode.stdin, /do the task/);
 });

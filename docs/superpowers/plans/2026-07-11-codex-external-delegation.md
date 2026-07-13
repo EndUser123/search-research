@@ -375,10 +375,10 @@ OpenCode is the primary live smoke path. PI is a separate explicit invocation, n
 - Create runtime artifacts only: `.codex/state/external-delegation/<task_id>/`
 - Modify tracked files: none
 
-- [ ] **Step 1: Verify the junction targets resolve to the tracked package skill directory before creating them.**
-- [ ] **Step 2: Create the user-scope junctions and verify `SKILL.md` is readable from both Codex skill roots.**
-- [ ] **Step 3: Run command-only checks for `pi --version`, `opencode --version`, and the bridge `check` command.** Provider checks must not print credentials.
-- [ ] **Step 4: Run an OpenCode headless smoke task returning a fixed result payload.** Preserve raw artifacts and verify identity binding, normalized result, and acceptance status.
+- [x] **Step 1: Verify the junction targets resolve to the tracked package skill directory before creating them.**
+- [x] **Step 2: Create the user-scope junctions and verify `SKILL.md` is readable from both Codex skill roots.**
+- [x] **Step 3: Run command-only checks for `pi --version`, `opencode --version`, and the bridge `check` command.** Provider checks must not print credentials. OpenCode is available; PI remains untested.
+- [x] **Step 4: Run an OpenCode headless smoke task returning a fixed result payload.** Preserve raw artifacts and verify identity binding, normalized result, and acceptance status. The smoke returned `{value: 42}` with empty stderr using `external-readonly-primary`.
 - [ ] **Step 5: Run a PI compatibility smoke task returning a fixed result payload.** Preserve raw artifacts and verify identity binding, normalized result, and acceptance status.
 - [ ] **Step 6: Run failure probes without external model calls:** nonexistent executable, impossible timeout using a local helper, malformed result marker, and write packet missing isolation. Verify each maps to the expected failure class and exit code.
 - [ ] **Step 7: Inspect `git status`, the new package diff, and all smoke artifacts for secrets or unintended writes.** Do not claim live readiness unless the fresh commands exit as specified.

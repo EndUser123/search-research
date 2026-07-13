@@ -20,7 +20,7 @@ export function spawnSpec(command, args, { platform = process.platform, comspec 
 
 export function buildCommand(packet, prompt, { platform = process.platform } = {}) {
   const cwd = packet.isolated_cwd || packet.cwd;
-  const agent = packet.agent || (packet.mode === "read_only" ? "external-readonly" : "external-writer");
+  const agent = packet.agent || (packet.mode === "read_only" ? "external-readonly-primary" : "external-writer");
   const args = [];
 
   if (packet.worker === "pi") {
