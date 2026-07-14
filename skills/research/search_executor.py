@@ -36,7 +36,7 @@ from core.quality_checker import QualityConfig
 from search_research import UnifiedAsyncRouter
 
 
-def _phase1_task_signals(query: str, mode: str):
+def _phase1_task_signals(query: str, mode: str, external_provider: str | None = None):
     """Translate /all intent into the already-reviewed Phase 1 signal contract."""
     from tools.research_run_v1.router import TaskSignals
 
@@ -48,6 +48,7 @@ def _phase1_task_signals(query: str, mode: str):
         "adversarially review this recommendation",
     ))
     role_terms = {
+        "SEMANTIC_EXTERNAL_DISCOVERY": ("semantic", "similarity", "papers", "alternative wording", "ecosystem"),
         "IMPLEMENTATION_DISCOVERY": ("implement", "implementation", "how to build"),
         "REPOSITORY_PROJECT_DISCOVERY": ("repository", "repo", "library", "project"),
         "AUTHORITATIVE_SOURCE_DISCOVERY": ("official", "specification", "authoritative"),
@@ -61,18 +62,39 @@ def _phase1_task_signals(query: str, mode: str):
         "BROAD_EXTERNAL_DISCOVERY",
     }) if any(term in lowered for term in ("concept", "approach", "compare", "adopt", "tradeoff", "options")) else frozenset()
     requested_roles = requested_roles | conceptual_roles
+    if external_provider not in {None, "exa", "duckduckgo"}:
+        raise ValueError("external_provider must be exa or duckduckgo")
+    if external_provider == "exa" or "SEMANTIC_EXTERNAL_DISCOVERY" in requested_roles:
+        requested_roles = requested_roles - {"BROAD_EXTERNAL_DISCOVERY"}
+    elif external_provider == "duckduckgo":
+        requested_roles = requested_roles - {"CONCEPTUAL_RECALL", "EXPLORATORY_RESEARCH"}
     return TaskSignals(
         needs_local_context=local,
         needs_current_web=not local or mode != "local-only",
-        needs_independent_recall=not local or bool(conceptual_roles),
+        needs_independent_recall=(not local or bool(conceptual_roles)) and external_provider != "exa" and "SEMANTIC_EXTERNAL_DISCOVERY" not in requested_roles,
         needs_primary_source_verification=bool("official" in lowered or "specification" in lowered),
         needs_adversarial_review=explicit_challenge,
         decision_impact="high" if any(term in lowered for term in ("production", "security", "authorization")) else "low",
         sensitivity="normal",
         authorization_level="evidence_gathering",
         requested_roles=requested_roles,
-        allow_parallel=bool(requested_roles and local),
-        parallel_trigger="distinct_complementary_roles" if requested_roles and local else None,
+        explicit_lane=external_provider,
+        agent_selected=external_provider is not None,
+        allow_parallel=bool(
+            (requested_roles and local)
+            or {"SEMANTIC_EXTERNAL_DISCOVERY", "IMPLEMENTATION_DISCOVERY"}.issubset(requested_roles)
+        ),
+        parallel_trigger=(
+            "distinct_complementary_roles"
+            if (requested_roles and local) or {"SEMANTIC_EXTERNAL_DISCOVERY", "IMPLEMENTATION_DISCOVERY"}.issubset(requested_roles)
+            else None
+        ),
+        conditional_lane_trigger=(
+            "conflicting_sources" if any(term in lowered for term in ("conflicting sources", "contradictory sources"))
+            else "omission_risk" if "omission" in lowered
+            else "insufficient_after_primary" if "insufficient after" in lowered
+            else None
+        ),
         as_of=None,
     )
 
@@ -102,11 +124,11 @@ def _phase1_result_objects(artifact: dict[str, Any], artifact_path: str) -> list
     return objects
 
 
-async def execute_phase1_for_research(query: str, mode: str = "auto", *, caller: str = "search-research:/research") -> tuple[list[Any], str]:
+async def execute_phase1_for_research(query: str, mode: str = "auto", *, caller: str = "search-research:/research", external_provider: str | None = None) -> tuple[list[Any], str]:
     """Run the single canonical Phase 1 artifact path for a research caller."""
     from tools.research_run_v1.phase1 import run_phase1
 
-    signals = _phase1_task_signals(query, mode)
+    signals = _phase1_task_signals(query, mode, external_provider)
     artifact, artifact_path = await asyncio.to_thread(
         run_phase1,
         question=query,

@@ -36,6 +36,10 @@ wrapper and delegates to this workflow with compatibility caller telemetry.
 /research "current documentation" --mode unified
 ```
 
+An experimental complementary lane may be selected explicitly through the
+existing execution API or CLI (`--external-provider exa|duckduckgo`). This is
+restricted/manual behavior; neither provider is an automatic candidate.
+
 The runtime preserves immutable run-scoped artifacts, source identity,
 assessment records, failures, quota/readiness telemetry, and conservative stop
 behavior. Phase 2A, `/go`, `/search`, new providers, and `agy` are outside this

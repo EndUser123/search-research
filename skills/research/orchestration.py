@@ -98,6 +98,7 @@ async def execute_unified_search(query: str, **kwargs) -> str:
     enable_jmri = kwargs.get("enable_jmri", True)
     phase1_enabled = kwargs.get("phase1_enabled", True)
     caller = kwargs.get("caller", "search-research:/research")
+    external_provider = kwargs.get("external_provider")
 
     # Layer 1A: Execute search with rule-based filtering
     print(f"[Layer 1A] Searching for '{query}' (mode: {mode}, limit: {limit})")
@@ -115,7 +116,7 @@ async def execute_unified_search(query: str, **kwargs) -> str:
 
     # Execute search - execute_search creates its own QualityConfig from min_score
     if phase1_enabled:
-        results, artifact_path = await search_executor.execute_phase1_for_research(query, mode=mode, caller=caller)
+        results, artifact_path = await search_executor.execute_phase1_for_research(query, mode=mode, caller=caller, external_provider=external_provider)
         print(f"[Phase 1] Artifact: {artifact_path}")
     else:
         results = await search_executor.execute_search(
@@ -201,6 +202,7 @@ if __name__ == "__main__":
     parser.add_argument("--context-threshold", type=int, default=20)
     parser.add_argument("--force-context-filter", action="store_true")
     parser.add_argument("--no-context-filter", action="store_true")
+    parser.add_argument("--external-provider", choices=("exa", "duckduckgo"), help="Explicit experimental complementary lane; never automatic")
     args = parser.parse_args()
 
     print(main(
@@ -211,4 +213,5 @@ if __name__ == "__main__":
         context_threshold=args.context_threshold,
         force_context_filter=args.force_context_filter,
         no_context_filter=args.no_context_filter,
+        external_provider=args.external_provider,
     ))
