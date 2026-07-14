@@ -96,6 +96,7 @@ async def execute_unified_search(query: str, **kwargs) -> str:
     force_context_filter = kwargs.get("force_context_filter", False)
     no_context_filter = kwargs.get("no_context_filter", False)
     enable_jmri = kwargs.get("enable_jmri", True)
+    phase1_enabled = kwargs.get("phase1_enabled", True)
 
     # Layer 1A: Execute search with rule-based filtering
     print(f"[Layer 1A] Searching for '{query}' (mode: {mode}, limit: {limit})")
@@ -112,15 +113,19 @@ async def execute_unified_search(query: str, **kwargs) -> str:
     print(f"[Layer 1D] Adaptive limit: {actual_limit} (base: {limit})")
 
     # Execute search - execute_search creates its own QualityConfig from min_score
-    results = await search_executor.execute_search(
-        query=query,
-        mode=mode,
-        limit=actual_limit,
-        rrf_k=rrf_k,
-        min_score=min_score,
-        min_results=min_results,
-        enable_jmri=enable_jmri,
-    )
+    if phase1_enabled:
+        results, artifact_path = await search_executor.execute_phase1_for_all(query, mode=mode)
+        print(f"[Phase 1] Artifact: {artifact_path}")
+    else:
+        results = await search_executor.execute_search(
+            query=query,
+            mode=mode,
+            limit=actual_limit,
+            rrf_k=rrf_k,
+            min_score=min_score,
+            min_results=min_results,
+            enable_jmri=enable_jmri,
+        )
 
     print(f"[Layer 1A] → {len(results)} results")
 

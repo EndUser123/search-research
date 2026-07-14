@@ -14,19 +14,110 @@ Functions:
 from __future__ import annotations
 
 import json
+import asyncio
+import uuid
 
 # Import search backend
 import sys
 from pathlib import Path
 from typing import Any
+from types import SimpleNamespace
 
 # Add search-research package to path (use absolute path to avoid conflicts)
 search_research_path = Path("P:\\\\\\packages/search-research").resolve()
 if str(search_research_path) not in sys.path:
     sys.path.insert(0, str(search_research_path))
 
+workspace_root_path = Path("P:/").resolve()
+if str(workspace_root_path) not in sys.path:
+    sys.path.insert(0, str(workspace_root_path))
+
 from core.quality_checker import QualityConfig
 from search_research import UnifiedAsyncRouter
+
+
+def _phase1_task_signals(query: str, mode: str):
+    """Translate /all intent into the already-reviewed Phase 1 signal contract."""
+    from tools.research_run_v1.router import TaskSignals
+
+    lowered = query.lower()
+    local = mode == "local-only" or any(term in lowered for term in ("workspace", "repository", "we decided", "our code"))
+    explicit_challenge = any(term in lowered for term in (
+        "challenge this conclusion", "red-team this", "look for evidence against it",
+        "search for what would disprove it", "run targeted disconfirmation",
+        "adversarially review this recommendation",
+    ))
+    role_terms = {
+        "IMPLEMENTATION_DISCOVERY": ("implement", "implementation", "how to build"),
+        "REPOSITORY_PROJECT_DISCOVERY": ("repository", "repo", "library", "project"),
+        "AUTHORITATIVE_SOURCE_DISCOVERY": ("official", "specification", "authoritative"),
+        "COMPATIBILITY_RESEARCH": ("windows", "compatibility", "support"),
+        "MAINTENANCE_STATUS": ("maintained", "maintenance", "release"),
+        "OMISSION_SENSITIVE_DISCOVERY": ("omission", "what could be missing"),
+    }
+    requested_roles = frozenset(role for role, terms in role_terms.items() if any(term in lowered for term in terms))
+    conceptual_roles = frozenset({
+        "CONCEPTUAL_RECALL",
+        "BROAD_EXTERNAL_DISCOVERY",
+    }) if any(term in lowered for term in ("concept", "approach", "compare", "adopt", "tradeoff", "options")) else frozenset()
+    requested_roles = requested_roles | conceptual_roles
+    return TaskSignals(
+        needs_local_context=local,
+        needs_current_web=not local or mode != "local-only",
+        needs_independent_recall=not local or bool(conceptual_roles),
+        needs_primary_source_verification=bool("official" in lowered or "specification" in lowered),
+        needs_adversarial_review=explicit_challenge,
+        decision_impact="high" if any(term in lowered for term in ("production", "security", "authorization")) else "low",
+        sensitivity="normal",
+        authorization_level="evidence_gathering",
+        requested_roles=requested_roles,
+        allow_parallel=bool(requested_roles and local),
+        parallel_trigger="distinct_complementary_roles" if requested_roles and local else None,
+        as_of=None,
+    )
+
+
+def _phase1_result_objects(artifact: dict[str, Any], artifact_path: str) -> list[Any]:
+    objects: list[Any] = []
+    for source in artifact.get("sources", []):
+        objects.append(SimpleNamespace(
+            title=source.get("title", "Untitled"),
+            content=source.get("snippet", ""),
+            source=source.get("provider", "research-run-v1"),
+            score=1.0 if source.get("discovery_status") in {"opened", "anchor_confirmed"} else 0.5,
+            url=source.get("url"),
+            metadata={"artifact_path": artifact_path, "source_id": source.get("source_id"), "discovery_status": source.get("discovery_status")},
+        ))
+    if not objects:
+        failures = [*artifact.get("runtime", {}).get("provider_state", {}).get("errors", [])]
+        failures.extend(item.get("failure", item.get("outcome", "unknown")) for lane in artifact.get("retrieval_lanes", []) for item in lane.get("failures", []))
+        objects.append(SimpleNamespace(
+            title="research-run.v1 incomplete",
+            content="; ".join(map(str, failures)) or artifact.get("stop_reason", "no usable evidence"),
+            source="research-run-v1",
+            score=0.0,
+            url=None,
+            metadata={"artifact_path": artifact_path, "status": artifact.get("runtime", {}).get("status", "incomplete")},
+        ))
+    return objects
+
+
+async def execute_phase1_for_all(query: str, mode: str = "auto") -> tuple[list[Any], str]:
+    """Run the exact Phase 1 artifact path for the /all caller."""
+    from tools.research_run_v1.phase1 import run_phase1
+
+    signals = _phase1_task_signals(query, mode)
+    artifact, artifact_path = await asyncio.to_thread(
+        run_phase1,
+        question=query,
+        query=query,
+        requested_decision="research_evidence",
+        workspace_revision="runtime-current",
+        caller="search-research:/all",
+        signals=signals,
+        caller_run_id=str(uuid.uuid4()),
+    )
+    return _phase1_result_objects(artifact, str(artifact_path)), str(artifact_path)
 
 
 async def execute_search(
