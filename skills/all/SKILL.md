@@ -1,101 +1,13 @@
 ---
 name: all
-description: "ALWAYS use this skill for unified queries - search across your local data (chat history, knowledge base, code, docs) AND the web with intelligent source selection."
+description: "Compatibility wrapper for the canonical /research workflow; preserves the historical /all invocation."
 workflow_steps: []
 ---
-# All (`/all`)
+# `/all` compatibility
 
-## Purpose
+`/all` is retained for compatibility and delegates to the canonical
+`search-research:/research` execution substrate. It performs no independent
+research, routing, provider selection, source assessment, or artifact logic.
 
-Single entry point to search **EVERYTHING** - your local data (chat history, knowledge base, code, docs) AND the web (current documentation, best practices, Stack Overflow). Results are merged and ranked by relevance, then intelligently filtered via three-layer architecture.
-
-## When to Use
-
-| Command | Searches | Speed | When To Use |
-|---------|----------|-------|-------------|
-| `/find` | Local data only | <1s | "What did we discuss?" |
-| `/web` | Web only | 5-10s | "What's the current best practice?" |
-| **`/all`** | **Both + merged results** | 1-10s | "I want to see everything" |
-
-## Three-Layer Filtering Architecture
-
-| Layer | Responsibility | When Applied |
-|-------|---------------|--------------|
-| **Layer 1A** | Volume control, deduplication, quality floor | Always |
-| **Layer 1B** | Semantic clustering (Jaccard similarity) | Always |
-| **Layer 1C** | Query complexity scoring | Always |
-| **Layer 1D** | Adaptive result limits (token-aware) | Always |
-| **Layer 2** | Semantic relevance via Agent tool (LLM-based) | Conditional (auto-triggers) |
-| **Layer 3** | Presentation formatting | Always |
-
-**Layer 2 Auto-triggers when:**
-- Result count > 20 (configurable: `--context-threshold N`)
-- Query contains context hints (`"we discussed"`, `"for the X feature"`)
-- Query complexity score high (>60) + sufficient results (>15)
-
-**User overrides:**
-- `--no-context-filter`: Skip Layer 2
-- `--force-context-filter`: Force Layer 2 even for small result sets
-- `--context-threshold N`: Adjust trigger threshold (default: 20)
-
-## Execution Model
-
-Run the orchestrator as a module from the plugin root:
-
-```bash
-python -m skills.all.orchestration "query" [--mode auto --limit 30 --no-context-filter]
-```
-
-- **Layer 1** (fetch, dedup, semantic clustering, adaptive limits) and **Layer 3** (formatting) are deterministic Python.
-- **Layer 2** is keyword-based relevance filtering. The LLM/Agent rerank sketched in `agent_filter.py` was never wired — it always falls back to keywords. For a true semantic rerank on large result sets, apply the Agent tool to the script's output yourself.
-
-## Quick Usage
-
-```bash
-/all "python async patterns"                          # Auto-filtering (default)
-/all "what did we decide about auth"                   # Context-aware (auto-triggers Layer 2)
-/all "best practices" --mode unified                   # Force local + web
-/all "what did we discuss" --mode local-only           # Fast, no web APIs
-/all "query" --no-context-filter                       # Layer 1 only
-/all "microservices patterns" --force-context-filter   # Always apply Layer 2
-```
-
-> **More examples and advanced options:** See `references/usage-examples.md`
-
-## Output Format
-
-Results display as `[score] SOURCE: title` with preview text. When Layer 2 activates, results are grouped by theme with key insights extracted per group.
-
-> **Full output format examples:** See `references/output-format.md`
-
-## Validation Rules
-
-- Verify actual web API calls were made before citing results
-- Ensure URL and content are real before citing web sources
-- Always indicate local vs web source attribution
-- Report empty results clearly for both sources
-- Web search failures fall back to local results with warning
-
-## Performance
-
-| Mode | Local | Web | Total | Use Case |
-|------|-------|-----|-------|----------|
-| `auto` | <1s | 0-10s | 0-11s | Default, adaptive |
-| `unified` | <1s | 5-10s | 5-11s | Comprehensive |
-| `local-only` | <1s | 0s | <1s | Fast, private |
-| `web-fallback` | <1s | 0-10s | 0-11s | Quality-focused |
-
-Layer 1 total: <1 second. Layer 2: <5 seconds when triggered.
-
-## Reference Files
-
-| File | Contents |
-|------|----------|
-| `orchestration.py` | Three-layer search orchestrator (`python -m skills.all.orchestration`) |
-| `references/implementation-details.md` | Layer behavior, trigger conditions, error handling |
-| `references/usage-examples.md` | Usage examples and advanced CLI options |
-| `references/output-format.md` | Output format examples (Layer 1 vs Layer 2) |
-| `references/migration-notes.md` | Migration notes (older `/find`+`/web` workflow → `/find`+`/web`+`/all`) |
-| `references/troubleshooting.md` | Common issues and solutions |
-| `references/performance-tuning.md` | Speed vs coverage tuning guide |
-
+Use `/research` for new research requests. Existing `/all` callers retain
+their behavior and are recorded with caller identity `search-research:/all`.
