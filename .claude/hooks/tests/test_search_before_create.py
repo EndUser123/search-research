@@ -10,7 +10,9 @@ Promoted 2026-07-02 from telemetry-only to active protection:
 
 import importlib
 import importlib.util
+import json
 import os
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -170,3 +172,31 @@ def test_high_risk_with_allow_bypass_emits_telemetry(probe, fresh_sessions, monk
     bypass = [e for e in events if e.get("event") == "create_without_search_bypass"][0]
     assert bypass["extra"]["high_risk"] is True
     assert bypass["extra"]["file"].endswith("Stop_my_check.py")
+
+
+def test_registered_dispatch_blocks_new_high_risk_extension_point(tmp_path):
+    """The real PreToolUse dispatcher must execute this child hook, not just unit logic."""
+    target = tmp_path / "PreToolUse_source_authority_smoke.py"
+    payload = {
+        "tool_name": "Write",
+        "tool_input": {"file_path": str(target)},
+        "session": {"id": "registered-search-before-create-smoke"},
+        "message": "",
+    }
+
+    result = subprocess.run(
+        [sys.executable, str(HOOKS_DIR / "PreToolUse.py")],
+        input=json.dumps(payload),
+        capture_output=True,
+        text=True,
+        cwd=str(HOOKS_DIR),
+        timeout=30,
+    )
+
+    # The parent router emits the structured deny payload and exits 0 so
+    # Claude Code consumes hookSpecificOutput instead of dropping the reason.
+    assert result.returncode == 0, result.stderr + result.stdout
+    response = json.loads(result.stdout.strip())
+    assert response["hookSpecificOutput"]["permissionDecision"] == "deny"
+    reason = response["hookSpecificOutput"]["permissionDecisionReason"].lower()
+    assert "search for existing equivalents" in reason

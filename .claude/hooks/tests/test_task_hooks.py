@@ -43,11 +43,14 @@ def test_dispatch_dropped_bare_Task():
     assert "Task" not in th
 
 
-def test_self_doc_gate_registered():
+def test_gate_registration():
     th = _load_tool_hooks()
     assert "PreToolUse_task_self_doc_gate.py" in th["TaskCreate"]
     assert "PreToolUse_task_self_doc_gate.py" in th["TaskUpdate"]
-    assert "PreToolUse_task_done_evidence_gate.py" in th["TaskUpdate"]
+    # done_evidence gate removed from dispatch per GR-1: advisory stderr is
+    # swallowed by run_hook (captures stdout only); receipt-based /task clean
+    # is the actual deletion guard.
+    assert "PreToolUse_task_done_evidence_gate.py" not in th["TaskUpdate"]
 
 
 VALID = {"tool_name": "TaskCreate", "tool_input": {
@@ -120,10 +123,17 @@ def test_done_gate_advisory_when_no_receipt():
 
 def test_done_gate_silent_when_receipt_exists(tmp_path):
     rd = tmp_path / "receipts"
-    rd.mkdir()
-    (rd / "4242.json").write_text(json.dumps({"task_id": "4242", "evidence_class": "VERIFIED"}))
+    # Some pytest runners pre-create named temporary descendants when tests
+    # from multiple roots share a basetemp. The test only needs the directory
+    # to exist, not to prove mkdir semantics.
+    rd.mkdir(parents=True, exist_ok=True)
+    # Terminal-scoped path: the gate resolves terminal_id from env; use "testterm".
+    term_dir = rd / "testterm"
+    term_dir.mkdir()
+    (term_dir / "4242.json").write_text(json.dumps({"task_id": "4242", "evidence_class": "VERIFIED"}))
     payload = {"tool_name": "TaskUpdate", "tool_input": {"taskId": "4242", "status": "completed"}}
-    rc, out, err = _run_hook(DONE_GATE, payload, env={"TASK_RECEIPT_DIR": str(rd)})
+    rc, out, err = _run_hook(DONE_GATE, payload,
+                              env={"TASK_RECEIPT_DIR": str(rd), "CLAUDE_TERMINAL_ID": "testterm"})
     assert rc == 0
     assert err.strip() == ""
 

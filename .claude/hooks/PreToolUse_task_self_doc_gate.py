@@ -80,12 +80,14 @@ def _validate_task_doc(tool_input: dict, tool_name: str = "TaskCreate") -> tuple
         if status != "completed":
             # For non-completion updates, no self-doc validation required
             return True, "Valid"
-        # COMP-001: When status is absent, require description if any update is occurring
-        if not status and not description:
-            return False, "TaskUpdate requires description when status is not provided."
-
-        # Validate description for completed tasks (subject is set at creation, not update)
-        desc_result = self_documentation_check("TaskUpdate completion", description)
+        # Validate description for completed tasks (subject is set at creation, not update).
+        # TaskUpdate completion asks "what was accomplished?" — Problem + at least one
+        # Situation/Symptom fits the lifecycle, not full require_all.
+        desc_result = self_documentation_check(
+            "TaskUpdate completion", description,
+            require_all=False,
+            require_problem=True,
+        )
         if desc_result.is_valid:
             return True, "Valid"
 
@@ -101,8 +103,8 @@ def _validate_task_doc(tool_input: dict, tool_name: str = "TaskCreate") -> tuple
         )
         return False, reason
 
-    # TaskCreate: require subject + description
-    result = self_documentation_check(subject, description)
+    # TaskCreate: Problem mandatory + at least one of Situation/Symptom for context
+    result = self_documentation_check(subject, description, require_all=False, require_problem=True)
 
     if result.is_valid:
         return True, "Valid"

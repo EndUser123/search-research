@@ -17,7 +17,7 @@ DESIGN — why advisory (non-blocking), not blocking:
   the receipt-based verifier (`/task clean` only deletes VERIFIED-receipt
   tasks); this gate never authorizes or blocks anything.
 
-Receipts live in: P:/.claude/state/task_receipts/{task_id}.json
+Receipts live in: {CSF_STATE_DIR or P:/.claude/state}/task_receipts/{task_id}.json
   (configurable via TASK_RECEIPT_DIR env var, kept in sync with task_receipt.py)
 
 Exit codes:
@@ -36,10 +36,11 @@ import sys
 from pathlib import Path
 
 _ENABLED = os.environ.get("TASK_DONE_EVIDENCE_ENABLED", "true").lower() == "true"
+_STATE_ROOT = Path(os.environ.get("CSF_STATE_DIR", "P:/.claude/state"))
 _RECEIPT_DIR = Path(
     os.environ.get(
         "TASK_RECEIPT_DIR",
-        str(Path(os.path.expanduser("~/.claude/state/task_receipts"))),
+        str(_STATE_ROOT / "task_receipts"),
     )
 )
 
@@ -50,7 +51,10 @@ def _safe_task_id(task_id: str) -> str:
 
 
 def receipt_path_for(task_id: str) -> Path:
-    return _RECEIPT_DIR / f"{_safe_task_id(task_id)}.json"
+    """Terminal-scoped receipt path, matching task_receipt.py (SR-1 fix)."""
+    tid = os.environ.get("CLAUDE_TERMINAL_ID") or os.environ.get("WT_SESSION", "unknown")
+    safe_tid = _safe_task_id(tid)
+    return _RECEIPT_DIR / safe_tid / f"{_safe_task_id(task_id)}.json"
 
 
 def has_receipt(task_id: str) -> bool:

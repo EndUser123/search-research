@@ -38,6 +38,13 @@ PROBLEM_INDICATORS = [
     r"\bfails\b",
     r"\bfailed\b",
     r"\bfailing\b",
+    r"\bfailure\b",
+    r"\bfailures\b",
+    r"\bwrong\b",
+    r"\bmissing\b",
+    r"\binvalid\b",
+    r"\bregression\b",
+    r"\bblocked\b",
 ]
 SITUATION_INDICATORS = [
     r"\bwhen\b",
@@ -100,6 +107,7 @@ def self_documentation_check(
     min_subject_len: int | None = None,
     min_desc_len: int | None = None,
     require_all: bool = True,
+    require_problem: bool = False,
 ) -> ValidationResult:
     """
     Validate that a task has self-documentation.
@@ -110,12 +118,17 @@ def self_documentation_check(
     3. Description contains at least one indicator from each category
        (Problem, Situation, Symptom) - unless require_all=False
 
+    When require_all=False:
+      - require_problem=True: Problem + at least one of Situation/Symptom
+      - require_problem=False: any one category is enough
+
     Args:
         subject: Task subject line
         description: Task description
         min_subject_len: Minimum subject length (default: 10)
         min_desc_len: Minimum description length (default: 50)
-        require_all: If True, all three categories required. If False, any one.
+        require_all: If True, all three categories required (require_problem ignored).
+        require_problem: If True (only effective when require_all=False), Problem is mandatory.
 
     Returns:
         ValidationResult with is_valid, missing_categories, warnings
@@ -158,6 +171,13 @@ def self_documentation_check(
     if not has_symptom:
         missing_categories.append("Symptom (what observable behavior?)")
 
+    # Guard: require_problem is ignored when require_all is True
+    if require_all and require_problem:
+        warnings.append(
+            "require_problem=True has no effect when require_all=True "
+            "(require_all requires all three categories regardless)."
+        )
+
     # Determine validity
     if require_all:
         is_valid = (
@@ -166,6 +186,11 @@ def self_documentation_check(
             and has_problem
             and has_situation
             and has_symptom
+        )
+    elif require_problem:
+        # Problem mandatory; at least one of situation/symptom for context
+        is_valid = (subject_len >= min_subject_len or desc_len >= min_desc_len) and (
+            has_problem and (has_situation or has_symptom)
         )
     else:
         # Any one category is enough

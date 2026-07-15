@@ -14,7 +14,9 @@ Wiring:
 
 from __future__ import annotations
 
+import json
 import os
+import sys
 from pathlib import Path
 
 try:
@@ -194,17 +196,20 @@ def run_search_tracker(data: dict) -> dict | None:
     return None
 
 
-if __name__ == "__main__":
-    # ponytail self-check: a helper create with empty sidecar logs telemetry.
-    os.environ["AGENTIC_RELIABILITY_TELEMETRY"] = "1"
-    import tempfile
+def main() -> int:
+    """Run the hook through the JSON stdin/stdout PreToolUse contract."""
+    raw = sys.stdin.read()
+    if not raw.strip():
+        return 0
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        print(json.dumps({"decision": "block", "reason": f"Invalid hook input: {exc}"}))
+        return 2
+    result = run(data if isinstance(data, dict) else {})
+    print(json.dumps(result or {}))
+    return 2 if result and result.get("decision") == "block" else 0
 
-    sid = "self-check-sbc"
-    # clean sidecar
-    sf = _searches_file(sid)
-    sf.unlink(missing_ok=True)
-    d = tempfile.NamedTemporaryFile(delete=False, suffix="_util.py")
-    d.close()
-    Path(d.name).unlink(missing_ok=True)  # ensure non-existent (new file)
-    run({"tool_name": "Write", "session": {"id": sid}, "tool_input": {"file_path": d.name}})
-    print("search_before_create: self-check OK (telemetry would fire for", d.name, ")")
+
+if __name__ == "__main__":
+    raise SystemExit(main())

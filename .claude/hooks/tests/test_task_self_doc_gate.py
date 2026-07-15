@@ -36,6 +36,7 @@ from Stop_task_completion_gate import (
     check,
     run,
 )
+from PreToolUse_task_self_doc_gate import _validate_task_doc
 
 # --- Fixtures ---------------------------------------------------------------
 
@@ -286,6 +287,183 @@ class TestSelfDocumentationCheck:
             require_all=False,
         )
         assert result.is_valid is False
+
+    # --- require_problem=True tests (TaskCreate path) ---
+
+    def test_require_problem_problem_and_situation_passes(self):
+        """require_problem=True: Problem + Situation should be valid."""
+        result = self_documentation_check(
+            subject="Fix crash in login flow",
+            description="When the user logs in, the app crashes with a null pointer error.",
+            require_all=False,
+            require_problem=True,
+        )
+        assert result.is_valid is True
+
+    def test_require_problem_problem_and_symptom_passes(self):
+        """require_problem=True: Problem + Symptom should be valid."""
+        result = self_documentation_check(
+            subject="Fix crash in login flow",
+            description="The login page shows an error and returns a 500 status code.",
+            require_all=False,
+            require_problem=True,
+        )
+        assert result.is_valid is True
+
+    def test_require_problem_all_three_passes(self):
+        """require_problem=True: Problem + Situation + Symptom should be valid."""
+        result = self_documentation_check(
+            subject="Fix crash in login flow",
+            description="When the user logs in, the app shows an error and returns a 500 status code.",
+            require_all=False,
+            require_problem=True,
+        )
+        assert result.is_valid is True
+
+    def test_require_problem_situation_only_fails(self):
+        """require_problem=True: Situation alone (no Problem) should fail."""
+        result = self_documentation_check(
+            subject="Test task subject here",
+            description="When the app is running during startup after initialization.",
+            require_all=False,
+            require_problem=True,
+        )
+        assert result.is_valid is False
+        assert any("Problem" in m for m in result.missing_categories)
+
+    def test_require_problem_symptom_only_fails(self):
+        """require_problem=True: Symptom alone (no Problem) should fail."""
+        result = self_documentation_check(
+            subject="Test task subject here",
+            description="The application shows thrown exception output that is produced unexpectedly.",
+            require_all=False,
+            require_problem=True,
+        )
+        assert result.is_valid is False
+        assert any("Problem" in m for m in result.missing_categories)
+
+    def test_require_problem_no_intent_fails(self):
+        """require_problem=True: No Problem, Situation, or Symptom should fail."""
+        result = self_documentation_check(
+            subject="Test task subject here",
+            description="Just a random description without any meaningful indicators.",
+            require_all=False,
+            require_problem=True,
+        )
+        assert result.is_valid is False
+
+    def test_require_problem_empty_subject_long_desc_with_problem_passes(self):
+        """require_problem=True: Empty subject + long description with Problem passes (length OR)."""
+        result = self_documentation_check(
+            subject="",
+            description="When the user logs in, the app crashes with a null pointer error that shows up in the console output.",
+            require_all=False,
+            require_problem=True,
+        )
+        assert result.is_valid is True
+
+    def test_require_all_with_require_problem_warns(self):
+        """require_all=True + require_problem=True should emit a warning, use require_all."""
+        result = self_documentation_check(
+            subject="Fix crash",
+            description="When the app starts, it crashes with null pointer exception.",
+            require_all=True,
+            require_problem=True,
+        )
+        assert any("require_problem" in w for w in result.warnings)
+        # should fail because no Symptom indicator despite having Problem + Situation
+        assert result.is_valid is False
+
+    def test_lifecycle_validation_mode(self):
+        """TaskCreate, TaskUpdate completion, and completion mode match lifecycle intent."""
+        # TaskCreate: "What problem?" — Problem + Situation context passes
+        valid, _ = _validate_task_doc(
+            {"subject": "Fix null pointer crash", "description": "When loading the user profile page, the app does crash with a null pointer error."},
+            tool_name="TaskCreate",
+        )
+        assert valid is True
+
+        # TaskUpdate completion: "What was accomplished?" — Problem + Symptom passes
+        valid, _ = _validate_task_doc(
+            {"subject": "TaskUpdate completion",
+             "description": "Fixed auth validation; invalid tokens now return 401 instead of crashing.",
+             "status": "completed"},
+            tool_name="TaskUpdate",
+        )
+        assert valid is True
+
+        # TaskUpdate completion with insufficient evidence: should fail
+        valid, reason = _validate_task_doc(
+            {"subject": "TaskUpdate completion",
+             "description": "Made some changes to the code.",
+             "status": "completed"},
+            tool_name="TaskUpdate",
+        )
+        assert valid is False
+        assert "incomplete" in reason.lower()
+
+        # Non-completion TaskUpdate: no validation required
+        valid, _ = _validate_task_doc(
+            {"subject": "Fix null pointer", "description": "", "status": "in_progress"},
+            tool_name="TaskUpdate",
+        )
+        assert valid is True
+
+    def test_task_update_completion_empty_description_fails(self):
+        """TaskUpdate completion with empty description should fail."""
+        valid, reason = _validate_task_doc(
+            {"subject": "TaskUpdate completion",
+             "description": "",
+             "status": "completed"},
+            tool_name="TaskUpdate",
+        )
+        assert valid is False
+        assert "incomplete" in reason.lower()
+
+    def test_task_update_completion_symptom_only_fails(self):
+        """TaskUpdate completion with only Symptom, no Problem, should fail."""
+        valid, reason = _validate_task_doc(
+            {"subject": "TaskUpdate completion",
+             "description": "The system now shows the correct output after initialization.",
+             "status": "completed"},
+            tool_name="TaskUpdate",
+        )
+        assert valid is False
+        assert "incomplete" in reason.lower()
+
+    def test_task_update_completion_situation_only_fails(self):
+        """TaskUpdate completion with only Situation, no Problem, should fail."""
+        valid, reason = _validate_task_doc(
+            {"subject": "TaskUpdate completion",
+             "description": "During the nightly run after the deployment on staging.",
+             "status": "completed"},
+            tool_name="TaskUpdate",
+        )
+        assert valid is False
+        assert "incomplete" in reason.lower()
+
+    def test_task_update_completion_problem_and_situation_passes(self):
+        """TaskUpdate completion with Problem + Situation should be valid."""
+        valid, _ = _validate_task_doc(
+            {"subject": "TaskUpdate completion",
+             "description": "Fixed the null pointer that was crashing during profile page load.",
+             "status": "completed"},
+            tool_name="TaskUpdate",
+        )
+        assert valid is True
+
+    def test_task_update_completion_problem_only_fails(self):
+        """TaskUpdate completion with Problem only (no Situation/Symptom) should fail
+        because require_problem=True requires Problem + at least one of Situation/Symptom.
+        "Fixed the crash" has Problem indicators (fixed, crash) but no Situation or Symptom words."""
+        valid, reason = _validate_task_doc(
+            {"subject": "TaskUpdate completion",
+             "description": "Fixed the crash.",
+             "status": "completed"},
+            tool_name="TaskUpdate",
+        )
+        assert valid is False
+        assert "incomplete" in reason.lower()
 
 
 class TestIsTaskSelfDocumented:

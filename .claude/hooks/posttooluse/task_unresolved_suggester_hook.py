@@ -64,7 +64,10 @@ class TaskUnresolvedSuggesterHook(PostToolUseHook):
     """
 
     env_var = "TASK_UNRESOLVED_SUGGEST_ENABLED"
-    default_enabled = True
+    # The canonical package router owns opt-in unresolved-history scans. Keep
+    # this legacy local copy disabled so duplicate PostToolUse routes cannot
+    # burn search/LLM quota on ordinary TaskList calls.
+    default_enabled = False
     tool_matcher = {"TaskList"}
 
     def process(self, tool_name: str, tool_input: dict[str, Any], tool_response: dict[str, Any]) -> dict[str, Any]:

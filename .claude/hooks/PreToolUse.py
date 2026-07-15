@@ -144,6 +144,7 @@ CRITICAL_HOOKS = set()
 HOOK_TIMEOUTS = {
     "pre/PreToolUse_tool_check.py": 5.0,
     "PreToolUse_authorization_gate.py": 30.0,  # Increased from 5s default - reads transcripts, queries CKS
+    "PreToolUse_task_self_doc_gate.py": 5.0,  # fast regex check - 5s is generous
 }
 
 # Content-based filters: hook only runs if command matches at least one pattern.
@@ -911,7 +912,6 @@ TOOL_HOOKS = {
     ],
     "TaskUpdate": [
         "PreToolUse_task_self_doc_gate.py",
-        "PreToolUse_task_done_evidence_gate.py",
     ],
     "TaskList": [
         # No PreToolUse gates needed for read-only listing
