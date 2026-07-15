@@ -48,6 +48,10 @@ import time
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+# Marker/deadline tracking for reaper backstop
+sys.path.insert(0, str(Path(__file__).parent))
+import red_team_markers as markers
+
 
 # --- Config ---
 
@@ -210,6 +214,63 @@ def run_agy(doc_path: str, session_model: str) -> dict:
         return {"reviewer": "agy", "error": f"{type(e).__name__}: {e}"}
 
 
+def _kill_process_tree(pid: int) -> dict:
+    """Kill the entire process tree rooted at pid.
+
+    On Windows, uses taskkill.exe /T /F to recursively kill all descendants.
+    This is necessary because opencode.CMD spawns cmd.exe -> node.exe -> MCP
+    servers, and killing only the root leaves descendants orphaned.
+
+    Returns a dict with:
+      ok: True if the kill succeeded (or nothing was left to kill)
+      error: short error string when ok is False, else None
+    """
+    if os.name == "nt":
+        try:
+            result = subprocess.run(
+                ["taskkill.exe", "/PID", str(pid), "/T", "/F"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        except FileNotFoundError:
+            return {"ok": False, "error": "taskkill.exe not found"}
+        except subprocess.TimeoutExpired:
+            return {"ok": False, "error": "taskkill timed out after 30s"}
+        except OSError as e:
+            return {"ok": False, "error": f"OSError: {e}"}
+        if result.returncode != 0:
+            stderr = (result.stderr or "").strip()[:200]
+            return {"ok": False, "error": f"taskkill exit {result.returncode}: {stderr}"}
+        return {"ok": True, "error": None}
+    else:
+        try:
+            import signal
+
+            sig = getattr(signal, "SIGKILL", signal.SIGTERM)
+            os.kill(pid, sig)
+        except ProcessLookupError:
+            return {"ok": True, "error": None}
+        except OSError as e:
+            return {"ok": False, "error": f"OSError: {e}"}
+        return {"ok": True, "error": None}
+
+
+def _parse_opencode_json_events(stdout: str) -> str:
+    """Parse OpenCode JSON-lines output, extracting text from type:text events."""
+    text_parts = []
+    for line in (stdout or "").strip().splitlines():
+        try:
+            event = json.loads(line)
+            if event.get("type") == "text":
+                part = event.get("part", {})
+                if part.get("type") == "text":
+                    text_parts.append(part.get("text", ""))
+        except json.JSONDecodeError:
+            continue
+    return "".join(text_parts).strip()
+
+
 def run_opencode_model(model_id: str, doc_path: str, session_model: str) -> dict:
     """Run an opencode model as an agentic reviewer."""
     prompt = REVIEW_PROMPT_TEMPLATE.format(doc_path=doc_path, session_model=session_model)
@@ -232,46 +293,22 @@ def run_opencode_model(model_id: str, doc_path: str, session_model: str) -> dict
     env = os.environ.copy()
     env["OPENCODE_DB"] = str(Path(tempfile.gettempdir()) / f"red_team_{uuid.uuid4().hex[:8]}.db")
 
+    timeout = OPENCODE_TIMEOUT + 30
+    command = [opencode_path, "run", "-m", model_id, "--format", "json", prompt]
+    task_id = f"{reviewer_name}-{uuid.uuid4().hex[:8]}"
+    marker_written = False
+
     try:
-        result = subprocess.run(
-            [opencode_path, "run", "-m", model_id, "--format", "json", prompt],
-            capture_output=True,
+        proc = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            stdin=subprocess.DEVNULL,
             text=True,
-            timeout=OPENCODE_TIMEOUT + 30,
             cwd=WORKDIR,
             env=env,
             shell=False,
         )
-        if result.returncode != 0:
-            return {
-                "reviewer": reviewer_name,
-                "model_id": model_id,
-                "error": f"exit {result.returncode}: {(result.stderr or '')[:200]}",
-            }
-
-        # Parse JSON lines — extract text from type:text events
-        lines = (result.stdout or "").strip().splitlines()
-        text_parts = []
-        for line in lines:
-            try:
-                event = json.loads(line)
-                if event.get("type") == "text":
-                    part = event.get("part", {})
-                    if part.get("type") == "text":
-                        text_parts.append(part.get("text", ""))
-            except json.JSONDecodeError:
-                continue
-
-        text = "".join(text_parts).strip()
-        if not text:
-            return {"reviewer": reviewer_name, "model_id": model_id, "error": "no text in output"}
-        return {"reviewer": reviewer_name, "model_id": model_id, "raw_response": text}
-    except subprocess.TimeoutExpired:
-        return {
-            "reviewer": reviewer_name,
-            "model_id": model_id,
-            "error": f"timeout after {OPENCODE_TIMEOUT + 30}s",
-        }
     except FileNotFoundError:
         return {
             "reviewer": reviewer_name,
@@ -284,6 +321,80 @@ def run_opencode_model(model_id: str, doc_path: str, session_model: str) -> dict
             "model_id": model_id,
             "error": f"{type(e).__name__}: {e}",
         }
+
+    # Write a marker so the reaper can kill this process tree if the
+    # Python supervisor itself is terminated.
+    try:
+        marker = markers.create_marker(
+            task_id=task_id,
+            reviewer=reviewer_name,
+            model_id=model_id,
+            root_pid=proc.pid,
+            command=command,
+            cwd=WORKDIR,
+            deadline_seconds=timeout,
+        )
+        markers.write_marker(marker)
+        marker_written = True
+    except Exception:
+        pass
+
+    try:
+        stdout, stderr = proc.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        cleanup = _kill_process_tree(proc.pid)
+        try:
+            proc.communicate(timeout=15)
+        except Exception:
+            proc.kill()
+            try:
+                proc.communicate(timeout=5)
+            except Exception:
+                pass
+        if marker_written:
+            markers.remove_marker(task_id)
+        result = {
+            "reviewer": reviewer_name,
+            "model_id": model_id,
+            "error": f"timeout after {timeout}s",
+            "timeout_duration": timeout,
+            "cleanup_ok": cleanup["ok"],
+        }
+        if cleanup["error"]:
+            result["cleanup_error"] = cleanup["error"]
+        return result
+    except Exception as e:
+        cleanup = _kill_process_tree(proc.pid)
+        try:
+            proc.communicate(timeout=5)
+        except Exception:
+            pass
+        if marker_written:
+            markers.remove_marker(task_id)
+        result = {
+            "reviewer": reviewer_name,
+            "model_id": model_id,
+            "error": f"{type(e).__name__}: {e}",
+            "cleanup_ok": cleanup["ok"],
+        }
+        if cleanup["error"]:
+            result["cleanup_error"] = cleanup["error"]
+        return result
+
+    if marker_written:
+        markers.remove_marker(task_id)
+
+    if proc.returncode != 0:
+        return {
+            "reviewer": reviewer_name,
+            "model_id": model_id,
+            "error": f"exit {proc.returncode}: {(stderr or '')[:200]}",
+        }
+
+    text = _parse_opencode_json_events(stdout or "")
+    if not text:
+        return {"reviewer": reviewer_name, "model_id": model_id, "error": "no text in output"}
+    return {"reviewer": reviewer_name, "model_id": model_id, "raw_response": text}
 
 
 # --- Orchestration ---
