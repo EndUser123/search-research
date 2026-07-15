@@ -231,7 +231,15 @@
       "Bash(rmdir P:/.claude/.artifacts/unknown/red-team/20260712-004354)",
       "Bash(rm -rf \"P:/.claude/.artifacts/unknown\")",
       "Bash(echo P:/.claude/.artifacts/8784e6c7-dee9-4744-b6e2-3ba2072955ca/red-team/20260712-004354)",
-      "PowerShell(tail *)"
+      "PowerShell(tail *)",
+      "PowerShell(Get-Command *)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(ConvertTo-Json *)",
+      "PowerShell($TS = Get-Date -Format \"yyyyMMdd-HHmmss\"; $WORKTREE = \"P:/.claude/worktrees/ai-task-$TS\"; $BRANCH = \"ai/ai-task-$TS\"; git -C P: worktree add -b $BRANCH \"$WORKTREE\" HEAD 2>&1; Write-Output \"Worktree: $WORKTREE\"; Write-Output \"Branch: $BRANCH\")",
+      "PowerShell($s = \\(Get-FileHash \"P:\\\\packages\\\\.claude-marketplace\\\\plugins\\\\cc-skills-analysis\\\\skills\\\\recap\\\\SKILL.md\" -Algorithm SHA256\\).Hash; $c = \\(Get-FileHash \"$HOME\\\\.claude\\\\plugins\\\\cache\\\\local\\\\cc-skills-analysis\\\\1.0.122\\\\skills\\\\recap\\\\SKILL.md\" -Algorithm SHA256\\).Hash; Write-Output \"source=$s\"; Write-Output \"cache =$c\"; if \\($s -eq $c\\) { Write-Output \"MATCH\" } else { Write-Output \"DRIFT\" })",
+      "PowerShell($gitleaks = \\(Get-Command gitleaks\\).Source; & $gitleaks detect --source=\"P:\\\\\" --no-banner --verbose 2>&1 | Select-Object -First 30)",
+      "PowerShell($gitleaks = \\(Get-Command gitleaks\\).Source; & $gitleaks detect --source=\"P:\\\\\" --no-banner --verbose 2>&1 | Select-String \"Finding:\" -Context 0,5 | Select-Object -First 20)"
     ],
     "deny": [],
     "ask": []

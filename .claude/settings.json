@@ -192,7 +192,8 @@
           },
           {
             "type": "command",
-            "command": "python P:/.claude/hooks/log_hook.py"
+            "command": "python P:/.claude/hooks/log_hook.py",
+            "timeout": 15
           }
         ]
       }
@@ -233,7 +234,8 @@
           },
           {
             "type": "command",
-            "command": "python P:/.claude/hooks/log_hook.py"
+            "command": "python P:/.claude/hooks/log_hook.py",
+            "timeout": 15
           }
         ]
       }
@@ -304,7 +306,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python P:/.claude/hooks/log_hook.py"
+            "command": "python P:/.claude/hooks/log_hook.py",
+            "timeout": 15
           }
         ]
       },
@@ -347,7 +350,8 @@
           },
           {
             "type": "command",
-            "command": "python P:/.claude/hooks/log_hook.py"
+            "command": "python P:/.claude/hooks/log_hook.py",
+            "timeout": 15
           }
         ]
       }
@@ -373,7 +377,8 @@
           },
           {
             "type": "command",
-            "command": "python P:/.claude/hooks/log_hook.py"
+            "command": "python P:/.claude/hooks/log_hook.py",
+            "timeout": 15
           }
         ]
       },

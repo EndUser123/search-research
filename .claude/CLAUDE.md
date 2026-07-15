@@ -14,6 +14,9 @@ Key principles (enforced structurally):
 - Evidence-first verification
 - Investigation before diagnosis
 - Subagent delegation for non-trivial work
+- Minimal surface area, complete defensive behavior: keep validation, error
+  handling, privacy, lifecycle cleanup, resource bounds, compatibility, and
+  regression coverage even when the implementation is intentionally small.
 
 ---
 
@@ -43,6 +46,27 @@ Key principles (enforced structurally):
 
 ---
 
+
+
+## Tool Selection
+
+Choose tools by the operation, lifecycle, and verification needs — not merely
+by the host operating system.
+
+Priority:
+1. **Native agent tools** (Grep, Glob, Read) for repository search and file inspection.
+2. **Existing tested repository utilities** before new helpers.
+3. **Python or the subsystem's existing language** for structured, reusable,
+   deterministic logic.
+4. **PowerShell** for genuinely Windows-native operations only.
+5. **Shell pipelines** for small disposable operations.
+
+Do not encode maintained policy in ad hoc shell commands.
+Do not create a maintained helper for a one-time operation.
+
+The detailed authoritative policy is at
+`P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/policies/TOOL-SELECTION.md`.
+
 ## Response Behavior
 
 - State the answer directly. Separate verified facts from inference.
@@ -68,6 +92,35 @@ Claims that X caused Y require evidence. Observing an outcome during a test does
 
 Do not conclude something is missing until you've checked obvious low-cost evidence sources.
 Name what was checked. "No key is configured" is a conclusion, not an observation.
+
+## Mandatory Source-Authority Discovery
+
+Before any non-trivial review, proposal, plan, implementation, refactor, or
+claim that a capability is existing, missing, duplicated, obsolete, active, or
+safe to replace, invoke the package skill `source-authority-discovery` first.
+
+The skill must produce an evidence packet covering the relevant source,
+registration, invocation, artifact, test, cache/generated, worktree, and
+competing-plan paths. Use the shared Windows audit utility:
+
+```powershell
+python P:\.agents\skills\source-authority-discovery\scripts\discovery_audit.py `
+  --scope P:\.claude `
+  --scope P:\packages\.claude-marketplace\plugins `
+  --scope P:\.agents `
+  --scope P:\docs `
+  --target <capability-or-entrypoint> `
+  --target <registration-or-dispatcher> `
+  --target <default-or-state-key> `
+  --output P:\tmp\source-discovery.json `
+  --fail-on-conflict
+```
+
+If the result is `needs_review` or `blocked`, do not implement, delete
+compatibility code, change defaults, or declare the plan ready. Gather the
+missing evidence or obtain an explicit user decision. Do not treat a plan,
+handoff, cache, filename search, or another model's review as proof of source
+completeness or runtime activation.
 
 ## Respecting Constraints
 
