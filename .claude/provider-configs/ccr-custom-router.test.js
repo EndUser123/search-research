@@ -17,6 +17,9 @@ const os = require("os");
 const path = require("path");
 
 const ROUTER_PATH = path.join(__dirname, "ccr-custom-router.js");
+const PROXY_PATH = path.join(__dirname, "ccr-admission-proxy.js");
+const TUI_PATH = path.join(__dirname, "cc-ccr-tui.ps1");
+const CCR_CONFIG_PATH = process.env.CCR_CONFIG_PATH || path.join(os.homedir(), ".claude-code-router/config.json");
 const TEST_STATE_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "ccr-custom-router-test-"));
 process.env.CCR_ROUTER_STATE_DIR = TEST_STATE_DIR;
 test.after(() => {
@@ -369,12 +372,69 @@ test("route logging: local-fail-fallback uses raw route, not Haiku alias", () =>
     /decisionSource === .local-fail-fallback.*\?.*route\s*:/,
     "local-fail-fallback must use raw route, not routeToAlias alias",
   );
-  // The Haiku alias for opencode-go is preserved (not removed).
-  assert.match(
-    src,
-    /"opencode-go,deepseek-v4-flash".*claude-haiku-4-5-20251001/,
-    "routeToAlias must still map opencode-go to Haiku for non-failure routing",
+  // The shared route still maps to the Haiku alias for ordinary Haiku
+  // requests; decide() bypasses this mapping for local-failure telemetry.
+  assert.ok(
+    src.includes('"opencode-go,deepseek-v4-flash": "claude-haiku-4-5-20251001"'),
+    "routeToAlias must retain the ordinary Haiku alias",
   );
+});
+
+// --- 11b. z.ai provider identifier is consistent across every consumer -----
+// z.ai exposes the provider model as "glm-5.2". The [1m] suffix is not a z.ai
+// model identifier; context-limit metadata must not leak into provider routes.
+test("z.ai routes use the provider model identifier without context suffix", () => {
+  const config = JSON.parse(fs.readFileSync(CCR_CONFIG_PATH, "utf8"));
+  const zai = config.Providers.find((provider) => provider.name === "zai");
+  assert.ok(zai, "config must define the z.ai provider");
+  assert.ok(zai.models.includes("glm-5.2"), "z.ai provider must expose glm-5.2");
+  assert.ok(
+    !zai.models.some((model) => model === "glm-5.2[1m]"),
+    "[1m] must not be sent as the z.ai provider model identifier",
+  );
+
+  const routeStrings = [];
+  const collectStrings = (value) => {
+    if (typeof value === "string") routeStrings.push(value);
+    else if (Array.isArray(value)) value.forEach(collectStrings);
+    else if (value && typeof value === "object") Object.values(value).forEach(collectStrings);
+  };
+  collectStrings(config.Router);
+  collectStrings(config.fallback);
+  const zaiRoutes = routeStrings.filter((route) => route.startsWith("zai,"));
+  assert.ok(zaiRoutes.length > 0, "config must contain at least one z.ai route");
+  assert.deepEqual(
+    [...new Set(zaiRoutes)],
+    ["zai,glm-5.2", "zai,glm-4.7"],
+    "every configured z.ai route must use a provider model identifier",
+  );
+
+  const routerSource = fs.readFileSync(ROUTER_PATH, "utf8");
+  const proxySource = fs.readFileSync(PROXY_PATH, "utf8");
+  const tuiSource = fs.readFileSync(TUI_PATH, "utf8");
+  const metadataSource = fs.readFileSync(path.join(__dirname, "ccr-route-metadata.js"), "utf8");
+
+  // Check that the shared metadata module contains the zai routes
+  assert.match(metadataSource, /zai,glm-5\.2/,
+    "route metadata must name the z.ai provider model");
+  assert.match(metadataSource, /zai,glm-4\.7/,
+    "route metadata must name additional zai models");
+
+  // Check that consumers import from shared metadata
+  assert.match(routerSource, /require\("\.\/ccr-route-metadata"\)/,
+    "custom router must import from shared route-metadata");
+  assert.match(proxySource, /require\("\.\/ccr-route-metadata"\)/,
+    "admission proxy must import from shared route-metadata");
+
+  // Verify no context suffix in any source
+  for (const source of [routerSource, proxySource, tuiSource, metadataSource]) {
+    assert.doesNotMatch(source, /zai,glm-5\.2\[1m\]/,
+      "provider routes must not contain the z.ai context suffix");
+  }
+
+  // TUI still uses the direct identifier format
+  assert.match(tuiSource, /Provider\s*=\s*"zai";\s*Model\s*=\s*"glm-5\.2"/,
+    "TUI must emit the z.ai provider model identifier");
 });
 
 // --- 12. Architecture review: bounded admission investigation --------------
@@ -414,7 +474,7 @@ test("bounded admission cannot be implemented at the router layer (no lifecycle)
 // returns its route string, NOT null, even for over-limit requests, and that
 // back-to-back null/logging paths are not mis-wired.
 test("custom-router null contract: falsy return is fall-through, not rejection", () => {
-  const CCR_SOURCE = "C:/Users/brsth/AppData/Roaming/npm/node_modules/@musistudio/claude-code-router/dist/cli.js";
+  const CCR_SOURCE = process.env.CCR_SOURCE || path.join(os.homedir(), "AppData/Roaming/npm/node_modules/@musistudio/claude-code-router/dist/cli.js");
   const fs = require("fs");
   const ccr = fs.readFileSync(CCR_SOURCE, "utf8");
   // Extract the custom router consumption block. It's a single expression:
@@ -486,10 +546,10 @@ test("proxy: body without max_tokens defaults to 0 output budget", () => {
 });
 
 test("proxy: every active CCR route has a verified context limit", () => {
-  assert.equal(GLOBAL_CONTEXT_LIMIT, 1_000_000);
+  assert.equal(GLOBAL_CONTEXT_LIMIT, 200_000);
   assert.deepEqual(getUnverifiedConfiguredRoutes(), [], "config routes must be registered before proxy startup");
   assert.doesNotThrow(() => validateConfiguredRoutes());
-  assert.equal(VERIFIED_ROUTE_LIMITS["zai,glm-5.2[1m]"], 1_000_000);
+  assert.equal(VERIFIED_ROUTE_LIMITS["zai,glm-5.2"], 1_000_000);
 });
 
 test("proxy: rejection diagnostics use the verified global limit", () => {

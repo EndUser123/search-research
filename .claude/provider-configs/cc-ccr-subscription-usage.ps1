@@ -21,17 +21,12 @@ function Get-OpenAISubscriptionUsage {
         $response = Invoke-RestMethod -Uri 'https://chatgpt.com/backend-api/wham/usage' -Headers $headers -TimeoutSec 15 -ErrorAction Stop
         $windows = @()
         foreach ($definition in @(
-            @{ Name = '5h window'; Property = 'primary_window' }
-            @{ Name = 'weekly'; Property = 'secondary_window' }
+            @{ FallbackName = 'primary window'; Property = 'primary_window' }
+            @{ FallbackName = 'secondary window'; Property = 'secondary_window' }
         )) {
             $window = $response.rate_limit.($definition.Property)
-            if ($null -eq $window -or $null -eq $window.used_percent) { continue }
-            $used = [int]$window.used_percent
-            $windows += [pscustomobject]@{
-                Name        = $definition.Name
-                Remaining   = [Math]::Max(0, 100 - $used)
-                ResetEpochMs = if ($window.reset_at) { [long]$window.reset_at * 1000 } else { 0 }
-            }
+            $converted = Convert-OpenAIUsageWindow $definition.FallbackName $window
+            if ($null -ne $converted) { $windows += $converted }
         }
 
         if ($windows.Count -eq 0) {
@@ -39,9 +34,37 @@ function Get-OpenAISubscriptionUsage {
         }
 
         $plan = if ($response.plan_type) { [string]$response.plan_type } else { 'subscription' }
-        return [pscustomobject]@{ Provider = 'openai'; Available = $true; Plan = $plan; Windows = $windows; Source = 'ChatGPT subscription session' }
+        $hasFiveHour = @($windows | Where-Object Name -eq '5h window').Count -gt 0
+        return [pscustomobject]@{
+            Provider       = 'openai'
+            Available      = $true
+            Plan           = $plan
+            Windows        = $windows
+            MissingWindows = if ($hasFiveHour) { @() } else { @('5h window') }
+            Source         = 'ChatGPT subscription session'
+        }
     } catch {
         return [pscustomobject]@{ Provider = 'openai'; Available = $false; Error = $_.Exception.Message }
+    }
+}
+
+function Convert-OpenAIUsageWindow {
+    param([string]$FallbackName, $Window)
+
+    if ($null -eq $Window -or $null -eq $Window.used_percent) { return $null }
+    $duration = if ($null -ne $Window.limit_window_seconds) { [long]$Window.limit_window_seconds } else { 0L }
+    $name = if ($duration -ge 4 * 3600 -and $duration -le 6 * 3600) {
+        '5h window'
+    } elseif ($duration -ge 6 * 24 * 3600 -and $duration -le 8 * 24 * 3600) {
+        'weekly'
+    } else {
+        $FallbackName
+    }
+    $used = [int]$Window.used_percent
+    return [pscustomobject]@{
+        Name         = $name
+        Remaining    = [Math]::Max(0, 100 - $used)
+        ResetEpochMs = if ($Window.reset_at) { [long]$Window.reset_at * 1000 } else { 0 }
     }
 }
 
@@ -165,62 +188,146 @@ function Get-AnthropicSubscriptionUsage {
     return [pscustomobject]@{ Provider = 'anthropic'; Available = $false; Error = $directError }
 }
 
-function Get-GeminiSubscriptionUsage {
-    $command = Get-Command antigravity-usage -ErrorAction SilentlyContinue
-    if (-not $command) {
-        return [pscustomobject]@{
-            Provider  = 'antigravity'
-            Available = $false
-            Plan      = 'Google AI'
-            Error     = 'antigravity-usage is not installed'
-        }
-    }
+function Convert-AntigravitySnapshot {
+    param($Snapshot, [string]$Source = 'antigravity-usage')
 
-    try {
-        # Use cloud mode deliberately: Antigravity is usually not running when
-        # cc-ccr -Usage is requested. This uses the helper's own Google OAuth
-        # login and Cloud Code quota endpoint, not the IDE language server.
-        $raw = @(& $command.Source --method google --json 2>$null)
-        if ($LASTEXITCODE -ne 0 -or $raw.Count -eq 0) {
-            throw 'Antigravity cloud quota unavailable - run antigravity-usage login'
-        }
-        $snapshot = ($raw -join "`n") | ConvertFrom-Json -ErrorAction Stop
-        $models = @($snapshot.models) | Where-Object { $null -ne $_.remainingPercentage }
-        if ($models.Count -eq 0) {
-            throw 'Antigravity returned no model quota information'
-        }
+    $models = @($Snapshot.models) | Where-Object { $null -ne $_.remainingPercentage }
+    if ($models.Count -eq 0) { throw 'Antigravity returned no model quota information' }
 
-        $seen = @{}
-        $windows = foreach ($model in $models) {
-            $reset = 0L
-            if ($model.resetTime) {
-                try { $reset = [DateTimeOffset]::Parse([string]$model.resetTime).ToUnixTimeMilliseconds() } catch { }
-            }
-            $name = if ($model.label) { [string]$model.label } else { [string]$model.modelId }
-            $remaining = [Math]::Max(0, [Math]::Min(100, [int][Math]::Round([double]$model.remainingPercentage * 100)))
-            $key = "{0}|{1}|{2}" -f $name, $remaining, $reset
-            if ($seen.ContainsKey($key)) { continue }
-            $seen[$key] = $true
-            [pscustomobject]@{
-                Name         = $name
+    $groups = @{}
+    foreach ($model in $models) {
+        $reset = 0L
+        if ($model.resetTime) {
+            try { $reset = [DateTimeOffset]::Parse([string]$model.resetTime).ToUnixTimeMilliseconds() } catch { }
+        }
+        $name = if ($model.label) { [string]$model.label } else { [string]$model.modelId }
+        $remaining = [Math]::Max(0, [Math]::Min(100, [int][Math]::Round([double]$model.remainingPercentage * 100)))
+        $family = if ("$name $($model.modelId)" -match '(?i)gemini') { 'Gemini' } else { 'Other models' }
+        $key = "{0}|{1}|{2}" -f $family, $remaining, $reset
+        if (-not $groups.ContainsKey($key)) {
+            $groups[$key] = [pscustomobject]@{
+                Family       = $family
                 Remaining    = $remaining
                 ResetEpochMs = $reset
+                Models       = [System.Collections.Generic.List[string]]::new()
             }
         }
-        $plan = if ($snapshot.planType) { [string]$snapshot.planType } else { 'Google AI' }
-        return [pscustomobject]@{
-            Provider  = 'antigravity'
-            Available = $true
-            Plan      = $plan
-            Windows   = $windows
-            Source    = 'antigravity-usage'
-        }
-    } catch {
-        return [pscustomobject]@{
-            Provider  = 'antigravity'
-            Available = $false
-            Plan      = 'Google AI'
-            Error     = $_.Exception.Message
+        $groups[$key].Models.Add($name)
+    }
+
+    $windows = foreach ($group in $groups.Values | Sort-Object Family) {
+        $label = if ($group.Models.Count -gt 1) { '{0} ({1} aliases)' -f $group.Family, $group.Models.Count } else { $group.Family }
+        [pscustomobject]@{
+            Name         = $label
+            Remaining    = $group.Remaining
+            ResetEpochMs = $group.ResetEpochMs
+            Aliases      = @($group.Models)
         }
     }
+    $plan = if ($Snapshot.planType) { [string]$Snapshot.planType } else { 'Google AI' }
+    return [pscustomobject]@{
+        Provider  = 'antigravity'
+        Available = $true
+        Plan      = $plan
+        Windows   = @($windows)
+        Source    = $Source
+        UpdatedAt = if ($Snapshot.timestamp) { [DateTimeOffset]::Parse([string]$Snapshot.timestamp) } else { [DateTimeOffset]::UtcNow }
+        Stale     = ($Source -ne 'antigravity-usage')
+        Error     = $null
+    }
+}
+
+function ConvertTo-AntigravityCacheSnapshot {
+    param($Snapshot)
+
+    $models = @($Snapshot.models) | Where-Object { $null -ne $_.remainingPercentage } | ForEach-Object {
+        [pscustomobject]@{
+            label               = if ($null -ne $_.label) { [string]$_.label } else { $null }
+            modelId             = if ($null -ne $_.modelId) { [string]$_.modelId } else { $null }
+            remainingPercentage = [double]$_.remainingPercentage
+            resetTime           = if ($_.resetTime) { [string]$_.resetTime } else { $null }
+            isAutocompleteOnly  = [bool]$_.isAutocompleteOnly
+        }
+    }
+    if (@($models).Count -eq 0) { throw 'Antigravity returned no model quota information' }
+
+    return [pscustomobject]@{
+        timestamp = if ($Snapshot.timestamp) { [string]$Snapshot.timestamp } else { [DateTimeOffset]::UtcNow.ToString('o') }
+        method    = if ($Snapshot.method) { [string]$Snapshot.method } else { 'google' }
+        models    = @($models)
+    }
+}
+
+function Write-AntigravityCacheSnapshot {
+    param(
+        [Parameter(Mandatory)]$Snapshot,
+        [Parameter(Mandatory)][string]$Path
+    )
+
+    $safeSnapshot = ConvertTo-AntigravityCacheSnapshot $Snapshot
+    $directory = Split-Path -Parent $Path
+    New-Item -ItemType Directory -Path $directory -Force -ErrorAction Stop | Out-Null
+    $temporaryPath = '{0}.{1}.{2}.tmp' -f $Path, $PID, ([guid]::NewGuid().ToString('N'))
+    $backupPath = '{0}.{1}.{2}.bak' -f $Path, $PID, ([guid]::NewGuid().ToString('N'))
+    try {
+        $safeSnapshot | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $temporaryPath -Encoding utf8 -ErrorAction Stop
+        if (Test-Path -LiteralPath $Path) {
+            [System.IO.File]::Replace($temporaryPath, $Path, $backupPath, $true)
+        } else {
+            [System.IO.File]::Move($temporaryPath, $Path)
+        }
+    } finally {
+        if (Test-Path -LiteralPath $temporaryPath) {
+            Remove-Item -LiteralPath $temporaryPath -Force -ErrorAction SilentlyContinue
+        }
+        if (Test-Path -LiteralPath $backupPath) {
+            Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+function Get-AntigravityUsage {
+    param(
+        [string]$CachePath = (Join-Path $env:USERPROFILE '.claude\state\antigravity-usage.json'),
+        [int]$CacheMaxAgeMinutes = 15,
+        [int]$TimeoutSeconds = 20
+    )
+    $command = Get-Command antigravity-usage -ErrorAction SilentlyContinue
+    if (-not $command) {
+        return [pscustomobject]@{ Provider = 'antigravity'; Available = $false; Plan = 'Google AI'; Error = 'antigravity-usage is not installed' }
+    }
+
+    $directError = $null
+    $job = $null
+    try {
+        $job = Start-Job -ScriptBlock {
+            param($CommandPath)
+            & $CommandPath --method google --json 2>&1
+        } -ArgumentList $command.Source
+        if (-not (Wait-Job -Job $job -Timeout $TimeoutSeconds)) {
+            Stop-Job -Job $job -ErrorAction SilentlyContinue
+            throw "Antigravity quota command timed out after $TimeoutSeconds seconds"
+        }
+        $raw = Receive-Job -Job $job -ErrorAction SilentlyContinue
+        $snapshot = ($raw -join "`n") | ConvertFrom-Json -ErrorAction Stop
+        $result = Convert-AntigravitySnapshot -Snapshot $snapshot
+        Write-AntigravityCacheSnapshot -Snapshot $snapshot -Path $CachePath
+        return $result
+    } catch { $directError = $_.Exception.Message }
+    finally {
+        if ($job) { Remove-Job -Job $job -Force -ErrorAction SilentlyContinue }
+    }
+
+    if (Test-Path -LiteralPath $CachePath) {
+        try {
+            $cached = Get-Content -LiteralPath $CachePath -Raw -ErrorAction Stop | ConvertFrom-Json
+            $updated = [DateTimeOffset]::Parse([string]$cached.timestamp)
+            if (([DateTimeOffset]::UtcNow - $updated.ToUniversalTime()).TotalMinutes -le $CacheMaxAgeMinutes) {
+                $result = Convert-AntigravitySnapshot -Snapshot $cached -Source 'antigravity-usage cache'
+                $result.Error = $directError
+                return $result
+            }
+        } catch { }
+    }
+    return [pscustomobject]@{ Provider = 'antigravity'; Available = $false; Plan = 'Google AI'; Error = $directError }
 }

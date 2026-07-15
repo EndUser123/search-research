@@ -21,7 +21,7 @@ $ccrCmd = "$env:APPDATA\npm\ccr.cmd"
 # --- Predefined route options ---
 $Routes = @{
     "Opus" = @(
-        @{ Provider = "zai"; Model = "glm-5.2[1m]"; Description = "zai GLM 5.2 (1M context)" },
+        @{ Provider = "zai"; Model = "glm-5.2"; Description = "zai GLM 5.2 (1M context)" },
         @{ Provider = "zai"; Model = "glm-5.1"; Description = "zai GLM 5.1" },
         @{ Provider = "zai"; Model = "glm-4.7"; Description = "zai GLM 4.7" },
         @{ Provider = "minimax"; Model = "MiniMax-M3"; Description = "MiniMax M3 (high quality)" },

@@ -238,9 +238,24 @@ function Write-UsageRow {
 }
 
 function Write-UsageStatus {
-    param([string]$Status)
-    Write-Host ("                  {0}" -f ('{0,-32}' -f 'status')) -NoNewline
+    param([string]$Status, [string]$Window = 'status')
+    Write-Host ("                  {0}" -f ('{0,-32}' -f $Window)) -NoNewline
     Write-Host $Status -ForegroundColor Yellow
+}
+
+function Write-UsageAliases {
+    param([object[]]$Aliases)
+    foreach ($alias in @($Aliases)) {
+        Write-Host ("                  └─ {0}" -f $alias) -ForegroundColor DarkGray
+    }
+}
+
+function Format-UsageAge {
+    param([DateTimeOffset]$UpdatedAt)
+    $age = [DateTimeOffset]::UtcNow - $UpdatedAt.ToUniversalTime()
+    if ($age.TotalSeconds -lt 60) { return 'just now' }
+    if ($age.TotalMinutes -lt 60) { return "{0}m ago" -f [int][Math]::Floor($age.TotalMinutes) }
+    return "{0}h ago" -f [int][Math]::Floor($age.TotalHours)
 }
 
 # --- Helper: draw a thin separator between provider sections ---
@@ -462,19 +477,37 @@ $proxyScript = "P:\.claude\provider-configs\ccr-admission-proxy.js"
 $proxyLog = "P:\.claude\state\ccr-admission-proxy.log"
 $proxyProc = Start-Process pwsh -ArgumentList @("-NoProfile", "-NoLogo", "-NonInteractive", "-Command",
     "node `"$proxyScript`" 2>&1 | Set-Content -Path `"$proxyLog`"") -WindowStyle Hidden -PassThru
-Start-Sleep -Milliseconds 500
-try {
-    $proxyCheck = Invoke-WebRequest -Uri "http://127.0.0.1:$proxyPort/health" -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
+$proxyAvailable = $false
+for ($attempt = 1; $attempt -le 3; $attempt++) {
+    try {
+        # Keep launcher startup bounded: a failed proxy must not make cc-ccr
+        # appear hung while each retry waits on a multi-second HTTP timeout.
+        $proxyCheck = Invoke-WebRequest -Uri "http://127.0.0.1:$proxyPort/health" -UseBasicParsing -TimeoutSec 1 -ErrorAction Stop
+        $proxyAvailable = $true
+        break
+    } catch {
+        Start-Sleep -Milliseconds 250
+    }
+}
+if ($proxyAvailable) {
     Write-Host "[admission-proxy] Started on port $proxyPort (PID $($proxyProc.Id))" -ForegroundColor Green
-} catch {
-    Write-Warning "[admission-proxy] Proxy health check failed — was the node path correct?"
+} else {
+    Write-Warning "[admission-proxy] Proxy failed health check; falling back to CCR on port $ccrPort."
+    if (Test-Path $proxyLog) {
+        $proxyFailure = Get-Content -LiteralPath $proxyLog -Tail 1 -ErrorAction SilentlyContinue
+        if ($proxyFailure) { Write-Warning "[admission-proxy] $proxyFailure" }
+    }
 }
 $script:admissionProxyPid = $proxyProc.Id
 
 # --- Wire this shell's Claude Code ---
 # Claude → admission proxy (:3458) → CCR (:3456) → external models
-$env:ANTHROPIC_BASE_URL = "http://127.0.0.1:$proxyPort"
-$proxyLabel = "CCR"
+$env:ANTHROPIC_BASE_URL = if ($proxyAvailable) {
+    "http://127.0.0.1:$proxyPort"
+} else {
+    "http://127.0.0.1:$ccrPort"
+}
+$proxyLabel = if ($proxyAvailable) { "admission-proxy → CCR" } else { "CCR direct (admission-proxy unavailable)" }
 
 # Auth: CCR accepts the local key via either x-api-key or Authorization: Bearer header.
 # Claude Code's proxy-auth path reads ANTHROPIC_AUTH_TOKEN FIRST and falls back to the
@@ -545,7 +578,11 @@ $ccrPid = try {
 # --- Render output ---
 Write-Host ""
 
-Write-Host "✓ Infrastructure Ready" -ForegroundColor Green
+if ($proxyAvailable) {
+    Write-Host "✓ Infrastructure Ready" -ForegroundColor Green
+} else {
+    Write-Warning "⚠ Infrastructure Degraded: admission-proxy unavailable - CCR direct mode (no context-limit enforcement)"
+}
 
 Write-Host ""
 Write-Host "  CCR: $ccrUrl (PID $ccrPid)"
@@ -734,6 +771,7 @@ if ($Usage) {
     } catch {
         Write-Host "  opencode-go     error: $($_.Exception.Message)" -ForegroundColor Yellow
     }
+    Write-SectionSep
     # ── OpenAI ChatGPT subscription quota ──
     # Uses the local Codex ChatGPT login. This intentionally does not inspect
     # API keys, API spend, or purchased credit balances.
@@ -744,6 +782,9 @@ if ($Usage) {
             foreach ($window in $openaiUsage.Windows) {
                 $reset = if ($window.ResetEpochMs) { Format-QuotaReset $window.ResetEpochMs } else { "" }
                 Write-UsageRow $window.Name "$($window.Remaining)% left" $reset
+            }
+            foreach ($missing in @($openaiUsage.MissingWindows)) {
+                Write-UsageStatus 'unavailable - endpoint returned no such quota bucket' $missing
             }
         } else {
             Write-Host "  openai          [subscription]" -ForegroundColor White
@@ -771,13 +812,19 @@ if ($Usage) {
     # ── Google Antigravity / Gemini subscription quota ──
     # antigravity-usage uses its Google-authenticated Cloud Code path directly;
     # the IDE and language server do not need to be running for -Usage.
-    if (Get-Command Get-GeminiSubscriptionUsage -ErrorAction SilentlyContinue) {
-        $geminiUsage = Get-GeminiSubscriptionUsage
+    if (Get-Command Get-AntigravityUsage -ErrorAction SilentlyContinue) {
+        $geminiUsage = Get-AntigravityUsage
         if ($geminiUsage.Available) {
-            Write-Host "  antigravity     [$($geminiUsage.Plan)]" -ForegroundColor White
+            $freshness = if ($geminiUsage.UpdatedAt) { " · $(Format-UsageAge $geminiUsage.UpdatedAt)" } else { '' }
+            if ($geminiUsage.Stale) { $freshness += ' · stale' }
+            $headerColor = if ($geminiUsage.Stale) { 'Yellow' } else { 'White' }
+            Write-Host "  antigravity     [$($geminiUsage.Plan)]$freshness" -ForegroundColor $headerColor
             foreach ($window in $geminiUsage.Windows) {
                 $reset = if ($window.ResetEpochMs) { Format-QuotaReset $window.ResetEpochMs } else { "" }
                 Write-UsageRow $window.Name "$($window.Remaining)% left" $reset
+                if ($window.Aliases) {
+                    Write-UsageAliases $window.Aliases
+                }
             }
         } else {
             Write-Host "  antigravity     [$($geminiUsage.Plan)]" -ForegroundColor White

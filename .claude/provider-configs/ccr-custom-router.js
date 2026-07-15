@@ -133,30 +133,11 @@ const PROBE_TIMEOUT_MS = 1500;
 const CACHE_WINDOW_MS = 10000;
 const DEFAULT_LOCAL_CTX = 65536; // matches llama.cpp -c flag in run-ornith-server.ps1
 
-// --- Backend context limits: verified per-actual-backend, NOT nominal Claude tiers ---
-// CCR's tokenCount is a pre-computed estimate (not identical to /context or the
-// backend's own tokenizer output). These limits compare CCR's counting scheme
-// against each backend's published context window, minus a safety reserve.
-// The local model already has its own separate context check via getLocalModelProbed().
-//
-// Sources (verified 2026-07-10):
-//   z.ai/glm-5.2[1m]:              1,000,000 tokens — explicit 1M mode
-//   opencode-go/deepseek-v4-flash: 1,000,000 tokens — DeepSeek V4 Flash spec
-//   minimax/MiniMax-M3[1m]:         1,000,000 tokens — "[1m]" in model name
-//   llama-cpp/*:                     handled by getLocalModelProbed()
-//
-// Add new entries when new backends are added. Unknown routes fall back to the
-// minimum of all registered limits — there is no pass-through path for unregistered
-// backends. Fallback auto-adjusts as new entries are added (if a 200K backend is
-// registered, unknown routes default to 200K, the new minimum).
-const BACKEND_CONTEXT_LIMITS = {
-  "zai,glm-5.2[1m]": 1_000_000,
-  "opencode-go,deepseek-v4-flash": 1_000_000,
-  "minimax,MiniMax-M3[1m]": 1_000_000,
-};
+// -- Backend context limits from shared route-metadata (single source in ccr-route-metadata.js) ---
+const { getContextLimit, getMinimumLimit, OUTPUT_RESERVE } = require("./ccr-route-metadata");
 
 // Fallback for unregistered routes: the minimum known backend limit.
-const DEFAULT_BACKEND_LIMIT = Math.min(...Object.values(BACKEND_CONTEXT_LIMITS));
+const DEFAULT_BACKEND_LIMIT = getMinimumLimit();
 
 // Safety reserve subtracted from the backend limit to leave room for output
 // tokens, reasoning thinking overhead, and serialization differences between
@@ -290,7 +271,7 @@ function getTokenBudget(config, route) {
 // DEFAULT_BACKEND_LIMIT (the minimum of all known backends) for unregistered
 // routes — no pass-through. Separate from local-model context checks.
 function getBackendContextLimit(routeString) {
-  return BACKEND_CONTEXT_LIMITS[routeString] ?? DEFAULT_BACKEND_LIMIT;
+  return getContextLimit(routeString);
 }
 
 // Safe limit = backend context - output reserve.
@@ -393,7 +374,7 @@ function pinKeyForTask(taskType) {
 function routeToAlias(route, fallback) {
   if (!route) return fallback || null;
   const m = {
-    "zai,glm-5.2[1m]": "claude-opus-4-8",
+    "zai,glm-5.2": "claude-opus-4-8",
     "minimax,MiniMax-M3[1m]": "claude-sonnet-5",
     "opencode-go,deepseek-v4-flash": "claude-haiku-4-5-20251001",
   };
@@ -420,8 +401,8 @@ function describePins(pin) {
 // tier → default cloud route for ORDINARY non-local routing (conservative-mode
 // coding, reasoning token-budget fallback). NOT used for local-first failures.
 function routeByTier(tier) {
-  if (tier === "haiku") return "opencode-go,deepseek-v4-flash";
-  if (tier === "opus") return "zai,glm-5.2[1m]";
+  if (tier === "haiku" || tier === "deepseek") return "opencode-go,deepseek-v4-flash";
+  if (tier === "opus") return "zai,glm-5.2";
   return "minimax,MiniMax-M3[1m]"; // sonnet / unknown
 }
 
@@ -551,7 +532,7 @@ module.exports = async function router(req, config) {
 
   // --- 2. Background: classifier haiku rec if present, else fall through ---
   if (taskType === "background") {
-    if (rec?.recommended_tier === "haiku" && rec.recommended_model) {
+    if ((rec?.recommended_tier === "haiku" || rec?.recommended_tier === "deepseek") && rec.recommended_model) {
       const r = resolveModelToRoute(rec.recommended_model);
       if (r) return decide(r, "background — classifier haiku rec", "classifier");
     }
@@ -568,7 +549,7 @@ module.exports = async function router(req, config) {
 
   // --- 3. Reasoning: classifier opus rec, else default GLM-5.2 (token-budget gated) ---
   if (taskType === "reasoning") {
-    let route = "zai,glm-5.2[1m]";
+    let route = "zai,glm-5.2";
     let source = "default";
     if (rec?.recommended_tier === "opus" && rec.recommended_model) {
       const r = resolveModelToRoute(rec.recommended_model);
@@ -665,12 +646,13 @@ function resolveModelToRoute(modelName) {
   // CANONICAL primary key is claude-sonnet-5; claude-sonnet-4-6 retained
   // for backward compat only (do NOT add new mainline route expansions on 4-6).
   const routeMap = {
-    "claude-opus-4-8": "zai,glm-5.2[1m]",
+    "claude-opus-4-8": "zai,glm-5.2",
     "claude-sonnet-5": "minimax,MiniMax-M3[1m]",   // CANONICAL primary
     "claude-sonnet-4-6": "minimax,MiniMax-M3[1m]", // BACKWARD COMPAT ONLY
     "claude-haiku-4-5": "opencode-go,deepseek-v4-flash",
     "claude-haiku-4-5-20251001": "opencode-go,deepseek-v4-flash",
     "claude-local-ornith": "llama-cpp,ornith-1.0-9b",
+    "deepseek-v4-flash": "opencode-go,deepseek-v4-flash",
   };
 
   return routeMap[modelName] || null;

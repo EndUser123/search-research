@@ -40,27 +40,21 @@ const PROXY_PORT = parseInt(process.env.CCR_ADMISSION_PORT || "3458", 10);
 const CCR_HOST = process.env.CCR_HOST || "127.0.0.1";
 const CCR_PORT = parseInt(process.env.CCR_PORT || "3456", 10);
 
-// --- Verified backend limits (same source as ccr-custom-router.js) ---
-const VERIFIED_ROUTE_LIMITS = Object.freeze({
-  "zai,glm-5.2[1m]": 1_000_000,
-  "opencode-go,deepseek-v4-flash": 1_000_000,
-  "opencode-go,mimo-v2.5": 1_000_000,
-  "minimax,MiniMax-M3[1m]": 1_000_000,
-  "opencode-zen-free,opencode/minimax-m3-free": 1_000_000,
-});
+// -- Shared canonical route-metadata (single source in ccr-route-metadata.js) ---
+const {
+  CONTEXT_LIMITS: VERIFIED_ROUTE_LIMITS,
+  ROUTES_HANDLED_OUTSIDE_CLOUD_PROXY,
+  GLOBAL_CONTEXT_LIMIT,
+  OUTPUT_RESERVE,
+  CHAR_PER_TOKEN,
+} = require("./ccr-route-metadata");
+
 // Local llama.cpp has a separate live-context/admission path in the custom
 // router. It must not lower the blanket cloud ceiling for requests that fall
 // back from local to a verified 1M cloud backend.
-const ROUTES_HANDLED_OUTSIDE_CLOUD_PROXY = new Set([
-  "llama-cpp,ornith-1.0-9b",
-]);
-const GLOBAL_CONTEXT_LIMIT = Math.min(...Object.values(VERIFIED_ROUTE_LIMITS));
-const OUTPUT_RESERVE = 16_384; // heuristic reserve for serialization/tokenizer delta
+
 const SAFE_CEILING = GLOBAL_CONTEXT_LIMIT - OUTPUT_RESERVE;
 
-// Conservative char-to-token ratio. cl100k_base averages ~4 chars/token for
-// prose, ~3 for code. Using 3 over-counts for prose (safe direction).
-const CHAR_PER_TOKEN = 3;
 
 const LOG_FILE = process.env.CCR_ADMISSION_LOG || "P:/.claude/state/ccr-admission-log.jsonl";
 const CCR_CONFIG_PATH = process.env.CCR_CONFIG_PATH || "C:/Users/brsth/.claude-code-router/config.json";
@@ -224,7 +218,7 @@ const server = http.createServer((req, res) => {
       res.end(JSON.stringify({
         error: {
           type: "admission_proxy_context_exceeded",
-          message: `Request rejected by admission proxy: estimated ${total} tokens (input ${inputEstimate} + output ${maxTokens}) exceeds the safe ceiling of ${SAFE_CEILING} (backend limit ${GLOBAL_CONTEXT_LIMIT} minus ${OUTPUT_RESERVE} reserve). No configured backend can handle this request. Reduce context size.`,
+          message: `Request rejected by admission proxy: estimated ${total} tokens (input ${inputEstimate} + output ${maxTokens}) exceeds the safe ceiling of ${SAFE_CEILING} (backend limit ${GLOBAL_CONTEXT_LIMIT} minus ${OUTPUT_RESERVE} reserve). Reduce context size. A higher-context backend may still be reachable through CCR (the proxy applies a blanket minimum across all routes).`,
           admission_details: entry,
         },
       }));
