@@ -1,0 +1,4 @@
+interface:
+  display_name: "Source Authority Discovery"
+  short_description: "Build source and conflict inventories before planning changes."
+  default_prompt: "Use $source-authority-discovery before proposing or implementing any non-trivial change."
