@@ -38,7 +38,7 @@ from search_research import UnifiedAsyncRouter
 
 def _phase1_task_signals(query: str, mode: str, external_provider: str | None = None):
     """Translate /all intent into the already-reviewed Phase 1 signal contract."""
-    from tools.research_run_v1.router import TaskSignals
+    from research_runtime.router import TaskSignals
 
     lowered = query.lower()
     local = mode == "local-only" or any(term in lowered for term in ("workspace", "repository", "we decided", "our code"))
@@ -126,7 +126,7 @@ def _phase1_result_objects(artifact: dict[str, Any], artifact_path: str) -> list
 
 async def execute_phase1_for_research(query: str, mode: str = "auto", *, caller: str = "search-research:/research", external_provider: str | None = None) -> tuple[list[Any], str]:
     """Run the single canonical Phase 1 artifact path for a research caller."""
-    from tools.research_run_v1.phase1 import run_phase1
+    from research_runtime.phase1 import run_phase1
 
     signals = _phase1_task_signals(query, mode, external_provider)
     artifact, artifact_path = await asyncio.to_thread(
