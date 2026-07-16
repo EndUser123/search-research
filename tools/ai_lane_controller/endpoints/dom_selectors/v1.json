@@ -1,0 +1,12 @@
+{
+  "version": "v1",
+  "description": "ChatGPT DOM selectors for bridge interaction",
+  "notes": "ChatGPT is rapidly developed. These selectors may change. Test against fixtures.",
+  "textarea": "textarea",
+  "send_button": "button[data-testid='send-button']",
+  "response_container": "[data-message-author-role='assistant']",
+  "authenticated_marker": "[data-testid='user-avatar']",
+  "error_marker": ".cf-error-page, [class*='block-page'], [class*='captcha']",
+  "streaming_indicator": "[class*='streaming'], [class*='thinking']",
+  "empty_state": "[class*='empty-state']"
+}
