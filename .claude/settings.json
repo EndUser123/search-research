@@ -404,6 +404,16 @@
             "command": "python P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/__lib/router.py Stop"
           }
         ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python P:/scripts/check/stop_gate.py",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "SessionStart": [
