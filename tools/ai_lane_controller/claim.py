@@ -109,27 +109,35 @@ def _atomic_write_json(path: Path, obj: dict[str, Any]) -> None:
     os.replace(tmp, path)
 
 
-def _write_lock(storage: Any, lane_id: str, holder_pid: int) -> None:
+def _write_lock(storage: Any, lane_id: str, holder_pid: int | None = None, holder_token: str = "") -> None:
     lock = _lock_path(storage, lane_id)
+    payload = {"at": _iso_now()}
+    if holder_token:
+        payload["identity_token"] = holder_token
+    else:
+        payload["pid"] = holder_pid or os.getpid()
     lock.write_text(
-        json.dumps({"pid": holder_pid, "at": _iso_now()}),
+        json.dumps(payload),
         encoding="utf-8",
     )
 
 
-def _acquire_lock(storage: Any, lane_id: str, *, holder_pid: int | None = None) -> bool:
+def _acquire_lock(storage: Any, lane_id: str, *, holder_pid: int | None = None, holder_token: str = "") -> bool:
     """Try to acquire an exclusive filesystem lock via open("x").
 
     Returns True if the lock was acquired.  An orphaned lock is reclaimed only
-    when its holder process is verifiably dead (Milestone 4: never reclaim on
-    mtime alone — mtime is a minimum-age guard, liveness is the authority).
+    when its holder is verifiably dead (Milestone 4: never reclaim on mtime
+    alone — mtime is a minimum-age guard, liveness is the authority).
+
+    ADR-1: When holder_token is set, reclamation relies on heartbeat staleness
+    (no PID to check).  Otherwise, checks process liveness via PID.
     """
-    holder_pid = holder_pid or os.getpid()
+    holder_pid = holder_pid or (os.getpid() if not holder_token else None)
     lock = _lock_path(storage, lane_id)
     lock.parent.mkdir(parents=True, exist_ok=True)
     try:
         with lock.open("x", encoding="utf-8"):
-            _write_lock(storage, lane_id, holder_pid)
+            _write_lock(storage, lane_id, holder_pid, holder_token)
         return True
     except FileExistsError:
         if not lock.exists():
@@ -141,22 +149,30 @@ def _acquire_lock(storage: Any, lane_id: str, *, holder_pid: int | None = None) 
         if age <= STALE_LOCK_SECONDS:
             return False
 
-        # Read the recorded holder PID.  If we cannot determine the holder,
+        # Read the recorded holder.  If we cannot determine the holder,
         # fail closed (do not steal an indeterminate lock).
         try:
             info = json.loads(lock.read_text(encoding="utf-8"))
-            recorded_pid = int(info.get("pid", 0))
+            recorded_pid = info.get("pid")
+            recorded_token = info.get("identity_token", "")
         except (OSError, ValueError, json.JSONDecodeError):
             return False
 
-        # Authority gate: reclaim only when the holder process is dead.
-        if recorded_pid and _process_exists(recorded_pid):
-            return False  # holder still alive — do not steal the lock
+        # ADR-1: Authority gate depends on identity type.
+        if recorded_token:
+            # Token-based claim: no PID to check.  Reclaim relies on heartbeat
+            # staleness only (caller's responsibility).
+            # For lock acquisition purposes, allow reclaiming stale token locks.
+            pass
+        elif recorded_pid:
+            # PID-based claim: check process liveness.
+            if _process_exists(int(recorded_pid)):
+                return False  # holder still alive — do not steal the lock
 
         lock.unlink(missing_ok=True)
         try:
             with lock.open("x", encoding="utf-8"):
-                _write_lock(storage, lane_id, holder_pid)
+                _write_lock(storage, lane_id, holder_pid, holder_token)
             return True
         except FileExistsError:
             return False
@@ -174,11 +190,19 @@ def _stale_seconds(heartbeat_at: str, now: datetime | None = None) -> float:
 
 @dataclass(frozen=True)
 class LaneClaim:
-    """An active claim binding a process to a lane."""
+    """An active claim binding a process to a lane.
+
+    Identity fields (ADR-1):
+    - pid                — OS process ID (None when using identity_token)
+    - identity_token     — opaque token for non-PID identity (e.g., browser session)
+
+    Exactly one of pid or identity_token must be set.  The fencing_epoch is the
+    authority for superseded-writer detection regardless of identity type.
+    """
 
     lane_id: str
     session_nonce: str
-    pid: int
+    pid: int | None
     process_start_time: str
     created_at: str
     heartbeat_at: str
@@ -186,6 +210,7 @@ class LaneClaim:
     session_id: str = ""
     workspace_id: str = ""
     fencing_epoch: int = 1
+    identity_token: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -193,16 +218,21 @@ class LaneClaim:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> LaneClaim:
         required = {
-            "lane_id", "session_nonce", "pid", "process_start_time",
+            "lane_id", "session_nonce", "process_start_time",
             "created_at", "heartbeat_at",
         }
         missing = required - set(data.keys())
         if missing:
             raise ClaimError(f"claim missing fields: {', '.join(sorted(missing))}")
+
+        # ADR-1: pid is optional; identity_token is the alternative
+        pid_val = data.get("pid")
+        pid = int(pid_val) if pid_val is not None else None
+
         return cls(
             lane_id=data["lane_id"],
             session_nonce=data["session_nonce"],
-            pid=int(data["pid"]),
+            pid=pid,
             process_start_time=data["process_start_time"],
             created_at=data["created_at"],
             heartbeat_at=data["heartbeat_at"],
@@ -210,6 +240,7 @@ class LaneClaim:
             session_id=str(data.get("session_id", "")),
             workspace_id=str(data.get("workspace_id", "")),
             fencing_epoch=int(data.get("fencing_epoch", 1)),
+            identity_token=str(data.get("identity_token", "")),
         )
 
 
@@ -289,6 +320,7 @@ def claim_lane(
     terminal_id: str | None = None,
     session_id: str | None = None,
     workspace_id: str | None = None,
+    identity_token: str = "",
     ttl: int = CLAIM_TTL_SECONDS,
 ) -> LaneClaim:
     """Atomically claim *lane_id*, establishing terminal/session/workspace identity.
@@ -309,15 +341,25 @@ def claim_lane(
     if not lane_exists(lanes, lane_id):
         raise RegistryError(f"cannot claim: unknown or disabled lane '{lane_id}'")
 
-    pid = pid or os.getpid()
-    if process_start_time is None:
+    # ADR-1 invariant: exactly one identity (pid or identity_token)
+    # For backward compatibility, if neither is provided, default to PID.
+    if identity_token and pid is not None:
+        raise ClaimError(
+            f"cannot claim lane '{lane_id}': both pid and identity_token are set"
+        )
+    if not identity_token and pid is None:
+        pid = os.getpid()  # Default to PID-based identity
+
+    if process_start_time is None and pid is not None:
         actual = _get_process_start_time(pid)
         process_start_time = actual if actual is not None else _iso_now()
+    elif process_start_time is None:
+        process_start_time = _iso_now()
     terminal_id = terminal_id or _random_id()
     session_id = session_id or _random_id()
     workspace_id = workspace_id or _workspace_id(storage)
 
-    if not _acquire_lock(storage, lane_id):
+    if not _acquire_lock(storage, lane_id, holder_pid=pid, holder_token=identity_token):
         raise ClaimError(f"could not acquire lock for lane '{lane_id}'")
 
     try:
@@ -337,7 +379,8 @@ def claim_lane(
             age = _stale_seconds(existing.heartbeat_at)
             if age <= ttl:
                 # Claim appears active.  Check PID reuse / duplicate first.
-                if existing.pid == pid:
+                # ADR-1: PID reuse check only applies when both claims use PID identity.
+                if existing.pid is not None and pid is not None and existing.pid == pid:
                     if existing.process_start_time != process_start_time:
                         raise ClaimError(
                             f"PID {pid} was recycled: process_start_time mismatch"
@@ -346,18 +389,19 @@ def claim_lane(
                         f"lane '{lane_id}' already claimed by this process "
                         f"(nonce={existing.session_nonce[:12]}...)"
                     )
+                # Mixed identity types or different PIDs: reject with details.
+                identity_desc = f"PID {existing.pid}" if existing.pid is not None else f"token {existing.identity_token[:12]}..."
                 raise ClaimError(
-                    f"lane '{lane_id}' already claimed by PID {existing.pid} "
+                    f"lane '{lane_id}' already claimed by {identity_desc} "
                     f"(heartbeat age={age:.0f}s, TTL={ttl}s)"
                 )
 
             # Claim is expired.  Reclaim only when the owner is verifiably dead
-            # (Milestone 4): never reclaim a live-but-slow owner.
-            # Use _process_exists directly (not verify_process_liveness) because
-            # the recorded process_start_time may differ from the real one (e.g.
-            # test backdating).  We only need to know if the PID is still in the
-            # process table — if it is, treat the owner as alive and refuse takeover.
-            if _process_exists(existing.pid):
+            # (Milestone 4, ADR-1): never reclaim a live-but-slow owner.
+            # For PID-based claims: check process liveness.
+            # For token-based claims: no liveness check here (heartbeat staleness
+            # is the authority, enforced by caller).
+            if existing.pid is not None and _process_exists(existing.pid):
                 raise ClaimError(
                     f"lane '{lane_id}' claim expired (age={age:.0f}s, TTL={ttl}s) "
                     f"but owner PID {existing.pid} is still alive; cannot reclaim"
@@ -376,6 +420,7 @@ def claim_lane(
             session_id=session_id,
             workspace_id=workspace_id,
             fencing_epoch=next_epoch,
+            identity_token=identity_token,
         )
         _atomic_write_json(claim_path, claim.to_dict())
         return claim
@@ -490,6 +535,7 @@ def heartbeat_claim(
             "lane_id": lane_id,
             "session_nonce": session_nonce[:12] + "...",
             "pid": claim.pid,
+            "identity_token": claim.identity_token[:12] + "..." if claim.identity_token else "",
             "fencing_epoch": claim.fencing_epoch,
             "status": "acknowledged",
             "timestamp": _iso_now(),
@@ -585,9 +631,12 @@ def _get_process_start_time(pid: int) -> str | None:
 def verify_process_liveness(claim: LaneClaim) -> tuple[bool, str]:
     """Check if the process that owns *claim* is still alive.
 
+    ADR-1: For token-based claims (pid is None), returns (True, "") —
+    liveness is validated via heartbeat staleness, not process checks.
+
     Returns
     -------
-    (True, "") if the process exists and has not been recycled.
+    (True, "") if the claim is valid.
     (False, reason_code) otherwise.
 
     Reason codes:
@@ -595,7 +644,14 @@ def verify_process_liveness(claim: LaneClaim) -> tuple[bool, str]:
     * "process_not_found" -- PID does not exist in the OS.
     * "pid_recycled" -- PID exists but start time does not match
       (the recorded process identity has been recycled by a new process).
+    * "token_based_claim" -- not an error; liveness via heartbeat (caller's responsibility).
     """
+    # ADR-1: Token-based claims have no PID to check.
+    if claim.pid is None:
+        if claim.identity_token:
+            return True, ""  # Liveness validated via heartbeat staleness
+        return False, "no_identity"
+
     if not _process_exists(claim.pid):
         return False, "process_not_found"
 

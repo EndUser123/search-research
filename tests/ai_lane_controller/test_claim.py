@@ -23,6 +23,8 @@ from ai_lane_controller.claim import (
     get_active_claim,
     heartbeat_claim,
     require_claim,
+    verify_process_liveness,
+    verify_process_liveness,
 )
 
 
@@ -217,3 +219,192 @@ def test_require_claim_returns_active() -> None:
         claim = claim_lane("lane-a", storage, TWO_LANES, pid=111, process_start_time=NOW)
         active = require_claim("lane-a", storage)
         assert active.session_nonce == claim.session_nonce
+
+
+# -- ADR-1: identity_token tests ---------------------------------------------
+
+
+def test_claim_with_identity_token() -> None:
+    """ADR-1: claim_lane with identity_token creates a pid=None claim."""
+    with tempfile.TemporaryDirectory() as td:
+        storage = MessageStorage(td)
+        claim = claim_lane(
+            "lane-a", storage, TWO_LANES,
+            identity_token="chatgpt-session-abc",
+            process_start_time=NOW,
+        )
+        assert claim.lane_id == "lane-a"
+        assert claim.pid is None
+        assert claim.identity_token == "chatgpt-session-abc"
+
+
+def test_claim_both_pid_and_token_rejected() -> None:
+    """ADR-1: providing both pid and identity_token raises."""
+    with tempfile.TemporaryDirectory() as td:
+        storage = MessageStorage(td)
+        try:
+            claim_lane(
+                "lane-a", storage, TWO_LANES,
+                pid=111, identity_token="token-1",
+                process_start_time=NOW,
+            )
+            assert False, "expected ClaimError"
+        except ClaimError as e:
+            assert "both pid and identity_token are set" in str(e)
+
+
+def test_claim_with_token_defaults_to_pid() -> None:
+    """ADR-1: backward compat -- neither pid nor token defaults to PID."""
+    with tempfile.TemporaryDirectory() as td:
+        storage = MessageStorage(td)
+        claim = claim_lane("lane-a", storage, TWO_LANES, process_start_time=NOW)
+        assert claim.pid is not None
+        assert claim.identity_token == ""
+
+
+def test_token_claim_round_trip_to_dict() -> None:
+    """ADR-1: token claim serializes and deserializes correctly."""
+    with tempfile.TemporaryDirectory() as td:
+        storage = MessageStorage(td)
+        claim = claim_lane(
+            "lane-a", storage, TWO_LANES,
+            identity_token="chatgpt-session-abc",
+            process_start_time=NOW,
+        )
+        claim2 = get_active_claim("lane-a", storage)
+        assert claim2 is not None
+        assert claim2.pid is None
+        assert claim2.identity_token == "chatgpt-session-abc"
+
+
+def test_token_claim_heartbeat() -> None:
+    """ADR-1: heartbeat works with token-based claims."""
+    with tempfile.TemporaryDirectory() as td:
+        storage = MessageStorage(td)
+        claim = claim_lane(
+            "lane-a", storage, TWO_LANES,
+            identity_token="chatgpt-session-abc",
+            process_start_time=NOW,
+        )
+        hb = heartbeat_claim(
+            "lane-a", claim.session_nonce, storage,
+            workspace_id=claim.workspace_id,
+            terminal_id=claim.terminal_id,
+            session_id=claim.session_id,
+            fencing_epoch=claim.fencing_epoch,
+        )
+        assert hb.identity_token == "chatgpt-session-abc"
+        assert hb.pid is None
+        assert hb.heartbeat_at != claim.heartbeat_at
+
+
+def test_token_claim_liveness_returns_true() -> None:
+    """ADR-1: verify_process_liveness for token claims returns True."""
+    with tempfile.TemporaryDirectory() as td:
+        storage = MessageStorage(td)
+        claim = claim_lane(
+            "lane-a", storage, TWO_LANES,
+            identity_token="chatgpt-session-abc",
+            process_start_time=NOW,
+        )
+        alive, reason = verify_process_liveness(claim)
+        assert alive is True
+        assert reason == ""
+
+
+def test_token_claim_from_dict_missing_pid() -> None:
+    """ADR-1: from_dict handles claim without pid field."""
+    data = {
+        "lane_id": "lane-a",
+        "session_nonce": "abc123",
+        "process_start_time": NOW,
+        "created_at": NOW,
+        "heartbeat_at": NOW,
+        "identity_token": "token-1",
+    }
+    claim = LaneClaim.from_dict(data)
+    assert claim.pid is None
+    assert claim.identity_token == "token-1"
+
+
+def test_token_claim_reclaim_after_expiry() -> None:
+    """ADR-1: expired token-based claim can be reclaimed."""
+    import json
+    with tempfile.TemporaryDirectory() as td:
+        storage = MessageStorage(td)
+        claim = claim_lane(
+            "lane-a", storage, TWO_LANES,
+            identity_token="chatgpt-session-abc",
+            process_start_time=NOW,
+        )
+        orig_epoch = claim.fencing_epoch
+        claim_path = Path(td) / "lane-a" / "claim.json"
+        data = json.loads(claim_path.read_text(encoding="utf-8"))
+        data["heartbeat_at"] = "2020-01-01T00:00:00Z"
+        claim_path.write_text(json.dumps(data), encoding="utf-8")
+        claim2 = claim_lane(
+            "lane-a", storage, TWO_LANES,
+            identity_token="new-token",
+            process_start_time=NOW,
+            ttl=30,
+        )
+        assert claim2.identity_token == "new-token"
+        assert claim2.fencing_epoch == orig_epoch + 1
+
+
+def test_token_claim_release() -> None:
+    """ADR-1: release_claim works for token-based claims."""
+    with tempfile.TemporaryDirectory() as td:
+        storage = MessageStorage(td)
+        claim = claim_lane(
+            "lane-a", storage, TWO_LANES,
+            identity_token="chatgpt-session-abc",
+            process_start_time=NOW,
+        )
+        release_claim(
+            "lane-a", claim.session_nonce, storage,
+            workspace_id=claim.workspace_id,
+            terminal_id=claim.terminal_id,
+            session_id=claim.session_id,
+            fencing_epoch=claim.fencing_epoch,
+        )
+        assert get_active_claim("lane-a", storage) is None
+
+
+def test_token_claim_lock_records_identity_token() -> None:
+    """ADR-1: lock file records identity_token when claim uses token (checked during claim)."""
+    with tempfile.TemporaryDirectory() as td:
+        # Verify via the claim JSON on disk rather than the ephemeral lock
+        storage = MessageStorage(td)
+        claim = claim_lane(
+            "lane-a", storage, TWO_LANES,
+            identity_token="chatgpt-session-abc",
+            process_start_time=NOW,
+        )
+        # Claim file has the right identity
+        assert claim.identity_token == "chatgpt-session-abc"
+        assert claim.pid is None
+        # Re-read from disk to confirm persistence
+        claim2 = get_active_claim("lane-a", storage)
+        assert claim2 is not None
+        assert claim2.identity_token == "chatgpt-session-abc"
+        assert claim2.pid is None
+
+
+def test_token_liveness_for_pid_claim() -> None:
+    """ADR-1: pid-based verify_process_liveness still works."""
+    import os
+    from ai_lane_controller.claim import _get_process_start_time
+    real_start = _get_process_start_time(os.getpid()) or "2026-07-14T12:00:00Z"
+    claim = LaneClaim(
+        lane_id="lane-a",
+        session_nonce="nonce",
+        pid=os.getpid(),
+        process_start_time=real_start,
+        created_at=NOW,
+        heartbeat_at=NOW,
+        identity_token="",
+    )
+    alive, reason = verify_process_liveness(claim)
+    assert alive is True
+    assert reason == ""
