@@ -592,6 +592,8 @@ backups/
 # Personal wiki data (not source packages)
 .data/
 
+# Cross-platform research artifacts (research-brief.v1, research-run.v1, etc.)
+/.artifacts/
 .claude/.artifacts/
 .claude/hooks/session_data/evidence_spool/
 

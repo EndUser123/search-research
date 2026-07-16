@@ -90,6 +90,10 @@
       {
         "pattern": ".data",
         "reason": "Structured data directory - wiki, yt-is, ai-cli artifacts"
+      },
+      {
+        "pattern": ".artifacts",
+        "reason": "Cross-platform research and decision artifacts (research-brief.v1, research-run.v1, etc.)"
       }
     ],
     "allowed_config_files": [
