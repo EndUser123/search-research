@@ -747,6 +747,7 @@ def _load_hooks() -> None:
     # Load them as a batch using relative import from parent package
     core_hook_modules = [
         "unified_detection",  # Runs FIRST to populate context data
+        "bridge_input_lock",  # Warn user when bridge UIMutex is held (priority 2.0)
         "abstraction_clarity_gate",
         "analysis_protocol_gate",
         "anti_sycophancy_injector",
