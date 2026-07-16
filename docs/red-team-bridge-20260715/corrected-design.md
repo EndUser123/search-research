@@ -235,7 +235,7 @@ Both daemons register signal handlers for `SIGTERM`, `SIGINT`:
 
 ### Regression guard (resolves TEST-11)
 
-Every PR that modifies ai_lane_controller or endpoints must run the full existing 113 test suite (10 test files, 113 functions):
+Every PR that modifies ai_lane_controller or endpoints must run the full existing 85+ test suite:
 ```
 pytest tests/ai_lane_controller/ --verbose --tb=short
 ```
