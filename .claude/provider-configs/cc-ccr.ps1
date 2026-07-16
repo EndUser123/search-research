@@ -324,14 +324,31 @@ function Invoke-LocalModelProbe {
 }
 
 function Wait-LocalModelReady {
-    # Poll rungs 1-4 (cheap, no inference) until LOADED, then ONE -IncludeInference
-    # probe to confirm READY. Stops early on a failure state (DEAD/STUCK/BROKEN/HUNG).
-    param([int]$TimeoutSec = 60)
-    $deadline = (Get-Date).AddSeconds($TimeoutSec)
+    # Poll rungs 1-4 (cheap, no inference) until LOADED/READY. DEAD, null, and
+    # LOADING are transient while a newly spawned supervisor/model is starting;
+    # only definitive watchdog states terminate the wait early.
+    param(
+        [int]$TimeoutSec = 60,
+        [int]$StartupGraceSec = 15,
+        [int]$PollMilliseconds = 2000,
+        [scriptblock]$ProbeScript,
+        [scriptblock]$SleepScript,
+        [scriptblock]$NowScript
+    )
+    if (-not $ProbeScript) { $ProbeScript = { Invoke-LocalModelProbe } }
+    if (-not $SleepScript) { $SleepScript = { param($Milliseconds) Start-Sleep -Milliseconds $Milliseconds } }
+    if (-not $NowScript) { $NowScript = { Get-Date } }
+
+    $startedAt = & $NowScript
+    $deadline = $startedAt.AddSeconds($TimeoutSec)
+    $startupGraceDeadline = $startedAt.AddSeconds($StartupGraceSec)
     $s = $null
-    while ((Get-Date) -lt $deadline) {
-        $s = Invoke-LocalModelProbe
-        if (-not $s) { Start-Sleep -Seconds 2; continue }
+    while ((& $NowScript) -lt $deadline) {
+        $s = & $ProbeScript
+        if (-not $s) {
+            & $SleepScript $PollMilliseconds
+            continue
+        }
         if ($s.state -eq "LOADED" -or $s.state -eq "READY") {
             # LOADED (GGUF in memory, port bound) is sufficient for routing readiness.
             # Do NOT re-probe with -IncludeInference here: under --parallel 1 the
@@ -341,10 +358,137 @@ function Wait-LocalModelReady {
             # deliberately avoids. Drop the double-probe; LOADED == ready.
             return $s
         }
-        if ($s.state -in @("DEAD", "STUCK", "BROKEN", "HUNG")) { return $s }
-        Start-Sleep -Seconds 2
+        if ($s.state -in @("STUCK", "BROKEN", "HUNG")) { return $s }
+        if ($s.state -eq "DEAD" -and (& $NowScript) -lt $startupGraceDeadline) {
+            # A supervisor can report DEAD before llama-server binds its port.
+            & $SleepScript $PollMilliseconds
+            continue
+        }
+        # DEAD after the grace period, null results, and LOADING remain
+        # non-terminal: keep the bounded poll alive until the hard timeout.
+        & $SleepScript $PollMilliseconds
     }
     return $s
+}
+
+function Resolve-RoutingMode {
+    param([AllowNull()][object]$RoutingMode)
+    $value = if ($null -eq $RoutingMode) { "" } else { ([string]$RoutingMode).Trim() }
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        return [pscustomobject]@{ Value = "aggressive"; IsDefault = $true }
+    }
+    return [pscustomobject]@{ Value = $value; IsDefault = $false }
+}
+
+function Format-RoutingModeDisplay {
+    param([Parameter(Mandatory)]$RoutingModeInfo)
+    if ($RoutingModeInfo.IsDefault) {
+        return "routingMode=$($RoutingModeInfo.Value) (default)"
+    }
+    return "routingMode=$($RoutingModeInfo.Value)"
+}
+
+function Get-AdmissionProxyListener {
+    param(
+        [int]$Port = 3458,
+        [scriptblock]$ListenerLookup
+    )
+    if ($ListenerLookup) { return (& $ListenerLookup $Port | Select-Object -First 1) }
+    return (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1)
+}
+
+function Get-AdmissionProxyOwner {
+    param(
+        $Listener,
+        [scriptblock]$ProcessLookup,
+        [string]$ExpectedScript = "ccr-admission-proxy.js"
+    )
+    if (-not $Listener -or -not $Listener.OwningProcess) { return $null }
+    $pid = [int]$Listener.OwningProcess
+    if ($ProcessLookup) {
+        $process = & $ProcessLookup $pid | Select-Object -First 1
+    } else {
+        $process = Get-CimInstance Win32_Process -Filter "ProcessId = $pid" -ErrorAction SilentlyContinue | Select-Object -First 1
+    }
+    $commandLine = if ($process) { [string]$process.CommandLine } else { "" }
+    $expectedName = [IO.Path]::GetFileName($ExpectedScript)
+    return [pscustomobject]@{
+        ListenerPid = $pid
+        CommandLine = $commandLine
+        IsExpected = (-not [string]::IsNullOrWhiteSpace($commandLine) -and $commandLine -match [regex]::Escape($expectedName))
+    }
+}
+
+function Test-AdmissionProxyHealth {
+    param(
+        [int]$Port = 3458,
+        [scriptblock]$HealthCheck
+    )
+    if ($HealthCheck) { return [bool](& $HealthCheck $Port) }
+    try {
+        Invoke-WebRequest -Uri "http://127.0.0.1:$Port/health" -UseBasicParsing -TimeoutSec 1 -ErrorAction Stop | Out-Null
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+function Start-AdmissionProxyProcess {
+    param([Parameter(Mandatory)][string]$ProxyScript, [Parameter(Mandatory)][string]$ProxyLog)
+    return Start-Process pwsh -ArgumentList @(
+        "-NoProfile", "-NoLogo", "-NonInteractive", "-Command",
+        "node `"$ProxyScript`" 2>&1 | Set-Content -Path `"$ProxyLog`""
+    ) -WindowStyle Hidden -PassThru
+}
+
+function Ensure-AdmissionProxy {
+    param(
+        [int]$Port = 3458,
+        [int]$CcrPort = 3456,
+        [string]$ProxyScript,
+        [string]$ProxyLog,
+        [int]$MaxAttempts = 3,
+        [scriptblock]$ListenerLookup,
+        [scriptblock]$ProcessLookup,
+        [scriptblock]$HealthCheck,
+        [scriptblock]$SpawnScript,
+        [scriptblock]$SleepScript
+    )
+    if (-not $SpawnScript) { $SpawnScript = { Start-AdmissionProxyProcess -ProxyScript $ProxyScript -ProxyLog $ProxyLog } }
+    if (-not $SleepScript) { $SleepScript = { param($Milliseconds) Start-Sleep -Milliseconds $Milliseconds } }
+
+    $listener = Get-AdmissionProxyListener -Port $Port -ListenerLookup $ListenerLookup
+    if ($listener) {
+        $owner = Get-AdmissionProxyOwner -Listener $listener -ProcessLookup $ProcessLookup -ExpectedScript $ProxyScript
+        if ($owner -and $owner.IsExpected -and (Test-AdmissionProxyHealth -Port $Port -HealthCheck $HealthCheck)) {
+            return [pscustomobject]@{
+                Available = $true; Status = "Already running"; ListenerPid = $owner.ListenerPid
+                WrapperPid = $null; FallbackUrl = "http://127.0.0.1:$CcrPort"
+            }
+        }
+        return [pscustomobject]@{
+            Available = $false; Status = "Ownership conflict"; ListenerPid = $owner.ListenerPid
+            WrapperPid = $null; FallbackUrl = "http://127.0.0.1:$CcrPort"
+        }
+    }
+
+    $wrapper = & $SpawnScript
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        if ($attempt -gt 1) { & $SleepScript 250 }
+        $listener = Get-AdmissionProxyListener -Port $Port -ListenerLookup $ListenerLookup
+        if (-not $listener) { continue }
+        $owner = Get-AdmissionProxyOwner -Listener $listener -ProcessLookup $ProcessLookup -ExpectedScript $ProxyScript
+        if ($owner -and $owner.IsExpected -and (Test-AdmissionProxyHealth -Port $Port -HealthCheck $HealthCheck)) {
+            return [pscustomobject]@{
+                Available = $true; Status = "Started"; ListenerPid = $owner.ListenerPid
+                WrapperPid = if ($wrapper) { $wrapper.Id } else { $null }; FallbackUrl = "http://127.0.0.1:$CcrPort"
+            }
+        }
+    }
+    return [pscustomobject]@{
+        Available = $false; Status = "Unavailable"; ListenerPid = $null
+        WrapperPid = if ($wrapper) { $wrapper.Id } else { $null }; FallbackUrl = "http://127.0.0.1:$CcrPort"
+    }
 }
 
 # Initial one-shot probe: rungs 1-4 only (no inference). A 15s inference probe
@@ -460,12 +604,12 @@ if ($lm -and ($lm.state -eq "READY" -or $lm.state -eq "LOADED")) {
 $script:localModelState = $lm
 
 # --- Log routing mode ---
-$routingMode = "unknown"
+$routingModeInfo = Resolve-RoutingMode -RoutingMode $null
 try {
     $routingConfig = Get-Content $ccrConfigPath -Raw | ConvertFrom-Json
-    $routingMode = $routingConfig.routingMode
-    Write-Host "[CCR] routingMode=$routingMode" -ForegroundColor Cyan
+    $routingModeInfo = Resolve-RoutingMode -RoutingMode $routingConfig.routingMode
 } catch {}
+Write-Host "[CCR] $(Format-RoutingModeDisplay -RoutingModeInfo $routingModeInfo)" -ForegroundColor Cyan
 
 # --- Start admission proxy (pre-CCR context-limit gate) ---
 # The admission proxy sits between Claude Code and CCR. It rejects oversized
@@ -475,30 +619,22 @@ try {
 $proxyPort = 3458
 $proxyScript = "P:\.claude\provider-configs\ccr-admission-proxy.js"
 $proxyLog = "P:\.claude\state\ccr-admission-proxy.log"
-$proxyProc = Start-Process pwsh -ArgumentList @("-NoProfile", "-NoLogo", "-NonInteractive", "-Command",
-    "node `"$proxyScript`" 2>&1 | Set-Content -Path `"$proxyLog`"") -WindowStyle Hidden -PassThru
-$proxyAvailable = $false
-for ($attempt = 1; $attempt -le 3; $attempt++) {
-    try {
-        # Keep launcher startup bounded: a failed proxy must not make cc-ccr
-        # appear hung while each retry waits on a multi-second HTTP timeout.
-        $proxyCheck = Invoke-WebRequest -Uri "http://127.0.0.1:$proxyPort/health" -UseBasicParsing -TimeoutSec 1 -ErrorAction Stop
-        $proxyAvailable = $true
-        break
-    } catch {
-        Start-Sleep -Milliseconds 250
-    }
-}
+$proxyResult = Ensure-AdmissionProxy -Port $proxyPort -CcrPort $ccrPort -ProxyScript $proxyScript -ProxyLog $proxyLog
+$proxyAvailable = $proxyResult.Available
 if ($proxyAvailable) {
-    Write-Host "[admission-proxy] Started on port $proxyPort (PID $($proxyProc.Id))" -ForegroundColor Green
+    Write-Host "[admission-proxy] $($proxyResult.Status) on port $proxyPort (PID $($proxyResult.ListenerPid))" -ForegroundColor Green
 } else {
-    Write-Warning "[admission-proxy] Proxy failed health check; falling back to CCR on port $ccrPort."
+    if ($proxyResult.Status -eq "Ownership conflict") {
+        Write-Warning "[admission-proxy] Port $proxyPort is owned by an unexpected process; leaving it untouched and falling back to CCR on port $ccrPort."
+    } else {
+        Write-Warning "[admission-proxy] Proxy failed ownership/health verification; falling back to CCR on port $ccrPort."
+    }
     if (Test-Path $proxyLog) {
         $proxyFailure = Get-Content -LiteralPath $proxyLog -Tail 1 -ErrorAction SilentlyContinue
         if ($proxyFailure) { Write-Warning "[admission-proxy] $proxyFailure" }
     }
 }
-$script:admissionProxyPid = $proxyProc.Id
+$script:admissionProxyPid = $proxyResult.ListenerPid
 
 # --- Wire this shell's Claude Code ---
 # Claude → admission proxy (:3458) → CCR (:3456) → external models
