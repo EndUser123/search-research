@@ -405,7 +405,7 @@ test("z.ai routes use the provider model identifier without context suffix", () 
   assert.ok(zaiRoutes.length > 0, "config must contain at least one z.ai route");
   assert.deepEqual(
     [...new Set(zaiRoutes)],
-    ["zai,glm-5.2", "zai,glm-4.7"],
+    ["zai,glm-5.2"],
     "every configured z.ai route must use a provider model identifier",
   );
 
@@ -417,8 +417,6 @@ test("z.ai routes use the provider model identifier without context suffix", () 
   // Check that the shared metadata module contains the zai routes
   assert.match(metadataSource, /zai,glm-5\.2/,
     "route metadata must name the z.ai provider model");
-  assert.match(metadataSource, /zai,glm-4\.7/,
-    "route metadata must name additional zai models");
 
   // Check that consumers import from shared metadata
   assert.match(routerSource, /require\("\.\/ccr-route-metadata"\)/,
@@ -546,10 +544,12 @@ test("proxy: body without max_tokens defaults to 0 output budget", () => {
 });
 
 test("proxy: every active CCR route has a verified context limit", () => {
-  assert.equal(GLOBAL_CONTEXT_LIMIT, 200_000);
+  assert.equal(GLOBAL_CONTEXT_LIMIT, 1_000_000);
   assert.deepEqual(getUnverifiedConfiguredRoutes(), [], "config routes must be registered before proxy startup");
   assert.doesNotThrow(() => validateConfiguredRoutes());
   assert.equal(VERIFIED_ROUTE_LIMITS["zai,glm-5.2"], 1_000_000);
+  assert.equal(VERIFIED_ROUTE_LIMITS["nvidia-free,nvidia/nemotron-3-ultra-550b-a55b"], 1_000_000);
+  assert.equal(VERIFIED_ROUTE_LIMITS["nvidia-free,nvidia/nemotron-3-super-120b-a12b"], 1_000_000);
 });
 
 test("proxy: rejection diagnostics use the verified global limit", () => {

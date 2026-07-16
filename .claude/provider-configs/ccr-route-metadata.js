@@ -6,14 +6,11 @@
 // maintain duplicate tables in individual consumer files.
 const ROUTE_METADATA = Object.freeze([
   { route: 'zai,glm-5.2', limit: 1_000_000, source: 'zai-docs', confidence: 'verified', observedAt: '2026-07-10' },
-  { route: 'zai,glm-4.7', limit: 204_800, source: 'zai-catalog', confidence: 'verified', observedAt: '2026-07-10' },
   { route: 'opencode-go,deepseek-v4-flash', limit: 1_000_000, source: 'deepseek-specs', confidence: 'verified', observedAt: '2026-07-10' },
   { route: 'opencode-go,mimo-v2.5', limit: 1_000_000, source: 'opencode-go-specs', confidence: 'verified', observedAt: '2026-07-10' },
   { route: 'minimax,MiniMax-M3[1m]', limit: 1_000_000, source: 'minimax-docs-[1m]', confidence: 'verified', observedAt: '2026-07-10' },
-  { route: 'nvidia-free,nvidia/nemotron-3-ultra-550b-a55b', limit: 200_000, source: 'nvidia-docs-1m-claim', confidence: 'provisional', observedAt: '2026-07-14',
-    notes: 'NVIDIA docs say \"up to 1M\" subject to deployment. nvidia-free endpoint limit unverified. Conservative 200K.' },
-  { route: 'opencode-zen-free,opencode/big-pickle', limit: 200_000, source: 'opencode-zen-free-tier', confidence: 'verified', observedAt: '2026-07-10' },
-  { route: 'opencode-zen-free,opencode/mimo-v2.5-free', limit: 200_000, source: 'opencode-zen-free-tier', confidence: 'verified', observedAt: '2026-07-10' },
+  { route: 'nvidia-free,nvidia/nemotron-3-ultra-550b-a55b', limit: 1_000_000, source: 'nvidia-ultra-technical-report', confidence: 'verified', observedAt: '2026-07-15' },
+  { route: 'nvidia-free,nvidia/nemotron-3-super-120b-a12b', limit: 1_000_000, source: 'nvidia-super-technical-report', confidence: 'verified', observedAt: '2026-07-15' },
   { route: 'opencode-zen-free,opencode/minimax-m3-free', limit: 1_000_000, source: 'opencode-zen-free-tier', confidence: 'verified', observedAt: '2026-07-10' },
 ]);
 const ROUTES_HANDLED_OUTSIDE_CLOUD_PROXY = Object.freeze(new Set(['llama-cpp,ornith-1.0-9b']));

@@ -23,15 +23,11 @@ $Routes = @{
     "Opus" = @(
         @{ Provider = "zai"; Model = "glm-5.2"; Description = "zai GLM 5.2 (1M context)" },
         @{ Provider = "zai"; Model = "glm-5.1"; Description = "zai GLM 5.1" },
-        @{ Provider = "zai"; Model = "glm-4.7"; Description = "zai GLM 4.7" },
         @{ Provider = "minimax"; Model = "MiniMax-M3"; Description = "MiniMax M3 (high quality)" },
-        @{ Provider = "minimax"; Model = "MiniMax-M2.7"; Description = "MiniMax M2.7 (faster)" },
         @{ Provider = "opencode-go"; Model = "deepseek-v4-pro"; Description = "DeepSeek V4 Pro" },
         @{ Provider = "opencode-go"; Model = "deepseek-v4-flash"; Description = "DeepSeek V4 Flash (faster)" }
     )
     "Sonnet" = @(
-        @{ Provider = "zai"; Model = "glm-4.7"; Description = "zai GLM 4.7" },
-        @{ Provider = "minimax"; Model = "MiniMax-M2.7"; Description = "MiniMax M2.7" },
         @{ Provider = "minimax"; Model = "MiniMax-M3"; Description = "MiniMax M3 (higher quality)" },
         @{ Provider = "opencode-go"; Model = "deepseek-v4-flash"; Description = "DeepSeek V4 Flash" },
         @{ Provider = "opencode-go"; Model = "deepseek-v4-pro"; Description = "DeepSeek V4 Pro" }
@@ -39,8 +35,7 @@ $Routes = @{
     "Haiku" = @(
         @{ Provider = "opencode-go"; Model = "deepseek-v4-flash"; Description = "DeepSeek V4 Flash" },
         @{ Provider = "opencode-go"; Model = "deepseek-v4-pro"; Description = "DeepSeek V4 Pro" },
-        @{ Provider = "zai"; Model = "glm-4.5-air"; Description = "zai GLM 4.5 Air" },
-        @{ Provider = "minimax"; Model = "MiniMax-M2.7"; Description = "MiniMax M2.7" }
+        @{ Provider = "zai"; Model = "glm-4.5-air"; Description = "zai GLM 4.5 Air" }
     )
     "Custom" = @(
         @{ Provider = "llama-cpp"; Model = "ornith-1.0-9b"; Description = "llama.cpp - Ornith 1.0 9B (local)" }
@@ -218,7 +213,7 @@ function Get-ValueOrDefault {
 
 $selectedRoutes = @{}
 $selectedRoutes["Opus"] = Select-Route -ModelName "Opus" -CurrentValue (Get-ValueOrDefault $currentRoutes["Opus"] "minimax,MiniMax-M3")
-$selectedRoutes["Sonnet"] = Select-Route -ModelName "Sonnet" -CurrentValue (Get-ValueOrDefault $currentRoutes["Sonnet"] "minimax,MiniMax-M2.7")
+$selectedRoutes["Sonnet"] = Select-Route -ModelName "Sonnet" -CurrentValue (Get-ValueOrDefault $currentRoutes["Sonnet"] "minimax,MiniMax-M3")
 $selectedRoutes["Haiku"] = Select-Route -ModelName "Haiku" -CurrentValue (Get-ValueOrDefault $currentRoutes["Haiku"] "opencode-go,deepseek-v4-flash")
 
 Write-Host "`n=== Summary ===" -ForegroundColor Cyan
