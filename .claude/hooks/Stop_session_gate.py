@@ -226,7 +226,7 @@ def main() -> int:
     files_str = "; ".join(f["file"] for f in findings[:3])
 
     advisory = {
-        "decision": "continue",
+        "decision": "approve",  # advisory — never blocks
         "reason": (
             f"ADVISORY: cross-session contamination persists after migration "
             f"in sessions {session_list}. Files: {files_str}. "

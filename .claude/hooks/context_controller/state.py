@@ -74,6 +74,7 @@ FORBIDDEN_POLICY_KEYS = frozenset(
         "transcript_chain",
         "pending_operations",
         "last_user_message",
+        "user_message_locator",
         "decision_refs",
         "evidence_refs",
         "tasks_snapshot",

@@ -56,6 +56,64 @@ IMPERATIVE_COMMAND_RE = re.compile(
 QUOTE_RE = re.compile(r'"[^"\n]*"|\'[^\'\n]*\'')
 SLASH_COMMAND_RE = re.compile(r"^/([a-z0-9-]+)(?:\s+(.*))?$", re.IGNORECASE)
 
+# Chain delimiter — comma followed by space-slash (unambiguous skill boundary marker)
+# NOTE: Not using an existing parser because no chain parser exists in this codebase
+# (grep "parse_chain" confirms only an unrelated test name). This is a new capability.
+CHAIN_DELIM_RE = re.compile(r",\s*/([a-z0-9-]+(?::[a-z0-9-]+)?)(?:\s+(.*))?$")
+
+
+def parse_chain(prompt):
+    """Parse comma-delimited skill chain from a UserPromptSubmit prompt.
+
+    Detects the `, /<skill>` pattern and splits into sequential steps.
+    When no chain is present, returns [(command, args)] — backward compatible.
+
+    Returns:
+        List of (command, args) tuples. Empty list when no slash command.
+
+    Examples:
+        "/go task, /check" -> [("go", "task"), ("check", "")]
+        "/code fix bug"    -> [("code", "fix bug")]
+        "hello world"      -> []
+    """
+    stripped = prompt.strip()
+    match = SLASH_COMMAND_RE.match(stripped)
+    if not match:
+        return []
+
+    primary_cmd = match.group(1)
+    primary_args = match.group(2) or ""
+    result: list[tuple[str, str]] = []
+
+    # Find all chain delimiters left-to-right
+    chain_spans = list(re.finditer(r",\s*/", primary_args))
+    if not chain_spans:
+        return [(primary_cmd, primary_args)]
+
+    # First segment: from start to first chain delimiter
+    first_end = chain_spans[0].start()
+    first_args = primary_args[:first_end].rstrip()
+    result.append((primary_cmd, first_args))
+
+    # Middle and last segments
+    for i, span in enumerate(chain_spans):
+        after_slash = primary_args[span.end():]
+        if i + 1 < len(chain_spans):
+            next_start = chain_spans[i + 1].start()
+            segment = primary_args[span.end():next_start]
+        else:
+            segment = after_slash
+        segment = segment.strip()
+        # Extract command and args
+        cmd_match = re.match(r"([a-z0-9-]+(?::[a-z0-9-]+)?)(?:\s+(.*))?", segment, re.IGNORECASE)
+        if cmd_match:
+            result.append((cmd_match.group(1), cmd_match.group(2) or ""))
+        elif segment:
+            result.append((segment, ""))
+
+    return result
+
+
 # Falsification indicators - these patterns suggest testing without implementation
 FALSIFICATION_PATTERNS = [
     r"\bjust\s+?test\s+(?:this|that|it)\b",

@@ -756,6 +756,7 @@ def _load_hooks() -> None:
         "cks_context",  # NEW 2026-06-18: CKS context injection with relevance gating and token budgeting
         "competence_injector",
         "context_summary",  # NEW 2026-03-13: Inject key facts from recent conversation to reduce context_reuse violations
+        "context_pressure",  # Bounded large-input/transcript advisory; never rewrites prompts
         "continuation_spine",
         "consultation_awareness",  # NEW 2026-03-30: Detect directive repeat with prior LLM question
         "declaration_reminder",  # NEW 2026-03-16: Prevent "I'll update template" declarations without execution
