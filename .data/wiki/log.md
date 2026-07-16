@@ -1,5 +1,27 @@
 ﻿# Vault Log
 
+## [2026-07-16] ingest | Workflow: File-Name-Becomes-Slash-Command
+Source: session-2026-07-16
+SHA256: none (session-derived)
+
+## [2026-07-16] ingest | Check Duplication: Prior Evidence Reused Without Fresh Execution
+Source: session-2026-07-16
+SHA256: none (session-derived)
+
+## [2026-07-16] ingest | Hook Types: UserPromptSubmit exists but UserPromptExpansion does not
+Source: session-2026-07-16
+SHA256: none (session-derived)
+
+## [2026-07-16] ingest | Workflow Pipeline/Parallel Barrier Discipline
+Source: session-2026-07-16
+SHA256: none (session-derived)
+
+## [2026-07-16] ingest | Check Skill-to-Workflow Naming Collision Resolution
+Source: session-2026-07-16
+SHA256: none (session-derived)
+Content: yt-dlp flat/non-flat playlist export, --playlist-end pagination fix for 4900+ entries, PowerShell + Python API extraction patterns
+Page: wiki/concepts/export-youtube-playlist-urls-via-yt-dlp.md
+
 ## [2026-05-10] ingest | GitHub Hook Repos
 Source: web research
 SHA256: newly-created-2026-05-10
