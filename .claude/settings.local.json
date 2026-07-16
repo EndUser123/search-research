@@ -130,7 +130,6 @@
       "Bash(echo '  \"reviewer\": \"adversarial-io-agent\",')",
       "Bash(echo '  \"timestamp\": \"2026-06-29T00:00:00Z\",')",
       "Edit(P:/.claude/.artifacts/**)",
-      "Write(P:/.claude/.artifacts/**)",
       "Bash(echo '  \"review_type\":\"io-validation\",')",
       "Bash(echo '  \"reviewer\":\"adversarial-io-agent\",')",
       "Bash(echo '  \"timestamp\":\"2026-06-29T00:00:00Z\",')",
@@ -239,7 +238,13 @@
       "PowerShell($TS = Get-Date -Format \"yyyyMMdd-HHmmss\"; $WORKTREE = \"P:/.claude/worktrees/ai-task-$TS\"; $BRANCH = \"ai/ai-task-$TS\"; git -C P: worktree add -b $BRANCH \"$WORKTREE\" HEAD 2>&1; Write-Output \"Worktree: $WORKTREE\"; Write-Output \"Branch: $BRANCH\")",
       "PowerShell($s = \\(Get-FileHash \"P:\\\\packages\\\\.claude-marketplace\\\\plugins\\\\cc-skills-analysis\\\\skills\\\\recap\\\\SKILL.md\" -Algorithm SHA256\\).Hash; $c = \\(Get-FileHash \"$HOME\\\\.claude\\\\plugins\\\\cache\\\\local\\\\cc-skills-analysis\\\\1.0.122\\\\skills\\\\recap\\\\SKILL.md\" -Algorithm SHA256\\).Hash; Write-Output \"source=$s\"; Write-Output \"cache =$c\"; if \\($s -eq $c\\) { Write-Output \"MATCH\" } else { Write-Output \"DRIFT\" })",
       "PowerShell($gitleaks = \\(Get-Command gitleaks\\).Source; & $gitleaks detect --source=\"P:\\\\\" --no-banner --verbose 2>&1 | Select-Object -First 30)",
-      "PowerShell($gitleaks = \\(Get-Command gitleaks\\).Source; & $gitleaks detect --source=\"P:\\\\\" --no-banner --verbose 2>&1 | Select-String \"Finding:\" -Context 0,5 | Select-Object -First 20)"
+      "PowerShell($gitleaks = \\(Get-Command gitleaks\\).Source; & $gitleaks detect --source=\"P:\\\\\" --no-banner --verbose 2>&1 | Select-String \"Finding:\" -Context 0,5 | Select-Object -First 20)",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__list_pages",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__new_page",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__evaluate_script",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__navigate_page",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__take_snapshot",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__fill"
     ],
     "deny": [],
     "ask": []
