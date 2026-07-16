@@ -40,7 +40,7 @@ from ai_lane_controller.endpoints.win_console_api import (
     find_console_windows,
     write_keystrokes,
     write_enter,
-    get_screen_lines,
+    read_screen_lines,
     get_console_handles,
 )
 from ai_lane_controller.endpoints.input_mutex import (
@@ -149,7 +149,8 @@ class TerminalAdapter:
         # 1. Acquire UI mutex (blocks user input)
         try:
             lock_path = acquire_ui_mutex(
-                own_pid, timeout_s=self.config.mutex_timeout_s
+                self.config.lane_id, own_pid,
+                timeout_s=self.config.mutex_timeout_s,
             )
         except UIMutexError as e:
             raise AdapterError(f"could not acquire UI mutex: {e}") from e
@@ -160,7 +161,7 @@ class TerminalAdapter:
 
             def _watch_interrupt():
                 while not stop_monitor.is_set():
-                    if not is_ui_mutex_held():
+                    if not is_ui_mutex_held(self.config.lane_id):
                         self._interrupted = True
                         return
                     time.sleep(0.3)
@@ -180,7 +181,7 @@ class TerminalAdapter:
             try:
                 # 4. Snapshot pre-injection state
                 detector = CompletionDetector(
-                    lambda: get_screen_lines(hout),
+                    lambda: read_screen_lines(hout),
                     idle_timeout=self.config.idle_timeout_s,
                     poll_interval=0.2,
                 )
@@ -225,7 +226,7 @@ class TerminalAdapter:
             stop_monitor.set()
             # Always release the mutex, even on error
             try:
-                release_ui_mutex(own_pid)
+                release_ui_mutex(self.config.lane_id, own_pid)
             except UIMutexError:
                 # Lock may already be gone (interrupt) — best-effort
                 pass
@@ -322,10 +323,27 @@ class TerminalAdapter:
             return None
 
     def _write_response(self, response: str) -> None:
-        """Write the response back to the lane for ChromeEndpoint to relay."""
-        resp_path = Path(self.config.storage_root) / self.config.lane_id / "response.txt"
-        resp_path.parent.mkdir(parents=True, exist_ok=True)
-        resp_path.write_text(response, encoding="utf-8")
+        """Write the Claude response back to the lane store for ChromeEndpoint.
+
+        Uses ``MessageStorage.store_message`` and ``create_message`` --
+        atomic writes, validation, and the message contract.
+        """
+        from ai_lane_controller.messages import create_message, validate_message
+        msg = create_message(
+            lane_id=self.config.lane_id,
+            source="claude",
+            destination="chatgpt",
+            payload=response,
+        )
+        self.storage.store_message(msg, response)
+        # Also log a phase_transition event for observability
+        self.storage.append_event(self.config.lane_id, {
+            "type": "response_written",
+            "lane_id": self.config.lane_id,
+            "message_id": msg["id"],
+            "status": "pending",
+            "timestamp": msg["created_at"],
+        })
 
 
 def _get_pid() -> int:
