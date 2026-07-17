@@ -24,7 +24,7 @@ from .chrome_endpoint_cdp import safe_evaluate, CDPError
 
 # -- Selector versioning ------------------------------------------------------
 
-SELECTORS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "endpoints" / "dom_selectors"
+SELECTORS_DIR = Path(__file__).resolve().parent / "dom_selectors"
 DEFAULT_SELECTORS_VERSION = "v1"
 
 
