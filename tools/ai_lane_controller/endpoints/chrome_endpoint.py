@@ -210,6 +210,22 @@ class ChromeEndpoint:
         """One poll cycle: check phase, connect, inject, respond."""
         self._cycle_count += 1
 
+        # Print status every 10 cycles
+        if self._cycle_count % 10 == 0 and self._cycle_count > 0:
+            import urllib.request, json
+            try:
+                urllib.request.urlopen("http://127.0.0.1:9222/json/version", timeout=2)
+                tabs = json.loads(urllib.request.urlopen("http://127.0.0.1:9222/json", timeout=2).read())
+                titles = [t.get("title","")[:40] for t in tabs]
+                sys.stderr.write(
+                    f"[chrome-endpoint] waiting for chatgpt.com. "
+                    f"Tabs open: {len(titles)} - {chr(44).join(titles[:3])}
+"
+                )
+            except Exception:
+                sys.stderr.write("[chrome-endpoint] waiting for Chrome on port 9222
+")
+
         # 1. Ensure CDP connection
         try:
             self._ensure_connection()

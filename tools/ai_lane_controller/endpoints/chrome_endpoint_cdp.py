@@ -150,18 +150,7 @@ def find_chatgpt_tab_via_http(timeout_s: float = 5.0) -> CDPConnection | None:
                 url=url,
                 attached_at=_iso_now(),
             )
-    # No ChatGPT tab found — return the first available page as fallback
-    if targets:
-        t = targets[0]
-        return CDPConnection(
-            websocket_url=t["webSocketDebuggerUrl"],
-            target_id=t["id"],
-            title=t.get("title", ""),
-            url=t.get("url", ""),
-            attached_at=_iso_now(),
-        )
-    return None
-
+        return None  # No ChatGPT tab found -- caller should wait and retry
 
 # -- CDP command execution (via HTTP-JSON) ------------------------------------
 
