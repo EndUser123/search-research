@@ -18,6 +18,11 @@ Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
   Where-Object { $_.CommandLine -match 'watch-system\.ps1' } |
   ForEach-Object { $killed += "watcher PID $($_.ProcessId)"; Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 
+# Operator dashboard
+Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+  Where-Object { $_.CommandLine -match 'ornith-monitor\.py' } |
+  ForEach-Object { $killed += "dashboard PID $($_.ProcessId)"; Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+
 # llama-server itself
 Get-Process llama-server -ErrorAction SilentlyContinue |
   ForEach-Object { $killed += "llama-server PID $($_.Id)"; Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue }

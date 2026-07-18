@@ -13,7 +13,7 @@
 # intercepts claude-local-ornith (CCR's built-in router can't match that name).
 #
 # Architecture:
-#   Claude Code → CCR (3456) → external models
+#   Claude Code → CCR (configured PORT) → external models
 #   CCR routes to cost-effective models (72-94% savings)
 #
 # CCR config: C:\Users\brsth\.claude-code-router\config.json
@@ -29,9 +29,25 @@ param(
     [switch]$Restart
 )
 
-$ccrPort      = 3456
-$ccrUrl       = "http://localhost:$ccrPort"
-$ccrCmd       = "$env:APPDATA\npm\ccr.cmd"
+$ccrConfigPath = "$env:USERPROFILE\.claude-code-router\config.json"
+$ccrPort = 3456  # explicit fallback when config.json is absent or invalid
+if (Test-Path -LiteralPath $ccrConfigPath) {
+    try {
+        $configuredPort = (Get-Content -LiteralPath $ccrConfigPath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop).PORT
+        $parsedPort = 0
+        if ([int]::TryParse([string]$configuredPort, [ref]$parsedPort) -and $parsedPort -ge 1 -and $parsedPort -le 65535) {
+            $ccrPort = $parsedPort
+        } else {
+            Write-Warning "[cc-ccr] Invalid PORT in $ccrConfigPath; using fallback port $ccrPort"
+        }
+    } catch {
+        Write-Warning "[cc-ccr] Could not read PORT from $ccrConfigPath; using fallback port $ccrPort"
+    }
+} else {
+    Write-Warning "[cc-ccr] CCR config not found at $ccrConfigPath; using fallback port $ccrPort"
+}
+$ccrUrl = "http://127.0.0.1:$ccrPort"
+$ccrCmd = "$env:APPDATA\npm\ccr.cmd"
 
 # --- Load secrets from .env into hashtable for CCR process ---
 $envPath = "P:\.env"
@@ -62,6 +78,29 @@ if (Test-Path $envPath) {
     Write-Warning "[cc-ccr] No .env file at $envPath"
 }
 
+# --- Load the active Grok subscription session for CCR's Grok provider ---
+# Grok CLI stores the OAuth/session bearer in ~/.grok/auth.json. This is kept
+# process-local and inherited by a newly started CCR; it is never copied into
+# P:\.env or written to config.json. The session token may be refreshed by the
+# Grok CLI, so rerun cc-ccr after a refresh or expiry.
+$grokAuthPath = "$env:USERPROFILE\.grok\auth.json"
+if (Test-Path -LiteralPath $grokAuthPath) {
+    try {
+        $grokAuth = Get-Content -LiteralPath $grokAuthPath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+        $grokSessionToken = @($grokAuth.psobject.Properties.Value | ForEach-Object { $_.key } | Where-Object { $_ }) | Select-Object -First 1
+        if ($grokSessionToken) {
+            [System.Environment]::SetEnvironmentVariable('GROK_SESSION_TOKEN', [string]$grokSessionToken, 'Process')
+            $ccrEnvVars['GROK_SESSION_TOKEN'] = [string]$grokSessionToken
+        } else {
+            Write-Warning "[cc-ccr] Grok auth file contains no session token; grok route will be unavailable"
+        }
+    } catch {
+        Write-Warning "[cc-ccr] Could not read Grok session from $grokAuthPath; grok route will be unavailable"
+    }
+} else {
+    Write-Warning "[cc-ccr] Grok auth file not found at $grokAuthPath; grok route will be unavailable"
+}
+
 # --- TUI mode: Launch configuration UI ---
 if ($Config -or $Tui) {
     & "$PSScriptRoot\cc-ccr-tui.ps1" -SkipRestart
@@ -82,7 +121,7 @@ if ($Stop) {
     # separate WMI query for each one, twice. That made -Stop appear frozen
     # for minutes and could inspect unrelated Node processes. Port ownership
     # is the precise identity of the two services this launcher owns.
-    foreach ($port in @(3456, 3458)) {
+    foreach ($port in @($ccrPort, 3458)) {
         $listeners = @(Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)
         foreach ($listener in $listeners) {
             if ($listener.OwningProcess) {
@@ -115,17 +154,12 @@ if (-not (Test-Path $ccrCmd)) {
     return
 }
 
-# --- Hint: TUI available for easy model configuration ---
-Write-Host "[cc-ccr] Tip: Run 'cc-ccr -Config' to launch the TUI for interactive model route configuration" -ForegroundColor DarkGray
-
 # --- Routing source of truth: config.json ---
 # Providers, Router (slot + role keys), fallback chains, and CUSTOM_ROUTER_PATH all
 # live in config.json. This script does NOT rewrite routing on launch - edit
 # config.json directly (or via `cc-ccr -Config`). CCR hot-reloads config.json.
 # Quota spreading comes from the fallback chains in config.json (verified: CCR
 # retries the next chain entry on HTTP/quota error).
-$ccrConfigPath = "$env:USERPROFILE\.claude-code-router\config.json"
-
 # Phase toggles (independent, default OFF). Set before launch.
 $phaseLocalApply  = ($env:CC_PHASE_LOCAL_APPLY  -eq "1")
 $phaseCompactHook = ($env:CC_PHASE_COMPACT_HOOK -eq "1")
@@ -260,6 +294,232 @@ function Format-UsageAge {
 
 # --- Helper: draw a thin separator between provider sections ---
 function Write-SectionSep { Write-Host "  ───────────────────────────────────────────────────" -ForegroundColor DarkGray }
+function Write-DomainHeader {
+    param([Parameter(Mandatory)][string]$Title)
+    Write-Host ""
+    Write-Host $Title -ForegroundColor Cyan
+}
+function Format-EnvState {
+    param([AllowNull()][string]$Value)
+    if ([string]::IsNullOrWhiteSpace($Value)) { return "<missing>" }
+    return "<set>"
+}
+function Get-RouteDomain {
+    param([Parameter(Mandatory)][string]$Name)
+    if ($Name -eq 'claude-local-ornith') { return 'local models' }
+    if ($Name -like 'claude-*') { return 'claude models' }
+    if ($Name -in @('think', 'default', 'background', 'longContext')) { return 'roles' }
+    return 'provider routes'
+}
+function Write-Tree {
+    param(
+        [Parameter(Mandatory)][object[]]$Nodes,
+        [string]$Prefix = ""
+    )
+    for ($i = 0; $i -lt $Nodes.Count; $i++) {
+        $node = $Nodes[$i]
+        $last = $i -eq ($Nodes.Count - 1)
+        $connector = if ($last) { '└─ ' } else { '├─ ' }
+        $label = [string]$node.Label
+        $color = if ($node.Color) {
+            [string]$node.Color
+        } elseif ($label -match '(?i)inference unverified|not ready|degraded|unavailable') {
+            'Yellow'
+        } elseif ($label -match '(?i)status:\s*(ready|healthy|already running|started|loaded)\b') {
+            'Green'
+        } else {
+            'DarkGray'
+        }
+        Write-Host "$Prefix$connector" -NoNewline -ForegroundColor DarkGray
+        Write-Host $label -ForegroundColor $color
+        $children = @($node.Children)
+        if ($children.Count -gt 0) {
+            $childPrefix = if ($last) { "$Prefix   " } else { "$Prefix│  " }
+            Write-Tree -Nodes $children -Prefix $childPrefix
+        }
+    }
+}
+function Get-LocalVramSummary {
+    $nvidiaSmi = Get-Command nvidia-smi.exe -ErrorAction SilentlyContinue
+    if (-not $nvidiaSmi) { return 'unavailable' }
+    try {
+        $row = & $nvidiaSmi.Source '--query-gpu=memory.used,memory.total' '--format=csv,noheader,nounits' 2>$null | Select-Object -First 1
+        $parts = @($row -split ',') | ForEach-Object { $_.Trim() }
+        if ($parts.Count -ge 2 -and $parts[0] -match '^\d+$' -and $parts[1] -match '^\d+$') {
+            return "$($parts[0]) MB / $($parts[1]) MB"
+        }
+    } catch {}
+    return 'unavailable'
+}
+
+# --- Lightweight status probes used by -Usage (does not start infrastructure) ---
+function Get-UsageEndpointStatus {
+    param([Parameter(Mandatory)][string]$Uri, [string]$HealthyLabel = 'healthy')
+    try {
+        $response = Invoke-WebRequest -Uri $Uri -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
+        return "${HealthyLabel} (HTTP $($response.StatusCode))"
+    } catch {
+        return 'offline'
+    }
+}
+
+function Get-UsageLocalModelStatus {
+    $statePath = 'P:\.claude\state\local-model-state.json'
+    try {
+        if (Test-Path -LiteralPath $statePath) {
+            $state = Get-Content -LiteralPath $statePath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+            if ($state.state -and $state.state -notin @('DEAD', '')) {
+                return "$($state.state) - $($state.detail)"
+            }
+        }
+    } catch {}
+    return Get-UsageEndpointStatus -Uri 'http://127.0.0.1:8010/health' -HealthyLabel 'healthy'
+}
+
+# Kept outside the normal-startup branch so -Usage can render the same route
+# tree even though it intentionally skips service startup and wiring.
+function Format-Route {
+    param([string]$s)
+    if (-not $s) { return '(none)' }
+    $parts = $s -split ','
+    $pairs = for ($i = 0; $i -lt $parts.Length; $i += 2) {
+        if ($i + 1 -lt $parts.Length) { "$($parts[$i])/$($parts[$i + 1])" } else { $parts[$i] }
+    }
+    $pairs -join ' → '
+}
+
+function Get-UsageListenerPid {
+    param([Parameter(Mandatory)][int]$Port)
+    try {
+        $listener = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($listener -and $listener.OwningProcess) { return [string]$listener.OwningProcess }
+    } catch {}
+    return 'N/A'
+}
+
+function Get-UsageLocalTree {
+    $statePath = 'P:\.claude\state\local-model-state.json'
+    $state = $null
+    try {
+        if (Test-Path -LiteralPath $statePath) {
+            $state = Get-Content -LiteralPath $statePath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+        }
+    } catch {}
+
+    $model = if ($state -and $state.model) {
+        [string]$state.model
+    } elseif ($state -and $state.active_model) {
+        [string]$state.active_model
+    } else {
+        'unavailable'
+    }
+    $status = if ($state -and $state.state -in @('READY', 'LOADED')) {
+        if ($state.state -eq 'READY') { 'ready' } else { 'loaded (inference unverified)' }
+    } elseif ($state -and $state.state) {
+        "not ready ($($state.state))"
+    } else {
+        (Get-UsageLocalModelStatus)
+    }
+    $ctx = 'unavailable'
+    try {
+        if ($state.active_model) {
+            $active = @($state.models) | Where-Object { $_.id -eq $state.active_model } | Select-Object -First 1
+            if ($active -and $active.maxContextTokens) { $ctx = [string]$active.maxContextTokens }
+        }
+    } catch {}
+    $pids = if ($state -and $state.pids) {
+        (@($state.pids) -join ', ')
+    } else {
+        $llama = @(Get-Process llama-server -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Id)
+        if ($llama.Count -gt 0) { $llama -join ', ' } else { 'N/A' }
+    }
+    @(
+        [pscustomobject]@{ Label = 'local'; Color = 'White'; Children = @(
+            [pscustomobject]@{ Label = "status: $status"; Children = @() }
+            [pscustomobject]@{ Label = "model: $model"; Children = @() }
+            [pscustomobject]@{ Label = 'endpoint: http://127.0.0.1:8010'; Children = @() }
+            [pscustomobject]@{ Label = "ctx: $ctx"; Children = @() }
+            [pscustomobject]@{ Label = "vram: $(Get-LocalVramSummary)"; Children = @() }
+            [pscustomobject]@{ Label = "pid: $pids"; Children = @() }
+        ) }
+    )
+}
+
+function Get-UsageInfrastructureTree {
+    $ccrStatus = Get-UsageEndpointStatus -Uri "$ccrUrl/health"
+    $proxyStatus = Get-UsageEndpointStatus -Uri 'http://127.0.0.1:3458/health'
+    $localStatus = Get-UsageLocalModelStatus
+    $ccrPid = Get-UsageListenerPid -Port $ccrPort
+    $proxyPid = Get-UsageListenerPid -Port 3458
+    $ready = $ccrStatus -like 'healthy*' -and $proxyStatus -like 'healthy*' -and $localStatus -notlike 'offline*'
+    $status = if ($ready) { 'ready' } else { 'degraded' }
+    $local = Get-UsageLocalTree
+    @(
+        [pscustomobject]@{ Label = 'Infrastructure'; Color = 'Cyan'; Children = @(
+            [pscustomobject]@{ Label = "status: $status"; Children = @() }
+            [pscustomobject]@{ Label = 'proxy chain'; Color = 'White'; Children = @(
+                [pscustomobject]@{ Label = 'CCR'; Color = 'White'; Children = @(
+                    [pscustomobject]@{ Label = "status: $($ccrStatus -replace ' \(HTTP \d+\)$', '')"; Children = @() }
+                    [pscustomobject]@{ Label = "endpoint: $ccrUrl"; Children = @() }
+                    [pscustomobject]@{ Label = "pid: $ccrPid"; Children = @() }
+                ) }
+                [pscustomobject]@{ Label = 'admission-proxy'; Color = 'White'; Children = @(
+                    [pscustomobject]@{ Label = "status: $($proxyStatus -replace ' \(HTTP \d+\)$', '')"; Children = @() }
+                    [pscustomobject]@{ Label = 'endpoint: http://127.0.0.1:3458'; Children = @() }
+                    [pscustomobject]@{ Label = "pid: $proxyPid"; Children = @() }
+                ) }
+            ) }
+            $local[0]
+        ) }
+    )
+}
+
+function Get-UsageRouteTree {
+    try {
+        $cfg = Get-Content $ccrConfigPath -Raw -ErrorAction Stop | ConvertFrom-Json
+        $fallback = $cfg.fallback
+        $nodes = @($cfg.Router.PSObject.Properties | Where-Object Name -ne 'longContextThreshold' | ForEach-Object {
+            $name = $_.Name
+            $chain = switch ($name) {
+                'claude-opus-4-8' { if ($fallback) { $fallback.think } }
+                'claude-sonnet-5' { if ($fallback) { $fallback.default } }
+                'claude-haiku-4-5' { if ($fallback) { $fallback.background } }
+                'claude-haiku-4-5-20251001' { if ($fallback) { $fallback.background } }
+                'think' { if ($fallback) { $fallback.think } }
+                'default' { if ($fallback) { $fallback.default } }
+                'background' { if ($fallback) { $fallback.background } }
+                'longContext' { if ($fallback) { $fallback.longContext } }
+            }
+            $label = switch ($name) {
+                'claude-opus-4-8' { 'opus' }
+                'claude-sonnet-5' { 'sonnet' }
+                'claude-sonnet-4-6' { 'sonnet-5(legacy)' }
+                'claude-haiku-4-5' { 'haiku' }
+                'claude-haiku-4-5-20251001' { 'haiku(2025)' }
+                'claude-local-ornith' { 'custom' }
+                default { $name }
+            }
+            $children = @([pscustomobject]@{ Label = "primary: $(Format-Route ([string]$_.Value))"; Children = @() })
+            if ($chain -and @($chain).Count -gt 0) {
+                foreach ($entry in @($chain)) { $children += [pscustomobject]@{ Label = "fallback: $(Format-Route ([string]$entry))"; Children = @() } }
+            } elseif ($label -ne 'custom') {
+                $children += [pscustomobject]@{ Label = 'fallback: none configured'; Children = @() }
+            }
+            [pscustomobject]@{ Label = $label; Color = 'White'; Domain = (Get-RouteDomain -Name $name); Children = $children }
+        })
+        $groups = foreach ($domain in @('claude models', 'roles', 'provider routes', 'local models')) {
+            [pscustomobject]@{ Label = $domain; Color = 'White'; Children = @($nodes | Where-Object Domain -eq $domain | Sort-Object Label) }
+        }
+        @(
+            [pscustomobject]@{ Label = 'Routing'; Color = 'Cyan'; Children = @(
+                [pscustomobject]@{ Label = "mode: $(if ($cfg.routingMode) { $cfg.routingMode } else { 'aggressive (default)' })"; Children = @() }
+                [pscustomobject]@{ Label = 'routes'; Color = 'White'; Children = $groups }
+            ) }
+        )
+    } catch {
+        @([pscustomobject]@{ Label = 'Routing'; Color = 'Cyan'; Children = @([pscustomobject]@{ Label = "status: unavailable ($ccrConfigPath)"; Children = @() }) })
+    }
+}
 
 # --- Start CCR if not already running ---
 $ccrFreshlyStarted = $false
@@ -267,12 +527,13 @@ $ccrRunning = $false
 try {
     $r = Invoke-WebRequest -Uri "$ccrUrl/health" -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
     $ccrRunning = $true
-    Write-Host "[CCR] Already running at $ccrUrl" -ForegroundColor DarkGray
+    $ccrStartupSummary = "Already running"
 } catch {
-    Write-Host "[CCR] Starting..." -ForegroundColor Cyan
+    $ccrStartupSummary = "starting"
     $ccrRunning = Start-CCRProcess
     if (-not $ccrRunning) { return }
     $ccrFreshlyStarted = $true
+    $ccrStartupSummary = "started"
 }
 
 if (-not $ccrRunning) {
@@ -315,9 +576,28 @@ $launcherScript = "P:\packages\installers\run-ornith-server.ps1"
 function Invoke-LocalModelProbe {
     param([switch]$IncludeInference)
     try {
-        $pa = @("-NoProfile", "-NoLogo", "-NonInteractive", "-File", $launcherScript, "-Probe")
-        if ($IncludeInference) { $pa += "-IncludeInference" }
-        $out = & pwsh.exe @pa 2>$null
+        # Do not invoke the probe with the call operator.  When cc-ccr is
+        # launched from a host without an attached console, that creates a
+        # transient conhost window for every readiness poll.  Use a hidden,
+        # redirected child process instead; the probe is machine-facing and
+        # must never create operator UI.
+        $psi = [System.Diagnostics.ProcessStartInfo]::new()
+        $psi.FileName = (Get-Command pwsh.exe -ErrorAction Stop).Source
+        $psi.UseShellExecute = $false
+        $psi.CreateNoWindow = $true
+        $psi.RedirectStandardOutput = $true
+        $psi.RedirectStandardError = $true
+        foreach ($arg in @("-NoProfile", "-NoLogo", "-NonInteractive", "-File", $launcherScript, "-Probe")) {
+            [void]$psi.ArgumentList.Add($arg)
+        }
+        if ($IncludeInference) { [void]$psi.ArgumentList.Add("-IncludeInference") }
+
+        $process = [System.Diagnostics.Process]::new()
+        $process.StartInfo = $psi
+        if (-not $process.Start()) { return $null }
+        $out = $process.StandardOutput.ReadToEnd()
+        [void]$process.StandardError.ReadToEnd()
+        $process.WaitForExit()
         if ($out) { return ($out | ConvertFrom-Json) }
     } catch {}
     return $null
@@ -358,7 +638,20 @@ function Wait-LocalModelReady {
             # deliberately avoids. Drop the double-probe; LOADED == ready.
             return $s
         }
-        if ($s.state -in @("STUCK", "BROKEN", "HUNG")) { return $s }
+        # During startup, llama-server can have a process and partial HTTP
+        # listener while /health or /v1/models is not ready yet. Treat STUCK
+        # and BROKEN as transient inside the grace window; otherwise a normal
+        # model load is reported as an unhealthy server and the caller prints
+        # a stale degraded tree. HUNG remains terminal because it is an
+        # inference failure, not a load transition.
+        if ($s.state -in @("STUCK", "BROKEN")) {
+            if ((& $NowScript) -lt $startupGraceDeadline) {
+                & $SleepScript $PollMilliseconds
+                continue
+            }
+            return $s
+        }
+        if ($s.state -eq "HUNG") { return $s }
         if ($s.state -eq "DEAD" -and (& $NowScript) -lt $startupGraceDeadline) {
             # A supervisor can report DEAD before llama-server binds its port.
             & $SleepScript $PollMilliseconds
@@ -404,16 +697,16 @@ function Get-AdmissionProxyOwner {
         [string]$ExpectedScript = "ccr-admission-proxy.js"
     )
     if (-not $Listener -or -not $Listener.OwningProcess) { return $null }
-    $pid = [int]$Listener.OwningProcess
+    $listenerPid = [int]$Listener.OwningProcess
     if ($ProcessLookup) {
-        $process = & $ProcessLookup $pid | Select-Object -First 1
+        $process = & $ProcessLookup $listenerPid | Select-Object -First 1
     } else {
-        $process = Get-CimInstance Win32_Process -Filter "ProcessId = $pid" -ErrorAction SilentlyContinue | Select-Object -First 1
+        $process = Get-CimInstance Win32_Process -Filter "ProcessId = $listenerPid" -ErrorAction SilentlyContinue | Select-Object -First 1
     }
     $commandLine = if ($process) { [string]$process.CommandLine } else { "" }
     $expectedName = [IO.Path]::GetFileName($ExpectedScript)
     return [pscustomobject]@{
-        ListenerPid = $pid
+        ListenerPid = $listenerPid
         CommandLine = $commandLine
         IsExpected = (-not [string]::IsNullOrWhiteSpace($commandLine) -and $commandLine -match [regex]::Escape($expectedName))
     }
@@ -434,11 +727,29 @@ function Test-AdmissionProxyHealth {
 }
 
 function Start-AdmissionProxyProcess {
-    param([Parameter(Mandatory)][string]$ProxyScript, [Parameter(Mandatory)][string]$ProxyLog)
+    param(
+        [Parameter(Mandatory)][string]$ProxyScript,
+        [Parameter(Mandatory)][string]$ProxyLog,
+        [Parameter(Mandatory)][int]$CcrPort
+    )
     return Start-Process pwsh -ArgumentList @(
         "-NoProfile", "-NoLogo", "-NonInteractive", "-Command",
-        "node `"$ProxyScript`" 2>&1 | Set-Content -Path `"$ProxyLog`""
+        "`$env:CCR_PORT = '$CcrPort'; node `"$ProxyScript`" 2>&1 | Set-Content -Path `"$ProxyLog`""
     ) -WindowStyle Hidden -PassThru
+}
+
+function Get-SecretFingerprint {
+    param([AllowNull()][string]$Value)
+    if ([string]::IsNullOrEmpty($Value)) { return 'missing' }
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($Value)
+        $digest = $sha.ComputeHash($bytes)
+        $hex = [BitConverter]::ToString($digest).Replace('-', '').ToLowerInvariant()
+        return "$($Value.Length) chars, sha256:$($hex.Substring(0, 12))"
+    } finally {
+        $sha.Dispose()
+    }
 }
 
 function Ensure-AdmissionProxy {
@@ -454,7 +765,7 @@ function Ensure-AdmissionProxy {
         [scriptblock]$SpawnScript,
         [scriptblock]$SleepScript
     )
-    if (-not $SpawnScript) { $SpawnScript = { Start-AdmissionProxyProcess -ProxyScript $ProxyScript -ProxyLog $ProxyLog } }
+    if (-not $SpawnScript) { $SpawnScript = { Start-AdmissionProxyProcess -ProxyScript $ProxyScript -ProxyLog $ProxyLog -CcrPort $CcrPort } }
     if (-not $SleepScript) { $SleepScript = { param($Milliseconds) Start-Sleep -Milliseconds $Milliseconds } }
 
     $listener = Get-AdmissionProxyListener -Port $Port -ListenerLookup $ListenerLookup
@@ -500,7 +811,7 @@ $lm = Invoke-LocalModelProbe
 $localModelHealth = $false
 
 if (-not $lm -or $lm.state -eq "DEAD") {
-    Write-Host "[CCR] local model offline (no llama-server) - starting..." -ForegroundColor Cyan
+    Write-Host "[CCR] local model not ready (starting or probe transient) - starting..." -ForegroundColor Cyan
     # Clean slate: kill any orphaned launchers + llama-server + watchers from
     # prior runs BEFORE spawning a fresh launcher. cc-ccr -stop deliberately
     # leaves these running (local model is independent of CCR), so without
@@ -584,7 +895,20 @@ public class CCR_BREAKAWAY {
     $localModelHealth = $true
 }
 
+# A newly spawned supervisor can cross the LOADED boundary just after the
+# bounded startup wait returns (especially while the GGUF is still being
+# mapped). Take one fresh, short readiness pass immediately before rendering
+# the infrastructure tree so the report describes the current server rather
+# than the earlier startup snapshot.
+if (-not $lm -or $lm.state -notin @("READY", "LOADED")) {
+    $freshLm = Wait-LocalModelReady -TimeoutSec 15 -StartupGraceSec 3 -PollMilliseconds 1000
+    if ($freshLm) { $lm = $freshLm }
+    if ($lm -and $lm.state -in @("READY", "LOADED")) { $localModelHealth = $true }
+}
+
 # Report
+$localPidSummary = if ($lm -and $lm.pids) { (@($lm.pids) -join ', ') } else { 'N/A' }
+$localVramSummary = Get-LocalVramSummary
 if ($lm -and ($lm.state -eq "READY" -or $lm.state -eq "LOADED")) {
     $ctx = ""
     if (Test-Path $localModelStatePath) {
@@ -597,9 +921,39 @@ if ($lm -and ($lm.state -eq "READY" -or $lm.state -eq "LOADED")) {
         } catch {}
     }
     $tag = if ($lm.state -eq "READY") { "ready" } else { "loaded (inference unverified)" }
-    Write-Host "[CCR] local: $($lm.model) | endpoint: $localModelEndpoint$ctx | $tag" -ForegroundColor Green
+    $localModelSummary = "local"
+    $localModelDetails = @(
+        "status: $tag",
+        "model: $($lm.model)",
+        "endpoint: $localModelEndpoint",
+        "ctx: $(if ($ctx) { $ctx.TrimStart(' ', '|').Trim() -replace '^ctx:\s*', '' } else { 'unavailable' })",
+        "gpu-vram: $localVramSummary",
+        "pid: $localPidSummary"
+    )
 } else {
-    Write-Host "[CCR] local model not ready (aggressive mode fallback to opencode-go/deepseek-v4-flash for coding)" -ForegroundColor DarkGray
+    $localPidLabel = if ($lm -and $lm.pids) { "process alive, readiness: $($lm.state.ToLower())" } else { "no llama-server process" }
+    $localStatus = if ($lm -and $lm.state -eq "LOADING") {
+        "loading (GGUF not ready yet)"
+    } elseif ($lm -and $lm.state -eq "HUNG") {
+        # HUNG means the process and model were found, but the optional
+        # inference probe failed. It must not be presented as a dead process.
+        "loaded; inference unresponsive"
+    } elseif ($lm -and $lm.state -in @("STUCK", "BROKEN")) {
+        "unhealthy ($($lm.state.ToLower()))"
+    } elseif ($lm) {
+        "readiness unavailable ($($lm.state.ToLower()))"
+    } else {
+        "readiness probe unavailable"
+    }
+    $localModelSummary = "local"
+    $localModelDetails = @(
+        "status: $localStatus (fallback: opencode-go/deepseek-v4-flash for coding)",
+        "model: $(if ($lm -and $lm.model) { $lm.model } else { 'unavailable' })",
+        "endpoint: $localModelEndpoint",
+        "ctx: unavailable",
+        "gpu-vram: $localVramSummary",
+        "pid: $localPidSummary ($localPidLabel)"
+    )
 }
 $script:localModelState = $lm
 
@@ -609,7 +963,7 @@ try {
     $routingConfig = Get-Content $ccrConfigPath -Raw | ConvertFrom-Json
     $routingModeInfo = Resolve-RoutingMode -RoutingMode $routingConfig.routingMode
 } catch {}
-Write-Host "[CCR] $(Format-RoutingModeDisplay -RoutingModeInfo $routingModeInfo)" -ForegroundColor Cyan
+$routingModeSummary = Format-RoutingModeDisplay -RoutingModeInfo $routingModeInfo
 
 # --- Start admission proxy (pre-CCR context-limit gate) ---
 # The admission proxy sits between Claude Code and CCR. It rejects oversized
@@ -622,7 +976,8 @@ $proxyLog = "P:\.claude\state\ccr-admission-proxy.log"
 $proxyResult = Ensure-AdmissionProxy -Port $proxyPort -CcrPort $ccrPort -ProxyScript $proxyScript -ProxyLog $proxyLog
 $proxyAvailable = $proxyResult.Available
 if ($proxyAvailable) {
-    Write-Host "[admission-proxy] $($proxyResult.Status) on port $proxyPort (PID $($proxyResult.ListenerPid))" -ForegroundColor Green
+    $proxyStatusSummary = $proxyResult.Status
+    $proxyPidSummary = $proxyResult.ListenerPid
 } else {
     if ($proxyResult.Status -eq "Ownership conflict") {
         Write-Warning "[admission-proxy] Port $proxyPort is owned by an unexpected process; leaving it untouched and falling back to CCR on port $ccrPort."
@@ -633,11 +988,13 @@ if ($proxyAvailable) {
         $proxyFailure = Get-Content -LiteralPath $proxyLog -Tail 1 -ErrorAction SilentlyContinue
         if ($proxyFailure) { Write-Warning "[admission-proxy] $proxyFailure" }
     }
+    $proxyStatusSummary = "unavailable"
+    $proxyPidSummary = "N/A"
 }
 $script:admissionProxyPid = $proxyResult.ListenerPid
 
 # --- Wire this shell's Claude Code ---
-# Claude → admission proxy (:3458) → CCR (:3456) → external models
+# Claude → admission proxy (:3458) → CCR (configured PORT) → external models
 $env:ANTHROPIC_BASE_URL = if ($proxyAvailable) {
     "http://127.0.0.1:$proxyPort"
 } else {
@@ -712,27 +1069,56 @@ $ccrPid = try {
 } catch { "N/A" }
 
 # --- Render output ---
-Write-Host ""
-
-if ($proxyAvailable) {
-    Write-Host "✓ Infrastructure Ready" -ForegroundColor Green
+Write-DomainHeader "Infrastructure"
+$gatewayHealthy = $ccrRunning -and $proxyAvailable
+$infrastructureStatus = if ($gatewayHealthy -and $localModelHealth) {
+    'status: ready'
+} elseif ($gatewayHealthy) {
+    'status: gateway ready; local degraded'
 } else {
-    Write-Warning "⚠ Infrastructure Degraded: admission-proxy unavailable - CCR direct mode (no context-limit enforcement)"
+    'status: degraded (gateway unavailable or no context-limit enforcement)'
 }
-
-Write-Host ""
-Write-Host "  CCR: $ccrUrl (PID $ccrPid)"
-Write-Host ""
-# --- Helper: format a CCR route string (provider1,model1,provider2,model2 → provider1/model1 → provider2/model2) ---
-function Format-Route { param([string]$s)
-    $parts = $s -split ','
-    $pairs = for ($i = 0; $i -lt $parts.Length; $i += 2) {
-        if ($i + 1 -lt $parts.Length) { "$($parts[$i])/$($parts[$i+1])" }
-        else { $parts[$i] }
+$infrastructureTree = @(
+    [pscustomobject]@{ Label = $infrastructureStatus; Children = @() }
+    [pscustomobject]@{
+        Label = 'proxy chain'
+        Children = @(
+            [pscustomobject]@{
+                Label = 'CCR'
+                Children = @(
+                    [pscustomobject]@{ Label = "status: $ccrStartupSummary"; Children = @() }
+                    [pscustomobject]@{ Label = "endpoint: $ccrUrl"; Children = @() }
+                    [pscustomobject]@{ Label = "pid: $ccrPid"; Children = @() }
+                )
+            }
+            [pscustomobject]@{
+                Label = 'admission-proxy'
+                Children = @(
+                    [pscustomobject]@{ Label = "status: $proxyStatusSummary"; Children = @() }
+                    [pscustomobject]@{ Label = "endpoint: http://127.0.0.1:$proxyPort"; Children = @() }
+                    [pscustomobject]@{ Label = "pid: $proxyPidSummary"; Children = @() }
+                )
+            }
+        )
     }
-    $pairs -join " → "
-}
-Write-Host "Route configuration:"
+    [pscustomobject]@{
+        Label = $localModelSummary
+        Children = @($localModelDetails | ForEach-Object {
+            [pscustomobject]@{ Label = $_; Children = @() }
+        })
+    }
+)
+Write-Tree -Nodes $infrastructureTree
+
+Write-DomainHeader "Claude environment"
+Write-Host "  ANTHROPIC_BASE_URL                 $env:ANTHROPIC_BASE_URL"
+Write-Host "  ANTHROPIC_API_KEY                  $(Format-EnvState $env:ANTHROPIC_API_KEY)"
+Write-Host "  ANTHROPIC_AUTH_TOKEN               $(Format-EnvState $env:ANTHROPIC_AUTH_TOKEN)"
+Write-Host "  ANTHROPIC_CUSTOM_MODEL_OPTION      $env:ANTHROPIC_CUSTOM_MODEL_OPTION"
+Write-Host "  ANTHROPIC_CUSTOM_MODEL_OPTION_NAME $env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME"
+
+Write-DomainHeader "Routing"
+# --- Helper: format a CCR route string (provider1,model1,provider2,model2 → provider1/model1 → provider2/model2) ---
 function Format-Route {
     param([string]$s)
     if (-not $s) { return "(none)" }
@@ -743,13 +1129,19 @@ function Format-Route {
     }
     $pairs -join " → "
 }
+function Format-RoutePrimaryLabel {
+    param([AllowNull()][string]$Primary)
+    if ([string]::IsNullOrWhiteSpace($Primary)) { return 'primary: unavailable' }
+    return "primary: $(Format-Route $Primary)"
+}
 
 try {
     $ccrCfg = Get-Content $ccrConfigPath -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json
     $fb = $ccrCfg.fallback
 
     # Build a list of all router keys (slots + roles)
-    $routerProps = $ccrCfg.Router.PSObject.Properties
+    # Threshold is routing policy metadata, not a model route.
+    $routerProps = $ccrCfg.Router.PSObject.Properties | Where-Object Name -ne 'longContextThreshold'
     $routes = @()
 
     foreach ($prop in $routerProps) {
@@ -759,6 +1151,7 @@ try {
         # Derive a label and which fallback chain (if any) to show
         $label = $name
         $chain = $null
+        $domain = Get-RouteDomain -Name $name
 
         switch ($name) {
             "claude-opus-4-8"           { $label = "opus";        $chain = if ($fb) { $fb.think }       else { $null } }
@@ -776,6 +1169,7 @@ try {
         $routes += @{
             Label  = $label
             Name   = $name
+            Domain = $domain
             Primary = $value
             Chain   = $chain
         }
@@ -783,31 +1177,51 @@ try {
 
     # Sort by label then name so it's stable and readable
     $routes = $routes | Sort-Object Label, Name
-    $labelWidth = ($routes | ForEach-Object { $_.Label.Length } | Measure-Object -Maximum).Maximum
 
-    foreach ($r in $routes) {
-        if (-not $r.Primary -or $r.Primary -notmatch ',') { continue }
-        $paddedLabel = $r.Label.PadRight($labelWidth)
-        $indent = ' ' * ($labelWidth + 2)
-
-        Write-Host ("  {0}: {1}" -f $paddedLabel, (Format-Route $r.Primary))
-
+    $routeNodes = @($routes | ForEach-Object {
+        $r = $_
+        $primaryLabel = Format-RoutePrimaryLabel -Primary $r.Primary
+        $children = @(
+            [pscustomobject]@{ Label = $primaryLabel; Children = @() }
+        )
         if ($r.Chain -and $r.Chain.Count -gt 0) {
-            $r.Chain | ForEach-Object {
-                Write-Host ("{0}└─ {1}" -f $indent, (Format-Route $_)) -ForegroundColor DarkGray
+            foreach ($fallback in $r.Chain) {
+                $children += [pscustomobject]@{ Label = "fallback: $(Format-Route $fallback)"; Children = @() }
             }
         } elseif ($r.Label -notin @('custom')) {
-            Write-Host ("{0}└─ (no fallback configured)" -f $indent) -ForegroundColor DarkGray
+            $children += [pscustomobject]@{ Label = 'fallback: none configured'; Children = @() }
         }
-    }
+        [pscustomobject]@{ Label = $r.Label; Domain = $r.Domain; Color = 'White'; Children = $children }
+    })
+    $claudeNodes = @($routeNodes | Where-Object { $_.Domain -eq 'claude models' })
+    $roleNodes = @($routeNodes | Where-Object { $_.Domain -eq 'roles' })
+    $providerNodes = @($routeNodes | Where-Object { $_.Domain -eq 'provider routes' })
+    $localNodes = @($routeNodes | Where-Object { $_.Domain -eq 'local models' })
+
+    $routeGroups = @(
+        [pscustomobject]@{
+            Label = "mode: $($routingModeSummary -replace '^routingMode=', '')"
+            Children = @()
+        }
+        [pscustomobject]@{
+            Label = 'routes'
+            Children = @(
+                [pscustomobject]@{ Label = 'claude models'; Color = 'White'; Children = $claudeNodes }
+                [pscustomobject]@{ Label = 'roles'; Color = 'White'; Children = $roleNodes }
+                [pscustomobject]@{ Label = 'provider routes'; Color = 'White'; Children = $providerNodes }
+                [pscustomobject]@{ Label = 'local models'; Color = 'White'; Children = $localNodes }
+            )
+        }
+    )
+    Write-Tree -Nodes $routeGroups
 }
 catch {
-    Write-Host "  (could not read routes from config.json - check $ccrConfigPath)" -ForegroundColor Yellow
+    Write-Tree -Nodes @([pscustomobject]@{
+        Label = "routes unavailable - check $ccrConfigPath"
+        Children = @()
+    })
 }
-Write-Host ""
-# --- Phase status banner ---
-Write-Host ""
-Write-Host "Phases:"
+Write-DomainHeader "Runtime flags"
 if ($phaseLocalApply)  { Write-Host "  local-apply:  requested (verify model loaded in llama.cpp)" -ForegroundColor Yellow }
 else                   { Write-Host "  local-apply:  off" -ForegroundColor DarkGray }
 if ($phaseCompactHook) { Write-Host "  compact-hook: requested (verify hook file present)" -ForegroundColor Yellow }
@@ -820,6 +1234,53 @@ else                   { Write-Host "  compact-hook: off" -ForegroundColor DarkG
 if ($Usage) {
     Write-Host ""
     Write-Host "Usage (remaining quota):" -ForegroundColor Cyan
+    Write-Host ""
+    $usageInfrastructure = Get-UsageInfrastructureTree
+    Write-Host "Infrastructure" -ForegroundColor Cyan
+    Write-Tree -Nodes @($usageInfrastructure[0].Children)
+
+    Write-Host ""
+    Write-Host "Claude environment (effective)" -ForegroundColor Cyan
+    $usageProxyHealthy = (Get-UsageEndpointStatus -Uri 'http://127.0.0.1:3458/health') -like 'healthy*'
+    $usageBaseUrl = if ($usageProxyHealthy) {
+        'http://127.0.0.1:3458'
+    } else {
+        $ccrUrl
+    }
+    $effectiveBaseUrl = "$env:ANTHROPIC_BASE_URL (process; normal CCR wiring)"
+    $effectiveKeySource = if ($env:ANTHROPIC_API_KEY) {
+        if ($ccrLocalKey) { 'process; P:\.env: CCR_LOCAL_KEY' } else { 'process' }
+    } else { $null }
+    $effectiveAuthSource = if ($env:ANTHROPIC_AUTH_TOKEN) {
+        if ($ccrLocalKey) { 'process; P:\.env: CCR_LOCAL_KEY' } else { 'process' }
+    } else { $null }
+    $effectiveCustomModel = "$env:ANTHROPIC_CUSTOM_MODEL_OPTION (process; normal CCR wiring)"
+    $effectiveCustomName = "$env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME (process; normal CCR wiring)"
+    $environmentNodes = @(
+        [pscustomobject]@{ Label = "ANTHROPIC_BASE_URL: $effectiveBaseUrl"; Color = 'White'; Children = @() }
+        [pscustomobject]@{ Label = "ANTHROPIC_API_KEY: $(if ($effectiveKeySource) { "<set> ($effectiveKeySource)" } else { '<missing>' })"; Color = $(if ($effectiveKeySource) { 'Green' } else { 'Yellow' }); Children = @() }
+        [pscustomobject]@{ Label = "ANTHROPIC_AUTH_TOKEN: $(if ($effectiveAuthSource) { "<set> ($effectiveAuthSource)" } else { '<missing>' })"; Color = $(if ($effectiveAuthSource) { 'Green' } else { 'Yellow' }); Children = @() }
+        [pscustomobject]@{ Label = "ANTHROPIC_CUSTOM_MODEL_OPTION: $effectiveCustomModel"; Color = 'White'; Children = @() }
+        [pscustomobject]@{ Label = "ANTHROPIC_CUSTOM_MODEL_OPTION_NAME: $effectiveCustomName"; Color = 'White'; Children = @() }
+        [pscustomobject]@{ Label = "ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION: $(if ($env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION) { "$($env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION) (process)" } else { 'llama.cpp · ornith-1.0-9b@q4_k_m (launcher default)' })"; Color = 'White'; Children = @() }
+        [pscustomobject]@{ Label = "CLAUDE_CODE_DISABLE_1M_CONTEXT: $(if ($env:CLAUDE_CODE_DISABLE_1M_CONTEXT) { $env:CLAUDE_CODE_DISABLE_1M_CONTEXT } else { '<not set> (intentional)' })"; Color = 'DarkGray'; Children = @() }
+    )
+    Write-Tree -Nodes $environmentNodes
+
+    Write-Host ""
+    $usageRoutes = Get-UsageRouteTree
+    Write-Host "Routing" -ForegroundColor Cyan
+    Write-Tree -Nodes @($usageRoutes[0].Children)
+
+    Write-Host ""
+    Write-Host "Runtime flags" -ForegroundColor Cyan
+    Write-Tree -Nodes @(
+        [pscustomobject]@{ Label = "local-apply: $(if ($phaseLocalApply) { 'requested' } else { 'off' })"; Color = $(if ($phaseLocalApply) { 'Yellow' } else { 'DarkGray' }); Children = @() }
+        [pscustomobject]@{ Label = "compact-hook: $(if ($phaseCompactHook) { 'requested' } else { 'off' })"; Color = $(if ($phaseCompactHook) { 'Yellow' } else { 'DarkGray' }); Children = @() }
+    )
+
+    Write-Host ""
+    Write-Host "Provider quotas" -ForegroundColor Cyan
     # ── z.ai / GLM Coding Plan ──
     try {
         $zaiKey = $ccrEnvVars["ZAI_API_KEY"]
@@ -919,15 +1380,30 @@ if ($Usage) {
                 $reset = if ($window.ResetEpochMs) { Format-QuotaReset $window.ResetEpochMs } else { "" }
                 Write-UsageRow $window.Name "$($window.Remaining)% left" $reset
             }
-            foreach ($missing in @($openaiUsage.MissingWindows)) {
-                Write-UsageStatus 'unavailable - endpoint returned no such quota bucket' $missing
-            }
         } else {
             Write-Host "  openai          [subscription]" -ForegroundColor White
             Write-UsageStatus "unavailable - $($openaiUsage.Error)"
         }
         Write-SectionSep
     }
+    # ── xAI / Grok subscription session ──
+    # The subscription exposes model access through the authenticated Grok CLI
+    # proxy. xAI's public docs do not expose a quota JSON endpoint for this pool,
+    # so report API availability and models without inventing a percentage.
+    Write-Host "  x.ai            [SuperGrok]" -ForegroundColor White
+    if ($grokSessionToken) {
+        try {
+            $grokHeaders = @{ Authorization = "Bearer $grokSessionToken" }
+            $grokModels = Invoke-RestMethod -Uri 'https://cli-chat-proxy.grok.com/v1/models' -Headers $grokHeaders -TimeoutSec 5 -ErrorAction Stop
+            $grokModelNames = @($grokModels.data | ForEach-Object { $_.id } | Where-Object { $_ })
+            Write-UsageStatus ("available - " + ($grokModelNames -join ', '))
+        } catch {
+            Write-UsageStatus "unavailable - $($_.Exception.Message)"
+        }
+    } else {
+        Write-UsageStatus 'unavailable - Grok session token not loaded'
+    }
+    Write-SectionSep
     # ── Anthropic Claude subscription quota ──
     # Reads Claude subscription OAuth credentials directly. The statusline
     # snapshot remains an optional fallback, not a prerequisite.
@@ -967,16 +1443,6 @@ if ($Usage) {
             Write-UsageStatus "unavailable - $($geminiUsage.Error)"
         }
         Write-SectionSep
-    }
-    # Local llama.cpp — reuse the readiness probe from above (single source of
-    # truth). Avoids a second independent /v1/models probe that can disagree with
-    # the triage line (the cause of stale "offline" in this block).
-    if ($script:localModelState -and ($script:localModelState.state -eq "READY" -or $script:localModelState.state -eq "LOADED")) {
-        Write-Host "  local           llama.cpp      up: $($script:localModelState.model)" -ForegroundColor Green
-    } elseif ($script:localModelState -and $script:localModelState.state -ne "DEAD") {
-        Write-Host "  local           llama.cpp      $($script:localModelState.state) - $($script:localModelState.detail)" -ForegroundColor Yellow
-    } else {
-        Write-Host "  local           llama.cpp      offline (127.0.0.1:8010)" -ForegroundColor DarkGray
     }
 }
 
@@ -1031,14 +1497,14 @@ if ($Test) {
             Write-Host "  Check: (1) ANTHROPIC_AUTH_TOKEN matches CCR APIKEY, (2) provider keys in .env, (3) ccr logs" -ForegroundColor Yellow
             Write-Host "" -ForegroundColor Yellow
             Write-Host "  If this failed, run these next checks to pinpoint whether the issue is the script or CCR:" -ForegroundColor Yellow
-            Write-Host "  Current script key: $env:ANTHROPIC_AUTH_TOKEN" -ForegroundColor Yellow
+            Write-Host "  Script auth token: $(Get-SecretFingerprint $env:ANTHROPIC_AUTH_TOKEN)" -ForegroundColor Yellow
             $resolvedCcrLocalKey = [System.Environment]::GetEnvironmentVariable('CCR_LOCAL_KEY', 'Process')
-            Write-Host "  Process CCR_LOCAL_KEY: $resolvedCcrLocalKey" -ForegroundColor Yellow
+            Write-Host "  Process CCR_LOCAL_KEY: $(Get-SecretFingerprint $resolvedCcrLocalKey)" -ForegroundColor Yellow
             Write-Host "  Running direct CCR probes..." -ForegroundColor Yellow
             $curlBody = '{"model":"claude-sonnet-5","max_tokens":16,"messages":[{"role":"user","content":"Reply OK"}]}'
             $headerValues = @($env:ANTHROPIC_AUTH_TOKEN, $env:ANTHROPIC_API_KEY, $resolvedCcrLocalKey)
             foreach ($headerValue in $headerValues | Select-Object -Unique) {
-                Write-Host "  Probe Bearer header value: $headerValue" -ForegroundColor Yellow
+                Write-Host "  Probe Bearer header: $(Get-SecretFingerprint $headerValue)" -ForegroundColor Yellow
                 $curlArgs = @(
                     '-s','-o','-','-w','`nHTTP %{http_code}`n',
                     '-X','POST',"$ccrUrl/v1/messages",

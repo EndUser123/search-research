@@ -26,4 +26,22 @@ This directory contains the active Claude/CCR launchers and local routing helper
 - Provider secrets source of truth: `P:\.env`.
 - Confirm the active PowerShell profile with `$PROFILE` before changing aliases.
 
+## Testing
+
+Run the JavaScript suite with:
+
+```powershell
+$tests = Get-ChildItem P:\.claude\provider-configs -Filter '*.test.js' -File |
+    Select-Object -ExpandProperty FullName
+node --test $tests
+```
+
+Run the PowerShell suite with Pester 5 or newer. Pester 3 is not compatible
+with the `Should -Be` assertions used by these tests:
+
+```powershell
+Get-Module -ListAvailable Pester | Sort-Object Version -Descending | Select-Object -First 1
+Invoke-Pester P:\.claude\provider-configs\cc-ccr.Tests.ps1
+```
+
 Do not add API keys or subscription tokens to tracked scripts. Subscription quota collectors should use the provider's existing local login/session material and should never print credentials.

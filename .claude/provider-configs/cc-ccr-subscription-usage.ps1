@@ -34,13 +34,11 @@ function Get-OpenAISubscriptionUsage {
         }
 
         $plan = if ($response.plan_type) { [string]$response.plan_type } else { 'subscription' }
-        $hasFiveHour = @($windows | Where-Object Name -eq '5h window').Count -gt 0
         return [pscustomobject]@{
             Provider       = 'openai'
             Available      = $true
             Plan           = $plan
             Windows        = $windows
-            MissingWindows = if ($hasFiveHour) { @() } else { @('5h window') }
             Source         = 'ChatGPT subscription session'
         }
     } catch {

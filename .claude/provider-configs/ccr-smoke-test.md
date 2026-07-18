@@ -53,7 +53,8 @@ OpenAI-compatible provider (e.g. an OpenCode/Nvidia/Z.ai route from your Bifrost
 ```
 ```powershell
 ccr start
-$env:ANTHROPIC_BASE_URL = "http://127.0.0.1:3456"   # confirm CCR's port from `ccr start` output
+$ccrPort = (Get-Content "$env:USERPROFILE\.claude-code-router\config.json" -Raw | ConvertFrom-Json).PORT
+$env:ANTHROPIC_BASE_URL = "http://127.0.0.1:$ccrPort"   # CCR port is owned by config.json
 claude
 ```
 **PASS check 1:** a normal turn answers via `zai`. Then `/model minimax,MiniMax-M2.7`

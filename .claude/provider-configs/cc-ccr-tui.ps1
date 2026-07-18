@@ -17,6 +17,16 @@ param(
 
 $ccrConfigPath = "$env:USERPROFILE\.claude-code-router\config.json"
 $ccrCmd = "$env:APPDATA\npm\ccr.cmd"
+$ccrPort = 3456 # explicit fallback when config.json is absent or invalid
+if (Test-Path -LiteralPath $ccrConfigPath) {
+    try {
+        $configuredPort = (Get-Content -LiteralPath $ccrConfigPath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop).PORT
+        $parsedPort = 0
+        if ([int]::TryParse([string]$configuredPort, [ref]$parsedPort) -and $parsedPort -ge 1 -and $parsedPort -le 65535) {
+            $ccrPort = $parsedPort
+        }
+    } catch { }
+}
 
 # --- Predefined route options ---
 $Routes = @{
@@ -185,7 +195,7 @@ function Restart-CCR {
 
     # Verify
     try {
-        $r = Invoke-WebRequest -Uri "http://localhost:3456/health" -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
+        $r = Invoke-WebRequest -Uri "http://localhost:$ccrPort/health" -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
         Write-Host "[TUI] CCR restarted successfully (HTTP $($r.StatusCode))." -ForegroundColor Green
     } catch {
         Write-Warning "[TUI] CCR health check failed. Check CCR manually."

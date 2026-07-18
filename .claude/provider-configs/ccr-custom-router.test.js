@@ -122,6 +122,17 @@ test("stale state metadata does NOT bypass live unavailability", async () => {
   assert.equal(route, "opencode-go,deepseek-v4-flash", "unhealthy local must route to LOCAL_FAIL_FALLBACK");
 });
 
+test("explicit Grok selection routes to the registered subscription backend", async () => {
+  stubFetch(
+    () => ({ ok: false, status: 503, json: async () => ({}) }),
+    () => ({ ok: false, status: 503, json: async () => ({}) }),
+  );
+  const router = freshRouter();
+  const req = makeReq({ model: "grok", messages: [{ role: "user", content: "hello" }], tokenCount: 100 });
+  const route = await router(req, makeConfig());
+  assert.equal(route, "grok-subscription,grok-4.5");
+});
+
 // --- 3. Idle local slot permits automatic local-first routing -------------
 test("idle local + aggressive coding routes to local", async () => {
   stubFetch(
@@ -163,6 +174,50 @@ test("route log includes request correlation and safe request-shape metadata", a
   assert.equal(event.body_thinking_type, "enabled");
   assert.equal(event.body_has_thinking_blocks, true);
   assert.equal(JSON.stringify(event).includes("redacted from logs"), false);
+});
+
+test("adaptive thinking with tool history avoids the unsafe opencode-go path", async () => {
+  stubFetch(
+    () => ({ ok: false, status: 503, json: async () => ({}) }),
+    () => ({ ok: false, status: 503, json: async () => ({}) }),
+  );
+  const router = freshRouter();
+  const req = makeReq({
+    model: "claude-sonnet-5",
+    messages: [
+      { role: "user", content: "inspect this" },
+      { role: "assistant", content: [
+        { type: "thinking", thinking: "Need to inspect the file." },
+        { type: "tool_use", id: "toolu_1", name: "Read", input: { file_path: "x" } },
+      ] },
+      { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_1", content: "ok" }] },
+    ],
+    tokenCount: 1000,
+  });
+  req.body.tools = [{ name: "example" }];
+  req.body.thinking = { type: "adaptive" };
+
+  const route = await router(req, makeConfig({ routingMode: "aggressive" }));
+  assert.equal(route, "minimax,MiniMax-M3[1m]");
+  assert.equal(req.body.thinking.type, "adaptive");
+  assert.equal(req.body.messages[1].content.some((b) => b.type === "thinking"), true);
+  assert.equal(req.body.messages[1].content.some((b) => b.type === "tool_use"), true);
+});
+
+test("simple tool request without DeepSeek history retains the economical fallback", async () => {
+  stubFetch(
+    () => ({ ok: false, status: 503, json: async () => ({}) }),
+    () => ({ ok: false, status: 503, json: async () => ({}) }),
+  );
+  const router = freshRouter();
+  const req = makeReq({
+    model: "claude-sonnet-5",
+    messages: [{ role: "user", content: "inspect this" }],
+    tokenCount: 1000,
+  });
+  req.body.tools = [{ name: "example" }];
+  const route = await router(req, makeConfig({ routingMode: "aggressive" }));
+  assert.equal(route, "opencode-go,deepseek-v4-flash");
 });
 
 // --- 4. Busy local slot selects cloud fallback ----------------------------
@@ -544,12 +599,13 @@ test("proxy: body without max_tokens defaults to 0 output budget", () => {
 });
 
 test("proxy: every active CCR route has a verified context limit", () => {
-  assert.equal(GLOBAL_CONTEXT_LIMIT, 1_000_000);
+  assert.equal(GLOBAL_CONTEXT_LIMIT, 500_000);
   assert.deepEqual(getUnverifiedConfiguredRoutes(), [], "config routes must be registered before proxy startup");
   assert.doesNotThrow(() => validateConfiguredRoutes());
   assert.equal(VERIFIED_ROUTE_LIMITS["zai,glm-5.2"], 1_000_000);
   assert.equal(VERIFIED_ROUTE_LIMITS["nvidia-free,nvidia/nemotron-3-ultra-550b-a55b"], 1_000_000);
   assert.equal(VERIFIED_ROUTE_LIMITS["nvidia-free,nvidia/nemotron-3-super-120b-a12b"], 1_000_000);
+  assert.equal(VERIFIED_ROUTE_LIMITS["grok-subscription,grok-4.5"], 500_000);
 });
 
 test("proxy: rejection diagnostics use the verified global limit", () => {

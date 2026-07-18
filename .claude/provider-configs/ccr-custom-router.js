@@ -80,6 +80,23 @@ function getRoutingPolicy() {
   return readJsonSafe(ROUTING_POLICY_FILE);
 }
 
+// DeepSeek V4 tool/reasoning replay is not safe through CCR's current
+// Anthropic→OpenAI transformer. Use the 1M-context MiniMax route for those
+// requests until the transformer itself can round-trip reasoning_content.
+const DEEPSEEK_TOOL_SAFE_FALLBACK = "minimax,MiniMax-M3[1m]";
+
+function requiresDeepSeekToolSafeFallback(req) {
+  const body = req?.body || {};
+  if (!Array.isArray(body.tools) || body.tools.length === 0) return false;
+  if (body.thinking?.type && body.thinking.type !== "disabled") return true;
+  return Array.isArray(body.messages) && body.messages.some((message) => {
+    if (message?.role !== "assistant") return false;
+    if (Array.isArray(message.tool_calls) && message.tool_calls.length > 0) return true;
+    return Array.isArray(message.content) && message.content.some((block) =>
+      block?.type === "thinking" || block?.type === "redacted_thinking" || block?.type === "tool_use");
+  });
+}
+
 // Request correlation metadata for route/provider incident analysis. Keep this
 // deliberately payload-free: the route log may be read after the fact, so it
 // must never contain prompt text, tool arguments, or message content.
@@ -377,6 +394,7 @@ function routeToAlias(route, fallback) {
     "zai,glm-5.2": "claude-opus-4-8",
     "minimax,MiniMax-M3[1m]": "claude-sonnet-5",
     "opencode-go,deepseek-v4-flash": "claude-haiku-4-5-20251001",
+    "grok-subscription,grok-4.5": "grok",
   };
   if (m[route]) return m[route];
   if (route.startsWith("llama-cpp,")) return "claude-local-ornith";
@@ -445,6 +463,12 @@ module.exports = async function router(req, config) {
 
   // decide(): log the full effective-route field set, emit route change, return route.
   const decide = (route, reason, decisionSource, guardrailOverride = false) => {
+    if (typeof route === "string" && route.startsWith("opencode-go,") &&
+        requiresDeepSeekToolSafeFallback(req)) {
+      route = DEEPSEEK_TOOL_SAFE_FALLBACK;
+      reason += `; DeepSeek tool-history compatibility fallback → ${route}`;
+      decisionSource = "provider-compatibility";
+    }
     const backend = splitRoute(route);
 
     // Backend context limit check: if the selected route has a verified limit,
@@ -510,12 +534,10 @@ module.exports = async function router(req, config) {
       reason,
       ...getRequestObservability(req),
     });
-    // Strip Anthropic extended-thinking on the opencode-go path BEFORE the
-    // CCR openai transformer adds the rejected `r.reasoning` field. Single
-    // insertion covers every decision path (pin / background / reasoning /
-    // coding / no-local). Idempotent on the body. Stderr-annotated for
-    // CCR log tailers.
-    if (route) stripThinkingForOpencodeGo(req, backend.provider);
+    // Normalize DeepSeek V4 reasoning/tool history before the CCR OpenAI
+    // transformer runs. Single insertion covers every decision path (pin /
+    // background / reasoning / coding / no-local).
+    if (route) normalizeThinkingForOpencodeGo(req, backend.provider);
     emitRouteChange(route, reason, req);
     return route;
   };
@@ -530,6 +552,14 @@ module.exports = async function router(req, config) {
     }
   }
 
+  // Explicit Grok selection is opt-in. Keep it ahead of automatic
+  // local/cloud classification so model `grok` cannot silently use another
+  // provider.
+  if (model === "grok") {
+    const grokRoute = resolveModelToRoute(model);
+    return decide(grokRoute, "explicit Grok model selection", "explicit-model");
+  }
+
   // --- 2. Background: classifier haiku rec if present, else fall through ---
   if (taskType === "background") {
     if ((rec?.recommended_tier === "haiku" || rec?.recommended_tier === "deepseek") && rec.recommended_model) {
@@ -542,7 +572,14 @@ module.exports = async function router(req, config) {
     // payloads — so strip here too.
     const bgRoute = config?.Router?.background;
     if (typeof bgRoute === "string" && bgRoute.startsWith("opencode-go")) {
-      stripThinkingForOpencodeGo(req, "opencode-go");
+      if (requiresDeepSeekToolSafeFallback(req)) {
+        return decide(
+          DEEPSEEK_TOOL_SAFE_FALLBACK,
+          "background — DeepSeek tool-history compatibility fallback",
+          "provider-compatibility",
+        );
+      }
+      normalizeThinkingForOpencodeGo(req, "opencode-go");
     }
     return decide(null, "background — fall through to CCR Router.background", "default");
   }
@@ -599,37 +636,54 @@ module.exports = async function router(req, config) {
   return decide(tierRoute, `conservative-cloud (${taskType}, ${tokenCount}); tier=${rec?.recommended_tier || "none"}`, tierSource);
 };
 
-// Pre-transform body patch: when the route is opencode-go AND the request
-// carries Anthropic extended-thinking AND non-empty tools, strip thinking before
-// the CCR openai transformer runs. Without this, the transformer emits
-// `r.reasoning = { effort, enabled }` (dist/cli.js openai transform), which
-// opencode-go's Console Go upstream rejects with 400 invalid_request_error on
-// the {reasoning-model, tools, thinking} triple (musistudio issue #1378:
-// "DeepSeek V4 Pro + thinking mode + tool calls: 400, no working workaround").
-// Tool reinjection is NOT the bug here (the transformer handles it correctly);
-// the rejected field is `reasoning`. Stripping thinking fixes the 400;
-// tools continue to pass through the transform normally.
-function stripThinkingForOpencodeGo(req, backendProvider) {
+// Pre-transform body patch for DeepSeek V4 tool history. DeepSeek requires
+// assistant reasoning_content to be passed back on later tool-use turns. CCR's
+// Anthropic→OpenAI transformer preserves the thinking block for its own
+// response conversion, but does not emit the provider-required
+// message.reasoning_content field. Preserve the text (or an empty value for a
+// redacted block), then remove the Anthropic-only block. Also remove the
+// top-level reasoning request so the upstream does not enter a new thinking
+// mode merely because CCR's generic reasoning transformer added it.
+function normalizeThinkingForOpencodeGo(req, backendProvider) {
   if (backendProvider !== "opencode-go") return false;
   const body = req?.body;
   if (!body) return false;
   const thinking = body.thinking;
-  const thinkingOn = thinking && thinking.type === "enabled";
+  const thinkingOn = thinking && thinking.type && thinking.type !== "disabled";
   const hasTools = Array.isArray(body.tools) && body.tools.length > 0;
-  if (!thinkingOn || !hasTools) return false;
-  // Drop top-level thinking field; transform will skip the r.reasoning line.
+  const hasThinkingBlocks = Array.isArray(body.messages) && body.messages.some((m) =>
+    Array.isArray(m?.content) && m.content.some((b) =>
+      b?.type === "thinking" || b?.type === "redacted_thinking"));
+  if ((!thinkingOn && !hasThinkingBlocks) || !hasTools) return false;
+
+  // Prevent the generic CCR transformer from turning this into a new upstream
+  // reasoning request. Historical reasoning is handled per assistant message.
   delete body.thinking;
-  // Strip any thinking/redacted_thinking content blocks already in messages,
-  // so they don't reach the upstream as malformed shapes.
+
+  let replayed = 0;
   if (Array.isArray(body.messages)) {
     for (const m of body.messages) {
       if (!Array.isArray(m?.content)) continue;
-      m.content = m.content.filter((b) => b && b.type !== "thinking" && b.type !== "redacted_thinking");
+      if (m.role !== "assistant") continue;
+      const thinkingBlocks = m.content.filter((b) =>
+        b?.type === "thinking" || b?.type === "redacted_thinking");
+      if (thinkingBlocks.length) {
+        const reasoning = thinkingBlocks
+          .map((b) => typeof b.thinking === "string" ? b.thinking : "")
+          .join("\n");
+        // Empty reasoning_content is intentional for redacted thinking: the
+        // field's presence satisfies the DeepSeek replay contract without
+        // inventing private chain-of-thought.
+        if (typeof m.reasoning_content !== "string") m.reasoning_content = reasoning;
+        replayed++;
+        m.content = m.content.filter((b) =>
+          b && b.type !== "thinking" && b.type !== "redacted_thinking");
+      }
     }
   }
   try {
-    process.stderr.write("[CCR-route] stripped thinking for opencode-go (tools=" +
-      (body.tools?.length ?? 0) + ") — see #1378\n");
+    process.stderr.write("[CCR-route] normalized DeepSeek reasoning replay (tools=" +
+      (body.tools?.length ?? 0) + ", assistant_turns=" + replayed + ")\n");
   } catch {}
   return true;
 }
@@ -653,6 +707,7 @@ function resolveModelToRoute(modelName) {
     "claude-haiku-4-5-20251001": "opencode-go,deepseek-v4-flash",
     "claude-local-ornith": "llama-cpp,ornith-1.0-9b",
     "deepseek-v4-flash": "opencode-go,deepseek-v4-flash",
+    "grok": "grok-subscription,grok-4.5",
   };
 
   return routeMap[modelName] || null;

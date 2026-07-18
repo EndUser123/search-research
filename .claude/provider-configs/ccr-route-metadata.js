@@ -12,6 +12,7 @@ const ROUTE_METADATA = Object.freeze([
   { route: 'nvidia-free,nvidia/nemotron-3-ultra-550b-a55b', limit: 1_000_000, source: 'nvidia-ultra-technical-report', confidence: 'verified', observedAt: '2026-07-15' },
   { route: 'nvidia-free,nvidia/nemotron-3-super-120b-a12b', limit: 1_000_000, source: 'nvidia-super-technical-report', confidence: 'verified', observedAt: '2026-07-15' },
   { route: 'opencode-zen-free,opencode/minimax-m3-free', limit: 1_000_000, source: 'opencode-zen-free-tier', confidence: 'verified', observedAt: '2026-07-10' },
+  { route: 'grok-subscription,grok-4.5', limit: 500_000, source: 'xai-pricing-docs', confidence: 'verified', observedAt: '2026-07-17' },
 ]);
 const ROUTES_HANDLED_OUTSIDE_CLOUD_PROXY = Object.freeze(new Set(['llama-cpp,ornith-1.0-9b']));
 const GLOBAL_CONTEXT_LIMIT = Math.min(...ROUTE_METADATA.map(r => r.limit));

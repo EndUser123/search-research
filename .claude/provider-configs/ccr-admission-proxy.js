@@ -6,7 +6,7 @@
 // provider request — it can only choose which provider.
 //
 // This proxy sits BEFORE CCR in the request path:
-//   Claude Code → admission-proxy (:3458) → CCR (:3456) → providers
+//   Claude Code → admission-proxy (:3458) → CCR (configured PORT) → providers
 //
 // It shapes safe, deterministic context reductions before estimating size,
 // then rejects requests that remain oversized. CCR still makes the routing
@@ -29,12 +29,14 @@
 // closed; otherwise a lower-context backend could be reached accidentally.
 //
 // WIRING: cc-ccr.ps1 sets ANTHROPIC_BASE_URL to this proxy's port (:3458)
-// instead of CCR directly (:3456). The proxy forwards to CCR (:3456).
+// instead of CCR directly. CCR_PORT is read from the configured CCR port,
+// with 3456 retained only as the explicit compatibility fallback.
 
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const { shapeAnthropicRequest } = require("./ccr-context-shaper");
+const ledger = require("./ccr-request-ledger");
 
 const PROXY_PORT = parseInt(process.env.CCR_ADMISSION_PORT || "3458", 10);
 const CCR_HOST = process.env.CCR_HOST || "127.0.0.1";
@@ -58,6 +60,33 @@ const SAFE_CEILING = GLOBAL_CONTEXT_LIMIT - OUTPUT_RESERVE;
 
 const LOG_FILE = process.env.CCR_ADMISSION_LOG || "P:/.claude/state/ccr-admission-log.jsonl";
 const CCR_CONFIG_PATH = process.env.CCR_CONFIG_PATH || "C:/Users/brsth/.claude-code-router/config.json";
+
+const INFERENCE_PATHS = new Set([
+  "/v1/messages",
+  "/v1/chat/completions",
+  "/v1/completions",
+  "/completion",
+  "/infill",
+]);
+
+function requestPath(url) {
+  try { return new URL(url || "/", "http://localhost").pathname; } catch { return url || "/"; }
+}
+
+function isInferencePath(method, url) {
+  return method === "POST" && INFERENCE_PATHS.has(requestPath(url));
+}
+
+function statusOutcome(statusCode) {
+  const status = Number(statusCode || 0);
+  if (status >= 200 && status < 400) return "completed";
+  if ([502, 503, 504].includes(status)) return "upstream_unavailable";
+  return "failed";
+}
+
+function requestModel(body) {
+  return body?.model || body?.model_alias || "unknown";
+}
 
 function collectRoutes(value, routes = new Set()) {
   if (typeof value === "string" && value.includes(",")) {
@@ -136,32 +165,99 @@ function prepareAdmissionBody(body) {
   }
 }
 
-function forwardToCCR(req, bodyBuf, res) {
+function observeResponseBody() {
+  let tail = "";
+  return {
+    push(chunk) {
+      tail = (tail + Buffer.from(chunk).toString("utf8")).slice(-131072);
+    },
+    outputTokens() {
+      const matches = [...tail.matchAll(/(?:completion_tokens|output_tokens|tokens_predicted)"?\s*:\s*(\d+)/g)];
+      if (!matches.length) return null;
+      return Number(matches[matches.length - 1][1]);
+    },
+    quotaFailure() {
+      return /quota|rate[-_ ]?limit|too many requests|resource exhausted/i.test(tail);
+    },
+  };
+}
+
+function forwardToCCR(req, bodyBuf, res, lifecycle = null) {
   const headers = { ...req.headers, "content-length": String(bodyBuf.length) };
   delete headers["transfer-encoding"];
+  if (lifecycle) headers["x-request-id"] = lifecycle.requestId;
+  const observer = observeResponseBody();
+  const attemptId = lifecycle ? `attempt-${lifecycle.requestId}` : null;
+  if (lifecycle) ledger.markAdmitted(lifecycle);
+  let responseEnded = false;
+  const finalize = (input) => {
+    if (!lifecycle || lifecycle.finalized) return;
+    ledger.finalizeRequest(lifecycle, input);
+  };
   const proxyReq = http.request(
     { host: CCR_HOST, port: CCR_PORT, method: req.method, path: req.url, headers },
     (proxyRes) => {
       res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      const attemptStarted = Date.now();
+      if (lifecycle) {
+        ledger.recordAttempt({
+          attemptId,
+          requestId: lifecycle.requestId,
+          provider: "CCR",
+          model: lifecycle.model,
+          outcome: "started",
+          correlationQuality: "exact",
+        });
+      }
+      proxyRes.on("data", (chunk) => observer.push(chunk));
+      proxyRes.on("end", () => {
+        responseEnded = true;
+        const outcome = statusOutcome(proxyRes.statusCode);
+        if (proxyRes.statusCode === 429 || observer.quotaFailure()) ledger.recordQuotaFailure();
+        if (lifecycle) {
+          ledger.recordAttempt({
+            attemptId,
+            requestId: lifecycle.requestId,
+            provider: "CCR",
+            model: lifecycle.model,
+            outcome,
+            statusCode: proxyRes.statusCode,
+            durationMs: Date.now() - attemptStarted,
+            correlationQuality: "exact",
+          });
+        }
+        finalize({ outcome, statusCode: proxyRes.statusCode, outputTokens: observer.outputTokens() });
+      });
+      proxyRes.on("aborted", () => finalize({ outcome: "upstream_unavailable", statusCode: proxyRes.statusCode }));
       proxyRes.pipe(res);
     },
   );
   proxyReq.on("error", (e) => {
+    if (responseEnded) return;
+    finalize({ outcome: "upstream_unavailable", statusCode: 502 });
     if (!res.headersSent) {
       res.writeHead(502, { "content-type": "application/json" });
       res.end(JSON.stringify({ error: { type: "admission_proxy_upstream_error", message: `CCR unreachable: ${e.message}` } }));
     }
+  });
+  res.on("close", () => {
+    if (!responseEnded) finalize({ outcome: "cancelled", statusCode: 499, outputTokens: observer.outputTokens() });
   });
   if (bodyBuf && bodyBuf.length > 0) proxyReq.write(bodyBuf);
   proxyReq.end();
 }
 
 const server = http.createServer((req, res) => {
-  // Only gate POST /v1/messages (the Claude inference path). Other paths
-  // (health, etc.) pass through without admission logic.
-  const isInferencePath = req.method === "POST" && (req.url === "/v1/messages" || req.url === "/v1/messages/");
+  if (req.method === "GET" && requestPath(req.url) === "/metrics") {
+    const body = ledger.prometheusMetrics();
+    res.writeHead(200, { "content-type": "text/plain; version=0.0.4; charset=utf-8" });
+    res.end(body);
+    return;
+  }
 
-  if (!isInferencePath) {
+  const inferenceRequest = isInferencePath(req.method, req.url);
+
+  if (!inferenceRequest) {
     // Non-inference: pipe through without buffering
     const proxyReq = http.request(
       { host: CCR_HOST, port: CCR_PORT, method: req.method, path: req.url, headers: req.headers },
@@ -174,6 +270,10 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  const requestId = req.headers["x-request-id"] || `proxy-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  req.headers["x-request-id"] = requestId;
+  const lifecycle = ledger.createRequest({ requestId });
+
   // Inference path: buffer body, check admission, forward or reject
   const chunks = [];
   req.on("data", (c) => chunks.push(c));
@@ -182,7 +282,7 @@ const server = http.createServer((req, res) => {
     let body;
     try { body = JSON.parse(bodyBuf.toString("utf-8")); } catch {
       // Malformed JSON — let CCR handle the error
-      forwardToCCR(req, bodyBuf, res);
+      forwardToCCR(req, bodyBuf, res, lifecycle);
       return;
     }
 
@@ -191,8 +291,8 @@ const server = http.createServer((req, res) => {
     const shapedBody = prepared.body;
     const shapedBuf = Buffer.from(JSON.stringify(shapedBody), "utf8");
     const { inputEstimate, maxTokens, total } = estimateTokens(shapedBody);
-    const requestId = req.headers["x-request-id"] || `proxy-${Date.now()}`;
-    const model = body?.model || "unknown";
+    const model = requestModel(body);
+    ledger.updateRequest(lifecycle, { model, inputTokensEstimate: inputEstimate });
 
     const entry = {
       ts: new Date().toISOString(),
@@ -222,15 +322,24 @@ const server = http.createServer((req, res) => {
           admission_details: entry,
         },
       }));
+      ledger.finalizeRequest(lifecycle, {
+        outcome: "rejected",
+        statusCode: 413,
+        model,
+        inputTokensEstimate: inputEstimate,
+        admitted: false,
+      });
       return;
     }
 
     entry.decision = "FORWARDED";
     entry.reason = `total ${total} <= ceiling ${SAFE_CEILING}`;
     logAdmission(entry);
-    forwardToCCR(req, shapedBuf, res);
+    forwardToCCR(req, shapedBuf, res, lifecycle);
   });
+  req.on("aborted", () => ledger.finalizeRequest(lifecycle, { outcome: "cancelled", statusCode: 499 }));
   req.on("error", () => {
+    ledger.finalizeRequest(lifecycle, { outcome: "failed", statusCode: 400 });
     if (!res.headersSent) { res.writeHead(400); res.end("request read error"); }
   });
 });

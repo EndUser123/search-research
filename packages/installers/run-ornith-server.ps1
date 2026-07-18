@@ -5,6 +5,7 @@ $bin = "P:\packages\.github_repos\llama.cpp\build\bin"
 $model = "P:\packages\models\ornith-1.0-9b-Q4_K_M.gguf"
 $watcherScript = "P:\packages\installers\watch-system.ps1"
 $watcherLog   = "P:\packages\installers\system_watch.log"
+$monitorScript = "P:\packages\installers\ornith-monitor.py"
 $modelStateFile = "P:\.claude\state\local-model-state.json"
 $llamaLog      = "P:\packages\installers\ornith-server.log"
 $endpoint = "http://127.0.0.1:8010"
@@ -94,71 +95,38 @@ function Get-LocalModelState {
   }
 }
 
-# --- Slot telemetry for the heartbeat ---------------------------------------
-# /slots is read-only and does not consume the single inference slot. It gives
-# us the actual phase/progress of the current request; VRAM deltas alone cannot
-# distinguish prompt evaluation, generation, and idle cache residency.
-function Get-LocalSlotStatus {
-  param([string]$Endpoint = $endpoint)
+function Start-OrnithDashboard {
+  if (-not (Test-Path -LiteralPath $monitorScript)) { return $null }
+  $existing = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+    Where-Object { $_.CommandLine -match 'ornith-monitor\.py' } |
+    Sort-Object ProcessId)
+  if ($existing.Count -gt 0) {
+    # Concurrent cc-ccr starts can race between discovery and Start-Process.
+    # Keep the oldest monitor and remove only exact monitor-script duplicates.
+    foreach ($duplicate in @($existing | Select-Object -Skip 1)) {
+      Stop-Process -Id $duplicate.ProcessId -Force -ErrorAction SilentlyContinue
+    }
+    return Get-Process -Id $existing[0].ProcessId -ErrorAction SilentlyContinue
+  }
 
+  $python = Get-Command python.exe -ErrorAction SilentlyContinue
+  if (-not $python) { return $null }
+  $pythonPath = $python.Source
+  # The uv tool shim remains as a parent process while the real interpreter
+  # runs the dashboard. Prefer the installed direct runtime when the shim is
+  # what PATH resolves, so process ownership and taskbar identity stay one-to-
+  # one with the dashboard.
+  if ($pythonPath -match '\\uv\\' -and (Test-Path -LiteralPath 'C:\Python314\python.exe')) {
+    $pythonPath = 'C:\Python314\python.exe'
+  }
   try {
-    $raw = Invoke-RestMethod -Uri "$Endpoint/slots" -TimeoutSec 3 -ErrorAction Stop
-    $slot = if ($raw -is [System.Array]) {
-      @($raw)[0]
-    } elseif ($null -ne $raw.slots) {
-      @($raw.slots)[0]
-    } else {
-      $raw
-    }
-    if (-not $slot) { return @{ state = "UNKNOWN"; detail = "no slot data"; task = $null } }
-
-    $task = $slot.id_task
-    $next = if ($slot.next_token) { @($slot.next_token)[0] } else { $null }
-    $promptTotal = 0L
-    $promptDone = 0L
-    $decoded = 0L
-    $remaining = 0L
-    try { if ($null -ne $slot.n_prompt_tokens) { $promptTotal = [int64]$slot.n_prompt_tokens } } catch {}
-    try { if ($null -ne $slot.n_prompt_tokens_processed) { $promptDone = [int64]$slot.n_prompt_tokens_processed } } catch {}
-    try { if ($next -and $null -ne $next.n_decoded) { $decoded = [int64]$next.n_decoded } } catch {}
-    try { if ($next -and $null -ne $next.n_remain) { $remaining = [int64]$next.n_remain } } catch {}
-
-    if (-not $slot.is_processing) {
-      return @{ state = "IDLE"; detail = "idle"; task = $task; promptTotal = $promptTotal; promptDone = $promptDone; decoded = $decoded; remaining = $remaining }
-    }
-
-    if ($promptTotal -gt 0 -and $promptDone -lt $promptTotal) {
-      $pct = [math]::Min(100, [math]::Max(0, [math]::Round(($promptDone / $promptTotal) * 100)))
-      return @{ state = "BUSY"; detail = "prompt $promptDone/$promptTotal ($pct%)"; task = $task; promptTotal = $promptTotal; promptDone = $promptDone; decoded = $decoded; remaining = $remaining }
-    }
-
-    $genDetail = if ($decoded -gt 0 -or $remaining -gt 0) { "gen $decoded, remain $remaining" } else { "generation" }
-    return @{ state = "BUSY"; detail = $genDetail; task = $task; promptTotal = $promptTotal; promptDone = $promptDone; decoded = $decoded; remaining = $remaining }
-  } catch {
-    return @{ state = "UNKNOWN"; detail = "telemetry unavailable"; task = $null; promptTotal = 0L; promptDone = 0L; decoded = 0L; remaining = 0L }
-  }
-}
-
-function Format-HeartbeatLine {
-  param(
-    [hashtable]$ModelState,
-    [hashtable]$SlotStatus,
-    [Nullable[int]]$Gpu,
-    [Nullable[int]]$Temperature,
-    [Nullable[int]]$VramMb
-  )
-
-  $gpuTxt = if ($null -ne $Gpu -and $null -ne $Temperature) { "GPU ${Gpu}% ${Temperature}C" } else { "GPU n/a" }
-  $vramTxt = if ($null -ne $VramMb) { "VRAM ${VramMb}MB" } else { "VRAM n/a" }
-  $taskTxt = if ($null -ne $SlotStatus.task -and "$($SlotStatus.task)" -ne "-1") { " task $($SlotStatus.task)" } else { "" }
-  $slotTxt = if ($SlotStatus.state -eq "IDLE") {
-    "idle$taskTxt"
-  } elseif ($SlotStatus.state -eq "UNKNOWN") {
-    "slot telemetry unavailable"
-  } else {
-    "busy$taskTxt • $($SlotStatus.detail)"
-  }
-  return "[run-ornith] $($ModelState.state.ToUpper()) • $gpuTxt • $vramTxt • $slotTxt"
+    return Start-Process -FilePath $pythonPath `
+      -ArgumentList @($monitorScript, '--endpoint', $endpoint, '--state-file', $modelStateFile, '--poll-seconds', '2') `
+      # The dashboard is the operator-facing window. Keep the supervisor
+      # minimized, but show this window so a fresh start immediately displays
+      # the STARTING/BROKEN snapshot before llama-server is loaded.
+      -WindowStyle Normal -PassThru
+  } catch { return $null }
 }
 
 # -Probe mode: emit state as JSON and exit. Read-only, no side effects. Lets
@@ -166,6 +134,13 @@ function Format-HeartbeatLine {
 if ($Probe) {
   Get-LocalModelState -IncludeInference:$IncludeInference | ConvertTo-Json -Depth 3
   exit 0
+}
+
+# The Python dashboard is independent of the llama-server child and should be
+# available even when this invocation finds an already-running server.
+$dashboard = Start-OrnithDashboard
+if ($dashboard) {
+  Write-Host "Operator dashboard active (PID $($dashboard.Id)) - ornith-monitor.py"
 }
 
 # --- Update local-model-state.json from llama-server's actual runtime output ---
@@ -287,20 +262,23 @@ Remove-Item $watcherLog -ErrorAction SilentlyContinue
 Remove-Item $llamaLog -ErrorAction SilentlyContinue
 $watcher = Start-Process pwsh.exe -ArgumentList "-NoProfile -File `"$watcherScript`"" -WindowStyle Hidden -PassThru
 Write-Host "System watcher started (PID $($watcher.Id)) - log: $watcherLog"
+if (-not $dashboard) {
+  Write-Warning "Operator dashboard unavailable; lifecycle log remains in $llamaLog"
+}
 
 Write-Host "Starting llama-server with Ornith-1.0-9B on $endpoint"
 Write-Host "Log: $llamaLog"
 Write-Host "(Window stays visible+minimized so the taskbar shows live state.)"
 
-# Set the window title once at startup — the heartbeat poll below keeps it
-# current. Title format: "llama.cpp: <state> • VRAM <MB>MB" so the taskbar
-# tooltip alone tells you health + rough activity without expanding the window.
+# Set the window title once at startup — the supervisor poll below keeps it
+# current. The operator-facing live display belongs to ornith-monitor.py.
 $host.UI.RawUI.WindowTitle = "llama.cpp: starting…"
 
 # Launch llama-server in background with stdout/stderr captured to file.
 # Run in foreground would lose the log; tee via Start-Process preserves both.
 $llamaArgs = @("-m", "$model", "-ngl", "99", "-c", "65536", "-t", "6",
                "--parallel", "1", "-fa", "on", "-ctk", "q4_0", "-ctv", "q4_0",
+               "--metrics",
                "-b", "2048", "-ub", "1024", "--reasoning-preserve", "--jinja",
                "--temp", "0.6", "--top-p", "0.95", "--top-k", "20",
                "--host", "127.0.0.1", "--port", "8010")
@@ -444,14 +422,10 @@ try {
     # (zombie / HTTP broken). Leave LOADING/LOADED alone — those are alive.
     # Same poll also samples VRAM and updates the window title so the taskbar
     # shows live state ("llama.cpp: READY • VRAM 11451MB" / "…idle" / "…busy").
-    $lastHeartbeatKey = $null
-    $lastHeartbeatAt = [datetime]::MinValue
     while (-not $procHandle.HasExited) {
         Start-Sleep -Seconds 15
         if ($procHandle.HasExited) { break }
         $poll = Get-LocalModelState -Endpoint $endpoint
-        $slot = Get-LocalSlotStatus -Endpoint $endpoint
-
         # GPU sample for usage signal + taskbar title. Same data source
         # watch-system.ps1 uses; ~50ms, runs once per 15s cycle.
         $gpu = $null
@@ -468,18 +442,6 @@ try {
             }
           }
         } catch {}
-
-        # Print on meaningful slot/task/progress changes, plus one keepalive
-        # per minute. This keeps the window useful without repeating identical
-        # idle lines every 15 seconds.
-        $heartbeat = Format-HeartbeatLine -ModelState $poll -SlotStatus $slot -Gpu $gpu -Temperature $temperature -VramMb $vram
-        $heartbeatKey = "$($poll.state)|$($slot.state)|$($slot.task)|$($slot.detail)|$([int]$vram / 100)"
-        $now = Get-Date
-        if ($heartbeatKey -ne $lastHeartbeatKey -or ($now - $lastHeartbeatAt).TotalSeconds -ge 60) {
-          Write-Host $heartbeat
-          $lastHeartbeatKey = $heartbeatKey
-          $lastHeartbeatAt = $now
-        }
 
         try {
           $vramTitle = if ($null -ne $vram) { "${vram}MB" } else { "n/a" }
