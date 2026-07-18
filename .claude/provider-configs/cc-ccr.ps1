@@ -834,11 +834,17 @@ if (-not $lm -or $lm.state -eq "DEAD") {
         # — not the caller's. Without CREATE_NEW_CONSOLE the child shares the
         # parent's console, so the launcher's Write-Host spills into the terminal
         # where the user runs cc-ccr/claude (they had to ^C to escape it).
-        #   CREATE_NEW_CONSOLE      -> own window, own stdout (isolation)
+        #   CREATE_NEW_CONSOLE      -> own console, own stdout (isolation)
         #   CREATE_BREAKAWAY_FROM_JOB -> survives parent exit
-        #   STARTF_USESHOWWINDOW + SW_SHOWMINNOACTIVE -> start minimized, no focus steal;
-        #     the window is taskbar-visible and its title carries the launcher's
-        #     live-state heartbeat ("llama.cpp: READY • VRAM …").
+        #   STARTF_USESHOWWINDOW + SW_HIDE -> window created but never shown.
+        #     Single-window operator experience: the dashboard (which the
+        #     supervisor's Start-OrnithDashboard opens with -WindowStyle Normal)
+        #     is the only window the user sees. The supervisor's own console
+        #     still exists so Write-Host output is captured (and goes to the
+        #     hidden buffer), but the user does not see a second window.
+        #     The dashboard's in-place TUI already surfaces the live state
+        #     the previous minimized supervisor's title bar was carrying, so
+        #     no information is lost by hiding the supervisor's window.
         if (-not ([System.Management.Automation.PSTypeName]'CCR_BREAKAWAY').Type) {
             Add-Type -TypeDefinition @"
 using System;
@@ -847,6 +853,7 @@ public class CCR_BREAKAWAY {
     const uint CREATE_BREAKAWAY_FROM_JOB = 0x01000000;
     const uint CREATE_NEW_CONSOLE        = 0x00000010;
     const uint STARTF_USESHOWWINDOW       = 0x00000001;
+    const short SW_HIDE                    = 0;
     const short SW_SHOWMINNOACTIVE        = 7;
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     public struct STARTUPINFO { public int cb; public IntPtr lpReserved; public IntPtr lpDesktop; public IntPtr lpTitle; public int dwX; public int dwY; public int dwXSize; public int dwYSize; public int dwXCountChars; public int dwYCountChars; public int dwFillAttribute; public uint dwFlags; public short wShowWindow; public short cbReserved2; public IntPtr lpReserved2; public IntPtr hStdInput; public IntPtr hStdOutput; public IntPtr hStdError; }
@@ -858,7 +865,7 @@ public class CCR_BREAKAWAY {
         var si = new STARTUPINFO {
             cb = Marshal.SizeOf(typeof(STARTUPINFO)),
             dwFlags = STARTF_USESHOWWINDOW,
-            wShowWindow = SW_SHOWMINNOACTIVE
+            wShowWindow = SW_HIDE
         };
         var pi = new PROCESS_INFORMATION();
         uint flags = CREATE_BREAKAWAY_FROM_JOB | CREATE_NEW_CONSOLE;
@@ -875,7 +882,7 @@ public class CCR_BREAKAWAY {
             Write-Host "  CREATE_BREAKAWAY_FROM_JOB failed - falling back to Start-Process" -ForegroundColor Yellow
             Start-Process -FilePath "pwsh.exe" `
                 -ArgumentList @("-NoProfile", "-NoLogo", "-NonInteractive", "-File", $launcherScript) `
-                -WindowStyle Minimized
+                -WindowStyle Hidden
         }
         $lm = Wait-LocalModelReady -TimeoutSec 60
     } else {
