@@ -457,13 +457,14 @@ def build_screen(
     row("", "temp", snapshot["temperature"])
     row("", "vram", snapshot["vram"])
     row("", "context", snapshot["context"])
-    row("", "sampled starts", f"{metrics['requests']:,}")
+    ccr = snapshot.get("ccr_metrics", {})
+    if not ccr:
+        row("", "sampled starts", f"{metrics['requests']:,}")
     row("", "processing", f"{metrics.get('requests_processing', 0):,}")
     row("", "deferred", f"{metrics.get('requests_deferred', 0):,}")
     row("", "prompt tok", f"{metrics['prompt_tokens_processed']:,} ({metrics['prompt_tps']:.1f}/s)")
     row("", "gen tok", f"{metrics['generated_tokens']:,} ({metrics['generation_tps']:.1f}/s)")
     screen.append(ScreenLine(""))
-    ccr = snapshot.get("ccr_metrics", {})
     row("CCR requests", "in flight", f"{int(ccr.get('in_flight', 0)):,}")
     row("", "completed", f"{int(ccr.get('completed', 0)):,}")
     row("", "failed", f"{int(ccr.get('failed', 0)):,}")
@@ -677,6 +678,30 @@ def _write_plain(lines: list[str]) -> None:
     sys.stdout.flush()
 
 
+def _log_startup_mode(state_file: Path, isatty: bool, win32_renderer: bool, argv: list[str]) -> None:
+    """Record the renderer's startup decision to a sibling log file.
+
+    The dashboard can silently fall back from the in-place Win32 renderer to
+    append-mode plain output when sys.stdout.isatty() returns False. That
+    fallback is correct behavior, but invisible to the operator when stdout is
+    also the wrong destination. Writing a single tab-separated line to a known
+    state-file sibling makes the failure mode observable from outside the
+    dashboard window.
+    """
+    log_path = state_file.parent / "ornith-monitor-startup.log"
+    try:
+        with log_path.open("a", encoding="utf-8") as handle:
+            handle.write(
+                f"{datetime.now().isoformat()}\t"
+                f"isatty={isatty}\t"
+                f"renderer={'Win32' if win32_renderer else 'plain'}\t"
+                f"argv={' '.join(argv)}\n"
+            )
+    except OSError:
+        # Logging must never prevent the dashboard from running.
+        pass
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--endpoint", default="http://127.0.0.1:8010")
@@ -700,6 +725,7 @@ def main() -> int:
         return 0 if snapshot["state"] == "LOADED" else 2
 
     renderer = None if args.plain else WindowsConsoleRegion.try_create()
+    _log_startup_mode(args.state_file, sys.stdout.isatty(), renderer is not None, sys.argv[1:])
     next_poll = time.monotonic()
     frame = 0
     last_plain_key: tuple[Any, ...] | None = None

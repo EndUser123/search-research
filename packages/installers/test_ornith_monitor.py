@@ -274,3 +274,77 @@ def test_plain_snapshot_key_ignores_persistence_timestamp(tmp_path):
         "remaining": 0,
     }
     assert monitor._plain_snapshot_key({**base, "metrics": first}) == monitor._plain_snapshot_key({**base, "metrics": second})
+
+
+def test_build_lines_hides_sampled_starts_when_ccr_metrics_present():
+    """When CCR is reachable the real counters are authoritative; the
+    'sampled starts' fallback field is only for when CCR is unavailable.
+    Showing both creates a misleading appearance of a count that does not
+    match the CCR section's zero/real values."""
+    checked = datetime(2026, 7, 18, 14, 41, 17)
+    lines = monitor.build_lines(
+        {
+            "model": "ornith-1.0-9b",
+            "state": "LOADED",
+            "slot": "IDLE",
+            "task": "none",
+            "activity": "idle",
+            "gpu": "0%",
+            "temperature": "50C",
+            "vram": "11,100 MB",
+            "context": "65,536",
+            "started": checked - timedelta(seconds=8),
+            "checked": checked,
+            "metrics": {
+                "requests": 3,
+                "prompt_tokens_processed": 0,
+                "generated_tokens": 0,
+                "prompt_tps": 0.0,
+                "generation_tps": 0.0,
+                "requests_processing": 0,
+                "requests_deferred": 0,
+            },
+            "ccr_metrics": {
+                "in_flight": 0.0,
+                "completed": 0.0,
+                "failed": 0.0,
+                "cancelled": 0.0,
+                "rejected": 0.0,
+                "fallbacks": 0.0,
+                "quota_failures": 0.0,
+            },
+        },
+        next_seconds=1,
+        frame=0,
+        width=80,
+    )
+    output = "\n".join(lines)
+
+    assert "sampled starts" not in output
+    assert "CCR requests" in output
+    assert "in flight" in output
+
+
+def test_log_startup_mode_writes_observable_line(tmp_path):
+    """The startup log must record the renderer's chosen mode and the
+    raw argv, so silent fallback from Win32 to plain is observable from
+    outside the dashboard window."""
+    state_file = tmp_path / "local-model-state.json"
+    monitor._log_startup_mode(state_file, isatty=False, win32_renderer=False, argv=["--state-file", str(state_file), "--poll-seconds", "2"])
+
+    log_path = state_file.parent / "ornith-monitor-startup.log"
+    assert log_path.exists()
+    content = log_path.read_text(encoding="utf-8").strip()
+    parts = content.split("\t")
+    assert len(parts) == 4
+    assert parts[1] == "isatty=False"
+    assert parts[2] == "renderer=plain"
+    assert state_file.name in parts[3]
+
+    state_file2 = tmp_path / "local-model-state.json"
+    monitor._log_startup_mode(state_file2, isatty=True, win32_renderer=True, argv=["--state-file", str(state_file2)])
+    appended = log_path.read_text(encoding="utf-8").strip().splitlines()
+    assert len(appended) == 2
+    second = appended[1].split("\t")
+    assert second[1] == "isatty=True"
+    assert second[2] == "renderer=Win32"
