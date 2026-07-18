@@ -1068,6 +1068,112 @@ $ccrPid = try {
     if ($ccrPortCheck) { $ccrPortCheck.OwningProcess } else { "N/A" }
 } catch { "N/A" }
 
+# --- Fleet status: comprehensive liveness check across all 6 components ---
+# Closes the observability gap that allowed the operator dashboard to go
+# missing silently under external pressure (Codex taskkill /t storms, IDE
+# restarts, user closing the window). Each component returns a small
+# hashtable; Write-FleetStatusSection renders them in a single block.
+# The supervisor (run-ornith-server.ps1) now also runs a dashboard
+# watchdog that respawns the dashboard child automatically, but the
+# launcher still needs to surface the full state on every run so the
+# operator can see "where's the dashboard? is llama.cpp working?" at
+# a glance.
+
+function Get-FleetCcrStatus {
+    $procs = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -match 'claude-code-router' })
+    if ($procs.Count -eq 0) { return @{ alive = $false; pid = $null; message = "CCR not running" } }
+    $primary = $procs | Select-Object -First 1
+    $port = $ccrPort
+    $listening = $false
+    try {
+        $conn = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction Stop
+        $listening = $null -ne $conn
+    } catch {}
+    $msg = if ($listening) { "PID $($primary.ProcessId), port $port listening" }
+           else { "PID $($primary.ProcessId), port $port NOT listening" }
+    return @{ alive = $true; pid = [int]$primary.ProcessId; message = $msg }
+}
+
+function Get-FleetProxyStatus {
+    $alive = [bool](Test-AdmissionProxyHealth -Port 3458)
+    $pidVal = $null
+    try { $pidVal = (Get-NetTCPConnection -LocalPort 3458 -State Listen -ErrorAction Stop).OwningProcess } catch {}
+    $msg = if ($alive) { "port 3458, /health OK" } else { "port 3458 not listening" }
+    return @{ alive = $alive; pid = $pidVal; message = $msg }
+}
+
+function Get-FleetSupervisorStatus {
+    $procs = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -match 'run-ornith-server\.ps1' })
+    if ($procs.Count -eq 0) { return @{ alive = $false; pid = $null; message = "supervisor not running" } }
+    $primary = $procs | Select-Object -First 1
+    return @{ alive = $true; pid = [int]$primary.ProcessId; message = "PID $($primary.ProcessId)" }
+}
+
+function Get-FleetLlamaStatus {
+    $procs = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -eq 'llama-server.exe' })
+    if ($procs.Count -eq 0) { return @{ alive = $false; pid = $null; message = "process not running" } }
+    $primary = $procs | Select-Object -First 1
+    $health = $false
+    $loaded = $false
+    try {
+        $h = Invoke-WebRequest 'http://127.0.0.1:8010/health' -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
+        $health = $h.StatusCode -eq 200
+    } catch {}
+    try {
+        $m = Invoke-WebRequest 'http://127.0.0.1:8010/v1/models' -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
+        $loaded = $m.StatusCode -eq 200 -and ($m.Content -match 'data')
+    } catch {}
+    $msg = if ($health -and $loaded) { "PID $($primary.ProcessId), healthy, model loaded" }
+           elseif ($health) { "PID $($primary.ProcessId), /health OK, model not loaded" }
+           elseif ($loaded) { "PID $($primary.ProcessId), model loaded, /health failed" }
+           else { "PID $($primary.ProcessId), unhealthy" }
+    return @{ alive = $true; pid = [int]$primary.ProcessId; message = $msg }
+}
+
+function Get-FleetDashboardStatus {
+    $procs = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -match 'ornith-monitor\.py' })
+    if ($procs.Count -eq 0) { return @{ alive = $false; pid = $null; message = "not running" } }
+    $primary = $procs | Sort-Object ProcessId | Select-Object -First 1
+    return @{ alive = $true; pid = [int]$primary.ProcessId; message = "PID $($primary.ProcessId)" }
+}
+
+function Get-FleetWatcherStatus {
+    $procs = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -match 'watch-system\.ps1' })
+    if ($procs.Count -eq 0) { return @{ alive = $false; pid = $null; message = "not running" } }
+    $primary = $procs | Select-Object -First 1
+    $logPath = "P:\packages\installers\system_watch.log"
+    $age = $null
+    if (Test-Path $logPath) {
+        $age = ((Get-Date) - (Get-Item $logPath).LastWriteTime).TotalSeconds
+    }
+    $status = if ($null -eq $age) { "no log file" }
+              elseif ($age -lt 60) { "logging ($([int]$age)s ago)" }
+              else { "log stale ($([int]$age)s ago)" }
+    return @{ alive = $true; pid = [int]$primary.ProcessId; message = "PID $($primary.ProcessId), $status" }
+}
+
+function Write-FleetStatusRow {
+    param([string]$Label, [hashtable]$Status)
+    $mark = if ($Status.alive) { '✓' } else { '✗' }
+    $color = if ($Status.alive) { 'Green' } else { 'Red' }
+    Write-Host ("  {0,-14} {1} {2}" -f $Label, $mark, $Status.message) -ForegroundColor $color
+}
+
+function Write-FleetStatusSection {
+    Write-DomainHeader "Fleet"
+    Write-FleetStatusRow "CCR:"        (Get-FleetCcrStatus)
+    Write-FleetStatusRow "proxy:"      (Get-FleetProxyStatus)
+    Write-FleetStatusRow "supervisor:" (Get-FleetSupervisorStatus)
+    Write-FleetStatusRow "llama.cpp:"  (Get-FleetLlamaStatus)
+    Write-FleetStatusRow "dashboard:"  (Get-FleetDashboardStatus)
+    Write-FleetStatusRow "watcher:"    (Get-FleetWatcherStatus)
+}
+
 # --- Render output ---
 Write-DomainHeader "Infrastructure"
 $gatewayHealthy = $ccrRunning -and $proxyAvailable
@@ -1109,6 +1215,11 @@ $infrastructureTree = @(
     }
 )
 Write-Tree -Nodes $infrastructureTree
+
+# --- Fleet health: comprehensive per-component status (observability for
+# components the Infrastructure tree above doesn't surface, e.g. the
+# dashboard, the system watcher, and the actual llama.cpp inference state). ---
+Write-FleetStatusSection
 
 Write-DomainHeader "Claude environment"
 Write-Host "  ANTHROPIC_BASE_URL                 $env:ANTHROPIC_BASE_URL"
