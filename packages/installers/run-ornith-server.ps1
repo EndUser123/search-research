@@ -454,6 +454,23 @@ try {
             Start-Sleep -Seconds 1
             break
         }
+
+        # Dashboard watchdog: the operator-facing ornith-monitor.py is a
+        # separate child whose lifetime is not coupled to llama-server. An
+        # external tree-kill (Codex taskkill /t storms, IDE restart, user
+        # closing the window) can take it down without taking down
+        # llama-server. Detect and respawn on the same 15s poll cycle as
+        # the llama watchdog so one tree-poll covers both children.
+        if ($dashboard -and $dashboard.HasExited) {
+            $oldId = $dashboard.Id
+            Write-Warning "[run-ornith] watchdog: dashboard PID $oldId exited - respawning"
+            $dashboard = Start-OrnithDashboard
+            if ($dashboard) {
+                Write-Host "[run-ornith] dashboard respawned: PID $($dashboard.Id)"
+            } else {
+                Write-Warning "[run-ornith] dashboard respawn FAILED - check ornith-monitor.py path"
+            }
+        }
     }
 
     # llama-server has exited (crash, watchdog kill, or clean). Capture a
