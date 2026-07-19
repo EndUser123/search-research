@@ -1460,53 +1460,6 @@ else                   { Write-Host "  compact-hook: off" -ForegroundColor DarkG
 # opt-in pattern so normal launches pay zero extra latency.
 if ($Usage) {
     Write-Host ""
-    Write-Host "Usage (remaining quota):" -ForegroundColor Cyan
-    Write-Host ""
-    $usageInfrastructure = Get-UsageInfrastructureTree
-    Write-Host "Infrastructure" -ForegroundColor Cyan
-    Write-Tree -Nodes @($usageInfrastructure[0].Children)
-
-    Write-Host ""
-    Write-Host "Claude environment (effective)" -ForegroundColor Cyan
-    $usageProxyHealthy = (Get-UsageEndpointStatus -Uri 'http://127.0.0.1:3458/health') -like 'healthy*'
-    $usageBaseUrl = if ($usageProxyHealthy) {
-        'http://127.0.0.1:3458'
-    } else {
-        $ccrUrl
-    }
-    $effectiveBaseUrl = "$env:ANTHROPIC_BASE_URL (process; normal CCR wiring)"
-    $effectiveKeySource = if ($env:ANTHROPIC_API_KEY) {
-        if ($ccrLocalKey) { 'process; P:\.env: CCR_LOCAL_KEY' } else { 'process' }
-    } else { $null }
-    $effectiveAuthSource = if ($env:ANTHROPIC_AUTH_TOKEN) {
-        if ($ccrLocalKey) { 'process; P:\.env: CCR_LOCAL_KEY' } else { 'process' }
-    } else { $null }
-    $effectiveCustomModel = "$env:ANTHROPIC_CUSTOM_MODEL_OPTION (process; normal CCR wiring)"
-    $effectiveCustomName = "$env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME (process; normal CCR wiring)"
-    $environmentNodes = @(
-        [pscustomobject]@{ Label = "ANTHROPIC_BASE_URL: $effectiveBaseUrl"; Color = 'White'; Children = @() }
-        [pscustomobject]@{ Label = "ANTHROPIC_API_KEY: $(if ($effectiveKeySource) { "<set> ($effectiveKeySource)" } else { '<missing>' })"; Color = $(if ($effectiveKeySource) { 'Green' } else { 'Yellow' }); Children = @() }
-        [pscustomobject]@{ Label = "ANTHROPIC_AUTH_TOKEN: $(if ($effectiveAuthSource) { "<set> ($effectiveAuthSource)" } else { '<missing>' })"; Color = $(if ($effectiveAuthSource) { 'Green' } else { 'Yellow' }); Children = @() }
-        [pscustomobject]@{ Label = "ANTHROPIC_CUSTOM_MODEL_OPTION: $effectiveCustomModel"; Color = 'White'; Children = @() }
-        [pscustomobject]@{ Label = "ANTHROPIC_CUSTOM_MODEL_OPTION_NAME: $effectiveCustomName"; Color = 'White'; Children = @() }
-        [pscustomobject]@{ Label = "ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION: $(if ($env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION) { "$($env:ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION) (process)" } else { 'llama.cpp · ornith-1.0-9b@q4_k_m (launcher default)' })"; Color = 'White'; Children = @() }
-        [pscustomobject]@{ Label = "CLAUDE_CODE_DISABLE_1M_CONTEXT: $(if ($env:CLAUDE_CODE_DISABLE_1M_CONTEXT) { $env:CLAUDE_CODE_DISABLE_1M_CONTEXT } else { '<not set> (intentional)' })"; Color = 'DarkGray'; Children = @() }
-    )
-    Write-Tree -Nodes $environmentNodes
-
-    Write-Host ""
-    $usageRoutes = Get-UsageRouteTree
-    Write-Host "Routing" -ForegroundColor Cyan
-    Write-Tree -Nodes @($usageRoutes[0].Children)
-
-    Write-Host ""
-    Write-Host "Runtime flags" -ForegroundColor Cyan
-    Write-Tree -Nodes @(
-        [pscustomobject]@{ Label = "local-apply: $(if ($phaseLocalApply) { 'requested' } else { 'off' })"; Color = $(if ($phaseLocalApply) { 'Yellow' } else { 'DarkGray' }); Children = @() }
-        [pscustomobject]@{ Label = "compact-hook: $(if ($phaseCompactHook) { 'requested' } else { 'off' })"; Color = $(if ($phaseCompactHook) { 'Yellow' } else { 'DarkGray' }); Children = @() }
-    )
-
-    Write-Host ""
     Write-Host "Provider quotas" -ForegroundColor Cyan
     # ── z.ai / GLM Coding Plan ──
     try {
