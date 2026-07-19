@@ -244,7 +244,9 @@
       "mcp__plugin_chrome-devtools-mcp_chrome-devtools__evaluate_script",
       "mcp__plugin_chrome-devtools-mcp_chrome-devtools__navigate_page",
       "mcp__plugin_chrome-devtools-mcp_chrome-devtools__take_snapshot",
-      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__fill"
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__fill",
+      "Bash(rm \"P:/packages/yt-is/.claude/hooks/worktree_policy_PreToolUse.py\")",
+      "Bash(python -c \"import json; d=json.load\\(open\\(r'P:/packages/yt-is/.claude/settings.json'\\)\\); print\\('yt-is settings now:', d\\)\")"
     ],
     "deny": [],
     "ask": []
