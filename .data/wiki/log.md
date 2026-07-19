@@ -1,4 +1,77 @@
-﻿# Vault Log
+# Vault Log
+
+## [2026-07-19] ingest | ADR (2026-05-12): Prompt Clarification & Context Augmentation Plugin (Two-Tier)
+Source: session-2026-07-19
+Agent: grok
+Notes: Imported ADR; source=P:/.claude/arch_decisions/2026-05-12_fast_prompt-enhancement-bridge.md
+Page: wiki/concepts/prompt-enhancer-clarification-bridge.md
+
+## [2026-07-19] ingest | ADR-008: Concurrent-Session Worktree Isolation
+Source: session-2026-07-19
+Agent: grok
+Notes: Imported ADR; source=P:/docs/adrs/ADR-008-concurrent-session-worktree-isolation.md
+Page: wiki/concepts/concurrent-session-worktree-isolation.md
+
+## [2026-07-19] ingest | ADR-007: Pre-Proposal Contract-and-Value Gate for Cross-Component Mechanism Changes
+Source: session-2026-07-19
+Agent: grok
+Notes: Imported ADR; source=P:/docs/adrs/ADR-007-pre-proposal-contract-and-value-gate.md
+Page: wiki/concepts/pre-proposal-contract-and-value-gate.md
+
+## [2026-07-19] ingest | ADR-006: Compact Handoff — Add Verbatim Last User Message Field
+Source: session-2026-07-19
+Agent: grok
+Notes: Imported ADR; source=P:/docs/adrs/ADR-006-compact-handoff-verbatim-field.md
+Page: wiki/concepts/compact-handoff-verbatim-last-user-message.md
+
+## [2026-07-19] ingest | ADR-004: /recap Handoff-First Path Resolution
+Source: session-2026-07-19
+Agent: grok
+Notes: Imported ADR; source=P:/docs/adrs/ADR-004-recap-path-resolution-strategy.md
+Page: wiki/concepts/recap-path-resolution-strategy.md
+
+## [2026-07-19] ingest | ADR-003: Enhance /recap Session Reconstruction — Three-Bug Fix
+Source: session-2026-07-19
+Agent: grok
+Notes: Imported ADR; source=P:/docs/adrs/ADR-003-recap-session-reconstruction.md
+Page: wiki/concepts/recap-session-reconstruction-three-fixes.md
+
+## [2026-07-19] ingest | ADR-002: Hybrid Compile-Upfront + RAG Architecture for search-research
+Source: session-2026-07-19
+Agent: grok
+Notes: Imported ADR; source=P:/docs/adrs/ADR-002-search-research-optimal-architecture.md
+Page: wiki/concepts/search-research-hybrid-compile-upfront-rag.md
+
+## [2026-07-19] ingest | ADR (2026-04-08): TLDR Summary Data Source — Use Handoff V2 Envelope
+Source: session-2026-07-19
+Agent: grok
+Notes: Imported ADR; source=P:/docs/adrs/20260408_cli_tldr_data_source.md
+Page: wiki/concepts/tldr-handoff-data-source.md
+
+## [2026-07-19] ingest | ADR (2026-04-11): Absorb Episodic-Memory into search-research CHS Backend
+Source: session-2026-07-19
+Agent: grok
+Notes: Imported ADR; source=P:/docs/adrs/2026-04-11_fast_episodic-memory-consolidation.md
+Page: wiki/concepts/episodic-memory-consolidation-into-search-research.md
+
+## [2026-07-19] ingest | ADR (2026-04-07): Hook-Based Detection for Proposal-Decision Conflation
+Source: session-2026-07-19
+Agent: grok
+Notes: Imported ADR; source=P:/docs/adrs/2026-04-07_fast_proposal-decision-conflation-hook.md
+Page: wiki/concepts/proposal-decision-conflation-hook.md
+
+## [2026-07-19] ingest | Parallel worktree config.lock contention (claude-code #34645)
+Source: https://github.com/anthropics/claude-code/issues/34645
+Agent: grok
+Notes: New finding surfaced during multi-terminal git optimization review. Closed-as-not-planned upstream bug: 3+ parallel Agent tool calls with isolation: "worktree" on Windows race for .git/config.lock. Distinguishes config.lock (worktree operations) from index.lock (staging area) covered in git-index-lock-concurrent-access-recovery. Workarounds: pre-create worktrees serially in main thread, cap parallel worktree-isolated agents at ≤2, or flock .git/config.lock. Marks ADR-008's write-lease-gate writeup as adjacent but covering file-level lock, not git-level lock. Host: claude (bug in Claude Code Agent tool).
+Page: wiki/concepts/parallel-worktree-config-lock-contention-claude-code-34645.md
+
+## [2026-07-19] ingest | Multi-terminal git coordination primitives (beyond isolation)
+Source: session-2026-07-19
+Agent: grok
+Notes: New finding surfaced during multi-terminal git review. Wiki has strong coverage of *isolation* primitives (per-worktree cwd, terminal-scoped artifacts, grok-safe-git preflight, worktree-root policy hook) but no coverage of *coordination* primitives for integrating parallel work back into shared branches. Closes the gap with three concrete primitives: git rerere enabled true, rebase-each-feature-on-main-before-merge, one-terminal-owns-main convention. Multi-source-verified (Augment guide, Phoenix article, git's own rerere docs, branch-exclusivity invariant). Host: both (primitives are git-level, not platform-specific). EVIDENCE_GAP: rerere scope (per-repo vs global) not measured on P:\ corpus.
+Page: wiki/concepts/multi-terminal-git-coordination-primitives.md
+
 
 ## [2026-07-19] ingest | QMD CLI syntax differs by subcommand: update takes positional, search/status take --collection
 Source: session-2026-07-19

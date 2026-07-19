@@ -78,8 +78,20 @@ def _is_authority_candidate(classification: str) -> bool:
     Documentation and tests are intentionally reported as references, but they
     must not be counted as competing runtime owners.  Otherwise this audit
     would manufacture conflicts from its own instructions and fixtures.
+
+    Worktrees, generated artifacts (.artifacts/), caches, evidence dumps,
+    and test_or_evidence paths are explicitly excluded — they are derived
+    copies, not authoritative sources.  Including them inflates the conflict
+    count and makes every audit return `blocked` when the real sources are
+    already in canonical locations.
+
+    Only `candidate_source` (real, hand-authored code under P:/.claude,
+    P:/packages, P:/.agents, P:/docs, P:/scripts, etc.) can establish a
+    conflict against another candidate_source entry.  Runtime state is
+    still reported in the packet for visibility but cannot itself
+    manufacture a conflict.
     """
-    return classification in {"candidate_source", "runtime_state"}
+    return classification in {"candidate_source"}
 
 
 def _git_root(path: Path) -> str | None:
