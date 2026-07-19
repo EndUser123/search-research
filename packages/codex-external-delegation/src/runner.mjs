@@ -33,18 +33,39 @@ async function killProcessTree(child) {
 
 function createResult(packet, attempt, details) {
   const payload = details.payload;
-  const status = payload?.status === "blocked" ? "blocked" : details.failureClass === "none" ? "ok" : "failed";
+  const isBlocked = payload?.status === "blocked";
+  const status = isBlocked ? "blocked" : details.failureClass === "none" ? "ok" : "failed";
+  // When the worker itself emits a status: "blocked" payload (e.g. policy
+  // refusal like a read-only worker declining to mutate), classify it
+  // distinctly as worker_blocked. A policy-enforced refusal is neither
+  // a generic failure nor a contract error — it is the worker honouring
+  // its profile.
+  const failure_class = isBlocked
+    ? "worker_blocked"
+    : status === "ok"
+      ? "none"
+      : details.failureClass;
+  // Preserve the worker's own payload on blocked, so blocked_reason and
+  // observations remain in the envelope; only null the payload when
+  // the run did not produce any usable result (e.g. timeout, crash).
+  const preserve_payload = isBlocked || status === "ok";
   const result = {
-    schema_version: "1",
+    schema_version: "2",
     task_id: packet.task_id,
+    session_id: packet.session_id || null,
+    run_id: packet.run_id || null,
+    request_id: packet.request_id || null,
+    invocation_id: packet.invocation_id || null,
     status,
-    failure_class: status === "ok" ? "none" : details.failureClass,
+    failure_class,
     worker: packet.worker,
     model: packet.model,
     attempt,
     exit_code: details.exitCode,
     timed_out: details.timedOut,
-    result_payload: status === "ok" ? (payload?.result_payload ?? payload) : null,
+    result_payload: preserve_payload
+      ? (payload?.result_payload ?? payload ?? null)
+      : null,
     artifact_dir: details.artifactDir,
   };
   const validation = validateResult(result);
@@ -136,7 +157,7 @@ export async function runPacket(packet, { artifactDir, spawnImpl = defaultSpawn 
 
   if (!validation.ok) {
     const result = {
-      schema_version: "1",
+      schema_version: "2",
       task_id: inputPacket.task_id || "unknown",
       status: "blocked",
       failure_class: "contract_error",

@@ -17,7 +17,7 @@ async function packetFile(packet) {
 }
 
 const validPacket = {
-  schema_version: "1",
+  schema_version: "2",
   task_id: "cli-001",
   worker: "pi",
   model: "minimax/MiniMax-M3",

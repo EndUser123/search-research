@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { buildCommand, runPacket, spawnSpec } from "../src/runner.mjs";
 
 const basePacket = {
-  schema_version: "1",
+  schema_version: "2",
   task_id: "runner-test-001",
   worker: "opencode",
   model: "opencode-go/deepseek-v4-flash",
@@ -145,4 +145,83 @@ test("blocks malformed packets before spawning a worker", async () => {
   assert.equal(result.status, "blocked");
   assert.equal(result.failure_class, "contract_error");
   assert.equal(spawned, false);
+});
+
+// --- Result-contract classification regressions (task spec §2) -------------------
+
+// A policy-enforced worker refusal (e.g. read-only worker declining to mutate)
+// must be classified as `worker_blocked`, NOT `none`, with the worker's
+// blocked_reason preserved in the envelope. A correct policy refusal is
+// neither a generic failure nor a contract error.
+test("classifies worker policy refusal as worker_blocked with preserved reason", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const result = await runPacket(basePacket, {
+    artifactDir,
+    spawnImpl: fakeSpawn({
+      stdout: '<external-delegation-result>{"status":"blocked","result_payload":{"observations":"Cannot mutate: read-only profile","blocked_reason":"Read-only worker cannot perform write/create file operations. The task objective requests file creation which violates the read-only constraint."}}</external-delegation-result>',
+    }),
+  });
+  assert.equal(result.status, "blocked");
+  assert.equal(result.failure_class, "worker_blocked");
+  assert.ok(result.result_payload, "blocked reason payload must be preserved");
+  assert.match(String(result.result_payload.blocked_reason), /read-only/i);
+  assert.match(await readFile(join(artifactDir, "stdout.log"), "utf8"), /result_payload/);
+});
+
+// A blocked status without a `blocked_reason` is still `worker_blocked`,
+// but the envelope records that the reason was missing for diagnostics.
+test("classifies blocked-without-reason as worker_blocked", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const result = await runPacket(basePacket, {
+    artifactDir,
+    spawnImpl: fakeSpawn({
+      stdout: '<external-delegation-result>{"status":"blocked","result_payload":{"observations":"blocked but no reason supplied"}}</external-delegation-result>',
+    }),
+  });
+  assert.equal(result.status, "blocked");
+  assert.equal(result.failure_class, "worker_blocked");
+  assert.ok(result.result_payload);
+});
+
+// A successful result preserves observations and reports failure_class = "none".
+test("classifies successful result as ok with failure_class none", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const result = await runPacket(basePacket, {
+    artifactDir,
+    spawnImpl: fakeSpawn({
+      stdout: '<external-delegation-result>{"status":"ok","result_payload":{"observations":"src/SAMPLE.txt contains 1 file"}}</external-delegation-result>',
+    }),
+  });
+  assert.equal(result.status, "ok");
+  assert.equal(result.failure_class, "none");
+  assert.equal(result.result_payload.observations, "src/SAMPLE.txt contains 1 file");
+});
+
+// A worker failure (e.g. crash, non-zero exit, garbage stream without a
+// `blocked` marker) must be classified as `failed` with the worker-class
+// failure class — NOT `blocked` and NOT `ok`.
+test("classifies worker failure as failed with failure class", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const result = await runPacket(basePacket, {
+    artifactDir,
+    spawnImpl: fakeSpawn({ exitCode: 1, stderr: "provider_unavailable" }),
+  });
+  assert.equal(result.status, "failed");
+  assert.notEqual(result.failure_class, "none");
+  assert.notEqual(result.failure_class, "worker_blocked");
+  assert.notEqual(result.failure_class, "contract_error");
+});
+
+// A contract failure (invalid packet) produces failure_class = contract_error,
+// distinct from worker_blocked. This guards against the regression where a
+// `worker_blocked` envelope could mask a real contract violation.
+test("distinguishes contract_error from worker_blocked", async () => {
+  const artifactDir = await mkdtemp(join(tmpdir(), "codex-delegation-test-"));
+  const result = await runPacket({ task_id: "minimal-invalid" }, {
+    artifactDir,
+    spawnImpl: () => { throw new Error("must not spawn"); },
+  });
+  assert.equal(result.status, "blocked");
+  assert.equal(result.failure_class, "contract_error");
+  assert.notEqual(result.failure_class, "worker_blocked");
 });

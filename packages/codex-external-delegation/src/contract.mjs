@@ -26,7 +26,7 @@ function packetErrors(packet) {
     }
   }
 
-  if (packet?.schema_version !== "1") errors.push("unsupported_schema_version");
+  if (packet?.schema_version !== "2") errors.push("unsupported_schema_version");
   if (!WORKERS.has(packet?.worker)) errors.push("invalid_worker");
   if (!isNonEmptyString(packet?.model)) errors.push("invalid_model");
   if (!isNonEmptyString(packet?.objective)) errors.push("invalid_objective");

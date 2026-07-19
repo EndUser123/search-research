@@ -4,6 +4,9 @@ import { spawnSync } from "node:child_process";
 import { buildCommand, commandName, spawnSpec } from "../src/commands.mjs";
 import { validatePacket } from "../src/contract.mjs";
 import { runPacket } from "../src/runner.mjs";
+import { compilePacket } from "../src/packet.mjs";
+import { classifyTask } from "../src/policy.mjs";
+import { getLane } from "../src/registry.mjs";
 
 function option(args, name) {
   const index = args.indexOf(name);
@@ -40,6 +43,7 @@ async function main(argv = process.argv.slice(2)) {
       commands: {
         run: "run --packet <path|-> [--dry-run]",
         classify: "classify --packet <path|->",
+        route: "route --input <path|->",
         check: "check --worker <pi|opencode|all>",
       },
     });
@@ -71,9 +75,33 @@ async function main(argv = process.argv.slice(2)) {
     return checks.every((item) => item.available) ? 0 : 20;
   }
 
-  if (command !== "run" && command !== "classify") {
+  if (command !== "run" && command !== "classify" && command !== "route") {
     print({ status: "blocked", failure_class: "invalid_command", message: `Unknown command: ${command}` });
     return 30;
+  }
+
+  if (command === "route") {
+    const inputPath = option(args, "--input");
+    if (!inputPath) {
+      print({ status: "blocked", failure_class: "invalid_input", message: "--input is required" });
+      return 30;
+    }
+    let input;
+    try {
+      input = JSON.parse((await readFile(inputPath, "utf8")).replace(/^﻿/, ""));
+    } catch (error) {
+      print({ status: "blocked", failure_class: "invalid_input", message: error.message });
+      return 30;
+    }
+    const classification = classifyTask(input);
+    const lane = getLane(classification.lane) || null;
+    if (!classification.eligible) {
+      print({ status: "ok", classification, lane, packet: undefined });
+      return 0;
+    }
+    const { packet } = compilePacket(input);
+    print({ status: "ok", classification, lane, packet });
+    return 0;
   }
 
   const packetPath = option(args, "--packet");

@@ -4,7 +4,7 @@ import { renderPrompt, extractJsonEventText, extractResultPayload } from "../src
 import { classifyFailure } from "../src/failures.mjs";
 
 const packet = {
-  schema_version: "1",
+  schema_version: "2",
   task_id: "task-prompt-001",
   worker: "pi",
   model: "minimax/MiniMax-M3",
