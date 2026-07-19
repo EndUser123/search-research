@@ -580,7 +580,7 @@ try {
     }
 }
 
-if (-not $ccrRunning -and -not $Usage) {
+if (-not $ccrRunning) {
     return
 }
 
@@ -902,8 +902,6 @@ $lm = Invoke-LocalModelProbe
 $localModelHealth = $false
 
 if (-not $lm -or $lm.state -eq "DEAD") {
-    if ($Usage) { $lm = @{ state = "DEAD"; pids = @(); detail = "not running" } }
-    if (-not $Usage) {
     Write-Host "[CCR] local model not ready (starting or probe transient) - starting..." -ForegroundColor Cyan
     # Clean slate: kill any orphaned launchers + llama-server + watchers from
     # prior runs BEFORE spawning a fresh launcher. cc-ccr -stop deliberately
@@ -981,7 +979,6 @@ public class CCR_BREAKAWAY {
     } else {
         Write-Host "[CCR] run-ornith-server.ps1 not found at $launcherScript" -ForegroundColor Yellow
     }
-    } # end if (-not $Usage)
 } elseif ($lm.state -eq "LOADING") {
     Write-Host "[CCR] local model loading - waiting..." -ForegroundColor Cyan
     $lm = Wait-LocalModelReady -TimeoutSec 60
@@ -1092,14 +1089,7 @@ $proxyPort = 3458
 $proxyScript = "P:\.claude\provider-configs\ccr-admission-proxy.js"
 $proxyLog = "P:\.claude\state\ccr-admission-proxy.log"
 
-if ($Usage) {
-    # Read-only: check if proxy is alive without starting it
-    $proxyHealth = $false
-    try { $h = Invoke-WebRequest "http://127.0.0.1:$proxyPort/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop; $proxyHealth = $h.StatusCode -eq 200 } catch {}
-    $proxyResult = [pscustomobject]@{ Available = $proxyHealth; Status = if ($proxyHealth) { "Already running" } else { "not running" }; ListenerPid = $null; FallbackUrl = "http://127.0.0.1:$ccrPort" }
-} else {
 $proxyResult = Ensure-AdmissionProxy -Port $proxyPort -CcrPort $ccrPort -ProxyScript $proxyScript -ProxyLog $proxyLog
-}
 $proxyAvailable = $proxyResult.Available
 if ($proxyAvailable) {
     $proxyStatusSummary = $proxyResult.Status
@@ -1302,9 +1292,6 @@ function Write-FleetStatusSection {
 
 # --- Render output ---
 # When -Usage is requested, the usage section below renders its own
-# infrastructure, environment, and routing trees. Skip the normal launch
-# output to avoid duplication.
-if (-not $Usage) {
 Write-DomainHeader "Infrastructure"
 $gatewayHealthy = $ccrRunning -and $proxyAvailable
 $infrastructureStatus = if ($gatewayHealthy -and $localModelHealth) {
@@ -1770,4 +1757,3 @@ if ($Test) {
 Write-Host ""
 Write-Host "Ready. Run: claude" -ForegroundColor White
 Write-Host "Tip: 'cc-ccr -Test' sends one real request to verify the whole chain works." -ForegroundColor DarkGray
-} # end if (-not $Usage)
