@@ -12,6 +12,12 @@ Spawn **one verifier subagent per distinct concern** touched.
 **Product rule:** /check = did you do what you said? (session-grounded)
 **Different from /review:** /review = what bugs exist? (fresh eyes, no session)
 
+**Auto-/review escalation:** when /check PASSES and a load-bearing trigger fires
+(session touched hooks/plugins/schemas/contracts, or a verifier flagged a code
+issue, or behavior claims went unverified), /check auto-fires /review instead
+of suggesting it. See Step 6.2 for the full trigger list. Use `--no-auto-review`
+to force suggestion-only mode.
+
 ## Step 0 -- Run dir + state resume
 
 ```powershell
@@ -164,9 +170,93 @@ All PASS = CHECK PASS. Any FAIL = CHECK FAIL.
 
 ## Step 5 -- Fix and reverify (max 3 cycles)
 
-## Step 6 -- Report + next step
-PASS -> optional /review. FAIL blocking -> /go fix. FAIL structural -> /refactor.
-Update state file on exit.
+## Step 6 -- Report, auto-/review escalation, next step
+
+### Step 6.1 -- Merge verdicts (already done in Step 4)
+CHECK PASS = all verifier concerns returned PASS. CHECK FAIL = any concern FAIL.
+
+### Step 6.2 -- Auto-/review escalation (when CHECK PASS)
+
+**Bias: when triggers fire, auto-fire `/review` instead of suggesting it.**
+A reminder wastes a turn when the triggers already say a fresh-eyes review is
+warranted. The /check orchestrator becomes the /review orchestrator for this
+phase: load `P:/.grok/skills/review/SKILL.md`, create a sibling run_dir under
+`P:/.artifacts/<termSafe>/grok-review/<slug>/<ts>/`, and run the standard
+/review pipeline (target infer → lenses → specialists → independent verify →
+FINDINGS.md + findings.json). Cite the /review FINDINGS.md path in the /check
+final report.
+
+**Auto-/review triggers — fire /review when ANY one is true:**
+
+1. **Load-bearing surface** — session touched any of:
+   - Hooks (`.claude/hooks/`, plugin `hooks/`, `__lib/router.py`)
+   - Plugin manifests (`plugin.json`, `hooks.json`, `marketplace.json`)
+   - Schemas (`__lib/*_schema.py`, `settings.json` shapes, JSON contracts)
+   - Shared state (incident logs, telemetry, dispatch manifests, run_dir layouts)
+   - Dispatch chains (`settings.json`, `installed_plugins.json`)
+   - **Agent prompt contracts for multi-agent systems** (specialists, critics,
+     orchestrators, subagent prompts) — these are inter-agent contracts, not
+     docs. A change to one party's contract without the other is a /review
+     question (does the other side still behave correctly?), not just a /check
+     question (did the agent do what it said?).
+   - Multi-terminal coordination code (`.artifacts/<term>/` conventions, locks)
+2. **Verifier-flagged code-issue** — any /check verifier returned a finding with
+   `severity: bug` or `severity: regression`. These are explicitly code-quality
+   findings, not session-correctness findings.
+3. **Behavior-claim-not-verified** — the session's claim_verbs include behavior
+   claims (cited in the evidence packet) that no verifier fully confirmed
+   against source. Behavior claims need fresh-eyes review, not just re-reading.
+4. **External-review-deferred-findings** — if /check's evidence includes an
+   external review step (/agy or similar) that produced accepted-but-not-adopted
+   findings, those findings auto-feed /review as **session-aware hints** (per
+   /review Step 2.5). The /review specialists verify against code but know what
+   to check.
+
+**Do NOT auto-/review when ALL of these are true:**
+
+- No trigger above fired (pure doc/cosmetic edits, no executable surface, no
+  contract layer touched)
+- All verifier findings are `gap` or `suggestion` severity (no `bug`/`regression`)
+- Session was not Q&A/research only (those never trigger; they have no code
+  surface to review)
+- User did not pass `--no-auto-review` (this flag forces suggestion-only mode)
+
+**Trigger detection is mechanistic where possible:** inspect the evidence
+packet's `scope_files` bucket for paths matching the load-bearing-surface
+patterns; inspect `claim_verbs` and verifier findings for the other triggers.
+When ambiguous, **bias toward firing** (user preference: more depth when unsure).
+
+### Step 6.3 -- Fix-and-reverify interaction with auto-/review
+
+If CHECK FAIL (Step 5 fix cycles exhausted): do NOT auto-/review. Surface the
+blockers and recommend `/go fix`. A FAIL means the session didn't do what it
+said — code review is premature.
+
+If CHECK PASS + auto-/review triggers fire: run /review BEFORE declaring CHECK
+DONE. The /review verdict (healthy / needs_attention / critical) becomes part
+of the /check final report. If /review returns `critical` with verified bugs,
+upgrade the overall verdict: the session is "complete but introduced defects"
+— surface both.
+
+### Step 6.4 -- Report format
+
+| State | Report |
+|-------|--------|
+| CHECK PASS + auto-/review ran (verdict healthy) | Both run_dirs cited; short summary of /review FINDINGS; "no blocking issues from either pass" |
+| CHECK PASS + auto-/review ran (verdict needs_attention) | Both run_dirs cited; /review risks/suggestions surfaced in chat with link to FINDINGS.md; "session work complete; N follow-up items from review" |
+| CHECK PASS + auto-/review ran (verdict critical) | Both run_dirs cited; /review blocking bugs surfaced prominently; "session work complete BUT introduced N bugs — fix before merge" |
+| CHECK PASS + no triggers | Short PASS report; suggest /review as optional for fresh-eyes depth |
+| CHECK FAIL blocking | Cite blockers; recommend `/go fix`; do NOT auto-/review |
+| CHECK FAIL structural | Recommend `/refactor`; do NOT auto-/review |
+
+### Step 6.5 -- Update state file
+
+Update the terminal-scoped state file (`P:/.artifacts/<termSafe>/<pkg>-state.md`)
+with:
+- CHECK verdict + run_dir path
+- /review verdict (if ran) + run_dir path + FINDINGS.md path
+- Open questions merged from both passes
+- Recommended next action (literal command, not just "fix the issues")
 
 ---
 
