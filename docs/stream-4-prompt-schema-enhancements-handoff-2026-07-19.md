@@ -4,8 +4,8 @@
 |---|---|
 | **Stream** | Text-level edits across /tp, /review or /red-team, wiki SCHEMA.md |
 | **Priority** | LOWER — all text edits, no code, no plugin mutation (except red-team agents) |
-| **Status** | Not started; all designs complete |
-| **Effort** | ~1 hour (single subagent, batched edits) |
+| **Status** | **COMPLETE 2026-07-19** — all 9 deliverables accounted for (7 DONE + 1 PARTIAL #4 + 1 ALREADY DONE #7); /check PASS; committed at `a0f8ba9` with per-file scoping. See **Execution Status** below. |
+| **Effort** | ~1 hour estimated; ~1.5 hours actual (subagent fan-out failed → serial-parent pivot) |
 | **Delegation** | One subagent (`capability_mode: read-write`); benefits from Stream 3's research |
 
 ## Goal
@@ -225,13 +225,13 @@ Agent: grok
 - **Concurrency hazard on red-team plugin:** all 10 existing specialist files were `MM` (staged + unstaged modified from Stream 1 red-team reliability work) at session start. Created NEW specialist files (#2, #3) rather than extending existing ones to avoid clobbering another stream's work. For #4, the critic (`red-team-critic.md`) was clean so it was edited; the schema doc + `__lib/findings_schema.py` were dirty and deferred.
 - **cc-skills-sdlc is a git submodule**, not a regular directory. Submodule-internal `git status` was clean for both target .py files (the superproject-level `Mm` was submodule-pointer drift, not in-submodule modifications). Edits to the .py files were safe and landed cleanly; `plugin-audit-and-fix.py --bump cc-skills-sdlc` handled the cache rebuild without issue.
 - **Auto-version-bump behavior:** `plugin-audit-and-fix.py --bump <name>` auto-increments the patch version from whatever it detects as current. For red-team, my manual pre-bump to 0.2.27 was further bumped to 0.2.28 by the script. For future runs: let the script do the bump; don't pre-bump manually.
-- **No commits made.** All work is in working tree (or user-home for ~/.grok edits). User decides commit timing.
+- **Commit landed post-execution** at SHA `a0f8ba9` — see "Post-execution events" below. Per-file scoped (`git add <files>` + `git commit --only <files>`); no `git add -A` used (confirmed by transcript scan). Excluded marketplace.json (mixed MM from cross-stream layered bumps) and the 10 Stream 1 dirty red-team agents.
 
 ### Deferred items (require parent decision or cross-stream coordination)
 
 1. **#4 schema formalization** — `commands/red-team.md` §"Findings schema" L120-142 needs `"contradicts": "<FINDING-ID>"` added as an optional field. `__lib/findings_schema.py` needs the field codified. Both files are dirty from Stream 1's red-team reliability work; coordinate with that stream before editing, or wait for it to complete.
 2. **Cross-stream commit hygiene** — multiple streams have unstaged work in the same tree (929 dirty files at session start, including 13 staged). Per the new grok-safe-git Step 4.5 (deliverable #6), commits should use per-file scoping. The new red-team specialists + cc-skills-sdlc submodule changes will need careful per-file staging when commit time comes.
-3. **Plugin reload** — both red-team (0.2.28) and cc-skills-sdlc (1.0.237) cached versions require `/reload-plugins` or a session restart to activate. Until then, the new specialists and the Python fix exist in cache but aren't loaded by the running session.
+3. **Plugin activation** — both red-team (0.2.28) and cc-skills-sdlc (1.0.237) cached versions require starting a fresh Grok session to activate. Grok Build reads plugin caches at session start; there is no in-session reload command. (Note: `/reload-plugins` is a Claude Code concept and does not exist in Grok Build, despite what `plugin-audit-and-fix.py` prints.) Until the new session starts, the new specialists and the Python fix exist in cache but aren't loaded by the running session.
 
 ### Verification status
 
@@ -242,3 +242,87 @@ Per /go Step 6 final-report format:
 - **goal**: n/a (single wave)
 
 **Recommended next:** `/check` on the 9 deliverables — verify each edit landed and the plugin cache is consistent. Specifically: `/check ~/.grok/skills/tp/SKILL.md ~/.grok/skills/grok-safe-git/SKILL.md ~/.grok/skills/go/SKILL.md P:/.data/wiki/SCHEMA.md` for the text edits, and `/check red-team@0.2.28 cc-skills-sdlc@1.0.237` for the plugin changes.
+
+---
+
+## Post-execution events
+
+### Commit `a0f8ba9` (per-file scoped)
+
+```
+a0f8ba9 feat(stream-4): red-team specialists + critic contradicts + SCHEMA note
+5 files changed, 644 insertions(+), 1 deletion(-)
+```
+
+Files in commit (exactly 5, no cross-stream capture):
+1. `.data/wiki/SCHEMA.md` (NEW — #5)
+2. `docs/stream-4-prompt-schema-enhancements-handoff-2026-07-19.md` (this file, with Execution Status block)
+3. `packages/.claude-marketplace/plugins/cc-skills-sdlc` (submodule pointer: `6c4ceba` → `e56824f`)
+4. `packages/.claude-marketplace/plugins/red-team/agents/red-team-simplification.md` (NEW — #2)
+5. `packages/.claude-marketplace/plugins/red-team/agents/red-team-test-quality.md` (NEW — #3)
+
+Excluded (per the new grok-safe-git Step 4.5 rule):
+- `marketplace.json` × 2 (MM — other-stream staged + my unstaged auto-bumps layered on top; source-of-truth `plugin.json` is gitignored anyway)
+- 10 Stream 1 red-team agent files (`MM` from red-team reliability work)
+- `commands/red-team.md` + `__lib/findings_schema.py` (Stream 1 territory; deferred #4 half lives here)
+- 916 other-stream dirty files
+
+**Cross-stream capture of my work by `9e30913`:** another session's broad staging captured my unstaged `red-team-critic.md` edit (the #4 critic half) before I committed. Result is correct (my edit is in HEAD via `9e30913`), but commit attribution is mixed. Their commit message even mentions "concurrent-stream specialists red-team-simplification.md and red-team-test-quality.md (Stream 4)" — they were aware. This is the kind of capture the new Step 4.5 rule is designed to prevent; in this case it happened *to* me rather than *by* me.
+
+### /check results (2026-07-19 13:21)
+
+Run dir: `P:/.artifacts/console_12092a49-e448-4be3-b146-7930/grok-check/20260719-132103-933/`
+
+**CHECK VERDICT: PASS** (3/3 verifier concerns, parent-serial mode — subagent quota blocked)
+
+| Verifier | Concern | VERDICT | Method |
+|---|---|---|---|
+| V1 | Text edits (#1, #5, #6, #7, #8) | PASS | Parent-serial (subagent fan-out failed with 429 code 2056) |
+| V2 | Red-team plugin (#2, #3, #4) | PASS | Parent-serial |
+| V3 | Python fix (#9) + commit hygiene | PASS | Parent-serial |
+
+Per-deliverable verification highlights:
+- #1: section at L106, correctly placed between circuit breaker and Reference
+- #2: 4,565 B, all 5 HAMY Agent 9 patterns, canonical findings handoff + WRITE_FAILED pattern
+- #3: 5,394 B, all 5 HAMY Agent 6 patterns, explicit distinction from `red-team-testing.md` at L3
+- #4: 8 `contradicts` mentions in critic, explicit section at L66, `conflicts_resolved_count` tracking at L71
+- #5: SCHEMA.md L461 extended; original "re-baseline" text preserved (additive)
+- #6: Step 4.5 at L84, `git add -A` forbidden at L86, cross-ref to wiki at L99
+- #7: Primitive 4 already present at L134; 5 ecosystem tools + obra/superpowers #597 at L214-215
+- #8: Section at L419, table format at L430, convention at L440
+- #9: Both .py files: `out.find("[")` at L92/L150, `ast.parse` clean, cache consistent
+
+**Commit hygiene verified:** `git show a0f8ba9 --name-only` returns exactly 5 files; no `git add -A` invocations in MY transcript (0 actual commands; 2 text-mention false positives dismissed).
+
+### Auto-/review triggers (fired, but quota-blocked)
+
+3 load-bearing triggers fire for this session:
+1. ✅ Plugin manifests touched (red-team plugin.json 0.2.26 → 0.2.28)
+2. ✅ Agent prompt contracts changed (2 NEW specialists + critic `contradicts` — inter-agent contract)
+3. ✅ Multi-terminal coordination code (grok-safe-git Step 4.5)
+
+**/review status: QUOTA-BLOCKED.** Subagent spawning fails with `Token Plan usage limit reached` (429 code 2056). /review requires multi-agent fan-out (specialists + independent verify + critic) which cannot run parent-serial without major fidelity loss.
+
+**Recommended manual /review when quota resets:**
+```
+/review a0f8ba9 --focus architecture,contracts
+```
+Highest-risk surface: the `red-team-critic.md` inter-agent contract update (does the existing ordered tiebreaker still behave correctly with explicit `contradicts` fields? does the new specialist pattern match what the orchestrator's dispatch expects?).
+
+### `/reload-plugins` correction (host mismatch)
+
+Initial handoff draft and state files referenced `/reload-plugins` as the activation mechanism. **That was wrong for this host.** `/reload-plugins` is a Claude Code slash command; it does not exist in Grok Build. The error propagated because `plugin-audit-and-fix.py` (shared Claude/Grok infrastructure) prints "Run /reload-plugins to activate" regardless of host.
+
+**Correct activation for Grok Build:** start a fresh Grok session. Plugin caches are read at session start; there is no in-session reload command.
+
+All my docs (this handoff, `stream-3-state.md`, `stream-4-state.md`) have been corrected. **Other-session files with the same error** (not mine to fix): `stream-1-red-team-reliability-handoff-2026-07-19.md` (3 instances at L130, L251, L303), plus older docs (`crud-operations-redesign.md`, `design-attention-economics-brief.md`, `red-team-source-authority-investigation-2026-07-19.md`, `a-p-b0-implementation-report.md`).
+
+**Root-cause fix proposal (not applied — shared infra, not my call):** change `plugin-audit-and-fix.py`'s final message from "Run /reload-plugins to activate" to host-agnostic phrasing like "Restart your session to activate the new cache version." Or host-detect: if `grok.exe` is on PATH, print "start a fresh Grok session"; else print `/reload-plugins`.
+
+### Submodule pointer drift (not my issue)
+
+My commit `a0f8ba9` set the cc-skills-sdlc submodule pointer to `e56824f`. Another session advanced the submodule to `339ef45` (`test: rename test_strips_punctuation → test_preserves_punctuation`) after my commit. The superproject pointer is now stale (`+` prefix in `git submodule status`). My Python fix is still in submodule HEAD (verified). Resolution belongs to whichever session commits next.
+
+### Session quota observation
+
+This session hit the MiniMax API `Token Plan usage limit reached` (429 code 2056) **twice** during subagent fan-out: once during Stream 4 implementation (4 SA's spawned, all failed), once during /check (3 verifiers spawned, all failed). Both times parent-serial execution completed the work cleanly. The quota gate appears to apply specifically to subagent session spawning, not parent API calls. Future work in this session should plan for parent-only execution until quota resets.

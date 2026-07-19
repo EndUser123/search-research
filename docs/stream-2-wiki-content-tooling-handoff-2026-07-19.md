@@ -4,8 +4,8 @@
 |---|---|
 | **Stream** | Wiki content ingestion + contradiction scan + QMD syntax fix |
 | **Priority** | HIGH — content is underdeveloped relative to governance; contradiction scan is novel |
-| **Status** | **COMPLETE (2026-07-19)** — 5/5 deliverables landed; 10 ADR pages ingested; log entries normalized to canonical SCHEMA §6 format |
-| **Effort** | ~2 hours (two parallel subagents); actual: ~30 min first wave + ~15 min follow-up wave for new scripts |
+| **Status** | **COMPLETE + VERIFIED (2026-07-19)** — 5/5 deliverables landed; 10 ADR pages ingested; log entries normalized; 39 new tests + 1 stale test fixed (95/95 wiki suite passes); 2 /check passes; submodule commit `339ef45` |
+| **Effort** | ~2 hours (two parallel subagents); actual: ~30 min first wave + ~15 min follow-up wave for new scripts + ~15 min tests + ~5 min verify + commit |
 | **Delegation** | Subagent A (QMD fix + contradiction scan); Subagent B (ADR ingest) — original 3-deliverable plan; later extended with deliverables #4-#5 in this same session |
 
 ## Goal
@@ -159,10 +159,17 @@ The criterion reads: `rg 'qmd update --collection' P:/.data/wiki P:/docs` return
 
 This is **impossible to satisfy** because `P:/.data/wiki/concepts/qmd-cli-syntax-differs-by-subcommand.md` intentionally documents the wrong syntax as bug evidence, and `P:/.data/wiki/log.md` records the historical fix. Future handoffs should reword criterion #1 to either "no live command instructions use `--collection`" or "no instruction prose uses `--collection`". The actual fix goal (no live commands wrong) IS met.
 
-### 2. Pre-existing `wiki_after_write.py` Loguru stdout bug (not introduced by this stream)
-Both `wiki_after_write.py` (line ~88-99) and the new `wiki_contradiction_scan.py` (line ~149) check `out.startswith("[")` to gate JSON parsing. In practice, `qmd search --format json` emits Loguru INFO lines to stdout BEFORE the JSON array, so this strict-prefix check always fails and the script falls back to grep. Real fix: strip the leading Loguru prefix before JSON parsing, OR use `out.find("[")` then slice from there.
+### 2. ~~Pre-existing `wiki_after_write.py` Loguru stdout bug~~ **RETRACTED — false alarm**
 
-**Consequence:** auto-link effectively never injects `## Auto-related` sections in practice; the existing wiki relies on hand-authored `## Related` sections. All 10 new ADR pages got hand-authored `## Related` as fallback per SCHEMA §9. Owner: cc-skills-sdlc.
+**Original claim:** Both `wiki_after_write.py` and the new `wiki_contradiction_scan.py` check `out.startswith("[")` to gate JSON parsing; claimed that QMD emits Loguru INFO lines to stdout before the JSON, causing the check to always fail.
+
+**Correction (verified 2026-07-19):** The Loguru INFO lines go to **stderr**, not stdout. The python subprocess call uses `capture_output=True` which separates the streams, so `proc.stdout` cleanly starts with `[`. The `out.startswith("[")` check works correctly.
+
+The original "verification" used `qmd search ... 2>&1 | head -3` in shell — the `2>&1` merged streams and created a false picture. Per the CLAUDE.md rule "Capability Claims: CLI flags and API params are hypotheses until verified with `--help` or live check", this should have been verified with a direct `subprocess.run(..., capture_output=True)` probe before being recorded as a finding.
+
+**Verified working:** `wiki_after_write.py --dry-run` on `git-index-lock-concurrent-access-recovery.md` (a page with real semantic neighbors) returns 4 links. The reason many pages have no `## Auto-related` section is legitimate — they're novel topics where QMD only returns the page itself (which the self-filter removes).
+
+**Lesson:** When diagnosing "this code never works in production" claims, run the actual code path with `capture_output=True` (or equivalent stream separation) before claiming a stdout/stderr conflation bug. Shell `2>&1` merges streams and hides the real picture.
 
 ### 3. Original log format divergence (corrected in follow-up)
 The 10 ADR log entries from the prior session used a divergent format:
@@ -202,21 +209,83 @@ Stream-2 agent stayed within assigned scope (cc-skills-sdlc plugin + wiki vault 
 ### 8. Subagent prompt ambiguity: ADR count
 The subagent prompt for ADR ingest said "9 ADRs total" in the body but listed 10 files (8 + 1 + 1). Subagent B read the file listing and processed all 10 — the correct behavior. **Lesson:** when a subagent prompt body count contradicts the file listing, the file listing is authoritative.
 
+### 9. Concurrent auto-commit process picked up stream-2 work mid-session
+The cc-skills-sdlc submodule has an active auto-commit process that picks up file changes and commits them with generic messages (`chore: update python module`, `feat: update tests`). During stream-2's session:
+
+- `47dd62a feat: update python module` — committed my new `wiki_ingest.py` and `wiki_log_append.py`
+- `44da5c9 feat: update tests` — committed my new `test_wiki_log_append.py` and `test_wiki_ingest.py`
+- `e56824f chore: update python module` — committed modifications to `wiki_after_write.py` and `wiki_contradiction_scan.py` including the **exact Loguru "fix" I had retracted** (Finding #2)
+
+The retracted fix (`out.startswith("[")` → `out.find("[")` + slice) is **harmless defensive coding**: when stdout cleanly starts with `[` (which it does — Loguru goes to stderr), `find("[")` returns 0 and the slice is a no-op. The fix is unnecessary but not harmful.
+
+**Lessons:**
+1. **Check submodule git log before claiming files are untracked** — concurrent auto-commits may have already persisted work. `git ls-files <path>` is the truth, not `git status --short` alone.
+2. **Recommending a fix as "harmless defensive code" is different from "necessary bug fix"** — distinguish these in findings. The concurrent process applied the fix as the latter; my verification had proved it was only the former.
+3. **Generic commit messages (`chore: update python module`) obscure what landed** — auto-commit processes should be investigated before assuming work is lost. The commits did contain my files, just under non-descriptive messages.
+
+### 10. Subagent rate-limit (429) handling pattern
+Across this session, 5 of 6 subagent dispatches eventually failed with `429 Too Many Requests` from the MiniMax API. The pattern that worked:
+
+1. Detect 429 in subagent result
+2. **Do NOT retry** — per global rules ("Don't retry a failed built-in more than once")
+3. **Reflex to parent execution** — perform the verification/work directly in the parent agent
+4. Note the rate limit in the report so the user knows subagent fan-out was degraded
+
+This kept work moving despite subagent unavailability. The parent agent has the same tools and can do bounded verification directly. The cost is wall-clock time (serial vs parallel), not capability.
+
 ## Recommendations for follow-up
 
-1. **Fix the `wiki_after_write.py` Loguru stdout bug** (Finding #2) — would actually enable auto-link to inject `## Auto-related` sections in production. Owner: cc-skills-sdlc.
+1. **~~Fix the `wiki_after_write.py` Loguru stdout bug~~** (Finding #2 retracted — bug does not exist; auto-link verified working on `git-index-lock-concurrent-access-recovery.md`).
 
 2. **Add unit tests for the new scripts** under `P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/skills/wiki/tests/`:
-   - `test_wiki_log_append.py` (idempotency, atomic write, format conformance, sentinel handling, missing sentinel error path)
-   - `test_wiki_ingest.py` (5-step pipeline ordering, error tolerance, `--skip-qmd` flag, missing-script fallback)
+   - ✅ `test_wiki_log_append.py` (24 tests, all pass — covers idempotency, atomic write, format conformance, sentinel handling, missing sentinel error path)
+   - ✅ `test_wiki_ingest.py` (15 tests, all pass — covers 5-step pipeline ordering, error tolerance, `--skip-qmd` flag, missing-script fallback)
 
-3. **Update SCHEMA.md §10 step 6** to reference `wiki_ingest.py` as the recommended single-call entry point. Currently mentions `wiki_after_write.py` and `wiki_contradiction_scan.py` individually; adding `wiki_ingest.py --post-write <page>` would simplify the documented workflow.
+3. **Update SCHEMA.md §10 step 6** to reference `wiki_ingest.py` as the recommended single-call entry point. ✅ Done.
 
 4. **Reword handoff verification criterion #1** in future streams to "no live command instructions use `--collection`" — the literal-zero-hits goal is unreachable while the bug-documentation concept page exists.
 
-5. **Document the wiki-vault gitignore convention** somewhere prominent. SCHEMA.md §1 "Shared vault" is the natural place; verify it currently mentions the runtime-only nature.
+5. **Document the wiki-vault gitignore convention** somewhere prominent. ✅ Done — added "Gitignore note" paragraph to SCHEMA.md §1.
 
-6. **Document the schema divergence** between SCHEMA §6 template (`Source: session-<date> | <original_filename>` with `|` separator) and the actually-used format (`Source: session-<date>` only, no separator). The vault already uses the simpler form; either update SCHEMA template or restore the separator.
+6. **Document the schema divergence** between SCHEMA §6 template and actual usage. ✅ Done — §6 template updated to match actual usage; "Field notes" subsection added.
+
+7. **Fix stale test in `test_wiki_after_write.py::TestBuildQuery::test_strips_punctuation`** — ✅ Done. Renamed to `test_preserves_punctuation` with inverted assertions (punctuation IS preserved, since the FTS5 patch at `cc-skills-utils/__lib/qmd_fts5_patch.patch` handles operator escaping at the root per wiki CLAUDE.md). Committed in cc-skills-sdlc submodule as `339ef45`.
+
+## Final state (2026-07-19, end of session)
+
+**All deliverables and recommendations closed.** Stream-2 is complete and verified.
+
+### Commit graph (cc-skills-sdlc submodule)
+
+| Hash | Type | What landed | Owner |
+|---|---|---|---|
+| `339ef45` | test | Rename `test_strips_punctuation` → `test_preserves_punctuation` (this session, explicit) | stream-2 |
+| `e56824f` | chore | Loguru "fix" applied to `wiki_after_write.py` + `wiki_contradiction_scan.py` (harmless defensive code; the bug it claims to fix doesn't exist — see Finding #2) | concurrent auto-commit |
+| `44da5c9` | feat | Added `test_wiki_log_append.py` + `test_wiki_ingest.py` | concurrent auto-commit (picked up stream-2 work) |
+| `47dd62a` | feat | Added `wiki_ingest.py` + `wiki_log_append.py` | concurrent auto-commit (picked up stream-2 work) |
+
+The concurrent commits picked up stream-2 work mid-session under non-descriptive messages. The bug fix in `wiki_log_append.py:_entry_already_present` (looking at the OWNING entry's type, not the next entry's) survived intact. The `339ef45` commit was the only explicit, hand-crafted commit by stream-2 in this submodule.
+
+### Final test count
+
+| Suite | Result |
+|---|---|
+| `test_wiki_log_append.py` | 24/24 pass (NEW) |
+| `test_wiki_ingest.py` | 15/15 pass (NEW) |
+| `test_wiki_after_write.py::TestBuildQuery` | 4/4 pass (1 renamed, was 3/4) |
+| Full wiki suite | **95/95 pass** |
+
+### /check runs
+
+| Run | Scope | Result |
+|---|---|---|
+| 1 (3-deliverable wave) | Script + SCHEMA, ADR pages, Scope/safety | 3/3 PASS via parallel subagents |
+| 2 (5-deliverable wave) | Scripts, Tests, Docs+Scope | 3/3 PASS via parent verification (subagents 429'd) |
+
+### Open items (none blocking)
+
+- **Finding #4 rewording of criterion #1**: forward-looking guidance for future handoffs. Not actionable in this session.
+- **Concurrent auto-commit process**: not stream-2's to fix. Worth surfacing to workspace owner if generic commit messages become a recurring provenance problem.
 
 ## Source references
 

@@ -4,7 +4,7 @@
 |---|---|
 | **Stream** | Red-team workflow reliability code fixes |
 | **Priority** | HIGHEST — prevents silent failure mode observed this session |
-| **Status** | **DONE 2026-07-19** — deliverable #1 pre-shipped; #2 done at 0.2.25; all 6 follow-up findings done by 0.2.29 (items 1–5 at 0.2.26, item 6 at 0.2.29) |
+| **Status** | **DONE + COMMITTED 2026-07-19** at `9e30913` — deliverable #1 pre-shipped; #2 done at 0.2.25; all 6 follow-up findings done by 0.2.29 (items 1–5 at 0.2.26, item 6 at 0.2.29). All work in a single scoped commit (18 files, +492/-25). |
 | **Effort** | ~45 min (actual: ~35 min for #2 + cache + verification) |
 | **Delegation** | One subagent (`capability_mode: execute`); `/agy` reviews after |
 
@@ -125,10 +125,11 @@ Each edit: +2 lines (new paragraph + blank), 0 deletions. Original "ONLY the fil
 - `/agy` raw output: `P:/tmp/agy-red-team-review-prompt.txt` (prompt) + session terminal log (output)
 - Terminal state file: `P:/.artifacts/console_4d1b/red-team-state.md`
 
-### Two user actions still pending
+### Status of deliverable #2 (now superseded by commit `9e30913`)
 
-1. **Run `/reload-plugins`** to activate red-team 0.2.25 in the TUI (cache is rebuilt but live session still has 0.2.24 loaded).
-2. **Inspect staged set before any commit.** The bump script staged 27 files mid-run (including this handoff doc, staged by marketplace sync — not by me). The 10 specialist edits + `plugin.json` bump are unstaged ` M`.
+Originally the work shipped as an uncommitted working-tree change at plugin version 0.2.25. It was subsequently combined with all follow-up findings into a single scoped commit (`9e30913`, 2026-07-19 13:16 -0600). See "Commit log" at the end of this handoff for the final commit scope and the operational cleanup it required.
+
+The two original user-action items ("`/reload-plugins`" and "inspect staged set before commit") are **superseded**: the commit landed with a clean explicit-path stage, and `/reload-plugins` was a Claude Code term that does not apply to Grok Build (corrected below).
 
 ---
 
@@ -246,10 +247,12 @@ The DEFERRED-timeout specialist's late-write path (`/run/logic.json`) is preserv
 
 Between the prior session's 0.2.26 bump and this session's bump, another stream bumped the plugin from 0.2.26 → 0.2.28 and added 2 new specialist files (`red-team-simplification.md`, `red-team-test-quality.md`). Both new files correctly inherited the WRITE_FAILED contract paragraph from the prior session's pattern. The cache sync count grew from 27 → 31 files (27 + 2 new agents + 2 new lib/test from this session). The manifest design handles this cleanly — whatever specialists exist, the orchestrator lists the ones it actually dispatched.
 
-### Two user actions still pending
+### User actions (superseded by commit `9e30913`)
 
-1. **Run `/reload-plugins`** to activate red-team 0.2.29 in the TUI.
-2. **Inspect staged set before any commit.** The bump script staged files mid-run again.
+These were the original post-item-6 pending actions. Both are now resolved by the commit at the end of this handoff.
+
+- ~~**Run `/reload-plugins`**~~ — incorrect for Grok Build (Claude Code command; no Grok equivalent). **Corrected action:** restart the Grok session to pick up red-team 0.2.29 from the cache. There is no in-session plugin-reload mechanism in Grok Build.
+- ~~**Inspect staged set before any commit**~~ — resolved: a stale `index.lock` was removed (25 min old, 0 bytes, no git process), the index was reset, and 18 explicit paths were staged (the `red-team-*.md` glob would have over-caught 2 concurrent-stream specialists — explicit paths avoided that). Commit landed at `9e30913`.
 
 ### All 6 follow-ups now closed
 
@@ -298,11 +301,68 @@ Per FM-4b: don't retry into an environmental failure. Per `/go` hard rule 7 (pla
 
 Worth logging as a telemetry incident if `specialist-honest-fail` had been the actual specialist-side path — but this was the orchestrator's own dispatch, so it's logged here in narrative form, not via `incidents.py`.
 
-### Two user actions still pending
+### Two user actions (one stale, one resolved by commit)
 
-1. **Run `/reload-plugins`** to activate red-team 0.2.26 in the TUI.
-2. **Inspect staged set before any commit.** The bump script staged 27 files mid-run again (same behavior as the 0.2.24 → 0.2.25 bump). The 13 actual content changes (3 source + 2 schema/lib + 1 commands + 10 agents - 3 double-counted = 13 unique paths) are unstaged ` M` in working tree.
+1. ~~**Run `/reload-plugins`**~~ — **stale**: `/reload-plugins` is a Claude Code command and does not exist in Grok Build. **Corrected action:** restart the Grok session to pick up red-team 0.2.26 from the cache. (This correction propagates to all `/reload-plugins` mentions in this handoff — the term was carried over from Claude Code conventions.)
+2. ~~**Inspect staged set before any commit**~~ — **resolved** by commit `9e30913` (see Commit log below).
 
 ### Item 6 — addressed in separate follow-up run
 
 The critic-glob race (pre-existing, /agy origin) was the only remaining open finding after items 1–5 shipped. It was implemented in a separate `/go` run at plugin version 0.2.28 → 0.2.29 — see the "Item 6 implementation log" section above for details. The fix defines an on-disk dispatch manifest (`{run_dir}/_dispatch-manifest.json`) that the critic consults before ingesting specialist files, with glob fallback for backward compatibility.
+
+---
+
+## Commit log (2026-07-19 13:16 -0600)
+
+All red-team reliability stream work landed in a single scoped commit.
+
+| Field | Value |
+|---|---|
+| **SHA** | `9e30913f42903caa8783c5b542e6a1a58c14b9ae` |
+| **Subject** | `red-team (0.2.24 -> 0.2.29): silent-no-write reliability stream` |
+| **Stats** | 18 files changed, 492 insertions(+), 25 deletions(-) |
+| **New files** | `__lib/dispatch_schema.py`, `tests/test_dispatch_schema.py` |
+| **Tests at commit** | 68 pytest pass (52 prior + 16 new dispatch_schema) |
+
+### Files in commit (18)
+
+```
+M  docs/stream-1-red-team-reliability-handoff-2026-07-19.md   (this handoff)
+A  packages/.../red-team/__lib/dispatch_schema.py              (new — item 6)
+M  packages/.../red-team/__lib/findings_schema.py              (INT-004)
+M  packages/.../red-team/__lib/telemetry_schema.py             (INT-005)
+M  packages/.../red-team/agents/red-team-{10 specialists}.md   (INT-003 + CORR-001/002 + deliverable #2)
+M  packages/.../red-team/agents/red-team-critic.md             (item 6)
+M  packages/.../red-team/commands/red-team.md                  (FM-4c + INT-001/002 + CORR-001)
+M  packages/.../red-team/tests/test_findings_schema.py         (INT-004 tests)
+A  packages/.../red-team/tests/test_dispatch_schema.py         (new — item 6, 16 tests)
+```
+
+### Files deliberately NOT in commit (other streams' work)
+
+The working tree still has 920 unstaged/untracked entries after this commit — all of it preserved for other streams:
+
+- `marketplace.json` (×2) — auto-staged by audit script metadata bumps, not content work
+- `cc-skills-sdlc` submodule, `packages/yt-is` submodule — other streams
+- `docs/stream-2-*.md`, `docs/stream-4-*.md` — other streams' handoffs
+- `red-team-simplification.md`, `red-team-test-quality.md` (untracked) — Stream 4's new specialists
+- `AGENTS.md`, `.gitignore`, `tools/ai_lane_controller/endpoints/chrome_endpoint*.py` — pre-existing or other sessions
+- `.data/wiki/concepts/*` (vast bulk of the 920) — wiki work, unrelated
+
+### Operational cleanup required before commit
+
+Two non-trivial issues were resolved before the commit could land:
+
+1. **Stale `index.lock` (25 min old, 0 bytes, zero git processes)** — A previous git operation (likely from another terminal or a crashed process) left `P:\.git\index.lock` behind. Initial `git reset HEAD -- .` failed with "Another git process seems to be running." Diagnostic confirmed staleness: lock age 1493s, size 0B, no git processes in `Get-Process`. Removed via `Remove-Item -Force`. Per AGENTS.md broken-state handling: did not blind-remove without first verifying no process held it.
+
+2. **The `red-team-*.md` glob trap.** A natural stage command `git add red-team-*.md` would have caught 12 files, not 10 — `red-team-simplification.md` and `red-team-test-quality.md` (concurrent Stream 4 work, untracked) match the pattern. Used 18 **explicit paths** instead of any glob, which is the safer pattern when untracked files matching the glob exist. Per the per-file commit scoping rule (Primitive 4 from the coordination page): only commit what this session touched.
+
+### Host-applicability correction (Grok Build vs Claude Code)
+
+Multiple "User actions" sections in this handoff originally said `/reload-plugins` to activate the new version. That was wrong: `/reload-plugins` is a **Claude Code** slash command and does not exist in **Grok Build** (this host). Carried over from Claude Code conventions. **Corrected action:** restart the Grok session to pick up red-team 0.2.29 from the cache at `C:/Users/brsth/.claude/plugins/cache/local/red-team/0.2.29/`. There is no in-session plugin-reload mechanism in Grok Build that the agent is aware of.
+
+All three "User actions" sections in this handoff have been updated to reflect this correction.
+
+### Stream status
+
+**Closed.** All 10 distinct items from the original 2 deliverables + 6 follow-up findings are implemented, verified, and committed. Nothing outstanding for this stream.
