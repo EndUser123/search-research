@@ -309,65 +309,15 @@ const server = http.createServer((req, res) => {
       reason: null,
     };
 
+    // Context ceiling removed: forward all requests regardless of estimated
+    // token count. CCR's routing determines which provider handles the request.
+    // The proxy still records token estimates for observability.
     if (total > SAFE_CEILING) {
-      // Compaction exemption: compaction is the recovery mechanism for
-      // oversized context. Blocking it traps sessions past the ceiling with
-      // no recovery path. Detection: Claude Code's compaction requests
-      // typically have max_tokens absent (defaults to 0) and input over the
-      // ceiling. The input floor is set just above SAFE_CEILING (1.1x) rather
-      // than 2x because real compaction requests are ~1.4x the ceiling (~700K
-      // vs 483K), and setting the floor at 2x would exclude them.
-      const COMPACT_OUTPUT_THRESHOLD = parseInt(process.env.CCR_COMPACT_MAX_TOKENS || "8192", 10);
-      const COMPACT_INPUT_FLOOR = Math.floor(SAFE_CEILING * 1.1);
-      const isCompaction = maxTokens <= COMPACT_OUTPUT_THRESHOLD && inputEstimate >= COMPACT_INPUT_FLOOR;
-
-      // Option 2 (feature flag): when a compaction model override is configured,
-      // rewrite the request's model field so CCR routes it to a cheaper model
-      // (e.g., deepseek-v4-flash). This avoids spending 1M-context quota on a
-      // summarization task that a cheaper model can handle.
-      const COMPACT_MODEL_OVERRIDE = process.env.CCR_COMPACT_MODEL_OVERRIDE || "";
-
-      if (isCompaction) {
-        let forwardedBody = shapedBuf;
-        let overrideNote = "";
-        if (COMPACT_MODEL_OVERRIDE) {
-          try {
-            const bodyObj = JSON.parse(shapedBuf.toString("utf-8"));
-            const originalModel = bodyObj.model || "unknown";
-            bodyObj.model = COMPACT_MODEL_OVERRIDE;
-            forwardedBody = Buffer.from(JSON.stringify(bodyObj), "utf-8");
-            overrideNote = ` → model override: ${originalModel} → ${COMPACT_MODEL_OVERRIDE}`;
-          } catch {
-            // If model rewrite fails, forward with the original model.
-          }
-        }
-        entry.decision = "FORWARDED_COMPACT";
-        entry.reason = `compaction exemption: total ${total} > ceiling ${SAFE_CEILING} but max_tokens ${maxTokens} <= ${COMPACT_OUTPUT_THRESHOLD}${overrideNote}`;
-        logAdmission(entry);
-        try { process.stderr.write(`[admission-proxy] COMPACT EXEMPTION: ${entry.reason} (model=${model}, req=${requestId})\n`); } catch {}
-        forwardToCCR(req, forwardedBody, res, lifecycle);
-        return;
-      }
-
-      entry.decision = "REJECTED";
-      entry.reason = `total ${total} > ceiling ${SAFE_CEILING} (limit=${GLOBAL_CONTEXT_LIMIT}, reserve=${OUTPUT_RESERVE})`;
+      entry.decision = "FORWARDED_OVER_CEILING";
+      entry.reason = `total ${total} > ceiling ${SAFE_CEILING} — forwarded (ceiling disabled)`;
       logAdmission(entry);
-      try { process.stderr.write(`[admission-proxy] REJECTED: ${entry.reason} (model=${model}, req=${requestId})\n`); } catch {}
-      res.writeHead(413, { "content-type": "application/json" });
-      res.end(JSON.stringify({
-        error: {
-          type: "admission_proxy_context_exceeded",
-          message: `Request rejected by admission proxy: estimated ${total} tokens (input ${inputEstimate} + output ${maxTokens}) exceeds the safe ceiling of ${SAFE_CEILING} (backend limit ${GLOBAL_CONTEXT_LIMIT} minus ${OUTPUT_RESERVE} reserve). Reduce context size. A higher-context backend may still be reachable through CCR (the proxy applies a blanket minimum across all routes).`,
-          admission_details: entry,
-        },
-      }));
-      ledger.finalizeRequest(lifecycle, {
-        outcome: "rejected",
-        statusCode: 413,
-        model,
-        inputTokensEstimate: inputEstimate,
-        admitted: false,
-      });
+      try { process.stderr.write(`[admission-proxy] OVER CEILING: ${entry.reason} (model=${model}, req=${requestId})\n`); } catch {}
+      forwardToCCR(req, shapedBuf, res, lifecycle);
       return;
     }
 
