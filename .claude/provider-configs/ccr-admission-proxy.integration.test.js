@@ -121,8 +121,18 @@ test("records upstream failures and client cancellation separately", async () =>
 });
 
 test("HTTP proxy still rejects a request that remains oversized", async () => {
-  const response = await sendJson(PROXY_PORT, { model: "claude-sonnet-5", max_tokens: 128, system: "x".repeat(3_000_000), messages: [{ role: "user", content: "do not forward" }] });
+  // max_tokens above the compaction threshold (8192) so this is NOT a
+  // compaction request and should still be rejected by the ceiling.
+  const response = await sendJson(PROXY_PORT, { model: "claude-sonnet-5", max_tokens: 16384, system: "x".repeat(3_000_000), messages: [{ role: "user", content: "do not forward" }] });
   assert.equal(response.status, 413);
   assert.equal(response.body.error.type, "admission_proxy_context_exceeded");
   assert.match(ledger.prometheusMetrics(), /ccr_requests_rejected_total 1/);
+});
+
+test("compaction requests (large input, small output budget) are forwarded not rejected", async () => {
+  // max_tokens at or below the compaction threshold (8192) with an oversized
+  // input should be FORWARDED — compaction is the recovery mechanism for
+  // oversized context, and blocking it prevents session recovery.
+  const response = await sendJson(PROXY_PORT, { model: "claude-opus-4-8", max_tokens: 8192, system: "x".repeat(3_000_000), messages: [{ role: "user", content: "summarize this conversation" }] });
+  assert.equal(response.status, 200);
 });

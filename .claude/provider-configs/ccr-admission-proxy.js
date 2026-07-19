@@ -310,6 +310,44 @@ const server = http.createServer((req, res) => {
     };
 
     if (total > SAFE_CEILING) {
+      // Compaction exemption: requests with a small output budget and a large
+      // input are summarization/compaction calls — the recovery mechanism for
+      // oversized context. Blocking them prevents the only path to shrinking
+      // the conversation. When the output budget is at or below the compaction
+      // threshold AND the input is over the ceiling, forward instead of reject.
+      // CCR's routing will send it to the primary route (MiniMax-M3[1m] has 1M
+      // context and can handle the full input).
+      const COMPACT_OUTPUT_THRESHOLD = parseInt(process.env.CCR_COMPACT_MAX_TOKENS || "8192", 10);
+      const isCompaction = maxTokens > 0 && maxTokens <= COMPACT_OUTPUT_THRESHOLD;
+
+      // Option 2 (feature flag): when a compaction model override is configured,
+      // rewrite the request's model field so CCR routes it to a cheaper model
+      // (e.g., deepseek-v4-flash). This avoids spending 1M-context quota on a
+      // summarization task that a cheaper model can handle.
+      const COMPACT_MODEL_OVERRIDE = process.env.CCR_COMPACT_MODEL_OVERRIDE || "";
+
+      if (isCompaction) {
+        let forwardedBody = shapedBuf;
+        let overrideNote = "";
+        if (COMPACT_MODEL_OVERRIDE) {
+          try {
+            const bodyObj = JSON.parse(shapedBuf.toString("utf-8"));
+            const originalModel = bodyObj.model || "unknown";
+            bodyObj.model = COMPACT_MODEL_OVERRIDE;
+            forwardedBody = Buffer.from(JSON.stringify(bodyObj), "utf-8");
+            overrideNote = ` → model override: ${originalModel} → ${COMPACT_MODEL_OVERRIDE}`;
+          } catch {
+            // If model rewrite fails, forward with the original model.
+          }
+        }
+        entry.decision = "FORWARDED_COMPACT";
+        entry.reason = `compaction exemption: total ${total} > ceiling ${SAFE_CEILING} but max_tokens ${maxTokens} <= ${COMPACT_OUTPUT_THRESHOLD}${overrideNote}`;
+        logAdmission(entry);
+        try { process.stderr.write(`[admission-proxy] COMPACT EXEMPTION: ${entry.reason} (model=${model}, req=${requestId})\n`); } catch {}
+        forwardToCCR(req, forwardedBody, res, lifecycle);
+        return;
+      }
+
       entry.decision = "REJECTED";
       entry.reason = `total ${total} > ceiling ${SAFE_CEILING} (limit=${GLOBAL_CONTEXT_LIMIT}, reserve=${OUTPUT_RESERVE})`;
       logAdmission(entry);
