@@ -283,7 +283,7 @@ def main() -> None:
             "decision": "block",
             "reason": (
                 f"**Plan Required:** Creating `{file_path}`\n\n"
-                "Run: `/plan-workflow build <description>`\n\n"
+                "Run: `/planning build <description>`\n\n"
                 "Exemptions: refactor, fix, tests, docs, config"
             ),
             "blocking_hook": "PreToolUse_require_plan_for_features.py"

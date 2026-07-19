@@ -65,7 +65,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.205",
+      "version": "1.0.236",
       "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -86,7 +86,7 @@
     },
     {
       "name": "search-research",
-      "version": "0.1.112",
+      "version": "0.1.123",
       "description": "Unified search and research system with async concurrent execution and 11 web providers.",
       "source": "./plugins/search-research",
       "keywords": [
@@ -274,7 +274,7 @@
     },
     {
       "name": "cc-aca-investigation",
-      "version": "0.2.9",
+      "version": "0.2.10",
       "description": "ACA Investigation plugin - discovery-first enforcement, observe-before-act gating, breadcrumb progression tracking, and evidence-grounded reasoning prompts. Part of the Agent Control Architecture.",
       "source": "./plugins/cc-aca-investigation",
       "keywords": [
@@ -322,7 +322,7 @@
     },
     {
       "name": "red-team",
-      "version": "0.2.17",
+      "version": "0.2.24",
       "description": "Multi-agent adversarial review pipeline. Planner -> specialists -> critic -> single PROCEED/REVISE/BLOCK verdict. Disk-backed findings handoff keeps the orchestrator context small. Phase 3: telemetry + incident self-improvement layer.",
       "source": "./plugins/red-team",
       "keywords": [
