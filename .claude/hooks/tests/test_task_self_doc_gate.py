@@ -270,6 +270,19 @@ class TestSelfDocumentationCheck:
         assert "Situation" not in result.missing_categories
         assert "Symptom" not in result.missing_categories
 
+    def test_explicit_schema_labels_are_authoritative(self):
+        """The documented Problem/Situation/Symptom format must pass literally."""
+        result = self_documentation_check(
+            subject="Audit task creation reliability",
+            description=(
+                "Problem: No reliable task tracking exists. "
+                "Situation: During a Claude Code audit. "
+                "Symptom: TaskCreate returns a validation error."
+            ),
+        )
+        assert result.is_valid is True
+        assert result.missing_categories == []
+
     def test_require_all_false(self):
         """Test with require_all=False, any one category is enough."""
         result = self_documentation_check(

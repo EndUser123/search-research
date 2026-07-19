@@ -81,6 +81,17 @@ SYMPTOM_INDICATORS = [
     r"\bexception\b",
 ]
 
+# The task contract documents explicit Problem/Situation/Symptom fields. Keep
+# accepting the older indicator-based descriptions for compatibility, but treat
+# a labelled field as authoritative too. Without this, a description such as
+# "Problem: No live monitor exists" was incorrectly reported as missing a
+# Problem because it did not also contain words like "bug" or "error".
+CATEGORY_LABELS = {
+    "Problem": r"\bproblem\s*:",
+    "Situation": r"\bsituation\s*:",
+    "Symptom": r"\bsymptom\s*:",
+}
+
 
 class ValidationResult(NamedTuple):
     """Result of self-documentation validation."""
@@ -92,9 +103,11 @@ class ValidationResult(NamedTuple):
     desc_length: int
 
 
-def _check_category(text: str, patterns: list[str]) -> bool:
+def _check_category(text: str, patterns: list[str], label: str | None = None) -> bool:
     """Check if text contains any indicator from a category."""
     lower = text.lower()
+    if label and re.search(CATEGORY_LABELS[label], lower):
+        return True
     for pattern in patterns:
         if re.search(pattern, lower):
             return True
@@ -160,9 +173,9 @@ def self_documentation_check(
         )
 
     # Check category indicators
-    has_problem = _check_category(description, PROBLEM_INDICATORS)
-    has_situation = _check_category(description, SITUATION_INDICATORS)
-    has_symptom = _check_category(description, SYMPTOM_INDICATORS)
+    has_problem = _check_category(description, PROBLEM_INDICATORS, "Problem")
+    has_situation = _check_category(description, SITUATION_INDICATORS, "Situation")
+    has_symptom = _check_category(description, SYMPTOM_INDICATORS, "Symptom")
 
     if not has_problem:
         missing_categories.append("Problem (what issue is this fixing?)")
