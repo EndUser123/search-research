@@ -792,7 +792,23 @@ function Ensure-AdmissionProxy {
                 if ($scriptLastWrite -gt $proxyProcess.StartTime) {
                     Write-Host "[admission-proxy] script changed since proxy started ($($proxyProcess.StartTime) < $scriptLastWrite) — restarting" -ForegroundColor Yellow
                     Stop-Process -Id $owner.ListenerPid -Force -ErrorAction SilentlyContinue
-                    Start-Sleep -Milliseconds 500
+                    # Wait for the port to actually release before spawning a
+                    # new proxy. Stop-Process returns immediately but the OS
+                    # may hold the TCP socket in TIME_WAIT or the node process
+                    # may have child threads that haven't exited yet. Poll
+                    # until the port is free or timeout (5s max).
+                    $portReleaseDeadline = (Get-Date).AddSeconds(5)
+                    while ((Get-Date) -lt $portReleaseDeadline) {
+                        $stillListening = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
+                        if (-not $stillListening) { break }
+                        Start-Sleep -Milliseconds 250
+                    }
+                    # Also wait for the process to fully exit
+                    $exitDeadline = (Get-Date).AddSeconds(3)
+                    while ((Get-Date) -lt $exitDeadline) {
+                        if (-not (Get-Process -Id $owner.ListenerPid -ErrorAction SilentlyContinue)) { break }
+                        Start-Sleep -Milliseconds 250
+                    }
                     # Fall through to the spawn path below
                 } else {
                     return [pscustomobject]@{
