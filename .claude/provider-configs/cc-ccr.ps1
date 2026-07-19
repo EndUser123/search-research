@@ -1194,6 +1194,10 @@ function Write-FleetStatusSection {
 }
 
 # --- Render output ---
+# When -Usage is requested, the usage section below renders its own
+# infrastructure, environment, and routing trees. Skip the normal launch
+# output to avoid duplication.
+if (-not $Usage) {
 Write-DomainHeader "Infrastructure"
 $gatewayHealthy = $ccrRunning -and $proxyAvailable
 $infrastructureStatus = if ($gatewayHealthy -and $localModelHealth) {
@@ -1659,3 +1663,4 @@ if ($Test) {
 Write-Host ""
 Write-Host "Ready. Run: claude" -ForegroundColor White
 Write-Host "Tip: 'cc-ccr -Test' sends one real request to verify the whole chain works." -ForegroundColor DarkGray
+} # end if (-not $Usage)
