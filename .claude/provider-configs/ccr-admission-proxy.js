@@ -313,14 +313,12 @@ const server = http.createServer((req, res) => {
       // Compaction exemption: compaction is the recovery mechanism for
       // oversized context. Blocking it traps sessions past the ceiling with
       // no recovery path. Detection: Claude Code's compaction requests
-      // typically have max_tokens absent (defaults to 0) and a very large
-      // input (multiple times the SAFE_CEILING). This shape is not shared
-      // by normal inference requests, which either include max_tokens or
-      // have smaller inputs. The threshold for "very large" is set at 2x
-      // SAFE_CEILING to avoid matching marginal oversized requests that
-      // might be legitimate errors worth rejecting.
+      // typically have max_tokens absent (defaults to 0) and input over the
+      // ceiling. The input floor is set just above SAFE_CEILING (1.1x) rather
+      // than 2x because real compaction requests are ~1.4x the ceiling (~700K
+      // vs 483K), and setting the floor at 2x would exclude them.
       const COMPACT_OUTPUT_THRESHOLD = parseInt(process.env.CCR_COMPACT_MAX_TOKENS || "8192", 10);
-      const COMPACT_INPUT_FLOOR = SAFE_CEILING * 2;
+      const COMPACT_INPUT_FLOOR = Math.floor(SAFE_CEILING * 1.1);
       const isCompaction = maxTokens <= COMPACT_OUTPUT_THRESHOLD && inputEstimate >= COMPACT_INPUT_FLOOR;
 
       // Option 2 (feature flag): when a compaction model override is configured,
