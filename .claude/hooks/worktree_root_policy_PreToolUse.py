@@ -45,8 +45,10 @@ from pathlib import Path, PureWindowsPath
 _DEFAULT_ALLOWED_ROOT = Path("P:/.worktrees")
 ALLOWED_ROOT = Path(os.environ.get("WORKTREE_ALLOWED_ROOT", str(_DEFAULT_ALLOWED_ROOT)))
 
-# `git worktree add` -- case-insensitive, word-boundary anchored.
-_GIT_WT_ADD_PATTERN = re.compile(r"\bgit\s+worktree\s+add\b", re.IGNORECASE)
+# `git worktree add` — allow flags/args between `git` and `worktree`
+# (e.g. `git -C P:/foo worktree add ...`, `git -b feat worktree add ...`).
+# Case-insensitive, word-boundary anchored.
+_GIT_WT_ADD_PATTERN = re.compile(r"\bgit\b(?:\s+\S+)*\s+worktree\s+add\b", re.IGNORECASE)
 
 
 def _is_under_allowed_root(path_str: str) -> bool:

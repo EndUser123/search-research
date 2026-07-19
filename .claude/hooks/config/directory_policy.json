@@ -94,6 +94,10 @@
       {
         "pattern": ".artifacts",
         "reason": "Cross-platform research and decision artifacts (research-brief.v1, research-run.v1, etc.)"
+      },
+      {
+        "pattern": ".staging",
+        "reason": "Pre-promotion staging area for in-progress edits that need isolated testing before going live (added 2026-07-19 for discovery_audit.py patch workflow)"
       }
     ],
     "allowed_config_files": [
