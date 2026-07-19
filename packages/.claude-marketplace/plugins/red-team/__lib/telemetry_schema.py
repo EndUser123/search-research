@@ -30,6 +30,13 @@ VALID_INCIDENT_CATEGORIES = (
     # the same context that drafted the code cannot be trusted to re-review
     # it without external pressure.
     "self-review-overlook",
+    # specialist-honest-fail: the specialist honestly reported WRITE_FAILED
+    # instead of fake-reporting a path. Distinct from specialist-miss (where
+    # the specialist reported a path but no file was written) because the
+    # specialist's reason is preserved and the failure mode is "write failed"
+    # not "specialist skipped the write". Pairs with FM-4 step 1's incident
+    # logging in commands/red-team.md.
+    "specialist-honest-fail",
 )
 VALID_INCIDENT_STATUSES = ("open", "triaged", "fixed", "rejected")
 

@@ -4,7 +4,7 @@
 |---|---|
 | **Stream** | Red-team workflow reliability code fixes |
 | **Priority** | HIGHEST — prevents silent failure mode observed this session |
-| **Status** | **DONE 2026-07-19** — deliverable #1 pre-shipped (commit `22338d0e`), deliverable #2 implemented this session |
+| **Status** | **DONE 2026-07-19** — deliverable #1 pre-shipped; #2 done at 0.2.25; all 6 follow-up findings done by 0.2.29 (items 1–5 at 0.2.26, item 6 at 0.2.29) |
 | **Effort** | ~45 min (actual: ~35 min for #2 + cache + verification) |
 | **Delegation** | One subagent (`capability_mode: execute`); `/agy` reviews after |
 
@@ -188,13 +188,121 @@ Specialist paragraph reads *"FM-4 retries once on a missing file, then logs an i
 
 ## Follow-ups (recommended priority order)
 
-| # | Finding | Priority | Effort |
-|---|---|---|---|
-| 1 | **INT-004** writer_session enforcement (pre-existing, closes real bypass) | High | Medium — schema change + specialist instructions + optional FM-4 check |
-| 2 | **INT-003** Decouple specialist text from FM-4 internals | Medium | Small — wording change to 10 files |
-| 3 | **INT-001 + INT-005** Honest-fail incident logging + category | Medium | Small — `incidents.py` + FM-4 step 1 |
-| 4 | **INT-002 option (a)** Document planner/critic asymmetry | Low | Trivial — comment in `commands/red-team.md` |
-| 5 | **CORR-001 + CORR-002** Tighten Test-Path + rephrase retry paragraph | Low | Trivial — wording pass |
-| 6 | (From /agy, not adopted) Critic glob race at `red-team.md:211` — critic should consult dispatch manifest before globbing to avoid DEFERRED-timeout specialist being silently ingested | Medium | Medium — critic prompt + dispatcher integration |
+**Status (updated 2026-07-19):** items 1–5 implemented in a follow-up `/go` run (plugin version 0.2.25 → 0.2.26). Item 6 implemented in a second `/go` run (0.2.28 → 0.2.29). All 6 follow-ups now closed. See "Follow-up implementation log" and "Item 6 implementation log" below.
 
-Items 1–5 ship naturally as one follow-up commit. Item 6 is independent (orchestrator-side, pre-existing) and worth a separate change.
+| # | Finding | Status | Priority | Effort |
+|---|---|---|---|---|
+| 1 | **INT-004** writer_session enforcement | **Done 2026-07-19** (0.2.26) | High | Medium |
+| 2 | **INT-003** Decouple specialist text from FM-4 internals | **Done 2026-07-19** (0.2.26) | Medium | Small |
+| 3 | **INT-001 + INT-005** Honest-fail incident logging + category | **Done 2026-07-19** (0.2.26) | Medium | Small |
+| 4 | **INT-002 option (a)** Document planner/critic asymmetry | **Done 2026-07-19** (0.2.26) | Low | Trivial |
+| 5 | **CORR-001 + CORR-002** Tighten Test-Path + rephrase retry paragraph | **Done 2026-07-19** (0.2.26) | Low | Trivial |
+| 6 | (From /agy, not adopted) Critic glob race at `red-team.md:211` — critic should consult dispatch manifest before globbing to avoid DEFERRED-timeout specialist being silently ingested | **Done 2026-07-19** (0.2.29) | Medium | Medium — critic prompt + dispatcher integration |
+
+Item 6 was the last open finding from the original review set. All 6 follow-ups now closed.
+
+---
+
+## Item 6 implementation log (2026-07-19, plugin 0.2.28 → 0.2.29)
+
+### Root cause discovered during discovery
+
+The "dispatch manifest" referenced 6 times in `commands/red-team.md` (L169, 194, 196, 199, 207, etc.) was **not a file** — it was narrative state in the orchestrator's working memory. There was nothing on disk for the critic to consult. That was the root of the race: the critic *couldn't* consult a manifest that didn't exist, so it blindly globbed `{run_dir}/*.json`.
+
+### What shipped (3 files + 1 new test file)
+
+| File | Change |
+|---|---|
+| `__lib/dispatch_schema.py` (new, ~100 lines) | Schema for the new on-disk manifest. `REQUIRED_TOP_LEVEL_FIELDS = ("run_id", "session_id", "specialists")`. `validate()` enforces shape + `status ∈ {DISPATCHED, DEFERRED}` + DISPATCHED requires non-empty path + no duplicate names. `dispatched_paths()` helper returns only DISPATCHED paths in order — the race-closing guarantee. |
+| `tests/test_dispatch_schema.py` (new, 16 tests) | Full coverage: valid/invalid manifests, status enum, DISPATCHED-requires-path, DEFERRED-with-late-write-path passes validation but is excluded from `dispatched_paths()`, duplicate names rejected, FM-3 empty case, defensive helper behavior. |
+| `commands/red-team.md` | New **FM-4c** section: orchestrator writes `{run_dir}/_dispatch-manifest.json` after the per-specialist FM-4 loop completes, before invoking the critic. Manifest schema documented inline with examples for DISPATCHED / DEFERRED-with-null-path / DEFERRED-with-late-write-path / recovered-after-retry. Critic invocation section rewritten: reads manifest first, filters by DISPATCHED, falls back to glob if manifest missing (backward compat + crash recovery). |
+| `agents/red-team-critic.md` | Inputs section rewritten: reads `{run_dir}/_dispatch-manifest.json` first, ingests only DISPATCHED paths. Glob fallback documented. New **FM-2 precondition**: manifest itself is schema-validated; if malformed, treated as missing + surfaced as `CRITIC-MANIFEST-MALFORMED` BLOCK finding. FM-3 updated: zero DISPATCHED specialists (whether manifest-empty or all-DEFERRED) triggers BLOCK with DEFERRED reasons enumerated. |
+
+### Race-closing guarantee (live runtime verified)
+
+```python
+manifest = {
+  'specialists': [
+    {'name': 'failure-modes', 'status': 'DISPATCHED', 'path': '/run/failure-modes.json'},
+    {'name': 'logic', 'status': 'DEFERRED', 'reason': 'timeout', 'path': '/run/logic.json'},
+  ]
+}
+dispatched_paths(manifest)  # → ['/run/failure-modes.json']
+```
+
+The DEFERRED-timeout specialist's late-write path (`/run/logic.json`) is preserved in the manifest for forensics but excluded from the critic's ingestion list. **Verified against cached plugin 0.2.29.**
+
+### Verification
+
+| Check | Result |
+|---|---|
+| All pytest (52 prior + 16 new dispatch_schema) | **68 passed** |
+| Live runtime check on cached plugin | Manifest validation works; `dispatched_paths()` correctly excludes DEFERRED late-writes |
+| Cache 0.2.29 contents | `dispatch_schema.py`, `test_dispatch_schema.py` present; commands/red-team.md has FM-4c (2 hits); critic.md has manifest ref (3 hits) |
+| Cache drift | Zero (31 src→cache, 0 cache→src) |
+| Prior session's changes intact | REQUIRED_TOP_LEVEL_FIELDS, specialist-honest-fail, Scope of FM-4, 12 specialist paragraph rewrites (10 from prior session + 2 from concurrent stream that added simplification + test-quality specialists) — all preserved |
+
+### Concurrent-stream discovery
+
+Between the prior session's 0.2.26 bump and this session's bump, another stream bumped the plugin from 0.2.26 → 0.2.28 and added 2 new specialist files (`red-team-simplification.md`, `red-team-test-quality.md`). Both new files correctly inherited the WRITE_FAILED contract paragraph from the prior session's pattern. The cache sync count grew from 27 → 31 files (27 + 2 new agents + 2 new lib/test from this session). The manifest design handles this cleanly — whatever specialists exist, the orchestrator lists the ones it actually dispatched.
+
+### Two user actions still pending
+
+1. **Run `/reload-plugins`** to activate red-team 0.2.29 in the TUI.
+2. **Inspect staged set before any commit.** The bump script staged files mid-run again.
+
+### All 6 follow-ups now closed
+
+The red-team plugin's reliability stream is complete. From the original 2 deliverables + 6 follow-up findings (10 distinct items across /check, /review, and /agy), every item is implemented and verified:
+
+- Deliverable #1 (FM-4 gate): pre-shipped at 0.2.24 (commit `22338d0e`)
+- Deliverable #2 (specialist WRITE_FAILED clause): 0.2.25
+- Follow-ups 1–5 (writer_session enforcement, decouple prompts, honest-fail logging, asymmetry doc, Test-Path strengthening): 0.2.26
+- Follow-up 6 (critic-glob race via dispatch manifest): 0.2.29 (this run)
+
+---
+
+## Follow-up implementation log (2026-07-19, plugin 0.2.25 → 0.2.26)
+
+### What shipped
+
+5 finding groups addressing INT-004, INT-003, INT-001+INT-005, INT-002, CORR-001+CORR-002. All implemented as a coherent set, version bumped 0.2.25 → 0.2.26, cache rebuilt (27 files synced source→cache, zero drift).
+
+### Files changed (13 total)
+
+| File | Change | Finding |
+|---|---|---|
+| `__lib/findings_schema.py` | Added `REQUIRED_TOP_LEVEL_FIELDS = ("specialist", "writer_session")` + top-level validation in `validate()`. Updated docstring. | INT-004 |
+| `__lib/telemetry_schema.py` | Added `"specialist-honest-fail"` to `VALID_INCIDENT_CATEGORIES` with distinguishing comment. | INT-005 |
+| `tests/test_findings_schema.py` | Updated `_valid_obj()` helper to include both top-level fields; existing fixtures now use it. Added 2 new tests: `test_missing_top_level_writer_session_fails`, `test_missing_top_level_specialist_fails`. | INT-004 |
+| `commands/red-team.md` | 3 surgical edits in the FM-4 procedure: (a) added "Scope of FM-4" paragraph documenting planner/critic exclusion + FM-3 mitigation for critic; (b) FM-4 step 1 now calls `incidents.py add --category specialist-honest-fail ...` instead of just marking the manifest; (c) FM-4 step 2 `Test-Path` strengthened to `(Test-Path -PathType Leaf $claimed) -and ((Get-Item $claimed).Length -gt 0)`. | INT-001, INT-002, CORR-001 |
+| `agents/red-team-{failure-modes,gate-reviewer,logic,performance,plugin,security,state,testing,workflow-reviewer,claim-refuter}.md` | Rewrote the prior session's WRITE_FAILED paragraph (10 files) to: (a) drop embedded FM-4 internals ("retries once", "logs an incident", "marks DEFERRED"); (b) strengthen Test-Path to leaf + size > 0; (c) rephrase to not imply retry always fails. | INT-003, CORR-001, CORR-002 |
+
+### Verification
+
+| Check | Tool | Result |
+|---|---|---|
+| Unit tests | `python -m pytest tests/` | **52 passed** (including 2 new top-level tests) |
+| Live runtime schema enforcement | `python -c "..."` against cached `findings_schema.py` | `validate({'specialist': 'x', 'findings': []})` returns `["missing required top-level field 'writer_session'"]` — enforcement actually works |
+| Cache matches source | `plugin-audit-and-fix.py --bump` summary | 27 src→cache, 0 cache→src, zero drift |
+| Cached agent paragraph count | grep on cache dir | 10/10 new paragraph present |
+| Old FM-4 internals removed | grep on agents dir | 0 hits for "retries once on a missing file, then" |
+| WRITE_FAILED token preserved | grep on agents dir | 10/10 hits |
+| commands/red-team.md edits landed | grep | 1 each for Scope of FM-4, specialist-honest-fail, Test-Path -PathType Leaf |
+
+### Operational incident (dispatch-failure)
+
+The original `/go` plan called for 2 parallel implementation subagents. Both failed immediately with **429 rate limit** from `api.minimax.io/chat/completions` — the configured subagent model backend. Same failure class as incident `inc-a5f7867e3190` (FM-4b dispatch-failure).
+
+Per FM-4b: don't retry into an environmental failure. Per `/go` hard rule 7 (plan-mode-declined fallback): continue with parent-direct edits using the on-disk plan. The implementation was completed serially by the parent. Cost: longer wall-clock time; benefit: full control over edit sequencing.
+
+Worth logging as a telemetry incident if `specialist-honest-fail` had been the actual specialist-side path — but this was the orchestrator's own dispatch, so it's logged here in narrative form, not via `incidents.py`.
+
+### Two user actions still pending
+
+1. **Run `/reload-plugins`** to activate red-team 0.2.26 in the TUI.
+2. **Inspect staged set before any commit.** The bump script staged 27 files mid-run again (same behavior as the 0.2.24 → 0.2.25 bump). The 13 actual content changes (3 source + 2 schema/lib + 1 commands + 10 agents - 3 double-counted = 13 unique paths) are unstaged ` M` in working tree.
+
+### Item 6 — addressed in separate follow-up run
+
+The critic-glob race (pre-existing, /agy origin) was the only remaining open finding after items 1–5 shipped. It was implemented in a separate `/go` run at plugin version 0.2.28 → 0.2.29 — see the "Item 6 implementation log" section above for details. The fix defines an on-disk dispatch manifest (`{run_dir}/_dispatch-manifest.json`) that the critic consults before ingesting specialist files, with glob fallback for backward compatibility.

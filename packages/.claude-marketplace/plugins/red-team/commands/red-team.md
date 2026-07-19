@@ -190,9 +190,11 @@ Collect only the path each specialist returns. Do not Read the findings files yo
 
 **Specialist post-dispatch verification (FM-4 — load-bearing):** after a specialist returns its claimed file path and before invoking the critic, verify the file exists on disk. This is the proactive gate against silent no-write failures (incident category `specialist-miss`, see run 20260719-133433). The check is cheap (<100ms per specialist) and catches the failure mode that would otherwise ship a verdict with a coverage gap.
 
+**Scope of FM-4:** this gate fires only for dispatched specialists. Planner (writes conditional `prospect.md`) is not gated here — prospect is best-effort. Critic (writes `critic.json`) is not gated here either, but is caught downstream by FM-3 (empty-input guard → BLOCK verdict) at the synthesis layer if its file is missing or malformed.
+
 For each specialist's claimed path:
-1. If the response matches `WRITE_FAILED: <reason>`: the specialist honestly reported failure. Mark it `DEFERRED — write-failed: <reason>` in the dispatch manifest. Proceed.
-2. Otherwise, check `Test-Path $claimed` (PowerShell) or equivalent for the host shell.
+1. If the response matches `WRITE_FAILED: <reason>`: the specialist honestly reported failure. Mark it `DEFERRED — write-failed: <reason>` in the dispatch manifest, log an incident via `python __lib/incidents.py add --category specialist-honest-fail --run-id <run_id> --session-id <id> --summary "<specialist> reported WRITE_FAILED on first attempt: <reason>" --expected "specialist writes findings JSON before reporting path" --observed "specialist responded WRITE_FAILED: <reason>" --evidence "specialist response text" --root-cause "<reason from specialist>"`, and continue. The honest-fail category (distinct from `specialist-miss`) preserves the specialist's reason in the cross-run Phase 3 improvement loop.
+2. Otherwise, verify the file is present and non-empty: `(Test-Path -PathType Leaf $claimed) -and ((Get-Item $claimed).Length -gt 0)` (PowerShell) or equivalent for the host shell. A bare `Test-Path` returns true for 0-byte files and would pass an interrupted write; the leaf-and-size check closes that hole.
    - **File exists:** mark DISPATCHED.
    - **File missing (silent no-write):** retry the specialist **once** with an explicit instruction: *"On the previous dispatch you reported the path `<path>` but the file is not on disk. Invoke your write tool to create the file before responding. Verify the file exists (Test-Path or equivalent) after writing, and only then report the path."*
      - If the retry succeeds: mark DISPATCHED with a note `recovered-after-retry`.
@@ -208,8 +210,33 @@ For dispatch-level failures:
 3. Do NOT retry automatically. Environmental failures (rate limits, network) clear on their own cadence; structural failures (agent-type-not-found) need a fix, not a retry. The operator can re-run when the blocker clears.
 4. Continue with the remaining specialists. If all dispatched specialists fail at the dispatch layer, FM-3 (empty-input guard) applies: the verdict is **BLOCK** with reason `all specialists failed at dispatch — environmental or structural blocker, not a proposal defect`. Surface the blocker class at the top of the synthesis so the operator can distinguish "proposal rejected" from "review could not execute."
 
+**Dispatch manifest write (FM-4c — load-bearing, closes the critic-glob race):** after the per-specialist FM-4 loop completes (every specialist is marked DISPATCHED or DEFERRED) and BEFORE invoking the critic, the orchestrator writes `{run_dir}/_dispatch-manifest.json` — the on-disk summary of which specialists ran and what their outcome was. The critic reads this file first and uses it as the authoritative filter; without it the critic would blindly glob `{run_dir}/*.json` and could not distinguish a fresh DISPATCHED write from a late write by a DEFERRED-timeout specialist (item 6 from the 2026-07-19 review).
+
+Manifest schema (validated by `__lib/dispatch_schema.py`):
+
+```json
+{
+  "run_id": "<run_id>",
+  "session_id": "<session_id>",
+  "started_at": "<iso8601>",
+  "specialists": [
+    {"name": "failure-modes", "status": "DISPATCHED", "path": "<absolute path to findings JSON>"},
+    {"name": "logic",          "status": "DEFERRED",   "reason": "timeout",                       "path": null},
+    {"name": "state",          "status": "DEFERRED",   "reason": "specialist-miss (no file at…)", "path": null},
+    {"name": "plugin",         "status": "DISPATCHED", "path": "...", "note": "recovered-after-retry"}
+  ]
+}
+```
+
+Rules:
+- One entry per dispatched specialist, in dispatch order.
+- `status ∈ {DISPATCHED, DEFERRED}`. DISPATCHED requires a non-empty `path`; DEFERRED may have `path: null` (no file) or `path: "<late-write-path>"` (file exists but critic must IGNORE — preserved for forensics).
+- `reason` is free-form but should match the FM-4 / FM-4b label (`timeout`, `specialist-miss (…)`, `write-failed: …`, `dispatch-failure: …`).
+- Optional `note` field carries recovery signal (`recovered-after-retry`) or other context.
+- After writing, the orchestrator proceeds to invoke the critic.
+
 ### 3. Critic
-Invoke the `red-team-critic` agent. Pass it the `run_dir` — NOT pasted findings. The critic globs `{run_dir}/*.json`, Reads each, aggregates, then runs its existing verify / severity-gate / tiebreaker / verdict logic.
+Invoke the `red-team-critic` agent. Pass it the `run_dir` — NOT pasted findings. The critic reads `{run_dir}/_dispatch-manifest.json` first (FM-4c) and uses it as the authoritative list of which specialist files to ingest: for each specialist with `status: DISPATCHED`, Read the listed `path`. Files for DEFERRED specialists are ignored even if they exist on disk (late writes, partial recoveries — the race the manifest exists to close). If the manifest is missing (old run_dir or crash mid-run before FM-4c), the critic falls back to globbing `{run_dir}/*.json` — backward compatible. The critic then runs its existing verify / severity-gate / tiebreaker / verdict logic.
 - Verifies findings against the codebase (VERIFIED / UNVERIFIED / NON_REPRODUCIBLE).
 - Severity-gates: BLOCK / REVISE / NIT (no count cap).
 - Resolves contradictions via the ordered tiebreaker: correctness/security → root-cause → reversible → smaller-diff.
