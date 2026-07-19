@@ -175,7 +175,7 @@ Each layer has a distinct role. Operations on the wiki are **Ingest / Query / Li
 - `wiki_after_write.py` correctly no-ops when QMD finds no qualifying concept neighbors — script behavior is correct, corpus relevance is below threshold
 - Direct `qmd search --collection wiki "<query>"` for highly specific (OneDrive, mkdir) queries returns zero documents — confirms semantic similarity is genuinely low for our new pages
 
-**Conclusion (high confidence):** Auto-link is **not broken**. The corpus has too low semantic redundancy for threshold-based auto-linking to work above zero precision. The QMD tooling may also benefit from `qmd update --collection wiki` to refresh against current corpus.
+**Conclusion (high confidence):** Auto-link is **not broken**. The corpus has too low semantic redundancy for threshold-based auto-linking to work above zero precision. The QMD tooling may also benefit from `qmd update wiki` (positional, not `--collection`) to refresh against current corpus.
 
 **Cited by the user as a discoverability problem.** The fix is not better thresholds — it's MOCs and link density (the Karpathy-derived remedies), not semantic-search tuning.
 
@@ -186,7 +186,7 @@ These are ready to execute when the user pivots back to wiki work. Each has the 
 ### A. Reindex QMD — 30-second test (low risk, possibly fixes nothing)
 
 ```
-qmd update --collection wiki
+qmd update wiki
 ```
 
 If QMD has been silently lagging since corpus growth past ~700 docs, relevance scores should jump. If they don't, no harm. Confirm before trying other items.

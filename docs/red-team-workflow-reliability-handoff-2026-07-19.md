@@ -110,7 +110,7 @@ if (-not (Test-Path $claimed)) {
 ## Recommended QMD corpus maintenance
 
 The QMD wiki collection drifts if not reindexed against corpus growth.
-Run `qmd update --collection wiki` at the start of wiki-discoverability
+Run `qmd update wiki` (positional, not `--collection` — that flag is search/status only) at the start of wiki-discoverability
 sessions, after any bulk ingest, or when semantic-search relevance
 appears degraded (top hit score below 0.2 for known-existing topics).
 ```
