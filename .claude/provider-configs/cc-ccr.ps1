@@ -580,7 +580,7 @@ try {
     }
 }
 
-if (-not $ccrRunning) {
+if (-not $ccrRunning -and -not $Usage) {
     return
 }
 
@@ -902,7 +902,8 @@ $lm = Invoke-LocalModelProbe
 $localModelHealth = $false
 
 if (-not $lm -or $lm.state -eq "DEAD") {
-    if ($Usage) { return }
+    if ($Usage) { $lm = @{ state = "DEAD"; pids = @(); detail = "not running" } }
+    if (-not $Usage) {
     Write-Host "[CCR] local model not ready (starting or probe transient) - starting..." -ForegroundColor Cyan
     # Clean slate: kill any orphaned launchers + llama-server + watchers from
     # prior runs BEFORE spawning a fresh launcher. cc-ccr -stop deliberately
@@ -980,6 +981,7 @@ public class CCR_BREAKAWAY {
     } else {
         Write-Host "[CCR] run-ornith-server.ps1 not found at $launcherScript" -ForegroundColor Yellow
     }
+    } # end if (-not $Usage)
 } elseif ($lm.state -eq "LOADING") {
     Write-Host "[CCR] local model loading - waiting..." -ForegroundColor Cyan
     $lm = Wait-LocalModelReady -TimeoutSec 60
