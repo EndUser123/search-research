@@ -946,7 +946,23 @@ public class CCR_BREAKAWAY {
     # so HUNG is neither auto-detected nor auto-recovered. See LLAMA-CRASH-RCA.md.
     Write-Host "[CCR] local model $($lm.state) ($($lm.detail)) - watchdog recovers; or relaunch the launcher" -ForegroundColor Yellow
 } elseif ($lm.state -eq "READY" -or $lm.state -eq "LOADED") {
-    $localModelHealth = $true
+    # If the model is LOADED but not READY, run a one-shot inference probe
+    # to verify it actually produces tokens. This is safe at startup because
+    # the server isn't doing real work yet (unlike the watchdog's 15s poll,
+    # which could collide with a real request under --parallel 1). A "hi"
+    # with max_tokens=8 takes ~1s on a 9B Q4_K_M model.
+    if ($lm.state -eq "LOADED") {
+        $infProbe = Invoke-LocalModelProbe -IncludeInference
+        if ($infProbe) {
+            $lm = $infProbe
+            if ($lm.state -eq "READY") {
+                Write-Host "[CCR] local model inference verified" -ForegroundColor Green
+            } elseif ($lm.state -eq "HUNG") {
+                Write-Host "[CCR] local model HUNG (loaded but inference produced 0 tokens)" -ForegroundColor Red
+            }
+        }
+    }
+    if ($lm.state -eq "READY" -or $lm.state -eq "LOADED") { $localModelHealth = $true }
 }
 
 # A newly spawned supervisor can cross the LOADED boundary just after the

@@ -1,0 +1,51 @@
+# AgentGateway shared local MCP configuration.
+# Credentials are loaded by agentgateway-start.ps1 and are not stored here.
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+config:
+  adminAddr: 127.0.0.1:15000
+  enableIpv6: false
+  statsAddr: off
+  readinessAddr: 127.0.0.1:15021
+
+frontendPolicies:
+  networkAuthorization:
+    rules:
+      - allow: 'source.address == "127.0.0.1" || source.address == "::1"'
+
+mcp:
+  port: 3000
+  policies:
+    cors:
+      allowOrigins:
+        - http://127.0.0.1:15000
+        - http://localhost:15000
+      allowHeaders:
+        - mcp-protocol-version
+        - content-type
+        - cache-control
+        - mcp-session-id
+      exposeHeaders:
+        - Mcp-Session-Id
+  targets:
+    - name: context7
+      stdio:
+        cmd: npx
+        args:
+          - -y
+          - '@upstash/context7-mcp'
+    - name: perplexity
+      stdio:
+        cmd: pwm-mcp
+    - name: brave
+      stdio:
+        cmd: npx
+        args:
+          - -y
+          - '@brave/brave-search-mcp-server'
+    - name: ddg
+      stdio:
+        cmd: uvx
+        args:
+          - '--with'
+          - 'duckduckgo-mcp-server[browser]'
+          - duckduckgo-mcp-server

@@ -559,10 +559,40 @@ class WindowsConsoleRegion:
         self._kernel32 = kernel32
         self._handle = kernel32.GetStdHandle(wintypes.DWORD(-11 & 0xFFFFFFFF))
         info = self._get_info()
-        self._top = int(info.dwCursorPosition.Y)
+        # Force the cursor to the top of a buffer tall enough to hold the
+        # dashboard's full screen. The previous code stored the cursor Y
+        # verbatim; if the supervisor's Start-Process opens the dashboard
+        # mid-buffer (or the buffer is too short for ~32 lines starting
+        # from the cursor), render() returns False on the first call and
+        # the loop permanently falls back to plain-append mode.
+        min_buffer_height = 50
+        try:
+            buffer_height = int(info.dwSize.Y)
+            if buffer_height < min_buffer_height:
+                window_height = int(info.srWindow.Bottom - info.srWindow.Top + 1)
+                if window_height > min_buffer_height:
+                    clamped_window = _SmallRect(
+                        Left=int(info.srWindow.Left),
+                        Top=int(info.srWindow.Top),
+                        Right=int(info.srWindow.Right),
+                        Bottom=int(info.srWindow.Top) + min_buffer_height - 1,
+                    )
+                    kernel32.SetConsoleWindowInfo(
+                        self._handle, True, ctypes.byref(clamped_window)
+                    )
+                new_size = _Coord(int(info.dwSize.X), min_buffer_height)
+                kernel32.SetConsoleScreenBufferSize(self._handle, new_size)
+            kernel32.SetConsoleCursorPosition(self._handle, _Coord(0, 0))
+            info = self._get_info()
+        except OSError:
+            # If the resize or cursor move fails, leave the cursor where it
+            # is. render() will report the outcome via _first_render_outcome.
+            pass
+        self._top = 0
         self._default_attributes = int(info.wAttributes)
         self._last_height = 0
         self._last_lines: list[ScreenLine] = []
+        self._first_render_outcome: str | None = None
 
     @classmethod
     def try_create(cls) -> WindowsConsoleRegion | None:
@@ -593,6 +623,7 @@ class WindowsConsoleRegion:
             clipped_lines = [_clip_screen_line(line, width - 1) for line in lines]
             rows = max(self._last_height, len(clipped_lines))
             if self._top + rows >= int(info.dwSize.Y):
+                self._record_first_render("buffer_too_small")
                 return False
             written = wintypes.DWORD()
             for index in range(rows):
@@ -643,9 +674,16 @@ class WindowsConsoleRegion:
             )
             self._last_height = len(clipped_lines)
             self._last_lines = clipped_lines
+            self._record_first_render("ok")
             return True
         except (OSError, ValueError):
+            self._record_first_render("error")
             return False
+
+    def _record_first_render(self, outcome: str) -> None:
+        """Capture the outcome of the first render attempt for the startup log."""
+        if self._first_render_outcome is None:
+            self._first_render_outcome = outcome
 
 
 def _plain_snapshot_key(snapshot: dict[str, Any]) -> tuple[Any, ...]:
@@ -678,6 +716,25 @@ def _write_plain(lines: list[str]) -> None:
     sys.stdout.flush()
 
 
+def _append_startup_log(state_file: Path, **fields: Any) -> None:
+    """Append a tab-separated key=value log line to the dashboard's startup log.
+
+    The log lives next to the state file. Lines are ISO-timestamped; each
+    subsequent key=value pair is tab-separated. The OSError swallowing is
+    deliberate: a logging failure must never prevent the dashboard from running.
+    """
+    log_path = state_file.parent / "ornith-monitor-startup.log"
+    try:
+        with log_path.open("a", encoding="utf-8") as handle:
+            handle.write(datetime.now().isoformat())
+            for key, value in fields.items():
+                handle.write(f"\t{key}={value}")
+            handle.write("\n")
+    except OSError:
+        # Logging must never prevent the dashboard from running.
+        pass
+
+
 def _log_startup_mode(state_file: Path, isatty: bool, win32_renderer: bool, argv: list[str]) -> None:
     """Record the renderer's startup decision to a sibling log file.
 
@@ -688,18 +745,12 @@ def _log_startup_mode(state_file: Path, isatty: bool, win32_renderer: bool, argv
     state-file sibling makes the failure mode observable from outside the
     dashboard window.
     """
-    log_path = state_file.parent / "ornith-monitor-startup.log"
-    try:
-        with log_path.open("a", encoding="utf-8") as handle:
-            handle.write(
-                f"{datetime.now().isoformat()}\t"
-                f"isatty={isatty}\t"
-                f"renderer={'Win32' if win32_renderer else 'plain'}\t"
-                f"argv={' '.join(argv)}\n"
-            )
-    except OSError:
-        # Logging must never prevent the dashboard from running.
-        pass
+    _append_startup_log(
+        state_file,
+        isatty=isatty,
+        renderer="Win32" if win32_renderer else "plain",
+        argv=" ".join(argv),
+    )
 
 
 def main() -> int:
@@ -729,6 +780,7 @@ def main() -> int:
     next_poll = time.monotonic()
     frame = 0
     last_plain_key: tuple[Any, ...] | None = None
+    first_render_logged = False
     while True:
         now = time.monotonic()
         refreshed = False
@@ -741,13 +793,24 @@ def main() -> int:
         width = renderer.width() if renderer is not None else 120
         screen = build_screen(snapshot, remaining, frame, width=width)
         if renderer is not None:
-            if not renderer.render(screen):
+            render_ok = renderer.render(screen)
+            first_outcome = renderer._first_render_outcome
+            if not render_ok:
                 renderer = None
+            if not first_render_logged:
+                first_render_logged = True
+                _append_startup_log(
+                    args.state_file,
+                    first_render=first_outcome or "ok",
+                )
         elif refreshed:
             plain_key = _plain_snapshot_key(snapshot)
             if plain_key != last_plain_key:
                 _write_plain([line.text for line in screen])
                 last_plain_key = plain_key
+            if not first_render_logged:
+                first_render_logged = True
+                _append_startup_log(args.state_file, first_render="renderer_none")
         time.sleep(1)
 
 
