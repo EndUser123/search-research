@@ -318,7 +318,7 @@ const server = http.createServer((req, res) => {
       // CCR's routing will send it to the primary route (MiniMax-M3[1m] has 1M
       // context and can handle the full input).
       const COMPACT_OUTPUT_THRESHOLD = parseInt(process.env.CCR_COMPACT_MAX_TOKENS || "8192", 10);
-      const isCompaction = maxTokens > 0 && maxTokens <= COMPACT_OUTPUT_THRESHOLD;
+      const isCompaction = maxTokens <= COMPACT_OUTPUT_THRESHOLD;
 
       // Option 2 (feature flag): when a compaction model override is configured,
       // rewrite the request's model field so CCR routes it to a cheaper model
