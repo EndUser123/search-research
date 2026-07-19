@@ -12,7 +12,7 @@
 
 - Do not add tool-use telemetry, project manifests, decision capsules, retention systems, or hooks in this plan.
 - Do not require `/find`, `/nlm`, `/wiki`, or `/check`; require honest disclosure when they were or were not used.
-- `/risks` and `/red-team` remain read-only.
+- `/risks` and `/red-team` remain review-only (do not modify the proposal, user source, or user docs under review). `/red-team` writes only to its own run_dir (`P:/.claude/.artifacts/{session}/red-team/{ts}/`), state files (`P:/.claude/state/red-team/{telemetry,incidents}.jsonl`), and planner-produced artifacts within the run_dir (`prospect.md`, `claims.json`). It never edits the artifact it is reviewing.
 - Create files lazily and only when the current design or implementation is material.
 - Changelog entries summarize material decisions; they are not an audit log.
 - Missing evidence is a review gap, not automatically a blocker unless the plan claims implementation readiness based on it.
@@ -110,7 +110,7 @@ python record_changelog.py <changelog-path> \
 - [ ] **Step 1: Update** `/design` to emit the compact evidence section only for material designs or designs making external/repository validation claims.
 - [ ] **Step 2: Update** `/planning` to run the evidence gate last and create a changelog entry only when the decision is material.
 - [ ] **Step 3: Update** `/risks` to report used, unused, unverified, and missing evidence without creating or repairing files.
-- [ ] **Step 4: Update** `/red-team` to treat unsupported “tested,” “accepted,” “validated,” or “deployed” claims as findings, without requiring a particular knowledge source.
+- [x] **Step 4: Update** `/red-team` to treat unsupported “tested,” “accepted,” “validated,” or “deployed” claims as findings, without requiring a particular knowledge source. _(Verified done 2026-07-19: `commands/red-team.md` §"Knowledge and validation provenance" lines 72-86 already implements this verbatim.)_
 - [ ] **Step 5: Search** the four files for contradictory instructions implying that changelogs are telemetry or that tool invocation proves validation.
 - [ ] **Step 6: Commit** with `docs: apply lightweight evidence workflow to skills`.
 
@@ -145,7 +145,7 @@ than the added maintenance and cognitive load.
 ## Self-review checklist
 
 - [ ] A normal low-risk task remains low-friction.
-- [ ] `/risks` and `/red-team` remain read-only.
+- [ ] `/risks` and `/red-team` remain review-only (no edits to the proposal, user source, or user docs under review). /red-team writes only to its own run_dir + state files.
 - [ ] No hook or telemetry platform was added.
 - [ ] `none` is a valid honest answer for source usage.
 - [ ] Changelog entries are material, concise, dated, and idempotent.

@@ -65,3 +65,40 @@ file in this plugin, stop. Add it to the host's overlay instead
 (`~/.grok/AGENTS.md` for Grok; `~/.claude/CLAUDE.md` or `~/.claude/rules/` for
 Claude Code), and reference it from the plugin only as a pointer
 ("see `<host-overlay-path>` for host-specific configuration").
+
+## Write surface (what /red-team may and may not write)
+
+`/red-team` is **review-only with respect to the artifact under review** — it
+never edits the proposal, user source code, user docs, or repo config it is
+critiquing. It does, however, write to its own bounded surface to do its job.
+This enumeration is authoritative; if a code path writes outside this surface,
+it is a bug.
+
+**May write (legitimate /red-team outputs):**
+
+| Path | Writer | Purpose |
+|---|---|---|
+| `P:/.claude/.artifacts/{session_id}/red-team/{ts}/` | Orchestrator (creates run_dir) | Per-run working directory |
+| `{run_dir}/_run.json` | Orchestrator | Run metadata: status, dispatched, deferred, failed_agents |
+| `{run_dir}/proposal.md` | Planner | Restated proposal + candidate weaknesses |
+| `{run_dir}/prospect.md` | Planner (conditional) | Wiki/web priors scan |
+| `{run_dir}/claims.json` | Orchestrator (claim-refute setup) | Extracted claims with claim_type tags |
+| `{run_dir}/{specialist}.json` | Each specialist | Findings per the schema in `commands/red-team.md` |
+| `{run_dir}/critic.json` | Critic | Aggregated verdict + findings |
+| `P:/.claude/state/red-team/telemetry.jsonl` | `__lib/telemetry.py commit` | One structured line per run (Phase 3a self-improvement) |
+| `P:/.claude/state/red-team/incidents.jsonl` | `__lib/incidents.py add` | Run misfire records (specialist-miss, dispatch-failure, etc.) |
+
+**May NOT write:**
+
+- The proposal or artifact under review (no edits, no fixes, no auto-repairs).
+- User source code, docs, configs, CLAUDE.md, AGENTS.md, skills, hooks, or any
+  file outside the two directories above.
+- Commits to the repo (no `git commit`, `git add`, or push).
+- Project-level `CHANGELOG.md` (the lazy-provenance plan —
+  `docs/superpowers/plans/2026-07-12-lazy-provenance-and-evidence-pipeline.md` —
+  explicitly excludes /red-team from creating or repairing project files).
+
+**Why this enumeration exists:** prior docs described /red-team as "read-only,"
+which collapsed two distinct concepts and made the disk-backed handoff contract
+look like a violation. The real constraint is narrower: /red-team may write its
+own outputs, never the artifact it is reviewing.
