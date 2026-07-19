@@ -310,15 +310,18 @@ const server = http.createServer((req, res) => {
     };
 
     if (total > SAFE_CEILING) {
-      // Compaction exemption: requests with a small output budget and a large
-      // input are summarization/compaction calls — the recovery mechanism for
-      // oversized context. Blocking them prevents the only path to shrinking
-      // the conversation. When the output budget is at or below the compaction
-      // threshold AND the input is over the ceiling, forward instead of reject.
-      // CCR's routing will send it to the primary route (MiniMax-M3[1m] has 1M
-      // context and can handle the full input).
+      // Compaction exemption: compaction is the recovery mechanism for
+      // oversized context. Blocking it traps sessions past the ceiling with
+      // no recovery path. Detection: Claude Code's compaction requests
+      // typically have max_tokens absent (defaults to 0) and a very large
+      // input (multiple times the SAFE_CEILING). This shape is not shared
+      // by normal inference requests, which either include max_tokens or
+      // have smaller inputs. The threshold for "very large" is set at 2x
+      // SAFE_CEILING to avoid matching marginal oversized requests that
+      // might be legitimate errors worth rejecting.
       const COMPACT_OUTPUT_THRESHOLD = parseInt(process.env.CCR_COMPACT_MAX_TOKENS || "8192", 10);
-      const isCompaction = maxTokens <= COMPACT_OUTPUT_THRESHOLD;
+      const COMPACT_INPUT_FLOOR = SAFE_CEILING * 2;
+      const isCompaction = maxTokens <= COMPACT_OUTPUT_THRESHOLD && inputEstimate >= COMPACT_INPUT_FLOOR;
 
       // Option 2 (feature flag): when a compaction model override is configured,
       // rewrite the request's model field so CCR routes it to a cheaper model
