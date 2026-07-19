@@ -21,6 +21,7 @@
 
 param(
     [switch]$Stop,
+    [switch]$StopAll,
     [switch]$Log,
     [switch]$Config,
     [switch]$Tui,
@@ -145,6 +146,45 @@ if ($Stop) {
         Remove-Item "env:$var" -ErrorAction SilentlyContinue
     }
     Write-Host "[cc-ccr] Cleared ANTHROPIC_* env vars (dot-sourced shell restored to pre-CCR state)." -ForegroundColor DarkGray
+    return
+}
+
+# --- StopAll mode: stop CCR + proxy + supervisor + dashboard + watcher + llama ---
+if ($StopAll) {
+    Write-Host "[cc-ccr] Stopping all fleet components..." -ForegroundColor Yellow
+
+    # Kill CCR and admission proxy by port ownership
+    foreach ($port in @($ccrPort, 3458)) {
+        $listeners = @(Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)
+        foreach ($listener in $listeners) {
+            if ($listener.OwningProcess) {
+                Stop-Process -Id $listener.OwningProcess -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+
+    # Kill supervisor (which cascades to dashboard, watcher, llama-server)
+    Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+      Where-Object { $_.CommandLine -match 'run-ornith-server\.ps1' -and $_.CommandLine -notmatch '-Probe' } |
+      ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+
+    # Kill any orphaned children
+    foreach ($name in @('llama-server', 'ornith-monitor')) {
+        Get-Process -Name $name -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    }
+    Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+      Where-Object { $_.CommandLine -match 'watch-system\.ps1' } |
+      ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+
+    # Clear env vars
+    foreach ($var in @('ANTHROPIC_BASE_URL','ANTHROPIC_API_KEY','ANTHROPIC_AUTH_TOKEN',
+                       'ANTHROPIC_CUSTOM_MODEL_OPTION','ANTHROPIC_CUSTOM_MODEL_OPTION_NAME',
+                       'ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION')) {
+        Remove-Item "env:$var" -ErrorAction SilentlyContinue
+    }
+
+    Start-Sleep -Milliseconds 500
+    Write-Host "[cc-ccr] All fleet components stopped. Run 'cc-ccr' to restart." -ForegroundColor Green
     return
 }
 
