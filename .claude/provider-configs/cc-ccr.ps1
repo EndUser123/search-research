@@ -1092,7 +1092,14 @@ $proxyPort = 3458
 $proxyScript = "P:\.claude\provider-configs\ccr-admission-proxy.js"
 $proxyLog = "P:\.claude\state\ccr-admission-proxy.log"
 
+if ($Usage) {
+    # Read-only: check if proxy is alive without starting it
+    $proxyHealth = $false
+    try { $h = Invoke-WebRequest "http://127.0.0.1:$proxyPort/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop; $proxyHealth = $h.StatusCode -eq 200 } catch {}
+    $proxyResult = [pscustomobject]@{ Available = $proxyHealth; Status = if ($proxyHealth) { "Already running" } else { "not running" }; ListenerPid = $null; FallbackUrl = "http://127.0.0.1:$ccrPort" }
+} else {
 $proxyResult = Ensure-AdmissionProxy -Port $proxyPort -CcrPort $ccrPort -ProxyScript $proxyScript -ProxyLog $proxyLog
+}
 $proxyAvailable = $proxyResult.Available
 if ($proxyAvailable) {
     $proxyStatusSummary = $proxyResult.Status
