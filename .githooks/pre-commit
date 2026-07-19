@@ -39,8 +39,16 @@ if [ -n "$HOOK_CHANGED" ]; then
 fi
 
 # =====================================================================
-# SECTION 2: gitleaks secret scan on staged content
+# SECTION 2: gitleaks secret scan on staged content (file-based)
 # =====================================================================
+# Scans each staged file individually to preserve file paths in findings,
+# so .gitleaksignore (path-based) works correctly.
+#
+# Previous stdin-based scan (git diff --cached | gitleaks stdin) lost file
+# paths — findings had File="" — making path-based suppression impossible
+# (documented in gitleaks.toml lines 15-18). Fixed 2026-07-19: per-file
+# scan so paths survive into the finding's fingerprint.
+#
 # Invokes gitleaks by absolute path — the winget shim is NOT on PATH in
 # stripped/hook subprocess environments (verified), so a bare `gitleaks`
 # call would silently no-fire. Fails OPEN (warn + skip) if the binary or
@@ -52,18 +60,27 @@ if [ ! -f "$GITLEAKS" ] || [ ! -f "$GITLEAKS_CONFIG" ]; then
     echo "  expected shim:   $GITLEAKS"
     echo "  expected config: $GITLEAKS_CONFIG"
 else
-    # git-path resolves against the real git-dir; in a worktree $REPO_ROOT/.git
-    # is a file (gitdir pointer), not a dir, so gitleaks could not write its report.
     GL_REPORT="$(git rev-parse --git-path gitleaks-scan.json)"
-    if ! git diff --cached | "$GITLEAKS" stdin --no-banner --config "$GITLEAKS_CONFIG" --redact -f json -r "$GL_REPORT" >/dev/null 2>&1; then
-        echo "SECRET DETECTED in staged content — commit blocked."
-        python -c "import json,sys; d=json.load(open(sys.argv[1])); [print('  %s @ %s:%s' % (f.get('RuleID','?'), f.get('File','?'), f.get('StartLine','?'))) for f in d]" "$GL_REPORT" 2>/dev/null || cat "$GL_REPORT"
+    SECRETS_FOUND=0
+    # Iterate staged files (relative paths from repo root). Per-file scan
+    # preserves paths in findings → .gitleaksignore path-based matching works.
+    while IFS= read -r f; do
+        # Skip deleted files (no working-tree content to scan).
+        [ -f "$f" ] || continue
+        if ! "$GITLEAKS" detect --source "$f" --no-git --no-banner --config "$GITLEAKS_CONFIG" --redact -f json -r "$GL_REPORT" >/dev/null 2>&1; then
+            if [ $SECRETS_FOUND -eq 0 ]; then
+                echo "SECRET DETECTED in staged content — commit blocked."
+            fi
+            python -c "import json,sys; d=json.load(open(sys.argv[1])); [print('  %s @ %s:%s' % (x.get('RuleID','?'), x.get('File','?'), x.get('StartLine','?'))) for x in d]" "$GL_REPORT" 2>/dev/null || cat "$GL_REPORT"
+            SECRETS_FOUND=$((SECRETS_FOUND + 1))
+        fi
         rm -f "$GL_REPORT"
+    done < <(git diff --cached --name-only)
+    if [ $SECRETS_FOUND -gt 0 ]; then
         echo "False positive? Add the finding fingerprint to .gitleaksignore (repo root)."
         echo "Bypass (NOT recommended): git commit --no-verify"
         exit 1
     fi
-    rm -f "$GL_REPORT"
 fi
 
 # =====================================================================

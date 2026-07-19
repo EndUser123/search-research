@@ -126,6 +126,10 @@ git_remotes/
 !.claude/settings.local.json
 !.claude/settings.json
 !.claude/skills/**/evals.json
+!.claude/skills/**/tests/fixtures/*.json
+!.claude/skills/**/tests/fixtures/*.jsonl
+!.grok/skills/**/tests/fixtures/*.json
+!.grok/skills/**/tests/fixtures/*.jsonl
 *.csv
 *.tsv
 *.xlsx
