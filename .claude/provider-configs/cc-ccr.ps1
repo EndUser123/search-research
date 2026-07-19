@@ -732,10 +732,17 @@ function Start-AdmissionProxyProcess {
         [Parameter(Mandatory)][string]$ProxyLog,
         [Parameter(Mandatory)][int]$CcrPort
     )
-    return Start-Process pwsh -ArgumentList @(
-        "-NoProfile", "-NoLogo", "-NonInteractive", "-Command",
-        "`$env:CCR_PORT = '$CcrPort'; node `"$ProxyScript`" 2>&1 | Set-Content -Path `"$ProxyLog`""
-    ) -WindowStyle Hidden -PassThru
+    # Start node directly (not via a pwsh wrapper pipe). The previous version
+    # used `pwsh -Command "node ... 2>&1 | Set-Content ..."` which buffers the
+    # entire pipeline and only writes the log when the process exits — so the
+    # proxy log was always 0 bytes while the proxy was alive. Starting node
+    # directly with -RedirectStandardError gives live stderr logging.
+    $env:CCR_PORT = $CcrPort
+    $errLog = "$ProxyLog.err"
+    return Start-Process -FilePath "node" `
+        -ArgumentList @($ProxyScript) `
+        -WindowStyle Hidden -PassThru `
+        -RedirectStandardError $errLog
 }
 
 function Get-SecretFingerprint {
@@ -772,9 +779,33 @@ function Ensure-AdmissionProxy {
     if ($listener) {
         $owner = Get-AdmissionProxyOwner -Listener $listener -ProcessLookup $ProcessLookup -ExpectedScript $ProxyScript
         if ($owner -and $owner.IsExpected -and (Test-AdmissionProxyHealth -Port $Port -HealthCheck $HealthCheck)) {
-            return [pscustomobject]@{
-                Available = $true; Status = "Already running"; ListenerPid = $owner.ListenerPid
-                WrapperPid = $null; FallbackUrl = "http://127.0.0.1:$CcrPort"
+            # Code-version check: if the proxy script has been modified since
+            # the running proxy started, kill and restart so the new code loads.
+            # Node caches the module at startup; without this, code changes to
+            # ccr-admission-proxy.js are invisible until the proxy is manually
+            # killed. This was the root cause of multiple failed compaction
+            # tests this session — the running proxy had stale code while the
+            # file on disk had the fix.
+            try {
+                $proxyProcess = Get-Process -Id $owner.ListenerPid -ErrorAction Stop
+                $scriptLastWrite = (Get-Item $ProxyScript).LastWriteTime
+                if ($scriptLastWrite -gt $proxyProcess.StartTime) {
+                    Write-Host "[admission-proxy] script changed since proxy started ($($proxyProcess.StartTime) < $scriptLastWrite) — restarting" -ForegroundColor Yellow
+                    Stop-Process -Id $owner.ListenerPid -Force -ErrorAction SilentlyContinue
+                    Start-Sleep -Milliseconds 500
+                    # Fall through to the spawn path below
+                } else {
+                    return [pscustomobject]@{
+                        Available = $true; Status = "Already running"; ListenerPid = $owner.ListenerPid
+                        WrapperPid = $null; FallbackUrl = "http://127.0.0.1:$CcrPort"
+                    }
+                }
+            } catch {
+                # If the process lookup fails, reuse the existing listener
+                return [pscustomobject]@{
+                    Available = $true; Status = "Already running"; ListenerPid = $owner.ListenerPid
+                    WrapperPid = $null; FallbackUrl = "http://127.0.0.1:$CcrPort"
+                }
             }
         }
         return [pscustomobject]@{
@@ -972,25 +1003,15 @@ try {
 } catch {}
 $routingModeSummary = Format-RoutingModeDisplay -RoutingModeInfo $routingModeInfo
 
-# --- Start admission proxy (pre-CCR context-limit gate) ---
-# The admission proxy sits between Claude Code and CCR. It rejects oversized
-# requests with HTTP 413 before any forwarding. CCR's custom-router API has no
-# structured rejection path (falsy return = built-in router fall-through), so
-# the proxy is the only hard gate. Safe requests pass through to CCR untouched.
+# --- Start admission proxy (observability layer) ---
+# The admission proxy sits between Claude Code and CCR. It counts logical
+# requests, records lifecycle events in a SQLite ledger, and exposes
+# Prometheus metrics on /metrics. The context ceiling was removed — all
+# requests are forwarded regardless of estimated token count. CCR's routing
+# determines the provider model; most primary routes support up to 1M context.
 $proxyPort = 3458
 $proxyScript = "P:\.claude\provider-configs\ccr-admission-proxy.js"
 $proxyLog = "P:\.claude\state\ccr-admission-proxy.log"
-
-# Compaction model override: OPTIONAL. When set, the admission proxy rewrites
-# the model field on compaction-exempted requests to this value. CCR's Router
-# maps the alias to a provider model. Only enable if the target model's
-# verified context capacity exceeds the expected compaction input (~700K+).
-# Default: NOT SET — compaction requests forward with their original model,
-# which CCR routes to the primary large-context route (MiniMax-M3[1m], 1M).
-# To enable a cheaper compaction model:
-#   $env:CCR_COMPACT_MODEL_OVERRIDE = "claude-haiku"
-# To explicitly disable even if set elsewhere:
-#   $env:CCR_COMPACT_MODEL_OVERRIDE = ""
 
 $proxyResult = Ensure-AdmissionProxy -Port $proxyPort -CcrPort $ccrPort -ProxyScript $proxyScript -ProxyLog $proxyLog
 $proxyAvailable = $proxyResult.Available
