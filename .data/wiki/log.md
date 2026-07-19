@@ -1,5 +1,96 @@
 ﻿# Vault Log
 
+## [2026-07-19] ingest | QMD CLI syntax differs by subcommand: update takes positional, search/status take --collection
+Source: session-2026-07-19
+Agent: grok
+Notes: Per-subcommand syntax mismatch in `qmd`. `qmd update --collection wiki` errors with "unrecognized arguments" — correct is `qmd update wiki` (positional). `qmd search` and `qmd status` use `--collection` flag correctly. Three doc instances fixed (two handoffs). Important framing: the corpus-redundancy conclusion from earlier this session was NOT invalidated by this error — the author caught and corrected the syntax before running the test, and this-session re-test with fresh index confirmed auto-link still returns empty. Meta-lesson: verify CLI syntax via `--help` before documenting; also, doc errors do not automatically invalidate downstream tests (require verifying the wrong syntax was actually used in the test).
+Page: wiki/concepts/qmd-cli-syntax-differs-by-subcommand.md
+
+## [2026-07-19] ingest | Grok Build /export derives filename from session title, not the argument
+Source: session-2026-07-19
+Agent: grok
+Notes: Host-level filename derivation. `/export Web.md` in a session titled "Wiki" produced `Wiki-Web-Red.md`, not `Web.md`. Verified via session `019f7b37` metadata + file inspection. No config knob controls this; workarounds are `/copy`+agent-write or rename session. Answers user's actual question this session.
+Page: wiki/concepts/grok-build-export-filename-derives-from-session-title.md
+
+## [2026-07-19] ingest | Gitleaks stdin-scan reports File='' — .gitleaksignore path suppression cannot match
+Source: session-2026-07-19
+Agent: grok
+Notes: Hook at `.githooks/pre-commit` was running `git diff --cached | gitleaks stdin`, producing findings with empty File field. Path-based `.gitleaksignore` cannot match empty path. Fixed by iterating staged files and invoking `gitleaks detect --source <path> --no-git` per file. Verified end-to-end: previously-blocked commit passed after fix. Upstream issue gitleaks#1051 confirms. Both hosts affected (git-level hook).
+Page: wiki/concepts/gitleaks-stdin-scan-empty-file-field-breaks-ignore.md
+
+## [2026-07-19] ingest | Schema-as-constitution: single convention source for multi-agent shared wikis
+Source: session-2026-07-19
+Agent: grok
+Notes: Architectural decision to resolve dual-source drift between Grok-side and Claude-side wiki SKILL.md files. Created P:/.data/wiki/SCHEMA.md as single convention source; both SKILL.md files rewritten as thin orchestrators. Boundary: policy in SCHEMA.md, procedure in SKILL.md. First compression was over-aggressive (lost YouTube chain, tier UI, Update phases); critical review caught it, procedure restored.
+Page: wiki/concepts/wiki-schema-as-constitution.md
+
+## [2026-07-19] ingest | Subagent silent no-write: agent reports file path without invoking write tool
+Source: session-2026-07-19
+Agent: grok
+Notes: Failure mode observed during /red-team self-review. red-team-failure-modes specialist returned expected file path but never invoked write tool. 6 tool calls, 0 writes. Findings (3 BLOCK + 3 REVISE) recoverable from thinking-transcript only. Orchestrator had no post-dispatch Test-Path verification. Fix documented as Priority 1 in P:/docs/red-team-workflow-reliability-handoff-2026-07-19.md. Incident logged as inc-48fd0ac31fb7.
+Page: wiki/concepts/subagent-silent-no-write-failure.md
+
+## [2026-07-19] update | Schema-as-constitution: SCHEMA.md created; both SKILL.md files become thin orchestrators
+Source: session-2026-07-19
+Agent: grok
+Notes: Architectural decision executed. Created P:/.data/wiki/SCHEMA.md (224 lines) as the single source of truth for wiki conventions (page format, frontmatter fields including verification: and cognitive_load, quality gate, link density, log protocol, typed wikilinks, operations overview, recommended cadence, evidence principles, key principles). Both SKILL.md files rewritten as thin per-host orchestrators that reference SCHEMA.md: Grok-side 261→59 lines (-77%), Claude-side 531→170 lines (-68%). Plugin cc-skills-sdlc bumped 1.0.230→1.0.232, cache rebuilt, zero drift confirmed. Resolves the dual-source drift problem identified during red-team self-review (WRF-001). Both hosts now read the same convention source; per-host orchestration (manifest pipeline, signal-extract, /main --fix automation) stays in each SKILL.md.
+Pages: P:/.data/wiki/SCHEMA.md (new), ~/.grok/skills/wiki/SKILL.md (rewrite), P:/packages/.claude-marketplace/plugins/cc-skills-sdlc/skills/wiki/SKILL.md (rewrite + plugin-mutation)
+
+## [2026-07-19] update | B-lite session closure — handoff acceptance recorded
+Source: session-2026-07-19
+Agent: grok
+Notes: B-lite execution closed at `~/.grok/skills/wiki/SKILL.md` (3 edits: verification frontmatter convention at L106, link density advisory at L149, recommended cadence at L254) + `P:/.data/wiki/concepts/claude-code-on-windows-moc.md` (MOC + future-session observation hook) + `P:/.data/wiki/qmd-baseline-2026-07-19.json` (top-1 score 0.083 with 1044 docs). Handoff items 4-5 captured as deliverables at `P:/docs/red-team-workflow-reliability-handoff-2026-07-19.md` and `P:/docs/web-search-tools-and-pkm-research-handoff-2026-07-19.md`. Both handoffs contain the planning, decision criteria, and prioritized next-steps for any future session; they are **not pending execution** in this session — they are durable records. Tool-fallbacks.md row added for the `web_search` 429-on-parallel-batches failure observed under MiniMax-M3 (cross-confirms the existing GLM-5.2 row from 2026-07-18; documents the MCP alternatives `minimax-search__web_search` and `web-search-prime__web_search_prime`).
+
+## [2026-07-19] ingest | Claude Code on Windows — Map of Content (MOC) hub page
+Source: session-2026-07-19
+Agent: grok
+Notes: First MOC (Map of Content) in the vault. Hub for 6 cross-cutting Windows + Claude Code pages (claude-code-windows-11-config, claude-code-windows-11-fixes, claude-code-export-drive-root-perm-bug, windows-onedrive-readonly-marker, windows-cross-process-file-locking, openai-codex-windows-11-troubleshooting). Created during wiki discoverability B-lite execution. Wiki auto-link returned empty neighbors (consistent with QMD corpus ceiling at 0.083; baseline fingerprint captured at P:/.data/wiki/qmd-baseline-2026-07-19.json). Per Karpathy LLM-Wiki reviewers, MOCs are the highest-leverage remediation when semantic search degrades — this page is an instance of that pattern.
+Page: wiki/concepts/claude-code-on-windows-moc.md
+
+## [2026-07-19] update | OneDrive-EPERM cluster pages — v2.1.163 fix landscape + scope relabel + auto-link corpus reality
+Source: session-2026-07-19
+Agent: grok
+Notes: Disconfirmation search surfaced Claude Code v2.1.163 changelog entry fixing the session-env mkdir path with the OneDrive-ReadOnly pattern. The parent-of-export-target mkdir we reproduced is a DIFFERENT call-site not in the v2.1.163 fix, so the route-around workaround still holds for users on current versions. Updated both pages: added version-specific fix landscape section, expanded GitHub issue set (#30928, #50773, #50886, #62140, #65229 added), explicit scope-note on the OneDrive page that other surfaces (agent-cache, marketplace, Write tool) are inferred not locally reproduced. Auto-link returned empty neighbors four runs in a row; investigation showed QMD max relevance score 0.083 even on known-topic queries ("AGENTS.md hard rules", "plan mode", "slash command") with most hits being unrelated noise from sources/. Auto-link is correctly no-op'ing on a corpus where semantic similarity is below threshold; not a bug, but a corpus-coverage artifact worth noting if wiki discoverability becomes important.
+Pages: wiki/concepts/windows-onedrive-readonly-marker.md (update), wiki/concepts/claude-code-export-drive-root-perm-bug.md (update)
+
+## [2026-07-19] ingest | Windows OneDrive Files On-Demand ReadOnly marker — Claude Code mkdir failures and the diagnostic probe
+Source: session-2026-07-19
+Agent: grok
+Notes: New concept page (split out from claude-code-export-drive-root-perm-bug.md because the OneDrive marker class affects /export AND agent-cache AND marketplace installs AND Write-tool). Carries the `attrib` + `(Get-Item).Attributes` diagnostic probe locally verified 2026-07-19 (C:\Users\brsth\Downloads R set; C:\Users\brsth\.claude, P:\, P:\.claude all clean). Pages cross-link both ways.
+Page: wiki/concepts/windows-onedrive-readonly-marker.md
+
+## [2026-07-19] update | Claude Code `/export` mkdir failures on Windows — verified workaround + second symptom (EEXIST/OneDrive)
+Source: session-2026-07-19
+Agent: grok
+Notes: Substantial update. EVIDENCE_GAP closed: workaround verified locally — file landed at P:/.claude/exports/2026-07-19-session.md (198,185 bytes, 3,087 lines, mtime 2026-07-19 06:58:05). Added second symptom class (EEXIST on OneDrive-ReadOnly parents), OneDrive Files On-Demand ReadOnly marker as upstream cause, `attrib`/`(Get-Item).Attributes` diagnostic probe, GitHub issues #31030/#31398/#37306/#59622 as sibling evidence, and a diagnostic quick-reference table. Diagnostic probe verified locally: C:\Users\brsth\Downloads attrs=ReadOnly,Directory,Archive; P:\.claude no R flag.
+Page: wiki/concepts/claude-code-export-drive-root-perm-bug.md
+
+## [2026-07-19] ingest | Claude Code `/export` fails with EPERM mkdir at drive-root CWD
+Source: session-2026-07-19
+Agent: grok
+Notes: Workaround: pass explicit filename to /export; confirmed via code.claude.com docs + anthropics/claude-code#20139 (closed as not planned). EVIDENCE_GAP: workaround not locally tested; both sources verified by web_fetch this session.
+Page: wiki/concepts/claude-code-export-drive-root-perm-bug.md
+
+## [2026-07-18] ingest | Grok marketplace-cache is third-party plugins, not Grok host source
+Source: session-2026-07-18
+Agent: grok
+Notes: `~/.grok/marketplace-cache/<hash>/` is third-party plugin code, not Grok's runtime. `b975999a270027c6` is `thedotmack/claude-mem` v13.11.0. Grok's runtime is closed-source binary at `~/.grok/bin/grok.exe`. Always read `package.json` before citing any file under a cache directory as host authority.
+
+## [2026-07-18] ingest | Source-authority confabulation from cache directories
+Source: session-2026-07-18
+Agent: grok
+Notes: Distinct confabulation subclass — reading cache-dir source with host-matching filenames (`HookResult`, `types.ts`, `adapters/`) and concluding it is host authority when it is a third-party plugin's internal abstraction. Worse than ordinary confabulation because it survives "did you verify?" self-checks. Fix: read `package.json` first to identify the package.
+
+## [2026-07-18] ingest | Grok memory workspace sharing conflicts with multi-terminal isolation
+Source: session-2026-07-18
+Agent: grok
+Notes: Grok workspace memory (`~/.grok/memory/<project-slug>-<hash8>/MEMORY.md`) is shared across all same-project terminals/worktrees (keyed on git origin). Conflicts with the binding multi-terminal isolation invariant on all four properties. Memory is disabled by default as of 2026-07-18; enabling requires override conditions or mitigations (disable `/dream` auto-consolidation, single-writer discipline, etc.).
+
+## [2026-07-18] update | Grok Build Hook Host Ceiling and Mechanics (correction)
+Source: session-2026-07-18
+Agent: grok
+Notes: Corrected prior version that cited `thedotmack/claude-mem` source as "Grok runner." Struck all `marketplace-cache/b975999a270027c6/` citations. Marked passive-surfacing mechanism UNVERIFIED pending probe at `~/.grok/hooks/probe-passive-surface.json`. Added "common mistake #3" (citing marketplace-cache as Grok source). Demoted host-asymmetry table to confidence-graded with Grok passive surfacing as UNVERIFIED.
+
 ## [2026-07-16] ingest | Workflow: File-Name-Becomes-Slash-Command
 Source: session-2026-07-16
 SHA256: none (session-derived)
@@ -3828,3 +3919,196 @@ SHA256: n/a (session-authored)
 ## [2026-07-09] ingest | Git Submodule Topology for Plugin Monorepo
 Source: session-2026-07-09
 Transcript: session be39a5da
+
+## [2026-07-17] ingest | Grok Build: env_key falls back to grok.com OIDC when process env is missing → 401 from third-party providers
+Source: session-2026-07-17
+Transcript: sessions/P%3A%5C/019f6f1e-34e0-7c03-840f-2a1a30683671
+
+## [2026-07-17] ingest | Grok Build two_pass_compaction is prefire+final scheduler, NOT two LLM summarization passes
+Source: session-2026-07-17
+Transcript: sessions/P%3A%5C/019f6f1e-34e0-7c03-840f-2a1a30683671
+
+## [2026-07-17] ingest | OpenCode Go: hy3-preview appears in /v1/models catalog but is rejected at chat time
+Source: session-2026-07-17
+Transcript: sessions/P%3A%5C/019f6f1e-34e0-7c03-840f-2a1a30683671
+
+## [2026-07-18] ingest | Plan mode stuck-exit behavioral fix
+Source: session-2026-07-18
+Agent: grok
+
+## [2026-07-18] ingest | Behavioral rules beat hooks when agent has context
+Source: session-2026-07-18
+Agent: grok
+
+## [2026-07-18] ingest | Terminal-scoped artifacts isolation pattern
+Source: session-2026-07-18
+Agent: grok
+
+## [2026-07-18] ingest | Pre-emission verification calibration
+Source: session-2026-07-18
+Agent: grok
+
+## [2026-07-18] deprecate | Behavioral rules beat hooks (superseded)
+Source: session-2026-07-18
+Agent: grok
+
+## [2026-07-18] ingest | Grok PreToolUse matcher semantics — Bash vs .* and the read-only fast-path
+Source: session-2026-07-18
+Agent: grok
+
+## [2026-07-18] ingest | Grok hook diagnostic method — how to tell if hooks are firing
+Source: session-2026-07-18
+Agent: grok
+
+## [2026-07-18] ingest | Multi-terminal hook state isolation — session-scoped flag files
+Source: session-2026-07-18
+Agent: grok
+
+## [2026-07-18] correction | Grok PreToolUse matcher semantics (earlier claims retracted)
+Source: session-2026-07-18
+Agent: grok
+Note: TUI annotations proved hooks DO dispatch; failures were path/env-var, not matcher
+
+## [2026-07-18] ingest | Grok hook command env-var pre-flight validation
+Source: session-2026-07-18
+Agent: grok
+
+## [2026-07-18] ingest | Midea U-shaped AC recall — what Canadian retailers are actually selling
+Source: session-2026-07-18
+Agent: grok
+Notes: Health Canada RA-77547 covers the whole Midea U-shaped family 8K/10K/12K BTU (plus Danby/Frigidaire/Insignia/Perfect Aire rebadges). The two BB.ca SKUs verified in-session (19418425 = MW10MSWBA4RCM, 19421982 = MW10MSWBA5RCM) are on the recall list and sold as 'new' by Midea America (Canada) Corp. The Midea.ca recall-lookup form requires serial number (not model) and renders a literal {{ERROR}} template variable — not a working pre-purchase tool. Reliable workflow is Ctrl-F the model on Health Canada's RA-77547 list, or call 1-888-345-0256.
+
+## [2026-07-18] ingest | MCP browser automation on Canadian retail sites — known gates and missing workarounds
+Source: session-2026-07-18
+Agent: grok
+Notes: Chrome DevTools MCP works for general retail browsing but escalates to Akamai 'Access Denied' on re-navigation in the same session (verified bestbuy.ca — first PDP loaded, subsequent navigations blocked). Walmart.ca serves a PerimeterX 'Press & Hold' HUMAN CHALLENGE unsolvable by MCP (no pressure sensor) — works around with Google search-snippet metadata. Canadian Tire preferred-store binding is via session cookie after a UI click on 'Select this store' on the store locator page; ?postalCode URL params are silently ignored. See cross-link to the Midea recall page for application context.
+
+## [2026-07-18] deletion | midea-u-shaped-ac-recall-canada.md retracted by user
+Source: session-2026-07-18
+Agent: grok
+Notes: Page removed at user request. Cross-link on mcp-browser-canada-retail-gating.md replaced with explanatory note. Underlying recall facts (Health Canada RA-77547, MW-prefix SKU coverage) remain directly verifiable on the Health Canada recall page; they are no longer held in this vault. The original ingest log entry above is preserved as historical record of what was written and when.
+
+## [2026-07-18] ingest | Wiki corpus is Claude-Code-skewed; tag every wiki citation by host provenance
+Source: session-2026-07-18
+Agent: grok
+Notes: New durable rule covering: (1) corpus skew (most pages written under Claude Code); (2) four-tag taxonomy for citations (Grok Build / Claude Code / Cross-host / Host-agnostic); (3) operating pattern for /wiki queries (query QMD, grep slugs, cite with tag, verify before transfer). Mirrored at ~/.grok/AGENTS.md under Hard rules as ### Wiki citation provenance (cross-host tag required). Cross-links to grok-build-hook-host-ceiling, grok-pretooluse-matcher-and-readonly-fastpath, grok-hook-command-env-var-pre-flight-validation.
+
+## [2026-07-18] demotion | Never invent provenance identity (AGENTS.md Hard rule)
+Source: AGENTS.md Hard rules demoted 2026-07-18
+Agent: grok
+Notes: Demoted from ~/.grok/AGENTS.md line 73 (subsection under ## Hard rules). Rule fires only when the assistant would otherwise output a transaction-identity string (rare). Rule text and original "Allowed sources" hierarchy preserved verbatim in the wiki page. Reason: 12 lines + boilerplate, narrow firing, fits clean in wiki where load is on-demand.
+
+## [2026-07-18] demotion | Reviewers do not redefine the goal (AGENTS.md Hard rule)
+Source: AGENTS.md Hard rules demoted 2026-07-18
+Agent: grok
+Notes: Demoted from ~/.grok/AGENTS.md line 110 (subsection under ## Hard rules). 3-line rule, narrow firing condition ("I am in reviewer mode"). Preserved verbatim in the wiki page. Demoted as part of routine trim pass; rule text is recoverable via /wiki query if needed mid-session.
+
+## [2026-07-18] ingest | Skill authoring host-applicability convention
+Source: session-2026-07-18
+Agent: grok
+Notes: Companion rule to wiki-citation-host-provenance -- covers WRITING (SKILL.md frontmatter `host:` field) where the citation rule covers READING. Audit found 884 SKILL.md files, 0 with host tags. Convention applies prospectively. Backfill not recommended -- most live in plugin caches. Mirrored at ~/.grok/AGENTS.md under ## Hard rules as ### Skill authoring host provenance (cross-host tag required). Lint script: P:/tmp/lint_skill_hosts.py.
+
+## [2026-07-18] demotion | Invariants beat environment comfort (AGENTS.md Hard rule)
+Source: AGENTS.md Hard rules wikified 2026-07-18
+Agent: grok
+Notes: Demoted from ~/.grok/AGENTS.md H3 subsection (### Invariants beat environment comfort) under ## Hard rules (predictable error classes). Body preserved verbatim in the wiki page. AGENTS.md now carries a header + wikilink reference pointer only. Part of compression pass targeting 15 KB size goal. Recovers by /wiki query.
+
+## [2026-07-18] demotion | Minimal fix and root cause (not minimal alone) (AGENTS.md Hard rule)
+Source: AGENTS.md Hard rules wikified 2026-07-18
+Agent: grok
+Notes: Demoted from ~/.grok/AGENTS.md H3 subsection (### Minimal fix and root cause (not minimal alone)) under ## Hard rules (predictable error classes). Body preserved verbatim in the wiki page. AGENTS.md now carries a header + wikilink reference pointer only. Part of compression pass targeting 15 KB size goal. Recovers by /wiki query.
+
+## [2026-07-18] demotion | Model-as-orchestrator (AGENTS.md Hard rule)
+Source: AGENTS.md Hard rules wikified 2026-07-18
+Agent: grok
+Notes: Demoted from ~/.grok/AGENTS.md H3 subsection (### Model-as-orchestrator) under ## Hard rules (predictable error classes). Body preserved verbatim in the wiki page. AGENTS.md now carries a header + wikilink reference pointer only. Part of compression pass targeting 15 KB size goal. Recovers by /wiki query.
+
+## [2026-07-18] demotion | Trust over believability (AGENTS.md Hard rule)
+Source: AGENTS.md Hard rules wikified 2026-07-18
+Agent: grok
+Notes: Demoted from ~/.grok/AGENTS.md H3 subsection (### Trust over believability) under ## Hard rules (predictable error classes). Body preserved verbatim in the wiki page. AGENTS.md now carries a header + wikilink reference pointer only. Part of compression pass targeting 15 KB size goal. Recovers by /wiki query.
+
+## [2026-07-18] demotion | Self-review before shipping advice (AGENTS.md Hard rule)
+Source: AGENTS.md Hard rules wikified 2026-07-18
+Agent: grok
+Notes: Demoted from ~/.grok/AGENTS.md H3 subsection (### Self-review before shipping advice) under ## Hard rules (predictable error classes). Body preserved verbatim in the wiki page. AGENTS.md now carries a header + wikilink reference pointer only. Part of compression pass targeting 15 KB size goal. Recovers by /wiki query.
+
+## [2026-07-18] demotion | Edit-then-verify (every edit, no exceptions) (AGENTS.md Hard rule)
+Source: AGENTS.md Hard rules wikified 2026-07-18
+Agent: grok
+Notes: Demoted from ~/.grok/AGENTS.md H3 subsection (### Edit-then-verify (every edit, no exceptions)) under ## Hard rules (predictable error classes). Body preserved verbatim in the wiki page. AGENTS.md now carries a header + wikilink reference pointer only. Part of compression pass targeting 15 KB size goal. Recovers by /wiki query.
+
+## [2026-07-18] demotion | Inference chains, bare numbers, and destructive-write preflight (AGENTS.md Hard rule)
+Source: AGENTS.md Hard rules wikified 2026-07-18
+Agent: grok
+Notes: Demoted from ~/.grok/AGENTS.md H3 subsection (### Inference chains, bare numbers, and destructive-write preflight) under ## Hard rules (predictable error classes). Body preserved verbatim in the wiki page. AGENTS.md now carries a header + wikilink reference pointer only. Part of compression pass targeting 15 KB size goal. Recovers by /wiki query.
+
+## [2026-07-18] demotion | No question theater (do the non-destructive investigation) (AGENTS.md Hard rule)
+Source: AGENTS.md Hard rules wikified 2026-07-18
+Agent: grok
+Notes: Demoted from ~/.grok/AGENTS.md H3 subsection (### No question theater (do the non-destructive investigation)) under ## Hard rules (predictable error classes). Body preserved verbatim in the wiki page. AGENTS.md now carries a header + wikilink reference pointer only. Part of compression pass targeting 15 KB size goal. Recovers by /wiki query.
+
+## [2026-07-18] demotion | Objective triggers (evaluate each; each is falsifiable) (AGENTS.md H3)
+Source: AGENTS.md wikified during plan-skill + AGENTS.md compression pass
+Agent: grok
+Notes: Demoted from ~/.grok/AGENTS.md H3 subsection on 2026-07-18 during a routine compression pass targeting 15 KB size goal. AGENTS.md now carries the header + a wikilink reference pointer only; body loaded on demand via /wiki query. The four plan-mode rules are also mirrored at ~/.grok/skills/plan/SKILL.md for /plan invocation. Body preserved verbatim in the wiki page.
+
+## [2026-07-18] demotion | Fire rule (when plan mode MUST appear as a named option) (AGENTS.md H3)
+Source: AGENTS.md wikified during plan-skill + AGENTS.md compression pass
+Agent: grok
+Notes: Demoted from ~/.grok/AGENTS.md H3 subsection on 2026-07-18 during a routine compression pass targeting 15 KB size goal. AGENTS.md now carries the header + a wikilink reference pointer only; body loaded on demand via /wiki query. The four plan-mode rules are also mirrored at ~/.grok/skills/plan/SKILL.md for /plan invocation. Body preserved verbatim in the wiki page.
+
+## [2026-07-18] demotion | Do NOT surface plan mode when (AGENTS.md H3)
+Source: AGENTS.md wikified during plan-skill + AGENTS.md compression pass
+Agent: grok
+Notes: Demoted from ~/.grok/AGENTS.md H3 subsection on 2026-07-18 during a routine compression pass targeting 15 KB size goal. AGENTS.md now carries the header + a wikilink reference pointer only; body loaded on demand via /wiki query. The four plan-mode rules are also mirrored at ~/.grok/skills/plan/SKILL.md for /plan invocation. Body preserved verbatim in the wiki page.
+
+## [2026-07-18] demotion | Plan mode vs /go (resolve the default) (AGENTS.md H3)
+Source: AGENTS.md wikified during plan-skill + AGENTS.md compression pass
+Agent: grok
+Notes: Demoted from ~/.grok/AGENTS.md H3 subsection on 2026-07-18 during a routine compression pass targeting 15 KB size goal. AGENTS.md now carries the header + a wikilink reference pointer only; body loaded on demand via /wiki query. The four plan-mode rules are also mirrored at ~/.grok/skills/plan/SKILL.md for /plan invocation. Body preserved verbatim in the wiki page.
+
+## [2026-07-18] demotion | Grok Build host authority (don't confabulate across hosts) (AGENTS.md H3)
+Source: AGENTS.md wikified during plan-skill + AGENTS.md compression pass
+Agent: grok
+Notes: Demoted from ~/.grok/AGENTS.md H3 subsection on 2026-07-18 during a routine compression pass targeting 15 KB size goal. AGENTS.md now carries the header + a wikilink reference pointer only; body loaded on demand via /wiki query. The four plan-mode rules are also mirrored at ~/.grok/skills/plan/SKILL.md for /plan invocation. Body preserved verbatim in the wiki page.
+
+## [2026-07-19] update | Grok Build Hook Host Ceiling — passive-surfacing EVIDENCE_GAP resolved
+Source: session-2026-07-18
+Agent: grok
+Note: probe-passive-surface fired; none of 4 channels reached model; passive injection is closed
+
+## [2026-07-19] ingest | Grok PreToolUse deny contract — verified end-to-end (Python)
+Source: session-2026-07-18
+Agent: grok
+
+## [2026-07-19] ingest | Grok hook script reliability — Python vs bash on Windows
+Source: session-2026-07-18
+Agent: grok
+
+## [2026-07-19] update | Multi-terminal hook state isolation — empirical confirmation added
+Source: session-2026-07-18
+Agent: grok
+
+## [2026-07-18] ingest | Grok Build PreToolUse hook harness debug methodology
+Source: session-2026-07-18 hook canary investigation
+Agent: grok
+Notes: Captures the diagnostic pattern that distinguishes harness-side bugs from script-side bugs in Grok Build PreToolUse hook reporting. Today's investigation found (a) the wrapper reports exit 1 even when scripts exit 0, and (b) GROK_HOOK_* env vars are not exported. Both are host-side; the methodology tells future agents how to identify them. Cross-links: grok-build-hook-host-ceiling, grok-pretooluse-matcher-and-readonly-fastpath, wiki-citation-host-provenance.
+
+## [2026-07-18] edit | wiki pages -- host: grok tag added
+Source: session-2026-07-18 AGENTS.md compression follow-on
+Agent: grok
+Notes: Added `host: grok` field to frontmatter of 18 wiki pages created in this session (3 demotions + 8 non-plan rules + 4 plan-mode rules + 1 Grok Build host authority + 2 existing rule pages: skill-host-applicability-convention, wiki-citation-host-provenance). Convention applies prospectively per the Skill authoring rule. Existing 781 wiki pages are pre-convention.
+
+## [2026-07-18] edit | lint_skill_hosts.py relocated to ~/.grok/scripts/
+Source: AGENTS.md compression follow-on
+Agent: grok
+Notes: Lint script moved from P:/tmp/lint_skill_hosts.py to C:\Users\brsth\.grok\scripts\lint_skill_hosts.py -- per the AGENTS.md "no maintained transients in P:/tmp/" rule. Extended with a `description:` frontmatter check (skill without description field can't be auto-loaded).
+
+## [2026-07-19] ingest | Worktree-root policy hook design (2026-07)
+Source: session
+Transcript: session-2026-07-19
+
+## [2026-07-19] ingest | Claude Code hooks bug landscape (2026-07-19)
+Source: session
+Transcript: session-2026-07-19
