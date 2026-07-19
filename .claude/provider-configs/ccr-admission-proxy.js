@@ -1,32 +1,23 @@
-// ccr-admission-proxy.js — pre-CCR HTTP admission gate.
-//
-// PROBLEM: CCR's custom-router API returns a route string or null. Null is
-// fall-through to CCR's built-in router (B6), NOT rejection. There is no
-// structured rejection API. Therefore the custom router CANNOT prevent a
-// provider request — it can only choose which provider.
+// ccr-admission-proxy.js — observability and forwarding layer for CCR.
 //
 // This proxy sits BEFORE CCR in the request path:
 //   Claude Code → admission-proxy (:3458) → CCR (configured PORT) → providers
 //
-// It shapes safe, deterministic context reductions before estimating size,
-// then rejects requests that remain oversized. CCR still makes the routing
-// decision after forwarding.
+// ROLE: count logical requests, record lifecycle events in a SQLite ledger,
+// expose Prometheus metrics on /metrics, and forward all inference requests
+// to CCR unchanged. The proxy does NOT reject or gate requests based on
+// estimated token count — CCR's routing determines which provider model
+// handles each request.
 //
 // TOKEN ESTIMATE: heuristic — chars / CHAR_PER_TOKEN on the full request body.
-// This is NOT the same as CCR's tiktoken cl100k_base count (which tokenizes
-// per-message). It is a conservative over-estimate: cl100k_base averages
-// ~4 chars/token for English prose and ~3 chars/token for code-dense content.
-// Using 3 chars/token (CHAR_PER_TOKEN=3) over-counts for prose, which is the
-// safe direction (false-positive rejection > false-negative admission).
+// Recorded in the ledger for observability. This is NOT the same as CCR's
+// tiktoken count; it is a conservative approximation.
 //
-// OUTPUT BUDGET: max_tokens from the request body (if present). Added to the
-// input estimate. This is a real derived value, not a heuristic.
-//
-// LIMITS: the proxy applies a blanket ceiling equal to the MINIMUM verified
-// limit across every active CCR route, minus OUTPUT_RESERVE. It does NOT
-// determine the per-request candidate backend (that happens in CCR after
-// forwarding). A new route must be registered below or proxy startup fails
-// closed; otherwise a lower-context backend could be reached accidentally.
+// HISTORY: a context ceiling (SAFE_CEILING) previously rejected requests
+// exceeding a token threshold. It was removed because it blocked
+// compaction requests and introduced a cascade of exemption bugs. The
+// SAFE_CEILING constant is retained only for the OVER_CEILING observability
+// label — it no longer gates forwarding.
 //
 // WIRING: cc-ccr.ps1 sets ANTHROPIC_BASE_URL to this proxy's port (:3458)
 // instead of CCR directly. CCR_PORT is read from the configured CCR port,
@@ -309,21 +300,19 @@ const server = http.createServer((req, res) => {
       reason: null,
     };
 
-    // Context ceiling removed: forward all requests regardless of estimated
-    // token count. CCR's routing determines which provider handles the request.
-    // The proxy still records token estimates for observability.
-    if (total > SAFE_CEILING) {
-      entry.decision = "FORWARDED_OVER_CEILING";
-      entry.reason = `total ${total} > ceiling ${SAFE_CEILING} — forwarded (ceiling disabled)`;
-      logAdmission(entry);
-      try { process.stderr.write(`[admission-proxy] OVER CEILING: ${entry.reason} (model=${model}, req=${requestId})\n`); } catch {}
-      forwardToCCR(req, shapedBuf, res, lifecycle);
-      return;
-    }
-
-    entry.decision = "FORWARDED";
-    entry.reason = `total ${total} <= ceiling ${SAFE_CEILING}`;
+    // Forward all requests to CCR. The SAFE_CEILING comparison is retained
+    // only for the decision label (FORWARDED vs FORWARDED_OVER_CEILING) so
+    // the ledger can still show when requests exceed the former threshold.
+    // It does not gate forwarding — all requests pass through regardless.
+    const overCeiling = total > SAFE_CEILING;
+    entry.decision = overCeiling ? "FORWARDED_OVER_CEILING" : "FORWARDED";
+    entry.reason = overCeiling
+      ? `total ${total} > ceiling ${SAFE_CEILING} — forwarded (ceiling disabled)`
+      : `total ${total} <= ceiling ${SAFE_CEILING}`;
     logAdmission(entry);
+    if (overCeiling) {
+      try { process.stderr.write(`[admission-proxy] OVER CEILING: ${entry.reason} (model=${model}, req=${requestId})\n`); } catch {}
+    }
     forwardToCCR(req, shapedBuf, res, lifecycle);
   });
   req.on("aborted", () => ledger.finalizeRequest(lifecycle, { outcome: "cancelled", statusCode: 499 }));
