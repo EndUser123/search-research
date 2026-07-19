@@ -65,7 +65,8 @@ def _classification(path: Path) -> str:
         return "worktree"
     if "/.evidence/" in text or "/test" in text:
         return "test_or_evidence"
-    if "/.artifacts/" in text or "/state/" in text:
+    if ("/.artifacts/" in text or "/state/" in text or "/.state/" in text
+            or "/logs/" in text or "/session_data/" in text):
         return "runtime_state"
     if "/docs/" in text or text.endswith(".md"):
         return "documentation_or_plan"
@@ -184,11 +185,25 @@ def audit(*, scopes: list[str], targets: list[str], max_files: int = 20_000) -> 
             })
     if active_plans:
         conflicts.append({"kind": "overlapping_active_plan", "plans": active_plans})
-    if any(
-        item["authority_candidate"]
-        for item in default_hits
-    ):
-        conflicts.append({"kind": "configuration_or_lifecycle_default_requires_full_reader_writer_audit", "hits": default_hits})
+    # Lifecycle-default conflict: only flag when two or more DISTINCT
+    # authority-candidate source files reference the SAME marker — that
+    # pattern suggests competing definitions of a default (e.g. two hooks
+    # both setting GO_WORKTREE_ROOT). A single source file mentioning a
+    # marker is not a conflict; it is the file doing its job (a hook that
+    # handles worktree paths will legitimately contain "P:/.worktrees").
+    # Non-authoritative files (logs, state, worktree copies) never count.
+    auth_hits_by_marker: dict[str, set[str]] = {}
+    for item in default_hits:
+        if not item["authority_candidate"]:
+            continue
+        auth_hits_by_marker.setdefault(item["marker"], set()).add(item["path"])
+    competing = {m: paths for m, paths in auth_hits_by_marker.items() if len(paths) > 1}
+    if competing:
+        conflicts.append({
+            "kind": "configuration_or_lifecycle_default_requires_full_reader_writer_audit",
+            "competing_markers": {m: sorted(paths) for m, paths in competing.items()},
+            "hits": default_hits,
+        })
 
     missing_scopes = [str(path) for path in scope_paths if not path.exists()]
     if walk_errors or missing_scopes:
