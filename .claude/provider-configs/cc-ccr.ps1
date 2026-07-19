@@ -569,15 +569,14 @@ try {
     $ccrRunning = $true
     $ccrStartupSummary = "Already running"
 } catch {
-    if ($Usage) {
-        $ccrStartupSummary = "not running"
-    } else {
-        $ccrStartupSummary = "starting"
-        $ccrRunning = Start-CCRProcess
-        if (-not $ccrRunning) { return }
-        $ccrFreshlyStarted = $true
-        $ccrStartupSummary = "started"
+    $ccrStartupSummary = "starting"
+    $ccrRunning = Start-CCRProcess
+    if (-not $ccrRunning) {
+        Write-Host "[CCR] Failed to start CCR. Check that node and ccr.cmd are available." -ForegroundColor Red
+        return
     }
+    $ccrFreshlyStarted = $true
+    $ccrStartupSummary = "started"
 }
 
 if (-not $ccrRunning) {
