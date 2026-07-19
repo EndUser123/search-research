@@ -980,6 +980,18 @@ $routingModeSummary = Format-RoutingModeDisplay -RoutingModeInfo $routingModeInf
 $proxyPort = 3458
 $proxyScript = "P:\.claude\provider-configs\ccr-admission-proxy.js"
 $proxyLog = "P:\.claude\state\ccr-admission-proxy.log"
+
+# Compaction model override: route compaction requests (max_tokens ≤ 8192 with
+# oversized input) to a cheaper model. CCR's Router maps "claude-haiku" to
+# opencode-go/deepseek-v4-flash (~$0.02/M tokens vs MiniMax-M3[1m] quota).
+# Override by setting $env:CCR_COMPACT_MODEL_OVERRIDE before running cc-ccr.
+# Caveat: if the compaction input exceeds the cheaper model's context window,
+# the provider will reject it. In that case, unset this and the proxy will
+# forward to the primary 1M-context route instead.
+if (-not $env:CCR_COMPACT_MODEL_OVERRIDE) {
+    $env:CCR_COMPACT_MODEL_OVERRIDE = "claude-haiku"
+}
+
 $proxyResult = Ensure-AdmissionProxy -Port $proxyPort -CcrPort $ccrPort -ProxyScript $proxyScript -ProxyLog $proxyLog
 $proxyAvailable = $proxyResult.Available
 if ($proxyAvailable) {
