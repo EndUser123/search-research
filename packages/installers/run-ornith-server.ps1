@@ -445,7 +445,7 @@ try {
 
         try {
           $vramTitle = if ($null -ne $vram) { "${vram}MB" } else { "n/a" }
-          $host.UI.RawUI.WindowTitle = "llama.cpp: $($poll.state) • $($slot.state.ToLower()) • VRAM $vramTitle"
+          $host.UI.RawUI.WindowTitle = "llama.cpp: $($poll.state) • VRAM $vramTitle"
         } catch {}
 
         if ($poll.state -eq "STUCK" -or $poll.state -eq "BROKEN") {

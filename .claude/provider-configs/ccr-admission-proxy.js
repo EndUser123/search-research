@@ -179,6 +179,8 @@ function forwardToCCR(req, bodyBuf, res, lifecycle = null) {
   if (lifecycle) headers["x-request-id"] = lifecycle.requestId;
   const observer = observeResponseBody();
   const attemptId = lifecycle ? `attempt-${lifecycle.requestId}` : null;
+  const attemptStartedId = lifecycle ? `attempt-started-${lifecycle.requestId}` : null;
+  const attemptCompletedId = lifecycle ? `attempt-completed-${lifecycle.requestId}` : null;
   if (lifecycle) ledger.markAdmitted(lifecycle);
   let responseEnded = false;
   const finalize = (input) => {
@@ -192,7 +194,7 @@ function forwardToCCR(req, bodyBuf, res, lifecycle = null) {
       const attemptStarted = Date.now();
       if (lifecycle) {
         ledger.recordAttempt({
-          attemptId,
+          attemptId: attemptStartedId,
           requestId: lifecycle.requestId,
           provider: "CCR",
           model: lifecycle.model,
@@ -207,7 +209,7 @@ function forwardToCCR(req, bodyBuf, res, lifecycle = null) {
         if (proxyRes.statusCode === 429 || observer.quotaFailure()) ledger.recordQuotaFailure();
         if (lifecycle) {
           ledger.recordAttempt({
-            attemptId,
+            attemptId: attemptCompletedId,
             requestId: lifecycle.requestId,
             provider: "CCR",
             model: lifecycle.model,

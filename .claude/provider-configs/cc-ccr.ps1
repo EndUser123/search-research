@@ -142,7 +142,8 @@ if ($Stop) {
     # Clear env vars this script sets (dot-sourced — mutations persist in caller's shell)
     foreach ($var in @('ANTHROPIC_BASE_URL','ANTHROPIC_API_KEY','ANTHROPIC_AUTH_TOKEN',
                        'ANTHROPIC_CUSTOM_MODEL_OPTION','ANTHROPIC_CUSTOM_MODEL_OPTION_NAME',
-                       'ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION')) {
+                       'ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION',
+                       'GROK_SESSION_TOKEN','CCR_PORT')) {
         Remove-Item "env:$var" -ErrorAction SilentlyContinue
     }
     Write-Host "[cc-ccr] Cleared ANTHROPIC_* env vars (dot-sourced shell restored to pre-CCR state)." -ForegroundColor DarkGray
@@ -179,7 +180,8 @@ if ($StopAll) {
     # Clear env vars
     foreach ($var in @('ANTHROPIC_BASE_URL','ANTHROPIC_API_KEY','ANTHROPIC_AUTH_TOKEN',
                        'ANTHROPIC_CUSTOM_MODEL_OPTION','ANTHROPIC_CUSTOM_MODEL_OPTION_NAME',
-                       'ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION')) {
+                       'ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION',
+                       'GROK_SESSION_TOKEN','CCR_PORT')) {
         Remove-Item "env:$var" -ErrorAction SilentlyContinue
     }
 
@@ -1345,17 +1347,6 @@ Write-Host "  ANTHROPIC_CUSTOM_MODEL_OPTION      $env:ANTHROPIC_CUSTOM_MODEL_OPT
 Write-Host "  ANTHROPIC_CUSTOM_MODEL_OPTION_NAME $env:ANTHROPIC_CUSTOM_MODEL_OPTION_NAME"
 
 Write-DomainHeader "Routing"
-# --- Helper: format a CCR route string (provider1,model1,provider2,model2 → provider1/model1 → provider2/model2) ---
-function Format-Route {
-    param([string]$s)
-    if (-not $s) { return "(none)" }
-    $parts = $s -split ','
-    $pairs = for ($i = 0; $i -lt $parts.Length; $i += 2) {
-        if ($i + 1 -lt $parts.Length) { "$($parts[$i])/$($parts[$i+1])" }
-        else { $parts[$i] }
-    }
-    $pairs -join " → "
-}
 function Format-RoutePrimaryLabel {
     param([AllowNull()][string]$Primary)
     if ([string]::IsNullOrWhiteSpace($Primary)) { return 'primary: unavailable' }
