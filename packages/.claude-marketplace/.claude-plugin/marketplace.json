@@ -65,7 +65,7 @@
     },
     {
       "name": "cc-skills-sdlc",
-      "version": "1.0.236",
+      "version": "1.0.237",
       "description": "SDLC (Software Development Life Cycle) skills for Claude Code",
       "source": "./plugins/cc-skills-sdlc",
       "keywords": [
@@ -322,7 +322,7 @@
     },
     {
       "name": "red-team",
-      "version": "0.2.24",
+      "version": "0.2.29",
       "description": "Multi-agent adversarial review pipeline. Planner -> specialists -> critic -> single PROCEED/REVISE/BLOCK verdict. Disk-backed findings handoff keeps the orchestrator context small. Phase 3: telemetry + incident self-improvement layer.",
       "source": "./plugins/red-team",
       "keywords": [
