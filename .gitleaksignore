@@ -408,3 +408,6 @@ f9492afc6bd427831f13da16adb3d41197057215:scripts/security/REMEDIATION-QUICKSTART
 5cd8ee838575b9775a25d364c899973891447bd1:projects/yt-fts/src/yt_fts/utils/error_sanitizer.py:generic-api-key:33
 5cd8ee838575b9775a25d364c899973891447bd1:projects/yt-fts/src/yt_fts/utils/error_sanitizer.py:generic-api-key:131
 ctx7sk-de48f1db-0a6e-4cce-96e9-0c97f327fd74
+# Added 2026-07-19: test_operational_safety.py tests the secret-detector with obviously-fake fixtures (sk-abc123..., sk-1234567...). Test scope only.
+P:/.grok/skills/aar/tests/test_operational_safety.py:generic-api-key:93
+P:/.grok/skills/aar/tests/test_operational_safety.py:generic-api-key:178

@@ -1,0 +1,136 @@
+{
+  "verdict": {
+    "text": "The work achieved its primary goal. The most important lesson is that deterministic preprocessing reduces LLM rediscovery effort.",
+    "scope": "PROBLEM_CLASS"
+  },
+  "evidence_scope": {
+    "source_status": "SOURCE_COMPLETE",
+    "sessions_count": 1,
+    "boundaries": "Single session, full transcript, no compaction."
+  },
+  "intended_vs_actual": {
+    "goal": "Build a deterministic transcript preprocessor.",
+    "actual": "Preprocessor built and tested.",
+    "success": true
+  },
+  "validated_successes": [
+    {
+      "practice": "Detector registry with falsifiers.",
+      "evidence": "tests/test_detectors.py"
+    }
+  ],
+  "episodes": [
+    {
+      "id": "AAR-001",
+      "type": "validated_success",
+      "event": "Pipeline ran end-to-end.",
+      "evidence": "test_pipeline_e2e.py",
+      "impact": "Preprocessor is usable.",
+      "status": "closed"
+    },
+    {
+      "id": "AAR-002",
+      "type": "process_weakness",
+      "event": "Several detectors initially over-fired.",
+      "evidence": "smoke run: 617 signals before tuning",
+      "impact": "Noise would have biased synthesis.",
+      "status": "closed"
+    },
+    {
+      "id": "AAR-003",
+      "type": "observation",
+      "event": "Session had no timestamps in chat_history.jsonl.",
+      "evidence": "parse_stats.has_timestamps = false",
+      "impact": "Temporal ordering uses line order only.",
+      "status": "closed"
+    }
+  ],
+  "decisions": [
+    {"type": "DECISION", "decision": "Use frozen dataclasses for events.", "evidence": "event_model.py"}
+  ],
+  "recurring_patterns": [
+    {
+      "id": "P-1",
+      "cluster_type": "shared_root_cause",
+      "description": "Loose pattern matching caused detector false positives.",
+      "supporting_episodes": ["AAR-002"],
+      "causal_interpretation": "Regex/window thresholds too permissive for real coding sessions.",
+      "root_cause": "CONTRIBUTING_FACTOR",
+      "scope": "PROBLEM_CLASS",
+      "comparison_status": "NO_COMPARISON",
+      "confidence_dimensions": {
+        "evidence_confidence": "HIGH",
+        "causal_confidence": "HIGH",
+        "intervention_confidence": "MEDIUM",
+        "scope_confidence": "MEDIUM"
+      },
+      "confidence_rationale": {
+        "evidence_confidence": "Signal counts dropped from 617 to 111 after tightening.",
+        "causal_confidence": "Permissive patterns directly matched discussion-of-failure.",
+        "intervention_confidence": "Tighter patterns plausibly reduce noise; rare cases untested.",
+        "scope_confidence": "Pattern applies to detector design generally but evidence is one session."
+      }
+    }
+  ],
+  "opportunity_candidates": [
+    {
+      "id": "O-1",
+      "opportunity_id": "O-1",
+      "title": "Calibrate detector thresholds against a labelled corpus",
+      "source_classes": ["SIMPLIFICATION_DERIVED"],
+      "horizon": "SYSTEM_CAPABILITY",
+      "mechanism": "EXPERIMENT",
+      "supporting_event_ids": ["chat_history-L000010-S000009"],
+      "supporting_episodes": ["AAR-002"],
+      "observed_evidence": "Smoke run produced 617 signals before tuning; signal-to-noise was poor.",
+      "interpretation": "Calibration against a labelled true-positive corpus would let us set per-detector thresholds with evidence.",
+      "value_expected": "Higher precision; fewer false positives reaching the LLM synthesis stage.",
+      "beneficiary": "AAR preprocessor users",
+      "frequency_or_reach": "once per detector change",
+      "current_behavior": "Detectors fire on raw transcript.",
+      "desired_behavior": "Calibrate against a labelled corpus.",
+      "root_cause_confidence": "medium",
+      "disposition": "INVESTIGATE",
+      "scope": "PROBLEM_CLASS",
+      "comparison_status": "NO_COMPARISON",
+      "confidence_dimensions": {
+        "evidence_confidence": "MEDIUM",
+        "causal_confidence": "MEDIUM",
+        "intervention_confidence": "LOW",
+        "scope_confidence": "LOW"
+      },
+      "confidence_rationale": {
+        "evidence_confidence": "One session shows noise reduction but not precision.",
+        "causal_confidence": "Plausible that calibration would help.",
+        "intervention_confidence": "Effect of calibration untested here.",
+        "scope_confidence": "Single session cannot establish general applicability."
+      },
+      "falsifier": "Calibration may not generalise if the labelled corpus is drawn from a different problem class.",
+      "next_evidence_needed": "Build a small labelled corpus and measure precision before/after.",
+      "lifecycle": {
+        "hypothesis": "Calibrated thresholds reduce false positives without losing true positives.",
+        "evidence_needed": "Labelled corpus of 50+ transcripts with known true-positive signals.",
+        "success_signal": "Precision improves by ≥30% at constant recall on the labelled corpus.",
+        "failure_signal": "Precision does not improve or recall drops materially.",
+        "review_trigger": "After 3 detector changes or a labelled corpus of 50 transcripts.",
+        "retirement_condition": "If thresholds converge and no further calibration is measurable."
+      }
+    }
+  ],
+  "open_work": [],
+  "routing": [
+    {"item": "O-1", "route": "INVESTIGATE", "owner": "user"}
+  ],
+  "accounting": {
+    "total_episodes": 3,
+    "validated_success": 1,
+    "resolved_incident": 0,
+    "open_defect": 0,
+    "process_weakness": 1,
+    "pending_decision": 0,
+    "opportunity_candidate": 0,
+    "observation": 1,
+    "unknown": 0
+  },
+  "n_sessions": 1
+}
